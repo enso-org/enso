@@ -14,24 +14,12 @@ on:
           - patch
           - rc
           - nightly
-      ydoc:
-        description: What kind of Ydoc image to build.
-        required: false
-        type: choice
-        default: polyglot
-        options:
-          - polyglot
   workflow_call:
     inputs:
       designator:
         description: What kind of release should be promoted.
         required: true
         type: string
-      ydoc:
-        description: What kind of Ydoc image to build.
-        required: false
-        type: string
-        default: polyglot
 jobs:
   enso-build-ci-gen-promote-release-job-linux-amd64:
     name: Promote release (linux, amd64)
@@ -92,7 +80,6 @@ jobs:
     uses: ./.github/workflows/release.yml
     with:
       version: ${{ needs.enso-build-ci-gen-promote-release-job-linux-amd64.outputs.ENSO_VERSION }}
-      ydoc: ${{ inputs.ydoc }}
     secrets: inherit
 env:
   ENSO_BUILD_SKIP_VERSION_CHECK: "true"

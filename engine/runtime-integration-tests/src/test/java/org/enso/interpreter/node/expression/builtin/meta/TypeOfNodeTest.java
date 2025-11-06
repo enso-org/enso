@@ -20,7 +20,8 @@ import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
 public class TypeOfNodeTest {
-  @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
+  @ClassRule
+  public static final ContextUtils ctxRule = ContextUtils.newBuilder().assertGC(false).build();
 
   @Parameterized.Parameter(0)
   public Object value;
@@ -30,6 +31,7 @@ public class TypeOfNodeTest {
 
   @Parameterized.Parameters
   public static Object[][] allPossibleEnsoInterpreterValues() throws Exception {
+    ctxRule.context().enter();
     var g = ValuesGenerator.create(ctxRule);
     var typeOf =
         ctxRule.evalModule(
@@ -51,6 +53,7 @@ public class TypeOfNodeTest {
     }
     data.add(new Object[] {UnresolvedSymbol.build("unknown_name", null), "Function"});
     data.add(new Object[] {UnresolvedConstructor.build(null, "Unknown_Name"), "Function"});
+    ctxRule.context().leave();
     return data.toArray(new Object[0][]);
   }
 

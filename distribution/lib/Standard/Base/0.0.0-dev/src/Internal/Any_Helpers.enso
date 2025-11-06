@@ -1,7 +1,7 @@
 private
 
-any_equals o1 o2 = @Builtin_Method "Any.=="
-any_to_text obj = @Builtin_Method "Any.to_text"
-any_to_display_text obj = @Builtin_Method "Any.to_display_text"
-any_pretty obj = @Builtin_Method "Any.pretty"
+any_equals o1 o2 = @Builtin_Method "Any_Helpers.any_equals"
+any_to_text obj = @Builtin_Method "Any_Helpers.to_text"
+any_to_display_text obj = @Builtin_Method "Any_Helpers.to_display_text"
+any_pretty obj = @Builtin_Method "Any_Helpers.pretty"
 any_catch_primitive obj handler = @Builtin_Method "Any.catch_primitive"

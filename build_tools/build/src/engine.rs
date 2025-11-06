@@ -183,6 +183,7 @@ pub struct BuildConfigurationFlags {
     /// Used to check that benchmarks do not fail on runtime, rather than obtaining the results.
     pub execute_benchmarks_once: bool,
     pub build_engine_package: bool,
+    pub build_engine_bundle: bool,
     /// Use the NI Engine Runner during the build.
     pub use_native_runner: bool,
     /// Build the NI Engine Runner.
@@ -267,6 +268,10 @@ impl BuildConfigurationResolved {
             config.build_engine_package = true;
         }
 
+        if config.build_engine_bundle {
+            config.build_engine_package = true;
+        }
+
         if config.build_project_manager_bundle {
             config.build_project_manager_package = true;
             config.build_engine_package = true;
@@ -347,6 +352,7 @@ impl Default for BuildConfigurationFlags {
             execute_benchmarks: default(),
             execute_benchmarks_once: false,
             build_engine_package: false,
+            build_engine_bundle: false,
             build_launcher_package: false,
             use_native_runner: false,
             build_native_runner: false,
@@ -394,6 +400,7 @@ pub struct BuiltArtifacts {
     pub engine_package: Option<generated::EnginePackage>,
     pub launcher_package: Option<generated::LauncherPackage>,
     pub project_manager_package: Option<generated::ProjectManagerPackage>,
+    pub engine_bundle: Option<generated::EngineBundle>,
     pub launcher_bundle: Option<generated::LauncherBundle>,
     pub project_manager_bundle: Option<generated::ProjectManagerBundle>,
 }
@@ -415,6 +422,9 @@ impl BuiltArtifacts {
 
     pub fn bundles(&self) -> Vec<&dyn IsBundle> {
         let mut bundles = Vec::<&dyn IsBundle>::new();
+        if let Some(engine) = &self.engine_bundle {
+            bundles.push(engine);
+        }
         if let Some(launcher) = &self.launcher_bundle {
             bundles.push(launcher);
         }

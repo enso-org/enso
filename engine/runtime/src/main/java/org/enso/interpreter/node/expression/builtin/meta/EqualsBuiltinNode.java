@@ -5,25 +5,14 @@ import com.oracle.truffle.api.dsl.NeverDefault;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.BuiltinMethod;
+import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.warning.AppendWarningNode;
 
 @BuiltinMethod(
-    type = "Any",
-    name = "==",
-    description =
-        """
-        Compares self with other object and returns True iff `self` is exactly the same as
-        the other object, including all its transitively accessible properties or fields,
-        False otherwise.
-
-        Can handle arbitrary objects, including all foreign objects.
-
-        Does not throw dataflow errors or panics.
-
-        Note that this is different than `Meta.is_same_object`, which checks whether two
-        references point to the same object on the heap. Moreover, `Meta.is_same_object`
-        implies `Any.==` for all object with the exception of `Number.nan`.
-        """)
+    type = "Any_Helpers",
+    name = "any_equals",
+    autoRegister=false
+)
 public final class EqualsBuiltinNode extends Node {
   @Child private EqualsNode node;
   @Child private AppendWarningNode append;
@@ -46,6 +35,9 @@ public final class EqualsBuiltinNode extends Node {
    * @return {@code true} if {@code self} and {@code that} seem equal
    */
   public Object execute(VirtualFrame frame, Object obj, Object other) {
+    if (obj instanceof DataflowError e) {
+      return e;
+    }
     var areEqual = node.execute(frame, obj, other);
     if (areEqual.getWarnings() != null) {
       if (append == null) {

@@ -16,7 +16,7 @@ import org.enso.interpreter.runtime.data.atom.AtomConstructor;
 import org.enso.interpreter.runtime.data.atom.StructsLibrary;
 import org.enso.interpreter.runtime.data.text.Text;
 
-@BuiltinMethod(type = "Any", name = "to_text", description = "Generic text conversion.")
+@BuiltinMethod(type = "Any_Helpers", name = "to_text", description = "Generic text conversion.", autoRegister = false)
 @GenerateUncached
 public abstract class AnyToTextNode extends Node {
 

@@ -19,7 +19,7 @@ import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 import org.enso.polyglot.common_utils.Core_Text_Utils;
 
-@BuiltinMethod(type = "Any", name = "to_display_text")
+@BuiltinMethod(type = "Any_Helpers", name = "to_display_text", autoRegister = false)
 public abstract class AnyToDisplayTextNode extends Node {
   static AnyToDisplayTextNode build() {
     return AnyToDisplayTextNodeGen.create();

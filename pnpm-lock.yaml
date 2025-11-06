@@ -36,6 +36,9 @@ catalogs:
     vitest:
       specifier: ^3.2.4
       version: 3.2.4
+    zod:
+      specifier: ^3.25.49
+      version: 3.25.76
 
 overrides:
   tslib: ^2.8.1
@@ -118,15 +121,6 @@ importers:
       '@internationalized/date':
         specifier: 3.7.0
         version: 3.7.0
-      '@tanstack/query-core':
-        specifier: 5.59.20
-        version: 5.59.20
-      '@tanstack/query-persist-client-core':
-        specifier: 5.59.20
-        version: 5.59.20
-      '@tanstack/vue-query':
-        specifier: 5.59.20
-        version: 5.59.20(vue@3.5.13(typescript@5.7.2))
       '@types/node':
         specifier: 'catalog:'
         version: 24.2.1
@@ -134,10 +128,10 @@ importers:
         specifier: ^1.1.0
         version: 1.1.0
       vue:
-        specifier: '*'
+        specifier: ^3.5.13
         version: 3.5.13(typescript@5.7.2)
       zod:
-        specifier: ^3.25.49
+        specifier: 'catalog:'
         version: 3.25.76
     devDependencies:
       '@fast-check/vitest':
@@ -369,6 +363,12 @@ importers:
       '@sentry/vue':
         specifier: ^7.120.2
         version: 7.120.3(vue@3.5.13(typescript@5.7.2))
+      '@tanstack/query-core':
+        specifier: 5.59.20
+        version: 5.59.20
+      '@tanstack/query-persist-client-core':
+        specifier: 5.59.20
+        version: 5.59.20
       '@tanstack/react-query':
         specifier: 5.59.20
         version: 5.59.20(react@18.3.1)
@@ -535,7 +535,7 @@ importers:
         specifier: ^13.6.21
         version: 13.6.21
       zod:
-        specifier: ^3.25.49
+        specifier: 'catalog:'
         version: 3.25.76
       zustand:
         specifier: ^4.5.5
@@ -556,9 +556,6 @@ importers:
       '@react-types/shared':
         specifier: 3.27.0
         version: 3.27.0(react@18.3.1)
-      '@tanstack/query-core':
-        specifier: ^5.59.20
-        version: 5.59.20
       '@tanstack/react-query-devtools':
         specifier: 5.59.20
         version: 5.59.20(@tanstack/react-query@5.59.20(react@18.3.1))(react@18.3.1)
@@ -869,7 +866,7 @@ importers:
         specifier: ^13.6.21
         version: 13.6.21
       zod:
-        specifier: ^3.25.49
+        specifier: 'catalog:'
         version: 3.25.76
     devDependencies:
       '@fast-check/vitest':
@@ -967,7 +964,7 @@ importers:
         specifier: ^13.6.21
         version: 13.6.21
       zod:
-        specifier: ^3.25.49
+        specifier: 'catalog:'
         version: 3.25.76
     devDependencies:
       '@fast-check/vitest':

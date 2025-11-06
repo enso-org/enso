@@ -54,17 +54,42 @@ export function useNodeVisualization({
     get: () => metadata.value?.visible ?? false,
     set: (value) => emit('update:visualizationEnabled', value),
   })
+
+  function hoverWithLease(baseHover: ToValue<boolean>) {
+    const hoverWithLease = ref(toValue(baseHover))
+    watch(
+      () => toValue(baseHover),
+      (immediateHovered) => {
+        if (immediateHovered) hoverWithLease.value = true
+        else {
+          requestAnimationFrame(() => {
+            hoverWithLease.value = toValue(baseHover)
+          })
+        }
+      },
+      { flush: 'post' },
+    )
+    return hoverWithLease
+  }
+
   const visualizationHovered = ref(false)
+  const visHoveredWithLease = hoverWithLease(visualizationHovered)
+  const nodeHoveredWithLease = hoverWithLease(nodeHovered)
 
   const isVisualizationPreviewed = computed(
     () =>
       !isVisualizationEnabled.value &&
       keyboard.mod &&
-      (visualizationHovered.value || toValue(nodeHovered)),
+      (visHoveredWithLease.value || nodeHoveredWithLease.value),
   )
+
   const isVisualizationVisible = computed(
     () => isVisualizationEnabled.value || isVisualizationPreviewed.value,
   )
+
+  watch(isVisualizationVisible, (visible) => {
+    if (!visible && visualizationHovered.value) visualizationHovered.value = false
+  })
 
   const visRect = shallowRef<Rect>()
   const visibleVisRect = computed(
