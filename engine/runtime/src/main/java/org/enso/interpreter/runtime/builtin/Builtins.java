@@ -214,13 +214,13 @@ public final class Builtins {
    *     builtin method was ever registerd
    */
   public Optional<BuiltinFunction> getBuiltinFunction(
-      String type, String methodName, EnsoLanguage language, boolean isStaticInstance) {
-    return builtins.getBuiltinFunction(type, methodName, language, isStaticInstance);
+      String type, String methodName, EnsoLanguage language) {
+    return builtins.getBuiltinFunction(type, methodName, language);
   }
 
   public Optional<BuiltinFunction> getBuiltinFunction(
       Type type, String methodName, EnsoLanguage language) {
-    return getBuiltinFunction(type.getName(), methodName, language, false);
+    return getBuiltinFunction(type.getName(), methodName, language);
   }
 
   public <T extends Builtin> T getBuiltinType(Class<T> clazz) {

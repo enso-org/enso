@@ -1270,5 +1270,7 @@
   "collaborationBindingCategory": "Collaboration",
   "settingsBindingCategory": "Settings",
   "navigationBindingCategory": "Navigation",
-  "developerBindingCategory": "Developer"
+  "developerBindingCategory": "Developer",
+  "syncingProjectsTitle": "Syncing projects",
+  "syncingProjectsMessage": "Syncing projects with Cloud…"
 }
