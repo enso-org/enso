@@ -40,7 +40,8 @@ final class ThreadExecutors {
   }
 
   ScheduledExecutorService newScheduledThreadPool(int cnt, String name, boolean systemThread) {
-    var s = Executors.newScheduledThreadPool(cnt, new Factory(name, systemThread));
+    var s = new ScheduledThreadPoolExecutor(cnt, new Factory(name, systemThread));
+    s.allowCoreThreadTimeOut(true);
     pools.put(s, name);
     return s;
   }

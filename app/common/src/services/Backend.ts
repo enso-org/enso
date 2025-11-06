@@ -630,7 +630,7 @@ export interface PathResolveResponse extends Omit<AnyRealAsset, 'type' | 'ensoPa
 
 /** Response from "assets/${assetId}" endpoint. */
 export type AssetDetailsResponse<Id extends AssetId> =
-  | (Omit<Asset<AssetTypeFromId<Id>>, 'ensoPath'> & { readonly metadataId: MetadataId })
+  | (Asset<AssetTypeFromId<Id>> & { readonly metadataId: MetadataId })
   | null
 
 /** Whether the user is on a plan with multiple seats (i.e. a plan that supports multiple users). */

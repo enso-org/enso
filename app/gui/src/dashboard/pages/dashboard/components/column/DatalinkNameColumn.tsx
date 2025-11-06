@@ -8,7 +8,7 @@ import type { AssetNameColumnProps } from '#/pages/dashboard/components/column'
 import { useDriveStore } from '#/providers/DriveProvider'
 import { titleSchema, type DatalinkAsset } from '#/services/Backend'
 import { isDoubleClick } from '#/utilities/event'
-import { useRightPanelData } from '$/providers/react'
+import { useRightPanelData } from '$/providers/react/container'
 import { useStore } from 'zustand'
 
 /** Props for a {@link DatalinkNameColumn}. */

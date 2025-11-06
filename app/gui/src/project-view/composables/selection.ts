@@ -280,7 +280,7 @@ export function useGraphHover(isPortEnabled: (port: PortId) => boolean) {
 
   const hoveredPort = computed<PortId | undefined>(() => {
     if (!hoveredElement.value) return undefined
-    for (const element of selectorHierarchy(hoveredElement.value, '.WidgetPort')) {
+    for (const element of selectorHierarchy(hoveredElement.value, '[data-port]')) {
       const portId = dataAttribute<PortId>(element, 'port')
       if (portId && isPortEnabled(portId)) return portId
     }

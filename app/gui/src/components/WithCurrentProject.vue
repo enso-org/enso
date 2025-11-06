@@ -1,19 +1,19 @@
 <script lang="ts">
 import { ProjectId } from '#/services/Backend'
-import { isLocalProjectId } from '#/services/LocalBackend'
-import { injectOpenedProjects, type OpenedProject } from '$/providers/openedProjects'
+import { useOpenedProjects } from '$/providers/openedProjects'
+import type { Initialized as InitializedProject } from '$/providers/openedProjects/projectStates'
 import { groupColorVar } from '@/composables/nodeColors'
 import { createContextStore } from '@/providers'
 import { assert } from '@/util/assert'
 import { colorFromString } from '@/util/colors'
 import type { Opt } from '@/util/data/opt'
-import type { ToValue } from '@/util/reactivity'
-import { computed, type Ref, shallowRef, type ToRefs, toValue, watch } from 'vue'
+import { Loader, ResultComponent } from '@/util/react'
+import { computed, type Ref, shallowRef, watch } from 'vue'
 
 export type CurrentProjectStore = ReturnType<typeof useCurrentProjectRaw>
 const [provideCurrentProject, useCurrentProjectRaw] = createContextStore(
   'currentProject',
-  (project: Ref<OpenedProject | undefined>) => {
+  (project: Ref<InitializedProject | undefined>) => {
     const ref = computed(() => {
       assert(project.value != null)
       return project.value
@@ -27,8 +27,6 @@ const [provideCurrentProject, useCurrentProjectRaw] = createContextStore(
       module: computed(() => ref.value.module),
       graph: computed(() => ref.value.graph),
       widgetRegistry: computed(() => ref.value.widgetRegistry),
-    } satisfies ToRefs<{ [K in keyof OpenedProject]: OpenedProject[K] }> & {
-      maybeRef: Ref<OpenedProject | undefined>
     }
   },
 )
@@ -55,32 +53,12 @@ export function useCurrentProject(allowMissing?: boolean) {
   return currentProjectStore
 }
 
-function useOpenedProject(projectId: ToValue<Opt<ProjectId>>) {
-  const openedProjects = injectOpenedProjects()
-
-  const hybridResolvedProjectId = computed(() => {
-    const id = toValue(projectId)
-    // When we have a hybrid project opened, we have to translate cloud project ID to corresponding hybrid project.
-    if (id && openedProjects.get(id) == null && !isLocalProjectId(id)) {
-      for (const openedId of openedProjects.listIds()) {
-        if (openedId.includes('/cloud-' + id) && isLocalProjectId(openedId)) return openedId
-      }
-    }
-    return id
-  })
-
-  return computed((): OpenedProject | undefined => {
-    const id = hybridResolvedProjectId.value
-    return id != null ? openedProjects.get(id) : undefined
-  })
-}
-
-function useStoreTemplate<K extends keyof OpenedProject>(
+function useStoreTemplate<K extends Exclude<keyof CurrentProjectStore, 'maybeRef'>>(
   storeKey: K,
-): () => NonNullable<OpenedProject[K]> {
+): () => NonNullable<CurrentProjectStore[K]['value']> {
   return () => {
     const currentProject = useCurrentProject().maybeRef
-    const store: Opt<OpenedProject[K]> = currentProject.value?.[storeKey]
+    const store: Opt<CurrentProjectStore[K]['value']> = currentProject.value?.[storeKey]
     if (store == null) {
       throw new Error('Current Project missing, probably closed.')
     }
@@ -112,21 +90,25 @@ export const useWidgetRegistry = useStoreTemplate('widgetRegistry')
 <script setup lang="ts">
 const { id } = defineProps<{ id: Opt<ProjectId> }>()
 
-const project = useOpenedProject(() => id)
-const providedProject = shallowRef<OpenedProject | undefined>(project.value)
+const openedProjects = useOpenedProjects()
+const project = computed(() => (id ? openedProjects.get(id) : undefined))
+const initializedProject = computed(() =>
+  project.value?.state.status === 'initialized' ? project.value.state : undefined,
+)
+const providedProject = shallowRef<InitializedProject | undefined>(initializedProject.value)
 
 // When project appears, the setup and mount handlers should already see it in context. But when project disappears,
 // we want to keep stores while unmounting (because unmount handlers may still read some computed values).
 // That's why we use two separate watches.
 watch(
-  project,
+  initializedProject,
   (project) => {
     if (project != null) providedProject.value = project
   },
   { flush: 'pre' },
 )
 watch(
-  project,
+  initializedProject,
   (project) => {
     if (project == null) providedProject.value = project
   },
@@ -137,7 +119,7 @@ provideCurrentProject(providedProject)
 
 const groupColors = computed(() => {
   const styles: { [key: string]: string } = {}
-  const groups = project.value?.suggestionDb.groups ?? []
+  const groups = initializedProject.value?.suggestionDb.groups ?? []
   for (const group of groups) {
     styles[groupColorVar(group)] = group.color ?? colorFromString(group.name)
   }
@@ -147,7 +129,22 @@ const groupColors = computed(() => {
 
 <template>
   <div class="WithCurrentProject" :style="groupColors">
-    <slot v-if="project != null" />
+    <slot v-if="initializedProject != null" />
+    <slot v-else-if="project?.error != null" name="error">
+      <ResultComponent
+        status="error"
+        title="Failed to open project"
+        :subtitle="`${project.error}`"
+      />
+    </slot>
+    <slot
+      v-else-if="
+        project?.nextTask?.process === 'opening' || project?.nextTask?.process === 'restoring'
+      "
+      name="loading"
+    >
+      <Loader minHeight="full" />
+    </slot>
     <slot v-else name="fallback" />
   </div>
 </template>

@@ -99,11 +99,13 @@ object NativeImage {
     modulePath: Seq[String]                  = Seq.empty,
     addModules: Seq[String]                  = Seq.empty,
     verbose: Boolean                         = false,
-    symlink: Boolean                         = true
+    symlink: Boolean                         = true,
+    shared: Boolean                          = false
   ): Def.Initialize[Task[Unit]] = Def
     .task {
-      val log       = state.value.log
-      val targetLoc = artifactFile(targetDir, name, withExtension = false)
+      val log = state.value.log
+      val targetLoc =
+        artifactFile(targetDir, name, withExtension = false, shared = shared)
 
       def nativeImagePath(prefix: Path)(path: Path): Path = {
         val base = path.resolve(prefix)
@@ -203,6 +205,11 @@ object NativeImage {
       } else {
         Seq()
       }
+      val sharedOpt = if (shared) {
+        Seq("--shared")
+      } else {
+        Seq()
+      }
       val addModulesOpt =
         if (addModules.nonEmpty) Seq("--add-modules", addModules.mkString(","))
         else Seq.empty
@@ -227,6 +234,7 @@ object NativeImage {
         excludeConfigsOpt ++
         mp ++
         addModulesOpt ++
+        sharedOpt ++
         Seq("-cp", cpStr) ++
         staticParameters ++
         configs ++
@@ -281,11 +289,13 @@ object NativeImage {
         s"Started building $targetLoc native image. The output is captured."
       )
       val retCode    = process.!(processLogger)
-      val targetFile = artifactFile(targetDir, name)
+      val targetFile = artifactFile(targetDir, name, shared = shared)
       if (retCode != 0 || !targetFile.exists()) {
         log.error(s"Native Image build of $targetFile failed, with output: ")
         println(sb.toString())
-        throw new RuntimeException("Native Image build failed")
+        throw new RuntimeException(
+          s"Native Image build failed to generate $targetFile"
+        )
       }
       var msg = s"$targetLoc native image build successful."
       if (targetDir != null && symlink) {
@@ -396,11 +406,31 @@ object NativeImage {
   def artifactFile(
     targetDir: File,
     name: String,
-    withExtension: Boolean = true
+    withExtension: Boolean = true,
+    shared: Boolean        = false
   ): File = {
     val artifactName =
-      if (withExtension && Platform.isWindows) name + ".exe"
-      else name
+      if (withExtension) {
+        if (shared) {
+          if (Platform.isWindows) {
+            name + ".dll"
+          } else {
+            if (Platform.isLinux) {
+              name + ".so"
+            } else {
+              name + ".dylib"
+            }
+          }
+        } else {
+          if (Platform.isWindows) {
+            name + ".exe"
+          } else {
+            name
+          }
+        }
+      } else {
+        name
+      }
     if (targetDir == null) {
       new File(artifactName).getAbsoluteFile()
     } else {

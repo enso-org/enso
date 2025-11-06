@@ -12,7 +12,7 @@ type Problem_Builder
     ## ---
        private: true
        ---
-    Value types_to_always_throw oob_indices missing_input_columns missing_input_columns_location other
+    private Value types_to_always_throw oob_indices missing_input_columns missing_input_columns_location other
 
     ## ---
        private: true
@@ -51,7 +51,6 @@ type Problem_Builder
     build_problemset : Vector
     build_problemset self =
         Vector.build problems->
-
             missing_criteria = self.missing_input_columns.get.build + self.oob_indices.get.build
             if missing_criteria.not_empty then
                 problems.append (Missing_Input_Columns.Error missing_criteria where=self.missing_input_columns_location)

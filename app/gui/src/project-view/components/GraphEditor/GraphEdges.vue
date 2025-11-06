@@ -1,3 +1,6 @@
+<script lang="ts">
+export const EDGE_ARROW_MARKER_ID = 'edge-arrow'
+</script>
 <script setup lang="ts">
 import { useCurrentProject } from '$/components/WithCurrentProject.vue'
 import { type NodeId } from '$/providers/openedProjects/graph'
@@ -199,10 +202,25 @@ function onNewNodeClick(id: NodeId, position: Vec2) {
   emit('createNodeFromPort', id, [{ commit: false, content: undefined, position }])
 }
 </script>
-
 <template>
   <div>
     <svg :viewBox="props.navigator.viewBox" class="overlay behindNodes">
+      <marker
+        :id="EDGE_ARROW_MARKER_ID"
+        viewBox="0 0 12 9"
+        refX="6"
+        refY="1"
+        markerWidth="12"
+        markerHeight="9"
+        markerUnits="userSpaceOnUse"
+        orient="0"
+        fill="context-stroke"
+      >
+        <path
+          d="M10.9635 1.5547 L6.83205 7.75193 C6.43623 8.34566 5.56377 8.34566 5.16795 7.75192 L1.03647 1.5547 C0.593431 0.890146 1.06982 0 1.86852 0 L10.1315 0 C10.9302 0 11.4066 0.890147 10.9635 1.5547 Z"
+        />
+      </marker>
+
       <GraphEdge v-for="edge in graph.connectedEdges" :key="edge.target" :edge="edge" />
       <GraphEdge v-if="graph.cbEditedEdge" :edge="graph.cbEditedEdge" />
       <GraphEdge
