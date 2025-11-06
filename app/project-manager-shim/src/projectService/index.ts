@@ -87,7 +87,7 @@ export class ProjectService {
     const runner = new EnsoRunner(ensoPath)
 
     // Read extra arguments from environment variable
-    const envArgs = process.env.ENSO_RUNNER_ARGS
+    const envArgs = process.env.ENSO_ENGINE_ARGS
     const envArgsArray = envArgs ? envArgs.split(/\s+/).filter((arg) => arg.length > 0) : []
     const allExtraArgs = [...envArgsArray, ...extraArgs]
 

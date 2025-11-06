@@ -458,8 +458,8 @@ export function findEnsoExecutable(workDir: string = '.'): Path | undefined {
     ensoExecutables = ['enso']
   }
 
-  // Check ENSO_RUNNER_PATH environment variable first
-  const envPath = process.env.ENSO_RUNNER_PATH
+  // Check ENSO_ENGINE_PATH environment variable first
+  const envPath = process.env.ENSO_ENGINE_PATH
   if (envPath) {
     try {
       fs.accessSync(envPath)
