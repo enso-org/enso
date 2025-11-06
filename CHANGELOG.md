@@ -14,6 +14,8 @@
   is included][14028]
 - [Function docs in autocomplete in table expressions][14059]
 - [Many CLI arguments removed][14069]
+- [JSON and SQL visualizations' content may be now selected and copied][14262]
+- [SQL visualization displays interpolated parameters properly][14262]
 
 [13685]: https://github.com/enso-org/enso/pull/13685
 [13658]: https://github.com/enso-org/enso/pull/13658
@@ -26,6 +28,7 @@
 [13976]: https://github.com/enso-org/enso/pull/13976
 [14059]: https://github.com/enso-org/enso/pull/14059
 [14069]: https://github.com/enso-org/enso/pull/14069
+[14262]: https://github.com/enso-org/enso/pull/14262
 
 #### Enso Standard Library
 
