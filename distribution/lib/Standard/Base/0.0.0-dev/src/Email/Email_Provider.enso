@@ -6,8 +6,10 @@ import project.Data
 import project.Data.Pair.pair
 import project.Email.Email_Send_Response.Send_Response
 import project.System.File.File
+import project.Nothing.Nothing
 
 polyglot java import java.util.Base64
+polyglot java import org.enso.base.SMTP_Email as smtp_send
 
 type Email_Provider
     TestProvider
@@ -17,10 +19,10 @@ type Email_Provider
     send self email:Email_Object = case self of
         Email_Provider.TestProvider -> Send_Response.Test email
         Email_Provider.SendGrid api_key -> sendgrid_email email api_key
-        Email_Provider.SMTP server port username password use_tls -> Send_Response.Test email
+        Email_Provider.SMTP server port username password use_tls -> smtp_send.send server port username password use_tls email.from_address email.to email.subject email.body.body
 
 sendgrid_email email:Email_Object api_key:Text =
-    to_object = JS_Object.from_pairs [["to", email.to.map create_to_email], ["cc", email.cc.map create_to_email], ["bcc", email.bcc.map create_to_email]]
+    to_object = JS_Object.from_pairs ([create_to_email_object email.to "to", create_to_email_object email.cc "cc", create_to_email_object email.bcc "bcc"].filter ..Not_Nothing) 
     base_email_pairs = [["personalizations", [to_object]], ["from", (JS_Object.from_pairs [["email", email.from_address]])], ["subject", email.subject], ["content", [prepare_html_body email.body.body]]]
 
     attachment_list = if email.attachments.length == 0 then [] else email.attachments.map prepare_attachment
@@ -29,6 +31,9 @@ sendgrid_email email:Email_Object api_key:Text =
 
     api_response = Data.post 'https://api.sendgrid.com/v3/mail/send' (..Json sendgrid_request_body) headers=[Header.authorization_bearer api_key]
     api_response
+
+create_to_email_object emails send_type =
+    if emails.length > 0 then [send_type, emails.map create_to_email] else Nothing
 
 create_to_email recipient_email =
     recipient_object = JS_Object.from_pairs [["email", recipient_email]]
