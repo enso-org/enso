@@ -61,10 +61,7 @@ function onClick(key: string, event: MouseEvent) {
         : ', '
       }}
     </span>
-    <span>
-      <pre class="indent" v-text="indent"></pre>
-      }
-    </span>
+    <span><pre class="indent" v-text="indent"></pre>}</span>
   </span>
 </template>
 
