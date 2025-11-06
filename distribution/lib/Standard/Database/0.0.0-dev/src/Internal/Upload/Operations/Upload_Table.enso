@@ -34,7 +34,7 @@ create_table_structure connection table_name structure primary_key temporary on_
             connection.execute create_table_statement
         final_result = update_result.if_not_error table_name
         final_result.catch SQL_Error sql_error->
-            if connection.dialect.get_error_mapper.is_table_already_exists_error sql_error then Error.throw (Table_Already_Exists.Error table_name) else final_result
+            if connection.type_mapping.error_mapper.is_table_already_exists_error sql_error then Error.throw (Table_Already_Exists.Error table_name) else final_result
 
 ## Ensures the table has a valid temporary name for databases that have special
    naming rules for temporary tables.

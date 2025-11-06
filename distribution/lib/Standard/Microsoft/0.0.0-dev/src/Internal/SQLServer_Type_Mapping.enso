@@ -16,6 +16,8 @@ import Standard.Database.SQL.SQL_Type
 from Standard.Database.Errors import Unsupported_Database_Type
 from Standard.Database.Internal.Statement_Setter import fill_hole_default
 
+import project.Internal.SQLServer_Error_Mapper.SQLServer_Error_Mapper
+
 polyglot java import java.sql.Types
 polyglot java import org.enso.database.fetchers.ColumnFetcherFactory
 polyglot java import org.enso.database.JDBCUtils
@@ -202,6 +204,13 @@ type SQLServer_Type_Mapping
             # Fallback to default logic for everything else
             _ -> fill_hole_default stmt i type_hint value JDBCUtils
         Statement_Setter.Value custom_fill_hole
+
+    ## ---
+       private: true
+       ---
+    error_mapper : SQLServer_Error_Mapper
+    error_mapper self = SQLServer_Error_Mapper
+
 
 ## ---
    private: true
