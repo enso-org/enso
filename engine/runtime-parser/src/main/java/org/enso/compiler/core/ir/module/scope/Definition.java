@@ -59,7 +59,7 @@ public interface Definition extends Scope {
     }
 
     public static Builder builder() {
-      return new Builder();
+      return new Builder().members(nil());
     }
 
     public Builder copyBuilder() {
@@ -97,6 +97,10 @@ public interface Definition extends Scope {
         IdentifiedLocation identifiedLocation,
         MetadataStorage passData) {
       super(name, arguments, annotations, isPrivate, identifiedLocation, passData);
+    }
+
+    public static Builder builder() {
+      return new Builder().annotations(nil()).isPrivate(false);
     }
 
     public Builder copyBuilder() {
@@ -154,5 +158,10 @@ public interface Definition extends Scope {
           body().map(b -> IR.mkIndent(newIndent) + b.showCode(newIndent)).mkString("\n\n");
       return header + "\n" + bodyStr;
     }
+  }
+
+  @SuppressWarnings("unchecked")
+  private static <T> scala.collection.immutable.List<T> nil() {
+    return (scala.collection.immutable.List<T>) scala.collection.immutable.Nil$.MODULE$;
   }
 }
