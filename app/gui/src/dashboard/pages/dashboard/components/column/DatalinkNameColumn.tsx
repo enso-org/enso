@@ -7,7 +7,7 @@ import { useCategoriesAPI } from '#/layouts/Drive/Categories'
 import type { AssetNameColumnProps } from '#/pages/dashboard/components/column'
 import { useDriveStore } from '#/providers/DriveProvider'
 import { isDoubleClick } from '#/utilities/event'
-import { useRightPanelData } from '$/providers/react'
+import { useRightPanelData } from '$/providers/react/container'
 import { titleSchema, type DatalinkAsset } from 'enso-common/src/services/Backend'
 import { useStore } from 'zustand'
 

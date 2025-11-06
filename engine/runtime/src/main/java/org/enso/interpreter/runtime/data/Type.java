@@ -223,7 +223,7 @@ public final class Type extends EnsoObject {
     while (at < fill.length) {
       fill[at++] = self;
       if (self.supertype == null) {
-        if (self.builtin) {
+        if (self.builtin && self == ctx.getBuiltins().any()) {
           return at;
         }
         fill[at++] = ctx.getBuiltins().any();
@@ -431,7 +431,7 @@ public final class Type extends EnsoObject {
         @Cached("member") String cachedMember,
         @Cached MethodResolverNode methodResolverNode,
         @Cached("buildSymbol(receiver, member)") UnresolvedSymbol symbol,
-        @Cached("findMethod(eigenType(receiver), symbol, methodResolverNode)") Function func,
+        @Cached("findMethod(receiver, symbol, methodResolverNode)") Function func,
         @Cached("buildInvokeCallableNode(func)") InvokeCallableNode invokeCallableNode)
         throws UnsupportedMessageException, UnsupportedTypeException, ArityException {
       Object[] finalArgs = args;
@@ -457,7 +457,7 @@ public final class Type extends EnsoObject {
             UnknownIdentifierException {
       var symbol = buildSymbol(receiver, member);
       var methodResolverNode = MethodResolverNode.getUncached();
-      var method = findMethod(receiver.getEigentype(), symbol, methodResolverNode);
+      var method = findMethod(receiver, symbol, methodResolverNode);
       if (method == null) {
         throw UnknownIdentifierException.create(member);
       }
@@ -466,17 +466,24 @@ public final class Type extends EnsoObject {
           receiver, member, args, member, methodResolverNode, symbol, method, invokeCallableNode);
     }
 
-    static Type eigenType(Type receiver) {
-      return receiver.getEigentype();
-    }
-
     static UnresolvedSymbol buildSymbol(Type receiver, String member) {
       return UnresolvedSymbol.build(member, receiver.getDefinitionScope());
     }
 
     static Function findMethod(
-        Type receiver, UnresolvedSymbol symbol, MethodResolverNode methodResolverNode) {
-      return InvokeMethodNode.resolveFunction(symbol, receiver, methodResolverNode);
+        Type self, UnresolvedSymbol symbol, MethodResolverNode methodResolverNode) {
+      if (self.isBuiltin()) {
+        // Some builtin types are singletons (have no constructors) and they contain
+        // both instance (methods with self argument) and static methods on themselves.
+        // This makes sense only for builtin types. Which means that here, we try to
+        // find the method on both builtin type and its eigen type.
+        var func = InvokeMethodNode.resolveFunction(symbol, self, self, methodResolverNode);
+        if (func != null) {
+          return func;
+        }
+      }
+      return InvokeMethodNode.resolveFunction(
+          symbol, self, self.getEigentype(), methodResolverNode);
     }
 
     static InvokeCallableNode buildInvokeCallableNode(Function func) {

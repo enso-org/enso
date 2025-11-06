@@ -17,7 +17,8 @@ import { useDirectoryIds } from '#/layouts/Drive/directoryIdsHooks'
 import { useLocalRootDirectory } from '#/layouts/Drive/persistentState'
 import { setDriveLocation, useDriveStore } from '#/providers/DriveProvider'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
-import { useRightPanelData, useText } from '$/providers/react'
+import { useText } from '$/providers/react'
+import { useRightPanelData } from '$/providers/react/container'
 import { useSuspenseQuery } from '@tanstack/react-query'
 import {
   AssetDoesNotExistError,

@@ -3,13 +3,13 @@ import { ErrorBoundary } from '#/components/ErrorBoundary'
 import { Result } from '#/components/Result'
 import { copyAssetsMutationOptions } from '#/hooks/backendBatchedHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import { useOpenProjectLocally } from '#/hooks/projectHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import { useBackends, useText } from '$/providers/react'
 import {
   useRightPanelContextCategory,
   useRightPanelFocusedAsset,
 } from '$/providers/react/container'
+import { useOpenedProjects } from '$/providers/react/openedProjects'
 import { includes } from '$/utils/data/array'
 import { useMutation, useSuspenseQuery } from '@tanstack/react-query'
 import type {
@@ -91,7 +91,7 @@ function AssetVersionsInternal(props: AssetVersionsInternalProps) {
   const versions = versionsQuery.data
   const latestVersion = versions.find((version) => version.isLatest)
 
-  const openProjectLocally = useOpenProjectLocally()
+  const { openProjectLocally } = useOpenedProjects()
 
   const restoreMutation = useMutation({
     mutationFn: (variables: AddNewVersionVariables) =>
@@ -112,7 +112,7 @@ function AssetVersionsInternal(props: AssetVersionsInternalProps) {
       // This is SAFE because we know that the the new asset is a Project,
       // because we can't create a duplicate with a different type.
       /* eslint-disable-next-line no-restricted-syntax */
-      await openProjectLocally(newAsset as ProjectAsset, backend.type)
+      openProjectLocally(newAsset as ProjectAsset, backend.type)
     }
   })
 

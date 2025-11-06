@@ -18,6 +18,13 @@ type Snowflake_Error
     to_display_text self -> Text =
         "Snowflake_Error: " + self.message
 
+    ## ---
+       private: true
+       ---
+    to_js_object self -> JS_Object =
+        values = [["type", "Snowflake_Error"], ["Constructor", "Unexpected_Result"], ["message", self.message], ["payload", self.internal_payload.to_js_object]]
+        JS_Object.from_pairs values
+
 ## An error when a stage was not found in the database or not accessible.
 type Stage_Not_Found
     ## ---
@@ -27,7 +34,7 @@ type Stage_Not_Found
 
        ## Arguments
         - `name`: The name of the stage that was not found.
-    Error (name:Text)
+    Error name:Text
 
     ## ---
        private: true
@@ -52,7 +59,7 @@ type File_Format_Not_Found
 
        ## Arguments
         - `name`: The name of the file format that was not found.
-    Error (name:Text)
+    Error name:Text
 
     ## ---
        private: true

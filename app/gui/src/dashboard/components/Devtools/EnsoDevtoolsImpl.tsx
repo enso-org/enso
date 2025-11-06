@@ -411,6 +411,15 @@ export function EnsoDevtools() {
               <>
                 <Switch
                   form={form}
+                  name="debugHoverAreas"
+                  label={'Debug hover areas'}
+                  description={'Make all mouse hoverable areas visible on the graph.'}
+                  onChange={(value) => {
+                    setFeatureFlag('debugHoverAreas', value)
+                  }}
+                />
+                <Switch
+                  form={form}
                   name="showDeveloperIds"
                   label={getText('ensoDevtoolsFeatureFlags.showDeveloperIds')}
                   description={getText('ensoDevtoolsFeatureFlags.showDeveloperIdsDescription')}
