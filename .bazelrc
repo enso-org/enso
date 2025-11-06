@@ -38,7 +38,6 @@ common --java_runtime_version=graalvm_25
 common --java_language_version=25
 
 ## Rust
-startup --windows_enable_symlinks
 build --enable_runfiles
 build --compilation_mode=opt
 
