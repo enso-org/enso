@@ -1,4 +1,4 @@
-import { newtypeConstructor, type Newtype } from '../../utilities/data/newtype'
+import { newtypeConstructor, type Newtype } from '../../utilities/data/newtype.js'
 
 /** The path of this asset, including the root directory. */
 export type EnsoPath = Newtype<string, 'EnsoPath'>
