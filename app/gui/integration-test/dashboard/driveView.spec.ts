@@ -30,11 +30,9 @@ test('drive view', async ({ drivePage }) => {
     .driveTable.withRows(async (rows) => {
       await expect(rows).toHaveCount(2)
     })
-    // The last opened project needs to be stopped, to remove the toast notification notifying the
-    // user that project creation may take a while. Previously opened projects are stopped when the
-    // new project is created.
     .driveTable.withRows(async (rows) => {
       await locateStopProjectButton(rows.nth(0)).click()
+      await locateStopProjectButton(rows.nth(1)).click()
     })
     .driveTable.rightClickRow(1)
     .contextMenu.moveToTrash()

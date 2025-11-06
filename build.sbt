@@ -6526,6 +6526,7 @@ lazy val buildEngineDistributionNoIndex =
 buildEngineDistributionNoIndex := Def.taskIf {
   createEnginePackageNoIndex.value
   if (shouldBuildNativeImage.value) {
+    (`ydoc-server` / buildNativeImage).value
     (`engine-runner` / buildNativeImage).value
     (`engine-runner` / checkNativeImageSize).value
   }

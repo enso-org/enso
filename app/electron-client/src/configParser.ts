@@ -26,10 +26,6 @@ const OPTIONS_META: Readonly<Record<string, { flag: string; description: string 
     flag: '--startup.project <name>',
     description: 'Project to open or create at startup',
   },
-  'startup.displayedProjectName': {
-    flag: '--startup.displayedProjectName <name>',
-    description: 'Project name shown in UI',
-  },
   'authentication.enabled': {
     flag: '--authentication.enabled',
     description: 'Enable user authentication (always true in cloud)',

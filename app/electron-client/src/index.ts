@@ -17,11 +17,7 @@ import process from 'node:process'
 
 import * as electron from 'electron'
 import * as common from 'enso-common'
-import {
-  buildWebAppURLSearchParamsFromArgs,
-  defaultOptions,
-  type Options,
-} from 'enso-common/src/options'
+import { buildWebAppURLSearchParamsFromArgs, type Options } from 'enso-common/src/options'
 
 import * as authentication from '@/authentication'
 import * as configParser from '@/configParser'
@@ -66,7 +62,7 @@ function pathToURL(path: string): URL {
 class App {
   window: electron.BrowserWindow | null = null
   server: server.Server | null = null
-  webOptions: Options = defaultOptions()
+  startupProject: URL | undefined
   isQuitting = false
 
   /** Initialize and run the Electron application. */
@@ -210,7 +206,7 @@ class App {
     // application is ready.
     if (!electron.app.isReady()) {
       console.log(`Setting the project to open on startup to '${projectUrl.toString()}'.`)
-      this.webOptions.startup.project = projectUrl.toString()
+      this.startupProject = projectUrl
     } else {
       console.error(
         "Cannot set the project to open on startup to '" +
@@ -265,7 +261,7 @@ class App {
     // We catch all errors here. Otherwise, it might be possible that the app will run partially
     // and enter a "zombie mode", where user is not aware of the app still running.
     try {
-      console.log('Starting the application')
+      console.log('Starting the application with args', args)
       // Note that we want to do all the actions synchronously, so when the window
       // appears, it serves the website immediately.
       await this.startContentServerIfEnabled(args)
@@ -543,10 +539,10 @@ class App {
   /** Redirect the web view to `localhost:<port>` to see the served website. */
   async loadWindowContent(args: Options) {
     if (this.window != null) {
-      const searchParams = buildWebAppURLSearchParamsFromArgs({
-        ...this.webOptions,
-        ...args,
-      })
+      if (this.startupProject != null) {
+        args.startup.project = this.startupProject.toString()
+      }
+      const searchParams = buildWebAppURLSearchParamsFromArgs(args)
       const address = new URL('https://localhost')
       address.port = this.serverPort(args).toString()
       address.search = searchParams.toString()

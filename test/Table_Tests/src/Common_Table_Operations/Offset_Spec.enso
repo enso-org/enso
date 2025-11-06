@@ -495,9 +495,9 @@ add_offset_specs suite_builder setup =
         group_builder.specify "Missing column is an error" <|
             t2.offset ["NotAColumn"] . should_fail_with (Missing_Input_Columns.Error ["NotAColumn"])
         group_builder.specify "Missing column is an error - grouping" <|
-            t2.offset [] group_by=["NotAColumn"] . should_fail_with (Missing_Input_Columns.Error ["NotAColumn"])
+            t2.offset ["Col1"] group_by=["NotAColumn"] . should_fail_with (Missing_Input_Columns.Error ["NotAColumn"])
         group_builder.specify "Missing column is an error - ordering" <|
-            t2.offset [] order_by=["NotAColumn"] . should_fail_with (Missing_Input_Columns.Error ["NotAColumn"])
+            t2.offset ["Col1"] order_by=["NotAColumn"] . should_fail_with (Missing_Input_Columns.Error ["NotAColumn"])
         group_builder.specify "Grouping by float warns" <|
             r = t3.offset ["Col2"] group_by=["Group"]
             Problems.expect_warning Floating_Point_Equality r
