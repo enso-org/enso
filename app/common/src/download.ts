@@ -1,4 +1,4 @@
-import type { Path } from './utilities/file'
+import type { Path } from './utilities/file.js'
 
 export interface DownloadUrlOptions {
   readonly url: string

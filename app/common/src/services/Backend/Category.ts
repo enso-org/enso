@@ -1,6 +1,5 @@
 /** @file The categories available in the category switcher. */
 import * as z from 'zod'
-import type { UserId } from '../Backend'
 import {
   BackendType,
   FilterBy,
@@ -9,7 +8,8 @@ import {
   type User,
   type UserGroup,
   type UserGroupId,
-} from '../Backend'
+  type UserId,
+} from '../Backend.js'
 
 // oxlint-disable-next-line no-unused-vars
 const PATH_SCHEMA = z.string().refine((s): s is Path => true)
