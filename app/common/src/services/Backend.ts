@@ -39,7 +39,7 @@ import {
 import { HttpClient, type HttpClientPostOptions, type ResponseWithTypedJson } from './HttpClient.js'
 export { prettifyError } from 'zod/v4'
 
-export * from './Backend/types'
+export * from './Backend/types.js'
 
 /** HTTP status indicating that the request was successful, but the user is not authorized to access. */
 const STATUS_NOT_AUTHORIZED = 401
