@@ -17,6 +17,7 @@ import {
   getFolderPath,
   joinPath,
   normalizePath,
+  normalizeSlashes,
 } from '../utilities/file'
 import { uniqueString } from '../utilities/uniqueString'
 import * as backend from './Backend'
@@ -699,12 +700,12 @@ export class LocalBackend extends backend.Backend {
     if (!response.ok) {
       return this.throw(response, 'uploadFileBackendError')
     }
-    if (backend.fileIsProject(file)) {
-      const projectPath = backend.Path(await response.text())
+    if (backend.fileNameIsProject(body.fileName)) {
+      const projectPath = normalizeSlashes(await response.text())
       const projectId = newProjectId(projectPath)
       const project = await this.getProjectDetails(projectId)
       this.uploadedFiles.set(uploadId, { id: projectId, project, jobId: null })
-    } else if (backend.fileIsArchive(file)) {
+    } else if (backend.fileNameIsArchive(body.fileName)) {
       this.uploadedFiles.set(uploadId, {
         id: newFileId(filePath),
         project: null,

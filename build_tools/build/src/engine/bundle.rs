@@ -74,7 +74,11 @@ pub trait IsBundle: AsRef<Path> + IsArtifact {
         async move {
             ide_ci::fs::tokio::remove_dir_if_exists(&bundle_dir).await?;
             // Start with bundled component.
-            ide_ci::fs::copy(&base_component, bundle_dir)?;
+            if base_component == bundle_dir {
+                ide_ci::fs::create_dir_if_missing(bundle_dir)?;
+            } else {
+                ide_ci::fs::copy(&base_component, bundle_dir)?;
+            }
             // Add engine.
             ide_ci::fs::mirror_directory(&engine_src_path, &engine_target_dir).await?;
             // Add runtime
@@ -120,6 +124,24 @@ impl IsBundle for crate::paths::generated::LauncherBundle {
 
     fn base_component(&self, repo_root: &RepoRoot) -> PathBuf {
         repo_root.built_distribution.enso_launcher_triple.launcher_package.to_path_buf()
+    }
+
+    fn distribution_marker(&self) -> PathBuf {
+        self.enso_bundle.to_path_buf()
+    }
+}
+
+impl IsBundle for crate::paths::generated::EngineBundle {
+    fn graalvm_dir(&self) -> PathBuf {
+        self.runtime.path.clone()
+    }
+
+    fn engine_dir(&self) -> PathBuf {
+        self.dist.version.to_path_buf()
+    }
+
+    fn base_component(&self, repo_root: &RepoRoot) -> PathBuf {
+        repo_root.built_distribution.engine_bundle_triple.engine_bundle.to_path_buf()
     }
 
     fn distribution_marker(&self) -> PathBuf {

@@ -16,10 +16,11 @@ import { SharedWithColumn } from '#/pages/dashboard/components/column'
 import { DatalinkFormInput } from '#/pages/dashboard/components/DatalinkInput'
 import Label from '#/pages/dashboard/components/Label'
 import { tv } from '#/utilities/tailwindVariants'
-import { useBackends, useFullUserSession, useRightPanelData, useText } from '$/providers/react'
+import { useBackends, useFullUserSession, useText } from '$/providers/react'
 import { useVueValue } from '$/providers/react/common'
 import {
   useRightPanelContextCategory,
+  useRightPanelData,
   useRightPanelFocusedAsset,
 } from '$/providers/react/container'
 import { useFeatureFlags } from '$/providers/react/featureFlags'

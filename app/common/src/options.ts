@@ -16,7 +16,6 @@ export const OptionsSchema = z.object({
   startup: z
     .object({
       project: z.string().default(''),
-      displayedProjectName: z.string().default(''),
     })
     .default({}),
   authentication: z
@@ -60,7 +59,6 @@ export function defaultOptions(): Options {
  */
 export const PASS_TO_WEB: ReadonlySet<string> = new Set([
   'startup.project',
-  'startup.displayedProjectName',
   'authentication.enabled',
   'authentication.email',
   'engine.ydocUrl',

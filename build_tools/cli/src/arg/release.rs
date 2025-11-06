@@ -9,18 +9,6 @@ pub struct DeployRuntime {
     pub ecr_repository: String,
 }
 
-#[derive(Args, Clone, Debug)]
-pub struct DeployYdocPolyglot {
-    #[clap(long, default_value = enso_build::aws::ecr::ydoc::NAME, enso_env())]
-    pub ecr_repository: String,
-}
-
-#[derive(Args, Clone, Debug)]
-pub struct DeployYdocNodejs {
-    #[clap(long, default_value = enso_build::aws::ecr::ydoc::NAME, enso_env())]
-    pub ecr_repository: String,
-}
-
 /// Structure that represents `promote` subcommand arguments.
 #[derive(Args, Clone, Copy, Debug)]
 pub struct Promote {
@@ -35,8 +23,6 @@ pub enum Action {
     CreateDraft,
     /// Build the runtime image and push it to ECR.
     DeployRuntime(DeployRuntime),
-    /// Build the polyglot Ydoc image and push it to ECR.
-    DeployYdocPolyglot(DeployYdocPolyglot),
     /// Dispatches the Cloud build-image workflow.
     DispatchBuildImage,
     Publish,

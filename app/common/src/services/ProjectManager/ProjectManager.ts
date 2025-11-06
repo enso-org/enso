@@ -52,7 +52,10 @@ export class ProjectManager {
   constructor(public readonly rootDirectory: Path) {}
 
   /** Get the state of a project given its path. */
-  getProjectId(projectPath: Path) {
+  async getProjectId(projectPath: Path) {
+    if (!this.projectIds.has(projectPath)) {
+      await this.listDirectory(Path(getFolderPath(projectPath)))
+    }
     return this.projectIds.get(projectPath)
   }
 
@@ -72,7 +75,7 @@ export class ProjectManager {
 
   /** Open an existing project. */
   async openProject(params: WithProjectPath<OpenProjectParams>): Promise<OpenProject> {
-    const fullParams: OpenProjectParams = this.paramsWithPathToWithId(params)
+    const fullParams: OpenProjectParams = await this.paramsWithPathToWithId(params)
     const cached = this.projects.get(fullParams.projectId)
     if (cached) {
       return cached.data
@@ -111,7 +114,7 @@ export class ProjectManager {
         missingComponentAction: MissingComponentAction.install,
       })
     }
-    const fullParams: CloseProjectParams = this.paramsWithPathToWithId(params)
+    const fullParams: CloseProjectParams = await this.paramsWithPathToWithId(params)
     this.projects.delete(fullParams.projectId)
     return this.runProjectServiceCommand('project/close', fullParams)
   }
@@ -147,7 +150,7 @@ export class ProjectManager {
 
   /** Rename a project. */
   async renameProject(params: WithProjectPath<RenameProjectParams>): Promise<void> {
-    const fullParams: RenameProjectParams = this.paramsWithPathToWithId(params)
+    const fullParams: RenameProjectParams = await this.paramsWithPathToWithId(params)
     await this.runProjectServiceCommand('project/rename', fullParams)
     const state = this.projects.get(fullParams.projectId)
     if (state?.state === backend.ProjectState.opened) {
@@ -170,7 +173,7 @@ export class ProjectManager {
   async duplicateProject(
     params: WithProjectPath<DuplicateProjectParams>,
   ): Promise<DuplicatedProject> {
-    const fullParams: DuplicateProjectParams = this.paramsWithPathToWithId(params)
+    const fullParams: DuplicateProjectParams = await this.paramsWithPathToWithId(params)
     const result: Omit<DuplicatedProject, 'projectPath'> = await this.runProjectServiceCommand(
       'project/duplicate',
       fullParams,
@@ -190,7 +193,7 @@ export class ProjectManager {
 
   /** Delete a project. */
   async deleteProject(params: WithProjectPath<DeleteProjectParams>): Promise<void> {
-    const fullParams: DeleteProjectParams = this.paramsWithPathToWithId(params)
+    const fullParams: DeleteProjectParams = await this.paramsWithPathToWithId(params)
     const cached = this.projects.get(fullParams.projectId)
     if (cached && backend.IS_OPENING_OR_OPENED[cached.state]) {
       await this.closeProject({ projectPath: params.projectPath })
@@ -360,10 +363,10 @@ export class ProjectManager {
    * Convert {@link WithProjectPath<T>} to `T`.
    * @throws {Error} when the `id` is not cached.
    */
-  private paramsWithPathToWithId<T>(obj: WithProjectPath<T>) {
+  private async paramsWithPathToWithId<T>(obj: WithProjectPath<T>) {
     const path = obj.projectPath
     const directoryPath = getDirectoryAndName(path).directoryPath
-    const id = this.projectIds.get(path)
+    const id = await this.getProjectId(path)
     if (id == null) {
       throw new Error(`Project with path '${path}' does not exist`)
     }
