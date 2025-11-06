@@ -9,17 +9,12 @@ import project.System.File.File
 import project.Nothing.Nothing
 
 polyglot java import java.util.Base64
-polyglot java import org.enso.base.SMTP_Email as smtp_send
 
 type Email_Provider
-    TestProvider
     SendGrid api_key:Text
-    SMTP server:Text port username:Text password:Text use_tls
 
     send self email:Email_Object = case self of
-        Email_Provider.TestProvider -> Send_Response.Test email
         Email_Provider.SendGrid api_key -> sendgrid_email email api_key
-        Email_Provider.SMTP server port username password use_tls -> smtp_send.send server port username password use_tls email.from_address email.to email.subject email.body.body
 
 sendgrid_email email:Email_Object api_key:Text =
     to_object = JS_Object.from_pairs ([create_to_email_object email.to "to", create_to_email_object email.cc "cc", create_to_email_object email.bcc "bcc"].filter ..Not_Nothing) 
