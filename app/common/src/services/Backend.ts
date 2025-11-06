@@ -1,11 +1,11 @@
 /** @file Type definitions common between all backends. */
 import { z } from 'zod'
-import type { DownloadOptions } from '../download'
-import { getText, resolveDictionary, type Replacements, type TextId } from '../text'
-import * as dateTime from '../utilities/data/dateTime'
-import * as newtype from '../utilities/data/newtype'
-import * as permissions from '../utilities/permissions'
-import { getFileDetailsPath } from './Backend/remoteBackendPaths'
+import type { DownloadOptions } from '../download.js'
+import { getText, resolveDictionary, type Replacements, type TextId } from '../text.js'
+import * as dateTime from '../utilities/data/dateTime.js'
+import * as newtype from '../utilities/data/newtype.js'
+import * as permissions from '../utilities/permissions.js'
+import { getFileDetailsPath } from './Backend/remoteBackendPaths.js'
 import {
   DatalinkId,
   DirectoryId,
@@ -35,8 +35,8 @@ import {
   type UserGroupId,
   type UserId,
   type UserPermissionIdentifier,
-} from './Backend/types'
-import { HttpClient, type HttpClientPostOptions, type ResponseWithTypedJson } from './HttpClient'
+} from './Backend/types.js'
+import { HttpClient, type HttpClientPostOptions, type ResponseWithTypedJson } from './HttpClient.js'
 export { prettifyError } from 'zod/v4'
 
 export * from './Backend/types'
