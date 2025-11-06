@@ -1,5 +1,6 @@
 import { newtypeConstructor, type Newtype } from '../../utilities/data/newtype.js'
 import type { IdType } from '../Backend.js'
+export { EnsoPath, EnsoPathValue } from './ensoPath.js'
 
 /** A KSUID. */
 export type KSUID = Newtype<string, 'KSUID'>
@@ -156,8 +157,6 @@ export const ParentsPath = newtypeConstructor<ParentsPath>()
 /** The path of directory names to this asset, excluding the root directory. */
 export type VirtualParentsPath = Newtype<string, 'VirtualParentsPath'>
 export const VirtualParentsPath = newtypeConstructor<VirtualParentsPath>()
-
-export { EnsoPath, EnsoPathValue } from './ensoPath'
 
 /** A pagination token for an arbitrary endpoint. */
 export type PaginationToken = Newtype<string, 'PaginationToken'>
