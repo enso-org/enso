@@ -281,7 +281,7 @@ public final class MapExpressionsMethodGenerator {
           ${specialHandling}
           // Either recurse to `mapExpression` or call `fn.apply` on the expression.
           return switch(ir) {
-            case org.enso.compiler.core.ir.Name.MethodReference nameRef -> (T) nameRef.mapExpressions(fn);
+            case org.enso.compiler.core.ir.Name name -> (T) name.mapExpressions(fn);
             case Expression expr -> (T) fn.apply(expr);
             default -> (T) ir.mapExpressions(fn);
           };
