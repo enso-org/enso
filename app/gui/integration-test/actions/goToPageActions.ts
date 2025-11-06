@@ -8,7 +8,7 @@ import SettingsPageActions from './SettingsPageActions'
 /** Actions for going to a different page. */
 export interface GoToPageActions<Context> {
   readonly drive: () => DrivePageActions<Context>
-  readonly editor: () => EditorPageActions<Context>
+  readonly projectView: () => EditorPageActions<Context>
   readonly settings: () => SettingsPageActions<Context>
 }
 
@@ -27,9 +27,9 @@ export function goToPageActions<Context>(
           .filter({ has: page.getByText('Data Catalog') })
           .click(),
       ).into(DrivePageActions<Context>),
-    editor: () =>
-      step('Go to "Spatial Analysis" page', (page) =>
-        page.getByTestId('editor-tab-button').click(),
+    projectView: () =>
+      step('Go to Project page', (page) =>
+        page.getByTestId('project-view-tab-button').click(),
       ).into(EditorPageActions<Context>),
     settings: () =>
       step('Go to "settings" page', (page) => BaseActions.press(page, 'Mod+,')).into(
