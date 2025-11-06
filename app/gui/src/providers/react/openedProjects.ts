@@ -1,4 +1,4 @@
-import type { ProjectAsset, ProjectId } from '#/services/Backend'
+import type { ProjectAsset, ProjectId } from 'enso-common/src/services/Backend'
 import * as react from 'react'
 import type { OpenedProjectsStore } from '../openedProjects'
 import { useInReactFunction, useVueValue } from './common'
