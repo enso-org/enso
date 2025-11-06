@@ -432,8 +432,8 @@ export function registerHandlers<Handlers extends Partial<Record<keyof Actions, 
   for (const action in handlers) {
     assert(isKey(action), `${action} is not a valid Action name`)
     newActions[action] = combineActionDefinitions(
-      handlers[action],
       newActions[action],
+      handlers[action],
     ) as (typeof newActions)[typeof action]
   }
   provideActions(newActions)
@@ -441,8 +441,8 @@ export function registerHandlers<Handlers extends Partial<Record<keyof Actions, 
   return newActions as Actions & Handlers
 }
 
-function combineActionDefinitions(existing: Action | undefined, overrides: Action): Action {
-  if (!existing) return overrides
+function combineActionDefinitions(existing: Action, overrides: Action | undefined): Action {
+  if (!overrides) return existing
   return {
     available: combineToValues(existing.available, overrides.available),
     enabled: combineToValues(existing.enabled, overrides.enabled),

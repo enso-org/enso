@@ -76,7 +76,7 @@ test('Local Workflow', async ({ page, app, projectsDir }) => {
     .getByRole('button', { name: 'Create User Defined Component from Selected Components' })
     .click()
   await expect(page.locator('.GraphNode')).toHaveCount(1)
-  await expect(page.locator('.GraphNode')).toHaveText(/Main.user_defined_component/)
+  await expect(page.locator('.GraphNode')).toHaveText(/user_defined_component/)
   await page.locator('.GraphNode').click()
   await page.getByRole('button', { name: 'Visualization' }).click()
   await expect(page.locator('.TableVisualization')).toBeVisible()

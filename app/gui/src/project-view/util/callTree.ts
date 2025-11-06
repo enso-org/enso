@@ -528,7 +528,7 @@ export function getMethodCallInfoRecursively(
   graphDb: { getMethodCallInfo(id: AstId): MethodCallInfo | undefined },
 ): MethodCallInfo | undefined {
   const topLevelAst = ast
-  while (ast instanceof Ast.App) {
+  for (;;) {
     const info = graphDb.getMethodCallInfo(ast.id)
     if (info) {
       // There is an info available! Stop the recursion and adjust `notAppliedArguments`.
@@ -547,7 +547,8 @@ export function getMethodCallInfoRecursively(
       }
     }
     // No info, continue recursion to the next sub-application AST.
-    ast = ast.function
+    if (ast instanceof Ast.App) ast = ast.function
+    else break
   }
 }
 
