@@ -19,7 +19,7 @@ import { parseAbsoluteProjectPathRaw } from '@/util/projectPath'
 import type { GetContextMenuItems, GetMainMenuItems } from 'ag-grid-enterprise'
 import { expect, test, vi } from 'vitest'
 import { assertDefined } from 'ydoc-shared/util/assert'
-import { Ok, unwrap } from 'ydoc-shared/util/data/result'
+import { Ok, unwrap, type Result } from 'ydoc-shared/util/data/result'
 
 function suggestionDbWithNothing() {
   const db = new SuggestionDb()
@@ -202,10 +202,12 @@ function tableEditFixture(code: string, expectedCode: string) {
   assert(firstStatement instanceof Ast.MutableExpressionStatement)
   const inputAst = firstStatement.expression
   const input = WidgetInput.FromAst(inputAst)
-  const edit = <T>(f: (module: Ast.MutableModule) => Promise<T> | T): Promise<T> | T => {
+  const edit = <T extends Result<void>>(
+    f: (module: Ast.MutableModule) => Promise<T> | T,
+  ): Promise<T> | T => {
     const maybeSyncResult = f(ast.module.edit())
     function doExpect(result: T) {
-      expect(result).toEqual(Ok())
+      expect(result.ok).toBeTruthy()
       return result
     }
     return maybeSyncResult instanceof Promise ?
