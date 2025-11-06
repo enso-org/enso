@@ -21,14 +21,14 @@ function printRelativePos(pos: RelativePos) {
 /** Actions for the "editor" page. */
 export default class EditorPageActions<Context = object> extends PageActions<Context> {
   /** Actions for navigating to another page. */
-  get goToPage(): Omit<GoToPageActions<Context>, 'editor'> {
+  get goToPage(): Omit<GoToPageActions<Context>, 'projectView'> {
     return goToPageActions(this.step.bind(this))
   }
 
   /** Wait for the editor to load. */
   waitForEditorToLoad(): EditorPageActions<Context> {
-    return this.step('Wait for the editor to load', async () => {
-      await this.page.waitForSelector('[data-testid=editor]', { state: 'visible' })
+    return this.step('Wait for the project view to load', async () => {
+      await this.page.waitForSelector('.ProjectView', { state: 'visible' })
     })
   }
 

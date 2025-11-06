@@ -108,13 +108,18 @@ export function useAsyncResourceResolver(
       },
       async fetch(abort) {
         const openedProject = openedProjects.get(projectId)
-        if (openedProject) {
+        if (openedProject?.nextTask?.process === 'opening') {
+          await openedProjects.waitForProcess(openedProject)
+        }
+        const initializedProject =
+          openedProject?.state.status === 'initialized' ? openedProject.state : undefined
+        if (initializedProject) {
           // Remote/local projects are treated the same when opened - contact LS for a file.
-          const rootId = await openedProject.store.projectRootId
+          const rootId = await initializedProject.store.projectRootId
           if (rootId == null) return Err('Could not identify project root')
           if (abort.aborted) return Err(abort)
 
-          const projectFiles = useProjectFiles(openedProject.store)
+          const projectFiles = useProjectFiles(initializedProject.store)
           return projectFiles.readFileBinary({ rootId, segments: relativePath.split('/') }, abort)
         } else {
           // project not opened

@@ -21,6 +21,12 @@ catalogs:
     '@fast-check/vitest':
       specifier: ^0.2.1
       version: 0.2.1
+    '@lezer/common':
+      specifier: ^1.2.3
+      version: 1.2.3
+    '@lezer/highlight':
+      specifier: ^1.2.1
+      version: 1.2.1
     '@types/node':
       specifier: ^24.2.1
       version: 24.2.1
@@ -340,10 +346,10 @@ importers:
         specifier: ^0.21.0
         version: 0.21.0
       '@lezer/common':
-        specifier: ^1.2.3
+        specifier: 'catalog:'
         version: 1.2.3
       '@lezer/highlight':
-        specifier: ^1.2.1
+        specifier: 'catalog:'
         version: 1.2.1
       '@monaco-editor/react':
         specifier: 4.6.0
@@ -755,8 +761,11 @@ importers:
         specifier: 'catalog:'
         version: 6.38.2
       '@lezer/common':
-        specifier: ^1.2.1
+        specifier: 'catalog:'
         version: 1.2.3
+      '@lezer/highlight':
+        specifier: 'catalog:'
+        version: 1.2.1
       '@lezer/markdown':
         specifier: workspace:*
         version: link:../lezer-markdown
@@ -768,10 +777,10 @@ importers:
   app/lezer-markdown:
     dependencies:
       '@lezer/common':
-        specifier: ^1.0.0
+        specifier: 'catalog:'
         version: 1.2.3
       '@lezer/highlight':
-        specifier: ^1.0.0
+        specifier: 'catalog:'
         version: 1.2.1
     devDependencies:
       '@lezer/html':
@@ -826,10 +835,10 @@ importers:
         specifier: 'catalog:'
         version: 6.5.2
       '@lezer/common':
-        specifier: ^1.2.3
+        specifier: 'catalog:'
         version: 1.2.3
       '@lezer/highlight':
-        specifier: ^1.2.1
+        specifier: 'catalog:'
         version: 1.2.1
       '@lezer/lr':
         specifier: ^1.3.0
@@ -916,10 +925,10 @@ importers:
   app/ydoc-shared:
     dependencies:
       '@lezer/common':
-        specifier: ^1.2.3
+        specifier: 'catalog:'
         version: 1.2.3
       '@lezer/highlight':
-        specifier: ^1.2.1
+        specifier: 'catalog:'
         version: 1.2.1
       '@lezer/markdown':
         specifier: workspace:*

@@ -7,7 +7,7 @@ import {
   downloadAssetsMutationOptions,
   restoreAssetsMutationOptions,
 } from '#/hooks/backendBatchedHooks'
-import { useCanRunProjects, useNewProject } from '#/hooks/backendHooks'
+import { useNewProject } from '#/hooks/backendHooks'
 import {
   isUploadableAsset,
   useUploadFileToCloud,
@@ -15,7 +15,6 @@ import {
 } from '#/hooks/backendUploadFilesHooks'
 import { useCopy } from '#/hooks/copyHooks'
 import { defineMenuEntry, useMenuEntries } from '#/hooks/menuHooks'
-import * as projectHooks from '#/hooks/projectHooks'
 import * as categoryModule from '#/layouts/CategorySwitcher/Category'
 import { useGetAsset } from '#/layouts/Drive/assetsTableItemsHooks'
 import { useCategories, useCategoriesAPI } from '#/layouts/Drive/Categories'
@@ -29,8 +28,10 @@ import * as backendModule from '#/services/Backend'
 import * as permissions from '#/utilities/permissions'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { useBackends, useFullUserSession, useRouter, useText } from '$/providers/react'
+import { useVueValue } from '$/providers/react/common'
 import { useRightPanelData } from '$/providers/react/container'
 import * as featureFlagsProvider from '$/providers/react/featureFlags'
+import { useOpenedProjects } from '$/providers/react/openedProjects'
 import {
   TEAMS_DIRECTORY_ID,
   USERS_DIRECTORY_ID,
@@ -66,13 +67,28 @@ export const AssetContextMenu = React.forwardRef(function AssetContextMenu(
   const driveStore = useDriveStore()
 
   const getAsset = useGetAsset()
-  const canRunProjects = useCanRunProjects()
   const { user } = useFullUserSession()
   const { localBackend } = useBackends()
   const { getText } = useText()
-  const openProjectNatively = projectHooks.useOpenProjectNatively()
-  const openProjectLocally = projectHooks.useOpenProjectLocally()
-  const closeProject = projectHooks.useCloseProject()
+  const {
+    openProjectLocally,
+    openProjectNatively,
+    canOpenProjectLocally,
+    canOpenProjectNatively,
+    closeProject,
+  } = useOpenedProjects()
+  const canOpenLocally = useVueValue(
+    React.useCallback(
+      () => canOpenProjectLocally(backend.type),
+      [canOpenProjectLocally, backend.type],
+    ),
+  )
+  const canOpenNatively = useVueValue(
+    React.useCallback(
+      () => canOpenProjectNatively(backend.type),
+      [canOpenProjectNatively, backend.type],
+    ),
+  )
   const deleteAssets = useMutationCallback(deleteAssetsMutationOptions(backend))
   const restoreAssets = useMutationCallback(restoreAssetsMutationOptions(backend))
   const copyAssets = useMutationCallback(copyAssetsMutationOptions(backend))
@@ -83,8 +99,7 @@ export const AssetContextMenu = React.forwardRef(function AssetContextMenu(
   const uploadFileToCloud = useUploadFileToCloud()
   const uploadFileToLocal = useUploadFileToLocal(category)
   const exportArchive = useExportArchive({ backend })
-  const disabledTooltip =
-    !canRunProjects.locally[backend.type] ? getText('downloadToOpenWorkflow') : undefined
+  const disabledTooltip = !canOpenLocally ? getText('downloadToOpenWorkflow') : undefined
   const showDeveloperIds = featureFlagsProvider.useFeatureFlag('showDeveloperIds')
 
   const newProject = useNewProject(backend, category)
@@ -231,22 +246,22 @@ export const AssetContextMenu = React.forwardRef(function AssetContextMenu(
           !isRunningProject &&
           !isOtherUserUsingProject && {
             action: 'open',
-            isDisabled: !canRunProjects.locally[backend.type],
+            isDisabled: !canOpenLocally,
             tooltip: disabledTooltip,
             doAction: () => {
               void goToDrive()
-              void openProjectLocally(asset, backend.type)
+              openProjectLocally(asset, backend.type)
             },
           },
         asset.type === backendModule.AssetType.project &&
           isCloud &&
           localBackend != null && {
             action: 'run',
-            isDisabled: !canRunProjects.natively[backend.type],
+            isDisabled: !canOpenNatively,
             tooltip: disabledTooltip,
             doAction: () => {
               void goToDrive()
-              void openProjectNatively(asset, backend.type)
+              openProjectNatively(asset, backend.type)
             },
           },
         asset.type === backendModule.AssetType.project &&
@@ -256,12 +271,7 @@ export const AssetContextMenu = React.forwardRef(function AssetContextMenu(
             action: 'close',
             doAction: () => {
               void goToDrive()
-              void closeProject({
-                id: asset.id,
-                title: asset.title,
-                parentId: asset.parentId,
-                type: backend.type,
-              })
+              closeProject(asset.id, { asset, backendType: backend.type })
             },
           },
         isCloud && {
