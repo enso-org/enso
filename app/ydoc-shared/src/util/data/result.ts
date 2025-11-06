@@ -201,6 +201,10 @@ export class ResultError<E = unknown> {
     const payload = coercePayloadToString(this.payload)
     return `${preamble}${preamble ? ': ' : ''}${payload}${ctx}`
   }
+
+  toString() {
+    return this.message()
+  }
 }
 
 function coercePayloadToString(payload: unknown) {

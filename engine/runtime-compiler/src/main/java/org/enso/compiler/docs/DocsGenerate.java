@@ -122,7 +122,7 @@ public final class DocsGenerate {
               }
               for (var mb : moduleBindings) {
                 if (mb instanceof Method.Explicit m) {
-                  if (m.isStaticWrapperForInstanceMethod() || m.isPrivate()) {
+                  if (m.isPrivate()) {
                     alreadyDispatched.put(m, m);
                     continue;
                   }
@@ -139,7 +139,7 @@ public final class DocsGenerate {
             }
           }
           case Method.Explicit m -> {
-            if (!m.isPrivate() && !m.isStaticWrapperForInstanceMethod()) {
+            if (!m.isPrivate()) {
               dispatch.dispatchMethod(null, m);
             }
           }

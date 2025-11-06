@@ -158,7 +158,7 @@ gvm.graalvm(
     name = "graalvm",
     distribution = "ce",  # `oracle`, `ce`, or `community`
     java_version = "25",  # `17`, `20`, `21`, or `22` as supported by the version provided
-    version = "25.0.0",  # gvm sdk version format like `24.x.x` also supported
+    version = "25.0.1",  # gvm sdk version format like `24.x.x` also supported
 )
 use_repo(gvm, "graalvm")
 

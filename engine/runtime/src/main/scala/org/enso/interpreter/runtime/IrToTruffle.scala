@@ -750,14 +750,11 @@ private[runtime] class IrToTruffle(
     val methodName      = builtinNameElements(1)
     val methodOwnerName = builtinNameElements(0)
 
-    val staticWrapper = methodDef.isStaticWrapperForInstanceMethod
-
     val builtinFunction = getBuiltins
       .getBuiltinFunction(
         methodOwnerName,
         methodName,
-        language,
-        staticWrapper
+        language
       )
     builtinFunction.toScala
       .map(Some(_))
@@ -770,9 +767,7 @@ private[runtime] class IrToTruffle(
       .flatMap { l =>
         // Builtin Types Number and Integer have methods only for documentation purposes
         val number = getBuiltins.number()
-        val ok =
-          staticWrapper && (cons == number.getNumber.getEigentype || cons == number.getInteger.getEigentype) ||
-          !staticWrapper && (cons == number.getNumber             || cons == number.getInteger)
+        val ok     = cons == number.getNumber || cons == number.getInteger
         if (ok) Right(None)
         else Left(l)
       }

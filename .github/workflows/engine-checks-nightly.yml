@@ -372,6 +372,16 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - if: (success() || failure()) && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+        name: Upload Heap Dumps
+        uses: actions/upload-artifact@v4
+        with:
+          if-no-files-found: ignore
+          name: Heap dumps (JVM Tests, linux, amd64)
+          path: |-
+            test/**/*.hprof
+            engine/**/*.hprof
+          retention-days: 3
+      - if: (success() || failure()) && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
         name: Engine Test Reporter
         uses: dorny/test-reporter@v1
         with:
@@ -447,6 +457,16 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - if: (success() || failure()) && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+        name: Upload Heap Dumps
+        uses: actions/upload-artifact@v4
+        with:
+          if-no-files-found: ignore
+          name: Heap dumps (JVM Tests, macos, aarch64)
+          path: |-
+            test/**/*.hprof
+            engine/**/*.hprof
+          retention-days: 3
+      - if: (success() || failure()) && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
         name: Engine Test Reporter
         uses: dorny/test-reporter@v1
         with:
@@ -521,6 +541,16 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - if: (success() || failure()) && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+        name: Upload Heap Dumps
+        uses: actions/upload-artifact@v4
+        with:
+          if-no-files-found: ignore
+          name: Heap dumps (JVM Tests, windows, amd64)
+          path: |-
+            test/**/*.hprof
+            engine/**/*.hprof
+          retention-days: 3
+      - if: (success() || failure()) && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
         name: Engine Test Reporter
         uses: dorny/test-reporter@v1
         with:
@@ -594,6 +624,16 @@ jobs:
       - run: ./run backend test jvm
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - if: (success() || failure()) && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+        name: Upload Heap Dumps
+        uses: actions/upload-artifact@v4
+        with:
+          if-no-files-found: ignore
+          name: Heap dumps (JVM Tests, linux, amd64)
+          path: |-
+            test/**/*.hprof
+            engine/**/*.hprof
+          retention-days: 3
       - if: (success() || failure()) && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
         name: Engine Test Reporter
         uses: dorny/test-reporter@v1
