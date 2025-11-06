@@ -115,9 +115,9 @@ class ModuleAnnotationsTest extends CompilerTest {
           |""".stripMargin.preprocessModule.resolve
 
       ir.bindings.length shouldEqual 2
-      ir.bindings(1) shouldBe a[Definition.SugaredType]
+      ir.bindings()(1) shouldBe a[Definition.SugaredType]
       val anns =
-        ir.bindings(1).unsafeGetMetadata(ModuleAnnotations, "").annotations
+        ir.bindings()(1).unsafeGetMetadata(ModuleAnnotations, "").annotations
       anns.length shouldEqual 1
       anns.head.asInstanceOf[Name].name shouldEqual "@My_Annotation"
     }
@@ -130,8 +130,8 @@ class ModuleAnnotationsTest extends CompilerTest {
           |""".stripMargin.preprocessModule.resolve
 
       ir.bindings.length shouldEqual 3
-      ir.bindings(0) shouldBe a[Name.GenericAnnotation]
-      ir.bindings(1) shouldBe a[Name.GenericAnnotation]
+      ir.bindings()(0) shouldBe a[Name.GenericAnnotation]
+      ir.bindings()(1) shouldBe a[Name.GenericAnnotation]
     }
 
   }

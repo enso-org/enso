@@ -65,7 +65,7 @@ case object ModuleAnnotations extends IRPass {
         lastAnnotations = Seq()
         res
     }
-    ir.copy(bindings = newBindings.flatten)
+    ir.copyWithBindings(bindings = newBindings.flatten)
   }
 
   /** Resolves top level annotations within a complex type.

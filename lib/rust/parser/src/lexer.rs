@@ -15,8 +15,6 @@ use crate::syntax::token::OperatorProperties;
 
 use std::str;
 
-
-
 // =================
 // === Constants ===
 // =================
@@ -27,8 +25,6 @@ const AVERAGE_TOKEN_LEN: usize = 5;
 /// Within an indented text block, this sets the minimum whitespace to be trimmed from the start of
 /// each line.
 const MIN_TEXT_TRIM: VisibleOffset = VisibleOffset(4);
-
-
 
 // ===============
 // === Pattern ===
@@ -68,7 +64,6 @@ macro_rules! pattern_impl_for_char_slice {
 }
 pattern_impl_for_char_slice!(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
 
-
 // ===========================
 // === Lexer output traits ===
 // ===========================
@@ -80,7 +75,6 @@ pub trait GroupDelimiterConsumer<'s> {
     /// A closing parenthesis.
     fn close_group(&mut self, close: token::CloseSymbol<'s>);
 }
-
 
 // =============
 // === Lexer ===
@@ -98,12 +92,12 @@ pub trait GroupDelimiterConsumer<'s> {
 pub struct Lexer<'s, Inner> {
     #[deref]
     #[deref_mut]
-    state:         LexerState,
-    input:         &'s str,
-    iterator:      str::CharIndices<'s>,
+    state: LexerState,
+    input: &'s str,
+    iterator: str::CharIndices<'s>,
     /// Memory for storing tokens, reused as an optimization.
     token_storage: VecAllocation<token::Newline<'s>>,
-    inner:         Inner,
+    inner: Inner,
 }
 
 /// Internal state of the [`Lexer`].
@@ -127,7 +121,7 @@ enum State {
     /// Reading a multi-line text literal.
     MultilineText {
         /// Indentation level of the quote symbol introducing the block.
-        block_indent:   VisibleOffset,
+        block_indent: VisibleOffset,
         /// Indentation level of the first line of the block.
         initial_indent: Option<VisibleOffset>,
     },
@@ -136,7 +130,7 @@ enum State {
 #[derive(Debug, Clone)]
 struct Mark<'s> {
     location: Location,
-    offset:   Offset<'s>,
+    offset: Offset<'s>,
 }
 
 impl<'s, Inner: TokenConsumer<'s>> Lexer<'s, Inner> {
@@ -162,9 +156,9 @@ impl<'s, Inner: TokenConsumer<'s>> Lexer<'s, Inner> {
             let prev = self.current_offset;
             let char_len16 = self.current_char.map_or(0, |c| c.len_utf16() as u32);
             self.current_offset = Location {
-                utf8:  u32_from(current_offset),
+                utf8: u32_from(current_offset),
                 utf16: prev.utf16 + char_len16,
-                line:  prev.line,
+                line: prev.line,
                 col16: prev.col16 + char_len16,
             };
             self.current_char = Some(current_char);
@@ -173,9 +167,9 @@ impl<'s, Inner: TokenConsumer<'s>> Lexer<'s, Inner> {
             let prev = self.current_offset;
             let char_len16 = c.len_utf16() as u32;
             self.current_offset = Location {
-                utf8:  u32_from(self.input.len()),
+                utf8: u32_from(self.input.len()),
                 utf16: prev.utf16 + char_len16,
-                line:  prev.line,
+                line: prev.line,
                 col16: prev.col16 + char_len16,
             };
             self.current_char = None;
@@ -259,8 +253,6 @@ impl<'s, Inner: TokenConsumer<'s>> Lexer<'s, Inner> {
     }
 }
 
-
-
 // =====================
 // === Basic Parsers ===
 // =====================
@@ -312,8 +304,6 @@ impl<'s, Inner: TokenConsumer<'s>> Lexer<'s, Inner> {
         self.take_while_1(f);
     }
 }
-
-
 
 // =============
 // === Space ===
@@ -394,8 +384,6 @@ impl<'s, Inner: TokenConsumer<'s>> Lexer<'s, Inner> {
     }
 }
 
-
-
 // ================================
 // === Basic Character Checkers ===
 // ================================
@@ -447,8 +435,6 @@ impl<'s, Inner: TokenConsumer<'s>> Lexer<'s, Inner> {
     }
 }
 
-
-
 // ========================
 // === Ident & Operator ===
 // ========================
@@ -472,7 +458,7 @@ impl<'s, Inner: TokenConsumer<'s>> Lexer<'s, Inner> {
 /// 2E  .     5F  _
 /// 2F  /     60  `
 /// [0-9]     [a-z]
-
+///
 /// Check whether the provided character is an operator which should split the currently parsed
 /// identifier.
 #[inline(always)]
@@ -523,8 +509,6 @@ fn is_operator_body_char(t: char) -> bool {
     }
 }
 
-
-
 // =============
 // === Ident ===
 // =============
@@ -534,9 +518,9 @@ fn is_operator_body_char(t: char) -> bool {
 #[allow(missing_docs)]
 struct IdentInfo {
     starts_with_underscore: bool,
-    lift_level:             u32,
-    starts_with_uppercase:  bool,
-    is_default:             bool,
+    lift_level: u32,
+    starts_with_uppercase: bool,
+    is_default: bool,
 }
 
 impl IdentInfo {
@@ -628,8 +612,6 @@ impl<'s, Inner: TokenConsumer<'s>> Lexer<'s, Inner> {
     }
 }
 
-
-
 // ================
 // === Operator ===
 // ================
@@ -676,7 +658,6 @@ impl<'s, Inner: TokenConsumer<'s>> Lexer<'s, Inner> {
     }
 }
 
-
 // === Precedence ===
 
 fn analyze_operator(token: &str) -> token::Variant {
@@ -701,8 +682,9 @@ pub fn analyze_non_syntactic_operator(token: &str) -> OperatorProperties {
             .with_unary_prefix_mode(token::Precedence::Negation)
             .with_binary_infix_precedence(token::Precedence::Addition),
         "!" => OperatorProperties::value().with_binary_infix_precedence(token::Precedence::Not),
-        "||" | "\\\\" | "&&" =>
-            OperatorProperties::value().with_binary_infix_precedence(token::Precedence::Logical),
+        "||" | "\\\\" | "&&" => {
+            OperatorProperties::value().with_binary_infix_precedence(token::Precedence::Logical)
+        }
         ">>" | "<<" => OperatorProperties::functional()
             .with_binary_infix_precedence(token::Precedence::Equality),
         "|>" | "|>>" => OperatorProperties::functional()
@@ -710,10 +692,12 @@ pub fn analyze_non_syntactic_operator(token: &str) -> OperatorProperties {
         "<|" | "<<|" => OperatorProperties::functional()
             .with_binary_infix_precedence(token::Precedence::Functional)
             .as_right_associative(),
-        "<=" | ">=" =>
-            OperatorProperties::value().with_binary_infix_precedence(token::Precedence::Inequality),
-        "==" | "!=" =>
-            OperatorProperties::value().with_binary_infix_precedence(token::Precedence::Equality),
+        "<=" | ">=" => {
+            OperatorProperties::value().with_binary_infix_precedence(token::Precedence::Inequality)
+        }
+        "==" | "!=" => {
+            OperatorProperties::value().with_binary_infix_precedence(token::Precedence::Equality)
+        }
         _ => analyze_user_operator(token),
     }
 }
@@ -760,8 +744,6 @@ fn analyze_user_operator(token: &str) -> OperatorProperties {
     }
 }
 
-
-
 // ===============
 // === Symbols ===
 // ===============
@@ -785,8 +767,6 @@ impl<'s, Inner: TokenConsumer<'s> + GroupDelimiterConsumer<'s>> Lexer<'s, Inner>
         }
     }
 }
-
-
 
 // ==============
 // === Number ===
@@ -833,8 +813,9 @@ impl<'s, Inner: TokenConsumer<'s>> Lexer<'s, Inner> {
                 if let Some(digits) = match base {
                     token::Base::Binary => self.token(|this| this.take_while(is_binary_digit)),
                     token::Base::Octal => self.token(|this| this.take_while(is_octal_digit)),
-                    token::Base::Hexadecimal =>
-                        self.token(|this| this.take_while(is_hexadecimal_digit)),
+                    token::Base::Hexadecimal => {
+                        self.token(|this| this.take_while(is_hexadecimal_digit))
+                    }
                 } {
                     self.inner.push_token(digits.with_variant(token::Variant::digits(Some(base))));
                 }
@@ -845,14 +826,13 @@ impl<'s, Inner: TokenConsumer<'s>> Lexer<'s, Inner> {
     }
 }
 
-
-
 // ============
 // === Text ===
 // ============
 
 impl<'s, Inner> Lexer<'s, Inner>
-where Inner: TokenConsumer<'s> + BlockHierarchyConsumer + NewlineConsumer<'s>
+where
+    Inner: TokenConsumer<'s> + BlockHierarchyConsumer + NewlineConsumer<'s>,
 {
     /// Read a text literal.
     fn text(&mut self) {
@@ -930,10 +910,11 @@ where Inner: TokenConsumer<'s> + BlockHierarchyConsumer + NewlineConsumer<'s>
                 }
             }
         }
-        self.text_content(None, text_type.is_interpolated(), State::MultilineText {
-            block_indent,
-            initial_indent,
-        });
+        self.text_content(
+            None,
+            text_type.is_interpolated(),
+            State::MultilineText { block_indent, initial_indent },
+        );
     }
 
     fn inline_quote(&mut self, quote_char: char, text_type: TextType) {
@@ -1181,7 +1162,7 @@ where Inner: TokenConsumer<'s> + BlockHierarchyConsumer + NewlineConsumer<'s>
         let offset_code = &self.input[usize_from(left_offset_start.utf8)..usize_from(start.utf8)];
         Mark {
             location: start,
-            offset:   Offset(
+            offset: Offset(
                 visible_offset,
                 Code::from_str_at_location(offset_code, left_offset_start),
             ),
@@ -1238,14 +1219,13 @@ impl TextType {
     }
 }
 
-
-
 // ================
 // === Comments ===
 // ================
 
 impl<'s, Inner> Lexer<'s, Inner>
-where Inner: TokenConsumer<'s> + BlockHierarchyConsumer + NewlineConsumer<'s>
+where
+    Inner: TokenConsumer<'s> + BlockHierarchyConsumer + NewlineConsumer<'s>,
 {
     #[inline(always)]
     fn submit_line_as(&mut self, kind: token::Variant) {
@@ -1273,14 +1253,13 @@ where Inner: TokenConsumer<'s> + BlockHierarchyConsumer + NewlineConsumer<'s>
     }
 }
 
-
-
 // =============
 // === Block ===
 // =============
 
 impl<'s, Inner> Lexer<'s, Inner>
-where Inner: TokenConsumer<'s> + BlockHierarchyConsumer + NewlineConsumer<'s>
+where
+    Inner: TokenConsumer<'s> + BlockHierarchyConsumer + NewlineConsumer<'s>,
 {
     fn line_break(&mut self) -> Option<Token<'s, ()>> {
         if let Some(state) = self.stack.pop() {
@@ -1349,18 +1328,17 @@ where Inner: TokenConsumer<'s> + BlockHierarchyConsumer + NewlineConsumer<'s>
     }
 }
 
-
-
 // ============
 // === Glue ===
 // ============
 
 impl<'s, Inner> Lexer<'s, Inner>
-where Inner: TokenConsumer<'s>
+where
+    Inner: TokenConsumer<'s>
         + Debug
         + BlockHierarchyConsumer
         + GroupDelimiterConsumer<'s>
-        + NewlineConsumer<'s>
+        + NewlineConsumer<'s>,
 {
     /// Run all defined parsers. The order is determined by two factors:
     /// 1. The most common parsers should be first in order to minimize comparison for each new
@@ -1379,12 +1357,13 @@ where Inner: TokenConsumer<'s>
 }
 
 impl<'s, Inner> Finish for Lexer<'s, Inner>
-where Inner: TokenConsumer<'s>
+where
+    Inner: TokenConsumer<'s>
         + Finish
         + Debug
         + BlockHierarchyConsumer
         + GroupDelimiterConsumer<'s>
-        + NewlineConsumer<'s>
+        + NewlineConsumer<'s>,
 {
     type Result = ParseResult<Inner::Result>;
 
@@ -1436,7 +1415,6 @@ pub fn run(input: &'_ str) -> ParseResult<Vec<Token<'_>>> {
     Lexer::new(input, vec![]).finish()
 }
 
-
 // =============
 // === Tests ===
 // =============
@@ -1446,7 +1424,7 @@ pub mod test {
     use super::*;
     pub use token::*;
 
-    fn test_code(code: &str) -> Code {
+    fn test_code(code: &'_ str) -> Code<'_> {
         Code::from_str_without_location(code)
     }
 
@@ -1500,7 +1478,7 @@ pub mod debug {
     use super::*;
 
     /// Lex the input and check the spans for consistency.
-    pub fn lex_and_validate_spans(input: &str) -> Vec<Token> {
+    pub fn lex_and_validate_spans(input: &'_ str) -> Vec<Token<'_>> {
         let tokens: Vec<_> = run(input).unwrap();
         let mut sum_span = None;
         fn concat<T: PartialEq + Debug + Copy>(a: &Option<Range<T>>, b: &Range<T>) -> Range<T> {
@@ -1549,7 +1527,7 @@ mod tests {
         Code::empty_without_location()
     }
 
-    fn test_code(code: &str) -> Code {
+    fn test_code(code: &'_ str) -> Code<'_> {
         Code::from_str_without_location(code)
     }
 
@@ -1585,21 +1563,27 @@ mod tests {
     fn test_case_block() {
         let newline = newline_("", "\n");
         test_lexer("\n", vec![newline_("", "\n")]);
-        test_lexer("\n  foo\n  bar", vec![
-            block_start(empty(), empty()).into(),
-            newline.clone(),
-            ident_("  ", "foo"),
-            newline.clone(),
-            ident_("  ", "bar"),
-            block_end(empty(), empty()).into(),
-        ]);
-        test_lexer("foo\n    +", vec![
-            ident_("", "foo"),
-            block_start(empty(), empty()).into(),
-            newline,
-            operator_("    ", "+"),
-            block_end(empty(), empty()).into(),
-        ]);
+        test_lexer(
+            "\n  foo\n  bar",
+            vec![
+                block_start(empty(), empty()).into(),
+                newline.clone(),
+                ident_("  ", "foo"),
+                newline.clone(),
+                ident_("  ", "bar"),
+                block_end(empty(), empty()).into(),
+            ],
+        );
+        test_lexer(
+            "foo\n    +",
+            vec![
+                ident_("", "foo"),
+                block_start(empty(), empty()).into(),
+                newline,
+                operator_("    ", "+"),
+                block_end(empty(), empty()).into(),
+            ],
+        );
     }
 
     #[test]
@@ -1634,12 +1618,10 @@ mod tests {
 
     #[test]
     fn test_case_whitespace_only_line() {
-        test_lexer_many(vec![("foo\n    \nbar", vec![
-            ident_("", "foo"),
-            newline_("", "\n"),
-            newline_("    ", "\n"),
-            ident_("", "bar"),
-        ])]);
+        test_lexer_many(vec![(
+            "foo\n    \nbar",
+            vec![ident_("", "foo"), newline_("", "\n"), newline_("    ", "\n"), ident_("", "bar")],
+        )]);
     }
 
     #[test]
@@ -1869,7 +1851,7 @@ mod tests {
         lex_and_validate_spans(&["## a", "", "   b"].join("\n"));
     }
 
-    fn text_escape_(code: &str, codepoint: Option<u32>) -> Token {
+    fn text_escape_(code: &'_ str, codepoint: Option<u32>) -> Token<'_> {
         let codepoint = match codepoint {
             Some(value) => {
                 let codepoint = Codepoint::from_u32(value);
@@ -1884,26 +1866,35 @@ mod tests {
     #[test]
     fn test_text_escapes() {
         // Valid Unicode codepoints.
-        test_lexer("'\\0\\u0\\u{10}\\u{10FFFF}'", vec![
-            text_start(test_code(""), test_code("'")).into(),
-            text_escape_("\\0", Some(0)),
-            text_escape_("\\u0", Some(0)),
-            text_escape_("\\u{10}", Some(0x10)),
-            text_escape_("\\u{10FFFF}", Some(0x10_FFFF)),
-            text_end(test_code(""), test_code("'")).into(),
-        ]);
+        test_lexer(
+            "'\\0\\u0\\u{10}\\u{10FFFF}'",
+            vec![
+                text_start(test_code(""), test_code("'")).into(),
+                text_escape_("\\0", Some(0)),
+                text_escape_("\\u0", Some(0)),
+                text_escape_("\\u{10}", Some(0x10)),
+                text_escape_("\\u{10FFFF}", Some(0x10_FFFF)),
+                text_end(test_code(""), test_code("'")).into(),
+            ],
+        );
         // Invalid Unicode, but allowed in Enso strings.
-        test_lexer("'\\uD800'", vec![
-            text_start(test_code(""), test_code("'")).into(),
-            text_escape_("\\uD800", Some(0xD800)),
-            text_end(test_code(""), test_code("'")).into(),
-        ]);
+        test_lexer(
+            "'\\uD800'",
+            vec![
+                text_start(test_code(""), test_code("'")).into(),
+                text_escape_("\\uD800", Some(0xD800)),
+                text_end(test_code(""), test_code("'")).into(),
+            ],
+        );
         // Invalid and disallowed.
-        test_lexer("'\\u{110000}'", vec![
-            text_start(test_code(""), test_code("'")).into(),
-            text_escape_("\\u{110000}", None),
-            text_end(test_code(""), test_code("'")).into(),
-        ]);
+        test_lexer(
+            "'\\u{110000}'",
+            vec![
+                text_start(test_code(""), test_code("'")).into(),
+                text_escape_("\\u{110000}", None),
+                text_end(test_code(""), test_code("'")).into(),
+            ],
+        );
     }
 
     #[test]
@@ -1926,9 +1917,7 @@ mod tests {
     }
 }
 
-
-
-#[cfg(test)]
+#[cfg(all(test, feature = "nightly"))]
 mod benches {
     use super::*;
     extern crate test;

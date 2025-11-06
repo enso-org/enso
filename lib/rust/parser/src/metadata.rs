@@ -7,11 +7,7 @@ use std::collections::BTreeMap;
 use std::str::FromStr;
 use uuid::Uuid;
 
-
-
 const MARKER: &str = "\n\n\n#### METADATA ####\n";
-
-
 
 // ================
 // === Metadata ===
@@ -30,7 +26,6 @@ impl Metadata {
         Some(*self.id_map.get(&loc)?)
     }
 }
-
 
 // === Parsing ===
 
@@ -87,7 +82,6 @@ impl FromStr for MetadataFormat {
     }
 }
 
-
 // === Location ===
 
 /// Identifies a span in the source code.
@@ -96,7 +90,7 @@ struct Location {
     /// The beginning of the span, as a byte offset from the beginning of the file.
     index: Number,
     /// The length of the span, in bytes.
-    size:  Number,
+    size: Number,
 }
 
 #[derive(Debug, Copy, Clone, serde::Serialize, serde::Deserialize, PartialEq, Eq, PartialOrd, Ord)]

@@ -63,7 +63,7 @@ case object DemandAnalysis extends IRPass {
     ir: Module,
     moduleContext: ModuleContext
   ): Module = {
-    ir.copy(bindings =
+    ir.copyWithBindings(bindings =
       ir.bindings.map(t =>
         t.mapExpressions(
           runExpression(

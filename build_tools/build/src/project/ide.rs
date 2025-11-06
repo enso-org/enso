@@ -4,18 +4,16 @@ use crate::prelude::*;
 use crate::project::gui::ide_desktop_from_context;
 use crate::project::Context;
 
-
-
 #[derive(Clone, Debug)]
 pub struct Artifact {
     /// Directory with unpacked client distribution.
-    pub unpacked:            PathBuf,
+    pub unpacked: PathBuf,
     /// Entry point within an unpacked client distribution.
     pub unpacked_executable: PathBuf,
     /// File with the compressed client image (like installer or AppImage).
-    pub image:               PathBuf,
+    pub image: PathBuf,
     /// File with the checksum of the image.
-    pub image_checksum:      PathBuf,
+    pub image_checksum: PathBuf,
 }
 
 impl Artifact {
@@ -62,22 +60,22 @@ impl Artifact {
 
 #[derive_where(Debug)]
 pub struct BuildInput {
-    pub version:         Version,
+    pub version: Version,
     #[derive_where(skip)]
     pub project_manager: BoxFuture<'static, Result<crate::project::backend::Artifact>>,
     #[derive_where(skip)]
-    pub gui:             BoxFuture<'static, Result<crate::project::gui::Artifact>>,
+    pub gui: BoxFuture<'static, Result<crate::project::gui::Artifact>>,
     #[derive_where(skip)]
-    pub commit_hash:     BoxFuture<'static, Result<String>>,
+    pub commit_hash: BoxFuture<'static, Result<String>>,
     pub electron_target: Option<String>,
     /// The name base used to generate CI run artifact names.
-    pub artifact_name:   String,
-    pub sign_artifacts:  bool,
+    pub artifact_name: String,
+    pub sign_artifacts: bool,
 }
 
 #[derive(Clone, Copy, Debug)]
 pub struct Ide {
-    pub target_os:   OS,
+    pub target_os: OS,
     pub target_arch: Arch,
 }
 

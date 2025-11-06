@@ -69,7 +69,7 @@ case object TypeFunctions extends IRPass {
     @unused moduleContext: ModuleContext
   ): Module = {
     val new_bindings = ir.bindings.map(_.mapExpressions(resolveExpression))
-    ir.copy(bindings = new_bindings)
+    ir.copyWithBindings(bindings = new_bindings)
   }
 
   /** Performs typing function resolution on an expression.

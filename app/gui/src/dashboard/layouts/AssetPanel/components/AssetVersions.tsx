@@ -1,14 +1,8 @@
 /** @file A list of previous versions of an asset. */
-
-import { useMutation, useSuspenseQuery } from '@tanstack/react-query'
-
-import { uniqueString } from 'enso-common/src/utilities/uniqueString'
-
 import { ErrorBoundary } from '#/components/ErrorBoundary'
 import { Result } from '#/components/Result'
 import { copyAssetsMutationOptions } from '#/hooks/backendBatchedHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import { useOpenProjectLocally } from '#/hooks/projectHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import type { AnyAsset, DatalinkAsset, FileAsset, ProjectAsset } from '#/services/Backend'
 import { AssetType, BackendType, S3ObjectVersionId } from '#/services/Backend'
@@ -18,7 +12,10 @@ import {
   useRightPanelContextCategory,
   useRightPanelFocusedAsset,
 } from '$/providers/react/container'
-import { includes } from 'enso-common/src/utilities/data/array'
+import { useOpenedProjects } from '$/providers/react/openedProjects'
+import { includes } from '$/utils/data/array'
+import { uniqueString } from '$/utils/uniqueString'
+import { useMutation, useSuspenseQuery } from '@tanstack/react-query'
 import { AssetVersion, type DuplicateOptions, type Version } from './AssetVersion'
 import { assetVersionsQueryOptions } from './queries'
 
@@ -89,7 +86,7 @@ function AssetVersionsInternal(props: AssetVersionsInternalProps) {
   const versions = versionsQuery.data
   const latestVersion = versions.find((version) => version.isLatest)
 
-  const openProjectLocally = useOpenProjectLocally()
+  const { openProjectLocally } = useOpenedProjects()
 
   const restoreMutation = useMutation({
     mutationFn: (variables: AddNewVersionVariables) =>
@@ -110,7 +107,7 @@ function AssetVersionsInternal(props: AssetVersionsInternalProps) {
       // This is SAFE because we know that the the new asset is a Project,
       // because we can't create a duplicate with a different type.
       /* eslint-disable-next-line no-restricted-syntax */
-      await openProjectLocally(newAsset as ProjectAsset, backend.type)
+      openProjectLocally(newAsset as ProjectAsset, backend.type)
     }
   })
 

@@ -1,11 +1,9 @@
 /** @file Type definitions common between all backends. */
 import { z } from 'zod'
 import { getText, resolveDictionary, type Replacements, type TextId } from '../text.js'
-import * as array from '../utilities/data/array.js'
 import * as dateTime from '../utilities/data/dateTime.js'
 import * as newtype from '../utilities/data/newtype.js'
 import * as permissions from '../utilities/permissions.js'
-import * as uniqueString from '../utilities/uniqueString.js'
 import { getFileDetailsPath } from './Backend/remoteBackendPaths.js'
 import {
   DatalinkId,
@@ -18,7 +16,6 @@ import {
   Path,
   ProjectId,
   SecretId,
-  UpAssetId,
   VirtualParentsPath,
   type Address,
   type AssetId,
@@ -515,9 +512,13 @@ export enum Plan {
   enterprise = 'enterprise',
 }
 
-export const PLANS = Object.values(Plan)
+export const PLANS: readonly Plan[] = Object.values(Plan)
 
-export const isPlan = array.includesPredicate(PLANS)
+/** Whether a given value is a {@link Plan}. */
+export function isPlan(value: unknown): value is Plan {
+  const plans: readonly unknown[] = PLANS
+  return plans.includes(value)
+}
 
 /** Metadata for a payment checkout session. */
 export interface CheckoutSession {
@@ -631,14 +632,12 @@ export interface PathResolveResponse extends Omit<AnyRealAsset, 'type' | 'ensoPa
 type IsAny<T> = 0 extends 1 & T ? true : false
 
 /** Response from "assets/${assetId}" endpoint. */
-export type AssetDetailsResponse<Id extends RealAssetId> =
+export type AssetDetailsResponse<Id extends AssetId> =
   // `T extends T` where `T` is a type parameter is a trick to distribute union values,
   // evaluating the conditional type for each member of the union type,
   // and then resolving to a union of the results of this operation.
-  IsAny<Id> extends true ? AssetDetailsResponse<RealAssetId>
-  : | (Id extends Id ?
-        Omit<AnyAsset<RealAssetTypeId<Id>>, 'ensoPath'> & { readonly metadataId: MetadataId }
-      : never)
+  IsAny<Id> extends true ? AssetDetailsResponse<AssetId>
+  : | (Id extends Id ? AnyAsset<AssetTypeFromId<Id>> & { readonly metadataId: MetadataId } : never)
     | null
 
 /** Whether the user is on a plan with multiple seats (i.e. a plan that supports multiple users). */
@@ -865,8 +864,6 @@ export enum AssetType {
   secret = 'secret',
   datalink = 'datalink',
   directory = 'directory',
-  /** A special {@link AssetType} representing a button that navigates to the parent directory. */
-  specialUp = 'specialUp',
 }
 
 export const ASSET_TYPE_TO_TEXT_ID: Readonly<Record<AssetType, TextId>> = {
@@ -874,7 +871,6 @@ export const ASSET_TYPE_TO_TEXT_ID: Readonly<Record<AssetType, TextId>> = {
   [AssetType.project]: 'projectAssetType',
   [AssetType.file]: 'fileAssetType',
   [AssetType.secret]: 'secretAssetType',
-  [AssetType.specialUp]: 'specialUpAssetType',
   [AssetType.datalink]: 'datalinkAssetType',
 } satisfies { [Type in AssetType]: `${Type}AssetType` }
 
@@ -894,9 +890,7 @@ export type RealAssetType =
   | AssetType.directory
 
 /** The corresponding ID newtype for each {@link AssetType}. */
-export interface IdType extends RealAssetIdType, SpecialAssetIdType {}
-export type RealAssetId = ProjectId | FileId | DatalinkId | SecretId | DirectoryId
-export interface RealAssetIdType {
+export interface IdType {
   readonly [AssetType.project]: ProjectId
   readonly [AssetType.file]: FileId
   readonly [AssetType.datalink]: DatalinkId
@@ -904,16 +898,13 @@ export interface RealAssetIdType {
   readonly [AssetType.directory]: DirectoryId
 }
 
-export type RealAssetTypeId<Id extends RealAssetId> =
+type AssetTypeFromId<Id extends AssetId> =
   Id extends ProjectId ? AssetType.project
   : Id extends FileId ? AssetType.file
   : Id extends DatalinkId ? AssetType.datalink
   : Id extends SecretId ? AssetType.secret
-  : AssetType.directory
-
-export interface SpecialAssetIdType {
-  readonly [AssetType.specialUp]: UpAssetId
-}
+  : Id extends DirectoryId ? AssetType.directory
+  : never
 
 /**
  * Integers (starting from 0) corresponding to the order in which each asset type should appear
@@ -925,7 +916,6 @@ export const ASSET_TYPE_ORDER: Readonly<Record<AssetType, number>> = {
   [AssetType.file]: -2,
   [AssetType.datalink]: -3,
   [AssetType.secret]: -4,
-  [AssetType.specialUp]: 1,
 }
 
 /** A state associated with a credential. */
@@ -984,30 +974,6 @@ export type DatalinkAsset = Asset<AssetType.datalink>
 /** A convenience alias for {@link Asset}<{@link AssetType.secret}>. */
 export type SecretAsset = Asset<AssetType.secret>
 
-/** A convenience alias for {@link Asset}<{@link AssetType.specialUp}>. */
-export type SpecialUpAsset = Asset<AssetType.specialUp>
-
-const PLACEHOLDER_SIGNATURE = Symbol('placeholder')
-
-/** Creates a new placeholder id. */
-function createPlaceholderId(from?: string): string {
-  const id = new String(from ?? uniqueString.uniqueString())
-
-  Object.defineProperty(id, PLACEHOLDER_SIGNATURE, {
-    value: true,
-    enumerable: false,
-    configurable: false,
-    writable: false,
-  })
-
-  return id as string
-}
-
-/** Whether a given {@link AssetId} is a placeholder id. */
-export function isPlaceholderId(id: AssetId) {
-  return typeof id !== 'string' && PLACEHOLDER_SIGNATURE in id
-}
-
 /** Whether a given asset represents a credential. */
 export function isAssetCredential(
   asset: Asset,
@@ -1015,48 +981,9 @@ export function isAssetCredential(
   return asset.type === 'secret' && asset.credentialMetadata !== undefined
 }
 
-/** Extract the file extension from a file name. */
-function fileExtension(fileNameOrPath: string) {
-  return fileNameOrPath.match(/[.]([^.]+?)$/)?.[1] ?? ''
-}
-
 /** Whether an asset can be downloaded. */
 export function isDownloadableAsset(type: AssetType | undefined) {
   return type !== AssetType.secret
-}
-
-/** Creates a {@link FileAsset} using the given values. */
-export function createPlaceholderFileAsset(title: string, parentId: DirectoryId): FileAsset {
-  return {
-    type: AssetType.file,
-    id: FileId(createPlaceholderId()),
-    title,
-    parentId,
-    permissions: [],
-    modifiedAt: dateTime.toRfc3339(new Date()),
-    projectState: null,
-    extension: fileExtension(title),
-    parentsPath: ParentsPath(''),
-    virtualParentsPath: VirtualParentsPath(''),
-    ensoPath: EnsoPath(''),
-  }
-}
-
-/** Creates a {@link ProjectAsset} using the given values. */
-export function createPlaceholderProjectAsset(title: string, parentId: DirectoryId): ProjectAsset {
-  return {
-    type: AssetType.project,
-    id: ProjectId(createPlaceholderId()),
-    title,
-    parentId,
-    permissions: [],
-    modifiedAt: dateTime.toRfc3339(new Date()),
-    projectState: { type: ProjectState.new },
-    extension: null,
-    parentsPath: ParentsPath(''),
-    virtualParentsPath: VirtualParentsPath(''),
-    ensoPath: EnsoPath(''),
-  }
 }
 
 /** Any object with a `type` field matching the given `AssetType`. */
@@ -1066,7 +993,7 @@ interface HasType<Type extends AssetType> {
 
 /** A union of all possible {@link Asset} variants. */
 export type AnyAsset<Type extends AssetType = AssetType> = Extract<
-  DatalinkAsset | DirectoryAsset | FileAsset | ProjectAsset | SecretAsset | SpecialUpAsset,
+  DatalinkAsset | DirectoryAsset | FileAsset | ProjectAsset | SecretAsset,
   HasType<Type>
 >
 
@@ -1088,44 +1015,6 @@ export function extractTypeFromId(id: AssetId): AnyAsset extends infer T ?
     type: id.match(/^(.+?)-/)?.[1],
     id,
   } as never
-}
-
-/** Creates a new placeholder asset id for the given asset type. */
-export function createPlaceholderAssetId<Type extends AssetType>(
-  type: Type,
-  id?: string,
-): IdType[Type] {
-  // This is required so that TypeScript can check the `switch` for exhaustiveness.
-  const assetType: AssetType = type
-  id = createPlaceholderId(id)
-  let result: AssetId
-  switch (assetType) {
-    case AssetType.directory: {
-      result = DirectoryId(`directory-${id}`)
-      break
-    }
-    case AssetType.project: {
-      result = ProjectId(id)
-      break
-    }
-    case AssetType.file: {
-      result = FileId(id)
-      break
-    }
-    case AssetType.datalink: {
-      result = DatalinkId(id)
-      break
-    }
-    case AssetType.secret: {
-      result = SecretId(id)
-      break
-    }
-    case AssetType.specialUp: {
-      result = UpAssetId(id)
-      break
-    }
-  }
-  return result as IdType[Type]
 }
 
 /** A type guard that returns whether an {@link Asset} is a {@link ProjectAsset}. */
@@ -1926,7 +1815,7 @@ export default abstract class Backend {
    */
   abstract getProjectDetails(projectId: ProjectId, getPresignedUrl?: boolean): Promise<Project>
   /** Return asset details. */
-  abstract getAssetDetails<Id extends RealAssetId>(
+  abstract getAssetDetails<Id extends AssetId>(
     assetId: Id,
     rootPath: Path | undefined,
   ): Promise<AssetDetailsResponse<Id>>
@@ -1968,11 +1857,20 @@ export default abstract class Backend {
   abstract uploadFileStart(
     params: UploadFileRequestParams,
     file: File,
+    abort?: AbortSignal,
   ): Promise<UploadLargeFileMetadata>
   /** Upload a chunk of a large file. */
-  abstract uploadFileChunk(url: HttpsUrl, file: Blob, index: number): Promise<S3MultipartPart>
+  abstract uploadFileChunk(
+    url: HttpsUrl,
+    file: Blob,
+    index: number,
+    abort?: AbortSignal,
+  ): Promise<{ part: S3MultipartPart; size: number }>
   /** Finish uploading a large file. */
-  abstract uploadFileEnd(body: UploadFileEndRequestBody): Promise<UploadedAsset>
+  abstract uploadFileEnd(
+    body: UploadFileEndRequestBody,
+    abort?: AbortSignal,
+  ): Promise<UploadedAsset>
   /** Change the name of a file. */
   abstract updateFile(fileId: FileId, body: UpdateFileRequestBody, title: string): Promise<void>
 
@@ -2106,9 +2004,9 @@ export default abstract class Backend {
   }
 
   /** Send a binary HTTP POST request to the given path. */
-  protected postBinary<T = void>(path: string, payload: Blob) {
+  protected postBinary<T = void>(path: string, payload: Blob, options?: HttpClientPostOptions) {
     return this.checkForAuthenticationError(() =>
-      this.client.postBinary<T>(this.resolvePath(path), payload),
+      this.client.postBinary<T>(this.resolvePath(path), payload, options),
     )
   }
 

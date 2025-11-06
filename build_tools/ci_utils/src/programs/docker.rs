@@ -5,8 +5,6 @@ use crate::extensions::child::ChildExt;
 
 use std::process::Stdio;
 
-
-
 /// Get the docker image identifier from the `docker build` command output.
 ///
 /// This assumes format compatible with `--quiet` flag.
@@ -17,10 +15,10 @@ fn get_image_id_from_build_output(output: &std::process::Output) -> Result<Image
         .lines()
         .inspect(|line| debug!("{}", line))
         .filter(|line| !line.is_empty())
-        .last()
+        .next_back()
         .with_context(|| "Docker provided no output.")?
         .split(' ')
-        .last()
+        .next_back()
         .with_context(|| "The last line has no space!")?;
     debug!("Image {} successfully built!", built_image_id);
     ImageId::from_str(built_image_id)
@@ -74,20 +72,19 @@ impl Default for NetworkDriver {
     }
 }
 
-
 #[derive(Clone, Debug, PartialEq, Ord, PartialOrd, Eq, Hash)]
 pub struct NetworkInfo {
-    pub id:     String,
-    pub name:   String,
+    pub id: String,
+    pub name: String,
     pub driver: NetworkDriver,
-    pub scope:  String,
+    pub scope: String,
 }
 
 #[derive(Clone, Debug)]
 pub struct Credentials {
     pub username: String,
     pub password: String,
-    pub server:   String,
+    pub server: String,
 }
 
 impl Credentials {
@@ -212,7 +209,7 @@ impl Docker {
             // It seems that columns are separated by at least 3 spaces.
             match line.split("   ").filter(|word| !word.is_empty()).collect_vec().as_slice() {
                 [id, name, driver, scope] => ret.push(NetworkInfo {
-                    id:     id.to_string(),
+                    id: id.to_string(),
                     driver: match *driver {
                         "bridge" => NetworkDriver::Bridge,
                         "host" => NetworkDriver::Host,
@@ -227,8 +224,8 @@ impl Docker {
                         "null" => NetworkDriver::Null,
                         name => NetworkDriver::Other(name.to_string()),
                     },
-                    name:   name.to_string(),
-                    scope:  scope.to_string(),
+                    name: name.to_string(),
+                    scope: scope.to_string(),
                 }),
                 _ => bail!("Failed to parse line: {}", line),
             }
@@ -283,26 +280,26 @@ impl Docker {
 #[derive(Clone, Debug)]
 pub struct BuildOptions {
     /// Whether the `buildx` (extended build capabilities with BuildKit) should be used.
-    pub buildx:        bool,
-    pub context:       PathBuf,
-    pub target:        Option<OsString>,
-    pub tags:          Vec<String>,
-    pub build_args:    HashMap<String, Option<String>>,
+    pub buildx: bool,
+    pub context: PathBuf,
+    pub target: Option<OsString>,
+    pub tags: Vec<String>,
+    pub build_args: HashMap<String, Option<String>>,
     ///Named build contexts. Available only for buildx.
     pub build_context: HashMap<String, String>,
-    pub file:          Option<PathBuf>,
+    pub file: Option<PathBuf>,
 }
 
 impl BuildOptions {
     pub fn new(context_path: impl Into<PathBuf>) -> Self {
         Self {
-            buildx:        false,
-            context:       context_path.into(),
-            target:        default(),
-            tags:          default(),
-            build_args:    default(),
+            buildx: false,
+            context: context_path.into(),
+            target: default(),
+            tags: default(),
+            build_args: default(),
             build_context: default(),
-            file:          default(),
+            file: default(),
         }
     }
 
@@ -418,8 +415,9 @@ impl RestartPolicy {
     pub fn print_args(self) -> [OsString; 2] {
         let value = match self {
             RestartPolicy::No => "no".into(),
-            RestartPolicy::OnFailure { max_retries: Some(max_retries) } =>
-                format!("on-failure:{max_retries}").into(),
+            RestartPolicy::OnFailure { max_retries: Some(max_retries) } => {
+                format!("on-failure:{max_retries}").into()
+            }
             RestartPolicy::OnFailure { max_retries: None } => "on-failure:{}".into(),
             RestartPolicy::Always => "always".into(),
             RestartPolicy::UnlessStopped => "unless-stopped".into(),
@@ -450,21 +448,21 @@ impl Display for Network {
 
 #[derive(Clone, Debug)]
 pub struct RunOptions {
-    pub image:             ImageId,
+    pub image: ImageId,
     pub working_directory: Option<PathBuf>,
-    pub volume:            Vec<(PathBuf, PathBuf)>,
-    pub command:           Vec<OsString>,
-    pub name:              Option<String>,
-    pub restart:           Option<RestartPolicy>,
-    pub env:               HashMap<OsString, OsString>,
+    pub volume: Vec<(PathBuf, PathBuf)>,
+    pub command: Vec<OsString>,
+    pub name: Option<String>,
+    pub restart: Option<RestartPolicy>,
+    pub env: HashMap<OsString, OsString>,
     /// Mapping host port => guest port.
-    pub ports:             HashMap<u16, u16>,
-    pub network:           Option<Network>,
-    pub storage_size_gb:   Option<usize>,
+    pub ports: HashMap<u16, u16>,
+    pub network: Option<Network>,
+    pub storage_size_gb: Option<usize>,
     /// Size of /dev/shm for the container, e.g. "1gb". Passed as --shm-size.
-    pub shm_size:          Option<OsString>,
+    pub shm_size: Option<OsString>,
     /// Proxy all received signals to the process (non-TTY mode only).
-    pub sig_proxy:         Option<bool>,
+    pub sig_proxy: Option<bool>,
 }
 
 impl RunOptions {
@@ -618,13 +616,13 @@ impl FromStr for ContainerId {
 #[derive(Clone, Debug, Default)]
 pub struct PruneOptions {
     /// Remove all unused images not just dangling ones.
-    pub all:     bool,
+    pub all: bool,
     /// Do not prompt for confirmation.
-    pub force:   bool,
+    pub force: bool,
     /// Remove all unused local volumes.
     pub volumes: bool,
     /// Provide filter values (e.g. ‘label=<key>=<value>’).
-    pub filter:  Vec<String>,
+    pub filter: Vec<String>,
 }
 
 impl PruneOptions {
@@ -677,7 +675,6 @@ mod tests {
             _ => anyhow::bail!("Unsupported OS kernel version: {kernel_version}."),
         })
     }
-
 
     /// Provide a Windows image tag for the OS that we are running on.
     ///

@@ -11,3 +11,4 @@ order: 0
 This folder contains the documentation for integrations with external services.
 
 - [**Strava**](./strava.md)
+- [**Microsoft 365**](./microsoft-365.md)

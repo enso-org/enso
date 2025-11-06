@@ -8,8 +8,6 @@ use chrono::Datelike;
 use ide_ci::programs::git;
 use ide_ci::programs::git::Ref;
 
-
-
 /// Describes what kind of version should be generated.
 #[derive(
     clap::ValueEnum,
@@ -55,7 +53,7 @@ pub struct Releases {
     ///
     /// It is used to determine major version in some cases, we keep it as parameter to keep the
     /// code testable. Also, defines a day for nightly releases.
-    pub date:     chrono::NaiveDate,
+    pub date: chrono::NaiveDate,
 }
 
 impl Releases {
@@ -149,7 +147,6 @@ impl Releases {
 #[cfg(test)]
 mod tests {
     use super::*;
-
 
     fn expect_next_release(
         date: chrono::NaiveDate,

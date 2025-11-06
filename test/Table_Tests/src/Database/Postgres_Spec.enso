@@ -717,7 +717,7 @@ add_postgres_specs suite_builder create_connection_fn db_name =
         in_mem_table = Table.new columns
         in_mem_table.select_into_database_table (connection.if_nothing default_connection.get) name primary_key=Nothing temporary=True
     light_table_builder columns =
-        default_connection.get.base_connection.create_literal_table (Table.new columns) "literal_table"
+        default_connection.get.create_literal_table (Table.new columns) "literal_table"
 
     materialize = .read
 

@@ -7,7 +7,6 @@ use aws_sdk_s3::model::ObjectCannedAcl;
 use aws_sdk_s3::types::ByteStream;
 use s3::BucketContext;
 
-
 // ==============
 // === Export ===
 // ==============
@@ -16,16 +15,12 @@ pub mod ecr;
 pub mod env;
 pub mod s3;
 
-
-
 /// The upper limit on number of nightly editions that are stored in the bucket.
 pub const NIGHTLY_EDITIONS_LIMIT: usize = 20;
 
 pub const EDITIONS_BUCKET_NAME: &str = "editions.release.enso.org";
 
 pub const MANIFEST_FILENAME: &str = "manifest.yaml";
-
-
 
 #[derive(Clone, Debug, Display, Serialize, Deserialize, Deref)]
 pub struct Edition(pub String);
@@ -48,11 +43,9 @@ impl Edition {
         self.0.contains("nightly")
             || Version::find_in_text(self)
                 .as_ref()
-                .map_or(false, |version| Kind::Nightly.matches(version))
+                .is_ok_and(|version| Kind::Nightly.matches(version))
     }
 }
-
-
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Manifest {
@@ -88,8 +81,8 @@ impl Manifest {
 
 pub async fn update_manifest(repo_context: &impl IsRepo, edition_file: &Path) -> Result {
     let bucket_context = BucketContext {
-        client:     aws_sdk_s3::Client::new(&aws_config::load_from_env().await),
-        bucket:     EDITIONS_BUCKET_NAME.to_string(),
+        client: aws_sdk_s3::Client::new(&aws_config::load_from_env().await),
+        bucket: EDITIONS_BUCKET_NAME.to_string(),
         upload_acl: ObjectCannedAcl::PublicRead,
         key_prefix: Some(repo_context.name().to_string()),
     };
@@ -105,7 +98,6 @@ pub async fn update_manifest(repo_context: &impl IsRepo, edition_file: &Path) ->
 
     let manifest = bucket_context.get_yaml::<Manifest>(MANIFEST_FILENAME).await?;
     debug!("Got manifest index from S3: {:#?}", manifest);
-
 
     let (new_manifest, nightlies_to_remove) =
         manifest.with_new_nightly(new_edition_name, NIGHTLY_EDITIONS_LIMIT);
@@ -126,7 +118,6 @@ pub async fn update_manifest(repo_context: &impl IsRepo, edition_file: &Path) ->
 #[cfg(test)]
 mod tests {
     use super::*;
-
 
     #[test]
     fn updating_manifest() -> Result {

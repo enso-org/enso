@@ -42,6 +42,19 @@ public final class OtherJvmPool extends Channel.Config {
     this.onLeave = onLeave;
   }
 
+  public final synchronized void close(Channel<OtherJvmPool> ch) throws Exception {
+    this.language = null;
+    this.onEnter = null;
+    this.onLeave = null;
+    this.loader = null;
+    this.objectsById.clear();
+    this.objectsToId.clear();
+    this.incomming.clear();
+    ch.close();
+    assert ch.getConfig() == this;
+    OtherJvmRef.closeChannel(ch);
+  }
+
   final boolean hasLanguage() {
     return language != null;
   }

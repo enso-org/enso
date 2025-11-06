@@ -7,8 +7,8 @@
 import { Plan } from '#/services/Backend'
 import { unsafeEntries } from '#/utilities/object'
 import { unsafeWriteValue } from '#/utilities/write'
+import { IS_DEV_MODE, isOnElectron, isOnLinux } from '$/utils/detect'
 import { useZustandStoreRef } from '$/utils/zustand'
-import { IS_DEV_MODE, isOnElectron, isOnLinux } from 'enso-common/src/detect'
 import { z } from 'zod'
 import { createStore } from 'zustand'
 import { persist } from 'zustand/middleware'
@@ -35,6 +35,7 @@ export const FEATURE_FLAGS_SCHEMA = z.object({
   listDirectoryPageSize: z.number().int().min(1),
   dataCatalogQueryDebounceDelay: z.number().int().min(0),
   unsafeDarkTheme: z.boolean(),
+  debugHoverAreas: z.boolean(),
 })
 
 const FEATURE_FLAGS_STATE_SCHEMA = z.object({ featureFlags: FEATURE_FLAGS_SCHEMA.partial() })
@@ -70,6 +71,7 @@ export const flagsStore = createStore<FeatureFlagsStore>()(
         listDirectoryPageSize: DEFAULT_LIST_DIRECTORY_PAGE_SIZE,
         dataCatalogQueryDebounceDelay: DEFAULT_DATA_CATALOG_QUERY_DEBOUNCE_DELAY_MS,
         unsafeDarkTheme: false,
+        debugHoverAreas: false,
       },
       setFeatureFlag: (key, value) => {
         set(({ featureFlags }) => ({ featureFlags: { ...featureFlags, [key]: value } }))

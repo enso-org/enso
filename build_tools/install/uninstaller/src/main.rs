@@ -2,7 +2,6 @@
 
 use enso_install::prelude::*;
 
-
 // ==============
 // === Export ===
 // ==============
@@ -10,20 +9,16 @@ use enso_install::prelude::*;
 #[cfg(windows)]
 pub mod win;
 
-
-
 #[cfg(windows)]
 #[tokio::main]
 pub async fn main() -> Result {
     win::main().await
 }
 
-
 #[cfg(not(windows))]
 fn main() -> Result {
     bail!("This uninstaller is only supported on Windows.")
 }
-
 
 #[cfg(test)]
 mod tests {

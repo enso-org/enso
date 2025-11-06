@@ -34,8 +34,8 @@ import {
 import { useLocalStorage, useText } from '$/providers/react'
 import { useUserSession } from '$/providers/react/auth'
 import { useFeatureFlags, useSetFeatureFlag } from '$/providers/react/featureFlags'
+import { IS_DEV_MODE } from '$/utils/detect'
 import { useQueryClient } from '@tanstack/react-query'
-import { IS_DEV_MODE } from 'enso-common/src/detect'
 import { toast } from 'react-toastify'
 import { twJoin } from 'tailwind-merge'
 import invariant from 'tiny-invariant'
@@ -385,6 +385,15 @@ export function EnsoDevtools() {
           >
             {(form) => (
               <>
+                <Switch
+                  form={form}
+                  name="debugHoverAreas"
+                  label={'Debug hover areas'}
+                  description={'Make all mouse hoverable areas visible on the graph.'}
+                  onChange={(value) => {
+                    setFeatureFlag('debugHoverAreas', value)
+                  }}
+                />
                 <Switch
                   form={form}
                   name="showDeveloperIds"

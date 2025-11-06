@@ -1402,11 +1402,13 @@ Text.drop self range:(Text_Sub_Range | Index_Sub_Range | Range | Integer)=..Firs
    Annex 29. This is the smallest unit that still has semantic meaning in most
    text-processing applications.
 
-   ### What is title case?
-   Title case capitalizes the first letter of every word and ensures that all the
-   remaining letters are in lower case. Some definitions of title case avoid
-   capitalizing minor words (like the article "the" in English) but this
-   implementation treats all words in the same way.
+   ### What is proper case?
+   Proper case (also called Title case) capitalizes the first letter of every 
+   word and ensures that all the remaining letters are in lower case. 
+   Some definitions of proper case avoid capitalizing minor words (like the
+   article "the" in English) but this implementation treats all words in
+   the same way.
+@case_option Case.default_widget
 @locale Locale.default_widget
 Text.to_case : Case -> Locale -> Text
 Text.to_case self case_option:Case=..Lower locale:Locale=Locale.default =

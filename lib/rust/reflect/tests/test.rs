@@ -7,8 +7,6 @@
 use enso_reflect as reflect;
 use enso_reflect_macros::Reflect;
 
-
-
 #[derive(Reflect)]
 struct Foo;
 

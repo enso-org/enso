@@ -39,6 +39,7 @@ public class OtherJvmObjectTest {
   @ClassRule
   public static final ContextUtils ctx =
       ContextUtils.newBuilder("host") // no dynamic languages needed
+          .assertGC(false) // but then we cannot try to GC EnsoContext!
           .build();
 
   private static Channel<OtherJvmPool> CHANNEL;

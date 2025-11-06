@@ -4,8 +4,6 @@ use super::*;
 
 use syn::Token;
 
-
-
 // =============
 // === Quote ===
 // =============
@@ -14,7 +12,6 @@ use syn::Token;
 pub(crate) trait Quote {
     fn quote(&self) -> TokenStream;
 }
-
 
 // === Implementations ===
 
@@ -130,8 +127,6 @@ impl Quote for Variant {
         quoted
     }
 }
-
-
 
 // =============
 // === Tests ===

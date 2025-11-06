@@ -14,8 +14,6 @@ use tokio::io::AsyncRead;
 use tokio::io::BufReader;
 use tokio::process::Child;
 
-
-
 /// Port used by SQLServer in its container.
 const SQLSERVER_CONTAINER_DEFAULT_PORT: u16 = 1433;
 
@@ -72,11 +70,11 @@ impl EndpointConfiguration {
 #[derive(Clone, Debug)]
 pub struct Configuration {
     pub sqlserver_container: ContainerId,
-    pub database_name:       String,
-    pub user:                String,
-    pub password:            String,
-    pub endpoint:            EndpointConfiguration,
-    pub version:             String,
+    pub database_name: String,
+    pub user: String,
+    pub password: String,
+    pub endpoint: EndpointConfiguration,
+    pub version: String,
 }
 
 impl Configuration {
@@ -129,7 +127,7 @@ pub async fn process_lines_until<R: AsyncRead + Unpin>(
 #[derive(Debug)]
 pub struct SQLServerContainer {
     _docker_run: Child,
-    config:      Configuration,
+    config: Configuration,
 }
 
 impl Drop for SQLServerContainer {
@@ -201,11 +199,11 @@ mod tests {
     async fn start_sqlserver() -> Result {
         let config = Configuration {
             sqlserver_container: ContainerId("something".into()),
-            endpoint:            EndpointConfiguration::deduce()?,
-            version:             "2022-latest".into(),
-            user:                "test".into(),
-            password:            "<YourStrong@Passw0rd>".into(),
-            database_name:       "test".into(),
+            endpoint: EndpointConfiguration::deduce()?,
+            version: "2022-latest".into(),
+            user: "test".into(),
+            password: "<YourStrong@Passw0rd>".into(),
+            database_name: "test".into(),
         };
         let child = SQLServer::start(config).await?;
         // drop(child);

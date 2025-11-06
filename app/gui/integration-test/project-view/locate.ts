@@ -167,8 +167,7 @@ export function visualisationNodeType(page: Page) {
 
 /** All edges going from a node with given binding that are connected to another node. */
 export async function connectedEdgesFromNodeWithBinding(page: Page, binding: string) {
-  const fromNode = await edgesFromNode(page, graphNodeByBinding(page, binding).first())
-  return fromNode.and(page.locator('[data-target-node-id]'))
+  return edgesFromNode(page, graphNodeByBinding(page, binding).first())
 }
 
 /** All edges going from a node. */

@@ -7,8 +7,6 @@ use crate::env::accessor::RawVariable;
 use crate::env::accessor::TypedVariable;
 use crate::github::Repo;
 
-
-
 define_env_var! {
     /// Always set to true when being run under GitHub Actions runner. Also, this is often set on
     /// other CI systems.
@@ -174,7 +172,9 @@ pub fn is_self_hosted() -> Result<bool> {
 }
 
 pub async fn set_and_emit<V>(var: &V, value: &V::Borrowed) -> Result
-where V: TypedVariable {
+where
+    V: TypedVariable,
+{
     let value_raw = var.generate(value)?;
     crate::actions::workflow::set_env(var.name(), &value_raw).await
 }

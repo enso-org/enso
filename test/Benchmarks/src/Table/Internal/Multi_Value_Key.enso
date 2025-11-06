@@ -74,7 +74,7 @@ collect_benches = Bench.build builder->
             key_columns = table.columns
             directions = Vector.fill key_columns.length False
             make_key row_ix = Ordered_Multi_Value_Key.from_row key_columns directions row_ix
-            compare_keys key1 key2 = key1 < key2
+            compare_keys key1 key2 = Comparable.< self=key1 that=key2
             compare_ordered_keys make_key table compare_keys
 
         group_builder.specify "Primitive_Enso" <|

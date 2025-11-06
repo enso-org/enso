@@ -120,7 +120,6 @@ final class SuggestionBuilder[A: IndexedSource](
 
           case m: definition.Method.Explicit
               if m.body().isInstanceOf[Function.Lambda] &&
-              !m.isStaticWrapperForInstanceMethod &&
               !m.isPrivate =>
             val typePtr       = m.methodReference().typePointer
             val methodName    = m.methodReference().methodName

@@ -26,9 +26,9 @@
     }
   },
   "dependencies": {
-    "@lezer/common": "^1.2.3",
+    "@lezer/common": "catalog:",
     "@lezer/markdown": "workspace:*",
-    "@lezer/highlight": "^1.2.1",
+    "@lezer/highlight": "catalog:",
     "@noble/hashes": "^1.6.1",
     "@open-rpc/client-js": "^1.8.1",
     "@types/debug": "^4.1.12",
@@ -42,7 +42,7 @@
     "partysocket": "^1.0.3",
     "rust-ffi": "workspace:*",
     "yjs": "^13.6.21",
-    "zod": "^3.25.49"
+    "zod": "catalog:"
   },
   "devDependencies": {
     "@fast-check/vitest": "catalog:",

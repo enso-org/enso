@@ -5,7 +5,7 @@
 import { PAYWALL_FEATURES, type PaywallFeatureName } from '#/hooks/billing'
 import { unsafeEntries, unsafeFromEntries } from '#/utilities/object'
 import * as zustand from '#/utilities/zustand'
-import { IS_DEV_MODE } from 'enso-common/src/detect'
+import { IS_DEV_MODE } from '$/utils/detect'
 
 /** Configuration for a paywall feature. */
 export interface PaywallDevtoolsFeatureConfiguration {
