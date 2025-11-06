@@ -8,6 +8,8 @@ import java.io.File;
 import java.math.BigInteger;
 import java.nio.file.Files;
 import java.util.Random;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import org.enso.jvm.channel.Channel;
 import org.enso.jvm.channel.JVM;
 import org.enso.os.environment.lib.HelloTitle;
@@ -112,6 +114,23 @@ public class LoadClassTest {
   public void backAndForthFactorialFour() throws Exception {
     var fac = channel.execute(Long.class, new TestMain.CountDownAndReturn(4, 1));
     assertEquals(24, fac.longValue());
+  }
+
+  @Test
+  public void factorialInSecondThread() throws Exception {
+    var pool = Executors.newSingleThreadExecutor();
+    var v =
+        pool.submit(
+            () -> {
+              System.err.println("execute in " + Thread.currentThread().getName());
+              var fac = channel.execute(Long.class, new TestMain.CountDownAndReturn(4, 1));
+              System.err.println(
+                  " done execute in " + Thread.currentThread().getName() + " fac: " + fac);
+              return fac;
+            });
+    assertEquals(24, v.get().longValue());
+    pool.shutdown();
+    pool.awaitTermination(10, TimeUnit.SECONDS);
   }
 
   @Test
