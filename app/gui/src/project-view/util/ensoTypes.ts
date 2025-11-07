@@ -1,6 +1,6 @@
 import { ProjectPath } from '@/util/projectPath'
 import { tryQualifiedName } from '@/util/qualifiedName'
-import { unwrap } from 'ydoc-shared/util/data/result'
+import { unwrap } from 'enso-common/src/utilities/data/result'
 
 export const ANY_TYPE = ProjectPath.create(
   unwrap(tryQualifiedName('Standard.Base')),

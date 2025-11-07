@@ -12,14 +12,9 @@ import {
   useLocalDirectories,
 } from '#/layouts/Drive/Categories/persistentState'
 import { useLocalRootDirectory } from '#/layouts/Drive/persistentState'
-import type Backend from '#/services/Backend'
-import { BackendType, Path, type DirectoryId } from '#/services/Backend'
-import { newDirectoryId } from '#/services/LocalBackend'
-import { organizationIdToDirectoryId } from '#/services/RemoteBackend/ids'
 import { useBackends, useText, useUser } from '$/providers/react'
-import { getFileName } from '$/utils/file'
-import { createContext, useContext } from 'react'
-import invariant from 'tiny-invariant'
+import type { Backend } from 'enso-common/src/services/Backend'
+import { BackendType, Path, type DirectoryId } from 'enso-common/src/services/Backend'
 import type {
   AnyCategory,
   AnyCloudCategory,
@@ -33,8 +28,13 @@ import type {
   RecentCategory,
   TeamCategory,
   TrashCategory,
-} from './Category'
-import { isCloudCategory, isLocalCategory } from './Category'
+} from 'enso-common/src/services/Backend/Category'
+import { isCloudCategory, isLocalCategory } from 'enso-common/src/services/Backend/Category'
+import { newDirectoryId } from 'enso-common/src/services/LocalBackend'
+import { organizationIdToDirectoryId } from 'enso-common/src/services/RemoteBackend/ids'
+import { getFileName } from 'enso-common/src/utilities/file'
+import { createContext, useContext } from 'react'
+import invariant from 'tiny-invariant'
 
 /** Result of the useCloudCategoryList hook. */
 export type CloudCategoryResult = ReturnType<typeof useCloudCategoryList>

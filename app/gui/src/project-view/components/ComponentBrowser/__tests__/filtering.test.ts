@@ -13,8 +13,8 @@ import {
 import { Filtering, type MatchResult } from '@/components/ComponentBrowser/filtering'
 import { stdPath } from '@/util/projectPath'
 import { qnLastSegment } from '@/util/qualifiedName'
+import type { Opt } from 'enso-common/src/utilities/data/opt'
 import { describe, expect, test } from 'vitest'
-import type { Opt } from 'ydoc-shared/util/data/opt'
 
 test.each([
   makeModuleMethod('Standard.Base.Data.read', { group: 'Standard.Base.MockGroup1' }),

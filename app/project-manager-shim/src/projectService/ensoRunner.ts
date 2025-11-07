@@ -14,8 +14,8 @@ export interface Runner {
   openProject(
     projectPath: Path,
     projectId: string,
-    extraArgs?: Array<string>,
-    extraEnv?: Array<[string, string]>,
+    extraArgs?: readonly string[],
+    extraEnv?: readonly (readonly [string, string])[],
   ): Promise<LanguageServerSockets>
   closeProject(projectId: string): Promise<void>
   isProjectRunning(projectId: string): Promise<boolean>
@@ -107,8 +107,8 @@ export class EnsoRunner implements Runner {
   async openProject(
     projectPath: Path,
     projectId: string,
-    extraArgs?: Array<string>,
-    extraEnv?: Array<[string, string]>,
+    extraArgs?: readonly string[],
+    extraEnv?: readonly (readonly [string, string])[],
   ): Promise<LanguageServerSockets> {
     // Check if the project is already running
     const runningProject = this.runningProjects.get(projectId)

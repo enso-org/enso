@@ -3,9 +3,9 @@ import { useCurrentProject } from '$/components/WithCurrentProject.vue'
 import type { QualifiedImport } from '$/providers/openedProjects/module/imports'
 import SvgButton from '@/components/SvgButton.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
-import { Ok } from '@/util/data/result'
 import type { Icon } from '@/util/iconMetadata/iconName'
 import { ProjectPath } from '@/util/projectPath'
+import { Ok } from 'enso-common/src/utilities/data/result'
 
 const { projectNames: names, module } = useCurrentProject()
 

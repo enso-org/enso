@@ -3,7 +3,7 @@
  */
 import invariant from 'tiny-invariant'
 
-import type { GoogleCredentialInput, SecretId } from '#/services/Backend'
+import type { GoogleCredentialInput, SecretId } from 'enso-common/src/services/Backend'
 import * as i18n from 'enso-common/src/text'
 import { z } from 'zod'
 import type { CredentialRecipe } from './types'

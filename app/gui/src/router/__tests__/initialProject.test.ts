@@ -1,3 +1,4 @@
+import * as container from '$/providers/container'
 import {
   type AnyRealAsset,
   AssetType,
@@ -7,9 +8,8 @@ import {
   Plan,
   type User,
   UserId,
-} from '#/services/Backend'
-import { newDirectoryId } from '#/services/LocalBackend'
-import * as container from '$/providers/container'
+} from 'enso-common/src/services/Backend'
+import { newDirectoryId } from 'enso-common/src/services/LocalBackend'
 import { expect, test } from 'vitest'
 import {
   CLOUD_WELCOME_PROJECT_RELATIVE_PATH,

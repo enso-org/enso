@@ -1,5 +1,4 @@
 /** @file Shared application options schema and helpers. */
-
 import { z } from 'zod'
 
 const DEFAULT_PROFILING_TIME = 120

@@ -1,7 +1,7 @@
-import { EnsoPath } from '#/services/Backend'
 import { createContextStore } from '@/providers'
 import { proxyRefs } from '@/util/reactivity'
 import { normalizeRouteParamToString } from '@/util/router'
+import type { EnsoPath } from 'enso-common/src/services/Backend'
 import { filter } from 'enso-common/src/utilities/data/iter'
 import { computed, onScopeDispose, watchEffect } from 'vue'
 import { useRoute, useRouter } from 'vue-router'

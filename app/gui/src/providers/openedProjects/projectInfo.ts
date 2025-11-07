@@ -1,4 +1,9 @@
-import type { DirectoryId, EnsoPath, ProjectId, ProjectSessionId } from '#/services/Backend'
+import type {
+  DirectoryId,
+  EnsoPath,
+  ProjectId,
+  ProjectSessionId,
+} from 'enso-common/src/services/Backend'
 import * as z from 'zod'
 
 declare module '#/utilities/LocalStorage' {

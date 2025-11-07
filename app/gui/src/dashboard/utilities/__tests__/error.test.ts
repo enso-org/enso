@@ -1,7 +1,7 @@
 /** @file Tests for `error.ts`. */
 import * as v from 'vitest'
 
-import * as error from '#/utilities/error'
+import * as error from 'enso-common/src/utilities/errors'
 
 const MESSAGE = 'A custom error message.'
 

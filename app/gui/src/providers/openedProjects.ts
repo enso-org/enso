@@ -1,3 +1,6 @@
+import LocalStorage from '#/utilities/LocalStorage'
+import { assert } from '@/util/assert'
+import { createGlobalState } from '@vueuse/core'
 import {
   IS_OPENING as BACKEND_IS_OPENING,
   IS_OPENING_OR_OPENED as BACKEND_IS_OPENING_OR_OPENED,
@@ -5,13 +8,10 @@ import {
   Plan,
   ProjectId,
   type ProjectAsset,
-} from '#/services/Backend'
-import LocalStorage from '#/utilities/LocalStorage'
-import { isOnElectron } from '$/utils/detect'
-import { assert } from '@/util/assert'
-import { createGlobalState } from '@vueuse/core'
+} from 'enso-common/src/services/Backend'
+import { Err, Ok, type Result, type ResultError } from 'enso-common/src/utilities/data/result'
+import { isOnElectron } from 'enso-common/src/utilities/detect'
 import { computed, ref, shallowReactive, watchEffect } from 'vue'
-import { Err, Ok, type Result, type ResultError } from 'ydoc-shared/util/data/result'
 import * as z from 'zod'
 import { useAuth } from './auth'
 import { useBackends } from './backends'
