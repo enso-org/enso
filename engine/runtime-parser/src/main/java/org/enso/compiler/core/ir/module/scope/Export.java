@@ -15,6 +15,7 @@ import org.enso.runtime.parser.dsl.IRField;
 import scala.Option;
 import scala.collection.immutable.List;
 
+/** An export statement */
 public interface Export extends Scope {
 
   @Override
@@ -29,11 +30,20 @@ public interface Export extends Scope {
 
   @GenerateIR(interfaces = {Export.class, IRKind.Primitive.class})
   final class Module extends ExportModuleGen {
+
+    /**
+     * @param name the full path representing the export
+     * @param rename the name this export is visible as
+     * @param onlyNames exported names selected from the exported module
+     * @param identifiedLocation the source location that the node corresponds to
+     * @param isSynthetic is this export compiler-generated
+     * @param passData the pass metadata associated with this node
+     */
     @GenerateFields
     public Module(
         @IRChild Name.Qualified name,
-        @IRChild(required = false) Name.Literal rename,
-        @IRChild(required = false) List<Name.Literal> onlyNames,
+        @IRChild Option<Name.Literal> rename,
+        @IRChild Option<List<Name.Literal>> onlyNames,
         @IRField boolean isSynthetic,
         IdentifiedLocation identifiedLocation,
         MetadataStorage passData
@@ -48,7 +58,18 @@ public interface Export extends Scope {
     }
 
     public static Builder builder() {
-      return new Builder().isSynthetic(false);
+      return new Builder()
+          .rename(Option.empty())
+          .onlyNames(Option.empty())
+          .isSynthetic(false);
+    }
+
+    public Builder copyBuilder() {
+      return new Builder(this);
+    }
+
+    public Module copyWithName(Name.Qualified name) {
+      return new Builder(this).name(name).build();
     }
 
     @Override
@@ -56,15 +77,47 @@ public interface Export extends Scope {
       return this;
     }
 
+    /** Gets the name of the module visible in the importing scope,
+     * either the original name or the rename.
+     *
+     * @return the name of this export visible in code
+     */
+    public Name getSimpleName() {
+      if (rename().isDefined()) {
+        return rename().get();
+      } else {
+        return name().parts().last();
+      }
+    }
+
+    /** Checks whether the export statement allows use of the given
+     * exported name.
+     * <p>
+     * Note that it does not verify if the name is actually exported
+     * by the module, only checks if it is syntactically allowed.
+     *
+     * @param name the name to check
+     * @return whether the name could be accessed or not
+     */
+    public boolean allowsAccess(String name) {
+      if (onlyNames().isDefined()) {
+        return onlyNames()
+            .get()
+            .exists(n -> n.name().equalsIgnoreCase(name));
+      } else {
+        return true;
+      }
+    }
+
     @Override
     public String showCode(int indent) {
       var renameCode =
-          rename() != null ? " as " + rename().name() : "";
-      if (onlyNames() != null) {
+          rename().isDefined() ? " as " + rename().get().name() : "";
+      if (onlyNames().isDefined()) {
         return "from "
             + name().name()
             + " export "
-            + onlyNames().map(Literal::name).mkString(", ")
+            + onlyNames().get().map(Literal::name).mkString(", ")
             + renameCode;
       } else {
         return "export "
