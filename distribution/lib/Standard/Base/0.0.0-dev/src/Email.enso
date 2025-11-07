@@ -23,6 +23,7 @@ import project.Metadata.Display
 @to default_widget
 @cc default_widget
 @bcc default_widget
+@body Email_Body.default_widget
 send from:Email_Address (to:Vector Email_Address)=[] (cc:Vector Email_Address)=[] (bcc:Vector Email_Address)=[] (subject:Text)="" (body:Email_Body)="" (attachments:Vector Email_Attachment)="" (provider:Email_Provider) =
     _ = [provider]
     email_object = Email_Object.Value from to cc bcc subject body attachments

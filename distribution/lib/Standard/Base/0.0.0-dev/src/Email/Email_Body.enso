@@ -1,8 +1,24 @@
 import project.Data.Text.Text
+from project.Metadata.Choice import Option
+from project.Metadata.Widget import Text_Input, Vector_Editor, Single_Choice
+import project.Data.Pair.Pair
+import project.Metadata.Widget
+import project.Metadata.Display
 
 type Email_Body
 	Plain_Text body:Text
 	HTML html:Text body:Text=""
+
+   ## ---
+      private: true
+      ---
+   default_widget (display : Display = ..When_Modified) -> Widget =
+      name = [Option "Plain_Text" "Email_Body.Plain_Text ''"]
+      nameaddress = [Option "HTML" "Email_Body.HTML '' ''"]
+      values = name + nameaddress
+
+      item_editor = Single_Choice values=values display=..Always
+      Vector_Editor item_editor item_default='Email_Body.Plain_Text ""' display=display
 
 ## ---
    private: true

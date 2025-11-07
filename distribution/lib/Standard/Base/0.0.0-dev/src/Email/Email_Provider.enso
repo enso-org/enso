@@ -1,5 +1,6 @@
 import project.Data.Text.Text
 import project.Email.Email_Address.Email_Address
+import project.Email.Email_Body.Email_Body
 import project.Email.Email_Object.Email_Object
 import project.Data.Json.JS_Object
 import project.Network.HTTP.Header.Header
@@ -21,7 +22,7 @@ type Email_Provider
 
 sendgrid_email email:Email_Object api_key:Text =
     to_object = JS_Object.from_pairs ([create_to_email_object email.to "to", create_to_email_object email.cc "cc", create_to_email_object email.bcc "bcc"].filter ..Not_Nothing) 
-    base_email_pairs = [["personalizations", [to_object]], ["from", (create_to_email email.from_address)], ["subject", email.subject], ["content", [prepare_html_body email.body.body]]]
+    base_email_pairs = [["personalizations", [to_object]], ["from", (create_to_email email.from_address)], ["subject", email.subject], ["content", [prepare_html_body email.body]]]
 
     attachment_list = if email.attachments.length == 0 then [] else email.attachments.map prepare_attachment
     final_email_pairs = if email.attachments.length == 0 then base_email_pairs else base_email_pairs + [pair "attachments" attachment_list]
@@ -39,9 +40,9 @@ create_to_email recipient_email =
         Email_Address.NameAddress name address -> JS_Object.from_pairs [["name", name], ["email", address]]
     recipient_object
 
-prepare_html_body html_content =
-    html_body_object = JS_Object.from_pairs [pair "type" "text/html", pair "value" html_content]
-    html_body_object
+prepare_html_body html_content:Email_Body = case html_content of
+    Email_Body.Plain_Text _ -> JS_Object.from_pairs [pair "type" "text/plain", pair "value" html_content.body]
+    Email_Body.HTML _ _ -> JS_Object.from_pairs [pair "type" "text/html", pair "value" html_content.html]
 
 prepare_attachment file_path =
     file_handle = File.new file_path
