@@ -56,7 +56,7 @@ export const widgetDefinition = defineWidget(
 </script>
 
 <template>
-  <div ref="teleportTarget" class="WidgetSelectionArrow">
+  <div ref="teleportTarget" class="WidgetSelectionArrow widgetTreeParentNode">
     <NodeWidget :input="innerInput" />
   </div>
 </template>
@@ -64,9 +64,5 @@ export const widgetDefinition = defineWidget(
 <style scoped>
 .WidgetSelectionArrow {
   position: relative;
-  display: flex;
-  flex-direction: row;
-  align-items: stretch;
-  min-height: var(--node-port-height);
 }
 </style>

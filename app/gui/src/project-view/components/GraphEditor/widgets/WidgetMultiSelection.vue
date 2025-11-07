@@ -178,7 +178,7 @@ export const widgetDefinition = defineWidget(
 <template>
   <div
     ref="widgetRoot"
-    class="WidgetMultiSelection clickable"
+    class="WidgetMultiSelection widgetTreeParentNode clickable"
     @click.stop="toggleDropdownWidget"
     @pointerover="isHovered = true"
     @pointerout="isHovered = false"
@@ -199,10 +199,6 @@ export const widgetDefinition = defineWidget(
 
 <style scoped>
 .WidgetMultiSelection {
-  display: flex;
-  flex-direction: row;
-  align-items: stretch;
   position: relative;
-  min-height: var(--node-port-height);
 }
 </style>

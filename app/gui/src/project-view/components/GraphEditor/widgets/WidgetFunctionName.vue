@@ -187,7 +187,7 @@ export const widgetDefinition = defineWidget(
 </script>
 
 <template>
-  <div class="WidgetFunctionName">
+  <div class="WidgetFunctionName widgetTreeLeaf">
     <template v-if="!hideThisArg">
       <NodeWidget v-if="thisArg" :input="WidgetInput.FromAst(thisArg)" />
       <NodeWidget v-if="operator" :input="WidgetInput.FromAst(operator)" />
@@ -209,12 +209,6 @@ export const widgetDefinition = defineWidget(
 </template>
 
 <style scoped>
-.WidgetFunctionName {
-  display: inline-flex;
-  justify-content: center;
-  align-items: center;
-}
-
 /*noinspection CssUnusedSymbol*/
 .CodeMirrorRoot {
   font-weight: 800;

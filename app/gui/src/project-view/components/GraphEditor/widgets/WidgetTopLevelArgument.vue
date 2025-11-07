@@ -25,17 +25,13 @@ export const widgetDefinition = defineWidget(
 </script>
 
 <template>
-  <div ref="element" class="WidgetTopLevelArgument widgetResetPadding">
+  <div ref="element" class="WidgetTopLevelArgument widgetTreeParentNode widgetResetPadding">
     <NodeWidget :input="input" />
   </div>
 </template>
 
 <style scoped>
 .WidgetTopLevelArgument {
-  display: flex;
-  flex-direction: row;
-  place-items: stretch center;
-
   &:before {
     content: '';
     display: block;

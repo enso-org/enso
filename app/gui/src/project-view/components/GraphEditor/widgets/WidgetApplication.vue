@@ -81,7 +81,7 @@ export const widgetDefinition = defineWidget(
 </script>
 
 <template>
-  <div class="WidgetApplication" :class="appClass">
+  <div class="WidgetApplication widgetTreeParentNode" :class="appClass">
     <NodeWidget :input="targetMaybePort" :nest="application.isInnermost" />
     <div v-if="infixWidgetInput" class="infixOp" :style="operatorStyle">
       <NodeWidget :input="infixWidgetInput" />
@@ -94,10 +94,6 @@ export const widgetDefinition = defineWidget(
 
 <style scoped>
 .WidgetApplication {
-  display: flex;
-  align-items: stretch;
-  flex-direction: row;
-  justify-content: center;
   &.prefix {
     gap: var(--widget-token-pad-unit);
   }

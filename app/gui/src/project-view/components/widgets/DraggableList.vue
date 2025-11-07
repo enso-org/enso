@@ -483,6 +483,7 @@ const placeholderSizeProp = computed(() => `--placeholder-${props.axis}` as cons
 
 <style scoped>
 .DraggableList {
+  --base-height: var(--node-port-height);
   display: flex;
   list-style: none;
   --placeholder-x: 0;
@@ -570,7 +571,7 @@ div {
   transition: color 0.2s ease;
   cursor: grab;
   --icon-size: 16px;
-  margin: calc((var(--node-port-height) - var(--icon-size)) / 2) 0;
+  margin: calc((var(--base-height) - var(--icon-size)) / 2) 0;
 
   &:hover {
     opacity: 0.5;
@@ -623,7 +624,7 @@ div {
   overflow: clip;
   display: flex;
   align-items: center;
-  height: var(--node-port-height);
+  height: var(--base-height);
   justify-content: flex-end;
   .axis-y &.axisAligned {
     flex-direction: column;

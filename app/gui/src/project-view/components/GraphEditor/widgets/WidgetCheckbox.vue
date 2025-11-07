@@ -112,20 +112,13 @@ export const widgetDefinition = defineWidget(
 </script>
 
 <template>
-  <div class="WidgetCheckbox" :class="{ primary }">
+  <div class="WidgetCheckbox widgetTreeLeaf widgetSingleLine" :class="{ primary }">
     <span v-if="argumentName" class="name widgetApplyPadding" v-text="argumentName" />
     <CheckboxWidget v-model="value" class="widgetRounded" contenteditable="false" />
   </div>
 </template>
 
 <style scoped>
-.WidgetCheckbox {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  height: var(--node-port-height);
-}
-
 .name {
   opacity: 0.5;
   margin-right: var(--widget-token-pad-unit);

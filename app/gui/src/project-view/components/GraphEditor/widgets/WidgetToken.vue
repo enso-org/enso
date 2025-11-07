@@ -44,17 +44,15 @@ export const widgetDefinition = defineWidget(
 </script>
 
 <template>
-  <div class="WidgetToken widgetApplyPadding" :class="spanClass">{{ displayContent }}</div>
+  <div class="WidgetToken widgetTreeLeaf widgetSingleLine widgetApplyPadding" :class="spanClass">
+    {{ displayContent }}
+  </div>
 </template>
 
 <style scoped>
 .WidgetToken {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
   white-space: pre;
   opacity: 0.33;
-  height: var(--node-port-height);
 
   &.Ident,
   &.TextSection,

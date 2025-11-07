@@ -62,8 +62,8 @@ export const ArgumentNameShownKey: unique symbol = Symbol.for('WidgetInput:Argum
 </script>
 
 <template>
-  <div class="WidgetArgumentName" :class="{ primary, missing }">
-    <span class="name">
+  <div class="WidgetArgumentName widgetTreeParentNode" :class="{ primary, missing }">
+    <span class="name widgetTreeLeaf widgetSingleLine">
       <span class="widgetApplyPadding" :class="{ widgetRounded: missing }">{{
         props.input[ArgumentInfoKey].info.name
       }}</span>
@@ -74,17 +74,10 @@ export const ArgumentNameShownKey: unique symbol = Symbol.for('WidgetInput:Argum
 
 <style scoped>
 .WidgetArgumentName {
-  display: flex;
-  flex-direction: row;
-  align-items: stretch;
   gap: var(--widget-token-pad-unit);
 }
 
 .name {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  height: var(--node-port-height);
   opacity: 0.6;
   border-radius: var(--node-port-border-radius);
   transition:

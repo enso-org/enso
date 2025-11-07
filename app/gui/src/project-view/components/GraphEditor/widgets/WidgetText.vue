@@ -117,8 +117,8 @@ export const widgetDefinition = defineWidget(
 
 <template>
   <label
-    class="WidgetText widgetRounded widgetPill"
-    :class="{ singleLine: !isMultiline }"
+    class="WidgetText widgetTreeLeaf widgetRounded widgetPill"
+    :class="{ widgetSingleLine: !isMultiline }"
     :data-text-syntax="syntax"
     @pointerdown.stop.prevent="focusAndSelect"
     @click.stop
@@ -153,7 +153,7 @@ export const widgetDefinition = defineWidget(
   align-self: start;
 }
 
-.singleLine :deep(.cm-scroller) {
+.widgetSingleLine :deep(.cm-scroller) {
   font-weight: 800;
 }
 
@@ -161,7 +161,7 @@ export const widgetDefinition = defineWidget(
  * In multiline mode the widget is still sized to content (unless max-height is exceeded), but the
  * content is padded to be slightly larger than its scroller so that the scrollbar shows.
  */
-.WidgetText:not(.singleLine) {
+.WidgetText:not(.widgetSingleLine) {
   & :deep(.cm-scroller) {
     min-height: 2.5em;
     max-height: 20em;

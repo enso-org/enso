@@ -188,6 +188,28 @@
   }
 }
 
+.widgetTreeParentNode {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  justify-content: center;
+  min-height: var(--node-port-height);
+}
+
+.widgetTreeLeaf {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--node-port-height);
+
+  &.widgetSingleLine {
+    height: var(--node-port-height);
+    align-self: start;
+  }
+}
+
+
 /* Scrollbar style definitions for textual visualizations which need support for scrolling.
  *
  * The 11px width/height (depending on scrollbar orientation)

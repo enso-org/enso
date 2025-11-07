@@ -272,7 +272,7 @@ declare module '$/providers/openedProjects/widgetRegistry' {
 <template>
   <div
     ref="widgetRoot"
-    class="WidgetSelection clickable"
+    class="WidgetSelection widgetTreeParentNode clickable"
     @pointerdown.prevent
     @click.stop="toggleDropdownWidget"
     @keydown.enter.stop
@@ -309,11 +309,7 @@ declare module '$/providers/openedProjects/widgetRegistry' {
 
 <style scoped>
 .WidgetSelection {
-  display: flex;
-  flex-direction: row;
-  align-items: stretch;
   position: relative;
-  min-height: var(--node-port-height);
 }
 
 .activityElement {

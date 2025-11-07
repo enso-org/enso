@@ -180,7 +180,7 @@ export const widgetDefinition = defineWidget(
 </script>
 
 <template>
-  <div class="WidgetTableEditor">
+  <div class="WidgetTableEditor widgetTreeLeaf">
     <ResizableWidget
       :input="input"
       metadataKey="WidgetTableEditor"
@@ -221,9 +221,6 @@ export const widgetDefinition = defineWidget(
 
 <style scoped>
 .WidgetTableEditor {
-  display: flex;
-  align-items: stretch;
-  justify-content: center;
   border-radius: var(--node-port-border-radius);
   position: relative;
 }

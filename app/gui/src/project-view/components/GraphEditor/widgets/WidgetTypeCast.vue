@@ -44,7 +44,7 @@ export const widgetDefinition = defineWidget(
 </script>
 
 <template>
-  <div class="WidgetTypeCast">
+  <div class="WidgetTypeCast widgetTreeParentNode">
     <NodeWidget v-if="expressionInput && !isSelfArgument" :input="expressionInput" />
     <span class="typeAnnotation">:</span>
     <NodeWidget v-if="typeNodeInput" class="typeAnnotation" :input="typeNodeInput" />
@@ -53,9 +53,6 @@ export const widgetDefinition = defineWidget(
 
 <style scoped>
 .WidgetTypeCast {
-  display: flex;
-  flex-direction: row;
-  align-items: stretch;
   gap: 0;
 }
 

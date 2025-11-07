@@ -38,10 +38,14 @@ export const widgetDefinition = defineWidget(
 </script>
 
 <template>
-  <div class="WidgetGroup">
-    <span v-if="displayParenthesis" class="token widgetApplyPadding">(</span>
+  <div class="WidgetGroup widgetTreeParentNode">
+    <span v-if="displayParenthesis" class="token widgetTreeLeaf widgetSingleLine widgetApplyPadding"
+      >(</span
+    >
     <NodeWidget v-if="child" :input="child" />
-    <span v-if="displayParenthesis" class="token widgetApplyPadding">)</span>
+    <span v-if="displayParenthesis" class="token widgetTreeLeaf widgetSingleLine widgetApplyPadding"
+      >)</span
+    >
   </div>
 </template>
 
@@ -52,9 +56,6 @@ export const widgetDefinition = defineWidget(
 }
 
 .token {
-  display: flex;
-  align-items: center;
-  height: var(--node-port-height);
   opacity: 0.33;
   user-select: none;
 }

@@ -21,17 +21,16 @@ export const widgetDefinition = defineWidget(
 </script>
 
 <template>
-  <span ref="rootNode" class="WidgetBlank widgetApplyPadding">_</span>
+  <span ref="rootNode widgetTreeLeaf widgetSingleLine" class="WidgetBlank widgetApplyPadding"
+    >_</span
+  >
 </template>
 
 <style scoped>
 .WidgetBlank {
   color: transparent;
-  display: inline-block;
   position: relative;
   width: 20px;
-  height: 20px;
-  margin: calc((var(--node-port-height) - 20px) / 2) 0px;
   &::before {
     content: '';
     display: block;
@@ -39,7 +38,7 @@ export const widgetDefinition = defineWidget(
     width: 20px;
     height: 4px;
     border-radius: 2px;
-    bottom: 0;
+    bottom: 4px;
     background-color: var(--color-widget);
     transition: background-color 0.2s ease;
   }
