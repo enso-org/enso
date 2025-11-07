@@ -1,10 +1,14 @@
 from Standard.Base import all
+import Standard.Base.Errors.File_Error.File_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+import Standard.Base.Errors.Unimplemented.Unimplemented
+import Standard.Base.System.File_Format_Metadata.File_Format_Metadata
+import Standard.Base.System.Input_Stream.Input_Stream
 
 import project.Microsoft365.Microsoft365
 
 type Onedrive_File
-    Value (service : Microsoft365) (path : Onedrive_Path)
+    Value (service : Microsoft365) (onedrive_path : Onedrive_Path)
 
     root (service : Microsoft365) =
         Onedrive_File.Value service (Onedrive_Path.Value [])
@@ -34,11 +38,33 @@ type Onedrive_File
         check_recursion action = if recursive then Unimplemented.throw "Onedrive listing with recursion is not currently implemented." else action
 
         check_name_filter <| check_recursion <| _check_directory self <|
-            frag = self.path.to_human_readable_fragment_dir
+            frag = self.onedrive_path.to_human_readable_fragment_dir
             children = self.service.fetch_json self.service.base_url+frag
             names = children.at "value" . map (x-> x.at "name")
-            paths = names.map name-> self.path.extend name
+            paths = names.map name-> self.onedrive_path.extend name
             paths.map path-> Onedrive_File.Value self.service path
+
+    ## ---
+       private: true
+       advanced: true
+       ---
+       Creates a new input stream for this file and runs the specified action on
+       it.
+       The created stream is automatically closed when `action` returns (even if
+       it returns exceptionally).
+
+       ## Arguments
+        - `open_options`: A vector of `File_Access` objects determining how to
+          open the stream. These options set the access properties of the stream.
+        - `action`: A function that operates on the input stream and returns some
+          value. The value is returned from this method.
+    with_input_stream : Vector File_Access -> (Input_Stream -> Any ! File_Error) -> Any ! Illegal_Argument
+    with_input_stream self (open_options : Vector) action =
+        _check_not_directory self <|
+            File_Access.ensure_only_allowed_options "with_input_stream" [File_Access.Read] open_options <|
+                frag = self.onedrive_path.to_human_readable_fragment_file
+                response = self.service.fetch self.service.base_url+frag
+                response.body.with_stream action
 
     ## ---
        aliases: [import, load, open]
@@ -62,25 +88,39 @@ type Onedrive_File
        ## Errors
         - Throws `Illegal_Argument` if called on a folder.
     @format File_Format.default_widget
+    @format File_Format.default_widget
     read : File_Format -> Problem_Behavior -> Any ! Illegal_Argument
     read self format:(File_Format|Auto_Detect)=Auto_Detect (on_problems : Problem_Behavior = ..Report_Warning) -> Any ! Illegal_Argument =
-        _ = [format, on_problems]
+        _ = [on_problems]
         _check_not_directory self <|
-            frag = self.path.to_human_readable_fragment_file
-            self.service.fetch_text self.service.base_url+frag
+            case format of
+                Auto_Detect ->
+                    frag = self.onedrive_path.to_human_readable_fragment_file
+                    response = self.service.fetch self.service.base_url+frag
+                    response.decode Auto_Detect
+                _ ->
+                    metadata = File_Format_Metadata.Value path=self.path name=self.name
+                    resolved_format = File_Format.resolve format
+                    self.with_input_stream [File_Access.Read] (stream-> resolved_format.read_stream stream metadata)
+
+    path self -> Text =
+        self.onedrive_path.to_text
+
+    name self -> Text =
+        self.onedrive_path.file_name
 
     is_directory self -> Boolean =
-        frag = self.path.to_human_readable_fragment
+        frag = self.onedrive_path.to_human_readable_fragment
         entry = self.service.fetch_json self.service.base_url+frag
         entry.contains_key "folder"
 
-private check_directory file:Onedrive_File ~action =
+private _check_directory file:Onedrive_File ~action =
     if file.is_directory then action else
-        Error.throw <| Illegal_Argument.Error "The Onedrive_File must represent a folder: "+file.path.path.to_text
+        Error.throw <| Illegal_Argument.Error "The Onedrive_File must represent a folder: "+file.onedrive_path.path.to_text
 
-private check_not_directory file:Onedrive_File ~action =
+private _check_not_directory file:Onedrive_File ~action =
     if file.is_directory.not then action else
-        Error.throw <| Illegal_Argument.Error "The Onedrive_File must represent a file, not a folder: "+file.path.path.to_text
+        Error.throw <| Illegal_Argument.Error "The Onedrive_File must represent a file, not a folder: "+file.onedrive_path.path.to_text
 
 type Onedrive_Path
     Value (path : Vector Text)
@@ -90,6 +130,9 @@ type Onedrive_Path
 
     to_text self -> Text =
         "/" + (self.path.join "/")
+
+    file_name self -> Text =
+        if self.path.is_empty then "/" else self.path.last
 
     to_human_readable_fragment self =
         if self.path.is_empty then "/me/drive/root" else
