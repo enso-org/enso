@@ -129,6 +129,12 @@ function rewriteMethodPointer(oldMethodPointer: MethodPointer, newMethodPointer:
   graph.value.db.insertSyntheticMethodPointerUpdate(oldMethodPointer, newMethodPointer)
   persisted?.handleModifiedMethodPointer(oldMethodPointer, newMethodPointer)
 }
+
+const widgetClass = computed(() => ({
+  widgetTreeLeaf: editFieldEnabled.value,
+  widgetSingleLine: editFieldEnabled.value,
+  widgetTreeParentNode: !editFieldEnabled.value,
+}))
 </script>
 
 <script lang="ts">
@@ -187,7 +193,7 @@ export const widgetDefinition = defineWidget(
 </script>
 
 <template>
-  <div class="WidgetFunctionName widgetTreeLeaf">
+  <div class="WidgetFunctionName" :class="widgetClass">
     <template v-if="!hideThisArg">
       <NodeWidget v-if="thisArg" :input="WidgetInput.FromAst(thisArg)" />
       <NodeWidget v-if="operator" :input="WidgetInput.FromAst(operator)" />

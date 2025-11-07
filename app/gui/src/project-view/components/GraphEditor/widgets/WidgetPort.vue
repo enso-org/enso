@@ -214,7 +214,6 @@ export const widgetDefinition = defineWidget(
 .WidgetPort {
   position: relative;
   border-radius: var(--node-port-border-radius);
-  min-height: var(--node-port-height);
   min-width: var(--node-port-height);
   transition: background-color 0.2s ease;
 }
