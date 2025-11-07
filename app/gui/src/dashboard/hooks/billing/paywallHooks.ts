@@ -7,7 +7,7 @@ import * as eventCallbackHooks from '#/hooks/eventCallbackHooks'
 
 import * as devtools from '#/components/Devtools'
 
-import type * as backend from '#/services/Backend'
+import type * as backend from 'enso-common/src/services/Backend'
 
 import * as React from 'react'
 import * as paywallConfiguration from './FeaturesConfiguration'

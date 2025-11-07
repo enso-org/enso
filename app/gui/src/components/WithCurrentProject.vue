@@ -1,5 +1,4 @@
 <script lang="ts">
-import { ProjectId } from '#/services/Backend'
 import { useOpenedProjects } from '$/providers/openedProjects'
 import type { Initialized as InitializedProject } from '$/providers/openedProjects/projectStates'
 import { groupColorVar } from '@/composables/nodeColors'
@@ -8,6 +7,7 @@ import { assert } from '@/util/assert'
 import { colorFromString } from '@/util/colors'
 import type { Opt } from '@/util/data/opt'
 import { Loader, ResultComponent } from '@/util/react'
+import type { ProjectId } from 'enso-common/src/services/Backend'
 import { computed, type Ref, shallowRef, watch } from 'vue'
 
 export type CurrentProjectStore = ReturnType<typeof useCurrentProjectRaw>

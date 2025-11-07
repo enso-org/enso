@@ -14,6 +14,7 @@
   is included][14028]
 - [Function docs in autocomplete in table expressions][14059]
 - [Many CLI arguments removed][14069]
+- [Added immediate rename of user created components][14209]
 - [Multiple opened projects' tabs are now allowed][14215]
 
 [13685]: https://github.com/enso-org/enso/pull/13685
@@ -27,6 +28,7 @@
 [13976]: https://github.com/enso-org/enso/pull/13976
 [14059]: https://github.com/enso-org/enso/pull/14059
 [14069]: https://github.com/enso-org/enso/pull/14069
+[14209]: https://github.com/enso-org/enso/pull/14209
 [14215]: https://github.com/enso-org/enso/pull/14215
 
 #### Enso Standard Library

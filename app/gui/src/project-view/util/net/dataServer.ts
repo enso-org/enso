@@ -1,3 +1,4 @@
+import { Err, Ok, type Result } from 'enso-common/src/utilities/data/result'
 import { ObservableV2 } from 'lib0/observable'
 import {
   Builder,
@@ -28,7 +29,6 @@ import {
   type Table,
 } from 'ydoc-shared/binaryProtocol'
 import type { Path as LSPath } from 'ydoc-shared/languageServerTypes'
-import { Err, Ok, type Result } from 'ydoc-shared/util/data/result'
 import { exponentialBackoff, type AbortScope } from 'ydoc-shared/util/net'
 import { uuidFromBits, uuidToBits } from 'ydoc-shared/uuid'
 import type { Uuid } from 'ydoc-shared/yjsModel'

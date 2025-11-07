@@ -59,21 +59,9 @@ import {
 } from '#/providers/DriveProvider'
 import { useInputBindings } from '#/providers/InputBindingsProvider'
 import { setModal, unsetModal } from '#/providers/ModalProvider'
-import type Backend from '#/services/Backend'
-import type { AssetId, AssetSortExpression, DirectoryId, PaginationToken } from '#/services/Backend'
-import {
-  AssetType,
-  BackendType,
-  IS_OPENING_OR_OPENED,
-  isAssetCredential,
-  LabelName,
-  type AnyAsset,
-} from '#/services/Backend'
-import { userGroupIdToDirectoryId, userIdToDirectoryId } from '#/services/RemoteBackend/ids'
 import AssetQuery from '#/utilities/AssetQuery'
 import { ASSET_ROWS, setDragImageToBlank, type AssetRowsDragPayload } from '#/utilities/drag'
 import { isElementTextInput, isTextInputEvent } from '#/utilities/event'
-import { fileExtension } from '#/utilities/fileInfo'
 import { DEFAULT_HANDLER } from '#/utilities/inputBindings'
 import LocalStorage from '#/utilities/LocalStorage'
 import { withPresence } from '#/utilities/set'
@@ -85,6 +73,26 @@ import { useRightPanelData } from '$/providers/react/container'
 import { useFeatureFlag } from '$/providers/react/featureFlags'
 import { useOpenedProjects } from '$/providers/react/openedProjects'
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
+import type {
+  AssetId,
+  AssetSortExpression,
+  Backend,
+  DirectoryId,
+  PaginationToken,
+} from 'enso-common/src/services/Backend'
+import {
+  AssetType,
+  BackendType,
+  IS_OPENING_OR_OPENED,
+  isAssetCredential,
+  LabelName,
+  type AnyAsset,
+} from 'enso-common/src/services/Backend'
+import {
+  userGroupIdToDirectoryId,
+  userIdToDirectoryId,
+} from 'enso-common/src/services/RemoteBackend/ids'
+import { fileExtension } from 'enso-common/src/utilities/file'
 import {
   Children,
   cloneElement,

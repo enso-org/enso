@@ -1,4 +1,4 @@
-import type { ResultError } from '@/util/data/result'
+import type { ResultError } from 'enso-common/src/utilities/data/result'
 // We are using `react-toastify`, since we share toast environment with dashboard.
 import { toast, type ToastContent, type ToastOptions, type TypeOptions } from 'react-toastify'
 import { onScopeDispose } from 'vue'

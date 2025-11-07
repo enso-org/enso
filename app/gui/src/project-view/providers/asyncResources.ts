@@ -1,8 +1,8 @@
 import { useBackends } from '$/providers/backends'
 import type { OpenedProjectsStore } from '$/providers/openedProjects'
 import { createContextStore } from '@/providers'
-import { andThen, mapOk, Ok, type Result } from '@/util/data/result'
 import type { ToValue } from '@/util/reactivity'
+import { andThen, mapOk, Ok, type Result } from 'enso-common/src/utilities/data/result'
 import { computed, onScopeDispose, toValue, type ComputedRef } from 'vue'
 import {
   AsyncResource,

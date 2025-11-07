@@ -15,10 +15,10 @@ import { injectInteractionHandler, type Interaction } from '@/providers/interact
 import type { PortId } from '@/providers/portInfo'
 import { Ast } from '@/util/ast'
 import { isAstId, type AstId } from '@/util/ast/abstract'
-import { Err, Ok, unwrapOr, unwrapOrWithLog } from '@/util/data/result'
 import { Vec2 } from '@/util/data/vec2'
 import { ProjectPath } from '@/util/projectPath'
 import { useToast } from '@/util/toast'
+import { Err, Ok, unwrapOr, unwrapOrWithLog } from 'enso-common/src/utilities/data/result'
 import { computed } from 'vue'
 
 const {
