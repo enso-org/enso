@@ -95,7 +95,7 @@ export const widgetDefinition = defineWidget(
 <style scoped>
 .WidgetApplication {
   display: flex;
-  align-items: center;
+  align-items: stretch;
   flex-direction: row;
   justify-content: center;
   &.prefix {

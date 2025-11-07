@@ -191,10 +191,13 @@ const DEFAULT_ITEM = computed(() => Ast.Wildcard.new())
 .WidgetVector {
   display: flex;
   flex-direction: row;
-  align-items: center;
+  align-items: stretch;
 }
 
 .token {
+  display: flex;
+  align-items: center;
+  height: var(--node-port-height);
   opacity: 0.33;
   user-select: none;
 }

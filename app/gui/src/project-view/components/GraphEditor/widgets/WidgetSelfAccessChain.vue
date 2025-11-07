@@ -96,7 +96,7 @@ export const widgetDefinition = defineWidget(
 .WidgetSelfAccessChain {
   display: flex;
   flex-direction: row;
-  align-items: center;
+  align-items: stretch;
   gap: var(--widget-token-pad-unit);
   position: relative;
 }

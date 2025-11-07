@@ -222,7 +222,7 @@ export const widgetDefinition = defineWidget(
 <style scoped>
 .WidgetTableEditor {
   display: flex;
-  align-items: center;
+  align-items: stretch;
   justify-content: center;
   border-radius: var(--node-port-border-radius);
   position: relative;

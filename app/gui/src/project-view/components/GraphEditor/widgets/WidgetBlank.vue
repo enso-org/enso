@@ -30,6 +30,8 @@ export const widgetDefinition = defineWidget(
   display: inline-block;
   position: relative;
   width: 20px;
+  height: 20px;
+  margin: calc((var(--node-port-height) - 20px) / 2) 0px;
   &::before {
     content: '';
     display: block;

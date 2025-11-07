@@ -55,7 +55,7 @@ export const widgetDefinition = defineWidget(
 .WidgetTypeCast {
   display: flex;
   flex-direction: row;
-  align-items: center;
+  align-items: stretch;
   gap: 0;
 }
 

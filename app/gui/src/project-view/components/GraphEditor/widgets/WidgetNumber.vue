@@ -108,5 +108,6 @@ export const widgetDefinition = defineWidget(
 .WidgetNumber {
   display: inline-block;
   vertical-align: middle;
+  align-self: start;
 }
 </style>

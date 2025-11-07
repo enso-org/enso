@@ -55,7 +55,7 @@ export const widgetDefinition = defineWidget(
 .WidgetIcon {
   display: flex;
   flex-direction: row;
-  align-items: center;
+  align-items: stretch;
   gap: var(--widget-token-pad-unit);
   &.noGap {
     gap: 0;
@@ -63,12 +63,15 @@ export const widgetDefinition = defineWidget(
 }
 .iconContainer {
   position: relative;
-  height: 16px;
-  width: 16px;
-  margin: 0 calc((var(--node-port-height) - 16px) / 2);
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  height: var(--node-port-height);
+  width: var(--node-port-height);
 }
 .nodeCategoryIcon {
-  position: absolute;
+  /* position: absolute; */
+  margin: auto;
 }
 .LoadingSpinner {
   border-radius: 100%;

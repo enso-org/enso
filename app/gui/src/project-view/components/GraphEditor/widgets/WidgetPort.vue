@@ -214,7 +214,8 @@ export const widgetDefinition = defineWidget(
 .WidgetPort {
   display: flex;
   flex-direction: row;
-  align-items: center;
+  align-items: stretch;
+  align-self: start;
   justify-content: center;
   position: relative;
   text-align: center;

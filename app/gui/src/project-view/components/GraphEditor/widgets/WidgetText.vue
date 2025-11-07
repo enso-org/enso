@@ -150,6 +150,7 @@ export const widgetDefinition = defineWidget(
   display: inline-flex;
   justify-content: center;
   align-items: center;
+  align-self: start;
 }
 
 .singleLine :deep(.cm-scroller) {

@@ -58,7 +58,7 @@ export const widgetDefinition = defineWidget(
 .WidgetHierarchy {
   display: flex;
   flex-direction: row;
-  align-items: center;
+  align-items: stretch;
   transition: background 0.2s ease;
 
   &.Literal {

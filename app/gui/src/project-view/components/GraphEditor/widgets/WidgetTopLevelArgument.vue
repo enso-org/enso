@@ -34,7 +34,7 @@ export const widgetDefinition = defineWidget(
 .WidgetTopLevelArgument {
   display: flex;
   flex-direction: row;
-  place-items: center;
+  place-items: stretch center;
 
   &:before {
     content: '';

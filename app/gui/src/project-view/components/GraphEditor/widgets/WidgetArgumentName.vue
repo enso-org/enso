@@ -76,11 +76,15 @@ export const ArgumentNameShownKey: unique symbol = Symbol.for('WidgetInput:Argum
 .WidgetArgumentName {
   display: flex;
   flex-direction: row;
-  align-items: center;
+  align-items: stretch;
   gap: var(--widget-token-pad-unit);
 }
 
 .name {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  height: var(--node-port-height);
   opacity: 0.6;
   border-radius: var(--node-port-border-radius);
   transition:

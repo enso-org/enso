@@ -311,7 +311,7 @@ declare module '$/providers/openedProjects/widgetRegistry' {
 .WidgetSelection {
   display: flex;
   flex-direction: row;
-  align-items: center;
+  align-items: stretch;
   position: relative;
   min-height: var(--node-port-height);
 }

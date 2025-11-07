@@ -201,7 +201,7 @@ export const widgetDefinition = defineWidget(
 .WidgetMultiSelection {
   display: flex;
   flex-direction: row;
-  align-items: center;
+  align-items: stretch;
   position: relative;
   min-height: var(--node-port-height);
 }

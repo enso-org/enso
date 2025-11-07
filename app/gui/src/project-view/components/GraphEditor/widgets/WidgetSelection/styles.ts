@@ -71,7 +71,7 @@ export function activityDropdownStyles(
   rootElement: Ref<Opt<HTMLElement>>,
 ) {
   return useFloating(floatReference, dropdownElement, {
-    placement: 'bottom-start',
+    placement: 'bottom',
     middleware: middleware(true, false, rootElement),
     whileElementsMounted: autoUpdate,
   })

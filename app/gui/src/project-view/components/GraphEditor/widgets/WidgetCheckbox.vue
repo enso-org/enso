@@ -123,6 +123,7 @@ export const widgetDefinition = defineWidget(
   display: flex;
   flex-direction: row;
   align-items: center;
+  height: var(--node-port-height);
 }
 
 .name {

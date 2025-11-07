@@ -48,10 +48,13 @@ export const widgetDefinition = defineWidget(
 <style scoped>
 .WidgetGroup {
   display: flex;
-  align-items: center;
+  align-items: stretch;
 }
 
 .token {
+  display: flex;
+  align-items: center;
+  height: var(--node-port-height);
   opacity: 0.33;
   user-select: none;
 }
