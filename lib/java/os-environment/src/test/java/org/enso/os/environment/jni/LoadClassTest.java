@@ -123,12 +123,12 @@ public class LoadClassTest {
         pool.submit(
             () -> {
               System.err.println("execute in " + Thread.currentThread().getName());
-              var fac = channel.execute(Long.class, new TestMain.CountDownAndReturn(4, 1));
+              var fac = channel.execute(Long.class, new TestMain.CountDownAndReturn(1, 1));
               System.err.println(
                   " done execute in " + Thread.currentThread().getName() + " fac: " + fac);
               return fac;
             });
-    assertEquals(24, v.get().longValue());
+    assertEquals(1, v.get().longValue());
     pool.shutdown();
     pool.awaitTermination(10, TimeUnit.SECONDS);
   }

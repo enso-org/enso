@@ -14,11 +14,14 @@ import org.graalvm.word.WordFactory;
 public final class JVM {
   private final JNIBoot.JNICreateJavaVMPointer createJvmFn;
   private final String[] options;
-  private final Thread allowedThread;
-  private JNI.JNIEnv env = WordFactory.nullPointer();
+  private final ThreadLocal<Long> threadEnvs = new ThreadLocal<>();
+
+  /**
+   * @GuardedBy("this")
+   */
+  private JNI.JavaVM javaVM = WordFactory.nullPointer();
 
   JVM(JNIBoot.JNICreateJavaVMPointer factory, String[] options) {
-    this.allowedThread = Thread.currentThread();
     this.createJvmFn = factory;
     this.options = options;
   }
@@ -99,21 +102,40 @@ public final class JVM {
    * @return JNI environment to make calls into the JVM
    */
   final JNI.JNIEnv env() {
-    if (allowedThread != Thread.currentThread()) {
-      throw new IllegalStateException(
-          "Initialized on "
-              + allowedThread.getName()
-              + " but access from "
-              + Thread.currentThread().getName()
-              + " thread!");
+    var thread = Thread.currentThread();
+    System.err.println("env() for " + thread.getName());
+    if (javaVM.isNull()) {
+      var env = initializeEnv();
+      if (env.isNonNull()) {
+        threadEnvs.set(env.rawValue());
+        return env;
+      }
     }
-    if (env.isNull()) {
-      env = initializeEnv();
+    var rawEnv = threadEnvs.get();
+    System.err.println("  thread: " + thread + " raw: " + rawEnv);
+    JNI.JNIEnv env;
+    if (rawEnv == null) {
+      var envOut = StackValue.get(JNI.JNIEnvPointer.class);
+      System.err.println("Before attach in " + thread.getName());
+      var attachThreadFn = javaVM.getFunctions().getAttachCurrentThread();
+      var res = attachThreadFn.call(javaVM, envOut, WordFactory.nullPointer());
+      System.err.println("after attach: " + res);
+      if (res != JNI.JNI_OK()) {
+        throw new AssertionError("Error attaching thread: " + res);
+      }
+      env = envOut.readJNIEnv();
+      System.err.println("  attached " + thread + " env: " + env.rawValue());
+      threadEnvs.set(env.rawValue());
+    } else {
+      env = WordFactory.pointer(rawEnv);
     }
     return env;
   }
 
   private synchronized JNI.JNIEnv initializeEnv() {
+    if (javaVM.isNonNull()) {
+      return WordFactory.nullPointer();
+    }
     var jvmArgs = StackValue.get(JNIBoot.Args.class);
     var optionsCount = options.length;
     jvmArgs.nOptions(optionsCount);
@@ -134,7 +156,7 @@ public final class JVM {
     var envPtr = StackValue.get(JNI.JNIEnvPointer.class);
 
     int res = createJvmFn.call(jvmPtr, envPtr, jvmArgs);
-    if (res != 0) {
+    if (res != JNI.JNI_OK()) {
       throw new AssertionError("Error creating JVM: " + res);
     }
 
@@ -143,6 +165,7 @@ public final class JVM {
     }
     UnmanagedMemory.free(jvmOpts);
 
+    javaVM = jvmPtr.readJavaVM();
     return envPtr.readJNIEnv();
   }
 }

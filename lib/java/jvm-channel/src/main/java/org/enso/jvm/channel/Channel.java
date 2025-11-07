@@ -68,20 +68,18 @@ public final class Channel<Data extends Channel.Config> implements AutoCloseable
   private final Persistance.Pool pool;
 
   private final long id;
-  private final JNI.JNIEnv env;
+  private final JVM jvm;
   private final long isolate;
   private final Object callbackFn;
   private final JNI.JClass channelClass;
   private final JNI.JMethodID channelHandle;
   private final Channel<Data> otherMockChannel;
-  private final Thread allowedThread = Thread.currentThread();
 
   /** The SubstrateVM side of a channel. */
-  private Channel(
-      long id, Data data, JNI.JNIEnv env, JNI.JClass handleClass, JNI.JMethodID handleFn) {
+  private Channel(long id, Data data, JVM jvm, JNI.JClass handleClass, JNI.JMethodID handleFn) {
     this.id = id;
     this.data = data;
-    this.env = env;
+    this.jvm = jvm;
     this.isolate = ISOLATE_SVM;
     this.callbackFn = null;
     this.channelClass = handleClass;
@@ -101,12 +99,12 @@ public final class Channel<Data extends Channel.Config> implements AutoCloseable
     this.otherMockChannel = null;
 
     if (ImageInfo.inImageRuntimeCode()) {
-      this.env = WordFactory.nullPointer();
+      this.jvm = null;
       this.channelClass = WordFactory.nullPointer();
       this.channelHandle = WordFactory.nullPointer();
       this.callbackFn = callbackFn;
     } else {
-      this.env = null;
+      this.jvm = null;
       this.channelClass = null;
       this.channelHandle = null;
       var fnCallbackAddress = MemorySegment.ofAddress(callbackFn);
@@ -134,7 +132,7 @@ public final class Channel<Data extends Channel.Config> implements AutoCloseable
     this.data = myData;
     this.isolate = isolate;
     this.callbackFn = null;
-    this.env = null;
+    this.jvm = null;
     this.channelClass = null;
     this.channelHandle = null;
     this.otherMockChannel =
@@ -186,7 +184,7 @@ public final class Channel<Data extends Channel.Config> implements AutoCloseable
       var handleMethod =
           fn.getGetStaticMethodID().call(e, channelClass, handleInC.get(), handleSigInC.get());
 
-      var channel = new Channel<>(id, config, e, channelClass, handleMethod);
+      var channel = new Channel<>(id, config, jvm, channelClass, handleMethod);
 
       var arg = StackValue.get(4, JNI.JValue.class);
       arg.addressOf(0).setLong(id);
@@ -329,6 +327,7 @@ public final class Channel<Data extends Channel.Config> implements AutoCloseable
   }
 
   private long toHotSpotMessage(long address, long size) {
+    var env = jvm.env();
     var fn = env.getFunctions();
     assert address > 0 : "We need an address";
     var arg = StackValue.get(3, JNI.JValue.class);
@@ -401,14 +400,6 @@ public final class Channel<Data extends Channel.Config> implements AutoCloseable
       Persistance.Pool pool,
       Class<R> replyType,
       Function<Channel<? extends Data>, ? extends R> msg) {
-    if (allowedThread != Thread.currentThread()) {
-      throw new IllegalStateException(
-          "Initialized on "
-              + allowedThread.getName()
-              + " but access from "
-              + Thread.currentThread().getName()
-              + " thread!");
-    }
     var address = 0L;
     var useMalloc = isMaster() && !isDirect();
     try {
