@@ -415,8 +415,8 @@ impl Processor {
                                 self.context.repo_root.target.small_jdk.path.clone();
                             config.small_jdk_dir = Some(small_jdk_dir.clone());
                             config.test_standard_library =
-                                Some(StandardLibraryTestsSelection::blacklist(vec![
-                                    "Microsoft_Tests".to_string(),
+                                Some(StandardLibraryTestsSelection::whitelist(vec![
+                                    "Table_Tests".to_string(),
                                 ]));
                             config.add_engine_runner_arg("--jvm");
                             config.add_engine_runner_arg(
@@ -426,8 +426,8 @@ impl Processor {
                         }
                         Tests::StandardLibraryInNative => {
                             config.test_standard_library =
-                                Some(StandardLibraryTestsSelection::blacklist(vec![
-                                    "Microsoft_Tests".to_string(),
+                                Some(StandardLibraryTestsSelection::whitelist(vec![
+                                    "Table_Tests".to_string(),
                                 ]));
                             config.use_native_runner = true;
                         }
