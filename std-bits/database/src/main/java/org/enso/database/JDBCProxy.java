@@ -25,9 +25,7 @@ import org.graalvm.collections.Pair;
  * classloaders, thus not detecting the proper drivers.
  */
 public final class JDBCProxy {
-  /**
-   * A record exposing JDBC types needed to allow cross JVM use.
-   */
+  /** A record exposing JDBC types needed to allow cross JVM use. */
   public record JDBCDriverTypes(String databaseName) {
     Class<SQLException> sqlException() {
       return SQLException.class;
@@ -49,18 +47,19 @@ public final class JDBCProxy {
       return new OperationSynchronizer();
     }
 
-    Connection getConnectionWithCatalogSchema(String url, List<Pair<String, HideableValue>> properties, String catalog, String schema)
-      throws SQLException {
+    Connection getConnectionWithCatalogSchema(
+        String url, List<Pair<String, HideableValue>> properties, String catalog, String schema)
+        throws SQLException {
       return JDBCProxy.getConnectionWithCatalogSchema(url, properties, catalog, schema);
     }
   }
 
-    /**
-     * A helper method that creates a JDBCDriverTypes record.
-     *
-     * @param databaseName the name of the Database type for the record
-     * @return a new JDBCDriverTypes record
-     */
+  /**
+   * A helper method that creates a JDBCDriverTypes record.
+   *
+   * @param databaseName the name of the Database type for the record
+   * @return a new JDBCDriverTypes record
+   */
   public static JDBCDriverTypes makeTypeRecord(String databaseName) {
     return new JDBCDriverTypes(databaseName);
   }

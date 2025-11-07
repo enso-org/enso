@@ -56,19 +56,18 @@ type Snowflake_Connection
         - `make_new`: A function that returns a new connection.
         - `data_link_setup`: the setup for saving the connection as a data link.
     private create url:Text properties:Vector credentials:Credentials|Key_Pair_Credentials|Enso_Secret make_new:(Text -> Text -> Snowflake_Connection) data_link_setup:Data_Link_Setup -> Snowflake_Connection =
-        types_record = JDBCProxy.makeTypeRecord "Snowflake"
-        jdbc_connection = case credentials of
-            # Special handling for OAuth credentials stored in the cloud
+        auth_properties = case credentials of
             cloud_credentials : Enso_Secret ->
-                base_properties = JDBC_Connection.properties_as_java_props properties Java_Pair HideableValue
-                raw_java_connection = SnowflakeCloudCredentials.makeConnection url base_properties (as_credential_reference cloud_credentials)
-                JDBC_Connection.from_java raw_java_connection sql_error_handler
-            _ ->
-                auth_properties = auth_jdbc_properties credentials
-                clashing = (Hashset.from_vector (properties.map .first)) . intersection (Hashset.from_vector (auth_properties.map .first))
-                if clashing.not_empty then
-                    Panic.throw (Illegal_Argument.Error "The properties cannot contain "+(clashing.to_vector .join ", ")+" as they are already provided in the credentials.")
-                JDBC_Connection.create types_record url (properties + auth_properties)
+                # Special handling for OAuth credentials stored in the cloud
+                SnowflakeCloudCredentials.makePairs (as_credential_reference cloud_credentials)
+            _ -> auth_jdbc_properties credentials
+
+        clashing = (Hashset.from_vector (properties.map .first)) . intersection (Hashset.from_vector (auth_properties.map .first))
+        if clashing.not_empty then
+            Panic.throw (Illegal_Argument.Error "The properties cannot contain "+(clashing.to_vector .join ", ")+" as they are already provided in the credentials.")
+
+        types_record = JDBCProxy.makeTypeRecord "Snowflake"
+        jdbc_connection = JDBC_Connection.create types_record url (properties + auth_properties)
 
         ## As long as names are quoted, the Snowflake SQL dialect is case sensitive.
            Our generator always quotes identifiers, so we can rely on the case sensitivity.

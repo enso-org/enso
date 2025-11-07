@@ -1,16 +1,12 @@
 from Standard.Base import all
-import Standard.Base.Data.Numbers.Positive_Integer
-import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
-from Standard.Table import Bits, Value_Type
-from Standard.Table.Errors import Inexact_Type_Coercion
+from Standard.Table import Value_Type
 
 import Standard.Database.Internal.IR.SQL_IR_Expression.SQL_IR_Expression
 import Standard.Database.Internal.Postgres.Postgres_Type_Mapping.Postgres_Type_Mapping
 import Standard.Database.Internal.SQL_Type_Mapping
 import Standard.Database.Internal.SQL_Type_Reference.SQL_Type_Reference
 import Standard.Database.SQL.SQL_Type
-from Standard.Database.Errors import Unsupported_Database_Type
 
 import project.Database.Redshift.Internal.Redshift_Error_Mapper.Redshift_Error_Mapper
 
