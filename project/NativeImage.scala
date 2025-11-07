@@ -333,7 +333,8 @@ object NativeImage {
   def incrementalNativeImageBuild(
     actualBuild: TaskKey[Unit],
     name: String,
-    targetDir: File = null
+    targetDir: File = null,
+    shared: Boolean = false
   ): Def.Initialize[Task[Unit]] =
     Def.taskDyn {
       def rebuild(reason: String) = {
@@ -358,7 +359,7 @@ object NativeImage {
         sourcesDiff: ChangeReport[File] =>
           if (sourcesDiff.modified.nonEmpty)
             rebuild("Native Image is not up to date")
-          else if (!artifactFile(targetDir, name).exists())
+          else if (!artifactFile(targetDir, name, shared = shared).exists())
             rebuild("Native Image does not exist")
           else
             Def.task {
