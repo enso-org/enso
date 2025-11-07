@@ -7,6 +7,7 @@
  */
 import { markRaw } from 'vue'
 import { z } from 'zod'
+import { $config } from '../config'
 import type { DownloadOptions } from '../download.js'
 import { delay } from '../utilities/async.js'
 import * as objects from '../utilities/data/object.js'
@@ -30,7 +31,7 @@ const IMPORT_STATUS_INTERVAL_MS = 5_000
 export class RemoteBackend extends backend.Backend {
   static readonly type = backend.BackendType.remote
   override readonly type = RemoteBackend.type
-  override readonly baseUrl: URL
+  override readonly baseUrl: URL = new URL($config.API_URL ?? '', location.href)
   private user: objects.Mutable<backend.User> | null = null
 
   /** Create a {@link RemoteBackend}. */
@@ -38,10 +39,8 @@ export class RemoteBackend extends backend.Backend {
     getText: backend.GetText,
     client: HttpClient,
     downloader: (options: DownloadOptions) => void | Promise<void>,
-    baseUrl: URL,
   ) {
     super(getText, client, downloader)
-    this.baseUrl = baseUrl
   }
 
   /** The path to the root directory of this {@link Backend}. */

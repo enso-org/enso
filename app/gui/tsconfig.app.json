@@ -8,7 +8,8 @@
     "src/**/*.tsx",
     "src/util/theme.json",
     "src/**/__tests__/*.json",
-    "templates/**/*"
+    "templates/**/*",
+    "../common/src/config.ts"
   ],
   "exclude": ["src/**/__tests__/*", "public/**/__tests__/*"],
   "compilerOptions": {

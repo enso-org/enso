@@ -528,8 +528,7 @@ function createRemoteBackend() {
   const downloader = () => {
     // TODO: implement downloading (low priority)
   }
-  const baseUrl = new URL('https://api.cloud.enso.org')
-  return new RemoteBackend(getText, httpClient, downloader, baseUrl)
+  return new RemoteBackend(getText, httpClient, downloader)
 }
 
 /** Initialize and run the Electron application. */
