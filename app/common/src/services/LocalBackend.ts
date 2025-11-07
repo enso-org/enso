@@ -6,8 +6,8 @@
  * the API.
  */
 import { markRaw } from 'vue'
-import type { DownloadOptions } from '../download.js'
 import { PRODUCT_NAME } from '../constants.js'
+import type { DownloadOptions } from '../download.js'
 import { toReadableIsoString } from '../utilities/data/dateTime.js'
 import { tryGetMessage } from '../utilities/errors.js'
 import {
