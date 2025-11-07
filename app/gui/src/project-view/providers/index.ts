@@ -1,6 +1,36 @@
-import { inject, provide, type InjectionKey } from 'vue'
+import { assert } from '@/util/assert'
+import {
+  getCurrentInstance,
+  inject,
+  provide,
+  type ComponentInternalInstance,
+  type InjectionKey,
+} from 'vue'
 
 const MISSING = Symbol('MISSING')
+
+/**
+ * A version of vue's {@link inject} that will also inject a value provided earlier
+ * within the same component's setup function.
+ */
+export function injectImmediate<T>(key: InjectionKey<T>, defaultValue: T): T {
+  // NOTE: Usage of Vue internal API. Consult sources in case this breaks during vue update:
+  // https://github.com/vuejs/core/blob/45547e69b25baa99a0ed52ba5110c5bd8b4a35e4/packages/runtime-core/src/apiInject.ts#L28
+  const instance = getCurrentInstance() as
+    | (ComponentInternalInstance & { provides: Record<InjectionKey<T>, T> })
+    | null
+  const instanceProvides = instance?.provides
+
+  // Assertion to check if the internal propery exist when we expect it. If this fails after update,
+  // this function needs to be updated as well.
+  DEV: assert(
+    instance == null || 'provides' in instance,
+    `Expected vue internal 'provides' property to exist.`,
+  )
+
+  if (instanceProvides && key in instanceProvides) return instanceProvides[key] as T
+  return inject(key, defaultValue)
+}
 
 /**
  * A pair of functions, `provideFn` and `injectFn`. The `provideFn` function creates the
@@ -28,10 +58,10 @@ export type ContextStore<Factory extends (...args: any[]) => any> = [
    * has never been provided and `missingBehavior` is `true`.
    */
   injectFn: {
-    (allowMissing?: false): ReturnType<Factory>
-    (allowMissing: true): ReturnType<Factory> | undefined
-    (allowMissing?: boolean): ReturnType<Factory> | undefined
-    (orProvideWith: () => Parameters<Factory>): ReturnType<Factory>
+    (allowMissing?: false, immediate?: boolean): ReturnType<Factory>
+    (allowMissing: true, immediate?: boolean): ReturnType<Factory> | undefined
+    (allowMissing?: boolean, immediate?: boolean): ReturnType<Factory> | undefined
+    (orProvideWith: () => Readonly<Parameters<Factory>>, immediate?: boolean): ReturnType<Factory>
   },
 ]
 
@@ -65,20 +95,25 @@ export function createContextStore<F extends (...args: any[]) => any>(
 ): ContextStore<F> {
   const provideKey = Symbol.for(`contextStore-${name}`) as InjectionKey<ReturnType<F>>
 
-  function provideFn(...args: Parameters<F>): ReturnType<F> {
+  function provideFn(...args: Readonly<Parameters<F>>): ReturnType<F> {
     const constructed = factory(...args)
     provide(provideKey, constructed)
     return constructed
   }
 
-  function injectFn(allowMissing: true): ReturnType<F> | undefined
-  function injectFn(allowMissing?: false): ReturnType<F>
-  function injectFn(allowMissing?: boolean): ReturnType<F> | undefined
-  function injectFn(orProvideWith: () => Parameters<F>): ReturnType<F>
+  function injectFn(allowMissing: true, immediate?: boolean): ReturnType<F> | undefined
+  function injectFn(allowMissing?: false, immediate?: boolean): ReturnType<F>
+  function injectFn(allowMissing?: boolean, immediate?: boolean): ReturnType<F> | undefined
   function injectFn(
-    missingBehavior: boolean | (() => Parameters<F>) = false,
+    orProvideWith: () => Readonly<Parameters<F>>,
+    immediate?: boolean,
+  ): ReturnType<F>
+  function injectFn(
+    missingBehavior: boolean | (() => Readonly<Parameters<F>>) = false,
+    immediate = false,
   ): ReturnType<F> | undefined {
-    const injected = inject<ReturnType<F> | typeof MISSING>(provideKey, MISSING)
+    const injector = immediate ? injectImmediate : inject
+    const injected = injector<ReturnType<F> | typeof MISSING>(provideKey, MISSING)
     if (injected === MISSING) {
       if (missingBehavior === true) return
       if (typeof missingBehavior === 'function') {

@@ -110,9 +110,10 @@ test.each`
           visConfig = config
           return ref(null)
         },
-        moduleProjectPath: undefined,
+        moduleProjectPath: projectNames.parseProjectPathRaw('local.Project.Main'),
       },
       projectNames,
+      [],
     )
     assert(visConfig != null)
     const visConfigValue = toValue<Opt<NodeVisualizationConfiguration>>(visConfig)

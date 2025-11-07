@@ -21,7 +21,7 @@ export function normalizeName(name: string): string {
   return startingWithUppercase.split('').filter(isAllowedNameCharacter).join('')
 }
 
-/** Check whether a character is allowed in a project name. */
+/** Checks if a character is allowed in a project name. */
 function isAllowedNameCharacter(char: string): boolean {
   return /[a-zA-Z0-9_]/.test(char)
 }
