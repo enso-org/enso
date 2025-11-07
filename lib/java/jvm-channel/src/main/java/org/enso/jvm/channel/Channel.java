@@ -74,6 +74,7 @@ public final class Channel<Data extends Channel.Config> implements AutoCloseable
   private final JNI.JClass channelClass;
   private final JNI.JMethodID channelHandle;
   private final Channel<Data> otherMockChannel;
+  private final Thread allowedThread = Thread.currentThread();
 
   /** The SubstrateVM side of a channel. */
   private Channel(
@@ -400,6 +401,14 @@ public final class Channel<Data extends Channel.Config> implements AutoCloseable
       Persistance.Pool pool,
       Class<R> replyType,
       Function<Channel<? extends Data>, ? extends R> msg) {
+    if (allowedThread != Thread.currentThread()) {
+      throw new IllegalStateException(
+          "Initialized on "
+              + allowedThread.getName()
+              + " but access from "
+              + Thread.currentThread().getName()
+              + " thread!");
+    }
     var address = 0L;
     var useMalloc = isMaster() && !isDirect();
     try {

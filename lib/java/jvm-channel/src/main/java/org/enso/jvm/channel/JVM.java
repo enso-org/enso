@@ -14,9 +14,11 @@ import org.graalvm.word.WordFactory;
 public final class JVM {
   private final JNIBoot.JNICreateJavaVMPointer createJvmFn;
   private final String[] options;
+  private final Thread allowedThread;
   private JNI.JNIEnv env = WordFactory.nullPointer();
 
   JVM(JNIBoot.JNICreateJavaVMPointer factory, String[] options) {
+    this.allowedThread = Thread.currentThread();
     this.createJvmFn = factory;
     this.options = options;
   }
@@ -97,6 +99,14 @@ public final class JVM {
    * @return JNI environment to make calls into the JVM
    */
   final JNI.JNIEnv env() {
+    if (allowedThread != Thread.currentThread()) {
+      throw new IllegalStateException(
+          "Initialized on "
+              + allowedThread.getName()
+              + " but access from "
+              + Thread.currentThread().getName()
+              + " thread!");
+    }
     if (env.isNull()) {
       env = initializeEnv();
     }
