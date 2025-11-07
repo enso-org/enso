@@ -33,13 +33,14 @@ import { useComponentColors } from '@/composables/componentColors'
 import { useClickableDraggable } from '@/composables/dragging'
 import { useResizeObserver } from '@/composables/events'
 import { useProgressBackground } from '@/composables/progressBar'
-import type { ActionHandler } from '@/providers/action'
+import type { ActionHandler, DisplayableActionName } from '@/providers/action'
 import { registerHandlers, toggledAction } from '@/providers/action'
 import { injectGraphNavigator } from '@/providers/graphNavigator'
 import { injectNodeColors } from '@/providers/graphNodeColors'
 import { injectGraphSelection } from '@/providers/graphSelection'
 import { providePopoverRoot } from '@/providers/popoverRoot'
 import { provideResizableWidgetRegistry } from '@/providers/resizableWidgetRegistry'
+import { provideWidgetControlledActions } from '@/providers/widgetActions'
 import { Ast } from '@/util/ast'
 import { prefixes } from '@/util/ast/node'
 import { onWindowBlur } from '@/util/autoBlur'
@@ -389,8 +390,23 @@ const actionHandlers = registerHandlers(
       enabled: computed(() => !isBeingRecomputed.value),
       action: recomputeOnce,
     },
+    ...provideWidgetControlledActions(['component.widget.editMethodName']),
   }),
 )
+
+const nodeMenuActions: DisplayableActionName[] = [
+  'component.toggleDocPanel',
+  'component.toggleVisualization',
+  'component.createNewNode',
+  'component.editingComment',
+  'component.recompute',
+  'component.pickColor',
+  'component.enterNode',
+  'component.widget.editMethodName',
+  'component.startEditing',
+  'components.copy',
+  'components.deleteSelected',
+]
 
 onWindowBlur(() => {
   graph.nodeHovered.delete(nodeId.value)
@@ -423,6 +439,7 @@ const nodeName = computed(() => props.node.pattern?.code())
       :colorPickerOpened="colorPickerOpened"
       :currentNodeColor="nodeColor"
       :matchableColors="matchableColors"
+      :actions="nodeMenuActions"
       @setNodeColor="emit('setNodeColor', $event)"
       @closeColorPicker="colorPickerOpened = false"
       @update:hovered="menuHovered = $event"
@@ -440,21 +457,7 @@ const nodeName = computed(() => props.node.pattern?.code())
       class="beforeNode"
       @click.capture="setSoleSelected"
     />
-    <ContextMenuTrigger
-      :actions="[
-        'component.toggleDocPanel',
-        'component.toggleVisualization',
-        'component.createNewNode',
-        'component.editingComment',
-        'component.recompute',
-        'component.pickColor',
-        'component.enterNode',
-        'component.startEditing',
-        'components.copy',
-        'components.deleteSelected',
-      ]"
-      @contextmenu="ensureSelected"
-    >
+    <ContextMenuTrigger :actions="nodeMenuActions" @contextmenu="ensureSelected">
       <div
         ref="contentNode"
         :class="{ content: true, dragged: isDragged }"

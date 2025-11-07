@@ -484,11 +484,25 @@ export abstract class MutableAst extends Ast {
   }
 }
 
-/** TODO: Add docs */
-export function visitRecursive(ast: Ast, visit: (ast: Ast) => void | boolean): void {
-  if (visit(ast) === false) return
-  for (const child of ast.children()) {
-    if (!isToken(child)) visitRecursive(child, visit)
+/**
+ * Visit all AST nodes in depth-first order using given visitor function.
+ * If visitor returns `false` value, child nodes of currently visited node will be skipped.
+ * If visitor returns an Iterable of nodes, only those nodes will be visited.
+ */
+export function visitRecursive(
+  ast: Ast,
+  visit: (ast: Ast) => void | boolean | Iterable<Ast | undefined | null>,
+): void {
+  const visitResult = visit(ast)
+  if (visitResult === false) return
+  if (visitResult === true || visitResult == null) {
+    for (const child of ast.children()) {
+      if (child != null && !isToken(child)) visitRecursive(child, visit)
+    }
+  } else {
+    for (const child of visitResult) {
+      if (child != null) visitRecursive(child, visit)
+    }
   }
 }
 
@@ -515,6 +529,7 @@ type StructuralField<T extends TreeRefs = RawRefs> =
   | NameSpecification<T>
   | TextElement<T>
   | ArgumentDefinition<T>
+  | ReturnSpecification<T>
   | VectorElement<T>
   | TypeSignature<T>
   | SignatureLine<T>
@@ -653,6 +668,18 @@ function mapRefs<T extends TreeRefs, U extends TreeRefs>(
   field: ArgumentDefinition<T>,
   f: MapRef<T, U>,
 ): ArgumentDefinition<U>
+function mapRefs<T extends TreeRefs, U extends TreeRefs>(
+  field: FunctionAnnotation<T>,
+  f: MapRef<T, U>,
+): FunctionAnnotation<U>
+function mapRefs<T extends TreeRefs, U extends TreeRefs>(
+  field: TypeSignature<T>,
+  f: MapRef<T, U>,
+): TypeSignature<U>
+function mapRefs<T extends TreeRefs, U extends TreeRefs>(
+  field: ReturnSpecification<T>,
+  f: MapRef<T, U>,
+): ReturnSpecification<U>
 function mapRefs<T extends TreeRefs, U extends TreeRefs>(
   field: VectorElement<T>,
   f: MapRef<T, U>,
@@ -1331,10 +1358,10 @@ export class PropertyAccess extends BaseExpression {
     return this.module.getToken(this.fields.get('operator').node)
   }
   /** TODO: Add docs */
-  get rhs(): IdentifierOrOperatorIdentifierToken {
+  get rhs(): Ident {
     const ast = this.module.get(this.fields.get('rhs').node)
     assert(ast instanceof Ident)
-    return ast.token as IdentifierOrOperatorIdentifierToken
+    return ast
   }
 
   /** TODO: Add docs */
@@ -2387,6 +2414,11 @@ export interface ArgumentDefinition<T extends TreeRefs = RawRefs> {
   close?: T['token'] | undefined
 }
 
+export interface ReturnSpecification<T extends TreeRefs = RawRefs> {
+  arrow: T['token']
+  type: T['expression']
+}
+
 /**
  * Create a new function argument definition using provided "name" string as argument's pattern expression.
  */
@@ -2432,7 +2464,7 @@ interface AnnotationLine<T extends TreeRefs = RawRefs> {
   newlines: T['token'][]
 }
 
-interface TypeSignature<T extends TreeRefs = RawRefs> {
+export interface TypeSignature<T extends TreeRefs = RawRefs> {
   name: T['ast']
   operator: T['token']
   type: T['ast']
@@ -2452,6 +2484,7 @@ export interface FunctionDefFields<T extends TreeRefs = RawRefs> {
   private_: T['token'] | undefined
   name: T['ast']
   argumentDefinitions: ArgumentDefinition<T>[]
+  returns: ReturnSpecification<T> | undefined
   equals: T['token']
   body: T['ast'] | undefined
 }
@@ -2491,6 +2524,24 @@ export class FunctionDef extends BaseStatement {
       .map((def) => mapRefs(def, rawToConcrete(this.module)))
   }
 
+  /** Get annotations attached to this function. */
+  get annotations(): FunctionAnnotation<ConcreteRefs>[] {
+    return this.fields
+      .get('annotationLines')
+      .map((line) => mapRefs(line.annotation, rawToConcrete(this.module)))
+  }
+
+  /** Get function's type signature AST, if it is present. */
+  get signature(): TypeSignature<ConcreteRefs> | undefined {
+    const line = this.fields.get('signatureLine')
+    return line && mapRefs(line.signature, rawToConcrete(this.module))
+  }
+
+  /** Get function's type signature AST, if it is present. */
+  get returnType(): Expression | undefined {
+    return this.module.get(this.fields.get('returns')?.type.node) as Expression | undefined
+  }
+
   /** TODO: Add docs */
   static concrete(
     module: MutableModule,
@@ -2515,6 +2566,7 @@ export class FunctionDef extends BaseStatement {
       argumentDefinitions: (fields.argumentDefinitions ?? []).map((def) =>
         mapRefs(def, ownedToRaw(module, id_)),
       ),
+      returns: fields.returns && mapRefs(fields.returns, ownedToRaw(module, id_)),
       equals: fields.equals,
       body: concreteChild(module, fields.body, id_),
     })

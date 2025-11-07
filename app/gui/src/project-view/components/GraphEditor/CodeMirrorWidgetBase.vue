@@ -30,6 +30,7 @@ const props = defineProps<{
   transformUserInput?: (value: string) => Ast.Owned<Ast.MutableTextLiteral> | string
   /** Editor line mode. Single-line mode will not allow entering newline characters. */
   lineMode: 'single' | 'multi' | 'auto' | 'autoMulti'
+  syncAfterAccept?: boolean
   onAccepted?: (value: string) => HandledUpdate
 }>()
 
@@ -37,6 +38,7 @@ const model = defineModel<string>({ default: '' })
 const emit = defineEmits<{
   textEdited: [text: string]
   userAction: [text: string, selection: SelectionRange]
+  blur: []
 }>()
 
 const editorRoot = useTemplateRef<ComponentInstance<typeof CodeMirrorRoot>>('editorRoot')
@@ -82,12 +84,15 @@ const editing = WidgetEditHandler.New(props, {
     return false
   },
   end() {
+    if (props.syncAfterAccept && getText(editorView) !== model.value)
+      setText(editorView, model.value)
     blurEditor()
   },
 })
 
 function blurEditor() {
   editorView.contentDOM.blur()
+  emit('blur')
 }
 
 function focusAndSelect() {
