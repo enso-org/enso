@@ -1867,7 +1867,7 @@ export default abstract class Backend {
     abort?: AbortSignal,
   ): Promise<UploadedAsset>
   /**
-   * Upload set of Images, resoliving any possible conflicts. The sum of file sizes may not
+   * Upload set of Images, resolving any possible conflicts. The sum of file sizes may not
    * exceed could message limit.
    */
   abstract uploadImage(
