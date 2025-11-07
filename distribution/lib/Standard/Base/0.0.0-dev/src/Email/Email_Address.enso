@@ -1,4 +1,5 @@
 import project.Data.Text.Text
 
 type Email_Address
-	Address address:Text display_name:Text=""
+	Address address:Text
+	NameAddress name:Text address:Text

@@ -8,9 +8,11 @@ import project.Email.Email_Object.Email_Object
 import project.Email.Email_Provider.Email_Provider
 import project.Email.Email_Attachment.Email_Attachment
 import project.Email.Email_Send_Response.Send_Response
-from project.Metadata.Widget import Text_Input, Vector_Editor
+from project.Metadata.Choice import Option
+from project.Metadata.Widget import Text_Input, Vector_Editor, Single_Choice
 import project.Data.Pair.Pair
-
+import project.Metadata.Widget
+import project.Metadata.Display
 
 ## ---
    aliases: [mail]
@@ -18,11 +20,21 @@ import project.Data.Pair.Pair
    icon: email
    ---
    Sends an email.
-@to (Vector_Editor item_editor=Text_Input item_default="''")
-@cc (Vector_Editor item_editor=Text_Input item_default="''")
-@bcc (Vector_Editor item_editor=Text_Input item_default="''")
-send from:Text="" (to:Vector Text)=[] (cc:Vector Text)=[] (bcc:Vector Text)=[] (subject:Text)="" (body:Email_Body)="" (attachments:Vector Email_Attachment)="" (provider:Email_Provider) =
+@to default_widget
+@cc default_widget
+@bcc default_widget
+send from:Email_Address (to:Vector Email_Address)=[] (cc:Vector Email_Address)=[] (bcc:Vector Email_Address)=[] (subject:Text)="" (body:Email_Body)="" (attachments:Vector Email_Attachment)="" (provider:Email_Provider) =
     _ = [provider]
     email_object = Email_Object.Value from to cc bcc subject body attachments
     provider.send email_object
-    
+
+## ---
+    private: true
+    ---
+default_widget (display : Display = ..When_Modified) -> Widget =
+    name = [Option "Address" "..Address ''"]
+    nameaddress = [Option "Name And Address" "..NameAddress '' ''"]
+    values = name + nameaddress
+
+    item_editor = Single_Choice values=values display=..Always
+    Vector_Editor item_editor item_default='..Address ""' display=display
