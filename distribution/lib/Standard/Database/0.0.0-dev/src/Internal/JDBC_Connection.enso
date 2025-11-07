@@ -20,6 +20,14 @@ polyglot java import java.sql.Connection
 polyglot java import java.sql.DatabaseMetaData
 polyglot java import java.sql.PreparedStatement
 
+## Needed to help Native Image include the classes.
+polyglot java import org.enso.base.enso_cloud.HideableValue
+polyglot java import org.enso.base.enso_cloud.HideableValue.Factory
+polyglot java import org.enso.base.enso_cloud.HideableValue.KeyValuePair
+polyglot java import org.enso.database.dryrun.OperationSynchronizer
+polyglot java import org.enso.database.JDBCProxy
+polyglot java import org.enso.database.JDBCProxy.JDBCDriverTypes
+
 type JDBC_Connection
     ## ---
        private: true
