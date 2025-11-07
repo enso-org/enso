@@ -40,13 +40,8 @@ import project.Internal.Snowflake_Dialect
 import project.Internal.Snowflake_Type_Mapping.Snowflake_Type_Mapping
 
 
-polyglot java import java.sql.SQLException
-polyglot java import java.sql.SQLTimeoutException
-polyglot java import org.enso.base.enso_cloud.HideableValue
-polyglot java import org.enso.database.dryrun.OperationSynchronizer
 polyglot java import org.enso.database.JDBCProxy
 polyglot java import org.enso.snowflake.SnowflakeCloudCredentials
-polyglot java import org.graalvm.collections.Pair as Java_Pair
 
 type Snowflake_Connection
     ## ---
@@ -61,7 +56,7 @@ type Snowflake_Connection
         - `make_new`: A function that returns a new connection.
         - `data_link_setup`: the setup for saving the connection as a data link.
     private create url:Text properties:Vector credentials:Credentials|Key_Pair_Credentials|Enso_Secret make_new:(Text -> Text -> Snowflake_Connection) data_link_setup:Data_Link_Setup -> Snowflake_Connection =
-        sql_error_handler = JDBC_Connection.create_sql_error_handler SQLException SQLTimeoutException
+        types_record = JDBCProxy.makeTypeRecord "Snowflake"
         jdbc_connection = case credentials of
             # Special handling for OAuth credentials stored in the cloud
             cloud_credentials : Enso_Secret ->
@@ -73,10 +68,7 @@ type Snowflake_Connection
                 clashing = (Hashset.from_vector (properties.map .first)) . intersection (Hashset.from_vector (auth_properties.map .first))
                 if clashing.not_empty then
                     Panic.throw (Illegal_Argument.Error "The properties cannot contain "+(clashing.to_vector .join ", ")+" as they are already provided in the credentials.")
-                java_props = JDBC_Connection.properties_as_java_props (properties + auth_properties) Java_Pair HideableValue
-                java_connection = sql_error_handler <|
-                    JDBCProxy.getConnectionWithCatalogSchema url java_props Nothing Nothing
-                JDBC_Connection.from_java java_connection OperationSynchronizer.new sql_error_handler
+                JDBC_Connection.create types_record url (properties + auth_properties)
 
         ## As long as names are quoted, the Snowflake SQL dialect is case sensitive.
            Our generator always quotes identifiers, so we can rely on the case sensitivity.

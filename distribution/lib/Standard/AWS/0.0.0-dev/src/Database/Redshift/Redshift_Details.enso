@@ -17,12 +17,7 @@ import project.Database.Redshift.Internal.Redshift_Dialect
 import project.Database.Redshift.Internal.Redshift_Type_Mapping.Redshift_Type_Mapping
 
 polyglot java import com.amazon.redshift.jdbc.Driver
-polyglot java import java.sql.SQLException
-polyglot java import java.sql.SQLTimeoutException
-polyglot java import org.enso.base.enso_cloud.HideableValue
-polyglot java import org.enso.database.dryrun.OperationSynchronizer
 polyglot java import org.enso.database.JDBCProxy
-polyglot java import org.graalvm.collections.Pair as Java_Pair
 
 type Redshift_Details
     ## Connect to a AWS Redshift database.
@@ -70,11 +65,8 @@ type Redshift_Details
 
         properties = options.merge self.jdbc_properties
 
-        sql_error_handler = JDBC_Connection.create_sql_error_handler SQLException SQLTimeoutException
-        java_props = JDBC_Connection.properties_as_java_props properties Java_Pair HideableValue
-        java_connection = sql_error_handler <|
-            JDBCProxy.getConnectionWithCatalogSchema self.jdbc_url java_props Nothing Nothing
-        jdbc_connection = JDBC_Connection.from_java java_connection OperationSynchronizer.new sql_error_handler
+        types_record = JDBCProxy.makeTypeRecord "Redshift"
+        jdbc_connection = JDBC_Connection.create types_record self.jdbc_url properties
 
         # TODO [RW] can we inherit these from postgres?
         encoding = parse_postgres_encoding (get_encoding_name jdbc_connection)

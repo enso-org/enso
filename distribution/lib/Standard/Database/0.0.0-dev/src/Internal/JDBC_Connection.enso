@@ -284,40 +284,43 @@ type JDBC_Connection
 ## ---
    private: true
    ---
-   Creates a handler for SQL Errors.
-
-   ## Arguments
-   - `sql_exception`: The base SQL exception class to catch.
-   - `sql_timeout_exception`: The SQL timeout exception class to catch.
-
-   ## Returns
-   A function which executes `action` and returns its result, catching any
-   panics and if they are coming from JDBC, wraps them with our own error
-   types and returns as regular data-flow errors.
-create_sql_error_handler sql_exception sql_timeout_exception =
-    handler ~action related_query=Nothing =
-        Panic.catch sql_exception action caught_panic->
-            if caught_panic.payload.is_a sql_timeout_exception then Error.throw (SQL_Timeout.Error caught_panic.payload Nothing) else
-                Error.throw (SQL_Error.Error caught_panic.payload related_query)
-    handler
-
-## ---
-   private: true
-   ---
-   Converts a vector of Enso key-value pairs into Java properties.
-properties_as_java_props properties java_pair hideable_value =
-    properties.map pair->
-        java_value = if pair.second.is_a hideable_value then pair.second else as_hideable_value pair.second factor=hideable_value
-        java_pair.create pair.first java_value
-
-## ---
-   private: true
-   ---
    A special method used by dialects that construct a Java JDBC connection using
    some custom logic.
-from_java java_jdbc_connection synchronizer sql_error_handler =
-    resource = Managed_Resource.register java_jdbc_connection close_connection
-    JDBC_Connection.Value resource synchronizer sql_error_handler
+create types_record url:Text properties:Vector catalog:Text="" schema:Text="" =
+    ## ---
+       private: true
+       ---
+       Creates a handler for SQL Errors.
+
+       ## Arguments
+       - `sql_exception`: The base SQL exception class to catch.
+       - `sql_timeout_exception`: The SQL timeout exception class to catch.
+
+       ## Returns
+       A function which executes `action` and returns its result, catching any
+       panics and if they are coming from JDBC, wraps them with our own error
+       types and returns as regular data-flow errors.
+    create_sql_error_handler sql_exception sql_timeout_exception =
+        handler ~action related_query=Nothing =
+            Panic.catch sql_exception action caught_panic->
+                if caught_panic.payload.is_a sql_timeout_exception then Error.throw (SQL_Timeout.Error caught_panic.payload Nothing) else
+                    Error.throw (SQL_Error.Error caught_panic.payload related_query)
+        handler
+
+    ## ---
+       private: true
+       ---
+       Converts a vector of Enso key-value pairs into Java properties.
+    properties_as_java_props properties java_pair hideable_value =
+        properties.map pair->
+            java_value = if pair.second.is_a hideable_value then pair.second else as_hideable_value pair.second factor=hideable_value
+            java_pair.create pair.first java_value
+
+    sql_error_handler = create_sql_error_handler types_record.sqlException types_record.sqlTimeoutException
+    java_props = properties_as_java_props properties types_record.pair types_record.hideableValue
+    java_connection = sql_error_handler <| types_record.getConnectionWithCatalogSchema url java_props catalog schema
+    resource = Managed_Resource.register java_connection close_connection
+    JDBC_Connection.Value resource types_record.newOperationSynchronizer sql_error_handler
 
 ## ---
    private: true

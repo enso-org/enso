@@ -21,13 +21,8 @@ from Standard.Database.Internal.Upload.Operations.Create import create_table_imp
 import project.Internal.DuckDB_Entity_Naming_Properties
 import project.Internal.DuckDB_Type_Mapping.DuckDB_Type_Mapping
 
-polyglot java import java.sql.SQLException
-polyglot java import java.sql.SQLTimeoutException
-polyglot java import org.enso.base.enso_cloud.HideableValue
-polyglot java import org.enso.database.dryrun.OperationSynchronizer
 polyglot java import org.enso.database.JDBCProxy
 polyglot java import org.enso.duckdb.DuckDBUtils
-polyglot java import org.graalvm.collections.Pair as Java_Pair
 
 type DuckDB_Connection
     ## ---
@@ -42,11 +37,8 @@ type DuckDB_Connection
         - `schema`: The initial schema to connect to.
     create : Text -> Vector -> (Text -> Text -> DuckDB_Connection) -> Text -> DuckDB_Connection
     create url properties make_new schema =
-        sql_error_handler = JDBC_Connection.create_sql_error_handler SQLException SQLTimeoutException
-        java_props = JDBC_Connection.properties_as_java_props properties Java_Pair HideableValue
-        java_connection = sql_error_handler <|
-            JDBCProxy.getConnectionWithCatalogSchema url java_props Nothing schema
-        jdbc_connection = JDBC_Connection.from_java java_connection OperationSynchronizer.new sql_error_handler
+        types_record = JDBCProxy.makeTypeRecord "DuckDB"
+        jdbc_connection = JDBC_Connection.create types_record url properties schema=schema
 
         ## For initial work using DuckDB, we will use the Postgres dialect.
         DuckDB_Connection.Value (Connection.new jdbc_connection Dialect.postgres DuckDB_Type_Mapping DuckDB_Entity_Naming_Properties.new) make_new

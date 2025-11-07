@@ -28,12 +28,7 @@ import project.Connection.SQLServer_Query.SQLServer_Query
 import project.Internal.SQLServer_Dialect
 import project.Internal.SQLServer_Type_Mapping.SQLServer_Type_Mapping
 
-polyglot java import java.sql.SQLException
-polyglot java import java.sql.SQLTimeoutException
-polyglot java import org.enso.base.enso_cloud.HideableValue
-polyglot java import org.enso.database.dryrun.OperationSynchronizer
 polyglot java import org.enso.database.JDBCProxy
-polyglot java import org.graalvm.collections.Pair as Java_Pair
 
 type SQLServer_Connection
     ## ---
@@ -48,11 +43,8 @@ type SQLServer_Connection
         - `data_link_setup`: the setup for saving the connection as a data link.
     create : Text -> Vector -> (Text -> SQLServer_Connection) -> Data_Link_Setup -> SQLServer_Connection
     create url properties make_new data_link_setup =
-        sql_error_handler = JDBC_Connection.create_sql_error_handler SQLException SQLTimeoutException
-        java_props = JDBC_Connection.properties_as_java_props properties Java_Pair HideableValue
-        java_connection = sql_error_handler <|
-            JDBCProxy.getConnectionWithCatalogSchema url java_props Nothing Nothing
-        jdbc_connection = JDBC_Connection.from_java java_connection OperationSynchronizer.new sql_error_handler
+        types_record = JDBCProxy.makeTypeRecord "SQLServer"
+        jdbc_connection = JDBC_Connection.create types_record url properties
 
         jdbc_entity_naming_properties = Entity_Naming_Properties.from_jdbc_connection jdbc_connection is_case_sensitive=True
         ## jdbc reports table name length limit as 128, but it actually seems to be 116 for temp tables so we override it

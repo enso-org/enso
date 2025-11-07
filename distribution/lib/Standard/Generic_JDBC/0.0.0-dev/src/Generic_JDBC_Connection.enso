@@ -19,13 +19,8 @@ import Standard.Database.SQL_Query.SQL_Query
 from Standard.Database.Connection.Connection import get_tables_advanced
 from Standard.Database.Internal.Result_Set import result_set_to_table
 
-polyglot java import java.sql.SQLException
-polyglot java import java.sql.SQLTimeoutException
-polyglot java import org.enso.base.enso_cloud.HideableValue
-polyglot java import org.enso.database.dryrun.OperationSynchronizer
 polyglot java import org.enso.database.JDBCProxy
 polyglot java import org.enso.database.JDBCUtils
-polyglot java import org.graalvm.collections.Pair as Java_Pair
 
 type Generic_JDBC_Connection
     private Value jdbc_connection:JDBC_Connection.JDBC_Connection url:Text quote_char:Text
@@ -65,11 +60,8 @@ type Generic_JDBC_Connection
        in JVM mode.
     @properties (Vector_Editor item_editor=(Single_Choice [Option "Text" "['', '']", Option "Secret" "['', Enso_Secret.get '']"]) item_default="['', '']")
     connect (url : Text = (Missing_Argument.throw "url")) properties:Vector=[] quote_char:Text="" -> Generic_JDBC_Connection =
-        sql_error_handler = JDBC_Connection.create_sql_error_handler SQLException SQLTimeoutException
-        java_props = JDBC_Connection.properties_as_java_props properties Java_Pair HideableValue
-        java_connection = sql_error_handler <|
-            JDBCProxy.getConnectionWithCatalogSchema url java_props Nothing schema
-        jdbc_connection = JDBC_Connection.from_java java_connection OperationSynchronizer.new sql_error_handler
+        types_record = JDBCProxy.makeTypeRecord "GenericJDBC"
+        jdbc_connection = JDBC_Connection.create types_record url properties
         Generic_JDBC_Connection.Value jdbc_connection url quote_char
 
     ## ---
