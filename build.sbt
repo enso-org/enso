@@ -2104,12 +2104,15 @@ lazy val `ydoc-server` = project
           shared        = true
         )
     }.value,
-    buildNativeImage := NativeImage
-      .incrementalNativeImageBuild(
-        rebuildNativeImage,
-        "org.enso.ydoc.server"
-      )
-      .value
+    buildNativeImage := Def.taskDyn {
+      NativeImage
+        .incrementalNativeImageBuild(
+          rebuildNativeImage,
+          "org.enso.ydoc.server",
+          targetDir = engineDistributionRoot.value / "component",
+          shared    = true
+        )
+    }.value
   )
   .dependsOn(`ydoc-polyfill`)
   .dependsOn(`logging-service-logback`)
