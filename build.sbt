@@ -4617,6 +4617,7 @@ lazy val `os-environment` =
         ourDeps
       },
       rebuildNativeImage := Def.taskDyn {
+        val ignore    = (Test / fullClasspath).value
         val targetDir = (Test / target).value
         NativeImage.buildNativeImage(
           "test-os-env",
@@ -4651,7 +4652,8 @@ lazy val `os-environment` =
         NativeImage.incrementalNativeImageBuild(
           rebuildNativeImage,
           "test-os-env",
-          targetDir = targetDir
+          targetDir        = targetDir,
+          useTestClassPath = true
         )
       }.value,
       Test / test := Def

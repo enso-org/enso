@@ -333,8 +333,9 @@ object NativeImage {
   def incrementalNativeImageBuild(
     actualBuild: TaskKey[Unit],
     name: String,
-    targetDir: File = null,
-    shared: Boolean = false
+    targetDir: File           = null,
+    shared: Boolean           = false,
+    useTestClassPath: Boolean = false
   ): Def.Initialize[Task[Unit]] =
     Def.taskDyn {
       def rebuild(reason: String) = {
@@ -350,8 +351,12 @@ object NativeImage {
         }
       }
 
-      val classpath = (Compile / fullClasspath).value
-      val filesSet  = classpath.flatMap(f => f.data.allPaths.get()).toSet
+      val classpath = if (useTestClassPath) {
+        (Test / fullClasspath).value
+      } else {
+        (Compile / fullClasspath).value
+      }
+      val filesSet = classpath.flatMap(f => f.data.allPaths.get()).toSet
 
       val store =
         streams.value.cacheStoreFactory.make("incremental_native_image")
