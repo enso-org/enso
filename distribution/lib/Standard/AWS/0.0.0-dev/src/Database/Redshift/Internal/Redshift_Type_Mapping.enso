@@ -6,7 +6,7 @@ from Standard.Table import Bits, Value_Type
 from Standard.Table.Errors import Inexact_Type_Coercion
 
 import Standard.Database.Internal.IR.SQL_IR_Expression.SQL_IR_Expression
-import Standard.Database.Internal.Postgres.Postgres_Type_Mapper.Postgres_Type_Mapper
+import Standard.Database.Internal.Postgres.Postgres_Type_Mapping.Postgres_Type_Mapping
 import Standard.Database.Internal.SQL_Type_Mapping
 import Standard.Database.Internal.SQL_Type_Reference.SQL_Type_Reference
 import Standard.Database.SQL.SQL_Type
@@ -25,14 +25,14 @@ type Redshift_Type_Mapping
        ---
     value_type_to_sql : Value_Type -> Problem_Behavior -> SQL_Type
     value_type_to_sql value_type on_problems:Problem_Behavior =
-        Postgres_Type_Mapper.value_type_to_sql value_type on_problems
+        Postgres_Type_Mapping.value_type_to_sql value_type on_problems
 
     ## ---
        private: true
        ---
     sql_type_to_value_type : SQL_Type -> Value_Type
     sql_type_to_value_type sql_type =
-        Postgres_Type_Mapper.sql_type_to_value_type sql_type
+        Postgres_Type_Mapping.sql_type_to_value_type sql_type
 
     ## ---
        private: true
@@ -47,7 +47,7 @@ type Redshift_Type_Mapping
        ---
     sql_type_to_text : SQL_Type -> Text
     sql_type_to_text sql_type =
-        Postgres_Type_Mapper.sql_type_to_text sql_type
+        Postgres_Type_Mapping.sql_type_to_text sql_type
 
     ## ---
        private: true
