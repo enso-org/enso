@@ -31,7 +31,10 @@ const IMPORT_STATUS_INTERVAL_MS = 5_000
 export class RemoteBackend extends backend.Backend {
   static readonly type = backend.BackendType.remote
   override readonly type = RemoteBackend.type
-  override readonly baseUrl: URL = new URL($config.API_URL ?? '', location.href)
+  override readonly baseUrl: URL = new URL(
+    $config.API_URL ?? '',
+    typeof location !== 'undefined' ? location.href : 'https://example.com',
+  )
   private user: objects.Mutable<backend.User> | null = null
 
   /** Create a {@link RemoteBackend}. */
