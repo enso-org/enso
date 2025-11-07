@@ -113,6 +113,7 @@ public final class EnsoFile extends BuiltinObject {
     }
 
     @ExportMessage
+    @TruffleBoundary
     static Object invokeMember(
         EnsoOutputStream os,
         String name,
@@ -305,6 +306,7 @@ public final class EnsoFile extends BuiltinObject {
     }
 
     @ExportMessage
+    @TruffleBoundary
     static Object invokeMember(
         EnsoInputStream is,
         String name,
