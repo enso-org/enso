@@ -1,15 +1,10 @@
 import { type Asset, AssetType, DirectoryId } from '#/services/Backend'
 import RemoteBackend from '#/services/RemoteBackend'
 import { unsafeKeys } from '#/utilities/object'
-<<<<<<< HEAD
-import type { OpenedProject, OpenedProjectsStore } from '$/providers/openedProjects'
-import { getFolderPath, readUserSelectedFile } from '$/utils/file'
-import { backendMutationOptions, backendQueryOptions } from '@/composables/backend'
-=======
 import type { OpenedProjectsStore } from '$/providers/openedProjects'
 import type { Initialized as InitializedProject } from '$/providers/openedProjects/projectStates'
-import { readUserSelectedFile } from '$/utils/file'
->>>>>>> 6f062b5923752c661acff933fbd19acd3e044ff9
+import { getFolderPath, readUserSelectedFile } from '$/utils/file'
+import { backendMutationOptions, backendQueryOptions } from '@/composables/backend'
 import { useProjectFiles } from '@/stores/projectFiles'
 import { Err, mapOk, Ok, type Result } from '@/util/data/result'
 import { QueryClient, useMutation } from '@tanstack/vue-query'
