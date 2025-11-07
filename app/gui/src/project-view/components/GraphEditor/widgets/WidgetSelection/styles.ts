@@ -39,17 +39,13 @@ function sizeOptions(limitWidth: boolean): () => SizeOptions {
   })
 }
 
-const NODE_HEIGHT = 32
+const NODE_PADDING = 4
 const SUBMENU_PADDING = 10
 
 /** Offset the dropdown below the port or by SUBMENU_PADDING pixels. */
 function offsetSubmenu(isTopLevel: boolean): OffsetOptions {
-  return (state) => {
-    const offsetTopLevel = (NODE_HEIGHT - state.rects.reference.height) / 2
-    const offset = isTopLevel ? offsetTopLevel : SUBMENU_PADDING
-    return {
-      mainAxis: offset,
-    }
+  return {
+    mainAxis: isTopLevel ? NODE_PADDING : SUBMENU_PADDING,
   }
 }
 
@@ -71,7 +67,7 @@ export function activityDropdownStyles(
   rootElement: Ref<Opt<HTMLElement>>,
 ) {
   return useFloating(floatReference, dropdownElement, {
-    placement: 'bottom',
+    placement: 'bottom-start',
     middleware: middleware(true, false, rootElement),
     whileElementsMounted: autoUpdate,
   })
