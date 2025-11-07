@@ -37,6 +37,7 @@ interface Error {
 
 <script setup lang="ts">
 import { DEFAULT_THEME, type RGBA, type Theme } from '@/components/visualizations/builtins'
+import { stopCopy } from '@/util/shortcuts'
 import { computed } from 'vue'
 const sqlFormatter = await import('sql-formatter')
 
@@ -137,12 +138,6 @@ function renderRegularInterpolation(value: unknown, fgColor: RGBA, bgColor: RGBA
   html += value
   html += '</div>'
   return html
-}
-
-function stopCopy(event: KeyboardEvent) {
-  if (event.ctrlKey && event.code === 'KeyC') {
-    event.stopPropagation()
-  }
 }
 </script>
 

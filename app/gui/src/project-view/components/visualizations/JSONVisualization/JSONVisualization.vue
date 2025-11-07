@@ -9,6 +9,7 @@ import type { NodeCreationOptions } from '@/components/GraphEditor/nodeCreation'
 import JsonValueWidget from '@/components/visualizations/JSONVisualization/JsonValueWidget.vue'
 import { Ast } from '@/util/ast'
 import { Pattern } from '@/util/ast/match'
+import { stopCopy } from '@/util/shortcuts'
 import { useVisualizationConfig } from '@/util/visualizationBuiltins'
 import { computed } from 'vue'
 
@@ -62,12 +63,6 @@ function createProjection(path: (string | number)[][]) {
       (pattern) => ({ content: Pattern.new(pattern), commit: true }) satisfies NodeCreationOptions,
     ),
   )
-}
-
-function stopCopy(event: KeyboardEvent) {
-  if (event.ctrlKey && event.code === 'KeyC') {
-    event.stopPropagation()
-  }
 }
 </script>
 
