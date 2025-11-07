@@ -871,7 +871,8 @@ class Compiler(
     ir.copyWithImportsAndExports(
       ir.imports ::: moduleNames.map(m => Import.Module.createSynthetic(m)),
       ir.exports ::: moduleNames.map(m =>
-        Export.Module.builder()
+        Export.Module
+          .builder()
           .name(m)
           .isSynthetic(true)
           .build()

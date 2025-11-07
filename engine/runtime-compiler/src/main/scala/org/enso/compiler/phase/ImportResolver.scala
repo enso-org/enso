@@ -191,7 +191,7 @@ final class ImportResolver(compiler: Compiler) extends ImportResolverForIR {
     val curModName          = module.getName.toString
     module.getIr.exports.flatMap {
       case mod: Export.Module if !mod.isSynthetic =>
-        val expName = mod.name()
+        val expName       = mod.name()
         val exportsItself = curModName.equals(expName.name)
         // Skip the exports that already have associated resolved import.
         if (!exportsItself && !resolvedImportNames.contains(expName.name)) {

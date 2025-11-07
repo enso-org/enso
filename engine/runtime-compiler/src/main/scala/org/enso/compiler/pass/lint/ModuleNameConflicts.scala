@@ -36,9 +36,10 @@ case object ModuleNameConflicts extends IRPass {
   ): Module = {
     if (moduleContext.compilerConfig.warningsEnabled) {
       val syntheticExports = ir.exports.flatMap {
-        case mod: Export.Module if mod.onlyNames().isEmpty
-          && mod.isSynthetic
-          && mod.location().isEmpty =>
+        case mod: Export.Module
+            if mod.onlyNames().isEmpty
+            && mod.isSynthetic
+            && mod.location().isEmpty =>
           Some(mod)
         case mod: Export.Module if moduleContext.isSynthetic() =>
           Some(mod)

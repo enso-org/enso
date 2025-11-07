@@ -25,7 +25,10 @@ public interface Export extends Scope {
   Export setLocation(Option<IdentifiedLocation> location);
 
   @Override
-  Export duplicate(boolean keepLocations, boolean keepMetadata, boolean keepDiagnostics,
+  Export duplicate(
+      boolean keepLocations,
+      boolean keepMetadata,
+      boolean keepDiagnostics,
       boolean keepIdentifiers);
 
   @GenerateIR(interfaces = {Export.class, IRKind.Primitive.class})
@@ -46,22 +49,12 @@ public interface Export extends Scope {
         @IRChild Option<List<Name.Literal>> onlyNames,
         @IRField boolean isSynthetic,
         IdentifiedLocation identifiedLocation,
-        MetadataStorage passData
-    ) {
-      super(
-          name,
-          rename,
-          onlyNames,
-          isSynthetic,
-          identifiedLocation,
-          passData);
+        MetadataStorage passData) {
+      super(name, rename, onlyNames, isSynthetic, identifiedLocation, passData);
     }
 
     public static Builder builder() {
-      return new Builder()
-          .rename(Option.empty())
-          .onlyNames(Option.empty())
-          .isSynthetic(false);
+      return new Builder().rename(Option.empty()).onlyNames(Option.empty()).isSynthetic(false);
     }
 
     public Builder copyBuilder() {
@@ -77,8 +70,9 @@ public interface Export extends Scope {
       return this;
     }
 
-    /** Gets the name of the module visible in the importing scope,
-     * either the original name or the rename.
+    /**
+     * Gets the name of the module visible in the importing scope, either the original name or the
+     * rename.
      *
      * @return the name of this export visible in code
      */
@@ -90,20 +84,18 @@ public interface Export extends Scope {
       }
     }
 
-    /** Checks whether the export statement allows use of the given
-     * exported name.
-     * <p>
-     * Note that it does not verify if the name is actually exported
-     * by the module, only checks if it is syntactically allowed.
+    /**
+     * Checks whether the export statement allows use of the given exported name.
+     *
+     * <p>Note that it does not verify if the name is actually exported by the module, only checks
+     * if it is syntactically allowed.
      *
      * @param name the name to check
      * @return whether the name could be accessed or not
      */
     public boolean allowsAccess(String name) {
       if (onlyNames().isDefined()) {
-        return onlyNames()
-            .get()
-            .exists(n -> n.name().equalsIgnoreCase(name));
+        return onlyNames().get().exists(n -> n.name().equalsIgnoreCase(name));
       } else {
         return true;
       }
@@ -111,8 +103,7 @@ public interface Export extends Scope {
 
     @Override
     public String showCode(int indent) {
-      var renameCode =
-          rename().isDefined() ? " as " + rename().get().name() : "";
+      var renameCode = rename().isDefined() ? " as " + rename().get().name() : "";
       if (onlyNames().isDefined()) {
         return "from "
             + name().name()
@@ -120,9 +111,7 @@ public interface Export extends Scope {
             + onlyNames().get().map(Literal::name).mkString(", ")
             + renameCode;
       } else {
-        return "export "
-            + name().name()
-            + renameCode;
+        return "export " + name().name() + renameCode;
       }
     }
   }
