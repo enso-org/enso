@@ -4613,7 +4613,7 @@ lazy val `os-environment` =
         val ourDeps = (Test / fullClasspath).value.map(_.data.getAbsolutePath)
         ourDeps
       },
-      Test / buildNativeImage := Def.taskDyn {
+      rebuildNativeImage := Def.taskDyn {
         val targetDir = (Test / target).value
         NativeImage.buildNativeImage(
           "test-os-env",
@@ -4641,6 +4641,14 @@ lazy val `os-environment` =
                 } else {
                   Seq()
                 })
+        )
+      }.value,
+      Test / buildNativeImage := Def.taskDyn {
+        val targetDir = (Test / target).value
+        NativeImage.incrementalNativeImageBuild(
+          rebuildNativeImage,
+          "test-os-env",
+          targetDir = targetDir
         )
       }.value,
       Test / test := Def
