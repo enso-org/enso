@@ -73,7 +73,7 @@ type Redshift_Details
         sql_error_handler = JDBC_Connection.create_sql_error_handler SQLException SQLTimeoutException
         java_props = JDBC_Connection.properties_as_java_props properties Java_Pair HideableValue
         java_connection = sql_error_handler <|
-            JDBCProxy.getConnectionWithCatalogSchema url java_props Nothing schema
+            JDBCProxy.getConnectionWithCatalogSchema self.jdbc_url java_props Nothing Nothing
         jdbc_connection = JDBC_Connection.from_java java_connection OperationSynchronizer.new sql_error_handler
 
         # TODO [RW] can we inherit these from postgres?

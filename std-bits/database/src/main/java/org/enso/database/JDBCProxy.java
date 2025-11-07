@@ -42,21 +42,6 @@ public final class JDBCProxy {
    *
    * @param url database url to connect to, starting with `jdbc:`
    * @param properties configuration for the connection
-   * @return a connection
-   */
-  public static Connection getConnection(String url, List<Pair<String, HideableValue>> properties)
-      throws SQLException {
-    return getConnectionWithCatalogSchema(url, properties, null, null);
-  }
-
-  /**
-   * Tries to create a new connection using the JDBC DriverManager.
-   *
-   * <p>It delegates directly to {@code DriverManager.getConnection}. That is needed because if that
-   * method is called directly from Enso, the JDBC drivers are not detected correctly.
-   *
-   * @param url database url to connect to, starting with `jdbc:`
-   * @param properties configuration for the connection
    * @param catalog the catalog to set on the connection, or null to not set it
    * @param schema the schema to set on the connection, or null to not set it
    * @return a connection

@@ -58,7 +58,7 @@ public final class SnowflakeCloudCredentials {
     secureProperties.add(Pair.create("authenticator", HideableValue.plain("oauth")));
     secureProperties.add(Pair.create("user", HideableValue.plain(accessToken.username())));
     secureProperties.add(Pair.create("token", HideableValue.plain(accessToken.token())));
-    return JDBCProxy.getConnection(url, secureProperties);
+    return JDBCProxy.getConnectionWithCatalogSchema(url, secureProperties, null, null);
   }
 
   private static String extractTokenFromResponse(HttpResponse<String> response) {

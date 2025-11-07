@@ -8,7 +8,7 @@ from project.Errors import Unsupported_Database_Encoding
 ## ---
    private: true
    ---
-get_encoding_name : -> Text
+get_encoding_name : JDBC_Connection -> Text
 get_encoding_name jdbc_connection =
     server_encoding = get_pragma_value jdbc_connection "SHOW server_encoding"
     if server_encoding != "SQL_ASCII" then server_encoding else

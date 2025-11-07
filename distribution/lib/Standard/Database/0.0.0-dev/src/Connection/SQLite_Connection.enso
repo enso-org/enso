@@ -45,7 +45,7 @@ type SQLite_Connection
         sql_error_handler = JDBC_Connection.create_sql_error_handler SQLException SQLTimeoutException
         java_props = JDBC_Connection.properties_as_java_props properties Java_Pair HideableValue
         java_connection = sql_error_handler <|
-            JDBCProxy.getConnectionWithCatalogSchema url java_props Nothing schema
+            JDBCProxy.getConnectionWithCatalogSchema url java_props Nothing Nothing
         jdbc_connection = JDBC_Connection.from_java java_connection OperationSynchronizer.new sql_error_handler
         SQLite_Connection.Value (Connection.new jdbc_connection Dialect.sqlite SQLite_Type_Mapping SQLite_Entity_Naming_Properties.new)
 

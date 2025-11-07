@@ -299,6 +299,7 @@ create_sql_error_handler sql_exception sql_timeout_exception =
         Panic.catch sql_exception action caught_panic->
             if caught_panic.payload.is_a sql_timeout_exception then Error.throw (SQL_Timeout.Error caught_panic.payload Nothing) else
                 Error.throw (SQL_Error.Error caught_panic.payload related_query)
+    handler
 
 ## ---
    private: true
@@ -328,23 +329,6 @@ from_java java_jdbc_connection synchronizer sql_error_handler =
 close_connection : Connection -> Nothing
 close_connection connection =
     connection.close
-
-## ---
-   private: true
-   ---
-   Executes `action` and returns its result, catching any panics and if they are
-   coming from JDBC, wraps them with our own error types and returns as regular
-   data-flow errors.
-
-   ## Arguments
-    - `action`: The computation to execute. This computation may throw SQL
-      errors.
-handle_sql_errors : Any -> (Text | Nothing) -> Any ! (SQL_Error | SQL_Timeout)
-handle_sql_errors ~action related_query=Nothing sql_exception=SQLException =
-    Panic.catch sql_exception action caught_panic->
-        case caught_panic.payload of
-            exc : SQLTimeoutException -> Error.throw (SQL_Timeout.Error exc related_query)
-            exc -> Error.throw (SQL_Error.Error exc related_query)
 
 ## ---
    private: true
