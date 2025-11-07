@@ -720,8 +720,8 @@ export default class LocalBackend extends Backend {
   }
 
   /**
-   * Upload set of Images, resoliving any possible conflicts. The sum of file sizes may not
-   * exceed could message limit.
+   * Upload set of Images, resolving any possible conflicts. The sum of file sizes may not
+   * exceed cloud message limit.
    */
   override uploadImage(
     _parentDirectoryId: backend.DirectoryId,

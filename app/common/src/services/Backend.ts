@@ -1868,7 +1868,7 @@ export default abstract class Backend {
   ): Promise<UploadedAsset>
   /**
    * Upload set of Images, resolving any possible conflicts. The sum of file sizes may not
-   * exceed could message limit.
+   * exceed cloud message limit.
    */
   abstract uploadImage(
     parentDirectoryId: DirectoryId,

@@ -936,8 +936,8 @@ export default class RemoteBackend extends Backend {
   }
 
   /**
-   * Upload set of Images, resoliving any possible conflicts. The sum of file sizes may not
-   * exceed could message limit.
+   * Upload set of Images, resolving any possible conflicts. The sum of file sizes may not
+   * exceed cloud message limit.
    */
   override async uploadImage(
     parentDirectoryId: backend.DirectoryId,
