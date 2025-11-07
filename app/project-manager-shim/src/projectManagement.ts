@@ -18,7 +18,7 @@ import type * as stream from 'node:stream'
 
 import * as tar from 'tar'
 
-import { PRODUCT_NAME } from 'enso-common'
+import { PRODUCT_NAME } from 'enso-common/src/constants'
 import { Path, UUID } from 'enso-common/src/services/Backend'
 import { Rfc3339DateTime, toRfc3339 } from 'enso-common/src/utilities/data/dateTime'
 

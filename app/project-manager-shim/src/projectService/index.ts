@@ -3,7 +3,7 @@
  * This module provides project management functionality including creating, deleting,
  * renaming, opening, closing, and duplicating projects.
  */
-import { PRODUCT_NAME } from 'enso-common'
+import { PRODUCT_NAME } from 'enso-common/src/constants'
 import { toRfc3339 } from 'enso-common/src/utilities/data/dateTime'
 import * as crypto from 'node:crypto'
 import {

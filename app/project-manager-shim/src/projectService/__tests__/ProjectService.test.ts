@@ -1,4 +1,4 @@
-import { PRODUCT_NAME } from 'enso-common'
+import { PRODUCT_NAME } from 'enso-common/src/constants'
 import { UUID } from 'enso-common/src/services/Backend'
 import { newtypeConstructor, type Newtype } from 'enso-common/src/utilities/data/newtype'
 import * as crypto from 'node:crypto'

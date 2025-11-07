@@ -12,7 +12,7 @@ import * as pathModule from 'node:path'
 import * as electron from 'electron'
 import electronIsDev from 'electron-is-dev'
 
-import * as common from 'enso-common'
+import * as common from 'enso-common/src/constants'
 
 import * as project from 'project-manager-shim'
 

@@ -10,7 +10,7 @@
 import './cjs-shim' // must be imported first
 
 import type { BrowserWindowConstructorOptions, WebPreferences } from 'electron'
-import { DEEP_LINK_SCHEME, PRODUCT_NAME } from 'enso-common'
+import { DEEP_LINK_SCHEME, PRODUCT_NAME } from 'enso-common/src/constants'
 import {
   buildWebAppURLSearchParamsFromArgs,
   defaultOptions,

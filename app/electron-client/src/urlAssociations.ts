@@ -1,6 +1,6 @@
 /** @file URL associations for the IDE. */
 import electronIsDev from 'electron-is-dev'
-import * as common from 'enso-common'
+import * as common from 'enso-common/src/constants'
 
 type Electron = typeof import('electron')
 

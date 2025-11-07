@@ -1,4 +1,4 @@
-import { PRODUCT_NAME } from 'enso-common'
+import { PRODUCT_NAME } from 'enso-common/src/constants'
 import {
   AssetType,
   extractTypeAndPath,

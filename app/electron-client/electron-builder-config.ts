@@ -15,7 +15,7 @@ import * as electronNotarize from '@electron/notarize'
 import * as electronBuilder from 'electron-builder'
 import yargs from 'yargs'
 
-import * as common from 'enso-common'
+import * as common from 'enso-common/src/constants'
 
 import * as paths from './paths'
 import computeHashes from './tasks/computeHashes'

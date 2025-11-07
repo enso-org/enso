@@ -12,7 +12,7 @@ import * as mime from 'mime-types'
 import * as portfinder from 'portfinder'
 import type * as vite from 'vite'
 
-import { COOP_COEP_CORP_HEADERS } from 'enso-common'
+import { COOP_COEP_CORP_HEADERS } from 'enso-common/src/constants'
 import * as projectManagement from 'project-manager-shim'
 import {
   handleFilesystemCommand,

@@ -5,7 +5,7 @@ import * as path from 'node:path'
 import * as electron from 'electron'
 import electronIsDev from 'electron-is-dev'
 
-import { PRODUCT_NAME } from 'enso-common'
+import { PRODUCT_NAME } from 'enso-common/src/constants'
 import { homedir } from 'node:os'
 import * as paths from '../paths'
 
