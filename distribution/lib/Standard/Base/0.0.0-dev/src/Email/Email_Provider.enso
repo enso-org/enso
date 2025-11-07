@@ -11,10 +11,12 @@ import project.Nothing.Nothing
 polyglot java import java.util.Base64
 
 type Email_Provider
+    TestOnly
     SendGrid api_key:Text
 
     send self email:Email_Object = case self of
         Email_Provider.SendGrid api_key -> sendgrid_email email api_key
+        Email_Provider.TestOnly -> Send_Response.Test email
 
 sendgrid_email email:Email_Object api_key:Text =
     to_object = JS_Object.from_pairs ([create_to_email_object email.to "to", create_to_email_object email.cc "cc", create_to_email_object email.bcc "bcc"].filter ..Not_Nothing) 

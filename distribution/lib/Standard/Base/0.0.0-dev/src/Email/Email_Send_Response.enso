@@ -1,7 +1,19 @@
 import project.Email.Email_Object.Email_Object
+import project.Data.Text.Text
 
 type Send_Response
     Test email:Email_Object
 	Dry_Run email:Email_Object
 	Sent email:Email_Object
 	Failed email:Email_Object
+
+	## ---
+       private: true
+       ---
+    to_display_text self -> Text = 
+		response_text = case self of
+			Send_Response.Test email -> "<b>Status:</b> TestOnly"
+			Send_Response.Dry_Run email -> "<b>Status:</b> Dry Run"
+			Send_Response.Sent email -> "<b>Status:</b> Sent"
+			Send_Response.Failed email -> "<b>Status:</b> Failed"
+		response_text + '\n<b>From:</b> ' + self.email.from_address + '\n<b>To:</b> ' + '\n<b>Subject:</b> ' + self.email.subject + '\n<b>Body:</b> ' + self.email.body.body

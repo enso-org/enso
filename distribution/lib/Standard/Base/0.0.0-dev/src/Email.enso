@@ -11,6 +11,13 @@ import project.Email.Email_Send_Response.Send_Response
 from project.Metadata.Widget import Text_Input, Vector_Editor
 import project.Data.Pair.Pair
 
+
+## ---
+   aliases: [mail]
+   group: Web
+   icon: email
+   ---
+   Sends an email.
 @to (Vector_Editor item_editor=Text_Input item_default="''")
 @cc (Vector_Editor item_editor=Text_Input item_default="''")
 @bcc (Vector_Editor item_editor=Text_Input item_default="''")
