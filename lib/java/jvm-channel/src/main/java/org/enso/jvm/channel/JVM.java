@@ -103,7 +103,6 @@ public final class JVM {
    */
   final JNI.JNIEnv env() {
     var thread = Thread.currentThread();
-    System.err.println("env() for " + thread.getName());
     if (javaVM.isNull()) {
       var env = initializeEnv();
       if (env.isNonNull()) {
@@ -112,19 +111,15 @@ public final class JVM {
       }
     }
     var rawEnv = threadEnvs.get();
-    System.err.println("  thread: " + thread + " raw: " + rawEnv);
     JNI.JNIEnv env;
     if (rawEnv == null) {
       var envOut = StackValue.get(JNI.JNIEnvPointer.class);
-      System.err.println("Before attach in " + thread.getName());
       var attachThreadFn = javaVM.getFunctions().getAttachCurrentThread();
       var res = attachThreadFn.call(javaVM, envOut, WordFactory.nullPointer());
-      System.err.println("after attach: " + res);
       if (res != JNI.JNI_OK()) {
         throw new AssertionError("Error attaching thread: " + res);
       }
       env = envOut.readJNIEnv();
-      System.err.println("  attached " + thread + " env: " + env.rawValue());
       threadEnvs.set(env.rawValue());
     } else {
       env = WordFactory.pointer(rawEnv);

@@ -122,10 +122,7 @@ public class LoadClassTest {
     var v =
         pool.submit(
             () -> {
-              System.err.println("execute in " + Thread.currentThread().getName());
               var fac = channel.execute(Long.class, new TestMain.CountDownAndReturn(5, 1));
-              System.err.println(
-                  " done execute in " + Thread.currentThread().getName() + " fac: " + fac);
               return fac;
             });
     assertEquals(120, v.get().longValue());
@@ -170,7 +167,6 @@ public class LoadClassTest {
     var libFile = new File(libPath);
     assert libFile.isFile() : "Library file must exists at " + libPath;
     var nativeJvm = JVM.create(libFile);
-    System.err.println("Native " + nativeJvm);
     var tmp = File.createTempFile("nativelib", ".msg");
     var hello = "Hello from native lib!";
     nativeJvm.executeMain("org/enso/os/environment/lib/HelloTitle", tmp.getAbsolutePath(), hello);
@@ -185,9 +181,7 @@ public class LoadClassTest {
     var libFile = new File(libPath);
     assert libFile.isFile() : "Library file must exists at " + libPath;
     var nativeJvm = JVM.create(libFile);
-    System.err.println("got jvm: " + nativeJvm);
     var ch = Channel.create(nativeJvm, HelloTitle.class);
-    System.err.println("got channel: " + ch);
     var fac = ch.execute(HelloTitle.Text.class, new HelloTitle.Hello("Native"));
     assertEquals("Hello Mr. Native!", fac.msg());
   }
