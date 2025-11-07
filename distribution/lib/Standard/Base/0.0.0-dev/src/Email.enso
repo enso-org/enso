@@ -32,9 +32,9 @@ send from:Email_Address (to:Vector Email_Address)=[] (cc:Vector Email_Address)=[
     private: true
     ---
 default_widget (display : Display = ..When_Modified) -> Widget =
-    name = [Option "Address" "..Address ''"]
-    nameaddress = [Option "Name And Address" "..NameAddress '' ''"]
+    name = [Option "Address" "Email_Address.Address ''"]
+    nameaddress = [Option "Name And Address" "Email_Address.NameAddress '' ''"]
     values = name + nameaddress
 
     item_editor = Single_Choice values=values display=..Always
-    Vector_Editor item_editor item_default='..Address ""' display=display
+    Vector_Editor item_editor item_default='Email_Address.Address ""' display=display
