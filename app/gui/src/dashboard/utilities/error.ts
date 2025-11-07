@@ -140,7 +140,6 @@ export function unreachable(value: never): never {
 export function assert<T>(makeValue: () => T | '' | 0 | 0n | false | null | undefined): T {
   const result = makeValue()
   // This function explicitly checks for truthiness.
-  // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
   if (!result) {
     throw new Error(
       'Assertion failed: `' +
