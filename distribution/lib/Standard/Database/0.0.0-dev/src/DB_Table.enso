@@ -50,9 +50,6 @@ import project.SQL.SQL_Statement
 import project.SQL.SQL_Type
 from project.SQL_Query import make_table_for_name
 
-polyglot java import java.sql.JDBCType
-polyglot java import java.util.UUID
-
 ## Represents a column-oriented table data structure backed by a database.
 type DB_Table
     ## Internal constructor that should not be used directly.
