@@ -8,7 +8,7 @@ import {
   type ProjectNameStore,
 } from '$/providers/openedProjects/projectNames'
 import { SuggestionDb, type GroupInfo } from '$/providers/openedProjects/suggestionDatabase'
-import { type CallableSuggestionEntry } from '$/providers/openedProjects/suggestionDatabase/entry'
+import type { CallableSuggestionEntry } from '$/providers/openedProjects/suggestionDatabase/entry'
 import { computeNodeColor } from '@/composables/nodeColors'
 import { Ast } from '@/util/ast'
 import type { AstId, NodeMetadata } from '@/util/ast/abstract'

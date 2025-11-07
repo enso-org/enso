@@ -24,4 +24,6 @@ catalog:
   "@codemirror/state": ^6.5.2
   "@codemirror/view": ^6.38.2
   "@fast-check/vitest": ^0.2.1
+  "@lezer/common": ^1.2.3
+  "@lezer/highlight": ^1.2.1
   zod: ^3.25.49

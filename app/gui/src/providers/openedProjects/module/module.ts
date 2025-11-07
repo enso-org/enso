@@ -31,6 +31,13 @@ import {
  */
 export type ModuleStore = ReturnType<typeof createModuleStore>
 
+export interface EditOptions {
+  skipTreeRepair?: boolean
+  origin?: Origin
+  logLevel?: 'none' | 'info' | 'warn' | 'error'
+  logPreamble?: string
+}
+
 /** Constructor of {@link ModuleStore} */
 export function createModuleStore(
   proj: ProjectStore,
@@ -82,6 +89,15 @@ export function createModuleStore(
     }
   }
 
+  function edit<R extends Result<any>>(f: (edit: MutableModule) => R, options?: EditOptions): R
+  function edit<R extends Result<any>>(
+    f: (edit: MutableModule) => Promise<R>,
+    options?: EditOptions,
+  ): Promise<R>
+  function edit<R extends Result<any>>(
+    f: (edit: MutableModule) => R | Promise<R>,
+    options?: EditOptions,
+  ): R | Promise<R>
   /**
    * Edit the AST module.
    *
@@ -89,29 +105,24 @@ export function createModuleStore(
    * @param options.skipTreeRepair - If the edit is certain not to produce incorrect or non-canonical syntax, this may be set
    * to `true` for better performance.
    */
-  function edit<T, R extends Result<T> | Promise<Result<T>>>(
-    f: (edit: MutableModule) => R,
-    options: {
-      skipTreeRepair?: boolean
-      origin?: Origin
-      logLevel?: 'none' | 'info' | 'warn' | 'error'
-      logPreamble?: string
-    } = {},
-  ): R {
+  function edit(
+    f: (edit: MutableModule) => Promise<Result> | Result,
+    options: EditOptions = {},
+  ): Promise<Result> | Result {
     assertDefined(synced.value)
     const edit = synced.value.edit()
     const logLevel = options.logLevel ?? 'error'
 
-    const treeRepair = (result: Result<T>) => {
-      if (result.ok && options.skipTreeRepair !== true) {
+    const treeRepair = (result: Result) => {
+      if (result.ok) {
         const root = edit.root()
         assert(root instanceof Ast.BodyBlock)
-        Ast.repair(root, edit)
+        edit.transact(() => Ast.repair(root, edit))
       }
       return result
     }
 
-    const applyEdit = (result: Result<T>) => {
+    const applyEdit = (result: Result) => {
       if (result.ok) synced.value?.applyEdit(edit, options.origin)
       else if (logLevel !== 'none')
         console[logLevel](result.error.message(options.logPreamble ?? 'Cannot commit AST edit.'))
@@ -120,19 +131,20 @@ export function createModuleStore(
 
     const result = edit.transact(() => {
       const result = f(edit)
-      if (result instanceof Promise) {
-        return result.then(treeRepair)
-      } else {
-        return treeRepair(result)
-      }
+      if (options.skipTreeRepair === true) return result
+      return result instanceof Promise ? result.then(treeRepair) : treeRepair(result)
     })
-    if (result instanceof Promise) return result.then(applyEdit) as R
-    else return applyEdit(result) as R
+    return result instanceof Promise ? result.then(applyEdit) : applyEdit(result)
   }
 
   function batchEdits(f: () => void, origin: Origin = defaultLocalOrigin) {
     assert(synced.value != null)
     synced.value.transact(f, origin)
+  }
+
+  function hasMethod(name: string): boolean {
+    const root = ast.value?.root()
+    return root != null && Ast.findModuleMethod(root, name) != null
   }
 
   function getMethodAst(ptr: MethodPointer, edit?: Ast.Module): Result<Ast.FunctionDef> {
@@ -226,6 +238,7 @@ export function createModuleStore(
     edit,
     batchEdits,
     onBeforeEdit,
+    hasMethod,
     getMethodAst,
     mutableNodeMetadata,
     setWidgetMetadata,

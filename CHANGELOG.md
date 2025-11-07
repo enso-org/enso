@@ -15,6 +15,8 @@
 - [Function docs in autocomplete in table expressions][14059]
 - [Many CLI arguments removed][14069]
 - [Images may be added to assets descriptions][14247]
+- [Added immediate rename of user created components][14209]
+- [Multiple opened projects' tabs are now allowed][14215]
 
 [13685]: https://github.com/enso-org/enso/pull/13685
 [13658]: https://github.com/enso-org/enso/pull/13658
@@ -28,6 +30,8 @@
 [14059]: https://github.com/enso-org/enso/pull/14059
 [14069]: https://github.com/enso-org/enso/pull/14069
 [14247]: https://github.com/enso-org/enso/pull/14247
+[14209]: https://github.com/enso-org/enso/pull/14209
+[14215]: https://github.com/enso-org/enso/pull/14215
 
 #### Enso Standard Library
 
@@ -45,6 +49,7 @@
 - [Snowflake stage support for reading and writing files.][14210]
 - [Snowflake file format and copy into support.][14221]
 - [Snowflake bulk load API.][14230]
+- [Add error_on_missing_columns to more methods.][14236]
 
 [13769]: https://github.com/enso-org/enso/pull/13769
 [14026]: https://github.com/enso-org/enso/pull/14026
@@ -59,6 +64,7 @@
 [14210]: https://github.com/enso-org/enso/pull/14210
 [14221]: https://github.com/enso-org/enso/pull/14221
 [14230]: https://github.com/enso-org/enso/pull/14230
+[14236]: https://github.com/enso-org/enso/pull/14236
 
 #### Enso Language & Runtime
 
@@ -74,7 +80,8 @@
 - [Autocompletion for table expression builtin functions in table
   expressions][13914]
 - [Autocompletion for table expression operators and operands][13917]
-- [Update to GraalVM 25][14019]
+- [Update to GraalVM 25.0.1][14233]
+- [Apply block argument to non-application expression][14249]
 
 [14133]: https://github.com/enso-org/enso/pull/14133
 [14017]: https://github.com/enso-org/enso/pull/14017
@@ -87,7 +94,8 @@
 [13178]: https://github.com/enso-org/enso/pull/13178
 [13914]: https://github.com/enso-org/enso/pull/13914
 [13917]: https://github.com/enso-org/enso/pull/13917
-[14019]: https://github.com/enso-org/enso/pull/14019
+[14233]: https://github.com/enso-org/enso/pull/14233
+[14249]: https://github.com/enso-org/enso/pull/14249
 
 # Enso 2025.2
 

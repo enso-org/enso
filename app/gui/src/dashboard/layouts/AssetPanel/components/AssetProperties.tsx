@@ -28,10 +28,11 @@ import {
 } from '#/services/Backend'
 import * as permissions from '#/utilities/permissions'
 import { tv } from '#/utilities/tailwindVariants'
-import { useBackends, useFullUserSession, useRightPanelData, useText } from '$/providers/react'
+import { useBackends, useFullUserSession, useText } from '$/providers/react'
 import { useVueValue } from '$/providers/react/common'
 import {
   useRightPanelContextCategory,
+  useRightPanelData,
   useRightPanelFocusedAsset,
 } from '$/providers/react/container'
 import { useFeatureFlags } from '$/providers/react/featureFlags'

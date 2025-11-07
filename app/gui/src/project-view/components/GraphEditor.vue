@@ -75,6 +75,7 @@ import {
   watch,
   watchEffect,
 } from 'vue'
+import { provideRenameSchedule } from './GraphEditor/widgets/WidgetFunctionName.vue'
 
 const keyboard = injectKeyboard()
 const rightPanel = useRightPanelData()
@@ -536,6 +537,7 @@ function handleEdgeDrop(source: Ast.AstId, position: Vec2) {
 }
 
 // === Node Collapsing ===
+const renameSchedule = provideRenameSchedule()
 
 function collapseNodes(nodes: Node[]) {
   const selected = new Set(
@@ -563,7 +565,7 @@ function collapseNodes(nodes: Node[]) {
     }
     const selectedNodeRects = iter.filterDefined(iter.map(selected, graphStore.visibleArea))
     module.value.edit((edit) => {
-      const { collapsedCallRoot, collapsedNodeIds, outputAstId } = performCollapse(
+      const { collapsedCallRoot, collapsedNodeIds, outputAstId, collapsedName } = performCollapse(
         info.value,
         edit.getVersion(topLevel),
         graphStore.db,
@@ -578,6 +580,11 @@ function collapseNodes(nodes: Node[]) {
       const { place } = usePlacement(collapsedNodeRects, graphNavigator.viewport)
       const outputPosition = place(collapsedNodeRects)
       edit.get(outputAstId).mutableNodeMetadata().set('position', outputPosition.xy())
+
+      if (graphStore.currentMethod.pointer.ok) {
+        const currentPointer = graphStore.currentMethod.pointer.value
+        renameSchedule?.scheduleFunctionRename({ ...currentPointer, name: collapsedName })
+      }
 
       return Ok()
     })

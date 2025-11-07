@@ -84,6 +84,9 @@ impl RunContext {
                     .project_manager_package
                     .clone()
             }),
+            engine_bundle: self.config.build_engine_bundle.then(|| {
+                self.repo_root.built_distribution.engine_bundle_triple.engine_bundle.clone()
+            }),
             launcher_bundle: self.config.build_launcher_bundle.then(|| {
                 self.repo_root.built_distribution.enso_bundle_triple.launcher_bundle.clone()
             }),

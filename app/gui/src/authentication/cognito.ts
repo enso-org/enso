@@ -313,7 +313,12 @@ export class Cognito implements ISessionProvider {
    */
   async signUp(username: string, password: string, organizationId: string | null) {
     const result = await results.Result.wrapAsync(async () => {
-      const params = intoSignUpParams(this.supportsDeepLinks, username, password, organizationId)
+      const params = intoSignUpParams(
+        this.supportsDeepLinks,
+        username.toLowerCase(),
+        password,
+        organizationId,
+      )
       await amplify.Auth.signUp(params)
     })
     return result.mapErr(intoAmplifyErrorOrThrow).mapErr(intoSignUpErrorOrThrow)
@@ -329,7 +334,7 @@ export class Cognito implements ISessionProvider {
    */
   async confirmSignUp(email: string, code: string) {
     const result = await results.Result.wrapAsync(async () => {
-      await amplify.Auth.confirmSignUp(email, code)
+      await amplify.Auth.confirmSignUp(email.toLowerCase(), code)
     })
     return result.mapErr(intoAmplifyErrorOrThrow).mapErr(intoConfirmSignUpErrorOrThrow)
   }
@@ -400,7 +405,7 @@ export class Cognito implements ISessionProvider {
   async signInWithPassword(username: string, password: string) {
     const result = await results.Result.wrapAsync(async () => {
       // This `any` comes from a third-party API and cannot be avoided.
-      const maybeUser = await amplify.Auth.signIn(username, password)
+      const maybeUser = await amplify.Auth.signIn(username.toLowerCase(), password)
 
       if (maybeUser instanceof cognito.CognitoUser) {
         return maybeUser
@@ -473,7 +478,7 @@ export class Cognito implements ISessionProvider {
    */
   async forgotPassword(email: string) {
     const result = await results.Result.wrapAsync(async () => {
-      await amplify.Auth.forgotPassword(email)
+      await amplify.Auth.forgotPassword(email.toLowerCase())
     })
     return result.mapErr(intoAmplifyErrorOrThrow).mapErr(intoForgotPasswordErrorOrThrow)
   }
@@ -487,7 +492,7 @@ export class Cognito implements ISessionProvider {
    */
   async forgotPasswordSubmit(email: string, code: string, password: string) {
     const result = await results.Result.wrapAsync(async () => {
-      await amplify.Auth.forgotPasswordSubmit(email, code, password)
+      await amplify.Auth.forgotPasswordSubmit(email.toLowerCase(), code, password)
     })
     return result.mapErr(intoForgotPasswordSubmitErrorOrThrow)
   }

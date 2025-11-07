@@ -10,16 +10,20 @@ import WidgetTreeRoot from '@/components/GraphEditor/WidgetTreeRoot.vue'
 import DraggableList from '@/components/widgets/DraggableList.vue'
 import { providePopoverRoot } from '@/providers/popoverRoot'
 import { syntheticPortId } from '@/providers/portInfo'
-import { assertUnreachable } from '@/util/assert'
 import { Ast } from '@/util/ast'
 import { useYText } from '@/util/crdt'
 import { Ok } from '@/util/data/result'
 import type { MethodPointer } from '@/util/methodPointer'
+import { normalizeArgumentName } from '@/util/nameValidation'
 import { computed, useTemplateRef } from 'vue'
-import { newArgumentDefinition } from 'ydoc-shared/ast'
+import { newArgumentDefinition, type Identifier } from 'ydoc-shared/ast'
 import FormContainer from './FormContainer.vue'
 import FormRow from './FormRow.vue'
-import { renameArgumentInDefaultValue } from './GraphEditor/widgets/WidgetFunctionDef/argumentAst'
+import {
+  generateUniqueName,
+  renameArgumentInDefaultValue,
+  replaceVariableUsages,
+} from './GraphEditor/widgets/WidgetFunctionDef/argumentAst'
 import ArgumentRow from './GraphEditor/widgets/WidgetFunctionDef/ArgumentRow.vue'
 import { FunctionName } from './GraphEditor/widgets/WidgetFunctionName.vue'
 import { DisplayIcon } from './GraphEditor/widgets/WidgetIcon.vue'
@@ -70,9 +74,9 @@ const functionArgs = computed(() => functionAst.argumentDefinitions)
 
 function handleAddItem() {
   doEdit((ast) => {
-    ast.pushArgumentDefinition(
-      newArgumentDefinition(generateUniqueArgName(currentArgNames(ast), (i) => `arg${i}`)),
-    )
+    const argIndex = ast.argumentDefinitions.length + 1
+    const name = generateUniqueName((i) => `arg${i}` as Identifier, ast, [], argIndex)
+    ast.pushArgumentDefinition(newArgumentDefinition(name))
   })
 }
 
@@ -81,22 +85,6 @@ function doEdit(editFn: (ast: Ast.MutableFunctionDef, edit: Ast.MutableModule) =
     editFn(edit.getVersion(functionAst), edit)
     return Ok()
   })
-}
-
-const currentArgNames = (ast: Ast.FunctionDef) =>
-  new Set(ast.argumentDefinitions.map((a) => a.pattern.node.code()))
-
-function generateUniqueArgName(
-  existingNames: Set<string>,
-  indexToName: (index: number) => string,
-): string {
-  for (let i = 1; i < 10000; i++) {
-    const proposedName = indexToName(i)
-    if (!existingNames.has(proposedName)) return proposedName
-  }
-  // Technically reachable, but not in any reasonable operation.
-  // The loop exist condition is there only to prevent an infinite loop in case of a bug.
-  assertUnreachable()
 }
 
 function handleRemove(index: number) {
@@ -117,11 +105,13 @@ function handleRename(index: number, newName: Ast.Owned<Ast.MutableExpression>) 
     const newNameString = newName.code()
     if (newNameString == oldNameString) return
     renameArgumentInDefaultValue(definition, edit, newNameString)
-    Ast.visitRecursive(ast, (child) => {
-      if (child instanceof Ast.Ident && child.token.code() === oldNameString)
-        edit.replaceValue(child.id, newName)
-    })
+    replaceVariableUsages(edit, ast, oldNameString, newName)
   })
+}
+
+function preprocessName(index: number, value: string) {
+  const oldName = functionAst.argumentDefinitions[index]?.pattern.node.code()
+  return generateUniqueName(normalizeArgumentName(value), functionAst, oldName ? [oldName] : [])
 }
 
 function handleUpdateType(index: number, typeExpr: Ast.Owned<Ast.MutableExpression> | undefined) {
@@ -172,6 +162,7 @@ function makeArgRowId(arg: Ast.ArgumentDefinition<Ast.ConcreteRefs>) {
               :portIdBase="syntheticPortId(functionAst.id, `argRow:${index}`)"
               :definition="item"
               :updateCallback="handleWidgetUpdates"
+              :preprocessName="(name) => preprocessName(index, name)"
               @rename="handleRename(index, $event)"
               @updateType="handleUpdateType(index, $event)"
               @updateDefault="handleUpdateDefault(index, $event)"

@@ -12,17 +12,17 @@ import { newDirectoryId } from '#/services/LocalBackend'
 import * as container from '$/providers/container'
 import { expect, test } from 'vitest'
 import {
-  CLOUD_INITIAL_PROJECT_RELATIVE_PATH,
-  initialProjectPath,
-  LOCAL_INITIAL_PROJECT_RELATIVE_PATH,
+  CLOUD_WELCOME_PROJECT_RELATIVE_PATH,
+  LOCAL_WELCOME_PROJECT_RELATIVE_PATH,
+  welcomeProjectPath,
 } from '../initialProject'
 
 // keep import registerting local storage key
 const _ = container
 const CLOUD_ROOT_PATH = 'enso://Users/mock'
 const LOCAL_ROOT_PATH = '/home/user/Documents/enso-projects'
-const LOCAL_WELCOME_PROJECT = `/home/user/Documents/enso-projects/${LOCAL_INITIAL_PROJECT_RELATIVE_PATH}`
-const CLOUD_WELCOME_PROJECT = `enso://Users/mock/${CLOUD_INITIAL_PROJECT_RELATIVE_PATH}`
+const LOCAL_WELCOME_PROJECT = `/home/user/Documents/enso-projects/${LOCAL_WELCOME_PROJECT_RELATIVE_PATH}`
+const CLOUD_WELCOME_PROJECT = `enso://Users/mock/${CLOUD_WELCOME_PROJECT_RELATIVE_PATH}`
 const USER: User = {
   isEnabled: true,
   isOrganizationAdmin: false,
@@ -60,9 +60,9 @@ function mockBackends(plan: Plan, localHome: AssetEntry[] = [], cloudHome: Asset
 test.each([Plan.free, Plan.solo, Plan.team, Plan.enterprise])(
   'Initial project from configuration with %s plan',
   async (plan) => {
-    const resultFromName = await initialProjectPath('Name', { ...USER, plan }, mockBackends(plan))
+    const resultFromName = await welcomeProjectPath('Name', { ...USER, plan }, mockBackends(plan))
     expect(resultFromName).toBe(`${LOCAL_ROOT_PATH}/Name`)
-    const resultFromURL = await initialProjectPath(
+    const resultFromURL = await welcomeProjectPath(
       'file:///home/user/Name.enso-project',
       { ...USER, plan },
       mockBackends(plan),
@@ -78,7 +78,7 @@ test.each`
   ${Plan.team}       | ${CLOUD_WELCOME_PROJECT}
   ${Plan.enterprise} | ${CLOUD_WELCOME_PROJECT}
 `('Initial project on fresh install with $plan plan', async ({ plan, expected }) => {
-  const result = await initialProjectPath(undefined, { ...USER, plan }, mockBackends(plan))
+  const result = await welcomeProjectPath(undefined, { ...USER, plan }, mockBackends(plan))
   expect(result).toBe(expected)
 })
 
@@ -132,7 +132,7 @@ test.each([
 ])(
   'Initial project with homes $localHome and $cloudHome',
   async ({ localHome, cloudHome, shouldOpen }) => {
-    const result = await initialProjectPath(
+    const result = await welcomeProjectPath(
       undefined,
       USER,
       mockBackends(USER.plan, localHome, cloudHome),

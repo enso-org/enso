@@ -3,13 +3,13 @@ import { useCurrentProject } from '$/components/WithCurrentProject.vue'
 import { entryMethodPointer } from '$/providers/openedProjects/suggestionDatabase/entry'
 import { WidgetInput, defineWidget, widgetProps } from '$/providers/openedProjects/widgetRegistry'
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
-import { CallInfo } from '@/components/GraphEditor/widgets/WidgetFunction.vue'
 import SizeTransition from '@/components/SizeTransition.vue'
 import { injectWidgetTree } from '@/providers/widgetTree'
 import { Ast } from '@/util/ast'
 import { ArgumentApplication, ArgumentApplicationKey } from '@/util/callTree'
 import { computed } from 'vue'
 import { mapOrUndefined } from 'ydoc-shared/util/data/opt'
+import { FunctionName } from './WidgetFunctionName.vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
 const tree = injectWidgetTree()
@@ -22,15 +22,23 @@ const targetMaybePort = computed(() => {
   if (target instanceof Ast.Ast) {
     const input = WidgetInput.FromAst(target)
     input.forcePort = true
-    if (!application.value.calledFunction) return input
-    const ptr = entryMethodPointer(application.value.calledFunction)
-    if (!ptr) return input
-    const definition = module.value.getMethodAst(ptr)
-    if (!definition.ok) return input
+    if (input.value instanceof Ast.PropertyAccess || input.value instanceof Ast.Ident) {
+      const methodPointer = entryMethodPointer(application.value.calledFunction)
+      if (!methodPointer) return input
+      const definition = module.value.getMethodAst(methodPointer)
+      if (definition.ok) {
+        input[FunctionName] = {
+          editableNameExpression: definition.value.name.externalId,
+          methodPointer,
+          requireUserAction: true,
+        }
+      }
+    }
+
     return input
   } else {
     return {
-      ...target.toWidgetInput(props.input[CallInfo]),
+      ...target.toWidgetInput(),
       forcePort: !(target instanceof ArgumentApplication),
     }
   }
@@ -60,7 +68,7 @@ const infixWidgetInput = computed(() =>
 )
 const showArgument = computed(() => tree.extended || !application.value.argument.hideByDefault)
 const argumentWidgetInput = computed(() => {
-  return application.value.argument.toWidgetInput(props.input[CallInfo])
+  return application.value.argument.toWidgetInput()
 })
 </script>
 

@@ -3,12 +3,13 @@ import { nodeIdFromOuterAst } from '$/providers/openedProjects/graph/graphDataba
 import { assert } from '@/util/assert'
 import { Ast } from '@/util/ast'
 import type { Identifier } from '@/util/ast/abstract'
-import { isIdentifier, moduleMethodNames } from '@/util/ast/abstract'
+import { isIdentifier } from '@/util/ast/abstract'
 import { Err, Ok, unwrap, type Result } from '@/util/data/result'
 import { Vec2 } from '@/util/data/vec2'
 import { tryIdentifier } from '@/util/qualifiedName'
 import * as set from 'lib0/set'
 import { frontmatter } from '../ComponentHelp/metadata'
+import { generateUniqueName } from './widgets/WidgetFunctionDef/argumentAst'
 
 // === Types ===
 
@@ -129,21 +130,6 @@ export function prepareCollapsedInfo(
   })
 }
 
-/** Generate a safe method name for a collapsed function using `baseName` as a prefix. */
-function findSafeMethodName(topLevel: Ast.BodyBlock, baseName: Identifier): Identifier {
-  const allIdentifiers = moduleMethodNames(topLevel)
-  if (!allIdentifiers.has(baseName)) {
-    return baseName
-  }
-  let index = 1
-  while (allIdentifiers.has(`${baseName}${index}`)) {
-    index++
-  }
-  const name = `${baseName}${index}`
-  assert(isIdentifier(name))
-  return name
-}
-
 // === performCollapse ===
 
 // We support working inside `Main` module of the project at the moment.
@@ -161,6 +147,8 @@ interface CollapsingResult {
   collapsedNodeIds: NodeId[]
   /** ID of the output AST node inside the collapsed function. */
   outputAstId: Ast.AstId
+  /** Name of newly created collapsed function. */
+  collapsedName: Identifier
 }
 
 interface PreparedCollapseInfo {
@@ -193,7 +181,7 @@ export function performCollapseImpl(
   currentMethodName: string,
 ) {
   const edit = topLevel.module
-  const collapsedName = findSafeMethodName(topLevel, COLLAPSED_FUNCTION_NAME)
+  const collapsedName = generateUniqueName(COLLAPSED_FUNCTION_NAME, topLevel)
   const { statement: currentMethod, index: currentMethodLine } = Ast.findModuleMethod(
     topLevel,
     currentMethodName,
@@ -237,7 +225,13 @@ export function performCollapseImpl(
   })
   topLevel.insert(currentMethodLine, collapsedFunction, undefined)
 
-  return { collapsedCallRoot: collapsedCall.id, outputAstId: outputAst.id, collapsedNodeIds }
+  return {
+    collapsedFunctionAstId: collapsedFunction.id,
+    collapsedCallRoot: collapsedCall.id,
+    outputAstId: outputAst.id,
+    collapsedNodeIds,
+    collapsedName,
+  }
 }
 
 /** Sort identifiers by positions of their defining nodes in the graph. */

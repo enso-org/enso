@@ -7,11 +7,11 @@ import {
   DEFAULT_COLUMN_PREFIX,
   NEW_COLUMN_ID,
   ROW_INDEX_HEADER,
-  type RowData,
   tableInputCallMayBeHandled,
   useTableInputArgument,
+  type RowData,
 } from '@/components/GraphEditor/widgets/WidgetTableEditor/tableInputArgument'
-import { MenuItem } from '@/components/shared/AgGridTableView.vue'
+import type { MenuItem } from '@/components/shared/AgGridTableView.vue'
 import { assert } from '@/util/assert'
 import { Ast } from '@/util/ast'
 import type { Identifier } from '@/util/ast/abstract'
@@ -19,7 +19,7 @@ import { parseAbsoluteProjectPathRaw } from '@/util/projectPath'
 import type { GetContextMenuItems, GetMainMenuItems } from 'ag-grid-enterprise'
 import { expect, test, vi } from 'vitest'
 import { assertDefined } from 'ydoc-shared/util/assert'
-import { Ok, unwrap } from 'ydoc-shared/util/data/result'
+import { Ok, unwrap, type Result } from 'ydoc-shared/util/data/result'
 
 function suggestionDbWithNothing() {
   const db = new SuggestionDb()
@@ -202,11 +202,18 @@ function tableEditFixture(code: string, expectedCode: string) {
   assert(firstStatement instanceof Ast.MutableExpressionStatement)
   const inputAst = firstStatement.expression
   const input = WidgetInput.FromAst(inputAst)
-  const edit = vi.fn(async (f) => {
-    const result = await f(ast.module.edit())
-    expect(result).toEqual(Ok())
-    return result
-  })
+  const edit = <T extends Result<void>>(
+    f: (module: Ast.MutableModule) => Promise<T> | T,
+  ): Promise<T> | T => {
+    const maybeSyncResult = f(ast.module.edit())
+    function doExpect(result: T) {
+      expect(result.ok).toBeTruthy()
+      return result
+    }
+    return maybeSyncResult instanceof Promise ?
+        maybeSyncResult.then(doExpect)
+      : doExpect(maybeSyncResult)
+  }
   const onUpdate = vi.fn((update) => {
     const inputAst = [...update.edit.getVersion(ast).statements()][0]
     expect(inputAst?.code()).toBe(expectedCode)

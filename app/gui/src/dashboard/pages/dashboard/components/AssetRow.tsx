@@ -9,7 +9,6 @@ import { useBackendMutationState } from '#/hooks/backendHooks'
 import * as dragAndDropHooks from '#/hooks/dragAndDropHooks'
 import { useDragDelayAction } from '#/hooks/dragDelayHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import { BUSY_PROJECT_STATES } from '#/hooks/projectHooks'
 import { useSyncRef } from '#/hooks/syncRefHooks'
 import type * as assetsTable from '#/layouts/AssetsTable'
 import { isLocalCategory } from '#/layouts/CategorySwitcher/Category'
@@ -36,9 +35,8 @@ import {
 import * as tailwindMerge from '#/utilities/tailwindMerge'
 import Visibility from '#/utilities/Visibility'
 import { useStore } from '#/utilities/zustand'
-import type { LaunchedProject } from '$/providers/container'
 import { useFullUserSession } from '$/providers/react'
-import { useIsProjectClosing } from '$/providers/react/container'
+import { useIsProjectClosing } from '$/providers/react/openedProjects'
 import * as React from 'react'
 import { useTransition } from 'react'
 import invariant from 'tiny-invariant'
@@ -52,7 +50,6 @@ export interface AssetRowInnerProps {
 /** Props for an {@link AssetRow}. */
 export interface AssetRowProps {
   readonly item: backendModule.AnyAsset
-  readonly isOpened: boolean
   readonly isPlaceholder: boolean
   readonly id: backendModule.AssetId
   readonly parentId: backendModule.DirectoryId
@@ -77,8 +74,6 @@ export interface AssetRowProps {
     event: React.DragEvent<HTMLTableRowElement>,
     item: backendModule.AnyAsset,
   ) => void
-  readonly closeProject: (project: LaunchedProject) => Promise<void>
-  readonly openProject: (projectId: backendModule.ProjectId) => Promise<void>
 }
 
 /** Render a real asset row. */
@@ -88,7 +83,6 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
     parentId,
     contextMenuRef,
     isKeyboardSelected,
-    isOpened,
     select,
     state,
     columns,
@@ -98,8 +92,6 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
     item,
     labels,
     grabKeyboardFocus,
-    closeProject,
-    openProject,
   } = props
 
   const { category, associatedBackend: backend } = useCategoriesAPI()
@@ -328,7 +320,7 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
 
               if (
                 item.type === backendModule.AssetType.project &&
-                (BUSY_PROJECT_STATES.has(item.projectState.type) || isClosing)
+                (backendModule.IS_OPENING_OR_OPENED[item.projectState.type] || isClosing)
               ) {
                 event.preventDefault()
               }
@@ -377,14 +369,11 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
                     isNavigating={isNavigating}
                     labels={labels}
                     isPlaceholder={isPlaceholder}
-                    isOpened={isOpened}
                     backendType={backend.type}
                     item={item}
                     setSelected={setSelected}
                     state={state}
                     isEditable={state.category.type !== 'trash'}
-                    closeProject={closeProject}
-                    openProject={openProject}
                   />
                 </td>
               )

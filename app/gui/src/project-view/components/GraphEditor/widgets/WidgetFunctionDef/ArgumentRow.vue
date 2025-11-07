@@ -27,11 +27,12 @@ import type { ComponentProps } from 'vue-component-type-helpers'
 import type { ArgumentDefinition, ConcreteRefs } from 'ydoc-shared/ast'
 import WidgetTreeRoot from '../../WidgetTreeRoot.vue'
 
-const { definition, updateCallback, portIdBase } = defineProps<{
+const { definition, updateCallback, portIdBase, preprocessName } = defineProps<{
   root: Opt<HTMLElement>
   definition: ArgumentDefinition<ConcreteRefs>
   updateCallback: UpdateHandler
   portIdBase: PortId
+  preprocessName: (input: string) => string
 }>()
 
 const emit = defineEmits<{
@@ -51,7 +52,7 @@ function patternWidget(pattern: Ast.Expression): TreeProps {
     input: {
       portId: pattern.id,
       value: pattern,
-      [EnsoExpression]: {},
+      [EnsoExpression]: { preprocess: preprocessName },
     },
     updateCallback(update: WidgetUpdate) {
       return rewritePortValueUpdate(update, updateCallback, pattern.id, (value) => {
