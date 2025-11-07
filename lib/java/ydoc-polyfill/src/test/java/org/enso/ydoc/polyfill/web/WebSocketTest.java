@@ -249,6 +249,7 @@ public class WebSocketTest extends ExecutorSetup {
           ws.close();
           ws.close();
           res.set(true);
+          // Notify that the client socket is closed
           lock.release();
         });
         """;
@@ -258,6 +259,7 @@ public class WebSocketTest extends ExecutorSetup {
 
     CompletableFuture.supplyAsync(() -> context.eval("js", code), executor).get();
 
+    // Wait until the client socket is closed
     lock.acquire();
 
     Assert.assertTrue(res.get());
@@ -274,11 +276,14 @@ public class WebSocketTest extends ExecutorSetup {
         """
         var ws = new WebSocket('ws://localhost:22334');
         ws.addEventListener('open', () => {
+          // Notify that the client socket is connected
           lock1.release();
+          // Wait until the server socket is closed
           lock2.acquire();
-          // Close WebSocket closed by the server
+          // Close the client socket (closed by the server)
           ws.close();
           res.set(true);
+          // Notify that the client socket is closed
           lock3.release();
         });
         """;
@@ -290,9 +295,13 @@ public class WebSocketTest extends ExecutorSetup {
 
     CompletableFuture.supplyAsync(() -> context.eval("js", code), executor).get();
 
+    // Wait for the client socket connection
     lock1.acquire();
+    // Close the server socket
     ws.stop();
+    // Notify that the server socked is closed
     lock2.release();
+    // Wait until the client socket is closed
     lock3.acquire();
 
     Assert.assertTrue(res.get());
