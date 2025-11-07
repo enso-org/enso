@@ -4,6 +4,29 @@
  * we can easily replace its contents in a separate build postprocessing step in `BUILD.bazel`.
  */
 
+declare global {
+  interface ViteTypeOptions {
+    // strictImportMetaEnv: unknown
+  }
+
+  type ImportMetaEnvFallbackKey =
+    'strictImportMetaEnv' extends keyof ViteTypeOptions ? never : string
+
+  interface ImportMetaEnv {
+    [key: ImportMetaEnvFallbackKey]: any
+    BASE_URL: string
+    MODE: string
+    DEV: boolean
+    PROD: boolean
+    SSR: boolean
+  }
+
+  interface ImportMeta {
+    url: string
+    readonly env: ImportMetaEnv
+  }
+}
+
 /** When running dev server, the config variables are grabbed from appropriate .env file. */
 export const $config = {
   ENVIRONMENT: import.meta.env.ENSO_IDE_ENVIRONMENT,
