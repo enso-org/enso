@@ -15,7 +15,6 @@ import org.enso.base.enso_cloud.HideableValue;
 import org.enso.database.audit.CloudAuditedConnection;
 import org.enso.database.audit.LocalAuditedConnection;
 import org.enso.database.dryrun.OperationSynchronizer;
-import org.graalvm.collections.Pair;
 
 /**
  * A helper class for accessing the JDBC components.
@@ -27,28 +26,24 @@ import org.graalvm.collections.Pair;
 public final class JDBCProxy {
   /** A record exposing JDBC types needed to allow cross JVM use. */
   public record JDBCDriverTypes(String databaseName) {
-    Class<SQLException> sqlException() {
+    public Class<SQLException> sqlException() {
       return SQLException.class;
     }
 
-    Class<SQLTimeoutException> sqlTimeoutException() {
+    public Class<SQLTimeoutException> sqlTimeoutException() {
       return SQLTimeoutException.class;
     }
 
-    Class<HideableValue> hideableValue() {
-      return HideableValue.class;
+    public HideableValue.Factory hideableValueFactory() {
+      return new HideableValue.Factory();
     }
 
-    Class<Pair> pair() {
-      return Pair.class;
-    }
-
-    OperationSynchronizer newOperationSynchronizer() {
+    public OperationSynchronizer newOperationSynchronizer() {
       return new OperationSynchronizer();
     }
 
-    Connection getConnectionWithCatalogSchema(
-        String url, List<Pair<String, HideableValue>> properties, String catalog, String schema)
+    public Connection getConnectionWithCatalogSchema(
+        String url, List<HideableValue.KeyValuePair> properties, String catalog, String schema)
         throws SQLException {
       return JDBCProxy.getConnectionWithCatalogSchema(url, properties, catalog, schema);
     }
@@ -88,7 +83,7 @@ public final class JDBCProxy {
    * @return a connection
    */
   public static Connection getConnectionWithCatalogSchema(
-      String url, List<Pair<String, HideableValue>> properties, String catalog, String schema)
+      String url, List<HideableValue.KeyValuePair> properties, String catalog, String schema)
       throws SQLException {
     // We need to manually register all the drivers because the DriverManager is not able
     // to correctly use our class loader, it only delegates to the platform class loader when
@@ -125,18 +120,18 @@ public final class JDBCProxy {
   public static final String RELATED_ASSET_ID_KEY = ENSO_PROPERTY_PREFIX + "relatedAssetId";
 
   private record PartitionedProperties(
-      Map<String, String> ensoProperties, List<Pair<String, HideableValue>> jdbcProperties) {
-    public static PartitionedProperties parse(List<Pair<String, HideableValue>> properties) {
-      List<Pair<String, HideableValue>> jdbcProperties = new ArrayList<>();
+      Map<String, String> ensoProperties, List<HideableValue.KeyValuePair> jdbcProperties) {
+    public static PartitionedProperties parse(List<HideableValue.KeyValuePair> properties) {
+      List<HideableValue.KeyValuePair> jdbcProperties = new ArrayList<>();
       HashMap<String, String> ensoProperties = new HashMap<>();
 
       for (var pair : properties) {
-        if (pair.getLeft().startsWith(ENSO_PROPERTY_PREFIX)) {
+        if (pair.key().startsWith(ENSO_PROPERTY_PREFIX)) {
           try {
-            ensoProperties.put(pair.getLeft(), pair.getRight().safeResolve());
+            ensoProperties.put(pair.key(), pair.value().safeResolve());
           } catch (EnsoSecretAccessDenied e) {
             throw new IllegalStateException(
-                "Internal Enso property " + pair.getLeft() + " should not contain secrets.");
+                "Internal Enso property " + pair.key() + " should not contain secrets.");
           }
         } else {
           jdbcProperties.add(pair);

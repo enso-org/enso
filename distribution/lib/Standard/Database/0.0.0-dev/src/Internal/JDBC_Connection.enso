@@ -310,13 +310,14 @@ create types_record url:Text properties:Vector catalog:Text="" schema:Text="" =
        private: true
        ---
        Converts a vector of Enso key-value pairs into Java properties.
-    properties_as_java_props properties java_pair hideable_value =
+    properties_as_java_props properties hideable_value_factory =
         properties.map pair->
-            java_value = if pair.second.is_a hideable_value then pair.second else as_hideable_value pair.second factor=hideable_value
-            java_pair.create pair.first java_value
+            java_value = if hideable_value_factory.is_a pair.second then pair.second else
+                as_hideable_value pair.second factory=hideable_value_factory
+            hideable_value_factory.createPair pair.first java_value
 
     sql_error_handler = create_sql_error_handler types_record.sqlException types_record.sqlTimeoutException
-    java_props = properties_as_java_props properties types_record.pair types_record.hideableValue
+    java_props = properties_as_java_props properties types_record.hideableValueFactory
     java_connection = sql_error_handler <| types_record.getConnectionWithCatalogSchema url java_props catalog schema
     resource = Managed_Resource.register java_connection close_connection
     JDBC_Connection.Value resource types_record.newOperationSynchronizer sql_error_handler
