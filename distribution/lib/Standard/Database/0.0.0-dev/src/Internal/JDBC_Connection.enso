@@ -19,7 +19,6 @@ from project.Internal.Result_Set import result_set_to_table
 polyglot java import java.sql.Connection
 polyglot java import java.sql.DatabaseMetaData
 polyglot java import java.sql.PreparedStatement
-polyglot java import org.enso.database.JDBCProxy
 
 type JDBC_Connection
     ## ---
