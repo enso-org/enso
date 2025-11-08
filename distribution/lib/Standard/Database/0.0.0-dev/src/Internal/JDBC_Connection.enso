@@ -25,8 +25,8 @@ polyglot java import org.enso.base.enso_cloud.HideableValue
 polyglot java import org.enso.base.enso_cloud.HideableValue.Factory
 polyglot java import org.enso.base.enso_cloud.HideableValue.KeyValuePair
 polyglot java import org.enso.database.dryrun.OperationSynchronizer
+polyglot java import org.enso.database.JDBCDriverTypes
 polyglot java import org.enso.database.JDBCProxy
-polyglot java import org.enso.database.JDBCProxy.JDBCDriverTypes
 
 type JDBC_Connection
     ## ---
@@ -300,17 +300,16 @@ create types_record url:Text properties:Vector catalog:Text="" schema:Text="" =
        Creates a handler for SQL Errors.
 
        ## Arguments
-       - `sql_exception`: The base SQL exception class to catch.
-       - `sql_timeout_exception`: The SQL timeout exception class to catch.
+       - `types_record`: The JDBC driver types record containing exception classes.
 
        ## Returns
        A function which executes `action` and returns its result, catching any
        panics and if they are coming from JDBC, wraps them with our own error
        types and returns as regular data-flow errors.
-    create_sql_error_handler sql_exception sql_timeout_exception =
+    create_sql_error_handler types_record =
         handler ~action related_query=Nothing =
-            Panic.catch sql_exception action caught_panic->
-                if caught_panic.payload.is_a sql_timeout_exception then Error.throw (SQL_Timeout.Error caught_panic.payload Nothing) else
+            Panic.catch types_record.sqlExceptionClass action caught_panic->
+                if caught_panic.is_a types_record.sqlTimeoutExceptionClass then Error.throw (SQL_Timeout.Error caught_panic.payload Nothing) else
                     Error.throw (SQL_Error.Error caught_panic.payload related_query)
         handler
 
@@ -324,7 +323,7 @@ create types_record url:Text properties:Vector catalog:Text="" schema:Text="" =
                 as_hideable_value pair.second factory=hideable_value_factory
             hideable_value_factory.createPair pair.first java_value
 
-    sql_error_handler = create_sql_error_handler types_record.sqlException types_record.sqlTimeoutException
+    sql_error_handler = create_sql_error_handler types_record
     java_props = properties_as_java_props properties types_record.hideableValueFactory
     java_connection = sql_error_handler <| types_record.getConnectionWithCatalogSchema url java_props catalog schema
     resource = Managed_Resource.register java_connection close_connection

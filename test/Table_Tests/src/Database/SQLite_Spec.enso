@@ -415,6 +415,13 @@ add_specs suite_builder =
     sqlite_spec suite_builder in_file_prefix (_ -> create_file_connection database_file.file) persistent_connector=True
     Transaction_Spec.add_specs suite_builder (_ -> create_file_connection database_file.file) in_file_prefix
 
+    in_memory_prefix = "[SQLite In-Memory] "
+    sqlite_spec suite_builder in_memory_prefix (_ -> create_inmem_connection) persistent_connector=False
+    Transaction_Spec.add_specs suite_builder (_ -> create_inmem_connection) in_memory_prefix
+
+    SQLite_Type_Mapping_Spec.add_specs suite_builder
+    Generic_JDBC_SQLite_Spec.add_specs suite_builder
+
     suite_builder.group "SQLite_Format should allow connecting to SQLite files" group_builder->
         data = File_Connection.setup database_file
 
@@ -456,15 +463,6 @@ add_specs suite_builder =
             t1 = t0.select_into_database_table c "Tabela"
             t2 = t1.cast "X" (Value_Type.Char size=1)
             Warning.get_all t2 . length . should_equal 1
-
-    in_memory_prefix = "[SQLite In-Memory] "
-    sqlite_spec suite_builder in_memory_prefix (_ -> create_inmem_connection) persistent_connector=False
-    Transaction_Spec.add_specs suite_builder (_ -> create_inmem_connection) in_memory_prefix
-
-    SQLite_Type_Mapping_Spec.add_specs suite_builder
-
-    Generic_JDBC_SQLite_Spec.add_specs suite_builder
-
 
 main filter=Nothing =
     suite = Test.build suite_builder->

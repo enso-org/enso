@@ -806,6 +806,8 @@ add_table_specs suite_builder =
             Postgres_Type_Mapping_Spec.add_specs suite_builder connection_builder
             Transaction_Spec.add_specs suite_builder connection_builder "[PostgreSQL] "
 
+            Generic_JDBC_Postgres_Spec.add_specs suite_builder get_configured_connection_details
+
             suite_builder.group "[PostgreSQL] Secrets in connection settings" group_builder->
                 cloud_setup = Cloud_Tests_Setup.prepare
                 ## secret support
@@ -824,8 +826,6 @@ add_table_specs suite_builder =
                                     table = connection.read (..Raw_SQL "SELECT application_name FROM pg_stat_activity")
                                     application_names = table.at 0 . to_vector
                                     application_names.should_contain my_secret_name
-
-            Generic_JDBC_Postgres_Spec.add_specs suite_builder get_configured_connection_details
 
 with_secret name value callback =
     secret = Enso_Secret.create name+Random.uuid value

@@ -40,6 +40,7 @@ import project.Internal.Snowflake_Dialect
 import project.Internal.Snowflake_Type_Mapping.Snowflake_Type_Mapping
 
 
+polyglot java import org.enso.database.JDBCDriverTypes
 polyglot java import org.enso.database.JDBCProxy
 polyglot java import org.enso.snowflake.SnowflakeCloudCredentials
 
@@ -66,7 +67,7 @@ type Snowflake_Connection
         if clashing.not_empty then
             Panic.throw (Illegal_Argument.Error "The properties cannot contain "+(clashing.to_vector .join ", ")+" as they are already provided in the credentials.")
 
-        types_record = JDBCProxy.makeTypeRecord "Snowflake"
+        types_record = JDBCDriverTypes.create "Snowflake"
         jdbc_connection = JDBC_Connection.create types_record url (properties + auth_properties)
 
         ## As long as names are quoted, the Snowflake SQL dialect is case sensitive.

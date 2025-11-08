@@ -24,41 +24,6 @@ import org.enso.database.dryrun.OperationSynchronizer;
  * classloaders, thus not detecting the proper drivers.
  */
 public final class JDBCProxy {
-  /** A record exposing JDBC types needed to allow cross JVM use. */
-  public record JDBCDriverTypes(String databaseName) {
-    public Class<SQLException> sqlException() {
-      return SQLException.class;
-    }
-
-    public Class<SQLTimeoutException> sqlTimeoutException() {
-      return SQLTimeoutException.class;
-    }
-
-    public HideableValue.Factory hideableValueFactory() {
-      return new HideableValue.Factory();
-    }
-
-    public OperationSynchronizer newOperationSynchronizer() {
-      return new OperationSynchronizer();
-    }
-
-    public Connection getConnectionWithCatalogSchema(
-        String url, List<HideableValue.KeyValuePair> properties, String catalog, String schema)
-        throws SQLException {
-      return JDBCProxy.getConnectionWithCatalogSchema(url, properties, catalog, schema);
-    }
-  }
-
-  /**
-   * A helper method that creates a JDBCDriverTypes record.
-   *
-   * @param databaseName the name of the Database type for the record
-   * @return a new JDBCDriverTypes record
-   */
-  public static JDBCDriverTypes makeTypeRecord(String databaseName) {
-    return new JDBCDriverTypes(databaseName);
-  }
-
   /**
    * A helper method that lists registered JDBC drivers.
    *

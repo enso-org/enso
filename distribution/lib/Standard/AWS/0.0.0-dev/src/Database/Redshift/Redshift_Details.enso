@@ -17,6 +17,7 @@ import project.Database.Redshift.Internal.Redshift_Dialect
 import project.Database.Redshift.Internal.Redshift_Type_Mapping.Redshift_Type_Mapping
 
 polyglot java import com.amazon.redshift.jdbc.Driver
+polyglot java import org.enso.database.JDBCDriverTypes
 polyglot java import org.enso.database.JDBCProxy
 
 type Redshift_Details
@@ -65,7 +66,7 @@ type Redshift_Details
 
         properties = options.merge self.jdbc_properties
 
-        types_record = JDBCProxy.makeTypeRecord "Redshift"
+        types_record = JDBCDriverTypes.create "Redshift"
         jdbc_connection = JDBC_Connection.create types_record self.jdbc_url properties
 
         # TODO [RW] can we inherit these from postgres?

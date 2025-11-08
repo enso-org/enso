@@ -15,6 +15,7 @@ import Standard.Database.SQL_Query.SQL_Query
 from Standard.Database.Connection.Connection import get_tables_advanced
 from Standard.Database.Internal.Result_Set import result_set_to_table
 
+polyglot java import org.enso.database.JDBCDriverTypes
 polyglot java import org.enso.database.JDBCProxy
 polyglot java import org.enso.database.JDBCUtils
 
@@ -56,7 +57,7 @@ type Generic_JDBC_Connection
        in JVM mode.
     @properties (Vector_Editor item_editor=(Single_Choice [Option "Text" "['', '']", Option "Secret" "['', Enso_Secret.get '']"]) item_default="['', '']")
     connect (url : Text = (Missing_Argument.throw "url")) properties:Vector=[] quote_char:Text="" -> Generic_JDBC_Connection =
-        types_record = JDBCProxy.makeTypeRecord "GenericJDBC"
+        types_record = JDBCDriverTypes.create "GenericJDBC"
         jdbc_connection = JDBC_Connection.create types_record url properties
         Generic_JDBC_Connection.Value jdbc_connection url quote_char
 
