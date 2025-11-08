@@ -74,7 +74,7 @@ type Snowflake_Connection
            Our generator always quotes identifiers, so we can rely on the case sensitivity.
            This is the same as in Postgres.
         entity_naming_properties = Entity_Naming_Properties.from_jdbc_connection jdbc_connection is_case_sensitive=True
-        Snowflake_Connection.Value (Connection.new jdbc_connection Snowflake_Dialect.snowflake Snowflake_Type_Mapping entity_naming_properties data_link_setup statement_setter=Snowflake_Type_Mapping.statement_setter) make_new
+        Snowflake_Connection.Value (Connection.new jdbc_connection Snowflake_Dialect.snowflake Snowflake_Type_Mapping entity_naming_properties data_link_setup) make_new
 
     ## ---
        private: true
@@ -403,12 +403,6 @@ type Snowflake_Connection
        ---
        Access the Type Mapping.
     type_mapping self = self.connection.type_mapping
-
-    ## ---
-       private: true
-       ---
-       Access the Statement Setter.
-    statement_setter self = self.connection.statement_setter
 
     ## ---
        private: true

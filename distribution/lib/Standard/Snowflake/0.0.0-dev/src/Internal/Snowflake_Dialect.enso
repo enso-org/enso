@@ -42,8 +42,6 @@ from Standard.Database.Errors import Unsupported_Database_Operation
 from Standard.Database.Internal.IR.Operation_Metadata import Date_Period_Metadata
 from Standard.Database.Internal.JDBC_Connection import JDBC_Connection
 
-polyglot java import org.enso.database.JDBCUtils
-
 ## ---
    private: true
    ---

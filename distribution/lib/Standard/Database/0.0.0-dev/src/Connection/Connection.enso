@@ -26,7 +26,6 @@ import project.Internal.IR.SQL_IR_Statement.SQL_IR_Statement
 import project.Internal.JDBC_Connection.JDBC_Connection
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
 import project.Internal.SQL_Warning_Helper
-import project.Internal.Statement_Setter.Statement_Setter
 import project.Internal.Table_Naming_Helper.Table_Naming_Helper
 import project.SQL.SQL_Statement
 import project.SQL.SQL_Type
@@ -54,8 +53,6 @@ type Connection
           to.
         - `type_mapping`: the type mapping associated with the database we are
           connected to.
-        - `statement_setter`: a helper for setting parameters on prepared
-          statements.
         - `entity_naming_properties`: a helper allowing to manage properties of
           entity naming rules of the given backend.
         - `supports_large_update`: whether the connection should try to use
@@ -66,7 +63,7 @@ type Connection
           to the user, but are used internally by the dry-run system.
         - `data_link_setup`: an optional setup allowing for saving the connection
           as a data link.
-    Value jdbc_connection dialect type_mapping (statement_setter:Statement_Setter) (entity_naming_properties : Entity_Naming_Properties) (supports_large_update : Ref Boolean) (hidden_table_registry : Hidden_Table_Registry.Hidden_Table_Registry) (data_link_setup : Data_Link_Setup | Nothing = Nothing)
+    Value jdbc_connection dialect type_mapping (entity_naming_properties : Entity_Naming_Properties) (supports_large_update : Ref Boolean) (hidden_table_registry : Hidden_Table_Registry.Hidden_Table_Registry) (data_link_setup : Data_Link_Setup | Nothing = Nothing)
 
     ## ---
        private: true
@@ -86,11 +83,9 @@ type Connection
           as a data link.
         - `try_large_update`: whether the connection should try to use
           `executeLargeUpdate`.
-        - `statement_setter`: a helper for setting parameters on prepared
-          statements.
-    new jdbc_connection:JDBC_Connection dialect type_mapping entity_naming_properties:Entity_Naming_Properties (data_link_setup : Data_Link_Setup | Nothing = Nothing) (try_large_update : Boolean = True) (statement_setter : Statement_Setter = Statement_Setter.default) -> Connection =
+    new jdbc_connection:JDBC_Connection dialect type_mapping entity_naming_properties:Entity_Naming_Properties (data_link_setup : Data_Link_Setup | Nothing = Nothing) (try_large_update : Boolean = True) -> Connection =
         registry = Hidden_Table_Registry.new
-        Connection.Value jdbc_connection dialect type_mapping statement_setter entity_naming_properties (Ref.new try_large_update) registry data_link_setup
+        Connection.Value jdbc_connection dialect type_mapping entity_naming_properties (Ref.new try_large_update) registry data_link_setup
 
     ## ---
        private: true
@@ -350,8 +345,7 @@ type Connection
     read_statement : SQL_Statement -> (Nothing | Vector SQL_Type_Reference) -> Boolean -> Table
     read_statement self statement column_types=Nothing last_row_only=False =
         type_overrides = self.type_mapping.prepare_type_overrides column_types
-        statement_setter = self.statement_setter
-        self.jdbc_connection.with_prepared_statement statement statement_setter stmt->
+        self.jdbc_connection.with_prepared_statement statement self.type_mapping.statement_setter stmt->
             rs = stmt.executeQuery
 
             # If column types were provided, we will cache the types that were not yet cached.
@@ -370,10 +364,10 @@ type Connection
        ---
        Given a prepared statement, gets the column names and types for the result
        set.
-    fetch_columns : Text | SQL_Statement -> Statement_Setter -> Any
-    fetch_columns self statement statement_setter =
+    fetch_columns : Text | SQL_Statement -> Any
+    fetch_columns self statement =
         needs_execute_query = self.dialect.needs_execute_query_for_type_inference statement
-        self.jdbc_connection.raw_fetch_columns statement needs_execute_query statement_setter
+        self.jdbc_connection.raw_fetch_columns statement needs_execute_query self.type_mapping.statement_setter
 
     ## ---
        private: true
@@ -406,8 +400,7 @@ type Connection
             Execution_Context.Output.if_enabled disabled_message="As writing is disabled, cannot execute the query. Press the Write button ▶ to perform the operation." panic=False
                 (self.execute_query query limit False)
         False ->
-            statement_setter = self.statement_setter
-            self.jdbc_connection.with_prepared_statement query statement_setter stmt->
+            self.jdbc_connection.with_prepared_statement query self.type_mapping.statement_setter stmt->
                 _check_statement_is_allowed self stmt
                 rs = stmt.executeQuery
                 tm = self.type_mapping
@@ -428,8 +421,7 @@ type Connection
     execute_update : Text | SQL_Statement -> Integer
     execute_update self query =
         Execution_Context.Output.if_enabled disabled_message="As writing is disabled, cannot execute an update query. Press the Write button ▶ to perform the operation." panic=False <|
-            statement_setter = self.statement_setter
-            self.jdbc_connection.with_prepared_statement query statement_setter stmt->
+            self.jdbc_connection.with_prepared_statement query self.type_mapping.statement_setter stmt->
                 _check_statement_is_allowed self stmt
                 result = case self.supports_large_update.get of
                     True -> Panic.catch UnsupportedOperationException stmt.executeLargeUpdate _->

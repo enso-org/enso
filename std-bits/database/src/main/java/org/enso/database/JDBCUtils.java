@@ -11,7 +11,10 @@ import java.time.LocalTime;
 import java.time.OffsetDateTime;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
+
+import org.enso.base.polyglot.NumericConverter;
 import org.enso.polyglot.common_utils.Core_Date_Utils;
+import org.graalvm.polyglot.Value;
 
 public class JDBCUtils {
   /** Reads all values from a column in a ResultSet into a String array. */
@@ -66,32 +69,6 @@ public class JDBCUtils {
       return null;
     }
     return localDateTime.atZone(Core_Date_Utils.defaultSystemZone());
-  }
-
-  /** Sets a ZonedDateTime in a PreparedStatement. */
-  public static void setZonedDateTime(
-      PreparedStatement stmt, int columnIndex, ZonedDateTime zonedDateTime) throws SQLException {
-    stmt.setObject(columnIndex, zonedDateTime.toOffsetDateTime(), Types.TIMESTAMP_WITH_TIMEZONE);
-  }
-
-  /** Sets a ZonedDateTime converting it to LocalDateTime in a PreparedStatement. */
-  public static void setLocalDateTime(
-      PreparedStatement stmt, int columnIndex, ZonedDateTime zonedDateTime) throws SQLException {
-    LocalDateTime localDateTime = zonedDateTime.toLocalDateTime();
-    stmt.setObject(columnIndex, localDateTime, Types.TIMESTAMP);
-  }
-
-  /** Sets a LocalTime in a PreparedStatement. */
-  public static void setLocalTime(PreparedStatement stmt, int columnIndex, LocalTime localTime)
-      throws SQLException {
-    stmt.setObject(columnIndex, localTime, Types.TIME);
-  }
-
-  /** Sets a LocalDate in a PreparedStatement. */
-  public static void setLocalDate(PreparedStatement stmt, int columnIndex, LocalDate localDate)
-      throws SQLException {
-
-    stmt.setObject(columnIndex, localDate, Types.DATE);
   }
 
   /**

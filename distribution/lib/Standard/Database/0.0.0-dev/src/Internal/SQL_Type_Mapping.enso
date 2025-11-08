@@ -157,6 +157,20 @@ type SQL_Type_Mapping
         _ = [value_type1, value_type2]
         Unimplemented.throw "This is an interface only."
 
+    ## ---
+       private: true
+       ---
+       Creates a Statement_Setter.
+    statement_setter =
+        Unimplemented.throw "This is an interface only."
+
+    ## ---
+       private: true
+       ---
+       Creates an Error_Mapper.
+    error_mapper self =
+        Unimplemented.throw "This is an interface only."
+
 ## ---
    private: true
    ---

@@ -42,7 +42,6 @@ from Standard.Database.Internal.IR.Operation_Metadata import Date_Period_Metadat
 from Standard.Database.Internal.JDBC_Connection import JDBC_Connection
 
 polyglot java import java.sql.Types as Java_Types
-polyglot java import org.enso.database.JDBCUtils
 
 ## ---
    private: true
