@@ -3,7 +3,6 @@ package org.enso.database;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
-import java.sql.SQLTimeoutException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -14,7 +13,6 @@ import org.enso.base.enso_cloud.EnsoSecretHelper;
 import org.enso.base.enso_cloud.HideableValue;
 import org.enso.database.audit.CloudAuditedConnection;
 import org.enso.database.audit.LocalAuditedConnection;
-import org.enso.database.dryrun.OperationSynchronizer;
 
 /**
  * A helper class for accessing the JDBC components.

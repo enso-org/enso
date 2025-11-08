@@ -1,20 +1,15 @@
 package org.enso.database;
 
 import java.math.BigDecimal;
-import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Types;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.OffsetDateTime;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
-
-import org.enso.base.polyglot.NumericConverter;
 import org.enso.polyglot.common_utils.Core_Date_Utils;
-import org.graalvm.polyglot.Value;
 
 public class JDBCUtils {
   /** Reads all values from a column in a ResultSet into a String array. */
