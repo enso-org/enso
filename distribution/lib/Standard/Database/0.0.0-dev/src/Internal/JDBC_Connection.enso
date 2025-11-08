@@ -193,11 +193,11 @@ type JDBC_Connection
        mapping.
        It may be used for accessing simple database metadata. It should never be
        used for proper queries.
-    raw_read_statement : Text -> Table
-    raw_read_statement self raw_sql =
+    raw_read_statement : Text -> Any -> Table
+    raw_read_statement self raw_sql column_fetcher_factory =
         self.with_prepared_statement raw_sql Statement_Setter.null stmt->
             rs = stmt.executeQuery
-            table = result_set_to_table rs
+            table = result_set_to_table rs column_fetcher_factory
             SQL_Warning_Helper.process_warnings stmt <|
                 table
 

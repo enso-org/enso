@@ -15,9 +15,9 @@ import Standard.Database.SQL_Query.SQL_Query
 from Standard.Database.Connection.Connection import get_tables_advanced
 from Standard.Database.Internal.Result_Set import result_set_to_table
 
+polyglot java import org.enso.database.fetchers.ColumnFetcherFactory
 polyglot java import org.enso.database.JDBCDriverTypes
 polyglot java import org.enso.database.JDBCProxy
-polyglot java import org.enso.database.JDBCUtils
 polyglot java import org.enso.database.JDBCValueSetter
 
 type Generic_JDBC_Connection
@@ -118,7 +118,7 @@ type Generic_JDBC_Connection
        ```
     databases self -> Vector Text =
         self.jdbc_connection.with_metadata metadata->
-            Vector.from_polyglot_array <| JDBCUtils.readTextColumn metadata.getCatalogs "TABLE_CAT"
+            Vector.from_polyglot_array <| column_fetcher_factory.readTextColumn metadata.getCatalogs "TABLE_CAT"
 
     ## Returns the name of the current database (or catalog).
     database self -> Text | Nothing =
@@ -140,7 +140,7 @@ type Generic_JDBC_Connection
        ```
     schemas self -> Vector =
         self.jdbc_connection.with_metadata metadata->
-            Vector.from_polyglot_array <| JDBCUtils.readTextColumn metadata.getSchemas "TABLE_SCHEM"
+            Vector.from_polyglot_array <| column_fetcher_factory.readTextColumn metadata.getSchemas "TABLE_SCHEM"
 
     ## Returns the name of the current schema.
     schema : Text
@@ -151,7 +151,7 @@ type Generic_JDBC_Connection
     table_types : Vector Text
     table_types self =
         self.jdbc_connection.with_metadata metadata->
-            Vector.from_polyglot_array <| JDBCUtils.readTextColumn metadata.getTableTypes "TABLE_TYPE"
+            Vector.from_polyglot_array <| column_fetcher_factory.readTextColumn metadata.getTableTypes "TABLE_TYPE"
 
     ## ---
        aliases: [delete, insert, query, update]
@@ -217,7 +217,7 @@ type Generic_JDBC_Connection
 
         self.jdbc_connection.with_prepared_statement resolved_sql statement_setter stmt->
             rs = stmt.executeQuery
-            materialised = result_set_to_table rs row_limit=rows_read
+            materialised = result_set_to_table rs column_fetcher_factory row_limit=rows_read
             table = limit.attach_warning materialised
             SQL_Warning_Helper.process_warnings stmt <|
                 table
@@ -265,7 +265,7 @@ type Generic_JDBC_Connection
         used_table_pattern = if name_like == "" then Nothing else name_like
         used_schema = if schema == "" then Nothing else schema
         used_table_types = if table_types.is_empty then Nothing else table_types
-        get_tables_advanced self.jdbc_connection used_table_pattern catalog used_schema used_table_types
+        get_tables_advanced self.jdbc_connection used_table_pattern catalog used_schema used_table_types column_fetcher_factory
 
     ## ---
        private: true
@@ -345,3 +345,10 @@ private statement_setter =
     jdbc_value_setter = JDBCValueSetter.create "Generic_JDBC"
     fill_home = Statement_Setter.create_fill_hole jdbc_value_setter
     Statement_Setter.for_fill_hole fill_home
+
+## ---
+   private: true
+   ---
+   The default column fetcher factory for Generic_JDBC connections.
+private column_fetcher_factory =
+    ColumnFetcherFactory.DEFAULT

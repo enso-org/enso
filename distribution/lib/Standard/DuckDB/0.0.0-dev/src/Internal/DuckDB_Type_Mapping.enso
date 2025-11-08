@@ -14,6 +14,7 @@ import Standard.Database.SQL.SQL_Type
 from Standard.Database.Errors import Unsupported_Database_Type
 
 polyglot java import java.sql.Types
+polyglot java import org.enso.database.fetchers.ColumnFetcherFactory
 polyglot java import org.enso.database.JDBCValueSetter
 
 ## ---
@@ -97,9 +98,10 @@ type DuckDB_Type_Mapping
        private: true
        advanced: true
        ---
-       Gets the ColumnFetcherFactory to be used for this backend.
+       Gets the ColumnFetcherFactory to be used for DuckDB.
     column_fetcher_factory : Any
-    column_fetcher_factory = SQL_Type_Mapping.default_column_fetcher_factory
+    column_fetcher_factory =
+        ColumnFetcherFactory.DEFAULT
 
     ## ---
        private: true

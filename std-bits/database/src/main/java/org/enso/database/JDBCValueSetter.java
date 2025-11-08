@@ -23,7 +23,7 @@ public class JDBCValueSetter {
     return new JDBCValueSetter(databaseName);
   }
 
-  private JDBCValueSetter(String databaseName) {
+  protected JDBCValueSetter(String databaseName) {
     this.databaseName = databaseName;
   }
 

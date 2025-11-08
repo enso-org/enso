@@ -17,8 +17,8 @@ polyglot java import org.enso.table.data.column.storage.type.DateTimeType
    private: true
    ---
    Converts a ResultSet into a Table.
-result_set_to_table : ResultSet -> (SQL_Type -> Value_Type | Nothing) -> Any -> (Vector (SQL_Type | Nothing) | Nothing) -> Boolean -> Integer -> Table
-result_set_to_table result_set sql_type_to_value_type=(_->Nothing) column_fetcher_factory=ColumnFetcherFactory.DEFAULT type_overrides=Nothing last_row_only=False row_limit=-1 =
+result_set_to_table : ResultSet -> Any -> (SQL_Type -> Value_Type | Nothing) -> (Vector (SQL_Type | Nothing) | Nothing) -> Boolean -> Integer -> Table
+result_set_to_table result_set column_fetcher_factory sql_type_to_value_type=(_->Nothing) type_overrides=Nothing last_row_only=False row_limit=-1 =
     storageTypeMapper metadata index =
         sql_type = type_overrides.get index . if_nothing <|
             SQL_Type.from_metadata metadata index+1
