@@ -2436,6 +2436,8 @@ lazy val `language-server` = (project in file("engine/language-server"))
         (`logging-service` / Compile / exportedModule).value,
         (`logging-service-common` / Compile / exportedModule).value,
         (`logging-service-logback` / Compile / exportedModule).value,
+        (`logging-service-opensearch` / Compile / exportedModule).value,
+        (`logging-service-telemetry` / Compile / exportedModule).value,
         (`polyglot-api` / Compile / exportedModule).value,
         (`json-rpc-server` / Compile / exportedModule).value,
         (`profiling-utils` / Compile / exportedModule).value,
@@ -2451,6 +2453,10 @@ lazy val `language-server` = (project in file("engine/language-server"))
         (`cli` / Compile / exportedModule).value,
         (`task-progress-notifications` / Compile / exportedModule).value
       ),
+    Runtime / addModules := Seq(
+      (`logging-service-opensearch` / javaModuleName).value,
+      (`logging-service-telemetry` / javaModuleName).value
+    ),
     Test / testOptions += Tests
       .Argument(TestFrameworks.ScalaCheck, "-minSuccessfulTests", "1000"),
     Test / envVars ++= distributionEnvironmentOverrides,
