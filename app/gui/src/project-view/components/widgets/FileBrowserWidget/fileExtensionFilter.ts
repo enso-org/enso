@@ -1,5 +1,5 @@
-import { AssetType } from '#/services/Backend'
 import { splitFilename } from '@/components/widgets/FileBrowserWidget/nameBar'
+import { AssetType } from 'enso-common/src/services/Backend'
 import { computed, ref, toValue, watch, type WatchSource } from 'vue'
 
 export interface Asset {

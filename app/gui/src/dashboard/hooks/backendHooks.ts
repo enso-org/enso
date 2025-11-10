@@ -2,18 +2,6 @@
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { CATEGORY_TO_FILTER_BY, type Category } from '#/layouts/CategorySwitcher/Category'
 import { useSetAssetToRename, useSetSelectedAssets } from '#/providers/DriveProvider'
-import type Backend from '#/services/Backend'
-import * as backendModule from '#/services/Backend'
-import {
-  AssetType,
-  BackendType,
-  type AnyAsset,
-  type AssetId,
-  type DirectoryId,
-  type FilterBy,
-  type User,
-  type UserGroupInfo,
-} from '#/services/Backend'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { flagsStore } from '$/providers/featureFlags'
 import type { ProjectInfo } from '$/providers/openedProjects/projectInfo'
@@ -42,6 +30,18 @@ import {
   type UseMutationOptions,
   type UseQueryOptions,
 } from '@tanstack/react-query'
+import type { Backend } from 'enso-common/src/services/Backend'
+import * as backendModule from 'enso-common/src/services/Backend'
+import {
+  AssetType,
+  BackendType,
+  type AnyAsset,
+  type AssetId,
+  type DirectoryId,
+  type FilterBy,
+  type User,
+  type UserGroupInfo,
+} from 'enso-common/src/services/Backend'
 import { z } from 'zod'
 
 const PROJECT_EXECUTIONS_STALE_TIME = 60_000

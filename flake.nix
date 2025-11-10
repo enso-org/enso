@@ -18,7 +18,7 @@
             pkgs2 = nixpkgs2.legacyPackages.${system};
             rust = fenix.packages.${system}.fromToolchainFile {
               dir = ./.;
-              sha256 = "sha256-IeUO263mdpDxBzWTY7upaZqX+ODkuK1JLTHdR3ItlkY=";
+              sha256 = "sha256-SJwZ8g0zF2WrKDVmHrVG3pD2RGoQeo24MEXnNx5FyuI=";
             };
             isOnLinux = pkgs.lib.hasInfix "linux" system;
             rust-jni =

@@ -1,4 +1,4 @@
+export * from 'enso-common/src/services/Backend/Category'
 export * from './categoriesHooks'
 export * from './CategoriesProvider'
-export * from './Category'
 export * from './transferBetweenCategoriesHooks'

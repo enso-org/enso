@@ -85,6 +85,8 @@
   }, {
     "pattern":"\\Qapplication.conf\\E"
   }, {
+    "pattern":"\\Qapplication-ls.conf\\E"
+  }, {
     "pattern":"\\Qapplication.json\\E"
   }, {
     "pattern":"\\Qapplication.properties\\E"

@@ -9,11 +9,11 @@ import * as billingHooks from '#/hooks/billing'
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import InviteUsersModal from '#/modals/InviteUsersModal'
 import { setModal } from '#/providers/ModalProvider'
-import type * as backendModule from '#/services/Backend'
-import type RemoteBackend from '#/services/RemoteBackend'
 import * as authProvider from '$/providers/react'
 import { useBackends, useText } from '$/providers/react'
 import { useMutation, useSuspenseQueries } from '@tanstack/react-query'
+import type * as backendModule from 'enso-common/src/services/Backend'
+import type { RemoteBackend } from 'enso-common/src/services/RemoteBackend'
 
 const LIST_USERS_STALE_TIME_MS = 60_000
 

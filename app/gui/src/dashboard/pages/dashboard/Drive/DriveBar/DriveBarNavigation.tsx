@@ -16,15 +16,18 @@ import { useCategories, useCategoriesAPI } from '#/layouts/Drive/Categories/cate
 import { useDirectoryIds } from '#/layouts/Drive/directoryIdsHooks'
 import { useLocalRootDirectory } from '#/layouts/Drive/persistentState'
 import { setDriveLocation, useDriveStore } from '#/providers/DriveProvider'
-import { AssetDoesNotExistError, BackendType, isDirectoryId } from '#/services/Backend'
-import type { PathItem } from '#/services/utilities'
-import { parseDirectoriesPath } from '#/services/utilities'
-import { NetworkError } from '#/utilities/error'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { useText } from '$/providers/react'
 import { useRightPanelData } from '$/providers/react/container'
 import { useSuspenseQuery } from '@tanstack/react-query'
-import { NetworkError as OtherNetworkError } from 'enso-common/src/services/Backend'
+import {
+  AssetDoesNotExistError,
+  BackendType,
+  isDirectoryId,
+  NetworkError as OtherNetworkError,
+} from 'enso-common/src/services/Backend'
+import { parseDirectoriesPath, type PathItem } from 'enso-common/src/services/Backend/utilities'
+import { NetworkError } from 'enso-common/src/utilities/errors'
 import { useEffect, useTransition } from 'react'
 import { toast } from 'react-toastify'
 

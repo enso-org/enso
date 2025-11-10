@@ -11,9 +11,9 @@ import { Ast } from '@/util/ast'
 import { targetIsOutside } from '@/util/autoBlur'
 import { selectOnMouseFocus, useCodeMirror, useStringSync } from '@/util/codemirror'
 import { highlightStyle } from '@/util/codemirror/highlight'
-import { Ok } from '@/util/data/result'
 import { useToast } from '@/util/toast'
 import { SelectionRange, type Extension } from '@codemirror/state'
+import { Ok } from 'enso-common/src/utilities/data/result'
 import { ref, useTemplateRef, watch, type ComponentInstance } from 'vue'
 
 const props = defineProps<{

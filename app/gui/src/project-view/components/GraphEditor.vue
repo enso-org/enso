@@ -56,11 +56,11 @@ import { assert, bail } from '@/util/assert'
 import { Ast } from '@/util/ast'
 import { partition } from '@/util/data/array'
 import { Rect } from '@/util/data/rect'
-import { Err, Ok, unwrapOr } from '@/util/data/result'
 import { Vec2 } from '@/util/data/vec2'
 import { isDef, type VueInstance } from '@vueuse/core'
 import * as iter from 'enso-common/src/utilities/data/iter'
 import * as objects from 'enso-common/src/utilities/data/object'
+import { Err, Ok, unwrapOr } from 'enso-common/src/utilities/data/result'
 import { set } from 'lib0'
 import {
   computed,

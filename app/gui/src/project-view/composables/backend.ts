@@ -14,7 +14,7 @@ import type {
   UseQueryOptions,
 } from '@tanstack/vue-query'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
-import type Backend from 'enso-common/src/services/Backend'
+import type { Backend } from 'enso-common/src/services/Backend'
 import type { HttpClient } from 'enso-common/src/services/HttpClient'
 import { computed, toValue, type UnwrapRef } from 'vue'
 // eslint-disable-next-line vue/prefer-import-from-vue

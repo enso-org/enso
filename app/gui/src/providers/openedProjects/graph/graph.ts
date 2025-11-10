@@ -23,11 +23,11 @@ import { isAstId, isIdentifier } from '@/util/ast/abstract'
 import { partition } from '@/util/data/array'
 import { stringUnionToArray, type Events } from '@/util/data/observable'
 import { Rect } from '@/util/data/rect'
-import { andThen, Err, Ok, unwrap, type Result } from '@/util/data/result'
 import { Vec2 } from '@/util/data/vec2'
 import type { MethodPointer } from '@/util/methodPointer'
 import { proxyRefs, useWatchContext } from '@/util/reactivity'
 import * as iter from 'enso-common/src/utilities/data/iter'
+import { andThen, Err, Ok, unwrap, type Result } from 'enso-common/src/utilities/data/result'
 import { map, set } from 'lib0'
 import {
   computed,

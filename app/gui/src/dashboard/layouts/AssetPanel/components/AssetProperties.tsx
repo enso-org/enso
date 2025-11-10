@@ -15,18 +15,6 @@ import { UpsertSecretForm } from '#/modals/UpsertSecretModal'
 import { SharedWithColumn } from '#/pages/dashboard/components/column'
 import { DatalinkFormInput } from '#/pages/dashboard/components/DatalinkInput'
 import Label from '#/pages/dashboard/components/Label'
-import type Backend from '#/services/Backend'
-import {
-  AssetType,
-  BackendType,
-  getAssetPermissionId,
-  getAssetPermissionName,
-  isAssetCredential,
-  Plan,
-  type AnyAsset,
-  type DatalinkId,
-} from '#/services/Backend'
-import * as permissions from '#/utilities/permissions'
 import { tv } from '#/utilities/tailwindVariants'
 import { useBackends, useFullUserSession, useText } from '$/providers/react'
 import { useVueValue } from '$/providers/react/common'
@@ -37,7 +25,19 @@ import {
 } from '$/providers/react/container'
 import { useFeatureFlags } from '$/providers/react/featureFlags'
 import { useMutation, useQuery } from '@tanstack/react-query'
+import type { Backend } from 'enso-common/src/services/Backend'
+import {
+  AssetType,
+  BackendType,
+  getAssetPermissionId,
+  getAssetPermissionName,
+  isAssetCredential,
+  Plan,
+  type AnyAsset,
+  type DatalinkId,
+} from 'enso-common/src/services/Backend'
 import { toReadableIsoString } from 'enso-common/src/utilities/data/dateTime'
+import * as permissions from 'enso-common/src/utilities/permissions'
 import * as React from 'react'
 
 const ASSET_PROPERTIES_VARIANTS = tv({
