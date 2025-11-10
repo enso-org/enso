@@ -102,7 +102,6 @@ public final class JVM {
    * @return JNI environment to make calls into the JVM
    */
   final JNI.JNIEnv env() {
-    var thread = Thread.currentThread();
     if (javaVM.isNull()) {
       var env = initializeEnv();
       if (env.isNonNull()) {
