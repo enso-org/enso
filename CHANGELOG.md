@@ -16,6 +16,7 @@
 - [Many CLI arguments removed][14069]
 - [Added immediate rename of user created components][14209]
 - [Multiple opened projects' tabs are now allowed][14215]
+- [Required arguments now have an arrow displayed on top of the port][14270]
 
 [13685]: https://github.com/enso-org/enso/pull/13685
 [13658]: https://github.com/enso-org/enso/pull/13658
@@ -30,6 +31,7 @@
 [14069]: https://github.com/enso-org/enso/pull/14069
 [14209]: https://github.com/enso-org/enso/pull/14209
 [14215]: https://github.com/enso-org/enso/pull/14215
+[14270]: https://github.com/enso-org/enso/pull/14270
 
 #### Enso Standard Library
 
