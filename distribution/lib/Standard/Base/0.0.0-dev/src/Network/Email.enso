@@ -35,12 +35,7 @@ send from:Email_Address=(Missing_Argument.throw "from") (to:Vector Email_Address
     private: true
     ---
 default_widget (display : Display = ..When_Modified) -> Widget =
-    name = [Option "Address" "Email_Address.Address ''"]
-    nameaddress = [Option "Name And Address" "Email_Address.NameAddress '' ''"]
-    values = name + nameaddress
-
-    item_editor = Single_Choice values=values display=..Always
-    Vector_Editor item_editor item_default='Email_Address.Address ""' display=display
+    Vector_Editor test_widget item_default='Email_Address.Address' display=display
 
 ## ---
     private: true
