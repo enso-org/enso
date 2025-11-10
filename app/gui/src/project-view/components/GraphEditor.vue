@@ -669,7 +669,6 @@ const contextMenuActions: DisplayableActionName[] = [
             :navigator="graphNavigator"
             @createNodeFromEdge="handleEdgeDrop"
             @createNodeFromPort="createNodeFromPort"
-            @outputPortDoubleClick="createNodeFromPort"
           />
           <ComponentBrowser
             v-if="componentBrowserOpened"
