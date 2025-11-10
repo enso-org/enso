@@ -547,7 +547,10 @@ lazy val componentModulesPaths =
     (`logging-utils` / Compile / exportedModuleBin).value,
     (`logging-utils-akka` / Compile / exportedModuleBin).value,
     (`logging-service` / Compile / exportedModuleBin).value,
+    (`logging-service-common` / Compile / exportedModuleBin).value,
     (`logging-service-logback` / Compile / exportedModuleBin).value,
+    (`logging-service-telemetry` / Compile / exportedModuleBin).value,
+    (`logging-service-opensearch` / Compile / exportedModuleBin).value,
     (`jvm-channel` / Compile / exportedModuleBin).value,
     (`jvm-interop` / Compile / exportedModuleBin).value,
     (`os-environment` / Compile / exportedModuleBin).value,
@@ -2436,8 +2439,6 @@ lazy val `language-server` = (project in file("engine/language-server"))
         (`logging-service` / Compile / exportedModule).value,
         (`logging-service-common` / Compile / exportedModule).value,
         (`logging-service-logback` / Compile / exportedModule).value,
-        (`logging-service-opensearch` / Compile / exportedModule).value,
-        (`logging-service-telemetry` / Compile / exportedModule).value,
         (`polyglot-api` / Compile / exportedModule).value,
         (`json-rpc-server` / Compile / exportedModule).value,
         (`profiling-utils` / Compile / exportedModule).value,
@@ -2453,10 +2454,6 @@ lazy val `language-server` = (project in file("engine/language-server"))
         (`cli` / Compile / exportedModule).value,
         (`task-progress-notifications` / Compile / exportedModule).value
       ),
-    Runtime / addModules := Seq(
-      (`logging-service-opensearch` / javaModuleName).value,
-      (`logging-service-telemetry` / javaModuleName).value
-    ),
     Test / testOptions += Tests
       .Argument(TestFrameworks.ScalaCheck, "-minSuccessfulTests", "1000"),
     Test / envVars ++= distributionEnvironmentOverrides,
@@ -3949,7 +3946,10 @@ lazy val `engine-runner` = project
       (Compile / exportedModule).value,
       (`downloader` / Compile / exportedModule).value,
       (`logging-service` / Compile / exportedModule).value,
+      (`logging-service-common` / Compile / exportedModule).value,
       (`logging-service-logback` / Compile / exportedModule).value,
+      (`logging-service-opensearch` / Compile / exportedModule).value,
+      (`logging-service-telemetry` / Compile / exportedModule).value,
       (persistance / Compile / exportedModule).value,
       (`polyglot-api-macros` / Compile / exportedModule).value,
       (`scala-libs-wrapper` / Compile / exportedModule).value,
@@ -4274,6 +4274,8 @@ lazy val `engine-runner` = project
   .dependsOn(`runtime-version-manager`)
   .dependsOn(`logging-service`)
   .dependsOn(`logging-service-logback` % Runtime)
+  .dependsOn(`logging-service-telemetry` % Runtime)
+  .dependsOn(`logging-service-opensearch` % Runtime)
   .dependsOn(`engine-runner-common`)
   .dependsOn(`polyglot-api`)
   .dependsOn(`ydoc-server-registration`)
