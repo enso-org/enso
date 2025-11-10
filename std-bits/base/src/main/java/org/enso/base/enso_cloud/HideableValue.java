@@ -12,8 +12,13 @@ public sealed interface HideableValue
         HideableImpl.SecretValue {
 
   record KeyValuePair(String key, HideableValue value) {
-    String first() { return key; }
-    HideableValue second() { return value; }
+    String first() {
+      return key;
+    }
+
+    HideableValue second() {
+      return value;
+    }
   }
 
   class Factory {
