@@ -38,7 +38,7 @@ create_to_email_object emails send_type =
 create_to_email recipient_email =
     recipient_object = case recipient_email of
         Email_Address.Address address -> JS_Object.from_pairs [["email", address]]
-        Email_Address.NameAddress name address -> JS_Object.from_pairs [["name", name], ["email", address]]
+        Email_Address.Name_Address name address -> JS_Object.from_pairs [["name", name], ["email", address]]
     recipient_object
 
 prepare_html_body html_content:Email_Body = case html_content of

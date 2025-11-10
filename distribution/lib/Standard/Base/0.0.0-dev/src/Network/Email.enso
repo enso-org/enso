@@ -21,7 +21,7 @@ import project.Metadata.Display
    icon: email
    ---
    Sends an email.
-@from test_widget
+@from Email_Address.default_widget
 @to default_widget
 @cc default_widget
 @bcc default_widget
@@ -36,14 +36,4 @@ send from:Email_Address=(Missing_Argument.throw "from") (to:Vector Email_Address
     private: true
     ---
 default_widget (display : Display = ..When_Modified) -> Widget =
-    Vector_Editor test_widget item_default='Email_Address.Address' display=display
-
-## ---
-    private: true
-    ---
-test_widget (display : Display = ..When_Modified) -> Widget =
-    name = [Option "Address" "Email_Address.Address"]
-    nameaddress = [Option "Name And Address" "Email_Address.NameAddress"]
-    values = name + nameaddress
-
-    Single_Choice values=values display=..Always
+    Vector_Editor Email_Address.default_widget item_default='Email_Address.Address' display=display

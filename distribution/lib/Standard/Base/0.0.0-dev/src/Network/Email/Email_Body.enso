@@ -13,9 +13,9 @@ type Email_Body
       private: true
       ---
    default_widget (display : Display = ..When_Modified) -> Widget =
-      name = [Option "Plain_Text" "Email_Body.Plain_Text ''"]
-      nameaddress = [Option "HTML" "Email_Body.HTML '' ''"]
-      values = name + nameaddress
+      plain = [Option "Plain_Text" "Email_Body.Plain_Text ''"]
+      html = [Option "HTML" "Email_Body.HTML '' ''"]
+      values = plain + html
 
       Single_Choice values=values display=..Always
 

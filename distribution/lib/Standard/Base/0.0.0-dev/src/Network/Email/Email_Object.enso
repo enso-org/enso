@@ -15,5 +15,6 @@ type Email_Object
             + '\nCc: ' + (self.cc.map .to_text).join '; '
             + '\nBcc: ' + (self.bcc.map .to_text).join '; '
             + '\nSubject: ' + self.subject
+            + '\nAttachments: ' + (if self.attachments.length == 0 then "None" else (self.attachments.map (f->f.file.name)).join '; ')
             + '\nBody: ' + self.body.body
 	   

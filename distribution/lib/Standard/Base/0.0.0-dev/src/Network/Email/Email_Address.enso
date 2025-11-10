@@ -1,10 +1,24 @@
 import project.Errors.Common.Missing_Argument
 import project.Data.Text.Text
+from project.Metadata.Choice import Option
+from project.Metadata.Widget import Text_Input, Vector_Editor, Single_Choice
+import project.Metadata.Widget
+import project.Metadata.Display
 
 type Email_Address
 	Address address:Text=(Missing_Argument.throw "address")
-	NameAddress name:Text=(Missing_Argument.throw "name") address:Text=(Missing_Argument.throw "address")
+	Name_Address name:Text=(Missing_Argument.throw "name") address:Text=(Missing_Argument.throw "address")
 
 	to_text self -> Text = case self of
 		Email_Address.Address address -> self.address
-		Email_Address.NameAddress name address -> self.name + ' <' + self.address + '>'
+		Email_Address.Name_Address name address -> self.name + ' <' + self.address + '>'
+
+	## ---
+       private: true
+       ---
+	default_widget (display : Display = ..When_Modified) -> Widget =
+		name = [Option "Address" "Email_Address.Address"]
+		name_address = [Option "Name And Address" "Email_Address.Name_Address"]
+		values = name + name_address
+
+		Single_Choice values=values display=..Always
