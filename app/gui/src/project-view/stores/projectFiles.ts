@@ -1,9 +1,9 @@
 import { type ProjectStore } from '$/providers/openedProjects/project'
 import { bytesToHex, Hash } from '@noble/hashes/utils'
+import { Err, Ok, type Result, withContext } from 'enso-common/src/utilities/data/result'
 import { Error as DataError } from 'ydoc-shared/binaryProtocol'
 import { ErrorCode, RemoteRpcError } from 'ydoc-shared/languageServer'
 import { type Path } from 'ydoc-shared/languageServerTypes'
-import { Err, Ok, type Result, withContext } from 'ydoc-shared/util/data/result'
 
 export type ProjectFiles = ReturnType<typeof useProjectFiles>
 

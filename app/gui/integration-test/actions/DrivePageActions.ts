@@ -377,7 +377,7 @@ export default class DrivePageActions<Context = object> extends PageActions<Cont
   newEmptyProject() {
     return this.step('Create empty project', async (page) => {
       await page.getByText(TEXT.newEmptyProject, { exact: true }).click()
-      await expect(page.getByTestId('editor')).toBeVisible()
+      await expect(page.locator('.ProjectView')).toBeVisible()
     }).into(EditorPageActions<Context>)
   }
 

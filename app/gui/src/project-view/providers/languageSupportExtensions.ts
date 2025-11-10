@@ -6,7 +6,7 @@ import { useTableExpressionExtension } from '@/util/codemirror/language/tableExp
 import type { ToValue } from '@/util/reactivity'
 import type { Extension } from '@codemirror/state'
 import { record } from 'enso-common/src/utilities/data/object'
-import type { Opt } from 'ydoc-shared/util/data/opt'
+import type { Opt } from 'enso-common/src/utilities/data/opt'
 
 export interface LanguageSupportOptions {
   project: ToValue<Opt<ProjectStore>>

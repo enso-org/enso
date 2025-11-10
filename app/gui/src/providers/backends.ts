@@ -1,11 +1,13 @@
-import { BackendType } from '#/services/Backend'
-import LocalBackend from '#/services/LocalBackend'
-import { Path, ProjectManager } from '#/services/ProjectManager'
-import RemoteBackend from '#/services/RemoteBackend'
+import { localRootDirectoryStore } from '#/layouts/Drive/persistentState'
+import { download } from '#/utilities/download'
 import { injectGuiConfig, type GuiConfig } from '@/providers/guiConfig'
 import { proxyRefs, type ToValue } from '@/util/reactivity'
 import { createGlobalState } from '@vueuse/core'
+import { BackendType, Path } from 'enso-common/src/services/Backend'
 import { HttpClient } from 'enso-common/src/services/HttpClient'
+import { LocalBackend } from 'enso-common/src/services/LocalBackend'
+import { ProjectManager } from 'enso-common/src/services/ProjectManager/ProjectManager'
+import { RemoteBackend } from 'enso-common/src/services/RemoteBackend'
 import invariant from 'tiny-invariant'
 import { computed, inject, ref, toValue, watch, watchEffect } from 'vue'
 import { useHttpClient } from './httpClient'
@@ -29,9 +31,23 @@ function initializeBackends(
     projectManager.value = pm
   })
   const localBackend = computed(() =>
-    projectManager.value ? new LocalBackend(getText, projectManager.value) : null,
+    projectManager.value ?
+      new LocalBackend(
+        getText,
+        projectManager.value,
+        undefined,
+        download,
+        () => localRootDirectoryStore.getState().localRootDirectory,
+        window.api?.system?.getFilePath,
+      )
+    : null,
   )
-  const remoteBackend = new RemoteBackend(getText, httpClient)
+  const remoteBackend = new RemoteBackend(
+    getText,
+    httpClient,
+    download,
+    new URL($config.API_URL ?? '', location.href),
+  )
 
   watch(
     () => getText,

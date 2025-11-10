@@ -1,7 +1,7 @@
 /** @file Displays a non-interactable icon for an asset based on its type and name. */
 import { Icon } from '#/components/Icon'
-import * as backend from '#/services/Backend'
 import * as fileIcon from '#/utilities/fileIcon'
+import * as backend from 'enso-common/src/services/Backend'
 
 /** Props for an {@link AssetIcon}. */
 export interface AssetIconProps {
@@ -27,10 +27,6 @@ export default function AssetIcon(props: AssetIconProps) {
     }
     case backend.AssetType.secret: {
       return <Icon icon="key" className={className} />
-    }
-    case backend.AssetType.specialUp: {
-      // It should not be possible for these to be displayed, but return something anyway.
-      return <Icon icon="ghost" className={className} />
     }
   }
 }

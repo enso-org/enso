@@ -1,5 +1,5 @@
 import { proxyRefs } from '@/util/reactivity'
-import { computed, onScopeDispose, ref } from 'vue'
+import { computed, nextTick, onScopeDispose, ref, watch, type WatchSource } from 'vue'
 import { createContextStore } from '.'
 
 /**
@@ -18,8 +18,11 @@ const [provideAnimationCounter, injectAnimationCounter] = createContextStore(
 
     let disposed = false
     onScopeDispose(() => {
-      modifyCount(-reportedCount.value)
-      disposed = true
+      // See `{@link useLayoutAnimationReporter}().reportAnimationEnded` for reasoning behind using rAF here.
+      requestAnimationFrame(() => {
+        modifyCount(-reportedCount.value)
+        disposed = true
+      })
     })
 
     function modifyCount(change: number) {
@@ -40,19 +43,51 @@ const [provideAnimationCounter, injectAnimationCounter] = createContextStore(
  * that can affect DOM element layout, so that any parent component can temporarily enable extra
  * logic necessary to track them.
  *
- * This is NOT supposed to be used forcounting CSS-driven animations, as those can already be discovered
+ * This is NOT supposed to be used for counting CSS-driven animations, as those can already be discovered
  * using `animationstart` and similar events.
  *
  * See `useLayoutAnimationsState` for use on the receiver end.
  */
 export const useLayoutAnimationReporter = () => {
   const counter = injectAnimationCounter(true)
-  return {
-    reportAnimationStarted: () => counter?.modifyCount(1),
+
+  /**
+   * Notify that JS-driven animation affecting DOM node positions and sizes has started. Each call must be
+   * paired with **exactly one** call to {@link reportAnimationEnded}.
+   *
+   */
+  function reportAnimationStarted() {
+    counter?.modifyCount(1)
+  }
+
+  /**
+   * Notify that an animation previously reported by {@link reportAnimationStarted} has ended and will no longer
+   * modify DOM node positions. Must be called **exactly once** per each invocation of {@link reportAnimationStarted}.
+   */
+  function reportAnimationEnded() {
     // RequestAnimationFrame is used to ensure that at least one frame has passed since the animation stop
     // was triggered on the JS side. That way the active state is maintained for the full duration of the
     // last animation frame, and any tracking logic has a chance to react to the final element position.
-    reportAnimationEnded: () => requestAnimationFrame(() => counter?.modifyCount(-1)),
+    requestAnimationFrame(() => counter?.modifyCount(-1))
+  }
+
+  function reportAnimationWhile(source: WatchSource<boolean>) {
+    watch(
+      source,
+      (report, _, onCleanup) => {
+        if (report) {
+          reportAnimationStarted()
+          onCleanup(() => nextTick(reportAnimationEnded))
+        }
+      },
+      { flush: 'post', immediate: true },
+    )
+  }
+
+  return {
+    reportAnimationStarted,
+    reportAnimationEnded,
+    reportAnimationWhile,
   }
 }
 

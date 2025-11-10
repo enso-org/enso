@@ -50,7 +50,7 @@ case object ModuleNameConflicts extends IRPass {
         case _ =>
           None
       }
-      ir.copy(
+      ir.copyWithBindings(
         bindings = ir.bindings.map(lintBinding(_, syntheticExports))
       )
     } else {

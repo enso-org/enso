@@ -1,7 +1,7 @@
 /**
  * @file Definitions for the Snowflake credentials integration.
  */
-import type { SecretId, SnowflakeCredentialInput } from '#/services/Backend'
+import type { SecretId, SnowflakeCredentialInput } from 'enso-common/src/services/Backend'
 import { z } from 'zod'
 import type { CredentialRecipe } from './types'
 import { getOauthRedirectUri } from './utilities'

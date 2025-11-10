@@ -41,7 +41,7 @@ const { editorView, setExtraExtensions } = useCodeMirror(editorRoot, {
     foldGutter(),
     lintGutter(),
     highlightSelectionMatches(),
-    ensoSyntax(toRef(module.value, 'root')),
+    () => (module.value.root ? ensoSyntax(toRef(module.value, 'root')) : []),
     ensoHoverTooltip(graph, vueHost),
     () => (editorRoot.value ? highlightStyle(editorRoot.value.highlightClasses) : []),
   ],

@@ -12,7 +12,7 @@ import {
   modifiersForModifierFlags,
   normalizedKeyboardSegmentLookup,
 } from '@/util/shortcuts'
-import { isOnMacOS } from 'enso-common/src/detect'
+import { isOnMacOS } from 'enso-common/src/utilities/detect'
 import { useState, type KeyboardEvent as ReactKeyboardEvent } from 'react'
 
 const DISALLOWED_KEYS = new Set(['Control', 'Alt', 'Shift', 'Meta'])

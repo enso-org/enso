@@ -3,6 +3,7 @@ import { useActionsStore, type ActionsStore } from '$/providers/actions'
 import { useAuth, type AuthStore } from '$/providers/auth'
 import { useBackends, type BackendsStore } from '$/providers/backends'
 import { useHttpClient } from '$/providers/httpClient'
+import { useOpenedProjects, type OpenedProjectsStore } from '$/providers/openedProjects'
 import { useQueryParams, type QueryParams } from '$/providers/queryParams'
 import {
   ActionsContext,
@@ -14,6 +15,7 @@ import {
 } from '$/providers/react'
 import { AuthContext } from '$/providers/react/auth'
 import { BackendsContext } from '$/providers/react/backends'
+import { OpenedProjectsContext } from '$/providers/react/openedProjects'
 import { QueryParamsContext } from '$/providers/react/queryParams'
 import { RouterContext, type RouterForReact } from '$/providers/react/router'
 import { UploadsToCloudStoreContext } from '$/providers/react/upload'
@@ -39,6 +41,7 @@ interface ContextsForReactProviderProps {
   queryParams: QueryParams
   actionsStore: ActionsStore
   uploadsToCloudStore: UploadsToCloudStore
+  openedProjects: OpenedProjectsStore
 }
 
 /**
@@ -62,6 +65,7 @@ export const ContextsForReactProvider = reactComponent(
       queryParams,
       actionsStore,
       uploadsToCloudStore,
+      openedProjects,
     } = props
     return (
       <RouterContext.Provider value={router}>
@@ -75,7 +79,9 @@ export const ContextsForReactProvider = reactComponent(
                       <BackendsContext.Provider value={backends}>
                         <ActionsContext.Provider value={actionsStore}>
                           <UploadsToCloudStoreContext.Provider value={uploadsToCloudStore}>
-                            {children}
+                            <OpenedProjectsContext.Provider value={openedProjects}>
+                              {children}
+                            </OpenedProjectsContext.Provider>
                           </UploadsToCloudStoreContext.Provider>
                         </ActionsContext.Provider>
                       </BackendsContext.Provider>
@@ -108,6 +114,7 @@ export const ContextsForReactProvider = reactComponent(
         queryParams: useQueryParams(),
         actionsStore: useActionsStore(),
         uploadsToCloudStore: useUploadsToCloudStore(),
+        openedProjects: useOpenedProjects(),
       })
       // Avoid annoying warning about __veauryInjectedProps__ property. Returning a function here
       // avoids the code path that assigns that property to overwrite a computed value with constant.

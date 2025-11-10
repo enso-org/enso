@@ -35,8 +35,28 @@ type Microsoft365
        ---
 
        Lists the root directory of the user's OneDrive.
-    list_root self =
-        _ms365_get self (_base_url + "/me/drive/root/children")
+    list_root self = self.list "/me/drive/root/children"
+
+    ## ---
+       icon: cloud
+       ---
+
+       Lists a directory of the user's OneDrive.
+    list self path =
+        v = _ms365_get self (_base_url + path)
+        v.at "value" . map value->
+            is_folder = value.contains_key "folder"
+            value.at "name" + (if is_folder then "/" else "")
+
+    ## ---
+       icon: cloud
+       ---
+
+       Reads the contents of a file in the user's OneDrive.
+    read self path =
+        v = _ms365_get self (_base_url + path)
+        url = v . at "@microsoft.graph.downloadUrl"
+        HTTP.fetch url . decode_as_text
 
     ## ---
        private: true

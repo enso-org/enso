@@ -1,13 +1,13 @@
 /** @file APIs for navigating a cloud directory structure. */
 import type { EnsoPath } from '@/components/widgets/FileBrowserWidget/ensoPath'
 import { findDifferenceIndex } from '@/util/data/array'
-import { Err, Ok, type Result } from '@/util/data/result'
 import {
   assetIsDirectory,
   type DirectoryAsset,
   type DirectoryId,
   type ListDirectoryResponseBody,
 } from 'enso-common/src/services/Backend'
+import { Err, Ok, type Result } from 'enso-common/src/utilities/data/result'
 import { computed, reactive, ref, toRaw, type Ref } from 'vue'
 
 /** A directory on browser's stack. */

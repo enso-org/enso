@@ -13,7 +13,7 @@ import { parseEnsoDeeplink } from '@/util/url'
 import * as amplify from '@aws-amplify/auth'
 import * as common from 'enso-common'
 import type * as saveAccessTokenModule from 'enso-common/src/accessToken'
-import * as detect from 'enso-common/src/detect'
+import * as detect from 'enso-common/src/utilities/detect'
 import * as toastify from 'react-toastify'
 import { useRouter } from 'vue-router'
 

@@ -52,6 +52,10 @@
   --selected-node-border-width: 20px;
   /** Padding added to token widgets to push them away from rounded corners of the parent widget. */
   --widget-token-pad-unit: 6px;
+  --widget-port-drag-inset: calc(
+    (var(--node-port-height) - var(--node-base-height)) / 2
+  );
+  --node-port-nonprimary-drag-shrink: 8px;
 
   --node-border-radius: calc(var(--node-base-height) / 2);
   --node-port-border-radius: calc(var(--node-port-height) / 2);
@@ -230,7 +234,6 @@
    * A `border-radius` of 100% does not work because the element becomes an ellipse. */
   --radius-full: 9999px;
   --radius-default: 16px;
-  --node-port-height: 24px;
   --section-gap: 160px;
   --font-sans: "M PLUS 1", /* System sans-serif font stack */ system-ui,
     -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu",

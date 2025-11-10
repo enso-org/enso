@@ -868,7 +868,7 @@ class Compiler(
       }
       Name.Qualified(name, identifiedLocation = null)
     }.toList
-    ir.copy(
+    ir.copyWithImportsAndExports(
       imports =
         ir.imports ::: moduleNames.map(m => Import.Module.createSynthetic(m)),
       exports = ir.exports ::: moduleNames.map(m =>
