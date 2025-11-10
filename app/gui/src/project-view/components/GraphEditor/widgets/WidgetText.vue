@@ -11,8 +11,8 @@ import CodeMirrorWidgetBase from '@/components/GraphEditor/CodeMirrorWidgetBase.
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import { Ast } from '@/util/ast'
 import { useLanguageSupport } from '@/util/codemirror/language'
+import { Ok } from 'enso-common/src/utilities/data/result'
 import { computed, ref, useTemplateRef } from 'vue'
-import { Ok } from 'ydoc-shared/util/data/result'
 
 const baseEditor = useTemplateRef('baseEditor')
 const props = defineProps(widgetProps(widgetDefinition))

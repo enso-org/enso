@@ -17,7 +17,6 @@ import { analyzeBindings, type BindingInfo } from '@/util/ast/bindings'
 import { inputNodeFromAst, nodeFromAst, nodeRootExpr } from '@/util/ast/node'
 import { arrayEquals, tryGetIndex } from '@/util/data/array'
 import { recordEqual } from '@/util/data/object'
-import { unwrap } from '@/util/data/result'
 import { Vec2 } from '@/util/data/vec2'
 import { ReactiveDb, ReactiveIndex, ReactiveMapping } from '@/util/database/reactiveDb'
 import {
@@ -34,6 +33,8 @@ import {
   syncSetDiff,
 } from '@/util/reactivity'
 import * as objects from 'enso-common/src/utilities/data/object'
+import type { Opt } from 'enso-common/src/utilities/data/opt'
+import { unwrap } from 'enso-common/src/utilities/data/result'
 import * as set from 'lib0/set'
 import {
   reactive,
@@ -44,7 +45,6 @@ import {
   type WatchStopHandle,
 } from 'vue'
 import type { SourceDocument } from 'ydoc-shared/ast/sourceDocument'
-import type { Opt } from 'ydoc-shared/util/data/opt'
 import type { ExternalId, VisualizationMetadata } from 'ydoc-shared/yjsModel'
 import { isUuid, visMetadataEquals } from 'ydoc-shared/yjsModel'
 

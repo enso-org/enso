@@ -29,8 +29,8 @@ import { partitionPoint } from '@/util/data/array'
 import { methodPointerEquals, type MethodPointer } from '@/util/methodPointer'
 import { isIdentifier } from '@/util/qualifiedName'
 import { proxyRefs } from '@/util/reactivity'
+import { Err, Ok } from 'enso-common/src/utilities/data/result'
 import { computed } from 'vue'
-import { Err, Ok } from 'ydoc-shared/util/data/result'
 import { FunctionName } from './WidgetFunctionName.vue'
 
 const props = defineProps(widgetProps(widgetDefinition))

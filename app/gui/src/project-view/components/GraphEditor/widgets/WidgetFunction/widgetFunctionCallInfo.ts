@@ -22,9 +22,9 @@ import {
 import { type MethodPointer } from '@/util/methodPointer'
 import { ProjectPath } from '@/util/projectPath'
 import type { ToValue } from '@/util/reactivity'
+import type { Opt } from 'enso-common/src/utilities/data/opt'
 import { computed, toValue, type DeepReadonly } from 'vue'
 import type { Identifier } from 'ydoc-shared/ast'
-import type { Opt } from 'ydoc-shared/util/data/opt'
 import type { ExternalId } from 'ydoc-shared/yjsModel'
 import { GET_WIDGETS_METHOD, WIDGETS_ENSO_MODULE, WIDGETS_ENSO_PATH } from './consts'
 

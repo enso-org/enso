@@ -4,9 +4,6 @@ import { Result } from '#/components/Result'
 import { copyAssetsMutationOptions } from '#/hooks/backendBatchedHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
-import type { AnyAsset, DatalinkAsset, FileAsset, ProjectAsset } from '#/services/Backend'
-import { AssetType, BackendType, S3ObjectVersionId } from '#/services/Backend'
-import type RemoteBackend from '#/services/RemoteBackend'
 import { useBackends, useText } from '$/providers/react'
 import {
   useRightPanelContextCategory,
@@ -14,8 +11,16 @@ import {
 } from '$/providers/react/container'
 import { useOpenedProjects } from '$/providers/react/openedProjects'
 import { includes } from '$/utils/data/array'
-import { uniqueString } from '$/utils/uniqueString'
 import { useMutation, useSuspenseQuery } from '@tanstack/react-query'
+import type {
+  AnyAsset,
+  DatalinkAsset,
+  FileAsset,
+  ProjectAsset,
+} from 'enso-common/src/services/Backend'
+import { AssetType, BackendType, S3ObjectVersionId } from 'enso-common/src/services/Backend'
+import type { RemoteBackend } from 'enso-common/src/services/RemoteBackend'
+import { uniqueString } from 'enso-common/src/utilities/uniqueString'
 import { AssetVersion, type DuplicateOptions, type Version } from './AssetVersion'
 import { assetVersionsQueryOptions } from './queries'
 
@@ -147,9 +152,7 @@ function AssetVersionsInternal(props: AssetVersionsInternalProps) {
   )
 }
 
-/**
- * Check if the asset is allowed to have versions.
- */
+/** Check if the asset is allowed to have versions. */
 function isAllowedAssetType(asset: AnyAsset): asset is DatalinkAsset | FileAsset | ProjectAsset {
   return includes([AssetType.project, AssetType.datalink, AssetType.file], asset.type)
 }

@@ -6,13 +6,16 @@ import { useCategoriesAPI } from '#/layouts/Drive/Categories'
 import type { AssetNameColumnProps } from '#/pages/dashboard/components/column'
 import ProjectIcon, { CLOSED_PROJECT_STATE } from '#/pages/dashboard/components/ProjectIcon'
 import { useDriveStore } from '#/providers/DriveProvider'
-import { BackendType, titleSchema, type ProjectAsset } from '#/services/Backend'
 import { isDoubleClick } from '#/utilities/event'
-import { PERMISSION_ACTION_CAN_EXECUTE, tryFindSelfPermission } from '#/utilities/permissions'
 import { twMerge } from '#/utilities/tailwindMerge'
 import { useFullUserSession } from '$/providers/react'
 import { useOpenedProjects } from '$/providers/react/openedProjects'
-import { isOnMacOS } from '$/utils/detect'
+import { BackendType, titleSchema, type ProjectAsset } from 'enso-common/src/services/Backend'
+import { isOnMacOS } from 'enso-common/src/utilities/detect'
+import {
+  PERMISSION_ACTION_CAN_EXECUTE,
+  tryFindSelfPermission,
+} from 'enso-common/src/utilities/permissions'
 import { useStore } from 'zustand'
 
 /** Props for a {@link ProjectNameColumn}. */

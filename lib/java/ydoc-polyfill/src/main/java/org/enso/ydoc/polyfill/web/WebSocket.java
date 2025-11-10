@@ -9,6 +9,7 @@ import io.helidon.webclient.websocket.WsClientProtocolConfig;
 import io.helidon.webserver.WebServer;
 import io.helidon.webserver.http.HttpRouting;
 import io.helidon.webserver.websocket.WsRouting;
+import io.helidon.websocket.WsCloseCodes;
 import io.helidon.websocket.WsListener;
 import io.helidon.websocket.WsSession;
 import java.io.UncheckedIOException;
@@ -46,6 +47,7 @@ final class WebSocket implements ProxyExecutable {
   private static final String NEW_WEB_SOCKET_SERVER = "new-web-socket-server";
   private static final String WEB_SOCKET_SERVER_START = "web-socket-server-start";
 
+  private static final String SOCKET_CLOSED_REASON = "Socket closed";
   private static final String WEBSOCKET_JS = "websocket.js";
 
   private final ScheduledExecutorService executor;
@@ -196,7 +198,11 @@ final class WebSocket implements ProxyExecutable {
 
         var session = connection.getSession();
         if (session != null) {
-          session.terminate();
+          try {
+            session.terminate();
+          } catch (IllegalStateException socketClosed) {
+            connection.onClose(session, WsCloseCodes.CLOSED_ABNORMALLY, SOCKET_CLOSED_REASON);
+          }
         }
 
         yield null;
@@ -210,7 +216,11 @@ final class WebSocket implements ProxyExecutable {
         var session = connection.getSession();
         if (session != null) {
           var reason = reasonArgument == null ? "Close" : reasonArgument;
-          session.close(code, reason);
+          try {
+            session.close(code, reason);
+          } catch (IllegalStateException socketClosed) {
+            connection.onClose(session, WsCloseCodes.CLOSED_ABNORMALLY, SOCKET_CLOSED_REASON);
+          }
         }
 
         yield null;

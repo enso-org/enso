@@ -1,5 +1,5 @@
-import { isOnWindows } from '$/utils/detect'
-import { newtypeConstructor, type Newtype } from 'enso-common/src/utilities/data/newtype'
+import { newtypeConstructor, type Newtype } from './data/newtype.js'
+import { isOnWindows } from './detect.js'
 
 /** A filesystem path. */
 export type Path = Newtype<string, 'Path'>

@@ -13,9 +13,9 @@ import { injectInteractionHandler, type Interaction } from '@/providers/interact
 import { endOnClick, targetIsOutside } from '@/util/autoBlur'
 import type { ToValue } from '@/util/reactivity'
 import type { HTMLElementEventHandler } from '@/util/vueDom'
+import type { Opt } from 'enso-common/src/utilities/data/opt'
 import { computed, type Ref, ref, toValue } from 'vue'
 import type { ComponentProps } from 'vue-component-type-helpers'
-import type { Opt } from 'ydoc-shared/util/data/opt'
 
 interface FileExtensionEntry extends SubmenuEntry<FileExtensionEntry> {
   extensions: 'all' | string[]

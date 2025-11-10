@@ -1,9 +1,9 @@
-import { unsafeKeys } from '#/utilities/object'
 import type { OpenedProjectsStore } from '$/providers/openedProjects'
 import type { Initialized as InitializedProject } from '$/providers/openedProjects/projectStates'
-import { readUserSelectedFile } from '$/utils/file'
 import { useProjectFiles } from '@/stores/projectFiles'
-import { Err, mapOk, Ok, type Result } from '@/util/data/result'
+import { unsafeKeys } from 'enso-common/src/utilities/data/object'
+import { Err, mapOk, Ok, type Result } from 'enso-common/src/utilities/data/result'
+import { readUserSelectedFile } from 'enso-common/src/utilities/file'
 import type { FetchPartialProgress } from './AsyncResource'
 import type { ResourceContextSnapshot } from './context'
 

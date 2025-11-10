@@ -25,7 +25,7 @@
     "@internationalized/date": "3.7.0",
     "@types/node": "catalog:",
     "is-network-error": "^1.1.0",
-    "vue": "^3.5.13",
+    "vue": "catalog:",
     "zod": "catalog:"
   },
   "devDependencies": {

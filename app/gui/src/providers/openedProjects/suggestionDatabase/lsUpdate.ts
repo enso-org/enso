@@ -19,7 +19,6 @@ import {
 } from '$/providers/openedProjects/suggestionDatabase/entry'
 import { assert, assertNever } from '@/util/assert'
 import type { Opt } from '@/util/data/opt'
-import { Err, Ok, withContext, type Result } from '@/util/data/result'
 import { ANY_TYPE_QN } from '@/util/ensoTypes'
 import type { MethodPointer } from '@/util/methodPointer'
 import type { ProjectPath } from '@/util/projectPath'
@@ -31,6 +30,7 @@ import {
   type IdentifierOrOperatorIdentifier,
 } from '@/util/qualifiedName'
 import type { ToValue } from '@/util/reactivity'
+import { Err, Ok, withContext, type Result } from 'enso-common/src/utilities/data/result'
 import { toValue, type DeepReadonly } from 'vue'
 import type {
   SuggestionArgumentUpdate,

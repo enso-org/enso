@@ -17,9 +17,9 @@ import { Ast } from '@/util/ast'
 import type { Identifier } from '@/util/ast/abstract'
 import { parseAbsoluteProjectPathRaw } from '@/util/projectPath'
 import type { GetContextMenuItems, GetMainMenuItems } from 'ag-grid-enterprise'
+import { Ok, unwrap, type Result } from 'enso-common/src/utilities/data/result'
 import { expect, test, vi } from 'vitest'
 import { assertDefined } from 'ydoc-shared/util/assert'
-import { Ok, unwrap, type Result } from 'ydoc-shared/util/data/result'
 
 function suggestionDbWithNothing() {
   const db = new SuggestionDb()

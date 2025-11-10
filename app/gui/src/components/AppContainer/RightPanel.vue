@@ -15,9 +15,9 @@ import SizeTransition from '@/components/SizeTransition.vue'
 import WithFullscreenMode from '@/components/WithFullscreenMode.vue'
 import { useResizeObserver } from '@/composables/events'
 import { Rect } from '@/util/data/rect'
-import type { Result } from '@/util/data/result'
 import { Vec2 } from '@/util/data/vec2'
 import type { ToValue } from '@/util/reactivity'
+import type { Result } from 'enso-common/src/utilities/data/result'
 import { computed, toValue, useTemplateRef } from 'vue'
 
 const data = useRightPanelData()

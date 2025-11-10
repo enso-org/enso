@@ -1,6 +1,6 @@
 /** @file Return the subscription price. */
-import type { Plan } from '#/services/Backend'
 import { queryOptions } from '@tanstack/react-query'
+import type { Plan } from 'enso-common/src/services/Backend'
 import { PRICE_BY_PLAN } from './constants'
 
 /** Options for {@link createSubscriptionPriceQuery}. */

@@ -1,8 +1,8 @@
-import { Ok, type Result } from '@/util/data/result'
-import { normalizeName } from '@/util/nameValidation'
 import { parseAbsoluteProjectPath, ProjectPath } from '@/util/projectPath'
 import { normalizeQualifiedName, qnJoin, tryQualifiedName } from '@/util/qualifiedName'
 import type { ToValue } from '@/util/reactivity'
+import { Ok, type Result } from 'enso-common/src/utilities/data/result'
+import { normalizeName } from 'enso-common/src/utilities/nameValidation'
 import { computed, ref, toValue } from 'vue'
 import type { Identifier, QualifiedName } from 'ydoc-shared/ast'
 
@@ -33,7 +33,9 @@ export function createProjectNameStore({
 
   const inboundProject = computed(() => qnJoin(ns.value, synchronizedName.value))
   const outboundProject = computed(() =>
-    pendingName.value ? qnJoin(ns.value, normalizeName(pendingName.value)) : inboundProject.value,
+    pendingName.value ?
+      qnJoin(ns.value, normalizeName(pendingName.value) as QualifiedName)
+    : inboundProject.value,
   )
 
   /**
