@@ -3,7 +3,13 @@
  * Calls `git clean -xdf` with some exclusions, and also `bazel clean --expunge`, to clean Bazel build artifacts.
  */
 
-const EXCLUSIONS = ['.idea', '.jj', 'app/gui/', 'app/electron-client/playwright/.auth/user.json']
+const EXCLUSIONS = [
+  '.idea',
+  '.jj',
+  '.bazelrc.local',
+  'app/gui/',
+  'app/electron-client/playwright/.auth/user.json',
+]
 
 import { spawn } from 'node:child_process'
 import { once } from 'node:events'
