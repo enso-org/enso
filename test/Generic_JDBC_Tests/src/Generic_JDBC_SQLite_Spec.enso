@@ -1,16 +1,14 @@
 from Standard.Base import all
 
-
 from Standard.Database import all
 from Standard.Database.Errors import all
 
 from Standard.Test import all
 
-import project.Database.Helpers.Name_Generator
-
 import Standard.Generic_JDBC.Generic_JDBC_Connection.Generic_JDBC_Connection
 
-import enso_dev.Generic_JDBC_Tests.Generic_JDBC_Connection_Spec
+import project.Generic_JDBC_Connection_Spec
+import enso_dev.Table_Tests.Database.Helpers.Name_Generator
 
 add_specs_for_config config suite_builder =
     Generic_JDBC_Connection_Spec.add_specs_for_backend config suite_builder
@@ -86,3 +84,8 @@ type SQLite_JDBC_In_Memory_Config
 add_specs suite_builder =
         add_specs_for_config SQLite_JDBC_File_Config.Value suite_builder
         add_specs_for_config SQLite_JDBC_In_Memory_Config.Value suite_builder
+
+main filter=Nothing =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter filter
