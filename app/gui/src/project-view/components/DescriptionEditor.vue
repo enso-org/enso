@@ -4,7 +4,6 @@ import { useRightPanelData } from '$/providers/rightPanel'
 import MarkdownEditor from '@/components/MarkdownEditor.vue'
 import { backendMutationOptions } from '@/composables/backend'
 import { useEvent } from '@/composables/events'
-import { type ResourceContext } from '@/providers/asyncResources/context'
 import { useStringSync } from '@/util/codemirror'
 import { ResultComponent } from '@/util/react'
 import { EditorView } from '@codemirror/view'
@@ -19,12 +18,6 @@ const backendForAsset = computed(
   () =>
     (rightPanel.context?.category && backendForType(rightPanel.context.category.backend)) ?? null,
 )
-
-const resourceContext = computed<ResourceContext>(() => ({
-  project: undefined,
-  asset: rightPanel.focusedAsset,
-  basePathSegments: undefined,
-}))
 
 // Provide an extra `mutationKey` so that it has its own loading state.
 const editDescriptionMutation = useMutation(
@@ -104,7 +97,6 @@ function editorReadyCallback(view: EditorView) {
       :extensions="syncExt"
       contentTestId="asset-panel-description"
       :editorReadyCallback="editorReadyCallback"
-      :resourceContext="resourceContext"
     />
     <ResultComponent
       v-else
