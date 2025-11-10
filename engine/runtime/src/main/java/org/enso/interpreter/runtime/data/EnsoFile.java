@@ -79,11 +79,10 @@ public final class EnsoFile extends BuiltinObject {
       EnsoContext ctx)
       throws IOException {
     var options = namesToValues(opts, lengthNode, atNode, ctx, StandardOpenOption::valueOf);
-    var os = Files.newOutputStream(file.path, options.toArray(OpenOption[]::new));
     if (shouldLog(file)) {
-      System.out.printf("[mylog] Opening output stream %s for path: %s with options: %s%n",
-          hash(os), file.path, options);
+      System.out.printf("[mylog] Opening output stream for path: %s with options: %s%n", file.path, options);
     }
+    var os = Files.newOutputStream(file.path, options.toArray(OpenOption[]::new));
     return new EnsoOutputStream(os);
   }
 
@@ -141,7 +140,6 @@ public final class EnsoFile extends BuiltinObject {
             }
             var buf = new byte[8192];
             var at = 0;
-            System.out.printf("[mylog:OutputStream@%s] Writing from %d to %d%n", hash(os.os), from, to);
             for (long i = from; i < to; i++) {
               var elem = atNode.executeAt(args[0], i);
               buf[at++] = iop.asByte(elem);
@@ -156,12 +154,10 @@ public final class EnsoFile extends BuiltinObject {
             yield os;
           }
           case "flush" -> {
-            System.out.printf("[mylog:OutputStream@%s] Flushing%n", hash(os.os));
             os.flush();
             yield os;
           }
           case "close" -> {
-            System.out.printf("[mylog:OutputStream@%s] Closing%n", hash(os.os));
             os.close();
             yield os;
           }
@@ -215,8 +211,6 @@ public final class EnsoFile extends BuiltinObject {
       throws IOException {
     var options = namesToValues(opts, lengthNode, atNode, ctx, StandardOpenOption::valueOf);
     var is = Files.newInputStream(file.path, options.toArray(OpenOption[]::new));
-    System.out.printf("[mylog] Opening input stream %s for path: %s with options: %s%n",
-        hash(is), file.path, options);
     return new EnsoInputStream(is);
   }
 
@@ -333,7 +327,6 @@ public final class EnsoFile extends BuiltinObject {
               }
               default -> throw ArityException.create(0, 3, args.length);
             }
-            System.out.printf("[mylog:InputStream@%s] Reading from %d to %d%n", hash(is.delegate), from, to);
             for (var i = from; i < to; ) {
               var size = (int) Math.min(to - i, 8192);
               var arr = is.readNBytes(size);
@@ -351,7 +344,6 @@ public final class EnsoFile extends BuiltinObject {
             if (args.length != 0) {
               throw ArityException.create(0, 0, args.length);
             }
-            System.out.printf("[mylog:InputStream@%s] Reading all bytes%n", hash(is.delegate));
             var buf = is.readAllBytes();
             yield ArrayLikeHelpers.wrapBuffer(buf);
           }
@@ -360,7 +352,6 @@ public final class EnsoFile extends BuiltinObject {
               throw ArityException.create(1, 1, args.length);
             }
             var len = iop.asInt(args[0]);
-            System.out.printf("[mylog:InputStream@%s] Reading %d bytes%n", hash(is.delegate), len);
             var buf = is.readNByteBuffer(len);
             yield ArrayLikeHelpers.wrapBuffer(buf);
           }
@@ -376,7 +367,6 @@ public final class EnsoFile extends BuiltinObject {
             if (args.length != 0) {
               throw ArityException.create(0, 0, args.length);
             }
-            System.out.printf("[mylog:InputStream@%s] Checking markSupported%n", hash(is.delegate));
             yield is.markSupported();
           }
           case "mark" -> {
@@ -384,12 +374,10 @@ public final class EnsoFile extends BuiltinObject {
               throw ArityException.create(1, 1, args.length);
             }
             var readlimit = iop.asInt(args[0]);
-            System.out.printf("[mylog:InputStream@%s] Marking with readlimit %d%n", hash(is.delegate), readlimit);
             is.mark(readlimit);
             yield is;
           }
           case "reset" -> {
-            System.out.printf("[mylog:InputStream@%s] Resetting%n", hash(is.delegate));
             if (args.length != 0) {
               throw ArityException.create(0, 0, args.length);
             }
@@ -397,14 +385,12 @@ public final class EnsoFile extends BuiltinObject {
             yield is;
           }
           case "available" -> {
-            System.out.printf("[mylog:InputStream@%s] Checking available%n", hash(is.delegate));
             if (args.length != 0) {
               throw ArityException.create(0, 0, args.length);
             }
             yield is.available();
           }
           case "close" -> {
-            System.out.printf("[mylog:InputStream@%s] Closing%n", hash(is.delegate));
             if (args.length != 0) {
               throw ArityException.create(0, 0, args.length);
             }
@@ -577,10 +563,6 @@ public final class EnsoFile extends BuiltinObject {
     var p = file.path.toString();
     return p.contains("read_many_test")
         || p.contains("permission.csv");
-  }
-
-  private static String hash(Object obj) {
-    return Integer.toHexString(System.identityHashCode(obj));
   }
 
   private static void checkAccesses(EnsoFile file) {
