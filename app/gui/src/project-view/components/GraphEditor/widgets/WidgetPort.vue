@@ -216,7 +216,7 @@ export const widgetDefinition = defineWidget(
     }"
   >
     <WidgetPortArrow
-      :enabled="needsArrow"
+      v-if="needsArrow"
       :hide="hideArrow"
       @arrowClick="graph.createEdgeFromPort(props.input.portId, $event)"
     />

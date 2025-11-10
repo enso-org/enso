@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { EDGE_ARROW_PATH } from '@/components/GraphEditor/GraphEdges.vue'
 const _props = defineProps<{
-  /** Whether the arrow is enabled and should be displayed. */
-  enabled: boolean
-  /** Whether the arrow should be temporarily hidden (visually). */
+  /**
+   * Whether the arrow should be temporarily hidden (visually).
+   * It is used to hide the arrow when the port is connected, but avoid losing pointer events.
+   */
   hide: boolean
 }>()
 
@@ -17,7 +18,7 @@ const emit = defineEmits<{
     :class="['WidgetPortArrow', { hide }, 'widgetOutOfLayout']"
     @pointerdown.stop="emit('arrowClick', $event)"
   >
-    <svg v-if="enabled" class="clickable" viewBox="0 0 12 9">
+    <svg class="clickable" viewBox="0 0 12 9">
       <path :d="EDGE_ARROW_PATH" />
     </svg>
   </div>
