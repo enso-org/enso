@@ -51,6 +51,16 @@ export function useUnconnectedEdges() {
     }
   }
 
+  function createEdgeFromPort(target: PortId, event: PointerEvent | undefined) {
+    mouseEditedEdge.value = {
+      source: undefined,
+      target,
+      createdFrom: 'port',
+      startPosition: new Vec2(event?.screenX ?? 0, event?.screenY ?? 0),
+      anchor: { type: 'mouse' },
+    }
+  }
+
   function createEdgeFromNewButton(source: AstId) {
     mouseEditedEdge.value = {
       source,
@@ -180,6 +190,7 @@ export function useUnconnectedEdges() {
     createNodeFromOutputPortButtonEdges,
     showCreateNodeButtonEdge,
     // === Edge creation ===
+    createEdgeFromPort,
     createEdgeFromOutput,
     createEdgeFromNewButton,
     disconnectSource,

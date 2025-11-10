@@ -5,6 +5,7 @@ import { useText } from '$/providers/text'
 import GraphEditor from '@/components/GraphEditor.vue'
 import { provideVisibility } from '@/providers/visibility'
 import { provideSettings } from '@/stores/settings'
+import { ResultComponent } from '@/util/react'
 import { ProjectId } from 'enso-common/src/services/Backend'
 import { computed, onActivated, onDeactivated, onMounted, ref } from 'vue'
 
