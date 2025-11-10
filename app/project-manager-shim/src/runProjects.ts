@@ -8,7 +8,7 @@ import {
 import { EnsoPath } from 'enso-common/src/services/Backend/types'
 import { Path, type ProjectEntry, type UUID } from 'enso-common/src/services/ProjectManager/types'
 import type { RemoteBackend } from 'enso-common/src/services/RemoteBackend'
-import { dirname } from 'node:path'
+import { dirname, resolve } from 'node:path'
 import { getFileSystemEntry } from './handler/index.js'
 import { EnsoRunner, findEnsoExecutable } from './projectService/ensoRunner.js'
 import { ProjectService } from './projectService/index.js'
@@ -21,7 +21,7 @@ declare module './projectService/ensoRunner.js' {
 
 function getWorkDir() {
   if (process.env.NODE_ENV === 'development') {
-    return '../..'
+    return resolve('../..')
   } else {
     return '.'
   }
