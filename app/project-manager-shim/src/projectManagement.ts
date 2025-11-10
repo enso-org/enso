@@ -422,7 +422,7 @@ function isProjectInstalled(projectRoot: string, directory = getProjectsDirector
 }
 
 /** Create a .tar.gz enso-project bundle. */
-export function createBundle(directory: string): Promise<Buffer> {
+export function createBundle(directory: string): Promise<Buffer<ArrayBuffer>> {
   const readableStream = tar.c(
     {
       z: true,

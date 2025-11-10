@@ -2,11 +2,12 @@ import { localRootDirectoryStore } from '#/layouts/Drive/persistentState'
 import { download } from '#/utilities/download'
 import { proxyRefs, type ToValue } from '@/util/reactivity'
 import { createGlobalState } from '@vueuse/core'
-import { BackendType, Path } from 'enso-common/src/services/Backend'
+import { BackendType, DirectoryId, Path } from 'enso-common/src/services/Backend'
 import { HttpClient } from 'enso-common/src/services/HttpClient'
 import { LocalBackend } from 'enso-common/src/services/LocalBackend'
 import { ProjectManager } from 'enso-common/src/services/ProjectManager/ProjectManager'
 import { RemoteBackend } from 'enso-common/src/services/RemoteBackend'
+import { extractIdFromDirectoryId } from 'enso-common/src/services/RemoteBackend/ids'
 import invariant from 'tiny-invariant'
 import { computed, inject, ref, toValue, watch, watchEffect } from 'vue'
 import { useHttpClient } from './httpClient'
@@ -40,7 +41,39 @@ function initializeBackends(
       )
     : null,
   )
-  const remoteBackend = new RemoteBackend(getText, httpClient, download)
+  const remoteBackend = new RemoteBackend({
+    getText,
+    client: httpClient,
+    downloader: download,
+    downloadCloudProject: async function downloadCloudProject(this: RemoteBackend, params) {
+      const queryString = new URLSearchParams(params)
+      const response = await this.get<{
+        readonly projectRootDirectory: string
+        readonly parentDirectory: string
+      }>(new URL(`/api/cloud/download-project?${queryString}`, location.href).toString())
+      if (!response.ok) {
+        return await this.throw(response, 'resolveProjectAssetPathBackendError')
+      }
+      return await response.json()
+    },
+    getProjectArchive: async function getProjectArchive(
+      this: RemoteBackend,
+      directoryId: DirectoryId,
+      fileName: string,
+    ): Promise<File> {
+      const queryString = new URLSearchParams({
+        directory: extractIdFromDirectoryId(directoryId),
+      }).toString()
+      const response = await this.get(
+        new URL(`/api/cloud/get-project-archive?${queryString}`, location.href).toString(),
+      )
+      if (!response.ok) {
+        return await this.throw(response, 'resolveProjectAssetPathBackendError')
+      }
+      const responseBody = await response.arrayBuffer()
+      return new File([responseBody], fileName)
+    },
+  })
 
   watch(
     () => getText,

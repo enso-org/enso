@@ -9,6 +9,7 @@
 
 import './cjs-shim' // must be imported first
 
+import { downloadCloudProject } from '@/assetManagement'
 import type { BrowserWindowConstructorOptions, WebPreferences } from 'electron'
 import { DEEP_LINK_SCHEME, PRODUCT_NAME } from 'enso-common/src/constants'
 import {
@@ -19,6 +20,7 @@ import {
 import { EnsoPath } from 'enso-common/src/services/Backend'
 import { HttpClient } from 'enso-common/src/services/HttpClient'
 import { RemoteBackend } from 'enso-common/src/services/RemoteBackend'
+import { extractIdFromDirectoryId } from 'enso-common/src/services/RemoteBackend/ids'
 import {
   getText as originalGetText,
   TEXTS,
@@ -28,9 +30,14 @@ import {
 import { Path } from 'enso-common/src/utilities/file'
 import { access, constants, readFile, writeFile } from 'node:fs/promises'
 import { platform } from 'node:os'
-import { join as joinPath } from 'node:path'
+import path, { join as joinPath } from 'node:path'
 import process from 'node:process'
-import { downloadSamples, runHybridProjectByUrl, runLocalProjectByPath } from 'project-manager-shim'
+import {
+  createBundle,
+  downloadSamples,
+  runHybridProjectByUrl,
+  runLocalProjectByPath,
+} from 'project-manager-shim'
 import buildInfo from '../buildInfo'
 import { getUpToDateAccessToken, initAuthentication } from './authentication.js'
 import { parseArgs } from './configParser.js'
@@ -513,7 +520,6 @@ async function createRemoteBackend() {
     throw new Error('No access token found for remote backend.')
   }
   const sessionId = crypto.randomUUID()
-  // TODO: pass authentication headers to `HttpClient` constructor
   const httpClient = new HttpClient({
     'x-enso-ide-version': buildInfo.version,
     'x-enso-session-id': sessionId,
@@ -526,8 +532,20 @@ async function createRemoteBackend() {
   httpClient.setSessionToken(accessToken)
   const downloader = () => {
     // TODO: implement downloading (low priority)
+    throw new Error('Downloading arbitrary URLs is not yet implemented.')
   }
-  return new RemoteBackend(getText, httpClient, downloader)
+  return new RemoteBackend({
+    getText,
+    client: httpClient,
+    downloader,
+    downloadCloudProject: (params) => downloadCloudProject(params.downloadUrl, params.projectId),
+    getProjectArchive: async (directoryId, fileName) => {
+      const parentDir = extractIdFromDirectoryId(directoryId)
+      const projectDir = path.join(parentDir, 'project_root')
+      const projectBundle = await createBundle(projectDir)
+      return new File([projectBundle], fileName)
+    },
+  })
 }
 
 /** Initialize and run the Electron application. */

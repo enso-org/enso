@@ -2,7 +2,6 @@
 
 import * as mkcert from 'mkcert'
 import * as http from 'node:http'
-import * as https from 'node:https'
 import * as path from 'node:path'
 import * as stream from 'node:stream'
 import * as streamConsumers from 'node:stream/consumers'
@@ -22,6 +21,7 @@ import {
 import * as ydocServer from 'ydoc-server'
 
 import { tarFsPack, unzipEntries, zipWriteStream } from '@/archive'
+import { downloadCloudProject } from '@/assetManagement'
 import { BUNDLED_PROJECT_SUFFIX } from '@/fileAssociations'
 import * as paths from '@/paths'
 import { app } from 'electron'
@@ -56,7 +56,7 @@ import {
   GET_FILE_DETAILS_REGEX,
 } from 'enso-common/src/services/Backend/remoteBackendPaths'
 import { createReadStream, createWriteStream, statSync } from 'node:fs'
-import { access, mkdir, mkdtemp, readdir, readFile, rm, stat, writeFile } from 'node:fs/promises'
+import { access, mkdtemp, readdir, readFile, rm, stat, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { finished } from 'node:stream/promises'
 import { pathToFileURL } from 'node:url'
@@ -426,21 +426,6 @@ export class Server {
     this.httpOkText(response, this.apiGetDownloadDirectoryPath())
   }
 
-  /** Download a project from the cloud. */
-  async apiCloudDownloadProject(downloadUrl: string, projectId: ProjectId) {
-    const response = await new Promise<http.IncomingMessage>((resolve) =>
-      https.get(downloadUrl, resolve),
-    )
-    const projectsDirectory = projectManagement.getProjectsDirectory()
-    const parentDirectory = path.join(projectsDirectory, `cloud-${projectId}`)
-    const projectRootDirectory = path.join(parentDirectory, 'project_root')
-
-    await rm(parentDirectory, { recursive: true, force: true, maxRetries: 3 })
-    await mkdir(projectRootDirectory, { recursive: true })
-    await projectManagement.unpackBundle(response, projectRootDirectory)
-    return { projectRootDirectory, parentDirectory }
-  }
-
   /** Response handler for "download project from cloud" endpoint. */
   async httpCloudDownloadProject(
     _request: http.IncomingMessage,
@@ -457,7 +442,7 @@ export class Server {
       this.httpOkJson<{
         readonly projectRootDirectory: string
         readonly parentDirectory: string
-      }>(response, await this.apiCloudDownloadProject(downloadUrl, ProjectId(projectId)))
+      }>(response, await downloadCloudProject(downloadUrl, ProjectId(projectId)))
     } catch (error) {
       console.error(error)
       const projectsDirectory = projectManagement.getProjectsDirectory()

@@ -16,7 +16,7 @@ import { getFileName, getFolderPath } from '../utilities/file.js'
 import * as backend from './Backend.js'
 import * as remoteBackendPaths from './Backend/remoteBackendPaths.js'
 import type { HttpClient } from './HttpClient.js'
-import { extractIdFromDirectoryId, organizationIdToDirectoryId } from './RemoteBackend/ids.js'
+import { organizationIdToDirectoryId } from './RemoteBackend/ids.js'
 
 /** HTTP status indicating that the resource does not exist. */
 const STATUS_NOT_FOUND = 404
@@ -27,6 +27,23 @@ const EXPORT_STATUS_INTERVAL_MS = 5_000
 /** The interval between checks for the import status. */
 const IMPORT_STATUS_INTERVAL_MS = 5_000
 
+export type DownloadCloudProjectFunction = (
+  this: RemoteBackend,
+  params: {
+    downloadUrl: backend.HttpsUrl
+    projectId: backend.ProjectId
+  },
+) => Promise<{
+  readonly projectRootDirectory: string
+  readonly parentDirectory: string
+}>
+
+export type GetProjectArchiveFunction = (
+  this: RemoteBackend,
+  directoryId: backend.DirectoryId,
+  fileName: string,
+) => Promise<File>
+
 /** Class for sending requests to the Cloud backend API endpoints. */
 export class RemoteBackend extends backend.Backend {
   static readonly type = backend.BackendType.remote
@@ -36,14 +53,26 @@ export class RemoteBackend extends backend.Backend {
     typeof location !== 'undefined' ? location.href : 'https://example.com',
   )
   private user: objects.Mutable<backend.User> | null = null
+  private readonly downloadCloudProject: DownloadCloudProjectFunction
+  private readonly getProjectArchive: GetProjectArchiveFunction
 
   /** Create a {@link RemoteBackend}. */
-  constructor(
-    getText: backend.GetText,
-    client: HttpClient,
-    downloader: (options: DownloadOptions) => void | Promise<void>,
-  ) {
+  constructor({
+    getText,
+    client,
+    downloader,
+    downloadCloudProject,
+    getProjectArchive,
+  }: {
+    getText: backend.GetText
+    client: HttpClient
+    downloader: (options: DownloadOptions) => void | Promise<void>
+    downloadCloudProject: DownloadCloudProjectFunction
+    getProjectArchive: GetProjectArchiveFunction
+  }) {
     super(getText, client, downloader)
+    this.downloadCloudProject = downloadCloudProject
+    this.getProjectArchive = getProjectArchive
   }
 
   /** The path to the root directory of this {@link Backend}. */
@@ -1344,52 +1373,18 @@ export class RemoteBackend extends backend.Backend {
 
   /** Download the project to a temporary location. */
   async downloadProject(id: backend.ProjectId) {
-    /** The type of the response body of this endpoint. */
-    interface ResponseBody {
-      readonly projectRootDirectory: string
-      readonly parentDirectory: string
-    }
     const details = await this.getProjectDetails(id, true)
-
     if (details.url == null) {
       return this.throw(null, 'getProjectDetailsBackendError')
     }
-
-    const queryString = new URLSearchParams({
+    const responseBody = await this.downloadCloudProject({
       downloadUrl: details.url,
       projectId: id,
     })
-
-    const response = await this.get<ResponseBody>(
-      new URL(`/api/cloud/download-project?${queryString}`, location.href).toString(),
-    )
-    if (!response.ok) {
-      return await this.throw(response, 'resolveProjectAssetPathBackendError')
-    }
-
-    const responseBody = await response.json()
-
     return {
       projectRootId: backend.DirectoryId(`directory-${responseBody.projectRootDirectory}`),
       parentId: backend.DirectoryId(`directory-${responseBody.parentDirectory}`),
     }
-  }
-
-  /** Get the enso-project archive contents. */
-  async getProjectArchive(directoryId: backend.DirectoryId, fileName: string): Promise<File> {
-    const queryString = new URLSearchParams({
-      directory: extractIdFromDirectoryId(directoryId),
-    }).toString()
-    const response = await this.get(
-      new URL(`/api/cloud/get-project-archive?${queryString}`, location.href).toString(),
-    )
-    if (!response.ok) {
-      return await this.throw(response, 'resolveProjectAssetPathBackendError')
-    }
-
-    const responseBody = await response.arrayBuffer()
-
-    return new File([responseBody], fileName)
   }
 
   /** Fetch the URL of the customer portal. */

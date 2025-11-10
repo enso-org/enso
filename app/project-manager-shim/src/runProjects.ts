@@ -5,7 +5,7 @@ import {
   extractTypeFromId,
   type PathResolveResponse,
 } from 'enso-common/src/services/Backend'
-import type { EnsoPath } from 'enso-common/src/services/Backend/types'
+import { EnsoPath } from 'enso-common/src/services/Backend/types'
 import { Path, type ProjectEntry, type UUID } from 'enso-common/src/services/ProjectManager/types'
 import type { RemoteBackend } from 'enso-common/src/services/RemoteBackend'
 import { dirname } from 'node:path'
@@ -50,15 +50,16 @@ export async function runHybridProjectByUrl(
   let projectId: UUID | undefined
   const { projectService } = createRunnerAndService()
   try {
-    asset = await remoteBackend.resolveEnsoPath(path)
+    asset = await remoteBackend.resolveEnsoPath(EnsoPath(decodeURIComponent(path)))
     const typeAndId = extractTypeFromId(asset.id)
     if (typeAndId.type !== AssetType.project) {
       throw new Error(`The path '${path}' does not point to a project.`)
     }
     const localProject = await remoteBackend.downloadProject(typeAndId.id)
-    let projectPath: Path | undefined
-    for (const parentId of [localProject.parentId, localProject.projectRootId]) {
-      projectPath = extractTypeAndPath(parentId).path
+    let parentPath: Path | undefined
+    for (const projectId of [localProject.parentId, localProject.projectRootId]) {
+      const projectPath = extractTypeAndPath(projectId).path
+      parentPath = Path(dirname(projectPath))
       const entry = await getFileSystemEntry(projectPath)
       if (entry.type === 'ProjectEntry') {
         project = entry as ProjectEntry
@@ -66,10 +67,10 @@ export async function runHybridProjectByUrl(
       }
     }
 
-    if (!project || !projectPath) {
+    if (!project || !parentPath) {
       throw new Error('Downloaded cloud project does not exist in Local Backend.')
     }
-    await runLocalProjectByUuid(project.metadata.id, projectPath)
+    await runLocalProjectByUuid(project.metadata.id, parentPath)
   } catch (error) {
     console.error(`Error starting hybrid project '${asset?.title ?? '(unknown)'}':`, error)
     if (projectId) {
