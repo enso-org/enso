@@ -178,7 +178,7 @@ export const widgetDefinition = defineWidget(
 <template>
   <div
     ref="widgetRoot"
-    class="WidgetMultiSelection widgetTreeParentNode clickable"
+    class="WidgetMultiSelection widgetParent clickable"
     @click.stop="toggleDropdownWidget"
     @pointerover="isHovered = true"
     @pointerout="isHovered = false"

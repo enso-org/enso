@@ -21,9 +21,7 @@ export const widgetDefinition = defineWidget(
 </script>
 
 <template>
-  <span ref="rootNode widgetTreeLeaf widgetSingleLine" class="WidgetBlank widgetApplyPadding"
-    >_</span
-  >
+  <span ref="rootNode" class="WidgetBlank widgetSingleLine widgetApplyPadding">_</span>
 </template>
 
 <style scoped>

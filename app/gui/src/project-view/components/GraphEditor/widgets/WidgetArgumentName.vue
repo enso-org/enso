@@ -62,8 +62,8 @@ export const ArgumentNameShownKey: unique symbol = Symbol.for('WidgetInput:Argum
 </script>
 
 <template>
-  <div class="WidgetArgumentName widgetTreeParentNode" :class="{ primary, missing }">
-    <span class="name widgetTreeLeaf widgetSingleLine">
+  <div class="WidgetArgumentName widgetParent" :class="{ primary, missing }">
+    <span class="name widgetSingleLine">
       <span class="widgetApplyPadding" :class="{ widgetRounded: missing }">{{
         props.input[ArgumentInfoKey].info.name
       }}</span>

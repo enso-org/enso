@@ -7,7 +7,7 @@ import { useTemplateRef } from 'vue'
 
 defineProps(widgetProps(widgetDefinition))
 
-provideTopLevelArgument(useTemplateRef('element'))
+provideTopLevelArgument(useTemplateRef('content'))
 </script>
 
 <script lang="ts">
@@ -25,8 +25,10 @@ export const widgetDefinition = defineWidget(
 </script>
 
 <template>
-  <div ref="element" class="WidgetTopLevelArgument widgetTreeParentNode widgetResetPadding">
-    <NodeWidget :input="input" />
+  <div class="WidgetTopLevelArgument widgetParent widgetExpanded widgetResetPadding">
+    <div ref="content" class="content">
+      <NodeWidget :input="input" />
+    </div>
   </div>
 </template>
 
@@ -41,5 +43,7 @@ export const widgetDefinition = defineWidget(
     margin-right: var(--widget-token-pad-unit);
     border-left: 1px solid rgb(0 0 0 / calc(0.12 * var(--size-transition-progress, 1)));
   }
+}
+.content {
 }
 </style>

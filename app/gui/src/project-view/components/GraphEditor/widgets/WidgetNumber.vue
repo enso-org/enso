@@ -91,7 +91,7 @@ export const widgetDefinition = defineWidget(
   -->
   <NumericInputWidget
     ref="inputComponent"
-    class="WidgetNumber widgetTreeLeaf widgetSingleLine"
+    class="WidgetNumber widgetSingleLine"
     :limits="limits"
     :placeholder="placeholder"
     :modelValue="value"

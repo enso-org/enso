@@ -44,7 +44,7 @@ export const widgetDefinition = defineWidget(
 </script>
 
 <template>
-  <div class="WidgetTypeCast widgetTreeParentNode">
+  <div class="WidgetTypeCast widgetParent">
     <NodeWidget v-if="expressionInput && !isSelfArgument" :input="expressionInput" />
     <span class="typeAnnotation">:</span>
     <NodeWidget v-if="typeNodeInput" class="typeAnnotation" :input="typeNodeInput" />

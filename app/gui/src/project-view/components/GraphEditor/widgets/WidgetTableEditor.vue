@@ -180,7 +180,7 @@ export const widgetDefinition = defineWidget(
 </script>
 
 <template>
-  <div class="WidgetTableEditor widgetTreeLeaf">
+  <div class="WidgetTableEditor widgetExpanded">
     <ResizableWidget
       :input="input"
       metadataKey="WidgetTableEditor"

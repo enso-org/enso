@@ -81,7 +81,7 @@ export const widgetDefinition = defineWidget(
 </script>
 
 <template>
-  <div class="WidgetApplication widgetTreeParentNode" :class="appClass">
+  <div class="WidgetApplication widgetParent" :class="appClass">
     <NodeWidget :input="targetMaybePort" :nest="application.isInnermost" />
     <div v-if="infixWidgetInput" class="infixOp" :style="operatorStyle">
       <NodeWidget :input="infixWidgetInput" />

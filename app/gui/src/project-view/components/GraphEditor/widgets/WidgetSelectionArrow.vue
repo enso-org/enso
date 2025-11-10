@@ -56,7 +56,7 @@ export const widgetDefinition = defineWidget(
 </script>
 
 <template>
-  <div ref="teleportTarget" class="WidgetSelectionArrow widgetTreeParentNode">
+  <div ref="teleportTarget" class="WidgetSelectionArrow widgetParent">
     <NodeWidget :input="innerInput" />
   </div>
 </template>

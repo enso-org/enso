@@ -44,7 +44,7 @@ export const widgetDefinition = defineWidget(
 </script>
 
 <template>
-  <div class="WidgetToken widgetTreeLeaf widgetSingleLine widgetApplyPadding" :class="spanClass">
+  <div class="WidgetToken widgetSingleLine widgetApplyPadding" :class="spanClass">
     {{ displayContent }}
   </div>
 </template>

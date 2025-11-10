@@ -38,11 +38,11 @@ export const widgetDefinition = defineWidget(
   <div
     :class="{
       WidgetIcon: true,
-      widgetTreeParentNode: true,
+      widgetParent: true,
       noGap: props.input[DisplayIcon].noGap === true,
     }"
   >
-    <div class="iconContainer widgetTreeLeaf widgetSingleLine">
+    <div class="iconContainer widgetSingleLine">
       <Transition>
         <GrowingSpinner
           v-if="icon === '$evaluating'"

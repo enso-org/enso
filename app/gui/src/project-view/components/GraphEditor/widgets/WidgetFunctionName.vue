@@ -131,9 +131,8 @@ function rewriteMethodPointer(oldMethodPointer: MethodPointer, newMethodPointer:
 }
 
 const widgetClass = computed(() => ({
-  widgetTreeLeaf: editFieldEnabled.value,
   widgetSingleLine: editFieldEnabled.value,
-  widgetTreeParentNode: !editFieldEnabled.value,
+  widgetParent: !editFieldEnabled.value,
 }))
 </script>
 

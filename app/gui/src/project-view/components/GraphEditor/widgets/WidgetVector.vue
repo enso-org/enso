@@ -161,8 +161,8 @@ const DEFAULT_ITEM = computed(() => Ast.Wildcard.new())
 </script>
 
 <template>
-  <div class="WidgetVector widgetTreeParentNode">
-    <span class="token widgetTreeLeaf widgetSingleLine widgetApplyPadding">[</span>
+  <div class="WidgetVector widgetParent">
+    <span class="token widgetSingleLine widgetApplyPadding">[</span>
     <DraggableList
       :items="value"
       axis="x"
@@ -181,10 +181,10 @@ const DEFAULT_ITEM = computed(() => Ast.Wildcard.new())
         <NodeWidget :input="itemInput(item)" nest />
       </template>
       <template #separator>
-        <div class="token widgetTreeLeaf widgetSingleLine widgetApplyPadding">,&nbsp;</div>
+        <div class="token widgetSingleLine widgetApplyPadding">,&nbsp;</div>
       </template>
     </DraggableList>
-    <span class="token widgetTreeLeaf widgetSingleLine widgetApplyPadding">]</span>
+    <span class="token widgetSingleLine widgetApplyPadding">]</span>
   </div>
 </template>
 <style scoped>

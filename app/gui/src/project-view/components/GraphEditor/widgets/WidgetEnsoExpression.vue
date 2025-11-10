@@ -69,7 +69,7 @@ export const widgetDefinition = defineWidget(
 
 <template>
   <div
-    class="WidgetEnsoExpression widgetTreeLeaf widgetRounded widgetPill"
+    class="WidgetEnsoExpression widgetExpanded widgetRounded widgetPill"
     @click.stop="cmWidget?.focusAndSelect()"
   >
     <CodeMirrorWidgetBase

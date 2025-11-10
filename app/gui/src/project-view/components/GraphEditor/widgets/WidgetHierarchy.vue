@@ -45,7 +45,7 @@ export const widgetDefinition = defineWidget(
 </script>
 
 <template>
-  <div class="WidgetHierarchy widgetTreeParentNode" :class="spanClass">
+  <div class="WidgetHierarchy widgetParent" :class="spanClass">
     <NodeWidget
       v-for="child in expressionChildren(props.input.value)"
       :key="child.id"

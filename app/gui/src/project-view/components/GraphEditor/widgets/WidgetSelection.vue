@@ -272,7 +272,7 @@ declare module '$/providers/openedProjects/widgetRegistry' {
 <template>
   <div
     ref="widgetRoot"
-    class="WidgetSelection widgetTreeParentNode clickable"
+    class="WidgetSelection widgetParent clickable"
     @pointerdown.prevent
     @click.stop="toggleDropdownWidget"
     @keydown.enter.stop

@@ -195,7 +195,7 @@ export const widgetDefinition = defineWidget(
 <template>
   <div
     ref="portRoot"
-    class="WidgetPort widgetTreeParentNode"
+    class="WidgetPort widgetParent"
     :data-port="props.input.portId"
     :class="{
       enabled,

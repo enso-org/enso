@@ -86,7 +86,7 @@ export const widgetDefinition = defineWidget(
 </script>
 
 <template>
-  <div class="WidgetSelfAccessChain widgetTreeParentNode" v-bind="rootProps">
+  <div class="WidgetSelfAccessChain widgetParent" v-bind="rootProps">
     <NodeWidget v-if="iconInput" :input="iconInput" />
     <NodeWidget v-if="props.input.value.rhs" :input="WidgetInput.FromAst(props.input.value.rhs)" />
   </div>

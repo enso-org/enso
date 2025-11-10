@@ -117,7 +117,7 @@ export const widgetDefinition = defineWidget(
 
 <template>
   <label
-    class="WidgetText widgetTreeLeaf widgetRounded widgetPill"
+    class="WidgetText widgetRounded widgetPill"
     :class="{ widgetSingleLine: !isMultiline }"
     :data-text-syntax="syntax"
     @pointerdown.stop.prevent="focusAndSelect"
