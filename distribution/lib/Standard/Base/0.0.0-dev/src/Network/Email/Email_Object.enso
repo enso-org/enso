@@ -8,3 +8,12 @@ import project.Data.Json.JS_Object
 
 type Email_Object
     Value from_address:Email_Address (to:Vector Email_Address)=[] (cc:Vector Email_Address)=[] (bcc:Vector Email_Address)=[] (subject:Text)="" (body:Email_Body)="" (attachments:Vector Email_Attachment)=""
+
+    to_text self -> Text = 
+        'From: ' + self.from_address.to_text 
+            + '\nTo: ' + (self.to.map .to_text).join '; '
+            + '\nCc: ' + (self.cc.map .to_text).join '; '
+            + '\nBcc: ' + (self.bcc.map .to_text).join '; '
+            + '\nSubject: ' + self.subject
+            + '\nBody: ' + self.body.body
+	   

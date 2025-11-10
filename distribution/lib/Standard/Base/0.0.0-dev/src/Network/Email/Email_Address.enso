@@ -4,3 +4,7 @@ import project.Data.Text.Text
 type Email_Address
 	Address address:Text=(Missing_Argument.throw "address")
 	NameAddress name:Text=(Missing_Argument.throw "name") address:Text=(Missing_Argument.throw "address")
+
+	to_text self -> Text = case self of
+		Email_Address.Address address -> self.address
+		Email_Address.NameAddress name address -> self.name + ' <' + self.address + '>'
