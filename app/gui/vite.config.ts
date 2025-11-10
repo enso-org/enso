@@ -21,20 +21,26 @@ if (isDevMode) {
 // Used by vite middleware inside devtools plugin. Specifying this by an option doesn't work when `componentInspector` is false.
 process.env.LAUNCH_EDITOR ??= 'code'
 
+// These can be inlined, but are refactored out because `defineConfig` (understandably)
+// does not support async functions.
+const vueDevtoolsVitePlugin =
+  isDevMode ?
+    [
+      await VueDevTools({
+        // The JSX transform used by the inspector is causing react to complain and adds significant load time.
+        componentInspector: false,
+      }),
+    ]
+  : []
+const pmShimVitePlugin = process.env.DASHBOARD_TESTS !== 'true' ? [await projectManagerShim()] : []
+
 // https://vitejs.dev/config/
 export default defineConfig({
   ...(IS_ELECTRON_DEV_MODE ? { root: fileURLToPath(new URL('.', import.meta.url)) } : {}),
   cacheDir: fileURLToPath(new URL('../../node_modules/.cache/vite', import.meta.url)),
   plugins: [
     wasm(),
-    ...(isDevMode ?
-      [
-        await VueDevTools({
-          // The JSX transform used by the inspector is causing react to complain and adds significant load time.
-          componentInspector: false,
-        }),
-      ]
-    : []),
+    ...vueDevtoolsVitePlugin,
     vue({
       customElement: ['**/components/visualizations/**', '**/components/shared/**'],
       template: {
@@ -50,7 +56,7 @@ export default defineConfig({
         fileURLToPath(new URL('./src/dashboard/**/*Hooks.ts', import.meta.url)),
       ],
     }),
-    ...(process.env.DASHBOARD_TESTS !== 'true' ? [await projectManagerShim()] : []),
+    ...pmShimVitePlugin,
     ...((
       process.env.SENTRY_AUTH_TOKEN != null &&
       process.env.ENSO_IDE_SENTRY_ORGANIZATION != null &&
@@ -97,6 +103,7 @@ export default defineConfig({
       $: fileURLToPath(new URL('./src', import.meta.url)),
     },
   },
+  envDir: '../common',
   envPrefix: 'ENSO_IDE_',
   define: {
     // Single hardcoded usage of `global` in aws-amplify.

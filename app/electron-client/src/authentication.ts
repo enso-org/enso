@@ -73,15 +73,11 @@
  * `pathname`.
  */
 import { CREDENTIALS_PATH } from '@/paths'
-import {
-  CognitoIdentityProviderClient,
-  InitiateAuthCommand,
-} from '@aws-sdk/client-cognito-identity-provider'
 import type { BrowserWindow } from 'electron'
-import type { AccessToken } from 'enso-common/src/accessToken'
-import { $config } from 'enso-common/src/config'
+import type { AccessToken, RawAccessToken } from 'enso-common/src/accessToken'
 import { DEEP_LINK_SCHEME } from 'enso-common/src/constants'
-import { mkdir, mkdirSync, readFileSync, unlinkSync, writeFile, writeFileSync } from 'node:fs'
+import { setDefaultResultOrder } from 'node:dns'
+import { mkdirSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs'
 import { dirname } from 'node:path'
 import opener from 'opener'
 import type { Electron } from './electron.js'
@@ -122,52 +118,36 @@ export function initAuthentication(electron: Electron, window: () => BrowserWind
   // Listen for events to save the given user credentials to `~/.enso/credentials`.
   electron.ipcMain.on(Channel.saveAccessToken, (event, accessTokenPayload: AccessToken | null) => {
     event.preventDefault()
-
-    if (accessTokenPayload == null) {
-      try {
-        unlinkSync(CREDENTIALS_PATH)
-      } catch {
-        // Ignored, most likely the path does not exist.
-      }
-    } else {
-      mkdir(dirname(CREDENTIALS_PATH), { recursive: true }, (error) => {
-        if (error) {
-          console.error(`Could not create '${dirname(CREDENTIALS_PATH)}' directory.`)
-        } else {
-          writeFile(
-            CREDENTIALS_PATH,
-            JSON.stringify({
-              /* eslint-disable camelcase */
-              client_id: accessTokenPayload.clientId,
-              access_token: accessTokenPayload.accessToken,
-              refresh_token: accessTokenPayload.refreshToken,
-              refresh_url: accessTokenPayload.refreshUrl,
-              expire_at: accessTokenPayload.expireAt,
-              /* eslint-enable camelcase */
-            }),
-            (innerError) => {
-              if (innerError) {
-                console.error(`Could not write to the credentials file at '${CREDENTIALS_PATH}'.`)
-              }
-            },
-          )
-        }
-      })
-    }
+    saveAccessToken(accessTokenPayload)
   })
 }
 
 /** Read the access token stored in the credentials file. */
 export function readAccessToken(): AccessToken | undefined {
   try {
-    return JSON.parse(readFileSync(CREDENTIALS_PATH, { encoding: 'utf-8' }))
+    const raw: RawAccessToken = JSON.parse(readFileSync(CREDENTIALS_PATH, { encoding: 'utf-8' }))
+    return {
+      accessToken: raw.access_token,
+      clientId: raw.client_id,
+      refreshToken: raw.refresh_token,
+      refreshUrl: raw.refresh_url,
+      expireAt: raw.expire_at,
+    }
   } catch {
     return
   }
 }
 
 /** Save the access token to the credentials file. */
-export function saveAccessToken(accessToken: AccessToken): void {
+export function saveAccessToken(accessToken: AccessToken | null): void {
+  if (accessToken === null) {
+    try {
+      unlinkSync(CREDENTIALS_PATH)
+    } catch {
+      // Ignored, most likely the path does not exist.
+    }
+    return
+  }
   mkdirSync(dirname(CREDENTIALS_PATH), { recursive: true })
   writeFileSync(
     CREDENTIALS_PATH,
@@ -183,26 +163,46 @@ export function saveAccessToken(accessToken: AccessToken): void {
   )
 }
 
+interface AuthenticationResultType {
+  readonly AccessToken?: string | undefined
+  readonly ExpiresIn?: number | undefined
+  readonly TokenType?: string | undefined
+  readonly RefreshToken?: string | undefined
+  readonly IdToken?: string | undefined
+}
+
 /** Get an up-to-date access token, refreshing it if necessary. */
 export async function getUpToDateAccessToken(): Promise<string> {
+  // This function MUST be kept in sync with the original source at:
+  // distribution/lib/Standard/Base/0.0.0-dev/src/Enso_Cloud/Internal/Authentication.enso
   const accessToken = readAccessToken()
-  console.log(accessToken, $config.COGNITO_USER_POOL_WEB_CLIENT_ID, $config.COGNITO_REGION)
   if (!accessToken) {
     throw new Error('No access token found for refreshing.')
   }
   if (Number(Date.now()) < Number(new Date(accessToken.expireAt)) - REFRESH_THRESHOLD_MS) {
     return accessToken.accessToken
   }
-  const command = new InitiateAuthCommand({
-    AuthFlow: 'REFRESH_TOKEN_AUTH',
-    ClientId: $config.COGNITO_USER_POOL_WEB_CLIENT_ID,
-    AuthParameters: {
-      REFRESH_TOKEN: accessToken.refreshToken,
+  // I don't know why this works
+  setDefaultResultOrder('ipv6first')
+  const response = await fetch(accessToken.refreshUrl, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-amz-json-1.1',
+      'X-Amz-Target': 'AWSCognitoIdentityProviderService.InitiateAuth',
     },
+    body: JSON.stringify({
+      ClientId: accessToken.clientId,
+      AuthFlow: 'REFRESH_TOKEN_AUTH',
+      AuthParameters: { REFRESH_TOKEN: accessToken.refreshToken },
+    }),
   })
-  const client = new CognitoIdentityProviderClient({ region: $config.COGNITO_REGION })
-  const result = await client.send(command)
-  const newAccessToken = result.AuthenticationResult?.AccessToken
+  if (!response.ok) {
+    throw new Error(`Authentication token refresh failed with status ${response.status}`)
+  }
+  const result: AuthenticationResultType = await response
+    .json()
+    .then((res) => res.AuthenticationResult)
+  const newAccessToken = result?.AccessToken
   if (!newAccessToken) {
     throw new Error('Failed to refresh access token.')
   }

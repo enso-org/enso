@@ -9,7 +9,7 @@ import type { EnsoPath } from 'enso-common/src/services/Backend/types'
 import { Path, type ProjectEntry, type UUID } from 'enso-common/src/services/ProjectManager/types'
 import type { RemoteBackend } from 'enso-common/src/services/RemoteBackend'
 import { dirname } from 'node:path'
-import { getFileSystemEntry } from './handler'
+import { getFileSystemEntry } from './handler/index.js'
 import { EnsoRunner, findEnsoExecutable } from './projectService/ensoRunner.js'
 import { ProjectService } from './projectService/index.js'
 
