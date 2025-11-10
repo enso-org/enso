@@ -571,6 +571,7 @@ async function runApp(app: App, parsedArguments: ParsedArguments, electron: Elec
     if (projectToOpen.startsWith(`${DEEP_LINK_SCHEME}:`)) {
       try {
         await runHybridProjectByUrl(EnsoPath(projectToOpen.toString()), await createRemoteBackend())
+        exit(0, electron)
       } catch (error) {
         console.error(`Error starting hybrid project '${projectToOpen}':`, error)
         return exit(1, electron)
@@ -578,6 +579,7 @@ async function runApp(app: App, parsedArguments: ParsedArguments, electron: Elec
     } else if (projectToOpen) {
       try {
         await runLocalProjectByPath(Path(projectToOpen))
+        exit(0, electron)
       } catch (error) {
         console.error(`Error starting local project '${projectToOpen}':`, error)
         return exit(1, electron)

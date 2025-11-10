@@ -13,12 +13,6 @@ import { getFileSystemEntry } from './handler/index.js'
 import { EnsoRunner, findEnsoExecutable } from './projectService/ensoRunner.js'
 import { ProjectService } from './projectService/index.js'
 
-declare module './projectService/ensoRunner.js' {
-  interface ShutdownHookRegistry {
-    'headless-project-execution': true
-  }
-}
-
 function getWorkDir() {
   if (process.env.NODE_ENV === 'development') {
     return resolve('../..')
@@ -27,17 +21,13 @@ function getWorkDir() {
   }
 }
 
-function createRunnerAndService(): {
-  readonly runner: EnsoRunner
-  readonly projectService: ProjectService
-} {
+function createProjectService(): ProjectService {
   const ensoPath = findEnsoExecutable(getWorkDir())
   if (!ensoPath) {
     throw new Error(`${PRODUCT_NAME} executable not found`)
   }
   const runner = new EnsoRunner(ensoPath)
-  const projectService = new ProjectService(runner, [])
-  return { runner, projectService }
+  return new ProjectService(runner, [])
 }
 
 /** Run a hybrid project by URL. */
@@ -48,7 +38,7 @@ export async function runHybridProjectByUrl(
   let project: ProjectEntry | undefined
   let asset: PathResolveResponse | undefined
   let projectId: UUID | undefined
-  const { projectService } = createRunnerAndService()
+  const projectService = createProjectService()
   try {
     asset = await remoteBackend.resolveEnsoPath(EnsoPath(decodeURIComponent(path)))
     const typeAndId = extractTypeFromId(asset.id)
@@ -84,12 +74,9 @@ export async function runLocalProjectByUuid(
   projectId: UUID,
   projectsDirectory: Path,
 ): Promise<void> {
-  const { runner, projectService } = createRunnerAndService()
+  const projectService = createProjectService()
   try {
-    await projectService.openProject(projectId, projectsDirectory)
-    return new Promise<void>((resolve) => {
-      runner.registerShutdownHook(projectId, 'headless-project-execution', resolve)
-    })
+    await projectService.runProject(projectId, projectsDirectory)
   } catch (error) {
     console.error(`Error starting local project '${projectId}':`, error)
     await projectService.closeProject(projectId)

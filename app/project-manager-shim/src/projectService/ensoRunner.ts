@@ -10,6 +10,7 @@ import { extract } from 'tar'
 import { Path } from './types.js'
 
 export interface Runner {
+  runProject(projectPath: Path): Promise<void>
   createProject(path: Path, name: string, projectTemplate?: string): Promise<void>
   openProject(
     projectPath: Path,
@@ -81,15 +82,7 @@ export class EnsoRunner implements Runner {
   /** Creates a new EnsoRunner with the path to the Enso executable. */
   constructor(private ensoPath: Path) {}
 
-  /** Creates a new Enso project at the specified path. */
-  async createProject(projectPath: Path, name: string, projectTemplate?: string): Promise<void> {
-    const args: string[] = []
-    args.push('--new', projectPath)
-    args.push('--new-project-name', name)
-    if (projectTemplate) {
-      args.push('--new-project-template', projectTemplate)
-    }
-
+  private async runCommand(args: string[]): Promise<void> {
     return new Promise((resolve, reject) => {
       const cmd = this.ensoPath.endsWith('.bat') ? 'cmd.exe' : this.ensoPath
       const cmdArgs = this.ensoPath.endsWith('.bat') ? ['/c', this.ensoPath, ...args] : args
@@ -120,7 +113,23 @@ export class EnsoRunner implements Runner {
     })
   }
 
-  /** Opens a project and starts its language server. */
+  /** Run an existing Enso project at the specified path. */
+  async runProject(projectPath: Path): Promise<void> {
+    return await this.runCommand(['--run', projectPath])
+  }
+
+  /** Create a new Enso project at the specified path. */
+  async createProject(projectPath: Path, name: string, projectTemplate?: string): Promise<void> {
+    return await this.runCommand([
+      '--new',
+      projectPath,
+      '--new-project-name',
+      name,
+      ...(projectTemplate ? ['--new-project-template', projectTemplate] : []),
+    ])
+  }
+
+  /** Open a project and starts its language server. */
   async openProject(
     projectPath: Path,
     projectId: string,

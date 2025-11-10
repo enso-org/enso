@@ -136,7 +136,34 @@ export class ProjectService {
     }
   }
 
-  /** Opens a project and starts its language server. */
+  private async getProject(
+    projectId: UUID,
+    projectsDirectory: Path,
+    update = false,
+  ): Promise<Project> {
+    const repo = this.getProjectRepository(projectsDirectory)
+    const project = await repo.findById(projectId)
+    if (!project) {
+      throw new Error(`Project not found: ${projectId}`)
+    }
+    if (update) {
+      // Update the lastOpened timestamp
+      const openTime = toRfc3339(new Date())
+      const updatedProject = { ...project, lastOpened: openTime }
+      await this.getProjectRepository(projectsDirectory).update(updatedProject)
+    }
+    return project
+  }
+
+  /** Run an existing Enso project at the specified path. */
+  async runProject(projectId: UUID, projectsDirectory: Path): Promise<void> {
+    const project = await this.getProject(projectId, projectsDirectory, true)
+    this.logger.debug('Running project', project.path)
+    await this.runner.runProject(project.path)
+    this.logger.debug('Project finished running', project.path)
+  }
+
+  /** Open a project and starts its language server. */
   async openProject(
     projectId: UUID,
     projectsDirectory: Path,
@@ -144,19 +171,12 @@ export class ProjectService {
   ): Promise<OpenProject> {
     this.logger.debug('Opening project', projectId)
 
-    // Get the project repository
-    const repo = this.getProjectRepository(projectsDirectory)
-
-    // Get the project from the repository
-    const project = await repo.findById(projectId)
-    if (!project) {
-      throw new Error(`Project not found: ${projectId}`)
-    }
+    const project = await this.getProject(projectId, projectsDirectory, true)
 
     // Update the lastOpened timestamp
     const openTime = toRfc3339(new Date())
     const updatedProject = { ...project, lastOpened: openTime }
-    await repo.update(updatedProject)
+    await this.getProjectRepository(projectsDirectory).update(updatedProject)
 
     // Prepare cloud environment variables if provided
     const extraEnv: Array<[string, string]> = []
