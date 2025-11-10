@@ -17,8 +17,7 @@ type Email_Body
       nameaddress = [Option "HTML" "Email_Body.HTML '' ''"]
       values = name + nameaddress
 
-      item_editor = Single_Choice values=values display=..Always
-      Vector_Editor item_editor item_default='Email_Body.Plain_Text ""' display=display
+      Single_Choice values=values display=..Always
 
 ## ---
    private: true

@@ -1,4 +1,17 @@
 import project.System.File.File
+from project.Metadata.Choice import Option
+from project.Metadata.Widget import Text_Input, Vector_Editor, Single_Choice
+import project.Metadata.Widget
+import project.Metadata.Display
 
 type Email_Attachment
-	Value file:File
+	File file:File
+
+	## ---
+      private: true
+      ---
+   default_widget (display : Display = ..When_Modified) -> Widget =
+      name = [Option "New Attachment" "Email_Attachment.File"]
+      values = name
+
+      Single_Choice values=values display=..Always
