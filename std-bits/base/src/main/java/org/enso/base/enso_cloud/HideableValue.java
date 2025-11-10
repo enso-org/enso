@@ -11,7 +11,10 @@ public sealed interface HideableValue
         HideableImpl.PlainValue,
         HideableImpl.SecretValue {
 
-  record KeyValuePair(String key, HideableValue value) {}
+  record KeyValuePair(String key, HideableValue value) {
+    String first() { return key; }
+    HideableValue second() { return value; }
+  }
 
   class Factory {
     public HideableValue plain(String value) {

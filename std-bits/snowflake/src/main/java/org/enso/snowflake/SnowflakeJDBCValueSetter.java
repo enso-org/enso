@@ -9,11 +9,11 @@ import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import org.enso.database.JDBCValueSetter;
 
-public class SnowflakeJDBCValueSetter extends JDBCValueSetter {
+public final class SnowflakeJDBCValueSetter extends JDBCValueSetter {
   private static final DateTimeFormatter dateTimeWithOffsetFormatter =
       DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSSSSSSS XXX");
 
-  SnowflakeJDBCValueSetter() {
+  public SnowflakeJDBCValueSetter() {
     super("Snowflake");
   }
 

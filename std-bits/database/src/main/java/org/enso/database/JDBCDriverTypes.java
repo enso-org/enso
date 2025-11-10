@@ -7,7 +7,7 @@ import java.util.List;
 import org.enso.base.enso_cloud.HideableValue;
 import org.enso.database.dryrun.OperationSynchronizer;
 
-public class JDBCDriverTypes {
+public final class JDBCDriverTypes {
   private final String databaseName;
 
   /**

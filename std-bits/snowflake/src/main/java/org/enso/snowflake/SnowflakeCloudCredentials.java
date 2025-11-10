@@ -13,7 +13,6 @@ import java.util.List;
 import org.enso.base.enso_cloud.ExternalLibraryCredentialHelper;
 import org.enso.base.enso_cloud.HideableValue;
 import org.enso.base.net.http.UrlencodedBodyBuilder;
-import org.graalvm.collections.Pair;
 
 public final class SnowflakeCloudCredentials {
   private static SnowflakeCredentialConfig unsafeReadCredential(
@@ -44,14 +43,14 @@ public final class SnowflakeCloudCredentials {
         accountField.asText(), clientIdField.asText(), clientSecretField.asText());
   }
 
-  public static List<Pair<String, HideableValue>> makePairs(
+  public static List<HideableValue.KeyValuePair> makePairs(
       ExternalLibraryCredentialHelper.CredentialReference credentialReference) {
     SnowflakeCredentialConfig credentials = unsafeReadCredential(credentialReference);
     AccessToken accessToken = credentials.refresh();
-    List<Pair<String, HideableValue>> secureProperties = new ArrayList<>();
-    secureProperties.add(Pair.create("authenticator", HideableValue.plain("oauth")));
-    secureProperties.add(Pair.create("user", HideableValue.plain(accessToken.username())));
-    secureProperties.add(Pair.create("token", HideableValue.plain(accessToken.token())));
+    List<HideableValue.KeyValuePair> secureProperties = new ArrayList<>();
+    secureProperties.add(new HideableValue.KeyValuePair("authenticator", HideableValue.plain("oauth")));
+    secureProperties.add(new HideableValue.KeyValuePair("user", HideableValue.plain(accessToken.username())));
+    secureProperties.add(new HideableValue.KeyValuePair("token", HideableValue.plain(accessToken.token())));
     return secureProperties;
   }
 

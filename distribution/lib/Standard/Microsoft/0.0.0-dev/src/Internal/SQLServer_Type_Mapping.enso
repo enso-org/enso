@@ -200,7 +200,7 @@ type SQLServer_Type_Mapping
                         sql_type = SQLServer_Type_Mapping.value_type_to_sql type_hint Problem_Behavior.Ignore
                         sql_type.typeid
                 stmt.setNull i java_type
-            _ : Float     ->
+            _ : Float ->
                 if value.is_nan || value.is_infinite then stmt.setNull i Types.REAL else
                     stmt.setDouble i value
             # Fallback to default logic for everything else
