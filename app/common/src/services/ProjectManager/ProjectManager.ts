@@ -3,13 +3,16 @@
  * @see
  * https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-project-manager.md
  */
-import * as backend from '#/services/Backend'
-import { getFileName, getFolderPath } from '#/utilities/fileInfo'
-import { omit } from '#/utilities/object'
-import { getDirectoryAndName, normalizeSlashes } from '#/utilities/path'
-import { normalizeName } from '@/util/nameValidation'
-import * as dateTime from 'enso-common/src/utilities/data/dateTime'
-import invariant from 'tiny-invariant'
+import * as dateTime from '../../utilities/data/dateTime.js'
+import { omit } from '../../utilities/data/object.js'
+import {
+  getDirectoryAndName,
+  getFileName,
+  getFolderPath,
+  normalizeSlashes,
+} from '../../utilities/file.js'
+import { normalizeName } from '../../utilities/nameValidation.js'
+import * as backend from '../Backend.js'
 import {
   MissingComponentAction,
   Path,
@@ -26,7 +29,7 @@ import {
   type ProjectState,
   type RenameProjectParams,
   type UUID,
-} from './types'
+} from './types.js'
 
 /** A project with its path provided instead of its id. */
 type WithProjectPath<T> = Omit<T, 'projectId' | 'projectsDirectory'> & {
@@ -49,7 +52,10 @@ export class ProjectManager {
   constructor(public readonly rootDirectory: Path) {}
 
   /** Get the state of a project given its path. */
-  getProjectId(projectPath: Path) {
+  async getProjectId(projectPath: Path) {
+    if (!this.projectIds.has(projectPath)) {
+      await this.listDirectory(Path(getFolderPath(projectPath)))
+    }
     return this.projectIds.get(projectPath)
   }
 
@@ -61,13 +67,15 @@ export class ProjectManager {
     }
     await this.listDirectory(Path(getFolderPath(projectPath)))
     const projectId = this.projectIds.get(projectPath)
-    invariant(projectId, `Unknown project id for project '${projectPath}'.`)
+    if (!projectId) {
+      throw new Error(`Unknown project id for project '${projectPath}'.`)
+    }
     return this.projects.get(projectId)
   }
 
   /** Open an existing project. */
   async openProject(params: WithProjectPath<OpenProjectParams>): Promise<OpenProject> {
-    const fullParams: OpenProjectParams = this.paramsWithPathToWithId(params)
+    const fullParams: OpenProjectParams = await this.paramsWithPathToWithId(params)
     const cached = this.projects.get(fullParams.projectId)
     if (cached) {
       return cached.data
@@ -106,7 +114,7 @@ export class ProjectManager {
         missingComponentAction: MissingComponentAction.install,
       })
     }
-    const fullParams: CloseProjectParams = this.paramsWithPathToWithId(params)
+    const fullParams: CloseProjectParams = await this.paramsWithPathToWithId(params)
     this.projects.delete(fullParams.projectId)
     return this.runProjectServiceCommand('project/close', fullParams)
   }
@@ -142,7 +150,7 @@ export class ProjectManager {
 
   /** Rename a project. */
   async renameProject(params: WithProjectPath<RenameProjectParams>): Promise<void> {
-    const fullParams: RenameProjectParams = this.paramsWithPathToWithId(params)
+    const fullParams: RenameProjectParams = await this.paramsWithPathToWithId(params)
     await this.runProjectServiceCommand('project/rename', fullParams)
     const state = this.projects.get(fullParams.projectId)
     if (state?.state === backend.ProjectState.opened) {
@@ -165,7 +173,7 @@ export class ProjectManager {
   async duplicateProject(
     params: WithProjectPath<DuplicateProjectParams>,
   ): Promise<DuplicatedProject> {
-    const fullParams: DuplicateProjectParams = this.paramsWithPathToWithId(params)
+    const fullParams: DuplicateProjectParams = await this.paramsWithPathToWithId(params)
     const result: Omit<DuplicatedProject, 'projectPath'> = await this.runProjectServiceCommand(
       'project/duplicate',
       fullParams,
@@ -185,7 +193,7 @@ export class ProjectManager {
 
   /** Delete a project. */
   async deleteProject(params: WithProjectPath<DeleteProjectParams>): Promise<void> {
-    const fullParams: DeleteProjectParams = this.paramsWithPathToWithId(params)
+    const fullParams: DeleteProjectParams = await this.paramsWithPathToWithId(params)
     const cached = this.projects.get(fullParams.projectId)
     if (cached && backend.IS_OPENING_OR_OPENED[cached.state]) {
       await this.closeProject({ projectPath: params.projectPath })
@@ -355,10 +363,10 @@ export class ProjectManager {
    * Convert {@link WithProjectPath<T>} to `T`.
    * @throws {Error} when the `id` is not cached.
    */
-  private paramsWithPathToWithId<T>(obj: WithProjectPath<T>) {
+  private async paramsWithPathToWithId<T>(obj: WithProjectPath<T>) {
     const path = obj.projectPath
     const directoryPath = getDirectoryAndName(path).directoryPath
-    const id = this.projectIds.get(path)
+    const id = await this.getProjectId(path)
     if (id == null) {
       throw new Error(`Project with path '${path}' does not exist`)
     }
@@ -376,7 +384,6 @@ export class ProjectManager {
     ...cliArguments: string[]
   ): Promise<Response> {
     const searchParams = new URLSearchParams({
-      // eslint-disable-next-line @typescript-eslint/naming-convention
       'cli-arguments': JSON.stringify([`--${name}`, ...cliArguments]),
     })
     return await fetch(`/api/run-project-manager-command?${searchParams}`, { method: 'POST', body })
@@ -389,8 +396,6 @@ export class ProjectManager {
     ...cliArguments: string[]
   ): Promise<T> {
     const response = await this.runStandaloneCommand(body, name, ...cliArguments)
-    // There is no way to avoid this as `JSON.parse` returns `any`.
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const json: JSONRPCResponse<never> = await response.json()
     if ('result' in json) {
       return json.result
@@ -405,8 +410,6 @@ export class ProjectManager {
       method: 'POST',
       body: body && JSON.stringify(body),
     })
-    // There is no way to avoid this as `JSON.parse` returns `any`.
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const json: JSONRPCResponse<never> = await response.json()
     if ('result' in json) {
       return json.result

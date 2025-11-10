@@ -1,6 +1,5 @@
 /** @file The categories available in the category switcher. */
-import type { SvgUseIcon } from '#/components/types'
-import type { UserId } from '#/services/Backend'
+import * as z from 'zod'
 import {
   BackendType,
   FilterBy,
@@ -9,11 +8,8 @@ import {
   type User,
   type UserGroup,
   type UserGroupId,
-} from '#/services/Backend'
-import { isUrlString } from '@/util/data/urlString'
-import { isIconName } from '@/util/iconMetadata/iconName'
-import type { DropOperation } from '@react-types/shared'
-import * as z from 'zod'
+  type UserId,
+} from '../Backend.js'
 
 // oxlint-disable-next-line no-unused-vars
 const PATH_SCHEMA = z.string().refine((s): s is Path => true)
@@ -22,9 +18,7 @@ const DIRECTORY_ID_SCHEMA = z.string().refine((s): s is DirectoryId => true)
 
 const EACH_CATEGORY_SCHEMA = z.object({
   label: z.string(),
-  icon: z.custom<SvgUseIcon | (string & {})>(
-    (icon) => typeof icon === 'string' && (isIconName(icon) || isUrlString(icon)),
-  ),
+  icon: z.string(),
   canUploadHere: z.boolean(),
   /**
    * Internal type discriminator.
@@ -170,7 +164,6 @@ export const CATEGORY_TO_FILTER_BY: Readonly<Record<Category['type'], FilterBy |
   trash: FilterBy.trashed,
   user: FilterBy.active,
   team: FilterBy.active,
-  // eslint-disable-next-line @typescript-eslint/naming-convention
   'local-directory': FilterBy.active,
 }
 
@@ -210,7 +203,7 @@ export function dropOperationBetweenCategories(
   from: Category,
   to: Category,
   parentId: DirectoryId | null = null,
-): DropOperation {
+): 'cancel' | 'copy' | 'move' | undefined {
   // Moving into the same category without a parentId is not allowed.
   if (from.type === to.type && parentId == null) {
     return 'cancel'

@@ -19,8 +19,10 @@ import type {
   NodeChild,
   Owned,
   OwnedRefs,
+  ReturnSpecification,
   TextElement,
   TextToken,
+  TypeSignature,
 } from './tree'
 import {
   App,
@@ -355,6 +357,7 @@ class Abstractor {
       },
       close: arg.close && this.abstractToken(arg.close),
     }))
+    const returns = tree.returns && this.abstractReturnSpecification(tree.returns)
     const equals = this.abstractToken(tree.equals)
     const body = tree.body !== undefined ? this.abstractExpression(tree.body) : undefined
     return FunctionDef.concrete(this.module, {
@@ -366,6 +369,7 @@ class Abstractor {
       private_,
       name,
       argumentDefinitions,
+      returns,
       equals,
       body,
     } satisfies FunctionDefFields<OwnedRefs>)
@@ -436,11 +440,20 @@ class Abstractor {
     }
   }
 
-  private abstractTypeSignature(signature: RawAst.TypeSignature) {
+  private abstractTypeSignature(signature: RawAst.TypeSignature): TypeSignature<OwnedRefs> {
     return {
       name: this.abstractExpression(signature.name),
       operator: this.abstractToken(signature.operator),
       type: this.abstractExpression(signature.typeNode),
+    }
+  }
+
+  private abstractReturnSpecification(
+    spec: RawAst.ReturnSpecification,
+  ): ReturnSpecification<OwnedRefs> {
+    return {
+      arrow: this.abstractToken(spec.arrow),
+      type: this.abstractExpression(spec.typeNode),
     }
   }
 

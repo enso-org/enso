@@ -1,7 +1,7 @@
 /** @file Types and constants related to `Column`s. */
 import type { SvgUseIcon } from '#/components/types'
 import type { Category } from '#/layouts/CategorySwitcher/Category'
-import * as backend from '#/services/Backend'
+import * as backend from 'enso-common/src/services/Backend'
 
 /** Column type. */
 export enum Column {

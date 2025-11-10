@@ -1,5 +1,5 @@
 /** @file Utilities related to images. */
-import { HttpsUrl } from '#/services/Backend'
+import { HttpsUrl } from 'enso-common/src/services/Backend'
 
 /** A black square. Useful for insertion as a test image. */
 export const BLACK_SQUARE_IMAGE_512PX = HttpsUrl(

@@ -1,11 +1,16 @@
 /** @file APIs for using `enso://` paths to refer to files accessible to a user. */
 import type { UserFiles } from '@/components/widgets/FileBrowserWidget/userFiles'
 import { findDifferenceIndex } from '@/util/data/array'
-import { andThen, Err, Ok, type Result } from '@/util/data/result'
 import type { ToValue } from '@/util/reactivity'
 import type { DirectoryId } from 'enso-common/src/services/Backend'
+import {
+  andThen,
+  Err,
+  Ok,
+  unwrapOrWithLog,
+  type Result,
+} from 'enso-common/src/utilities/data/result'
 import { computed, toValue } from 'vue'
-import { unwrapOrWithLog } from 'ydoc-shared/util/data/result'
 
 /** @internal */
 export function pathToSegments(path: string) {

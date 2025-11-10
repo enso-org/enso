@@ -56,11 +56,11 @@ import { assert, bail } from '@/util/assert'
 import { Ast } from '@/util/ast'
 import { partition } from '@/util/data/array'
 import { Rect } from '@/util/data/rect'
-import { Err, Ok, unwrapOr } from '@/util/data/result'
 import { Vec2 } from '@/util/data/vec2'
 import { isDef, type VueInstance } from '@vueuse/core'
 import * as iter from 'enso-common/src/utilities/data/iter'
 import * as objects from 'enso-common/src/utilities/data/object'
+import { Err, Ok, unwrapOr } from 'enso-common/src/utilities/data/result'
 import { set } from 'lib0'
 import {
   computed,
@@ -75,6 +75,7 @@ import {
   watch,
   watchEffect,
 } from 'vue'
+import { provideRenameSchedule } from './GraphEditor/widgets/WidgetFunctionName.vue'
 
 const keyboard = injectKeyboard()
 const rightPanel = useRightPanelData()
@@ -536,6 +537,7 @@ function handleEdgeDrop(source: Ast.AstId, position: Vec2) {
 }
 
 // === Node Collapsing ===
+const renameSchedule = provideRenameSchedule()
 
 function collapseNodes(nodes: Node[]) {
   const selected = new Set(
@@ -563,7 +565,7 @@ function collapseNodes(nodes: Node[]) {
     }
     const selectedNodeRects = iter.filterDefined(iter.map(selected, graphStore.visibleArea))
     module.value.edit((edit) => {
-      const { collapsedCallRoot, collapsedNodeIds, outputAstId } = performCollapse(
+      const { collapsedCallRoot, collapsedNodeIds, outputAstId, collapsedName } = performCollapse(
         info.value,
         edit.getVersion(topLevel),
         graphStore.db,
@@ -578,6 +580,11 @@ function collapseNodes(nodes: Node[]) {
       const { place } = usePlacement(collapsedNodeRects, graphNavigator.viewport)
       const outputPosition = place(collapsedNodeRects)
       edit.get(outputAstId).mutableNodeMetadata().set('position', outputPosition.xy())
+
+      if (graphStore.currentMethod.pointer.ok) {
+        const currentPointer = graphStore.currentMethod.pointer.value
+        renameSchedule?.scheduleFunctionRename({ ...currentPointer, name: collapsedName })
+      }
 
       return Ok()
     })

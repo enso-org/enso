@@ -2,11 +2,11 @@
 import { DIALOG_BACKGROUND } from '#/components/Dialog/variants'
 import { backendQueryOptions } from '#/hooks/backendHooks'
 import { usePaywall } from '#/hooks/billing'
-import * as backend from '#/services/Backend'
 import type { VariantProps } from '#/utilities/tailwindVariants'
 import { tv } from '#/utilities/tailwindVariants'
 import { useBackends } from '$/providers/backends'
 import { useSuspenseQuery } from '@tanstack/react-query'
+import * as backend from 'enso-common/src/services/Backend'
 import { Card } from './components'
 
 /** Props for {@link PlanSelector} */
