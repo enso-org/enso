@@ -1,5 +1,6 @@
+import project.Errors.Common.Missing_Argument
 import project.Data.Text.Text
 
 type Email_Address
-	Address address:Text
-	NameAddress name:Text address:Text
+	Address address:Text=(Missing_Argument.throw "address")
+	NameAddress name:Text=(Missing_Argument.throw "name") address:Text=(Missing_Argument.throw "address")

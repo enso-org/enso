@@ -2,6 +2,7 @@ import project.Any.Any
 import project.Data.Text.Text
 import project.System.File.File
 import project.Data.Vector.Vector
+import project.Errors.Common.Missing_Argument
 import project.Network.Email.Email_Address.Email_Address
 import project.Network.Email.Email_Body.Email_Body
 import project.Network.Email.Email_Object.Email_Object
@@ -20,11 +21,12 @@ import project.Metadata.Display
    icon: email
    ---
    Sends an email.
+@from test_widget
 @to default_widget
 @cc default_widget
 @bcc default_widget
 @body Email_Body.default_widget
-send from:Email_Address (to:Vector Email_Address)=[] (cc:Vector Email_Address)=[] (bcc:Vector Email_Address)=[] (subject:Text)="" (body:Email_Body)="" (attachments:Vector Email_Attachment)="" (provider:Email_Provider) =
+send from:Email_Address=(Missing_Argument.throw "from") (to:Vector Email_Address)=[] (cc:Vector Email_Address)=[] (bcc:Vector Email_Address)=[] (subject:Text)="" (body:Email_Body)="" (attachments:Vector Email_Attachment)=[] (provider:Email_Provider=(Missing_Argument.throw "provider")) =
     _ = [provider]
     email_object = Email_Object.Value from to cc bcc subject body attachments
     provider.send email_object
@@ -39,3 +41,13 @@ default_widget (display : Display = ..When_Modified) -> Widget =
 
     item_editor = Single_Choice values=values display=..Always
     Vector_Editor item_editor item_default='Email_Address.Address ""' display=display
+
+## ---
+    private: true
+    ---
+test_widget (display : Display = ..When_Modified) -> Widget =
+    name = [Option "Address" "Email_Address.Address"]
+    nameaddress = [Option "Name And Address" "Email_Address.NameAddress"]
+    values = name + nameaddress
+
+    Single_Choice values=values display=..Always

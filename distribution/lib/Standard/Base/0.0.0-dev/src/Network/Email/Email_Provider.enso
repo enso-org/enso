@@ -1,3 +1,4 @@
+import project.Errors.Common.Missing_Argument
 import project.Data.Text.Text
 import project.Network.Email.Email_Address.Email_Address
 import project.Network.Email.Email_Body.Email_Body
@@ -14,7 +15,7 @@ polyglot java import java.util.Base64
 
 type Email_Provider
     TestOnly
-    SendGrid api_key:Text
+    SendGrid api_key:Text=(Missing_Argument.throw "api_key")
 
     send self email:Email_Object = case self of
         Email_Provider.SendGrid api_key -> sendgrid_email email api_key
