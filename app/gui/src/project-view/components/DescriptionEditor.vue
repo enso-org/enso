@@ -1,8 +1,6 @@
 <script setup lang="ts">
-import type { AssetDetailsResponse, AssetId } from '#/services/Backend'
 import { useBackends } from '$/providers/backends'
 import { useRightPanelData } from '$/providers/rightPanel'
-import { isOnElectron } from '$/utils/detect'
 import MarkdownEditor from '@/components/MarkdownEditor.vue'
 import { backendMutationOptions } from '@/composables/backend'
 import { useEvent } from '@/composables/events'
@@ -10,6 +8,8 @@ import { useStringSync } from '@/util/codemirror'
 import { ResultComponent } from '@/util/react'
 import { EditorView } from '@codemirror/view'
 import { useMutation } from '@tanstack/vue-query'
+import type { AssetDetailsResponse, AssetId } from 'enso-common/src/services/Backend'
+import { isOnElectron } from 'enso-common/src/utilities/detect'
 import { computed, effectScope, onScopeDispose, ref, watch } from 'vue'
 
 const rightPanel = useRightPanelData()

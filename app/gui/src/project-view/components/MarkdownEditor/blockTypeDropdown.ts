@@ -44,10 +44,11 @@ export function useBlockTypeDropdown({
   function menuOption(key: BlockType): SelectionMenuOption | undefined {
     const action = actions[blockTypeAction[key]]
     if (!toValue(action.available)) return
+    const shortcut = toValue(action.shortcut)
     return {
       icon: toValue(action.icon),
       label: toValue(action.description),
-      labelExtension: action.shortcut && `(${action.shortcut.humanReadable})`,
+      labelExtension: shortcut && `(${shortcut.humanReadable})`,
       disabled: disableSettingTypes.value ? key !== blockType.value && key !== 'Paragraph' : false,
       hidden: false,
     }

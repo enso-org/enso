@@ -1,5 +1,5 @@
-import { Rfc3339DateTime } from 'enso-common/src/utilities/data/dateTime'
 import { describe, expect, it, test } from 'vitest'
+import { Rfc3339DateTime } from '../../utilities/data/dateTime'
 import {
   AssetType,
   compareAssets,

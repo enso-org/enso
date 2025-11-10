@@ -1,7 +1,7 @@
 import { useGraphStore, useProjectStore } from '$/components/WithCurrentProject.vue'
 import type { GraphDb } from '$/providers/openedProjects/graph/graphDatabase'
+import { Err, Ok, withContext, type Result } from 'enso-common/src/utilities/data/result'
 import type { LanguageServer } from 'ydoc-shared/languageServer'
-import { Err, Ok, withContext, type Result } from 'ydoc-shared/util/data/result'
 import type { ExternalId } from 'ydoc-shared/yjsModel'
 
 const AI_GOAL_PLACEHOLDER = '__$$GOAL$$__'

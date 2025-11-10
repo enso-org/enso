@@ -5,17 +5,17 @@
  * an API endpoint. The functions are asynchronous and return a {@link Promise} that resolves to
  * the response from the API.
  */
-import Backend, * as backend from '#/services/Backend'
-import { extractIdFromDirectoryId, organizationIdToDirectoryId } from '#/services/RemoteBackend/ids'
-import { delay } from '#/utilities/async'
-import * as download from '#/utilities/download'
-import * as objects from '#/utilities/object'
-import { getFileName, getFolderPath } from '#/utilities/path'
-import * as detect from '$/utils/detect'
-import * as remoteBackendPaths from 'enso-common/src/services/Backend/remoteBackendPaths'
-import invariant from 'tiny-invariant'
 import { markRaw } from 'vue'
 import { z } from 'zod'
+import type { DownloadOptions } from '../download.js'
+import { delay } from '../utilities/async.js'
+import * as objects from '../utilities/data/object.js'
+import * as detect from '../utilities/detect.js'
+import { getFileName, getFolderPath } from '../utilities/file.js'
+import * as backend from './Backend.js'
+import * as remoteBackendPaths from './Backend/remoteBackendPaths.js'
+import type { HttpClient } from './HttpClient.js'
+import { extractIdFromDirectoryId, organizationIdToDirectoryId } from './RemoteBackend/ids.js'
 
 /** HTTP status indicating that the resource does not exist. */
 const STATUS_NOT_FOUND = 404
@@ -27,11 +27,22 @@ const EXPORT_STATUS_INTERVAL_MS = 5_000
 const IMPORT_STATUS_INTERVAL_MS = 5_000
 
 /** Class for sending requests to the Cloud backend API endpoints. */
-export default class RemoteBackend extends Backend {
+export class RemoteBackend extends backend.Backend {
   static readonly type = backend.BackendType.remote
   override readonly type = RemoteBackend.type
-  override readonly baseUrl = new URL($config.API_URL ?? '', location.href)
+  override readonly baseUrl: URL
   private user: objects.Mutable<backend.User> | null = null
+
+  /** Create a {@link RemoteBackend}. */
+  constructor(
+    getText: backend.GetText,
+    client: HttpClient,
+    downloader: (options: DownloadOptions) => void | Promise<void>,
+    baseUrl: URL,
+  ) {
+    super(getText, client, downloader)
+    this.baseUrl = baseUrl
+  }
 
   /** The path to the root directory of this {@link Backend}. */
   override rootPath(user: backend.User) {
@@ -198,7 +209,7 @@ export default class RemoteBackend extends Backend {
     file: Blob,
   ): Promise<backend.User> {
     const paramsString = new URLSearchParams({
-      // eslint-disable-next-line @typescript-eslint/naming-convention, camelcase
+      // eslint-disable-next-line camelcase
       ...(params.fileName != null ? { file_name: params.fileName } : {}),
     }).toString()
     const path = `${remoteBackendPaths.UPLOAD_USER_PICTURE_PATH}?${paramsString}`
@@ -269,7 +280,7 @@ export default class RemoteBackend extends Backend {
     file: Blob,
   ): Promise<backend.OrganizationInfo> {
     const paramsString = new URLSearchParams({
-      // eslint-disable-next-line @typescript-eslint/naming-convention, camelcase
+      // eslint-disable-next-line camelcase
       ...(params.fileName != null ? { file_name: params.fileName } : {}),
     }).toString()
     const path = `${remoteBackendPaths.UPLOAD_ORGANIZATION_PICTURE_PATH}?${paramsString}`
@@ -313,7 +324,6 @@ export default class RemoteBackend extends Backend {
 
     const plan = user.plan
 
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     if (plan == null) {
       // @ts-expect-error The property is declared as read-only, but it's not enforced.
       // We assume it's read-only for external use.
@@ -1221,14 +1231,14 @@ export default class RemoteBackend extends Backend {
     }
 
     const paramsString = new URLSearchParams({
-      /* eslint-disable @typescript-eslint/naming-convention, camelcase */
+      /* eslint-disable camelcase */
       ...(params.userEmail != null ? { user_email: params.userEmail } : {}),
       ...(params.lambdaKind != null ? { lambda_kind: params.lambdaKind } : {}),
       ...(params.startDate != null ? { start_date: params.startDate } : {}),
       ...(params.endDate != null ? { end_date: params.endDate } : {}),
       ...(params.from != null ? { from: String(params.from) } : {}),
       ...(params.pageSize != null ? { page_size: String(params.pageSize) } : {}),
-      /* eslint-enable @typescript-eslint/naming-convention, camelcase */
+      /* eslint-enable camelcase */
     }).toString()
     const path = `${remoteBackendPaths.GET_LOG_EVENTS_PATH}?${paramsString}`
     const response = await this.get<ResponseBody>(path)
@@ -1281,8 +1291,10 @@ export default class RemoteBackend extends Backend {
     switch (asset.type) {
       case backend.AssetType.project: {
         const details = await this.getProjectDetails(asset.id, true)
-        invariant(details.url != null, 'The download URL of the project must be present.')
-        await download.download({
+        if (details.url == null) {
+          throw new Error('The download URL of the project must be present.')
+        }
+        await this.downloader({
           url: details.url,
           name: `${title}.enso-project`,
           electronOptions: { shouldUnpackProject, path: targetPath },
@@ -1291,8 +1303,10 @@ export default class RemoteBackend extends Backend {
       }
       case backend.AssetType.file: {
         const details = await this.getFileDetails(asset.id, title, true)
-        invariant(details.url != null, 'The download URL of the file must be present.')
-        await download.download({
+        if (details.url == null) {
+          throw new Error('The download URL of the file must be present.')
+        }
+        await this.downloader({
           url: details.url,
           name: details.file.fileName ?? '',
           electronOptions: { path: targetPath },
@@ -1308,7 +1322,7 @@ export default class RemoteBackend extends Backend {
           }),
         )
         try {
-          await download.download({
+          await this.downloader({
             url: fileObjectUrl,
             name: fileName,
             electronOptions: { path: targetPath },
@@ -1321,8 +1335,7 @@ export default class RemoteBackend extends Backend {
       case backend.AssetType.secret:
       case backend.AssetType.directory:
       default: {
-        invariant(`'${asset.type}' assets cannot be downloaded.`)
-        break
+        throw new Error(`'${asset.type}' assets cannot be downloaded.`)
       }
     }
   }
@@ -1481,7 +1494,7 @@ export default class RemoteBackend extends Backend {
         await delay(EXPORT_STATUS_INTERVAL_MS)
         continue
       }
-      await download.download({
+      await this.downloader({
         url,
         name: filePath != null ? getFileName(filePath) : undefined,
         electronOptions: {

@@ -11,7 +11,11 @@ import { Text } from '#/components/Text'
 import { backendMutationOptions, backendQueryOptions } from '#/hooks/backendHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import type { SelectedAssetInfo } from '#/providers/DriveProvider'
-import type Backend from '#/services/Backend'
+import { tv } from '#/utilities/tailwindVariants'
+import { useMutationCallback } from '#/utilities/tanstackQuery'
+import { useText } from '$/providers/react'
+import { useSuspenseQuery } from '@tanstack/react-query'
+import type { Backend } from 'enso-common/src/services/Backend'
 import {
   COLORS,
   colorsAreEqual,
@@ -20,11 +24,7 @@ import {
   lChColorToCssColor,
   type Label,
   type LChColor,
-} from '#/services/Backend'
-import { tv } from '#/utilities/tailwindVariants'
-import { useMutationCallback } from '#/utilities/tanstackQuery'
-import { useText } from '$/providers/react'
-import { useSuspenseQuery } from '@tanstack/react-query'
+} from 'enso-common/src/services/Backend'
 import { useMemo } from 'react'
 import { Tag, TagGroup, TagList, useFilter } from 'react-aria-components'
 import type { ControllerRenderProps } from 'react-hook-form'

@@ -375,8 +375,8 @@
     },
     "@@rules_graalvm+//:extensions.bzl%graalvm": {
       "general": {
-        "bzlTransitiveDigest": "JVrrjgwiNfmXUk4e8xpjbxuUmMM3lc0fWN966+kFiwc=",
-        "usagesDigest": "7P6fIjiIrq5O/7Gul68+EnhglJQ9mEU2R89Q5hplUqw=",
+        "bzlTransitiveDigest": "HA/FHnhIiNZZEhvANM0vDhHMuD3UEbj+DCG8Z3LGYiM=",
+        "usagesDigest": "SaP32lQWr/67Xers1VfYIsBN/iZiO+CTKGFIxhBt7Cw=",
         "recordedFileInputs": {},
         "recordedDirentsInputs": {},
         "envVariables": {},
@@ -390,7 +390,7 @@
           "graalvm": {
             "repoRuleId": "@@rules_graalvm+//internal:graalvm_bindist.bzl%_graalvm_bindist_repository",
             "attributes": {
-              "version": "25.0.1",
+              "version": "25.0.0",
               "java_version": "25",
               "distribution": "ce",
               "components": [],
