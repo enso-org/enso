@@ -1,7 +1,7 @@
 import { type ProjectStore } from '$/providers/openedProjects/project'
-import { basenameAndExtension } from '$/utils/file'
 import { bytesToHex, Hash } from '@noble/hashes/utils'
 import { Err, Ok, type Result, withContext } from 'enso-common/src/utilities/data/result'
+import { basenameAndExtension } from 'enso-common/src/utilities/file'
 import { Error as DataError } from 'ydoc-shared/binaryProtocol'
 import { ErrorCode, RemoteRpcError } from 'ydoc-shared/languageServer'
 import { type Path } from 'ydoc-shared/languageServerTypes'
