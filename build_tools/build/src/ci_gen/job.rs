@@ -1,7 +1,6 @@
 use crate::ci_gen::CleaningCondition;
 use crate::prelude::*;
 
-use crate::ci_gen::input;
 use crate::ci_gen::not_default_branch;
 use crate::ci_gen::runs_on;
 use crate::ci_gen::secret;
@@ -17,7 +16,6 @@ use crate::paths;
 use core::panic;
 use ide_ci::actions::workflow::definition::cancel_workflow_action;
 use ide_ci::actions::workflow::definition::checkout_repo_step;
-use ide_ci::actions::workflow::definition::get_input_expression;
 use ide_ci::actions::workflow::definition::shell;
 use ide_ci::actions::workflow::definition::step::Argument;
 use ide_ci::actions::workflow::definition::Access;
@@ -90,7 +88,6 @@ impl RunsOn for OS {
 impl RunsOn for (OS, Arch) {
     fn runs_on(&self) -> Vec<RunnerLabel> {
         match self {
-            (OS::MacOS, Arch::X86_64) => vec![RunnerLabel::MacOS13],
             (os, Arch::X86_64) => runs_on(*os, RunnerType::SelfHosted),
             (OS::MacOS, Arch::AArch64) => {
                 let mut ret = runs_on(OS::MacOS, RunnerType::SelfHosted);
@@ -244,6 +241,8 @@ impl JobArchetype for JvmTests {
         let graal_edition = self.graal_edition;
         let engine_launcher = self.engine_launcher;
         let job_name = format!("JVM Tests ({graal_edition})");
+        let heapdump_artifact_name =
+            format!("Heap dumps ({}, {}, {})", "JVM Tests", target.0, target.1);
         let mut job = RunStepsBuilder::new("backend test jvm")
             .customize(move |step| {
                 let cleanup_engine_distribution =
@@ -252,12 +251,15 @@ impl JobArchetype for JvmTests {
                 let download_engine_distribution =
                     step::download_engine_distribution(target, engine_launcher, graal_edition);
 
+                let upload_hprof_step = step::heapdump_upload(heapdump_artifact_name);
+
                 vec![
                     cleanup_engine_distribution,
                     download_engine_distribution,
                     step::check_engine_distribution(),
                     step::unpack_engine_distribution(),
                     step,
+                    upload_hprof_step,
                     step::engine_test_reporter(target, graal_edition),
                 ]
             })
@@ -856,33 +858,6 @@ impl JobArchetype for DeployRuntime {
                     .with_env("AWS_DEFAULT_REGION", crate::aws::ecr::runtime::REGION)]
             })
             .build_job("Upload Runtime to ECR", target)
-    }
-}
-
-#[derive(Clone, Copy, Debug)]
-pub struct DeployYdoc;
-
-impl JobArchetype for DeployYdoc {
-    fn job(&self, target: Target) -> Job {
-        let run_command =
-            format!("release deploy-ydoc-{}", get_input_expression(input::name::YDOC));
-        RunStepsBuilder::new(run_command)
-            .customize(|step| {
-                vec![step
-                    .with_secret_exposed_as(secret::CI_PRIVATE_TOKEN, ide_ci::github::GITHUB_TOKEN)
-                    .with_env("ENSO_BUILD_ECR_REPOSITORY", crate::aws::ecr::ydoc::NAME)
-                    .with_secret_exposed_as(
-                        secret::ECR_PUSH_RUNTIME_ACCESS_KEY_ID,
-                        "AWS_ACCESS_KEY_ID",
-                    )
-                    .with_secret_exposed_as(
-                        secret::ECR_PUSH_RUNTIME_SECRET_ACCESS_KEY,
-                        "AWS_SECRET_ACCESS_KEY",
-                    )
-                    .with_env("AWS_DEFAULT_REGION", crate::aws::ecr::ydoc::REGION)]
-            })
-            .cleaning(RELEASE_CLEANING_POLICY)
-            .build_job("Upload Ydoc to ECR", target)
     }
 }
 

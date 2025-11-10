@@ -15,9 +15,7 @@ import org.graalvm.word.PointerBase;
 
 @CContext(WindowsJVM.Direct.class)
 final class WindowsJVM {
-  static JNICreateJavaVMPointer createImpl(File javaHome) {
-    var dllPath = findDynamicLibrary(javaHome).getPath();
-
+  static JNICreateJavaVMPointer loadImpl(String dllPath) {
     try (var libPath = CTypeConversion.toCString(dllPath);
         var createJvm = CTypeConversion.toCString("JNI_CreateJavaVM")) {
       var dll = LoadLibraryA(libPath.get());
@@ -26,7 +24,7 @@ final class WindowsJVM {
     }
   }
 
-  private static File findDynamicLibrary(File javaHome) {
+  static File findDynamicLibrary(File javaHome) {
     var dll = new File(new File(new File(javaHome, "bin"), "server"), "jvm.dll");
     if (!dll.exists()) {
       throw new AssertionError("Cannot find " + dll);

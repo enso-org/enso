@@ -568,14 +568,11 @@ type In_Memory_Table_Implementation
 
     default_max_rows = Rows_To_Read.All_Rows
 
-    read (this_table : Table & In_Memory_Table) (max_rows : Rows_To_Read) = case max_rows of
-        Rows_To_Read.All_Rows -> this_table
-        Rows_To_Read.First n -> this_table.take (..First n)
-        Rows_To_Read.First_With_Warning n ->
-            truncated = this_table.take (..First n)
-            if (this_table : Table & In_Memory_Table).row_count <= n then truncated else
-                Problem_Behavior.Report_Warning.attach_problem_after truncated <|
-                    Not_All_Rows_Downloaded.Warning n
+    read (this_table : Table & In_Memory_Table) (max_rows : Rows_To_Read) =
+        limit = max_rows.rows_to_read
+        if limit.is_nothing then this_table else
+            limited_table = this_table.take (..First limit)
+            max_rows.attach_warning limited_table
 
     column_info (this_table : Table & In_Memory_Table) =
         cols = this_table.columns

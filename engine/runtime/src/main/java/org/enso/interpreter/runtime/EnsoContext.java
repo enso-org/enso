@@ -513,16 +513,17 @@ public final class EnsoContext {
    *
    * @param who who requests the addition
    * @param file the file to register
+   * @param polyglotContextEntered true if a polyglot context has been entered, false otherwise
    */
   @TruffleBoundary
-  public void addToClassPath(Package<?> who, TruffleFile file) {
+  public void addToClassPath(Package<?> who, TruffleFile file, boolean polyglotContextEntered) {
     assert who != null;
     var path = new File(file.toUri()).getAbsoluteFile();
     if (!path.exists()) {
       throw new IllegalStateException("File not found " + path);
     }
     try {
-      EnsoPolyglotJava.addToClassPath(this, who, path);
+      EnsoPolyglotJava.addToClassPath(this, who, path, polyglotContextEntered);
     } catch (InteropException ex) {
       throw raiseAssertionPanic(null, "Cannot add " + file + " to classpath", ex);
     }
@@ -998,10 +999,12 @@ public final class EnsoContext {
     return singleStateProfile.profile(language.currentState());
   }
 
-  private Object extraValues(int index, Function<EnsoContext, ?> init) {
+  private synchronized Object extraValues(int index, Function<EnsoContext, ?> init) {
     if (index >= extraValues.length || extraValues[index] == null) {
       CompilerDirectives.transferToInterpreterAndInvalidate();
-      extraValues = Arrays.copyOf(extraValues, Extra.COUNTER.get());
+      if (index >= extraValues.length) {
+        extraValues = Arrays.copyOf(extraValues, index + 1);
+      }
       extraValues[index] = init.apply(this);
       assert extraValues[index] != null;
     }

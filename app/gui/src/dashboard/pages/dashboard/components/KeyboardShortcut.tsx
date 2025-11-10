@@ -13,8 +13,8 @@ import { twMerge } from '#/utilities/tailwindMerge'
 import { useText } from '$/providers/react'
 import type { GetText } from '$/providers/text'
 import { type ModifierKey, parseKeybindString } from '@/util/shortcuts'
-import * as detect from 'enso-common/src/detect'
 import type * as text from 'enso-common/src/text'
+import * as detect from 'enso-common/src/utilities/detect'
 import * as React from 'react'
 
 /** The size (both width and height) of key icons. */

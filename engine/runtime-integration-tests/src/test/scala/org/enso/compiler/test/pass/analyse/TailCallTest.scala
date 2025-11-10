@@ -96,7 +96,7 @@ class TailCallTest extends MiniPassTest {
         code,
         () => mkModuleContext,
         ir => {
-          ir.bindings(1).getMetadata(TailCall.INSTANCE) shouldEqual Some(
+          ir.bindings()(1).getMetadata(TailCall.INSTANCE) shouldEqual Some(
             TailPosition.Tail
           )
         }
@@ -108,7 +108,7 @@ class TailCallTest extends MiniPassTest {
         code,
         () => mkModuleContext,
         ir => {
-          ir.bindings(2).getMetadata(TailCall.INSTANCE) shouldEqual Some(
+          ir.bindings()(2).getMetadata(TailCall.INSTANCE) shouldEqual Some(
             TailPosition.Tail
           )
         }

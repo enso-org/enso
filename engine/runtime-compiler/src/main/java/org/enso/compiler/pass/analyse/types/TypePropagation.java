@@ -6,6 +6,7 @@ import java.util.List;
 import org.enso.compiler.MetadataInteropHelpers;
 import org.enso.compiler.common.NameResolutionAlgorithm;
 import org.enso.compiler.core.CompilerError;
+import org.enso.compiler.core.ConstantsNames;
 import org.enso.compiler.core.IR;
 import org.enso.compiler.core.ir.CallArgument;
 import org.enso.compiler.core.ir.Expression;
@@ -355,8 +356,13 @@ abstract class TypePropagation {
       Application.Prefix relatedIR,
       LocalBindingsTyping localBindingsTyping) {
     if (argument.name().isDefined()) {
-      // TODO named arguments are not yet supported
-      return null;
+      var isSelf = ConstantsNames.SELF_ARGUMENT.equals(argument.name().get().name());
+      if (!isSelf) {
+        // TODO named arguments are not yet supported
+        return null;
+      } else {
+        // static invocation syntax is supported
+      }
     }
 
     switch (functionType) {
@@ -370,7 +376,11 @@ abstract class TypePropagation {
 
       case TypeRepresentation.UnresolvedSymbol unresolvedSymbol -> {
         return processUnresolvedSymbolApplication(
-            unresolvedSymbol, argument.value(), localBindingsTyping, relatedIR);
+            unresolvedSymbol,
+            argument.value(),
+            isStaticMethodInvocation(relatedIR),
+            localBindingsTyping,
+            relatedIR);
       }
 
       default -> {
@@ -399,6 +409,7 @@ abstract class TypePropagation {
   private TypeRepresentation processUnresolvedSymbolApplication(
       TypeRepresentation.UnresolvedSymbol function,
       Expression argument,
+      boolean isStaticMethodInvocation,
       LocalBindingsTyping localBindingsTyping,
       IR relatedWholeApplicationIR) {
     var argumentType = tryInferringType(argument, localBindingsTyping);
@@ -421,16 +432,23 @@ abstract class TypePropagation {
             }
           }
 
-          // Then we resolve the _static_ `method` on the `Type` - by looking at the eigen type.
-          // We resolve static calls on the eigen type. It should also contain registrations of the
-          // static variants of member methods, so we don't need to inspect member scope.
-          var staticScope = TypeScopeReference.atomEigenType(typeObject.name());
+          TypeScopeReference staticScope;
+          if (isStaticMethodInvocation) {
+            staticScope = TypeScopeReference.atomType(typeObject.name());
+          } else {
+            staticScope = TypeScopeReference.atomEigenType(typeObject.name());
+          }
           var resolvedStaticMethod = methodTypeResolver.resolveMethod(staticScope, function.name());
           if (resolvedStaticMethod == null) {
             encounteredNoSuchMethod(
                 relatedWholeApplicationIR, argumentType, function.name(), MethodCallKind.STATIC);
           }
-          return resolvedStaticMethod;
+          if (isStaticMethodInvocation) {
+            var withSelf = TypeRepresentation.buildStaticMethod(typeObject, resolvedStaticMethod);
+            return withSelf;
+          } else {
+            return resolvedStaticMethod;
+          }
         }
       }
 
@@ -491,6 +509,23 @@ abstract class TypePropagation {
     assert !name.isEmpty();
     char firstCharacter = name.charAt(0);
     return Character.isUpperCase(firstCharacter);
+  }
+
+  /**
+   * @see <a
+   *     href="https://github.com/enso-org/enso/tree/8c14901627d4d716a67da95d210c7b60f89d30b2/docs/types/dynamic-dispatch.md#static-method-invocation">static
+   *     method invocation specification</a>
+   */
+  private static boolean isStaticMethodInvocation(Application.Prefix applicationIR) {
+    if (applicationIR.arguments().length() >= 2) {
+      var secondArg = applicationIR.arguments().apply(1);
+      return isNamedSelfArgument(secondArg);
+    }
+    return false;
+  }
+
+  private static boolean isNamedSelfArgument(CallArgument arg) {
+    return arg.name().isDefined() && arg.name().get().name().equals(ConstantsNames.SELF_ARGUMENT);
   }
 
   private TypeRepresentation resolveConstructorOnType(

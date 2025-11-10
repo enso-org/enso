@@ -1,0 +1,27 @@
+from Standard.Base import all
+from Standard.Base.Metadata.Choice import Option
+
+## Snowflake Identifier - with optional schema.
+type Identifier
+    ## An object in the current schema with specified name.
+    Name name:Text=(Missing_Argument.throw "name")
+
+    ## An object with specified schema and name.
+    Name_And_Schema name:Text=(Missing_Argument.throw "name") schema:Text=(Missing_Argument.throw "schema")
+
+    ## ---
+       private: true
+       ---
+    to_identifier self = case self of
+        Identifier.Name '~' -> '~'
+        Identifier.Name n -> '"' + (n.replace '"' '""') + '"'
+        Identifier.Name_And_Schema n s -> '"' + (s.replace '"' '""') + '"."' + (n.replace '"' '""') + '"'
+
+    ## ---
+       private: true
+       ---
+    to_option self = case self of
+        Identifier.Name n -> Option n "(..Name "+n.pretty+")"
+        Identifier.Name_And_Schema n s -> Option s+"."+n "(..Name_And_Schema "+n.pretty+" "+s.pretty+")"
+
+Identifier.from (that:Text) = Identifier.Name that

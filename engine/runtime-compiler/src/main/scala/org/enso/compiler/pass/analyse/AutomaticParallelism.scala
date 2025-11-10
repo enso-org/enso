@@ -454,7 +454,7 @@ object AutomaticParallelism extends IRPass {
           .build()
       case other => other
     }
-    ir.copy(bindings = newBindings)
+    ir.copyWithBindings(bindings = newBindings)
   }
 
   /** A parallelization status for a given line.

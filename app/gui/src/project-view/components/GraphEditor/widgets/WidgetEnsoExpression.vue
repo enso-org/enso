@@ -21,9 +21,11 @@ const astCode = computed(() => {
 })
 
 function acceptValue(value: string): HandledUpdate {
+  const preprocess = props.input[EnsoExpression].preprocess
+  const preprocessed = preprocess ? preprocess(value) : value
   return props.updateCallback({
     portUpdate: {
-      value: Ast.parseExpression(value),
+      value: Ast.parseExpression(preprocessed),
       origin: props.input.portId,
     },
     directInteraction: true,
@@ -49,7 +51,8 @@ export const EnsoExpression: unique symbol = Symbol.for('WidgetInput:EnsoExpress
 declare module '$/providers/openedProjects/widgetRegistry' {
   export interface WidgetInput {
     [EnsoExpression]?: {
-      weakMatch?: boolean
+      weakMatch?: boolean | undefined
+      preprocess?: ((code: string) => string) | undefined
     }
   }
 }
@@ -78,6 +81,7 @@ export const widgetDefinition = defineWidget(
       :extensions="extensions"
       lineMode="single"
       :onAccepted="acceptValue"
+      :syncAfterAccept="true"
     />
   </div>
 </template>

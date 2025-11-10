@@ -351,7 +351,7 @@ impl Processor {
                     let config = enso_build::engine::BuildConfigurationFlags {
                         build_engine_package: true,
                         build_launcher_bundle: true,
-                        build_project_manager_bundle: true,
+                        build_engine_bundle: true,
                         build_small_jdk: true,
                         small_jdk_dir: Some(small_jdk_dir),
                         verify_packages: true,
@@ -792,16 +792,6 @@ pub async fn main_internal(config: Option<Config>) -> Result {
             }
             Action::DeployRuntime(args) => {
                 enso_build::release::deploy_runtime_to_ecr(&ctx, args.ecr_repository).await?;
-            }
-            Action::DeployYdocPolyglot(args) => {
-                let config = enso_build::engine::BuildConfigurationFlags {
-                    build_native_ydoc: true,
-                    ..default()
-                };
-                let backend_context = ctx.prepare_backend_context(config).await?;
-                backend_context.build().await?;
-
-                enso_build::release::deploy_ydoc_polyglot_to_ecr(&ctx, args.ecr_repository).await?;
             }
             Action::DispatchBuildImage => {
                 if !(&ctx.triple.versions.version.pre.to_string().starts_with("nightly")) {
