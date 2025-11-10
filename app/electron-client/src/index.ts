@@ -32,7 +32,7 @@ import { join as joinPath } from 'node:path'
 import process from 'node:process'
 import { downloadSamples, runHybridProjectByUrl, runLocalProjectByPath } from 'project-manager-shim'
 import buildInfo from '../buildInfo'
-import { initAuthentication, readAccessToken } from './authentication.js'
+import { getUpToDateAccessToken, initAuthentication } from './authentication.js'
 import { parseArgs } from './configParser.js'
 import { VERSION } from './contentConfig.js'
 import { printInfo, VERSION_INFO } from './debug.js'
@@ -507,8 +507,8 @@ const getText: GetText = (key, ...replacements) => {
   return originalGetText(TEXTS.english, key, ...replacements)
 }
 
-function createRemoteBackend() {
-  const accessToken = readAccessToken()
+async function createRemoteBackend() {
+  const accessToken = await getUpToDateAccessToken()
   if (!accessToken) {
     throw new Error('No access token found for remote backend.')
   }
@@ -523,8 +523,7 @@ function createRemoteBackend() {
      */
     'x-enso-version': '2025-01-16',
   })
-  // TODO: consider refreshing the token if it is expired
-  httpClient.setSessionToken(accessToken.accessToken)
+  httpClient.setSessionToken(accessToken)
   const downloader = () => {
     // TODO: implement downloading (low priority)
   }
@@ -553,7 +552,7 @@ async function runApp(app: App, parsedArguments: ParsedArguments, electron: Elec
     const projectToOpen = args.startup.project
     if (projectToOpen.startsWith(`${DEEP_LINK_SCHEME}:`)) {
       try {
-        await runHybridProjectByUrl(EnsoPath(projectToOpen.toString()), createRemoteBackend())
+        await runHybridProjectByUrl(EnsoPath(projectToOpen.toString()), await createRemoteBackend())
       } catch (error) {
         console.error(`Error starting hybrid project '${projectToOpen}':`, error)
         return exit(1, electron)

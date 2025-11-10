@@ -74,21 +74,22 @@
  */
 import { CREDENTIALS_PATH } from '@/paths'
 import {
-  createAWSCredentialsAndIdentityIdProvider,
-  createKeyValueStorageFromCookieStorageAdapter,
-  createUserPoolsTokenProvider,
-  runWithAmplifyServerContext,
-} from 'aws-amplify/adapter-core'
-import { getCurrentUser } from 'aws-amplify/auth/server'
+  CognitoIdentityProviderClient,
+  InitiateAuthCommand,
+} from '@aws-sdk/client-cognito-identity-provider'
 import type { BrowserWindow } from 'electron'
 import type { AccessToken } from 'enso-common/src/accessToken'
+import { $config } from 'enso-common/src/config'
 import { DEEP_LINK_SCHEME } from 'enso-common/src/constants'
-import { mkdir, readFileSync, unlinkSync, writeFile } from 'node:fs'
+import { mkdir, mkdirSync, readFileSync, unlinkSync, writeFile, writeFileSync } from 'node:fs'
 import { dirname } from 'node:path'
 import opener from 'opener'
 import type { Electron } from './electron.js'
 import { Channel } from './ipc.js'
 import { registerUrlCallback } from './urlAssociations.js'
+
+/** How much longer the access token should be valid for before refreshing. */
+const REFRESH_THRESHOLD_MS = 30 * 60 * 1000 // 30 minutes
 
 /**
  * Configure all the functionality that must be set up in the Electron app to support
@@ -165,58 +166,46 @@ export function readAccessToken(): AccessToken | undefined {
   }
 }
 
-/**
- *
- */
+/** Save the access token to the credentials file. */
+export function saveAccessToken(accessToken: AccessToken): void {
+  mkdirSync(dirname(CREDENTIALS_PATH), { recursive: true })
+  writeFileSync(
+    CREDENTIALS_PATH,
+    JSON.stringify({
+      /* eslint-disable camelcase */
+      client_id: accessToken.clientId,
+      access_token: accessToken.accessToken,
+      refresh_token: accessToken.refreshToken,
+      refresh_url: accessToken.refreshUrl,
+      expire_at: accessToken.expireAt,
+      /* eslint-enable camelcase */
+    }),
+  )
+}
+
+/** Get an up-to-date access token, refreshing it if necessary. */
 export async function getUpToDateAccessToken(): Promise<string> {
   const accessToken = readAccessToken()
+  console.log(accessToken, $config.COGNITO_USER_POOL_WEB_CLIENT_ID, $config.COGNITO_REGION)
   if (!accessToken) {
     throw new Error('No access token found for refreshing.')
   }
-  // Create the key-value storage from Remix's cookie API
-  const keyValueStorage = createKeyValueStorageFromCookieStorageAdapter({
-    get(name) {
-      const encodedName = ensureEncodedForJSCookie(name)
-      const cookieRegex = new RegExp(`(^|;)\\s*${encodedName}=([^;]+)`)
-      const match = cookies.match(cookieRegex)
-      const cookie = match ? { name, value: match[2] } : undefined
-
-      if (cookie && name.endsWith('.signInDetails')) {
-        cookie.value = decodeURIComponent(cookie.value)
-      }
-
-      return cookie
-    },
-    getAll() {
-      return cookies.split('; ').map((cookie) => {
-        const [name, value] = cookie.split('=')
-        return { name, value }
-      })
-    },
-    set(name, value) {
-      // Not needed on the server unless setting cookies
-    },
-    delete(name) {
-      // Not needed on the server unless deleting cookies
+  if (Number(Date.now()) < Number(new Date(accessToken.expireAt)) - REFRESH_THRESHOLD_MS) {
+    return accessToken.accessToken
+  }
+  const command = new InitiateAuthCommand({
+    AuthFlow: 'REFRESH_TOKEN_AUTH',
+    ClientId: $config.COGNITO_USER_POOL_WEB_CLIENT_ID,
+    AuthParameters: {
+      REFRESH_TOKEN: accessToken.refreshToken,
     },
   })
-
-  // Create the tokenProvider
-  const tokenProvider = createUserPoolsTokenProvider(authConfig, keyValueStorage)
-  // Create the credentialsProvider
-  const credentialsProvider = createAWSCredentialsAndIdentityIdProvider(authConfig, keyValueStorage)
-  const what = await runWithAmplifyServerContext(
-    { Auth: authConfig },
-    { Auth: { tokenProvider, credentialsProvider }, ssr: true },
-    async (spec) => {
-      try {
-        return await getCurrentUser(spec)
-      } catch (error) {
-        console.error('Error fetching authentication session:', error)
-        return null
-      }
-    },
-  )
-  return accessToken.accessToken
-  // TODO: Implement the logic to refresh the access token using the refresh token.
+  const client = new CognitoIdentityProviderClient({ region: $config.COGNITO_REGION })
+  const result = await client.send(command)
+  const newAccessToken = result.AuthenticationResult?.AccessToken
+  if (!newAccessToken) {
+    throw new Error('Failed to refresh access token.')
+  }
+  saveAccessToken({ ...accessToken, accessToken: newAccessToken })
+  return newAccessToken
 }
