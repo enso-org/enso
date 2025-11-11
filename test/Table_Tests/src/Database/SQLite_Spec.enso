@@ -18,7 +18,6 @@ from Standard.Test import all
 import project.Database.Common.Common_Spec
 import project.Database.Common.IR_Spec
 import project.Database.Helpers.Name_Generator
-import project.Database.JDBC.Generic_JDBC_SQLite_Spec
 import project.Database.Transaction_Spec
 import project.Database.Types.SQLite_Type_Mapping_Spec
 import project.Database.Upload_Spec
@@ -420,7 +419,6 @@ add_specs suite_builder =
     Transaction_Spec.add_specs suite_builder (_ -> create_inmem_connection) in_memory_prefix
 
     SQLite_Type_Mapping_Spec.add_specs suite_builder
-    Generic_JDBC_SQLite_Spec.add_specs suite_builder
 
     suite_builder.group "SQLite_Format should allow connecting to SQLite files" group_builder->
         data = File_Connection.setup database_file

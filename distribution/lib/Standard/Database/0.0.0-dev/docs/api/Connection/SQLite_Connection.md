@@ -22,7 +22,6 @@
     - schemas self -> Standard.Base.Any.Any
     - set_database self database:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - set_schema self schema:Standard.Base.Any.Any -> Standard.Base.Any.Any
-    - statement_setter self -> Standard.Base.Any.Any
     - table_types self -> Standard.Base.Any.Any
     - tables self name_like:Standard.Base.Any.Any= database:Standard.Base.Any.Any= schema:Standard.Base.Any.Any= types:Standard.Base.Any.Any= all_fields:Standard.Base.Any.Any= -> Standard.Base.Any.Any
     - to_js_object self -> Standard.Base.Any.Any

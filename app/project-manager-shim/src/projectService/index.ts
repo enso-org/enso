@@ -85,7 +85,13 @@ export class ProjectService {
       throw new Error('Enso executable not found')
     }
     const runner = new EnsoRunner(ensoPath)
-    return new ProjectService(runner, extraArgs)
+
+    // Read extra arguments from environment variable
+    const envArgs = process.env.ENSO_ENGINE_ARGS
+    const envArgsArray = envArgs ? envArgs.split(/\s+/).filter((arg) => arg.length > 0) : []
+    const allExtraArgs = [...envArgsArray, ...extraArgs]
+
+    return new ProjectService(runner, allExtraArgs)
   }
 
   /**

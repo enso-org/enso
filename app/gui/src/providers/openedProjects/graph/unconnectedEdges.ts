@@ -40,6 +40,10 @@ export function useUnconnectedEdges() {
 
   // === Mouse-edited edges ===
 
+  function createEdgeFromPort(target: PortId, event: PointerEvent | undefined) {
+    mouseEditedEdge.value = { source: undefined, target, event, anchor: { type: 'mouse' } }
+  }
+
   function createEdgeFromOutput(source: AstId, event: PointerEvent | undefined) {
     mouseEditedEdge.value = { source, target: undefined, event, anchor: { type: 'mouse' } }
   }
@@ -161,6 +165,7 @@ export function useUnconnectedEdges() {
     createNodeFromOutputPortButtonEdges,
     showCreateNodeButtonEdge,
     // === Edge creation ===
+    createEdgeFromPort,
     createEdgeFromOutput,
     disconnectSource,
     disconnectTarget,

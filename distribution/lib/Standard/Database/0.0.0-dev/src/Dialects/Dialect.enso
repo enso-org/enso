@@ -11,7 +11,6 @@ import project.Dialects.Dialect_Flag.Dialect_Flag
 import project.Dialects.Feature.Feature
 import project.Errors.Unsupported_Database_Operation
 import project.Internal.DB_Wrapped_Error.DB_Wrapped_Error
-import project.Internal.Error_Mapper.Error_Mapper
 import project.Internal.IR.Internal_Column.Internal_Column
 import project.Internal.IR.Order_Descriptor.Order_Descriptor
 import project.Internal.IR.SQL_IR_Expression.SQL_IR_Expression
@@ -218,15 +217,6 @@ type Dialect
        Checks a dialect flag
     flagged self flag:Dialect_Flag -> Boolean =
         _ = flag
-        Unimplemented.throw "This is an interface only."
-
-    ## ---
-       private: true
-       ---
-       Returns a helper for mapping database-specific SQL errors into our common
-       error types.
-    get_error_mapper : Error_Mapper
-    get_error_mapper self =
         Unimplemented.throw "This is an interface only."
 
     ## ---

@@ -94,19 +94,20 @@ class GatherDiagnosticsTest extends CompilerTest {
         List(),
         List(),
         List(
-          Definition.Type(
-            typeName,
-            List(
-              DefinitionArgument.Specified
-                .builder()
-                .name(fooName)
-                .defaultValue(Some(error2))
-                .suspended(false)
-                .build()
-            ),
-            List(),
-            identifiedLocation = null
-          ),
+          Definition.Type
+            .builder()
+            .name(typeName)
+            .params(
+              List(
+                DefinitionArgument.Specified
+                  .builder()
+                  .name(fooName)
+                  .defaultValue(Some(error2))
+                  .suspended(false)
+                  .build()
+              )
+            )
+            .build(),
           definition.Method.Explicit.fromMethodBinding(
             definition.Method.Binding
               .builder()

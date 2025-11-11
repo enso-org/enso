@@ -40,4 +40,7 @@ const primitive = computed(() => {
 .null {
   color: darkgreen;
 }
+.indent {
+  display: inline;
+}
 </style>
