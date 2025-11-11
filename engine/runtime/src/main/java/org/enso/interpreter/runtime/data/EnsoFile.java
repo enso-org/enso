@@ -18,12 +18,8 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.nio.channels.SeekableByteChannel;
-import java.nio.file.AccessDeniedException;
-import java.nio.file.AccessMode;
 import java.nio.file.CopyOption;
-import java.nio.file.FileSystem;
 import java.nio.file.FileSystemException;
-import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.NoSuchFileException;
@@ -79,9 +75,6 @@ public final class EnsoFile extends BuiltinObject {
       EnsoContext ctx)
       throws IOException {
     var options = namesToValues(opts, lengthNode, atNode, ctx, StandardOpenOption::valueOf);
-    if (shouldLog(file)) {
-      System.out.printf("[mylog] Opening output stream for path: %s with options: %s%n", file.path, options);
-    }
     var os = Files.newOutputStream(file.path, options.toArray(OpenOption[]::new));
     return new EnsoOutputStream(os);
   }
@@ -546,10 +539,6 @@ public final class EnsoFile extends BuiltinObject {
   @Builtin.WrapException(from = IOException.class)
   @TruffleBoundary
   public static void createDirectories(EnsoFile file) throws IOException {
-    if (shouldLog(file)) {
-      System.out.printf("[mylog] Creating directories for path: %s%n", file.path);
-      checkAccesses(file);
-    }
     try {
       Files.createDirectories(file.path);
     } catch (NoSuchFileException e) {
@@ -558,55 +547,6 @@ public final class EnsoFile extends BuiltinObject {
       throw replaceCreateDirectoriesGenericException(e);
     }
   }
-
-  private static boolean shouldLog(EnsoFile file) {
-    var p = file.path.toString();
-    return p.contains("read_many_test")
-        || p.contains("permission.csv");
-  }
-
-  private static void checkAccesses(EnsoFile file) {
-    var parent = file.path;
-    var accessCheckResult = new AccessCheckResult(false, false);
-    while (parent != null) {
-      if (accessCheckResult.canRead && accessCheckResult.canWrite) {
-        break;
-      }
-      accessCheckResult = checkAccess(parent);
-      parent = parent.getParent();
-    }
-  }
-
-  private static AccessCheckResult checkAccess(Path path) {
-    var fsProvider = FileSystems.getDefault().provider();
-    var readAccess = false;
-    var writeAccess = false;
-    System.out.printf("[mylog] Checking READ access for path: %s%n", path);
-    try {
-      fsProvider.checkAccess(path, AccessMode.READ);
-      readAccess = true;
-    } catch (NoSuchFileException e) {
-      System.out.printf("  [mylog] No such file: %s%n", e);
-    } catch (AccessDeniedException e) {
-      System.out.printf("  [mylog] Access denied: %s%n", e);
-    } catch (IOException e) {
-      System.out.printf("  [mylog] Other IO exception: %s%n", e);
-    }
-    System.out.printf("[mylog] Checking WRITE access for path: %s%n", path);
-    try {
-      fsProvider.checkAccess(path, AccessMode.WRITE);
-      writeAccess = true;
-    } catch (NoSuchFileException e) {
-      System.out.printf("  [mylog] No such file: %s%n", e);
-    } catch (AccessDeniedException e) {
-      System.out.printf("  [mylog] Access denied: %s%n", e);
-    } catch (IOException e) {
-      System.out.printf("  [mylog] Other IO exception: %s%n", e);
-    }
-    return new AccessCheckResult(readAccess, writeAccess);
-  }
-
-  private record AccessCheckResult(boolean canRead, boolean canWrite) {}
 
   /**
    * This method detects if a more correct exception can be thrown instead of unrelated {@link
@@ -754,29 +694,20 @@ public final class EnsoFile extends BuiltinObject {
   @Builtin.WrapException(from = IOException.class)
   @TruffleBoundary
   public static void delete(EnsoFile file, boolean recursive) throws IOException {
-    var shouldLog = false;
-    if (shouldLog(file)) {
-      System.out.printf("[mylog] Deleting path: %s, recursive: %b%n", file.path, recursive);
-      shouldLog = true;
-    }
     if (recursive && Files.isDirectory(file.path, LinkOption.NOFOLLOW_LINKS)) {
-      deleteRecursively(file.path, shouldLog);
+      deleteRecursively(file.path);
     } else {
       Files.delete(file.path);
     }
   }
 
-  private static void deleteRecursively(Path file, boolean shouldLog) throws IOException {
+  private static void deleteRecursively(Path file) throws IOException {
     if (Files.isDirectory(file, LinkOption.NOFOLLOW_LINKS)) {
       try (var entries = Files.newDirectoryStream(file)) {
         for (var entry : entries) {
-          deleteRecursively(entry, shouldLog);
+          deleteRecursively(entry);
         }
       }
-    }
-    if (shouldLog) {
-      System.out.printf("  [mylog] Deleting path: %s%n", file);
-      checkAccess(file);
     }
     Files.delete(file);
   }
