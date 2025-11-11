@@ -1,5 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Errors.Common.Failed_To_Load
+import Standard.Base.Errors.File_Error.File_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 from Standard.Table import all
@@ -450,5 +451,29 @@ private with_temp_dir callback =
     base_dir = enso_project.data / "transient" / "read_many_test"
     base_dir.delete_if_exists recursive=True
     base_dir.exists . should_be_false
-    base_dir.create_directory . should_succeed
-    Panic.with_finalizer (base_dir.delete recursive=True) (callback base_dir)
+    created = try_recreate_directory base_dir
+    created.should_be_a File
+    Panic.with_finalizer (created.delete recursive=True) (callback created)
+
+
+## Tries to recreate a directory that has previously been deleted.
+
+   On Windows, recreation of a directory that has previously been deleted
+   may fail with `ACCESS_DENIED`.
+   It is likely caused by some race condition in the operating system -
+   See https://github.com/enso-org/enso/pull/14126#issuecomment-3516211503
+
+   In this method, we just handle it by catching the potential
+   `AccessDeniedException` and in such case, just retry.
+private try_recreate_directory dir:File attempt=0 =
+    max_attempts = 4
+    case attempt >= max_attempts of
+        True ->
+            File_Error.IO_Error dir "Could not create directory after multiple attempts due to repeated Access Denied errors."
+        False ->
+            err_handler err =
+                is_access_denied = case err of
+                    File_Error.Access_Denied _ -> True
+                    _ -> False
+                if is_access_denied then (try_recreate_directory dir (attempt + 1)) else err
+            dir.create_directory . catch error_type=File_Error handler=err_handler
