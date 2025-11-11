@@ -1,0 +1,3 @@
+## Enso Signatures 1.0
+## module Standard.Base.Network.Email
+- send from:Standard.Base.Network.Email.Email_Address.Email_Address= to:(Standard.Base.Data.Vector.Vector Standard.Base.Network.Email.Email_Address.Email_Address)= cc:(Standard.Base.Data.Vector.Vector Standard.Base.Network.Email.Email_Address.Email_Address)= bcc:(Standard.Base.Data.Vector.Vector Standard.Base.Network.Email.Email_Address.Email_Address)= subject:Standard.Base.Data.Text.Text= body:Standard.Base.Network.Email.Email_Body.Email_Body= attachments:(Standard.Base.Data.Vector.Vector Standard.Base.Network.Email.Email_Attachment.Email_Attachment)= provider:Standard.Base.Network.Email.Email_Provider.Email_Provider= -> Standard.Base.Any.Any
