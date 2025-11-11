@@ -34,8 +34,7 @@ import Standard.Database.SQL.SQL_Type
    The dialect of DuckDB built on top of PostgreSQL dialect.
 duckdb : DuckDB_Dialect
 duckdb =
-    parent = Postgres_Dialect.postgresql
-    DuckDB_Dialect.Value parent
+    DuckDB_Dialect.Value Postgres_Dialect.postgres
 
 ## A Dialect for DuckDB
 type DuckDB_Dialect
@@ -43,7 +42,7 @@ type DuckDB_Dialect
        private: true
        ---
        The dialect of DuckDB Databases
-    private Value parent dialect_operations
+    private Value parent
 
     ## ---
        private: true
@@ -108,8 +107,8 @@ type DuckDB_Dialect
        ---
        Generates a SQL expression for a table literal.
     make_table_literal : Vector (Vector Text) -> Vector Text -> Text -> SQL_Builder
-    make_table_literal self data_vectors column_names as_name =
-        Base_Generator.default_make_table_literal self.wrap_identifier data_vectors column_names as_name
+    make_table_literal self vecs column_names as_name =
+        Base_Generator.default_make_table_literal self.wrap_identifier vecs column_names as_name
 
     ## ---
        private: true
@@ -148,9 +147,11 @@ type DuckDB_Dialect
        ---
     needs_execute_query_for_type_inference : Text | SQL_Statement -> Boolean
     needs_execute_query_for_type_inference self statement =
-        _ = statement
-        True
-
+        query_text = case statement of
+            text : Text -> text
+            _ : SQL_Statement -> statement.prepare.first
+        ## Looks like if a parameter is present in the query then getMetadata has a bug
+        query_text.contains "?"
     ## ---
        private: true
        ---
@@ -270,7 +271,7 @@ type DuckDB_Dialect
        The default table types to use when listing tables.
     default_table_types : Vector Text
     default_table_types self =
-        ["BASE TABLE", "VIEW", "LOCAL TEMPORARY"]
+        ["TABLE", "BASE TABLE", "VIEW", "LOCAL TEMPORARY", "TEMPORARY TABLE", "TEMPORARY VIEW"]
 
     ## ---
        private: true
@@ -325,7 +326,7 @@ type DuckDB_Dialect
        ---
     generate_expression self base_gen expr:(SQL_IR_Expression | Order_Descriptor | SQL_IR_Statement) for_select:Boolean -> SQL_Builder =
         _ = for_select
-        base_gen.generate_expression self expr
+        base_gen.generate_expression self.parent expr
 
     ## ---
        private: true
