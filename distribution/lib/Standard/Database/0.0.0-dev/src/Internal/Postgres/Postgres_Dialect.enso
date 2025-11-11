@@ -57,7 +57,7 @@ type Postgres_Dialect
        private: true
        ---
        The dialect of PostgreSQL databases.
-    Value dialect_operations
+    private Value dialect_operations
 
     ## ---
        private: true
@@ -244,7 +244,7 @@ type Postgres_Dialect
 
         cast_to = case op_kind of
             "SUM" ->
-                if is_int8 (args.at 0) then "numeric(1000,0)" else Nothing
+                if is_int8 (args.at 0) then "numeric(37,0)" else Nothing
             "AVG" ->
                 if is_int (args.at 0) then "float8" else Nothing
             "STDDEV_POP" ->
@@ -274,7 +274,8 @@ type Postgres_Dialect
     ## ---
        private: true
        ---
-    generate_collate self collation_name:Text -> Text = Base_Generator.default_generate_collate collation_name
+    generate_collate self collation_name:Text -> Text =
+        Base_Generator.default_generate_collate collation_name
 
     ## ---
        private: true
