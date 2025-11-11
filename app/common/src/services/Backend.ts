@@ -816,6 +816,7 @@ export interface ApiKey {
   readonly createdAt: dateTime.Rfc3339DateTime
   readonly lastUsedAt: dateTime.Rfc3339DateTime | null
   readonly expiresAt: dateTime.Rfc3339DateTime | null
+  readonly expiresIn: ApiKeyExpiresIn
 }
 
 /** Possible types of lifetime span for api key credentials. */

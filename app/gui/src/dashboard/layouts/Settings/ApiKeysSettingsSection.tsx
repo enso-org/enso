@@ -70,6 +70,9 @@ export function ApiKeySettingsSection() {
             <Column isRowHeader className={`${COLUMN_STYLES} w-40 min-w-40`}>
               {getText('lastUsedAt')}
             </Column>
+            <Column isRowHeader className={`${COLUMN_STYLES} w-40 min-w-40`}>
+              {getText('expiresIn')}
+            </Column>
             <Column isRowHeader className={COLUMN_STYLES}>
               {getText('actions')}
             </Column>
@@ -128,6 +131,11 @@ function ApiKeyRow(props: ApiKeyRowProps) {
         {apiKey.lastUsedAt ? toReadableIsoString(new Date(apiKey.lastUsedAt)) : getText('never')}
       </Cell>
       <Cell className="border-x-2 border-transparent bg-clip-padding px-cell-x first:rounded-l-full last:rounded-r-full last:border-r-0">
+        {apiKey.expiresIn !== ApiKeyExpiresIn.Indefinetly && apiKey.expiresAt ?
+          toReadableIsoString(new Date(apiKey.expiresAt))
+        : getText('never')}
+      </Cell>
+      <Cell className="border-x-2 border-transparent bg-clip-padding px-cell-x first:rounded-l-full last:rounded-r-full last:border-r-0">
         <Button.GroupJoin
           className="shrink-0 grow-0"
           buttonVariants={{ size: 'small', variant: 'outline' }}
@@ -158,7 +166,7 @@ function ApiKeyDialog(props: ApiKeyDialogProps) {
   const { getText } = useText()
 
   return (
-    <Dialog size={"xlarge"} type={type} title={getText('keyId')} {...dialogProps}>
+    <Dialog size={'xlarge'} type={type} title={getText('keyId')} {...dialogProps}>
       <div className="relative flex items-center gap-4">
         <div className="flex flex-col">
           <Alert variant="outline" icon="warning">
