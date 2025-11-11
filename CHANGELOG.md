@@ -53,6 +53,7 @@
 - [Snowflake file format and copy into support.][14221]
 - [Snowflake bulk load API.][14230]
 - [Add error_on_missing_columns to more methods.][14236]
+- [Add `OneDrive_File` to Microsoft 365 implementation.][14237]
 
 [13769]: https://github.com/enso-org/enso/pull/13769
 [14026]: https://github.com/enso-org/enso/pull/14026
@@ -68,6 +69,7 @@
 [14221]: https://github.com/enso-org/enso/pull/14221
 [14230]: https://github.com/enso-org/enso/pull/14230
 [14236]: https://github.com/enso-org/enso/pull/14236
+[14237]: https://github.com/enso-org/enso/pull/14237
 
 #### Enso Language & Runtime
 
