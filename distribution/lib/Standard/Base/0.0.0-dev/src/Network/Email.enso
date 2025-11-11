@@ -1,6 +1,4 @@
-import project.Any.Any
 import project.Data.Text.Text
-import project.System.File.File
 import project.Data.Vector.Vector
 import project.Errors.Common.Missing_Argument
 import project.Network.Email.Email_Address.Email_Address
@@ -9,11 +7,6 @@ import project.Network.Email.Email_Object.Email_Object
 import project.Network.Email.Email_Provider.Email_Provider
 import project.Network.Email.Email_Attachment.Email_Attachment
 import project.Network.Email.Email_Send_Response.Send_Response
-from project.Metadata.Choice import Option
-from project.Metadata.Widget import Text_Input, Vector_Editor, Single_Choice
-import project.Data.Pair.Pair
-import project.Metadata.Widget
-import project.Metadata.Display
 
 ## ---
    aliases: [mail]
@@ -25,8 +18,8 @@ import project.Metadata.Display
 @to Email_Address.vector_widget
 @cc Email_Address.vector_widget
 @bcc Email_Address.vector_widget
-@attachments (Vector_Editor Email_Attachment.default_widget item_default='Email_Attachment.File')
+@attachments Email_Attachment.vector_widget
 @body Email_Body.default_widget
-send from:Email_Address=(Missing_Argument.throw "from") (to:Vector Email_Address)=[] (cc:Vector Email_Address)=[] (bcc:Vector Email_Address)=[] (subject:Text)="" (body:Email_Body)="" (attachments:Vector Email_Attachment)=[] (provider:Email_Provider=(Missing_Argument.throw "provider")) =
+send from:Email_Address=(Missing_Argument.throw "from") (to:Vector Email_Address)=[] (cc:Vector Email_Address)=[] (bcc:Vector Email_Address)=[] (subject:Text)="" (body:Email_Body)="" (attachments:Vector Email_Attachment)=[] (provider:Email_Provider=(Missing_Argument.throw "provider")) -> Send_Response =
     email_object = Email_Object.Value from to cc bcc subject body attachments
     provider.send email_object

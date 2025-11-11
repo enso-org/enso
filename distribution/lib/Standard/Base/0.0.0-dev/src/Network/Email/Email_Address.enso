@@ -30,5 +30,5 @@ type Email_Address
 	## ---
        private: true
        ---
-	vector_widget (display : Display = ..When_Modified) -> Widget =
+	vector_widget (display : Display = ..Always) -> Widget =
 		Vector_Editor Email_Address.default_widget item_default='Email_Address.Address' display=display

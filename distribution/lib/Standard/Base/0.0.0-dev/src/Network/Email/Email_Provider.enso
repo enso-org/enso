@@ -6,10 +6,10 @@ import project.Network.Email.Email_Object.Email_Object
 import project.Data.Json.JS_Object
 import project.Network.HTTP.Header.Header
 import project.Data
-import project.Data.Pair.pair
 import project.Network.Email.Email_Send_Response.Send_Response
 import project.System.File.File
 import project.Nothing.Nothing
+
 
 polyglot java import java.util.Base64
 
@@ -31,7 +31,7 @@ private _sendgrid_email email:Email_Object api_key:Text =
     base_email_pairs = [["personalizations", [to_object]], ["from", (_create_to_email email.from_address)], ["subject", email.subject], ["content", [_prepare_html_body email.body]]]
 
     attachment_list = if email.attachments.length == 0 then [] else email.attachments.map _prepare_attachment
-    final_email_pairs = if email.attachments.length == 0 then base_email_pairs else base_email_pairs + [pair "attachments" attachment_list]
+    final_email_pairs = if email.attachments.length == 0 then base_email_pairs else base_email_pairs + [["attachments", attachment_list]]
     sendgrid_request_body = JS_Object.from_pairs final_email_pairs
 
     api_response = Data.post 'https://api.sendgrid.com/v3/mail/send' (..Json sendgrid_request_body) headers=[Header.authorization_bearer api_key]
@@ -46,14 +46,16 @@ private _create_to_email recipient_email =
         Email_Address.Name_Address name address -> JS_Object.from_pairs [["name", name], ["email", address]]
     recipient_object
 
-private _prepare_html_body html_content:Email_Body = case html_content of
-    Email_Body.Plain_Text _ -> JS_Object.from_pairs [pair "type" "text/plain", pair "value" html_content.body]
-    Email_Body.HTML _ _ -> JS_Object.from_pairs [pair "type" "text/html", pair "value" html_content.html]
+private _prepare_html_body html_content =
+    html_object = case html_content of
+        Email_Body.Plain_Text _ -> JS_Object.from_pairs [["type", "text/plain"], ["value", html_content.body]]
+        Email_Body.Html _ _ -> JS_Object.from_pairs [["type", "text/html"], ["value", html_content.html]]
+    html_object
 
 private _prepare_attachment file_path =
     file_handle = File.new file_path
     file_bytes = file_handle.read_bytes
     encoded_content = Base64.getEncoder.encodeToString file_bytes
     filename = file_handle.name
-    attachment_object = JS_Object.from_pairs [pair "content" encoded_content, pair "type" "text/plain", pair "filename" filename]
+    attachment_object = JS_Object.from_pairs [["content", encoded_content], ["type", "text/plain"], ["filename", filename]]
     attachment_object
