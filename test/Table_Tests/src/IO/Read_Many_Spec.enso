@@ -309,7 +309,7 @@ add_specs suite_builder =
                 r.at "a" . value_type . should_equal Value_Type.Char
                 r.at "a" . to_vector . should_equal ["1", "str"]
 
-        group_builder.specify "XX but should keep Mixed type if more complex types are found, like dictionary" <|
+        group_builder.specify "but should keep Mixed type if more complex types are found, like dictionary" <|
             with_temp_dir base_dir->
                 '{"a": {}}'.write (base_dir / "1_js_object.json")
                 '{"a": []}'.write (base_dir / "2_js_object.json")
