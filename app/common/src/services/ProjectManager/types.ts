@@ -3,9 +3,9 @@
  * @see
  * https://github.com/enso-org/enso/blob/develop/docs/language-server/protocol-project-manager.md
  */
-import type * as backend from '#/services/Backend'
-import * as newtype from '#/utilities/newtype'
-import type * as dateTime from 'enso-common/src/utilities/data/dateTime'
+import type * as dateTime from '../../utilities/data/dateTime.js'
+import * as newtype from '../../utilities/data/newtype.js'
+import type * as backend from '../Backend.js'
 
 /** Possible actions to take when a component is missing. */
 export enum MissingComponentAction {
@@ -40,21 +40,21 @@ interface JSONRPCErrorResponse extends JSONRPCBaseResponse {
 /** The return value of a JSON-RPC call. */
 export type JSONRPCResponse<T> = JSONRPCErrorResponse | JSONRPCSuccessResponse<T>
 
-// These are constructor functions that construct values of the type they are named after.
-/* eslint-disable @typescript-eslint/no-redeclare */
-
 /** A UUID. */
 export type UUID = newtype.Newtype<string, 'UUID'>
 /** Create a {@link UUID}. */
 export const UUID = newtype.newtypeConstructor<UUID>()
+
 /** A filesystem path. */
 export type Path = newtype.Newtype<string, 'Path'>
 /** Create a {@link Path}. */
 export const Path = newtype.newtypeConstructor<Path>()
+
 /** An ID of a directory. */
 export type DirectoryId = newtype.Newtype<string, 'DirectoryId'>
 /** Create a {@link DirectoryId}. */
 export const DirectoryId = newtype.newtypeConstructor<DirectoryId>()
+
 /** A name of a project. */
 export type ProjectName = newtype.Newtype<string, 'ProjectName'>
 /** Create a {@link ProjectName}. */
@@ -66,8 +66,6 @@ export const ProjectName = newtype.newtypeConstructor<ProjectName>()
 export type UTCDateTime = dateTime.Rfc3339DateTime
 /** Create a {@link UTCDateTime}. */
 export const UTCDateTime = newtype.newtypeConstructor<UTCDateTime>()
-
-/* eslint-enable @typescript-eslint/no-redeclare */
 
 /** Details of a project. */
 export interface ProjectMetadata {

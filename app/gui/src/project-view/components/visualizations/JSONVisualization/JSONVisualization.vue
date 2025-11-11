@@ -9,6 +9,7 @@ import type { NodeCreationOptions } from '@/components/GraphEditor/nodeCreation'
 import JsonValueWidget from '@/components/visualizations/JSONVisualization/JsonValueWidget.vue'
 import { Ast } from '@/util/ast'
 import { Pattern } from '@/util/ast/match'
+import { stopCopy } from '@/util/shortcuts'
 import { useVisualizationConfig } from '@/util/visualizationBuiltins'
 import { computed } from 'vue'
 
@@ -66,9 +67,10 @@ function createProjection(path: (string | number)[][]) {
 </script>
 
 <template>
-  <div class="JSONVisualization" @wheel.stop.passive>
+  <div class="JSONVisualization" tabindex="-1" @wheel.stop.passive @keydown="stopCopy">
     <JsonValueWidget
       :data="data"
+      indent=""
       :createProjectionCb="projectionsEnabled ? createProjection : null"
     />
   </div>

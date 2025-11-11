@@ -5,8 +5,6 @@ import { Button } from '#/components/Button'
 import { Spinner } from '#/components/Spinner'
 import { StatelessSpinner, type SpinnerState } from '#/components/StatelessSpinner'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import type Backend from '#/services/Backend'
-import { BackendType, ProjectState, type ProjectAsset } from '#/services/Backend'
 import { twJoin, twMerge } from '#/utilities/tailwindMerge'
 import { useFullUserSession, useText } from '$/providers/react'
 import {
@@ -16,6 +14,8 @@ import {
   useIsProjectOpening,
   useOpenedProjects,
 } from '$/providers/react/openedProjects'
+import type { Backend } from 'enso-common/src/services/Backend'
+import { BackendType, ProjectState, type ProjectAsset } from 'enso-common/src/services/Backend'
 
 // eslint-disable-next-line react-refresh/only-export-components
 export const CLOSED_PROJECT_STATE = { type: ProjectState.closed } as const

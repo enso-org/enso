@@ -20,7 +20,6 @@ import Standard.Database.Dialects.Feature.Feature
 import Standard.Database.Internal.Base_Generator
 import Standard.Database.Internal.Common.Database_Distinct_Helper
 import Standard.Database.Internal.Common.Database_Join_Helper
-import Standard.Database.Internal.Error_Mapper.Error_Mapper
 import Standard.Database.Internal.Internals_Access
 import Standard.Database.Internal.IR.Internal_Column.Internal_Column
 import Standard.Database.Internal.IR.Nulls_Order.Nulls_Order
@@ -42,10 +41,7 @@ from Standard.Database.Internal.Base_Generator import lift_binary_op
 from Standard.Database.Internal.IR.Operation_Metadata import Date_Period_Metadata
 from Standard.Database.Internal.JDBC_Connection import JDBC_Connection
 
-import project.Internal.SQLServer_Error_Mapper.SQLServer_Error_Mapper
-
 polyglot java import java.sql.Types as Java_Types
-polyglot java import org.enso.database.JDBCUtils
 
 ## ---
    private: true
@@ -371,13 +367,6 @@ type SQLServer_Dialect
     default_table_types : Vector Text
     default_table_types self =
         ["TABLE", "VIEW", "TEMPORARY TABLE", "TEMPORARY VIEW", "MATERIALIZED VIEW"]
-
-    ## ---
-       private: true
-       ---
-    get_error_mapper : Error_Mapper
-    get_error_mapper self = SQLServer_Error_Mapper
-
     ## ---
        private: true
        ---

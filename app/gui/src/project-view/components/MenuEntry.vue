@@ -22,7 +22,7 @@ const action = computed(() => resolveAction(actionName))
     <span
       v-if="toValue(action.shortcut)"
       class="shortcutHint"
-      v-text="action.shortcut?.humanReadable"
+      v-text="toValue(action.shortcut)?.humanReadable"
     />
   </MenuButton>
 </template>

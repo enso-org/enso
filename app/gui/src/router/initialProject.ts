@@ -1,5 +1,12 @@
-import Backend, {
+import { useAuth } from '$/providers/auth'
+import { useBackends } from '$/providers/backends'
+import { useOpenedProjects } from '$/providers/openedProjects'
+import { backendQueryOptions } from '@/composables/backend'
+import { injectGuiConfig } from '@/providers/guiConfig'
+import { onlineManager, useQueryClient } from '@tanstack/vue-query'
+import {
   AssetType,
+  Backend,
   EnsoPath,
   extractTypeFromId,
   isRemoteAssetPath,
@@ -8,17 +15,11 @@ import Backend, {
   ProjectId,
   type AssetDetailsResponse,
   type User,
-} from '#/services/Backend'
-import LocalBackend, { newDirectoryId } from '#/services/LocalBackend'
-import RemoteBackend from '#/services/RemoteBackend'
-import { getFileName } from '#/utilities/fileInfo'
-import { useAuth } from '$/providers/auth'
-import { useBackends } from '$/providers/backends'
-import { useOpenedProjects } from '$/providers/openedProjects'
-import { Platform, platform } from '$/utils/detect'
-import { backendQueryOptions } from '@/composables/backend'
-import { injectGuiConfig } from '@/providers/guiConfig'
-import { onlineManager, useQueryClient } from '@tanstack/vue-query'
+} from 'enso-common/src/services/Backend'
+import { newDirectoryId, type LocalBackend } from 'enso-common/src/services/LocalBackend'
+import type { RemoteBackend } from 'enso-common/src/services/RemoteBackend'
+import { platform, Platform } from 'enso-common/src/utilities/detect'
+import { getFileName } from 'enso-common/src/utilities/file'
 import type { NavigationGuardReturn, RouteLocation } from 'vue-router'
 
 export const SAMPLES_DIRECTORY = 'Samples'

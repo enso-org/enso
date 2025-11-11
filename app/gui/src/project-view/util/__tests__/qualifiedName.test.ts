@@ -1,5 +1,4 @@
 import { mockProjectNameStore } from '$/providers/openedProjects/projectNames'
-import { unwrap } from '@/util/data/result'
 import {
   isQualifiedName,
   normalizeQualifiedName,
@@ -12,6 +11,7 @@ import {
   type IdentifierOrOperatorIdentifier,
   type QualifiedName,
 } from '@/util/qualifiedName'
+import { unwrap } from 'enso-common/src/utilities/data/result'
 import { expect, test } from 'vitest'
 
 const projectNames = mockProjectNameStore('local', 'Project')

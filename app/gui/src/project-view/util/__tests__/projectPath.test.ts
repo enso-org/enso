@@ -1,7 +1,7 @@
 import { mockProjectNameStore } from '$/providers/openedProjects/projectNames'
-import { unwrap } from '@/util/data/result'
 import { ProjectPath } from '@/util/projectPath'
 import type { QualifiedName } from '@/util/qualifiedName'
+import { unwrap } from 'enso-common/src/utilities/data/result'
 import { expect, test } from 'vitest'
 
 const cases = [

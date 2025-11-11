@@ -1,10 +1,14 @@
 /** @file Column types and column display modes. */
-import { memo, type JSX } from 'react'
-
 import type { AssetsTableState } from '#/layouts/AssetsTable'
 import type { Category } from '#/layouts/CategorySwitcher/Category'
-import type { AnyAsset, AssetSortExpression, BackendType, Label } from '#/services/Backend'
 import type { SortInfo } from '#/utilities/sorting'
+import type {
+  AnyAsset,
+  AssetSortExpression,
+  BackendType,
+  Label,
+} from 'enso-common/src/services/Backend'
+import { memo, type JSX } from 'react'
 import { Column } from './columnUtils'
 import {
   LabelsColumn,

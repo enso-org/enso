@@ -1,9 +1,11 @@
-/**
- * @file A module containing all project states definitions and a composable for transitions between them.
- */
-
-import Backend, {
+/** @file Project states definitions and a composable for transitions between them. */
+import { backendMutationOptions } from '@/composables/backend'
+import { injectGuiConfig } from '@/providers/guiConfig'
+import { assert, assertDefined } from '@/util/assert'
+import * as vueQuery from '@tanstack/vue-query'
+import {
   AssetType,
+  Backend,
   ProjectState as BackendProjectState,
   BackendType,
   EnsoPath,
@@ -15,12 +17,8 @@ import Backend, {
   type Project as ProjectDetails,
   type ProjectId,
   type ProjectSessionId,
-} from '#/services/Backend'
-import { backendMutationOptions } from '@/composables/backend'
-import { injectGuiConfig } from '@/providers/guiConfig'
-import { assert, assertDefined } from '@/util/assert'
-import { Err, Ok, rejectionToResult, type Result } from '@/util/data/result'
-import * as vueQuery from '@tanstack/vue-query'
+} from 'enso-common/src/services/Backend'
+import { Err, Ok, rejectionToResult, type Result } from 'enso-common/src/utilities/data/result'
 import {
   computed,
   effectScope,
