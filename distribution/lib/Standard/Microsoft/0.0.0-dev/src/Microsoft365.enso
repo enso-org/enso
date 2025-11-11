@@ -36,7 +36,7 @@ type Microsoft365
        icon: cloud
        ---
 
-       Lists the root directory of the user's OneDrive.
+       Returns the root directory of the user's OneDrive.
     onedrive_root self = Onedrive_File.root self
 
     ## ---
@@ -46,12 +46,24 @@ type Microsoft365
     to_js_object self =
         JS_Object.from_pairs [["type", "MS365"]]
 
+    ## ---
+       private: true
+       ---
     base_url self = 'https://graph.microsoft.com/v1.0'
 
+    ## ---
+       private: true
+       ---
     fetch self url =
         header = Header.authorization_bearer self.ms365_service.getAccessToken.token
         HTTP.fetch url headers=[header]
 
+    ## ---
+       private: true
+       ---
     fetch_json self url = self.fetch url . decode_as_json
 
+    ## ---
+       private: true
+       ---
     fetch_text self url = self.fetch url . decode_as_text

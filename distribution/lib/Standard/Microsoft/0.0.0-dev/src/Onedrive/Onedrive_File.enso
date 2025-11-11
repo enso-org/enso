@@ -103,12 +103,30 @@ type Onedrive_File
                     resolved_format = File_Format.resolve format
                     self.with_input_stream [File_Access.Read] (stream-> resolved_format.read_stream stream metadata)
 
+    ## ---
+       group: Standard.Base.Metadata
+       icon: metadata
+       ---
+       Returns the path of this file.
     path self -> Text =
         self.onedrive_path.to_text
 
+    ## ---
+       group: Standard.Base.Metadata
+       icon: metadata
+       ---
+       Returns the name of this file.
     name self -> Text =
         self.onedrive_path.file_name
 
+    ## ---
+       group: Standard.Base.Metadata
+       icon: metadata
+       ---
+       Checks if this is a folder.
+
+       ## Returns
+       - `True` if the OneDrive path represents a folder, `False` otherwise.
     is_directory self -> Boolean =
         frag = self.onedrive_path.to_human_readable_fragment
         entry = self.service.fetch_json self.service.base_url+frag
@@ -125,22 +143,40 @@ private _check_not_directory file:Onedrive_File ~action =
 type Onedrive_Path
     Value (path : Vector Text)
 
+    ## ---
+       private: true
+       ---
     extend self subpath:Text =
         Onedrive_Path.Value (self.path + [subpath])
 
+    ## ---
+       private: true
+       ---
     to_text self -> Text =
         "/" + (self.path.join "/")
 
+    ## ---
+       private: true
+       ---
     file_name self -> Text =
         if self.path.is_empty then "/" else self.path.last
 
+    ## ---
+       private: true
+       ---
     to_human_readable_fragment self =
         if self.path.is_empty then "/me/drive/root" else
             "/me/drive/root:/" + (self.path.join "/")
 
+    ## ---
+       private: true
+       ---
     to_human_readable_fragment_dir self =
         if self.path.is_empty then "/me/drive/root/children" else
             "/me/drive/root:/" + (self.path.join "/") + ":/children"
 
+    ## ---
+       private: true
+       ---
     to_human_readable_fragment_file self =
         "/me/drive/root:/" + (self.path.join "/") + ":/content"
