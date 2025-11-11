@@ -15,6 +15,8 @@ import project.Internal.Runtime_Helpers
 import project.Nothing.Nothing
 import project.Panic.Panic
 import project.Polyglot.Polyglot
+import project.Logging.Progress
+import project.Data.Range.Extensions
 import project.Runtime.Source_Location.Source_Location
 from project.Data.Boolean import Boolean, True
 from project.Data.Text.Extensions import all
@@ -28,7 +30,11 @@ polyglot java import java.lang.Thread
    Pauses the current thread for the specified duration in milliseconds.
 sleep milliseconds:Integer result:Any=Nothing -> Any =
     if milliseconds < 0 then Error.throw (Illegal_Argument.Error "milliseconds must be non-negative")
-    Thread.sleep milliseconds
+    if milliseconds <= 100 then Thread.sleep milliseconds else
+        Progress.run "Sleep" milliseconds \p->
+            Integer.up_to self=0 n=milliseconds step=100 . each \_->
+                Thread.sleep 100
+                p.advance 100
     result
 
 ## ---
