@@ -449,5 +449,6 @@ add_specs suite_builder =
 private with_temp_dir callback =
     base_dir = enso_project.data / "transient" / "read_many_test"
     base_dir.delete_if_exists recursive=True
+    base_dir.exists . should_be_false
     base_dir.create_directory . should_succeed
     Panic.with_finalizer (base_dir.delete recursive=True) (callback base_dir)
