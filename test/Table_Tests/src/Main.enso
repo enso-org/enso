@@ -20,4 +20,4 @@ main filter=Nothing =
         IO.Main.add_specs suite_builder
         Util_Spec.add_specs suite_builder
 
-    suite.run_with_filter "XX"
+    suite.run_with_filter filter

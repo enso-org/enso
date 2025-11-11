@@ -16,7 +16,7 @@ from project.Common_Table_Operations.Util import within_table
 main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
-    suite.run_with_filter "XX"
+    suite.run_with_filter filter
 
 type Lazy_Ref
     Value ~get
@@ -297,7 +297,7 @@ add_specs suite_builder =
                     r3.at "a" . to_vector . should_equal [1, 3]
                     r3.at "b" . to_vector . should_equal [2, 4]
 
-        group_builder.specify "XX should fallback to Char if no common type can be found for primitive values" <|
+        group_builder.specify "should fallback to Char if no common type can be found for primitive values" <|
             with_temp_dir base_dir->
                 '{"a": 1}'.write (base_dir / "1_js_object.json")
                 '{"a": "str"}'.write (base_dir / "2_js_object.json")
