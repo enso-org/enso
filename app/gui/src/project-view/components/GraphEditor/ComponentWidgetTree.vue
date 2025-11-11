@@ -17,8 +17,8 @@ import { injectGraphSelection } from '@/providers/graphSelection'
 import { Ast } from '@/util/ast'
 import type { Opt } from '@/util/data/opt'
 import { iconOfNode, useDisplayedIcon } from '@/util/getIconName'
+import { Ok } from 'enso-common/src/utilities/data/result'
 import { computed, toRef } from 'vue'
-import { Ok } from 'ydoc-shared/util/data/result'
 
 const props = defineProps<{
   ast: Ast.Expression

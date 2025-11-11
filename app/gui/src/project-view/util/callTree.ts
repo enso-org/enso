@@ -5,16 +5,22 @@ import { DisplayMode } from '$/providers/openedProjects/widgetRegistry/configura
 import { syntheticPortId, type PortId } from '@/providers/portInfo'
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { type GraphDb, type MethodCallInfo } from '$/providers/openedProjects/graph/graphDatabase'
+import type { GroupInfo } from '$/providers/openedProjects/suggestionDatabase'
 import {
   isRequiredArgument,
   type CallableSuggestionEntry,
   type SuggestionEntryArgument,
 } from '$/providers/openedProjects/suggestionDatabase/entry'
+import { MethodSuggestionEntryImpl } from '$/providers/openedProjects/suggestionDatabase/lsUpdate'
 import { Ast } from '@/util/ast'
 import type { AstId } from '@/util/ast/abstract'
 import { findLastIndex, tryGetIndex } from '@/util/data/array'
+import type { DeepReadonly } from 'vue'
+import { toValue } from 'vue'
 import type { ExternalId } from 'ydoc-shared/yjsModel'
 import { assert } from './assert'
+import type { MethodPointer } from './methodPointer'
+import type { ToValue } from './reactivity'
 
 export const enum ApplicationKind {
   Prefix,
@@ -81,12 +87,12 @@ abstract class Argument {
     return false
   }
 
-  toWidgetInput(callInfo: MethodCallInfo | undefined): WidgetInput {
+  toWidgetInput(): WidgetInput {
     return {
       portId: this.portId,
       value: this.value,
       expectedType: this.argInfo?.reprType,
-      [ArgumentInfoKey]: { info: this.argInfo, appKind: this.kind, argId: this.argId, callInfo },
+      [ArgumentInfoKey]: { info: this.argInfo, appKind: this.kind, argId: this.argId },
       dynamicConfig: this.dynamicConfig,
     }
   }
@@ -521,43 +527,118 @@ export function getMethodCallInfoRecursively(
   ast: Ast.Expression,
   graphDb: { getMethodCallInfo(id: AstId): MethodCallInfo | undefined },
 ): MethodCallInfo | undefined {
-  let appliedArgs = 0
-  const appliedNamedArgs: string[] = []
+  const topLevelAst = ast
   for (;;) {
     const info = graphDb.getMethodCallInfo(ast.id)
     if (info) {
       // There is an info available! Stop the recursion and adjust `notAppliedArguments`.
       // Indices of all named arguments applied so far.
-      const appliedNamed =
-        appliedNamedArgs.length > 0 ?
-          info.suggestion.arguments
-            .map((arg, index) => (appliedNamedArgs.includes(arg.name) ? index : -1))
-            .filter((i) => i !== -1)
-        : []
-      const withoutNamed = info.methodCall.notAppliedArguments.filter(
-        (idx) => !appliedNamed.includes(idx),
-      )
       return {
         methodCall: {
           ...info.methodCall,
-          notAppliedArguments: withoutNamed.sort().slice(appliedArgs),
+          notAppliedArguments: filterNotAppliedArguments(
+            getCallAppliedArguments(topLevelAst),
+            info.suggestion.arguments,
+            info.methodCall.notAppliedArguments,
+          ),
         },
         methodCallSource: ast.id,
         suggestion: info.suggestion,
       }
     }
     // No info, continue recursion to the next sub-application AST.
-    if (ast instanceof Ast.App) {
-      if (ast.argumentName) {
-        appliedNamedArgs.push(ast.argumentName.code())
-      } else {
-        appliedArgs += 1
-      }
-      ast = ast.function
-    } else {
-      break
-    }
+    if (ast instanceof Ast.App) ast = ast.function
+    else break
   }
+}
+
+/**
+ * Derive a synthetic method call info from locally available module code.
+ * Potentially integrate non-derivable data from language server response, if available.
+ */
+export function deriveLocalCallInfoFromCode(
+  methodPointer: MethodPointer,
+  call: Ast.Expression,
+  groups: ToValue<DeepReadonly<GroupInfo[]>>,
+): MethodCallInfo | undefined {
+  const moduleRoot = call.module.root()
+  if (!moduleRoot) return
+  const methodAst = Ast.findModuleMethod(moduleRoot, methodPointer.name)
+  if (!methodAst) return
+  const suggestion = deriveLocalMethodSuggestion(
+    methodPointer,
+    methodAst.statement,
+    toValue(groups),
+  )
+  const appliedInfo = getCallAppliedArguments(call)
+  const notAppliedArguments = filterNotAppliedArguments(appliedInfo, suggestion.arguments)
+  return {
+    suggestion,
+    methodCallSource: call.id,
+    methodCall: { methodPointer, notAppliedArguments },
+  }
+}
+
+function deriveLocalMethodSuggestion(
+  methodPointer: MethodPointer,
+  ast: Ast.FunctionDef,
+  groups: DeepReadonly<GroupInfo[]> = [],
+): CallableSuggestionEntry {
+  const args: SuggestionEntryArgument[] = ast.argumentDefinitions.map((def) => {
+    return {
+      name: def.pattern.node.code(),
+      reprType: def.type?.type.node.code() ?? 'Any',
+      isSuspended: def.suspension != null,
+      hasDefault: def.defaultValue != null,
+      defaultValue: def.defaultValue?.expression.node.code() ?? null,
+    } satisfies SuggestionEntryArgument
+  })
+  const annotations = ast.annotations.map((ann) => ann.annotation.node.code())
+  const returnType = ast.returnType?.code() ?? 'Any'
+  return MethodSuggestionEntryImpl.synthesizeLocal(
+    methodPointer,
+    args,
+    returnType,
+    annotations,
+    groups,
+  )
+}
+
+interface AppliedArgsInfo {
+  positional: number
+  named: string[]
+}
+
+function getCallAppliedArguments(ast: Ast.Expression) {
+  const named: string[] = []
+  let positional = 0
+  while (ast instanceof Ast.App) {
+    if (ast.argumentName) {
+      named.push(ast.argumentName.code())
+    } else {
+      positional += 1
+    }
+    ast = ast.function
+  }
+  return { positional, named }
+}
+
+function filterNotAppliedArguments(
+  appliedInfo: AppliedArgsInfo,
+  methodArgs: SuggestionEntryArgument[],
+  notApplied: number[] = methodArgs.map((_, i) => i),
+) {
+  // There is an info available! Stop the recursion and adjust `notAppliedArguments`.
+  // Indices of all named arguments applied so far.
+  const appliedNamed =
+    appliedInfo.named.length > 0 ?
+      methodArgs
+        .map((arg, index) => (appliedInfo.named.includes(arg.name) ? index : -1))
+        .filter((i) => i !== -1)
+    : []
+
+  const withoutNamed = notApplied.filter((idx) => !appliedNamed.includes(idx))
+  return withoutNamed.sort().slice(appliedInfo.positional)
 }
 
 export const ArgumentApplicationKey: unique symbol = Symbol.for('WidgetInput:ArgumentApplication')
@@ -569,8 +650,6 @@ declare module '$/providers/openedProjects/widgetRegistry' {
       appKind: ApplicationKind
       info: SuggestionEntryArgument | undefined
       argId: string | undefined
-      // Call info inherited from the parent function call.
-      callInfo: MethodCallInfo | undefined
     }
   }
 }

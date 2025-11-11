@@ -23,20 +23,20 @@ import {
   useSetSelectedAssets,
 } from '#/providers/DriveProvider'
 import { unsetModal } from '#/providers/ModalProvider'
-import type { Label } from '#/services/Backend'
-import * as backendModule from '#/services/Backend'
 import * as drag from '#/utilities/drag'
 import * as eventModule from '#/utilities/event'
-import {
-  canPermissionModifyDirectoryContents,
-  isTeamPath,
-  tryFindSelfPermission,
-} from '#/utilities/permissions'
 import * as tailwindMerge from '#/utilities/tailwindMerge'
 import Visibility from '#/utilities/Visibility'
 import { useStore } from '#/utilities/zustand'
 import { useFullUserSession } from '$/providers/react'
 import { useIsProjectClosing } from '$/providers/react/openedProjects'
+import type { Label } from 'enso-common/src/services/Backend'
+import * as backendModule from 'enso-common/src/services/Backend'
+import {
+  canPermissionModifyDirectoryContents,
+  isTeamPath,
+  tryFindSelfPermission,
+} from 'enso-common/src/utilities/permissions'
 import * as React from 'react'
 import { useTransition } from 'react'
 import invariant from 'tiny-invariant'

@@ -25,6 +25,9 @@ from project.Internal.Postgres.Helpers import get_encoding_name, parse_postgres_
 from project.Internal.Upload.Helpers.Default_Arguments import first_column_name_in_structure
 from project.Internal.Upload.Operations.Create import create_table_implementation
 
+polyglot java import org.enso.database.JDBCDriverTypes
+polyglot java import org.enso.database.JDBCProxy
+
 type Postgres_Connection
     ## ---
        private: true
@@ -38,7 +41,9 @@ type Postgres_Connection
         - `data_link_setup`: The setup for saving the connection as a data link.
     create : Text -> Vector -> (Text -> Text -> Postgres_Connection) -> Data_Link_Setup -> Postgres_Connection
     create url properties make_new data_link_setup =
-        jdbc_connection = JDBC_Connection.create url properties
+        types_record = JDBCDriverTypes.create "Postgres"
+        jdbc_connection = JDBC_Connection.create types_record url properties
+
         encoding = parse_postgres_encoding (get_encoding_name jdbc_connection)
 
         ## Postgres column/table names may be lower-cased if unquoted, but when
@@ -344,12 +349,6 @@ type Postgres_Connection
        ---
        Access the Type Mapping.
     type_mapping self = self.connection.type_mapping
-
-    ## ---
-       private: true
-       ---
-       Access the Statement Setter.
-    statement_setter self = self.connection.statement_setter
 
     ## ---
        private: true

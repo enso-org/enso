@@ -3,8 +3,8 @@ import type { ToValue } from '@/util/reactivity'
 import { acceptCompletion, autocompletion, startCompletion } from '@codemirror/autocomplete'
 import { Prec, type Extension } from '@codemirror/state'
 import { keymap, ViewPlugin, type PluginValue, type ViewUpdate } from '@codemirror/view'
+import { mapOr, type Opt } from 'enso-common/src/utilities/data/opt'
 import { computed, effectScope, shallowRef, toValue, type Ref } from 'vue'
-import { mapOr, type Opt } from 'ydoc-shared/util/data/opt'
 
 const NULL_EXTENSION: Extension = []
 

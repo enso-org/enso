@@ -155,6 +155,13 @@ export default class EditorPageActions<Context = object> extends PageActions<Con
     })
   }
 
+  /** Expect a node with given binding to contain specified list of tokens. */
+  expectArgumentPlaceholders(binding: string, expectedPlaceholders: string[]) {
+    return this.withNode(binding, async (node) => {
+      await expect(node.locator('.WidgetArgumentName .name')).toHaveText(expectedPlaceholders)
+    })
+  }
+
   /** Expect count of nodes to reachto given value. */
   expectNodesToExist(nodeBindings: string[]) {
     return this.do(async () => {
@@ -258,7 +265,7 @@ export default class EditorPageActions<Context = object> extends PageActions<Con
   /** Double-click on a node to enter it. */
   enterNode(binding: string) {
     return this.step(`Enter node '${binding}'`, async () => {
-      await this.locateNodes(binding).dblclick()
+      await this.locateNodes(binding).locator('.grab-handle').dblclick()
     })
   }
 

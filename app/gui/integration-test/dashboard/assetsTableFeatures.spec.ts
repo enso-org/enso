@@ -1,5 +1,5 @@
 /** @file Test the drive view. */
-import { EmailAddress, ProjectState } from '#/services/Backend'
+import { EmailAddress, ProjectState } from 'enso-common/src/services/Backend'
 import { expect, test, type Page } from 'integration-test/base'
 import { getText, TEXT } from '../actions'
 

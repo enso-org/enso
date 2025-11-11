@@ -1,6 +1,6 @@
-import { EnsoPath } from '#/services/Backend'
-import { Err, Ok } from '@/util/data/result'
 import { urlParse } from '@/util/url'
+import { EnsoPath } from 'enso-common/src/services/Backend'
+import { Err, Ok } from 'enso-common/src/utilities/data/result'
 import { describe, expect, test } from 'vitest'
 import { parseResourceUrl } from '../parse'
 

@@ -3,14 +3,12 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 from Standard.Table import Table
 
-import project.DB_Table as DB_Table_Module
 import project.DB_Table.DB_Table
 import project.Errors.Table_Not_Found
 import project.Internal.IR.SQL_IR_Source.SQL_IR_Source
 import project.Internal.IR.SQL_IR_Statement.SQL_IR_Statement
-import project.Internal.Statement_Setter.Statement_Setter
 import project.SQL.SQL_Statement
-from project.Internal.JDBC_Connection import handle_sql_errors
+from project.DB_Table import make_table
 
 polyglot java import java.util.UUID
 
@@ -24,14 +22,16 @@ type SQL_Query
     ## ---
        private: true
        ---
-    to_db_table self connection alias:Text = alias.if_not_error <| case self of
-        SQL_Query.Table_Name name ->
-            table_naming_helper = connection.base_connection.table_naming_helper
-            table_naming_helper.verify_table_name name <|
-                make_table_for_name connection name "" alias
-        SQL_Query.Raw_SQL raw_sql -> handle_sql_errors <|
-            connection.dialect.ensure_query_has_no_holes connection.jdbc_connection raw_sql . if_not_error <|
-                make_table_from_query connection raw_sql alias
+    to_db_table self connection alias:Text = alias.if_not_error <|
+        handle_sql_errors = connection.base_connection.jdbc_connection.sql_error_handler
+        case self of
+            SQL_Query.Table_Name name ->
+                table_naming_helper = connection.base_connection.table_naming_helper
+                table_naming_helper.verify_table_name name <|
+                    make_table_for_name connection name "" alias
+            SQL_Query.Raw_SQL raw_sql -> handle_sql_errors <|
+                connection.dialect.ensure_query_has_no_holes connection.jdbc_connection raw_sql . if_not_error <|
+                    make_table_from_query connection raw_sql alias
 
 ## Enhanced SQL_Query that also carries schema information.
 type SQL_Query_With_Schema
@@ -44,14 +44,16 @@ type SQL_Query_With_Schema
     ## ---
        private: true
        ---
-    to_db_table self connection alias:Text = alias.if_not_error <| case self of
-        SQL_Query_With_Schema.Table_Name name schema ->
-            table_naming_helper = connection.base_connection.table_naming_helper
-            table_naming_helper.verify_table_name name <|
-                make_table_for_name connection name schema alias
-        SQL_Query_With_Schema.Raw_SQL raw_sql -> handle_sql_errors <|
-            connection.dialect.ensure_query_has_no_holes connection.jdbc_connection raw_sql . if_not_error <|
-                make_table_from_query connection raw_sql alias
+    to_db_table self connection alias:Text = alias.if_not_error <|
+        handle_sql_errors = connection.base_connection.jdbc_connection.sql_error_handler
+        case self of
+            SQL_Query_With_Schema.Table_Name name schema ->
+                table_naming_helper = connection.base_connection.table_naming_helper
+                table_naming_helper.verify_table_name name <|
+                    make_table_for_name connection name schema alias
+            SQL_Query_With_Schema.Raw_SQL raw_sql -> handle_sql_errors <|
+                connection.dialect.ensure_query_has_no_holes connection.jdbc_connection raw_sql . if_not_error <|
+                    make_table_from_query connection raw_sql alias
 
 ## ---
    private: true
@@ -74,18 +76,18 @@ SQL_Query_With_Schema.From (that:SQL_Query) = case that of
    private: true
    ---
 make_table_for_name connection name schema alias internal_temporary_keep_alive_reference=Nothing =
+    handle_sql_errors = connection.base_connection.jdbc_connection.sql_error_handler
     result = handle_sql_errors <|
         ctx = SQL_IR_Source.for_table name schema (if alias == "" then name else alias) internal_temporary_keep_alive_reference
         statement = connection.dialect.generate_sql (SQL_IR_Statement.Select Nothing ctx)
-        statement_setter = connection.statement_setter
-        columns = connection.base_connection.fetch_columns statement statement_setter
+        columns = connection.base_connection.fetch_columns statement
         ## In case of accessing an existing table, we assume that column names
            are distinguishable by the backend, so any issues that are caught
            only affect Enso columns, and just renaming Enso columns is enough to
            fix that - so we are good with just attaching the problems as a
            warning. We do not want to fail, as we do want to allow the user to
            access any table already present in the database.
-        DB_Table_Module.make_table connection name columns ctx on_problems=Problem_Behavior.Report_Warning
+        make_table connection name columns ctx on_problems=Problem_Behavior.Report_Warning
     if result.is_error then
         Error.throw (Table_Not_Found.Error name)
     result
@@ -94,16 +96,10 @@ make_table_for_name connection name schema alias internal_temporary_keep_alive_r
    private: true
    ---
 make_table_from_query connection query:Text|SQL_Statement alias:Text -> Table & DB_Table =
-    expect_interpolations = case query of
-        # If the statement is given as a Text, then it should not contain `?` holes.
-        _ : Text -> False
-        _ : SQL_Statement -> True
-
-    statement_setter = if expect_interpolations then connection.statement_setter else Statement_Setter.null
-    columns = connection.base_connection.fetch_columns query statement_setter
+    columns = connection.base_connection.fetch_columns query
     name = if alias == "" then (UUID.randomUUID.to_text) else alias
     ctx = SQL_IR_Source.for_query query name
-    r = DB_Table_Module.make_table connection name columns ctx on_problems=Problem_Behavior.Report_Error
+    r = make_table connection name columns ctx on_problems=Problem_Behavior.Report_Error
 
     ## Any problems are treated as errors - e.g. if the query
        contains clashing column names, it may very likely lead to

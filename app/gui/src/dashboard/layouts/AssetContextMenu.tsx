@@ -24,18 +24,18 @@ import ManageLabelsModal from '#/modals/ManageLabelsModal'
 import { useExportArchive } from '#/pages/useExportArchive'
 import { useDriveStore, usePasteData } from '#/providers/DriveProvider'
 import { setModal } from '#/providers/ModalProvider'
-import * as backendModule from '#/services/Backend'
-import * as permissions from '#/utilities/permissions'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { useBackends, useFullUserSession, useRouter, useText } from '$/providers/react'
 import { useVueValue } from '$/providers/react/common'
 import { useRightPanelData } from '$/providers/react/container'
 import * as featureFlagsProvider from '$/providers/react/featureFlags'
 import { useOpenedProjects } from '$/providers/react/openedProjects'
+import * as backendModule from 'enso-common/src/services/Backend'
 import {
   TEAMS_DIRECTORY_ID,
   USERS_DIRECTORY_ID,
 } from 'enso-common/src/services/Backend/remoteBackendPaths'
+import * as permissions from 'enso-common/src/utilities/permissions'
 import * as React from 'react'
 
 /** Props for a {@link AssetContextMenu}. */

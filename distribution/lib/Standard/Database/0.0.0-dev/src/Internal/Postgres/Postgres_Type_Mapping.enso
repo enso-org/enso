@@ -6,12 +6,16 @@ from Standard.Table import Bits, Value_Type
 from Standard.Table.Errors import Inexact_Type_Coercion
 
 import project.Internal.IR.SQL_IR_Expression.SQL_IR_Expression
+import project.Internal.Postgres.Postgres_Error_Mapper.Postgres_Error_Mapper
 import project.Internal.SQL_Type_Mapping
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
+import project.Internal.Statement_Setter.Statement_Setter
 import project.SQL.SQL_Type
 from project.Errors import Unsupported_Database_Type
 
 polyglot java import java.sql.Types
+polyglot java import org.enso.database.fetchers.ColumnFetcherFactory
+polyglot java import org.enso.database.JDBCValueSetter
 
 ## ---
    private: true
@@ -97,9 +101,10 @@ type Postgres_Type_Mapping
        private: true
        advanced: true
        ---
-       Gets the ColumnFetcherFactory to be used for this backend.
+       Gets the ColumnFetcherFactory to be used for Postgres.
     column_fetcher_factory : Any
-    column_fetcher_factory = SQL_Type_Mapping.default_column_fetcher_factory
+    column_fetcher_factory =
+        ColumnFetcherFactory.DEFAULT
 
     ## ---
        private: true
@@ -161,6 +166,23 @@ type Postgres_Type_Mapping
        ---
     is_same_type (value_type1 : Value_Type) (value_type2 : Value_Type) -> Boolean =
         value_type1.is_same_type value_type2
+
+    ## ---
+       private: true
+       ---
+       Creates a Statement_Setter for Postgres.
+    statement_setter =
+        jdbc_value_setter = JDBCValueSetter.create "Postgres"
+        fill_home = Statement_Setter.create_fill_hole jdbc_value_setter
+        Statement_Setter.for_fill_hole fill_home
+
+    ## ---
+       private: true
+       ---
+       Returns a helper for mapping database-specific SQL errors into our common
+       error types.
+    error_mapper : Postgres_Error_Mapper
+    error_mapper self = Postgres_Error_Mapper
 
 ## ---
    private: true

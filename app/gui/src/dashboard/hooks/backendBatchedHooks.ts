@@ -2,9 +2,6 @@
 import { backendQueryOptions, mutationOptions } from '#/hooks/backendHooks'
 import type { TrashCategory } from '#/layouts/CategorySwitcher/Category'
 import { resolveDuplications } from '#/modals/DuplicateAssetsModal'
-import LocalBackend from '#/services/LocalBackend'
-import RemoteBackend from '#/services/RemoteBackend'
-import { getMessageOrToString } from '#/utilities/error'
 import {
   useMutationState,
   type Mutation,
@@ -16,10 +13,13 @@ import {
   FilterBy,
   type AnyAsset,
   type AssetId,
-  type default as Backend,
+  type Backend,
   type BackendType,
   type DirectoryId,
 } from 'enso-common/src/services/Backend'
+import { LocalBackend } from 'enso-common/src/services/LocalBackend'
+import { RemoteBackend } from 'enso-common/src/services/RemoteBackend'
+import { getMessageOrToString } from 'enso-common/src/utilities/errors'
 
 /** Extract the corresponding {@link Mutation} type from a `MutationOptions` function. */
 export type MutationFromOptionsFunction<T extends (...args: never) => unknown> =

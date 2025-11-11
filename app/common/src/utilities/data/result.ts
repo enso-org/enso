@@ -2,8 +2,7 @@
  * @file A generic type that can either hold a value representing a successful result,
  * or an error.
  */
-
-import { isSome, type Opt } from './opt'
+import { isSome, type Opt } from './opt.js'
 
 /**
  * A type representing result of a function where errors are expected and recoverable.
@@ -202,6 +201,7 @@ export class ResultError<E = unknown> {
     return `${preamble}${preamble ? ': ' : ''}${payload}${ctx}`
   }
 
+  /** A readable string representation of the error. */
   toString() {
     return this.message()
   }

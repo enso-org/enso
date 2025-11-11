@@ -1,16 +1,12 @@
-/**
- * @file
- *
- * A hook that returns a form instance.
- */
+/** @file A hook that returns a form instance. */
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useOffline, useOfflineChange } from '#/hooks/offlineHooks'
-import * as errorUtils from '#/utilities/error'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { useText } from '$/providers/react'
-import { IS_DEV_MODE } from '$/utils/detect'
 import * as zodResolver from '@hookform/resolvers/zod'
 import * as sentry from '@sentry/vue'
+import { IS_DEV_MODE } from 'enso-common/src/utilities/detect'
+import * as errorUtils from 'enso-common/src/utilities/errors'
 import * as React from 'react'
 import * as reactHookForm from 'react-hook-form'
 import invariant from 'tiny-invariant'
