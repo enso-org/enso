@@ -90,7 +90,7 @@ type Onedrive_File
     @format File_Format.default_widget
     @format File_Format.default_widget
     read : File_Format -> Problem_Behavior -> Any ! Illegal_Argument
-    read self format:(File_Format|Auto_Detect)=Auto_Detect (on_problems : Problem_Behavior = ..Report_Warning) -> Any ! Illegal_Argument =
+    read self format=Auto_Detect (on_problems : Problem_Behavior = ..Report_Warning) -> Any ! Illegal_Argument =
         _ = [on_problems]
         _check_not_directory self <|
             case format of
