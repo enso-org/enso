@@ -6,4 +6,4 @@ export project.Connection.SQLServer_Details.SQLServer_Details
 
 export project.Microsoft365.Microsoft365
 
-export project.Onedrive.Onedrive_File.Onedrive_File
+export project.OneDrive.OneDrive_File.OneDrive_File

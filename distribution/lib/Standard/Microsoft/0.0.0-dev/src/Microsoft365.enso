@@ -1,7 +1,7 @@
 from Standard.Base import all
 from Standard.Base.Enso_Cloud.Enso_Secret import as_credential_reference
 
-import project.Onedrive.Onedrive_File.Onedrive_File
+import project.OneDrive.OneDrive_File.OneDrive_File
 
 polyglot java import org.enso.base.enso_cloud.ExternalLibraryCredentialHelper.CredentialReference
 polyglot java import org.enso.microsoft.ms365.MS365Service
@@ -37,7 +37,7 @@ type Microsoft365
        ---
 
        Returns the root directory of the user's OneDrive.
-    onedrive_root self = Onedrive_File.root self
+    onedrive_root self = OneDrive_File.root self
 
     ## ---
        private: true
