@@ -164,7 +164,13 @@ final class EnsoPolyglotJava {
       if (polyglotJava != this) {
         return polyglotJava;
       }
-      polyglotJava = createPolyglotJava(ctx);
+      try {
+        polyglotJava = createPolyglotJava(ctx);
+      } catch (Throwable t) {
+        logger.log(Level.ERROR, "Cannot initialize", t);
+        polyglotJava = t;
+        throw t;
+      }
       while (!pendingPath.isEmpty()) {
         InteropLibrary.getUncached()
             .invokeMember(polyglotJava, "addPath", pendingPath.remove(0).toString());
