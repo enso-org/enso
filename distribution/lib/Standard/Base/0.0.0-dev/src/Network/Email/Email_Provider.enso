@@ -13,39 +13,44 @@ import project.Nothing.Nothing
 
 polyglot java import java.util.Base64
 
+## An email provider for sending emails. In the future this will be replaced by an SPI system and move the implementation out of the Base library.
 type Email_Provider
+    ## A test email provider that does not send any emails. Used for testing workflows.
     TestOnly
+
+    ## An email provider that sends emails using the SendGrid REST API.
     SendGrid api_key:Text=(Missing_Argument.throw "api_key")
 
+    ## Sends the provided Email_Object.
     send self email:Email_Object = case self of
-        Email_Provider.SendGrid api_key -> sendgrid_email email api_key
+        Email_Provider.SendGrid api_key -> _sendgrid_email email api_key
         Email_Provider.TestOnly -> Send_Response.Test email
 
-sendgrid_email email:Email_Object api_key:Text =
-    to_object = JS_Object.from_pairs ([create_to_email_object email.to "to", create_to_email_object email.cc "cc", create_to_email_object email.bcc "bcc"].filter ..Not_Nothing) 
-    base_email_pairs = [["personalizations", [to_object]], ["from", (create_to_email email.from_address)], ["subject", email.subject], ["content", [prepare_html_body email.body]]]
+private _sendgrid_email email:Email_Object api_key:Text =
+    to_object = JS_Object.from_pairs ([_create_to_email_object email.to "to", _create_to_email_object email.cc "cc", _create_to_email_object email.bcc "bcc"].filter ..Not_Nothing) 
+    base_email_pairs = [["personalizations", [to_object]], ["from", (_create_to_email email.from_address)], ["subject", email.subject], ["content", [_prepare_html_body email.body]]]
 
-    attachment_list = if email.attachments.length == 0 then [] else email.attachments.map prepare_attachment
+    attachment_list = if email.attachments.length == 0 then [] else email.attachments.map _prepare_attachment
     final_email_pairs = if email.attachments.length == 0 then base_email_pairs else base_email_pairs + [pair "attachments" attachment_list]
     sendgrid_request_body = JS_Object.from_pairs final_email_pairs
 
     api_response = Data.post 'https://api.sendgrid.com/v3/mail/send' (..Json sendgrid_request_body) headers=[Header.authorization_bearer api_key]
     api_response
 
-create_to_email_object emails send_type =
-    if emails.length > 0 then [send_type, emails.map create_to_email] else Nothing
+private _create_to_email_object emails send_type =
+    if emails.length > 0 then [send_type, emails.map _create_to_email] else Nothing
 
-create_to_email recipient_email =
+private _create_to_email recipient_email =
     recipient_object = case recipient_email of
         Email_Address.Address address -> JS_Object.from_pairs [["email", address]]
         Email_Address.Name_Address name address -> JS_Object.from_pairs [["name", name], ["email", address]]
     recipient_object
 
-prepare_html_body html_content:Email_Body = case html_content of
+private _prepare_html_body html_content:Email_Body = case html_content of
     Email_Body.Plain_Text _ -> JS_Object.from_pairs [pair "type" "text/plain", pair "value" html_content.body]
     Email_Body.HTML _ _ -> JS_Object.from_pairs [pair "type" "text/html", pair "value" html_content.html]
 
-prepare_attachment file_path =
+private _prepare_attachment file_path =
     file_handle = File.new file_path
     file_bytes = file_handle.read_bytes
     encoded_content = Base64.getEncoder.encodeToString file_bytes

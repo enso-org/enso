@@ -5,8 +5,12 @@ import project.Data.Pair.Pair
 import project.Metadata.Widget
 import project.Metadata.Display
 
+## The body of an email.
 type Email_Body
+   ## A plain text email body.
 	Plain_Text body:Text
+
+   ## An HTML email body. With an optional plain text fallback.
 	HTML html:Text body:Text=""
 
    ## ---

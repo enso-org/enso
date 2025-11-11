@@ -5,8 +5,12 @@ from project.Metadata.Widget import Text_Input, Vector_Editor, Single_Choice
 import project.Metadata.Widget
 import project.Metadata.Display
 
+## The email address of a sender or recipient.
 type Email_Address
+	## An email address.
 	Address address:Text=(Missing_Argument.throw "address")
+
+	## An email address with a display name.
 	Name_Address name:Text=(Missing_Argument.throw "name") address:Text=(Missing_Argument.throw "address")
 
 	to_text self -> Text = case self of

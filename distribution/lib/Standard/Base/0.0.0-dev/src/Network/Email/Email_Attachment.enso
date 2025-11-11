@@ -4,7 +4,9 @@ from project.Metadata.Widget import Text_Input, Vector_Editor, Single_Choice
 import project.Metadata.Widget
 import project.Metadata.Display
 
+## The attachment of an email.
 type Email_Attachment
+    ## A file attachment.
 	File file:File
 
 	## ---
