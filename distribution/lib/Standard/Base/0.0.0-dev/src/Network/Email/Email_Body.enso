@@ -12,12 +12,12 @@ type Email_Body
    ## ---
       private: true
       ---
-   default_widget (display : Display = ..When_Modified) -> Widget =
+   default_widget (display : Display = ..Always) -> Widget =
       plain = [Option "Plain_Text" "Email_Body.Plain_Text ''"]
       html = [Option "HTML" "Email_Body.HTML '' ''"]
       values = plain + html
 
-      Single_Choice values=values display=..Always
+      Single_Choice values=values display=display
 
 ## ---
    private: true

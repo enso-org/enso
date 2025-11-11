@@ -11,24 +11,13 @@ type Send_Response
 
 	to_text self -> Text =
 	    case self of
-		    Send_Response.Test email -> "TestOnly"
-		    Send_Response.Dry_Run email -> "Dry Run"
-		    Send_Response.Sent email -> "Sent"
-		    Send_Response.Failed email -> "Failed"
+		    Send_Response.Test _ -> "TestOnly"
+		    Send_Response.Dry_Run _ -> "Dry Run"
+		    Send_Response.Sent _ -> "Sent"
+		    Send_Response.Failed _ -> "Failed"
 
 ## ---
    private: true
    ---
 Table_Viz_Data.from (that:Send_Response) = 
     Table_Viz_Data.GenericGrid [Table_Viz_Header.Label "Status", Table_Viz_Header.Label "Email"] [[that.to_text], [that.email.to_text]]
-
-	## ---
-    ##   private: true
-	##   to_display_text self -> Text = 
-    ##   ---
-	##		   Send_Response.Test email -> "<b>Status:</b> TestOnly"
-	##	   response_text = case self of
-	##		   Send_Response.Dry_Run email -> "<b>Status:</b> Dry Run"
-	##		Send_Response.Sent email -> "<b>Status:</b> Sent"
-	##		Send_Response.Failed email -> "<b>Status:</b> Failed"
-	##	response_text + '\n<b>From:</b> ' + self.email.from_address + '\n<b>To:</b> ' + '\n<b>Subject:</b> ' + self.email.subject + '\n<b>Body:</b> ' + self.email.body.body

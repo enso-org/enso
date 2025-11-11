@@ -10,15 +10,21 @@ type Email_Address
 	Name_Address name:Text=(Missing_Argument.throw "name") address:Text=(Missing_Argument.throw "address")
 
 	to_text self -> Text = case self of
-		Email_Address.Address address -> self.address
-		Email_Address.Name_Address name address -> self.name + ' <' + self.address + '>'
+		Email_Address.Address _ -> self.address
+		Email_Address.Name_Address _ _ -> self.name + ' <' + self.address + '>'
 
 	## ---
        private: true
        ---
-	default_widget (display : Display = ..When_Modified) -> Widget =
+	default_widget (display : Display = ..Always) -> Widget =
 		name = [Option "Address" "Email_Address.Address"]
 		name_address = [Option "Name And Address" "Email_Address.Name_Address"]
 		values = name + name_address
 
-		Single_Choice values=values display=..Always
+		Single_Choice values=values display=display
+
+	## ---
+       private: true
+       ---
+	vector_widget (display : Display = ..When_Modified) -> Widget =
+		Vector_Editor Email_Address.default_widget item_default='Email_Address.Address' display=display

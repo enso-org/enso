@@ -10,8 +10,8 @@ type Email_Attachment
 	## ---
        private: true
        ---
-   default_widget (display : Display = ..When_Modified) -> Widget =
+   default_widget (display : Display = ..Always) -> Widget =
       name = [Option "New Attachment" "Email_Attachment.File"]
       values = name
 
-      Single_Choice values=values display=..Always
+      Single_Choice values=values display=display
