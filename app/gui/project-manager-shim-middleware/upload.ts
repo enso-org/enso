@@ -1,7 +1,7 @@
-/** @file Standalone cloud file upload functionality. */
+/** @file Standalone file upload functionality. */
 
 import type {
-  default as Backend,
+  Backend,
   S3MultipartPart,
   UploadedAsset,
   UploadFileEndRequestBody,
