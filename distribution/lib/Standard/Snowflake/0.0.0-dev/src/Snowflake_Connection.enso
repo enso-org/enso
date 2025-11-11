@@ -39,6 +39,9 @@ import project.Identifier.Identifier
 import project.Internal.Snowflake_Dialect
 import project.Internal.Snowflake_Type_Mapping.Snowflake_Type_Mapping
 
+
+polyglot java import org.enso.database.JDBCDriverTypes
+polyglot java import org.enso.database.JDBCProxy
 polyglot java import org.enso.snowflake.SnowflakeCloudCredentials
 
 type Snowflake_Connection
@@ -54,24 +57,24 @@ type Snowflake_Connection
         - `make_new`: A function that returns a new connection.
         - `data_link_setup`: the setup for saving the connection as a data link.
     private create url:Text properties:Vector credentials:Credentials|Key_Pair_Credentials|Enso_Secret make_new:(Text -> Text -> Snowflake_Connection) data_link_setup:Data_Link_Setup -> Snowflake_Connection =
-        jdbc_connection = case credentials of
-            # Special handling for OAuth credentials stored in the cloud
+        auth_properties = case credentials of
             cloud_credentials : Enso_Secret ->
-                base_properties = JDBC_Connection.properties_as_java_props properties
-                raw_java_connection = SnowflakeCloudCredentials.makeConnection url base_properties (as_credential_reference cloud_credentials)
-                JDBC_Connection.from_java raw_java_connection
-            _ ->
-                auth_properties = auth_jdbc_properties credentials
-                clashing = (Hashset.from_vector (properties.map .first)) . intersection (Hashset.from_vector (auth_properties.map .first))
-                if clashing.not_empty then
-                    Panic.throw (Illegal_Argument.Error "The properties cannot contain "+(clashing.to_vector .join ", ")+" as they are already provided in the credentials.")
-                JDBC_Connection.create url (properties + auth_properties)
+                # Special handling for OAuth credentials stored in the cloud
+                SnowflakeCloudCredentials.makePairs (as_credential_reference cloud_credentials)
+            _ -> auth_jdbc_properties credentials
+
+        clashing = (Hashset.from_vector (properties.map .first)) . intersection (Hashset.from_vector (auth_properties.map .first))
+        if clashing.not_empty then
+            Panic.throw (Illegal_Argument.Error "The properties cannot contain "+(clashing.to_vector .join ", ")+" as they are already provided in the credentials.")
+
+        types_record = JDBCDriverTypes.create "Snowflake"
+        jdbc_connection = JDBC_Connection.create types_record url (properties + auth_properties)
 
         ## As long as names are quoted, the Snowflake SQL dialect is case sensitive.
            Our generator always quotes identifiers, so we can rely on the case sensitivity.
            This is the same as in Postgres.
         entity_naming_properties = Entity_Naming_Properties.from_jdbc_connection jdbc_connection is_case_sensitive=True
-        Snowflake_Connection.Value (Connection.new jdbc_connection Snowflake_Dialect.snowflake Snowflake_Type_Mapping entity_naming_properties data_link_setup statement_setter=Snowflake_Type_Mapping.statement_setter) make_new
+        Snowflake_Connection.Value (Connection.new jdbc_connection Snowflake_Dialect.snowflake Snowflake_Type_Mapping entity_naming_properties data_link_setup) make_new
 
     ## ---
        private: true
@@ -400,12 +403,6 @@ type Snowflake_Connection
        ---
        Access the Type Mapping.
     type_mapping self = self.connection.type_mapping
-
-    ## ---
-       private: true
-       ---
-       Access the Statement Setter.
-    statement_setter self = self.connection.statement_setter
 
     ## ---
        private: true

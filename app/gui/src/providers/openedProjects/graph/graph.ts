@@ -668,7 +668,10 @@ export function createGraphStore(
   }
 
   function isConnectedTarget(portId: PortId): boolean {
-    return isAstId(portId) && db.connections.reverseLookup(portId).size > 0
+    return (
+      (isAstId(portId) && db.connections.reverseLookup(portId).size > 0) ||
+      unconnectedEdges.mouseEditedEdge.value?.target === portId
+    )
   }
 
   function nodeCanBeEntered(id: NodeId): boolean {

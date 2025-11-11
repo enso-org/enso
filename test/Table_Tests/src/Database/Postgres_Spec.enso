@@ -24,7 +24,6 @@ import project.Database.Common.Common_Spec
 import project.Database.Common.IR_Spec
 import project.Database.Common.Save_Connection_Data_Link
 import project.Database.Helpers.Name_Generator
-import project.Database.JDBC.Generic_JDBC_Postgres_Spec
 import project.Database.Transaction_Spec
 import project.Database.Types.Postgres_Type_Mapping_Spec
 import project.Database.Upload_Spec
@@ -804,8 +803,6 @@ add_table_specs suite_builder =
         connection_builder ->
             add_postgres_specs suite_builder connection_builder db_name
             Postgres_Type_Mapping_Spec.add_specs suite_builder connection_builder
-            Generic_JDBC_Postgres_Spec.add_specs suite_builder get_configured_connection_details
-
             Transaction_Spec.add_specs suite_builder connection_builder "[PostgreSQL] "
 
             suite_builder.group "[PostgreSQL] Secrets in connection settings" group_builder->
