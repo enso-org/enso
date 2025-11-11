@@ -356,7 +356,7 @@ add_specs suite_builder =
             r5 = Data.read_many [Nothing]
             r5.should_fail_with Illegal_Argument
 
-        group_builder.specify "in As_Merged_Table mode, will discard rows associated with files that fail to load" <|
+        group_builder.specify "XX in As_Merged_Table mode, will discard rows associated with files that fail to load" <|
             with_temp_dir base_dir->
                 'A,B\n1,2'.write (base_dir / "1_table.csv")
 
