@@ -188,6 +188,7 @@ type DuckDB_Type_Mapping
     error_mapper : Postgres_Error_Mapper
     error_mapper self = Postgres_Error_Mapper
 
+## Set of predefined DuckDB SQL types.
 type DuckDB_Types
     ## BOOLEAN type
     boolean = SQL_Type.Value Types.BOOLEAN "BOOLEAN"

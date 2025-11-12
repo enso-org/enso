@@ -80,4 +80,6 @@ type Image_File_Format
             stream.write_to_file tmp_file
             Image.read tmp_file
 
-File_Format_SPI (_:Image_File_Format) = File_Format_SPI.new Image_File_Format
+File_Format_SPI.from (that:Image_File_Format) =
+    _ = that
+    File_Format_SPI.new Image_File_Format
