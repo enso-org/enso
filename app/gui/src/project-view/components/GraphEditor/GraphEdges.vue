@@ -9,9 +9,8 @@ import { type NodeId } from '$/providers/openedProjects/graph'
 import { requiredImports } from '$/providers/openedProjects/module/imports'
 import GraphEdge from '@/components/GraphEditor/GraphEdge.vue'
 import GraphNodeOutputPorts from '@/components/GraphEditor/GraphNodeOutputPorts.vue'
-import type { NodeCreationOptions } from '@/components/GraphEditor/nodeCreation'
 import { useEventConditional } from '@/composables/events'
-import type { GraphNavigator } from '@/providers/graphNavigator'
+import { type GraphNavigator } from '@/providers/graphNavigator'
 import { injectGraphSelection } from '@/providers/graphSelection'
 import { injectInteractionHandler, type Interaction } from '@/providers/interactionHandler'
 import type { PortId } from '@/providers/portInfo'
@@ -41,8 +40,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   createNodeFromEdge: [source: AstId, position: Vec2]
-  createNodeFromPort: [source: NodeId, options: NodeCreationOptions[]]
-  outputPortDoubleClick: [portId: AstId]
+  createNodeFromPort: [portId: AstId]
 }>()
 
 const MIN_DRAG_MOVE = 10
@@ -63,14 +61,17 @@ useEventConditional(
   'pointerup',
   () => interaction.getCurrent() === editingEdge,
   (e: PointerEvent) => {
-    const originEvent = graph.value.mouseEditedEdge?.event
-    if (originEvent?.type === 'pointerdown') {
-      const delta = new Vec2(e.screenX, e.screenY).sub(
-        new Vec2(originEvent.screenX, originEvent.screenY),
-      )
-      if (delta.lengthSquared() >= MIN_DRAG_MOVE ** 2) {
-        if (edgeInteractionClick()) e.stopPropagation()
-      }
+    const editedEdge = graph.value.mouseEditedEdge
+    if (editedEdge == null) return
+    const delta = new Vec2(e.screenX, e.screenY).sub(
+      new Vec2(editedEdge.startPosition.x, editedEdge.startPosition.y),
+    )
+    if (delta.lengthSquared() >= MIN_DRAG_MOVE ** 2) {
+      if (edgeInteractionClick()) e.stopPropagation()
+    } else if (editedEdge.createdFrom === 'newNodeButton' && editedEdge.source != null) {
+      // The distance of a drag is not important when dragging from the new node button.
+      // The button will not initiate editedEdge if the drag is too short.
+      createNewNodeFromPort(editedEdge.source)
     }
   },
   { capture: true },
@@ -199,9 +200,12 @@ const nodeIdsWithOutputPorts = computed(() =>
   [...graph.value.db.nodeOutputPorts.allForward()].map(([id]) => id),
 )
 
-function onNewNodeClick(id: NodeId, position: Vec2) {
-  nodeSelection?.setSelection(new Set([id]))
-  emit('createNodeFromPort', id, [{ commit: false, content: undefined, position }])
+function createNewNodeFromPort(id: AstId) {
+  const nodeId = graph.value.getOutputPortNodeId(id)
+  if (nodeId != null) {
+    nodeSelection?.setSelection(new Set([nodeId]))
+  }
+  emit('createNodeFromPort', id)
 }
 </script>
 <template>
@@ -239,9 +243,10 @@ function onNewNodeClick(id: NodeId, position: Vec2) {
         <GraphNodeOutputPorts
           v-show="id !== graph.editedNodeInfo?.id"
           :nodeId="id"
-          @newNodeClick="(_portId, position) => onNewNodeClick(id, position)"
+          @newNodeClick="(portId) => createNewNodeFromPort(portId)"
+          @newNodeDrag="(portId) => graph.createEdgeFromNewButton(portId)"
           @portClick="(event, portId) => graph.createEdgeFromOutput(portId, event)"
-          @portDoubleClick="(_event, portId) => emit('outputPortDoubleClick', portId)"
+          @portDoubleClick="(_event, portId) => emit('createNodeFromPort', portId)"
         />
       </template>
     </svg>
