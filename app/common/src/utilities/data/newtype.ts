@@ -1,9 +1,5 @@
 /** @file Emulates `newtype`s in TypeScript. */
 
-// ===============
-// === Newtype ===
-// ===============
-
 /** An interface specifying the variant of a newtype. */
 type NewtypeVariant<TypeName extends string> = {
   readonly _$type: TypeName

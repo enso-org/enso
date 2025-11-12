@@ -82,8 +82,8 @@ class ComplexTypeTest extends CompilerTest {
           |""".stripMargin.preprocessModule.desugar
       val tp = ir.bindings()(0).asInstanceOf[Definition.Type]
       tp.name.name shouldEqual "MyType"
-      tp.members(0).name.name shouldEqual "Foo"
-      tp.members(1).name.name shouldEqual "Bar"
+      tp.members().apply(0).name.name shouldEqual "Foo"
+      tp.members().apply(1).name.name shouldEqual "Bar"
     }
 
     "have their annotations correct" in {
@@ -99,7 +99,7 @@ class ComplexTypeTest extends CompilerTest {
 
       val tp = ir.bindings()(0).asInstanceOf[Definition.Type]
       tp.name.name shouldEqual "MyType"
-      tp.members(0).name.name shouldEqual "Foo"
+      tp.members().apply(0).name.name shouldEqual "Foo"
 
       val a = ir.bindings()(1).asInstanceOf[Name.GenericAnnotation]
       a.name shouldEqual "a"
@@ -189,7 +189,7 @@ class ComplexTypeTest extends CompilerTest {
     "have their types translated untouched" in {
       ir.bindings()(0) shouldBe a[Definition.Type]
       val tp = ir.bindings()(0).asInstanceOf[Definition.Type]
-      tp.members(1).name.name shouldEqual "Baz"
+      tp.members()(1).name.name shouldEqual "Baz"
     }
 
     "have their errors translated untouched" in {

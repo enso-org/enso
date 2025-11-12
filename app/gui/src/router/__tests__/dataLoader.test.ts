@@ -1,6 +1,6 @@
 /* eslint-disable vue/one-component-per-file */
-import { Ok } from '@/util/data/result'
 import { proxyRefs } from '@/util/reactivity'
+import { Ok } from 'enso-common/src/utilities/data/result'
 import { describe, expect, test } from 'vitest'
 import { createApp, defineComponent, nextTick, onScopeDispose, ref, watch } from 'vue'
 import { createMemoryHistory, createRouter } from 'vue-router'

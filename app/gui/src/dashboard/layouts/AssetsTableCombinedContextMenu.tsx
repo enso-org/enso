@@ -9,7 +9,7 @@ import { AssetContextMenu } from '#/layouts/AssetContextMenu'
 import { AssetsTableContextMenu } from '#/layouts/AssetsTableContextMenu'
 import { useGetAsset } from '#/layouts/Drive/assetsTableItemsHooks'
 import { useDriveStore } from '#/providers/DriveProvider'
-import type { DirectoryId } from '#/services/Backend'
+import type { DirectoryId } from 'enso-common/src/services/Backend'
 import { forwardRef, type ForwardedRef } from 'react'
 
 /** Props for an {@link AssetsTableCombinedContextMenu}. */

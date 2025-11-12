@@ -85,31 +85,45 @@ public final class Utils {
 
   public static TypeElement irTypeElement(ProcessingEnvironment procEnv) {
     var ret = procEnv.getElementUtils().getTypeElement(IR_INTERFACE_FQN);
-    hardAssert(ret != null);
+    hardAssert(
+        ret != null,
+        "Cannot resolve " + IR_INTERFACE_FQN + " from proc environment. Maybe missing import?");
     return ret;
   }
 
   public static TypeElement diagnosticStorageTypeElement(ProcessingEnvironment procEnv) {
     var ret = procEnv.getElementUtils().getTypeElement(DIAGNOSTIC_STORAGE_FQN);
-    hardAssert(ret != null);
+    hardAssert(
+        ret != null,
+        "Cannot resolve "
+            + DIAGNOSTIC_STORAGE_FQN
+            + " from proc environment. Maybe missing import?");
     return ret;
   }
 
   public static TypeElement identifiedLocationTypeElement(ProcessingEnvironment procEnv) {
     var ret = procEnv.getElementUtils().getTypeElement(IDENTIFIED_LOCATION_FQN);
-    hardAssert(ret != null);
+    hardAssert(
+        ret != null,
+        "Cannot resolve "
+            + IDENTIFIED_LOCATION_FQN
+            + " from proc environment. Maybe missing import?");
     return ret;
   }
 
   public static TypeElement metadataStorageTypeElement(ProcessingEnvironment procEnv) {
     var ret = procEnv.getElementUtils().getTypeElement(METADATA_STORAGE_FQN);
-    hardAssert(ret != null);
+    hardAssert(
+        ret != null,
+        "Cannot resolve " + METADATA_STORAGE_FQN + " from proc environment. Maybe missing import?");
     return ret;
   }
 
   public static TypeElement uuidTypeElement(ProcessingEnvironment procEnv) {
     var ret = procEnv.getElementUtils().getTypeElement(UUID_FQN);
-    hardAssert(ret != null);
+    hardAssert(
+        ret != null,
+        "Cannot resolve " + UUID_FQN + " from proc environment. Maybe missing import?");
     return ret;
   }
 

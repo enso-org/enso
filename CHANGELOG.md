@@ -14,7 +14,11 @@
   is included][14028]
 - [Function docs in autocomplete in table expressions][14059]
 - [Many CLI arguments removed][14069]
+- [JSON and SQL visualizations' content may be now selected and copied][14262]
+- [SQL visualization displays interpolated parameters properly][14262]
+- [Added immediate rename of user created components][14209]
 - [Multiple opened projects' tabs are now allowed][14215]
+- [Required arguments now have an arrow displayed on top of the port][14270]
 
 [13685]: https://github.com/enso-org/enso/pull/13685
 [13658]: https://github.com/enso-org/enso/pull/13658
@@ -27,7 +31,10 @@
 [13976]: https://github.com/enso-org/enso/pull/13976
 [14059]: https://github.com/enso-org/enso/pull/14059
 [14069]: https://github.com/enso-org/enso/pull/14069
+[14262]: https://github.com/enso-org/enso/pull/14262
+[14209]: https://github.com/enso-org/enso/pull/14209
 [14215]: https://github.com/enso-org/enso/pull/14215
+[14270]: https://github.com/enso-org/enso/pull/14270
 
 #### Enso Standard Library
 
@@ -77,6 +84,7 @@
   expressions][13914]
 - [Autocompletion for table expression operators and operands][13917]
 - [Update to GraalVM 25.0.1][14233]
+- [Apply block argument to non-application expression][14249]
 
 [14133]: https://github.com/enso-org/enso/pull/14133
 [14017]: https://github.com/enso-org/enso/pull/14017
@@ -90,6 +98,7 @@
 [13914]: https://github.com/enso-org/enso/pull/13914
 [13917]: https://github.com/enso-org/enso/pull/13917
 [14233]: https://github.com/enso-org/enso/pull/14233
+[14249]: https://github.com/enso-org/enso/pull/14249
 
 # Enso 2025.2
 

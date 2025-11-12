@@ -465,7 +465,8 @@ class AliasAnalysisTest extends CompilerTest {
         .unsafeAs[AliasMetadata.Occurrence]
         .id
       val aUseId = goodAtom
-        .arguments(2)
+        .arguments()
+        .apply(2)
         .defaultValue
         .get
         .getMetadata(AliasAnalysis)

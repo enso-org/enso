@@ -3,10 +3,10 @@ import { Button } from '#/components/Button'
 import { Suspense } from '#/components/Suspense'
 import { Text } from '#/components/Text'
 import { PlanSelector } from '#/modules/payments'
-import { isPlan } from '#/services/Backend'
 import { DASHBOARD_PATH } from '$/appUtils'
 import { useFullUserSession, useText } from '$/providers/react'
 import { useQueryParam } from '$/providers/react/queryParams'
+import { isPlan } from 'enso-common/src/services/Backend'
 
 /**
  * A page in which the currently active payment plan can be changed.
