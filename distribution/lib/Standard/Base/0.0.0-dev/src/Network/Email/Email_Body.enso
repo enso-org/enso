@@ -7,10 +7,10 @@ import project.Metadata.Display
 ## The body of an email.
 type Email_Body
     ## A plain text email body.
-	 Pxlain_Text body:Text
+	 Plain_Text body:Text
  
     ## An HTML email body. With an optional plain text fallback.
-	 Hxtml html:Text body:Text=""
+	 Html html:Text body:Text=""
  
     ## ---
        private: true
