@@ -29,18 +29,23 @@ import {
   type DirectoryAsset,
   type ExportedArchive,
   type FileAsset,
+  type GetText,
   type ProjectAsset,
 } from 'enso-common/src/services/Backend'
 import {
   DOWNLOAD_PROJECT_REGEX,
   EXPORT_ARCHIVE_PATH,
 } from 'enso-common/src/services/Backend/remoteBackendPaths'
+import { HttpClient } from 'enso-common/src/services/HttpClient'
+import { RemoteBackend } from 'enso-common/src/services/RemoteBackend'
+import { getText, resolveDictionary } from 'enso-common/src/text'
 import { toRfc3339 } from 'enso-common/src/utilities/data/dateTime'
 import { tmpdir } from 'node:os'
 import type { Readable } from 'node:stream'
 import { finished } from 'node:stream/promises'
 import { createGzip } from 'node:zlib'
 import * as projectManagement from 'project-manager-shim'
+import { watch, type Watcher } from 'project-manager-shim/fs'
 import {
   handleFilesystemCommand,
   handleProjectServiceRequest,
@@ -48,6 +53,7 @@ import {
 } from 'project-manager-shim/handler'
 import { ProjectService } from 'project-manager-shim/projectService'
 import { tarFsPack, unzipEntries, zipWriteStream } from './archive'
+import { uploadFile } from './upload'
 
 // =================
 // === Constants ===
@@ -77,6 +83,7 @@ const COOP_COEP_CORP_HEADERS = [
 /** Middleware for project manager shim. */
 export class ProjectManagerShimMiddleware {
   private projectService?: ProjectService
+  private watchers: Map<string, Watcher> = new Map()
 
   /** Create the new middleware. */
   constructor(private readonly setup: () => Promise<void>) {}
@@ -215,6 +222,81 @@ export class ProjectManagerShimMiddleware {
             .catch(() => {
               response.writeHead(HTTP_STATUS_BAD_REQUEST, COMMON_HEADERS).end()
             })
+          break
+        }
+        case 'POST /api/watch-upload-start': {
+          const parentDir = url.searchParams.get('directory')
+          if (parentDir == null) {
+            response
+              .writeHead(HTTP_STATUS_BAD_REQUEST, COMMON_HEADERS)
+              .end('Request is missing search parameter `directory`.')
+            break
+          }
+          const assetIdString = url.searchParams.get('assetId')
+          if (assetIdString == null) {
+            response
+              .writeHead(HTTP_STATUS_BAD_REQUEST, COMMON_HEADERS)
+              .end('Request is missing search parameter `assetId`.')
+            break
+          }
+          const assetId = ProjectId(assetIdString)
+          const client = new HttpClient()
+          const downloader = () => {}
+          const dictionary = resolveDictionary()
+          const backendGetText: GetText = function (key, ...replacements) {
+            return getText(dictionary, key, ...replacements)
+          }
+          const backend = new RemoteBackend(
+            backendGetText,
+            client,
+            downloader,
+            new URL('http://enso.org'),
+          )
+          const fileName = 'project_root.enso-project'
+          const uploadParams = {
+            fileId: assetId,
+            fileName,
+            parentDirectoryId: DirectoryId(`directory-${parentDir}`),
+          }
+          const watcher = watch({
+            directory: parentDir,
+            delay: 30000,
+            timeout: 30000,
+            callback: async () => {
+              const projectDir = path.join(parentDir, 'project_root')
+              const responseBody = await projectManagement.createBundle(projectDir)
+              const file = new File([responseBody.buffer as ArrayBuffer], fileName)
+              await uploadFile(backend, uploadParams, file)
+            },
+          })
+          let setWatcher = async () => {
+            const existingWatcher = this.watchers.get(parentDir)
+            if (existingWatcher) {
+              await existingWatcher.close()
+            }
+            this.watchers.set(parentDir, watcher)
+          }
+          setWatcher().then(() => {
+            response.writeHead(HTTP_STATUS_OK, COMMON_HEADERS).end()
+          })
+          break
+        }
+        case 'POST /api/watch-upload-stop': {
+          const parentDir = url.searchParams.get('directory')
+          if (parentDir == null) {
+            response
+              .writeHead(HTTP_STATUS_BAD_REQUEST, COMMON_HEADERS)
+              .end('Request is missing search parameter `directory`.')
+            break
+          }
+          const watcher = this.watchers.get(parentDir)
+          if (watcher) {
+            watcher.close().then(() => {
+              response.writeHead(HTTP_STATUS_OK, COMMON_HEADERS).end()
+            })
+          } else {
+            response.writeHead(HTTP_STATUS_OK, COMMON_HEADERS).end()
+          }
           break
         }
         case 'POST /api/run-project-manager-command': {

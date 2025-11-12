@@ -9,6 +9,11 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
+    "./fs": {
+      "source": "./src/fs.ts",
+      "types": "./dist/fs.d.ts",
+      "import": "./dist/fs.js"
+    },
     "./handler": {
       "source": "./src/handler/index.ts",
       "types": "./dist/handler/index.d.ts",
