@@ -13,12 +13,13 @@ import Standard.Table.Internal.Java_Problems
 import Standard.Table.Return_As_Table.Return_As_Table
 import Standard.Table.Rows_To_Read.Rows_To_Read
 from Standard.Table import Column, Headers, Table
-from Standard.Table.Errors import Invalid_Location, No_Rows
+from Standard.Table.Errors import Empty_Sheet, Invalid_Location, No_Rows
 from Standard.Table.In_Memory_Table import from_java_table
 from Standard.Table.Internal.Table_Helpers import duplicate_rows
 
 import project.Internal.Telemetry
 
+polyglot java import org.enso.table.error.EmptySheetException
 polyglot java import org.enso.table.problems.ProblemAggregator
 polyglot java import org.enso.base.enso_cloud.ExternalLibraryCredentialHelper.CredentialReference
 polyglot java import com.google.api.client.googleapis.json.GoogleJsonResponseException
@@ -170,8 +171,9 @@ type Google_API_Error
         self.details.at 'message'
 
 private _handle_exceptions ~action =
-    Panic.catch GoogleJsonResponseException action caught_panic->
-        Error.throw (Google_API_Error.Error caught_panic.payload.getContent.parse_json)
+    Panic.catch EmptySheetException handler=(_ -> Error.throw Empty_Sheet.Error)
+        Panic.catch GoogleJsonResponseException action caught_panic->
+            Error.throw (Google_API_Error.Error caught_panic.payload.getContent.parse_json)
 
 private _wrap_credentials credential:(File|Enso_Secret|Nothing)=Nothing =
     case credential of
