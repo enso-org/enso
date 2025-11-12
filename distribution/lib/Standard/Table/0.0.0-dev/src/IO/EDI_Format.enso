@@ -6,14 +6,13 @@ import Standard.Base.System.File.Generic.Writable_File.Writable_File
 import Standard.Base.System.File_Format.File_Name_Pattern
 import Standard.Base.System.File_Format_Metadata.File_Format_Metadata
 import Standard.Base.System.Input_Stream.Input_Stream
+from Standard.Base.Logging import all
 from Standard.Base.Metadata.Choice import Option
 from Standard.Base.Metadata.Widget import Text_Input
-from Standard.Base.Logging import all
 
 import project.Table.Table
 
 polyglot java import org.enso.table.read.EDIReader
-
 
 ## Read ANSI X12 Electronic Data Interchange (EDI) Format
 type EDI_Format
@@ -89,36 +88,37 @@ type EDI_Format
         raw_text = Plain_Text_Format.Plain_Text.read_stream stream metadata
         parse_text_to_table raw_text self.segment_end self.definition self.map_fields
 
-## EDI Definitions
-   The definition specifies the structure of the EDI document.
+## EDI Definitions The definition specifies the structure of the EDI document.
    The default is ANSI X12 822 (Account Analysis).
 type EDI_Definition
     ## Return as raw segements (no structure or field mapping)
     Raw_Segments
 
-    ## Predefined EDI 822 (Account Analysis)
-       Based on EdiNation.X12.ASC.007040 [https://edination.com/edi-formats.html]
+    ## Predefined EDI 822 (Account Analysis) Based on EdiNation.X12.ASC.007040
+       [https://edination.com/edi-formats.html]
     EDI_822
 
-    ## Load a custom EDI definition from a JSON string
-
-       For example:
-       ```json
-       {
-         "structure": "[ISA,GS,ST,ORI,[REF],[OOI],BDE,SE,GE,IEA]",
-         "field_map": {
-            "ISA": ["Authorization Information Qualifier", "Authorization Information", "Security Information Qualifier", "Security Information", "Interchange ID Qualifier 1", "Interchange Sender ID", "Interchange ID Qualifier 2", "Interchange Receiver ID", "Interchange Date", "Interchange Time", "Interchange Control Standards", "Interchange Control Version Number", "Interchange Control Number", "Acknowledgment Requested", "Test Indicator", "Sub-element Separator"],
-            "GS": ["Segment Identifier", "Functional Identifier Code", "Application Sender's Code", "Application Receiver's Code", "Date", "Time", "Group Control Number", "Responsible Agency Code", "Version / Release / Industry Identifier Code"],
-            "ST": ["Transaction Set Identifier Code", "Transaction Set Control Number", "Implementation Convention Preference"],
-            "ORI": ["Associated Object Reference Identification"],
-            "REF": ["Reference Identification Qualifier", "Reference Identification", "Description"],
-            "OOI": ["Object Identification Group"],
-            "BDE": ["Beginning Segment for Order Status Inquiry", "Reference Identification", "Date", "Time", "Time Code"],
-            "SE": ["Number of Included Segments", "Transaction Set Control Number"],
-            "GE": ["Number of Transaction Sets Included", "Group Control Number"],
-            "IEA": ["Number of Included Functional Groups", "Interchange Control Number"]
-         }
-       }
+    ## Load a custom EDI definition from a JSON string For example:
+       ```json { "structure": "[ISA,GS,ST,ORI,[REF],[OOI],BDE,SE,GE,IEA]",
+       "field_map": { "ISA": ["Authorization Information Qualifier",
+       "Authorization Information", "Security Information Qualifier", "Security
+       Information", "Interchange ID Qualifier 1", "Interchange Sender ID",
+       "Interchange ID Qualifier 2", "Interchange Receiver ID", "Interchange
+       Date", "Interchange Time", "Interchange Control Standards", "Interchange
+       Control Version Number", "Interchange Control Number", "Acknowledgment
+       Requested", "Test Indicator", "Sub-element Separator"], "GS": ["Segment
+       Identifier", "Functional Identifier Code", "Application Sender's Code",
+       "Application Receiver's Code", "Date", "Time", "Group Control Number",
+       "Responsible Agency Code", "Version / Release / Industry Identifier
+       Code"], "ST": ["Transaction Set Identifier Code", "Transaction Set Control
+       Number", "Implementation Convention Preference"], "ORI": ["Associated
+       Object Reference Identification"], "REF": ["Reference Identification
+       Qualifier", "Reference Identification", "Description"], "OOI": ["Object
+       Identification Group"], "BDE": ["Beginning Segment for Order Status
+       Inquiry", "Reference Identification", "Date", "Time", "Time Code"], "SE":
+       ["Number of Included Segments", "Transaction Set Control Number"], "GE":
+       ["Number of Transaction Sets Included", "Group Control Number"], "IEA":
+       ["Number of Included Functional Groups", "Interchange Control Number"] } }
        ```
     @path (Text_Input display=..Always)
     From_Json path

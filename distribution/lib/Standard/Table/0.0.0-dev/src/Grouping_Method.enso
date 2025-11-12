@@ -21,14 +21,11 @@ type Grouping_Method
 
     ## Create the specified number of groups such that the sum of the values in
        the specified column is approximately equal for each group.
-
        For k groups and a column whose values sum to N, each group will be at
        least (N/k), except possibly the last one.
-
        In some cases (if the group subtotals are roughly the size of individual
        values), fewer groups will be created than requested. In this case, a
        warning will be attached.
-
        Arguments
        - on: The column whose values should be summed to determine group
          assignment. Must be a numeric column.
@@ -39,18 +36,16 @@ type Grouping_Method
          the table.
     Equal_Sum (on:(Text | Integer)=(Missing_Argument.throw "on")) (group_count:Integer=5) (order_by:(Vector | Text)=[])
 
-    ## Group elements by standard deviation.from
-
-       This method takes the standard deviation of the entire column, and then
-       groups each element by how much its difference from the mean compares to
-       the standard deviation. The set of groups is scaled just enough to
-       contain the values that differ the most from the standard deviation.
-
+    ## Group elements by standard deviation.from This method takes the standard
+       deviation of the entire column, and then groups each element by how much
+       its difference from the mean compares to the standard deviation. The set
+       of groups is scaled just enough to contain the values that differ the most
+       from the standard deviation.
        Arguments
        - on: The column whose values should be summed to determine group
          assignment. Must be a numeric column.
-       - population: Whether to compute the population standard deviation
-         (True) or the sample standard deviation (False). Defaults to False.
+       - population: Whether to compute the population standard deviation (True)
+         or the sample standard deviation (False). Defaults to False.
     Standard_Deviation (on:(Text | Integer)=(Missing_Argument.throw "on")) (population:Boolean=False)
 
 ## Specifies the row representing a group.

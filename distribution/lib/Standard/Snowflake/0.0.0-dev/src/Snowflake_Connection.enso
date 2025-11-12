@@ -10,8 +10,8 @@ from Standard.Base.Metadata.Choice import Option
 from Standard.Base.Metadata.Widget import File_Browse, Folder_Browse, Single_Choice, Text_Input
 from Standard.Base.Visualization.Table_Viz_Data import Table_Viz_Data, Table_Viz_Header
 
-import Standard.Table.Rows_To_Read.Rows_To_Read
 import Standard.Table.In_Memory_Table.In_Memory_Table
+import Standard.Table.Rows_To_Read.Rows_To_Read
 from Standard.Table import Table, Data_Formatter
 
 import Standard.Database.Column_Description.Column_Description
@@ -38,7 +38,6 @@ import project.File_Format.Snowflake_File_Format
 import project.Identifier.Identifier
 import project.Internal.Snowflake_Dialect
 import project.Internal.Snowflake_Type_Mapping.Snowflake_Type_Mapping
-
 
 polyglot java import org.enso.database.JDBCDriverTypes
 polyglot java import org.enso.database.JDBCProxy
