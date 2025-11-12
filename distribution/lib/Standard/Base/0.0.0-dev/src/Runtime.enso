@@ -24,8 +24,8 @@ from project.Runtime.Context import Dataflow_Stack_Trace, Input, Output
    advanced: true
    ---
    Pauses the current thread for the specified duration in milliseconds.
-sleep milliseconds:Integer result:Any=Nothing -> Any =
-    @Tail_Call Runtime_Helpers.sleep milliseconds result
+sleep milliseconds:Integer ~result:Any=Nothing -> Any =
+    @Tail_Call Runtime_Helpers.sleep milliseconds (result...)
 
 ## ---
    private: true
