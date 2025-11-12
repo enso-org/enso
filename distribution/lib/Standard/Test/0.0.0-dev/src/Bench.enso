@@ -28,8 +28,7 @@ type Phase_Conf
 
 ## The benchmark options for a `Bench_Group`. These options roughly corresponds
    to the options defined in the JMH benchmarking library. See the JMH
-   documentation for [more
-   openjdk.jmh/jmh-core/latest/org/openjdk/jmh/annotations/package-summary.html).
+   documentation for [more details](https://javadoc.io/doc/org.openjdk.jmh/jmh-core/latest/org/openjdk/jmh/annotations/package-summary.html).
 type Bench_Options
     ## ---
        private: true

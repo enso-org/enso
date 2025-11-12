@@ -1224,17 +1224,17 @@ type Table
         - count_distinct: columns=[..Count_Distinct]
         - first: columns=[..First]
         - last: columns=[..Last]
-        - count: not nothing: columns=[..Count_Not_Nothing]
-        - count: nothing: columns=[..Count_Nothing]
-        - count: not empty: columns=[..Count_Not_Empty]
-        - count: empty: columns=[..Count_Empty]
+        - count not nothing: columns=[..Count_Not_Nothing]
+        - count nothing: columns=[..Count_Nothing]
+        - count not empty: columns=[..Count_Not_Empty]
+        - count empty: columns=[..Count_Empty]
         - concatenate: columns=[..Concatenate]
         - shortest: columns=[..Shortest]
         - longest: columns=[..Longest]
         - median: columns=[..Median]
         - percentile: columns=[..Percentile]
         - mode: columns=[..Mode]
-        - standard: deviation: columns=[..Standard_Deviation]
+        - standard deviation: columns=[..Standard_Deviation]
        group: Standard.Base.Calculations
        icon: transform4
        suggested: 7
@@ -3816,7 +3816,7 @@ type Table
         - product: ..Product
         - mean: ..Mean
         - variance: ..Variance
-        - standard: deviation: ..Standard_Deviation
+        - standard deviation: ..Standard_Deviation
         - skew: ..Skew
         - kurtosis: ..Kurtosis
         - covariance: ..Covariance

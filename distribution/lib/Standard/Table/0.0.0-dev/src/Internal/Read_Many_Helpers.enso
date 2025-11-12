@@ -119,8 +119,8 @@ _find_path_column_in_table (that : Table) -> Column =
             if path_columns.column_count > 1 then Error.throw (Illegal_Argument.Error "Multiple 'paths' column candidates found: "+path_columns.column_names.to_display_text+".") else
                 path_columns.at 0
 
-## Workaround for bug https://github.com/enso-org/enso/issues/11570 TODO: Remove
-   workaround one #11570 is closed.
+## Workaround for bug https://github.com/enso-org/enso/issues/11570
+   TODO: Remove workaround one #11570 is closed.
 private _inherit_warnings_from_vector vector:Vector ~action =
     result = action
     Warning.set result (Warning.get_all vector + Warning.get_all result)
