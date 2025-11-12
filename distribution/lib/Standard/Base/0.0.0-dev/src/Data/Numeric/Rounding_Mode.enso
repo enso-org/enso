@@ -5,7 +5,7 @@ import project.Warning.Warning
 polyglot java import java.math.RoundingMode
 
 ## A wrapper around the Java
-   gMode`](https://docs.oracle.com/javase/8/docs/api/java/math/RoundingMode.html)
+   [`RoundingMode`](https://docs.oracle.com/javase/8/docs/api/java/math/RoundingMode.html)
    class.
    `Rounding_Mode` is used to specify the method to use for rounding a value in
    operations on `Decimal`s.` See `Decimal` for more details.

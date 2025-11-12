@@ -3,8 +3,8 @@ import project.Data.Text.Text
 from project.Data.Boolean import Boolean, False
 
 ## A type representing an interval bound over any order-able type.
-   An order-able type is one that has a [total
-   order](https://en.wikipedia.org/wiki/Total_order) defined for it.
+   An order-able type is one that has a
+   [total order](https://en.wikipedia.org/wiki/Total_order) defined for it.
 type Bound
     ## A bound that includes the value `n`.
 

@@ -41,9 +41,17 @@ polyglot java import org.enso.base.numeric.Decimal_Utils
    Scale values can allow distinctions between values that would be identical as
    `Float`s. For example, the following values have different internal
    representations:
-   ``` a = Decimal.new "2.0" b = Decimal.new "2.00" a == b # => True ``` These
-   two values have different internal representations, but they are still
-   considered the same value by `==`.
+
+    ```
+       a = Decimal.new "2.0"
+       b = Decimal.new "2.00"
+       a == b
+       # => True
+   ```
+
+   These two values
+   have different internal representations, but they are still considered the
+   same value by `==`.
    All of the constructors, and many of the operations, can take an additional
    `Math_Context` value, which can specify two things:
    - precision: the number of decimal digits to use to represent a value or

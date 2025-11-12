@@ -25,8 +25,8 @@ from project.Widget_Helpers import make_all_selector
    and `==` operator, which is both an internal part of Enso. Enso is capable of
    computing a hash code, and checking for equality any objects that can appear
    in Enso - primitives, Atoms, values coming from different languages, etc.
-   For keys that are not reflexive, like `Number.nan`, [Same Value equality
-   ocs/Web/JavaScript/Equality_comparisons_and_sameness#same-value-zero_equality)
+   For keys that are not reflexive, like `Number.nan`,
+   [Same Value equality specification](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Equality_comparisons_and_sameness#same-value-zero_equality)
    is used. This means that both `Number.nan` and types with comparators that
    violate reflexivity (e.g. their `compare` method always returns `Nothing`) can
    be used as keys in the Dictionary.
