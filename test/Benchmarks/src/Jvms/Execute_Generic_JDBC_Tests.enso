@@ -65,9 +65,6 @@ private find_test_prj bin:File name:Text -> File =
         if e/".git" . exists then e else
             @Tail_Call repo_root e.parent
 
-    target = File.create_temporary_file
-    target.delete
-
     install_dir = repo_root bin
     prj = install_dir / "test" / name
     Runtime.assert prj.is_directory "Found directory "+prj.to_text
