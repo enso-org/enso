@@ -493,7 +493,8 @@ type File_Format_SPI
         File_Format_SPI.Few arr -> arr
         single -> [single]
 
-    private get_regs _:Boolean=False =
+    private get_regs b:Boolean=False =
+        _ = b
         reg = Meta.lookup_services File_Format_SPI
         reg.map .to_vector . flatten
 

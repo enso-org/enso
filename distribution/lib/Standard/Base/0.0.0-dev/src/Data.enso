@@ -38,7 +38,7 @@ from project.Data.Boolean import Boolean, False, True
 from project.Error import all
 from project.Meta.Enso_Project import enso_project
 from project.Metadata.Choice import Option
-from project.Metadata.Widget import File_Browse, Folder_Browse, Text_Input, Numeric_Input, Vector_Editor
+from project.Metadata.Widget import File_Browse, Folder_Browse, Numeric_Input, Text_Input, Vector_Editor
 from project.System.File_Format import Auto_Detect, File_Format
 
 ## ---
@@ -667,7 +667,7 @@ fetch_many (uris:Vector=(Missing_Argument.throw "uris")) (method:HTTP_Method=..G
 @headers Header.default_widget
 @return Return_As.default_widget
 @time_between_requests Numeric_Input default=0
-fetch_pages : Vector -> HTTP_Method -> Vector (Header | Pair Text Text) -> Any -> Integer -> File_Format -> Return_As -> Integer -> Cache_Policy -> Problem_Behavior -> Any ! Request_Error | HTTP_Error
+fetch_pages : URI | Text -> HTTP_Method -> Vector (Header | Pair Text Text) -> Any -> Integer -> File_Format -> Return_As -> Integer -> Cache_Policy -> Problem_Behavior -> Any ! Request_Error | HTTP_Error
 fetch_pages (initial_uri:(URI | Text)=(Missing_Argument.throw "initial_uri")) (method:HTTP_Method=..Get) (headers:(Vector (Header | Pair Text Text))=[]) (paginator=(_->_->_->Nothing)) (max_pages:Integer=10) (format = Auto_Detect) return=..As_Merged_Table time_between_requests:Integer=0 (cache_policy:Cache_Policy = ..Default) (on_problems : Problem_Behavior = ..Report_Warning) =
     if time_between_requests<0 then Error.throw (Illegal_Argument.Error "time_between_requests cannot be negative.")
     if max_pages<=0 then Error.throw (Illegal_Argument.Error "max_pages must be positive.")

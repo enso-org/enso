@@ -1153,6 +1153,10 @@ private handle_invalid_path ~path ~action =
 type File_System_SPI
     private Entry protocol:Text typ
 
+    ## ---
+       private: true
+       ---
+       Create a new File_System_SPI entry.
     new protocol:Text typ = File_System_SPI.Entry protocol typ
 
     private get_type protocol:Text b:Boolean =
@@ -1160,7 +1164,8 @@ type File_System_SPI
         vec = all . filter \e -> (e.protocol == protocol)
         if vec . not_empty then vec.first.typ else Nothing
 
-    private get_regs _:Boolean =
+    private get_regs b:Boolean =
+        _ = b
         Meta.lookup_services File_System_SPI
 
     private get_types b:Boolean =
