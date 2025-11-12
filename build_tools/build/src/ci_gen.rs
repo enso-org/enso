@@ -11,7 +11,6 @@ use crate::version::ENSO_RELEASE_MODE;
 use crate::version::ENSO_VERSION;
 
 use ide_ci::actions::workflow::definition::checkout_repo_step;
-use ide_ci::actions::workflow::definition::get_input;
 use ide_ci::actions::workflow::definition::get_input_expression;
 use ide_ci::actions::workflow::definition::run;
 use ide_ci::actions::workflow::definition::setup_artifact_api;
@@ -548,9 +547,7 @@ pub fn changelog() -> Result<Workflow> {
 }
 
 pub fn nightly() -> Result<Workflow> {
-    let input_ydoc = input::ydoc();
-    let input_ydoc_default = input_ydoc.r#type.default().expect("Default Ydoc input is expected.");
-    let workflow_dispatch = WorkflowDispatch::default().with_input(input::name::YDOC, input_ydoc);
+    let workflow_dispatch = WorkflowDispatch::default();
     let on = Event {
         workflow_dispatch: Some(workflow_dispatch),
         // 2am (UTC) every day.
@@ -561,11 +558,9 @@ pub fn nightly() -> Result<Workflow> {
     let mut workflow = Workflow { on, name: "Nightly Release".into(), ..default() };
     // Scheduled workflows do not support input parameters. We need to provide an explicit default
     // value. Feature request is tracked by https://github.com/orgs/community/discussions/74698
-    let input_ydoc = format!("{} || '{}'", get_input(input::name::YDOC), input_ydoc_default);
 
     let job = workflow_call_job("Promote nightly", PROMOTE_WORKFLOW_PATH)
-        .with_with(input::name::DESIGNATOR, Designation::Nightly.as_ref())
-        .with_with(input::name::YDOC, wrap_expression(input_ydoc));
+        .with_with(input::name::DESIGNATOR, Designation::Nightly.as_ref());
     workflow.add_job(job);
     Ok(workflow)
 }
@@ -588,13 +583,8 @@ fn add_release_steps(workflow: &mut Workflow) -> Result {
             let runtime_requirements = [&prepare_job_id, &backend_job_id];
             let upload_runtime_job_id =
                 workflow.add_dependent(target, job::DeployRuntime, runtime_requirements);
-            let upload_ydoc_job_id =
-                workflow.add_dependent(target, job::DeployYdoc, runtime_requirements);
-            let dispatch_build_image_job_id = workflow.add_dependent(
-                target,
-                job::DispatchBuildImage,
-                [&upload_runtime_job_id, &upload_ydoc_job_id],
-            );
+            let dispatch_build_image_job_id =
+                workflow.add_dependent(target, job::DispatchBuildImage, [&upload_runtime_job_id]);
             packaging_job_ids.push(dispatch_build_image_job_id);
         }
     }
@@ -686,9 +676,7 @@ pub fn release() -> Result<Workflow> {
         true,
         None::<String>,
     );
-    let workflow_dispatch = WorkflowDispatch::default()
-        .with_input("version", version_input)
-        .with_input("ydoc", input::ydoc());
+    let workflow_dispatch = WorkflowDispatch::default().with_input("version", version_input);
     let workflow_call = WorkflowCall::try_from(workflow_dispatch.clone())?;
     let on = Event {
         workflow_dispatch: Some(workflow_dispatch),
@@ -711,9 +699,8 @@ pub fn release() -> Result<Workflow> {
 }
 
 pub fn promote() -> Result<Workflow> {
-    let workflow_dispatch = WorkflowDispatch::default()
-        .with_input(input::name::DESIGNATOR, input::designator())
-        .with_input(input::name::YDOC, input::ydoc());
+    let workflow_dispatch =
+        WorkflowDispatch::default().with_input(input::name::DESIGNATOR, input::designator());
     let on = Event {
         workflow_call: Some(WorkflowCall::try_from(workflow_dispatch.clone())?),
         workflow_dispatch: Some(workflow_dispatch),
@@ -724,8 +711,7 @@ pub fn promote() -> Result<Workflow> {
 
     let version_input = format!("needs.{promote_job_id}.outputs.{ENSO_VERSION}");
     let mut release_job = workflow_call_job("Release", RELEASE_WORKFLOW_PATH)
-        .with_with("version", wrap_expression(version_input))
-        .with_with(input::name::YDOC, get_input_expression(input::name::YDOC));
+        .with_with("version", wrap_expression(version_input));
     release_job.needs(&promote_job_id);
     workflow.add_job(release_job);
 

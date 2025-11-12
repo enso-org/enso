@@ -24,6 +24,9 @@ from project.Errors import SQL_Error, Table_Already_Exists, Table_Not_Found
 from project.Internal.Upload.Helpers.Default_Arguments import first_column_name_in_structure
 from project.Internal.Upload.Operations.Create import create_table_implementation
 
+polyglot java import org.enso.database.JDBCDriverTypes
+polyglot java import org.enso.database.JDBCProxy
+
 type SQLite_Connection
     ## ---
        private: true
@@ -35,7 +38,8 @@ type SQLite_Connection
         - `properties`: A vector of properties for the connection.
     create : Text -> Vector -> SQLite_Connection
     create url properties =
-        jdbc_connection = JDBC_Connection.create url properties
+        types_record = JDBCDriverTypes.create "Postgres"
+        jdbc_connection = JDBC_Connection.create types_record url properties
         SQLite_Connection.Value (Connection.new jdbc_connection Dialect.sqlite SQLite_Type_Mapping SQLite_Entity_Naming_Properties.new)
 
     ## ---
@@ -331,12 +335,6 @@ type SQLite_Connection
        ---
        Access the Type Mapping.
     type_mapping self = self.connection.type_mapping
-
-    ## ---
-       private: true
-       ---
-       Access the Statement Setter.
-    statement_setter self = self.connection.statement_setter
 
     ## ---
        private: true

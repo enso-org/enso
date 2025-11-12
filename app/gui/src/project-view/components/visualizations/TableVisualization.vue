@@ -836,14 +836,6 @@ function toLinkField(fieldName: string, options: LinkFieldOptions): ColDef {
   }
 }
 
-watchEffect(() => {
-  try {
-    refresh()
-  } catch (error) {
-    console.warn('Error refreshing table.', error)
-  }
-})
-
 const DEFAULT_DATA = {
   type: typeof props.data,
   json: props.data,
@@ -869,6 +861,14 @@ const DEFAULT_DATA = {
   // eslint-disable-next-line camelcase
   requires_number_format: undefined,
 }
+
+watchEffect(() => {
+  try {
+    refresh()
+  } catch (error) {
+    console.warn('Error refreshing table.', error)
+  }
+})
 
 // Update state computed from the input `data`.
 function refresh() {

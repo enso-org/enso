@@ -1083,10 +1083,7 @@ final class TreeToIr {
               args = join(call, args);
             }
           }
-          yield switch (fn) {
-            case Application.Prefix pref -> patchPrefixWithBlock(pref, block, args);
-            default -> block;
-          };
+          yield patchPrefixWithBlock(fn, block, args);
         } else {
           yield block;
         }
@@ -1525,14 +1522,25 @@ final class TreeToIr {
 
   @SuppressWarnings("unchecked")
   private Expression patchPrefixWithBlock(
-      Application.Prefix pref, Expression.Block block, List<CallArgument> args) {
+      Expression expr, Expression.Block block, List<CallArgument> args) {
     if (block.expressions().isEmpty() && block.returnValue() instanceof Name.Blank) {
-      return pref;
+      return expr;
     }
     if (args.nonEmpty() && args.head() == null) {
       args = (List<CallArgument>) args.tail();
     }
-    List<CallArgument> allArgs = (List<CallArgument>) pref.arguments().appendedAll(args.reverse());
+    List<CallArgument> allArgs;
+    Expression fn;
+    boolean hasDefaultsSuspended;
+    if (expr instanceof Application.Prefix pref) {
+      fn = pref.function();
+      hasDefaultsSuspended = pref.hasDefaultsSuspended();
+      allArgs = (List<CallArgument>) pref.arguments().appendedAll(args.reverse());
+    } else {
+      fn = expr;
+      allArgs = nil();
+      hasDefaultsSuspended = false;
+    }
     final CallArgument.Specified blockArg =
         CallArgument.Specified.builder()
             .name(Option.empty())
@@ -1542,13 +1550,13 @@ final class TreeToIr {
             .build();
     List<CallArgument> withBlockArgs = (List<CallArgument>) allArgs.appended(blockArg);
     if (!checkArgs(withBlockArgs)) {
-      return translateSyntaxError(pref.location().get(), Syntax.UnexpectedExpression$.MODULE$);
+      return translateSyntaxError(expr.location().get(), Syntax.UnexpectedExpression$.MODULE$);
     }
     return Application.Prefix.builder()
-        .function(pref.function())
+        .function(fn)
         .arguments(withBlockArgs)
-        .hasDefaultsSuspended(pref.hasDefaultsSuspended())
-        .location(pref.identifiedLocation())
+        .hasDefaultsSuspended(hasDefaultsSuspended)
+        .location(expr.identifiedLocation())
         .build();
   }
 

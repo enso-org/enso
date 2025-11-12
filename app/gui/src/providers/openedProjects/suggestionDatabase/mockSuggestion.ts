@@ -11,9 +11,9 @@ import { SuggestionUpdateProcessor } from '$/providers/openedProjects/suggestion
 import { frontmatter } from '@/components/ComponentHelp/metadata'
 import { ANY_TYPE_QN } from '@/util/ensoTypes'
 import { isQualifiedName, qnParent, qnSplit, tryQualifiedName } from '@/util/qualifiedName'
+import { unwrap } from 'enso-common/src/utilities/data/result'
 import * as lsTypes from 'ydoc-shared/languageServerTypes/suggestions'
 import { assert } from 'ydoc-shared/util/assert'
-import { unwrap } from 'ydoc-shared/util/data/result'
 
 function makeEntry(lsEntry: lsTypes.SuggestionEntry, projectNames: ProjectNameStore | undefined) {
   return unwrap(

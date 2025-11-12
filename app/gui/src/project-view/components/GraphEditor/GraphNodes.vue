@@ -10,13 +10,11 @@ import { useGlobalEventRegistry } from '@/providers/globalEventRegistry'
 import { injectGraphNavigator } from '@/providers/graphNavigator'
 import { injectGraphSelection } from '@/providers/graphSelection'
 import type { UploadingFile as File, FileName } from '@/stores/awareness'
-import type { AstId } from '@/util/ast/abstract'
 import type { Vec2 } from '@/util/data/vec2'
 import { set } from 'lib0'
 import { computed } from 'vue'
 
 const emit = defineEmits<{
-  nodeOutputPortDoubleClick: [portId: AstId]
   enterNode: [nodeId: NodeId]
   createNodes: [source: NodeId, options: NodeCreationOptions[]]
   toggleDocPanel: []

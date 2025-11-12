@@ -26,9 +26,9 @@
     }
   },
   "dependencies": {
-    "@lezer/common": "^1.2.3",
+    "@lezer/common": "catalog:",
     "@lezer/markdown": "workspace:*",
-    "@lezer/highlight": "^1.2.1",
+    "@lezer/highlight": "catalog:",
     "@noble/hashes": "^1.6.1",
     "@open-rpc/client-js": "^1.8.1",
     "@types/debug": "^4.1.12",

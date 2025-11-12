@@ -22,6 +22,10 @@ public final class MapExpressionsMethodGenerator {
   private static final String DEF_ARG_CLASS =
       "org.enso.compiler.core.ir.DefinitionArgument.Specified";
   private static final String CALL_ARG_CLASS = "org.enso.compiler.core.ir.CallArgument.Specified";
+  private static final String DEF_TYPE_CLASS =
+      "org.enso.compiler.core.ir.module.scope.Definition.Type";
+  private static final String DEF_DATA_CLASS =
+      "org.enso.compiler.core.ir.module.scope.Definition.Data";
 
   /**
    * @param mapExpressionsMethod Reference to {@code mapExpressions} method in the interface for
@@ -228,6 +232,14 @@ public final class MapExpressionsMethodGenerator {
     return ctx.getProcessedClass().getClazz().getQualifiedName().toString().equals(CALL_ARG_CLASS);
   }
 
+  private boolean isProcessingDefinitionType() {
+    return ctx.getProcessedClass().getClazz().getQualifiedName().toString().equals(DEF_TYPE_CLASS);
+  }
+
+  private boolean isProcessingDefinitionData() {
+    return ctx.getProcessedClass().getClazz().getQualifiedName().toString().equals(DEF_DATA_CLASS);
+  }
+
   private String doMapExprCode() {
     var specialHandling = new StringBuilder();
     if (isProcessingDefinitionArgument()) {
@@ -254,6 +266,29 @@ public final class MapExpressionsMethodGenerator {
             }
           """
               .replace("${callArgClass}", CALL_ARG_CLASS));
+    }
+    if (isProcessingDefinitionType()) {
+      specialHandling.append(
+          """
+            // Special case - name of Definition.Type is ignored.
+            assert this instanceof ${defTypeClass};
+            if (ir == this.name()) {
+              return ir;
+            }
+          """
+              .replace("${defTypeClass}", DEF_TYPE_CLASS));
+    }
+    if (isProcessingDefinitionData()) {
+      specialHandling.append(
+          """
+            // Special case - name of Definition.Data is not applied.
+            // This means no `fn.apply` call on it.
+            assert this instanceof ${defDataClass};
+            if (ir == this.name()) {
+              return (T) ir.mapExpressions(fn);
+            }
+          """
+              .replace("${defDataClass}", DEF_DATA_CLASS));
     }
     var code =
         """

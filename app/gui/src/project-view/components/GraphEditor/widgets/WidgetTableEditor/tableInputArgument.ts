@@ -5,12 +5,18 @@ import type { UpdateHandler, WidgetInput } from '$/providers/openedProjects/widg
 import { commonContextMenuActions, type MenuItem } from '@/components/shared/AgGridTableView.vue'
 import { Ast } from '@/util/ast'
 import { arrayEquals, findIndexOpt } from '@/util/data/array'
-import { Err, Ok, transposeResult, unwrapOrWithLog, type Result } from '@/util/data/result'
 import { ProjectPath } from '@/util/projectPath'
 import { qnLastSegment, type QualifiedName } from '@/util/qualifiedName'
 import { cachedGetter, type ToValue } from '@/util/reactivity'
 import type { ColDef } from 'ag-grid-enterprise'
 import * as iter from 'enso-common/src/utilities/data/iter'
+import {
+  Err,
+  Ok,
+  transposeResult,
+  unwrapOrWithLog,
+  type Result,
+} from 'enso-common/src/utilities/data/result'
 import { computed, toValue } from 'vue'
 import type { ColumnSpecificParams } from './TableHeader.vue'
 
