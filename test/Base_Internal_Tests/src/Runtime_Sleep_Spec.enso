@@ -31,6 +31,11 @@ add_specs suite_builder =
 
             sleeps . should_equal [100, 100, 100, 100]
 
+        group_builder.specify "sleep 0 calls sleep once" <|
+            sleeps = Vector.build \builder->
+                Runtime_Helpers.sleep 0 sleep=builder.append
+            sleeps . should_equal [0]
+
 main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
