@@ -11,11 +11,15 @@ import { Text } from '#/components/Text'
 import { backendMutationOptions, backendQueryOptions } from '#/hooks/backendHooks'
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import { setModal } from '#/providers/ModalProvider'
-import { API_KEY_EXPIRES_IN_VALUES, ApiKeyExpiresIn, type ApiKey } from '#/services/Backend'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { useBackends, useText } from '$/providers/react'
 import { useFeatureFlag } from '$/providers/react/featureFlags'
 import { useSuspenseQuery } from '@tanstack/react-query'
+import {
+  API_KEY_EXPIRES_IN_VALUES,
+  ApiKeyExpiresIn,
+  type ApiKey,
+} from 'enso-common/src/services/Backend'
 import { toReadableIsoString } from 'enso-common/src/utilities/data/dateTime'
 
 const COLUMN_STYLES =
@@ -166,7 +170,7 @@ function ApiKeyDialog(props: ApiKeyDialogProps) {
   const { getText } = useText()
 
   return (
-    <Dialog size='xlarge' type={type} title={getText('keyId')} {...dialogProps}>
+    <Dialog size="xlarge" type={type} title={getText('keyId')} {...dialogProps}>
       <div className="relative flex items-center gap-4">
         <div className="flex flex-col">
           <Alert variant="outline" icon="warning">
