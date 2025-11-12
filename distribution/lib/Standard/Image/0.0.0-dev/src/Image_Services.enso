@@ -6,4 +6,6 @@ import project.Image_File_Format.Image_File_Format
 
 type Impl
 
-File_Format_SPI.from (_:Impl) = File_Format_SPI.new Image_File_Format
+File_Format_SPI.from (that:Impl) =
+    _ = that
+    File_Format_SPI.new Image_File_Format

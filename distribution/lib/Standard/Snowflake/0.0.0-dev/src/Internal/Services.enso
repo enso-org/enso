@@ -10,7 +10,10 @@ import project.Snowflake_Data_Link.Snowflake_Data_Link
 type Impl
 
 
-Data_Link_SPI.from (_:Impl) = Data_Link_SPI.new Snowflake_Data_Link "Snowflake_Connection"
+Data_Link_SPI.from (that:Impl) =
+    _ = that
+    Data_Link_SPI.new Snowflake_Data_Link "Snowflake_Connection"
 
-Database_Connection_Details_SPI.from (_:Impl) =
+Database_Connection_Details_SPI.from (that:Impl) =
+    _ = that
     Database_Connection_Details_SPI.new Snowflake_Details "Snowflake" "..Snowflake"
