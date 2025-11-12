@@ -7,6 +7,7 @@ import project.Value_Type.Value_Type
 polyglot java import org.enso.table.error.ColumnCountMismatchException
 polyglot java import org.enso.table.error.ColumnNameMismatchException
 polyglot java import org.enso.table.error.EmptyFileException
+polyglot java import org.enso.table.error.EmptySheetException
 polyglot java import org.enso.table.error.InvalidColumnNameException
 polyglot java import org.enso.table.read.FixedWidthLineTooLongException
 polyglot java import org.enso.table.read.NoColumnNamesFoundException
@@ -420,7 +421,7 @@ type Empty_Sheet
        private: true
        ---
     handle_java_exception =
-        Panic.recover Empty_Sheet
+        Panic.catch EmptySheetException handler=(_ -> Error.throw Empty_Sheet.Error)
 
 ## Indicates that the column was already present in the table.
 type Existing_Column

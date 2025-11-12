@@ -586,6 +586,9 @@
         "name": "org.enso.table.error.EmptyFileException"
     },
     {
+        "name": "org.enso.table.error.EmptySheetException"
+    },
+    {
         "name": "org.enso.table.error.ExistingDataException"
     },
     {
