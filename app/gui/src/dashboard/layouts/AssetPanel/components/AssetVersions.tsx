@@ -108,11 +108,8 @@ function AssetVersionsInternal(props: AssetVersionsInternalProps) {
     const newItem = await duplicateProjectMutation.mutateAsync([[item.id], item.parentId])
     const newAsset = newItem[0]?.asset
 
-    if (options?.start === true && newAsset != null && item.type === AssetType.project) {
-      // This is SAFE because we know that the the new asset is a Project,
-      // because we can't create a duplicate with a different type.
-      /* eslint-disable-next-line no-restricted-syntax */
-      openProjectLocally(newAsset as ProjectAsset, backend.type)
+    if (options?.start === true && newAsset != null && newAsset.type === AssetType.project) {
+      openProjectLocally(newAsset, backend.type)
     }
   })
 
