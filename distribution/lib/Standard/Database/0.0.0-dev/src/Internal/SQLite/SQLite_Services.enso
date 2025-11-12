@@ -3,8 +3,8 @@ private
 import Standard.Base.System.File_Format.File_Format_SPI
 
 import project.Connection.Database.Database_Connection_Details_SPI
-import project.Connection.SQLite_Format.SQLite_Format
 import project.Connection.SQLite.SQLite
+import project.Connection.SQLite_Format.SQLite_Format
 
 type Impl
 

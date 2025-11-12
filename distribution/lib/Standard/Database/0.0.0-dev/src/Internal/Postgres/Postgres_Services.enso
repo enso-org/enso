@@ -2,8 +2,8 @@ private
 
 import Standard.Base.Enso_Cloud.Data_Link.Data_Link_SPI
 
-import project.Connection.Database.Database_Connection_Details_SPI
 import project.Connection.Data_Link.Postgres_Data_Link.Postgres_Data_Link
+import project.Connection.Database.Database_Connection_Details_SPI
 import project.Connection.Postgres.Postgres
 
 type Impl

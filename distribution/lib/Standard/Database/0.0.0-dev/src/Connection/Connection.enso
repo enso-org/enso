@@ -1,8 +1,8 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Metadata.Display
-import Standard.Base.Metadata.Widget
 import Standard.Base.Metadata.File_Type
+import Standard.Base.Metadata.Widget
 import Standard.Base.Runtime.Context as Execution_Context
 import Standard.Base.Runtime.Managed_Resource.Managed_Resource
 import Standard.Base.Runtime.Ref.Ref
