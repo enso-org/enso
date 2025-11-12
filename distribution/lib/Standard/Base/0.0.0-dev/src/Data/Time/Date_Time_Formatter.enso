@@ -25,7 +25,10 @@ polyglot java import org.enso.base.time.FormatterKind
 
 ## A formatter for date and time values.
 type Date_Time_Formatter
-    private Value (underlying : EnsoDateTimeFormatter) (~deferred_parsing_warnings = [])
+    ## ---
+       private: true
+       ---
+    Value (underlying : EnsoDateTimeFormatter) (~deferred_parsing_warnings = [])
 
     ## ---
        icon: convert
