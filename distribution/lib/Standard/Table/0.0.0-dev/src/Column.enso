@@ -2494,13 +2494,13 @@ type Column
         - product: ..Product
         - mean: ..Mean
         - variance: ..Variance
-        - standard_deviation: ..Standard_Deviation
+        - standard deviation: ..Standard_Deviation
         - skew: ..Skew
         - kurtosis: ..Kurtosis
         - covariance: ..Covariance
         - pearson: ..Pearson
         - spearman: ..Spearman
-        - r_squared: ..R_Squared
+        - r squared: ..R_Squared
        group: Standard.Base.Statistics
        icon: transform4
        ---
@@ -2531,13 +2531,13 @@ type Column
         - product: ..Product
         - mean: ..Mean
         - variance: ..Variance
-        - standard_deviation: ..Standard_Deviation
+        - standard deviation: ..Standard_Deviation
         - skew: ..Skew
         - kurtosis: ..Kurtosis
         - covariance: ..Covariance
         - pearson: ..Pearson
         - spearman: ..Spearman
-        - r_squared: ..R_Squared
+        - r squared: ..R_Squared
        group: Standard.Base.Statistics
        icon: transform4
        ---

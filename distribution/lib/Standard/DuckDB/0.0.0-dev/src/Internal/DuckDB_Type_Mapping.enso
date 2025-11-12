@@ -192,46 +192,59 @@ type DuckDB_Types
     ## BOOLEAN type
     boolean = SQL_Type.Value Types.BOOLEAN "BOOLEAN"
 
-    ## INT1 (-128 to 127) Equivalent to Java byte
+    ## INT1 (-128 to 127)
+       Equivalent to Java byte
     tinyint = SQL_Type.Value Types.TINYINT "TINYINT"
 
-    ## INT2 (-32,768 to 32,767) Equivalent to Java short
+    ## INT2 (-32,768 to 32,767)
+       Equivalent to Java short
     smallint = SQL_Type.Value Types.SMALLINT "SMALLINT"
 
-    ## INT4 (-2,147,483,648 to 2,147,483,647) Equivalent to Java int
+    ## INT4 (-2,147,483,648 to 2,147,483,647)
+       Equivalent to Java int
     integer = SQL_Type.Value Types.INTEGER "INTEGER"
 
-    ## INT8 (-9,223,372,036,854,775,808 to 9,223,372,036,854,775,807) Equivalent
-       to Java long
+    ## INT8 (-9,223,372,036,854,775,808 to 9,223,372,036,854,775,807)
+       Equivalent to Java long
     bigint = SQL_Type.Value Types.BIGINT "BIGINT"
 
-    ## REAL (single precision floating point) Equivalent to Java float
+    ## REAL (single precision floating point)
+       Equivalent to Java float
     real = SQL_Type.Value Types.REAL "FLOAT"
 
-    ## DOUBLE (double precision floating point) Equivalent to Java double
+    ## DOUBLE (double precision floating point)
+       Equivalent to Java double
     double = SQL_Type.Value Types.DOUBLE "DOUBLE"
 
-    ## BIGNUM (variable length integer) - Decimal Nothing 0 Read as a BigInteger
-       in Java Can be HUGEINT, UHUGEINT, UBIGINT or BIGNUM in DuckDB
+    ## BIGNUM (variable length integer) - Decimal Nothing 0
+       Read as a BigInteger in Java
+       Can be HUGEINT, UHUGEINT, UBIGINT or BIGNUM in DuckDB
     bignum = SQL_Type.Value Types.BIGINT "BIGNUM"
 
-    ## DECIMAL (fixed precision scale) Equivalent to Java BigDecimal
+    ## DECIMAL (fixed precision scale)
+       Equivalent to Java BigDecimal
     decimal precision scale = SQL_Type.Value Types.DECIMAL "DECIMAL" precision scale
 
-    ## VARCHAR (variable length string) Equivalent to Java String
+    ## VARCHAR (variable length string)
+       Equivalent to Java String
     varchar = SQL_Type.Value Types.VARCHAR "VARCHAR"
 
-    ## TIME (time of day) Equivalent to Java LocalTime
+    ## TIME (time of day)
+       Equivalent to Java LocalTime
     time = SQL_Type.Value Types.TIME "TIME"
 
-    ## DATE (date without time) Equivalent to Java LocalDate
+    ## DATE (date without time)
+       Equivalent to Java LocalDate
     date = SQL_Type.Value Types.DATE "DATE"
 
-    ## TIMESTAMP WITH TIME ZONE Equivalent to Java ZonedDateTime
+    ## TIMESTAMP WITH TIME ZONE
+       Equivalent to Java ZonedDateTime
     timestamp_with_tz = SQL_Type.Value Types.TIMESTAMP_WITH_TIMEZONE "TIMESTAMPTZ"
 
-    ## TIMESTAMP WITHOUT TIME ZONE Equivalent to Java LocalDateTime
-    timestamp = SQL_Type.Value Types.TIMESTAMP "TIMESTAMP"
+    ## TIMESTAMP WITHOUT TIME ZONE
+       Equivalent to Java LocalDateTime
+    timestamp = SQL_Type.Value Types.TIMESTAMP "TIMESTAMP_NS"
 
-    ## BLOB (binary large object) Equivalent to Java byte[]
+    ## BLOB (binary large object)
+       Equivalent to Java byte[]
     blob = SQL_Type.Value Types.BLOB "BLOB"
