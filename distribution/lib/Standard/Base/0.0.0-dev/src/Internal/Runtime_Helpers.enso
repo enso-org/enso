@@ -26,7 +26,9 @@ sleep milliseconds:Integer ~result=Nothing sleep=(\n -> Thread.sleep n) =
     if milliseconds < 0 then Error.throw (Illegal_Argument.Error "milliseconds must be non-negative")
     if milliseconds <= 100 then sleep milliseconds else
         Progress.run "Sleep" milliseconds \p->
-            Integer.up_to self=0 n=milliseconds step=100 . each \_->
-                sleep 100
+            Integer.up_to self=0 n=milliseconds step=100 . each \v->
+                remaining = milliseconds - v
+                if remaining >= 100 then sleep 100 else
+                    sleep remaining
                 p.advance 100
     result
