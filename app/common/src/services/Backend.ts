@@ -693,17 +693,9 @@ export interface UpdatedDirectory {
 /** The type returned from the "create directory" endpoint. */
 export type Directory = DirectoryAsset
 
-/** The subset of asset fields returned by the "copy asset" endpoint. */
-export interface CopiedAsset {
-  readonly id: AssetId
-  readonly parentId: DirectoryId
-  readonly title: string
-  readonly ensoPath: EnsoPath
-}
-
 /** The type returned from the "copy asset" endpoint. */
 export interface CopyAssetResponse {
-  readonly asset: CopiedAsset
+  readonly asset: AnyAsset
 }
 
 /** Possible filters for the "list directory" endpoint. */
