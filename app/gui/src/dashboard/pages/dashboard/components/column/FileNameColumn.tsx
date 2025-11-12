@@ -1,11 +1,14 @@
 /** @file The icon and name of a {@link FileAsset}. */
 import EditableSpan from '#/components/EditableSpan'
 import { Icon } from '#/components/Icon'
+import { useRenameAsset } from '#/hooks/backendHooks'
 import { useGetAssetChildren } from '#/layouts/Drive/assetsTableItemsHooks'
+import { useCategoriesAPI } from '#/layouts/Drive/Categories'
 import type { AssetNameColumnProps } from '#/pages/dashboard/components/column'
-import { titleSchema, type FileAsset } from '#/services/Backend'
+import { useDriveStore } from '#/providers/DriveProvider'
 import { fileIcon } from '#/utilities/fileIcon'
-import { merger } from '#/utilities/object'
+import { useStore } from '#/utilities/zustand'
+import { titleSchema, type FileAsset } from 'enso-common/src/services/Backend'
 
 /** Props for a {@link FileNameColumn}. */
 export interface FileNameColumnProps extends AssetNameColumnProps {
@@ -18,13 +21,21 @@ export interface FileNameColumnProps extends AssetNameColumnProps {
  * This should never happen.
  */
 export default function FileNameColumn(props: FileNameColumnProps) {
-  const { item, rowState, setRowState, isEditable, renameAsset } = props
+  const { item, isEditable } = props
 
+  const { associatedBackend: backend } = useCategoriesAPI()
   const getAssetChildren = useGetAssetChildren()
+  const driveStore = useDriveStore()
+  const renameAsset = useRenameAsset(backend)
 
-  const setIsEditing = (isEditingName: boolean) => {
-    if (isEditable) {
-      setRowState(merger({ isEditingName }))
+  const isEditingName = useStore(driveStore, ({ assetToRename }) => assetToRename === item.id)
+  const setIsEditing = (isEditing: boolean) => {
+    if (isEditing) {
+      if (isEditable) {
+        driveStore.setState({ assetToRename: item.id })
+      }
+    } else {
+      driveStore.setState({ assetToRename: null })
     }
   }
 
@@ -37,7 +48,7 @@ export default function FileNameColumn(props: FileNameColumnProps) {
     <div
       className="flex h-table-row w-auto min-w-48 max-w-full items-center gap-name-column-icon whitespace-nowrap rounded-l-full px-name-column-x py-name-column-y rounded-rows-child"
       onKeyDown={(event) => {
-        if (rowState.isEditingName && event.key === 'Enter') {
+        if (isEditingName && event.key === 'Enter') {
           event.stopPropagation()
         }
       }}
@@ -45,7 +56,7 @@ export default function FileNameColumn(props: FileNameColumnProps) {
       <Icon icon={fileIcon(item.title)} className="m-name-column-icon" />
       <EditableSpan
         data-testid="asset-row-name"
-        editable={rowState.isEditingName}
+        editable={isEditingName}
         className="grow bg-transparent font-naming"
         onSubmit={doRename}
         onCancel={() => {

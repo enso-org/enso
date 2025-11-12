@@ -7,7 +7,7 @@ import { usePortalContext } from '#/components/Portal'
 import { useEventListener } from '#/hooks/eventListenerHooks'
 import { useInputBindings } from '#/providers/InputBindingsProvider'
 import { twMerge } from '#/utilities/tailwindMerge'
-import { isOnMacOS } from 'enso-common/src/detect'
+import { isOnMacOS } from 'enso-common/src/utilities/detect'
 import {
   forwardRef,
   useEffect,
@@ -24,6 +24,7 @@ export interface ContextMenuProps {
   readonly 'aria-label': string
   readonly entries: readonly (MenuEntryProps | false | null | undefined)[]
   readonly initialPosition?: Pick<MouseEvent, 'pageX' | 'pageY'> | null | undefined
+  readonly onClose?: () => void
 }
 
 /** Imperative API for {@link ContextMenu}. */
@@ -37,17 +38,14 @@ export const ContextMenu = forwardRef(function ContextMenu(
   props: ContextMenuProps,
   ref: ForwardedRef<ContextMenuApi>,
 ) {
-  const { entries, initialPosition } = props
+  const { entries, initialPosition, onClose } = props
 
   const inputBindings = useInputBindings()
   const root = usePortalContext()
   const popoverRef = useRef<HTMLElement>(null)
   const [isOpen, setIsOpen] = useState(initialPosition != null)
   const [position, setPosition] = useState<Pick<MouseEvent, 'pageX' | 'pageY'>>(
-    initialPosition ?? {
-      pageX: 0,
-      pageY: 0,
-    },
+    initialPosition ?? { pageX: 0, pageY: 0 },
   )
 
   useImperativeHandle(ref, () => ({
@@ -84,6 +82,21 @@ export const ContextMenu = forwardRef(function ContextMenu(
     { capture: true },
   )
 
+  useEventListener(
+    'contextmenu',
+    (event) => {
+      if (
+        event.target instanceof Element &&
+        popoverRef.current &&
+        !popoverRef.current.contains(event.target)
+      ) {
+        setIsOpen(false)
+      }
+    },
+    document,
+    { capture: true },
+  )
+
   return (
     <Popover.Trigger>
       <Pressable>
@@ -103,6 +116,7 @@ export const ContextMenu = forwardRef(function ContextMenu(
         isOpen={isOpen}
         onOpenChange={setIsOpen}
         onClose={() => {
+          onClose?.()
           setIsOpen(false)
         }}
       >

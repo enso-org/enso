@@ -15,7 +15,7 @@ import * as reactQuery from '@tanstack/react-query'
 import * as toastify from 'react-toastify'
 import * as z from 'zod'
 
-import * as detect from 'enso-common/src/detect'
+import * as detect from 'enso-common/src/utilities/detect'
 
 import InputBindingsProvider from '#/providers/InputBindingsProvider'
 import ModalProvider from '#/providers/ModalProvider'
@@ -25,7 +25,7 @@ import { RouterProvider } from 'react-aria-components'
 
 import { AboutModal } from '#/modals/AboutModal'
 
-import RemoteBackend from '#/services/RemoteBackend'
+import { RemoteBackend } from 'enso-common/src/services/RemoteBackend'
 
 import * as eventModule from '#/utilities/event'
 import LocalStorage from '#/utilities/LocalStorage'
@@ -50,7 +50,7 @@ LocalStorage.registerKey('loginRedirect', {
   schema: z.string(),
 })
 
-window.menuApi?.setMenuItemHandler('about', () => {
+window.api?.menu.setMenuItemHandler('about', () => {
   AboutModal.open()
 })
 
@@ -137,7 +137,7 @@ function AppRouter(props: React.PropsWithChildren) {
         !eventModule.isElementTextInput(document.activeElement)
       ) {
         const selection = document.getSelection()
-        const app = document.getElementById('app')
+        const app = document.getElementById('ProjectView')
         const appContainsSelection =
           app != null &&
           selection != null &&

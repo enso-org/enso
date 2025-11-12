@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import MenuButton from '@/components/MenuButton.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
-import { type DisplayableActionName, resolveAction } from '@/providers/action'
+import { resolveAction, type DisplayableActionName } from '@/providers/action'
 import { computed, toValue } from 'vue'
 
 const { action: actionName } = defineProps<{ action: DisplayableActionName }>()
@@ -22,7 +22,7 @@ const action = computed(() => resolveAction(actionName))
     <span
       v-if="toValue(action.shortcut)"
       class="shortcutHint"
-      v-text="action.shortcut?.humanReadable"
+      v-text="toValue(action.shortcut)?.humanReadable"
     />
   </MenuButton>
 </template>

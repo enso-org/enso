@@ -17,7 +17,7 @@ import { DASHBOARD_PATH, FORGOT_PASSWORD_PATH, REGISTRATION_PATH } from '$/appUt
 import type { CognitoUser } from '$/authentication/cognito'
 import { useRouter, useSession, useText } from '$/providers/react'
 import { useQueryParam } from '$/providers/react/queryParams'
-import { isOnElectron } from 'enso-common/src/detect'
+import { isOnElectron } from 'enso-common/src/utilities/detect'
 import { useState } from 'react'
 
 /** A form for users to log in. */
@@ -45,7 +45,13 @@ export default function Login() {
       }),
     defaultValues: { email: initialEmail ?? '' },
     onSubmit: async ({ email, password }) => {
-      const { user, challenge } = await signInWithPassword(email, password)
+      // This is special case, needed by package testing. See app/electron-client/tests/electronTest.ts.
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, no-restricted-syntax, @typescript-eslint/no-explicit-any
+      const passwordOverride: string = (window as any).passwordOverride
+      const { user, challenge } = await signInWithPassword(
+        email,
+        passwordOverride ? passwordOverride : password,
+      )
 
       if (challenge) {
         setUser(user)

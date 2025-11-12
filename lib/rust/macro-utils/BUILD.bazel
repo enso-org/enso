@@ -2,7 +2,7 @@ load("@crates//:defs.bzl", "aliases", "all_crate_deps")
 load("@rules_rust//rust:defs.bzl", "rust_library")
 
 rust_library(
-    name = "enso-macro-utils",
+    name = "enso_macro_utils",
     srcs = glob(["src/**/*.rs"]),
     aliases = aliases(),
     edition = "2021",

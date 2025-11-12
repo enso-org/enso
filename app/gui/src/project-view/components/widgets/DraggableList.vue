@@ -37,6 +37,7 @@ const props = defineProps<{
   toDragPosition?: (p: Vec2) => Vec2
   showHandles: boolean
   axis: 'x' | 'y'
+  horizontalScroll?: boolean
 }>()
 const emit = defineEmits<{
   addItem: []
@@ -275,7 +276,8 @@ function updateItemBounds() {
 function getDropIndex(info: DropHoverInfo, bounds: (Range | undefined)[]): number {
   const pos = info.position
   const insertIndex = bounds.findIndex(
-    (range) => range != null && (range.from + range.to) / 2 > pos[props.axis],
+    (range, i) =>
+      i !== draggedIndex.value && range != null && (range.from + range.to) / 2 > pos[props.axis],
   )
   return insertIndex >= 0 ? insertIndex : bounds.length
 }
@@ -291,7 +293,13 @@ function areaOnDrop(e: DragEvent) {
   e.stopImmediatePropagation()
 
   if (draggedIndex.value != null) {
-    emit('reorder', draggedIndex.value, index)
+    // draggedIndex works as if the dragged element was still part of the collection.
+    // We have to offset it when the element is dragged past its original position.
+    const newIndex =
+      draggedIndex.value != null && index >= draggedIndex.value + 1 ? index - 1 : index
+    if (draggedIndex.value != newIndex) {
+      emit('reorder', draggedIndex.value, newIndex)
+    }
   } else {
     const payload = e.dataTransfer?.getData(mimeType.value)
     if (payload) emit('dropInsert', index, payload)
@@ -391,7 +399,11 @@ const placeholderSizeProp = computed(() => `--placeholder-${props.axis}` as cons
     tag="ul"
     name="list"
     class="DraggableList"
-    :class="{ animate: dropInfo != null || draggedIndex != null, [`axis-${axis}`]: true }"
+    :class="{
+      animate: dropInfo != null || draggedIndex != null,
+      [`axis-${axis}`]: true,
+      horizontalScroll,
+    }"
     :css="dropInfo != null || draggedIndex != null"
     @pointerdown="
       !$event.shiftKey && !$event.altKey && !$event.metaKey && $event.stopImmediatePropagation()
@@ -514,6 +526,10 @@ const placeholderSizeProp = computed(() => `--placeholder-${props.axis}` as cons
   }
 }
 
+.DraggableList.horizontalScroll {
+  overflow-x: auto;
+}
+
 .App.list-widget-dragging {
   .placeholder.list-enter-from,
   .placeholder.list-leave-to {
@@ -554,10 +570,8 @@ div {
   transition: color 0.2s ease;
   cursor: grab;
 
-  color: var(--color-widget);
-
   &:hover {
-    color: var(--color-widget-focus);
+    opacity: 0.5;
   }
 }
 

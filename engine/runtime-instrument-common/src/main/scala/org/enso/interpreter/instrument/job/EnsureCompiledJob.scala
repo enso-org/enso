@@ -89,7 +89,7 @@ class EnsureCompiledJob(
     val moduleCompilationStatus = modules.map(ensureCompiledModule)
     val modulesInScope =
       getProjectModulesInScope.filterNot(m => modules.exists(_ == m))
-    val scopeCompilationStatus = ensureCompiledScope(modulesInScope)
+    val scopeCompilationStatus = modulesInScope.flatMap(ensureCompiledModule)
     (moduleCompilationStatus.flatten ++ scopeCompilationStatus).maxOption
       .getOrElse(CompilationStatus.Success)
   }
@@ -122,18 +122,9 @@ class EnsureCompiledJob(
           invalidateCaches(module, changeset)
           val state =
             ctx.state.suggestions.getOrCreateFresh(module, module.getIr)
-          if (state.isIndexed) {
-            ctx.jobProcessor.runBackground(
-              AnalyzeModuleJob(module, state, module.getIr(), changeset)
-            )
-          } else {
-            AnalyzeModuleJob.analyzeModule(
-              module,
-              state,
-              module.getIr(),
-              changeset
-            )
-          }
+          ctx.jobProcessor.runBackground(
+            AnalyzeModuleJob(module, state, module.getIr(), changeset)
+          )
           runCompilationDiagnostics(module)
         }
         .fold(
@@ -147,61 +138,6 @@ class EnsureCompiledJob(
           identity
         )
     }
-  }
-
-  /** Compile all modules in the scope and send the extracted suggestions.
-    *
-    * @param ctx the runtime context
-    */
-  private def ensureCompiledScope(modulesInScope: Iterable[Module])(implicit
-    ctx: RuntimeContext
-  ): Iterable[CompilationStatus] = {
-    val notIndexedModulesInScope =
-      modulesInScope.filter(m => {
-        val state = ctx.state.suggestions.find(m)
-        state == null || !state.isIndexed
-      })
-    val (modulesToAnalyzeBuilder, compilationStatusesBuilder) =
-      notIndexedModulesInScope.foldLeft(
-        (Set.newBuilder[Module], Vector.newBuilder[CompilationStatus])
-      ) { case ((modules, statuses), module) =>
-        compile(module) match {
-          case Left(err) =>
-            logger.error(s"Compilation error in ${module.getName}", err)
-            sendFailureUpdate(
-              Api.ExecutionResult.Failure(
-                err.getMessage,
-                Option(module.getPath).map(new File(_))
-              )
-            )
-            (modules, statuses += CompilationStatus.Failure)
-          case Right(compilerResult) =>
-            val status = runCompilationDiagnostics(module)
-            (
-              modules
-                .addAll(
-                  compilerResult.compiledModules.map(Module.fromCompilerModule)
-                )
-                .addOne(module),
-              statuses += status
-            )
-        }
-      }
-    val modulesToAnalyze = modulesToAnalyzeBuilder.result()
-    if (modulesToAnalyze.nonEmpty) {
-      ctx.jobProcessor.runBackground(
-        AnalyzeModuleInScopeJob(
-          modulesToAnalyze.map(m =>
-            (
-              m,
-              ctx.state.suggestions.getOrCreateFresh(m, m.getIr),
-              m.getSource() != null
-            )
-          )
-        )
-      )
-    }
-    compilationStatusesBuilder.result()
   }
 
   /** Extract compilation diagnostics from the module and send the diagnostic
@@ -519,20 +455,6 @@ class EnsureCompiledJob(
       )
     }
 
-  /** Send notification about the compilation status.
-    *
-    * @param failure the execution failure
-    * @param ctx the runtime context
-    */
-  private def sendFailureUpdate(
-    failure: Api.ExecutionResult.Failure
-  )(implicit ctx: RuntimeContext): Unit =
-    ctx.contextManager.getAllContexts.keys.foreach { contextId =>
-      ctx.endpoint.sendToClient(
-        Api.Response(Api.ExecutionFailed(contextId, failure))
-      )
-    }
-
   private def getCompilationStatus(
     diagnostics: Iterable[Api.ExecutionResult.Diagnostic]
   ): CompilationStatus =
@@ -592,9 +514,9 @@ class EnsureCompiledJob(
     val packageRepository =
       ctx.executionService.getContext.getCompiler.packageRepository
     packageRepository.getMainProjectPackage
-      .map(pkg =>
+      .map(mainPkg =>
         packageRepository
-          .getModulesForLibrary(pkg.libraryName)
+          .getModulesForLibrary(mainPkg.libraryName)
           .map(Module.fromCompilerModule(_))
       )
       .getOrElse(Seq())

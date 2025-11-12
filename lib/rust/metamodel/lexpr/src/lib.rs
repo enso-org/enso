@@ -50,8 +50,6 @@ use lexpr::Value;
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
 
-
-
 // =============================
 // === Meta to S-expressions ===
 // =============================
@@ -59,10 +57,10 @@ use std::collections::BTreeSet;
 /// Render data to an S-expression representation based on its `meta` model.
 #[derive_where(Debug)]
 pub struct ToSExpr<'g> {
-    graph:   &'g TypeGraph,
+    graph: &'g TypeGraph,
     #[derive_where(skip)]
     mappers: BTreeMap<TypeId, Box<dyn Fn(Value) -> Value>>,
-    skip:    BTreeSet<TypeId>,
+    skip: BTreeSet<TypeId>,
 }
 
 impl<'g> ToSExpr<'g> {
@@ -98,7 +96,6 @@ impl<'g> ToSExpr<'g> {
         value
     }
 }
-
 
 // === Implementation ===
 
@@ -227,7 +224,6 @@ impl<'g> ToSExpr<'g> {
     }
 }
 
-
 // === Primitive Deserializers ===
 
 fn read_u8(buffer: &mut &[u8]) -> u8 {
@@ -258,8 +254,6 @@ fn read_string(buffer: &mut &[u8]) -> String {
     *buffer = rest;
     String::from_utf8(bytes.to_owned()).unwrap()
 }
-
-
 
 // =============
 // === Tests ===

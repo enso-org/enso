@@ -1,6 +1,8 @@
 package org.enso.jvm.interop.impl;
 
+import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.interop.TruffleObject;
+import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.Message;
 import com.oracle.truffle.api.nodes.Node;
 import java.util.HashMap;
@@ -14,6 +16,11 @@ import org.enso.persist.Persistance;
 
 /** Pool of Truffle objects associated with {@link Channel}. */
 public final class OtherJvmPool extends Channel.Config {
+  /**
+   * @GuardedBy("this")
+   */
+  private long idCounter;
+
   private final Map<Long, TruffleObject> objectsById = new HashMap<>();
   private final Map<TruffleObject, Long> objectsToId = new HashMap<>();
   private final Map<Long, OtherJvmObject> incomming = new HashMap<>();
@@ -23,11 +30,42 @@ public final class OtherJvmPool extends Channel.Config {
 
   private Function<Node, Object> onEnter;
   private BiConsumer<Node, Object> onLeave;
+  private Class<? extends TruffleLanguage> language;
 
   /** Master Channel can be associated with actions on enter and on leave. */
-  public final void onEnterLeave(Function<Node, Object> onEnter, BiConsumer<Node, Object> onLeave) {
+  public final void onEnterLeave(
+      Class<? extends TruffleLanguage> lang,
+      Function<Node, Object> onEnter,
+      BiConsumer<Node, Object> onLeave) {
+    this.language = lang;
     this.onEnter = onEnter;
     this.onLeave = onLeave;
+  }
+
+  public final synchronized void close(Channel<OtherJvmPool> ch) throws Exception {
+    this.language = null;
+    this.onEnter = null;
+    this.onLeave = null;
+    this.loader = null;
+    this.objectsById.clear();
+    this.objectsToId.clear();
+    this.incomming.clear();
+    ch.close();
+    assert ch.getConfig() == this;
+    OtherJvmRef.closeChannel(ch);
+  }
+
+  final boolean hasLanguage() {
+    return language != null;
+  }
+
+  final Class<? extends TruffleLanguage> getLanguage() throws UnsupportedMessageException {
+    var l = language;
+    if (l == null) {
+      throw UnsupportedMessageException.create();
+    } else {
+      return l;
+    }
   }
 
   /**
@@ -45,7 +83,7 @@ public final class OtherJvmPool extends Channel.Config {
         : "It should be real truffle object, not just a proxy: " + obj;
     var id = cacheIds ? objectsToId.get(obj) : null;
     if (id == null) {
-      id = (long) objectsById.size() + 1;
+      id = ++idCounter;
       objectsById.put(id, obj);
       if (cacheIds) {
         objectsToId.put(obj, id);
@@ -62,6 +100,23 @@ public final class OtherJvmPool extends Channel.Config {
    */
   final synchronized TruffleObject findObject(long id) {
     return objectsById.get(id);
+  }
+
+  final synchronized void gc(long id) {
+    var prev = objectsById.remove(id);
+    assert prev != null : dumpIds("Each id is removed only once, but " + id);
+  }
+
+  private String dumpIds(String msg) {
+    var sb = new StringBuilder();
+    sb.append(msg);
+    for (var e : objectsById.entrySet()) {
+      sb.append("\n  " + e.getKey() + " => " + e.getValue());
+    }
+    for (var e : objectsToId.entrySet()) {
+      sb.append("\n  " + e.getKey() + " #" + e.getValue());
+    }
+    return sb.toString();
   }
 
   private final synchronized OtherJvmObject findCached(OtherJvmObject withId) {
@@ -119,6 +174,10 @@ public final class OtherJvmPool extends Channel.Config {
 
   void addToClassPath(boolean master, String file) {
     loader(master).addToClassPath(file);
+  }
+
+  void findLibraries(boolean master, TruffleObject file) {
+    loader(master).findLibraries(file);
   }
 
   final TruffleObject loadClassObject(boolean master, String className)

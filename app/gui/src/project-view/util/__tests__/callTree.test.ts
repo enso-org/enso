@@ -1,12 +1,11 @@
-import * as widgetCfg from '@/providers/widgetRegistry/configuration'
-import { GraphDb } from '@/stores/graph/graphDatabase'
+import { GraphDb } from '$/providers/openedProjects/graph/graphDatabase'
 import {
   ComputedValueRegistry,
   TypeInfo,
   type ExpressionInfo,
-} from '@/stores/project/computedValueRegistry'
-import { SuggestionDb } from '@/stores/suggestionDatabase'
-import { type SuggestionEntry } from '@/stores/suggestionDatabase/entry'
+} from '$/providers/openedProjects/project/computedValueRegistry'
+import { SuggestionDb } from '$/providers/openedProjects/suggestionDatabase'
+import { type SuggestionEntry } from '$/providers/openedProjects/suggestionDatabase/entry'
 import {
   makeArgument,
   makeConstructor,
@@ -14,9 +13,10 @@ import {
   makeModule,
   makeModuleMethod,
   makeType,
-} from '@/stores/suggestionDatabase/mockSuggestion'
+} from '$/providers/openedProjects/suggestionDatabase/mockSuggestion'
+import * as widgetCfg from '$/providers/openedProjects/widgetRegistry/configuration'
 import { Ast } from '@/util/ast'
-import { type AstId } from '@/util/ast/abstract'
+import type { AstId } from '@/util/ast/abstract'
 import {
   ArgumentApplication,
   ArgumentAst,
@@ -24,14 +24,14 @@ import {
   getMethodCallInfoRecursively,
   interpretCall,
 } from '@/util/callTree'
-import { type MethodCall } from '@/util/methodPointer'
+import type { MethodCall } from '@/util/methodPointer'
 import { parseAbsoluteProjectPath } from '@/util/projectPath'
 import { tryQualifiedName, type Identifier } from '@/util/qualifiedName'
 import { fail } from 'assert'
+import { unwrap } from 'enso-common/src/utilities/data/result'
 import { assert, expect, test } from 'vitest'
 import type { ExpressionUpdatePayload } from 'ydoc-shared/languageServerTypes'
 import { assertDefined, assertEqual, assertNotEqual } from 'ydoc-shared/util/assert'
-import { unwrap } from 'ydoc-shared/util/data/result'
 
 const prefixFixture = {
   mockSuggestion: makeModuleMethod('local.Foo.Bar.func', {

@@ -4,8 +4,8 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Matcher;
-import org.enso.logging.service.ApiMessage;
-import org.enso.logging.service.LogMessage;
+import org.enso.logging.service.common.ApiMessage;
+import org.enso.logging.service.common.LogMessage;
 
 public class OpenSearchLogFormatter {
 

@@ -1,10 +1,11 @@
-import { unsafeKeys } from '#/utilities/object'
-import { OpenedProject, OpenedProjectsStore } from '$/providers/openedProjects'
+import type { OpenedProjectsStore } from '$/providers/openedProjects'
+import type { Initialized as InitializedProject } from '$/providers/openedProjects/projectStates'
 import { useProjectFiles } from '@/stores/projectFiles'
-import { Err, mapOk, Ok, Result } from '@/util/data/result'
+import { unsafeKeys } from 'enso-common/src/utilities/data/object'
+import { Err, mapOk, Ok, type Result } from 'enso-common/src/utilities/data/result'
 import { readUserSelectedFile } from 'enso-common/src/utilities/file'
-import { FetchPartialProgress } from './AsyncResource'
-import { ResourceContextSnapshot } from './context'
+import type { FetchPartialProgress } from './AsyncResource'
+import type { ResourceContextSnapshot } from './context'
 
 export type AnyUploadSource =
   | UploadDefinition
@@ -88,7 +89,7 @@ const supportedResourceTypes = {
  */
 export function useResourceUpload(openedProjects: OpenedProjectsStore) {
   async function uploadResourceToProject(
-    project: OpenedProject,
+    project: InitializedProject,
     upload: UploadDefinition,
   ): Promise<Result<UploadProgress>> {
     const api = useProjectFiles(project.store)
@@ -119,8 +120,13 @@ export function useResourceUpload(openedProjects: OpenedProjectsStore) {
     context: ResourceContextSnapshot,
   ): Promise<Result<UploadProgress>> {
     const openedProject = context.project && openedProjects.get(context.project)
-    if (openedProject) {
-      return uploadResourceToProject(openedProject, data)
+    if (openedProject?.nextTask?.process === 'opening') {
+      await openedProjects.waitForProcess(openedProject)
+    }
+    const initialized =
+      openedProject?.state.status === 'initialized' ? openedProject.state : undefined
+    if (initialized) {
+      return uploadResourceToProject(initialized, data)
     } else {
       return uploadResourceToCloud(data)
     }

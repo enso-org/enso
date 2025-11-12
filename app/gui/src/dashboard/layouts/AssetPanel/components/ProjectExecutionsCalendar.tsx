@@ -22,13 +22,6 @@ import { useLocalStorageState } from '#/hooks/localStoreState'
 import { AssetPanelPlaceholder } from '#/layouts/AssetPanel/components/AssetPanelPlaceholder'
 import { ProjectExecution } from '#/layouts/AssetPanel/components/ProjectExecution'
 import { NewProjectExecutionModal } from '#/layouts/NewProjectExecutionModal'
-import type Backend from '#/services/Backend'
-import {
-  AssetType,
-  BackendType,
-  type ProjectExecution as BackendProjectExecution,
-  type ProjectAsset,
-} from '#/services/Backend'
 import { tv } from '#/utilities/tailwindVariants'
 import { useBackends, useText } from '$/providers/react'
 import {
@@ -46,6 +39,13 @@ import {
   type ZonedDateTime,
 } from '@internationalized/date'
 import { useSuspenseQuery } from '@tanstack/react-query'
+import type { Backend } from 'enso-common/src/services/Backend'
+import {
+  AssetType,
+  BackendType,
+  type ProjectExecution as BackendProjectExecution,
+  type ProjectAsset,
+} from 'enso-common/src/services/Backend'
 import { getProjectExecutionRepetitionsForDateRange } from 'enso-common/src/services/Backend/projectExecution'
 
 const PROJECT_EXECUTIONS_CALENDAR_STYLES = tv({

@@ -1,11 +1,12 @@
 /** @file Events related to changes in the asset list. */
+import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import {
   dropOperationBetweenCategories,
   useTransferBetweenCategories,
   type Category,
 } from '#/layouts/Drive/Categories'
 import type { DrivePastePayload } from '#/providers/DriveProvider'
-import type { DirectoryId } from '#/services/Backend'
+import type { DirectoryId } from 'enso-common/src/services/Backend'
 /**
  * Options for the paste action.
  */
@@ -24,7 +25,7 @@ export interface PasteActionOptions {
 export function usePaste(category: Category) {
   const transferBetweenCategories = useTransferBetweenCategories(category)
 
-  return (options: PasteActionOptions) => {
+  return useEventCallback((options: PasteActionOptions) => {
     const { newParentId, pasteData, fromCategory, toCategory, method } = options
     const dropOperation = dropOperationBetweenCategories(fromCategory, toCategory, newParentId)
     if (dropOperation === 'cancel') return
@@ -35,5 +36,5 @@ export function usePaste(category: Category) {
       newParentId,
       method,
     )
-  }
+  })
 }

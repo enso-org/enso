@@ -352,8 +352,8 @@ class LambdaShorthandToLambdaTest extends CompilerTest {
       val fun2 = fun1.body.asInstanceOf[Function.Lambda]
       val vec  = fun2.body.asInstanceOf[Application.Sequence]
 
-      fun1.arguments(0).name shouldEqual vec.items.apply(1)
-      fun2.arguments(0).name shouldEqual vec.items.apply(3)
+      fun1.arguments().apply(0).name shouldEqual vec.items.apply(1)
+      fun2.arguments().apply(0).name shouldEqual vec.items.apply(3)
       vec.items.apply(0) shouldBe an[Literal.Number]
       vec.items.apply(2) shouldBe an[Application.Prefix]
     }

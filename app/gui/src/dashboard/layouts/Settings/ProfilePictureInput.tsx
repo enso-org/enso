@@ -6,9 +6,9 @@ import { HiddenFile } from '#/components/Inputs/HiddenFile'
 import { ProfilePicture } from '#/components/ProfilePicture/ProfilePicture'
 import FocusRing from '#/components/styled/FocusRing'
 import { backendMutationOptions, backendQueryOptions } from '#/hooks/backendHooks'
-import type Backend from '#/services/Backend'
 import { useText } from '$/providers/react'
 import { useMutation, useQuery } from '@tanstack/react-query'
+import type { Backend } from 'enso-common/src/services/Backend'
 import { StatelessSpinner } from '../../components/StatelessSpinner'
 
 /** Props for a {@link ProfilePictureInput}. */
@@ -26,7 +26,9 @@ export default function ProfilePictureInput(props: ProfilePictureInputProps) {
 
   return (
     <Form
-      schema={(z) => z.object({ picture: z.instanceof(File) })}
+      schema={(z) =>
+        z.object({ picture: z.instanceof(File).refine((file) => file.type.startsWith('image/')) })
+      }
       onSubmit={async ({ picture }) => {
         await uploadUserPicture.mutateAsync([{ fileName: picture.name }, picture])
       }}
@@ -50,7 +52,7 @@ export default function ProfilePictureInput(props: ProfilePictureInputProps) {
             size="large"
             className="pointer-events-none h-full w-full"
           />
-          <HiddenFile autoSubmit name="picture" />
+          <HiddenFile autoSubmit name="picture" accept="image/*" />
         </aria.Label>
       </FocusRing>
 

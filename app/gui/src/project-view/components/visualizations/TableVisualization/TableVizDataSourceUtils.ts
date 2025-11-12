@@ -1,7 +1,12 @@
 import { Ast } from '@/util/ast'
 import { Pattern } from '@/util/ast/match'
 import type { IServerSideGetRowsRequest } from 'ag-grid-enterprise'
-import { actionMap, FilterAction, getFilterValue, GridFilterModel } from './tableVizFilterUtils'
+import {
+  actionMap,
+  type FilterAction,
+  getFilterValue,
+  type GridFilterModel,
+} from './tableVizFilterUtils'
 import { getCellValueType } from './tableVizUtils'
 
 export type ValueTypes = 'Date' | 'Time' | 'Date_Time' | 'Integer' | 'Char' | 'Boolean'

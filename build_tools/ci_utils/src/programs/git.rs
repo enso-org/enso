@@ -9,8 +9,8 @@ use crate::prelude::*;
 use crate::new_command_type;
 use crate::programs::git::pretty_format::refs_from_decoration;
 use crate::RECORD_SEPARATOR;
-use std::process::Stdio;
 
+use std::process::Stdio;
 
 // ==============
 // === Export ===
@@ -18,8 +18,6 @@ use std::process::Stdio;
 
 pub mod clean;
 pub mod pretty_format;
-
-
 
 pub mod r#ref;
 
@@ -53,7 +51,7 @@ impl Git {
         crate::fs::tokio::create_dir_if_missing(path.as_ref()).await?;
         self.cmd()?.arg(Command::Init).current_dir(path.as_ref()).run_ok().await?;
         Ok(Context {
-            working_dir:     path.as_ref().to_path_buf(),
+            working_dir: path.as_ref().to_path_buf(),
             repository_root: path.as_ref().to_path_buf(),
         })
     }
@@ -81,7 +79,7 @@ pub struct Context {
     /// Directory in which commands will be invoked.
     /// It might not be the repository root and it makes difference for many commands.
     /// If it is different from the repository root, it must be in its subdirectory.
-    working_dir:     PathBuf,
+    working_dir: PathBuf,
 }
 
 impl Context {
@@ -100,7 +98,7 @@ impl Context {
     pub fn new_unchecked(repository_root: impl AsRef<Path>, working_dir: impl AsRef<Path>) -> Self {
         Self {
             repository_root: repository_root.as_ref().to_path_buf(),
-            working_dir:     working_dir.as_ref().to_path_buf(),
+            working_dir: working_dir.as_ref().to_path_buf(),
         }
     }
 
@@ -112,10 +110,8 @@ impl Context {
         let working_directory = working_directory.into();
         // Faux `Git` instance to get the repository root.
         // TODO: should be nicer, likely instance should be separate from program.
-        let temp_git = Context {
-            working_dir:     working_directory.clone(),
-            repository_root: working_directory,
-        };
+        let temp_git =
+            Context { working_dir: working_directory.clone(), repository_root: working_directory };
         let repo_root = temp_git.repository_root().await?;
         Ok(Context { repository_root: repo_root, working_dir: temp_git.working_dir })
     }
@@ -273,7 +269,6 @@ pub struct LogEntry {
     pub refs: Vec<Ref>,
 }
 
-
 new_command_type!(Git, GitCommand);
 
 impl GitCommand {
@@ -355,7 +350,7 @@ pub async fn new(path: impl Into<PathBuf>) -> Result<Context> {
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct RemoteLsEntry {
     /// Commit ID (hash).
-    pub hash:  String,
+    pub hash: String,
     /// Reference name.
     pub r#ref: Ref,
 }
@@ -404,7 +399,6 @@ mod tests {
         dbg!(git.log().await)?;
         Ok(())
     }
-
 
     #[tokio::test]
     #[ignore]

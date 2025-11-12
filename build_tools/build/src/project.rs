@@ -17,7 +17,6 @@ use ide_ci::cache::Cache;
 use ide_ci::programs::git;
 use octocrab::models::repos::Asset;
 
-
 // ==============
 // === Export ===
 // ==============
@@ -26,12 +25,9 @@ pub mod backend;
 pub mod gui;
 pub mod ide;
 pub mod runtime;
-pub mod wasm;
 
 pub use backend::Backend;
 pub use runtime::Runtime;
-
-
 
 // FIXME: this works for Project Manager bundle-style archives only, not all.
 pub fn path_to_extract() -> Option<PathBuf> {
@@ -48,7 +44,7 @@ pub trait IsArtifact: Clone + AsRef<Path> + Debug + Sized + Send + Sync + 'stati
 #[derive_where(Debug)]
 pub struct PlainArtifact<T> {
     /// Directory path.
-    pub path:    PathBuf,
+    pub path: PathBuf,
     /// Phantom, so we can tell artifacts of different projects apart.
     #[derive_where(skip)]
     pub phantom: PhantomData<T>,
@@ -125,10 +121,12 @@ pub trait IsTarget: Clone + Debug + Sized + Send + Sync + 'static {
     ) -> BoxFuture<'static, Result<Self::Artifact>> {
         let GetTargetJob { destination, inner } = job;
         match inner {
-            Source::BuildLocally(local_build) =>
-                self.build(context, WithDestination::new(local_build, destination)),
-            Source::External(external) =>
-                self.get_external(context, WithDestination::new(external, destination)),
+            Source::BuildLocally(local_build) => {
+                self.build(context, WithDestination::new(local_build, destination))
+            }
+            Source::External(external) => {
+                self.get_external(context, WithDestination::new(external, destination))
+            }
         }
     }
 
@@ -199,10 +197,7 @@ pub trait IsTarget: Clone + Debug + Sized + Send + Sync + 'static {
             info!("Will download artifact: {:#?}", artifact);
             let artifact_to_get = cache::artifact::ExtractedArtifact {
                 client: octocrab.clone(),
-                key:    cache::artifact::Key {
-                    artifact_id: artifact.id,
-                    repository:  repository.repo,
-                },
+                key: cache::artifact::Key { artifact_id: artifact.id, repository: repository.repo },
             };
             let artifact = cache.get(artifact_to_get).await?;
             let inner_archive_path =
@@ -284,10 +279,10 @@ impl<T: IsWatchable> PerhapsWatched<T> {
 pub trait ProcessWrapper {
     fn inner(&mut self) -> &mut tokio::process::Child;
 
-    fn wait_ok(&mut self) -> BoxFuture<Result> {
+    fn wait_ok(&mut self) -> BoxFuture<'_, Result> {
         ide_ci::extensions::child::ChildExt::wait_ok(self.inner()).boxed()
     }
-    fn kill(&mut self) -> BoxFuture<Result> {
+    fn kill(&mut self) -> BoxFuture<'_, Result> {
         let f = self.inner().kill();
         async { Ok(f.await?) }.boxed()
     }
@@ -304,7 +299,7 @@ impl ProcessWrapper for tokio::process::Child {
 #[derive(Debug)]
 pub struct Watcher<Target: IsWatchable, Proc> {
     /// Where the watcher outputs artifacts.
-    pub artifact:      Target::Artifact,
+    pub artifact: Target::Artifact,
     /// The process performing the watch.
     ///
     /// For example, an instance of cargo-watch.
@@ -324,13 +319,13 @@ impl<Target: IsWatchable, Proc> AsRef<Target::Artifact> for Watcher<Target, Proc
 }
 
 impl<Target: IsWatchable, Proc: ProcessWrapper + Send> IsWatcher<Target> for Watcher<Target, Proc> {
-    fn wait_for_finish(&mut self) -> BoxFuture<Result> {
+    fn wait_for_finish(&mut self) -> BoxFuture<'_, Result> {
         self.watch_process.wait_ok()
     }
 }
 
 pub trait IsWatcher<Target: IsTarget>: AsRef<Target::Artifact> + Send {
-    fn wait_for_finish(&mut self) -> BoxFuture<Result>;
+    fn wait_for_finish(&mut self) -> BoxFuture<'_, Result>;
 }
 
 pub trait IsWatchable: IsTarget {
@@ -356,10 +351,10 @@ pub fn perhaps_watch<T: IsWatchable>(
     let WithDestination { inner, destination } = job;
     match inner {
         Source::BuildLocally(local) => target
-            .watch(context, WatchTargetJob {
-                watch_input,
-                build: WithDestination::new(local, destination),
-            })
+            .watch(
+                context,
+                WatchTargetJob { watch_input, build: WithDestination::new(local, destination) },
+            )
             .map_ok(PerhapsWatched::Watched)
             .boxed(),
         Source::External(external) => target

@@ -24,9 +24,9 @@ import org.enso.compiler.pass.resolve.{
   ModuleAnnotations,
   TypeSignatures
 }
+import org.enso.persist.Persistance
 
 import java.util.function.Consumer
-
 import scala.annotation.{tailrec, unused}
 
 /** This pass is responsible for discovering occurrences of automatically
@@ -448,10 +448,13 @@ object AutomaticParallelism extends IRPass {
             block.copy(expressions = newExprs.init, returnValue = newExprs.last)
           r
         }
-        method.copy(body = newBody)
+        method
+          .copyBuilder()
+          .bodyReference(Persistance.Reference.of(newBody))
+          .build()
       case other => other
     }
-    ir.copy(bindings = newBindings)
+    ir.copyWithBindings(bindings = newBindings)
   }
 
   /** A parallelization status for a given line.
@@ -556,9 +559,9 @@ object AutomaticParallelism extends IRPass {
   )(fn: Expression.Block => Expression.Block): Expression =
     expr match {
       case fun: Function.Binding =>
-        fun.copy(body = withBodyBlock(fun.body)(fn))
+        fun.copyWithBody(withBodyBlock(fun.body)(fn))
       case fun: Function.Lambda =>
-        fun.copy(body = withBodyBlock(fun.body)(fn))
+        fun.copyWithBody(withBodyBlock(fun.body)(fn))
       case block: Expression.Block if block.expressions.nonEmpty =>
         fn(block)
       case _ => expr

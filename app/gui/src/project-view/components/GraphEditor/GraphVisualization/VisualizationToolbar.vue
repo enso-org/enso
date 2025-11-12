@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { TypeInfo } from '$/providers/openedProjects/project/computedValueRegistry'
 import ActionButton from '@/components/ActionButton.vue'
 import ComponentEditorLabel from '@/components/ComponentBrowser/ComponentEditorLabel.vue'
 import { useVisualizationSelector } from '@/components/GraphEditor/GraphVisualization/visualizationSelector'
@@ -12,7 +13,6 @@ import {
   isTextSelectionMenu,
   isToggleButton,
 } from '@/components/visualizations/toolbar'
-import { TypeInfo } from '@/stores/project/computedValueRegistry'
 import { ProjectPath } from '@/util/projectPath'
 import { qnLastSegment } from '@/util/qualifiedName'
 import { toRef, toValue } from 'vue'

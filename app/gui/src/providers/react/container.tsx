@@ -1,7 +1,8 @@
-import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import { EnsoPath, ProjectId } from '#/services/Backend'
-import { ContainerData, useContainerData as useContainerDataVue } from '$/providers/container'
-import { RightPanelData, useRightPanelData as useRightPanelDataVue } from '$/providers/rightPanel'
+import { useContainerData as useContainerDataVue, type ContainerData } from '$/providers/container'
+import {
+  useRightPanelData as useRightPanelDataVue,
+  type RightPanelData,
+} from '$/providers/rightPanel'
 import { reactComponent } from '@/util/react'
 import * as react from 'react'
 import { useInReactFunction, useVueValue } from './common'
@@ -12,29 +13,25 @@ export const useRightPanelData = useInReactFunction(RightPanelDataContext)
 const ContainerDataContext = react.createContext<ContainerData | null>(null)
 export const useContainerData = useInReactFunction(ContainerDataContext)
 
-export const ContainerDataProviderForReact = reactComponent(
-  ({ value, children }: react.PropsWithChildren<{ value: ContainerData }>) => {
-    return <ContainerDataContext.Provider value={value}>{children}</ContainerDataContext.Provider>
+export const ContainerProviderForReact = reactComponent(
+  ({
+    container,
+    rightPanel,
+    children,
+  }: react.PropsWithChildren<{ container: ContainerData; rightPanel: RightPanelData }>) => {
+    return (
+      <ContainerDataContext.Provider value={container}>
+        <RightPanelDataContext.Provider value={rightPanel}>
+          {children}
+        </RightPanelDataContext.Provider>
+      </ContainerDataContext.Provider>
+    )
   },
   {
     useInjectPropsFromWrapper: () => {
       const result = {
-        value: useContainerDataVue(),
-      }
-      // Avoid annoying warning about __veauryInjectedProps__ property by returning a function.
-      return () => result
-    },
-  },
-) as any
-
-export const RightPanelDataProviderForReact = reactComponent(
-  ({ value, children }: react.PropsWithChildren<{ value: RightPanelData }>) => {
-    return <RightPanelDataContext.Provider value={value}>{children}</RightPanelDataContext.Provider>
-  },
-  {
-    useInjectPropsFromWrapper: () => {
-      const result = {
-        value: useRightPanelDataVue(),
+        container: useContainerDataVue(),
+        rightPanel: useRightPanelDataVue(),
       }
       // Avoid annoying warning about __veauryInjectedProps__ property by returning a function.
       return () => result
@@ -55,53 +52,4 @@ export function useRightPanelFocusedAsset() {
 export function useRightPanelContextCategory() {
   const rightPanel = useRightPanelData()
   return useVueValue(react.useCallback(() => rightPanel.context?.category, [rightPanel]))
-}
-
-/** Returns the launched projects context. */
-export function useLaunchedProjects() {
-  const container = useContainerData()
-  return useVueValue(react.useCallback(() => container.openedProjects, [container]))
-}
-
-/** A function to update launched projects. */
-export function useUpdateLaunchedProjects() {
-  const { updateLaunchedProjects } = useContainerData()
-  return updateLaunchedProjects
-}
-
-/** A function to add a new launched project. */
-export function useAddLaunchedProject() {
-  const { addLaunchedProject } = useContainerData()
-  return addLaunchedProject
-}
-
-/** A function to remove a launched project. */
-export function useRemoveLaunchedProject() {
-  const { removeLaunchedProject } = useContainerData()
-  return removeLaunchedProject
-}
-
-/** A function to remove all launched projects. */
-export function useClearLaunchedProjects() {
-  const { updateLaunchedProjects } = useContainerData()
-
-  return useEventCallback(() => {
-    updateLaunchedProjects(() => [])
-  })
-}
-
-/** A function to add project to "opening projects" list */
-export function useAddOpeningProject() {
-  const { openingProjects } = useContainerData()
-  return useEventCallback((id: ProjectId, ensoPath: string) => {
-    openingProjects.set(id, EnsoPath(ensoPath))
-  })
-}
-
-/** A function to remove project from "opening projects" list */
-export function useRemoveOpeningProject() {
-  const { openingProjects } = useContainerData()
-  return useEventCallback((id: ProjectId) => {
-    openingProjects.delete(id)
-  })
 }

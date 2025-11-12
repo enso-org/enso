@@ -5,7 +5,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 import javax.lang.model.element.ExecutableElement;
-import org.enso.runtime.parser.processor.ClassField;
 import org.enso.runtime.parser.processor.GeneratedClassContext;
 import org.enso.runtime.parser.processor.IRProcessingException;
 import org.enso.runtime.parser.processor.field.Field;
@@ -19,6 +18,14 @@ public final class MapExpressionsMethodGenerator {
   private final ExecutableElement mapExpressionsMethod;
   private final GeneratedClassContext ctx;
   private static final String METHOD_NAME = "mapExpressions";
+
+  private static final String DEF_ARG_CLASS =
+      "org.enso.compiler.core.ir.DefinitionArgument.Specified";
+  private static final String CALL_ARG_CLASS = "org.enso.compiler.core.ir.CallArgument.Specified";
+  private static final String DEF_TYPE_CLASS =
+      "org.enso.compiler.core.ir.module.scope.Definition.Type";
+  private static final String DEF_DATA_CLASS =
+      "org.enso.compiler.core.ir.module.scope.Definition.Data";
 
   /**
    * @param mapExpressionsMethod Reference to {@code mapExpressions} method in the interface for
@@ -44,6 +51,10 @@ public final class MapExpressionsMethodGenerator {
   public String generateMapExpressionsMethodCode() {
     var sb = new StringBuilder();
     var subclassType = ctx.getProcessedClass().getClazz().getSimpleName().toString();
+    sb.append(doMapExprCode());
+    sb.append(System.lineSeparator());
+    sb.append(System.lineSeparator());
+
     sb.append("@Override").append(System.lineSeparator());
     sb.append("public ")
         .append(subclassType)
@@ -92,24 +103,18 @@ public final class MapExpressionsMethodGenerator {
                         !typeUtils.isSameType(
                             childTypeParameter.asType(), childsMapExprMethodRetType.asType());
                   }
-                  var isChildExpression =
-                      Utils.isExpression(
-                          childsMapExprMethodRetType, ctx.getProcessingEnvironment());
-
                   String newChildType = childsMapExprMethodRetType.getSimpleName().toString();
 
                   var newChildName = child.getName() + "Mapped";
                   var mapCode =
                       switch (child) {
-                        case PersistanceReferenceField perRefField -> mapPersistanceReference(
-                            newChildName, perRefField);
-                        case ListField listField -> mapList(
-                            newChildName, isChildExpression, listField);
-                        case OptionField optionField -> mapOption(
-                            newChildName, isChildExpression, optionField);
-                        case OptionListField optionListField -> mapOptionListField(
-                            newChildName, isChildExpression, optionListField);
-                        default -> mapOther(newChildName, newChildType, isChildExpression, child);
+                        case PersistanceReferenceField perRefField ->
+                            mapPersistanceReference(newChildName, perRefField);
+                        case ListField listField -> mapList(newChildName, listField);
+                        case OptionField optionField -> mapOption(newChildName, optionField);
+                        case OptionListField optionListField ->
+                            mapOptionListField(newChildName, optionListField);
+                        default -> mapOther(newChildName, newChildType, child);
                       };
                   var startComment =
                       """
@@ -144,7 +149,11 @@ public final class MapExpressionsMethodGenerator {
         .append(System.lineSeparator());
     var changedCond =
         newChildren.stream()
-            .map(newChild -> newChild.newChildName + " != " + newChild.child.getName())
+            .map(
+                newChild ->
+                    "(!Objects.equals(${mappedChildName}, ${childName}))"
+                        .replace("${mappedChildName}", newChild.newChildName)
+                        .replace("${childName}", newChild.child.getName()))
             .collect(Collectors.joining(" || "));
     sb.append("  ").append("if (").append(changedCond).append(") {").append(System.lineSeparator());
     sb.append("    ").append("var bldr = new Builder();").append(System.lineSeparator());
@@ -172,15 +181,35 @@ public final class MapExpressionsMethodGenerator {
       }
       sb.append(newChild.newChildName).append(");").append(System.lineSeparator());
     }
-    for (var field : restOfTheFields(newChildren)) {
+    for (var field : restOfUserFields(newChildren)) {
       sb.append("    ")
           .append("bldr.")
-          .append(field.name())
+          .append(field.getName())
           .append("(")
-          .append(field.name())
+          .append(field.getName())
           .append(");")
           .append(System.lineSeparator());
     }
+    // Meta fields are handled specifically - some of them need to be duplicated,
+    // some of them does not.
+    // Note: Keep the indentation of the multiline string.
+    sb.append(
+        """
+            if (this.diagnostics != null) {
+              bldr.diagnostics(this.diagnostics.copy());
+            }
+            if (this.passData != null) {
+              // passData should not be duplicated, i.e., no call of `this.passData.duplicate()`
+              // method. Just assign the same reference.
+              bldr.passData(this.passData);
+            }
+            if (this.location != null) {
+              bldr.location(this.location);
+            }
+            if (this.id != null) {
+              bldr.id(this.id);
+            }
+        """);
     sb.append("    return bldr.build();").append(System.lineSeparator());
     sb.append("  } else { ").append(System.lineSeparator());
     sb.append("    // None of the mapped children changed - just return this")
@@ -195,36 +224,113 @@ public final class MapExpressionsMethodGenerator {
     return sb.toString();
   }
 
-  private List<ClassField> restOfTheFields(List<MappedChild> newChildren) {
-    var restOfFields = new ArrayList<ClassField>();
-    for (var field : ctx.getAllFields()) {
+  private boolean isProcessingDefinitionArgument() {
+    return ctx.getProcessedClass().getClazz().getQualifiedName().toString().equals(DEF_ARG_CLASS);
+  }
+
+  private boolean isProcessingCallArgument() {
+    return ctx.getProcessedClass().getClazz().getQualifiedName().toString().equals(CALL_ARG_CLASS);
+  }
+
+  private boolean isProcessingDefinitionType() {
+    return ctx.getProcessedClass().getClazz().getQualifiedName().toString().equals(DEF_TYPE_CLASS);
+  }
+
+  private boolean isProcessingDefinitionData() {
+    return ctx.getProcessedClass().getClazz().getQualifiedName().toString().equals(DEF_DATA_CLASS);
+  }
+
+  private String doMapExprCode() {
+    var specialHandling = new StringBuilder();
+    if (isProcessingDefinitionArgument()) {
+      specialHandling.append(
+          """
+            // Special case - name of DefinitionArgument is not applied.
+            // This means no `fn.apply` call on it.
+            assert this instanceof ${defArgClass};
+            if (ir == this.name()) {
+              return (T) ir.mapExpressions(fn);
+            }
+          """
+              .replace("${defArgClass}", DEF_ARG_CLASS));
+    }
+    if (isProcessingCallArgument()) {
+      specialHandling.append(
+          """
+            // Special case - name of CallArgument is not applied.
+            // This means no `fn.apply` call on it.
+            assert this instanceof ${callArgClass};
+            if (this.name().isDefined()
+                && ir == this.name().get()) {
+              return (T) ir.mapExpressions(fn);
+            }
+          """
+              .replace("${callArgClass}", CALL_ARG_CLASS));
+    }
+    if (isProcessingDefinitionType()) {
+      specialHandling.append(
+          """
+            // Special case - name of Definition.Type is ignored.
+            assert this instanceof ${defTypeClass};
+            if (ir == this.name()) {
+              return ir;
+            }
+          """
+              .replace("${defTypeClass}", DEF_TYPE_CLASS));
+    }
+    if (isProcessingDefinitionData()) {
+      specialHandling.append(
+          """
+            // Special case - name of Definition.Data is not applied.
+            // This means no `fn.apply` call on it.
+            assert this instanceof ${defDataClass};
+            if (ir == this.name()) {
+              return (T) ir.mapExpressions(fn);
+            }
+          """
+              .replace("${defDataClass}", DEF_DATA_CLASS));
+    }
+    var code =
+        """
+        @SuppressWarnings("unchecked")
+        private <T extends IR> T doMapExpr(
+            T ir,
+            java.util.function.Function<Expression, Expression> fn) {
+          ${specialHandling}
+          // Either recurse to `mapExpression` or call `fn.apply` on the expression.
+          return switch(ir) {
+            case org.enso.compiler.core.ir.Name.MethodReference nameRef -> (T) nameRef.mapExpressions(fn);
+            case Expression expr -> (T) fn.apply(expr);
+            default -> (T) ir.mapExpressions(fn);
+          };
+        }
+        """
+            .replace("${specialHandling}", specialHandling.toString());
+    return code;
+  }
+
+  private List<Field> restOfUserFields(List<MappedChild> newChildren) {
+    var restOfFields = new ArrayList<Field>();
+    for (var userField : ctx.getUserFields()) {
       if (newChildren.stream()
-          .noneMatch(newChild -> newChild.child.getName().equals(field.name()))) {
-        restOfFields.add(field);
+          .noneMatch(newChild -> newChild.child.getName().equals(userField.getName()))) {
+        restOfFields.add(userField);
       }
     }
     return restOfFields;
   }
 
-  private String mapOptionListField(
-      String newVarName, boolean isChildExpression, OptionListField field) {
+  private String mapOptionListField(String newVarName, OptionListField field) {
     var newVarType =
         "Option<List<" + field.getNestedTypeParameter().getSimpleName().toString() + ">>";
-    String mapExpr;
-    if (isChildExpression) {
-      mapExpr = "fn.apply(elem)";
-    } else {
-      mapExpr = "elem." + METHOD_NAME + "(fn)";
-    }
     var code =
         """
         ${newVarType} ${newVarName} = Option.empty();
         if (${fieldName}.isDefined()) {
-          var newList = ${fieldName}.get().map(elem -> ${mapExpr});
+          var newList = ${fieldName}.get().map(elem -> doMapExpr(elem, fn));
           ${newVarName} = Option.apply(newList);
         }
         """
-            .replace("${mapExpr}", mapExpr)
             .replace("${newVarType}", newVarType)
             .replace("${newVarName}", newVarName)
             .replace("${fieldName}", field.getName());
@@ -235,46 +341,33 @@ public final class MapExpressionsMethodGenerator {
     var code =
         """
         var ${newVarName} = Reference.of(
-            ${fieldName}.get(${type}.class).${methodName}(fn));
+            doMapExpr(${fieldName}.get(${type}.class), fn)
+        );
         """
             .replace("${newVarName}", newVarName)
-            .replace("${methodName}", METHOD_NAME)
             .replace("${fieldName}", field.getName())
             .replace("${type}", field.getTypeParameter().getSimpleName().toString());
     return code;
   }
 
-  private String mapList(String newVarName, boolean isChildExpression, ListField field) {
-    String mapExpr;
-    if (isChildExpression) {
-      mapExpr = "fn.apply(elem)";
-    } else {
-      mapExpr = "elem." + METHOD_NAME + "(fn)";
-    }
+  private String mapList(String newVarName, ListField field) {
     var newVarType = "List<" + field.getTypeParameter().getSimpleName().toString() + ">";
     var code =
         """
         ${newVarType} ${newVarName} = null;
         if (${fieldName} != null) {
-          ${newVarName} = ${fieldName}.map(elem -> ${mapExpr});
+          ${newVarName} = ${fieldName}.map(elem -> doMapExpr(elem, fn));
         }
         """
             .replace("${newVarType}", newVarType)
-            .replace("${mapExpr}", mapExpr)
             .replace("${newVarName}", newVarName)
             .replace("${fieldName}", field.getName());
     return code;
   }
 
-  private String mapOption(String newVarName, boolean isChildExpression, OptionField field) {
+  private String mapOption(String newVarName, OptionField field) {
     var newVarType = "Option<" + field.getTypeParameter().getSimpleName().toString() + ">";
     var type = field.getTypeParameter().getSimpleName();
-    String mapExpr;
-    if (isChildExpression) {
-      mapExpr = "fn.apply(elem)";
-    } else {
-      mapExpr = "elem." + METHOD_NAME + "(fn)";
-    }
     var code =
         """
         ${newVarType} ${newVarName} = Option.empty();
@@ -286,11 +379,10 @@ public final class MapExpressionsMethodGenerator {
         }
         if (${fieldName}.isDefined()) {
           var elem = ${fieldName}.get();
-          var mapped = ${mapExpr};
+          var mapped = doMapExpr(elem, fn);
           ${newVarName} = Option.apply((${type}) mapped);
         }
         """
-            .replace("${mapExpr}", mapExpr)
             .replace("${type}", type.toString())
             .replace("${newVarType}", newVarType)
             .replace("${newVarName}", newVarName)
@@ -298,8 +390,7 @@ public final class MapExpressionsMethodGenerator {
     return code;
   }
 
-  private String mapOther(
-      String newVarName, String newVarType, boolean childIsExpression, Field field) {
+  private String mapOther(String newVarName, String newVarType, Field field) {
     // These field types are handled above.
     Utils.hardAssert(!(field instanceof ListField));
     Utils.hardAssert(!(field instanceof OptionListField));
@@ -315,21 +406,14 @@ public final class MapExpressionsMethodGenerator {
           }
           """;
     }
-    String mapLine;
-    if (childIsExpression) {
-      mapLine = "fn.apply(" + field.getName() + ");" + System.lineSeparator();
-    } else {
-      mapLine = field.getName() + "." + METHOD_NAME + "(fn);" + System.lineSeparator();
-    }
     var code =
         """
         ${newVarType} ${newVarName} = null;
         ${nullableCheck}
         if (${fieldName} != null) {
-          ${newVarName} = ${mapLine}
+          ${newVarName} = doMapExpr(${fieldName}, fn);
         }
         """
-            .replace("${mapLine}", mapLine)
             .replace("${newVarType}", newVarType)
             .replace("${newVarName}", newVarName)
             .replace("${fieldName}", field.getName())

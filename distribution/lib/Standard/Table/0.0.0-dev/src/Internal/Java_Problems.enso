@@ -110,9 +110,9 @@ unpack_problem_summary problem_summary =
    This is the new preferred way of running Java methods that may report
    problems.
 with_problem_aggregator : Problem_Behavior -> (ProblemAggregator -> Any) -> Any
-with_problem_aggregator on_problems:Problem_Behavior f =
+with_problem_aggregator on_problems:Problem_Behavior f problem_aggregator=ProblemAggregator =
     ## This should be the only call to the `makeTopLevelAggregator` method in the whole codebase.
-    aggregator = ProblemAggregator.makeTopLevelAggregator
+    aggregator = problem_aggregator.makeTopLevelAggregator
     result = f aggregator
     on_problems.attach_problems_after result (unpack_problem_summary aggregator.summarize)
 

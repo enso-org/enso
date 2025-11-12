@@ -1,13 +1,15 @@
-import type { GraphDb, NodeId } from '@/stores/graph/graphDatabase'
-import { nodeIdFromOuterAst } from '@/stores/graph/graphDatabase'
+import type { GraphDb, NodeId } from '$/providers/openedProjects/graph/graphDatabase'
+import { nodeIdFromOuterAst } from '$/providers/openedProjects/graph/graphDatabase'
 import { assert } from '@/util/assert'
 import { Ast } from '@/util/ast'
 import type { Identifier } from '@/util/ast/abstract'
-import { isIdentifier, moduleMethodNames } from '@/util/ast/abstract'
-import { Err, Ok, unwrap, type Result } from '@/util/data/result'
+import { isIdentifier } from '@/util/ast/abstract'
+import { Vec2 } from '@/util/data/vec2'
 import { tryIdentifier } from '@/util/qualifiedName'
+import { Err, Ok, unwrap, type Result } from 'enso-common/src/utilities/data/result'
 import * as set from 'lib0/set'
 import { frontmatter } from '../ComponentHelp/metadata'
+import { generateUniqueName } from './widgets/WidgetFunctionDef/argumentAst'
 
 // === Types ===
 
@@ -110,7 +112,8 @@ export function prepareCollapsedInfo(
 
   const pattern = graphDb.nodeIdToNode.get(output.node)?.pattern?.code()
   assert(pattern != null && isIdentifier(pattern))
-  const inputs = Array.from(inputSet)
+
+  const inputs = sortInputs(graphDb, Array.from(inputSet))
 
   assert(selected.has(output.node))
   return Ok({
@@ -125,21 +128,6 @@ export function prepareCollapsedInfo(
       arguments: inputs,
     },
   })
-}
-
-/** Generate a safe method name for a collapsed function using `baseName` as a prefix. */
-function findSafeMethodName(topLevel: Ast.BodyBlock, baseName: Identifier): Identifier {
-  const allIdentifiers = moduleMethodNames(topLevel)
-  if (!allIdentifiers.has(baseName)) {
-    return baseName
-  }
-  let index = 1
-  while (allIdentifiers.has(`${baseName}${index}`)) {
-    index++
-  }
-  const name = `${baseName}${index}`
-  assert(isIdentifier(name))
-  return name
 }
 
 // === performCollapse ===
@@ -159,6 +147,8 @@ interface CollapsingResult {
   collapsedNodeIds: NodeId[]
   /** ID of the output AST node inside the collapsed function. */
   outputAstId: Ast.AstId
+  /** Name of newly created collapsed function. */
+  collapsedName: Identifier
 }
 
 interface PreparedCollapseInfo {
@@ -191,7 +181,7 @@ export function performCollapseImpl(
   currentMethodName: string,
 ) {
   const edit = topLevel.module
-  const collapsedName = findSafeMethodName(topLevel, COLLAPSED_FUNCTION_NAME)
+  const collapsedName = generateUniqueName(COLLAPSED_FUNCTION_NAME, topLevel)
   const { statement: currentMethod, index: currentMethodLine } = Ast.findModuleMethod(
     topLevel,
     currentMethodName,
@@ -235,5 +225,28 @@ export function performCollapseImpl(
   })
   topLevel.insert(currentMethodLine, collapsedFunction, undefined)
 
-  return { collapsedCallRoot: collapsedCall.id, outputAstId: outputAst.id, collapsedNodeIds }
+  return {
+    collapsedFunctionAstId: collapsedFunction.id,
+    collapsedCallRoot: collapsedCall.id,
+    outputAstId: outputAst.id,
+    collapsedNodeIds,
+    collapsedName,
+  }
+}
+
+/** Sort identifiers by positions of their defining nodes in the graph. */
+function sortInputs(graphDb: GraphDb, inputs: Identifier[]): Identifier[] {
+  const definingNodePos = (input: Identifier) => {
+    const nodeId = graphDb.getIdentDefiningNode(input)
+    if (nodeId == null) return Vec2.Zero
+    const node = graphDb.nodeIdToNode.get(nodeId)
+    if (node == null) return Vec2.Zero
+    return node.position
+  }
+  return inputs.sort((a, b) => {
+    const aPos = definingNodePos(a)
+    const bPos = definingNodePos(b)
+    if (aPos.x === bPos.x) return aPos.y - bPos.y
+    return aPos.x - bPos.x
+  })
 }

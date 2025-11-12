@@ -2,19 +2,17 @@
 
 use crate::prelude::*;
 
-
-
 /// Description of the self-hosted runner, element of the list runners response.
 ///
 /// See:
 /// <https://docs.github.com/en/rest/reference/actions#list-self-hosted-runners-for-a-repository>
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Runner {
-    pub id:     i32,
-    pub name:   String,
-    pub os:     String,
+    pub id: i32,
+    pub name: String,
+    pub os: String,
     pub status: String,
-    pub busy:   bool,
+    pub busy: bool,
     pub labels: Vec<Label>,
 }
 
@@ -24,8 +22,8 @@ pub struct Runner {
 /// <https://docs.github.com/en/rest/reference/actions#list-self-hosted-runners-for-a-repository>
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Label {
-    pub id:     i32,
-    pub name:   String,
+    pub id: i32,
+    pub name: String,
     pub r#type: String,
 }
 
@@ -33,7 +31,7 @@ pub struct Label {
 /// <https://docs.github.com/en/rest/reference/actions#list-self-hosted-runners-for-a-repository>
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Runners {
-    pub runners:     Vec<Runner>,
+    pub runners: Vec<Runner>,
     pub total_count: i32,
 }
 
@@ -41,7 +39,7 @@ pub struct Runners {
 /// <https://docs.github.com/en/rest/reference/actions#create-a-registration-token-for-a-repository>
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct RegistrationToken {
-    pub token:      String,
+    pub token: String,
     pub expires_at: chrono::DateTime<chrono::Utc>,
 }
 

@@ -26,6 +26,7 @@
     - resolve constructor:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - type File_Format_SPI
     - + self that:Standard.Base.System.File_Format.File_Format_SPI -> Standard.Base.Any.Any
+    - get_types b:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Any.Any
     - new typ:Standard.Base.Any.Any name:(Standard.Base.Data.Text.Text|Standard.Base.Nothing.Nothing)= -> Standard.Base.System.File_Format.File_Format_SPI
 - type File_Name_Pattern
     - Value display_name:Standard.Base.Data.Text.Text patterns:(Standard.Base.Data.Vector.Vector Standard.Base.Data.Text.Text)

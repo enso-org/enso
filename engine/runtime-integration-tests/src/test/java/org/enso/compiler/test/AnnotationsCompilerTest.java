@@ -13,11 +13,13 @@ public class AnnotationsCompilerTest extends CompilerTests {
 
   @Test
   public void testModuleMethod() throws Exception {
-    var ir = parse("""
-    @a expr
-    @b (x y)
-    foo a b = a b
-    """);
+    var ir =
+        parse(
+            """
+            @a expr
+            @b (x y)
+            foo a b = a b
+            """);
 
     var annotation1 = (Name.Annotation) ir.bindings().apply(0);
     var annotation2 = (Name.Annotation) ir.bindings().apply(1);
@@ -28,11 +30,13 @@ public class AnnotationsCompilerTest extends CompilerTests {
 
   @Test
   public void testExtensionMethod() throws Exception {
-    var ir = parse("""
-    @a expr
-    @b (x y)
-    Foo.foo a b = a b
-    """);
+    var ir =
+        parse(
+            """
+            @a expr
+            @b (x y)
+            Foo.foo a b = a b
+            """);
 
     var annotation1 = (Name.Annotation) ir.bindings().apply(0);
     var annotation2 = (Name.Annotation) ir.bindings().apply(1);
@@ -43,12 +47,14 @@ public class AnnotationsCompilerTest extends CompilerTests {
 
   @Test
   public void testTypeMethod() throws Exception {
-    var ir = parse("""
-    type Foo
-        @a foo
-        @b bar
-        method a b = a b
-    """);
+    var ir =
+        parse(
+            """
+            type Foo
+                @a foo
+                @b bar
+                method a b = a b
+            """);
 
     var typeDefinition = (Definition.SugaredType) ir.bindings().apply(0);
 
@@ -63,12 +69,14 @@ public class AnnotationsCompilerTest extends CompilerTests {
 
   @Test
   public void testConstructor() throws Exception {
-    var ir = parse("""
-    type Foo
-        @a foo
-        @b bar
-        Cons a b
-    """);
+    var ir =
+        parse(
+            """
+            type Foo
+                @a foo
+                @b bar
+                Cons a b
+            """);
 
     var typeDefinition = (Definition.SugaredType) ir.bindings().apply(0);
 
@@ -83,10 +91,12 @@ public class AnnotationsCompilerTest extends CompilerTests {
 
   @Test
   public void testInvalidComplexType() throws Exception {
-    var ir = parse("""
-    type Foo
-        bar a =
-    """);
+    var ir =
+        parse(
+            """
+            type Foo
+                bar a =
+            """);
 
     var typeDefinition = (Definition.SugaredType) ir.bindings().apply(0);
     var methodOrError = typeDefinition.body().apply(0);

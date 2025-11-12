@@ -1,4 +1,4 @@
-import { transformPastedText } from '@/components/MarkdownEditor/codemirror/clipboard'
+import { transformPastedText } from '@/components/MarkdownEditor/codemirror/markdownClipboard'
 import { expect, test } from 'vitest'
 
 test.each([

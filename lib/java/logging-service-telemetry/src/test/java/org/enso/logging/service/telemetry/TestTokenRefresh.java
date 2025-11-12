@@ -10,7 +10,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import org.enso.logging.service.TokenRefresher;
+import org.enso.logging.service.common.TokenRefresher;
 import org.enso.shttp.HTTPTestHelperServer;
 import org.enso.shttp.HybridHTTPServer;
 import org.enso.shttp.cloud_mock.CloudMockSetup;

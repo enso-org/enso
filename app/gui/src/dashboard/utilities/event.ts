@@ -1,7 +1,7 @@
 /** @file Utility functions related to event handling. */
 import type * as React from 'react'
 
-import * as detect from 'enso-common/src/detect'
+import * as detect from 'enso-common/src/utilities/detect'
 
 /** Returns `true` if and only if the event is a single click event. */
 export function isSingleClick(event: React.MouseEvent) {
@@ -54,14 +54,19 @@ export function isTextInputKey(event: KeyboardEvent | React.KeyboardEvent) {
   return (
     !SPECIAL_CHARACTER_KEYCODE_REGEX.test(event.key) ||
     event.key === 'Backspace' ||
-    event.key === 'Delete'
+    event.key === 'Delete' ||
+    event.key === 'ArrowLeft' ||
+    event.key === 'ArrowRight'
   )
 }
 
 /** Whether `event` will produce text. This excludes shortcutManager, as they do not produce text. */
 export function isTextInputEvent(event: KeyboardEvent | React.KeyboardEvent) {
   // Allow `alt` key to be pressed in case it is being used to enter special characters.
-  return !event.ctrlKey && !event.shiftKey && !event.metaKey && isTextInputKey(event)
+  return (
+    (!event.ctrlKey && !event.shiftKey && !event.metaKey && isTextInputKey(event)) ||
+    (!event.shiftKey && !event.metaKey && (event.key === 'ArrowLeft' || event.key === 'ArrowRight'))
+  )
 }
 
 /** Whether the element accepts text input. */

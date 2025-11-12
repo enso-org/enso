@@ -7,8 +7,6 @@ use crate::prelude::*;
 use ide_ci::io::retry;
 use ide_ci::programs::Pnpm;
 
-
-
 /// Result of root-level `npm install` call. Should not be accessed directly.
 static ONCE_INSTALL: tokio::sync::OnceCell<Result> = tokio::sync::OnceCell::const_new();
 

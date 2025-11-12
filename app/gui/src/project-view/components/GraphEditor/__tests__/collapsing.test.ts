@@ -1,19 +1,19 @@
+import { GraphDb, type NodeId } from '$/providers/openedProjects/graph/graphDatabase'
 import {
   COLLAPSED_FUNCTION_NAME,
   performCollapseImpl,
   prepareCollapsedInfo,
 } from '@/components/GraphEditor/collapsing'
-import { GraphDb, type NodeId } from '@/stores/graph/graphDatabase'
 import { assert } from '@/util/assert'
 import { Ast } from '@/util/ast'
 import { findExpressions } from '@/util/ast/__tests__/testCase'
-import { unwrap } from '@/util/data/result'
 import { tryIdentifier } from '@/util/qualifiedName'
 import * as iter from 'enso-common/src/utilities/data/iter'
+import { unwrap } from 'enso-common/src/utilities/data/result'
 import { expect, test } from 'vitest'
 import { watchEffect } from 'vue'
-import { Identifier } from 'ydoc-shared/ast'
-import { nodeIdFromOuterAst } from '../../../stores/graph/graphDatabase'
+import { type Identifier } from 'ydoc-shared/ast'
+import { nodeIdFromOuterAst } from '../../../../providers/openedProjects/graph/graphDatabase'
 
 // ===============================
 // === Collapse Analysis Tests ===

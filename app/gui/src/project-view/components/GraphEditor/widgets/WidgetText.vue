@@ -1,22 +1,22 @@
 <script setup lang="ts">
 import { useCurrentProject } from '$/components/WithCurrentProject.vue'
-import CodeMirrorWidgetBase from '@/components/GraphEditor/CodeMirrorWidgetBase.vue'
-import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import {
   defineWidget,
   type HandledUpdate,
   Score,
   WidgetInput,
   widgetProps,
-} from '@/providers/widgetRegistry'
+} from '$/providers/openedProjects/widgetRegistry'
+import CodeMirrorWidgetBase from '@/components/GraphEditor/CodeMirrorWidgetBase.vue'
+import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import { Ast } from '@/util/ast'
 import { useLanguageSupport } from '@/util/codemirror/language'
+import { Ok } from 'enso-common/src/utilities/data/result'
 import { computed, ref, useTemplateRef } from 'vue'
-import { Ok } from 'ydoc-shared/util/data/result'
 
 const baseEditor = useTemplateRef('baseEditor')
 const props = defineProps(widgetProps(widgetDefinition))
-const currentProject = useCurrentProject().ref
+const { module } = useCurrentProject()
 
 function focusAndSelect() {
   baseEditor.value?.focusAndSelect()
@@ -26,31 +26,29 @@ const textContents = computed(() =>
   props.input.value instanceof Ast.TextLiteral ? props.input.value.rawTextContent : '',
 )
 function acceptValue(text: string): HandledUpdate {
-  if (!currentProject.value) return Ok()
-  const graph = currentProject.value.graph
-
-  if (props.input.value instanceof Ast.TextLiteral) {
-    const edit = graph.startEdit()
-    const value = edit.getVersion(props.input.value)
-    if (value.rawTextContent === text) return Ok()
-    value.setRawTextContent(text)
-    return props.updateCallback({ edit, directInteraction: true })
-  } else {
-    let value: Ast.Owned<Ast.MutableTextLiteral>
-    if (inputTextLiteral.value) {
-      value = Ast.copyIntoNewModule(inputTextLiteral.value)
+  return module.value.edit((edit) => {
+    if (props.input.value instanceof Ast.TextLiteral) {
+      const value = edit.getVersion(props.input.value)
+      if (value.rawTextContent === text) return Ok()
       value.setRawTextContent(text)
+      return props.updateCallback({ edit, directInteraction: true })
     } else {
-      value = Ast.TextLiteral.new(text)
+      let value: Ast.Owned<Ast.MutableTextLiteral>
+      if (inputTextLiteral.value) {
+        value = Ast.copyIntoNewModule(inputTextLiteral.value)
+        value.setRawTextContent(text)
+      } else {
+        value = Ast.TextLiteral.new(text)
+      }
+      return props.updateCallback({
+        portUpdate: {
+          value,
+          origin: props.input.portId,
+        },
+        directInteraction: true,
+      })
     }
-    return props.updateCallback({
-      portUpdate: {
-        value,
-        origin: props.input.portId,
-      },
-      directInteraction: true,
-    })
-  }
+  })
 }
 
 /** Widget Input as Text Literal; undefined if there's no value, or the value is not a Text literal. */
@@ -75,9 +73,8 @@ const placeholder = computed(() =>
 const textInputConfig = computed(() =>
   props.input.dynamicConfig?.kind === 'Text_Input' ? props.input.dynamicConfig : undefined,
 )
-const extensions = useLanguageSupport(() => textInputConfig.value?.syntax, {
-  suggestionDb: () => currentProject.value?.suggestionDb.entries,
-})
+const syntax = computed(() => textInputConfig.value?.syntax)
+const extensions = useLanguageSupport(syntax)
 
 function isTextMultiline(text: string) {
   return !!text.match(/[\r\n]/)
@@ -122,6 +119,7 @@ export const widgetDefinition = defineWidget(
   <label
     class="WidgetText widgetRounded widgetPill"
     :class="{ singleLine: !isMultiline }"
+    :data-text-syntax="syntax"
     @pointerdown.stop.prevent="focusAndSelect"
     @click.stop
   >

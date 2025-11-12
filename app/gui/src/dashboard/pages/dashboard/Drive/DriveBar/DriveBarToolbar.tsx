@@ -22,7 +22,7 @@ import {
 import { useUploadFiles } from '#/hooks/backendUploadFilesHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useOffline } from '#/hooks/offlineHooks'
-import AssetSearchBar from '#/layouts/AssetSearchBar'
+import { AssetSearchBar } from '#/layouts/AssetSearchBar'
 import type { TrashCategory } from '#/layouts/CategorySwitcher/Category'
 import { canTransferBetweenCategories } from '#/layouts/CategorySwitcher/Category'
 import { useCategoriesAPI } from '#/layouts/Drive/Categories'
@@ -33,15 +33,18 @@ import UpsertDatalinkModal from '#/modals/UpsertDatalinkModal'
 import UpsertSecretModal from '#/modals/UpsertSecretModal'
 import { useExportArchive } from '#/pages/useExportArchive'
 import { useCanDownload, useDriveStore, usePasteData } from '#/providers/DriveProvider'
-import { useInputBindings } from '#/providers/InputBindingsProvider'
 import { unsetModal } from '#/providers/ModalProvider'
-import type Backend from '#/services/Backend'
-import { BackendType, isDirectoryId, isProjectId, type CredentialConfig } from '#/services/Backend'
 import type AssetQuery from '#/utilities/AssetQuery'
-import * as sanitizedEventTargets from '#/utilities/sanitizedEventTargets'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { useText } from '$/providers/react'
 import { useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
+import type { Backend } from 'enso-common/src/services/Backend'
+import {
+  BackendType,
+  isDirectoryId,
+  isProjectId,
+  type CredentialConfig,
+} from 'enso-common/src/services/Backend'
 import { readUserSelectedFile } from 'enso-common/src/utilities/file'
 import type { PropsWithChildren } from 'react'
 import * as React from 'react'
@@ -62,7 +65,6 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
   const { category, associatedBackend: backend } = useCategoriesAPI()
   const { getText } = useText()
   const driveStore = useDriveStore()
-  const inputBindings = useInputBindings()
   const createAssetButtonsRef = React.useRef<HTMLDivElement>(null)
   const isCloud = backend.type === BackendType.remote
   const { isOffline } = useOffline()
@@ -106,26 +108,6 @@ export function DriveBarToolbar(props: DriveBarToolbarProps) {
     mutationKey: ['newProject'],
     mutationFn: async () => await newProjectRaw({}, currentDirectoryId),
   })
-
-  const attachEventListeners = useEventCallback(() =>
-    inputBindings.attach(sanitizedEventTargets.document.body, 'keydown', {
-      ...(isCloud ?
-        {
-          newFolder: () => {
-            void newFolder(currentDirectoryId)
-          },
-        }
-      : {}),
-      newProject: () => {
-        void newProjectMutation()
-      },
-      uploadFiles: () => {
-        void readUserSelectedFile().then((files) => uploadFiles(Array.from(files)))
-      },
-    }),
-  )
-
-  React.useEffect(() => attachEventListeners(), [attachEventListeners])
 
   const newProject = useEventCallback(async () => {
     await newProjectMutation()
@@ -327,11 +309,14 @@ function TrashFolderToolbar(props: TrashFolderToolbarProps) {
     category,
     parentId: category.homeDirectoryId,
     refetchInterval: null,
+    labels: null,
+    sortDirection: null,
+    sortExpression: null,
   })
 
   const { data: isEmpty } = useSuspenseQuery({
     ...rootDirectoryQueryOptions,
-    select: (data) => data.length === 0,
+    select: (data) => data.assets.length === 0,
   })
 
   const queryClient = useQueryClient()

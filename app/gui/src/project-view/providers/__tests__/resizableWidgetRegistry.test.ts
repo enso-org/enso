@@ -1,4 +1,4 @@
-import { PortId } from '@/providers/portInfo'
+import { type PortId } from '@/providers/portInfo'
 import { useResizableWidgetRegistry } from '@/providers/resizableWidgetRegistry'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'

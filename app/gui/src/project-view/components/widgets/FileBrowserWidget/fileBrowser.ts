@@ -8,9 +8,9 @@ import type { Directory } from '@/components/widgets/FileBrowserWidget/pathBrows
 import type { Mutation } from '@/composables/backend'
 import type { ToValue } from '@/util/reactivity'
 import { useToast } from '@/util/toast'
-import Backend, { type CreatedDirectory } from 'enso-common/src/services/Backend'
+import { Backend, type CreatedDirectory } from 'enso-common/src/services/Backend'
+import type { Result } from 'enso-common/src/utilities/data/result'
 import { computed, ref, toValue } from 'vue'
-import type { Result } from 'ydoc-shared/util/data/result'
 
 /** @returns Reactive query parameters to list the given directory's contents. */
 export function listDirectoryArgs(params: ToValue<Directory | undefined>) {
@@ -23,6 +23,10 @@ export function listDirectoryArgs(params: ToValue<Directory | undefined>) {
             filterBy: null,
             labels: null,
             recentProjects: false,
+            from: null,
+            pageSize: null,
+            sortDirection: null,
+            sortExpression: null,
           },
           paramsValue.title,
         ]
@@ -144,7 +148,7 @@ export function useUpsertDirectory({
   function acceptName(
     editedAsset: Directory | undefined,
     name: string,
-    handler: (action: Promise<CreatedDirectory | undefined>) => void,
+    handler: (action: Promise<CreatedDirectory | null>) => void,
   ) {
     const parentId = toValue(currentDirectory)?.id
     if (parentId == null) {
@@ -155,7 +159,7 @@ export function useUpsertDirectory({
       editedAsset == null ? createDir.mutateAsync([{ title: name, parentId }, false])
       : editedAsset.title != name ?
         updateDir.mutateAsync([editedAsset.id, { title: name }, editedAsset.title])
-      : Promise.resolve(undefined)
+      : Promise.resolve(null)
     handler(action)
   }
 

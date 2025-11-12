@@ -36,10 +36,13 @@ public class ExecStrictCompilerTest {
   @Test
   public void redefinedArgument() {
     try {
-      var module = ctxRule.eval("enso", """
-      type My_Type
-          Value a b c a
-      """);
+      var module =
+          ctxRule.eval(
+              "enso",
+              """
+              type My_Type
+                  Value a b c a
+              """);
       fail("Expecting no returned value: " + module);
     } catch (PolyglotException ex) {
       assertTrue("Syntax error", ex.isSyntaxError());
@@ -92,11 +95,12 @@ public class ExecStrictCompilerTest {
 
   @Test
   public void testUnknownTypeExtensionMethod() throws Exception {
-    var code = """
-    Unknown_Type.foo = 42
+    var code =
+        """
+        Unknown_Type.foo = 42
 
-    main = 42
-    """;
+        main = 42
+        """;
     var src = Source.newBuilder("enso", code, "extension.enso").build();
     try {
       var module = ctxRule.eval(src);
@@ -166,6 +170,27 @@ public class ExecStrictCompilerTest {
       assertThat(
           ex.getMessage(),
           AllOf.allOf(containsString("Unknown"), containsString("could not be found")));
+    }
+  }
+
+  @Test
+  public void blockAppliedToUnknownSymbol() throws Exception {
+    var code =
+        """
+        from Standard.Base import all
+        fn =
+            f
+                10
+        """;
+    try {
+      var module = ctxRule.eval(LanguageInfo.ID, code);
+      var fn = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "fn");
+      var r = fn.execute();
+      fail("We don't expect any result, but exception: " + r);
+    } catch (PolyglotException ex) {
+      assertThat(
+          ex.getMessage(),
+          AllOf.allOf(containsString("The name `f`"), containsString("could not be found")));
     }
   }
 }

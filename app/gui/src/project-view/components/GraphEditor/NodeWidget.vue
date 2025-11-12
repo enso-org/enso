@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { useWidgetRegistry } from '$/components/WithCurrentProject.vue'
-import type { UpdateHandler, WidgetModule } from '@/providers/widgetRegistry'
-import { WidgetInput } from '@/providers/widgetRegistry'
+import { useCurrentProject } from '$/components/WithCurrentProject.vue'
+import type { UpdateHandler, WidgetModule } from '$/providers/openedProjects/widgetRegistry'
+import { WidgetInput } from '$/providers/openedProjects/widgetRegistry'
 import {
   injectWidgetUsageInfo,
   provideWidgetUsageInfo,
@@ -29,7 +29,7 @@ const props = defineProps<{
 }>()
 defineOptions({ inheritAttrs: false })
 
-const registry = useWidgetRegistry()
+const currentProject = useCurrentProject()
 const parentUsageInfo = injectWidgetUsageInfo(true)
 
 const usageKey = computed(() => usageKeyForInput(props.input))
@@ -40,7 +40,8 @@ const nesting = computed(() => (parentUsageInfo?.nesting ?? 0) + (props.nest ===
 
 const selectedWidget = shallowRef<WidgetModule<WidgetInput> | undefined>()
 const updateSelection = withCtx(() => {
-  selectedWidget.value = registry.select(
+  const registry = currentProject.widgetRegistry.value
+  selectedWidget.value = registry?.select(
     {
       input: props.input,
       nesting: nesting.value,
@@ -80,7 +81,6 @@ provideWidgetUsageInfo(proxyRefs({ usageKey, nesting, updateHandler, previouslyU
     v-bind="$attrs"
     :input="props.input"
     :nesting="nesting"
-    :data-port="props.input.portId"
     :updateCallback="updateHandler"
   />
   <span

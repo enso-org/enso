@@ -17,7 +17,7 @@ add_specs suite_builder =
     if Polyglot.is_language_installed "js" then
         spec_with suite_builder "JavaScriptDate" js_date js_parse
     if Polyglot.is_language_installed "python" then
-        spec_with suite_builder "PythonDate" python_date python_parse pending="https://github.com/enso-org/enso/issues/8913"
+        spec_with suite_builder "PythonDate" python_date python_parse
     spec_with suite_builder "JavaDate" java_date java_parse
     if Polyglot.is_language_installed "js" then
         spec_with suite_builder "JavaScriptArrayWithADate" js_array_date js_parse

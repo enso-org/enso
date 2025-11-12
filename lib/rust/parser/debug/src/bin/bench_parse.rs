@@ -1,7 +1,6 @@
 //! Parses Enso sources, measuring time spent in the parser.
 
-// === Features ===
-#![feature(test)]
+#![cfg_attr(feature = "nightly", feature(test))]
 // === Non-Standard Linter Configuration ===
 #![allow(clippy::option_map_unit_fn)]
 #![allow(clippy::precedence)]
@@ -10,8 +9,6 @@
 #![warn(missing_docs)]
 #![warn(trivial_casts)]
 #![warn(unused_qualifications)]
-
-
 
 // ===========
 // === CLI ===
@@ -40,12 +37,11 @@ fn read_source(path: impl AsRef<Path>) -> io::Result<String> {
     })
 }
 
-
-
 // ===============================
 // === `cargo bench` interface ===
 // ===============================
 
+#[cfg(feature = "nightly")]
 extern crate test;
 
 use std::fs::DirEntry;
@@ -68,6 +64,7 @@ fn visit_files<F: FnMut(&DirEntry)>(dir: &Path, f: &mut F) -> io::Result<()> {
     Ok(())
 }
 
+#[cfg(feature = "nightly")]
 #[bench]
 fn bench_std_lib(b: &mut test::Bencher) {
     let mut sources = vec![];

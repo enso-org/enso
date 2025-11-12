@@ -29,7 +29,7 @@ import enso_dev.Table_Tests.Database.Helpers.Name_Generator
 import enso_dev.Table_Tests.Common_Table_Operations
 from enso_dev.Table_Tests.Common_Table_Operations.Util import all
 
-import enso_dev.Base_Tests.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setup
+import enso_dev.Cloud_Tests.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setup
 
 import project.Auth_Spec
 
@@ -530,7 +530,7 @@ add_snowflake_specs suite_builder create_connection_fn db_name =
         in_mem_table = Table.new columns
         in_mem_table.select_into_database_table (connection.if_nothing default_connection.get) name primary_key=Nothing temporary=True
     light_table_builder columns =
-        default_connection.get.base_connection.create_literal_table (Table.new columns) "literal_table"
+        default_connection.get.create_literal_table (Table.new columns) "literal_table"
     materialize = .read
 
     common_selection = Common_Table_Operations.Main.Test_Selection.Config supported_replace_params=supported_replace_params run_advanced_edge_case_tests_by_default=False

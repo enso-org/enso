@@ -11,6 +11,7 @@ import org.enso.interpreter.test.ValuesGenerator;
 import org.enso.interpreter.test.ValuesGenerator.Language;
 import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.Value;
+import org.junit.After;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -56,6 +57,11 @@ public class TypesExposeConstructorsTest {
     return collectedTypes;
   }
 
+  @After
+  public void closeGenerator() throws Exception {
+    typeWithWrapper.close();
+  }
+
   @Test
   public void typesExposeConstructorsAsMembers() {
     var type = typeWithWrapper.type;
@@ -79,5 +85,19 @@ public class TypesExposeConstructorsTest {
    * @param type
    * @param typeValue The polyglot value of the type (not an object)
    */
-  public record TypeWithWrapper(Type type, Value typeValue) {}
+  private static final class TypeWithWrapper implements AutoCloseable {
+    private Type type;
+    private Value typeValue;
+
+    public TypeWithWrapper(Type type, Value tp) {
+      this.type = type;
+      this.typeValue = tp;
+    }
+
+    @Override
+    public void close() {
+      type = null;
+      typeValue = null;
+    }
+  }
 }

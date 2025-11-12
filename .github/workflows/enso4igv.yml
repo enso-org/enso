@@ -13,6 +13,10 @@ on:
       - "lib/scala/**/*"
       - "build.sbt"
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}-enso4igv
+  cancel-in-progress: ${{ github.ref != 'refs/heads/develop' }}
+
 jobs:
   build_linux_parser:
     runs-on: ubuntu-22.04
@@ -29,34 +33,14 @@ jobs:
         env:
           RUSTFLAGS: "-C target-feature=-crt-static"
         run: |
-          cargo build --release -p enso-parser-jni -Z unstable-options --target x86_64-unknown-linux-musl --out-dir target/lib/
+          cargo build --release -p enso-parser-jni --target x86_64-unknown-linux-musl --target-dir target/build
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: parser_linux
           path: |
-            target/lib/**
-
-  build_mac_intel_parser:
-    runs-on: macos-13
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Build Enso Parser
-        working-directory: .
-        env:
-          RUSTFLAGS: "-C target-feature=-crt-static"
-        run: |
-          cargo build --release -p enso-parser-jni -Z unstable-options --out-dir target/lib/x86_64
-
-      - name: Upload Artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: parser_mac_intel
-          path: |
-            target/lib/**
+            target/build/x86_64-unknown-linux-musl/release/libenso_parser.so
 
   build_mac_arm_parser:
     runs-on: macos-14
@@ -69,8 +53,8 @@ jobs:
         env:
           RUSTFLAGS: "-C target-feature=-crt-static"
         run: |
-          cargo build --release -p enso-parser-jni -Z unstable-options --out-dir target/lib/aarch64/
-
+          cargo build --release -p enso-parser-jni --target-dir target/build
+          mkdir -p target/lib/aarch64 && cp target/build/release/libenso_parser.dylib "$_"
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -89,23 +73,18 @@ jobs:
         env:
           RUSTFLAGS: "-C target-feature=-crt-static"
         run: |
-          cargo build --release -p enso-parser-jni -Z unstable-options --out-dir target/lib/
-
+          cargo build --release -p enso-parser-jni --target-dir target/build
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: parser_windows
           path: |
-            target/lib/**
+            target/build/release/enso_parser.dll
+            target/build/release/enso_parser.dll.lib
+            target/build/release/enso_parser.pdb
 
   build_java:
-    needs:
-      [
-        build_linux_parser,
-        build_mac_intel_parser,
-        build_mac_arm_parser,
-        build_windows_parser,
-      ]
+    needs: [build_linux_parser, build_mac_arm_parser, build_windows_parser]
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
@@ -125,7 +104,7 @@ jobs:
 
       - uses: graalvm/setup-graalvm@v1
         with:
-          java-version: "24.0.1"
+          java-version: "25.0.1"
           distribution: "graalvm-community"
 
       - name: Publish Enso Libraries to Local Maven Repository
@@ -137,7 +116,7 @@ jobs:
           # Why do we subtract a number? Read versioning policy!
           # https://github.com/enso-org/enso/pull/7861#discussion_r1333133490
           echo "POM_VERSION=`mvn -q -DforceStdout help:evaluate -Dexpression=project.version | cut -f1 -d -`" >> "$GITHUB_ENV"
-          echo "MICRO_VERSION=`expr $GITHUB_RUN_NUMBER - 8460`" >> "$GITHUB_ENV"
+          echo "MICRO_VERSION=`expr $GITHUB_RUN_NUMBER - 9385`" >> "$GITHUB_ENV"
 
       - name: Update project version
         working-directory: tools/enso4igv
@@ -148,7 +127,7 @@ jobs:
       - name: Build with Maven
         run: mvn -B -Pvsix package --file tools/enso4igv/pom.xml -Denso.parser.lib=`pwd`/enso_parser/ -DskipTests
 
-      - name: Archive NBM file
+      - name: Archive NBM files
         uses: actions/upload-artifact@v4
         with:
           name: Enso IGV Plugin

@@ -12,7 +12,7 @@ rust_shared_library(
     edition = "2021",
     proc_macro_deps = all_crate_deps(proc_macro = True),
     deps = all_crate_deps(normal = True) + [
-        "//lib/rust/parser:enso-parser",
+        "//lib/rust/parser:enso_parser",
     ],
 )
 
@@ -23,19 +23,19 @@ rust_wasm_bindgen(
 )
 
 copy_to_directory(
-    name = "rust-ffi-dist",
+    name = "rust_ffi_dist",
     srcs = [":rust_ffi"],
     out = "dist",
     replace_prefixes = {
         "rust_ffi/": "",
-    }
+    },
 )
 
 npm_package(
     name = "pkg",
     srcs = [
         "package.json",
-        ":rust-ffi-dist",
+        ":rust_ffi_dist",
     ],
     visibility = ["//visibility:public"],
 )
@@ -45,7 +45,7 @@ npm_package(
 write_source_files(
     name = "write_wasm_dist",
     files = {
-        "dist": ":rust-ffi-dist",
+        "dist": ":rust_ffi_dist",
     },
     suggested_update_target = "//:write_all",
     visibility = ["//visibility:public"],

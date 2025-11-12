@@ -210,16 +210,16 @@ public class IncrementalUpdatesTest {
     var code =
         extractPositions(
             """
-      import Standard.Base.IO
+            import Standard.Base.IO
 
-      &$foo$ =
-          x = #{originalText}#
-          *x*
-      &
-      main =
-          y = @foo@
-          %IO.println y%
-        """
+            &$foo$ =
+                x = #{originalText}#
+                *x*
+            &
+            main =
+                y = @foo@
+                %IO.println y%
+            """
                 .replace("{originalText}", originalText),
             "&$#*@%",
             pos);

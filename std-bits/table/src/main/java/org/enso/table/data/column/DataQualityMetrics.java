@@ -51,7 +51,7 @@ public abstract class DataQualityMetrics {
   public static final String IS_INCOMPLETE = "_Is Incomplete";
   public static final String NOTHING_COUNT = "# Nothing";
   public static final String DISTINCT_COUNT = "# Distinct";
-  public static final String DISTINCT_JSON = "Distinct JSON";
+  public static final String DISTINCT_JSON = "_Distinct JSON";
   public static final String SINGLE_VALUE = "_Single Value";
   public static final String MINIMUM = "Minimum";
   public static final String MAXIMUM = "Maximum";
@@ -61,6 +61,9 @@ public abstract class DataQualityMetrics {
   public static final String ODD_SPACE_COUNT = "@ Non-Trivial Whitespace";
   public static final String NEEDS_FORMATTING = "_Needs Formatting";
   public static final String TYPE_RECORD = "Types and Counts";
+
+  // Default threshold for checking distinct values count.
+  public static final int DISTINCT_THRESHOLD = 100;
 
   // Default seed for random number generation (no specific reason for this value, just stability on
   // results).
@@ -140,22 +143,25 @@ public abstract class DataQualityMetrics {
     return switch (resolvedStorage.getType()) {
       case NullType nullType -> new NullQualityMetrics(resolvedStorage);
       case TextType textType -> new StringQualityMetrics(textType.asTypedStorage(resolvedStorage));
-      case FloatType floatType -> NumericQualityMetrics.forDouble(
-          floatType.asTypedStorage(resolvedStorage));
-      case IntegerType integerType -> NumericQualityMetrics.forLong(
-          integerType.asTypedStorage(resolvedStorage));
-      case BigIntegerType bigIntegerType -> NumericQualityMetrics.forBigInteger(
-          bigIntegerType.asTypedStorage(resolvedStorage));
-      case BigDecimalType bigDecimalType -> NumericQualityMetrics.forBigDecimal(
-          bigDecimalType.asTypedStorage(resolvedStorage));
-      case DateType dateType -> new MinMaxQualityMetrics<>(
-          dateType.asTypedStorage(resolvedStorage), LocalDate::compareTo);
-      case TimeOfDayType timeType -> new MinMaxQualityMetrics<>(
-          timeType.asTypedStorage(resolvedStorage), LocalTime::compareTo);
-      case DateTimeType dateTimeType -> new MinMaxQualityMetrics<>(
-          dateTimeType.asTypedStorage(resolvedStorage), ZonedDateTime::compareTo);
-      case AnyObjectType anyObjectType -> new AnyObjectQualityMetric(
-          anyObjectType.asTypedStorage(resolvedStorage));
+      case FloatType floatType ->
+          NumericQualityMetrics.forDouble(floatType.asTypedStorage(resolvedStorage));
+      case IntegerType integerType ->
+          NumericQualityMetrics.forLong(integerType.asTypedStorage(resolvedStorage));
+      case BigIntegerType bigIntegerType ->
+          NumericQualityMetrics.forBigInteger(bigIntegerType.asTypedStorage(resolvedStorage));
+      case BigDecimalType bigDecimalType ->
+          NumericQualityMetrics.forBigDecimal(bigDecimalType.asTypedStorage(resolvedStorage));
+      case DateType dateType ->
+          new MinMaxQualityMetrics<>(
+              dateType.asTypedStorage(resolvedStorage), LocalDate::compareTo);
+      case TimeOfDayType timeType ->
+          new MinMaxQualityMetrics<>(
+              timeType.asTypedStorage(resolvedStorage), LocalTime::compareTo);
+      case DateTimeType dateTimeType ->
+          new MinMaxQualityMetrics<>(
+              dateTimeType.asTypedStorage(resolvedStorage), ZonedDateTime::compareTo);
+      case AnyObjectType anyObjectType ->
+          new AnyObjectQualityMetric(anyObjectType.asTypedStorage(resolvedStorage));
       default -> new BaseQualityMetrics(resolvedStorage);
     };
   }
@@ -200,7 +206,7 @@ public abstract class DataQualityMetrics {
 
       public Result getResult() {
         String distinctJson = null;
-        if (distinct.size() < 100) {
+        if (distinct.size() < DISTINCT_THRESHOLD) {
           distinctJson =
               "["
                   + distinct.stream()
@@ -308,13 +314,11 @@ public abstract class DataQualityMetrics {
     }
 
     public T getMinimum() {
-      var current = result.getNow(null);
-      return current != null ? current.minimum : null;
+      return result.thenApply(Result::minimum).getNow(null);
     }
 
     public T getMaximum() {
-      var current = result.getNow(null);
-      return current != null ? current.maximum : null;
+      return result.thenApply(Result::maximum).getNow(null);
     }
 
     @Override

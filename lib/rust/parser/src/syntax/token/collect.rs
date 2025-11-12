@@ -9,7 +9,6 @@ use crate::syntax::NewlineConsumer;
 use crate::syntax::Token;
 use crate::syntax::TokenConsumer;
 
-
 // =========================
 // === Collecting Tokens ===
 // =========================

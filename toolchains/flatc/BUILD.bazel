@@ -1,0 +1,8 @@
+"""
+Toolchain for FlatBuffers compiler. Provides the path to the flatc executable.
+"""
+
+toolchain_type(
+    name = "toolchain_type",
+    visibility = ["//visibility:public"],
+)

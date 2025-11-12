@@ -4,3 +4,4 @@ export project.Azure_Storage.Azure_Storage
 
 export project.Connection.SQLServer_Details.SQLServer_Details
 
+export project.Microsoft365.Microsoft365

@@ -12,8 +12,9 @@ public final class PythonHomeFinder {
   /**
    * Finds directory with unpacked GraalPy resources. It is assumed that these resources are
    * unpacked during build. See {@code org.enso.pyextract.PythonExtract}. Can only be found if
-   * Engine runner was started with `org.enso.runtime` module on the module path. Otherwise, returns
-   * null.
+   * Engine runner was started with `org.enso.runtime` module on the module path.
+   *
+   * @return Path to existing directory with GraalPy resources or null if it cannot be found.
    */
   public static Path findPythonHome() {
     if (HostEnsoUtils.isAot()) {
@@ -26,9 +27,7 @@ public final class PythonHomeFinder {
     var componentDir = modPath.getParent();
     var pyHomePath = componentDir.getParent().resolve("python-home");
     var dirExists = pyHomePath.toFile().exists() && pyHomePath.toFile().isDirectory();
-    assert dirExists
-        : "Python home directory " + pyHomePath + " does not exist or is not a directory.";
-    return pyHomePath;
+    return dirExists ? pyHomePath : null;
   }
 
   private static Path getEnsoRuntimeModulePath() {

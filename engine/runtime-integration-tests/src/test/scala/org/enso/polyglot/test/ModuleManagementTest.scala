@@ -47,6 +47,7 @@ class ModuleManagementTest
         Paths.get("../../distribution/component").toFile.getAbsolutePath
       )
       .option(RuntimeOptions.STRICT_ERRORS, "true")
+      .option(RuntimeOptions.CHECK_CWD, "false")
       .out(out)
       .err(out)
       .logHandler(out)

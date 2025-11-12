@@ -56,6 +56,7 @@ public class HelloWorldCacheTest {
   public void irCacheCannotBeEnabled_WhenPrivateCheckIsDisabled() {
     try (var ctx =
         ContextUtils.newBuilder()
+            .assertGC(false)
             .withModifiedContext(
                 bldr ->
                     bldr.option(RuntimeOptions.DISABLE_PRIVATE_CHECK, "true")
@@ -84,9 +85,9 @@ public class HelloWorldCacheTest {
             new SourceModule(
                 QualifiedName.fromString("Priv_Mod"),
                 """
-            private
-            priv_func x = x
-            """),
+                private
+                priv_func x = x
+                """),
             new SourceModule(QualifiedName.fromString("Main"), "# Intentionally empty")),
         libDir);
 
@@ -108,16 +109,21 @@ public class HelloWorldCacheTest {
       var mainMethod = mainMod.getMethod(assocMainModType, "main").get();
       var res = mainMethod.execute();
       assertThat("Eval with private check disabled is OK", res.asInt(), is(42));
+      polyCtx = null;
+      mainMod = null;
+      assocMainModType = null;
+      mainMethod = null;
+      res = null;
     }
 
     // Second run with private check ENABLED - should fail to compile
     try (var privateCheckEnabledCtx = ctxInProj(projDir, false).build()) {
-      var polyCtx = new PolyglotContext(privateCheckEnabledCtx.context());
       try {
-        polyCtx.getTopScope().compile(true);
+        privateCheckEnabledCtx.topScope().compile(true);
         fail("Should result in compilation error");
       } catch (PolyglotException e) {
         assertThat(e.getMessage(), containsString("Cannot import private module"));
+        e = null;
       }
     }
   }
@@ -131,7 +137,6 @@ public class HelloWorldCacheTest {
                         disablePrivateCheck ? "true" : "false")
                     .option(
                         RuntimeOptions.DISABLE_IR_CACHES, disablePrivateCheck ? "true" : "false")
-                    .option(RuntimeOptions.USE_GLOBAL_IR_CACHE_LOCATION, "false")
                     .option(RuntimeOptions.WAIT_FOR_PENDING_SERIALIZATION_JOBS, "true"))
         .withProjectRoot(projRoot);
   }
@@ -142,6 +147,7 @@ public class HelloWorldCacheTest {
             .withModifiedContext(
                 bldr ->
                     bldr.option(RuntimeOptions.LOG_LEVEL, Level.FINE.getName())
+                        .option(RuntimeOptions.CHECK_CWD, "false")
                         .option(RuntimeOptions.DISABLE_IR_CACHES, "false")
                         .option(RuntimeOptions.PROJECT_ROOT, findBenchmarks(src).getAbsolutePath())
                         .option(RuntimeOptions.WAIT_FOR_PENDING_SERIALIZATION_JOBS, "true"))
@@ -149,6 +155,8 @@ public class HelloWorldCacheTest {
       var code = Source.newBuilder("enso", src).build();
       var res = ctx.evalModule(code, "main");
       assertTrue("Result of IO.println is Nothing", res.isNull());
+      res = null;
+      code = null;
       return ctx.getOut()
           .lines()
           .filter(l -> l.toUpperCase().contains("HELLO"))
