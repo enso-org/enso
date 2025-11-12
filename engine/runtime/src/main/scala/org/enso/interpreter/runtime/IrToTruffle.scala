@@ -469,7 +469,7 @@ private[runtime] class IrToTruffle(
           new ArrayBuffer[(RuntimeExpression, RuntimeExpression)]
 
         for (idx <- atomDefn.arguments.indices) {
-          val unprocessedArg = atomDefn.arguments(idx)
+          val unprocessedArg = atomDefn.arguments.apply(idx)
           val checkNode      = checkAsTypes(unprocessedArg)
           val arg            = argFactory.run(unprocessedArg, idx, checkNode)
           val fp = unprocessedArg

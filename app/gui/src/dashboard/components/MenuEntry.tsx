@@ -15,8 +15,8 @@ import * as inputBindingsProvider from '#/providers/InputBindingsProvider'
 import { setModal, unsetModal } from '#/providers/ModalProvider'
 import * as tailwindVariants from '#/utilities/tailwindVariants'
 import { useText } from '$/providers/react'
-import * as detect from '$/utils/detect'
 import type * as text from 'enso-common/src/text'
+import * as detect from 'enso-common/src/utilities/detect'
 import * as React from 'react'
 
 const MENU_ENTRY_VARIANTS = tailwindVariants.tv({

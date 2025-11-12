@@ -11,22 +11,22 @@ import {
 } from '#/hooks/backendBatchedHooks'
 import { useUploadFileToCloud } from '#/hooks/backendUploadFilesHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import { AssetType, type AssetId, type DirectoryId } from '#/services/Backend'
-import { parseDirectoriesPath } from '#/services/utilities'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { useBackends, useText, useUser } from '$/providers/react'
 import type { GetText } from '$/providers/text'
 import type { DropOperation } from '@react-types/shared'
-import { toast } from 'react-toastify'
-import invariant from 'tiny-invariant'
-import { z } from 'zod'
+import { AssetType, type AssetId, type DirectoryId } from 'enso-common/src/services/Backend'
 import {
   CATEGORY_SCHEMA,
   dropOperationBetweenCategories,
   isCloudCategory,
   isLocalCategory,
   type Category,
-} from './Category'
+} from 'enso-common/src/services/Backend/Category'
+import { parseDirectoriesPath } from 'enso-common/src/services/Backend/utilities'
+import { toast } from 'react-toastify'
+import invariant from 'tiny-invariant'
+import { z } from 'zod'
 import { useCategories } from './categoriesHooks'
 
 /** A transferrable asset. */

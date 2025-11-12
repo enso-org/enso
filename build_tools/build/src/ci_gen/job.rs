@@ -240,6 +240,8 @@ impl JobArchetype for JvmTests {
         let graal_edition = self.graal_edition;
         let engine_launcher = self.engine_launcher;
         let job_name = format!("JVM Tests ({graal_edition})");
+        let heapdump_artifact_name =
+            format!("Heap dumps ({}, {}, {})", "JVM Tests", target.0, target.1);
         let mut job = RunStepsBuilder::new("backend test jvm")
             .customize(move |step| {
                 let cleanup_engine_distribution =
@@ -248,12 +250,15 @@ impl JobArchetype for JvmTests {
                 let download_engine_distribution =
                     step::download_engine_distribution(target, engine_launcher, graal_edition);
 
+                let upload_hprof_step = step::heapdump_upload(heapdump_artifact_name);
+
                 vec![
                     cleanup_engine_distribution,
                     download_engine_distribution,
                     step::check_engine_distribution(),
                     step::unpack_engine_distribution(),
                     step,
+                    upload_hprof_step,
                     step::engine_test_reporter(target, graal_edition),
                 ]
             })

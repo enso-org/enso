@@ -23,7 +23,6 @@ import Standard.Database.Internal.Base_Generator
 import Standard.Database.Internal.Common.Database_Distinct_Helper
 import Standard.Database.Internal.Common.Database_Join_Helper
 import Standard.Database.Internal.Common.Row_Number_Helpers
-import Standard.Database.Internal.Error_Mapper.Error_Mapper
 import Standard.Database.Internal.Internals_Access
 import Standard.Database.Internal.IR.Internal_Column.Internal_Column
 import Standard.Database.Internal.IR.Nulls_Order.Nulls_Order
@@ -42,10 +41,6 @@ import Standard.Database.SQL.SQL_Type
 from Standard.Database.Errors import Unsupported_Database_Operation
 from Standard.Database.Internal.IR.Operation_Metadata import Date_Period_Metadata
 from Standard.Database.Internal.JDBC_Connection import JDBC_Connection
-
-import project.Internal.Snowflake_Error_Mapper.Snowflake_Error_Mapper
-
-polyglot java import org.enso.database.JDBCUtils
 
 ## ---
    private: true
@@ -331,12 +326,6 @@ type Snowflake_Dialect
     default_table_types : Vector Text
     default_table_types self =
         ["TABLE", "VIEW", "TEMPORARY TABLE", "TEMPORARY VIEW", "MATERIALIZED VIEW"]
-
-    ## ---
-       private: true
-       ---
-    get_error_mapper : Error_Mapper
-    get_error_mapper self = Snowflake_Error_Mapper
 
     ## ---
        private: true

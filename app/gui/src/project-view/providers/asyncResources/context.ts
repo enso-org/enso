@@ -1,7 +1,7 @@
-import { ProjectId } from '#/services/Backend'
 import { useCurrentProject } from '$/components/WithCurrentProject.vue'
 import { useRightPanelData } from '$/providers/rightPanel'
 import type { ToValue } from '@/util/reactivity'
+import { ProjectId } from 'enso-common/src/services/Backend'
 import { toValue } from 'vue'
 
 /**

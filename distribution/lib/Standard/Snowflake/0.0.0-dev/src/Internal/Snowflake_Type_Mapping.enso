@@ -14,11 +14,13 @@ import Standard.Database.Internal.SQL_Type_Reference.SQL_Type_Reference
 import Standard.Database.Internal.Statement_Setter.Statement_Setter
 import Standard.Database.SQL.SQL_Type
 from Standard.Database.Errors import Unsupported_Database_Type
-from Standard.Database.Internal.Statement_Setter import fill_hole_default
+
+import project.Internal.Snowflake_Error_Mapper.Snowflake_Error_Mapper
 
 polyglot java import java.sql.Types
+polyglot java import org.enso.database.JDBCValueSetter
 polyglot java import org.enso.snowflake.SnowflakeColumnFetcherFactory
-polyglot java import org.enso.snowflake.SnowflakeJDBCUtils
+polyglot java import org.enso.snowflake.SnowflakeJDBCValueSetter
 
 ## ---
    private: true
@@ -98,7 +100,7 @@ type Snowflake_Type_Mapping
        private: true
        advanced: true
        ---
-       Gets the ColumnFetcherFactory to be used for this backend.
+       Gets the ColumnFetcherFactory to be used for Snowflake.
     column_fetcher_factory : Any
     column_fetcher_factory =
         SnowflakeColumnFetcherFactory.INSTANCE
@@ -176,19 +178,17 @@ type Snowflake_Type_Mapping
     ## ---
        private: true
        ---
-       Creates a Snowflake customised Statement_Setter.
+       Creates a Statement_Setter for Snowflake.
     statement_setter =
-        custom_fill_hole stmt i type_hint value = case value of
-            _ : Date_Time ->
-                keep_offset = case type_hint of
-                    Value_Type.Date_Time with_timezone -> with_timezone
-                    _ -> True
-                SnowflakeJDBCUtils.setDateTime stmt i value keep_offset
-            _ : Time_Of_Day -> SnowflakeJDBCUtils.setTimeOfDay stmt i value
-            _ : Date        -> SnowflakeJDBCUtils.setDate stmt i value
-            # Fallback to default logic for everything else
-            _ -> fill_hole_default stmt i type_hint value
-        Statement_Setter.Value custom_fill_hole
+        jdbc_value_setter = SnowflakeJDBCValueSetter.new
+        fill_hole = Statement_Setter.create_fill_hole jdbc_value_setter
+        Statement_Setter.for_fill_hole fill_hole
+
+    ## ---
+       private: true
+       ---
+    error_mapper : Snowflake_Error_Mapper
+    error_mapper self = Snowflake_Error_Mapper
 
 ## ---
    private: true

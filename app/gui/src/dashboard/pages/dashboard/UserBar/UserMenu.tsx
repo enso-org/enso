@@ -8,12 +8,12 @@ import { useMenuEntries } from '#/hooks/menuHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import { AboutModal } from '#/modals/AboutModal'
 import { unsetModal } from '#/providers/ModalProvider'
-import { Plan } from '#/services/Backend'
 import { download } from '#/utilities/download'
 import { getDownloadUrl } from '#/utilities/github'
 import { SUBSCRIBE_PATH } from '$/appUtils'
 import { useBackends, useFullUserSession, useRouter, useSession, useText } from '$/providers/react'
-import { IS_DEV_MODE } from '$/utils/detect'
+import { Plan } from 'enso-common/src/services/Backend'
+import { IS_DEV_MODE } from 'enso-common/src/utilities/detect'
 
 /** Props for a {@link UserMenu}. */
 export interface UserMenuProps {

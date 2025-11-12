@@ -1,7 +1,7 @@
 /** @file Shared API types exposed on `window.api` for both GUI and Electron. */
-
 import type * as saveAccessToken from 'enso-common/src/accessToken'
-import type { Path } from './dashboard/services/Backend'
+import type { DownloadUrlOptions } from 'enso-common/src/download'
+import type { Path } from 'enso-common/src/services/Backend'
 import type { FileFilter } from './project-view/util/fileFilter'
 import type { MenuItem, MenuItemHandler } from './project-view/util/menuItems'
 
@@ -18,14 +18,6 @@ export interface NavigationApi {
 
 export interface MenuApi {
   readonly setMenuItemHandler: (name: MenuItem, callback: MenuItemHandler) => void
-}
-
-export interface DownloadUrlOptions {
-  readonly url: string
-  readonly path?: Path | null | undefined
-  readonly name?: string | null | undefined
-  readonly shouldUnpackProject?: boolean
-  readonly showFileDialog?: boolean
 }
 
 export interface SystemApi {
