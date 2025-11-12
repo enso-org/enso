@@ -89,4 +89,6 @@ type XML_Format
         _ = metadata
         XML_Document.from_stream stream
 
-File_Format_SPI.from (_:XML_Format) = File_Format_SPI.new XML_Format
+File_Format_SPI.from (that:XML_Format) =
+    _ = that
+    File_Format_SPI.new XML_Format

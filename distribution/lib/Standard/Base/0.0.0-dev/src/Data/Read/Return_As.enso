@@ -131,6 +131,9 @@ type Return_As_Table_Mock
 type SPI
     private Value typ
 
+    ## ---
+       private: true
+       ---
     new typ -> SPI = SPI.Value typ
 
     private _get_known_return_classes -> Vector =
