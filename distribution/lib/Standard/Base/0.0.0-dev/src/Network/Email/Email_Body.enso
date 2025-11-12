@@ -6,10 +6,11 @@ import project.Metadata.Display
 
 ## The body of an email.
 type Email_Body
-	 Plain_Text body:Text
- 
+    ## A plain text email body.
+    Plain_Text body:Text
+
     ## An HTML email body. With an optional plain text fallback.
-	 Html html:Text body:Text=""
+    Html html:Text body:Text=""
  
     ## ---
        private: true
