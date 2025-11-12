@@ -9,5 +9,4 @@
     - read self file:Standard.Base.Any.Any on_problems:Standard.Base.Errors.Problem_Behavior.Problem_Behavior -> Standard.Base.Any.Any
     - read_stream self stream:Standard.Base.System.Input_Stream.Input_Stream metadata:Standard.Base.System.File_Format_Metadata.File_Format_Metadata= -> Standard.Base.Any.Any
     - resolve constructor:Standard.Base.Any.Any -> Standard.Base.Any.Any
-- File_Format_SPI _:Standard.Image.Image_File_Format.Image_File_Format -> Standard.Base.Any.Any
 - supported -> Standard.Base.Any.Any
