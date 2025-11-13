@@ -70,7 +70,7 @@ export async function runHybridProjectByUrl(
     }
   } finally {
     if (asset) {
-      remoteBackend.closeProject(asset.id, asset.title)
+      await remoteBackend.closeProject(asset.id, asset.title)
     }
   }
 }
