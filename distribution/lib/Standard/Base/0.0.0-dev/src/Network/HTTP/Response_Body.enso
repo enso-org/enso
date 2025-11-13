@@ -23,11 +23,11 @@ import project.System.File_Format.File_Format
 import project.System.File_Format.Infer
 import project.System.File_Format_Metadata.File_Format_Metadata
 import project.System.Input_Stream.Input_Stream
-from project.Nothing import all
 from project.Data.Boolean import Boolean
 from project.Data.Text.Extensions import all
 from project.Error import all
 from project.Metadata.Widget import Single_Choice
+from project.Nothing import all
 from project.System.File_Format import File_Format_SPI
 
 ## ---

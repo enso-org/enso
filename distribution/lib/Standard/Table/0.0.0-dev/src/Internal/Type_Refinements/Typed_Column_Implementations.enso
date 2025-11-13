@@ -6,14 +6,14 @@ import Standard.Base.Errors.Illegal_State.Illegal_State
 import project.Column.Column
 import project.In_Memory_Column.In_Memory_Column
 import project.Value_Type.Value_Type
-from project.Internal.In_Memory_Column_Implementation import apply_unary_operation, naming_helper, _call_binary_operator, _java_other
+from project.Internal.In_Memory_Column_Implementation import _call_binary_operator, _java_other, apply_unary_operation, naming_helper
 
+polyglot java import org.enso.table.data.column.operation.binary.RandBetweenOperation
 polyglot java import org.enso.table.data.column.operation.unary.AbsOperation
 polyglot java import org.enso.table.data.column.operation.unary.CaseOperation
 polyglot java import org.enso.table.data.column.operation.unary.SignumOperation
-polyglot java import org.enso.table.data.column.operation.unary.TextLengthOperation
 polyglot java import org.enso.table.data.column.operation.unary.TextCharLengthOperation
-polyglot java import org.enso.table.data.column.operation.binary.RandBetweenOperation
+polyglot java import org.enso.table.data.column.operation.unary.TextLengthOperation
 
 type In_Memory_Numeric_Column_Implementation
     abs (column : Column & In_Memory_Column) =

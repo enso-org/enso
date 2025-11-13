@@ -10,9 +10,9 @@ from Standard.Base.Metadata.Choice import Option
 from Standard.Base.Metadata.Widget import File_Browse, Folder_Browse, Single_Choice, Text_Input
 from Standard.Base.Visualization.Table_Viz_Data import Table_Viz_Data, Table_Viz_Header
 
-import Standard.Table.Rows_To_Read.Rows_To_Read
 import Standard.Table.In_Memory_Table.In_Memory_Table
-from Standard.Table import Table, Data_Formatter
+import Standard.Table.Rows_To_Read.Rows_To_Read
+from Standard.Table import Data_Formatter, Table
 
 import Standard.Database.Column_Description.Column_Description
 import Standard.Database.Connection.Connection.Connection
@@ -38,7 +38,6 @@ import project.File_Format.Snowflake_File_Format
 import project.Identifier.Identifier
 import project.Internal.Snowflake_Dialect
 import project.Internal.Snowflake_Type_Mapping.Snowflake_Type_Mapping
-
 
 polyglot java import org.enso.database.JDBCDriverTypes
 polyglot java import org.enso.database.JDBCProxy
@@ -645,7 +644,7 @@ type Snowflake_Connection
        - `path`: The path (or prefix) to the files to remove.
        - `pattern`: Optional regex pattern to match names against.
     @stage make_stage_selector
-    remove_from_stage : Identifier -> Text -> Text -> Boolean -> Table ! Stage_Not_Found
+    remove_from_stage : Identifier -> Text -> Text -> Table ! Stage_Not_Found
     remove_from_stage self stage:Identifier=(Missing_Argument.throw "stage") path:Text=(Missing_Argument.throw "path") pattern:Text=""  =
         Execution_Context.Output.if_enabled disabled_message="As writing is disabled, cannot remove the target. Press the Write button ▶ to perform the operation." panic=False <|
             identifier = stage.to_identifier

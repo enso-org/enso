@@ -1,8 +1,8 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Metadata.Display
-import Standard.Base.Metadata.Widget
 import Standard.Base.Metadata.File_Type
+import Standard.Base.Metadata.Widget
 import Standard.Base.Runtime.Context as Execution_Context
 import Standard.Base.Runtime.Managed_Resource.Managed_Resource
 import Standard.Base.Runtime.Ref.Ref
@@ -523,7 +523,11 @@ type Connection
        Creates a Table reference that refers to a table with the given name.
        Once all references to the table with this name are destroyed, the table
        will be marked for removal and dropped at the next maintenance.
-    internal_allocate_dry_run_table : Text -> Table & DB_Table
+
+       ## Arguments
+        - `table_name`: the name of the table to create a reference for.
+        - `connection`: the typed connection to create the table for.
+    internal_allocate_dry_run_table : Text -> Any -> Table & DB_Table
     internal_allocate_dry_run_table self table_name connection =
         ref = self.hidden_table_registry.make_reference table_name
         make_table_for_name connection table_name "" table_name ref
