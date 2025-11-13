@@ -47,6 +47,12 @@ type DuckDB_Dialect
     ## ---
        private: true
        ---
+       Wrap the dialect operations of the parent
+    dialect_operations self = Postgres_Dialect.get_dialect_operations self.parent
+
+    ## ---
+       private: true
+       ---
        Name of the dialect.
     name : Text
     name self = duckdb_dialect_name
@@ -236,7 +242,7 @@ type DuckDB_Dialect
             Dialect_Flag.Primary_Key_Allows_Nulls -> False
             Dialect_Flag.Supports_Separate_NaN -> True
             Dialect_Flag.Supports_Nested_With_Clause -> True
-            Dialect_Flag.Supports_Case_Sensitive_Columns -> True
+            Dialect_Flag.Supports_Case_Sensitive_Columns -> False
             Dialect_Flag.Supports_Infinity -> True
             Dialect_Flag.Case_Sensitive_Text_Comparison -> True
             Dialect_Flag.Supports_Sort_Digits_As_Numbers -> False
@@ -326,7 +332,7 @@ type DuckDB_Dialect
        ---
     generate_expression self base_gen expr:(SQL_IR_Expression | Order_Descriptor | SQL_IR_Statement) for_select:Boolean -> SQL_Builder =
         _ = for_select
-        base_gen.generate_expression self.parent expr
+        base_gen.generate_expression self expr
 
     ## ---
        private: true

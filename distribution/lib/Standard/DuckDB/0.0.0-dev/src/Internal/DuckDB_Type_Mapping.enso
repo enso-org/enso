@@ -51,7 +51,7 @@ type DuckDB_Type_Mapping
                         used_scale = if scale < 0 then 0 else (if scale>precision || scale.is_nothing then precision.div 3 else scale)
                         if used_scale != scale then approx.put (Value_Type.Decimal used_precision used_scale)
                         DuckDB_Types.decimal used_precision used_scale
-            Value_Type.Char Nothing False -> DuckDB_Types.varchar
+            Value_Type.Char Nothing True -> DuckDB_Types.varchar
             Value_Type.Char _ _ ->
                 approx.put Value_Type.Char
                 DuckDB_Types.varchar

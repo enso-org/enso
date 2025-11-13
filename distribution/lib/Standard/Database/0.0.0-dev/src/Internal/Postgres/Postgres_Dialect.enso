@@ -991,3 +991,9 @@ make_runtime_error_op arguments =
    private: true
    ---
 postgres_dialect_name = "PostgreSQL"
+
+## ---
+   private: true
+   ---
+   Static method to allow accessing the dialect_operations
+get_dialect_operations pg_dialect = pg_dialect.dialect_operations

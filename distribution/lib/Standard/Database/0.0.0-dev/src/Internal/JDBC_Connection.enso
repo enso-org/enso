@@ -5,6 +5,7 @@ import Standard.Base.Errors.Unimplemented.Unimplemented
 import Standard.Base.Runtime.Context
 import Standard.Base.Runtime.Managed_Resource.Managed_Resource
 from Standard.Base.Enso_Cloud.Enso_Secret import as_hideable_value
+from Standard.Base.Logging import all
 
 from Standard.Table import Table, Value_Type
 
@@ -309,6 +310,8 @@ create types_record url:Text properties:Vector catalog:Text="" schema:Text="" =
     create_sql_error_handler types_record =
         handler ~action related_query=Nothing =
             Panic.catch types_record.sqlExceptionClass action caught_panic->
+                txt_message = caught_panic.payload.getMessage
+                JDBC_Connection.log_message "JDBC Error: "+txt_message ..Warning
                 if caught_panic.is_a types_record.sqlTimeoutExceptionClass then Error.throw (SQL_Timeout.Error caught_panic.payload Nothing) else
                     Error.throw (SQL_Error.Error caught_panic.payload related_query)
         handler
