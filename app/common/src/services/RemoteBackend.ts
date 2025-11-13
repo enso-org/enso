@@ -54,7 +54,7 @@ export class RemoteBackend extends backend.Backend {
   )
   private user: objects.Mutable<backend.User> | null = null
   private readonly downloadCloudProject: DownloadCloudProjectFunction
-  private readonly getProjectArchive: GetProjectArchiveFunction
+  readonly getProjectArchive: GetProjectArchiveFunction
 
   /** Create a {@link RemoteBackend}. */
   constructor({
@@ -1402,14 +1402,15 @@ export class RemoteBackend extends backend.Backend {
   }
 
   /** Resolve asset metadata from an enso path. */
-  override async resolveEnsoPath(path: backend.EnsoPath): Promise<backend.PathResolveResponse> {
-    const response = await this.get<backend.Asset<backend.RealAssetType>>(
-      remoteBackendPaths.RESOLVE_ENSO_PATH,
-      { path },
-    )
+  override async resolveEnsoPath(path: backend.EnsoPath): Promise<backend.AnyAsset> {
+    const response = await this.get<backend.AnyAsset>(remoteBackendPaths.RESOLVE_ENSO_PATH, {
+      path,
+    })
 
     if (!response.ok) return this.throw(response, 'resolveEnsoPathBackendError')
-    return await response.json()
+    const asset = await response.json()
+    // `ensoPath` is currently necessary; the response (supposedly) does not include it.
+    return this.normalizeAsset({ ...asset, ensoPath: path }, null)
   }
 
   /**
@@ -1507,14 +1508,19 @@ export class RemoteBackend extends backend.Backend {
     assets: readonly backend.AnyAsset[],
     parentId: backend.DirectoryId | null,
   ): readonly backend.AnyAsset[] {
-    return assets.map((asset) =>
-      objects.merge(asset, {
-        type: backend.getAssetTypeFromId(asset.id),
-        // `Users` and `Teams` folders are virtual, so their children incorrectly have
-        // the organization root id as their parent id.
-        parentId: parentId ?? asset.parentId,
-      }),
-    )
+    return assets.map((asset) => this.normalizeAsset(asset, parentId))
+  }
+
+  private normalizeAsset<T extends backend.AssetType>(
+    asset: backend.AnyAsset<T>,
+    parentId: backend.DirectoryId | null,
+  ): backend.AnyAsset<T> {
+    return objects.merge(asset, {
+      type: backend.getAssetTypeFromId(asset.id),
+      // `Users` and `Teams` folders are virtual, so their children incorrectly have
+      // the organization root id as their parent id.
+      parentId: parentId ?? asset.parentId,
+    } as Partial<backend.AnyAsset<T>>)
   }
 }
 

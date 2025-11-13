@@ -626,9 +626,6 @@ export interface CreateCustomerPortalSessionResponse {
   readonly url: string | null
 }
 
-/** Response from the "path/resolve" endpoint. */
-export interface PathResolveResponse extends Omit<AnyRealAsset, 'type' | 'ensoPath'> {}
-
 /** Response from "assets/${assetId}" endpoint. */
 export type AssetDetailsResponse<Id extends AssetId> =
   | (Asset<AssetTypeFromId<Id>> & { readonly metadataId: MetadataId })
@@ -1846,7 +1843,7 @@ export abstract class Backend {
     return (await this.resolveProjectAssetData(projectId, 'src/Main.enso', versionId)).text()
   }
   /** Resolve enso path to an asset */
-  abstract resolveEnsoPath(path: EnsoPath): Promise<PathResolveResponse>
+  abstract resolveEnsoPath(path: EnsoPath): Promise<AnyAsset>
   /** Resolve the data of a project asset relative to the project root directory. */
   abstract resolveProjectAssetData(
     projectId: ProjectId,
