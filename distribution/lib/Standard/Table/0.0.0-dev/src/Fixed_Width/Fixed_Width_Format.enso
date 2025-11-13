@@ -375,6 +375,9 @@ Fixed_Width_Layout.from (that : Function) =
         Error.throw (Illegal_Argument.Error "Table has not been populated. A fixed-width column specification must have columns called 'start', 'width', and (optionally) 'name'.")
     Panic.throw (Type_Error.Error Fixed_Width_Layout that "Expected to get a Fixed_Width_Layout or a Table describing it.")
 
+## ---
+   private: true
+   ---
 _make_fixed_width_layout_widget display:Display=..When_Modified -> Widget =
     prepopulated_table = "Table.input [['names', ['column a']], ['starts', ['0']], ['widths', ['10']]]"
     make_single_choice [["Infer (left justified)", "..Left"], ["Infer (right justified)", "..Right"], ["Table", prepopulated_table ]] display=display

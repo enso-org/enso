@@ -57,7 +57,7 @@ type Dialect_Flag
     Supports_Sort_Digits_As_Numbers
     ## ---
        private: true
-       --- 
+       ---
        Specifies if the backend supports case insensitive ordering.
     Supports_Case_Insensitive_Ordering
     ## ---
@@ -112,7 +112,7 @@ type Dialect_Flag
     NaN_Non_Comparable
     ## ---
        private: true
-       --- 
+       ---
        If `order_by` was applied before, the distinct operation will
        return the first row from each group. Guaranteed in the in-memory backend,
        but may not be supported by all databases.

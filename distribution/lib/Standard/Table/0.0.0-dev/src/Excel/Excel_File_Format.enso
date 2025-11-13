@@ -21,6 +21,9 @@ type Excel_File_Format
         Excel_File_Format.XLSX -> Java_Excel_File_Format.XLSX
         Excel_File_Format.XLSB -> Java_Excel_File_Format.XLSB
 
+    ## ---
+       private: true
+       ---
     to_text self = case self of
         Excel_File_Format.XLS  -> "XLS"
         Excel_File_Format.XLSX -> "XLSX"

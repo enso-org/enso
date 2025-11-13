@@ -2,15 +2,23 @@ private
 
 import Standard.Base.Enso_Cloud.Data_Link.Data_Link_SPI
 import Standard.Base.System.File.File_System_SPI
+
 import Standard.Database.Connection.Database.Database_Connection_Details_SPI
 
-import project.S3.S3_File.S3_File
-import project.S3.S3_Data_Link.S3_Data_Link
 import project.Database.Redshift.Redshift_Details.Redshift_Details
+import project.S3.S3_Data_Link.S3_Data_Link
+import project.S3.S3_File.S3_File
 
 type Impl
 
-File_System_SPI.from (_:Impl) = File_System_SPI.new "s3" S3_File
-Data_Link_SPI.from (_:Impl) = Data_Link_SPI.new S3_Data_Link "S3"
-Database_Connection_Details_SPI.from (_:Impl) =
+File_System_SPI.from (that:Impl) =
+    _ = that
+    File_System_SPI.new "s3" S3_File
+
+Data_Link_SPI.from (that:Impl) =
+    _ = that
+    Data_Link_SPI.new S3_Data_Link "S3"
+
+Database_Connection_Details_SPI.from (that:Impl) =
+    _ = that
     Database_Connection_Details_SPI.new Redshift_Details "Redshift" "..Redshift"

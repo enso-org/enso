@@ -22,13 +22,13 @@ import project.System.File.File
 import project.System.File.Generic.Writable_File.Writable_File
 import project.System.File_Format_Metadata.File_Format_Metadata
 import project.System.Input_Stream.Input_Stream
-from project.Nothing import all
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Json import Invalid_JSON
 from project.Data.Text.Extensions import all
 from project.Error import all
 from project.Metadata.Choice import Option
 from project.Metadata.Widget import Single_Choice
+from project.Nothing import all
 
 ## ---
    private: true
@@ -493,7 +493,8 @@ type File_Format_SPI
         File_Format_SPI.Few arr -> arr
         single -> [single]
 
-    private get_regs _:Boolean=False =
+    private get_regs b:Boolean=False =
+        _ = b
         reg = Meta.lookup_services File_Format_SPI
         reg.map .to_vector . flatten
 

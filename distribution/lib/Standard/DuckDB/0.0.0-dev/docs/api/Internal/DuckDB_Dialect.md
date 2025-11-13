@@ -1,6 +1,6 @@
 ## Enso Signatures 1.0
-## module Standard.Database.Internal.Postgres.Postgres_Dialect
-- type Postgres_Dialect
+## module Standard.DuckDB.Internal.DuckDB_Dialect
+- type DuckDB_Dialect
     - adapt_unified_column self column:Standard.Base.Any.Any approximate_result_type:Standard.Base.Any.Any infer_result_type_from_database_callback:Standard.Base.Any.Any mapping:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - cast_aggregate_columns self op_kind:Standard.Base.Data.Text.Text columns:(Standard.Base.Data.Vector.Vector Standard.Database.Internal.IR.Internal_Column.Internal_Column) -> Standard.Base.Any.Any
     - cast_op_type self op_kind:Standard.Base.Data.Text.Text args:(Standard.Base.Data.Vector.Vector Standard.Database.Internal.IR.Internal_Column.Internal_Column) expression:Standard.Database.Internal.IR.SQL_IR_Expression.SQL_IR_Expression -> Standard.Base.Any.Any
@@ -30,51 +30,5 @@
     - to_text self -> Standard.Base.Any.Any
     - value_type_for_upload_of_existing_column self column:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - wrap_identifier self identifier:Standard.Base.Any.Any -> Standard.Base.Any.Any
-- agg_count_distinct args:Standard.Base.Any.Any -> Standard.Base.Any.Any
-- agg_count_distinct_include_null args:Standard.Base.Any.Any -> Standard.Base.Any.Any
-- agg_count_empty -> Standard.Base.Any.Any
-- agg_count_is_null -> Standard.Base.Any.Any
-- agg_count_not_empty -> Standard.Base.Any.Any
-- agg_longest -> Standard.Base.Any.Any
-- agg_median -> Standard.Base.Any.Any
-- agg_mode -> Standard.Base.Any.Any
-- agg_percentile -> Standard.Base.Any.Any
-- agg_shortest -> Standard.Base.Any.Any
-- as_int32 expr:Standard.Base.Any.Any -> Standard.Base.Any.Any
-- as_int64 expr:Standard.Base.Any.Any -> Standard.Base.Any.Any
-- bool_or -> Standard.Base.Any.Any
-- concat_ops -> Standard.Base.Any.Any
-- contains -> Standard.Base.Any.Any
-- decimal_div -> Standard.Base.Any.Any
-- decimal_mod -> Standard.Base.Any.Any
-- ends_with -> Standard.Base.Any.Any
-- first_last_aggregators -> Standard.Base.Any.Any
-- floating_point_div -> Standard.Base.Any.Any
-- is_empty -> Standard.Base.Any.Any
-- is_finite -> Standard.Base.Any.Any
-- is_inf -> Standard.Base.Any.Any
-- is_nan -> Standard.Base.Any.Any
-- is_null -> Standard.Base.Any.Any
-- left -> Standard.Base.Any.Any
-- make_case_sensitive -> Standard.Base.Any.Any
-- make_contains_expr expr:Standard.Base.Any.Any substring:Standard.Base.Any.Any -> Standard.Base.Any.Any
-- make_date_add arguments:Standard.Base.Any.Any metadata:Standard.Database.Internal.IR.Operation_Metadata.Date_Period_Metadata -> Standard.Base.Any.Any
-- make_date_diff arguments:Standard.Base.Any.Any metadata:Standard.Database.Internal.IR.Operation_Metadata.Date_Period_Metadata -> Standard.Base.Any.Any
-- make_date_trunc_to_day arguments:Standard.Base.Any.Any -> Standard.Base.Any.Any
-- make_dialect_operations -> Standard.Base.Any.Any
-- make_distinct_extension expressions:Standard.Base.Any.Any -> Standard.Base.Any.Any
-- make_extract_as_int enso_name:Standard.Base.Any.Any sql_name:Standard.Base.Any.Any= -> Standard.Base.Any.Any
-- make_extract_fractional_as_int enso_name:Standard.Base.Any.Any sql_name:Standard.Base.Any.Any= modulus:Standard.Base.Any.Any= -> Standard.Base.Any.Any
-- make_first_aggregator reverse:Standard.Base.Any.Any ignore_null:Standard.Base.Any.Any args:Standard.Base.Any.Any -> Standard.Base.Any.Any
-- make_order_descriptor internal_column:Standard.Database.Internal.IR.Internal_Column.Internal_Column sort_direction:Standard.Base.Any.Any text_ordering:Standard.Base.Any.Any -> Standard.Base.Any.Any
-- make_runtime_error_op arguments:Standard.Base.Any.Any -> Standard.Base.Any.Any
-- mod_op -> Standard.Base.Any.Any
-- postgres -> Standard.Base.Any.Any
-- postgres_dialect_name -> Standard.Base.Any.Any
-- regex_match -> Standard.Base.Any.Any
-- replace args:Standard.Base.Any.Any metadata:Standard.Base.Any.Any -> Standard.Base.Any.Any
-- represents_an_untyped_null_expression arg:Standard.Base.Any.Any -> Standard.Base.Any.Any
-- right -> Standard.Base.Any.Any
-- starts_with -> Standard.Base.Any.Any
-- supported_replace_params -> Standard.Base.Any.Any
-- trim_ops -> Standard.Base.Any.Any
+- duckdb -> Standard.Base.Any.Any
+- duckdb_dialect_name -> Standard.Base.Any.Any

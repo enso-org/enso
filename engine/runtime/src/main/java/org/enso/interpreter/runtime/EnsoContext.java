@@ -100,6 +100,9 @@ public final class EnsoContext {
   private final LockManager lockManager;
   private final AtomicLong clock = new AtomicLong();
 
+  /**
+   * @GuardedBy("REFERENCE") - need some private lock
+   */
   @CompilationFinal(dimensions = 1)
   private Object[] extraValues = new Object[0];
 
@@ -999,14 +1002,16 @@ public final class EnsoContext {
     return singleStateProfile.profile(language.currentState());
   }
 
-  private synchronized Object extraValues(int index, Function<EnsoContext, ?> init) {
+  private Object extraValues(int index, Function<EnsoContext, ?> init) {
     if (index >= extraValues.length || extraValues[index] == null) {
       CompilerDirectives.transferToInterpreterAndInvalidate();
-      if (index >= extraValues.length) {
-        extraValues = Arrays.copyOf(extraValues, index + 1);
+      synchronized (REFERENCE) {
+        if (index >= extraValues.length) {
+          extraValues = Arrays.copyOf(extraValues, index + 1);
+        }
+        extraValues[index] = init.apply(this);
+        assert extraValues[index] != null;
       }
-      extraValues[index] = init.apply(this);
-      assert extraValues[index] != null;
     }
     return extraValues[index];
   }

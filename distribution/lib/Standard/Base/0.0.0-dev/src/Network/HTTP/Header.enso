@@ -12,13 +12,13 @@ import project.Function.Function
 import project.Meta
 import project.Metadata.Display
 import project.Metadata.Widget
-from project.Nothing import all
 from project.Data.Ordering import all
 from project.Data.Text.Extensions import all
 from project.Enso_Cloud.Enso_Secret import as_hideable_value
 from project.Metadata import make_single_choice
 from project.Metadata.Choice import Option
 from project.Metadata.Widget import Single_Choice, Vector_Editor
+from project.Nothing import all
 
 polyglot java import org.graalvm.collections.Pair as Java_Pair
 

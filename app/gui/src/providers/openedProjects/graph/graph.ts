@@ -539,6 +539,12 @@ export function createGraphStore(
     return (isAstId(id) && db.getExpressionNodeId(id)) || getPortPrimaryInstance(id)?.nodeId
   }
 
+  function getOutputPortNodeId(id: PortId): NodeId | undefined {
+    if (!isAstId(id)) return undefined
+    const [nodeId] = db.nodeOutputPorts.reverseLookup(id)
+    return nodeId
+  }
+
   /**
    * Emit a value update to a port view under specific ID. Returns Err if the port view is
    * not registered.
@@ -664,7 +670,11 @@ export function createGraphStore(
   }
 
   function isConnectedSource(portId: AstId): boolean {
-    return db.connections.lookup(portId).size > 0
+    return (
+      db.connections.lookup(portId).size > 0 ||
+      unconnectedEdges.cbEditedEdge.value?.source === portId ||
+      unconnectedEdges.mouseEditedEdge.value?.source === portId
+    )
   }
 
   function isConnectedTarget(portId: PortId): boolean {
@@ -716,6 +726,7 @@ export function createGraphStore(
     getPortRelativeRect,
     getPortExpectedType,
     getPortNodeId,
+    getOutputPortNodeId,
     getSourceNodeId,
     isPortEnabled,
     updatePortValue,

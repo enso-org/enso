@@ -18,12 +18,12 @@ import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.Time_Error.Time_Error
 import project.Meta
 import project.Panic.Panic
-from project.Nothing import all
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Text.Extensions import all
 from project.Data.Time.Date_Time import ensure_in_epoch
 from project.Metadata import Display, Widget
 from project.Metadata.Choice import Option
+from project.Nothing import all
 from project.Widget_Helpers import make_date_format_selector
 
 polyglot java import java.lang.ArithmeticException
@@ -945,11 +945,11 @@ type Date
         Widget.Single_Choice values=options display=display
 
     ## ---
-      aliases: [greater than]
-      group: Operators
-      icon: operators
-      ---
-      Checks if `self` is greater than `that`.
+       aliases: [greater than]
+       group: Operators
+       icon: operators
+       ---
+       Checks if `self` is greater than `that`.
     > self that = Comparable.> self=self that
 
     ## ---

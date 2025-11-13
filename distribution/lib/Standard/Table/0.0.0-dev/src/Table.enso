@@ -527,7 +527,7 @@ type Table
        suggested: 1
        ---
        Creates a new table with a chosen subset of columns.
-       
+
        The subset of columns is specified by the `columns` parameter
        and taken from the input table. Any unmatched columns in the 
        input will be dropped from the output.
@@ -1213,10 +1213,7 @@ type Table
         self.implementation.use_first_row_as_names self.underlying on_problems
 
     ## ---
-       aliases:
-        - group by
-        - summarize
-        - variance
+       aliases: [group by, summarize, variance]
        macros:
         - count: columns=[..Count]
         - sum: columns=[..Sum]
@@ -1331,7 +1328,7 @@ type Table
        suggested: 8
        ---
        Sorts the rows of the table by specified columns.
-       
+
        Optionally, the method of ordering text values can be specified allowing
        for case-insensitively or dictionary ordering.
 
@@ -1674,7 +1671,7 @@ type Table
             self.implementation.parse self.underlying selected type format error_on_missing_columns=True on_problems
 
     ## ---
-       aliases: [to_text, to_string, to_char]
+       aliases: [to_char, to_string, to_text]
        group: Standard.Base.Conversions
        icon: convert
        ---
@@ -2178,7 +2175,7 @@ type Table
        suggested: 2
        ---
        Creates a new table with a filtered subset of rows.
-       
+
        The rows are selected from the input table using a condition. The rows
        that meet the condition will remain after the filter. Filters can compare
        columns, compare against static values, or compare against an argument
@@ -3339,7 +3336,7 @@ type Table
        suggested: 10
        ---
        Pivots a subset of the table's columns to rows.
-       
+
        Returns a new table with a chosen subset of columns left unchanged and the
        other columns pivoted to rows with a single name field and a single value
        field.
@@ -3809,6 +3806,7 @@ type Table
             self.implementation.text_cleanse self.underlying selected remove
 
     ## ---
+       aliases: [cumulative]
        macros:
         - count: ..Count
         - minimum: ..Minimum
@@ -3825,8 +3823,6 @@ type Table
         - pearson: ..Pearson
         - spearman: ..Spearman
         - r squared: ..R_Squared
-       aliases:
-        - cumulative
        group: Standard.Base.Values
        icon: column_add
        ---
