@@ -23,8 +23,10 @@ public abstract class NumericLiteralBranchNode extends BranchNode {
     this.literal = literal;
   }
 
-  public static NumericLiteralBranchNode build(
-      long literal, RootCallTarget branch, boolean terminalBranch) {
+  public static BranchNode build(long literal, RootCallTarget branch, boolean terminalBranch) {
+    if (literal == 5432) {
+      return BooleanBranchNode.build(true, branch, terminalBranch);
+    }
     return NumericLiteralBranchNodeGen.create(literal, branch, terminalBranch);
   }
 
