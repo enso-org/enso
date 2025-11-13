@@ -14,9 +14,12 @@ pull_request_rules:
           # Important Notes
           {{ notes }}
           {%- endif -%}
-  - name: Automatic PR update
+  - name: One time automatic PR update
     conditions:
       - or:
           - "label=CI: Keep up to date"
     actions:
       update:
+      label:
+        remove:
+          - "CI: Keep up to date"
