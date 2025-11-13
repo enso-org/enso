@@ -1,17 +1,33 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+import Standard.Base.Errors.Illegal_State.Illegal_State
 
-import project.Internal.JDBC_Connection
+import project.Internal.JDBC_Connection.JDBC_Connection
 from project.Errors import Unsupported_Database_Encoding
+
+polyglot java import org.enso.database.fetchers.ColumnFetcherFactory
 
 ## ---
    private: true
    ---
-get_encoding_name : JDBC_Connection.JDBC_Connection -> Text
+get_encoding_name : JDBC_Connection -> Text
 get_encoding_name jdbc_connection =
-    server_encoding = JDBC_Connection.get_pragma_value jdbc_connection "SHOW server_encoding"
+    server_encoding = get_pragma_value jdbc_connection "SHOW server_encoding"
     if server_encoding != "SQL_ASCII" then server_encoding else
-        JDBC_Connection.get_pragma_value jdbc_connection "SHOW client_encoding"
+        get_pragma_value jdbc_connection "SHOW client_encoding"
+
+## ---
+   private: true
+   ---
+get_pragma_value : JDBC_Connection -> Text -> Any
+get_pragma_value jdbc_connection sql =
+    table = jdbc_connection.raw_read_statement sql ColumnFetcherFactory.DEFAULT
+    if table.row_count != 1 then
+        Panic.throw (Illegal_State.Error "Unexpected amount of results to internal query: "+sql+"; expected 1 but got "+table.row_count.to_text+" rows.")
+    if table.columns.length != 1 then
+        Panic.throw (Illegal_State.Error "Unexpected amount of columns to internal query: "+sql+"; expected 1 but got "+table.columns.length.to_text+" columns.")
+    table.at 0 . at 0
+
 
 ## ---
    private: true

@@ -6,13 +6,12 @@ from Standard.Database.Errors import all
 
 from Standard.Test import all
 
-import project.Database.Helpers.Name_Generator
-
 import Standard.Generic_JDBC.Generic_JDBC_Connection.Generic_JDBC_Connection
 
-import enso_dev.Generic_JDBC_Tests.Generic_JDBC_Connection_Spec
+import project.Generic_JDBC_Connection_Spec
+import enso_dev.Table_Tests.Database.Helpers.Name_Generator
 
-add_specs suite_builder configured_connection_details =
+add_specs suite_builder configured_connection_details=get_configured_connection_details = if configured_connection_details==Nothing then Nothing else
     config = Postgres_JDBC_Config.Value configured_connection_details
     Generic_JDBC_Connection_Spec.add_specs_for_backend config suite_builder
 
@@ -77,3 +76,18 @@ type Postgres_JDBC_Config
         url = 'jdbc:postgresql:' + db_name
 
         Generic_JDBC_Connection.connect url properties
+
+get_configured_connection_details =
+    db_name = Environment.get "ENSO_POSTGRES_DATABASE"
+    db_host_port = (Environment.get "ENSO_POSTGRES_HOST").if_nothing "localhost" . split ':'
+    db_host = db_host_port.at 0
+    db_port = if db_host_port.length == 1 then 5432 else Integer.parse (db_host_port.at 1)
+    db_user = Environment.get "ENSO_POSTGRES_USER"
+    db_password = Environment.get "ENSO_POSTGRES_PASSWORD"
+    if db_name.is_nothing then Nothing else
+        Postgres.Server db_host db_port db_name credentials=(Credentials.Username_And_Password db_user db_password)
+
+main filter=Nothing =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter filter

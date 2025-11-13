@@ -19,11 +19,14 @@ from project.Internal.Result_Set import result_set_to_table
 polyglot java import java.sql.Connection
 polyglot java import java.sql.DatabaseMetaData
 polyglot java import java.sql.PreparedStatement
-polyglot java import java.sql.SQLException
-polyglot java import java.sql.SQLTimeoutException
+
+## Needed to help Native Image include the classes.
+polyglot java import org.enso.base.enso_cloud.HideableValue
+polyglot java import org.enso.base.enso_cloud.HideableValue.Factory
+polyglot java import org.enso.base.enso_cloud.HideableValue.KeyValuePair
 polyglot java import org.enso.database.dryrun.OperationSynchronizer
+polyglot java import org.enso.database.JDBCDriverTypes
 polyglot java import org.enso.database.JDBCProxy
-polyglot java import org.graalvm.collections.Pair as Java_Pair
 
 type JDBC_Connection
     ## ---
@@ -34,7 +37,8 @@ type JDBC_Connection
           Connection instance.
         - `operation_synchronizer`: a helper for synchronizing access to the
           underlying Connection.
-    Value connection_resource operation_synchronizer sql_exception=SQLException
+        - `sql_error_handler`: a function wrapper to catch SQL errors.
+    private Value connection_resource operation_synchronizer sql_error_handler
 
     ## ---
        private: true
@@ -85,7 +89,7 @@ type JDBC_Connection
        Open the connection to the database, then run the action passing the
        database's metadata wrapping any SQL errors.
     with_metadata : (DatabaseMetaData -> Any) -> Any
-    with_metadata self ~action = handle_sql_errors <| self.with_connection connection->
+    with_metadata self ~action = self.sql_error_handler <| self.with_connection connection->
         metadata = connection.getMetaData
         action metadata
 
@@ -121,7 +125,7 @@ type JDBC_Connection
                 stmt
 
         go template values =
-            handle_sql_errors sql_exception=self.sql_exception related_query=template <|
+            self.sql_error_handler related_query=template <|
                 if skip_log.not then log_sql_if_enabled self template
                 Managed_Resource.bracket (prepare template values) .close action
 
@@ -189,11 +193,11 @@ type JDBC_Connection
        mapping.
        It may be used for accessing simple database metadata. It should never be
        used for proper queries.
-    raw_read_statement : Text -> Table
-    raw_read_statement self raw_sql =
+    raw_read_statement : Text -> Any -> Table
+    raw_read_statement self raw_sql column_fetcher_factory =
         self.with_prepared_statement raw_sql Statement_Setter.null stmt->
             rs = stmt.executeQuery
-            table = result_set_to_table rs
+            table = result_set_to_table rs column_fetcher_factory
             SQL_Warning_Helper.process_warnings stmt <|
                 table
 
@@ -222,7 +226,7 @@ type JDBC_Connection
        running this function (so if it was off before, this method may not change
        anything).
     run_without_autocommit : Any -> Any
-    run_without_autocommit self ~action = handle_sql_errors <|
+    run_without_autocommit self ~action = self.sql_error_handler <|
         # The whole block is already `synchronized` by `with_connection`.
         self.with_connection java_connection->
             default_autocommit = java_connection.getAutoCommit
@@ -263,7 +267,7 @@ type JDBC_Connection
        transaction to ensure consistency.
     batch_insert : Text -> Statement_Setter -> Table -> Integer -> Vector Value_Type | Nothing -> Integer | Nothing -> Nothing
     batch_insert self insert_template statement_setter table batch_size expected_type_hints=Nothing row_limit=Nothing = profile_sql_if_enabled self insert_template <|
-        In_Transaction.ensure_in_transaction <| self.with_connection java_connection-> handle_sql_errors related_query=insert_template <|
+        In_Transaction.ensure_in_transaction <| self.with_connection java_connection-> self.sql_error_handler related_query=insert_template <|
             Managed_Resource.bracket (java_connection.prepareStatement insert_template) .close stmt->
                 log_sql_if_enabled self insert_template
                 table_row_count = table.row_count
@@ -287,35 +291,43 @@ type JDBC_Connection
 ## ---
    private: true
    ---
-   Creates a JDBC connection based on a URL and optionally username and password.
-
-   ## Arguments
-    - `url`: The URL to connect to.
-    - `properties`: A vector of properties for the connection.
-    - `database`: The database name to connect to.
-    - `schema`: The schema name to connect to.
-create : Text -> Vector -> Text -> Text -> JDBC_Connection
-create url properties database:Text="" schema:Text="" = handle_sql_errors <|
-    java_connection = JDBCProxy.getConnectionWithCatalogSchema url (properties_as_java_props properties) database schema
-    from_java java_connection
-
-## ---
-   private: true
-   ---
-properties_as_java_props properties =
-    properties.map pair->
-        java_value = as_hideable_value pair.second
-        Java_Pair.create pair.first java_value
-
-## ---
-   private: true
-   ---
    A special method used by dialects that construct a Java JDBC connection using
    some custom logic.
-from_java java_jdbc_connection sql_exception=SQLException =
-    resource = Managed_Resource.register java_jdbc_connection close_connection
-    synchronizer = OperationSynchronizer.new
-    JDBC_Connection.Value resource synchronizer sql_exception
+create types_record url:Text properties:Vector catalog:Text="" schema:Text="" =
+    ## ---
+       private: true
+       ---
+       Creates a handler for SQL Errors.
+
+       ## Arguments
+       - `types_record`: The JDBC driver types record containing exception classes.
+
+       ## Returns
+       A function which executes `action` and returns its result, catching any
+       panics and if they are coming from JDBC, wraps them with our own error
+       types and returns as regular data-flow errors.
+    create_sql_error_handler types_record =
+        handler ~action related_query=Nothing =
+            Panic.catch types_record.sqlExceptionClass action caught_panic->
+                if caught_panic.is_a types_record.sqlTimeoutExceptionClass then Error.throw (SQL_Timeout.Error caught_panic.payload Nothing) else
+                    Error.throw (SQL_Error.Error caught_panic.payload related_query)
+        handler
+
+    ## ---
+       private: true
+       ---
+       Converts a vector of Enso key-value pairs into Java properties.
+    properties_as_java_props properties hideable_value_factory =
+        properties.map pair->
+            java_value = if hideable_value_factory.is_a pair.second then pair.second else
+                as_hideable_value pair.second factory=hideable_value_factory
+            hideable_value_factory.createPair pair.first java_value
+
+    sql_error_handler = create_sql_error_handler types_record
+    java_props = properties_as_java_props properties types_record.hideableValueFactory
+    java_connection = sql_error_handler <| types_record.getConnectionWithCatalogSchema url java_props catalog schema
+    resource = Managed_Resource.register java_connection close_connection
+    JDBC_Connection.Value resource types_record.newOperationSynchronizer sql_error_handler
 
 ## ---
    private: true
@@ -327,23 +339,6 @@ from_java java_jdbc_connection sql_exception=SQLException =
 close_connection : Connection -> Nothing
 close_connection connection =
     connection.close
-
-## ---
-   private: true
-   ---
-   Executes `action` and returns its result, catching any panics and if they are
-   coming from JDBC, wraps them with our own error types and returns as regular
-   data-flow errors.
-
-   ## Arguments
-    - `action`: The computation to execute. This computation may throw SQL
-      errors.
-handle_sql_errors : Any -> (Text | Nothing) -> Any ! (SQL_Error | SQL_Timeout)
-handle_sql_errors ~action related_query=Nothing sql_exception=SQLException =
-    Panic.catch sql_exception action caught_panic->
-        case caught_panic.payload of
-            exc : SQLTimeoutException -> Error.throw (SQL_Timeout.Error exc related_query)
-            exc -> Error.throw (SQL_Error.Error exc related_query)
 
 ## ---
    private: true
@@ -404,15 +399,3 @@ profile_sql_if_enabled (jdbc_connection : JDBC_Connection) (~query_text : Text) 
                 Context.Output.with_enabled <|
                     log_line.write path on_existing_file=Existing_File_Behavior.Append
                 result
-
-## ---
-   private: true
-   ---
-get_pragma_value : JDBC_Connection -> Text -> Any
-get_pragma_value jdbc_connection sql =
-    table = jdbc_connection.raw_read_statement sql
-    if table.row_count != 1 then
-        Panic.throw (Illegal_State.Error "Unexpected amount of results to internal query: "+sql+"; expected 1 but got "+table.row_count.to_text+" rows.")
-    if table.columns.length != 1 then
-        Panic.throw (Illegal_State.Error "Unexpected amount of columns to internal query: "+sql+"; expected 1 but got "+table.columns.length.to_text+" columns.")
-    table.at 0 . at 0
