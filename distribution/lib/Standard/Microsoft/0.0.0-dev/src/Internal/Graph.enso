@@ -1,3 +1,5 @@
+private
+
 from Standard.Base import all
 from Standard.Base.Enso_Cloud.Enso_Secret import as_credential_reference
 

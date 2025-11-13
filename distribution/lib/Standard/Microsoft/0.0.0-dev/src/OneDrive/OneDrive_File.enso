@@ -10,7 +10,7 @@ import project.Internal.OneDrive_Path.OneDrive_Path
 import project.Microsoft365_Credential.Microsoft365_Credential
 
 type OneDrive_File
-    Value (credential : Microsoft365_Credential) (onedrive_path : OneDrive_Path)
+    private Value (credential : Microsoft365_Credential) (onedrive_path : OneDrive_Path)
 
     ## ---
        group: Standard.Base.Input
