@@ -75,6 +75,14 @@ function useRightPanelTabs(
       },
     ],
     [
+      'contents',
+      {
+        icon: 'docs',
+        enabled: Ok(),
+        title: 'Contents',
+      },
+    ],
+    [
       'settings',
       {
         icon: 'properties',
