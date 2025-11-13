@@ -49,6 +49,7 @@ public final class OtherJvmPool extends Channel.Config {
 
   public final synchronized void close(Channel<OtherJvmPool> ch) throws Exception {
     this.language = null;
+    this.polyglotBindings = null;
     this.onEnter = null;
     this.onLeave = null;
     this.loader = null;
