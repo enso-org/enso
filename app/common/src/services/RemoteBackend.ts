@@ -540,10 +540,11 @@ export class RemoteBackend extends backend.Backend {
   override async copyAsset(
     assetId: backend.AssetId,
     parentDirectoryId: backend.DirectoryId,
+    versionId?: backend.S3ObjectVersionId,
   ): Promise<backend.CopyAssetResponse> {
     const response = await this.post<backend.CopyAssetResponse>(
       remoteBackendPaths.copyAssetPath(assetId),
-      { parentDirectoryId },
+      { parentDirectoryId, versionId },
     )
 
     if (!response.ok) {

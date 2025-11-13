@@ -36,7 +36,7 @@ export default function MembersSettingsSection() {
   const feature = getFeature('inviteUser')
 
   const seatsLeft = isUnderPaywall ? invitations.availableLicenses : null
-  const seatsTotal = feature.meta.maxSeats
+  const seatsTotal = isUnderPaywall ? invitations.maxLicenses : feature.meta.maxSeats
   const isAdmin = user.isOrganizationAdmin
 
   return (
