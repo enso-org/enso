@@ -183,11 +183,10 @@ case object TypeSignatures extends IRPass {
       case ut: Definition.Type =>
         ut.members.foreach(d => verifyAscribedArguments(d.arguments))
         Some(
-          ut
-            .copy(
-              params  = ut.params.map(resolveArgument),
-              members = ut.members.map(resolveDefinitionData)
-            )
+          ut.copyBuilder()
+            .params(ut.params().map(resolveArgument))
+            .members(ut.members().map(resolveDefinitionData))
+            .build()
             .mapExpressions(resolveExpression)
         )
       case err: Error                  => Some(err)
@@ -212,7 +211,7 @@ case object TypeSignatures extends IRPass {
       .toList
 
     mod.copyWithBindings(
-      bindings = newBindings
+      newBindings
     )
   }
 
@@ -305,8 +304,8 @@ case object TypeSignatures extends IRPass {
   private def resolveDefinitionData(
     data: Definition.Data
   ): Definition.Data = {
-    data.copy(
-      arguments = data.arguments.map(resolveArgument)
+    data.copyWithArguments(
+      data.arguments.map(resolveArgument)
     )
   }
 

@@ -77,7 +77,7 @@ case object DataflowAnalysis extends IRPass {
   ): Module = {
     val dependencyInfo = new DependencyInfo
     ir.copyWithBindings(
-      bindings = ir.bindings.map(analyseModuleDefinition(_, dependencyInfo))
+      ir.bindings.map(analyseModuleDefinition(_, dependencyInfo))
     ).updateMetadata(new MetadataPair(this, dependencyInfo))
   }
 
@@ -173,8 +173,10 @@ case object DataflowAnalysis extends IRPass {
           )
           .build()
           .updateMetadata(new MetadataPair(this, info))
-      case tp @ Definition.Type(_, params, members, _, _) =>
-        val tpDep = asStatic(tp)
+      case tp: Definition.Type =>
+        val params  = tp.params()
+        val members = tp.members()
+        val tpDep   = asStatic(tp)
         val newParams = params.map { param =>
           val paramDep = asStatic(param)
           info.dependents.updateAt(paramDep, Set(tpDep))
@@ -192,12 +194,17 @@ case object DataflowAnalysis extends IRPass {
           })
 
           data
-            .copy(
-              arguments = data.arguments.map(analyseDefinitionArgument(_, info))
+            .copyBuilder()
+            .arguments(
+              data.arguments.map(analyseDefinitionArgument(_, info))
             )
+            .build()
             .updateMetadata(new MetadataPair(this, info))
         }
-        tp.copy(params = newParams, members = newMembers)
+        tp.copyBuilder()
+          .params(newParams)
+          .members(newMembers)
+          .build()
           .updateMetadata(new MetadataPair(this, info))
       case _: definition.Method.Binding =>
         throw new CompilerError(
