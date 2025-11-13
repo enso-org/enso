@@ -21,6 +21,6 @@ type SQLServer_Query
 
 SQLServer_Query.from (that:Text) = SQLServer_Query.Table_Name that
 
-SQLServer_Query.From (that:SQL_Query) = case that of
+SQLServer_Query.from (that:SQL_Query) = case that of
     SQL_Query.Table_Name name -> SQLServer_Query.Table_Name name ""
     SQL_Query.Raw_SQL sql -> SQLServer_Query.Raw_SQL sql
