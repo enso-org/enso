@@ -19,7 +19,7 @@ public final class YdocServerImpl extends YdocServerApi {
     //   return launch(hostname, port);
     // but in the other JVM
     var isAot = ImageInfo.inImageRuntimeCode();
-    var loader = OtherJvmClassLoader.create("org.enso.ydoc.server", null, isAot, null);
+    var loader = OtherJvmClassLoader.create("org.enso.ydoc.server", null, null, isAot, null);
     if (isAot) {
       // in AOT mode the org.enso.ydoc.server is the main module loaded
       // to the JVM's boot layer - e.g. its classes are available

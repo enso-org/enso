@@ -615,7 +615,8 @@ impl RunContext {
         assert!(old_api_dir.exists());
         debug!(
             "Checking API for library Standard.{}, its API dir is in {:?}",
-            lib.name, old_api_dir
+            lib.name,
+            self.short_path(&old_api_dir)
         );
         // `lib_path_in_built_distribution` points to the lib in the `built-distribution`
         // directory, which is not under VCS. We will regenerate the API in this directory
@@ -640,21 +641,25 @@ impl RunContext {
         match diff {
             Ok(_) => Ok(()),
             Err(err) => {
-                let suggested_cmd = built_enso
-                    .cmd()?
-                    .with_arg("--docs")
-                    .with_arg("api")
-                    .with_arg("--in-project")
-                    .with_arg(lib.path.clone());
                 error!("API check failed for library Standard.{}", lib.name);
                 error!("Current API vs Old API: {}", err);
-                error!("If you wish to overwrite the current API in the directory {}, run the following command {},
+                error!("If you wish to overwrite the current API in the directory {}, run the following command 
+                       sbt \"runEngineDistribution --no-ir-caches --docs=api --in-project {}\"
                        and commit the modified files",
-                  old_api_dir.display(),
-                  suggested_cmd.describe()
+                  self.short_path(&old_api_dir).display(),
+                  self.short_path(&lib.path).display()
                 );
                 bail!("API check failed for library Standard.{}", lib.name);
             }
+        }
+    }
+
+    fn short_path(&self, full: &Path) -> PathBuf {
+        let strip = full.strip_prefix(self.repo_root.path.clone());
+        if let Ok(relative) = strip {
+            relative.to_path_buf()
+        } else {
+            full.to_path_buf()
         }
     }
 }

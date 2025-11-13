@@ -173,6 +173,12 @@ final class EnsoPolyglotJava {
   private Object findPolyglotJava() throws InteropException {
     TruffleSafepoint.setBlockedThreadInterruptible(null, Semaphore::acquire, lock);
     try {
+      if (polyglotJava instanceof Throwable t) {
+        throw ctx.raiseAssertionPanic(null, t.getMessage(), t);
+      }
+      if (polyglotJava != this) {
+        return polyglotJava;
+      }
       if (polyglotJava == this) {
         polyglotJava = createPolyglotJava(ctx);
         try {
@@ -242,7 +248,7 @@ final class EnsoPolyglotJava {
     } else {
       var envJava = System.getenv("ENSO_JAVA");
       if (envJava == null) {
-        logger.log(Level.ERROR, "Using experimental OtherJvm support!");
+        logger.log(Level.INFO, "Initializing OtherJvm support!");
         var src = Source.newBuilder("epb", "java:0#guest", "<Bindings>").build();
         var target = ctx.parseInternal(src);
         return target.call();
