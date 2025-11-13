@@ -7,7 +7,6 @@ import project.Error.Error
 import project.Errors.Common.Assertion_Error
 import project.Errors.Common.Forbidden_Operation
 import project.Errors.Common.Type_Error
-import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Function.Function
 import project.Internal.Context_Helpers.Context_Helpers
 import project.Internal.Meta_Helpers
@@ -20,16 +19,13 @@ from project.Data.Boolean import Boolean, True
 from project.Data.Text.Extensions import all
 from project.Runtime.Context import Dataflow_Stack_Trace, Input, Output
 
-polyglot java import java.lang.Thread
 
 ## ---
    advanced: true
    ---
    Pauses the current thread for the specified duration in milliseconds.
-sleep milliseconds:Integer result:Any=Nothing -> Any =
-    if milliseconds < 0 then Error.throw (Illegal_Argument.Error "milliseconds must be non-negative")
-    Thread.sleep milliseconds
-    result
+sleep milliseconds:Integer ~result:Any=Nothing -> Any =
+    @Tail_Call Runtime_Helpers.sleep milliseconds (result...)
 
 ## ---
    private: true
