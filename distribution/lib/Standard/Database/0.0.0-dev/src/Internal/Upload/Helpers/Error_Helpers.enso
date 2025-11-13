@@ -17,7 +17,7 @@ from Standard.Database.Errors import SQL_Error
    transaction.
 internal_translate_known_upload_errors source_table connection primary_key ~action =
     handler caught_panic =
-        error_mapper = connection.dialect.get_error_mapper
+        error_mapper = connection.type_mapping.error_mapper
         sql_error = caught_panic.payload
         case error_mapper.is_duplicate_primary_key_violation sql_error of
             True -> Panic.throw (Non_Unique_Key_Recipe.Recipe source_table primary_key caught_panic)
