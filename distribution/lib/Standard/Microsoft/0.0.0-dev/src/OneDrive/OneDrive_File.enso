@@ -5,13 +5,12 @@ import Standard.Base.Errors.Unimplemented.Unimplemented
 import Standard.Base.System.File_Format_Metadata.File_Format_Metadata
 import Standard.Base.System.Input_Stream.Input_Stream
 
-import project.Microsoft365.Microsoft365
+import project.Internal.Graph.Graph
+import project.Internal.OneDrive_Path.OneDrive_Path
+import project.Microsoft365_Credential.Microsoft365_Credential
 
 type OneDrive_File
-    Value (service : Microsoft365) (onedrive_path : OneDrive_Path)
-
-    root (service : Microsoft365) =
-        OneDrive_File.Value service (OneDrive_Path.Value [])
+    Value (credential : Microsoft365_Credential) (onedrive_path : OneDrive_Path)
 
     ## ---
        group: Standard.Base.Input
@@ -39,10 +38,10 @@ type OneDrive_File
 
         check_name_filter <| check_recursion <| _check_directory self <|
             frag = self.onedrive_path.to_human_readable_fragment_dir
-            children = self.service.fetch_json self.service.base_url+frag
+            children = Graph.fetch_json self.credential Graph.base_url+frag
             names = children.at "value" . map (x-> x.at "name")
             paths = names.map name-> self.onedrive_path.extend name
-            paths.map path-> OneDrive_File.Value self.service path
+            paths.map path-> OneDrive_File.Value self.credential path
 
     ## ---
        private: true
@@ -63,7 +62,7 @@ type OneDrive_File
         _check_not_directory self <|
             File_Access.ensure_only_allowed_options "with_input_stream" [File_Access.Read] open_options <|
                 frag = self.onedrive_path.to_human_readable_fragment_file
-                response = self.service.fetch self.service.base_url+frag
+                response = Graph.fetch self.credential Graph.base_url+frag
                 response.body.with_stream action
 
     ## ---
@@ -96,7 +95,7 @@ type OneDrive_File
             case format of
                 Auto_Detect ->
                     frag = self.onedrive_path.to_human_readable_fragment_file
-                    response = self.service.fetch self.service.base_url+frag
+                    response = Graph.fetch self.credential Graph.base_url+frag
                     response.decode Auto_Detect
                 _ ->
                     metadata = File_Format_Metadata.Value path=self.path name=self.name
@@ -129,7 +128,7 @@ type OneDrive_File
        - `True` if the OneDrive path represents a folder, `False` otherwise.
     is_directory self -> Boolean =
         frag = self.onedrive_path.to_human_readable_fragment
-        entry = self.service.fetch_json self.service.base_url+frag
+        entry = Graph.fetch_json self.credential Graph.base_url+frag
         entry.contains_key "folder"
 
 private _check_directory file:OneDrive_File ~action =
@@ -139,44 +138,3 @@ private _check_directory file:OneDrive_File ~action =
 private _check_not_directory file:OneDrive_File ~action =
     if file.is_directory.not then action else
         Error.throw <| Illegal_Argument.Error "The OneDrive_File must represent a file, not a folder: "+file.onedrive_path.path.to_text
-
-type OneDrive_Path
-    Value (path : Vector Text)
-
-    ## ---
-       private: true
-       ---
-    extend self subpath:Text =
-        OneDrive_Path.Value (self.path + [subpath])
-
-    ## ---
-       private: true
-       ---
-    to_text self -> Text =
-        "/" + (self.path.join "/")
-
-    ## ---
-       private: true
-       ---
-    file_name self -> Text =
-        if self.path.is_empty then "/" else self.path.last
-
-    ## ---
-       private: true
-       ---
-    to_human_readable_fragment self =
-        if self.path.is_empty then "/me/drive/root" else
-            "/me/drive/root:/" + (self.path.join "/")
-
-    ## ---
-       private: true
-       ---
-    to_human_readable_fragment_dir self =
-        if self.path.is_empty then "/me/drive/root/children" else
-            "/me/drive/root:/" + (self.path.join "/") + ":/children"
-
-    ## ---
-       private: true
-       ---
-    to_human_readable_fragment_file self =
-        "/me/drive/root:/" + (self.path.join "/") + ":/content"

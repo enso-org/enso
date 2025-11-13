@@ -1,0 +1,9 @@
+from Standard.Base import all
+
+import project.Internal.OneDrive_Path.OneDrive_Path
+import project.Microsoft365_Credential.Microsoft365_Credential
+import project.OneDrive.OneDrive_File.OneDrive_File
+
+type OneDrive2
+    root (credential : Microsoft365_Credential) =
+        OneDrive_File.Value credential (OneDrive_Path.Value [])
