@@ -402,7 +402,7 @@ make_group_number_equal_count : Vector SQL_Builder -> SQL_Builder
 make_group_number_equal_count (arguments : Vector) = if arguments.length < 3 then Error.throw (Illegal_State.Error "Wrong amount of parameters in GROUP_NUMBER_EQUAL_COUNT IR. This is a bug in the Database library.") else
     ordering = arguments.drop 3
     ordering_part = if ordering.length == 0 then "" else
-        SQL_Builder.code " OvEr (ORDER BY " ++ SQL_Builder.join ", " ordering ++ ")"
+        SQL_Builder.code " OVER (ORDER BY " ++ SQL_Builder.join ", " ordering ++ ")"
     row_number_minus_1 = (SQL_Builder.code "ROW_NUMBER()" ++ ordering_part).paren ++ " - 1"
 
     group_count = arguments.at 2
@@ -419,9 +419,9 @@ make_group_number_equal_count (arguments : Vector) = if arguments.length < 3 the
    ---
 make_first_aggr method not_null:Boolean=False =
     func args =
-        order_clause = " ORDER BY " ++ SQL_Builder.join "," (args.drop 1)
-        filter_clause = if not_null then " FILTER (" ++ args.first ++ " IS NOT NULL)" else ""
-        SQL_Builder.code "method(" ++ args.first ++ order_clause ++ ")" ++ filter_clause
+        order_clause = SQL_Builder.code " ORDER BY " ++ SQL_Builder.join "," (args.drop 1)
+        filter_clause = if not_null then SQL_Builder.code " FILTER (" ++ args.first ++ " IS NOT NULL)" else ""
+        SQL_Builder.code method+"(" ++ args.first ++ order_clause ++ ")" ++ filter_clause
     [method + (if not_null then "_NOT_NULL" else ""), func]
 
 ## ---
