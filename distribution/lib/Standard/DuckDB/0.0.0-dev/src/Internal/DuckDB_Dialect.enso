@@ -391,7 +391,7 @@ duckdb_dialect_name = "DuckDB"
    Dialect operation overrides for DuckDB.
 private duckdb_overrides =
     scalars = [["ROUND_BANKERS", Base_Generator.make_function "ROUND_EVEN"], ["GROUP_NUMBER_EQUAL_COUNT", make_group_number_equal_count], ["PROPER", Nothing]]
-    aggs = [agg_first, agg_first_not_null, agg_last, agg_last_not_null, agg_shortest, agg_longest, agg_median, agg_stddev, agg_stddev_pop]
+    aggs = [make_first_aggr "FIRST", make_first_aggr "FIRST" not_null=True, make_first_aggr "LAST", make_first_aggr "LAST" not_null=True, agg_shortest, agg_longest, agg_median, agg_stddev, agg_stddev_pop]
     scalars + aggs
 
 ## ---
@@ -417,26 +417,12 @@ make_group_number_equal_count (arguments : Vector) = if arguments.length < 3 the
 ## ---
    private: true
    ---
-agg_first = Base_Generator.lift_unary_op "FIRST" arg->
-    SQL_Builder.code "FIRST(" ++ arg ++ ")"
-
-## ---
-   private: true
-   ---
-agg_first_not_null = Base_Generator.lift_unary_op "FIRST_NOT_NULL" arg->
-    SQL_Builder.code "FIRST(" ++ arg ++ ") FILTER (" ++ arg ++ " IS NOT NULL)"
-
-## ---
-   private: true
-   ---
-agg_last = Base_Generator.lift_unary_op "LAST" arg->
-    SQL_Builder.code "LAST(" ++ arg ++ ")"
-
-## ---
-   private: true
-   ---
-agg_last_not_null = Base_Generator.lift_unary_op "LAST_NOT_NULL" arg->
-    SQL_Builder.code "LAST(" ++ arg ++ ") FILTER (" ++ arg ++ " IS NOT NULL)"
+make_first_aggr method not_null:Boolean=False =
+    func args =
+        order_clause = " ORDER BY " ++ SQL_Builder.join "," (args.drop 1)
+        filter_clause = if not_null then " FILTER (" ++ args.first ++ " IS NOT NULL)" else ""
+        SQL_Builder.code "method(" ++ args.first ++ order_clause ++ ")" ++ filter_clause
+    [method + (if not_null then "_NOT_NULL" else ""), func]
 
 ## ---
    private: true
