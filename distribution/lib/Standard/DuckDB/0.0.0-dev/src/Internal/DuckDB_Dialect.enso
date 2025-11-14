@@ -391,10 +391,16 @@ duckdb_dialect_name = "DuckDB"
    ---
    Dialect operation overrides for DuckDB.
 private duckdb_overrides =
-    scalars = [["ROUND_BANKERS", Base_Generator.make_function "ROUND_EVEN"], ["GROUP_NUMBER_EQUAL_COUNT", make_group_number_equal_count], ["PROPER", Nothing]]
+    scalars = [make_case_sensitive, ["ROUND_BANKERS", Base_Generator.make_function "ROUND_EVEN"], ["GROUP_NUMBER_EQUAL_COUNT", make_group_number_equal_count], ["PROPER", Nothing]]
     date_ops = [["QUARTER", make_quarter],["DATE_DIFF", make_date_diff]]
     aggs = [make_first_aggr "FIRST", make_first_aggr "FIRST" not_null=True, make_first_aggr "LAST", make_first_aggr "LAST" not_null=True, agg_shortest, agg_longest, agg_median, agg_stddev, agg_stddev_pop]
     scalars + date_ops + aggs
+
+## ---
+   private: true
+   ---
+make_case_sensitive = Base_Generator.lift_unary_op "MAKE_CASE_SENSITIVE" arg->
+    SQL_Builder.code "((" ++ arg ++ ') COLLATE "binary")'
 
 ## ---
    private: true
