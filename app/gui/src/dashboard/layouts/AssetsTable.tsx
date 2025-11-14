@@ -290,7 +290,7 @@ function AssetsTable(props: AssetsTableProps) {
     [assetsPages.data?.pages],
   )
   const fetchNextAssetPage = assetsPages.fetchNextPage
-  const isFetching = assetsPages.isLoading || assetsPages.isFetchingNextPage
+  const isFetching = assetsPages.isFetching
 
   const isCloud = backend.type === BackendType.remote
   const rootRef = useRef<HTMLDivElement | null>(null)
@@ -298,6 +298,9 @@ function AssetsTable(props: AssetsTableProps) {
   const getPasteData = useEventCallback(() => driveStore.getState().pasteData)
 
   useEffect(() => {
+    // Do not request next page while refetching. This causes data not being updated.
+    // See https://github.com/TanStack/query/discussions/6709#discussioncomment-8142957
+    if (isFetching) return
     const scrollerEl = scrollerRef.current
     if (!scrollerEl) return
     const tableEl = scrollerEl.children[0]
@@ -305,7 +308,7 @@ function AssetsTable(props: AssetsTableProps) {
     if (scrollerEl.scrollTop + scrollerEl.clientHeight >= tableEl.scrollHeight) {
       void fetchNextAssetPage()
     }
-  }, [fetchNextAssetPage, assetsPages.data?.pages])
+  }, [isFetching, fetchNextAssetPage, assetsPages.data?.pages])
 
   useAssetsTableItems({ parentId: currentDirectoryId, assets })
 
@@ -1046,6 +1049,8 @@ function AssetsTable(props: AssetsTableProps) {
       className="h-full flex-1"
       shadowStartClassName="top-8"
       onScroll={(event) => {
+        // Do not request next page while refetching. This causes data not being updated.
+        // See https://github.com/TanStack/query/discussions/6709#discussioncomment-8142957
         if (isFetching) return
         const element = event.currentTarget
         const tableEl = element.children[0]

@@ -29,8 +29,8 @@ async function updateDescription(
   asset: AssetDetailsResponse<AssetId> | undefined,
   description: string,
 ) {
+  descriptionEdited = false
   if (asset && description && asset.description !== description) {
-    descriptionEdited = false
     await editDescriptionMutation.mutateAsync([
       asset.id,
       {
