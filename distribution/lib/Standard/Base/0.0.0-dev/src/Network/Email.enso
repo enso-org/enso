@@ -10,7 +10,6 @@ import project.Network.Email.Email_Provider.Email_Provider
 import project.Network.Email.Email_Send_Response.Send_Response
 import project.Runtime.Context
 import project.Warning.Warning
-from project.Data.Boolean import Boolean, False, True
 
 ## ---
    aliases: [mail]

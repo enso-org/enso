@@ -1,8 +1,6 @@
 import project.Data.Text.Text
-import project.Error.Error
-import project.Nothing.Nothing
-import project.Panic.Panic
 
+## An error that occurred while sending an email.
 type Send_Error
     ## ---
        private: true
@@ -14,4 +12,3 @@ type Send_Error
        ---
     to_display_text : Text
     to_display_text self = "Send Email Error: " + self.cause
-
