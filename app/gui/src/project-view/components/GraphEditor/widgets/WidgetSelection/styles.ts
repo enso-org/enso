@@ -39,13 +39,13 @@ function sizeOptions(limitWidth: boolean): () => SizeOptions {
   })
 }
 
-const NODE_PADDING = 4
+const TOP_MENU_PADDING = 6
 const SUBMENU_PADDING = 10
 
 /** Offset the dropdown below the port or by SUBMENU_PADDING pixels. */
 function offsetSubmenu(isTopLevel: boolean): OffsetOptions {
   return {
-    mainAxis: isTopLevel ? NODE_PADDING : SUBMENU_PADDING,
+    mainAxis: isTopLevel ? TOP_MENU_PADDING : SUBMENU_PADDING,
   }
 }
 
