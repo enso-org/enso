@@ -16,6 +16,9 @@ from project.Data.Boolean import Boolean, False, True
    icon: email
    ---
    Sends an email.
+
+   Sends an email using the specified email provider. Only sends an email in write mode.
+   The TestOnly email provider can be used to simulate sending an email without actually sending it.
 @from Email_Address.default_widget
 @to Email_Address.vector_widget
 @cc Email_Address.vector_widget
