@@ -6,7 +6,7 @@ import project.Network.Email.Email_Attachment.Email_Attachment
 
 ## An email object representing all parts of an email.
 type Email_Object
-    Value from_address:Email_Address (to:Vector Email_Address)=[] (cc:Vector Email_Address)=[] (bcc:Vector Email_Address)=[] (subject:Text)="" (body:Email_Body)="" (attachments:Vector Email_Attachment)=""
+    Value from_address:Email_Address to:(Vector Email_Address)=[] cc:(Vector Email_Address)=[] bcc:(Vector Email_Address)=[] subject:Text="" body:Email_Body="" attachments:(Vector Email_Attachment)=[]
 
     to_text self -> Text = 
         'From: ' + self.from_address.to_text 
@@ -16,4 +16,3 @@ type Email_Object
             + '\nSubject: ' + self.subject
             + '\nAttachments: ' + (if self.attachments.length == 0 then "None" else (self.attachments.map (f->f.file.name)).join '; ')
             + '\nBody: ' + self.body.body
-	   
