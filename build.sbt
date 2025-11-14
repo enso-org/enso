@@ -6476,7 +6476,7 @@ createStdLibsIndexes := {
   DistributionPackage.indexStdLibs(
     stdLibVersion = targetStdlibVersion,
     ensoVersion   = ensoVersion,
-    stdLibRoot    = distributionRoot / "lib",
+    stdLibRoot    = distributionRoot / "lib" / "Standard",
     javaOpts      = javaOpts,
     env           = extraBazelEnvForStdLibIndexes.value,
     cacheFactory  = cacheFactory.sub("stdlib"),
