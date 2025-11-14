@@ -16,12 +16,10 @@ use std::process::Stdio;
 // === Export ===
 // ==============
 
-pub mod clean;
 pub mod pretty_format;
 
 pub mod r#ref;
 
-pub use clean::Clean;
 pub use r#ref::Ref;
 
 /// The default name of the remote repository.
@@ -270,18 +268,6 @@ pub struct LogEntry {
 }
 
 new_command_type!(Git, GitCommand);
-
-impl GitCommand {
-    pub fn clean(&mut self) -> &mut Self {
-        self.arg(Command::Clean)
-            .apply(&Clean::Ignored)
-            .apply(&Clean::Force)
-            .apply(&Clean::UntrackedDirectories)
-    }
-    pub fn nice_clean(&mut self) -> &mut Self {
-        self.clean().apply(&Clean::Exclude(".idea".into()))
-    }
-}
 
 /// A top-level command for git.
 ///
