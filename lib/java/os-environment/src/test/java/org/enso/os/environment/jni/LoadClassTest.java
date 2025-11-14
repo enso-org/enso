@@ -7,7 +7,13 @@ import static org.junit.Assert.fail;
 import java.io.File;
 import java.math.BigInteger;
 import java.nio.file.Files;
+import java.util.ArrayList;
 import java.util.Random;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import org.enso.jvm.channel.Channel;
 import org.enso.jvm.channel.JVM;
 import org.enso.os.environment.lib.HelloTitle;
@@ -115,6 +121,45 @@ public class LoadClassTest {
   }
 
   @Test
+  public void factorialInSecondThread() throws Exception {
+    var pool = Executors.newSingleThreadExecutor();
+    var v =
+        pool.submit(
+            () -> {
+              var fac = channel.execute(Long.class, new TestMain.CountDownAndReturn(5, 1));
+              return fac;
+            });
+    assertEquals(120, v.get().longValue());
+    pool.shutdown();
+    pool.awaitTermination(10, TimeUnit.SECONDS);
+  }
+
+  @Test
+  public void factorialInManyThreads() throws Exception {
+    var pool = Executors.newFixedThreadPool(30);
+    executeInParallel(1000, pool);
+  }
+
+  private void executeInParallel(int count, ExecutorService pool)
+      throws ExecutionException, InterruptedException {
+    var futures = new ArrayList<Future<Long>>();
+    for (int i = 0; i < count; i++) {
+      var v =
+          pool.submit(
+              () -> {
+                var fac = channel.execute(Long.class, new TestMain.CountDownAndReturn(5, 1));
+                return fac;
+              });
+      futures.add(v);
+    }
+    for (var v : futures) {
+      assertEquals(120, v.get().longValue());
+    }
+    pool.shutdown();
+    pool.awaitTermination(10, TimeUnit.SECONDS);
+  }
+
+  @Test
   public void backAndForthFactorialFive() throws Exception {
     var fac = channel.execute(Long.class, new TestMain.CountDownAndReturn(5, 1));
     assertEquals(120, fac.longValue());
@@ -151,7 +196,6 @@ public class LoadClassTest {
     var libFile = new File(libPath);
     assert libFile.isFile() : "Library file must exists at " + libPath;
     var nativeJvm = JVM.create(libFile);
-    System.err.println("Native " + nativeJvm);
     var tmp = File.createTempFile("nativelib", ".msg");
     var hello = "Hello from native lib!";
     nativeJvm.executeMain("org/enso/os/environment/lib/HelloTitle", tmp.getAbsolutePath(), hello);
@@ -166,9 +210,7 @@ public class LoadClassTest {
     var libFile = new File(libPath);
     assert libFile.isFile() : "Library file must exists at " + libPath;
     var nativeJvm = JVM.create(libFile);
-    System.err.println("got jvm: " + nativeJvm);
     var ch = Channel.create(nativeJvm, HelloTitle.class);
-    System.err.println("got channel: " + ch);
     var fac = ch.execute(HelloTitle.Text.class, new HelloTitle.Hello("Native"));
     assertEquals("Hello Mr. Native!", fac.msg());
   }

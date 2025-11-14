@@ -2,12 +2,10 @@
 import ENGLISH from './text/english.json' with { type: 'json' }
 
 /** Possible languages in which to display text. */
-export enum Language {
-  english = 'english',
-}
+export type Language = 'english'
 
 export const LANGUAGE_TO_LOCALE: Record<Language, string> = {
-  [Language.english]: 'en-US',
+  english: 'en-US',
 }
 
 /** An object containing the corresponding localized text for each text ID. */
@@ -199,7 +197,7 @@ export interface Replacements
     Record<Exclude<TextId, keyof PlaceholderOverrides>, []> {}
 
 export const TEXTS: Readonly<Record<Language, Texts>> = {
-  [Language.english]: ENGLISH,
+  english: ENGLISH,
 }
 
 /**
@@ -221,7 +219,7 @@ export function resolveUserLanguage(): Language {
   return (
     (Object.keys(LANGUAGE_TO_LOCALE) as readonly Language[]).find(
       (language) => locale === LANGUAGE_TO_LOCALE[language],
-    ) ?? Language.english
+    ) ?? 'english'
   )
 }
 

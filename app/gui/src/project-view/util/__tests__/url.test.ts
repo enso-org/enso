@@ -1,4 +1,4 @@
-import { Err, Ok, type Result } from '@/util/data/result'
+import { Err, Ok, type Result } from 'enso-common/src/utilities/data/result'
 import { describe, expect, test } from 'vitest'
 import { parseEnsoDeeplink, type DeeplinkUrl } from '../url'
 

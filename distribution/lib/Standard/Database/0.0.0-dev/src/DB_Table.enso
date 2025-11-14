@@ -8,8 +8,8 @@ import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Errors.Unimplemented.Unimplemented
-import Standard.Base.Metadata.Widget
 import Standard.Base.Metadata.File_Type
+import Standard.Base.Metadata.Widget
 from Standard.Base.Runtime import assert
 
 import Standard.Table.Internal.Add_Row_Number
@@ -49,9 +49,6 @@ import project.Internal.Type_Refinements.DB_Table_Refinements
 import project.SQL.SQL_Statement
 import project.SQL.SQL_Type
 from project.SQL_Query import make_table_for_name
-
-polyglot java import java.sql.JDBCType
-polyglot java import java.util.UUID
 
 ## Represents a column-oriented table data structure backed by a database.
 type DB_Table

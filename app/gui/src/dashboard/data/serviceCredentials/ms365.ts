@@ -1,10 +1,7 @@
-/**
- * @file Definitions for the MS365 credentials integration.
- */
-import invariant from 'tiny-invariant'
-
-import type { MS365CredentialInput, SecretId } from '#/services/Backend'
+/** @file Definitions for the MS365 credentials integration. */
+import type { MS365CredentialInput, SecretId } from 'enso-common/src/services/Backend'
 import * as i18n from 'enso-common/src/text'
+import invariant from 'tiny-invariant'
 import { z } from 'zod'
 import type { CredentialRecipe } from './types'
 import { getOauthRedirectUri } from './utilities'

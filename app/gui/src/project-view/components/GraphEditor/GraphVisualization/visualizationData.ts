@@ -17,6 +17,8 @@ import { toError } from '@/util/data/error'
 import { ProjectPath } from '@/util/projectPath'
 import type { ToValue } from '@/util/reactivity'
 import { computedAsync } from '@vueuse/core'
+import type { Opt } from 'enso-common/src/utilities/data/opt'
+import type { Result } from 'enso-common/src/utilities/data/result'
 import {
   computed,
   onErrorCaptured,
@@ -28,8 +30,6 @@ import {
   type ShallowRef,
 } from 'vue'
 import { isIdentifier } from 'ydoc-shared/ast'
-import type { Opt } from 'ydoc-shared/util/data/opt'
-import type { Result } from 'ydoc-shared/util/data/result'
 import type { VisualizationIdentifier } from 'ydoc-shared/yjsModel'
 
 /** Used for testing. */

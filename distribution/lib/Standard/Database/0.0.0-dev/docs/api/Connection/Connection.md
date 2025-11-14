@@ -1,7 +1,7 @@
 ## Enso Signatures 1.0
 ## module Standard.Database.Connection.Connection
 - type Connection
-    - Value jdbc_connection:Standard.Base.Any.Any dialect:Standard.Base.Any.Any type_mapping:Standard.Base.Any.Any statement_setter:Standard.Database.Internal.Statement_Setter.Statement_Setter entity_naming_properties:Standard.Database.Internal.Connection.Entity_Naming_Properties.Entity_Naming_Properties supports_large_update:(Standard.Base.Runtime.Ref.Ref Standard.Base.Data.Boolean.Boolean) hidden_table_registry:Standard.Database.Internal.Hidden_Table_Registry.Hidden_Table_Registry data_link_setup:(Standard.Database.Internal.Data_Link_Setup.Data_Link_Setup|Standard.Base.Nothing.Nothing)=
+    - Value jdbc_connection:Standard.Base.Any.Any dialect:Standard.Base.Any.Any type_mapping:Standard.Base.Any.Any entity_naming_properties:Standard.Database.Internal.Connection.Entity_Naming_Properties.Entity_Naming_Properties supports_large_update:(Standard.Base.Runtime.Ref.Ref Standard.Base.Data.Boolean.Boolean) hidden_table_registry:Standard.Database.Internal.Hidden_Table_Registry.Hidden_Table_Registry data_link_setup:(Standard.Database.Internal.Data_Link_Setup.Data_Link_Setup|Standard.Base.Nothing.Nothing)=
     - base_connection self -> Standard.Base.Any.Any
     - close self -> Standard.Base.Any.Any
     - column_naming_helper self -> Standard.Base.Any.Any
@@ -13,12 +13,12 @@
     - execute self query:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - execute_query self query:Standard.Base.Any.Any limit:Standard.Table.Rows_To_Read.Rows_To_Read= write_operation:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Any.Any
     - execute_update self query:Standard.Base.Any.Any -> Standard.Base.Any.Any
-    - fetch_columns self statement:Standard.Base.Any.Any statement_setter:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - fetch_columns self statement:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - fetch_primary_key self table_name:Standard.Base.Data.Text.Text schema_name:Standard.Base.Data.Text.Text= -> Standard.Base.Any.Any
     - get_tables_advanced self name_like:Standard.Base.Any.Any= database:Standard.Base.Any.Any= schema:Standard.Base.Any.Any= types:Standard.Base.Any.Any= all_fields:Standard.Base.Any.Any= include_hidden:Standard.Base.Any.Any= -> Standard.Base.Any.Any
     - internal_allocate_dry_run_table self table_name:Standard.Base.Any.Any connection:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - maybe_run_maintenance self -> Standard.Base.Any.Any
-    - new jdbc_connection:Standard.Database.Internal.JDBC_Connection.JDBC_Connection dialect:Standard.Base.Any.Any type_mapping:Standard.Base.Any.Any entity_naming_properties:Standard.Database.Internal.Connection.Entity_Naming_Properties.Entity_Naming_Properties data_link_setup:(Standard.Database.Internal.Data_Link_Setup.Data_Link_Setup|Standard.Base.Nothing.Nothing)= try_large_update:Standard.Base.Data.Boolean.Boolean= statement_setter:Standard.Database.Internal.Statement_Setter.Statement_Setter= -> Standard.Database.Connection.Connection.Connection
+    - new jdbc_connection:Standard.Database.Internal.JDBC_Connection.JDBC_Connection dialect:Standard.Base.Any.Any type_mapping:Standard.Base.Any.Any entity_naming_properties:Standard.Database.Internal.Connection.Entity_Naming_Properties.Entity_Naming_Properties data_link_setup:(Standard.Database.Internal.Data_Link_Setup.Data_Link_Setup|Standard.Base.Nothing.Nothing)= try_large_update:Standard.Base.Data.Boolean.Boolean= -> Standard.Database.Connection.Connection.Connection
     - query self query:Standard.Base.Any.Any alias:Standard.Base.Data.Text.Text= -> Standard.Base.Any.Any
     - read self query:Standard.Base.Any.Any limit:Standard.Table.Rows_To_Read.Rows_To_Read= -> Standard.Base.Any.Any
     - read_statement self statement:Standard.Base.Any.Any column_types:Standard.Base.Any.Any= last_row_only:Standard.Base.Any.Any= -> Standard.Base.Any.Any
@@ -33,7 +33,7 @@
     - table_types self -> Standard.Base.Any.Any
     - tables self name_like:Standard.Base.Any.Any= database:Standard.Base.Any.Any= schema:Standard.Base.Any.Any= types:Standard.Base.Any.Any= all_fields:Standard.Base.Any.Any= -> Standard.Base.Any.Any
     - truncate_table self table_name:Standard.Base.Any.Any -> Standard.Base.Any.Any
-- get_tables_advanced jdbc_connection:Standard.Base.Any.Any name_like:(Standard.Base.Data.Text.Text|Standard.Base.Nothing.Nothing) database:(Standard.Base.Data.Text.Text|Standard.Base.Nothing.Nothing) schema:(Standard.Base.Data.Text.Text|Standard.Base.Nothing.Nothing) types:(Standard.Base.Nothing.Nothing|Standard.Base.Data.Vector.Vector) sql_type_to_value_type:Standard.Base.Any.Any= column_fetcher_factory:Standard.Base.Any.Any= all_fields:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Any.Any
+- get_tables_advanced jdbc_connection:Standard.Base.Any.Any name_like:(Standard.Base.Data.Text.Text|Standard.Base.Nothing.Nothing) database:(Standard.Base.Data.Text.Text|Standard.Base.Nothing.Nothing) schema:(Standard.Base.Data.Text.Text|Standard.Base.Nothing.Nothing) types:(Standard.Base.Nothing.Nothing|Standard.Base.Data.Vector.Vector) column_fetcher_factory:Standard.Base.Any.Any sql_type_to_value_type:Standard.Base.Any.Any= all_fields:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Any.Any
 - make_database_selector connection:Standard.Base.Any.Any include_any:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Any.Any
 - make_schema_selector connection:Standard.Base.Any.Any include_any:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Any.Any
 - make_structure_creator -> Standard.Base.Any.Any

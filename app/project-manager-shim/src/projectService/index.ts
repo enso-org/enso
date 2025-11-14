@@ -74,18 +74,24 @@ export class ProjectService {
   /** Creates a new ProjectService with the specified runner. */
   constructor(
     private readonly runner: Runner,
-    private readonly extraArgs: Array<string>,
+    private readonly extraArgs: readonly string[],
     private readonly logger: Console = console,
   ) {}
 
   /** Creates a default ProjectService using the Enso executable found in the environment. */
-  static default(workDir: string = '.', extraArgs: Array<string> = []): ProjectService {
+  static default(workDir: string = '.', extraArgs: readonly string[] = []): ProjectService {
     const ensoPath = findEnsoExecutable(workDir)
     if (!ensoPath) {
       throw new Error('Enso executable not found')
     }
     const runner = new EnsoRunner(ensoPath)
-    return new ProjectService(runner, extraArgs)
+
+    // Read extra arguments from environment variable
+    const envArgs = process.env.ENSO_ENGINE_ARGS
+    const envArgsArray = envArgs ? envArgs.split(/\s+/).filter((arg) => arg.length > 0) : []
+    const allExtraArgs = [...envArgsArray, ...extraArgs]
+
+    return new ProjectService(runner, allExtraArgs)
   }
 
   /**

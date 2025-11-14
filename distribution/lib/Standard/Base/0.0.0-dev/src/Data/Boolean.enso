@@ -1,6 +1,6 @@
 import project.Any.Any
-import project.Nothing.Nothing
 import project.Data.Ordering.Comparable
+import project.Nothing.Nothing
 
 export project.Data.Boolean.Boolean.False
 export project.Data.Boolean.Boolean.True
@@ -127,11 +127,11 @@ type Boolean
     if_then self ~on_true = @Builtin_Method "Boolean.if_then"
 
     ## ---
-      aliases: [greater than]
-      group: Operators
-      icon: operators
-      ---
-      Checks if `self` is greater than `that`.
+       aliases: [greater than]
+       group: Operators
+       icon: operators
+       ---
+       Checks if `self` is greater than `that`.
     > self that = Comparable.> self=self that
 
     ## ---

@@ -38,9 +38,10 @@ export function selectionActionHandlers(
     },
     'components.deleteSelected': {
       enabled: atLeastOneComponent,
-      description: computed(() =>
-        singleNodeSelected.value ? 'Delete Component' : 'Delete Selected Components',
-      ),
+      description: computed(() => {
+        console.log('singleNodeSelected.value', singleNodeSelected.value)
+        return singleNodeSelected.value ? 'Delete Component' : 'Delete Selected Components'
+      }),
       action: action('deleteNodes'),
     },
     'components.pickColorMulti': {

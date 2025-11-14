@@ -1,5 +1,6 @@
 /** @file Type definitions common between all backends. */
 import { z } from 'zod'
+import type { DownloadOptions } from '../download.js'
 import { getText, resolveDictionary, type Replacements, type TextId } from '../text.js'
 import * as dateTime from '../utilities/data/dateTime.js'
 import * as newtype from '../utilities/data/newtype.js'
@@ -95,7 +96,7 @@ export interface Logger {
   readonly error: (message: unknown, ...optionalParams: unknown[]) => void
 }
 
-type GetText = <K extends TextId>(key: K, ...replacements: Replacements[K]) => string
+export type GetText = <K extends TextId>(key: K, ...replacements: Replacements[K]) => string
 
 /** The {@link Backend} variant. If a new variant is created, it should be added to this enum. */
 export enum BackendType {
@@ -630,7 +631,7 @@ export interface PathResolveResponse extends Omit<AnyRealAsset, 'type' | 'ensoPa
 
 /** Response from "assets/${assetId}" endpoint. */
 export type AssetDetailsResponse<Id extends AssetId> =
-  | (Omit<Asset<AssetTypeFromId<Id>>, 'ensoPath'> & { readonly metadataId: MetadataId })
+  | (Asset<AssetTypeFromId<Id>> & { readonly metadataId: MetadataId })
   | null
 
 /** Whether the user is on a plan with multiple seats (i.e. a plan that supports multiple users). */
@@ -947,9 +948,7 @@ export interface Asset<Type extends AssetType = AssetType> {
   readonly parentsPath: ParentsPath
   readonly virtualParentsPath: VirtualParentsPath
   /** The display path. */
-  // TODO[ao]: As a rule, this should be always defined, but there is one place where we are unable
-  //  to retrieve directory path easily.
-  readonly ensoPath: Type extends AssetType.directory ? EnsoPath | undefined : EnsoPath
+  readonly ensoPath: EnsoPath
 }
 
 /** A convenience alias for {@link Asset}<{@link AssetType.directory}>. */
@@ -1106,6 +1105,7 @@ export interface InviteUserRequestBody {
 export interface ListInvitationsResponseBody {
   readonly invitations: readonly Invitation[]
   readonly availableLicenses: number
+  readonly maxLicenses: number
 }
 
 /** Invitation to join an organization. */
@@ -1274,19 +1274,19 @@ export type AssetSortDirection = 'ascending' | 'descending'
 /** URL query string parameters for the "list directory" endpoint. */
 export interface ListDirectoryRequestParams {
   readonly parentId: DirectoryId | null
-  readonly filterBy: FilterBy | null
-  readonly labels: readonly LabelName[] | null
-  readonly sortExpression: AssetSortExpression | null
-  readonly sortDirection: AssetSortDirection | null
-  readonly recentProjects: boolean
+  readonly filterBy?: FilterBy | null
+  readonly labels?: readonly LabelName[] | null
+  readonly sortExpression?: AssetSortExpression | null
+  readonly sortDirection?: AssetSortDirection | null
+  readonly recentProjects?: boolean
   /**
    * The root path of the directory to list.
    * This is used to list a subdirectory of a local root directory,
    * because a root could be any local folder on the machine.
    */
   readonly rootPath?: Path | undefined
-  readonly from: PaginationToken | null
-  readonly pageSize: number | null
+  readonly from?: PaginationToken | null
+  readonly pageSize?: number | null
 }
 
 /** URL query string parameters for the "search directory" endpoint. */
@@ -1371,6 +1371,10 @@ export interface UploadedProject {
 
 /** A large asset (file or project) that has finished uploading. */
 export type UploadedAsset = UploadedFile | UploadedArchive | UploadedProject
+
+export interface UploadedImages {
+  files: { assetId: AssetId; title: string }[]
+}
 
 /** URL query string parameters for the "upload profile picture" endpoint. */
 export interface UploadPictureRequestParams {
@@ -1635,15 +1639,23 @@ export class NetworkError extends Error {
 export class NotAuthorizedError extends NetworkError {}
 
 /** Interface for sending requests to a backend that manages assets and runs projects. */
-export default abstract class Backend {
+export abstract class Backend {
   abstract readonly type: BackendType
   abstract readonly baseUrl: URL
+  protected getText: GetText
+  private readonly client: HttpClient
+  protected readonly downloader: (options: DownloadOptions) => void | Promise<void>
 
-  /** Create a {@link LocalBackend}. */
+  /** Create a {@link Backend}. */
   constructor(
-    protected getText: GetText,
-    private readonly client: HttpClient,
-  ) {}
+    getText: GetText,
+    client: HttpClient,
+    downloader: (options: DownloadOptions) => void | Promise<void>,
+  ) {
+    this.getText = getText
+    this.client = client
+    this.downloader = downloader
+  }
 
   /**
    * Set `this.getText`. This function is exposed rather than the property itself to make it clear
@@ -1757,7 +1769,11 @@ export default abstract class Backend {
   /** Restore an arbitrary asset from the trash. */
   abstract undoDeleteAsset(assetId: AssetId, parentDirectoryId: DirectoryId | null): Promise<void>
   /** Copy an arbitrary asset to another directory. */
-  abstract copyAsset(assetId: AssetId, parentDirectoryId: DirectoryId): Promise<CopyAssetResponse>
+  abstract copyAsset(
+    assetId: AssetId,
+    parentDirectoryId: DirectoryId,
+    versionId?: S3ObjectVersionId,
+  ): Promise<CopyAssetResponse>
   /** Create a project for the current user. */
   abstract createProject(body: CreateProjectRequestBody): Promise<CreatedProject>
   /** Close a project. */
@@ -1864,6 +1880,14 @@ export default abstract class Backend {
     body: UploadFileEndRequestBody,
     abort?: AbortSignal,
   ): Promise<UploadedAsset>
+  /**
+   * Upload set of Images, resolving any possible conflicts. The sum of file sizes may not
+   * exceed cloud message limit.
+   */
+  abstract uploadImage(
+    parentDirectoryId: DirectoryId,
+    files: { data: Blob; name: string }[],
+  ): Promise<UploadedImages>
   /** Change the name of a file. */
   abstract updateFile(fileId: FileId, body: UpdateFileRequestBody, title: string): Promise<void>
 
@@ -2000,6 +2024,16 @@ export default abstract class Backend {
   protected postBinary<T = void>(path: string, payload: Blob, options?: HttpClientPostOptions) {
     return this.checkForAuthenticationError(() =>
       this.client.postBinary<T>(this.resolvePath(path), payload, options),
+    )
+  }
+
+  protected postFormData<T = void>(
+    path: string,
+    payload: FormData,
+    options?: HttpClientPostOptions,
+  ) {
+    return this.checkForAuthenticationError(() =>
+      this.client.postFormData<T>(this.resolvePath(path), payload, options),
     )
   }
 

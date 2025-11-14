@@ -1,8 +1,8 @@
 import type { MethodPointer } from '@/util/methodPointer'
 import type { ToValue } from '@/util/reactivity'
 import type { ProjectId } from 'enso-common/src/services/Backend'
+import type { Opt } from 'enso-common/src/utilities/data/opt'
 import { computed, type Ref, toRef, toValue } from 'vue'
-import type { Opt } from 'ydoc-shared/util/data/opt'
 
 export interface DocumentViewIdOptions {
   /** The project to which the method belongs. */

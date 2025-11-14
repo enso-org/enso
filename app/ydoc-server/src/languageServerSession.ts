@@ -1,4 +1,5 @@
 import createDebug from 'debug'
+import { Err, Ok, withContext, type Result } from 'enso-common/src/utilities/data/result'
 import * as json from 'lib0/json'
 import * as map from 'lib0/map'
 import { ObservableV2 } from 'lib0/observable'
@@ -16,7 +17,6 @@ import type {
   response,
 } from 'ydoc-shared/languageServerTypes'
 import { assertNever } from 'ydoc-shared/util/assert'
-import { Err, Ok, withContext, type Result } from 'ydoc-shared/util/data/result'
 import { AbortScope, exponentialBackoff, printingCallbacks } from 'ydoc-shared/util/net'
 import { ReconnectingWebSocketTransport } from 'ydoc-shared/util/net/ReconnectingWSTransport'
 import {

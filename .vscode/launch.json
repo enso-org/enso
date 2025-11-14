@@ -41,6 +41,16 @@
       "name": "Rust Gen CI",
       "program": "${workspaceFolder}/target/rust/debug/enso-build-ci-gen",
       "args": []
-    }
+    },
+   {
+      "type": "lldb",
+      "request": "launch",
+      "preLaunchTask": "Rust ./run",
+      "name": "Rust ./run",
+      "program": "${workspaceFolder}/target/rust/buildscript/enso-build-cli",
+      // provide arguments, for example: 
+      // "args": ["backend", "stdlib-api-check"]
+      "args": []
+    },
   ]
 }

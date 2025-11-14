@@ -1,4 +1,4 @@
-import { ProjectId } from '#/services/Backend'
+import { useOpenedProjects } from '$/providers/openedProjects'
 import { ComputedValueRegistry } from '$/providers/openedProjects/project/computedValueRegistry'
 import {
   ExecutionContext,
@@ -11,7 +11,6 @@ import { Awareness } from '@/stores/awareness'
 import { attachProvider, useObserveYjs } from '@/util/crdt'
 import { nextEvent } from '@/util/data/observable'
 import type { Opt } from '@/util/data/opt'
-import { Err, Ok, type Result } from '@/util/data/result'
 import { ReactiveMapping } from '@/util/database/reactiveDb'
 import type { MethodPointer } from '@/util/methodPointer'
 import { createDataWebsocket, createRpcTransport, useAbortScope } from '@/util/net'
@@ -20,6 +19,8 @@ import { ProjectPath } from '@/util/projectPath'
 import { tryQualifiedName, type QualifiedName } from '@/util/qualifiedName'
 import { proxyRefs } from '@/util/reactivity'
 import { computedAsync } from '@vueuse/core'
+import { ProjectId } from 'enso-common/src/services/Backend'
+import { Err, Ok, type Result } from 'enso-common/src/utilities/data/result'
 import { wait } from 'lib0/promise'
 import type { Ref, WatchSource } from 'vue'
 import {
@@ -59,17 +60,6 @@ const VISUALIZATION_PREPROCESSOR_PATH = ProjectPath.create(
 export type ProjectStore = ReturnType<typeof createProjectStore>
 
 /**
- * Properties of the project.
- *
- * This is a subset of ProjectView props which is used to set up the store.
- */
-export interface ProjectProps {
-  projectId: string
-  renameProject: (newName: string) => void
-  engine: LsUrls
-}
-
-/**
  * The project store synchronizes and holds the open project-related data. The synchronization is
  * performed using a CRDT data types from Yjs. Once the data is synchronized with a "LS bridge"
  * client, it is submitted to the language server as a document update.
@@ -77,13 +67,14 @@ export interface ProjectProps {
 export function createProjectStore(
   props: {
     projectId: ProjectId
-    renameProject: (newName: string) => Promise<void>
+    projectAssetId: ProjectId
     engine: LsUrls
   },
   projectNames: ProjectNameStore,
 ) {
-  const { projectId, renameProject: renameProjectBackend } = props
+  const { projectId, projectAssetId } = props
   const abort = useAbortScope()
+  const openedProjects = useOpenedProjects()
 
   const observedFileName = ref<string>()
 
@@ -156,7 +147,7 @@ export function createProjectStore(
       if (moduleName == null) return null
       const mod = await projectModel.openModule(moduleName)
       for (const origin of localUserActionOrigins) mod?.undoManager.addTrackedOrigin(origin)
-      return mod
+      return mod ? markRaw(mod) : null
     },
     undefined,
     { onError: console.error },
@@ -432,8 +423,9 @@ export function createProjectStore(
   async function renameProject(newDisplayedName: string) {
     try {
       projectNames.onProjectRenameRequested(newDisplayedName)
-      await renameProjectBackend(newDisplayedName)
-      return Ok()
+      const result = await openedProjects.renameProject(projectAssetId, newDisplayedName)
+      if (!result.ok) projectNames.onProjectRenameFailed()
+      return result
     } catch (err) {
       projectNames.onProjectRenameFailed()
       return Err(err)
