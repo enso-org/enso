@@ -118,11 +118,7 @@ export interface SubmenuComponent {
       <SizeTransition height :duration="100">
         <DropdownWidget
           v-if="props.show"
-          :class="[
-            'widgetPill',
-            { outlined: !props.topLevel },
-            { ExtendUpwards: props.topLevel && extendUpwards },
-          ]"
+          class="outlined"
           :entries="entries"
           @clickEntry="onClick"
           @scroll="onScroll"
