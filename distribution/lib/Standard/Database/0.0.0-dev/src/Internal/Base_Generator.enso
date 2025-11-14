@@ -48,7 +48,7 @@ type Dialect_Operations
        ---
        Checks if an operation is supported by the dialect.
     is_operation_supported self operation:Text -> Boolean =
-        self.operations_dict.contains_key operation
+        self.operations_dict.get operation != Nothing
 
 ## ---
    private: true
