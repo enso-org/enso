@@ -9,17 +9,35 @@ add_specs suite_builder =
             child_index = files . map .name . index_of name
             files.at child_index
 
-        group_builder.specify "Can read a top-level file from OneDrive" <|
+        get_test_root =
             secret = Enso_Secret.get "enso://Users/greg.travis@enso.org/m78"
             credential = Microsoft365_Credential.initialize secret
             root = OneDrive_File.root credential
-            get_child root "a.txt" . read . should_equal "aaa\n"
+            get_child (get_child root "test_data") "OneDrive_Spec"
 
-        ##
-            group_builder.specify "Can read a file in a subfolder from OneDrive" <|
-            group_builder.specify "Can read a csv file from OneDrive" <|
-            group_builder.specify "Can list root files OneDrive" <|
-            group_builder.specify "Can list subfolder files OneDrive" <|
+        group_builder.specify "Can read a top-level file from OneDrive" <|
+            get_child get_test_root "a.txt" . read . should_equal 'aaa\n'
+            get_child get_test_root "b.txt" . read . should_equal 'bbbb\n'
+
+        group_builder.specify "Can read a file in a subfolder from OneDrive" <|
+            c = get_child get_test_root "c"
+            d = get_child c "d"
+            get_child c "c.txt" . read . should_equal 'ccccc\n'
+            get_child d "d.txt" . read . should_equal 'dddddd\n'
+
+        group_builder.specify "Can read a csv file from OneDrive" <|
+            table = get_child get_test_root "e.csv" . read
+            table.columns.map .name . should_equal ["abc", "def", "gh", "ijkl"]
+            table.at 0 . to_vector . should_equal [12, 14]
+            table.at 1 . to_vector . should_equal [13, 15]
+            table.at 2 . to_vector . should_equal ['yes', 'asdf']
+            table.at 3 . to_vector . should_equal ['no', 'zxcv']
+
+        group_builder.specify "Can list root files OneDrive" <|
+            get_test_root . list . map .name . should_equal ["c", "a.txt", "b.txt", "e.csv"]
+
+        group_builder.specify "Can list subfolder files OneDrive" <|
+            get_child get_test_root "c" . list . map .name . should_equal ["d", "c.txt"]
 
 main filter=Nothing =
     suite = Test.build suite_builder->
