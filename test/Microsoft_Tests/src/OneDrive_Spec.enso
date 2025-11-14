@@ -2,15 +2,17 @@ from Standard.Base import all
 from Standard.Test import all
 from Standard.Microsoft import all
 
-add_specs suite_builder =
-    suite_builder.group "OneDrive read" group_builder->
+import enso_dev.Cloud_Tests.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setup
+
+add_specs suite_builder setup:Cloud_Tests_Setup =
+    suite_builder.group "OneDrive read" pending=setup.real_cloud_pending group_builder->
         get_child dir name =
             files = dir.list
             child_index = files . map .name . index_of name
             files.at child_index
 
         get_test_root =
-            secret = Enso_Secret.get "enso://Users/greg.travis@enso.org/m78"
+            secret = Enso_Secret.get "enso://Users/greg.travis@enso.org/m83"
             credential = Microsoft365_Credential.initialize secret
             root = OneDrive_File.root credential
             get_child (get_child root "test_data") "OneDrive_Spec"
@@ -40,6 +42,7 @@ add_specs suite_builder =
             get_child get_test_root "c" . list . map .name . should_equal ["d", "c.txt"]
 
 main filter=Nothing =
+    setup = Cloud_Tests_Setup.prepare
     suite = Test.build suite_builder->
-        add_specs suite_builder
+        add_specs suite_builder setup
     suite.run_with_filter filter
