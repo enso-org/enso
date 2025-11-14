@@ -17,6 +17,7 @@ polyglot java import java.lang.NumberFormatException
 polyglot java import java.lang.Exception as JException
 polyglot java import java.util.ArrayList
 polyglot java import java.util.Random as Java_Random
+polyglot java import org.enso.base_test_helpers.CallbackHelper
 
 type My_Type
     Value foo
@@ -122,7 +123,7 @@ add_specs suite_builder =
             arr.length>=1 . should_be_true
             arr.first.name . should_equal "Error_Spec.throw_a_bar"
             arr.first.source_location.file.name . should_equal "Error_Spec.enso"
-            arr.first.source_location.start_line . should_equal 37
+            arr.first.source_location.start_line . should_equal 38
 
         group_builder.specify "should allow to inspect the stack trace of a recovered panic" <|
             error = Panic.recover Any <| throw_a_bar_panicking
@@ -180,6 +181,12 @@ add_specs suite_builder =
         group_builder.specify "panic.rethrow" <|
             result = (Error.throw 42)
             Test.expect_panic_with (Panic.rethrow result) Integer
+
+        group_builder.specify "PanicException.rethrow in polyglot java" <|
+            Test.expect_panic_with (CallbackHelper.rethrow Error 42) Integer
+
+        group_builder.specify "Error.throw returned from polyglot java" <|
+            (CallbackHelper.error Error 42) . catch . should_equal 42
 
         group_builder.specify "should allow the pattern for handling selected exceptions" <|
             perform_operation ~action =

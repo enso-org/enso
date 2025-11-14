@@ -283,8 +283,8 @@ export function listDirectoryQueryOptions(options: ListDirectoryQueryOptions) {
             sortDirection,
             filterBy,
             recentProjects: category.type === 'recent',
-            from,
-            pageSize,
+            from: from ?? null,
+            pageSize: pageSize ?? null,
           },
           parentId ?? '(unknown)',
         )
