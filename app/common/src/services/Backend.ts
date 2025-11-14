@@ -1107,6 +1107,7 @@ export interface InviteUserRequestBody {
 export interface ListInvitationsResponseBody {
   readonly invitations: readonly Invitation[]
   readonly availableLicenses: number
+  readonly maxLicenses: number
 }
 
 /** Invitation to join an organization. */
@@ -1766,7 +1767,11 @@ export abstract class Backend {
   /** Restore an arbitrary asset from the trash. */
   abstract undoDeleteAsset(assetId: AssetId, parentDirectoryId: DirectoryId | null): Promise<void>
   /** Copy an arbitrary asset to another directory. */
-  abstract copyAsset(assetId: AssetId, parentDirectoryId: DirectoryId): Promise<CopyAssetResponse>
+  abstract copyAsset(
+    assetId: AssetId,
+    parentDirectoryId: DirectoryId,
+    versionId?: S3ObjectVersionId,
+  ): Promise<CopyAssetResponse>
   /** Create a project for the current user. */
   abstract createProject(body: CreateProjectRequestBody): Promise<CreatedProject>
   /** Close a project. */

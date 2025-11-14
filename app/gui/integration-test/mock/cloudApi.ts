@@ -919,6 +919,7 @@ export async function mockCloudApi(page: Page) {
       return {
         invitations: [],
         availableLicenses: totalSeats - usersMap.size,
+        maxLicenses: totalSeats,
       }
     })
     await post(paths.INVITE_USER_PATH, async (route) => {
