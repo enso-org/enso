@@ -1,8 +1,8 @@
 import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Network.Email.Email_Address.Email_Address
-import project.Network.Email.Email_Body.Email_Body
 import project.Network.Email.Email_Attachment.Email_Attachment
+import project.Network.Email.Email_Body.Email_Body
 
 ## An email object representing all parts of an email.
 type Email_Object
