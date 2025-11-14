@@ -1,8 +1,8 @@
+import project.Metadata.Display
+import project.Metadata.Widget
 import project.System.File.File
 from project.Metadata.Choice import Option
 from project.Metadata.Widget import Text_Input, Vector_Editor, Single_Choice
-import project.Metadata.Widget
-import project.Metadata.Display
 
 ## The attachment of an email.
 type Email_Attachment
