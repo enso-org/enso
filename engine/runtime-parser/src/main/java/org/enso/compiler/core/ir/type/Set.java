@@ -1,0 +1,191 @@
+package org.enso.compiler.core.ir.type;
+
+import org.enso.compiler.core.ir.Expression;
+import org.enso.compiler.core.ir.IRKind;
+import org.enso.compiler.core.ir.IdentifiedLocation;
+import org.enso.compiler.core.ir.MetadataStorage;
+import org.enso.compiler.core.ir.Name;
+import org.enso.compiler.core.ir.Type;
+import org.enso.runtime.parser.dsl.GenerateFields;
+import org.enso.runtime.parser.dsl.GenerateIR;
+import org.enso.runtime.parser.dsl.IRChild;
+import scala.Option;
+import scala.collection.immutable.List;
+
+/**
+ * IR nodes for dealing with typesets.
+ */
+public interface Set extends Type {
+
+  @Override
+  Set mapExpressions(java.util.function.Function<Expression, Expression> fn);
+
+  @Override
+  Set setLocation(Option<IdentifiedLocation> location);
+
+  @Override
+  Set duplicate(boolean keepLocations, boolean keepMetadata, boolean keepDiagnostics,
+      boolean keepIdentifiers);
+
+  /**
+   * The representation of a typeset member.
+   */
+  @GenerateIR(interfaces = {Set.class, IRKind.Primitive.class})
+  final class Member extends SetMemberGen {
+    /**
+     * @param label the member's label, if given
+     * @param memberType the member's type, if given
+     * @param value the member's value, if given
+     * @param identifiedLocation the source location that the node corresponds to
+     * @param passData the pass metadata associated with this node
+     */
+    @GenerateFields
+    public Member(
+        @IRChild Name label,
+        @IRChild Expression memberType,
+        @IRChild Expression value,
+        IdentifiedLocation identifiedLocation,
+        MetadataStorage passData
+    ) {
+      super(label, memberType, value, identifiedLocation, passData);
+    }
+
+    @Override
+    public String showCode(int indent) {
+      var typeString = " : " + memberType().showCode(indent);
+      var valueString = " = " + value().showCode(indent);
+      return "("
+          + label().showCode(indent)
+          + typeString
+          + valueString
+          + ")";
+    }
+  }
+
+  /** The typeset subsumption judgement {@code <:}.
+   */
+  @GenerateIR(interfaces = {Set.class, IRKind.Primitive.class})
+  final class Subsumption extends SetSubsumptionGen {
+    /**
+     * @param left the left operand
+     * @param right the right operand
+     * @param identifiedLocation the source location that the node corresponds to
+     * @param passData the pass metadata associated with this node
+     */
+    @GenerateFields
+    public Subsumption(
+        @IRChild Expression left,
+        @IRChild Expression right,
+        IdentifiedLocation identifiedLocation,
+        MetadataStorage passData
+    ) {
+      super(left, right, identifiedLocation, passData);
+    }
+
+    @Override
+    public String showCode(int indent) {
+      return "("
+          + left().showCode(indent)
+          + " <: "
+          + right().showCode(indent)
+          + ")";
+    }
+  }
+
+  /**
+   * The typeset equality judgement {@code ~}.
+   */
+  @GenerateIR(interfaces = {Set.class, IRKind.Primitive.class})
+  final class Equality extends SetEqualityGen {
+    @GenerateFields
+    public Equality(
+        @IRChild Expression left,
+        @IRChild Expression right,
+        IdentifiedLocation identifiedLocation,
+        MetadataStorage passData
+    ) {
+      super(left, right, identifiedLocation, passData);
+    }
+
+    @Override
+    public String showCode(int indent) {
+      return "("
+          + left().showCode(indent)
+          + " ~ "
+          + right().showCode(indent)
+          + ")";
+    }
+  }
+
+  /** The typeset concatenation operator {@code ,}.
+   */
+  @GenerateIR(interfaces = {Set.class, IRKind.Primitive.class})
+  final class Concat extends SetConcatGen {
+    @GenerateFields
+    public Concat(
+        @IRChild Expression left,
+        @IRChild Expression right,
+        IdentifiedLocation identifiedLocation,
+        MetadataStorage passData
+    ) {
+      super(left, right, identifiedLocation, passData);
+    }
+
+    @Override
+    public String showCode(int indent) {
+      return "("
+          + left().showCode(indent)
+          + "; "
+          + right().showCode(indent)
+          + ")";
+    }
+  }
+
+  /**
+   * The typeset union operator {@code |}.
+   */
+  @GenerateIR(interfaces = {Set.class, IRKind.Primitive.class})
+  final class Union extends SetUnionGen {
+    @GenerateFields
+    public Union(
+        @IRChild List<Expression> operands,
+        IdentifiedLocation identifiedLocation,
+        MetadataStorage passData
+    ) {
+      super(operands, identifiedLocation, passData);
+    }
+
+    @Override
+    public String showCode(int indent) {
+      return operands()
+          .map(op -> op.showCode(indent))
+          .toList()
+          .mkString(" | ");
+    }
+  }
+
+  /**
+   * The typeset intersection operator {@code &}.
+   */
+  @GenerateIR(interfaces = {Set.class, IRKind.Primitive.class})
+  final class Intersection extends SetIntersectionGen {
+    @GenerateFields
+    public Intersection(
+        @IRChild Expression left,
+        @IRChild Expression right,
+        IdentifiedLocation identifiedLocation,
+        MetadataStorage passData
+    ) {
+      super(left, right, identifiedLocation, passData);
+    }
+
+    @Override
+    public String showCode(int indent) {
+      return "("
+          + left().showCode(indent)
+          + " & "
+          + right().showCode(indent)
+          + ")";
+    }
+  }
+}
