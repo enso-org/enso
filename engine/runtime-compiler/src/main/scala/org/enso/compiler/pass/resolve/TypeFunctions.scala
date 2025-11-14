@@ -69,7 +69,7 @@ case object TypeFunctions extends IRPass {
     @unused moduleContext: ModuleContext
   ): Module = {
     val new_bindings = ir.bindings.map(_.mapExpressions(resolveExpression))
-    ir.copyWithBindings(bindings = new_bindings)
+    ir.copyWithBindings(new_bindings)
   }
 
   /** Performs typing function resolution on an expression.
@@ -95,11 +95,11 @@ case object TypeFunctions extends IRPass {
     Type.Ascription.name,
     Type.Context.name,
     Type.Error.name,
-    `type`.Set.Concat.name,
-    `type`.Set.Subsumption.name,
-    `type`.Set.Equality.name,
-    `type`.Set.Union.name,
-    `type`.Set.Intersection.name
+    `type`.Set.Concat.name(),
+    `type`.Set.Subsumption.name(),
+    `type`.Set.Equality.name(),
+    `type`.Set.Union.name(),
+    `type`.Set.Intersection.name()
   )
 
   /** Performs resolution of typing functions in an arbitrary expression.
@@ -130,7 +130,11 @@ case object TypeFunctions extends IRPass {
         pre.function match {
           case name: Name if name.name == `type`.Set.Union.name =>
             val members = flattenUnion(app).map(resolveExpression)
-            `type`.Set.Union(members, app.identifiedLocation())
+            `type`.Set.Union
+              .builder()
+              .operands(members)
+              .location(app.identifiedLocation())
+              .build()
           case name: Name if knownTypingFunctions.contains(name.name) =>
             resolveKnownFunction(
               name,
@@ -193,21 +197,42 @@ case object TypeFunctions extends IRPass {
       val leftArg  = resolveExpression(arguments.head.value)
       val rightArg = resolveExpression(arguments.last.value)
 
-      name.name match {
-        case Type.Ascription.name =>
-          Type.Ascription(leftArg, rightArg, AscriptionReason.empty(), location)
-        case Type.Context.name =>
-          Type.Context(leftArg, rightArg, location)
-        case Type.Error.name =>
-          Type.Error(leftArg, rightArg, location)
-        case `type`.Set.Concat.name =>
-          `type`.Set.Concat(leftArg, rightArg, location)
-        case `type`.Set.Subsumption.name =>
-          `type`.Set.Subsumption(leftArg, rightArg, location)
-        case `type`.Set.Equality.name =>
-          `type`.Set.Equality(leftArg, rightArg, location)
-        case `type`.Set.Intersection.name =>
-          `type`.Set.Intersection(leftArg, rightArg, location)
+      if (name.name == Type.Ascription.name) {
+        Type.Ascription(leftArg, rightArg, AscriptionReason.empty(), location)
+      } else if (name.name == Type.Context.name) {
+        Type.Context(leftArg, rightArg, location)
+      } else if (name.name == Type.Error.name) {
+        Type.Error(leftArg, rightArg, location)
+      } else if (name.name == `type`.Set.Concat.name) {
+        `type`.Set.Concat
+          .builder()
+          .left(leftArg)
+          .right(rightArg)
+          .location(location)
+          .build()
+      } else if (name.name == `type`.Set.Subsumption.name) {
+        `type`.Set.Subsumption
+          .builder()
+          .left(leftArg)
+          .right(rightArg)
+          .location(location)
+          .build()
+      } else if (name.name == `type`.Set.Equality.name) {
+        `type`.Set.Equality
+          .builder()
+          .left(leftArg)
+          .right(rightArg)
+          .location(location)
+          .build()
+      } else if (name.name == `type`.Set.Intersection.name) {
+        `type`.Set.Intersection
+          .builder()
+          .left(leftArg)
+          .right(rightArg)
+          .location(location)
+          .build()
+      } else {
+        Error.InvalidIR(originalIR)
       }
     } else {
       Error.InvalidIR(originalIR)

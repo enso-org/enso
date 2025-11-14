@@ -12,9 +12,7 @@ import org.enso.runtime.parser.dsl.IRChild;
 import scala.Option;
 import scala.collection.immutable.List;
 
-/**
- * IR nodes for dealing with typesets.
- */
+/** IR nodes for dealing with typesets. */
 public interface Set extends Type {
 
   @Override
@@ -24,12 +22,13 @@ public interface Set extends Type {
   Set setLocation(Option<IdentifiedLocation> location);
 
   @Override
-  Set duplicate(boolean keepLocations, boolean keepMetadata, boolean keepDiagnostics,
+  Set duplicate(
+      boolean keepLocations,
+      boolean keepMetadata,
+      boolean keepDiagnostics,
       boolean keepIdentifiers);
 
-  /**
-   * The representation of a typeset member.
-   */
+  /** The representation of a typeset member. */
   @GenerateIR(interfaces = {Set.class, IRKind.Primitive.class})
   final class Member extends SetMemberGen {
     /**
@@ -45,25 +44,27 @@ public interface Set extends Type {
         @IRChild Expression memberType,
         @IRChild Expression value,
         IdentifiedLocation identifiedLocation,
-        MetadataStorage passData
-    ) {
+        MetadataStorage passData) {
       super(label, memberType, value, identifiedLocation, passData);
+    }
+
+    public static Builder builder() {
+      return new Builder();
+    }
+
+    public Builder copyBuilder() {
+      return new Builder(this);
     }
 
     @Override
     public String showCode(int indent) {
       var typeString = " : " + memberType().showCode(indent);
       var valueString = " = " + value().showCode(indent);
-      return "("
-          + label().showCode(indent)
-          + typeString
-          + valueString
-          + ")";
+      return "(" + label().showCode(indent) + typeString + valueString + ")";
     }
   }
 
-  /** The typeset subsumption judgement {@code <:}.
-   */
+  /** The typeset subsumption judgement {@code <:}. */
   @GenerateIR(interfaces = {Set.class, IRKind.Primitive.class})
   final class Subsumption extends SetSubsumptionGen {
     /**
@@ -77,24 +78,29 @@ public interface Set extends Type {
         @IRChild Expression left,
         @IRChild Expression right,
         IdentifiedLocation identifiedLocation,
-        MetadataStorage passData
-    ) {
+        MetadataStorage passData) {
       super(left, right, identifiedLocation, passData);
+    }
+
+    public static Builder builder() {
+      return new Builder();
+    }
+
+    public static String name() {
+      return "<:";
+    }
+
+    public Builder copyBuilder() {
+      return new Builder(this);
     }
 
     @Override
     public String showCode(int indent) {
-      return "("
-          + left().showCode(indent)
-          + " <: "
-          + right().showCode(indent)
-          + ")";
+      return "(" + left().showCode(indent) + " <: " + right().showCode(indent) + ")";
     }
   }
 
-  /**
-   * The typeset equality judgement {@code ~}.
-   */
+  /** The typeset equality judgement {@code ~}. */
   @GenerateIR(interfaces = {Set.class, IRKind.Primitive.class})
   final class Equality extends SetEqualityGen {
     @GenerateFields
@@ -102,23 +108,29 @@ public interface Set extends Type {
         @IRChild Expression left,
         @IRChild Expression right,
         IdentifiedLocation identifiedLocation,
-        MetadataStorage passData
-    ) {
+        MetadataStorage passData) {
       super(left, right, identifiedLocation, passData);
+    }
+
+    public static Builder builder() {
+      return new Builder();
+    }
+
+    public static String name() {
+      return "~";
+    }
+
+    public Builder copyBuilder() {
+      return new Builder(this);
     }
 
     @Override
     public String showCode(int indent) {
-      return "("
-          + left().showCode(indent)
-          + " ~ "
-          + right().showCode(indent)
-          + ")";
+      return "(" + left().showCode(indent) + " ~ " + right().showCode(indent) + ")";
     }
   }
 
-  /** The typeset concatenation operator {@code ,}.
-   */
+  /** The typeset concatenation operator {@code ,}. */
   @GenerateIR(interfaces = {Set.class, IRKind.Primitive.class})
   final class Concat extends SetConcatGen {
     @GenerateFields
@@ -126,47 +138,58 @@ public interface Set extends Type {
         @IRChild Expression left,
         @IRChild Expression right,
         IdentifiedLocation identifiedLocation,
-        MetadataStorage passData
-    ) {
+        MetadataStorage passData) {
       super(left, right, identifiedLocation, passData);
+    }
+
+    public static Builder builder() {
+      return new Builder();
+    }
+
+    public static String name() {
+      return ";";
+    }
+
+    public Builder copyBuilder() {
+      return new Builder(this);
     }
 
     @Override
     public String showCode(int indent) {
-      return "("
-          + left().showCode(indent)
-          + "; "
-          + right().showCode(indent)
-          + ")";
+      return "(" + left().showCode(indent) + "; " + right().showCode(indent) + ")";
     }
   }
 
-  /**
-   * The typeset union operator {@code |}.
-   */
+  /** The typeset union operator {@code |}. */
   @GenerateIR(interfaces = {Set.class, IRKind.Primitive.class})
   final class Union extends SetUnionGen {
     @GenerateFields
     public Union(
         @IRChild List<Expression> operands,
         IdentifiedLocation identifiedLocation,
-        MetadataStorage passData
-    ) {
+        MetadataStorage passData) {
       super(operands, identifiedLocation, passData);
+    }
+
+    public static Builder builder() {
+      return new Builder();
+    }
+
+    public static String name() {
+      return "|";
+    }
+
+    public Union copyWithOperands(List<Expression> newOperands) {
+      return new Builder(this).operands(newOperands).build();
     }
 
     @Override
     public String showCode(int indent) {
-      return operands()
-          .map(op -> op.showCode(indent))
-          .toList()
-          .mkString(" | ");
+      return operands().map(op -> op.showCode(indent)).toList().mkString(" | ");
     }
   }
 
-  /**
-   * The typeset intersection operator {@code &}.
-   */
+  /** The typeset intersection operator {@code &}. */
   @GenerateIR(interfaces = {Set.class, IRKind.Primitive.class})
   final class Intersection extends SetIntersectionGen {
     @GenerateFields
@@ -174,18 +197,25 @@ public interface Set extends Type {
         @IRChild Expression left,
         @IRChild Expression right,
         IdentifiedLocation identifiedLocation,
-        MetadataStorage passData
-    ) {
+        MetadataStorage passData) {
       super(left, right, identifiedLocation, passData);
+    }
+
+    public static Builder builder() {
+      return new Builder();
+    }
+
+    public static String name() {
+      return "&";
+    }
+
+    public Builder copyBuilder() {
+      return new Builder(this);
     }
 
     @Override
     public String showCode(int indent) {
-      return "("
-          + left().showCode(indent)
-          + " & "
-          + right().showCode(indent)
-          + ")";
+      return "(" + left().showCode(indent) + " & " + right().showCode(indent) + ")";
     }
   }
 }

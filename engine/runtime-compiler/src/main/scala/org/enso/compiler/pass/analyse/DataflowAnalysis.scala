@@ -467,7 +467,9 @@ case object DataflowAnalysis extends IRPass {
             error = analyseExpression(error, info)
           )
           .updateMetadata(new MetadataPair(this, info))
-      case member @ `type`.Set.Member(_, memberType, value, _, _) =>
+      case member: `type`.Set.Member =>
+        val memberType    = member.memberType()
+        val value         = member.value()
         val memberDep     = asStatic(member)
         val memberTypeDep = asStatic(memberType)
         val valueDep      = asStatic(value)
@@ -476,12 +478,14 @@ case object DataflowAnalysis extends IRPass {
         info.dependencies.updateAt(memberDep, Set(memberTypeDep, valueDep))
 
         member
-          .copy(
-            memberType = analyseExpression(memberType, info),
-            value      = analyseExpression(value, info)
-          )
+          .copyBuilder()
+          .memberType(analyseExpression(memberType, info))
+          .value(analyseExpression(value, info))
+          .build()
           .updateMetadata(new MetadataPair(this, info))
-      case concat @ `type`.Set.Concat(left, right, _, _) =>
+      case concat: `type`.Set.Concat =>
+        val left      = concat.left()
+        val right     = concat.right()
         val concatDep = asStatic(concat)
         val leftDep   = asStatic(left)
         val rightDep  = asStatic(right)
@@ -490,58 +494,60 @@ case object DataflowAnalysis extends IRPass {
         info.dependencies.updateAt(concatDep, Set(rightDep, leftDep))
 
         concat
-          .copy(
-            left  = analyseExpression(left, info),
-            right = analyseExpression(right, info)
-          )
+          .copyBuilder()
+          .left(analyseExpression(left, info))
+          .right(analyseExpression(right, info))
+          .build()
           .updateMetadata(new MetadataPair(this, info))
-      case eq @ `type`.Set.Equality(left, right, _, _) =>
+      case eq: `type`.Set.Equality =>
         val eqDep    = asStatic(eq)
-        val leftDep  = asStatic(left)
-        val rightDep = asStatic(right)
+        val leftDep  = asStatic(eq.left)
+        val rightDep = asStatic(eq.right)
         info.dependents.updateAt(leftDep, Set(eqDep))
         info.dependents.updateAt(rightDep, Set(eqDep))
         info.dependencies.updateAt(eqDep, Set(leftDep, rightDep))
 
-        eq.copy(
-          left  = analyseExpression(left, info),
-          right = analyseExpression(right, info)
-        ).updateMetadata(new MetadataPair(this, info))
-      case intersect @ `type`.Set.Intersection(left, right, _, _) =>
+        eq.copyBuilder()
+          .left(analyseExpression(eq.left, info))
+          .right(analyseExpression(eq.right, info))
+          .build()
+          .updateMetadata(new MetadataPair(this, info))
+      case intersect: `type`.Set.Intersection =>
         val intersectDep = asStatic(intersect)
-        val leftDep      = asStatic(left)
-        val rightDep     = asStatic(right)
+        val leftDep      = asStatic(intersect.left)
+        val rightDep     = asStatic(intersect.right)
         info.dependents.updateAt(leftDep, Set(intersectDep))
         info.dependents.updateAt(rightDep, Set(intersectDep))
         info.dependencies.updateAt(intersectDep, Set(leftDep, rightDep))
 
         intersect
-          .copy(
-            left  = analyseExpression(left, info),
-            right = analyseExpression(right, info)
-          )
+          .copyBuilder()
+          .left(analyseExpression(intersect.left, info))
+          .right(analyseExpression(intersect.right, info))
+          .build()
           .updateMetadata(new MetadataPair(this, info))
-      case union @ `type`.Set.Union(operands, _, _) =>
+      case union: `type`.Set.Union =>
+        val operands = union.operands()
         val unionDep = asStatic(union)
         val opDeps   = operands.map(asStatic)
         opDeps.foreach(info.dependents.updateAt(_, Set(unionDep)))
         info.dependencies.updateAt(unionDep, opDeps.toSet)
         union
-          .copy(operands = operands.map(analyseExpression(_, info)))
+          .copyWithOperands(operands.map(analyseExpression(_, info)))
           .updateMetadata(new MetadataPair(this, info))
-      case subsumption @ `type`.Set.Subsumption(left, right, _, _) =>
+      case subsumption: `type`.Set.Subsumption =>
         val subDep   = asStatic(subsumption)
-        val leftDep  = asStatic(left)
-        val rightDep = asStatic(right)
+        val leftDep  = asStatic(subsumption.left)
+        val rightDep = asStatic(subsumption.right)
         info.dependents.updateAt(leftDep, Set(subDep))
         info.dependents.updateAt(rightDep, Set(subDep))
         info.dependencies.updateAt(subDep, Set(leftDep, rightDep))
 
         subsumption
-          .copy(
-            left  = analyseExpression(left, info),
-            right = analyseExpression(right, info)
-          )
+          .copyBuilder()
+          .left(analyseExpression(subsumption.left, info))
+          .right(analyseExpression(subsumption.right, info))
+          .build()
           .updateMetadata(new MetadataPair(this, info))
     }
   }
