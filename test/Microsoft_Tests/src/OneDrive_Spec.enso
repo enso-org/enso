@@ -1,0 +1,27 @@
+from Standard.Base import all
+from Standard.Test import all
+from Standard.Microsoft import all
+
+add_specs suite_builder =
+    suite_builder.group "OneDrive read" group_builder->
+        get_child dir name =
+            files = dir.list
+            child_index = files . map .name . index_of name
+            files.at child_index
+
+        group_builder.specify "Can read a top-level file from OneDrive" <|
+            secret = Enso_Secret.get "enso://Users/greg.travis@enso.org/m78"
+            credential = Microsoft365_Credential.initialize secret
+            root = OneDrive_File.root credential
+            get_child root "a.txt" . read . should_equal "aaa\n"
+
+        ##
+            group_builder.specify "Can read a file in a subfolder from OneDrive" <|
+            group_builder.specify "Can read a csv file from OneDrive" <|
+            group_builder.specify "Can list root files OneDrive" <|
+            group_builder.specify "Can list subfolder files OneDrive" <|
+
+main filter=Nothing =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter filter
