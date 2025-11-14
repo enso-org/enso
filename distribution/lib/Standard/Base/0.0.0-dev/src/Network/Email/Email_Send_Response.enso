@@ -16,6 +16,9 @@ type Send_Response
     ## Email sending failed.
     Failed email:Email_Object
 
+    ## ---
+       private: true
+       ---
     to_text self -> Text =
         case self of
             Send_Response.Test _ -> "Test Only"
