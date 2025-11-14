@@ -1,0 +1,17 @@
+import project.Data.Text.Text
+import project.Error.Error
+import project.Nothing.Nothing
+import project.Panic.Panic
+
+type Send_Error
+    ## ---
+       private: true
+       ---
+    Error cause:Text
+
+    ## ---
+       private: true
+       ---
+    to_display_text : Text
+    to_display_text self = "Send Email Error: " + self.cause
+

@@ -1,14 +1,18 @@
+import project.Any.Any
 import project.Errors.Common.Missing_Argument
 import project.Data.Text.Text
 import project.Network.Email.Email_Address.Email_Address
 import project.Network.Email.Email_Body.Email_Body
 import project.Network.Email.Email_Object.Email_Object
+import project.Network.Email.Send_Error.Send_Error
+import project.Network.HTTP.HTTP_Error.HTTP_Error
 import project.Data.Json.JS_Object
 import project.Network.HTTP.Header.Header
 import project.Data
 import project.Network.Email.Email_Send_Response.Send_Response
 import project.System.File.File
 import project.Nothing.Nothing
+from project.Error import all
 
 
 polyglot java import java.util.Base64
@@ -35,7 +39,9 @@ private _sendgrid_email email:Email_Object api_key:Text =
     sendgrid_request_body = JS_Object.from_pairs final_email_pairs
 
     api_response = Data.post 'https://api.sendgrid.com/v3/mail/send' (..Json sendgrid_request_body) headers=[Header.authorization_bearer api_key]
-    api_response
+    if api_response.is_error.not then Send_Response.Sent email else
+        api_response.catch Any error->
+            Error.throw (Send_Error.Error error.to_display_text)
 
 private _create_to_email_object emails send_type =
     if emails.length > 0 then [send_type, emails.map _create_to_email] else Nothing
