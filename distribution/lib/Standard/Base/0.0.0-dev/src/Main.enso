@@ -134,12 +134,6 @@ export project.Data.XML.XML_Element
 export project.Data.XML.XML_Error
 export project.Data.XML.XML_Format.XML_Format
 
-export project.Network.Email
-export project.Network.Email.Email_Address.Email_Address
-export project.Network.Email.Email_Attachment.Email_Attachment
-export project.Network.Email.Email_Body.Email_Body
-export project.Network.Email.Email_Provider.Email_Provider
-
 export project.Enso_Cloud.Enso_File.Enso_File
 export project.Enso_Cloud.Enso_Secret.Enso_Secret
 export project.Enso_Cloud.Enso_User.Enso_User
@@ -165,6 +159,11 @@ export project.Meta
 export project.Meta.Enso_Project.enso_project
 export project.Meta.Enso_Project.Project_Description
 
+export project.Network.Email
+export project.Network.Email.Email_Address.Email_Address
+export project.Network.Email.Email_Attachment.Email_Attachment
+export project.Network.Email.Email_Body.Email_Body
+export project.Network.Email.Email_Provider.Email_Provider
 export project.Network.Extensions.fetch
 export project.Network.Extensions.post
 export project.Network.Extensions.to_uri

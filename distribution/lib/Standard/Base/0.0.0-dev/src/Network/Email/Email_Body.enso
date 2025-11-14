@@ -1,8 +1,8 @@
 import project.Data.Text.Text
+import project.Metadata.Display
+import project.Metadata.Widget
 from project.Metadata.Choice import Option
 from project.Metadata.Widget import Text_Input, Vector_Editor, Single_Choice
-import project.Metadata.Widget
-import project.Metadata.Display
 
 ## The body of an email.
 type Email_Body
@@ -11,7 +11,7 @@ type Email_Body
 
     ## An HTML email body. With an optional plain text fallback.
     Html html:Text body:Text=""
- 
+     
     ## ---
        private: true
        ---
@@ -19,7 +19,7 @@ type Email_Body
         plain = [Option "Plain_Text" "Email_Body.Plain_Text ''"]
         html = [Option "Html" "Email_Body.Html '' ''"]
         values = plain + html
-  
+      
         Single_Choice values=values display=display
 
 ## ---
