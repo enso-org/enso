@@ -12,7 +12,7 @@ type Email_Address
 
     ## An email address with a display name.
     Name_Address name:Text=(Missing_Argument.throw "name") address:Text=(Missing_Argument.throw "address")
-	
+
     ## ---
        private: true
        ---
@@ -35,4 +35,3 @@ type Email_Address
        ---
     vector_widget (display : Display = ..Always) -> Widget =
         Vector_Editor Email_Address.default_widget item_default='Email_Address.Address' display=display
-
