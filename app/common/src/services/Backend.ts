@@ -948,9 +948,7 @@ export interface Asset<Type extends AssetType = AssetType> {
   readonly parentsPath: ParentsPath
   readonly virtualParentsPath: VirtualParentsPath
   /** The display path. */
-  // TODO[ao]: As a rule, this should be always defined, but there is one place where we are unable
-  //  to retrieve directory path easily.
-  readonly ensoPath: Type extends AssetType.directory ? EnsoPath | undefined : EnsoPath
+  readonly ensoPath: EnsoPath
 }
 
 /** A convenience alias for {@link Asset}<{@link AssetType.directory}>. */
@@ -1276,19 +1274,19 @@ export type AssetSortDirection = 'ascending' | 'descending'
 /** URL query string parameters for the "list directory" endpoint. */
 export interface ListDirectoryRequestParams {
   readonly parentId: DirectoryId | null
-  readonly filterBy: FilterBy | null
-  readonly labels: readonly LabelName[] | null
-  readonly sortExpression: AssetSortExpression | null
-  readonly sortDirection: AssetSortDirection | null
-  readonly recentProjects: boolean
+  readonly filterBy?: FilterBy | null
+  readonly labels?: readonly LabelName[] | null
+  readonly sortExpression?: AssetSortExpression | null
+  readonly sortDirection?: AssetSortDirection | null
+  readonly recentProjects?: boolean
   /**
    * The root path of the directory to list.
    * This is used to list a subdirectory of a local root directory,
    * because a root could be any local folder on the machine.
    */
   readonly rootPath?: Path | undefined
-  readonly from: PaginationToken | null
-  readonly pageSize: number | null
+  readonly from?: PaginationToken | null
+  readonly pageSize?: number | null
 }
 
 /** URL query string parameters for the "search directory" endpoint. */
@@ -1373,6 +1371,10 @@ export interface UploadedProject {
 
 /** A large asset (file or project) that has finished uploading. */
 export type UploadedAsset = UploadedFile | UploadedArchive | UploadedProject
+
+export interface UploadedImages {
+  files: { assetId: AssetId; title: string }[]
+}
 
 /** URL query string parameters for the "upload profile picture" endpoint. */
 export interface UploadPictureRequestParams {
@@ -1878,6 +1880,14 @@ export abstract class Backend {
     body: UploadFileEndRequestBody,
     abort?: AbortSignal,
   ): Promise<UploadedAsset>
+  /**
+   * Upload set of Images, resolving any possible conflicts. The sum of file sizes may not
+   * exceed cloud message limit.
+   */
+  abstract uploadImage(
+    parentDirectoryId: DirectoryId,
+    files: { data: Blob; name: string }[],
+  ): Promise<UploadedImages>
   /** Change the name of a file. */
   abstract updateFile(fileId: FileId, body: UpdateFileRequestBody, title: string): Promise<void>
 
@@ -2014,6 +2024,16 @@ export abstract class Backend {
   protected postBinary<T = void>(path: string, payload: Blob, options?: HttpClientPostOptions) {
     return this.checkForAuthenticationError(() =>
       this.client.postBinary<T>(this.resolvePath(path), payload, options),
+    )
+  }
+
+  protected postFormData<T = void>(
+    path: string,
+    payload: FormData,
+    options?: HttpClientPostOptions,
+  ) {
+    return this.checkForAuthenticationError(() =>
+      this.client.postFormData<T>(this.resolvePath(path), payload, options),
     )
   }
 

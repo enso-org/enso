@@ -222,7 +222,7 @@ export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
           // Assume the parent is the root directory.
           return true
         }
-        if (parent.ensoPath != null && isTeamPath(parent.ensoPath)) {
+        if (isTeamPath(parent.ensoPath)) {
           return true
         }
         // Assume user path; check permissions

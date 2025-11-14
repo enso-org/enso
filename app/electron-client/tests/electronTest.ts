@@ -131,7 +131,13 @@ export async function createNewProject(page: Page) {
  */
 export async function closeWelcome(page: Page) {
   const welcomeProjectTab = page.getByRole('tab', { name: 'Getting Started with Enso' })
-  await Promise.race([welcomeProjectTab.waitFor({ state: 'visible' }), page.waitForTimeout(3000)])
+  const loadingIndicator = page.locator('.LoadingSpinner')
+  await Promise.race([
+    welcomeProjectTab
+      .waitFor({ state: 'visible' })
+      .then(() => loadingIndicator.waitFor({ state: 'hidden' })),
+    page.waitForTimeout(3000),
+  ])
   if (await welcomeProjectTab.isVisible()) {
     await page.getByRole('tab', { name: 'Data Catalog' }).click()
   }

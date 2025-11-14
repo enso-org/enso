@@ -356,7 +356,7 @@ export class RemoteBackend extends backend.Backend {
       return { assets: [], paginationToken: null }
     }
     const paramsString = new URLSearchParams(
-      query.recentProjects ?
+      query.recentProjects === true ?
         [['recent_projects', String(true)]]
       : [
           ...(query.parentId != null ? [['parent_id', query.parentId]] : []),
@@ -878,7 +878,7 @@ export class RemoteBackend extends backend.Backend {
    */
   override async uploadFileStart(
     body: backend.UploadFileRequestParams,
-    file: File,
+    file: Blob,
     abort?: AbortSignal,
   ): Promise<backend.UploadLargeFileMetadata> {
     const path = remoteBackendPaths.UPLOAD_FILE_START_PATH
@@ -943,6 +943,28 @@ export class RemoteBackend extends backend.Backend {
         }
       }
       return result
+    }
+  }
+
+  /**
+   * Upload set of Images, resolving any possible conflicts. The sum of file sizes may not
+   * exceed cloud message limit.
+   */
+  override async uploadImage(
+    parentDirectoryId: backend.DirectoryId,
+    files: { data: Blob; name: string }[],
+  ) {
+    const path = remoteBackendPaths.UPLOAD_IMAGE_PATH
+    const query = new URLSearchParams({ parentDirectoryId })
+    const data = new FormData()
+    for (const file of files) {
+      data.append('image', file.data, file.name)
+    }
+    const response = await this.postFormData<backend.UploadedImages>(`${path}?${query}`, data)
+    if (!response.ok) {
+      return this.throw(response, 'uploadImageBackendError')
+    } else {
+      return response.json()
     }
   }
 
