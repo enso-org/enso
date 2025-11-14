@@ -7,6 +7,8 @@ import project.Network.Email.Email_Object.Email_Object
 import project.Network.Email.Email_Provider.Email_Provider
 import project.Network.Email.Email_Attachment.Email_Attachment
 import project.Network.Email.Email_Send_Response.Send_Response
+import project.Runtime.Context
+from project.Data.Boolean import Boolean, False, True
 
 ## ---
    aliases: [mail]
@@ -21,5 +23,6 @@ import project.Network.Email.Email_Send_Response.Send_Response
 @attachments Email_Attachment.vector_widget
 @body Email_Body.default_widget
 send from:Email_Address=(Missing_Argument.throw "from") (to:Vector Email_Address)=[] (cc:Vector Email_Address)=[] (bcc:Vector Email_Address)=[] (subject:Text)="" (body:Email_Body)="" (attachments:Vector Email_Attachment)=[] (provider:Email_Provider=(Missing_Argument.throw "provider")) -> Send_Response =
-    email_object = Email_Object.Value from to cc bcc subject body attachments
-    provider.send email_object
+    Context.Output.if_enabled disabled_message="As writing is disabled, email not sent. Press the Write button ▶ to send it." panic=False <|
+        email_object = Email_Object.Value from to cc bcc subject body attachments
+        provider.send email_object
