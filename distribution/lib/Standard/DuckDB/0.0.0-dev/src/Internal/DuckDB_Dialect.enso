@@ -15,6 +15,7 @@ import Standard.Database.Dialects.Feature.Feature
 import Standard.Database.Errors.Unsupported_Database_Operation
 import Standard.Database.Internal.Base_Generator
 import Standard.Database.Internal.IR.Internal_Column.Internal_Column
+import Standard.Database.Internal.IR.Nulls_Order.Nulls_Order
 import Standard.Database.Internal.IR.Order_Descriptor.Order_Descriptor
 import Standard.Database.Internal.IR.SQL_IR_Expression.SQL_IR_Expression
 import Standard.Database.Internal.IR.SQL_IR_Source.SQL_IR_Source
@@ -138,7 +139,7 @@ type DuckDB_Dialect
           types, it should be set to `Nothing`.
     prepare_order_descriptor : Internal_Column -> Sort_Direction -> Nothing | Text_Ordering -> Order_Descriptor
     prepare_order_descriptor self internal_column sort_direction text_ordering =
-        self.parent.prepare_order_descriptor internal_column sort_direction text_ordering
+        make_order_descriptor internal_column sort_direction text_ordering
 
     ## ---
        private: true
@@ -245,39 +246,43 @@ type DuckDB_Dialect
        Checks a dialect flag
     flagged self flag:Dialect_Flag -> Boolean =
         case flag of
-            Dialect_Flag.Supports_Negative_Decimal_Places -> True
-            Dialect_Flag.Supports_Float_Decimal_Places -> False
-            Dialect_Flag.Use_Builtin_Bankers -> False
-            Dialect_Flag.Primary_Key_Allows_Nulls -> False
-            Dialect_Flag.Supports_Separate_NaN -> True
-            Dialect_Flag.Supports_Nested_With_Clause -> True
             Dialect_Flag.Supports_Case_Sensitive_Columns -> False
+            Dialect_Flag.Supports_Nested_With_Clause -> True
+            Dialect_Flag.Different_Size_Integer_Types -> True
+            Dialect_Flag.Supports_8bit_Integer -> True
+            Dialect_Flag.Supports_Separate_NaN -> True
             Dialect_Flag.Supports_Infinity -> True
+            Dialect_Flag.NaN_Non_Comparable -> False
+            Dialect_Flag.Supports_Decimal_Type -> True
+
+            Dialect_Flag.Length_Restricted_Text_Columns -> False
+            Dialect_Flag.Fixed_Length_Text_Columns -> False
+            Dialect_Flag.Removes_Trailing_Whitespace_Casting_From_Char_To_Varchar -> False
+            Dialect_Flag.Text_Length_Limited_Columns -> False
+            Dialect_Flag.Char_Max_Size_After_Substring_Kept -> False
             Dialect_Flag.Case_Sensitive_Text_Comparison -> True
-            Dialect_Flag.Supports_Sort_Digits_As_Numbers -> False
             Dialect_Flag.Supports_Case_Insensitive_Ordering -> True
-            Dialect_Flag.Order_By_Unicode_Normalization_By_Default -> True
-            Dialect_Flag.Order_By_Unicode_Normalization_When_Case_Insensitive -> True
-            Dialect_Flag.Case_Insensitive_Ordering_By_Default -> True
-            Dialect_Flag.Allows_Mixed_Type_Comparisons -> False
+            Dialect_Flag.Case_Insensitive_Ordering_By_Default -> False
             Dialect_Flag.Supports_Unicode_Normalization -> False
             Dialect_Flag.Supports_Unicode_Casing -> False
-            Dialect_Flag.Supports_Proper_Casing -> True
-            Dialect_Flag.NaN_Non_Comparable -> False
-            Dialect_Flag.Distinct_Returns_First_Row_From_Group_If_Ordered -> True
+            Dialect_Flag.Order_By_Unicode_Normalization_By_Default -> False
+            Dialect_Flag.Order_By_Unicode_Normalization_When_Case_Insensitive -> False
+            Dialect_Flag.Supports_Proper_Casing -> False
+
             Dialect_Flag.Date_Time -> True
-            Dialect_Flag.Text_Length_Limited_Columns -> False
-            Dialect_Flag.Fixed_Length_Text_Columns -> True
-            Dialect_Flag.Length_Restricted_Text_Columns -> True
-            Dialect_Flag.Removes_Trailing_Whitespace_Casting_From_Char_To_Varchar -> True
-            Dialect_Flag.Char_Max_Size_After_Substring_Kept -> False
-            Dialect_Flag.Different_Size_Integer_Types -> True
-            Dialect_Flag.Supports_8bit_Integer -> False
-            Dialect_Flag.Supports_Decimal_Type -> True
-            Dialect_Flag.Supports_Time_Duration -> False
-            Dialect_Flag.Supports_Nanoseconds_In_Time -> False
-            Dialect_Flag.Supports_Mixed_Columns -> False
             Dialect_Flag.Supports_Date_Time_Without_Timezone -> True
+            Dialect_Flag.Supports_Nanoseconds_In_Time -> False
+
+            Dialect_Flag.Supports_Negative_Decimal_Places -> True
+            Dialect_Flag.Supports_Float_Decimal_Places -> False
+            Dialect_Flag.Use_Builtin_Bankers -> True
+            Dialect_Flag.Primary_Key_Allows_Nulls -> False
+            Dialect_Flag.Distinct_Returns_First_Row_From_Group_If_Ordered -> True
+
+            Dialect_Flag.Supports_Sort_Digits_As_Numbers -> False
+            Dialect_Flag.Allows_Mixed_Type_Comparisons -> False
+            Dialect_Flag.Supports_Time_Duration -> False
+            Dialect_Flag.Supports_Mixed_Columns -> False
             Dialect_Flag.Supports_Regex_Match -> True
 
     ## ---
@@ -353,6 +358,31 @@ type DuckDB_Dialect
 ## ---
    private: true
    ---
+make_order_descriptor internal_column:Internal_Column sort_direction text_ordering =
+    nulls = case sort_direction of
+        Sort_Direction.Ascending -> Nulls_Order.First
+        Sort_Direction.Descending -> Nulls_Order.Last
+    case text_ordering of
+        Nothing -> Order_Descriptor.Value internal_column.expression sort_direction nulls_order=nulls collation=Nothing
+        _ ->
+            ## In the future we can modify this error to suggest using a custom defined collation.
+            if text_ordering.sort_digits_as_numbers then Error.throw (Unsupported_Database_Operation.Error "sort_digits_as_numbers") else
+                case text_ordering.case_sensitivity of
+                    Case_Sensitivity.Default ->
+                        Order_Descriptor.Value internal_column.expression sort_direction nulls_order=nulls collation=Nothing
+                    Case_Sensitivity.Sensitive ->
+                        Order_Descriptor.Value internal_column.expression sort_direction nulls_order=nulls collation="binary"
+                    Case_Sensitivity.Insensitive locale -> case locale == Locale.default of
+                        False ->
+                            Error.throw (Unsupported_Database_Operation.Error "Case insensitive ordering with custom locale")
+                        True ->
+                            upper = SQL_IR_Expression.Operation "UPPER" [internal_column.expression]
+                            folded_expression = SQL_IR_Expression.Operation "LOWER" [upper]
+                            Order_Descriptor.Value folded_expression sort_direction nulls_order=nulls collation=Nothing
+
+## ---
+   private: true
+   ---
 duckdb_dialect_name = "DuckDB"
 
 ## ---
@@ -360,7 +390,9 @@ duckdb_dialect_name = "DuckDB"
    ---
    Dialect operation overrides for DuckDB.
 private duckdb_overrides =
-    [["GROUP_NUMBER_EQUAL_COUNT", make_group_number_equal_count]]
+    scalars = [["ROUND_BANKERS", Base_Generator.make_function "ROUND_EVEN"], ["GROUP_NUMBER_EQUAL_COUNT", make_group_number_equal_count], ["PROPER", Nothing]]
+    aggs = [agg_first, agg_first_not_null, agg_last, agg_last_not_null, agg_shortest, agg_longest, agg_median, agg_stddev, agg_stddev_pop]
+    scalars + aggs
 
 ## ---
    private: true
@@ -381,3 +413,70 @@ make_group_number_equal_count (arguments : Vector) = if arguments.length < 3 the
     offset = arguments.at 0
     step = arguments.at 1
     (base_value.paren ++ " * " ++ step) . paren ++ " + " ++ offset
+
+## ---
+   private: true
+   ---
+agg_first = Base_Generator.lift_unary_op "FIRST" arg->
+    SQL_Builder.code "FIRST(" ++ arg ++ ")"
+
+## ---
+   private: true
+   ---
+agg_first_not_null = Base_Generator.lift_unary_op "FIRST_NOT_NULL" arg->
+    SQL_Builder.code "FIRST(" ++ arg ++ ") FILTER (" ++ arg ++ " IS NOT NULL)"
+
+## ---
+   private: true
+   ---
+agg_last = Base_Generator.lift_unary_op "LAST" arg->
+    SQL_Builder.code "LAST(" ++ arg ++ ")"
+
+## ---
+   private: true
+   ---
+agg_last_not_null = Base_Generator.lift_unary_op "LAST_NOT_NULL" arg->
+    SQL_Builder.code "LAST(" ++ arg ++ ") FILTER (" ++ arg ++ " IS NOT NULL)"
+
+## ---
+   private: true
+   ---
+agg_shortest = Base_Generator.lift_unary_op "SHORTEST" arg->
+     order_clause =
+         SQL_Builder.code " ORDER BY char_length(" ++ arg ++ ") ASC NULLS LAST"
+     SQL_Builder.code "FIRST(" ++ arg ++ order_clause ++ ")"
+
+## ---
+   private: true
+   ---
+agg_longest = Base_Generator.lift_unary_op "LONGEST" arg->
+     order_clause =
+         SQL_Builder.code " ORDER BY char_length(" ++ arg ++ ") DESC NULLS LAST"
+     SQL_Builder.code "FIRST(" ++ arg ++ order_clause ++ ")"
+
+## ---
+   private: true
+   ---
+   Compute the median for a column
+agg_median = Base_Generator.lift_unary_op "MEDIAN" arg->
+    median = SQL_Builder.code "MEDIAN(" ++ arg ++ ")"
+    has_nan = SQL_Builder.code "bool_or(" ++ arg ++ " = double precision 'NaN')"
+    SQL_Builder.code "CASE WHEN " ++ has_nan ++ " THEN 'NaN' ELSE " ++ median ++ " END"
+
+## ---
+   private: true
+   ---
+   Compute the stddev for a column
+agg_stddev = Base_Generator.lift_unary_op "STDDEV_SAMP" arg->
+    stddev = SQL_Builder.code "STDDEV_SAMP(" ++ arg ++ ")"
+    has_nan = SQL_Builder.code "bool_or(" ++ arg ++ " = double precision 'NaN')"
+    SQL_Builder.code "CASE WHEN " ++ has_nan ++ " THEN 'NaN' ELSE " ++ stddev ++ " END"
+
+## ---
+   private: true
+   ---
+   Compute the population stddev for a column
+agg_stddev_pop = Base_Generator.lift_unary_op "STDDEV_POP" arg->
+    stddev = SQL_Builder.code "STDDEV_POP(" ++ arg ++ ")"
+    has_nan = SQL_Builder.code "bool_or(" ++ arg ++ " = double precision 'NaN')"
+    SQL_Builder.code "CASE WHEN " ++ has_nan ++ " THEN 'NaN' ELSE " ++ stddev ++ " END"
