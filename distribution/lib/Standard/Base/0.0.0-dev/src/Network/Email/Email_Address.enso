@@ -12,17 +12,21 @@ type Email_Address
 
     ## An email address with a display name.
     Name_Address name:Text=(Missing_Argument.throw "name") address:Text=(Missing_Argument.throw "address")
-	to_text self -> Text = case self of
-		Email_Address.Address _ -> self.address
-		Email_Address.Name_Address _ _ -> self.name + ' <' + self.address + '>'
+	
+    ## ---
+       private: true
+       ---
+    to_text self -> Text = case self of
+        Email_Address.Address _ -> self.address
+        Email_Address.Name_Address _ _ -> self.name + ' <' + self.address + '>'
 
-	## ---
+    ## ---
        private: true
        ---
     default_widget (display : Display = ..Always) -> Widget =
         name = [Option "Address" "Email_Address.Address"]
         name_address = [Option "Name And Address" "Email_Address.Name_Address"]
-       values = name + name_address
+        values = name + name_address
 
        Single_Choice values=values display=display
 
