@@ -1,18 +1,17 @@
-import project.Errors.Common.Missing_Argument
 import project.Data.Text.Text
+import project.Errors.Common.Missing_Argument
+import project.Metadata.Display
+import project.Metadata.Widget
 from project.Metadata.Choice import Option
 from project.Metadata.Widget import Text_Input, Vector_Editor, Single_Choice
-import project.Metadata.Widget
-import project.Metadata.Display
 
 ## The email address of a sender or recipient.
 type Email_Address
-	## An email address.
-	Address address:Text=(Missing_Argument.throw "address")
+    ## An email address.
+    Address address:Text=(Missing_Argument.throw "address")
 
-	## An email address with a display name.
-	Name_Address name:Text=(Missing_Argument.throw "name") address:Text=(Missing_Argument.throw "address")
-
+    ## An email address with a display name.
+    Name_Address name:Text=(Missing_Argument.throw "name") address:Text=(Missing_Argument.throw "address")
 	to_text self -> Text = case self of
 		Email_Address.Address _ -> self.address
 		Email_Address.Name_Address _ _ -> self.name + ' <' + self.address + '>'
@@ -20,15 +19,16 @@ type Email_Address
 	## ---
        private: true
        ---
-	default_widget (display : Display = ..Always) -> Widget =
-		name = [Option "Address" "Email_Address.Address"]
-		name_address = [Option "Name And Address" "Email_Address.Name_Address"]
-		values = name + name_address
+    default_widget (display : Display = ..Always) -> Widget =
+        name = [Option "Address" "Email_Address.Address"]
+        name_address = [Option "Name And Address" "Email_Address.Name_Address"]
+       values = name + name_address
 
-		Single_Choice values=values display=display
+       Single_Choice values=values display=display
 
-	## ---
+    ## ---
        private: true
        ---
-	vector_widget (display : Display = ..Always) -> Widget =
-		Vector_Editor Email_Address.default_widget item_default='Email_Address.Address' display=display
+    vector_widget (display : Display = ..Always) -> Widget =
+        Vector_Editor Email_Address.default_widget item_default='Email_Address.Address' display=display
+
