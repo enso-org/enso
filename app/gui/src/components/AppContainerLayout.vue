@@ -63,7 +63,6 @@ export const dataLoader: DataLoader<Props> = {
 
     const organizationQuery = useQuery(backendQueryOptions('getOrganization', [], backend))
     await waitForData(organizationQuery)
-    console.debug(organizationQuery.data.value)
 
     const acceptInvitationModalProps = computed(() => (invitation ? { invitation } : undefined))
 
