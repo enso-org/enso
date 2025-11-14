@@ -43,6 +43,7 @@ import scala.collection.immutable.Seq;
 @Persistable(clazz = Name.Blank.class, id = 711)
 @Persistable(clazz = Name.GenericAnnotation.class, id = 712)
 @Persistable(clazz = Name.SelfType.class, id = 713)
+@Persistable(clazz = Empty.class, id = 750)
 @Persistable(clazz = Expression.Block.class, id = 751)
 @Persistable(clazz = Expression.Binding.class, id = 752)
 @Persistable(clazz = Application.Prefix.class, id = 753)
