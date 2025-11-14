@@ -699,7 +699,17 @@ type File
              example_parent = Examples.csv.parent
        ```
     parent : File | Nothing
-    parent self = @Builtin_Method "File.parent"
+    parent self =
+        # Normalization is needed to correctly handle paths containing `..` or `.`.
+        parent_or_null = self.normalize.java_path.getParent
+
+        # If the path has no parent because it is relative and there are no
+        # more segments, try again after making it absolute
+        ret_parent = case parent_or_null == Nothing && self.java_path.isAbsolute.not of
+            True -> self.java_path.toAbsolutePath.normalize.getParent
+            False -> parent_or_null
+
+        if ret_parent != Nothing then File.Value ret_parent else Nothing
 
     ## ---
        group: Metadata
@@ -734,7 +744,9 @@ type File
              example_name = Examples.csv.name
        ```
     name : Text
-    name self = @Builtin_Method "File.name"
+    name self =
+        nm = self.normalize.java_path.getFileName
+        if nm == Nothing then "" else nm.toString
 
     ## ---
        group: Metadata
@@ -769,7 +781,9 @@ type File
              example_absolute = Examples.csv.absolute
        ```
     absolute : File
-    absolute self = @Builtin_Method "File.absolute"
+    absolute self =
+        abs_path = self.java_path.toAbsolutePath
+        File.Value abs_path
 
     ## ---
        icon: metadata
@@ -802,7 +816,15 @@ type File
              example_normalize = Examples.csv.normalize
        ```
     normalize : File
-    normalize self = @Builtin_Method "File.normalize"
+    normalize self =
+        simply_normalized = self.java_path.normalize
+        name = simply_normalized.getFileName
+        needs_absolute =
+            case name != Nothing of
+                True -> (name.toString == "." || name.toString == ".." || name.toString.isEmpty)
+                False -> False
+        ret = if needs_absolute then simply_normalized.toAbsolutePath.normalize else simply_normalized
+        File.Value ret
 
     ## ---
        icon: data_output
@@ -1005,8 +1027,10 @@ type File
        icon: convert
        ---
        Transforms `child` to a relative path with respect to `self`.
-    relativize : File -> Boolean
-    relativize self child = @Builtin_Method "File.relativize"
+    relativize : File -> File
+    relativize self child:File -> File =
+        p = self.java_path.relativize child.java_path
+        File.Value p
 
     ## ---
        private: true
