@@ -1,9 +1,6 @@
 private
 
 from Standard.Base import all
-from Standard.Base.Enso_Cloud.Enso_Secret import as_credential_reference
-
-import project.OneDrive.OneDrive_File
 
 polyglot java import org.enso.base.enso_cloud.ExternalLibraryCredentialHelper.CredentialReference
 polyglot java import org.enso.microsoft.ms365.MS365Service
@@ -12,7 +9,7 @@ type Graph
     ## ---
        private: true
        ---
-    base_url self = 'https://graph.microsoft.com/v1.0'
+    base_url = 'https://graph.microsoft.com/v1.0'
 
     ## ---
        private: true
