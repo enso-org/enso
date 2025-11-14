@@ -1,5 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+import Standard.Base.Errors.Illegal_State.Illegal_State
 
 import Standard.Table.In_Memory_Column.In_Memory_Column
 import Standard.Table.Internal.Problem_Builder.Problem_Builder
@@ -34,7 +35,8 @@ import Standard.Database.SQL.SQL_Type
    The dialect of DuckDB built on top of PostgreSQL dialect.
 duckdb : DuckDB_Dialect
 duckdb =
-    DuckDB_Dialect.Value Postgres_Dialect.postgres
+    dialect_operations = Postgres_Dialect.get_dialect_operations Postgres_Dialect.postgres . extend_with duckdb_overrides
+    DuckDB_Dialect.Value Postgres_Dialect.postgres dialect_operations
 
 ## A Dialect for DuckDB
 type DuckDB_Dialect
@@ -42,13 +44,18 @@ type DuckDB_Dialect
        private: true
        ---
        The dialect of DuckDB Databases
-    private Value parent
+
+       ## Arguments
+        - `parent`: The parent dialect operations to use for operations not
+          overridden by this dialect.
+        - `internal_dialect_operations`: The operations specific to this dialect.
+    private Value parent internal_dialect_operations
 
     ## ---
        private: true
        ---
-       Wrap the dialect operations of the parent
-    dialect_operations self = Postgres_Dialect.get_dialect_operations self.parent
+       The dialect operations for this dialect.
+    dialect_operations self = self.internal_dialect_operations
 
     ## ---
        private: true
@@ -221,14 +228,16 @@ type DuckDB_Dialect
        ---
        Checks if an operation is supported by the dialect.
     is_operation_supported self operation:Text -> Boolean =
-        self.parent.is_operation_supported operation
+        self.dialect_operations.is_operation_supported operation
 
     ## ---
        private: true
        ---
        Checks if a feature is supported by the dialect.
     is_feature_supported self feature:Feature -> Boolean =
-        self.parent.is_feature_supported feature
+        case feature of
+            Feature.Generate_Rows -> False
+            _ -> True
 
     ## ---
        private: true
@@ -345,3 +354,30 @@ type DuckDB_Dialect
    private: true
    ---
 duckdb_dialect_name = "DuckDB"
+
+## ---
+   private: true
+   ---
+   Dialect operation overrides for DuckDB.
+private duckdb_overrides =
+    [["GROUP_NUMBER_EQUAL_COUNT", make_group_number_equal_count]]
+
+## ---
+   private: true
+   ---
+   GroupNumber = FLOOR(RowNumber / CEIL(TotalRowCount / GroupCount)) (0 based)
+make_group_number_equal_count : Vector SQL_Builder -> SQL_Builder
+make_group_number_equal_count (arguments : Vector) = if arguments.length < 3 then Error.throw (Illegal_State.Error "Wrong amount of parameters in GROUP_NUMBER_EQUAL_COUNT IR. This is a bug in the Database library.") else
+    ordering = arguments.drop 3
+    ordering_part = if ordering.length == 0 then "" else
+        SQL_Builder.code " OvEr (ORDER BY " ++ SQL_Builder.join ", " ordering ++ ")"
+    row_number_minus_1 = (SQL_Builder.code "ROW_NUMBER()" ++ ordering_part).paren ++ " - 1"
+
+    group_count = arguments.at 2
+    group_size = SQL_Builder.code "CEIL((COUNT(*) OVER ()) / " ++ group_count ++ ")"
+
+    base_value = SQL_Builder.code "FLOOR(" ++ row_number_minus_1.paren ++ " / " ++ group_size ++ ") + 1"
+
+    offset = arguments.at 0
+    step = arguments.at 1
+    (base_value.paren ++ " * " ++ step) . paren ++ " + " ++ offset
