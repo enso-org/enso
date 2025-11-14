@@ -55,6 +55,7 @@ import scala.collection.immutable.Seq;
 @Persistable(clazz = Pattern.Name.class, id = 764)
 @Persistable(clazz = Pattern.Literal.class, id = 765)
 @Persistable(clazz = Pattern.Type.class, id = 766)
+@Persistable(clazz = Pattern.Bool.class, id = 767)
 @Persistable(clazz = Method.Conversion.class, id = 771)
 @Persistable(clazz = Set.Union.class, id = 772)
 @Persistable(clazz = Set.Intersection.class, id = 773)

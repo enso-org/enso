@@ -1448,6 +1448,18 @@ private[runtime] class IrToTruffle(
             CatchAllBranchNode.build(branchCodeNode.getCallTarget, true)
 
           Right(branchNode)
+        case Pattern.Bool(condition, _, _) =>
+          val branchCodeNode = childProcessor.processFunctionBody(
+            Nil,
+            branch.expression,
+            branch.location
+          )
+          val node = BooleanBranchNode.build(
+            condition,
+            branchCodeNode.getCallTarget,
+            branch.terminalBranch
+          )
+          Right(node)
         case cons @ Pattern.Constructor(constructor, _, _, _) =>
           if (!cons.isDesugared) {
             throw new CompilerError(
