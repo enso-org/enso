@@ -16,6 +16,7 @@ import Standard.Database.Errors.Unsupported_Database_Operation
 import Standard.Database.Internal.Base_Generator
 import Standard.Database.Internal.IR.Internal_Column.Internal_Column
 import Standard.Database.Internal.IR.Nulls_Order.Nulls_Order
+import Standard.Database.Internal.IR.Operation_Metadata.Date_Period_Metadata
 import Standard.Database.Internal.IR.Order_Descriptor.Order_Descriptor
 import Standard.Database.Internal.IR.SQL_IR_Expression.SQL_IR_Expression
 import Standard.Database.Internal.IR.SQL_IR_Source.SQL_IR_Source
@@ -391,8 +392,39 @@ duckdb_dialect_name = "DuckDB"
    Dialect operation overrides for DuckDB.
 private duckdb_overrides =
     scalars = [["ROUND_BANKERS", Base_Generator.make_function "ROUND_EVEN"], ["GROUP_NUMBER_EQUAL_COUNT", make_group_number_equal_count], ["PROPER", Nothing]]
+    date_ops = [["QUARTER", make_quarter],["DATE_DIFF", make_date_diff]]
     aggs = [make_first_aggr "FIRST", make_first_aggr "FIRST" not_null=True, make_first_aggr "LAST", make_first_aggr "LAST" not_null=True, agg_shortest, agg_longest, agg_median, agg_stddev, agg_stddev_pop]
-    scalars + aggs
+    scalars + date_ops + aggs
+
+## ---
+   private: true
+   ---
+make_quarter =
+    func arguments =
+        if arguments.length != 1 then Error.throw (Illegal_State.Error "quarter expects exactly 1 sub expression. This is a bug in Database library.")
+        date = arguments.first
+        SQL_Builder.code "DATE_PART('quarter', " ++ date ++ ")"
+    func
+
+## ---
+   private: true
+   ---
+make_date_diff arguments (metadata : Date_Period_Metadata) =
+    if arguments.length != 2 then Error.throw (Illegal_State.Error "date_diff expects exactly 2 sub expressions. This is a bug in Database library.")
+    start = arguments.at 0
+    end = arguments.at 1
+
+    case metadata.period of
+        Date_Period.Year    -> SQL_Builder.code "DATE_SUB('year', " ++ start ++ ", " ++ end ++ ")"
+        Date_Period.Month   -> SQL_Builder.code "DATE_SUB('month', " ++ start ++ ", " ++ end ++ ")"
+        Date_Period.Quarter -> SQL_Builder.code "DATE_SUB('quarter', " ++ start ++ ", " ++ end ++ ")"
+        Date_Period.Week _  -> SQL_Builder.code "FLOOR(DATE_SUB('day', " ++ start ++ ", " ++ end ++ ")) / 7"
+        Date_Period.Day     -> SQL_Builder.code "DATE_SUB('day', " ++ start ++ ", " ++ end ++ ")"
+        Time_Period.Hour    -> SQL_Builder.code "DATE_SUB('hour', " ++ start ++ ", " ++ end ++ ")"
+        Time_Period.Minute  -> SQL_Builder.code "DATE_SUB('minute', " ++ start ++ ", " ++ end ++ ")"
+        Time_Period.Second  -> SQL_Builder.code "DATE_SUB('second', " ++ start ++ ", " ++ end ++ ")"
+        Time_Period.Millisecond -> SQL_Builder.code "DATE_SUB('millisecond', " ++ start ++ ", " ++ end ++ ")"
+        Time_Period.Microsecond -> SQL_Builder.code "DATE_SUB('microsecond', " ++ start ++ ", " ++ end ++ ")"
 
 ## ---
    private: true
