@@ -9,6 +9,8 @@ import static org.hamcrest.number.OrderingComparison.greaterThan;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.util.List;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.test.utils.ContextUtils;
@@ -83,12 +85,15 @@ public class AssertionsTest {
           """);
       fail("Should throw Assertion_Error");
     } catch (PolyglotException e) {
-      assertThat(e.getStackTrace().length, greaterThan(5));
-      assertThat(e.getStackTrace()[0].toString(), containsString("Panic"));
-      assertThat(e.getStackTrace()[1].toString(), containsString("Runtime.assert"));
+      var stack = new StringWriter();
+      e.printStackTrace(new PrintWriter(stack));
+      assertThat(stack.toString(), e.getStackTrace().length, greaterThan(5));
+      assertThat(stack.toString(), e.getStackTrace()[0].toString(), containsString("Panic"));
+      assertThat(
+          stack.toString(), e.getStackTrace()[1].toString(), containsString("Runtime.assert"));
       // Ignore the next two frames as they are implementation details
-      assertThat(e.getStackTrace()[4].toString(), containsString("foo"));
-      assertThat(e.getStackTrace()[5].toString(), containsString("main"));
+      assertThat(stack.toString(), e.getStackTrace()[4].toString(), containsString("foo"));
+      assertThat(stack.toString(), e.getStackTrace()[5].toString(), containsString("main"));
     }
   }
 
