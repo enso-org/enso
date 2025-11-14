@@ -75,6 +75,7 @@ const innerWidgetInput = computed<WidgetInput>(() => {
     ...props.input,
     editHandler: dropDownInteraction.value,
     dynamicConfig,
+    [MultiSelectionWidgetShownKey]: true,
   }
 })
 
@@ -173,6 +174,15 @@ export const widgetDefinition = defineWidget(
   },
   import.meta.hot,
 )
+
+export const MultiSelectionWidgetShownKey: unique symbol = Symbol.for(
+  'WidgetInput:MultiSelectionWidgetShown',
+)
+declare module '$/providers/openedProjects/widgetRegistry' {
+  export interface WidgetInput {
+    [MultiSelectionWidgetShownKey]?: true | undefined
+  }
+}
 </script>
 
 <template>

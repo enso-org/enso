@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useCurrentProject } from '$/components/WithCurrentProject.vue'
 import { isRequiredArgument } from '$/providers/openedProjects/suggestionDatabase/entry'
 import {
   Score,
@@ -7,21 +8,26 @@ import {
   widgetProps,
 } from '$/providers/openedProjects/widgetRegistry'
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
+import RequiredArgumentArrow from '@/components/GraphEditor/widgets/WidgetArgumentName/RequiredArgumentArrow.vue'
+import { MultiSelectionWidgetShownKey } from '@/components/GraphEditor/widgets/WidgetMultiSelection.vue'
+import { SelectionWidgetShownKey } from '@/components/GraphEditor/widgets/WidgetSelection.vue'
 import { injectPortInfo } from '@/providers/portInfo'
 import { Ast } from '@/util/ast'
 import { ApplicationKind, ArgumentInfoKey } from '@/util/callTree'
-import { computed } from 'vue'
+import { computed, useTemplateRef } from 'vue'
 import type { SuggestionEntryArgument } from 'ydoc-shared/languageServerTypes/suggestions'
 
 const props = defineProps(widgetProps(widgetDefinition))
 
+const currentProject = useCurrentProject()
+const graph = computed(() => currentProject.graph.value)
 const portInfo = injectPortInfo(true)
+
 const showArgumentValue = computed(() => {
   return (
-    !WidgetInput.isAst(props.input) ||
     portInfo == null ||
     !portInfo.connected ||
-    portInfo.portId !== props.input.value.id
+    (WidgetInput.isAst(props.input) && portInfo.portId !== props.input.value?.id)
   )
 })
 
@@ -35,6 +41,17 @@ const innerInput = computed(() => ({
   ...props.input,
   [ArgumentNameShownKey]: true,
 }))
+
+const childWidgetRef = useTemplateRef<typeof NodeWidget>('childWidgetRef')
+const isChildWidgetEmpty = computed(() => !childWidgetRef.value?.isSelected)
+const connected = computed(() => portInfo?.connected ?? false)
+const showArrow = computed(() => {
+  // Selection widgets are always above WidgetArgumentName by their priority, so we check them separately.
+  const selectionWidgetsShown =
+    props.input[SelectionWidgetShownKey] || props.input[MultiSelectionWidgetShownKey]
+  const otherWidgetsCanBeShown = showArgumentValue.value && !isChildWidgetEmpty.value
+  return missing.value && !selectionWidgetsShown && !otherWidgetsCanBeShown
+})
 </script>
 
 <script lang="ts">
@@ -63,12 +80,17 @@ export const ArgumentNameShownKey: unique symbol = Symbol.for('WidgetInput:Argum
 
 <template>
   <div class="WidgetArgumentName" :class="{ primary, missing }">
+    <RequiredArgumentArrow
+      v-if="showArrow"
+      :hide="connected"
+      @arrowClick="graph.createEdgeFromPort(props.input.portId, $event)"
+    />
     <span class="name">
       <span class="widgetApplyPadding" :class="{ widgetRounded: missing }">{{
         props.input[ArgumentInfoKey].info.name
       }}</span>
     </span>
-    <NodeWidget v-if="showArgumentValue" :input="innerInput" allowEmpty />
+    <NodeWidget v-if="showArgumentValue" ref="childWidgetRef" :input="innerInput" allowEmpty />
   </div>
 </template>
 

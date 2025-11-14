@@ -9,7 +9,6 @@ import {
   widgetProps,
 } from '$/providers/openedProjects/widgetRegistry'
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
-import WidgetPortArrow from '@/components/GraphEditor/widgets/WidgetPort/WidgetPortArrow.vue'
 import { useRaf } from '@/composables/animation'
 import { useResizeObserver } from '@/composables/events'
 import type { NavigatorComposable } from '@/composables/navigator'
@@ -89,7 +88,7 @@ const innerWidget = computed(() => {
   return { ...props.input, forcePort: false }
 })
 
-providePortInfo(proxyRefs({ portId, connected: hasConnection }))
+providePortInfo(proxyRefs({ portId, connected }))
 
 watchEffect(
   (onCleanup) => {
@@ -215,11 +214,6 @@ export const widgetDefinition = defineWidget(
       primary: props.nesting < 2,
     }"
   >
-    <WidgetPortArrow
-      v-if="needsArrow"
-      :hide="hideArrow"
-      @arrowClick="graph.createEdgeFromPort(props.input.portId, $event)"
-    />
     <NodeWidget :input="innerWidget" />
   </div>
 </template>
