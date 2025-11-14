@@ -6,8 +6,12 @@ import project.Network.Email.Email_Body.Email_Body
 
 ## An email object representing all parts of an email.
 type Email_Object
+    ## An email object with all standard fields.
     Value from_address:Email_Address to:(Vector Email_Address)=[] cc:(Vector Email_Address)=[] bcc:(Vector Email_Address)=[] subject:Text="" body:Email_Body="" attachments:(Vector Email_Attachment)=[]
 
+    ## ---
+       private: true
+       ---
     to_text self -> Text = 
         'From: ' + self.from_address.to_text 
             + '\nTo: ' + (self.to.map .to_text).join '; '
