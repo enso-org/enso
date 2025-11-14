@@ -27,8 +27,7 @@ type Email_Address
         name = [Option "Address" "Email_Address.Address"]
         name_address = [Option "Name And Address" "Email_Address.Name_Address"]
         values = name + name_address
-
-       Single_Choice values=values display=display
+        Single_Choice values=values display=display
 
     ## ---
        private: true
