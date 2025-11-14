@@ -257,7 +257,7 @@ type DuckDB_Dialect
             Dialect_Flag.NaN_Non_Comparable -> False
             Dialect_Flag.Distinct_Returns_First_Row_From_Group_If_Ordered -> True
             Dialect_Flag.Date_Time -> True
-            Dialect_Flag.Text_Length_Limited_Columns -> True
+            Dialect_Flag.Text_Length_Limited_Columns -> False
             Dialect_Flag.Fixed_Length_Text_Columns -> True
             Dialect_Flag.Length_Restricted_Text_Columns -> True
             Dialect_Flag.Removes_Trailing_Whitespace_Casting_From_Char_To_Varchar -> True
