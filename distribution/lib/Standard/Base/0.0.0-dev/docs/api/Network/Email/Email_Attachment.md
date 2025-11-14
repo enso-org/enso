@@ -3,3 +3,4 @@
 - type Email_Attachment
     - File file:Standard.Base.System.File.File
     - default_widget display:Standard.Base.Metadata.Display= -> Standard.Base.Metadata.Widget
+    - vector_widget display:Standard.Base.Metadata.Display= -> Standard.Base.Metadata.Widget
