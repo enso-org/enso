@@ -35,6 +35,12 @@ type SQLServer_Connection
     ## ---
        private: true
        ---
+    dialect : SQLServer_Dialect
+    dialect = SQLServer_Dialect.sqlserver
+
+    ## ---
+       private: true
+       ---
        Creates a SQLServer connection based on a URL and properties.
 
        ## Arguments

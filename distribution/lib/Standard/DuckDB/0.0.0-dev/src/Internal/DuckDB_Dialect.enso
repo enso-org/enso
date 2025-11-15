@@ -1,3 +1,5 @@
+private
+
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
@@ -9,6 +11,7 @@ from Standard.Table.Errors import Inexact_Type_Coercion
 
 import Standard.Database.DB_Column.DB_Column
 import Standard.Database.DB_Table.DB_Table
+import Standard.Database.Dialects.Dialect
 import Standard.Database.Dialects.Dialect.Temp_Table_Style
 import Standard.Database.Dialects.Dialect_Flag.Dialect_Flag
 import Standard.Database.Dialects.Feature.Feature
@@ -22,7 +25,6 @@ import Standard.Database.Internal.IR.SQL_IR_Expression.SQL_IR_Expression
 import Standard.Database.Internal.IR.SQL_IR_Source.SQL_IR_Source
 import Standard.Database.Internal.IR.SQL_IR_Statement.SQL_IR_Statement
 import Standard.Database.Internal.JDBC_Connection.JDBC_Connection
-import Standard.Database.Internal.Postgres.Postgres_Dialect
 import Standard.Database.Internal.Replace_Params.Replace_Params
 import Standard.Database.Internal.SQL_Part.SQL_Part
 import Standard.Database.Internal.SQL_Type_Mapping.SQL_Type_Mapping
@@ -37,8 +39,8 @@ import Standard.Database.SQL.SQL_Type
    The dialect of DuckDB built on top of PostgreSQL dialect.
 duckdb : DuckDB_Dialect
 duckdb =
-    dialect_operations = Postgres_Dialect.get_dialect_operations Postgres_Dialect.postgres . extend_with duckdb_overrides
-    DuckDB_Dialect.Value Postgres_Dialect.postgres dialect_operations
+    dialect_operations = Dialect.postgres_operations . extend_with duckdb_overrides
+    DuckDB_Dialect.Value Dialect.postgres dialect_operations
 
 ## A Dialect for DuckDB
 type DuckDB_Dialect
@@ -302,13 +304,23 @@ type DuckDB_Dialect
     prepare_metadata_for_period : Date_Period | Time_Period -> Value_Type -> Any
     prepare_metadata_for_period self period operation_input_type =
         self.parent.prepare_metadata_for_period period operation_input_type
+
+    ## ---
+       private: true
+       ---
+       Returns the set of all supported Replace_Params
+    get_supported_replace_params : Hashset Replace_Params
+    get_supported_replace_params self =
+        _ = self
+        supported_replace_params
+
     ## ---
        private: true
        ---
        Returns true if the `replace` parameters are supported by this backend.
     if_replace_params_supports : Replace_Params -> Any -> Any
     if_replace_params_supports self replace_params ~action =
-        self.parent.if_replace_params_supports replace_params action
+        if supported_replace_params.contains replace_params then action else replace_params.throw_unsupported duckdb_dialect_name
 
     ## ---
        private: true
@@ -504,3 +516,13 @@ agg_stddev_pop = Base_Generator.lift_unary_op "STDDEV_POP" arg->
     stddev = SQL_Builder.code "STDDEV_POP(" ++ arg ++ ")"
     has_nan = SQL_Builder.code "bool_or(" ++ arg ++ " = double precision 'NaN')"
     SQL_Builder.code "CASE WHEN " ++ has_nan ++ " THEN 'NaN' ELSE " ++ stddev ++ " END"
+
+## PRIVATE
+supported_replace_params : Hashset Replace_Params
+supported_replace_params =
+    e0 = [Replace_Params.Value Text Case_Sensitivity.Default False, Replace_Params.Value Text Case_Sensitivity.Default True, Replace_Params.Value Text Case_Sensitivity.Sensitive False]
+    e1 = [Replace_Params.Value Text Case_Sensitivity.Sensitive True, Replace_Params.Value Text Case_Sensitivity.Insensitive False, Replace_Params.Value Text Case_Sensitivity.Insensitive True]
+    e2 = [Replace_Params.Value Regex Case_Sensitivity.Default False, Replace_Params.Value Regex Case_Sensitivity.Default True, Replace_Params.Value Regex Case_Sensitivity.Sensitive False]
+    e3 = [Replace_Params.Value Regex Case_Sensitivity.Sensitive True, Replace_Params.Value Regex Case_Sensitivity.Insensitive False, Replace_Params.Value Regex Case_Sensitivity.Insensitive True]
+    e4 = [Replace_Params.Value Column Case_Sensitivity.Default False, Replace_Params.Value Column Case_Sensitivity.Sensitive False]
+    Hashset.from_vector <| e0 + e1 + e2 + e3 + e4

@@ -1,3 +1,5 @@
+private
+
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
@@ -368,6 +370,15 @@ type SQLite_Dialect
     prepare_metadata_for_period self period operation_input_type =
         _ = [period, operation_input_type]
         Error.throw (Unsupported_Database_Operation.Error "Date/time operations.")
+
+    ## ---
+       private: true
+       ---
+       Returns the set of all supported Replace_Params
+    get_supported_replace_params : Hashset Replace_Params
+    get_supported_replace_params self =
+        _ = self
+        supported_replace_params
 
     ## ---
        private: true

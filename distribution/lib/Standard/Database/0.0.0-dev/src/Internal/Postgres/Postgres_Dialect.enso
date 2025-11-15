@@ -1,3 +1,5 @@
+private
+
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
@@ -359,6 +361,15 @@ type Postgres_Dialect
     prepare_metadata_for_period self period operation_input_type =
         if period == Time_Period.Nanosecond then Error.throw (Unsupported_Database_Operation.Error "Nanosecond precision date/times") else
             Date_Period_Metadata.Value period operation_input_type
+
+    ## ---
+       private: true
+       ---
+       Returns the set of all supported Replace_Params
+    get_supported_replace_params : Hashset Replace_Params
+    get_supported_replace_params self =
+        _ = self
+        supported_replace_params
 
     ## ---
        private: true
@@ -991,9 +1002,3 @@ make_runtime_error_op arguments =
    private: true
    ---
 postgres_dialect_name = "PostgreSQL"
-
-## ---
-   private: true
-   ---
-   Static method to allow accessing the dialect_operations
-get_dialect_operations pg_dialect = pg_dialect.dialect_operations

@@ -47,6 +47,12 @@ type Snowflake_Connection
     ## ---
        private: true
        ---
+    dialect : Snowflake_Dialect
+    dialect = Snowflake_Dialect.snowflake
+
+    ## ---
+       private: true
+       ---
        Creates a Snowflake connection based on a URL and properties.
 
        ## Arguments

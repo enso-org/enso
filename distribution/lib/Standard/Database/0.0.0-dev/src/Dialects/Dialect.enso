@@ -240,6 +240,15 @@ type Dialect
     ## ---
        private: true
        ---
+       Returns the set of all supported Replace_Params
+    get_supported_replace_params : Hashset Replace_Params
+    get_supported_replace_params self =
+        _ = self
+        Unimplemented.throw "This is an interface only."
+
+    ## ---
+       private: true
+       ---
        Returns true if the `replace` parameters are supported by this backend.
     if_replace_params_supports : Replace_Params -> Any -> Any
     if_replace_params_supports self replace_params ~action =
@@ -315,6 +324,13 @@ sqlite = SQLite_Dialect.sqlite
    The dialect of PostgreSQL databases.
 postgres : Dialect
 postgres = Postgres_Dialect.postgres
+
+## ---
+   private: true
+   ---
+   Access the dialect_operations for PostgreSQL allowing extension use.
+postgres_operations : Dialect
+postgres_operations = Postgres_Dialect.postgres.dialect_operations
 
 ## ---
    private: true

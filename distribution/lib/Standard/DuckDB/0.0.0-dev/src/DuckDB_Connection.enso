@@ -29,6 +29,12 @@ type DuckDB_Connection
     ## ---
        private: true
        ---
+    dialect : DuckDB_Dialect
+    dialect = DuckDB_Dialect.duckdb
+
+    ## ---
+       private: true
+       ---
        Creates a DuckDB connection based on a URL and properties.
 
        ## Arguments
