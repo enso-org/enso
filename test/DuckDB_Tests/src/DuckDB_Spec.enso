@@ -31,7 +31,7 @@ supported_replace_params =
     e4 = [Replace_Params.Value Column Case_Sensitivity.Default False, Replace_Params.Value Column Case_Sensitivity.Sensitive False]
     Hashset.from_vector <| e0 + e1 + e2 + e3 + e4
 
-duckdb_spec suite_builder prefix create_connection_func persistent_connector =
+duckdb_spec suite_builder prefix create_connection_func =
     name_counter = Ref.new 0
 
     # We keep a default connection to avoid creating connections each time.
