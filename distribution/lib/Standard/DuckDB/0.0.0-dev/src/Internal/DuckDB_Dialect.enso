@@ -407,7 +407,7 @@ duckdb_dialect_name = "DuckDB"
 private duckdb_overrides =
     scalars = [make_case_sensitive, ["ROUND_BANKERS", Base_Generator.make_function "ROUND_EVEN"], ["GROUP_NUMBER_EQUAL_COUNT", make_group_number_equal_count], ["PROPER", Nothing]]
     date_ops = [["QUARTER", make_quarter],["DATE_DIFF", make_date_diff]]
-    aggs = [make_first_aggr "FIRST", make_first_aggr "FIRST" not_null=True, make_first_aggr "LAST", make_first_aggr "LAST" not_null=True, agg_shortest, agg_longest, agg_median, agg_stddev, agg_stddev_pop]
+    aggs = [make_first_aggr, make_first_aggr not_null=True, make_last_aggr, make_last_aggr not_null=True, agg_shortest, agg_longest, agg_median, agg_stddev, agg_stddev_pop, agg_mode]
     scalars + date_ops + aggs
 
 ## ---
@@ -469,12 +469,25 @@ make_group_number_equal_count (arguments : Vector) = if arguments.length < 3 the
 ## ---
    private: true
    ---
-make_first_aggr method not_null:Boolean=False =
+make_first_aggr not_null:Boolean=False =
     func args =
+        if args.length < 2 then Error.throw (Illegal_State.Error "Insufficient number of arguments for the operation.")
         order_clause = SQL_Builder.code " ORDER BY " ++ SQL_Builder.join "," (args.drop 1)
         filter_clause = if not_null then SQL_Builder.code " FILTER (" ++ args.first ++ " IS NOT NULL)" else ""
-        SQL_Builder.code method+"(" ++ args.first ++ order_clause ++ ")" ++ filter_clause
-    [method + (if not_null then "_NOT_NULL" else ""), func]
+        SQL_Builder.code "FIRST(" ++ args.first ++ order_clause ++ ")" ++ filter_clause
+    [(if not_null then "FIRST_NOT_NULL" else "FIRST"), func]
+
+## ---
+   private: true
+   ---
+make_last_aggr not_null:Boolean=False =
+    ## Note - using array_agg[-1] for LAST as the built in LAST aggregate doesn't work as well with ORDER BY clauses.
+    func args =
+        if args.length < 2 then Error.throw (Illegal_State.Error "Insufficient number of arguments for the operation.")
+        order_clause = SQL_Builder.code " ORDER BY " ++ SQL_Builder.join "," (args.drop 1)
+        filter_clause = if not_null then SQL_Builder.code " FILTER (" ++ args.first ++ " IS NOT NULL)" else ""
+        SQL_Builder.code "(array_agg(" ++ args.first.paren ++ order_clause ++ ")" ++ filter_clause ++ ")[-1]"
+    [(if not_null then "LAST_NOT_NULL" else "LAST"), func]
 
 ## ---
    private: true
@@ -518,6 +531,13 @@ agg_stddev_pop = Base_Generator.lift_unary_op "STDDEV_POP" arg->
     stddev = SQL_Builder.code "STDDEV_POP (CASE WHEN " ++ arg ++ " IN (double precision 'Infinity', double precision 'NaN', double precision '-Infinity') THEN NULL ELSE " ++ arg ++ " END)"
     has_nan = SQL_Builder.code "bool_or(" ++ arg ++ " in (double precision 'Infinity', double precision 'NaN', double precision '-Infinity'))"
     SQL_Builder.code "CASE WHEN " ++ has_nan ++ " THEN 'NaN' ELSE " ++ stddev ++ " END"
+
+## ---
+   private: true
+   ---
+   Compute the mode for a column
+agg_mode = Base_Generator.lift_unary_op "MODE" arg->
+    SQL_Builder.code "MODE(" ++ arg ++ ")"
 
 ## PRIVATE
 supported_replace_params : Hashset Replace_Params
