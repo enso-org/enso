@@ -20,27 +20,27 @@ polyglot java import java.util.Base64
 ## An email provider for sending emails. In the future this will be replaced by an SPI system and move the implementation out of the Base library.
 type Email_Provider
     ## A test email provider that does not send any emails. Used for testing workflows.
-    TestOnly
+    Test_Only
 
     ## An email provider that sends emails using the SendGrid REST API.
-    SendGrid api_key:(Text|Enso_Secret)=(Missing_Argument.throw "api_key")
+    Send_Grid api_key:(Text|Enso_Secret)=(Missing_Argument.throw "api_key")
 
     ## Sends the provided Email.
     send self email:Email = case self of
-        Email_Provider.SendGrid api_key -> _sendgrid_email email api_key
-        Email_Provider.TestOnly -> 
-            warning = "TestOnly Email Provider used: no email was actually sent."
+        Email_Provider.Send_Grid api_key -> _send_email_with_send_grid_provider email api_key
+        Email_Provider.Test_Only -> 
+            warning = "Test_Only Email Provider used: no email was actually sent."
             Warning.attach warning (Send_Response.Test email)
 
-private _sendgrid_email email:Email api_key:Text =
+private _send_email_with_send_grid_provider email:Email api_key:Text =
     to_object = JS_Object.from_pairs ([_create_to_email_object email.to "to", _create_to_email_object email.cc "cc", _create_to_email_object email.bcc "bcc"].filter ..Not_Nothing) 
     base_email_pairs = [["personalizations", [to_object]], ["from", (_create_to_email email.from_address)], ["subject", email.subject], ["content", [_prepare_html_body email.body]]]
 
     attachment_list = if email.attachments.length == 0 then [] else email.attachments.map _prepare_attachment
     final_email_pairs = if email.attachments.length == 0 then base_email_pairs else base_email_pairs + [["attachments", attachment_list]]
-    sendgrid_request_body = JS_Object.from_pairs final_email_pairs
+    send_grid_request_body = JS_Object.from_pairs final_email_pairs
 
-    api_response = Data.post 'https://api.sendgrid.com/v3/mail/send' (..Json sendgrid_request_body) headers=[Header.authorization_bearer api_key]
+    api_response = Data.post 'https://api.sendgrid.com/v3/mail/send' (..Json send_grid_request_body) headers=[Header.authorization_bearer api_key]
     if api_response.is_error.not then Send_Response.Sent email else
         api_response.catch Any error->
             Error.throw (Send_Error.Error error.to_display_text)
