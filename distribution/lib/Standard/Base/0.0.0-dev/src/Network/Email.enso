@@ -48,9 +48,19 @@ type Email
     @body Email_Body.default_widget
     send from:Email_Address=(Missing_Argument.throw "from") to:(Vector Email_Address)=[] cc:(Vector Email_Address)=[] bcc:(Vector Email_Address)=[] subject:Text="" body:Email_Body="" attachments:(Vector Email_Attachment)=[] provider:Email_Provider=(Missing_Argument.throw "provider") -> Send_Response =
         email = Email.Message from to cc bcc subject body attachments
-        if Context.Output.is_enabled then provider.send email else
-            warning = Dry_Run_Operation.Warning "As writing is disabled, email not sent. Press the Write button ▶ to send it."
-            Warning.attach warning (Send_Response.Dry_Run email)
+        _send_email_with_provider email provider
+        
+    ## ---
+       aliases: [mail]
+       group: Web
+       icon: email
+       ---
+       Sends an email.
+
+       Sends an email using the specified email provider. Only sends an email in write mode.
+       The TestOnly email provider can be used to simulate sending an email without actually sending it.
+    send_message self provider:Email_Provider=(Missing_Argument.throw "provider") -> Send_Response =
+        _send_email_with_provider self provider
 
     ## ---
        private: true
@@ -64,3 +74,7 @@ type Email
             + '\nAttachments: ' + (if self.attachments.length == 0 then "None" else (self.attachments.map (f->f.file.name)).join '; ')
             + '\nBody: ' + self.body.body
 
+private _send_email_with_provider email provider = 
+    if Context.Output.is_enabled then provider.send email else
+        warning = Dry_Run_Operation.Warning "As writing is disabled, email not sent. Press the Write button ▶ to send it."
+        Warning.attach warning (Send_Response.Dry_Run email)
