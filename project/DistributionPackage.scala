@@ -228,28 +228,30 @@ object DistributionPackage {
     * Will do that only for libraries which have modified source files since last
     * compilation.
     * Compilation is done by invoking a single subprocess.
-    * @param stdLibRoot Root dir for all the standard libraries.
+    * @param libRoot Root dir for all the libraries.
     */
   def indexStdLibs(
     stdLibVersion: String,
     ensoVersion: String,
-    stdLibRoot: File,
+    libRoot: File,
     javaOpts: Seq[String],
     cacheFactory: CacheStoreFactory,
     log: Logger,
     env: Map[String, String] = Map.empty
   ): Unit = {
     val modifiedLibs: ArrayBuffer[File] = ArrayBuffer()
-    for (libName <- stdLibRoot.listFiles()) {
-      val libRootDir = libName / stdLibVersion
-      val cache      = cacheFactory.make(s"${libName.getName}.$ensoVersion")
-      val trackedFiles = libRootDir
-        .globRecursive("*.enso" && FileOnlyFilter)
-        .get()
-        .toSet
-      Tracked.diffInputs(cache, FileInfo.lastModified)(trackedFiles) { diff =>
-        if (diff.modified.nonEmpty) {
-          modifiedLibs.append(libRootDir)
+    for (libNamespace <- libRoot.listFiles()) {
+      for (libName <- libNamespace.listFiles()) {
+        val libRootDir = libName / stdLibVersion
+        val cache      = cacheFactory.make(s"${libName.getName}.$ensoVersion")
+        val trackedFiles = libRootDir
+          .globRecursive("*.enso" && FileOnlyFilter)
+          .get()
+          .toSet
+        Tracked.diffInputs(cache, FileInfo.lastModified)(trackedFiles) { diff =>
+          if (diff.modified.nonEmpty) {
+            modifiedLibs.append(libRootDir)
+          }
         }
       }
     }
