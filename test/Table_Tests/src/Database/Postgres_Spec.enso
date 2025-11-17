@@ -9,7 +9,7 @@ from Standard.Table import Table, Value_Type, Aggregate_Column, Bits, expr
 from Standard.Table.Errors import Inexact_Type_Coercion, Duplicate_Output_Column_Names
 
 from Standard.Database import all
-import Standard.Database.Dialects.Dialect
+import Standard.Database.Connection.Postgres_Connection.Postgres_Connection
 import Standard.Database.Dialects.Dialect_Flag.Dialect_Flag
 import Standard.Database.Dialects.Feature.Feature
 import Standard.Database.Internal.Postgres.Pgpass
@@ -720,9 +720,7 @@ add_postgres_specs suite_builder create_connection_fn db_name =
 
     materialize = .read
 
-    
-
-    common_selection = Common_Table_Operations.Main.Test_Selection.Config supported_replace_params=Dialect.postgres.get_supported_replace_params run_advanced_edge_case_tests_by_default=True
+    common_selection = Common_Table_Operations.Main.Test_Selection.Config supported_replace_params=Postgres_Connection.dialect.get_supported_replace_params run_advanced_edge_case_tests_by_default=True
     aggregate_selection = Common_Table_Operations.Aggregate_Spec.Test_Selection.Config first_last_row_order=False aggregation_problems=False
     agg_in_memory_table = (enso_project.data / "data.csv") . read
 
