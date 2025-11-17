@@ -5,7 +5,6 @@ import Standard.Base.Errors.Unimplemented.Unimplemented
 import Standard.Base.Runtime.Context
 import Standard.Base.Runtime.Managed_Resource.Managed_Resource
 from Standard.Base.Enso_Cloud.Enso_Secret import as_hideable_value
-from Standard.Base.Logging import all
 
 from Standard.Table import Table, Value_Type
 
