@@ -294,7 +294,7 @@ object DistributionPackage {
       "--no-compile-dependencies",
       "--compile"
     ) ++ libPaths
-    log.info(command.mkString(" "))
+    log.debug(command.mkString(" "))
     val allEnv = mapAppend(
       env,
       "NO_COLOR" -> "true"
