@@ -506,8 +506,8 @@ agg_median = Base_Generator.lift_unary_op "MEDIAN" arg->
    ---
    Compute the stddev for a column
 agg_stddev = Base_Generator.lift_unary_op "STDDEV_SAMP" arg->
-    stddev = SQL_Builder.code "STDDEV_SAMP(" ++ arg ++ ")"
-    has_nan = SQL_Builder.code "bool_or(" ++ arg ++ " = double precision 'NaN')"
+    stddev = SQL_Builder.code "STDDEV_SAMP(CASE WHEN " ++ arg ++ " IN (double precision 'Infinity', double precision 'NaN', double precision '-Infinity') THEN NULL ELSE " ++ arg ++ " END)"
+    has_nan = SQL_Builder.code "bool_or(" ++ arg ++ " in (double precision 'Infinity', double precision 'NaN', double precision '-Infinity'))"
     SQL_Builder.code "CASE WHEN " ++ has_nan ++ " THEN 'NaN' ELSE " ++ stddev ++ " END"
 
 ## ---
@@ -515,8 +515,8 @@ agg_stddev = Base_Generator.lift_unary_op "STDDEV_SAMP" arg->
    ---
    Compute the population stddev for a column
 agg_stddev_pop = Base_Generator.lift_unary_op "STDDEV_POP" arg->
-    stddev = SQL_Builder.code "STDDEV_POP(" ++ arg ++ ")"
-    has_nan = SQL_Builder.code "bool_or(" ++ arg ++ " = double precision 'NaN')"
+    stddev = SQL_Builder.code "STDDEV_POP (CASE WHEN " ++ arg ++ " IN (double precision 'Infinity', double precision 'NaN', double precision '-Infinity') THEN NULL ELSE " ++ arg ++ " END)"
+    has_nan = SQL_Builder.code "bool_or(" ++ arg ++ " in (double precision 'Infinity', double precision 'NaN', double precision '-Infinity'))"
     SQL_Builder.code "CASE WHEN " ++ has_nan ++ " THEN 'NaN' ELSE " ++ stddev ++ " END"
 
 ## PRIVATE
