@@ -250,7 +250,7 @@ public final class TopLevelScope extends EnsoObject {
             case String s -> Option.apply(s);
             default -> Option.empty();
           };
-      var projectPaths = asInteropStringList(args[2]);
+      var projectPaths = fromInteropStringList(args[2]);
       return compileMultipleProjects(projectPaths, ctx, generateDocs, shouldCompileDependencies);
     }
 
@@ -301,7 +301,7 @@ public final class TopLevelScope extends EnsoObject {
       return true;
     }
 
-    private static List<String> asInteropStringList(Object obj) {
+    private static List<String> fromInteropStringList(Object obj) {
       var interop = InteropLibrary.getUncached();
       if (interop.hasArrayElements(obj)) {
         var ret = new ArrayList<String>();
