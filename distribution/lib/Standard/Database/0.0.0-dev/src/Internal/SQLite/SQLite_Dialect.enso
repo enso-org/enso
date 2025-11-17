@@ -19,6 +19,7 @@ import project.Errors.Unsupported_Database_Operation
 import project.Internal.Aggregate_Helper
 import project.Internal.Aggregate_Helper.Aggregate_With_Helper_Expressions
 import project.Internal.Base_Generator
+import project.Internal.Base_Generator.Dialect_Operations
 import project.Internal.Common.Database_Distinct_Helper
 import project.Internal.Common.Database_Join_Helper
 import project.Internal.Common.Row_Number_Helpers
@@ -55,6 +56,13 @@ type SQLite_Dialect
        ---
        The dialect of SQLite databases.
     Value dialect_operations
+
+    ## ---
+       private: true
+       ---
+       Access underlying dialect operations.
+    get_dialect_operations : Dialect_Operations
+    get_dialect_operations self = self.dialect_operations
 
     ## ---
        private: true

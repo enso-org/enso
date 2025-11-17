@@ -22,7 +22,7 @@ polyglot java import org.enso.duckdb.DuckDBJDBCValueSetter
    private: true
    ---
 type DuckDB_Type_Mapping
-	## ---
+    ## ---
        private: true
        ---
     value_type_to_sql : Value_Type -> Problem_Behavior -> SQL_Type

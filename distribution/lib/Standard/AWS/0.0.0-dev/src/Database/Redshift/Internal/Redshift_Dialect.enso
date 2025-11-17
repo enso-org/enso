@@ -3,6 +3,7 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 from Standard.Table import Aggregate_Column, Value_Type
 
+import Standard.Database.Connection.Postgres_Connection
 import Standard.Database.DB_Column.DB_Column
 import Standard.Database.Dialects.Dialect
 import Standard.Database.Dialects.Dialect.Temp_Table_Style
@@ -125,7 +126,7 @@ type Redshift_Dialect
           types, it should be set to `Nothing`.
     prepare_order_descriptor : Internal_Column -> Sort_Direction -> Nothing | Text_Ordering -> Order_Descriptor
     prepare_order_descriptor self internal_column sort_direction text_ordering =
-        Postgres_Dialect.make_order_descriptor internal_column sort_direction text_ordering
+        Postgres_Connection.dialect.prepare_order_descriptor internal_column sort_direction text_ordering
 
     ## ---
        private: true

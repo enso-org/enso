@@ -16,6 +16,7 @@ import project.Internal.Common.Connections_Helpers
 import project.Internal.Connection.Entity_Naming_Properties.Entity_Naming_Properties
 import project.Internal.Data_Link_Setup.Data_Link_Setup
 import project.Internal.JDBC_Connection
+import project.Internal.Postgres.Postgres_Dialect
 import project.Internal.Postgres.Postgres_Type_Mapping.Postgres_Type_Mapping
 import project.SQL.SQL_Statement
 import project.SQL_Query.SQL_Query
@@ -33,7 +34,7 @@ type Postgres_Connection
        private: true
        ---
     dialect : Dialect.Dialect
-    dialect = Dialect.postgres
+    dialect = Postgres_Dialect.postgres
 
     ## ---
        private: true

@@ -17,12 +17,10 @@ import project.Internal.IR.SQL_IR_Expression.SQL_IR_Expression
 import project.Internal.IR.SQL_IR_Source.SQL_IR_Source
 import project.Internal.IR.SQL_IR_Statement.SQL_IR_Statement
 import project.Internal.JDBC_Connection.JDBC_Connection
-import project.Internal.Postgres.Postgres_Dialect
 import project.Internal.Replace_Params.Replace_Params
 import project.Internal.SQL_Part.SQL_Part
 import project.Internal.SQL_Type_Mapping.SQL_Type_Mapping
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
-import project.Internal.SQLite.SQLite_Dialect
 import project.SQL.SQL_Builder
 import project.SQL.SQL_Statement
 import project.SQL.SQL_Type
@@ -310,27 +308,6 @@ type Dialect
     ensure_query_has_no_holes jdbc:JDBC_Connection raw_sql:Text =
         _ = [jdbc, raw_sql]
         Unimplemented.throw "This is an interface only."
-
-## ---
-   private: true
-   ---
-   The dialect of SQLite databases.
-sqlite : Dialect
-sqlite = SQLite_Dialect.sqlite
-
-## ---
-   private: true
-   ---
-   The dialect of PostgreSQL databases.
-postgres : Dialect
-postgres = Postgres_Dialect.postgres
-
-## ---
-   private: true
-   ---
-   Access the dialect_operations for PostgreSQL allowing extension use.
-postgres_operations : Dialect
-postgres_operations = Postgres_Dialect.postgres.dialect_operations
 
 ## ---
    private: true
