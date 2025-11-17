@@ -2,7 +2,7 @@ from Standard.Base import all
 import Standard.Base.Enso_Cloud.Data_Link.Data_Link
 import Standard.Base.Runtime.Ref.Ref
 
-from Standard.Table import Column, Table, Value_Type, Aggregate_Column, Bits
+from Standard.Table import Table, Value_Type, Aggregate_Column, Bits
 
 import Standard.Database.Dialects.Dialect_Flag.Dialect_Flag
 import Standard.Database.Dialects.Feature.Feature

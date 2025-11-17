@@ -5,7 +5,6 @@ from Standard.Table import Aggregate_Column, Value_Type
 
 import Standard.Database.Connection.Postgres_Connection.Postgres_Connection
 import Standard.Database.DB_Column.DB_Column
-import Standard.Database.Dialects.Dialect
 import Standard.Database.Dialects.Dialect.Temp_Table_Style
 import Standard.Database.Dialects.Dialect_Flag.Dialect_Flag
 import Standard.Database.Dialects.Feature.Feature
@@ -31,7 +30,7 @@ from Standard.Database.Internal.JDBC_Connection import JDBC_Connection
    The dialect for Redshift connections.
 redshift : Redshift_Dialect
 redshift =
-    Redshift_Dialect.Value Dialect.postgres_operations
+    Redshift_Dialect.Value Postgres_Connection.dialect.get_dialect_operations
 
 ## ---
    private: true

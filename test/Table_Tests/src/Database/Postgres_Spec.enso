@@ -5,7 +5,7 @@ import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Runtime.Ref.Ref
 import Standard.Base.System.File.Data_Link_Access.Data_Link_Access
 
-from Standard.Table import Column, Table, Value_Type, Aggregate_Column, Bits, expr
+from Standard.Table import Table, Value_Type, Aggregate_Column, Bits, expr
 from Standard.Table.Errors import Inexact_Type_Coercion, Duplicate_Output_Column_Names
 
 from Standard.Database import all
