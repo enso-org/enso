@@ -6,21 +6,14 @@ from project.Metadata.Widget import Text_Input, Vector_Editor, Single_Choice
 
 ## The body of an email.
 type Email_Body
+    ## An email with no body.
+    No_Body
+
     ## A plain text email body.
-    Plain_Text body:Text
+    Plain_Text body:Text=(Missing_Argument.throw "body")
 
     ## An HTML email body. With an optional plain text fallback.
-    HTML html:Text body:Text=""
-     
-    ## ---
-       private: true
-       ---
-    default_widget (display : Display = ..Always) -> Widget =
-        plain = [Option "Plain_Text" "Email_Body.Plain_Text ''"]
-        html = [Option "HTML" "Email_Body.HTML '' ''"]
-        values = plain + html
-      
-        Single_Choice values=values display=display
+    HTML html:Text=(Missing_Argument.throw "html") body:Text=""
 
 ## ---
    private: true
