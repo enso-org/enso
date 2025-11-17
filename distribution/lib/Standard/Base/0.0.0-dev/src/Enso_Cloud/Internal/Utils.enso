@@ -173,4 +173,6 @@ set_cached (key : Text) value (cache_duration : Duration | Nothing = Duration.ne
 
 type Services_Impl
 
-Data_Link_SPI.from (_:Services_Impl) = Data_Link_SPI.new Enso_File_Data_Link "Enso_File"
+Data_Link_SPI.from (that:Services_Impl) =
+    _ = that
+    Data_Link_SPI.new Enso_File_Data_Link "Enso_File"

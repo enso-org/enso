@@ -8,7 +8,6 @@ import { useComponentColors } from '@/composables/componentColors'
 import { useDoubleClick } from '@/composables/doubleClick'
 import { useGraphEditorState } from '@/providers/graphEditorState'
 import { injectGraphSelection } from '@/providers/graphSelection'
-import type { Vec2 } from '@/util/data/vec2'
 import { isDef } from '@vueuse/core'
 import { setIfUndefined } from 'lib0/map'
 import {
@@ -17,6 +16,7 @@ import {
   onScopeDispose,
   ref,
   toRef,
+  watch,
   watchEffect,
   type EffectScope,
 } from 'vue'
@@ -27,7 +27,8 @@ const props = defineProps<{ nodeId: NodeId }>()
 const emit = defineEmits<{
   portClick: [event: PointerEvent, portId: AstId]
   portDoubleClick: [event: PointerEvent, portId: AstId]
-  newNodeClick: [portId: AstId, position: Vec2]
+  newNodeClick: [portId: AstId]
+  newNodeDrag: [portId: AstId]
 }>()
 
 const { graph } = useCurrentProject()
@@ -168,6 +169,19 @@ function portGroupStyle(port: PortData) {
   }
 }
 
+function isPlusButtonVisible(portId: AstId): boolean {
+  return !componentBrowserOpened.value && isPortDisconnected(portId)
+}
+// Opening component browser should manually clear output hover state, because
+// plus button disappears when component browser opens, and we cannot receive pointerleave event
+// in this case.
+watch(componentBrowserOpened, (opened) => {
+  if (opened) {
+    mouseOverOutput.value = undefined
+    mouseOverCreateNodeFromPortButton.value = 0
+  }
+})
+
 graph.value?.suggestEdgeFromOutput(outputHovered)
 </script>
 
@@ -193,7 +207,7 @@ graph.value?.suggestEdgeFromOutput(outputHovered)
             >
               <rect class="outputPortHoverArea" />
               <rect
-                v-if="!componentBrowserOpened && isPortDisconnected(port.portId)"
+                v-if="isPlusButtonVisible(port.portId)"
                 class="createNodeButtonApproachZone"
               ></rect>
             </g>
@@ -205,11 +219,12 @@ graph.value?.suggestEdgeFromOutput(outputHovered)
     </g>
     <template v-for="port of outputPorts" :key="port.portId">
       <CreateNodeFromPortButton
-        v-if="!componentBrowserOpened && isPortDisconnected(port.portId)"
+        v-if="isPlusButtonVisible(port.portId)"
         :portId="port.portId"
         :nodeId="nodeId"
         @update:hovered="mouseOverCreateNodeFromPortButton += $event ? 1 : -1"
-        @newNodeClick="(port, position) => emit('newNodeClick', port, position)"
+        @newNodeClick="(port) => emit('newNodeClick', port)"
+        @newNodeDrag="(port) => emit('newNodeDrag', port)"
       />
     </template>
   </g>

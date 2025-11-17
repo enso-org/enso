@@ -1,11 +1,13 @@
 private
 
 import Standard.Database.Connection.Database.Database_Connection_Details_SPI
+
 import project.DuckDB.DuckDB
 
 type Impl
 
-Database_Connection_Details_SPI.from (_:Impl) =
+Database_Connection_Details_SPI (that:Impl) =
+    _ = that
     file = Database_Connection_Details_SPI.new DuckDB "DuckDB" "DuckDB.From_File"
     memory = Database_Connection_Details_SPI.new DuckDB "DuckDB (In-Memory)" "DuckDB.In_Memory"
     file+memory

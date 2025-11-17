@@ -678,7 +678,7 @@ export class LocalBackend extends backend.Backend {
   /** Begin uploading a large file. */
   override async uploadFileStart(
     body: backend.UploadFileRequestParams,
-    file: File,
+    file: File | null,
   ): Promise<backend.UploadLargeFileMetadata> {
     const parentPath =
       body.parentDirectoryId == null ?
@@ -686,7 +686,7 @@ export class LocalBackend extends backend.Backend {
       : backend.extractTypeAndPath(body.parentDirectoryId).path
     const filePath = joinPath(parentPath, body.fileName)
     const uploadId = uniqueString()
-    const sourcePath = body.filePath ?? this.getFilePath?.(file)
+    const sourcePath = body.filePath ?? (file && this.getFilePath?.(file))
     const searchParams = new URLSearchParams([
       ['directory', newDirectoryId(parentPath)],
       ['file_name', body.fileName],
@@ -731,6 +731,17 @@ export class LocalBackend extends backend.Backend {
       throw new Error('Uploaded file not found')
     }
     return Promise.resolve(file)
+  }
+
+  /**
+   * Upload set of Images, resolving any possible conflicts. The sum of file sizes may not
+   * exceed cloud message limit.
+   */
+  override uploadImage(
+    _parentDirectoryId: backend.DirectoryId,
+    _files: { data: Blob; name: string }[],
+  ): Promise<backend.UploadedImages> {
+    this.invalidOperation()
   }
 
   /** Change the name of a file. */

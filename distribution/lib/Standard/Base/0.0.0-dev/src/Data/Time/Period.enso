@@ -194,11 +194,11 @@ type Period
             Period.Value (self.internal_period.multipliedBy factor)
 
     ## ---
-      aliases: [greater than]
-      group: Operators
-      icon: operators
-      ---
-      Checks if `self` is greater than `that`.
+       aliases: [greater than]
+       group: Operators
+       icon: operators
+       ---
+       Checks if `self` is greater than `that`.
     > self that = Comparable.> self=self that
 
     ## ---
