@@ -6,7 +6,7 @@ import project.Enso_Cloud.Enso_Secret.Enso_Secret
 import project.Errors.Common.Missing_Argument
 import project.Network.Email.Email_Address.Email_Address
 import project.Network.Email.Email_Body.Email_Body
-import project.Network.Email.Email_Object.Email_Object
+import project.Network.Email.Email
 import project.Network.Email.Email_Send_Response.Send_Response
 import project.Network.Email.Send_Error.Send_Error
 import project.Network.HTTP.Header.Header
@@ -25,14 +25,14 @@ type Email_Provider
     ## An email provider that sends emails using the SendGrid REST API.
     SendGrid api_key:(Text|Enso_Secret)=(Missing_Argument.throw "api_key")
 
-    ## Sends the provided Email_Object.
-    send self email:Email_Object = case self of
+    ## Sends the provided Email.
+    send self email:Email = case self of
         Email_Provider.SendGrid api_key -> _sendgrid_email email api_key
         Email_Provider.TestOnly -> 
             warning = "TestOnly Email Provider used: no email was actually sent."
             Warning.attach warning (Send_Response.Test email)
 
-private _sendgrid_email email:Email_Object api_key:Text =
+private _sendgrid_email email:Email api_key:Text =
     to_object = JS_Object.from_pairs ([_create_to_email_object email.to "to", _create_to_email_object email.cc "cc", _create_to_email_object email.bcc "bcc"].filter ..Not_Nothing) 
     base_email_pairs = [["personalizations", [to_object]], ["from", (_create_to_email email.from_address)], ["subject", email.subject], ["content", [_prepare_html_body email.body]]]
 

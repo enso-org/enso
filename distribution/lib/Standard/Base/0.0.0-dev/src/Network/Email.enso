@@ -5,7 +5,7 @@ import project.Errors.Common.Dry_Run_Operation
 import project.Network.Email.Email_Address.Email_Address
 import project.Network.Email.Email_Attachment.Email_Attachment
 import project.Network.Email.Email_Body.Email_Body
-import project.Network.Email.Email_Object.Email_Object
+import project.Network.Email.Email
 import project.Network.Email.Email_Provider.Email_Provider
 import project.Network.Email.Email_Send_Response.Send_Response
 import project.Runtime.Context
@@ -27,7 +27,25 @@ import project.Warning.Warning
 @attachments Email_Attachment.vector_widget
 @body Email_Body.default_widget
 send from:Email_Address=(Missing_Argument.throw "from") to:(Vector Email_Address)=[] cc:(Vector Email_Address)=[] bcc:(Vector Email_Address)=[] subject:Text="" body:Email_Body="" attachments:(Vector Email_Attachment)=[] provider:Email_Provider=(Missing_Argument.throw "provider") -> Send_Response =
-    email_object = Email_Object.Value from to cc bcc subject body attachments
-    if Context.Output.is_enabled then provider.send email_object else
+    email = Email.Message from to cc bcc subject body attachments
+    if Context.Output.is_enabled then provider.send email else
         warning = Dry_Run_Operation.Warning "As writing is disabled, email not sent. Press the Write button ▶ to send it."
-        Warning.attach warning (Send_Response.Dry_Run email_object)
+        Warning.attach warning (Send_Response.Dry_Run email)
+
+## An email object representing all parts of an email.
+type Email
+    ## An email object with all standard fields.
+    Message from_address:Email_Address to:(Vector Email_Address)=[] cc:(Vector Email_Address)=[] bcc:(Vector Email_Address)=[] subject:Text="" body:Email_Body="" attachments:(Vector Email_Attachment)=[]
+
+    ## ---
+       private: true
+       ---
+    to_text self -> Text = 
+        'From: ' + self.from_address.to_text 
+            + '\nTo: ' + (self.to.map .to_text).join '; '
+            + '\nCc: ' + (self.cc.map .to_text).join '; '
+            + '\nBcc: ' + (self.bcc.map .to_text).join '; '
+            + '\nSubject: ' + self.subject
+            + '\nAttachments: ' + (if self.attachments.length == 0 then "None" else (self.attachments.map (f->f.file.name)).join '; ')
+            + '\nBody: ' + self.body.body
+

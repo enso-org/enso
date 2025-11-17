@@ -1,20 +1,20 @@
 import project.Data.Text.Text
-import project.Network.Email.Email_Object.Email_Object
+import project.Network.Email.Email
 from project.Visualization.Table_Viz_Data import Table_Viz_Data, Table_Viz_Header
 
 ## Response from sending an email.
 type Send_Response
     ## No email was sent, this was just a test. Used only by the TestOnly Email_Provider.
-    Test email:Email_Object
+    Test email:Email
 
     ## No email was sent, workflow was run in dry-run mode.
-    Dry_Run email:Email_Object
+    Dry_Run email:Email
 
     ## Email was sent successfully.
-    Sent email:Email_Object
+    Sent email:Email
 
     ## Email sending failed.
-    Failed email:Email_Object
+    Failed email:Email
 
     ## ---
        private: true
