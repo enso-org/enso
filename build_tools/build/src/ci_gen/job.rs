@@ -1,4 +1,3 @@
-use crate::ci_gen::CleaningCondition;
 use crate::prelude::*;
 
 use crate::ci_gen::not_default_branch;
@@ -263,8 +262,6 @@ impl JobArchetype for JvmTests {
                     step::engine_test_reporter(target, graal_edition),
                 ]
             })
-            // Clean always, because JVM tests are unstable.
-            .cleaning(CleaningCondition::Always)
             .build_job(job_name, target)
             .with_permission(Permission::Checks, Access::Write);
         match graal_edition {
