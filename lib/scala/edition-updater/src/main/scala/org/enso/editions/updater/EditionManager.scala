@@ -52,6 +52,7 @@ object EditionManager {
     */
   final def makeEditionProvider(
     distributionManager: DistributionManager,
+    extraSearchPath: Seq[Path],
     languageHome: Option[LanguageHome],
     updating: Boolean
   ): editions.provider.EditionProvider = {
@@ -65,7 +66,7 @@ object EditionManager {
         config.editionProviders
       )
     } else {
-      val actualSearchPaths = (searchPaths ++ List(cachePath)).distinct
+      val actualSearchPaths = (searchPaths ++ extraSearchPath ++ List(cachePath)).distinct
       new editions.provider.FileSystemEditionProvider(actualSearchPaths)
     }
   }
@@ -85,8 +86,9 @@ object EditionManager {
     */
   def apply(
     distributionManager: DistributionManager,
-    languageHome: Option[LanguageHome] = None
+    languageHome: Option[LanguageHome] = None,
+    extraSearchPath: Seq[Path] = Seq.empty,
   ): EditionManager = new EditionManager(
-    makeEditionProvider(distributionManager, languageHome, false)
+    makeEditionProvider(distributionManager, extraSearchPath, languageHome, false)
   )
 }

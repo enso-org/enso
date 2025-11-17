@@ -1,6 +1,7 @@
 package org.enso.runner;
 
 import java.io.File;
+import java.nio.file.Path;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -29,6 +30,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.event.Level;
 import scala.Some;
+import scala.collection.immutable.Seq;
+import scala.collection.immutable.Seq$;
 
 /** A helper to preinstall all dependencies of a project. */
 class DependencyPreinstaller {
@@ -45,8 +48,9 @@ class DependencyPreinstaller {
     var distributionManager = new DistributionManager(environment);
     var lockManager = new ThreadSafeFileLockManager(distributionManager.paths().locks());
     var resourceManager = new ResourceManager(lockManager);
+    Seq<Path> emptyExtraSearchPaths = (Seq<Path>) Seq$.MODULE$.empty();
     var editionProvider =
-        EditionManager.makeEditionProvider(distributionManager, Some.apply(languageHome), true);
+        EditionManager.makeEditionProvider(distributionManager, emptyExtraSearchPaths, Some.apply(languageHome), true);
     var editionResolver = new EditionResolver(editionProvider);
     var editionOpt =
         editionResolver.resolve(

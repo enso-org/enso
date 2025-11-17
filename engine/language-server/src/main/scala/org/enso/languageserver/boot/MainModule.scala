@@ -164,6 +164,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
   val editionProvider =
     EditionManager.makeEditionProvider(
       distributionManager,
+      Seq.empty,
       Some(languageHome),
       false
     )

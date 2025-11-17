@@ -676,7 +676,7 @@ public class Main {
    */
   private void compile(
       String cwd,
-      String[] paths,
+      List<String> paths,
       boolean shouldCompileDependencies,
       boolean shouldUseIrCaches,
       boolean disablePrivateCheck,
@@ -685,9 +685,14 @@ public class Main {
       Level logLevel,
       boolean logMasking)
       throws IOException {
-    var mainProjectPath = paths[0];
+    var mainProjectPath = paths.get(0);
     var fileAndProject = Utils.findFileAndProject(cwd, mainProjectPath, null);
     assert fileAndProject != null;
+    var extraSearchPaths = paths
+        .stream()
+        .skip(1)
+        .map(Path::of)
+        .toList();
 
     boolean isProjectMode = fileAndProject._1();
     String projectPath = fileAndProject._3();
@@ -695,6 +700,7 @@ public class Main {
         new PolyglotContext(
             ContextFactory.create()
                 .projectRoot(projectPath)
+                .extraSearchPath(extraSearchPaths)
                 .in(System.in)
                 .out(System.out)
                 .logLevel(Converter.toJavaLevel(logLevel))
@@ -709,7 +715,8 @@ public class Main {
     try {
       if (isProjectMode) {
         var topScope = context.getTopScope();
-        topScope.compile(shouldCompileDependencies, paths);
+        var pathsArr = paths.toArray(new String[0]);
+        topScope.compile(shouldCompileDependencies, pathsArr);
       } else {
         context.evalModule(fileAndProject._2());
       }
@@ -1197,7 +1204,7 @@ public class Main {
 
       compile(
           cwd,
-          packagePaths,
+          Arrays.asList(packagePaths),
           shouldCompileDependencies,
           shouldEnableIrCaches(line),
           line.hasOption(DISABLE_PRIVATE_CHECK_OPTION),

@@ -345,6 +345,7 @@ abstract class BaseServerTest
     val editionProvider =
       EditionManager.makeEditionProvider(
         distributionManager,
+        Seq.empty,
         Some(languageHome),
         true
       )
