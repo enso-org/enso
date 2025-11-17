@@ -10,14 +10,14 @@ type Email_Body
     Plain_Text body:Text
 
     ## An HTML email body. With an optional plain text fallback.
-    Html html:Text body:Text=""
+    HTML html:Text body:Text=""
      
     ## ---
        private: true
        ---
     default_widget (display : Display = ..Always) -> Widget =
         plain = [Option "Plain_Text" "Email_Body.Plain_Text ''"]
-        html = [Option "Html" "Email_Body.Html '' ''"]
+        html = [Option "HTML" "Email_Body.HTML '' ''"]
         values = plain + html
       
         Single_Choice values=values display=display
