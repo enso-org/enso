@@ -302,6 +302,7 @@ export function useProjectStates() {
       }
     }
     if (!localProjectAsset) return Err('Cannot find downloaded local project.')
+    await backends.localBackend.startWatcher(localProjectAsset.id)
     return openLocalVersionOfHybridProjectByRunningInfo({
       ...project.info,
       runningId: localProjectAsset.id,
@@ -571,10 +572,14 @@ export function useProjectStates() {
   async function closeHybridProject(
     project: HybridUploaded | HybridOpened | HybridDownloaded,
   ): Promise<Result<NotOpened>> {
-    if (project.status === 'hybrid-uploaded')
+    if (project.status === 'hybrid-uploaded') {
+      await backends.localBackend?.stopWatcher(project.info.id)
       await deleteLocalVersionOfHybridProject(project.info.localParentId)
-    if (project.status === 'hybrid-downloaded')
+    }
+    if (project.status === 'hybrid-downloaded') {
+      await backends.localBackend?.stopWatcher(project.info.id)
       await deleteLocalVersionOfHybridProject(project.localProjectParentId)
+    }
     await closeRemoteProject.mutateAsync([project.info.id, project.info.title])
     return Ok({ status: 'not-opened', info: project.info })
   }

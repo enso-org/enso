@@ -870,6 +870,34 @@ export class LocalBackend extends backend.Backend {
     }
   }
 
+  /** Start watching project directory. */
+  async startWatcher(projectId: backend.ProjectId): Promise<void> {
+    const queryString = new URLSearchParams({
+      directory: backend.extractTypeAndPath(projectId).path,
+    }).toString()
+    const response = await this.post<null>(
+      new URL(`/api/watch-upload-start?${queryString}`, location.href).toString(),
+      null,
+    )
+    if (!response.ok) {
+      return await this.throw(response, 'resolveProjectAssetPathBackendError')
+    }
+  }
+
+  /** Stop watching project directory. */
+  async stopWatcher(projectId: backend.ProjectId): Promise<void> {
+    const queryString = new URLSearchParams({
+      directory: backend.extractTypeAndPath(projectId).path,
+    }).toString()
+    const response = await this.post<null>(
+      new URL(`/api/watch-upload-stop?${queryString}`, location.href).toString(),
+      null,
+    )
+    if (!response.ok) {
+      return await this.throw(response, 'resolveProjectAssetPathBackendError')
+    }
+  }
+
   /** Invalid operation. */
   override restoreAsset() {
     return this.invalidOperation()
