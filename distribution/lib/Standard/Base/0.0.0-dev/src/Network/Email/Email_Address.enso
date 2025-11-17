@@ -7,18 +7,14 @@ from project.Metadata.Widget import Text_Input, Vector_Editor, Single_Choice
 
 ## The email address of a sender or recipient.
 type Email_Address
-    ## An email address.
-    Address address:Text=(Missing_Argument.throw "address")
-
-    ## An email address with a display name.
-    Name_Address name:Text=(Missing_Argument.throw "name") address:Text=(Missing_Argument.throw "address")
+    ## An email address with an optional display name.
+    Address address:Text=(Missing_Argument.throw "address") name:Text=""
 
     ## ---
        private: true
        ---
-    to_text self -> Text = case self of
-        Email_Address.Address _ -> self.address
-        Email_Address.Name_Address _ _ -> self.name + ' <' + self.address + '>'
+    to_text self -> Text = 
+        if self.name == "" then self.address else self.name + ' <' + self.address + '>'
 
     ## ---
        private: true
