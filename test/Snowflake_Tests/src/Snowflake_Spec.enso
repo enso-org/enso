@@ -556,7 +556,9 @@ add_snowflake_specs suite_builder create_connection_fn db_name =
     IR_Spec.add_specs suite_builder setup prefix default_connection.get
     Auth_Spec.add_specs suite_builder default_connection.get
 
-## PRIVATE
+## ---
+   private: true
+   ---
 is_snowflake_integer value_type = case value_type of
     Value_Type.Integer _ -> True
     Value_Type.Decimal _ scale -> scale == 0

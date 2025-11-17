@@ -40,7 +40,9 @@ add_specs_for_config config suite_builder =
                 r2.at "c" . to_vector . should_equal [20, 30]
                 r2.at "d" . to_vector . should_equal ['qqqq', 'zzzz']
 
-## PRIVATE
+## ---
+   private: true
+   ---
 type SQLite_JDBC_File_Config
     Value
 
@@ -66,7 +68,9 @@ type SQLite_JDBC_File_Config
             Panic.with_finalizer cleanup <|
                 action conn
 
-## PRIVATE
+## ---
+   private: true
+   ---
 type SQLite_JDBC_In_Memory_Config
     Value
 

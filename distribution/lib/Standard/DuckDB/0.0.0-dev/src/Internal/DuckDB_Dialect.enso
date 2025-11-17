@@ -405,7 +405,7 @@ duckdb_dialect_name = "DuckDB"
    ---
    Dialect operation overrides for DuckDB.
 private duckdb_overrides =
-    scalars = [make_case_sensitive, ["ROUND_BANKERS", Base_Generator.make_function "ROUND_EVEN"], ["GROUP_NUMBER_EQUAL_COUNT", make_group_number_equal_count], ["PROPER", Nothing]]
+    scalars = [make_case_sensitive, ["ROUND_BANKERS", Base_Generator.make_function "ROUND_EVEN"], ["GROUP_NUMBER_EQUAL_COUNT", make_group_number_equal_count], ["PROPER", Nothing], ["REPLACE", replace]]
     date_ops = [["QUARTER", make_quarter],["DATE_DIFF", make_date_diff]]
     aggs = [make_first_aggr, make_first_aggr not_null=True, make_last_aggr, make_last_aggr not_null=True, agg_shortest, agg_longest, agg_median, agg_stddev, agg_stddev_pop, agg_mode]
     scalars + date_ops + aggs
@@ -539,12 +539,71 @@ agg_stddev_pop = Base_Generator.lift_unary_op "STDDEV_POP" arg->
 agg_mode = Base_Generator.lift_unary_op "MODE" arg->
     SQL_Builder.code "MODE(" ++ arg ++ ")"
 
-## PRIVATE
+## ---
+   private: true
+   ---
 supported_replace_params : Hashset Replace_Params
 supported_replace_params =
     e0 = [Replace_Params.Value Text Case_Sensitivity.Default False, Replace_Params.Value Text Case_Sensitivity.Default True, Replace_Params.Value Text Case_Sensitivity.Sensitive False]
     e1 = [Replace_Params.Value Text Case_Sensitivity.Sensitive True, Replace_Params.Value Text Case_Sensitivity.Insensitive False, Replace_Params.Value Text Case_Sensitivity.Insensitive True]
     e2 = [Replace_Params.Value Regex Case_Sensitivity.Default False, Replace_Params.Value Regex Case_Sensitivity.Default True, Replace_Params.Value Regex Case_Sensitivity.Sensitive False]
     e3 = [Replace_Params.Value Regex Case_Sensitivity.Sensitive True, Replace_Params.Value Regex Case_Sensitivity.Insensitive False, Replace_Params.Value Regex Case_Sensitivity.Insensitive True]
-    e4 = [Replace_Params.Value Column Case_Sensitivity.Default False, Replace_Params.Value Column Case_Sensitivity.Sensitive False]
-    Hashset.from_vector <| e0 + e1 + e2 + e3 + e4
+    e4 = [Replace_Params.Value Column Case_Sensitivity.Default False, Replace_Params.Value Column Case_Sensitivity.Default True, Replace_Params.Value Column Case_Sensitivity.Sensitive False]
+    e5 = [Replace_Params.Value Column Case_Sensitivity.Sensitive True, Replace_Params.Value Column Case_Sensitivity.Insensitive False, Replace_Params.Value Column Case_Sensitivity.Insensitive True
+    Hashset.from_vector <| e0 + e1 + e2 + e3 + e4 + e5
+
+## ---
+   private: true
+   ---
+replace : Vector SQL_Builder -> Any -> SQL_Builder
+replace args metadata =
+    input = args.at 0
+    pattern = args.at 1
+    replacement = args.at 2
+
+    ## `raw_pattern` is a `Text1 or `Regex`; it's the same value as `input`, but not
+       embedded in IR.
+    raw_pattern = metadata.at 0
+    replace_params = metadata.at 1
+
+    expression = case replace_params.input_type of
+        Text ->
+            ## To use REGEXP_REPLACE on a non-regex, we have to escape it.
+            escaped_pattern = SQL_Builder.interpolation (Regex.escape raw_pattern)
+            case replace_params.only_first of
+                False -> case replace_params.case_sensitivity of
+                    Case_Sensitivity.Insensitive _ ->
+                        SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ escaped_pattern ++ ", " ++ replacement ++ ", 'ig')"
+                    _ ->
+                        SQL_Builder.code "REPLACE(" ++ input ++ ", " ++ pattern ++ ", " ++ replacement ++ ")"
+                True -> case replace_params.case_sensitivity of
+                    Case_Sensitivity.Insensitive _ ->
+                        SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ escaped_pattern ++ ", " ++ replacement ++ ", 'i')"
+                    _ ->
+                        SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ escaped_pattern ++ ", " ++ replacement ++ ")"
+        Regex ->
+            pattern_text = SQL_Builder.interpolation raw_pattern.pattern
+            case replace_params.only_first of
+                False -> case replace_params.case_sensitivity of
+                    Case_Sensitivity.Insensitive _ ->
+                        SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ pattern_text ++ ", " ++ replacement ++ ", 'ig')"
+                    _ ->
+                        SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ pattern_text ++ ", " ++ replacement ++ ", 'g')"
+                True -> case replace_params.case_sensitivity of
+                    Case_Sensitivity.Insensitive _ ->
+                        SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ pattern_text ++ ", " ++ replacement ++ ", 'i')"
+                    _ ->
+                        SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ pattern_text ++ ", " ++ replacement ++ ")"
+        Column ->
+            case replace_params.only_first of
+                False -> case replace_params.case_sensitivity of
+                    Case_Sensitivity.Insensitive _ ->
+                        SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", REGEXP_ESCAPE(" ++ pattern ++ "), REGEXP_ESCAPE(" ++ replacement ++ "), 'ig')"
+                    _ ->
+                        SQL_Builder.code "REPLACE(" ++ input ++ ", " ++ pattern ++ ", " ++ replacement ++ ")"
+                True -> case replace_params.case_sensitivity of
+                    Case_Sensitivity.Insensitive _ ->
+                        SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", REGEXP_ESCAPE(" ++ pattern ++ "), REGEXP_ESCAPE(" ++ replacement ++ "), 'i')"
+                    _ ->
+                        SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", REGEXP_ESCAPE(" ++ pattern ++ "), REGEXP_ESCAPE(" ++ replacement ++ "))"
+    expression.if_nothing (replace_params.throw_unsupported duckdb_dialect_name)
