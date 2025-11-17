@@ -25,3 +25,7 @@ export function arrayEquals<T>(
   }
   return true
 }
+
+/**
+ * Element-wise
+ */

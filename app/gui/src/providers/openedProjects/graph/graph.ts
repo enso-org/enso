@@ -753,7 +753,7 @@ export interface ConnectedEdge {
   target: PortId
 }
 
-/** TODO: Add docs */
+/** Check if edge is connected at both ends. */
 export function isConnected(edge: Edge): edge is ConnectedEdge {
   return edge.source != null && edge.target != null
 }

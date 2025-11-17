@@ -13,7 +13,7 @@ import {
 import { WidgetEditHandlerParent } from '$/providers/openedProjects/widgetRegistry/editHandler'
 import { DisplayIcon } from '@/components/GraphEditor/widgets/WidgetIcon.vue'
 import WidgetTreeRoot from '@/components/GraphEditor/WidgetTreeRoot.vue'
-import { injectGraphSelection } from '@/providers/graphSelection'
+import { useGraphSelection } from '@/providers/graphSelection'
 import { Ast } from '@/util/ast'
 import type { Opt } from '@/util/data/opt'
 import { iconOfNode, useDisplayedIcon } from '@/util/getIconName'
@@ -32,7 +32,7 @@ const props = defineProps<{
 }>()
 
 const { module, graph } = useCurrentProject()
-const selection = injectGraphSelection()
+const selection = useGraphSelection()
 
 const baseIcon = computed(() => iconOfNode(props.nodeId, graph.value.db))
 const { displayedIcon } = useDisplayedIcon(graph.value.db, toRef(props, 'nodeId'), baseIcon)

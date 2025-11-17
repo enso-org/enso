@@ -11,7 +11,7 @@ import GraphEdge from '@/components/GraphEditor/GraphEdge.vue'
 import GraphNodeOutputPorts from '@/components/GraphEditor/GraphNodeOutputPorts.vue'
 import { useEventConditional } from '@/composables/events'
 import { type GraphNavigator } from '@/providers/graphNavigator'
-import { injectGraphSelection } from '@/providers/graphSelection'
+import { useGraphSelection } from '@/providers/graphSelection'
 import { injectInteractionHandler, type Interaction } from '@/providers/interactionHandler'
 import type { PortId } from '@/providers/portInfo'
 import { Ast } from '@/util/ast'
@@ -29,9 +29,9 @@ const {
   graph,
   suggestionDb,
 } = useCurrentProject()
-const selection = injectGraphSelection(true)
+const selection = useGraphSelection(true)
 const interaction = injectInteractionHandler()
-const nodeSelection = injectGraphSelection(true)
+const nodeSelection = useGraphSelection(true)
 const connectionToast = useToast.error()
 
 const props = defineProps<{

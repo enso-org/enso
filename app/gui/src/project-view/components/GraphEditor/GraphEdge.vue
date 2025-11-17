@@ -1,19 +1,19 @@
 <script setup lang="ts">
+import { shallowEquality } from '#/utilities/equalities'
 import { useGraphStore } from '$/components/WithCurrentProject.vue'
 import type { Edge } from '$/providers/openedProjects/graph'
 import { isConnected } from '$/providers/openedProjects/graph'
 import { junctionPoints, pathElements, toSvgPath } from '@/components/GraphEditor/GraphEdge/layout'
 import { useComponentColors } from '@/composables/componentColors'
 import { injectGraphNavigator } from '@/providers/graphNavigator'
-import { injectGraphSelection } from '@/providers/graphSelection'
-import { assert } from '@/util/assert'
+import { useGraphSelection } from '@/providers/graphSelection'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import theme from '@/util/theme'
 import { computed, type CSSProperties, ref, useAttrs } from 'vue'
 import { EDGE_ARROW_MARKER_ID } from './GraphEdges.vue'
 
-const selection = injectGraphSelection(true)
+const selection = useGraphSelection(true)
 const navigator = injectGraphNavigator(true)
 const graph = useGraphStore()
 
@@ -38,6 +38,7 @@ defineOptions({
 const VISIBLE_PORT_MASK_PADDING = 6
 
 const base = ref<SVGPathElement>()
+const hovered = ref(false)
 
 const mouseAnchor = computed(() => 'anchor' in edge && edge.anchor.type === 'mouse')
 const mouseAnchorPos = computed(() => (mouseAnchor.value ? navigator?.sceneMousePos : undefined))
@@ -150,7 +151,13 @@ const sourceMask = computed<NodeMask | undefined>(() => {
   return { rect, radius }
 })
 
-const { baseColor, selected, pending } = useComponentColors(graph.db, selection, sourceNode)
+const {
+  baseColor,
+  selected: nodeSelected,
+  pending,
+} = useComponentColors(graph.db, selection, sourceNode)
+const edgeSelected = computed(() => shallowEquality(selection?.selectedEdge, edge))
+const selected = computed(() => nodeSelected.value || edgeSelected.value)
 
 const sourceOriginPoint = computed(() => {
   const source = sourceRect.value
@@ -197,65 +204,16 @@ const basePath = computed(() => {
   return toSvgPath(origin.add(start), elements)
 })
 
-const activePath = computed(() => hovered.value && edge.source != null && edge.target != null)
-
-function lengthTo(path: SVGPathElement, pos: Vec2): number {
-  const totalLength = path.getTotalLength()
-  let best: number | undefined
-  let bestDist: number | undefined
-  const tryPos = (len: number) => {
-    const dist = pos.distanceSquared(Vec2.FromXY(path.getPointAtLength(len)))
-    if (bestDist == null || dist < bestDist) {
-      best = len
-      bestDist = dist
-      return true
-    }
-    return false
-  }
-
-  tryPos(0)
-  tryPos(totalLength)
-  assert(best != null && bestDist != null)
-  const precisionTarget = 0.5 / (navigator?.scale ?? 1)
-  for (let precision = totalLength / 2; precision >= precisionTarget; precision /= 2) {
-    if (!tryPos(best + precision)) tryPos(best - precision)
-  }
-  return best
-}
-
-const mouseLocationOnEdge = computed(() => {
-  if (navigator?.sceneMousePos == null) return
-  if (base.value == null) return
-  const sourceToMouse = lengthTo(base.value, navigator.sceneMousePos)
-  const sourceToTarget = base.value.getTotalLength()
-  const mouseToTarget = sourceToTarget - sourceToMouse
-  return { sourceToMouse, sourceToTarget, mouseToTarget }
-})
-
-const hovered = ref(false)
-const activeStyle = computed(() => {
-  if (!hovered.value) return {}
-  if (edge.source == null || edge.target == null) return {}
-  const distances = mouseLocationOnEdge.value
-  if (distances == null) return {}
-  const offset =
-    distances.sourceToMouse < distances.mouseToTarget ?
-      distances.mouseToTarget
-    : -distances.sourceToMouse
-  return {
-    strokeDasharray: distances.sourceToTarget,
-    strokeDashoffset: offset,
-  }
-})
-
 const baseStyle = computed(() => (baseColor.value ? { '--node-group-color': baseColor.value } : {}))
 
-function click(event: PointerEvent) {
-  const distances = mouseLocationOnEdge.value
-  if (distances == null) return
-  if (!isConnected(edge)) return
-  if (distances.sourceToMouse < distances.mouseToTarget) graph.disconnectTarget(edge, event)
-  else graph.disconnectSource(edge, event)
+function click() {
+  if (!selection) return
+  if (edgeSelected.value) {
+    selection.selectedEdge = undefined
+  } else if (isConnected(edge)) {
+    selection.deselectAll()
+    selection.selectedEdge = { ...edge }
+  }
 }
 
 const VISIBILITY_HIDDEN = {
@@ -278,7 +236,7 @@ const sourceHoverAnimationStyle = computed((): CSSProperties => {
 })
 
 const baseClass = computed(() => {
-  return { dimmed: activePath.value || isSuggestion.value }
+  return { dimmed: isSuggestion.value, hovered: hovered.value }
 })
 const colorClasses = computed(() => {
   return { selected: selected.value, pending: pending.value }
@@ -338,14 +296,6 @@ const markerEnd = computed(() => (arrow ? `url(#${EDGE_ARROW_MARKER_ID})` : ''))
         @pointerenter="hovered = true"
         @pointerleave="hovered = false"
       />
-      <path
-        v-if="activePath"
-        :d="basePath"
-        :marker-end="markerEnd"
-        class="edge define-node-colors visible"
-        :class="colorClasses"
-        :style="{ ...baseStyle, ...activeStyle }"
-      />
     </g>
   </template>
 </template>
@@ -361,6 +311,10 @@ const markerEnd = computed(() => (arrow ? `url(#${EDGE_ARROW_MARKER_ID})` : ''))
   stroke: var(--color-edge-from-node);
   transition: stroke 0.2s ease;
   contain: strict;
+
+  &.hovered {
+    stroke: color-mix(in oklab, var(--color-edge-from-node), white 30%);
+  }
 }
 
 .arrow {

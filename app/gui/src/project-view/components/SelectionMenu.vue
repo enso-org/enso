@@ -2,10 +2,10 @@
 import ActionButton from '@/components/ActionButton.vue'
 import ColorPickerMenu from '@/components/ColorPickerMenu.vue'
 import { resolveAction } from '@/providers/action'
-import { injectGraphSelection } from '@/providers/graphSelection'
+import { useGraphSelection } from '@/providers/graphSelection'
 import { toValue } from 'vue'
 
-const selection = injectGraphSelection()
+const selection = useGraphSelection()
 const pickColorMulti = resolveAction('components.pickColorMulti')
 </script>
 

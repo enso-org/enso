@@ -347,6 +347,9 @@ const undisplayableActions = {
   'graph.stopProfiling': {
     shortcut: graphBindings.bindings['graph.stopProfiling'],
   },
+  'graph.deleteSelectedEdge': {
+    shortcut: graphBindings.bindings['graph.deleteSelectedEdge'],
+  },
 
   // === Visualizations ===
 
