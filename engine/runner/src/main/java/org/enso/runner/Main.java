@@ -688,11 +688,10 @@ public class Main {
     var mainProjectPath = paths.get(0);
     var fileAndProject = Utils.findFileAndProject(cwd, mainProjectPath, null);
     assert fileAndProject != null;
-    var extraSearchPaths = paths
-        .stream()
-        .skip(1)
-        .map(Path::of)
-        .toList();
+    // The first path is treated as the main project. So it implicitly is considered
+    // as a search path. That is why we are only taking the tail of the paths here.
+    var restOfPaths = paths.subList(1, paths.size());
+    var extraSearchPath = assembleExtraSearchPath(restOfPaths);
 
     boolean isProjectMode = fileAndProject._1();
     String projectPath = fileAndProject._3();
@@ -700,7 +699,7 @@ public class Main {
         new PolyglotContext(
             ContextFactory.create()
                 .projectRoot(projectPath)
-                .extraSearchPath(extraSearchPaths)
+                .extraSearchPath(extraSearchPath)
                 .in(System.in)
                 .out(System.out)
                 .logLevel(Converter.toJavaLevel(logLevel))
@@ -736,6 +735,31 @@ public class Main {
     } finally {
       context.context().close();
     }
+  }
+
+  /**
+   * Assembles extra search path for the projects / libraries from the value of
+   * the CLI option. Note that on the command line, the paths are root directories of
+   * the projects, but the search path is expected to be the parent directory.
+   * @param paths Paths as given from the command line. For example via
+   *  {@link #COMPILE_OPTION} option value.
+   * @return Parent directories of the given paths.
+   */
+  private List<Path> assembleExtraSearchPath(List<String> paths) {
+    return paths.stream()
+        .map(pathStr -> {
+          var path = Path.of(pathStr);
+          var parent = path.getParent();
+          if (parent == null) {
+            throw exitFail(
+                "Unexpected: Path '"
+                + pathStr
+                + " has no parent");
+          }
+          return parent;
+        })
+        .distinct()
+        .collect(Collectors.toList());
   }
 
   /**
