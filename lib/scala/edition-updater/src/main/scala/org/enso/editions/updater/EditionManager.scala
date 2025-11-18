@@ -85,7 +85,7 @@ object EditionManager {
     */
   def apply(
     distributionManager: DistributionManager,
-    languageHome: Option[LanguageHome] = None,
+    languageHome: Option[LanguageHome] = None
   ): EditionManager = new EditionManager(
     makeEditionProvider(distributionManager, languageHome, false)
   )

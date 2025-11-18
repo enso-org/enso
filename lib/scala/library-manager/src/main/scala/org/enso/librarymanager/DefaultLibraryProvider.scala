@@ -150,7 +150,12 @@ object DefaultLibraryProvider {
     PublishedLibraryProvider with PublishedLibraryCache
   ) = {
     val locations =
-      LibraryLocations.resolve(distributionManager, languageHome, projectRoot, extraSearchPath)
+      LibraryLocations.resolve(
+        distributionManager,
+        languageHome,
+        projectRoot,
+        extraSearchPath
+      )
     val primaryCache = new DownloadingLibraryCache(
       locations.primaryCacheRoot,
       TemporaryDirectoryManager(distributionManager, resourceManager),

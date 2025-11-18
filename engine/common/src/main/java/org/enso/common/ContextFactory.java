@@ -72,15 +72,16 @@ public final class ContextFactory {
     return this;
   }
 
-  /**
-   * List of additional directories to be used as search path for Enso libraries (projects).
-   */
+  /** List of additional directories to be used as search path for Enso libraries (projects). */
   public ContextFactory extraSearchPath(List<Path> searchPath) {
-    this.extraSearchPath = searchPath.stream().map(p -> {
-      assert Files.isDirectory(p): "Search path entry is not a directory: " + p;
-      return p.normalize().toAbsolutePath().toString();
-    })
-      .collect(Collectors.joining(","));
+    this.extraSearchPath =
+        searchPath.stream()
+            .map(
+                p -> {
+                  assert Files.isDirectory(p) : "Search path entry is not a directory: " + p;
+                  return p.normalize().toAbsolutePath().toString();
+                })
+            .collect(Collectors.joining(","));
     return this;
   }
 

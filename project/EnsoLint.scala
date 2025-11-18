@@ -38,8 +38,8 @@ class EnsoLint(
 
     val regularSuccess = runCompiler(regular.map(_.path.toFile))
     val internalSuccess = runCompiler(
-        internal.map(_.path.toFile),
-        disablePrivateCheck = true
+      internal.map(_.path.toFile),
+      disablePrivateCheck = true
     )
     regularSuccess && internalSuccess
   }
@@ -64,7 +64,7 @@ class EnsoLint(
     val args = disablePrivateCheckArg ++ Seq(
       "--enable-static-analysis",
       "-Werror",
-      "--compile",
+      "--compile"
     ) ++ absPaths
 
     DistributionPackage.runEnginePackage(
@@ -78,8 +78,7 @@ class EnsoLint(
   private def nameSuffix(path: Path): String = {
     val suffix = 3
     if (path.getNameCount > suffix) {
-      path.subpath(path.getNameCount - suffix, path.getNameCount)
-        .toString
+      path.subpath(path.getNameCount - suffix, path.getNameCount).toString
     } else {
       path.toString
     }

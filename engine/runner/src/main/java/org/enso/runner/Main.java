@@ -738,26 +738,25 @@ public class Main {
   }
 
   /**
-   * Assembles extra search path for the projects / libraries from the value of
-   * the CLI option. Note that on the command line, the paths are root directories of
-   * the projects, but the search path is expected to be the parent directory.
-   * @param paths Paths as given from the command line. For example via
-   *  {@link #COMPILE_OPTION} option value.
+   * Assembles extra search path for the projects / libraries from the value of the CLI option. Note
+   * that on the command line, the paths are root directories of the projects, but the search path
+   * is expected to be the parent directory.
+   *
+   * @param paths Paths as given from the command line. For example via {@link #COMPILE_OPTION}
+   *     option value.
    * @return Parent directories of the given paths.
    */
   private List<Path> assembleExtraSearchPath(List<String> paths) {
     return paths.stream()
-        .map(pathStr -> {
-          var path = Path.of(pathStr);
-          var parent = path.getParent();
-          if (parent == null) {
-            throw exitFail(
-                "Unexpected: Path '"
-                + pathStr
-                + " has no parent");
-          }
-          return parent;
-        })
+        .map(
+            pathStr -> {
+              var path = Path.of(pathStr);
+              var parent = path.getParent();
+              if (parent == null) {
+                throw exitFail("Unexpected: Path '" + pathStr + " has no parent");
+              }
+              return parent;
+            })
         .distinct()
         .collect(Collectors.toList());
   }

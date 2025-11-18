@@ -36,7 +36,7 @@ object LibraryLocations {
     distributionManager: DistributionManager,
     languageHome: Option[LanguageHome],
     projectRoot: Option[Path],
-    extraSearchPaths: Seq[Path],
+    extraSearchPaths: Seq[Path]
   ): LibraryLocations = {
     val parentDirectorySearchPath =
       projectRoot.map(_.toAbsolutePath.getParent.normalize).toList

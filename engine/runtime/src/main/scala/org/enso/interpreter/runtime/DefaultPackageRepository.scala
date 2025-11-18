@@ -737,16 +737,16 @@ private object DefaultPackageRepository {
 
     val resolvingLibraryProvider =
       DefaultLibraryProvider.make(
-        distributionManager = distributionManager,
-        resourceManager     = resourceManager,
-        lockUserInterface   = notificationHandler,
-        progressReporter    = notificationHandler,
-        languageHome        = homeManager,
-        edition             = edition.get,
+        distributionManager  = distributionManager,
+        resourceManager      = resourceManager,
+        lockUserInterface    = notificationHandler,
+        progressReporter     = notificationHandler,
+        languageHome         = homeManager,
+        edition              = edition.get,
         preferLocalLibraries = preferLocalLibraries,
-        projectRoot = projectRoot,
-        extraSearchPath = extraSearchPath,
-        checkAot    = HostEnsoUtils.isAot()
+        projectRoot          = projectRoot,
+        extraSearchPath      = extraSearchPath,
+        checkAot             = HostEnsoUtils.isAot()
       )
     new DefaultPackageRepository(
       resolvingLibraryProvider,
