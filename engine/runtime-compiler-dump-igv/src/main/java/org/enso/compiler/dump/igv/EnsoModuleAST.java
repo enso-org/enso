@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.UUID;
+
 import org.enso.compiler.core.IR;
 import org.enso.compiler.core.ir.CallArgument;
 import org.enso.compiler.core.ir.DefinitionArgument;
@@ -413,6 +414,10 @@ final class EnsoModuleAST {
         var litNode = buildTree(litPat.literal());
         createEdge(node, litNode, "literal");
         yield node;
+      }
+      case Pattern.Bool boolPat -> {
+        Map<String, Object> props = Map.of("condition", boolPat.condition());
+        yield newNode(boolPat, props);
       }
       case Pattern.Name name -> {
         Map<String, Object> props = Map.of("patternName", name.name().name());
