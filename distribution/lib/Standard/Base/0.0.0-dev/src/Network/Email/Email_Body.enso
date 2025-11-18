@@ -1,9 +1,5 @@
 import project.Data.Text.Text
 import project.Errors.Common.Missing_Argument
-import project.Metadata.Display
-import project.Metadata.Widget
-from project.Metadata.Choice import Option
-from project.Metadata.Widget import Text_Input, Vector_Editor, Single_Choice
 
 ## The body of an email.
 type Email_Body
