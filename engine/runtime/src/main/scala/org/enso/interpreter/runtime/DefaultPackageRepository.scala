@@ -701,7 +701,7 @@ private object DefaultPackageRepository {
       .getOrElse(DefaultEdition.getDefaultEdition)
 
     val homeManager    = languageHome.map { home => LanguageHome(Path.of(home)) }
-    val editionManager = EditionManager(distributionManager, homeManager, extraSearchPath)
+    val editionManager = EditionManager(distributionManager, homeManager)
     val logger         = LoggerFactory.getLogger(classOf[DefaultPackageRepository])
     val edition = editionManager
       .resolveEdition(rawEdition)

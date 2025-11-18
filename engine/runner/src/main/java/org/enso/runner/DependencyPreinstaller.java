@@ -48,9 +48,8 @@ class DependencyPreinstaller {
     var distributionManager = new DistributionManager(environment);
     var lockManager = new ThreadSafeFileLockManager(distributionManager.paths().locks());
     var resourceManager = new ResourceManager(lockManager);
-    Seq<Path> emptyExtraSearchPaths = (Seq<Path>) Seq$.MODULE$.empty();
     var editionProvider =
-        EditionManager.makeEditionProvider(distributionManager, emptyExtraSearchPaths, Some.apply(languageHome), true);
+        EditionManager.makeEditionProvider(distributionManager, Some.apply(languageHome), true);
     var editionResolver = new EditionResolver(editionProvider);
     var editionOpt =
         editionResolver.resolve(
