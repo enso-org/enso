@@ -1,6 +1,7 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Runtime.Ref.Ref
+from Standard.Base.Logging import all
 
 from Standard.Table import Bits, Value_Type
 from Standard.Table.Errors import Inexact_Type_Coercion
@@ -36,12 +37,20 @@ type DuckDB_Type_Mapping
             Value_Type.Float Bits.Bits_32 -> DuckDB_Types.real
             Value_Type.Float Bits.Bits_64 -> DuckDB_Types.double
             Value_Type.Decimal Nothing 0 -> DuckDB_Types.bignum
-            Value_Type.Decimal precision Nothing ->
-                ## If scale is not set, we approximate it to precision / 3
-                scale = precision.div 3
-                approx.put Value_Type.Decimal precision scale
-                DuckDB_Types.decimal precision scale
-            Value_Type.Decimal precision scale -> DuckDB_Types.decimal precision scale
+            Value_Type.Decimal precision scale ->
+                used_precision = if precision < 1 then 0 else (if precision > 38 then 39 else precision)
+                case used_precision of
+                    0 ->
+                        approx.put (Value_Type.Decimal 1 0)
+                        DuckDB_Types.decimal 1 0
+                    39 ->
+                        used_scale = if scale < 0 then 0 else (if scale>38 || scale.is_nothing then 12 else scale)
+                        approx.put (Value_Type.Decimal 38 used_scale)
+                        DuckDB_Types.decimal 38 used_scale
+                    _ ->
+                        used_scale = if scale < 0 then 0 else (if scale>precision || scale.is_nothing then precision.div 3 else scale)
+                        if used_scale != scale then approx.put (Value_Type.Decimal used_precision used_scale)
+                        DuckDB_Types.decimal used_precision used_scale
             Value_Type.Char Nothing False -> DuckDB_Types.varchar
             Value_Type.Char _ _ ->
                 approx.put Value_Type.Char
@@ -92,7 +101,9 @@ type DuckDB_Type_Mapping
         Types.TIMESTAMP -> Value_Type.Date_Time False
         Types.BLOB -> Value_Type.Binary Nothing False
         Types.BIT -> Value_Type.Binary Nothing False
-        _ -> Value_Type.Unsupported_Data_Type sql_type.name sql_type
+        _ ->
+            if sql_type.name == "TIMESTAMP WITH TIME ZONE" then Value_Type.Date_Time True else
+                Value_Type.Unsupported_Data_Type sql_type.name sql_type
 
     ## ---
        private: true
@@ -117,7 +128,12 @@ type DuckDB_Type_Mapping
     infer_return_type : (SQL_IR_Expression -> SQL_Type_Reference) -> Text -> Vector -> SQL_IR_Expression -> SQL_Type_Reference
     infer_return_type infer_from_database_callback op_name arguments expression =
         _ = [op_name, arguments]
-        infer_from_database_callback expression
+        result = infer_from_database_callback expression
+        case result of
+            Value_Type.Unsupported_Data_Type _ _ ->
+                DuckDB_Type_Mapping.log_message "Unknown return type for operation '"+op_name+"'." ..Warning
+                result
+            _ -> result
 
     ## ---
        private: true
@@ -172,6 +188,7 @@ type DuckDB_Type_Mapping
     error_mapper : Postgres_Error_Mapper
     error_mapper self = Postgres_Error_Mapper
 
+## Set of predefined DuckDB SQL types.
 type DuckDB_Types
     ## BOOLEAN type
     boolean = SQL_Type.Value Types.BOOLEAN "BOOLEAN"

@@ -6,7 +6,7 @@ import java.util.Map;
 import java.util.Objects;
 
 final class PerMap {
-  private static final int serialVersionUID = 14252; // Use PR number
+  private static final int serialVersionUID = 14268; // Use PR number
   private final Map<Integer, Persistance<?>> ids = new HashMap<>();
   private final Map<Class<?>, Persistance<?>> types = new HashMap<>();
   final int versionStamp;

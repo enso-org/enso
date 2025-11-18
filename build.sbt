@@ -4069,9 +4069,6 @@ lazy val `engine-runner` = project
           `database-polyglot-root`
             .listFiles("*.jar")
             .map(_.getAbsolutePath()) ++
-          `google-polyglot-root`
-            .listFiles("*.jar")
-            .map(_.getAbsolutePath()) ++
           `std-aws-polyglot-root`.listFiles("*.jar").map(_.getAbsolutePath()) ++
           `std-snowflake-polyglot-root`
             .listFiles("*.jar")
@@ -4228,6 +4225,8 @@ lazy val `engine-runner` = project
               "net.snowflake.client",
               "com.sun.jna",
               "com.tableau.hyperapi",
+              "com.typesafe.config.impl.ConfigImpl$EnvVariablesHolder",
+              "com.typesafe.config.impl.ConfigImpl$SystemPropertiesHolder",
               // See https://github.com/HarrDevY/native-register-bouncy-castle
               "org.bouncycastle.jcajce.provider.drbg.DRBG$Default",
               "org.bouncycastle.jcajce.provider.drbg.DRBG$NonceAndIV",

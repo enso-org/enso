@@ -1,23 +1,23 @@
 from Standard.Base import all
-from Standard.Base.Metadata.Choice import Option
-from Standard.Base.Metadata.Widget import Single_Choice, Text_Input
 import Standard.Base.Visualization.Table_Viz_Data.Table_Viz_Data
 import Standard.Base.Visualization.Table_Viz_Data.Table_Viz_Header
+from Standard.Base.Metadata.Choice import Option
+from Standard.Base.Metadata.Widget import Single_Choice, Text_Input
 
 import Standard.Table.Rows_To_Read.Rows_To_Read
 from Standard.Table import Table
 
-from Standard.Database import Column_Description, DB_Table, SQL_Query, SQL_Query_With_Schema
-import Standard.Database.DB_Table as DB_Table_Module
 import Standard.Database.Connection.Connection.Connection
-import Standard.Database.Dialects.Dialect
+import Standard.Database.DB_Table as DB_Table_Module
 import Standard.Database.Internal.JDBC_Connection
 import Standard.Database.SQL.SQL_Statement
+from Standard.Database import Column_Description, DB_Table, SQL_Query, SQL_Query_With_Schema
 from Standard.Database.Connection.Connection import make_database_selector, make_schema_selector, make_structure_creator, make_table_name_selector, make_table_name_with_schema_selector, make_table_types_selector
 from Standard.Database.Errors import SQL_Error, Table_Already_Exists, Table_Not_Found
 from Standard.Database.Internal.Upload.Helpers.Default_Arguments import first_column_name_in_structure
 from Standard.Database.Internal.Upload.Operations.Create import create_table_implementation
 
+import project.Internal.DuckDB_Dialect
 import project.Internal.DuckDB_Entity_Naming_Properties
 import project.Internal.DuckDB_Type_Mapping.DuckDB_Type_Mapping
 
@@ -42,7 +42,7 @@ type DuckDB_Connection
         jdbc_connection = JDBC_Connection.create types_record url properties schema=schema
 
         ## For initial work using DuckDB, we will use the Postgres dialect.
-        DuckDB_Connection.Value (Connection.new jdbc_connection Dialect.postgres DuckDB_Type_Mapping DuckDB_Entity_Naming_Properties.new) make_new
+        DuckDB_Connection.Value (Connection.new jdbc_connection DuckDB_Dialect.duckdb DuckDB_Type_Mapping DuckDB_Entity_Naming_Properties.new) make_new
 
     ## ---
        private: true

@@ -1097,6 +1097,8 @@ add_copy_edge_cases_specs group_builder ~parent_dir file_from_path=File.new =
         r_move_not_found.catch.should_be_a File_Error.Not_Found
 
         "Foo".write file on_existing_file=Existing_File_Behavior.Overwrite
+        file.exists . should_be_true
+        same_file.exists . should_be_true
 
         [False, True].map replace_existing-> Test.with_clue "(replace_existing="+replace_existing.to_text+") " <|
             # Copying the file to itself should succeed and just not change anything.
