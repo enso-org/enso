@@ -11,7 +11,6 @@ import {
 } from '@/components/GraphEditor/widgets/WidgetTableEditor/tableInputArgument'
 import AgGridTableView from '@/components/shared/AgGridTableView.vue'
 import { targetIsOutside } from '@/util/autoBlur'
-import type { Result } from '@/util/data/result'
 import { ProjectPath } from '@/util/projectPath'
 import type { Identifier, QualifiedName } from '@/util/qualifiedName'
 import { proxyRefs } from '@/util/reactivity'
@@ -24,6 +23,7 @@ import type {
   ProcessDataFromClipboardParams,
   RowDragEndEvent,
 } from 'ag-grid-enterprise'
+import type { Result } from 'enso-common/src/utilities/data/result'
 import { type ComponentInstance, computed, type ComputedRef, ref, watch } from 'vue'
 import type { ComponentExposed } from 'vue-component-type-helpers'
 import { z } from 'zod'

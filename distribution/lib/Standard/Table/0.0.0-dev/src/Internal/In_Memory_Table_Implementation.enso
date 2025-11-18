@@ -553,7 +553,9 @@ type In_Memory_Table_Implementation
             [Row_Count_Mismatch.Error left_row_count right_row_count]
         on_problems.attach_problems_before problems <|
             new_java_table = Java_Problems.with_problem_aggregator on_problems java_aggregator->
-                (this_table:In_Memory_Table).java_table.zip (right:In_Memory_Table).java_table keep_unmatched_bool right_prefix java_aggregator
+                this_java_table = (this_table:In_Memory_Table).java_table
+                right_java_table = (right:In_Memory_Table).java_table
+                this_java_table.zip right_java_table keep_unmatched_bool right_prefix java_aggregator
             from_java_table new_java_table
 
     union (this_table : Table & In_Memory_Table) (tables : Table | Vector) columns_to_keep:Columns_To_Keep match_columns:Match_Columns on_problems:Problem_Behavior =

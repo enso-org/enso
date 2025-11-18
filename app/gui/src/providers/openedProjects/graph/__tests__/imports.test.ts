@@ -19,8 +19,8 @@ import {
   makeType,
 } from '$/providers/openedProjects/suggestionDatabase/mockSuggestion'
 import { Ast } from '@/util/ast'
-import { unwrap } from '@/util/data/result'
 import { tryIdentifier, tryQualifiedName, type Identifier } from '@/util/qualifiedName'
+import { unwrap } from 'enso-common/src/utilities/data/result'
 import { expect, test } from 'vitest'
 import { assertDefined } from 'ydoc-shared/util/assert'
 

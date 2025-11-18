@@ -1,5 +1,9 @@
-import { type AnyAsset, AssetType, type ListDirectoryResponseBody } from '#/services/Backend'
 import { type Directory } from '@/components/widgets/FileBrowserWidget/pathBrowsing'
+import {
+  type AnyAsset,
+  AssetType,
+  type ListDirectoryResponseBody,
+} from 'enso-common/src/services/Backend'
 
 interface MockAssetSpec {
   type: AssetType

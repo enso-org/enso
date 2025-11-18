@@ -4,11 +4,11 @@ import { Alert } from '#/components/Alert'
 import { AlertDialog } from '#/components/AlertDialog'
 import { Text } from '#/components/Text'
 import { backendMutationOptions } from '#/hooks/backendHooks'
-import type * as backend from '#/services/Backend'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { useBackends } from '$/providers/backends'
 import { useText } from '$/providers/react'
 import { useMutation } from '@tanstack/react-query'
+import type * as backend from 'enso-common/src/services/Backend'
 import { toast } from 'react-toastify'
 
 /** Props for a {@link AcceptInvitationModal}. */

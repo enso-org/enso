@@ -22,7 +22,9 @@ import org.junit.runner.RunWith;
  */
 @RunWith(Theories.class)
 public class VectorSortTest {
-  @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
+  @ClassRule
+  public static final ContextUtils ctxRule = ContextUtils.newBuilder().assertGC(false).build();
+
   private static Value sortFunc;
   private static Value equalsFunc;
 

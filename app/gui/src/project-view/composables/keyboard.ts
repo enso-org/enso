@@ -1,8 +1,8 @@
 import { isMacLike, useEvent } from '@/composables/events'
 import { useGlobalEventRegistry, type GlobalEventRegistry } from '@/providers/globalEventRegistry'
 import { proxyRefs, type ToValue } from '@/util/reactivity'
+import type { Opt } from 'enso-common/src/utilities/data/opt'
 import { ref, toRef, watch, type Ref } from 'vue'
-import type { Opt } from 'ydoc-shared/util/data/opt'
 
 /** Keyboard modifier state API */
 export interface KeyboardComposable {

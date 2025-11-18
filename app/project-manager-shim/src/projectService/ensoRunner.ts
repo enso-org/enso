@@ -14,8 +14,8 @@ export interface Runner {
   openProject(
     projectPath: Path,
     projectId: string,
-    extraArgs?: Array<string>,
-    extraEnv?: Array<[string, string]>,
+    extraArgs?: readonly string[],
+    extraEnv?: readonly (readonly [string, string])[],
   ): Promise<LanguageServerSockets>
   closeProject(projectId: string): Promise<void>
   isProjectRunning(projectId: string): Promise<boolean>
@@ -107,8 +107,8 @@ export class EnsoRunner implements Runner {
   async openProject(
     projectPath: Path,
     projectId: string,
-    extraArgs?: Array<string>,
-    extraEnv?: Array<[string, string]>,
+    extraArgs?: readonly string[],
+    extraEnv?: readonly (readonly [string, string])[],
   ): Promise<LanguageServerSockets> {
     // Check if the project is already running
     const runningProject = this.runningProjects.get(projectId)
@@ -203,8 +203,8 @@ export class EnsoRunner implements Runner {
         setTimeout(startHealthCheck, 250)
 
         serverProcess.stderr.on('data', (data) => {
-          console.error(data.toString())
           const dataStr = data.toString()
+          console.error(dataStr)
           stderr += dataStr
         })
 
@@ -458,8 +458,8 @@ export function findEnsoExecutable(workDir: string = '.'): Path | undefined {
     ensoExecutables = ['enso']
   }
 
-  // Check ENSO_RUNNER_PATH environment variable first
-  const envPath = process.env.ENSO_RUNNER_PATH
+  // Check ENSO_ENGINE_PATH environment variable first
+  const envPath = process.env.ENSO_ENGINE_PATH
   if (envPath) {
     try {
       fs.accessSync(envPath)

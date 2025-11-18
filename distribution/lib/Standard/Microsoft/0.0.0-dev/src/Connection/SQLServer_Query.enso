@@ -1,8 +1,7 @@
 from Standard.Base import all
 
 import Standard.Database.SQL_Query.SQL_Query
-from Standard.Database.Internal.JDBC_Connection import handle_sql_errors
-from Standard.Database.SQL_Query import make_table_for_name, make_table_from_query
+import Standard.Database.SQL_Query.SQL_Query_With_Schema
 
 type SQLServer_Query
     ## Query a whole table or view.
@@ -14,14 +13,11 @@ type SQLServer_Query
     ## ---
        private: true
        ---
-    to_db_table self connection alias:Text = alias.if_not_error <| case self of
-        SQLServer_Query.Table_Name name schema ->
-            table_naming_helper = connection.base_connection.table_naming_helper
-            table_naming_helper.verify_table_name name <|
-                make_table_for_name connection name schema alias
-        SQLServer_Query.Raw_SQL raw_sql -> handle_sql_errors <|
-            connection.dialect.ensure_query_has_no_holes connection.jdbc_connection raw_sql . if_not_error <|
-                make_table_from_query connection raw_sql alias
+    to_db_table self connection alias:Text =
+        as_sql_query = case self of
+            SQLServer_Query.Table_Name name schema -> SQL_Query_With_Schema.Table_Name name schema
+            SQLServer_Query.Raw_SQL sql -> SQL_Query.Raw_SQL sql
+        as_sql_query.to_db_table connection alias
 
 SQLServer_Query.from (that:Text) = SQLServer_Query.Table_Name that
 

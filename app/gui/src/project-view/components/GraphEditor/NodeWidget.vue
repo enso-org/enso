@@ -81,7 +81,6 @@ provideWidgetUsageInfo(proxyRefs({ usageKey, nesting, updateHandler, previouslyU
     v-bind="$attrs"
     :input="props.input"
     :nesting="nesting"
-    :data-port="props.input.portId"
     :updateCallback="updateHandler"
   />
   <span

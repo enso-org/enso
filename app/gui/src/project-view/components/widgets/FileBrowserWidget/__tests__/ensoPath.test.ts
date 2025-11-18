@@ -1,4 +1,4 @@
-import { DirectoryId } from '#/services/Backend'
+import { DirectoryId } from 'enso-common/src/services/Backend'
 import { uuidv4 } from 'lib0/random.js'
 import { describe, expect, test } from 'vitest'
 import { pathToSegments, useEnsoPaths } from '../ensoPath'

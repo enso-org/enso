@@ -8,7 +8,6 @@ use ide_ci::programs::docker;
 // ==============
 
 pub mod runtime;
-pub mod ydoc;
 
 /// Lookup the repository by name.
 #[instrument(skip(client), err)]

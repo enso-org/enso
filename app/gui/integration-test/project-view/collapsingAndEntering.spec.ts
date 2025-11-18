@@ -118,7 +118,7 @@ test.describe('Collapsing nodes with multiple inputs', () => {
         .mockUserDefinedFunctionInfo('prod', 'user_defined_component')
         .withNode('prod', async (node) => {
           await expect(node.locator('.WidgetApplication.prefix > .WidgetPort')).toHaveText(
-            'Main.user_defined_component',
+            'user_defined_component',
           )
         })
         .enterNode('prod')
@@ -150,7 +150,7 @@ test('Collapsing nodes', async ({ editorPage }) => {
     .withNode('prod', async (node) => {
       const port = node.locator('.WidgetApplication.prefix > .WidgetPort')
       await expect(port).toExist()
-      await expect(port).toHaveText('Main.user_defined_component')
+      await expect(port).toHaveText('user_defined_component')
       await expect(node.locator('.WidgetTopLevelArgument')).toHaveText('five')
     })
     .enterNode('prod')
@@ -162,8 +162,11 @@ test('Collapsing nodes', async ({ editorPage }) => {
     .press(COLLAPSE_SHORTCUT)
     .expectNodeCount(5)
     .expectNodeCount(1, locate.INPUT_NODE_FILTER)
-    .expectNodeTokens('sum', ['Main', '.', 'user_defined_component1', 'five', 'twenty'])
-    .mockUserDefinedFunctionInfo('sum', 'user_defined_component1')
+    .do((page) => page.keyboard.type('My renamed component'))
+    .press('Enter')
+    .expectNodeTokens('sum', ['my_renamed_component'])
+    .expectArgumentPlaceholders('sum', ['five', 'twenty'])
+    .mockUserDefinedFunctionInfo('sum', 'my_renamed_component')
     .enterNode('sum')
     .expectNodesToExist(['ten'])
     .expectNodeCount(5)
@@ -238,7 +241,9 @@ test('Output node is not collapsed', async ({ editorPage }) => {
     .call(enterToFunc2)
     .selectNodes([locate.OUTPUT_NODE_FILTER, 'r'])
     .clickActionTrigger('components.collapse')
-    .expectNodeTokens('r', ['Main', '.', 'user_defined_component', 'a'])
+    .press('Enter')
+    .expectNodeTokens('r', ['user_defined_component'])
+    .expectArgumentPlaceholders('r', ['a'])
     .expectNodeCount(3)
 })
 
@@ -247,7 +252,9 @@ test('Input node is not collapsed', async ({ editorPage }) => {
     .call(enterToFunc2)
     .selectNodes(['r', locate.INPUT_NODE_FILTER])
     .clickActionTrigger('components.collapse')
-    .expectNodeTokens('r', ['Main', '.', 'user_defined_component', 'a'])
+    .press('Enter')
+    .expectNodeTokens('r', ['user_defined_component'])
+    .expectArgumentPlaceholders('r', ['a'])
     .expectNodeCount(3)
 })
 

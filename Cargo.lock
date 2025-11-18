@@ -1284,7 +1284,6 @@ dependencies = [
  "enso-build",
  "enso-build-base",
  "enso-formatter",
- "futures-util",
  "ide-ci",
  "octocrab",
  "tokio",

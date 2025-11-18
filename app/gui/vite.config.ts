@@ -165,6 +165,6 @@ async function setupEnsoRunnerPath(): Promise<void> {
   }
   if (ensoExecutable) {
     console.log('Found enso executable:', ensoExecutable)
-    process.env.ENSO_RUNNER_PATH = ensoExecutable
+    process.env.ENSO_ENGINE_PATH = ensoExecutable
   }
 }

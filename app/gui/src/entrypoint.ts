@@ -6,12 +6,12 @@ import App from '$/App.vue'
 import { setupLogger } from '$/log'
 import { widgetDevtools } from '$/providers/openedProjects/widgetRegistry/devtools'
 import router from '$/router'
-import * as detect from '$/utils/detect'
 import { createQueryClient } from '$/utils/queryClient'
 import * as sentry from '@sentry/vue'
 import type { Vue } from '@sentry/vue/types/types'
 import { VueQueryPlugin } from '@tanstack/vue-query'
 import { HttpClient } from 'enso-common/src/services/HttpClient'
+import * as detect from 'enso-common/src/utilities/detect'
 import * as idbKeyval from 'idb-keyval'
 import { createApp, markRaw } from 'vue'
 
@@ -26,7 +26,7 @@ markRaw(HttpClient.prototype)
 async function main() {
   setupLogger()
   const onAuthenticated = imNotSureButPerhapsFixingRefreshingWithAuthentication()
-  const queryClient = createQueryClientOfPersistCache()
+  const queryClient = await createQueryClientOfPersistCache()
   const rootDirPath = await getRootDirPath()
 
   const app = createApp(App)
@@ -84,7 +84,8 @@ function createQueryClientOfPersistCache() {
       getItem: async (key) => idbKeyval.get(key, store),
       setItem: async (key, value) => idbKeyval.set(key, value, store),
       removeItem: async (key) => idbKeyval.del(key, store),
-      clear: async () => idbKeyval.clear(store),
+      clear: () => idbKeyval.clear(store),
+      entries: () => idbKeyval.entries(store),
     },
   })
 }

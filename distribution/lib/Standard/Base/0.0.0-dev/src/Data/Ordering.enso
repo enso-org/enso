@@ -1,9 +1,9 @@
 import project.Any.Any
-import project.Nothing.Nothing
+import project.Data.Numbers.Integer
 import project.Error.Error
 import project.Errors.Common.Incomparable_Values
 import project.Errors.Common.Type_Error
-import project.Data.Numbers.Integer
+import project.Nothing.Nothing
 from project.Data.Boolean import Boolean, False, True
 from project.Internal.Ordering_Helpers import all
 

@@ -238,7 +238,7 @@ public class TypeInferenceConsistencyTest {
     var str = result.as(Object.class).toString();
     // See TypeInferenceTest.precedenceOfMethodsOnAny for the dissection of each value and
     // explanations.
-    assertEquals("[A_Value, B_Value, C_Value, A_Value, A_Value, D_Value, E_Value]", str);
+    assertEquals("[A_Value, B_Value, C_Value, A_Value, D_Value, E_Value]", str);
   }
 
   /**

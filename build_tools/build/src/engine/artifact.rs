@@ -1,7 +1,6 @@
 use crate::prelude::*;
 
 use ide_ci::github::release;
-use octocrab::models::repos::Asset;
 
 #[derive(Clone, Copy, Debug)]
 pub enum ArtifactKind {
@@ -10,6 +9,7 @@ pub enum ArtifactKind {
     LauncherPackage,
     ProjectManagerBundle,
     LauncherBundle,
+    EngineBundle,
 }
 
 /// A standalone SBT-generated artifact.
@@ -24,6 +24,13 @@ pub trait IsArtifact: AsRef<Path> + Send + Sync {
         ide_ci::fs::remove_dir_if_exists(self)
     }
 
+    /// Return `true` if the artifact should be published with the release.
+    ///
+    /// Note that the current release logic tries to attach all artifacts to the GitHub release.
+    /// And if some artifact is required, the script looks for it in the release and fails if
+    /// the artifact was not found.
+    fn is_published(&self) -> bool;
+
     /// Get a filename stem for the compressed artifact.
     ///
     /// It will be used for naming release assets, so this should include the target triple.
@@ -32,10 +39,18 @@ pub trait IsArtifact: AsRef<Path> + Send + Sync {
         Ok(self.as_ref().try_parent()?.try_file_name()?.to_os_string())
     }
 
-    fn upload_as_asset(&self, release: release::Handle) -> BoxFuture<'static, Result<Asset>> {
-        let path = self.as_ref().to_path_buf();
-        let name = self.asset_file_stem();
-        async move { release.upload_compressed_dir_as(path, name?).await }.boxed()
+    fn upload_as_asset(&self, release: release::Handle) -> BoxFuture<'static, Result> {
+        if self.is_published() {
+            let path = self.as_ref().to_path_buf();
+            let name = self.asset_file_stem();
+            async move {
+                release.upload_compressed_dir_as(path, name?).await?;
+                Ok(())
+            }
+            .boxed()
+        } else {
+            async move { Ok(()) }.boxed()
+        }
     }
 
     fn as_dyn_artifact(&self) -> &dyn IsArtifact;
@@ -44,6 +59,9 @@ pub trait IsArtifact: AsRef<Path> + Send + Sync {
 impl IsArtifact for crate::paths::generated::EnginePackage {
     fn kind(&self) -> ArtifactKind {
         ArtifactKind::EnginePackage
+    }
+    fn is_published(&self) -> bool {
+        true
     }
     fn as_dyn_artifact(&self) -> &dyn IsArtifact {
         self
@@ -54,6 +72,9 @@ impl IsArtifact for crate::paths::generated::ProjectManagerPackage {
     fn kind(&self) -> ArtifactKind {
         ArtifactKind::ProjectManagerPackage
     }
+    fn is_published(&self) -> bool {
+        false
+    }
     fn as_dyn_artifact(&self) -> &dyn IsArtifact {
         self
     }
@@ -62,6 +83,9 @@ impl IsArtifact for crate::paths::generated::ProjectManagerPackage {
 impl IsArtifact for crate::paths::generated::ProjectManagerBundle {
     fn kind(&self) -> ArtifactKind {
         ArtifactKind::ProjectManagerBundle
+    }
+    fn is_published(&self) -> bool {
+        false
     }
     fn as_dyn_artifact(&self) -> &dyn IsArtifact {
         self
@@ -72,6 +96,9 @@ impl IsArtifact for crate::paths::generated::LauncherPackage {
     fn kind(&self) -> ArtifactKind {
         ArtifactKind::LauncherPackage
     }
+    fn is_published(&self) -> bool {
+        false
+    }
     fn as_dyn_artifact(&self) -> &dyn IsArtifact {
         self
     }
@@ -80,6 +107,21 @@ impl IsArtifact for crate::paths::generated::LauncherPackage {
 impl IsArtifact for crate::paths::generated::LauncherBundle {
     fn kind(&self) -> ArtifactKind {
         ArtifactKind::LauncherBundle
+    }
+    fn is_published(&self) -> bool {
+        true
+    }
+    fn as_dyn_artifact(&self) -> &dyn IsArtifact {
+        self
+    }
+}
+
+impl IsArtifact for crate::paths::generated::EngineBundle {
+    fn kind(&self) -> ArtifactKind {
+        ArtifactKind::EngineBundle
+    }
+    fn is_published(&self) -> bool {
+        true
     }
     fn as_dyn_artifact(&self) -> &dyn IsArtifact {
         self

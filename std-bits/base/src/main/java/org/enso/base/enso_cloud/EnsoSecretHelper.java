@@ -31,20 +31,20 @@ public final class EnsoSecretHelper extends SecretValueResolver {
   /**
    * Gets a JDBC connection resolving EnsoKeyValuePair into the properties.
    *
-   * @param properties properties in the form of {@code List<Pair<String, HideableValue>>}
+   * @param properties properties in the form of {@code HideableValue.KeyValuePair}
    */
   public static Connection getJDBCConnection(
-      String url, List<Pair<String, HideableValue>> properties) throws SQLException {
+      String url, List<HideableValue.KeyValuePair> properties) throws SQLException {
     var javaProperties = new Properties();
     for (var pair : properties) {
-      HideableValue value = pair.getRight();
+      HideableValue value = pair.value();
       // Special handling for PrivateKey parameter.
       if (value instanceof HideableImpl.InterpretAsPrivateKey(HideableValue innerValue)) {
         String rawKey = resolveValue(innerValue);
         PrivateKey key = HideableImpl.InterpretAsPrivateKey.decodePrivateKey(rawKey);
-        javaProperties.put(pair.getLeft(), key);
+        javaProperties.put(pair.key(), key);
       } else {
-        javaProperties.setProperty(pair.getLeft(), resolveValue(pair.getRight()));
+        javaProperties.setProperty(pair.key(), resolveValue(pair.value()));
       }
     }
 
