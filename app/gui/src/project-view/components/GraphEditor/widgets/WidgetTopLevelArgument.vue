@@ -26,6 +26,10 @@ export const widgetDefinition = defineWidget(
 
 <template>
   <div class="WidgetTopLevelArgument widgetParent widgetExpanded widgetResetPadding">
+    <!-- 
+      Element used as a reference for `topLevelArgument` context provider, without vertical line.
+      (because we don't want it to be considered by subwidgets like WidgetSelection).
+    -->
     <div ref="content" class="content">
       <NodeWidget :input="input" />
     </div>
@@ -44,6 +48,9 @@ export const widgetDefinition = defineWidget(
     border-left: 1px solid rgb(0 0 0 / calc(0.12 * var(--size-transition-progress, 1)));
   }
 }
+
 .content {
+  width: 100%;
+  height: 100%;
 }
 </style>
