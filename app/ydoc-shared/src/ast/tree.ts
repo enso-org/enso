@@ -1359,7 +1359,6 @@ export class PropertyAccess extends BaseExpression {
     return this.module.getToken(this.fields.get('operator').node)
   }
 
-
   /**
    * Returns the token to the right of the dot, i.e., the name to be looked up. It may be an ordinary identifier token;
    * an operator symbol is also allowed in this position and is treated as a type of identifier.

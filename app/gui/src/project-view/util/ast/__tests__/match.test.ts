@@ -1,8 +1,8 @@
 import { Ast } from '@/util/ast'
 import { Pattern } from '@/util/ast/match'
 import { expect, test } from 'vitest'
+import { assertDefined } from 'ydoc-shared/util/assert'
 import { MutableModule } from '../abstract'
-import {assertDefined} from "ydoc-shared/util/assert"
 
 test.each([
   { target: 'a.b', pattern: '__', extracted: ['a.b'] },
@@ -93,10 +93,10 @@ test.each([
 })
 
 test.each([
-    // Placeholders in patterns must be in expression positions; token-level patterns are not supported.
-    'a.__'
+  // Placeholders in patterns must be in expression positions; token-level patterns are not supported.
+  'a.__',
 ])('Invalid expression in pattern', (template) => {
-    expect(() => Pattern.parseExpression(template)).toThrow()
+  expect(() => Pattern.parseExpression(template)).toThrow()
 })
 
 test.each([

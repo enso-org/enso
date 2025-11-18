@@ -19,9 +19,9 @@ export class Pattern<T extends Ast.Ast = Ast.Expression> {
     this.template = Ast.dropMutability(template)
     this.placeholders = findPlaceholders(template, placeholder)
     if (placeholder !== '' && template.code().includes(placeholder)) {
-        // If a template doesn't contain any placeholder expressions, the placeholder expression's code should not occur
-        // in the template's code, as this is most likely a mistake.
-        assert(this.placeholders.length > 0)
+      // If a template doesn't contain any placeholder expressions, the placeholder expression's code should not occur
+      // in the template's code, as this is most likely a mistake.
+      assert(this.placeholders.length > 0)
     }
     this.placeholder = placeholder
   }
@@ -36,7 +36,7 @@ export class Pattern<T extends Ast.Ast = Ast.Expression> {
     const ast = Ast.parseExpression(template)
     assertDefined(ast)
     Ast.visitRecursive(ast, (child) => {
-        if (child instanceof Ast.Invalid) throw new Error(`Invalid expression template: ${template}`)
+      if (child instanceof Ast.Invalid) throw new Error(`Invalid expression template: ${template}`)
     })
     return new Pattern(ast, placeholder)
   }
