@@ -197,7 +197,7 @@
   min-height: var(--node-port-height);
 
   &:has(.widgetExpanded) {
-    align-self: stretch
+    align-self: stretch;
   }
 }
 
@@ -212,9 +212,8 @@
 
 /** A class for widgets which want to expand their height to the entire node */
 .widgetExpanded {
-  align-self: stretch
+  align-self: stretch;
 }
-
 
 /* Scrollbar style definitions for textual visualizations which need support for scrolling.
  *
