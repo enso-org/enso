@@ -10,40 +10,46 @@ import project.System.File_Format.Plain_Text_Format
 
 polyglot java import java.nio.file.Path as Java_Path
 polyglot java import java.nio.file.Files as Java_Files
-
-## Gets a file corresponding to the current working directory of the program.
-get_cwd = @Builtin_Method "File.get_cwd"
+polyglot java import java.nio.file.LinkOption as Java_LinkOption
 
 ## The builtin that returns a File instance for a given path.
 get_file path:Text =
     File.Value (Java_Path.of path)
 
 is_directory_builtin file:File -> Boolean =
-    Java_Files.isDirectory file.path
+    Java_Files.isDirectory file.java_path
 
 is_regular_file_builtin file:File -> Boolean =
-    Java_Files.isRegularFile file.path
+    Java_Files.isRegularFile file.java_path
 
 resolve_builtin file:File part:Text -> File =
     new_path = file.java_path.resolve part
     File.Value new_path
 
-## Creates the directory represented by this file if it did not exist.
-create_directory_builtin file = @Builtin_Method "File.create_directory_builtin"
+delete_builtin file:File recursive:Boolean =
+    should_delete_recursively = recursive && is_dir file
+    if should_delete_recursively then delete_recursively file else
+        Java_Files.delete file.java_path
 
-copy_builtin source target options = @Builtin_Method "File.copy_builtin"
+delete_recursively path:Java_Path =
+    if is_dir.not path then Java_Files.delete path else
+        children = Java_Files.list path . toList
+        children.each \child ->
+            delete_recursively child
 
-delete_builtin file recursive = @Builtin_Method "File.delete_builtin"
+is_dir file:(File|Java_Path) -> Boolean =
+    path = case file of
+        _ : File -> file.java_path
+        p : Java_Path -> p
+    Java_Files.is_directory path Java_LinkOption.NOFOLLOW_LINKS
 
-move_builtin source target options = @Builtin_Method "File.move_builtin"
 
-size_builtin file = @Builtin_Method "File.size_builtin"
+## Converts `java.nio.file.attribute.FileTime` to Enso `Date_Time`.
+file_time_to_date_time file_time -> Date_Time =
+    instant = file_time.toInstant
+    zoned_dt = Java_ZonedDateTime.ofInstant instant Java_ZoneOffset.UTC
+    Date_Time.new zoned_dt.getYear zoned_dt.getMonthValue zoned_dt.getDayOfMonth zoned_dt.getHour zoned_dt.getMinute zoned_dt.getSecond zoned_dt.getNano Time_Zone.utc
 
-creation_time_builtin file = @Builtin_Method "File.creation_time_builtin"
-
-last_modified_time_builtin file = @Builtin_Method "File.last_modified_time_builtin"
-
-posix_permissions_builtin file = @Builtin_Method "File.posix_permissions_builtin"
 
 read_last_bytes_builtin file n = @Builtin_Method "File.read_last_bytes_builtin"
 

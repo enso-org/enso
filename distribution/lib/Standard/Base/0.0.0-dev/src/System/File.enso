@@ -148,7 +148,8 @@ type File
              example_cwd = File.current_directory
        ```
     current_directory : File
-    current_directory = get_cwd
+    current_directory =
+        File.new (Java_Path.of ".")
 
     ## ---
        aliases: [home directory]
@@ -489,7 +490,8 @@ type File
     size : Integer
     size self =
         if self.is_data_link then Data_Link_Helpers.interpret_data_link_target_as_file self . size else
-            File_Error.handle_java_exceptions self (size_builtin self)
+            if self.is_directory then File_Error.IO_Error self "size can only be called on files." else
+                Java_Files.size self.java_path
 
     ## ---
        group: Text
@@ -533,7 +535,9 @@ type File
        link.
     creation_time : Date_Time ! File_Error
     creation_time self =
-        File_Error.handle_java_exceptions self (creation_time_builtin self)
+        File_Error.handle_java_exceptions self <|
+            attrs = Java_Files.readAttributes self.java_path Java_BasicFileAttributes.class
+            file_time_to_date_time attrs.creationTime
 
     ## ---
        group: Metadata
@@ -557,7 +561,9 @@ type File
        data link.
     last_modified_time : Date_Time ! File_Error
     last_modified_time self =
-        File_Error.handle_java_exceptions self (last_modified_time_builtin self)
+        File_Error.handle_java_exceptions self <|
+            mtime = Java_Files.getLastModifiedTime self.java_path
+            file_time_to_date_time mtime
 
     ## ---
        icon: metadata
@@ -581,7 +587,9 @@ type File
        the target.
     posix_permissions : File_Permissions
     posix_permissions self =
-        File_Permissions.from_java_set (posix_permissions_builtin self)
+        File_Permissions.from_java_set <|
+            perms = Java_Files.getPosixFilePermissions self.java_path
+            Java_PosixFilePermissions.toString perms
 
     ## ---
        group: Metadata
@@ -626,7 +634,8 @@ type File
     create_directory : File ! File_Error
     create_directory self =
         Context.Output.if_enabled disabled_message="As writing is disabled, cannot create directory. Press the Write button ▶ to perform the operation." panic=False <|
-            File_Error.handle_java_exceptions self (create_directory_builtin self) . if_not_error self
+            File_Error.handle_java_exceptions self <|
+                Java_Files.createDirectories self.java_path
 
     ## ---
        group: Metadata
@@ -821,7 +830,7 @@ type File
         name = simply_normalized.getFileName
         needs_absolute =
             case name != Nothing of
-                True -> (name.toString == "." || name.toString == ".." || name.toString.isEmpty)
+                True -> (name.toString == "." || name.toString == ".." || name.toString.is_empty)
                 False -> False
         ret = if needs_absolute then simply_normalized.toAbsolutePath.normalize else simply_normalized
         File.Value ret
@@ -1164,13 +1173,17 @@ Data_Link_From_File.from (that : File) = Data_Link_From_File.Value that
 
 private _local_file_copy (source : File) (destination : File) (replace_existing : Boolean) -> Nothing =
     File_Error.handle_java_exceptions source <|
-        copy_options = if replace_existing then [StandardCopyOption.REPLACE_EXISTING.to_text] else []
-        copy_builtin source destination copy_options
+        copy_options = if replace_existing then [StandardCopyOption.REPLACE_EXISTING] else []
+        normalized_src = source.java_path.normalize
+        normalized_dst = destination.java_path.normalize
+        Java_Files.copy normalized_src normalized_dst copy_options
 
 private _local_file_move (source : File) (destination : File) (replace_existing : Boolean) -> Nothing =
     File_Error.handle_java_exceptions source <|
-        copy_options = if replace_existing then [StandardCopyOption.REPLACE_EXISTING.to_text] else []
-        move_builtin source destination copy_options
+        copy_options = if replace_existing then [StandardCopyOption.REPLACE_EXISTING] else []
+        normalized_src = source.java_path.normalize
+        normalized_dst = destination.java_path.normalize
+        Java_Files.move normalized_src normalized_dst copy_options
 
 ## On some filesystems some paths may be invalid, we want to catch the Java
    exception and turn it into an Enso error.
