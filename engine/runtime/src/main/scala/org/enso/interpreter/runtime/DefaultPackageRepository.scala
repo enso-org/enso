@@ -729,6 +729,12 @@ private object DefaultPackageRepository {
       Path.of(root.getCanonicalFile().toUri)
     }
 
+    val preferLocalLibraries = if (extraSearchPath.nonEmpty) {
+      true
+    } else {
+      projectPackage.exists(_.getConfig().preferLocalLibraries)
+    }
+
     val resolvingLibraryProvider =
       DefaultLibraryProvider.make(
         distributionManager = distributionManager,
@@ -737,8 +743,7 @@ private object DefaultPackageRepository {
         progressReporter    = notificationHandler,
         languageHome        = homeManager,
         edition             = edition.get,
-        preferLocalLibraries =
-          projectPackage.exists(_.getConfig().preferLocalLibraries),
+        preferLocalLibraries = preferLocalLibraries,
         projectRoot = projectRoot,
         extraSearchPath = extraSearchPath,
         checkAot    = HostEnsoUtils.isAot()
