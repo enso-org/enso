@@ -81,7 +81,6 @@ class DependencyPreinstaller {
           @Override
           public void finishWaitingForResource(Resource resource) {}
         };
-    Seq<Path> emptyExtraSearchPaths = (Seq<Path>) Seq$.MODULE$.empty();
     var providers =
         DefaultLibraryProvider.makeProviders(
             distributionManager,
@@ -90,7 +89,7 @@ class DependencyPreinstaller {
             progressReporter,
             Some.apply(languageHome),
             Some.apply(projectRoot.toPath()),
-            emptyExtraSearchPaths,
+            emptySeq(),
             HostEnsoUtils.isAot());
     var localLibraryProvider = providers._1;
     var publishedLibraryProvider = providers._2;
@@ -141,5 +140,10 @@ class DependencyPreinstaller {
         }
       }
     }
+  }
+
+  @SuppressWarnings("unchecked")
+  private static Seq<Path> emptySeq() {
+    return (Seq<Path>) Seq$.MODULE$.empty();
   }
 }
