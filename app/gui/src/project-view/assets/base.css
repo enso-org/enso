@@ -188,7 +188,15 @@
   }
 }
 
-/** A class of widgets containing subwidgets */
+/** 
+ * A class of widgets containing subwidgets 
+ *
+ * This class will provide standard widget layout for its children (using flexbox), and expands 
+ * itself if any subwidget is expanded.
+ *
+ * To make expanding widgets working correctly, every DOM element containing subwidget should 
+ * have this class or at least `height` of 100%.
+ */
 .widgetParent {
   display: flex;
   flex-direction: row;
@@ -198,10 +206,11 @@
 
   &:has(.widgetExpanded) {
     align-self: stretch;
+    height: 100%;
   }
 }
 
-/** A class used in widgets of their fragments not higher than node's "baseline" */
+/** Class for widget's DOM containers aligning their contents to widget tree baseline. */
 .widgetSingleLine {
   display: flex;
   flex-direction: row;

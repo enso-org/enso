@@ -30,7 +30,7 @@ export const widgetDefinition = defineWidget(
       Element used as a reference for `topLevelArgument` context provider, without vertical line.
       (because we don't want it to be considered by subwidgets like WidgetSelection).
     -->
-    <div ref="content" class="content">
+    <div ref="content" class="widgetParent">
       <NodeWidget :input="input" />
     </div>
   </div>
@@ -47,10 +47,5 @@ export const widgetDefinition = defineWidget(
     margin-right: var(--widget-token-pad-unit);
     border-left: 1px solid rgb(0 0 0 / calc(0.12 * var(--size-transition-progress, 1)));
   }
-}
-
-.content {
-  width: 100%;
-  height: 100%;
 }
 </style>

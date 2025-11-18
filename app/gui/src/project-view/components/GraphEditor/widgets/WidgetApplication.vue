@@ -83,7 +83,7 @@ export const widgetDefinition = defineWidget(
 <template>
   <div class="WidgetApplication widgetParent" :class="appClass">
     <NodeWidget :input="targetMaybePort" :nest="application.isInnermost" />
-    <div v-if="infixWidgetInput" class="infixOp" :style="operatorStyle">
+    <div v-if="infixWidgetInput" class="infixOp widgetParent" :style="operatorStyle">
       <NodeWidget :input="infixWidgetInput" />
     </div>
     <SizeTransition width leftGap>
