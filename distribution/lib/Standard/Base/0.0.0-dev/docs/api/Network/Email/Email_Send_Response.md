@@ -5,4 +5,4 @@
     - Failed email:Standard.Base.Network.Email.Email
     - Sent email:Standard.Base.Network.Email.Email
     - Test email:Standard.Base.Network.Email.Email
-    - to_display_text self -> Standard.Base.Data.Text.Text
+    - to_text self -> Standard.Base.Data.Text.Text
