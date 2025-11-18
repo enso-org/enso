@@ -1,0 +1,341 @@
+from Standard.Base import all
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+
+import Standard.Table.In_Memory_Column.In_Memory_Column
+import Standard.Table.Internal.Problem_Builder.Problem_Builder
+from Standard.Table import Aggregate_Column, Column, Table, Value_Type
+from Standard.Table.Errors import Inexact_Type_Coercion
+
+import Standard.Database.DB_Column.DB_Column
+import Standard.Database.DB_Table.DB_Table
+import Standard.Database.Dialects.Dialect.Temp_Table_Style
+import Standard.Database.Dialects.Dialect_Flag.Dialect_Flag
+import Standard.Database.Dialects.Feature.Feature
+import Standard.Database.Errors.Unsupported_Database_Operation
+import Standard.Database.Internal.Base_Generator
+import Standard.Database.Internal.IR.Internal_Column.Internal_Column
+import Standard.Database.Internal.IR.Order_Descriptor.Order_Descriptor
+import Standard.Database.Internal.IR.SQL_IR_Expression.SQL_IR_Expression
+import Standard.Database.Internal.IR.SQL_IR_Source.SQL_IR_Source
+import Standard.Database.Internal.IR.SQL_IR_Statement.SQL_IR_Statement
+import Standard.Database.Internal.JDBC_Connection.JDBC_Connection
+import Standard.Database.Internal.Postgres.Postgres_Dialect
+import Standard.Database.Internal.Replace_Params.Replace_Params
+import Standard.Database.Internal.SQL_Part.SQL_Part
+import Standard.Database.Internal.SQL_Type_Mapping.SQL_Type_Mapping
+import Standard.Database.Internal.SQL_Type_Reference.SQL_Type_Reference
+import Standard.Database.SQL.SQL_Builder
+import Standard.Database.SQL.SQL_Statement
+import Standard.Database.SQL.SQL_Type
+
+## ---
+   private: true
+   ---
+   The dialect of DuckDB built on top of PostgreSQL dialect.
+duckdb : DuckDB_Dialect
+duckdb =
+    DuckDB_Dialect.Value Postgres_Dialect.postgres
+
+## A Dialect for DuckDB
+type DuckDB_Dialect
+    ## ---
+       private: true
+       ---
+       The dialect of DuckDB Databases
+    private Value parent
+
+    ## ---
+       private: true
+       ---
+       Name of the dialect.
+    name : Text
+    name self = duckdb_dialect_name
+
+    ## ---
+       private: true
+       ---
+    to_text : Text
+    to_text self = "DuckDB_Dialect"
+
+    ## ---
+       private: true
+       ---
+       A function which generates SQL code from the internal representation
+       according to the specific dialect.
+    generate_sql : SQL_IR_Statement -> SQL_Statement
+    generate_sql self query =
+        Base_Generator.generate_query self query . build
+
+    ## ---
+       private: true
+       ---
+       Generates SQL to truncate a table.
+    generate_truncate_table_sql : Text -> SQL_Builder
+    generate_truncate_table_sql self table_name =
+        Base_Generator.truncate_table_truncate_table_style self table_name
+
+    ## ---
+       private: true
+       ---
+       Generates SQL modifier for limiting the number of rows and its position in
+       the query
+    get_limit_sql_modifier : Integer -> Any
+    get_limit_sql_modifier self limit =
+        self.parent.get_limit_sql_modifier limit
+
+    ## ---
+       private: true
+       ---
+       Returns an ordering of SQL_Part's that determine what order each part gets
+       written in for the final SQL output If you add extensions using
+       SQL_IR_Source_Extension you have to provide an order for them here
+    get_part_order self part:SQL_Part -> Integer =
+        self.parent.get_part_order part
+
+    ## ---
+       private: true
+       ---
+       Wraps and possibly escapes the identifier so that it can be used in a
+       generated query regardless of what characters it contains.
+       The quotes used will depend on the dialect.
+    wrap_identifier : Text -> SQL_Builder
+    wrap_identifier self identifier =
+        Base_Generator.wrap_in_quotes identifier
+
+    ## ---
+       private: true
+       ---
+       Generates a SQL expression for a table literal.
+    make_table_literal : Vector (Vector Text) -> Vector Text -> Text -> SQL_Builder
+    make_table_literal self vecs column_names as_name =
+        Base_Generator.default_make_table_literal self.wrap_identifier vecs column_names as_name
+
+    ## ---
+       private: true
+       ---
+       Prepares an ordering descriptor.
+       One of the purposes of this method is to verify if the expected ordering
+       settings are supported by the given database backend.
+
+       ## Arguments
+        - `internal_column`: the column to order by.
+        - `sort_direction`: the direction of the ordering.
+        - `text_ordering`: If provided, specifies that the column should be
+          treated as text values according to the provided ordering. For non-text
+          types, it should be set to `Nothing`.
+    prepare_order_descriptor : Internal_Column -> Sort_Direction -> Nothing | Text_Ordering -> Order_Descriptor
+    prepare_order_descriptor self internal_column sort_direction text_ordering =
+        self.parent.prepare_order_descriptor internal_column sort_direction text_ordering
+
+    ## ---
+       private: true
+       ---
+       Prepares a distinct operation.
+    prepare_distinct : DB_Table -> Vector -> Case_Sensitivity -> Problem_Builder -> Table & DB_Table
+    prepare_distinct self table key_columns case_sensitivity problem_builder =
+        self.parent.prepare_distinct table key_columns case_sensitivity problem_builder
+
+    ## ---
+       private: true
+       ---
+    make_cast : Internal_Column -> SQL_Type_Mapping -> SQL_Type -> (SQL_IR_Expression -> SQL_Type_Reference) -> Internal_Column
+    make_cast self (column : Internal_Column) mapping (target_type : SQL_Type) (infer_result_type_from_database_callback : SQL_IR_Expression -> SQL_Type_Reference) =
+        self.parent.make_cast column mapping target_type infer_result_type_from_database_callback
+
+    ## ---
+       private: true
+       ---
+    needs_execute_query_for_type_inference : Text | SQL_Statement -> Boolean
+    needs_execute_query_for_type_inference self statement =
+        query_text = case statement of
+            text : Text -> text
+            _ : SQL_Statement -> statement.prepare.first
+        ## Looks like if a parameter is present in the query then getMetadata has a bug
+        query_text.contains "?"
+    ## ---
+       private: true
+       ---
+       Specifies how the database creates temp tables.
+    temp_table_style : Temp_Table_Style
+    temp_table_style self = Temp_Table_Style.Temporary_Table
+
+    ## ---
+       private: true
+       ---
+       As DuckDB doesn't have fixed-length char column, no need for the Postgres override.
+    adapt_unified_column : Internal_Column -> Value_Type -> (SQL_IR_Expression -> SQL_Type_Reference) -> SQL_Type_Mapping -> Internal_Column
+    adapt_unified_column self column approximate_result_type infer_result_type_from_database_callback mapping =
+        _ = [column, approximate_result_type, infer_result_type_from_database_callback, mapping]
+        column
+
+    ## ---
+       private: true
+       ---
+       Add an extra cast to adjust the output type of certain operations with
+       certain arguments.
+       It is used when the normal type inference provided by the database engine
+       needs to be adjusted.
+       In most cases this method will just return the expression unchanged, it is
+       used only to override the type in cases where the default one that the
+       database uses is not what we want.
+    cast_op_type self (op_kind:Text) (args:(Vector Internal_Column)) (expression:SQL_IR_Expression) =
+        self.parent.cast_op_type op_kind args expression
+
+    ## ---
+       private: true
+       ---
+       Add an extra cast to adjust the output type of aggregate operations.
+       Some DBs do CAST(SUM(x) AS FLOAT) others do SUM(CAST(x AS FLOAT)).
+    cast_aggregate_columns self op_kind:Text columns:(Vector Internal_Column) =
+        self.parent.cast_aggregate_columns op_kind columns
+
+    ## ---
+       private: true
+       ---
+    prepare_fetch_types_query : SQL_IR_Expression -> SQL_IR_Source -> SQL_Statement
+    prepare_fetch_types_query self expression context =
+        Base_Generator.default_fetch_types_query self expression context
+
+    ## ---
+       private: true
+       ---
+    generate_collate self collation_name:Text -> Text =
+        Base_Generator.default_generate_collate collation_name
+
+    ## ---
+       private: true
+       ---
+    check_aggregate_support : Aggregate_Column -> Boolean ! Unsupported_Database_Operation
+    check_aggregate_support self aggregate =
+        _ = aggregate
+        True
+
+    ## ---
+       private: true
+       ---
+       Checks if an operation is supported by the dialect.
+    is_operation_supported self operation:Text -> Boolean =
+        self.parent.is_operation_supported operation
+
+    ## ---
+       private: true
+       ---
+       Checks if a feature is supported by the dialect.
+    is_feature_supported self feature:Feature -> Boolean =
+        self.parent.is_feature_supported feature
+
+    ## ---
+       private: true
+       ---
+       Checks a dialect flag
+    flagged self flag:Dialect_Flag -> Boolean =
+        case flag of
+            Dialect_Flag.Supports_Negative_Decimal_Places -> True
+            Dialect_Flag.Supports_Float_Decimal_Places -> False
+            Dialect_Flag.Use_Builtin_Bankers -> False
+            Dialect_Flag.Primary_Key_Allows_Nulls -> False
+            Dialect_Flag.Supports_Separate_NaN -> True
+            Dialect_Flag.Supports_Nested_With_Clause -> True
+            Dialect_Flag.Supports_Case_Sensitive_Columns -> True
+            Dialect_Flag.Supports_Infinity -> True
+            Dialect_Flag.Case_Sensitive_Text_Comparison -> True
+            Dialect_Flag.Supports_Sort_Digits_As_Numbers -> False
+            Dialect_Flag.Supports_Case_Insensitive_Ordering -> True
+            Dialect_Flag.Order_By_Unicode_Normalization_By_Default -> True
+            Dialect_Flag.Order_By_Unicode_Normalization_When_Case_Insensitive -> True
+            Dialect_Flag.Case_Insensitive_Ordering_By_Default -> True
+            Dialect_Flag.Allows_Mixed_Type_Comparisons -> False
+            Dialect_Flag.Supports_Unicode_Normalization -> False
+            Dialect_Flag.Supports_Unicode_Casing -> False
+            Dialect_Flag.Supports_Proper_Casing -> True
+            Dialect_Flag.NaN_Non_Comparable -> False
+            Dialect_Flag.Distinct_Returns_First_Row_From_Group_If_Ordered -> True
+            Dialect_Flag.Date_Time -> True
+            Dialect_Flag.Text_Length_Limited_Columns -> True
+            Dialect_Flag.Fixed_Length_Text_Columns -> True
+            Dialect_Flag.Length_Restricted_Text_Columns -> True
+            Dialect_Flag.Removes_Trailing_Whitespace_Casting_From_Char_To_Varchar -> True
+            Dialect_Flag.Char_Max_Size_After_Substring_Kept -> False
+            Dialect_Flag.Different_Size_Integer_Types -> True
+            Dialect_Flag.Supports_8bit_Integer -> False
+            Dialect_Flag.Supports_Decimal_Type -> True
+            Dialect_Flag.Supports_Time_Duration -> False
+            Dialect_Flag.Supports_Nanoseconds_In_Time -> False
+            Dialect_Flag.Supports_Mixed_Columns -> False
+            Dialect_Flag.Supports_Date_Time_Without_Timezone -> True
+            Dialect_Flag.Supports_Regex_Match -> True
+
+    ## ---
+       private: true
+       ---
+       The default table types to use when listing tables.
+    default_table_types : Vector Text
+    default_table_types self =
+        ["TABLE", "BASE TABLE", "VIEW", "LOCAL TEMPORARY", "TEMPORARY TABLE", "TEMPORARY VIEW"]
+
+    ## ---
+       private: true
+       ---
+       Prepares metadata for an operation taking a date/time period and checks if
+       the given period is supported.
+    prepare_metadata_for_period : Date_Period | Time_Period -> Value_Type -> Any
+    prepare_metadata_for_period self period operation_input_type =
+        self.parent.prepare_metadata_for_period period operation_input_type
+    ## ---
+       private: true
+       ---
+       Returns true if the `replace` parameters are supported by this backend.
+    if_replace_params_supports : Replace_Params -> Any -> Any
+    if_replace_params_supports self replace_params ~action =
+        self.parent.if_replace_params_supports replace_params action
+
+    ## ---
+       private: true
+       ---
+    value_type_for_upload_of_existing_column : DB_Column -> Value_Type
+    value_type_for_upload_of_existing_column self column = case column of
+        # Return the type as-is for database columns.
+        _ : DB_Column -> column.value_type
+        _ : Column ->
+            base_type = column.value_type
+            case base_type of
+                Value_Type.Decimal precision scale ->
+                    # We cannot have a specified scale and no precision, so special handling is needed for this:
+                    case precision.is_nothing && scale.is_nothing.not of
+                        True ->
+                            needed_precision = (column:In_Memory_Column).max_precision
+                            new_type = case needed_precision <= 1000 of
+                                # If the precision is small enough that our number will fit, we create a column with maximum supported precision.
+                                True -> Value_Type.Decimal 1000 scale
+                                # If the needed precision is too big, we cannot set it, so we set the precision to unlimited. This loses scale.
+                                False -> Value_Type.Decimal Nothing Nothing
+                            Warning.attach (Inexact_Type_Coercion.Warning base_type new_type unavailable=False) new_type
+                        False -> base_type
+                _ -> base_type
+
+    ## ---
+       private: true
+       ---
+    needs_literal_table_cast : Value_Type -> Boolean
+    needs_literal_table_cast self value_type =
+        _ = value_type
+        False
+
+    ## ---
+       private: true
+       ---
+    generate_expression self base_gen expr:(SQL_IR_Expression | Order_Descriptor | SQL_IR_Statement) for_select:Boolean -> SQL_Builder =
+        _ = for_select
+        base_gen.generate_expression self.parent expr
+
+    ## ---
+       private: true
+       ---
+    ensure_query_has_no_holes : JDBC_Connection -> Text -> Nothing ! Illegal_Argument
+    ensure_query_has_no_holes self jdbc:JDBC_Connection raw_sql:Text =
+        jdbc.ensure_query_has_no_holes raw_sql
+
+## ---
+   private: true
+   ---
+duckdb_dialect_name = "DuckDB"

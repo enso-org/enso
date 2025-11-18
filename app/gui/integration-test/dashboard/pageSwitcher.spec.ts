@@ -33,7 +33,7 @@ test.describe(() => {
         await expect(locateDriveView(thePage)).toBeVisible()
         await expect(locateEditor(thePage)).toBeHidden()
       })
-      .goToPage.editor()
+      .goToPage.projectView()
       .do(async (thePage) => {
         await expect(locateDriveView(thePage)).toBeHidden()
         await expect(locateEditor(thePage)).toBeVisible()

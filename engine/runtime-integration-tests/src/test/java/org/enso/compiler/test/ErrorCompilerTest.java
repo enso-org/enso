@@ -48,7 +48,7 @@ public class ErrorCompilerTest extends CompilerTests {
               op._
             """);
 
-    assertSingleSyntaxError(ir, Syntax.InvalidUnderscore$.MODULE$, "Invalid use of _", 14, 15);
+    assertSingleSyntaxError(ir, new Syntax.UnsupportedSyntax("Invalid use of syntactic operator in expression"), null, 14, 15);
   }
 
   @Test
@@ -73,7 +73,7 @@ public class ErrorCompilerTest extends CompilerTests {
               op._.something
             """);
 
-    assertSingleSyntaxError(ir, Syntax.InvalidUnderscore$.MODULE$, "Invalid use of _", 14, 15);
+    assertSingleSyntaxError(ir, new Syntax.UnsupportedSyntax("Invalid use of syntactic operator in expression"), null, 14, 15);
   }
 
   @Test

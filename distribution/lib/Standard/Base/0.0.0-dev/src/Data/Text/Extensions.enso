@@ -34,7 +34,6 @@ import project.Errors.Time_Error.Time_Error
 import project.Meta
 import project.Panic.Panic
 import project.System.Internal.Reporting_Stream_Decoder_Helper
-from project.Nothing import all
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Index_Sub_Range import invert_range_selection
 from project.Data.Json import Invalid_JSON, JS_Object, Json
@@ -43,6 +42,7 @@ from project.Data.Range.Extensions import all
 from project.Data.Text.Text_Cleanse import Cleansable_Text, Text_Cleanse
 from project.Error import all
 from project.Metadata import Display, make_single_choice, Widget
+from project.Nothing import all
 from project.Widget_Helpers import make_data_cleanse_vector_selector, make_date_format_selector, make_date_time_format_selector, make_delimiter_selector, make_regex_text_widget, make_time_format_selector
 
 polyglot java import com.ibm.icu.lang.UCharacter
@@ -57,60 +57,60 @@ polyglot java import org.enso.base.Text_Utils
 polyglot java import org.enso.base.WithProblems
 
 ## ---
-    group: Conversions
-    icon: text
-    ---
-    Generic conversion of an arbitrary Enso value to a corresponding textual
-    representation.
+   group: Conversions
+   icon: text
+   ---
+   Generic conversion of an arbitrary Enso value to a corresponding textual
+   representation.
 
-    ## Examples
-    ### Getting a textual representation of the number 7.
+   ## Examples
+   ### Getting a textual representation of the number 7.
 
-    ```
-            7.to_text
-    ```
+   ```
+           7.to_text
+   ```
 Any.to_text self -> Text = @Builtin_Method "Any.to_text"
 
 ## ---
-    group: convert
-    icon: enso_logo
-    ---
-    Convert the value to a corresponding Enso code representation.
+   group: convert
+   icon: enso_logo
+   ---
+   Convert the value to a corresponding Enso code representation.
 
-    ## Examples
-    ### Getting the Enso code of the number 7.
+   ## Examples
+   ### Getting the Enso code of the number 7.
 
-    ```
-            7.pretty
-    ```
+   ```
+           7.pretty
+   ```
 
-    Returns a Text
+   Returns a Text
 
-            7
+           7
 
-    ### Getting the Enso code of the text Hello World!.
+   ### Getting the Enso code of the text Hello World!.
 
-    ```
-            "Hello World!".pretty
-    ```
+   ```
+           "Hello World!".pretty
+   ```
 
-    Returns a Text
+   Returns a Text
 
-            'Hello World!'
+           'Hello World!'
 Any.pretty self -> Text = @Builtin_Method "Any.pretty"
 
 ## ---
-    private: true
-    ---
-    Generic conversion of an arbitrary Enso value to a corresponding short
-    human-readable representation.
+   private: true
+   ---
+   Generic conversion of an arbitrary Enso value to a corresponding short
+   human-readable representation.
 
-    ## Examples
-    ### Getting a short human-readable textual representation of the number 7.
+   ## Examples
+   ### Getting a short human-readable textual representation of the number 7.
 
-    ```
-            7.to_display_text
-    ```
+   ```
+           7.to_display_text
+   ```
 Any.to_display_text self -> Text = @Builtin_Method "Any.to_display_text"
 
 ## ---

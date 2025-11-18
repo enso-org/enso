@@ -7,10 +7,10 @@ import type {
   SignUpError,
   UserSession,
 } from '$/authentication/cognito'
-import { uniqueString } from '$/utils/uniqueString'
 import { withSetup } from '@/util/testing'
 import { HttpClient } from 'enso-common/src/services/HttpClient'
 import { Rfc3339DateTime } from 'enso-common/src/utilities/data/dateTime'
+import { uniqueString } from 'enso-common/src/utilities/uniqueString'
 import { Result } from 'ts-results'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { nextTick } from 'vue'

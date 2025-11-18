@@ -1,9 +1,15 @@
 /** @file Fetches the versions of the selected project asset. */
 
 import { backendQueryOptions } from '#/hooks/backendHooks'
-import type Backend from '#/services/Backend'
-import type { AssetId, DatalinkId, FileId, ProjectId, S3ObjectVersionId } from '#/services/Backend'
 import { queryOptions, useQuery } from '@tanstack/react-query'
+import type {
+  AssetId,
+  Backend,
+  DatalinkId,
+  FileId,
+  ProjectId,
+  S3ObjectVersionId,
+} from 'enso-common/src/services/Backend'
 import { splitFileContents } from 'ydoc-shared/ensoFile'
 
 /** Options for {@link assetVersionsQueryOptions}. */

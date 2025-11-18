@@ -5,7 +5,7 @@ import { Text } from '#/components/Text'
 import { useSyncRef } from '#/hooks/syncRefHooks'
 import { setModal, unsetModal } from '#/providers/ModalProvider'
 import { useText } from '$/providers/react'
-import { isOnElectron } from '$/utils/detect'
+import { isOnElectron } from 'enso-common/src/utilities/detect'
 import { useEffect } from 'react'
 
 let shouldClose = false

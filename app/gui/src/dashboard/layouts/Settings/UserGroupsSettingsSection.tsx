@@ -16,11 +16,11 @@ import { usePaywall } from '#/hooks/billing'
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import { NewUserGroupForm } from '#/modals/NewUserGroupForm'
 import { setModal, unsetModal } from '#/providers/ModalProvider'
-import type { EmailAddress, User, UserGroupInfo } from '#/services/Backend'
 import { tv } from '#/utilities/tailwindVariants'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { useBackends, useFullUserSession, useText } from '$/providers/react'
 import { useSuspenseQuery } from '@tanstack/react-query'
+import type { EmailAddress, User, UserGroupInfo } from 'enso-common/src/services/Backend'
 import { useState } from 'react'
 
 /** The maximum number of user icons per row. */

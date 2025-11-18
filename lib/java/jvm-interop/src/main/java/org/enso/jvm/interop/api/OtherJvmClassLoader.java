@@ -11,10 +11,13 @@ import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.interop.UnsupportedTypeException;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
+import com.oracle.truffle.api.nodes.Node;
 import java.io.File;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
+import java.util.function.BiConsumer;
+import java.util.function.Function;
 import org.enso.jvm.channel.Channel;
 import org.enso.jvm.channel.JVM;
 import org.enso.jvm.interop.impl.OtherJvmMessage;
@@ -46,7 +49,7 @@ public final class OtherJvmClassLoader implements TruffleObject, AutoCloseable {
    * @return new instance of the class loader from the provided JVM
    */
   public static OtherJvmClassLoader create(JVM jvm) {
-    return createImpl(jvm, null, null);
+    return createImpl(jvm, null, null, null);
   }
 
   /**
@@ -54,6 +57,7 @@ public final class OtherJvmClassLoader implements TruffleObject, AutoCloseable {
    *
    * @param mainModule name of the main module to initialize
    * @param language the language to associate objects loaded by this loader with
+   * @param polyglotBindings function to find polyglot context of a language
    * @param otherJvm normally we run in AOT mode but for debugging purposes we can also emulate the
    *     connection in a single JVM - pass in value of TruffleOptions.AOT or equivalent
    * @param ctx own context to execute code in
@@ -64,11 +68,12 @@ public final class OtherJvmClassLoader implements TruffleObject, AutoCloseable {
   public static OtherJvmClassLoader create(
       String mainModule,
       Class<? extends TruffleLanguage> language,
+      Function<String, Object> polyglotBindings,
       boolean otherJvm,
       TruffleContext ctx)
       throws IOException, URISyntaxException {
     var jvm = otherJvm ? initializeJvm(mainModule) : null;
-    return createImpl(jvm, ctx, language);
+    return createImpl(jvm, polyglotBindings, ctx, language);
   }
 
   /**
@@ -90,7 +95,11 @@ public final class OtherJvmClassLoader implements TruffleObject, AutoCloseable {
     try {
       var rawClass = loadRawClass(fqn);
       if (ctx == null) {
-        ctx = Context.newBuilder("hosted").allowHostAccess(HostAccess.ALL).build();
+        ctx =
+            Context.newBuilder("hosted")
+                .allowHostAccess(HostAccess.ALL)
+                .allowExperimentalOptions(true)
+                .build();
       }
       return ctx.asValue(rawClass);
     } catch (ClassNotFoundException ex) {
@@ -103,7 +112,7 @@ public final class OtherJvmClassLoader implements TruffleObject, AutoCloseable {
   public final void close() {
     try {
       try {
-        channel.close();
+        channel.getConfig().close(channel);
       } finally {
         if (ctx != null) {
           ctx.close();
@@ -117,12 +126,15 @@ public final class OtherJvmClassLoader implements TruffleObject, AutoCloseable {
   }
 
   private static OtherJvmClassLoader createImpl(
-      JVM jvm, TruffleContext ctx, Class<? extends TruffleLanguage> language) {
+      JVM jvm,
+      Function<String, Object> polyglotBindings,
+      TruffleContext ctx,
+      Class<? extends TruffleLanguage> language) {
     var ch = Channel.create(jvm, OtherJvmPool.class);
     var pool = ch.getConfig();
-    if (ctx != null) {
-      pool.onEnterLeave(language, ctx::enter, ctx::leave);
-    }
+    Function<Node, Object> enter = ctx != null ? ctx::enter : null;
+    BiConsumer<Node, Object> leave = ctx != null ? ctx::leave : null;
+    pool.onEnterLeave(language, polyglotBindings, enter, leave);
     return new OtherJvmClassLoader(ch);
   }
 
@@ -190,6 +202,21 @@ public final class OtherJvmClassLoader implements TruffleObject, AutoCloseable {
   }
 
   private static JVM initializeJvm(String mainModule) throws IOException, URISyntaxException {
+    var loc = OtherJvmClassLoader.class.getProtectionDomain().getCodeSource().getLocation();
+    var component = new File(loc.toURI().resolve("..")).getAbsoluteFile();
+    if (!component.getName().equals("component")) {
+      component = new File(component, "component");
+    }
+    var libFile = findDynamicLibrary(component, mainModule);
+    if (libFile.exists()) {
+      return JVM.create(libFile);
+    } else {
+      return initializeHotSpotJVM(component, mainModule);
+    }
+  }
+
+  private static JVM initializeHotSpotJVM(File component, String mainModule)
+      throws IOException, URISyntaxException {
     var home = System.getProperty("java.home");
     if (home == null) {
       throw new IOException("No java.home specified");
@@ -197,11 +224,6 @@ public final class OtherJvmClassLoader implements TruffleObject, AutoCloseable {
     var javaHome = new File(home);
     if (!javaHome.exists()) {
       throw new IOException("JVM doesn't exists: " + javaHome);
-    }
-    var loc = OtherJvmClassLoader.class.getProtectionDomain().getCodeSource().getLocation();
-    var component = new File(loc.toURI().resolve("..")).getAbsoluteFile();
-    if (!component.getName().equals("component")) {
-      component = new File(component, "component");
     }
     var commandAndArgs = new ArrayList<String>();
     var assertsOn = false;
@@ -221,5 +243,16 @@ public final class OtherJvmClassLoader implements TruffleObject, AutoCloseable {
     commandAndArgs.add("--module-path=" + component.getPath());
     commandAndArgs.add("-Djdk.module.main=" + mainModule);
     return JVM.create(javaHome, commandAndArgs.toArray(new String[0]));
+  }
+
+  private static File findDynamicLibrary(File dir, String name) {
+    var ext =
+        switch (org.enso.common.Platform.getOperatingSystem()) {
+          case LINUX -> ".so";
+          case MACOS -> ".dylib";
+          case WINDOWS -> ".dll";
+        };
+    var file = new File(dir, name + ext);
+    return file;
   }
 }

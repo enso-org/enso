@@ -274,6 +274,37 @@ public class ExecCompilerTest {
   }
 
   @Test
+  public void directArgumentToASymbol() {
+    var module =
+        ctxRule.eval(
+            LanguageInfo.ID,
+            """
+            nums n =
+                f x = x * 2
+                f n
+            """);
+    var run = module.invokeMember("eval_expression", "nums");
+    var result = run.execute(5);
+    assertEquals("Twice five", 10, result.asInt());
+  }
+
+  @Test
+  public void blockArgumentToASymbol() {
+    var module =
+        ctxRule.eval(
+            LanguageInfo.ID,
+            """
+            nums n =
+                f x = x * 2
+                f
+                    n
+            """);
+    var run = module.invokeMember("eval_expression", "nums");
+    var result = run.execute(5);
+    assertEquals("Twice five", 10, result.asInt());
+  }
+
+  @Test
   public void inlineReturnSignature() {
     var module =
         ctxRule.eval(
@@ -593,6 +624,27 @@ public class ExecCompilerTest {
           AllOf.allOf(
               containsString("expected unresolved symbol Unknown"),
               containsString("to be resolved to a type")));
+    }
+  }
+
+  @Test
+  public void blockAppliedToUnknownSymbol() throws Exception {
+    var code =
+        """
+        from Standard.Base import all
+        fn =
+            f
+                10
+        """;
+    try {
+      var module = ctxRule.eval(LanguageInfo.ID, code);
+      var fn = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "fn");
+      var r = fn.execute();
+      fail("We don't expect any result, but exception: " + r);
+    } catch (PolyglotException ex) {
+      assertThat(
+          ex.getMessage(),
+          AllOf.allOf(containsString("The name `f`"), containsString("could not be found")));
     }
   }
 }

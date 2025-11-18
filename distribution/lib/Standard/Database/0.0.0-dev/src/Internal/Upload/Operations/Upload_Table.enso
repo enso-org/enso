@@ -34,7 +34,7 @@ create_table_structure connection table_name structure primary_key temporary on_
             connection.execute create_table_statement
         final_result = update_result.if_not_error table_name
         final_result.catch SQL_Error sql_error->
-            if connection.dialect.get_error_mapper.is_table_already_exists_error sql_error then Error.throw (Table_Already_Exists.Error table_name) else final_result
+            if connection.type_mapping.error_mapper.is_table_already_exists_error sql_error then Error.throw (Table_Already_Exists.Error table_name) else final_result
 
 ## Ensures the table has a valid temporary name for databases that have special
    naming rules for temporary tables.
@@ -95,7 +95,7 @@ private _create_in_memory_table_upload_op (source_table : Table) connection tabl
 
     column_names = source_table.column_names
     insert_template = make_batched_insert_template connection table_name column_names
-    statement_setter = connection.statement_setter
+    statement_setter = connection.type_mapping.statement_setter
     structure = structure_hint.if_nothing source_table
     aligned_structure = align_structure connection structure
     expected_type_hints = aligned_structure.map .value_type

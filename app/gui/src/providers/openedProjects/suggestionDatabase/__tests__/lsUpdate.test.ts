@@ -7,7 +7,6 @@ import {
 import { SuggestionUpdateProcessor } from '$/providers/openedProjects/suggestionDatabase/lsUpdate'
 import { frontmatter } from '@/components/ComponentHelp/metadata'
 import { assert, assertDefined } from '@/util/assert'
-import { unwrap } from '@/util/data/result'
 import { parseAbsoluteProjectPathRaw, ProjectPath } from '@/util/projectPath'
 import {
   tryIdentifier,
@@ -15,6 +14,7 @@ import {
   type Identifier,
   type QualifiedName,
 } from '@/util/qualifiedName'
+import { unwrap } from 'enso-common/src/utilities/data/result'
 import { expect, test } from 'vitest'
 import { prerenderMarkdown } from 'ydoc-shared/ast/documentation'
 import type { SuggestionsDatabaseUpdate } from 'ydoc-shared/languageServerTypes/suggestions'

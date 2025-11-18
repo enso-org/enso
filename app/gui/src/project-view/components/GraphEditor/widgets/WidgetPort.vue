@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useGraphStore } from '$/components/WithCurrentProject.vue'
 import { PortViewInstance } from '$/providers/openedProjects/graph'
+import { isRequiredArgument } from '$/providers/openedProjects/suggestionDatabase/entry'
 import {
   Score,
   WidgetInput,
@@ -8,6 +9,7 @@ import {
   widgetProps,
 } from '$/providers/openedProjects/widgetRegistry'
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
+import WidgetPortArrow from '@/components/GraphEditor/widgets/WidgetPort/WidgetPortArrow.vue'
 import { useRaf } from '@/composables/animation'
 import { useResizeObserver } from '@/composables/events'
 import type { NavigatorComposable } from '@/composables/navigator'
@@ -110,6 +112,13 @@ const enabled = computed(() => {
   return !isConditional || (keyboard?.mod ?? false)
 })
 
+const needsArrow = computed(() => {
+  const argInfo = props.input[ArgumentInfoKey]
+  if (!argInfo?.info) return false
+  return WidgetInput.isPlaceholder(props.input) && isRequiredArgument(argInfo.info)
+})
+const hideArrow = computed(() => connected.value)
+
 /**
  * NOTE: Reactive dependencies of this function are enforced externally in a `watch` below. This is
  * necessary, since we don't want to introduce very noisy dependencies through `clientToSceneRect`
@@ -196,6 +205,7 @@ export const widgetDefinition = defineWidget(
   <div
     ref="portRoot"
     class="WidgetPort"
+    :data-port="props.input.portId"
     :class="{
       enabled,
       connected,
@@ -205,6 +215,11 @@ export const widgetDefinition = defineWidget(
       primary: props.nesting < 2,
     }"
   >
+    <WidgetPortArrow
+      v-if="needsArrow"
+      :hide="hideArrow"
+      @arrowClick="graph.createEdgeFromPort(props.input.portId, $event)"
+    />
     <NodeWidget :input="innerWidget" />
   </div>
 </template>
@@ -229,7 +244,6 @@ export const widgetDefinition = defineWidget(
 }
 
 .GraphEditor.draggingEdge .WidgetPort {
-  --node-port-nonprimary-drag-shrink: 8px;
   pointer-events: none;
   transition:
     margin 0.2s ease,
@@ -241,22 +255,26 @@ export const widgetDefinition = defineWidget(
     content: '';
     position: absolute;
     display: block;
-    inset: calc(
-        (var(--node-port-height) - var(--node-base-height)) / 2 +
-          var(--node-port-nonprimary-drag-shrink)
-      )
+    inset: calc(var(--widget-port-drag-inset) + var(--node-port-nonprimary-drag-shrink))
       var(--widget-token-pad-unit);
   }
 
   /* Expand hover area for primary ports. */
   &.primary::before {
-    inset: calc((var(--node-port-height) - var(--node-base-height)) / 2)
-      var(--widget-token-pad-unit);
+    inset: var(--widget-port-drag-inset) var(--widget-token-pad-unit);
   }
 
   &.connected::before {
     left: 0;
     right: 0;
   }
+}
+
+/* Feature-flag controlled debug display for hover areas. */
+.App.debugHoverAreas .GraphEditor.draggingEdge .WidgetPort::before {
+  background: rgba(255, 174, 0, 0.1);
+}
+.App.debugHoverAreas .GraphEditor.draggingEdge .WidgetPort.enabled::before {
+  background: rgba(128, 255, 0, 0.1);
 }
 </style>

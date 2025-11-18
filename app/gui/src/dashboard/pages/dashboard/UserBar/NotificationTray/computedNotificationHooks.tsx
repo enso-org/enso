@@ -6,7 +6,7 @@ import { useUploadsToCloudStore } from '$/providers/react/upload'
 import { useIsMutating, type MutationKey } from '@tanstack/react-query'
 import { BackendType } from 'enso-common/src/services/Backend'
 import { omit } from 'enso-common/src/utilities/data/object'
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import { toast } from 'react-toastify'
 import { NotificationItem } from './NotificationItem'
 import type { NotificationInfo } from './types'
@@ -115,7 +115,9 @@ export function useComputedNotifications(options: UseComputedNotificationsOption
   const { getText } = useText()
 
   const uploadsStore = useUploadsToCloudStore()
-  const uploadingFiles = useVueValue(() => [...uploadsStore.uploads.entries()])
+  const uploadingFiles = useVueValue(
+    useCallback(() => [...uploadsStore.uploads.entries()], [uploadsStore.uploads]),
+  )
   const uploadingFilesEntries = uploadingFiles.filter(([, data]) => data.kind === 'requestedByUser')
 
   if (uploadingFilesEntries[0]) {

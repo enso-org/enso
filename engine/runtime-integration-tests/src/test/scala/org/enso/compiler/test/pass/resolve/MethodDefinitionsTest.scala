@@ -186,31 +186,50 @@ class MethodDefinitionsTest extends CompilerTest {
   "Method definitions pass" should {
     implicit val ctx: ModuleContext = mkModuleContext
 
-    "Attach ascribedType to DefinitionArgument of static method" in {
+    "Attach ascribedType to DefinitionArgument of an instance method" in {
       val ir =
         """
           |type My_Type
           |    Value x
           |    f self = self
           |""".stripMargin.preprocessModule.analyse
-      val staticMethod = ir.bindings.find { binding =>
-        binding match {
-          case m: Method.Explicit if m.isStatic => true
-          case _                                => false
-        }
+      val method = ir.bindings.find {
+        case _: Method.Explicit => true
+        case _                  => false
       }
-      staticMethod.isDefined shouldBe true
-      val method = staticMethod.get.asInstanceOf[Method.Explicit]
-      method.isStatic shouldBe true
-      val lambdaArg = method.body
-        .asInstanceOf[Lambda]
-        .body
+      method.isDefined shouldBe true
+      val explicitMethod = method.get.asInstanceOf[Method.Explicit]
+      val lambdaArg = explicitMethod.body
         .asInstanceOf[Lambda]
         .arguments
         .head
         .asInstanceOf[DefinitionArgument.Specified]
       lambdaArg.ascribedType().isDefined shouldBe true
     }
-  }
 
+    "No Method.Explicit duplication for singleton type" in {
+      val ir =
+        """
+          |type My_Type
+          |    f self = 42
+          |""".stripMargin.preprocessModule.analyse
+      val methods = ir.bindings.collect {
+        case m: Method.Explicit if m.methodReference.methodName.name == "f" => m
+      }
+      methods.size shouldBe 1
+    }
+
+    "No Method.Explicit duplication for non-singleton type" in {
+      val ir =
+        """
+          |type My_Type
+          |    Value x
+          |    f self = 42
+          |""".stripMargin.preprocessModule.analyse
+      val methods = ir.bindings.collect {
+        case m: Method.Explicit if m.methodReference.methodName.name == "f" => m
+      }
+      methods.size shouldBe 1
+    }
+  }
 }

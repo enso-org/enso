@@ -45,7 +45,7 @@ public abstract class HashMapRemoveNode extends Node {
     if (mapBuilder.remove(frame, key, hashCodeNode, equalsNode)) {
       return mapBuilder.build();
     } else {
-      throw DataflowError.withDefaultTrace("No such key", null);
+      throw DataflowError.withDefaultTrace("No such key", this);
     }
   }
 

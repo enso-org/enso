@@ -1,19 +1,13 @@
-/**
- * @file
- *
- * This file contains the useMeasure hook, which is used to measure the size and position of an element.
- */
+/** @file A hook used to measure the size and position of an element. */
+import { findScrollContainers, type HTMLOrSVGElement } from '#/utilities/scrollContainers'
+import { unsafeMutable } from 'enso-common/src/utilities/data/object'
 import { useEffect, useRef, useState } from 'react'
-import { unsafeMutable } from '../utilities/object'
-import { findScrollContainers, type HTMLOrSVGElement } from '../utilities/scrollContainers'
 import { useDebouncedCallback, type DebouncedFunction } from './debounceCallbackHooks'
 import { useEventCallback } from './eventCallbackHooks'
 import { useEventListener } from './eventListenerHooks'
 import { useUnmount } from './unmountHooks'
 
-/**
- * A read-only version of the DOMRect object.
- */
+/** A read-only version of the DOMRect object. */
 export interface RectReadOnly {
   readonly x: number
   readonly y: number
@@ -25,28 +19,20 @@ export interface RectReadOnly {
   readonly left: number
 }
 
-/**
- * A type that represents the result of the useMeasure hook.
- */
+/** Result of the useMeasure hook. */
 type Result = [(element: HTMLOrSVGElement | null) => void, RectReadOnly | null, () => void]
 
-/**
- * A type that represents the state of the useMeasure hook.
- */
+/** State of the useMeasure hook. */
 interface State {
   readonly element: HTMLOrSVGElement | null
   readonly scrollContainers: HTMLOrSVGElement[] | null
   readonly lastBounds: RectReadOnly | null
 }
 
-/**
- * A type that represents a callback that is called when the element is resized.
- */
+/** Callback that is called when the element is resized. */
 export type OnResizeCallback = (bounds: RectReadOnly) => void
 
-/**
- * A type that represents the options for the useMeasure hook.
- */
+/** Options for the useMeasure hook. */
 export interface Options {
   readonly debounce?:
     | number
@@ -60,9 +46,7 @@ export interface Options {
   readonly isDisabled?: boolean
 }
 
-/**
- * Custom hook to measure the size and position of an element
- */
+/** Custom hook to measure the size and position of an element. */
 export function useMeasure(options: Options = {}): Result {
   const { onResize, onInitialMeasure } = options
 

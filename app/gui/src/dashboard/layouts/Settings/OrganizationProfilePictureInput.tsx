@@ -6,9 +6,9 @@ import { ProfilePicture } from '#/components/ProfilePicture'
 import { StatelessSpinner } from '#/components/StatelessSpinner'
 import FocusRing from '#/components/styled/FocusRing'
 import { backendMutationOptions, backendQueryOptions } from '#/hooks/backendHooks'
-import type Backend from '#/services/Backend'
 import { useText } from '$/providers/react'
 import { useMutation, useQuery } from '@tanstack/react-query'
+import type { Backend } from 'enso-common/src/services/Backend'
 
 /** Props for a {@link OrganizationProfilePictureInput}. */
 export interface OrganizationProfilePictureInputProps {
