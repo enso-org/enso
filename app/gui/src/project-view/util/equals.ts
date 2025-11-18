@@ -27,5 +27,14 @@ export function arrayEquals<T>(
 }
 
 /**
- * Element-wise
+ * Equal function accepting only primitive values.
+ *
+ * Used in places where we wan't to raise typecheck error after changing some field's type
+ * to one with nontrivial definition of equality.
  */
+export function primitiveEquals(
+  a: string | number | boolean | bigint | symbol | undefined | null,
+  b: string | number | boolean | bigint | symbol | undefined | null,
+): boolean {
+  return defaultEquality(a, b)
+}

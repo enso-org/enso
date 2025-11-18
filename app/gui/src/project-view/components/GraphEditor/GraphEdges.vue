@@ -31,7 +31,6 @@ const {
 } = useCurrentProject()
 const selection = useGraphSelection(true)
 const interaction = injectInteractionHandler()
-const nodeSelection = useGraphSelection(true)
 const connectionToast = useToast.error()
 
 const props = defineProps<{
@@ -203,7 +202,7 @@ const nodeIdsWithOutputPorts = computed(() =>
 function createNewNodeFromPort(id: AstId) {
   const nodeId = graph.value.getOutputPortNodeId(id)
   if (nodeId != null) {
-    nodeSelection?.setSelection(new Set([nodeId]))
+    selection?.setSelection(new Set([nodeId]))
   }
   emit('createNodeFromPort', id)
 }

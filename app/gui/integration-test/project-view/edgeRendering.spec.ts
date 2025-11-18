@@ -28,13 +28,13 @@ test('Existence of edges between nodes', async ({ editorPage }) => {
     .expectEdgesFromTo(undefined, 'twenty', 0)
 })
 
-/** Prepare the graph for the tests. We drag the `five` node to the right for better access to its outgoing edge. */
+/** Prepare the graph for the tests. We drag one of the nodes to the right for better access to its outgoing edge. */
 async function initGraph(editorPage: EditorPageActions) {
   await editorPage.dragNode('twenty', { x: 400, y: 0 })
 }
 
 /**
- * Scenario: We hover over the arrow of the edge to the left of the `ten` node. We expect the edge to be rendered with a dimmed part
+ * Scenario: We hover over the arrow of an edge. We expect the edge to be rendered with a dimmed part
  * and a non-dimmed part.
  */
 test('Hover behaviour of edges', async ({ editorPage, page }) => {

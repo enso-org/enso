@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { shallowEquality } from '#/utilities/equalities'
 import { useGraphStore } from '$/components/WithCurrentProject.vue'
 import type { Edge } from '$/providers/openedProjects/graph'
 import { isConnected } from '$/providers/openedProjects/graph'
+import { connectedEdgeEquals } from '$/providers/openedProjects/graph/graph'
 import { junctionPoints, pathElements, toSvgPath } from '@/components/GraphEditor/GraphEdge/layout'
 import { useComponentColors } from '@/composables/componentColors'
 import { injectGraphNavigator } from '@/providers/graphNavigator'
@@ -159,7 +159,12 @@ const {
   selected: nodeSelected,
   pending,
 } = useComponentColors(graph.db, selection, sourceNode)
-const edgeSelected = computed(() => shallowEquality(selection?.selectedEdge, edge))
+const edgeSelected = computed(
+  () =>
+    selection?.selectedEdge != null &&
+    isConnected(edge) &&
+    connectedEdgeEquals(selection.selectedEdge, edge),
+)
 const selected = computed(() => nodeSelected.value || edgeSelected.value)
 
 const sourceOriginPoint = computed(() => {
@@ -247,7 +252,7 @@ const mouseLocationOnEdge = computed(() => {
 const clickWillDisconnect = computed(
   () =>
     mouseLocationOnEdge.value != null &&
-    mouseLocationOnEdge.value.mouseToTarget < TARGET_DISCONNECT_THRESHOLD,
+    mouseLocationOnEdge.value.mouseToTarget <= TARGET_DISCONNECT_THRESHOLD,
 )
 
 const activeStyle = computed(() => {
