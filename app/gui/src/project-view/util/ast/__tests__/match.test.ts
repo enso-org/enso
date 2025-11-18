@@ -2,10 +2,10 @@ import { Ast } from '@/util/ast'
 import { Pattern } from '@/util/ast/match'
 import { expect, test } from 'vitest'
 import { MutableModule } from '../abstract'
+import {assertDefined} from "ydoc-shared/util/assert"
 
 test.each([
   { target: 'a.b', pattern: '__', extracted: ['a.b'] },
-  { target: 'a.b', pattern: 'a.__' },
   { target: 'a.b', pattern: '__.b', extracted: ['a'] },
   { target: '1 + 1', pattern: '1  +  1', extracted: [] },
   { target: '1 + 2', pattern: '1 + __', extracted: ['2'] },
@@ -75,6 +75,7 @@ test.each([
   },
 ])('`isMatch` and `extractMatches`: $target, $pattern', ({ target, pattern, extracted }) => {
   const targetAst = Ast.parseExpression(target)
+  assertDefined(targetAst)
   const module = targetAst.module
   const patternAst = Pattern.parseExpression(pattern)
   expect(
@@ -92,12 +93,20 @@ test.each([
 })
 
 test.each([
+    // Placeholders in patterns must be in expression positions; token-level patterns are not supported.
+    'a.__'
+])('Invalid expression in pattern', (template) => {
+    expect(() => Pattern.parseExpression(template)).toThrow()
+})
+
+test.each([
   { template: 'a __ c', source: 'b', result: 'a b c' },
   { template: 'a + __.c', source: 'b', result: 'a + b.c' },
 ])('instantiate', ({ template, source, result }) => {
   const pattern = Pattern.parseExpression(template)
   const edit = MutableModule.Transient()
   const intron = Ast.parseExpression(source, edit)
+  assertDefined(intron)
   const instantiated = pattern.instantiate(edit, [intron])
   expect(instantiated.code()).toBe(result)
 })

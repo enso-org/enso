@@ -1322,15 +1322,21 @@ export class PropertyAccess extends BaseExpression {
     return asOwned(new MutablePropertyAccess(module, fields))
   }
 
-  /** TODO: Add docs */
+  /** Returns the left side of the operator, i.e., the value upon which a name lookup is to be performed. */
   get lhs(): Expression | undefined {
     return this.module.get(this.fields.get('lhs')?.node) as Expression | undefined
   }
-  /** TODO: Add docs */
+
+  /** Returns the dot token, with any leading whitespace if present. */
   get operator(): Token {
     return this.module.getToken(this.fields.get('operator').node)
   }
-  /** TODO: Add docs */
+
+
+  /**
+   * Returns the token to the right of the dot, i.e., the name to be looked up. It may be an ordinary identifier token;
+   * an operator symbol is also allowed in this position and is treated as a type of identifier.
+   */
   get rhs(): IdentifierOrOperatorIdentifierToken {
     return this.module.getToken(this.fields.get('rhs').node) as IdentifierOrOperatorIdentifierToken
   }

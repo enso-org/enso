@@ -40,6 +40,43 @@ public class ErrorCompilerTest extends CompilerTests {
   }
 
   @Test
+  public void dotUnderscore() throws Exception {
+    var ir =
+        parse(
+            """
+            run op =
+              op._
+            """);
+
+    assertSingleSyntaxError(ir, Syntax.InvalidUnderscore$.MODULE$, "Invalid use of _", 14, 15);
+  }
+
+  @Test
+  public void spaceDotUnderscore() throws Exception {
+    var ir =
+        parse(
+            """
+            run op =
+              op ._
+            """);
+
+    assertSingleSyntaxError(
+        ir, Syntax.UnexpectedExpression$.MODULE$, "Unexpected expression", 14, 16);
+  }
+
+  @Test
+  public void dotUnderscore2() throws Exception {
+    var ir =
+        parse(
+            """
+            run op =
+              op._.something
+            """);
+
+    assertSingleSyntaxError(ir, Syntax.InvalidUnderscore$.MODULE$, "Invalid use of _", 14, 15);
+  }
+
+  @Test
   public void unfinishedLiteral2() throws Exception {
     var ir =
         parse(

@@ -421,14 +421,9 @@ impl<'s> ResolverState<'s> {
                     Self::move_to_next_segment(&mut current_macro.matched_macro_def, subsegments);
                 mem::swap(&mut new_match_tree, &mut current_macro.possible_next_segments);
                 return Step::StartSegment(token);
-            } else {
-                match self.pop_macro_stack_if_reserved(repr) {
-                    Some(popped) => {
-                        self.resolve(popped);
-                        return Step::MacroStackPop(token.into());
-                    }
-                    _ => {}
-                }
+            } else if let Some(popped) = self.pop_macro_stack_if_reserved(repr) {
+                self.resolve(popped);
+                return Step::MacroStackPop(token.into());
             }
         }
         if let Some(segments) = root_macro_map.get(repr, context) {
