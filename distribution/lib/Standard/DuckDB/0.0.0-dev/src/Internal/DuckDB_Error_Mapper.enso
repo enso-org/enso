@@ -2,12 +2,12 @@ private
 
 from Standard.Base import all
 
-from project.Errors import Invariant_Violation, SQL_Error
+from Standard.Database.Errors import Invariant_Violation, SQL_Error
 
 ## ---
    private: true
    ---
-type Postgres_Error_Mapper
+type DuckDB_Error_Mapper
     ## ---
        private: true
        ---
@@ -27,7 +27,7 @@ type Postgres_Error_Mapper
        ---
     is_table_already_exists_error : SQL_Error -> Boolean
     is_table_already_exists_error error =
-        error.java_exception.getMessage.match "ERROR: relation .* already exists"
+        error.java_exception.getMessage.match "Catalog Error: Table with name .* already exists!"
 
     ## ---
        private: true

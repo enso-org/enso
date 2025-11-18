@@ -7,12 +7,13 @@ from Standard.Table import Bits, Value_Type
 from Standard.Table.Errors import Inexact_Type_Coercion
 
 import Standard.Database.Internal.IR.SQL_IR_Expression.SQL_IR_Expression
-import Standard.Database.Internal.Postgres.Postgres_Error_Mapper.Postgres_Error_Mapper
 import Standard.Database.Internal.SQL_Type_Mapping
 import Standard.Database.Internal.SQL_Type_Reference.SQL_Type_Reference
 import Standard.Database.Internal.Statement_Setter.Statement_Setter
 import Standard.Database.SQL.SQL_Type
 from Standard.Database.Errors import Unsupported_Database_Type
+
+import project.Internal.DuckDB_Error_Mapper.DuckDB_Error_Mapper
 
 polyglot java import java.sql.Types
 polyglot java import org.enso.duckdb.DuckDBColumnFetcherFactory
@@ -199,8 +200,8 @@ type DuckDB_Type_Mapping
        ---
        Returns a helper for mapping database-specific SQL errors into our common
        error types.
-    error_mapper : Postgres_Error_Mapper
-    error_mapper self = Postgres_Error_Mapper
+    error_mapper : DuckDB_Error_Mapper
+    error_mapper self = DuckDB_Error_Mapper
 
 ## Set of predefined DuckDB SQL types.
 type DuckDB_Types
