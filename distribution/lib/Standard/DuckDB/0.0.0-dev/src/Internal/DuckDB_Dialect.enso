@@ -418,7 +418,7 @@ duckdb_dialect_name = "DuckDB"
 private duckdb_overrides =
     text_ops = [make_case_sensitive, make_add_text, ["REPLACE", replace], ["PROPER", Nothing]]
     scalars = [["ROUND_BANKERS", Base_Generator.make_function "ROUND_EVEN"], ["GROUP_NUMBER_EQUAL_COUNT", make_group_number_equal_count]]
-    date_ops = [["quarter", make_quarter],["date_diff", make_date_diff]]
+    date_ops = [["quarter", make_quarter],["date_diff", make_date_diff], ["date_add", make_date_add]]
     aggs = [make_first_aggr, make_first_aggr not_null=True, make_last_aggr, make_last_aggr not_null=True, agg_shortest, agg_longest, agg_median, agg_stddev, agg_stddev_pop, agg_mode]
     other = [["RUNTIME_ERROR", make_runtime_error_op]]
     text_ops + scalars + date_ops + aggs + other
@@ -449,6 +449,32 @@ make_quarter =
         date = arguments.first
         SQL_Builder.code "DATE_PART('quarter', " ++ date ++ ")"
     func
+
+## ---
+   private: true
+   ---
+make_date_add arguments (metadata : Date_Period_Metadata) =
+    if arguments.length != 2 then Error.throw (Illegal_State.Error "date_add expects exactly 2 sub expressions. This is a bug in Database library.")
+    expr = arguments.at 0
+    amount = arguments.at 1
+    interval_arg = case metadata.period of
+        Date_Period.Year -> ") YEARS"
+        Date_Period.Quarter -> " * 3) MONTHS"
+        Date_Period.Month -> ") MONTHS"
+        Date_Period.Week _ -> " * 7) DAYS"
+        Date_Period.Day -> ") DAYS"
+        Time_Period.Hour -> ") HOURS"
+        Time_Period.Minute -> ") MINUTES"
+        Time_Period.Second -> ") SECONDS"
+        Time_Period.Millisecond -> ") MILLISECONDS"
+        Time_Period.Microsecond -> ") MICROSECONDS"
+        Time_Period.Nanosecond ->
+            Panic.throw (Illegal_State.Error "Nanosecond precision is not supported by DuckDB.")
+    interval_expression = SQL_Builder.code "INTERVAL (" ++ amount ++ interval_arg
+    shifted = SQL_Builder.code "(" ++ expr ++ " + " ++ interval_expression ++ ")"
+    case metadata.input_value_type of
+        Value_Type.Date -> SQL_Builder.code "(" ++ shifted ++ "::date)"
+        _ -> shifted
 
 ## ---
    private: true
