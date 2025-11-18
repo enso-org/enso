@@ -12,11 +12,11 @@ import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.Illegal_State.Illegal_State
 import project.Function.Function
 import project.Panic.Panic
-from project.Nothing import all
 from project.Data.Boolean import Boolean, False, True
 from project.Error import all
 from project.Internal.Predicate_Helpers import unify_condition_or_predicate
 from project.Metadata import Display, Widget
+from project.Nothing import all
 
 ## Represents a right-exclusive range of integer values.
 type Range

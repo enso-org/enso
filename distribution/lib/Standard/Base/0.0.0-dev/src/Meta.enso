@@ -9,9 +9,9 @@ import project.Errors.Common.Private_Access
 import project.Function.Function as Real_Function
 import project.Internal.Meta_Helpers
 import project.Warning.Warning
-from project.Nothing import all
 from project.Data.Boolean import Boolean, False, True
 from project.Error import all hiding Error
+from project.Nothing import all
 
 type Type
     private Value value

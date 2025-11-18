@@ -32,10 +32,10 @@ import project.System.File.Local_File_Write_Strategy
 import project.System.Input_Stream.Input_Stream
 import project.System.Output_Stream.Output_Stream
 import project.Warning.Warning
-from project.Nothing import all
 from project.Data.Boolean import Boolean, False, True
 from project.Error import all
 from project.Metadata.Choice import Option
+from project.Nothing import all
 from project.System.File_Format import Auto_Detect, File_Format
 from project.System.Internal.File_Builtins import all
 
@@ -1145,16 +1145,18 @@ private handle_invalid_path ~path ~action =
 
 ## Interface for service providers willing to extend file system capabilities.
    Register your implementation by adding following into your `package.yaml`:
-   ```yaml
-   services:
-   - provides: Standard.Base.System.File.File_System_SPI
-     with: <<fully qualified name of your implementation module>>
-   ```
-   In your module then define conversion of its associated type singleton
-   into `File_System_SPI` via its `new` static method.
+   ```yaml services:
+   - provides: Standard.Base.System.File.File_System_SPI with: <<fully qualified
+     name of your implementation module>> ``` In your module then define
+     conversion of its associated type singleton into `File_System_SPI` via its
+     `new` static method.
 type File_System_SPI
     private Entry protocol:Text typ
 
+    ## ---
+       private: true
+       ---
+       Create a new File_System_SPI entry.
     new protocol:Text typ = File_System_SPI.Entry protocol typ
 
     private get_type protocol:Text b:Boolean =
@@ -1162,7 +1164,8 @@ type File_System_SPI
         vec = all . filter \e -> (e.protocol == protocol)
         if vec . not_empty then vec.first.typ else Nothing
 
-    private get_regs _:Boolean =
+    private get_regs b:Boolean =
+        _ = b
         Meta.lookup_services File_System_SPI
 
     private get_types b:Boolean =

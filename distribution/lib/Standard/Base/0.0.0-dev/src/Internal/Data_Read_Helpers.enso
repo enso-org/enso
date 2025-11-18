@@ -91,4 +91,7 @@ handle_legacy_format (method_name : Text) (new_argument_name : Text) format = ca
 
 
 type Data_List_Default_Impl
-Return_As.SPI.from (_ : Data_List_Default_Impl) = Return_As.SPI.new Return_As.Return_As_Base
+
+Return_As.SPI.from (that : Data_List_Default_Impl) =
+    _ = that
+    Return_As.SPI.new Return_As.Return_As_Base

@@ -404,7 +404,8 @@ public final class MapExpressionsMethodGenerator {
               "Field ${fieldName} must not be null. It was annotated with "
               + "@IRChild(required = true).");
           }
-          """;
+          """
+              .replace("${fieldName}", field.getName());
     }
     var code =
         """

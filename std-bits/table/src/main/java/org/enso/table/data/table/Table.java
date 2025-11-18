@@ -39,7 +39,7 @@ import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 
 /** A representation of a table structure. */
-public class Table {
+public final class Table {
   private final Map<String, Column> columnNameMap = new HashMap<>();
   private final Column[] columns;
   private String versionId;

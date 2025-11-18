@@ -13,6 +13,19 @@
 				"isDefault": true
 			},
 			"label": "Rust Gen CI"
+		},
+		{
+			"type": "cargo",
+			"command": "build",
+			"args": ["--profile", "buildscript", "-p", "enso-build-cli"],
+			"problemMatcher": [
+				"$rustc"
+			],
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"label": "Rust ./run"
 		}
 	]
 }

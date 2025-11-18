@@ -1672,11 +1672,17 @@ public class Main {
     }
     if (line.hasOption(LanguageServerApi.CLOUD_PROJECT_ID_OPTION)) {
       MDC.put("projectId", line.getOptionValue(LanguageServerApi.CLOUD_PROJECT_ID_OPTION));
+    } else if (System.getenv(LanguageServerApi.ENSO_CLOUD_PROJECT_ID_ENV_NAME) != null) {
+      MDC.put("projectId", System.getenv(LanguageServerApi.ENSO_CLOUD_PROJECT_ID_ENV_NAME));
     }
     if (line.hasOption(LanguageServerApi.CLOUD_PROJECT_SESSION_ID_OPTION)) {
       MDC.put(
           "projectSessionId",
           line.getOptionValue(LanguageServerApi.CLOUD_PROJECT_SESSION_ID_OPTION));
+    } else if (System.getenv(LanguageServerApi.ENSO_CLOUD_PROJECT_SESSION_ID_ENV_NAME) != null) {
+      MDC.put(
+          "projectSessionId",
+          System.getenv(LanguageServerApi.ENSO_CLOUD_PROJECT_SESSION_ID_ENV_NAME));
     }
     MDC.put("projectLocalId", projectId);
     RunnerLogging.setup(connectionUri, logLevel, logMasking[0]);

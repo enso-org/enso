@@ -6,8 +6,8 @@ from Standard.Base.Enso_Cloud.Data_Link_Helpers import save_password_for_data_li
 import Standard.Database.Connection.Connection_Options.Connection_Options
 import Standard.Database.Internal.Data_Link_Setup.Data_Link_Setup
 
-import project.SQLServer_Connection.SQLServer_Connection
 import project.Connection.SQLServer_Credentials.SQLServer_Credentials
+import project.SQLServer_Connection.SQLServer_Connection
 
 type SQLServer_Details
     ## Connect to a SQLServer database.

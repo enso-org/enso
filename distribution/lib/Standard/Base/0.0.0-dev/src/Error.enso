@@ -208,8 +208,8 @@ type Error
     is_error self = True
 
     ## ---
-       icon: warning
        advanced: true
+       icon: warning
        ---
        Returns the provided `other` value, unless `self` is an error.
 
@@ -340,8 +340,8 @@ Any.map_error self ~f =
 Any.is_error self -> Boolean = False
 
 ## ---
-   icon: warning
    advanced: true
+   icon: warning
    ---
    Returns the provided `other` value, unless `self` is an error.
 
