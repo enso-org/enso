@@ -159,7 +159,18 @@ type DuckDB_Dialect
        ---
     make_cast : Internal_Column -> SQL_Type_Mapping -> SQL_Type -> (SQL_IR_Expression -> SQL_Type_Reference) -> Internal_Column
     make_cast self (column : Internal_Column) mapping (target_type : SQL_Type) (infer_result_type_from_database_callback : SQL_IR_Expression -> SQL_Type_Reference) =
-        self.parent.make_cast column mapping target_type infer_result_type_from_database_callback
+        ## Special handling for Date_Time to Time
+        source_type = mapping.sql_type_to_value_type column.sql_type_reference.get
+        target_value_type = mapping.sql_type_to_value_type target_type
+        case source_type==(Value_Type.Date_Time True) && target_value_type == Value_Type.Time of
+            True ->
+                ## Need to cast to no timezone first then to time
+                inner_cast = SQL_IR_Expression.Operation "CAST" [column.expression, SQL_IR_Expression.Literal "TIMESTAMP"]
+                target_type_sql_text = mapping.sql_type_to_text target_type
+                final_cast = SQL_IR_Expression.Operation "CAST" [inner_cast, SQL_IR_Expression.Literal target_type_sql_text]
+                new_sql_type_reference = infer_result_type_from_database_callback final_cast
+                Internal_Column.Value column.name new_sql_type_reference final_cast
+            False -> self.parent.make_cast column mapping target_type infer_result_type_from_database_callback
 
     ## ---
        private: true
@@ -405,17 +416,29 @@ duckdb_dialect_name = "DuckDB"
    ---
    Dialect operation overrides for DuckDB.
 private duckdb_overrides =
-    scalars = [make_case_sensitive, ["ROUND_BANKERS", Base_Generator.make_function "ROUND_EVEN"], ["GROUP_NUMBER_EQUAL_COUNT", make_group_number_equal_count], ["PROPER", Nothing], ["REPLACE", replace]]
+    text_ops = [make_case_sensitive, make_add_text, ["REPLACE", replace], ["PROPER", Nothing]]
+    scalars = [["ROUND_BANKERS", Base_Generator.make_function "ROUND_EVEN"], ["GROUP_NUMBER_EQUAL_COUNT", make_group_number_equal_count]]
     date_ops = [["QUARTER", make_quarter],["DATE_DIFF", make_date_diff]]
     aggs = [make_first_aggr, make_first_aggr not_null=True, make_last_aggr, make_last_aggr not_null=True, agg_shortest, agg_longest, agg_median, agg_stddev, agg_stddev_pop, agg_mode]
     other = [["RUNTIME_ERROR", make_runtime_error_op]]
-    scalars + date_ops + aggs + other
+    text_ops + scalars + date_ops + aggs + other
 
 ## ---
    private: true
    ---
 make_case_sensitive = Base_Generator.lift_unary_op "MAKE_CASE_SENSITIVE" arg->
     SQL_Builder.code "((" ++ arg ++ ') COLLATE "binary")'
+
+## ---
+   private: true
+   ---
+make_add_text =
+    func arguments =
+        if arguments.length != 2 then Error.throw (Illegal_State.Error "add_text expects exactly 2 sub expressions. This is a bug in Database library.")
+        left = arguments.at 0
+        right = arguments.at 1
+        SQL_Builder.code "(" ++ left ++ " || " ++ right ++ ")::varchar"
+    ["ADD_TEXT", func]
 
 ## ---
    private: true
