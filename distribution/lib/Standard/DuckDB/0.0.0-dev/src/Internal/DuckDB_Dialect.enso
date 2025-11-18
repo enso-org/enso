@@ -418,7 +418,7 @@ duckdb_dialect_name = "DuckDB"
 private duckdb_overrides =
     text_ops = [make_case_sensitive, make_add_text, ["REPLACE", replace], ["PROPER", Nothing]]
     scalars = [["ROUND_BANKERS", Base_Generator.make_function "ROUND_EVEN"], ["GROUP_NUMBER_EQUAL_COUNT", make_group_number_equal_count]]
-    date_ops = [["QUARTER", make_quarter],["DATE_DIFF", make_date_diff]]
+    date_ops = [["quarter", make_quarter],["date_diff", make_date_diff]]
     aggs = [make_first_aggr, make_first_aggr not_null=True, make_last_aggr, make_last_aggr not_null=True, agg_shortest, agg_longest, agg_median, agg_stddev, agg_stddev_pop, agg_mode]
     other = [["RUNTIME_ERROR", make_runtime_error_op]]
     text_ops + scalars + date_ops + aggs + other
@@ -461,8 +461,8 @@ make_date_diff arguments (metadata : Date_Period_Metadata) =
     case metadata.period of
         Date_Period.Year    -> SQL_Builder.code "DATE_SUB('year', " ++ start ++ ", " ++ end ++ ")"
         Date_Period.Month   -> SQL_Builder.code "DATE_SUB('month', " ++ start ++ ", " ++ end ++ ")"
-        Date_Period.Quarter -> SQL_Builder.code "DATE_SUB('quarter', " ++ start ++ ", " ++ end ++ ")"
-        Date_Period.Week _  -> SQL_Builder.code "FLOOR(DATE_SUB('day', " ++ start ++ ", " ++ end ++ ")) / 7"
+        Date_Period.Quarter -> SQL_Builder.code "FLOOR(DATE_SUB('month', " ++ start ++ ", " ++ end ++ ") / 3)"
+        Date_Period.Week _  -> SQL_Builder.code "FLOOR(DATE_SUB('day', " ++ start ++ ", " ++ end ++ ") / 7)"
         Date_Period.Day     -> SQL_Builder.code "DATE_SUB('day', " ++ start ++ ", " ++ end ++ ")"
         Time_Period.Hour    -> SQL_Builder.code "DATE_SUB('hour', " ++ start ++ ", " ++ end ++ ")"
         Time_Period.Minute  -> SQL_Builder.code "DATE_SUB('minute', " ++ start ++ ", " ++ end ++ ")"
