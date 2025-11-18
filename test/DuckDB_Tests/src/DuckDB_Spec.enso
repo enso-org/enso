@@ -32,6 +32,7 @@ supported_replace_params =
     Hashset.from_vector <| e0 + e1 + e2 + e3 + e4
 
 duckdb_spec suite_builder prefix create_connection_func persistent_connector =
+    _ = persistent_connector
     name_counter = Ref.new 0
 
     # We keep a default connection to avoid creating connections each time.
