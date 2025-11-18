@@ -49,10 +49,8 @@ private _create_to_email_object emails send_type =
     if emails.length > 0 then [send_type, emails.map _create_to_email] else Nothing
 
 private _create_to_email recipient_email =
-    recipient_object = case recipient_email of
-        Email_Address.Address address -> JS_Object.from_pairs [["email", address]]
-        Email_Address.Name_Address name address -> JS_Object.from_pairs [["name", name], ["email", address]]
-    recipient_object
+    if recipient_email.name == "" then JS_Object.from_pairs [["email", recipient_email.address]] else
+        JS_Object.from_pairs [["name", recipient_email.name], ["email", recipient_email.address]]
 
 private _prepare_html_body html_content =
     html_object = case html_content of
