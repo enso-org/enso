@@ -754,6 +754,7 @@ export interface ConnectedEdge {
   target: PortId
 }
 
+/** Equality function for {@link ConnectedEdge}. */
 export function connectedEdgeEquals(a: ConnectedEdge, b: ConnectedEdge) {
   return primitiveEquals(a.source, b.source) && primitiveEquals(a.target, b.target)
 }

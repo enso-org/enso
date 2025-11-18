@@ -322,7 +322,9 @@ const actionHandlers = registerHandlers({
     },
   },
   'graph.deleteSelectedEdge': {
-    enabled: () => nodeSelection.selectedEdge != null,
+    enabled: () =>
+      nodeSelection.selectedEdge != null &&
+      graphStore.db.connectionExists(nodeSelection.selectedEdge),
     action: () => {
       if (!nodeSelection.selectedEdge) return
       graphStore.updatePortValue(nodeSelection.selectedEdge.target, undefined)
