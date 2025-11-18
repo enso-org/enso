@@ -23,3 +23,8 @@ type Email_Attachment
        ---
     vector_widget (display : Display = ..Always) -> Widget =
         Vector_Editor Email_Attachment.default_widget item_default='Email_Attachment.File' display=display
+
+## ---
+   private: true
+   ---
+Email_Attachment.from (that:File) = Email_Attachment.File that
