@@ -5,7 +5,7 @@ type Send_Error
     ## ---
        private: true
        ---
-    private Error cause:Text
+    Error cause:Text
 
     ## ---
        private: true

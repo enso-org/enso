@@ -52,12 +52,13 @@ private _send_email_with_send_grid_provider email:Email api_key:Text =
 private _create_to_email_object emails send_type =
     if emails.length > 0 then [send_type, emails.map _create_to_email] else Nothing
 
-private _create_to_email recipient_email =
+private _create_to_email recipient_email:Email_Address =
     if recipient_email.name == "" then JS_Object.from_pairs [["email", recipient_email.address]] else
         JS_Object.from_pairs [["name", recipient_email.name], ["email", recipient_email.address]]
 
 private _prepare_html_body html_content =
     html_object = case html_content of
+        Email_Body.No_Body -> JS_Object.from_pairs [["type", "text/plain"], ["value", " "]]
         Email_Body.Plain_Text _ -> JS_Object.from_pairs [["type", "text/plain"], ["value", html_content.body]]
         Email_Body.HTML _ _ -> JS_Object.from_pairs [["type", "text/html"], ["value", html_content.html]]
     html_object

@@ -74,5 +74,5 @@ type Email
 
 private _send_email_with_provider email provider = 
     if Context.Output.is_enabled then provider.send email else
-        warning = Dry_Run_Operation.Warning ("As writing is disabled, email not sent. Press the Write button ▶ to send it." + Context.Output.is_enabled.to_display_text)
+        warning = Dry_Run_Operation.Warning "As writing is disabled, email not sent. Press the Write button ▶ to send it."
         Warning.attach warning (Send_Response.Dry_Run email)
