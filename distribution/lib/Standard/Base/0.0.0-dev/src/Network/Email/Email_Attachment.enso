@@ -15,7 +15,7 @@ type Email_Attachment
        private: true
        ---
     default_widget (display : Display = ..Always) -> Widget =
-        name = [Option "New Attachment" "Email_Attachment.File"]
+        name = [Option "New Attachment" "..File"]
         values = name
         Single_Choice values=values display=display
 
@@ -23,7 +23,7 @@ type Email_Attachment
        private: true
        ---
     vector_widget (display : Display = ..Always) -> Widget =
-        Vector_Editor Email_Attachment.default_widget item_default='Email_Attachment.File' display=display
+        Vector_Editor Email_Attachment.default_widget item_default='..File' display=display
 
 ## ---
    private: true

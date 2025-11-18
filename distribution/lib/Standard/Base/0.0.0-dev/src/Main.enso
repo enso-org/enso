@@ -162,6 +162,7 @@ export project.Meta.Enso_Project.Project_Description
 export project.Network.Email.Email
 export project.Network.Email.Email_Address.Email_Address
 export project.Network.Email.Email_Address.Email_Address.Address
+export project.Network.Email.Email_Attachment.Email_Attachment
 export project.Network.Email.Email_Body.Email_Body
 export project.Network.Extensions.fetch
 export project.Network.Extensions.post
