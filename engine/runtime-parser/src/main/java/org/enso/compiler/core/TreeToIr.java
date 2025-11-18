@@ -2139,6 +2139,7 @@ final class TreeToIr {
   private IdentifiedLocation getIdentifiedLocation(Tree ast, int b, int e, Option<UUID> someId) {
     return switch (ast) {
       case null -> null;
+      case Tree.Function fn -> getIdentifiedLocation(fn.getBody(), b, e, someId);
       default -> {
         var begin = castToInt(ast.getStartCode()) + b;
         var end = castToInt(ast.getEndCode()) + e;
