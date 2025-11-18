@@ -58,6 +58,7 @@ public final class IfThenElseToCaseOf implements MiniPassFactory {
               Case.Branch.builder()
                   .pattern(truePattern)
                   .expression(ife.trueBranch())
+                  .location(ife.trueBranch().identifiedLocation())
                   .terminalBranch(true)
                   .build();
           Expression elseExpr;
@@ -71,10 +72,15 @@ public final class IfThenElseToCaseOf implements MiniPassFactory {
               Case.Branch.builder()
                   .pattern(falsePattern)
                   .expression(elseExpr)
+                  .location(elseExpr.identifiedLocation())
                   .terminalBranch(true)
                   .build();
           var branches = List.of(trueBranch, elseBranch);
-          yield Case.Expr.builder().scrutinee(ife.cond()).branches(asScala(branches)).build();
+          yield Case.Expr.builder()
+              .scrutinee(ife.cond())
+              .location(ife.identifiedLocation())
+              .branches(asScala(branches))
+              .build();
         }
         default -> ir;
       };

@@ -2281,7 +2281,7 @@ private[runtime] class IrToTruffle(
       binding: Boolean = false
     ): CreateFunctionNode = {
       val bodyBuilder =
-        new BuildFunctionBody(scopeName, arguments, body, null, None, false)
+        new BuildFunctionBody(scopeName, arguments, body, null, None, true)
       val fnRootNode = ClosureRootNode.build(
         language,
         scope,
@@ -2290,7 +2290,7 @@ private[runtime] class IrToTruffle(
         makeSource(scopeBuilder.getModule),
         makeLocation(location),
         scopeName,
-        false,
+        true,
         binding
       )
       val callTarget = fnRootNode.getCallTarget
