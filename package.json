@@ -40,7 +40,7 @@
     "ci:lint": "corepack pnpm run -r --parallel lint --output-file eslint_report.json --format json --cache-strategy content",
     "ci:unit-test": "corepack pnpm run -r --parallel test:unit",
     "ci:typecheck": "corepack pnpm run -r --parallel typecheck",
-    "git-clean": "git clean -xfd --exclude='.env*'",
+    "git-clean": "node git-clean.mjs",
     "bazel-clean": "bazel clean --expunge_async",
     "postinstall": "bazel run //:write_all --verbose_failures"
   },

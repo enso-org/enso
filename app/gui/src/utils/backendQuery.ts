@@ -60,6 +60,7 @@ export type BackendMutationMethod = DefineBackendMethods<
   | 'uploadFileChunk'
   | 'uploadFileEnd'
   | 'uploadFileStart'
+  | 'uploadImage'
   | 'uploadOrganizationPicture'
   | 'uploadUserPicture'
 >
@@ -136,6 +137,7 @@ export const INVALIDATION_MAP: Partial<
   updateProjectExecution: ['listProjectExecutions'],
   syncProjectExecution: ['listProjectExecutions'],
   deleteProjectExecution: ['listProjectExecutions'],
+  uploadImage: ['listDirectory', 'searchDirectory'],
 }
 
 /** For each backend method, an optional function defining how to create a query key from its arguments. */

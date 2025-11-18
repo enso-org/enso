@@ -2028,8 +2028,12 @@ final class TreeToIr {
       } else {
         qualifiedName = buildQualifiedName(exp.getExport().getBody(), null, true);
       }
-      return new Export.Module(
-          qualifiedName, rename, onlyNames, getIdentifiedLocation(exp), false, meta());
+      return Export.Module.builder()
+          .name(qualifiedName)
+          .rename(rename)
+          .onlyNames(onlyNames)
+          .location(getIdentifiedLocation(exp))
+          .build();
     } catch (SyntaxException err) {
       if (err.where instanceof Tree.Invalid invalid) {
         return err.toError(invalidExportReason(invalid.getError()));
