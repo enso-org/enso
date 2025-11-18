@@ -23,6 +23,10 @@ type Email_Provider
     Test_Only
 
     ## An email provider that sends emails using the SendGrid REST API.
+       Get started with SendGrid her https://sendgrid.com/
+
+       ## Arguments
+        - `api_key`: SendGrid API key as plain text or an Enso_Secret.
     Send_Grid api_key:(Text|Enso_Secret)=(Missing_Argument.throw "api_key")
 
     ## Sends the provided Email.
