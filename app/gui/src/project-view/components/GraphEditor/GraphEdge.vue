@@ -207,10 +207,9 @@ const basePath = computed(() => {
   return toSvgPath(origin.add(start), elements)
 })
 
-const activePath = computed(() => {
-  console.debug('ACTIVE PATH', hovered.value, clickWillDisconnect.value)
-  return hovered.value && clickWillDisconnect.value && edge.source != null && edge.target != null
-})
+const activePath = computed(
+  () => hovered.value && clickWillDisconnect.value && edge.source != null && edge.target != null,
+)
 
 function lengthTo(path: SVGPathElement, pos: Vec2): number {
   const totalLength = path.getTotalLength()
