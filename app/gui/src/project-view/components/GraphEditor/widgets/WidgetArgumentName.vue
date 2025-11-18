@@ -9,9 +9,10 @@ import {
 } from '$/providers/openedProjects/widgetRegistry'
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import RequiredArgumentArrow from '@/components/GraphEditor/widgets/WidgetArgumentName/RequiredArgumentArrow.vue'
-import { MultiSelectionWidgetShownKey } from '@/components/GraphEditor/widgets/WidgetMultiSelection.vue'
-import { SelectionWidgetShownKey } from '@/components/GraphEditor/widgets/WidgetSelection.vue'
+import WidgetMultiSelection from '@/components/GraphEditor/widgets/WidgetMultiSelection.vue'
+import WidgetSelection from '@/components/GraphEditor/widgets/WidgetSelection.vue'
 import { injectPortInfo } from '@/providers/portInfo'
+import { injectWidgetUsageInfo, usageKeyForInput } from '@/providers/widgetUsageInfo'
 import { Ast } from '@/util/ast'
 import { ApplicationKind, ArgumentInfoKey } from '@/util/callTree'
 import { computed, useTemplateRef } from 'vue'
@@ -22,6 +23,11 @@ const props = defineProps(widgetProps(widgetDefinition))
 const currentProject = useCurrentProject()
 const graph = computed(() => currentProject.graph.value)
 const portInfo = injectPortInfo(true)
+const parentUsageInfo = injectWidgetUsageInfo(true)
+const usageKey = computed(() => usageKeyForInput(props.input))
+const sameInputParentWidgets = computed(() =>
+  parentUsageInfo?.usageKey === usageKey.value ? parentUsageInfo?.previouslyUsed : undefined,
+)
 
 const showArgumentValue = computed(() => {
   return (
@@ -46,9 +52,9 @@ const childWidgetRef = useTemplateRef<typeof NodeWidget>('childWidgetRef')
 const isChildWidgetEmpty = computed(() => !childWidgetRef.value?.isSelected)
 const connected = computed(() => portInfo?.connected ?? false)
 const showArrow = computed(() => {
-  // Selection widgets are always above WidgetArgumentName by their priority, so we check them separately.
   const selectionWidgetsShown =
-    props.input[SelectionWidgetShownKey] || props.input[MultiSelectionWidgetShownKey]
+    sameInputParentWidgets.value?.has(WidgetSelection) ||
+    sameInputParentWidgets.value?.has(WidgetMultiSelection)
   const otherWidgetsCanBeShown = showArgumentValue.value && !isChildWidgetEmpty.value
   return missing.value && !selectionWidgetsShown && !otherWidgetsCanBeShown
 })

@@ -141,7 +141,6 @@ const innerWidgetInput = computed<WidgetInput>(() => {
     ...props.input,
     editHandler: dropDownInteraction.value,
     dynamicConfig,
-    [SelectionWidgetShownKey]: true,
   }
 })
 
@@ -263,11 +262,9 @@ export const widgetDefinition = defineWidget(
 )
 
 export { CustomDropdownItemsKey }
-export const SelectionWidgetShownKey: unique symbol = Symbol.for('WidgetInput:SelectionWidgetShown')
 declare module '$/providers/openedProjects/widgetRegistry' {
   export interface WidgetInput {
     [CustomDropdownItemsKey]?: readonly DropdownItem[]
-    [SelectionWidgetShownKey]?: true | undefined
   }
 }
 </script>
