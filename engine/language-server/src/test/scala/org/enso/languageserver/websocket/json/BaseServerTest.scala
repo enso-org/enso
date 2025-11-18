@@ -345,7 +345,6 @@ abstract class BaseServerTest
     val editionProvider =
       EditionManager.makeEditionProvider(
         distributionManager,
-        Seq.empty,
         Some(languageHome),
         true
       )
@@ -368,7 +367,8 @@ abstract class BaseServerTest
       LibraryLocations.resolve(
         distributionManager,
         Some(languageHome),
-        Some(config.projectContentRoot.file.toPath)
+        Some(config.projectContentRoot.file.toPath),
+        Seq.empty
       )
 
     val localLibraryManager = system.actorOf(

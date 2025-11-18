@@ -111,6 +111,7 @@ object DefaultLibraryProvider {
     progressReporter: ProgressReporter,
     languageHome: Option[LanguageHome],
     projectRoot: Option[Path],
+    extraSearchPath: Seq[Path],
     edition: Editions.ResolvedEdition,
     preferLocalLibraries: Boolean,
     checkAot: Boolean
@@ -122,6 +123,7 @@ object DefaultLibraryProvider {
       progressReporter,
       languageHome,
       projectRoot,
+      extraSearchPath,
       checkAot
     )
 
@@ -141,13 +143,14 @@ object DefaultLibraryProvider {
     progressReporter: ProgressReporter,
     languageHome: Option[LanguageHome],
     projectRoot: Option[Path],
+    extraSearchPath: Seq[Path],
     checkAot: Boolean
   ): (
     LocalLibraryProvider,
     PublishedLibraryProvider with PublishedLibraryCache
   ) = {
     val locations =
-      LibraryLocations.resolve(distributionManager, languageHome, projectRoot)
+      LibraryLocations.resolve(distributionManager, languageHome, projectRoot, extraSearchPath)
     val primaryCache = new DownloadingLibraryCache(
       locations.primaryCacheRoot,
       TemporaryDirectoryManager(distributionManager, resourceManager),

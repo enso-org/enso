@@ -740,6 +740,7 @@ private object DefaultPackageRepository {
         preferLocalLibraries =
           projectPackage.exists(_.getConfig().preferLocalLibraries),
         projectRoot = projectRoot,
+        extraSearchPath = extraSearchPath,
         checkAot    = HostEnsoUtils.isAot()
       )
     new DefaultPackageRepository(
