@@ -195,7 +195,7 @@
  * itself if any subwidget is expanded.
  *
  * To make expanding widgets working correctly, every DOM element containing subwidget should 
- * have this class or at least set its `height` to 100% if `:has(.widgetExpanded)`.
+ * have this class or its equivalent.
  */
 .widgetParent {
   display: flex;
@@ -206,7 +206,6 @@
 
   &:has(.widgetExpanded) {
     align-self: stretch;
-    height: 100%;
   }
 }
 
