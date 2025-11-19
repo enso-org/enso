@@ -2,11 +2,13 @@
 import WithCurrentProject from '$/components/WithCurrentProject.vue'
 import { useRightPanelData } from '$/providers/rightPanel'
 import { providePopoverRoot } from '@/providers/popoverRoot'
-import { useTemplateRef } from 'vue'
+import { useTemplateRef, watchEffect } from 'vue'
 import ClosedProjectDocumentationEditor from './ClosedProjectDocumentationEditor.vue'
 import OpenedProjectDocumentationEditor from './OpenedProjectDocumentationEditor.vue'
 
 const rightPanel = useRightPanelData()
+
+watchEffect(() => console.debug('focused project', rightPanel.focusedProject))
 
 const rootElement = useTemplateRef('rootElement')
 providePopoverRoot(rootElement)
