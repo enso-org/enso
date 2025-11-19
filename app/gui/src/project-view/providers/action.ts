@@ -202,6 +202,11 @@ const displayableActions = {
     description: 'Navigate Up',
     shortcut: graphBindings.bindings['graph.navigateUp'],
   },
+  'graph.deleteSelectedEdge': {
+    icon: 'trash',
+    description: 'Delete Selected Connection',
+    shortcut: graphBindings.bindings['graph.deleteSelectedEdge'],
+  },
 
   // === File Browser ===
 
@@ -346,9 +351,6 @@ const undisplayableActions = {
   },
   'graph.stopProfiling': {
     shortcut: graphBindings.bindings['graph.stopProfiling'],
-  },
-  'graph.deleteSelectedEdge': {
-    shortcut: graphBindings.bindings['graph.deleteSelectedEdge'],
   },
 
   // === Visualizations ===
