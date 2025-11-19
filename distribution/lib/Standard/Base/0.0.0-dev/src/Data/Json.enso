@@ -450,9 +450,6 @@ type JS_Object_Comparator
         # Return sum, as we don't care about ordering of field names
         values_hashes.fold 0 (+)
 
-## ---
-   private: true
-   ---
 Comparable.from (that:JS_Object) = Comparable.new that JS_Object_Comparator
 
 ## ---

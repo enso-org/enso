@@ -61,22 +61,10 @@ type Enso_File_Data_Link
        ---
     as_writable_file self -> Writable_File = Writable_File.from self.as_file
 
-## ---
-   private: true
-   ---
 Data_Link_With_Input_Stream.from (that:Enso_File_Data_Link) = Data_Link_With_Input_Stream.Value that
 
-## ---
-   private: true
-   ---
 Data_Link_With_Output_Stream.from (that:Enso_File_Data_Link) = Data_Link_With_Output_Stream.Value that
 
-## ---
-   private: true
-   ---
 Writable_Data_Link.from (that:Enso_File_Data_Link) = Writable_Data_Link.Value that
 
-## ---
-   private: true
-   ---
 File_Like_Data_Link.from (that:Enso_File_Data_Link) = File_Like_Data_Link.Value that that.as_file

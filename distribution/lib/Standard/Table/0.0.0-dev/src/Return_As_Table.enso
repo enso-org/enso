@@ -44,8 +44,5 @@ type Return_As_Table
     make_return self (input : Many_Files_List) (objects : Vector Any) (on_problems : Problem_Behavior) =
         Read_Many_Helpers.make_return self input objects on_problems
 
-## ---
-   private: true
-   ---
 Return_As.from (that : Return_As_Table) =
     Return_As.Instance that

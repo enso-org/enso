@@ -2606,14 +2606,8 @@ Column.from (that:Range) (name:Text="Range") = Column.from_vector name that.to_v
    Conversion method to a Column from a Vector.
 Column.from (that:Date_Range) (name:Text=that.default_column_name) = Column.from_vector name that.to_vector
 
-## ---
-   private: true
-   ---
 Cleansable_Text.from (that:Column) = Cleansable_Text.Value (pattern->replace_with-> (that.text_replace (regex pattern) replace_with).rename that.name)
 
-## ---
-   private: true
-   ---
 Many_Files_List.from (that : Column) =
     Read_Many_Helpers.ensure_column_type_valid_to_be_files_list that <|
         Many_Files_List.Value that that.to_vector

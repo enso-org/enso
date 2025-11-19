@@ -329,9 +329,6 @@ type Header_Comparator
         key = x.name.to_case_insensitive_key + x.value
         Ordering.hash key
 
-## ---
-   private: true
-   ---
 Comparable.from (that:Header) = Comparable.new that Header_Comparator
 
 ## ---

@@ -412,9 +412,6 @@ type JSON_Format
         _ = metadata
         Text.from_bytes (stream.read_all_bytes) Encoding.utf_8 . parse_json
 
-## ---
-   private: true
-   ---
 JSON_Format.from (that : JS_Object) =
     _ = that
     JSON_Format

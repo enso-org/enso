@@ -11,15 +11,9 @@ type Row_Limit
     ## Limit to a specific number of rows.
     Limit n:Integer=100
 
-## ---
-   private: true
-   ---
 Row_Limit.from (that:Nothing) =
     _ = that
     Row_Limit.No_Limit
 
-## ---
-   private: true
-   ---
 Row_Limit.from (that:Integer) =
     Row_Limit.Limit that

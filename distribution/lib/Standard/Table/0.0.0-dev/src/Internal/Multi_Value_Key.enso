@@ -65,9 +65,6 @@ type Unordered_Multi_Value_Key_Comparator
        ---
     hash x = x.hash_code
 
-## ---
-   private: true
-   ---
 Comparable.from (that:Unordered_Multi_Value_Key) = Comparable.new that Unordered_Multi_Value_Key_Comparator
 
 ## ---
@@ -120,7 +117,4 @@ type Ordered_Multi_Value_Key_Comparator
         _ = [x]
         Error.throw (Illegal_State.Error "Ordered_Multi_Value_Key is not intended for usage in unordered collections.")
 
-## ---
-   private: true
-   ---
 Comparable.from (that:Ordered_Multi_Value_Key) = Comparable.new that Ordered_Multi_Value_Key_Comparator

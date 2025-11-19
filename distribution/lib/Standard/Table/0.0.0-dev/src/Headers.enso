@@ -13,14 +13,8 @@ type Headers
     ## Treat the first row of data as a normal row.
     No_Headers
 
-## ---
-   private: true
-   ---
 Headers.from (that:Infer) =
     _ = that
     Headers.Detect_Headers
 
-## ---
-   private: true
-   ---
 Headers.from (that:Boolean) = if that then Headers.Has_Headers else Headers.No_Headers

@@ -572,7 +572,4 @@ type Image_Comparator
     hash : Image -> Integer
     hash x = x.opencv_mat.hashCode
 
-## ---
-   private: true
-   ---
 Comparable.from (that:Image) = Comparable.new that Image_Comparator

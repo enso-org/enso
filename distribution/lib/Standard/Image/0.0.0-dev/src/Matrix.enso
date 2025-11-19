@@ -536,7 +536,4 @@ type Matrix_Comparator
     hash : Matrix -> Number
     hash x = x.opencv_mat.hashCode
 
-## ---
-   private: true
-   ---
 Comparable.from (that:Matrix) = Comparable.new that Matrix_Comparator

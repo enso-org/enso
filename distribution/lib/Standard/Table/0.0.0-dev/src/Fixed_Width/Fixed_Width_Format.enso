@@ -303,9 +303,6 @@ type Infer_Layout
         Infer_Layout.Left -> Justification.LEFT
         Infer_Layout.Right -> Justification.RIGHT
 
-## ---
-   private: true
-   ---
 Fixed_Width_Layout.from (that:Table) =
     columns = find_named_columns that [["names", Regex.compile "names?", False], ["starts", Regex.compile "starts?", False], ["widths", Regex.compile "widths?", True]]
     columns.if_not_error <|
@@ -349,15 +346,9 @@ private find_named_columns table:Table (specs : Vector Vector) -> Vector (Column
     if missing.is_empty then columns_or_nothings else
         Error.throw (Illegal_Argument.Error "A fixed-width column specification should have a 'widths' column, and optionally a 'starts' column and a 'names' column.")
 
-## ---
-   private: true
-   ---
 Fixed_Width_Layout.from (that:Column) =
     Fixed_Width_Layout.from that.to_vector
 
-## ---
-   private: true
-   ---
 Fixed_Width_Layout.from (that:Vector) =
     table =
         names = Column.from_vector "names" (Vector.new that.length (_->Nothing))
@@ -366,9 +357,6 @@ Fixed_Width_Layout.from (that:Vector) =
         Table.new [names, starts, widths]
     Fixed_Width_Layout.from table
 
-## ---
-   private: true
-   ---
 Fixed_Width_Layout.from (that : Function) =
     is_unapplied_table_input = (that.to_text.starts_with "Table.type.new") || (that.to_text.starts_with "Table.type.input")
     if is_unapplied_table_input then

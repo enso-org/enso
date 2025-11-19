@@ -855,9 +855,6 @@ private _resolve_passphrase passphrase:Text|Enso_Secret = case passphrase of
     _ : Text -> if passphrase.is_empty then Nothing else passphrase
     _ : Enso_Secret -> passphrase
 
-## ---
-   private: true
-   ---
 Table_Viz_Data.from (that:Snowflake_Connection) = 
     tables = that.tables . read
     names = tables.at "Name" . to_vector

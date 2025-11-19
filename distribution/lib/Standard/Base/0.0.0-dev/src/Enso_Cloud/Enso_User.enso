@@ -81,9 +81,6 @@ type Enso_User
     to_display_text self = "Enso_User {" + self.to_text + "}"
 
 
-## ---
-   private: true
-   ---
 Enso_User.from (that:JS_Object) =
     id = get_required_field "userId" that expected_type=Text
     name = get_required_field "name" that expected_type=Text

@@ -25,15 +25,9 @@ type Columns_To_Add
         Columns_To_Add.All_Columns -> Nothing
         Columns_To_Add.First columns -> columns
 
-## ---
-   private: true
-   ---
 Columns_To_Add.from (that:Nothing) =
     _ = that
     Columns_To_Add.All_Columns
 
-## ---
-   private: true
-   ---
 Columns_To_Add.from (that:Integer) =
     Columns_To_Add.First that

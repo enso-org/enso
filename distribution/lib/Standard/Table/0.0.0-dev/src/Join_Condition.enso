@@ -36,7 +36,4 @@ type Join_Condition
           table, used as the upper bound for the check.
     Between (left : Text | Integer = Missing_Argument.throw "left") (right_lower : Text | Integer = "") (right_upper : Text | Integer = "")
 
-## ---
-   private: true
-   ---
 Join_Condition.from (that:Text) = Join_Condition.Equals that that

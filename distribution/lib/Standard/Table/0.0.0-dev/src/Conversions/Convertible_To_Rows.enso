@@ -50,65 +50,32 @@ type Convertible_To_Rows
             if self.is_sequence then self else
                 _conversion_from_value_as_single_row self.original_value
 
-## ---
-   private: true
-   ---
 Convertible_To_Rows.from that:Table =
     rows = that.rows
     Convertible_To_Rows.from rows
 
-## ---
-   private: true
-   ---
 Convertible_To_Rows.from that:Column = Convertible_To_Rows.Value that that.row_count (that.get _)
 
-## ---
-   private: true
-   ---
 Convertible_To_Rows.from that:Vector = Convertible_To_Rows.Value that that.length (that.get _)
 
-## ---
-   private: true
-   ---
 Convertible_To_Rows.from that:Array = Convertible_To_Rows.Value that that.length (that.get _)
 
-## ---
-   private: true
-   ---
 Convertible_To_Rows.from that:List = Convertible_To_Rows.from that.to_vector
 
-## ---
-   private: true
-   ---
 Convertible_To_Rows.from that:Range = Convertible_To_Rows.Value that that.length (that.get _)
 
-## ---
-   private: true
-   ---
 Convertible_To_Rows.from that:Pair = Convertible_To_Rows.Value that that.length (that.get _)
 
-## ---
-   private: true
-   ---
 Convertible_To_Rows.from that:Date_Range = Convertible_To_Rows.Value that that.length (that.get _)
 
-## ---
-   private: true
-   ---
 Convertible_To_Rows.from that:Dictionary =
     vals = that.to_vector.map p-> Key_Value.Pair p.first p.second
     Convertible_To_Rows.Value that vals.length (vals.get _) ["Key", "Value"] is_sequence=False
 
-## ---
-   private: true
-   ---
 Convertible_To_Rows.from that:JS_Object =
     vals = that.map_with_key k->v-> Key_Value.Pair k v
     Convertible_To_Rows.Value that vals.length (vals.get _) ["Key", "Value"] is_sequence=False
 
-## ---
-   private: true
-   ---
 Convertible_To_Rows.from (that:Any) =
     _conversion_from_value_as_single_row that
 
@@ -153,8 +120,5 @@ type Key_Value
        ---
     length self = 2
 
-## ---
-   private: true
-   ---
 Convertible_To_Columns.from (that:Key_Value) =
     Convertible_To_Columns.Value ["Key", "Value"] (k-> if k == "Key" then that.key else that.value)

@@ -369,9 +369,6 @@ type URI
     to_java_uri self = handle_resolve_errors <|
         self.to_java_representation.safeResolve
 
-## ---
-   private: true
-   ---
 URI.from (that:Text) = URI.parse that
 
 ## ---
@@ -409,9 +406,6 @@ type URI_Comparator
     hash x =
         Ordering.hash x.text
 
-## ---
-   private: true
-   ---
 Comparable.from (that:URI) = Comparable.new that URI_Comparator
 
 ## ---

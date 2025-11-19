@@ -721,9 +721,6 @@ Text.cleanse : Vector Named_Pattern -> Text
 Text.cleanse self remove =
    remove.map (Text_Cleanse.Value _) . fold self (current-> tc-> tc.apply current)
 
-## ---
-   private: true
-   ---
 Cleansable_Text.from (that:Text) = Cleansable_Text.Value (pattern->replace_with-> that.replace (Regex.compile pattern) replace_with)
 
 ## ---

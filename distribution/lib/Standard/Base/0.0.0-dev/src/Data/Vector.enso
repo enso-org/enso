@@ -1827,7 +1827,4 @@ type No_Wrap
    a problem.
 type Report_Unmatched
 
-## ---
-   private: true
-   ---
 Wrapped_Error.from (that : Map_Error) = Wrapped_Error.Value that that.inner_error

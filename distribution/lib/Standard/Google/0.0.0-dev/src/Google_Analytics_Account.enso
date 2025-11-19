@@ -124,18 +124,9 @@ private _create_analytics_account_from_text account:Text -> AnalyticsAccount =
     display = id.replace (regex "^accounts/") ""
     AnalyticsAccount.new id display False Date_Time.now Nothing
 
-## ---
-   private: true
-   ---
 Google_Analytics_Account_Filter.from (that:Google_Analytics_Account) = Google_Analytics_Account_Filter.Account that
 
-## ---
-   private: true
-   ---
 Google_Analytics_Account_Filter.from (that:Text) = Google_Analytics_Account_Filter.Account that
 
-## ---
-   private: true
-   ---
 Google_Analytics_Account_Filter.from (that:Vector) = Google_Analytics_Account_Filter.Accounts that
 

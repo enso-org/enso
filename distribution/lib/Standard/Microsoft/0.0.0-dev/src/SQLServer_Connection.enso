@@ -427,9 +427,6 @@ type SQLServer_Connection
     to_js_object self =
         JS_Object.from_pairs <| [["type", "SQLServer_Connection"], ["links", self.connection.tables.at "Name" . to_vector]]
 
-## ---
-   private: true
-   ---
 Table_Viz_Data.from (that:SQLServer_Connection) =
     tables = that.tables schema="*" . filter "Schema" (..Is_In schema_black_list ..Remove)
     Table_Viz_Data.GenericGrid [Table_Viz_Header.Link "Table" "table" "query (..Table_Name {{@Table}} {{@Schema}})", Table_Viz_Header.Label "Schema"] [tables.at "Name" . to_vector, tables.at "Schema" . to_vector]

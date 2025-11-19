@@ -129,7 +129,4 @@ type Row_Comparator
         index_hash = obj.index.hashCode
         (53 * table_hash + 31 * index_hash)
 
-## ---
-   private: true
-   ---
 Comparable.from (that:Row) = Comparable.new that Row_Comparator

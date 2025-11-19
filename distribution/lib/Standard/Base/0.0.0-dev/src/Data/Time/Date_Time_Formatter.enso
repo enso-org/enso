@@ -402,8 +402,5 @@ type Date_Time_Formatter
             "iso_time" -> "(ISO time) HH:mm[:ss[.f]]"
             other -> other
 
-## ---
-   private: true
-   ---
 Date_Time_Formatter.from (that:Text) (locale:Locale = Locale.default) =
     Date_Time_Formatter.from_simple_pattern that locale

@@ -1140,9 +1140,6 @@ type Date_Time
        Checks if `self` is less than or equal to `that`.
     <= self that = Comparable.<= self=self that
 
-## ---
-   private: true
-   ---
 Date_Time.from (that:JS_Object) =
     ## Must have year, month, day, hour and minute. Optional for second, nanosecond and zone.
     case that.get "type" == "Date_Time" && ["year", "month", "day", "hour", "minute"].all that.contains_key of

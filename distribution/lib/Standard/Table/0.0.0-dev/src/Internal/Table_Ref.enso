@@ -112,9 +112,6 @@ type Table_Ref
     column_names : Vector Text
     column_names self = self.underlying.column_names
 
-## ---
-   private: true
-   ---
 Table_Ref.from (that:Table) = Table_Ref.Value that
 
 ## ---

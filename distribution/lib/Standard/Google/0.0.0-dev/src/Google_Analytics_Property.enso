@@ -97,18 +97,12 @@ type Google_Analytics_Property
             options = properties . map p->(Option (p.name + " (" + p.id + ")") p.id.pretty)
             make_single_choice options display=display
 
-## ---
-   private: true
-   ---
 Google_Analytics_Property.from (that:Text) =
     id = if that.starts_with "properties/" then that else "properties/" + that
     display = id.replace (regex "^properties/") ""
     java_value = AnalyticsProperty.new id display False Date_Time.now "XXX" "XXX" Nothing
     Google_Analytics_Property.Value java_value
 
-## ---
-   private: true
-   ---
 Google_Analytics_Property.from (that:Vector) =
     if that.length != 1 then Error.throw (Illegal_Argument.Error "Expected exactly one property ID.") else
         first = that.first

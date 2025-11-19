@@ -17,12 +17,6 @@ type Sort_Column
        in the table.
     Select_By_Name (name:Text|Regex=(Missing_Argument.throw "name")) direction:Sort_Direction=..Ascending case_sensitivity:Case_Sensitivity=..Insensitive
 
-## ---
-   private: true
-   ---
 Sort_Column.from (that:Text) = Sort_Column.Name that
 
-## ---
-   private: true
-   ---
 Sort_Column.from (that:Integer) = Sort_Column.Index that

@@ -738,25 +738,13 @@ type S3_File
     to_js_object self =
         JS_Object.from_pairs [["type", "S3_File"], ["uri", self.uri]]
 
-## ---
-   private: true
-   ---
 File_Format_Metadata.from (that : S3_File) = File_Format_Metadata.Value that.uri that.name (that.extension.catch S3_Error _->Nothing)
 
-## ---
-   private: true
-   ---
 File_Like.from (that : S3_File) = File_Like.Value that
 
-## ---
-   private: true
-   ---
 Writable_File.from (that : S3_File) = if that.is_data_link then Data_Link_Helpers.interpret_data_link_as_writable_file (_without_trailing_slash that) else
     Writable_File.Value that S3_File_Write_Strategy.instance
 
-## ---
-   private: true
-   ---
 Data_Link_From_File.from (that : S3_File) = Data_Link_From_File.Value that
 
 ## ---

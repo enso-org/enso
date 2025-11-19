@@ -94,9 +94,6 @@ type In_Memory_Column
         column = In_Memory_Column.Value java_column
         In_Memory_Column_Refinements.refine_column column
 
-    ## ---
-       private: true
-       ---
        Implementation fro `Column.from_vector`.
     private from_vector name:Text items:Vector (value_type : Auto | Value_Type = Auto) =
         ## If the type does not accept date-time-like values, we can skip the

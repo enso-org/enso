@@ -727,26 +727,14 @@ type Enso_Asset_Type
             "datalink" -> Enso_Asset_Type.Data_Link
             _ -> Error.throw (Illegal_Argument.Error "Invalid asset type: "+text.pretty+".")
 
-## ---
-   private: true
-   ---
 File_Format_Metadata.from (that:Enso_File) =
     asset_type = that.asset_type.catch File_Error _->Nothing
     if asset_type == Enso_Asset_Type.Data_Link then File_Format_Metadata.Value path=that.path name=that.name content_type=Data_Link_Helpers.data_link_content_type else
         File_Format_Metadata.Value path=that.path name=that.name extension=that.extension
 
-## ---
-   private: true
-   ---
 File_Like.from (that : Enso_File) = File_Like.Value that
 
-## ---
-   private: true
-   ---
 Writable_File.from (that : Enso_File) = if that.is_data_link then Data_Link_Helpers.interpret_data_link_as_writable_file that else
     Writable_File.Value that Enso_File_Write_Strategy.instance
 
-## ---
-   private: true
-   ---
 Data_Link_From_File.from (that : Enso_File) = Data_Link_From_File.Value that

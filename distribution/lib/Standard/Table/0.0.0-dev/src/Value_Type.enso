@@ -90,9 +90,6 @@ type Bits_Comparator
     hash : Bits -> Integer
     hash x = Ordering.hash x.to_integer
 
-## ---
-   private: true
-   ---
 Comparable.from (that:Bits) = Comparable.new that Bits_Comparator
 
 ## Represents the different possible types of values within Table columns.

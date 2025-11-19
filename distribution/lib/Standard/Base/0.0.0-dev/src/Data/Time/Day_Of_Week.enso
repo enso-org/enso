@@ -85,9 +85,6 @@ type Day_Of_Week_Comparator
     hash : Day_Of_Week -> Integer
     hash x = x.to_integer
 
-## ---
-   private: true
-   ---
 Comparable.from (that:Day_Of_Week) = Comparable.new that Day_Of_Week_Comparator
 
 ## ---

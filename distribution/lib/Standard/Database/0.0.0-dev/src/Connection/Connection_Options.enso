@@ -31,7 +31,4 @@ type Connection_Options
         item_editor = Single_Choice display=..Always values=[pair]
         Vector_Editor item_editor=item_editor display=display item_default=default
 
-## ---
-   private: true
-   ---
 Connection_Options.from (that:Vector) = Connection_Options.Value that

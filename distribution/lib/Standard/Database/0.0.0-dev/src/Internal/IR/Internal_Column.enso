@@ -28,14 +28,8 @@ type Internal_Column
     rename : Text -> Internal_Column
     rename self new_name = Internal_Column.Value new_name self.sql_type_reference self.expression
 
-## ---
-   private: true
-   ---
 Internal_Column.from (that : DB_Column) =
     Internal_Column.Value (that:Column).name that.sql_type_reference that.expression
 
-## ---
-   private: true
-   ---
 Internal_Column.from (that : Column) =
     Internal_Column.from (that : DB_Column)

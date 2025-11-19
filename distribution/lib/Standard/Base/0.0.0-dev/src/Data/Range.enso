@@ -756,7 +756,4 @@ get_index range min max value =
 range_default_filter_condition_widget =
     Filter_Condition.default_widget include_text=False include_boolean=False include_nullable=False include_date=False include_time=False include_date_time=False
 
-## ---
-   private: true
-   ---
 Vector.from (that:Range) = that.to_vector

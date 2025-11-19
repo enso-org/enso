@@ -55,14 +55,8 @@ type SQL_Query_With_Schema
                 connection.dialect.ensure_query_has_no_holes connection.jdbc_connection raw_sql . if_not_error <|
                     make_table_from_query connection raw_sql alias
 
-## ---
-   private: true
-   ---
 SQL_Query.from (that:Text) = SQL_Query.Table_Name that
 
-## ---
-   private: true
-   ---
 SQL_Query_With_Schema.from (that:Text) = SQL_Query_With_Schema.Table_Name that
 
 ## ---

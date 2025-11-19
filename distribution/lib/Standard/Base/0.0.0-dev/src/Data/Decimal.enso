@@ -1433,34 +1433,16 @@ handle_unsupported_argument_types ~action =
     Panic.catch Unsupported_Argument_Types action _->
         Error.throw (Arithmetic_Error.Error "Exponent out of range 0..999999999 (inclusive)")
 
-## ---
-   private: true
-   ---
 Comparable.from (that : Decimal) = Comparable.new that Decimal_Comparator
 
-## ---
-   private: true
-   ---
 Comparable.from (that : Number) = Comparable.new that Decimal_Comparator
 
-## ---
-   private: true
-   ---
 Decimal.from (that : Text) = Decimal.parse that
 
-## ---
-   private: true
-   ---
 Decimal.from (that : Integer) = Decimal.new that
 
-## ---
-   private: true
-   ---
 Decimal.from (that : Float) = Decimal.from_float that explicit=False
 
-## ---
-   private: true
-   ---
 Float.from (that : Decimal) =
     attach_loss_of_numeric_precision that that.to_float
 

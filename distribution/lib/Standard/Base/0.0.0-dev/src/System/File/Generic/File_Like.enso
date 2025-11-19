@@ -45,9 +45,6 @@ type File_Like
        ---
     can_write_into_parent self = self.underlying.can_write_into_parent
 
-## ---
-   private: true
-   ---
 File_Like.from (that : Text) = File_Like.from (File.new that)
 
 ## ---

@@ -150,9 +150,6 @@ type Google_Sheets_Workbook
     named_ranges_count self -> Integer = _handle_exceptions <|
         self.java_service.getNumberOfNames self.workbook_id
 
-## ---
-   private: true
-   ---
 Table_Viz_Data.from (that:Google_Sheets_Workbook) = 
     Table_Viz_Data.GenericGrid [Table_Viz_Header.Link "worksheets" "worksheet" "read"] [that.sheet_names.to_vector]
 

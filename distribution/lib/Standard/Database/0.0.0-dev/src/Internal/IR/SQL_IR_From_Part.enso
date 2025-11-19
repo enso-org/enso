@@ -149,7 +149,4 @@ type SQL_IR_From_Part_Comparator
             Ordering.hash (schema_name + "." + table_name)
         _ -> Ordering.hash x
 
-## ---
-   private: true
-   ---
 Comparable.from (that : SQL_IR_From_Part) = Comparable.new that SQL_IR_From_Part_Comparator

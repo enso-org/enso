@@ -70,12 +70,6 @@ type Predicate_Over
     ## The predicate is computed over a column value specified by index.
     Index index:Integer
 
-## ---
-   private: true
-   ---
 Predicate_Over.from (that:Text) = Predicate_Over.Name that
 
-## ---
-   private: true
-   ---
 Predicate_Over.from (that:Integer) = Predicate_Over.Index that

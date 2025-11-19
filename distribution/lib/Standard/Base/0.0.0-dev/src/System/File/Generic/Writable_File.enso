@@ -132,9 +132,6 @@ type Writable_File
     with_overridden_return self file_for_return =
         Writable_File.Value self.file self.write_strategy file_for_return
 
-## ---
-   private: true
-   ---
 Writable_File.from (that : Text) = Writable_File.from (File.new that)
 
 ## ---
@@ -151,7 +148,4 @@ File_Format_Metadata.from (that : Writable_File) = File_Format_Metadata.from tha
    If a conversion to `File_Like` is needed, we delegate to the underlying file.
 File_Like.from (that : Writable_File) = File_Like.from that.file
 
-## ---
-   private: true
-   ---
 Writable_File.from (that : File_Like) = Writable_File.from that.underlying

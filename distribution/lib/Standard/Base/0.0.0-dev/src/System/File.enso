@@ -1111,20 +1111,11 @@ File.from (that:Text) = File.new that
 file_as_java : File -> Java_File
 file_as_java (file : File) = Java_File.new file.absolute.normalize.path
 
-## ---
-   private: true
-   ---
 File_Like.from (that : File) = File_Like.Value that
 
-## ---
-   private: true
-   ---
 Writable_File.from (that : File) = if that.is_data_link then Data_Link_Helpers.interpret_data_link_as_writable_file that else
     Writable_File.Value that.absolute.normalize Local_File_Write_Strategy.instance
 
-## ---
-   private: true
-   ---
 Data_Link_From_File.from (that : File) = Data_Link_From_File.Value that
 
 private _local_file_copy (source : File) (destination : File) (replace_existing : Boolean) -> Nothing =

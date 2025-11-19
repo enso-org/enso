@@ -1613,9 +1613,6 @@ type Number_Parse_Error
     to_display_text self =
         "Could not parse " + self.text.to_text + " as a double."
 
-## ---
-   private: true
-   ---
 Float.from (that:Integer) = (1.0 * that):Float
 
 ## A wrapper type that ensures that a function may only take positive integers.
@@ -1646,12 +1643,6 @@ type Positive_Integer
    It will throw `Illegal_Argument` if the provided integer is not positive.
 Positive_Integer.from (that : Integer) = Positive_Integer.new that
 
-## ---
-   private: true
-   ---
 Integer.from (that : Positive_Integer) = that.integer
 
-## ---
-   private: true
-   ---
 Comparable.from (that:Positive_Integer) = Comparable.new that Positive_Integer_Comparator

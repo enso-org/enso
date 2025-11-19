@@ -112,8 +112,5 @@ from_java_table java_table =
 to_java_table table:In_Memory_Table =
     table.java_table
 
-## ---
-   private: true
-   ---
 Table.from (that : In_Memory_Table) =
     table_from_implementation that In_Memory_Table_Implementation

@@ -61,7 +61,4 @@ type Named_Pattern
         Named_Pattern.Punctuation -> '[,.!?():;\'\"]'
         Named_Pattern.Symbols -> "[^a-zA-Z\d\s]"
 
-## ---
-   private: true
-   ---
 Regex.from (that:Named_Pattern) = Regex.compile that.regex_pattern

@@ -49,9 +49,6 @@ type Quote_Style
        not be used).
     Always_Quote (quote : Text = '"') (quote_escape : Text = quote)
 
-## ---
-   private: true
-   ---
 Quote_Style.from (that : JS_Object) =
     sub_type = that.get "subType" if_missing=(Error.throw (Illegal_Argument.Error "Missing `subType` field in quote style."))
     case sub_type.to_case Case.Lower of

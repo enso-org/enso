@@ -77,15 +77,9 @@ type When
     ## Apply the limit only when designing within Enso Studio.
     In_Design_Mode
 
-## ---
-   private: true
-   ---
 Rows_To_Read.from (that:Nothing) =
     _ = that
     Rows_To_Read.All_Rows
 
-## ---
-   private: true
-   ---
 Rows_To_Read.from (that:Integer) =
     Rows_To_Read.First that

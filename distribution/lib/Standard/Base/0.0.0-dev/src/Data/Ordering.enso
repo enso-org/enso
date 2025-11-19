@@ -250,9 +250,6 @@ type Comparable
                 Nothing -> Error.throw (Incomparable_Values.Error self.value that.value)
                 _ -> False
 
-## ---
-   private: true
-   ---
 Comparable.from (that:Any) = Comparable.new that Default_Comparator
 
 ## Types representing the ordering of values.
@@ -330,7 +327,4 @@ type Ordering
     from_sign sign = if sign == 0 then Ordering.Equal else
         if sign > 0 then Ordering.Greater else Ordering.Less
 
-## ---
-   private: true
-   ---
 Comparable.from (that:Ordering) = Comparable.new that Ordering_Comparator

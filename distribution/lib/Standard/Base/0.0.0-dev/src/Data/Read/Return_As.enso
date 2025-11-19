@@ -106,9 +106,6 @@ replace_with_nothing_and_propagate (vector : Vector (Any | Failed_To_Load)) (on_
         on_problems.attach_problems_before failed <|
             vector.map o-> if o.is_a Failed_To_Load then Nothing else o
 
-## ---
-   private: true
-   ---
 Return_As.from (that : Return_As_Base) =
     Return_As.Instance that
 
