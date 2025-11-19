@@ -1,7 +1,6 @@
 package org.enso.runner;
 
 import java.io.File;
-import java.nio.file.Path;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -30,8 +29,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.event.Level;
 import scala.Some;
-import scala.collection.immutable.Seq;
-import scala.collection.immutable.Seq$;
 
 /** A helper to preinstall all dependencies of a project. */
 class DependencyPreinstaller {
