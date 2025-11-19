@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { useGraphStore } from '$/components/WithCurrentProject.vue'
 import { PortViewInstance } from '$/providers/openedProjects/graph'
-import { isRequiredArgument } from '$/providers/openedProjects/suggestionDatabase/entry'
 import {
   Score,
   WidgetInput,
@@ -110,13 +109,6 @@ const enabled = computed(() => {
   const isConditional = input instanceof Ast.Ast && (tree.conditionalPorts?.has(input.id) ?? false)
   return !isConditional || (keyboard?.mod ?? false)
 })
-
-const needsArrow = computed(() => {
-  const argInfo = props.input[ArgumentInfoKey]
-  if (!argInfo?.info) return false
-  return WidgetInput.isPlaceholder(props.input) && isRequiredArgument(argInfo.info)
-})
-const hideArrow = computed(() => connected.value)
 
 /**
  * NOTE: Reactive dependencies of this function are enforced externally in a `watch` below. This is
