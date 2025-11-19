@@ -226,6 +226,7 @@ export class ProjectManagerShimMiddleware {
         }
         case 'POST /api/watch-upload-start': {
           const parentDir = url.searchParams.get('directory')
+          console.log('DEBUG start watching directory', parentDir)
           if (parentDir == null) {
             response
               .writeHead(HTTP_STATUS_BAD_REQUEST, COMMON_HEADERS)
@@ -260,13 +261,15 @@ export class ProjectManagerShimMiddleware {
           }
           const watcher = watch({
             directory: parentDir,
-            delay: 30000,
-            timeout: 30000,
+            delay: 10000,
+            timeout: 10000,
             callback: async () => {
+              console.log('DEBUG UPLOADING STARTED')
               const projectDir = path.join(parentDir, 'project_root')
               const responseBody = await projectManagement.createBundle(projectDir)
               const file = new File([responseBody.buffer as ArrayBuffer], fileName)
               await uploadFile(backend, uploadParams, file)
+              console.log('DEBUG UPLOADING FINISHED')
             },
           })
           let setWatcher = async () => {
@@ -283,6 +286,7 @@ export class ProjectManagerShimMiddleware {
         }
         case 'POST /api/watch-upload-stop': {
           const parentDir = url.searchParams.get('directory')
+          console.log('DEBUG stop watching directory', parentDir)
           if (parentDir == null) {
             response
               .writeHead(HTTP_STATUS_BAD_REQUEST, COMMON_HEADERS)

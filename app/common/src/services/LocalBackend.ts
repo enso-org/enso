@@ -879,6 +879,7 @@ export class LocalBackend extends backend.Backend {
       new URL(`/api/watch-upload-start?${queryString}`, location.href).toString(),
       null,
     )
+    console.log('DEBUG startWatcher', response)
     if (!response.ok) {
       return await this.throw(response, 'resolveProjectAssetPathBackendError')
     }
