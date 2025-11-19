@@ -59,8 +59,8 @@ use enso_build::source::WithDestination;
 use enso_build::version;
 use futures_util::future::try_join_all;
 use ide_ci::actions::workflow::is_in_env;
-use ide_ci::cache::Cache;
 use ide_ci::cache::goodie::graalvm;
+use ide_ci::cache::Cache;
 use ide_ci::fs::remove_if_exists;
 use ide_ci::github::release;
 use ide_ci::github::setup_octocrab;
@@ -411,7 +411,9 @@ impl Processor {
                             config.check_enso_benchmarks = TARGET_OS == OS::Linux;
                         }
                         Tests::StandardLibrary => {
-                            config.build_small_jdk = enso_build::engine::env::GRAAL_EDITION.get().map_or(true, |e| e != graalvm::Edition::Enterprise );
+                            config.build_small_jdk = enso_build::engine::env::GRAAL_EDITION
+                                .get()
+                                .map_or(true, |e| e != graalvm::Edition::Enterprise);
                             if config.build_small_jdk {
                                 let small_jdk_dir =
                                     self.context.repo_root.target.small_jdk.path.clone();
