@@ -551,7 +551,6 @@ adapt_unified_column (column : Column & DB_Column) expected_type =
     adapted = dialect.adapt_unified_column (Internal_Column.from column) expected_type infer_return_type mapping
     DB_Column.new column.name column.connection adapted.sql_type_reference adapted.expression column.context
 
-
 make_op : Column & DB_Column -> Text -> Vector Text -> (Text | Nothing) -> (Any | Nothing) -> Column
 make_op this_column op_kind operands new_name metadata=Nothing =
     checked_support = if this_column.connection.dialect.is_operation_supported op_kind then True else
