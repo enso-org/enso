@@ -1367,7 +1367,7 @@ private[runtime] class IrToTruffle(
       * @param caseExpr the case expression to generate code for
       * @return the truffle nodes corresponding to `caseExpr`
       */
-    def processCase(
+    private def processCase(
       caseExpr: Case,
       subjectToInstrumentation: Boolean
     ): RuntimeExpression =
@@ -1418,7 +1418,7 @@ private[runtime] class IrToTruffle(
       * @return the truffle nodes correspondingg to `caseBranch` or an error if
       *         the match is invalid
       */
-    def processCaseBranch(
+    private def processCaseBranch(
       branch: Case.Branch,
       subjectToInstrumentation: Boolean
     ): Either[BadPatternMatch, BranchNode] = {
@@ -1431,7 +1431,10 @@ private[runtime] class IrToTruffle(
         .asInstanceOf[FrameVariableNames]
       val childProcessor =
         this.createChild(
-          "case_branch",
+          branch.pattern match {
+            case _ : Pattern.Bool=> "if_then_else"
+            case _ => "case_branch"
+          },
           () => scopeInfo().scope,
           "case " + currentVarName,
           frameInfo
