@@ -1376,7 +1376,9 @@ private[runtime] class IrToTruffle(
           val scrutineeNode =
             this.run(caseExpr.scrutinee, subjectToInstrumentation)
 
-          val maybeCases    = caseExpr.branches.map(processCaseBranch)
+          val maybeCases = caseExpr.branches.map(b =>
+            processCaseBranch(b, subjectToInstrumentation)
+          )
           val allCasesValid = maybeCases.forall(_.isRight)
 
           if (allCasesValid) {
@@ -1417,7 +1419,8 @@ private[runtime] class IrToTruffle(
       *         the match is invalid
       */
     def processCaseBranch(
-      branch: Case.Branch
+      branch: Case.Branch,
+      subjectToInstrumentation: Boolean
     ): Either[BadPatternMatch, BranchNode] = {
       val scopeInfo = childScopeInfo("case branch", branch)
       def frameInfo() = branch
@@ -1441,7 +1444,8 @@ private[runtime] class IrToTruffle(
           val branchCodeNode = childProcessor.processFunctionBody(
             arg,
             branch.expression,
-            branch.location
+            branch.location,
+            subjectToInstrumentation = subjectToInstrumentation
           )
 
           val branchNode =
@@ -1452,7 +1456,8 @@ private[runtime] class IrToTruffle(
           val branchCodeNode = childProcessor.processFunctionBody(
             Nil,
             branch.expression,
-            branch.location
+            branch.location,
+            subjectToInstrumentation = subjectToInstrumentation
           )
           val node = BooleanBranchNode.build(
             condition,
@@ -1474,7 +1479,8 @@ private[runtime] class IrToTruffle(
           val branchCodeNode = childProcessor.processFunctionBody(
             fieldsAsArgs,
             branch.expression,
-            branch.location
+            branch.location,
+            subjectToInstrumentation = subjectToInstrumentation
           )
 
           constructor match {
@@ -1637,7 +1643,8 @@ private[runtime] class IrToTruffle(
           val branchCodeNode = childProcessor.processFunctionBody(
             Nil,
             branch.expression,
-            branch.location
+            branch.location,
+            subjectToInstrumentation = subjectToInstrumentation
           )
 
           literalPattern.literal match {
@@ -1707,7 +1714,8 @@ private[runtime] class IrToTruffle(
                   val branchCodeNode = childProcessor.processFunctionBody(
                     argOfType,
                     branch.expression,
-                    branch.location
+                    branch.location,
+                    subjectToInstrumentation = subjectToInstrumentation
                   )
                   Right(
                     CatchTypeBranchNode.build(
@@ -1745,7 +1753,8 @@ private[runtime] class IrToTruffle(
                 val branchCodeNode = childProcessor.processFunctionBody(
                   argOfType,
                   branch.expression,
-                  branch.location
+                  branch.location,
+                  subjectToInstrumentation = subjectToInstrumentation
                 )
                 Right(
                   PolyglotSymbolTypeBranchNode.build(
@@ -2278,10 +2287,18 @@ private[runtime] class IrToTruffle(
       arguments: List[DefinitionArgument],
       body: Expression,
       location: Option[IdentifiedLocation],
-      binding: Boolean = false
+      binding: Boolean                  = false,
+      subjectToInstrumentation: Boolean = false
     ): CreateFunctionNode = {
       val bodyBuilder =
-        new BuildFunctionBody(scopeName, arguments, body, null, None, true)
+        new BuildFunctionBody(
+          scopeName,
+          arguments,
+          body,
+          null,
+          None,
+          subjectToInstrumentation
+        )
       val fnRootNode = ClosureRootNode.build(
         language,
         scope,
@@ -2290,7 +2307,7 @@ private[runtime] class IrToTruffle(
         makeSource(scopeBuilder.getModule),
         makeLocation(location),
         scopeName,
-        true,
+        subjectToInstrumentation,
         binding
       )
       val callTarget = fnRootNode.getCallTarget
