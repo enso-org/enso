@@ -124,6 +124,7 @@ export class EnsoRunner implements Runner {
     while (this.loadingProjects.size > 0) {
       await this.loadingProjects.values().next().value
     }
+    await this.waitForYDocPort()
     const promise = this.findServerPorts(DEFAULT_JSONRPC_PORT).then(([jsonPort, binaryPort]) => {
       const rootId = crypto.randomUUID()
       const args: string[] = [
@@ -437,6 +438,15 @@ export class EnsoRunner implements Runner {
         resolve(ports as [number, number])
       })
     })
+  }
+
+  // TODO[ao]: A quick patch for delayed ydoc processed closing; sometimes the port is still busy
+  // after closing project and when opening another. This may result in errors.
+  // Should be fixed properly by
+  private async waitForYDocPort() {
+    return await portfinder
+      .getPortPromise({ startPort: 5976, stopPort: 5976 })
+      .catch(() => new Promise((resolve) => setTimeout(resolve, 4000)))
   }
 }
 
