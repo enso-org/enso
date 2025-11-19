@@ -775,7 +775,9 @@ make_join_helpers left_table right_table =
         Java_Join_Equals_Ignore_Case.new (left:In_Memory_Column).java_column (right:In_Memory_Column).java_column locale.java_locale
     make_between _ left right_lower right_upper =
         Java_Join_Between.new (left:In_Memory_Column).java_column (right_lower:In_Memory_Column).java_column (right_upper:In_Memory_Column).java_column
-    Join_Helpers.Join_Condition_Resolver.Value (left_table.at _) (right_table.at _) make_equals make_equals_ignore_case make_between
+    make_custom_sql _ _ _ =
+        Unimplemented.throw "Custom SQL joins are not implemented for in-memory tables."
+    Join_Helpers.Join_Condition_Resolver.Value (left_table.at _) (right_table.at _) make_equals make_equals_ignore_case make_between make_custom_sql
 
 private _check_table_in_memory t = case t of
     _ : In_Memory_Table -> Nothing

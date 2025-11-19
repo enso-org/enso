@@ -37,7 +37,9 @@ make_join_helpers left_table right_table left_column_mapping right_column_mappin
     make_between _ left right_lower right_upper =
         args = [resolve_left left, resolve_right right_lower, resolve_right right_upper]
         SQL_IR_Expression.Operation "BETWEEN" args
-    Join_Helpers.Join_Condition_Resolver.Value (left_table.at _) (right_table.at _) make_equals make_equals_ignore_case make_between
+    make_custom_sql sql left right =
+        SQL_IR_Expression.Operation "CUSTOM_SQL" [SQL_IR_Expression.Literal sql, resolve_left left, resolve_right right]
+    Join_Helpers.Join_Condition_Resolver.Value (left_table.at _) (right_table.at _) make_equals make_equals_ignore_case make_between make_custom_sql
 
 ## ---
    private: true
