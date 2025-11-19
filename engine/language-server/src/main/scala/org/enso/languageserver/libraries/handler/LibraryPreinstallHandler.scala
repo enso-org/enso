@@ -225,7 +225,6 @@ class LibraryPreinstallHandler(
         edition              = edition,
         preferLocalLibraries = preferLocalLibraries,
         projectRoot          = Some(editionReferenceResolver.projectRoot.toPath),
-        extraSearchPath      = Seq.empty,
         checkAot             = HostEnsoUtils.isAot()
       )
       dependencyResolver = new DependencyResolver(

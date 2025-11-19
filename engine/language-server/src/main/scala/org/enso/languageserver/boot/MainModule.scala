@@ -405,8 +405,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
     LibraryLocations.resolve(
       distributionManager,
       Some(languageHome),
-      Some(contentRoot.file.toPath),
-      Seq.empty
+      Some(contentRoot.file.toPath)
     )
 
   val localLibraryManager = system.actorOf(

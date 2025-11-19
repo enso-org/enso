@@ -683,7 +683,6 @@ private object DefaultPackageRepository {
     */
   def initializeRepository(
     projectPackage: Option[Package[TruffleFile]],
-    extraSearchPath: Seq[Path],
     languageHome: Option[String],
     editionOverride: Option[String],
     distributionManager: DistributionManager,
@@ -729,24 +728,18 @@ private object DefaultPackageRepository {
       Path.of(root.getCanonicalFile().toUri)
     }
 
-    val preferLocalLibraries = if (extraSearchPath.nonEmpty) {
-      true
-    } else {
-      projectPackage.exists(_.getConfig().preferLocalLibraries)
-    }
-
     val resolvingLibraryProvider =
       DefaultLibraryProvider.make(
-        distributionManager  = distributionManager,
-        resourceManager      = resourceManager,
-        lockUserInterface    = notificationHandler,
-        progressReporter     = notificationHandler,
-        languageHome         = homeManager,
-        edition              = edition.get,
-        preferLocalLibraries = preferLocalLibraries,
-        projectRoot          = projectRoot,
-        extraSearchPath      = extraSearchPath,
-        checkAot             = HostEnsoUtils.isAot()
+        distributionManager = distributionManager,
+        resourceManager     = resourceManager,
+        lockUserInterface   = notificationHandler,
+        progressReporter    = notificationHandler,
+        languageHome        = homeManager,
+        edition             = edition.get,
+        preferLocalLibraries =
+          projectPackage.exists(_.getConfig().preferLocalLibraries),
+        projectRoot = projectRoot,
+        checkAot    = HostEnsoUtils.isAot()
       )
     new DefaultPackageRepository(
       resolvingLibraryProvider,

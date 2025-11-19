@@ -367,8 +367,7 @@ abstract class BaseServerTest
       LibraryLocations.resolve(
         distributionManager,
         Some(languageHome),
-        Some(config.projectContentRoot.file.toPath),
-        Seq.empty
+        Some(config.projectContentRoot.file.toPath)
       )
 
     val localLibraryManager = system.actorOf(

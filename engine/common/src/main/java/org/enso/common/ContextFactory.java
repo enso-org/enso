@@ -3,14 +3,11 @@ package org.enso.common;
 import java.io.File;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.logging.Handler;
 import java.util.logging.Level;
-import java.util.stream.Collectors;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Engine;
 import org.graalvm.polyglot.HostAccess;
@@ -38,7 +35,6 @@ import org.graalvm.polyglot.io.MessageTransport;
  */
 public final class ContextFactory {
   private String projectRoot;
-  private String extraSearchPath;
   private InputStream in = System.in;
   private OutputStream out = System.out;
   private OutputStream err = System.err;
@@ -69,19 +65,6 @@ public final class ContextFactory {
 
   public ContextFactory projectRoot(String projectRoot) {
     this.projectRoot = projectRoot;
-    return this;
-  }
-
-  /** List of additional directories to be used as search path for Enso libraries (projects). */
-  public ContextFactory extraSearchPath(List<Path> searchPath) {
-    this.extraSearchPath =
-        searchPath.stream()
-            .map(
-                p -> {
-                  assert Files.isDirectory(p) : "Search path entry is not a directory: " + p;
-                  return p.normalize().toAbsolutePath().toString();
-                })
-            .collect(Collectors.joining(","));
     return this;
   }
 
@@ -240,9 +223,6 @@ public final class ContextFactory {
     }
     if (enableDebugServer) {
       builder.option(DebugServerInfo.ENABLE_OPTION, "true");
-    }
-    if (extraSearchPath != null) {
-      builder.option(RuntimeOptions.EXTRA_SEARCH_PATH, extraSearchPath);
     }
 
     ContextLoggingConfigurator.DEFAULT.prepareBuilderForLogging(builder, logLevel, logHandler);

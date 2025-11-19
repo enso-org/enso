@@ -192,7 +192,6 @@ public final class EnsoContext {
                           throw new ProjectLoadingFailure(file.getName(), err);
                         },
                         res -> res));
-    var extraSearchPath = OptionsHelper.getExtraSearchPath(environment);
 
     var languageHome = OptionsHelper.findLanguageHome(environment);
     var editionOverride = OptionsHelper.getEditionOverride(environment);
@@ -202,7 +201,6 @@ public final class EnsoContext {
     packageRepository =
         DefaultPackageRepository.initializeRepository(
             OptionConverters.toScala(projectPackage),
-            extraSearchPath,
             OptionConverters.toScala(languageHome),
             OptionConverters.toScala(editionOverride),
             distributionManager,

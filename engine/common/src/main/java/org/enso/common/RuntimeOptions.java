@@ -15,14 +15,6 @@ public final class RuntimeOptions {
   private static final OptionDescriptor PROJECT_ROOT_DESCRIPTOR =
       OptionDescriptor.newBuilder(PROJECT_ROOT_KEY, PROJECT_ROOT).build();
 
-  public static final String EXTRA_SEARCH_PATH = optionName("extraSearchPath");
-  public static final OptionKey<String> EXTRA_SEARCH_PATH_KEY = new OptionKey<>("");
-  private static final OptionDescriptor EXTRA_SEARCH_PATH_DESCRIPTOR =
-      OptionDescriptor.newBuilder(EXTRA_SEARCH_PATH_KEY, EXTRA_SEARCH_PATH)
-          .help("Comma-separated list of directories to add to the library (project) search path")
-          .category(OptionCategory.INTERNAL)
-          .build();
-
   public static final String STRICT_ERRORS = optionName("strictErrors");
   public static final OptionKey<Boolean> STRICT_ERRORS_KEY = new OptionKey<>(true);
   private static final OptionDescriptor STRICT_ERRORS_DESCRIPTOR =
@@ -190,7 +182,6 @@ public final class RuntimeOptions {
       OptionDescriptors.create(
           Arrays.asList(
               PROJECT_ROOT_DESCRIPTOR,
-              EXTRA_SEARCH_PATH_DESCRIPTOR,
               STRICT_ERRORS_DESCRIPTOR,
               LOG_MASKING_DESCRIPTOR,
               DISABLE_INLINE_CACHES_DESCRIPTOR,

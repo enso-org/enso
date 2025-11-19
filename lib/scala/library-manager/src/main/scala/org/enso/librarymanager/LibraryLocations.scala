@@ -35,13 +35,12 @@ object LibraryLocations {
   def resolve(
     distributionManager: DistributionManager,
     languageHome: Option[LanguageHome],
-    projectRoot: Option[Path],
-    extraSearchPaths: Seq[Path]
+    projectRoot: Option[Path]
   ): LibraryLocations = {
     val parentDirectorySearchPath =
       projectRoot.map(_.toAbsolutePath.getParent.normalize).toList
     val localLibrarySearchPaths =
-      (distributionManager.paths.localLibrariesSearchPaths ++ extraSearchPaths ++ parentDirectorySearchPath).toList
+      (distributionManager.paths.localLibrariesSearchPaths ++ parentDirectorySearchPath).toList
     val cacheRoot = distributionManager.paths.cachedLibraries
     val additionalCacheLocations = {
       val engineBundleRoot = languageHome.map(_.libraries)

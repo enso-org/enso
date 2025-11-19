@@ -89,7 +89,6 @@ class DependencyPreinstaller {
             progressReporter,
             Some.apply(languageHome),
             Some.apply(projectRoot.toPath()),
-            emptySeq(),
             HostEnsoUtils.isAot());
     var localLibraryProvider = providers._1;
     var publishedLibraryProvider = providers._2;
@@ -140,10 +139,5 @@ class DependencyPreinstaller {
         }
       }
     }
-  }
-
-  @SuppressWarnings("unchecked")
-  private static Seq<Path> emptySeq() {
-    return (Seq<Path>) Seq$.MODULE$.empty();
   }
 }

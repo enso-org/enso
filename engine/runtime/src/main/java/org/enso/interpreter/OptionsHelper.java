@@ -4,13 +4,8 @@ import com.oracle.truffle.api.TruffleFile;
 import com.oracle.truffle.api.TruffleLanguage;
 import java.io.File;
 import java.net.URISyntaxException;
-import java.nio.file.Path;
-import java.util.List;
 import java.util.Optional;
-import java.util.stream.Stream;
 import org.enso.common.RuntimeOptions;
-import org.enso.scala.wrapper.ScalaConversions;
-import scala.collection.immutable.Seq;
 
 public final class OptionsHelper {
   private OptionsHelper() {}
@@ -28,18 +23,6 @@ public final class OptionsHelper {
     } else {
       return Optional.of(env.getInternalTruffleFile(option));
     }
-  }
-
-  public static Seq<Path> getExtraSearchPath(TruffleLanguage.Env env) {
-    String option = env.getOptions().get(RuntimeOptions.EXTRA_SEARCH_PATH_KEY);
-    List<Path> lst;
-    if (option == null || option.isEmpty()) {
-      lst = List.of();
-    } else {
-      String[] paths = option.split(",");
-      lst = Stream.of(paths).map(Path::of).toList();
-    }
-    return ScalaConversions.seq(lst);
   }
 
   /**
