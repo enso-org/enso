@@ -49,8 +49,8 @@ There are a number of different ways to mark things Private in Enso
 
 ### Hidden from the Graphical Editor Private
 
-This is acheived with the special private: true keyword cotained in a comment block above a
-type, constructor or method
+This is acheived with the special private: true keyword cotained in a comment
+block above a type, constructor or method
 
 e.g.
 
