@@ -5,21 +5,44 @@ from Standard.Base.Metadata.Widget import Single_Choice
 import project.Identifier.Identifier
 import project.Snowflake_Connection.Snowflake_Connection
 
+## Specifies a Snowflake file format.
 type Snowflake_File_Format
+    ## Do not specify a file format; use the default.
     NONE
 
+    ## Use a saved file format specified by name and optional schema.
     Saved name:Identifier=(Missing_Argument.throw "name")
 
+    ## Comma-separated values (CSV) file format.
+
+       ## Arguments:
+        - `delimiter`: The character that separates fields in the file. Default is a comma (",").
+        - `parse_header`: Whether to parse the first line of the file as a header row. Default is TRUE.
+        - `date_format`: The format for date values. Default is AUTO.
+        - `time_format`: The format for time values. Default is AUTO.
+        - `timestamp_format`: The format for timestamp values. Default is AUTO.
+        - `compression`: The compression type for the file format. Default is AUTO.
     CSV delimiter:Text="," parse_header:Auto_Boolean=..TRUE date_format:Text="" time_format:Text="" timestamp_format:Text="" compression:Compression=..AUTO
 
+    ## JavaScript Object Notation (JSON) file format.
+
+       ## Arguments:
+        - `date_format`: The format for date values. Default is AUTO.
+        - `time_format`: The format for time values. Default is AUTO.
+        - `timestamp_format`: The format for timestamp values. Default is AUTO.
+        - `compression`: The compression type for the file format. Default is AUTO.
     JSON date_format:Text="" time_format:Text="" timestamp_format:Text="" compression:Compression=..AUTO
 
+    ## Avro file format.
     AVRO
 
+    ## Optimized Row Columnar (ORC) file format.
     ORC
 
+    ## Parquet file format.
     PARQUET
 
+    ## XML file format.
     XML
 
     ## Create a file format directly from a SQL string.
@@ -69,11 +92,15 @@ type Snowflake_File_Format
 Snowflake_File_Format.from (that:Identifier) =
     Snowflake_File_Format.Saved that
 
+## Three-state boolean type for Snowflake options.
 type Auto_Boolean
+    ## Attempt to use automatic detection.
     AUTO
 
+    ## True value.
     TRUE
 
+    ## False value.
     FALSE
 
     ## ---
@@ -93,20 +120,28 @@ Auto_Boolean.from (that:Nothing) =
 
 ## Specified the compression type for the file format.
 type Compression
+    ## Use Snowflake default compression (usually GZIP).
     AUTO
 
+    ## Compress using GZIP.
     GZIP
 
+    ## Compress using BZ2
     BZ2
 
+    ## Must be specified if the input file is in Brotli-compressed format.
     BROTLI
 
+    ## Zstandard compression algorithm (v0.8 and higher).
     ZSTD
 
+    ## DEFLATE compression algorithm with zlib header, RFC1950.
     DEFLATE
 
+    ## DEFLATE compression algorithm without zlib header, RFC1951.
     RAW_DEFLATE
 
+    ## No compression.
     NONE
 
     ## ---

@@ -48,7 +48,7 @@ type Dialect_Operations
        ---
        Checks if an operation is supported by the dialect.
     is_operation_supported self operation:Text -> Boolean =
-        self.operations_dict.contains_key operation
+        self.operations_dict.get operation != Nothing
 
 ## ---
    private: true
@@ -190,9 +190,11 @@ type SQL_Generator
        private: true
        ---
        Generates SQL code corresponding to a SELECT statement.
-       Arguments:
-       - dialect: The SQL dialect for which the code is being generated.
-       - ctx: A description of the SELECT clause.
+
+       ## Arguments:
+       - `dialect`: The SQL dialect for which the code is being generated.
+       - `columns`: The columns to select. If `Nothing`, selects all columns (`*`).
+       - `ctx`: A description of the SELECT clause.
     generate_select_query_sql : Dialect -> Vector (Pair Text SQL_IR_Expression) -> SQL_IR_Source -> SQL_Builder
     generate_select_query_sql self dialect columns ctx =
         gen_exprs exprs = exprs.map (expr-> dialect.generate_expression self expr for_select=False)
