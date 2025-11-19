@@ -23,7 +23,7 @@ class EnsoLint(
         }
         runCompiler(Seq(project.path.toFile))
       case EnsoLint.LintTarget.All =>
-        runAll(allProjects)
+        runAll(projectFinder)
     }
 
     if (!success) {
@@ -33,15 +33,27 @@ class EnsoLint(
     }
   }
 
-  private def runAll(projects: Seq[EnsoProjects.Project]): Boolean = {
-    val (internal, regular) = projects.partition(_.usesPrivateAccess)
+  /** Will run linting on all the projects - stdlibs and tests.
+    * linting of stdlibs and tests cannot be run together as they have different
+    * parent directory.
+    * See https://github.com/enso-org/enso/pull/14296#discussion_r2538984048
+    * @return true if all linting passed without errors/warnings
+    */
+  private def runAll(projectFinder: ProjectFinder): Boolean = {
+    val stdLibs = projectFinder.findStandardLibraries()
+    val (internal, regular) = projectFinder
+      .findTests()
+      .partition(_.usesPrivateAccess)
 
+    val stdLibsSuccess = runCompiler(
+      stdLibs.map(_.path.toFile)
+    )
     val regularSuccess = runCompiler(regular.map(_.path.toFile))
     val internalSuccess = runCompiler(
       internal.map(_.path.toFile),
       disablePrivateCheck = true
     )
-    regularSuccess && internalSuccess
+    stdLibsSuccess && regularSuccess && internalSuccess
   }
 
   private def runCompiler(
