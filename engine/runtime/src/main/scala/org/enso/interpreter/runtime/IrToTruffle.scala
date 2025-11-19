@@ -1432,8 +1432,8 @@ private[runtime] class IrToTruffle(
       val childProcessor =
         this.createChild(
           branch.pattern match {
-            case _ : Pattern.Bool=> "if_then_else"
-            case _ => "case_branch"
+            case _: Pattern.Bool => "if_then_else"
+            case _               => "case_branch"
           },
           () => scopeInfo().scope,
           "case " + currentVarName,
