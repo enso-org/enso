@@ -5,14 +5,14 @@ import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Runtime.Ref.Ref
 import Standard.Base.System.File.Data_Link_Access.Data_Link_Access
 
-from Standard.Table import Column, Table, Value_Type, Aggregate_Column, Bits, expr
+from Standard.Table import Table, Value_Type, Aggregate_Column, Bits, expr
 from Standard.Table.Errors import Inexact_Type_Coercion, Duplicate_Output_Column_Names
 
 from Standard.Database import all
+import Standard.Database.Connection.Postgres_Connection.Postgres_Connection
 import Standard.Database.Dialects.Dialect_Flag.Dialect_Flag
 import Standard.Database.Dialects.Feature.Feature
 import Standard.Database.Internal.Postgres.Pgpass
-import Standard.Database.Internal.Replace_Params.Replace_Params
 from Standard.Database.Errors import all
 from Standard.Database.Internal.Postgres.Helpers import parse_postgres_encoding
 
@@ -720,9 +720,7 @@ add_postgres_specs suite_builder create_connection_fn db_name =
 
     materialize = .read
 
-    
-
-    common_selection = Common_Table_Operations.Main.Test_Selection.Config supported_replace_params=supported_replace_params run_advanced_edge_case_tests_by_default=True
+    common_selection = Common_Table_Operations.Main.Test_Selection.Config supported_replace_params=Postgres_Connection.dialect.get_supported_replace_params run_advanced_edge_case_tests_by_default=True
     aggregate_selection = Common_Table_Operations.Aggregate_Spec.Test_Selection.Config first_last_row_order=False aggregation_problems=False
     agg_in_memory_table = (enso_project.data / "data.csv") . read
 
@@ -743,16 +741,6 @@ add_postgres_specs suite_builder create_connection_fn db_name =
     Common_Table_Operations.Main.add_specs suite_builder setup
     Upload_Spec.add_specs suite_builder setup create_connection_fn
     IR_Spec.add_specs suite_builder setup prefix default_connection.get
-
-## PRIVATE
-supported_replace_params : Hashset Replace_Params
-supported_replace_params =
-    e0 = [Replace_Params.Value Text Case_Sensitivity.Default False, Replace_Params.Value Text Case_Sensitivity.Default True, Replace_Params.Value Text Case_Sensitivity.Sensitive False]
-    e1 = [Replace_Params.Value Text Case_Sensitivity.Sensitive True, Replace_Params.Value Text Case_Sensitivity.Insensitive False, Replace_Params.Value Text Case_Sensitivity.Insensitive True]
-    e2 = [Replace_Params.Value Regex Case_Sensitivity.Default False, Replace_Params.Value Regex Case_Sensitivity.Default True, Replace_Params.Value Regex Case_Sensitivity.Sensitive False]
-    e3 = [Replace_Params.Value Regex Case_Sensitivity.Sensitive True, Replace_Params.Value Regex Case_Sensitivity.Insensitive False, Replace_Params.Value Regex Case_Sensitivity.Insensitive True]
-    e4 = [Replace_Params.Value Column Case_Sensitivity.Default False, Replace_Params.Value Column Case_Sensitivity.Sensitive False]
-    Hashset.from_vector <| e0 + e1 + e2 + e3 + e4
 
 add_table_specs suite_builder =
     db_name = Environment.get "ENSO_POSTGRES_DATABASE"

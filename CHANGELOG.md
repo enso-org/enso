@@ -58,6 +58,7 @@
 - [Snowflake bulk load API.][14230]
 - [Add error_on_missing_columns to more methods.][14236]
 - [Progress of `Runtime.sleep` visualized.][14275]
+- [Full DuckDB Dialect.][14298]
 
 [13769]: https://github.com/enso-org/enso/pull/13769
 [14026]: https://github.com/enso-org/enso/pull/14026
@@ -74,6 +75,7 @@
 [14230]: https://github.com/enso-org/enso/pull/14230
 [14236]: https://github.com/enso-org/enso/pull/14236
 [14275]: https://github.com/enso-org/enso/pull/14275
+[14298]: https://github.com/enso-org/enso/pull/14298
 
 #### Enso Language & Runtime
 
