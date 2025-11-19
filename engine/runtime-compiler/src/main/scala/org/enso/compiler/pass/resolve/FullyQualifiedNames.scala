@@ -128,7 +128,7 @@ case object FullyQualifiedNames extends IRPass {
         }
       }
     }
-    ir.copyWithBindings(bindings = new_bindings)
+    ir.copyWithBindings(new_bindings)
   }
 
   private def isMainModule(module: ModuleContext): Boolean = {
@@ -193,7 +193,7 @@ case object FullyQualifiedNames extends IRPass {
           )
         )
       case tp: Definition.Type =>
-        tp.copy(members =
+        tp.copyWithMembers(
           tp.members.map(
             _.mapExpressions(expr => {
               val selfTypeResolution =

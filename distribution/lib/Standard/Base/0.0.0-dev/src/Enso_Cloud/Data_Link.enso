@@ -231,6 +231,14 @@ Data_Link_From_File.from (that : File_Like) = Data_Link_From_File.from that.unde
 type Data_Link_SPI
     private Value typ name:Text
 
+    ## ---
+       private: true
+       ---
+       Creates a new registration for a data link type.
+
+       ## Arguments
+        - `name` - The user facing name of the data link type.
+        - `typ` - The Enso type that implements the data link parsing logic.
     new typ link_type_name:Text =
         Data_Link_SPI.Value typ link_type_name
 

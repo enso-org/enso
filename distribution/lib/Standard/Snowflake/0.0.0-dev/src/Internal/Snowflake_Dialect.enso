@@ -23,7 +23,6 @@ import Standard.Database.Internal.Base_Generator
 import Standard.Database.Internal.Common.Database_Distinct_Helper
 import Standard.Database.Internal.Common.Database_Join_Helper
 import Standard.Database.Internal.Common.Row_Number_Helpers
-import Standard.Database.Internal.Error_Mapper.Error_Mapper
 import Standard.Database.Internal.Internals_Access
 import Standard.Database.Internal.IR.Internal_Column.Internal_Column
 import Standard.Database.Internal.IR.Nulls_Order.Nulls_Order
@@ -42,10 +41,6 @@ import Standard.Database.SQL.SQL_Type
 from Standard.Database.Errors import Unsupported_Database_Operation
 from Standard.Database.Internal.IR.Operation_Metadata import Date_Period_Metadata
 from Standard.Database.Internal.JDBC_Connection import JDBC_Connection
-
-import project.Internal.Snowflake_Error_Mapper.Snowflake_Error_Mapper
-
-polyglot java import org.enso.database.JDBCUtils
 
 ## ---
    private: true
@@ -335,17 +330,20 @@ type Snowflake_Dialect
     ## ---
        private: true
        ---
-    get_error_mapper : Error_Mapper
-    get_error_mapper self = Snowflake_Error_Mapper
-
-    ## ---
-       private: true
-       ---
        Prepares metadata for an operation taking a date/time period and checks if
        the given period is supported.
     prepare_metadata_for_period : Date_Period | Time_Period -> Value_Type -> Any
     prepare_metadata_for_period self period operation_input_type =
         Date_Period_Metadata.Value period operation_input_type
+
+    ## ---
+       private: true
+       ---
+       Returns the set of all supported Replace_Params
+    get_supported_replace_params : Hashset Replace_Params
+    get_supported_replace_params self =
+        _ = self
+        supported_replace_params
 
     ## ---
        private: true

@@ -11,11 +11,11 @@ import project.Errors.Empty_Error.Empty_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Meta
 import project.Panic.Panic
-from project.Nothing import all
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Range.Extensions import all
 from project.Errors.Common import Unsupported_Argument_Types
 from project.Metadata import Choice, Display, Widget
+from project.Nothing import all
 
 polyglot java import java.lang.NullPointerException
 polyglot java import org.enso.base.CompareException

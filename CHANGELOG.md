@@ -14,8 +14,13 @@
   is included][14028]
 - [Function docs in autocomplete in table expressions][14059]
 - [Many CLI arguments removed][14069]
+- [Images may be added to assets descriptions][14247]
+- [Dragging edges from plus button on nodes is now possible][14246]
+- [JSON and SQL visualizations' content may be now selected and copied][14262]
+- [SQL visualization displays interpolated parameters properly][14262]
 - [Added immediate rename of user created components][14209]
 - [Multiple opened projects' tabs are now allowed][14215]
+- [Required arguments now have an arrow displayed on top of the port][14270]
 
 [13685]: https://github.com/enso-org/enso/pull/13685
 [13658]: https://github.com/enso-org/enso/pull/13658
@@ -28,8 +33,12 @@
 [13976]: https://github.com/enso-org/enso/pull/13976
 [14059]: https://github.com/enso-org/enso/pull/14059
 [14069]: https://github.com/enso-org/enso/pull/14069
+[14247]: https://github.com/enso-org/enso/pull/14247
+[14262]: https://github.com/enso-org/enso/pull/14262
+[14246]: https://github.com/enso-org/enso/pull/14246
 [14209]: https://github.com/enso-org/enso/pull/14209
 [14215]: https://github.com/enso-org/enso/pull/14215
+[14270]: https://github.com/enso-org/enso/pull/14270
 
 #### Enso Standard Library
 
@@ -48,6 +57,8 @@
 - [Snowflake file format and copy into support.][14221]
 - [Snowflake bulk load API.][14230]
 - [Add error_on_missing_columns to more methods.][14236]
+- [Progress of `Runtime.sleep` visualized.][14275]
+- [Full DuckDB Dialect.][14298]
 
 [13769]: https://github.com/enso-org/enso/pull/13769
 [14026]: https://github.com/enso-org/enso/pull/14026
@@ -63,6 +74,8 @@
 [14221]: https://github.com/enso-org/enso/pull/14221
 [14230]: https://github.com/enso-org/enso/pull/14230
 [14236]: https://github.com/enso-org/enso/pull/14236
+[14275]: https://github.com/enso-org/enso/pull/14275
+[14298]: https://github.com/enso-org/enso/pull/14298
 
 #### Enso Language & Runtime
 

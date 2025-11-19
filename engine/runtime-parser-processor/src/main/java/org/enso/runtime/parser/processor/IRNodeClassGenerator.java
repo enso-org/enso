@@ -226,10 +226,8 @@ final class IRNodeClassGenerator {
             .map(
                 field ->
                     """
-                    ${comment}
                     private final ${type} ${name};
                     """
-                        .replace("${comment}", commentForField(field))
                         .replace("${type}", field.getSimpleTypeName())
                         .replace("${name}", field.getName()))
             .collect(Collectors.joining(System.lineSeparator()));
@@ -467,10 +465,12 @@ final class IRNodeClassGenerator {
     for (var field : generatedClassContext.getUserFields()) {
       var code =
           """
+          ${comment}
           public ${returnType} ${fieldName}() {
             return ${fieldName};
           }
           """
+              .replace("${comment}", commentForField(field))
               .replace("${returnType}", field.getSimpleTypeName())
               .replace("${fieldName}", field.getName());
       sb.append(code);

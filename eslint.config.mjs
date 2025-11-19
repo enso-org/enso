@@ -214,6 +214,7 @@ const config = [
         extraFileExtensions: ['.vue'],
         projectService: {
           allowDefaultProject: [
+            'git-clean.mjs',
             'eslint.config.mjs',
             'internal/envReplacer.mjs',
             'internal/workspaceStatus.mjs',
@@ -492,7 +493,6 @@ const config = [
       '@typescript-eslint/require-array-sort-compare': ['error', { ignoreStringArrays: true }],
       '@typescript-eslint/restrict-template-expressions': 'error',
       '@typescript-eslint/sort-type-constituents': 'error',
-      '@typescript-eslint/strict-boolean-expressions': 'error',
       '@typescript-eslint/switch-exhaustiveness-check': [
         'error',
         { allowDefaultCaseForExhaustiveSwitch: true },

@@ -120,9 +120,6 @@ pub enum Target {
     Backend(backend::Target),
     /// Build/Run/Test IDE bundle (includes Vue-based GUI and Project Manager).
     Ide(ide::Target),
-    /// Clean the repository. Keeps the IntelliJ's .idea directory intact. WARNING: This removes
-    /// files that are not under version control in the repository subtree.
-    GitClean(git_clean::Options),
     /// Apply automatic formatters on the repository.
     #[clap(alias = "format")]
     Fmt,

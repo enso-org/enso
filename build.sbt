@@ -547,7 +547,10 @@ lazy val componentModulesPaths =
     (`logging-utils` / Compile / exportedModuleBin).value,
     (`logging-utils-akka` / Compile / exportedModuleBin).value,
     (`logging-service` / Compile / exportedModuleBin).value,
+    (`logging-service-common` / Compile / exportedModuleBin).value,
     (`logging-service-logback` / Compile / exportedModuleBin).value,
+    (`logging-service-telemetry` / Compile / exportedModuleBin).value,
+    (`logging-service-opensearch` / Compile / exportedModuleBin).value,
     (`jvm-channel` / Compile / exportedModuleBin).value,
     (`jvm-interop` / Compile / exportedModuleBin).value,
     (`os-environment` / Compile / exportedModuleBin).value,
@@ -2107,12 +2110,15 @@ lazy val `ydoc-server` = project
           shared        = true
         )
     }.value,
-    buildNativeImage := NativeImage
-      .incrementalNativeImageBuild(
-        rebuildNativeImage,
-        "org.enso.ydoc.server"
-      )
-      .value
+    buildNativeImage := Def.taskDyn {
+      NativeImage
+        .incrementalNativeImageBuild(
+          rebuildNativeImage,
+          "org.enso.ydoc.server",
+          targetDir = engineDistributionRoot.value / "component",
+          shared    = true
+        )
+    }.value
   )
   .dependsOn(`ydoc-polyfill`)
   .dependsOn(`logging-service-logback`)
@@ -3946,7 +3952,10 @@ lazy val `engine-runner` = project
       (Compile / exportedModule).value,
       (`downloader` / Compile / exportedModule).value,
       (`logging-service` / Compile / exportedModule).value,
+      (`logging-service-common` / Compile / exportedModule).value,
       (`logging-service-logback` / Compile / exportedModule).value,
+      (`logging-service-opensearch` / Compile / exportedModule).value,
+      (`logging-service-telemetry` / Compile / exportedModule).value,
       (persistance / Compile / exportedModule).value,
       (`polyglot-api-macros` / Compile / exportedModule).value,
       (`scala-libs-wrapper` / Compile / exportedModule).value,
@@ -4061,9 +4070,6 @@ lazy val `engine-runner` = project
           `image-polyglot-root`.listFiles("*.jar").map(_.getAbsolutePath()) ++
           `table-polyglot-root`.listFiles("*.jar").map(_.getAbsolutePath()) ++
           `database-polyglot-root`
-            .listFiles("*.jar")
-            .map(_.getAbsolutePath()) ++
-          `google-polyglot-root`
             .listFiles("*.jar")
             .map(_.getAbsolutePath()) ++
           `std-aws-polyglot-root`.listFiles("*.jar").map(_.getAbsolutePath()) ++
@@ -4222,6 +4228,8 @@ lazy val `engine-runner` = project
               "net.snowflake.client",
               "com.sun.jna",
               "com.tableau.hyperapi",
+              "com.typesafe.config.impl.ConfigImpl$EnvVariablesHolder",
+              "com.typesafe.config.impl.ConfigImpl$SystemPropertiesHolder",
               // See https://github.com/HarrDevY/native-register-bouncy-castle
               "org.bouncycastle.jcajce.provider.drbg.DRBG$Default",
               "org.bouncycastle.jcajce.provider.drbg.DRBG$NonceAndIV",
@@ -4271,6 +4279,8 @@ lazy val `engine-runner` = project
   .dependsOn(`runtime-version-manager`)
   .dependsOn(`logging-service`)
   .dependsOn(`logging-service-logback` % Runtime)
+  .dependsOn(`logging-service-telemetry` % Runtime)
+  .dependsOn(`logging-service-opensearch` % Runtime)
   .dependsOn(`engine-runner-common`)
   .dependsOn(`polyglot-api`)
   .dependsOn(`ydoc-server-registration`)
@@ -4575,7 +4585,7 @@ lazy val `os-environment-lib` =
         val ourDeps = (Test / fullClasspath).value.map(_.data.getAbsolutePath)
         ourDeps
       },
-      Test / buildNativeImage := Def.taskDyn {
+      rebuildNativeImage := Def.taskDyn {
         val targetDir = (Test / target).value
         NativeImage.buildNativeImage(
           "os-environment-lib",
@@ -4599,6 +4609,15 @@ lazy val `os-environment-lib` =
                 } else {
                   Seq()
                 })
+        )
+      }.value,
+      Test / buildNativeImage := Def.taskDyn {
+        val targetDir = (Test / target).value
+        NativeImage.incrementalNativeImageBuild(
+          rebuildNativeImage,
+          "os-environment-lib",
+          targetDir = targetDir,
+          shared    = true
         )
       }.value
     )
@@ -4638,7 +4657,8 @@ lazy val `os-environment` =
         val ourDeps = (Test / fullClasspath).value.map(_.data.getAbsolutePath)
         ourDeps
       },
-      Test / buildNativeImage := Def.taskDyn {
+      rebuildNativeImage := Def.taskDyn {
+        val ignore    = (Test / fullClasspath).value
         val targetDir = (Test / target).value
         NativeImage.buildNativeImage(
           "test-os-env",
@@ -4666,6 +4686,15 @@ lazy val `os-environment` =
                 } else {
                   Seq()
                 })
+        )
+      }.value,
+      Test / buildNativeImage := Def.taskDyn {
+        val targetDir = (Test / target).value
+        NativeImage.incrementalNativeImageBuild(
+          rebuildNativeImage,
+          "test-os-env",
+          targetDir        = targetDir,
+          useTestClassPath = true
         )
       }.value,
       Test / test := Def

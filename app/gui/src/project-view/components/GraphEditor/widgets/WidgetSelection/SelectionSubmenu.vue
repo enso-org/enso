@@ -6,7 +6,7 @@ import { unrefElement } from '@/composables/events'
 import { usePopoverRoot } from '@/providers/popoverRoot'
 import { targetIsOutside } from '@/util/autoBlur'
 import type { Opt } from '@/util/data/opt'
-import { computed, ref, toRef, useTemplateRef, watch, type ComputedRef } from 'vue'
+import { computed, nextTick, ref, toRef, useTemplateRef, watch, type ComputedRef } from 'vue'
 import { submenuDropdownStyles } from './styles'
 import { isSubmenuEntry, type SubmenuEntry } from './submenuEntry'
 
@@ -71,7 +71,9 @@ function nestedEntryToSubmenu(entry: SubmenuEntry<T>, target: HTMLElement): Subm
 
 function onClick(entry: T, keepOpen: boolean, htmlElement: HTMLElement) {
   if (isSubmenuEntry(entry) && entry.isNested) {
-    submenu.value = nestedEntryToSubmenu(entry, htmlElement)
+    // Change submenu in two steps to trigger the size transition.
+    submenu.value = null
+    nextTick(() => (submenu.value = nestedEntryToSubmenu(entry, htmlElement)))
   } else {
     emit('clickedEntry', entry as T, keepOpen)
   }
@@ -82,7 +84,7 @@ function onScroll() {
 }
 
 /** Check if the event target is outside the current submenu and any of its descendants. */
-function isTargetOutside(event: Event) {
+function isTargetOutside(event: Event): boolean {
   const isOutsideCurrent = targetIsOutside(event, unrefElement(dropdownElement))
   const isOutsideSubmenu =
     isSubmenuComponent(submenuRef.value) ? submenuRef.value.isTargetOutside(event) : true
@@ -116,8 +118,11 @@ export interface SubmenuComponent {
       <SizeTransition height :duration="100">
         <DropdownWidget
           v-if="props.show"
-          class="widgetPill"
-          :class="{ ExtendUpwards: props.topLevel && extendUpwards }"
+          :class="[
+            'widgetPill',
+            { outlined: !props.topLevel },
+            { ExtendUpwards: props.topLevel && extendUpwards },
+          ]"
           :entries="entries"
           @clickEntry="onClick"
           @scroll="onScroll"
@@ -138,5 +143,9 @@ export interface SubmenuComponent {
 <style scoped>
 .SelectionSubmenu {
   z-index: var(--z-index-selection-submenu);
+}
+
+.outlined {
+  border: 1px solid color-mix(in oklab, var(--dropdown-bg), black 5%);
 }
 </style>

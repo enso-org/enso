@@ -251,7 +251,7 @@ pub fn cleaning_step(
     name: impl Into<String>,
     conditions: impl IntoIterator<Item = CleaningCondition>,
 ) -> Step {
-    let mut ret = run("git-clean").with_name(name);
+    let mut ret = shell("corepack pnpm run git-clean --verbose --clean-bazel").with_name(name);
     ret.r#if = CleaningCondition::format_conjunction(conditions).map(wrap_expression);
     ret
 }

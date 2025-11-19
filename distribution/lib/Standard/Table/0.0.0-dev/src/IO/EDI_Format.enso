@@ -6,14 +6,13 @@ import Standard.Base.System.File.Generic.Writable_File.Writable_File
 import Standard.Base.System.File_Format.File_Name_Pattern
 import Standard.Base.System.File_Format_Metadata.File_Format_Metadata
 import Standard.Base.System.Input_Stream.Input_Stream
+from Standard.Base.Logging import all
 from Standard.Base.Metadata.Choice import Option
 from Standard.Base.Metadata.Widget import Text_Input
-from Standard.Base.Logging import all
 
 import project.Table.Table
 
 polyglot java import org.enso.table.read.EDIReader
-
 
 ## Read ANSI X12 Electronic Data Interchange (EDI) Format
 type EDI_Format
