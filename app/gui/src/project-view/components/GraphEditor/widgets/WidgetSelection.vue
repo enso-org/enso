@@ -95,8 +95,6 @@ const expressionTags = useExpressionTags({
   projectNames,
 })
 
-const allowExtendingUpwards = computed(() => ArgumentInfoKey in props.input)
-
 const customTags = computed(
   () =>
     props.input[CustomDropdownItemsKey]?.map((entry) =>
@@ -287,7 +285,6 @@ declare module '$/providers/openedProjects/widgetRegistry' {
       :show="dropDownInteraction.isActive() && activity == null && entries.length > 0"
       :entries="entries"
       :topLevel="true"
-      :extendUpwards="allowExtendingUpwards"
       @clickedEntry="onClick"
     />
 

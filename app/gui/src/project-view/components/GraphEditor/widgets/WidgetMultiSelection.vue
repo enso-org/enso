@@ -52,8 +52,6 @@ const expressionTags = useExpressionTags({
   projectNames,
 })
 
-const allowExtendingUpwards = computed(() => ArgumentInfoKey in props.input)
-
 const entries = useTagEntries(expressionTags, (expression) =>
   selectedExpressions.value.has(expression),
 )
@@ -191,7 +189,6 @@ export const widgetDefinition = defineWidget(
       :show="dropDownInteraction.isActive()"
       :entries="entries"
       :topLevel="true"
-      :extendUpwards="allowExtendingUpwards"
       @clickedEntry="onClick"
     />
   </div>
