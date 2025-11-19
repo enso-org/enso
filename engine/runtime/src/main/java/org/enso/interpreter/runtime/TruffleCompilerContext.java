@@ -360,11 +360,17 @@ final class TruffleCompilerContext implements CompilerContext {
             diagnosticFormatter.format(), diagnosticFormatter.where());
       }
     }
-    var emptySource = Source.newBuilder(LanguageInfo.ID, "", null).build();
+    Source fallbackSource;
+    try {
+      fallbackSource = m.getSource();
+    } catch (IOException ex) {
+      fallbackSource = Source.newBuilder(LanguageInfo.ID, "", null).build();
+    }
     diagnosticFormatter =
         DiagnosticFormatter.create(
-            diagnostic, emptySource, isOutputRedirected, context.isColorTerminalOutput());
-    return new CompilationAbortedException(diagnosticFormatter.format(), null);
+            diagnostic, fallbackSource, isOutputRedirected, context.isColorTerminalOutput());
+    var ss = fallbackSource.createUnavailableSection();
+    return new CompilationAbortedException(diagnosticFormatter.format(), ss);
   }
 
   @SuppressWarnings("unchecked")
