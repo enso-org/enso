@@ -49,27 +49,33 @@ There are a number of different ways to mark things Private in Enso
 
 ### Hidden from the Graphical Editor Private
 
-This is acheived with the special PRIVATE keyword cotained in a comment above a
+This is acheived with the special private: true keyword cotained in a comment block above a
 type, constructor or method
 
 e.g.
 
 ```
-## PRIVATE
+## ---
+   private: true
+   ---
 type Random_Generator
 ```
 
 or
 
 ```
-## PRIVATE
+## ---
+   private: true
+   ---
 Value (random_instance_holder:RandomInstanceHolder)
 ```
 
 or
 
 ```
-## PRIVATE
+## ---
+   private: true
+   ---
 set_seed self seed = self.random_instance_holder.setSeed seed
 ```
 
