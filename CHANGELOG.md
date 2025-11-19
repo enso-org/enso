@@ -75,6 +75,7 @@
 
 #### Enso Language & Runtime
 
+- [Special handling of if ... then ... else construct][11365]
 - [Enso is "conversion and equality oriented" language][14133]
 - [Moving >, >=, <, <= to types where such operators make sense][14017]
 - [Moving warning releated methods outside of `Any`][13978]
@@ -90,6 +91,7 @@
 - [Update to GraalVM 25.0.1][14233]
 - [Apply block argument to non-application expression][14249]
 
+[11365]: https://github.com/enso-org/enso/pull/11365
 [14133]: https://github.com/enso-org/enso/pull/14133
 [14017]: https://github.com/enso-org/enso/pull/14017
 [14003]: https://github.com/enso-org/enso/pull/14003
