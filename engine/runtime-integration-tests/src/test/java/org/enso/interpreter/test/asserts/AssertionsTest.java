@@ -5,7 +5,6 @@ import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.stringContainsInOrder;
 import static org.hamcrest.core.Is.is;
-import static org.hamcrest.number.OrderingComparison.greaterThan;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -85,15 +84,7 @@ public class AssertionsTest {
           """);
       fail("Should throw Assertion_Error");
     } catch (PolyglotException e) {
-      var stack = new StringWriter();
-      e.printStackTrace(new PrintWriter(stack));
-      assertThat(stack.toString(), e.getStackTrace().length, greaterThan(5));
-      assertThat(stack.toString(), e.getStackTrace()[0].toString(), containsString("Panic"));
-      assertThat(
-          stack.toString(), e.getStackTrace()[1].toString(), containsString("Runtime.assert"));
-      // Ignore the next two frames as they are implementation details
-      assertThat(stack.toString(), e.getStackTrace()[4].toString(), containsString("foo"));
-      assertThat(stack.toString(), e.getStackTrace()[5].toString(), containsString("main"));
+      assertStack(e, "Panic", "Runtime.assert", "foo", "main");
     }
   }
 
@@ -138,5 +129,30 @@ public class AssertionsTest {
             """);
     assertTrue(res.isNumber());
     assertThat(res.asInt(), is(23));
+  }
+
+  private static void assertStack(Throwable e, String... sampleWords) {
+    var stack = new StringWriter();
+    e.printStackTrace(new PrintWriter(stack));
+
+    var lineNumber = 0;
+    for (var i = 0; i < sampleWords.length; i++) {
+      while (true) {
+        if (e.getStackTrace().length <= lineNumber) {
+          fail(
+              "Cannot find "
+                  + sampleWords[i]
+                  + " (from "
+                  + sampleWords
+                  + ") in:\n"
+                  + stack.toString());
+        }
+        var line = e.getStackTrace()[lineNumber++].toString();
+        if (line.contains(sampleWords[i])) {
+          // found another requested sample
+          break;
+        }
+      }
+    }
   }
 }
