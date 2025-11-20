@@ -22,7 +22,8 @@ OAuth integration requires an application registered in the Azure portal.
     account users" after app registration.)
   - For "Redirect URI":
     - For the "Select a platform" dropdown, pick "Web"
-    - Enter the cloud endpoint URL, as well as "http://localhost:PORT" for local debugging
+    - Enter the cloud endpoint URL, as well as "http://localhost:PORT" for local
+      debugging
   - Finish by clicking "Register"
 
 ## Create A Client Secret
