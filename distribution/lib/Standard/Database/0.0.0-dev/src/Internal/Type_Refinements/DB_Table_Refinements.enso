@@ -4,8 +4,8 @@ from Standard.Base import all
 
 import Standard.Table.Refined_Types.Numeric_Column.Numeric_Column
 import Standard.Table.Refined_Types.Text_Column.Text_Column
-from Standard.Table import Column, Table, Value_Type
 import Standard.Table.Spatial_Table.Spatial_Table
+from Standard.Table import Column, Table, Value_Type
 
 import project.DB_Column.DB_Column
 import project.DB_Table.DB_Table

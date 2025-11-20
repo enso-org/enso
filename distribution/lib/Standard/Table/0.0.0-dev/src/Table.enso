@@ -54,8 +54,8 @@ import project.Set_Mode.Set_Mode
 import project.Set_Mode.Set_Mode_Many
 import project.Simple_Expression.Simple_Expression
 import project.Sort_Column.Sort_Column
-import project.Spatial_Table.Spatial_Table
 import project.Spatial_Table.Spatial_Join_Condition
+import project.Spatial_Table.Spatial_Table
 import project.Table_Selector.Table_Selector
 import project.Value_Type.Auto
 import project.Value_Type.By_Type

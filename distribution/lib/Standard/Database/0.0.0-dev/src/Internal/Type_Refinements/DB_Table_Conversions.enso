@@ -3,8 +3,8 @@ private
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
-from Standard.Table import Table
 import Standard.Table.Spatial_Table.Spatial_Table
+from Standard.Table import Table
 from Standard.Table.Internal.Table_Type_Helpers import table_from_implementation
 
 import project.DB_Table.DB_Table
