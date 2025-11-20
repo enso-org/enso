@@ -6,11 +6,17 @@
 # This was developed and tested on Windows only, though there is no reason 
 # why it should not work on other platforms through PowerShell Core.
 
-$RunArgs = @("run", "--package",  "enso-build-cli", "--")
-$RunArgs += $args
+$BuildProc = Start-Process -FilePath "bazel" -ArgumentList "build", "//build_tools/cli:enso_build_cli_bin" -Wait -PassThru
+if ($BuildProc.ExitCode -ne 0) {
+    Write-Error "Bazel build failed."
+    Exit $BuildProc.ExitCode
+}
 
-$psi = New-Object -TypeName System.Diagnostics.ProcessStartInfo -ArgumentList "cargo",$RunArgs
-$psi.WorkingDirectory = $PSScriptRoot
-$handle = [System.Diagnostics.Process]::Start($psi)
-$handle.WaitForExit()
-Exit $handle.ExitCode
+$BinPath = Join-Path $PSScriptRoot "bazel-bin" "build_tools" "cli" "enso_build_cli_bin.exe"
+
+# We cannot use Start-Process because it doesn't attach console output properly without complex handling.
+# Invoking the binary directly works better.
+& $BinPath $args
+if ($LASTEXITCODE -ne 0) {
+    Exit $LASTEXITCODE
+}

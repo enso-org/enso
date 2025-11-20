@@ -9,6 +9,8 @@ fn main() -> Result {
     let out_dir = ide_ci::programs::cargo::build_env::OUT_DIR.get()?;
     let out_path = out_dir.join("paths.rs");
     ide_ci::fs::write(&out_path, code.to_string())?;
-    assert!(std::process::Command::new("rustfmt").arg(&out_path).status()?.success());
+    // We are running this build script in Bazel sandbox, where `rustfmt` is not available.
+    // We don't want to fail the build because of that.
+    let _ = std::process::Command::new("rustfmt").arg(&out_path).status();
     Ok(())
 }
