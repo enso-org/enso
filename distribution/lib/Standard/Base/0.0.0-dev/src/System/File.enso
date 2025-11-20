@@ -1195,6 +1195,7 @@ private _local_file_copy (source : File) (destination : File) (replace_existing 
         normalized_src = source.java_path.normalize
         normalized_dst = destination.java_path.normalize
         Java_Files.copy normalized_src normalized_dst copy_options
+        Nothing
 
 private _local_file_move (source : File) (destination : File) (replace_existing : Boolean) -> Nothing =
     File_Error.handle_java_exceptions source <|
@@ -1202,6 +1203,7 @@ private _local_file_move (source : File) (destination : File) (replace_existing 
         normalized_src = source.java_path.normalize
         normalized_dst = destination.java_path.normalize
         Java_Files.move normalized_src normalized_dst copy_options
+        Nothing
 
 ## On some filesystems some paths may be invalid, we want to catch the Java
    exception and turn it into an Enso error.
