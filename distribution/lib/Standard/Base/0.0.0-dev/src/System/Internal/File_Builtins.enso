@@ -32,7 +32,7 @@ resolve_builtin file:File part:Text -> File =
 
 delete_builtin file:File recursive:Boolean =
     should_delete_recursively = recursive && is_dir file
-    if should_delete_recursively then delete_recursively file else
+    if should_delete_recursively then delete_recursively file.java_path else
         Java_Files.delete file.java_path
 
 delete_recursively path:Java_Path =
