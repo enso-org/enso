@@ -87,13 +87,11 @@ test('Exercise 1', async ({ page }) => {
     // Click with the assurance of component being in vision
     const option = page.getByRole('button', { name: 'currency_code_length', exact: true })
     await option.scrollIntoViewIfNeeded()
-    await expect(option).toBeVisible()
     await option.click()
 
-    // Choosing the right filter
-    const filterContainer = page.locator('.WidgetArgumentName.primary', { hasText: 'filter' })
-    const filter = filterContainer.getByText(/^filter$/)
-    await expect(filter).toBeVisible()
+    // Choosing the right filter. Wait until selection loads (which should show an arrow).
+    const filter = page.locator('.WidgetSelection:has(.arrow)', { hasText: 'filter' })
+
     await filter.click()
 
     // Ensuring visibility
@@ -136,9 +134,7 @@ test('Exercise 1', async ({ page }) => {
     await option2.click()
 
     // Choosing the right parameters
-    const filterContainer2 = page.locator('.WidgetArgumentName.primary', { hasText: 'filter' })
-    const filter2 = filterContainer2.getByText(/^filter$/)
-    await expect(filter2).toBeVisible()
+    const filter2 = page.locator('.WidgetSelection:has(.arrow)', { hasText: 'filter' })
     await filter2.click()
 
     await page.getByRole('button', { name: '..Equal', exact: true }).click()
