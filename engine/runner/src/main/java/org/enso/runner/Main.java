@@ -418,11 +418,10 @@ public class Main {
             .build();
     var compileOption =
         cliOptionBuilder()
-            .hasArg(true)
-            .numberOfArgs(1)
-            .argName("package")
             .longOpt(COMPILE_OPTION)
-            .desc("Compile the provided package without executing it.")
+            .desc("Compile provided packages without executing.")
+            .hasArgs()
+            .argName("packages")
             .build();
     var noCompileDependenciesOption =
         cliOptionBuilder()
@@ -664,7 +663,7 @@ public class Main {
   /**
    * Handles the `--compile` CLI option.
    *
-   * @param path the path to the package or file being compiled
+   * @param paths Path of packages to be compiled.
    * @param shouldCompileDependencies whether the dependencies of that package should also be
    *     compiled
    * @param shouldUseIrCaches whether or not IR caches should be used.
@@ -677,7 +676,7 @@ public class Main {
    */
   private void compile(
       String cwd,
-      String path,
+      String[] paths,
       boolean shouldCompileDependencies,
       boolean shouldUseIrCaches,
       boolean disablePrivateCheck,
@@ -686,7 +685,8 @@ public class Main {
       Level logLevel,
       boolean logMasking)
       throws IOException {
-    var fileAndProject = Utils.findFileAndProject(cwd, path, null);
+    var mainProjectPath = paths[0];
+    var fileAndProject = Utils.findFileAndProject(cwd, mainProjectPath, null);
     assert fileAndProject != null;
 
     boolean isProjectMode = fileAndProject._1();
@@ -709,7 +709,7 @@ public class Main {
     try {
       if (isProjectMode) {
         var topScope = context.getTopScope();
-        topScope.compile(shouldCompileDependencies, scala.Option.empty());
+        topScope.compile(shouldCompileDependencies, paths);
       } else {
         context.evalModule(fileAndProject._2());
       }
@@ -1192,12 +1192,12 @@ public class Main {
     }
 
     if (line.hasOption(COMPILE_OPTION)) {
-      var packagePath = line.getOptionValue(COMPILE_OPTION);
+      var packagePaths = line.getOptionValues(COMPILE_OPTION);
       var shouldCompileDependencies = !line.hasOption(NO_COMPILE_DEPENDENCIES_OPTION);
 
       compile(
           cwd,
-          packagePath,
+          packagePaths,
           shouldCompileDependencies,
           shouldEnableIrCaches(line),
           line.hasOption(DISABLE_PRIVATE_CHECK_OPTION),
