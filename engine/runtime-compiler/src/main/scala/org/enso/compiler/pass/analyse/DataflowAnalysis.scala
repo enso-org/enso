@@ -699,6 +699,8 @@ case object DataflowAnalysis extends IRPass {
           .updateMetadata(new MetadataPair(this, info))
       case literal: Pattern.Literal =>
         literal.updateMetadata(new MetadataPair(this, info))
+      case bool: Pattern.Bool =>
+        bool.updateMetadata(new MetadataPair(this, info))
       case Pattern.Type(name, tpe, _, _) =>
         val nameDep = asStatic(name)
         info.dependents.updateAt(nameDep, Set(patternDep))

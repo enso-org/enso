@@ -1,16 +1,16 @@
 from Standard.Base import all
 import Standard.Base.Runtime.Ref.Ref
 
-from Standard.Table import Table, Column
+from Standard.Table import Table
 
 from Standard.Database import all
 import Standard.Database.Dialects.Feature.Feature
-import Standard.Database.Internal.Replace_Params.Replace_Params
 
 from Standard.Test import all
 import Standard.Test.Test_Environment
 
 import Standard.DuckDB.DuckDB.DuckDB
+import Standard.DuckDB.DuckDB_Connection.DuckDB_Connection
 
 import enso_dev.Table_Tests
 import enso_dev.Table_Tests.Database.Common.Common_Spec
@@ -21,17 +21,7 @@ from enso_dev.Table_Tests.Common_Table_Operations.Util import all
 type Lazy_Ref
    Value ~get
 
-## PRIVATE
-supported_replace_params : Hashset Replace_Params
-supported_replace_params =
-    e0 = [Replace_Params.Value Text Case_Sensitivity.Default False, Replace_Params.Value Text Case_Sensitivity.Default True, Replace_Params.Value Text Case_Sensitivity.Sensitive False]
-    e1 = [Replace_Params.Value Text Case_Sensitivity.Sensitive True, Replace_Params.Value Text Case_Sensitivity.Insensitive False, Replace_Params.Value Text Case_Sensitivity.Insensitive True]
-    e2 = [Replace_Params.Value Regex Case_Sensitivity.Default False, Replace_Params.Value Regex Case_Sensitivity.Default True, Replace_Params.Value Regex Case_Sensitivity.Sensitive False]
-    e3 = [Replace_Params.Value Regex Case_Sensitivity.Sensitive True, Replace_Params.Value Regex Case_Sensitivity.Insensitive False, Replace_Params.Value Regex Case_Sensitivity.Insensitive True]
-    e4 = [Replace_Params.Value Column Case_Sensitivity.Default False, Replace_Params.Value Column Case_Sensitivity.Sensitive False]
-    Hashset.from_vector <| e0 + e1 + e2 + e3 + e4
-
-duckdb_spec suite_builder prefix create_connection_func persistent_connector =
+duckdb_spec suite_builder prefix create_connection_func =
     name_counter = Ref.new 0
 
     # We keep a default connection to avoid creating connections each time.
@@ -53,8 +43,8 @@ duckdb_spec suite_builder prefix create_connection_func persistent_connector =
 
     materialize = .read
 
-    common_selection = Common_Table_Operations.Main.Test_Selection.Config supported_replace_params=supported_replace_params run_advanced_edge_case_tests_by_default=True
-    aggregate_selection = Common_Table_Operations.Aggregate_Spec.Test_Selection.Config advanced_stats=False text_shortest_longest=False first_last=False first_last_row_order=False aggregation_problems=False multi_distinct=False first_last_multi_order=False first_last_ignore_nothing=False text_concat=False
+    common_selection = Common_Table_Operations.Main.Test_Selection.Config supported_replace_params=DuckDB_Connection.dialect.get_supported_replace_params run_advanced_edge_case_tests_by_default=True
+    aggregate_selection = Common_Table_Operations.Aggregate_Spec.Test_Selection.Config first_last_row_order=False aggregation_problems=False
     agg_in_memory_table = ((Project_Description.new enso_dev.Table_Tests).data / "data.csv") . read
 
     agg_table_fn = _->
@@ -76,7 +66,7 @@ create_inmem_connection =
 
 add_specs suite_builder =
     in_memory_prefix = "[DuckDB In-Memory] "
-    duckdb_spec suite_builder in_memory_prefix (_ -> create_inmem_connection) persistent_connector=False
+    duckdb_spec suite_builder in_memory_prefix (_ -> create_inmem_connection)
 
 main filter=Nothing =
     suite = Test.build suite_builder->

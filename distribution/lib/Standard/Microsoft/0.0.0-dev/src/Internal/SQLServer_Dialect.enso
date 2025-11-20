@@ -380,6 +380,15 @@ type SQLServer_Dialect
     ## ---
        private: true
        ---
+       Returns the set of all supported Replace_Params
+    get_supported_replace_params : Hashset Replace_Params
+    get_supported_replace_params self =
+        _ = self
+        supported_replace_params
+
+    ## ---
+       private: true
+       ---
        Returns true if the `replace` parameters are supported by this backend.
     if_replace_params_supports : Replace_Params -> Any -> Any
     if_replace_params_supports self replace_params ~action =

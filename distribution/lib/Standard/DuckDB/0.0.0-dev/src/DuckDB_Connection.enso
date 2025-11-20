@@ -9,6 +9,7 @@ from Standard.Table import Table
 
 import Standard.Database.Connection.Connection.Connection
 import Standard.Database.DB_Table as DB_Table_Module
+import Standard.Database.Dialects.Dialect.Dialect
 import Standard.Database.Internal.JDBC_Connection
 import Standard.Database.SQL.SQL_Statement
 from Standard.Database import Column_Description, DB_Table, SQL_Query, SQL_Query_With_Schema
@@ -29,6 +30,12 @@ type DuckDB_Connection
     ## ---
        private: true
        ---
+    dialect : Dialect
+    dialect = DuckDB_Dialect.duckdb
+
+    ## ---
+       private: true
+       ---
        Creates a DuckDB connection based on a URL and properties.
 
        ## Arguments
@@ -42,7 +49,7 @@ type DuckDB_Connection
         jdbc_connection = JDBC_Connection.create types_record url properties schema=schema
 
         ## For initial work using DuckDB, we will use the Postgres dialect.
-        DuckDB_Connection.Value (Connection.new jdbc_connection DuckDB_Dialect.duckdb DuckDB_Type_Mapping DuckDB_Entity_Naming_Properties.new) make_new
+        DuckDB_Connection.Value (Connection.new jdbc_connection DuckDB_Connection.dialect DuckDB_Type_Mapping DuckDB_Entity_Naming_Properties.new) make_new
 
     ## ---
        private: true
