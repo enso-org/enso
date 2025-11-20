@@ -33,7 +33,12 @@ type Email
     @bcc _email_vector_widget
     @attachments Vector_Editor Email_Attachment.default_widget item_default="..File" display=..Always
     new from:Email_Address=(Missing_Argument.throw "from") to:(Vector Email_Address)=[] cc:(Vector Email_Address)=[] bcc:(Vector Email_Address)=[] subject:Text="" body:Email_Body="" attachments:(Vector Email_Attachment)=[] -> Email =
-        Email.Message from to cc bcc subject body attachments
+        resolved_to = to.map a->(a:Email_Address) on_problems=No_Wrap.Value
+        resolved_cc = cc.map a->(a:Email_Address) on_problems=No_Wrap.Value
+        resolved_bcc = bcc.map a->(a:Email_Address) on_problems=No_Wrap.Value
+        resolved_attachments = attachments.map a->(a:Email_Attachment) on_problems=No_Wrap.Value
+        
+        Email.Message from resolved_to resolved_cc resolved_bcc subject body resolved_attachments
 
     ## ---
        aliases: [mail]
