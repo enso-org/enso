@@ -642,6 +642,7 @@ type File
         Context.Output.if_enabled disabled_message="As writing is disabled, cannot create directory. Press the Write button ▶ to perform the operation." panic=False <|
             File_Error.handle_java_exceptions self <|
                 Java_Files.createDirectories self.java_path
+                self
 
     ## ---
        group: Metadata
