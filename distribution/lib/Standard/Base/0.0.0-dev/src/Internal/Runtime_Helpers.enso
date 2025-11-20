@@ -1,11 +1,11 @@
 private
 
-import project.Nothing.Nothing
 import project.Data.Numbers.Integer
 import project.Data.Range.Extensions
+import project.Error.Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Logging.Progress
-import project.Error.Error
+import project.Nothing.Nothing
 
 polyglot java import java.lang.Thread
 

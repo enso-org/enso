@@ -17,17 +17,29 @@ type Strava
 
        ## Arguments:
         - `credentials`: a Cloud secret or a file containing Strava credentials.
-    initialize : File|Enso_Secret -> Strava
+    initialize : File | Enso_Secret -> Strava
     initialize credentials =
         credentials_reference = as_credential_reference credentials
         Strava.Service (StravaService.new credentials_reference)
 
+    ## ---
+       icon: people
+       ---
+       Get the Strava information about the authenticated user.
     user self =
         _strava_get self "https://www.strava.com/api/v3/athlete"
 
+    ## ---
+       icon: metadata
+       ---
+         Get the heart rate and power zones for the authenticated user.
     zones self =
         _strava_get self "https://www.strava.com/api/v3/athlete/zones"
 
+    ## ---
+       icon: statistics
+       ---
+       Get the activity statistics for the authenticated user.
     stats self =
         id = self.user.decode_as_json.get "id"
         _strava_get self "https://www.strava.com/api/v3/athletes/"+id.to_text+"/stats"

@@ -50,6 +50,7 @@
 - ends_with -> Standard.Base.Any.Any
 - first_last_aggregators -> Standard.Base.Any.Any
 - floating_point_div -> Standard.Base.Any.Any
+- get_dialect_operations pg_dialect:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - is_empty -> Standard.Base.Any.Any
 - is_finite -> Standard.Base.Any.Any
 - is_inf -> Standard.Base.Any.Any

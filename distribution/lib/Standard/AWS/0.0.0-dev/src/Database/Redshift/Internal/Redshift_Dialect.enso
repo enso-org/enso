@@ -3,8 +3,8 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 from Standard.Table import Aggregate_Column, Value_Type
 
+import Standard.Database.Connection.Postgres_Connection.Postgres_Connection
 import Standard.Database.DB_Column.DB_Column
-import Standard.Database.Dialects.Dialect
 import Standard.Database.Dialects.Dialect.Temp_Table_Style
 import Standard.Database.Dialects.Dialect_Flag.Dialect_Flag
 import Standard.Database.Dialects.Feature.Feature
@@ -15,7 +15,6 @@ import Standard.Database.Internal.IR.Order_Descriptor.Order_Descriptor
 import Standard.Database.Internal.IR.SQL_IR_Expression.SQL_IR_Expression
 import Standard.Database.Internal.IR.SQL_IR_Source.SQL_IR_Source
 import Standard.Database.Internal.IR.SQL_IR_Statement.SQL_IR_Statement
-import Standard.Database.Internal.Postgres.Postgres_Dialect
 import Standard.Database.Internal.SQL_Part.SQL_Part
 import Standard.Database.Internal.SQL_Type_Mapping.SQL_Type_Mapping
 import Standard.Database.Internal.SQL_Type_Reference.SQL_Type_Reference
@@ -31,7 +30,7 @@ from Standard.Database.Internal.JDBC_Connection import JDBC_Connection
    The dialect for Redshift connections.
 redshift : Redshift_Dialect
 redshift =
-    Redshift_Dialect.Value Postgres_Dialect.make_dialect_operations
+    Redshift_Dialect.Value Postgres_Connection.dialect.get_dialect_operations
 
 ## ---
    private: true
@@ -126,7 +125,7 @@ type Redshift_Dialect
           types, it should be set to `Nothing`.
     prepare_order_descriptor : Internal_Column -> Sort_Direction -> Nothing | Text_Ordering -> Order_Descriptor
     prepare_order_descriptor self internal_column sort_direction text_ordering =
-        Postgres_Dialect.make_order_descriptor internal_column sort_direction text_ordering
+        Postgres_Connection.dialect.prepare_order_descriptor internal_column sort_direction text_ordering
 
     ## ---
        private: true

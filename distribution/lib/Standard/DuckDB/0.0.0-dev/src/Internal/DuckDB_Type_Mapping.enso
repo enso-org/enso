@@ -7,16 +7,17 @@ from Standard.Table import Bits, Value_Type
 from Standard.Table.Errors import Inexact_Type_Coercion
 
 import Standard.Database.Internal.IR.SQL_IR_Expression.SQL_IR_Expression
-import Standard.Database.Internal.Postgres.Postgres_Error_Mapper.Postgres_Error_Mapper
 import Standard.Database.Internal.SQL_Type_Mapping
 import Standard.Database.Internal.SQL_Type_Reference.SQL_Type_Reference
 import Standard.Database.Internal.Statement_Setter.Statement_Setter
 import Standard.Database.SQL.SQL_Type
 from Standard.Database.Errors import Unsupported_Database_Type
 
+import project.Internal.DuckDB_Error_Mapper.DuckDB_Error_Mapper
+
 polyglot java import java.sql.Types
-polyglot java import org.enso.database.fetchers.ColumnFetcherFactory
-polyglot java import org.enso.database.JDBCValueSetter
+polyglot java import org.enso.duckdb.DuckDBColumnFetcherFactory
+polyglot java import org.enso.duckdb.DuckDBJDBCValueSetter
 
 ## ---
    private: true
@@ -37,6 +38,15 @@ type DuckDB_Type_Mapping
             Value_Type.Float Bits.Bits_32 -> DuckDB_Types.real
             Value_Type.Float Bits.Bits_64 -> DuckDB_Types.double
             Value_Type.Decimal Nothing 0 -> DuckDB_Types.bignum
+            Value_Type.Decimal Nothing Nothing ->
+                approx.put (Value_Type.Decimal 38 12)
+                DuckDB_Types.decimal 38 12
+            Value_Type.Decimal precision Nothing ->
+                approx.put (Value_Type.Decimal precision (precision.div 3))
+                DuckDB_Types.decimal precision (precision.div 3)
+            Value_Type.Decimal Nothing scale ->
+                approx.put (Value_Type.Decimal 38 scale)
+                DuckDB_Types.decimal 38 scale
             Value_Type.Decimal precision scale ->
                 used_precision = if precision < 1 then 0 else (if precision > 38 then 39 else precision)
                 case used_precision of
@@ -44,14 +54,14 @@ type DuckDB_Type_Mapping
                         approx.put (Value_Type.Decimal 1 0)
                         DuckDB_Types.decimal 1 0
                     39 ->
-                        used_scale = if scale < 0 then 0 else (if scale>38 || scale.is_nothing then 12 else scale)
+                        used_scale = if scale < 0 then 0 else (if scale>38 then 37 else scale)
                         approx.put (Value_Type.Decimal 38 used_scale)
                         DuckDB_Types.decimal 38 used_scale
                     _ ->
-                        used_scale = if scale < 0 then 0 else (if scale>precision || scale.is_nothing then precision.div 3 else scale)
+                        used_scale = if scale < 0 then 0 else (if scale>precision then precision.div 3 else scale)
                         if used_scale != scale then approx.put (Value_Type.Decimal used_precision used_scale)
                         DuckDB_Types.decimal used_precision used_scale
-            Value_Type.Char Nothing False -> DuckDB_Types.varchar
+            Value_Type.Char Nothing True -> DuckDB_Types.varchar
             Value_Type.Char _ _ ->
                 approx.put Value_Type.Char
                 DuckDB_Types.varchar
@@ -98,12 +108,17 @@ type DuckDB_Type_Mapping
         Types.DATE -> Value_Type.Date
         Types.TIME_WITH_TIMEZONE -> Value_Type.Time
         Types.TIMESTAMP_WITH_TIMEZONE -> Value_Type.Date_Time True
+        2014 ->
+            ## Types.TIMESTAMPTZ (doesn't seem to work in Types.TIMESTAMP_WITH_TIMEZONE)
+            Value_Type.Date_Time True
         Types.TIMESTAMP -> Value_Type.Date_Time False
         Types.BLOB -> Value_Type.Binary Nothing False
         Types.BIT -> Value_Type.Binary Nothing False
-        _ ->
-            if sql_type.name == "TIMESTAMP WITH TIME ZONE" then Value_Type.Date_Time True else
-                Value_Type.Unsupported_Data_Type sql_type.name sql_type
+        _ -> case sql_type.name of
+            "TIMESTAMP_NS" -> Value_Type.Date_Time False
+            "TIMESTAMPTZ" -> Value_Type.Date_Time True
+            "TIMESTAMP WITH TIME ZONE" -> Value_Type.Date_Time True
+            _ -> Value_Type.Unsupported_Data_Type sql_type.name sql_type
 
     ## ---
        private: true
@@ -112,7 +127,7 @@ type DuckDB_Type_Mapping
        Gets the ColumnFetcherFactory to be used for DuckDB.
     column_fetcher_factory : Any
     column_fetcher_factory =
-        ColumnFetcherFactory.DEFAULT
+        DuckDBColumnFetcherFactory.INSTANCE
 
     ## ---
        private: true
@@ -176,7 +191,7 @@ type DuckDB_Type_Mapping
        ---
        Creates a Statement_Setter for DuckDB.
     statement_setter =
-        jdbc_value_setter = JDBCValueSetter.create "DuckDB"
+        jdbc_value_setter = DuckDBJDBCValueSetter.new
         fill_home = Statement_Setter.create_fill_hole jdbc_value_setter
         Statement_Setter.for_fill_hole fill_home
 
@@ -185,8 +200,8 @@ type DuckDB_Type_Mapping
        ---
        Returns a helper for mapping database-specific SQL errors into our common
        error types.
-    error_mapper : Postgres_Error_Mapper
-    error_mapper self = Postgres_Error_Mapper
+    error_mapper : DuckDB_Error_Mapper
+    error_mapper self = DuckDB_Error_Mapper
 
 ## Set of predefined DuckDB SQL types.
 type DuckDB_Types
