@@ -886,7 +886,7 @@ export class LocalBackend extends backend.Backend {
       baseUrl: baseUrl.toString(),
     }).toString()
     const response = await this.post(
-      new URL(`/api/watch-upload-start?${queryString}`, location.href).toString(),
+      new URL(`/api/watcher/start?${queryString}`, location.href).toString(),
       defaultHeaders,
     )
     if (!response.ok) {
@@ -900,7 +900,7 @@ export class LocalBackend extends backend.Backend {
       assetId,
     }).toString()
     const response = await this.post(
-      new URL(`/api/watch-upload-stop?${queryString}`, location.href).toString(),
+      new URL(`/api/watcher/stop?${queryString}`, location.href).toString(),
       null,
     )
     if (!response.ok) {

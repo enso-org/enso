@@ -29,31 +29,28 @@ import {
   type DirectoryAsset,
   type ExportedArchive,
   type FileAsset,
-  type GetText,
   type ProjectAsset,
 } from 'enso-common/src/services/Backend'
 import {
   DOWNLOAD_PROJECT_REGEX,
   EXPORT_ARCHIVE_PATH,
 } from 'enso-common/src/services/Backend/remoteBackendPaths'
-import { HttpClient } from 'enso-common/src/services/HttpClient'
-import { RemoteBackend } from 'enso-common/src/services/RemoteBackend'
-import { getText, resolveDictionary } from 'enso-common/src/text'
 import { toRfc3339 } from 'enso-common/src/utilities/data/dateTime'
 import { tmpdir } from 'node:os'
 import type { Readable } from 'node:stream'
 import { finished } from 'node:stream/promises'
 import { createGzip } from 'node:zlib'
 import * as projectManagement from 'project-manager-shim'
-import { watch, type Watcher } from 'project-manager-shim/fs'
+import { type Watcher } from 'project-manager-shim/fs'
 import {
   handleFilesystemCommand,
   handleProjectServiceRequest,
+  handleWatcherRequest,
   isProjectServiceRequest,
+  isWatcherRequest,
 } from 'project-manager-shim/handler'
 import { ProjectService } from 'project-manager-shim/projectService'
 import { tarFsPack, unzipEntries, zipWriteStream } from './archive'
-import { uploadFile } from './upload'
 
 // =================
 // === Constants ===
@@ -195,6 +192,12 @@ export class ProjectManagerShimMiddleware {
         () => this.getProjectService(),
         COMMON_HEADERS,
       )
+    } else if (isWatcherRequest(requestPath)) {
+      const options = {
+        delay: PROJECT_WATCHER_CALLBACK_DELAY,
+        timeout: PROJECT_WATCHER_CALLBACK_TIMEOUT,
+      }
+      handleWatcherRequest(request, response, requestPath, COMMON_HEADERS, this.watchers, options)
     } else if (requestPath.startsWith('/api/')) {
       switch (`${request.method} ${requestPath}`) {
         case `POST /api/${EXPORT_ARCHIVE_PATH}`: {
@@ -225,110 +228,6 @@ export class ProjectManagerShimMiddleware {
             .catch(() => {
               response.writeHead(HTTP_STATUS_BAD_REQUEST, COMMON_HEADERS).end()
             })
-          break
-        }
-        case 'POST /api/watch-upload-start': {
-          const projectDir = url.searchParams.get('directory')
-          if (projectDir == null) {
-            response
-              .writeHead(HTTP_STATUS_BAD_REQUEST, COMMON_HEADERS)
-              .end('Request is missing search parameter `directory`.')
-            break
-          }
-          const assetIdString = url.searchParams.get('assetId')
-          if (assetIdString == null) {
-            response
-              .writeHead(HTTP_STATUS_BAD_REQUEST, COMMON_HEADERS)
-              .end('Request is missing search parameter `assetId`.')
-            break
-          }
-          const parentDirectoryIdString = url.searchParams.get('parentDirectoryId')
-          if (parentDirectoryIdString == null) {
-            response
-              .writeHead(HTTP_STATUS_BAD_REQUEST, COMMON_HEADERS)
-              .end('Request is missing search parameter `parentDirectoryId`.')
-            break
-          }
-          const baseUrl = url.searchParams.get('baseUrl')
-          if (baseUrl == null) {
-            response
-              .writeHead(HTTP_STATUS_BAD_REQUEST, COMMON_HEADERS)
-              .end('Request is missing search parameter `baseUrl`.')
-            break
-          }
-          const assetId = ProjectId(assetIdString)
-          let startWatcher = async () => {
-            const defaultHeaders = await bodyJson<Record<string, string>>(request)
-            console.log('DEBUG start watching project', assetId)
-            const client = new HttpClient(defaultHeaders)
-            const downloader = () => {}
-            const dictionary = resolveDictionary()
-            const backendGetText: GetText = function (key, ...replacements) {
-              return getText(dictionary, key, ...replacements)
-            }
-            const backend = new RemoteBackend(backendGetText, client, downloader, new URL(baseUrl))
-            const fileName = 'project_root.enso-project'
-            const uploadParams = {
-              fileId: assetId,
-              fileName,
-              parentDirectoryId: parentDirectoryIdString as DirectoryId,
-            }
-            const watcher = watch({
-              directory: projectDir,
-              delay: PROJECT_WATCHER_CALLBACK_DELAY,
-              timeout: PROJECT_WATCHER_CALLBACK_TIMEOUT,
-              callback: async () => {
-                console.log('DEBUG UPLOADING STARTED')
-                const responseBody = await projectManagement.createBundle(projectDir)
-                const file = new File([responseBody.buffer as ArrayBuffer], fileName)
-                await uploadFile(backend, uploadParams, file)
-                console.log('DEBUG UPLOADING FINISHED')
-              },
-            })
-            return watcher
-          }
-          startWatcher()
-            .then(async (watcher) => {
-              const existingWatcher = this.watchers.get(assetId)
-              if (existingWatcher) {
-                await existingWatcher.close().catch((err) => {
-                  console.error(`Failed to stop project watcher ${assetId}`, err)
-                })
-              }
-              this.watchers.set(assetId, watcher)
-            })
-            .then(() => {
-              response.writeHead(HTTP_STATUS_OK, COMMON_HEADERS).end()
-            })
-            .catch((err) => {
-              console.error(`Failed to start project watcher ${assetId}`, err)
-              response.writeHead(HTTP_STATUS_INTERNAL_SERVER_ERROR, COMMON_HEADERS).end()
-            })
-          break
-        }
-        case 'POST /api/watch-upload-stop': {
-          const assetIdString = url.searchParams.get('assetId')
-          if (assetIdString == null) {
-            response
-              .writeHead(HTTP_STATUS_BAD_REQUEST, COMMON_HEADERS)
-              .end('Request is missing search parameter `assetId`.')
-            break
-          }
-          const assetId = ProjectId(assetIdString)
-          console.log('DEBUG stop watching project', assetId)
-          const watcher = this.watchers.get(assetId)
-          if (watcher) {
-            watcher
-              .close()
-              .catch((err) => {
-                console.error(`Failed to stop project watcher ${assetId}`, err)
-              })
-              .finally(() => {
-                response.writeHead(HTTP_STATUS_OK, COMMON_HEADERS).end()
-              })
-          } else {
-            response.writeHead(HTTP_STATUS_OK, COMMON_HEADERS).end()
-          }
           break
         }
         case 'POST /api/run-project-manager-command': {
