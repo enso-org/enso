@@ -10,4 +10,3 @@ rust_library(
     visibility = ["//visibility:public"],
     deps = all_crate_deps(normal = True),
 )
-

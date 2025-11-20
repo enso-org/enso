@@ -12,4 +12,3 @@ rust_library(
         "//build_tools/base:enso_build_base",
     ],
 )
-

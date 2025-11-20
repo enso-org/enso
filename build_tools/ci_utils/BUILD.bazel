@@ -13,4 +13,3 @@ rust_library(
         "//lib/rust/zst:enso_zst",
     ],
 )
-
