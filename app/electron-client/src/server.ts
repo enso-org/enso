@@ -14,10 +14,13 @@ import type * as vite from 'vite'
 
 import { COOP_COEP_CORP_HEADERS } from 'enso-common'
 import * as projectManagement from 'project-manager-shim'
+import type { Watcher } from 'project-manager-shim/fs'
 import {
   handleFilesystemCommand,
   handleProjectServiceRequest,
+  handleWatcherRequest,
   isProjectServiceRequest,
+  isWatcherRequest,
 } from 'project-manager-shim/handler'
 import * as ydocServer from 'ydoc-server'
 
@@ -77,6 +80,9 @@ const HTTP_STATUS_OK = 200
 const HTTP_STATUS_BAD_REQUEST = 400
 const HTTP_STATUS_NOT_FOUND = 404
 const HTTP_STATUS_INTERNAL_SERVER_ERROR = 500
+
+const PROJECT_WATCHER_CALLBACK_DELAY = 30000
+const PROJECT_WATCHER_CALLBACK_TIMEOUT = 30000
 
 // ==================
 // === fileExists ===
@@ -180,6 +186,7 @@ export class Server {
   private projectsRootDirectory: string
   private devServer?: vite.ViteDevServer
   private projectService: ProjectService
+  private watchers: Map<AssetId, Watcher> = new Map()
 
   /** Create a simple HTTP server. */
   constructor(
@@ -268,6 +275,13 @@ export class Server {
         async () => this.projectService,
         headers,
       )
+    } else if (isWatcherRequest(requestUrl)) {
+      const headers = Object.fromEntries(COOP_COEP_CORP_HEADERS)
+      const options = {
+        delay: PROJECT_WATCHER_CALLBACK_DELAY,
+        timeout: PROJECT_WATCHER_CALLBACK_TIMEOUT,
+      }
+      handleWatcherRequest(request, response, headers, this.watchers, options)
     } else if (request.url?.startsWith('/api/')) {
       const route = new URL(`https://example.com${requestUrl.replace('/api/', '/')}`)
       const params = route.searchParams

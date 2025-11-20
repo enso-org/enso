@@ -56,8 +56,8 @@ import { tarFsPack, unzipEntries, zipWriteStream } from './archive'
 // === Constants ===
 // =================
 
-const PROJECT_WATCHER_CALLBACK_DELAY = 10000
-const PROJECT_WATCHER_CALLBACK_TIMEOUT = 10000
+const PROJECT_WATCHER_CALLBACK_DELAY = 30000
+const PROJECT_WATCHER_CALLBACK_TIMEOUT = 30000
 
 const FS_MAX_RETRIES = 3
 
@@ -197,7 +197,7 @@ export class ProjectManagerShimMiddleware {
         delay: PROJECT_WATCHER_CALLBACK_DELAY,
         timeout: PROJECT_WATCHER_CALLBACK_TIMEOUT,
       }
-      handleWatcherRequest(request, response, requestPath, COMMON_HEADERS, this.watchers, options)
+      handleWatcherRequest(request, response, COMMON_HEADERS, this.watchers, options)
     } else if (requestPath.startsWith('/api/')) {
       switch (`${request.method} ${requestPath}`) {
         case `POST /api/${EXPORT_ARCHIVE_PATH}`: {

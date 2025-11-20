@@ -21,12 +21,12 @@ export function isWatcherRequest(requestPath: string): boolean {
 export async function handleWatcherRequest(
   request: http.IncomingMessage,
   response: http.ServerResponse,
-  requestPath: string,
   headers: Record<string, string>,
   watchers: Map<AssetId, Watcher>,
   options: Pick<WatchOptions, 'delay' | 'timeout'>,
 ): Promise<void> {
   const url = new URL(request.url ?? '', 'https://apishim.local')
+  const requestPath = url.pathname
   switch (`${request.method} ${requestPath}`) {
     case 'POST /api/watcher/start': {
       const projectDir = url.searchParams.get('directory')
@@ -59,7 +59,6 @@ export async function handleWatcherRequest(
       }
       const assetId = ProjectId(assetIdString)
 
-      console.log('DEBUG start watching project', assetId)
       try {
         const defaultHeaders = await bodyJson<Record<string, string>>(request)
         const client = new HttpClient(defaultHeaders)
@@ -80,11 +79,9 @@ export async function handleWatcherRequest(
           delay: options.delay,
           timeout: options.timeout,
           callback: async () => {
-            console.log('DEBUG UPLOADING STARTED')
             const responseBody = await projectManagement.createBundle(projectDir)
             const file = new File([responseBody.buffer as ArrayBuffer], fileName)
             await uploadFile(backend, uploadParams, file)
-            console.log('DEBUG UPLOADING FINISHED')
           },
         })
 
@@ -111,7 +108,6 @@ export async function handleWatcherRequest(
         break
       }
       const assetId = ProjectId(assetIdString)
-      console.log('DEBUG stop watching project', assetId)
       const watcher = watchers.get(assetId)
       if (watcher) {
         await watcher
@@ -128,7 +124,7 @@ export async function handleWatcherRequest(
       break
     }
     default: {
-      throw new Error(`Unknown project service request ${requestPath}`)
+      throw new Error(`Unknown watcher request ${requestPath}`)
     }
   }
 }
