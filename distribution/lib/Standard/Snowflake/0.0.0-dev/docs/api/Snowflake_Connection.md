@@ -10,6 +10,7 @@
     - database self -> Standard.Base.Any.Any
     - databases self -> Standard.Base.Any.Any
     - default_formatter self -> Standard.Table.Data_Formatter.Data_Formatter
+    - dialect -> Standard.Base.Any.Any
     - dialect self -> Standard.Base.Any.Any
     - drop_table self table_name:Standard.Base.Any.Any if_exists:Standard.Base.Any.Any= -> Standard.Base.Any.Any
     - execute self query:Standard.Base.Any.Any -> Standard.Base.Any.Any

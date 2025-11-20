@@ -249,7 +249,11 @@ add_nothing_specs suite_builder setup =
                 t1 = table . distinct ["x"]
                 v = t1.at "x" . to_vector
                 v . length . should_equal 3
-                v . should_equal_ignoring_order [value, other_value, Nothing]
+                ## Database Can Report Date_Time in different zone
+                m = case value_type of
+                    Value_Type.Date_Time True -> v.map d-> if d.is_a Date_Time then d.at_zone zone else d
+                    _ -> v
+                m . should_equal_ignoring_order [value, other_value, Nothing]
 
         group_builder.specify "Correctly handle Nothing in .distinct for Nothing" <|
             table = table_builder_typed [["x", [Nothing, Nothing, Nothing, Nothing, Nothing, Nothing]]] Value_Type.Char
@@ -273,8 +277,18 @@ add_nothing_specs suite_builder setup =
 
                 group_builder.specify "Correctly handle Nothing in .sort (asc) for "+value_type.to_text <|
                     t1 = table.get . sort [..Name "x" ..Ascending]
-                    t1.at "x" . to_vector . should_equal [Nothing, Nothing, Nothing, value, value, other_value, other_value]
+                    v = t1.at "x" . to_vector
+                    ## Database Can Report Date_Time in different zone
+                    m = case value_type of
+                        Value_Type.Date_Time True -> v.map d-> if d.is_a Date_Time then d.at_zone zone else d
+                        _ -> v
+                    m . should_equal [Nothing, Nothing, Nothing, value, value, other_value, other_value]
 
                 group_builder.specify "Correctly handle Nothing in .sort (desc) for "+value_type.to_text <|
                     t1 = table.get . sort [..Name "x" ..Descending]
-                    t1.at "x" . to_vector . should_equal [other_value, other_value, value, value, Nothing, Nothing, Nothing]
+                    v = t1.at "x" . to_vector
+                    ## Database Can Report Date_Time in different zone
+                    m = case value_type of
+                        Value_Type.Date_Time True -> v.map d-> if d.is_a Date_Time then d.at_zone zone else d
+                        _ -> v
+                    m . should_equal [other_value, other_value, value, value, Nothing, Nothing, Nothing]

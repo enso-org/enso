@@ -16,6 +16,7 @@ import project.Internal.Common.Connections_Helpers
 import project.Internal.Connection.Entity_Naming_Properties.Entity_Naming_Properties
 import project.Internal.Data_Link_Setup.Data_Link_Setup
 import project.Internal.JDBC_Connection
+import project.Internal.Postgres.Postgres_Dialect
 import project.Internal.Postgres.Postgres_Type_Mapping.Postgres_Type_Mapping
 import project.SQL.SQL_Statement
 import project.SQL_Query.SQL_Query
@@ -29,6 +30,12 @@ polyglot java import org.enso.database.JDBCDriverTypes
 polyglot java import org.enso.database.JDBCProxy
 
 type Postgres_Connection
+    ## ---
+       private: true
+       ---
+    dialect : Dialect.Dialect
+    dialect = Postgres_Dialect.postgres
+
     ## ---
        private: true
        ---
@@ -52,7 +59,7 @@ type Postgres_Connection
            Our generator is supposed to always quote identifiers
         entity_naming_properties = Entity_Naming_Properties.from_jdbc_connection jdbc_connection encoding is_case_sensitive=True
 
-        Postgres_Connection.Value (Connection.new jdbc_connection Dialect.postgres Postgres_Type_Mapping entity_naming_properties data_link_setup) make_new
+        Postgres_Connection.Value (Connection.new jdbc_connection Postgres_Connection.dialect Postgres_Type_Mapping entity_naming_properties data_link_setup) make_new
 
     ## ---
        private: true
