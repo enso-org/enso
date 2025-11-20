@@ -4,8 +4,6 @@ import Standard.Base.Data.Vector.No_Wrap
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Runtime.Context
 
-from Standard.Table import Table
-
 import project.Column_Description.Column_Description
 import project.DB_Table.DB_Table
 from project.Internal.Upload.Operations.Upload_Table import create_table_structure

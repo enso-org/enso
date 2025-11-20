@@ -47,7 +47,11 @@ public final class JDBCProxy {
    * @return a connection
    */
   public static Connection getConnectionWithCatalogSchema(
-      String url, List<HideableValue.KeyValuePair> properties, String catalog, String schema, String initScript)
+      String url,
+      List<HideableValue.KeyValuePair> properties,
+      String catalog,
+      String schema,
+      String initScript)
       throws SQLException {
     // We need to manually register all the drivers because the DriverManager is not able
     // to correctly use our class loader, it only delegates to the platform class loader when

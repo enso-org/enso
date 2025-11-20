@@ -1,11 +1,9 @@
 from Standard.Base import all
 import Standard.Base.Errors.Common.Type_Error
-import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Runtime.Ref.Ref
 
 import project.Internal.Widget_Helpers
 import project.Join_Condition.Join_Condition
-import project.Join_Kind.Join_Kind
 import project.Table.Table
 
 ## Extension methods for Spatial Tables
