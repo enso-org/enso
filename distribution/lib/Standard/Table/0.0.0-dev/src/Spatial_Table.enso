@@ -1,0 +1,62 @@
+from Standard.Base import all
+import Standard.Base.Errors.Common.Type_Error
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+
+import project.Internal.Widget_Helpers
+import project.Join_Condition.Join_Condition
+import project.Join_Kind.Join_Kind
+import project.Table.Table
+
+## Extension methods for Spatial Tables
+type Spatial_Table
+    private Table parent:Table
+
+    ## Spatial join
+    @on s-> Widget_Helpers.make_join_condition_selector include_spatial=True s.parent
+    @join_kind Join_Kind.default_widget
+    spatial_join self (right : Table = Missing_Argument.throw "right") join_kind:Join_Kind=..Left_Outer (on : Vector (Spatial_Join_Condition | Join_Condition | Text) Spatial_Join_Condition | Text | Join_Condition = [Join_Condition.Equals self.parent.column_names.first]) (right_prefix : Text = "Right ") on_problems:Problem_Behavior=..Report_Warning -> Table & Any =
+        if right.is_a Spatial_Table . not then Error.throw (Illegal_Argument.Error "The right table must be a Spatial Table, for non-spatial joins use join.") else
+            resolved_on = Vector.unify_vector_or_element on . map jc->
+                if jc.is_a Function . not then Join_Condition.from jc else
+                    as_sjc = Panic.catch Type_Error (jc:Spatial_Join_Condition) _->jc
+                    Join_Condition.from as_sjc
+            self.parent.join right join_kind resolved_on right_prefix on_problems
+
+## ---
+   private: true
+   ---
+Spatial_Table.from (that:Table) = Spatial_Table.Table that
+
+## ---
+   private: true
+   ---
+Table.from (that:Spatial_Table) = that.parent
+
+## Additional join kind for Spatial Table joins
+type Spatial_Join_Condition
+    ## Do the left and right spatial objects have at least one point in common.
+    Intersect left right
+
+    ## Does the whole of the right object lie inside the left object.
+    Contains left right
+
+    ## Does the whole of the right object lie inside the left object not
+       touching the boundary.
+    Contains_Properly left right
+
+    ## Does the whole of the left object lie inside the right object
+       (equivalent to `Contains right left`).
+    Within left right
+
+    ## Does left object overlap right object.
+    Overlaps left right
+
+## ---
+   private: true
+   ---
+Join_Condition.from (that:Spatial_Join_Condition) = case that of
+    Spatial_Join_Condition.Intersect left right -> Join_Condition.Custom_Sql "ST_Intersects" left right
+    Spatial_Join_Condition.Contains left right -> Join_Condition.Custom_Sql "ST_Contains" left right
+    Spatial_Join_Condition.Contains_Properly left right -> Join_Condition.Custom_Sql "ST_ContainsProperly"  left right
+    Spatial_Join_Condition.Within left right -> Join_Condition.Custom_Sql "ST_Within" left right
+    Spatial_Join_Condition.Overlaps left right -> Join_Condition.Custom_Sql "ST_Overlaps" left right

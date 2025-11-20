@@ -209,8 +209,8 @@ make_filter_condition_selector table display:Display=..Always cache=Nothing =
    private: true
    ---
    Make a join condition selector.
-make_join_condition_selector : Table -> Display -> Any -> Widget
-make_join_condition_selector table display:Display=..Always cache=Nothing =
+make_join_condition_selector : Table -> Boolean -> Display -> Any -> Widget
+make_join_condition_selector table include_spatial:Boolean=False display:Display=..Always cache=Nothing =
     right = cache.if_not_nothing <| cache "right"
     self_selector = make_column_name_selector table display=Display.Always
     right_selector = if right.is_nothing then Text_Input else
@@ -221,7 +221,15 @@ make_join_condition_selector table display:Display=..Always cache=Nothing =
     between = Option "Between" "..Between" [["left", self_selector], ["right_lower", right_selector], ["right_upper", right_selector]]
     names=[equals, equals_ci, between]
 
-    item_editor = Single_Choice display=display values=names
+    spatial = if include_spatial==False then [] else
+        intersect = Option "Intersect" "..Intersect" [["left", self_selector], ["right", right_selector]]
+        contains = Option "Contains" "..Contains" [["left", self_selector], ["right", right_selector]]
+        contains_properly = Option "Contains_Properly" "..Contains_Properly" [["left", self_selector], ["right", right_selector]]
+        within = Option "Within" "..Within" [["left", self_selector], ["right", right_selector]]
+        overlaps = Option "Overlaps" "..Overlaps" [["left", self_selector], ["right", right_selector]]
+        [intersect, contains, contains_properly, within, overlaps]
+
+    item_editor = Single_Choice display=display values=names+spatial
     Vector_Editor item_editor=item_editor item_default="(..Equals "+table.column_names.first.pretty+")" display=display
 
 ## ---
