@@ -63,8 +63,6 @@ export project.Simple_Expression.Simple_Expression
 
 export project.Sort_Column.Sort_Column
 
-export project.Spatial_Table.Spatial_Table
-
 export project.Table.Table
 
 export project.Value_Type.Auto

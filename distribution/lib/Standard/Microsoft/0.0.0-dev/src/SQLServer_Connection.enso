@@ -293,7 +293,7 @@ type SQLServer_Connection
        Database interprets the provided values and may not reflect the types of
        the source table. If you need more sophisticated type mapping mechanism,
        use `create_table` instead.
-    create_literal_table self (source : Table) (alias : Text) -> Table & DB_Table =
+    create_literal_table self (source : Table) (alias : Text) -> Table & DB_Table & Any =
         DB_Table_Module.make_literal_table self (source.columns.map .to_vector) source.column_names alias
 
     ## ---
