@@ -39,7 +39,7 @@ export function submitForm(
       const query = new URLSearchParams({
         /* eslint-disable @typescript-eslint/naming-convention, camelcase */
         client_id: ms365OauthClientId,
-        redirect_uri: getOauthRedirectUri('MS365'),
+        redirect_uri: 'https://7aqkn3tnbc.execute-api.eu-west-1.amazonaws.com/oauth/ms365/callback', // getOauthRedirectUri('MS365'),
         response_type: 'code',
         response_mode: 'query',
         state,

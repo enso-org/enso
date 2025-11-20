@@ -466,6 +466,7 @@ impl Processor {
                                     // Image tests check interaction between Image read/write and
                                     // datalinks
                                     "Image_Tests".to_string(),
+                                    "Microsoft_Tests".to_string(),
                                 ]));
                             config.use_native_runner = true;
                         }
