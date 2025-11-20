@@ -20,16 +20,10 @@ type Email_Address
        private: true
        ---
     default_widget (display : Display = ..Always) -> Widget =
-        name = [Option "Address" "'sender@domain.com'"]
+        name = [Option "Address" "'name@domain.com'"]
         name_address = [Option "Name And Address" "..Address 'name@domain.com' 'Name'"]
         values = name + name_address
         Single_Choice values=values display=display
-
-    ## ---
-       private: true
-       ---
-    vector_widget (display : Display = ..Always) -> Widget =
-        Vector_Editor Email_Address.default_widget item_default="'receiver@domain.com'" display=display
 
 ## ---
    private: true

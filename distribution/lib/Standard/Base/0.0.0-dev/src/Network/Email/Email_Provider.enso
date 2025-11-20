@@ -5,6 +5,7 @@ import project.Data.Text.Text
 import project.Enso_Cloud.Enso_Secret.Enso_Secret
 import project.Errors.Common.Missing_Argument
 import project.Network.Email.Email_Address.Email_Address
+import project.Network.Email.Email_Attachment.Email_Attachment
 import project.Network.Email.Email_Body.Email_Body
 import project.Network.Email.Email
 import project.Network.Email.Email_Send_Response.Send_Response
@@ -63,7 +64,7 @@ private _prepare_html_body html_content =
         Email_Body.HTML _ _ -> JS_Object.from_pairs [["type", "text/html"], ["value", html_content.html]]
     html_object
 
-private _prepare_attachment attachment =
+private _prepare_attachment attachment:Email_Attachment =
     file_handle = File.new attachment.file
     file_bytes = file_handle.read_bytes
     encoded_content = Base64.getEncoder.encodeToString file_bytes
