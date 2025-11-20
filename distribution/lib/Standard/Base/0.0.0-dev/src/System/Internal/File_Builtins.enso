@@ -40,6 +40,7 @@ delete_recursively path:Java_Path =
         children = Java_Files.list path . toList
         children.each \child ->
             delete_recursively child
+        Java_Files.delete path
 
 is_dir file:(File|Java_Path) -> Boolean =
     path = case file of
