@@ -1,6 +1,8 @@
 private
 
 import project.Data.Boolean.Boolean
+import project.Data.Time.Date_Time.Date_Time
+import project.Data.Time.Time_Zone
 import project.Data.Text.Text
 import project.System.File.File
 import project.System.File_Format.Bytes
@@ -11,6 +13,8 @@ import project.System.File_Format.Plain_Text_Format
 polyglot java import java.nio.file.Path as Java_Path
 polyglot java import java.nio.file.Files as Java_Files
 polyglot java import java.nio.file.LinkOption as Java_LinkOption
+polyglot java import java.time.ZonedDateTime as Java_ZonedDateTime
+polyglot java import java.time.ZoneOffset as Java_ZoneOffset
 
 ## The builtin that returns a File instance for a given path.
 get_file path:Text =
@@ -32,7 +36,7 @@ delete_builtin file:File recursive:Boolean =
         Java_Files.delete file.java_path
 
 delete_recursively path:Java_Path =
-    if is_dir.not path then Java_Files.delete path else
+    if (is_dir path).not then Java_Files.delete path else
         children = Java_Files.list path . toList
         children.each \child ->
             delete_recursively child
@@ -49,26 +53,6 @@ file_time_to_date_time file_time -> Date_Time =
     instant = file_time.toInstant
     zoned_dt = Java_ZonedDateTime.ofInstant instant Java_ZoneOffset.UTC
     Date_Time.new zoned_dt.getYear zoned_dt.getMonthValue zoned_dt.getDayOfMonth zoned_dt.getHour zoned_dt.getMinute zoned_dt.getSecond zoned_dt.getNano Time_Zone.utc
-
-
-read_last_bytes_builtin file n = @Builtin_Method "File.read_last_bytes_builtin"
-
-## Creates a new output stream for this file. Recommended to use
-   `File.with_output_stream` instead, which does resource management.
-
-   ## Arguments
-    - `options`: A vector of `File_Access` objects determining how to open the
-      stream. These options set the access properties of the stream.
-output_stream_builtin file options = @Builtin_Method "File.output_stream_builtin"
-
-## Creates a new input stream for this file. Recommended to use
-   `File.with_input_stream` instead, which does resource management.
-
-   ## Arguments
-    - `options`: A vector of `StandardOpenOption` polyglot objects determining
-      how to open the stream. These options set the access properties of the
-      stream.
-input_stream_builtin file options = @Builtin_Method "File.input_stream_builtin"
 
 ## registration of basic file format implementations
 type Default_File_Formats
