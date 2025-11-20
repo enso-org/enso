@@ -152,7 +152,7 @@ type File
        ```
     current_directory : File
     current_directory =
-        File.new (Java_Path.of ".")
+        File.Value (Java_Path.of ".")
 
     ## ---
        aliases: [home directory]
