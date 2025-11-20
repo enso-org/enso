@@ -55,6 +55,35 @@ public class NonStrictModeTests {
   }
 
   @Test
+  public void testAmbiguousConversionWithComments() {
+    String src =
+        """
+        type Foo
+           Mk_Foo data
+        type Bar
+           Mk_Bar x
+
+        ## This is a multi line
+          documentation that should be ignored
+          when reporting the location of the error
+        Foo.from (that:Bar) = Foo.Mk_Foo that.x+100
+
+        ## Documentation line to be ignored
+        Foo.from (that:Bar) = Foo.Mk_Foo that.x+1000
+
+        main = 42
+        """;
+    Value res = ctxRule.evalModule(src);
+    assertEquals(42, res.asInt());
+
+    // Even if the conversion is unused and non-strict mode, we still get a diagnostic report:
+    logHandler.assertMessage(
+        "enso.org.enso.compiler.Compiler",
+        "Unnamed:12:1: error: Ambiguous conversion: Foo.from Bar is defined multiple times in this"
+            + " module.");
+  }
+
+  @Test
   public void testAmbiguousConversionUsage() {
     // In non-strict mode, the conversion declarations will have errors attached to the IR, but the
     // overall operation

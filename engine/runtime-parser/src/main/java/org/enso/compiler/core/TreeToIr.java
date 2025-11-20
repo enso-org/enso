@@ -2139,9 +2139,11 @@ final class TreeToIr {
   private IdentifiedLocation getIdentifiedLocation(
       Tree.Function fn, int b, int e, Option<UUID> someId) {
     var orig = getIdentifiedLocation((Tree) fn, b, e, someId);
-    var startName = castToInt(fn.getName().getStartCode()) + b;
-    var startBody = castToInt(fn.getBody().getStartCode()) + b;
-    var start = Math.min(startName, startBody);
+    var start = castToInt(fn.getName().getStartCode()) + b;
+    if (fn.getBody() != null) {
+      var startBody = castToInt(fn.getBody().getStartCode()) + b;
+      start = Math.min(start, startBody);
+    }
     if (fn.getPrivate() != null) {
       var startPriv = castToInt(fn.getPrivate().getStartCode()) + b;
       start = Math.min(start, startPriv);
