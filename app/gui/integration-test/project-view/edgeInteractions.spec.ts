@@ -39,7 +39,7 @@ test('Connect an node to a port', async ({ editorPage, page }) => {
     force: true,
   })
   // Click the target port in the `prod` node.
-  const targetPort = page.locator('span').filter({ hasText: /^sum$/ })
+  const targetPort = page.locator('.WidgetToken').filter({ hasText: /^sum$/ })
   // We need `force: true` because edge connecting is handled in capture phase and may result
   // in port change, what confuses playwright's actionability checks.
   await targetPort.click({ force: true, noWaitAfter: true })
@@ -53,7 +53,7 @@ test('Connect an node to a port via dragging the edge', async ({ editorPage, pag
 
   await expect(await edgesToNodeWithBinding(page, 'sum')).toHaveCount(3)
   const targetEdge = await locate.connectedEdgesFromNodeWithBinding(page, 'ten')
-  const targetPort = page.locator('span').filter({ hasText: /^sum$/ })
+  const targetPort = page.locator('.WidgetToken').filter({ hasText: /^sum$/ })
   // Hover over edge to the left of node with binding `ten`.
   await targetEdge.dragTo(targetPort, {
     sourcePosition: { x: 470, y: 25.0 },

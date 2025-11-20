@@ -13,6 +13,7 @@
     - generate_truncate_table_sql self table_name:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - get_limit_sql_modifier self limit:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - get_part_order self part:Standard.Database.Internal.SQL_Part.SQL_Part -> Standard.Base.Data.Numbers.Integer
+    - get_supported_replace_params self -> Standard.Base.Any.Any
     - if_replace_params_supports self replace_params:Standard.Base.Any.Any ~action:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - is_feature_supported self feature:Standard.Database.Dialects.Feature.Feature -> Standard.Base.Data.Boolean.Boolean
     - is_operation_supported self operation:Standard.Base.Data.Text.Text -> Standard.Base.Data.Boolean.Boolean
@@ -29,5 +30,3 @@
 - type Temp_Table_Style
     - Hash_Prefix
     - Temporary_Table
-- postgres -> Standard.Base.Any.Any
-- sqlite -> Standard.Base.Any.Any

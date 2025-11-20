@@ -195,7 +195,7 @@ export const widgetDefinition = defineWidget(
 <template>
   <div
     ref="portRoot"
-    class="WidgetPort"
+    class="WidgetPort widgetParent"
     :data-port="props.input.portId"
     :class="{
       enabled,
@@ -212,14 +212,8 @@ export const widgetDefinition = defineWidget(
 
 <style scoped>
 .WidgetPort {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  justify-content: center;
   position: relative;
-  text-align: center;
   border-radius: var(--node-port-border-radius);
-  min-height: var(--node-port-height);
   min-width: var(--node-port-height);
   transition: background-color 0.2s ease;
 }

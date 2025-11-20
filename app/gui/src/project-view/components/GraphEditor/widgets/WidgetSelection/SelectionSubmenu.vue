@@ -10,12 +10,11 @@ import { computed, nextTick, ref, toRef, useTemplateRef, watch, type ComputedRef
 import { submenuDropdownStyles } from './styles'
 import { isSubmenuEntry, type SubmenuEntry } from './submenuEntry'
 
-const { extendUpwards = true, ...props } = defineProps<{
+const props = defineProps<{
   floatReference: Opt<HTMLElement>
   show: boolean
   entries: T[]
   topLevel?: boolean
-  extendUpwards?: boolean
   color?: string | undefined
   backgroundColor?: string | undefined
 }>()
@@ -118,11 +117,7 @@ export interface SubmenuComponent {
       <SizeTransition height :duration="100">
         <DropdownWidget
           v-if="props.show"
-          :class="[
-            'widgetPill',
-            { outlined: !props.topLevel },
-            { ExtendUpwards: props.topLevel && extendUpwards },
-          ]"
+          class="outlined"
           :entries="entries"
           @clickEntry="onClick"
           @scroll="onScroll"
