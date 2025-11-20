@@ -871,7 +871,7 @@ export class LocalBackend extends backend.Backend {
   }
 
   /** Start watching project directory. */
-  async startWatcher(
+  async startWatchingHybridProject(
     assetId: backend.AssetId,
     localProjectId: backend.ProjectId,
     parentDirectoryId: backend.DirectoryId,
@@ -895,7 +895,7 @@ export class LocalBackend extends backend.Backend {
   }
 
   /** Stop watching project directory. */
-  async stopWatcher(assetId: backend.AssetId): Promise<void> {
+  async stopWatchingHybridProject(assetId: backend.AssetId): Promise<void> {
     const queryString = new URLSearchParams({
       assetId,
     }).toString()

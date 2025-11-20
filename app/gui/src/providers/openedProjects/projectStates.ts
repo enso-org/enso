@@ -322,13 +322,17 @@ export function useProjectStates() {
     details?: Ref<ProjectDetails>,
   ) {
     if (!backends.localBackend) return Err('Cannot open local project: Local Backend missing.')
-    await backends.localBackend.startWatcher(
-      info.id,
-      info.localProjectId,
-      info.parentId,
-      backends.remoteBackend.baseUrl,
-      httpClient.defaultHeaders,
-    )
+    await backends.localBackend
+      .startWatchingHybridProject(
+        info.id,
+        info.localProjectId,
+        info.parentId,
+        backends.remoteBackend.baseUrl,
+        httpClient.defaultHeaders,
+      )
+      .catch((err) => {
+        console.error(`Failed to start watching hybrid project ${info.id}`, err)
+      })
     const cloudParentPath = EnsoPath(info.ensoPath.slice(0, info.ensoPath.lastIndexOf('/')))
     const result = await catchNetworkError(
       backends.localBackend.openProject(
@@ -582,11 +586,15 @@ export function useProjectStates() {
     project: HybridUploaded | HybridOpened | HybridDownloaded,
   ): Promise<Result<NotOpened>> {
     if (project.status === 'hybrid-uploaded') {
-      await backends.localBackend?.stopWatcher(project.info.id)
+      await backends.localBackend?.stopWatchingHybridProject(project.info.id).catch((err) => {
+        console.error(`Failed to stop watching hybrid project ${project.info.id}`, err)
+      })
       await deleteLocalVersionOfHybridProject(project.info.localParentId)
     }
     if (project.status === 'hybrid-downloaded') {
-      await backends.localBackend?.stopWatcher(project.info.id)
+      await backends.localBackend?.stopWatchingHybridProject(project.info.id).catch((err) => {
+        console.error(`Failed to stop watching hybrid project ${project.info.id}`, err)
+      })
       await deleteLocalVersionOfHybridProject(project.localProjectParentId)
     }
     await closeRemoteProject.mutateAsync([project.info.id, project.info.title])
