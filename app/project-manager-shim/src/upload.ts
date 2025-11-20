@@ -137,7 +137,6 @@ async function uploadChunksWithParallelism(
 /**
  * Upload a file to the backend using multipart upload.
  * This is a standalone implementation that doesn't depend on React hooks or toast notifications.
- *
  * @param backend - The backend instance to use for upload operations
  * @param body - Upload request parameters
  * @param file - The file to upload

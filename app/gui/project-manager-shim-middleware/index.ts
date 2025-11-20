@@ -57,7 +57,7 @@ import { tarFsPack, unzipEntries, zipWriteStream } from './archive'
 // =================
 
 const PROJECT_WATCHER_CALLBACK_DELAY = 30000
-const PROJECT_WATCHER_CALLBACK_TIMEOUT = 30000
+const PROJECT_WATCHER_CALLBACK_TIMEOUT = 300000
 
 const FS_MAX_RETRIES = 3
 
