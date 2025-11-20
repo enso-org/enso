@@ -21,6 +21,8 @@
 - [Added immediate rename of user created components][14209]
 - [Multiple opened projects' tabs are now allowed][14215]
 - [Required arguments now have an arrow displayed on top of the port][14270]
+- [Improved visuals of high components][14267]. Their contents is aligned to
+  top.
 
 [13685]: https://github.com/enso-org/enso/pull/13685
 [13658]: https://github.com/enso-org/enso/pull/13658
@@ -39,6 +41,7 @@
 [14209]: https://github.com/enso-org/enso/pull/14209
 [14215]: https://github.com/enso-org/enso/pull/14215
 [14270]: https://github.com/enso-org/enso/pull/14270
+[14267]: https://github.com/enso-org/enso/pull/14267
 
 #### Enso Standard Library
 
@@ -59,6 +62,7 @@
 - [Add error_on_missing_columns to more methods.][14236]
 - [Progress of `Runtime.sleep` visualized.][14275]
 - [Add Email.send][14258]
+- [Full DuckDB Dialect.][14298]
 
 [13769]: https://github.com/enso-org/enso/pull/13769
 [14026]: https://github.com/enso-org/enso/pull/14026
@@ -76,9 +80,11 @@
 [14236]: https://github.com/enso-org/enso/pull/14236
 [14275]: https://github.com/enso-org/enso/pull/14275
 [14258]: https://github.com/enso-org/enso/pull/14258
+[14298]: https://github.com/enso-org/enso/pull/14298
 
 #### Enso Language & Runtime
 
+- [Special handling of if ... then ... else construct][11365]
 - [Enso is "conversion and equality oriented" language][14133]
 - [Moving >, >=, <, <= to types where such operators make sense][14017]
 - [Moving warning releated methods outside of `Any`][13978]
@@ -94,6 +100,7 @@
 - [Update to GraalVM 25.0.1][14233]
 - [Apply block argument to non-application expression][14249]
 
+[11365]: https://github.com/enso-org/enso/pull/11365
 [14133]: https://github.com/enso-org/enso/pull/14133
 [14017]: https://github.com/enso-org/enso/pull/14017
 [14003]: https://github.com/enso-org/enso/pull/14003

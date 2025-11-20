@@ -1367,7 +1367,7 @@ private[runtime] class IrToTruffle(
       * @param caseExpr the case expression to generate code for
       * @return the truffle nodes corresponding to `caseExpr`
       */
-    def processCase(
+    private def processCase(
       caseExpr: Case,
       subjectToInstrumentation: Boolean
     ): RuntimeExpression =
@@ -1376,7 +1376,9 @@ private[runtime] class IrToTruffle(
           val scrutineeNode =
             this.run(caseExpr.scrutinee, subjectToInstrumentation)
 
-          val maybeCases    = caseExpr.branches.map(processCaseBranch)
+          val maybeCases = caseExpr.branches.map(b =>
+            processCaseBranch(b, subjectToInstrumentation)
+          )
           val allCasesValid = maybeCases.forall(_.isRight)
 
           if (allCasesValid) {
@@ -1416,8 +1418,9 @@ private[runtime] class IrToTruffle(
       * @return the truffle nodes correspondingg to `caseBranch` or an error if
       *         the match is invalid
       */
-    def processCaseBranch(
-      branch: Case.Branch
+    private def processCaseBranch(
+      branch: Case.Branch,
+      subjectToInstrumentation: Boolean
     ): Either[BadPatternMatch, BranchNode] = {
       val scopeInfo = childScopeInfo("case branch", branch)
       def frameInfo() = branch
@@ -1428,7 +1431,10 @@ private[runtime] class IrToTruffle(
         .asInstanceOf[FrameVariableNames]
       val childProcessor =
         this.createChild(
-          "case_branch",
+          branch.pattern match {
+            case _: Pattern.Bool => "if_then_else"
+            case _               => "case_branch"
+          },
           () => scopeInfo().scope,
           "case " + currentVarName,
           frameInfo
@@ -1441,13 +1447,27 @@ private[runtime] class IrToTruffle(
           val branchCodeNode = childProcessor.processFunctionBody(
             arg,
             branch.expression,
-            branch.location
+            branch.location,
+            subjectToInstrumentation = subjectToInstrumentation
           )
 
           val branchNode =
             CatchAllBranchNode.build(branchCodeNode.getCallTarget, true)
 
           Right(branchNode)
+        case Pattern.Bool(condition, _, _) =>
+          val branchCodeNode = childProcessor.processFunctionBody(
+            Nil,
+            branch.expression,
+            branch.location,
+            subjectToInstrumentation = subjectToInstrumentation
+          )
+          val node = BooleanBranchNode.build(
+            condition,
+            branchCodeNode.getCallTarget,
+            branch.terminalBranch
+          )
+          Right(node)
         case cons @ Pattern.Constructor(constructor, _, _, _) =>
           if (!cons.isDesugared) {
             throw new CompilerError(
@@ -1462,7 +1482,8 @@ private[runtime] class IrToTruffle(
           val branchCodeNode = childProcessor.processFunctionBody(
             fieldsAsArgs,
             branch.expression,
-            branch.location
+            branch.location,
+            subjectToInstrumentation = subjectToInstrumentation
           )
 
           constructor match {
@@ -1625,7 +1646,8 @@ private[runtime] class IrToTruffle(
           val branchCodeNode = childProcessor.processFunctionBody(
             Nil,
             branch.expression,
-            branch.location
+            branch.location,
+            subjectToInstrumentation = subjectToInstrumentation
           )
 
           literalPattern.literal match {
@@ -1695,7 +1717,8 @@ private[runtime] class IrToTruffle(
                   val branchCodeNode = childProcessor.processFunctionBody(
                     argOfType,
                     branch.expression,
-                    branch.location
+                    branch.location,
+                    subjectToInstrumentation = subjectToInstrumentation
                   )
                   Right(
                     CatchTypeBranchNode.build(
@@ -1733,7 +1756,8 @@ private[runtime] class IrToTruffle(
                 val branchCodeNode = childProcessor.processFunctionBody(
                   argOfType,
                   branch.expression,
-                  branch.location
+                  branch.location,
+                  subjectToInstrumentation = subjectToInstrumentation
                 )
                 Right(
                   PolyglotSymbolTypeBranchNode.build(
@@ -2266,10 +2290,18 @@ private[runtime] class IrToTruffle(
       arguments: List[DefinitionArgument],
       body: Expression,
       location: Option[IdentifiedLocation],
-      binding: Boolean = false
+      binding: Boolean                  = false,
+      subjectToInstrumentation: Boolean = false
     ): CreateFunctionNode = {
       val bodyBuilder =
-        new BuildFunctionBody(scopeName, arguments, body, null, None, false)
+        new BuildFunctionBody(
+          scopeName,
+          arguments,
+          body,
+          null,
+          None,
+          subjectToInstrumentation
+        )
       val fnRootNode = ClosureRootNode.build(
         language,
         scope,
@@ -2278,7 +2310,7 @@ private[runtime] class IrToTruffle(
         makeSource(scopeBuilder.getModule),
         makeLocation(location),
         scopeName,
-        false,
+        subjectToInstrumentation,
         binding
       )
       val callTarget = fnRootNode.getCallTarget

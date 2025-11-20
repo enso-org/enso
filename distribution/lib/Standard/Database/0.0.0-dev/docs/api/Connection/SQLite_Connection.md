@@ -9,6 +9,7 @@
     - create_table self table_name:Standard.Base.Data.Text.Text structure:(Standard.Base.Any.Any|Standard.Table.Table.Table) primary_key:(Standard.Base.Any.Any|Standard.Base.Nothing.Nothing)= temporary:Standard.Base.Data.Boolean.Boolean= allow_existing:Standard.Base.Data.Boolean.Boolean= on_problems:Standard.Base.Errors.Problem_Behavior.Problem_Behavior= -> Standard.Base.Any.Any
     - database self -> Standard.Base.Any.Any
     - databases self -> Standard.Base.Any.Any
+    - dialect -> Standard.Base.Any.Any
     - dialect self -> Standard.Base.Any.Any
     - drop_table self table_name:Standard.Base.Any.Any if_exists:Standard.Base.Any.Any= -> Standard.Base.Any.Any
     - execute self query:Standard.Base.Any.Any -> Standard.Base.Any.Any

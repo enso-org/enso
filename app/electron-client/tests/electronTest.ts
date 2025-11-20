@@ -131,10 +131,10 @@ export async function createNewProject(page: Page) {
  */
 export async function closeWelcome(page: Page) {
   const welcomeProjectTab = page.getByRole('tab', { name: 'Getting Started with Enso' })
-  const loadingIndicator = page.locator('.LoadingSpinner')
+  const loadingIndicator = welcomeProjectTab.locator('.LoadingSpinner')
   await Promise.race([
     welcomeProjectTab
-      .waitFor({ state: 'visible' })
+      .waitFor({ state: 'visible', timeout: 0 })
       .then(() => loadingIndicator.waitFor({ state: 'hidden' })),
     page.waitForTimeout(3000),
   ])

@@ -414,15 +414,17 @@ _make_json_for_value val level=0 = case val of
             prepared = if table.column_count > 5 then truncated + ["… " + (table.column_count - 5).to_text+ " more"] else truncated
             "Table{" + table.row_count.to_text + " rows x [" + (prepared.join ", ") + "]}"
     col : Column ->
-        if level != 0 then "Column{" +col.name + ": " + col.row_count.to_text + " rows}" else
+        if level != 0 then "Column{" + col.name + ": " + col.row_count.to_text + " rows}" else
             items = _make_json_for_value col.to_vector level
             "Column{" + col.name + ": " + items + "}"
-    table : DB_Table ->
+    db_table : DB_Table ->
+        table = db_table : Table
         if level != 0 then "DB_Table{" + table.column_count.to_text + " columns}" else
             truncated = table.columns.take 5 . map _.name
             prepared = if table.column_count > 5 then truncated + ["… " + (table.column_count - 5).to_text+ " more"] else truncated
             "DB_Table{" + table.row_count.to_text + " rows x [" + (prepared.join ", ") + "]}"
-    col : DB_Column ->
+    db_col : DB_Column ->
+        col = db_col : Column
         if level != 0 then "DB_Column{"+col.name+"}" else
             "DB_Column{" + col.name + ": " + col.length.to_text + " rows}"
     f : Function -> "[Function "+f.to_text+"]"

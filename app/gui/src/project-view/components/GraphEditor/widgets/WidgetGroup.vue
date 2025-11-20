@@ -38,17 +38,17 @@ export const widgetDefinition = defineWidget(
 </script>
 
 <template>
-  <div class="WidgetGroup">
-    <span v-if="displayParenthesis" class="token widgetApplyPadding">(</span>
+  <div class="WidgetGroup widgetParent">
+    <span v-if="displayParenthesis" class="token widgetSingleLine widgetApplyPadding">(</span>
     <NodeWidget v-if="child" :input="child" />
-    <span v-if="displayParenthesis" class="token widgetApplyPadding">)</span>
+    <span v-if="displayParenthesis" class="token widgetSingleLine widgetApplyPadding">)</span>
   </div>
 </template>
 
 <style scoped>
 .WidgetGroup {
   display: flex;
-  align-items: center;
+  align-items: stretch;
 }
 
 .token {

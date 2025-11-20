@@ -54,6 +54,7 @@ export interface CreateProject {
 export interface OpenProject {
   readonly languageServerJsonAddress: Socket
   readonly languageServerBinaryAddress: Socket
+  readonly languageServerYdocAddress: Socket
   readonly projectName: string
   readonly projectNormalizedName: string
   readonly projectNamespace: string
@@ -185,6 +186,7 @@ export class ProjectService {
     return {
       languageServerJsonAddress: sockets.jsonSocket,
       languageServerBinaryAddress: sockets.binarySocket,
+      languageServerYdocAddress: sockets.ydocSocket,
       projectName: project.name,
       projectNormalizedName: nameValidation.normalizedName(project.name),
       projectNamespace: project.namespace,

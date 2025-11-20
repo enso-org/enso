@@ -637,6 +637,7 @@ lazy val `text-buffer` = project
     frgaalJavaCompilerSetting,
     scalaModuleDependencySetting,
     mixedJavaScalaProjectSetting,
+    annotationProcSetting,
     commands += WithDebugCommand.withDebug,
     javaModuleName := "org.enso.text.buffer",
     libraryDependencies ++= Seq(
@@ -883,6 +884,7 @@ lazy val pkg = (project in file("lib/scala/pkg"))
     frgaalJavaCompilerSetting,
     scalaModuleDependencySetting,
     mixedJavaScalaProjectSetting,
+    annotationProcSetting,
     version := "0.1",
     Compile / run / mainClass := Some("org.enso.pkg.Main"),
     libraryDependencies ++= Seq(
@@ -1024,6 +1026,7 @@ lazy val `logging-utils` = project
   .settings(
     frgaalJavaCompilerSetting,
     scalaModuleDependencySetting,
+    annotationProcSetting,
     compileOrder := CompileOrder.ScalaThenJava, // Note [JPMS Compile order]
     version := "0.1",
     libraryDependencies ++= slf4jApi ++ Seq(
@@ -1039,6 +1042,7 @@ lazy val `logging-service` = project
   .settings(
     frgaalJavaCompilerSetting,
     scalaModuleDependencySetting,
+    annotationProcSetting,
     version := "0.1",
     libraryDependencies ++= slf4jApi ++ Seq(
       "com.typesafe"   % "config"    % typesafeConfigVersion,
@@ -1059,6 +1063,7 @@ lazy val `logging-config` = project
   .configs(Test)
   .settings(
     frgaalJavaCompilerSetting,
+    annotationProcSetting,
     version := "0.1",
     libraryDependencies ++= Seq(
       "com.typesafe"         % "config"    % typesafeConfigVersion,
@@ -1075,6 +1080,7 @@ lazy val `logging-config` = project
       (`logging-utils` / Compile / exportedModule).value
     )
   )
+  .dependsOn(`engine-common` % "provided")
 
 lazy val `logging-service-logback` = project
   .in(file("lib/scala/logging-service-logback"))
@@ -1082,6 +1088,7 @@ lazy val `logging-service-logback` = project
   .configs(Test)
   .settings(
     frgaalJavaCompilerSetting,
+    annotationProcSetting,
     version := "0.1",
     libraryDependencies ++= slf4jApi ++ Seq(
       "org.scalatest" %% "scalatest" % scalatestVersion % Test
@@ -1173,6 +1180,7 @@ lazy val `logging-service-common` = project
     frgaalJavaCompilerSetting,
     scalaModuleDependencySetting,
     mixedJavaScalaProjectSetting,
+    annotationProcSetting,
     commands += WithDebugCommand.withDebug,
     Test / fork := true,
     libraryDependencies ++= slf4jApi ++ Seq(
@@ -1194,6 +1202,7 @@ lazy val `logging-utils-akka` = project
   .settings(
     frgaalJavaCompilerSetting,
     scalaModuleDependencySetting,
+    annotationProcSetting,
     version := "0.1",
     compileOrder := CompileOrder.ScalaThenJava,
     libraryDependencies ++= slf4jApi ++ Seq(
@@ -1657,6 +1666,7 @@ lazy val `refactoring-utils` = project
     frgaalJavaCompilerSetting,
     scalaModuleDependencySetting,
     mixedJavaScalaProjectSetting,
+    annotationProcSetting,
     commands += WithDebugCommand.withDebug,
     version := "0.1",
     libraryDependencies ++= Seq(
@@ -1680,6 +1690,7 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
   .settings(
     frgaalJavaCompilerSetting,
     mixedJavaScalaProjectSetting,
+    annotationProcSetting,
     javaModuleName := "org.enso.project.manager",
     (Compile / run / fork) := true,
     (Compile / run / connectInput) := true,
@@ -2127,7 +2138,6 @@ lazy val `ydoc-server-registration` = project
   .configs(Test)
   .settings(
     customFrgaalJavaCompilerSettings("21"),
-    javaModuleName := "org.enso.ydoc.server.registration",
     Compile / exportJars := true,
     crossPaths := false,
     autoScalaLibrary := false,
@@ -2315,6 +2325,7 @@ lazy val `polyglot-api` = project
     frgaalJavaCompilerSetting,
     scalaModuleDependencySetting,
     mixedJavaScalaProjectSetting,
+    annotationProcSetting,
     Test / fork := true,
     commands += WithDebugCommand.withDebug,
     Test / envVars ++= distributionEnvironmentOverrides,
@@ -2382,6 +2393,7 @@ lazy val `language-server` = (project in file("engine/language-server"))
     frgaalJavaCompilerSetting,
     scalaModuleDependencySetting,
     mixedJavaScalaProjectSetting,
+    annotationProcSetting,
     libraryDependencies ++= logbackPkg.map(_ % "provided"),
     libraryDependencies ++= akka ++ circe ++ bouncyCastle.map(
       _ % Test
@@ -3662,6 +3674,7 @@ lazy val `runtime-suggestions` =
       frgaalJavaCompilerSetting,
       scalaModuleDependencySetting,
       mixedJavaScalaProjectSetting,
+      annotationProcSetting,
       (Test / fork) := true,
       libraryDependencies ++= Seq(
         "junit"            % "junit"                   % junitVersion       % Test,
@@ -4504,6 +4517,7 @@ lazy val `jvm-interop` =
     .in(file("lib/java/jvm-interop"))
     .enablePlugins(JPMSPlugin)
     .settings(
+      annotationProcSetting,
       customFrgaalJavaCompilerSettings("24"),
       // jvm-interop/test has to run with -ea disabled form Truffle.
       // Otherwise Truffle library performs a lot of additional
@@ -4617,6 +4631,7 @@ lazy val `os-environment` =
     .enablePlugins(JPMSPlugin)
     .settings(
       frgaalJavaCompilerSetting,
+      annotationProcSetting,
       libraryDependencies ++= slf4jApi ++ Seq(
         "org.graalvm.sdk" % "nativeimage"     % graalMavenPackagesVersion % "provided",
         "org.graalvm.sdk" % "graal-sdk"       % graalMavenPackagesVersion % "provided",
@@ -4714,7 +4729,7 @@ lazy val `os-environment` =
     .dependsOn(`persistance`)
     .dependsOn(`persistance-dsl` % "provided")
     .dependsOn(`engine-common`)
-    .dependsOn(`os-environment-lib`)
+    .dependsOn(`os-environment-lib` % "test->test")
 
 lazy val `bench-processor` = (project in file("lib/scala/bench-processor"))
   .enablePlugins(JPMSPlugin)
@@ -4995,6 +5010,7 @@ lazy val downloader = (project in file("lib/scala/downloader"))
     frgaalJavaCompilerSetting,
     scalaModuleDependencySetting,
     mixedJavaScalaProjectSetting,
+    annotationProcSetting,
     // Fork the tests to make sure that the withDebug command works (we can
     // attach debugger to the subprocess)
     (Test / fork) := true,
@@ -5191,6 +5207,7 @@ lazy val `runtime-version-manager` = project
     frgaalJavaCompilerSetting,
     scalaModuleDependencySetting,
     mixedJavaScalaProjectSetting,
+    annotationProcSetting,
     resolvers += Resolver.bintrayRepo("gn0s1s", "releases"),
     libraryDependencies ++= Seq(
       "com.typesafe.scala-logging" %% "scala-logging"    % scalaLoggingVersion,
@@ -5798,7 +5815,6 @@ lazy val `duckdb-wrapper` = project
     libraryDependencies ++= Seq(
       "org.duckdb" % "duckdb_jdbc" % duckdbVersion
     ),
-    inputJar := "org.duckdb" % "duckdb_jdbc" % duckdbVersion,
     version := "0.1",
     jarExtractor := JarExtractor(
       "libduckdb_java.so_linux_amd64"   -> PolyglotLib(LinuxAMD64),
