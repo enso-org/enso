@@ -871,26 +871,35 @@ export class LocalBackend extends backend.Backend {
   }
 
   /** Start watching project directory. */
-  async startWatcher(projectId: backend.ProjectId): Promise<void> {
+  async startWatcher(
+    assetId: backend.AssetId,
+    localProjectId: backend.ProjectId,
+    parentDirectoryId: backend.DirectoryId,
+    baseUrl: URL,
+    defaultHeaders: Record<string, string>,
+  ): Promise<void> {
+    const localProjectDirectory = backend.extractTypeAndPath(localProjectId).path
     const queryString = new URLSearchParams({
-      directory: backend.extractTypeAndPath(projectId).path,
+      assetId,
+      parentDirectoryId,
+      directory: localProjectDirectory,
+      baseUrl: baseUrl.toString(),
     }).toString()
-    const response = await this.post<null>(
+    const response = await this.post(
       new URL(`/api/watch-upload-start?${queryString}`, location.href).toString(),
-      null,
+      defaultHeaders,
     )
-    console.log('DEBUG startWatcher', response)
     if (!response.ok) {
       return await this.throw(response, 'resolveProjectAssetPathBackendError')
     }
   }
 
   /** Stop watching project directory. */
-  async stopWatcher(projectId: backend.ProjectId): Promise<void> {
+  async stopWatcher(assetId: backend.AssetId): Promise<void> {
     const queryString = new URLSearchParams({
-      directory: backend.extractTypeAndPath(projectId).path,
+      assetId,
     }).toString()
-    const response = await this.post<null>(
+    const response = await this.post(
       new URL(`/api/watch-upload-stop?${queryString}`, location.href).toString(),
       null,
     )

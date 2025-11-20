@@ -29,6 +29,7 @@ import {
   type Ref,
 } from 'vue'
 import { useBackends } from '../backends'
+import { useHttpClient } from '../httpClient'
 import { useSession } from '../session'
 import { useText } from '../text'
 import { useUploadsToCloudStore } from '../upload'
@@ -159,6 +160,7 @@ export function useProjectStates() {
   const config = injectGuiConfig()
   const uploads = useUploadsToCloudStore()
   const queryClient = vueQuery.useQueryClient()
+  const httpClient = useHttpClient()
 
   const openLocalProject = vueQuery.useMutation(
     backendMutationOptions('openProject', backends.localBackend),
@@ -275,7 +277,6 @@ export function useProjectStates() {
     project: HybridDownloaded,
     abort: AbortSignal,
   ): Promise<Result<Opened>> {
-    console.log('DEBUG openLocalVersionOfHybridProject')
     if (!backends.localBackend) return Err('Cannot open local project: Local Backend missing.')
     let localProjectAsset: ProjectAsset | undefined
     // TODO[ao]: Apparently, the only way to get local project id is to list directory, because
@@ -303,12 +304,10 @@ export function useProjectStates() {
       }
     }
     if (!localProjectAsset) return Err('Cannot find downloaded local project.')
-    console.log('DEBUG before start watcher')
-    await backends.localBackend.startWatcher(localProjectAsset.id)
-    console.log('DEBUG after start watcher')
     return openLocalVersionOfHybridProjectByRunningInfo({
       ...project.info,
       runningId: localProjectAsset.id,
+      localProjectId: localProjectAsset.id,
       localParentId: localProjectAsset.parentId,
     })
   }
@@ -322,8 +321,14 @@ export function useProjectStates() {
     scope: EffectScope = effectScope(),
     details?: Ref<ProjectDetails>,
   ) {
-    console.log('DEBUG openLocalVersionOfHybridProjectByRunningInfo')
     if (!backends.localBackend) return Err('Cannot open local project: Local Backend missing.')
+    await backends.localBackend.startWatcher(
+      info.id,
+      info.localProjectId,
+      info.parentId,
+      backends.remoteBackend.baseUrl,
+      httpClient.defaultHeaders,
+    )
     const cloudParentPath = EnsoPath(info.ensoPath.slice(0, info.ensoPath.lastIndexOf('/')))
     const result = await catchNetworkError(
       backends.localBackend.openProject(
