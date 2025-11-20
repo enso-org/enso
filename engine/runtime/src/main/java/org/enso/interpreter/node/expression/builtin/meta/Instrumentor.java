@@ -6,7 +6,6 @@ import com.oracle.truffle.api.RootCallTarget;
 import com.oracle.truffle.api.instrumentation.EventBinding;
 import com.oracle.truffle.api.interop.InteropException;
 import com.oracle.truffle.api.interop.InteropLibrary;
-import java.util.UUID;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import org.enso.interpreter.EnsoLanguage;
@@ -16,6 +15,7 @@ import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
 import org.enso.interpreter.runtime.instrument.Timer;
+import org.enso.polyglot.RuntimeID;
 import org.enso.polyglot.debugger.IdExecutionService;
 
 final class Instrumentor extends EnsoObject implements IdExecutionService.Callbacks {
@@ -132,7 +132,7 @@ final class Instrumentor extends EnsoObject implements IdExecutionService.Callba
 
   @Override
   public void updateLocalExecutionEnvironment(
-      UUID uuid, Predicate<Object> shouldUpdate, Function<Object, Object> onSuccess) {}
+      RuntimeID uuid, Predicate<Object> shouldUpdate, Function<Object, Object> onSuccess) {}
 
   @Override
   @TruffleBoundary

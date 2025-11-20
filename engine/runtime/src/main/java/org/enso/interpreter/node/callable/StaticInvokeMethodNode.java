@@ -4,7 +4,6 @@ import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
-import java.util.UUID;
 import org.enso.compiler.core.ConstantsNames;
 import org.enso.interpreter.node.callable.InvokeCallableNode.ArgumentsExecutionMode;
 import org.enso.interpreter.node.callable.InvokeCallableNode.DefaultsExecutionMode;
@@ -15,6 +14,7 @@ import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.state.State;
+import org.enso.polyglot.RuntimeID;
 
 /**
  * Node responsible for <i>static method invocation</i>. Static method invocation is a method call
@@ -63,7 +63,7 @@ abstract class StaticInvokeMethodNode extends InvokeMethodNode {
   }
 
   @Override
-  public void setId(UUID id) {
+  public void setId(RuntimeID id) {
     invokeFunctionNode.setId(id);
   }
 

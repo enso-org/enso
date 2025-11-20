@@ -4,9 +4,9 @@ import com.oracle.truffle.api.CallTarget;
 import com.oracle.truffle.api.instrumentation.EventBinding;
 import com.oracle.truffle.api.instrumentation.ExecutionEventNodeFactory;
 import com.oracle.truffle.api.interop.TruffleObject;
-import java.util.UUID;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import org.enso.polyglot.RuntimeID;
 
 public interface IdExecutionService {
   String INSTRUMENT_ID = "id-value-extractor";
@@ -16,7 +16,7 @@ public interface IdExecutionService {
     /**
      * @return UUID of the node, never {@code null}.
      */
-    public abstract UUID getId();
+    public abstract RuntimeID getId();
 
     /**
      * @return associated result or {@code null} if there is no associated result.
@@ -93,7 +93,7 @@ public interface IdExecutionService {
      *     safe to remove
      */
     void updateLocalExecutionEnvironment(
-        UUID uuid, Predicate<Object> shouldUpdate, Function<Object, Object> onSuccess);
+        RuntimeID uuid, Predicate<Object> shouldUpdate, Function<Object, Object> onSuccess);
   }
 
   /**

@@ -1,5 +1,6 @@
 package org.enso.interpreter.node.expression.literal;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.NodeInfo;
@@ -9,6 +10,7 @@ import org.enso.compiler.core.ir.Literal;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.tag.Patchable;
+import org.enso.polyglot.RuntimeID;
 
 /** Generic literal node. */
 @NodeInfo(shortName = "Literal", description = "Constant literal expression")
@@ -16,6 +18,7 @@ final class PatchableLiteralNode extends ExpressionNode
     implements Patchable, Predicate<Expression> {
   private final LiteralNode node;
   private Object value;
+  private @CompilerDirectives.CompilationFinal RuntimeID id = null;
 
   private PatchableLiteralNode(LiteralNode original) {
     this.node = original;
@@ -71,5 +74,16 @@ final class PatchableLiteralNode extends ExpressionNode
       case Literal.Number n -> n.numericValue();
       default -> null;
     };
+  }
+
+  @Override
+  public RuntimeID getId() {
+    return this.id;
+  }
+
+  @Override
+  public void setId(RuntimeID id) {
+    CompilerDirectives.transferToInterpreterAndInvalidate();
+    this.id = id;
   }
 }

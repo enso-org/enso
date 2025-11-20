@@ -26,6 +26,7 @@ import org.enso.interpreter.runtime.type.Constants;
 import org.enso.interpreter.service.ExecutionService.ExpressionCall;
 import org.enso.interpreter.service.ExecutionService.ExpressionValue;
 import org.enso.interpreter.service.ExecutionService.FunctionCallInfo;
+import org.enso.polyglot.RuntimeID;
 import org.enso.polyglot.debugger.ExecutedVisualization;
 import org.enso.polyglot.debugger.IdExecutionService;
 
@@ -44,7 +45,7 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
   private final Consumer<ExecutedVisualization> onExecutedVisualizationCallback;
   private final Consumer<ExpressionValue> onProgressCallbackOrNull;
   private ExecutionProgressObserver progressObserver;
-  private final Map<UUID, Object> savedNodeExecutionEnvironment;
+  private final Map<RuntimeID, Object> savedNodeExecutionEnvironment;
 
   /**
    * Creates callbacks instance.
@@ -89,8 +90,9 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
 
   @Override
   public Object findCachedResult(IdExecutionService.Info info) {
-    UUID nodeId = info.getId();
-    Object result = getCachedResult(nodeId);
+    RuntimeID runtimeID = info.getId();
+    var nodeId = runtimeID.uuid();
+    Object result = getCachedResult(runtimeID);
 
     if (result != null) {
       executeOneshotExpressions(nodeId, result, info);
@@ -142,7 +144,7 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
   public void updateCachedResult(IdExecutionService.Info info) {
     Object result = info.getResult();
     TypeInfo resultType = typeOf(result);
-    UUID nodeId = info.getId();
+    UUID nodeId = info.getId().uuid();
 
     if (progressObserver instanceof ExecutionProgressObserver o && nodeId.equals(o.nodeId())) {
       refreshObserver(null);
@@ -199,7 +201,8 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
   public Object onFunctionReturn(IdExecutionService.Info info) {
     FunctionCallInstrumentationNode.FunctionCall fnCall =
         (FunctionCallInstrumentationNode.FunctionCall) info.getResult();
-    UUID nodeId = info.getId();
+    RuntimeID runtimeID = info.getId();
+    var nodeId = runtimeID.uuid();
     calls.put(nodeId, FunctionCallInfo.fromFunctionCall(fnCall));
     functionCallCallback.accept(new ExpressionCall(nodeId, fnCall));
     // Return cached value after capturing the enterable function call in `functionCallCallback`
@@ -220,7 +223,7 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
   @Override
   @CompilerDirectives.TruffleBoundary
   public void updateLocalExecutionEnvironment(
-      UUID uuid, Predicate<Object> shouldUpdate, Function<Object, Object> onTestSuccess) {
+      RuntimeID uuid, Predicate<Object> shouldUpdate, Function<Object, Object> onTestSuccess) {
     var v = savedNodeExecutionEnvironment.get(uuid);
     if (shouldUpdate.test(v)) {
       var replacement = onTestSuccess.apply(v);
@@ -280,8 +283,8 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
   }
 
   @CompilerDirectives.TruffleBoundary
-  private Object getCachedResult(UUID nodeId) {
-    return cache.get(nodeId);
+  private Object getCachedResult(RuntimeID nodeId) {
+    return cache.get(nodeId.uuid());
   }
 
   @CompilerDirectives.TruffleBoundary

@@ -5,7 +5,6 @@ import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.interop.UnknownIdentifierException;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.nodes.Node;
-import java.util.UUID;
 import org.enso.compiler.core.ConstantsNames;
 import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.MethodRootNode;
@@ -21,6 +20,7 @@ import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.interpreter.runtime.state.State;
 import org.enso.interpreter.runtime.warning.WarningsLibrary;
+import org.enso.polyglot.RuntimeID;
 
 /** */
 public abstract class InvokeMethodNode extends BaseNode {
@@ -92,7 +92,7 @@ public abstract class InvokeMethodNode extends BaseNode {
    *
    * @param id the expression ID to assign this node.
    */
-  public abstract void setId(UUID id);
+  public abstract void setId(RuntimeID id);
 
   public static Function resolveFunction(
       UnresolvedSymbol symbol, Object self, Type selfTpe, MethodResolverNode methodResolverNode) {

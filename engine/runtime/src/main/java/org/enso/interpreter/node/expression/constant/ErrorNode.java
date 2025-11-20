@@ -1,13 +1,16 @@
 package org.enso.interpreter.node.expression.constant;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.interop.TruffleObject;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.error.PanicException;
+import org.enso.polyglot.RuntimeID;
 
 /** Throws a runtime panic containing a statically-known payload. */
 public class ErrorNode extends ExpressionNode {
   private final TruffleObject payload;
+  private @CompilerDirectives.CompilationFinal RuntimeID id = null;
 
   private ErrorNode(TruffleObject payload) {
     this.payload = payload;
@@ -32,5 +35,16 @@ public class ErrorNode extends ExpressionNode {
    */
   public static ErrorNode build(TruffleObject payload) {
     return new ErrorNode(payload);
+  }
+
+  @Override
+  public RuntimeID getId() {
+    return this.id;
+  }
+
+  @Override
+  public void setId(RuntimeID id) {
+    CompilerDirectives.transferToInterpreterAndInvalidate();
+    this.id = id;
   }
 }

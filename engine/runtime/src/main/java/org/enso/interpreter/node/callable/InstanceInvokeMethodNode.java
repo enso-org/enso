@@ -19,7 +19,6 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
-import java.util.UUID;
 import java.util.concurrent.locks.Lock;
 import org.enso.compiler.core.ConstantsNames;
 import org.enso.interpreter.node.MethodRootNode;
@@ -53,6 +52,7 @@ import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.interpreter.runtime.state.State;
 import org.enso.interpreter.runtime.warning.AppendWarningNode;
 import org.enso.interpreter.runtime.warning.WarningsLibrary;
+import org.enso.polyglot.RuntimeID;
 
 /**
  * Node responsible for <i>instance method invocation</i>. Instance method invocation is a method
@@ -91,7 +91,7 @@ abstract class InstanceInvokeMethodNode extends InvokeMethodNode {
   }
 
   @Override
-  public void setId(UUID id) {
+  public void setId(RuntimeID id) {
     invokeFunctionNode.setId(id);
     if (childDispatch != null) {
       childDispatch.setId(id);

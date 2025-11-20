@@ -16,7 +16,6 @@ import com.oracle.truffle.api.source.Source;
 import com.oracle.truffle.api.source.SourceSection;
 import java.util.Arrays;
 import java.util.Objects;
-import java.util.UUID;
 import java.util.function.Supplier;
 import org.enso.compiler.context.LocalScope;
 import org.enso.compiler.core.ir.Location;
@@ -40,6 +39,7 @@ import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.interpreter.runtime.state.State;
+import org.enso.polyglot.RuntimeID;
 
 /**
  * Value representing a by-name identified constructor of a yet unknown {@link Type}. Create new
@@ -183,7 +183,7 @@ public final class UnresolvedConstructor extends EnsoObject {
     }
 
     static DirectCallNode buildApplication(UnresolvedConstructor prototype) {
-      UUID id = null;
+      RuntimeID id = null;
       SourceSection section = null;
       var scope =
           prototype.where.getRootNode() instanceof EnsoRootNode root ? root.getModuleScope() : null;

@@ -101,11 +101,12 @@ import org.enso.interpreter.runtime.data.Type
 import org.enso.interpreter.runtime.scope.ImportExportScope
 import org.enso.interpreter.{Constants, EnsoLanguage}
 import org.enso.interpreter.runtime.builtin.Builtins
+import org.enso.polyglot.{ExternalUUID, InternalUUID}
 
 import java.math.BigInteger
+import java.util.UUID
 import java.util.function.Supplier
 import java.util.logging.Level
-
 import scala.annotation.tailrec
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
@@ -923,11 +924,23 @@ private[runtime] class IrToTruffle(
     */
   private def setLocation[T <: RuntimeExpression](
     expr: T,
-    location: Option[IdentifiedLocation]
+    location: Option[IdentifiedLocation],
+    internalID: UUID     = null,
+    canBeCached: Boolean = false
   ): T = {
+    var idSet = false
     location.foreach { loc =>
       expr.setSourceLocation(loc.start, loc.length)
-      loc.id.foreach { id => expr.setId(id) }
+      loc.id.foreach { id =>
+        val runtimeID =
+          if (canBeCached) ExternalUUID.createCached(id)
+          else ExternalUUID.create(id)
+        expr.setId(runtimeID)
+        idSet = true
+      }
+    }
+    if (!idSet && internalID != null) {
+      expr.setId(new InternalUUID(internalID))
     }
     expr
   }
@@ -946,7 +959,10 @@ private[runtime] class IrToTruffle(
   ): T = {
     if (location ne null) {
       expr.setSourceLocation(location.start, location.length)
-      location.id.foreach { id => expr.setId(id) }
+      location.id.foreach { id =>
+        val runtimeID = ExternalUUID.create(id)
+        expr.setId(runtimeID)
+      }
     }
     expr
   }
@@ -1810,10 +1826,22 @@ private[runtime] class IrToTruffle(
 
       currentVarName = binding.name.name
       val slotIdx = fp.frameSlotIdx()
+      val rhs     = this.run(binding.expression, true, true)
+      // Ensure that RHS is cached
       setLocation(
-        AssignmentNode.build(this.run(binding.expression, true, true), slotIdx),
-        binding.location
+        rhs,
+        binding.expression.location(),
+        binding.expression.getId,
+        canBeCached = true
       )
+      val assignment = AssignmentNode.build(rhs, slotIdx)
+      setLocation(
+        assignment,
+        binding.location(),
+        binding.getId(),
+        canBeCached = false
+      )
+      assignment
     }
 
     /** Generates code for an Enso function.

@@ -1,5 +1,6 @@
 package org.enso.interpreter.node.callable.thunk;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.NodeChild;
 import com.oracle.truffle.api.dsl.Specialization;
@@ -8,12 +9,14 @@ import com.oracle.truffle.api.nodes.NodeInfo;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.state.State;
+import org.enso.polyglot.RuntimeID;
 
 /** Node responsible for handling user-requested thunks forcing. */
 @NodeInfo(shortName = "Force", description = "Forces execution of a thunk at runtime")
 @NodeChild(value = "target", type = ExpressionNode.class)
 @SuppressWarnings("truffle-splitting")
 public abstract class ForceNode extends ExpressionNode {
+  private @CompilerDirectives.CompilationFinal RuntimeID id = null;
 
   ForceNode() {}
 
@@ -32,5 +35,16 @@ public abstract class ForceNode extends ExpressionNode {
       VirtualFrame frame, Object thunk, @Cached("build()") ThunkExecutorNode thunkExecutorNode) {
     State state = EnsoContext.get(this).currentState();
     return thunkExecutorNode.executeThunk(frame, thunk, state, getTailStatus());
+  }
+
+  @Override
+  public RuntimeID getId() {
+    return this.id;
+  }
+
+  @Override
+  public void setId(RuntimeID id) {
+    CompilerDirectives.transferToInterpreterAndInvalidate();
+    this.id = id;
   }
 }

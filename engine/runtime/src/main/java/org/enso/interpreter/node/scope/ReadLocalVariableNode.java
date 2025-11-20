@@ -1,5 +1,6 @@
 package org.enso.interpreter.node.scope;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.NodeField;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.Frame;
@@ -11,6 +12,7 @@ import com.oracle.truffle.api.nodes.NodeInfo;
 import org.enso.compiler.pass.analyse.FramePointer;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.callable.function.Function;
+import org.enso.polyglot.RuntimeID;
 
 /**
  * Reads from a local target (variable or call target).
@@ -21,6 +23,8 @@ import org.enso.interpreter.runtime.callable.function.Function;
 @NodeInfo(shortName = "readVar", description = "Access local variable value.")
 @NodeField(name = "framePointer", type = FramePointer.class)
 public abstract class ReadLocalVariableNode extends ExpressionNode {
+  private @CompilerDirectives.CompilationFinal RuntimeID id = null;
+
   public abstract FramePointer getFramePointer();
 
   ReadLocalVariableNode() {}
@@ -101,5 +105,16 @@ public abstract class ReadLocalVariableNode extends ExpressionNode {
       currentFrame = getParentFrame(currentFrame);
     }
     return currentFrame;
+  }
+
+  @Override
+  public RuntimeID getId() {
+    return this.id;
+  }
+
+  @Override
+  public void setId(RuntimeID id) {
+    CompilerDirectives.transferToInterpreterAndInvalidate();
+    this.id = id;
   }
 }

@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 import org.enso.interpreter.runtime.state.ExecutionEnvironment;
+import org.enso.polyglot.RuntimeID;
 
 public final class ExpressionExecutionState {
 
@@ -25,7 +26,7 @@ public final class ExpressionExecutionState {
     expressionConfigs.remove(expressionId);
   }
 
-  public ExecutionEnvironment getExecutionEnvironment(UUID expressionId) {
+  public ExecutionEnvironment getExecutionEnvironment(RuntimeID expressionId) {
     return expressionConfigs.get(expressionId);
   }
 }

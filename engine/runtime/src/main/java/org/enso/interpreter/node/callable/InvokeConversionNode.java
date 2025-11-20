@@ -11,7 +11,6 @@ import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.source.SourceSection;
-import java.util.UUID;
 import java.util.concurrent.locks.Lock;
 import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.callable.dispatch.InvokeFunctionNode;
@@ -33,6 +32,7 @@ import org.enso.interpreter.runtime.state.State;
 import org.enso.interpreter.runtime.warning.AppendWarningNode;
 import org.enso.interpreter.runtime.warning.WarningsLibrary;
 import org.enso.interpreter.runtime.warning.WithWarnings;
+import org.enso.polyglot.RuntimeID;
 
 public abstract class InvokeConversionNode extends BaseNode {
   private @Child InvokeFunctionNode invokeFunctionNode;
@@ -443,7 +443,7 @@ public abstract class InvokeConversionNode extends BaseNode {
    *
    * @param id the expression ID to assign this node.
    */
-  public void setId(UUID id) {
+  public void setId(RuntimeID id) {
     invokeFunctionNode.setId(id);
   }
 }

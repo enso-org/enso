@@ -22,7 +22,6 @@ import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.source.SourceSection;
 import java.util.Objects;
-import java.util.UUID;
 import org.enso.interpreter.node.ClosureRootNode;
 import org.enso.interpreter.node.EnsoRootNode;
 import org.enso.interpreter.node.ExpressionNode;
@@ -40,6 +39,7 @@ import org.enso.interpreter.runtime.instrument.Timer;
 import org.enso.interpreter.runtime.state.ExecutionEnvironment;
 import org.enso.interpreter.runtime.tag.AvoidIdInstrumentationTag;
 import org.enso.interpreter.runtime.tag.IdentifiedTag;
+import org.enso.polyglot.RuntimeID;
 import org.enso.polyglot.debugger.IdExecutionService;
 
 /** An instrument for getting values from AST-identified expressions. */
@@ -97,7 +97,7 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
     /** Implementation of {@link Info} for the instrumented {@link Node}. */
     private final class NodeInfo extends Info {
 
-      private final UUID nodeId;
+      private final RuntimeID nodeId;
       private final Object result;
       private final long elapsedTime;
       private final MaterializedFrame materializedFrame;
@@ -129,7 +129,7 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
        * @param node the executed node
        */
       public NodeInfo(
-          UUID nodeId,
+          RuntimeID nodeId,
           Object result,
           long elapsedTime,
           MaterializedFrame materializedFrame,
@@ -144,7 +144,7 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
       }
 
       @Override
-      public UUID getId() {
+      public RuntimeID getId() {
         return nodeId;
       }
 
@@ -172,7 +172,7 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
         return evalNode.execute(callerInfo, Text.create(code));
       }
 
-      private static UUID getNodeId(Node node) {
+      private static RuntimeID getNodeId(Node node) {
         return switch (node) {
           case ExpressionNode n -> n.getId();
           case FunctionCallInstrumentationNode n -> n.getId();
@@ -339,7 +339,7 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
         }
       }
 
-      private void resetExecutionEnvironment(UUID uuid) {
+      private void resetExecutionEnvironment(RuntimeID uuid) {
         callbacks.updateLocalExecutionEnvironment(
             uuid,
             Objects::nonNull,

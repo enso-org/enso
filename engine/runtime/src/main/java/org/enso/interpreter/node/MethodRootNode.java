@@ -17,6 +17,7 @@ import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.atom.AtomConstructor;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.scope.ModuleScope;
+import org.enso.polyglot.RuntimeID;
 
 @ReportPolymorphism
 @NodeInfo(shortName = "Method", description = "A root node for Enso methods.")
@@ -205,6 +206,7 @@ public class MethodRootNode extends ClosureRootNode {
 
   private static class LazyBodyNode extends ExpressionNode {
     private final Supplier<ExpressionNode> provider;
+    private @CompilerDirectives.CompilationFinal RuntimeID id = null;
 
     LazyBodyNode(Supplier<ExpressionNode> body) {
       this.provider = body;
@@ -214,6 +216,17 @@ public class MethodRootNode extends ClosureRootNode {
       if (n instanceof LazyBodyNode lazy) {
         lazy.replaceItself();
       }
+    }
+
+    @Override
+    public RuntimeID getId() {
+      return this.id;
+    }
+
+    @Override
+    public void setId(RuntimeID id) {
+      CompilerDirectives.transferToInterpreterAndInvalidate();
+      this.id = id;
     }
 
     @Override

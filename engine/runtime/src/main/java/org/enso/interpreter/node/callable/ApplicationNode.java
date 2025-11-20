@@ -1,14 +1,15 @@
 package org.enso.interpreter.node.callable;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import java.util.Arrays;
-import java.util.UUID;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.argument.CallArgument;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
+import org.enso.polyglot.RuntimeID;
 
 /**
  * This node is responsible for organising callable calls so that they are ready to be made.
@@ -19,6 +20,7 @@ import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 @NodeInfo(shortName = "App", description = "Executes function")
 public class ApplicationNode extends ExpressionNode {
   private @Children ExpressionNode[] argExpressions;
+  private @CompilerDirectives.CompilationFinal RuntimeID id = null;
 
   @Child private InvokeCallableNode invokeCallableNode;
   @Child private ExpressionNode callable;
@@ -103,8 +105,14 @@ public class ApplicationNode extends ExpressionNode {
    * @param id the ID for this node.
    */
   @Override
-  public void setId(UUID id) {
-    super.setId(id);
+  public void setId(RuntimeID id) {
+    CompilerDirectives.transferToInterpreterAndInvalidate();
+    this.id = id;
     invokeCallableNode.setId(id);
+  }
+
+  @Override
+  public RuntimeID getId() {
+    return this.id;
   }
 }

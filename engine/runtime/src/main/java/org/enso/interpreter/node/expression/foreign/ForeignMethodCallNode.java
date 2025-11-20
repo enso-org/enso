@@ -9,6 +9,7 @@ import com.oracle.truffle.api.source.Source;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.error.DataflowError;
+import org.enso.polyglot.RuntimeID;
 
 /** Performs a call into a given foreign call target. */
 public final class ForeignMethodCallNode extends ExpressionNode {
@@ -18,6 +19,7 @@ public final class ForeignMethodCallNode extends ExpressionNode {
   private @Child DirectCallNode callNode;
   private @Child HostValueToEnsoNode coerceNode;
   private final BranchProfile[] errorProfiles;
+  private @CompilerDirectives.CompilationFinal RuntimeID id = null;
 
   ForeignMethodCallNode(Source src, String[] names, ExpressionNode[] arguments) {
     this.src = src;
@@ -66,5 +68,16 @@ public final class ForeignMethodCallNode extends ExpressionNode {
       }
     }
     return coerceNode.execute(callNode.call(args));
+  }
+
+  @Override
+  public RuntimeID getId() {
+    return this.id;
+  }
+
+  @Override
+  public void setId(RuntimeID id) {
+    CompilerDirectives.transferToInterpreterAndInvalidate();
+    this.id = id;
   }
 }
