@@ -17,13 +17,32 @@ test('Selecting and deleting edge', async ({ editorPage, page }) => {
   await initGraph(editorPage)
   await expect(await edgesToNodeWithBinding(page, 'sum')).toHaveCount(3)
   const targetEdge = await locate.connectedEdgesFromNodeWithBinding(page, 'ten')
-  // Hover over edge's arrow of node with binding `ten`.
+  // Click edge coming from node with binding `ten`.
   await targetEdge.click({
     position: { x: 270, y: 25.0 },
     force: true,
   })
   await expect(targetEdge.locator('.edge.selected')).toExist()
   await page.keyboard.press('Delete')
+  await expect(await edgesToNodeWithBinding(page, 'sum')).toHaveCount(2)
+})
+
+test('Deleting edge through context menu', async ({ editorPage, page }) => {
+  await editorPage
+  await initGraph(editorPage)
+
+  await expect(await edgesToNodeWithBinding(page, 'sum')).toHaveCount(3)
+  const targetEdge = await locate.connectedEdgesFromNodeWithBinding(page, 'ten')
+  // Right click edge from node with binding `ten`.
+  await targetEdge.click({
+    button: 'right',
+    position: { x: 270, y: 25.0 },
+    force: true,
+  })
+  await expect(targetEdge.locator('.edge.selected')).toExist()
+  const menu = page.getByTestId('contextMenu')
+  await expect(menu).toBeVisible()
+  await menu.getByText('Delete Selected Connection').click()
   await expect(await edgesToNodeWithBinding(page, 'sum')).toHaveCount(2)
 })
 
