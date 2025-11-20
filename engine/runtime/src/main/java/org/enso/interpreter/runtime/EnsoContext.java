@@ -100,6 +100,9 @@ public final class EnsoContext {
   private final LockManager lockManager;
   private final AtomicLong clock = new AtomicLong();
 
+  /**
+   * @GuardedBy("REFERENCE") - need some private lock
+   */
   @CompilationFinal(dimensions = 1)
   private Object[] extraValues = new Object[0];
 
@@ -176,7 +179,9 @@ public final class EnsoContext {
     PackageManager<TruffleFile> packageManager = new PackageManager<>(fs);
 
     Optional<TruffleFile> projectRoot = OptionsHelper.getProjectRoot(environment);
-    checkWorkingDirectory(projectRoot);
+    if (getOption(RuntimeOptions.CHECK_CWD_KEY)) {
+      checkWorkingDirectory(projectRoot);
+    }
     Optional<Package<TruffleFile>> projectPackage =
         projectRoot.map(
             file ->
@@ -235,16 +240,20 @@ public final class EnsoContext {
       var cwd = environment.getCurrentWorkingDirectory().getAbsoluteFile().normalize();
       try {
         if (!cwd.isSameFile(parent)) {
+          var maskedCwd = MaskedPath$.MODULE$.apply(Path.of(cwd.toString()));
           var maskedPath = MaskedPath$.MODULE$.apply(Path.of(parent.toString()));
-          logger.log(
-              Level.WARNING,
-              "Initializing the context in a different working directory than the one containing"
-                  + " the project root. This may lead to relative paths not behaving as advertised"
-                  + " by `File.new`. Please run the engine inside of `{0}` directory.",
-              maskedPath);
+          var templ =
+              """
+              Initializing with unexpected working directory (%s).
+              This may lead to improper relative paths resolution by `File.new`.
+              Change working directory to %s and run the engine again.
+              """;
+          var msg = templ.formatted(maskedCwd, maskedPath);
+          logger.log(Level.WARNING, msg);
+          assert false : msg;
         }
       } catch (IOException e) {
-        logger.severe("Error checking working directory: " + e.getMessage());
+        logger.log(Level.SEVERE, "Error checking working directory: " + e.getMessage(), e);
       }
     }
   }
@@ -298,10 +307,10 @@ public final class EnsoContext {
       var ex =
           new AssertionError(
               """
-        no root node for {n}
-        with section: {s}
-        with root nodes: {r}
-        """
+              no root node for {n}
+              with section: {s}
+              with root nodes: {r}
+              """
                   .replace("{n}", "" + n)
                   .replace("{s}", "" + (n != null ? n.getEncapsulatingSourceSection() : null))
                   .replace("{r}", "" + (n != null ? n.getRootNode() : null)));
@@ -507,16 +516,17 @@ public final class EnsoContext {
    *
    * @param who who requests the addition
    * @param file the file to register
+   * @param polyglotContextEntered true if a polyglot context has been entered, false otherwise
    */
   @TruffleBoundary
-  public void addToClassPath(Package<?> who, TruffleFile file) {
+  public void addToClassPath(Package<?> who, TruffleFile file, boolean polyglotContextEntered) {
     assert who != null;
     var path = new File(file.toUri()).getAbsoluteFile();
     if (!path.exists()) {
       throw new IllegalStateException("File not found " + path);
     }
     try {
-      EnsoPolyglotJava.addToClassPath(this, who, path);
+      EnsoPolyglotJava.addToClassPath(this, who, path, polyglotContextEntered);
     } catch (InteropException ex) {
       throw raiseAssertionPanic(null, "Cannot add " + file + " to classpath", ex);
     }
@@ -698,15 +708,6 @@ public final class EnsoContext {
    */
   public boolean isProgressReportEnabled() {
     return getOption(RuntimeOptions.ENABLE_PROGRESS_REPORT_KEY);
-  }
-
-  /**
-   * Checks whether global caches are to be used.
-   *
-   * @return true if so
-   */
-  public boolean isUseGlobalCache() {
-    return getOption(RuntimeOptions.USE_GLOBAL_IR_CACHE_LOCATION_KEY);
   }
 
   public boolean isAssertionsEnabled() {
@@ -1004,9 +1005,13 @@ public final class EnsoContext {
   private Object extraValues(int index, Function<EnsoContext, ?> init) {
     if (index >= extraValues.length || extraValues[index] == null) {
       CompilerDirectives.transferToInterpreterAndInvalidate();
-      extraValues = Arrays.copyOf(extraValues, Extra.COUNTER.get());
-      extraValues[index] = init.apply(this);
-      assert extraValues[index] != null;
+      synchronized (REFERENCE) {
+        if (index >= extraValues.length) {
+          extraValues = Arrays.copyOf(extraValues, index + 1);
+        }
+        extraValues[index] = init.apply(this);
+        assert extraValues[index] != null;
+      }
     }
     return extraValues[index];
   }

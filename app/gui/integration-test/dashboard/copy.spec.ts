@@ -1,10 +1,11 @@
 /** @file Test copying, moving, cutting and pasting. */
-import { expect, test } from 'playwright/test'
+import { expect, test } from 'integration-test/base'
 
-import { mockAllAndLogin, TEXT } from './actions'
+import { TEXT } from '../actions'
 
-test('copy', ({ page }) =>
-  mockAllAndLogin({ page })
+test('copy', async ({ drivePage }) => {
+  await drivePage.goToCategory
+    .cloud()
     // Assets: [0: New Folder 1]
     .createFolder()
     // Assets: [0: New Folder 2, 1: New Folder 1]
@@ -21,10 +22,12 @@ test('copy', ({ page }) =>
     .driveTable.openDirectory('New Folder 1')
     .driveTable.withRows(async (rows) => {
       await expect(rows).toHaveText([/^New Folder 2 \(copy\)/])
-    }))
+    })
+})
 
-test('copy (keyboard)', ({ page }) =>
-  mockAllAndLogin({ page })
+test('copy (keyboard)', async ({ drivePage }) => {
+  await drivePage.goToCategory
+    .cloud()
     // Assets: [0: New Folder 1]
     .createFolder()
     // Assets: [0: New Folder 2, 1: New Folder 1]
@@ -41,10 +44,12 @@ test('copy (keyboard)', ({ page }) =>
     .driveTable.openDirectory('New Folder 1')
     .driveTable.withRows(async (rows) => {
       await expect(rows).toHaveText([/^New Folder 2 \(copy\)/])
-    }))
+    })
+})
 
-test('move', ({ page }) =>
-  mockAllAndLogin({ page })
+test('move', async ({ drivePage }) => {
+  await drivePage.goToCategory
+    .cloud()
     // Assets: [0: New Folder 1]
     .createFolder()
     // Assets: [0: New Folder 2, 1: New Folder 1]
@@ -61,16 +66,14 @@ test('move', ({ page }) =>
     .driveTable.openDirectory('New Folder 1')
     .driveTable.withRows(async (rows) => {
       await expect(rows).toHaveText([/^New Folder 2/])
-    }))
+    })
+})
 
-test('move (drag)', ({ page }) =>
-  mockAllAndLogin({
-    page,
-    setupAPI: (api) => {
-      api.addDirectory({ title: 'New Folder 1' })
-      api.addDirectory({ title: 'New Folder 2' })
-    },
-  })
+test('move (drag)', async ({ drivePage, cloudApi }) => {
+  cloudApi.addDirectory({ title: 'New Folder 1' })
+  cloudApi.addDirectory({ title: 'New Folder 2' })
+  await drivePage.goToCategory
+    .cloud()
     .driveTable.dragRowToRow('New Folder 2', 'New Folder 1')
     .driveTable.withRows(async (rows) => {
       await expect(rows).toHaveText([/^New Folder 1/])
@@ -78,16 +81,14 @@ test('move (drag)', ({ page }) =>
     .driveTable.openDirectory('New Folder 1')
     .driveTable.withRows(async (rows) => {
       await expect(rows).toHaveText([/^New Folder 2/])
-    }))
+    })
+})
 
-test('move to trash', ({ page }) =>
-  mockAllAndLogin({
-    page,
-    setupAPI: (api) => {
-      api.addDirectory()
-      api.addDirectory()
-    },
-  })
+test('move to trash', async ({ drivePage, cloudApi }) => {
+  cloudApi.addDirectory()
+  cloudApi.addDirectory()
+  await drivePage.goToCategory
+    .cloud()
     // NOTE: For some reason, `react-aria-components` causes drag-n-drop to break if `Mod` is still
     // held.
     .withModPressed((modActions) =>
@@ -108,10 +109,12 @@ test('move to trash', ({ page }) =>
 
       await expect(folder1).toBeVisible()
       await expect(folder2).toBeVisible()
-    }))
+    })
+})
 
-test('move (keyboard)', ({ page }) =>
-  mockAllAndLogin({ page })
+test('move (keyboard)', async ({ drivePage }) => {
+  await drivePage.goToCategory
+    .cloud()
     // Assets: [0: New Folder 1]
     .createFolder()
     // Assets: [0: New Folder 2, 1: New Folder 1]
@@ -128,10 +131,12 @@ test('move (keyboard)', ({ page }) =>
     .driveTable.openDirectory('New Folder 1')
     .driveTable.withRows(async (rows) => {
       await expect(rows).toHaveText([/^New Folder 2/])
-    }))
+    })
+})
 
-test('cut (keyboard)', ({ page }) =>
-  mockAllAndLogin({ page })
+test('cut (keyboard)', async ({ drivePage }) => {
+  await drivePage.goToCategory
+    .cloud()
     .createFolder()
     .driveTable.clickRow(0)
     .press('Mod+X')
@@ -142,15 +147,13 @@ test('cut (keyboard)', ({ page }) =>
           await rows.nth(0).evaluate((el) => Number(getComputedStyle(el).opacity)),
         ).toBeLessThan(1)
       }).toPass()
-    }))
+    })
+})
 
-test('duplicate', ({ page }) =>
-  mockAllAndLogin({
-    page,
-    setupAPI: (api) => {
-      api.addProject({ title: 'New Project 1' })
-    },
-  })
+test('duplicate', async ({ drivePage, cloudApi }) => {
+  cloudApi.addProject({ title: 'New Project 1' })
+  await drivePage.goToCategory
+    .cloud()
     .driveTable.rightClickRow(0)
     .contextMenu.duplicate()
     .driveTable.withRows(async (rows) => {
@@ -160,15 +163,13 @@ test('duplicate', ({ page }) =>
 
       await expect(project1).toBeVisible()
       await expect(project1Copy).toBeVisible()
-    }))
+    })
+})
 
-test('duplicate (keyboard)', ({ page }) =>
-  mockAllAndLogin({
-    page,
-    setupAPI: (api) => {
-      api.addProject({ title: 'New Project 1' })
-    },
-  })
+test('duplicate (keyboard)', async ({ drivePage, cloudApi }) => {
+  cloudApi.addProject({ title: 'New Project 1' })
+  await drivePage.goToCategory
+    .cloud()
     .driveTable.clickRow('New Project 1')
     .press('Mod+D')
     .driveTable.withRows(async (rows) => {
@@ -178,4 +179,5 @@ test('duplicate (keyboard)', ({ page }) =>
 
       await expect(project1).toBeVisible()
       await expect(project1Copy).toBeVisible()
-    }))
+    })
+})

@@ -1,12 +1,17 @@
 <script setup lang="ts">
+import { isRequiredArgument } from '$/providers/openedProjects/suggestionDatabase/entry'
+import {
+  Score,
+  WidgetInput,
+  defineWidget,
+  widgetProps,
+} from '$/providers/openedProjects/widgetRegistry'
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import { injectPortInfo } from '@/providers/portInfo'
-import { Score, WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
-import { isRequiredArgument } from '@/stores/suggestionDatabase/entry'
 import { Ast } from '@/util/ast'
 import { ApplicationKind, ArgumentInfoKey } from '@/util/callTree'
 import { computed } from 'vue'
-import { type SuggestionEntryArgument } from 'ydoc-shared/languageServerTypes/suggestions'
+import type { SuggestionEntryArgument } from 'ydoc-shared/languageServerTypes/suggestions'
 
 const props = defineProps(widgetProps(widgetDefinition))
 
@@ -57,8 +62,8 @@ export const ArgumentNameShownKey: unique symbol = Symbol.for('WidgetInput:Argum
 </script>
 
 <template>
-  <div class="WidgetArgumentName" :class="{ primary, missing }">
-    <span class="name">
+  <div class="WidgetArgumentName widgetParent" :class="{ primary, missing }">
+    <span class="name widgetSingleLine">
       <span class="widgetApplyPadding" :class="{ widgetRounded: missing }">{{
         props.input[ArgumentInfoKey].info.name
       }}</span>
@@ -69,9 +74,6 @@ export const ArgumentNameShownKey: unique symbol = Symbol.for('WidgetInput:Argum
 
 <style scoped>
 .WidgetArgumentName {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
   gap: var(--widget-token-pad-unit);
 }
 

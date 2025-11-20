@@ -1,14 +1,13 @@
 /** @file Components for column cells. */
 import DotsIcon from '#/assets/dots.svg'
 import { Button } from '#/components/Button'
-import { ContextMenu, type ContextMenuApi } from '#/components/ContextMenu'
 import { Dialog, Popover } from '#/components/Dialog'
 import { Text } from '#/components/Text'
 import { backendMutationOptions } from '#/hooks/backendHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useMeasureCallback } from '#/hooks/measureHooks'
-import { useMenuEntries } from '#/hooks/menuHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
+import { useCategoriesAPI } from '#/layouts/Drive/Categories'
 import ManageLabelsModal from '#/modals/ManageLabelsModal'
 import type { AssetColumnProps, AssetNameColumnProps } from '#/pages/dashboard/components/column'
 import DatalinkNameColumn from '#/pages/dashboard/components/column/DatalinkNameColumn'
@@ -18,8 +17,11 @@ import ProjectNameColumn from '#/pages/dashboard/components/column/ProjectNameCo
 import SecretNameColumn from '#/pages/dashboard/components/column/SecretNameColumn'
 import Label from '#/pages/dashboard/components/Label'
 import PermissionDisplay from '#/pages/dashboard/components/PermissionDisplay'
-import { BindingFocusScopeContext } from '#/providers/BindingFocusScopeProvider'
+import { useSelectedAssets } from '#/providers/DriveProvider'
 import { unsetModal } from '#/providers/ModalProvider'
+import { mergeRefs } from '#/utilities/mergeRefs'
+import { useMutationCallback } from '#/utilities/tanstackQuery'
+import { useText } from '$/providers/react'
 import {
   AssetType,
   FALLBACK_COLOR,
@@ -27,24 +29,25 @@ import {
   getAssetPermissionName,
   type LabelName,
   type LChColor,
-} from '#/services/Backend'
-import { mergeRefs } from '#/utilities/mergeRefs'
-import { PermissionAction } from '#/utilities/permissions'
-import { useMutationCallback } from '#/utilities/tanstackQuery'
-import { useText } from '$/providers/react'
+} from 'enso-common/src/services/Backend'
 import { toReadableIsoString } from 'enso-common/src/utilities/data/dateTime'
-import { forwardRef, useRef, useState, type ForwardedRef } from 'react'
+import { PermissionAction } from 'enso-common/src/utilities/permissions'
+import { useMemo, useRef, useState } from 'react'
 export { PathColumn } from './PathColumn'
 
 /** A column listing the labels on this asset. */
 export function LabelsColumn(props: AssetColumnProps) {
-  const { item, state, labels } = props
+  const { item, labels } = props
 
-  const { backend } = state
-
+  const { associatedBackend: backend } = useCategoriesAPI()
   const { getText } = useText()
   const toastAndLog = useToastAndLog()
   const labelsByName = new Map(labels.map((label) => [label.value, label]))
+  const selectedAssets = useSelectedAssets()
+  const labelsItems = useMemo(
+    () => (selectedAssets.some((asset) => asset.id === item.id) ? selectedAssets : [item]),
+    [selectedAssets, item],
+  )
 
   const rootRef = useRef<HTMLDivElement>(null)
   const labelsListRef = useRef<HTMLDivElement>(null)
@@ -73,7 +76,12 @@ export function LabelsColumn(props: AssetColumnProps) {
   const labelsList = (item.labels ?? [])
     .filter((label) => labelsByName.has(label))
     .map((label) => (
-      <LabelInColumn label={label} color={labelsByName.get(label)?.color} doDelete={doDelete} />
+      <LabelInColumn
+        key={label}
+        label={label}
+        color={labelsByName.get(label)?.color}
+        doDelete={doDelete}
+      />
     ))
 
   return (
@@ -119,7 +127,7 @@ export function LabelsColumn(props: AssetColumnProps) {
                     tooltipPlacement="top"
                     icon="edit"
                   />
-                  <ManageLabelsModal backend={backend} item={item} />
+                  <ManageLabelsModal backend={backend} items={labelsItems} />
                 </Dialog.Trigger>
               </div>
             </Popover>
@@ -134,7 +142,7 @@ export function LabelsColumn(props: AssetColumnProps) {
             tooltipPlacement="top"
             icon="edit"
           />
-          <ManageLabelsModal backend={backend} item={item} />
+          <ManageLabelsModal backend={backend} items={labelsItems} />
         </Dialog.Trigger>
       </div>
     </div>
@@ -153,53 +161,19 @@ function LabelInColumn(props: LabelInColumnProps) {
   const { label, color = FALLBACK_COLOR, doDelete } = props
 
   const { getText } = useText()
-  const labelRef = useRef<HTMLDivElement>(null)
-  const contextMenuRef = useRef<ContextMenuApi>(null)
 
   return (
-    <BindingFocusScopeContext.Provider key={label} value={labelRef}>
-      <Label
-        active
-        ref={labelRef}
-        data-testid="asset-label"
-        title={getText('rightClickToRemoveLabel')}
-        color={color}
-        onDelete={() => doDelete(label)}
-        onContextMenu={(event) => {
-          contextMenuRef.current?.open(event)
-        }}
-      >
-        {label}
-      </Label>
-      <LabelInColumnContextMenu label={label} doDelete={doDelete} />
-    </BindingFocusScopeContext.Provider>
+    <Label
+      active
+      data-testid="asset-label"
+      title={getText('rightClickToRemoveLabel')}
+      color={color}
+      onDelete={() => doDelete(label)}
+    >
+      {label}
+    </Label>
   )
 }
-
-/**
- * A context menu in a {@link LabelInColumn}. Necessary for `useMenuEntries` to pick up
- * the new `BindingFocusScope`.
- */
-const LabelInColumnContextMenu = forwardRef(function LabelInColumnContextMenu(
-  props: Pick<LabelInColumnProps, 'doDelete' | 'label'>,
-  ref: ForwardedRef<ContextMenuApi>,
-) {
-  const { label, doDelete } = props
-
-  const { getText } = useText()
-
-  const entries = useMenuEntries([
-    {
-      action: 'delete',
-      label: getText('removeLabelShortcut'),
-      doAction: () => {
-        doDelete(label)
-      },
-    },
-  ])
-
-  return <ContextMenu ref={ref} aria-label={getText('labelContextMenuLabel')} entries={entries} />
-})
 
 /** A column displaying the time at which the asset was last modified. */
 export function ModifiedColumn(props: AssetColumnProps) {
@@ -228,10 +202,6 @@ export function NameColumn(props: AssetNameColumnProps) {
     case AssetType.secret: {
       return <SecretNameColumn {...props} item={item} />
     }
-    case AssetType.specialUp: {
-      // Special rows do not display columns at all.
-      return <></>
-    }
   }
 }
 
@@ -241,21 +211,17 @@ export function PlaceholderColumn() {
 }
 
 /** The type of the `state` prop of a {@link SharedWithColumn}. */
-interface SharedWithColumnStateProp
-  extends Pick<AssetColumnProps['state'], 'backend' | 'category'> {
-  readonly setQuery: AssetColumnProps['state']['setQuery'] | null
-}
+interface SharedWithColumnStateProp extends Pick<AssetColumnProps['state'], 'category'> {}
 
 /** Props for a {@link SharedWithColumn}. */
 interface SharedWithColumnPropsInternal extends Pick<AssetColumnProps, 'item'> {
-  readonly isReadonly?: boolean
   readonly state: SharedWithColumnStateProp
 }
 
 /** A column listing the users with which this asset is shared. */
 export function SharedWithColumn(props: SharedWithColumnPropsInternal) {
   const { item, state } = props
-  const { category, setQuery } = state
+  const { category } = state
 
   const assetPermissions = item.permissions ?? []
 
@@ -265,24 +231,7 @@ export function SharedWithColumn(props: SharedWithColumnPropsInternal) {
         assetPermissions.filter((permission) => permission.permission === PermissionAction.own)
       : assetPermissions
       ).map((other, idx) => (
-        <PermissionDisplay
-          key={getAssetPermissionId(other) + idx}
-          action={other.permission}
-          onPress={
-            setQuery == null ? null : (
-              (event) => {
-                setQuery((oldQuery) =>
-                  oldQuery.withToggled(
-                    'owners',
-                    'negativeOwners',
-                    getAssetPermissionName(other),
-                    event.shiftKey,
-                  ),
-                )
-              }
-            )
-          }
-        >
+        <PermissionDisplay key={getAssetPermissionId(other) + idx} action={other.permission}>
           {getAssetPermissionName(other)}
         </PermissionDisplay>
       ))}

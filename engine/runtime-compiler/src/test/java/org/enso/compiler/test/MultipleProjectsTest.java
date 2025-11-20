@@ -48,13 +48,13 @@ public class MultipleProjectsTest {
     compilerCtx.createModule(
         QualifiedName.fromString("local.Lib1.Main"),
         """
-            type Lib1_Type
-            """);
+        type Lib1_Type
+        """);
     compilerCtx.createModule(
         QualifiedName.fromString("local.Lib2.Main"),
         """
-            type Lib2_Type
-            """);
+        type Lib2_Type
+        """);
     var mainMod =
         compilerCtx.createModule(
             QualifiedName.fromString("local.Proj.Main"),

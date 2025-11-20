@@ -20,13 +20,13 @@ import project.Errors.Common.Length_Mismatch
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.Problem_Behavior.Problem_Behavior
 import project.Errors.Unimplemented.Unimplemented
-import project.Nothing.Nothing
 import project.Random.Random
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Index_Sub_Range import drop_helper, take_helper
 from project.Data.Ordering import Comparable
 from project.Data.Range.Extensions import all
 from project.Internal.Predicate_Helpers import unify_condition_or_predicate, unify_condition_predicate_or_element
+from project.Nothing import all
 
 new_array_proxy_builtin : Integer -> (Integer -> Any) -> Array
 new_array_proxy_builtin length at = @Builtin_Method "Array_Like_Helpers.new_array_proxy_builtin"

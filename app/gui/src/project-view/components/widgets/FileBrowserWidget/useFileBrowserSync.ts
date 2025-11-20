@@ -1,7 +1,7 @@
 /** @file Orchestrates reactive synchronization for the File Browser widget. */
 import { mapPath, type EnsoPath } from '@/components/widgets/FileBrowserWidget/ensoPath'
-import type { Result } from '@/util/data/result'
 import type { ToValue } from '@/util/reactivity'
+import type { Result } from 'enso-common/src/utilities/data/result'
 import { toValue, watchEffect, type Ref } from 'vue'
 
 export interface FileBrowserSyncOptions {

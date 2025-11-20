@@ -1,4 +1,5 @@
+#!/usr/bin/env sh
 COMP_PATH=$(dirname "$0")/../component
 JAVA_OPTS="--enable-native-access=org.graalvm.truffle --sun-misc-unsafe-memory-access=allow --add-opens=java.base/java.nio=ALL-UNNAMED"
-exec java --module-path $COMP_PATH $JAVA_OPTS -m org.enso.runner/org.enso.runner.Main "$@"
+exec java --module-path "$COMP_PATH" "$JAVA_OPTS" -m org.enso.runner/org.enso.runner.Main "$@"
 exit

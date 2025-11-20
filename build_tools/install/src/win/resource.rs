@@ -6,8 +6,6 @@ use windows::core::HSTRING;
 use windows::Win32::Foundation;
 use windows::Win32::System::LibraryLoader;
 
-
-
 /// Get binary resource embedded in the current executable.
 ///
 /// The resource must be compiled into the current executable as `RCDATA`.

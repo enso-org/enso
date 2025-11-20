@@ -161,7 +161,7 @@ aggregate table:DB_Table group_by:(Vector | Text | Integer | Regex) columns:Vect
 default_build_aggregate build_aggregate dialect base_table key_columns resolved_aggregates problem_builder =
     key_expressions = key_columns.map .expression
     new_ctx = base_table.context.set_groups key_expressions
-    infer_return_type = make_infer_return_type dialect base_table.connection new_ctx
+    infer_return_type = make_infer_return_type base_table.connection new_ctx
     results = resolved_aggregates.map p->
         agg = p.second
         as = p.first
@@ -175,7 +175,7 @@ default_build_aggregate build_aggregate dialect base_table key_columns resolved_
 ## ---
    private: true
    ---
-make_infer_return_type dialect connection context =
+make_infer_return_type connection context =
     ## TODO [RW] here we will perform as many fetches as there are
        aggregate columns, but technically we could perform just one
        fetch fetching all column types - TODO we should do that. We can
@@ -185,9 +185,9 @@ make_infer_return_type dialect connection context =
        See #6118.
     infer_from_database_callback expression =
         SQL_Type_Reference.new connection context expression
-    type_mapping = dialect.get_type_mapping
+    mapping = connection.type_mapping
     infer_return_type op_kind columns expression =
-        type_mapping.infer_return_type infer_from_database_callback op_kind columns expression
+        mapping.infer_return_type infer_from_database_callback op_kind columns expression
     infer_return_type
 
 ## ---
@@ -247,7 +247,7 @@ type Aggregate_With_Helper_Expressions
                 helper_columns_for_aggregates = helper_expressions_for_aggregates.map requested_expressions->
                     requested_expressions.map helper_columns_mapping.at
 
-                infer_return_type_in_new_context = make_infer_return_type dialect base_table.connection new_ctx
+                infer_return_type_in_new_context = make_infer_return_type base_table.connection new_ctx
                 results = resolved_aggregates.zip helper_columns_for_aggregates p-> helper_columns->
                     original_aggregate = p.second
                     as = p.first

@@ -180,14 +180,12 @@ class MethodsTest extends InterpreterTest {
           |    inc self = Foo.Mk_Foo self.a+1
           |
           |main =
-          |    IO.println (Foo.inc (Foo.Mk_Foo 12))
           |    IO.println (Foo.Mk_Foo 13).inc
-          |    IO.println (.inc self=Foo self=(Foo.Mk_Foo 14))
           |    IO.println (Foo.inc self=(Foo.Mk_Foo 15))
           |""".stripMargin
       eval(code)
       consumeOut.shouldEqual(
-        List("(Mk_Foo 13)", "(Mk_Foo 14)", "(Mk_Foo 15)", "(Mk_Foo 16)")
+        List("(Mk_Foo 14)", "(Mk_Foo 16)")
       )
     }
 
@@ -202,8 +200,8 @@ class MethodsTest extends InterpreterTest {
           |    t_1 = "foo"
           |    t_2 = "bar"
           |
-          |    IO.println (Array.length a)
-          |    IO.println (Text.+ t_1 t_2)
+          |    IO.println (Array.length self=a)
+          |    IO.println (Text.+ self=t_1 t_2)
           |""".stripMargin
       eval(code)
       consumeOut.shouldEqual(List("1", "foobar"))

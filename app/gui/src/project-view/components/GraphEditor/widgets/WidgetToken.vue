@@ -1,5 +1,10 @@
 <script setup lang="ts">
-import { Score, WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
+import {
+  Score,
+  WidgetInput,
+  defineWidget,
+  widgetProps,
+} from '$/providers/openedProjects/widgetRegistry'
 import { computed } from 'vue'
 import { Token as RawToken } from 'ydoc-shared/ast/generated/ast'
 
@@ -39,13 +44,13 @@ export const widgetDefinition = defineWidget(
 </script>
 
 <template>
-  <span class="WidgetToken widgetApplyPadding" :class="spanClass">{{ displayContent }}</span>
+  <div class="WidgetToken widgetSingleLine widgetApplyPadding" :class="spanClass">
+    {{ displayContent }}
+  </div>
 </template>
 
 <style scoped>
 .WidgetToken {
-  display: inline-block;
-  vertical-align: middle;
   white-space: pre;
   opacity: 0.33;
 

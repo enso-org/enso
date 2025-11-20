@@ -1,6 +1,5 @@
 package org.enso.jvm.interop.impl;
 
-
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Bind;
 import com.oracle.truffle.api.interop.InteropLibrary;
@@ -12,9 +11,6 @@ import com.oracle.truffle.api.library.Message;
 import com.oracle.truffle.api.library.ReflectionLibrary;
 import com.oracle.truffle.api.nodes.Node;
 import java.io.IOException;
-import java.lang.ref.ReferenceQueue;
-import java.lang.ref.WeakReference;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
@@ -55,6 +51,8 @@ final class OtherJvmObject implements TruffleObject {
       Message.resolve(InteropLibrary.class, "hasArrayElements");
   private static final Message HAS_HASH_ENTRIES =
       Message.resolve(InteropLibrary.class, "hasHashEntries");
+  private static final Message HAS_BUFFER_ELEMENTS =
+      Message.resolve(InteropLibrary.class, "hasBufferElements");
 
   private static final Message IS_DATE = Message.resolve(InteropLibrary.class, "isDate");
   private static final Message IS_TIME = Message.resolve(InteropLibrary.class, "isTime");
@@ -76,7 +74,7 @@ final class OtherJvmObject implements TruffleObject {
     this.id = id;
     this.mask = mask;
     if (channel != null && !OtherInteropType.isMetaObject(mask)) {
-      Ref.registerGCable(this);
+      OtherJvmRef.registerGCable(this, channel);
     }
   }
 
@@ -159,8 +157,8 @@ final class OtherJvmObject implements TruffleObject {
       if (message == HAS_HASH_ENTRIES) {
         return OtherInteropType.hasHashEntries(mask);
       }
-      if (message == HAS_ARRAY_ELEMENTS) {
-        return OtherInteropType.hasArrayElements(mask);
+      if (message == HAS_BUFFER_ELEMENTS) {
+        return OtherInteropType.hasBufferElements(mask);
       }
       if (message == IS_TIME) {
         return OtherInteropType.isTime(mask);
@@ -178,10 +176,10 @@ final class OtherJvmObject implements TruffleObject {
         return OtherInteropType.fitsBigInteger(mask);
       }
       if (HAS_LANGUAGE == message) {
-        return true;
+        return channel.getConfig().hasLanguage();
       }
       if (GET_LANGUAGE == message) {
-        return OtherLanguage.class;
+        return channel.getConfig().getLanguage();
       }
 
       // proper dispatch to the other JVM
@@ -220,7 +218,7 @@ final class OtherJvmObject implements TruffleObject {
   private OtherJvmResult<?, ?> executeMessage(OtherJvmMessage msg, Message message, Object[] args) {
     var reply = channel.execute(OtherJvmResult.class, msg);
     channel.getConfig().profileMessage(message, args);
-    Ref.flushQueue();
+    OtherJvmRef.flushQueue(null);
     return reply;
   }
 
@@ -302,7 +300,7 @@ final class OtherJvmObject implements TruffleObject {
         var iop = InteropLibrary.getUncached();
         var mask = OtherInteropType.findType(foreign);
         if (isHostNull(mask, foreign)) {
-            yield new OtherJvmObject(null, 0, mask);
+          yield new OtherJvmObject(null, 0, mask);
         }
         var meta = OtherInteropType.isMetaObject(mask);
         var id = registerObject.apply(foreign, meta);
@@ -331,7 +329,8 @@ final class OtherJvmObject implements TruffleObject {
     var iop = InteropLibrary.getUncached();
     if (OtherInteropType.isNull(mask)) {
       try {
-        if (iop.hasLanguage(foreign) && iop.getLanguage(foreign).getSimpleName().equals("HostLanguage")) {
+        if (iop.hasLanguage(foreign)
+            && iop.getLanguage(foreign).getSimpleName().equals("HostLanguage")) {
           return true;
         }
       } catch (UnsupportedMessageException ex) {
@@ -339,42 +338,5 @@ final class OtherJvmObject implements TruffleObject {
       }
     }
     return false;
-  }
-
-  private static final class Ref extends WeakReference<OtherJvmObject> {
-    private static final ReferenceQueue<? super OtherJvmObject> ALIVE = new ReferenceQueue<>();
-    private static final List<Ref> KEEP = new ArrayList<>();
-
-    private final long id;
-    private final Channel<OtherJvmPool> channel;
-
-    Ref(OtherJvmObject referent) {
-      super(referent, ALIVE);
-      this.id = referent.id();
-      this.channel = referent.channel;
-      assert this.channel != null;
-    }
-
-    @Override
-    public String toString() {
-      return "Ref{" + "id=" + id + '}';
-    }
-
-    private static synchronized void registerGCable(OtherJvmObject other) {
-      KEEP.add(new Ref(other));
-    }
-
-    static void flushQueue() {
-      while (true) {
-        var r = (Ref) ALIVE.poll();
-        if (r == null) {
-          break;
-        }
-        r.channel.execute(Void.class, new OtherJvmMessage.GC(r.id));
-        synchronized (Ref.class) {
-          KEEP.remove(r);
-        }
-      }
-    }
   }
 }

@@ -1,0 +1,28 @@
+## Enso Signatures 1.0
+## module Standard.Snowflake.File_Format
+- type Auto_Boolean
+    - AUTO
+    - FALSE
+    - TRUE
+- Standard.Snowflake.File_Format.Auto_Boolean.from that:Standard.Base.Data.Boolean.Boolean -> Standard.Snowflake.File_Format.Auto_Boolean
+- Standard.Snowflake.File_Format.Auto_Boolean.from that:Standard.Base.Nothing.Nothing -> Standard.Snowflake.File_Format.Auto_Boolean
+- type Compression
+    - AUTO
+    - BROTLI
+    - BZ2
+    - DEFLATE
+    - GZIP
+    - NONE
+    - RAW_DEFLATE
+    - ZSTD
+- type Snowflake_File_Format
+    - AVRO
+    - CSV delimiter:Standard.Base.Data.Text.Text= parse_header:Standard.Snowflake.File_Format.Auto_Boolean= date_format:Standard.Base.Data.Text.Text= time_format:Standard.Base.Data.Text.Text= timestamp_format:Standard.Base.Data.Text.Text= compression:Standard.Snowflake.File_Format.Compression=
+    - Custom sql:Standard.Base.Data.Text.Text=
+    - JSON date_format:Standard.Base.Data.Text.Text= time_format:Standard.Base.Data.Text.Text= timestamp_format:Standard.Base.Data.Text.Text= compression:Standard.Snowflake.File_Format.Compression=
+    - NONE
+    - ORC
+    - PARQUET
+    - Saved name:Standard.Snowflake.Identifier.Identifier=
+    - XML
+- Standard.Snowflake.File_Format.Snowflake_File_Format.from that:Standard.Snowflake.Identifier.Identifier -> Standard.Snowflake.File_Format.Snowflake_File_Format

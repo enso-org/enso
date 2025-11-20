@@ -1,4 +1,4 @@
-import { type TextMatchTransformer } from '@lexical/markdown'
+import type { TextMatchTransformer } from '@lexical/markdown'
 import {
   type DOMConversionMap,
   type DOMConversionOutput,

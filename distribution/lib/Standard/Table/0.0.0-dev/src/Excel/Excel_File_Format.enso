@@ -1,0 +1,36 @@
+from Standard.Base import all
+
+polyglot java import org.enso.table.excel.ExcelFileFormat as Java_Excel_File_Format
+
+## Supported Excel file formats.
+type Excel_File_Format
+    ## Excel 97-2003 format.
+    XLS
+
+    ## Excel 2007+ format.
+    XLSX
+
+    ## Excel binary format.
+    XLSB
+
+    ## ---
+       private: true
+       ---
+    to_java self = case self of
+        Excel_File_Format.XLS  -> Java_Excel_File_Format.XLS
+        Excel_File_Format.XLSX -> Java_Excel_File_Format.XLSX
+        Excel_File_Format.XLSB -> Java_Excel_File_Format.XLSB
+
+    ## ---
+       private: true
+       ---
+    to_text self = case self of
+        Excel_File_Format.XLS  -> "XLS"
+        Excel_File_Format.XLSX -> "XLSX"
+        Excel_File_Format.XLSB -> "XLSB"
+
+## ---
+   private: true
+   ---
+   For compatibility with the old API that used a boolean to distinguish between XLS and XLSX.
+Excel_File_Format.from (that:Boolean) = if that then Excel_File_Format.XLS else Excel_File_Format.XLSX

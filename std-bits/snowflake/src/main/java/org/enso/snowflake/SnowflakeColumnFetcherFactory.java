@@ -57,32 +57,32 @@ public class SnowflakeColumnFetcherFactory
     // JDBC column indices are 1-based.
     int colIndex = index + 1;
     return switch (storageType) {
-      case TimeOfDayType todt -> new GenericColumnFetcher<>(
-          colIndex, columnName, todt, problemAggregator) {
-        @Override
-        public Object getValue(ResultSet resultSet) throws SQLException {
-          var timeString = resultSet.getString(index());
-          return timeString == null
-              ? null
-              : LocalTime.parse(timeString, DateTimeFormatter.ISO_LOCAL_TIME);
-        }
-      };
-      case DateTimeType dtt -> new GenericColumnFetcher<>(
-          colIndex, columnName, dtt, problemAggregator) {
-        @Override
-        public Object getValue(ResultSet resultSet) throws SQLException {
-          var timestampString = resultSet.getString(index());
-          if (timestampString == null) {
-            return null;
-          }
+      case TimeOfDayType todt ->
+          new GenericColumnFetcher<>(colIndex, columnName, todt, problemAggregator) {
+            @Override
+            public Object getValue(ResultSet resultSet) throws SQLException {
+              var timeString = resultSet.getString(index());
+              return timeString == null
+                  ? null
+                  : LocalTime.parse(timeString, DateTimeFormatter.ISO_LOCAL_TIME);
+            }
+          };
+      case DateTimeType dtt ->
+          new GenericColumnFetcher<>(colIndex, columnName, dtt, problemAggregator) {
+            @Override
+            public Object getValue(ResultSet resultSet) throws SQLException {
+              var timestampString = resultSet.getString(index());
+              if (timestampString == null) {
+                return null;
+              }
 
-          var normalised =
-              timestampString.length() > 10 && timestampString.charAt(10) == 'T'
-                  ? timestampString.substring(0, 10) + ' ' + timestampString.substring(11)
-                  : timestampString;
-          return Core_Date_Utils.parseZonedDateTime(normalised, DATE_TIME_FORMATTER);
-        }
-      };
+              var normalised =
+                  timestampString.length() > 10 && timestampString.charAt(10) == 'T'
+                      ? timestampString.substring(0, 10) + ' ' + timestampString.substring(11)
+                      : timestampString;
+              return Core_Date_Utils.parseZonedDateTime(normalised, DATE_TIME_FORMATTER);
+            }
+          };
       case BigIntegerType bit -> new SnowflakeIntegerFetcher(colIndex, columnName);
       default -> super.forStorageType(storageType, index, columnName, problemAggregator);
     };

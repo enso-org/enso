@@ -6,7 +6,7 @@
 
 import type * as text from 'enso-common/src/text'
 
-import * as backend from '#/services/Backend'
+import * as backend from 'enso-common/src/services/Backend'
 
 /** Registered paywall features. */
 export const PAYWALL_FEATURES = {

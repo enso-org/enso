@@ -6,9 +6,7 @@ export interface Coordinate2D {
   readonly top: number
 }
 
-/**
- * A rectangle, including coordinates of every corner.
- */
+/** A rectangle, including coordinates of every corner. */
 export interface Rectangle {
   readonly left: number
   readonly top: number
@@ -16,9 +14,7 @@ export interface Rectangle {
   readonly bottom: number
 }
 
-/**
- * A bounding box, including all common measurements.
- */
+/** A bounding box, including all common measurements. */
 export interface BoundingBox extends Rectangle {
   readonly width: number
   readonly height: number

@@ -50,6 +50,8 @@ export const DECLINE_INVITATION_PATH = 'invitations'
 export const CREATE_PERMISSION_PATH = 'permissions'
 /** Relative HTTP path to the "list directory" endpoint of the Cloud backend API. */
 export const LIST_DIRECTORY_PATH = 'directories'
+/** Relative HTTP path to the "search directory" endpoint of the Cloud backend API. */
+export const SEARCH_DIRECTORY_PATH = 'directories/search'
 /** Relative HTTP path to the "create directory" endpoint of the Cloud backend API. */
 export const CREATE_DIRECTORY_PATH = 'directories'
 /** Relative HTTP path to the "undo delete asset" endpoint of the Cloud backend API. */
@@ -60,6 +62,8 @@ export const CREATE_PROJECT_PATH = 'projects'
 export const UPLOAD_FILE_START_PATH = 'files/upload/start'
 /** Relative HTTP path to the "upload file end" endpoint of the Cloud backend API. */
 export const UPLOAD_FILE_END_PATH = 'files/upload/end'
+/** Relative HTTP path to the "upload image" endpoint of the Cloud backend API */
+export const UPLOAD_IMAGE_PATH = 'images'
 /** Relative HTTP path to the "create secret" endpoint of the Cloud backend API. */
 export const CREATE_SECRET_PATH = 'secrets'
 /** Relative HTTP path to the "list secrets" endpoint of the Cloud backend API. */

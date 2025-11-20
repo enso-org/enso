@@ -81,7 +81,7 @@ case object TailCallMegaPass extends IRPass {
     ir: Module,
     moduleContext: ModuleContext
   ): Module = {
-    ir.copy(bindings = ir.bindings.map(analyseModuleBinding))
+    ir.copyWithBindings(bindings = ir.bindings.map(analyseModuleBinding))
   }
 
   /** Analyses tail call state for an arbitrary expression.
@@ -117,16 +117,19 @@ case object TailCallMegaPass extends IRPass {
     moduleDefinition match {
       case method: definition.Method.Conversion =>
         method
-          .copy(
-            body = analyseExpression(method.body, isInTailPosition = true)
-          )
+          .copyBuilder()
+          .body(analyseExpression(method.body, isInTailPosition = true))
+          .build()
           .updateMetadata(TAIL_META)
-      case method @ definition.Method
-            .Explicit(_, body, _, _, _) =>
+      case method: definition.Method.Explicit =>
         method
-          .copy(
-            body = analyseExpression(body, isInTailPosition = true)
+          .copyBuilder()
+          .bodyReference(
+            Reference.of(
+              analyseExpression(method.body, isInTailPosition = true)
+            )
           )
+          .build()
           .updateMetadata(TAIL_META)
       case _: definition.Method.Binding =>
         throw new CompilerError(
@@ -428,6 +431,7 @@ case object TailCallMegaPass extends IRPass {
             fields      = fields.map(analysePattern)
           )
       case literal: Pattern.Literal => literal
+      case bool: Pattern.Bool       => bool
       case tpePattern @ Pattern.Type(name, tpe, _, _) =>
         tpePattern
           .copy(

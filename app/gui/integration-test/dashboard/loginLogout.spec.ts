@@ -1,7 +1,7 @@
 /** @file Test the login flow. */
-import { expect, test, type Page } from 'playwright/test'
+import { expect, test, type Page } from 'integration-test/base'
 
-import { TEXT, mockAll } from './actions'
+import { TEXT } from '../actions'
 
 /** Find a "login" button.on the current locator. */
 function locateLoginButton(page: Page) {
@@ -17,18 +17,19 @@ function locateDriveView(page: Page) {
 // Reset storage state for this file to avoid being authenticated
 test.use({ storageState: { cookies: [], origins: [] } })
 
-test('login and logout', ({ page }) =>
-  mockAll({ page })
+test('login and logout', async ({ loginPage }) => {
+  await loginPage
     .login()
     .withDriveView(async (driveView) => {
       await expect(driveView).toBeVisible()
     })
     .do(async (thePage) => {
-      await expect(locateLoginButton(thePage)).not.toBeVisible()
+      await expect(locateLoginButton(thePage)).toBeHidden()
     })
     .openUserMenu()
     .userMenu.logout()
     .do(async (thePage) => {
-      await expect(locateDriveView(thePage)).not.toBeVisible()
+      await expect(locateDriveView(thePage)).toBeHidden()
       await expect(locateLoginButton(thePage)).toBeVisible()
-    }))
+    })
+})

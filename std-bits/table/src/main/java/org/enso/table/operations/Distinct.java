@@ -5,8 +5,10 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import org.enso.base.ProgressReporter;
 import org.enso.base.arrays.LongArrayList;
 import org.enso.base.text.TextFoldingStrategy;
+import org.enso.table.data.column.operation.StorageIterators;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.index.MultiValueKeyBase;
 import org.enso.table.data.index.UnorderedMultiValueKey;
@@ -14,7 +16,6 @@ import org.enso.table.data.table.Column;
 import org.enso.table.problems.ColumnAggregatedProblemAggregator;
 import org.enso.table.problems.ProblemAggregator;
 import org.enso.table.util.ConstantList;
-import org.enso.table.util.ProgressHandler;
 
 public class Distinct {
   /** Creates a row mask containing only the first row from sets of rows grouped by key columns. */
@@ -23,7 +24,9 @@ public class Distinct {
       Column[] keyColumns,
       TextFoldingStrategy textFoldingStrategy,
       ProblemAggregator problemAggregator) {
-    try (var progressHandle = ProgressHandler.init("buildDistinctRowsMask", tableSize)) {
+    try (var progressReporter =
+        ProgressReporter.createWithStep(
+            "buildDistinctRowsMask", tableSize, StorageIterators.PROGRESS_STEP)) {
       var groupingProblemAggregator = new ColumnAggregatedProblemAggregator(problemAggregator);
 
       ColumnStorage<?>[] storage =
@@ -44,7 +47,7 @@ public class Distinct {
           visitedRows.add(key);
         }
 
-        progressHandle.advance();
+        progressReporter.advance();
       }
 
       return distinctRows.toArray();
@@ -56,7 +59,9 @@ public class Distinct {
       Column[] keyColumns,
       TextFoldingStrategy textFoldingStrategy,
       ProblemAggregator problemAggregator) {
-    try (var progressHandle = ProgressHandler.init("buildDuplicatesRowsMask", tableSize)) {
+    try (var progressReporter =
+        ProgressReporter.createWithStep(
+            "buildDuplicatesRowsMask", tableSize, StorageIterators.PROGRESS_STEP)) {
       var groupingProblemAggregator = new ColumnAggregatedProblemAggregator(problemAggregator);
 
       ColumnStorage<?>[] storage =
@@ -81,7 +86,7 @@ public class Distinct {
           duplicateRows.add(i);
         }
 
-        progressHandle.advance();
+        progressReporter.advance();
       }
 
       // Sort the duplicate rows to ensure they are in ascending order.

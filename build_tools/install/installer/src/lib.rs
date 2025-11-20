@@ -4,7 +4,6 @@ use enso_install::prelude::*;
 
 use enso_install::access_built_time_env;
 
-
 // ==============
 // === Export ===
 // ==============
@@ -13,8 +12,6 @@ use enso_install::access_built_time_env;
 pub mod win;
 
 pub use enso_install::prelude;
-
-
 
 /// Update message sent by the installer logic thread to the UI.
 ///
@@ -38,7 +35,7 @@ pub enum InstallerUpdate {
 #[derive(Copy, Clone, Debug)]
 pub struct Payload {
     /// The binary data of the payload.
-    pub data:     &'static [u8],
+    pub data: &'static [u8],
     /// The metadata of the payload.
     pub metadata: &'static enso_install_config::payload::Metadata,
 }

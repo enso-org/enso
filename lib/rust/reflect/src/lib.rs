@@ -117,21 +117,16 @@
 
 use enso_metamodel::rust::*;
 
-
 // ==============
 // === Export ===
 // ==============
 
 pub use enso_metamodel as metamodel;
 
-
-
 /// Imports for crates that `#[derive(Reflect)]`.
 pub mod prelude {
     pub use enso_reflect_macros::Reflect;
 }
-
-
 
 // ===============
 // === Reflect ===
@@ -154,7 +149,6 @@ pub trait Reflect {
     }
 }
 
-
 // === Implementations for standard types ===
 
 impl Reflect for std::borrow::Cow<'_, str> {
@@ -166,7 +160,8 @@ impl Reflect for std::borrow::Cow<'_, str> {
 }
 
 impl<T> Reflect for std::rc::Rc<T>
-where T: Reflect
+where
+    T: Reflect,
 {
     type Static = T::Static;
     type SubtypeErased = Self::Static;
@@ -176,7 +171,8 @@ where T: Reflect
 }
 
 impl<T> Reflect for Box<T>
-where T: Reflect
+where
+    T: Reflect,
 {
     type Static = T::Static;
     type SubtypeErased = Self::Static;
@@ -186,7 +182,8 @@ where T: Reflect
 }
 
 impl<T> Reflect for Option<T>
-where T: Reflect
+where
+    T: Reflect,
 {
     type Static = Option<T::Static>;
     type SubtypeErased = Self::Static;
@@ -226,7 +223,8 @@ impl Reflect for &'_ str {
 }
 
 impl<T> Reflect for Vec<T>
-where T: Reflect
+where
+    T: Reflect,
 {
     type Static = Vec<T::Static>;
     type SubtypeErased = Self::Static;
@@ -262,8 +260,6 @@ reflect_primitive!(i32, Primitive::I32);
 reflect_primitive!(char, Primitive::Char);
 reflect_primitive!(String, Primitive::String);
 
-
-
 // ==================
 // === Reflectors ===
 // ==================
@@ -285,8 +281,6 @@ pub fn generic_id<T: ?Sized + Reflect>() -> GenericTypeId {
 pub fn type_id<T: ?Sized + Reflect>() -> TypeId {
     TypeId::new(std::any::TypeId::of::<T::Static>())
 }
-
-
 
 // ================
 // === GraphViz ===

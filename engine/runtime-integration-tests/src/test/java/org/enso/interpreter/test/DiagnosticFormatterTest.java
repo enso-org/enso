@@ -39,7 +39,8 @@ public class DiagnosticFormatterTest {
       """
       tmp_test:1:8: error: The name `foo` could not be found.
           1 | main = foo
-            |        ^~~""";
+            |        ^~~\
+      """;
 
   private Pair<Diagnostic, Source> compileExample() throws IOException {
     var code = "main = foo";

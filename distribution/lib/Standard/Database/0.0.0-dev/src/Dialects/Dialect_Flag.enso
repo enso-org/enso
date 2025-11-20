@@ -57,7 +57,7 @@ type Dialect_Flag
     Supports_Sort_Digits_As_Numbers
     ## ---
        private: true
-       --- 
+       ---
        Specifies if the backend supports case insensitive ordering.
     Supports_Case_Insensitive_Ordering
     ## ---
@@ -95,12 +95,24 @@ type Dialect_Flag
     ## ---
        private: true
        ---
+       Specifies if the backend supports Unicode casing rules, i.e. does ß uppercase
+       to SS, and does Turkish dotted and dotless I casing work correctly.
+    Supports_Unicode_Casing
+    ## ---
+       private: true
+       ---
+       Specifies if the backend supports proper casing (also known as title casing),
+       i.e. capitalizing the first letter of each word.
+    Supports_Proper_Casing
+    ## ---
+       private: true
+       ---
        Specifies if NaN value is treated as greater than all numbers. If `False`,
        `NaN` is expected to yield False to both < and > comparisons.
     NaN_Non_Comparable
     ## ---
        private: true
-       --- 
+       ---
        If `order_by` was applied before, the distinct operation will
        return the first row from each group. Guaranteed in the in-memory backend,
        but may not be supported by all databases.

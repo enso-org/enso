@@ -2,9 +2,6 @@
 import { backendQueryOptions, mutationOptions } from '#/hooks/backendHooks'
 import type { TrashCategory } from '#/layouts/CategorySwitcher/Category'
 import { resolveDuplications } from '#/modals/DuplicateAssetsModal'
-import LocalBackend from '#/services/LocalBackend'
-import RemoteBackend from '#/services/RemoteBackend'
-import { getMessageOrToString } from '#/utilities/error'
 import {
   useMutationState,
   type Mutation,
@@ -16,10 +13,13 @@ import {
   FilterBy,
   type AnyAsset,
   type AssetId,
-  type default as Backend,
+  type Backend,
   type BackendType,
   type DirectoryId,
 } from 'enso-common/src/services/Backend'
+import { LocalBackend } from 'enso-common/src/services/LocalBackend'
+import { RemoteBackend } from 'enso-common/src/services/RemoteBackend'
+import { getMessageOrToString } from 'enso-common/src/utilities/errors'
 
 /** Extract the corresponding {@link Mutation} type from a `MutationOptions` function. */
 export type MutationFromOptionsFunction<T extends (...args: never) => unknown> =
@@ -89,8 +89,12 @@ export function useDeleteAssetsMutationState<Result>(
   return useMutationState({
     filters: {
       ...deleteAssetsMutationOptions(backend),
-      predicate: (mutation: DeleteAssetsMutation) =>
-        mutation.state.status === 'pending' && (predicate?.(mutation) ?? true),
+      // We rely on mutation key pointing to properly typed mutation.
+      // eslint-disable-next-line no-restricted-syntax
+      predicate: ((mutation: DeleteAssetsMutation) =>
+        mutation.state.status === 'pending' && (predicate?.(mutation) ?? true)) as (
+        mutation: Mutation,
+      ) => boolean,
     },
     // This is UNSAFE when the `Result` parameter is explicitly specified in the
     // generic parameter list.
@@ -165,8 +169,12 @@ export function useRestoreAssetsMutationState<Result>(
   return useMutationState({
     filters: {
       ...restoreAssetsMutationOptions(backend),
-      predicate: (mutation: RestoreAssetsMutation) =>
-        mutation.state.status === 'pending' && (predicate?.(mutation) ?? true),
+      // We rely on mutation key pointing to properly typed mutation.
+      // eslint-disable-next-line no-restricted-syntax
+      predicate: ((mutation: RestoreAssetsMutation) =>
+        mutation.state.status === 'pending' && (predicate?.(mutation) ?? true)) as (
+        mutation: Mutation,
+      ) => boolean,
     },
     // This is UNSAFE when the `Result` parameter is explicitly specified in the
     // generic parameter list.
@@ -238,8 +246,12 @@ export function useCopyAssetsMutationState<Result>(
   return useMutationState({
     filters: {
       ...copyAssetsMutationOptions(backend),
-      predicate: (mutation: CopyAssetsMutation) =>
-        mutation.state.status === 'pending' && (predicate?.(mutation) ?? true),
+      // We rely on mutation key pointing to properly typed mutation.
+      // eslint-disable-next-line no-restricted-syntax
+      predicate: ((mutation: CopyAssetsMutation) =>
+        mutation.state.status === 'pending' && (predicate?.(mutation) ?? true)) as (
+        mutation: Mutation,
+      ) => boolean,
     },
     // This is UNSAFE when the `Result` parameter is explicitly specified in the
     // generic parameter list.
@@ -265,7 +277,7 @@ export function moveAssetsMutationOptions(backend: Backend) {
           backend
             .updateAsset(
               id,
-              { description: null, parentDirectoryId: parentId, title: null },
+              { description: null, parentDirectoryId: parentId, title: null, metadataId: null },
               '(unknown)',
             )
             .catch((error) => {
@@ -304,6 +316,7 @@ export function moveAssetsMutationOptions(backend: Backend) {
                 parentDirectoryId: parentId,
                 description: null,
                 title: resolution.newName,
+                metadataId: null,
               },
               resolution.newName,
             ),
@@ -350,8 +363,12 @@ export function useMoveAssetsMutationState<Result>(
   return useMutationState({
     filters: {
       ...moveAssetsMutationOptions(backend),
-      predicate: (mutation: MoveAssetsMutation) =>
-        mutation.state.status === 'pending' && (predicate?.(mutation) ?? true),
+      // We rely on mutation key pointing to properly typed mutation.
+      // eslint-disable-next-line no-restricted-syntax
+      predicate: ((mutation: MoveAssetsMutation) =>
+        mutation.state.status === 'pending' && (predicate?.(mutation) ?? true)) as (
+        mutation: Mutation,
+      ) => boolean,
     },
     // This is UNSAFE when the `Result` parameter is explicitly specified in the
     // generic parameter list.
@@ -365,23 +382,27 @@ export async function getAllTrashedItems(
   queryClient: QueryClient,
   backend: Backend,
   category: TrashCategory,
-) {
-  return await queryClient.ensureQueryData(
-    backendQueryOptions(backend, 'listDirectory', [
-      {
-        parentId: category.homeDirectoryId,
-        labels: null,
-        filterBy: FilterBy.trashed,
-        recentProjects: false,
-      },
-      '(unknown)',
-    ]),
-  )
+): Promise<readonly AnyAsset[]> {
+  return (
+    await queryClient.ensureQueryData(
+      backendQueryOptions(backend, 'listDirectory', [
+        {
+          parentId: category.homeDirectoryId,
+          labels: null,
+          filterBy: FilterBy.trashed,
+          recentProjects: false,
+          from: null,
+          pageSize: null,
+          sortExpression: null,
+          sortDirection: null,
+        },
+        '(unknown)',
+      ]),
+    )
+  ).assets
 }
 
-/**
- * Options for the "download" mutation.
- */
+/** Options for the "download" mutation. */
 export interface DownloadAssetsMutationOptions {
   readonly ids: readonly Pick<AnyAsset, 'id' | 'title'>[]
   readonly targetDirectoryId: DirectoryId | null

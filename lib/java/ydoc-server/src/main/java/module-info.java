@@ -5,5 +5,6 @@ module org.enso.ydoc.server {
   requires org.slf4j;
   requires static org.graalvm.nativeimage;
 
-  exports org.enso.ydoc.server;
+  // need for hosted JVM access
+  opens org.enso.ydoc.server;
 }

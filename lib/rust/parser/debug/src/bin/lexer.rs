@@ -9,8 +9,6 @@
 #![warn(trivial_casts)]
 #![warn(unused_qualifications)]
 
-
-
 /// Lexer main function used for ad-hoc testing during development.
 pub fn main() {
     use std::io::Read;

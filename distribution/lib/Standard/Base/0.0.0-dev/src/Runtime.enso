@@ -1,4 +1,5 @@
 import project.Any.Any
+import project.Data.Numbers.Integer
 import project.Data.Text.Case.Case
 import project.Data.Text.Text
 import project.Data.Vector.Vector
@@ -17,6 +18,13 @@ import project.Runtime.Source_Location.Source_Location
 from project.Data.Boolean import Boolean, True
 from project.Data.Text.Extensions import all
 from project.Runtime.Context import Dataflow_Stack_Trace, Input, Output
+
+## ---
+   advanced: true
+   ---
+   Pauses the current thread for the specified duration in milliseconds.
+sleep milliseconds:Integer ~result:Any=Nothing -> Any =
+    @Tail_Call Runtime_Helpers.sleep milliseconds (result...)
 
 ## ---
    private: true

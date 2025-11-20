@@ -25,7 +25,9 @@ import org.junit.runners.Parameterized;
 
 @RunWith(Parameterized.class)
 public class TypeOfNodeMultiValueTest {
-  @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
+  @ClassRule
+  public static final ContextUtils ctxRule = ContextUtils.newBuilder().assertGC(false).build();
+
   private static RootCallTarget testTypesCall;
 
   @Parameterized.Parameter(0)
@@ -61,19 +63,21 @@ public class TypeOfNodeMultiValueTest {
 
   @Parameterized.Parameters
   public static Object[][] allPossibleEnsoInterpreterValues() throws Exception {
+    ctxRule.context().enter();
     var g = ValuesGenerator.create(ctxRule);
     var typeOf =
         ctxRule.evalModule(
             """
-    from Standard.Base import all
+            from Standard.Base import all
 
-    typ obj = Meta.type_of obj
-    main = typ
-    """);
+            typ obj = Meta.type_of obj
+            main = typ
+            """);
     var data = new ArrayList<Object[]>();
     for (var polyValue : g.allValues()) {
       registerValue(g, typeOf, polyValue, data);
     }
+    ctxRule.context().leave();
     return data.toArray(new Object[0][]);
   }
 

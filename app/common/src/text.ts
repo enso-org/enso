@@ -1,14 +1,11 @@
 /** @file Functions related to displaying text. */
 import ENGLISH from './text/english.json' with { type: 'json' }
-import { unsafeKeys } from './utilities/data/object.js'
 
 /** Possible languages in which to display text. */
-export enum Language {
-  english = 'english',
-}
+export type Language = 'english'
 
 export const LANGUAGE_TO_LOCALE: Record<Language, string> = {
-  [Language.english]: 'en-US',
+  english: 'en-US',
 }
 
 /** An object containing the corresponding localized text for each text ID. */
@@ -175,6 +172,8 @@ interface PlaceholderOverrides {
   readonly 'manageLabelsModal.createLabelWithTitle': [labelName: string]
   readonly assetsTableBackgroundRefreshIntervalOverriddenToXMs: [ms: number]
   readonly deleteUserConfirmation: [userUsername: string, userEmail: string]
+  readonly willFetchUpToXAssetsPerPage: [assetsPerPage: number]
+  readonly willFetchUpToXLogEntriesPerPage: [logEntriesPerPage: number]
   readonly willUploadUpToXFileChunksAtOnce: [parallelism: number]
 
   readonly xDaysLeftInTrial: [daysLeft: number]
@@ -198,8 +197,9 @@ export interface Replacements
     Record<Exclude<TextId, keyof PlaceholderOverrides>, []> {}
 
 export const TEXTS: Readonly<Record<Language, Texts>> = {
-  [Language.english]: ENGLISH,
+  english: ENGLISH,
 }
+
 /**
  * A function that gets localized text for a given key, with optional replacements.
  * @param key - The key of the text to get.
@@ -214,13 +214,13 @@ export type GetText = <K extends TextId>(
 ) => string
 
 /** Resolves the language texts based on the user's preferred language. */
-export function resolveUserLanguage() {
+export function resolveUserLanguage(): Language {
   const locale = navigator.language
-  const language =
-    unsafeKeys(LANGUAGE_TO_LOCALE).find((language) => locale === LANGUAGE_TO_LOCALE[language]) ??
-    Language.english
-
-  return language
+  return (
+    (Object.keys(LANGUAGE_TO_LOCALE) as readonly Language[]).find(
+      (language) => locale === LANGUAGE_TO_LOCALE[language],
+    ) ?? 'english'
+  )
 }
 
 /**
@@ -232,9 +232,7 @@ export function getDictionary(language: Language) {
   return TEXTS[language]
 }
 
-/**
- * Resolves the dictionary for the user's preferred language.
- */
+/** Resolves the dictionary for the user's preferred language. */
 export function resolveDictionary() {
   return getDictionary(resolveUserLanguage())
 }
@@ -249,7 +247,6 @@ export function resolveDictionary() {
  */
 export const getText: GetText = (dictionary, key, ...replacements) => {
   const template = dictionary[key]
-
   return replacements.length === 0 ?
       template
     : template.replace(/[$]([$]|\d+)/g, (_match, placeholder: string) =>

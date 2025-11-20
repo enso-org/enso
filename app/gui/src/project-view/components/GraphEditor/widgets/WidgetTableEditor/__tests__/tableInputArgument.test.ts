@@ -1,25 +1,25 @@
+import { type RequiredImport } from '$/providers/openedProjects/module/imports'
+import { SuggestionDb } from '$/providers/openedProjects/suggestionDatabase'
+import { makeType } from '$/providers/openedProjects/suggestionDatabase/mockSuggestion'
+import { WidgetInput } from '$/providers/openedProjects/widgetRegistry'
 import {
   CELLS_LIMIT,
   DEFAULT_COLUMN_PREFIX,
   NEW_COLUMN_ID,
   ROW_INDEX_HEADER,
-  RowData,
   tableInputCallMayBeHandled,
   useTableInputArgument,
+  type RowData,
 } from '@/components/GraphEditor/widgets/WidgetTableEditor/tableInputArgument'
-import { MenuItem } from '@/components/shared/AgGridTableView.vue'
-import { WidgetInput } from '@/providers/widgetRegistry'
-import { type RequiredImport } from '@/stores/graph/imports'
-import { SuggestionDb } from '@/stores/suggestionDatabase'
-import { makeType } from '@/stores/suggestionDatabase/mockSuggestion'
+import type { MenuItem } from '@/components/shared/AgGridTableView.vue'
 import { assert } from '@/util/assert'
 import { Ast } from '@/util/ast'
-import { type Identifier } from '@/util/ast/abstract'
+import type { Identifier } from '@/util/ast/abstract'
 import { parseAbsoluteProjectPathRaw } from '@/util/projectPath'
-import { GetContextMenuItems, GetMainMenuItems } from 'ag-grid-enterprise'
+import type { GetContextMenuItems, GetMainMenuItems } from 'ag-grid-enterprise'
+import { Ok, unwrap, type Result } from 'enso-common/src/utilities/data/result'
 import { expect, test, vi } from 'vitest'
 import { assertDefined } from 'ydoc-shared/util/assert'
-import { unwrap } from 'ydoc-shared/util/data/result'
 
 function suggestionDbWithNothing() {
   const db = new SuggestionDb()
@@ -104,12 +104,12 @@ test.each([
   assertDefined(ast)
   expect(tableInputCallMayBeHandled(ast)).toBeTruthy()
   const input = WidgetInput.FromAst(ast)
-  const startEdit = vi.fn()
+  const edit = vi.fn()
   const addMissingImports = vi.fn()
   const onUpdate = vi.fn()
   const tableNewArgs = useTableInputArgument(
     input,
-    { startEdit, addMissingImports },
+    { edit, addMissingImports },
     suggestionDbWithNothing(),
     onUpdate,
   )
@@ -129,7 +129,7 @@ test.each([
     }
   }
   expect(tableNewArgs.rowData.value).toEqual([...expectedIndices()])
-  expect(startEdit).not.toHaveBeenCalled()
+  expect(edit).not.toHaveBeenCalled()
   expect(onUpdate).not.toHaveBeenCalled()
   expect(addMissingImports).not.toHaveBeenCalled()
 })
@@ -171,7 +171,7 @@ test.each([
     const input = WidgetInput.FromAst(generateTableOfOnes(rows, cols))
     const tableNewArgs = useTableInputArgument(
       input,
-      { startEdit: vi.fn(), addMissingImports: vi.fn() },
+      { edit: vi.fn(), addMissingImports: vi.fn() },
       suggestionDbWithNothing(),
       vi.fn(),
     )
@@ -202,10 +202,22 @@ function tableEditFixture(code: string, expectedCode: string) {
   assert(firstStatement instanceof Ast.MutableExpressionStatement)
   const inputAst = firstStatement.expression
   const input = WidgetInput.FromAst(inputAst)
-  const startEdit = vi.fn(() => ast.module.edit())
+  const edit = <T extends Result<void>>(
+    f: (module: Ast.MutableModule) => Promise<T> | T,
+  ): Promise<T> | T => {
+    const maybeSyncResult = f(ast.module.edit())
+    function doExpect(result: T) {
+      expect(result.ok).toBeTruthy()
+      return result
+    }
+    return maybeSyncResult instanceof Promise ?
+        maybeSyncResult.then(doExpect)
+      : doExpect(maybeSyncResult)
+  }
   const onUpdate = vi.fn((update) => {
     const inputAst = [...update.edit.getVersion(ast).statements()][0]
     expect(inputAst?.code()).toBe(expectedCode)
+    return Ok()
   })
   const addMissingImports = vi.fn((_, imports) => {
     // the only import we're going to add is Nothing.
@@ -216,10 +228,11 @@ function tableEditFixture(code: string, expectedCode: string) {
         import: 'Nothing' as Identifier,
       } satisfies RequiredImport,
     ])
+    return []
   })
   const tableNewArgs = useTableInputArgument(
     input,
-    { startEdit, addMissingImports },
+    { edit, addMissingImports },
     suggestionDbWithNothing(),
     onUpdate,
   )
@@ -228,7 +241,7 @@ function tableEditFixture(code: string, expectedCode: string) {
     copyToClipboard: vi.fn(),
     pasteFromClipboard: vi.fn(),
   }
-  return { tableNewArgs, startEdit, onUpdate, addMissingImports, gridApi }
+  return { tableNewArgs, edit, onUpdate, addMissingImports, gridApi }
 }
 
 test.each([
@@ -590,23 +603,25 @@ test('Pasted data which would exceed cells limit is truncated', () => {
   const initialCols = CELLS_LIMIT_SQRT - 1
   const ast = generateTableOfOnes(initialRows, initialCols)
   const input = WidgetInput.FromAst(ast)
-  const startEdit = vi.fn(() => ast.module.edit())
+  const edit = vi.fn((f) => {
+    return f(ast.module.edit())
+  })
   const onUpdate = vi.fn((update) => {
     const inputAst = update.edit!.getVersion(ast)
     // We expect the table to be fully extended, so the number of cells (numbers or Nothings) should be equal to the limit.
     let cellCount = 0
-    inputAst.visitRecursive((ast: Ast.Ast | Ast.Token) => {
-      if (ast instanceof Ast.Token) return
+    Ast.visitRecursive(inputAst, (ast) => {
       if (ast instanceof Ast.TextLiteral && ast.code().startsWith(`'${DEFAULT_COLUMN_PREFIX}`))
         return
       if (ast instanceof Ast.TextLiteral || ast.code() === 'Nothing') cellCount++
     })
     expect(cellCount).toBe(CELLS_LIMIT)
+    return Ok()
   })
   const addMissingImports = vi.fn()
   const tableNewArgs = useTableInputArgument(
     input,
-    { startEdit, addMissingImports },
+    { edit, addMissingImports },
     suggestionDbWithNothing(),
     onUpdate,
   )

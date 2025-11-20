@@ -88,9 +88,7 @@ public final class TypeInferenceSignatures implements IRPass {
             (def) ->
                 switch (def) {
                   case Method.Explicit b -> {
-                    boolean keepSelfArgument = b.isStaticWrapperForInstanceMethod();
-                    TypeRepresentation resolvedType =
-                        resolveTopLevelTypeSignature(b.body(), keepSelfArgument);
+                    TypeRepresentation resolvedType = resolveTopLevelTypeSignature(b.body());
                     if (resolvedType != null) {
                       b.passData().update(INSTANCE, new InferredType(resolvedType));
                     }
@@ -115,15 +113,10 @@ public final class TypeInferenceSignatures implements IRPass {
    * Constructs the type signature for a given method body.
    *
    * @param body the method body
-   * @param keepSelfArgument whether to keep the self argument. For regular static methods, the self
-   *     argument is synthetic and does not take part in type inference. For member methods, it is
-   *     provided implicitly when resolving the call, so again it is ignored for type inference. It
-   *     should only be kept for such static methods that are wrappers for instance methods.
    */
-  private TypeRepresentation resolveTopLevelTypeSignature(
-      Expression body, boolean keepSelfArgument) {
+  private TypeRepresentation resolveTopLevelTypeSignature(Expression body) {
     return switch (body) {
-        // Combine argument types with ascribed type (if available) for a function type signature
+      // Combine argument types with ascribed type (if available) for a function type signature
       case Function.Lambda lambda -> {
         boolean hasAnyDefaults =
             lambda.arguments().find((arg) -> arg.defaultValue().isDefined()).isDefined();
@@ -135,21 +128,7 @@ public final class TypeInferenceSignatures implements IRPass {
         scala.collection.immutable.List<TypeRepresentation> argTypesScala =
             lambda
                 .arguments()
-                // Filter out the self argument, unless it should be kept.
-                .filter(
-                    (arg) -> {
-                      if (arg.name() instanceof Name.Self selfArg) {
-                        if (selfArg.synthetic()) {
-                          // The 'synthetic' self is always dropped.
-                          return false;
-                        } else {
-                          return keepSelfArgument;
-                        }
-                      } else {
-                        // We keep all other args.
-                        return true;
-                      }
-                    })
+                .filter((arg) -> !(arg.name() instanceof Name.Self))
                 .map(
                     (arg) -> {
                       if (arg.ascribedType().isDefined()) {
@@ -176,8 +155,8 @@ public final class TypeInferenceSignatures implements IRPass {
         yield TypeRepresentation.buildFunction(ScalaConversions.asJava(argTypesScala), returnType);
       }
 
-        // Otherwise, we encountered a 0-argument method, so its type is just its return type (if
-        // its known).
+      // Otherwise, we encountered a 0-argument method, so its type is just its return type (if
+      // its known).
       default -> findReturnTypeAscription(body);
     };
   }

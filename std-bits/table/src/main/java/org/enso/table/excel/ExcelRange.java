@@ -178,10 +178,10 @@ public class ExcelRange {
    * cells.
    *
    * @param excelRange Range referring to top left cell.
-   * @param sheet ExcelSheet containing the range refers to.
+   * @param sheet ExcelSheetReader containing the range refers to.
    * @return Expanded range covering the connected table of cells.
    */
-  public static ExcelRange expandSingleCell(ExcelRange excelRange, ExcelSheet sheet)
+  public static ExcelRange expandSingleCell(ExcelRange excelRange, ExcelSheetReader sheet)
       throws InterruptedException {
     ExcelRow currentRow = sheet.get(excelRange.getTopRow());
     if (currentRow == null || currentRow.isEmpty(excelRange.getLeftColumn())) {
@@ -338,7 +338,7 @@ public class ExcelRange {
     return isWholeColumn() ? Integer.MAX_VALUE : bottomRow - topRow + 1;
   }
 
-  public int getLastNonEmptyRow(ExcelSheet sheet) throws InterruptedException {
+  public int getLastNonEmptyRow(ExcelSheetReader sheet) throws InterruptedException {
     int lastRow =
         Math.min(sheet.getLastRow(), isWholeColumn() ? sheet.getLastRow() : bottomRow) + 1;
 

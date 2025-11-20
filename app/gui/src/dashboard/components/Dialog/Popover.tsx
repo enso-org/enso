@@ -9,7 +9,6 @@ import { ErrorBoundary } from '#/components/ErrorBoundary'
 import { usePortalContext } from '#/components/Portal'
 import * as suspense from '#/components/Suspense'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import { mergeRefs } from '#/utilities/mergeRefs'
 import { tv, type VariantProps } from '#/utilities/tailwindVariants'
 import * as React from 'react'
 import { ResetButtonGroupContext } from '../Button'
@@ -17,7 +16,7 @@ import type { Placement } from '../types'
 import { Close } from './Close'
 import { DialogProvider } from './DialogProvider'
 import { DialogStackRegistrar } from './DialogStackProvider'
-import { animateScale, useInteractOutside } from './utilities'
+import { useInteractOutside } from './utilities'
 import { DIALOG_BACKGROUND } from './variants'
 
 /** Props for a {@link Popover}. */
@@ -99,13 +98,12 @@ export const Popover = Object.assign(
       ...ariaPopoverProps
     } = props
 
-    const popoverRef = React.useRef<HTMLDivElement>(null)
     const root = usePortalContext()
     const popoverStyle = { zIndex: '' }
 
     return (
       <aria.Popover
-        ref={(element) => mergeRefs(popoverRef, ref)(element)}
+        ref={ref}
         className={(values) =>
           POPOVER_STYLES({
             isEntering: values.isEntering,
@@ -125,7 +123,6 @@ export const Popover = Object.assign(
       >
         {(opts) => (
           <PopoverContent
-            popoverRef={popoverRef}
             size={size}
             rounded={rounded}
             opts={opts}
@@ -155,7 +152,6 @@ interface PopoverContentProps {
   readonly size: PopoverProps['size']
   readonly rounded: PopoverProps['rounded']
   readonly opts: aria.PopoverRenderProps
-  readonly popoverRef: React.RefObject<HTMLDivElement>
   readonly isDismissable: boolean
   readonly variant: PopoverProps['variant']
   readonly onClose?: (() => void) | undefined
@@ -165,7 +161,7 @@ interface PopoverContentProps {
  * The content of a popover.
  */
 function PopoverContent(props: PopoverContentProps) {
-  const { children, size, rounded, opts, isDismissable, popoverRef, variant, onClose } = props
+  const { children, size, rounded, opts, isDismissable, variant, onClose } = props
 
   const dialogRef = React.useRef<HTMLDivElement>(null)
   const dialogId = aria.useId()
@@ -198,11 +194,6 @@ function PopoverContent(props: PopoverContentProps) {
       }
       if (isDismissable) {
         close()
-      } else {
-        if (popoverRef.current) {
-          // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-          animateScale(popoverRef.current, 1.025)
-        }
       }
     },
   })

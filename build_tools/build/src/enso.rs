@@ -18,8 +18,6 @@ use ide_ci::env::accessor::TypedVariable;
 use ide_ci::future::AsyncPolicy;
 use ide_ci::programs::docker::ContainerId;
 
-
-
 #[derive(Copy, Clone, Debug, strum::Display, strum::EnumString)]
 pub enum Boolean {
     True,
@@ -114,6 +112,7 @@ impl BuiltEnso {
         ir_caches: IrCaches,
         environment_overrides: Vec<(String, String)>,
         extra_args: Option<Vec<String>>,
+        extra_java_tool_opts: Option<Vec<String>>,
         native_image: bool,
     ) -> Result<Command> {
         let mut command = if native_image {
@@ -125,16 +124,19 @@ impl BuiltEnso {
         if let Some(args) = extra_args {
             command.args(args);
         }
+        let mut java_tool_opts: Vec<String> = vec![];
+        let enable_asserts_opt: &str = ide_ci::programs::java::Option::EnableAssertions.as_ref();
+        // This flag enables assertions in the JVM. Some of our stdlib tests had in the past
+        // failed on Graal/Truffle assertions, so we want to have them triggered.
+        java_tool_opts.push(enable_asserts_opt.to_string());
+        if let Some(opts) = extra_java_tool_opts {
+            java_tool_opts.extend(opts);
+        }
         command
             .arg(ir_caches)
             .arg("--run")
             .arg(test_path.as_ref())
-            // This flag enables assertions in the JVM. Some of our stdlib tests had in the past
-            // failed on Graal/Truffle assertions, so we want to have them triggered.
-            .set_env(
-                JAVA_TOOL_OPTIONS,
-                &ide_ci::programs::java::Option::EnableAssertions.as_ref(),
-            )?;
+            .set_env(JAVA_TOOL_OPTIONS, &java_tool_opts.join(" "))?;
 
         for (k, v) in environment_overrides {
             command.env(k, &v);
@@ -152,6 +154,7 @@ impl BuiltEnso {
         Ok(command)
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub async fn run_tests(
         &self,
         ir_caches: IrCaches,
@@ -159,6 +162,7 @@ impl BuiltEnso {
         async_policy: AsyncPolicy,
         test_selection: StandardLibraryTestsSelection,
         extra_runner_args: Option<Vec<String>>,
+        extra_java_tool_opts: Option<Vec<String>>,
         native_image: bool,
     ) -> Result {
         let paths = &self.paths;
@@ -231,11 +235,11 @@ impl BuiltEnso {
                     format!("postgres-for-{runner_context_string}").replace(' ', "_");
                 let config = postgres::Configuration {
                     postgres_container: ContainerId(container_name),
-                    database_name:      "enso_test_db".to_string(),
-                    user:               "enso_test_user".to_string(),
-                    password:           "enso_test_password".to_string(),
-                    endpoint:           PostgresEndpointConfiguration::deduce()?,
-                    version:            "latest".to_string(),
+                    database_name: "enso_test_db".to_string(),
+                    user: "enso_test_user".to_string(),
+                    password: "enso_test_password".to_string(),
+                    endpoint: PostgresEndpointConfiguration::deduce()?,
+                    version: "latest".to_string(),
                 };
                 let postgres = Postgresql::start(config).await?;
                 Some(postgres)
@@ -255,11 +259,11 @@ impl BuiltEnso {
                     format!("sqlserver-for-{runner_context_string}").replace(' ', "_");
                 let config = sqlserver::Configuration {
                     sqlserver_container: ContainerId(container_name),
-                    database_name:       "tempdb".to_string(),
-                    user:                "sa".to_string(),
-                    password:            "enso_test_password_<YourStrong@Passw0rd>".to_string(),
-                    endpoint:            SQLServerEndpointConfiguration::deduce()?,
-                    version:             "2022-latest".to_string(),
+                    database_name: "tempdb".to_string(),
+                    user: "sa".to_string(),
+                    password: "enso_test_password_<YourStrong@Passw0rd>".to_string(),
+                    endpoint: SQLServerEndpointConfiguration::deduce()?,
+                    version: "2022-latest".to_string(),
                 };
                 let sqlserver = SQLServer::start(config).await?;
                 Some(sqlserver)
@@ -289,6 +293,7 @@ impl BuiltEnso {
                 ir_caches,
                 environment_overrides.clone(),
                 extra_runner_args.clone(),
+                extra_java_tool_opts.clone(),
                 native_image,
             );
             async move { command?.run_ok().await }

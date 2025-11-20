@@ -1,7 +1,7 @@
 import project.Any.Any
 import project.Data.Vector.Vector
-import project.Error.Error
 import project.Warning.Warning
+from project.Error import all
 
 ## Specifies how to handle problems.
 @Builtin_Type

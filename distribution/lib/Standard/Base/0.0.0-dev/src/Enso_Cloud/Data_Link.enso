@@ -2,7 +2,6 @@ import project.Any.Any
 import project.Data.Json.JS_Object
 import project.Data.Text.Text
 import project.Enso_Cloud.Errors.Missing_Data_Link_Library
-import project.Error.Error
 import project.Errors.Common.No_Such_Conversion
 import project.Errors.File_Error.File_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
@@ -19,6 +18,7 @@ import project.System.File_Format_Metadata.File_Format_Metadata
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Text.Extensions import all
 from project.Enso_Cloud.Data_Link_Helpers import all
+from project.Error import all
 
 ## Helper methods allowing to manipulate the raw configuration of data links.
 type Data_Link
@@ -228,10 +228,17 @@ Data_Link_From_File.from (that : File_Like) = Data_Link_From_File.from that.unde
    Enso type that defines how to `parse` a specific type of datalink.
    The `parse` method on that
    type should return a configured datalink instance that can later be `read`.
-
 type Data_Link_SPI
     private Value typ name:Text
 
+    ## ---
+       private: true
+       ---
+       Creates a new registration for a data link type.
+
+       ## Arguments
+        - `name` - The user facing name of the data link type.
+        - `typ` - The Enso type that implements the data link parsing logic.
     new typ link_type_name:Text =
         Data_Link_SPI.Value typ link_type_name
 

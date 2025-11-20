@@ -1,0 +1,222 @@
+diff --git a/internal/config.bzl b/internal/config.bzl
+index fb1d631..87d3cba 100644
+--- a/internal/config.bzl
++++ b/internal/config.bzl
+@@ -51,6 +51,9 @@ TARGET_JAVA_VERSIONS = [
+     "20",
+     "21",
+     "22",
++    "23",
++    "24",
++    "25",
+ ]
+ 
+ GRAALVM_KNOWN_RELEASES = [
+diff --git a/internal/graalvm_bindist_map.bzl b/internal/graalvm_bindist_map.bzl
+index cc761ae..3b1f205 100644
+--- a/internal/graalvm_bindist_map.bzl
++++ b/internal/graalvm_bindist_map.bzl
+@@ -9,7 +9,7 @@
+ 
+ # Latest supported major JVM version.
+ # buildifier: disable=name-conventions
+-_LatestJvmRelease = "23"
++_LatestJvmRelease = "25"
+ 
+ # Symbol which specifies the "latest" version.
+ # buildifier: disable=name-conventions
+@@ -88,10 +88,12 @@ _LatestVersions = {
+ # VM release versions for calculating prefixes.
+ # buildifier: disable=name-conventions
+ _VmReleaseVersions = {
++    "25.0.1": "25.0.1+8.1",
++    "25.0.0": "25+37.1",
+     "24.1.1": "23.0.1+11.1",
+     "24.1.0": "23+37.1",
+     "24.0.2": "22.0.2+9.1",
+-    "24.0.1": "22.0.1+8.1",
++    "24.0.1": "24.0.1+9.1",
+     "24.0.0": "22+36.1",
+     "23.1.2": "21.0.2+13.1",
+     "21.0.2": "21.0.2+13.1",
+@@ -212,6 +214,15 @@ def _generate_distribution_coordinate(dist, platform, version, java_version, com
+         elif version == "24.1.1" and java_version == "23":
+             version = "23.0.1"
+             aligned_version = "24.1.1"
++        elif version == "24.0.1" and java_version == "24":
++            version = "24.0.1"
++            aligned_version = "24.2.1"
++        elif version == "25.0.0" and java_version == "25":
++            version = "25.0.0"
++            aligned_version = "25.0.0"
++        elif version == "25.0.1" and java_version == "25":
++            version = "25.0.1"
++            aligned_version = "25.0.1"
+     else:
+         latest_info = _LatestVersions.get(java_version)
+         if not latest_info:
+@@ -2686,6 +2697,56 @@ _GRAALVM_BINDIST = {
+             "@rules_graalvm//platform/jvm:java23",
+         ],
+     },
++    "ce_24.0.1_macos-aarch64_24.2.1": {
++        # GraalVM CE 24.0.1 (Java 24), macOS (arm64), Version 24.2.1
++        "url": "https://github.com/graalvm/graalvm-ce-builds/releases/download/jdk-24.0.1/graalvm-community-jdk-24.0.1_macos-aarch64_bin.tar.gz",
++        "sha256": "0e18661fb350d76c7d4905484b72b90ecda38a0910b3a9a2856573086678cead",
++        "compatible_with": [
++            "@platforms//cpu:aarch64",
++            "@platforms//os:macos",
++            "@rules_graalvm//platform/jvm:java24",
++        ],
++    },
++    "ce_24.0.1_macos-x64_24.2.1": {
++        # GraalVM CE 24.0.1 (Java 24), macOS (amd64), Version 24.2.1
++        "url": "https://github.com/graalvm/graalvm-ce-builds/releases/download/jdk-24.0.1/graalvm-community-jdk-24.0.1_macos-x64_bin.tar.gz",
++        "sha256": "452615d870ac9a6bf0fac09ff859d6c1a78e14d6f2a1937d610e7c6e470359e2",
++        "compatible_with": [
++            "@platforms//cpu:x86_64",
++            "@platforms//os:macos",
++            "@rules_graalvm//platform/jvm:java24",
++        ],
++    },
++    "ce_24.0.1_linux-aarch64_24.2.1": {
++        # GraalVM CE 24.0.1 (Java 24), Linux (arm64), Version 24.2.1
++        "url": "https://github.com/graalvm/graalvm-ce-builds/releases/download/jdk-24.0.1/graalvm-community-jdk-24.0.1_linux-aarch64_bin.tar.gz",
++        "sha256": "a3d1be8fadfb0d3df632252301f79a9b02b47e523da66539d370c62e683d762e",
++        "compatible_with": [
++            "@platforms//cpu:aarch64",
++            "@platforms//os:linux",
++            "@rules_graalvm//platform/jvm:java24",
++        ],
++    },
++    "ce_24.0.1_linux-x64_24.2.1": {
++        # GraalVM CE 24.0.1 (Java 24), Linux (amd64), Version 24.2.1
++        "url": "https://github.com/graalvm/graalvm-ce-builds/releases/download/jdk-24.0.1/graalvm-community-jdk-24.0.1_linux-x64_bin.tar.gz",
++        "sha256": "d2c544de672e400476a09c8f1da79ecc6b774a9441e234948542c3b3e6a84bde",
++        "compatible_with": [
++            "@platforms//cpu:x86_64",
++            "@platforms//os:linux",
++            "@rules_graalvm//platform/jvm:java24",
++        ],
++    },
++    "ce_24.0.1_windows-x64_24.2.1": {
++        # GraalVM CE 24.0.1 (Java 24), Windows (amd64), Version 24.2.1
++        "url": "https://github.com/graalvm/graalvm-ce-builds/releases/download/jdk-24.0.1/graalvm-community-jdk-24.0.1_windows-x64_bin.zip",
++        "sha256": "27895bd51d39acaa6fe4b8c78fda02ccaad6e8c92404abf60aa052c07e5cb4fc",
++        "compatible_with": [
++            "@platforms//cpu:x86_64",
++            "@platforms//os:windows",
++            "@rules_graalvm//platform/jvm:java24",
++        ],
++    },
+     "ce_23.0.1_macos-x64_24.1.1": {
+         # GraalVM CE 23.0.1 (Java 23), macOS (amd64), Version 24.1.1
+         "url": "https://github.com/graalvm/graalvm-ce-builds/releases/download/jdk-23.0.1/graalvm-community-jdk-23.0.1_macos-x64_bin.tar.gz",
+@@ -2756,6 +2817,107 @@ _GRAALVM_BINDIST = {
+             "@rules_graalvm//platform/jvm:java23",
+         ],
+     },
++    "ce_25.0.0_macos-aarch64_25.0.0": {
++        # GraalVM CE 25.0.0 (Java 25), macOS (arm64), Version 25.0.0
++        "url": "https://github.com/graalvm/graalvm-ce-builds/releases/download/jdk-25.0.0/graalvm-community-jdk-25.0.0_macos-aarch64_bin.tar.gz",
++        "sha256": "c446d5aaeda98660a4c14049d299e9fba72105a007df89f19d27cf3979d37158",
++        "compatible_with": [
++            "@platforms//cpu:aarch64",
++            "@platforms//os:macos",
++            "@rules_graalvm//platform/jvm:java25",
++        ],
++    },
++    "ce_25.0.0_macos-x64_25.0.0": {
++        # GraalVM CE 25.0.0 (Java 25), macOS (amd64), Version 25.0.0
++        "url": "https://github.com/graalvm/graalvm-ce-builds/releases/download/jdk-25.0.0/graalvm-community-jdk-25.0.0_macos-x64_bin.tar.gz",
++        "sha256": "04278cf867d040e29dc71dd7727793f0ea67eb72adce8a35d04b87b57906778d",
++        "compatible_with": [
++            "@platforms//cpu:x86_64",
++            "@platforms//os:macos",
++            "@rules_graalvm//platform/jvm:java25",
++        ],
++    },
++    "ce_25.0.0_linux-aarch64_25.0.0": {
++        # GraalVM CE 25.0.0 (Java 25), Linux (arm64), Version 25.0.0
++        "url": "https://github.com/graalvm/graalvm-ce-builds/releases/download/jdk-25.0.0/graalvm-community-jdk-25.0.0_linux-aarch64_bin.tar.gz",
++        "sha256": "6c3c8b7617006c5d174d9cf7d357ccfb4bae77a4df1294ee28084fcb6eea8921",
++        "compatible_with": [
++            "@platforms//cpu:aarch64",
++            "@platforms//os:linux",
++            "@rules_graalvm//platform/jvm:java25",
++        ],
++    },
++    "ce_25.0.0_linux-x64_25.0.0": {
++        # GraalVM CE 25.0.0 (Java 25), Linux (amd64), Version 25.0.0
++        "url": "https://github.com/graalvm/graalvm-ce-builds/releases/download/jdk-25.0.0/graalvm-community-jdk-25.0.0_linux-x64_bin.tar.gz",
++        "sha256": "1862f2ce97387a303cae4c512cb21baf36fafd2457c3cbbc10d87db94b89d3dd",
++        "compatible_with": [
++            "@platforms//cpu:x86_64",
++            "@platforms//os:linux",
++            "@rules_graalvm//platform/jvm:java25",
++        ],
++    },
++    "ce_25.0.0_windows-x64_25.0.0": {
++        # GraalVM CE 25.0.0 (Java 25), Windows (amd64), Version 25.0.0
++        "url": "https://github.com/graalvm/graalvm-ce-builds/releases/download/jdk-25.0.0/graalvm-community-jdk-25.0.0_windows-x64_bin.zip",
++        "sha256": "33ef1d186b5c1e95465fcc97e637bc26e72d5f2250a8615b9c5d667ed5c17fd0",
++        "compatible_with": [
++            "@platforms//cpu:x86_64",
++            "@platforms//os:windows",
++            "@rules_graalvm//platform/jvm:java25",
++        ],
++    },
++    # === 25.0.1 ===
++    "ce_25.0.1_macos-aarch64_25.0.1": {
++        # GraalVM CE 25.0.1 (Java 25), macOS (arm64), Version 25.0.1
++        "url": "https://github.com/graalvm/graalvm-ce-builds/releases/download/jdk-25.0.1/graalvm-community-jdk-25.0.1_macos-aarch64_bin.tar.gz",
++        "sha256": "066339f24a8ab5c161548491a9400f7344e7761a1e46f8979e76c7ef11d5bc76",
++        "compatible_with": [
++            "@platforms//cpu:aarch64",
++            "@platforms//os:macos",
++            "@rules_graalvm//platform/jvm:java25",
++        ],
++    },
++    "ce_25.0.1_macos-x64_25.0.1": {
++        # GraalVM CE 25.0.1 (Java 25), macOS (amd64), Version 25.0.1
++        "url": "https://github.com/graalvm/graalvm-ce-builds/releases/download/jdk-25.0.1/graalvm-community-jdk-25.0.1_macos-x64_bin.tar.gz",
++        "sha256": "a3d895b4cd1c783badbd277ec70409806bd4102fca0d2a60dbaeb0bab41aec30",
++        "compatible_with": [
++            "@platforms//cpu:x86_64",
++            "@platforms//os:macos",
++            "@rules_graalvm//platform/jvm:java25",
++        ],
++    },
++    "ce_25.0.1_linux-aarch64_25.0.1": {
++        # GraalVM CE 25.0.1 (Java 25), Linux (arm64), Version 25.0.1
++        "url": "https://github.com/graalvm/graalvm-ce-builds/releases/download/jdk-25.0.1/graalvm-community-jdk-25.0.1_linux-aarch64_bin.tar.gz",
++        "sha256": "7aa0b9935a80e67f37c6025678393dbd123bb6f2226811decbc1a13093fc8ae2",
++        "compatible_with": [
++            "@platforms//cpu:aarch64",
++            "@platforms//os:linux",
++            "@rules_graalvm//platform/jvm:java25",
++        ],
++    },
++    "ce_25.0.1_linux-x64_25.0.1": {
++        # GraalVM CE 25.0.1 (Java 25), Linux (amd64), Version 25.0.1
++        "url": "https://github.com/graalvm/graalvm-ce-builds/releases/download/jdk-25.0.1/graalvm-community-jdk-25.0.1_linux-x64_bin.tar.gz",
++        "sha256": "01e39fe1a87f28b842a3e4e3b77be9b544dca3a58fa6e93b924a6106c8bac7fb",
++        "compatible_with": [
++            "@platforms//cpu:x86_64",
++            "@platforms//os:linux",
++            "@rules_graalvm//platform/jvm:java25",
++        ],
++    },
++    "ce_25.0.1_windows-x64_25.0.1": {
++        # GraalVM CE 25.0.1 (Java 25), Windows (amd64), Version 25.0.1
++        "url": "https://github.com/graalvm/graalvm-ce-builds/releases/download/jdk-25.0.1/graalvm-community-jdk-25.0.1_windows-x64_bin.zip",
++        "sha256": "fde83c5ceec2c75560c747ccd9f314f90e4cf5c5287416e67c4ce442e344ca27",
++        "compatible_with": [
++            "@platforms//cpu:x86_64",
++            "@platforms//os:windows",
++            "@rules_graalvm//platform/jvm:java25",
++        ],
++    },
+ }
+ 
+ # Exports.
