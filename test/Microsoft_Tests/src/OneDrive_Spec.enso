@@ -19,7 +19,9 @@ add_specs suite_builder setup:Cloud_Tests_Setup =
 
         group_builder.specify "Can read a top-level file from OneDrive" <|
             secrets = Enso_Secret.list
-            IO.println "ZZZZZ "+secrets.to_text
+            #IO.println "ZZZZZ "+secrets.to_text
+            secrets.map .path . map x->
+                IO.println "ZZZZZ secret: "+x.to_text
             get_child get_test_root "a.txt" . read . should_equal 'aaa\n'
             get_child get_test_root "b.txt" . read . should_equal 'bbbb\n'
 
