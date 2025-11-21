@@ -1,5 +1,3 @@
-private
-
 import project.Errors.Common.Type_Error
 import project.Network.Email.Email
 import project.Network.Email.Email_Provider_SPI.Email_Provider_SPI
