@@ -7,7 +7,7 @@ import project.Errors.Common.Missing_Argument
 import project.Nothing.Nothing
 import project.Warning.Warning
 import project.Network.Email.Email
-import project.Network.Email.Email_Provider.Email_Provider_SPI
+import project.Network.Email.Email_Provider_SPI.Email_Provider_SPI
 import project.Network.Email.Email_Send_Response.Send_Response
 import project.Network.Email.Send_Error.Send_Error
 import project.Data.Json.JS_Object

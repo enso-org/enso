@@ -4,7 +4,7 @@ from project.Metadata.Choice import Option
 import project.Nothing.Nothing
 import project.Warning.Warning
 import project.Network.Email.Email
-import project.Network.Email.Email_Provider.Email_Provider_SPI
+import project.Network.Email.Email_Provider_SPI.Email_Provider_SPI
 import project.Network.Email.Email_Send_Response.Send_Response
 
 type Email_Provider_Test_Only_Impl
