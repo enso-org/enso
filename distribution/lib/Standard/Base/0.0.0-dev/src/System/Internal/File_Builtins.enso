@@ -53,7 +53,7 @@ is_dir file:(File|Java_Path) -> Boolean =
 file_time_to_date_time file_time -> Date_Time =
     instant = file_time.toInstant
     zoned_dt = Java_ZonedDateTime.ofInstant instant Java_ZoneOffset.UTC
-    Date_Time.new zoned_dt.getYear zoned_dt.getMonthValue zoned_dt.getDayOfMonth zoned_dt.getHour zoned_dt.getMinute zoned_dt.getSecond zoned_dt.getNano Time_Zone.utc
+    zoned_dt
 
 ## registration of basic file format implementations
 type Default_File_Formats
