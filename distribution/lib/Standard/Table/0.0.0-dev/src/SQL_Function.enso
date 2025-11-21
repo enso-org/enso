@@ -11,4 +11,4 @@ type SQL_Function
        ## Arguments
         - `function_name`: the name of the SQL function to call.
         - `arguments`: the arguments to pass to the SQL function.
-    SQL function_name:Text=(Missing_Argument.throw "function_name") arguments:Vector
+    SQL function_name:Text=(Missing_Argument.throw "function_name") arguments:Vector=[]

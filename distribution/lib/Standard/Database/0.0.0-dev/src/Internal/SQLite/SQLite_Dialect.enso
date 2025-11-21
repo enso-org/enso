@@ -309,7 +309,8 @@ type SQLite_Dialect
        ---
        Checks if an operation is supported by the dialect.
     is_operation_supported self operation:Text -> Boolean =
-        self.dialect_operations.is_operation_supported operation
+        if operation == "CUSTOM_SQL" then False else
+            self.dialect_operations.is_operation_supported operation
 
     ## ---
        private: true

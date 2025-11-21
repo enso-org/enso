@@ -562,10 +562,10 @@ make_op this_column op_kind operands new_name metadata=Nothing =
         sql_expression : SQL_IR_Expression -> sql_expression
         constant -> SQL_IR_Expression.Constant constant
 
-    mapping = this_column.connection.type_mapping
     expressions = operands.map prepare_operand
     new_expr = SQL_IR_Expression.Operation op_kind ([this_column.expression] + expressions) metadata
 
+    mapping = this_column.connection.type_mapping
     infer_from_database_callback expression =
         SQL_Type_Reference.new this_column.connection this_column.context expression
     new_type_ref = mapping.infer_return_type infer_from_database_callback op_kind [this_column]+operands new_expr
