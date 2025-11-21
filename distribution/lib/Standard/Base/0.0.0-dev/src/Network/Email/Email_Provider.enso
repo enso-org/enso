@@ -14,14 +14,23 @@ import project.Network.HTTP.Header.Header
 import project.Nothing.Nothing
 import project.System.File.File
 import project.Warning.Warning
+import project.Metadata.Display
+import project.Metadata.Widget
+from project.Metadata.Widget import Single_Choice
+import project.Data.Vector.Vector
+import project.Meta
 from project.Error import all
+from project.Metadata.Choice import Option
+import project.Function.Function
+import project.Errors.Common.Type_Error
+import project.Panic.Panic
 
 polyglot java import java.util.Base64
 
 ## An email provider for sending emails. In the future this will be replaced by an SPI system and move the implementation out of the Base library.
 type Email_Provider
     ## A test email provider that does not send any emails. Used for testing workflows.
-    Test_Only
+
 
     ## An email provider that sends emails using the SendGrid REST API.
        Get started with SendGrid her https://sendgrid.com/
@@ -30,12 +39,16 @@ type Email_Provider
         - `api_key`: SendGrid API key as plain text or an Enso_Secret.
     Send_Grid api_key:(Text|Enso_Secret)=(Missing_Argument.throw "api_key")
 
-    ## Sends the provided Email.
-    send self email:Email = case self of
-        Email_Provider.Send_Grid api_key -> _send_email_with_send_grid_provider email api_key
-        Email_Provider.Test_Only -> 
-            warning = "Test_Only Email Provider used: no email was actually sent."
-            Warning.attach warning (Send_Response.Test email)
+    send provider email:Email = case provider of
+        _ : Function -> (Email_Provider_SPI.resolve_constructor provider) . send email
+        _ -> provider.send2 email
+
+    ## ---
+       private: true
+       ---
+    default_widget display:Display=..When_Modified -> Widget =
+        options = Email_Provider_SPI._get_known_email_providers.flat_map .get_dropdown_options
+        Single_Choice display=display values=options
 
 private _send_email_with_send_grid_provider email:Email api_key:Text =
     to_object = JS_Object.from_pairs ([_create_to_email_object email.to "to", _create_to_email_object email.cc "cc", _create_to_email_object email.bcc "bcc"].filter ..Not_Nothing) 
@@ -71,3 +84,49 @@ private _prepare_attachment attachment:Email_Attachment =
     filename = if attachment.name == "" then attachment.file.name else attachment.name
     attachment_object = JS_Object.from_pairs [["content", encoded_content], ["type", "text/plain"], ["filename", filename]]
     attachment_object
+
+type Email_Provider_Test_Only_Impl
+
+Email_Provider_SPI.from (that:Email_Provider_Test_Only_Impl) =
+    _ = that
+    Email_Provider_SPI.new Email_Provider_Test_Only
+
+type Email_Provider_Test_Only
+    Test_Only
+
+    send self email:Email =
+        warning = "Test_Only Email Provider used: no email was actually sent."
+        Warning.attach warning (Send_Response.Test email)
+
+    get_dropdown_options = [Option "..Test_Only" "..Test_Only"]
+
+    ## ---
+       private: true
+       ---
+    resolve value =
+        Panic.catch Type_Error (value:Email_Provider_Test_Only) _->Nothing
+
+
+## ---
+   private: true
+   ---
+   Internal class for enabling SPI for Email_Provider types.
+type Email_Provider_SPI
+    private Value typ
+
+    ## ---
+       private: true
+       ---
+    new typ -> Email_Provider_SPI = Email_Provider_SPI.Value typ
+
+    private resolve_constructor constructor:Function =
+        types = Email_Provider_SPI._get_known_email_providers
+        try_next idx =
+            if idx >= types.length then constructor else
+                db_type = types.at idx
+                resolved = db_type.resolve constructor
+                if resolved==Nothing then @Tail_Call try_next (idx + 1) else resolved
+        try_next 0
+
+    private _get_known_email_providers -> Vector =
+        Meta.lookup_services Email_Provider_SPI . map .typ

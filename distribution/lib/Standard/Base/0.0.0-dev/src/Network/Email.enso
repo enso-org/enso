@@ -54,7 +54,7 @@ type Email
     @cc _email_vector_widget
     @bcc _email_vector_widget
     @attachments Vector_Editor Email_Attachment.default_widget item_default="..File" display=..Always
-    send from:Email_Address=(Missing_Argument.throw "from") to:(Vector Email_Address)=[] cc:(Vector Email_Address)=[] bcc:(Vector Email_Address)=[] subject:Text="" body:Email_Body="" attachments:(Vector Email_Attachment)=[] provider:Email_Provider=(Missing_Argument.throw "provider") -> Send_Response =
+    send from:Email_Address=(Missing_Argument.throw "from") to:(Vector Email_Address)=[] cc:(Vector Email_Address)=[] bcc:(Vector Email_Address)=[] subject:Text="" body:Email_Body="" attachments:(Vector Email_Attachment)=[] provider=(Missing_Argument.throw "provider") -> Send_Response =
         resolved_to = to.map a->(a:Email_Address) on_problems=No_Wrap.Value
         resolved_cc = cc.map a->(a:Email_Address) on_problems=No_Wrap.Value
         resolved_bcc = bcc.map a->(a:Email_Address) on_problems=No_Wrap.Value
@@ -88,7 +88,7 @@ type Email
             + '\nBody: ' + self.body.body
 
 private _send_email_with_provider email provider = 
-    if Context.Output.is_enabled then provider.send email else
+    if Context.Output.is_enabled then Email_Provider.send provider email else
         warning = Dry_Run_Operation.Warning "As writing is disabled, email not sent. Press the Write button ▶ to send it."
         Warning.attach warning (Send_Response.Dry_Run email)
 
