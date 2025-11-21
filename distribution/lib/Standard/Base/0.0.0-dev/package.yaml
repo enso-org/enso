@@ -64,5 +64,4 @@ services:
     with: Standard.Base.Network.Email.Internal.Email_Provider_Test_Only.Email_Provider_Test_Only_Impl
 
   - provides: Standard.Base.Network.Email.Email_Provider_SPI.Email_Provider_SPI
-    with: Standard.Base.Network.Email.Internal.Email_Provider_Send_Grid.Email_Provider_Send_Grid_Impl    
-
+    with: Standard.Base.Network.Email.Internal.Email_Provider_Send_Grid.Email_Provider_Send_Grid_Impl
