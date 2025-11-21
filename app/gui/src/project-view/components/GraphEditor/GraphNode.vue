@@ -497,8 +497,9 @@ const nodeName = computed(() => props.node.pattern?.code())
   border-radius: var(--node-border-radius);
   transition: box-shadow 0.2s ease-in-out;
   box-sizing: border-box;
+  --z-index-component: 24;
   --z-index-component-menu: 20;
-  --z-index-selection-submenu: calc(var(--z-index-component-menu) + 1);
+  --z-index-selection-submenu: 25;
 }
 
 .nodeBackground {
@@ -522,7 +523,7 @@ const nodeName = computed(() => props.node.pattern?.code())
   flex-direction: row;
   align-items: center;
   white-space: nowrap;
-  z-index: 24;
+  z-index: var(--z-index-component);
 }
 
 .binding {

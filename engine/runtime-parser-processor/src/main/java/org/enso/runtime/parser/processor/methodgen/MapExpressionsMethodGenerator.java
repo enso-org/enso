@@ -396,7 +396,7 @@ public final class MapExpressionsMethodGenerator {
     Utils.hardAssert(!(field instanceof OptionListField));
     Utils.hardAssert(!(field instanceof OptionField));
     var nullableCheck = "";
-    if (field.isNullable()) {
+    if (!field.isNullable()) {
       nullableCheck =
           """
           if (${fieldName} == null) {

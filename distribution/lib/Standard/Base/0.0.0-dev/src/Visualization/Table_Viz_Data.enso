@@ -6,7 +6,9 @@ from project.Data.Json import JS_Object
    type you should provide a conversion to this type e.g.
 
    ```
-       ## PRIVATE
+       ## ---
+          private: true
+          ---
        Table_Viz_Data.from (that:MyType) =
    ```
 type Table_Viz_Data

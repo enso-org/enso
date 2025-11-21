@@ -95,7 +95,7 @@ make_table_for_name connection name schema alias internal_temporary_keep_alive_r
 ## ---
    private: true
    ---
-make_table_from_query connection query:Text|SQL_Statement alias:Text -> Table & DB_Table =
+make_table_from_query connection query:Text|SQL_Statement alias:Text -> Table & DB_Table & Any =
     columns = connection.base_connection.fetch_columns query
     name = if alias == "" then (UUID.randomUUID.to_text) else alias
     ctx = SQL_IR_Source.for_query query name
