@@ -37,7 +37,6 @@ type Email_Provider
 
        ## Arguments
         - `api_key`: SendGrid API key as plain text or an Enso_Secret.
-    Send_Grid api_key:(Text|Enso_Secret)=(Missing_Argument.throw "api_key")
 
     send provider email:Email = case provider of
         _ : Function -> (Email_Provider_SPI.resolve_constructor provider) . send email
@@ -84,27 +83,6 @@ private _prepare_attachment attachment:Email_Attachment =
     filename = if attachment.name == "" then attachment.file.name else attachment.name
     attachment_object = JS_Object.from_pairs [["content", encoded_content], ["type", "text/plain"], ["filename", filename]]
     attachment_object
-
-type Email_Provider_Test_Only_Impl
-
-Email_Provider_SPI.from (that:Email_Provider_Test_Only_Impl) =
-    _ = that
-    Email_Provider_SPI.new Email_Provider_Test_Only
-
-type Email_Provider_Test_Only
-    Test_Only
-
-    send self email:Email =
-        warning = "Test_Only Email Provider used: no email was actually sent."
-        Warning.attach warning (Send_Response.Test email)
-
-    get_dropdown_options = [Option "..Test_Only" "..Test_Only"]
-
-    ## ---
-       private: true
-       ---
-    resolve value =
-        Panic.catch Type_Error (value:Email_Provider_Test_Only) _->Nothing
 
 
 ## ---

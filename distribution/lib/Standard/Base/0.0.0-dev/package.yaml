@@ -61,4 +61,8 @@ services:
   # Email_Provider.SPI definitions
 
   - provides: Standard.Base.Network.Email.Email_Provider.Email_Provider_SPI
-    with: Standard.Base.Network.Email.Email_Provider.Email_Provider_Test_Only_Impl
+    with: Standard.Base.Network.Email.Internal.Email_Provider_Test_Only.Email_Provider_Test_Only_Impl
+
+  - provides: Standard.Base.Network.Email.Email_Provider.Email_Provider_SPI
+    with: Standard.Base.Network.Email.Internal.Email_Provider_Send_Grid.Email_Provider_Send_Grid_Impl    
+

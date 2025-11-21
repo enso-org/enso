@@ -1,0 +1,33 @@
+import project.Errors.Common.Type_Error
+import project.Panic.Panic
+from project.Metadata.Choice import Option
+import project.Data.Text.Text
+import project.Enso_Cloud.Enso_Secret.Enso_Secret
+import project.Errors.Common.Missing_Argument
+import project.Nothing.Nothing
+import project.Warning.Warning
+import project.Network.Email.Email
+import project.Network.Email.Email_Provider.Email_Provider_SPI
+import project.Network.Email.Email_Send_Response.Send_Response
+import project.Network.Email.Send_Error.Send_Error
+
+type Email_Provider_Send_Grid_Impl
+
+Email_Provider_SPI.from (that:Email_Provider_Send_Grid_Impl) =
+    _ = that
+    Email_Provider_SPI.new Email_Provider_Send_Grid
+
+type Email_Provider_Send_Grid
+    Send_Grid api_key:(Text|Enso_Secret)=(Missing_Argument.throw "api_key")
+
+    send self email:Email =
+        warning = "Test_Only Email Provider used: no email was actually sent."
+        Warning.attach warning (Send_Response.Test email)
+
+    get_dropdown_options = [Option "..Send_Grid" "..Send_Grid"]
+
+    ## ---
+       private: true
+       ---
+    resolve value =
+        Panic.catch Type_Error (value:Email_Provider_Send_Grid) _->Nothing
