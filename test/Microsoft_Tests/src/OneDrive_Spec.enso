@@ -12,7 +12,7 @@ add_specs suite_builder setup:Cloud_Tests_Setup =
             files.at child_index
 
         get_test_root =
-            secret = Enso_Secret.get "enso://Users/greg.travis@enso.org/m105"
+            secret = Enso_Secret.get "enso://Users/CloudTests/m105"
             credential = Microsoft365_Credential.initialize secret
             root = OneDrive_File.root credential
             get_child (get_child root "test_data") "OneDrive_Spec"
