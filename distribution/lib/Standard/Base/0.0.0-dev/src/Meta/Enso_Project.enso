@@ -2,8 +2,8 @@ import project.Any.Any
 import project.Data.Text.Text
 import project.Nothing.Nothing
 import project.System.File.File
-from project.Errors.Common import Module_Not_In_Package_Error
 from project.Data.Json import JS_Object
+from project.Errors.Common import Module_Not_In_Package_Error
 
 ## Functionality for inspecting the current project.
 @Builtin_Type

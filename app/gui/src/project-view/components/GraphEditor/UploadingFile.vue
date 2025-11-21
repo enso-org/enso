@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useProgressBackground } from '@/composables/progressBar'
-import { type UploadingFile } from '@/stores/awareness'
+import type { UploadingFile } from '@/stores/awareness'
 import { computed } from 'vue'
 
 const { name, file } = defineProps<{

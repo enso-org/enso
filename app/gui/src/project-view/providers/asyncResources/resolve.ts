@@ -1,14 +1,20 @@
-import { AssetType, EnsoPath, extractTypeFromId, NetworkError, ProjectId } from '#/services/Backend'
-import LocalBackend, { isLocalProjectId } from '#/services/LocalBackend'
-import RemoteBackend from '#/services/RemoteBackend'
-import { OpenedProjectsStore } from '$/providers/openedProjects'
+import type { OpenedProjectsStore } from '$/providers/openedProjects'
 import { useProjectFiles } from '@/stores/projectFiles'
-import { Err, Ok, rejectionToResult, Result } from '@/util/data/result'
 import { urlParse } from '@/util/url'
+import {
+  AssetType,
+  EnsoPath,
+  extractTypeFromId,
+  NetworkError,
+  ProjectId,
+} from 'enso-common/src/services/Backend'
+import { isLocalProjectId, LocalBackend } from 'enso-common/src/services/LocalBackend'
+import { RemoteBackend } from 'enso-common/src/services/RemoteBackend'
+import type { Opt } from 'enso-common/src/utilities/data/opt'
+import { Err, Ok, rejectionToResult, type Result } from 'enso-common/src/utilities/data/result'
 import { toValue } from 'vue'
-import { Opt } from 'ydoc-shared/util/data/opt'
-import { ResourceDefinition } from './AsyncResource'
-import { ResourceContext } from './context'
+import type { ResourceDefinition } from './AsyncResource'
+import type { ResourceContext } from './context'
 import { parseResourceUrl } from './parse'
 
 /**
@@ -108,13 +114,18 @@ export function useAsyncResourceResolver(
       },
       async fetch(abort) {
         const openedProject = openedProjects.get(projectId)
-        if (openedProject) {
+        if (openedProject?.nextTask?.process === 'opening') {
+          await openedProjects.waitForProcess(openedProject)
+        }
+        const initializedProject =
+          openedProject?.state.status === 'initialized' ? openedProject.state : undefined
+        if (initializedProject) {
           // Remote/local projects are treated the same when opened - contact LS for a file.
-          const rootId = await openedProject.store.projectRootId
+          const rootId = await initializedProject.store.projectRootId
           if (rootId == null) return Err('Could not identify project root')
           if (abort.aborted) return Err(abort)
 
-          const projectFiles = useProjectFiles(openedProject.store)
+          const projectFiles = useProjectFiles(initializedProject.store)
           return projectFiles.readFileBinary({ rootId, segments: relativePath.split('/') }, abort)
         } else {
           // project not opened

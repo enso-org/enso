@@ -24,7 +24,7 @@ interface SQLData {
 
 interface SQLInterpolation {
   enso_type: string
-  value: string
+  value: unknown
 }
 
 interface Error {
@@ -37,6 +37,7 @@ interface Error {
 
 <script setup lang="ts">
 import { DEFAULT_THEME, type RGBA, type Theme } from '@/components/visualizations/builtins'
+import { stopCopy } from '@/util/shortcuts'
 import { computed } from 'vue'
 const sqlFormatter = await import('sql-formatter')
 
@@ -64,7 +65,9 @@ const formatted = computed(() => {
 })
 
 /** The qualified name of the Text type. */
-const TEXT_TYPE = 'Builtins.Main.Text'
+const TEXT_TYPE = 'Standard.Base.Data.Text.Text'
+/** The qualified name of the Date type. */
+const DATE_TYPE = 'Standard.Base.Data.Time.Date.Date'
 /** Specifies opacity of interpolation background color. */
 const INTERPOLATION_BACKGROUND_OPACITY = 0.2
 
@@ -93,13 +96,9 @@ function replaceAlpha(color: RGBA, newAlpha: number) {
 }
 
 /** Renders HTML for displaying an Enso parameter that is interpolated into the SQL code. */
-function renderInterpolationParameter(theme: Theme, param: { enso_type: string; value: string }) {
+function renderInterpolationParameter(theme: Theme, param: { enso_type: string; value: unknown }) {
   const actualType = param.enso_type
-  let value = param.value
-
-  if (actualType === TEXT_TYPE) {
-    value = "'" + value.replace(/'/g, "''") + "'"
-  }
+  const value = formatInterpolationParameter(param)
 
   const actualTypeColor = theme.getColorForType(actualType)
   const fgColor = actualTypeColor
@@ -108,8 +107,31 @@ function renderInterpolationParameter(theme: Theme, param: { enso_type: string; 
   return renderRegularInterpolation(value, fgColor, bgColor)
 }
 
+function formatInterpolationParameter(param: { enso_type: string; value: unknown }) {
+  const formatTextLiteral = (lit: string) => "'" + lit.replace(/'/g, "''") + "'"
+  switch (param.enso_type) {
+    case TEXT_TYPE:
+      return formatTextLiteral(`${param.value}`)
+    case DATE_TYPE:
+      if (
+        param.value != null &&
+        typeof param.value === 'object' &&
+        'year' in param.value &&
+        'month' in param.value &&
+        'day' in param.value
+      ) {
+        const yearStr = `${param.value.year}`.padStart(4, '0')
+        const monthStr = `${param.value.month}`.padStart(2, '0')
+        const dayStr = `${param.value.day}`.padStart(2, '0')
+        return formatTextLiteral(`${yearStr}-${monthStr}-${dayStr}`)
+      }
+      break
+  }
+  return `${param.value}`
+}
+
 /** A helper that renders the HTML representation of a regular SQL interpolation. */
-function renderRegularInterpolation(value: string, fgColor: RGBA, bgColor: RGBA) {
+function renderRegularInterpolation(value: unknown, fgColor: RGBA, bgColor: RGBA) {
   let html = `<div class="interpolation" style="color:${convertColorToRgba(
     fgColor,
   )};background-color:${convertColorToRgba(bgColor)};">`
@@ -120,7 +142,7 @@ function renderRegularInterpolation(value: string, fgColor: RGBA, bgColor: RGBA)
 </script>
 
 <template>
-  <div class="sql-visualization scrollable">
+  <div class="SQLVisualization scrollable" tabindex="-1" @wheel.stop.passive @keydown="stopCopy">
     <pre v-if="data.error" class="sql" v-text="data.error"></pre>
     <!-- eslint-disable-next-line vue/no-v-html This is SAFE, beause it is not user input. -->
     <pre v-else class="sql" v-html="formatted"></pre>
@@ -130,6 +152,7 @@ function renderRegularInterpolation(value: string, fgColor: RGBA, bgColor: RGBA)
 <style scoped>
 .SQLVisualization {
   padding: 4px;
+  user-select: text;
 }
 
 :deep(.sql) {

@@ -9,7 +9,7 @@ import Standard.Database.Dialects.Feature.Feature
 from Standard.Test import all
 
 import project.Common_Table_Operations.Util
-from project.Common_Table_Operations.Util import run_default_backend
+from project.Common_Table_Operations.Util import check_column_refinements, run_default_backend
 
 type Lazy_Ref
     Value ~get
@@ -28,7 +28,7 @@ add_numeric_columns_specs suite_builder setup =
         group_builder.specify "a numeric column can be cast to Numeric_Column" <|
             column = numeric_column.get
             column.value_type.is_numeric . should_be_true
-            check_column column x->
+            check_column_refinements column x->
                 (x:Numeric_Column)
 
         group_builder.specify "a text column cannot be cast to Numeric_Column" <|
@@ -59,10 +59,3 @@ add_numeric_columns_specs suite_builder setup =
             abs_column.to_vector . should_equal [1.5, 0.0, 0.0, 1.0, 200.25]
             signum_column = (column:Numeric_Column).signum
             signum_column.to_vector . should_equal [-1, 0, 0, 1, 1]
-
-check_column column check =
-    Test.with_clue "(regular column) " <| check column
-    # Sort is needed in DB for take to work
-    Test.with_clue "(1-value column) " <| check (column.sort.take 1)
-    Test.with_clue "(1-column table as column) " <| check (column.to_table)
-    Test.with_clue "(1-value 1-column table as column) " <| check (column.sort.to_table.take 1)

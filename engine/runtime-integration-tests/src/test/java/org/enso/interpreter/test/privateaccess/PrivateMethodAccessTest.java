@@ -17,42 +17,39 @@ import org.junit.rules.TemporaryFolder;
 
 public class PrivateMethodAccessTest {
   @Rule public TemporaryFolder tempFolder = new TemporaryFolder();
+  @Rule public ContextUtils ctx = ContextUtils.createDefault();
 
   @Test
   public void moduleDoesNotExposePrivateMethodsToPolyglot() {
-    try (var ctx = ContextUtils.createDefault()) {
-      var module =
-          ctx.eval(
-              LanguageInfo.ID,
-              """
-          private priv_method x = x
-          pub_method x = x
-          """);
-      var assocType = module.invokeMember(Module.GET_ASSOCIATED_TYPE);
-      var privMethod = module.invokeMember(Module.GET_METHOD, assocType, "priv_method");
-      assertThat("private method must not be exposed to polyglot", privMethod.isNull(), is(true));
-      var pubMethod = module.invokeMember(Module.GET_METHOD, assocType, "pub_method");
-      assertThat("public method is exposed to polyglot", pubMethod.canExecute(), is(true));
-    }
+    var module =
+        ctx.eval(
+            LanguageInfo.ID,
+            """
+            private priv_method x = x
+            pub_method x = x
+            """);
+    var assocType = module.invokeMember(Module.GET_ASSOCIATED_TYPE);
+    var privMethod = module.invokeMember(Module.GET_METHOD, assocType, "priv_method");
+    assertThat("private method must not be exposed to polyglot", privMethod.isNull(), is(true));
+    var pubMethod = module.invokeMember(Module.GET_METHOD, assocType, "pub_method");
+    assertThat("public method is exposed to polyglot", pubMethod.canExecute(), is(true));
   }
 
   @Test
   public void typeDoesNotExposePrivateMethodsToPolyglot() {
-    try (var ctx = ContextUtils.createDefault()) {
-      var module =
-          ctx.eval(
-              LanguageInfo.ID,
-              """
-          type My_Type
-              private priv_method x = x
-              pub_method x = x
-          """);
-      var myType = module.invokeMember(Module.GET_TYPE, "My_Type");
-      var privMethod = module.invokeMember(Module.GET_METHOD, myType, "priv_method");
-      assertThat("private method must not be exposed to polyglot", privMethod.isNull(), is(true));
-      var pubMethod = module.invokeMember(Module.GET_METHOD, myType, "pub_method");
-      assertThat("public method is exposed to polyglot", pubMethod.canExecute(), is(true));
-    }
+    var module =
+        ctx.eval(
+            LanguageInfo.ID,
+            """
+            type My_Type
+                private priv_method x = x
+                pub_method x = x
+            """);
+    var myType = module.invokeMember(Module.GET_TYPE, "My_Type");
+    var privMethod = module.invokeMember(Module.GET_METHOD, myType, "priv_method");
+    assertThat("private method must not be exposed to polyglot", privMethod.isNull(), is(true));
+    var pubMethod = module.invokeMember(Module.GET_METHOD, myType, "pub_method");
+    assertThat("public method is exposed to polyglot", pubMethod.canExecute(), is(true));
   }
 
   @Test
@@ -145,10 +142,12 @@ public class PrivateMethodAccessTest {
   public void canCallPrivateMethod_UnresolvedSymbol() throws IOException {
     var libDir = tempFolder.newFolder("Lib").toPath();
     ProjectUtils.createProject(
-        "Lib", """
-            apply obj func =
-                func obj
-            """, libDir);
+        "Lib",
+        """
+        apply obj func =
+            func obj
+        """,
+        libDir);
 
     var projDir = tempFolder.newFolder("Proj").toPath();
     ProjectUtils.createProject(

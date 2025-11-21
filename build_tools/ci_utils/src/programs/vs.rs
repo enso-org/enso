@@ -5,14 +5,11 @@ use crate::env;
 use crate::programs::cmd;
 use crate::programs::vswhere::VsWhere;
 
-
 // ==============
 // === Export ===
 // ==============
 
 pub mod redist;
-
-
 
 /// Path components from [VS installation
 /// root](crate::programs::vswhere::InstanceInfo::installation_path) to the developer command file.

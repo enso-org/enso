@@ -82,6 +82,23 @@ xlsx =
         Context.Output.with_enabled <| HTTP.fetch url . body . write file
     file
 
+## An example XLSB file for experimenting with Table and its APIs.
+
+   ## Remarks
+
+   ### Downloading
+   Calling this method will result in the spreadsheet file being downloaded from
+   the internet if it is not already present on your disk. If you do not want
+   this to happen, please place the spreadsheet in the
+   `lib/Standard/Examples/<version>/data` folder for your Enso distribution.
+xlsb : File
+xlsb =
+    url = "https://enso-data-samples.s3.us-west-1.amazonaws.com/spreadsheet.xlsb"
+    file = data_dir / 'spreadsheet.xlsb'
+    if file.exists.not then
+        Context.Output.with_enabled <| HTTP.fetch url . body . write file
+    file
+
 ## A file that is used for writing temporary data as part of tests.
 scratch_file : File
 scratch_file =

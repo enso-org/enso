@@ -9,6 +9,7 @@ import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.UnknownIdentifierException;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.interop.UnsupportedTypeException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.function.BiConsumer;
 import org.enso.common.LanguageInfo;
@@ -53,6 +54,7 @@ public final class MethodInvocationOnTypeConsistencyTest {
   private static Type anyType;
   private static Type myType;
   private static Object myTypeAtom;
+  private static List<AutoCloseable> toClean = new ArrayList<>();
 
   private final TestArgs testArgs;
 
@@ -73,48 +75,60 @@ public final class MethodInvocationOnTypeConsistencyTest {
     anyType = null;
     myType = null;
     myTypeAtom = null;
+    toClean.forEach(
+        closable -> {
+          try {
+            closable.close();
+          } catch (Exception ex) {
+            throw new IllegalStateException(ex);
+          }
+        });
   }
 
   @Parameters(name = "{index}: expression = {0}")
   public static List<TestArgs> testArgs() {
     initCtx();
-    return List.of(
-        new TestArgs(
-            new EnsoInvokeArgs("Any.to_display_text My_Type"),
-            new InteropInvokeArgs(anyType, "to_display_text", List.of(myType)),
-            (res, msg) -> {
-              assertThat(msg, res.asString(), is("My_Type"));
-            }),
-        new TestArgs(
-            new EnsoInvokeArgs("Any.to_text my_type_atom"),
-            new InteropInvokeArgs(anyType, "to_text", List.of(myTypeAtom)),
-            (res, msg) -> {
-              assertThat(msg, res.asString(), containsString("Cons 1"));
-            }),
-        new TestArgs(
-            new EnsoInvokeArgs("My_Type.to_display_text"),
-            new InteropInvokeArgs(myType, "to_display_text", List.of()),
-            (res, msg) -> {
-              assertThat(msg, res.asString(), is("My_Type"));
-            }),
-        new TestArgs(
-            new EnsoInvokeArgs("My_Type.method my_type_atom"),
-            new InteropInvokeArgs(myType, "method", List.of(myTypeAtom)),
-            (res, msg) -> {
-              assertThat(msg, res.asInt(), is(3));
-            }),
-        new TestArgs(
-            new EnsoInvokeArgs("Any.has_warnings my_type_atom"),
-            new InteropInvokeArgs(anyType, "has_warnings", List.of(myTypeAtom)),
-            (res, msg) -> {
-              assertThat(msg, res.asBoolean(), is(false));
-            }),
-        new TestArgs(
-            new EnsoInvokeArgs("My_Type.has_warnings my_type_atom"),
-            new InteropInvokeArgs(myType, "has_warnings", List.of(myTypeAtom)),
-            (res, msg) -> {
-              assertThat(msg, res.asBoolean(), is(false));
-            }));
+    var arr =
+        List.of(
+            new TestArgs(
+                new EnsoInvokeArgs("Any.to_display_text My_Type"),
+                new InteropInvokeArgs(anyType, "to_display_text", List.of(myType)),
+                (res, msg) -> {
+                  assertThat(msg, res.asString(), is("My_Type"));
+                }),
+            new TestArgs(
+                new EnsoInvokeArgs("Any.to_text my_type_atom"),
+                new InteropInvokeArgs(anyType, "to_text", List.of(myTypeAtom)),
+                (res, msg) -> {
+                  assertThat(msg, res.asString(), containsString("Cons 1"));
+                }),
+            new TestArgs(
+                new EnsoInvokeArgs("My_Type.to_display_text"),
+                new InteropInvokeArgs(myType, "to_display_text", List.of()),
+                (res, msg) -> {
+                  assertThat(msg, res.asString(), is("My_Type"));
+                }),
+            new TestArgs(
+                new EnsoInvokeArgs("My_Type.method my_type_atom"),
+                new InteropInvokeArgs(myType, "method", List.of(myTypeAtom)),
+                (res, msg) -> {
+                  assertThat(msg, res.asInt(), is(3));
+                }),
+            new TestArgs(
+                new EnsoInvokeArgs("Any.has_warnings my_type_atom"),
+                new InteropInvokeArgs(anyType, "has_warnings", List.of(myTypeAtom)),
+                (res, msg) -> {
+                  assertThat(msg, res.asBoolean(), is(false));
+                }),
+            new TestArgs(
+                new EnsoInvokeArgs("My_Type.has_warnings my_type_atom"),
+                new InteropInvokeArgs(myType, "has_warnings", List.of(myTypeAtom)),
+                (res, msg) -> {
+                  assertThat(msg, res.asBoolean(), is(false));
+                }));
+
+    arr.forEach(toClean::add);
+    return arr;
   }
 
   public MethodInvocationOnTypeConsistencyTest(TestArgs testArgs) {
@@ -164,17 +178,49 @@ public final class MethodInvocationOnTypeConsistencyTest {
    */
   private record EnsoInvokeArgs(String expr) {}
 
-  private record InteropInvokeArgs(Type receiverType, String method, List<Object> args) {
-    private InteropInvokeArgs {
+  private static class InteropInvokeArgs implements AutoCloseable {
+    Type receiverType;
+    String method;
+    List<Object> args;
+
+    private InteropInvokeArgs(Type receiverType, String method, List<Object> args) {
       var someArgIsValue = args.stream().anyMatch(arg -> arg instanceof Value);
       assertThat("All arguments must be passed unwrapped", someArgIsValue, is(false));
+
+      this.receiverType = receiverType;
+      this.method = method;
+      this.args = args;
+    }
+
+    @Override
+    public void close() {
+      this.receiverType = null;
+      this.method = null;
+      this.args = null;
     }
   }
 
-  public record TestArgs(
-      EnsoInvokeArgs ensoInvokeArgs,
-      InteropInvokeArgs interopInvokeArgs,
-      BiConsumer<Value, String> resultChecker) {
+  public static class TestArgs implements AutoCloseable {
+    EnsoInvokeArgs ensoInvokeArgs;
+    InteropInvokeArgs interopInvokeArgs;
+    BiConsumer<Value, String> resultChecker;
+
+    TestArgs(
+        EnsoInvokeArgs ensoInvokeArgs,
+        InteropInvokeArgs interopInvokeArgs,
+        BiConsumer<Value, String> resultChecker) {
+      this.ensoInvokeArgs = ensoInvokeArgs;
+      this.interopInvokeArgs = interopInvokeArgs;
+      this.resultChecker = resultChecker;
+    }
+
+    @Override
+    public void close() {
+      this.interopInvokeArgs.close();
+      this.ensoInvokeArgs = null;
+      this.interopInvokeArgs = null;
+      this.resultChecker = null;
+    }
 
     @Override
     public String toString() {

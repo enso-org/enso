@@ -76,6 +76,8 @@ add_specs suite_builder =
                 r.should_fail_with HTTP_Error
                 r.catch.should_be_a HTTP_Error.Status_Error
                 r.catch.status_code.code . should_equal 302
+                r.catch.uri . should_equal (URI.from (base_url_with_slash+"test_redirect"))
+                r.catch.to_display_text . should_contain "status 302"
 
         group_builder.specify "should create HTTP client with proxy setting" <|
             proxy_setting = Proxy.Address "example.com" 80
@@ -97,6 +99,8 @@ add_specs suite_builder =
             expected_response = Json.parse <| '''
                 {
                   "headers": {
+                    "Accept-Encoding": "gzip",
+                    "Accept": "*/*",
                     "Connection": "Upgrade, HTTP2-Settings",
                     "Http2-Settings": "AAEAAEAAAAIAAAABAAMAAABkAAQBAAAAAAUAAEAA",
                     "User-Agent": "Java-http-client/21.0.1",
@@ -144,6 +148,8 @@ add_specs suite_builder =
             expected_response = Json.parse <| '''
                 {
                   "headers": {
+                    "Accept-Encoding": "gzip",
+                    "Accept": "*/*",
                     "Connection": "Upgrade, HTTP2-Settings",
                     "Http2-Settings": "AAEAAEAAAAIAAAABAAMAAABkAAQBAAAAAAUAAEAA",
                     "User-Agent": "Java-http-client/21.0.1",
@@ -346,6 +352,8 @@ add_specs suite_builder =
             expected_response = Json.parse <| '''
                 {
                   "headers": {
+                    "Accept-Encoding": "gzip",
+                    "Accept": "*/*",
                     "Connection": "Upgrade, HTTP2-Settings",
                     "Http2-Settings": "AAEAAEAAAAIAAAABAAMAAABkAAQBAAAAAAUAAEAA",
                     "User-Agent": "Java-http-client/21.0.1",
@@ -372,6 +380,8 @@ add_specs suite_builder =
             expected_response = Json.parse <| '''
                 {
                   "headers": {
+                    "Accept-Encoding": "gzip",
+                    "Accept": "*/*",
                     "Connection": "Upgrade, HTTP2-Settings",
                     "Http2-Settings": "AAEAAEAAAAIAAAABAAMAAABkAAQBAAAAAAUAAEAA",
                     "User-Agent": "Java-http-client/21.0.1",
@@ -454,6 +464,8 @@ add_specs suite_builder =
             expected_response = Json.parse <| '''
                 {
                   "headers": {
+                    "Accept-Encoding": "gzip",
+                    "Accept": "*/*",
                     "Connection": "Upgrade, HTTP2-Settings",
                     "Http2-Settings": "AAEAAEAAAAIAAAABAAMAAABkAAQBAAAAAAUAAEAA",
                     "User-Agent": "Java-http-client/21.0.1",
@@ -476,6 +488,8 @@ add_specs suite_builder =
             expected_response = Json.parse <| '''
                 {
                   "headers": {
+                    "Accept-Encoding": "gzip",
+                    "Accept": "*/*",
                     "Connection": "Upgrade, HTTP2-Settings",
                     "Http2-Settings": "AAEAAEAAAAIAAAABAAMAAABkAAQBAAAAAAUAAEAA",
                     "User-Agent": "Java-http-client/21.0.1",
@@ -500,6 +514,8 @@ add_specs suite_builder =
             expected_response = Json.parse <| '''
                 {
                   "headers": {
+                    "Accept-Encoding": "gzip",
+                    "Accept": "*/*",
                     "Connection": "Upgrade, HTTP2-Settings",
                     "Http2-Settings": "AAEAAEAAAAIAAAABAAMAAABkAAQBAAAAAAUAAEAA",
                     "User-Agent": "Java-http-client/21.0.1",
@@ -522,6 +538,8 @@ add_specs suite_builder =
             expected_response = Json.parse <| '''
                 {
                   "headers": {
+                    "Accept-Encoding": "gzip",
+                    "Accept": "*/*",
                     "Connection": "Upgrade, HTTP2-Settings",
                     "Http2-Settings": "AAEAAEAAAAIAAAABAAMAAABkAAQBAAAAAAUAAEAA",
                     "User-Agent": "Java-http-client/21.0.1",
@@ -688,6 +706,8 @@ echo_response_template method path data content_type content_length=data.length 
     template = '''
         {
           "headers": {
+            "Accept-Encoding": "gzip",
+            "Accept": "*/*",
             "Connection": "Upgrade, HTTP2-Settings",
             "Http2-Settings": "AAEAAEAAAAIAAAABAAMAAABkAAQBAAAAAAUAAEAA",
             "User-Agent": "Java-http-client/21.0.1",

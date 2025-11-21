@@ -36,9 +36,10 @@ import org.enso.table.problems.BlackholeProblemAggregator;
 import org.enso.table.problems.ProblemAggregator;
 import org.enso.table.util.NameDeduplicator;
 import org.graalvm.polyglot.Context;
+import org.graalvm.polyglot.Value;
 
 /** A representation of a table structure. */
-public class Table {
+public final class Table {
   private final Map<String, Column> columnNameMap = new HashMap<>();
   private final Column[] columns;
   private String versionId;
@@ -100,6 +101,16 @@ public class Table {
    */
   public int rowCount() {
     return columns[0].getSize();
+  }
+
+  /**
+   * Get the row in this table.
+   *
+   * @param index value from 0 to {@link #rowCount()} (exclusive)
+   * @return a row representing given index
+   */
+  public Row row(int index) {
+    return new Row(this, index);
   }
 
   /**
@@ -189,7 +200,7 @@ public class Table {
     var maskBuilder = new LongArrayList((int) Math.min(storage.getSize(), 100000));
     StorageIterators.forEachOverBooleanStorage(
         storage,
-        false,
+        "filter",
         (index, value, isNothing) -> {
           if (value) {
             maskBuilder.add(index);
@@ -284,17 +295,21 @@ public class Table {
   /**
    * Creates a new table with the rows sorted
    *
+   * @param where value identifying context where to execute the code
    * @param columns set of columns to use as an index
    * @param objectComparator Object comparator allowing calling back to `compare_to` when needed.
    * @return a table indexed by the proper column
    */
-  public Table orderBy(Column[] columns, Long[] directions, Comparator<Object> objectComparator) {
-    int[] directionInts = Arrays.stream(directions).mapToInt(Long::intValue).toArray();
-    int n = rowCount();
-    Context context = Context.getCurrent();
-    final var storages =
-        Arrays.stream(columns).map(Column::getStorage).toArray(ColumnStorage[]::new);
-    OrderedMultiValueKey[] keys = new OrderedMultiValueKey[n];
+  public Table orderBy(
+      Value where,
+      ColumnStorage[] columns,
+      Long[] directions,
+      Comparator<Object> objectComparator) {
+    var directionInts = Arrays.stream(directions).mapToInt(Long::intValue).toArray();
+    var n = rowCount();
+    var context = where.getContext();
+    var storages = Arrays.stream(columns).toArray(ColumnStorage[]::new);
+    var keys = new OrderedMultiValueKey[n];
     for (int i = 0; i < n; i++) {
       keys[i] = new OrderedMultiValueKey(storages, i, directionInts, objectComparator);
       context.safepoint();

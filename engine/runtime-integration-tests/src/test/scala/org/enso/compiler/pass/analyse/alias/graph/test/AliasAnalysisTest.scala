@@ -465,7 +465,8 @@ class AliasAnalysisTest extends CompilerTest {
         .unsafeAs[AliasMetadata.Occurrence]
         .id
       val aUseId = goodAtom
-        .arguments(2)
+        .arguments()
+        .apply(2)
         .defaultValue
         .get
         .getMetadata(AliasAnalysis)
@@ -888,7 +889,7 @@ class AliasAnalysisTest extends CompilerTest {
         |    type Foo a b
         |    add x = self.a + x
         |""".stripMargin.preprocessModule.analyse
-        .bindings(2)
+        .bindings()(2)
         .asInstanceOf[definition.Method.Explicit]
 
     val graph = addMethod

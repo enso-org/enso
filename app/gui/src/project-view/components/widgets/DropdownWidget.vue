@@ -4,11 +4,7 @@ import { injectGraphNavigator } from '@/providers/graphNavigator'
 import type { Icon } from '@/util/iconMetadata/iconName'
 import { computed, ref } from 'vue'
 
-enum SortDirection {
-  none = 'none',
-  ascending = 'ascending',
-  descending = 'descending',
-}
+type SortDirection = 'none' | 'ascending' | 'descending'
 
 const props = defineProps<{ entries: Entry[] }>()
 const emit = defineEmits<{
@@ -16,7 +12,7 @@ const emit = defineEmits<{
   scroll: []
 }>()
 
-const sortDirection = ref<SortDirection>(SortDirection.none)
+const sortDirection = ref<SortDirection>('none')
 const graphNavigator = injectGraphNavigator(true)
 
 function lexicalCmp(a: string, b: string) {
@@ -29,13 +25,13 @@ function lexicalCmp(a: string, b: string) {
 
 const sortedValues = computed<Entry[]>(() => {
   switch (sortDirection.value) {
-    case SortDirection.ascending: {
+    case 'ascending': {
       return [...props.entries].sort((a, b) => lexicalCmp(a.value, b.value))
     }
-    case SortDirection.descending: {
+    case 'descending': {
       return [...props.entries].sort((a, b) => lexicalCmp(b.value, a.value))
     }
-    case SortDirection.none:
+    case 'none':
     default: {
       return props.entries
     }
@@ -110,6 +106,7 @@ export interface DropdownEntry {
 .ExtendUpwards {
   margin-top: calc(0px - var(--dropdown-extend));
   padding-top: var(--dropdown-extend);
+
   &:before {
     content: '';
     display: block;
@@ -139,6 +136,7 @@ export interface DropdownEntry {
   border-radius: calc(var(--item-height) / 2);
   height: var(--item-height);
   text-align: left;
+  width: 100%;
   max-width: 100%;
   overflow: hidden;
   display: flex;
@@ -191,6 +189,7 @@ export interface DropdownEntry {
     max-width: unset;
     transform: translateX(0);
   }
+
   50%,
   70% {
     max-width: unset;

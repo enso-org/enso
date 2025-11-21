@@ -2,8 +2,8 @@ import { unrefElement, useEvent } from '@/composables/events'
 import { injectInteractionHandler, type Interaction } from '@/providers/interactionHandler'
 import type { ToValue } from '@/util/reactivity'
 import type { VueInstance } from '@vueuse/core'
+import type { Opt } from 'enso-common/src/utilities/data/opt'
 import { onUnmounted, toValue, watchEffect } from 'vue'
-import type { Opt } from 'ydoc-shared/util/data/opt'
 
 /**
  * Automatically `blur` the currently active element on any mouse click outside of `root`.

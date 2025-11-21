@@ -213,9 +213,11 @@ const config = [
         extraFileExtensions: ['.vue'],
         projectService: {
           allowDefaultProject: [
+            'git-clean.mjs',
             'eslint.config.mjs',
             // 'app/ydoc-server/vitest.config.ts',
             'app/ydoc-shared/vitest.config.ts',
+            'app/project-manager-shim/scripts/*.js',
             'app/ide-desktop/icons/src/index.js',
           ],
         },
@@ -486,7 +488,6 @@ const config = [
       '@typescript-eslint/require-array-sort-compare': ['error', { ignoreStringArrays: true }],
       '@typescript-eslint/restrict-template-expressions': 'error',
       '@typescript-eslint/sort-type-constituents': 'error',
-      '@typescript-eslint/strict-boolean-expressions': 'error',
       '@typescript-eslint/switch-exhaustiveness-check': [
         'error',
         { allowDefaultCaseForExhaustiveSwitch: true },

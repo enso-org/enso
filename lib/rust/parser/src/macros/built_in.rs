@@ -15,8 +15,6 @@ use crate::syntax::tree::SyntaxError;
 use crate::syntax::Item;
 use crate::syntax::Token;
 
-
-
 // =======================
 // === Built-in macros ===
 // =======================
@@ -140,7 +138,7 @@ fn import_body<'s>(
     }
     let import = syntax::Tree::import(polyglot, from, import.unwrap(), all, as_, hiding);
     if incomplete_import {
-        return import.with_error("Expected name or `all` keyword following `import` keyword.");
+        return import.with_error(SyntaxError::StmtIncompleteImport);
     }
     import
 }
@@ -340,7 +338,7 @@ fn parse_case_line<'s>(
         return (
             syntax::tree::CaseLine {
                 newline: newline.into(),
-                case:    Some(syntax::tree::Case { doc_line, ..default() }),
+                case: Some(syntax::tree::Case { doc_line, ..default() }),
             },
             default(),
         );
@@ -430,9 +428,9 @@ fn tuple_body<'s>(
 }
 
 struct GroupedSequence<'s> {
-    left:  token::OpenSymbol<'s>,
+    left: token::OpenSymbol<'s>,
     first: Option<syntax::Tree<'s>>,
-    rest:  Vec<syntax::tree::OperatorDelimitedTree<'s>>,
+    rest: Vec<syntax::tree::OperatorDelimitedTree<'s>>,
     right: token::CloseSymbol<'s>,
 }
 
@@ -498,7 +496,7 @@ fn sequence_tree<'s>(
         tree = Tree::opr_app(tree, Ok(operator), body.map(&mut f)).into();
     }
     if invalid {
-        tree = tree.map(|tree| tree.with_error("Malformed comma-delimited sequence."));
+        tree = tree.map(|tree| tree.with_error(SyntaxError::MalformedCommaDelimitedSequence));
     }
     tree
 }
@@ -548,11 +546,11 @@ fn capture_expressions<'s>(
 fn expect_ident(tree: syntax::Tree) -> syntax::Tree {
     let error = match &tree.variant {
         syntax::tree::Variant::Ident(_) => None,
-        _ => Some("Expected identifier."),
+        _ => Some(SyntaxError::ExpectedIdent),
     };
     maybe_with_error(tree, error)
 }
 
 fn expected_nonempty(location: Code) -> syntax::Tree {
-    empty_tree(location).with_error("Expected tokens.")
+    empty_tree(location).with_error(SyntaxError::ExpectedTokens)
 }

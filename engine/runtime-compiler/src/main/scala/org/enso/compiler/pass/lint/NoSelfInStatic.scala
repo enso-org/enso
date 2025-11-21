@@ -13,6 +13,7 @@ import org.enso.compiler.core.ir.module.scope.definition
 import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.desugar.GenerateMethodBodies
+import org.enso.persist.Persistance
 
 /** This linting pass ensures that `self` argument is not used in static methods.
   *
@@ -32,12 +33,17 @@ object NoSelfInStatic extends IRPass {
     ir: Module,
     moduleContext: ModuleContext
   ): Module = {
-    ir.copy(
+    ir.copyWithBindings(
       bindings = ir.bindings.map {
         case method: definition.Method.Explicit if isStaticMethod(method) =>
-          method.copy(
-            body = method.body.transformExpressions(transformSelfToError)
-          )
+          method
+            .copyBuilder()
+            .bodyReference(
+              Persistance.Reference.of(
+                method.body.transformExpressions(transformSelfToError)
+              )
+            )
+            .build()
         case method: definition.Method.Binding =>
           throw new CompilerError(
             s"unexpected Method.Binding $method present in pass NoSelfInStatic"

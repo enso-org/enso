@@ -6,7 +6,7 @@
 # This was developed and tested on Windows only, though there is no reason 
 # why it should not work on other platforms through PowerShell Core.
 
-$RunArgs = @("run", "--profile", "buildscript", "--package",  "enso-build-cli", "--")
+$RunArgs = @("run", "--package",  "enso-build-cli", "--")
 $RunArgs += $args
 
 $psi = New-Object -TypeName System.Diagnostics.ProcessStartInfo -ArgumentList "cargo",$RunArgs

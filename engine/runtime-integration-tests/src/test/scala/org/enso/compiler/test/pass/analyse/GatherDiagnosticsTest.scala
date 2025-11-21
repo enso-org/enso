@@ -7,6 +7,7 @@ import org.enso.compiler.core.ir.{
   CallArgument,
   DefinitionArgument,
   Function,
+  MetadataStorage,
   Module,
   Name
 }
@@ -89,36 +90,42 @@ class GatherDiagnosticsTest extends CompilerTest {
           identifiedLocation = null
         )
 
-      val module = Module(
+      val module = new Module(
         List(),
         List(),
         List(
-          Definition.Type(
-            typeName,
-            List(
-              DefinitionArgument.Specified
-                .builder()
-                .name(fooName)
-                .defaultValue(Some(error2))
-                .suspended(false)
-                .build()
-            ),
-            List(),
-            identifiedLocation = null
-          ),
-          new definition.Method.Explicit(
-            definition.Method
-              .Binding(method1Ref, Nil, false, lam, identifiedLocation = null),
+          Definition.Type
+            .builder()
+            .name(typeName)
+            .params(
+              List(
+                DefinitionArgument.Specified
+                  .builder()
+                  .name(fooName)
+                  .defaultValue(Some(error2))
+                  .suspended(false)
+                  .build()
+              )
+            )
+            .build(),
+          definition.Method.Explicit.fromMethodBinding(
+            definition.Method.Binding
+              .builder()
+              .methodReference(method1Ref)
+              .arguments(Nil)
+              .isPrivate(false)
+              .body(lam)
+              .build(),
             lam
           ),
-          new definition.Method.Explicit(
-            definition.Method.Binding(
-              method2Ref,
-              Nil,
-              false,
-              error3,
-              identifiedLocation = null
-            ),
+          definition.Method.Explicit.fromMethodBinding(
+            definition.Method.Binding
+              .builder()
+              .methodReference(method2Ref)
+              .arguments(Nil)
+              .isPrivate(false)
+              .body(error3)
+              .build(),
             Function.Lambda
               .builder(lam)
               .bodyReference(Reference.of(error3))
@@ -126,7 +133,9 @@ class GatherDiagnosticsTest extends CompilerTest {
           )
         ),
         false,
-        identifiedLocation = null
+        null,
+        new MetadataStorage(),
+        null
       )
 
       val result = GatherDiagnostics.runModule(module, buildModuleContext())

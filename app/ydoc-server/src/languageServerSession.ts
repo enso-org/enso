@@ -1,13 +1,14 @@
 import createDebug from 'debug'
+import { Err, Ok, withContext, type Result } from 'enso-common/src/utilities/data/result'
 import * as json from 'lib0/json'
 import * as map from 'lib0/map'
 import { ObservableV2 } from 'lib0/observable'
 import * as zlib from 'node:zlib'
 import * as Ast from 'ydoc-shared/ast'
 import { astCount } from 'ydoc-shared/ast'
-import { EnsoFileParts, combineFileParts, splitFileContents } from 'ydoc-shared/ensoFile'
+import { combineFileParts, splitFileContents, type EnsoFileParts } from 'ydoc-shared/ensoFile'
 import { LanguageServer, computeTextChecksum } from 'ydoc-shared/languageServer'
-import {
+import type {
   Checksum,
   FileEdit,
   FileEventKind,
@@ -16,19 +17,14 @@ import {
   response,
 } from 'ydoc-shared/languageServerTypes'
 import { assertNever } from 'ydoc-shared/util/assert'
-import { Err, Ok, Result, withContext } from 'ydoc-shared/util/data/result'
-import {
-  AbortScope,
-  ReconnectingWebSocketTransport,
-  exponentialBackoff,
-  printingCallbacks,
-} from 'ydoc-shared/util/net'
+import { AbortScope, exponentialBackoff, printingCallbacks } from 'ydoc-shared/util/net'
+import { ReconnectingWebSocketTransport } from 'ydoc-shared/util/net/ReconnectingWSTransport'
 import {
   DistributedProject,
-  ExternalId,
   IdMap,
   ModuleDoc,
   visMetadataEquals,
+  type ExternalId,
   type Uuid,
 } from 'ydoc-shared/yjsModel'
 import * as Y from 'yjs'
@@ -50,28 +46,26 @@ const debugLog = createDebug('ydoc-server:session')
 
 /** TODO: Add docs */
 export class LanguageServerSession {
-  clientId: Uuid
   indexDoc: WSSharedDoc
   docs: Map<string, WSSharedDoc>
   retainCount: number
-  url: string
   ls: LanguageServer
   connection: response.InitProtocolConnection | undefined
   model: DistributedProject
   projectRootId: Uuid | null
   authoritativeModules: Map<string, ModulePersistence>
   clientScope: AbortScope
+  unregister: () => void
 
   static DEBUG = false
 
   /** Create a {@link LanguageServerSession}. */
-  constructor(url: string) {
+  constructor(ls: LanguageServer, unregister: () => void) {
     this.clientScope = new AbortScope()
-    this.clientId = crypto.randomUUID() as Uuid
     this.docs = new Map()
     this.retainCount = 0
-    this.url = url
-    console.log('new session with', url)
+    this.ls = ls
+    this.unregister = unregister
     this.indexDoc = new WSSharedDoc()
     this.docs.set('index', this.indexDoc)
     this.model = new DistributedProject(this.indexDoc.doc)
@@ -86,7 +80,6 @@ export class LanguageServerSession {
         if (!persistence) continue
       }
     })
-    this.ls = new LanguageServer(this.clientId, new ReconnectingWebSocketTransport(this.url))
     this.clientScope.onAbort(() => this.ls.release())
     this.setupClient()
   }
@@ -95,11 +88,11 @@ export class LanguageServerSession {
 
   /** Get a {@link LanguageServerSession} by its URL. */
   static get(url: string): LanguageServerSession {
-    const session = map.setIfUndefined(
-      LanguageServerSession.sessions,
-      url,
-      () => new LanguageServerSession(url),
-    )
+    const session = map.setIfUndefined(LanguageServerSession.sessions, url, () => {
+      const ws = new ReconnectingWebSocketTransport(url)
+      const ls = new LanguageServer(crypto.randomUUID(), ws)
+      return new LanguageServerSession(ls, () => LanguageServerSession.sessions.delete(url))
+    })
     session.retain()
     return session
   }
@@ -110,6 +103,12 @@ export class LanguageServerSession {
   }
 
   private setupClient() {
+    this.ls.on('transport/closed', () => {
+      // Once we lose connection to Language Server, we cannot identify ourself by its URL anymore,
+      // because new Language Server of different project could start with same ports in the
+      // meantime.
+      this.unregister()
+    })
     this.ls.on('file/event', async (event) => {
       debugLog('file/event %O', event)
       const result = await this.handleFileEvent(event)
@@ -252,12 +251,13 @@ export class LanguageServerSession {
   async release(): Promise<void> {
     this.retainCount -= 1
     if (this.retainCount !== 0) return
+    this.unregister()
     const modules = this.authoritativeModules.values()
     const moduleDisposePromises = Array.from(modules, (mod) => mod.dispose())
     this.authoritativeModules.clear()
     this.model.doc.destroy()
     this.clientScope.dispose('LangueServerSession disposed.')
-    LanguageServerSession.sessions.delete(this.url)
+
     await Promise.all(moduleDisposePromises)
   }
 
@@ -655,7 +655,7 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
         (nodeMeta.length !== 0 || widgetMeta.length !== 0)
       ) {
         const externalIdToAst = new Map<ExternalId, Ast.Ast>()
-        astRoot.visitRecursive((ast) => {
+        Ast.visitRecursive(astRoot, (ast) => {
           const ancestorEntry = externalIdToAst.get(ast.externalId)
           if (!ancestorEntry || ancestorEntry instanceof Ast.ExpressionStatement)
             externalIdToAst.set(ast.externalId, ast)

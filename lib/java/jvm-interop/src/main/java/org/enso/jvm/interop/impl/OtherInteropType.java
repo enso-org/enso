@@ -42,6 +42,7 @@ final class OtherInteropType {
 
   private static final int MASK_ARRAY = 0x0400;
   private static final int MASK_HASH = 0x0800;
+  private static final int MASK_BUFFER = 0x1000;
 
   private OtherInteropType() {}
 
@@ -53,6 +54,9 @@ final class OtherInteropType {
     }
     if (iop.hasHashEntries(obj)) {
       one |= MASK_HASH;
+    }
+    if (iop.hasBufferElements(obj)) {
+      one |= MASK_BUFFER;
     }
     return one;
   }
@@ -183,6 +187,10 @@ final class OtherInteropType {
 
   static boolean hasHashEntries(int v) {
     return (v & MASK_HASH) == MASK_HASH;
+  }
+
+  static boolean hasBufferElements(int v) {
+    return (v & MASK_BUFFER) == MASK_BUFFER;
   }
 
   @Persistable(id = 1)

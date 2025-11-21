@@ -13,6 +13,7 @@ import java.io.IOException;
 import org.enso.common.LanguageInfo;
 import org.enso.common.MethodNames;
 import org.enso.common.RuntimeOptions;
+import org.enso.compiler.core.ir.MetadataStorage;
 import org.enso.compiler.data.BindingsMap;
 import org.enso.compiler.data.BindingsMap$ModuleReference$Concrete;
 import org.enso.pkg.QualifiedName;
@@ -74,9 +75,14 @@ public class ModuleTest {
     var ensoContext = ctxRule.ensoContext();
     var tFile = ensoContext.getTruffleFile(f);
 
-    var code = Source.newBuilder("enso", """
-    main = 42
-    """, name.toString()).build();
+    var code =
+        Source.newBuilder(
+                "enso",
+                """
+                main = 42
+                """,
+                name.toString())
+            .build();
 
     ctxRule.eval(code);
     var module = ensoContext.getTopScope().getModule(name.toString()).get().asCompilerModule();
@@ -106,9 +112,14 @@ public class ModuleTest {
     var ensoContext = ctxRule.ensoContext();
     var tFile = ensoContext.getTruffleFile(f);
 
-    var code = Source.newBuilder("enso", """
-    main = 42
-    """, name.toString()).build();
+    var code =
+        Source.newBuilder(
+                "enso",
+                """
+                main = 42
+                """,
+                name.toString())
+            .build();
 
     ctxRule.eval(code);
     var module = ensoContext.getTopScope().getModule(name.toString()).get().asCompilerModule();
@@ -116,7 +127,9 @@ public class ModuleTest {
 
     assertNull("No IR by default", module.getIr());
 
-    var ir = new org.enso.compiler.core.ir.Module(nil(), nil(), nil(), false, null, null);
+    var ir =
+        new org.enso.compiler.core.ir.Module(
+            nil(), nil(), nil(), false, null, new MetadataStorage(), null);
     compilerContext.updateModule(
         module,
         (u) -> {

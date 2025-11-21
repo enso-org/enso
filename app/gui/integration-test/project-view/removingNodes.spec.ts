@@ -1,11 +1,9 @@
-import { test } from 'playwright/test'
-import * as actions from './actions'
-import { expect } from './customExpect'
-import { CONTROL_KEY, DELETE_KEY } from './keyboard'
+import { expect, test } from 'integration-test/base'
+import { DELETE_KEY } from './keyboard'
 import * as locate from './locate'
 
-test('Deleting selected node with backspace key', async ({ page }) => {
-  await actions.goToGraph(page)
+test('Deleting selected node with backspace key', async ({ editorPage, page }) => {
+  await editorPage
 
   const nodesCount = await locate.graphNode(page).count()
   const deletedNode = locate.graphNodeByBinding(page, 'final')
@@ -14,8 +12,8 @@ test('Deleting selected node with backspace key', async ({ page }) => {
   await expect(locate.graphNode(page)).toHaveCount(nodesCount - 1)
 })
 
-test('Deleting selected node with delete key', async ({ page }) => {
-  await actions.goToGraph(page)
+test('Deleting selected node with delete key', async ({ editorPage, page }) => {
+  await editorPage
 
   const nodesCount = await locate.graphNode(page).count()
   const deletedNode = locate.graphNodeByBinding(page, 'final')
@@ -24,8 +22,8 @@ test('Deleting selected node with delete key', async ({ page }) => {
   await expect(locate.graphNode(page)).toHaveCount(nodesCount - 1)
 })
 
-test('Deleting node with context menu', async ({ page }) => {
-  await actions.goToGraph(page)
+test('Deleting node with context menu', async ({ editorPage, page }) => {
+  await editorPage
   const nodesCount = await locate.graphNode(page).count()
   const deletedNode = locate.graphNodeByBinding(page, 'final')
   await deletedNode.click({ button: 'right' })
@@ -34,8 +32,8 @@ test('Deleting node with context menu', async ({ page }) => {
   await expect(locate.graphNode(page)).toHaveCount(nodesCount - 1)
 })
 
-test('Deleting multiple nodes with context menu', async ({ page }) => {
-  await actions.goToGraph(page)
+test('Deleting multiple nodes with context menu', async ({ editorPage, page }) => {
+  await editorPage
   const nodesCount = await locate.graphNode(page).count()
   const deletedNode1 = locate.graphNodeByBinding(page, 'final')
   await deletedNode1.click()
@@ -49,10 +47,10 @@ test('Deleting multiple nodes with context menu', async ({ page }) => {
   await expect(locate.graphNode(page)).toHaveCount(nodesCount - 2)
 })
 
-test('Graph can be empty', async ({ page }) => {
-  await actions.goToGraph(page)
+test('Graph can be empty', async ({ editorPage, page }) => {
+  await editorPage
 
-  await locate.graphEditor(page).press(`${CONTROL_KEY}+A`)
+  await locate.graphEditor(page).press(`ControlOrMeta+A`)
   await locate.graphEditor(page).press(`${DELETE_KEY}`)
 
   await expect(locate.graphNode(page)).toHaveCount(0)
@@ -60,13 +58,13 @@ test('Graph can be empty', async ({ page }) => {
   await locate.addNewNodeButton(page).click()
   await expect(locate.componentBrowserInput(page)).toBeFocused()
   await page.keyboard.insertText('foo')
-  await page.keyboard.press(`${CONTROL_KEY}+Enter`)
+  await page.keyboard.press(`ControlOrMeta+Enter`)
   await expect(locate.graphNode(page)).toHaveCount(1)
   await expect(locate.graphNode(page).locator('.WidgetToken')).toHaveText(['foo'])
 })
 
-test('Removing connected nodes', async ({ page }) => {
-  await actions.goToGraph(page)
+test('Removing connected nodes', async ({ editorPage, page }) => {
+  await editorPage
   const nodesCount = await locate.graphNode(page).count()
   await page.keyboard.down('Shift')
   await locate.graphNodeByBinding(page, 'five').click()

@@ -15,8 +15,6 @@ use ide_ci::cache;
 use ide_ci::github::Repo;
 use octocrab::models::RunId;
 
-
-
 // ==============
 // === Export ===
 // ==============
@@ -30,8 +28,6 @@ pub mod libraries;
 pub mod release;
 pub mod runtime;
 pub mod wasm;
-
-
 
 /// The prefix that will be used when reading the build script arguments from environment.
 pub const ENVIRONMENT_VARIABLE_NAME_PREFIX: &str = "ENSO_BUILD";
@@ -124,9 +120,6 @@ pub enum Target {
     Backend(backend::Target),
     /// Build/Run/Test IDE bundle (includes Vue-based GUI and Project Manager).
     Ide(ide::Target),
-    /// Clean the repository. Keeps the IntelliJ's .idea directory intact. WARNING: This removes
-    /// files that are not under version control in the repository subtree.
-    GitClean(git_clean::Options),
     /// Apply automatic formatters on the repository.
     #[clap(alias = "format")]
     Fmt,
@@ -248,7 +241,7 @@ pub struct OutputPath<Target: IsTargetSource> {
     #[derive_where(skip(Debug))]
     #[allow(missing_docs)]
     #[clap(skip)]
-    pub phantom:     PhantomData<Target>,
+    pub phantom: PhantomData<Target>,
 }
 
 impl<Target: IsTargetSource> AsRef<Path> for OutputPath<Target> {
@@ -262,7 +255,7 @@ impl<Target: IsTargetSource> AsRef<Path> for OutputPath<Target> {
 #[derive_where(Debug, PartialEq)]
 pub struct BuildDescription<Target: IsTargetSource> {
     #[clap(flatten)]
-    pub input:           Target::BuildInput,
+    pub input: Target::BuildInput,
     // Cumbersome way of defining a bool argument that can take explicit value.
     // See: https://github.com/clap-rs/clap/issues/1649#issuecomment-1837123432
     #[clap(
@@ -281,7 +274,7 @@ pub struct BuildDescription<Target: IsTargetSource> {
 #[group(skip)]
 pub struct BuildJob<Target: IsTargetSource> {
     #[clap(flatten)]
-    pub input:       BuildDescription<Target>,
+    pub input: BuildDescription<Target>,
     #[clap(flatten)]
     pub output_path: OutputPath<Target>,
 }
@@ -290,7 +283,7 @@ pub struct BuildJob<Target: IsTargetSource> {
 #[group(skip)]
 pub struct WatchJob<Target: IsWatchableSource> {
     #[clap(flatten)]
-    pub build:       BuildJob<Target>,
+    pub build: BuildJob<Target>,
     #[clap(flatten)]
     pub watch_input: Target::WatchInput,
 }

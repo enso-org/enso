@@ -167,7 +167,7 @@ type Source_DB_Table_Uploader
        to it.
        This method should be called after the invariant checks have passed -
        otherwise the upload itself could fail due to NULL constraint violations.
-    materialize self -> Table & DB_Table =
+    materialize self -> Table & DB_Table & Any =
         raw = case self of
             Source_DB_Table_Uploader.Existing_DB_Query db_table -> db_table
             Source_DB_Table_Uploader.Temporary_DB_Table recipe -> recipe.perform_upload

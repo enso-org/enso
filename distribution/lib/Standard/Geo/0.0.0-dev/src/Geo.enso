@@ -78,7 +78,7 @@ type Geo
         - `lat2`: The latitude of the second point.
         - `long2`: The longitude of the second point.
         - `units`: The unit to return the result in.
-    distance self lat1:Float=(Missing_Argument.throw "lat1") long1:Float=(Missing_Argument.throw "long1") lat2:Float=(Missing_Argument.throw "lat2") long2:Float=(Missing_Argument.throw "long2") units:Distance_Units=..Meters -> Float =
+    distance lat1:Float=(Missing_Argument.throw "lat1") long1:Float=(Missing_Argument.throw "long1") lat2:Float=(Missing_Argument.throw "lat2") long2:Float=(Missing_Argument.throw "long2") units:Distance_Units=..Meters -> Float =
         rLat1 = _to_radians lat1
         rLat2 = _to_radians lat2
         rLng1 = _to_radians long1

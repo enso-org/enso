@@ -6,15 +6,12 @@
 // === Non-Standard Linter Configuration ===
 #![warn(missing_docs)]
 
-
 // ==============
 // === Export ===
 // ==============
 
 pub mod extensions;
 pub mod fs;
-
-
 
 pub mod prelude {
     //! This module contains all the reexports of the most common traits and types used in the

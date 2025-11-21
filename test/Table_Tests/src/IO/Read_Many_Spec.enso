@@ -148,7 +148,7 @@ add_specs suite_builder =
             check_returned_vector (r1.at "Value" . to_vector)
 
         group_builder.specify "should merge files that read as non-Table values into a Table using reasonable defaults" <|
-            with_temp_dir base_dir->
+            with_temp_dir "mergetest" base_dir->
                 # raw JS Object - we want it to expand to a single row - same as if it was in a 1-element array
                 (JS_Object.from_pairs [["a", 1], ["b", 2]]).to_json.write (base_dir / "1_js_object.json")
 
@@ -201,7 +201,7 @@ add_specs suite_builder =
 
         group_builder.specify "should warn when a file loads as empty array and not include it in the As_Merged_Table result" <|
             # But such array should not influence the columns present:
-            with_temp_dir base_dir->
+            with_temp_dir "loadempty" base_dir->
                 '{"a": 1}'.write (base_dir / "1_js_object.json")
                 "[]".write (base_dir / "2_empty_array.json")
                 '[{"a": 2, "b": "..."}]'.write (base_dir / "3_js_object.json")
@@ -229,7 +229,7 @@ add_specs suite_builder =
                     r2.at "b" . to_vector . should_equal [Nothing, "..."]
 
         group_builder.specify "should warn when a Table loads as 0-rows and is not included in As_Merged_Table result, but it should still influence the result columns" <|
-            with_temp_dir base_dir->
+            with_temp_dir "loadszerorows" base_dir->
                 'A,B'.write (base_dir / "1_empty_table.csv")
                 'B,C\n1,2'.write (base_dir / "2_table.csv")
 
@@ -267,7 +267,7 @@ add_specs suite_builder =
                     w2.to_display_text . should_contain "loaded as a table with 0 rows, so it did not contribute any rows to the `As_Merged_Table` result of `read_many`."
 
         group_builder.specify "should allow to customize how the tables are merged" <|
-            with_temp_dir base_dir->
+            with_temp_dir "customize" base_dir->
                 '{"a": 1, "b": 2}'.write (base_dir / "1_js_object.json")
                 '{"b": 3, "c": 4}'.write (base_dir / "2_js_object.json")
 
@@ -297,7 +297,7 @@ add_specs suite_builder =
                     r3.at "b" . to_vector . should_equal [2, 4]
 
         group_builder.specify "should fallback to Char if no common type can be found for primitive values" <|
-            with_temp_dir base_dir->
+            with_temp_dir "nocommontype" base_dir->
                 '{"a": 1}'.write (base_dir / "1_js_object.json")
                 '{"a": "str"}'.write (base_dir / "2_js_object.json")
                 files = Data.list base_dir . sort on=(.name)
@@ -309,7 +309,7 @@ add_specs suite_builder =
                 r.at "a" . to_vector . should_equal ["1", "str"]
 
         group_builder.specify "but should keep Mixed type if more complex types are found, like dictionary" <|
-            with_temp_dir base_dir->
+            with_temp_dir "mixedtype" base_dir->
                 '{"a": {}}'.write (base_dir / "1_js_object.json")
                 '{"a": []}'.write (base_dir / "2_js_object.json")
                 files = Data.list base_dir . sort on=(.name)
@@ -357,7 +357,7 @@ add_specs suite_builder =
             r5.should_fail_with Illegal_Argument
 
         group_builder.specify "in As_Merged_Table mode, will discard rows associated with files that fail to load" <|
-            with_temp_dir base_dir->
+            with_temp_dir "discardrows" base_dir->
                 'A,B\n1,2'.write (base_dir / "1_table.csv")
 
                 files = [base_dir / "1_table.csv", base_dir / "nonexistent.csv"]
@@ -383,7 +383,7 @@ add_specs suite_builder =
                 w2.to_display_text . should_contain "nonexistent.csv"
 
         group_builder.specify "should have sane behaviour if all files are weird" <|
-            with_temp_dir base_dir->
+            with_temp_dir "sanebehavior" base_dir->
                 '{}'.write (base_dir / "1_js_object.json")
                 '[{}, {}]'.write (base_dir / "2_js_array.json")
 
@@ -397,7 +397,7 @@ add_specs suite_builder =
                     empty = JS_Object.from_pairs []
                     r.at "Value" . to_vector . should_equal [empty, empty, empty]
 
-            with_temp_dir base_dir->
+            with_temp_dir "sanebehavior2" base_dir->
                 '[]'.write (base_dir / "1_empty_array.json")
                 '[]'.write (base_dir / "2_empty_array.json")
 
@@ -446,8 +446,8 @@ add_specs suite_builder =
                 r3.at "Value" . to_vector . should_equal ["Y"]
                 r3.at "Value 1" . first . should_be_a Table
 
-private with_temp_dir callback =
-    base_dir = enso_project.data / "transient" / "read_many_test"
+private with_temp_dir test_name:Text callback =
+    base_dir = enso_project.data / "transient" / test_name
     base_dir.delete_if_exists recursive=True
     base_dir.create_directory . should_succeed
     Panic.with_finalizer (base_dir.delete recursive=True) (callback base_dir)

@@ -1,9 +1,9 @@
-import { type ProjectNameStore } from '@/stores/projectNames'
-import { Ok, Result } from '@/util/data/result'
+import { type ProjectNameStore } from '$/providers/openedProjects/projectNames'
 import { type ProjectPath } from '@/util/projectPath'
 import { type QualifiedName } from '@/util/qualifiedName'
+import { Ok, type Result } from 'enso-common/src/utilities/data/result'
 import * as encoding from 'lib0/encoding'
-import { type Identifier, type IdentifierOrOperatorIdentifier } from 'ydoc-shared/ast'
+import type { Identifier, IdentifierOrOperatorIdentifier } from 'ydoc-shared/ast'
 import type {
   LocalCall,
   ExplicitCall as LSExplicitCall,

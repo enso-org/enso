@@ -44,12 +44,12 @@ public class RootNamesTest {
           Source.newBuilder(
                   "js",
                   """
-      insight.on('enter', (ctx, frame) => {
-          print(`ENTER: ${ctx.name}`);
-      }, {
-          roots : true
-      });
-      """,
+                  insight.on('enter', (ctx, frame) => {
+                      print(`ENTER: ${ctx.name}`);
+                  }, {
+                      roots : true
+                  });
+                  """,
                   "trace.js")
               .build();
     } catch (IOException e) {
@@ -86,12 +86,13 @@ public class RootNamesTest {
             .map(l -> l.substring(7))
             .collect(Collectors.toSet());
 
-    assertEquals("Few closures: " + closures, 2, closures.size());
+    assertEquals("Few closures: " + closures, 3, closures.size());
     assertTrue(
         "Fully qualified name for method: " + closures,
         closures.contains("factorial::factorial::fac"));
     assertTrue(
         "Name with dots for local method: " + closures, closures.contains("factorial.fac.acc"));
+    assertTrue("if/then/else: " + closures, closures.contains("if_then_else"));
   }
 
   @Test

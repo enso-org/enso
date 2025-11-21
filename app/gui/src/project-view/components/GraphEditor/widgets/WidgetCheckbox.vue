@@ -1,23 +1,27 @@
 <script setup lang="ts">
-import { useGraphStore, useSuggestionDbStore } from '$/components/WithCurrentProject.vue'
+import { useCurrentProject } from '$/components/WithCurrentProject.vue'
+import { requiredImportsByProjectPath } from '$/providers/openedProjects/module/imports'
+import {
+  Score,
+  WidgetInput,
+  defineWidget,
+  widgetProps,
+} from '$/providers/openedProjects/widgetRegistry'
 import { ArgumentNameShownKey } from '@/components/GraphEditor/widgets/WidgetArgumentName.vue'
 import CheckboxWidget from '@/components/widgets/CheckboxWidget.vue'
-import { Score, WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
-import { requiredImportsByProjectPath } from '@/stores/graph/imports'
 import { assert } from '@/util/assert'
 import { Ast } from '@/util/ast'
 import { ArgumentInfoKey } from '@/util/callTree'
 import { ProjectPath } from '@/util/projectPath'
-import { type Identifier, type QualifiedName } from '@/util/qualifiedName'
+import type { Identifier, QualifiedName } from '@/util/qualifiedName'
 import { computed } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
-const graph = useGraphStore()
-const suggestionDb = useSuggestionDbStore()
+const { suggestionDb, module } = useCurrentProject()
 
 const trueImport = computed(() =>
   requiredImportsByProjectPath(
-    suggestionDb.entries,
+    suggestionDb.value.entries,
     ProjectPath.create(
       'Standard.Base' as QualifiedName,
       'Data.Boolean.Boolean.True' as QualifiedName,
@@ -27,7 +31,7 @@ const trueImport = computed(() =>
 )
 const falseImport = computed(() =>
   requiredImportsByProjectPath(
-    suggestionDb.entries,
+    suggestionDb.value.entries,
     ProjectPath.create(
       'Standard.Base' as QualifiedName,
       'Data.Boolean.Boolean.False' as QualifiedName,
@@ -40,27 +44,28 @@ const value = computed({
     return WidgetInput.valueRepr(props.input)?.endsWith('True') ?? false
   },
   set(value) {
-    const edit = graph.startEdit()
-    const theImport = value ? trueImport.value : falseImport.value
-    const inputValue: Ast.Expression | string | undefined = props.input.value
-    if (inputValue instanceof Ast.Ast) {
-      const { requiresImport } = setBoolNode(
-        edit.getVersion(inputValue),
-        value ? ('True' as Identifier) : ('False' as Identifier),
-      )
-      if (requiresImport) graph.addMissingImports(edit, theImport)
-      props.updateCallback({ edit, directInteraction: true })
-    } else {
-      graph.addMissingImports(edit, theImport)
-      props.updateCallback({
-        edit,
-        portUpdate: {
-          value: value ? 'True' : 'False',
-          origin: props.input.portId,
-        },
-        directInteraction: true,
-      })
-    }
+    module.value.edit((edit) => {
+      const theImport = value ? trueImport.value : falseImport.value
+      const inputValue: Ast.Expression | string | undefined = props.input.value
+      if (inputValue instanceof Ast.Ast) {
+        const { requiresImport } = setBoolNode(
+          edit.getVersion(inputValue),
+          value ? ('True' as Identifier) : ('False' as Identifier),
+        )
+        if (requiresImport) module.value.addMissingImports(edit, theImport)
+        return props.updateCallback({ edit, directInteraction: true })
+      } else {
+        module.value.addMissingImports(edit, theImport)
+        return props.updateCallback({
+          edit,
+          portUpdate: {
+            value: value ? 'True' : 'False',
+            origin: props.input.portId,
+          },
+          directInteraction: true,
+        })
+      }
+    })
   },
 })
 
@@ -107,19 +112,13 @@ export const widgetDefinition = defineWidget(
 </script>
 
 <template>
-  <div class="WidgetCheckbox" :class="{ primary }">
+  <div class="WidgetCheckbox widgetSingleLine" :class="{ primary }">
     <span v-if="argumentName" class="name widgetApplyPadding" v-text="argumentName" />
     <CheckboxWidget v-model="value" class="widgetRounded" contenteditable="false" />
   </div>
 </template>
 
 <style scoped>
-.WidgetCheckbox {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-}
-
 .name {
   opacity: 0.5;
   margin-right: var(--widget-token-pad-unit);

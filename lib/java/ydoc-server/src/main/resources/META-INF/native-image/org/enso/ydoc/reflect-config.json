@@ -86,6 +86,13 @@
   "fields":[{"name":"loaded"}, {"name":"theLock"}]
 },
 {
+  "name":"io.helidon.common.mapper.spi.MapperProvider"
+},
+{
+  "name":"io.helidon.common.mapper.DefaultMapperProvider__ServiceDescriptor",
+  "fields":[{"name":"INSTANCE"}]
+},
+{
   "name":"java.io.FilePermission"
 },
 {
@@ -257,5 +264,15 @@
 {
   "name":"sun.security.x509.SubjectKeyIdentifierExtension",
   "methods":[{"name":"<init>","parameterTypes":["java.lang.Boolean","java.lang.Object"] }]
-}
+},
+  {
+    "name": "org.enso.ydoc.server.Main",
+    "methods": [
+      {
+        "name": "main",
+        "parameterTypes": ["java.lang.String[]"]
+      }
+    ]
+  }
+
 ]

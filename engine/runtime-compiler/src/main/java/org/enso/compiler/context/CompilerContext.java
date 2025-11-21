@@ -34,8 +34,6 @@ public interface CompilerContext extends CompilerStub {
 
   boolean isPrivateCheckDisabled();
 
-  boolean isUseGlobalCacheLocations();
-
   boolean isInteractiveMode();
 
   PackageRepository getPackageRepository();
@@ -95,13 +93,11 @@ public interface CompilerContext extends CompilerStub {
 
   boolean wasLoadedFromCache(Module module);
 
-  Future<Boolean> serializeLibrary(
-      Compiler compiler, LibraryName libraryName, boolean useGlobalCacheLocations);
+  Future<Boolean> serializeLibrary(Compiler compiler, LibraryName libraryName);
 
   scala.Option<Object> deserializeSuggestions(LibraryName libraryName) throws InterruptedException;
 
-  Future<Boolean> serializeModule(
-      Compiler compiler, Module module, boolean useGlobalCacheLocations, boolean usePool);
+  Future<Boolean> serializeModule(Compiler compiler, Module module, boolean usePool);
 
   boolean deserializeModule(Compiler compiler, Module module);
 

@@ -1,0 +1,148 @@
+from Standard.Base import all
+import Standard.Base.Errors.File_Error.File_Error
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+import Standard.Base.Errors.Unimplemented.Unimplemented
+import Standard.Base.System.File_Format_Metadata.File_Format_Metadata
+import Standard.Base.System.Input_Stream.Input_Stream
+
+import project.Internal.Graph.Graph
+import project.Internal.OneDrive_Path.OneDrive_Path
+import project.Microsoft365_Credential.Microsoft365_Credential
+
+type OneDrive_File
+    private Value (credential : Microsoft365_Credential) (onedrive_path : OneDrive_Path)
+
+    ## ---
+        icon: cloud
+        ---
+
+        Returns the root directory of the user's OneDrive.
+    root (credential : Microsoft365_Credential) =
+        OneDrive_File.Value credential (OneDrive_Path.Value [])
+
+    ## ---
+       group: Standard.Base.Input
+       icon: data_input
+       ---
+       Lists files contained in the directory denoted by this file.
+
+       ## Arguments
+        - `name_filter`: A glob pattern that can be used to filter the returned
+          files. If it is not specified, all files are returned.
+        - `recursive`: Specifies whether the returned list of files should
+          include also files from the subdirectories. If set to `False` (the
+          default), only the immediate children of the listed directory are
+          considered.
+
+       ## Returns
+       - A vector of `OneDrive_File` objects representing the files in the directory.
+
+       ## Errors
+        - Throws `Illegal_Argument` if called on a no-folder.
+    list : Text -> Boolean -> Vector OneDrive_File
+    list self name_filter:Text="" recursive:Boolean=False -> Vector OneDrive_File =
+        check_name_filter action = if name_filter != "" then Unimplemented.throw "OneDrive listing with name filter is not currently implemented." else action
+        check_recursion action = if recursive then Unimplemented.throw "OneDrive listing with recursion is not currently implemented." else action
+
+        check_name_filter <| check_recursion <| _check_directory self <|
+            frag = self.onedrive_path.to_human_readable_fragment_dir
+            children = Graph.fetch_json self.credential Graph.base_url+frag
+            names = children.at "value" . map (x-> x.at "name")
+            paths = names.map name-> self.onedrive_path.extend name
+            paths.map path-> OneDrive_File.Value self.credential path
+
+    ## ---
+       private: true
+       advanced: true
+       ---
+       Creates a new input stream for this file and runs the specified action on
+       it.
+       The created stream is automatically closed when `action` returns (even if
+       it returns exceptionally).
+
+       ## Arguments
+        - `open_options`: A vector of `File_Access` objects determining how to
+          open the stream. These options set the access properties of the stream.
+        - `action`: A function that operates on the input stream and returns some
+          value. The value is returned from this method.
+    with_input_stream : Vector File_Access -> (Input_Stream -> Any ! File_Error) -> Any ! Illegal_Argument
+    with_input_stream self (open_options : Vector) action =
+        _check_not_directory self <|
+            File_Access.ensure_only_allowed_options "with_input_stream" [File_Access.Read] open_options <|
+                frag = self.onedrive_path.to_human_readable_fragment_file
+                response = Graph.fetch self.credential Graph.base_url+frag
+                response.body.with_stream action
+
+    ## ---
+       aliases: [import, load, open]
+       group: Standard.Base.Input
+       icon: data_input
+       ---
+       Read a file using the specified file format.
+
+       ## Arguments
+        - `format`: A `File_Format` object used to read file into memory. If
+          `Auto_Detect` is specified; the provided file determines the specific
+          type and configures it appropriately.
+        - `on_problems`: Specifies the behavior when a problem occurs during the
+          function. By default, a warning is issued, but the operation proceeds.
+          If set to `Report_Error`, the operation fails with a dataflow error. If
+          set to `Ignore`, the operation proceeds without errors or warnings.
+
+       ## Returns
+        - The contents of the file read using the specified `File_Format`.
+
+       ## Errors
+        - Throws `Illegal_Argument` if called on a folder.
+    @format File_Format.default_widget
+    @format File_Format.default_widget
+    read : File_Format -> Problem_Behavior -> Any ! Illegal_Argument
+    read self format=Auto_Detect (on_problems : Problem_Behavior = ..Report_Warning) -> Any ! Illegal_Argument =
+        _ = [on_problems]
+        _check_not_directory self <|
+            case format of
+                Auto_Detect ->
+                    frag = self.onedrive_path.to_human_readable_fragment_file
+                    response = Graph.fetch self.credential Graph.base_url+frag
+                    response.decode Auto_Detect
+                _ ->
+                    metadata = File_Format_Metadata.Value path=self.path name=self.name
+                    resolved_format = File_Format.resolve format
+                    self.with_input_stream [File_Access.Read] (stream-> resolved_format.read_stream stream metadata)
+
+    ## ---
+       group: Standard.Base.Metadata
+       icon: metadata
+       ---
+       Returns the path of this file.
+    path self -> Text =
+        self.onedrive_path.to_text
+
+    ## ---
+       group: Standard.Base.Metadata
+       icon: metadata
+       ---
+       Returns the name of this file.
+    name self -> Text =
+        self.onedrive_path.file_name
+
+    ## ---
+       group: Standard.Base.Metadata
+       icon: metadata
+       ---
+       Checks if this is a folder.
+
+       ## Returns
+       - `True` if the OneDrive path represents a folder, `False` otherwise.
+    is_directory self -> Boolean =
+        frag = self.onedrive_path.to_human_readable_fragment
+        entry = Graph.fetch_json self.credential Graph.base_url+frag
+        entry.contains_key "folder"
+
+private _check_directory file:OneDrive_File ~action =
+    if file.is_directory then action else
+        Error.throw <| Illegal_Argument.Error "The OneDrive_File must represent a folder: "+file.onedrive_path.path.to_text
+
+private _check_not_directory file:OneDrive_File ~action =
+    if file.is_directory.not then action else
+        Error.throw <| Illegal_Argument.Error "The OneDrive_File must represent a file, not a folder: "+file.onedrive_path.path.to_text

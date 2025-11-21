@@ -6,13 +6,13 @@ import project.Data.Pair.Pair
 import project.Data.Vector.Map_Error
 import project.Data.Vector.No_Wrap
 import project.Data.Vector.Vector
-import project.Error.Error
 import project.Meta
-import project.Nothing.Nothing
 import project.Runtime
 import project.Runtime.Stack_Trace_Element
 from project.Data.Boolean import Boolean, False
+from project.Error import all
 from project.Function import flip
+from project.Nothing import all
 
 ## A representation of a dataflow warning attached to a value.
 @Builtin_Type
@@ -357,3 +357,46 @@ map_attached_warnings_helper mapper value frames_to_drop =
                original (unwrapped) warning instance.
             Nothing -> warning
     Warning.set value mapped_warnings
+
+
+## ---
+   group: Errors
+   icon: metadata
+   ---
+   Checks if any warnings (either all or of a specified type) are attached to
+   the value.
+
+   ## Arguments
+    - `warning_type`: The type to check if attached to the value. Defaults to
+      any warning.
+Any.has_warnings self warning_type=Any =
+    _ = warning_type
+    False
+
+## ---
+   group: Errors
+   icon: warning
+   ---
+   Remove the warnings (either all or of a specified type) attached to the
+   value.
+
+   ## Arguments
+    - `warning_type`: The type to remove if attached to the value. Defaults
+      to all warnings.
+Any.remove_warnings self warning_type=Any =
+    _ = warning_type
+    self
+
+## ---
+   group: Errors
+   icon: error
+   ---
+   Throws the first matching warning (either all or of a specified type) as a
+   data flow error.
+
+   ## Arguments
+    - `warning_type`: The type to throw if attached to the value. Defaults to
+      all warnings.
+Any.throw_on_warning self warning_type=Any =
+    _ = warning_type
+    self

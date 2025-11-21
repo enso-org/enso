@@ -9,8 +9,6 @@ import project.Internal.IR.SQL_IR_Expression.SQL_IR_Expression
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
 import project.SQL.SQL_Type
 
-polyglot java import org.enso.database.fetchers.ColumnFetcherFactory
-
 ## ---
    private: true
    ---
@@ -157,6 +155,20 @@ type SQL_Type_Mapping
         _ = [value_type1, value_type2]
         Unimplemented.throw "This is an interface only."
 
+    ## ---
+       private: true
+       ---
+       Creates a Statement_Setter.
+    statement_setter =
+        Unimplemented.throw "This is an interface only."
+
+    ## ---
+       private: true
+       ---
+       Creates an Error_Mapper.
+    error_mapper self =
+        Unimplemented.throw "This is an interface only."
+
 ## ---
    private: true
    ---
@@ -179,9 +191,3 @@ default_should_warn_on_materialize (db_type : Value_Type) (in_memory_type : Valu
        or changing Float32 to Float64 are silently ignored.
        However, bigger changes, like a Binary type column getting coerced to Mixed - _will_ still be reported.
     (Meta.meta db_type . constructor) != (Meta.meta in_memory_type . constructor)
-
-## ---
-   private: true
-   ---
-default_column_fetcher_factory =
-    ColumnFetcherFactory.DEFAULT

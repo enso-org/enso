@@ -2,10 +2,10 @@ import { Ast, RawAst } from '@/util/ast'
 import { AliasAnalyzer } from '@/util/ast/aliasAnalysis'
 import { parsedTreeRange, visitRecursive } from '@/util/ast/raw'
 import { MappedKeyMap, MappedSet } from '@/util/containers'
-import { type AstId } from 'ydoc-shared/ast'
-import { type SourceDocument } from 'ydoc-shared/ast/sourceDocument'
+import type { AstId } from 'ydoc-shared/ast'
+import type { SourceDocument } from 'ydoc-shared/ast/sourceDocument'
 import { assert, assertDefined } from 'ydoc-shared/util/assert'
-import { type SourceRange, sourceRangeKey, type SourceRangeKey } from 'ydoc-shared/util/data/text'
+import { sourceRangeKey, type SourceRange, type SourceRangeKey } from 'ydoc-shared/util/data/text'
 
 /** A variable name, and information about its usages. */
 export interface BindingInfo {
@@ -77,7 +77,7 @@ function rangeMappings(
     bindingRanges.add(binding)
     for (const usage of usages) bindingRanges.add(usage)
   }
-  ast.visitRecursive((ast) => {
+  Ast.visitRecursive(ast, (ast) => {
     const span = getSpan(ast.id)
     assertDefined(span)
     // An `ExpressionStatement` may have the same source range as its expression. Descend into the expression that

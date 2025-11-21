@@ -1,5 +1,5 @@
-import { type BlockType } from '@/components/MarkdownEditor/codemirror/formatting'
-import { type DisplayableActionName } from '@/providers/action'
+import type { BlockType } from '@/components/MarkdownEditor/codemirror/formatting'
+import type { DisplayableActionName } from '@/providers/action'
 import * as objects from 'enso-common/src/utilities/data/object'
 
 export const blockTypeAction = {

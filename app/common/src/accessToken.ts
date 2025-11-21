@@ -1,9 +1,5 @@
 /** @file Types for IPC events sent between Electron's main process and its renderer process. */
 
-// ===================
-// === AccessToken ===
-// ===================
-
 /** Credentials to be saved to a credentials file. */
 export interface AccessToken {
   /** The user's JWT token. */

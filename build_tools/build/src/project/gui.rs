@@ -17,8 +17,6 @@ use clap::ValueEnum;
 use ide_ci::ok_ready_boxed;
 use ide_ci::programs::Pnpm;
 
-
-
 // ================
 // === Artifact ===
 // ================
@@ -69,8 +67,8 @@ impl Display for BuildMode {
 }
 #[derive_where(Debug)]
 pub struct BuildInput {
-    pub mode:        BuildMode,
-    pub version:     Version,
+    pub mode: BuildMode,
+    pub version: Version,
     #[derive_where(skip)]
     pub commit_hash: BoxFuture<'static, Result<String>>,
 }

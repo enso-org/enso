@@ -6,7 +6,7 @@ import {
 } from '$/components/WithCurrentProject.vue'
 import { makeComponentLists, type Component } from '@/components/ComponentBrowser/component'
 import ComponentEntry from '@/components/ComponentBrowser/ComponentEntry.vue'
-import { Filter, Filtering } from '@/components/ComponentBrowser/filtering'
+import { Filtering, type Filter } from '@/components/ComponentBrowser/filtering'
 import SvgIcon from '@/components/SvgIcon.vue'
 import VirtualizedList from '@/components/VirtualizedList.vue'
 import { groupColorStyle } from '@/composables/nodeColors'

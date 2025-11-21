@@ -226,10 +226,8 @@ final class IRNodeClassGenerator {
             .map(
                 field ->
                     """
-                ${comment}
-                private final ${type} ${name};
-                """
-                        .replace("${comment}", commentForField(field))
+                    private final ${type} ${name};
+                    """
                         .replace("${type}", field.getSimpleTypeName())
                         .replace("${name}", field.getName()))
             .collect(Collectors.joining(System.lineSeparator()));
@@ -246,13 +244,10 @@ final class IRNodeClassGenerator {
         ${comment}
         ${userDefinedFields};
         // === End of user-defined fields ===
-        // The following meta fields cannot be private, as we are explicitly
-        // setting them in the `duplicate` method. Inheritor should not access
-        // these fields directly
-        protected DiagnosticStorage diagnostics;
-        protected MetadataStorage passData;
-        protected IdentifiedLocation location;
-        protected UUID id;
+        private DiagnosticStorage diagnostics;
+        private MetadataStorage passData;
+        private IdentifiedLocation location;
+        private UUID id;
         """
             .replace("${comment}", comment)
             .replace("${userDefinedFields}", userDefinedFields);
@@ -275,12 +270,12 @@ final class IRNodeClassGenerator {
     var isChild = "" + field.isChild();
     var isNullable = "" + field.isNullable();
     return """
-        /**
-         * Created from ${matchingCtorInfo}.
-         * <p> - isNullable: ${isNullable}.
-         * <p> - isChild: ${isChild}.
-         */
-        """
+    /**
+     * Created from ${matchingCtorInfo}.
+     * <p> - isNullable: ${isNullable}.
+     * <p> - isChild: ${isChild}.
+     */
+    """
         .replace("${isChild}", isChild)
         .replace("${isNullable}", isNullable)
         .replace("${matchingCtorInfo}", matchingCtorInfo)
@@ -382,10 +377,10 @@ final class IRNodeClassGenerator {
             .map(
                 notNullField ->
                     """
-            if ($fieldName == null) {
-              throw new IllegalArgumentException("$fieldName is required");
-            }
-            """
+                    if ($fieldName == null) {
+                      throw new IllegalArgumentException("$fieldName is required");
+                    }
+                    """
                         .replace("$fieldName", notNullField.name()))
             .collect(Collectors.joining(System.lineSeparator()));
     sb.append(Utils.indent(checkCode, 2));
@@ -470,10 +465,12 @@ final class IRNodeClassGenerator {
     for (var field : generatedClassContext.getUserFields()) {
       var code =
           """
+          ${comment}
           public ${returnType} ${fieldName}() {
             return ${fieldName};
           }
           """
+              .replace("${comment}", commentForField(field))
               .replace("${returnType}", field.getSimpleTypeName())
               .replace("${fieldName}", field.getName());
       sb.append(code);

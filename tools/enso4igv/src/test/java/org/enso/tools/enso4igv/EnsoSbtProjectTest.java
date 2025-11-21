@@ -85,7 +85,7 @@ public class EnsoSbtProjectTest extends NbTestCase {
 
     var genericGroups = s.getSourceGroups(Sources.TYPE_GENERIC);
     assertEquals("One", 1, genericGroups.length);
-    assertEquals("One at root", root, genericGroups[0].getRootFolder());
+    assertEquals("One at root", root.getFileObject("src"), genericGroups[0].getRootFolder());
 
     var javaGroups = s.getSourceGroups("java");
     assertEquals("1 bench, 2 tests, 4 main: " + Arrays.toString(javaGroups), 7, javaGroups.length);

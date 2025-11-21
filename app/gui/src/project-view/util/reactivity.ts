@@ -189,16 +189,17 @@ export function useWatchContext(): { watchEffect: (f: () => void) => WatchStopHa
  */
 export function cachedGetter<T>(
   getter: () => T,
-  equalFn: (a: T, b: T) => boolean = defaultEquality,
+  options: { flush?: 'sync' | 'pre' | 'post'; equalFn?: (a: T, b: T) => boolean } = {},
 ): Ref<T> {
   const valueRef = shallowRef<T>(getter())
+  const eq = options.equalFn ?? defaultEquality
   watch(
     getter,
     (newValue) => {
       const oldValue = valueRef.value
-      if (!equalFn(oldValue, newValue)) valueRef.value = newValue
+      if (!eq(oldValue, newValue)) valueRef.value = newValue
     },
-    { flush: 'sync' },
+    options,
   )
 
   return valueRef

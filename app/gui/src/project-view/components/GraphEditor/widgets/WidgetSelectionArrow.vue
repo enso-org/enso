@@ -1,9 +1,14 @@
 <script setup lang="ts">
+import {
+  Score,
+  WidgetInput,
+  defineWidget,
+  widgetProps,
+} from '$/providers/openedProjects/widgetRegistry'
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import { ArgumentNameShownKey } from '@/components/GraphEditor/widgets/WidgetArgumentName.vue'
 import { useMounted } from '@/composables/events'
 import { injectSelectionArrow } from '@/providers/selectionArrow'
-import { Score, WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import { Ast } from '@/util/ast'
 import { computed, ref } from 'vue'
 import { assert } from 'ydoc-shared/util/assert'
@@ -51,7 +56,7 @@ export const widgetDefinition = defineWidget(
 </script>
 
 <template>
-  <div ref="teleportTarget" class="WidgetSelectionArrow">
+  <div ref="teleportTarget" class="WidgetSelectionArrow widgetParent">
     <NodeWidget :input="innerInput" />
   </div>
 </template>
@@ -59,9 +64,5 @@ export const widgetDefinition = defineWidget(
 <style scoped>
 .WidgetSelectionArrow {
   position: relative;
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  min-height: var(--node-port-height);
 }
 </style>

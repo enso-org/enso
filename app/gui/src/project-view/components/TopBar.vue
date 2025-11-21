@@ -6,7 +6,7 @@ import NavBreadcrumbs from '@/components/NavBreadcrumbs.vue'
 import SelectionMenu from '@/components/SelectionMenu.vue'
 import ZoomControl from '@/components/ZoomControl.vue'
 import { useResizeObserver } from '@/composables/events'
-import { type DisplayableActionName } from '@/providers/action'
+import type { DisplayableActionName } from '@/providers/action'
 import { injectGraphSelection } from '@/providers/graphSelection'
 import { computed, useTemplateRef } from 'vue'
 

@@ -1256,15 +1256,6 @@
   "methods":[{"name":"<init>","parameterTypes":[] }]
 },
 {
-  "name":"org.apache.poi.UnsupportedFileFormatException"
-},
-{
-  "name":"org.apache.poi.poifs.filesystem.NotOLE2FileException"
-},
-{
-  "name":"org.apache.poi.ss.usermodel.Workbook"
-},
-{
   "name":"org.bouncycastle.jcajce.provider.asymmetric.COMPOSITE$Mappings",
   "methods":[{"name":"<init>","parameterTypes":[] }]
 },

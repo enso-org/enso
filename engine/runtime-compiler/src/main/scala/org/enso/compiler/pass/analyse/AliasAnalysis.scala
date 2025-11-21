@@ -32,6 +32,7 @@ import org.enso.compiler.pass.analyse.alias.graph.GraphBuilder
 import org.enso.compiler.pass.analyse.alias.graph.Graph.Scope
 import org.enso.compiler.pass.desugar._
 import org.enso.compiler.pass.lint.UnusedBindings
+import org.enso.persist.Persistance
 
 import scala.collection.mutable
 
@@ -96,7 +97,7 @@ case object AliasAnalysis extends IRPass {
     ir: Module,
     moduleContext: ModuleContext
   ): Module = {
-    ir.copy(bindings = ir.bindings.map(analyseModuleDefinition))
+    ir.copyWithBindings(ir.bindings.map(analyseModuleDefinition))
   }
 
   /** Performs alias analysis on an inline expression, starting from the
@@ -236,13 +237,16 @@ case object AliasAnalysis extends IRPass {
       case m: definition.Method.Conversion =>
         m.body match {
           case _: Function =>
-            val c = m.copy(
-              body = analyseExpression(
-                m.body,
-                builder,
-                lambdaReuseScope = true
+            val c = m
+              .copyBuilder()
+              .body(
+                analyseExpression(
+                  m.body,
+                  builder,
+                  lambdaReuseScope = true
+                )
               )
-            )
+              .build()
             alias.AliasMetadata.updateMetadata(
               c,
               new alias.AliasMetadata.RootScope(builder.toGraph())
@@ -255,13 +259,18 @@ case object AliasAnalysis extends IRPass {
       case m: definition.Method.Explicit =>
         m.body match {
           case _: Function =>
-            val c = m.copy(
-              body = analyseExpression(
-                m.body,
-                builder,
-                lambdaReuseScope = true
+            val c = m
+              .copyBuilder()
+              .bodyReference(
+                Persistance.Reference.of(
+                  analyseExpression(
+                    m.body,
+                    builder,
+                    lambdaReuseScope = true
+                  )
+                )
               )
-            )
+              .build()
             alias.AliasMetadata.updateMetadata(
               c,
               new alias.AliasMetadata.RootScope(builder.toGraph())
@@ -276,38 +285,48 @@ case object AliasAnalysis extends IRPass {
           "Method definition sugar should not occur during alias analysis."
         )
       case t: Definition.Type =>
-        val ct = t.copy(
-          params = analyseArgumentDefs(
-            t.params,
-            builder
-          ),
-          members = t.members.map(d => {
-            val graph = GraphBuilder.create()
-            val cd = d.copy(
-              arguments = analyseArgumentDefs(
-                d.arguments,
-                graph
-              ),
-              annotations = d.annotations.map { ann =>
-                val c = ann
-                  .copy(
-                    expression = analyseExpression(
-                      ann.expression,
-                      builder
-                    )
+        val ct = t
+          .copyBuilder()
+          .params(
+            analyseArgumentDefs(
+              t.params,
+              builder
+            )
+          )
+          .members(
+            t.members.map(d => {
+              val graph = GraphBuilder.create()
+              val cd = d
+                .copyBuilder()
+                .arguments(
+                  analyseArgumentDefs(
+                    d.arguments,
+                    graph
                   )
-                alias.AliasMetadata.updateMetadata(
-                  c,
-                  new alias.AliasMetadata.RootScope(builder.toGraph())
                 )
-              }
-            )
-            alias.AliasMetadata.updateMetadata(
-              cd,
-              new alias.AliasMetadata.RootScope(graph.toGraph())
-            )
-          })
-        )
+                .annotations(
+                  d.annotations.map { ann =>
+                    val c = ann
+                      .copy(
+                        expression = analyseExpression(
+                          ann.expression,
+                          builder
+                        )
+                      )
+                    alias.AliasMetadata.updateMetadata(
+                      c,
+                      new alias.AliasMetadata.RootScope(builder.toGraph())
+                    )
+                  }
+                )
+                .build()
+              alias.AliasMetadata.updateMetadata(
+                cd,
+                new alias.AliasMetadata.RootScope(graph.toGraph())
+              )
+            })
+          )
+          .build()
         alias.AliasMetadata.updateMetadata(
           ct,
           new alias.AliasMetadata.RootScope(builder.toGraph())
@@ -811,8 +830,8 @@ case object AliasAnalysis extends IRPass {
           ),
           fields = cons.fields.map(analysePattern(_, builder))
         )
-      case literalPattern: Pattern.Literal =>
-        literalPattern
+      case literalPattern: Pattern.Literal => literalPattern
+      case boolPattern: Pattern.Bool       => boolPattern
       case typePattern: Pattern.Type =>
         typePattern.copy(
           name = analyseName(

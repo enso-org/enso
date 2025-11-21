@@ -1,36 +1,44 @@
 <script setup lang="ts">
-import { useGraphStore } from '$/components/WithCurrentProject.vue'
+import { useCurrentProject } from '$/components/WithCurrentProject.vue'
+import { entryMethodPointer } from '$/providers/openedProjects/suggestionDatabase/entry'
+import { WidgetInput, defineWidget, widgetProps } from '$/providers/openedProjects/widgetRegistry'
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
-import { CallInfo } from '@/components/GraphEditor/widgets/WidgetFunction.vue'
 import SizeTransition from '@/components/SizeTransition.vue'
-import { WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import { injectWidgetTree } from '@/providers/widgetTree'
-import { entryMethodPointer } from '@/stores/suggestionDatabase/entry'
 import { Ast } from '@/util/ast'
 import { ArgumentApplication, ArgumentApplicationKey } from '@/util/callTree'
+import { mapOrUndefined } from 'enso-common/src/utilities/data/opt'
 import { computed } from 'vue'
-import { mapOrUndefined } from 'ydoc-shared/util/data/opt'
+import { FunctionName } from './WidgetFunctionName.vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
 const tree = injectWidgetTree()
 
 const application = computed(() => props.input[ArgumentApplicationKey])
-const graph = useGraphStore()
+const { module } = useCurrentProject()
 
 const targetMaybePort = computed(() => {
   const target = application.value.target
   if (target instanceof Ast.Ast) {
     const input = WidgetInput.FromAst(target)
     input.forcePort = true
-    if (!application.value.calledFunction) return input
-    const ptr = entryMethodPointer(application.value.calledFunction)
-    if (!ptr) return input
-    const definition = graph.getMethodAst(ptr)
-    if (!definition.ok) return input
+    if (input.value instanceof Ast.PropertyAccess || input.value instanceof Ast.Ident) {
+      const methodPointer = entryMethodPointer(application.value.calledFunction)
+      if (!methodPointer) return input
+      const definition = module.value.getMethodAst(methodPointer)
+      if (definition.ok) {
+        input[FunctionName] = {
+          editableNameExpression: definition.value.name.externalId,
+          methodPointer,
+          requireUserAction: true,
+        }
+      }
+    }
+
     return input
   } else {
     return {
-      ...target.toWidgetInput(props.input[CallInfo]),
+      ...target.toWidgetInput(),
       forcePort: !(target instanceof ArgumentApplication),
     }
   }
@@ -60,7 +68,7 @@ const infixWidgetInput = computed(() =>
 )
 const showArgument = computed(() => tree.extended || !application.value.argument.hideByDefault)
 const argumentWidgetInput = computed(() => {
-  return application.value.argument.toWidgetInput(props.input[CallInfo])
+  return application.value.argument.toWidgetInput()
 })
 </script>
 
@@ -73,9 +81,9 @@ export const widgetDefinition = defineWidget(
 </script>
 
 <template>
-  <div class="WidgetApplication" :class="appClass">
+  <div class="WidgetApplication widgetParent" :class="appClass">
     <NodeWidget :input="targetMaybePort" :nest="application.isInnermost" />
-    <div v-if="infixWidgetInput" class="infixOp" :style="operatorStyle">
+    <div v-if="infixWidgetInput" class="infixOp widgetParent" :style="operatorStyle">
       <NodeWidget :input="infixWidgetInput" />
     </div>
     <SizeTransition width leftGap>
@@ -86,10 +94,6 @@ export const widgetDefinition = defineWidget(
 
 <style scoped>
 .WidgetApplication {
-  display: flex;
-  align-items: center;
-  flex-direction: row;
-  justify-content: center;
   &.prefix {
     gap: var(--widget-token-pad-unit);
   }

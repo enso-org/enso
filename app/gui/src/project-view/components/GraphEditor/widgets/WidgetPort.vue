@@ -1,16 +1,21 @@
 <script setup lang="ts">
 import { useGraphStore } from '$/components/WithCurrentProject.vue'
+import { PortViewInstance } from '$/providers/openedProjects/graph'
+import {
+  Score,
+  WidgetInput,
+  defineWidget,
+  widgetProps,
+} from '$/providers/openedProjects/widgetRegistry'
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import { useRaf } from '@/composables/animation'
 import { useResizeObserver } from '@/composables/events'
-import { NavigatorComposable } from '@/composables/navigator'
+import type { NavigatorComposable } from '@/composables/navigator'
 import { injectGraphNavigator } from '@/providers/graphNavigator'
 import { injectGraphSelection } from '@/providers/graphSelection'
 import { injectKeyboard } from '@/providers/keyboard'
 import { injectPortInfo, providePortInfo, type PortId } from '@/providers/portInfo'
-import { Score, WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import { injectWidgetTree } from '@/providers/widgetTree'
-import { PortViewInstance } from '@/stores/graph'
 import { assert } from '@/util/assert'
 import { Ast } from '@/util/ast'
 import { ArgumentInfoKey } from '@/util/callTree'
@@ -70,23 +75,27 @@ const portRect = shallowRef<Rect>()
 // Since the port ID computation has many dependencies but rarely changes its final output, store
 // its result in an intermediate ref, and update it only when the value actually changes. That way
 // effects depending on the port ID value will not be re-triggered unnecessarily.
-const portId = cachedGetter<PortId>(() => {
-  assert(!isUuid(props.input.portId))
-  return props.input.portId
-})
+const portId = cachedGetter<PortId>(
+  () => {
+    assert(!isUuid(props.input.portId))
+    return props.input.portId
+  },
+  { flush: 'sync' },
+)
 
 const innerWidget = computed(() => {
   return { ...props.input, forcePort: false }
 })
 
-providePortInfo(proxyRefs({ portId, connected: hasConnection }))
+providePortInfo(proxyRefs({ portId, connected }))
 
 watchEffect(
   (onCleanup) => {
     const externalId = tree.externalId
     if (externalId == null || !graph.db.isNodeId(externalId)) return
     const id = portId.value
-    const instance = new PortViewInstance(portRect, externalId, props.updateCallback)
+    const expectedType = toRef(() => props.input.expectedType)
+    const instance = new PortViewInstance(portRect, expectedType, externalId, props.updateCallback)
     graph.addPortInstance(id, instance)
     onCleanup(() => graph.removePortInstance(id, instance))
   },
@@ -186,7 +195,8 @@ export const widgetDefinition = defineWidget(
 <template>
   <div
     ref="portRoot"
-    class="WidgetPort"
+    class="WidgetPort widgetParent"
+    :data-port="props.input.portId"
     :class="{
       enabled,
       connected,
@@ -202,14 +212,8 @@ export const widgetDefinition = defineWidget(
 
 <style scoped>
 .WidgetPort {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  justify-content: center;
   position: relative;
-  text-align: center;
   border-radius: var(--node-port-border-radius);
-  min-height: var(--node-port-height);
   min-width: var(--node-port-height);
   transition: background-color 0.2s ease;
 }
@@ -220,7 +224,6 @@ export const widgetDefinition = defineWidget(
 }
 
 .GraphEditor.draggingEdge .WidgetPort {
-  --node-port-nonprimary-drag-shrink: 8px;
   pointer-events: none;
   transition:
     margin 0.2s ease,
@@ -232,22 +235,26 @@ export const widgetDefinition = defineWidget(
     content: '';
     position: absolute;
     display: block;
-    inset: calc(
-        (var(--node-port-height) - var(--node-base-height)) / 2 +
-          var(--node-port-nonprimary-drag-shrink)
-      )
+    inset: calc(var(--widget-port-drag-inset) + var(--node-port-nonprimary-drag-shrink))
       var(--widget-token-pad-unit);
   }
 
   /* Expand hover area for primary ports. */
   &.primary::before {
-    inset: calc((var(--node-port-height) - var(--node-base-height)) / 2)
-      var(--widget-token-pad-unit);
+    inset: var(--widget-port-drag-inset) var(--widget-token-pad-unit);
   }
 
   &.connected::before {
     left: 0;
     right: 0;
   }
+}
+
+/* Feature-flag controlled debug display for hover areas. */
+.App.debugHoverAreas .GraphEditor.draggingEdge .WidgetPort::before {
+  background: rgba(255, 174, 0, 0.1);
+}
+.App.debugHoverAreas .GraphEditor.draggingEdge .WidgetPort.enabled::before {
+  background: rgba(128, 255, 0, 0.1);
 }
 </style>

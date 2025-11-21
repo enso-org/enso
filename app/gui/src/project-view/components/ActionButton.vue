@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import SvgButton from '@/components/SvgButton.vue'
-import { type DisplayableActionName, resolveAction } from '@/providers/action'
+import { resolveAction, type DisplayableActionName } from '@/providers/action'
 import { computed, toValue } from 'vue'
 
 const { action: actionName, label } = defineProps<{
@@ -9,11 +9,11 @@ const { action: actionName, label } = defineProps<{
 }>()
 const action = computed(() => resolveAction(actionName))
 
-const descriptionWithShortcut = computed(() =>
-  action.value.shortcut ?
-    `${toValue(action.value.description)} (${toValue(action.value.shortcut?.humanReadable)})`
-  : toValue(action.value.description),
-)
+const descriptionWithShortcut = computed(() => {
+  const description = toValue(action.value.description)
+  const shortcut = toValue(action.value.shortcut)
+  return shortcut ? `${description} (${shortcut.humanReadable})` : description
+})
 </script>
 
 <template>
