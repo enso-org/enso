@@ -161,9 +161,13 @@ export class EnsoRunner implements Runner {
           const cmd = this.ensoPath.endsWith('.bat') ? 'cmd.exe' : this.ensoPath
           const cmdArgs = this.ensoPath.endsWith('.bat') ? ['/c', this.ensoPath, ...args] : args
           const cwd = path.dirname(projectPath)
-          const serverProcess = childProcess.spawn(cmd, cmdArgs, { env, detached: false, cwd })
+          const serverProcess = childProcess.spawn(cmd, cmdArgs, {
+            env,
+            detached: false,
+            cwd,
+            stdio: ['pipe', 'inherit', 'inherit'],
+          })
 
-          let stderr = ''
           let resolved = false
 
           // Health check function
@@ -206,12 +210,6 @@ export class EnsoRunner implements Runner {
           // Start health check after initial delay
           setTimeout(startHealthCheck, 250)
 
-          serverProcess.stderr.on('data', (data) => {
-            const dataStr = data.toString()
-            console.error(dataStr)
-            stderr += dataStr
-          })
-
           serverProcess.on('error', (error) => {
             console.error(error.toString())
             if (!resolved) {
@@ -239,9 +237,7 @@ export class EnsoRunner implements Runner {
             // Remove from running projects when it closes
             this.runningProjects.delete(projectId)
             if (!resolved) {
-              reject(
-                new Error(`Language server process exited with code ${code}. stderr: ${stderr}`),
-              )
+              reject(new Error(`Language server process exited with code ${code}.`))
             }
           })
 

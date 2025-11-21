@@ -6491,7 +6491,7 @@ createStdLibsIndexes := {
   DistributionPackage.indexStdLibs(
     stdLibVersion = targetStdlibVersion,
     ensoVersion   = ensoVersion,
-    stdLibRoot    = distributionRoot / "lib",
+    libRoot       = distributionRoot / "lib",
     javaOpts      = javaOpts,
     env           = extraBazelEnvForStdLibIndexes.value,
     cacheFactory  = cacheFactory.sub("stdlib"),
@@ -6700,24 +6700,6 @@ runProjectManagerDistribution := {
   )
 }
 
-val allStdBitsSuffix = List("All", "AllWithIndex")
-val stdBitsProjects =
-  List(
-    "AWS",
-    "Base",
-    "Database",
-    "Generic_JDBC",
-    "Google",
-    "Image",
-    "Microsoft",
-    "Snowflake",
-    "Table",
-    "Saas",
-    "DuckDB"
-  ) ++ allStdBitsSuffix
-val allStdBits: Parser[String] =
-  stdBitsProjects.map(v => v: Parser[String]).reduce(_ | _)
-
 lazy val `http-test-helper` = project
   .in(file("tools") / "http-test-helper")
   .settings(
@@ -6742,112 +6724,6 @@ lazy val `http-test-helper` = project
     (Compile / run / connectInput) := true
   )
   .configs(Test)
-
-lazy val buildStdLib =
-  inputKey[Unit]("Build an individual standard library package")
-buildStdLib := Def.inputTaskDyn {
-  val cmd: String = allStdBits.parsed
-  val root: File  = engineDistributionRoot.value
-  // Ensure that a complete distribution was built at least once.
-  // Because of `if` in the sbt task definition and usage of `streams.value` one has to
-  // delegate to another task definition (sbt restriction).
-  if ((root / "manifest.yaml").exists) {
-    pkgStdLibInternal.toTask(cmd)
-  } else buildEngineDistribution
-}.evaluated
-
-lazy val pkgStdLibInternal = inputKey[Unit]("Use `buildStdLib`")
-pkgStdLibInternal := Def.inputTask {
-  buildEngineDistributionNoIndex.value
-  val cmd               = allStdBits.parsed
-  val root              = engineDistributionRoot.value
-  val log: sbt.Logger   = streams.value.log
-  val cacheFactory      = streams.value.cacheStoreFactory
-  val standardNamespace = "Standard"
-  val buildAllCmd       = allStdBitsSuffix.contains(cmd)
-  cmd match {
-    case "Base" =>
-      (`std-base` / Compile / packageBin).value
-    case "Database" =>
-      (`std-database` / Compile / packageBin).value
-    case "Generic_JDBC" =>
-      (`std-generic-jdbc` / Compile / packageBin).value
-    case "Google" =>
-      (`std-google` / Compile / packageBin).value
-    case "Image" =>
-      (`std-image` / Compile / packageBin).value
-    case "Table" =>
-      (`std-table` / Compile / packageBin).value
-    case "TestHelpers" =>
-      (`enso-test-java-helpers` / Compile / packageBin).value
-      (`generic-jdbc-connection-spec-dependencies` / Compile / packageBin).value
-      (`snowflake-test-java-helpers` / Compile / packageBin).value
-      (`exploratory-benchmark-java-helpers` / Compile / packageBin).value
-      (`benchmark-java-helpers` / Compile / packageBin).value
-    case "AWS" =>
-      (`std-aws` / Compile / packageBin).value
-    case "Snowflake" =>
-      (`std-snowflake` / Compile / packageBin).value
-    case "Microsoft" =>
-      (`std-microsoft` / Compile / packageBin).value
-    case "Tableau" =>
-      (`std-tableau` / Compile / packageBin).value
-    case "Saas" =>
-      (`std-saas` / Compile / packageBin).value
-    case "DuckDB" =>
-      (`std-duckdb` / Compile / packageBin).value
-    case _ if buildAllCmd =>
-      (`std-base` / Compile / packageBin).value
-      (`enso-test-java-helpers` / Compile / packageBin).value
-      (`generic-jdbc-connection-spec-dependencies` / Compile / packageBin).value
-      (`snowflake-test-java-helpers` / Compile / packageBin).value
-      (`exploratory-benchmark-java-helpers` / Compile / packageBin).value
-      (`benchmark-java-helpers` / Compile / packageBin).value
-      (`std-table` / Compile / packageBin).value
-      (`std-database` / Compile / packageBin).value
-      (`std-image` / Compile / packageBin).value
-      (`std-generic-jdbc` / Compile / packageBin).value
-      (`std-google` / Compile / packageBin).value
-      (`std-aws` / Compile / packageBin).value
-      (`std-snowflake` / Compile / packageBin).value
-      (`std-microsoft` / Compile / packageBin).value
-      (`std-tableau` / Compile / packageBin).value
-      (`std-saas` / Compile / packageBin).value
-      (`std-duckdb` / Compile / packageBin).value
-    case _ =>
-  }
-  val libs =
-    if (!buildAllCmd) Seq(cmd)
-    else {
-      val prefix = s"$standardNamespace."
-      Editions.standardLibraries
-        .filter(_.startsWith(prefix))
-        .map(_.stripPrefix(prefix))
-    }
-  val generateIndex = cmd.endsWith("WithIndex")
-  libs.foreach { lib =>
-    StdBits.buildStdLibPackage(
-      lib,
-      root,
-      cacheFactory,
-      log,
-      defaultDevEnsoVersion
-    )
-    if (generateIndex) {
-      val stdlibStandardRoot = root / "lib" / standardNamespace
-      val javaOpts           = (`engine-runner` / Runtime / javaOptions).value
-      DistributionPackage.indexStdLib(
-        libName       = stdlibStandardRoot / lib,
-        stdLibVersion = defaultDevEnsoVersion,
-        ensoVersion   = defaultDevEnsoVersion,
-        javaOpts      = javaOpts,
-        env           = extraBazelEnvForStdLibIndexes.value,
-        cacheFactory  = cacheFactory.sub("stdlib"),
-        log           = log
-      )
-    }
-  }
-}.evaluated
 
 lazy val buildLauncherDistribution =
   taskKey[Unit]("Builds the launcher distribution")

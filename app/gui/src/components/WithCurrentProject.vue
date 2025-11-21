@@ -20,7 +20,7 @@ const [provideCurrentProject, useCurrentProjectRaw] = createContextStore(
     })
     return {
       maybeRef: project,
-      /* Current project as a single ref  */
+      id: computed(() => ref.value.info.id),
       store: computed(() => ref.value.store),
       projectNames: computed(() => ref.value.projectNames),
       suggestionDb: computed(() => ref.value.suggestionDb),
@@ -53,7 +53,7 @@ export function useCurrentProject(allowMissing?: boolean) {
   return currentProjectStore
 }
 
-function useStoreTemplate<K extends Exclude<keyof CurrentProjectStore, 'maybeRef'>>(
+function useStoreTemplate<K extends Exclude<keyof CurrentProjectStore, 'maybeRef' | 'id'>>(
   storeKey: K,
 ): () => NonNullable<CurrentProjectStore[K]['value']> {
   return () => {

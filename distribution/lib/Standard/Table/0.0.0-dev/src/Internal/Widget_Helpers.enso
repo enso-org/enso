@@ -9,6 +9,7 @@ from Standard.Base.Widget_Helpers import make_any_selector, make_format_chooser,
 
 import project.Expression.Expression
 import project.Internal.Parse_Values_Helper
+import project.Spatial_Table.Spatial_Table
 import project.Table.Table
 import project.Value_Type.Auto
 import project.Value_Type.Value_Type
@@ -221,7 +222,16 @@ make_join_condition_selector table display:Display=..Always cache=Nothing =
     between = Option "Between" "..Between" [["left", self_selector], ["right_lower", right_selector], ["right_upper", right_selector]]
     names=[equals, equals_ci, between]
 
-    item_editor = Single_Choice display=display values=names
+    include_spatial = table.is_a Spatial_Table
+    spatial = if include_spatial==False then [] else
+        intersect = Option "Intersect" "..Intersect" [["left", self_selector], ["right", right_selector]]
+        contains = Option "Contains" "..Contains" [["left", self_selector], ["right", right_selector]]
+        contains_properly = Option "Contains_Properly" "..Contains_Properly" [["left", self_selector], ["right", right_selector]]
+        within = Option "Within" "..Within" [["left", self_selector], ["right", right_selector]]
+        overlaps = Option "Overlaps" "..Overlaps" [["left", self_selector], ["right", right_selector]]
+        [Option "Spatial" [intersect, contains, contains_properly, within, overlaps]]
+
+    item_editor = Single_Choice display=display values=names+spatial
     Vector_Editor item_editor=item_editor item_default="(..Equals "+table.column_names.first.pretty+")" display=display
 
 ## ---

@@ -14,9 +14,7 @@ polyglot java import org.enso.table.data.column.builder.LossOfIntegerPrecision
 polyglot java import org.enso.table.data.column.operation.cast.ConversionFailure
 polyglot java import org.enso.table.data.column.operation.cast.ConversionFailureType
 
-# reflection access to various class methods and fields 
-# is being performed on problem classes, hence listing them here
-# so EnsoLibraryFeature registers them for reflection
+## Needed to help Native Image include the classes.
 polyglot java import org.enso.table.data.table.problems.ArithmeticError
 polyglot java import org.enso.table.data.table.problems.ArithmeticOverflow
 polyglot java import org.enso.table.data.table.problems.FloatingPointGrouping

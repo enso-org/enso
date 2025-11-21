@@ -45,7 +45,7 @@ type DuckDB_Connection
         - `schema`: The initial schema to connect to.
     create : Text -> Vector -> (Text -> Text -> DuckDB_Connection) -> Text -> DuckDB_Connection
     create url properties make_new schema =
-        types_record = JDBCDriverTypes.create "DuckDB"
+        types_record = JDBCDriverTypes.createWithInitScript "DuckDB" 'INSTALL spatial;\nLOAD spatial;'
         jdbc_connection = JDBC_Connection.create types_record url properties schema=schema
 
         ## For initial work using DuckDB, we will use the Postgres dialect.
@@ -286,7 +286,7 @@ type DuckDB_Connection
        Database interprets the provided values and may not reflect the types of
        the source table. If you need more sophisticated type mapping mechanism,
        use `create_table` instead.
-    create_literal_table self (source : Table) (alias : Text) -> Table & DB_Table =
+    create_literal_table self (source : Table) (alias : Text) -> Table & DB_Table & Any =
         DB_Table_Module.make_literal_table self (source.columns.map .to_vector) source.column_names alias
 
     ## ---

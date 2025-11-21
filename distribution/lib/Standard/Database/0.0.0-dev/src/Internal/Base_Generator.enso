@@ -490,7 +490,7 @@ base_dialect_operations =
     logic = [bin "AND", bin "OR", unary "NOT", ["IIF", make_iif], ["CASE", case_when]]
     eq = lift_binary_op "==" make_equals
     neq = lift_binary_op "!=" make_not_equals
-    compare = [eq, neq, bin "<", bin ">", bin "<=", bin ">=", ["BETWEEN", make_between]]
+    compare = [eq, neq, bin "<", bin ">", bin "<=", bin ">=", ["BETWEEN", make_between], ["CUSTOM_SQL", make_custom_sql]]
     functions = [["COALESCE", make_function "COALESCE"], ["ROW_MIN", make_function "MIN"], ["ROW_MAX", make_function "MAX"]]
     agg = [fun "MAX", fun "MIN", fun "AVG", fun "SUM"]
     counts = [fun "COUNT", ["COUNT_ROWS", make_constant "COUNT(*)"]]
@@ -560,6 +560,15 @@ make_between arguments = case arguments.length of
         (expr ++ " BETWEEN " ++ lower ++ " AND " ++ upper).paren
     _ ->
         Error.throw <| Illegal_State.Error ("Invalid amount of arguments for operation BETWEEN")
+
+## ---
+   private: true
+   ---
+make_custom_sql : Vector SQL_Builder -> SQL_Builder
+make_custom_sql arguments =
+    function = arguments.at 0
+    list = arguments.drop 1
+    (function ++ "(" ++ (SQL_Builder.join ", " list) ++ ")")
 
 ## ---
    private: true
