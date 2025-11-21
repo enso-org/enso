@@ -5,8 +5,6 @@ import project.Data.Vector.Vector
 import project.Meta
 from project.Nothing import all
 import project.Function.Function
-import project.Errors.Common.Type_Error
-import project.Panic.Panic
 
 ## ---
    private: true
