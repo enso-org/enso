@@ -1,10 +1,10 @@
+import project.Data.Vector.Vector
+import project.Function.Function
+import project.Meta
 import project.Metadata.Display
 import project.Metadata.Widget
 from project.Metadata.Widget import Single_Choice
-import project.Data.Vector.Vector
-import project.Meta
 from project.Nothing import all
-import project.Function.Function
 
 ## ---
    private: true

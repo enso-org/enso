@@ -1,11 +1,11 @@
 import project.Errors.Common.Type_Error
-import project.Panic.Panic
-from project.Metadata.Choice import Option
-import project.Nothing.Nothing
-import project.Warning.Warning
 import project.Network.Email.Email
 import project.Network.Email.Email_Provider_SPI.Email_Provider_SPI
 import project.Network.Email.Email_Send_Response.Send_Response
+import project.Nothing.Nothing
+import project.Panic.Panic
+import project.Warning.Warning
+from project.Metadata.Choice import Option
 
 type Email_Provider_Test_Only_Impl
 

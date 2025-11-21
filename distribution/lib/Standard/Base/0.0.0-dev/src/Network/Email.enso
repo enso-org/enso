@@ -1,19 +1,18 @@
 import project.Data.Text.Text
 import project.Data.Vector.No_Wrap
 import project.Data.Vector.Vector
-import project.Errors.Common.Missing_Argument
 import project.Errors.Common.Dry_Run_Operation
+import project.Errors.Common.Missing_Argument
 import project.Metadata.Display
 import project.Metadata.Widget
+import project.Network.Email.Email
 import project.Network.Email.Email_Address.Email_Address
 import project.Network.Email.Email_Attachment.Email_Attachment
 import project.Network.Email.Email_Body.Email_Body
-import project.Network.Email.Email
 import project.Network.Email.Email_Provider_SPI.Email_Provider_SPI
 import project.Network.Email.Email_Send_Response.Send_Response
 import project.Runtime.Context
 import project.Warning.Warning
-
 from project.Metadata.Widget import Text_Input, Vector_Editor, Single_Choice
 
 ## An email object representing all parts of an email.
