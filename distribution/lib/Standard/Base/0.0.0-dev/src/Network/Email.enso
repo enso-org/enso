@@ -57,12 +57,13 @@ type Email
     @attachments Vector_Editor Email_Attachment.default_widget item_default="..File" display=..Always
     @provider Email_Provider.default_widget
     send from:Email_Address=(Missing_Argument.throw "from") to:(Vector Email_Address)=[] cc:(Vector Email_Address)=[] bcc:(Vector Email_Address)=[] subject:Text="" body:Email_Body="" attachments:(Vector Email_Attachment)=[] provider=(Missing_Argument.throw "provider") -> Send_Response =
-        resolved_provider = Email_Provider.resolve provider
-        if resolved_provider.is_nothing then Error.throw (Illegal_Argument.Error "Could not resolve email provider.")
+        if from.is_error then from
         resolved_to = to.map a->(a:Email_Address) on_problems=No_Wrap.Value
         resolved_cc = cc.map a->(a:Email_Address) on_problems=No_Wrap.Value
         resolved_bcc = bcc.map a->(a:Email_Address) on_problems=No_Wrap.Value
         resolved_attachments = attachments.map a->(a:Email_Attachment) on_problems=No_Wrap.Value
+        resolved_provider = Email_Provider.resolve provider
+        if resolved_provider.is_nothing then Error.throw (Illegal_Argument.Error "Could not resolve email provider.")
 
         email = Email.Message from resolved_to resolved_cc resolved_bcc subject body resolved_attachments
         _send_email_with_provider email resolved_provider
