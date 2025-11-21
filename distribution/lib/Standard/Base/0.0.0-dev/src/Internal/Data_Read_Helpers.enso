@@ -28,12 +28,6 @@ polyglot java import java.lang.Thread
 ## ---
    private: true
    ---
-looks_like_uri path:Text -> Boolean =
-    (path.starts_with "http://" Case_Sensitivity.Insensitive) || (path.starts_with "https://" Case_Sensitivity.Insensitive)
-
-## ---
-   private: true
-   ---
    A common implementation for fetching a resource and decoding it, following
    encountered data links.
 fetch_following_data_links (uri:URI) (method:HTTP_Method = ..Get) (headers:Vector = []) format (cache_policy:Cache_Policy = ..Default) =
