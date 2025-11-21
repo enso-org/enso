@@ -199,11 +199,17 @@ export async function openComponentBrowser(page: Page, parentComponent: string) 
 /**
  * Find textbox located in parent component and fill in text value
  */
-export async function fillWidgetText(page: Page, containerName: string, value: string) {
+export async function fillWidgetText(
+  page: Page,
+  containerName: string,
+  value: string,
+  index?: number,
+) {
   const cont = page.getByText(containerName)
 
   const box = cont.getByTestId('widget-text-content')
-  await box.fill(value)
+  if (index) return box.nth(index).fill(value)
+  else return box.fill(value)
 }
 
 /**
@@ -223,4 +229,8 @@ export async function waitForDownload(pathToFile: string): Promise<void> {
       await new Promise((r) => setTimeout(r, 5_000))
     }
   }
+}
+
+export function openSelectionWidget(page: Page, label: string) {
+  return page.locator('.WidgetSelection:has(.arrow)', { hasText: new RegExp(`^${label}$`) }).click()
 }

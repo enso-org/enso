@@ -8,6 +8,7 @@ import {
   fillWidgetText,
   loginAsTestUser,
   openComponentBrowser,
+  openSelectionWidget,
   test,
   visualizeData,
   waitForDownload,
@@ -61,7 +62,7 @@ test('Exercise 1', async ({ page, projectsDir }) => {
     await page.locator('.ComponentEntry', { hasText: 'set' }).click()
 
     // Set parameters
-    await page.locator('.WidgetSelection.clickable').filter({ hasText: 'value' }).click()
+    await openSelectionWidget(page, 'value')
     await page.getByRole('button', { name: '<Simple Expression>', exact: true }).click()
 
     await page.getByText('input', { exact: true }).click()
@@ -80,24 +81,19 @@ test('Exercise 1', async ({ page, projectsDir }) => {
     await openComponentBrowser(page, 'set')
 
     await page.locator('.ComponentEntry', { hasText: 'filter' }).click()
-    await page.locator('.WidgetSelection.clickable').filter({ hasText: 'column' }).click()
+    await openSelectionWidget(page, 'column')
 
     // Click with the assurance of component being in vision
     const option = page.getByRole('button', { name: 'currency_code_length', exact: true })
     await option.scrollIntoViewIfNeeded()
     await option.click()
 
-    // Choosing the right filter. Wait until selection loads (which should show an arrow).
-    const filter = page.locator('.WidgetSelection:has(.arrow)', { hasText: 'filter' })
-
-    await filter.click()
-
-    // Ensuring visibility
+    openSelectionWidget(page, 'filter')
     const notEqualBtn = page.getByRole('button', { name: '..Not_Equal', exact: true })
     await notEqualBtn.waitFor({ state: 'visible', timeout: 10000 })
     await notEqualBtn.click()
 
-    await page.locator('.WidgetSelection.clickable').filter({ hasText: /^to$/ }).click()
+    await openSelectionWidget(page, 'to')
     await page.getByRole('button', { name: '<Number Value>' }).click()
 
     // Set the actual filtered number value
@@ -123,7 +119,7 @@ test('Exercise 1', async ({ page, projectsDir }) => {
     await page.keyboard.press('Enter')
 
     await page.locator('.ComponentEntry', { hasText: 'filter' }).click()
-    await page.locator('.WidgetSelection.clickable').filter({ hasText: 'column' }).click()
+    await openSelectionWidget(page, 'column')
 
     // Click with the assurance of component being in vision
     const option2 = page.getByRole('button', { name: 'product_name', exact: true })
@@ -132,12 +128,9 @@ test('Exercise 1', async ({ page, projectsDir }) => {
     await option2.click()
 
     // Choosing the right parameters
-    const filter2 = page.locator('.WidgetSelection:has(.arrow)', { hasText: 'filter' })
-    await filter2.click()
-
+    await openSelectionWidget(page, 'filter')
     await page.getByRole('button', { name: '..Equal', exact: true }).click()
-
-    await page.locator('.WidgetSelection.clickable').filter({ hasText: /^to$/ }).click()
+    await openSelectionWidget(page, 'to')
     await page.getByRole('button', { name: '<Text Value>' }).click()
 
     // Set the filtered text value
@@ -276,7 +269,7 @@ test('Exercise 2', async ({ page }) => {
     await crossGroup.click()
     await page.getByRole('button', { name: 'product_name', exact: true }).click()
 
-    await page.locator('.WidgetSelection.clickable').filter({ hasText: 'names' }).click()
+    await openSelectionWidget(page, 'names')
     const curRCode = page.getByRole('button', { name: 'currency_code' }).first()
     await expect(curRCode).toBeVisible()
     await curRCode.click()
@@ -321,19 +314,19 @@ test('Exercise 2', async ({ page }) => {
     await page.locator('.ComponentEntry', { hasText: 'set' }).click()
 
     // Choosing right parameters
-    await page.getByText('value', { exact: true }).click()
+    await openSelectionWidget(page, 'value')
     await page.getByRole('button', { name: '<Simple Expression>', exact: true }).click()
 
-    await page.getByText('input', { exact: true }).click()
+    await openSelectionWidget(page, 'input')
     await page.getByRole('button', { name: 'currency_code', exact: true }).click()
 
-    await page.getByText('operation', { exact: true }).click()
+    await openSelectionWidget(page, 'operation')
     await page.getByRole('button', { name: 'if', exact: true }).click()
 
-    await page.getByText('condition', { exact: true }).click()
+    await openSelectionWidget(page, 'condition')
     await page.getByRole('button', { name: '..Equal', exact: true }).click()
 
-    await page.locator('.WidgetSelection.clickable').filter({ hasText: /^to$/ }).click()
+    await openSelectionWidget(page, 'to')
     await page.getByRole('button', { name: '<Text Value>' }).click()
 
     // Write in the textbox
@@ -343,7 +336,7 @@ test('Exercise 2', async ({ page }) => {
     await page.getByRole('button', { name: '<Text Value>', exact: true }).click()
 
     // // Write in the textbox
-    await fillWidgetText(page, '..If(..Equal“G”)“”', 'GBP')
+    await fillWidgetText(page, '..If(..Equal“G”)“”', 'GBP', 1)
 
     await page.getByText('false_value', { exact: true }).click()
     const option = page.getByRole('button', { name: 'currency_code', exact: true })
