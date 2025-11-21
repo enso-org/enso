@@ -67,6 +67,7 @@ import project.Rows_To_Read.Rows_To_Read
 import project.Set_Mode.Set_Mode
 import project.Simple_Expression.Simple_Expression
 import project.Sort_Column.Sort_Column
+import project.SQL_Function.SQL_Function
 import project.Table.Table
 import project.Value_Type.Auto
 import project.Value_Type.By_Type
@@ -398,7 +399,7 @@ type In_Memory_Table_Implementation
         ## Construct Group
         Add_Group_Number.add_flagged_group this_table resolved_column used_predicate group_row name from step on_problems
 
-    set (this_table : Table & In_Memory_Table) (value : Text | Expression | Column | Constant_Column | Simple_Expression) as:Text set_mode:Set_Mode on_problems:Problem_Behavior =
+    set (this_table : Table & In_Memory_Table) (value : Text | Expression | Column | Constant_Column | Simple_Expression | SQL_Function) as:Text set_mode:Set_Mode on_problems:Problem_Behavior =
         problem_builder = Problem_Builder.new
         unique = this_table.column_naming_helper.create_unique_name_strategy
         unique.mark_used this_table.column_names
@@ -409,7 +410,7 @@ type In_Memory_Table_Implementation
             _ : Expression -> this_table.evaluate_expression value on_problems
             _ : Constant_Column -> this_table.make_constant_column value.value
             _ : Simple_Expression -> value.evaluate this_table (set_mode==Set_Mode.Update && as=="") on_problems
-            _ -> Error.throw (Illegal_Argument.Error "Unsupported type for `Table.set`.")
+            _ : SQL_Function -> Error.throw (Illegal_Argument.Error "SQL_Function is not supported by in-memory tables.")
 
         ## If `as` was specified, use that. Otherwise, if `value` is a
            `Column`, use its name. In these two cases, do not make it unique.
