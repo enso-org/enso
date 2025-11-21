@@ -13,6 +13,7 @@ Email_Provider_SPI.from (that:Email_Provider_Test_Only_Impl) =
     _ = that
     Email_Provider_SPI.new Email_Provider_Test_Only
 
+## A test email provider that does not send any emails. Used for testing workflows.
 type Email_Provider_Test_Only
     Test_Only
 
