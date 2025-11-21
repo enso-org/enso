@@ -165,7 +165,7 @@ export class EnsoRunner implements Runner {
             env,
             detached: false,
             cwd,
-            stdio: 'inherit',
+            stdio: ['pipe', 'inherit', 'inherit'],
           })
 
           let resolved = false
