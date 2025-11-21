@@ -1,54 +1,32 @@
+private
+
 import project.Any.Any
 import project.Data
 import project.Data.Json.JS_Object
 import project.Data.Text.Text
 import project.Enso_Cloud.Enso_Secret.Enso_Secret
-import project.Errors.Common.Missing_Argument
-import project.Errors.Common.Type_Error
 import project.Network.Email.Email
 import project.Network.Email.Email_Address.Email_Address
 import project.Network.Email.Email_Attachment.Email_Attachment
 import project.Network.Email.Email_Body.Email_Body
-import project.Network.Email.Email_Provider_SPI.Email_Provider_SPI
 import project.Network.Email.Email_Send_Response.Send_Response
+import project.Network.Email.Providers.Send_Grid.Send_Grid_Provider
 import project.Network.Email.Send_Error.Send_Error
 import project.Network.HTTP.Header.Header
 import project.Nothing.Nothing
-import project.Panic.Panic
 import project.System.File.File
 from project.Error import all
-from project.Metadata.Choice import Option
 
 polyglot java import java.util.Base64
 
-type Email_Provider_Send_Grid_Impl
-
-Email_Provider_SPI.from (that:Email_Provider_Send_Grid_Impl) =
-    _ = that
-    Email_Provider_SPI.new Email_Provider_Send_Grid
-
-## An email provider that sends emails using the SendGrid REST API.
-type Email_Provider_Send_Grid
-    ## An email provider that sends emails using the SendGrid REST API.
-       Get started with SendGrid here https://sendgrid.com/
-
-       ## Arguments
-        - `api_key`: SendGrid API key as plain text or an Enso_Secret.
-    Send_Grid api_key:(Text|Enso_Secret)=(Missing_Argument.throw "api_key")
+type Send_Grid_Implementation
+    private Value config:Send_Grid_Provider
 
     send self email:Email =
-        _send_email_with_send_grid_provider email self.api_key
+        _send_email_with_send_grid_provider email self.config.api_key
 
-    get_dropdown_options = [Option "..Send_Grid" "..Send_Grid"]
-
-    ## ---
-       private: true
-       ---
-    resolve value =
-        Panic.catch Type_Error (value:Email_Provider_Send_Grid) _->Nothing
-
-private _send_email_with_send_grid_provider email:Email api_key:Text =
-    to_object = JS_Object.from_pairs ([_create_to_email_object email.to "to", _create_to_email_object email.cc "cc", _create_to_email_object email.bcc "bcc"].filter ..Not_Nothing) 
+_send_email_with_send_grid_provider email:Email api_key:(Text|Enso_Secret) =
+    to_object = JS_Object.from_pairs ([_create_to_email_object email.to "to", _create_to_email_object email.cc "cc", _create_to_email_object email.bcc "bcc"].filter ..Not_Nothing)
     base_email_pairs = [["personalizations", [to_object]], ["from", (_create_to_email email.from_address)], ["subject", email.subject], ["content", [_prepare_html_body email.body]]]
 
     attachment_list = if email.attachments.length == 0 then [] else email.attachments.map _prepare_attachment
@@ -60,21 +38,21 @@ private _send_email_with_send_grid_provider email:Email api_key:Text =
         api_response.catch Any error->
             Error.throw (Send_Error.Error error.to_display_text)
 
-private _create_to_email_object emails send_type =
+_create_to_email_object emails send_type =
     if emails.length > 0 then [send_type, emails.map _create_to_email] else Nothing
 
-private _create_to_email recipient_email:Email_Address =
+_create_to_email recipient_email:Email_Address =
     if recipient_email.name == "" then JS_Object.from_pairs [["email", recipient_email.address]] else
         JS_Object.from_pairs [["name", recipient_email.name], ["email", recipient_email.address]]
 
-private _prepare_html_body html_content =
+_prepare_html_body html_content =
     html_object = case html_content of
         Email_Body.No_Body -> JS_Object.from_pairs [["type", "text/plain"], ["value", " "]]
         Email_Body.Plain_Text _ -> JS_Object.from_pairs [["type", "text/plain"], ["value", html_content.body]]
         Email_Body.HTML _ _ -> JS_Object.from_pairs [["type", "text/html"], ["value", html_content.html]]
     html_object
 
-private _prepare_attachment attachment:Email_Attachment =
+_prepare_attachment attachment:Email_Attachment =
     file_handle = File.new attachment.file
     file_bytes = file_handle.read_bytes
     encoded_content = Base64.getEncoder.encodeToString file_bytes
