@@ -231,6 +231,10 @@ export async function waitForDownload(pathToFile: string): Promise<void> {
   }
 }
 
-export function openSelectionWidget(page: Page, label: string) {
+export function openDropdownInWidget(page: Page, label: string) {
   return page.locator('.WidgetSelection:has(.arrow)', { hasText: new RegExp(`^${label}$`) }).click()
+}
+
+export function addFirstElementToWidgetVector(locator: Locator) {
+  return locator.getByRole('list').filter({ hasText: /^$/ }).getByLabel('Add a new item').click()
 }

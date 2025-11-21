@@ -3,12 +3,13 @@
 import path from 'path'
 import { expect } from 'playwright/test'
 import {
+  addFirstElementToWidgetVector,
   closeWelcome,
   createNewProject,
   fillWidgetText,
   loginAsTestUser,
   openComponentBrowser,
-  openSelectionWidget,
+  openDropdownInWidget,
   test,
   visualizeData,
   waitForDownload,
@@ -62,7 +63,7 @@ test('Exercise 1', async ({ page, projectsDir }) => {
     await page.locator('.ComponentEntry', { hasText: 'set' }).click()
 
     // Set parameters
-    await openSelectionWidget(page, 'value')
+    await openDropdownInWidget(page, 'value')
     await page.getByRole('button', { name: '<Simple Expression>', exact: true }).click()
 
     await page.getByText('input', { exact: true }).click()
@@ -81,19 +82,19 @@ test('Exercise 1', async ({ page, projectsDir }) => {
     await openComponentBrowser(page, 'set')
 
     await page.locator('.ComponentEntry', { hasText: 'filter' }).click()
-    await openSelectionWidget(page, 'column')
+    await openDropdownInWidget(page, 'column')
 
     // Click with the assurance of component being in vision
     const option = page.getByRole('button', { name: 'currency_code_length', exact: true })
     await option.scrollIntoViewIfNeeded()
     await option.click()
 
-    openSelectionWidget(page, 'filter')
+    openDropdownInWidget(page, 'filter')
     const notEqualBtn = page.getByRole('button', { name: '..Not_Equal', exact: true })
     await notEqualBtn.waitFor({ state: 'visible', timeout: 10000 })
     await notEqualBtn.click()
 
-    await openSelectionWidget(page, 'to')
+    await openDropdownInWidget(page, 'to')
     await page.getByRole('button', { name: '<Number Value>' }).click()
 
     // Set the actual filtered number value
@@ -119,7 +120,7 @@ test('Exercise 1', async ({ page, projectsDir }) => {
     await page.keyboard.press('Enter')
 
     await page.locator('.ComponentEntry', { hasText: 'filter' }).click()
-    await openSelectionWidget(page, 'column')
+    await openDropdownInWidget(page, 'column')
 
     // Click with the assurance of component being in vision
     const option2 = page.getByRole('button', { name: 'product_name', exact: true })
@@ -128,9 +129,9 @@ test('Exercise 1', async ({ page, projectsDir }) => {
     await option2.click()
 
     // Choosing the right parameters
-    await openSelectionWidget(page, 'filter')
+    await openDropdownInWidget(page, 'filter')
     await page.getByRole('button', { name: '..Equal', exact: true }).click()
-    await openSelectionWidget(page, 'to')
+    await openDropdownInWidget(page, 'to')
     await page.getByRole('button', { name: '<Text Value>' }).click()
 
     // Set the filtered text value
@@ -141,8 +142,8 @@ test('Exercise 1', async ({ page, projectsDir }) => {
   // Hardly testable
 })
 
-// Second excercise in Enso Analytics 101
-test('Exercise 2', async ({ page }) => {
+// Second exercise in Enso Analytics 101
+test.only('Exercise 2', async ({ page }) => {
   await loginAsTestUser(page)
   await closeWelcome(page)
 
@@ -199,24 +200,14 @@ test('Exercise 2', async ({ page }) => {
     await groupBy.click()
 
     const productBtn = page.getByRole('button', { name: 'product_name', exact: true })
-
-    // If dropdown menu doesn't open, click groupBy again to avoid test flakyness
-    if (!(await productBtn.isVisible())) {
-      await groupBy.click()
-    }
-    await productBtn.isVisible()
     await productBtn.click()
 
     // Close the dropdown
     await page.getByText('aggregate').click()
 
-    // Click the plus
-    await page
-      .locator('div.WidgetTopLevelArgument', { hasText: 'columns' })
-      .getByRole('list')
-      .filter({ hasText: /^$/ })
-      .getByLabel('Add a new item')
-      .click()
+    await addFirstElementToWidgetVector(
+      page.locator('div.WidgetTopLevelArgument', { hasText: 'columns' }),
+    )
 
     // Visualize and assert the result
     await visualizeData(page)
@@ -226,14 +217,9 @@ test('Exercise 2', async ({ page }) => {
     await openComponentBrowser(page, 'aggregate')
     await page.locator('.ComponentEntry', { hasText: 'sort' }).click()
 
-    // Click the plus
-    await page
-      .locator('div.WidgetTopLevelArgument', { hasText: 'columns' })
-      .nth(1)
-      .getByRole('list')
-      .filter({ hasText: /^$/ })
-      .getByLabel('Add a new item')
-      .click()
+    await addFirstElementToWidgetVector(
+      page.locator('div.WidgetTopLevelArgument', { hasText: 'columns' }),
+    )
 
     // Choosing parameters
     await page
@@ -269,7 +255,7 @@ test('Exercise 2', async ({ page }) => {
     await crossGroup.click()
     await page.getByRole('button', { name: 'product_name', exact: true }).click()
 
-    await openSelectionWidget(page, 'names')
+    await openDropdownInWidget(page, 'names')
     const curRCode = page.getByRole('button', { name: 'currency_code' }).first()
     await expect(curRCode).toBeVisible()
     await curRCode.click()
@@ -278,27 +264,16 @@ test('Exercise 2', async ({ page }) => {
     await page.getByRole('button', { name: '..Count_Distinct', exact: true }).click()
 
     // Click the plus and select argument
-    const plus = page
-      .locator('div.WidgetTopLevelArgument', { hasText: 'columns' })
-      .getByRole('list')
-      .filter({ hasText: /^$/ })
-      .getByLabel('Add a new item')
-    await expect(plus).toBeVisible()
-    await plus.click()
+    await addFirstElementToWidgetVector(
+      page.locator('div.WidgetTopLevelArgument', { hasText: 'columns' }),
+    )
     await page.getByRole('button', { name: 'account_id', exact: true }).click()
 
     await visualizeData(page)
 
     // Move cross_tab a bit down for more clearance
     const crossTab = page.getByText('cross_tab')
-
-    await crossTab.hover()
-    await page.mouse.down()
-    const box = await crossTab.boundingBox()
-    if (box) {
-      await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2 + 200)
-    }
-    await page.mouse.up()
+    await crossTab.dragTo(crossTab, { targetPosition: { x: 0, y: 200 }, force: true })
   })
 
   // ---------------- Objective 4 ----------------
@@ -314,19 +289,19 @@ test('Exercise 2', async ({ page }) => {
     await page.locator('.ComponentEntry', { hasText: 'set' }).click()
 
     // Choosing right parameters
-    await openSelectionWidget(page, 'value')
+    await openDropdownInWidget(page, 'value')
     await page.getByRole('button', { name: '<Simple Expression>', exact: true }).click()
 
-    await openSelectionWidget(page, 'input')
+    await openDropdownInWidget(page, 'input')
     await page.getByRole('button', { name: 'currency_code', exact: true }).click()
 
-    await openSelectionWidget(page, 'operation')
+    await openDropdownInWidget(page, 'operation')
     await page.getByRole('button', { name: 'if', exact: true }).click()
 
-    await openSelectionWidget(page, 'condition')
+    await openDropdownInWidget(page, 'condition')
     await page.getByRole('button', { name: '..Equal', exact: true }).click()
 
-    await openSelectionWidget(page, 'to')
+    await openDropdownInWidget(page, 'to')
     await page.getByRole('button', { name: '<Text Value>' }).click()
 
     // Write in the textbox
