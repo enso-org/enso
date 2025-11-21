@@ -30,7 +30,6 @@ public final class Stream_Utils {
     return os;
   }
 
-
   public static byte[] peek(InputStream stream, int n) throws IOException {
     assert n >= 0;
     assert stream.markSupported();
