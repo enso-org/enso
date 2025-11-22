@@ -10,8 +10,8 @@ public final class LongStorage extends AbstractLongStorage implements ColumnStor
   // TODO [RW] at some point we will want to add separate storage classes for byte, short and int,
   // for more compact storage and more efficient handling of smaller integers; for now we will be
   // handling this just by checking the bounds
-  final long[] data;
-  final BitSet isNothing;
+  private final long[] data;
+  private final BitSet isNothing;
 
   /**
    * @param data the underlying data
