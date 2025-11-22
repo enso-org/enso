@@ -24,7 +24,7 @@ final class InferredDoubleBuilder extends DoubleBuilder implements BuilderWithRe
         new InferredDoubleBuilder(longBuilder.getDataSize(), longBuilder.problemAggregator);
 
     for (int i = 0; i < currentSize; i++) {
-      newBuilder.appendLong(longBuilder.data[i]);
+      newBuilder.appendLong(longBuilder.data(i));
     }
     newBuilder.isNothing = longBuilder.isNothing;
 

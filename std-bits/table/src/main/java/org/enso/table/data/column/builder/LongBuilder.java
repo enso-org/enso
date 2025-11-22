@@ -17,8 +17,8 @@ import org.enso.table.util.BitSets;
 
 /** A builder for integer columns. */
 class LongBuilder extends NumericBuilder implements BuilderForLong, BuilderWithRetyping {
-  protected final ProblemAggregator problemAggregator;
-  protected long[] data;
+  final ProblemAggregator problemAggregator;
+  private long[] data;
 
   protected LongBuilder(int initialSize, ProblemAggregator problemAggregator) {
     this.data = new long[initialSize];
@@ -163,5 +163,17 @@ class LongBuilder extends NumericBuilder implements BuilderForLong, BuilderWithR
   @Override
   public ColumnStorage<Long> seal() {
     return new LongStorage(data, currentSize, isNothing, getType());
+  }
+
+  final int dataCapacity() {
+    return data.length;
+  }
+
+  final int dataCurrentSize() {
+    return currentSize;
+  }
+
+  final long data(int index) {
+    return data[index];
   }
 }

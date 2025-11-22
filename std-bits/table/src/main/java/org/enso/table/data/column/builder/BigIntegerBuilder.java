@@ -85,11 +85,11 @@ final class BigIntegerBuilder extends TypedBuilder<BigInteger> {
   }
 
   static Builder retypeFromLongBuilder(LongBuilder longBuilder) {
-    var res = new BigIntegerBuilder(longBuilder.data.length, longBuilder.problemAggregator);
-    int n = longBuilder.currentSize;
+    var res = new BigIntegerBuilder(longBuilder.dataCapacity(), longBuilder.problemAggregator);
+    int n = longBuilder.dataCurrentSize();
     Context context = Context.getCurrent();
     for (int i = 0; i < n; i++) {
-      res.append(BigInteger.valueOf(longBuilder.data[i]));
+      res.append(BigInteger.valueOf(longBuilder.data(i)));
       context.safepoint();
     }
     return res;

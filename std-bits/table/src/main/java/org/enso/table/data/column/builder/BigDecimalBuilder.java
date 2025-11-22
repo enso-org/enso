@@ -40,11 +40,11 @@ final class BigDecimalBuilder extends TypedBuilder<BigDecimal> {
   }
 
   static Builder retypeFromLongBuilder(LongBuilder longBuilder) {
-    var res = new BigDecimalBuilder(longBuilder.data.length);
-    int n = longBuilder.currentSize;
+    var res = new BigDecimalBuilder(longBuilder.dataCapacity());
+    int n = longBuilder.dataCurrentSize();
     Context context = Context.getCurrent();
     for (int i = 0; i < n; i++) {
-      res.append(BigDecimal.valueOf(longBuilder.data[i]));
+      res.append(BigDecimal.valueOf(longBuilder.data(i)));
       context.safepoint();
     }
     return res;
