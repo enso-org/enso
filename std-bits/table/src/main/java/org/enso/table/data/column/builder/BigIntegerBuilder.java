@@ -84,7 +84,8 @@ final class BigIntegerBuilder extends TypedBuilder<BigInteger> {
     return this;
   }
 
-  static Builder retypeFromLongBuilder(BuilderForLong longBuilder, ProblemAggregator problemAggregator) {
+  static Builder retypeFromLongBuilder(
+      BuilderForLong longBuilder, ProblemAggregator problemAggregator) {
     var res = Builder.getForBigInteger(longBuilder.getCurrentCapacity(), problemAggregator);
     long n = longBuilder.getCurrentSize();
     Context context = Context.getCurrent();

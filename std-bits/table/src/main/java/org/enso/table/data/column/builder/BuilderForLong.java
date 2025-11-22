@@ -17,18 +17,18 @@ public interface BuilderForLong extends BuilderForType<Long> {
    */
   boolean isNothing(long index);
 
-    /**
-     * Gets the long value at the given index.
-     *
-     * @param index the index to get the value from
-     * @return the long value at the index
-     */
+  /**
+   * Gets the long value at the given index.
+   *
+   * @param index the index to get the value from
+   * @return the long value at the index
+   */
   long getLong(long index);
 
-    /**
-     * Gets the current capacity of the builder.
-     *
-     * @return the current capacity
-     */
+  /**
+   * Gets the current capacity of the builder.
+   *
+   * @return the current capacity
+   */
   long getCurrentCapacity();
 }

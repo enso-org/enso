@@ -19,8 +19,11 @@ final class InferredDoubleBuilder extends DoubleBuilder implements BuilderWithRe
    * <p>The original LongBuilder becomes invalidated after this operation and should no longer be
    * used.
    */
-  static InferredDoubleBuilder retypeFromLongBuilder(BuilderForLong longBuilder, ProblemAggregator problemAggregator) {
-    var newBuilder = new InferredDoubleBuilder(Builder.checkSize(longBuilder.getCurrentSize()), problemAggregator);
+  static InferredDoubleBuilder retypeFromLongBuilder(
+      BuilderForLong longBuilder, ProblemAggregator problemAggregator) {
+    var newBuilder =
+        new InferredDoubleBuilder(
+            Builder.checkSize(longBuilder.getCurrentSize()), problemAggregator);
     long currentSize = longBuilder.getCurrentSize();
     Context context = Context.getCurrent();
     for (long i = 0; i < currentSize; i++) {
