@@ -39,7 +39,7 @@ type Email_Provider
    ---
    Factory for Email_Provider allowing SPI implementations.
 make_email_provider label:Text implementation:Any -> Email_Provider =
-    Panic.catch Any implementation.send _-> Panic.throw (Illegal_Argument.throw "Provided implementation "+label+"does not implement the Email_Provider interface (send).")
+    Panic.catch Any implementation.send _-> Panic.throw (Illegal_Argument.Error "Provided implementation "+label+"does not implement the Email_Provider interface (send).")
     Email_Provider.Value implementation
 
 ## ---
