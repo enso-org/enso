@@ -31,7 +31,7 @@ type Email_Provider
             if idx >= types.length then constructor else
                 db_type = types.at idx
                 resolved = db_type.resolve constructor
-                if resolved.is_nothing then @Tail_Call try_next (idx + 1) else resolved
+                if resolved.is_nothing then @Tail_Call try_next (idx + 1) else resolved:Email_Provider
         try_next 0
 
 ## ---

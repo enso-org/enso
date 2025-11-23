@@ -24,7 +24,8 @@ type Send_Grid_Provider
     private get_dropdown_options = [Option "..Send_Grid" "..Send_Grid"]
 
     ## Resolves a constructor into an Email_Provider instance.
-    private resolve that:Function -> Email_Provider | Nothing =
-        resolved = Panic.catch Type_Error (that:Send_Grid_Provider) _->Nothing
-        if resolved.is_nothing then Nothing else
-            make_email_provider "Send_Grid" (Send_Grid_Implementation.Value resolved)
+    private resolve that:Function -> Send_Grid_Provider | Nothing =
+        Panic.catch Type_Error (that:Send_Grid_Provider) _->Nothing
+
+Email_Provider.from (that:Send_Grid_Provider) =
+    make_email_provider "Send_Grid" (Send_Grid_Implementation.Value that)

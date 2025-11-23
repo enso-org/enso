@@ -18,7 +18,9 @@ type Email_Test_Only_Provider
 
     ## Resolves a constructor into an Email_Provider instance.
        As in same module can be private.
-    private resolve that:Function -> Email_Provider | Nothing =
-        resolved = Panic.catch Type_Error (that:Email_Test_Only_Provider) _->Nothing
-        if resolved.is_nothing then Nothing else
-            make_email_provider "Test_Only" Email_Test_Only_Implementation
+    private resolve that:Function -> Email_Test_Only_Provider | Nothing =
+        Panic.catch Type_Error (that:Email_Test_Only_Provider) _->Nothing
+
+Email_Provider.from (that:Email_Test_Only_Provider) =
+    _ = that
+    make_email_provider "Test_Only" Email_Test_Only_Implementation
