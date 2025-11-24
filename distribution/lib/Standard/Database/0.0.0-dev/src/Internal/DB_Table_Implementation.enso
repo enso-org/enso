@@ -477,11 +477,10 @@ type DB_Table_Implementation
 
     union (this_table : Table & DB_Table) (tables : Table | Vector Table) columns_to_keep:Columns_To_Keep match_columns:Match_Columns on_problems:Problem_Behavior =
         Feature.Union.if_supported_else_throw this_table.connection.dialect "union" <|
-            if tables.any t-> t.is_error then tables.find t-> t.is_error
-            if tables.any t-> t.is_a DB_Table . not then Error.throw (Illegal_Argument.Error 'To union an in-memory table, load to the database connection first.')
-            all_tables = case tables of
-                v : Vector -> [this_table] + (v.map t-> (t : Table & DB_Table))
-                single_table -> [this_table, (single_table : Table & DB_Table)]
+            table_vector = Vector.unify_vector_or_element tables
+            if table_vector.any t-> t.is_error then tables.find t-> t.is_error
+            if table_vector.any t-> t.is_a DB_Table . not then Error.throw (Illegal_Argument.Error 'To union an in-memory table, load to the database connection first.')
+            all_tables = [this_table] + (table_vector.map t-> (t : Table & DB_Table))
             Helpers.ensure_same_connection "table" all_tables <|
                 ## We keep separate problem builders, because if we are reporting `No_Output_Columns`,
                   we only want to add a cause coming from unification; matching reports problems that would not fit this error.
