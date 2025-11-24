@@ -2,7 +2,6 @@
 import { useBackends } from '$/providers/backends'
 import { useRightPanelData } from '$/providers/rightPanel'
 import { useUploadsToCloudStore } from '$/providers/upload'
-import { backendQueryOptions } from '@/composables/backend'
 import { useUploadLocally } from '@/util/upload'
 import { useQuery } from '@tanstack/vue-query'
 import { BackendType } from 'enso-common/src/services/Backend'
@@ -15,32 +14,39 @@ const backendForAsset = computed(
     (rightPanel.context?.category && backendForType(rightPanel.context.category.backend)) ?? null,
 )
 
-const fileDetails = useQuery(
-  backendQueryOptions(
-    'getFileDetails',
-    computed(() => {
-      const filePath =
-        typeof rightPanel.context?.item === 'object' && rightPanel.context.item.type === 'file' ?
-          rightPanel.context.item.ensoPath
-        : undefined
-      // Only preview text files.
-      if (!/[.](?:txt|json|yaml|csv)$/.test(filePath ?? '')) {
-        return
-      }
-      const fileId =
-        typeof rightPanel.context?.item === 'object' && rightPanel.context.item.type === 'file' ?
-          rightPanel.context.item.id
-        : undefined
-      if (!fileId) {
-        return
-      }
-      const title =
-        typeof rightPanel.context?.item === 'object' ? rightPanel.context.item.title : '(unknown)'
-      return [fileId, title, true]
-    }),
-    backendForAsset.value,
-  ),
-)
+const fileDetails = useQuery({
+  queryKey: computed(() => {
+    const filePath =
+      typeof rightPanel.context?.item === 'object' && rightPanel.context.item.type === 'file' ?
+        rightPanel.context.item.ensoPath
+      : undefined
+    // Only preview text files.
+    if (!/[.](?:txt|json|yaml|csv)$/.test(filePath ?? '')) {
+      return []
+    }
+    const fileId =
+      typeof rightPanel.context?.item === 'object' && rightPanel.context.item.type === 'file' ?
+        rightPanel.context.item.id
+      : undefined
+    if (!fileId) {
+      return []
+    }
+    const title =
+      typeof rightPanel.context?.item === 'object' ? rightPanel.context.item.title : '(unknown)'
+    return ['getFileDetails', fileId, title, true] as const
+  }),
+  queryFn: async ({ queryKey: [, fileId, title, fetchContents] }) => {
+    if (!fileId) {
+      return null
+    }
+    const backend = backendForAsset.value
+    if (!backend) {
+      throw new Error('No backend available for asset')
+    }
+    const fileDetails = await backend.getFileDetails(fileId, title, fetchContents)
+    return fileDetails
+  },
+})
 
 const fileUrl = computed(() => fileDetails.data?.value?.url)
 
@@ -58,6 +64,42 @@ const fileContentsQuery = useQuery({
   },
 })
 
+const projectContentsQuery = useQuery({
+  queryKey: computed(() => {
+    const projectId =
+      typeof rightPanel.context?.item === 'object' ?
+        rightPanel.context.item.type === 'project' ?
+          rightPanel.context.item.id
+        : undefined
+      : rightPanel.context?.item
+    if (!projectId) {
+      return []
+    }
+    return ['getMainFileContent', projectId] as const
+  }),
+  queryFn: async ({ queryKey: [, projectId] }) => {
+    if (!projectId) {
+      return null
+    }
+    const backend = backendForAsset.value
+    if (!backend) {
+      throw new Error('No backend available for asset')
+    }
+    const content = await backend.getMainFileContent(projectId)
+    return content
+  },
+})
+
+// Strip out metadata section from project contents.
+// If this is ever intended to be editable, this logic should be removed completely.
+const projectContents = computed(() => {
+  const value = projectContentsQuery.data?.value
+  if (!value) {
+    return
+  }
+  return value.replace(/\n+#### METADATA ####[\s\S]+$/, '')
+})
+
 const uploads = useUploadsToCloudStore()
 const uploadLocally = useUploadLocally(backendForAsset)
 const uploadFile = computed(() =>
@@ -70,9 +112,10 @@ const uploadFile = computed(() =>
 <template>
   <div class="AssetContentsEditor">
     <h2>File contents</h2>
-    <p>
+    <p v-if="fileContentsQuery.data.value">
       {{ fileContentsQuery.data }}
     </p>
+    <pre v-else-if="projectContents"><code>{{ projectContents }}</code></pre>
   </div>
 </template>
 
@@ -89,5 +132,10 @@ const uploadFile = computed(() =>
 h2 {
   font-size: 1.125rem;
   line-height: var(--snug-line-height);
+}
+
+code {
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 </style>

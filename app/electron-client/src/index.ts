@@ -9,7 +9,8 @@
 
 import './cjs-shim' // must be imported first
 
-import { downloadCloudProject } from '@/assetManagement'
+import { createRemoteBackend } from '@/backend'
+import { appPath, assetsPath } from '@/paths'
 import type { BrowserWindowConstructorOptions, WebPreferences } from 'electron'
 import { DEEP_LINK_SCHEME, PRODUCT_NAME } from 'enso-common/src/constants'
 import {
@@ -18,28 +19,13 @@ import {
   type Options,
 } from 'enso-common/src/options'
 import { EnsoPath } from 'enso-common/src/services/Backend'
-import { HttpClient } from 'enso-common/src/services/HttpClient'
-import { RemoteBackend } from 'enso-common/src/services/RemoteBackend'
-import { extractIdFromDirectoryId } from 'enso-common/src/services/RemoteBackend/ids'
-import {
-  getText as originalGetText,
-  TEXTS,
-  type Replacements,
-  type TextId,
-} from 'enso-common/src/text'
 import { Path } from 'enso-common/src/utilities/file'
 import { access, constants, readFile, writeFile } from 'node:fs/promises'
 import { platform } from 'node:os'
-import path, { join as joinPath } from 'node:path'
+import { join as joinPath } from 'node:path'
 import process from 'node:process'
-import {
-  createBundle,
-  downloadSamples,
-  runHybridProjectByUrl,
-  runLocalProjectByPath,
-} from 'project-manager-shim'
-import buildInfo from '../buildInfo'
-import { getUpToDateAccessToken, initAuthentication } from './authentication.js'
+import { downloadSamples, runHybridProjectByUrl, runLocalProjectByPath } from 'project-manager-shim'
+import { initAuthentication } from './authentication.js'
 import { parseArgs } from './configParser.js'
 import { VERSION } from './contentConfig.js'
 import { printInfo, VERSION_INFO } from './debug.js'
@@ -54,7 +40,6 @@ import { Channel } from './ipc.js'
 import { setupLogger } from './log.js'
 import { filterByRole, inheritMenuItem, makeMenuItem, replaceMenuItems } from './menuItems.js'
 import { capitalizeFirstLetter } from './naming.js'
-import { APP_PATH, ASSETS_PATH } from './paths.js'
 import { handleProjectProtocol, setupProjectService, version } from './projectService.js'
 import { enableAll } from './security.js'
 import { Config, Server } from './server.js'
@@ -118,21 +103,22 @@ const createApp = (): App => ({
 
 function runElectronApp(
   electron: Electron,
+  electronIsDev: boolean,
   app: App,
   args: Options,
   fileToOpen: string | null,
   urlToOpen: URL | null,
 ) {
-  registerAssociations(electron)
+  registerAssociations(electron, electronIsDev)
   // Register file associations for macOS.
   setOpenFileEventHandler((path) => {
     if (electron.app.isReady()) {
-      const project = handleOpenFile(path)
+      const project = handleOpenFile(path, electron)
       app.window?.webContents.send(Channel.openProject, project)
     } else {
       setProjectToOpenOnStartup(app, pathToURL(path), electron)
     }
-  })
+  }, electron)
   const isOriginalInstance = electron.app.requestSingleInstanceLock({
     fileToOpen,
     urlToOpen,
@@ -182,7 +168,7 @@ function runElectronApp(
           handleProjectProtocol(decodeURIComponent(request.url.replace('enso://', ''))),
         )
 
-        await main(app, args, electron)
+        await main(app, args, electron, electronIsDev)
       },
       (error) => {
         console.error('Failed to initialize Electron.', error)
@@ -288,18 +274,23 @@ function handleItemOpening(
 }
 
 /** Main app entry point. */
-async function main(app: App, args: Options, electron: Electron | undefined) {
+async function main(
+  app: App,
+  args: Options,
+  electron: Electron | undefined,
+  electronIsDev: boolean,
+) {
   // We catch all errors here. Otherwise, it might be possible that the app will run partially
   // and enter a "zombie mode", where user is not aware of the app still running.
   try {
     console.log('Starting the application')
-    // Note that we want to do all the actions synchronously, so when the window
-    // appears, it serves the website immediately.
-    await startContentServerIfEnabled(app, args)
     await createWindowIfEnabled(app, args, electron)
     initIpc(app.window)
     await loadWindowContent(app, args)
     if (electron) {
+      // Note that we want to do all the actions synchronously, so when the window
+      // appears, it serves the website immediately.
+      await startContentServerIfEnabled(app, args, electron, electronIsDev)
       /**
        * The non-null assertion on the following line is safe because the window
        * initialization is guarded by the `createWindowIfEnabled` method. The window is
@@ -315,7 +306,7 @@ async function main(app: App, args: Options, electron: Electron | undefined) {
 }
 
 /** Setup the project service. */
-function createProjectService(args: Options) {
+function createProjectService(args: Options, electron: Electron, electronIsDev: boolean) {
   const backendVerboseOpts = args.debug.verbose ? ['--log-level', 'trace'] : []
   const backendProfileTime = ['--profiling-time', String(args.debug.profileTime)]
   const backendProfileOpts =
@@ -323,18 +314,23 @@ function createProjectService(args: Options) {
   const backendJvmOpts = args.useJvm ? ['--jvm'] : []
   const backendOpts = [...backendVerboseOpts, ...backendProfileOpts, ...backendJvmOpts]
 
-  return setupProjectService(backendOpts)
+  return setupProjectService(backendOpts, electron, electronIsDev)
 }
 
 /** Start the content server, which will serve the application content (HTML) to the window. */
-async function startContentServerIfEnabled(app: App, args: Options) {
+async function startContentServerIfEnabled(
+  app: App,
+  args: Options,
+  electron: Electron,
+  electronIsDev: boolean,
+) {
   if (!args.useServer) return
   console.log('Starting the content server.')
   const serverCfg = new Config({
-    dir: ASSETS_PATH,
+    dir: assetsPath(electron),
     port: args.server.port,
   })
-  const projectService = createProjectService(args)
+  const projectService = createProjectService(args, electron, electronIsDev)
   app.server = await Server.create(serverCfg, projectService)
   console.log('Content server started.')
 }
@@ -348,7 +344,7 @@ async function createWindowIfEnabled(app: App, args: Options, electron: Electron
   }
   console.log('Creating the window.')
   const webPreferences: WebPreferences = {
-    preload: joinPath(APP_PATH, 'preload.mjs'),
+    preload: joinPath(appPath(electron), 'preload.mjs'),
     sandbox: true,
     spellcheck: false,
     ...(process.env.ENSO_TEST ? { partition: 'test' } : {}),
@@ -480,7 +476,7 @@ async function loadWindowContent(app: App, args: Options) {
 }
 
 /** Print the version of the frontend and the backend. */
-async function printVersion(): Promise<void> {
+async function printVersion(electron: Electron | undefined, electronIsDev: boolean): Promise<void> {
   const indent = '    '
   let maxNameLen = 0
   for (const name in VERSION_INFO) {
@@ -494,78 +490,36 @@ async function printVersion(): Promise<void> {
   }
   process.stdout.write('\n')
   process.stdout.write('Backend:\n')
-  const backend = await version()
+  const backend = await version(electron, electronIsDev)
   const lines = backend.split(/\r?\n/).filter((line) => line.length > 0)
   for (const line of lines) {
     process.stdout.write(`${indent}${line}\n`)
   }
 }
 
-/**
- * A function that gets localized text for a given key, with optional replacements.
- * @param key - The key of the text to get.
- * @param replacements - The replacements to insert into the text.
- * If the text contains placeholders like `$0`, `$1`, etc.,
- * they will be replaced with the corresponding replacement.
- */
-export type GetText = <K extends TextId>(key: K, ...replacements: Replacements[K]) => string
-
-const getText: GetText = (key, ...replacements) => {
-  return originalGetText(TEXTS.english, key, ...replacements)
-}
-
-async function createRemoteBackend() {
-  const accessToken = await getUpToDateAccessToken()
-  if (!accessToken) {
-    throw new Error('No access token found for remote backend.')
-  }
-  const sessionId = crypto.randomUUID()
-  const httpClient = new HttpClient({
-    'x-enso-ide-version': buildInfo.version,
-    'x-enso-session-id': sessionId,
-    /**
-     * For compatibility with backend versioned endpoints. The new project logs endpoint
-     * checks for date strings that are at least `2025-01-16`.
-     */
-    'x-enso-version': '2025-01-16',
-  })
-  httpClient.setSessionToken(accessToken)
-  const downloader = () => {
-    // TODO: implement downloading (low priority)
-    throw new Error('Downloading arbitrary URLs is not yet implemented.')
-  }
-  return new RemoteBackend({
-    getText,
-    client: httpClient,
-    downloader,
-    downloadCloudProject: (params) => downloadCloudProject(params.downloadUrl, params.projectId),
-    getProjectArchive: async (directoryId, fileName) => {
-      const parentDir = extractIdFromDirectoryId(directoryId)
-      const projectDir = path.join(parentDir, 'project_root')
-      const projectBundle = await createBundle(projectDir)
-      return new File([projectBundle], fileName)
-    },
-  })
-}
-
 /** Initialize and run the Electron application. */
-async function runApp(app: App, parsedArguments: ParsedArguments, electron: Electron | undefined) {
+async function runApp(
+  app: App,
+  parsedArguments: ParsedArguments,
+  electron: Electron | undefined,
+  electronIsDev: boolean,
+) {
   const { args, fileToOpen, urlToOpen } = parsedArguments
   process.on('uncaughtException', (err, origin) => {
     console.error(`Uncaught exception: ${err.toString()}\nException origin: ${origin}`)
     showErrorBox(PRODUCT_NAME, err.stack ?? err.toString(), electron)
     exit(1, electron)
   })
-  setupLogger()
+  setupLogger(electron)
   if (args.version) {
-    await printVersion()
+    await printVersion(electron, electronIsDev)
     return quit(electron)
   } else if (args.debug.info) {
     await electron?.app.whenReady()
     await printInfo()
     return quit(electron)
   } else if (electron) {
-    runElectronApp(electron, app, args, fileToOpen, urlToOpen)
+    runElectronApp(electron, electronIsDev, app, args, fileToOpen, urlToOpen)
   } else if (args.headless) {
     const projectToOpen = args.startup.project
     if (projectToOpen.startsWith(`${DEEP_LINK_SCHEME}:`)) {
@@ -592,11 +546,9 @@ async function runApp(app: App, parsedArguments: ParsedArguments, electron: Elec
 }
 
 const app = createApp()
-const clientArguments = parseClientArguments(process.argv)
+const electronIsDev =
+  process.argv.includes('--headless') ? false : (await import('electron-is-dev')).default
+const clientArguments = parseClientArguments(process.argv, electronIsDev)
 const parsedArguments = processArguments(clientArguments)
-if (parsedArguments.args.headless) {
-  void runApp(app, parsedArguments, undefined)
-} else {
-  const electron = await import('electron')
-  void runApp(app, parsedArguments, electron)
-}
+const electron = parsedArguments.args.headless ? undefined : await import('electron')
+void runApp(app, parsedArguments, electron, electronIsDev)

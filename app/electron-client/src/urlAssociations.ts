@@ -1,5 +1,4 @@
 /** @file URL associations for the IDE. */
-import electronIsDev from 'electron-is-dev'
 import * as common from 'enso-common/src/constants'
 
 type Electron = typeof import('electron')
@@ -13,7 +12,7 @@ type Electron = typeof import('electron')
  * It is also no-op on macOS, as the OS handles the URL opening by passing the `open-url` event to
  * the application, thanks to the information baked in our application by `electron-builder`.
  */
-export function registerAssociations(electron: Electron) {
+export function registerAssociations(electron: Electron, electronIsDev: boolean) {
   if (!electron.app.isDefaultProtocolClient(common.DEEP_LINK_SCHEME)) {
     if (process.platform === 'darwin') {
       // Registration is handled automatically there thanks to electron-builder.

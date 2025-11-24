@@ -24,6 +24,7 @@ import { tarFsPack, unzipEntries, zipWriteStream } from '@/archive'
 import { downloadCloudProject } from '@/assetManagement'
 import { BUNDLED_PROJECT_SUFFIX } from '@/fileAssociations'
 import * as paths from '@/paths'
+import * as electron from 'electron'
 import { app } from 'electron'
 import {
   type AnyAsset,
@@ -341,7 +342,9 @@ export class Server {
       // in contrast to all assets loaded by the window, which are loaded from `assets/` via
       // this server.
       const resourceFile =
-        resource === '/preload.mjs.map' ? paths.APP_PATH + resource : this.config.dir + resource
+        resource === '/preload.mjs.map' ?
+          paths.appPath(electron) + resource
+        : this.config.dir + resource
       for (const [header, value] of COOP_COEP_CORP_HEADERS) {
         response.setHeader(header, value)
       }

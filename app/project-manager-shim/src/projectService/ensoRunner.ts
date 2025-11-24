@@ -475,12 +475,20 @@ export function findEnsoExecutable(workDir: string = '.'): Path | undefined {
     return Path(filePath)
   }
 
-  let ensoExecutables: string[]
-  if (os.platform() === 'win32') {
-    ensoExecutables = ['enso.exe', 'enso.bat']
-  } else {
-    ensoExecutables = ['enso']
-  }
+  const ensoExecutables = (() => {
+    switch (os.platform()) {
+      case 'win32': {
+        return ['enso.exe', 'enso.bat']
+      }
+      case 'darwin': {
+        return ['Enso', 'enso']
+      }
+      case 'linux':
+      default: {
+        return ['enso']
+      }
+    }
+  })()
 
   // Check ENSO_RUNNER_PATH environment variable first
   const envPath = process.env.ENSO_RUNNER_PATH

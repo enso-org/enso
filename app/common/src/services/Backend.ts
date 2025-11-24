@@ -1855,7 +1855,7 @@ export abstract class Backend {
   /** Begin uploading a large file. */
   abstract uploadFileStart(
     params: UploadFileRequestParams,
-    file: File,
+    file: Blob,
     abort?: AbortSignal,
   ): Promise<UploadLargeFileMetadata>
   /** Upload a chunk of a large file. */

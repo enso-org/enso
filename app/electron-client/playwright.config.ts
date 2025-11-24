@@ -3,6 +3,7 @@ import { defineConfig } from 'playwright/test'
 
 export default defineConfig({
   testDir: './tests',
+  testIgnore: ['headless/**'],
   forbidOnly: !!process.env.CI,
   workers: 1,
   timeout: 180000,

@@ -1,6 +1,4 @@
 /** @file Commonly used functions for electron tests */
-/* eslint-disable no-empty-pattern */
-
 import { TEXTS } from 'enso-common/src/text'
 import fs from 'node:fs/promises'
 import os from 'node:os'
@@ -18,21 +16,32 @@ const LOADING_TIMEOUT = 10000
 const TEXT = TEXTS.english
 const TEST_USER_FILE = path.join(import.meta.dirname, '../playwright/.auth/user.json')
 
-const credentials = JSON.parse(
-  await fs.readFile(TEST_USER_FILE, { encoding: 'utf-8' }).catch((err) => {
-    throw Error('Cannot read Test User credentials.', { cause: err })
-  }),
-)
+export const credentials: { readonly user: string; readonly password: string } = await fs
+  .readFile(TEST_USER_FILE, { encoding: 'utf-8' })
+  .then(
+    (contents) => JSON.parse(contents),
+    (error) => {
+      throw new Error(`Cannot read Test User credentials from '${TEST_USER_FILE}'.`, {
+        cause: error,
+      })
+    },
+  )
+  .catch((error) => {
+    throw new Error(`Cannot parse Test User credentials from '${TEST_USER_FILE}'.`, {
+      cause: error,
+    })
+  })
 
-const electronExecutablePath = await (async () => {
-  const POSSIBLE_EXEC_PATHS = [
-    '../../../dist/ide/linux-unpacked/enso',
-    '../../../dist/ide/win-unpacked/Enso.exe',
-    '../../../dist/ide/mac/Enso.app/Contents/MacOS/Enso',
-    '../../../dist/ide/mac-arm64/Enso.app/Contents/MacOS/Enso',
-  ].map((p) => path.resolve(import.meta.dirname, p))
+export const electronExecutablePath = await (async () => {
   try {
-    const promises = POSSIBLE_EXEC_PATHS.map((p) => fs.access(p, fs.constants.X_OK).then(() => p))
+    const promises = [
+      '../../../dist/ide/linux-unpacked/enso',
+      '../../../dist/ide/win-unpacked/Enso.exe',
+      '../../../dist/ide/mac/Enso.app/Contents/MacOS/Enso',
+      '../../../dist/ide/mac-arm64/Enso.app/Contents/MacOS/Enso',
+    ]
+      .map((p) => path.resolve(import.meta.dirname, p))
+      .map((p) => fs.access(p, fs.constants.X_OK).then(() => p))
     return await Promise.any(promises)
   } catch {
     throw Error('Cannot find Enso package')
@@ -41,7 +50,6 @@ const electronExecutablePath = await (async () => {
 
 /**
  * Tests run on electron executable.
- *
  * Similar to playwright's test, but launches electron, and passes Page of the main window.
  */
 export const test = base.extend<{
@@ -50,7 +58,7 @@ export const test = base.extend<{
   app: ElectronApplication
   page: Page
 }>({
-  testRunId: async function ({}, use, testInfo) {
+  testRunId: async function (_, use, testInfo) {
     await use(`${testInfo.titlePath.join('-')}-${Date.now()}`)
   },
   projectsDir: async function ({ testRunId }, use) {
@@ -58,9 +66,7 @@ export const test = base.extend<{
     await use(projectsDir)
   },
 
-  /**
-   * Setup for all tests: Create an electron-based app instance.
-   */
+  /** Setup for all tests: Create an electron-based app instance. */
   app: async function ({ projectsDir, testRunId }, use) {
     const args = process.env.ENSO_TEST_APP_ARGS?.split(',') ?? []
     const app = await _electron.launch({
@@ -86,8 +92,8 @@ export const test = base.extend<{
 })
 
 /**
- * Login as test user. This function asserts that page is the login page, and uses
- * credentials from playwright/.auth/user.json file.
+ * Login as test user - assert that page is the login page, and use credentials from
+ * `playwright/.auth/user.json`.
  */
 export async function loginAsTestUser(page: Page) {
   // Login screen
@@ -111,9 +117,7 @@ export async function loginAsTestUser(page: Page) {
   await page.getByRole('button', { name: TEXT.accept }).click()
 }
 
-/**
- * The funcion creates a new Enso project
- */
+/** Create a new Enso project */
 export async function createNewProject(page: Page) {
   const newProjectTab = page.getByRole('button', { name: 'New Project', exact: true })
 
@@ -126,9 +130,7 @@ export async function createNewProject(page: Page) {
   await expect(tableViz).toContainText('Welcome To Enso!')
 }
 
-/**
- * If welcome project is to be opened, this function takes you back to your dashboard
- */
+/** If welcome project is to be opened, navigate back to the dashboard. */
 export async function closeWelcome(page: Page) {
   const welcomeProjectTab = page.getByRole('tab', { name: 'Getting Started with Enso' })
   await Promise.race([welcomeProjectTab.waitFor({ state: 'visible' }), page.waitForTimeout(3000)])

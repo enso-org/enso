@@ -908,7 +908,7 @@ export class RemoteBackend extends backend.Backend {
    */
   override async uploadFileStart(
     body: backend.UploadFileRequestParams,
-    file: File,
+    file: Blob,
     abort?: AbortSignal,
   ): Promise<backend.UploadLargeFileMetadata> {
     const path = remoteBackendPaths.UPLOAD_FILE_START_PATH
@@ -918,7 +918,7 @@ export class RemoteBackend extends backend.Backend {
     }
     const response = await this.post<backend.UploadLargeFileMetadata>(path, requestBody, { abort })
     if (!response.ok) {
-      return await this.throw(response, 'uploadFileStartBackendError')
+      return await this.throw(response, 'uploadFileStartBackendError', body.fileName)
     } else {
       return await response.json()
     }
@@ -957,7 +957,7 @@ export class RemoteBackend extends backend.Backend {
     const path = remoteBackendPaths.UPLOAD_FILE_END_PATH
     const response = await this.post<backend.UploadedAsset>(path, body, { abort })
     if (!response.ok) {
-      return await this.throw(response, 'uploadFileEndBackendError')
+      return await this.throw(response, 'uploadFileEndBackendError', body.fileName)
     } else {
       const result = await response.json()
       if (result.jobId != null) {
@@ -1407,7 +1407,7 @@ export class RemoteBackend extends backend.Backend {
       path,
     })
 
-    if (!response.ok) return this.throw(response, 'resolveEnsoPathBackendError')
+    if (!response.ok) return this.throw(response, 'resolveEnsoPathBackendError', path)
     const asset = await response.json()
     // `ensoPath` is currently necessary; the response (supposedly) does not include it.
     return this.normalizeAsset({ ...asset, ensoPath: path }, null)

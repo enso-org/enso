@@ -184,6 +184,10 @@ interface PlaceholderOverrides {
 
   readonly welcomeToTeam: [organizationName: string]
   readonly invitationText: [organizationName: string]
+
+  readonly resolveEnsoPathBackendError: [ensoPath: string]
+  readonly uploadFileStartBackendError: [fileName: string]
+  readonly uploadFileEndBackendError: [fileName: string]
 }
 
 // This is intentionally unused. This line throws an error if `PlaceholderOverrides` ever becomes

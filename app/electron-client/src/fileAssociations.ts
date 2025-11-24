@@ -6,16 +6,12 @@
  * process, and launching new instances of the IDE when necessary. The module also exports
  * constants related to file associations and project handling.
  */
+import type { Electron } from '@/electron'
+import type { Event } from 'electron'
+import * as common from 'enso-common/src/constants'
 import * as fsSync from 'node:fs'
 import * as pathModule from 'node:path'
-
-import * as electron from 'electron'
-import electronIsDev from 'electron-is-dev'
-
-import * as common from 'enso-common/src/constants'
-
 import * as project from 'project-manager-shim'
-
 import * as fileAssociations from '../fileAssociations'
 export * from '../fileAssociations'
 
@@ -49,7 +45,10 @@ export function getFileToOpen(clientArgs: readonly string[]): string | null {
 }
 
 /** Parse client arguments. */
-export function parseClientArguments(args: readonly string[]): readonly string[] {
+export function parseClientArguments(
+  args: readonly string[],
+  electronIsDev: boolean,
+): readonly string[] {
   if (electronIsDev) {
     // Client arguments are separated from the electron dev mode arguments by a '--' argument.
     const separator = '--'
@@ -82,7 +81,7 @@ export function isFileOpenable(path: string): boolean {
 }
 
 /** Callback called when a file is opened via the `open-file` event. */
-export function onFileOpened(event: electron.Event, path: string): string | null {
+export function onFileOpened(event: Event, path: string): string | null {
   console.log(`Received 'open-file' event for path '${path}'.`)
   if (isFileOpenable(path)) {
     console.log(`The file '${path}' is openable.`)
@@ -100,7 +99,10 @@ export function onFileOpened(event: electron.Event, path: string): string | null
  * if this IDE instance should load the project. See {@link onFileOpened} for more details.
  * @param setProjectToOpen - A function that will be called with the path of the project to open.
  */
-export function setOpenFileEventHandler(setProjectToOpen: (path: string) => void) {
+export function setOpenFileEventHandler(
+  setProjectToOpen: (path: string) => void,
+  electron: Electron,
+) {
   electron.app.on('open-file', (_event, path) => {
     console.log(`Opening file '${path}'.`)
     setProjectToOpen(path)
@@ -138,7 +140,7 @@ export function setOpenFileEventHandler(setProjectToOpen: (path: string) => void
  * @returns The ID of the project to open.
  * @throws {Error} if the project from the file cannot be opened or imported.
  */
-export function handleOpenFile(openedFile: string): project.ProjectInfo {
+export function handleOpenFile(openedFile: string, electron: Electron): project.ProjectInfo {
   try {
     const title = openedFile
       .split(pathModule.sep)
