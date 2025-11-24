@@ -29,7 +29,7 @@ export function arrayEquals<T>(
 /**
  * Equal function accepting only primitive values.
  *
- * Used in places where we wan't to raise typecheck error after changing some field's type
+ * Used in places where we want to raise typecheck error after changing some field's type
  * to one with nontrivial definition of equality.
  */
 export function primitiveEquals(
