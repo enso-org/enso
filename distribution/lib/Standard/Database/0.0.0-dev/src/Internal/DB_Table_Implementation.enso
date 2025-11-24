@@ -441,6 +441,7 @@ type DB_Table_Implementation
 
     join (this_table : Table & DB_Table) (right : Table) join_kind:Join_Kind (on : Join_Condition | Text | Vector (Join_Condition | Text)) (right_prefix : Text) on_problems:Problem_Behavior =
         Feature.Join.if_supported_else_throw this_table.connection.dialect "join" <|
+            if right.is_error then right
             if right.is_a DB_Table . not then Error.throw (Illegal_Argument.Error 'To join an in-memory table, load to the database connection first.')
             _join_or_cross_join this_table (right : Table & DB_Table) join_kind on right_prefix on_problems
 
@@ -452,6 +453,7 @@ type DB_Table_Implementation
             limit_problems = if row_limit.is_nothing || (right.row_count < row_limit) then [] else
                 [Cross_Join_Row_Limit_Exceeded.Error row_limit right.row_count]
             on_problems.attach_problems_before limit_problems <|
+                if right.is_error then right
                 if right.is_a DB_Table . not then Error.throw (Illegal_Argument.Error 'To join an in-memory table, load to the database connection first.')
                 _join_or_cross_join this_table (right : Table & DB_Table) join_kind=Join_Kind_Cross on=[] right_prefix on_problems
 
@@ -475,6 +477,7 @@ type DB_Table_Implementation
 
     union (this_table : Table & DB_Table) (tables : Table | Vector Table) columns_to_keep:Columns_To_Keep match_columns:Match_Columns on_problems:Problem_Behavior =
         Feature.Union.if_supported_else_throw this_table.connection.dialect "union" <|
+            if tables.any t-> t.is_error then tables.find t-> t.is_error
             if tables.any t-> t.is_a DB_Table . not then Error.throw (Illegal_Argument.Error 'To union an in-memory table, load to the database connection first.')
             all_tables = case tables of
                 v : Vector -> [this_table] + (v.map t-> (t : Table & DB_Table))
