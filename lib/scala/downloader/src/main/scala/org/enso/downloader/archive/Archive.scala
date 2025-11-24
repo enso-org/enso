@@ -135,7 +135,7 @@ object Archive {
     }
   }
 
-  // Some entries are created automatically by the underlying OS and should be ingored
+  // Some entries are created automatically by the underlying OS and should be ignored
   private def ignoreEntry(path: Path): Boolean = {
     org.enso.os.environment.Platform.getOperatingSystem().isMacOs() && path
       .startsWith("._")

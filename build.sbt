@@ -4546,8 +4546,8 @@ lazy val `jvm-interop` =
       ),
       Compile / internalModuleDependencies ++= Seq(
         (`jvm-channel` / Compile / exportedModule).value,
-        (`persistance` / Compile / exportedModule).value,
-        (`os-environment` / Compile / exportedModule).value
+        (`os-environment` / Compile / exportedModule).value,
+        (`persistance` / Compile / exportedModule).value
       )
     )
     .dependsOn(`jvm-channel`)
