@@ -44,6 +44,8 @@ polyglot java import java.io.IOException
 polyglot java import java.io.File as Java_File
 polyglot java import java.io.InputStream as Java_Input_Stream
 polyglot java import java.io.OutputStream as Java_Output_Stream
+polyglot java import java.nio.channels.ByteChannel
+polyglot java import java.nio.channels.FileChannel
 polyglot java import java.nio.file.attribute.BasicFileAttributes
 polyglot java import java.nio.file.InvalidPathException
 polyglot java import java.nio.file.Files as Java_Files

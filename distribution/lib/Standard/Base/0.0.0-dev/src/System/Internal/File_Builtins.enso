@@ -15,6 +15,7 @@ polyglot java import java.nio.file.Files as Java_Files
 polyglot java import java.nio.file.LinkOption as Java_LinkOption
 polyglot java import java.time.ZonedDateTime as Java_ZonedDateTime
 polyglot java import java.time.ZoneOffset as Java_ZoneOffset
+polyglot java import java.util.stream.Stream
 
 ## The builtin that returns a File instance for a given path.
 get_file path:Text =
