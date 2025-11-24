@@ -1,6 +1,5 @@
 from Standard.Base import all
 import Standard.Base.Errors.Common.Type_Error
-import Standard.Base.Metadata.Widget
 import Standard.Base.Runtime.Ref.Ref
 from Standard.Base.Metadata.Choice import Option
 

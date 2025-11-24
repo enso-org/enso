@@ -1,6 +1,4 @@
 from Standard.Base import all
-import Standard.Base.Enso_Cloud.Data_Link.Data_Link
-import Standard.Base.Errors.File_Error.File_Error
 import Standard.Base.Visualization.Table_Viz_Data.Table_Viz_Data
 import Standard.Base.Visualization.Table_Viz_Data.Table_Viz_Header
 from Standard.Base.Metadata.Choice import Option
@@ -225,42 +223,6 @@ type DuckDB_Connection
     read : (SQL_Query_With_Schema | SQL_Query) -> Rows_To_Read -> Table ! Table_Not_Found
     read self query:(SQL_Query_With_Schema | SQL_Query) (limit : Rows_To_Read = ..First_With_Warning 1000) =
         self.query query . read limit
-
-    ## ---
-       group: File
-       icon: data_input
-       aliases: [import, load, open, query, read]
-       ---
-       Reads a file into DuckDB and either returns as a query or an in-memory table.
-
-       ## Arguments
-        - `path`: The path to the file to read. Can be a local file path, or a
-          URI.
-        - `in_memory`: If set to `True`, the file is read into memory and
-          returned as a Table. If set to `False`, a query referencing the file
-          is returned. Defaults to `True`.
-
-       ## Returns
-       A `Table` with the content of the file. If in `in_memory` is set to
-       `False`, the returned table is a `DB_Table` referencing the table in
-       DuckDB, otherwise the rows are read to an In-Memory table.
-    read_file : Text | URI | File -> Boolean -> Any ! File_Error
-    read_file self path=(Missing_Argument.throw "path") in_memory:Boolean=True = case path of
-        _ : Text ->
-            resolved = URI.parse_if_http path . if_nothing <| File.new path
-            self.read_file resolved in_memory
-        _ : URI ->
-            ## Download the file following data links if needed.
-            raw_response = Data.fetch path format=Raw_Response
-            case Data_Link.is_data_link_from_metadata raw_response.body.metadata then
-                True ->
-                    data_link = Data_Link_Helpers.interpret_json_as_data_link response.decode_as_json
-                False ->
-        _ : File ->
-            ## Already a native file
-
-        _ ->
-            ## Something file like.
 
     ## ---
        group: Standard.Base.Output
