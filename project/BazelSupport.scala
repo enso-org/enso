@@ -24,6 +24,7 @@ object BazelSupport extends AutoPlugin {
   val YDOC_SERVER_POLYGLOT_MAIN_JS =
     "enso.BazelSupport.ydocServer.polyglotMainJs"
   val C_COMPILER_PATH                 = "enso.BazelSupport.CCompilerPath"
+  val ZLIB_PATH                       = "enso.BazelSupport.zlib"
 
   object autoImport {
     lazy val wasStartedFromBazel = settingKey[Boolean](
@@ -55,6 +56,9 @@ object BazelSupport extends AutoPlugin {
     )
     lazy val cCompilerPath = taskKey[File](
       "Path to the C Compiler. Will be passed to native-image via `-H:CCompilerPath`."
+    )
+    lazy val zlibPath = taskKey[File](
+      "Path to the Zlib static library. Will be passed to native-image via `-H:CLibraryPath`."
     )
     lazy val ydocServerPolyglotMainJs = taskKey[File](
       "Path to the ydoc-server polyglot main JS file."
@@ -191,6 +195,23 @@ object BazelSupport extends AutoPlugin {
           )
         }
         compiler
+      },
+      Bazel / zlibPath := {
+        val logger = streams.value.log
+        val prop   = System.getProperty(ZLIB_PATH)
+        if (prop == null) {
+          logger.error(
+            s"Zlib path not set in ${ZLIB_PATH} property."
+          )
+        }
+        val zlib = new File(prop)
+        if (!zlib.exists()) {
+          logger.warn(
+            s"Zlib not found at $zlib. " +
+            "Make sure to provide a valid Zlib."
+          )
+        }
+        zlib
       }
     )
   }

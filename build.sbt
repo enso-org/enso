@@ -2041,6 +2041,7 @@ lazy val `ydoc-server` = project
         .buildNativeImage(
           "ydoc",
           staticOnLinux = false,
+          additionalOptions = if ((Bazel / wasStartedFromBazel).value) Seq(s"-H:CLibraryPath=${(Bazel / zlibPath).value.getAbsolutePath}", "-H:+StaticExecutableWithDynamicLibC") else Seq.empty,
           targetDir     = target.value / "native-image",
           mainClass     = Some("org.enso.ydoc.server.Main")
         )
@@ -4054,6 +4055,14 @@ lazy val `engine-runner` = project
         } else {
           Seq()
         }
+        val zlibOpts = if ((Bazel / wasStartedFromBazel).value) {
+          Seq(
+            "-H:CLibraryPath=" + (Bazel / zlibPath).value.getAbsolutePath,
+            // "-H:+StaticExecutableWithDynamicLibC"
+          )
+        } else {
+          Seq()
+        }
         val mp = (Runtime / modulePath).value.map(_.getAbsolutePath)
         NativeImage
           .buildNativeImage(
@@ -4084,7 +4093,7 @@ lazy val `engine-runner` = project
               "--add-opens=org.graalvm.nativeimage.builder/com.oracle.svm.core.jdk=ALL-UNNAMED",
               // Snowflake uses Apache Arrow (equivalent of #9664 in native-image setup)
               "--add-opens=java.base/java.nio=ALL-UNNAMED"
-            ) ++ enableHeapDumpOpts ++ debugOpts ++ cCompilerOpts,
+            ) ++ enableHeapDumpOpts ++ debugOpts ++ cCompilerOpts ++ zlibOpts,
             mainModule = Some("org.enso.runner"),
             mainClass  = Some("org.enso.runner.Main"),
             initializeAtRuntime = Seq(

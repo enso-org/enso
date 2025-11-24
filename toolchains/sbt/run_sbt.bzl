@@ -15,6 +15,7 @@ load(
 )
 load("@bazel_tools//tools/cpp:toolchain_utils.bzl", "find_cpp_toolchain")
 load("@rules_cc//cc/common:cc_common.bzl", "cc_common")
+load("@rules_cc//cc/common:cc_info.bzl", "CcInfo")
 load("@rules_java//java/common:java_common.bzl", "java_common")
 
 def _run_sbt_impl(ctx):
@@ -42,11 +43,28 @@ def _run_sbt_impl(ctx):
     else:
         envs["PATH"] = native_toolchain.env["PATH"]
 
-    inputs = depset(ctx.files.srcs, transitive = [java_runtime.files, cc_deps])
     system_props = [
         "-Denso.BazelSupport.outDir=" + out_dir.path,
         "-Denso.BazelSupport.CCompilerPath=" + cc_path,
     ]
+
+    direct_inputs = [] + ctx.files.srcs
+    if CcInfo in ctx.attr._zlib and ctx.target_platform_has_constraint(ctx.attr._linux_constraint[platform_common.ConstraintValueInfo]):
+        linking_context = ctx.attr._zlib[CcInfo].linking_context
+        linker_inputs = linking_context.linker_inputs.to_list()
+        libraries = linker_inputs[0].libraries
+        library = libraries[0]
+
+        static_library = library.pic_static_library
+        if not static_library:
+            static_library = library.static_library
+        zlib_static = ctx.actions.declare_file(ctx.attr.name + "_hermetic_libs/libz.a")
+        ctx.actions.symlink(output = zlib_static, target_file = static_library)
+        system_props.append("-Denso.BazelSupport.zlib=" + zlib_static.dirname)
+        direct_inputs.append(zlib_static)
+
+    inputs = depset(direct_inputs, transitive = [java_runtime.files, cc_deps])
+
     for p in ctx.attr.system_props:
         system_props = system_props + split_args(expand_variables(ctx, ctx.expand_location(p, targets = ctx.attr.srcs), outs = outputs))
 
@@ -102,6 +120,10 @@ run_sbt = rule(
         "_windows_constraint": attr.label(
             default = Label("@platforms//os:windows"),
         ),
+        "_linux_constraint": attr.label(
+            default = Label("@platforms//os:linux"),
+        ),
+        "_zlib": attr.label(providers = [[CcInfo]], default = Label("@zlib")),
     },
 )
 
@@ -113,14 +135,7 @@ def _resolve_native_toolchain(ctx):
     - `env`: Environment to use; includes an assembled `PATH` for older rule invocations.
     - `execution_requirements`: Resolved link and compile requirements.
     - `transitive_inputs`: Transitive inputs of cc_toolchain.
-
-    Args:
-        ctx: Context from the rule implementation.
-        transitive_inputs: List of transitive inputs (mutated).
-        is_windows: Whether the target (and hence execution) platform is Windows.
-
-    Returns:
-        Resulting struct; see method documentation for parameters."""
+    """
 
     # begin resolving native toolchains
     cc_toolchain = find_cpp_toolchain(ctx)
