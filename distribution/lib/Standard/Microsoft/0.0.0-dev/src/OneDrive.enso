@@ -13,7 +13,6 @@ type OneDrive
     ## ---
         icon: cloud
         ---
-
         Returns the root directory of the user's OneDrive.
 
         ## Arguments
@@ -25,8 +24,7 @@ type OneDrive
     ## ---
         icon: cloud
         ---
-
-        Returns the root directory of the user's OneDrive.
+        Return a list of a directory of the user's OneDrive.
 
         ## Arguments
         - `path`: A path to a file or folder in OneDrive.
