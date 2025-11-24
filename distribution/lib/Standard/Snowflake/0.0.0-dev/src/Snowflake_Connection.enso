@@ -48,8 +48,8 @@ type Snowflake_Connection
     ## ---
        private: true
        ---
-    dialect : Dialect
-    dialect = Snowflake_Dialect.snowflake
+    get_dialect : Dialect
+    get_dialect = Snowflake_Dialect.snowflake
 
     ## ---
        private: true
@@ -80,7 +80,7 @@ type Snowflake_Connection
            Our generator always quotes identifiers, so we can rely on the case sensitivity.
            This is the same as in Postgres.
         entity_naming_properties = Entity_Naming_Properties.from_jdbc_connection jdbc_connection is_case_sensitive=True
-        Snowflake_Connection.Value (Connection.new jdbc_connection Snowflake_Connection.dialect Snowflake_Type_Mapping entity_naming_properties data_link_setup) make_new
+        Snowflake_Connection.Value (Connection.new jdbc_connection Snowflake_Connection.get_dialect Snowflake_Type_Mapping entity_naming_properties data_link_setup) make_new
 
     ## ---
        private: true

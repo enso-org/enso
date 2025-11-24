@@ -33,8 +33,8 @@ type Postgres_Connection
     ## ---
        private: true
        ---
-    dialect : Dialect.Dialect
-    dialect = Postgres_Dialect.postgres
+    get_dialect : Dialect.Dialect
+    get_dialect = Postgres_Dialect.postgres
 
     ## ---
        private: true
@@ -59,7 +59,7 @@ type Postgres_Connection
            Our generator is supposed to always quote identifiers
         entity_naming_properties = Entity_Naming_Properties.from_jdbc_connection jdbc_connection encoding is_case_sensitive=True
 
-        Postgres_Connection.Value (Connection.new jdbc_connection Postgres_Connection.dialect Postgres_Type_Mapping entity_naming_properties data_link_setup) make_new
+        Postgres_Connection.Value (Connection.new jdbc_connection Postgres_Connection.get_dialect Postgres_Type_Mapping entity_naming_properties data_link_setup) make_new
 
     ## ---
        private: true
