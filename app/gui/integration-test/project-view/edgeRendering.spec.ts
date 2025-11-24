@@ -56,10 +56,10 @@ test('Hover behaviour of edges', async ({ editorPage, page }) => {
   const hoveredEdgeElements = await connectedEdgesFromNodeWithBinding(page, 'twenty')
   await expect(hoveredEdgeElements).toHaveCount(1)
 
-  // Expect the top edge part not to be dimmed
-  const topEdge = edgeElements.locator('path.edge').first()
-  await expect(topEdge).toHaveClass('edge define-node-colors visible dimmed hovered pending')
   // Expect the bottom edge part to be dimmed
-  const bottomEdge = edgeElements.locator('path.edge').last()
-  await expect(bottomEdge).toHaveClass('edge define-node-colors visible pending')
+  const bottomEdge = edgeElements.locator('path.edge').first()
+  await expect(bottomEdge).toHaveClass('edge define-node-colors visible dimmed hovered pending')
+  // Expect the bottom edge part to be dimmed
+  const topEdge = edgeElements.locator('path.edge').last()
+  await expect(topEdge).toHaveClass('edge define-node-colors visible pending')
 })
