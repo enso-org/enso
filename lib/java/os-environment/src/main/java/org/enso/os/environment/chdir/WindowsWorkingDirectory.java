@@ -1,7 +1,7 @@
 package org.enso.os.environment.chdir;
 
 import java.util.List;
-import org.enso.common.Platform;
+import org.enso.os.environment.Platform;
 import org.graalvm.nativeimage.c.CContext;
 import org.graalvm.nativeimage.c.function.CFunction;
 import org.graalvm.nativeimage.c.type.CCharPointer;

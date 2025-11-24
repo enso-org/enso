@@ -1,4 +1,4 @@
-package org.enso.common;
+package org.enso.os.environment;
 
 public enum Platform {
   LINUX,
@@ -28,7 +28,7 @@ public enum Platform {
       return WINDOWS;
     }
 
-    throw new IllegalStateException("Unknown Operrating System: '" + osName + "'");
+    throw new IllegalStateException("Unknown Operating System: '" + osName + "'");
   }
 
   public static Platform getOperatingSystem() {

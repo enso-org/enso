@@ -3,7 +3,7 @@ module org.enso.jvm.interop {
   requires org.enso.persistance;
   requires org.graalvm.truffle;
   requires org.enso.jvm.channel;
-  requires org.enso.engine.common;
+  requires org.enso.os.environment;
 
   exports org.enso.jvm.interop.api;
 

@@ -4,7 +4,7 @@ import static org.junit.Assume.assumeFalse;
 
 import java.io.IOException;
 import java.nio.file.Files;
-import org.enso.common.Platform;
+import org.enso.os.environment.Platform;
 import org.junit.Assert;
 import org.junit.Test;
 

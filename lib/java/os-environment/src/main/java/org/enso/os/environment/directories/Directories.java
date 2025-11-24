@@ -2,7 +2,7 @@ package org.enso.os.environment.directories;
 
 import java.io.IOException;
 import java.nio.file.Path;
-import org.enso.common.Platform;
+import org.enso.os.environment.Platform;
 
 /** Provides information about user directories. */
 public sealed interface Directories permits LinuxDirectories, MacOsDirectories, WindowsDirectories {

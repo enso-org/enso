@@ -247,7 +247,7 @@ public final class OtherJvmClassLoader implements TruffleObject, AutoCloseable {
 
   private static File findDynamicLibrary(File dir, String name) {
     var ext =
-        switch (org.enso.common.Platform.getOperatingSystem()) {
+        switch (org.enso.os.environment.Platform.getOperatingSystem()) {
           case LINUX -> ".so";
           case MACOS -> ".dylib";
           case WINDOWS -> ".dll";

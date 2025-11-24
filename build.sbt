@@ -4546,12 +4546,12 @@ lazy val `jvm-interop` =
       ),
       Compile / internalModuleDependencies ++= Seq(
         (`jvm-channel` / Compile / exportedModule).value,
-        (`engine-common` / Compile / exportedModule).value,
-        (`persistance` / Compile / exportedModule).value
+        (`persistance` / Compile / exportedModule).value,
+        (`os-environment` / Compile / exportedModule).value
       )
     )
     .dependsOn(`jvm-channel`)
-    .dependsOn(`engine-common`)
+    .dependsOn(`os-environment`)
     .dependsOn(`persistance-dsl` % "provided")
     .dependsOn(`test-utils` % Test)
 
@@ -5036,6 +5036,7 @@ lazy val downloader = (project in file("lib/scala/downloader"))
     )
   )
   .dependsOn(cli)
+  .dependsOn(`os-environment`)
   .dependsOn(`http-test-helper` % "test->test")
   .dependsOn(testkit % Test)
 

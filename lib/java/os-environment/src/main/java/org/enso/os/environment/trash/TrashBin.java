@@ -1,7 +1,7 @@
 package org.enso.os.environment.trash;
 
 import java.nio.file.Path;
-import org.enso.common.Platform;
+import org.enso.os.environment.Platform;
 
 /** Operations with system trash */
 public sealed interface TrashBin permits LinuxTrashBin, WindowsTrashBin, MacTrashBin {

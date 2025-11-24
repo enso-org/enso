@@ -16,7 +16,7 @@ import java.nio.file.StandardOpenOption;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
-import org.enso.common.Platform;
+import org.enso.os.environment.Platform;
 import org.graalvm.nativeimage.ImageInfo;
 import org.junit.AfterClass;
 import org.junit.Before;

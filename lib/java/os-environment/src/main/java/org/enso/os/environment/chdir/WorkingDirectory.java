@@ -1,6 +1,6 @@
 package org.enso.os.environment.chdir;
 
-import org.enso.common.Platform;
+import org.enso.os.environment.Platform;
 
 /**
  * Class responsible for changing the working directory via native code.

@@ -2,7 +2,7 @@ package org.enso.os.environment.chdir;
 
 import java.io.File;
 import java.util.List;
-import org.enso.common.Platform;
+import org.enso.os.environment.Platform;
 import org.graalvm.nativeimage.ImageInfo;
 import org.graalvm.nativeimage.c.CContext;
 import org.graalvm.nativeimage.c.constant.CConstant;
