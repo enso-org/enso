@@ -30,7 +30,7 @@ from Standard.Database.Internal.JDBC_Connection import JDBC_Connection
    The dialect for Redshift connections.
 redshift : Redshift_Dialect
 redshift =
-    Redshift_Dialect.Value Postgres_Connection.dialect.get_dialect_operations
+    Redshift_Dialect.Value Postgres_Connection.get_dialect.get_dialect_operations
 
 ## ---
    private: true
@@ -125,7 +125,7 @@ type Redshift_Dialect
           types, it should be set to `Nothing`.
     prepare_order_descriptor : Internal_Column -> Sort_Direction -> Nothing | Text_Ordering -> Order_Descriptor
     prepare_order_descriptor self internal_column sort_direction text_ordering =
-        Postgres_Connection.dialect.prepare_order_descriptor internal_column sort_direction text_ordering
+        Postgres_Connection.get_dialect.prepare_order_descriptor internal_column sort_direction text_ordering
 
     ## ---
        private: true
