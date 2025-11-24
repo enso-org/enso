@@ -11,10 +11,10 @@ import project.Errors.Common.Unsupported_Argument_Types
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Internal.Rounding_Helpers
 import project.Panic.Panic
-from project.Nothing import all
 from project.Data.Boolean import Boolean, False, True
 from project.Internal.Number_Builtins import all
 from project.Internal.Ordering_Helpers import Positive_Integer_Comparator
+from project.Nothing import all
 from project.Widget_Helpers import make_number_format_selector
 
 polyglot java import java.lang.Double
@@ -531,11 +531,11 @@ type Number
             if self < 0 then -1 else 0
 
     ## ---
-      aliases: [greater than]
-      group: Operators
-      icon: operators
-      ---
-      Checks if `self` is greater than `that`.
+       aliases: [greater than]
+       group: Operators
+       icon: operators
+       ---
+       Checks if `self` is greater than `that`.
     > self that = Comparable.> self=self that
 
     ## ---

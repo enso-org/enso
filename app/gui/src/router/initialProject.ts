@@ -163,7 +163,7 @@ async function uploadProjectArchive(
       fileId: null,
       filePath: Path(filePath),
     },
-    null!,
+    null,
   )
   const endMetadata = await localBackend.uploadFileEnd({
     ...metadata,

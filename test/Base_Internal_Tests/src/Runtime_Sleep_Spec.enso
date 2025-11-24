@@ -1,0 +1,44 @@
+from Standard.Base import all
+from Standard.Test import all
+import Standard.Base.Internal.Runtime_Helpers
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+
+add_specs suite_builder =
+    suite_builder.group "Runtime.sleep Tests" group_builder->
+
+        group_builder.specify "Negative value yields an error" <|
+            err = Runtime_Helpers.sleep -4
+            err . should_fail_with Illegal_Argument
+
+        group_builder.specify "One sleep up to 100ms" <|
+            sleeps = Vector.build \builder->
+                no_result = Runtime_Helpers.sleep sleep=builder.append 75
+                no_result.is_nothing . should_be_true
+
+            sleeps . should_equal [75]
+
+        group_builder.specify "Split into three sleeps" <|
+            sleeps = Vector.build \builder->
+                no_result = Runtime_Helpers.sleep sleep=builder.append 250
+                no_result.is_nothing . should_be_true
+
+            sleeps . should_equal [100, 100, 50]
+
+        group_builder.specify "Result is computed when waiting is over" <|
+            sleeps = Vector.build \builder->
+                size_after_waiting = Runtime_Helpers.sleep 400 result=(builder.length) sleep=builder.append
+                size_after_waiting . should_equal 4
+
+            sleeps . should_equal [100, 100, 100, 100]
+
+        group_builder.specify "sleep 0 calls sleep once" <|
+            sleeps = Vector.build \builder->
+                Runtime_Helpers.sleep 0 sleep=builder.append
+            sleeps . should_equal [0]
+
+main filter=Nothing =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter filter
+
+

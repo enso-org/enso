@@ -43,10 +43,15 @@ public final class JDBCProxy {
    * @param properties configuration for the connection
    * @param catalog the catalog to set on the connection, or null to not set it
    * @param schema the schema to set on the connection, or null to not set it
+   * @param initScript an initialization script to run when creating a database connection
    * @return a connection
    */
   public static Connection getConnectionWithCatalogSchema(
-      String url, List<HideableValue.KeyValuePair> properties, String catalog, String schema)
+      String url,
+      List<HideableValue.KeyValuePair> properties,
+      String catalog,
+      String schema,
+      String initScript)
       throws SQLException {
     // We need to manually register all the drivers because the DriverManager is not able
     // to correctly use our class loader, it only delegates to the platform class loader when
@@ -65,6 +70,11 @@ public final class JDBCProxy {
     }
     if (schema != null && !schema.isEmpty()) {
       rawConnection.setSchema(schema);
+    }
+
+    // Run the initialization script if provided.
+    if (initScript != null && !initScript.isEmpty()) {
+      rawConnection.createStatement().executeUpdate(initScript);
     }
 
     return switch (partitionedProperties.audited()) {

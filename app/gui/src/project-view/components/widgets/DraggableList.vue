@@ -483,13 +483,14 @@ const placeholderSizeProp = computed(() => `--placeholder-${props.axis}` as cons
 
 <style scoped>
 .DraggableList {
+  --base-height: var(--node-port-height);
   display: flex;
   list-style: none;
   --placeholder-x: 0;
   --placeholder-y: 0;
 
   &.axis-x {
-    align-items: center;
+    align-items: stretch;
     flex-direction: row;
   }
   &.axis-y {
@@ -544,13 +545,13 @@ div {
 .item {
   display: flex;
   flex-direction: row;
-  align-items: center;
+  align-items: stretch;
 }
 
 .draggableContent {
   display: flex;
   flex-direction: row;
-  align-items: center;
+  align-items: stretch;
 }
 
 .drop-area {
@@ -569,6 +570,8 @@ div {
 .handle {
   transition: color 0.2s ease;
   cursor: grab;
+  --icon-size: 16px;
+  margin: calc((var(--base-height) - var(--icon-size)) / 2) 0;
 
   &:hover {
     opacity: 0.5;
@@ -617,11 +620,11 @@ div {
 }
 
 .iconWrapper {
-  /* display: contents; */
   flex-direction: row;
   overflow: clip;
   display: flex;
   align-items: center;
+  height: var(--base-height);
   justify-content: flex-end;
   .axis-y &.axisAligned {
     flex-direction: column;

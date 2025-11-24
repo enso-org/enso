@@ -343,6 +343,7 @@ case object IgnoredBindings extends IRPass {
           fields = fields.map(resolvePattern(_, supply))
         )
       case literal: Pattern.Literal => literal
+      case bool: Pattern.Bool       => bool
       case typed @ Pattern.Type(name, _, _, _) =>
         if (isIgnore(name)) {
           val newName = supply

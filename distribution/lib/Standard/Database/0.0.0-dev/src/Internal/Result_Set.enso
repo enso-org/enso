@@ -1,8 +1,8 @@
 from Standard.Base import all
 
-from Standard.Table import Table, Value_Type
 import Standard.Table.Internal.Java_Problems
 import Standard.Table.Internal.Storage
+from Standard.Table import Table, Value_Type
 from Standard.Table.In_Memory_Table import from_java_table
 
 import project.SQL.SQL_Type

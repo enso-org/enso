@@ -73,15 +73,17 @@ case object Imports extends IRPass {
           .map { newName =>
             val parts = newName.parts
             if (parts.length == 2) {
-              ex.copy(
-                name = newName.copy(parts = parts :+ mainModuleName),
-                rename = computeRename(
-                  ex.rename,
-                  ex.onlyNames.nonEmpty,
-                  parts(1).asInstanceOf[Name.Literal]
+              ex.copyBuilder()
+                .name(newName.copy(parts = parts :+ mainModuleName))
+                .rename(
+                  computeRename(
+                    ex.rename,
+                    ex.onlyNames.nonEmpty,
+                    parts(1).asInstanceOf[Name.Literal]
+                  )
                 )
-              )
-            } else { ex.copy(name = newName) }
+                .build()
+            } else { ex.copyWithName(newName) }
           }
           .getOrElse(
             errors.ImportExport(
@@ -91,7 +93,7 @@ case object Imports extends IRPass {
           )
       case other => other
     }
-    ir.copyWithImportsAndExports(imports = newImports, exports = newExports)
+    ir.copyWithImportsAndExports(newImports, newExports)
   }
 
   /** Executes the pass on the provided `ir`, and returns a possibly transformed

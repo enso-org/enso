@@ -57,7 +57,9 @@ add_specs suite_builder configured_connection_details=get_configured_connection_
             config.with_connection conn->
                 conn.execute "insert into foo (a) values ('asdf')" . should_fail_with SQL_Error
 
-## PRIVATE
+## ---
+   private: true
+   ---
 type Postgres_JDBC_Config
     Value connection_details:Postgres
 

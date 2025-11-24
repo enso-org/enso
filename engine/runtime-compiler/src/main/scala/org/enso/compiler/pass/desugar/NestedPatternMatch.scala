@@ -348,6 +348,7 @@ case object NestedPatternMatch extends IRPass {
             )
         }
       case _: Pattern.Literal => false
+      case _: Pattern.Bool    => false
       case _: Pattern.Type    => false
       case _: errors.Pattern  => false
       case _: Pattern.Documentation =>

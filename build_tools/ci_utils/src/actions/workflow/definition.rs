@@ -94,11 +94,15 @@ pub fn setup_bazel_env() -> Step {
 pub fn setup_bazel() -> Step {
     Step {
         name: Some("Setup bazel environment".into()),
-        uses: Some("bazel-contrib/setup-bazel@0.13.0".into()),
+        uses: Some("bazel-contrib/setup-bazel@0.15.0".into()),
         with: Some(step::Argument::Other(BTreeMap::from([
             (
                 "output-base".to_string(),
                 Value::String(format!("${{{{ {} && 'c:/_bazel' || '' }}}}", is_windows_runner())),
+            ),
+            (
+                "bazelisk-version".to_string(),
+                Value::String("1.x".to_string()),
             ),
             (
                 "bazelrc".to_string(),

@@ -1,7 +1,7 @@
 import { useCurrentProject } from '$/components/WithCurrentProject.vue'
 import { useRightPanelData } from '$/providers/rightPanel'
 import type { ToValue } from '@/util/reactivity'
-import { ProjectId } from 'enso-common/src/services/Backend'
+import type { Asset, ProjectId } from 'enso-common/src/services/Backend'
 import { toValue } from 'vue'
 
 /**
@@ -20,6 +20,7 @@ export type ResourceContext = {
  */
 export interface ResourceContextSnapshot {
   project: ProjectId | undefined
+  asset: Asset | undefined
   basePathSegments: string[] | undefined
 }
 
@@ -27,6 +28,7 @@ export interface ResourceContextSnapshot {
 export function captureResourceContext(context: ResourceContext): ResourceContextSnapshot {
   return {
     project: toValue(context.project),
+    asset: toValue(context.asset),
     basePathSegments: toValue(context.basePathSegments),
   }
 }
@@ -41,6 +43,7 @@ export function useCurrentProjectResourceContext(): ResourceContext {
   if (currentProject != null) {
     return {
       project: () => currentProject.store.value.id,
+      asset: undefined,
       basePathSegments: () => {
         const fileName = currentProject.store.value.observedFileName
         if (fileName) return ['src', ...fileName.split('/')]
@@ -50,6 +53,7 @@ export function useCurrentProjectResourceContext(): ResourceContext {
   const rightPanel = useRightPanelData(true)
   return {
     project: () => rightPanel?.focusedProject,
+    asset: () => rightPanel?.focusedAsset,
     // We display documentation of `main` function, so image access is relative to the main module.
     basePathSegments: ['src', 'Main.enso'],
   }
