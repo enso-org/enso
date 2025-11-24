@@ -14,6 +14,14 @@ type Email_Provider
     private Value implementation
 
     ## ---
+       group: Web
+       icon: email
+       ---
+       Sends an email using the specified email provider.
+    send self email -> Any =
+        self.implementation.send email
+
+    ## ---
        private: true
        ---
        Show a dropdown of all known email providers
