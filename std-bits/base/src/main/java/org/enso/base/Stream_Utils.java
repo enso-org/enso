@@ -8,6 +8,28 @@ import java.util.Arrays;
 public final class Stream_Utils {
   private Stream_Utils() {}
 
+  /**
+   * No conversion conversion. When the argument is already {@link InputStream} there is no need for
+   * doing any further conversions.
+   *
+   * @param is
+   * @return the {@code is} itself
+   */
+  public static InputStream asInputStream(InputStream is) {
+    return is;
+  }
+
+  /**
+   * No conversion conversion. When the argument is already {@link OutputStream} there is no need
+   * for doing any further conversions.
+   *
+   * @param os
+   * @return the {@code is} itself
+   */
+  public static OutputStream asOutputStream(OutputStream os) {
+    return os;
+  }
+
   public static byte[] peek(InputStream stream, int n) throws IOException {
     assert n >= 0;
     assert stream.markSupported();
