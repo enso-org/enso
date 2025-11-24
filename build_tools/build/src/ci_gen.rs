@@ -765,23 +765,6 @@ pub fn ide_packaging() -> Result<Workflow> {
     Ok(workflow)
 }
 
-pub fn wasm_checks() -> Result<Workflow> {
-    let on = Event {
-        workflow_dispatch: Some(manual_workflow_dispatch()),
-        workflow_call: Some(default()),
-        ..default()
-    };
-    let mut workflow = Workflow {
-        name: "WASM Checks".into(),
-        concurrency: Some(concurrency("wasm-checks")),
-        on,
-        ..default()
-    };
-    workflow.add(PRIMARY_TARGET, job::WasmLint);
-    workflow.add(PRIMARY_TARGET, job::NativeTest);
-    Ok(workflow)
-}
-
 pub fn engine_checks() -> Result<Workflow> {
     let on = Event {
         workflow_dispatch: Some(manual_workflow_dispatch()),
@@ -1011,7 +994,6 @@ pub fn generate(
         (repo_root.engine_checks_nightly_yml.to_path_buf(), engine_checks_nightly()?),
         (repo_root.extra_nightly_tests_yml.to_path_buf(), extra_nightly_tests()?),
         (repo_root.ide_packaging_yml.to_path_buf(), ide_packaging()?),
-        (repo_root.wasm_checks_yml.to_path_buf(), wasm_checks()?),
         (repo_root.engine_benchmark_yml.to_path_buf(), engine_benchmark()?),
         (repo_root.std_libs_benchmark_yml.to_path_buf(), std_libs_benchmark()?),
         (repo_root.std_libs_labels_yml.to_path_buf(), stdlib_api_change_labels_workflow()?),
