@@ -334,7 +334,7 @@ sqlite_spec suite_builder prefix create_connection_func persistent_connector =
 
     materialize = .read
 
-    common_selection = Common_Table_Operations.Main.Test_Selection.Config supported_replace_params=SQLite_Connection.dialect.get_supported_replace_params run_advanced_edge_case_tests_by_default=True
+    common_selection = Common_Table_Operations.Main.Test_Selection.Config supported_replace_params=SQLite_Connection.get_dialect.get_supported_replace_params run_advanced_edge_case_tests_by_default=True
 
     ## For now `advanced_stats`, `text_shortest_longest` and
        `multi_distinct` remain disabled, because SQLite does not provide the

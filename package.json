@@ -21,6 +21,7 @@
   },
   "dependencies": {
     "@bazel/bazelisk": "^1.22.1",
+    "playwright": "catalog:",
     "tslib": "^2.8.1",
     "typescript": "catalog:"
   },

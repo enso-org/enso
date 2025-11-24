@@ -65,9 +65,7 @@ use ide_ci::github::release;
 use ide_ci::github::setup_octocrab;
 use ide_ci::global;
 use ide_ci::ok_ready_boxed;
-use ide_ci::programs::cargo;
 use ide_ci::programs::git;
-use ide_ci::programs::Cargo;
 use octocrab::models::ReleaseId;
 use std::time::Duration;
 use tokio::process::Child;
@@ -264,41 +262,6 @@ impl Processor {
         }
         .void_ok()
         .boxed()
-    }
-
-    pub fn handle_wasm(&self, wasm: arg::wasm::Target) -> BoxFuture<'static, Result> {
-        match wasm.command {
-            arg::wasm::Command::Test => {
-                let repo_root = self.repo_root.clone();
-                async move {
-                    Cargo
-                        .cmd()?
-                        .current_dir(&repo_root)
-                        .apply(&cargo::Command::Test)
-                        .apply(&cargo::Options::Workspace)
-                        // Color needs to be passed to tests themselves separately.
-                        // See: https://github.com/rust-lang/cargo/issues/1983
-                        .arg("--")
-                        .apply(&cargo::Color::Always)
-                        .run_ok()
-                        .await
-                }
-                .boxed()
-            }
-            arg::wasm::Command::Lint => {
-                let repo_root = self.repo_root.clone();
-                async move {
-                    Cargo
-                        .cmd()?
-                        .current_dir(&repo_root)
-                        .arg("fmt")
-                        .args(["--", "--check"])
-                        .run_ok()
-                        .await
-                }
-                .boxed()
-            }
-        }
     }
 
     pub fn handle_gui(&self, gui: arg::gui::Target) -> BoxFuture<'static, Result> {
@@ -780,7 +743,6 @@ pub async fn main_internal(config: Option<Config>) -> Result {
 
     let ctx: Processor = Processor::new(&cli).instrument(info_span!("Building context.")).await?;
     match cli.target {
-        Target::Wasm(wasm) => ctx.handle_wasm(wasm).await?,
         Target::Gui(gui) => ctx.handle_gui(gui).await?,
         Target::Runtime(runtime) => ctx.handle_runtime(runtime).await?,
         Target::Backend(backend) => ctx.handle_backend(backend).await?,
