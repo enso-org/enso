@@ -4836,7 +4836,8 @@ lazy val `std-benchmarks` = (project in file("std-bits/benchmarks"))
         (`runtime-benchmarks` / Compile / internalModuleDependencies).value
       runtimeBenchsDeps ++ Seq(
         (`bench-processor` / Compile / exportedModule).value,
-        (`benchmarks-common` / Compile / exportedModule).value
+        (`benchmarks-common` / Compile / exportedModule).value,
+        (`os-environment` / Compile / exportedModule).value
       )
     },
     Compile / addModules := Seq(
