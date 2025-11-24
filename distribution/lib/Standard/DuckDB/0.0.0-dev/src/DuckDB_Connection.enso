@@ -256,6 +256,11 @@ type DuckDB_Connection
                 True ->
                     data_link = Data_Link_Helpers.interpret_json_as_data_link response.decode_as_json
                 False ->
+        _ : File ->
+            ## Already a native file
+
+        _ ->
+            ## Something file like.
 
     ## ---
        group: Standard.Base.Output
