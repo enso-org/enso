@@ -22,10 +22,10 @@ public final class CurrentEnsoProject {
     if (!isCached) {
       Value ensoProject =
           EnsoMeta.callStaticModuleMethod("Standard.Base.Meta.Enso_Project", "enso_project");
-      Value namespace = invokeMemberOnMeta("namespace", ensoProject);
-      Value name = invokeMemberOnMeta("name", ensoProject);
-      Value root = invokeMemberOnMeta("root", ensoProject);
-      Value rootPath = root != null ? invokeMemberOnAtom("path", root) : null;
+      Value namespace = invokeMember("namespace", ensoProject);
+      Value name = invokeMember("name", ensoProject);
+      Value root = invokeMember("root", ensoProject);
+      Value rootPath = root != null ? invokeMember("path", root) : null;
       if (namespace == null || name == null || rootPath == null) {
         cached = null;
       } else {
@@ -38,18 +38,10 @@ public final class CurrentEnsoProject {
     return cached;
   }
 
-  private static Value invokeMemberOnMeta(String member, Value object, Object... args) {
+  private static Value invokeMember(String member, Value object, Object... args) {
     var meta = object.getMetaObject();
     if (meta.hasMember(member)) {
       return meta.invokeMember(member, object, args);
-    } else {
-      return null;
-    }
-  }
-
-  private static Value invokeMemberOnAtom(String member, Value atom, Object... args) {
-    if (atom.hasMember(member)) {
-      return atom.invokeMember(member, args);
     } else {
       return null;
     }
