@@ -126,7 +126,7 @@
                 "parameterTypes": []
             }
         ]
-    }
+    },
     {
         "name": "org.enso.base.enso_cloud.ExternalLibrarySecretHelper",
         "methods": [
