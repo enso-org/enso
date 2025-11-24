@@ -36,6 +36,13 @@
                 "port": { "type": "number" }
               }
             },
+            "languageServerYdocAddress": {
+              "type": "object",
+              "properties": {
+                "host": { "type": "string" },
+                "port": { "type": "number" }
+              }
+            },
             "projectName": { "type": "string" },
             "projectNormalizedName": { "type": "string" },
             "projectNamespace": { "type": "string" }

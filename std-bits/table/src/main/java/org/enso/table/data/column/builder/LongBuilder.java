@@ -67,9 +67,9 @@ class LongBuilder extends NumericBuilder implements BuilderForLong, BuilderWithR
   @Override
   public Builder retypeTo(StorageType<?> type) {
     if (Objects.equals(type, BigIntegerType.INSTANCE)) {
-      return BigIntegerBuilder.retypeFromLongBuilder(this);
+      return BigIntegerBuilder.retypeFromLongBuilder(this, this.problemAggregator);
     } else if (Objects.equals(type, FloatType.FLOAT_64)) {
-      return InferredDoubleBuilder.retypeFromLongBuilder(this);
+      return InferredDoubleBuilder.retypeFromLongBuilder(this, this.problemAggregator);
     } else if (Objects.equals(type, BigDecimalType.INSTANCE)) {
       return BigDecimalBuilder.retypeFromLongBuilder(this);
     } else {
@@ -136,6 +136,29 @@ class LongBuilder extends NumericBuilder implements BuilderForLong, BuilderWithR
     ensureSpaceToAppend();
     this.data[currentSize++] = value;
     return this;
+  }
+
+  @Override
+  public boolean isNothing(long index) {
+    if (index >= currentSize) {
+      throw new IndexOutOfBoundsException();
+    } else {
+      return isNothing.get((int) index);
+    }
+  }
+
+  @Override
+  public long getLong(long index) {
+    if (index >= currentSize) {
+      throw new IndexOutOfBoundsException();
+    } else {
+      return data[(int) index];
+    }
+  }
+
+  @Override
+  public long getCurrentCapacity() {
+    return data.length;
   }
 
   @Override

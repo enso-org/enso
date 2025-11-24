@@ -159,6 +159,7 @@ export project.Meta
 export project.Meta.Enso_Project.enso_project
 export project.Meta.Enso_Project.Project_Description
 
+export project.Network.Email.Email
 export project.Network.Extensions.fetch
 export project.Network.Extensions.post
 export project.Network.Extensions.to_uri

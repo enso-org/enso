@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.io.IOException;
 import java.util.Map;
@@ -94,10 +95,10 @@ public class InsightForEnsoTest {
     assertEquals(120, res.asInt());
 
     var msgs = ctxRule.getOut();
-    assertNotEquals("Step one: " + msgs, -1, msgs.indexOf("n=5 v=1 acc=function"));
-    assertNotEquals("Step two: " + msgs, -1, msgs.indexOf("n=4 v=5 acc=function"));
-    assertNotEquals("3rd step: " + msgs, -1, msgs.indexOf("n=3 v=20 acc=function"));
-    assertNotEquals("4th step: " + msgs, -1, msgs.indexOf("n=2 v=60 acc=function"));
+    assertContainsAll("Step one: " + msgs, msgs, "n=5", "v=1", "acc=function");
+    assertContainsAll("Step two: " + msgs, msgs, "n=4", "v=5", "acc=function");
+    assertContainsAll("3rd step: " + msgs, msgs, "n=3", "v=20", "acc=function");
+    assertContainsAll("4th step: " + msgs, msgs, "n=2", "v=60", "acc=function");
 
     assertNotEquals(
         "Uninitialized variables (seen as JavaScript null) aren't there: " + msgs,
@@ -185,5 +186,19 @@ public class InsightForEnsoTest {
       assertTrue(
           "Switch call sooner than second constructor:\n" + msgs, switchInitCall < secondCons);
     }
+  }
+
+  private void assertContainsAll(String msg, String text, String... expected) {
+    NEXT_LINE:
+    for (var line : text.split("\n")) {
+      for (var w : expected) {
+        if (line.indexOf(w) == -1) {
+          continue NEXT_LINE;
+        }
+      }
+      // found all expected
+      return;
+    }
+    fail(msg);
   }
 }

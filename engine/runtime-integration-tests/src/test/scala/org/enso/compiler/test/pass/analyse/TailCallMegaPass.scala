@@ -431,6 +431,7 @@ case object TailCallMegaPass extends IRPass {
             fields      = fields.map(analysePattern)
           )
       case literal: Pattern.Literal => literal
+      case bool: Pattern.Bool       => bool
       case tpePattern @ Pattern.Type(name, tpe, _, _) =>
         tpePattern
           .copy(

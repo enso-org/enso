@@ -276,6 +276,7 @@ type Snowflake_Dialect
         case feature of
             Feature.Generate_Rows -> False
             Feature.Add_Group_Number -> False
+            Feature.Spatial -> False
             _ -> True
 
     ## ---
@@ -335,6 +336,15 @@ type Snowflake_Dialect
     prepare_metadata_for_period : Date_Period | Time_Period -> Value_Type -> Any
     prepare_metadata_for_period self period operation_input_type =
         Date_Period_Metadata.Value period operation_input_type
+
+    ## ---
+       private: true
+       ---
+       Returns the set of all supported Replace_Params
+    get_supported_replace_params : Hashset Replace_Params
+    get_supported_replace_params self =
+        _ = self
+        supported_replace_params
 
     ## ---
        private: true

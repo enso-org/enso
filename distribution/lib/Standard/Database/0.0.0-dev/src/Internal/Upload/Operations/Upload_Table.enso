@@ -61,7 +61,7 @@ type Table_Upload_Operation
     ## Performs the actual data upload.
        This method should be called inside of `run_transaction_with_tables` block
        which had the `table_description` passed to it.
-    perform_upload self -> Table & DB_Table = self.internal_upload_callback Nothing
+    perform_upload self -> Table & DB_Table & Any = self.internal_upload_callback Nothing
 
 ## A helper to prepare an upload operation for a table.
 

@@ -308,6 +308,7 @@ case object UnusedBindings extends IRPass {
         } else pattern
       case literal: Pattern.Literal =>
         literal
+      case bool: Pattern.Bool  => bool
       case err: errors.Pattern => err
 
       case _: Pattern.Documentation =>

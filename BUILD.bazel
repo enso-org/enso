@@ -6,6 +6,11 @@ load("//:bazel_scripts/run_engine_distribution.bzl", "run_enso")
 load("//:bazel_scripts/stdlibs.bzl", "stdlib_source_patterns")
 load("//toolchains/sbt:run_sbt.bzl", "run_sbt")
 
+exports_files([
+    ".node-version",
+    "build-config.yaml",
+])
+
 npm_link_all_packages()
 
 ts_config(
