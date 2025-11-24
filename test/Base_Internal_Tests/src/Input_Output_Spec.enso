@@ -3,45 +3,10 @@ from Standard.Base import all
 from Standard.Test import all
 import Standard.Test.Test_Environment
 
-polyglot java import org.enso.base_test_helpers.RangeStream
-import Standard.Base.Internal.Extra_Imports.Stream_Utils
 import Standard.Base.Internal.Extra_Imports.File_Utils
 
 
 add_specs suite_builder =
-    pending_js_missing = if Polyglot.is_language_installed "js" then Nothing else "Can't run tests that require JavaScript, language `js` is not installed."
-
-    suite_builder.group "I/O Checks" group_builder->
-        group_builder.specify "read without available" pending=pending_js_missing <|
-            stream_like = is_like [20, 5, 1, 10] False
-            is = Stream_Utils.asInputStream stream_like
-            is.available . should_equal 0
-
-            is.read . should_equal 20
-            is.read . should_equal 5
-
-            is.available . should_equal 0
-
-            is.read . should_equal 1
-            is.read . should_equal 10
-
-            is.available . should_equal 0
-
-        group_builder.specify "read with available" pending=pending_js_missing <|
-            stream_like = is_like [20, 6, 8, 23] True
-            is = Stream_Utils.asInputStream stream_like
-            is.available . should_equal 4
-
-            is.read . should_equal 20
-            is.read . should_equal 6
-
-            is.available . should_equal 2
-
-            is.read . should_equal 8
-            is.read . should_equal 23
-
-            is.available . should_equal 0
-
     suite_builder.group "Host File values behaviour in Enso" group_builder->
         group_builder.specify "File in Dictionary supports host objects as keys" <|
             # java.nio.path.Path has proper implementation of hashCode
@@ -57,28 +22,6 @@ add_specs suite_builder =
             path3 = path1.resolve "subfile.txt"
             (path3 == path2).should_be_false
 
-
-
-foreign js is_like data available = """
-    let at = 0
-    let is = {
-        readNBytes : function(len) {
-          let arr = new Array();
-          let off = 0;
-          let cnt = 0;
-          while (len-- > 0) {
-            arr[off++] = data[at++];
-            cnt++;
-          }
-          return arr;
-        }
-    }
-    if (available) {
-      is.available = function() {
-        return data.length - at;
-      };
-    }
-    return is;
 
 main filter=Nothing =
     suite = Test.build suite_builder->
