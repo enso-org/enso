@@ -29,7 +29,6 @@ import project.Network.HTTP.HTTP_Method.HTTP_Method
 import project.Network.HTTP.Request_Body.Request_Body
 import project.Network.HTTP.Request_Error
 import project.Network.URI.URI
-import project.Nothing.Nothing
 import project.Runtime
 import project.Runtime.Context
 import project.System.File.File
@@ -39,6 +38,7 @@ from project.Error import all
 from project.Meta.Enso_Project import enso_project
 from project.Metadata.Choice import Option
 from project.Metadata.Widget import File_Browse, Folder_Browse, Numeric_Input, Text_Input, Vector_Editor
+from project.Nothing import all
 from project.System.File_Format import Auto_Detect, File_Format
 
 ## ---
