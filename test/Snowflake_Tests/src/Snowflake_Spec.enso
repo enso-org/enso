@@ -164,9 +164,9 @@ snowflake_specific_spec suite_builder default_connection db_name setup =
             tables.at "Name" . to_vector . at 0 . should_equal data.tinfo
             tables.at "Type" . to_vector . at 0 . should_equal "TABLE"
 
-            data.connection.tables "TestT_ble%" . row_count . should_equal 1
-            data.connection.tables "Temporary%ble%" . row_count . should_equal 1
-            data.connection.tables "Temporary%ble%" . at "Type" . to_vector . should_equal ["TEMPORARY"]
+            table_name_filter = data.temporary_table.replace "TemporaryTable" "T_mporary%ble%"
+            data.connection.tables table_name_filter . row_count . should_equal 1
+            data.connection.tables table_name_filter . at "Type" . to_vector . should_equal ["TEMPORARY"]
             data.connection.tables "N_nexistent%" . row_count . should_equal 0
 
         group_builder.specify "should be able to filter tables by type" <|
