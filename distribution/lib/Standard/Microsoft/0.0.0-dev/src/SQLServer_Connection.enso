@@ -36,8 +36,8 @@ type SQLServer_Connection
     ## ---
        private: true
        ---
-    dialect : Dialect
-    dialect = SQLServer_Dialect.sqlserver
+    get_dialect : Dialect
+    get_dialect = SQLServer_Dialect.sqlserver
 
     ## ---
        private: true
@@ -58,7 +58,7 @@ type SQLServer_Connection
         ## jdbc reports table name length limit as 128, but it actually seems to be 116 for temp tables so we override it
         limited = Encoding_Limited_Naming_Properties.Instance Encoding.utf_8 limit=116 is_case_sensitive=True
         modified_entity_naming_properties = Entity_Naming_Properties.Value for_table_names=limited for_column_names=jdbc_entity_naming_properties.for_column_names for_generated_column_names=jdbc_entity_naming_properties.for_generated_column_names
-        SQLServer_Connection.Value (Connection.new jdbc_connection SQLServer_Connection.dialect SQLServer_Type_Mapping modified_entity_naming_properties data_link_setup) make_new
+        SQLServer_Connection.Value (Connection.new jdbc_connection SQLServer_Connection.get_dialect SQLServer_Type_Mapping modified_entity_naming_properties data_link_setup) make_new
 
     ## ---
        private: true

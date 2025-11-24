@@ -720,7 +720,7 @@ add_postgres_specs suite_builder create_connection_fn db_name =
 
     materialize = .read
 
-    common_selection = Common_Table_Operations.Main.Test_Selection.Config supported_replace_params=Postgres_Connection.dialect.get_supported_replace_params run_advanced_edge_case_tests_by_default=True
+    common_selection = Common_Table_Operations.Main.Test_Selection.Config supported_replace_params=Postgres_Connection.get_dialect.get_supported_replace_params run_advanced_edge_case_tests_by_default=True
     aggregate_selection = Common_Table_Operations.Aggregate_Spec.Test_Selection.Config first_last_row_order=False aggregation_problems=False
     agg_in_memory_table = (enso_project.data / "data.csv") . read
 

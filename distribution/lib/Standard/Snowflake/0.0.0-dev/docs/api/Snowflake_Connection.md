@@ -10,7 +10,6 @@
     - database self -> Standard.Base.Any.Any
     - databases self -> Standard.Base.Any.Any
     - default_formatter self -> Standard.Table.Data_Formatter.Data_Formatter
-    - dialect -> Standard.Base.Any.Any
     - dialect self -> Standard.Base.Any.Any
     - drop_table self table_name:Standard.Base.Any.Any if_exists:Standard.Base.Any.Any= -> Standard.Base.Any.Any
     - execute self query:Standard.Base.Any.Any -> Standard.Base.Any.Any
@@ -20,6 +19,7 @@
     - file_format_names self -> Standard.Base.Any.Any
     - file_format_properties self file_format:Standard.Snowflake.Identifier.Identifier= -> Standard.Base.Any.Any
     - file_formats self schema:Standard.Base.Data.Text.Text= pattern:Standard.Base.Data.Text.Text= -> Standard.Base.Any.Any
+    - get_dialect -> Standard.Base.Any.Any
     - get_from_stage self stage:Standard.Snowflake.Identifier.Identifier= path:Standard.Base.Data.Text.Text= directory:Standard.Base.Any.Any= pattern:Standard.Base.Data.Text.Text= ~if_not_found:Standard.Base.Any.Any= -> Standard.Base.Any.Any
     - jdbc_connection self -> Standard.Base.Any.Any
     - list_stage_objects self stage:Standard.Snowflake.Identifier.Identifier= path:Standard.Base.Data.Text.Text= limit:Standard.Table.Rows_To_Read.Rows_To_Read= -> Standard.Base.Any.Any
