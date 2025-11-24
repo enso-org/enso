@@ -36,7 +36,7 @@
  *** Node graph core variables ***
  *********************************/
 :root {
-  /** Minimum height of a node "pill" shape. Ports might be higher when widgets demand it. */
+  /** Minimum height of a node "pill" shape. Nodes might be higher when widgets demand it. */
   --node-base-height: 32px;
   /** The minimum height of a port widget. Ports might be higher when widgets inside them demand it. */
   --node-port-height: 24px;
@@ -186,6 +186,41 @@
     outline: none;
     background-color: var(--color-widget-focus);
   }
+}
+
+/** 
+ * A class of widgets containing subwidgets 
+ *
+ * This class will provide standard widget layout for its children (using flexbox), and expands 
+ * itself if any subwidget is expanded.
+ *
+ * To make expanding widgets working correctly, every DOM element containing subwidget should 
+ * have this class or its equivalent.
+ */
+.widgetParent {
+  display: flex;
+  flex-direction: row;
+  align-items: start;
+  justify-content: center;
+  min-height: var(--node-port-height);
+
+  &:has(.widgetExpanded) {
+    align-self: stretch;
+  }
+}
+
+/** Class for widget's DOM containers aligning their contents to widget tree baseline. */
+.widgetSingleLine {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  height: var(--node-port-height);
+}
+
+/** A class for widgets which want to expand their height to the entire node */
+.widgetExpanded {
+  align-self: stretch;
 }
 
 /* Scrollbar style definitions for textual visualizations which need support for scrolling.

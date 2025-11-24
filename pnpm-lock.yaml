@@ -66,6 +66,9 @@ importers:
       '@bazel/bazelisk':
         specifier: ^1.22.1
         version: 1.25.0
+      playwright:
+        specifier: 'catalog:'
+        version: 1.54.1
       tslib:
         specifier: ^2.8.1
         version: 2.8.1

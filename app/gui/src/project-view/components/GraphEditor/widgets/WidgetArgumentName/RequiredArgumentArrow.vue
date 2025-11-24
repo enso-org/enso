@@ -28,17 +28,19 @@ const emit = defineEmits<{
 .WidgetPortArrow {
   position: absolute;
   color: var(--color-missing-value);
-  top: -16px;
+  top: -14px;
   left: 50%;
-  transform: translateX(-50%) scale(0.5);
+  width: 12px;
+  height: 9px;
+  transform: translateX(-50%);
   transition: transform 0.2s ease;
   fill: currentColor;
   &:hover {
-    transform: translateX(-50%) translateY(-2px) scale(0.6);
+    transform: translateX(-50%) scale(1.1);
   }
 
   &.hide {
-    color: rgba(0, 0, 0, 0);
+    opacity: 0;
   }
 
   svg {

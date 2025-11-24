@@ -1,0 +1,91 @@
+from Standard.Base import all
+import Standard.Base.Errors.Common.Type_Error
+import Standard.Base.Runtime.Ref.Ref
+
+import project.Internal.Widget_Helpers
+import project.Join_Condition.Join_Condition
+import project.Table.Table
+
+## Extension methods for Spatial Tables
+type Spatial_Table
+    private Table parent:Table
+
+## ---
+   private: true
+   ---
+Spatial_Table.from (that:Table) = Spatial_Table.Table that
+
+## ---
+   private: true
+   ---
+Table.from (that:Spatial_Table) = that.parent
+
+## Additional join kind for Spatial Table joins
+type Spatial_Join_Condition
+    ## Do the left and right spatial objects have at least one point in common.
+    Intersect (left : Text | Integer = Missing_Argument.throw "left") (right : Text | Integer = "")
+
+    ## Does the whole of the right object lie inside the left object.
+    Contains (left : Text | Integer = Missing_Argument.throw "left") (right : Text | Integer = "")
+
+    ## Does the whole of the right object lie inside the left object not
+       touching the boundary.
+    Contains_Properly (left : Text | Integer = Missing_Argument.throw "left") (right : Text | Integer = "")
+
+    ## Does the whole of the left object lie inside the right object
+       (equivalent to `Contains right left`).
+    Within (left : Text | Integer = Missing_Argument.throw "left") (right : Text | Integer = "")
+
+    ## Does left object overlap right object.
+    Overlaps (left : Text | Integer = Missing_Argument.throw "left") (right : Text | Integer = "")
+
+    ## Does left object touch right object.
+    Touches (left : Text | Integer = Missing_Argument.throw "left") (right : Text | Integer = "")
+
+    ## Does left object crosses right object.
+    Crosses (left : Text | Integer = Missing_Argument.throw "left") (right : Text | Integer = "")
+
+    ## Does left object cover right object.
+    Covers (left : Text | Integer = Missing_Argument.throw "left") (right : Text | Integer = "")
+
+    ## Is left object covered by right object.
+    Covered_By (left : Text | Integer = Missing_Argument.throw "left") (right : Text | Integer = "")
+
+    ## Resolves Spatial_Join_Condition into Join_Conditions
+       Used by Table.join when joining Spatial_Tables.
+
+       ## Arguments
+       - `on`: A single Spatial_Join_Condition, Join_Condition, Text or a
+          Vector of them.
+
+       ## Returns
+       A pair where:
+       - First element is a Boolean indicating if any `Spatial_Join_Condition`
+         was present in the input.
+       - Second element is a Vector of Join_Condition representing the resolved
+         conditions.
+    private resolve on:(Vector (Spatial_Join_Condition | Join_Condition | Text) | Text | Join_Condition | Spatial_Join_Condition) =
+        any_spatial = Ref.new False
+        result = Vector.unify_vector_or_element on . map jc->
+            if jc.is_a Function . not then Join_Condition.from jc else
+                sjc = Panic.catch Type_Error handler=_->jc <|
+                    spatial_join = jc:Spatial_Join_Condition
+                    any_spatial.put True
+                    spatial_join
+                sjc
+        [any_spatial.get, result]
+
+
+## ---
+   private: true
+   ---
+Join_Condition.from (that:Spatial_Join_Condition) = case that of
+    Spatial_Join_Condition.Intersect left right -> Join_Condition.Custom_SQL "ST_Intersects" left right
+    Spatial_Join_Condition.Contains left right -> Join_Condition.Custom_SQL "ST_Contains" left right
+    Spatial_Join_Condition.Contains_Properly left right -> Join_Condition.Custom_SQL "ST_ContainsProperly"  left right
+    Spatial_Join_Condition.Within left right -> Join_Condition.Custom_SQL "ST_Within" left right
+    Spatial_Join_Condition.Overlaps left right -> Join_Condition.Custom_SQL "ST_Overlaps" left right
+    Spatial_Join_Condition.Touches left right -> Join_Condition.Custom_SQL "ST_Touches" left right
+    Spatial_Join_Condition.Crosses left right -> Join_Condition.Custom_SQL "ST_Crosses" left right
+    Spatial_Join_Condition.Covers left right -> Join_Condition.Custom_SQL "ST_Covers" left right
+    Spatial_Join_Condition.Covered_By left right -> Join_Condition.Custom_SQL "ST_CoveredBy" left right

@@ -36,8 +36,8 @@ Table.build_ai_prompt self =
     base_prompt + '\n' + columns + goal_line
 
 ## TODO [ao]: commented, because it caused weird responses in GUI - see https://github.com/enso-org/enso/issues/9518
-## ## PRIVATE
 ## Any.build_ai_prompt self = "````"
+
 ## ---
    private: true
    ---
