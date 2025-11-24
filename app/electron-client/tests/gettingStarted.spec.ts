@@ -143,7 +143,7 @@ test('Exercise 1', async ({ page, projectsDir }) => {
 })
 
 // Second exercise in Enso Analytics 101
-test.only('Exercise 2', async ({ page }) => {
+test('Exercise 2', async ({ page }) => {
   await loginAsTestUser(page)
   await closeWelcome(page)
 

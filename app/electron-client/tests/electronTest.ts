@@ -231,10 +231,12 @@ export async function waitForDownload(pathToFile: string): Promise<void> {
   }
 }
 
+/** Open drop-down menu in WidgetSelection with given label. */
 export function openDropdownInWidget(page: Page, label: string) {
-  return page.locator('.WidgetSelection:has(.arrow)', { hasText: new RegExp(`^${label}$`) }).click()
+  return page.locator('.WidgetSelection', { hasText: new RegExp(`^${label}$`) }).click()
 }
 
+/** Find and click + button in an empty Vector Widget inside provided locator. */
 export function addFirstElementToWidgetVector(locator: Locator) {
   return locator.getByRole('list').filter({ hasText: /^$/ }).getByLabel('Add a new item').click()
 }
