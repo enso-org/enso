@@ -8,6 +8,7 @@ module org.enso.downloader {
   requires org.enso.cli;
   // For com.typesafe.scalalogging.Logger
   requires org.enso.scala.wrapper;
+  requires org.enso.os.environment;
 
   requires org.slf4j;
 
