@@ -20,7 +20,6 @@ import Standard.Database.Dialects.Feature.Feature
 import Standard.Database.Internal.Base_Generator
 import Standard.Database.Internal.Common.Database_Distinct_Helper
 import Standard.Database.Internal.Common.Database_Join_Helper
-import Standard.Database.Internal.Error_Mapper.Error_Mapper
 import Standard.Database.Internal.Internals_Access
 import Standard.Database.Internal.IR.Internal_Column.Internal_Column
 import Standard.Database.Internal.IR.Nulls_Order.Nulls_Order
@@ -42,10 +41,7 @@ from Standard.Database.Internal.Base_Generator import lift_binary_op
 from Standard.Database.Internal.IR.Operation_Metadata import Date_Period_Metadata
 from Standard.Database.Internal.JDBC_Connection import JDBC_Connection
 
-import project.Internal.SQLServer_Error_Mapper.SQLServer_Error_Mapper
-
 polyglot java import java.sql.Types as Java_Types
-polyglot java import org.enso.database.JDBCUtils
 
 ## ---
    private: true
@@ -321,6 +317,7 @@ type SQLServer_Dialect
             Feature.Aggregate -> True
             Feature.Offset -> True
             Feature.Add_Group_Number -> True
+            Feature.Spatial -> False
             _ -> False
 
     ## ---
@@ -345,6 +342,8 @@ type SQLServer_Dialect
             Dialect_Flag.Case_Insensitive_Ordering_By_Default -> True
             Dialect_Flag.Allows_Mixed_Type_Comparisons -> False
             Dialect_Flag.Supports_Unicode_Normalization -> False
+            Dialect_Flag.Supports_Unicode_Casing -> True
+            Dialect_Flag.Supports_Proper_Casing -> False
             Dialect_Flag.NaN_Non_Comparable -> True
             Dialect_Flag.Distinct_Returns_First_Row_From_Group_If_Ordered -> True
             Dialect_Flag.Date_Time -> True
@@ -369,13 +368,6 @@ type SQLServer_Dialect
     default_table_types : Vector Text
     default_table_types self =
         ["TABLE", "VIEW", "TEMPORARY TABLE", "TEMPORARY VIEW", "MATERIALIZED VIEW"]
-
-    ## ---
-       private: true
-       ---
-    get_error_mapper : Error_Mapper
-    get_error_mapper self = SQLServer_Error_Mapper
-
     ## ---
        private: true
        ---
@@ -385,6 +377,15 @@ type SQLServer_Dialect
     prepare_metadata_for_period self period operation_input_type =
         if period == Time_Period.Nanosecond then Error.throw (Unsupported_Database_Operation.Error "Nanosecond precision date/times") else
             Date_Period_Metadata.Value period operation_input_type
+
+    ## ---
+       private: true
+       ---
+       Returns the set of all supported Replace_Params
+    get_supported_replace_params : Hashset Replace_Params
+    get_supported_replace_params self =
+        _ = self
+        supported_replace_params
 
     ## ---
        private: true

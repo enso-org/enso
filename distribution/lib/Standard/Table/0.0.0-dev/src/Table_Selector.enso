@@ -1,0 +1,71 @@
+from Standard.Base import all
+import Standard.Base.Errors.Common.Type_Error
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+
+import project.Internal.Problem_Builder.Problem_Builder
+import project.Table.Table
+import project.Value_Type.By_Type
+
+## Selector for table columns.
+type Table_Selector
+    ## Selects columns by their exact names.
+    Name name:Text
+
+    ## Selects columns by their 0-based indices.
+    Index index:Integer
+
+    ## Selects columns matching the given regular expression.
+    Regex pattern:Regex
+
+    ## Selects columns by their value types.
+    By_Type by_type:By_Type
+
+    ## Selects columns using a Vector of other Table_Selectors.
+    Vector (selectors:(Vector Table_Selector))
+
+    ## ---
+       private: true
+       ---
+       Resolves a Table_Selector into a Vector of column names of the input Table.
+    resolve self (table:Table) (error_on_missing_columns:Boolean) = case self of
+        Table_Selector.Vector v ->
+            flatten = v.map s-> case s of
+                Table_Selector.Vector _ -> Error.throw (Illegal_Argument.Error "Nested Table_Selector.Vector is not allowed.")
+                Table_Selector.Name n -> n
+                Table_Selector.Index i -> i
+                Table_Selector.Regex r -> r
+                Table_Selector.By_Type bt -> bt
+            if flatten.length == 0 then [] else
+                problem_builder = Problem_Builder.new error_on_missing_columns=error_on_missing_columns
+                resolved_columns = table.columns_helper.select_columns_helper flatten Case_Sensitivity.Default reorder=True problem_builder=problem_builder
+                problem_builder.attach_problems_before ..Ignore <|
+                    resolved_columns.map .name
+        _ -> Table_Selector.Vector [self] . resolve table error_on_missing_columns
+
+    ## ---
+       private: true
+       ---
+       Call an action if any of the selectors match columns in the table.
+    act_if_any self (table:Table) (error_on_missing_columns:Boolean) action =
+        resolved = self.resolve table error_on_missing_columns
+        resolved.if_not_error <|
+            if resolved.length == 0 then table else action resolved
+
+Table_Selector.from (that:Text) = Table_Selector.Name that
+
+Table_Selector.from (that:Integer) = Table_Selector.Index that
+
+Table_Selector.from (that:Regex) = Table_Selector.Regex that
+
+Table_Selector.from (that:By_Type) = Table_Selector.By_Type that
+
+Table_Selector.from (that:Function) =
+    throw_type_error _ =
+        Error.throw (Illegal_Argument.Error "Unsupported value for a column selection.")
+    Panic.catch Any handler=throw_type_error <|
+        as_type = that:By_Type
+        Table_Selector.from as_type
+
+Table_Selector.from (that:Vector) =
+    selectors = that.map v-> v.to Table_Selector
+    Table_Selector.Vector selectors

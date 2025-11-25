@@ -1,3 +1,5 @@
+private
+
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
@@ -17,10 +19,10 @@ import project.Errors.Unsupported_Database_Operation
 import project.Internal.Aggregate_Helper
 import project.Internal.Aggregate_Helper.Aggregate_With_Helper_Expressions
 import project.Internal.Base_Generator
+import project.Internal.Base_Generator.Dialect_Operations
 import project.Internal.Common.Database_Distinct_Helper
 import project.Internal.Common.Database_Join_Helper
 import project.Internal.Common.Row_Number_Helpers
-import project.Internal.Error_Mapper.Error_Mapper
 import project.Internal.Internals_Access
 import project.Internal.IR.Internal_Column.Internal_Column
 import project.Internal.IR.Order_Descriptor.Order_Descriptor
@@ -32,7 +34,6 @@ import project.Internal.Replace_Params.Replace_Params
 import project.Internal.SQL_Part.SQL_Part
 import project.Internal.SQL_Type_Mapping.SQL_Type_Mapping
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
-import project.Internal.SQLite.SQLite_Error_Mapper.SQLite_Error_Mapper
 import project.SQL.SQL_Builder
 import project.SQL.SQL_Statement
 import project.SQL.SQL_Type
@@ -55,6 +56,13 @@ type SQLite_Dialect
        ---
        The dialect of SQLite databases.
     Value dialect_operations
+
+    ## ---
+       private: true
+       ---
+       Access underlying dialect operations.
+    get_dialect_operations : Dialect_Operations
+    get_dialect_operations self = self.dialect_operations
 
     ## ---
        private: true
@@ -301,7 +309,8 @@ type SQLite_Dialect
        ---
        Checks if an operation is supported by the dialect.
     is_operation_supported self operation:Text -> Boolean =
-        self.dialect_operations.is_operation_supported operation
+        if operation == "CUSTOM_SQL" then False else
+            self.dialect_operations.is_operation_supported operation
 
     ## ---
        private: true
@@ -310,6 +319,7 @@ type SQLite_Dialect
     is_feature_supported self feature:Feature -> Boolean =
         case feature of
             Feature.Generate_Rows -> False
+            Feature.Spatial -> False
             _ -> True
 
     ## ---
@@ -334,6 +344,8 @@ type SQLite_Dialect
             Dialect_Flag.Case_Insensitive_Ordering_By_Default -> False
             Dialect_Flag.Allows_Mixed_Type_Comparisons -> True
             Dialect_Flag.Supports_Unicode_Normalization -> False
+            Dialect_Flag.Supports_Unicode_Casing -> False
+            Dialect_Flag.Supports_Proper_Casing -> False
             Dialect_Flag.NaN_Non_Comparable -> True
             Dialect_Flag.Distinct_Returns_First_Row_From_Group_If_Ordered -> True
             Dialect_Flag.Date_Time -> False
@@ -362,18 +374,21 @@ type SQLite_Dialect
     ## ---
        private: true
        ---
-    get_error_mapper : Error_Mapper
-    get_error_mapper self = SQLite_Error_Mapper
-
-    ## ---
-       private: true
-       ---
        Prepares metadata for an operation taking a date/time period and checks if
        the given period is supported.
     prepare_metadata_for_period : Date_Period | Time_Period -> Value_Type -> Any
     prepare_metadata_for_period self period operation_input_type =
         _ = [period, operation_input_type]
         Error.throw (Unsupported_Database_Operation.Error "Date/time operations.")
+
+    ## ---
+       private: true
+       ---
+       Returns the set of all supported Replace_Params
+    get_supported_replace_params : Hashset Replace_Params
+    get_supported_replace_params self =
+        _ = self
+        supported_replace_params
 
     ## ---
        private: true
@@ -474,7 +489,8 @@ type SQLite_Dialect
    private: true
    ---
 make_dialect_operations =
-    text = [starts_with, contains, ends_with, make_case_sensitive, ["REPLACE", replace], left, right]+concat_ops+trim_ops
+    cases = [["LOWER", Base_Generator.make_function "LOWER"], ["UPPER", Base_Generator.make_function "UPPER"]]
+    text = [starts_with, contains, ends_with, make_case_sensitive, ["REPLACE", replace], left, right]+concat_ops+cases+trim_ops
     counts = [agg_count_is_null, agg_count_empty, agg_count_not_empty, ["COUNT_DISTINCT", agg_count_distinct], ["COUNT_DISTINCT_INCLUDE_NULL", agg_count_distinct_include_null]]
     stats = [agg_stddev_pop, agg_stddev_samp]
     arith_extensions = [is_inf, is_finite, floating_point_div, mod_op]

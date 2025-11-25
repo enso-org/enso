@@ -7,7 +7,6 @@ use crate::syntax::Flush;
 use crate::syntax::GroupHierarchyConsumer;
 use crate::syntax::ScopeHierarchyConsumer;
 
-
 // ===================
 // === Insert Apps ===
 // ===================
@@ -16,12 +15,13 @@ use crate::syntax::ScopeHierarchyConsumer;
 #[derive(Default, Debug, Finish)]
 pub struct InsertApps<Inner> {
     prev_applicable: bool,
-    stack:           Vec<bool>,
-    inner:           Inner,
+    stack: Vec<bool>,
+    inner: Inner,
 }
 
 impl<'s, Inner> NamedOperandConsumer<'s> for InsertApps<Inner>
-where Inner: OperatorConsumer<'s> + OperandConsumer<'s>
+where
+    Inner: OperatorConsumer<'s> + OperandConsumer<'s>,
 {
     fn push_maybe_named_operand(&mut self, operand: OperandMaybeNamed<'s>) {
         let prev_applicable = mem::replace(&mut self.prev_applicable, true);
@@ -32,12 +32,13 @@ where Inner: OperatorConsumer<'s> + OperandConsumer<'s>
                 }
                 self.inner.push_operand(operand)
             }
-            OperandMaybeNamed::Named(app) =>
+            OperandMaybeNamed::Named(app) => {
                 if prev_applicable {
                     self.inner.push_operator(app.into());
                 } else {
                     self.inner.push_operand(app.into());
-                },
+                }
+            }
         }
     }
 }
@@ -64,15 +65,16 @@ impl<Inner> Flush for InsertApps<Inner> {
 fn application<'s>(spacing: Spacing) -> Operator<'s> {
     let precedence = Some(ModifiedPrecedence::new(spacing, token::Precedence::Application, false));
     Operator {
-        left_precedence:  precedence,
+        left_precedence: precedence,
         right_precedence: precedence,
-        associativity:    token::Associativity::Left,
-        arity:            Arity::App,
+        associativity: token::Associativity::Left,
+        arity: Arity::App,
     }
 }
 
 impl<'s, Inner> GroupHierarchyConsumer<'s> for InsertApps<Inner>
-where Inner: OperatorConsumer<'s> + GroupHierarchyConsumer<'s>
+where
+    Inner: OperatorConsumer<'s> + GroupHierarchyConsumer<'s>,
 {
     fn start_group(&mut self, open: token::OpenSymbol<'s>) {
         if mem::replace(&mut self.prev_applicable, false) {
@@ -88,7 +90,8 @@ where Inner: OperatorConsumer<'s> + GroupHierarchyConsumer<'s>
 }
 
 impl<'s, Inner> ScopeHierarchyConsumer for InsertApps<Inner>
-where Inner: OperandConsumer<'s> + OperatorConsumer<'s> + ScopeHierarchyConsumer
+where
+    Inner: OperandConsumer<'s> + OperatorConsumer<'s> + ScopeHierarchyConsumer,
 {
     type Result = Inner::Result;
 

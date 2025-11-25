@@ -1,0 +1,66 @@
+import project.Any.Any
+import project.Data.Text.Text
+import project.Data.Vector.Vector
+import project.Errors.Illegal_Argument.Illegal_Argument
+import project.Function.Function
+import project.Meta
+import project.Metadata.Display
+import project.Metadata.Widget
+import project.Panic.Panic
+from project.Metadata.Widget import Single_Choice
+from project.Nothing import all
+
+type Email_Provider
+    private Value implementation
+
+    ## ---
+       group: Web
+       icon: email
+       ---
+       Sends an email using the specified email provider.
+    send self email -> Any =
+        self.implementation.send email
+
+    ## ---
+       private: true
+       ---
+       Show a dropdown of all known email providers
+    default_widget display:Display=..When_Modified -> Widget =
+        options = Email_Provider_SPI.get_known_email_providers.flat_map .get_dropdown_options
+        Single_Choice display=display values=options
+
+    ## ---
+       private: true
+       ---
+       Resolve the implementation of this email provider.
+    private resolve constructor:Function -> Email_Provider =
+        types = Email_Provider_SPI.get_known_email_providers
+        try_next idx =
+            if idx >= types.length then constructor else
+                db_type = types.at idx
+                resolved = db_type.resolve constructor
+                if resolved.is_nothing then @Tail_Call try_next (idx + 1) else resolved:Email_Provider
+        try_next 0
+
+## ---
+   private: true
+   ---
+   Factory for Email_Provider allowing SPI implementations.
+make_email_provider label:Text implementation:Any -> Email_Provider =
+    Panic.catch Any implementation.send _-> Panic.throw (Illegal_Argument.Error "Provided implementation "+label+"does not implement the Email_Provider interface (send).")
+    Email_Provider.Value implementation
+
+## ---
+   private: true
+   ---
+   Internal class for enabling SPI for Email_Provider types.
+type Email_Provider_SPI
+    private Value typ
+
+    ## ---
+       private: true
+       ---
+    new typ -> Email_Provider_SPI = Email_Provider_SPI.Value typ
+
+    private get_known_email_providers -> Vector =
+        Meta.lookup_services Email_Provider_SPI . map .typ

@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import type { AssetDetailsResponse, RealAssetId } from '#/services/Backend'
 import { useBackends } from '$/providers/backends'
 import { useRightPanelData } from '$/providers/rightPanel'
 import MarkdownEditor from '@/components/MarkdownEditor.vue'
@@ -9,7 +8,8 @@ import { useStringSync } from '@/util/codemirror'
 import { ResultComponent } from '@/util/react'
 import { EditorView } from '@codemirror/view'
 import { useMutation } from '@tanstack/vue-query'
-import { isOnElectron } from 'enso-common/src/detect'
+import type { AssetDetailsResponse, AssetId } from 'enso-common/src/services/Backend'
+import { isOnElectron } from 'enso-common/src/utilities/detect'
 import { computed, effectScope, onScopeDispose, ref, watch } from 'vue'
 
 const rightPanel = useRightPanelData()
@@ -26,11 +26,11 @@ const editDescriptionMutation = useMutation(
 
 let descriptionEdited = false
 async function updateDescription(
-  asset: AssetDetailsResponse<RealAssetId> | undefined,
+  asset: AssetDetailsResponse<AssetId> | undefined,
   description: string,
 ) {
+  descriptionEdited = false
   if (asset && description && asset.description !== description) {
-    descriptionEdited = false
     await editDescriptionMutation.mutateAsync([
       asset.id,
       {

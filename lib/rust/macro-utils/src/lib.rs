@@ -8,8 +8,6 @@ use proc_macro2::TokenTree;
 use syn::WhereClause;
 use syn::WherePredicate;
 
-
-
 // ===================
 // === Token Utils ===
 // ===================
@@ -21,8 +19,6 @@ pub fn matching_ident(token: &TokenTree, name: &str) -> bool {
         _ => false,
     }
 }
-
-
 
 // ============
 // === Repr ===
@@ -37,18 +33,14 @@ pub fn field_names(fields: &syn::FieldsNamed) -> Vec<&syn::Ident> {
         .collect()
 }
 
-
-
 // ==================
 // === Path Utils ===
 // ==================
 
 /// Checks if a given `Path` consists of a single identifier same as given string.
 pub fn path_matching_ident(path: &syn::Path, str: impl AsRef<str>) -> bool {
-    path.get_ident().map_or(false, |ident| ident == str.as_ref())
+    path.get_ident().is_some_and(|ident| ident == str.as_ref())
 }
-
-
 
 // ======================
 // === Index Sequence ===
@@ -65,8 +57,6 @@ pub fn identifier_sequence(len: usize) -> Vec<syn::Ident> {
     let format_field = |ix| quote::format_ident!("field{}", ix);
     (0..len).map(format_field).collect()
 }
-
-
 
 // ===================
 // === WhereClause ===

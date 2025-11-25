@@ -2,12 +2,8 @@
 
 use std::collections::BTreeSet;
 
-
-
 /// Hide data fields that don't reference any types outside the builtin set.
 const PRUNE_PRIMITIVE_LEAFS: bool = true;
-
-
 
 // =============
 // === Graph ===
@@ -22,7 +18,7 @@ pub struct Graph {
 
 #[derive(Debug)]
 pub(crate) struct Node {
-    pub label:     String,
+    pub label: String,
     pub node_type: NodeType,
     pub primitive: bool,
 }

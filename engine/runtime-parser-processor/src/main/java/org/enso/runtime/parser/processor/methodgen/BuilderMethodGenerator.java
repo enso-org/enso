@@ -107,12 +107,17 @@ public class BuilderMethodGenerator {
         .append(generatedClassContext.getProcessedClass().getClazz().getSimpleName())
         .append(" obj) {")
         .append(System.lineSeparator());
+    var clazz = generatedClassContext.getProcessedClass().getClazz().getSuperclass();
+    var superClassType =
+        generatedClassContext.getProcessingEnvironment().getTypeUtils().asElement(clazz);
     // Meta fields are accessed directly.
     for (var metaField : generatedClassContext.getMetaFields()) {
       sb.append("  ")
           .append("this.")
           .append(metaField.name())
-          .append(" = obj.")
+          .append(" = ((")
+          .append(superClassType.getSimpleName().toString())
+          .append(")obj).")
           .append(metaField.name())
           .append(";")
           .append(System.lineSeparator());
@@ -151,9 +156,11 @@ public class BuilderMethodGenerator {
         .append(ctorParamsStr)
         .append(");")
         .append(System.lineSeparator());
+    var superClassType = generatedClassContext.getSuperClass();
     for (var fieldNotInCtor : fieldsNotInCtor) {
-      sb.append("  ")
-          .append("result.")
+      sb.append("  ((")
+          .append(superClassType.getSimpleName())
+          .append(")result).")
           .append(fieldNotInCtor.name())
           .append(" = ")
           .append(fieldNotInCtor.name())

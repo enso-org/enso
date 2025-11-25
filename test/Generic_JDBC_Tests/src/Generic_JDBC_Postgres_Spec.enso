@@ -1,0 +1,95 @@
+from Standard.Base import all
+
+
+from Standard.Database import all
+from Standard.Database.Errors import all
+
+from Standard.Test import all
+
+import Standard.Generic_JDBC.Generic_JDBC_Connection.Generic_JDBC_Connection
+
+import project.Generic_JDBC_Connection_Spec
+import enso_dev.Table_Tests.Database.Helpers.Name_Generator
+
+add_specs suite_builder configured_connection_details=get_configured_connection_details = if configured_connection_details==Nothing then Nothing else
+    config = Postgres_JDBC_Config.Value configured_connection_details
+    Generic_JDBC_Connection_Spec.add_specs_for_backend config suite_builder
+
+    suite_builder.group "(Postgres) Generic JDBC Connection" group_builder->
+        # Cleans things up afterwards, but also before for easier debugging.
+        cleanup typ conn names ~action =
+            cleanup =
+                names.map (n-> conn.execute "drop "+typ+" if exists "+n+" cascade")
+            cleanup
+            Panic.with_finalizer cleanup action
+
+        cleanup_tables = cleanup "table"
+
+        group_builder.specify "should be able to read a table by name" <|
+            config.with_connection conn-> cleanup_tables conn ["foo", "bar"] <|
+                conn.execute "create table foo (a int, b text)"
+                conn.execute "insert into foo (a, b) values (10, 'asdf')"
+                conn.execute "insert into foo (a, b) values (20, 'zxcv')"
+                conn.execute "create table bar (c int, d text)"
+                conn.execute "insert into bar (c, d) values (20, 'qqqq')"
+                conn.execute "insert into bar (c, d) values (30, 'zzzz')"
+
+                r = conn.read (SQL_Query.Table_Name "foo")
+                r.at "a" . to_vector . should_equal [10, 20]
+                r.at "b" . to_vector . should_equal ['asdf', 'zxcv']
+
+                r2 = conn.read (SQL_Query.Table_Name "bar")
+                r2.at "c" . to_vector . should_equal [20, 30]
+                r2.at "d" . to_vector . should_equal ['qqqq', 'zzzz']
+
+        group_builder.specify "should be able to insert and query data using raw SQL (dates and times)" <|
+            config.with_connection conn-> cleanup_tables conn ["foo"] <|
+                conn.execute "create table foo (a date, b timestamp, c time)"
+                conn.execute "insert into foo (a, b, c) values ('2025-01-01', '2025-01-01 12:34:56', '12:34:56')"
+                conn.execute "insert into foo (a, b, c) values ('2025-01-02', '2025-01-02 13:35:57', '13:35:57')"
+
+                r = conn.read (SQL_Query.Raw_SQL "select * from foo")
+                r.at 0 . to_vector . all (x-> x.is_a Date) . should_be_true
+                r.at 1 . to_vector . all (x-> x.is_a Date_Time) . should_be_true
+                r.at 2 . to_vector . all (x-> x.is_a Time_Of_Day) . should_be_true
+
+        group_builder.specify "should handle SQL errors" <|
+            config.with_connection conn->
+                conn.execute "insert into foo (a) values ('asdf')" . should_fail_with SQL_Error
+
+## ---
+   private: true
+   ---
+type Postgres_JDBC_Config
+    Value connection_details:Postgres
+
+    name self = "Postgres"
+
+    with_connection self ~action =
+        conn = Postgres_JDBC_Config.create_connection_from_details self.connection_details
+        action conn
+
+    create_connection_from_details connection_details:Postgres -> Generic_JDBC_Connection =
+        user = connection_details.credentials.username
+        password = connection_details.credentials.password
+        properties = [Pair.new "user" user, Pair.new "password" password]
+
+        db_name = connection_details.database
+        url = 'jdbc:postgresql:' + db_name
+
+        Generic_JDBC_Connection.connect url properties
+
+get_configured_connection_details =
+    db_name = Environment.get "ENSO_POSTGRES_DATABASE"
+    db_host_port = (Environment.get "ENSO_POSTGRES_HOST").if_nothing "localhost" . split ':'
+    db_host = db_host_port.at 0
+    db_port = if db_host_port.length == 1 then 5432 else Integer.parse (db_host_port.at 1)
+    db_user = Environment.get "ENSO_POSTGRES_USER"
+    db_password = Environment.get "ENSO_POSTGRES_PASSWORD"
+    if db_name.is_nothing then Nothing else
+        Postgres.Server db_host db_port db_name credentials=(Credentials.Username_And_Password db_user db_password)
+
+main filter=Nothing =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter filter

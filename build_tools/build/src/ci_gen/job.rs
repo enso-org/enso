@@ -1,6 +1,5 @@
 use crate::prelude::*;
 
-use crate::ci_gen::input;
 use crate::ci_gen::not_default_branch;
 use crate::ci_gen::runs_on;
 use crate::ci_gen::secret;
@@ -16,8 +15,6 @@ use crate::paths;
 use core::panic;
 use ide_ci::actions::workflow::definition::cancel_workflow_action;
 use ide_ci::actions::workflow::definition::checkout_repo_step;
-use ide_ci::actions::workflow::definition::get_input_expression;
-use ide_ci::actions::workflow::definition::setup_wasm_pack_step;
 use ide_ci::actions::workflow::definition::shell;
 use ide_ci::actions::workflow::definition::step::Argument;
 use ide_ci::actions::workflow::definition::Access;
@@ -31,8 +28,6 @@ use ide_ci::actions::workflow::definition::Strategy;
 use ide_ci::actions::workflow::definition::Target;
 use ide_ci::cache::goodie::graalvm;
 use ide_ci::convert_case::ToKebabCase;
-
-
 
 /// Target runners set (or just a single runner) for a job.
 pub trait RunsOn: 'static + Debug {
@@ -92,7 +87,6 @@ impl RunsOn for OS {
 impl RunsOn for (OS, Arch) {
     fn runs_on(&self) -> Vec<RunnerLabel> {
         match self {
-            (OS::MacOS, Arch::X86_64) => vec![RunnerLabel::MacOS13],
             (os, Arch::X86_64) => runs_on(*os, RunnerType::SelfHosted),
             (OS::MacOS, Arch::AArch64) => {
                 let mut ret = runs_on(OS::MacOS, RunnerType::SelfHosted);
@@ -181,6 +175,10 @@ pub fn expose_gui_vars(step: Step) -> Step {
         secret::ENSO_IDE_STRAVA_OAUTH_CLIENT_ID,
         ide::web::env::ENSO_IDE_STRAVA_OAUTH_CLIENT_ID,
     )
+    .with_secret_exposed_as(
+        secret::ENSO_IDE_MS365_OAUTH_CLIENT_ID,
+        ide::web::env::ENSO_IDE_MS365_OAUTH_CLIENT_ID,
+    )
 }
 
 /// Expose variables for debugging purposes.
@@ -233,7 +231,7 @@ impl JobArchetype for VerifyLicensePackages {
 
 #[derive(Clone, Copy, Debug)]
 pub struct JvmTests {
-    pub graal_edition:   graalvm::Edition,
+    pub graal_edition: graalvm::Edition,
     pub engine_launcher: engine::EngineLauncher,
 }
 
@@ -242,6 +240,8 @@ impl JobArchetype for JvmTests {
         let graal_edition = self.graal_edition;
         let engine_launcher = self.engine_launcher;
         let job_name = format!("JVM Tests ({graal_edition})");
+        let heapdump_artifact_name =
+            format!("Heap dumps ({}, {}, {})", "JVM Tests", target.0, target.1);
         let mut job = RunStepsBuilder::new("backend test jvm")
             .customize(move |step| {
                 let cleanup_engine_distribution =
@@ -250,22 +250,27 @@ impl JobArchetype for JvmTests {
                 let download_engine_distribution =
                     step::download_engine_distribution(target, engine_launcher, graal_edition);
 
+                let upload_hprof_step = step::heapdump_upload(heapdump_artifact_name);
+
                 vec![
                     cleanup_engine_distribution,
                     download_engine_distribution,
                     step::check_engine_distribution(),
                     step::unpack_engine_distribution(),
                     step,
+                    upload_hprof_step,
                     step::engine_test_reporter(target, graal_edition),
                 ]
             })
             .build_job(job_name, target)
             .with_permission(Permission::Checks, Access::Write);
         match graal_edition {
-            graalvm::Edition::Community =>
-                job.env(engine::env::GRAAL_EDITION, graalvm::Edition::Community),
-            graalvm::Edition::Enterprise =>
-                job.env(engine::env::GRAAL_EDITION, graalvm::Edition::Enterprise),
+            graalvm::Edition::Community => {
+                job.env(engine::env::GRAAL_EDITION, graalvm::Edition::Community)
+            }
+            graalvm::Edition::Enterprise => {
+                job.env(engine::env::GRAAL_EDITION, graalvm::Edition::Enterprise)
+            }
         }
         job
     }
@@ -315,19 +320,21 @@ impl Display for StandardLibraryTestsScope {
         match self {
             StandardLibraryTestsScope::CloudRelated => write!(f, "std-cloud-related"),
             StandardLibraryTestsScope::StandardLibraryJvm => write!(f, "standard-library"),
-            StandardLibraryTestsScope::StandardLibraryInNative =>
-                write!(f, "standard-library-in-native"),
-            StandardLibraryTestsScope::Microsoft =>
-                write!(f, "std-microsoft std-mock-dual-microsoft"),
+            StandardLibraryTestsScope::StandardLibraryInNative => {
+                write!(f, "standard-library-in-native")
+            }
+            StandardLibraryTestsScope::Microsoft => {
+                write!(f, "std-microsoft std-mock-dual-microsoft")
+            }
         }
     }
 }
 
 #[derive(Clone, Copy, Debug)]
 pub struct StandardLibraryTests {
-    pub graal_edition:   graalvm::Edition,
+    pub graal_edition: graalvm::Edition,
     pub engine_launcher: engine::EngineLauncher,
-    pub scope:           StandardLibraryTestsScope,
+    pub scope: StandardLibraryTestsScope,
 }
 
 impl StandardLibraryTests {
@@ -401,10 +408,12 @@ impl JobArchetype for StandardLibraryTests {
         )
         .with_permission(Permission::Checks, Access::Write);
         match graal_edition {
-            graalvm::Edition::Community =>
-                job.env(engine::env::GRAAL_EDITION, graalvm::Edition::Community),
-            graalvm::Edition::Enterprise =>
-                job.env(engine::env::GRAAL_EDITION, graalvm::Edition::Enterprise),
+            graalvm::Edition::Community => {
+                job.env(engine::env::GRAAL_EDITION, graalvm::Edition::Community)
+            }
+            graalvm::Edition::Enterprise => {
+                job.env(engine::env::GRAAL_EDITION, graalvm::Edition::Enterprise)
+            }
         }
 
         // If running extra cloud tests, enable reporting all tests. These tests run on a nightly
@@ -435,7 +444,7 @@ impl JobArchetype for StandardLibraryTests {
 /// standard libraries and tests.
 #[derive(Clone, Copy, Debug)]
 pub struct EnsoCodeLintCheck {
-    pub graal_edition:   graalvm::Edition,
+    pub graal_edition: graalvm::Edition,
     pub engine_launcher: engine::EngineLauncher,
 }
 
@@ -477,7 +486,7 @@ impl JobArchetype for EnsoCodeLintCheck {
 /// and comparing it to the API signature files that are already in the VCS.
 #[derive(Clone, Copy, Debug)]
 pub struct StandardLibraryApiCheck {
-    pub graal_edition:   graalvm::Edition,
+    pub graal_edition: graalvm::Edition,
     pub engine_launcher: engine::EngineLauncher,
 }
 
@@ -622,9 +631,9 @@ fn build_job_ensuring_cloud_tests_run_on_github(
 
 #[derive(Clone, Copy, Debug)]
 pub struct SnowflakeTests {
-    pub graal_edition:   graalvm::Edition,
+    pub graal_edition: graalvm::Edition,
     pub engine_launcher: engine::EngineLauncher,
-    pub jvm_mode:        bool,
+    pub jvm_mode: bool,
 }
 
 const GRAAL_EDITION_FOR_EXTRA_TESTS: graalvm::Edition = graalvm::Edition::Community;
@@ -711,24 +720,6 @@ impl JobArchetype for SnowflakeTests {
 }
 
 #[derive(Clone, Copy, Debug)]
-pub struct WasmLint;
-
-impl JobArchetype for WasmLint {
-    fn job(&self, target: Target) -> Job {
-        plain_job(target, "Lint", "wasm lint")
-    }
-}
-
-#[derive(Clone, Copy, Debug)]
-pub struct NativeTest;
-
-impl JobArchetype for NativeTest {
-    fn job(&self, target: Target) -> Job {
-        plain_job(target, "Native Rust tests", "wasm test --no-wasm")
-    }
-}
-
-#[derive(Clone, Copy, Debug)]
 pub struct GuiBuild;
 
 impl JobArchetype for GuiBuild {
@@ -748,17 +739,6 @@ impl JobArchetype for GuiBuild {
                 steps
             })
             .build_job("GUI build", target)
-    }
-}
-
-#[derive(Clone, Copy, Debug)]
-pub struct WasmTest;
-
-impl JobArchetype for WasmTest {
-    fn job(&self, target: Target) -> Job {
-        RunStepsBuilder::new("wasm test --no-native")
-            .customize(|step| vec![setup_wasm_pack_step(), step])
-            .build_job("WASM tests", target)
     }
 }
 
@@ -857,33 +837,6 @@ impl JobArchetype for DeployRuntime {
                     .with_env("AWS_DEFAULT_REGION", crate::aws::ecr::runtime::REGION)]
             })
             .build_job("Upload Runtime to ECR", target)
-    }
-}
-
-#[derive(Clone, Copy, Debug)]
-pub struct DeployYdoc;
-
-impl JobArchetype for DeployYdoc {
-    fn job(&self, target: Target) -> Job {
-        let run_command =
-            format!("release deploy-ydoc-{}", get_input_expression(input::name::YDOC));
-        RunStepsBuilder::new(run_command)
-            .customize(|step| {
-                vec![step
-                    .with_secret_exposed_as(secret::CI_PRIVATE_TOKEN, ide_ci::github::GITHUB_TOKEN)
-                    .with_env("ENSO_BUILD_ECR_REPOSITORY", crate::aws::ecr::ydoc::NAME)
-                    .with_secret_exposed_as(
-                        secret::ECR_PUSH_RUNTIME_ACCESS_KEY_ID,
-                        "AWS_ACCESS_KEY_ID",
-                    )
-                    .with_secret_exposed_as(
-                        secret::ECR_PUSH_RUNTIME_SECRET_ACCESS_KEY,
-                        "AWS_SECRET_ACCESS_KEY",
-                    )
-                    .with_env("AWS_DEFAULT_REGION", crate::aws::ecr::ydoc::REGION)]
-            })
-            .cleaning(RELEASE_CLEANING_POLICY)
-            .build_job("Upload Ydoc to ECR", target)
     }
 }
 
@@ -1061,7 +1014,7 @@ rm dist/backend/project-manager.tar"
 
 #[derive(Clone, Copy, Debug)]
 pub struct BuildEngineDistribution {
-    pub graal_edition:   graalvm::Edition,
+    pub graal_edition: graalvm::Edition,
     pub engine_launcher: engine::EngineLauncher,
 }
 
@@ -1090,10 +1043,12 @@ impl JobArchetype for BuildEngineDistribution {
             .build_job(job_name, target);
         job.env(engine::env::ENSO_LAUNCHER, self.engine_launcher);
         match self.graal_edition {
-            graalvm::Edition::Community =>
-                job.env(engine::env::GRAAL_EDITION, graalvm::Edition::Community),
-            graalvm::Edition::Enterprise =>
-                job.env(engine::env::GRAAL_EDITION, graalvm::Edition::Enterprise),
+            graalvm::Edition::Community => {
+                job.env(engine::env::GRAAL_EDITION, graalvm::Edition::Community)
+            }
+            graalvm::Edition::Enterprise => {
+                job.env(engine::env::GRAAL_EDITION, graalvm::Edition::Enterprise)
+            }
         }
         job
     }

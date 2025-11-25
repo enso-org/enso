@@ -27,6 +27,7 @@ import org.enso.compiler.core.ir.expression.Application;
 import org.enso.compiler.core.ir.expression.Case;
 import org.enso.compiler.core.ir.expression.Comment;
 import org.enso.compiler.core.ir.expression.Foreign;
+import org.enso.compiler.core.ir.expression.IfThenElse;
 import org.enso.compiler.core.ir.expression.Operator;
 import org.enso.compiler.core.ir.expression.Section;
 import org.enso.compiler.core.ir.expression.errors.Syntax;
@@ -1034,6 +1035,26 @@ final class TreeToIr {
           sep = "_";
         }
         var fullName = fnName.toString();
+        if ("if_then_else".equals(fullName) && args.size() == 3) {
+          var ifArg = args.apply(2);
+          var trueArg = args.apply(1);
+          var falseArg = args.apply(0);
+          if (falseArg == null) {
+            yield translateSyntaxError(app, new Syntax.UnsupportedSyntax("Missing else branch"));
+          }
+          yield new IfThenElse(
+              ifArg.value(),
+              trueArg.value(),
+              falseArg.value(),
+              getIdentifiedLocation(tree),
+              meta());
+        }
+        if ("if_then".equals(fullName) && args.size() == 2) {
+          var ifArg = args.apply(1);
+          var trueArg = args.apply(0);
+          yield new IfThenElse(
+              ifArg.value(), trueArg.value(), null, getIdentifiedLocation(tree), meta());
+        }
         if (fullName.equals(FREEZE_MACRO_IDENTIFIER)) {
           yield translateExpression(app.getSegments().get(0).getBody(), false);
         } else if (fullName.equals(SKIP_MACRO_IDENTIFIER)) {
@@ -1083,10 +1104,7 @@ final class TreeToIr {
               args = join(call, args);
             }
           }
-          yield switch (fn) {
-            case Application.Prefix pref -> patchPrefixWithBlock(pref, block, args);
-            default -> block;
-          };
+          yield patchPrefixWithBlock(fn, block, args);
         } else {
           yield block;
         }
@@ -1525,14 +1543,25 @@ final class TreeToIr {
 
   @SuppressWarnings("unchecked")
   private Expression patchPrefixWithBlock(
-      Application.Prefix pref, Expression.Block block, List<CallArgument> args) {
+      Expression expr, Expression.Block block, List<CallArgument> args) {
     if (block.expressions().isEmpty() && block.returnValue() instanceof Name.Blank) {
-      return pref;
+      return expr;
     }
     if (args.nonEmpty() && args.head() == null) {
       args = (List<CallArgument>) args.tail();
     }
-    List<CallArgument> allArgs = (List<CallArgument>) pref.arguments().appendedAll(args.reverse());
+    List<CallArgument> allArgs;
+    Expression fn;
+    boolean hasDefaultsSuspended;
+    if (expr instanceof Application.Prefix pref) {
+      fn = pref.function();
+      hasDefaultsSuspended = pref.hasDefaultsSuspended();
+      allArgs = (List<CallArgument>) pref.arguments().appendedAll(args.reverse());
+    } else {
+      fn = expr;
+      allArgs = nil();
+      hasDefaultsSuspended = false;
+    }
     final CallArgument.Specified blockArg =
         CallArgument.Specified.builder()
             .name(Option.empty())
@@ -1542,13 +1571,13 @@ final class TreeToIr {
             .build();
     List<CallArgument> withBlockArgs = (List<CallArgument>) allArgs.appended(blockArg);
     if (!checkArgs(withBlockArgs)) {
-      return translateSyntaxError(pref.location().get(), Syntax.UnexpectedExpression$.MODULE$);
+      return translateSyntaxError(expr.location().get(), Syntax.UnexpectedExpression$.MODULE$);
     }
     return Application.Prefix.builder()
-        .function(pref.function())
+        .function(fn)
         .arguments(withBlockArgs)
-        .hasDefaultsSuspended(pref.hasDefaultsSuspended())
-        .location(pref.identifiedLocation())
+        .hasDefaultsSuspended(hasDefaultsSuspended)
+        .location(expr.identifiedLocation())
         .build();
   }
 
@@ -2020,8 +2049,12 @@ final class TreeToIr {
       } else {
         qualifiedName = buildQualifiedName(exp.getExport().getBody(), null, true);
       }
-      return new Export.Module(
-          qualifiedName, rename, onlyNames, getIdentifiedLocation(exp), false, meta());
+      return Export.Module.builder()
+          .name(qualifiedName)
+          .rename(rename)
+          .onlyNames(onlyNames)
+          .location(getIdentifiedLocation(exp))
+          .build();
     } catch (SyntaxException err) {
       if (err.where instanceof Tree.Invalid invalid) {
         return err.toError(invalidExportReason(invalid.getError()));

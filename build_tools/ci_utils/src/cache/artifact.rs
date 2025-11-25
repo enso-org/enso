@@ -6,17 +6,15 @@ use crate::github::Repo;
 
 use octocrab::models::ArtifactId;
 
-
-
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Key {
-    pub repository:  Repo,
+    pub repository: Repo,
     pub artifact_id: ArtifactId,
 }
 
 #[derive(Clone, Debug)]
 pub struct ExtractedArtifact {
-    pub key:    Key,
+    pub key: Key,
     pub client: Octocrab,
 }
 

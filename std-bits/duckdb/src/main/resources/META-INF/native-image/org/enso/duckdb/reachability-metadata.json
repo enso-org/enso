@@ -205,7 +205,13 @@
       ]
     },
     {
-      "type": "java.sql.SQLException"
+      "type": "java.sql.SQLException",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": ["java.lang.String"]
+        }
+      ]
     },
     {
       "type": "java.sql.SQLTimeoutException"

@@ -2,12 +2,11 @@
 import { Button } from '#/components/Button'
 import { Dialog } from '#/components/Dialog'
 import { Loader } from '#/components/Loader'
-import type Backend from '#/services/Backend'
-import type { ProjectSessionId } from '#/services/Backend'
 import { useText } from '$/providers/react'
 import type { Monaco } from '@monaco-editor/react'
 import { Editor } from '@monaco-editor/react'
 import { useInfiniteQuery } from '@tanstack/react-query'
+import type { Backend, ProjectSessionId } from 'enso-common/src/services/Backend'
 import { useRef } from 'react'
 
 const MONACO_OPTIONS: NonNullable<Parameters<typeof Editor>[0]['options']> = {

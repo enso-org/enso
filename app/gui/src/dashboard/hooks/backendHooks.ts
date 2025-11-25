@@ -1,24 +1,22 @@
 /** @file Hooks for interacting with the backend. */
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import { useOpenProjectLocally, useOpenProjectNatively } from '#/hooks/projectHooks'
 import { CATEGORY_TO_FILTER_BY, type Category } from '#/layouts/CategorySwitcher/Category'
 import { useSetAssetToRename, useSetSelectedAssets } from '#/providers/DriveProvider'
-import type Backend from '#/services/Backend'
-import * as backendModule from '#/services/Backend'
-import {
-  AssetType,
-  BackendType,
-  type AnyAsset,
-  type AssetId,
-  type DirectoryId,
-  type FilterBy,
-  type User,
-  type UserGroupInfo,
-} from '#/services/Backend'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { flagsStore } from '$/providers/featureFlags'
-import { useBackends, useFullUserSession } from '$/providers/react'
+import type { ProjectInfo } from '$/providers/openedProjects/projectInfo'
+import { useFullUserSession } from '$/providers/react'
 import { useFeatureFlag } from '$/providers/react/featureFlags'
+import { useOpenedProjects } from '$/providers/react/openedProjects'
+import {
+  backendQueryOptions as backendQueryOptionsBase,
+  INVALIDATE_ALL_QUERIES,
+  INVALIDATION_MAP,
+  PERSISTENCE_MAP,
+  STALE_TIME_MAP,
+  type BackendMutationMethod,
+  type BackendQueryMethod,
+} from '$/utils/backendQuery'
 import {
   queryOptions,
   useMutationState,
@@ -32,15 +30,18 @@ import {
   type UseMutationOptions,
   type UseQueryOptions,
 } from '@tanstack/react-query'
+import type { Backend } from 'enso-common/src/services/Backend'
+import * as backendModule from 'enso-common/src/services/Backend'
 import {
-  backendQueryOptions as backendQueryOptionsBase,
-  INVALIDATE_ALL_QUERIES,
-  INVALIDATION_MAP,
-  PERSISTENCE_MAP,
-  STALE_TIME_MAP,
-  type BackendMutationMethod,
-  type BackendQueryMethod,
-} from 'enso-common/src/backendQuery'
+  AssetType,
+  BackendType,
+  type AnyAsset,
+  type AssetId,
+  type DirectoryId,
+  type FilterBy,
+  type User,
+  type UserGroupInfo,
+} from 'enso-common/src/services/Backend'
 import { z } from 'zod'
 
 const PROJECT_EXECUTIONS_STALE_TIME = 60_000
@@ -282,8 +283,8 @@ export function listDirectoryQueryOptions(options: ListDirectoryQueryOptions) {
             sortDirection,
             filterBy,
             recentProjects: category.type === 'recent',
-            from,
-            pageSize,
+            from: from ?? null,
+            pageSize: pageSize ?? null,
           },
           parentId ?? '(unknown)',
         )
@@ -393,35 +394,6 @@ export function unsafe_assetFromCacheQueryOptions(options: AssetFromCacheQueryOp
   })
 }
 
-/** Whether the user can run projects. */
-export function useCanRunProjects() {
-  const { user } = useFullUserSession()
-  const { localBackend } = useBackends()
-  const enableCloudExecution = useFeatureFlag('enableCloudExecution')
-
-  return {
-    // All projects can be run locally.
-    // Local projects: Open normally
-    // Cloud projects: Open in Hybrid
-    locally: {
-      [BackendType.local]: localBackend != null,
-      [BackendType.remote]: localBackend != null,
-    },
-    // Local projects can be run natively; only Team plans and above have access to Cloud execution.
-    // Local projects: Open normally
-    // Cloud projects: Open in Cloud VM
-    natively: {
-      [BackendType.local]: localBackend != null,
-      [BackendType.remote]:
-        enableCloudExecution &&
-        (user.plan === backendModule.Plan.team || user.plan === backendModule.Plan.enterprise),
-    },
-  }
-}
-
-/** The type of directory listings in the React Query cache. */
-type DirectoryQuery = readonly AnyAsset<AssetType>[] | undefined
-
 /** Return matching in-flight mutations matching the given filters. */
 export function useBackendMutationState<Method extends BackendMutationMethod, Result>(
   backend: Backend,
@@ -436,13 +408,17 @@ export function useBackendMutationState<Method extends BackendMutationMethod, Re
   return useMutationState({
     filters: {
       ...backendMutationOptions(backend, method, mutationKey ? { mutationKey } : {}),
-      predicate: (mutation: BackendMutation<Method>) =>
-        mutation.state.status === 'pending' && (predicate?.(mutation) ?? true),
+      // We rely on mutation key pointing to properly typed mutation.
+      // eslint-disable-next-line no-restricted-syntax
+      predicate: ((mutation: BackendMutation<Method>) =>
+        mutation.state.status === 'pending' && (predicate?.(mutation) ?? true)) as (
+        mutation: Mutation,
+      ) => boolean,
     },
     // This is UNSAFE when the `Result` parameter is explicitly specified in the
     // generic parameter list.
     // eslint-disable-next-line no-restricted-syntax
-    select: select as (mutation: Mutation<unknown, Error, unknown, unknown>) => Result,
+    select: select as (mutation: Mutation) => Result,
   })
 }
 
@@ -467,40 +443,6 @@ export function useEnsureListDirectory(backend: Backend, category: Category) {
         ]),
       )
     ).assets
-  })
-}
-
-/**
- * Remove an asset from the React Query cache. Should only be called on
- * optimistically inserted assets.
- */
-function useDeleteAsset(backend: Backend, category: Category) {
-  const queryClient = useQueryClient()
-  const ensureListDirectory = useEnsureListDirectory(backend, category)
-
-  return useEventCallback(async (assetId: AssetId, parentId: DirectoryId) => {
-    const siblings = await ensureListDirectory(parentId)
-    const asset = siblings.find((sibling) => sibling.id === assetId)
-    if (!asset) return
-
-    const listDirectoryQuery = queryClient.getQueryCache().find<DirectoryQuery>({
-      queryKey: [
-        backend.type,
-        'listDirectory',
-        parentId,
-        {
-          labels: null,
-          filterBy: CATEGORY_TO_FILTER_BY[category.type],
-          recentProjects: category.type === 'recent',
-        },
-      ],
-    })
-
-    if (listDirectoryQuery?.state.data) {
-      listDirectoryQuery.setData(
-        listDirectoryQuery.state.data.filter((child) => child.id !== assetId),
-      )
-    }
   })
 }
 
@@ -534,10 +476,7 @@ export function useNewFolder(backend: Backend, category: Category) {
 /** A function to create a new project. */
 export function useNewProject(backend: Backend, category: Category) {
   const ensureListDirectory = useEnsureListDirectory(backend, category)
-  const openProjectLocally = useOpenProjectLocally()
-  const openProjectNatively = useOpenProjectNatively()
-  const canRunProjects = useCanRunProjects()
-  const deleteAsset = useDeleteAsset(backend, category)
+  const { openProjectLocally } = useOpenedProjects()
 
   const createProject = useMutationCallback(backendMutationOptions(backend, 'createProject'))
 
@@ -551,7 +490,6 @@ export function useNewProject(backend: Backend, category: Category) {
         ensoPath?: string | null | undefined
       },
       parentId: DirectoryId,
-      runLocally = true,
     ) => {
       const siblings = await ensureListDirectory(parentId)
       const projectName = (() => {
@@ -564,39 +502,22 @@ export function useNewProject(backend: Backend, category: Category) {
         return `${prefix}${Math.max(0, ...projectIndices) + 1}`
       })()
 
-      const placeholderItem = backendModule.createPlaceholderProjectAsset(projectName, parentId)
-
       return await createProject([
         {
-          parentDirectoryId: placeholderItem.parentId,
-          projectName: placeholderItem.title,
+          parentDirectoryId: parentId,
+          projectName,
           ...(ensoPath == null ? {} : { ensoPath }),
         },
-      ])
-        .catch((error) => {
-          void deleteAsset(placeholderItem.id, parentId)
-          throw error
-        })
-        .then((createdProject) => {
-          const openProjectParams = {
-            id: createdProject.projectId,
-            parentId: placeholderItem.parentId,
-            title: createdProject.name,
-            ensoPath: createdProject.ensoPath,
-          } satisfies Partial<backendModule.ProjectAsset>
-          if (runLocally) {
-            if (canRunProjects.locally[backend.type]) {
-              // Open in background.
-              void openProjectLocally(openProjectParams, backend.type)
-            }
-          } else {
-            if (canRunProjects.natively[backend.type]) {
-              void openProjectNatively(openProjectParams, backend.type)
-            }
-          }
-
-          return createdProject
-        })
+      ]).then((createdProject) => {
+        const openProjectParams = {
+          id: createdProject.projectId,
+          parentId: parentId,
+          title: createdProject.name,
+          ensoPath: createdProject.ensoPath,
+        } satisfies Omit<ProjectInfo, 'mode'>
+        openProjectLocally(openProjectParams, backend.type)
+        return createdProject
+      })
     },
   )
 }

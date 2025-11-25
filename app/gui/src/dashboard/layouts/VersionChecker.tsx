@@ -12,7 +12,7 @@ import { download } from '#/utilities/download'
 import { getDownloadUrl, getLatestRelease } from '#/utilities/github'
 import { useBackends, useText } from '$/providers/react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { IS_DEV_MODE } from 'enso-common/src/detect'
+import { IS_DEV_MODE } from 'enso-common/src/utilities/detect'
 import { startTransition, useState } from 'react'
 
 // eslint-disable-next-line @typescript-eslint/no-magic-numbers

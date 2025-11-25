@@ -1,12 +1,10 @@
 package org.enso.table.excel;
 
-import java.time.LocalDate;
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
+import static org.enso.table.excel.ExcelUtils.formatNumericValue;
+
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellType;
 import org.apache.poi.ss.usermodel.DataFormatter;
-import org.apache.poi.ss.usermodel.DateUtil;
 import org.apache.poi.ss.usermodel.ExcelNumberFormat;
 import org.apache.poi.ss.usermodel.FormulaError;
 import org.apache.poi.ss.usermodel.Row;
@@ -86,43 +84,7 @@ public interface ExcelRow {
         case NUMERIC:
           double dblValue = cell.getNumericCellValue();
           var nf = ExcelNumberFormat.from(cell, null);
-          if (nf != null && DateUtil.isADateFormat(nf.getIdx(), nf.getFormat())) {
-            var temporal =
-                use1904Format
-                    ? ExcelUtils.fromExcelDateTime1904(dblValue)
-                    : ExcelUtils.fromExcelDateTime(dblValue);
-
-            if (temporal == null) {
-              return null;
-            }
-
-            return switch (temporal) {
-              case LocalDate date -> {
-                var dateFormat = cell.getCellStyle().getDataFormatString();
-                yield (dateFormat.contains("h") || dateFormat.contains("H"))
-                    ? date.atStartOfDay(ZoneId.systemDefault())
-                    : date;
-              }
-              case ZonedDateTime zdt -> {
-                if (!use1904Format || zdt.getYear() != 1904 || zdt.getDayOfYear() != 1) {
-                  yield temporal;
-                }
-                var dateFormat = cell.getCellStyle().getDataFormatString();
-                yield (dateFormat.contains("y")
-                        || dateFormat.contains("M")
-                        || dateFormat.contains("d"))
-                    ? zdt
-                    : zdt.toLocalTime();
-              }
-              default -> temporal;
-            };
-          } else {
-            if (dblValue == (long) dblValue) {
-              return (long) dblValue;
-            } else {
-              return dblValue;
-            }
-          }
+          return formatNumericValue(dblValue, nf, use1904Format);
         case STRING:
           return cell.getStringCellValue();
         case BOOLEAN:

@@ -4,10 +4,10 @@ import java.io.File
 
 object IRCaches {
 
-  /** As of 2025-09-12, on latest develop (https://github.com/enso-org/enso/commit/b1f5f661b9ad45604b6e419d79b8bcb2d2cd59e6),
-    * the total cache size is 114.91 MB.
+  /** As of 2025-11-04, on latest develop (https://github.com/enso-org/enso/actions/runs/19065973719/job/54456606143?pr=14223#step:10:3289),
+    * the total cache size is 90.49 MB.
     */
-  val EXPECTED_MAX_SIZE_MB = 130
+  val EXPECTED_MAX_SIZE_MB = 100
 
   /** Ensures that IR caches of all standard libraries
     * are within the size limit.

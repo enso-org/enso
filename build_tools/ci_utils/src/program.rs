@@ -2,7 +2,6 @@ use crate::prelude::*;
 
 use location::Location;
 
-
 // ==============
 // === Export ===
 // ==============
@@ -17,15 +16,11 @@ pub use command::Command;
 pub use resolver::Resolver;
 pub use shell::Shell;
 
-
-
 // TODO: consider project manger wrapper:
 // TODO: separate locating (which might be stateful, e.g. with additional directories)
 // TODO: separate "what can be done with its command" from the rest of program (e.g. from name)
 
 pub const EMPTY_ARGS: [&str; 0] = [];
-
-
 
 /// A set of utilities for using a known external program.
 ///
@@ -178,7 +173,6 @@ pub trait ProgramExt: Program {
 }
 
 impl<T> ProgramExt for T where T: Program {}
-
 
 #[derive(Clone, Debug)]
 pub struct Unknown(pub String);

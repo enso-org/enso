@@ -13,6 +13,7 @@ import { type ProjectNameStore } from '$/providers/openedProjects/projectNames'
 import { type SuggestionDbStore } from '$/providers/openedProjects/suggestionDatabase'
 import { type Typename } from '$/providers/openedProjects/suggestionDatabase/entry'
 import type { UpdateHandler, UpdateResult } from '$/providers/openedProjects/widgetRegistry'
+import { useCallbackRegistry } from '$/utils/data/callbacks'
 import { usePlacement } from '@/components/ComponentBrowser/placement'
 import type { PortId } from '@/providers/portInfo'
 import { assert, assertNever } from '@/util/assert'
@@ -22,12 +23,11 @@ import { isAstId, isIdentifier } from '@/util/ast/abstract'
 import { partition } from '@/util/data/array'
 import { stringUnionToArray, type Events } from '@/util/data/observable'
 import { Rect } from '@/util/data/rect'
-import { andThen, Err, Ok, unwrap, type Result } from '@/util/data/result'
 import { Vec2 } from '@/util/data/vec2'
 import type { MethodPointer } from '@/util/methodPointer'
 import { proxyRefs, useWatchContext } from '@/util/reactivity'
-import { useCallbackRegistry } from 'enso-common/src/utilities/data/callbacks'
 import * as iter from 'enso-common/src/utilities/data/iter'
+import { andThen, Err, Ok, unwrap, type Result } from 'enso-common/src/utilities/data/result'
 import { map, set } from 'lib0'
 import {
   computed,
@@ -539,6 +539,12 @@ export function createGraphStore(
     return (isAstId(id) && db.getExpressionNodeId(id)) || getPortPrimaryInstance(id)?.nodeId
   }
 
+  function getOutputPortNodeId(id: PortId): NodeId | undefined {
+    if (!isAstId(id)) return undefined
+    const [nodeId] = db.nodeOutputPorts.reverseLookup(id)
+    return nodeId
+  }
+
   /**
    * Emit a value update to a port view under specific ID. Returns Err if the port view is
    * not registered.
@@ -664,11 +670,18 @@ export function createGraphStore(
   }
 
   function isConnectedSource(portId: AstId): boolean {
-    return db.connections.lookup(portId).size > 0
+    return (
+      db.connections.lookup(portId).size > 0 ||
+      unconnectedEdges.cbEditedEdge.value?.source === portId ||
+      unconnectedEdges.mouseEditedEdge.value?.source === portId
+    )
   }
 
   function isConnectedTarget(portId: PortId): boolean {
-    return isAstId(portId) && db.connections.reverseLookup(portId).size > 0
+    return (
+      (isAstId(portId) && db.connections.reverseLookup(portId).size > 0) ||
+      unconnectedEdges.mouseEditedEdge.value?.target === portId
+    )
   }
 
   function nodeCanBeEntered(id: NodeId): boolean {
@@ -713,6 +726,7 @@ export function createGraphStore(
     getPortRelativeRect,
     getPortExpectedType,
     getPortNodeId,
+    getOutputPortNodeId,
     getSourceNodeId,
     isPortEnabled,
     updatePortValue,

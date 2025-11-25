@@ -29,9 +29,6 @@ def _run_sbt_impl(ctx):
     out_dir = ctx.actions.declare_directory(ctx.attr.out_dir)
     outputs = [out_dir]
 
-    args = ctx.actions.args()
-    for a in ctx.attr.args:
-        args.add_all(split_args(expand_variables(ctx, ctx.expand_location(a, targets = ctx.attr.srcs), outs = outputs)))
     envs = {}
     for k, v in ctx.attr.env.items():
         envs[k] = expand_variables(ctx, ctx.expand_location(v, targets = ctx.attr.srcs), outs = outputs, attribute_name = "env")
@@ -68,11 +65,12 @@ def _run_sbt_impl(ctx):
     for p in ctx.attr.system_props:
         system_props = system_props + split_args(expand_variables(ctx, ctx.expand_location(p, targets = ctx.attr.srcs), outs = outputs))
 
+    args = " ".join(ctx.attr.args)
     ctx.actions.run(
         outputs = outputs,
         inputs = inputs,
         executable = java_executable_path,
-        arguments = system_props + ["-jar", sbt_bin, args],
+        arguments = system_props + ["-jar", sbt_bin] + [args],
         use_default_shell_env = ctx.attr.use_default_shell_env,
         env = dicts.add(ctx.configuration.default_shell_env, envs),
         execution_requirements = {k: "" for k in native_toolchain.execution_requirements},

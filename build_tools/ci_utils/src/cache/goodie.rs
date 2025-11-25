@@ -3,7 +3,6 @@ use crate::prelude::*;
 use crate::cache;
 use crate::cache::Cache;
 
-
 // ==============
 // === Export ===
 // ==============
@@ -12,8 +11,6 @@ pub mod flatc;
 pub mod graalpy;
 pub mod graalvm;
 pub mod sbt;
-
-
 
 /// Something that can be obtained (with IO) and, after that, enabled by modifying global state.
 pub trait Goodie: Debug + Clone + Send + Sync + 'static {
@@ -72,16 +69,13 @@ pub trait GoodieExt: Goodie {
 
 impl<T: Goodie> GoodieExt for T {}
 
-
 pub fn download_url(url: Url, cache: &Cache) -> BoxFuture<'static, Result<PathBuf>> {
     download_try_url(Ok(url), cache)
 }
 
-
 pub fn download_try_url(url: Result<Url>, cache: &Cache) -> BoxFuture<'static, Result<PathBuf>> {
     download_try_future_url(ready(url), cache)
 }
-
 
 pub fn download_try_future_url(
     url: impl Future<Output = Result<Url>> + Send + 'static,

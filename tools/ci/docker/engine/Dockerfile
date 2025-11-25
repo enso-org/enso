@@ -1,4 +1,4 @@
-FROM ghcr.io/graalvm/jdk-community:24.0.1
+FROM ghcr.io/graalvm/jdk-community:25.0.1
 
 USER root
 
@@ -30,6 +30,8 @@ ENV ENSO_RUNTIME_DIRECTORY=/opt/enso/work
 ENV ENSO_LOG_DIRECTORY=/opt/enso/logs
 ENV ENSO_HOME=/volumes/workspace/home
 
+RUN mkdir -p /opt/enso
+RUN chown -hR ensodev:ensodev /opt/enso
 COPY --chown=ensodev:ensodev --chmod=555 bin /opt/enso/bin
 COPY --chown=ensodev:ensodev --chmod=555 --from=docker-tools docker-entrypoint.sh /opt/enso/bin/
 COPY --chown=ensodev:ensodev --chmod=554 component /opt/enso/component

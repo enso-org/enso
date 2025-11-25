@@ -1,14 +1,11 @@
 // === Non-Standard Linter Configuration ===
 #![warn(unused_qualifications)]
 
-
 // ==============
 // === Export ===
 // ==============
 
 pub mod arg;
-
-
 
 pub mod prelude {
     pub use crate::arg::ArgExt as _;
@@ -61,17 +58,14 @@ use enso_build::source::WatchTargetJob;
 use enso_build::source::WithDestination;
 use enso_build::version;
 use ide_ci::actions::workflow::is_in_env;
+use ide_ci::cache::goodie::graalvm;
 use ide_ci::cache::Cache;
 use ide_ci::fs::remove_if_exists;
 use ide_ci::github::release;
 use ide_ci::github::setup_octocrab;
 use ide_ci::global;
 use ide_ci::ok_ready_boxed;
-use ide_ci::programs::cargo;
 use ide_ci::programs::git;
-use ide_ci::programs::git::clean;
-use ide_ci::programs::rustc;
-use ide_ci::programs::Cargo;
 use octocrab::models::ReleaseId;
 use std::time::Duration;
 use tokio::process::Child;
@@ -138,8 +132,9 @@ impl Processor {
             arg::SourceKind::Build => T::resolve(self, source.build_args.input)
                 .map_ok(move |input| Source::BuildLocally(BuildSource { input }))
                 .boxed(),
-            arg::SourceKind::Local =>
-                ok_ready_boxed(Source::External(ExternalSource::LocalFile(source.path))),
+            arg::SourceKind::Local => {
+                ok_ready_boxed(Source::External(ExternalSource::LocalFile(source.path)))
+            }
             arg::SourceKind::CiRun => {
                 let run_id = source.run_id.context(format!(
                     "Missing run ID, please provide {} argument.",
@@ -154,10 +149,11 @@ impl Processor {
                 });
                 ready(source).boxed()
             }
-            arg::SourceKind::CurrentCiRun =>
+            arg::SourceKind::CurrentCiRun => {
                 ok_ready_boxed(Source::External(ExternalSource::OngoingCiRun(OngoingCiRunSource {
                     artifact_name: resolve_artifact_name(source.artifact_name, &target),
-                }))),
+                })))
+            }
             arg::SourceKind::Release => {
                 let designator = source
                     .release
@@ -268,43 +264,6 @@ impl Processor {
         .boxed()
     }
 
-    pub fn handle_wasm(&self, wasm: arg::wasm::Target) -> BoxFuture<'static, Result> {
-        match wasm.command {
-            arg::wasm::Command::Test { no_wasm, no_native, browser } => {
-                let wasm_browsers =
-                    if no_wasm { default() } else { browser.into_iter().map_into().collect_vec() };
-                let root = self.repo_root.to_path_buf();
-                async move { project::wasm::test(root, &wasm_browsers, !no_native).await }.boxed()
-            }
-            arg::wasm::Command::Lint => {
-                let repo_root = self.repo_root.clone();
-                async move {
-                    Cargo
-                        .cmd()?
-                        .current_dir(&repo_root)
-                        .arg(cargo::clippy::COMMAND)
-                        .apply(&cargo::Options::Workspace)
-                        .apply(&cargo::Options::Package("enso-integration-test".into()))
-                        .apply(&cargo::Options::AllTargets)
-                        .apply(&cargo::Color::Always)
-                        .arg("--")
-                        .apply(&rustc::Option::Deny(rustc::Lint::Warnings))
-                        .run_ok()
-                        .await?;
-
-                    Cargo
-                        .cmd()?
-                        .current_dir(&repo_root)
-                        .arg("fmt")
-                        .args(["--", "--check"])
-                        .run_ok()
-                        .await
-                }
-                .boxed()
-            }
-        }
-    }
-
     pub fn handle_gui(&self, gui: arg::gui::Target) -> BoxFuture<'static, Result> {
         match gui.command {
             arg::gui::Command::Build(job) => self.build(job),
@@ -356,7 +315,7 @@ impl Processor {
                     let config = enso_build::engine::BuildConfigurationFlags {
                         build_engine_package: true,
                         build_launcher_bundle: true,
-                        build_project_manager_bundle: true,
+                        build_engine_bundle: true,
                         build_small_jdk: true,
                         small_jdk_dir: Some(small_jdk_dir),
                         verify_packages: true,
@@ -413,18 +372,25 @@ impl Processor {
                             config.check_enso_benchmarks = TARGET_OS == OS::Linux;
                         }
                         Tests::StandardLibrary => {
-                            config.build_small_jdk = true;
-                            let small_jdk_dir =
-                                self.context.repo_root.target.small_jdk.path.clone();
-                            config.small_jdk_dir = Some(small_jdk_dir.clone());
+                            config.build_small_jdk = enso_build::engine::env::GRAAL_EDITION
+                                .get()
+                                .map_or(true, |e| e != graalvm::Edition::Enterprise);
+                            if config.build_small_jdk {
+                                let small_jdk_dir =
+                                    self.context.repo_root.target.small_jdk.path.clone();
+                                config.small_jdk_dir = Some(small_jdk_dir.clone());
+                                config.add_engine_runner_arg("--jvm");
+                                config.add_engine_runner_arg(
+                                    small_jdk_dir.to_string_lossy().to_string().as_str(),
+                                );
+                            } else {
+                                config.small_jdk_dir = None
+                            }
+
                             config.test_standard_library =
                                 Some(StandardLibraryTestsSelection::blacklist(vec![
                                     "Microsoft_Tests".to_string(),
                                 ]));
-                            config.add_engine_runner_arg("--jvm");
-                            config.add_engine_runner_arg(
-                                small_jdk_dir.to_string_lossy().to_string().as_str(),
-                            );
                             config.use_native_runner = true;
                         }
                         Tests::StandardLibraryInNative => {
@@ -777,48 +743,10 @@ pub async fn main_internal(config: Option<Config>) -> Result {
 
     let ctx: Processor = Processor::new(&cli).instrument(info_span!("Building context.")).await?;
     match cli.target {
-        Target::Wasm(wasm) => ctx.handle_wasm(wasm).await?,
         Target::Gui(gui) => ctx.handle_gui(gui).await?,
         Target::Runtime(runtime) => ctx.handle_runtime(runtime).await?,
         Target::Backend(backend) => ctx.handle_backend(backend).await?,
         Target::Ide(ide) => ctx.handle_ide(ide).await?,
-        Target::GitClean(options) => {
-            let arg::git_clean::Options { dry_run, cache, build_script } = options;
-            let mut exclusions: Vec<&str> = vec![".idea"];
-            if !build_script {
-                exclusions.push("target/rust/buildscript");
-            }
-
-            if !dry_run {
-                enso_build::web::install(&ctx.repo_root).await?;
-                enso_build::web::run_script(&ctx.repo_root, enso_build::web::Script::BazelClean)
-                    .await?;
-            }
-
-            if !dry_run {
-                // On Windows, `npm` uses junctions as symbolic links for in-workspace dependencies.
-                // Unfortunately, Git for Windows treats those as hard links. That then leads to
-                // `git clean` recursing into those linked directories, happily deleting sources of
-                // whole linked packages. Manually deleting `node_modules` before running clean
-                // prevents this from happening.
-                //
-                // Related npm issue: https://github.com/npm/npm/issues/19091
-                ide_ci::fs::tokio::remove_dir_if_exists(ctx.repo_root.join("node_modules")).await?;
-                ide_ci::fs::tokio::remove_dir_if_exists(ctx.repo_root.join("bazel-enso")).await?;
-                ide_ci::fs::tokio::remove_dir_if_exists(ctx.repo_root.join("bazel-out")).await?;
-                ide_ci::fs::tokio::remove_dir_if_exists(ctx.repo_root.join("bazel-bin")).await?;
-            }
-
-            let git_clean = clean::clean_except_for(&ctx.repo_root, exclusions, dry_run);
-            let clean_cache = async {
-                if cache && !dry_run {
-                    ide_ci::fs::tokio::remove_dir_if_exists(ctx.cache.path()).await?;
-                }
-                Result::Ok(())
-            };
-
-            try_join!(git_clean, clean_cache)?;
-        }
         Target::Fmt => {
             enso_build::web::install(&ctx.repo_root).await?;
             let prettier =
@@ -834,16 +762,6 @@ pub async fn main_internal(config: Option<Config>) -> Result {
             }
             Action::DeployRuntime(args) => {
                 enso_build::release::deploy_runtime_to_ecr(&ctx, args.ecr_repository).await?;
-            }
-            Action::DeployYdocPolyglot(args) => {
-                let config = enso_build::engine::BuildConfigurationFlags {
-                    build_native_ydoc: true,
-                    ..default()
-                };
-                let backend_context = ctx.prepare_backend_context(config).await?;
-                backend_context.build().await?;
-
-                enso_build::release::deploy_ydoc_polyglot_to_ecr(&ctx, args.ecr_repository).await?;
             }
             Action::DispatchBuildImage => {
                 if !(&ctx.triple.versions.version.pre.to_string().starts_with("nightly")) {

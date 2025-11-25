@@ -17,8 +17,6 @@ use reqwest::Response;
 use reqwest::StatusCode;
 use tokio::io::AsyncReadExt;
 
-
-
 pub mod endpoints {
     use super::*;
     use crate::io::retry;

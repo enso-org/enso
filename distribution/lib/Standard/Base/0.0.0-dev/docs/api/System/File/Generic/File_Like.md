@@ -2,6 +2,8 @@
 ## module Standard.Base.System.File.Generic.File_Like
 - type File_Like
     - Value underlying:Standard.Base.Any.Any
+    - can_write_into_parent self -> Standard.Base.Any.Any
+    - exists self -> Standard.Base.Any.Any
     - name self -> Standard.Base.Data.Text.Text
     - parent self -> Standard.Base.System.File.Generic.File_Like.File_Like
     - path self -> Standard.Base.Data.Text.Text

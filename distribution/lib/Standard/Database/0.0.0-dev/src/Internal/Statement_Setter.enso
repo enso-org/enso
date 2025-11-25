@@ -5,25 +5,58 @@ from Standard.Base.Data.Decimal import get_big_decimal
 
 from Standard.Table import Value_Type
 
-polyglot java import java.math.BigDecimal as Java_Big_Decimal
 polyglot java import java.sql.PreparedStatement
-polyglot java import java.sql.Types as Java_Types
-polyglot java import org.enso.base.polyglot.NumericConverter
-polyglot java import org.enso.database.JDBCUtils
+polyglot java import java.sql.Types
+polyglot java import org.enso.database.JDBCValueSetter
 
 type Statement_Setter
     ## ---
        private: true
        ---
        Encapsulates the logic for filling a hole in a prepared statement.
-    Value (fill_hole : PreparedStatement -> Integer -> Value_Type|Nothing -> Any -> Nothing)
+    private Value (fill_hole : PreparedStatement -> Integer -> Value_Type|Nothing -> Any -> Nothing)
 
     ## ---
        private: true
        ---
        The default setter that is handling simple commonly supported types.
-    default : Statement_Setter
-    default = Statement_Setter.Value fill_hole_default
+    for_fill_hole : Function -> Statement_Setter
+    for_fill_hole fill_hole =
+        Statement_Setter.Value fill_hole
+
+    ## ---
+       private: true
+       ---
+       Create a default full_hole implementation for a JDBCValueSetter
+    create_fill_hole : JDBCValueSetter -> Statement_Setter
+    create_fill_hole jdbc_value_setter =
+        fill_hole_jdbc : PreparedStatement -> Integer -> Value_Type|Nothing -> Any -> Nothing
+        fill_hole_jdbc stmt i type_hint value = case value of
+            Nothing       -> stmt.setNull i Types.NULL
+            _ : Boolean   -> stmt.setBoolean i value
+            _ : Integer   -> jdbc_value_setter.setInteger stmt i value
+            _ : Decimal   -> stmt.setBigDecimal i (get_big_decimal value)
+            _ : Float     -> stmt.setDouble i value
+            _ : Text      -> stmt.setString i value
+            _ : Date_Time ->
+                has_timezone = case type_hint of
+                    Value_Type.Date_Time with_timezone -> with_timezone
+                    # We include the timezone by default
+                    _ -> True
+                case has_timezone of
+                    True ->
+                        jdbc_value_setter.setZonedDateTime stmt i value
+                    False ->
+                        jdbc_value_setter.setLocalDateTime stmt i value
+            ## Time_Of_Day and Date sometimes work ok, but sometimes are passed as
+               `org.graalvm.polyglot.Value` to the JDBC driver which is then unable to
+               infer the correct type for them. Instead, we use these helper functions
+               which ensure the type is locked to the Java class known to JDBC.
+            _ : Time_Of_Day -> jdbc_value_setter.setLocalTime stmt i value
+            _ : Date        -> jdbc_value_setter.setLocalDate stmt i value
+            _ : Vector      -> Error.throw (Illegal_Argument.Error "Default implementation does not support interpolating Vectors into SQL queries.")
+            _               -> stmt.setObject i value
+        fill_hole_jdbc
 
     ## ---
        private: true
@@ -36,37 +69,3 @@ type Statement_Setter
         fill_hole_unexpected _ _ _ _ =
             Panic.throw (Illegal_State.Error "The associated statement does not expect any values to be set. This is a bug in the Database library.")
         Statement_Setter.Value fill_hole_unexpected
-
-## ---
-   private: true
-   ---
-fill_hole_default : PreparedStatement -> Integer -> Value_Type|Nothing -> Any -> Nothing
-fill_hole_default stmt i type_hint value jdbc_utils=JDBCUtils = case value of
-    Nothing       -> stmt.setNull i Java_Types.NULL
-    _ : Boolean   -> stmt.setBoolean i value
-    _ : Integer   -> case NumericConverter.isBigInteger value of
-        True  ->
-            big_decimal = NumericConverter.bigIntegerAsBigDecimal value
-            stmt.setBigDecimal i big_decimal
-        False -> stmt.setLong i value
-    _ : Decimal   -> stmt.setBigDecimal i (get_big_decimal value)
-    _ : Float     -> stmt.setDouble i value
-    _ : Text      -> stmt.setString i value
-    _ : Date_Time ->
-        has_timezone = case type_hint of
-            Value_Type.Date_Time with_timezone -> with_timezone
-            # We include the timezone by default
-            _ -> True
-        case has_timezone of
-            True ->
-                jdbc_utils.setZonedDateTime stmt i value
-            False ->
-                jdbc_utils.setLocalDateTime stmt i value
-    ## Time_Of_Day and Date sometimes work ok, but sometimes are passed as
-       `org.graalvm.polyglot.Value` to the JDBC driver which is then unable to
-       infer the correct type for them. Instead, we use these helper functions
-       which ensure the type is locked to the Java class known to JDBC.
-    _ : Time_Of_Day -> jdbc_utils.setLocalTime stmt i value
-    _ : Date        -> jdbc_utils.setLocalDate stmt i value
-    _ : Vector      -> Error.throw (Illegal_Argument.Error "Default implementation does not support interpolating Vectors into SQL queries.")
-    _               -> stmt.setObject i value

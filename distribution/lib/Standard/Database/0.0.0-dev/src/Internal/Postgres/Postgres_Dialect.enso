@@ -1,3 +1,5 @@
+private
+
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
@@ -17,9 +19,9 @@ import project.Dialects.Dialect_Flag.Dialect_Flag
 import project.Dialects.Feature.Feature
 import project.Errors.Unsupported_Database_Operation
 import project.Internal.Base_Generator
+import project.Internal.Base_Generator.Dialect_Operations
 import project.Internal.Common.Database_Distinct_Helper
 import project.Internal.Common.Database_Join_Helper
-import project.Internal.Error_Mapper.Error_Mapper
 import project.Internal.Internals_Access
 import project.Internal.IR.Internal_Column.Internal_Column
 import project.Internal.IR.Nulls_Order.Nulls_Order
@@ -30,7 +32,6 @@ import project.Internal.IR.SQL_IR_Source.SQL_IR_Source
 import project.Internal.IR.SQL_IR_Source.SQL_IR_Source_Extension
 import project.Internal.IR.SQL_IR_Statement.SQL_IR_Statement
 import project.Internal.JDBC_Connection.JDBC_Connection
-import project.Internal.Postgres.Postgres_Error_Mapper.Postgres_Error_Mapper
 import project.Internal.Replace_Params.Replace_Params
 import project.Internal.SQL_Part.SQL_Part
 import project.Internal.SQL_Type_Mapping.SQL_Type_Mapping
@@ -59,7 +60,14 @@ type Postgres_Dialect
        private: true
        ---
        The dialect of PostgreSQL databases.
-    Value dialect_operations
+    private Value dialect_operations
+
+    ## ---
+       private: true
+       ---
+       Access underlying dialect operations.
+    get_dialect_operations : Dialect_Operations
+    get_dialect_operations self = self.dialect_operations
 
     ## ---
        private: true
@@ -246,7 +254,7 @@ type Postgres_Dialect
 
         cast_to = case op_kind of
             "SUM" ->
-                if is_int8 (args.at 0) then "numeric(1000,0)" else Nothing
+                if is_int8 (args.at 0) then "numeric(37,0)" else Nothing
             "AVG" ->
                 if is_int (args.at 0) then "float8" else Nothing
             "STDDEV_POP" ->
@@ -276,7 +284,8 @@ type Postgres_Dialect
     ## ---
        private: true
        ---
-    generate_collate self collation_name:Text -> Text = Base_Generator.default_generate_collate collation_name
+    generate_collate self collation_name:Text -> Text =
+        Base_Generator.default_generate_collate collation_name
 
     ## ---
        private: true
@@ -300,6 +309,7 @@ type Postgres_Dialect
     is_feature_supported self feature:Feature -> Boolean =
         case feature of
             Feature.Generate_Rows -> False
+            Feature.Spatial -> False
             _ -> True
 
     ## ---
@@ -324,6 +334,8 @@ type Postgres_Dialect
             Dialect_Flag.Case_Insensitive_Ordering_By_Default -> True
             Dialect_Flag.Allows_Mixed_Type_Comparisons -> False
             Dialect_Flag.Supports_Unicode_Normalization -> False
+            Dialect_Flag.Supports_Unicode_Casing -> False
+            Dialect_Flag.Supports_Proper_Casing -> True
             Dialect_Flag.NaN_Non_Comparable -> False
             Dialect_Flag.Distinct_Returns_First_Row_From_Group_If_Ordered -> True
             Dialect_Flag.Date_Time -> True
@@ -352,18 +364,21 @@ type Postgres_Dialect
     ## ---
        private: true
        ---
-    get_error_mapper : Error_Mapper
-    get_error_mapper self = Postgres_Error_Mapper
-
-    ## ---
-       private: true
-       ---
        Prepares metadata for an operation taking a date/time period and checks if
        the given period is supported.
     prepare_metadata_for_period : Date_Period | Time_Period -> Value_Type -> Any
     prepare_metadata_for_period self period operation_input_type =
         if period == Time_Period.Nanosecond then Error.throw (Unsupported_Database_Operation.Error "Nanosecond precision date/times") else
             Date_Period_Metadata.Value period operation_input_type
+
+    ## ---
+       private: true
+       ---
+       Returns the set of all supported Replace_Params
+    get_supported_replace_params : Hashset Replace_Params
+    get_supported_replace_params self =
+        _ = self
+        supported_replace_params
 
     ## ---
        private: true
@@ -423,7 +438,7 @@ type Postgres_Dialect
    private: true
    ---
 make_dialect_operations =
-    cases = [["LOWER", Base_Generator.make_function "LOWER"], ["UPPER", Base_Generator.make_function "UPPER"]]
+    cases = [["LOWER", Base_Generator.make_function "LOWER"], ["UPPER", Base_Generator.make_function "UPPER"], ["PROPER", Base_Generator.make_function "INITCAP"]]
     text = [starts_with, contains, ends_with, agg_shortest, agg_longest, make_case_sensitive, ["REPLACE", replace], left, right, regex_match]+concat_ops+cases+trim_ops
     counts = [agg_count_is_null, agg_count_empty, agg_count_not_empty, ["COUNT_DISTINCT", agg_count_distinct], ["COUNT_DISTINCT_INCLUDE_NULL", agg_count_distinct_include_null]]
     arith_extensions = [is_nan, is_inf, is_finite, floating_point_div, mod_op, decimal_div, decimal_mod, ["ROW_MIN", Base_Generator.make_function "LEAST"], ["ROW_MAX", Base_Generator.make_function "GREATEST"]]

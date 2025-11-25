@@ -8,14 +8,10 @@ use crate::syntax::*;
 use crate::lexer;
 use crate::source::code::Location;
 
-
-
 /// Common traits.
 pub mod traits {
     pub use super::FirstChildTrim;
 }
-
-
 
 // =====================
 // === VisibleOffset ===
@@ -52,8 +48,6 @@ impl From<&str> for VisibleOffset {
     }
 }
 
-
-
 // ==============
 // === Offset ===
 // ==============
@@ -66,7 +60,7 @@ pub struct Offset<'s> {
     #[reflect(hide)]
     pub visible: VisibleOffset,
     #[reflect(flatten, hide)]
-    pub code:    Code<'s>,
+    pub code: Code<'s>,
 }
 
 /// Constructor.
@@ -139,7 +133,6 @@ impl<'s> AddAssign<&Offset<'s>> for Offset<'s> {
     }
 }
 
-
 // ============
 // === Span ===
 // ============
@@ -200,7 +193,9 @@ impl<'s> Span<'s> {
 
     #[inline(always)]
     fn concat<'a>(mut self, other: impl Into<Ref<'s, 'a>>) -> Self
-    where 's: 'a {
+    where
+        's: 'a,
+    {
         let other = other.into();
         if self.code_length.is_zero() {
             self.left_offset += other.left_offset;
@@ -222,8 +217,6 @@ impl<'s> AsRef<Span<'s>> for Span<'s> {
         self
     }
 }
-
-
 
 // ===========
 // === Ref ===
@@ -251,8 +244,6 @@ impl<'s, 'a> From<&'a Span<'s>> for Ref<'s, 'a> {
     }
 }
 
-
-
 // ==============
 // === RefMut ===
 // ==============
@@ -270,8 +261,6 @@ pub struct RefMut<'s, 'a> {
     /// The length of the code, excluding [`left_offset`].
     pub code_length: code::Length,
 }
-
-
 
 // ======================
 // === FirstChildTrim ===
@@ -299,8 +288,6 @@ impl<'s> FirstChildTrim<'s> for Span<'s> {
     }
 }
 
-
-
 // ===============
 // === Builder ===
 // ===============
@@ -314,7 +301,6 @@ macro_rules! span_builder {
     };
 }
 
-
 /// Elements implementing this trait can contain a span or multiple spans. If an element is added to
 /// an empty span, it means that it is the first element in the span group. In such a case, the left
 /// offset of the element will be removed and moved to the resulting span. See the docs of
@@ -323,7 +309,6 @@ macro_rules! span_builder {
 pub trait Builder<'s> {
     fn add_to_span(&mut self, span: Span<'s>) -> Span<'s>;
 }
-
 
 // === Instances ===
 
@@ -357,7 +342,8 @@ impl<'s, T> Builder<'s> for Token<'s, T> {
 }
 
 impl<'s, T> Builder<'s> for Option<T>
-where T: Builder<'s>
+where
+    T: Builder<'s>,
 {
     #[inline(always)]
     fn add_to_span(&mut self, span: Span<'s>) -> Span<'s> {
@@ -383,7 +369,8 @@ where
 }
 
 impl<'s, T> Builder<'s> for NonEmptyVec<T>
-where T: Builder<'s>
+where
+    T: Builder<'s>,
 {
     #[inline(always)]
     fn add_to_span(&mut self, span: Span<'s>) -> Span<'s> {
@@ -392,7 +379,8 @@ where T: Builder<'s>
 }
 
 impl<'s, T> Builder<'s> for Vec<T>
-where T: Builder<'s>
+where
+    T: Builder<'s>,
 {
     #[inline(always)]
     fn add_to_span(&mut self, span: Span<'s>) -> Span<'s> {
@@ -401,7 +389,8 @@ where T: Builder<'s>
 }
 
 impl<'s, T> Builder<'s> for [T]
-where T: Builder<'s>
+where
+    T: Builder<'s>,
 {
     #[inline(always)]
     fn add_to_span(&mut self, span: Span<'s>) -> Span<'s> {

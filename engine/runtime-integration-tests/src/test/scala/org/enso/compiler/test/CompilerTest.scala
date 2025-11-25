@@ -7,6 +7,7 @@ import org.enso.compiler.core.ir.{
   DefinitionArgument,
   Diagnostic,
   Expression,
+  MetadataStorage,
   Module,
   Name
 }
@@ -219,23 +220,25 @@ trait CompilerRunner {
       * @return an atom with one argument `arg` with default value `ir`
       */
     def asAtomDefaultArg: Definition.Data = {
-      Definition.Data(
-        Name.Literal("TestAtom", isMethod = false, identifiedLocation = null),
-        List(
-          DefinitionArgument.Specified
-            .builder()
-            .name(
-              Name
-                .Literal("arg", isMethod = false, identifiedLocation = null)
-            )
-            .defaultValue(Some(ir))
-            .suspended(false)
-            .build()
-        ),
-        List(),
-        false,
-        identifiedLocation = null
-      )
+      Definition.Data
+        .builder()
+        .name(
+          Name.Literal("TestAtom", isMethod = false, identifiedLocation = null)
+        )
+        .arguments(
+          List(
+            DefinitionArgument.Specified
+              .builder()
+              .name(
+                Name
+                  .Literal("arg", isMethod = false, identifiedLocation = null)
+              )
+              .defaultValue(Some(ir))
+              .suspended(false)
+              .build()
+          )
+        )
+        .build()
     }
   }
 
@@ -308,7 +311,15 @@ trait CompilerRunner {
       )
     ModuleTestUtils.unsafeSetIr(
       mod,
-      Module(List(), List(), List(), false, identifiedLocation = null)
+      new Module(
+        List(),
+        List(),
+        List(),
+        false,
+        null,
+        new MetadataStorage(),
+        null
+      )
         .updateMetadata(
           new MetadataPair(
             BindingAnalysis,

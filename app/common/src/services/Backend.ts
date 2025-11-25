@@ -1,13 +1,13 @@
 /** @file Type definitions common between all backends. */
 import { z } from 'zod'
+import type { DownloadOptions } from '../download.js'
 import { getText, resolveDictionary, type Replacements, type TextId } from '../text.js'
-import * as array from '../utilities/data/array.js'
 import * as dateTime from '../utilities/data/dateTime.js'
 import * as newtype from '../utilities/data/newtype.js'
 import * as permissions from '../utilities/permissions.js'
-import * as uniqueString from '../utilities/uniqueString.js'
 import { getFileDetailsPath } from './Backend/remoteBackendPaths.js'
 import {
+  ApiKeyId,
   DatalinkId,
   DirectoryId,
   EnsoPath,
@@ -18,7 +18,6 @@ import {
   Path,
   ProjectId,
   SecretId,
-  UpAssetId,
   VirtualParentsPath,
   type Address,
   type AssetId,
@@ -98,7 +97,7 @@ export interface Logger {
   readonly error: (message: unknown, ...optionalParams: unknown[]) => void
 }
 
-type GetText = <K extends TextId>(key: K, ...replacements: Replacements[K]) => string
+export type GetText = <K extends TextId>(key: K, ...replacements: Replacements[K]) => string
 
 /** The {@link Backend} variant. If a new variant is created, it should be added to this enum. */
 export enum BackendType {
@@ -515,9 +514,13 @@ export enum Plan {
   enterprise = 'enterprise',
 }
 
-export const PLANS = Object.values(Plan)
+export const PLANS: readonly Plan[] = Object.values(Plan)
 
-export const isPlan = array.includesPredicate(PLANS)
+/** Whether a given value is a {@link Plan}. */
+export function isPlan(value: unknown): value is Plan {
+  const plans: readonly unknown[] = PLANS
+  return plans.includes(value)
+}
 
 /** Metadata for a payment checkout session. */
 export interface CheckoutSession {
@@ -589,6 +592,11 @@ export interface RemoteBackendError {
   readonly param: string
 }
 
+/** HTTP response body for the "list api keys" endpoint. */
+export interface ListApiKeysResponse {
+  readonly credentials: readonly ApiKey[]
+}
+
 /** HTTP response body for the "list users" endpoint. */
 export interface ListUsersResponseBody {
   readonly users: readonly User[]
@@ -628,8 +636,8 @@ export interface CreateCustomerPortalSessionResponse {
 export interface PathResolveResponse extends Omit<AnyRealAsset, 'type' | 'ensoPath'> {}
 
 /** Response from "assets/${assetId}" endpoint. */
-export type AssetDetailsResponse<Id extends RealAssetId> =
-  | (Omit<Asset<RealAssetTypeId<Id>>, 'ensoPath'> & { readonly metadataId: MetadataId })
+export type AssetDetailsResponse<Id extends AssetId> =
+  | (Asset<AssetTypeFromId<Id>> & { readonly metadataId: MetadataId })
   | null
 
 /** Whether the user is on a plan with multiple seats (i.e. a plan that supports multiple users). */
@@ -792,6 +800,36 @@ export interface LChColor {
   readonly alpha?: number | undefined
 }
 
+/** Type used when creating api key credential. */
+export interface CreateApiKeyRequestBody {
+  readonly name: string
+  readonly description: string
+  readonly expiresIn: ApiKeyExpiresIn
+}
+
+/** Api key credential. */
+export interface ApiKey {
+  readonly id: ApiKeyId
+  // Field populated only once after creation.
+  readonly secretId: string | null
+  readonly name: string
+  readonly description: string
+  readonly createdAt: dateTime.Rfc3339DateTime
+  readonly lastUsedAt: dateTime.Rfc3339DateTime | null
+  readonly expiresAt: dateTime.Rfc3339DateTime | null
+  readonly expiresIn: ApiKeyExpiresIn
+}
+
+/** Possible types of lifetime span for api key credentials. */
+export enum ApiKeyExpiresIn {
+  Week = 'Week',
+  Month = 'Month',
+  Year = 'Year',
+  Indefinetly = 'Indefinetly',
+}
+
+export const API_KEY_EXPIRES_IN_VALUES: readonly ApiKeyExpiresIn[] = Object.values(ApiKeyExpiresIn)
+
 /** A pre-selected list of colors to be used in color pickers. */
 export const COLORS = [
   // Red
@@ -856,8 +894,6 @@ export enum AssetType {
   secret = 'secret',
   datalink = 'datalink',
   directory = 'directory',
-  /** A special {@link AssetType} representing a button that navigates to the parent directory. */
-  specialUp = 'specialUp',
 }
 
 export const ASSET_TYPE_TO_TEXT_ID: Readonly<Record<AssetType, TextId>> = {
@@ -865,7 +901,6 @@ export const ASSET_TYPE_TO_TEXT_ID: Readonly<Record<AssetType, TextId>> = {
   [AssetType.project]: 'projectAssetType',
   [AssetType.file]: 'fileAssetType',
   [AssetType.secret]: 'secretAssetType',
-  [AssetType.specialUp]: 'specialUpAssetType',
   [AssetType.datalink]: 'datalinkAssetType',
 } satisfies { [Type in AssetType]: `${Type}AssetType` }
 
@@ -885,9 +920,7 @@ export type RealAssetType =
   | AssetType.directory
 
 /** The corresponding ID newtype for each {@link AssetType}. */
-export interface IdType extends RealAssetIdType, SpecialAssetIdType {}
-export type RealAssetId = ProjectId | FileId | DatalinkId | SecretId | DirectoryId
-export interface RealAssetIdType {
+export interface IdType {
   readonly [AssetType.project]: ProjectId
   readonly [AssetType.file]: FileId
   readonly [AssetType.datalink]: DatalinkId
@@ -895,16 +928,13 @@ export interface RealAssetIdType {
   readonly [AssetType.directory]: DirectoryId
 }
 
-export type RealAssetTypeId<Id extends RealAssetId> =
+type AssetTypeFromId<Id extends AssetId> =
   Id extends ProjectId ? AssetType.project
   : Id extends FileId ? AssetType.file
   : Id extends DatalinkId ? AssetType.datalink
   : Id extends SecretId ? AssetType.secret
-  : AssetType.directory
-
-export interface SpecialAssetIdType {
-  readonly [AssetType.specialUp]: UpAssetId
-}
+  : Id extends DirectoryId ? AssetType.directory
+  : never
 
 /**
  * Integers (starting from 0) corresponding to the order in which each asset type should appear
@@ -916,7 +946,6 @@ export const ASSET_TYPE_ORDER: Readonly<Record<AssetType, number>> = {
   [AssetType.file]: -2,
   [AssetType.datalink]: -3,
   [AssetType.secret]: -4,
-  [AssetType.specialUp]: 1,
 }
 
 /** A state associated with a credential. */
@@ -955,9 +984,7 @@ export interface Asset<Type extends AssetType = AssetType> {
   readonly parentsPath: ParentsPath
   readonly virtualParentsPath: VirtualParentsPath
   /** The display path. */
-  // TODO[ao]: As a rule, this should be always defined, but there is one place where we are unable
-  //  to retrieve directory path easily.
-  readonly ensoPath: Type extends AssetType.directory ? EnsoPath | undefined : EnsoPath
+  readonly ensoPath: EnsoPath
 }
 
 /** A convenience alias for {@link Asset}<{@link AssetType.directory}>. */
@@ -975,30 +1002,6 @@ export type DatalinkAsset = Asset<AssetType.datalink>
 /** A convenience alias for {@link Asset}<{@link AssetType.secret}>. */
 export type SecretAsset = Asset<AssetType.secret>
 
-/** A convenience alias for {@link Asset}<{@link AssetType.specialUp}>. */
-export type SpecialUpAsset = Asset<AssetType.specialUp>
-
-const PLACEHOLDER_SIGNATURE = Symbol('placeholder')
-
-/** Creates a new placeholder id. */
-function createPlaceholderId(from?: string): string {
-  const id = new String(from ?? uniqueString.uniqueString())
-
-  Object.defineProperty(id, PLACEHOLDER_SIGNATURE, {
-    value: true,
-    enumerable: false,
-    configurable: false,
-    writable: false,
-  })
-
-  return id as string
-}
-
-/** Whether a given {@link AssetId} is a placeholder id. */
-export function isPlaceholderId(id: AssetId) {
-  return typeof id !== 'string' && PLACEHOLDER_SIGNATURE in id
-}
-
 /** Whether a given asset represents a credential. */
 export function isAssetCredential(
   asset: Asset,
@@ -1006,48 +1009,9 @@ export function isAssetCredential(
   return asset.type === 'secret' && asset.credentialMetadata !== undefined
 }
 
-/** Extract the file extension from a file name. */
-function fileExtension(fileNameOrPath: string) {
-  return fileNameOrPath.match(/[.]([^.]+?)$/)?.[1] ?? ''
-}
-
 /** Whether an asset can be downloaded. */
 export function isDownloadableAsset(type: AssetType | undefined) {
   return type !== AssetType.secret
-}
-
-/** Creates a {@link FileAsset} using the given values. */
-export function createPlaceholderFileAsset(title: string, parentId: DirectoryId): FileAsset {
-  return {
-    type: AssetType.file,
-    id: FileId(createPlaceholderId()),
-    title,
-    parentId,
-    permissions: [],
-    modifiedAt: dateTime.toRfc3339(new Date()),
-    projectState: null,
-    extension: fileExtension(title),
-    parentsPath: ParentsPath(''),
-    virtualParentsPath: VirtualParentsPath(''),
-    ensoPath: EnsoPath(''),
-  }
-}
-
-/** Creates a {@link ProjectAsset} using the given values. */
-export function createPlaceholderProjectAsset(title: string, parentId: DirectoryId): ProjectAsset {
-  return {
-    type: AssetType.project,
-    id: ProjectId(createPlaceholderId()),
-    title,
-    parentId,
-    permissions: [],
-    modifiedAt: dateTime.toRfc3339(new Date()),
-    projectState: { type: ProjectState.new },
-    extension: null,
-    parentsPath: ParentsPath(''),
-    virtualParentsPath: VirtualParentsPath(''),
-    ensoPath: EnsoPath(''),
-  }
 }
 
 /** Any object with a `type` field matching the given `AssetType`. */
@@ -1057,7 +1021,7 @@ interface HasType<Type extends AssetType> {
 
 /** A union of all possible {@link Asset} variants. */
 export type AnyAsset<Type extends AssetType = AssetType> = Extract<
-  DatalinkAsset | DirectoryAsset | FileAsset | ProjectAsset | SecretAsset | SpecialUpAsset,
+  DatalinkAsset | DirectoryAsset | FileAsset | ProjectAsset | SecretAsset,
   HasType<Type>
 >
 
@@ -1079,44 +1043,6 @@ export function extractTypeFromId(id: AssetId): AnyAsset extends infer T ?
     type: id.match(/^(.+?)-/)?.[1],
     id,
   } as never
-}
-
-/** Creates a new placeholder asset id for the given asset type. */
-export function createPlaceholderAssetId<Type extends AssetType>(
-  type: Type,
-  id?: string,
-): IdType[Type] {
-  // This is required so that TypeScript can check the `switch` for exhaustiveness.
-  const assetType: AssetType = type
-  id = createPlaceholderId(id)
-  let result: AssetId
-  switch (assetType) {
-    case AssetType.directory: {
-      result = DirectoryId(`directory-${id}`)
-      break
-    }
-    case AssetType.project: {
-      result = ProjectId(id)
-      break
-    }
-    case AssetType.file: {
-      result = FileId(id)
-      break
-    }
-    case AssetType.datalink: {
-      result = DatalinkId(id)
-      break
-    }
-    case AssetType.secret: {
-      result = SecretId(id)
-      break
-    }
-    case AssetType.specialUp: {
-      result = UpAssetId(id)
-      break
-    }
-  }
-  return result as IdType[Type]
 }
 
 /** A type guard that returns whether an {@link Asset} is a {@link ProjectAsset}. */
@@ -1215,6 +1141,7 @@ export interface InviteUserRequestBody {
 export interface ListInvitationsResponseBody {
   readonly invitations: readonly Invitation[]
   readonly availableLicenses: number
+  readonly maxLicenses: number
 }
 
 /** Invitation to join an organization. */
@@ -1276,9 +1203,7 @@ export interface UpdateProjectRequestBody {
   readonly projectName: string | null
 }
 
-/**
- * Extra parameters required when opening the project in hybrid mode.
- */
+/** Extra parameters required when opening the project in hybrid mode. */
 export interface OpenHybridProjectParameters {
   /** Cloud project directory path. */
   readonly cloudProjectDirectoryPath: EnsoPath
@@ -1383,19 +1308,19 @@ export type AssetSortDirection = 'ascending' | 'descending'
 /** URL query string parameters for the "list directory" endpoint. */
 export interface ListDirectoryRequestParams {
   readonly parentId: DirectoryId | null
-  readonly filterBy: FilterBy | null
-  readonly labels: readonly LabelName[] | null
-  readonly sortExpression: AssetSortExpression | null
-  readonly sortDirection: AssetSortDirection | null
-  readonly recentProjects: boolean
+  readonly filterBy?: FilterBy | null
+  readonly labels?: readonly LabelName[] | null
+  readonly sortExpression?: AssetSortExpression | null
+  readonly sortDirection?: AssetSortDirection | null
+  readonly recentProjects?: boolean
   /**
    * The root path of the directory to list.
    * This is used to list a subdirectory of a local root directory,
    * because a root could be any local folder on the machine.
    */
   readonly rootPath?: Path | undefined
-  readonly from: PaginationToken | null
-  readonly pageSize: number | null
+  readonly from?: PaginationToken | null
+  readonly pageSize?: number | null
 }
 
 /** URL query string parameters for the "search directory" endpoint. */
@@ -1480,6 +1405,10 @@ export interface UploadedProject {
 
 /** A large asset (file or project) that has finished uploading. */
 export type UploadedAsset = UploadedFile | UploadedArchive | UploadedProject
+
+export interface UploadedImages {
+  files: { assetId: AssetId; title: string }[]
+}
 
 /** URL query string parameters for the "upload profile picture" endpoint. */
 export interface UploadPictureRequestParams {
@@ -1744,15 +1673,23 @@ export class NetworkError extends Error {
 export class NotAuthorizedError extends NetworkError {}
 
 /** Interface for sending requests to a backend that manages assets and runs projects. */
-export default abstract class Backend {
+export abstract class Backend {
   abstract readonly type: BackendType
   abstract readonly baseUrl: URL
+  protected getText: GetText
+  private readonly client: HttpClient
+  protected readonly downloader: (options: DownloadOptions) => void | Promise<void>
 
-  /** Create a {@link LocalBackend}. */
+  /** Create a {@link Backend}. */
   constructor(
-    protected getText: GetText,
-    private readonly client: HttpClient,
-  ) {}
+    getText: GetText,
+    client: HttpClient,
+    downloader: (options: DownloadOptions) => void | Promise<void>,
+  ) {
+    this.getText = getText
+    this.client = client
+    this.downloader = downloader
+  }
 
   /**
    * Set `this.getText`. This function is exposed rather than the property itself to make it clear
@@ -1866,7 +1803,11 @@ export default abstract class Backend {
   /** Restore an arbitrary asset from the trash. */
   abstract undoDeleteAsset(assetId: AssetId, parentDirectoryId: DirectoryId | null): Promise<void>
   /** Copy an arbitrary asset to another directory. */
-  abstract copyAsset(assetId: AssetId, parentDirectoryId: DirectoryId): Promise<CopyAssetResponse>
+  abstract copyAsset(
+    assetId: AssetId,
+    parentDirectoryId: DirectoryId,
+    versionId?: S3ObjectVersionId,
+  ): Promise<CopyAssetResponse>
   /** Create a project for the current user. */
   abstract createProject(body: CreateProjectRequestBody): Promise<CreatedProject>
   /** Close a project. */
@@ -1917,7 +1858,7 @@ export default abstract class Backend {
    */
   abstract getProjectDetails(projectId: ProjectId, getPresignedUrl?: boolean): Promise<Project>
   /** Return asset details. */
-  abstract getAssetDetails<Id extends RealAssetId>(
+  abstract getAssetDetails<Id extends AssetId>(
     assetId: Id,
     rootPath: Path | undefined,
   ): Promise<AssetDetailsResponse<Id>>
@@ -1959,11 +1900,28 @@ export default abstract class Backend {
   abstract uploadFileStart(
     params: UploadFileRequestParams,
     file: File,
+    abort?: AbortSignal,
   ): Promise<UploadLargeFileMetadata>
   /** Upload a chunk of a large file. */
-  abstract uploadFileChunk(url: HttpsUrl, file: Blob, index: number): Promise<S3MultipartPart>
+  abstract uploadFileChunk(
+    url: HttpsUrl,
+    file: Blob,
+    index: number,
+    abort?: AbortSignal,
+  ): Promise<{ part: S3MultipartPart; size: number }>
   /** Finish uploading a large file. */
-  abstract uploadFileEnd(body: UploadFileEndRequestBody): Promise<UploadedAsset>
+  abstract uploadFileEnd(
+    body: UploadFileEndRequestBody,
+    abort?: AbortSignal,
+  ): Promise<UploadedAsset>
+  /**
+   * Upload set of Images, resolving any possible conflicts. The sum of file sizes may not
+   * exceed cloud message limit.
+   */
+  abstract uploadImage(
+    parentDirectoryId: DirectoryId,
+    files: { data: Blob; name: string }[],
+  ): Promise<UploadedImages>
   /** Change the name of a file. */
   abstract updateFile(fileId: FileId, body: UpdateFileRequestBody, title: string): Promise<void>
 
@@ -2056,6 +2014,13 @@ export default abstract class Backend {
   /** Fetches pricing page configuration. */
   abstract getPaymentsConfig(): Promise<PaymentsConfig>
 
+  /** List all API keys for the current user. */
+  abstract listApiKeys(): Promise<readonly ApiKey[]>
+  /** Create a new API key for the current user. */
+  abstract createApiKey(body: CreateApiKeyRequestBody): Promise<ApiKey>
+  /** Delete a API key for the current user. */
+  abstract deleteApiKey(apiKeyId: ApiKeyId): Promise<void>
+
   /** Throw a {@link backend.NotAuthorizedError} if the response is a 401 Not Authorized status code. */
   private async checkForAuthenticationError<T>(
     makeRequest: () => Promise<ResponseWithTypedJson<T>>,
@@ -2097,9 +2062,19 @@ export default abstract class Backend {
   }
 
   /** Send a binary HTTP POST request to the given path. */
-  protected postBinary<T = void>(path: string, payload: Blob) {
+  protected postBinary<T = void>(path: string, payload: Blob, options?: HttpClientPostOptions) {
     return this.checkForAuthenticationError(() =>
-      this.client.postBinary<T>(this.resolvePath(path), payload),
+      this.client.postBinary<T>(this.resolvePath(path), payload, options),
+    )
+  }
+
+  protected postFormData<T = void>(
+    path: string,
+    payload: FormData,
+    options?: HttpClientPostOptions,
+  ) {
+    return this.checkForAuthenticationError(() =>
+      this.client.postFormData<T>(this.resolvePath(path), payload, options),
     )
   }
 

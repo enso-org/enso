@@ -14,6 +14,15 @@
   is included][14028]
 - [Function docs in autocomplete in table expressions][14059]
 - [Many CLI arguments removed][14069]
+- [Images may be added to assets descriptions][14247]
+- [Dragging edges from plus button on nodes is now possible][14246]
+- [JSON and SQL visualizations' content may be now selected and copied][14262]
+- [SQL visualization displays interpolated parameters properly][14262]
+- [Added immediate rename of user created components][14209]
+- [Multiple opened projects' tabs are now allowed][14215]
+- [Required arguments now have an arrow displayed on top of the port][14270]
+- [Improved visuals of high components][14267]. Their contents is aligned to
+  top.
 
 [13685]: https://github.com/enso-org/enso/pull/13685
 [13658]: https://github.com/enso-org/enso/pull/13658
@@ -26,6 +35,13 @@
 [13976]: https://github.com/enso-org/enso/pull/13976
 [14059]: https://github.com/enso-org/enso/pull/14059
 [14069]: https://github.com/enso-org/enso/pull/14069
+[14247]: https://github.com/enso-org/enso/pull/14247
+[14262]: https://github.com/enso-org/enso/pull/14262
+[14246]: https://github.com/enso-org/enso/pull/14246
+[14209]: https://github.com/enso-org/enso/pull/14209
+[14215]: https://github.com/enso-org/enso/pull/14215
+[14270]: https://github.com/enso-org/enso/pull/14270
+[14267]: https://github.com/enso-org/enso/pull/14267
 
 #### Enso Standard Library
 
@@ -36,16 +52,43 @@
 - [Change Column.length to Column.row_count.][14085]
 - [Add Text_Column.length and Text_Column.char_length.][14091]
 - [Add EDI_Format and support for reading ANSI X12 EDI files.][14158]
+- [Add support for reading xlsb Excel file format][14157]
+- [Add Text_Column.upper and Text_Column.lower.][14179]
+- [Microsoft 365 OAuth support.][14135]
+- [Add Text_Column.proper and Rename Case.Title->Case.Proper.][14184]
+- [Snowflake stage support for reading and writing files.][14210]
+- [Snowflake file format and copy into support.][14221]
+- [Snowflake bulk load API.][14230]
+- [Add error_on_missing_columns to more methods.][14236]
+- [Add `OneDrive_File` to Microsoft 365 implementation.][14237]
+- [Progress of `Runtime.sleep` visualized.][14275]
+- [Add Email.send][14258]
+- [Full DuckDB Dialect.][14298]
+- [Initial Spatial support within DuckDB][14331]
 
 [13769]: https://github.com/enso-org/enso/pull/13769
 [14026]: https://github.com/enso-org/enso/pull/14026
 [14039]: https://github.com/enso-org/enso/pull/14039
 [14085]: https://github.com/enso-org/enso/pull/14085
 [14091]: https://github.com/enso-org/enso/pull/14091
+[14135]: https://github.com/enso-org/enso/pull/14135
 [14158]: https://github.com/enso-org/enso/pull/14158
+[14157]: https://github.com/enso-org/enso/pull/14157
+[14179]: https://github.com/enso-org/enso/pull/14179
+[14184]: https://github.com/enso-org/enso/pull/14184
+[14210]: https://github.com/enso-org/enso/pull/14210
+[14221]: https://github.com/enso-org/enso/pull/14221
+[14230]: https://github.com/enso-org/enso/pull/14230
+[14236]: https://github.com/enso-org/enso/pull/14236
+[14237]: https://github.com/enso-org/enso/pull/14237
+[14275]: https://github.com/enso-org/enso/pull/14275
+[14258]: https://github.com/enso-org/enso/pull/14258
+[14298]: https://github.com/enso-org/enso/pull/14298
+[14331]: https://github.com/enso-org/enso/pull/14331
 
 #### Enso Language & Runtime
 
+- [Special handling of if ... then ... else construct][11365]
 - [Enso is "conversion and equality oriented" language][14133]
 - [Moving >, >=, <, <= to types where such operators make sense][14017]
 - [Moving warning releated methods outside of `Any`][13978]
@@ -58,7 +101,10 @@
 - [Autocompletion for table expression builtin functions in table
   expressions][13914]
 - [Autocompletion for table expression operators and operands][13917]
+- [Update to GraalVM 25.0.1][14233]
+- [Apply block argument to non-application expression][14249]
 
+[11365]: https://github.com/enso-org/enso/pull/11365
 [14133]: https://github.com/enso-org/enso/pull/14133
 [14017]: https://github.com/enso-org/enso/pull/14017
 [14003]: https://github.com/enso-org/enso/pull/14003
@@ -70,6 +116,8 @@
 [13178]: https://github.com/enso-org/enso/pull/13178
 [13914]: https://github.com/enso-org/enso/pull/13914
 [13917]: https://github.com/enso-org/enso/pull/13917
+[14233]: https://github.com/enso-org/enso/pull/14233
+[14249]: https://github.com/enso-org/enso/pull/14249
 
 # Enso 2025.2
 

@@ -8,6 +8,7 @@ import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
 import java.lang.ref.WeakReference;
+import java.nio.file.Path;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.EnsoFile;
@@ -97,7 +98,7 @@ public abstract class EnsoProjectNode extends Node {
   }
 
   private static Atom createProjectDescriptionAtom(EnsoContext ctx, Package<TruffleFile> pkg) {
-    var rootPath = new EnsoFile(pkg.root().normalize());
+    var rootPath = new EnsoFile(Path.of(pkg.root().getPath()));
     var namespace = pkg.getConfig().namespace();
     var name = pkg.getConfig().name();
     var cons = ctx.getBuiltins().getProjectDescription().getUniqueConstructor();

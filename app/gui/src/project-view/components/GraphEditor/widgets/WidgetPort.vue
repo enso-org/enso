@@ -87,7 +87,7 @@ const innerWidget = computed(() => {
   return { ...props.input, forcePort: false }
 })
 
-providePortInfo(proxyRefs({ portId, connected: hasConnection }))
+providePortInfo(proxyRefs({ portId, connected }))
 
 watchEffect(
   (onCleanup) => {
@@ -195,7 +195,8 @@ export const widgetDefinition = defineWidget(
 <template>
   <div
     ref="portRoot"
-    class="WidgetPort"
+    class="WidgetPort widgetParent"
+    :data-port="props.input.portId"
     :class="{
       enabled,
       connected,
@@ -211,14 +212,8 @@ export const widgetDefinition = defineWidget(
 
 <style scoped>
 .WidgetPort {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  justify-content: center;
   position: relative;
-  text-align: center;
   border-radius: var(--node-port-border-radius);
-  min-height: var(--node-port-height);
   min-width: var(--node-port-height);
   transition: background-color 0.2s ease;
 }
@@ -229,7 +224,6 @@ export const widgetDefinition = defineWidget(
 }
 
 .GraphEditor.draggingEdge .WidgetPort {
-  --node-port-nonprimary-drag-shrink: 8px;
   pointer-events: none;
   transition:
     margin 0.2s ease,
@@ -241,22 +235,26 @@ export const widgetDefinition = defineWidget(
     content: '';
     position: absolute;
     display: block;
-    inset: calc(
-        (var(--node-port-height) - var(--node-base-height)) / 2 +
-          var(--node-port-nonprimary-drag-shrink)
-      )
+    inset: calc(var(--widget-port-drag-inset) + var(--node-port-nonprimary-drag-shrink))
       var(--widget-token-pad-unit);
   }
 
   /* Expand hover area for primary ports. */
   &.primary::before {
-    inset: calc((var(--node-port-height) - var(--node-base-height)) / 2)
-      var(--widget-token-pad-unit);
+    inset: var(--widget-port-drag-inset) var(--widget-token-pad-unit);
   }
 
   &.connected::before {
     left: 0;
     right: 0;
   }
+}
+
+/* Feature-flag controlled debug display for hover areas. */
+.App.debugHoverAreas .GraphEditor.draggingEdge .WidgetPort::before {
+  background: rgba(255, 174, 0, 0.1);
+}
+.App.debugHoverAreas .GraphEditor.draggingEdge .WidgetPort.enabled::before {
+  background: rgba(128, 255, 0, 0.1);
 }
 </style>

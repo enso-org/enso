@@ -1,35 +1,38 @@
 from Standard.Base import all
-from Standard.Base.Metadata.Choice import Option
-from Standard.Base.Metadata.Widget import Single_Choice, Text_Input
 import Standard.Base.Visualization.Table_Viz_Data.Table_Viz_Data
 import Standard.Base.Visualization.Table_Viz_Data.Table_Viz_Header
+from Standard.Base.Metadata.Choice import Option
+from Standard.Base.Metadata.Widget import Single_Choice, Text_Input
 
 import Standard.Table.Rows_To_Read.Rows_To_Read
 from Standard.Table import Table
 
-from Standard.Database import Column_Description, DB_Table, SQL_Query, SQL_Query_With_Schema
-import Standard.Database.DB_Table as DB_Table_Module
 import Standard.Database.Connection.Connection.Connection
-import Standard.Database.Dialects.Dialect
+import Standard.Database.DB_Table as DB_Table_Module
+import Standard.Database.Dialects.Dialect.Dialect
 import Standard.Database.Internal.JDBC_Connection
-import Standard.Database.Internal.Postgres.Postgres_Type_Mapping.Postgres_Type_Mapping
 import Standard.Database.SQL.SQL_Statement
+from Standard.Database import Column_Description, DB_Table, SQL_Query, SQL_Query_With_Schema
 from Standard.Database.Connection.Connection import make_database_selector, make_schema_selector, make_structure_creator, make_table_name_selector, make_table_name_with_schema_selector, make_table_types_selector
 from Standard.Database.Errors import SQL_Error, Table_Already_Exists, Table_Not_Found
 from Standard.Database.Internal.Upload.Helpers.Default_Arguments import first_column_name_in_structure
 from Standard.Database.Internal.Upload.Operations.Create import create_table_implementation
 
+import project.Internal.DuckDB_Dialect
 import project.Internal.DuckDB_Entity_Naming_Properties
+import project.Internal.DuckDB_Type_Mapping.DuckDB_Type_Mapping
 
-polyglot java import java.sql.SQLException
+polyglot java import org.enso.database.JDBCDriverTypes
 polyglot java import org.enso.database.JDBCProxy
 polyglot java import org.enso.duckdb.DuckDBUtils
-polyglot java import org.graalvm.collections.Pair as Java_Pair
-
-from Standard.Base.Enso_Cloud.Enso_Secret import as_hideable_value
-polyglot java import org.enso.base.enso_cloud.HideableValue
 
 type DuckDB_Connection
+    ## ---
+       private: true
+       ---
+    get_dialect : Dialect
+    get_dialect = DuckDB_Dialect.duckdb
+
     ## ---
        private: true
        ---
@@ -42,21 +45,11 @@ type DuckDB_Connection
         - `schema`: The initial schema to connect to.
     create : Text -> Vector -> (Text -> Text -> DuckDB_Connection) -> Text -> DuckDB_Connection
     create url properties make_new schema =
-        properties_as_java_props properties =
-            properties.map pair->
-                # Some parameters may be passed by the dialect as a `HideableValue` directly, so they do not need to be converted.
-                value = pair.second
-                java_value = if value.is_a HideableValue then value else
-                    as_hideable_value value factory=HideableValue
-                Java_Pair.create pair.first java_value
-
-        java_connection = JDBC_Connection.handle_sql_errors <|
-            props = properties_as_java_props properties
-            JDBCProxy.getConnectionWithCatalogSchema url props Nothing schema
-        jdbc_connection = JDBC_Connection.from_java sql_exception=SQLException java_connection
+        types_record = JDBCDriverTypes.createWithInitScript "DuckDB" 'INSTALL spatial;\nLOAD spatial;'
+        jdbc_connection = JDBC_Connection.create types_record url properties schema=schema
 
         ## For initial work using DuckDB, we will use the Postgres dialect.
-        DuckDB_Connection.Value (Connection.new jdbc_connection Dialect.postgres Postgres_Type_Mapping DuckDB_Entity_Naming_Properties.new) make_new
+        DuckDB_Connection.Value (Connection.new jdbc_connection DuckDB_Connection.get_dialect DuckDB_Type_Mapping DuckDB_Entity_Naming_Properties.new) make_new
 
     ## ---
        private: true
@@ -293,7 +286,7 @@ type DuckDB_Connection
        Database interprets the provided values and may not reflect the types of
        the source table. If you need more sophisticated type mapping mechanism,
        use `create_table` instead.
-    create_literal_table self (source : Table) (alias : Text) -> Table & DB_Table =
+    create_literal_table self (source : Table) (alias : Text) -> Table & DB_Table & Any =
         DB_Table_Module.make_literal_table self (source.columns.map .to_vector) source.column_names alias
 
     ## ---
@@ -363,12 +356,6 @@ type DuckDB_Connection
        ---
        Access the Type Mapping.
     type_mapping self = self.connection.type_mapping
-
-    ## ---
-       private: true
-       ---
-       Access the Statement Setter.
-    statement_setter self = self.connection.statement_setter
 
     ## ---
        private: true

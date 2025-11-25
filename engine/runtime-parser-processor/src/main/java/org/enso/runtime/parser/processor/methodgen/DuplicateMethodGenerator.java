@@ -144,9 +144,14 @@ public class DuplicateMethodGenerator {
     sb.append(newSubclass);
 
     // Rest of the fields that need to be set
+    var superClassType = ctx.getSuperClass();
     var restOfDuplicatedVars = Utils.diff(duplicatedVars, ctorParams);
     for (var duplVar : restOfDuplicatedVars) {
-      sb.append("  ").append("duplicated.").append(duplVar.originalName).append(" = ");
+      sb.append("  ((")
+          .append(superClassType.getSimpleName())
+          .append(")duplicated).")
+          .append(duplVar.originalName)
+          .append(" = ");
       if (duplVar.needsCast) {
         sb.append("(").append(duplVar.type).append(") ");
       }

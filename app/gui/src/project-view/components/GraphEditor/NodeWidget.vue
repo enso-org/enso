@@ -39,6 +39,9 @@ const sameInputParentWidgets = computed(() =>
 const nesting = computed(() => (parentUsageInfo?.nesting ?? 0) + (props.nest === true ? 1 : 0))
 
 const selectedWidget = shallowRef<WidgetModule<WidgetInput> | undefined>()
+const isSelected = computed(() => selectedWidget.value != null)
+defineExpose({ isSelected })
+
 const updateSelection = withCtx(() => {
   const registry = currentProject.widgetRegistry.value
   selectedWidget.value = registry?.select(
@@ -81,7 +84,6 @@ provideWidgetUsageInfo(proxyRefs({ usageKey, nesting, updateHandler, previouslyU
     v-bind="$attrs"
     :input="props.input"
     :nesting="nesting"
-    :data-port="props.input.portId"
     :updateCallback="updateHandler"
   />
   <span

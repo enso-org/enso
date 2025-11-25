@@ -76,6 +76,8 @@ add_specs suite_builder =
                 r.should_fail_with HTTP_Error
                 r.catch.should_be_a HTTP_Error.Status_Error
                 r.catch.status_code.code . should_equal 302
+                r.catch.uri . should_equal (URI.from (base_url_with_slash+"test_redirect"))
+                r.catch.to_display_text . should_contain "status 302"
 
         group_builder.specify "should create HTTP client with proxy setting" <|
             proxy_setting = Proxy.Address "example.com" 80

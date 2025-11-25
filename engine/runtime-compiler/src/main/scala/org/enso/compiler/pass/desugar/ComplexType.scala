@@ -84,8 +84,8 @@ case object ComplexType extends IRPass {
     ir: Module,
     moduleContext: ModuleContext
   ): Module =
-    ir.copy(
-      bindings = ir.bindings.flatMap {
+    ir.copyWithBindings(
+      ir.bindings.flatMap {
         case typ: Definition.SugaredType => desugarComplexType(typ)
         case b                           => List(b)
       }
@@ -123,7 +123,8 @@ case object ComplexType extends IRPass {
           lastAnnotations :+= ann
           None
         case d: Definition.Data =>
-          val res = Some(d.copy(annotations = d.annotations ++ lastAnnotations))
+          val res =
+            Some(d.copyWithAnnotations(d.annotations ++ lastAnnotations))
           seenAnnotations ++= lastAnnotations
           lastAnnotations = Seq()
           res
@@ -211,12 +212,13 @@ case object ComplexType extends IRPass {
     }
     val allEntities = entityResults ::: lastSignature.toList
 
-    val sumType = Definition.Type(
-      typ.name,
-      typ.arguments,
-      atomDefs,
-      typ.identifiedLocation
-    )
+    val sumType = Definition.Type
+      .builder()
+      .name(typ.name())
+      .params(typ.arguments())
+      .members(atomDefs)
+      .location(typ.identifiedLocation())
+      .build()
 
     val withAnnotations = annotations
       .map(ann =>

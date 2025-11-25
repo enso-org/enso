@@ -1,4 +1,3 @@
-import { Path } from 'enso-common/src/utilities/file'
 import extractZip from 'extract-zip'
 import * as childProcess from 'node:child_process'
 import * as fs from 'node:fs'
@@ -8,14 +7,15 @@ import * as path from 'node:path'
 import { pipeline } from 'node:stream/promises'
 import * as portfinder from 'portfinder'
 import { extract } from 'tar'
+import { Path } from './types.js'
 
 export interface Runner {
   createProject(path: Path, name: string, projectTemplate?: string): Promise<void>
   openProject(
     projectPath: Path,
     projectId: string,
-    extraArgs?: Array<string>,
-    extraEnv?: Array<[string, string]>,
+    extraArgs?: readonly string[],
+    extraEnv?: readonly (readonly [string, string])[],
   ): Promise<LanguageServerSockets>
   closeProject(projectId: string): Promise<void>
   isProjectRunning(projectId: string): Promise<boolean>
@@ -38,6 +38,7 @@ export interface LanguageServerSockets {
   readonly secureJsonSocket?: Socket
   readonly binarySocket: Socket
   readonly secureBinarySocket?: Socket
+  readonly ydocSocket: Socket
 }
 
 export interface Socket {
@@ -54,6 +55,7 @@ interface RunningProject {
 }
 
 const DEFAULT_JSONRPC_PORT = 30616
+const LANGUAGE_SERVER_STARTUP_TIMEOUT = 30000
 
 /** Implementation of Runner that uses the Enso executable. */
 export class EnsoRunner implements Runner {
@@ -106,8 +108,8 @@ export class EnsoRunner implements Runner {
   async openProject(
     projectPath: Path,
     projectId: string,
-    extraArgs?: Array<string>,
-    extraEnv?: Array<[string, string]>,
+    extraArgs?: readonly string[],
+    extraEnv?: readonly (readonly [string, string])[],
   ): Promise<LanguageServerSockets> {
     // Check if the project is already running
     const runningProject = this.runningProjects.get(projectId)
@@ -123,130 +125,136 @@ export class EnsoRunner implements Runner {
     while (this.loadingProjects.size > 0) {
       await this.loadingProjects.values().next().value
     }
-    const promise = this.findServerPorts(DEFAULT_JSONRPC_PORT).then(([jsonPort, binaryPort]) => {
-      const rootId = crypto.randomUUID()
-      const args: string[] = [
-        '--server',
-        '--root-id',
-        rootId,
-        '--project-id',
-        projectId,
-        '--path',
-        projectPath,
-        '--interface',
-        '127.0.0.1',
-        '--rpc-port',
-        jsonPort.toString(),
-        '--data-port',
-        binaryPort.toString(),
-      ]
+    const promise = this.findServerPorts(DEFAULT_JSONRPC_PORT).then(
+      ([jsonPort, binaryPort, ydocPort]) => {
+        const rootId = crypto.randomUUID()
+        const args: string[] = [
+          '--server',
+          '--root-id',
+          rootId,
+          '--project-id',
+          projectId,
+          '--path',
+          projectPath,
+          '--interface',
+          '127.0.0.1',
+          '--rpc-port',
+          jsonPort.toString(),
+          '--data-port',
+          binaryPort.toString(),
+        ]
 
-      // Add extra arguments if provided
-      if (extraArgs) {
-        args.push(...extraArgs)
-      }
-
-      const env = { ...process.env }
-      if (extraEnv) {
-        for (const [key, value] of extraEnv) {
-          env[key] = value
+        // Add extra arguments if provided
+        if (extraArgs) {
+          args.push(...extraArgs)
         }
-      }
 
-      return new Promise<LanguageServerSockets>((resolve, reject) => {
-        const cmd = this.ensoPath.endsWith('.bat') ? 'cmd.exe' : this.ensoPath
-        const cmdArgs = this.ensoPath.endsWith('.bat') ? ['/c', this.ensoPath, ...args] : args
-        const cwd = path.dirname(projectPath)
-        const serverProcess = childProcess.spawn(cmd, cmdArgs, { env, detached: false, cwd })
-
-        let stderr = ''
-        let resolved = false
-
-        // Health check function
-        const checkServerHealth = async (): Promise<boolean> => {
-          try {
-            const response = await fetch(`http://127.0.0.1:${jsonPort}/_health`)
-            return response.ok
-          } catch {
-            return false
+        const env = { ...process.env }
+        env['LANGUAGE_SERVER_YDOC_PORT'] = ydocPort.toString()
+        if (extraEnv) {
+          for (const [key, value] of extraEnv) {
+            env[key] = value
           }
         }
 
-        // Start polling for server readiness after initial delay
-        const startHealthCheck = () => {
-          const pollInterval = setInterval(async () => {
-            if (resolved) {
-              clearInterval(pollInterval)
-              return
-            }
+        return new Promise<LanguageServerSockets>((resolve, reject) => {
+          const cmd = this.ensoPath.endsWith('.bat') ? 'cmd.exe' : this.ensoPath
+          const cmdArgs = this.ensoPath.endsWith('.bat') ? ['/c', this.ensoPath, ...args] : args
+          const cwd = path.dirname(projectPath)
+          const serverProcess = childProcess.spawn(cmd, cmdArgs, {
+            env,
+            detached: false,
+            cwd,
+            stdio: ['pipe', 'inherit', 'inherit'],
+          })
 
-            const isReady = await checkServerHealth()
-            if (isReady) {
-              clearInterval(pollInterval)
-              resolved = true
-              const sockets: LanguageServerSockets = {
-                jsonSocket: { host: '127.0.0.1', port: jsonPort },
-                binarySocket: { host: '127.0.0.1', port: binaryPort },
+          let resolved = false
+
+          // Health check function
+          const checkServerHealth = async (): Promise<boolean> => {
+            try {
+              const response = await fetch(`http://127.0.0.1:${jsonPort}/_health`)
+              return response.ok
+            } catch {
+              return false
+            }
+          }
+
+          // Start polling for server readiness after initial delay
+          const startHealthCheck = () => {
+            const pollInterval = setInterval(async () => {
+              if (resolved) {
+                clearInterval(pollInterval)
+                return
               }
-              this.runningProjects.set(projectId, {
-                process: serverProcess,
-                sockets: sockets,
-                shutdownHooks: new Map(),
-              })
-              resolve(sockets)
-            }
-          }, 250) // Poll every 250ms
-        }
 
-        // Start health check after initial delay
-        setTimeout(startHealthCheck, 250)
-
-        serverProcess.stderr.on('data', (data) => {
-          console.error(data.toString())
-          const dataStr = data.toString()
-          stderr += dataStr
-        })
-
-        serverProcess.on('error', (error) => {
-          console.error(error.toString())
-          if (!resolved) {
-            reject(new Error(`Failed to start language server: ${error.message}`))
+              const isReady = await checkServerHealth()
+              if (isReady) {
+                clearInterval(pollInterval)
+                resolved = true
+                const sockets: LanguageServerSockets = {
+                  jsonSocket: { host: '127.0.0.1', port: jsonPort },
+                  binarySocket: { host: '127.0.0.1', port: binaryPort },
+                  ydocSocket: { host: '127.0.0.1', port: ydocPort },
+                }
+                this.runningProjects.set(projectId, {
+                  process: serverProcess,
+                  sockets: sockets,
+                  shutdownHooks: new Map(),
+                })
+                resolve(sockets)
+              }
+            }, 250) // Poll every 250ms
           }
-        })
 
-        serverProcess.on('close', async (code) => {
-          // Execute shutdown hooks if the process exits unexpectedly
-          const runningProject = this.runningProjects.get(projectId)
-          if (runningProject && runningProject.shutdownHooks) {
-            for (const [hookType, hook] of runningProject.shutdownHooks) {
-              try {
-                runningProject.shutdownHooks.delete(hookType)
-                await hook()
-              } catch (error) {
-                console.error(
-                  `Error executing shutdown hook '${hookType}' for project ${projectId}:`,
-                  error,
-                )
+          // Start health check after initial delay
+          setTimeout(startHealthCheck, 250)
+
+          serverProcess.on('error', (error) => {
+            console.error(error.toString())
+            if (!resolved) {
+              reject(new Error(`Failed to start language server: ${error.message}`))
+            }
+          })
+
+          serverProcess.on('close', async (code) => {
+            // Execute shutdown hooks if the process exits unexpectedly
+            const runningProject = this.runningProjects.get(projectId)
+            if (runningProject && runningProject.shutdownHooks) {
+              for (const [hookType, hook] of runningProject.shutdownHooks) {
+                try {
+                  runningProject.shutdownHooks.delete(hookType)
+                  await hook()
+                } catch (error) {
+                  console.error(
+                    `Error executing shutdown hook '${hookType}' for project ${projectId}:`,
+                    error,
+                  )
+                }
               }
             }
-          }
 
-          // Remove from running projects when it closes
-          this.runningProjects.delete(projectId)
-          if (!resolved) {
-            reject(new Error(`Language server process exited with code ${code}. stderr: ${stderr}`))
+            // Remove from running projects when it closes
+            this.runningProjects.delete(projectId)
+            if (!resolved) {
+              reject(new Error(`Language server process exited with code ${code}.`))
+            }
+          })
+
+          // Timeout if server doesn't start (skip timeout in debug mode)
+          const javaToolOptions = process.env.JAVA_TOOL_OPTIONS
+          const isDebugMode = javaToolOptions?.includes('jdwp')
+          if (!isDebugMode) {
+            setTimeout(() => {
+              if (!resolved) {
+                serverProcess.kill('SIGKILL')
+                reject(new Error('Language server startup timeout'))
+              }
+            }, LANGUAGE_SERVER_STARTUP_TIMEOUT)
           }
         })
-
-        // Timeout after 30 seconds if server doesn't start
-        setTimeout(() => {
-          if (!resolved) {
-            serverProcess.kill('SIGKILL')
-            reject(new Error('Language server startup timeout'))
-          }
-        }, 30000)
-      })
-    })
+      },
+    )
     this.loadingProjects.set(projectId, promise)
     promise.finally(() => this.loadingProjects.delete(projectId))
     return promise
@@ -420,16 +428,16 @@ export class EnsoRunner implements Runner {
   }
 
   /** Finds an available port starting from the given port number. */
-  private async findServerPorts(startPort: number): Promise<[number, number]> {
+  private async findServerPorts(startPort: number): Promise<[number, number, number]> {
     return new Promise((resolve, reject) => {
-      portfinder.getPorts(2, { port: startPort }, (err, ports) => {
+      portfinder.getPorts(3, { port: startPort }, (err, ports) => {
         if (err) {
           reject(new Error(`Failed to find ports: ${err}`))
         }
-        if (ports.length < 2) {
+        if (ports.length < 3) {
           reject(new Error(`Failed to find all ports: ${ports}`))
         }
-        resolve(ports as [number, number])
+        resolve(ports as [number, number, number])
       })
     })
   }
@@ -453,8 +461,8 @@ export function findEnsoExecutable(workDir: string = '.'): Path | undefined {
     ensoExecutables = ['enso']
   }
 
-  // Check ENSO_RUNNER_PATH environment variable first
-  const envPath = process.env.ENSO_RUNNER_PATH
+  // Check ENSO_ENGINE_PATH environment variable first
+  const envPath = process.env.ENSO_ENGINE_PATH
   if (envPath) {
     try {
       fs.accessSync(envPath)
@@ -478,6 +486,43 @@ export function findEnsoExecutable(workDir: string = '.'): Path | undefined {
             return checkExecutable(ensoPath)
           } catch {
             // File doesn't exist, continue searching
+          }
+        }
+      }
+    }
+  } catch {
+    // Directory doesn't exist, continue to next directory
+  }
+
+  // Check built-distribution/*/enso/dist/*/bin/enso
+  const builtDistEnsoPath = path.join(workDir, 'built-distribution')
+  try {
+    const stat = fs.statSync(builtDistEnsoPath)
+    if (stat.isDirectory()) {
+      const topLevelDirs = fs.readdirSync(builtDistEnsoPath)
+      for (const topDir of topLevelDirs) {
+        const topPath = path.join(builtDistEnsoPath, topDir)
+        const topStat = fs.statSync(topPath)
+        if (topStat.isDirectory()) {
+          const ensoDistPath = path.join(topPath, 'enso', 'dist')
+          try {
+            const distStat = fs.statSync(ensoDistPath)
+            if (distStat.isDirectory()) {
+              const distDirs = fs.readdirSync(ensoDistPath)
+              for (const distDir of distDirs) {
+                for (const ensoExecutable of ensoExecutables) {
+                  const ensoPath = path.join(ensoDistPath, distDir, 'bin', ensoExecutable)
+                  try {
+                    fs.accessSync(ensoPath)
+                    return checkExecutable(ensoPath)
+                  } catch {
+                    // File doesn't exist, continue searching
+                  }
+                }
+              }
+            }
+          } catch {
+            // enso/dist directory doesn't exist, continue searching
           }
         }
       }
@@ -598,7 +643,7 @@ export async function downloadEnsoEngine(projectRoot: string): Promise<string> {
   // Iterate through target releases to find one with matching asset
   for (const targetRelease of targetReleases) {
     const version = targetRelease.tag_name
-    assetName = `enso-engine-${version}-${platformString}-${archString}${extensionString}`
+    assetName = `enso-bundle-${version}-${platformString}-${archString}${extensionString}`
     asset = targetRelease.assets.find((a: any) => a.name === assetName)
 
     if (asset) {
@@ -616,7 +661,12 @@ export async function downloadEnsoEngine(projectRoot: string): Promise<string> {
   console.log(`Downloading ${assetName}...`)
 
   // Download the asset
-  const downloadResponse = await fetch(asset.browser_download_url, { headers })
+  const downloadResponse = await fetch(asset.url, {
+    headers: {
+      ...headers,
+      Accept: 'application/octet-stream',
+    },
+  })
 
   if (!downloadResponse.ok) {
     throw new Error(`Failed to download asset: ${downloadResponse.statusText}`)
@@ -660,5 +710,46 @@ export async function downloadEnsoEngine(projectRoot: string): Promise<string> {
 
   console.log(`Enso engine downloaded and extracted to ${extractDir}`)
 
+  patchEnsoEngine(extractDir)
+
   return extractDir
+}
+
+/**
+ * Patches the Enso distribution by renaming `.enso.portable` to `.enso.bundle`.
+ * This is a temporary solution during the unification of portable and bundle Enso distributions.
+ * @param distributionDir - The path to the enso distribution
+ */
+export function patchEnsoEngine(distributionDir: string): void {
+  const checkAndRename = (dir: string): boolean => {
+    const portableFile = path.join(dir, '.enso.portable')
+    const bundleFile = path.join(dir, '.enso.bundle')
+
+    if (fs.existsSync(portableFile)) {
+      fs.renameSync(portableFile, bundleFile)
+      console.log(`Renamed ${portableFile} to ${bundleFile}`)
+      return true
+    }
+    return false
+  }
+
+  // Check the distribution directory itself
+  if (checkAndRename(distributionDir)) {
+    return
+  }
+
+  // Check one level down
+  try {
+    const entries = fs.readdirSync(distributionDir, { withFileTypes: true })
+    for (const entry of entries) {
+      if (entry.isDirectory()) {
+        const childDir = path.join(distributionDir, entry.name)
+        if (checkAndRename(childDir)) {
+          return
+        }
+      }
+    }
+  } catch (error) {
+    console.error(`Error scanning directory ${distributionDir}:`, error)
+  }
 }

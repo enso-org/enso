@@ -32,6 +32,7 @@ import { useGraphEditorToasts } from '@/components/GraphEditor/toasts'
 import { uploadedExpression, Uploader } from '@/components/GraphEditor/upload'
 import GraphMissingView from '@/components/GraphMissingView.vue'
 import GraphMouse from '@/components/GraphMouse.vue'
+import PopoverRootProvider from '@/components/PopoverRootProvider.vue'
 import SceneScroller from '@/components/SceneScroller.vue'
 import TopBar from '@/components/TopBar.vue'
 import { builtinWidgets } from '@/components/widgets'
@@ -49,18 +50,17 @@ import { provideGraphSelection } from '@/providers/graphSelection'
 import { provideStackNavigator } from '@/providers/graphStackNavigator'
 import { injectKeyboard } from '@/providers/keyboard'
 import { provideLanguageSupportExtensions } from '@/providers/languageSupportExtensions'
-import { providePopoverRoot } from '@/providers/popoverRoot'
 import { providePersisted } from '@/stores/persisted'
 import { provideVisualizationStore } from '@/stores/visualization'
 import { assert, bail } from '@/util/assert'
 import { Ast } from '@/util/ast'
 import { partition } from '@/util/data/array'
 import { Rect } from '@/util/data/rect'
-import { Err, Ok, unwrapOr } from '@/util/data/result'
 import { Vec2 } from '@/util/data/vec2'
 import { isDef, type VueInstance } from '@vueuse/core'
 import * as iter from 'enso-common/src/utilities/data/iter'
 import * as objects from 'enso-common/src/utilities/data/object'
+import { Err, Ok, unwrapOr } from 'enso-common/src/utilities/data/result'
 import { set } from 'lib0'
 import {
   computed,
@@ -75,6 +75,7 @@ import {
   watch,
   watchEffect,
 } from 'vue'
+import { provideRenameSchedule } from './GraphEditor/widgets/WidgetFunctionName.vue'
 
 const keyboard = injectKeyboard()
 const rightPanel = useRightPanelData()
@@ -82,7 +83,7 @@ const containerData = useContainerData()
 const projectStore = useProjectStore()
 const projectNames = useProjectNames()
 const graphStore = useGraphStore()
-const { module } = useCurrentProject()
+const { id: assetId, module } = useCurrentProject()
 const widgetRegistry = useWidgetRegistry()
 const suggestionDb = useSuggestionDbStore()
 provideVisualizationStore(projectStore)
@@ -110,8 +111,6 @@ onMounted(() => viewportElem.value?.focus())
 const graphNavigator: GraphNavigator = provideGraphNavigator(viewportNode, keyboard, {
   predicate: (e) => (e instanceof KeyboardEvent ? nodeSelection.selected.size === 0 : true),
 })
-
-providePopoverRoot(viewportElem)
 
 // === Client saved state ===
 
@@ -395,9 +394,8 @@ const displayedDocs = computed(() =>
 )
 
 watchEffect(() => {
-  const projectId = projectStore.id
   rightPanel.setContext(containerData.tab, {
-    item: projectId,
+    item: assetId.value,
     help: { item: displayedDocs.value, aiMode: aiMode.value },
   })
 })
@@ -524,7 +522,7 @@ function createNodesFromSource(sourceNode: NodeId, options: NodeCreationOptions[
   }
 }
 
-function handleNodeOutputPortDoubleClick(id: Ast.AstId) {
+function createNodeFromPort(id: Ast.AstId) {
   const srcNode = graphStore.db.getPatternExpressionNodeId(id)
   if (srcNode == null) {
     console.error('Impossible happened: Double click on port not belonging to any node: ', id)
@@ -538,6 +536,7 @@ function handleEdgeDrop(source: Ast.AstId, position: Vec2) {
 }
 
 // === Node Collapsing ===
+const renameSchedule = provideRenameSchedule()
 
 function collapseNodes(nodes: Node[]) {
   const selected = new Set(
@@ -565,7 +564,7 @@ function collapseNodes(nodes: Node[]) {
     }
     const selectedNodeRects = iter.filterDefined(iter.map(selected, graphStore.visibleArea))
     module.value.edit((edit) => {
-      const { collapsedCallRoot, collapsedNodeIds, outputAstId } = performCollapse(
+      const { collapsedCallRoot, collapsedNodeIds, outputAstId, collapsedName } = performCollapse(
         info.value,
         edit.getVersion(topLevel),
         graphStore.db,
@@ -580,6 +579,11 @@ function collapseNodes(nodes: Node[]) {
       const { place } = usePlacement(collapsedNodeRects, graphNavigator.viewport)
       const outputPosition = place(collapsedNodeRects)
       edit.get(outputAstId).mutableNodeMetadata().set('position', outputPosition.xy())
+
+      if (graphStore.currentMethod.pointer.ok) {
+        const currentPointer = graphStore.currentMethod.pointer.value
+        renameSchedule?.scheduleFunctionRename({ ...currentPointer, name: collapsedName })
+      }
 
       return Ok()
     })
@@ -647,12 +651,12 @@ const contextMenuActions: DisplayableActionName[] = [
 <template>
   <div
     ref="root"
-    class="GraphEditor"
+    class="GraphEditor vertical"
     :class="{ draggingEdge: graphStore.mouseEditedEdge != null }"
     @dragover.prevent
     @drop.prevent="handleFileDrop($event)"
   >
-    <div class="vertical">
+    <PopoverRootProvider class="viewportPanel">
       <ContextMenuTrigger
         ref="viewportNode"
         class="viewport"
@@ -662,7 +666,6 @@ const contextMenuActions: DisplayableActionName[] = [
         <GraphMissingView v-if="graphMissing" />
         <template v-else>
           <GraphNodes
-            @nodeOutputPortDoubleClick="handleNodeOutputPortDoubleClick"
             @enterNode="(id) => stackNavigator.enterNode(id)"
             @createNodes="createNodesFromSource"
             @toggleDocPanel="toggleRightDockHelpPanel"
@@ -671,8 +674,7 @@ const contextMenuActions: DisplayableActionName[] = [
           <GraphEdges
             :navigator="graphNavigator"
             @createNodeFromEdge="handleEdgeDrop"
-            @createNodeFromPort="createNodesFromSource"
-            @outputPortDoubleClick="handleNodeOutputPortDoubleClick"
+            @createNodeFromPort="createNodeFromPort"
           />
           <ComponentBrowser
             v-if="componentBrowserOpened"
@@ -696,10 +698,12 @@ const contextMenuActions: DisplayableActionName[] = [
         <SceneScroller :navigator="graphNavigator" :scrollableArea="scrollBounds" />
         <GraphMouse />
       </ContextMenuTrigger>
-      <BottomPanel v-model:show="showCodeEditor">
+    </PopoverRootProvider>
+    <PopoverRootProvider>
+      <BottomPanel v-model:show="showCodeEditor" class="bottomPanel">
         <CodeEditor />
       </BottomPanel>
-    </div>
+    </PopoverRootProvider>
   </div>
 </template>
 
@@ -711,25 +715,15 @@ const contextMenuActions: DisplayableActionName[] = [
   user-select: none;
   /* Prevent touchpad back gesture, which can be triggered while panning. */
   overscroll-behavior-x: none;
-
-  display: flex;
-  flex-direction: row;
-  & .DockPanel {
-    flex: none;
-  }
-  & .vertical {
-    flex: auto;
-    overflow-x: hidden;
-  }
 }
 
 .vertical {
   display: flex;
   flex-direction: column;
-  & .BottomPanel {
+  & .bottomPanel {
     flex: none;
   }
-  & .viewport {
+  & .viewportPanel {
     flex: auto;
     min-height: 0;
   }
@@ -741,6 +735,8 @@ const contextMenuActions: DisplayableActionName[] = [
   contain: layout;
   overflow: clip;
   touch-action: none;
+  width: 100%;
+  height: 100%;
   --node-color-no-type: #596b81;
   --output-node-color: #006b8a;
 }

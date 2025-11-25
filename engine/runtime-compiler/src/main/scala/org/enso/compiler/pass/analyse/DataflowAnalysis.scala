@@ -76,8 +76,8 @@ case object DataflowAnalysis extends IRPass {
     moduleContext: ModuleContext
   ): Module = {
     val dependencyInfo = new DependencyInfo
-    ir.copy(
-      bindings = ir.bindings.map(analyseModuleDefinition(_, dependencyInfo))
+    ir.copyWithBindings(
+      ir.bindings.map(analyseModuleDefinition(_, dependencyInfo))
     ).updateMetadata(new MetadataPair(this, dependencyInfo))
   }
 
@@ -173,8 +173,10 @@ case object DataflowAnalysis extends IRPass {
           )
           .build()
           .updateMetadata(new MetadataPair(this, info))
-      case tp @ Definition.Type(_, params, members, _, _) =>
-        val tpDep = asStatic(tp)
+      case tp: Definition.Type =>
+        val params  = tp.params()
+        val members = tp.members()
+        val tpDep   = asStatic(tp)
         val newParams = params.map { param =>
           val paramDep = asStatic(param)
           info.dependents.updateAt(paramDep, Set(tpDep))
@@ -192,12 +194,17 @@ case object DataflowAnalysis extends IRPass {
           })
 
           data
-            .copy(
-              arguments = data.arguments.map(analyseDefinitionArgument(_, info))
+            .copyBuilder()
+            .arguments(
+              data.arguments.map(analyseDefinitionArgument(_, info))
             )
+            .build()
             .updateMetadata(new MetadataPair(this, info))
         }
-        tp.copy(params = newParams, members = newMembers)
+        tp.copyBuilder()
+          .params(newParams)
+          .members(newMembers)
+          .build()
           .updateMetadata(new MetadataPair(this, info))
       case _: definition.Method.Binding =>
         throw new CompilerError(
@@ -692,6 +699,8 @@ case object DataflowAnalysis extends IRPass {
           .updateMetadata(new MetadataPair(this, info))
       case literal: Pattern.Literal =>
         literal.updateMetadata(new MetadataPair(this, info))
+      case bool: Pattern.Bool =>
+        bool.updateMetadata(new MetadataPair(this, info))
       case Pattern.Type(name, tpe, _, _) =>
         val nameDep = asStatic(name)
         info.dependents.updateAt(nameDep, Set(patternDep))

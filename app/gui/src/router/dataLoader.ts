@@ -1,5 +1,5 @@
 import { assert } from '@/util/assert'
-import type { Result } from '@/util/data/result'
+import type { Result } from 'enso-common/src/utilities/data/result'
 import {
   type Component,
   type ComponentOptionsMixin,

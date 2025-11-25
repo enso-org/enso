@@ -171,15 +171,15 @@ class GenerateMethodBodiesTest extends CompilerTest {
     val irMethodSelfArg =
       irMethod.body.asInstanceOf[Function.Lambda].arguments.head
     val irFoo =
-      ir.bindings(1).asInstanceOf[definition.Method]
+      ir.bindings()(1).asInstanceOf[definition.Method]
     val irFooFirstArg =
       irFoo.body.asInstanceOf[Function.Lambda].arguments.head
     val irBar =
-      ir.bindings(2).asInstanceOf[definition.Method]
+      ir.bindings()(2).asInstanceOf[definition.Method]
     val irBarFirstArg =
       irBar.body.asInstanceOf[Function.Lambda].arguments.head
     val irBaz =
-      ir.bindings(3).asInstanceOf[definition.Method]
+      ir.bindings()(3).asInstanceOf[definition.Method]
     val irBazSndArg = irBaz.body
       .asInstanceOf[Function.Lambda]
       .body
@@ -189,11 +189,11 @@ class GenerateMethodBodiesTest extends CompilerTest {
 
     val irResult       = ir.desugar
     val irResultMethod = irResult.bindings.head.asInstanceOf[definition.Method]
-    val irResultFoo    = irResult.bindings(1).asInstanceOf[definition.Method]
-    val irResultBar    = irResult.bindings(2).asInstanceOf[definition.Method]
-    val irResultBaz    = irResult.bindings(3).asInstanceOf[definition.Method]
-    val irResultQux    = irResult.bindings(4).asInstanceOf[definition.Method]
-    val irResultQuux   = irResult.bindings(5).asInstanceOf[definition.Method]
+    val irResultFoo    = irResult.bindings()(1).asInstanceOf[definition.Method]
+    val irResultBar    = irResult.bindings()(2).asInstanceOf[definition.Method]
+    val irResultBaz    = irResult.bindings()(3).asInstanceOf[definition.Method]
+    val irResultQux    = irResult.bindings()(4).asInstanceOf[definition.Method]
+    val irResultQuux   = irResult.bindings()(5).asInstanceOf[definition.Method]
 
     "not generate an auxiliary self parameter" in {
       val resultArgs = irResultMethod.body
@@ -279,14 +279,16 @@ class GenerateMethodBodiesTest extends CompilerTest {
         |""".stripMargin.preprocessModule.desugar
 
     val irMethodAdd =
-      ir.bindings(2).asInstanceOf[definition.Method]
+      ir.bindings()(2).asInstanceOf[definition.Method]
     val irMethodAddSelfArg =
       irMethodAdd.body.asInstanceOf[Function.Lambda].arguments
 
-    val irResult          = ir.desugar
-    val irResultMethodAdd = irResult.bindings(2).asInstanceOf[definition.Method]
+    val irResult = ir.desugar
+    val irResultMethodAdd =
+      irResult.bindings()(2).asInstanceOf[definition.Method]
 
-    val irResultMethodSum = irResult.bindings(3).asInstanceOf[definition.Method]
+    val irResultMethodSum =
+      irResult.bindings()(3).asInstanceOf[definition.Method]
 
     "not add new argument" in {
       val resultLambda = irResultMethodAdd.body

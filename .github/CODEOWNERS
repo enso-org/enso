@@ -53,6 +53,10 @@ tsconfig.json
 /project/ @4e6 @jaroslavtulach @hubertp @Akirathan
 /tools/ @4e6 @jaroslavtulach @hubertp @Akirathan
 
+# Engine & Core Enso Libraries
+/distribution/lib/Standard/Base/ @jaroslavtulach
+/std-bits/base/ @jaroslavtulach
+
 # Enso Libraries
 # This section should be amended once the engine moves to /app/engine
 /distribution/lib/ @jdunkerley @hubertp @GregoryTravis @AdRiley

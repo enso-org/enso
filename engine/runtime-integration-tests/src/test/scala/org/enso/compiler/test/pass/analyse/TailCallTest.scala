@@ -96,7 +96,7 @@ class TailCallTest extends MiniPassTest {
         code,
         () => mkModuleContext,
         ir => {
-          ir.bindings(1).getMetadata(TailCall.INSTANCE) shouldEqual Some(
+          ir.bindings()(1).getMetadata(TailCall.INSTANCE) shouldEqual Some(
             TailPosition.Tail
           )
         }
@@ -108,7 +108,7 @@ class TailCallTest extends MiniPassTest {
         code,
         () => mkModuleContext,
         ir => {
-          ir.bindings(2).getMetadata(TailCall.INSTANCE) shouldEqual Some(
+          ir.bindings()(2).getMetadata(TailCall.INSTANCE) shouldEqual Some(
             TailPosition.Tail
           )
         }
@@ -236,13 +236,18 @@ class TailCallTest extends MiniPassTest {
             .body
             .asInstanceOf[Function.Lambda]
             .body
-          fnBody
+          val inBlock = fnBody
             .asInstanceOf[Expression.Block]
             .returnValue
-            .asInstanceOf[Application.Prefix]
-            .arguments
-            .apply(2)
-            .value
+          val caseExpr = inBlock
+            .asInstanceOf[Expression.Block]
+            .returnValue
+          val elseBranch = caseExpr
+            .asInstanceOf[Case.Expr]
+            .branches
+            .apply(1)
+            .expression
+          elseBranch
             .asInstanceOf[Expression.Block]
             .returnValue
             .asInstanceOf[Application.Prefix]

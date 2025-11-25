@@ -80,7 +80,7 @@ case object SuspendedArguments extends IRPass {
     ir: Module,
     moduleContext: ModuleContext
   ): Module =
-    ir.copy(
+    ir.copyWithBindings(
       bindings = ir.bindings.map(resolveModuleBinding)
     )
 

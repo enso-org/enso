@@ -1,8 +1,8 @@
 /** @file A hook to return the items in the assets table. */
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import type { DirectoryId } from '#/services/ProjectManager'
 import { createStore, useStore } from '#/utilities/zustand.ts'
 import type { AnyAsset, AssetId } from 'enso-common/src/services/Backend'
+import type { DirectoryId } from 'enso-common/src/services/ProjectManager/types'
 import { startTransition, useEffect } from 'react'
 
 /** Options for {@link useAssetsTableItems}. */
