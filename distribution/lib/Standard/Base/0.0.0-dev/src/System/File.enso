@@ -38,7 +38,7 @@ from project.Error import all
 from project.Metadata.Choice import Option
 from project.Nothing import all
 from project.System.File_Format import Auto_Detect, File_Format
-from project.System.Internal.File_Builtins import all
+from project.System.Internal.File_Helpers import all
 
 polyglot java import java.lang.System as Java_System
 polyglot java import java.io.IOException
