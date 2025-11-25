@@ -52,7 +52,7 @@ public class ErrorCompilerTest extends CompilerTests {
         ir,
         new Syntax.UnsupportedSyntax("Invalid use of syntactic operator in expression"),
         null,
-        14,
+        11,
         15);
   }
 
@@ -65,8 +65,12 @@ public class ErrorCompilerTest extends CompilerTests {
               op ._
             """);
 
-    assertSingleSyntaxError(
-        ir, Syntax.UnexpectedExpression$.MODULE$, "Unexpected expression", 14, 16);
+      assertSingleSyntaxError(
+              ir,
+              new Syntax.UnsupportedSyntax("Invalid use of syntactic operator in expression"),
+              null,
+              12,
+              16);
   }
 
   @Test
@@ -82,7 +86,7 @@ public class ErrorCompilerTest extends CompilerTests {
         ir,
         new Syntax.UnsupportedSyntax("Invalid use of syntactic operator in expression"),
         null,
-        14,
+        11,
         15);
   }
 
