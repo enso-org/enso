@@ -64,6 +64,7 @@ public final class LongStorage extends AbstractLongStorage implements ColumnStor
   private static class LongStorageIterator implements ColumnLongStorageIterator {
     private final LongBuffer data;
     private final BitSet isNothing;
+    private int index = -1;
 
     public LongStorageIterator(LongBuffer data, BitSet isNothing) {
       this.data = data;
@@ -72,27 +73,21 @@ public final class LongStorage extends AbstractLongStorage implements ColumnStor
 
     @Override
     public Long getItemBoxed() {
-      var index = data.position();
-      var item = data.get(index);
-      return isNothing.get(index) ? null : item;
+      return isNothing.get(index) ? null : data.get(index);
     }
 
     @Override
     public long getItemAsLong() {
-      var index = data.position();
-      var item = data.get(index);
-      return item;
+      return data.get(index);
     }
 
     @Override
     public boolean isNothing() {
-      var index = data.position();
       return isNothing.get(index);
     }
 
     @Override
     public boolean hasNext() {
-      var index = data.position();
       return index + 1 < data.limit();
     }
 
@@ -101,14 +96,13 @@ public final class LongStorage extends AbstractLongStorage implements ColumnStor
       if (!hasNext()) {
         throw new NoSuchElementException();
       }
-      var index = data.position();
-      data.position(index + 1);
+      index++;
       return getItemBoxed();
     }
 
     @Override
     public long getIndex() {
-      return data.position();
+      return index;
     }
 
     @Override
@@ -116,7 +110,7 @@ public final class LongStorage extends AbstractLongStorage implements ColumnStor
       if (!hasNext()) {
         return false;
       }
-      data.position(data.position() + 1);
+      index++;
       return true;
     }
   }
