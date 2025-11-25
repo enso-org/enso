@@ -186,7 +186,7 @@ class LongBuilder extends NumericBuilder implements BuilderForLong, BuilderWithR
 
   @Override
   public ColumnStorage<Long> seal() {
-    var buf = LongBuffer.wrap(data);
+    var buf = LongBuffer.wrap(data, 0, currentSize);
     return new LongStorage(buf, isNothing, getType());
   }
 }
