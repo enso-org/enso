@@ -2041,7 +2041,6 @@ lazy val `ydoc-server` = project
         .buildNativeImage(
           "ydoc",
           staticOnLinux = false,
-          additionalOptions = if ((Bazel / wasStartedFromBazel).value) Seq(s"-H:CLibraryPath=${(Bazel / zlibPath).value.getAbsolutePath}", "-H:+StaticExecutableWithDynamicLibC") else Seq.empty,
           targetDir     = target.value / "native-image",
           mainClass     = Some("org.enso.ydoc.server.Main")
         )
@@ -4049,17 +4048,16 @@ lazy val `engine-runner` = project
             )
           else Seq()
         val cCompilerOpts = if ((Bazel / wasStartedFromBazel).value) {
-          Seq(
-            "-H:CCompilerPath=" + (Bazel / cCompilerPath).value.getAbsolutePath
-          )
+          (Bazel / cCompilerPath).value.map(cCompiler => Seq(
+            "-H:CCompilerPath=" + cCompiler.getAbsolutePath,
+          )).getOrElse(Seq())
         } else {
           Seq()
         }
         val zlibOpts = if ((Bazel / wasStartedFromBazel).value) {
-          Seq(
-            "-H:CLibraryPath=" + (Bazel / zlibPath).value.getAbsolutePath,
-            // "-H:+StaticExecutableWithDynamicLibC"
-          )
+          (Bazel / zlibPath).value.map(zlib => Seq(
+            "-H:CLibraryPath=" + zlib.getAbsolutePath,
+          )).getOrElse(Seq())
         } else {
           Seq()
         }

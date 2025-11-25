@@ -54,10 +54,10 @@ object BazelSupport extends AutoPlugin {
     lazy val extractedPythonResourceDir = taskKey[File](
       "Directory containing extracted Python resources"
     )
-    lazy val cCompilerPath = taskKey[File](
+    lazy val cCompilerPath = taskKey[Option[File]](
       "Path to the C Compiler. Will be passed to native-image via `-H:CCompilerPath`."
     )
-    lazy val zlibPath = taskKey[File](
+    lazy val zlibPath = taskKey[Option[File]](
       "Path to the Zlib static library. Will be passed to native-image via `-H:CLibraryPath`."
     )
     lazy val ydocServerPolyglotMainJs = taskKey[File](
@@ -181,37 +181,39 @@ object BazelSupport extends AutoPlugin {
       },
       Bazel / cCompilerPath := {
         val logger = streams.value.log
-        val prop   = System.getProperty(C_COMPILER_PATH)
+        val prop = System.getProperty(C_COMPILER_PATH)
         if (prop == null) {
-          logger.error(
-            s"C Compiler path not set in ${C_COMPILER_PATH} property."
-          )
+          None
+        } else {
+          val compiler = new File(prop)
+          if (!compiler.exists()) {
+            logger.error(
+              s"C Compiler not found at $compiler. " +
+              "Make sure to provide a valid C Compiler."
+            )
+            None
+          } else {
+            Some(compiler)
+          }
         }
-        val compiler = new File(prop)
-        if (!compiler.exists()) {
-          logger.warn(
-            s"C Compiler not found at $compiler. " +
-            "Make sure to provide a valid C Compiler."
-          )
-        }
-        compiler
       },
       Bazel / zlibPath := {
         val logger = streams.value.log
         val prop   = System.getProperty(ZLIB_PATH)
         if (prop == null) {
-          logger.error(
-            s"Zlib path not set in ${ZLIB_PATH} property."
-          )
+          None
+        } else {
+          val zlib = new File(prop)
+          if (!zlib.exists()) {
+            logger.error(
+              s"Zlib not found at $zlib. " +
+              "Make sure to provide a valid Zlib."
+            )
+            None
+          } else {
+            Some(zlib)
+          }
         }
-        val zlib = new File(prop)
-        if (!zlib.exists()) {
-          logger.warn(
-            s"Zlib not found at $zlib. " +
-            "Make sure to provide a valid Zlib."
-          )
-        }
-        zlib
       }
     )
   }

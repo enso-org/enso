@@ -2,7 +2,7 @@ load("@aspect_bazel_lib//lib:write_source_files.bzl", "write_source_files")
 load("@aspect_rules_ts//ts:defs.bzl", "ts_config")
 load("@buildifier_prebuilt//:rules.bzl", "buildifier")
 load("@npm//:defs.bzl", "npm_link_all_packages")
-load("//:bazel_scripts/run_engine_distribution.bzl", "run_enso", "ensure_native_enso")
+load("//:bazel_scripts/run_engine_distribution.bzl", "ensure_native_enso", "run_enso")
 load("//:bazel_scripts/stdlibs.bzl", "stdlib_source_patterns")
 load("//toolchains/sbt:run_sbt.bzl", "run_sbt")
 
@@ -50,7 +50,10 @@ buildifier(
 ### Engine distribution ###
 ###########################
 
-STDLIB_SOURCES = glob(stdlib_source_patterns())
+STDLIB_SOURCES = glob(
+    stdlib_source_patterns(),
+    allow_empty = True,
+)
 
 # TODO: some dependencies might be unnecessary here, but checking everything is time-consuming.
 SRCS = STDLIB_SOURCES + [
@@ -96,6 +99,7 @@ SRCS = STDLIB_SOURCES + [
     "engine/runtime-parser-processor-tests/src/**",
     "engine/runtime-suggestions/src/**",
     "engine/runtime-test-instruments/src/**",
+    "distribution/engine/THIRD-PARTY/**",
     "lib/java/akka-wrapper/src/**",
     "lib/java/benchmarks-common/src/**",
     "lib/java/fansi-wrapper/src/**",
@@ -218,7 +222,7 @@ NATIVE_IMAGE_ENV = {
     "PATH": "$(FLATC_PATH):$(JAVABASE)/bin:$$PATH",
     "LC_ALL": "C.UTF-8",
     "SBT_SERVER_FORCESTART": "1",
-    "ENSO_LAUNCHER": "native,fast,-ls"
+    "ENSO_LAUNCHER": "native,fast,-ls",
 }
 
 run_sbt(
@@ -237,7 +241,7 @@ run_sbt(
     name = "sbt_build_native_engine_distribution",
     srcs = SRCS,
     args = [
-        "buildEngineDistribution"
+        "buildEngineDistribution",
     ],
     env = NATIVE_IMAGE_ENV,
     out_dir = "built-distribution-native",
