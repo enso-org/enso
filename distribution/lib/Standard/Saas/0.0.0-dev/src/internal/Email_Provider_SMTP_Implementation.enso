@@ -9,4 +9,4 @@ type Email_Provider_SMTP_Implementation
     private Value config:Email_Provider_SMTP
 
     send self email:Email =
-        smtp_send.send self.config.server self.config.port self.config.username self.config.password self.config.use_tls email.from_address.address email.from_address.name (email.to.map .address) email.subject email.body.body
+        smtp_send.send self.config.server self.config.port self.config.username self.config.password self.config.use_tls email.from_address.address email.from_address.name (email.to.map .address) (email.cc.map .address) (email.bcc.map .address) email.subject email.body.body

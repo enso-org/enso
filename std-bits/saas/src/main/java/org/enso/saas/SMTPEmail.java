@@ -15,6 +15,8 @@ public class SMTPEmail {
             String from,
             String fromName,
             String[] to,
+            String[] cc,
+            String[] bcc,
             String subject,
             String body) {
         try {
@@ -43,12 +45,22 @@ public class SMTPEmail {
             }
             email.setSubject(subject);
             email.setMsg(body);
-            for (String recipient : to) {
-                email.addTo(recipient);
+            if (to != null) {
+                for (String recipient : to) {
+                    email.addTo(recipient);
+                }
             }
-
+            if (cc != null) {
+                for (String recipient : cc) {
+                    email.addCc(recipient);
+                }
+            }
+            if (bcc != null) {
+                for (String recipient : bcc) {
+                    email.addBcc(recipient);
+                }
+            }
             email.send();
-            System.out.println("Email sent successfully to: " + to);
         } catch (EmailException e) {
             System.err.println("Failed to send email: " + e.getMessage());
             // Wrap checked exception to avoid leaking EmailException in the signature.
