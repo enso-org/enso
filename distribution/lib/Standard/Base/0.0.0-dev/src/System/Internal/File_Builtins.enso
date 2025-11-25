@@ -10,6 +10,7 @@ import project.System.File_Format.File_Format_SPI
 import project.System.File_Format.JSON_Format
 import project.System.File_Format.Plain_Text_Format
 
+polyglot java import java.nio.file.attribute.FileTime
 polyglot java import java.nio.file.Path as Java_Path
 polyglot java import java.nio.file.Files as Java_Files
 polyglot java import java.nio.file.LinkOption as Java_LinkOption
