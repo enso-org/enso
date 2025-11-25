@@ -1,6 +1,6 @@
 from Standard.Base import all
 
-import project.internal.Email_Provider_SMTP_Implementation.Email_Provider_SMTP_Implementation
+import project.Internal.Email_Provider_SMTP_Implementation.Email_Provider_SMTP_Implementation
 
 import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Network.Email.Email_Address.Email_Address
@@ -30,7 +30,7 @@ type Email_Provider_SMTP
     private get_dropdown_options = [Option "..SMTP" "..SMTP"]
 
     ## Resolves a constructor into an Email_Provider instance.
-    private resolve that:Function -> Email_Provider_SMTP | Nothing =
+    resolve that:Function -> Email_Provider_SMTP | Nothing =
         Panic.catch Type_Error (that:Email_Provider_SMTP) _->Nothing
 
 Email_Provider.from (that:Email_Provider_SMTP) =
