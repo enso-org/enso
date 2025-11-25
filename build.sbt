@@ -5666,8 +5666,9 @@ lazy val `netty-resolver-dns-native-wrapper` = project
   .enablePlugins(JarExtractPlugin)
   .settings(
     libraryDependencies ++= Seq(
-      "io.netty" % "netty-resolver-dns-native-macos" % "4.1.118.Final",
-      ("io.netty" % "netty-resolver-dns-native-macos" % "4.1.118.Final").classifier("osx-aarch_64"),
+      "io.netty"  % "netty-resolver-dns-native-macos" % "4.1.118.Final",
+      ("io.netty" % "netty-resolver-dns-native-macos" % "4.1.118.Final")
+        .classifier("osx-aarch_64")
     ),
     // Correct jar needs to be selected manually, because filtering modules does not
     // normally work for classifiers.
@@ -5675,7 +5676,8 @@ lazy val `netty-resolver-dns-native-wrapper` = project
       val nettyResolverNativeJars = JPMSUtils.filterModulesFromUpdate(
         updateReport = (Compile / update).value,
         modules = Seq(
-          ("io.netty" % "netty-resolver-dns-native-macos" % "4.1.118.Final").classifier("osx-aarch_64"),
+          ("io.netty" % "netty-resolver-dns-native-macos" % "4.1.118.Final")
+            .classifier("osx-aarch_64")
         ),
         log                = streams.value.log,
         projName           = moduleName.value,
