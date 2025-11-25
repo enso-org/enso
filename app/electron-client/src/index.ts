@@ -285,12 +285,14 @@ async function main(
   try {
     console.log('Starting the application')
     await createWindowIfEnabled(app, args, electron)
-    initIpc(app.window)
-    await loadWindowContent(app, args)
     if (electron) {
       // Note that we want to do all the actions synchronously, so when the window
       // appears, it serves the website immediately.
       await startContentServerIfEnabled(app, args, electron, electronIsDev)
+    }
+    initIpc(app.window)
+    await loadWindowContent(app, args)
+    if (electron) {
       /**
        * The non-null assertion on the following line is safe because the window
        * initialization is guarded by the `createWindowIfEnabled` method. The window is
