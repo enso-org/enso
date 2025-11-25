@@ -10,4 +10,3 @@ type Email_Provider_SMTP_Implementation
 
     send self email:Email =
         smtp_send.send self.config.server self.config.port self.config.username self.config.password self.config.use_tls email.from_address.address (email.map .address) email.subject email.body.body
-    
