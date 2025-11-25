@@ -1,0 +1,12 @@
+private
+
+import Standard.Base.Network.Email.Email
+import project.Email_Provider_SMTP.Email_Provider_SMTP
+
+polyglot java import org.enso.saas.SMTPEmail as smtp_send
+
+type Email_Provider_SMTP_Implementation
+    private Value config:Email_Provider_SMTP
+
+    send self email:Email =
+        smtp_send.send self.config.server self.config.port self.config.username self.config.password self.config.use_tls email.from_address.address (email.map .address) email.subject email.body.body

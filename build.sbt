@@ -6355,6 +6355,9 @@ lazy val `std-saas` = project
       .value,
     Compile / packageBin / artifactPath :=
       `std-saas-polyglot-root` / "std-saas.jar",
+    libraryDependencies ++= Seq(
+      "org.apache.commons"         % "commons-email"    % commonsEmailVersion
+    ),
     Compile / packageBin := {
       val result            = (Compile / packageBin).value
       val cacheStoreFactory = streams.value.cacheStoreFactory
