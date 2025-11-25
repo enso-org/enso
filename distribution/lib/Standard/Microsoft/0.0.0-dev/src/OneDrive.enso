@@ -149,9 +149,29 @@ type OneDrive_File
        group: Standard.Base.Metadata
        icon: metadata
        ---
+       Returns the path of this file.
+    parent self -> OneDrive_File =
+        parent_path = self.onedrive_path.parent
+        if parent_path.is_nothing then Nothing else
+            OneDrive_File.Value self.credential parent_path
+
+    ## ---
+       group: Standard.Base.Metadata
+       icon: metadata
+       ---
        Returns the name of this file.
     name self -> Text =
         self.onedrive_path.file_name
+
+    ## ---
+       group: Standard.Base.Metadata
+       icon: metadata
+       ---
+       Does the file exists.
+    exists self -> Boolean =
+        frag = self.onedrive_path.to_human_readable_fragment
+        response = Graph.fetch self.credential Graph.base_url+frag
+        response.code == HTTP_Status_Code.OK
 
     ## ---
        group: Standard.Base.Metadata
@@ -178,6 +198,11 @@ type OneDrive_File
     ## ---
        private: true
        ---
+    can_write_into_parent self -> Boolean = False
+
+    ## ---
+       private: true
+       ---
        Return the absolute path of this OneDrive_File.
     to_text : Text
     to_text self = self.uri
@@ -188,6 +213,8 @@ type OneDrive_File
        Convert to a display representation of this OneDrive_File.
     to_display_text : Text
     to_display_text self = "OneDrive_File {" + self.to_text + "}"
+
+File_Like.from (that : OneDrive_File) = File_Like.Value that
 
 private _check_directory file:OneDrive_File ~action =
     if file.is_directory then action else
