@@ -1,5 +1,6 @@
 package org.enso.table.data.column.builder;
 
+import java.nio.LongBuffer;
 import java.util.Objects;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.storage.ColumnBooleanStorage;
@@ -185,6 +186,7 @@ class LongBuilder extends NumericBuilder implements BuilderForLong, BuilderWithR
 
   @Override
   public ColumnStorage<Long> seal() {
-    return new LongStorage(data, currentSize, isNothing, getType());
+    var buf = LongBuffer.wrap(data);
+    return new LongStorage(buf, isNothing, getType());
   }
 }

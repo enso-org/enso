@@ -1,5 +1,6 @@
 package org.enso.table.data.column.storage;
 
+import java.nio.LongBuffer;
 import java.util.BitSet;
 import java.util.NoSuchElementException;
 import org.enso.table.data.column.storage.iterators.ColumnLongStorageIterator;
@@ -10,29 +11,24 @@ public final class LongStorage extends AbstractLongStorage implements ColumnStor
   // TODO [RW] at some point we will want to add separate storage classes for byte, short and int,
   // for more compact storage and more efficient handling of smaller integers; for now we will be
   // handling this just by checking the bounds
-  final long[] data;
+  private final LongBuffer data;
   final BitSet isNothing;
 
   /**
    * @param data the underlying data
-   * @param size the number of items stored
    * @param isNothing a bit set denoting at index {@code i} whether or not the value at index {@code
    *     i} is missing.
    * @param type the type specifying the bit-width of integers that are allowed in this storage
    */
-  public LongStorage(long[] data, int size, BitSet isNothing, IntegerType type) {
-    super(size, type);
+  public LongStorage(LongBuffer data, BitSet isNothing, IntegerType type) {
+    super(data.limit(), type);
     this.data = data;
     this.isNothing = isNothing;
   }
 
-  public LongStorage(long[] data, IntegerType type) {
-    this(data, data.length, new BitSet(), type);
-  }
-
   @Override
   public long getItemAsLong(long index) {
-    return data[(int) index];
+    return data.get((int) index);
   }
 
   @Override
@@ -52,49 +48,52 @@ public final class LongStorage extends AbstractLongStorage implements ColumnStor
   @Override
   public LongStorage widen(IntegerType widerType) {
     assert widerType.fits(getType());
-    return new LongStorage(data, (int) getSize(), getIsNothingMap(), widerType);
+    return new LongStorage(data, getIsNothingMap(), widerType);
   }
 
   /** Allow access to the underlying data array for copying. */
-  public long[] getData() {
-    return data;
+  public LongBuffer getData() {
+    return data.asReadOnlyBuffer();
   }
 
   @Override
   public ColumnLongStorageIterator iteratorWithIndex() {
-    return new LongStorageIterator(data, isNothing, (int) getSize());
+    return new LongStorageIterator(data.asReadOnlyBuffer(), isNothing);
   }
 
   private static class LongStorageIterator implements ColumnLongStorageIterator {
-    private final long[] data;
+    private final LongBuffer data;
     private final BitSet isNothing;
-    private final int size;
-    private int index = -1;
 
-    public LongStorageIterator(long[] data, BitSet isNothing, int size) {
+    public LongStorageIterator(LongBuffer data, BitSet isNothing) {
       this.data = data;
       this.isNothing = isNothing;
-      this.size = size;
     }
 
     @Override
     public Long getItemBoxed() {
-      return isNothing.get(index) ? null : data[index];
+      var index = data.position();
+      var item = data.get(index);
+      return isNothing.get(index) ? null : item;
     }
 
     @Override
     public long getItemAsLong() {
-      return data[index];
+      var index = data.position();
+      var item = data.get(index);
+      return item;
     }
 
     @Override
     public boolean isNothing() {
+      var index = data.position();
       return isNothing.get(index);
     }
 
     @Override
     public boolean hasNext() {
-      return index + 1 < size;
+      var index = data.position();
+      return index + 1 < data.limit();
     }
 
     @Override
@@ -102,13 +101,14 @@ public final class LongStorage extends AbstractLongStorage implements ColumnStor
       if (!hasNext()) {
         throw new NoSuchElementException();
       }
-      index++;
+      var index = data.position();
+      data.position(index + 1);
       return getItemBoxed();
     }
 
     @Override
     public long getIndex() {
-      return index;
+      return data.position();
     }
 
     @Override
@@ -116,7 +116,7 @@ public final class LongStorage extends AbstractLongStorage implements ColumnStor
       if (!hasNext()) {
         return false;
       }
-      index++;
+      data.position(data.position() + 1);
       return true;
     }
   }
