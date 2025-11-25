@@ -3,10 +3,20 @@ private
 import Standard.Base.Network.Email.Email
 import project.Email_Provider_SMTP.Email_Provider_SMTP
 
-polyglot java import org.enso.saas.SMTPEmail as smtp_send
+polyglot java import org.apache.commons.mail.MultiPartEmail
+polyglot java import org.apache.commons.mail.DefaultAuthenticator
 
 type Email_Provider_SMTP_Implementation
     private Value config:Email_Provider_SMTP
 
     send self email:Email =
-        smtp_send.send self.config.server self.config.port self.config.username self.config.password self.config.use_tls email.from_address.address email.from_address.name (email.to.map .address) (email.cc.map .address) (email.bcc.map .address) email.subject email.body.body
+        simple_email = MultiPartEmail.new
+        simple_email.setHostName self.config.server
+        simple_email.setSmtpPort self.config.port
+        simple_email.setAuthenticator (DefaultAuthenticator.new self.config.username self.config.password)
+        simple_email.setSSLOnConnect self.config.use_tls
+        simple_email.setFrom email.from_address.address email.from_address.name
+        simple_email.setSubject email.subject
+        simple_email.setMsg email.body.body
+        simple_email.addTo (email.to.at 0).address
+        simple_email.send
