@@ -13,6 +13,7 @@ public class SMTPEmail {
             String password,
             boolean enableTLS,
             String from,
+            String fromName,
             String[] to,
             String subject,
             String body) {
@@ -35,7 +36,11 @@ public class SMTPEmail {
                 email.setSSLOnConnect(true);
             }
 
-            email.setFrom(from);
+            if (fromName != null && !fromName.isEmpty()) {
+                email.setFrom(from, fromName);
+            } else {
+                email.setFrom(from);
+            }
             email.setSubject(subject);
             email.setMsg(body);
             for (String recipient : to) {
