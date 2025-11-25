@@ -352,6 +352,7 @@ lazy val enso = (project in file("."))
     `logging-utils-akka`,
     `netty-epoll-native-wrapper`,
     `netty-tc-native-wrapper`,
+    `netty-resolver-dns-native-wrapper`,
     `opencv-wrapper`,
     `os-environment`,
     `os-environment-lib`,
@@ -4234,6 +4235,7 @@ lazy val `engine-runner` = project
               "com.google",
               "io.grpc",
               "io.netty.util.concurrent.AbstractScheduledEventExecutor",
+              "io.netty.resolver.dns",
               "io.opencensus",
               "net.snowflake.client",
               "com.sun.jna",
@@ -5657,6 +5659,47 @@ lazy val `netty-epoll-native-wrapper` = project
     )
   )
 
+// Native lib only for Mac
+// For other platforms, the output directory should be empty.
+lazy val `netty-resolver-dns-native-wrapper` = project
+  .in(file("lib/java/resolver-dns-native-wrapper"))
+  .enablePlugins(JarExtractPlugin)
+  .settings(
+    libraryDependencies ++= Seq(
+      "io.netty" % "netty-resolver-dns-native-macos" % "4.1.118.Final",
+      ("io.netty" % "netty-resolver-dns-native-macos" % "4.1.118.Final").classifier("osx-aarch_64"),
+    ),
+    // Correct jar needs to be selected manually, because filtering modules does not
+    // normally work for classifiers.
+    inputJarResolved := {
+      val nettyResolverNativeJars = JPMSUtils.filterModulesFromUpdate(
+        updateReport = (Compile / update).value,
+        modules = Seq(
+          ("io.netty" % "netty-resolver-dns-native-macos" % "4.1.118.Final").classifier("osx-aarch_64"),
+        ),
+        log                = streams.value.log,
+        projName           = moduleName.value,
+        scalaBinaryVersion = scalaBinaryVersion.value,
+        shouldContainAll   = true
+      )
+      val nativeJar = nettyResolverNativeJars.filter { jar =>
+        jar.name.contains("osx-aarch_64")
+      }
+      if (nativeJar.size != 1) {
+        throw new IllegalStateException(
+          s"Expected exactly one netty resolver dns native jar for macos-aarch_64, but found: ${nativeJar
+            .mkString(", ")}"
+        )
+      }
+      nativeJar.head
+    },
+    jarExtractor := JarExtractor(
+      "META-INF/native/libnetty_resolver_dns_native_macos_aarch_64.jnilib" -> PolyglotLib(
+        MacOSArm64
+      )
+    )
+  )
+
 lazy val `tableau-wrapper` = project
   .in(file("lib/java/tableau-wrapper"))
   .enablePlugins(JarExtractPlugin)
@@ -6172,10 +6215,12 @@ lazy val `std-microsoft` = project
           polyglotLibDir = Some(`std-microsoft-native-libs`),
           extractedNativeLibsDirs = Seq(
             (`jna-wrapper-extracted` / extractedFilesDir).value,
-            (`netty-tc-native-wrapper` / extractedFilesDir).value
+            (`netty-tc-native-wrapper` / extractedFilesDir).value,
+            (`netty-resolver-dns-native-wrapper` / extractedFilesDir).value
           ),
           // `netty-tc-native-wrapper / thinJarOutput` is not here on purpose.
           // It is an almost empty jar anyway.
+          // The same is true for `netty-resolver-dns-native-wrapper / thinJarOutput`.
           extraJars = Seq(
             (`jna-wrapper-extracted` / thinJarOutput).value
           ),
