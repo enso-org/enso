@@ -119,15 +119,6 @@
         "name": "org.enso.base.enso_cloud.EnsoSecretHelper"
     },
     {
-        "name": "org.enso.base.enso_cloud.ExternalLibraryCredentialHelper$AccessToken",
-        "methods": [
-            {
-                "name": "token",
-                "parameterTypes": []
-            }
-        ]
-    },
-    {
         "name": "org.enso.base.enso_cloud.ExternalLibrarySecretHelper",
         "methods": [
             {

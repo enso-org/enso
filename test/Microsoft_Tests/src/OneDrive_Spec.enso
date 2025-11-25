@@ -2,8 +2,6 @@ from Standard.Base import all
 from Standard.Test import all
 from Standard.Microsoft import all
 
-import Standard.Microsoft.OneDrive.OneDrive_File
-
 import enso_dev.Cloud_Tests.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setup
 
 add_specs suite_builder setup:Cloud_Tests_Setup =
@@ -14,11 +12,9 @@ add_specs suite_builder setup:Cloud_Tests_Setup =
             files.at child_index
 
         get_test_root =
-            user = Enso_User.current
-            path = "enso://Users/" + user.name + "/Microsoft365_ci_test_credential"
+            path = "enso://~/Microsoft365_ci_test_credential"
             secret = Enso_Secret.get path
-            credential = Microsoft365_Credential.initialize secret
-            root = OneDrive_File.root credential
+            root = OneDrive.root secret
             get_child (get_child root "test_data") "OneDrive_Spec"
 
         group_builder.specify "Can read a top-level file from OneDrive" <|
