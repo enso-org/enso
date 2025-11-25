@@ -8,7 +8,11 @@ abstract class NumericBuilder implements Builder {
   protected int currentSize;
 
   protected NumericBuilder() {
-    this.isNothing = new BitSet();
+    this(new BitSet());
+  }
+
+  protected NumericBuilder(BitSet bs) {
+    this.isNothing = bs;
     this.currentSize = 0;
   }
 

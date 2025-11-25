@@ -1,6 +1,8 @@
 package org.enso.table.data.column.builder;
 
+import java.nio.ByteBuffer;
 import java.nio.LongBuffer;
+import java.util.BitSet;
 import java.util.Objects;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.storage.ColumnBooleanStorage;
@@ -22,7 +24,12 @@ class LongBuilder extends NumericBuilder implements BuilderForLong, BuilderWithR
   private LongBuffer data;
 
   protected LongBuilder(int initialSize, ProblemAggregator problemAggregator) {
-    this.data = LongBuffer.wrap(new long[initialSize]);
+    this(allocBuffer(initialSize), problemAggregator);
+  }
+
+  private LongBuilder(Object[] bsAndLb, ProblemAggregator problemAggregator) {
+    super((BitSet) bsAndLb[0]);
+    this.data = (LongBuffer) bsAndLb[1];
     this.problemAggregator = problemAggregator;
   }
 
@@ -34,6 +41,22 @@ class LongBuilder extends NumericBuilder implements BuilderForLong, BuilderWithR
     }
   }
 
+  /**
+   * Allocates continuous direct memory buffer. First of all there is a validity bit map (padded to
+   * 8 bytes) followed by the actual data.
+   *
+   * @param initialSize the size of the buffer
+   * @return pair of {@link BitSet} and {@link LongBuffer}
+   */
+  private static Object[] allocBuffer(int initialSize) {
+    var rawValiditySize = initialSize / 8 + 1;
+    var roundedValiditySize = (rawValiditySize / 8 + 1) * 8;
+    var buf = ByteBuffer.allocateDirect(roundedValiditySize + initialSize * Long.BYTES);
+    var lb = buf.position(rawValiditySize).alignedSlice(Long.BYTES).asLongBuffer();
+    var bs = BitSet.valueOf(buf.position(0).limit(rawValiditySize));
+    return new Object[] {bs, lb};
+  }
+
   @Override
   protected int getDataSize() {
     return data.capacity();
@@ -41,10 +64,15 @@ class LongBuilder extends NumericBuilder implements BuilderForLong, BuilderWithR
 
   @Override
   protected void resize(int desiredCapacity) {
-    var newData = LongBuffer.wrap(new long[desiredCapacity]);
+    var bsAndLb = allocBuffer(desiredCapacity);
+    var newBs = (BitSet) bsAndLb[0];
+    var newData = (LongBuffer) bsAndLb[1];
     int toCopy = Math.min(currentSize, data.capacity());
     newData.put(0, data, 0, toCopy);
     data = newData;
+
+    newBs.or(this.isNothing);
+    isNothing = newBs;
   }
 
   @Override
