@@ -16,8 +16,6 @@ type Graph
        private: true
        ---
     fetch credential url =
-        at = credential.ms365_service.getAccessToken
-        IO.println "ZZZZZ Graph.fetch with token: "+at.to_text+" "+at.getClass.to_text
         header = Header.authorization_bearer credential.ms365_service.getAccessToken.token
         HTTP.fetch url headers=[header]
 

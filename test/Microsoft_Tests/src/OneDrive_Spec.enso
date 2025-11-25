@@ -13,21 +13,14 @@ add_specs suite_builder setup:Cloud_Tests_Setup =
 
         get_test_root =
             secret = Enso_Secret.get "enso://Users/CloudTests/jm0"
-            IO.println "ZZZZZ secret: "+secret.to_text
             credential = Microsoft365_Credential.initialize secret
             root = OneDrive_File.root credential
-            IO.println "ZZZZZ root: "+root.to_text
             get_child (get_child root "test_data") "OneDrive_Spec"
 
         group_builder.specify "Can read a top-level file from OneDrive" <|
             secrets = Enso_Secret.list
-            #IO.println "ZZZZZ "+secrets.to_text
             user = Enso_User.current
-            IO.println "ZZZZZ user: "+user.to_text+" "+user.name
-            secrets.map .path . map x->
-                IO.println "ZZZZZ secret: "+x.to_text
             a_child = get_child get_test_root "a.txt"
-            IO.println "ZZZZZ a_child: "+a_child.to_text
             a_child . read . should_equal 'aaa\n'
             b_child = get_child get_test_root "b.txt"
             b_child . read . should_equal 'bbbb\n'
