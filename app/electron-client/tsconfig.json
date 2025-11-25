@@ -7,5 +7,13 @@
       "@/*": ["./src/*"]
     }
   },
-  "include": ["src/*.ts", "tasks/*.ts", "tests/*.ts", "src/config.json", "*.ts"]
+  "include": [
+    "src/*.ts",
+    "tasks/*.ts",
+    "tests/*.ts",
+    "src/config.json",
+    "*.ts",
+    "esbuild.config.mjs",
+    "electron-builder-config.cjs"
+  ]
 }

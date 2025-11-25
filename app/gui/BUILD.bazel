@@ -1,9 +1,11 @@
 load("@aspect_bazel_lib//lib:write_source_files.bzl", "write_source_files")
 load("@aspect_rules_js//js:defs.bzl", "js_binary", "js_run_binary")
+load("@aspect_rules_js//npm:defs.bzl", "npm_package")
 load("@aspect_rules_ts//ts:defs.bzl", "ts_config")
 load("@env//:defs.bzl", "getenv")
 load("@npm//:defs.bzl", "npm_link_all_packages", "npm_link_targets")
 load("@npm//app/gui:vite/package_json.bzl", vite_bin = "bin")
+load("//internal:stampFiles.bzl", "stamp_files")
 
 npm_link_all_packages(name = "node_modules")
 
@@ -59,20 +61,47 @@ SRCS = [
     [ICON_GENERATED_DIR + "/**"],
 ) + npm_link_targets()
 
+npm_package(
+    name = "pkg",
+    srcs = SRCS,
+    visibility = ["//visibility:public"],
+)
+
 ENV_FILES = glob([".env*"])
+
+# When stamping, `--mode=bazel` will inject placeholders into the code base which will be replaced later by `stamp_files` rule.
+_vite_args = select({
+    "//:stamping": [
+        "build",
+        "--mode=bazel",
+    ],
+    "//conditions:default": [
+        "build",
+        "--mode=production",
+    ],
+})
+
+# When stamping, `NODE_ENV` is not important (but should be stable).
+# The correct `.env` file to use is chosen by the `workspaceStatus` script.
+_vite_env = select({
+    "//:stamping": {
+        "NODE_ENV": "production",
+        "NODE_OPTIONS": "--max-old-space-size=6144",
+    },
+    "//conditions:default": {
+        "NODE_ENV": getenv("NODE_ENV"),
+        "NODE_OPTIONS": "--max-old-space-size=6144",
+    },
+})
 
 vite_bin.vite(
     name = "dist",
     srcs = SRCS + ENV_FILES,
-    args = [
-        "build",
-        "--mode=production",
-    ],
+    args = _vite_args,
     chdir = package_name(),
-    env = {
-        "NODE_ENV": getenv("NODE_ENV"),
-    },
+    env = _vite_env,
     out_dirs = ["dist"],
+    visibility = ["//visibility:public"],
 )
 
 vite_bin.vite_binary(
@@ -111,30 +140,16 @@ js_run_binary(
     visibility = ["//visibility:public"],
 )
 
-# TODO: Maybe make env replacement a separate post-build step, TBD.
-# js_binary(
-#     name = "script_env_replacer",
-#     entry_point = "scripts/envReplacer.mjs",
-# )
-
-# js_run_binary(
-#     name = "dist",
-#     srcs = [
-#         "node_modules/dotenv",
-#         ":build",
-#     ] + glob([".env*"]),
-#     args = [
-#         "$(rootpath :build)",
-#         package_name() + "/env_replaced",
-#         package_name(),
-#     ],
-#     env = {
-#         "NODE_ENV": getenv("NODE_ENV"),
-#     },
-#     out_dirs = ["env_replaced"],
-#     tool = ":script_env_replacer",
-#     visibility = ["//visibility:public"],
-# )
+stamp_files(
+    name = "dist_stamped",
+    srcs = [
+        ":dist",
+    ],
+    out = "dist_stamped",
+    files_regex = "config-[0-9a-zA-Z]+\\.js$|index\\.html$",
+    input_dir = "$(location :dist)",
+    visibility = ["//visibility:public"],
+)
 
 # Convenience rule to output built artifacts to the filesystem, so JS tooling can see them.
 # Important! Make sure the output of this rule is NOT used during the build process, which

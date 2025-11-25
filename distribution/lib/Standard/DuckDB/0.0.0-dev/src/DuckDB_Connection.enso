@@ -30,8 +30,8 @@ type DuckDB_Connection
     ## ---
        private: true
        ---
-    dialect : Dialect
-    dialect = DuckDB_Dialect.duckdb
+    get_dialect : Dialect
+    get_dialect = DuckDB_Dialect.duckdb
 
     ## ---
        private: true
@@ -49,7 +49,7 @@ type DuckDB_Connection
         jdbc_connection = JDBC_Connection.create types_record url properties schema=schema
 
         ## For initial work using DuckDB, we will use the Postgres dialect.
-        DuckDB_Connection.Value (Connection.new jdbc_connection DuckDB_Connection.dialect DuckDB_Type_Mapping DuckDB_Entity_Naming_Properties.new) make_new
+        DuckDB_Connection.Value (Connection.new jdbc_connection DuckDB_Connection.get_dialect DuckDB_Type_Mapping DuckDB_Entity_Naming_Properties.new) make_new
 
     ## ---
        private: true

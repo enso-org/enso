@@ -41,9 +41,11 @@ tsconfig.json
 /app/ydoc-server-nodejs/ @Frizi @farmaazon @vitvakatu @kazcw @AdRiley
 /app/ydoc-server-polyglot/ @Frizi @farmaazon @vitvakatu @kazcw @AdRiley
 /app/ydoc-shared/ @Frizi @farmaazon @vitvakatu @kazcw @AdRiley
+
 # The data-link schema is owned by the libraries team
 /app/gui/src/dashboard/data/datalinkSchema.json @jdunkerley @GregoryTravis @AdRiley
 /app/gui/src/dashboard/data/__tests__ @jdunkerley @GregoryTravis @AdRiley @PabloBuchu @indiv0 @somebody1234
+/app/gui/src/dashboard/data/serviceCredentials @jdunkerley @GregoryTravis @AdRiley @PabloBuchu @indiv0 @somebody1234
 
 # Engine (old)
 # This section should be removed once the engine moves to /app/engine

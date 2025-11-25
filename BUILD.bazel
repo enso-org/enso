@@ -13,6 +13,12 @@ exports_files([
 
 npm_link_all_packages()
 
+config_setting(
+    name = "stamping",
+    values = {"stamp": "1"},
+    visibility = ["//visibility:public"],
+)
+
 ts_config(
     name = "tsconfig",
     src = "tsconfig.json",
@@ -69,7 +75,7 @@ SRCS = STDLIB_SOURCES + [
     "distribution/bin/enso",
     "distribution/bin/enso.bat",
     "//lib/java/python-extract:extract_python_resources",
-    "//lib/rust/parser/jni:enso_parser_jni",
+    "//lib/rust/parser/jni:shared_lib",
     "//lib/rust/parser:generate_java",
     "//lib/rust/parser/generate-java:enso_parser_generate_java_srcs",
     "//app/ydoc-server-polyglot:dist",
@@ -121,6 +127,7 @@ SRCS = STDLIB_SOURCES + [
     "lib/java/test-utils/src/**",
     "lib/java/ydoc-polyfill/src/**",
     "lib/java/ydoc-server/src/**",
+    "lib/java/ydoc-server-registration/src/**",
     "lib/java/zio-wrapper/src/**",
     "lib/scala/akka-native/src/**",
     "lib/scala/bench-processor/src/**",
@@ -173,6 +180,8 @@ SBT_BOOT_DIR = "$$TMPDIR/.sbt/boot"
 
 SBT_IVY_HOME = "$$TMPDIR/.ivy2"
 
+SBT_COURSIER_HOME = "$$TMPDIR/.coursier"
+
 SBT_GLOBAL_BASE = "$$TMPDIR"
 
 SBT_LOCAL_REPOS = "$$TMPDIR/.sbt/repositories"
@@ -182,6 +191,7 @@ SBT_SYSTEM_PROPS = [
     "-Dsbt.global.base=" + SBT_GLOBAL_BASE,
     "-Dsbt.boot.directory=" + SBT_BOOT_DIR,
     "-Dsbt.ivy.home=" + SBT_IVY_HOME,
+    "-Dsbt.coursier.home=" + SBT_COURSIER_HOME,
     # Copied from .jvmopts
     # TODO: Create a rule that reads that file?
     "-Xss16M",
@@ -206,7 +216,7 @@ EXTRA_SYSTEM_PROPS = [
     "-Denso.BazelSupport.enabled=true",
     "-Denso.BazelSupport.home=$(BINDIR)/home",
     "-Denso.BazelSupport.parser.javaSrcDir=$(location //lib/rust/parser:generate_java)",
-    "-Denso.BazelSupport.parser.lib=$(location //lib/rust/parser/jni:enso_parser_jni)",
+    "-Denso.BazelSupport.parser.lib=$(location //lib/rust/parser/jni:shared_lib)",
     "-Denso.BazelSupport.python.resourceDir=$(location //lib/java/python-extract:extract_python_resources)",
     "-Denso.BazelSupport.ydocServer.polyglotMainJs=$(location //app/ydoc-server-polyglot:dist)",
 ]
@@ -226,6 +236,18 @@ run_sbt(
     ],
     env = ENV,
     out_dir = "built-distribution",
+    system_props = SBT_SYSTEM_PROPS + EXTRA_SYSTEM_PROPS,
+    visibility = ["//visibility:public"],
+)
+
+run_sbt(
+    name = "sbt_build_small_jdk",
+    srcs = SRCS,
+    args = [
+        "buildSmallJdkForRelease",
+    ],
+    env = ENV,
+    out_dir = "built-small-jdk",
     system_props = SBT_SYSTEM_PROPS + EXTRA_SYSTEM_PROPS,
     visibility = ["//visibility:public"],
 )

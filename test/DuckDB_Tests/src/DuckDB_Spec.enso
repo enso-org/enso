@@ -43,7 +43,7 @@ duckdb_spec suite_builder prefix create_connection_func =
 
     materialize = .read
 
-    common_selection = Common_Table_Operations.Main.Test_Selection.Config supported_replace_params=DuckDB_Connection.dialect.get_supported_replace_params run_advanced_edge_case_tests_by_default=True
+    common_selection = Common_Table_Operations.Main.Test_Selection.Config supported_replace_params=DuckDB_Connection.get_dialect.get_supported_replace_params run_advanced_edge_case_tests_by_default=True
     aggregate_selection = Common_Table_Operations.Aggregate_Spec.Test_Selection.Config first_last_row_order=False aggregation_problems=False
     agg_in_memory_table = ((Project_Description.new enso_dev.Table_Tests).data / "data.csv") . read
 

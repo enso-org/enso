@@ -166,6 +166,7 @@ export class EnsoRunner implements Runner {
             detached: false,
             cwd,
             stdio: ['pipe', 'inherit', 'inherit'],
+            windowsHide: true,
           })
 
           let resolved = false

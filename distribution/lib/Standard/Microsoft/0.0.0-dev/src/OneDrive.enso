@@ -9,14 +9,42 @@ import project.Internal.Graph.Graph
 import project.Internal.OneDrive_Path.OneDrive_Path
 import project.Microsoft365_Credential.Microsoft365_Credential
 
+type OneDrive
+    ## ---
+       icon: cloud
+       ---
+       Returns the root directory of the user's OneDrive.
+
+       ## Arguments
+       - `credential`: A Cloud secret or a file containing Microsoft365 credentials.
+    root : File | Enso_Secret -> OneDrive_File
+    root (credential : File | Enso_Secret = _default_credential) -> OneDrive_File =
+        ms_cred = Microsoft365_Credential.initialize credential
+        OneDrive_File.root ms_cred
+
+    ## ---
+       icon: cloud
+       ---
+       Return a list of a directory of the user's OneDrive.
+
+       ## Arguments
+       - `path`: A path to a file or folder in OneDrive.
+       - `credential`: A Cloud secret or a file containing Microsoft365 credentials.
+    new : Text -> File | Enso_Secret -> OneDrive_File
+    new path:Text="" (credential : File | Enso_Secret = _default_credential) -> OneDrive_File =
+        used_path = (if (path.starts_with "onedrive://" ..Insensitive) then path.drop (..First 11) else path) . trim ..Left '/'
+        parts = if used_path == "" then [] else used_path.replace "\" "/" . split "/"
+        ms_cred = Microsoft365_Credential.initialize credential
+        OneDrive_File.Value ms_cred (OneDrive_Path.Value parts)
+
 type OneDrive_File
     private Value (credential : Microsoft365_Credential) (onedrive_path : OneDrive_Path)
 
     ## ---
-        icon: cloud
-        ---
+       icon: cloud
+       ---
 
-        Returns the root directory of the user's OneDrive.
+       Returns the root directory of the user's OneDrive.
     root (credential : Microsoft365_Credential) =
         OneDrive_File.Value credential (OneDrive_Path.Value [])
 
@@ -61,10 +89,10 @@ type OneDrive_File
        it returns exceptionally).
 
        ## Arguments
-        - `open_options`: A vector of `File_Access` objects determining how to
-          open the stream. These options set the access properties of the stream.
-        - `action`: A function that operates on the input stream and returns some
-          value. The value is returned from this method.
+       - `open_options`: A vector of `File_Access` objects determining how to
+         open the stream. These options set the access properties of the stream.
+       - `action`: A function that operates on the input stream and returns some
+         value. The value is returned from this method.
     with_input_stream : Vector File_Access -> (Input_Stream -> Any ! File_Error) -> Any ! Illegal_Argument
     with_input_stream self (open_options : Vector) action =
         _check_not_directory self <|
@@ -94,7 +122,6 @@ type OneDrive_File
 
        ## Errors
         - Throws `Illegal_Argument` if called on a folder.
-    @format File_Format.default_widget
     @format File_Format.default_widget
     read : File_Format -> Problem_Behavior -> Any ! Illegal_Argument
     read self format=Auto_Detect (on_problems : Problem_Behavior = ..Report_Warning) -> Any ! Illegal_Argument =
@@ -139,6 +166,29 @@ type OneDrive_File
         entry = Graph.fetch_json self.credential Graph.base_url+frag
         entry.contains_key "folder"
 
+    ## ---
+       group: Standard.Base.Metadata
+       icon: metadata
+       ---
+       Returns the URI of this file The URI is in the form
+       `onedrive://bucket/path/to/file`.
+    uri : Text
+    uri self = "onedrive:/"+self.onedrive_path.to_text
+
+    ## ---
+       private: true
+       ---
+       Return the absolute path of this OneDrive_File.
+    to_text : Text
+    to_text self = self.uri
+
+    ## ---
+       private: true
+       ---
+       Convert to a display representation of this OneDrive_File.
+    to_display_text : Text
+    to_display_text self = "OneDrive_File {" + self.to_text + "}"
+
 private _check_directory file:OneDrive_File ~action =
     if file.is_directory then action else
         Error.throw <| Illegal_Argument.Error "The OneDrive_File must represent a folder: "+file.onedrive_path.path.to_text
@@ -146,3 +196,8 @@ private _check_directory file:OneDrive_File ~action =
 private _check_not_directory file:OneDrive_File ~action =
     if file.is_directory.not then action else
         Error.throw <| Illegal_Argument.Error "The OneDrive_File must represent a file, not a folder: "+file.onedrive_path.path.to_text
+
+private _default_credential =
+    test = Enso_Secret.get "Microsoft365" Enso_File.home
+    if test.is_error.not then test else
+        Error.throw (Illegal_Argument.Error "Default credentials not found - log in as new credential in cloud home called Microsoft365.")

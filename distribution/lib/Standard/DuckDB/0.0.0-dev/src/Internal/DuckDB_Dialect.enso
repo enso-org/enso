@@ -40,7 +40,7 @@ import Standard.Database.SQL.SQL_Type
    The dialect of DuckDB built on top of PostgreSQL dialect.
 duckdb : DuckDB_Dialect
 duckdb =
-    parent = Postgres_Connection.dialect
+    parent = Postgres_Connection.get_dialect
     with_overrides = parent.get_dialect_operations.extend_with duckdb_overrides
     DuckDB_Dialect.Value parent with_overrides
 
