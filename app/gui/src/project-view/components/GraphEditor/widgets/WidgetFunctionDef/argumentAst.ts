@@ -77,13 +77,21 @@ export function replaceVariableUsages(
   function matchIdent(node: Ast.Ast): node is Ast.Ident {
     return node instanceof Ast.Ident && node.token.code() === oldNameString
   }
+  function matchIdentToken(node: Ast.Token) {
+    return node.code() === oldNameString
+  }
 
   Ast.visitRecursive(ast, (child) => {
     if (matchIdent(child)) edit.replaceValue(child.id, newName)
     else if (child instanceof Ast.PropertyAccess) {
       // Check if this property name qualifies for replacement.
-      if (shouldRenameProps && child.lhs && matchIdent(child.rhs) && shouldRenameProps(child.lhs)) {
-        edit.replaceValue(child.rhs.id, newName)
+      if (
+        shouldRenameProps &&
+        child.lhs &&
+        matchIdentToken(child.rhs) &&
+        shouldRenameProps(child.lhs)
+      ) {
+        edit.getVersion(child).setRhs(newName.code() as Ast.Identifier)
       }
       // Attempt replacing tokens on the very left side of property accesses
       return [child.lhs]
