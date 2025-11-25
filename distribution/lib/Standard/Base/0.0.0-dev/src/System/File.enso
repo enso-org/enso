@@ -1073,7 +1073,7 @@ type File
        ---
        Utility function that lists immediate children of a directory.
     list_immediate_children : Vector File
-    list_immediate_children self =
+    private list_immediate_children self =
         File_Error.handle_java_exceptions self <|
             path_children = Java_Files.list self.java_path . toList
             path_children.map (File.Value _)
