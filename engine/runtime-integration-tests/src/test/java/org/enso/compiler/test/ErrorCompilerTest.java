@@ -65,12 +65,12 @@ public class ErrorCompilerTest extends CompilerTests {
               op ._
             """);
 
-      assertSingleSyntaxError(
-              ir,
-              new Syntax.UnsupportedSyntax("Invalid use of syntactic operator in expression"),
-              null,
-              12,
-              16);
+    assertSingleSyntaxError(
+        ir,
+        new Syntax.UnsupportedSyntax("Invalid use of syntactic operator in expression"),
+        null,
+        12,
+        16);
   }
 
   @Test
