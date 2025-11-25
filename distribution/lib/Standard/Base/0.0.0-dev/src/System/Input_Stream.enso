@@ -26,6 +26,7 @@ polyglot java import java.io.IOException
 polyglot java import org.enso.base.encoding.Encoding_Utils
 polyglot java import org.enso.base.encoding.ReportingStreamDecoder
 polyglot java import org.enso.base.Stream_Utils
+polyglot java import org.enso.base.Stream_Utils.InputStreamLike
 
 ## ---
    private: true
