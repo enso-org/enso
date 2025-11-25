@@ -69,7 +69,7 @@ public class ErrorCompilerTest extends CompilerTests {
         ir,
         new Syntax.UnsupportedSyntax("Invalid use of syntactic operator in expression"),
         null,
-        12,
+        14,
         16);
   }
 
