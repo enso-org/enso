@@ -19,10 +19,10 @@ import org.enso.table.util.BitSets;
 /** A builder for integer columns. */
 class LongBuilder extends NumericBuilder implements BuilderForLong, BuilderWithRetyping {
   protected final ProblemAggregator problemAggregator;
-  protected long[] data;
+  private LongBuffer data;
 
   protected LongBuilder(int initialSize, ProblemAggregator problemAggregator) {
-    this.data = new long[initialSize];
+    this.data = LongBuffer.wrap(new long[initialSize]);
     this.problemAggregator = problemAggregator;
   }
 
@@ -36,14 +36,14 @@ class LongBuilder extends NumericBuilder implements BuilderForLong, BuilderWithR
 
   @Override
   protected int getDataSize() {
-    return data.length;
+    return data.capacity();
   }
 
   @Override
   protected void resize(int desiredCapacity) {
-    long[] newData = new long[desiredCapacity];
-    int toCopy = Math.min(currentSize, data.length);
-    System.arraycopy(data, 0, newData, 0, toCopy);
+    var newData = LongBuffer.wrap(new long[desiredCapacity]);
+    int toCopy = Math.min(currentSize, data.capacity());
+    newData.put(0, data, 0, toCopy);
     data = newData;
   }
 
@@ -53,7 +53,7 @@ class LongBuilder extends NumericBuilder implements BuilderForLong, BuilderWithR
       if (isNothing.get(i)) {
         items[i] = null;
       } else {
-        items[i] = data[i];
+        items[i] = data.get(i);
       }
     }
   }
@@ -96,7 +96,7 @@ class LongBuilder extends NumericBuilder implements BuilderForLong, BuilderWithR
           // A fast path for the same type (or compatible) - no conversions/checks needed.
           int n = (int) longStorage.getSize();
           ensureFreeSpaceFor(n);
-          System.arraycopy(longStorage.getData(), 0, data, currentSize, n);
+          data.put(currentSize, longStorage.getData(), 0, n);
           BitSets.copy(longStorage.getIsNothingMap(), isNothing, currentSize, n);
           currentSize += n;
         } else {
@@ -133,9 +133,10 @@ class LongBuilder extends NumericBuilder implements BuilderForLong, BuilderWithR
    *
    * @param value the integer to append
    */
+  @Override
   public LongBuilder appendLong(long value) {
     ensureSpaceToAppend();
-    this.data[currentSize++] = value;
+    this.data.put(currentSize++, value);
     return this;
   }
 
@@ -153,13 +154,13 @@ class LongBuilder extends NumericBuilder implements BuilderForLong, BuilderWithR
     if (index >= currentSize) {
       throw new IndexOutOfBoundsException();
     } else {
-      return data[(int) index];
+      return data.get((int) index);
     }
   }
 
   @Override
   public long getCurrentCapacity() {
-    return data.length;
+    return data.capacity();
   }
 
   @Override
@@ -186,7 +187,7 @@ class LongBuilder extends NumericBuilder implements BuilderForLong, BuilderWithR
 
   @Override
   public ColumnStorage<Long> seal() {
-    var buf = LongBuffer.wrap(data, 0, currentSize);
+    var buf = data.asReadOnlyBuffer().position(0).limit(currentSize);
     return new LongStorage(buf, isNothing, getType());
   }
 }
