@@ -1,9 +1,11 @@
+private
+
 import Standard.Base.Network.Email.Email
 import Standard.Base.Network.Email.Email_Provider.Email_Provider_SPI
 import project.Email_Provider_SMTP.Email_Provider_SMTP
 
-type Email_Provider_SMTP_Impl
+type Email_Provider_SMTP_Service
 
-Email_Provider_SPI.from (that:Email_Provider_SMTP_Impl) =
+Email_Provider_SPI.from (that:Email_Provider_SMTP_Service) =
     _ = that
     Email_Provider_SPI.new Email_Provider_SMTP
