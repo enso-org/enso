@@ -21,6 +21,7 @@ import project.Meta
 import project.Metadata.Display
 import project.Metadata.Widget
 import project.Panic.Panic
+import project.Runtime
 import project.Runtime.Context
 import project.Runtime.Managed_Resource.Managed_Resource
 import project.System.File.Data_Link_Access.Data_Link_Access
@@ -49,6 +50,8 @@ polyglot java import java.nio.channels.FileChannel
 polyglot java import java.nio.file.attribute.BasicFileAttributes
 polyglot java import java.nio.file.InvalidPathException
 polyglot java import java.nio.file.Files as Java_Files
+polyglot java import java.nio.file.FileSystemException
+polyglot java import java.nio.file.NoSuchFileException
 polyglot java import java.nio.file.Path as Java_Path
 polyglot java import java.nio.ByteBuffer
 polyglot java import java.nio.file.attribute.PosixFilePermissions
@@ -644,9 +647,10 @@ type File
     create_directory self =
         Context.Output.if_enabled disabled_message="As writing is disabled, cannot create directory. Press the Write button ▶ to perform the operation." panic=False <|
             File_Error.handle_java_exceptions self <|
-                _replace_create_directories_exception <|
-                    Java_Files.createDirectories self.java_path
-                    self
+                Panic.catch NoSuchFileException handler=_replace_create_directories_no_such_file_exception <|
+                    Panic.catch FileSystemException handler=_replace_create_directories_generic_exception <|
+                        Java_Files.createDirectories self.java_path
+                        self
 
     ## ---
        group: Metadata
@@ -1205,6 +1209,7 @@ private _local_file_copy (source : File) (destination : File) (replace_existing 
         Java_Files.copy normalized_src normalized_dst copy_options
         Nothing
 
+
 private _local_file_move (source : File) (destination : File) (replace_existing : Boolean) -> Nothing =
     File_Error.handle_java_exceptions source <|
         copy_options = if replace_existing then [StandardCopyOption.REPLACE_EXISTING] else []
@@ -1214,28 +1219,46 @@ private _local_file_move (source : File) (destination : File) (replace_existing 
         Nothing
 
 
+## This method detects if a more correct exception can be thrown instead of
+   unrelated `NoSuchFileException`.
+
+   On Windows, `createDirectories` wrongly throws a `NoSuchFileException` instead
+   of `NotDirectoryException`, if a file on the parent path is not a directory.
+private _replace_create_directories_no_such_file_exception panic =
+    exception = panic.payload
+    Runtime.assert (Meta.is_a exception NoSuchFileException)
+    path = exception.getFile
+    if path == Nothing then exception else
+        parent = Java_Path.of path . parent
+        if parent == Nothing then exception else
+            # On Windows, when creating a directory tree `foo/my-file.txt/a/b/c`,
+            # the operation fails with `NoSuchFileException` with path
+            # `foo/my-file.txt/a`. So the heuristic checks the path's parent
+            # `foo/my-file.txt` if it exists but is not a directory, that means
+            # we encountered this edge case and the exception should be replaced.
+            case Java_Files.exists parent && Java_Files.isDirectory parent . not of
+                False -> exception
+                True -> Error.throw (File_Error.Not_A_Directory (File.Value parent))
+
+
 ## This method detects if a more specific exception can be throws instead of generic
    java.nio.file.FileSystemException.
 
    Apparently, on Linux, `createDirectories` throws `FileSystemException` instead
    of the more fitting `NotDirectoryException`.
-private _replace_create_directories_exception ~action =
+private _replace_create_directories_generic_exception panic =
     first_existing path =
         if path == Nothing || Java_Files.exists path then path else
             @Tail_Call first_existing path.getParent
 
-    handler caught_panic =
-        exc = caught_panic.payload
-        reason = exc.getReason
-        if reason != "Not a directory" then caught_panic else
-            path = exc.getFile
-            if path == Nothing then caught_panic else
-                p = first_existing (Java_Path.of path)
-                if p == Nothing || Java_Files.isDirectory p then caught_panic else
-                    Error.throw (File_Error.Not_A_Directory (File.Value p))
-
-    Panic.catch IOException handler=handler <|
-        action
+    exc = panic.payload
+    reason = exc.getReason
+    if reason != "Not a directory" then panic else
+        path = exc.getFile
+        if path == Nothing then panic else
+            p = first_existing (Java_Path.of path)
+            if p == Nothing || Java_Files.isDirectory p then panic else
+                Error.throw (File_Error.Not_A_Directory (File.Value p))
 
 
 ## On some filesystems some paths may be invalid, we want to catch the Java
