@@ -1382,6 +1382,7 @@ final class TreeToIr {
             case Tree.ArgumentBlockApplication app -> app.getLhs();
             case Tree.OperatorBlockApplication app -> app.getLhs();
             case Tree.OprApp app -> app.getLhs();
+            case Tree.PropertyAccess access -> access.getLhs();
             case Tree.Ident ident when ident.getToken().isTypeOrConstructor() -> null;
             case Tree.Ident ignored -> {
               done = true;
