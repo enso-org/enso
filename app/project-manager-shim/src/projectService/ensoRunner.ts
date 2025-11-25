@@ -161,12 +161,7 @@ export class EnsoRunner implements Runner {
           const cmd = this.ensoPath.endsWith('.bat') ? 'cmd.exe' : this.ensoPath
           const cmdArgs = this.ensoPath.endsWith('.bat') ? ['/c', this.ensoPath, ...args] : args
           const cwd = path.dirname(projectPath)
-          const serverProcess = childProcess.spawn(cmd, cmdArgs, {
-            env,
-            detached: false,
-            cwd,
-            stdio: ['pipe', 'inherit', 'inherit'],
-          })
+          const serverProcess = childProcess.spawn(cmd, cmdArgs, { env, detached: false, cwd })
 
           let resolved = false
 
@@ -209,6 +204,15 @@ export class EnsoRunner implements Runner {
 
           // Start health check after initial delay
           setTimeout(startHealthCheck, 250)
+
+          // stdio buffers should be consumed before they reach their capacity
+          // and the process hangs
+          serverProcess.stdout.on('data', (data) => {
+            console.log(data.toString())
+          })
+          serverProcess.stderr.on('data', (data) => {
+            console.error(data.toString())
+          })
 
           serverProcess.on('error', (error) => {
             console.error(error.toString())
