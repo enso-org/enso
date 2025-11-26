@@ -240,8 +240,8 @@ function handleArgUpdate(update: WidgetUpdate): HandledUpdate {
       // Any other case is handled by the default handler.
       return props.updateCallback({ ...update, edit })
     }
-    if (update.edit) applyInEdit(update.edit)
-    else module.value.edit(applyInEdit)
+    if (update.edit) return applyInEdit(update.edit)
+    else return module.value.edit(applyInEdit)
   }
   return props.updateCallback(update)
 }
