@@ -14,7 +14,7 @@
 - type Enso_Secret
     - create name:Standard.Base.Data.Text.Text value:Standard.Base.Data.Text.Text parent:(Standard.Base.Enso_Cloud.Enso_File.Enso_File|Standard.Base.Nothing.Nothing)= -> Standard.Base.Any.Any
     - credential_service_name self -> (Standard.Base.Data.Text.Text|Standard.Base.Nothing.Nothing)
-    - delete self on_problems:Standard.Base.Errors.Problem_Behavior.Problem_Behavior= -> Standard.Base.Any.Any
+    - delete self -> Standard.Base.Any.Any
     - exists name:Standard.Base.Data.Text.Text parent:(Standard.Base.Enso_Cloud.Enso_File.Enso_File|Standard.Base.Nothing.Nothing)= -> Standard.Base.Any.Any
     - get name:Standard.Base.Data.Text.Text parent:(Standard.Base.Enso_Cloud.Enso_File.Enso_File|Standard.Base.Nothing.Nothing)= -> Standard.Base.Any.Any
     - is_credential self -> Standard.Base.Data.Boolean.Boolean
