@@ -14,7 +14,6 @@ import project.Network.HTTP.HTTP
 import project.Network.HTTP.HTTP_Error.HTTP_Error
 import project.Network.HTTP.HTTP_Method.HTTP_Method
 import project.Network.URI.URI
-import project.Runtime.Context
 import project.System.File.File
 import project.Warning.Warning
 from project.Data import Raw_Response
@@ -25,33 +24,6 @@ from project.Metadata.Widget import Single_Choice
 from project.System.File_Format import Auto_Detect, File_Format_SPI
 
 polyglot java import java.lang.Thread
-
-## ---
-   private: true
-   ---
-   A common implementation for getting a file like resource.
-as_file path = case path of
-    _ : Text ->
-        resolved = URI.parse_if_http path . if_nothing <| File.new path
-        as_file resolved
-    _ : File ->
-        ## Need to see if a data link otherwise return the file
-        if file.is_directory then Error.throw (Illegal_Argument.Error "Cannot use a directory, pass a file.")
-        if file_obj.is_data_link.not then file else
-            as_file (Data_Link_Helpers.interpret_data_link_target_as_file file)
-    _ : URI -> Context.Output.with_enabled <|
-        ## Fetch the resource and save it to a temporary file
-        temp_file = File.create_temporary_file "enso_data_fetch_" ".tmp"
-        path.fetch Raw_Response . write temp_file
-        as_file temp_file
-    _ ->
-        ## Something that is file like
-        file_like = File.new path
-        if file_like.is_a File then as_file file_like else
-            Context.Output.with_enabled <|
-                ## Copy the file to a temporary file
-                temp_file = File.create_temporary_file "enso_data_fetch_" ".tmp"
-                file_like.copy_to temp_file
 
 ## ---
    private: true
@@ -111,6 +83,14 @@ handle_legacy_format (method_name : Text) (new_argument_name : Text) format = ca
         Warning.attach warning new_format
     _ -> format
 
+cleanup_tmp_file file =
+    Context.Output.with_enabled <|
+        file.delete_if_exists
+
+split_file_name file_name =
+    split_index = file_name.last_index_of "."
+    if split_index.is_nothing then [file_name, ""] else
+        [file_name.take (..First split_index), file_name.drop (..First split_index)]
 
 type Data_List_Default_Impl
 
