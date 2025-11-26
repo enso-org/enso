@@ -25,6 +25,7 @@ export type BackendMutationMethod = DefineBackendMethods<
   | 'createDatalink'
   | 'createDirectory'
   | 'createPermission'
+  | 'createApiKey'
   | 'createProject'
   | 'createProjectExecution'
   | 'createSecret'
@@ -35,6 +36,7 @@ export type BackendMutationMethod = DefineBackendMethods<
   | 'deleteAsset'
   | 'deleteDatalink'
   | 'deleteInvitation'
+  | 'deleteApiKey'
   | 'deleteProjectExecution'
   | 'deleteTag'
   | 'deleteUser'
@@ -137,6 +139,8 @@ export const INVALIDATION_MAP: Partial<
   updateProjectExecution: ['listProjectExecutions'],
   syncProjectExecution: ['listProjectExecutions'],
   deleteProjectExecution: ['listProjectExecutions'],
+  createApiKey: ['listApiKeys'],
+  deleteApiKey: ['listApiKeys'],
   uploadImage: ['listDirectory', 'searchDirectory'],
 }
 

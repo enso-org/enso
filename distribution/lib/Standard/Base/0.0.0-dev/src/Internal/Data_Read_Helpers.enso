@@ -1,7 +1,6 @@
 private
 
 import project.Data.Read.Return_As
-import project.Data.Text.Case_Sensitivity.Case_Sensitivity
 import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Enso_Cloud.Data_Link.Data_Link
@@ -24,12 +23,6 @@ from project.Metadata.Widget import Single_Choice
 from project.System.File_Format import Auto_Detect, File_Format_SPI
 
 polyglot java import java.lang.Thread
-
-## ---
-   private: true
-   ---
-looks_like_uri path:Text -> Boolean =
-    (path.starts_with "http://" Case_Sensitivity.Insensitive) || (path.starts_with "https://" Case_Sensitivity.Insensitive)
 
 ## ---
    private: true

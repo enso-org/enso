@@ -56,6 +56,7 @@ import project.Simple_Expression.Simple_Expression
 import project.Sort_Column.Sort_Column
 import project.Spatial_Table.Spatial_Join_Condition
 import project.Spatial_Table.Spatial_Table
+import project.SQL_Function.SQL_Function
 import project.Table_Selector.Table_Selector
 import project.Value_Type.Auto
 import project.Value_Type.By_Type
@@ -2620,9 +2621,10 @@ type Table
         - If more than 10 rows encounter computation issues, an
           `Additional_Warnings`.
     @value Simple_Expression.default_widget
-    set self (value : Text | Expression | Column | Constant_Column | Simple_Expression = Missing_Argument.throw "value") as:Text="" set_mode:Set_Mode=..Add_Or_Update on_problems:Problem_Behavior=..Report_Warning -> Table & Any ! Existing_Column | Missing_Column | No_Such_Column | Expression_Error =
+    set self (value : Text | Expression | Column | Constant_Column | Simple_Expression | SQL_Function = Missing_Argument.throw "value") as:Text="" set_mode:Set_Mode=..Add_Or_Update on_problems:Problem_Behavior=..Report_Warning -> Table & Any ! Existing_Column | Missing_Column | No_Such_Column | Expression_Error =
         self.implementation.set self.underlying value as set_mode on_problems
 
+    ## set (sql "ST_Point" ["lat", "long"])
 
     ## ---
        private: true

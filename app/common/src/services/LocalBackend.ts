@@ -1048,6 +1048,21 @@ export class LocalBackend extends backend.Backend {
     return this.invalidOperation()
   }
 
+  /** Invalid operation. */
+  override listApiKeys() {
+    return this.invalidOperation()
+  }
+
+  /** Invalid operation. */
+  override createApiKey() {
+    return this.invalidOperation()
+  }
+
+  /** Invalid operation. */
+  override deleteApiKey() {
+    return this.invalidOperation()
+  }
+
   /** Find asset details using directory listing. */
   private async findAsset<Key extends keyof backend.AnyAsset>(
     directory: Path,

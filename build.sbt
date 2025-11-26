@@ -2091,9 +2091,12 @@ lazy val `ydoc-server` = project
     },
     Compile / resourceGenerators += Def.taskIf {
       if ((Bazel / wasStartedFromBazel).value) {
-        Seq(
-          (Bazel / ydocServerPolyglotMainJs).value
-        )
+        val js = (Bazel / ydocServerPolyglotMainJs).value
+        val target =
+          (Compile / resourceManaged).value / "org" / "enso" / "ydoc" / "server" / "ydoc.cjs"
+        IO.createDirectory(target.getParentFile)
+        IO.copyFile(js, target)
+        Seq(target)
       } else {
         Ydoc.generateJsBundle(
           (ThisBuild / baseDirectory).value,
@@ -4300,12 +4303,24 @@ lazy val buildSmallJdk =
 
 /** Command for building small JDK for the release.
   * Use as `buildSmallJdkForRelease <targetDir>`.
+  *
+  * If started from bazel, does not take an argument, small jdk will be
+  * built in [[BazelSupport.OUT_DIR_PROP]].
   */
 ThisBuild / commands += {
-  Command.single("buildSmallJdkForRelease") { (state, targetDir) =>
-    SmallJDK.buildSmallJDKForRelease(new File(targetDir))
-    state.log.info(s"Small JDK built in: $targetDir")
-    state
+  if ((Bazel / wasStartedFromBazel).value) {
+    Command.command("buildSmallJdkForRelease") { state =>
+      val targetDir = (Bazel / outputDir).value.get
+      SmallJDK.buildSmallJDKForRelease(targetDir)
+      state.log.info(s"Small JDK built in: $targetDir")
+      state
+    }
+  } else {
+    Command.single("buildSmallJdkForRelease") { (state, targetDir) =>
+      SmallJDK.buildSmallJDKForRelease(new File(targetDir))
+      state.log.info(s"Small JDK built in: $targetDir")
+      state
+    }
   }
 }
 

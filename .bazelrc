@@ -15,6 +15,22 @@ query --noexperimental_check_output_files
 build --nobuild_runfile_links
 coverage --build_runfile_links
 
+## Stamping for release builds
+# Enable with --config=release
+build:release --stamp --workspace_status_command="node $(pwd)/internal/workspaceStatus.mjs"
+
+# Use processwrapper-sandbox strategy by default, to align behavior with CI.
+# Note: this is the default strategy inside Docker containers (because of sandboxing restrictions)
+# and on Ubuntu (because Ubuntu is stupid). See https://github.com/bazelbuild/bazel/issues/24081 for more details.
+# Because we specify --spawn_strategy explicitly, we also need to override strategies for some actions.
+# Also Windows does not support processwrapper-sandbox.
+build:linux --spawn_strategy=processwrapper-sandbox
+build:macos --spawn_strategy=processwrapper-sandbox
+build --strategy=CopyFile=local
+build --strategy=CopyToDirectory=local
+build --strategy=CopyDirectory=local
+build --strategy=NpmLifecycleHook=local
+
 ## JS
 
 # passes an argument `--skipLibCheck` to *every* spawn of tsc
