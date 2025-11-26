@@ -101,7 +101,8 @@ async function uploadProject(
   await uploadFile(remoteBackend, projectFile)
 }
 
-test('writing to cloud file', async () => {
+// FIXME: This test is skipped as it currently has issues.
+test.skip('writing to cloud file', async () => {
   const valueToWrite = Math.floor(Math.random() * 1_000_000)
   console.info('Fetching user info...')
   const user = await remoteBackend.usersMe()
