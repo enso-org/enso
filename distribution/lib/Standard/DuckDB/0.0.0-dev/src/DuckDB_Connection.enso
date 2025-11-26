@@ -252,18 +252,13 @@ type DuckDB_Connection
     read_file self path=(Missing_Argument.throw "path") as:Text="NewTable" key_columns:Vector=[] replace_if_present:Boolean=False =
         if self.is_in_memory.not then Context.Output.if_enabled disabled_message="As writing is disabled, cannot create a new table. Press the Write button ▶ to perform the operation." panic=False <|
             Nothing
+        escaped_as = as.replace '"' '""'
         Data_Link_Helpers.as_file path file->
-            query = 'CREATE' + (if replace_if_present then ' OR REPLACE' else "") + ' TABLE "' + (as.replace '"' '""') + '" AS SELECT * FROM \'' + file.path + '\';'
-            index = if key_columns.length==0 then "" else
-                base = 'CREATE' + (if replace_if_present then ' OR REPLACE' else "") + ' INDEX "'+ (as.replace '"' '""') + '_INDEX" ON "' + (as.replace '"' '""') + '" ('
-                cols = key_columns.map c-> '"'+(c.replace '"' '""')+'"' . join ", "
-                base + cols + ");"
+            query = 'CREATE' + (if replace_if_present then ' OR REPLACE' else "") + ' TABLE "' + escaped_as + '" AS SELECT * FROM \'' + file.path + '\';'
             Context.Output.with_enabled <|
                 create_table = self.execute_update query
                 create_table.if_not_error <|
-                    with_index = if index=="" then create_table else self.execute_update index
-                    with_index.if_not_error <|
-                        self.query (SQL_Query.Table_Name as)
+                    self.create_index as key_columns (escaped_as + '_INDEX') replace_if_present
 
     ## ---
        aliases: [import, load, open, read, sql]
@@ -271,7 +266,8 @@ type DuckDB_Connection
        icon: data_input
        ---
        Reads a spatial file into a new table in the database and returns a
-       query referencing the new table.
+       query referencing the new table. An RTree index will be created on
+       the spatial columns automatically.
 
        This will create a new table inside DuckDB.
 
@@ -280,8 +276,7 @@ type DuckDB_Connection
           `File` object.
         - `as`: the name of the table to create. Defaults to "NewTable".
         - `key_columns`: the names of the columns to use as the primary key. If
-          not provided, no primary key will be created. If the column is a spatial
-          column then an RTree index will be used.
+          not provided, no primary key will be created.
 
        ## Returns
        A `DB_Table` referencing the newly created table.
@@ -291,22 +286,46 @@ type DuckDB_Connection
     read_spatial_file self path=(Missing_Argument.throw "path") as:Text="NewSpatialTable" key_columns:Vector=[] replace_if_present:Boolean=False =
         if self.is_in_memory.not then Context.Output.if_enabled disabled_message="As writing is disabled, cannot create a new table. Press the Write button ▶ to perform the operation." panic=False <|
             Nothing
+        escaped_as = as.replace '"' '""'
         Data_Link_Helpers.as_file path file->
-            query = 'CREATE' + (if replace_if_present then ' OR REPLACE' else "") + ' TABLE "' + (as.replace '"' '""') + '" AS SELECT * FROM ST_Read(\'' + file.path + '\');'
+            query = 'CREATE' + (if replace_if_present then ' OR REPLACE' else "") + ' TABLE "' + escaped_as + '" AS SELECT * FROM ST_Read(\'' + file.path + '\');'
             Context.Output.with_enabled <|
                 create_table = self.execute_update query
                 create_table.if_not_error <|
-                    describe = self.execute_query ('DESCRIBE "' + (as.replace '"' '""') + '";')
+                    ## Get the spatial columns and add RTree indexes on them
+                    describe = self.execute_query ('DESCRIBE "' + escaped_as + '";')
                     spatial_columns = describe.filter "column_type" (..Equal "GEOMETRY") . at "column_name" . to_vector
-                    index = if key_columns.length==0 then "" else
-                        base = 'CREATE' + (if replace_if_present then ' OR REPLACE' else "") + ' INDEX "'+ (as.replace '"' '""') + '_INDEX" ON "' + (as.replace '"' '""') + '" ('
-                        cols = key_columns.map c->
-                            escaped = c.replace '"' '""'
-                            if spatial_columns.contains c then 'RTREE(' + escaped + ')' else escaped
-                        base + (cols.join ", ") + ");"
-                    with_index = if index=="" then create_table else self.execute_update index
-                    with_index.if_not_error <|
-                        self.query (SQL_Query.Table_Name as)
+                    spatial_indexes = spatial_columns.map c->
+                        index_name = escaped_as + '_' + (c.replace '"' '""') + '_SPIDX'
+                        drop = if replace_if_present then 'DROP INDEX IF EXISTS "'+ index_name + '"; ' else ""
+                        make = 'CREATE INDEX "' + index_name + '" ON "' + escaped_as + '" USING RTree("' + (c.replace '"' '""') + '");'
+                        drop + make
+                    with_spatial_indexes = self.execute_update (spatial_indexes.join " ")
+                    with_spatial_indexes.if_not_error <|
+                        self.create_index as key_columns (escaped_as + '_INDEX') replace_if_present
+
+    ## ---
+       group: Standard.Base.Database
+       icon: drive
+       ---
+       Creates an index on an existing table.
+    @as Text_Input display=..Always
+    @key_columns Vector_Editor display=..Always item_editor=Text_Input item_default='"Column"'
+    create_index : Text -> Vector Text -> Boolean -> DB_Table
+    create_index self table_name:Text key_columns:Vector as:Text=table_name+"_INDEX" replace_if_present:Boolean=False =
+        if self.is_in_memory.not then Context.Output.if_enabled disabled_message="As writing is disabled, cannot create a new index. Press the Write button ▶ to perform the operation." panic=False <|
+            Nothing
+        escaped_table = table_name.replace '"' '""'
+        index = if key_columns.length==0 then "" else
+            escaped_index = as.replace '"' '""'
+            drop = if replace_if_present then 'DROP INDEX IF EXISTS "'+ escaped_index + '"; ' else ""
+            base = 'CREATE INDEX "'+ escaped_index + '" ON "' + escaped_table + '" ('
+            cols = key_columns.map c-> '"'+(c.replace '"' '""')+'"'
+            drop + base + (cols.join ", ") + ");"
+        Context.Output.with_enabled <|
+            with_index = if index=="" then Nothing else self.execute_update index
+            with_index.if_not_error <|
+                self.query (SQL_Query.Table_Name table_name)
 
     ## ---
        group: Standard.Base.Output
