@@ -32,8 +32,6 @@ export async function runHybridProjectByUrl(
 ): Promise<void> {
   let project: ProjectEntry | undefined
   let asset: ProjectAsset | undefined
-  let projectId: UUID | undefined
-  const projectService = createProjectService()
   try {
     const unknownAsset = await remoteBackend.resolveEnsoPath(EnsoPath(decodeURIComponent(path)))
     if (unknownAsset.type !== AssetType.project) {
@@ -66,9 +64,6 @@ export async function runHybridProjectByUrl(
     })
   } catch (error) {
     console.error(`Error starting hybrid project '${asset?.title ?? '(unknown)'}':`, error)
-    if (projectId) {
-      await projectService.closeProject(projectId)
-    }
   } finally {
     if (asset) {
       await remoteBackend.closeProject(asset.id, asset.title)
