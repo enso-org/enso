@@ -2111,10 +2111,14 @@ lazy val `ydoc-server` = project
     NativeImage.smallJdk := None,
     NativeImage.additionalCp := Seq.empty,
     rebuildNativeImage := Def.taskDyn {
+      val cLibraryOpts = (Bazel / cLibraryPath).value.map(cLib => Seq(
+        "-H:CLibraryPath=" + cLib.getAbsolutePath,
+      )).getOrElse(Seq())
       NativeImage
         .buildNativeImage(
           "org.enso.ydoc.server",
           staticOnLinux = false,
+          additionalOptions = cLibraryOpts,
           targetDir     = engineDistributionRoot.value / "component",
           mainClass     = Some("org.enso.ydoc.server.Main"),
           symlink       = false,
