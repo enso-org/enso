@@ -549,7 +549,11 @@ async function runApp(
 
 const app = createApp()
 const electronIsDev =
-  process.argv.includes('--headless') ? false : (await import('electron-is-dev')).default
+  process.argv.includes('--headless') ?
+    process.argv[0] ?
+      /electron(?:\.exe)?$/i.test(process.argv[0])
+    : false
+  : (await import('electron-is-dev')).default
 const clientArguments = parseClientArguments(process.argv, electronIsDev)
 const parsedArguments = processArguments(clientArguments)
 const electron = parsedArguments.args.headless ? undefined : await import('electron')
