@@ -133,7 +133,8 @@ export class EnsoRunner implements Runner {
   ): Promise<void> {
     const args = ['--run', projectPath]
     const env = { ...process.env, ...(extraEnv ? Object.fromEntries(extraEnv) : {}) }
-    return await this.runCommand(args, { env })
+    const cwd = path.dirname(projectPath)
+    return await this.runCommand(args, { env, cwd })
   }
 
   /** Create a new Enso project at the specified path. */
