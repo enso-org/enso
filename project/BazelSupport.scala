@@ -23,7 +23,7 @@ object BazelSupport extends AutoPlugin {
   val EXTRACTED_PYTHON_RESOURCES_PROP = "enso.BazelSupport.python.resourceDir"
   val YDOC_SERVER_POLYGLOT_MAIN_JS =
     "enso.BazelSupport.ydocServer.polyglotMainJs"
-  val C_LIBS_PATH     = "enso.BazelSupport.CLibraryPath"
+  val C_LIBS_PATH = "enso.BazelSupport.CLibraryPath"
 
   object autoImport {
     lazy val wasStartedFromBazel = settingKey[Boolean](
