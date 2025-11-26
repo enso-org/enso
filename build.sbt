@@ -3132,7 +3132,7 @@ lazy val `runtime-integration-tests` =
         (`runtime-utils` / Compile / exportedModule).value,
         (`scala-libs-wrapper` / Compile / exportedModule).value,
         (`scala-yaml` / Compile / exportedModule).value,
-        (`semver` / Compile / exportedModule).value,        
+        (`semver` / Compile / exportedModule).value,
         (`syntax-rust-definition` / Compile / exportedModule).value,
         (`text-buffer` / Compile / exportedModule).value,
         (`version-output` / Compile / exportedModule).value,
@@ -4649,7 +4649,6 @@ lazy val `os-environment` =
         (`jvm-channel` / Compile / exportedModule).value,
         (`logging-utils` / Compile / exportedModule).value,
         (`logging-config` / Compile / exportedModule).value
-
       ),
       NativeImage.smallJdk := None,
       NativeImage.additionalCp := {
