@@ -2956,66 +2956,66 @@ lazy val runtime = (project in file("engine/runtime"))
       "org.apache.commons"   % "commons-lang3"           % commonsLangVersion
     ),
     Compile / internalModuleDependencies := Seq(
-      (`distribution-manager` / Compile / exportedModule).value,
-      (`engine-common` / Compile / exportedModule).value,
-      (`library-manager` / Compile / exportedModule).value,
+      (`cli` / Compile / exportedModule).value,
+      (`common-polyglot-core-utils` / Compile / exportedModule).value,
       (`connected-lock-manager` / Compile / exportedModule).value,
+      (`distribution-manager` / Compile / exportedModule).value,
+      (`edition-updater` / Compile / exportedModule).value,
+      (`editions` / Compile / exportedModule).value,
+      (`engine-common` / Compile / exportedModule).value,
+      (`fansi-wrapper` / Compile / exportedModule).value,
+      (`interpreter-dsl` / Compile / exportedModule).value,
+      (`library-manager` / Compile / exportedModule).value,
       (`logging-utils` / Compile / exportedModule).value,
+      (`persistance` / Compile / exportedModule).value,
+      (`polyglot-api` / Compile / exportedModule).value,
+      (`pkg` / Compile / exportedModule).value,
+      (`python-resource-provider` / Compile / exportedModule).value,
       (`runtime-compiler` / Compile / exportedModule).value,
       (`runtime-parser` / Compile / exportedModule).value,
       (`runtime-suggestions` / Compile / exportedModule).value,
-      (`polyglot-api` / Compile / exportedModule).value,
-      (`python-resource-provider` / Compile / exportedModule).value,
-      (`common-polyglot-core-utils` / Compile / exportedModule).value,
-      (`pkg` / Compile / exportedModule).value,
-      (`cli` / Compile / exportedModule).value,
-      (`editions` / Compile / exportedModule).value,
-      (`edition-updater` / Compile / exportedModule).value,
-      (`syntax-rust-definition` / Compile / exportedModule).value,
-      (`version-output` / Compile / exportedModule).value,
-      (`interpreter-dsl` / Compile / exportedModule).value,
-      (`persistance` / Compile / exportedModule).value,
-      (`text-buffer` / Compile / exportedModule).value,
       (`scala-libs-wrapper` / Compile / exportedModule).value,
-      (`fansi-wrapper` / Compile / exportedModule).value
+      (`syntax-rust-definition` / Compile / exportedModule).value,
+      (`text-buffer` / Compile / exportedModule).value,
+      (`version-output` / Compile / exportedModule).value
     )
   )
   .settings(
     (Runtime / compile) := (Runtime / compile)
-      .dependsOn(`std-base` / Compile / packageBin)
+      .dependsOn(`benchmark-java-helpers` / Compile / packageBin)
       .dependsOn(`enso-test-java-helpers` / Compile / packageBin)
+      .dependsOn(`exploratory-benchmark-java-helpers` / Compile / packageBin)
       .dependsOn(
         `generic-jdbc-connection-spec-dependencies` / Compile / packageBin
       )
       .dependsOn(`snowflake-test-java-helpers` / Compile / packageBin)
-      .dependsOn(`benchmark-java-helpers` / Compile / packageBin)
-      .dependsOn(`exploratory-benchmark-java-helpers` / Compile / packageBin)
-      .dependsOn(`std-image` / Compile / packageBin)
+      .dependsOn(`std-aws` / Compile / packageBin)
+      .dependsOn(`std-base` / Compile / packageBin)
       .dependsOn(`std-database` / Compile / packageBin)
+      .dependsOn(`std-duckdb` / Compile / packageBin)
       .dependsOn(`std-generic-jdbc` / Compile / packageBin)
       .dependsOn(`std-google` / Compile / packageBin)
-      .dependsOn(`std-table` / Compile / packageBin)
-      .dependsOn(`std-aws` / Compile / packageBin)
-      .dependsOn(`std-snowflake` / Compile / packageBin)
+      .dependsOn(`std-image` / Compile / packageBin)
       .dependsOn(`std-microsoft` / Compile / packageBin)
-      .dependsOn(`std-tableau` / Compile / packageBin)
       .dependsOn(`std-saas` / Compile / packageBin)
-      .dependsOn(`std-duckdb` / Compile / packageBin)
+      .dependsOn(`std-snowflake` / Compile / packageBin)
+      .dependsOn(`std-table` / Compile / packageBin)
+      .dependsOn(`std-tableau` / Compile / packageBin)
       .value
   )
+  .dependsOn(`connected-lock-manager`)
   .dependsOn(`common-polyglot-core-utils`)
   .dependsOn(`edition-updater`)
   .dependsOn(`interpreter-dsl` % "provided")
-  .dependsOn(`persistance-dsl` % "provided")
   .dependsOn(`library-manager`)
   .dependsOn(`logging-truffle-connector`)
+  .dependsOn(`persistance-dsl` % "provided")
   .dependsOn(`polyglot-api`)
-  .dependsOn(`text-buffer`)
+  .dependsOn(`python-resource-provider`)
   .dependsOn(`runtime-compiler`)
   .dependsOn(`runtime-suggestions`)
-  .dependsOn(`connected-lock-manager`)
-  .dependsOn(`python-resource-provider`)
   .dependsOn(testkit % Test)
+  .dependsOn(`text-buffer`)
 
 lazy val `runtime-and-langs` = (project in file("engine/runtime-and-langs"))
   .settings(
@@ -3094,50 +3094,49 @@ lazy val `runtime-integration-tests` =
         )
       },
       Test / internalModuleDependencies := Seq(
-        (`runtime` / Compile / exportedModule).value,
-        (`runtime-test-instruments` / Compile / exportedModule).value,
-        (`runtime-instrument-common` / Compile / exportedModule).value,
-        (`runtime-instrument-runtime-server` / Compile / exportedModule).value,
-        (`runtime-instrument-repl-debugger` / Compile / exportedModule).value,
-        (`runtime-instrument-id-execution` / Compile / exportedModule).value,
-        (`runtime-language-epb` / Compile / exportedModule).value,
-        (`ydoc-polyfill` / Compile / exportedModule).value,
-        (`syntax-rust-definition` / Compile / exportedModule).value,
-        (`profiling-utils` / Compile / exportedModule).value,
+        (`cli` / Compile / exportedModule).value,
+        (`common-polyglot-core-utils` / Compile / exportedModule).value,
+        (`connected-lock-manager` / Compile / exportedModule).value,
+        (`distribution-manager` / Compile / exportedModule).value,
+        (`downloader` / Compile / exportedModule).value,
+        (`edition-updater` / Compile / exportedModule).value,
+        (`editions` / Compile / exportedModule).value,
+        (`engine-common` / Compile / exportedModule).value,
+        (`fansi-wrapper` / Compile / exportedModule).value,
+        (`interpreter-dsl` / Compile / exportedModule).value,
+        (`jvm-channel` / Compile / exportedModule).value,
+        (`jvm-interop` / Compile / exportedModule).value,
+        (`library-manager` / Compile / exportedModule).value,
+        (`logging-config` / Compile / exportedModule).value,
+        (`logging-service` / Compile / exportedModule).value,
         (`logging-service-logback` / Compile / exportedModule).value,
         (`logging-service-logback` / Test / exportedModule).value,
-        (`version-output` / Compile / exportedModule).value,
-        (`scala-libs-wrapper` / Compile / exportedModule).value,
-        (`fansi-wrapper` / Compile / exportedModule).value,
-        (`text-buffer` / Compile / exportedModule).value,
-        (`runtime-suggestions` / Compile / exportedModule).value,
-        (`runtime-parser` / Compile / exportedModule).value,
-        (`runtime-compiler` / Compile / exportedModule).value,
-        (`runtime-compiler-dump` / Compile / exportedModule).value,
-        (`runtime-compiler-dump-igv` / Compile / exportedModule).value,
-        (`runtime-utils` / Compile / exportedModule).value,
+        (`logging-utils` / Compile / exportedModule).value,
         (`polyglot-api` / Compile / exportedModule).value,
         (`polyglot-api-macros` / Compile / exportedModule).value,
         (`pkg` / Compile / exportedModule).value,
-        (`logging-utils` / Compile / exportedModule).value,
-        (`connected-lock-manager` / Compile / exportedModule).value,
-        (`library-manager` / Compile / exportedModule).value,
-        (`persistance` / Compile / exportedModule).value,
-        (`jvm-channel` / Compile / exportedModule).value,
-        (`jvm-interop` / Compile / exportedModule).value,
-        (`interpreter-dsl` / Compile / exportedModule).value,
-        (`engine-common` / Compile / exportedModule).value,
-        (`edition-updater` / Compile / exportedModule).value,
-        (`editions` / Compile / exportedModule).value,
-        (`distribution-manager` / Compile / exportedModule).value,
-        (`common-polyglot-core-utils` / Compile / exportedModule).value,
-        (`cli` / Compile / exportedModule).value,
+        (`profiling-utils` / Compile / exportedModule).value,
         (`refactoring-utils` / Compile / exportedModule).value,
+        (`runtime` / Compile / exportedModule).value,
+        (`runtime-compiler` / Compile / exportedModule).value,
+        (`runtime-compiler-dump` / Compile / exportedModule).value,
+        (`runtime-compiler-dump-igv` / Compile / exportedModule).value,
+        (`runtime-instrument-common` / Compile / exportedModule).value,
+        (`runtime-instrument-id-execution` / Compile / exportedModule).value,
+        (`runtime-instrument-repl-debugger` / Compile / exportedModule).value,
+        (`runtime-instrument-runtime-server` / Compile / exportedModule).value,
+        (`runtime-language-epb` / Compile / exportedModule).value,
+        (`runtime-parser` / Compile / exportedModule).value,
+        (`runtime-suggestions` / Compile / exportedModule).value,
+        (`runtime-test-instruments` / Compile / exportedModule).value,
+        (`runtime-utils` / Compile / exportedModule).value,
+        (`scala-libs-wrapper` / Compile / exportedModule).value,
         (`scala-yaml` / Compile / exportedModule).value,
         (`semver` / Compile / exportedModule).value,
-        (`downloader` / Compile / exportedModule).value,
-        (`logging-config` / Compile / exportedModule).value,
-        (`logging-service` / Compile / exportedModule).value
+        (`syntax-rust-definition` / Compile / exportedModule).value,
+        (`text-buffer` / Compile / exportedModule).value,
+        (`version-output` / Compile / exportedModule).value,
+        (`ydoc-polyfill` / Compile / exportedModule).value
       ),
       Test / patchModules := {
         // Patch test-classes into the runtime module. This is standard way to deal with the
@@ -3281,50 +3280,50 @@ lazy val `runtime-benchmarks` =
         )
       },
       Compile / internalModuleDependencies := Seq(
-        (`runtime` / Compile / exportedModule).value,
-        (`runtime-utils` / Compile / exportedModule).value,
-        (`runtime-instrument-common` / Compile / exportedModule).value,
-        (`runtime-instrument-runtime-server` / Compile / exportedModule).value,
-        (`runtime-instrument-repl-debugger` / Compile / exportedModule).value,
-        (`runtime-instrument-id-execution` / Compile / exportedModule).value,
-        (`runtime-language-epb` / Compile / exportedModule).value,
-        (`runtime-language-arrow` / Compile / exportedModule).value,
-        (`ydoc-polyfill` / Compile / exportedModule).value,
         (`benchmarks-common` / Compile / exportedModule).value,
-        (`syntax-rust-definition` / Compile / exportedModule).value,
-        (`profiling-utils` / Compile / exportedModule).value,
-        (`logging-service-logback` / Compile / exportedModule).value,
-        (`logging-service-logback` / Test / exportedModule).value,
-        (`version-output` / Compile / exportedModule).value,
-        (`scala-libs-wrapper` / Compile / exportedModule).value,
-        (`fansi-wrapper` / Compile / exportedModule).value,
-        (`text-buffer` / Compile / exportedModule).value,
-        (`runtime-suggestions` / Compile / exportedModule).value,
-        (`runtime-parser` / Compile / exportedModule).value,
-        (`runtime-compiler` / Compile / exportedModule).value,
-        (`runtime-compiler-dump` / Compile / exportedModule).value,
-        (`polyglot-api` / Compile / exportedModule).value,
-        (`polyglot-api-macros` / Compile / exportedModule).value,
-        (`pkg` / Compile / exportedModule).value,
-        (`logging-utils` / Compile / exportedModule).value,
+        (`cli` / Compile / exportedModule).value,
+        (`common-polyglot-core-utils` / Compile / exportedModule).value,
         (`connected-lock-manager` / Compile / exportedModule).value,
-        (`library-manager` / Compile / exportedModule).value,
-        (`persistance` / Compile / exportedModule).value,
+        (`distribution-manager` / Compile / exportedModule).value,
+        (`downloader` / Compile / exportedModule).value,
+        (`edition-updater` / Compile / exportedModule).value,
+        (`editions` / Compile / exportedModule).value,
+        (`engine-common` / Compile / exportedModule).value,
+        (`fansi-wrapper` / Compile / exportedModule).value,
         (`interpreter-dsl` / Compile / exportedModule).value,
         (`jvm-channel` / Compile / exportedModule).value,
         (`jvm-interop` / Compile / exportedModule).value,
-        (`engine-common` / Compile / exportedModule).value,
-        (`edition-updater` / Compile / exportedModule).value,
-        (`editions` / Compile / exportedModule).value,
-        (`distribution-manager` / Compile / exportedModule).value,
-        (`common-polyglot-core-utils` / Compile / exportedModule).value,
-        (`cli` / Compile / exportedModule).value,
+        (`library-manager` / Compile / exportedModule).value,
+        (`logging-config` / Compile / exportedModule).value,
+        (`logging-service` / Compile / exportedModule).value,
+        (`logging-service-logback` / Compile / exportedModule).value,
+        (`logging-service-logback` / Test / exportedModule).value,
+        (`logging-utils` / Compile / exportedModule).value,
+        (`persistance` / Compile / exportedModule).value,
+        (`polyglot-api` / Compile / exportedModule).value,
+        (`polyglot-api-macros` / Compile / exportedModule).value,
+        (`pkg` / Compile / exportedModule).value,
+        (`profiling-utils` / Compile / exportedModule).value,
         (`refactoring-utils` / Compile / exportedModule).value,
+        (`runtime` / Compile / exportedModule).value,
+        (`runtime-compiler` / Compile / exportedModule).value,
+        (`runtime-compiler-dump` / Compile / exportedModule).value,
+        (`runtime-instrument-common` / Compile / exportedModule).value,
+        (`runtime-instrument-id-execution` / Compile / exportedModule).value,
+        (`runtime-instrument-repl-debugger` / Compile / exportedModule).value,
+        (`runtime-instrument-runtime-server` / Compile / exportedModule).value,
+        (`runtime-language-arrow` / Compile / exportedModule).value,
+        (`runtime-language-epb` / Compile / exportedModule).value,
+        (`runtime-parser` / Compile / exportedModule).value,
+        (`runtime-suggestions` / Compile / exportedModule).value,
+        (`runtime-utils` / Compile / exportedModule).value,
+        (`scala-libs-wrapper` / Compile / exportedModule).value,
         (`scala-yaml` / Compile / exportedModule).value,
         (`semver` / Compile / exportedModule).value,
-        (`downloader` / Compile / exportedModule).value,
-        (`logging-config` / Compile / exportedModule).value,
-        (`logging-service` / Compile / exportedModule).value
+        (`syntax-rust-definition` / Compile / exportedModule).value,
+        (`text-buffer` / Compile / exportedModule).value,
+        (`version-output` / Compile / exportedModule).value,
+        (`ydoc-polyfill` / Compile / exportedModule).value
       ),
       Compile / addModules := Seq(
         (`runtime` / javaModuleName).value,
