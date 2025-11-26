@@ -65,7 +65,7 @@ jobs:
       - name: Get Engine build output location
         id: get_bazel_output
         run: |
-          OUTPUT_SYMLINK=$(bazel cquery --output=files //:sbt_build_engine_distribution)
+          OUTPUT_SYMLINK=$(bazel cquery --output=files //:sbt_build_native_engine_distribution)
           BAZEL_OUTPUT=$(readlink -f "$OUTPUT_SYMLINK")
           echo "location=$BAZEL_OUTPUT" >> $GITHUB_OUTPUT
       - uses: actions/upload-artifact@v4
