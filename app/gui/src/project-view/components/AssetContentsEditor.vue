@@ -1,10 +1,7 @@
 <script setup lang="ts">
 import { useBackends } from '$/providers/backends'
 import { useRightPanelData } from '$/providers/rightPanel'
-import { useUploadsToCloudStore } from '$/providers/upload'
-import { useUploadLocally } from '@/util/upload'
 import { useQuery } from '@tanstack/vue-query'
-import { BackendType } from 'enso-common/src/services/Backend'
 import { computed } from 'vue'
 
 const rightPanel = useRightPanelData()
@@ -99,14 +96,6 @@ const projectContents = computed(() => {
   }
   return value.replace(/\n+#### METADATA ####[\s\S]+$/, '')
 })
-
-const uploads = useUploadsToCloudStore()
-const uploadLocally = useUploadLocally(backendForAsset)
-const uploadFile = computed(() =>
-  backendForAsset.value?.type === BackendType.local ?
-    uploadLocally
-  : uploads.uploadFile.bind(uploads),
-)
 </script>
 
 <template>
