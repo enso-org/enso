@@ -83,15 +83,6 @@ handle_legacy_format (method_name : Text) (new_argument_name : Text) format = ca
         Warning.attach warning new_format
     _ -> format
 
-cleanup_tmp_file file =
-    Context.Output.with_enabled <|
-        file.delete_if_exists
-
-split_file_name file_name =
-    split_index = file_name.last_index_of "."
-    if split_index.is_nothing then [file_name, ""] else
-        [file_name.take (..First split_index), file_name.drop (..First split_index)]
-
 type Data_List_Default_Impl
 
 Return_As.SPI.from (that : Data_List_Default_Impl) =

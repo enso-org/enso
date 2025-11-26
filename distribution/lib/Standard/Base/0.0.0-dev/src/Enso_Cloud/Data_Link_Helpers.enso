@@ -325,3 +325,12 @@ as_file path action = case path of
                 Managed_Resource.bracket written_file cleanup_tmp_file <|
                     as_file written_file action
 
+private cleanup_tmp_file file =
+    Context.Output.with_enabled <|
+        file.delete_if_exists
+
+private split_file_name file_name =
+    split_index = file_name.last_index_of "."
+    if split_index.is_nothing then [file_name, ""] else
+        [file_name.take (..First split_index), file_name.drop (..First split_index)]
+
