@@ -19,11 +19,11 @@ type Email_Provider_SMTP
 
        ## Arguments
         - `server`: The SMTP server address.
-        - `port`: The SMTP server port.
         - `username`: The username to authenticate with the SMTP server.
         - `password`: The password or secret to authenticate with the SMTP server.
-        - `use_tls`: Whether to use TLS for the SMTP connection.
-    SMTP server:Text port:Integer username:Text password:(Text|Enso_Secret)=(Missing_Argument.throw "password") use_tls:Boolean=(Missing_Argument.throw "use_tls")
+        - `port`: The SMTP server port. Defaults to `587`.
+        - `use_tls`: Whether to use TLS for the SMTP connection. Defaults to `True`.
+    SMTP server:Text=(Missing_Argument.throw "server") username:Text=(Missing_Argument.throw "username") password:(Text|Enso_Secret)=(Missing_Argument.throw "password") port:Integer=587 use_tls:Boolean=True
 
     ## Gets the options for displaying in a dropdown.
        As in same module can be private.
