@@ -6,7 +6,7 @@ from Standard.Generic_JDBC import Generic_JDBC_Connection
 from Standard.Test import Bench
 
 options = Bench.options . set_warmup (Bench.phase_conf 3 5) . set_measure (Bench.phase_conf 1 5)
-
+dual_jvm_options = options . set_jvm_args "-Dpolyglot.enso.classLoading=Standard.Generic_JDBC:guest,hosted"
 
 
 type Seq
@@ -41,7 +41,11 @@ type Seq
 collect_benches = Bench.build builder->
     million = Seq.create 10 10000
 
-    builder.group "Generic_JDBC" options group_builder->
+    builder.group "Single_JVM_Generic_JDBC" options group_builder->
+        group_builder.specify "mean" <|
+            million.column . compute ..Mean
+
+    builder.group "Dual_JVM_Generic_JDBC" dual_jvm_options group_builder->
         group_builder.specify "mean" <|
             million.column . compute ..Mean
 
