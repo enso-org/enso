@@ -154,21 +154,19 @@ function AssetPropertiesInternal(props: AssetPropertiesInternalProps) {
           </Heading>
           <table>
             <tbody>
-              {item.ensoPath != null && (
-                <tr data-testid="asset-panel-path" className="h-row">
-                  <td className="my-auto min-w-side-panel-label p-0">
-                    <Text>{getText('path')}</Text>
-                  </td>
-                  <td className="w-full p-0">
-                    <div className="flex items-center gap-2">
-                      <Text className="w-0 grow" truncate="1">
-                        {item.ensoPath}
-                      </Text>
-                      <CopyButton copyText={encodeURI(item.ensoPath)} />
-                    </div>
-                  </td>
-                </tr>
-              )}
+              <tr data-testid="asset-panel-path" className="h-row">
+                <td className="my-auto min-w-side-panel-label p-0">
+                  <Text>{getText('path')}</Text>
+                </td>
+                <td className="w-full p-0">
+                  <div className="flex items-center gap-2">
+                    <Text className="w-0 grow" truncate="1">
+                      {item.ensoPath}
+                    </Text>
+                    <CopyButton copyText={encodeURI(item.ensoPath)} />
+                  </div>
+                </td>
+              </tr>
               {featureFlags.showDeveloperIds && (
                 <tr className="h-row">
                   <td className="my-auto min-w-side-panel-label p-0">

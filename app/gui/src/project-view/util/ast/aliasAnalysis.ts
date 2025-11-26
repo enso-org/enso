@@ -10,8 +10,6 @@ import { MappedKeyMap, MappedSet, NonEmptyStack } from '@/util/containers'
 import { LazyObject } from 'ydoc-shared/ast/parserSupport'
 import { SourceRange, sourceRangeKey } from 'ydoc-shared/util/data/text'
 
-const ACCESSOR_OPERATOR = '.'
-
 const LAMBDA_OPERATOR = '->'
 
 /**
@@ -264,14 +262,14 @@ export class AliasAnalyzer {
               this.processTree(node.rhs)
             })
             break
-          case ACCESSOR_OPERATOR:
-            this.processTree(node.lhs)
-            // Don't process the right-hand side, as it will be a method call, which is not a variable usage.
-            break
           default:
             this.processNodeChildren(node)
             break
         }
+        break
+      }
+      case RawAst.Tree.Type.PropertyAccess: {
+        this.processTree(node.lhs)
         break
       }
       case RawAst.Tree.Type.MultiSegmentApp:

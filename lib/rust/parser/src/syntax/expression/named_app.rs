@@ -1,5 +1,10 @@
 use crate::prelude::*;
 
+use crate::syntax::Flush;
+use crate::syntax::GroupHierarchyConsumer;
+use crate::syntax::ScopeHierarchyConsumer;
+use crate::syntax::Token;
+use crate::syntax::Tree;
 use crate::syntax::expression::reducer::ApplyToOperand;
 use crate::syntax::expression::section::MaybeSection;
 use crate::syntax::expression::types::Arity;
@@ -15,11 +20,6 @@ use crate::syntax::expression::whitespace::SpacingLookaheadTreeConsumer;
 use crate::syntax::maybe_with_error;
 use crate::syntax::token;
 use crate::syntax::tree::SyntaxError;
-use crate::syntax::Flush;
-use crate::syntax::GroupHierarchyConsumer;
-use crate::syntax::ScopeHierarchyConsumer;
-use crate::syntax::Token;
-use crate::syntax::Tree;
 
 // ========================
 // === Named-App Parser ===

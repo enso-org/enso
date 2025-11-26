@@ -1,4 +1,5 @@
-import sbt._
+import EnsoProjects.ProjectFinder
+import sbt.*
 
 import java.nio.file.Path
 
@@ -20,9 +21,9 @@ class EnsoLint(
           case Seq(proj) => proj
           case _         => EnsoProjects.ofPath(Path.of(name))
         }
-        runCompiler(project.path.toFile)
+        runCompiler(Seq(project.path.toFile))
       case EnsoLint.LintTarget.All =>
-        runAll(allProjects)
+        runAll(projectFinder)
     }
 
     if (!success) {
@@ -32,94 +33,67 @@ class EnsoLint(
     }
   }
 
-  private def runAll(projects: Seq[EnsoProjects.Project]): Boolean = {
-    val (internal, regular) = projects.partition(_.usesPrivateAccess)
+  /** Will run linting on all the projects - stdlibs and tests.
+    * linting of stdlibs and tests cannot be run together as they have different
+    * parent directory.
+    * See https://github.com/enso-org/enso/pull/14296#discussion_r2538984048
+    * @return true if all linting passed without errors/warnings
+    */
+  private def runAll(projectFinder: ProjectFinder): Boolean = {
+    val stdLibs = projectFinder.findStandardLibraries()
+    val (internal, regular) = projectFinder
+      .findTests()
+      .partition(_.usesPrivateAccess)
 
-    val regularSuccess =
-      withAggregate("Temporary_Aggregate_All", regular, runCompiler)
-    // The name must contain `_Internal_` and `_Tests` to disable private check
-    val internalSuccess =
-      withAggregate("Temporary_Internal_Aggregate_Tests", internal, runCompiler)
-    regularSuccess && internalSuccess
+    val stdLibsSuccess = runCompiler(
+      stdLibs.map(_.path.toFile)
+    )
+    val regularSuccess = runCompiler(regular.map(_.path.toFile))
+    val internalSuccess = runCompiler(
+      internal.map(_.path.toFile),
+      disablePrivateCheck = true
+    )
+    stdLibsSuccess && regularSuccess && internalSuccess
   }
 
-  private def runCompiler(path: File): Boolean = {
-    log.debug(s"Linting $path")
+  private def runCompiler(
+    paths: Seq[File],
+    disablePrivateCheck: Boolean = false
+  ): Boolean = {
+    val pathNames = paths
+      .map(p => nameSuffix(p.toPath))
+      .sorted
+      .mkString(", ")
+    log.info(s"Linting [$pathNames]")
+
+    val absPaths = paths
+      .map(_.getAbsoluteFile.toString)
+    val disablePrivateCheckArg = if (disablePrivateCheck) {
+      Seq("--disable-private-check")
+    } else {
+      Seq()
+    }
+    val args = disablePrivateCheckArg ++ Seq(
+      "--enable-static-analysis",
+      "-Werror",
+      "--compile"
+    ) ++ absPaths
+
     DistributionPackage.runEnginePackage(
       engineDistributionRoot,
-      Seq(
-        "--compile",
-        path.getAbsoluteFile.toString,
-        "--enable-static-analysis",
-        "-Werror"
-      ),
+      args,
       log,
-      Some(path.getAbsoluteFile.getParentFile)
+      Some(paths.head.getAbsoluteFile.getParentFile)
     )
   }
 
-  private def withAggregate[R](
-    name: String,
-    projects: Seq[EnsoProjects.Project],
-    action: File => R
-  ): R = {
-    val aggregateProjectPath = newProject(baseDirectory / "test", name)
-    try {
-      val imports = projects.map { project =>
-        val namespace = project.namespace.getOrElse {
-          throw new RuntimeException(
-            s"Project ${project.name} does not have a namespace but was included for linting."
-          )
-        }
-        s"import ${namespace}.${project.name}"
-      }
-      // The imports must be used, so that the unused imports pass will not generate warnings.
-      // We use it in a vector from a `foo` method.
-      val projNames = projects.map(_.name)
-      val code =
-        s"""
-           |${imports.mkString("\n")}
-           |
-           |foo =
-           |    vec = [${projNames.mkString(", ")}]
-           |    vec
-           |""".stripMargin
-      val codeFile = aggregateProjectPath / "src" / "Main.enso"
-      IO.write(codeFile, code)
-      action(aggregateProjectPath)
-    } finally {
-      IO.delete(aggregateProjectPath)
+  private def nameSuffix(path: Path): String = {
+    val suffix = 3
+    if (path.getNameCount > suffix) {
+      path.subpath(path.getNameCount - suffix, path.getNameCount).toString
+    } else {
+      path.toString
     }
-  }
-
-  private def newProject(parentPath: File, name: String): File = {
-    val path = parentPath / name
-    if (path.exists()) {
-      log.warn(s"Deleting leftover temporary project $path.")
-      IO.delete(path)
-      if (path.exists()) {
-        throw new RuntimeException(
-          s"Failed to delete leftover temporary project $path. Please cleanup manually."
-        )
-      }
-    }
-
-    val result = DistributionPackage.runEnginePackage(
-      engineDistributionRoot,
-      Seq(
-        "--new",
-        path.getPath()
-      ),
-      log
-    )
-
-    if (!result) {
-      throw new RuntimeException(
-        s"Failed to create project $name in $parentPath"
-      )
-    }
-
-    path
   }
 }
 

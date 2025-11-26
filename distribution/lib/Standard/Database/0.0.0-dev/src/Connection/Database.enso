@@ -54,11 +54,17 @@ connection_details_widget =
    ---
 type Database_Connection_Details_SPI
     private Single typ name:Text code:Text
+
     private Few arr:(Vector Database_Connection_Details_SPI)
 
-    ##
-        `name` - The user facing name of the connection.
-        `code` - Default code that can be used to construct a default instance of the connection details.
+    ## ---
+       private: true
+       ---
+       Creates a new registration for a database connection details type.
+
+       ## Arguments
+        - `name` - The user facing name of the connection.
+        - `code` - Default code that can be used to construct a default instance of the connection details.
     new typ name:Text code:Text =
         Database_Connection_Details_SPI.Single typ name code
 
@@ -79,7 +85,8 @@ type Database_Connection_Details_SPI
                 if resolved.is_nothing then @Tail_Call try_next (idx + 1) else resolved
         try_next 0
 
-    private get_simple_regs _:Boolean  -> Vector Database_Connection_Details_SPI =
+    private get_simple_regs b:Boolean  -> Vector Database_Connection_Details_SPI =
+        _ = b
         reg = Meta.lookup_services Database_Connection_Details_SPI
         arr = reg.map .to_vector
         arr.flatten
@@ -88,10 +95,10 @@ type Database_Connection_Details_SPI
         flat = Database_Connection_Details_SPI.get_simple_regs b
         flat.map .typ
 
-    ##
-      Returns an array of pairs, where the first element is the user facing connection name and the
-      second element is a string representing the code to insert to create a default connection
-      instance. That code may contain `_` placeholders for expected arguments.
+    ## Returns an array of pairs, where the first element is the user facing
+       connection name and the second element is a string representing the code
+       to insert to create a default connection instance. That code may contain
+       `_` placeholders for expected arguments.
     private get_default_constructors b:Boolean =
         flat = Database_Connection_Details_SPI.get_simple_regs b
         flat.map \r -> Pair.new r.name r.code

@@ -1,5 +1,7 @@
 use crate::prelude::*;
 
+use crate::syntax::Item;
+use crate::syntax::Tree;
 use crate::syntax::expression::annotations::ParseAnnotations;
 use crate::syntax::expression::application::InsertApps;
 use crate::syntax::expression::arity::ClassifyArity;
@@ -12,8 +14,6 @@ use crate::syntax::expression::numbers::ParseNumbers;
 use crate::syntax::expression::reducer::Reduce;
 use crate::syntax::expression::section::MaybeSection;
 use crate::syntax::expression::whitespace::PeekSpacing;
-use crate::syntax::Item;
-use crate::syntax::Tree;
 
 // =========================
 // === Expression Parser ===

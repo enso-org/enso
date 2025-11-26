@@ -27,7 +27,6 @@ pub mod java_gen;
 pub mod libraries;
 pub mod release;
 pub mod runtime;
-pub mod wasm;
 
 /// The prefix that will be used when reading the build script arguments from environment.
 pub const ENVIRONMENT_VARIABLE_NAME_PREFIX: &str = "ENSO_BUILD";
@@ -110,8 +109,6 @@ macro_rules! source_args_hlp {
 #[allow(clippy::large_enum_variant)]
 #[derive(Subcommand, Clone, Debug)]
 pub enum Target {
-    /// Build/Test the Rust part of the GUI.
-    Wasm(wasm::Target),
     /// Build/Run the Vue-based GUI.
     Gui(gui::Target),
     /// Enso Engine Runtime.
@@ -120,9 +117,6 @@ pub enum Target {
     Backend(backend::Target),
     /// Build/Run/Test IDE bundle (includes Vue-based GUI and Project Manager).
     Ide(ide::Target),
-    /// Clean the repository. Keeps the IntelliJ's .idea directory intact. WARNING: This removes
-    /// files that are not under version control in the repository subtree.
-    GitClean(git_clean::Options),
     /// Apply automatic formatters on the repository.
     #[clap(alias = "format")]
     Fmt,

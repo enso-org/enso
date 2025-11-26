@@ -21,12 +21,12 @@ import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Meta
 import project.Panic.Panic
 import project.Polyglot.Polyglot
-from project.Nothing import all
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Index_Sub_Range import sort_and_merge_ranges
 from project.Data.Range.Extensions import all
 from project.Data.Text.Extensions import all
 from project.Error import all
+from project.Nothing import all
 from project.Runtime import assert
 
 polyglot java import org.enso.base.Regex_Utils

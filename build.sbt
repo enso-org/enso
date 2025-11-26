@@ -637,6 +637,7 @@ lazy val `text-buffer` = project
     frgaalJavaCompilerSetting,
     scalaModuleDependencySetting,
     mixedJavaScalaProjectSetting,
+    annotationProcSetting,
     commands += WithDebugCommand.withDebug,
     javaModuleName := "org.enso.text.buffer",
     libraryDependencies ++= Seq(
@@ -883,6 +884,7 @@ lazy val pkg = (project in file("lib/scala/pkg"))
     frgaalJavaCompilerSetting,
     scalaModuleDependencySetting,
     mixedJavaScalaProjectSetting,
+    annotationProcSetting,
     version := "0.1",
     Compile / run / mainClass := Some("org.enso.pkg.Main"),
     libraryDependencies ++= Seq(
@@ -1024,6 +1026,7 @@ lazy val `logging-utils` = project
   .settings(
     frgaalJavaCompilerSetting,
     scalaModuleDependencySetting,
+    annotationProcSetting,
     compileOrder := CompileOrder.ScalaThenJava, // Note [JPMS Compile order]
     version := "0.1",
     libraryDependencies ++= slf4jApi ++ Seq(
@@ -1039,6 +1042,7 @@ lazy val `logging-service` = project
   .settings(
     frgaalJavaCompilerSetting,
     scalaModuleDependencySetting,
+    annotationProcSetting,
     version := "0.1",
     libraryDependencies ++= slf4jApi ++ Seq(
       "com.typesafe"   % "config"    % typesafeConfigVersion,
@@ -1059,6 +1063,7 @@ lazy val `logging-config` = project
   .configs(Test)
   .settings(
     frgaalJavaCompilerSetting,
+    annotationProcSetting,
     version := "0.1",
     libraryDependencies ++= Seq(
       "com.typesafe"         % "config"    % typesafeConfigVersion,
@@ -1075,6 +1080,7 @@ lazy val `logging-config` = project
       (`logging-utils` / Compile / exportedModule).value
     )
   )
+  .dependsOn(`engine-common` % "provided")
 
 lazy val `logging-service-logback` = project
   .in(file("lib/scala/logging-service-logback"))
@@ -1082,6 +1088,7 @@ lazy val `logging-service-logback` = project
   .configs(Test)
   .settings(
     frgaalJavaCompilerSetting,
+    annotationProcSetting,
     version := "0.1",
     libraryDependencies ++= slf4jApi ++ Seq(
       "org.scalatest" %% "scalatest" % scalatestVersion % Test
@@ -1173,6 +1180,7 @@ lazy val `logging-service-common` = project
     frgaalJavaCompilerSetting,
     scalaModuleDependencySetting,
     mixedJavaScalaProjectSetting,
+    annotationProcSetting,
     commands += WithDebugCommand.withDebug,
     Test / fork := true,
     libraryDependencies ++= slf4jApi ++ Seq(
@@ -1194,6 +1202,7 @@ lazy val `logging-utils-akka` = project
   .settings(
     frgaalJavaCompilerSetting,
     scalaModuleDependencySetting,
+    annotationProcSetting,
     version := "0.1",
     compileOrder := CompileOrder.ScalaThenJava,
     libraryDependencies ++= slf4jApi ++ Seq(
@@ -1657,6 +1666,7 @@ lazy val `refactoring-utils` = project
     frgaalJavaCompilerSetting,
     scalaModuleDependencySetting,
     mixedJavaScalaProjectSetting,
+    annotationProcSetting,
     commands += WithDebugCommand.withDebug,
     version := "0.1",
     libraryDependencies ++= Seq(
@@ -1680,6 +1690,7 @@ lazy val `project-manager` = (project in file("lib/scala/project-manager"))
   .settings(
     frgaalJavaCompilerSetting,
     mixedJavaScalaProjectSetting,
+    annotationProcSetting,
     javaModuleName := "org.enso.project.manager",
     (Compile / run / fork) := true,
     (Compile / run / connectInput) := true,
@@ -2080,9 +2091,12 @@ lazy val `ydoc-server` = project
     },
     Compile / resourceGenerators += Def.taskIf {
       if ((Bazel / wasStartedFromBazel).value) {
-        Seq(
-          (Bazel / ydocServerPolyglotMainJs).value
-        )
+        val js = (Bazel / ydocServerPolyglotMainJs).value
+        val target =
+          (Compile / resourceManaged).value / "org" / "enso" / "ydoc" / "server" / "ydoc.cjs"
+        IO.createDirectory(target.getParentFile)
+        IO.copyFile(js, target)
+        Seq(target)
       } else {
         Ydoc.generateJsBundle(
           (ThisBuild / baseDirectory).value,
@@ -2127,7 +2141,6 @@ lazy val `ydoc-server-registration` = project
   .configs(Test)
   .settings(
     customFrgaalJavaCompilerSettings("21"),
-    javaModuleName := "org.enso.ydoc.server.registration",
     Compile / exportJars := true,
     crossPaths := false,
     autoScalaLibrary := false,
@@ -2315,6 +2328,7 @@ lazy val `polyglot-api` = project
     frgaalJavaCompilerSetting,
     scalaModuleDependencySetting,
     mixedJavaScalaProjectSetting,
+    annotationProcSetting,
     Test / fork := true,
     commands += WithDebugCommand.withDebug,
     Test / envVars ++= distributionEnvironmentOverrides,
@@ -2382,6 +2396,7 @@ lazy val `language-server` = (project in file("engine/language-server"))
     frgaalJavaCompilerSetting,
     scalaModuleDependencySetting,
     mixedJavaScalaProjectSetting,
+    annotationProcSetting,
     libraryDependencies ++= logbackPkg.map(_ % "provided"),
     libraryDependencies ++= akka ++ circe ++ bouncyCastle.map(
       _ % Test
@@ -3662,6 +3677,7 @@ lazy val `runtime-suggestions` =
       frgaalJavaCompilerSetting,
       scalaModuleDependencySetting,
       mixedJavaScalaProjectSetting,
+      annotationProcSetting,
       (Test / fork) := true,
       libraryDependencies ++= Seq(
         "junit"            % "junit"                   % junitVersion       % Test,
@@ -4069,9 +4085,6 @@ lazy val `engine-runner` = project
           `database-polyglot-root`
             .listFiles("*.jar")
             .map(_.getAbsolutePath()) ++
-          `google-polyglot-root`
-            .listFiles("*.jar")
-            .map(_.getAbsolutePath()) ++
           `std-aws-polyglot-root`.listFiles("*.jar").map(_.getAbsolutePath()) ++
           `std-snowflake-polyglot-root`
             .listFiles("*.jar")
@@ -4228,6 +4241,8 @@ lazy val `engine-runner` = project
               "net.snowflake.client",
               "com.sun.jna",
               "com.tableau.hyperapi",
+              "com.typesafe.config.impl.ConfigImpl$EnvVariablesHolder",
+              "com.typesafe.config.impl.ConfigImpl$SystemPropertiesHolder",
               // See https://github.com/HarrDevY/native-register-bouncy-castle
               "org.bouncycastle.jcajce.provider.drbg.DRBG$Default",
               "org.bouncycastle.jcajce.provider.drbg.DRBG$NonceAndIV",
@@ -4288,12 +4303,24 @@ lazy val buildSmallJdk =
 
 /** Command for building small JDK for the release.
   * Use as `buildSmallJdkForRelease <targetDir>`.
+  *
+  * If started from bazel, does not take an argument, small jdk will be
+  * built in [[BazelSupport.OUT_DIR_PROP]].
   */
 ThisBuild / commands += {
-  Command.single("buildSmallJdkForRelease") { (state, targetDir) =>
-    SmallJDK.buildSmallJDKForRelease(new File(targetDir))
-    state.log.info(s"Small JDK built in: $targetDir")
-    state
+  if ((Bazel / wasStartedFromBazel).value) {
+    Command.command("buildSmallJdkForRelease") { state =>
+      val targetDir = (Bazel / outputDir).value.get
+      SmallJDK.buildSmallJDKForRelease(targetDir)
+      state.log.info(s"Small JDK built in: $targetDir")
+      state
+    }
+  } else {
+    Command.single("buildSmallJdkForRelease") { (state, targetDir) =>
+      SmallJDK.buildSmallJDKForRelease(new File(targetDir))
+      state.log.info(s"Small JDK built in: $targetDir")
+      state
+    }
   }
 }
 
@@ -4505,6 +4532,7 @@ lazy val `jvm-interop` =
     .in(file("lib/java/jvm-interop"))
     .enablePlugins(JPMSPlugin)
     .settings(
+      annotationProcSetting,
       customFrgaalJavaCompilerSettings("24"),
       // jvm-interop/test has to run with -ea disabled form Truffle.
       // Otherwise Truffle library performs a lot of additional
@@ -4618,6 +4646,7 @@ lazy val `os-environment` =
     .enablePlugins(JPMSPlugin)
     .settings(
       frgaalJavaCompilerSetting,
+      annotationProcSetting,
       libraryDependencies ++= slf4jApi ++ Seq(
         "org.graalvm.sdk" % "nativeimage"     % graalMavenPackagesVersion % "provided",
         "org.graalvm.sdk" % "graal-sdk"       % graalMavenPackagesVersion % "provided",
@@ -4715,7 +4744,7 @@ lazy val `os-environment` =
     .dependsOn(`persistance`)
     .dependsOn(`persistance-dsl` % "provided")
     .dependsOn(`engine-common`)
-    .dependsOn(`os-environment-lib`)
+    .dependsOn(`os-environment-lib` % "test->test")
 
 lazy val `bench-processor` = (project in file("lib/scala/bench-processor"))
   .enablePlugins(JPMSPlugin)
@@ -4996,6 +5025,7 @@ lazy val downloader = (project in file("lib/scala/downloader"))
     frgaalJavaCompilerSetting,
     scalaModuleDependencySetting,
     mixedJavaScalaProjectSetting,
+    annotationProcSetting,
     // Fork the tests to make sure that the withDebug command works (we can
     // attach debugger to the subprocess)
     (Test / fork) := true,
@@ -5192,6 +5222,7 @@ lazy val `runtime-version-manager` = project
     frgaalJavaCompilerSetting,
     scalaModuleDependencySetting,
     mixedJavaScalaProjectSetting,
+    annotationProcSetting,
     resolvers += Resolver.bintrayRepo("gn0s1s", "releases"),
     libraryDependencies ++= Seq(
       "com.typesafe.scala-logging" %% "scala-logging"    % scalaLoggingVersion,
@@ -5799,7 +5830,6 @@ lazy val `duckdb-wrapper` = project
     libraryDependencies ++= Seq(
       "org.duckdb" % "duckdb_jdbc" % duckdbVersion
     ),
-    inputJar := "org.duckdb" % "duckdb_jdbc" % duckdbVersion,
     version := "0.1",
     jarExtractor := JarExtractor(
       "libduckdb_java.so_linux_amd64"   -> PolyglotLib(LinuxAMD64),
@@ -6476,7 +6506,7 @@ createStdLibsIndexes := {
   DistributionPackage.indexStdLibs(
     stdLibVersion = targetStdlibVersion,
     ensoVersion   = ensoVersion,
-    stdLibRoot    = distributionRoot / "lib",
+    libRoot       = distributionRoot / "lib",
     javaOpts      = javaOpts,
     env           = extraBazelEnvForStdLibIndexes.value,
     cacheFactory  = cacheFactory.sub("stdlib"),
@@ -6685,24 +6715,6 @@ runProjectManagerDistribution := {
   )
 }
 
-val allStdBitsSuffix = List("All", "AllWithIndex")
-val stdBitsProjects =
-  List(
-    "AWS",
-    "Base",
-    "Database",
-    "Generic_JDBC",
-    "Google",
-    "Image",
-    "Microsoft",
-    "Snowflake",
-    "Table",
-    "Saas",
-    "DuckDB"
-  ) ++ allStdBitsSuffix
-val allStdBits: Parser[String] =
-  stdBitsProjects.map(v => v: Parser[String]).reduce(_ | _)
-
 lazy val `http-test-helper` = project
   .in(file("tools") / "http-test-helper")
   .settings(
@@ -6727,112 +6739,6 @@ lazy val `http-test-helper` = project
     (Compile / run / connectInput) := true
   )
   .configs(Test)
-
-lazy val buildStdLib =
-  inputKey[Unit]("Build an individual standard library package")
-buildStdLib := Def.inputTaskDyn {
-  val cmd: String = allStdBits.parsed
-  val root: File  = engineDistributionRoot.value
-  // Ensure that a complete distribution was built at least once.
-  // Because of `if` in the sbt task definition and usage of `streams.value` one has to
-  // delegate to another task definition (sbt restriction).
-  if ((root / "manifest.yaml").exists) {
-    pkgStdLibInternal.toTask(cmd)
-  } else buildEngineDistribution
-}.evaluated
-
-lazy val pkgStdLibInternal = inputKey[Unit]("Use `buildStdLib`")
-pkgStdLibInternal := Def.inputTask {
-  buildEngineDistributionNoIndex.value
-  val cmd               = allStdBits.parsed
-  val root              = engineDistributionRoot.value
-  val log: sbt.Logger   = streams.value.log
-  val cacheFactory      = streams.value.cacheStoreFactory
-  val standardNamespace = "Standard"
-  val buildAllCmd       = allStdBitsSuffix.contains(cmd)
-  cmd match {
-    case "Base" =>
-      (`std-base` / Compile / packageBin).value
-    case "Database" =>
-      (`std-database` / Compile / packageBin).value
-    case "Generic_JDBC" =>
-      (`std-generic-jdbc` / Compile / packageBin).value
-    case "Google" =>
-      (`std-google` / Compile / packageBin).value
-    case "Image" =>
-      (`std-image` / Compile / packageBin).value
-    case "Table" =>
-      (`std-table` / Compile / packageBin).value
-    case "TestHelpers" =>
-      (`enso-test-java-helpers` / Compile / packageBin).value
-      (`generic-jdbc-connection-spec-dependencies` / Compile / packageBin).value
-      (`snowflake-test-java-helpers` / Compile / packageBin).value
-      (`exploratory-benchmark-java-helpers` / Compile / packageBin).value
-      (`benchmark-java-helpers` / Compile / packageBin).value
-    case "AWS" =>
-      (`std-aws` / Compile / packageBin).value
-    case "Snowflake" =>
-      (`std-snowflake` / Compile / packageBin).value
-    case "Microsoft" =>
-      (`std-microsoft` / Compile / packageBin).value
-    case "Tableau" =>
-      (`std-tableau` / Compile / packageBin).value
-    case "Saas" =>
-      (`std-saas` / Compile / packageBin).value
-    case "DuckDB" =>
-      (`std-duckdb` / Compile / packageBin).value
-    case _ if buildAllCmd =>
-      (`std-base` / Compile / packageBin).value
-      (`enso-test-java-helpers` / Compile / packageBin).value
-      (`generic-jdbc-connection-spec-dependencies` / Compile / packageBin).value
-      (`snowflake-test-java-helpers` / Compile / packageBin).value
-      (`exploratory-benchmark-java-helpers` / Compile / packageBin).value
-      (`benchmark-java-helpers` / Compile / packageBin).value
-      (`std-table` / Compile / packageBin).value
-      (`std-database` / Compile / packageBin).value
-      (`std-image` / Compile / packageBin).value
-      (`std-generic-jdbc` / Compile / packageBin).value
-      (`std-google` / Compile / packageBin).value
-      (`std-aws` / Compile / packageBin).value
-      (`std-snowflake` / Compile / packageBin).value
-      (`std-microsoft` / Compile / packageBin).value
-      (`std-tableau` / Compile / packageBin).value
-      (`std-saas` / Compile / packageBin).value
-      (`std-duckdb` / Compile / packageBin).value
-    case _ =>
-  }
-  val libs =
-    if (!buildAllCmd) Seq(cmd)
-    else {
-      val prefix = s"$standardNamespace."
-      Editions.standardLibraries
-        .filter(_.startsWith(prefix))
-        .map(_.stripPrefix(prefix))
-    }
-  val generateIndex = cmd.endsWith("WithIndex")
-  libs.foreach { lib =>
-    StdBits.buildStdLibPackage(
-      lib,
-      root,
-      cacheFactory,
-      log,
-      defaultDevEnsoVersion
-    )
-    if (generateIndex) {
-      val stdlibStandardRoot = root / "lib" / standardNamespace
-      val javaOpts           = (`engine-runner` / Runtime / javaOptions).value
-      DistributionPackage.indexStdLib(
-        libName       = stdlibStandardRoot / lib,
-        stdLibVersion = defaultDevEnsoVersion,
-        ensoVersion   = defaultDevEnsoVersion,
-        javaOpts      = javaOpts,
-        env           = extraBazelEnvForStdLibIndexes.value,
-        cacheFactory  = cacheFactory.sub("stdlib"),
-        log           = log
-      )
-    }
-  }
-}.evaluated
 
 lazy val buildLauncherDistribution =
   taskKey[Unit]("Builds the launcher distribution")

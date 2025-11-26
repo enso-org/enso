@@ -110,6 +110,10 @@ export const ZipAssetsJobId = newtypeConstructor<ZipAssetsJobId>()
 export type UnzipAssetsJobId = Newtype<string, 'UnzipAssetsJobId'>
 export const UnzipAssetsJobId = newtypeConstructor<UnzipAssetsJobId>()
 
+/** Unique identifier for an API key. */
+export type ApiKeyId = Newtype<string, 'ApiKeyId'>
+export const ApiKeyId = newtypeConstructor<ApiKeyId>()
+
 /** The name of an asset label. */
 export type LabelName = Newtype<string, 'LabelName'>
 export const LabelName = newtypeConstructor<LabelName>()

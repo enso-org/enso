@@ -830,8 +830,8 @@ case object AliasAnalysis extends IRPass {
           ),
           fields = cons.fields.map(analysePattern(_, builder))
         )
-      case literalPattern: Pattern.Literal =>
-        literalPattern
+      case literalPattern: Pattern.Literal => literalPattern
+      case boolPattern: Pattern.Bool       => boolPattern
       case typePattern: Pattern.Type =>
         typePattern.copy(
           name = analyseName(

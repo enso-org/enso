@@ -8,14 +8,19 @@ import project.Value_Type.By_Type
 
 ## Selector for table columns.
 type Table_Selector
+    ## Selects columns by their exact names.
     Name name:Text
 
+    ## Selects columns by their 0-based indices.
     Index index:Integer
 
+    ## Selects columns matching the given regular expression.
     Regex pattern:Regex
 
+    ## Selects columns by their value types.
     By_Type by_type:By_Type
 
+    ## Selects columns using a Vector of other Table_Selectors.
     Vector (selectors:(Vector Table_Selector))
 
     ## ---
