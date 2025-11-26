@@ -38,7 +38,6 @@ const RUNNING_HYBRID_PROJECT_INFO_SCHEMA = PROJECT_INFO_SCHEMA.extend({
   mode: z.literal('hybrid'),
   runningId: PROJECT_ID_SCHEMA,
   hybridSessionId: PROJECT_SESSION_ID_SCHEMA,
-  localProjectId: PROJECT_ID_SCHEMA,
   localParentId: DIRECTORY_ID_SCHEMA,
   synced: z.boolean().optional(),
 })

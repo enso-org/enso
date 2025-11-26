@@ -307,7 +307,6 @@ export function useProjectStates() {
     return openLocalVersionOfHybridProjectByRunningInfo({
       ...project.info,
       runningId: localProjectAsset.id,
-      localProjectId: localProjectAsset.id,
       localParentId: localProjectAsset.parentId,
     })
   }
@@ -325,7 +324,7 @@ export function useProjectStates() {
     await backends.localBackend
       .startWatchingHybridProject(
         info.id,
-        info.localProjectId,
+        info.runningId,
         info.parentId,
         backends.remoteBackend.baseUrl,
         httpClient.defaultHeaders,
@@ -333,6 +332,13 @@ export function useProjectStates() {
       .catch((err) => {
         console.error(`Failed to start watching hybrid project ${info.id}`, err)
       })
+    scope.run(() =>
+      onScopeDispose(async () => {
+        await backends.localBackend?.stopWatchingHybridProject(info.id).catch((err) => {
+          console.error(`Failed to stop watching hybrid project ${info.id}`, err)
+        })
+      }),
+    )
     const cloudParentPath = EnsoPath(info.ensoPath.slice(0, info.ensoPath.lastIndexOf('/')))
     const result = await catchNetworkError(
       backends.localBackend.openProject(
@@ -586,15 +592,9 @@ export function useProjectStates() {
     project: HybridUploaded | HybridOpened | HybridDownloaded,
   ): Promise<Result<NotOpened>> {
     if (project.status === 'hybrid-uploaded') {
-      await backends.localBackend?.stopWatchingHybridProject(project.info.id).catch((err) => {
-        console.error(`Failed to stop watching hybrid project ${project.info.id}`, err)
-      })
       await deleteLocalVersionOfHybridProject(project.info.localParentId)
     }
     if (project.status === 'hybrid-downloaded') {
-      await backends.localBackend?.stopWatchingHybridProject(project.info.id).catch((err) => {
-        console.error(`Failed to stop watching hybrid project ${project.info.id}`, err)
-      })
       await deleteLocalVersionOfHybridProject(project.localProjectParentId)
     }
     await closeRemoteProject.mutateAsync([project.info.id, project.info.title])
