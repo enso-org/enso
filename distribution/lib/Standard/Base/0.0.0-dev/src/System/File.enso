@@ -647,8 +647,8 @@ type File
     create_directory self =
         Context.Output.if_enabled disabled_message="As writing is disabled, cannot create directory. Press the Write button ▶ to perform the operation." panic=False <|
             File_Error.handle_java_exceptions self <|
-                Panic.catch NoSuchFileException handler=_replace_create_directories_no_such_file_exception <|
-                    Panic.catch FileSystemException handler=_replace_create_directories_generic_exception <|
+                Panic.catch FileSystemException handler=_replace_create_directories_generic_exception <|
+                    Panic.catch NoSuchFileException handler=_replace_create_directories_no_such_file_exception <|
                         Java_Files.createDirectories self.java_path
                         self
 
@@ -1229,7 +1229,7 @@ private _replace_create_directories_no_such_file_exception panic =
     Runtime.assert (Meta.is_a exception NoSuchFileException)
     path = exception.getFile
     if path == Nothing then exception else
-        parent = Java_Path.of path . parent
+        parent = Java_Path.of path . getParent
         if parent == Nothing then exception else
             # On Windows, when creating a directory tree `foo/my-file.txt/a/b/c`,
             # the operation fails with `NoSuchFileException` with path
