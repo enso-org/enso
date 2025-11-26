@@ -1,8 +1,10 @@
 from Standard.Base import all
+import Standard.Base.Enso_Cloud.Data_Link_Helpers
+import Standard.Base.Runtime.Context
 import Standard.Base.Visualization.Table_Viz_Data.Table_Viz_Data
 import Standard.Base.Visualization.Table_Viz_Data.Table_Viz_Header
 from Standard.Base.Metadata.Choice import Option
-from Standard.Base.Metadata.Widget import Single_Choice, Text_Input
+from Standard.Base.Metadata.Widget import Single_Choice, Text_Input, Vector_Editor
 
 import Standard.Table.Rows_To_Read.Rows_To_Read
 from Standard.Table import Table
@@ -49,7 +51,7 @@ type DuckDB_Connection
         jdbc_connection = JDBC_Connection.create types_record url properties schema=schema
 
         ## For initial work using DuckDB, we will use the Postgres dialect.
-        DuckDB_Connection.Value (Connection.new jdbc_connection DuckDB_Connection.get_dialect DuckDB_Type_Mapping DuckDB_Entity_Naming_Properties.new) make_new
+        DuckDB_Connection.Value (Connection.new jdbc_connection DuckDB_Connection.get_dialect DuckDB_Type_Mapping DuckDB_Entity_Naming_Properties.new) make_new (url=="jdbc:duckdb::memory:")
 
     ## ---
        private: true
@@ -59,7 +61,8 @@ type DuckDB_Connection
        ## Arguments
         - `connection`: the underlying connection.
         - `make_new`: a function that returns a new connection.
-    private Value (connection:Connection) (make_new : Text -> Text -> DuckDB_Connection)
+        - `is_in_memory`: whether the connection is in-memory.
+    private Value (connection:Connection) (make_new : Text -> Text -> DuckDB_Connection) is_in_memory:Boolean
 
     ## Gets the DuckDB Version string.
     version self -> Text =
@@ -223,6 +226,87 @@ type DuckDB_Connection
     read : (SQL_Query_With_Schema | SQL_Query) -> Rows_To_Read -> Table ! Table_Not_Found
     read self query:(SQL_Query_With_Schema | SQL_Query) (limit : Rows_To_Read = ..First_With_Warning 1000) =
         self.query query . read limit
+
+    ## ---
+       aliases: [import, load, open, read, sql]
+       group: Standard.Base.Input
+       icon: data_input
+       ---
+       Reads a file into a new table in the database and returns a query
+       referencing the new table.
+
+       This will create a new table inside DuckDB.
+
+       ## Arguments
+        - `path`: the path to the file to read. Can be a `Text`, `URI` or
+          `File` object.
+        - `as`: the name of the table to create. Defaults to "NewTable".
+        - `key_columns`: the names of the columns to use as the primary key. If
+          not provided, no primary key will be created.
+
+       ## Returns
+       A `DB_Table` referencing the newly created table.
+    @as Text_Input display=..Always
+    @key_columns Vector_Editor display=..Always item_editor=Text_Input item_default='"Column"'
+    read_file : Text | URI | File -> Text -> Vector Text -> Boolean -> DB_Table
+    read_file self path=(Missing_Argument.throw "path") as:Text="NewTable" key_columns:Vector=[] replace_if_present:Boolean=False =
+        if self.is_in_memory.not then Context.Output.if_enabled disabled_message="As writing is disabled, cannot create a new table. Press the Write button ▶ to perform the operation." panic=False <|
+            Nothing
+        Data_Link_Helpers.as_file path file->
+            query = 'CREATE' + (if replace_if_present then ' OR REPLACE' else "") + ' TABLE "' + (as.replace '"' '""') + '" AS SELECT * FROM \'' + file.path + '\';'
+            index = if key_columns.length==0 then "" else
+                base = 'CREATE' + (if replace_if_present then ' OR REPLACE' else "") + ' INDEX "'+ (as.replace '"' '""') + '_INDEX" ON "' + (as.replace '"' '""') + '" ('
+                cols = key_columns.map c-> '"'+(c.replace '"' '""')+'"' . join ", "
+                base + cols + ");"
+            Context.Output.with_enabled <|
+                create_table = self.execute_update query
+                create_table.if_not_error <|
+                    with_index = if index=="" then create_table else self.execute_update index
+                    with_index.if_not_error <|
+                        self.query (SQL_Query.Table_Name as)
+
+    ## ---
+       aliases: [import, load, open, read, sql]
+       group: Standard.Base.Input
+       icon: data_input
+       ---
+       Reads a spatial file into a new table in the database and returns a
+       query referencing the new table.
+
+       This will create a new table inside DuckDB.
+
+       ## Arguments
+        - `path`: the path to the file to read. Can be a `Text`, `URI` or
+          `File` object.
+        - `as`: the name of the table to create. Defaults to "NewTable".
+        - `key_columns`: the names of the columns to use as the primary key. If
+          not provided, no primary key will be created. If the column is a spatial
+          column then an RTree index will be used.
+
+       ## Returns
+       A `DB_Table` referencing the newly created table.
+    @as Text_Input display=..Always
+    @key_columns Vector_Editor display=..Always item_editor=Text_Input item_default='"Column"'
+    read_spatial_file : Text | URI | File -> Text -> Vector Text -> Boolean -> DB_Table
+    read_spatial_file self path=(Missing_Argument.throw "path") as:Text="NewSpatialTable" key_columns:Vector=[] replace_if_present:Boolean=False =
+        if self.is_in_memory.not then Context.Output.if_enabled disabled_message="As writing is disabled, cannot create a new table. Press the Write button ▶ to perform the operation." panic=False <|
+            Nothing
+        Data_Link_Helpers.as_file path file->
+            query = 'CREATE' + (if replace_if_present then ' OR REPLACE' else "") + ' TABLE "' + (as.replace '"' '""') + '" AS SELECT * FROM ST_Read(\'' + file.path + '\');'
+            Context.Output.with_enabled <|
+                create_table = self.execute_update query
+                create_table.if_not_error <|
+                    describe = self.execute_query ('DESCRIBE "' + (as.replace '"' '""') + '";')
+                    spatial_columns = describe.filter "column_type" (..Equal "GEOMETRY") . at "column_name" . to_vector
+                    index = if key_columns.length==0 then "" else
+                        base = 'CREATE' + (if replace_if_present then ' OR REPLACE' else "") + ' INDEX "'+ (as.replace '"' '""') + '_INDEX" ON "' + (as.replace '"' '""') + '" ('
+                        cols = key_columns.map c->
+                            escaped = c.replace '"' '""'
+                            if spatial_columns.contains c then 'RTREE(' + escaped + ')' else escaped
+                        base + (cols.join ", ") + ");"
+                    with_index = if index=="" then create_table else self.execute_update index
+                    with_index.if_not_error <|
+                        self.query (SQL_Query.Table_Name as)
 
     ## ---
        group: Standard.Base.Output
