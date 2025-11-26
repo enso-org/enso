@@ -909,7 +909,7 @@ export class RemoteBackend extends backend.Backend {
    */
   override async uploadFileStart(
     body: backend.UploadFileRequestParams,
-    file: Blob,
+    file: File,
     abort?: AbortSignal,
   ): Promise<backend.UploadLargeFileMetadata> {
     const path = remoteBackendPaths.UPLOAD_FILE_START_PATH
