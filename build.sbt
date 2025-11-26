@@ -4182,13 +4182,6 @@ lazy val `engine-runner` = project
               "-Dnic=nic"
             )
           else Seq()
-        val cCompilerOpts = (Bazel / cCompilerPath).value
-          .map(cCompiler =>
-            Seq(
-              "-H:CCompilerPath=" + cCompiler.getAbsolutePath
-            )
-          )
-          .getOrElse(Seq())
         val cLibraryOpts = (Bazel / cLibraryPath).value
           .map(cLib =>
             Seq(
@@ -4228,7 +4221,7 @@ lazy val `engine-runner` = project
               "--add-opens=java.base/java.nio=ALL-UNNAMED",
               // Needed for grpc-gax
               "--add-opens=java.base/java.time=ALL-UNNAMED"
-            ) ++ enableHeapDumpOpts ++ debugOpts ++ linkOpts ++ cCompilerOpts ++ cLibraryOpts,
+            ) ++ enableHeapDumpOpts ++ debugOpts ++ linkOpts ++ cLibraryOpts,
             mainModule = Some("org.enso.runner"),
             mainClass  = Some("org.enso.runner.Main"),
             initializeAtRuntime = Seq(

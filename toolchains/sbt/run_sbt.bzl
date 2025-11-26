@@ -23,7 +23,6 @@ def _run_sbt_impl(ctx):
     java_runtime = ctx.attr._java_runtime
     java_executable_path = java_runtime[java_common.JavaRuntimeInfo].java_executable_exec_path
     native_toolchain = _resolve_native_toolchain(ctx)
-    cc_path = native_toolchain.c_compiler_path
     cc_deps = native_toolchain.transitive_inputs
 
     out_dir = ctx.actions.declare_directory(ctx.attr.out_dir)
@@ -43,7 +42,6 @@ def _run_sbt_impl(ctx):
 
     system_props = [
         "-Denso.BazelSupport.outDir=" + out_dir.path,
-        "-Denso.BazelSupport.CCompilerPath=" + cc_path,
     ]
 
     direct_inputs = [] + ctx.files.srcs

@@ -23,7 +23,6 @@ object BazelSupport extends AutoPlugin {
   val EXTRACTED_PYTHON_RESOURCES_PROP = "enso.BazelSupport.python.resourceDir"
   val YDOC_SERVER_POLYGLOT_MAIN_JS =
     "enso.BazelSupport.ydocServer.polyglotMainJs"
-  val C_COMPILER_PATH = "enso.BazelSupport.CCompilerPath"
   val C_LIBS_PATH     = "enso.BazelSupport.CLibraryPath"
 
   object autoImport {
@@ -53,9 +52,6 @@ object BazelSupport extends AutoPlugin {
     )
     lazy val extractedPythonResourceDir = taskKey[File](
       "Directory containing extracted Python resources"
-    )
-    lazy val cCompilerPath = taskKey[Option[File]](
-      "Path to the C Compiler. Will be passed to native-image via `-H:CCompilerPath`."
     )
     lazy val cLibraryPath = taskKey[Option[File]](
       "Path to the C libraries. Will be passed to native-image via `-H:CLibraryPath`."
@@ -178,20 +174,6 @@ object BazelSupport extends AutoPlugin {
           )
         }
         jsFile
-      },
-      Bazel / cCompilerPath := {
-        val logger = streams.value.log
-        Option(System.getProperty(C_COMPILER_PATH)).map(new File(_)).flatMap {
-          compiler =>
-            if (compiler.exists()) Some(compiler)
-            else {
-              logger.error(
-                s"C Compiler not found at $compiler. " +
-                "Make sure to provide a valid C Compiler."
-              )
-              None
-            }
-        }
       },
       Bazel / cLibraryPath := {
         val logger = streams.value.log
