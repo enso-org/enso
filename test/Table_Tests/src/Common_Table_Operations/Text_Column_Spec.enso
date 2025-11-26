@@ -42,7 +42,10 @@ add_text_columns_specs suite_builder setup =
             column = text_column.get
             column.to_case ..Upper . to_vector . should_equal ["ASDF", "ZXCV FFFF", "QWER GGGG", "XOMT"]
             column.to_case ..Lower . to_vector . should_equal ["asdf", "zxcv ffff", "qwer gggg", "xomt"]
-            column.to_case ..Proper . to_vector . should_equal ["Asdf", "Zxcv Ffff", "Qwer Gggg", "Xomt"]
+            proper = column.to_case ..Proper . to_vector
+            case setup.flagged ..Supports_Proper_Casing of
+                True  -> proper.should_equal ["Asdf", "Zxcv Ffff", "Qwer Gggg", "Xomt"]
+                False -> proper.should_fail_with Unsupported_Database_Operation
 
         group_builder.specify "to_case respects locale" pending=to_case_locale_db_pending <|
             c = build_sorted_table [['x', ['i', 'a', 'b']]] . at 'x'
@@ -52,7 +55,8 @@ add_text_columns_specs suite_builder setup =
             column = text_column.get
             column.to_case ..Upper . name . should_equal "upper([X])"
             column.to_case ..Lower . name . should_equal "lower([X])"
-            column.to_case ..Proper . name . should_equal "proper([X])"
+            if setup.flagged ..Supports_Proper_Casing then
+                column.to_case ..Proper . name . should_equal "proper([X])"
 
         if setup.is_database then
             group_builder.specify "local-specific to_case not implemented for database backend" <|
