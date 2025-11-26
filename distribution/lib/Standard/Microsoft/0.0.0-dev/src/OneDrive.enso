@@ -1,9 +1,14 @@
 from Standard.Base import all
+import Standard.Base.Enso_Cloud.Data_Link_Helpers
 import Standard.Base.Errors.File_Error.File_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Unimplemented.Unimplemented
+import Standard.Base.Runtime.Context
+import Standard.Base.System.File.Generic.File_Like.File_Like
+import Standard.Base.System.File.Generic.Writable_File.Writable_File
 import Standard.Base.System.File_Format_Metadata.File_Format_Metadata
 import Standard.Base.System.Input_Stream.Input_Stream
+from Standard.Base.System.File.Generic.File_Write_Strategy import generic_copy
 
 import project.Internal.Graph.Graph
 import project.Internal.OneDrive_Path.OneDrive_Path
@@ -188,13 +193,16 @@ type OneDrive_File
        ## Errors
         - Unless `replace_existing` is set to `True`, if the destination file
           already exists, a `File_Error` is thrown.
-        - If the source is a directory, an `S3_Error` will occur as this is not
+        - If the source is a directory, an `Illegal_Argument` will occur as this is not
           currently supported.
         - If the Output operations are disabled, a `Forbidden_Operation` panic
           will occur.
-    copy_to : File_Like -> Boolean -> Any ! S3_Error | File_Error
+    copy_to : File_Like -> Boolean -> Any ! Illegal_Argument | File_Error
     copy_to self (destination : File_Like) (replace_existing : Boolean = False) = Data_Link_Helpers.disallow_links_in_copy self destination <|
-        Unimplemented.throw "OneDrive copy_to is not currently implemented."
+        if self.is_directory then Error.throw (Illegal_Argument.Error "Copying OneDrive folders is currently not implemented." self.uri)
+        Context.Output.if_enabled disabled_message="As writing is disabled, cannot copy to a file. Press the Write button ▶ to perform the operation." panic=False <|
+            destination_writable = Writable_File.from destination
+            generic_copy self destination_writable replace_existing
 
     ## ---
        group: Standard.Base.Metadata

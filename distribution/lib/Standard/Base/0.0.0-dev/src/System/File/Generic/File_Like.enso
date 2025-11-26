@@ -54,8 +54,7 @@ type File_Like
         - `destination`: the destination to move the file to.
         - `replace_existing`: specifies if the operation should proceed if the
           destination file already exists. Defaults to `False`.
-    copy_to : File_Like -> Boolean -> Any ! File_Error
-    copy_to self (destination : File_Like) (replace_existing : Boolean = False)
+    copy_to self destination replace_existing =
         self.underlying.copy_to destination replace_existing
 
 ## ---
