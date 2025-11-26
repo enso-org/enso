@@ -55,10 +55,6 @@ jobs:
     runs-on:
       - ubuntu-latest
     steps:
-      - name: Install native image dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install build-essential
       - uses: bazel-contrib/setup-bazel@0.15.0
         with:
           bazelisk-version: 1.x

@@ -33,6 +33,7 @@ def _run_sbt_impl(ctx):
     for k, v in ctx.attr.env.items():
         envs[k] = expand_variables(ctx, ctx.expand_location(v, targets = ctx.attr.srcs), outs = outputs, attribute_name = "env")
 
+    # Merge user-provided PATH with native toolchain’s PATH.
     user_provided_path = envs["PATH"]
     envs = dicts.add(dicts.omit(envs, ["PATH"]), native_toolchain.env)
     if user_provided_path:
@@ -46,18 +47,18 @@ def _run_sbt_impl(ctx):
     ]
 
     direct_inputs = [] + ctx.files.srcs
+
+    # On Linux, we need to add the zlib static library to the linker search path for the native image build.
     if CcInfo in ctx.attr._zlib and ctx.target_platform_has_constraint(ctx.attr._linux_constraint[platform_common.ConstraintValueInfo]):
         linking_context = ctx.attr._zlib[CcInfo].linking_context
         linker_inputs = linking_context.linker_inputs.to_list()
-        libraries = linker_inputs[0].libraries
-        library = libraries[0]
-
+        library = linker_inputs[0].libraries[0]
         static_library = library.pic_static_library
         if not static_library:
             static_library = library.static_library
         zlib_static = ctx.actions.declare_file(ctx.attr.name + "_hermetic_libs/libz.a")
         ctx.actions.symlink(output = zlib_static, target_file = static_library)
-        system_props.append("-Denso.BazelSupport.zlib=" + zlib_static.dirname)
+        system_props.append("-Denso.BazelSupport.cLibraryPath=" + zlib_static.dirname)
         direct_inputs.append(zlib_static)
 
     inputs = depset(direct_inputs, transitive = [java_runtime.files, cc_deps])
@@ -133,9 +134,10 @@ def _resolve_native_toolchain(ctx):
     - `env`: Environment to use; includes an assembled `PATH` for older rule invocations.
     - `execution_requirements`: Resolved link and compile requirements.
     - `transitive_inputs`: Transitive inputs of cc_toolchain.
+
+    The implementation is mostly copied from https://github.com/sgammon/rules_graalvm/blob/81fc9b2de33c0429b716f1bfcd3223a82c0e1085/internal/native_image/toolchain.bzl#L23
     """
 
-    # begin resolving native toolchains
     cc_toolchain = find_cpp_toolchain(ctx)
     is_windows = ctx.target_platform_has_constraint(
         ctx.attr._windows_constraint[platform_common.ConstraintValueInfo],
@@ -214,10 +216,9 @@ def _resolve_native_toolchain(ctx):
         # on macOS, wrapped_ar calls dirname.
         if "/bin" not in path_set:
             paths.append("/bin")
-            if "/usr/bin" not in path_set:
-                paths.append("/usr/bin")
+        if "/usr/bin" not in path_set:
+            paths.append("/usr/bin")
 
-    # seal paths with hack above
     env["PATH"] = ctx.configuration.host_path_separator.join(paths)
 
     return struct(

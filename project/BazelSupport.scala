@@ -24,7 +24,7 @@ object BazelSupport extends AutoPlugin {
   val YDOC_SERVER_POLYGLOT_MAIN_JS =
     "enso.BazelSupport.ydocServer.polyglotMainJs"
   val C_COMPILER_PATH                 = "enso.BazelSupport.CCompilerPath"
-  val ZLIB_PATH                       = "enso.BazelSupport.zlib"
+  val C_LIBS_PATH                     = "enso.BazelSupport.CLibraryPath"
 
   object autoImport {
     lazy val wasStartedFromBazel = settingKey[Boolean](
@@ -57,8 +57,8 @@ object BazelSupport extends AutoPlugin {
     lazy val cCompilerPath = taskKey[Option[File]](
       "Path to the C Compiler. Will be passed to native-image via `-H:CCompilerPath`."
     )
-    lazy val zlibPath = taskKey[Option[File]](
-      "Path to the Zlib static library. Will be passed to native-image via `-H:CLibraryPath`."
+    lazy val cLibraryPath = taskKey[Option[File]](
+      "Path to the C libraries. Will be passed to native-image via `-H:CLibraryPath`."
     )
     lazy val ydocServerPolyglotMainJs = taskKey[File](
       "Path to the ydoc-server polyglot main JS file."
@@ -181,37 +181,27 @@ object BazelSupport extends AutoPlugin {
       },
       Bazel / cCompilerPath := {
         val logger = streams.value.log
-        val prop = System.getProperty(C_COMPILER_PATH)
-        if (prop == null) {
-          None
-        } else {
-          val compiler = new File(prop)
-          if (!compiler.exists()) {
+        Option(System.getProperty(C_COMPILER_PATH)).map(new File(_)).flatMap { compiler =>
+          if (compiler.exists()) Some(compiler)
+          else {
             logger.error(
               s"C Compiler not found at $compiler. " +
               "Make sure to provide a valid C Compiler."
             )
             None
-          } else {
-            Some(compiler)
           }
         }
       },
-      Bazel / zlibPath := {
+      Bazel / cLibraryPath := {
         val logger = streams.value.log
-        val prop   = System.getProperty(ZLIB_PATH)
-        if (prop == null) {
-          None
-        } else {
-          val zlib = new File(prop)
-          if (!zlib.exists()) {
+        Option(System.getProperty(C_LIBS_PATH)).map(new File(_)).flatMap { lib =>
+          if (lib.exists()) Some(lib)
+          else {
             logger.error(
-              s"Zlib not found at $zlib. " +
-              "Make sure to provide a valid Zlib."
+              s"C Library not found at $lib. " +
+              "Make sure to provide a valid C Library."
             )
             None
-          } else {
-            Some(zlib)
           }
         }
       }

@@ -4174,20 +4174,12 @@ lazy val `engine-runner` = project
               "-Dnic=nic"
             )
           else Seq()
-        val cCompilerOpts = if ((Bazel / wasStartedFromBazel).value) {
-          (Bazel / cCompilerPath).value.map(cCompiler => Seq(
+        val cCompilerOpts = (Bazel / cCompilerPath).value.map(cCompiler => Seq(
             "-H:CCompilerPath=" + cCompiler.getAbsolutePath,
           )).getOrElse(Seq())
-        } else {
-          Seq()
-        }
-        val zlibOpts = if ((Bazel / wasStartedFromBazel).value) {
-          (Bazel / zlibPath).value.map(zlib => Seq(
-            "-H:CLibraryPath=" + zlib.getAbsolutePath,
+        val cLibraryOpts = (Bazel / cLibraryPath).value.map(cLib => Seq(
+            "-H:CLibraryPath=" + cLib.getAbsolutePath,
           )).getOrElse(Seq())
-        } else {
-          Seq()
-        }
         val mp = (Runtime / modulePath).value.map(_.getAbsolutePath)
         NativeImage
           .buildNativeImage(
@@ -4220,7 +4212,7 @@ lazy val `engine-runner` = project
               "--add-opens=java.base/java.nio=ALL-UNNAMED",
               // Needed for grpc-gax
               "--add-opens=java.base/java.time=ALL-UNNAMED"
-            ) ++ enableHeapDumpOpts ++ debugOpts ++ linkOpts ++ cCompilerOpts ++ zlibOpts,
+            ) ++ enableHeapDumpOpts ++ debugOpts ++ linkOpts ++ cCompilerOpts ++ cLibraryOpts,
             mainModule = Some("org.enso.runner"),
             mainClass  = Some("org.enso.runner.Main"),
             initializeAtRuntime = Seq(
