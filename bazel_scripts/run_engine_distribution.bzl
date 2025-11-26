@@ -42,7 +42,6 @@ def _run_enso_impl(ctx):
         runfiles = all_runfiles,
     )]
 
-
 def _ensure_native_enso_impl(ctx):
     """ Runs enso executable with `--version` argument to ensure it was built with native image """
     distribution = ctx.attr.distribution[DefaultInfo].files
@@ -63,13 +62,13 @@ def _ensure_native_enso_impl(ctx):
             exit 1
         fi
         """.format(
-            dist = dist_dir
+            dist = dist_dir,
         ),
         is_executable = True,
     )
 
     all_runfiles = ctx.runfiles(
-        files = distribution.to_list()
+        files = distribution.to_list(),
     )
 
     return [DefaultInfo(
@@ -77,16 +76,15 @@ def _ensure_native_enso_impl(ctx):
         runfiles = all_runfiles,
     )]
 
-
 ensure_native_enso = rule(
     implementation = _ensure_native_enso_impl,
     attrs = {
         "distribution": attr.label(
             mandatory = True,
-            allow_files = True
-        )
+            allow_files = True,
+        ),
     },
-    executable = True
+    executable = True,
 )
 
 run_enso = rule(

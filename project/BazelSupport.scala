@@ -23,8 +23,8 @@ object BazelSupport extends AutoPlugin {
   val EXTRACTED_PYTHON_RESOURCES_PROP = "enso.BazelSupport.python.resourceDir"
   val YDOC_SERVER_POLYGLOT_MAIN_JS =
     "enso.BazelSupport.ydocServer.polyglotMainJs"
-  val C_COMPILER_PATH                 = "enso.BazelSupport.CCompilerPath"
-  val C_LIBS_PATH                     = "enso.BazelSupport.CLibraryPath"
+  val C_COMPILER_PATH = "enso.BazelSupport.CCompilerPath"
+  val C_LIBS_PATH     = "enso.BazelSupport.CLibraryPath"
 
   object autoImport {
     lazy val wasStartedFromBazel = settingKey[Boolean](
@@ -181,28 +181,30 @@ object BazelSupport extends AutoPlugin {
       },
       Bazel / cCompilerPath := {
         val logger = streams.value.log
-        Option(System.getProperty(C_COMPILER_PATH)).map(new File(_)).flatMap { compiler =>
-          if (compiler.exists()) Some(compiler)
-          else {
-            logger.error(
-              s"C Compiler not found at $compiler. " +
-              "Make sure to provide a valid C Compiler."
-            )
-            None
-          }
+        Option(System.getProperty(C_COMPILER_PATH)).map(new File(_)).flatMap {
+          compiler =>
+            if (compiler.exists()) Some(compiler)
+            else {
+              logger.error(
+                s"C Compiler not found at $compiler. " +
+                "Make sure to provide a valid C Compiler."
+              )
+              None
+            }
         }
       },
       Bazel / cLibraryPath := {
         val logger = streams.value.log
-        Option(System.getProperty(C_LIBS_PATH)).map(new File(_)).flatMap { lib =>
-          if (lib.exists()) Some(lib)
-          else {
-            logger.error(
-              s"C Library not found at $lib. " +
-              "Make sure to provide a valid C Library."
-            )
-            None
-          }
+        Option(System.getProperty(C_LIBS_PATH)).map(new File(_)).flatMap {
+          lib =>
+            if (lib.exists()) Some(lib)
+            else {
+              logger.error(
+                s"C Library not found at $lib. " +
+                "Make sure to provide a valid C Library."
+              )
+              None
+            }
         }
       }
     )

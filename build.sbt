@@ -2111,18 +2111,22 @@ lazy val `ydoc-server` = project
     NativeImage.smallJdk := None,
     NativeImage.additionalCp := Seq.empty,
     rebuildNativeImage := Def.taskDyn {
-      val cLibraryOpts = (Bazel / cLibraryPath).value.map(cLib => Seq(
-        "-H:CLibraryPath=" + cLib.getAbsolutePath,
-      )).getOrElse(Seq())
+      val cLibraryOpts = (Bazel / cLibraryPath).value
+        .map(cLib =>
+          Seq(
+            "-H:CLibraryPath=" + cLib.getAbsolutePath
+          )
+        )
+        .getOrElse(Seq())
       NativeImage
         .buildNativeImage(
           "org.enso.ydoc.server",
-          staticOnLinux = false,
+          staticOnLinux     = false,
           additionalOptions = cLibraryOpts,
-          targetDir     = engineDistributionRoot.value / "component",
-          mainClass     = Some("org.enso.ydoc.server.Main"),
-          symlink       = false,
-          shared        = true
+          targetDir         = engineDistributionRoot.value / "component",
+          mainClass         = Some("org.enso.ydoc.server.Main"),
+          symlink           = false,
+          shared            = true
         )
     }.value,
     buildNativeImage := Def.taskDyn {
@@ -4178,12 +4182,20 @@ lazy val `engine-runner` = project
               "-Dnic=nic"
             )
           else Seq()
-        val cCompilerOpts = (Bazel / cCompilerPath).value.map(cCompiler => Seq(
-            "-H:CCompilerPath=" + cCompiler.getAbsolutePath,
-          )).getOrElse(Seq())
-        val cLibraryOpts = (Bazel / cLibraryPath).value.map(cLib => Seq(
-            "-H:CLibraryPath=" + cLib.getAbsolutePath,
-          )).getOrElse(Seq())
+        val cCompilerOpts = (Bazel / cCompilerPath).value
+          .map(cCompiler =>
+            Seq(
+              "-H:CCompilerPath=" + cCompiler.getAbsolutePath
+            )
+          )
+          .getOrElse(Seq())
+        val cLibraryOpts = (Bazel / cLibraryPath).value
+          .map(cLib =>
+            Seq(
+              "-H:CLibraryPath=" + cLib.getAbsolutePath
+            )
+          )
+          .getOrElse(Seq())
         val mp = (Runtime / modulePath).value.map(_.getAbsolutePath)
         NativeImage
           .buildNativeImage(
