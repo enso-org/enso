@@ -360,11 +360,17 @@ final class TruffleCompilerContext implements CompilerContext {
             diagnosticFormatter.format(), diagnosticFormatter.where());
       }
     }
-    var emptySource = Source.newBuilder(LanguageInfo.ID, "", null).build();
+    Source fallbackSource;
+    try {
+      fallbackSource = m.getSource();
+    } catch (IOException ex) {
+      fallbackSource = Source.newBuilder(LanguageInfo.ID, "", null).build();
+    }
     diagnosticFormatter =
         DiagnosticFormatter.create(
-            diagnostic, emptySource, isOutputRedirected, context.isColorTerminalOutput());
-    return new CompilationAbortedException(diagnosticFormatter.format(), null);
+            diagnostic, fallbackSource, isOutputRedirected, context.isColorTerminalOutput());
+    var ss = fallbackSource.createUnavailableSection();
+    return new CompilationAbortedException(diagnosticFormatter.format(), ss);
   }
 
   @SuppressWarnings("unchecked")
@@ -408,9 +414,7 @@ final class TruffleCompilerContext implements CompilerContext {
     logSerializationManager(
         Level.FINE, "Requesting serialization for module [{0}].", module.getName());
     var ir = module.getIr();
-    var dupl =
-        ir.duplicate(
-            ir.duplicate$default$1(), ir.duplicate$default$2(), ir.duplicate$default$3(), true);
+    var dupl = ir.duplicate(true, true, true, true);
     var duplicatedIr = compiler.updateMetadata(ir, dupl);
     Source src;
     try {

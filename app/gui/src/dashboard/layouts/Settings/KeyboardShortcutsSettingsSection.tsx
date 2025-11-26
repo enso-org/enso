@@ -14,8 +14,8 @@ import CaptureKeyboardShortcutModal from '#/modals/CaptureKeyboardShortcutModal'
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import KeyboardShortcut from '#/pages/dashboard/components/KeyboardShortcut'
 import { useInputBindings } from '#/providers/InputBindingsProvider'
-import { unsafeEntries } from '#/utilities/object'
 import { useText } from '$/providers/react'
+import { unsafeEntries } from 'enso-common/src/utilities/data/object'
 import * as React from 'react'
 
 /** Settings tab for viewing and editing keyboard shortcuts. */

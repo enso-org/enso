@@ -1,6 +1,8 @@
 package org.enso.jvm.interop.impl;
 
+import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.interop.TruffleObject;
+import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.Message;
 import com.oracle.truffle.api.nodes.Node;
 import java.util.HashMap;
@@ -11,6 +13,8 @@ import java.util.function.Function;
 import java.util.stream.Stream;
 import org.enso.jvm.channel.Channel;
 import org.enso.persist.Persistance;
+import org.graalvm.polyglot.Value;
+import org.graalvm.polyglot.proxy.ProxyExecutable;
 
 /** Pool of Truffle objects associated with {@link Channel}. */
 public final class OtherJvmPool extends Channel.Config {
@@ -26,13 +30,48 @@ public final class OtherJvmPool extends Channel.Config {
   /** context to use when entering tests */
   private OtherJvmLoader loader;
 
+  private Function<String, Object> polyglotBindings;
   private Function<Node, Object> onEnter;
   private BiConsumer<Node, Object> onLeave;
+  private Class<? extends TruffleLanguage> language;
 
   /** Master Channel can be associated with actions on enter and on leave. */
-  public final void onEnterLeave(Function<Node, Object> onEnter, BiConsumer<Node, Object> onLeave) {
+  public final void onEnterLeave(
+      Class<? extends TruffleLanguage> lang,
+      Function<String, Object> polyglotBindings,
+      Function<Node, Object> onEnter,
+      BiConsumer<Node, Object> onLeave) {
+    this.language = lang;
+    this.polyglotBindings = polyglotBindings;
     this.onEnter = onEnter;
     this.onLeave = onLeave;
+  }
+
+  public final synchronized void close(Channel<OtherJvmPool> ch) throws Exception {
+    this.language = null;
+    this.polyglotBindings = null;
+    this.onEnter = null;
+    this.onLeave = null;
+    this.loader = null;
+    this.objectsById.clear();
+    this.objectsToId.clear();
+    this.incomming.clear();
+    ch.close();
+    assert ch.getConfig() == this;
+    OtherJvmRef.closeChannel(ch);
+  }
+
+  final boolean hasLanguage() {
+    return language != null;
+  }
+
+  final Class<? extends TruffleLanguage> getLanguage() throws UnsupportedMessageException {
+    var l = language;
+    if (l == null) {
+      throw UnsupportedMessageException.create();
+    } else {
+      return l;
+    }
   }
 
   /**
@@ -98,39 +137,39 @@ public final class OtherJvmPool extends Channel.Config {
 
   @Override
   @SuppressWarnings("unchecked")
-  public final Persistance.Pool createPool(Channel<?> channel) {
+  public final Persistance.Pool createPool(Channel<?> rawChannel) {
+    var channel = (Channel<OtherJvmPool>) rawChannel;
     var withRead =
         Persistables.POOL.withReadResolve(
             obj -> {
-              return OtherJvmObject.readResolve(
-                  (Channel<OtherJvmPool>) channel, obj, this::findObject, this::findCached);
+              return OtherJvmObject.readResolve(channel, obj, this::findObject, this::findCached);
             });
     var withReadAndWrite =
         withRead.withWriteReplace(
             obj -> {
-              var prev = enter(channel.isMaster(), null);
+              var prev = enter(channel, null);
               try {
                 return OtherJvmObject.writeReplace(obj, this::registerObject);
               } finally {
-                leave(channel.isMaster(), null, prev);
+                leave(channel, null, prev);
               }
             });
     return withReadAndWrite;
   }
 
-  final Object enter(boolean master, Node node) {
-    if (master) {
+  final Object enter(Channel<OtherJvmPool> channel, Node node) {
+    if (channel.isMaster()) {
       if (onEnter != null) {
         return onEnter.apply(node);
       }
     } else {
-      loader(master).ctx.enter();
+      loader(channel).ctx.enter();
     }
     return null;
   }
 
-  final void leave(boolean master, Node node, Object prev) {
-    if (master) {
+  final void leave(Channel<OtherJvmPool> master, Node node, Object prev) {
+    if (master.isMaster()) {
       if (onLeave != null) {
         onLeave.accept(node, prev);
       }
@@ -139,24 +178,35 @@ public final class OtherJvmPool extends Channel.Config {
     }
   }
 
-  void addToClassPath(boolean master, String file) {
-    loader(master).addToClassPath(file);
+  void addToClassPath(Channel<OtherJvmPool> channel, String file) {
+    loader(channel).addToClassPath(file);
   }
 
-  void findLibraries(boolean master, TruffleObject file) {
-    loader(master).findLibraries(file);
+  void findLibraries(Channel<OtherJvmPool> channel, TruffleObject file) {
+    loader(channel).findLibraries(file);
   }
 
-  final TruffleObject loadClassObject(boolean master, String className)
+  final TruffleObject loadClassObject(Channel<OtherJvmPool> master, String className)
       throws ClassNotFoundException {
     var clazz = loader(master).loadClassObject(className);
     return clazz;
   }
 
-  private final synchronized OtherJvmLoader loader(boolean master) {
-    assert !master : "Cannot handle classloading in master, only in slave";
+  private final synchronized OtherJvmLoader loader(Channel<OtherJvmPool> channel) {
+    assert !channel.isMaster() : "Cannot handle classloading in master, only in slave";
     if (loader == null) {
       loader = new OtherJvmLoader();
+      loader
+          .ctx
+          .getPolyglotBindings()
+          .putMember(
+              "ensoBindings",
+              (ProxyExecutable)
+                  (Value... arguments) -> {
+                    var msg = new OtherJvmMessage.PolyglotBindings("enso");
+                    var res = channel.execute(Object.class, msg);
+                    return res;
+                  });
     }
     return loader;
   }
@@ -269,6 +319,10 @@ public final class OtherJvmPool extends Channel.Config {
               + dumpMessages();
       throw new AssertionError(txt);
     }
+  }
+
+  final Object getBindings(String name) {
+    return polyglotBindings == null ? null : polyglotBindings.apply(name);
   }
 
   private static final class WhereAndCount extends Exception {

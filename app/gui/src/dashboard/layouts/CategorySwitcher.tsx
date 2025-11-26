@@ -19,11 +19,11 @@ import { useCategoriesAPI } from '#/layouts/Drive/Categories/categoriesHooks'
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import { setDriveLocation } from '#/providers/DriveProvider'
 import { setModal, unsetModal } from '#/providers/ModalProvider'
-import { Path } from '#/services/Backend'
 import { tv } from '#/utilities/tailwindVariants'
 import { SEARCH_PARAMS_PREFIX } from '$/appUtils'
 import * as authProvider from '$/providers/react'
 import { useBackends, useRouter, useText } from '$/providers/react'
+import { Path } from 'enso-common/src/services/Backend'
 import * as React from 'react'
 import { twJoin } from 'tailwind-merge'
 
@@ -344,7 +344,7 @@ function CategorySwitcher(props: CategorySwitcherProps) {
           </div>
         ))}
 
-      {directories != null && window.fileBrowserApi && (
+      {directories != null && window.api && (
         <div className="flex">
           <div className="ml-[15px] mr-1.5 rounded-full border-r border-primary/20" />
 
@@ -355,7 +355,7 @@ function CategorySwitcher(props: CategorySwitcherProps) {
             loaderPosition="icon"
             onPress={async () => {
               const [newDirectory] =
-                (await window.fileBrowserApi?.openFileBrowser('directory')) ?? []
+                (await window.api?.fileBrowser.openFileBrowser('directory')) ?? []
 
               if (newDirectory != null) {
                 const addedDirectory = directories.find(

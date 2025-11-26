@@ -1,3 +1,12 @@
+import { TypeInfo } from '$/providers/openedProjects/project/computedValueRegistry'
+import { SuggestionDb } from '$/providers/openedProjects/suggestionDatabase'
+import {
+  makeConstructor,
+  makeMethod,
+  makeModule,
+  makeModuleMethod,
+  makeStaticMethod,
+} from '$/providers/openedProjects/suggestionDatabase/mockSuggestion'
 import {
   compareSuggestions,
   labelOfEntry,
@@ -6,18 +15,9 @@ import {
   type MatchedSuggestion,
 } from '@/components/ComponentBrowser/component'
 import { Filtering } from '@/components/ComponentBrowser/filtering'
-import { TypeInfo } from '@/stores/project/computedValueRegistry'
-import { SuggestionDb } from '@/stores/suggestionDatabase'
-import {
-  makeConstructor,
-  makeMethod,
-  makeModule,
-  makeModuleMethod,
-  makeStaticMethod,
-} from '@/stores/suggestionDatabase/mockSuggestion'
 import { allRanges } from '@/util/data/range'
 import { ProjectPath, stdPath } from '@/util/projectPath'
-import { QualifiedName } from '@/util/qualifiedName'
+import { type QualifiedName } from '@/util/qualifiedName'
 import shuffleSeed from 'shuffle-seed'
 import { expect, test } from 'vitest'
 

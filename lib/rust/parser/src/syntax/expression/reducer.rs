@@ -2,14 +2,12 @@ use crate::prelude::*;
 use crate::syntax::expression::apply::*;
 use crate::syntax::expression::types::*;
 
-use crate::syntax::expression::section::MaybeSection;
-use crate::syntax::token;
-use crate::syntax::tree::apply;
 use crate::syntax::Finish;
 use crate::syntax::ScopeHierarchyConsumer;
 use crate::syntax::Tree;
-
-
+use crate::syntax::expression::section::MaybeSection;
+use crate::syntax::token;
+use crate::syntax::tree::apply;
 
 // ===============
 // === Reducer ===
@@ -25,9 +23,9 @@ use crate::syntax::Tree;
 /// [^2](https://en.wikipedia.org/wiki/Shunting_yard_algorithm)
 #[derive(Default, Debug)]
 pub struct Reduce<'s> {
-    output:         Vec<MaybeSection<Tree<'s>>>,
+    output: Vec<MaybeSection<Tree<'s>>>,
     operator_stack: Vec<StackOperator<'s>>,
-    scope_stack:    Vec<(u32, u32)>,
+    scope_stack: Vec<(u32, u32)>,
 }
 
 impl<'s> OperandConsumer<'s> for Reduce<'s> {
@@ -194,13 +192,12 @@ fn reduce_step<'s>(
     }
 }
 
-
 // === Operator on-stack information ===
 
 #[derive(Debug)]
 struct StackOperator<'s> {
     right_precedence: ModifiedPrecedence,
-    associativity:    token::Associativity,
-    arity:            Arity<'s>,
-    warnings:         Warnings,
+    associativity: token::Associativity,
+    arity: Arity<'s>,
+    warnings: Warnings,
 }

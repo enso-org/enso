@@ -8,16 +8,14 @@ use crate::programs::graalpy::GraalPy as GraalPyProgram;
 
 use regex::Regex;
 
-
-
 pub const CE_BUILDS_REPOSITORY: RepoRef = RepoRef { owner: "oracle", name: "graalpython" };
 
 #[derive(Clone, Debug)]
 pub struct GraalPy {
-    pub client:  Octocrab,
+    pub client: Octocrab,
     pub version: Version,
-    pub os:      OS,
-    pub arch:    Arch,
+    pub os: OS,
+    pub arch: Arch,
 }
 
 fn graalpy_version_from_str(version_string: &str) -> Result<Version> {

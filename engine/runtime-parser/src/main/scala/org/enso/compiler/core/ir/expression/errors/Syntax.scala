@@ -172,11 +172,6 @@ object Syntax {
       "Private and public constructors cannot be mixed within a single type"
   }
 
-  case object InvalidUnderscore extends Reason {
-    override def explanation: String =
-      s"Invalid use of _"
-  }
-
   case object InvalidPattern extends Reason {
     override def explanation: String =
       s"Cannot define a pattern outside a pattern context"

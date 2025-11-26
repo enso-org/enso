@@ -1,12 +1,14 @@
 //! Traits for the expression-parsing pipeline.
+
 use crate::prelude::*;
+
+use crate::syntax::Item;
+use crate::syntax::Token;
+use crate::syntax::Tree;
 use crate::syntax::expression::whitespace::Spacing;
 use crate::syntax::expression::whitespace::SpacingLookaheadTokenConsumer;
 use crate::syntax::expression::whitespace::SpacingLookaheadTreeConsumer;
 use crate::syntax::token;
-use crate::syntax::Item;
-use crate::syntax::Token;
-use crate::syntax::Tree;
 
 /// Item consumer.
 pub trait ItemConsumer<'s> {
@@ -72,7 +74,6 @@ pub trait Flush {
     /// Process all retained state.
     fn flush(&mut self);
 }
-
 
 // =================
 // === Debugging ===

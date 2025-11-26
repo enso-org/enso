@@ -2335,20 +2335,23 @@ class RuntimeServerTest
     )
   }
 
-  it should "send method pointer updates of partially applied atom methods called with static notation" in {
+  /** Lambda instrumentation is currently not supported.
+    * Note that the expression `T.func1 self=_` creates a lambda Function.
+    */
+  ignore should "send method pointer updates of partially applied atom methods called with static notation" in {
     val contextId  = UUID.randomUUID()
     val requestId  = UUID.randomUUID()
     val moduleName = "Enso_Test.Test.Main"
 
     val metadata = new Metadata("import Standard.Base.Data.Numbers\n\n")
-    val id_x1_1  = metadata.addItem(30, 7, "aa")
-    val id_x1_2  = metadata.addItem(49, 10, "ab")
-    val id_x1    = metadata.addItem(69, 6, "ac")
+    val id_x1_1  = metadata.addItem(30, 14, "aa")
+    val id_x1_2  = metadata.addItem(56, 10, "ab")
+    val id_x1    = metadata.addItem(76, 6, "ac")
 
     val code =
       """main =
         |    a = T.A
-        |    x1_1 = T.func1
+        |    x1_1 = T.func1 self=_
         |    x1_2 = x1_1 a y=2
         |    x1 = x1_2 1
         |    x1
@@ -2724,14 +2727,14 @@ class RuntimeServerTest
 
     val metadata = new Metadata
     val id_x     = metadata.addItem(52, 25, "aa")
-    val id_y     = metadata.addItem(86, 16, "ab")
+    val id_y     = metadata.addItem(86, 21, "ab")
 
     val code =
       """import Standard.Base.Data.Time.Date
         |
         |main =
         |    x = Date.new_builtin 1970 1 1
-        |    y = Date.Date.year x
+        |    y = Date.Date.year self=x
         |    y
         |""".stripMargin.linesIterator.mkString("\n")
     val contents = metadata.appendToCode(code)

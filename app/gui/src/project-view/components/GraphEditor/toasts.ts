@@ -1,4 +1,4 @@
-import type { ProjectStore } from '@/stores/project'
+import { type ProjectStore } from '$/providers/openedProjects/project'
 import { useToast } from '@/util/toast'
 import { onScopeDispose } from 'vue'
 

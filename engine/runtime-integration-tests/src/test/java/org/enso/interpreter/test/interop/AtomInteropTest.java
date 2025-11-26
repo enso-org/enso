@@ -179,13 +179,13 @@ public class AtomInteropTest {
     var myTypeAtom =
         ctxRule.evalModule(
             """
-        type My_Type
-            private Cons a
+            type My_Type
+                private Cons a
 
-            read self = self.a
+                read self = self.a
 
-        main = My_Type.Cons "a"
-        """);
+            main = My_Type.Cons "a"
+            """);
     var atom = ctxRule.unwrapValue(myTypeAtom);
     var interop = InteropLibrary.getUncached();
     var read = interop.readMember(atom, "read");
@@ -198,13 +198,13 @@ public class AtomInteropTest {
     var atom =
         ctxRule.evalModule(
             """
-        type My_Type
-            private Cons a
+            type My_Type
+                private Cons a
 
-            read self = self.a
+                read self = self.a
 
-        main = My_Type.Cons "a"
-        """);
+            main = My_Type.Cons "a"
+            """);
     var type = ctxRule.unwrapValue(atom.getMetaObject());
     var rawAtom = ctxRule.unwrapValue(atom);
     var interop = InteropLibrary.getUncached();
@@ -474,6 +474,51 @@ public class AtomInteropTest {
     var interop = InteropLibrary.getUncached();
     var next = interop.invokeMember(atomUnwrapped, "next");
     assertThat("Returns next atom", interop.hasMembers(next), is(true));
+  }
+
+  @Test
+  public void instanceMethod_CanBeInvokedViaAtom() {
+    var atom =
+        ctxRule.evalModule(
+            """
+            type My_Type
+                Cons
+                method self = 42
+            main = My_Type.Cons
+            """);
+    assertThat(atom.hasMember("method"), is(true));
+    assertThat(atom.canInvokeMember("method"), is(true));
+    var res = atom.invokeMember("method");
+    assertThat(res.asInt(), is(42));
+  }
+
+  @Test
+  public void instanceMethod_IsMemberOfType() {
+    var type =
+        ctxRule.evalModule(
+            """
+            type My_Type
+                Cons
+                method self = 42
+            main = My_Type
+            """);
+    assertThat(type.hasMember("method"), is(true));
+    assertThat(type.canInvokeMember("method"), is(true));
+  }
+
+  @Test
+  public void instanceMethod_CanBeInvokedViaType() {
+    var atom =
+        ctxRule.evalModule(
+            """
+            type My_Type
+                Cons
+                method self = 42
+            main = My_Type.Cons
+            """);
+    var type = atom.getMetaObject();
+    var res = type.invokeMember("method", atom);
+    assertThat(res.asInt(), is(42));
   }
 
   @Test

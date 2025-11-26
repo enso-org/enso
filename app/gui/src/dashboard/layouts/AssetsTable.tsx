@@ -3,7 +3,6 @@ import DropFilesImage from '#/assets/drop_files.svg'
 import { FileTrigger, mergeProps } from '#/components/aria'
 import { Button } from '#/components/Button'
 import type { ContextMenuApi } from '#/components/ContextMenu'
-import { ErrorDisplay } from '#/components/ErrorBoundary'
 import { IsolateLayout } from '#/components/IsolateLayout'
 import { Scroller } from '#/components/Scroller'
 import { SelectionBrush, type OnDragParams } from '#/components/SelectionBrush'
@@ -23,7 +22,6 @@ import { useUploadFiles } from '#/hooks/backendUploadFilesHooks'
 import { usePaste } from '#/hooks/cutAndPasteHooks'
 import { useDerivedDebouncedState } from '#/hooks/debounceCallbackHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import { useCloseProject, useOpenProjectLocally } from '#/hooks/projectHooks'
 import { useStore } from '#/hooks/storeHooks'
 import { useSyncRef } from '#/hooks/syncRefHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
@@ -61,14 +59,27 @@ import {
 } from '#/providers/DriveProvider'
 import { useInputBindings } from '#/providers/InputBindingsProvider'
 import { setModal, unsetModal } from '#/providers/ModalProvider'
-import type Backend from '#/services/Backend'
+import AssetQuery from '#/utilities/AssetQuery'
+import { ASSET_ROWS, setDragImageToBlank, type AssetRowsDragPayload } from '#/utilities/drag'
+import { isElementTextInput, isTextInputEvent } from '#/utilities/event'
+import { DEFAULT_HANDLER } from '#/utilities/inputBindings'
+import LocalStorage from '#/utilities/LocalStorage'
+import { withPresence } from '#/utilities/set'
+import type { SortInfo } from '#/utilities/sorting'
+import { twMerge } from '#/utilities/tailwindMerge'
+import { useMutationCallback } from '#/utilities/tanstackQuery'
+import { useFullUserSession, useLocalStorage, useText } from '$/providers/react'
+import { useRightPanelData } from '$/providers/react/container'
+import { useFeatureFlag } from '$/providers/react/featureFlags'
+import { useOpenedProjects } from '$/providers/react/openedProjects'
+import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
 import type {
   AssetId,
   AssetSortExpression,
+  Backend,
   DirectoryId,
   PaginationToken,
-  ProjectId,
-} from '#/services/Backend'
+} from 'enso-common/src/services/Backend'
 import {
   AssetType,
   BackendType,
@@ -76,29 +87,12 @@ import {
   isAssetCredential,
   LabelName,
   type AnyAsset,
-} from '#/services/Backend'
-import { userGroupIdToDirectoryId, userIdToDirectoryId } from '#/services/RemoteBackend/ids'
-import AssetQuery from '#/utilities/AssetQuery'
-import { ASSET_ROWS, setDragImageToBlank, type AssetRowsDragPayload } from '#/utilities/drag'
-import { isElementTextInput, isTextInputEvent } from '#/utilities/event'
-import { fileExtension } from '#/utilities/fileInfo'
-import { DEFAULT_HANDLER } from '#/utilities/inputBindings'
-import LocalStorage from '#/utilities/LocalStorage'
-import { withPresence } from '#/utilities/set'
-import type { SortInfo } from '#/utilities/sorting'
-import { twMerge } from '#/utilities/tailwindMerge'
-import { useMutationCallback } from '#/utilities/tanstackQuery'
+} from 'enso-common/src/services/Backend'
 import {
-  useBackends,
-  useFullUserSession,
-  useLocalStorage,
-  useRightPanelData,
-  useText,
-} from '$/providers/react'
-import { useDidLoadingProjectManagerFail } from '$/providers/react/backends'
-import { useLaunchedProjects } from '$/providers/react/container'
-import { useFeatureFlag } from '$/providers/react/featureFlags'
-import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
+  userGroupIdToDirectoryId,
+  userIdToDirectoryId,
+} from 'enso-common/src/services/RemoteBackend/ids'
+import { fileExtension } from 'enso-common/src/utilities/file'
 import {
   Children,
   cloneElement,
@@ -173,14 +167,11 @@ function AssetsTable(props: AssetsTableProps) {
 
   const contextMenuRef = useRef<ContextMenuApi>(null)
   const { category, associatedBackend: backend } = useCategoriesAPI()
-  const openedProjects = useLaunchedProjects()
-  const openProjectLocally = useOpenProjectLocally()
+  const { openProjectLocally } = useOpenedProjects()
   const setCanDownload = useSetCanDownload()
   const setSuggestions = useSetSuggestions()
 
   const { user } = useFullUserSession()
-  const { reconnectToProjectManager } = useBackends()
-  const didLoadingProjectManagerFail = useDidLoadingProjectManagerFail()
   const { data: labels } = useQuery(backendQueryOptions(backend, 'listTags', []))
   const localStorage = useLocalStorage()
   const { getText } = useText()
@@ -299,7 +290,7 @@ function AssetsTable(props: AssetsTableProps) {
     [assetsPages.data?.pages],
   )
   const fetchNextAssetPage = assetsPages.fetchNextPage
-  const isFetching = assetsPages.isLoading || assetsPages.isFetchingNextPage
+  const isFetching = assetsPages.isFetching
 
   const isCloud = backend.type === BackendType.remote
   const rootRef = useRef<HTMLDivElement | null>(null)
@@ -307,6 +298,9 @@ function AssetsTable(props: AssetsTableProps) {
   const getPasteData = useEventCallback(() => driveStore.getState().pasteData)
 
   useEffect(() => {
+    // Do not request next page while refetching. This causes data not being updated.
+    // See https://github.com/TanStack/query/discussions/6709#discussioncomment-8142957
+    if (isFetching) return
     const scrollerEl = scrollerRef.current
     if (!scrollerEl) return
     const tableEl = scrollerEl.children[0]
@@ -314,7 +308,7 @@ function AssetsTable(props: AssetsTableProps) {
     if (scrollerEl.scrollTop + scrollerEl.clientHeight >= tableEl.scrollHeight) {
       void fetchNextAssetPage()
     }
-  }, [fetchNextAssetPage, assetsPages.data?.pages])
+  }, [isFetching, fetchNextAssetPage, assetsPages.data?.pages])
 
   useAssetsTableItems({ parentId: currentDirectoryId, assets })
 
@@ -615,7 +609,6 @@ function AssetsTable(props: AssetsTableProps) {
                 break
               }
               case AssetType.file:
-              case AssetType.specialUp:
               default: {
                 break
               }
@@ -697,18 +690,6 @@ function AssetsTable(props: AssetsTableProps) {
       document.removeEventListener('click', onClick, { capture: true })
     }
   }, [setMostRecentlySelectedIndex])
-
-  const closeProject = useCloseProject()
-
-  const doOpenProject = useEventCallback((projectId: ProjectId) => {
-    const project = assets.find((asset) => asset.id === projectId)
-
-    if (project?.type !== AssetType.project) {
-      return Promise.resolve()
-    }
-
-    return openProjectLocally(project, backend.type)
-  })
 
   const doCopy = useEventCallback(() => {
     const { selectedIds } = driveStore.getState()
@@ -1068,6 +1049,8 @@ function AssetsTable(props: AssetsTableProps) {
       className="h-full flex-1"
       shadowStartClassName="top-8"
       onScroll={(event) => {
+        // Do not request next page while refetching. This causes data not being updated.
+        // See https://github.com/TanStack/query/discussions/6709#discussioncomment-8142957
         if (isFetching) return
         const element = event.currentTarget
         const tableEl = element.children[0]
@@ -1103,15 +1086,11 @@ function AssetsTable(props: AssetsTableProps) {
 
         <tbody ref={bodyRef} className="isolate">
           {assets.map((item) => {
-            const isOpenedByYou = openedProjects.some(({ id }) => item.id === id)
-            const isOpenedOnTheBackend =
-              item.projectState?.type != null ? IS_OPENING_OR_OPENED[item.projectState.type] : false
             return (
               <AssetRow
                 key={item.id + item.virtualParentsPath}
                 contextMenuRef={contextMenuRef}
                 isPlaceholder={false}
-                isOpened={isOpenedByYou || isOpenedOnTheBackend}
                 columns={columns}
                 id={item.id}
                 type={item.type}
@@ -1128,8 +1107,6 @@ function AssetsTable(props: AssetsTableProps) {
                 onDragStart={onRowDragStart}
                 onDragEnd={endAutoScroll}
                 onDrop={onRowDrop}
-                closeProject={closeProject}
-                openProject={doOpenProject}
               />
             )
           })}
@@ -1194,15 +1171,6 @@ function AssetsTable(props: AssetsTableProps) {
       </AssetsTableAssetsUnselector>
     </Scroller>
   )
-
-  if (!isCloud && didLoadingProjectManagerFail) {
-    return (
-      <ErrorDisplay
-        error={getText('couldNotConnectToPM')}
-        resetErrorBoundary={reconnectToProjectManager}
-      />
-    )
-  }
 
   return (
     <BindingFocusScopeContext.Provider value={rootRef}>

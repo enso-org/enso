@@ -2,6 +2,7 @@ import { sha3_224 as SHA3 } from '@noble/hashes/sha3'
 import { bytesToHex } from '@noble/hashes/utils'
 import { Client, RequestManager } from '@open-rpc/client-js'
 import debug from 'debug'
+import { Err, Ok, type Result } from 'enso-common/src/utilities/data/result'
 import { ObservableV2 } from 'lib0/observable'
 import { z } from 'zod'
 import { walkFs } from './languageServer/files'
@@ -24,9 +25,8 @@ import type {
   TextFileContents,
   VisualizationConfiguration,
 } from './languageServerTypes'
-import { Err, Ok, type Result } from './util/data/result'
-import type { ReconnectingWebSocketTransport } from './util/net'
 import { AbortScope, exponentialBackoff } from './util/net'
+import type { ReconnectingWebSocketTransport } from './util/net/ReconnectingWSTransport'
 import type { Uuid } from './yjsModel'
 
 const debugLog = debug('ydoc-shared:languageServer')

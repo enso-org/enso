@@ -1,14 +1,9 @@
-/**
- * @file
- *
- * Feature flags provider.
- * Feature flags are used to enable or disable certain features in the application.
- */
-import { Plan } from '#/services/Backend'
-import { unsafeEntries } from '#/utilities/object'
+/** @file Provider for feature flags, used to enable or disable certain features in the application. */
 import { unsafeWriteValue } from '#/utilities/write'
 import { useZustandStoreRef } from '$/utils/zustand'
-import { IS_DEV_MODE, isOnElectron, isOnLinux } from 'enso-common/src/detect'
+import { Plan } from 'enso-common/src/services/Backend'
+import { unsafeEntries } from 'enso-common/src/utilities/data/object'
+import { IS_DEV_MODE, isOnElectron, isOnLinux } from 'enso-common/src/utilities/detect'
 import { z } from 'zod'
 import { createStore } from 'zustand'
 import { persist } from 'zustand/middleware'
@@ -37,7 +32,8 @@ export const FEATURE_FLAGS_SCHEMA = z.object({
   listDirectoryPageSize: z.number().int().min(1),
   dataCatalogQueryDebounceDelay: z.number().int().min(0),
   unsafeDarkTheme: z.boolean(),
-  enableProjectService: z.boolean(),
+  apiKeyLimit: z.number().int().min(0),
+  debugHoverAreas: z.boolean(),
 })
 
 const FEATURE_FLAGS_STATE_SCHEMA = z.object({ featureFlags: FEATURE_FLAGS_SCHEMA.partial() })
@@ -75,7 +71,8 @@ export const flagsStore = createStore<FeatureFlagsStore>()(
         listDirectoryPageSize: DEFAULT_LIST_DIRECTORY_PAGE_SIZE,
         dataCatalogQueryDebounceDelay: DEFAULT_DATA_CATALOG_QUERY_DEBOUNCE_DELAY_MS,
         unsafeDarkTheme: false,
-        enableProjectService: IS_DEV_MODE,
+        apiKeyLimit: 5,
+        debugHoverAreas: false,
       },
       setFeatureFlag: (key, value) => {
         set(({ featureFlags }) => ({ featureFlags: { ...featureFlags, [key]: value } }))
@@ -130,6 +127,11 @@ export const flagsStore = createStore<FeatureFlagsStore>()(
 /** Composable for getting a specific feature flag. */
 export function useFeatureFlag<Key extends keyof FeatureFlags>(key: Key) {
   return useZustandStoreRef(flagsStore, (store) => store.featureFlags[key])
+}
+
+/** Get a single feature flag. Similar to `useFeatureFlag` but without using Vue reactivity. */
+export function getFeatureFlag<Key extends keyof FeatureFlags>(key: Key) {
+  return flagsStore.getState().featureFlags[key]
 }
 
 /** Set a subset of feature flags. */

@@ -5,14 +5,14 @@ import { Form } from '#/components/Form'
 import { Text } from '#/components/Text'
 import KeyboardShortcut from '#/pages/dashboard/components/KeyboardShortcut'
 import { unsetModal } from '#/providers/ModalProvider'
+import { twMerge } from '#/utilities/tailwindMerge'
+import { useText } from '$/providers/react'
 import {
   modifierFlagsForEvent,
   modifiersForModifierFlags,
   normalizedKeyboardSegmentLookup,
-} from '#/utilities/inputBindings'
-import { twMerge } from '#/utilities/tailwindMerge'
-import { useText } from '$/providers/react'
-import { isOnMacOS } from 'enso-common/src/detect'
+} from '@/util/shortcuts'
+import { isOnMacOS } from 'enso-common/src/utilities/detect'
 import { useState, type KeyboardEvent as ReactKeyboardEvent } from 'react'
 
 const DISALLOWED_KEYS = new Set(['Control', 'Alt', 'Shift', 'Meta'])

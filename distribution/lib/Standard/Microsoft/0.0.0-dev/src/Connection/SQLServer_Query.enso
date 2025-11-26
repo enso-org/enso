@@ -1,0 +1,26 @@
+from Standard.Base import all
+
+import Standard.Database.SQL_Query.SQL_Query
+import Standard.Database.SQL_Query.SQL_Query_With_Schema
+
+type SQLServer_Query
+    ## Query a whole table or view.
+    Table_Name (name : Text = Missing_Argument.throw "name") (schema : Text = "")
+
+    ## Raw SQL query statement.
+    Raw_SQL (sql : Text = Missing_Argument.throw "sql")
+
+    ## ---
+       private: true
+       ---
+    to_db_table self connection alias:Text =
+        as_sql_query = case self of
+            SQLServer_Query.Table_Name name schema -> SQL_Query_With_Schema.Table_Name name schema
+            SQLServer_Query.Raw_SQL sql -> SQL_Query.Raw_SQL sql
+        as_sql_query.to_db_table connection alias
+
+SQLServer_Query.from (that:Text) = SQLServer_Query.Table_Name that
+
+SQLServer_Query.from (that:SQL_Query) = case that of
+    SQL_Query.Table_Name name -> SQLServer_Query.Table_Name name ""
+    SQL_Query.Raw_SQL sql -> SQLServer_Query.Raw_SQL sql

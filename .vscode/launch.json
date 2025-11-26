@@ -33,6 +33,18 @@
       // - Launch Native Image normally and then
       // - Connect via Debug Adapter Protocol
       // "args": "--vm.D=polyglot.dap=4711 --run ${file}"
-    }
+    },
+    {
+      "type": "lldb",
+      "request": "launch",
+      "name": "Rust Gen CI",
+      "cargo": ["run", "-p", "enso-build-ci-gen"],
+    },
+   {
+      "type": "lldb",
+      "request": "launch",
+      "name": "Rust ./run",
+      "cargo": ["run", "-p", "enso-build-ci"],
+    },
   ]
 }

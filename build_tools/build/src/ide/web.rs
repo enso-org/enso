@@ -14,9 +14,6 @@ use ide_ci::programs::node::PnpmCommand;
 use ide_ci::programs::Pnpm;
 use sha2::Digest;
 use std::process::Stdio;
-use tempfile::TempDir;
-
-
 
 // ==============
 // === Export ===
@@ -31,18 +28,15 @@ pub mod env {
         ENSO_BUILD_IDE, PathBuf;
         ENSO_BUILD_PROJECT_MANAGER, PathBuf;
         ENSO_BUILD_GUI, PathBuf;
-        ENSO_BUILD_ICONS, PathBuf;
         ENSO_BUILD_SIGN, bool;
         /// List of files that should be copied to the Gui.
         ENSO_BUILD_GUI_WASM_ARTIFACTS, Vec<PathBuf>;
         ENSO_BUILD_GUI_ASSETS, PathBuf;
         ENSO_BUILD_IDE_BUNDLED_ENGINE_VERSION, Version;
-        ENSO_BUILD_PROJECT_MANAGER_IN_BUNDLE_PATH, PathBuf;
     }
 
     // === Electron Builder ===
     pub use ide_ci::env::known::electron_builder::*;
-
 
     // GUI-specific environment variables
     define_env_var! {
@@ -97,6 +91,9 @@ pub mod env {
         /// The client ID for the Strava OAuth integration used for Strava Credentials.
         ENSO_IDE_STRAVA_OAUTH_CLIENT_ID, String;
 
+        /// The client ID for the MS365 OAuth integration used for MS365 Credentials.
+        ENSO_IDE_MS365_OAUTH_CLIENT_ID, String;
+
         ENSO_IDE_COMMIT_HASH, String;
         ENSO_IDE_VERSION, String;
     }
@@ -123,7 +120,7 @@ pub fn unpacked_dir(output_path: impl AsRef<Path>, os: OS, arch: Arch) -> PathBu
 
 /// Computes the SHA-256 checksum of a file and writes it to a file.
 ///
-/// This is a Rust equivalent of the `app/ide-desktop/client/tasks/computeHashes.ts`.
+/// This is a Rust equivalent of the `app/electron-client/tasks/computeHashes.ts`.
 pub fn store_sha256_checksum(file: impl AsRef<Path>, checksum_file: impl AsRef<Path>) -> Result {
     let mut hasher = sha2::Sha256::new();
     let mut file = ide_ci::fs::open(&file)?;
@@ -131,16 +128,6 @@ pub fn store_sha256_checksum(file: impl AsRef<Path>, checksum_file: impl AsRef<P
     let hash = hasher.finalize();
     ide_ci::fs::write(&checksum_file, format!("{hash:x}"))?;
     Ok(())
-}
-
-#[derive(Clone, Debug)]
-pub struct IconsArtifacts(pub PathBuf);
-
-impl FallibleManipulator for IconsArtifacts {
-    fn try_applying<C: IsCommandWrapper + ?Sized>(&self, command: &mut C) -> Result {
-        command.set_env(env::ENSO_BUILD_ICONS, &self.0)?;
-        Ok(())
-    }
 }
 
 /// Get a relative path to the Project Manager executable in the PM bundle.
@@ -186,9 +173,9 @@ pub struct ProjectManagerInfo {
     /// Latest bundled engine version, that will be used as this IDE's default.
     pub latest_bundled_engine: Version,
     /// Root of the Project Manager bundle.
-    pub bundle_location:       PathBuf,
+    pub bundle_location: PathBuf,
     /// Relative path from the bundle location.
-    pub pm_executable:         PathBuf,
+    pub pm_executable: PathBuf,
 }
 
 impl ProjectManagerInfo {
@@ -204,7 +191,6 @@ impl ProjectManagerInfo {
 impl FallibleManipulator for ProjectManagerInfo {
     fn try_applying<C: IsCommandWrapper + ?Sized>(&self, command: &mut C) -> Result {
         command.set_env(env::ENSO_BUILD_PROJECT_MANAGER, &self.bundle_location)?;
-        command.set_env(env::ENSO_BUILD_PROJECT_MANAGER_IN_BUNDLE_PATH, &self.pm_executable)?;
         command.set_env(env::ENSO_BUILD_IDE_BUNDLED_ENGINE_VERSION, &self.latest_bundled_engine)?;
         Ok(())
     }
@@ -215,8 +201,8 @@ impl FallibleManipulator for ProjectManagerInfo {
 pub struct IdeDesktop {
     pub repo_root: generated::RepoRoot,
     #[derive_where(skip)]
-    pub octocrab:  Octocrab,
-    pub cache:     ide_ci::cache::Cache,
+    pub octocrab: Octocrab,
+    pub cache: ide_ci::cache::Cache,
 }
 
 impl IdeDesktop {
@@ -233,15 +219,6 @@ impl IdeDesktop {
         command.current_dir(&self.repo_root);
         command.stdin(Stdio::null()); // nothing in that process subtree should require input
         Ok(command)
-    }
-
-    pub async fn build_icons(&self, output_path: impl AsRef<Path>) -> Result<IconsArtifacts> {
-        self.pnpm()?
-            .set_env(env::ENSO_BUILD_ICONS, output_path.as_ref())?
-            .run("build:icons")
-            .run_ok()
-            .await?;
-        Ok(IconsArtifacts(output_path.as_ref().into()))
     }
 
     /// Build the full Electron package, using the electron-builder.
@@ -293,19 +270,12 @@ impl IdeDesktop {
             .run_ok()
             .await?;
 
-        let icons_dist = TempDir::new()?;
-        let icons_dist = icons_dist.into_path();
-        let icons_build = self.build_icons(&icons_dist);
-        let icons = icons_build.await?;
-
         let target_args = match target {
             Some(target) => vec!["--target".to_string(), target],
             None => vec![],
         };
 
-
         self.pnpm()?
-            .try_applying(&icons)?
             .apply(&RemoveEmptyCscEnvVars)
             .set_env(env::ENSO_IDE_COMMIT_HASH, &commit_hash)?
             .set_env(env::ENSO_IDE_VERSION, &version_string)?
@@ -338,12 +308,12 @@ impl IdeDesktop {
             );
 
             let config = enso_install_config::bundler::Config {
-                electron_builder_config:  electron_config,
+                electron_builder_config: electron_config,
                 unpacked_electron_bundle: unpacked_dir(output_path, target_os, TARGET_ARCH),
-                repo_root:                self.repo_root.to_path_buf(),
-                output_file:              ide_artifacts.image.clone(),
-                intermediate_dir:         output_path.to_path_buf(),
-                certificate:              code_signing_certificate,
+                repo_root: self.repo_root.to_path_buf(),
+                output_file: ide_artifacts.image.clone(),
+                intermediate_dir: output_path.to_path_buf(),
+                certificate: code_signing_certificate,
             };
             enso_install_config::bundler::bundle(config).await?;
             store_sha256_checksum(&ide_artifacts.image, &ide_artifacts.image_checksum)?;

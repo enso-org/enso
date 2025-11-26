@@ -7,15 +7,13 @@ use crate::empty_tree;
 use crate::expect_qualified_name;
 use crate::expression_to_pattern;
 use crate::source::Code;
+use crate::syntax::Item;
+use crate::syntax::Token;
 use crate::syntax::expression::ExpressionParser;
 use crate::syntax::maybe_with_error;
 use crate::syntax::statement::try_parse_doc_comment;
 use crate::syntax::token;
 use crate::syntax::tree::SyntaxError;
-use crate::syntax::Item;
-use crate::syntax::Token;
-
-
 
 // =======================
 // === Built-in macros ===
@@ -340,7 +338,7 @@ fn parse_case_line<'s>(
         return (
             syntax::tree::CaseLine {
                 newline: newline.into(),
-                case:    Some(syntax::tree::Case { doc_line, ..default() }),
+                case: Some(syntax::tree::Case { doc_line, ..default() }),
             },
             default(),
         );
@@ -430,9 +428,9 @@ fn tuple_body<'s>(
 }
 
 struct GroupedSequence<'s> {
-    left:  token::OpenSymbol<'s>,
+    left: token::OpenSymbol<'s>,
     first: Option<syntax::Tree<'s>>,
-    rest:  Vec<syntax::tree::OperatorDelimitedTree<'s>>,
+    rest: Vec<syntax::tree::OperatorDelimitedTree<'s>>,
     right: token::CloseSymbol<'s>,
 }
 

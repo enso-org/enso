@@ -226,10 +226,8 @@ final class IRNodeClassGenerator {
             .map(
                 field ->
                     """
-                    ${comment}
                     private final ${type} ${name};
                     """
-                        .replace("${comment}", commentForField(field))
                         .replace("${type}", field.getSimpleTypeName())
                         .replace("${name}", field.getName()))
             .collect(Collectors.joining(System.lineSeparator()));
@@ -246,13 +244,10 @@ final class IRNodeClassGenerator {
         ${comment}
         ${userDefinedFields};
         // === End of user-defined fields ===
-        // The following meta fields cannot be private, as we are explicitly
-        // setting them in the `duplicate` method. Inheritor should not access
-        // these fields directly
-        protected DiagnosticStorage diagnostics;
-        protected MetadataStorage passData;
-        protected IdentifiedLocation location;
-        protected UUID id;
+        private DiagnosticStorage diagnostics;
+        private MetadataStorage passData;
+        private IdentifiedLocation location;
+        private UUID id;
         """
             .replace("${comment}", comment)
             .replace("${userDefinedFields}", userDefinedFields);
@@ -470,10 +465,12 @@ final class IRNodeClassGenerator {
     for (var field : generatedClassContext.getUserFields()) {
       var code =
           """
+          ${comment}
           public ${returnType} ${fieldName}() {
             return ${fieldName};
           }
           """
+              .replace("${comment}", commentForField(field))
               .replace("${returnType}", field.getSimpleTypeName())
               .replace("${fieldName}", field.getName());
       sb.append(code);

@@ -9,8 +9,6 @@ use crate::serde::single_or_sequence;
 
 use regex::Regex;
 
-
-
 pub type Config = BTreeMap<String, MachineConfig>;
 /// Root type of the configuration file.
 pub type MachineConfig = Vec<RepoConfig>;
@@ -22,7 +20,7 @@ pub struct RepoConfig {
     pub location: RunnerLocation,
     /// Runner names. Names are also added to their runners as a label.
     #[serde(deserialize_with = "single_or_sequence")]
-    pub runners:  Vec<RunnerRepr>,
+    pub runners: Vec<RunnerRepr>,
     /// Regular expressions that describe runner names that are externally managed.
     ///
     /// Such runners will not be removed when deploying managed runners.
@@ -51,10 +49,12 @@ impl RunnerLocation {
         octocrab: &Octocrab,
     ) -> anyhow::Result<crate::github::model::RegistrationToken> {
         match self {
-            RunnerLocation::Organization(org) =>
-                org.generate_runner_registration_token(octocrab).await,
-            RunnerLocation::Repository(repo) =>
-                repo.handle(octocrab).generate_runner_registration_token().await,
+            RunnerLocation::Organization(org) => {
+                org.generate_runner_registration_token(octocrab).await
+            }
+            RunnerLocation::Repository(repo) => {
+                repo.handle(octocrab).generate_runner_registration_token().await
+            }
         }
     }
 
@@ -112,40 +112,40 @@ fn default_count() -> usize {
 /// Description of the runners deployment for a specific GitHub repository.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Runner {
-    pub name:          String,
+    pub name: String,
     #[serde(default = "default_dockerfile")]
-    pub dockerfile:    String,
+    pub dockerfile: String,
     #[serde(default = "default_target")]
-    pub target:        String,
+    pub target: String,
     #[serde(default)]
-    pub labels:        Option<Vec<String>>,
+    pub labels: Option<Vec<String>>,
     #[serde(default)]
-    pub args:          Vec<String>,
+    pub args: Vec<String>,
     #[serde(default)]
-    pub ports:         HashMap<u16, u16>,
+    pub ports: HashMap<u16, u16>,
     #[serde(default)]
     pub docker_access: bool,
     #[serde(default = "default_count")]
-    pub count:         usize,
+    pub count: usize,
     #[serde(default)]
-    pub volumes:       HashMap<PathBuf, PathBuf>,
+    pub volumes: HashMap<PathBuf, PathBuf>,
     #[serde(default)]
-    pub env:           HashMap<String, String>,
+    pub env: HashMap<String, String>,
 }
 
 impl Runner {
     pub fn new(name: impl Into<String>) -> Self {
         Self {
-            name:          name.into(),
-            dockerfile:    default_dockerfile(),
-            target:        default_target(),
-            labels:        default(),
-            args:          default(),
-            ports:         default(),
+            name: name.into(),
+            dockerfile: default_dockerfile(),
+            target: default_target(),
+            labels: default(),
+            args: default(),
+            ports: default(),
             docker_access: default(),
-            count:         1,
-            volumes:       default(),
-            env:           default(),
+            count: 1,
+            volumes: default(),
+            env: default(),
         }
     }
 }

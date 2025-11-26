@@ -19,6 +19,7 @@ bazel_dep(name = "aspect_rules_ts", version = "3.7.0")
 bazel_dep(name = "rules_nodejs", version = "6.3.2")
 bazel_dep(name = "aspect_bazel_lib", version = "2.14.0")
 bazel_dep(name = "bazel_skylib", version = "1.8.1")
+bazel_dep(name = "aspect_rules_esbuild", version = "0.22.1")
 
 ## Node.js
 node = use_extension("@rules_nodejs//nodejs:extensions.bzl", "node")
@@ -47,20 +48,20 @@ use_repo(rules_ts_ext, "npm_typescript")
 ############
 ### RUST ###
 ############
-bazel_dep(name = "rules_rust", version = "0.59.2")
+bazel_dep(name = "rules_rust", version = "0.66.0")
 
 rust = use_extension("@rules_rust//rust:extensions.bzl", "rust")
 rust.toolchain(
     edition = "2021",
     extra_target_triples = ["wasm32-unknown-unknown"],
-    versions = ["nightly/2024-08-08"],
+    versions = ["1.90.0"],
 )
 use_repo(rust, "rust_toolchains")
 
 register_toolchains("@rust_toolchains//:all")
 
 # Add wasm_bindgen toolchain, patch it to shorten the dirnames and avoid max_path issues
-bazel_dep(name = "rules_rust_wasm_bindgen", version = "0.59.2")
+bazel_dep(name = "rules_rust_wasm_bindgen", version = "0.66.0")
 single_version_override(
     module_name = "rules_rust_wasm_bindgen",
     patches = ["wasm_bindgen.patch"],
@@ -140,7 +141,7 @@ git_override(
     commit = "81fc9b2de33c0429b716f1bfcd3223a82c0e1085",
     patch_strip = 1,
     patches = [
-        "patches/rules_graalvm_java24.patch",
+        "patches/rules_graalvm_java25.patch",
         "patches/rules_graalvm_tool_toolchain.patch",
     ],
     remote = "https://github.com/sgammon/rules_graalvm.git",
@@ -150,8 +151,8 @@ gvm = use_extension("@rules_graalvm//:extensions.bzl", "graalvm")
 gvm.graalvm(
     name = "graalvm",
     distribution = "ce",  # `oracle`, `ce`, or `community`
-    java_version = "24",  # `17`, `20`, `21`, or `22` as supported by the version provided
-    version = "24.0.1",  # gvm sdk version format like `24.x.x` also supported
+    java_version = "25",  # `17`, `20`, `21`, or `22` as supported by the version provided
+    version = "25.0.1",  # gvm sdk version format like `24.x.x` also supported
 )
 use_repo(gvm, "graalvm")
 

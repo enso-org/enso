@@ -13,7 +13,6 @@ import {
   type DirectoryId,
   type LabelName,
 } from 'enso-common/src/services/Backend'
-import { EMPTY_ARRAY } from 'enso-common/src/utilities/data/array'
 import * as React from 'react'
 import invariant from 'tiny-invariant'
 import { persist } from 'zustand/middleware'
@@ -71,7 +70,7 @@ export interface DrivePastePayload {
 export type SelectedAssetInfo =
   AnyAsset extends infer T ?
     T extends T ?
-      Pick<T, keyof T & ('id' | 'parentId' | 'title' | 'type')>
+      Pick<T, keyof T & ('id' | 'labels' | 'parentId' | 'title' | 'type')>
     : never
   : never
 
@@ -186,11 +185,8 @@ export default function DriveProvider(props: DriveProviderProps) {
       setSelectedIds: (selectedIds) => {
         set({ selectedIds })
       },
-      selectedAssets: EMPTY_ARRAY,
+      selectedAssets: [],
       setSelectedAssets: (selectedAssets) => {
-        if (selectedAssets.length === 0) {
-          selectedAssets = EMPTY_ARRAY
-        }
         if (get().selectedAssets !== selectedAssets) {
           set({
             selectedAssets,

@@ -36,7 +36,7 @@ import java.util.function.Function;
  *
  * @param <T> type this persistance subclass operates on
  */
-public abstract class Persistance<T> implements Cloneable {
+public abstract class Persistance<T> {
   final Class<T> clazz;
   final boolean includingSubclasses;
   final int id;
@@ -68,14 +68,6 @@ public abstract class Persistance<T> implements Cloneable {
     this.clazz = clazz;
     this.includingSubclasses = includingSubclasses;
     this.id = id;
-  }
-
-  final Persistance<?> newClone() {
-    try {
-      return (Persistance<?>) clone();
-    } catch (CloneNotSupportedException ex) {
-      throw raise(RuntimeException.class, ex);
-    }
   }
 
   /**
@@ -188,6 +180,7 @@ public abstract class Persistance<T> implements Cloneable {
     private final Function<Object, Object> readResolve;
     private final Function<Object, Object> writeReplace;
     private final Persistance[] all;
+    private final PerMap map;
 
     /**
      * Constructor for subclasses to create a new pool with provided persistance instances. The IDs
@@ -212,6 +205,7 @@ public abstract class Persistance<T> implements Cloneable {
       this.readResolve = readResolve;
       this.writeReplace = writeReplace;
       this.all = instances;
+      this.map = new PerMap(all);
     }
 
     /**
@@ -291,7 +285,6 @@ public abstract class Persistance<T> implements Cloneable {
      * @throws java.io.IOException when an I/O problem happens
      */
     public Reference<?> read(ByteBuffer buf) throws IOException {
-      var map = new PerMap(all);
       return PerInputImpl.readObject(map, buf, readResolve);
     }
 
@@ -304,7 +297,6 @@ public abstract class Persistance<T> implements Cloneable {
      * @throws IOException when an I/O problem happens
      */
     public byte[] write(Object obj) throws IOException {
-      var map = new PerMap(all);
       return PerGenerator.writeObject(map, obj, writeReplace);
     }
   }

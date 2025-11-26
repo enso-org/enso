@@ -1,7 +1,5 @@
 //! Parses statements in module, body blocks, and type blocks.
 
-
-
 mod function_def;
 mod type_def;
 
@@ -9,16 +7,18 @@ use crate::empty_tree;
 use crate::expression_to_pattern;
 use crate::is_qualified_name;
 use crate::prelude::*;
+use crate::syntax::Item;
+use crate::syntax::Token;
+use crate::syntax::Tree;
 use crate::syntax::expression::ExpressionParser;
 use crate::syntax::expression::Spacing;
 use crate::syntax::item;
 use crate::syntax::maybe_with_error;
-use crate::syntax::statement::function_def::try_parse_foreign_function;
 use crate::syntax::statement::function_def::FunctionBuilder;
+use crate::syntax::statement::function_def::try_parse_foreign_function;
 use crate::syntax::statement::type_def::try_parse_type_def;
 use crate::syntax::token;
 use crate::syntax::tree;
-use crate::syntax::tree::block;
 use crate::syntax::tree::AnnotationLine;
 use crate::syntax::tree::ArgumentDefinition;
 use crate::syntax::tree::DocComment;
@@ -27,9 +27,7 @@ use crate::syntax::tree::FunctionAnnotation;
 use crate::syntax::tree::SyntaxError;
 use crate::syntax::tree::TypeSignature;
 use crate::syntax::tree::TypeSignatureLine;
-use crate::syntax::Item;
-use crate::syntax::Token;
-use crate::syntax::Tree;
+use crate::syntax::tree::block;
 
 pub use function_def::parse_args;
 
@@ -113,14 +111,16 @@ fn compound_lines_maybe_with_tail<'s>(
                 line_prefixes.drain_unused_into(&mut block_lines);
                 block_lines.push(block::Line { newline, expression: Some(statement) })
             }
-            Line { newline, content: Some(StatementOrPrefix::Prefix(prefix)) } =>
-                line_prefixes.push(newline, prefix),
-            Line { newline, content: None } =>
+            Line { newline, content: Some(StatementOrPrefix::Prefix(prefix)) } => {
+                line_prefixes.push(newline, prefix)
+            }
+            Line { newline, content: None } => {
                 if line_prefixes.prefixes.is_empty() {
                     block_lines.push(newline.into());
                 } else {
                     line_prefixes.push_newline(newline);
-                },
+                }
+            }
         }
     }
     line_prefixes.drain_unused_into(&mut block_lines);
@@ -186,14 +186,15 @@ impl<'s> StatementParser<'s> {
             StatementContext {
                 evaluation_context: EvaluationContext::Lazy,
                 visibility_context: VisibilityContext::Public,
-                block_context:      BlockContext::BlockBody,
+                block_context: BlockContext::BlockBody,
             },
         )
         .map_content(|statement_or_prefix| {
             statement_or_prefix.map_statement(|statement| {
                 let error = match &statement.variant {
-                    tree::Variant::Assignment(_) =>
-                        SyntaxError::StmtUnexpectedAssignmentInModuleBody.into(),
+                    tree::Variant::Assignment(_) => {
+                        SyntaxError::StmtUnexpectedAssignmentInModuleBody.into()
+                    }
                     _ => None,
                 };
                 maybe_with_error(statement, error)
@@ -223,16 +224,19 @@ enum StatementPrefix<'s> {
 impl<'s> From<StatementPrefix<'s>> for Tree<'s> {
     fn from(value: StatementPrefix<'s>) -> Self {
         match value {
-            StatementPrefix::TypeSignature(signature) =>
-                Tree::type_signature_declaration(signature),
-            StatementPrefix::Annotation(annotation) =>
-                Tree::annotation(annotation).with_error(SyntaxError::AnnotationExpectedDefinition),
+            StatementPrefix::TypeSignature(signature) => {
+                Tree::type_signature_declaration(signature)
+            }
+            StatementPrefix::Annotation(annotation) => {
+                Tree::annotation(annotation).with_error(SyntaxError::AnnotationExpectedDefinition)
+            }
             StatementPrefix::Documentation(docs) => Tree::documentation(docs),
         }
     }
 }
 
 #[derive(From)]
+#[allow(clippy::large_enum_variant)]
 enum StatementOrPrefix<'s> {
     Statement(Tree<'s>),
     Prefix(StatementPrefix<'s>),
@@ -265,12 +269,15 @@ enum StatementPrefixLine<'s> {
 impl<'s> StatementPrefixLine<'s> {
     fn new(prefix: StatementPrefix<'s>, newlines: NonEmptyVec<token::Newline<'s>>) -> Self {
         match prefix {
-            StatementPrefix::TypeSignature(signature) =>
-                Self::TypeSignature(TypeSignatureLine { signature, newlines }),
-            StatementPrefix::Annotation(annotation) =>
-                Self::Annotation(AnnotationLine { annotation, newlines }),
-            StatementPrefix::Documentation(docs) =>
-                Self::Documentation(DocLine { docs, newlines: newlines.into() }),
+            StatementPrefix::TypeSignature(signature) => {
+                Self::TypeSignature(TypeSignatureLine { signature, newlines })
+            }
+            StatementPrefix::Annotation(annotation) => {
+                Self::Annotation(AnnotationLine { annotation, newlines })
+            }
+            StatementPrefix::Documentation(docs) => {
+                Self::Documentation(DocLine { docs, newlines: newlines.into() })
+            }
         }
     }
 }
@@ -314,13 +321,14 @@ fn parse_statement<'s>(
     }
     let top_level_operator = match find_top_level_operator(&items[start..]) {
         Ok(top_level_operator) => top_level_operator,
-        Err(e) =>
+        Err(e) => {
             return Line {
                 newline,
                 content: Some(
                     expression_parser.parse_non_section(items).unwrap().with_error(e).into(),
                 ),
-            },
+            };
+        }
     };
     match (top_level_operator, statement_context.block_context) {
         (Some(TopLevelOperator::AssignmentOperator(i)), _) => parse_assignment_like_statement(
@@ -410,7 +418,7 @@ impl<'s> StatementPrefixes<'s> {
             prev_trailing_newlines_start = trailing_newlines_start;
             lines.extend((&mut empty_lines).take(trailing_newlines));
             lines.push(block::Line {
-                newline:    newline_before_prefix,
+                newline: newline_before_prefix,
                 expression: Some(prefix.into()),
             });
         }
@@ -480,7 +488,6 @@ fn to_statement<'s>(
         | TextLiteral(_)
         | App(_)
         | NamedApp(_)
-        | OprApp(_)
         | UnaryOprApp(_)
         | AutoscopedIdentifier(_)
         | MultiSegmentApp(_)
@@ -488,7 +495,9 @@ fn to_statement<'s>(
         | TypeAnnotated(_)
         | CaseOf(_)
         | Array(_)
-        | Tuple(_) => Ok(Expression),
+        | Tuple(_)
+        | PropertyAccess(_) => Ok(Expression),
+        OprApp(app) if app.lhs.is_some() && app.rhs.is_some() => Ok(Expression),
         // Expression, but since it can only occur in tail position, it never needs an
         // `ExpressionStatement` node.
         BodyBlock(_) => Ok(Statement),
@@ -504,9 +513,9 @@ fn to_statement<'s>(
         | Annotation(_)
         | Documentation(_)
         | ConstructorDefinition(_) => Ok(Statement),
-        // These will become an error in the future.
-        OprSectionBoundary(_) => Ok(Expression),
-        TemplateFunction(_) | Lambda(_) => Ok(Expression),
+        // Operator sections (fully-applied operators are matched above)
+        OprApp(_) => Err(SyntaxError::StmtUnexpectedFunctionExpressionOprSection),
+        TemplateFunction(_) | Lambda(_) => Err(SyntaxError::StmtUnexpectedFunctionExpression),
         // Shouldn't be possible here, but this is not currently guaranteed by the types.
         ExpressionStatement(_) => Err(SyntaxError::Internal),
     } {
@@ -560,9 +569,11 @@ fn try_parse_annotation<'s>(
     expression_parser: &mut ExpressionParser<'s>,
 ) -> Option<FunctionAnnotation<'s>> {
     match &items[..] {
-        [Item::Token(Token { variant: token::Variant::AnnotationOperator(opr), .. }), Item::Token(Token { variant: token::Variant::Ident(ident), .. }), ..]
-            if !ident.is_type =>
-        {
+        [
+            Item::Token(Token { variant: token::Variant::AnnotationOperator(opr), .. }),
+            Item::Token(Token { variant: token::Variant::Ident(ident), .. }),
+            ..,
+        ] if !ident.is_type => {
             let ident = *ident;
             let opr = *opr;
             let argument = expression_parser.parse_non_section_offset(start + 2, items);
@@ -617,13 +628,18 @@ fn apply_private_keywords<'s, U: From<Tree<'s>> + Into<Tree<'s>>>(
                     }),
                     statement.into(),
                 ),
-                None => maybe_with_error(private, match visibility_context {
-                    // This is the only non-error case in this function: A `private` keyword was
-                    // found not modifying any other statement, and in a context where a `private`
-                    // declaration is allowed; in this case, we emit a `Private` declaration.
-                    VisibilityContext::Public => None,
-                    VisibilityContext::Private => Some(SyntaxError::StmtUnexpectedPrivateContext),
-                }),
+                None => maybe_with_error(
+                    private,
+                    match visibility_context {
+                        // This is the only non-error case in this function: A `private` keyword was
+                        // found not modifying any other statement, and in a context where a `private`
+                        // declaration is allowed; in this case, we emit a `Private` declaration.
+                        VisibilityContext::Public => None,
+                        VisibilityContext::Private => {
+                            Some(SyntaxError::StmtUnexpectedPrivateContext)
+                        }
+                    },
+                ),
             }
             .into(),
         );
@@ -652,7 +668,7 @@ fn apply_excess_private_keywords<'s>(
 struct StatementContext {
     evaluation_context: EvaluationContext,
     visibility_context: VisibilityContext,
-    block_context:      BlockContext,
+    block_context: BlockContext,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -738,7 +754,9 @@ fn parse_assignment_like_statement<'s>(
         (Some(e), Some(qn_len))
             if evaluation_context == EvaluationContext::Lazy
                 || matches!(e.variant, tree::Variant::BodyBlock(_)) =>
-            Type::Function { expression: Some(e), qn_len },
+        {
+            Type::Function { expression: Some(e), qn_len }
+        }
         (Some(expression), None) => Type::Assignment { expression },
         (Some(expression), Some(1)) if items.len() == start + 1 => Type::Assignment { expression },
         (expression, Some(qn_len)) => Type::Function { expression, qn_len },
@@ -775,10 +793,10 @@ fn parse_assignment_like_statement<'s>(
 }
 
 struct AssignmentBuilder<'s> {
-    newline:      token::Newline<'s>,
-    pattern:      Tree<'s>,
-    operator:     token::AssignmentOperator<'s>,
-    expression:   Tree<'s>,
+    newline: token::Newline<'s>,
+    pattern: Tree<'s>,
+    operator: token::AssignmentOperator<'s>,
+    expression: Tree<'s>,
     excess_items: Vec<Item<'s>>,
 }
 
@@ -831,8 +849,9 @@ fn parse_pattern<'s>(
                 let token = items.pop().unwrap().into_token().unwrap();
                 match token.variant {
                     token::Variant::Ident(variant) => Tree::ident(token.with_variant(variant)),
-                    token::Variant::Wildcard(variant) =>
-                        Tree::wildcard(token.with_variant(variant), None),
+                    token::Variant::Wildcard(variant) => {
+                        Tree::wildcard(token.with_variant(variant), None)
+                    }
                     _ => tree::to_ast(token).with_error(SyntaxError::ArgDefExpectedPattern),
                 }
             }
@@ -879,8 +898,9 @@ fn find_top_level_operator(items: &[Item]) -> Result<Option<TopLevelOperator>, S
                     {
                         return Err(SyntaxError::StmtLhsInvalidOperatorSpacing);
                     }
-                    (Variant::AssignmentOperator(_), Spacing::Spaced, _) =>
-                        return Ok(Some(TopLevelOperator::AssignmentOperator(i))),
+                    (Variant::AssignmentOperator(_), Spacing::Spaced, _) => {
+                        return Ok(Some(TopLevelOperator::AssignmentOperator(i)));
+                    }
                     (
                         Variant::AssignmentOperator(_),
                         Spacing::Unspaced,
@@ -941,17 +961,18 @@ fn scan_qn<'s>(items: impl IntoIterator<Item = impl AsRef<Item<'s>>>) -> Option<
         ExpectingDot { len: usize },
         ExpectingIdent,
     }
-    use token::Variant::*;
     use Item::*;
     use State::*;
+    use token::Variant::*;
     let mut state = ExpectingIdent;
     for (i, item) in items.into_iter().enumerate() {
         match item.as_ref() {
             Token(token) if i != 0 && token.is_spaced() => break,
             Token(token) => match (state, &token.variant) {
                 (ExpectingDot { .. }, DotOperator(_)) => state = ExpectingIdent,
-                (ExpectingIdent, Ident(ident)) if ident.is_type =>
-                    state = ExpectingDot { len: i + 1 },
+                (ExpectingIdent, Ident(ident)) if ident.is_type => {
+                    state = ExpectingDot { len: i + 1 }
+                }
                 (
                     ExpectingIdent,
                     Ident(_) | Operator(_) | NegationOperator(_) | UnaryOperator(_),

@@ -868,17 +868,14 @@ class Compiler(
       }
       Name.Qualified(name, identifiedLocation = null)
     }.toList
-    ir.copy(
-      imports =
-        ir.imports ::: moduleNames.map(m => Import.Module.createSynthetic(m)),
-      exports = ir.exports ::: moduleNames.map(m =>
-        Export.Module(
-          m,
-          rename             = None,
-          onlyNames          = None,
-          identifiedLocation = null,
-          isSynthetic        = true
-        )
+    ir.copyWithImportsAndExports(
+      ir.imports ::: moduleNames.map(m => Import.Module.createSynthetic(m)),
+      ir.exports ::: moduleNames.map(m =>
+        Export.Module
+          .builder()
+          .name(m)
+          .isSynthetic(true)
+          .build()
       )
     )
   }

@@ -16,7 +16,6 @@ import project.Internal.Telemetry
 import project.Meta
 import project.Metadata.Display
 import project.Metadata.Widget
-import project.Nothing.Nothing
 import project.Panic.Panic
 import project.Runtime
 import project.System.File.File
@@ -29,6 +28,7 @@ from project.Data.Text.Extensions import all
 from project.Error import all
 from project.Metadata.Choice import Option
 from project.Metadata.Widget import Single_Choice
+from project.Nothing import all
 
 ## ---
    private: true
@@ -481,7 +481,6 @@ type File_Format_SPI
     new typ name:Text|Nothing=Nothing -> File_Format_SPI =
         File_Format_SPI.Single typ name
 
-
     ## ---
        private: true
        ---
@@ -493,11 +492,16 @@ type File_Format_SPI
         File_Format_SPI.Few arr -> arr
         single -> [single]
 
-    private get_regs _:Boolean=False =
+    private get_regs b:Boolean=False =
+        _ = b
         reg = Meta.lookup_services File_Format_SPI
         reg.map .to_vector . flatten
 
-    private get_types b:Boolean=False =
+    ## ---
+       private: true
+       ---
+       Returns all registered file format types.
+    get_types b:Boolean=False =
         File_Format_SPI.get_regs b . map .typ
 
     private find_format_for_data_link sub_type:Text =

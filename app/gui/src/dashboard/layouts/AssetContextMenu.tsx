@@ -7,7 +7,7 @@ import {
   downloadAssetsMutationOptions,
   restoreAssetsMutationOptions,
 } from '#/hooks/backendBatchedHooks'
-import { useCanRunProjects, useNewProject } from '#/hooks/backendHooks'
+import { useNewProject } from '#/hooks/backendHooks'
 import {
   isUploadableAsset,
   useUploadFileToCloud,
@@ -15,7 +15,6 @@ import {
 } from '#/hooks/backendUploadFilesHooks'
 import { useCopy } from '#/hooks/copyHooks'
 import { defineMenuEntry, useMenuEntries } from '#/hooks/menuHooks'
-import * as projectHooks from '#/hooks/projectHooks'
 import * as categoryModule from '#/layouts/CategorySwitcher/Category'
 import { useGetAsset } from '#/layouts/Drive/assetsTableItemsHooks'
 import { useCategories, useCategoriesAPI } from '#/layouts/Drive/Categories'
@@ -25,16 +24,18 @@ import ManageLabelsModal from '#/modals/ManageLabelsModal'
 import { useExportArchive } from '#/pages/useExportArchive'
 import { useDriveStore, usePasteData } from '#/providers/DriveProvider'
 import { setModal } from '#/providers/ModalProvider'
-import * as backendModule from '#/services/Backend'
-import * as permissions from '#/utilities/permissions'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { useBackends, useFullUserSession, useRouter, useText } from '$/providers/react'
+import { useVueValue } from '$/providers/react/common'
+import { useRightPanelData } from '$/providers/react/container'
 import * as featureFlagsProvider from '$/providers/react/featureFlags'
-import { useRightPanelData } from '$/providers/rightPanel'
+import { useOpenedProjects } from '$/providers/react/openedProjects'
+import * as backendModule from 'enso-common/src/services/Backend'
 import {
   TEAMS_DIRECTORY_ID,
   USERS_DIRECTORY_ID,
 } from 'enso-common/src/services/Backend/remoteBackendPaths'
+import * as permissions from 'enso-common/src/utilities/permissions'
 import * as React from 'react'
 
 /** Props for a {@link AssetContextMenu}. */
@@ -66,30 +67,44 @@ export const AssetContextMenu = React.forwardRef(function AssetContextMenu(
   const driveStore = useDriveStore()
 
   const getAsset = useGetAsset()
-  const canRunProjects = useCanRunProjects()
   const { user } = useFullUserSession()
   const { localBackend } = useBackends()
   const { getText } = useText()
-  const openProjectNatively = projectHooks.useOpenProjectNatively()
-  const openProjectLocally = projectHooks.useOpenProjectLocally()
-  const closeProject = projectHooks.useCloseProject()
+  const {
+    openProjectLocally,
+    openProjectNatively,
+    canOpenProjectLocally,
+    canOpenProjectNatively,
+    closeProject,
+  } = useOpenedProjects()
+  const canOpenLocally = useVueValue(
+    React.useCallback(
+      () => canOpenProjectLocally(backend.type),
+      [canOpenProjectLocally, backend.type],
+    ),
+  )
+  const canOpenNatively = useVueValue(
+    React.useCallback(
+      () => canOpenProjectNatively(backend.type),
+      [canOpenProjectNatively, backend.type],
+    ),
+  )
   const deleteAssets = useMutationCallback(deleteAssetsMutationOptions(backend))
   const restoreAssets = useMutationCallback(restoreAssetsMutationOptions(backend))
   const copyAssets = useMutationCallback(copyAssetsMutationOptions(backend))
   const downloadAssets = useMutationCallback(downloadAssetsMutationOptions(backend))
   const self = permissions.tryFindSelfPermission(user, asset.permissions)
-  const encodedEnsoPath = asset.ensoPath ? encodeURI(asset.ensoPath) : undefined
+  const encodedEnsoPath = encodeURI(asset.ensoPath)
   const copyMutation = useCopy()
   const uploadFileToCloud = useUploadFileToCloud()
   const uploadFileToLocal = useUploadFileToLocal(category)
   const exportArchive = useExportArchive({ backend })
-  const disabledTooltip =
-    !canRunProjects.locally[backend.type] ? getText('downloadToOpenWorkflow') : undefined
+  const disabledTooltip = !canOpenLocally ? getText('downloadToOpenWorkflow') : undefined
   const showDeveloperIds = featureFlagsProvider.useFeatureFlag('showDeveloperIds')
 
   const newProject = useNewProject(backend, category)
 
-  const systemApi = window.systemApi
+  const systemApi = window.api?.system
   const ownsThisAsset = !isCloud || self?.permission === permissions.PermissionAction.own
   const canManageThisAsset = asset.id !== USERS_DIRECTORY_ID && asset.id !== TEAMS_DIRECTORY_ID
   const managesThisAsset = ownsThisAsset || self?.permission === permissions.PermissionAction.admin
@@ -116,12 +131,7 @@ export const AssetContextMenu = React.forwardRef(function AssetContextMenu(
   })
 
   const canPaste =
-    (
-      !pasteDataParent ||
-      !pasteData ||
-      !isCloud ||
-      (pasteDataParent.ensoPath != null && permissions.isTeamPath(pasteDataParent.ensoPath))
-    ) ?
+    !pasteDataParent || !pasteData || !isCloud || permissions.isTeamPath(pasteDataParent.ensoPath) ?
       true
     : pasteData.data.assets.every((pasteAsset) => {
         const otherAsset = getAsset(pasteAsset.id)
@@ -231,22 +241,22 @@ export const AssetContextMenu = React.forwardRef(function AssetContextMenu(
           !isRunningProject &&
           !isOtherUserUsingProject && {
             action: 'open',
-            isDisabled: !canRunProjects.locally[backend.type],
+            isDisabled: !canOpenLocally,
             tooltip: disabledTooltip,
             doAction: () => {
               void goToDrive()
-              void openProjectLocally(asset, backend.type)
+              openProjectLocally(asset, backend.type)
             },
           },
         asset.type === backendModule.AssetType.project &&
           isCloud &&
           localBackend != null && {
             action: 'run',
-            isDisabled: !canRunProjects.natively[backend.type],
+            isDisabled: !canOpenNatively,
             tooltip: disabledTooltip,
             doAction: () => {
               void goToDrive()
-              void openProjectNatively(asset, backend.type)
+              openProjectNatively(asset, backend.type)
             },
           },
         asset.type === backendModule.AssetType.project &&
@@ -256,19 +266,16 @@ export const AssetContextMenu = React.forwardRef(function AssetContextMenu(
             action: 'close',
             doAction: () => {
               void goToDrive()
-              void closeProject({
-                id: asset.id,
-                title: asset.title,
-                parentId: asset.parentId,
-                type: backend.type,
-              })
+              closeProject(asset.id, { asset, backendType: backend.type })
             },
           },
         isCloud && {
           action: 'label',
           doAction: () => {
             void goToDrive()
-            setModal(<ManageLabelsModal backend={backend} item={asset} triggerRef={triggerRef} />)
+            setModal(
+              <ManageLabelsModal backend={backend} items={[asset]} triggerRef={triggerRef} />,
+            )
           },
         },
         isUploadableAsset(asset) &&
@@ -393,7 +400,6 @@ export const AssetContextMenu = React.forwardRef(function AssetContextMenu(
             },
           },
         !isCloud &&
-          encodedEnsoPath != null &&
           systemApi && {
             action: 'openInFileBrowser',
             doAction: () => {
@@ -401,7 +407,7 @@ export const AssetContextMenu = React.forwardRef(function AssetContextMenu(
               systemApi.showItemInFolder(encodedEnsoPath)
             },
           },
-        encodedEnsoPath != null && {
+        {
           action: 'copyAsPath',
           doAction: () => {
             void goToDrive()

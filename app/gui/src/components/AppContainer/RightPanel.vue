@@ -6,19 +6,18 @@ import {
   ProjectSessions,
 } from '$/components/AppContainer/reactTabs'
 import SelectableTab from '$/components/AppContainer/SelectableTab.vue'
-import WithCurrentProject from '$/components/WithCurrentProject.vue'
 import { useRightPanelData, type RightPanelTabId } from '$/providers/rightPanel'
 import ComponentHelpPanel from '@/components/ComponentHelpPanel.vue'
 import DescriptionEditor from '@/components/DescriptionEditor.vue'
-import DocumentationEditor from '@/components/DocumentationEditor.vue'
+import DocumentationEditor from '@/components/DocumentationEditor'
 import ResizeHandles from '@/components/ResizeHandles.vue'
 import SizeTransition from '@/components/SizeTransition.vue'
 import WithFullscreenMode from '@/components/WithFullscreenMode.vue'
 import { useResizeObserver } from '@/composables/events'
 import { Rect } from '@/util/data/rect'
-import type { Result } from '@/util/data/result'
 import { Vec2 } from '@/util/data/vec2'
 import type { ToValue } from '@/util/reactivity'
+import type { Result } from 'enso-common/src/utilities/data/result'
 import { computed, toValue, useTemplateRef } from 'vue'
 
 const data = useRightPanelData()
@@ -61,23 +60,18 @@ function tabEnabled(id: RightPanelTabId, enabled: ToValue<Result<void>>) {
 const contentElement = useTemplateRef('contentElement')
 const size = useResizeObserver(contentElement)
 const bounds = computed(() => new Rect(Vec2.Zero, size.value))
+const style = computed(() => (data.width == null ? {} : { '--panel-width': `${data.width}px` }))
 </script>
 
 <template>
-  <div
-    class="RightPanel withBackgroundColor bg-dashboard"
-    data-testid="right-panel"
-    :style="{ '--panel-width': `${data.width}px` }"
-  >
+  <div class="RightPanel withBackgroundColor bg-dashboard" data-testid="right-panel" :style="style">
     <SizeTransition width :duration="250">
       <div v-if="component != null" class="sizeWrapper">
         <div ref="contentElement" class="content">
           <WithFullscreenMode v-model="data.fullscreen">
-            <WithCurrentProject :id="data.focusedProject">
-              <div class="contentInner withBackgroundColor">
-                <component :is="component" />
-              </div>
-            </WithCurrentProject>
+            <div class="contentInner withBackgroundColor">
+              <component :is="component" />
+            </div>
           </WithFullscreenMode>
           <ResizeHandles left :modelValue="bounds" @update:modelValue="data.width = $event.width" />
         </div>
@@ -97,7 +91,6 @@ const bounds = computed(() => new Rect(Vec2.Zero, size.value))
           @update:selected="data.setTab($event ? id : undefined)"
         />
       </div>
-      <div class="filler" />
     </div>
   </div>
 </template>
@@ -123,10 +116,10 @@ const bounds = computed(() => new Rect(Vec2.Zero, size.value))
   display: flex;
   justify-content: stretch;
   min-width: var(--min-panel-width);
+  /*noinspection CssUnresolvedCustomProperty*/
   width: var(--panel-width, var(--default-panel-width));
   max-width: var(--max-panel-width);
   height: 100%;
-  /* overflow: auto; */
 }
 
 /* This element's visible width will be overwritten by the size transition, but the inner content's

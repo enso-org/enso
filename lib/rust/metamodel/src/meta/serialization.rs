@@ -53,11 +53,7 @@ use crate::meta::*;
 
 use std::fmt::Write;
 
-
-
 const DEBUG: bool = false;
-
-
 
 // ============================
 // === Test Case Generation ===
@@ -70,8 +66,8 @@ pub struct TestCases {
     pub accept: Vec<Vec<u8>>,
     /// Inputs that a deserializer should reject.
     pub reject: Vec<Vec<u8>>,
-    program:    Vec<Op>,
-    debuginfo:  BTreeMap<usize, String>,
+    program: Vec<Op>,
+    debuginfo: BTreeMap<usize, String>,
 }
 
 /// Generate test cases.
@@ -151,8 +147,6 @@ fn fmt_program(program: &[Op], debuginfo: &BTreeMap<usize, String>) -> String {
     out
 }
 
-
-
 // ==========================
 // === Program Operations ===
 // ==========================
@@ -174,8 +168,6 @@ enum Case {
     Reject,
 }
 
-
-
 // ==========================
 // === Program Generation ===
 // ==========================
@@ -183,11 +175,11 @@ enum Case {
 /// Generates test-case-generating program for a type graph.
 #[derive(Debug)]
 struct ProgramBuilder<'g> {
-    graph:                 &'g TypeGraph,
-    will_visit:            BTreeSet<TypeId>,
-    visited:               BTreeSet<TypeId>,
-    debuginfo:             BTreeMap<usize, String>,
-    program:               Vec<Op>,
+    graph: &'g TypeGraph,
+    will_visit: BTreeSet<TypeId>,
+    visited: BTreeSet<TypeId>,
+    debuginfo: BTreeMap<usize, String>,
+    program: Vec<Op>,
     basecase_discriminant: BTreeMap<TypeId, usize>,
 }
 
@@ -510,8 +502,6 @@ fn select_basecase_(
     Err(())
 }
 
-
-
 // =================
 // === Execution ===
 // =================
@@ -519,7 +509,7 @@ fn select_basecase_(
 /// Runs a test-case-generating program.
 #[derive(Debug, Default)]
 struct Interpreter<'p> {
-    program:       &'p [Op],
+    program: &'p [Op],
     continuations: BTreeMap<usize, usize>,
 }
 
@@ -527,7 +517,7 @@ struct Interpreter<'p> {
 #[derive(Debug, Default, PartialEq, Eq)]
 struct Frame {
     /// A return address, as an index into the sequence of [`Op`]s.
-    return_:    usize,
+    return_: usize,
     /// A height of the data stack.
     prefix_len: usize,
 }
@@ -551,8 +541,9 @@ impl<'p> Interpreter<'p> {
         let mut stack: Vec<Frame> = Default::default();
         for (pc, op) in self.program.iter().enumerate() {
             match op {
-                Op::SwitchPush => stack
-                    .push(Frame { return_: self.continuations[&pc], prefix_len: prefix.len() }),
+                Op::SwitchPush => {
+                    stack.push(Frame { return_: self.continuations[&pc], prefix_len: prefix.len() })
+                }
                 Op::SwitchPop => {
                     let Frame { prefix_len, .. } = stack.pop().unwrap();
                     prefix.truncate(prefix_len);

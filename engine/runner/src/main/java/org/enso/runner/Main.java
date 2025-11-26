@@ -55,6 +55,7 @@ import org.enso.runner.common.ProfilingConfig;
 import org.enso.runner.common.WrongOption;
 import org.enso.version.BuildVersion;
 import org.enso.version.VersionDescription;
+import org.graalvm.nativeimage.ImageInfo;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.PolyglotException.StackFrame;
 import org.graalvm.polyglot.SourceSection;
@@ -417,11 +418,10 @@ public class Main {
             .build();
     var compileOption =
         cliOptionBuilder()
-            .hasArg(true)
-            .numberOfArgs(1)
-            .argName("package")
             .longOpt(COMPILE_OPTION)
-            .desc("Compile the provided package without executing it.")
+            .desc("Compile provided packages without executing.")
+            .hasArgs()
+            .argName("packages")
             .build();
     var noCompileDependenciesOption =
         cliOptionBuilder()
@@ -663,7 +663,7 @@ public class Main {
   /**
    * Handles the `--compile` CLI option.
    *
-   * @param path the path to the package or file being compiled
+   * @param paths Path of packages to be compiled.
    * @param shouldCompileDependencies whether the dependencies of that package should also be
    *     compiled
    * @param shouldUseIrCaches whether or not IR caches should be used.
@@ -676,7 +676,7 @@ public class Main {
    */
   private void compile(
       String cwd,
-      String path,
+      String[] paths,
       boolean shouldCompileDependencies,
       boolean shouldUseIrCaches,
       boolean disablePrivateCheck,
@@ -685,7 +685,8 @@ public class Main {
       Level logLevel,
       boolean logMasking)
       throws IOException {
-    var fileAndProject = Utils.findFileAndProject(cwd, path, null);
+    var mainProjectPath = paths[0];
+    var fileAndProject = Utils.findFileAndProject(cwd, mainProjectPath, null);
     assert fileAndProject != null;
 
     boolean isProjectMode = fileAndProject._1();
@@ -708,7 +709,7 @@ public class Main {
     try {
       if (isProjectMode) {
         var topScope = context.getTopScope();
-        topScope.compile(shouldCompileDependencies, scala.Option.empty());
+        topScope.compile(shouldCompileDependencies, paths);
       } else {
         context.evalModule(fileAndProject._2());
       }
@@ -1191,12 +1192,12 @@ public class Main {
     }
 
     if (line.hasOption(COMPILE_OPTION)) {
-      var packagePath = line.getOptionValue(COMPILE_OPTION);
+      var packagePaths = line.getOptionValues(COMPILE_OPTION);
       var shouldCompileDependencies = !line.hasOption(NO_COMPILE_DEPENDENCIES_OPTION);
 
       compile(
           cwd,
-          packagePath,
+          packagePaths,
           shouldCompileDependencies,
           shouldEnableIrCaches(line),
           line.hasOption(DISABLE_PRIVATE_CHECK_OPTION),
@@ -1481,7 +1482,8 @@ public class Main {
       File component,
       File javaExecutable)
       throws IOException, InterruptedException {
-    var useJNI = true;
+    /* Cannot use JNI when not in Native Image code. Fallback to launching a process. */
+    var useJNI = ImageInfo.inImageCode();
     var commandAndArgs = new ArrayList<String>();
     if (originalCwdOrNull != null) {
       commandAndArgs.add("-Denso.user.dir=" + originalCwdOrNull);
@@ -1576,6 +1578,11 @@ public class Main {
         System.setProperty(e.getKey(), e.getValue());
       }
     }
+    if (line.hasOption(LANGUAGE_SERVER_OPTION)) {
+      // Setup application-ls.conf as the default config file
+      // https://github.com/lightbend/config?tab=readme-ov-file#standard-behavior
+      System.setProperty("config.resource", "application-ls.conf");
+    }
     var logLevel = setupLogging(line, logMasking);
 
     var loc = Main.class.getProtectionDomain().getCodeSource().getLocation();
@@ -1665,11 +1672,17 @@ public class Main {
     }
     if (line.hasOption(LanguageServerApi.CLOUD_PROJECT_ID_OPTION)) {
       MDC.put("projectId", line.getOptionValue(LanguageServerApi.CLOUD_PROJECT_ID_OPTION));
+    } else if (System.getenv(LanguageServerApi.ENSO_CLOUD_PROJECT_ID_ENV_NAME) != null) {
+      MDC.put("projectId", System.getenv(LanguageServerApi.ENSO_CLOUD_PROJECT_ID_ENV_NAME));
     }
     if (line.hasOption(LanguageServerApi.CLOUD_PROJECT_SESSION_ID_OPTION)) {
       MDC.put(
           "projectSessionId",
           line.getOptionValue(LanguageServerApi.CLOUD_PROJECT_SESSION_ID_OPTION));
+    } else if (System.getenv(LanguageServerApi.ENSO_CLOUD_PROJECT_SESSION_ID_ENV_NAME) != null) {
+      MDC.put(
+          "projectSessionId",
+          System.getenv(LanguageServerApi.ENSO_CLOUD_PROJECT_SESSION_ID_ENV_NAME));
     }
     MDC.put("projectLocalId", projectId);
     RunnerLogging.setup(connectionUri, logLevel, logMasking[0]);

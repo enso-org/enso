@@ -1,10 +1,10 @@
-import * as text from 'enso-common/src/text'
-
 import { proxyRefs, type MaybeRefOrGetterArray } from '@/util/reactivity'
 import { createGlobalState } from '@vueuse/core'
+import * as text from 'enso-common/src/text'
 import { computed, ref, toValue } from 'vue'
 
 export type TextStore = ReturnType<typeof createTextStore>
+
 /**
  * A composable for getting localized text and setting the language.
  *

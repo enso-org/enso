@@ -34,32 +34,14 @@ public sealed interface AzureCredential {
       implements AzureCredential {
     @Override
     public String uniqueId() {
-      return "ClientSecret("
-          + makeUnique(tenantId)
-          + ", "
-          + makeUnique(clientId)
-          + ", "
-          + makeUnique(clientSecret)
-          + ")";
+      return "ClientSecret(" + tenantId + ", " + clientId + ", " + clientSecret + ")";
     }
   }
 
   record BlobStorageSASToken(HideableValue token) implements AzureCredential {
     @Override
     public String uniqueId() {
-      return "BlobStorageSASToken(" + makeUnique(token) + ")";
+      return "BlobStorageSASToken(" + token + ")";
     }
-  }
-
-  private static String makeUnique(HideableValue value) {
-    return switch (value) {
-      case HideableValue.PlainValue plainValue -> plainValue.value();
-      case HideableValue.SecretValue secretID -> "{{Secret:" + secretID.secretId() + "}}";
-      case HideableValue.ConcatValues concatValues ->
-          makeUnique(concatValues.left()) + "_" + makeUnique(concatValues.right());
-      case HideableValue.Base64EncodeValue base64EncodeValue ->
-          "base64_" + makeUnique(base64EncodeValue.value());
-      default -> throw new IllegalArgumentException("Unexpected value: " + value);
-    };
   }
 }

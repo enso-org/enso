@@ -270,7 +270,7 @@ case object OperatorToFunctionTestPass extends IRPass {
         )
       )
     }
-    ir.copy(bindings = new_bindings)
+    ir.copyWithBindings(bindings = new_bindings)
   }
 
   /** Executes the conversion pass in an inline context.

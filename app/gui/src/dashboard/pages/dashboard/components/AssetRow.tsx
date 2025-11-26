@@ -9,7 +9,6 @@ import { useBackendMutationState } from '#/hooks/backendHooks'
 import * as dragAndDropHooks from '#/hooks/dragAndDropHooks'
 import { useDragDelayAction } from '#/hooks/dragDelayHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import { BUSY_PROJECT_STATES } from '#/hooks/projectHooks'
 import { useSyncRef } from '#/hooks/syncRefHooks'
 import type * as assetsTable from '#/layouts/AssetsTable'
 import { isLocalCategory } from '#/layouts/CategorySwitcher/Category'
@@ -24,20 +23,20 @@ import {
   useSetSelectedAssets,
 } from '#/providers/DriveProvider'
 import { unsetModal } from '#/providers/ModalProvider'
-import type { Label } from '#/services/Backend'
-import * as backendModule from '#/services/Backend'
 import * as drag from '#/utilities/drag'
 import * as eventModule from '#/utilities/event'
+import * as tailwindMerge from '#/utilities/tailwindMerge'
+import Visibility from '#/utilities/Visibility'
+import { useStore } from '#/utilities/zustand'
+import { useFullUserSession } from '$/providers/react'
+import { useIsProjectClosing } from '$/providers/react/openedProjects'
+import type { Label } from 'enso-common/src/services/Backend'
+import * as backendModule from 'enso-common/src/services/Backend'
 import {
   canPermissionModifyDirectoryContents,
   isTeamPath,
   tryFindSelfPermission,
-} from '#/utilities/permissions'
-import * as tailwindMerge from '#/utilities/tailwindMerge'
-import Visibility from '#/utilities/Visibility'
-import { useStore } from '#/utilities/zustand'
-import type { LaunchedProject } from '$/providers/container'
-import { useFullUserSession } from '$/providers/react'
+} from 'enso-common/src/utilities/permissions'
 import * as React from 'react'
 import { useTransition } from 'react'
 import invariant from 'tiny-invariant'
@@ -51,14 +50,13 @@ export interface AssetRowInnerProps {
 /** Props for an {@link AssetRow}. */
 export interface AssetRowProps {
   readonly item: backendModule.AnyAsset
-  readonly isOpened: boolean
   readonly isPlaceholder: boolean
   readonly id: backendModule.AssetId
   readonly parentId: backendModule.DirectoryId
   readonly contextMenuRef: React.RefObject<ContextMenuApi>
   readonly type: backendModule.AssetType
   readonly state: assetsTable.AssetsTableState
-  readonly columns: columnUtils.Column[]
+  readonly columns: readonly columnUtils.Column[]
   readonly isKeyboardSelected: boolean
   readonly labels: readonly Label[]
   readonly grabKeyboardFocus: (item: backendModule.AnyAsset) => void
@@ -76,69 +74,15 @@ export interface AssetRowProps {
     event: React.DragEvent<HTMLTableRowElement>,
     item: backendModule.AnyAsset,
   ) => void
-  readonly closeProject: (project: LaunchedProject) => Promise<void>
-  readonly openProject: (projectId: backendModule.ProjectId) => Promise<void>
 }
-
-/** A row containing an {@link backendModule.AnyAsset}. */
-export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
-  const { type, columns, id, item } = props
-
-  switch (type) {
-    case backendModule.AssetType.specialUp: {
-      return <AssetSpecialRow columnsLength={columns.length} type={type} />
-    }
-    case backendModule.AssetType.project:
-    case backendModule.AssetType.file:
-    case backendModule.AssetType.secret:
-    case backendModule.AssetType.datalink:
-    case backendModule.AssetType.directory:
-    default: {
-      // This is safe because we filter out special asset types in the switch statement above.
-      // eslint-disable-next-line no-restricted-syntax
-      return <RealAssetRow {...props} id={id as backendModule.RealAssetId} item={item} />
-    }
-  }
-})
-
-/** Props for a {@link AssetSpecialRow}. */
-export interface AssetSpecialRowProps {
-  readonly type: backendModule.AssetType
-  readonly columnsLength: number
-}
-
-/** Renders a special asset row. */
-const AssetSpecialRow = React.memo(function AssetSpecialRow(props: AssetSpecialRowProps) {
-  const { type } = props
-
-  switch (type) {
-    case backendModule.AssetType.specialUp: {
-      // TODO: Implement this.
-      // @MrFlashAccount [Cloud v2 #1810](https://github.com/enso-org/cloud-v2/issues/1810)
-      return null
-    }
-    case backendModule.AssetType.project:
-    case backendModule.AssetType.file:
-    case backendModule.AssetType.secret:
-    case backendModule.AssetType.datalink:
-    case backendModule.AssetType.directory:
-    default: {
-      invariant(false, 'Unsupported special asset type: ' + type)
-    }
-  }
-})
-
-/** Props for a {@link RealAssetRow}. */
-type RealAssetRowProps = AssetRowProps
 
 /** Render a real asset row. */
-export function RealAssetRow(props: RealAssetRowProps) {
+export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
   const {
     id,
     parentId,
     contextMenuRef,
     isKeyboardSelected,
-    isOpened,
     select,
     state,
     columns,
@@ -148,8 +92,6 @@ export function RealAssetRow(props: RealAssetRowProps) {
     item,
     labels,
     grabKeyboardFocus,
-    closeProject,
-    openProject,
   } = props
 
   const { category, associatedBackend: backend } = useCategoriesAPI()
@@ -215,6 +157,9 @@ export function RealAssetRow(props: RealAssetRowProps) {
     }).length !== 0
 
   const isUpdating = isUpdatingSingleAsset || isMovingMultipleAssets
+  const isClosing = useIsProjectClosing(
+    item.type === backendModule.AssetType.project ? item.id : null,
+  )
 
   const insertionVisibility = useStore(driveStore, (driveState) => {
     return (
@@ -277,7 +222,7 @@ export function RealAssetRow(props: RealAssetRowProps) {
           // Assume the parent is the root directory.
           return true
         }
-        if (parent.ensoPath != null && isTeamPath(parent.ensoPath)) {
+        if (isTeamPath(parent.ensoPath)) {
           return true
         }
         // Assume user path; check permissions
@@ -375,7 +320,7 @@ export function RealAssetRow(props: RealAssetRowProps) {
 
               if (
                 item.type === backendModule.AssetType.project &&
-                BUSY_PROJECT_STATES.has(item.projectState.type)
+                (backendModule.IS_OPENING_OR_OPENED[item.projectState.type] || isClosing)
               ) {
                 event.preventDefault()
               }
@@ -424,14 +369,11 @@ export function RealAssetRow(props: RealAssetRowProps) {
                     isNavigating={isNavigating}
                     labels={labels}
                     isPlaceholder={isPlaceholder}
-                    isOpened={isOpened}
                     backendType={backend.type}
                     item={item}
                     setSelected={setSelected}
                     state={state}
                     isEditable={state.category.type !== 'trash'}
-                    closeProject={closeProject}
-                    openProject={openProject}
                   />
                 </td>
               )
@@ -440,13 +382,8 @@ export function RealAssetRow(props: RealAssetRowProps) {
         </>
       )
     }
-    case backendModule.AssetType.specialUp:
     default: {
-      invariant(
-        false,
-        'Unsupported asset type, expected one of: directory, project, file, datalink, secret, but got: ' +
-          type,
-      )
+      invariant(false, `Unsupported asset type '${String(type)}'`)
     }
   }
-}
+})

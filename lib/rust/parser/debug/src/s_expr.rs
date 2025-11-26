@@ -5,11 +5,11 @@ use enso_reflect::Reflect;
 use lexpr::Value;
 use std::collections::HashSet;
 
-
-
 /// Produce an S-expression representation of the input AST type.
 pub fn to_s_expr<T>(value: &T, code: &str) -> Value
-where T: serde::Serialize + Reflect {
+where
+    T: serde::Serialize + Reflect,
+{
     use enso_parser::syntax::token::variant::*;
     use enso_parser::syntax::tree;
     let (graph, rust_to_meta) = enso_metamodel::rust::to_meta(value.reflect_type());
@@ -28,7 +28,6 @@ where T: serde::Serialize + Reflect {
         AutoscopeOperator::reflect(),
         UnaryOperator::reflect(),
         LambdaOperator::reflect(),
-        DotOperator::reflect(),
         SuspensionOperator::reflect(),
     ];
     let stringish_tokens = stringish_tokens.into_iter().map(|t| rust_to_meta[&t.id]);
@@ -46,6 +45,7 @@ where T: serde::Serialize + Reflect {
         OfKeyword::reflect(),
         AnnotationOperator::reflect(),
         AssignmentOperator::reflect(),
+        DotOperator::reflect(),
     ];
     skip_tokens.into_iter().for_each(|token| to_s_expr.skip(rust_to_meta[&token.id]));
     let identish_tokens = vec![Ident::reflect(), AllKeyword::reflect(), PrivateKeyword::reflect()];

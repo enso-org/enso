@@ -1,8 +1,6 @@
 use time::format_description::well_known::Rfc3339;
 use time::OffsetDateTime;
 
-
-
 // =================
 // === Constants ===
 // =================
@@ -17,8 +15,6 @@ static RESPONSE_IGNORED: &str = "wstest ignored response";
 
 static FMT_LEVEL: &str = "info";
 static FMT_MODULE: &str = "main";
-
-
 
 // ==========================
 // === Message Formatting ===

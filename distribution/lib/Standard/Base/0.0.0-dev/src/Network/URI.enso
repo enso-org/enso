@@ -12,13 +12,13 @@ import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.Illegal_State.Illegal_State
 import project.Errors.Problem_Behavior.Problem_Behavior
 import project.Meta
-import project.Nothing.Nothing
 import project.Panic.Panic
 import project.Warning.Warning
 from project.Data.Boolean.Boolean import False, True
 from project.Data.Text.Extensions import all
 from project.Enso_Cloud.Enso_Secret import as_hideable_value
 from project.Error import all
+from project.Nothing import all
 
 polyglot java import java.net.URI as Java_URI
 polyglot java import java.net.URISyntaxException
@@ -29,6 +29,25 @@ polyglot java import org.graalvm.collections.Pair as Java_Pair
 
 ## Represents a Uniform Resource Identifier (URI) reference.
 type URI
+    ## ---
+       group: Conversions
+       icon: convert
+       ---
+       Parses a URI from text if it starts with "http://" or "https://".
+       If the input text does not start with either of these schemes, this
+       function returns `Nothing`.
+
+       ## Arguments
+        - `uri`: The text to parse as a URI.
+
+       ## Returns
+       Parsed `URI` object if the input text starts with "http://" or "https://",
+       otherwise `Nothing`.
+    parse_if_http : Text -> URI | Nothing ! Syntax_Error
+    parse_if_http uri:Text =
+        if uri.starts_with "http://" ..Insensitive || uri.starts_with "https://" ..Insensitive then URI.parse uri else
+            Nothing
+
     ## ---
        aliases: [get uri]
        group: Conversions

@@ -1,8 +1,16 @@
 /** @file A list of toggles for paywall features. */
 import CrossIcon from '#/assets/cross.svg'
 import { Button, CopyButton, type ButtonProps } from '#/components/Button'
+import {
+  useEnableVersionChecker,
+  usePaywallDevtools,
+  useSetEnableVersionChecker,
+  useShowEnsoDevtools,
+  useToggleEnsoDevtools,
+} from '#/components/Devtools/EnsoDevtoolsProvider'
 import { Dialog, Popover, POPOVER_STYLES } from '#/components/Dialog'
 import { Form } from '#/components/Form'
+import { Icon } from '#/components/Icon'
 import { Input } from '#/components/Inputs/Input'
 import { Radio } from '#/components/Radio'
 import { Separator } from '#/components/Separator'
@@ -12,9 +20,7 @@ import { Tooltip } from '#/components/Tooltip'
 import { Underlay } from '#/components/Underlay'
 import { VisualTooltip } from '#/components/VisualTooltip'
 import { usePaywall, usePaywallFeatures } from '#/hooks/billing'
-import * as backend from '#/services/Backend'
 import LocalStorage, { useLocalStorageValues } from '#/utilities/LocalStorage'
-import { unsafeKeys } from '#/utilities/object'
 import { safeJsonParse } from '#/utilities/safeJsonParse'
 import {
   DEFAULT_ASSETS_TABLE_REFRESH_INTERVAL_MS,
@@ -27,18 +33,12 @@ import { useLocalStorage, useText } from '$/providers/react'
 import { useUserSession } from '$/providers/react/auth'
 import { useFeatureFlags, useSetFeatureFlag } from '$/providers/react/featureFlags'
 import { useQueryClient } from '@tanstack/react-query'
-import { IS_DEV_MODE } from 'enso-common/src/detect'
+import * as backend from 'enso-common/src/services/Backend'
+import { unsafeKeys } from 'enso-common/src/utilities/data/object'
+import { IS_DEV_MODE } from 'enso-common/src/utilities/detect'
 import { toast } from 'react-toastify'
 import { twJoin } from 'tailwind-merge'
 import invariant from 'tiny-invariant'
-import { Icon } from '../Icon'
-import {
-  useEnableVersionChecker,
-  usePaywallDevtools,
-  useSetEnableVersionChecker,
-  useShowEnsoDevtools,
-  useToggleEnsoDevtools,
-} from './EnsoDevtoolsProvider'
 
 /** Props for a {@link DeveloperOverrideEntry}. */
 interface DeveloperOverrideEntryProps {
@@ -411,6 +411,15 @@ export function EnsoDevtools() {
               <>
                 <Switch
                   form={form}
+                  name="debugHoverAreas"
+                  label={'Debug hover areas'}
+                  description={'Make all mouse hoverable areas visible on the graph.'}
+                  onChange={(value) => {
+                    setFeatureFlag('debugHoverAreas', value)
+                  }}
+                />
+                <Switch
+                  form={form}
                   name="showDeveloperIds"
                   label={getText('ensoDevtoolsFeatureFlags.showDeveloperIds')}
                   description={getText('ensoDevtoolsFeatureFlags.showDeveloperIdsDescription')}
@@ -599,7 +608,7 @@ export function EnsoDevtools() {
               size="small"
               icon="paste"
               onPress={async () => {
-                const text = await navigator.clipboard.readText()
+                const text = await window.navigator.clipboard.readText()
                 localStorage.setManyFromUntrustedSource(safeJsonParse(text, null))
                 toast.success('State pasted')
               }}

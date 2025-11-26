@@ -5,8 +5,6 @@ use crate::archive::extract_files::ExtractFiles;
 use flate2::read::GzDecoder;
 use std::fs::File;
 
-
-
 /// Synchronous version of [`extract_files`].
 #[context("Failed to extract files from the archive.")]
 pub fn extract_files_sync<R: Read>(
