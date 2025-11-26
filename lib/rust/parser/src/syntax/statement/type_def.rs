@@ -1,15 +1,12 @@
 use crate::prelude::*;
 
+use crate::syntax::Item;
+use crate::syntax::Token;
+use crate::syntax::Tree;
 use crate::syntax::expression::ExpressionParser;
 use crate::syntax::expression::Spacing;
 use crate::syntax::item;
 use crate::syntax::maybe_with_error;
-use crate::syntax::statement::apply_excess_private_keywords;
-use crate::syntax::statement::compound_lines;
-use crate::syntax::statement::function_def::parse_args;
-use crate::syntax::statement::function_def::parse_constructor_definition;
-use crate::syntax::statement::parse_statement;
-use crate::syntax::statement::scan_private_keywords;
 use crate::syntax::statement::BlockContext;
 use crate::syntax::statement::EvaluationContext;
 use crate::syntax::statement::Line;
@@ -17,14 +14,17 @@ use crate::syntax::statement::StatementContext;
 use crate::syntax::statement::StatementOrPrefix;
 use crate::syntax::statement::StatementPrefixes;
 use crate::syntax::statement::VisibilityContext;
+use crate::syntax::statement::apply_excess_private_keywords;
+use crate::syntax::statement::compound_lines;
+use crate::syntax::statement::function_def::parse_args;
+use crate::syntax::statement::function_def::parse_constructor_definition;
+use crate::syntax::statement::parse_statement;
+use crate::syntax::statement::scan_private_keywords;
 use crate::syntax::token;
 use crate::syntax::tree;
-use crate::syntax::tree::block;
 use crate::syntax::tree::ArgumentDefinition;
 use crate::syntax::tree::SyntaxError;
-use crate::syntax::Item;
-use crate::syntax::Token;
-use crate::syntax::Tree;
+use crate::syntax::tree::block;
 
 pub fn try_parse_type_def<'s>(
     items: &mut Vec<Item<'s>>,
@@ -44,7 +44,7 @@ pub fn try_parse_type_def<'s>(
                 .parse_non_section_offset(start, items)
                 .unwrap()
                 .with_error(SyntaxError::TypeDefExpectedTypeName)
-                .into()
+                .into();
         }
     }
 

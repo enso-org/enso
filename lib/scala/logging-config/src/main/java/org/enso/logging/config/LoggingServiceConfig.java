@@ -57,6 +57,8 @@ public class LoggingServiceConfig implements BaseConfig {
    */
   public static LoggingServiceConfig parseConfig(ClassLoader classLoader)
       throws MissingConfigurationField {
+    // Ensures that up-to-date `config.resource` property is used
+    ConfigFactory.invalidateCaches();
     Objects.requireNonNull(classLoader, "classLoader cannot be null");
     var emptyConf = ConfigFactory.empty().atKey(configurationRoot);
     var defaultRootConf = ConfigFactory.load(classLoader);

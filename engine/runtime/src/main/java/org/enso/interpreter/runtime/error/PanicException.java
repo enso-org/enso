@@ -72,6 +72,12 @@ public final class PanicException extends AbstractTruffleException {
     this.ctx = ctx;
   }
 
+  PanicException(DataflowError err) {
+    super(err);
+    this.payload = err.getPayload();
+    this.ctx = err.ctx();
+  }
+
   /**
    * Returns the payload in the panic.
    *

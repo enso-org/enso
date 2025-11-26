@@ -21,11 +21,11 @@ import project.System.File.Generic.Writable_File.Writable_File
 import project.System.File.Write_Extensions
 import project.System.Input_Stream.Input_Stream
 import project.Warning.Warning
-from project.Nothing import all
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Range.Extensions import all
 from project.Data.Text.Extensions import all
 from project.Metadata import Display, make_single_choice, Widget
+from project.Nothing import all
 
 polyglot java import java.lang.Exception as JException
 polyglot java import javax.xml.xpath.XPath

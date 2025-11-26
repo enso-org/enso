@@ -720,24 +720,6 @@ impl JobArchetype for SnowflakeTests {
 }
 
 #[derive(Clone, Copy, Debug)]
-pub struct WasmLint;
-
-impl JobArchetype for WasmLint {
-    fn job(&self, target: Target) -> Job {
-        plain_job(target, "Lint", "wasm lint")
-    }
-}
-
-#[derive(Clone, Copy, Debug)]
-pub struct NativeTest;
-
-impl JobArchetype for NativeTest {
-    fn job(&self, target: Target) -> Job {
-        plain_job(target, "Native Rust tests", "wasm test")
-    }
-}
-
-#[derive(Clone, Copy, Debug)]
 pub struct GuiBuild;
 
 impl JobArchetype for GuiBuild {

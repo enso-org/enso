@@ -80,7 +80,7 @@ type Text_Column
 
         ## Examples
         ### Convert the values in a column to uppercase.
-        
+
         ```
             import Standard.Examples
 
@@ -97,7 +97,7 @@ type Text_Column
 
         ## Examples
         ### Convert the values in a column to lowercase.
-        
+
         ```
             import Standard.Examples
 
@@ -115,7 +115,7 @@ type Text_Column
 
         ## Examples
         ### Convert the values in a column to proper case.
-        
+
         ```
             import Standard.Examples
 

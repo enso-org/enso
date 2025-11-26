@@ -11,6 +11,46 @@ public sealed interface HideableValue
         HideableImpl.PlainValue,
         HideableImpl.SecretValue {
 
+  record KeyValuePair(String key, HideableValue value) {
+    String first() {
+      return key;
+    }
+
+    HideableValue second() {
+      return value;
+    }
+  }
+
+  class Factory {
+    public HideableValue plain(String value) {
+      return HideableValue.plain(value);
+    }
+
+    public HideableValue secret(String secretId) {
+      return HideableValue.secret(secretId);
+    }
+
+    public HideableValue concat(HideableValue left, HideableValue right) {
+      return HideableValue.concat(left, right);
+    }
+
+    public HideableValue base64(HideableValue inner) {
+      return HideableValue.base64(inner);
+    }
+
+    public HideableValue privateKey(HideableValue k) {
+      return HideableValue.privateKey(k);
+    }
+
+    public boolean isAnInstance(Object obj) {
+      return obj instanceof HideableValue;
+    }
+
+    public HideableValue.KeyValuePair createPair(String key, HideableValue value) {
+      return new HideableValue.KeyValuePair(key, value);
+    }
+  }
+
   /**
    * Creates new instance of plain value. It doesn't {@link #containsSecrets()} and {@link
    * #render()} exactly as the provided value.

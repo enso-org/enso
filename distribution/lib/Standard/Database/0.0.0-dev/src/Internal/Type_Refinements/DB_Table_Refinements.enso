@@ -4,6 +4,7 @@ from Standard.Base import all
 
 import Standard.Table.Refined_Types.Numeric_Column.Numeric_Column
 import Standard.Table.Refined_Types.Text_Column.Text_Column
+import Standard.Table.Spatial_Table.Spatial_Table
 from Standard.Table import Column, Table, Value_Type
 
 import project.DB_Column.DB_Column
@@ -13,8 +14,9 @@ from project.Internal.Type_Refinements.Single_Column_DB_Table_Conversions import
 from project.Internal.Type_Refinements.Single_Column_Typed_DB_Table_Conversions import all
 
 refine_table (table : Table & DB_Table) =
-    if table . column_count != 1 then (table : Table & DB_Table) else
-        _refine_single_column_table table
+    if table.connection.dialect.is_feature_supported ..Spatial then refine_spatial_table table else
+        if table.column_count != 1 then (table : Table & DB_Table) else
+            _refine_single_column_table table
 
 private _refine_single_column_table table =
     column = (table:Table).at 0
@@ -26,3 +28,18 @@ private _refine_single_column_table table =
         Value_Type.Decimal _ _ -> (table : Table & DB_Table & Column & DB_Column & Numeric_Column)
         Value_Type.Char _ _ -> (table : Table & DB_Table & Column & DB_Column & Text_Column)
         _ -> (table : Table & DB_Table & Column & DB_Column)
+
+private refine_spatial_table (table : Table & DB_Table & Spatial_Table) =
+    if table.column_count != 1 then (table : Table & DB_Table & Spatial_Table) else
+        _refine_single_column_spatial_table table
+
+private _refine_single_column_spatial_table table =
+    column = (table:Table).at 0
+    inferred_value_type = (column:Column).inferred_precise_value_type
+    case inferred_value_type of
+        Value_Type.Integer _ -> (table : Table & DB_Table & Spatial_Table & Column & DB_Column & Numeric_Column)
+        Value_Type.Byte -> (table : Table & DB_Table & Spatial_Table & Column & DB_Column & Numeric_Column)
+        Value_Type.Float _ -> (table : Table & DB_Table & Spatial_Table & Column & DB_Column & Numeric_Column)
+        Value_Type.Decimal _ _ -> (table : Table & DB_Table & Spatial_Table & Column & DB_Column & Numeric_Column)
+        Value_Type.Char _ _ -> (table : Table & DB_Table & Spatial_Table & Column & DB_Column & Text_Column)
+        _ -> (table : Table & DB_Table & Spatial_Table & Column & DB_Column)

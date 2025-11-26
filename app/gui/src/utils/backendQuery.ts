@@ -25,6 +25,7 @@ export type BackendMutationMethod = DefineBackendMethods<
   | 'createDatalink'
   | 'createDirectory'
   | 'createPermission'
+  | 'createApiKey'
   | 'createProject'
   | 'createProjectExecution'
   | 'createSecret'
@@ -35,6 +36,7 @@ export type BackendMutationMethod = DefineBackendMethods<
   | 'deleteAsset'
   | 'deleteDatalink'
   | 'deleteInvitation'
+  | 'deleteApiKey'
   | 'deleteProjectExecution'
   | 'deleteTag'
   | 'deleteUser'
@@ -60,6 +62,7 @@ export type BackendMutationMethod = DefineBackendMethods<
   | 'uploadFileChunk'
   | 'uploadFileEnd'
   | 'uploadFileStart'
+  | 'uploadImage'
   | 'uploadOrganizationPicture'
   | 'uploadUserPicture'
 >
@@ -136,6 +139,9 @@ export const INVALIDATION_MAP: Partial<
   updateProjectExecution: ['listProjectExecutions'],
   syncProjectExecution: ['listProjectExecutions'],
   deleteProjectExecution: ['listProjectExecutions'],
+  createApiKey: ['listApiKeys'],
+  deleteApiKey: ['listApiKeys'],
+  uploadImage: ['listDirectory', 'searchDirectory'],
 }
 
 /** For each backend method, an optional function defining how to create a query key from its arguments. */

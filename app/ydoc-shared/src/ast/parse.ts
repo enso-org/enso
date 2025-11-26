@@ -38,7 +38,6 @@ import {
   Import,
   Invalid,
   MutableExpressionStatement,
-  MutableIdent,
   MutableInvalid,
   NegationApp,
   NumericLiteral,
@@ -216,14 +215,14 @@ class Abstractor {
             [this.abstractToken(tree.opr.value)]
           : Array.from(tree.opr.error.payload.operators, this.abstractToken.bind(this))
         const rhs = tree.rhs ? this.abstractExpression(tree.rhs) : undefined
-        const soleOpr = iter.tryGetSoleValue(opr)
-        if (soleOpr?.node.code() === '.' && rhs?.node instanceof MutableIdent) {
-          // Propagate type.
-          const rhs_ = { ...rhs, node: rhs.node }
-          node = PropertyAccess.concrete(this.module, lhs, soleOpr, rhs_)
-        } else {
-          node = OprApp.concrete(this.module, lhs, opr, rhs)
-        }
+        node = OprApp.concrete(this.module, lhs, opr, rhs)
+        break
+      }
+      case RawAst.Tree.Type.PropertyAccess: {
+        const lhs = tree.lhs ? this.abstractExpression(tree.lhs) : undefined
+        const opr = this.abstractToken(tree.opr)
+        const rhs = this.abstractToken(tree.rhs)
+        node = PropertyAccess.concrete(this.module, lhs, opr, rhs)
         break
       }
       case RawAst.Tree.Type.Number: {

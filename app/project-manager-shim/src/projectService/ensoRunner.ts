@@ -39,6 +39,7 @@ export interface LanguageServerSockets {
   readonly secureJsonSocket?: Socket
   readonly binarySocket: Socket
   readonly secureBinarySocket?: Socket
+  readonly ydocSocket: Socket
 }
 
 export interface Socket {
@@ -82,20 +83,22 @@ export class EnsoRunner implements Runner {
   /** Creates a new EnsoRunner with the path to the Enso executable. */
   constructor(private ensoPath: Path) {}
 
-  private async runProcess(
+  private async runProcess<T extends childProcess.ChildProcess>(
     args: readonly string[],
-    options?: childProcess.SpawnOptionsWithoutStdio,
+    spawnCallback: (cmd: string, cmdArgs: readonly string[]) => T,
   ) {
     const cmd = this.ensoPath.endsWith('.bat') ? 'cmd.exe' : this.ensoPath
     const cmdArgs = this.ensoPath.endsWith('.bat') ? ['/c', this.ensoPath, ...args] : args
-    return childProcess.spawn(cmd, cmdArgs, options)
+    return spawnCallback(cmd, cmdArgs)
   }
 
   private async runCommand(
     args: readonly string[],
     options?: childProcess.SpawnOptionsWithoutStdio,
   ): Promise<void> {
-    const process = await this.runProcess(args, options)
+    const process = await this.runProcess(args, (cmd, cmdArgs) =>
+      childProcess.spawn(cmd, cmdArgs, options),
+    )
     return new Promise((resolve, reject) => {
       let stdout = ''
       let stderr = ''
@@ -170,7 +173,7 @@ export class EnsoRunner implements Runner {
       await this.loadingProjects.values().next().value
     }
     const promise = this.findServerPorts(DEFAULT_JSONRPC_PORT).then(
-      async ([jsonPort, binaryPort]) => {
+      async ([jsonPort, binaryPort, ydocPort]) => {
         const rootId = crypto.randomUUID()
         const args: readonly string[] = [
           '--server',
@@ -189,13 +192,24 @@ export class EnsoRunner implements Runner {
           ...(extraArgs ?? []),
         ]
 
-        const env = { ...process.env, ...(extraEnv ? Object.fromEntries(extraEnv) : {}) }
+        const env = {
+          ...process.env,
+          LANGUAGE_SERVER_YDOC_PORT: ydocPort.toString(),
+          ...(extraEnv ? Object.fromEntries(extraEnv) : {}),
+        }
 
         const cwd = path.dirname(projectPath)
-        const serverProcess = await this.runProcess(args, { env, detached: false, cwd })
+        const serverProcess = await this.runProcess(args, (cmd, cmdArgs) =>
+          childProcess.spawn(cmd, cmdArgs, {
+            env,
+            detached: false,
+            cwd,
+            stdio: ['pipe', 'inherit', 'inherit'],
+            windowsHide: true,
+          }),
+        )
 
         return new Promise<LanguageServerSockets>((resolve, reject) => {
-          let stderr = ''
           let resolved = false
 
           // Health check function
@@ -223,6 +237,7 @@ export class EnsoRunner implements Runner {
                 const sockets: LanguageServerSockets = {
                   jsonSocket: { host: '127.0.0.1', port: jsonPort },
                   binarySocket: { host: '127.0.0.1', port: binaryPort },
+                  ydocSocket: { host: '127.0.0.1', port: ydocPort },
                 }
                 this.runningProjects.set(projectId, {
                   process: serverProcess,
@@ -236,12 +251,6 @@ export class EnsoRunner implements Runner {
 
           // Start health check after initial delay
           setTimeout(startHealthCheck, 250)
-
-          serverProcess.stderr.on('data', (data) => {
-            console.error(data.toString())
-            const dataStr = data.toString()
-            stderr += dataStr
-          })
 
           serverProcess.on('error', (error) => {
             console.error(error.toString())
@@ -270,9 +279,7 @@ export class EnsoRunner implements Runner {
             // Remove from running projects when it closes
             this.runningProjects.delete(projectId)
             if (!resolved) {
-              reject(
-                new Error(`Language server process exited with code ${code}. stderr: ${stderr}`),
-              )
+              reject(new Error(`Language server process exited with code ${code}.`))
             }
           })
 
@@ -463,16 +470,16 @@ export class EnsoRunner implements Runner {
   }
 
   /** Finds an available port starting from the given port number. */
-  private async findServerPorts(startPort: number): Promise<[number, number]> {
+  private async findServerPorts(startPort: number): Promise<[number, number, number]> {
     return new Promise((resolve, reject) => {
-      portfinder.getPorts(2, { port: startPort }, (err, ports) => {
+      portfinder.getPorts(3, { port: startPort }, (err, ports) => {
         if (err) {
           reject(new Error(`Failed to find ports: ${err}`))
         }
-        if (ports.length < 2) {
+        if (ports.length < 3) {
           reject(new Error(`Failed to find all ports: ${ports}`))
         }
-        resolve(ports as [number, number])
+        resolve(ports as [number, number, number])
       })
     })
   }
@@ -504,8 +511,8 @@ export function findEnsoExecutable(workDir: string = '.'): Path | undefined {
     }
   })()
 
-  // Check ENSO_RUNNER_PATH environment variable first
-  const envPath = process.env.ENSO_RUNNER_PATH
+  // Check ENSO_ENGINE_PATH environment variable first
+  const envPath = process.env.ENSO_ENGINE_PATH
   if (envPath) {
     try {
       fs.accessSync(envPath)

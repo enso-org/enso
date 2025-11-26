@@ -3,20 +3,18 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 from Standard.Table import Aggregate_Column, Value_Type
 
+import Standard.Database.Connection.Postgres_Connection.Postgres_Connection
 import Standard.Database.DB_Column.DB_Column
-import Standard.Database.Dialects.Dialect
 import Standard.Database.Dialects.Dialect.Temp_Table_Style
 import Standard.Database.Dialects.Dialect_Flag.Dialect_Flag
 import Standard.Database.Dialects.Feature.Feature
 import Standard.Database.Internal.Base_Generator
 import Standard.Database.Internal.Common.Database_Join_Helper
-import Standard.Database.Internal.Error_Mapper.Error_Mapper
 import Standard.Database.Internal.IR.Internal_Column.Internal_Column
 import Standard.Database.Internal.IR.Order_Descriptor.Order_Descriptor
 import Standard.Database.Internal.IR.SQL_IR_Expression.SQL_IR_Expression
 import Standard.Database.Internal.IR.SQL_IR_Source.SQL_IR_Source
 import Standard.Database.Internal.IR.SQL_IR_Statement.SQL_IR_Statement
-import Standard.Database.Internal.Postgres.Postgres_Dialect
 import Standard.Database.Internal.SQL_Part.SQL_Part
 import Standard.Database.Internal.SQL_Type_Mapping.SQL_Type_Mapping
 import Standard.Database.Internal.SQL_Type_Reference.SQL_Type_Reference
@@ -26,15 +24,13 @@ import Standard.Database.SQL.SQL_Type
 from Standard.Database.Errors import Unsupported_Database_Operation
 from Standard.Database.Internal.JDBC_Connection import JDBC_Connection
 
-import project.Database.Redshift.Internal.Redshift_Error_Mapper.Redshift_Error_Mapper
-
 ## ---
    private: true
    ---
    The dialect for Redshift connections.
 redshift : Redshift_Dialect
 redshift =
-    Redshift_Dialect.Value Postgres_Dialect.make_dialect_operations
+    Redshift_Dialect.Value Postgres_Connection.get_dialect.get_dialect_operations
 
 ## ---
    private: true
@@ -129,7 +125,7 @@ type Redshift_Dialect
           types, it should be set to `Nothing`.
     prepare_order_descriptor : Internal_Column -> Sort_Direction -> Nothing | Text_Ordering -> Order_Descriptor
     prepare_order_descriptor self internal_column sort_direction text_ordering =
-        Postgres_Dialect.make_order_descriptor internal_column sort_direction text_ordering
+        Postgres_Connection.get_dialect.prepare_order_descriptor internal_column sort_direction text_ordering
 
     ## ---
        private: true
@@ -221,6 +217,7 @@ type Redshift_Dialect
         case feature of
             Feature.Offset -> False
             Feature.Generate_Rows -> False
+            Feature.Spatial -> False
             _ -> True
 
     ## ---
@@ -273,12 +270,6 @@ type Redshift_Dialect
     default_table_types : Vector Text
     default_table_types self =
         ["TABLE", "VIEW", "TEMPORARY TABLE", "TEMPORARY VIEW", "MATERIALIZED VIEW", "FOREIGN TABLE", "PARTITIONED TABLE"]
-
-    ## ---
-       private: true
-       ---
-    get_error_mapper : Error_Mapper
-    get_error_mapper self = Redshift_Error_Mapper
 
     ## ---
        private: true

@@ -153,6 +153,12 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
             pub opr: OperatorOrError<'s>,
             pub rhs: Option<Tree<'s>>,
         },
+        /// Application of the `.` operator.
+        PropertyAccess {
+            pub lhs: Option<Tree<'s>>,
+            pub opr: token::DotOperator<'s>,
+            pub rhs: token::Ident<'s>,
+        },
         /// Application of a unary operator, like `-a` or `~handler`, to an operand.
         UnaryOprApp {
             pub opr: token::UnaryOperator<'s>,
@@ -1051,59 +1057,61 @@ fn maybe_apply<'s>(f: Option<Tree<'s>>, x: Tree<'s>) -> Tree<'s> {
 }
 
 /// Join two nodes with an operator, in a way appropriate for their types.
-///
-/// For most operands this will simply construct an `OprApp`; however, a non-operator block (i.e. an
-/// `ArgumentBlock`) is reinterpreted as a `BodyBlock` when it appears in the RHS of an operator
-/// expression.
 pub fn apply_operator<'s>(
     lhs: Option<Tree<'s>>,
     opr: Vec<Token<'s>>,
     rhs: Option<Tree<'s>>,
 ) -> Tree<'s> {
-    let opr = match opr.len() {
+    match opr.len() {
         0 => unreachable!(),
-        1 => Ok(opr.into_iter().next().unwrap()),
-        _ => Err(MultipleOperatorError {
-            operators: Box::new(
-                NonEmptyVec::try_from(
-                    opr.into_iter()
-                        .map(|opr| opr.with_variant(token::variant::Operator()))
-                        .collect::<Vec<_>>(),
-                )
-                .unwrap(),
-            ),
-        }),
-    };
-    match opr {
-        Ok(opr) => {
-            let error = match (&opr.variant, lhs.as_ref().map(|tree| &tree.variant), &rhs) {
-                (_, Some(Variant::AutoscopedIdentifier(_)), _) if !opr.is_spaced() => {
-                    Some(SyntaxError::UnexpectedUnspacedOperand)
-                }
-                (_, _, None) | (_, None, _) if opr.is_syntactic_binary_operator() => {
-                    Some(SyntaxError::SyntacticOperatorMissingOperand)
-                }
-                (
-                    token::Variant::Operator(_)
-                    | token::Variant::DotOperator(_)
-                    | token::Variant::ArrowOperator(_)
-                    | token::Variant::TypeAnnotationOperator(_),
-                    _,
-                    _,
-                ) => None,
-                _ => Some(SyntaxError::ExprUnexpectedSyntacticOperator),
-            };
-            let tree = match (opr.variant, lhs, rhs) {
+        1 => {
+            let opr = opr.into_iter().next().unwrap();
+            match (opr.variant, lhs, rhs) {
                 (token::Variant::TypeAnnotationOperator(annotation), Some(lhs), Some(rhs)) => {
                     Tree::type_annotated(lhs, opr.with_variant(annotation), rhs)
                 }
-                (_, lhs, rhs) => {
-                    Tree::opr_app(lhs, Ok(opr.with_variant(token::variant::Operator())), rhs)
+                (
+                    token::Variant::DotOperator(dot),
+                    lhs,
+                    Some(Tree { variant: Variant::Ident(rhs), span, .. }),
+                ) => {
+                    let mut ident = rhs.token;
+                    ident.left_offset = span.left_offset;
+                    Tree::property_access(lhs, opr.with_variant(dot), ident)
                 }
-            };
-            maybe_with_error(tree, error)
+                (_, lhs, rhs) => {
+                    let error = match (&opr.variant, lhs.as_ref().map(|tree| &tree.variant), &rhs) {
+                        (_, Some(Variant::AutoscopedIdentifier(_)), _) if !opr.is_spaced() => {
+                            Some(SyntaxError::UnexpectedUnspacedOperand)
+                        }
+                        (_, _, None) | (_, None, _) if opr.is_syntactic_binary_operator() => {
+                            Some(SyntaxError::SyntacticOperatorMissingOperand)
+                        }
+                        (token::Variant::Operator(_) | token::Variant::ArrowOperator(_), _, _) => {
+                            None
+                        }
+                        _ => Some(SyntaxError::ExprUnexpectedSyntacticOperator),
+                    };
+                    let tree =
+                        Tree::opr_app(lhs, Ok(opr.with_variant(token::variant::Operator())), rhs);
+                    maybe_with_error(tree, error)
+                }
+            }
         }
-        _ => Tree::opr_app(lhs, opr.map(|opr| opr.with_variant(token::variant::Operator())), rhs),
+        _ => Tree::opr_app(
+            lhs,
+            Err(MultipleOperatorError {
+                operators: Box::new(
+                    NonEmptyVec::try_from(
+                        opr.into_iter()
+                            .map(|opr| opr.with_variant(token::variant::Operator()))
+                            .collect::<Vec<_>>(),
+                    )
+                    .unwrap(),
+                ),
+            }),
+            rhs,
+        ),
     }
 }
 

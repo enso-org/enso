@@ -81,9 +81,9 @@ export const widgetDefinition = defineWidget(
 </script>
 
 <template>
-  <div class="WidgetApplication" :class="appClass">
+  <div class="WidgetApplication widgetParent" :class="appClass">
     <NodeWidget :input="targetMaybePort" :nest="application.isInnermost" />
-    <div v-if="infixWidgetInput" class="infixOp" :style="operatorStyle">
+    <div v-if="infixWidgetInput" class="infixOp widgetParent" :style="operatorStyle">
       <NodeWidget :input="infixWidgetInput" />
     </div>
     <SizeTransition width leftGap>
@@ -94,10 +94,6 @@ export const widgetDefinition = defineWidget(
 
 <style scoped>
 .WidgetApplication {
-  display: flex;
-  align-items: center;
-  flex-direction: row;
-  justify-content: center;
   &.prefix {
     gap: var(--widget-token-pad-unit);
   }

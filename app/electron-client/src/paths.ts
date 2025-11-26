@@ -3,7 +3,6 @@ import type { Electron } from '@/electron'
 import { PRODUCT_NAME } from 'enso-common/src/constants'
 import { homedir } from 'node:os'
 import * as path from 'node:path'
-import * as paths from '../paths'
 
 /**
  * The root of the application bundle.
@@ -66,16 +65,6 @@ export function assetsPath(electron: Electron | undefined) {
  */
 export function resourcesPath(electron: Electron | undefined, electronIsDev: boolean): string {
   return electronIsDev ? appPath(electron) : path.join(appPath(electron), '..')
-}
-
-/** Project manager binary path. */
-export function projectManagerPath(electron: Electron | undefined, electronIsDev: boolean): string {
-  return path.join(
-    resourcesPath(electron, electronIsDev),
-    paths.PROJECT_MANAGER_BUNDLE,
-    // Placeholder for a bundler-provided define.
-    process.env.PROJECT_MANAGER_IN_BUNDLE_PATH,
-  )
 }
 
 /** Relative path of Enso Project package metadata relative to the project root. */

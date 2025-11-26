@@ -368,11 +368,11 @@ type Duration
         (h+m+s).trim
 
     ## ---
-      aliases: [greater than]
-      group: Operators
-      icon: operators
-      ---
-      Checks if `self` is greater than `that`.
+       aliases: [greater than]
+       group: Operators
+       icon: operators
+       ---
+       Checks if `self` is greater than `that`.
     > self that = Comparable.> self=self that
 
     ## ---

@@ -188,6 +188,9 @@ interface PlaceholderOverrides {
   readonly resolveEnsoPathBackendError: [ensoPath: string]
   readonly uploadFileStartBackendError: [fileName: string]
   readonly uploadFileEndBackendError: [fileName: string]
+
+  readonly youCanCreateXMoreApiKeys: [apiKeysLeft: number]
+  readonly deleteApiKeyConfirmation: [tokenName: string]
 }
 
 // This is intentionally unused. This line throws an error if `PlaceholderOverrides` ever becomes

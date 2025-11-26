@@ -4,7 +4,12 @@ set -e # Exit on error.
 # Change working directory to the script's directory.
 pushd "$(dirname "$0")" > /dev/null 
 
-cargo run --package enso-build-cli -- $@
+if command -v bazel >/dev/null 2>&1; then
+    bazel build //build_tools/cli:enso_build_cli_bin
+    ./bazel-bin/build_tools/cli/enso_build_cli_bin "$@"
+else
+    cargo run -p enso-build-cli -- "$@"
+fi
 
 # Revert to the original working directory.
 popd > /dev/null 

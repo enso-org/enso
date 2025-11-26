@@ -55,6 +55,7 @@ export interface CreateProject {
 export interface OpenProject {
   readonly languageServerJsonAddress: Socket
   readonly languageServerBinaryAddress: Socket
+  readonly languageServerYdocAddress: Socket
   readonly projectName: string
   readonly projectNormalizedName: string
   readonly projectNamespace: string
@@ -86,7 +87,13 @@ export class ProjectService {
       throw new Error(`${PRODUCT_NAME} executable not found`)
     }
     const runner = new EnsoRunner(ensoPath)
-    return new ProjectService(runner, extraArgs)
+
+    // Read extra arguments from environment variable
+    const envArgs = process.env.ENSO_ENGINE_ARGS
+    const envArgsArray = envArgs ? envArgs.split(/\s+/).filter((arg) => arg.length > 0) : []
+    const allExtraArgs = [...envArgsArray, ...extraArgs]
+
+    return new ProjectService(runner, allExtraArgs)
   }
 
   /** Creates a new user project with the specified configuration. */
@@ -201,6 +208,7 @@ export class ProjectService {
     return {
       languageServerJsonAddress: sockets.jsonSocket,
       languageServerBinaryAddress: sockets.binarySocket,
+      languageServerYdocAddress: sockets.ydocSocket,
       projectName: project.name,
       projectNormalizedName: nameValidation.normalizedName(project.name),
       projectNamespace: project.namespace,
