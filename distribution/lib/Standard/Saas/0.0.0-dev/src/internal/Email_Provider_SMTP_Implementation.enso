@@ -3,9 +3,10 @@ private
 import Standard.Base.Network.Email.Email
 import Standard.Base.Network.Email.Email_Body.Email_Body
 import project.Email_Provider_SMTP.Email_Provider_SMTP
+from Standard.Base.Enso_Cloud.Enso_Secret import as_hideable_value
 
 polyglot java import org.apache.commons.mail.HtmlEmail
-polyglot java import org.apache.commons.mail.DefaultAuthenticator
+polyglot java import org.enso.saas.CredentialSetter
 
 type Email_Provider_SMTP_Implementation
     private Value config:Email_Provider_SMTP
@@ -14,7 +15,7 @@ type Email_Provider_SMTP_Implementation
         simple_email = HtmlEmail.new
         simple_email.setHostName self.config.server
         simple_email.setSmtpPort self.config.port
-        simple_email.setAuthenticator (DefaultAuthenticator.new self.config.username self.config.password)
+        CredentialSetter.setAuthenticator simple_email self.config.username (as_hideable_value self.config.password)
         simple_email.setSSLOnConnect self.config.use_tls
 
         from_address = email.from_address
