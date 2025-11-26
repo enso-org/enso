@@ -65,6 +65,7 @@
 - [Add Email.send][14258]
 - [Full DuckDB Dialect.][14298]
 - [Initial Spatial support within DuckDB][14331]
+- [Implement Text_Column to_case for DB backends][14386]
 
 [13769]: https://github.com/enso-org/enso/pull/13769
 [14026]: https://github.com/enso-org/enso/pull/14026
@@ -85,6 +86,7 @@
 [14258]: https://github.com/enso-org/enso/pull/14258
 [14298]: https://github.com/enso-org/enso/pull/14298
 [14331]: https://github.com/enso-org/enso/pull/14331
+[14386]: https://github.com/enso-org/enso/pull/14386
 
 #### Enso Language & Runtime
 
