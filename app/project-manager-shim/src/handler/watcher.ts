@@ -12,7 +12,20 @@ const HTTP_STATUS_OK = 200
 const HTTP_STATUS_BAD_REQUEST = 400
 const HTTP_STATUS_ERROR = 500
 
-/** Check if this is a watcher request */
+/** Create a RemoteBackend instance. */
+function createRemoteBackend(headers: Record<string, string>, baseUrl: string): RemoteBackend {
+  const client = new HttpClient(headers)
+  const downloader = () => {
+    // not required for watcher
+  }
+  const dictionary = resolveDictionary()
+  const backendGetText: GetText = function (key, ...replacements) {
+    return getText(dictionary, key, ...replacements)
+  }
+  return new RemoteBackend(backendGetText, client, downloader, new URL(baseUrl))
+}
+
+/** Check if this is a watcher request. */
 export function isWatcherRequest(requestPath: string): boolean {
   return requestPath.startsWith('/api/watcher/')
 }
@@ -61,13 +74,7 @@ export async function handleWatcherRequest(
 
       try {
         const defaultHeaders = await bodyJson<Record<string, string>>(request)
-        const client = new HttpClient(defaultHeaders)
-        const downloader = () => {}
-        const dictionary = resolveDictionary()
-        const backendGetText: GetText = function (key, ...replacements) {
-          return getText(dictionary, key, ...replacements)
-        }
-        const backend = new RemoteBackend(backendGetText, client, downloader, new URL(baseUrl))
+        const backend = createRemoteBackend(defaultHeaders, baseUrl)
         const fileName = 'project_root.enso-project'
         const uploadParams = {
           fileId: assetId,
