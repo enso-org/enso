@@ -18,47 +18,47 @@ type Email_Provider_SMTP_Implementation
     private Value config:Email_Provider_SMTP
 
     send self email:Email =
-        simple_email = HtmlEmail.new
-        simple_email.setHostName self.config.server
-        simple_email.setSmtpPort self.config.port
-        CredentialSetter.setAuthenticator simple_email self.config.username (as_hideable_value self.config.password)
-        simple_email.setSSLOnConnect self.config.use_tls
+        java_email = HtmlEmail.new
+        java_email.setHostName self.config.server
+        java_email.setSmtpPort self.config.port
+        CredentialSetter.setAuthenticator java_email self.config.username (as_hideable_value self.config.password)
+        java_email.setSSLOnConnect self.config.use_tls
 
         from_address = email.from_address
-        if from_address.name.is_empty then simple_email.setFrom from_address.address else
-            simple_email.setFrom from_address.address from_address.name
+        if from_address.name.is_empty then java_email.setFrom from_address.address else
+            java_email.setFrom from_address.address from_address.name
 
-        simple_email.setSubject email.subject
+        java_email.setSubject email.subject
         
         case email.body of
             Email_Body.HTML html body ->
-                simple_email.setHtmlMsg html
+                java_email.setHtmlMsg html
                 if body.is_empty.not then
-                    simple_email.setTextMsg body
+                    java_email.setTextMsg body
             Email_Body.Plain_Text body ->
-                simple_email.setMsg body
+                java_email.setMsg body
 
         email.to.each e->
-            if e.name.is_empty then simple_email.addTo e.address else
-                simple_email.addTo e.address e.name
+            if e.name.is_empty then java_email.addTo e.address else
+                java_email.addTo e.address e.name
         
         email.cc.each e->
-            if e.name.is_empty then simple_email.addCc e.address else
-                simple_email.addCc e.address e.name
+            if e.name.is_empty then java_email.addCc e.address else
+                java_email.addCc e.address e.name
 
         email.bcc.each e->
-            if e.name.is_empty then simple_email.addBcc e.address else
-                simple_email.addBcc e.address e.name
+            if e.name.is_empty then java_email.addBcc e.address else
+                java_email.addBcc e.address e.name
 
         email.attachments.each attachment->
             java_attachment = EmailAttachment.new
             java_attachment.setPath attachment.file.path
             if attachment.name.is_empty.not then
                 java_attachment.setName attachment.name
-            simple_email.attach java_attachment
+            java_email.attach java_attachment
 
         _handle_java_exception <|       
-            simple_email.send
+            java_email.send
             Send_Response.Sent email
 
 _handle_java_exception ~action =
