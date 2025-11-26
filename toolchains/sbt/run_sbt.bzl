@@ -58,7 +58,7 @@ def _run_sbt_impl(ctx):
             static_library = library.static_library
         zlib_static = ctx.actions.declare_file(ctx.attr.name + "_hermetic_libs/libz.a")
         ctx.actions.symlink(output = zlib_static, target_file = static_library)
-        system_props.append("-Denso.BazelSupport.cLibraryPath=" + zlib_static.dirname)
+        system_props.append("-Denso.BazelSupport.CLibraryPath=" + zlib_static.dirname)
         direct_inputs.append(zlib_static)
 
     inputs = depset(direct_inputs, transitive = [java_runtime.files, cc_deps])
