@@ -5,7 +5,13 @@ import org.apache.commons.mail.HtmlEmail;
 import org.enso.base.enso_cloud.ExternalLibrarySecretHelper;
 import org.enso.base.enso_cloud.HideableValue;
 
-public class CredentialSetter {
+/**
+ * A helper class to set email credentials from secrets.
+ *
+ * <p>This class is allowed access to secrets. Extra care should be taken to ensure its result is
+ * not leaked.
+ */
+public final class CredentialSetter {
   public static void setAuthenticator(HtmlEmail email, String username, HideableValue password) {
     email.setAuthenticator(new DefaultAuthenticator(username, unsafeResolveSecrets(password)));
   }
