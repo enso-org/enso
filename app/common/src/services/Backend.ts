@@ -1346,11 +1346,11 @@ export interface GetProjectSessionLogsRequestParams {
 /** URL query string parameters for the "upload file" endpoint. */
 export interface UploadFileRequestParams {
   readonly fileId: AssetId | null
-  // Marked as optional in the data type, however it is required by the actual route handler.
   readonly fileName: string
   readonly parentDirectoryId: DirectoryId | null
   /** Only used for the Local backend when there is no {@link File} object available. */
   readonly filePath?: Path
+  readonly overwrite?: boolean
 }
 
 /** HTTP request body for the "upload file start" endpoint. */
@@ -1380,6 +1380,7 @@ export interface UploadFileEndRequestBody {
   readonly uploadId: string
   readonly assetId: AssetId | null
   readonly fileName: string
+  readonly overwrite?: boolean
 }
 
 /** A large file that has finished uploading. */

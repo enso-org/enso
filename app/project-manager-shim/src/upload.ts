@@ -205,6 +205,7 @@ export async function uploadFile(
         uploadId,
         assetId: body.fileId,
         fileName: body.fileName,
+        ...(body.overwrite && { overwrite: body.overwrite }),
       }
       return await backend.uploadFileEnd(endParams)
     }, endRetries)

@@ -3,14 +3,25 @@ import { HttpClient } from 'enso-common/src/services/HttpClient'
 import { RemoteBackend } from 'enso-common/src/services/RemoteBackend'
 import { getText, resolveDictionary } from 'enso-common/src/text'
 import type * as http from 'node:http'
-import { watch, type Watcher, type WatchOptions } from '../fs.js'
+import { watch, type Watcher } from '../fs.js'
 import * as projectManagement from '../projectManagement.js'
 import { uploadFile } from '../upload.js'
 import { bodyJson } from './http.js'
 
+// =================
+// === Constants ===
+// =================
+
 const HTTP_STATUS_OK = 200
 const HTTP_STATUS_BAD_REQUEST = 400
 const HTTP_STATUS_ERROR = 500
+
+const PROJECT_WATCHER_CALLBACK_DELAY = 10000
+const PROJECT_WATCHER_CALLBACK_TIMEOUT = 60000
+
+// ===========================
+// === createRemoteBackend ===
+// ===========================
 
 /** Create a RemoteBackend instance. */
 function createRemoteBackend(headers: Record<string, string>, baseUrl: string): RemoteBackend {
@@ -25,6 +36,10 @@ function createRemoteBackend(headers: Record<string, string>, baseUrl: string): 
   return new RemoteBackend(backendGetText, client, downloader, new URL(baseUrl))
 }
 
+// ============================
+// === handleWatcherRequest ===
+// ============================
+
 /** Check if this is a watcher request. */
 export function isWatcherRequest(requestPath: string): boolean {
   return requestPath.startsWith('/api/watcher/')
@@ -36,7 +51,6 @@ export async function handleWatcherRequest(
   response: http.ServerResponse,
   headers: Record<string, string>,
   watchers: Map<AssetId, Watcher>,
-  options: Pick<WatchOptions, 'delay' | 'timeout'>,
 ): Promise<void> {
   const url = new URL(request.url ?? '', 'https://apishim.local')
   const requestPath = url.pathname
@@ -70,6 +84,7 @@ export async function handleWatcherRequest(
           .end('Request is missing search parameter `baseUrl`.')
         break
       }
+      const parentDirectoryId = parentDirectoryIdString as DirectoryId
       const assetId = ProjectId(assetIdString)
 
       try {
@@ -79,16 +94,19 @@ export async function handleWatcherRequest(
         const uploadParams = {
           fileId: assetId,
           fileName,
-          parentDirectoryId: parentDirectoryIdString as DirectoryId,
+          parentDirectoryId,
         }
+        let uploadCount = 0
         const watcher = watch({
           directory: projectDir,
-          delay: options.delay,
-          timeout: options.timeout,
+          delay: PROJECT_WATCHER_CALLBACK_DELAY,
+          timeout: PROJECT_WATCHER_CALLBACK_TIMEOUT,
           callback: async () => {
             const responseBody = await projectManagement.createBundle(projectDir)
             const file = new File([responseBody.buffer as ArrayBuffer], fileName)
-            await uploadFile(backend, uploadParams, file)
+            // Overvwite uploads to create one version per session
+            await uploadFile(backend, { ...uploadParams, overwrite: uploadCount > 0 }, file)
+            uploadCount += 1
           },
         })
 
