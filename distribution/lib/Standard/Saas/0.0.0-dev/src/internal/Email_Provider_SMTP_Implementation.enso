@@ -6,6 +6,7 @@ import project.Email_Provider_SMTP.Email_Provider_SMTP
 from Standard.Base.Enso_Cloud.Enso_Secret import as_hideable_value
 
 polyglot java import org.apache.commons.mail.HtmlEmail
+polyglot java import org.apache.commons.mail.EmailAttachment
 polyglot java import org.enso.saas.CredentialSetter
 
 type Email_Provider_SMTP_Implementation
@@ -43,5 +44,12 @@ type Email_Provider_SMTP_Implementation
         email.bcc.each e->
             if e.name.is_empty then simple_email.addBcc e.address else
                 simple_email.addBcc e.address e.name
+
+        email.attachments.each attachment->
+            java_attachment = EmailAttachment.new
+            java_attachment.setPath attachment.file.path
+            if attachment.name.is_empty.not then
+                java_attachment.setName attachment.name
+            simple_email.attach java_attachment
 
         simple_email.send
