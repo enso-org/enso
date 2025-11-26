@@ -1,12 +1,17 @@
 private
 
-import Standard.Base.Network.Email.Email
+from Standard.Base import all
+
 import Standard.Base.Network.Email.Email_Body.Email_Body
+import Standard.Base.Network.Email.Send_Error.Send_Error
+import Standard.Base.Network.Email.Email_Send_Response.Send_Response
 import project.Email_Provider_SMTP.Email_Provider_SMTP
+
 from Standard.Base.Enso_Cloud.Enso_Secret import as_hideable_value
 
 polyglot java import org.apache.commons.mail.HtmlEmail
 polyglot java import org.apache.commons.mail.EmailAttachment
+polyglot java import org.apache.commons.mail.EmailException
 polyglot java import org.enso.saas.CredentialSetter
 
 type Email_Provider_SMTP_Implementation
@@ -52,4 +57,10 @@ type Email_Provider_SMTP_Implementation
                 java_attachment.setName attachment.name
             simple_email.attach java_attachment
 
-        simple_email.send
+        _handle_java_exception <|       
+            simple_email.send
+            Send_Response.Sent email
+
+_handle_java_exception ~action =
+    Panic.catch EmailException action caught_panic->
+        Error.throw (Send_Error.Error caught_panic.payload.getMessage)
