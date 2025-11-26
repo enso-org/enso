@@ -5047,10 +5047,12 @@ lazy val downloader = (project in file("lib/scala/downloader"))
     ),
     Compile / internalModuleDependencies := Seq(
       (`cli` / Compile / exportedModule).value,
+      (`engine-common` / Compile / exportedModule).value,
       (`scala-libs-wrapper` / Compile / exportedModule).value
     )
   )
   .dependsOn(cli)
+  .dependsOn(`engine-common`)
   .dependsOn(`http-test-helper` % "test->test")
   .dependsOn(testkit % Test)
 
