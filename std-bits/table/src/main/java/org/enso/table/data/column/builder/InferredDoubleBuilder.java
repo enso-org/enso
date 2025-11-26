@@ -9,6 +9,7 @@ import org.enso.table.data.column.storage.type.BigDecimalType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.error.ValueTypeMismatchException;
 import org.enso.table.problems.ProblemAggregator;
+import org.graalvm.polyglot.Context;
 
 /** A double builder variant that preserves types and can be retyped to Mixed. */
 final class InferredDoubleBuilder extends DoubleBuilder implements BuilderWithRetyping {
@@ -18,16 +19,21 @@ final class InferredDoubleBuilder extends DoubleBuilder implements BuilderWithRe
    * <p>The original LongBuilder becomes invalidated after this operation and should no longer be
    * used.
    */
-  static InferredDoubleBuilder retypeFromLongBuilder(LongBuilder longBuilder) {
-    int currentSize = longBuilder.currentSize;
+  static InferredDoubleBuilder retypeFromLongBuilder(
+      BuilderForLong longBuilder, ProblemAggregator problemAggregator) {
     var newBuilder =
-        new InferredDoubleBuilder(longBuilder.getDataSize(), longBuilder.problemAggregator);
-
-    for (int i = 0; i < currentSize; i++) {
-      newBuilder.appendLong(longBuilder.data[i]);
+        new InferredDoubleBuilder(
+            Builder.checkSize(longBuilder.getCurrentSize()), problemAggregator);
+    long currentSize = longBuilder.getCurrentSize();
+    Context context = Context.getCurrent();
+    for (long i = 0; i < currentSize; i++) {
+      if (longBuilder.isNothing(i)) {
+        newBuilder.appendNulls(1);
+      } else {
+        newBuilder.appendLong(longBuilder.getLong(i));
+      }
+      context.safepoint();
     }
-    newBuilder.isNothing = longBuilder.isNothing;
-
     return newBuilder;
   }
 

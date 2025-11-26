@@ -41,6 +41,7 @@ import Standard.Table.Internal.Widget_Helpers
 import Standard.Table.Prefix_Name.Prefix_Name
 import Standard.Table.Row_Limit.Row_Limit
 import Standard.Table.Rows_To_Read.Rows_To_Read
+import Standard.Table.SQL_Function.SQL_Function
 import Standard.Table.Value_Type.By_Type
 from Standard.Table import Aggregate_Column, Auto, Blank_Selector, Column, Column_Ref, Data_Formatter, Fill_With, Generate_Rows_Range, Join_Condition, Join_Kind, Match_Columns, Position, Previous_Value, Set_Mode, Simple_Expression, Sort_Column, Table, Value_Type
 from Standard.Table.Errors import all
@@ -316,7 +317,7 @@ type DB_Table_Implementation
         _ = [this_table, predicate, over, group_row, name, from, step, on_problems]
         Error.throw (Unsupported_Database_Operation.Error "find_group_number")
 
-    set (this_table : Table & DB_Table) (value : Column | Text | Expression | Array | Vector | Range | Date_Range | Constant_Column | Simple_Expression) as:Text set_mode:Set_Mode on_problems:Problem_Behavior =
+    set (this_table : Table & DB_Table) (value : Column | Text | Expression | Constant_Column | Simple_Expression | SQL_Function) as:Text set_mode:Set_Mode on_problems:Problem_Behavior =
         problem_builder = Problem_Builder.new
         unique = this_table.column_naming_helper.create_unique_name_strategy
         unique.mark_used this_table.column_names
@@ -329,11 +330,7 @@ type DB_Table_Implementation
                     Error.throw (Integrity_Error.Error "Column "+value.name)
             _ : Constant_Column -> this_table.make_constant_column value
             _ : Simple_Expression -> value.evaluate this_table (set_mode==Set_Mode.Update && as=="") on_problems
-            _ : Vector -> Error.throw (Unsupported_Database_Operation.Error "`Vector` for `set`")
-            _ : Array -> Error.throw (Unsupported_Database_Operation.Error "`Array` for `set`")
-            _ : Range -> Error.throw (Unsupported_Database_Operation.Error "`Range` for `set`")
-            _ : Date_Range -> Error.throw (Unsupported_Database_Operation.Error "`Date_Range` for `set`")
-            _ -> Error.throw (Illegal_Argument.Error "Unsupported type for `DB_Table.set`.")
+            _ : SQL_Function -> _resolve_sql_function this_table value
 
         ## If `as` was specified, use that. Otherwise, if `value` is a
           `DB_Column`, use its name. In these two cases, do not make it unique.
@@ -444,6 +441,8 @@ type DB_Table_Implementation
 
     join (this_table : Table & DB_Table) (right : Table) join_kind:Join_Kind (on : Join_Condition | Text | Vector (Join_Condition | Text)) (right_prefix : Text) on_problems:Problem_Behavior =
         Feature.Join.if_supported_else_throw this_table.connection.dialect "join" <|
+            if right.is_error then right
+            if right.is_a DB_Table . not then Error.throw (Illegal_Argument.Error 'To join an in-memory table, load to the database connection first.')
             _join_or_cross_join this_table (right : Table & DB_Table) join_kind on right_prefix on_problems
 
     cross_join (this_table : Table & DB_Table) (right : Table) (right_row_limit : Row_Limit) (right_prefix : Text) on_problems:Problem_Behavior =
@@ -454,11 +453,14 @@ type DB_Table_Implementation
             limit_problems = if row_limit.is_nothing || (right.row_count < row_limit) then [] else
                 [Cross_Join_Row_Limit_Exceeded.Error row_limit right.row_count]
             on_problems.attach_problems_before limit_problems <|
+                if right.is_error then right
+                if right.is_a DB_Table . not then Error.throw (Illegal_Argument.Error 'To join an in-memory table, load to the database connection first.')
                 _join_or_cross_join this_table (right : Table & DB_Table) join_kind=Join_Kind_Cross on=[] right_prefix on_problems
 
     merge (this_table : Table & DB_Table) (lookup_table : Table) (key_columns : Vector (Integer | Text | Regex) | Text | Integer | Regex) add_new_columns:Boolean allow_unmatched_rows:Boolean on_problems:Problem_Behavior =
         Feature.Merge.if_supported_else_throw this_table.connection.dialect "merge" <|
             if lookup_table.is_error then lookup_table
+            if lookup_table.is_a DB_Table . not then Error.throw (Illegal_Argument.Error 'To merge an in-memory table, load to the database connection first.')
             if key_columns == [] then
                 Error.throw (Missing_Argument.throw "key_columns")
 
@@ -475,9 +477,10 @@ type DB_Table_Implementation
 
     union (this_table : Table & DB_Table) (tables : Table | Vector Table) columns_to_keep:Columns_To_Keep match_columns:Match_Columns on_problems:Problem_Behavior =
         Feature.Union.if_supported_else_throw this_table.connection.dialect "union" <|
-            all_tables = case tables of
-                v : Vector -> [this_table] + (v.map t-> (t : Table & DB_Table))
-                single_table -> [this_table, (single_table : Table & DB_Table)]
+            table_vector = Vector.unify_vector_or_element tables
+            if table_vector.any t-> t.is_error then tables.find t-> t.is_error
+            if table_vector.any t-> t.is_a DB_Table . not then Error.throw (Illegal_Argument.Error 'To union an in-memory table, load to the database connection first.')
+            all_tables = [this_table] + (table_vector.map t-> (t : Table & DB_Table))
             Helpers.ensure_same_connection "table" all_tables <|
                 ## We keep separate problem builders, because if we are reporting `No_Output_Columns`,
                   we only want to add a cause coming from unification; matching reports problems that would not fit this error.
@@ -835,3 +838,26 @@ _join_or_cross_join (this_table : Table & DB_Table) (right : Table & DB_Table) j
             new_from = SQL_IR_From_Part.Join sql_join_kind left_setup.subquery right_setup.subquery on_expressions
             new_ctx = SQL_IR_Source.for_subquery new_from . set_where_filters where_expressions
             DB_Table.new new_table_name this_table.connection result_columns new_ctx
+
+private _resolve_sql_function this_table:(Table & DB_Table) function:SQL_Function =
+    ## Resolve Arguments
+    in_table_column = this_table.columns.first
+    expressions = function.arguments.map arg->
+        case Table_Ref.from this_table . resolve arg of
+            column : Column ->
+                if Helpers.check_integrity in_table_column column then (column:DB_Column).expression else
+                    Error.throw (Integrity_Error.Error "Column "+column.name)
+            _ : Function -> Error.throw (Illegal_Argument.Error "Cannot use a function as argument to SQL function "+function.name)
+            constant -> SQL_IR_Expression.Constant constant
+
+    ## Create Expression
+    new_expr = SQL_IR_Expression.Operation "CUSTOM_SQL" [SQL_IR_Expression.Literal function.function_name]+expressions
+
+    ## Compute the return type
+    mapping = this_table.connection.type_mapping
+    infer_from_database_callback expression =
+        SQL_Type_Reference.new this_table.connection this_table.context expression
+    new_type_ref = mapping.infer_return_type infer_from_database_callback "CUSTOM_SQL" Nothing new_expr
+
+    ## Create Column
+    DB_Column.new function.function_name this_table.connection new_type_ref new_expr this_table.context

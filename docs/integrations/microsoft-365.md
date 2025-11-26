@@ -15,13 +15,16 @@ OAuth integration requires an application registered in the Azure portal.
 - Go to the [Azure Portal](https://portal.azure.com/)
 - Select service "App registrations"
 - Select tab "All applications"
-- Click "New Registration" upper right
+- Click "New Registration" upper left
   - Enter a name, such as "OAuth Integration"
   - For "Supported account types", select "Accounts in any organizational
     directory". (This will appear in the Overview section as "All Microsoft
     account users" after app registration.)
-  - For "Redirect URI", enter the cloud endpoint, as well as
-    "http://localhost:PORT" for local debugging
+  - For "Redirect URI":
+    - For the "Select a platform" dropdown, pick "Web"
+    - Enter the cloud endpoint URL, as well as "http://localhost:PORT" for local
+      debugging
+  - Finish by clicking "Register"
 
 ## Create A Client Secret
 
@@ -57,7 +60,7 @@ denied.
   the drop-down list)
 - If there is an existing MPN ID (see "Getting the MPD IDs" below), enter it by
   clicking "Add MPN ID to verify publisher"
-- If there is no MPN ID:
+- If there is no MPN ID yet:
   - Under "Publisher Verification", click "Add MPN ID to verify publisher"
   - In the pop-up dialog, read the requirements, then select "Sign up for
     Microsoft Partner Network (MPN)" which will take you to the
@@ -99,3 +102,15 @@ to use. Any such scope must be added to the app registration.
   platform" and choose “Public client/native”
 - Add new URIs to the Web platform
 - Click Save
+
+## Granting admin constent for unattended integration test use
+
+For integration tests, you must grant "admin consent" to API permissions, since
+the oauth process will be automated and the test user cannot grant consent via
+the browser.
+
+(Before doing this step, first do "Adding API Permissions", above.)
+
+- Go to the application in the [Azure Portal](https://portal.azure.com/)
+- Select "API permissions" on the left
+- Click "Grant admin consent for Default Directory"

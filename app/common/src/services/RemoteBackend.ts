@@ -829,6 +829,7 @@ export class RemoteBackend extends backend.Backend {
     title: string,
   ): Promise<void> {
     const path = remoteBackendPaths.openProjectPath(projectId)
+    // `cognitoCredentials` is a legacy field, should be removed when no longer needed by the runtime.
     if (body.cognitoCredentials == null) {
       return this.throw(null, 'openProjectMissingCredentialsBackendError', title)
     } else {
@@ -845,7 +846,6 @@ export class RemoteBackend extends backend.Backend {
         cognitoCredentials: exactCredentials,
       }
       const response = await this.post(path, filteredBody)
-
       if (!response.ok) {
         return this.throw(response, 'openProjectBackendError', title)
       } else {
@@ -1218,13 +1218,54 @@ export class RemoteBackend extends backend.Backend {
    * Fetches a configuration for a payment pricing page.
    * @throws An error if a non-successful status code (not 200-299) was received.
    */
-  async getPaymentsConfig(): Promise<backend.PaymentsConfig> {
+  override async getPaymentsConfig(): Promise<backend.PaymentsConfig> {
     const response = await this.get<backend.PaymentsConfig>(remoteBackendPaths.PAYMENTS_CONFIG_PATH)
-
     if (!response.ok) {
       return await this.throw(response, 'getPaymentsConfigBackendError')
     } else {
       return await response.json()
+    }
+  }
+
+  /**
+   * List all personal access tokens for the current user.
+   * @throws An error if a non-successful status code (not 200-299) was received.
+   */
+  override async listApiKeys(): Promise<readonly backend.ApiKey[]> {
+    const response = await this.get<backend.ListApiKeysResponse>(
+      remoteBackendPaths.LIST_API_KEYS_PATH,
+    )
+    if (!response.ok) {
+      return await this.throw(response, 'listApiKeysBackendError')
+    } else {
+      return (await response.json()).credentials
+    }
+  }
+
+  /**
+   * Create a new personal access token for the current user.
+   * @throws An error if a non-successful status code (not 200-299) was received.
+   */
+  override async createApiKey(body: backend.CreateApiKeyRequestBody): Promise<backend.ApiKey> {
+    const response = await this.post<backend.ApiKey>(remoteBackendPaths.LIST_API_KEYS_PATH, body)
+    if (!response.ok) {
+      return await this.throw(response, 'createApiKeyBackendError')
+    } else {
+      return await response.json()
+    }
+  }
+
+  /**
+   * Delete a personal access token for the current user.
+   * @throws An error if a non-successful status code (not 200-299) was received.
+   */
+  override async deleteApiKey(apiKeyId: backend.ApiKeyId) {
+    const path = remoteBackendPaths.deleteApiKeyPath(apiKeyId)
+    const response = await this.delete(path)
+    if (!response.ok) {
+      return await this.throw(response, 'deleteApiKeyBackendError')
+    } else {
+      return
     }
   }
 

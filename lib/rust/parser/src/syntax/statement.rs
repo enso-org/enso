@@ -7,16 +7,18 @@ use crate::empty_tree;
 use crate::expression_to_pattern;
 use crate::is_qualified_name;
 use crate::prelude::*;
+use crate::syntax::Item;
+use crate::syntax::Token;
+use crate::syntax::Tree;
 use crate::syntax::expression::ExpressionParser;
 use crate::syntax::expression::Spacing;
 use crate::syntax::item;
 use crate::syntax::maybe_with_error;
-use crate::syntax::statement::function_def::try_parse_foreign_function;
 use crate::syntax::statement::function_def::FunctionBuilder;
+use crate::syntax::statement::function_def::try_parse_foreign_function;
 use crate::syntax::statement::type_def::try_parse_type_def;
 use crate::syntax::token;
 use crate::syntax::tree;
-use crate::syntax::tree::block;
 use crate::syntax::tree::AnnotationLine;
 use crate::syntax::tree::ArgumentDefinition;
 use crate::syntax::tree::DocComment;
@@ -25,9 +27,7 @@ use crate::syntax::tree::FunctionAnnotation;
 use crate::syntax::tree::SyntaxError;
 use crate::syntax::tree::TypeSignature;
 use crate::syntax::tree::TypeSignatureLine;
-use crate::syntax::Item;
-use crate::syntax::Token;
-use crate::syntax::Tree;
+use crate::syntax::tree::block;
 
 pub use function_def::parse_args;
 
@@ -327,7 +327,7 @@ fn parse_statement<'s>(
                 content: Some(
                     expression_parser.parse_non_section(items).unwrap().with_error(e).into(),
                 ),
-            }
+            };
         }
     };
     match (top_level_operator, statement_context.block_context) {
@@ -495,7 +495,8 @@ fn to_statement<'s>(
         | TypeAnnotated(_)
         | CaseOf(_)
         | Array(_)
-        | Tuple(_) => Ok(Expression),
+        | Tuple(_)
+        | PropertyAccess(_) => Ok(Expression),
         OprApp(app) if app.lhs.is_some() && app.rhs.is_some() => Ok(Expression),
         // Expression, but since it can only occur in tail position, it never needs an
         // `ExpressionStatement` node.
@@ -568,9 +569,11 @@ fn try_parse_annotation<'s>(
     expression_parser: &mut ExpressionParser<'s>,
 ) -> Option<FunctionAnnotation<'s>> {
     match &items[..] {
-        [Item::Token(Token { variant: token::Variant::AnnotationOperator(opr), .. }), Item::Token(Token { variant: token::Variant::Ident(ident), .. }), ..]
-            if !ident.is_type =>
-        {
+        [
+            Item::Token(Token { variant: token::Variant::AnnotationOperator(opr), .. }),
+            Item::Token(Token { variant: token::Variant::Ident(ident), .. }),
+            ..,
+        ] if !ident.is_type => {
             let ident = *ident;
             let opr = *opr;
             let argument = expression_parser.parse_non_section_offset(start + 2, items);
@@ -896,7 +899,7 @@ fn find_top_level_operator(items: &[Item]) -> Result<Option<TopLevelOperator>, S
                         return Err(SyntaxError::StmtLhsInvalidOperatorSpacing);
                     }
                     (Variant::AssignmentOperator(_), Spacing::Spaced, _) => {
-                        return Ok(Some(TopLevelOperator::AssignmentOperator(i)))
+                        return Ok(Some(TopLevelOperator::AssignmentOperator(i)));
                     }
                     (
                         Variant::AssignmentOperator(_),
@@ -958,9 +961,9 @@ fn scan_qn<'s>(items: impl IntoIterator<Item = impl AsRef<Item<'s>>>) -> Option<
         ExpectingDot { len: usize },
         ExpectingIdent,
     }
-    use token::Variant::*;
     use Item::*;
     use State::*;
+    use token::Variant::*;
     let mut state = ExpectingIdent;
     for (i, item) in items.into_iter().enumerate() {
         match item.as_ref() {

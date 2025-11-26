@@ -317,6 +317,7 @@ type SQLServer_Dialect
             Feature.Aggregate -> True
             Feature.Offset -> True
             Feature.Add_Group_Number -> True
+            Feature.Spatial -> False
             _ -> False
 
     ## ---

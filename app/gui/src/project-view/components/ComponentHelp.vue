@@ -167,6 +167,7 @@ function openDocs(url: string) {
           v-else
           :content="documentation.documentation"
           :toolbar="false"
+          :readonly="true"
           :editorReadyCallback="syncMarkdownDocumentation"
         />
       </div>

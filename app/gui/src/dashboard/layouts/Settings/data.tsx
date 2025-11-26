@@ -8,6 +8,7 @@ import { BINDINGS } from '#/configurations/inputBindings'
 import type { PaywallFeatureName } from '#/hooks/billing'
 import type { ToastAndLogCallback } from '#/hooks/toastAndLogHooks'
 import { setDownloadDirectory, setLocalRootDirectory } from '#/layouts/Drive/persistentState'
+import { ApiKeySettingsSection } from '#/layouts/Settings/ApiKeysSettingsSection'
 import { passwordWithPatternSchema } from '#/pages/authentication/schemas'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { PASSWORD_REGEX } from '#/utilities/validation'
@@ -552,6 +553,24 @@ export const SETTINGS_TAB_DATA: Readonly<Record<SettingsTabType, SettingsTabData
       },
     ],
   },
+  [SettingsTabType.apiKeys]: {
+    nameId: 'apiKeysSettingsTab',
+    settingsTab: SettingsTabType.apiKeys,
+    icon: 'key',
+    sections: [
+      {
+        nameId: 'apiKeysSettingsSection',
+        columnClassName: 'h-full *:flex-1 *:min-h-0 max-w-[unset]',
+        entries: [
+          {
+            type: 'custom',
+            aliasesId: 'apiKeysSettingsCustomEntryAliases',
+            render: () => <ApiKeySettingsSection />,
+          },
+        ],
+      },
+    ],
+  },
 }
 
 export const SETTINGS_DATA: SettingsData = [
@@ -577,7 +596,10 @@ export const SETTINGS_DATA: SettingsData = [
   },
   {
     nameId: 'securitySettingsTabSection',
-    tabs: [SETTINGS_TAB_DATA[SettingsTabType.activityLog]],
+    tabs: [
+      SETTINGS_TAB_DATA[SettingsTabType.activityLog],
+      SETTINGS_TAB_DATA[SettingsTabType.apiKeys],
+    ],
   },
 ]
 

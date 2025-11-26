@@ -19,13 +19,13 @@ from Standard.Table.Internal.Table_Helpers import duplicate_rows
 
 import project.Internal.Telemetry
 
-polyglot java import org.enso.table.error.EmptySheetException
-polyglot java import org.enso.table.problems.ProblemAggregator
-polyglot java import org.enso.base.enso_cloud.ExternalLibraryCredentialHelper.CredentialReference
 polyglot java import com.google.api.client.googleapis.json.GoogleJsonResponseException
+polyglot java import org.enso.base.enso_cloud.ExternalLibraryCredentialHelper.CredentialReference
 polyglot java import org.enso.google.GoogleSheetsForEnso
 polyglot java import org.enso.google.GoogleSheetsHeaders.HeaderBehavior
 polyglot java import org.enso.google.WrappedGoogleCredentials
+polyglot java import org.enso.table.error.EmptySheetException
+polyglot java import org.enso.table.problems.ProblemAggregator
 
 ## Type representing a Google Sheets workbook.
 type Google_Sheets_Workbook

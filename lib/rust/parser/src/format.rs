@@ -22,9 +22,9 @@
 //! - ❌ Rejected: Use the `len` hints provided by `serde` to pre-allocate objects of the correct
 //!   size: The requirement that every field have the same size representation would be too onerous.
 
+use serde::Serialize;
 use serde::ser;
 use serde::ser::SerializeSeq;
-use serde::Serialize;
 use std::fmt::Debug;
 use std::fmt::Display;
 use std::fmt::Formatter;

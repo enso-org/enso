@@ -276,6 +276,7 @@ type Snowflake_Dialect
         case feature of
             Feature.Generate_Rows -> False
             Feature.Add_Group_Number -> False
+            Feature.Spatial -> False
             _ -> True
 
     ## ---
