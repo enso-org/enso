@@ -1,4 +1,6 @@
-/** @file Standalone file upload functionality. */
+/** @file Standalone file upload functionality based on app/gui/src/providers/upload.ts but without the Vue dependencies.
+ * TODO (#14361) investigate if the two implementations can be merged.
+ */
 
 import type {
   Backend,
