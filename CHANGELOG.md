@@ -25,6 +25,7 @@
   with <kbd>Delete</kbd> key.
 - [Improved visuals of high components][14267]. Their contents is aligned to
   top.
+- [Warnings and Errors no longer become transparent][14388]
 
 [13685]: https://github.com/enso-org/enso/pull/13685
 [13658]: https://github.com/enso-org/enso/pull/13658
@@ -45,6 +46,7 @@
 [14270]: https://github.com/enso-org/enso/pull/14270
 [14311]: https://github.com/enso-org/enso/pull/14311
 [14267]: https://github.com/enso-org/enso/pull/14267
+[14388]: https://github.com/enso-org/enso/pull/14388
 
 #### Enso Standard Library
 
