@@ -4,8 +4,11 @@ import { fileURLToPath } from 'node:url'
 import { defineConfig } from 'vite'
 import dts from 'vite-plugin-dts'
 
+console.log('ENV', process.env)
+
 // https://vitejs.dev/config/
 export default defineConfig({
+  mode: process.env.MODE,
   plugins: [dts()],
   build: {
     lib: {

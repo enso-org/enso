@@ -23,6 +23,7 @@ process.env.LAUNCH_EDITOR ??= 'code'
 
 // https://vitejs.dev/config/
 export default defineConfig({
+  ...(process.env.MODE && { mode: process.env.MODE }),
   ...(IS_ELECTRON_DEV_MODE ? { root: fileURLToPath(new URL('.', import.meta.url)) } : {}),
   cacheDir: fileURLToPath(new URL('../../node_modules/.cache/vite', import.meta.url)),
   plugins: [
