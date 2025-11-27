@@ -14,6 +14,7 @@ polyglot java import org.apache.commons.mail.EmailAttachment
 polyglot java import org.apache.commons.mail.EmailException
 polyglot java import org.enso.saas.CredentialSetter
 
+## The SMTP implementation of the Email Provider SPI.
 type Email_Provider_SMTP_Implementation
     private Value config:Email_Provider_SMTP
 
