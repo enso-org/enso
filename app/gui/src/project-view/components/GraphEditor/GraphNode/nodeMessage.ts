@@ -22,12 +22,7 @@ interface NodeMessageOptions {
 }
 
 /** Composable managing messages (warnings, errors, etc.) associated with a node. */
-export function useNodeMessage({
-  projectStore,
-  graphDb,
-  expand,
-  nodeId,
-}: NodeMessageOptions) {
+export function useNodeMessage({ projectStore, graphDb, expand, nodeId }: NodeMessageOptions) {
   const inputExternalIds = computed(() => {
     const externalIds = new Array<ExternalId>()
     for (const inputId of graphDb.nodeDependents.reverseLookup(toValue(nodeId))) {

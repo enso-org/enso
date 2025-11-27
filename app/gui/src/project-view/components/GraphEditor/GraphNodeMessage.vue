@@ -64,10 +64,7 @@ export const colorForMessageType: Record<MessageType, string> = {
 </script>
 
 <template>
-  <div
-    class="GraphNodeMessage"
-    :style="{ '--background-color': colorForMessageType[props.type] }"
-  >
+  <div class="GraphNodeMessage" :style="{ '--background-color': colorForMessageType[props.type] }">
     <SvgIcon class="icon" :name="iconForMessageType[props.type]" />
     <div class="message" v-text="props.message"></div>
     <div class="toolbar">
