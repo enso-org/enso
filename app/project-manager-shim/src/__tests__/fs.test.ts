@@ -36,10 +36,15 @@ describe('watch', () => {
     // Create a file
     await fs.writeFile(path.join(testDir, 'test.txt'), 'content')
 
+    // State should be pending immediately after file creation
+    await new Promise((resolve) => setTimeout(resolve, 50))
+    expect(watcher.getState()).toBe('pending')
+
     // Wait for debounce delay + execution
     await new Promise((resolve) => setTimeout(resolve, 300))
 
     expect(callback).toHaveBeenCalledTimes(1)
+    expect(watcher.getState()).toBe('executed')
 
     await watcher.close()
   })
@@ -119,11 +124,15 @@ describe('watch', () => {
     await new Promise((resolve) => setTimeout(resolve, 50))
     await fs.writeFile(filePath, 'content3')
 
+    // State should remain pending during rapid changes
+    expect(watcher.getState()).toBe('pending')
+
     // Wait for debounce delay + execution
     await new Promise((resolve) => setTimeout(resolve, 400))
 
     // Should only be called once despite 3 changes
     expect(callback).toHaveBeenCalledTimes(1)
+    expect(watcher.getState()).toBe('executed')
 
     await watcher.close()
   })
@@ -212,6 +221,9 @@ describe('watch', () => {
     // Wait for watcher to initialize
     await new Promise((resolve) => setTimeout(resolve, 200))
 
+    // State should be executed since no changes were made
+    expect(watcher.getState()).toBe('executed')
+
     // Close the watcher
     const isDirty = await watcher.close()
 
@@ -276,6 +288,10 @@ describe('watch', () => {
 
     // Close before debounce delay expires
     await new Promise((resolve) => setTimeout(resolve, 100))
+
+    // State should be pending since callback is scheduled but not executed
+    expect(watcher.getState()).toBe('pending')
+
     const isDirty = await watcher.close()
 
     // Should be dirty since callback was scheduled but not executed
@@ -298,6 +314,9 @@ describe('watch', () => {
 
     // Wait for watcher to initialize
     await new Promise((resolve) => setTimeout(resolve, 200))
+
+    // State should be executed since no changes were made
+    expect(watcher.getState()).toBe('executed')
 
     // Close without any changes
     const isDirty = await watcher.close()
@@ -325,6 +344,9 @@ describe('watch', () => {
 
     expect(callback).toHaveBeenCalledTimes(1)
 
+    // State should be executed after callback completes
+    expect(watcher.getState()).toBe('executed')
+
     // Close after callback has executed
     const isDirty = await watcher.close()
 
@@ -348,6 +370,10 @@ describe('watch', () => {
 
     // Close immediately after change, before callback can execute
     await new Promise((resolve) => setTimeout(resolve, 50))
+
+    // State should be pending since callback is scheduled
+    expect(watcher.getState()).toBe('pending')
+
     const isDirty = await watcher.close()
 
     expect(isDirty).toBe(true)
@@ -373,6 +399,10 @@ describe('watch', () => {
     await fs.writeFile(filePath, 'content2')
     await new Promise((resolve) => setTimeout(resolve, 100))
     await fs.writeFile(filePath, 'content3')
+
+    // State should be pending during continuous changes
+    expect(watcher.getState()).toBe('pending')
+
     await new Promise((resolve) => setTimeout(resolve, 100))
     await fs.writeFile(filePath, 'content4')
 
@@ -382,6 +412,7 @@ describe('watch', () => {
 
     // Callback should have been called once due to timeout, despite continuous changes
     expect(callback).toHaveBeenCalledTimes(1)
+    expect(watcher.getState()).toBe('executed')
 
     await watcher.close()
   })
@@ -471,6 +502,10 @@ describe('watch', () => {
 
     // Close while timeout is pending (but before it executes)
     await new Promise((resolve) => setTimeout(resolve, 100))
+
+    // State should be pending since timeout is still running
+    expect(watcher.getState()).toBe('pending')
+
     const isDirty = await watcher.close()
 
     expect(isDirty).toBe(true)

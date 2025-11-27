@@ -4,6 +4,8 @@
 
 import chokidar from 'chokidar'
 
+export type WatcherState = 'pending' | 'executed'
+
 export interface WatchOptions {
   /** Directory to watch recursively */
   directory: string
@@ -21,6 +23,11 @@ export interface Watcher {
    * @returns true if the directory is dirty (callback was scheduled but not executed), false otherwise
    */
   close: () => Promise<boolean>
+  /**
+   * Gets the current state of the watched directory.
+   * @returns 'pending' if callback is scheduled to be executed, 'executed' otherwise
+   */
+  getState: () => WatcherState
 }
 
 /**
@@ -127,6 +134,9 @@ export function watch(options: WatchOptions): Watcher {
       await watcher.close()
 
       return isDirty
+    },
+    getState: () => {
+      return debounceTimer !== null || timeoutTimer !== null ? 'pending' : 'executed'
     },
   }
 }
