@@ -1,5 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Enso_Cloud.Data_Link_Helpers
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Runtime.Context
 import Standard.Base.Visualization.Table_Viz_Data.Table_Viz_Data
 import Standard.Base.Visualization.Table_Viz_Data.Table_Viz_Header
@@ -243,6 +244,8 @@ type DuckDB_Connection
         - `as`: the name of the table to create. Defaults to "NewTable".
         - `key_columns`: the names of the columns to use as the primary key. If
           not provided, no primary key will be created.
+        - `replace_if_present`: if set to `True`, will replace the table if it
+          already exists.
 
        ## Returns
        A `DB_Table` referencing the newly created table.
@@ -278,6 +281,8 @@ type DuckDB_Connection
         - `as`: the name of the table to create. Defaults to "NewTable".
         - `key_columns`: the names of the columns to use as the primary key. If
           not provided, no primary key will be created.
+        - `replace_if_present`: if set to `True`, will replace the table if it
+          already exists.
 
        ## Returns
        A `DB_Table` referencing the newly created table.
@@ -311,15 +316,35 @@ type DuckDB_Connection
        icon: drive
        ---
        Creates an index on an existing table.
-    @as Text_Input display=..Always
+
+       ## Arguments
+        - `table`: the table name or a `DB_Table` to create the index on.
+        - `key_columns`: the names of the columns to use as the index.
+        - `as`: the name of the index to create. Defaults to `<table>_INDEX`.
+        - `replace_if_present`: if set to `True`, will replace the index if it
+          already exists.
+
+       ## Returns
+       A `DB_Table` referencing the newly created table.
+    @table make_table_name_selector
     @key_columns Vector_Editor display=..Always item_editor=Text_Input item_default='"Column"'
+    @as Text_Input display=..Always
     create_index : Text -> Vector Text -> Boolean -> DB_Table
-    create_index self table_name:Text key_columns:Vector as:Text=table_name+"_INDEX" replace_if_present:Boolean=False =
+    create_index self table key_columns:Vector as:Text="" replace_if_present:Boolean=False =
         if self.is_in_memory.not then Context.Output.if_enabled disabled_message="As writing is disabled, cannot create a new index. Press the Write button ▶ to perform the operation." panic=False <|
             Nothing
+
+        table_name = case table of
+            _ : Text -> table
+            _ : DB_Table ->
+                names = table.table_name_schema
+                if names.is_nothing.not then names.last else Error.throw (Illegal_Argument.Error "Cannot create index on a non-trivial DB_Table.")
+            _ -> Error.throw (Illegal_Argument.Error "Expect table name.")
+
         escaped_table = table_name.replace '"' '""'
         index = if key_columns.length==0 then "" else
-            escaped_index = as.replace '"' '""'
+            used_as = if as=="" then table_name + "_INDEX" else as
+            escaped_index = used_as.replace '"' '""'
             drop = if replace_if_present then 'DROP INDEX IF EXISTS "'+ escaped_index + '"; ' else ""
             base = 'CREATE INDEX "'+ escaped_index + '" ON "' + escaped_table + '" ('
             cols = key_columns.map c-> '"'+(c.replace '"' '""')+'"'
