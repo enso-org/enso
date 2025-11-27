@@ -497,7 +497,8 @@ add_specs suite_builder = suite_builder.group "Dataflow Warnings" group_builder-
 
     group_builder.specify "warning & suspended return" <|
         tw = Warning.attach "pozor!" (Numb.Value 2)
-        res = Numb.double tw . neg
+        mid = Numb.double tw
+        res = mid . neg
 
         Warning.get_all res . should_equal [ "pozor!" ]
         res.x . should_equal 4
