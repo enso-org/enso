@@ -14,7 +14,7 @@ import project.Internal.Table_Ref.Table_Ref
 import project.Internal.Widget_Helpers
 
 type Generate_Rows_Range
-    ## A integer range
+    ## An integer range
     Integer_Range from:(Integer | Column_Ref | Expression)=(Missing_Argument.throw "from") to:(Integer | Column_Ref | Expression)=(Missing_Argument.throw "to") include_end:Boolean=False step:Integer=1
 
     ## A date range
