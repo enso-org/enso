@@ -103,7 +103,7 @@ public class TypeMembersTest {
     assertEquals(
         "all members",
         Set.of(
-            "to_display_text",
+            ConstantsNames.TO_DISPLAY_TEXT,
             "message",
             ConstantsNames.TO_TEXT,
             "==",
@@ -174,7 +174,7 @@ public class TypeMembersTest {
 
             main = My_Type
             """);
-    var displayTextRes = myType.invokeMember("to_display_text");
+    var displayTextRes = myType.invokeMember(ConstantsNames.TO_DISPLAY_TEXT);
     assertThat("Has correct result type", displayTextRes.isString(), is(true));
     assertThat("Has correct result value", displayTextRes.asString(), is("My_Type"));
   }

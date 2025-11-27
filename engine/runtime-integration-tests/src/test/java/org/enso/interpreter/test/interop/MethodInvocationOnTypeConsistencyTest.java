@@ -93,7 +93,7 @@ public final class MethodInvocationOnTypeConsistencyTest {
         List.of(
             new TestArgs(
                 new EnsoInvokeArgs("Any.to_display_text My_Type"),
-                new InteropInvokeArgs(anyType, "to_display_text", List.of(myType)),
+                new InteropInvokeArgs(anyType, ConstantsNames.TO_DISPLAY_TEXT, List.of(myType)),
                 (res, msg) -> {
                   assertThat(msg, res.asString(), is("My_Type"));
                 }),
@@ -105,7 +105,7 @@ public final class MethodInvocationOnTypeConsistencyTest {
                 }),
             new TestArgs(
                 new EnsoInvokeArgs("My_Type.to_display_text"),
-                new InteropInvokeArgs(myType, "to_display_text", List.of()),
+                new InteropInvokeArgs(myType, ConstantsNames.TO_DISPLAY_TEXT, List.of()),
                 (res, msg) -> {
                   assertThat(msg, res.asString(), is("My_Type"));
                 }),

@@ -23,7 +23,8 @@ public final class BuiltinsFallbackScope {
     var scopeBuilder =
         new StaticModuleScope.Builder(QualifiedName.fromString("Standard.Builtins.Main"));
     scopeBuilder.registerMethod(TypeScopeReference.ANY, ConstantsNames.TO_TEXT, BuiltinTypes.TEXT);
-    scopeBuilder.registerMethod(TypeScopeReference.ANY, "to_display_text", BuiltinTypes.TEXT);
+    scopeBuilder.registerMethod(
+        TypeScopeReference.ANY, ConstantsNames.TO_DISPLAY_TEXT, BuiltinTypes.TEXT);
     scopeBuilder.registerMethod(TypeScopeReference.ANY, "pretty", BuiltinTypes.TEXT);
 
     var any = new TypeRepresentation.TopType();
