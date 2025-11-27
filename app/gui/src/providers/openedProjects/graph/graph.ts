@@ -24,6 +24,7 @@ import { partition } from '@/util/data/array'
 import { stringUnionToArray, type Events } from '@/util/data/observable'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
+import { primitiveEquals } from '@/util/equals'
 import type { MethodPointer } from '@/util/methodPointer'
 import { proxyRefs, useWatchContext } from '@/util/reactivity'
 import * as iter from 'enso-common/src/utilities/data/iter'
@@ -539,6 +540,12 @@ export function createGraphStore(
     return (isAstId(id) && db.getExpressionNodeId(id)) || getPortPrimaryInstance(id)?.nodeId
   }
 
+  function getOutputPortNodeId(id: PortId): NodeId | undefined {
+    if (!isAstId(id)) return undefined
+    const [nodeId] = db.nodeOutputPorts.reverseLookup(id)
+    return nodeId
+  }
+
   /**
    * Emit a value update to a port view under specific ID. Returns Err if the port view is
    * not registered.
@@ -664,7 +671,11 @@ export function createGraphStore(
   }
 
   function isConnectedSource(portId: AstId): boolean {
-    return db.connections.lookup(portId).size > 0
+    return (
+      db.connections.lookup(portId).size > 0 ||
+      unconnectedEdges.cbEditedEdge.value?.source === portId ||
+      unconnectedEdges.mouseEditedEdge.value?.source === portId
+    )
   }
 
   function isConnectedTarget(portId: PortId): boolean {
@@ -716,6 +727,7 @@ export function createGraphStore(
     getPortRelativeRect,
     getPortExpectedType,
     getPortNodeId,
+    getOutputPortNodeId,
     getSourceNodeId,
     isPortEnabled,
     updatePortValue,
@@ -742,7 +754,12 @@ export interface ConnectedEdge {
   target: PortId
 }
 
-/** TODO: Add docs */
+/** Equality function for {@link ConnectedEdge}. */
+export function connectedEdgeEquals(a: ConnectedEdge, b: ConnectedEdge) {
+  return primitiveEquals(a.source, b.source) && primitiveEquals(a.target, b.target)
+}
+
+/** Check if edge is connected at both ends. */
 export function isConnected(edge: Edge): edge is ConnectedEdge {
   return edge.source != null && edge.target != null
 }

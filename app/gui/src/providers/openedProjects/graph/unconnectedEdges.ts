@@ -28,8 +28,9 @@ export interface UnconnectedTarget extends AnyUnconnectedEdge {
 export type UnconnectedEdge = UnconnectedSource | UnconnectedTarget
 
 export interface MouseEditedEdge {
-  /** A pointer event which caused the unconnected edge */
-  event: PointerEvent | undefined
+  createdFrom: 'edge' | 'port' | 'newNodeButton'
+  /** Position where the edge interaction started (not necessarily the source position). */
+  startPosition: Vec2
 }
 
 /** TODO: Add docs */
@@ -40,30 +41,54 @@ export function useUnconnectedEdges() {
 
   // === Mouse-edited edges ===
 
-  function createEdgeFromPort(target: PortId, event: PointerEvent | undefined) {
-    mouseEditedEdge.value = { source: undefined, target, event, anchor: { type: 'mouse' } }
-  }
-
-  function createEdgeFromOutput(source: AstId, event: PointerEvent | undefined) {
-    mouseEditedEdge.value = { source, target: undefined, event, anchor: { type: 'mouse' } }
-  }
-
-  function disconnectSource(edge: ConnectedEdge, event: PointerEvent | undefined) {
+  function createEdgeFromOutput(source: AstId, event: PointerEvent) {
     mouseEditedEdge.value = {
-      source: undefined,
-      target: edge.target,
-      disconnectedEdgeTarget: edge.target,
-      event,
+      source,
+      target: undefined,
+      createdFrom: 'port',
+      startPosition: new Vec2(event.screenX, event.screenY),
       anchor: { type: 'mouse' },
     }
   }
 
-  function disconnectTarget(edge: ConnectedEdge, event: PointerEvent | undefined) {
+  function createEdgeFromPort(target: PortId, event: PointerEvent | undefined) {
+    mouseEditedEdge.value = {
+      source: undefined,
+      target,
+      createdFrom: 'port',
+      startPosition: new Vec2(event?.screenX ?? 0, event?.screenY ?? 0),
+      anchor: { type: 'mouse' },
+    }
+  }
+
+  function createEdgeFromNewButton(source: AstId) {
+    mouseEditedEdge.value = {
+      source,
+      target: undefined,
+      createdFrom: 'newNodeButton',
+      startPosition: Vec2.Zero,
+      anchor: { type: 'mouse' },
+    }
+  }
+
+  function disconnectSource(edge: ConnectedEdge, event: PointerEvent) {
+    mouseEditedEdge.value = {
+      source: undefined,
+      target: edge.target,
+      disconnectedEdgeTarget: edge.target,
+      createdFrom: 'edge',
+      startPosition: new Vec2(event.screenX, event.screenY),
+      anchor: { type: 'mouse' },
+    }
+  }
+
+  function disconnectTarget(edge: ConnectedEdge, event: PointerEvent) {
     mouseEditedEdge.value = {
       source: edge.source,
       target: undefined,
       disconnectedEdgeTarget: edge.target,
-      event,
+      createdFrom: 'edge',
+      startPosition: new Vec2(event.screenX, event.screenY),
       anchor: { type: 'mouse' },
     }
   }
@@ -167,6 +192,7 @@ export function useUnconnectedEdges() {
     // === Edge creation ===
     createEdgeFromPort,
     createEdgeFromOutput,
+    createEdgeFromNewButton,
     disconnectSource,
     disconnectTarget,
     suggestEdgeFromOutput,

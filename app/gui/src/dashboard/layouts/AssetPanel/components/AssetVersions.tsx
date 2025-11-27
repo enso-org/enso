@@ -1,7 +1,7 @@
 /** @file A list of previous versions of an asset. */
 import { ErrorBoundary } from '#/components/ErrorBoundary'
 import { Result } from '#/components/Result'
-import { copyAssetsMutationOptions } from '#/hooks/backendBatchedHooks'
+import { backendMutationOptions } from '#/hooks/backendHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import { useBackends, useText } from '$/providers/react'
@@ -102,13 +102,17 @@ function AssetVersionsInternal(props: AssetVersionsInternalProps) {
     meta: { invalidates: [queryOptions.queryKey], awaitInvalidates: true },
   })
 
-  const duplicateProjectMutation = useMutation(copyAssetsMutationOptions(backend))
+  const duplicateProjectMutation = useMutation(backendMutationOptions(backend, 'copyAsset'))
 
   const doDuplicate = useEventCallback(async (options?: DuplicateOptions) => {
-    const newItem = await duplicateProjectMutation.mutateAsync([[item.id], item.parentId])
-    const newAsset = newItem[0]?.asset
+    const newItem = await duplicateProjectMutation.mutateAsync([
+      item.id,
+      item.parentId,
+      options?.versionId,
+    ])
+    const newAsset = newItem.asset
 
-    if (options?.start === true && newAsset != null && newAsset.type === AssetType.project) {
+    if (options?.start === true && newAsset.type === AssetType.project) {
       openProjectLocally(newAsset, backend.type)
     }
   })

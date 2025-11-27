@@ -356,7 +356,7 @@ export class RemoteBackend extends backend.Backend {
       return { assets: [], paginationToken: null }
     }
     const paramsString = new URLSearchParams(
-      query.recentProjects ?
+      query.recentProjects === true ?
         [['recent_projects', String(true)]]
       : [
           ...(query.parentId != null ? [['parent_id', query.parentId]] : []),
@@ -540,10 +540,11 @@ export class RemoteBackend extends backend.Backend {
   override async copyAsset(
     assetId: backend.AssetId,
     parentDirectoryId: backend.DirectoryId,
+    versionId?: backend.S3ObjectVersionId,
   ): Promise<backend.CopyAssetResponse> {
     const response = await this.post<backend.CopyAssetResponse>(
       remoteBackendPaths.copyAssetPath(assetId),
-      { parentDirectoryId },
+      { parentDirectoryId, versionId },
     )
 
     if (!response.ok) {
@@ -829,6 +830,7 @@ export class RemoteBackend extends backend.Backend {
     title: string,
   ): Promise<void> {
     const path = remoteBackendPaths.openProjectPath(projectId)
+    // `cognitoCredentials` is a legacy field, should be removed when no longer needed by the runtime.
     if (body.cognitoCredentials == null) {
       return this.throw(null, 'openProjectMissingCredentialsBackendError', title)
     } else {
@@ -845,7 +847,6 @@ export class RemoteBackend extends backend.Backend {
         cognitoCredentials: exactCredentials,
       }
       const response = await this.post(path, filteredBody)
-
       if (!response.ok) {
         return this.throw(response, 'openProjectBackendError', title)
       } else {
@@ -878,7 +879,7 @@ export class RemoteBackend extends backend.Backend {
    */
   override async uploadFileStart(
     body: backend.UploadFileRequestParams,
-    file: File,
+    file: Blob,
     abort?: AbortSignal,
   ): Promise<backend.UploadLargeFileMetadata> {
     const path = remoteBackendPaths.UPLOAD_FILE_START_PATH
@@ -943,6 +944,28 @@ export class RemoteBackend extends backend.Backend {
         }
       }
       return result
+    }
+  }
+
+  /**
+   * Upload set of Images, resolving any possible conflicts. The sum of file sizes may not
+   * exceed cloud message limit.
+   */
+  override async uploadImage(
+    parentDirectoryId: backend.DirectoryId,
+    files: { data: Blob; name: string }[],
+  ) {
+    const path = remoteBackendPaths.UPLOAD_IMAGE_PATH
+    const query = new URLSearchParams({ parentDirectoryId })
+    const data = new FormData()
+    for (const file of files) {
+      data.append('image', file.data, file.name)
+    }
+    const response = await this.postFormData<backend.UploadedImages>(`${path}?${query}`, data)
+    if (!response.ok) {
+      return this.throw(response, 'uploadImageBackendError')
+    } else {
+      return response.json()
     }
   }
 
@@ -1196,13 +1219,54 @@ export class RemoteBackend extends backend.Backend {
    * Fetches a configuration for a payment pricing page.
    * @throws An error if a non-successful status code (not 200-299) was received.
    */
-  async getPaymentsConfig(): Promise<backend.PaymentsConfig> {
+  override async getPaymentsConfig(): Promise<backend.PaymentsConfig> {
     const response = await this.get<backend.PaymentsConfig>(remoteBackendPaths.PAYMENTS_CONFIG_PATH)
-
     if (!response.ok) {
       return await this.throw(response, 'getPaymentsConfigBackendError')
     } else {
       return await response.json()
+    }
+  }
+
+  /**
+   * List all personal access tokens for the current user.
+   * @throws An error if a non-successful status code (not 200-299) was received.
+   */
+  override async listApiKeys(): Promise<readonly backend.ApiKey[]> {
+    const response = await this.get<backend.ListApiKeysResponse>(
+      remoteBackendPaths.LIST_API_KEYS_PATH,
+    )
+    if (!response.ok) {
+      return await this.throw(response, 'listApiKeysBackendError')
+    } else {
+      return (await response.json()).credentials
+    }
+  }
+
+  /**
+   * Create a new personal access token for the current user.
+   * @throws An error if a non-successful status code (not 200-299) was received.
+   */
+  override async createApiKey(body: backend.CreateApiKeyRequestBody): Promise<backend.ApiKey> {
+    const response = await this.post<backend.ApiKey>(remoteBackendPaths.LIST_API_KEYS_PATH, body)
+    if (!response.ok) {
+      return await this.throw(response, 'createApiKeyBackendError')
+    } else {
+      return await response.json()
+    }
+  }
+
+  /**
+   * Delete a personal access token for the current user.
+   * @throws An error if a non-successful status code (not 200-299) was received.
+   */
+  override async deleteApiKey(apiKeyId: backend.ApiKeyId) {
+    const path = remoteBackendPaths.deleteApiKeyPath(apiKeyId)
+    const response = await this.delete(path)
+    if (!response.ok) {
+      return await this.throw(response, 'deleteApiKeyBackendError')
+    } else {
+      return
     }
   }
 

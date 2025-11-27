@@ -1,3 +1,5 @@
+private
+
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
@@ -17,6 +19,7 @@ import project.Dialects.Dialect_Flag.Dialect_Flag
 import project.Dialects.Feature.Feature
 import project.Errors.Unsupported_Database_Operation
 import project.Internal.Base_Generator
+import project.Internal.Base_Generator.Dialect_Operations
 import project.Internal.Common.Database_Distinct_Helper
 import project.Internal.Common.Database_Join_Helper
 import project.Internal.Internals_Access
@@ -57,7 +60,14 @@ type Postgres_Dialect
        private: true
        ---
        The dialect of PostgreSQL databases.
-    Value dialect_operations
+    private Value dialect_operations
+
+    ## ---
+       private: true
+       ---
+       Access underlying dialect operations.
+    get_dialect_operations : Dialect_Operations
+    get_dialect_operations self = self.dialect_operations
 
     ## ---
        private: true
@@ -244,7 +254,7 @@ type Postgres_Dialect
 
         cast_to = case op_kind of
             "SUM" ->
-                if is_int8 (args.at 0) then "numeric(1000,0)" else Nothing
+                if is_int8 (args.at 0) then "numeric(37,0)" else Nothing
             "AVG" ->
                 if is_int (args.at 0) then "float8" else Nothing
             "STDDEV_POP" ->
@@ -274,7 +284,8 @@ type Postgres_Dialect
     ## ---
        private: true
        ---
-    generate_collate self collation_name:Text -> Text = Base_Generator.default_generate_collate collation_name
+    generate_collate self collation_name:Text -> Text =
+        Base_Generator.default_generate_collate collation_name
 
     ## ---
        private: true
@@ -298,6 +309,7 @@ type Postgres_Dialect
     is_feature_supported self feature:Feature -> Boolean =
         case feature of
             Feature.Generate_Rows -> False
+            Feature.Spatial -> False
             _ -> True
 
     ## ---
@@ -358,6 +370,15 @@ type Postgres_Dialect
     prepare_metadata_for_period self period operation_input_type =
         if period == Time_Period.Nanosecond then Error.throw (Unsupported_Database_Operation.Error "Nanosecond precision date/times") else
             Date_Period_Metadata.Value period operation_input_type
+
+    ## ---
+       private: true
+       ---
+       Returns the set of all supported Replace_Params
+    get_supported_replace_params : Hashset Replace_Params
+    get_supported_replace_params self =
+        _ = self
+        supported_replace_params
 
     ## ---
        private: true

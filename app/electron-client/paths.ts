@@ -20,11 +20,6 @@ export function getProjectManagerBundlePath(): string {
   return requireEnv('ENSO_BUILD_PROJECT_MANAGER')
 }
 
-/** Path to the project manager executable relative to the PM bundle root. */
-export function getProjectManagerInBundlePath(): string {
-  return requireEnv('ENSO_BUILD_PROJECT_MANAGER_IN_BUNDLE_PATH')
-}
-
 /** Get the environment variable value, assert that it is set. */
 function requireEnv(name: string) {
   const value = process.env[name]

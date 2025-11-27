@@ -396,7 +396,7 @@ public final class MapExpressionsMethodGenerator {
     Utils.hardAssert(!(field instanceof OptionListField));
     Utils.hardAssert(!(field instanceof OptionField));
     var nullableCheck = "";
-    if (field.isNullable()) {
+    if (!field.isNullable()) {
       nullableCheck =
           """
           if (${fieldName} == null) {
@@ -404,7 +404,8 @@ public final class MapExpressionsMethodGenerator {
               "Field ${fieldName} must not be null. It was annotated with "
               + "@IRChild(required = true).");
           }
-          """;
+          """
+              .replace("${fieldName}", field.getName());
     }
     var code =
         """

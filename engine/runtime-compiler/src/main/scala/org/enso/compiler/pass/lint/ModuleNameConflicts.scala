@@ -36,14 +36,10 @@ case object ModuleNameConflicts extends IRPass {
   ): Module = {
     if (moduleContext.compilerConfig.warningsEnabled) {
       val syntheticExports = ir.exports.flatMap {
-        case mod @ Export.Module(
-              _,
-              _,
-              None,
-              loc,
-              true,
-              _
-            ) if loc eq null =>
+        case mod: Export.Module
+            if mod.onlyNames().isEmpty
+            && mod.isSynthetic
+            && mod.location().isEmpty =>
           Some(mod)
         case mod: Export.Module if moduleContext.isSynthetic() =>
           Some(mod)
@@ -51,7 +47,7 @@ case object ModuleNameConflicts extends IRPass {
           None
       }
       ir.copyWithBindings(
-        bindings = ir.bindings.map(lintBinding(_, syntheticExports))
+        ir.bindings.map(lintBinding(_, syntheticExports))
       )
     } else {
       ir

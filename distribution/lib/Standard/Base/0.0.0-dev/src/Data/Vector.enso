@@ -22,12 +22,12 @@ import project.Internal.Array_Like_Helpers
 import project.Meta
 import project.Panic.Panic
 import project.Warning.Warning
-from project.Nothing import all
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Ordering import all
 from project.Data.Range.Extensions import all
 from project.Error import all
 from project.Metadata import Display, Widget
+from project.Nothing import all
 from project.Runtime import assert
 from project.Widget_Helpers import make_separator_selector
 

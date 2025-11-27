@@ -7,7 +7,7 @@ import { useTemplateRef } from 'vue'
 
 defineProps(widgetProps(widgetDefinition))
 
-provideTopLevelArgument(useTemplateRef('element'))
+provideTopLevelArgument(useTemplateRef('content'))
 </script>
 
 <script lang="ts">
@@ -25,17 +25,19 @@ export const widgetDefinition = defineWidget(
 </script>
 
 <template>
-  <div ref="element" class="WidgetTopLevelArgument widgetResetPadding">
-    <NodeWidget :input="input" />
+  <div class="WidgetTopLevelArgument widgetParent widgetExpanded widgetResetPadding">
+    <!-- 
+      Element used as a reference for `topLevelArgument` context provider, without vertical line.
+      (because we don't want it to be considered by subwidgets like WidgetSelection).
+    -->
+    <div ref="content" class="widgetParent">
+      <NodeWidget :input="input" />
+    </div>
   </div>
 </template>
 
 <style scoped>
 .WidgetTopLevelArgument {
-  display: flex;
-  flex-direction: row;
-  place-items: center;
-
   &:before {
     content: '';
     display: block;

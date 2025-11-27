@@ -11,6 +11,7 @@ import org.enso.build.WithDebugCommand
 
 import java.io.File
 import java.nio.file.Paths
+import scala.collection.mutable.ArrayBuffer
 import scala.jdk.javaapi.CollectionConverters.asJava
 import scala.util.Try
 
@@ -223,118 +224,135 @@ object DistributionPackage {
     )
   }
 
+  /** Generates indexes (compiles) all the standard libraries.
+    * Will do that only for libraries which have modified source files since last
+    * compilation.
+    * Compilation is done by invoking a single subprocess.
+    * @param libRoot Root dir for all the libraries.
+    */
   def indexStdLibs(
     stdLibVersion: String,
     ensoVersion: String,
-    stdLibRoot: File,
+    libRoot: File,
     javaOpts: Seq[String],
     cacheFactory: CacheStoreFactory,
     log: Logger,
     env: Map[String, String] = Map.empty
   ): Unit = {
-    for {
-      libMajor <- stdLibRoot.listFiles()
-      libName  <- (stdLibRoot / libMajor.getName).listFiles()
-    } yield {
-      indexStdLib(
-        libName,
-        stdLibVersion,
-        ensoVersion,
-        javaOpts,
-        cacheFactory,
-        log,
-        env
+    val modifiedLibs: ArrayBuffer[File] = ArrayBuffer()
+    for (libNamespace <- libRoot.listFiles()) {
+      for (libName <- libNamespace.listFiles()) {
+        val libRootDir = libName / stdLibVersion
+        val cache      = cacheFactory.make(s"${libName.getName}.$ensoVersion")
+        val trackedFiles = libRootDir
+          .globRecursive("*.enso" && FileOnlyFilter)
+          .get()
+          .toSet
+        Tracked.diffInputs(cache, FileInfo.lastModified)(trackedFiles) { diff =>
+          if (diff.modified.nonEmpty) {
+            modifiedLibs.append(libRootDir)
+          }
+        }
+      }
+    }
+
+    if (modifiedLibs.nonEmpty) {
+      invokeIndexStdLibs(
+        libRootDirs = modifiedLibs,
+        javaOpts    = javaOpts,
+        log         = log,
+        env         = env
       )
     }
   }
 
-  def indexStdLib(
-    libName: File,
-    stdLibVersion: String,
-    ensoVersion: String,
+  private object FileOnlyFilter extends sbt.io.FileFilter {
+    def accept(arg: File): Boolean = arg.isFile
+  }
+
+  private def invokeIndexStdLibs(
+    libRootDirs: Seq[File],
     javaOpts: Seq[String],
-    cacheFactory: CacheStoreFactory,
     log: Logger,
     env: Map[String, String] = Map.empty
   ): Unit = {
-    object FileOnlyFilter extends sbt.io.FileFilter {
-      def accept(arg: File): Boolean = arg.isFile
+    val libNames = libRootDirs
+      .map { libRoot =>
+        libRoot.getParentFile.getName
+      }
+      .sorted
+      .mkString(", ")
+    val libPaths = libRootDirs.map { libRoot =>
+      libRoot.getAbsolutePath
     }
-    val cache = cacheFactory.make(s"$libName.$ensoVersion")
-    val path  = libName / ensoVersion
-    Tracked.diffInputs(cache, FileInfo.lastModified)(
-      path.globRecursive("*.enso" && FileOnlyFilter).get().toSet
-    ) { diff =>
-      if (diff.modified.nonEmpty) {
-        log.info(s"Generating index for $libName ")
+    log.info(s"Generating indexes for libraries [$libNames]")
+    val javaCommand = javaExecutable()
 
-        val javaCommand = javaExecutable()
+    val command = Seq(
+      javaCommand
+    ) ++ javaOpts ++ Seq(
+      "--no-compile-dependencies",
+      "--compile"
+    ) ++ libPaths
+    log.debug(command.mkString(" "))
+    val allEnv = mapAppend(
+      env,
+      "NO_COLOR" -> "true"
+    )
+    val procBldr = new java.lang.ProcessBuilder(asJava(command))
+    val cwd      = libRootDirs.head.getAbsoluteFile.getParentFile
+    procBldr.directory(cwd)
+    allEnv.foreach { case (k, v) =>
+      procBldr.environment().put(k, v)
+    }
 
-        val command = Seq(
-          javaCommand
-        ) ++ javaOpts ++ Seq(
-          "--no-compile-dependencies",
-          "--compile",
-          path.getAbsolutePath
-        )
-        log.debug(command.mkString(" "))
-        val allEnv = mapAppend(
-          env,
-          "NO_COLOR" -> "true"
-        )
-        val procBldr = new java.lang.ProcessBuilder(asJava(command))
-        procBldr.directory(path.getAbsoluteFile.getParentFile)
-        allEnv.foreach { case (k, v) =>
-          procBldr.environment().put(k, v)
-        }
-
-        val runningProcess = Process(procBldr).run()
-        // Poor man's solution to stuck index generation
-        val GENERATING_INDEX_TIMEOUT = 60 * 4 // 2 minutes
-        var current                  = 0
-        var timeout                  = false
-        while (runningProcess.isAlive() && !timeout) {
-          if (current > GENERATING_INDEX_TIMEOUT) {
-            java.lang.System.err
-              .println(
-                "Reached timeout when generating index. Terminating..."
-              )
-            try {
-              val pidOfProcess = pid(runningProcess)
-              val javaHome     = System.getProperty("java.home")
-              val jstack =
-                if (javaHome == null) "jstack"
-                else
-                  Paths.get(javaHome, "bin", "jstack").toAbsolutePath.toString
-              val in = java.lang.Runtime.getRuntime
-                .exec(Array(jstack, pidOfProcess.toString))
-                .getInputStream
-
-              System.err.println(IOUtils.toString(in, "UTF-8"))
-            } catch {
-              case e: Throwable =>
-                java.lang.System.err
-                  .println("Failed to get threaddump of a stuck process", e);
-            } finally {
-              timeout = true
-              runningProcess.destroy()
-            }
-          } else {
-            Thread.sleep(1000)
-            current += 1
-          }
-        }
-        if (timeout) {
-          throw new RuntimeException(
-            s"TIMEOUT: Failed to compile $libName in $GENERATING_INDEX_TIMEOUT seconds"
+    val runningProcess = Process(procBldr).run()
+    // Poor man's solution to stuck index generation
+    val GENERATING_INDEX_TIMEOUT = 60 * 4 // 2 minutes
+    var current                  = 0
+    var timeout                  = false
+    while (runningProcess.isAlive() && !timeout) {
+      if (current > GENERATING_INDEX_TIMEOUT) {
+        java.lang.System.err
+          .println(
+            "Reached timeout when generating index. Terminating..."
           )
-        }
-        if (runningProcess.exitValue() != 0) {
-          throw new RuntimeException(s"Cannot compile $libName.")
+        try {
+          val pidOfProcess = pid(runningProcess)
+          val javaHome     = System.getProperty("java.home")
+          val jstack =
+            if (javaHome == null) "jstack"
+            else
+              Paths.get(javaHome, "bin", "jstack").toAbsolutePath.toString
+          val in = java.lang.Runtime.getRuntime
+            .exec(Array(jstack, pidOfProcess.toString))
+            .getInputStream
+
+          System.err.println(IOUtils.toString(in, "UTF-8"))
+        } catch {
+          case e: Throwable =>
+            java.lang.System.err
+              .println("Failed to get threaddump of a stuck process", e);
+        } finally {
+          timeout = true
+          runningProcess.destroy()
         }
       } else {
-        log.debug(s"No modified files. Not generating index for $libName.")
+        Thread.sleep(1000)
+        current += 1
       }
+    }
+    if (timeout) {
+      throw new RuntimeException(
+        s"TIMEOUT: Failed to compile [$libNames] in $GENERATING_INDEX_TIMEOUT seconds"
+      )
+    }
+    if (runningProcess.exitValue() != 0) {
+      throw new RuntimeException(s"Cannot compile [$libNames].")
+    } else {
+      log.info(
+        s"Successfully generated indexes for libraries [$libNames] in $current seconds."
+      )
     }
   }
 

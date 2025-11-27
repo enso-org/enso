@@ -2,15 +2,14 @@ from Standard.Base import all
 import Standard.Base.Errors.Common.Type_Error
 from Standard.Base.Metadata import Widget
 
-import project.Internal.Expression_Statics as Expression_Statics_Module
-import project.Internal.Expression_Statics.Expression_Statics
 import project.Column as Column_Module
 import project.Column.Column
+import project.Internal.Expression_Statics as Expression_Statics_Module
+import project.Internal.Expression_Statics.Expression_Statics
 import project.Refined_Types.Numeric_Column as Numeric_Column_Module
 import project.Refined_Types.Numeric_Column.Numeric_Column
 import project.Refined_Types.Text_Column as Text_Column_Module
 import project.Refined_Types.Text_Column.Text_Column
-
 import project.Table.Table
 
 polyglot java import java.lang.IllegalArgumentException

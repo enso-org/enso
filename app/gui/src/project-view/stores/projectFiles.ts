@@ -1,6 +1,7 @@
 import { type ProjectStore } from '$/providers/openedProjects/project'
 import { bytesToHex, Hash } from '@noble/hashes/utils'
 import { Err, Ok, type Result, withContext } from 'enso-common/src/utilities/data/result'
+import { basenameAndExtension } from 'enso-common/src/utilities/file'
 import { Error as DataError } from 'ydoc-shared/binaryProtocol'
 import { ErrorCode, RemoteRpcError } from 'ydoc-shared/languageServer'
 import { type Path } from 'ydoc-shared/languageServerTypes'
@@ -98,11 +99,11 @@ export function useProjectFiles(projectStore: ProjectStoreSubset) {
     const files = await lsRpc.listFiles(path)
     if (!files.ok) return files
     const existingNames = new Set(files.value.paths.map((path) => path.name))
-    const { stem, extension = '' } = splitFilename(suggestedName)
+    const { basename, extension = '' } = basenameAndExtension(suggestedName)
     let candidate = suggestedName
     let num = 1
     while (existingNames.has(candidate)) {
-      candidate = `${stem}_${num}.${extension}`
+      candidate = `${basename}_${num}.${extension}`
       num += 1
     }
     return Ok(candidate)
@@ -132,15 +133,4 @@ export function useProjectFiles(projectStore: ProjectStoreSubset) {
     pickUniqueName,
     assertChecksum,
   }
-}
-
-/** Split filename into stem and (optional) extension. */
-function splitFilename(fileName: string): { stem: string; extension?: string } {
-  const dotIndex = fileName.lastIndexOf('.')
-  if (dotIndex !== -1 && dotIndex !== 0) {
-    const stem = fileName.substring(0, dotIndex)
-    const extension = fileName.substring(dotIndex + 1)
-    return { stem, extension }
-  }
-  return { stem: fileName }
 }

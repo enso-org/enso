@@ -44,13 +44,13 @@ export const widgetDefinition = defineWidget(
 </script>
 
 <template>
-  <span class="WidgetToken widgetApplyPadding" :class="spanClass">{{ displayContent }}</span>
+  <div class="WidgetToken widgetSingleLine widgetApplyPadding" :class="spanClass">
+    {{ displayContent }}
+  </div>
 </template>
 
 <style scoped>
 .WidgetToken {
-  display: inline-block;
-  vertical-align: middle;
   white-space: pre;
   opacity: 0.33;
 

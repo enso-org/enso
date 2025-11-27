@@ -1,3 +1,4 @@
+load("@bazel_skylib//rules:select_file.bzl", "select_file")
 load("@crates//:defs.bzl", "aliases", "all_crate_deps")
 load("@rules_rust//rust:defs.bzl", "rust_shared_library")
 
@@ -13,4 +14,15 @@ rust_shared_library(
         "//lib/rust/parser:enso_parser",
         "//lib/rust/prelude:enso_prelude",
     ],
+)
+
+select_file(
+    name = "shared_lib",
+    srcs = ":enso_parser_jni",
+    subpath = select({
+        "@platforms//os:linux": "enso_parser.so",
+        "@platforms//os:windows": "enso_parser.dll",
+        "@platforms//os:macos": "enso_parser.dylib",
+    }),
+    visibility = ["//visibility:public"],
 )
