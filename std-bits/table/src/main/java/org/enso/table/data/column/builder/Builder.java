@@ -90,27 +90,24 @@ public interface Builder {
    * Converts a proxy storage to local storage.
    *
    * @param <T> type of storage
-   * @param storage the storage instance, possibly a proxy
+   * @param storage the storage instance, possibly a {@link Proxy#isProxyClass proxy}
    * @return either {@code storage} itself, or optimized storage of the same {@link
    *     ColumnStorage#getType() type} over the same {@link ColumnStorage#rawAddress() data}
    */
   @SuppressWarnings("unchecked")
   static <T> ColumnStorage<T> makeLocal(ColumnStorage<T> storage) {
-    if (Proxy.isProxyClass(storage.getClass())) {
-      var address = storage.rawAddress();
-      if (address != 0) {
-        var capacity = storage.rawCapacity();
-        var proxyType = storage.getType();
-        var localType = StorageType.fromTypeCharAndSize(proxyType.typeChar(), proxyType.size());
-        var localStorage =
-            switch (localType) {
-              case IntegerType type ->
-                  LongBuilder.fromAddress(address, capacity, type).seal(storage);
-              default -> storage;
-            };
-        assert assertSameStorages(storage, localStorage);
-        return (ColumnStorage<T>) localStorage;
-      }
+    var address = storage.rawAddress();
+    if (address != 0) {
+      var capacity = storage.rawCapacity();
+      var proxyType = storage.getType();
+      var localType = StorageType.fromTypeCharAndSize(proxyType.typeChar(), proxyType.size());
+      var localStorage =
+          switch (localType) {
+            case IntegerType type -> LongBuilder.fromAddress(address, capacity, type).seal(storage);
+            default -> storage;
+          };
+      assert assertSameStorages(storage, localStorage);
+      return (ColumnStorage<T>) localStorage;
     }
     return storage;
   }

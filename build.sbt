@@ -5566,6 +5566,9 @@ lazy val `std-tests` = project
     frgaalJavaCompilerSetting,
     commands += WithDebugCommand.withDebug,
     Test / fork := true,
+      Test / javaOptions ++= Seq(
+        "--add-opens=java.base/java.nio=ALL-UNNAMED" // Tests use Apache Arrow
+      ),
     autoScalaLibrary := false,
     Compile / compile / compileInputs := (Compile / compile / compileInputs)
       .dependsOn(SPIHelpers.ensureSPIConsistency)
@@ -5577,6 +5580,7 @@ lazy val `std-tests` = project
   )
   .dependsOn(`std-base`)
   .dependsOn(`std-table`)
+  .dependsOn(`runtime-language-arrow`)
   .dependsOn(`test-utils`)
 
 lazy val `opencv-wrapper` = project
