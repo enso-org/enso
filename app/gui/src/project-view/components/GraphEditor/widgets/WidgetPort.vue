@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { useGraphStore } from '$/components/WithCurrentProject.vue'
 import { PortViewInstance } from '$/providers/openedProjects/graph'
-import { isRequiredArgument } from '$/providers/openedProjects/suggestionDatabase/entry'
 import {
   Score,
   WidgetInput,
@@ -9,12 +8,11 @@ import {
   widgetProps,
 } from '$/providers/openedProjects/widgetRegistry'
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
-import WidgetPortArrow from '@/components/GraphEditor/widgets/WidgetPort/WidgetPortArrow.vue'
 import { useRaf } from '@/composables/animation'
 import { useResizeObserver } from '@/composables/events'
 import type { NavigatorComposable } from '@/composables/navigator'
 import { injectGraphNavigator } from '@/providers/graphNavigator'
-import { injectGraphSelection } from '@/providers/graphSelection'
+import { useGraphSelection } from '@/providers/graphSelection'
 import { injectKeyboard } from '@/providers/keyboard'
 import { injectPortInfo, providePortInfo, type PortId } from '@/providers/portInfo'
 import { injectWidgetTree } from '@/providers/widgetTree'
@@ -41,7 +39,7 @@ const graph = useGraphStore()
 
 const navigator = injectGraphNavigator(true)
 const tree = injectWidgetTree()
-const selection = injectGraphSelection(true)
+const selection = useGraphSelection(true)
 
 const hasConnection = computed(() => graph.isConnectedTarget(portId.value))
 const isCurrentEdgeHoverTarget = computed(
@@ -89,7 +87,7 @@ const innerWidget = computed(() => {
   return { ...props.input, forcePort: false }
 })
 
-providePortInfo(proxyRefs({ portId, connected: hasConnection }))
+providePortInfo(proxyRefs({ portId, connected }))
 
 watchEffect(
   (onCleanup) => {
@@ -111,13 +109,6 @@ const enabled = computed(() => {
   const isConditional = input instanceof Ast.Ast && (tree.conditionalPorts?.has(input.id) ?? false)
   return !isConditional || (keyboard?.mod ?? false)
 })
-
-const needsArrow = computed(() => {
-  const argInfo = props.input[ArgumentInfoKey]
-  if (!argInfo?.info) return false
-  return WidgetInput.isPlaceholder(props.input) && isRequiredArgument(argInfo.info)
-})
-const hideArrow = computed(() => connected.value)
 
 /**
  * NOTE: Reactive dependencies of this function are enforced externally in a `watch` below. This is
@@ -204,7 +195,7 @@ export const widgetDefinition = defineWidget(
 <template>
   <div
     ref="portRoot"
-    class="WidgetPort"
+    class="WidgetPort widgetParent"
     :data-port="props.input.portId"
     :class="{
       enabled,
@@ -215,25 +206,14 @@ export const widgetDefinition = defineWidget(
       primary: props.nesting < 2,
     }"
   >
-    <WidgetPortArrow
-      v-if="needsArrow"
-      :hide="hideArrow"
-      @arrowClick="graph.createEdgeFromPort(props.input.portId, $event)"
-    />
     <NodeWidget :input="innerWidget" />
   </div>
 </template>
 
 <style scoped>
 .WidgetPort {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  justify-content: center;
   position: relative;
-  text-align: center;
   border-radius: var(--node-port-border-radius);
-  min-height: var(--node-port-height);
   min-width: var(--node-port-height);
   transition: background-color 0.2s ease;
 }

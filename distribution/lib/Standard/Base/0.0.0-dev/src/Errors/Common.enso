@@ -10,9 +10,9 @@ import project.Meta
 import project.Panic.Panic
 import project.Runtime
 import project.Runtime.Source_Location.Source_Location
-from project.Nothing import all
 from project.Data.Boolean import False, True
 from project.Data.Json import JS_Object
+from project.Nothing import all
 
 polyglot java import java.lang.ArithmeticException
 polyglot java import java.lang.ClassCastException

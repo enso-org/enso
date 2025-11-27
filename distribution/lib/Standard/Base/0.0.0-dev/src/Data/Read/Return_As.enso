@@ -12,10 +12,10 @@ import project.Meta
 import project.Metadata.Display
 import project.Metadata.Widget
 import project.Panic.Panic
-from project.Nothing import all
 from project.Data.Boolean import False, True
 from project.Metadata.Choice import Option
 from project.Metadata.Widget import Single_Choice
+from project.Nothing import all
 
 ## A common interface that represents ways to return a list of files that have
    been read.
@@ -124,9 +124,16 @@ type Return_As_Table_Mock
     private resolve value =
         Panic.catch Type_Error (value:Return_As_Table_Mock) _->Nothing
 
+## ---
+   private: true
+   ---
+   Internal class for enabling SPI for Return_As types.
 type SPI
     private Value typ
 
+    ## ---
+       private: true
+       ---
     new typ -> SPI = SPI.Value typ
 
     private _get_known_return_classes -> Vector =

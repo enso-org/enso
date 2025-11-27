@@ -5,8 +5,6 @@ import * as path from 'node:path'
 import * as electron from 'electron'
 import electronIsDev from 'electron-is-dev'
 
-import * as paths from '../paths'
-
 // =============
 // === Paths ===
 // =============
@@ -37,14 +35,6 @@ export const ASSETS_PATH = path.join(APP_PATH, 'assets')
  * Contains other app resources, including binaries, such a project manager.
  */
 export const RESOURCES_PATH = electronIsDev ? APP_PATH : path.join(APP_PATH, '..')
-
-/** Project manager binary path. */
-export const PROJECT_MANAGER_PATH = path.join(
-  RESOURCES_PATH,
-  paths.PROJECT_MANAGER_BUNDLE,
-  // Placeholder for a bundler-provided define.
-  process.env.PROJECT_MANAGER_IN_BUNDLE_PATH,
-)
 
 /** Relative path of Enso Project package metadata relative to the project root. */
 export const PACKAGE_METADATA_RELATIVE = 'package.yaml'

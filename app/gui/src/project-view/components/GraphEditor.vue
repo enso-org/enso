@@ -83,7 +83,7 @@ const containerData = useContainerData()
 const projectStore = useProjectStore()
 const projectNames = useProjectNames()
 const graphStore = useGraphStore()
-const { module } = useCurrentProject()
+const { id: assetId, module } = useCurrentProject()
 const widgetRegistry = useWidgetRegistry()
 const suggestionDb = useSuggestionDbStore()
 provideVisualizationStore(projectStore)
@@ -321,6 +321,15 @@ const actionHandlers = registerHandlers({
       window.open(result.value, '_blank')
     },
   },
+  'graph.deleteSelectedEdge': {
+    enabled: () =>
+      nodeSelection.selectedEdge != null &&
+      graphStore.db.connectionExists(nodeSelection.selectedEdge),
+    action: () => {
+      if (!nodeSelection.selectedEdge) return
+      graphStore.updatePortValue(nodeSelection.selectedEdge.target, undefined)
+    },
+  },
   ...selectionActionHandlers(
     () =>
       iter.filterDefined(
@@ -359,6 +368,7 @@ const { handleClick } = useDoubleClick(
   (e: MouseEvent) => {
     if (e.target !== e.currentTarget) return false
     clearFocus()
+    nodeSelection.selectedEdge = undefined
   },
   (e: MouseEvent) => {
     if (e.target !== e.currentTarget) return false
@@ -394,9 +404,8 @@ const displayedDocs = computed(() =>
 )
 
 watchEffect(() => {
-  const projectId = projectStore.id
   rightPanel.setContext(containerData.tab, {
-    item: projectId,
+    item: assetId.value,
     help: { item: displayedDocs.value, aiMode: aiMode.value },
   })
 })
@@ -523,7 +532,7 @@ function createNodesFromSource(sourceNode: NodeId, options: NodeCreationOptions[
   }
 }
 
-function handleNodeOutputPortDoubleClick(id: Ast.AstId) {
+function createNodeFromPort(id: Ast.AstId) {
   const srcNode = graphStore.db.getPatternExpressionNodeId(id)
   if (srcNode == null) {
     console.error('Impossible happened: Double click on port not belonging to any node: ', id)
@@ -667,7 +676,6 @@ const contextMenuActions: DisplayableActionName[] = [
         <GraphMissingView v-if="graphMissing" />
         <template v-else>
           <GraphNodes
-            @nodeOutputPortDoubleClick="handleNodeOutputPortDoubleClick"
             @enterNode="(id) => stackNavigator.enterNode(id)"
             @createNodes="createNodesFromSource"
             @toggleDocPanel="toggleRightDockHelpPanel"
@@ -676,8 +684,7 @@ const contextMenuActions: DisplayableActionName[] = [
           <GraphEdges
             :navigator="graphNavigator"
             @createNodeFromEdge="handleEdgeDrop"
-            @createNodeFromPort="createNodesFromSource"
-            @outputPortDoubleClick="handleNodeOutputPortDoubleClick"
+            @createNodeFromPort="createNodeFromPort"
           />
           <ComponentBrowser
             v-if="componentBrowserOpened"

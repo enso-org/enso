@@ -169,7 +169,7 @@ export function useBackend(which: 'remote' | 'project') {
     Parameters<Backend[Method]>,
     unknown
   > {
-    return useMutation(backendMutationOptions(method, backend, options))
+    return useMutation(backendMutationOptions<Method, Backend | null>(method, backend, options))
   }
 
   return { query, fetch, prefetch, ensureQueryData, mutation }

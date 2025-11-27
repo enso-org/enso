@@ -33,7 +33,6 @@ pub mod env {
         ENSO_BUILD_GUI_WASM_ARTIFACTS, Vec<PathBuf>;
         ENSO_BUILD_GUI_ASSETS, PathBuf;
         ENSO_BUILD_IDE_BUNDLED_ENGINE_VERSION, Version;
-        ENSO_BUILD_PROJECT_MANAGER_IN_BUNDLE_PATH, PathBuf;
     }
 
     // === Electron Builder ===
@@ -192,7 +191,6 @@ impl ProjectManagerInfo {
 impl FallibleManipulator for ProjectManagerInfo {
     fn try_applying<C: IsCommandWrapper + ?Sized>(&self, command: &mut C) -> Result {
         command.set_env(env::ENSO_BUILD_PROJECT_MANAGER, &self.bundle_location)?;
-        command.set_env(env::ENSO_BUILD_PROJECT_MANAGER_IN_BUNDLE_PATH, &self.pm_executable)?;
         command.set_env(env::ENSO_BUILD_IDE_BUNDLED_ENGINE_VERSION, &self.latest_bundled_engine)?;
         Ok(())
     }

@@ -9,6 +9,7 @@ import org.enso.database.dryrun.OperationSynchronizer;
 
 public final class JDBCDriverTypes {
   private final String databaseName;
+  private final String initScript;
 
   /**
    * A helper method that creates a JDBCDriverTypes record.
@@ -17,11 +18,23 @@ public final class JDBCDriverTypes {
    * @return a new JDBCDriverTypes record
    */
   public static JDBCDriverTypes create(String databaseName) {
-    return new JDBCDriverTypes(databaseName);
+    return JDBCDriverTypes.createWithInitScript(databaseName, "");
   }
 
-  private JDBCDriverTypes(String databaseName) {
+  /**
+   * A helper method that creates a JDBCDriverTypes record.
+   *
+   * @param databaseName the name of the Database type for the record
+   * @param initScript an initialization script to run when creating a database connection
+   * @return a new JDBCDriverTypes record
+   */
+  public static JDBCDriverTypes createWithInitScript(String databaseName, String initScript) {
+    return new JDBCDriverTypes(databaseName, initScript);
+  }
+
+  private JDBCDriverTypes(String databaseName, String initScript) {
     this.databaseName = databaseName;
+    this.initScript = initScript;
   }
 
   public String databaseName() {
@@ -47,6 +60,6 @@ public final class JDBCDriverTypes {
   public Connection getConnectionWithCatalogSchema(
       String url, List<HideableValue.KeyValuePair> properties, String catalog, String schema)
       throws SQLException {
-    return JDBCProxy.getConnectionWithCatalogSchema(url, properties, catalog, schema);
+    return JDBCProxy.getConnectionWithCatalogSchema(url, properties, catalog, schema, initScript);
   }
 }

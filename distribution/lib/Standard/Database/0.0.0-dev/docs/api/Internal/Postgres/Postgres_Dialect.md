@@ -1,7 +1,6 @@
 ## Enso Signatures 1.0
 ## module Standard.Database.Internal.Postgres.Postgres_Dialect
 - type Postgres_Dialect
-    - Value dialect_operations:Standard.Base.Any.Any
     - adapt_unified_column self column:Standard.Base.Any.Any approximate_result_type:Standard.Base.Any.Any infer_result_type_from_database_callback:Standard.Base.Any.Any mapping:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - cast_aggregate_columns self op_kind:Standard.Base.Data.Text.Text columns:(Standard.Base.Data.Vector.Vector Standard.Database.Internal.IR.Internal_Column.Internal_Column) -> Standard.Base.Any.Any
     - cast_op_type self op_kind:Standard.Base.Data.Text.Text args:(Standard.Base.Data.Vector.Vector Standard.Database.Internal.IR.Internal_Column.Internal_Column) expression:Standard.Database.Internal.IR.SQL_IR_Expression.SQL_IR_Expression -> Standard.Base.Any.Any
@@ -51,6 +50,7 @@
 - ends_with -> Standard.Base.Any.Any
 - first_last_aggregators -> Standard.Base.Any.Any
 - floating_point_div -> Standard.Base.Any.Any
+- get_dialect_operations pg_dialect:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - is_empty -> Standard.Base.Any.Any
 - is_finite -> Standard.Base.Any.Any
 - is_inf -> Standard.Base.Any.Any

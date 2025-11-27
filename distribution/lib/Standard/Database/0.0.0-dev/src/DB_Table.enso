@@ -8,8 +8,8 @@ import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Errors.Unimplemented.Unimplemented
-import Standard.Base.Metadata.Widget
 import Standard.Base.Metadata.File_Type
+import Standard.Base.Metadata.Widget
 from Standard.Base.Runtime import assert
 
 import Standard.Table.Internal.Add_Row_Number

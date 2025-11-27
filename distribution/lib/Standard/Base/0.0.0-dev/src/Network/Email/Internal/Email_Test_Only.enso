@@ -1,0 +1,11 @@
+private
+
+import project.Network.Email.Email
+import project.Network.Email.Email_Send_Response.Send_Response
+import project.Warning.Warning
+
+## A test email provider that does not send any emails. Used for testing workflows.
+type Email_Test_Only_Implementation
+    send self email:Email =
+        warning = "Test_Only Email Provider used: no email was actually sent."
+        Warning.attach warning (Send_Response.Test email)

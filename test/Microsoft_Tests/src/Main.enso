@@ -2,12 +2,18 @@ from Standard.Base import all
 
 from Standard.Test import Test
 
-import project.SQLServer_Spec
 import project.Azure_Storage_Spec
+import project.OneDrive_Spec
+import project.SQLServer_Spec
+
+import enso_dev.Cloud_Tests.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setup
 
 main filter=Nothing =
+    setup = Cloud_Tests_Setup.prepare
+
     suite = Test.build suite_builder->
         SQLServer_Spec.add_specs suite_builder
         Azure_Storage_Spec.add_specs suite_builder
+        OneDrive_Spec.add_specs suite_builder setup
 
     suite.run_with_filter filter
