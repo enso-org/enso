@@ -177,7 +177,7 @@ export async function getUpToDateAccessToken(): Promise<string> {
   // distribution/lib/Standard/Base/0.0.0-dev/src/Enso_Cloud/Internal/Authentication.enso
   const accessToken = readAccessToken()
   if (!accessToken) {
-    throw new Error('No access token found for refreshing.')
+    throw new Error('You are not logged in. Please open in windowed mode and login.')
   }
   if (Number(Date.now()) < Number(new Date(accessToken.expireAt)) - REFRESH_THRESHOLD_MS) {
     return accessToken.accessToken
