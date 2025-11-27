@@ -11,19 +11,43 @@ public final class LongStorage extends AbstractLongStorage implements ColumnStor
   // TODO [RW] at some point we will want to add separate storage classes for byte, short and int,
   // for more compact storage and more efficient handling of smaller integers; for now we will be
   // handling this just by checking the bounds
+  private final long rawAddress;
   private final LongBuffer data;
-  final BitSet isNothing;
+  private final BitSet isNothing;
+
+  /** original proxy storage to keep from being garbage collected */
+  private final ColumnStorage<?> proxy;
 
   /**
+   * @param rawAddress raw address of the storage
    * @param data the underlying data
    * @param isNothing a bit set denoting at index {@code i} whether or not the value at index {@code
    *     i} is missing.
    * @param type the type specifying the bit-width of integers that are allowed in this storage
+   * @param otherStorage reference to proxy storage to prevent it from being GCed while this storage
+   *     is used
    */
-  public LongStorage(LongBuffer data, BitSet isNothing, IntegerType type) {
+  public LongStorage(
+      long rawAddress,
+      LongBuffer data,
+      BitSet isNothing,
+      IntegerType type,
+      ColumnStorage<?> otherStorage) {
     super(data.limit(), type);
+    this.rawAddress = rawAddress;
     this.data = data;
     this.isNothing = isNothing;
+    this.proxy = otherStorage;
+  }
+
+  @Override
+  public long rawAddress() {
+    return rawAddress;
+  }
+
+  @Override
+  public long rawCapacity() {
+    return data.capacity();
   }
 
   @Override
@@ -48,7 +72,7 @@ public final class LongStorage extends AbstractLongStorage implements ColumnStor
   @Override
   public LongStorage widen(IntegerType widerType) {
     assert widerType.fits(getType());
-    return new LongStorage(data, getIsNothingMap(), widerType);
+    return new LongStorage(rawAddress, data, getIsNothingMap(), widerType, proxy);
   }
 
   /** Allow access to the underlying data array for copying. */

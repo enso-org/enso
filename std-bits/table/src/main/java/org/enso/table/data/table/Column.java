@@ -28,7 +28,7 @@ public final class Column {
   public Column(String name, ColumnStorage<?> storage) {
     ensureNameIsValid(name);
     this.name = name;
-    this.storage = storage;
+    this.storage = Builder.makeLocal(storage);
   }
 
   public static boolean isColumnNameValid(String name) {

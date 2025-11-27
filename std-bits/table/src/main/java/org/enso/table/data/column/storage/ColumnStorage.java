@@ -12,6 +12,24 @@ public interface ColumnStorage<T> extends Iterable<T> {
   /* Gets the size of the storage. */
   long getSize();
 
+  /**
+   * Address of the storage off-heap data.
+   *
+   * @return {@code 0} if there are no data to share, otherwise the address of the data in a format
+   *     appropraite for this storage {@link #getType()}.
+   */
+  default long rawAddress() {
+    return 0;
+  }
+
+  /** The capacity for which the storage at {@link #rawAddress() has originally been allocated.
+   *
+   * @return amount of elements allocated in the off-heap memory
+   */
+  default long rawCapacity() {
+    return getSize();
+  }
+
   /* Gets the value type of the storage. */
   StorageType<T> getType();
 

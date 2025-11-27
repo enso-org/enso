@@ -1,5 +1,6 @@
 package org.enso.table.data.column.builder;
 
+import java.lang.foreign.MemorySegment;
 import java.nio.ByteBuffer;
 import java.nio.LongBuffer;
 import java.util.BitSet;
@@ -21,15 +22,17 @@ import org.enso.table.util.BitSets;
 /** A builder for integer columns. */
 class LongBuilder extends NumericBuilder implements BuilderForLong, BuilderWithRetyping {
   protected final ProblemAggregator problemAggregator;
+  private ByteBuffer whole;
   private LongBuffer data;
 
   protected LongBuilder(int initialSize, ProblemAggregator problemAggregator) {
-    this(allocBuffer(initialSize), problemAggregator);
+    this(allocBuffer(initialSize, 0), problemAggregator);
   }
 
   private LongBuilder(Object[] bsAndLb, ProblemAggregator problemAggregator) {
-    super((BitSet) bsAndLb[0]);
-    this.data = (LongBuffer) bsAndLb[1];
+    super((BitSet) bsAndLb[1]);
+    this.whole = (ByteBuffer) bsAndLb[0];
+    this.data = (LongBuffer) bsAndLb[2];
     this.problemAggregator = problemAggregator;
   }
 
@@ -41,20 +44,35 @@ class LongBuilder extends NumericBuilder implements BuilderForLong, BuilderWithR
     }
   }
 
+  static LongBuilder fromAddress(long address, long capacity, IntegerType type) {
+    assert address != 0;
+    var tripple = allocBuffer(capacity, address);
+    var builder = new LongBuilder(tripple, null);
+    return builder;
+  }
+
   /**
    * Allocates continuous direct memory buffer. First of all there is a validity bit map (padded to
    * 8 bytes) followed by the actual data.
    *
    * @param initialSize the size of the buffer
-   * @return pair of {@link BitSet} and {@link LongBuffer}
+   * @return tripple of whole {@link ByteBuffer}, {@link BitSet} and {@link LongBuffer}
    */
-  private static Object[] allocBuffer(int initialSize) {
-    var rawValiditySize = initialSize / 8 + 1;
+  private static Object[] allocBuffer(long initialSize, long address) {
+    var rawValiditySize = Math.toIntExact(initialSize / 8 + 1);
     var roundedValiditySize = (rawValiditySize / 8 + 1) * 8;
-    var buf = ByteBuffer.allocateDirect(roundedValiditySize + initialSize * Long.BYTES);
+    var wholeBytesSize = Math.toIntExact(roundedValiditySize + initialSize * Long.BYTES);
+    ByteBuffer buf;
+    if (address == 0L) {
+      buf = ByteBuffer.allocateDirect(wholeBytesSize);
+    } else {
+      var seg = MemorySegment.ofAddress(address).reinterpret(wholeBytesSize);
+      buf = seg.asByteBuffer();
+    }
+    assert buf.capacity() == wholeBytesSize;
     var lb = buf.position(rawValiditySize).alignedSlice(Long.BYTES).asLongBuffer();
     var bs = BitSet.valueOf(buf.position(0).limit(rawValiditySize));
-    return new Object[] {bs, lb};
+    return new Object[] {buf, bs, lb};
   }
 
   @Override
@@ -64,12 +82,13 @@ class LongBuilder extends NumericBuilder implements BuilderForLong, BuilderWithR
 
   @Override
   protected void resize(int desiredCapacity) {
-    var bsAndLb = allocBuffer(desiredCapacity);
-    var newBs = (BitSet) bsAndLb[0];
-    var newData = (LongBuffer) bsAndLb[1];
+    var bsAndLb = allocBuffer(desiredCapacity, 0);
+    var newBs = (BitSet) bsAndLb[1];
+    var newData = (LongBuffer) bsAndLb[2];
     int toCopy = Math.min(currentSize, data.capacity());
     newData.put(0, data, 0, toCopy);
     data = newData;
+    whole = (ByteBuffer) bsAndLb[0];
 
     newBs.or(this.isNothing);
     isNothing = newBs;
@@ -215,7 +234,21 @@ class LongBuilder extends NumericBuilder implements BuilderForLong, BuilderWithR
 
   @Override
   public ColumnStorage<Long> seal() {
+    return seal(null);
+  }
+
+  /**
+   * Seals this buffer as copy of provided storage.
+   *
+   * @param otherStorage storage to copy size from if non-{@code null}
+   * @return locally copied storage
+   */
+  final LongStorage seal(ColumnStorage<?> otherStorage) {
+    if (otherStorage != null) {
+      currentSize = Math.toIntExact(otherStorage.getSize());
+    }
     var buf = data.asReadOnlyBuffer().position(0).limit(currentSize);
-    return new LongStorage(buf, isNothing, getType());
+    var address = MemorySegment.ofBuffer(whole).address();
+    return new LongStorage(address, buf, isNothing, getType(), otherStorage);
   }
 }
