@@ -403,6 +403,7 @@ lazy val enso = (project in file("."))
     `std-microsoft`,
     `std-snowflake`,
     `std-table`,
+    `std-tests`,
     `std-tableau`,
     `std-saas`,
     `std-duckdb`,
@@ -5557,6 +5558,26 @@ lazy val `std-table` = project
   )
   .dependsOn(`poi-wrapper`)
   .dependsOn(`std-base` % "provided")
+
+lazy val `std-tests` = project
+  .in(file("std-bits") / "tests")
+  .configs(Test)
+  .settings(
+    frgaalJavaCompilerSetting,
+    commands += WithDebugCommand.withDebug,
+    Test / fork := true,
+    autoScalaLibrary := false,
+    Compile / compile / compileInputs := (Compile / compile / compileInputs)
+      .dependsOn(SPIHelpers.ensureSPIConsistency)
+      .value,
+    libraryDependencies ++= Seq(
+      "junit"          % "junit"           % junitVersion   % Test,
+      "com.github.sbt" % "junit-interface" % junitIfVersion % Test
+    )
+  )
+  .dependsOn(`std-base`)
+  .dependsOn(`std-table`)
+  .dependsOn(`test-utils`)
 
 lazy val `opencv-wrapper` = project
   .in(file("lib/java/opencv-wrapper"))
