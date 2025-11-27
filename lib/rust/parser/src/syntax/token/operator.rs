@@ -1,7 +1,6 @@
 use crate::syntax::token::*;
 
 use crate::lexer::analyze_non_syntactic_operator;
-use crate::syntax::expression::SectionTermination;
 
 /// Properties of an operator that are identified when lexing.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Default)]
@@ -12,7 +11,6 @@ pub struct OperatorProperties {
     is_value_operation: bool,
     is_right_associative: bool,
     // Special properties
-    lhs_section_termination: Option<SectionTermination>,
     is_modifier: bool,
     is_compile_time: bool,
     rhs_is_non_expression: bool,
@@ -119,11 +117,6 @@ impl OperatorProperties {
         !self.is_compile_time
     }
 
-    /// Return the LHS operator-section/template-function behavior of this operator.
-    pub fn lhs_section_termination(&self) -> Option<SectionTermination> {
-        self.lhs_section_termination
-    }
-
     /// Return whether this operator is a modified-assignment operator.
     pub fn is_modifier(&self) -> bool {
         self.is_modifier
@@ -185,7 +178,6 @@ impl HasOperatorProperties for variant::AssignmentOperator {
     fn operator_properties(&self) -> OperatorProperties {
         OperatorProperties {
             binary_infix_precedence: Some(Precedence::Assignment),
-            lhs_section_termination: Some(SectionTermination::Unwrap),
             is_right_associative: true,
             is_compile_time: true,
             ..default()
@@ -208,7 +200,6 @@ impl HasOperatorProperties for variant::ArrowOperator {
     fn operator_properties(&self) -> OperatorProperties {
         OperatorProperties {
             binary_infix_precedence: Some(Precedence::Arrow),
-            lhs_section_termination: Some(SectionTermination::Unwrap),
             is_right_associative: true,
             is_compile_time: true,
             ..default()

@@ -54,7 +54,9 @@ struct Credentials {
 
 async fn build_credentials(config: AuthConfig) -> Result<Credentials> {
     if !is_aws_cli_installed().await {
-        return Err(anyhow!("AWS CLI is not installed. If you want the build script to generate the Enso Cloud credentials file, you must install the AWS CLI."));
+        return Err(anyhow!(
+            "AWS CLI is not installed. If you want the build script to generate the Enso Cloud credentials file, you must install the AWS CLI."
+        ));
     }
 
     // We save the timestamp before the authentication, as it's better to say the token expires a

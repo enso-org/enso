@@ -7,7 +7,7 @@ rust_shared_library(
     srcs = glob(["src/**/*.rs"]),
     aliases = aliases(),
     crate_name = "enso_parser",
-    edition = "2021",
+    edition = "2024",
     proc_macro_deps = all_crate_deps(proc_macro = True),
     visibility = ["//visibility:public"],
     deps = all_crate_deps(normal = True) + [

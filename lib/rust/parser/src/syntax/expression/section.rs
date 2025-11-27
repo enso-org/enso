@@ -3,59 +3,64 @@ use enso_prelude::*;
 use crate::syntax::Tree;
 use crate::syntax::tree;
 
-// ====================
-// === MaybeSection ===
-// ====================
+// ===============
+// === Operand ===
+// ===============
 
 /// Wraps a value, tracking the number of wildcards operands within it.
 #[derive(Default, Debug, PartialEq, Eq)]
-pub struct MaybeSection<T> {
-    pub value: T,
-    /// Number of wildcards in the subtree, potentially forming a *template function*.
-    pub wildcards: u32,
+pub struct Operand<'s> {
+    pub value: Tree<'s>,
+    pub wildcards: bool,
+    pub eval: bool,
 }
 
-/// Transpose.
-impl<T> From<Option<MaybeSection<T>>> for MaybeSection<Option<T>> {
-    fn from(operand: Option<MaybeSection<T>>) -> Self {
-        match operand {
-            Some(MaybeSection { value, wildcards }) => Self { value: Some(value), wildcards },
-            None => default(),
-        }
-    }
-}
+// operand(Ident upper): deferred eval
+// operand(Ident lower): immediate eval
+// PropertyAccess upper: drop deferred eval on LHS, deferred eval
+// PropertyAccess lower: drop deferred eval on LHS, immediate eval
+// * x: drop deferred eval on LHS, deferred eval
 
-/// Unit. Creates a MaybeSection from a node.
-impl<'s> From<Tree<'s>> for MaybeSection<Tree<'s>> {
+/// Unit. Creates a Operand from a node.
+impl<'s> From<Tree<'s>> for Operand<'s> {
     fn from(mut value: Tree<'s>) -> Self {
-        let wildcards = if let Tree { variant: tree::Variant::Wildcard(wildcard), .. } = &mut value
-        {
-            debug_assert_eq!(wildcard.de_bruijn_index, None);
-            wildcard.de_bruijn_index = Some(0);
-            1
-        } else {
-            0
+        enum Evaluation {
+            Deferred,
+            Immediate,
+        }
+        let evaluation = match &value.variant {
+            tree::Variant::Ident(ident) if ident.token.is_type => Some(Evaluation::Deferred),
+            tree::Variant::Ident(_) => Some(Evaluation::Immediate),
+            _ => None,
         };
-        Self { value, wildcards }
+        if let Some(Evaluation::Immediate) = evaluation {
+            value = Tree::eval(value);
+        }
+        let eval = matches!(evaluation, Some(Evaluation::Deferred));
+        let wildcards = matches!(value.variant, tree::Variant::Wildcard(_));
+        Self { value, wildcards, eval }
     }
 }
 
 /// Counit. Bakes any information about elided operands into the tree.
-impl<'s> From<MaybeSection<Tree<'s>>> for Tree<'s> {
-    fn from(operand: MaybeSection<Tree<'s>>) -> Self {
-        let MaybeSection { mut value, wildcards } = operand;
-        if wildcards != 0 {
-            value = Tree::template_function(wildcards, value);
+impl<'s> From<Operand<'s>> for Tree<'s> {
+    fn from(operand: Operand<'s>) -> Self {
+        let Operand { mut value, wildcards, eval } = operand;
+        if eval && !matches!(value.variant, tree::Variant::Invalid(_)) {
+            value = Tree::eval(value);
+        }
+        if wildcards {
+            value = Tree::template_function(value);
         }
         value
     }
 }
 
-impl<T> MaybeSection<T> {
+impl<'s> Operand<'s> {
     /// Operate on the contained value without altering the elided-operand information.
-    pub fn map<U>(self, f: impl FnOnce(T) -> U) -> MaybeSection<U> {
-        let Self { value, wildcards } = self;
+    pub fn map<'s1>(self, f: impl FnOnce(Tree<'s>) -> Tree<'s1>) -> Operand<'s1> {
+        let Self { value, wildcards, eval } = self;
         let value = f(value);
-        MaybeSection { value, wildcards }
+        Operand { value, wildcards, eval }
     }
 }

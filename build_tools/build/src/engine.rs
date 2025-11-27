@@ -222,10 +222,10 @@ where
 
     pub fn allow(&mut self, item: T) {
         match self {
-            Self::Whitelist(ref mut set) => {
+            Self::Whitelist(set) => {
                 set.insert(item);
             }
-            Self::Blacklist(ref mut set) => {
+            Self::Blacklist(set) => {
                 set.remove(&item);
             }
         }
@@ -233,10 +233,10 @@ where
 
     pub fn deny(&mut self, item: T) {
         match self {
-            Self::Whitelist(ref mut set) => {
+            Self::Whitelist(set) => {
                 set.remove(&item);
             }
-            Self::Blacklist(ref mut set) => {
+            Self::Blacklist(set) => {
                 set.insert(item);
             }
         }

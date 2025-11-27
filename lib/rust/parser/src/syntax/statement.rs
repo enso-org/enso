@@ -3,9 +3,7 @@
 mod function_def;
 mod type_def;
 
-use crate::empty_tree;
 use crate::expression_to_pattern;
-use crate::is_qualified_name;
 use crate::prelude::*;
 use crate::syntax::Item;
 use crate::syntax::Token;
@@ -28,6 +26,7 @@ use crate::syntax::tree::SyntaxError;
 use crate::syntax::tree::TypeSignature;
 use crate::syntax::tree::TypeSignatureLine;
 use crate::syntax::tree::block;
+use crate::{empty_tree, to_qualified_name};
 
 pub use function_def::parse_args;
 
@@ -496,7 +495,8 @@ fn to_statement<'s>(
         | CaseOf(_)
         | Array(_)
         | Tuple(_)
-        | PropertyAccess(_) => Ok(Expression),
+        | PropertyAccess(_)
+        | Eval(_) => Ok(Expression),
         OprApp(app) if app.lhs.is_some() && app.rhs.is_some() => Ok(Expression),
         // Expression, but since it can only occur in tail position, it never needs an
         // `ExpressionStatement` node.
@@ -599,13 +599,16 @@ fn parse_type_annotation_statement<'s>(
         empty_tree(operator.code.position_after()).with_error(SyntaxError::ExpectedType)
     });
     debug_assert!(items.len() <= start);
-    if lhs.as_ref().is_some_and(is_qualified_name) {
-        StatementPrefix::TypeSignature(TypeSignature { name: lhs.unwrap(), operator, type_ }).into()
+    if let Some(lhs) = lhs {
+        match to_qualified_name(lhs) {
+            Ok(lhs) => {
+                StatementPrefix::TypeSignature(TypeSignature { name: lhs, operator, type_ }).into()
+            }
+            Err(lhs) => Tree::type_annotated(lhs, operator, type_).into(),
+        }
     } else {
-        let lhs = lhs.unwrap_or_else(|| {
-            empty_tree(operator.left_offset.code.position_before())
-                .with_error(SyntaxError::ExpectedExpression)
-        });
+        let lhs = empty_tree(operator.left_offset.code.position_before())
+            .with_error(SyntaxError::ExpectedExpression);
         Tree::type_annotated(lhs, operator, type_).into()
     }
 }
@@ -850,7 +853,7 @@ fn parse_pattern<'s>(
                 match token.variant {
                     token::Variant::Ident(variant) => Tree::ident(token.with_variant(variant)),
                     token::Variant::Wildcard(variant) => {
-                        Tree::wildcard(token.with_variant(variant), None)
+                        Tree::wildcard(token.with_variant(variant))
                     }
                     _ => tree::to_ast(token).with_error(SyntaxError::ArgDefExpectedPattern),
                 }

@@ -128,11 +128,7 @@ pub trait IsCommandWrapper {
         variable: T,
         value: Option<&V>,
     ) -> Result<&mut Self> {
-        if let Some(value) = value {
-            self.set_env(variable, value)
-        } else {
-            Ok(self)
-        }
+        if let Some(value) = value { self.set_env(variable, value) } else { Ok(self) }
     }
 
     ///////////
@@ -300,11 +296,7 @@ impl Debug for Command {
 }
 
 pub fn default_status_checker(status: ExitStatus) -> Result {
-    if status.success() {
-        Ok(())
-    } else {
-        bail!("process exited unsuccessfully: {status}")
-    }
+    if status.success() { Ok(()) } else { bail!("process exited unsuccessfully: {status}") }
 }
 
 impl Command {

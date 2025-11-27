@@ -21,6 +21,5 @@ mod whitespace;
 // ===============
 
 pub use parser::ExpressionParser;
-pub use types::SectionTermination;
 pub use types::Warnings;
 pub use whitespace::Spacing;

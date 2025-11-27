@@ -6,7 +6,7 @@ use crate::syntax::ItemConsumer;
 use crate::syntax::Tree;
 use crate::syntax::expression::ExpressionParser;
 use crate::syntax::expression::Spacing;
-use crate::syntax::expression::section::MaybeSection;
+use crate::syntax::expression::section::Operand;
 use crate::syntax::expression::types::Arity;
 use crate::syntax::expression::types::ModifiedPrecedence;
 use crate::syntax::expression::types::Operator;
@@ -53,14 +53,9 @@ impl<'s> From<ApplicableBlock<'s>> for Operator<'s> {
 
 impl<'s, Inner> FlattenBlockTrees<'s, Inner>
 where
-    Inner:
-        ItemConsumer<'s> + OperatorConsumer<'s> + Finish<Result = Option<MaybeSection<Tree<'s>>>>,
+    Inner: ItemConsumer<'s> + OperatorConsumer<'s> + Finish<Result = Option<Operand<'s>>>,
 {
-    pub fn run(
-        &mut self,
-        start: usize,
-        items: &mut Vec<Item<'s>>,
-    ) -> Option<MaybeSection<Tree<'s>>> {
+    pub fn run(&mut self, start: usize, items: &mut Vec<Item<'s>>) -> Option<Operand<'s>> {
         if let Some(Item::Block(_)) = items.last() {
             let Some(Item::Block(lines)) = items.pop() else { unreachable!() };
             let block_context = match items.last() {

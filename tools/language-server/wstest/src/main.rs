@@ -275,7 +275,7 @@ async fn main() -> Result<()> {
         let mut stream_mut = text_stream;
 
         loop {
-            let (message, stream) = stream_mut.into_future().await;
+            let (message, stream) = StreamExt::into_future(stream_mut).await;
 
             let message = if let Some(message) = message {
                 message?
@@ -306,7 +306,7 @@ async fn main() -> Result<()> {
     if let Some(mut stream_mut) = binary_stream {
         let binary_recv_loop = async {
             loop {
-                let (message, stream) = stream_mut.into_future().await;
+                let (message, stream) = StreamExt::into_future(stream_mut).await;
 
                 let message = if let Some(message) = message {
                     message?
