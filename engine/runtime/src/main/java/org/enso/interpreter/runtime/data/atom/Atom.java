@@ -19,7 +19,6 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
-
 import org.enso.interpreter.Constants;
 import org.enso.interpreter.node.callable.InteropApplicationNode;
 import org.enso.interpreter.runtime.EnsoContext;
@@ -310,7 +309,7 @@ public abstract class Atom extends EnsoObject {
   }
 
   @TruffleBoundary
-  private Function findMethod(String methodName) {
+  Function findMethod(String methodName) {
     var matchedMethod =
         getInstanceMethods().stream()
             .filter(
