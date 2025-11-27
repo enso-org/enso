@@ -403,6 +403,7 @@ lazy val enso = (project in file("."))
     `std-microsoft`,
     `std-snowflake`,
     `std-table`,
+    `std-tests`,
     `std-tableau`,
     `std-saas`,
     `std-duckdb`,
@@ -5047,10 +5048,12 @@ lazy val downloader = (project in file("lib/scala/downloader"))
     ),
     Compile / internalModuleDependencies := Seq(
       (`cli` / Compile / exportedModule).value,
+      (`engine-common` / Compile / exportedModule).value,
       (`scala-libs-wrapper` / Compile / exportedModule).value
     )
   )
   .dependsOn(cli)
+  .dependsOn(`engine-common`)
   .dependsOn(`http-test-helper` % "test->test")
   .dependsOn(testkit % Test)
 
@@ -5555,6 +5558,26 @@ lazy val `std-table` = project
   )
   .dependsOn(`poi-wrapper`)
   .dependsOn(`std-base` % "provided")
+
+lazy val `std-tests` = project
+  .in(file("std-bits") / "tests")
+  .configs(Test)
+  .settings(
+    frgaalJavaCompilerSetting,
+    commands += WithDebugCommand.withDebug,
+    Test / fork := true,
+    autoScalaLibrary := false,
+    Compile / compile / compileInputs := (Compile / compile / compileInputs)
+      .dependsOn(SPIHelpers.ensureSPIConsistency)
+      .value,
+    libraryDependencies ++= Seq(
+      "junit"          % "junit"           % junitVersion   % Test,
+      "com.github.sbt" % "junit-interface" % junitIfVersion % Test
+    )
+  )
+  .dependsOn(`std-base`)
+  .dependsOn(`std-table`)
+  .dependsOn(`test-utils`)
 
 lazy val `opencv-wrapper` = project
   .in(file("lib/java/opencv-wrapper"))
@@ -6353,6 +6376,9 @@ lazy val `std-saas` = project
       .value,
     Compile / packageBin / artifactPath :=
       `std-saas-polyglot-root` / "std-saas.jar",
+    libraryDependencies ++= Seq(
+      "org.apache.commons" % "commons-email" % commonsEmailVersion
+    ),
     Compile / packageBin := {
       val result            = (Compile / packageBin).value
       val cacheStoreFactory = streams.value.cacheStoreFactory

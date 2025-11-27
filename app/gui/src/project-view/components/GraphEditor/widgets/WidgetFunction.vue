@@ -237,12 +237,12 @@ function handleArgUpdate(update: WidgetUpdate): HandledUpdate {
           return Ok()
         }
       }
-      return Err('Unknown case for updating argument')
+      // Any other case is handled by the default handler.
+      return props.updateCallback({ ...update, edit })
     }
-    if (update.edit) applyInEdit(update.edit)
-    else module.value.edit(applyInEdit)
+    if (update.edit) return applyInEdit(update.edit)
+    else return module.value.edit(applyInEdit)
   }
-  // Any other case is handled by the default handler.
   return props.updateCallback(update)
 }
 </script>

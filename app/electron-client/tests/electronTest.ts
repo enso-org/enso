@@ -99,6 +99,11 @@ export async function loginAsTestUser(page: Page) {
   await page.getByRole('textbox', { name: 'password' }).fill('mellon')
   await page.getByRole('button', { name: TEXT.login, exact: true }).click()
 
+  await expect(
+    page
+      .getByRole('group', { name: TEXT.licenseAgreementCheckbox })
+      .getByText(TEXT.licenseAgreementCheckbox),
+  ).toBeVisible({ timeout: 60000 })
   await page
     .getByRole('group', { name: TEXT.licenseAgreementCheckbox })
     .getByText(TEXT.licenseAgreementCheckbox)
@@ -170,11 +175,11 @@ export async function getNewestProject(page: Page): Promise<Locator> {
  */
 export async function visualizeData(page: Page) {
   const showViz = page.getByLabel('Show visualization (Space)')
-  await showViz.click()
+  await showViz.click({ timeout: 5000 })
 }
 
 /**
- * Open new component browser refefencing the last created created component
+ * Open new component browser refefencing the last created component
  */
 export async function createNewComponent(page: Page) {
   const moreButton = page.getByTestId('more-button').getByRole('button', { name: 'More' }).last()
@@ -194,11 +199,17 @@ export async function openComponentBrowser(page: Page, parentComponent: string) 
 /**
  * Find textbox located in parent component and fill in text value
  */
-export async function fillWidgetText(page: Page, containerName: string, value: string) {
+export async function fillWidgetText(
+  page: Page,
+  containerName: string,
+  value: string,
+  index?: number,
+) {
   const cont = page.getByText(containerName)
 
   const box = cont.getByTestId('widget-text-content')
-  await box.fill(value)
+  if (index) return box.nth(index).fill(value)
+  else return box.fill(value)
 }
 
 /**
@@ -218,4 +229,14 @@ export async function waitForDownload(pathToFile: string): Promise<void> {
       await new Promise((r) => setTimeout(r, 5_000))
     }
   }
+}
+
+/** Open drop-down menu in WidgetSelection with given label. */
+export function openDropdownInWidget(page: Page, label: string) {
+  return page.locator('.WidgetSelection', { hasText: new RegExp(`^${label}$`) }).click()
+}
+
+/** Find and click + button in an empty Vector Widget inside provided locator. */
+export function addFirstElementToWidgetVector(locator: Locator) {
+  return locator.getByRole('list').filter({ hasText: /^$/ }).getByLabel('Add a new item').click()
 }

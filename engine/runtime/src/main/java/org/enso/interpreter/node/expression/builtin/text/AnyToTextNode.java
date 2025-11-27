@@ -8,6 +8,7 @@ import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.nodes.Node;
+import org.enso.interpreter.Constants;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.EnsoMultiValue;
@@ -16,7 +17,10 @@ import org.enso.interpreter.runtime.data.atom.AtomConstructor;
 import org.enso.interpreter.runtime.data.atom.StructsLibrary;
 import org.enso.interpreter.runtime.data.text.Text;
 
-@BuiltinMethod(type = "Any", name = "to_text", description = "Generic text conversion.")
+@BuiltinMethod(
+    type = "Any",
+    name = Constants.Names.TO_TEXT,
+    description = "Generic text conversion.")
 @GenerateUncached
 public abstract class AnyToTextNode extends Node {
 

@@ -21,8 +21,11 @@
 - [Added immediate rename of user created components][14209]
 - [Multiple opened projects' tabs are now allowed][14215]
 - [Required arguments now have an arrow displayed on top of the port][14270]
+- [Connections between components may be selected with click][14311] and deleted
+  with <kbd>Delete</kbd> key.
 - [Improved visuals of high components][14267]. Their contents is aligned to
   top.
+- [Warnings and Errors no longer become transparent][14388]
 
 [13685]: https://github.com/enso-org/enso/pull/13685
 [13658]: https://github.com/enso-org/enso/pull/13658
@@ -41,7 +44,9 @@
 [14209]: https://github.com/enso-org/enso/pull/14209
 [14215]: https://github.com/enso-org/enso/pull/14215
 [14270]: https://github.com/enso-org/enso/pull/14270
+[14311]: https://github.com/enso-org/enso/pull/14311
 [14267]: https://github.com/enso-org/enso/pull/14267
+[14388]: https://github.com/enso-org/enso/pull/14388
 
 #### Enso Standard Library
 
@@ -64,8 +69,10 @@
 - [Progress of `Runtime.sleep` visualized.][14275]
 - [Add Email.send][14258]
 - [Full DuckDB Dialect.][14298]
-- [Initial Spatial support within DuckDB.][14331]
+- [Initial Spatial support within DuckDB][14331]
+- [Add email SMTP support][14350]
 - [Read files into DuckDB both spatial and not.][14367]
+- [Implement Text_Column to_case for DB backends][14386]
 
 [13769]: https://github.com/enso-org/enso/pull/13769
 [14026]: https://github.com/enso-org/enso/pull/14026
@@ -86,7 +93,9 @@
 [14258]: https://github.com/enso-org/enso/pull/14258
 [14298]: https://github.com/enso-org/enso/pull/14298
 [14331]: https://github.com/enso-org/enso/pull/14331
+[14350]: https://github.com/enso-org/enso/pull/14350
 [14367]: https://github.com/enso-org/enso/pull/14367
+[14386]: https://github.com/enso-org/enso/pull/14386
 
 #### Enso Language & Runtime
 

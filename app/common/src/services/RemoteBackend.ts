@@ -557,7 +557,8 @@ export class RemoteBackend extends backend.Backend {
       })
     }
 
-    return await response.json()
+    const { asset } = await response.json()
+    return { asset: this.normalizeAsset(asset, parentDirectoryId) }
   }
 
   /**
@@ -1574,14 +1575,19 @@ export class RemoteBackend extends backend.Backend {
     assets: readonly backend.AnyAsset[],
     parentId: backend.DirectoryId | null,
   ): readonly backend.AnyAsset[] {
-    return assets.map((asset) =>
-      objects.merge(asset, {
-        type: backend.getAssetTypeFromId(asset.id),
-        // `Users` and `Teams` folders are virtual, so their children incorrectly have
-        // the organization root id as their parent id.
-        parentId: parentId ?? asset.parentId,
-      }),
-    )
+    return assets.map((asset) => this.normalizeAsset(asset, parentId))
+  }
+
+  private normalizeAsset<T extends backend.AssetType>(
+    asset: backend.AnyAsset<T>,
+    parentId: backend.DirectoryId | null,
+  ): backend.AnyAsset<T> {
+    return objects.merge(asset, {
+      type: backend.getAssetTypeFromId(asset.id),
+      // `Users` and `Teams` folders are virtual, so their children incorrectly have
+      // the organization root id as their parent id.
+      parentId: parentId ?? asset.parentId,
+    } as Partial<backend.AnyAsset<T>>)
   }
 }
 
