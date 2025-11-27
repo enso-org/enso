@@ -1,5 +1,6 @@
 /** @file Paths used by the `RemoteBackend`. */
 import {
+  ApiKeyId,
   DirectoryId,
   HttpsUrl,
   type AssetId,
@@ -90,10 +91,18 @@ export const GET_LOG_EVENTS_PATH = 'log_events'
 export const POST_LOG_EVENT_PATH = 'logs'
 /** Relative HTTP path to the "get payments config" endpoint of the Cloud backend API. */
 export const PAYMENTS_CONFIG_PATH = 'payments/config'
-/** Resolve an enso URL path. */
+/** Relative HTTP path to the "resolve an enso URL path" endpoint of the Cloud backend API. */
 export const RESOLVE_ENSO_PATH = 'path/resolve'
 /** Relative HTTP path to the "get customer portal session" endpoint of the Cloud backend API. */
 export const CUSTOMER_PORTAL_SESSION_CREATE_PATH = 'payments/customer-portal-sessions/create'
+/** Relative HTTP path to the "API keys" endpoint of the Cloud backend API. */
+export const LIST_API_KEYS_PATH = 'credentials'
+/** Relative HTTP path to the "create API key" endpoint of the Cloud backend API. */
+export const CREATE_API_KEY_PATH = 'credentials'
+/** Relative HTTP path to the "delete API key" endpoint of the Cloud backend API. */
+export function deleteApiKeyPath(apiKeyId: ApiKeyId) {
+  return `credentials/${apiKeyId}`
+}
 
 /** Relative HTTP path to the "cancel subscription" endpoint of the Cloud backend API. */
 export function cancelSubscriptionPath(subscriptionId: SubscriptionId) {

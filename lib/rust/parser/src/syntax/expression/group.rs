@@ -1,11 +1,6 @@
 use crate::prelude::*;
 use crate::syntax::expression::types::*;
 
-use crate::syntax::item;
-use crate::syntax::maybe_with_error;
-use crate::syntax::token::CloseSymbol;
-use crate::syntax::token::OpenSymbol;
-use crate::syntax::tree::SyntaxError;
 use crate::syntax::Finish;
 use crate::syntax::Flush;
 use crate::syntax::GroupHierarchyConsumer;
@@ -15,6 +10,11 @@ use crate::syntax::ScopeHierarchyConsumer;
 use crate::syntax::TokenConsumer;
 use crate::syntax::Tree;
 use crate::syntax::TreeConsumer;
+use crate::syntax::item;
+use crate::syntax::maybe_with_error;
+use crate::syntax::token::CloseSymbol;
+use crate::syntax::token::OpenSymbol;
+use crate::syntax::tree::SyntaxError;
 
 // =====================
 // === FlattenGroups ===

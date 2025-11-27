@@ -7,6 +7,7 @@ import * as newtype from '../utilities/data/newtype.js'
 import * as permissions from '../utilities/permissions.js'
 import { getFileDetailsPath } from './Backend/remoteBackendPaths.js'
 import {
+  ApiKeyId,
   DatalinkId,
   DirectoryId,
   EnsoPath,
@@ -591,6 +592,11 @@ export interface RemoteBackendError {
   readonly param: string
 }
 
+/** HTTP response body for the "list api keys" endpoint. */
+export interface ListApiKeysResponse {
+  readonly credentials: readonly ApiKey[]
+}
+
 /** HTTP response body for the "list users" endpoint. */
 export interface ListUsersResponseBody {
   readonly users: readonly User[]
@@ -793,6 +799,36 @@ export interface LChColor {
   readonly hue: number
   readonly alpha?: number | undefined
 }
+
+/** Type used when creating api key credential. */
+export interface CreateApiKeyRequestBody {
+  readonly name: string
+  readonly description: string
+  readonly expiresIn: ApiKeyExpiresIn
+}
+
+/** Api key credential. */
+export interface ApiKey {
+  readonly id: ApiKeyId
+  // Field populated only once after creation.
+  readonly secretId: string | null
+  readonly name: string
+  readonly description: string
+  readonly createdAt: dateTime.Rfc3339DateTime
+  readonly lastUsedAt: dateTime.Rfc3339DateTime | null
+  readonly expiresAt: dateTime.Rfc3339DateTime | null
+  readonly expiresIn: ApiKeyExpiresIn
+}
+
+/** Possible types of lifetime span for api key credentials. */
+export enum ApiKeyExpiresIn {
+  Week = 'Week',
+  Month = 'Month',
+  Year = 'Year',
+  Indefinetly = 'Indefinetly',
+}
+
+export const API_KEY_EXPIRES_IN_VALUES: readonly ApiKeyExpiresIn[] = Object.values(ApiKeyExpiresIn)
 
 /** A pre-selected list of colors to be used in color pickers. */
 export const COLORS = [
@@ -1167,9 +1203,7 @@ export interface UpdateProjectRequestBody {
   readonly projectName: string | null
 }
 
-/**
- * Extra parameters required when opening the project in hybrid mode.
- */
+/** Extra parameters required when opening the project in hybrid mode. */
 export interface OpenHybridProjectParameters {
   /** Cloud project directory path. */
   readonly cloudProjectDirectoryPath: EnsoPath
@@ -1979,6 +2013,13 @@ export abstract class Backend {
   abstract createCustomerPortalSession(returnUrl: string): Promise<string | null>
   /** Fetches pricing page configuration. */
   abstract getPaymentsConfig(): Promise<PaymentsConfig>
+
+  /** List all API keys for the current user. */
+  abstract listApiKeys(): Promise<readonly ApiKey[]>
+  /** Create a new API key for the current user. */
+  abstract createApiKey(body: CreateApiKeyRequestBody): Promise<ApiKey>
+  /** Delete a API key for the current user. */
+  abstract deleteApiKey(apiKeyId: ApiKeyId): Promise<void>
 
   /** Throw a {@link backend.NotAuthorizedError} if the response is a 401 Not Authorized status code. */
   private async checkForAuthenticationError<T>(
