@@ -1,6 +1,5 @@
 private
 
-import Standard.Base.Network.Email.Email
 import Standard.Base.Network.Email.Email_Provider.Email_Provider_SPI
 import project.Email_Provider_SMTP.Email_Provider_SMTP
 
