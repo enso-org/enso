@@ -42,6 +42,7 @@ write_source_files(
 buildifier(
     name = "lint_bazel_files",
     exclude_patterns = [
+        "./app/common/.env.bazel",
         "./app/gui/.env.bazel",
     ],
     lint_mode = "warn",
@@ -51,6 +52,7 @@ buildifier(
 buildifier(
     name = "format_bazel_files",
     exclude_patterns = [
+        "./app/common/.env.bazel",
         "./app/gui/.env.bazel",
     ],
     lint_mode = "fix",
