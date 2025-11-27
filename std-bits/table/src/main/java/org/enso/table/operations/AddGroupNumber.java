@@ -230,11 +230,7 @@ public class AddGroupNumber {
 
   private static final int STANDARD_DEVIATION_GROUP_COUNT = 5;
   private static final String[] STANDARD_DEVIATION_GROUP_LABELS = {
-    "Very Low",
-    "Low",
-    "Average",
-    "High",
-    "Very High"
+    "Very Low", "Low", "Average", "High", "Very High"
   };
 
   private record StdDevResult(double mean, double stddev) {}
