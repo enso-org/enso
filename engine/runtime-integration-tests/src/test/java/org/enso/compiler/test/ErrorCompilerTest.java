@@ -783,4 +783,3 @@ public class ErrorCompilerTest extends CompilerTests {
     return errors;
   }
 }
-// dirty
