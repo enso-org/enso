@@ -174,7 +174,6 @@ function ensureSelected() {
   }
 }
 
-const outputVisible = computed(() => graph.nodeOutputVisible.get(nodeId.value))
 const outputHovered = computed(() => graph.nodeOutputHovered.get(nodeId.value))
 
 const scale = computed(() => navigator?.scale ?? 1)
