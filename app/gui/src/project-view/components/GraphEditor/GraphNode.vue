@@ -107,7 +107,6 @@ providePopoverRoot(rootNode)
 const { visibleMessage, hiddenMessage } = useNodeMessage({
   projectStore,
   graphDb: graph.db,
-  passEvents: () => outputVisible.value,
   expand: () => nodeHovered.value || selected.value,
   nodeId,
 })

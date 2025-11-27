@@ -18,7 +18,6 @@ interface NodeMessageOptions {
   projectStore: ProjectStore
   graphDb: GraphDb
   expand: ToValue<boolean>
-  passEvents: ToValue<boolean>
   nodeId: ToValue<NodeId>
 }
 
@@ -27,7 +26,6 @@ export function useNodeMessage({
   projectStore,
   graphDb,
   expand,
-  passEvents,
   nodeId,
 }: NodeMessageOptions) {
   const inputExternalIds = computed(() => {
@@ -92,7 +90,6 @@ export function useNodeMessage({
     return {
       type: availableMessage.value.type,
       message: availableMessage.value.text,
-      passEvents: toValue(passEvents),
     }
   })
 
