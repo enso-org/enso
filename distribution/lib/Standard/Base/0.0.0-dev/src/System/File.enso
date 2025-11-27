@@ -3,6 +3,7 @@ import project.Data.Json.JS_Object
 import project.Data.Numbers.Integer
 import project.Data.Text.Encoding.Encoding
 import project.Data.Text.Extensions
+import project.Data.Text.Regex.Regex
 import project.Data.Text.Text
 import project.Data.Time.Date_Time.Date_Time
 import project.Data.Vector.Vector
@@ -95,7 +96,9 @@ type File
        Creates a temporary file which will be deleted when Enso exits.
     create_temporary_file : Text -> Text -> File
     create_temporary_file prefix="temp" suffix=".tmp" =
-        java_file = Java_File.createTempFile prefix suffix
+        safe_prefix = prefix.replace (Regex.compile '[^A-Za-z0-9_.-]') '_'
+        safe_suffix = suffix.replace (Regex.compile '[^A-Za-z0-9_.-]') '_'
+        java_file = Java_File.createTempFile safe_prefix safe_suffix
         java_file.deleteOnExit
         File.new java_file.getAbsolutePath
 
