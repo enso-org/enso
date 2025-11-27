@@ -1,17 +1,16 @@
 private
 
 from Standard.Base import all
-
 import Standard.Base.Network.Email.Email_Body.Email_Body
-import Standard.Base.Network.Email.Send_Error.Send_Error
 import Standard.Base.Network.Email.Email_Send_Response.Send_Response
-import project.Email_Provider_SMTP.Email_Provider_SMTP
-
+import Standard.Base.Network.Email.Send_Error.Send_Error
 from Standard.Base.Enso_Cloud.Enso_Secret import as_hideable_value
 
-polyglot java import org.apache.commons.mail.HtmlEmail
+import project.Email_Provider_SMTP.Email_Provider_SMTP
+
 polyglot java import org.apache.commons.mail.EmailAttachment
 polyglot java import org.apache.commons.mail.EmailException
+polyglot java import org.apache.commons.mail.HtmlEmail
 polyglot java import org.enso.saas.CredentialSetter
 
 ## The SMTP implementation of the Email Provider SPI.

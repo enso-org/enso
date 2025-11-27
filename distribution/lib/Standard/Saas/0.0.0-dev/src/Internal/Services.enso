@@ -1,6 +1,7 @@
 private
 
 import Standard.Base.Network.Email.Email_Provider.Email_Provider_SPI
+
 import project.Email_Provider_SMTP.Email_Provider_SMTP
 
 ## Resgisters the SMTP Email Provider implementation with the Email Provider SPI.

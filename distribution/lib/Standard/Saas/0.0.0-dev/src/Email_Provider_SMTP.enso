@@ -1,11 +1,10 @@
 from Standard.Base import all
-
-import project.Internal.Email_Provider_SMTP_Implementation.Email_Provider_SMTP_Implementation
-
 import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Network.Email.Email_Provider.Email_Provider
-from Standard.Base.Network.Email.Email_Provider import make_email_provider
 from Standard.Base.Metadata.Choice import Option
+from Standard.Base.Network.Email.Email_Provider import make_email_provider
+
+import project.Internal.Email_Provider_SMTP_Implementation.Email_Provider_SMTP_Implementation
 
 ## An email provider that sends emails using the SMTP protocol.
 type Email_Provider_SMTP
