@@ -341,7 +341,7 @@ const actionHandlers = registerHandlers({
           graphStore.db.nodeIdToNode.get.bind(graphStore.db.nodeIdToNode),
         ),
       ),
-    () => detachInfo.value != null,
+    () => detachInfo.value.length > 0,
     {
       collapseNodes,
       copyNodesToClipboard,

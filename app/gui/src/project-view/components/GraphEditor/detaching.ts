@@ -2,7 +2,7 @@ import type { GraphDb, NodeId } from '$/providers/openedProjects/graph/graphData
 import { set } from 'lib0'
 import { isIdentifier, type AstId, type Identifier } from 'ydoc-shared/ast'
 
-declare const none: unique symbol
+const none: unique symbol = Symbol()
 type None = typeof none
 
 export function analyzeDetaching(selected: Set<NodeId>, graphDb: GraphDb) {
