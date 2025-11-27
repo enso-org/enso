@@ -23,7 +23,7 @@ type Generate_Rows_Range
     ## An existing range that will be used for each row
     Range value
 
-    ## An existing column of integers that will be used to to create a 0 to n range for each row
+    ## An existing column of integers that will be used to create a 0 to n range for each row
     Integer_Column value:Column
 
     ## ---
