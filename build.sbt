@@ -3112,6 +3112,7 @@ lazy val `runtime-integration-tests` =
         (`logging-service-logback` / Compile / exportedModule).value,
         (`logging-service-logback` / Test / exportedModule).value,
         (`logging-utils` / Compile / exportedModule).value,
+        (`persistance` / Compile / exportedModule).value,
         (`pkg` / Compile / exportedModule).value,
         (`polyglot-api` / Compile / exportedModule).value,
         (`polyglot-api-macros` / Compile / exportedModule).value,
