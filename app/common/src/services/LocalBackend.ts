@@ -894,8 +894,11 @@ export class LocalBackend extends backend.Backend {
     }
   }
 
-  /** Stop watching project directory. */
-  async stopWatchingHybridProject(assetId: backend.AssetId): Promise<void> {
+  /**
+   * Stop watching project directory.
+   * @returns true if the project directory has unsaved changes.
+   */
+  async stopWatchingHybridProject(assetId: backend.AssetId): Promise<boolean> {
     const queryString = new URLSearchParams({
       assetId,
     }).toString()
@@ -906,6 +909,8 @@ export class LocalBackend extends backend.Backend {
     if (!response.ok) {
       return await this.throw(response, 'resolveProjectAssetPathBackendError')
     }
+    const httpStatusIsDirty = 201
+    return response.status === httpStatusIsDirty
   }
 
   /** Invalid operation. */

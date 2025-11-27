@@ -13,6 +13,7 @@ import { bodyJson } from './http.js'
 // =================
 
 const HTTP_STATUS_OK = 200
+const HTTP_STATUS_IS_DIRTY = 201
 const HTTP_STATUS_BAD_REQUEST = 400
 const HTTP_STATUS_ERROR = 500
 
@@ -135,14 +136,12 @@ export async function handleWatcherRequest(
       const assetId = ProjectId(assetIdString)
       const watcher = watchers.get(assetId)
       if (watcher) {
-        await watcher
-          .close()
-          .catch((err) => {
-            console.error(`Failed to stop project watcher ${assetId}`, err)
-          })
-          .finally(() => {
-            response.writeHead(HTTP_STATUS_OK, headers).end()
-          })
+        const isDirty = await watcher.close().catch((err) => {
+          console.error(`Failed to stop project watcher ${assetId}`, err)
+          return true
+        })
+        const status = isDirty ? HTTP_STATUS_IS_DIRTY : HTTP_STATUS_OK
+        response.writeHead(status, headers).end()
       } else {
         response.writeHead(HTTP_STATUS_OK, headers).end()
       }
