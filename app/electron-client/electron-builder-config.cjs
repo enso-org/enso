@@ -6,10 +6,11 @@ function artifactName(version) {
 }
 
 function engineDistributionSource(version, platform = process.platform, arch = process.arch) {
-  const platformMap = { darwin: 'macos' }
+  const platformMap = { darwin: 'macos', win32: 'windows' }
   const archMapByPlatform = {
-    darwin: { arm64: 'aarch64' },
+    darwin: { x64: 'amd64', arm64: 'aarch64' },
     linux: { x64: 'amd64' },
+    win32: { x64: 'amd64' },
   }
 
   const normalizedPlatform = platformMap[platform] ?? platform
