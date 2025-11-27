@@ -5531,7 +5531,6 @@ lazy val `std-tests` = project
   .configs(Test)
   .settings(
     frgaalJavaCompilerSetting,
-    mockitoAgentSettings,
     commands += WithDebugCommand.withDebug,
     Test / fork := true,
     autoScalaLibrary := false,
