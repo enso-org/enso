@@ -53,13 +53,13 @@ add_text_columns_specs suite_builder setup =
 
         group_builder.specify "to_case column names are correct" <|
             column = text_column.get
-            column.to_case ..Upper . name . should_equal "upper([X])"
-            column.to_case ..Lower . name . should_equal "lower([X])"
+            column.to_case ..Upper . name . should_equal "to_case([X], 'Uppercase')"
+            column.to_case ..Lower . name . should_equal "to_case([X], 'Lowercase')"
             if setup.flagged ..Supports_Proper_Casing then
-                column.to_case ..Proper . name . should_equal "proper([X])"
+                column.to_case ..Proper . name . should_equal "to_case([X], 'Proper Case')"
 
         if setup.is_database then
-            group_builder.specify "local-specific to_case not implemented for database backend" <|
+            group_builder.specify "locale-specific to_case not implemented for database backend" <|
                 column = text_column.get
                 Test.expect_panic Unimplemented <|
                     column.to_case ..Upper (Locale.new "tr")
