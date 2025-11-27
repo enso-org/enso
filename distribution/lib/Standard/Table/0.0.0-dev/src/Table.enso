@@ -2503,7 +2503,7 @@ type Table
                 4 | 2
                 5 | 1
             table = table_builder [['x', [1, 2, 3, 4, 5]], ['y', [5, 4, 3, 2, 1]]]
-            table2 = tabble.add_group_number (..Equal_Count 3) "g"
+            table2 = table.add_group_number (..Equal_Count 3) "g"
             table2.at 'g' . to_vector
             # => [0, 0, 1, 1, 2]
             ## table2:
@@ -2529,9 +2529,19 @@ type Table
 
        ### Grouping Methods
        The following grouping methods are supported:
+
        - `Unique`: Group rows by the specified columns.
-       - Equal_Count: Create the specified number of groups with the same number
-       of rows in each group (except possibly the last one).
+       - `Equal_Count`: Create the specified number of groups with the same
+          number of rows in each group.
+       - `Equal_Sum`: Create the specified number of groups with the same
+          sum of values in the specified column in each group.
+       - `Standard_Deviation`: Group rows based on values deviation from
+          the mean of the specified column
+            - `Very Low` (less than -1.5σ)
+            - `Low` (-1.5σ to -0.5σ)
+            - `Average` (-0.5σ to 0.5σ)
+            - `High` (0.5σ to 1.5σ)
+            - `Very High` (greater than 1.5σ)
 
        ### Ordering of rows
        In the in-memory database, the ordering of rows from the original table is
