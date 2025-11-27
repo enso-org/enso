@@ -281,7 +281,6 @@ public abstract class Atom extends EnsoObject {
    * @param member An identifier of a field or method.
    * @return Value of the field or function.
    * @throws UnknownIdentifierException If an unknown field/method is requested.
-   * @throws UnsupportedMessageException If the requested member is not readable.
    */
   @ExportMessage
   @ExplodeLoop
@@ -289,7 +288,7 @@ public abstract class Atom extends EnsoObject {
       String member,
       @CachedLibrary(limit = "3") StructsLibrary structs,
       @Cached InteropApplicationNode preApplySelf)
-      throws UnknownIdentifierException, UnsupportedMessageException {
+      throws UnknownIdentifierException {
     if (!isMemberReadable(member)) {
       throw UnknownIdentifierException.create(member);
     }

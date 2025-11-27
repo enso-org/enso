@@ -1,11 +1,13 @@
 package org.enso.interpreter.runtime.data.atom;
 
+import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.UnknownIdentifierException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
+import org.enso.compiler.core.ConstantsNames;
 import org.enso.interpreter.node.callable.InteropApplicationNode;
 import org.enso.interpreter.runtime.data.EnsoObject;
 
@@ -50,10 +52,17 @@ public final class DebugAtomWrapper extends EnsoObject {
    */
   @ExportMessage
   @ExplodeLoop
-  Object readMember(String member, @CachedLibrary(limit = "3") StructsLibrary structsLib)
+  Object readMember(
+      String member,
+      @CachedLibrary(limit = "3") StructsLibrary structsLib,
+      @Cached InteropApplicationNode appNode)
       throws UnknownIdentifierException {
-    // TODO: to_text and to_display_text are exceptions - they should always be
-    //  evaluated when the atom is inspected.
+    // Special fallback behavior for `to_text` and `to_display_text` methods -
+    // they should always be evaluated.
+    if (member.equals(ConstantsNames.TO_TEXT) || member.equals(ConstantsNames.TO_DISPLAY_TEXT)) {
+      return atom.readMember(member, structsLib, appNode);
+    }
+
     var ctor = atom.getConstructor();
     for (var i = 0; i < ctor.getArity(); i++) {
       var fieldName = ctor.getFields()[i].getName();
