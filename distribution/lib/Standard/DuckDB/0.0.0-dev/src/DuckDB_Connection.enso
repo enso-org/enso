@@ -5,7 +5,7 @@ import Standard.Base.Runtime.Context
 import Standard.Base.Visualization.Table_Viz_Data.Table_Viz_Data
 import Standard.Base.Visualization.Table_Viz_Data.Table_Viz_Header
 from Standard.Base.Metadata.Choice import Option
-from Standard.Base.Metadata.Widget import Single_Choice, Text_Input, Vector_Editor
+from Standard.Base.Metadata.Widget import Multiple_Choice, Single_Choice, Text_Input, Vector_Editor
 
 import Standard.Table.Rows_To_Read.Rows_To_Read
 from Standard.Table import Table
@@ -327,10 +327,10 @@ type DuckDB_Connection
        ## Returns
        A `DB_Table` referencing the newly created table.
     @table make_table_name_selector
-    @key_columns Vector_Editor display=..Always item_editor=Text_Input item_default='"Column"'
+    @key_columns _column_names_widget
     @as Text_Input display=..Always
-    create_index : Text -> Vector Text -> Boolean -> DB_Table
-    create_index self table key_columns:Vector as:Text="" replace_if_present:Boolean=False =
+    create_index : Text -> Vector Text -> Text -> Boolean -> DB_Table
+    create_index self (table=Missing_Argument.throw "table") (key_columns:Vector=Missing_Argument.throw "key_columns") as:Text="" replace_if_present:Boolean=False =
         if self.is_in_memory.not then Context.Output.if_enabled disabled_message="As writing is disabled, cannot create a new index. Press the Write button ▶ to perform the operation." panic=False <|
             Nothing
 
@@ -565,3 +565,10 @@ Table_Viz_Data.from (that:DuckDB_Connection) =
             Table_Viz_Data.GenericGrid [Table_Viz_Header.Link "Table" "table" "query (..Table_Name {{@Table}} {{@Schema}})", Table_Viz_Header.Label "Schema"] [tables.at "Name" . to_vector, tables.at "Schema" . to_vector]
         False ->
             Table_Viz_Data.GenericGrid [Table_Viz_Header.Link "Table" "table" "query (..Table_Name {{@Table}})"] [tables.at "Name" . to_vector]
+
+private _column_names_widget connection cache=Nothing =
+    table = cache.if_not_nothing <| cache "table"
+    if table.is_nothing then Vector_Editor display=..Always item_editor=Text_Input item_default='"Column"' else
+        db_table = if table.is_a Table then table else connection.query (SQL_Query.Table_Name table)
+        col_names = db_table.column_names.map n-> Option n n.pretty
+        Multiple_Choice col_names display=..Always
