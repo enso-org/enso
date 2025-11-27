@@ -1,5 +1,8 @@
 use crate::prelude::*;
 
+use crate::syntax::Flush;
+use crate::syntax::Token;
+use crate::syntax::Tree;
 use crate::syntax::expression::types::Arity;
 use crate::syntax::expression::types::ModifiedPrecedence;
 use crate::syntax::expression::types::Operator;
@@ -15,9 +18,6 @@ use crate::syntax::token::Variant;
 use crate::syntax::tree;
 use crate::syntax::tree::FunctionAnnotation;
 use crate::syntax::tree::SyntaxError;
-use crate::syntax::Flush;
-use crate::syntax::Token;
-use crate::syntax::Tree;
 
 // ===================
 // === Annotations ===

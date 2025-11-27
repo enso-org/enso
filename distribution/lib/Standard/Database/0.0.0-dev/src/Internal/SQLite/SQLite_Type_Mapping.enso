@@ -241,6 +241,9 @@ operations_dict =
         possible_results = case_results + [fallback]
         find_a_common_type possible_results
 
+    handle_custom_sql _ =
+        Panic.throw (Illegal_State.Error "Custom SQL cannot be used within SQLite expressions.")
+
     handle_cast _ =
         Panic.throw (Illegal_State.Error "Cast relies on its own type inference logic, so this code should never be reached. This is a bug in the Database library.")
 
@@ -254,7 +257,7 @@ operations_dict =
     same_as_first = ["TRUNCATE", "CEIL", "FLOOR", "FIRST", "LAST", "ABS"]
     arithmetic_ops = ["ADD_NUMBER", "-", "*", "^", "%", "SUM"]
     merge_input_types_ops = ["ROW_MAX", "ROW_MIN", "MAX", "MIN", "FILL_NULL", "COALESCE", "LEAD", "LAG", "LEAD_CLOSEST", "LAG_CLOSEST"]
-    others = [["IIF", handle_iif], ["CAST", handle_cast], ["CASE", handle_case], ["RUNTIME_ERROR", handle_runtime_error]]
+    others = [["IIF", handle_iif], ["CAST", handle_cast], ["CASE", handle_case], ["RUNTIME_ERROR", handle_runtime_error], ["CUSTOM_SQL", handle_custom_sql]]
     Dictionary.from_vector <|
         v1 = always_boolean_ops.map [_, const SQLite_Types.boolean]
         v2 = always_floating_ops.map [_, const SQLite_Types.real]

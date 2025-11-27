@@ -37,7 +37,7 @@ export function MS365CredentialsForm(props: CredentialFormProps) {
     >
       {(form) => (
         <>
-          <Input form={form} name="name" label={getText('name')} />
+          <Input form={form} name="name" label={getText('name')} defaultValue="Microsoft365" />
           <Checkbox.Group form={form} name="scopes" label={getText('ms365CredentialScopes')}>
             <Checkbox value="User.Read">{getText('ms365CredentialUserReadScope')}</Checkbox>
             <Checkbox value="Files.Read">{getText('ms365CredentialFilesReadScope')}</Checkbox>

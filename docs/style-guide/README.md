@@ -16,6 +16,7 @@ languages that make up the Enso project.
 - [Rust](./rust.md)
 - [Haskell](./haskell.md)
 - [TypeScript](./typescript.md)
+- [Enso](./enso.md)
 
 Our configuration and documentation also has style guides:
 

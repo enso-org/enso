@@ -137,4 +137,12 @@ See https://github.com/gloriasoft/veaury/issues/158
 [data-use-vue-component-wrap] {
   display: contents !important;
 }
+
+.mousePointer {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  pointer-events: none;
+  background-color: red;
+}
 </style>

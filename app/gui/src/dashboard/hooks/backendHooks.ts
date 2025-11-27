@@ -240,8 +240,8 @@ export function listDirectoryQueryOptions(options: ListDirectoryQueryOptions) {
             sortDirection,
             filterBy,
             recentProjects: category.type === 'recent',
-            from,
-            pageSize,
+            from: from ?? null,
+            pageSize: pageSize ?? null,
           },
           parentId ?? '(unknown)',
         )
@@ -365,13 +365,17 @@ export function useBackendMutationState<Method extends BackendMutationMethod, Re
   return useMutationState({
     filters: {
       ...backendMutationOptions(backend, method, mutationKey ? { mutationKey } : {}),
-      predicate: (mutation: BackendMutation<Method>) =>
-        mutation.state.status === 'pending' && (predicate?.(mutation) ?? true),
+      // We rely on mutation key pointing to properly typed mutation.
+      // eslint-disable-next-line no-restricted-syntax
+      predicate: ((mutation: BackendMutation<Method>) =>
+        mutation.state.status === 'pending' && (predicate?.(mutation) ?? true)) as (
+        mutation: Mutation,
+      ) => boolean,
     },
     // This is UNSAFE when the `Result` parameter is explicitly specified in the
     // generic parameter list.
     // eslint-disable-next-line no-restricted-syntax
-    select: select as (mutation: Mutation<unknown, Error, unknown, unknown>) => Result,
+    select: select as (mutation: Mutation) => Result,
   })
 }
 

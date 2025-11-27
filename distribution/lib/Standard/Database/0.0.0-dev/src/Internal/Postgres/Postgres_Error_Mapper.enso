@@ -1,3 +1,5 @@
+private
+
 from Standard.Base import all
 
 from project.Errors import Invariant_Violation, SQL_Error
@@ -6,7 +8,6 @@ from project.Errors import Invariant_Violation, SQL_Error
    private: true
    ---
 type Postgres_Error_Mapper
-
     ## ---
        private: true
        ---

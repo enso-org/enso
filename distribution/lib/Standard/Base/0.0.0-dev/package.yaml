@@ -57,3 +57,11 @@ services:
 
   - provides: Standard.Base.Data.Read.Return_As.SPI
     with: Standard.Base.Internal.Data_Read_Helpers.Data_List_Default_Impl
+
+  # Email_Provider_SPI definitions
+
+  - provides: Standard.Base.Network.Email.Email_Provider.Email_Provider_SPI
+    with: Standard.Base.Network.Email.Internal.Email_Services.Email_Test_Only_Impl
+
+  - provides: Standard.Base.Network.Email.Email_Provider.Email_Provider_SPI
+    with: Standard.Base.Network.Email.Internal.Email_Services.Send_Grid_Impl

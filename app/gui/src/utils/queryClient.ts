@@ -4,7 +4,7 @@ import { useCallbackRegistry } from '$/utils/data/callbacks'
 import { cloneDeepUnref } from '$/utils/data/reactive'
 import * as queryCore from '@tanstack/query-core'
 import type { AsyncStorage, StoragePersisterOptions } from '@tanstack/query-persist-client-core'
-import { experimental_createPersister as createPersister } from '@tanstack/query-persist-client-core'
+import { experimental_createQueryPersister as createPersister } from '@tanstack/query-persist-client-core'
 import * as vueQuery from '@tanstack/vue-query'
 import { toRaw } from 'vue'
 
@@ -185,9 +185,9 @@ function useInvalidation({
 }
 
 /** Create a new Tanstack Query client. */
-export function createQueryClient<TStorageValue = string>(
+export async function createQueryClient<TStorageValue = string>(
   options: QueryClientOptions<TStorageValue> = {},
-): QueryClient {
+): Promise<QueryClient> {
   const { persisterStorage } = options
 
   queryCore.onlineManager.setOnline(navigator.onLine)
@@ -217,7 +217,7 @@ export function createQueryClient<TStorageValue = string>(
     mutationCache,
     defaultOptions: {
       queries: {
-        ...(persister != null ? { persister } : {}),
+        ...(persister != null ? { persister: persister.persisterFn } : {}),
         // Default set to 'always' to don't pause ongoing queries
         // and make them fail.
         networkMode: 'always',
@@ -256,6 +256,7 @@ export function createQueryClient<TStorageValue = string>(
     },
   })
   useInvalidation({ mutationHooks, queryHooks, queryClient })
+  await persister?.restoreQueries(queryClient)
 
   Object.defineProperty(queryClient, 'nukePersister', {
     value: () => persisterStorage?.clear(),
