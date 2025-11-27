@@ -75,6 +75,7 @@ import {
   watch,
   watchEffect,
 } from 'vue'
+import { analyzeDetaching } from './GraphEditor/detaching'
 import { provideRenameSchedule } from './GraphEditor/widgets/WidgetFunctionName.vue'
 
 const keyboard = injectKeyboard()
@@ -192,6 +193,8 @@ watch(
   () => projectStore.executionContext.getStackTop(),
   () => nodeSelection.deselectAll(),
 )
+
+const detachInfo = computed(() => analyzeDetaching(nodeSelection.selected, graphStore.db))
 
 // === Node creation ===
 
@@ -338,10 +341,22 @@ const actionHandlers = registerHandlers({
           graphStore.db.nodeIdToNode.get.bind(graphStore.db.nodeIdToNode),
         ),
       ),
+    () => detachInfo.value != null,
     {
       collapseNodes,
       copyNodesToClipboard,
       deleteNodes: (nodes) => graphStore.deleteNodes(nodes.map(nodeId)),
+      deleteAndConnectAround: (nodes) => {
+        return module.value.edit(async (edit) => {
+          for (const { port, ident } of detachInfo.value) {
+            const result = await graphStore.updatePortValue(port, Ast.Ident.new(edit, ident), edit)
+            if (!result.ok) {
+              result.error.log('Failed to connect around')
+            }
+          }
+          return graphStore.deleteNodes(nodes.map(nodeId), edit)
+        })
+      },
     },
   ),
 })

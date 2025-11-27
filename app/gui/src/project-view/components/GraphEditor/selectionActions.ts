@@ -9,10 +9,12 @@ import { computed, toValue } from 'vue'
  */
 export function selectionActionHandlers(
   selectedNodes: ToValue<Iterable<Node>>,
+  detachingPossible: ToValue<boolean>,
   actions: {
     collapseNodes: (nodes: Node[]) => void
     copyNodesToClipboard: (nodes: Node[]) => void
     deleteNodes: (nodes: Node[]) => void
+    deleteAndConnectAround: (nodes: Node[]) => void
   },
 ) {
   const selectedNodesArray = computed(() => [...toValue(selectedNodes)])
@@ -47,6 +49,10 @@ export function selectionActionHandlers(
     'components.pickColorMulti': {
       ...toggledAction(),
       enabled: computed(() => multipleNodesSelected.value && atLeastOneComponent.value),
+    },
+    'components.deleteAndConnectAround': {
+      enabled: computed(() => atLeastOneComponent.value && toValue(detachingPossible)),
+      action: action('deleteAndConnectAround'),
     },
   }
 }

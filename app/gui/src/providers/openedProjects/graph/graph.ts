@@ -308,8 +308,8 @@ export function createGraphStore(
     return edges
   })
 
-  function deleteNodes(ids: Iterable<NodeId>) {
-    return module.edit(async (edit) => {
+  function deleteNodes(ids: Iterable<NodeId>, edit?: MutableModule) {
+    const deleteInEdit = async (edit: MutableModule) => {
       const deletedNodes = new Set<NodeId>()
       for (const id of ids) {
         const node = db.nodeIdToNode.get(id)
@@ -330,7 +330,9 @@ export function createGraphStore(
         cleanup(id)
       }
       return Ok()
-    })
+    }
+    if (edit) return deleteInEdit(edit)
+    else return module.edit(deleteInEdit)
   }
 
   function setNodeContent(id: NodeId, content: string, withImports?: RequiredImport[] | undefined) {
