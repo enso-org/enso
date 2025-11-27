@@ -15,6 +15,7 @@ import { bodyJson } from './http.js'
 const HTTP_STATUS_OK = 200
 const HTTP_STATUS_IS_DIRTY = 201
 const HTTP_STATUS_BAD_REQUEST = 400
+const HTTP_STATUS_NOT_FOUND = 404
 const HTTP_STATUS_ERROR = 500
 
 const PROJECT_WATCHER_CALLBACK_DELAY = 10000
@@ -144,6 +145,25 @@ export async function handleWatcherRequest(
         response.writeHead(status, headers).end()
       } else {
         response.writeHead(HTTP_STATUS_OK, headers).end()
+      }
+      break
+    }
+    case 'GET /api/watcher/state': {
+      const assetIdString = url.searchParams.get('assetId')
+      if (assetIdString == null) {
+        response
+          .writeHead(HTTP_STATUS_BAD_REQUEST, headers)
+          .end('Request is missing search parameter `assetId`.')
+        break
+      }
+      const assetId = ProjectId(assetIdString)
+      const watcher = watchers.get(assetId)
+      if (watcher) {
+        const state = watcher.getState()
+        const status = state === 'pending' ? HTTP_STATUS_IS_DIRTY : HTTP_STATUS_OK
+        response.writeHead(status, headers).end()
+      } else {
+        response.writeHead(HTTP_STATUS_NOT_FOUND, headers).end()
       }
       break
     }
