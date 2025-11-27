@@ -7,12 +7,17 @@ use crate::syntax::TreeConsumer;
 use crate::syntax::expression::annotations::Annotation;
 use crate::syntax::expression::blocks::ApplicableBlock;
 use crate::syntax::expression::named_app::NamedApp;
-pub use crate::syntax::expression::section::Operand;
 use crate::syntax::expression::whitespace::Spacing;
 use crate::syntax::token;
 use crate::syntax::tree;
 
 use std::fmt::Debug;
+
+// ==============
+// === Export ===
+// ==============
+
+pub use crate::syntax::expression::section::Operand;
 
 // ================
 // === Operator ===

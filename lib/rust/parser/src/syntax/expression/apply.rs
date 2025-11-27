@@ -7,6 +7,7 @@ use crate::syntax::expression::section::Operand;
 use crate::syntax::maybe_with_error;
 use crate::syntax::token;
 use crate::syntax::token::TokenOperatorProperties;
+
 use crate::syntax::tree::{MultipleOperatorError, Variant};
 use crate::unwrap_eval;
 // ==========================

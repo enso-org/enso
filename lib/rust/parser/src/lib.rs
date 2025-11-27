@@ -91,6 +91,7 @@ use crate::lexer::Lexer;
 use crate::macros::resolver::RootContext;
 use crate::source::Code;
 use crate::syntax::token;
+
 use crate::syntax::tree::{SyntaxError, Variant};
 use crate::syntax::{Finish, Tree};
 
