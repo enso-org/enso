@@ -70,7 +70,7 @@ const parseFilterValues = (
           Ast.Ident.new(tempModule, Ast.identifier('False')!)
         : Ast.Ident.new(tempModule, Ast.identifier('True')!)
     default:
-      return Ast.parseExpression(value.value as string, tempModule)!
+      return Ast.parseExpression(value, tempModule)!
   }
 }
 
