@@ -350,7 +350,10 @@ abstract class InstanceInvokeMethodNode extends InvokeMethodNode {
     Object selfWithoutWarnings;
     EnsoHashMap warnsMap;
     try {
-      selfWithoutWarnings = warnings.removeWarnings(self);
+      var selfNoWarnings = warnings.removeWarnings(self);
+      selfWithoutWarnings =
+          ThunkExecutorNode.getUncached()
+              .executeThunk(frame, selfNoWarnings, state, TailStatus.NOT_TAIL);
       warnsMap = warnings.getWarnings(self, false);
     } catch (UnsupportedMessageException e) {
       var ctx = EnsoContext.get(this);
