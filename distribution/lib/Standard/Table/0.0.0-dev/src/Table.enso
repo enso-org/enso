@@ -3623,7 +3623,7 @@ type Table
         - If a column in `element_columns`, `attribute_columns` or `value_column`
           is not in the input table, a `Missing_Input_Columns` is raised as an
           error.
-        - If any incomming columns aree not specified in one of
+        - If any incoming columns are not specified in one of
           `element_columns`, `attribute_columns` or `value_column`, a
           `Unexpected_Extra_Columns` is reported according to the `on_problems`
           setting.
