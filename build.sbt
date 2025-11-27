@@ -352,7 +352,7 @@ lazy val enso = (project in file("."))
     `logging-utils-akka`,
     `netty-epoll-native-wrapper`,
     `netty-tc-native-wrapper`,
-    `netty-resolver-dns-native-wrapper`,
+    `netty-resolver-dns-native-macos-wrapper`,
     `opencv-wrapper`,
     `os-environment`,
     `os-environment-lib`,
@@ -5661,7 +5661,7 @@ lazy val `netty-epoll-native-wrapper` = project
 
 // Native lib only for Mac
 // For other platforms, the output directory should be empty.
-lazy val `netty-resolver-dns-native-wrapper` = project
+lazy val `netty-resolver-dns-native-macos-wrapper` = project
   .in(file("lib/java/resolver-dns-native-wrapper"))
   .enablePlugins(JarExtractPlugin)
   .settings(
@@ -6218,11 +6218,11 @@ lazy val `std-microsoft` = project
           extractedNativeLibsDirs = Seq(
             (`jna-wrapper-extracted` / extractedFilesDir).value,
             (`netty-tc-native-wrapper` / extractedFilesDir).value,
-            (`netty-resolver-dns-native-wrapper` / extractedFilesDir).value
+            (`netty-resolver-dns-native-macos-wrapper` / extractedFilesDir).value
           ),
           // `netty-tc-native-wrapper / thinJarOutput` is not here on purpose.
           // It is an almost empty jar anyway.
-          // The same is true for `netty-resolver-dns-native-wrapper / thinJarOutput`.
+          // The same is true for `netty-resolver-dns-native-macos-wrapper / thinJarOutput`.
           extraJars = Seq(
             (`jna-wrapper-extracted` / thinJarOutput).value
           ),
