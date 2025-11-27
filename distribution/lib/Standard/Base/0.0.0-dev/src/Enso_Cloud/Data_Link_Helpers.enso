@@ -14,6 +14,7 @@ import project.Enso_Cloud.Errors.Missing_Data_Link_Library
 import project.Enso_Cloud.Internal.Existing_Enso_Asset.Existing_Enso_Asset
 import project.Enso_Cloud.Internal.Utils
 import project.Errors.Common.No_Such_Conversion
+import project.Errors.File_Error.File_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.Illegal_State.Illegal_State
 import project.Errors.Problem_Behavior.Problem_Behavior
@@ -35,7 +36,6 @@ import project.System.File_Format.File_Format
 import project.System.File_Format.File_Format_SPI
 import project.System.Input_Stream.Input_Stream
 import project.System.Output_Stream.Output_Stream
-from project.Data import Raw_Response
 from project.Data.Boolean import False, True
 from project.Data.Text.Extensions import all
 from project.Enso_Cloud.Data_Link_Capabilities import Data_Link_With_Input_Stream, Data_Link_With_Output_Stream, File_Like_Data_Link, Writable_Data_Link
@@ -302,6 +302,7 @@ as_file path action = case path of
         as_file resolved action
     _ : File ->
         ## Need to see if a data link otherwise return the file
+        if path.exists.not then Error.throw (File_Error.Not_Found file)
         if path.is_directory then Error.throw (Illegal_Argument.Error "Cannot use a directory, pass a file.")
         if path.is_data_link.not then action path else
             as_file (interpret_data_link_target_as_file path) action
