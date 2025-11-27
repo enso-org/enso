@@ -246,6 +246,7 @@ type DuckDB_Connection
 
        ## Returns
        A `DB_Table` referencing the newly created table.
+    @path Text_Input display=..Always
     @as Text_Input display=..Always
     @key_columns Vector_Editor display=..Always item_editor=Text_Input item_default='"Column"'
     read_file : Text | URI | File -> Text -> Vector Text -> Boolean -> DB_Table
@@ -280,6 +281,7 @@ type DuckDB_Connection
 
        ## Returns
        A `DB_Table` referencing the newly created table.
+    @path Text_Input display=..Always
     @as Text_Input display=..Always
     @key_columns Vector_Editor display=..Always item_editor=Text_Input item_default='"Column"'
     read_spatial_file : Text | URI | File -> Text -> Vector Text -> Boolean -> DB_Table

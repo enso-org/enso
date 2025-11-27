@@ -311,8 +311,7 @@ as_file path action = case path of
         temp_file = File.create_temporary_file name_ext.first name_ext.second
         raw_response = path.fetch Raw_Response
         written_file = Context.Output.with_enabled <| raw_response.write temp_file ..Overwrite
-        Managed_Resource.bracket written_file cleanup_tmp_file <|
-            as_file written_file action
+        Managed_Resource.bracket written_file cleanup_tmp_file (f-> as_file f action)
     _ ->
         ## Something that is file like
         file_like = File.new path
@@ -322,8 +321,7 @@ as_file path action = case path of
                 name_ext = split_file_name file_like.name
                 temp_file = File.create_temporary_file name_ext.first name_ext.second
                 written_file = Context.Output.with_enabled <| file_like.copy_to temp_file replace_existing=True
-                Managed_Resource.bracket written_file cleanup_tmp_file <|
-                    as_file written_file action
+                Managed_Resource.bracket written_file cleanup_tmp_file (f-> as_file f action)
 
 private cleanup_tmp_file file =
     Context.Output.with_enabled <|
