@@ -19,6 +19,8 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
+
+import org.enso.interpreter.Constants;
 import org.enso.interpreter.node.callable.InteropApplicationNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
@@ -401,7 +403,7 @@ public abstract class Atom extends EnsoObject {
     Object result = null;
     String msg;
     try {
-      result = atoms.invokeMember(this, "to_text");
+      result = atoms.invokeMember(this, Constants.Names.TO_TEXT);
       if (warnings.hasWarnings(result)) {
         result = warnings.removeWarnings(result);
       }

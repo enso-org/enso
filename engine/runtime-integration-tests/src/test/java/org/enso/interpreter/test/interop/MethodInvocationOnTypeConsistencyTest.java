@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.function.BiConsumer;
 import org.enso.common.LanguageInfo;
 import org.enso.common.MethodNames.Module;
+import org.enso.compiler.core.ConstantsNames;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.Value;
@@ -98,7 +99,7 @@ public final class MethodInvocationOnTypeConsistencyTest {
                 }),
             new TestArgs(
                 new EnsoInvokeArgs("Any.to_text my_type_atom"),
-                new InteropInvokeArgs(anyType, "to_text", List.of(myTypeAtom)),
+                new InteropInvokeArgs(anyType, ConstantsNames.TO_TEXT, List.of(myTypeAtom)),
                 (res, msg) -> {
                   assertThat(msg, res.asString(), containsString("Cons 1"));
                 }),
