@@ -28,7 +28,9 @@ fn main() {
         ide_ci::fs::write_if_different(&rc_file, contents).unwrap();
         embed_resource::compile(&rc_file, embed_resource::NONE);
     } else {
-        println!("cargo:warning={ENSO_INSTALL_ARCHIVE_PATH} is not set, the installer will fail at runtime.");
+        println!(
+            "cargo:warning={ENSO_INSTALL_ARCHIVE_PATH} is not set, the installer will fail at runtime."
+        );
     }
 
     cargo::build::rerun_if_env_changed(ENSO_INSTALL_METADATA_PATH);
