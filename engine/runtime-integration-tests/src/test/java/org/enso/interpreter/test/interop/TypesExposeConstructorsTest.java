@@ -84,14 +84,13 @@ public class TypesExposeConstructorsTest {
     }
   }
 
-  /**
-   * @param type
-   * @param typeValue The polyglot value of the type (not an object)
-   */
   private static final class TypeWithWrapper implements AutoCloseable {
     private Type type;
     private Value typeValue;
 
+    /**
+     * @param tp The polyglot value of the type (not an object)
+     */
     public TypeWithWrapper(Type type, Value tp) {
       this.type = type;
       this.typeValue = tp;
