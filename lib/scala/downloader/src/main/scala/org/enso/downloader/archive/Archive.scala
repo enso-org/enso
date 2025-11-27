@@ -125,11 +125,20 @@ object Archive {
     }
 
     iterateArchive(archivePath, format) { entry =>
-      val destinationPath =
-        destinationDirectory.resolve(rewritePath(entry.relativePath))
-      entry.extractTo(destinationPath)
-      true
+      if (ignoreEntry(entry.relativePath)) true
+      else {
+        val destinationPath =
+          destinationDirectory.resolve(rewritePath(entry.relativePath))
+        entry.extractTo(destinationPath)
+        true
+      }
     }
+  }
+
+  // Some entries are created automatically by the underlying OS and should be ingored
+  private def ignoreEntry(path: Path): Boolean = {
+    org.enso.common.Platform.getOperatingSystem().isMacOs() && path
+      .startsWith("._")
   }
 
   /** Iterates over entries of the archive at `archivePath`.

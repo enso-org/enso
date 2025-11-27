@@ -18,6 +18,7 @@ import com.oracle.truffle.api.source.SourceSection;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Supplier;
+import org.enso.interpreter.Constants;
 import org.enso.interpreter.node.BaseNode.TailStatus;
 import org.enso.interpreter.node.callable.IndirectInvokeMethodNode;
 import org.enso.interpreter.node.callable.InvokeCallableNode.ArgumentsExecutionMode;
@@ -158,7 +159,7 @@ public final class PanicException extends AbstractTruffleException {
   static UnresolvedSymbol toDisplayText(EnsoContext ctx, IndirectInvokeMethodNode payloads)
       throws UnsupportedMessageException {
     var scope = ctx.getBuiltins().panic().getDefinitionScope();
-    return UnresolvedSymbol.build("to_display_text", scope);
+    return UnresolvedSymbol.build(Constants.Names.TO_DISPLAY_TEXT, scope);
   }
 
   @ExportMessage

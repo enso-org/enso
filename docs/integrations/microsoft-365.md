@@ -114,3 +114,9 @@ the browser.
 - Go to the application in the [Azure Portal](https://portal.azure.com/)
 - Select "API permissions" on the left
 - Click "Grant admin consent for Default Directory"
+
+## Running OneDrive tests
+
+OneDrive tests require an existing credential at
+'enso://Users/CloudTests./Microsoft365_ci_test_credential'. This credential must
+be created by a Microsoft OneDrive user that has an SPO license.

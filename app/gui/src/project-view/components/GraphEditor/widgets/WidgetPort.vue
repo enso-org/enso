@@ -12,7 +12,7 @@ import { useRaf } from '@/composables/animation'
 import { useResizeObserver } from '@/composables/events'
 import type { NavigatorComposable } from '@/composables/navigator'
 import { injectGraphNavigator } from '@/providers/graphNavigator'
-import { injectGraphSelection } from '@/providers/graphSelection'
+import { useGraphSelection } from '@/providers/graphSelection'
 import { injectKeyboard } from '@/providers/keyboard'
 import { injectPortInfo, providePortInfo, type PortId } from '@/providers/portInfo'
 import { injectWidgetTree } from '@/providers/widgetTree'
@@ -39,7 +39,7 @@ const graph = useGraphStore()
 
 const navigator = injectGraphNavigator(true)
 const tree = injectWidgetTree()
-const selection = injectGraphSelection(true)
+const selection = useGraphSelection(true)
 
 const hasConnection = computed(() => graph.isConnectedTarget(portId.value))
 const isCurrentEdgeHoverTarget = computed(
