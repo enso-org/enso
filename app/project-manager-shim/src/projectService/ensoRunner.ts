@@ -522,96 +522,50 @@ export function findEnsoExecutable(workDir: string = '.'): Path | undefined {
     }
   }
 
-  // Check enso/dist/*/bin/enso
-  const ensoDistPath = path.join(workDir, 'enso', 'dist')
-  try {
-    const stat = fs.statSync(ensoDistPath)
-    if (stat.isDirectory()) {
-      const distDirs = fs.readdirSync(ensoDistPath)
-      for (const distDir of distDirs) {
-        for (const ensoExecutable of ensoExecutables) {
-          const ensoPath = path.join(ensoDistPath, distDir, 'bin', ensoExecutable)
-          try {
-            fs.accessSync(ensoPath)
-            return checkExecutable(ensoPath)
-          } catch {
-            // File doesn't exist, continue searching
-          }
+  const checkExecutables = (...segments: readonly string[]): Path | undefined => {
+    if (!segments.includes('*')) {
+      for (const ensoExecutable of ensoExecutables) {
+        const ensoPath = path.join(...segments, ensoExecutable)
+        try {
+          fs.accessSync(ensoPath)
+          return checkExecutable(ensoPath)
+        } catch {
+          // File doesn't exist, continue searching
         }
       }
+      return
     }
-  } catch {
-    // Directory doesn't exist, continue to next directory
-  }
-
-  // Check built-distribution/*/enso/dist/*/bin/enso
-  const builtDistEnsoPath = path.join(workDir, 'built-distribution')
-  try {
-    const stat = fs.statSync(builtDistEnsoPath)
-    if (stat.isDirectory()) {
-      const topLevelDirs = fs.readdirSync(builtDistEnsoPath)
-      for (const topDir of topLevelDirs) {
-        const topPath = path.join(builtDistEnsoPath, topDir)
-        const topStat = fs.statSync(topPath)
-        if (topStat.isDirectory()) {
-          const ensoDistPath = path.join(topPath, 'enso', 'dist')
-          try {
-            const distStat = fs.statSync(ensoDistPath)
-            if (distStat.isDirectory()) {
-              const distDirs = fs.readdirSync(ensoDistPath)
-              for (const distDir of distDirs) {
-                for (const ensoExecutable of ensoExecutables) {
-                  const ensoPath = path.join(ensoDistPath, distDir, 'bin', ensoExecutable)
-                  try {
-                    fs.accessSync(ensoPath)
-                    return checkExecutable(ensoPath)
-                  } catch {
-                    // File doesn't exist, continue searching
-                  }
-                }
-              }
-            }
-          } catch {
-            // enso/dist directory doesn't exist, continue searching
-          }
-        }
-      }
-    }
-  } catch {
-    // Directory doesn't exist, continue to next directory
-  }
-
-  // Check built-distribution/*/*/bin/enso
-  const builtDistDir = path.join(workDir, 'built-distribution')
-  try {
-    const stat = fs.statSync(builtDistDir)
-    if (stat.isDirectory()) {
-      const topLevelDirs = fs.readdirSync(builtDistDir)
-      for (const topDir of topLevelDirs) {
-        const topPath = path.join(builtDistDir, topDir)
-        const topStat = fs.statSync(topPath)
-        if (topStat.isDirectory()) {
-          const subDirs = fs.readdirSync(topPath)
-          for (const subDir of subDirs) {
-            for (const ensoExecutable of ensoExecutables) {
-              const ensoPath = path.join(topPath, subDir, 'bin', ensoExecutable)
-              try {
-                fs.accessSync(ensoPath)
-                return checkExecutable(ensoPath)
-              } catch {
-                // File doesn't exist, continue searching
-              }
+    const literalSegments: string[] = []
+    let i = -1
+    for (const segment of segments) {
+      i += 1
+      if (segment === '*') {
+        const basePath = path.join(...literalSegments)
+        try {
+          for (const entry of fs.readdirSync(basePath)) {
+            const result = checkExecutables(basePath, entry, ...segments.slice(i + 1))
+            if (result) {
+              return result
             }
           }
+        } catch {
+          // Directory doesn't exist, continue searching
         }
+      } else {
+        literalSegments.push(segment)
       }
     }
-  } catch {
-    // Directory doesn't exist
+    return
   }
 
-  // No enso executable found
-  return undefined
+  return (
+    // Check enso/dist/*/bin/enso
+    checkExecutables(path.join(workDir, 'enso', 'dist'), '*', 'bin') ??
+    // Check built-distribution/enso/dist/*/bin/enso
+    checkExecutables(path.join(workDir, 'built-distribution', 'enso', 'dist'), '*', 'bin') ??
+    // Check built-distribution/*/*/bin/enso
+    checkExecutables(path.join(workDir, 'built-distribution'), '*', '*', 'bin')
+  )
 }
 
 /**
