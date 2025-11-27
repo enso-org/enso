@@ -302,7 +302,7 @@ as_file path action = case path of
         as_file resolved action
     _ : File ->
         ## Need to see if a data link otherwise return the file
-        if path.exists.not then Error.throw (File_Error.Not_Found file)
+        if path.exists.not then Error.throw (File_Error.Not_Found path)
         if path.is_directory then Error.throw (Illegal_Argument.Error "Cannot use a directory, pass a file.")
         if path.is_data_link.not then action path else
             as_file (interpret_data_link_target_as_file path) action

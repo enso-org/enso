@@ -148,7 +148,7 @@ type OneDrive_File
     exists self -> Boolean =
         frag = self.onedrive_path.to_human_readable_fragment
         response = Graph.fetch self.credential Graph.base_url+frag
-        response.code == HTTP_Status_Code.OK
+        response.code.is_success
 
     ## ---
        icon: data_output
