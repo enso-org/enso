@@ -7,8 +7,11 @@ import Standard.Base.Visualization.Table_Viz_Data.Table_Viz_Header
 from Standard.Base.Metadata.Choice import Option
 from Standard.Base.Metadata.Widget import Multiple_Choice, Single_Choice, Text_Input, Vector_Editor
 
+import Standard.Table.In_Memory_Table.In_Memory_Table
 import Standard.Table.Rows_To_Read.Rows_To_Read
 from Standard.Table import Table
+from Standard.Table.In_Memory_Table import to_java_table
+from Standard.Table.Internal.Storage import from_value_type
 
 import Standard.Database.Connection.Connection.Connection
 import Standard.Database.DB_Table as DB_Table_Module
@@ -25,6 +28,7 @@ import project.Internal.DuckDB_Dialect
 import project.Internal.DuckDB_Entity_Naming_Properties
 import project.Internal.DuckDB_Type_Mapping.DuckDB_Type_Mapping
 
+polyglot java import java.lang.ArithmeticException
 polyglot java import org.enso.database.JDBCDriverTypes
 polyglot java import org.enso.database.JDBCProxy
 polyglot java import org.enso.duckdb.DuckDBUtils
@@ -524,8 +528,13 @@ type DuckDB_Connection
 
             ## Assuming we managed to create the table, proceed with upload
             created_table.if_not_error <|
-                Error.throw (Illegal_Argument.Error "PlaceHolder: Bulk load implementation is not yet available for DuckDB.")
-
+                java_column_types = created_table.columns.map c-> from_value_type c.value_type
+                java_table = to_java_table table
+                handle_sql_errors = self.jdbc_connection.sql_error_handler
+                self.jdbc_connection.with_connection connection->
+                    handle_sql_errors <| Illegal_Argument.handle_java_exception <| Panic.catch ArithmeticException handler=(err-> Error.throw (Illegal_Argument.Error err.getMessage)) <|
+                        DuckDBUtils.append connection java_table table_name java_column_types
+                        created_table
     ## ---
        private: true
        ---
