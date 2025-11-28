@@ -777,7 +777,7 @@ type Snowflake_Connection
            - `Raise_Error` - a `Table_Already_Exists` error will be raised.
            - `Drop_Table` - the existing table will be dropped before creating the new one.
            - `Truncate_Table` - the existing table will be truncated before loading data into it.
-           - `Append_Data` - data will be appended to the existing table.
+           - `Append_To_Table` - data will be appended to the existing table.
        - `temporary`: If set to `True`, the created table will be temporary.
           Defaults to `False`.
 
@@ -815,7 +815,7 @@ type Snowflake_Connection
                 Bulk_Load_Exists.Truncate_Table ->
                     self.truncate_table table_name
                     self.query (..Table_Name table_name)
-                Bulk_Load_Exists.Append_Data ->
+                Bulk_Load_Exists.Append_To_Table ->
                     self.query (..Table_Name table_name)
 
             ## Assuming we managed to create the table, proceed with upload
