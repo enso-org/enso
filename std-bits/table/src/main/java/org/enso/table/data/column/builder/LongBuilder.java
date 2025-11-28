@@ -2,6 +2,7 @@ package org.enso.table.data.column.builder;
 
 import java.lang.foreign.MemorySegment;
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.nio.LongBuffer;
 import java.util.BitSet;
 import java.util.Objects;
@@ -24,14 +25,16 @@ class LongBuilder extends NumericBuilder implements BuilderForLong, BuilderWithR
   protected final ProblemAggregator problemAggregator;
   private ByteBuffer whole;
   private LongBuffer data;
+  private BitSet validityMap;
 
   protected LongBuilder(int initialSize, ProblemAggregator problemAggregator) {
     this(allocBuffer(initialSize, 0), problemAggregator);
   }
 
   private LongBuilder(Object[] bsAndLb, ProblemAggregator problemAggregator) {
-    super((BitSet) bsAndLb[1]);
+    super(null);
     this.whole = (ByteBuffer) bsAndLb[0];
+    this.validityMap = (BitSet) bsAndLb[1];
     this.data = (LongBuffer) bsAndLb[2];
     this.problemAggregator = problemAggregator;
   }
@@ -64,14 +67,19 @@ class LongBuilder extends NumericBuilder implements BuilderForLong, BuilderWithR
     var wholeBytesSize = Math.toIntExact(roundedValiditySize + initialSize * Long.BYTES);
     ByteBuffer buf;
     if (address == 0L) {
-      buf = ByteBuffer.allocateDirect(wholeBytesSize);
+      buf = ByteBuffer.allocateDirect(wholeBytesSize).order(ByteOrder.LITTLE_ENDIAN);
     } else {
       var seg = MemorySegment.ofAddress(address).reinterpret(wholeBytesSize);
-      buf = seg.asByteBuffer();
+      buf = seg.asByteBuffer().order(ByteOrder.LITTLE_ENDIAN);
     }
     assert buf.capacity() == wholeBytesSize;
-    var lb = buf.position(rawValiditySize).alignedSlice(Long.BYTES).asLongBuffer();
-    var bs = BitSet.valueOf(buf.position(0).limit(rawValiditySize));
+
+    var endOfData = Math.toIntExact(initialSize * 8);
+    var lb = buf.slice(0, endOfData).order(ByteOrder.LITTLE_ENDIAN).asLongBuffer();
+    assert lb.capacity() == initialSize;
+    assert lb.order() == ByteOrder.LITTLE_ENDIAN;
+    var bb = buf.slice(endOfData, buf.capacity() - endOfData);
+    var bs = BitSet.valueOf(bb);
     return new Object[] {buf, bs, lb};
   }
 
@@ -89,15 +97,14 @@ class LongBuilder extends NumericBuilder implements BuilderForLong, BuilderWithR
     newData.put(0, data, 0, toCopy);
     data = newData;
     whole = (ByteBuffer) bsAndLb[0];
-
-    newBs.or(this.isNothing);
-    isNothing = newBs;
+    newBs.or(this.validityMap);
+    validityMap = newBs;
   }
 
   @Override
   public void copyDataTo(Object[] items) {
     for (int i = 0; i < currentSize; i++) {
-      if (isNothing.get(i)) {
+      if (!validityMap.get(i)) {
         items[i] = null;
       } else {
         items[i] = data.get(i);
@@ -144,7 +151,7 @@ class LongBuilder extends NumericBuilder implements BuilderForLong, BuilderWithR
           int n = (int) longStorage.getSize();
           ensureFreeSpaceFor(n);
           data.put(currentSize, longStorage.getData(), 0, n);
-          BitSets.copy(longStorage.getIsNothingMap(), isNothing, currentSize, n);
+          BitSets.copy(longStorage.getIsNothingMap(), validityMap, currentSize, n);
           currentSize += n;
         } else {
           // No conversions needed, but we need to iterate over the items.
@@ -183,6 +190,7 @@ class LongBuilder extends NumericBuilder implements BuilderForLong, BuilderWithR
   @Override
   public LongBuilder appendLong(long value) {
     ensureSpaceToAppend();
+    this.validityMap.set(currentSize);
     this.data.put(currentSize++, value);
     return this;
   }
@@ -192,7 +200,7 @@ class LongBuilder extends NumericBuilder implements BuilderForLong, BuilderWithR
     if (index >= currentSize) {
       throw new IndexOutOfBoundsException();
     } else {
-      return isNothing.get((int) index);
+      return !validityMap.get((int) index);
     }
   }
 
@@ -212,14 +220,17 @@ class LongBuilder extends NumericBuilder implements BuilderForLong, BuilderWithR
 
   @Override
   public LongBuilder appendNulls(int count) {
-    doAppendNulls(count);
+    var end = currentSize + count;
+    validityMap.set(currentSize, end);
+    currentSize = end;
     return this;
   }
 
   @Override
   public LongBuilder append(Object o) {
     if (o == null) {
-      return appendNulls(1);
+      validityMap.set(currentSize++, false);
+      return this;
     }
 
     Long x = NumericConverter.tryConvertingToLong(o);
@@ -249,6 +260,6 @@ class LongBuilder extends NumericBuilder implements BuilderForLong, BuilderWithR
     }
     var buf = data.asReadOnlyBuffer().position(0).limit(currentSize);
     var address = MemorySegment.ofBuffer(whole).address();
-    return new LongStorage(address, buf, isNothing, getType(), otherStorage);
+    return new LongStorage(address, buf, validityMap, getType(), otherStorage);
   }
 }

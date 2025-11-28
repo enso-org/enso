@@ -35,10 +35,7 @@ public class LongStorageTest {
     assertEquals("Storage has the right size: " + storage, size, storage.getSize());
     assertNotEquals(0L, storage.rawAddress());
 
-    var off = (storage.rawCapacity() / 8 + 1) / 8 * 8;
-    var arr =
-        ctx.eval("arrow", "cast[Int64]")
-            .execute(storage.rawAddress() + off, storage.getSize(), storage.rawAddress());
+    var arr = ctx.eval("arrow", "cast[Int64]").execute(storage.rawAddress(), storage.rawCapacity());
     for (var i = 0L; i < size; i++) {
       var elem0 = storage.getItemBoxed(i);
       var value1 = arr.getArrayElement(i);

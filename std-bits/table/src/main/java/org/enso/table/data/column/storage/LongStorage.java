@@ -13,7 +13,7 @@ public final class LongStorage extends AbstractLongStorage implements ColumnStor
   // handling this just by checking the bounds
   private final long rawAddress;
   private final LongBuffer data;
-  private final BitSet isNothing;
+  private final BitSet validityMap;
 
   /** original proxy storage to keep from being garbage collected */
   private final ColumnStorage<?> proxy;
@@ -21,8 +21,8 @@ public final class LongStorage extends AbstractLongStorage implements ColumnStor
   /**
    * @param rawAddress raw address of the storage
    * @param data the underlying data
-   * @param isNothing a bit set denoting at index {@code i} whether or not the value at index {@code
-   *     i} is missing.
+   * @param validityMap a bit set denoting at index {@code i} whether or not the value at index
+   *     {@code i} is missing.
    * @param type the type specifying the bit-width of integers that are allowed in this storage
    * @param otherStorage reference to proxy storage to prevent it from being GCed while this storage
    *     is used
@@ -30,13 +30,13 @@ public final class LongStorage extends AbstractLongStorage implements ColumnStor
   public LongStorage(
       long rawAddress,
       LongBuffer data,
-      BitSet isNothing,
+      BitSet validityMap,
       IntegerType type,
       ColumnStorage<?> otherStorage) {
     super(data.limit(), type);
     this.rawAddress = rawAddress;
     this.data = data;
-    this.isNothing = isNothing;
+    this.validityMap = validityMap;
     this.proxy = otherStorage;
   }
 
@@ -60,44 +60,51 @@ public final class LongStorage extends AbstractLongStorage implements ColumnStor
     if (idx < 0 || idx >= getSize()) {
       throw new IndexOutOfBoundsException(idx);
     }
-    return isNothing.get(Math.toIntExact(idx));
+    return !validityMap.get(Math.toIntExact(idx));
   }
 
   @Override
   public BitSet getIsNothingMap() {
-    return isNothing;
+    var copy = new BitSet();
+    copy.and(validityMap);
+    copy.flip(0, copy.cardinality());
+    return copy;
   }
 
   /** Widening to a bigger type can be done without copying the data. */
   @Override
   public LongStorage widen(IntegerType widerType) {
     assert widerType.fits(getType());
-    return new LongStorage(rawAddress, data, getIsNothingMap(), widerType, proxy);
+    return new LongStorage(rawAddress, data, validityMap, widerType, proxy);
   }
 
-  /** Allow access to the underlying data array for copying. */
+  /**
+   * Allow access to the underlying data array for copying.
+   *
+   * @return
+   */
   public LongBuffer getData() {
     return data.asReadOnlyBuffer();
   }
 
   @Override
   public ColumnLongStorageIterator iteratorWithIndex() {
-    return new LongStorageIterator(data.asReadOnlyBuffer(), isNothing);
+    return new LongStorageIterator(data.asReadOnlyBuffer(), validityMap);
   }
 
-  private static class LongStorageIterator implements ColumnLongStorageIterator {
+  private static final class LongStorageIterator implements ColumnLongStorageIterator {
     private final LongBuffer data;
-    private final BitSet isNothing;
+    private final BitSet validityMap;
     private int index = -1;
 
-    public LongStorageIterator(LongBuffer data, BitSet isNothing) {
+    LongStorageIterator(LongBuffer data, BitSet validityMap) {
       this.data = data;
-      this.isNothing = isNothing;
+      this.validityMap = validityMap;
     }
 
     @Override
     public Long getItemBoxed() {
-      return isNothing.get(index) ? null : data.get(index);
+      return !validityMap.get(index) ? null : data.get(index);
     }
 
     @Override
@@ -107,7 +114,7 @@ public final class LongStorage extends AbstractLongStorage implements ColumnStor
 
     @Override
     public boolean isNothing() {
-      return isNothing.get(index);
+      return !validityMap.get(index);
     }
 
     @Override
