@@ -136,7 +136,8 @@ public class DuckDBUtils {
                   throw new IllegalArgumentException("Unsupported BigDecimal target type: " + storageType);
                 }
               }
-              case BigInteger bigInteger -> appender.append(bigInteger);
+              case BigInteger bigInteger ->
+                appender.append(new BigDecimal(bigInteger).setScale(0, RoundingMode.UNNECESSARY));
               default ->
                   throw new IllegalArgumentException(
                       "Unsupported column type: " + column.getClass());

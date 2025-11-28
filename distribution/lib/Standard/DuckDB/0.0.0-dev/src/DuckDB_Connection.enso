@@ -551,28 +551,30 @@ type DuckDB_Connection
             if self.is_in_memory.not then Context.Output.if_enabled disabled_message="As writing is disabled, cannot create a new index. Press the Write button ▶ to perform the operation." panic=False <|
                 Nothing
 
-            ## Drop existing table if needed and then create new table
-            created_table = if exists.not then self.create_table table_name table temporary=temporary else case if_exists of
-                Bulk_Load_Exists.Drop_Table ->
-                    self.drop_table table_name if_exists=True
-                    self.create_table table_name table temporary=temporary
-                Bulk_Load_Exists.Truncate_Table ->
-                    self.truncate_table table_name
-                    self.query (..Table_Name table_name)
-                Bulk_Load_Exists.Append_To_Table ->
-                    self.query (..Table_Name table_name)
+            Context.Output.with_enabled <|
+                ## Drop existing table if needed and then create new table
+                created_table = if exists.not then self.create_table table_name table temporary=temporary else case if_exists of
+                    Bulk_Load_Exists.Drop_Table ->
+                        self.drop_table table_name if_exists=True
+                        self.create_table table_name table temporary=temporary
+                    Bulk_Load_Exists.Truncate_Table ->
+                        self.truncate_table table_name
+                        self.query (..Table_Name table_name)
+                    Bulk_Load_Exists.Append_To_Table ->
+                        self.query (..Table_Name table_name)
 
-            ## Assuming we managed to create the table, proceed with upload
-            created_table.if_not_error <|
-                java_column_types = created_table.columns.map c-> case c.value_type of
-                    Value_Type.Decimal _ s ->
-                        if s>0 then BigDecimalType.new s else from_value_type c.value_type ..Ignore
-                    _ -> from_value_type c.value_type ..Ignore
-                java_table = to_java_table in_memory
-                self.jdbc_connection.with_handled_connection connection->
-                    Illegal_Argument.handle_java_exception <| Panic.catch ArithmeticException handler=(err-> Error.throw (Illegal_Argument.Error err.getMessage)) <|
-                        DuckDBUtils.append connection java_table table_name java_column_types
-                        created_table
+                ## Assuming we managed to create the table, proceed with upload
+                created_table.if_not_error <|
+                    java_column_types = created_table.columns.map c-> case c.value_type of
+                        Value_Type.Decimal _ s ->
+                            if s>0 then BigDecimalType.new s else from_value_type c.value_type ..Ignore
+                        _ -> from_value_type c.value_type ..Ignore
+                    java_table = to_java_table in_memory
+                    self.jdbc_connection.with_handled_connection connection->
+                        Illegal_Argument.handle_java_exception <| Panic.catch ArithmeticException handler=(err-> Error.throw (Illegal_Argument.Error err.getMessage)) <|
+                            DuckDBUtils.append connection java_table table_name java_column_types
+                            created_table
+
     ## ---
        private: true
        ---
