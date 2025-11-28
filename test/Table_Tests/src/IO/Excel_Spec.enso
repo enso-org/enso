@@ -1524,7 +1524,7 @@ add_specs suite_builder =
             t1.write oneMInts (..Sheet "AllTypes") . should_succeed
 
         
-        group_builder.specify 'wXrite integers 1 to 1M to xlsx to multiple sheets' pending="TODO" <|
+        group_builder.specify 'write integers 1 to 1M to xlsx to multiple sheets' pending="TODO" <|
             oneMInts = enso_project.data / "transient" / ("oneMInts.xlsx")
             oneMInts.delete_if_exists . should_succeed
             range1 = 0.up_to 1000000
