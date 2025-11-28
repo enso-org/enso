@@ -6,7 +6,7 @@ use crate::syntax::ItemConsumer;
 use crate::syntax::Tree;
 use crate::syntax::expression::ExpressionParser;
 use crate::syntax::expression::Spacing;
-use crate::syntax::expression::section::Operand;
+use crate::syntax::expression::operand::Operand;
 use crate::syntax::expression::types::Arity;
 use crate::syntax::expression::types::ModifiedPrecedence;
 use crate::syntax::expression::types::Operator;

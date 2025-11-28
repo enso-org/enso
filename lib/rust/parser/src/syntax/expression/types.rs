@@ -17,7 +17,7 @@ use std::fmt::Debug;
 // === Export ===
 // ==============
 
-pub use crate::syntax::expression::section::Operand;
+pub use crate::syntax::expression::operand::Operand;
 
 // ================
 // === Operator ===

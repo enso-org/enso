@@ -15,12 +15,6 @@ pub struct Operand<'s> {
     pub eval: bool,
 }
 
-// operand(Ident upper): deferred eval
-// operand(Ident lower): immediate eval
-// PropertyAccess upper: drop deferred eval on LHS, deferred eval
-// PropertyAccess lower: drop deferred eval on LHS, immediate eval
-// * x: drop deferred eval on LHS, deferred eval
-
 /// Unit. Creates a Operand from a node.
 impl<'s> From<Tree<'s>> for Operand<'s> {
     fn from(mut value: Tree<'s>) -> Self {

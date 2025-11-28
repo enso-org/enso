@@ -3,7 +3,7 @@ use crate::prelude::*;
 use crate::syntax::SyntaxError;
 use crate::syntax::Token;
 use crate::syntax::Tree;
-use crate::syntax::expression::section::Operand;
+use crate::syntax::expression::operand::Operand;
 use crate::syntax::maybe_with_error;
 use crate::syntax::token;
 use crate::syntax::token::TokenOperatorProperties;

@@ -11,8 +11,8 @@ use crate::syntax::expression::group::BuildGroups;
 use crate::syntax::expression::group::FlattenGroups;
 use crate::syntax::expression::named_app::ParseAppNames;
 use crate::syntax::expression::numbers::ParseNumbers;
+use crate::syntax::expression::operand::Operand;
 use crate::syntax::expression::reducer::Reduce;
-use crate::syntax::expression::section::Operand;
 use crate::syntax::expression::whitespace::PeekSpacing;
 
 // =========================

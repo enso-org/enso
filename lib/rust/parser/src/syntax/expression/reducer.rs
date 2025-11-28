@@ -5,7 +5,7 @@ use crate::syntax::expression::types::*;
 use crate::syntax::Finish;
 use crate::syntax::ScopeHierarchyConsumer;
 use crate::syntax::Tree;
-use crate::syntax::expression::section::Operand;
+use crate::syntax::expression::operand::Operand;
 use crate::syntax::token;
 use crate::syntax::tree::apply;
 
