@@ -28,8 +28,6 @@ import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
 import org.junit.ClassRule;
 import org.junit.Test;
-import org.junit.experimental.runners.Enclosed;
-import org.junit.runner.RunWith;
 
 /**
  * Tests various {@link com.oracle.truffle.api.interop.InteropLibrary interop} contracts for {@link
@@ -163,7 +161,7 @@ public class AtomInteropTest {
   }
 
   @Test
-  public void methodIsAtomMember() {
+  public void instanceMethod_IsAtomMember_Polyglot() {
     var myTypeAtom =
         ctxRule.evalModule(
             """
@@ -178,7 +176,26 @@ public class AtomInteropTest {
   }
 
   @Test
-  public void methodIsAtomMember_InteropLibrary() {
+  public void instanceMethod_IsInternalAtomMember() {
+    var myTypeAtom =
+        ctxRule.evalModule(
+            """
+            type My_Type
+                Cons a b
+                method self = 42
+
+            main = My_Type.Cons "a" "b"
+            """);
+    var interop = InteropLibrary.getUncached();
+    var atom = ctxRule.unwrapValue(myTypeAtom);
+    assertThat(
+        "Method is an internal member of the atom",
+        interop.isMemberInternal(atom, "method"),
+        is(true));
+  }
+
+  @Test
+  public void instanceMethod_IsAtomMember() {
     var myTypeAtom =
         ctxRule.evalModule(
             """
@@ -190,10 +207,23 @@ public class AtomInteropTest {
             """);
     var atom = ctxRule.unwrapValue(myTypeAtom);
     var interop = InteropLibrary.getUncached();
-    assertThat("Atom has members", interop.hasMembers(atom), is(true));
-    assertThat("Method is readable", interop.isMemberReadable(atom, "method"), is(true));
-    assertThat("Method is invocable", interop.isMemberInvocable(atom, "method"), is(true));
-    assertThat("Field is readable", interop.isMemberReadable(atom, "a"), is(true));
+    assertThat(interop.isMemberExisting(atom, "method"), is(true));
+  }
+
+  @Test
+  public void instanceMethod_IsInvocableMember() {
+    var myTypeAtom =
+        ctxRule.evalModule(
+            """
+            type My_Type
+                Cons a b
+                method self = 42
+
+            main = My_Type.Cons "a" "b"
+            """);
+    var atom = ctxRule.unwrapValue(myTypeAtom);
+    var interop = InteropLibrary.getUncached();
+    assertThat(interop.isMemberInvocable(atom, "method"), is(true));
   }
 
   @Test
@@ -228,27 +258,6 @@ public class AtomInteropTest {
     var read = interop.readMember(atom, "read");
     assertNotNull("Found read member", read);
     assertEquals("a", read.toString());
-  }
-
-  @Test
-  public void methodsAreVisibleOnTypeEvenWithPrivateConstructors() throws Exception {
-    var atom =
-        ctxRule.evalModule(
-            """
-            type My_Type
-                private Cons a
-
-                read self = self.a
-
-            main = My_Type.Cons "a"
-            """);
-    var type = ctxRule.unwrapValue(atom.getMetaObject());
-    var rawAtom = ctxRule.unwrapValue(atom);
-    var interop = InteropLibrary.getUncached();
-    var read = interop.readMember(type, "read");
-    assertNotNull("Found read member", read);
-    assertTrue("Can read", interop.isExecutable(read));
-    assertEquals("a", interop.execute(read, rawAtom).toString());
   }
 
   @Test
@@ -420,7 +429,7 @@ public class AtomInteropTest {
   }
 
   @Test
-  public void fieldIsReadable() {
+  public void fieldIsReadable() throws UnsupportedMessageException, UnknownIdentifierException {
     var myTypeAtom =
         ctxRule.evalModule(
             """
@@ -432,6 +441,8 @@ public class AtomInteropTest {
     var atom = ctxRule.unwrapValue(myTypeAtom);
     var interop = InteropLibrary.getUncached();
     assertThat("Field a is readable", interop.isMemberReadable(atom, "a"), is(true));
+    var aField = interop.readMember(atom, "a");
+    assertThat("Field is a number", interop.asInt(aField), is(1));
   }
 
   @Test
