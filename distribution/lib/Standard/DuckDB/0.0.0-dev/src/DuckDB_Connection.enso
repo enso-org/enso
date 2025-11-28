@@ -537,7 +537,7 @@ type DuckDB_Connection
     bulk_load self table:Table=(Missing_Argument.throw "table") table_name:Text=(Missing_Argument.throw "table_name") if_exists:Bulk_Load_Exists=..Raise_Error temporary:Boolean=False = case table of
         _ : DB_Table ->
             Error.throw (Illegal_Argument.Error "Cannot bulk load from a DB_Table, use `read` to materialize or use `select_into_database_table` if on same server.")
-        _ : In_Memory_Table ->
+        in_memory : In_Memory_Table ->
             ## Check for illegal column types
             removed = table.remove_columns [(..By_Type ..Null), (..By_Type ..Mixed), (..By_Type ..Unsupported_Data_Type), (..By_Type ..Binary)]
             if removed.column_count != table.column_count then Error.throw (Illegal_Argument.Error "The table contains columns with unsupported types (Null, Mixed, Binary, or Unsupported_Data_Type) that cannot be uploaded to DuckDB. Please remove or convert these columns before uploading.")
@@ -564,7 +564,7 @@ type DuckDB_Connection
             ## Assuming we managed to create the table, proceed with upload
             created_table.if_not_error <|
                 java_column_types = created_table.columns.map c-> from_value_type c.value_type
-                java_table = to_java_table table
+                java_table = to_java_table in_memory
                 handle_sql_errors = self.jdbc_connection.sql_error_handler
                 self.jdbc_connection.with_connection connection->
                     handle_sql_errors <| Illegal_Argument.handle_java_exception <| Panic.catch ArithmeticException handler=(err-> Error.throw (Illegal_Argument.Error err.getMessage)) <|

@@ -165,7 +165,7 @@ type HTTP
                 Error.throw (Request_Error.Error (Meta.type_of exception . to_text) exception.getMessage)
             Panic.catch IllegalArgumentException handler=handler <| Panic.catch IOException handler=handler
 
-        handle_request_error <| check_output_context <| check_cache_policy <| Response_Too_Large.handle_java_exception <|
+        handle_request_error <| Illegal_Argument.handle_java_exception <| check_output_context <| check_cache_policy <| Response_Too_Large.handle_java_exception <|
             headers = _resolve_headers req
             headers.if_not_error <|
                 resolved_body = _resolve_body req.body self.hash_method
