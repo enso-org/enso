@@ -40,7 +40,7 @@ import Standard.Database.SQL.SQL_Type
    The dialect of DuckDB built on top of PostgreSQL dialect.
 duckdb : DuckDB_Dialect
 duckdb =
-    parent = Postgres_Connection.dialect
+    parent = Postgres_Connection.get_dialect
     with_overrides = parent.get_dialect_operations.extend_with duckdb_overrides
     DuckDB_Dialect.Value parent with_overrides
 
@@ -621,7 +621,7 @@ replace args metadata =
     pattern = args.at 1
     replacement = args.at 2
 
-    ## `raw_pattern` is a `Text1 or `Regex`; it's the same value as `input`, but not
+    ## `raw_pattern` is a `Text` or `Regex`; it's the same value as `input`, but not
        embedded in IR.
     raw_pattern = metadata.at 0
     replace_params = metadata.at 1

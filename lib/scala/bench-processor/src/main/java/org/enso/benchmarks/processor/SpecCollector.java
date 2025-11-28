@@ -249,7 +249,11 @@ public final class SpecCollector {
     out.println(" */");
     out.println("@BenchmarkMode(Mode.AverageTime)");
     out.println("@OutputTimeUnit(TimeUnit.MILLISECONDS)");
-    out.println("@Fork(1)");
+    if (group.configuration().jvm_args() instanceof String args) {
+      out.println("@Fork(value=1, jvmArgsAppend=\"" + args + "\")");
+    } else {
+      out.println("@Fork(1)");
+    }
     out.println(getWarmupAnnotationForGroup(group));
     out.println(getMeasureAnnotationForGroup(group));
     out.println("@State(Scope.Benchmark)");

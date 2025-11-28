@@ -1,7 +1,7 @@
 use enso_prelude::*;
 
-use crate::syntax::tree;
 use crate::syntax::Tree;
+use crate::syntax::tree;
 
 // ====================
 // === MaybeSection ===

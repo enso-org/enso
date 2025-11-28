@@ -4,6 +4,7 @@ import { Button } from '#/components/Button'
 import { Dialog, Popover } from '#/components/Dialog'
 import { Form } from '#/components/Form'
 import { ComboBox } from '#/components/Inputs/ComboBox'
+import { Input } from '#/components/Inputs/Input'
 import { Menu } from '#/components/Menu'
 import { PaywallDialogButton } from '#/components/Paywall'
 import { ProfilePicture } from '#/components/ProfilePicture'
@@ -14,8 +15,8 @@ import { VisualTooltip } from '#/components/VisualTooltip'
 import { backendMutationOptions, backendQueryOptions } from '#/hooks/backendHooks'
 import { usePaywall } from '#/hooks/billing'
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
-import { NewUserGroupForm } from '#/modals/NewUserGroupForm'
 import { setModal, unsetModal } from '#/providers/ModalProvider'
+import { normalizeName } from '#/utilities/string'
 import { tv } from '#/utilities/tailwindVariants'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { useBackends, useFullUserSession, useText } from '$/providers/react'
@@ -140,7 +141,18 @@ function UserGroupsSettingsRootSection(props: UserGroupsSettingsRootSectionProps
           <TableBody items={userGroups} dependencies={[userGroups]} className="select-text">
             {userGroups.length === 0 ?
               <Row className="h-10">
-                <Cell className="col-span-2 px-2.5 placeholder">
+                <Cell
+                  ref={(el) => {
+                    if (!el) {
+                      return
+                    }
+                    // This is SAFE; `react-aria-components` simply is missing types.
+                    // This will be unnecessary when the `react-aria-components` dependency is updated as it adds support for `colSpan`.
+                    // eslint-disable-next-line no-restricted-syntax, @typescript-eslint/no-magic-numbers
+                    ;(el as HTMLTableCellElement).colSpan = 999
+                  }}
+                  className="px-2.5 placeholder"
+                >
                   {isAdmin ?
                     getText('youHaveNoUserGroupsAdmin')
                   : getText('youHaveNoUserGroupsNonAdmin')}
@@ -477,6 +489,41 @@ function UserGroupAddUserForm(props: UserGroupAddUserFormProps) {
           </Button.Group>
         </>
       )}
+    </Form>
+  )
+}
+
+/** A form to create a user group. */
+function NewUserGroupForm() {
+  const { remoteBackend: backend } = useBackends()
+  const { getText } = useText()
+  const { data: userGroups } = useSuspenseQuery(backendQueryOptions(backend, 'listUserGroups', []))
+  const userGroupNames = new Set(userGroups.map((group) => normalizeName(group.groupName)))
+  const createUserGroup = useMutationCallback(backendMutationOptions(backend, 'createUserGroup'))
+
+  return (
+    <Form
+      schema={(z) =>
+        z.object({
+          name: z
+            .string()
+            .min(1)
+            .refine(
+              (name) => !userGroupNames.has(normalizeName(name)),
+              getText('duplicateUserGroupError'),
+            ),
+        })
+      }
+      method="dialog"
+      onSubmit={({ name }) => createUserGroup([{ name }])}
+    >
+      <Text.Heading variant="subtitle">{getText('newUserGroup')}</Text.Heading>
+      <Input name="name" label={getText('name')} />
+      <Button.Group className="relative">
+        <Form.Submit />
+        <Dialog.Close variant="outline">{getText('cancel')}</Dialog.Close>
+      </Button.Group>
+      <Form.FormError />
     </Form>
   )
 }

@@ -22,10 +22,10 @@ In the example above, DOCKER_URL will use the value 'index.docker.io' if the
 Then in build scripts you can reference these by importing a custom bzl file.
 
     # Import a secret into the local BUILD.bazel environment
-    load("@env//:defs.bzl","MAVEN_REPO_USER")
+    load("@env//:defs.bzl", "getenv")
 
     # Use the value
-    sample_rule(arg=MAVEN_REPO_USER)
+    sample_rule(arg = getenv("MAVEN_REPO_USER"))
 
 """
 

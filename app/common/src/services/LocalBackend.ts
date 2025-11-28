@@ -516,10 +516,9 @@ export class LocalBackend extends backend.Backend {
       if (parentPath !== backend.extractTypeAndPath(parentDirectoryId).path) {
         throw new Error('Cannot duplicate project to a different directory on the Local Backend.')
       }
-      const asset = {
-        id: newProjectId(project.projectPath),
-        parentId: parentDirectoryId,
-        title: project.projectName,
+      const asset = await this.getAssetDetails(newProjectId(project.projectPath), undefined)
+      if (!asset) {
+        throw new Error('Could not retrieve details of duplicated project.')
       }
       return { asset }
     }
@@ -1045,6 +1044,21 @@ export class LocalBackend extends backend.Backend {
 
   /** Invalid operation. */
   override createCustomerPortalSession() {
+    return this.invalidOperation()
+  }
+
+  /** Invalid operation. */
+  override listApiKeys() {
+    return this.invalidOperation()
+  }
+
+  /** Invalid operation. */
+  override createApiKey() {
+    return this.invalidOperation()
+  }
+
+  /** Invalid operation. */
+  override deleteApiKey() {
     return this.invalidOperation()
   }
 

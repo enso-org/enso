@@ -24,8 +24,15 @@ type DB_Numeric_Column_Implementation
 
 type DB_Text_Column_Implementation
     to_case column case_option:Case=..Lower locale:Locale=Locale.default =
-        _ = [column, case_option, locale]
-        Unimplemented.throw "to_case is not implemented for database backends."
+        if locale != Locale.default then
+            Unimplemented.throw "Locale-specific to_case is not supported by database backends."
+        new_name = (naming_helper column).function_name "to_case" [column, case_option.to_text]
+        cased_column = case case_option of
+            Case.Upper -> DB_Text_Column_Implementation.upper column
+            Case.Lower -> DB_Text_Column_Implementation.lower column
+            Case.Proper -> DB_Text_Column_Implementation.proper column
+            Case.Title -> DB_Text_Column_Implementation.proper column
+        cased_column . rename new_name
 
     length column =
         Value_Type.expect_text column <|

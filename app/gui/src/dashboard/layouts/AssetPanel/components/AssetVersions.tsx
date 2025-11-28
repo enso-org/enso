@@ -112,11 +112,8 @@ function AssetVersionsInternal(props: AssetVersionsInternalProps) {
     ])
     const newAsset = newItem.asset
 
-    if (options?.start === true && item.type === AssetType.project) {
-      // This is SAFE because we know that the the new asset is a Project,
-      // because we can't create a duplicate with a different type.
-      /* eslint-disable-next-line no-restricted-syntax */
-      openProjectLocally(newAsset as ProjectAsset, backend.type)
+    if (options?.start === true && newAsset.type === AssetType.project) {
+      openProjectLocally(newAsset, backend.type)
     }
   })
 

@@ -7,7 +7,7 @@ import { useApproach } from '@/composables/animation'
 import { useComponentColors } from '@/composables/componentColors'
 import { useDoubleClick } from '@/composables/doubleClick'
 import { useGraphEditorState } from '@/providers/graphEditorState'
-import { injectGraphSelection } from '@/providers/graphSelection'
+import { useGraphSelection } from '@/providers/graphSelection'
 import { isDef } from '@vueuse/core'
 import { setIfUndefined } from 'lib0/map'
 import {
@@ -44,7 +44,7 @@ const otherNodeHovered = computed(
   (): boolean => graph.value != null && !nodeHovered.value && graph.value.nodeHovered.exists.value,
 )
 
-const selection = injectGraphSelection(true)
+const selection = useGraphSelection(true)
 const { baseColor, selected, pending } = useComponentColors(
   () => graph.value?.db,
   selection,

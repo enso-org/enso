@@ -32,6 +32,7 @@ export const FEATURE_FLAGS_SCHEMA = z.object({
   listDirectoryPageSize: z.number().int().min(1),
   dataCatalogQueryDebounceDelay: z.number().int().min(0),
   unsafeDarkTheme: z.boolean(),
+  apiKeyLimit: z.number().int().min(0),
   debugHoverAreas: z.boolean(),
 })
 
@@ -70,6 +71,7 @@ export const flagsStore = createStore<FeatureFlagsStore>()(
         listDirectoryPageSize: DEFAULT_LIST_DIRECTORY_PAGE_SIZE,
         dataCatalogQueryDebounceDelay: DEFAULT_DATA_CATALOG_QUERY_DEBOUNCE_DELAY_MS,
         unsafeDarkTheme: false,
+        apiKeyLimit: 5,
         debugHoverAreas: false,
       },
       setFeatureFlag: (key, value) => {

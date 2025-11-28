@@ -1,6 +1,7 @@
 from Standard.Base import all
 import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Runtime.Ref.Ref
+from Standard.Base.Metadata.Choice import Option
 
 import project.Internal.Widget_Helpers
 import project.Join_Condition.Join_Condition
@@ -75,6 +76,19 @@ type Spatial_Join_Condition
                 sjc
         [any_spatial.get, result]
 
+
+    ## Creates a Widget for selecting Spatial_Join_Condition
+    private default_widget left_selector right_selector =
+        intersect = Option "Intersect" "..Intersect" [["left", left_selector], ["right", right_selector]]
+        contains = Option "Contains" "..Contains" [["left", left_selector], ["right", right_selector]]
+        contains_properly = Option "Contains_Properly" "..Contains_Properly" [["left", left_selector], ["right", right_selector]]
+        within = Option "Within" "..Within" [["left", left_selector], ["right", right_selector]]
+        overlaps = Option "Overlaps" "..Overlaps" [["left", left_selector], ["right", right_selector]]
+        touches = Option "Touches" "..Touches" [["left", left_selector], ["right", right_selector]]
+        crosses = Option "Crosses" "..Crosses" [["left", left_selector], ["right", right_selector]]
+        covers = Option "Covers" "..Covers" [["left", left_selector], ["right", right_selector]]
+        covered_by = Option "Covered_By" "..Covered_By" [["left", left_selector], ["right", right_selector]]
+        Option "Spatial" [intersect, contains, contains_properly, within, overlaps, touches, crosses, covers, covered_by]
 
 ## ---
    private: true
