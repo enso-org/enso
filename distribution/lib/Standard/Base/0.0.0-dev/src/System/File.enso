@@ -38,7 +38,7 @@ from project.Error import all
 from project.Metadata.Choice import Option
 from project.Nothing import all
 from project.System.File_Format import Auto_Detect, File_Format
-from project.System.Internal.File_Helpers import all
+import project.System.Internal.File_Helpers
 
 polyglot java import java.lang.System as Java_System
 polyglot java import java.io.IOException
@@ -550,7 +550,7 @@ type File
     creation_time self =
         File_Error.handle_java_exceptions self <|
             attrs = Java_Files.readAttributes self.java_path BasicFileAttributes.class
-            file_time_to_date_time attrs.creationTime
+            File_Helpers.file_time_to_date_time attrs.creationTime
 
     ## ---
        group: Metadata
@@ -576,7 +576,7 @@ type File
     last_modified_time self =
         File_Error.handle_java_exceptions self <|
             mtime = Java_Files.getLastModifiedTime self.java_path
-            file_time_to_date_time mtime
+            File_Helpers.file_time_to_date_time mtime
 
     ## ---
        icon: metadata
@@ -681,7 +681,7 @@ type File
     is_regular_file : Boolean
     is_regular_file self =
         Data_Link_Helpers.is_regular_file self <|
-            Java_Files.isRegularFile file.java_path
+            Java_Files.isRegularFile self.java_path
 
     ## ---
        private: true
@@ -1133,7 +1133,7 @@ list_descendants file =
    relative) and rely on the `/` operator to resolve all the parts, allowing the
    data link logic to kick in.
 private resolve_local_file (path : Text) = handle_invalid_path path <|
-    local_file = get_file path
+    local_file = File_Helpers.get_file path
     is_home = path.match "^~([\\/].*|$)"
     is_absolute = local_file.is_absolute
 
@@ -1144,7 +1144,7 @@ private resolve_local_file (path : Text) = handle_invalid_path path <|
         base_part = parts.get 0 if_missing=""
 
         # Handle special case when starts with ~
-        base = if is_home.not then get_file base_part else
+        base = if is_home.not then File_Helpers.get_file base_part else
             if Enso_File.cloud_project_parent_directory == Nothing then File.home else Enso_File.home
 
         rest = parts.drop 1
