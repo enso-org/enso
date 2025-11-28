@@ -39,6 +39,22 @@ import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.runtime.util.CachingSupplier;
 import org.enso.pkg.QualifiedName;
 
+/**
+ *
+ *
+ * <h2>Interop contract</h2>
+ *
+ * _Instance method_ is a method with {@code self} parameter.
+ *
+ * <ul>
+ *   <li>Constructors are public (non-internal) members
+ *   <li>Static and instance methods are members
+ *   <li>Private methods are internal members
+ *   <li>Inherited methods are members
+ *   <li>Is a {@link InteropLibrary#isMetaObject(Object)}
+ *   <li>{@code Any} has no {@link InteropLibrary#hasMetaParents(Object)}
+ * </ul>
+ */
 @ExportLibrary(TypesLibrary.class)
 @ExportLibrary(InteropLibrary.class)
 public final class Type extends EnsoObject {
