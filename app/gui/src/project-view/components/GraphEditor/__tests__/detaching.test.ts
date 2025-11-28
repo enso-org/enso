@@ -4,7 +4,7 @@ import { Ast } from '@/util/ast'
 import * as iter from 'enso-common/src/utilities/data/iter'
 import { expect, test } from 'vitest'
 import { watchEffect } from 'vue'
-import { analyzeDetaching } from '../detaching'
+import { analyzeConnectAround } from '../detaching'
 
 function fixture(code: string) {
   const graphDb = GraphDb.Mock()
@@ -19,6 +19,7 @@ function fixture(code: string) {
 
 interface TestCase {
   description: string
+  funcParameters?: string[]
   initialNodes: string[]
   selectedNodesRange: { start: number; end: number }
   changedNodes: [number, string][]
@@ -60,46 +61,69 @@ const cases: TestCase[] = [
       'e = d.operation',
       'f = c.operation b',
       'g = 2 + e + f',
-      'h = 3 + f',
+      'h = f.write',
     ],
     selectedNodesRange: { start: 3, end: 6 },
     changedNodes: [
       [6, 'g = 2 + b + c'],
-      [7, 'h = 3 + c'],
+      [7, 'h = c.write'],
     ],
   },
   {
-    description: 'Detaching unavailable',
+    description: 'Detaching unavailable - no input',
     initialNodes: [
       'a = data',
       'b = data2',
       'c = data3',
       'd = b.operation a',
       'e = Main.collapsed',
-      'f = 2 + e + f',
-      'g = 3 + f',
+      'f = 2 + d + e',
+      'g = 3 + e',
     ],
     selectedNodesRange: { start: 3, end: 5 },
     changedNodes: [],
   },
+  {
+    description: 'Detaching unavailable - no output',
+    initialNodes: [
+      'a = data',
+      'b = data2',
+      'c = data3',
+      'd = b.operation a',
+      'e = d.operation c',
+      'f = 2 + c',
+    ],
+    selectedNodesRange: { start: 3, end: 5 },
+    changedNodes: [],
+  },
+  {
+    description: 'Reconnecting Input Node',
+    funcParameters: ['x'],
+    initialNodes: ['a = x.operation', 'b = a.write'],
+    selectedNodesRange: { start: 0, end: 1 },
+    changedNodes: [[1, 'b = x.write']],
+  },
 ]
 
 test.each(cases)(
-  'Detaching nodes from graph: $description',
-  ({ initialNodes, selectedNodesRange, changedNodes }) => {
-    const code = `main =\n    ${initialNodes.join('\n    ')}`
+  'Connecting around nodes: $description',
+  ({ initialNodes, funcParameters, selectedNodesRange, changedNodes }) => {
+    const code = `main ${funcParameters?.join(' ') ?? ''} =\n    ${initialNodes.join('\n    ')}`
     const { graphDb, func } = fixture(code)
-    const nodeIds = [...graphDb.nodeIdToNode.keys()]
+    const nodeIds = [...graphDb.nodeIdToNode.entries()]
+      .filter(([, node]) => node.type === 'component')
+      .map(([id]) => id)
     const selected = new Set(nodeIds.slice(selectedNodesRange.start, selectedNodesRange.end))
-    for (const { port, ident } of analyzeDetaching(selected, graphDb)) {
+    for (const { port, ident } of analyzeConnectAround(selected, graphDb)) {
       func.module.replace(port, Ast.Ident.new(func.module, ident))
     }
     const changedNodesMap = new Map(changedNodes)
-    ;[...graphDb.nodeIdToNode.entries()].forEach(([id, node], index) => {
+    nodeIds.forEach((id, index) => {
+      const node = graphDb.nodeIdToNode.get(id)
       if (changedNodesMap.has(index)) {
-        expect(node.outerAst.code()).toBe(changedNodesMap.get(index))
+        expect(node?.outerAst.code()).toBe(changedNodesMap.get(index))
       } else if (!selected.has(id)) {
-        expect(node.outerAst.code()).toBe(initialNodes[index])
+        expect(node?.outerAst.code()).toBe(initialNodes[index])
       }
     })
   },

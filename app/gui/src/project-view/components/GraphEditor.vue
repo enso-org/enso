@@ -75,7 +75,7 @@ import {
   watch,
   watchEffect,
 } from 'vue'
-import { analyzeDetaching } from './GraphEditor/detaching'
+import { analyzeConnectAround } from './GraphEditor/detaching'
 import { provideRenameSchedule } from './GraphEditor/widgets/WidgetFunctionName.vue'
 
 const keyboard = injectKeyboard()
@@ -194,7 +194,7 @@ watch(
   () => nodeSelection.deselectAll(),
 )
 
-const detachInfo = computed(() => analyzeDetaching(nodeSelection.selected, graphStore.db))
+const detachInfo = computed(() => analyzeConnectAround(nodeSelection.selected, graphStore.db))
 
 // === Node creation ===
 

@@ -5,7 +5,14 @@ import { isIdentifier, type AstId, type Identifier } from 'ydoc-shared/ast'
 const none: unique symbol = Symbol()
 type None = typeof none
 
-export function analyzeDetaching(selected: Set<NodeId>, graphDb: GraphDb) {
+/**
+ * Return all changes to port values for "connecting around" operation of given selected nodes.
+ *
+ * The connections going out of the `selected` group will be reconnected to their self-port
+ * input connection. If any connection could not be subsituted this way (e.g. no connection to self-port),
+ * an empty array will be returned.
+ */
+export function analyzeConnectAround(selected: Set<NodeId>, graphDb: GraphDb) {
   const knownMainSourceIdentifier = new Map<NodeId, Identifier | None>()
   const result: { port: AstId; ident: Identifier }[] = []
 
