@@ -1,5 +1,15 @@
 package org.enso.duckdb;
 
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.sql.SQLException;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.OffsetDateTime;
+import java.time.ZonedDateTime;
+import java.util.Arrays;
+import java.util.List;
 import org.duckdb.DuckDBConnection;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
@@ -12,17 +22,6 @@ import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.Table;
-
-import java.math.BigDecimal;
-import java.math.BigInteger;
-import java.sql.SQLException;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
-import java.time.OffsetDateTime;
-import java.time.ZonedDateTime;
-import java.util.Arrays;
-import java.util.List;
 
 public class DuckDBUtils {
   /**
@@ -43,25 +42,36 @@ public class DuckDBUtils {
     }
   }
 
-    /**
-     * Appends the data from the given table to the specified target table in DuckDB.
-     *
-     * @param connection      an active DuckDBConnection
-     * @param table           the source table containing data to append
-     * @param targetTableName the name of the target table in DuckDB
-     * @param targetTypes     a list of StorageType representing the types of the target table columns
-     * @return the number of rows appended
-     * @throws SQLException if a database access error occurs
-     */
-  public static long append(DuckDBConnection connection, Table table, String targetTableName, List<StorageType<?>> targetTypes) throws SQLException {
+  /**
+   * Appends the data from the given table to the specified target table in DuckDB.
+   *
+   * @param connection an active DuckDBConnection
+   * @param table the source table containing data to append
+   * @param targetTableName the name of the target table in DuckDB
+   * @param targetTypes a list of StorageType representing the types of the target table columns
+   * @return the number of rows appended
+   * @throws SQLException if a database access error occurs
+   */
+  public static long append(
+      DuckDBConnection connection,
+      Table table,
+      String targetTableName,
+      List<StorageType<?>> targetTypes)
+      throws SQLException {
     long rowCount = table.rowCount();
     if (rowCount == 0) {
       return 0;
     }
 
-    var columns = Arrays.stream(table.getColumns()).map(Column::getStorage).toArray(ColumnStorage<?>[]::new);
+    var columns =
+        Arrays.stream(table.getColumns()).map(Column::getStorage).toArray(ColumnStorage<?>[]::new);
     if (columns.length != targetTypes.size()) {
-      throw new IllegalArgumentException("Column count mismatch: table has " + columns.length + " columns, target types has " + targetTypes.size() + " types.");
+      throw new IllegalArgumentException(
+          "Column count mismatch: table has "
+              + columns.length
+              + " columns, target types has "
+              + targetTypes.size()
+              + " types.");
     }
 
     try (var appender = connection.createAppender(targetTableName)) {
@@ -81,7 +91,9 @@ public class DuckDBUtils {
                 case BITS_16 -> appender.append(toShortExact(value));
                 case BITS_32 -> appender.append(Math.toIntExact(value));
                 case BITS_64 -> appender.append(value);
-                default -> throw new IllegalArgumentException("Unsupported integer bit size: " + integerType.bits());
+                default ->
+                    throw new IllegalArgumentException(
+                        "Unsupported integer bit size: " + integerType.bits());
               }
             } else {
               // Fallback and let Appended decide if its okay
@@ -92,36 +104,38 @@ public class DuckDBUtils {
             double value = doubleStorage.getItemAsDouble(i);
             var storageType = targetTypes.get(col);
             if (storageType instanceof FloatType floatType && floatType.bits() == Bits.BITS_32) {
-                appender.append((float) value);
+              appender.append((float) value);
             } else {
-                appender.append(value);
+              appender.append(value);
             }
           } else if (column instanceof BoolStorage boolStorage) {
             appender.append(boolStorage.getItemAsBoolean(i));
           } else {
             var value = column.getItemBoxed(i);
             switch (value) {
-                case LocalDate localDate -> appender.append(localDate);
-                case LocalTime localTime -> appender.append(localTime);
-                case ZonedDateTime zonedDateTime -> {
-                  var storageType = targetTypes.get(col);
-                  if (storageType instanceof DateTimeType dateTimeType) {
-                    if (dateTimeType.hasTimeZone()) {
-                      OffsetDateTime offsetDateTime = zonedDateTime.toOffsetDateTime();
-                      appender.append(offsetDateTime);
-                    } else {
-                      LocalDateTime localDateTime = zonedDateTime.toLocalDateTime();
-                      appender.append(localDateTime);
-                    }
+              case LocalDate localDate -> appender.append(localDate);
+              case LocalTime localTime -> appender.append(localTime);
+              case ZonedDateTime zonedDateTime -> {
+                var storageType = targetTypes.get(col);
+                if (storageType instanceof DateTimeType dateTimeType) {
+                  if (dateTimeType.hasTimeZone()) {
+                    OffsetDateTime offsetDateTime = zonedDateTime.toOffsetDateTime();
+                    appender.append(offsetDateTime);
                   } else {
-                    throw new IllegalArgumentException("Unsupported DateTime target type: " + storageType);
+                    LocalDateTime localDateTime = zonedDateTime.toLocalDateTime();
+                    appender.append(localDateTime);
                   }
+                } else {
+                  throw new IllegalArgumentException(
+                      "Unsupported DateTime target type: " + storageType);
                 }
-                case String string -> appender.append(string);
-                case BigDecimal bigDecimal -> appender.append(bigDecimal);
-                case BigInteger bigInteger -> appender.append(bigInteger);
-                case null, default ->
-                  throw new IllegalArgumentException("Unsupported column type: " + column.getClass());
+              }
+              case String string -> appender.append(string);
+              case BigDecimal bigDecimal -> appender.append(bigDecimal);
+              case BigInteger bigInteger -> appender.append(bigInteger);
+              case null, default ->
+                  throw new IllegalArgumentException(
+                      "Unsupported column type: " + column.getClass());
             }
           }
         }
@@ -133,7 +147,7 @@ public class DuckDBUtils {
   }
 
   private static byte toByteExact(long value) {
-    byte value_as_byte = (byte)value;
+    byte value_as_byte = (byte) value;
     if (value_as_byte != value) {
       throw new ArithmeticException("byte overflow " + value);
     }
@@ -141,7 +155,7 @@ public class DuckDBUtils {
   }
 
   private static short toShortExact(long value) {
-    short value_as_short = (short)value;
+    short value_as_short = (short) value;
     if (value_as_short != value) {
       throw new ArithmeticException("short overflow " + value);
     }
