@@ -485,31 +485,67 @@ export class EnsoRunner implements Runner {
   }
 }
 
+function checkExecutable(filePath: string) {
+  try {
+    fs.accessSync(filePath, fs.constants.X_OK)
+  } catch {
+    throw new Error(`Enso executable at ${filePath} is not executable`)
+  }
+  return Path(filePath)
+}
+
+const ensoExecutables = (() => {
+  switch (os.platform()) {
+    case 'win32': {
+      return ['enso.exe', 'enso.bat']
+    }
+    case 'darwin':
+    case 'linux':
+    default: {
+      return ['enso']
+    }
+  }
+})()
+
+function checkExecutables(...segments: readonly string[]): Path | undefined {
+  if (!segments.includes('*')) {
+    for (const ensoExecutable of ensoExecutables) {
+      const ensoPath = path.join(...segments, ensoExecutable)
+      try {
+        fs.accessSync(ensoPath)
+        return checkExecutable(ensoPath)
+      } catch {
+        // File doesn't exist, continue searching
+      }
+    }
+    return
+  }
+  const literalSegments: string[] = []
+  let i = -1
+  for (const segment of segments) {
+    i += 1
+    if (segment === '*') {
+      const basePath = path.join(...literalSegments)
+      try {
+        for (const entry of fs.readdirSync(basePath)) {
+          const result = checkExecutables(basePath, entry, ...segments.slice(i + 1))
+          if (result) {
+            return result
+          }
+        }
+      } catch {
+        // Directory doesn't exist, continue searching
+      }
+    } else {
+      literalSegments.push(segment)
+    }
+  }
+  return
+}
+
 /** Find the path to the `enso` executable. */
 export function findEnsoExecutable(workDir: string = '.'): Path | undefined {
-  const checkExecutable = (filePath: string) => {
-    try {
-      fs.accessSync(filePath, fs.constants.X_OK)
-    } catch {
-      throw new Error(`Enso executable at ${filePath} is not executable`)
-    }
-    return Path(filePath)
-  }
-
-  const ensoExecutables = (() => {
-    switch (os.platform()) {
-      case 'win32': {
-        return ['enso.exe', 'enso.bat']
-      }
-      case 'darwin': {
-        return ['Enso', 'enso']
-      }
-      case 'linux':
-      default: {
-        return ['enso']
-      }
-    }
-  })()
+  workDir = path.resolve(workDir)
 
   // Check ENSO_ENGINE_PATH environment variable first
   const envPath = process.env.ENSO_ENGINE_PATH
@@ -522,50 +558,24 @@ export function findEnsoExecutable(workDir: string = '.'): Path | undefined {
     }
   }
 
-  const checkExecutables = (...segments: readonly string[]): Path | undefined => {
-    if (!segments.includes('*')) {
-      for (const ensoExecutable of ensoExecutables) {
-        const ensoPath = path.join(...segments, ensoExecutable)
-        try {
-          fs.accessSync(ensoPath)
-          return checkExecutable(ensoPath)
-        } catch {
-          // File doesn't exist, continue searching
-        }
-      }
-      return
-    }
-    const literalSegments: string[] = []
-    let i = -1
-    for (const segment of segments) {
-      i += 1
-      if (segment === '*') {
-        const basePath = path.join(...literalSegments)
-        try {
-          for (const entry of fs.readdirSync(basePath)) {
-            const result = checkExecutables(basePath, entry, ...segments.slice(i + 1))
-            if (result) {
-              return result
-            }
-          }
-        } catch {
-          // Directory doesn't exist, continue searching
-        }
-      } else {
-        literalSegments.push(segment)
-      }
-    }
-    return
-  }
-
-  return (
+  const executablePath = process.argv[0] ? path.dirname(process.argv[0]) : undefined
+  const directories: readonly (readonly string[])[] = [
+    // Check executable path
+    ...(executablePath ? [[executablePath, 'resources', 'enso', 'dist', '*', 'bin']] : []),
     // Check enso/dist/*/bin/enso
-    checkExecutables(path.join(workDir, 'enso', 'dist'), '*', 'bin') ??
+    [workDir, 'enso', 'dist', '*', 'bin'],
     // Check built-distribution/enso/dist/*/bin/enso
-    checkExecutables(path.join(workDir, 'built-distribution', 'enso', 'dist'), '*', 'bin') ??
+    [workDir, 'built-distribution', 'enso', 'dist', '*', 'bin'],
     // Check built-distribution/*/*/bin/enso
-    checkExecutables(path.join(workDir, 'built-distribution'), '*', '*', 'bin')
-  )
+    [workDir, 'built-distribution', '*', '*', 'bin'],
+  ]
+
+  for (const directory of directories) {
+    const result = checkExecutables(...directory)
+    if (result) {
+      return result
+    }
+  }
 }
 
 /**
@@ -699,12 +709,7 @@ export async function downloadEnsoEngine(projectRoot: string): Promise<string> {
 
   // Extract the archive
   if (extensionString === '.tar.gz') {
-    await pipeline(
-      fs.createReadStream(archivePath),
-      extract({
-        cwd: extractDir,
-      }),
-    )
+    await pipeline(fs.createReadStream(archivePath), extract({ cwd: extractDir }))
   } else {
     await extractZip(archivePath, { dir: extractDir })
   }

@@ -56,7 +56,6 @@ export async function runHybridProjectByUrl(
     }
     const cloudProjectDirectoryPath = Path(asset.ensoPath.slice(0, asset.ensoPath.lastIndexOf('/')))
     await remoteBackend.setHybridOpened(asset.id, asset.title)
-    console.log('ccc', cloudProjectDirectoryPath, asset.id, cloudProjectSessionId)
     await runLocalProjectByUuid(project.metadata.id, parentPath, {
       cloudProjectDirectoryPath,
       cloudProjectId: asset.id,
