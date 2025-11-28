@@ -28,6 +28,8 @@ import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
 import org.junit.ClassRule;
 import org.junit.Test;
+import org.junit.experimental.runners.Enclosed;
+import org.junit.runner.RunWith;
 
 /**
  * Tests various {@link com.oracle.truffle.api.interop.InteropLibrary interop} contracts for {@link
@@ -523,20 +525,6 @@ public class AtomInteropTest {
     assertThat(atom.canInvokeMember("method"), is(true));
     var res = atom.invokeMember("method");
     assertThat(res.asInt(), is(42));
-  }
-
-  @Test
-  public void instanceMethod_IsMemberOfType() {
-    var type =
-        ctxRule.evalModule(
-            """
-            type My_Type
-                Cons
-                method self = 42
-            main = My_Type
-            """);
-    assertThat(type.hasMember("method"), is(true));
-    assertThat(type.canInvokeMember("method"), is(true));
   }
 
   @Test

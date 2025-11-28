@@ -353,7 +353,7 @@ public final class TypeInteropTest {
               type My_Type
                   Cons
                   method self = 42
-              main = My_Type.Cons
+              main = My_Type
               """);
       var myType = (Type) ctxRule.unwrapValue(myTypeValue);
       assertThat(
