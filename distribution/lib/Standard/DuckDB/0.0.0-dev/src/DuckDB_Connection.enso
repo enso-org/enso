@@ -553,10 +553,10 @@ type DuckDB_Connection
 
             Context.Output.with_enabled <|
                 ## Drop existing table if needed and then create new table
-                created_table = if exists.not then self.create_table table_name table temporary=temporary else case if_exists of
+                created_table = if exists.not then self.create_table table_name table primary_key=[] temporary=temporary else case if_exists of
                     Bulk_Load_Exists.Drop_Table ->
                         self.drop_table table_name if_exists=True
-                        self.create_table table_name table temporary=temporary
+                        self.create_table table_name table primary_key=[] temporary=temporary
                     Bulk_Load_Exists.Truncate_Table ->
                         self.truncate_table table_name
                         self.query (..Table_Name table_name)
