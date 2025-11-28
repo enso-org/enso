@@ -2,7 +2,6 @@ package org.enso.interpreter.test.interop;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.allOf;
-import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.hasItem;
@@ -10,6 +9,7 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
@@ -20,9 +20,11 @@ import com.oracle.truffle.api.interop.InvalidArrayIndexException;
 import com.oracle.truffle.api.interop.UnknownIdentifierException;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.interop.UnsupportedTypeException;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 import org.enso.test.utils.ContextUtils;
+import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -33,6 +35,58 @@ import org.junit.Test;
  */
 public class AtomInteropTest {
   @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
+
+  @Test
+  public void checkAtomMembers() throws Exception {
+    final URI uri = new URI("memory://how_long.enso");
+    final Source src =
+        Source.newBuilder(
+                "enso",
+                """
+                from Standard.Base.Data.Boolean import True, False
+
+                type IntList
+                    End
+                    Head h t
+
+                    is_empty self = case self of
+                        IntList.End -> True
+                        _ -> False
+
+                    tail self = case self of
+                        IntList.Head _ t -> t
+                        _ -> IntList.End
+
+                    head self = case self of
+                        IntList.Head h _ -> h
+                        _ -> -1
+
+                list1 = IntList.Head 7 <| IntList.Head 3 <| IntList.End
+
+                """,
+                "compare.enso")
+            .uri(uri)
+            .buildLiteral();
+
+    var module = ctxRule.eval(src);
+
+    var headAtom = module.invokeMember("eval_expression", "list1");
+    var seven = module.invokeMember("eval_expression", "list1.head");
+    var three = module.invokeMember("eval_expression", "list1.tail.head");
+    var endAtom = module.invokeMember("eval_expression", "list1.tail.tail");
+
+    assertTrue("seven is number-like: " + seven, seven.fitsInInt());
+    assertTrue("three is number-like: " + three, three.fitsInInt());
+    assertFalse("list1 is not number-like: " + headAtom, headAtom.fitsInInt());
+    assertFalse("list2 is not number-like: " + endAtom, endAtom.fitsInInt());
+
+    assertEquals("seven check", 7, seven.asInt());
+    assertEquals("three check", 3, three.asInt());
+
+    assertMembers("Keys in list1", headAtom, "head", "tail", "is_empty");
+    assertMembers("Keys in list2", endAtom, "head", "tail", "is_empty");
+    assertMembers("Keys in list1", headAtom, "h", "t");
+  }
 
   @Test
   public void atomMemberNames_AreNotQualified() {
@@ -86,25 +140,6 @@ public class AtomInteropTest {
             """);
     assertThat(myTypeAtom.isMetaObject(), is(false));
     assertThat(myTypeAtom.getMetaObject().getMetaSimpleName(), is("My_Type"));
-  }
-
-  @Test
-  public void typeHasAnyAsSuperType() {
-    var myTypeAtom =
-        ctxRule.evalModule(
-            """
-            type My_Type
-                Cons
-
-            main = My_Type.Cons
-            """);
-    var myType = myTypeAtom.getMetaObject();
-    assertThat(myType.hasMetaParents(), is(true));
-    var metaParents = myType.getMetaParents();
-    assertThat(metaParents.hasArrayElements(), is(true));
-    assertThat("Has just one meta parent - Any", metaParents.getArraySize(), is(1L));
-    var anyType = metaParents.getArrayElement(0);
-    assertThat(anyType.getMetaSimpleName(), is("Any"));
   }
 
   @Test
@@ -415,6 +450,23 @@ public class AtomInteropTest {
   }
 
   @Test
+  public void privateStaticMethodIsNotAtomMember() {
+    var myTypeAtom =
+        ctxRule.evalModule(
+            """
+            type My_Type
+                Cons
+                private static_method = 42
+
+            main = My_Type.Cons
+            """);
+    assertThat(
+        "Private static method is not atom member",
+        myTypeAtom.getMemberKeys(),
+        not(hasItem(containsString("static_method"))));
+  }
+
+  @Test
   public void constructorIsNotAtomMember_InteropLibrary() {
     var myTypeAtom =
         ctxRule.evalModule(
@@ -428,25 +480,6 @@ public class AtomInteropTest {
     var atom = ctxRule.unwrapValue(myTypeAtom);
     var interop = InteropLibrary.getUncached();
     assertThat("Cons is not atom member", interop.isMemberExisting(atom, "Cons"), is(false));
-  }
-
-  @Test
-  public void typeMembersAreConstructors() {
-    var myType =
-        ctxRule.evalModule(
-            """
-            type My_Type
-                Cons_1
-                Cons_2
-
-            main = My_Type
-            """);
-    assertThat("type has constructors as members", myType.hasMembers(), is(true));
-    assertThat(myType.getMemberKeys(), containsInAnyOrder("Cons_1", "Cons_2"));
-    assertThat(
-        "Constructor (type member) is instantiable",
-        myType.getMember("Cons_1").canInstantiate(),
-        is(true));
   }
 
   @Test
@@ -507,21 +540,6 @@ public class AtomInteropTest {
   }
 
   @Test
-  public void instanceMethod_CanBeInvokedViaType() {
-    var atom =
-        ctxRule.evalModule(
-            """
-            type My_Type
-                Cons
-                method self = 42
-            main = My_Type.Cons
-            """);
-    var type = atom.getMetaObject();
-    var res = type.invokeMember("method", atom);
-    assertThat(res.asInt(), is(42));
-  }
-
-  @Test
   public void invokeVsReadAndExecute() throws Exception {
     var atom =
         ctxRule.evalModule(
@@ -566,5 +584,14 @@ public class AtomInteropTest {
       memberNames.add(memberName);
     }
     return memberNames;
+  }
+
+  private static void assertMembers(String msg, Value v, String... keys) {
+    var realKeys = v.getMemberKeys();
+    for (var k : keys) {
+      assertTrue(msg + " - found " + k + " in " + realKeys, realKeys.contains(k));
+      assertTrue(msg + " - has member " + k, v.hasMember(k));
+      assertNotNull(msg + " - can be invoked", v.invokeMember(k));
+    }
   }
 }
