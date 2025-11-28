@@ -9,7 +9,7 @@ from Standard.Base.Metadata.Widget import Multiple_Choice, Single_Choice, Text_I
 
 import Standard.Table.In_Memory_Table.In_Memory_Table
 import Standard.Table.Rows_To_Read.Rows_To_Read
-from Standard.Table import Table
+from Standard.Table import Table, Value_Type
 from Standard.Table.In_Memory_Table import to_java_table
 from Standard.Table.Internal.Storage import from_value_type
 
@@ -33,6 +33,7 @@ polyglot java import java.lang.ArithmeticException
 polyglot java import org.enso.database.JDBCDriverTypes
 polyglot java import org.enso.database.JDBCProxy
 polyglot java import org.enso.duckdb.DuckDBUtils
+polyglot java import org.enso.table.data.column.storage.type.BigDecimalType
 
 type DuckDB_Connection
     ## ---
@@ -267,7 +268,7 @@ type DuckDB_Connection
             Context.Output.with_enabled <|
                 create_table = self.execute_update query
                 create_table.if_not_error <|
-                    self.create_index as key_columns (escaped_as + '_INDEX') replace_if_present
+                    self.create_index as key_columns (as + '_INDEX') replace_if_present
 
     ## ---
        aliases: [import, load, open, read, sql]
@@ -307,9 +308,9 @@ type DuckDB_Connection
                     ## Get the spatial columns and add RTree indexes on them
                     describe = self.execute_query ('DESCRIBE "' + escaped_as + '";')
                     spatial_columns = describe.filter "column_type" (..Equal "GEOMETRY") . at "column_name" . to_vector
-                    with_spatial_indexes = spatial_columns.fold create_table t->c->
-                        if t.is_error then t else
-                            self.create_spatial_index as c replace_if_present . if_not_error t
+                    with_spatial_indexes = spatial_columns.fold as table->column->
+                        if table.is_error then table else
+                            self.create_spatial_index table column (as+"_"+column+"_RTREE_INDEX") replace_if_present
                     with_spatial_indexes.if_not_error <|
                         self.create_index as key_columns (escaped_as + '_INDEX') replace_if_present
 
@@ -371,8 +372,8 @@ type DuckDB_Connection
     @table make_table_name_selector
     @column _column_names_widget single_choice=True
     @as Text_Input display=..Always
-    create_spatial_index : Text -> Vector Text -> Text -> Boolean -> DB_Table
-    create_spatial_index self (table=Missing_Argument.throw "table") (column:Vector=Missing_Argument.throw "column") as:Text="" replace_if_present:Boolean=False =
+    create_spatial_index : Text -> Text -> Text -> Boolean -> DB_Table
+    create_spatial_index self (table=Missing_Argument.throw "table") (column:Text=Missing_Argument.throw "column") as:Text="" replace_if_present:Boolean=False =
         if self.is_in_memory.not then Context.Output.if_enabled disabled_message="As writing is disabled, cannot create a new index. Press the Write button ▶ to perform the operation." panic=False <|
             Nothing
 
@@ -383,7 +384,7 @@ type DuckDB_Connection
 
         used_as = if as=="" then table_name + column + "_INDEX" else as
         escaped_index = used_as.replace '"' '""'
-        escaped_column = column.first.replace '"' '""'
+        escaped_column = column.replace '"' '""'
         drop = if replace_if_present then 'DROP INDEX IF EXISTS "'+ escaped_index + '"; ' else ""
         base = 'CREATE INDEX "'+ escaped_index + '" ON "' + escaped_table + '" USING RTREE("' + escaped_column + '");'
 
@@ -563,11 +564,13 @@ type DuckDB_Connection
 
             ## Assuming we managed to create the table, proceed with upload
             created_table.if_not_error <|
-                java_column_types = created_table.columns.map c-> from_value_type c.value_type
+                java_column_types = created_table.columns.map c-> case c.value_type of
+                    Value_Type.Decimal _ s ->
+                        if s>0 then BigDecimalType.new s else from_value_type c.value_type ..Ignore
+                    _ -> from_value_type c.value_type ..Ignore
                 java_table = to_java_table in_memory
-                handle_sql_errors = self.jdbc_connection.sql_error_handler
-                self.jdbc_connection.with_connection connection->
-                    handle_sql_errors <| Illegal_Argument.handle_java_exception <| Panic.catch ArithmeticException handler=(err-> Error.throw (Illegal_Argument.Error err.getMessage)) <|
+                self.jdbc_connection.with_handled_connection connection->
+                    Illegal_Argument.handle_java_exception <| Panic.catch ArithmeticException handler=(err-> Error.throw (Illegal_Argument.Error err.getMessage)) <|
                         DuckDBUtils.append connection java_table table_name java_column_types
                         created_table
     ## ---

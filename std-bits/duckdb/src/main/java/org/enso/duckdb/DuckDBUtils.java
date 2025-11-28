@@ -2,6 +2,7 @@ package org.enso.duckdb;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.math.RoundingMode;
 import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -15,11 +16,7 @@ import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.DoubleStorage;
 import org.enso.table.data.column.storage.LongStorage;
-import org.enso.table.data.column.storage.type.Bits;
-import org.enso.table.data.column.storage.type.DateTimeType;
-import org.enso.table.data.column.storage.type.FloatType;
-import org.enso.table.data.column.storage.type.IntegerType;
-import org.enso.table.data.column.storage.type.StorageType;
+import org.enso.table.data.column.storage.type.*;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.Table;
 
@@ -74,7 +71,7 @@ public class DuckDBUtils {
               + " types.");
     }
 
-    try (var appender = connection.createAppender(targetTableName)) {
+    try (var appender = connection.createAppender(connection.getCatalog(), connection.getSchema(), targetTableName)) {
       for (long i = 0; i < rowCount; i++) {
         appender.beginRow();
         for (int col = 0; col < columns.length; col++) {
@@ -131,9 +128,16 @@ public class DuckDBUtils {
                 }
               }
               case String string -> appender.append(string);
-              case BigDecimal bigDecimal -> appender.append(bigDecimal);
+              case BigDecimal bigDecimal -> {
+                var storageType = targetTypes.get(col);
+                if (storageType instanceof BigDecimalType bigDecimalType) {
+                  appender.append(bigDecimal.setScale(bigDecimalType.getScale(), RoundingMode.HALF_UP));
+                } else {
+                  throw new IllegalArgumentException("Unsupported BigDecimal target type: " + storageType);
+                }
+              }
               case BigInteger bigInteger -> appender.append(bigInteger);
-              case null, default ->
+              default ->
                   throw new IllegalArgumentException(
                       "Unsupported column type: " + column.getClass());
             }
