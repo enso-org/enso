@@ -22,17 +22,7 @@ polyglot java import java.util.stream.Stream
 get_file path:Text =
     File.Value (Java_Path.of path)
 
-is_directory_builtin file:File -> Boolean =
-    Java_Files.isDirectory file.java_path
-
-is_regular_file_builtin file:File -> Boolean =
-    Java_Files.isRegularFile file.java_path
-
-resolve_builtin file:File part:Text -> File =
-    new_path = file.java_path.resolve part
-    File.Value new_path
-
-delete_builtin file:File recursive:Boolean =
+delete file:File recursive:Boolean =
     should_delete_recursively = recursive && is_dir file
     if should_delete_recursively then delete_recursively file.java_path else
         Java_Files.delete file.java_path

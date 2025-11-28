@@ -265,7 +265,7 @@ type File
                 Java_Files.newInputStream file.java_path opts
             Input_Stream.new stream (File_Error.handle_java_exceptions self) associated_source=self
 
-        if (is_directory_builtin self) then Error.throw (File_Error.IO_Error self "File '"+self.path+"' is a directory") else
+        if (_is_directory self) then Error.throw (File_Error.IO_Error self "File '"+self.path+"' is a directory") else
             open_as_data_link = (open_options.contains Data_Link_Access.No_Follow . not) && (self.is_data_link)
             if open_as_data_link then Data_Link_Helpers.read_data_link_as_stream self open_options action else
                 # We ignore the Data_Link_Access options at this stage:
@@ -433,7 +433,8 @@ type File
     resolve_single_part self part:Text -> Any =
         if self.is_data_link then Data_Link_Helpers.interpret_data_link_target_as_file self . resolve_single_part part else
             handle_invalid_path part <|
-                resolve_builtin self part
+                new_path = self.java_path.resolve part
+                File.Value new_path
 
     ## ---
        private: true
@@ -625,7 +626,7 @@ type File
        link is a directory.
     is_directory : Boolean
     is_directory self =
-        Data_Link_Helpers.is_directory self (is_directory_builtin self)
+        Data_Link_Helpers.is_directory self (_is_directory self)
 
     ## ---
        group: Output
@@ -679,13 +680,14 @@ type File
        link is a regular file.
     is_regular_file : Boolean
     is_regular_file self =
-        Data_Link_Helpers.is_regular_file self (is_regular_file_builtin self)
+        Data_Link_Helpers.is_regular_file self <|
+            Java_Files.isRegularFile file.java_path
 
     ## ---
        private: true
        ---
     is_data_link self -> Boolean =
-        (is_directory_builtin self).not && Data_Link.is_data_link_name self.name
+        (_is_directory self).not && Data_Link.is_data_link_name self.name
 
     ## ---
        group: Metadata
@@ -881,7 +883,7 @@ type File
     delete : Boolean -> Nothing ! File_Error
     delete self (recursive : Boolean = False) -> Nothing ! File_Error =
         Context.Output.if_enabled disabled_message="As writing is disabled, cannot delete file. Press the Write button ▶ to perform the operation." panic=False <|
-            File_Error.handle_java_exceptions self (delete_builtin self recursive)
+            File_Error.handle_java_exceptions self (File_Helpers.delete self recursive)
 
     ## ---
        icon: data_output
@@ -1038,7 +1040,7 @@ type File
     list : Text -> Boolean -> Vector File
     list self name_filter:Text="" recursive:Boolean=False = 
         if self.is_data_link then Data_Link_Helpers.interpret_data_link_target_as_file self . list name_filter=name_filter recursive=recursive else
-            if (is_directory_builtin self).not then Error.throw (Illegal_Argument.Error "Cannot `list` a non-directory.") else
+            if (_is_directory self).not then Error.throw (Illegal_Argument.Error "Cannot `list` a non-directory.") else
                 all_files = if recursive then list_descendants self else self.list_immediate_children
                 filtered_files = case name_filter of
                     "" -> all_files
@@ -1200,6 +1202,9 @@ Writable_File.from (that : File) = if that.is_data_link then Data_Link_Helpers.i
    private: true
    ---
 Data_Link_From_File.from (that : File) = Data_Link_From_File.Value that
+
+private _is_directory file:File -> Boolean =
+    Java_Files.isDirectory file.java_path
 
 private _local_file_copy (source : File) (destination : File) (replace_existing : Boolean) -> Nothing =
     File_Error.handle_java_exceptions source <|
