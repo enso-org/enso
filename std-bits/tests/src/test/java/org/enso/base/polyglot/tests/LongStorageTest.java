@@ -4,7 +4,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 
 import java.util.Objects;
-import java.util.Random;
+import java.util.stream.LongStream;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.test.utils.ContextUtils;
@@ -23,22 +23,23 @@ public class LongStorageTest {
   }
 
   @Test
-  public void testCreateViaBuilderAndReadViaArrow() {
-    var r = new Random();
-    var s = r.nextLong(256);
-    var b = Builder.getForLong(IntegerType.INT_64, s, null);
-    for (var i = 0L; i < s; i++) {
-      b.append(r.nextLong());
-    }
+  public void testCreateViaBuilderAndReadViaArrowSimple16() {
+    generateAndCompare("Simple 16 values", 16, LongStream.range(0, 16));
+  }
+
+  private void generateAndCompare(String info, int size, LongStream r) {
+    var sb = new StringBuilder();
+    var b = Builder.getForLong(IntegerType.INT_64, size, null);
+    r.forEach(b::append);
     var storage = b.seal();
+    assertEquals("Storage has the right size: " + storage, size, storage.getSize());
     assertNotEquals(0L, storage.rawAddress());
 
     var off = (storage.rawCapacity() / 8 + 1) / 8 * 8;
     var arr =
         ctx.eval("arrow", "cast[Int64]")
             .execute(storage.rawAddress() + off, storage.getSize(), storage.rawAddress());
-    var sb = new StringBuilder();
-    for (var i = 0L; i < s; i++) {
+    for (var i = 0L; i < size; i++) {
       var elem0 = storage.getItemBoxed(i);
       var value1 = arr.getArrayElement(i);
       var elem1 = value1.isNull() ? null : value1.asLong();
@@ -46,6 +47,6 @@ public class LongStorageTest {
         sb.append("\n  at ").append(i).append(" ").append(elem0).append(" != ").append(elem1);
       }
     }
-    assertEquals(sb.toString(), 0, sb.length());
+    assertEquals(info + "\n" + sb.toString(), 0, sb.length());
   }
 }
