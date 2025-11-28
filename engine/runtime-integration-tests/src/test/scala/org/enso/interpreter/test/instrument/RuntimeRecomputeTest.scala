@@ -2,6 +2,7 @@ package org.enso.interpreter.test.instrument
 
 import org.apache.commons.io.output.TeeOutputStream
 import org.enso.common.{LanguageInfo, MethodNames, RuntimeOptions}
+import org.enso.compiler.core.ConstantsNames
 import org.enso.interpreter.runtime.EnsoContext
 import org.enso.interpreter.runtime.`type`.ConstantsGen
 import org.enso.interpreter.test.Metadata
@@ -1299,7 +1300,7 @@ class RuntimeRecomputeTest
           Api.MethodPointer(
             "Standard.Base.Any",
             "Standard.Base.Any.Any",
-            "to_text"
+            ConstantsNames.TO_TEXT
           ),
           Vector()
         )
@@ -1312,7 +1313,7 @@ class RuntimeRecomputeTest
           Api.MethodPointer(
             "Standard.Base.Any",
             "Standard.Base.Any.Any",
-            "to_text"
+            ConstantsNames.TO_TEXT
           ),
           Vector()
         )
@@ -1385,7 +1386,7 @@ class RuntimeRecomputeTest
             Api.MethodPointer(
               "Standard.Base.Any",
               "Standard.Base.Any.Any",
-              "to_text"
+              ConstantsNames.TO_TEXT
             ),
             Vector()
           )
@@ -1402,7 +1403,7 @@ class RuntimeRecomputeTest
             Api.MethodPointer(
               "Standard.Base.Any",
               "Standard.Base.Any.Any",
-              "to_text"
+              ConstantsNames.TO_TEXT
             ),
             Vector()
           )
@@ -1458,7 +1459,7 @@ class RuntimeRecomputeTest
             Api.MethodPointer(
               "Standard.Base.Any",
               "Standard.Base.Any.Any",
-              "to_text"
+              ConstantsNames.TO_TEXT
             ),
             Vector()
           )
