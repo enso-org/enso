@@ -186,7 +186,8 @@ class SignedHttpClient extends HttpClient {
     var credentials = credentialsProvider.resolveCredentials();
 
     // Create signing string
-    String dateStamp = ZonedDateTime.now(ZoneId.of("UTC")).format(DateTimeFormatter.ofPattern("yyyyMMdd"));
+    String dateStamp =
+        ZonedDateTime.now(ZoneId.of("UTC")).format(DateTimeFormatter.ofPattern("yyyyMMdd"));
     String scope = dateStamp + "/" + regionName + "/" + serviceName + "/" + TERMINATOR;
     String toSign =
         String.join(
