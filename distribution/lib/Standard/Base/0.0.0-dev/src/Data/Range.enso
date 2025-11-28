@@ -59,7 +59,7 @@ type Range
              0.up_to 10 . with_step 2 . to_vector == [0, 2, 4, 6, 8]
        ```
 
-       ### Create a a decreasing range of even numbers from 10 to 0 (exclusive).
+       ### Create a decreasing range of even numbers from 10 to 0 (exclusive).
 
        ```
              10.down_to 0 . with_step 2 . to_vector == [10, 8, 6, 4, 2]

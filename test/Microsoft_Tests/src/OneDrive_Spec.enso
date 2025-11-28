@@ -1,0 +1,50 @@
+from Standard.Base import all
+from Standard.Test import all
+from Standard.Microsoft import all
+
+import enso_dev.Cloud_Tests.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setup
+
+add_specs suite_builder setup:Cloud_Tests_Setup =
+    suite_builder.group "OneDrive read" pending=setup.real_cloud_pending group_builder->
+        get_child dir name =
+            files = dir.list
+            child_index = files . map .name . index_of name
+            files.at child_index
+
+        get_test_root =
+            path = "enso://~/Microsoft365_ci_test_credential"
+            secret = Enso_Secret.get path
+            root = OneDrive.root secret
+            get_child (get_child root "test_data") "OneDrive_Spec"
+
+        group_builder.specify "Can read a top-level file from OneDrive" <|
+            a_child = get_child get_test_root "a.txt"
+            a_child . read . should_equal 'aaa\n'
+            b_child = get_child get_test_root "b.txt"
+            b_child . read . should_equal 'bbbb\n'
+
+        group_builder.specify "Can read a file in a subfolder from OneDrive" <|
+            c = get_child get_test_root "c"
+            d = get_child c "d"
+            get_child c "c.txt" . read . should_equal 'ccccc\n'
+            get_child d "d.txt" . read . should_equal 'dddddd\n'
+
+        group_builder.specify "Can read a csv file from OneDrive" <|
+            table = get_child get_test_root "e.csv" . read
+            table.columns.map .name . should_equal ["abc", "def", "gh", "ijkl"]
+            table.at 0 . to_vector . should_equal [12, 14]
+            table.at 1 . to_vector . should_equal [13, 15]
+            table.at 2 . to_vector . should_equal ['yes', 'asdf']
+            table.at 3 . to_vector . should_equal ['no', 'zxcv']
+
+        group_builder.specify "Can list root files OneDrive" <|
+            get_test_root . list . map .name . should_equal ["c", "a.txt", "b.txt", "e.csv"]
+
+        group_builder.specify "Can list subfolder files OneDrive" <|
+            get_child get_test_root "c" . list . map .name . should_equal ["d", "c.txt"]
+
+main filter=Nothing =
+    setup = Cloud_Tests_Setup.prepare
+    suite = Test.build suite_builder->
+        add_specs suite_builder setup
+    suite.run_with_filter filter

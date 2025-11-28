@@ -1,0 +1,52 @@
+private
+
+from Standard.Base import all
+from Standard.Table import Column
+from Standard.Generic_JDBC import Generic_JDBC_Connection
+from Standard.Test import Bench
+
+options = Bench.options . set_warmup (Bench.phase_conf 3 5) . set_measure (Bench.phase_conf 1 5)
+dual_jvm_options = options . set_jvm_args "-Dpolyglot.enso.classLoading=Standard.Generic_JDBC:guest,hosted"
+
+
+type Seq
+    private Value ~column
+
+    create times count =
+        Seq.Value (Seq.generate times count)
+
+    private insert_numbers conn arr =
+        values = (arr.map \n->'('+n.to_text+')') . join ','
+        conn.execute 'INSERT INTO seq VALUES '+values
+        Nothing
+
+    private generate times count -> Column =
+        dir = Meta.Enso_Project.enso_project.data
+        db = dir.create_directory / "seq.db"
+        if db.exists then
+            db.delete
+
+        jdbc = Generic_JDBC_Connection.connect 'jdbc:sqlite:'+db.to_text
+        jdbc.execute 'CREATE TABLE seq (number INTEGER)'
+        0.up_to times-1 . map t->
+            numbers = 1.up_to count . map (+ t*count)
+            Seq.insert_numbers jdbc numbers
+
+        t = jdbc.read (..Table_Name 'seq') ..All_Rows
+        c = t:Column
+        m = c . compute ..Mean
+        Runtime.assert (m == 45000) "Properly computed mean, was: "+m.to_text
+        c
+
+collect_benches = Bench.build builder->
+    million = Seq.create 10 10000
+
+    builder.group "Single_JVM_Generic_JDBC" options group_builder->
+        group_builder.specify "mean" <|
+            million.column . compute ..Mean
+
+    builder.group "Dual_JVM_Generic_JDBC" dual_jvm_options group_builder->
+        group_builder.specify "mean" <|
+            million.column . compute ..Mean
+
+main = collect_benches . run_main

@@ -14,13 +14,20 @@ import project.Enso_Cloud.Errors.Missing_Data_Link_Library
 import project.Enso_Cloud.Internal.Existing_Enso_Asset.Existing_Enso_Asset
 import project.Enso_Cloud.Internal.Utils
 import project.Errors.Common.No_Such_Conversion
+import project.Errors.File_Error.File_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.Illegal_State.Illegal_State
 import project.Errors.Problem_Behavior.Problem_Behavior
 import project.Errors.Unimplemented.Unimplemented
 import project.Meta
+import project.Network.HTTP.HTTP
 import project.Network.HTTP.HTTP_Method.HTTP_Method
+import project.Network.HTTP.Internal.HTTP_Fetch_Data_Link.HTTP_Fetch_Data_Link
+import project.Network.URI.URI
 import project.Runtime
+import project.Runtime.Context
+import project.Runtime.Managed_Resource.Managed_Resource
+import project.System.File.File
 import project.System.File.File_Access.File_Access
 import project.System.File.Generic.File_Like.File_Like
 import project.System.File.Generic.Writable_File.Writable_File
@@ -277,3 +284,70 @@ is_regular_file file ~check_file_directly =
             target = interpret_data_link_target_as_file_or_nothing file
             if target.is_nothing then False else target.is_regular_file
         False -> check_file_directly
+
+## ---
+   private: true
+   ---
+   A common implementation for getting a file like resource. If the path is
+   not a local file, then a temporary file be created and after execution has
+   finished, it will be deleted.
+
+   ## Arguments
+    - `path`: The path to the resource. Can be a `Text`, `File`, `URI`, or
+      other file-like object.
+    - `action`: A function that takes a `File` and performs an action with it.
+as_file path action = case path of
+    _ : Text ->
+        resolved = URI.parse_if_http path . if_nothing <| File.new path
+        as_file resolved action
+    _ : File ->
+        ## Need to see if a data link otherwise return the file
+        if path.exists.not then Error.throw (File_Error.Not_Found path)
+        if path.is_directory then Error.throw (Illegal_Argument.Error "Cannot use a directory, pass a file.")
+        if path.is_data_link.not then action path else
+            as_file (interpret_data_link_target_as_file path) action
+    _ : URI ->
+        ## Fetch the resource and save it to a temporary file
+        ## Best guess filename
+        response = HTTP.fetch path method=..Get headers=[] cache_policy=..Default
+        handle_response_as_file response path action
+    _ ->
+        ## Something that is file like
+        file_like = File.new path
+        if file_like.is_a File then as_file file_like action else
+            ## Copy the file to a temporary file
+            name_ext = split_file_name file_like.name
+            temp_file = File.create_temporary_file name_ext.first name_ext.second
+            written_file = Context.Output.with_enabled <| file_like.copy_to temp_file replace_existing=True
+            Managed_Resource.bracket written_file cleanup_tmp_file (f-> as_file f action)
+
+private handle_response_as_file response path action =
+    case Data_Link.is_data_link_from_metadata response.body.metadata of
+        True ->
+            ## Data link, interpret it
+            data_link = interpret_json_as_data_link response.decode_as_json
+            case data_link of
+                _ : HTTP_Fetch_Data_Link ->
+                    inner_response = HTTP.new.request data_link.request
+                    handle_response_as_file inner_response data_link.request.uri action
+                _ ->
+                    target_file = File_Like_Data_Link.find data_link
+                    as_file target_file.as_file action
+        False ->
+            ## Not a data link, save to temporary file
+            uri_path = path.path.split '/' . last
+            name_ext = split_file_name uri_path
+            temp_file = File.create_temporary_file name_ext.first name_ext.second
+            written_file = Context.Output.with_enabled <|
+                response.write temp_file ..Overwrite
+            Managed_Resource.bracket written_file cleanup_tmp_file (f-> as_file f action)
+
+private cleanup_tmp_file file =
+    Context.Output.with_enabled <|
+        file.delete_if_exists
+
+private split_file_name file_name =
+    split_index = file_name.last_index_of "."
+    if split_index.is_nothing then [file_name, ""] else
+        [file_name.take (..First split_index), file_name.drop (..First split_index)]
+

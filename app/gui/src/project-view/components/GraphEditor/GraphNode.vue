@@ -37,7 +37,7 @@ import type { ActionHandler, DisplayableActionName } from '@/providers/action'
 import { registerHandlers, toggledAction } from '@/providers/action'
 import { injectGraphNavigator } from '@/providers/graphNavigator'
 import { injectNodeColors } from '@/providers/graphNodeColors'
-import { injectGraphSelection } from '@/providers/graphSelection'
+import { useGraphSelection } from '@/providers/graphSelection'
 import { providePopoverRoot } from '@/providers/popoverRoot'
 import { provideResizableWidgetRegistry } from '@/providers/resizableWidgetRegistry'
 import { provideWidgetControlledActions } from '@/providers/widgetActions'
@@ -78,7 +78,7 @@ const emit = defineEmits<{
   'update:visualizationHeight': [height: number]
 }>()
 
-const nodeSelection = injectGraphSelection(true)
+const nodeSelection = useGraphSelection(true)
 const projectStore = useProjectStore()
 const graph = useGraphStore()
 const { module } = useCurrentProject()
@@ -107,7 +107,6 @@ providePopoverRoot(rootNode)
 const { visibleMessage, hiddenMessage } = useNodeMessage({
   projectStore,
   graphDb: graph.db,
-  passEvents: () => outputVisible.value,
   expand: () => nodeHovered.value || selected.value,
   nodeId,
 })
@@ -175,7 +174,6 @@ function ensureSelected() {
   }
 }
 
-const outputVisible = computed(() => graph.nodeOutputVisible.get(nodeId.value))
 const outputHovered = computed(() => graph.nodeOutputHovered.get(nodeId.value))
 
 const scale = computed(() => navigator?.scale ?? 1)

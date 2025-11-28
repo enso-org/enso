@@ -202,6 +202,11 @@ const displayableActions = {
     description: 'Navigate Up',
     shortcut: graphBindings.bindings['graph.navigateUp'],
   },
+  'graph.deleteSelectedEdge': {
+    icon: 'trash',
+    description: 'Delete Selected Connection',
+    shortcut: graphBindings.bindings['graph.deleteSelectedEdge'],
+  },
 
   // === File Browser ===
 

@@ -8,6 +8,13 @@ type OneDrive_Path
     ## ---
        private: true
        ---
+    parent self =
+        if self.path.length == 0 then Nothing else
+            OneDrive_Path.Value (self.path.drop (..Last 1))
+
+    ## ---
+       private: true
+       ---
     extend self subpath:Text =
         OneDrive_Path.Value (self.path + [subpath])
 

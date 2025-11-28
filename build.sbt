@@ -352,6 +352,7 @@ lazy val enso = (project in file("."))
     `logging-utils-akka`,
     `netty-epoll-native-wrapper`,
     `netty-tc-native-wrapper`,
+    `netty-resolver-dns-native-macos-wrapper`,
     `opencv-wrapper`,
     `os-environment`,
     `os-environment-lib`,
@@ -403,6 +404,7 @@ lazy val enso = (project in file("."))
     `std-microsoft`,
     `std-snowflake`,
     `std-table`,
+    `std-tests`,
     `std-tableau`,
     `std-saas`,
     `std-duckdb`,
@@ -4237,6 +4239,7 @@ lazy val `engine-runner` = project
               "com.google",
               "io.grpc",
               "io.netty.util.concurrent.AbstractScheduledEventExecutor",
+              "io.netty.resolver.dns",
               "io.opencensus",
               "net.snowflake.client",
               "com.sun.jna",
@@ -5047,10 +5050,12 @@ lazy val downloader = (project in file("lib/scala/downloader"))
     ),
     Compile / internalModuleDependencies := Seq(
       (`cli` / Compile / exportedModule).value,
+      (`engine-common` / Compile / exportedModule).value,
       (`scala-libs-wrapper` / Compile / exportedModule).value
     )
   )
   .dependsOn(cli)
+  .dependsOn(`engine-common`)
   .dependsOn(`http-test-helper` % "test->test")
   .dependsOn(testkit % Test)
 
@@ -5556,6 +5561,26 @@ lazy val `std-table` = project
   .dependsOn(`poi-wrapper`)
   .dependsOn(`std-base` % "provided")
 
+lazy val `std-tests` = project
+  .in(file("std-bits") / "tests")
+  .configs(Test)
+  .settings(
+    frgaalJavaCompilerSetting,
+    commands += WithDebugCommand.withDebug,
+    Test / fork := true,
+    autoScalaLibrary := false,
+    Compile / compile / compileInputs := (Compile / compile / compileInputs)
+      .dependsOn(SPIHelpers.ensureSPIConsistency)
+      .value,
+    libraryDependencies ++= Seq(
+      "junit"          % "junit"           % junitVersion   % Test,
+      "com.github.sbt" % "junit-interface" % junitIfVersion % Test
+    )
+  )
+  .dependsOn(`std-base`)
+  .dependsOn(`std-table`)
+  .dependsOn(`test-utils`)
+
 lazy val `opencv-wrapper` = project
   .in(file("lib/java/opencv-wrapper"))
   .enablePlugins(JarExtractPlugin)
@@ -5669,6 +5694,49 @@ lazy val `netty-epoll-native-wrapper` = project
     inputJar := "io.netty" % "netty-transport-native-epoll" % "4.1.118.Final",
     jarExtractor := JarExtractor(
       "**/libnetty_transport_native_epoll_x86_64.so" -> PolyglotLib(LinuxAMD64)
+    )
+  )
+
+// Native lib only for Mac
+// For other platforms, the output directory should be empty.
+lazy val `netty-resolver-dns-native-macos-wrapper` = project
+  .in(file("lib/java/resolver-dns-native-wrapper"))
+  .enablePlugins(JarExtractPlugin)
+  .settings(
+    libraryDependencies ++= Seq(
+      "io.netty"  % "netty-resolver-dns-native-macos" % "4.1.118.Final",
+      ("io.netty" % "netty-resolver-dns-native-macos" % "4.1.118.Final")
+        .classifier("osx-aarch_64")
+    ),
+    // Correct jar needs to be selected manually, because filtering modules does not
+    // normally work for classifiers.
+    inputJarResolved := {
+      val nettyResolverNativeJars = JPMSUtils.filterModulesFromUpdate(
+        updateReport = (Compile / update).value,
+        modules = Seq(
+          ("io.netty" % "netty-resolver-dns-native-macos" % "4.1.118.Final")
+            .classifier("osx-aarch_64")
+        ),
+        log                = streams.value.log,
+        projName           = moduleName.value,
+        scalaBinaryVersion = scalaBinaryVersion.value,
+        shouldContainAll   = true
+      )
+      val nativeJar = nettyResolverNativeJars.filter { jar =>
+        jar.name.contains("osx-aarch_64")
+      }
+      if (nativeJar.size != 1) {
+        throw new IllegalStateException(
+          s"Expected exactly one netty resolver dns native jar for macos-aarch_64, but found: ${nativeJar
+            .mkString(", ")}"
+        )
+      }
+      nativeJar.head
+    },
+    jarExtractor := JarExtractor(
+      "META-INF/native/libnetty_resolver_dns_native_macos_aarch_64.jnilib" -> PolyglotLib(
+        MacOSArm64
+      )
     )
   )
 
@@ -6187,10 +6255,12 @@ lazy val `std-microsoft` = project
           polyglotLibDir = Some(`std-microsoft-native-libs`),
           extractedNativeLibsDirs = Seq(
             (`jna-wrapper-extracted` / extractedFilesDir).value,
-            (`netty-tc-native-wrapper` / extractedFilesDir).value
+            (`netty-tc-native-wrapper` / extractedFilesDir).value,
+            (`netty-resolver-dns-native-macos-wrapper` / extractedFilesDir).value
           ),
           // `netty-tc-native-wrapper / thinJarOutput` is not here on purpose.
           // It is an almost empty jar anyway.
+          // The same is true for `netty-resolver-dns-native-macos-wrapper / thinJarOutput`.
           extraJars = Seq(
             (`jna-wrapper-extracted` / thinJarOutput).value
           ),
@@ -6353,6 +6423,9 @@ lazy val `std-saas` = project
       .value,
     Compile / packageBin / artifactPath :=
       `std-saas-polyglot-root` / "std-saas.jar",
+    libraryDependencies ++= Seq(
+      "org.apache.commons" % "commons-email" % commonsEmailVersion
+    ),
     Compile / packageBin := {
       val result            = (Compile / packageBin).value
       val cacheStoreFactory = streams.value.cacheStoreFactory
