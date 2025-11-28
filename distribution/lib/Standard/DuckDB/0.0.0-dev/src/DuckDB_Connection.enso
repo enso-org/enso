@@ -476,6 +476,57 @@ type DuckDB_Connection
         self.connection.execute query
 
     ## ---
+       icon: data_upload
+       ---
+       Upload a Table to a new table in the database in the current schema.
+
+       ## Arguments:
+       - `table`: The input table to upload.
+       - `table_name`: The name of the table to create.
+       - `if_exists`: What action to take if the table already exists. Defaults to
+          raising a `Table_Already_Exists` error.
+           - `Raise_Error` - a `Table_Already_Exists` error will be raised.
+           - `Drop_Table` - the existing table will be dropped before creating the new one.
+           - `Truncate_Table` - the existing table will be truncated before loading data into it.
+           - `Append_Data` - data will be appended to the existing table.
+       - `temporary`: If set to `True`, the created table will be temporary.
+          Defaults to `False`.
+
+       ## Returns
+       A `DB_Table` representing the created table.
+    bulk_load : Table -> Text -> Bulk_Load_Exists -> Boolean -> Table & DB_Table ! Table_Already_Exists
+    bulk_load self table:Table=(Missing_Argument.throw "table") table_name:Text=(Missing_Argument.throw "table_name") if_exists:Bulk_Load_Exists=..Raise_Error temporary:Boolean=False = case table of
+        _ : DB_Table ->
+            Error.throw (Illegal_Argument.Error "Cannot bulk load from a DB_Table, use `read` to materialize or use `select_into_database_table` if on same server.")
+        _ : In_Memory_Table ->
+            ## Check for illegal column types
+            removed = table.remove_columns [(..By_Type ..Null), (..By_Type ..Mixed), (..By_Type ..Unsupported_Data_Type), (..By_Type ..Binary)]
+            if removed.column_count != table.column_count then Error.throw (Illegal_Argument.Error "The table contains columns with unsupported types (Null, Mixed, Binary, or Unsupported_Data_Type) that cannot be uploaded to DuckDB. Please remove or convert these columns before uploading.")
+
+            ## Check if table exists
+            exists = self.query (..Table_Name table_name) . is_error . not
+            if exists && if_exists==Bulk_Load_Exists.Raise_Error then Error.throw (Table_Already_Exists.Error table_name)
+
+            ## Check Execution Context
+            if self.is_in_memory.not then Context.Output.if_enabled disabled_message="As writing is disabled, cannot create a new index. Press the Write button ▶ to perform the operation." panic=False <|
+                Nothing
+
+            ## Drop existing table if needed and then create new table
+            created_table = if exists.not then self.create_table table_name table temporary=temporary else case if_exists of
+                Bulk_Load_Exists.Drop_Table ->
+                    self.drop_table table_name if_exists=True
+                    self.create_table table_name table temporary=temporary
+                Bulk_Load_Exists.Truncate_Table ->
+                    self.truncate_table table_name
+                    self.query (..Table_Name table_name)
+                Bulk_Load_Exists.Append_Data ->
+                    self.query (..Table_Name table_name)
+
+            ## Assuming we managed to create the table, proceed with upload
+            created_table.if_not_error <|
+                Error.throw (Illegal_Argument.Error "PlaceHolder: Bulk load implementation is not yet available for DuckDB.")
+
+    ## ---
        private: true
        ---
        Access the dialect.
