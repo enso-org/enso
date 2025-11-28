@@ -393,7 +393,7 @@ type SQLite_Dialect
     ## ---
        private: true
        ---
-       Returns true if the `replace` parameters are suppoerted by this backend.
+       Returns true if the `replace` parameters are supported by this backend.
     if_replace_params_supports : Replace_Params -> Any -> Any
     if_replace_params_supports self replace_params ~action =
         if supported_replace_params.contains replace_params then action else replace_params.throw_unsupported "SQLite"

@@ -82,7 +82,6 @@ handle_legacy_format (method_name : Text) (new_argument_name : Text) format = ca
         Warning.attach warning new_format
     _ -> format
 
-
 type Data_List_Default_Impl
 
 Return_As.SPI.from (that : Data_List_Default_Impl) =

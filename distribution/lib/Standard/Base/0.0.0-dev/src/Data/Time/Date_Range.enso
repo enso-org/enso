@@ -79,7 +79,7 @@ type Date_Range
              (Date.new 2020 1 1).up_to (Date.new 2020 12 31) . with_step Date_Period.Month
        ```
 
-       ### Create a a decreasing range of every other day between two dates.
+       ### Create a decreasing range of every other day between two dates.
 
        ```
              (Date.new 2022 10 23).down_to (Date.new 2022 10 1) . with_step (Period.new days=2)

@@ -18,18 +18,11 @@ interface NodeMessageOptions {
   projectStore: ProjectStore
   graphDb: GraphDb
   expand: ToValue<boolean>
-  passEvents: ToValue<boolean>
   nodeId: ToValue<NodeId>
 }
 
 /** Composable managing messages (warnings, errors, etc.) associated with a node. */
-export function useNodeMessage({
-  projectStore,
-  graphDb,
-  expand,
-  passEvents,
-  nodeId,
-}: NodeMessageOptions) {
+export function useNodeMessage({ projectStore, graphDb, expand, nodeId }: NodeMessageOptions) {
   const inputExternalIds = computed(() => {
     const externalIds = new Array<ExternalId>()
     for (const inputId of graphDb.nodeDependents.reverseLookup(toValue(nodeId))) {
@@ -92,7 +85,6 @@ export function useNodeMessage({
     return {
       type: availableMessage.value.type,
       message: availableMessage.value.text,
-      passEvents: toValue(passEvents),
     }
   })
 
