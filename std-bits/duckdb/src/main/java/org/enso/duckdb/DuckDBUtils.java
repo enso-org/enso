@@ -16,7 +16,12 @@ import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.DoubleStorage;
 import org.enso.table.data.column.storage.LongStorage;
-import org.enso.table.data.column.storage.type.*;
+import org.enso.table.data.column.storage.type.BigDecimalType;
+import org.enso.table.data.column.storage.type.Bits;
+import org.enso.table.data.column.storage.type.DateTimeType;
+import org.enso.table.data.column.storage.type.FloatType;
+import org.enso.table.data.column.storage.type.IntegerType;
+import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.Table;
 
@@ -71,7 +76,9 @@ public class DuckDBUtils {
               + " types.");
     }
 
-    try (var appender = connection.createAppender(connection.getCatalog(), connection.getSchema(), targetTableName)) {
+    try (var appender =
+        connection.createAppender(
+            connection.getCatalog(), connection.getSchema(), targetTableName)) {
       for (long i = 0; i < rowCount; i++) {
         appender.beginRow();
         for (int col = 0; col < columns.length; col++) {
@@ -131,19 +138,22 @@ public class DuckDBUtils {
               case BigDecimal bigDecimal -> {
                 var storageType = targetTypes.get(col);
                 if (storageType instanceof BigDecimalType bigDecimalType) {
-                  appender.append(bigDecimal.setScale(bigDecimalType.getScale(), RoundingMode.HALF_UP));
+                  appender.append(
+                      bigDecimal.setScale(bigDecimalType.getScale(), RoundingMode.HALF_UP));
                 } else {
-                  throw new IllegalArgumentException("Unsupported BigDecimal target type: " + storageType);
+                  throw new IllegalArgumentException(
+                      "Unsupported BigDecimal target type: " + storageType);
                 }
               }
               case BigInteger bigInteger ->
-                appender.append(new BigDecimal(bigInteger).setScale(0, RoundingMode.UNNECESSARY));
+                  appender.append(new BigDecimal(bigInteger).setScale(0, RoundingMode.UNNECESSARY));
               default ->
                   throw new IllegalArgumentException(
                       "Unsupported column type: " + column.getClass());
             }
           }
         }
+
         appender.endRow();
       }
     }

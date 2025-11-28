@@ -17,8 +17,8 @@ public final class BigDecimalType implements StorageType<BigDecimal>, NumericTyp
   }
 
   /**
-   * Creates a BigDecimalType with a specified scale.
-   * Used for going to databases - In-Memory Enso always uses scale -1.
+   * Creates a BigDecimalType with a specified scale. Used for going to databases - In-Memory Enso
+   * always uses scale -1.
    *
    * @param scale the scale to be used for BigDecimal values
    */
