@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 
 import java.util.Objects;
+import java.util.Random;
 import java.util.stream.LongStream;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.storage.type.IntegerType;
@@ -25,6 +26,20 @@ public class LongStorageTest {
   @Test
   public void testCreateViaBuilderAndReadViaArrowSimple16() {
     generateAndCompare("Simple 16 values", 16, LongStream.range(0, 16));
+  }
+
+  @Test
+  public void testCreateViaBuilderAndReadViaArrowRandom() {
+    generateAndCompareWithSeed(System.currentTimeMillis());
+  }
+
+  private void generateAndCompareWithSeed(long seed) {
+    var r = new Random(seed);
+    var size = r.nextInt(256, 4096);
+    var stream = r.longs(size);
+    var msg = "with seed " + seed + " size " + size;
+    System.err.println(msg);
+    generateAndCompare(msg, size, stream);
   }
 
   private void generateAndCompare(String info, int size, LongStream r) {
