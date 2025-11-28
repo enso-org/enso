@@ -15,6 +15,7 @@ import project.Network.Email.Email_Provider.Email_Provider
 import project.Network.Email.Email_Send_Response.Send_Response
 import project.Runtime.Context
 import project.Warning.Warning
+from project.Data.Boolean import False, True
 from project.Error import all
 from project.Metadata.Widget import Text_Input, Vector_Editor, Single_Choice
 from project.Nothing import all
@@ -68,7 +69,7 @@ type Email
         if resolved_provider.is_nothing then Error.throw (Illegal_Argument.Error "Could not resolve email provider.")
 
         resolved_attachements_to_local_files = resolved_attachments.map a->
-            Data_Link_Helpers.as_file a.file local_file->(Email_Attachment.File file=local_file name=a.name)
+            Data_Link_Helpers.as_file a.file local_file->(Email_Attachment.File file=local_file name=a.name) delete_on_return=False
 
         email = Email.Message from resolved_to resolved_cc resolved_bcc subject body resolved_attachements_to_local_files
         _send_email_with_provider email resolved_provider
