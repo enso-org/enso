@@ -2,14 +2,16 @@ import project.Data.Text.Text
 import project.Errors.Common.Missing_Argument
 import project.Metadata.Display
 import project.Metadata.Widget
+import project.Network.URI.URI
 import project.System.File.File
 from project.Metadata.Choice import Option
 from project.Metadata.Widget import Text_Input, Vector_Editor, Single_Choice
+import project.Enso_Cloud.Enso_File.Enso_File
 
 ## The attachment of an email.
 type Email_Attachment
     ## A file attachment.
-    File file:File=(Missing_Argument.throw "file") name:Text=""
+    File file:Text|URI|File=(Missing_Argument.throw "file") name:Text=""
 
     ## ---
        private: true
