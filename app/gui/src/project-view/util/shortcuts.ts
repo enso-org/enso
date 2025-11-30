@@ -1,4 +1,4 @@
-import { assert } from '@/util/assert'
+import { assert } from 'ydoc-shared/util/assert'
 import { unsafeKeys } from 'enso-common/src/utilities/data/object'
 import { isOnMacOS } from 'enso-common/src/utilities/detect'
 

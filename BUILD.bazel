@@ -19,11 +19,41 @@ config_setting(
     visibility = ["//visibility:public"],
 )
 
+# This can use `ts_config` rule because the file list is empty.
 ts_config(
     name = "tsconfig",
     src = "tsconfig.json",
-    visibility = [":__subpackages__"],
+    visibility = ["//visibility:public"],
 )
+
+# write_tsconfig(
+#     name = "tsconfig",
+#     files = [],
+#     out = "tsconfig.json",
+#     config = {
+#       "compilerOptions": {
+#             "lib": ["ES2022", "DOM", "DOM.Iterable"],
+#             "composite": True,
+#             "allowSyntheticDefaultImports": True,
+#             "esModuleInterop": True,
+#             "forceConsistentCasingInFileNames": True,
+#             "module": "ESNext",
+#             "moduleResolution": "Bundler",
+#             "noEmit": False,
+#             "strict": True,
+#             "noImplicitAny": True,
+#             "exactOptionalPropertyTypes": True,
+#             "noFallthroughCasesInSwitch": True,
+#             "noUncheckedIndexedAccess": True,
+#             "noImplicitOverride": True,
+#             "removeComments": True,
+#             "skipLibCheck": True,
+#             "verbatimModuleSyntax": True,
+#             "target": "ES2022"
+#         }
+#     },
+#     visibility = [":__subpackages__"],
+# )
 
 write_source_files(
     name = "write_all",
@@ -31,6 +61,7 @@ write_source_files(
         "//app/rust-ffi:write_wasm_dist",
         "//app/ydoc-shared:write_ast_codegen",
         "//app/gui:write_icon_metadata",
+        "//app/gui:write_tsconfigs",
         "//app/table-expression:write_parser_codegen",
     ],
 )

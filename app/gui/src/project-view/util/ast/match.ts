@@ -1,6 +1,6 @@
-import { assert, assertDefined } from '@/util/assert'
-import { Ast } from '@/util/ast'
+import * as Ast from '@/util/ast/abstract'
 import { zipLongest } from 'enso-common/src/utilities/data/iter'
+import { assert, assertDefined } from 'ydoc-shared/util/assert'
 
 /**
  * A pattern is an AST object with "placeholder" expressions.

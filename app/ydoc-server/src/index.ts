@@ -23,7 +23,7 @@ export { deserializeIdMap, docName, setupGatewayClient, WSSharedDoc, YjsConnecti
 export function configureAllDebugLogs(
   forceEnable: boolean,
   customLogger?: (...args: any[]) => any,
-) {
+): void {
   for (const debugModule of ['ydoc-server:session', 'ydoc-shared:languageServer']) {
     const instance = debug(debugModule)
     if (forceEnable) instance.enabled = true
@@ -35,7 +35,7 @@ export function configureAllDebugLogs(
 export async function createGatewayServer(
   httpServer: Server | Http2SecureServer,
   overrideLanguageServerUrl?: string,
-) {
+): Promise<void> {
   const { WebSocketServer } = (await import('modern-isomorphic-ws')).default
   const { parse } = await import('node:url')
 

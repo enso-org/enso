@@ -7,11 +7,12 @@ import * as zlib from 'node:zlib'
 import * as Ast from 'ydoc-shared/ast'
 import { astCount } from 'ydoc-shared/ast'
 import { combineFileParts, splitFileContents, type EnsoFileParts } from 'ydoc-shared/ensoFile'
-import { LanguageServer, computeTextChecksum } from 'ydoc-shared/languageServer'
+import { LanguageServer, LsRpcError, computeTextChecksum } from 'ydoc-shared/languageServer'
 import type {
   Checksum,
   FileEdit,
   FileEventKind,
+  FileSystemObject,
   Path,
   TextEdit,
   response,
@@ -84,7 +85,7 @@ export class LanguageServerSession {
     this.setupClient()
   }
 
-  static sessions = new Map<string, LanguageServerSession>()
+  static sessions: Map<string, LanguageServerSession> = new Map<string, LanguageServerSession>()
 
   /** Get a {@link LanguageServerSession} by its URL. */
   static get(url: string): LanguageServerSession {
@@ -206,7 +207,7 @@ export class LanguageServerSession {
   }
 
   /** TODO: Add docs */
-  async scanSourceFiles() {
+  async scanSourceFiles(): Promise<Result<FileSystemObject[], LsRpcError>> {
     this.assertProjectRoot()
     const sourceDir: Path = { rootId: this.projectRootId, segments: [SOURCE_DIR] }
     const srcModules = await this.ls.listFiles(sourceDir)
@@ -243,7 +244,7 @@ export class LanguageServerSession {
   }
 
   /** TODO: Add docs */
-  retain() {
+  retain(): void {
     this.retainCount += 1
   }
 
@@ -307,7 +308,7 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
   path: Path
   doc: ModuleDoc = new ModuleDoc(new Y.Doc())
   readonly state: LsSyncState = LsSyncState.Closed
-  readonly lastAction = Promise.resolve()
+  readonly lastAction: Promise<void> = Promise.resolve()
   updateToApply: Uint8Array | null = null
   syncedCode: string | null = null
   syncedIdMap: string | null = null
@@ -316,7 +317,7 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
   syncedVersion: Checksum | null = null
   syncedMeta: fileFormat.Metadata = fileFormat.tryParseMetadataOrFallback(null)
   queuedAction: LsAction | null = null
-  cleanup = () => {}
+  cleanup = (): void => {}
 
   constructor(ls: LanguageServer, path: Path, sharedDoc: Y.Doc) {
     super()
@@ -441,16 +442,16 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
     )
   }
 
-  handleFileRemoved() {
+  handleFileRemoved(): void {
     if (this.inState(LsSyncState.Closed)) return
     this.close()
   }
 
-  handleFileModified() {
+  handleFileModified(): void {
     if (this.inState(LsSyncState.Closed)) return
   }
 
-  queueRemoteUpdate(update: Uint8Array, origin: unknown) {
+  queueRemoteUpdate(update: Uint8Array, origin: unknown): void {
     if (origin === this) return
     if (this.updateToApply != null) {
       this.updateToApply = Y.mergeUpdates([this.updateToApply, update])
@@ -460,7 +461,7 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
     this.trySyncRemoteUpdates()
   }
 
-  trySyncRemoteUpdates() {
+  trySyncRemoteUpdates(): void {
     if (this.updateToApply == null) return
     // apply updates to the ls-representation doc if we are already in sync with the LS.
     if (!this.inState(LsSyncState.Synchronized)) return
@@ -710,7 +711,7 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
       )
   }
 
-  async close() {
+  async close(): Promise<void> {
     this.queuedAction = LsAction.Close
     switch (this.state) {
       case LsSyncState.Disposed:

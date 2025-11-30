@@ -67,7 +67,7 @@ export class WSSharedDoc {
   }
 
   /** Send a message to all connected clients, except any client whose connection is passed as `exclude`. */
-  broadcast(message: Uint8Array, exclude?: YjsConnection | undefined) {
+  broadcast(message: Uint8Array, exclude?: YjsConnection | undefined): void {
     for (const [conn] of this.conns) {
       if (typeof conn === 'string') continue
       if (conn === exclude) continue
@@ -76,7 +76,7 @@ export class WSSharedDoc {
   }
 
   /** Process an update event from the YDoc document. */
-  updateHandler(update: Uint8Array, origin: unknown) {
+  updateHandler(update: Uint8Array, origin: unknown): void {
     const encoder = encoding.createEncoder()
     encoding.writeVarUint(encoder, messageSync)
     writeUpdate(encoder, update)
@@ -97,7 +97,7 @@ export function setupGatewayClient(
   ws: YjsSocket,
   lsUrl: string | undefined | null,
   docName: string,
-) {
+): void {
   console.log(`setupGatewayClient(${lsUrl ? 'lsUrl: ' + lsUrl : 'no lsUrl'}, docName: ${docName})`)
   const lsSession = getSessionForUrl(lsUrl)
   const wsDoc = getSessionDoc(lsSession, docName)
@@ -217,7 +217,7 @@ export class YjsConnection extends ObservableV2<{ close(): void }> {
   }
 
   /** Send raw message over websocket. */
-  send(message: Uint8Array) {
+  send(message: Uint8Array): void {
     if (this.ws.readyState !== WebSocket.CONNECTING && this.ws.readyState !== WebSocket.OPEN) {
       this.close()
     }

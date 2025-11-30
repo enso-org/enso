@@ -4,6 +4,7 @@
     "module": "Node16",
     "target": "ES2017",
     "strict": true,
+    "noEmit": true,
     "allowJs": true,
     "checkJs": true,
     "exactOptionalPropertyTypes": true,
