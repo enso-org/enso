@@ -26,35 +26,6 @@ ts_config(
     visibility = ["//visibility:public"],
 )
 
-# write_tsconfig(
-#     name = "tsconfig",
-#     files = [],
-#     out = "tsconfig.json",
-#     config = {
-#       "compilerOptions": {
-#             "lib": ["ES2022", "DOM", "DOM.Iterable"],
-#             "composite": True,
-#             "allowSyntheticDefaultImports": True,
-#             "esModuleInterop": True,
-#             "forceConsistentCasingInFileNames": True,
-#             "module": "ESNext",
-#             "moduleResolution": "Bundler",
-#             "noEmit": False,
-#             "strict": True,
-#             "noImplicitAny": True,
-#             "exactOptionalPropertyTypes": True,
-#             "noFallthroughCasesInSwitch": True,
-#             "noUncheckedIndexedAccess": True,
-#             "noImplicitOverride": True,
-#             "removeComments": True,
-#             "skipLibCheck": True,
-#             "verbatimModuleSyntax": True,
-#             "target": "ES2022"
-#         }
-#     },
-#     visibility = [":__subpackages__"],
-# )
-
 write_source_files(
     name = "write_all",
     additional_update_targets = [
