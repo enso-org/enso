@@ -41,7 +41,7 @@ public final class LongStorage extends AbstractLongStorage implements ColumnStor
     if (idx < 0 || idx >= getSize()) {
       throw new IndexOutOfBoundsException(idx);
     }
-    return validityMap.get(Math.toIntExact(idx));
+    return !validityMap.get(Math.toIntExact(idx));
   }
 
   @Override
