@@ -55,6 +55,7 @@ final class BoolBuilder implements BuilderForBoolean, BuilderWithRetyping {
     if (value) {
       vals.set(size);
     }
+    validityMap.set(size, true);
     size++;
     return this;
   }

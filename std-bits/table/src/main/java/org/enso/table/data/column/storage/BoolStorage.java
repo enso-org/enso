@@ -45,7 +45,7 @@ public final class BoolStorage extends Storage<Boolean>
     if (idx < 0 || idx >= getSize()) {
       throw new IndexOutOfBoundsException(idx);
     }
-    return validityMap.get((int) idx);
+    return !validityMap.get((int) idx);
   }
 
   public boolean isNegated() {
