@@ -141,7 +141,7 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
   }
 
   @Override
-  public void updateCachedResult(IdExecutionService.Info info) {
+  public boolean updateCachedResult(IdExecutionService.Info info) {
     Object result = info.getResult();
     TypeInfo resultType = typeOf(result);
     RuntimeID runtimeID = info.getId();
@@ -181,8 +181,9 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
     // Panics are not cached because a panic can be fixed by changing seemingly unrelated code,
     // like imports, and the invalidation mechanism can not always track those changes and
     // appropriately invalidate all dependent expressions.
+    var cached = false;
     if (!isPanic) {
-      cache.offer(runtimeID, result);
+      cached = cache.offer(runtimeID, result);
       cache.putCall(nodeId, call);
     }
     cache.putType(nodeId, resultType);
@@ -198,6 +199,7 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
       // up the `typeChanged` field of the expression update.
       methodCallsCache.setExecuted(nodeId);
     }
+    return cached;
   }
 
   @CompilerDirectives.TruffleBoundary

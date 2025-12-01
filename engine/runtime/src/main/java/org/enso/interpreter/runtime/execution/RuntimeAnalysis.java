@@ -10,14 +10,14 @@ import org.slf4j.LoggerFactory;
 
 public class RuntimeAnalysis {
   private final EnsoContext ctx;
-  private final Stack<Ref> exprStack;
+  private final Stack<Ref> assignmentsStack;
   private final Map<RuntimeID, Ref> references = new HashMap<>(); // Make it a soft reference
 
   private Logger LOGGER = LoggerFactory.getLogger(RuntimeAnalysis.class);
 
   private RuntimeAnalysis(EnsoContext ctx) {
     this.ctx = ctx;
-    this.exprStack = new Stack<>();
+    this.assignmentsStack = new Stack<>();
   }
 
   public static RuntimeAnalysis create(EnsoContext ctx) {
@@ -35,23 +35,24 @@ public class RuntimeAnalysis {
 
   public Ref startExecutingCachedExpression(RuntimeID runtimeID) {
     var ref = getOrCreateReference(runtimeID);
-    exprStack.push(ref);
+    assignmentsStack.push(ref);
     return ref;
   }
 
   public Ref currentlyExecutingExpression() {
-    if (exprStack.isEmpty()) {
+    if (assignmentsStack.isEmpty()) {
+      LOGGER.warn("Attempted to retrieve an empty assignment stack");
       return null;
     }
 
-    return exprStack.peek();
+    return assignmentsStack.peek();
   }
 
   public void endExecutingCachedExpression(RuntimeID runtimeID) {
-    if (exprStack.isEmpty()) {
-      LOGGER.debug("Empty runtime dependency stack, cannot end");
+    if (assignmentsStack.isEmpty()) {
+      LOGGER.debug("Empty runtime assignments stack");
     } else {
-      var popped = exprStack.pop();
+      var popped = assignmentsStack.pop();
       if (runtimeID != popped.getRuntimeID()) {
         LOGGER.warn(
             "Unexpected expression ID popped from the stack. Expected {}, got {}",

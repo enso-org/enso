@@ -37,7 +37,10 @@ public final class AssignmentNode extends ExpressionNode {
   }
 
   public Object executeGeneric(VirtualFrame frame) {
-    var analysis = EnsoContext.get(this).currentRuntimeAnalysis();
+    var result = rhsNode.executeGeneric(frame);
+    frame.getFrameDescriptor().setSlotKind(frameSlotIdx, FrameSlotKind.Object);
+    frame.setObject(frameSlotIdx, result);
+    /*var analysis = EnsoContext.get(this).currentRuntimeAnalysis();
     var ref = analysis.startExecutingCachedExpression(getId());
     try {
       var result = rhsNode.executeGeneric(frame);
@@ -46,7 +49,7 @@ public final class AssignmentNode extends ExpressionNode {
       frame.setObject(frameSlotIdx, ref);
     } finally {
       analysis.endExecutingCachedExpression(getId());
-    }
+    }*/
     return EnsoContext.get(this).getNothing();
   }
 

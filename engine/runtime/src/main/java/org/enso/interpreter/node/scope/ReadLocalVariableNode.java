@@ -11,9 +11,7 @@ import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import org.enso.compiler.pass.analyse.FramePointer;
 import org.enso.interpreter.node.ExpressionNode;
-import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.function.Function;
-import org.enso.interpreter.runtime.execution.Ref;
 import org.enso.polyglot.RuntimeID;
 
 /**
@@ -82,7 +80,8 @@ public abstract class ReadLocalVariableNode extends ExpressionNode {
   }
 
   private Object registerDependency(Object obj) {
-    if (obj instanceof Ref r) {
+    return obj;
+    /*if (obj instanceof Ref r) {
       var ref = EnsoContext.get(this).currentRuntimeAnalysis().currentlyExecutingExpression();
       // A body of a method can end with a simple reading of a local value
       // and returning it as a result. Then no registration to the owner assignment is performed.
@@ -92,7 +91,7 @@ public abstract class ReadLocalVariableNode extends ExpressionNode {
       return r.get();
     } else {
       return obj;
-    }
+    }*/
   }
 
   /**

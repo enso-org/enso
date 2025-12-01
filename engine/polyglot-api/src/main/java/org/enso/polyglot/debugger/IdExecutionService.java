@@ -60,7 +60,7 @@ public interface IdExecutionService {
      * @param info info with node id, {@link Info#getResult()}, {@link Info#isPanic()} and {@link
      *     Info#getElapsedTime()}
      */
-    void updateCachedResult(Info info);
+    boolean updateCachedResult(Info info);
 
     /**
      * Notification when a returned value is a function.

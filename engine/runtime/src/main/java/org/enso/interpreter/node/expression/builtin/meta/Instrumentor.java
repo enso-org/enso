@@ -82,7 +82,7 @@ final class Instrumentor extends EnsoObject implements IdExecutionService.Callba
   }
 
   @Override
-  public void updateCachedResult(IdExecutionService.Info info) {
+  public boolean updateCachedResult(IdExecutionService.Info info) {
     try {
       if (onReturn != null) {
         var iop = InteropLibrary.getUncached();
@@ -97,6 +97,7 @@ final class Instrumentor extends EnsoObject implements IdExecutionService.Callba
       CompilerDirectives.transferToInterpreter();
       ignored.printStackTrace();
     }
+    return false; // FIXME
   }
 
   @Override
