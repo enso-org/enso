@@ -8,19 +8,33 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import org.enso.common.CachePreferences;
+import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode;
 import org.enso.interpreter.service.ExecutionService;
+import org.enso.interpreter.service.GuestExecutionService;
+import org.enso.polyglot.*;
 
 /** A storage for computed values. */
 public final class RuntimeCache implements java.util.function.Function<String, Object> {
-  private final Map<UUID, Reference<Object>> cache = new HashMap<>();
+  private final Map<RuntimeID, Reference<Object>> cache = new HashMap<>();
+  private final Map<RuntimeID, Observable> observables = new HashMap<>();
   private final Map<UUID, Reference<Object>> expressions = new HashMap<>();
   private final Map<UUID, TypeInfo> types = new HashMap<>();
   private final Map<UUID, ExecutionService.FunctionCallInfo> calls = new HashMap<>();
   private CachePreferences preferences = CachePreferences.empty();
   private Consumer<UUID> observer;
+  private final Map<UUID, FunctionCallInstrumentationNode.FunctionCall> enterables =
+      new HashMap<>();
+
+  private final GuestExecutionService executionService;
+
+  public RuntimeCache(GuestExecutionService executionService) {
+    this.executionService = executionService;
+  }
 
   /**
    * Add value to the cache if it is possible.
@@ -30,9 +44,9 @@ public final class RuntimeCache implements java.util.function.Function<String, O
    * @return {@code true} if the value was added to the cache.
    */
   @CompilerDirectives.TruffleBoundary
-  public boolean offer(UUID key, Object value) {
-    expressions.put(key, new WeakReference<>(value));
-    if (preferences.contains(key)) {
+  public boolean offer(RuntimeID key, Object value) {
+    expressions.put(key.uuid(), new WeakReference<>(value));
+    if (key.isCached()) {
       var ref = new SoftReference<>(value);
       cache.put(key, ref);
       return true;
@@ -40,11 +54,18 @@ public final class RuntimeCache implements java.util.function.Function<String, O
     return false;
   }
 
-  /** Get the value from the cache. */
   public Object get(UUID key) {
+    return get(new ExternalUUID(key, false));
+  }
+
+  /** Get the value from the cache. */
+  public Object get(RuntimeID key) {
     var ref = cache.get(key);
-    var res = ref != null ? ref.get() : null;
-    return res;
+    if (ref != null) {
+      return ref.get();
+    } else {
+      return null;
+    }
   }
 
   /** Get the value from the cache. */
@@ -81,7 +102,7 @@ public final class RuntimeCache implements java.util.function.Function<String, O
   /**
    * @return all cache keys.
    */
-  public Set<UUID> getKeys() {
+  public Set<RuntimeID> getKeys() {
     return cache.keySet();
   }
 
@@ -97,11 +118,14 @@ public final class RuntimeCache implements java.util.function.Function<String, O
    * @return the set of cleared keys
    */
   public Set<UUID> clear(CachePreferences.Kind kind) {
-    var keys = preferences.get(kind);
+    // Do nothing
+    /*var keys = preferences.get(kind);
     for (var key : keys) {
       cache.remove(key);
     }
     return keys;
+     */
+    return new java.util.HashSet<>();
   }
 
   /**
@@ -160,6 +184,14 @@ public final class RuntimeCache implements java.util.function.Function<String, O
    */
   public void removeCall(UUID key) {
     calls.remove(key);
+  }
+
+  public FunctionCallInstrumentationNode.FunctionCall enterable(UUID key) {
+    return enterables.get(key);
+  }
+
+  public void updateEnterable(UUID key, FunctionCallInstrumentationNode.FunctionCall call) {
+    enterables.put(key, call);
   }
 
   /** Clear the cached calls. */
@@ -222,6 +254,31 @@ public final class RuntimeCache implements java.util.function.Function<String, O
       return scope.get();
     } finally {
       this.observer = previousCallback;
+    }
+  }
+
+  public CompletionStage<Boolean> registerAction(
+      UUID visualizationId, RuntimeID expressionId, Consumer<Object> action) {
+    var observable = observables.get(expressionId);
+    if (observable == null) {
+      observable = new Observable(expressionId);
+    }
+    observables.put(expressionId, observable);
+    var cachedValue = cache.get(expressionId);
+    if (cachedValue == null || cachedValue.get() != null) {
+      observable.registerVisualization(new ObservableVisualization(action, visualizationId));
+      return CompletableFuture.completedStage(false);
+    } else {
+      var ref = cachedValue.get();
+      return observable.registerAndRunVisualization(
+          new ObservableVisualization(action, visualizationId), ref, executionService);
+    }
+  }
+
+  public void runVisualizations(RuntimeID expressionId, Object value) {
+    var observable = observables.get(expressionId);
+    if (observable != null) {
+      observable.runVisualizations(executionService, value);
     }
   }
 }

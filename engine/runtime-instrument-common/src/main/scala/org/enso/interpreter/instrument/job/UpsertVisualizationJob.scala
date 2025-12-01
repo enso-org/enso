@@ -26,9 +26,11 @@ import org.enso.interpreter.instrument.{
 import org.enso.interpreter.runtime.Module
 import org.enso.interpreter.runtime.control.ThreadInterruptedException
 import org.enso.pkg.QualifiedName
+import org.enso.polyglot.ExternalUUID
 import org.enso.polyglot.runtime.Runtime.Api
 
 import java.util.UUID
+import java.util.function.Consumer
 import scala.annotation.unused
 import scala.concurrent.ExecutionException
 import scala.util.Try
@@ -39,12 +41,16 @@ import scala.util.Try
   * @param visualizationId an identifier of visualization
   * @param expressionId an identifier of expression
   * @param config a visualization config
+  * @param prevArguments previously applied arguments when modifying a visualization or `None` if new visualization
   */
 class UpsertVisualizationJob(
   @unused requestId: Option[Api.RequestId],
   val visualizationId: Api.VisualizationId,
   val expressionId: Api.ExpressionId,
-  config: Api.VisualizationConfiguration
+  config: Api.VisualizationConfiguration,
+  @unused prevArguments: Option[
+    Vector[AnyRef]
+  ] // need to be used when modifying a visualization
 ) extends Job[Option[Executable]](
       List(config.executionContextId),
       false,
@@ -52,6 +58,14 @@ class UpsertVisualizationJob(
       true
     )
     with UniqueJob[Option[Executable]] {
+
+  def this(
+    @unused requestId: Option[Api.RequestId],
+    visualizationId: Api.VisualizationId,
+    expressionId: Api.ExpressionId,
+    config: Api.VisualizationConfiguration
+  ) =
+    this(requestId, visualizationId, expressionId, config, None)
 
   /** @inheritdoc */
   override def equalsTo(that: UniqueJob[_]): Boolean =
@@ -158,6 +172,11 @@ class UpsertVisualizationJob(
       visualizationId,
       expressionId
     )
+    val stack =
+      ctx.contextManager.getStack(config.executionContextId)
+    val runtimeCache = stack.headOption
+      .flatMap(frame => Option(frame.cache))
+      .getOrElse(new RuntimeCache(ctx.executionService))
 
     val visualization =
       UpsertVisualizationJob.updateAttachedVisualization(
@@ -166,36 +185,33 @@ class UpsertVisualizationJob(
         module,
         config,
         callable,
-        arguments
+        arguments,
+        runtimeCache
       )
-    val stack =
-      ctx.contextManager.getStack(config.executionContextId)
-    val runtimeCache = stack.headOption
-      .flatMap(frame => Option(frame.cache))
-    val cachedValue = runtimeCache
-      .flatMap(c => Option(c.get(expressionId)))
-    UpsertVisualizationJob.requireVisualizationSynchronization(
-      stack,
-      visualizationId
-    )
-    cachedValue match {
-      case Some(value) =>
+
+    val action = new Consumer[Object] {
+      override def accept(value: Object): Unit = {
         ProgramExecutionSupport.executeAndSendVisualizationUpdate(
           config.executionContextId,
-          runtimeCache.getOrElse(new RuntimeCache),
+          runtimeCache,
           stack.headOption.get.syncState,
           visualization,
           expressionId,
           value
         )
-        None
-      case None =>
-        UpsertVisualizationJob.logger.trace(
-          "Cached value for expresion {}: missing",
-          expressionId
-        )
-        Some(Executable(config.executionContextId, stack))
+      }
     }
+    val runtimeExpressionId = ExternalUUID.create(expressionId);
+    val registered =
+      runtimeCache.registerAction(visualizationId, runtimeExpressionId, action)
+    registered
+      .thenApply(
+        if (_) None
+        else Some(Executable(config.executionContextId, stack))
+      )
+      .toCompletableFuture
+      .get()
+
   }
 
   private def replyWithExpressionFailedError(
@@ -312,11 +328,12 @@ object UpsertVisualizationJob {
         result.module,
         visualizationConfig,
         result.callback,
-        result.arguments
+        result.arguments,
+        visualization.cache
       )
       val stack =
         ctx.contextManager.getStack(visualizationConfig.executionContextId)
-      requireVisualizationSynchronization(stack, visualizationId)
+      requireVisualizationSynchronization(stack, visualizationId) // FIXME
     }
   }
 
@@ -607,7 +624,8 @@ object UpsertVisualizationJob {
     module: Module,
     visualizationConfig: Api.VisualizationConfiguration,
     callback: AnyRef,
-    arguments: Vector[AnyRef]
+    arguments: Vector[AnyRef],
+    runtimeCache: RuntimeCache
   )(implicit ctx: RuntimeContext): Visualization = {
     val visualizationExpressionId =
       findVisualizationExpressionId(module, visualizationConfig.expression)
@@ -615,15 +633,15 @@ object UpsertVisualizationJob {
       Visualization(
         visualizationId,
         expressionId,
-        new RuntimeCache(),
+        runtimeCache, //new RuntimeCache(),
         module,
         visualizationConfig,
         visualizationExpressionId,
         callback,
         arguments
       )
-    setCacheWeights(visualization)
-    ctx.state.executionHooks.add(InvalidateCaches(expressionId))
+    //setCacheWeights(visualization)
+    //ctx.state.executionHooks.add(InvalidateCaches(expressionId))
     ctx.contextManager.upsertVisualization(
       visualizationConfig.executionContextId,
       visualization
@@ -716,6 +734,7 @@ object UpsertVisualizationJob {
     *
     * @param visualization the visualization to update
     */
+  @unused
   private def setCacheWeights(visualization: Visualization): Unit = {
     visualization.module.getIr
       .getMetadata(CachePreferenceAnalysis)

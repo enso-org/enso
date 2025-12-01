@@ -28,4 +28,14 @@ public record ExternalUUID(UUID uuid, boolean cached) implements RuntimeID {
   public boolean isCached() {
     return cached;
   }
+
+  @Override
+  public boolean equals(Object o) {
+    return o instanceof ExternalUUID external && external.uuid.equals(uuid);
+  }
+
+  @Override
+  public int hashCode() {
+    return uuid.hashCode();
+  }
 }

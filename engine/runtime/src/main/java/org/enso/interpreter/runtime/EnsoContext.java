@@ -51,6 +51,7 @@ import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.atom.Atom;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
+import org.enso.interpreter.runtime.execution.RuntimeAnalysis;
 import org.enso.interpreter.runtime.instrument.NotificationHandler;
 import org.enso.interpreter.runtime.scope.TopLevelScope;
 import org.enso.interpreter.runtime.state.ExecutionEnvironment;
@@ -110,6 +111,7 @@ public final class EnsoContext {
 
   private final int warningsLimit;
   private final ValueProfile singleStateProfile = ValueProfile.createIdentityProfile();
+  private final ValueProfile singleRuntimeAnalysisProfile = ValueProfile.createIdentityProfile();
 
   /**
    * Creates a new Enso context.
@@ -1000,6 +1002,10 @@ public final class EnsoContext {
   /** Access to state associated with this context and current thread. */
   public State currentState() {
     return singleStateProfile.profile(language.currentState());
+  }
+
+  public RuntimeAnalysis currentRuntimeAnalysis() {
+    return singleRuntimeAnalysisProfile.profile(language.currentRuntimeAnalysis());
   }
 
   private Object extraValues(int index, Function<EnsoContext, ?> init) {

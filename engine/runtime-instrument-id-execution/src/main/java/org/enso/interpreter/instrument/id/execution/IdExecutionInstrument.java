@@ -208,12 +208,16 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
           return;
         }
 
-        Info info = new NodeInfo(frame.materialize(), context.getInstrumentedNode());
-        Object result = callbacks.findCachedResult(info);
+        Node node = context.getInstrumentedNode();
+        Info info = new NodeInfo(frame.materialize(), node);
+        RuntimeID runtimeID = info.getId();
+        assert runtimeID != null;
 
+        Object result = callbacks.findCachedResult(info);
         if (result != null) {
           throw context.createUnwind(result);
         }
+
         setExecutionEnvironment(info);
         nanoTimeElapsed = timer.getTime();
       }

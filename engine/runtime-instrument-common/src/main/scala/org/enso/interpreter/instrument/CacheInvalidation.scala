@@ -239,7 +239,7 @@ object CacheInvalidation {
           }
         }
       case Command.InvalidateStale(scope) =>
-        val staleKeys = cache.getKeys.asScala.diff(scope.toSet)
+        val staleKeys = cache.getKeys.asScala.map(_.uuid()).diff(scope.toSet)
         logger.trace("Cache - clear stale keys: {}", staleKeys)
         staleKeys.foreach { key =>
           cache.remove(key)

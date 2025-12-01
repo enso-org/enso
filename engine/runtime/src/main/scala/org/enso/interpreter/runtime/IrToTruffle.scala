@@ -1898,37 +1898,51 @@ private[runtime] class IrToTruffle(
       * @return the truffle nodes corresponding to `name`
       */
     def processName(name: Name): RuntimeExpression = {
-      val nameExpr = name match {
+      name match {
         case literalName: Name.Literal =>
           val resolver = new RuntimeNameResolution()
           val fpMeta = literalName.passData.get(FramePointerAnalysis) match {
             case Some(meta: FramePointer) => meta
             case _                        => null
           }
-          resolver.resolveName(literalName, fpMeta)
+          // Include in instrumentation
+          setLocation(
+            resolver.resolveName(literalName, fpMeta),
+            name.location,
+            name.getId
+          )
         case Name.MethodReference(
               None,
               Name.Literal(nameStr, _, _, _, _),
               _,
               _
             ) =>
-          DynamicSymbolNode.buildUnresolvedConstructor(nameStr)
+          setLocation(
+            DynamicSymbolNode.buildUnresolvedConstructor(nameStr),
+            name.location
+          )
         case Name.Self(location, _, passData) =>
-          processName(
-            Name.Literal(
-              ConstantsNames.SELF_ARGUMENT,
-              isMethod = false,
-              location,
-              None,
-              passData
-            )
+          setLocation(
+            processName(
+              Name.Literal(
+                ConstantsNames.SELF_ARGUMENT,
+                isMethod = false,
+                location,
+                None,
+                passData
+              )
+            ),
+            name.location
           )
         case n: Name.SelfType =>
-          nodeForResolution(
-            n.unsafeGetMetadata(
-              GlobalNames,
-              "a Self occurence must be resolved"
-            ).target
+          setLocation(
+            nodeForResolution(
+              n.unsafeGetMetadata(
+                GlobalNames,
+                "a Self occurence must be resolved"
+              ).target
+            ),
+            name.location
           )
         case _: Name.Annotation =>
           throw new CompilerError(
@@ -1942,11 +1956,11 @@ private[runtime] class IrToTruffle(
           throw new CompilerError(
             "Qualified names should not be present at codegen time."
           )
-        case err: errors.Resolution => processError(err)
-        case err: errors.Conversion => processError(err)
+        case err: errors.Resolution =>
+          setLocation(processError(err), name.location)
+        case err: errors.Conversion =>
+          setLocation(processError(err), name.location)
       }
-
-      setLocation(nameExpr, name.location)
     }
 
     final private class RuntimeNameResolution
@@ -2236,6 +2250,11 @@ private[runtime] class IrToTruffle(
               setLocation(readArgNoCheck0, unprocessedArg.name().location())
             val readArg   = TypeCheckValueNode.wrap(readArgNoCheck, checkNode)
             val assignArg = AssignmentNode.build(readArg, slotIdx)
+            setLocation(
+              assignArg,
+              unprocessedArg.location(),
+              unprocessedArg.getId
+            )
 
             argExpressions.append(assignArg)
 

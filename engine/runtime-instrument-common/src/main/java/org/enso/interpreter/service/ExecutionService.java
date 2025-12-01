@@ -78,7 +78,7 @@ import org.slf4j.LoggerFactory;
  * A service allowing externally-triggered code execution, registered by an instance of the
  * language.
  */
-public final class ExecutionService {
+public final class ExecutionService implements GuestExecutionService {
   private static final Logger LOGGER = LoggerFactory.getLogger(ExecutionService.class);
   private static final String MAIN_METHOD = "main";
   private final EnsoContext context;
@@ -650,7 +650,8 @@ public final class ExecutionService {
     throw (E) ex;
   }
 
-  private <T> CompletionStage<T> submitExecution(Supplier<T> c) {
+  @Override
+  public <T> CompletionStage<T> submitExecution(Supplier<T> c) {
     return context.getThreadManager().submit(c);
   }
 
@@ -1005,7 +1006,10 @@ public final class ExecutionService {
   }
 
   /** Information about the function call. */
-  public record FunctionCallInfo(FunctionPointer functionPointer, int[] notAppliedArguments) {
+  public record FunctionCallInfo(
+      FunctionPointer functionPointer,
+      int[] notAppliedArguments,
+      FunctionCallInstrumentationNode.FunctionCall ref) {
 
     @Override
     public boolean equals(Object o) {
@@ -1036,7 +1040,7 @@ public final class ExecutionService {
       FunctionPointer functionPointer = FunctionPointer.fromFunction(call.getFunction());
       int[] notAppliedArguments = collectNotAppliedArguments(call);
 
-      return new FunctionCallInfo(functionPointer, notAppliedArguments);
+      return new FunctionCallInfo(functionPointer, notAppliedArguments, call);
     }
 
     private static int[] collectNotAppliedArguments(

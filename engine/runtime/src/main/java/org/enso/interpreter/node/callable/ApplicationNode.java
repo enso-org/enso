@@ -96,7 +96,8 @@ public class ApplicationNode extends ExpressionNode {
     var state = EnsoContext.get(this).currentState();
     var evaluatedArguments = evaluateArguments(frame);
     var self = this.callable.executeGeneric(frame);
-    return this.invokeCallableNode.execute(self, frame, state, evaluatedArguments);
+    var result = this.invokeCallableNode.execute(self, frame, state, evaluatedArguments);
+    return result;
   }
 
   /**

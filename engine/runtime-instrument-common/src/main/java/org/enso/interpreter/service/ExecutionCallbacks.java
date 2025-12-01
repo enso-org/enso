@@ -110,7 +110,7 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
       }
     }
 
-    return null;
+    return result;
   }
 
   @CompilerDirectives.TruffleBoundary
@@ -144,7 +144,8 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
   public void updateCachedResult(IdExecutionService.Info info) {
     Object result = info.getResult();
     TypeInfo resultType = typeOf(result);
-    UUID nodeId = info.getId().uuid();
+    RuntimeID runtimeID = info.getId();
+    UUID nodeId = runtimeID.uuid();
 
     if (progressObserver instanceof ExecutionProgressObserver o && nodeId.equals(o.nodeId())) {
       refreshObserver(null);
@@ -181,13 +182,16 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
     // like imports, and the invalidation mechanism can not always track those changes and
     // appropriately invalidate all dependent expressions.
     if (!isPanic) {
-      cache.offer(nodeId, result);
+      cache.offer(runtimeID, result);
       cache.putCall(nodeId, call);
     }
     cache.putType(nodeId, resultType);
 
-    callOnComputedCallback(expressionValue);
-    executeOneshotExpressions(nodeId, result, info);
+    if (runtimeID.isExternal()) {
+      callOnComputedCallback(expressionValue);
+      cache.runVisualizations(runtimeID, result);
+      executeOneshotExpressions(nodeId, result, info);
+    }
     if (isPanic) {
       // We mark the node as executed so that it is not reported as not executed call after the
       // program execution is complete. If we clear the call from the cache instead, it will mess
@@ -206,7 +210,7 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
     calls.put(nodeId, FunctionCallInfo.fromFunctionCall(fnCall));
     functionCallCallback.accept(new ExpressionCall(nodeId, fnCall));
     // Return cached value after capturing the enterable function call in `functionCallCallback`
-    Object cachedResult = cache.get(nodeId);
+    Object cachedResult = cache.get(runtimeID);
     if (cachedResult != null) {
       return cachedResult;
     }
@@ -284,7 +288,7 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
 
   @CompilerDirectives.TruffleBoundary
   private Object getCachedResult(RuntimeID nodeId) {
-    return cache.get(nodeId.uuid());
+    return cache.get(nodeId);
   }
 
   @CompilerDirectives.TruffleBoundary

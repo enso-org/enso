@@ -11,7 +11,9 @@ import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import org.enso.compiler.pass.analyse.FramePointer;
 import org.enso.interpreter.node.ExpressionNode;
+import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.function.Function;
+import org.enso.interpreter.runtime.execution.Ref;
 import org.enso.polyglot.RuntimeID;
 
 /**
@@ -66,17 +68,31 @@ public abstract class ReadLocalVariableNode extends ExpressionNode {
   @Specialization(rewriteOn = FrameSlotTypeException.class)
   protected Object readGeneric(VirtualFrame frame) throws FrameSlotTypeException {
     if (getFramePointer().parentLevel() == 0)
-      return frame.getObject(getFramePointer().frameSlotIdx());
+      return registerDependency(frame.getObject(getFramePointer().frameSlotIdx()));
     MaterializedFrame currentFrame = getProperFrame(frame);
-    return currentFrame.getObject(getFramePointer().frameSlotIdx());
+    return registerDependency(currentFrame.getObject(getFramePointer().frameSlotIdx()));
   }
 
   @Specialization
   protected Object readGenericValue(VirtualFrame frame) {
     if (getFramePointer().parentLevel() == 0)
-      return frame.getValue(getFramePointer().frameSlotIdx());
+      return registerDependency(frame.getValue(getFramePointer().frameSlotIdx()));
     MaterializedFrame currentFrame = getProperFrame(frame);
-    return currentFrame.getValue(getFramePointer().frameSlotIdx());
+    return registerDependency(currentFrame.getValue(getFramePointer().frameSlotIdx()));
+  }
+
+  private Object registerDependency(Object obj) {
+    if (obj instanceof Ref r) {
+      var ref = EnsoContext.get(this).currentRuntimeAnalysis().currentlyExecutingExpression();
+      // A body of a method can end with a simple reading of a local value
+      // and returning it as a result. Then no registration to the owner assignment is performed.
+      if (ref != null) {
+        ref.registerDependency(r);
+      }
+      return r.get();
+    } else {
+      return obj;
+    }
   }
 
   /**

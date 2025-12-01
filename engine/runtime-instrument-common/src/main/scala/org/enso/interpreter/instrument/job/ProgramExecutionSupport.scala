@@ -14,7 +14,6 @@ import org.enso.interpreter.instrument.{
 }
 import org.enso.interpreter.instrument.execution.{ErrorResolver, RuntimeContext}
 import org.enso.interpreter.instrument.profiling.ExecutionTime
-import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode.FunctionCall
 import org.enso.interpreter.runtime.library.dispatch.TypeOfNode
 import org.enso.interpreter.runtime.`type`.{Types, TypesGen}
 import org.enso.interpreter.runtime.data.atom.AtomConstructor
@@ -43,7 +42,11 @@ import org.enso.polyglot.runtime.Runtime.Api
 
 import java.io.File
 import java.util.UUID
-import java.util.concurrent.{CompletionStage, ExecutionException}
+import java.util.concurrent.{
+  CompletionException,
+  CompletionStage,
+  ExecutionException
+}
 import java.util.function.{Consumer, Supplier}
 import scala.jdk.OptionConverters.RichOptional
 import scala.util.Try
@@ -68,7 +71,8 @@ object ProgramExecutionSupport {
   )(implicit ctx: RuntimeContext): Unit = {
 
     val methodCallsCache = new MethodCallsCache
-    var enterables       = Map[UUID, FunctionCall]()
+    //var enterables       = Map[UUID, FunctionCall]()
+    // TODO: clean cache of enterables
 
     val onCachedMethodCallCallback: Consumer[ExpressionValue] = { value =>
       logger.trace("ON_CACHED_CALL {}", value.getExpressionId)
@@ -79,12 +83,12 @@ object ProgramExecutionSupport {
       if (callStack.isEmpty) {
         logger.trace("ON_CACHED_VALUE {}", value.getExpressionId)
         sendExpressionUpdate(contextId, executionFrame.syncState, value)
-        sendVisualizationUpdates(
+        /*        sendVisualizationUpdates(
           contextId,
           executionFrame.cache,
           executionFrame.syncState,
           value
-        )
+        )*/
       }
     }
 
@@ -107,18 +111,18 @@ object ProgramExecutionSupport {
           case _ =>
         }
         sendExpressionUpdate(contextId, executionFrame.syncState, value)
-        sendVisualizationUpdates(
+        /*sendVisualizationUpdates(
           contextId,
           executionFrame.cache,
           executionFrame.syncState,
           value
-        )
+        )*/
       }
     }
 
     val callablesCallback: Consumer[ExpressionCall] = fun =>
       if (callStack.headOption.exists(_.expressionId == fun.getExpressionId)) {
-        enterables += fun.getExpressionId -> fun.getCall
+        executionFrame.cache.updateEnterable(fun.getExpressionId, fun.getCall)
       }
 
     val pendingResult = executionFrame match {
@@ -229,7 +233,16 @@ object ProgramExecutionSupport {
           )
         }
       case item :: tail =>
-        enterables.get(item.expressionId) match {
+        val callInfo = executionFrame.cache.getCall(item.expressionId)
+        if (callInfo != null) {
+          val executionFrame =
+            ExecutionFrame(
+              ExecutionItem.CallData(item.expressionId, callInfo.ref()),
+              item.cache,
+              item.syncState
+            )
+          executeProgram(contextId, executionFrame, tail)
+          /*enterables.get(item.expressionId) match {
           case Some(call) =>
             val executionFrame =
               ExecutionFrame(
@@ -239,7 +252,7 @@ object ProgramExecutionSupport {
               )
             executeProgram(contextId, executionFrame, tail)
           case None =>
-            ()
+            ()*/
         }
     }
   }
@@ -478,7 +491,7 @@ object ProgramExecutionSupport {
           expressionId
         )
       ) ||
-      Types.isPanic(value.getType.visibleType())
+      (value.getType != null && Types.isPanic(value.getType.visibleType()))
     ) {
       val payload = value.getValue match {
         case sentinel: PanicSentinel =>
@@ -637,7 +650,7 @@ object ProgramExecutionSupport {
     * @param value the computed value
     * @param ctx the runtime context
     */
-  private def sendVisualizationUpdates(
+  /*private def sendVisualizationUpdates(
     contextId: Api.ContextId,
     runtimeCache: RuntimeCache,
     syncState: UpdatesSynchronizationState,
@@ -667,7 +680,7 @@ object ProgramExecutionSupport {
         }
       }
     }
-  }
+  }*/
 
   private def executeVisualization(
     contextId: Api.ContextId,
@@ -675,56 +688,56 @@ object ProgramExecutionSupport {
     visualization: Visualization,
     expressionId: UUID,
     expressionValue: AnyRef
-  )(implicit ctx: RuntimeContext): Either[Throwable, AnyRef] =
-    Try {
-      logger.trace(
-        "Executing visualization [{}] on expression [{}] of [{}]...",
-        visualization.id,
-        expressionId,
-        Try(TypeOfNode.getUncached.findTypeOrError(expressionValue))
-          .getOrElse(expressionValue.getClass)
-      )
-      val holder = ctx.contextManager.getVisualizationHolder(contextId)
+  )(implicit ctx: RuntimeContext): CompletionStage[AnyRef] = {
+    logger.trace(
+      "Executing visualization [{}] on expression [{}] of [{}]...",
+      visualization.id,
+      expressionId,
+      Try(TypeOfNode.getUncached.findTypeOrError(expressionValue))
+        .getOrElse(expressionValue.getClass)
+    )
+    val holder = ctx.contextManager.getVisualizationHolder(contextId)
 
-      val makeCall = new Supplier[CompletionStage[AnyRef]] {
-        override def get(): CompletionStage[AnyRef] = {
-          ctx.executionService.callFunctionWithInstrument(
-            holder,
-            visualization.cache,
-            runtimeCache,
-            visualization.module,
-            visualization.callback,
-            expressionValue +: visualization.arguments: _*
+    val makeCall = new Supplier[CompletionStage[AnyRef]] {
+      override def get(): CompletionStage[AnyRef] = {
+        ctx.executionService.callFunctionWithInstrument(
+          holder,
+          visualization.cache,
+          runtimeCache,
+          visualization.module,
+          visualization.callback,
+          expressionValue +: visualization.arguments: _*
+        )
+      }
+    }
+
+    val pending = if (runtimeCache != null) {
+      val processUUID = new Consumer[UUID] {
+        override def accept(id: Api.ContextId): Unit = {
+          logger.trace(
+            "Associating visualization [{}] with additional ID [{}]",
+            visualization.id,
+            id
           )
+          holder.upsert(visualization, id)
         }
       }
-
-      val pending = if (runtimeCache != null) {
-        val processUUID = new Consumer[UUID] {
-          override def accept(id: Api.ContextId): Unit = {
-            logger.trace(
-              "Associating visualization [{}] with additional ID [{}]",
-              visualization.id,
-              id
-            )
-            holder.upsert(visualization, id)
-          }
-        }
-        runtimeCache.runQuery(processUUID, makeCall)
-      } else {
-        makeCall.get()
-      }
-      val visualizationResult = pending.toCompletableFuture.get()
+      runtimeCache.runQuery(processUUID, makeCall)
+    } else {
+      makeCall.get()
+    }
+    pending.thenApply(result => {
       logger.trace(
         "Visualization {} on expression {} resulted in {}",
         visualization.id,
         expressionId,
-        visualizationResult
+        result
       )
-      visualizationResult
-    }.toEither
+      result
+    })
+  }
 
-  /** Compute the visualization of the expression value and send an update.
+  /** Serialize visualization data and send an update.
     *
     * @param contextId an identifier of an execution context
     * @param visualizationId the id of the visualization
@@ -732,7 +745,7 @@ object ProgramExecutionSupport {
     * @param expressionValue the value of expression to visualise
     * @param ctx the runtime context
     */
-  def sendVisualizationUpdate(
+  private def sendVisualizationUpdate(
     visualizationResult: Either[Throwable, AnyRef],
     contextId: Api.ContextId,
     syncState: UpdatesSynchronizationState,
@@ -844,23 +857,111 @@ object ProgramExecutionSupport {
     visualization: Visualization,
     expressionId: UUID,
     expressionValue: AnyRef
-  )(implicit ctx: RuntimeContext): Unit = {
-    val visualizationResult =
-      executeVisualization(
-        contextId,
-        runtimeCache,
-        visualization,
-        expressionId,
-        expressionValue
-      )
-    sendVisualizationUpdate(
-      visualizationResult,
+  )(implicit ctx: RuntimeContext): CompletionStage[AnyRef] = {
+    executeVisualization(
       contextId,
-      syncState,
-      visualization.id,
+      runtimeCache,
+      visualization,
       expressionId,
       expressionValue
-    )
+    ).thenApply(visualizationResult =>
+      visualizationResultToBytes(visualizationResult)
+        .fold(t => throw t, identity)
+    ).whenComplete((data, throwable0) => {
+      // Unwrap CompletionException, as it automatically wraps abruptly interruptions when combining stages.
+      // It's a "feature" apparrently, according to
+      // https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/CompletionStage.html
+      val throwable = throwable0 match {
+        case t: CompletionException => t.getCause
+        case _                      => throwable0
+      }
+      if (throwable != null) {
+        throwable match {
+          case _: ThreadInterruptedException =>
+
+          case throwable =>
+            val error = throwable match {
+              case e: ExecutionException if e.getCause != null => e.getCause
+              case _                                           => throwable
+            }
+            val message =
+              Option(error.getMessage).getOrElse(error.getClass.getSimpleName)
+            if (!TypesGen.isPanicSentinel(expressionValue)) {
+              val typeOfNode =
+                ctx.executionService
+                  .typeOfValue(expressionValue)
+                  .toCompletableFuture
+                  .get()
+
+              logger.warn(
+                "Execution of visualization [{}] on value [{} of type {}] failed. {} | {} | {}",
+                visualization.id,
+                expressionId,
+                typeOfNode,
+                message,
+                expressionValue,
+                error
+              )
+              error match {
+                case p: AbstractTruffleException if p.getLocation() != null => {
+                  p.getLocation().getEncapsulatingSourceSection() match {
+                    case ss: SourceSection =>
+                      logger.warn(
+                        s"Error at ${ss.getCharIndex()}-${ss
+                          .getCharEndIndex()} in ${ss.getSource.getPath} (e.g. `${ss
+                          .getCharacters()}`) of visualization ${visualization.id}",
+                        p
+                      )
+                    case _ =>
+                  }
+                }
+                case _ =>
+              }
+            }
+            syncState.runAndSetVisualizationSync(
+              visualization.id,
+              () => {
+                ctx.endpoint.sendToClient(
+                  Api.Response(
+                    Api.VisualizationEvaluationFailed(
+                      Api
+                        .VisualizationContext(
+                          visualization.id,
+                          contextId,
+                          expressionId
+                        ),
+                      message,
+                      getDiagnosticOutcome(error)
+                    )
+                  )
+                )
+              }
+            )
+        }
+      } else {
+        logger.trace(
+          "Visualization executed [{}].",
+          expressionId
+        )
+        syncState.runAndSetVisualizationSync(
+          visualization.id,
+          () => {
+            ctx.endpoint.sendToClient(
+              Api.Response(
+                Api.VisualizationUpdate(
+                  Api.VisualizationContext(
+                    visualization.id,
+                    contextId,
+                    expressionId
+                  ),
+                  data
+                )
+              )
+            )
+          }
+        )
+      }
+    }).thenApply(_.asInstanceOf[AnyRef])
   }
 
   /** Convert the result of Enso visualization function to a byte array.
@@ -869,16 +970,15 @@ object ProgramExecutionSupport {
     * @return either a byte array representing the visualization result or an
     *         error
     */
-  private def visualizationResultToBytes(
-    visualizationResult: Either[Throwable, AnyRef]
+  def visualizationResultToBytes(
+    visualizationResult: AnyRef
   ): Either[Throwable, Array[Byte]] = {
-    visualizationResult.flatMap { value =>
-      Option(VisualizationResult.visualizationResultToBytes(value)).toRight(
+    Option(VisualizationResult.visualizationResultToBytes(visualizationResult))
+      .toRight(
         new VisualizationException(
-          s"Cannot encode ${value.getClass} to byte array."
+          s"Cannot encode ${visualizationResult.getClass} to byte array."
         )
       )
-    }
   }
 
   /** Extract the method call information from the provided expression value.

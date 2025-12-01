@@ -56,6 +56,7 @@ import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeAtNode;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeLengthNode;
+import org.enso.interpreter.runtime.execution.RuntimeAnalysis;
 import org.enso.interpreter.runtime.instrument.NotificationHandler;
 import org.enso.interpreter.runtime.instrument.NotificationHandler.Forwarder;
 import org.enso.interpreter.runtime.instrument.NotificationHandler.TextMode$;
@@ -121,6 +122,8 @@ public final class EnsoLanguage extends TruffleLanguage<EnsoContext> {
       locals.createContextLocal(ctx -> new ExecutionEnvironment[1]);
   private final ContextThreadLocal<State> state =
       locals.createContextThreadLocal((ctx, thread) -> State.create(ctx));
+  private final ContextThreadLocal<RuntimeAnalysis> runtimeAnalysis =
+      locals.createContextThreadLocal((ctx, thread) -> RuntimeAnalysis.create(ctx));
 
   public static EnsoLanguage get(Node node) {
     return REFERENCE.get(node);
@@ -484,5 +487,9 @@ public final class EnsoLanguage extends TruffleLanguage<EnsoContext> {
   /** Access to state associated with current context and thread. */
   public final State currentState() {
     return this.state.get();
+  }
+
+  public RuntimeAnalysis currentRuntimeAnalysis() {
+    return this.runtimeAnalysis.get();
   }
 }
