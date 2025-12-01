@@ -6,6 +6,8 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import org.enso.ydoc.api.MessageCallbacks;
+import org.enso.ydoc.api.NoOpMessageCallbacks;
 import org.enso.ydoc.polyfill.ParserPolyfill;
 import org.enso.ydoc.polyfill.web.WebEnvironment;
 import org.graalvm.polyglot.Context;
@@ -22,6 +24,7 @@ public final class Ydoc implements AutoCloseable {
   private final Context.Builder contextBuilder;
   private final String hostname;
   private final int port;
+  private final MessageCallbacks callbacks;
 
   private Context context;
 
@@ -30,12 +33,14 @@ public final class Ydoc implements AutoCloseable {
       ParserPolyfill parser,
       Context.Builder contextBuilder,
       String hostname,
-      int port) {
+      int port,
+      MessageCallbacks callbacks) {
     this.executor = executor;
     this.parser = parser;
     this.contextBuilder = contextBuilder;
     this.hostname = hostname;
     this.port = port;
+    this.callbacks = callbacks;
   }
 
   public static final class Builder {
@@ -48,6 +53,7 @@ public final class Ydoc implements AutoCloseable {
     private Context.Builder contextBuilder;
     private String hostname;
     private int port = -1;
+    private MessageCallbacks callbacks;
 
     private Builder() {}
 
@@ -73,6 +79,11 @@ public final class Ydoc implements AutoCloseable {
 
     public Builder port(int port) {
       this.port = port;
+      return this;
+    }
+
+    public Builder callbacks(MessageCallbacks callbacks) {
+      this.callbacks = callbacks;
       return this;
     }
 
@@ -103,7 +114,11 @@ public final class Ydoc implements AutoCloseable {
         port = DEFAULT_PORT;
       }
 
-      return new Ydoc(executor, parser, contextBuilder, hostname, port);
+      if (callbacks != null) {
+        callbacks = NoOpMessageCallbacks.INSTANCE;
+      }
+
+      return new Ydoc(executor, parser, contextBuilder, hostname, port, callbacks);
     }
   }
 
@@ -135,6 +150,7 @@ public final class Ydoc implements AutoCloseable {
                   var bindings = ctx.getBindings("js");
                   bindings.putMember("YDOC_HOST", hostname);
                   bindings.putMember("YDOC_PORT", port);
+                  bindings.putMember("YDOC_MESSAGE_CALLBACKS", callbacks);
                   bindings.putMember("YDOC_LS_DEBUG", "false");
 
                   ctx.eval(ydocJs);
