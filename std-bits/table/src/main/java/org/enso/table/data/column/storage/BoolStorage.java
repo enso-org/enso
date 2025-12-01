@@ -15,7 +15,6 @@ public final class BoolStorage extends Storage<Boolean>
 
   public BoolStorage(BitSet values, BitSet validityMap, int size, boolean negated) {
     super(BooleanType.INSTANCE);
-    if (true) throw new IllegalArgumentException("validity");
     this.values = values;
     this.validityMap = validityMap;
     this.size = size;
