@@ -100,9 +100,9 @@ public class FillMissingOperation implements BinaryOperation {
     public static BoolStorage fillMissingBoolStorage(BoolStorage storage, boolean fillValue) {
       final var newValues = (BitSet) storage.getValues().clone();
       if (fillValue != storage.isNegated()) {
-        newValues.or(storage.getIsNothingMap());
+        newValues.andNot(storage.getValidityMap());
       } else {
-        newValues.andNot(storage.getIsNothingMap());
+        newValues.or(storage.getValidityMap());
       }
       return new BoolStorage(newValues, new BitSet(), (int) storage.getSize(), storage.isNegated());
     }

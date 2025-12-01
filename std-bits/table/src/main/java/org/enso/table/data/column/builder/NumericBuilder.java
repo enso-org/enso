@@ -3,17 +3,17 @@ package org.enso.table.data.column.builder;
 import java.util.BitSet;
 
 /** A common base for numeric builders. */
-abstract class NumericBuilder implements Builder {
-  protected BitSet isNothing;
-  protected int currentSize;
+abstract sealed class NumericBuilder implements Builder permits DoubleBuilder, LongBuilder {
+  BitSet validityMap;
+  int currentSize;
 
   protected NumericBuilder() {
-    this.isNothing = new BitSet();
+    this.validityMap = new BitSet();
     this.currentSize = 0;
   }
 
   protected void doAppendNulls(int count) {
-    isNothing.set(currentSize, currentSize + count);
+    validityMap.set(currentSize, currentSize + count, false);
     currentSize += count;
   }
 

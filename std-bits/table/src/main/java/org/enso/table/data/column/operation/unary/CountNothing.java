@@ -2,7 +2,7 @@ package org.enso.table.data.column.operation.unary;
 
 import org.enso.table.data.column.operation.StorageIterators;
 import org.enso.table.data.column.storage.ColumnStorage;
-import org.enso.table.data.column.storage.ColumnStorageWithNothingMap;
+import org.enso.table.data.column.storage.ColumnStorageWithValidityMap;
 import org.enso.table.data.column.storage.type.NullType;
 import org.enso.table.data.table.Column;
 
@@ -30,8 +30,8 @@ public class CountNothing {
 
   /** Counts the number of Nothing values in the given storage. */
   public static long apply(ColumnStorage<?> storage) {
-    if (storage instanceof ColumnStorageWithNothingMap withNothingMap) {
-      return withNothingMap.getIsNothingMap().cardinality();
+    if (storage instanceof ColumnStorageWithValidityMap withNothingMap) {
+      return withNothingMap.getValidityMap().cardinality();
     }
 
     var accumulator = new Accumulator();
@@ -42,8 +42,8 @@ public class CountNothing {
 
   /** Returns true if any value in the storage is Nothing. */
   public static boolean anyNothing(ColumnStorage<?> storage) {
-    if (storage instanceof ColumnStorageWithNothingMap withNothingMap) {
-      return !withNothingMap.getIsNothingMap().isEmpty();
+    if (storage instanceof ColumnStorageWithValidityMap withNothingMap) {
+      return !withNothingMap.getValidityMap().isEmpty();
     }
 
     return StorageIterators.forEachOverStorage(
@@ -57,8 +57,8 @@ public class CountNothing {
       return true;
     }
 
-    if (storage instanceof ColumnStorageWithNothingMap withNothingMap) {
-      var cardinality = withNothingMap.getIsNothingMap().cardinality();
+    if (storage instanceof ColumnStorageWithValidityMap withNothingMap) {
+      var cardinality = withNothingMap.getValidityMap().cardinality();
       return cardinality == storage.getSize();
     }
 

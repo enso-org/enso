@@ -14,7 +14,7 @@ import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.ColumnBooleanStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.ColumnStorageWithInferredStorage;
-import org.enso.table.data.column.storage.ColumnStorageWithNothingMap;
+import org.enso.table.data.column.storage.ColumnStorageWithValidityMap;
 import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.enso.table.data.column.storage.type.BigDecimalType;
 import org.enso.table.data.column.storage.type.BigIntegerType;
@@ -296,22 +296,26 @@ public final class IsInOperation {
   private static ColumnStorage<?> applyBoolStorage(
       boolean keepValue, BoolStorage boolStorage, int checkedSize) {
     BitSet values = boolStorage.getValues();
-    BitSet isNothing = boolStorage.getIsNothingMap();
+    BitSet validityMap = boolStorage.getValidityMap();
 
     if (keepValue) {
-      var newIsNothing =
-          boolStorage.isNegated() ? or(isNothing, values) : orNot(isNothing, values, checkedSize);
-      return new BoolStorage(values, newIsNothing, checkedSize, boolStorage.isNegated());
+      var newValidity =
+          boolStorage.isNegated()
+              ? orNot(validityMap, values, checkedSize)
+              : or(validityMap, values, checkedSize);
+      return new BoolStorage(values, newValidity, checkedSize, boolStorage.isNegated());
     } else {
-      var newIsNothing =
-          boolStorage.isNegated() ? orNot(isNothing, values, checkedSize) : or(isNothing, values);
-      return new BoolStorage(values, newIsNothing, checkedSize, !boolStorage.isNegated());
+      var newValidity =
+          boolStorage.isNegated()
+              ? or(validityMap, values, checkedSize)
+              : orNot(validityMap, values, checkedSize);
+      return new BoolStorage(values, newValidity, checkedSize, !boolStorage.isNegated());
     }
   }
 
   private static BitSet makeIsNothingMap(ColumnStorage<?> storage, int size) {
-    if (storage instanceof ColumnStorageWithNothingMap withNothingMap) {
-      return withNothingMap.getIsNothingMap();
+    if (storage instanceof ColumnStorageWithValidityMap withNothingMap) {
+      return withNothingMap.getValidityMap();
     }
 
     BitSet isNothingMap = new BitSet(size);
@@ -323,7 +327,7 @@ public final class IsInOperation {
     return isNothingMap;
   }
 
-  private static BitSet or(BitSet left, BitSet right) {
+  private static BitSet or(BitSet left, BitSet right, int sizeIsIgnored) {
     BitSet result = (BitSet) left.clone();
     result.or(right);
     return result;

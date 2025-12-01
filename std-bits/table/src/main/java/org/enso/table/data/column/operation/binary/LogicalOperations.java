@@ -88,9 +88,9 @@ public final class LogicalOperations {
         newMissing.xor(values);
         return new BoolStorage(values, newMissing, size, true);
       } else {
-        var newMissing = left.getIsNothingMap().get(0, size);
-        newMissing.or(values);
-        return new BoolStorage(new BitSet(), newMissing, size, false);
+        var newValidity = left.getValidityMap().get(0, size);
+        newValidity.and(values);
+        return new BoolStorage(new BitSet(), newValidity, size, false);
       }
     }
 
@@ -129,23 +129,23 @@ public final class LogicalOperations {
         negated = false;
       }
 
-      BitSet isNothing = BitSets.makeDuplicate(left.getIsNothingMap());
-      isNothing.or(right.getIsNothingMap());
+      BitSet newValidity = BitSets.makeDuplicate(left.getValidityMap());
+      newValidity.and(right.getValidityMap());
       if (size > rightSize) {
-        isNothing.set(rightSize, size);
+        newValidity.set(rightSize, size, false);
       }
-      int current = isNothing.nextSetBit(0);
+      int current = newValidity.nextSetBit(0);
       while (current != -1) {
         Boolean a = left.getItemBoxed(current);
         Boolean b = (current < rightSize) ? right.getItemBoxed(current) : null;
         if (a == Boolean.FALSE || b == Boolean.FALSE) {
-          isNothing.clear(current);
+          newValidity.clear(current);
           out.set(current, negated);
         }
-        current = isNothing.nextSetBit(current + 1);
+        current = newValidity.nextSetBit(current + 1);
       }
 
-      return new BoolStorage(out, isNothing, size, negated);
+      return new BoolStorage(out, newValidity, size, negated);
     }
   }
 
@@ -208,9 +208,9 @@ public final class LogicalOperations {
       int size = (int) left.getSize();
       BitSet values = left.getValues();
       if (left.isNegated()) {
-        var newMissing = left.getIsNothingMap().get(0, size);
-        newMissing.or(values);
-        return new BoolStorage(new BitSet(), newMissing, size, true);
+        var newValidity = left.getValidityMap().get(0, size);
+        newValidity.and(values);
+        return new BoolStorage(new BitSet(), newValidity, size, true);
       } else {
         var newMissing = new BitSet(size);
         newMissing.flip(0, size);
@@ -255,23 +255,23 @@ public final class LogicalOperations {
         negated = false;
       }
 
-      BitSet isNothing = BitSets.makeDuplicate(left.getIsNothingMap());
-      isNothing.or(right.getIsNothingMap());
+      BitSet validity = BitSets.makeDuplicate(left.getValidityMap());
+      validity.and(right.getValidityMap());
       if (size > rightSize) {
-        isNothing.set(rightSize, size);
+        validity.set(rightSize, size, false);
       }
-      int current = isNothing.nextSetBit(0);
+      int current = validity.nextSetBit(0);
       while (current != -1) {
         Boolean a = left.getItemBoxed(current);
         Boolean b = (current < rightSize) ? right.getItemBoxed(current) : null;
         if (a == Boolean.TRUE || b == Boolean.TRUE) {
-          isNothing.clear(current);
+          validity.clear(current);
           out.set(current, !negated);
         }
-        current = isNothing.nextSetBit(current + 1);
+        current = validity.nextSetBit(current + 1);
       }
 
-      return new BoolStorage(out, isNothing, size, negated);
+      return new BoolStorage(out, validity, size, negated);
     }
   }
 }

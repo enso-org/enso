@@ -6,7 +6,7 @@ import org.enso.table.data.column.operation.StorageIterators;
 import org.enso.table.data.column.operation.UnaryOperation;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
-import org.enso.table.data.column.storage.ColumnStorageWithNothingMap;
+import org.enso.table.data.column.storage.ColumnStorageWithValidityMap;
 import org.enso.table.data.table.problems.MapOperationProblemAggregator;
 
 public class IsNothingOperation implements UnaryOperation {
@@ -28,9 +28,9 @@ public class IsNothingOperation implements UnaryOperation {
   @Override
   public ColumnStorage<?> apply(
       ColumnStorage<?> storage, MapOperationProblemAggregator problemAggregator) {
-    if (storage instanceof ColumnStorageWithNothingMap withNothingMap) {
+    if (storage instanceof ColumnStorageWithValidityMap withNothingMap) {
       return new BoolStorage(
-          withNothingMap.getIsNothingMap(), new BitSet(), (int) storage.getSize(), false);
+          withNothingMap.getValidityMap(), new BitSet(), (int) storage.getSize(), false);
     }
 
     return StorageIterators.buildOverStorage(

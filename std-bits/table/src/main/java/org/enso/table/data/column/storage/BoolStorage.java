@@ -7,16 +7,17 @@ import org.enso.table.data.column.storage.type.BooleanType;
 
 /** A boolean column storage. */
 public final class BoolStorage extends Storage<Boolean>
-    implements ColumnBooleanStorage, ColumnStorageWithNothingMap {
+    implements ColumnBooleanStorage, ColumnStorageWithValidityMap {
   private final BitSet values;
-  private final BitSet isNothing;
+  private final BitSet validityMap;
   private final int size;
   private final boolean negated;
 
-  public BoolStorage(BitSet values, BitSet isNothing, int size, boolean negated) {
+  public BoolStorage(BitSet values, BitSet validityMap, int size, boolean negated) {
     super(BooleanType.INSTANCE);
+    if (true) throw new IllegalArgumentException("validity");
     this.values = values;
-    this.isNothing = isNothing;
+    this.validityMap = validityMap;
     this.size = size;
     this.negated = negated;
   }
@@ -45,7 +46,7 @@ public final class BoolStorage extends Storage<Boolean>
     if (idx < 0 || idx >= getSize()) {
       throw new IndexOutOfBoundsException(idx);
     }
-    return isNothing.get((int) idx);
+    return validityMap.get((int) idx);
   }
 
   public boolean isNegated() {
@@ -57,8 +58,8 @@ public final class BoolStorage extends Storage<Boolean>
   }
 
   @Override
-  public BitSet getIsNothingMap() {
-    return isNothing;
+  public BitSet getValidityMap() {
+    return validityMap;
   }
 
   @Override

@@ -16,7 +16,7 @@ import org.enso.table.problems.ProblemAggregator;
 import org.enso.table.util.BitSets;
 
 /** A builder for integer columns. */
-class LongBuilder extends NumericBuilder implements BuilderForLong, BuilderWithRetyping {
+non-sealed class LongBuilder extends NumericBuilder implements BuilderForLong, BuilderWithRetyping {
   protected final ProblemAggregator problemAggregator;
   protected long[] data;
 
@@ -49,7 +49,7 @@ class LongBuilder extends NumericBuilder implements BuilderForLong, BuilderWithR
   @Override
   public void copyDataTo(Object[] items) {
     for (int i = 0; i < currentSize; i++) {
-      if (isNothing.get(i)) {
+      if (!validityMap.get(i)) {
         items[i] = null;
       } else {
         items[i] = data[i];
@@ -96,7 +96,7 @@ class LongBuilder extends NumericBuilder implements BuilderForLong, BuilderWithR
           int n = (int) longStorage.getSize();
           ensureFreeSpaceFor(n);
           System.arraycopy(longStorage.getData(), 0, data, currentSize, n);
-          BitSets.copy(longStorage.getIsNothingMap(), isNothing, currentSize, n);
+          BitSets.copy(longStorage.getValidityMap(), validityMap, currentSize, n);
           currentSize += n;
         } else {
           // No conversions needed, but we need to iterate over the items.
@@ -143,7 +143,7 @@ class LongBuilder extends NumericBuilder implements BuilderForLong, BuilderWithR
     if (index >= currentSize) {
       throw new IndexOutOfBoundsException();
     } else {
-      return isNothing.get((int) index);
+      return !validityMap.get((int) index);
     }
   }
 
@@ -185,6 +185,6 @@ class LongBuilder extends NumericBuilder implements BuilderForLong, BuilderWithR
 
   @Override
   public ColumnStorage<Long> seal() {
-    return new LongStorage(data, currentSize, isNothing, getType());
+    return new LongStorage(data, currentSize, validityMap, getType());
   }
 }

@@ -16,7 +16,7 @@ import org.enso.table.problems.ProblemAggregator;
 import org.enso.table.util.BitSets;
 
 /** A builder for floating point columns. */
-class DoubleBuilder extends NumericBuilder implements BuilderForDouble {
+non-sealed class DoubleBuilder extends NumericBuilder implements BuilderForDouble {
   protected final PrecisionLossAggregator precisionLossAggregator;
   protected double[] data;
 
@@ -91,7 +91,7 @@ class DoubleBuilder extends NumericBuilder implements BuilderForDouble {
         int n = (int) doubleStorage.getSize();
         ensureFreeSpaceFor(n);
         System.arraycopy(doubleStorage.getData(), 0, data, currentSize, n);
-        BitSets.copy(doubleStorage.getIsNothingMap(), isNothing, currentSize, n);
+        BitSets.copy(doubleStorage.getValidityMap(), validityMap, currentSize, n);
         currentSize += n;
       } else {
         var doubleStorage = floatType.asTypedStorage(storage);
@@ -165,7 +165,7 @@ class DoubleBuilder extends NumericBuilder implements BuilderForDouble {
 
   @Override
   public ColumnStorage<Double> seal() {
-    return new DoubleStorage(data, currentSize, isNothing);
+    return new DoubleStorage(data, currentSize, validityMap);
   }
 
   /**
