@@ -54,8 +54,12 @@ public interface Builder {
     // Create a single storage item based on the type of the item.
     return switch (item) {
       case null -> new NullBuilder().appendNulls(checkSize(size)).seal();
-      case Boolean booleanValue ->
-          new BoolStorage(new BitSet(), new BitSet(), checkSize(size), booleanValue);
+      case Boolean booleanValue -> {
+        var s = checkSize(size);
+        var validity = new BitSet();
+        validity.set(0, s, true);
+        yield new BoolStorage(new BitSet(), validity, s, booleanValue);
+      }
       default -> {
         var storageType = StorageType.forBoxedItem(item, PreciseTypeOptions.DEFAULT);
         var builder = Builder.getForType(storageType, size, BlackholeProblemAggregator.INSTANCE);

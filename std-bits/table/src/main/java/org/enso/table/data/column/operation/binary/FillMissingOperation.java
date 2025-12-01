@@ -98,13 +98,18 @@ public class FillMissingOperation implements BinaryOperation {
 
   public static class BooleanFillMissingOperation extends FillMissingOperation {
     public static BoolStorage fillMissingBoolStorage(BoolStorage storage, boolean fillValue) {
-      final var newValues = (BitSet) storage.getValues().clone();
+      var s = (int) storage.getSize();
+      var newValues = (BitSet) storage.getValues().clone();
+      var isNothingMap = (BitSet) storage.getValidityMap().clone();
+      isNothingMap.flip(0, s);
       if (fillValue != storage.isNegated()) {
-        newValues.andNot(storage.getValidityMap());
+        newValues.or(isNothingMap);
       } else {
-        newValues.or(storage.getValidityMap());
+        newValues.andNot(isNothingMap);
       }
-      return new BoolStorage(newValues, new BitSet(), (int) storage.getSize(), storage.isNegated());
+      var validity = new BitSet();
+      validity.set(0, s, true);
+      return new BoolStorage(newValues, validity, s, storage.isNegated());
     }
 
     public BooleanFillMissingOperation(StorageType<?> resultType) {

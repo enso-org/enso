@@ -80,6 +80,7 @@ non-sealed class DoubleBuilder extends NumericBuilder implements BuilderForDoubl
     }
 
     ensureSpaceToAppend();
+    validityMap.set(currentSize, true);
     data[currentSize++] = value;
     return this;
   }
