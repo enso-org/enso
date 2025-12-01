@@ -134,15 +134,15 @@ public final class LogicalOperations {
       if (size > rightSize) {
         newValidity.set(rightSize, size, false);
       }
-      int current = newValidity.nextSetBit(0);
-      while (current != -1) {
+      var current = newValidity.nextClearBit(0);
+      while (current < size) {
         Boolean a = left.getItemBoxed(current);
         Boolean b = (current < rightSize) ? right.getItemBoxed(current) : null;
         if (a == Boolean.FALSE || b == Boolean.FALSE) {
-          newValidity.clear(current);
+          newValidity.set(current);
           out.set(current, negated);
         }
-        current = newValidity.nextSetBit(current + 1);
+        current = newValidity.nextClearBit(current + 1);
       }
 
       return new BoolStorage(out, newValidity, size, negated);
