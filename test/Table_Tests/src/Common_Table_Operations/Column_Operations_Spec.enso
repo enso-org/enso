@@ -1339,7 +1339,7 @@ add_column_operation_specs suite_builder setup =
             col = t.at "numbers"
             col.text_left 6 . should_fail_with Invalid_Value_Type
             col.text_right 6 . should_fail_with Invalid_Value_Type
-            col.text_mid 6 . should_fail_with Invalid_Value_Type
+            col.text_mid 6 1 . should_fail_with Invalid_Value_Type
 
         group_builder.specify "text_left, _right, and _mid should error on non integer parameters" <|
             t = table_builder [["numbers", [1, 2, 3]]]
@@ -1376,6 +1376,15 @@ add_column_operation_specs suite_builder setup =
                 resLeft . to_vector . should_equal ["", "", "", Nothing, "", "", ""]
                 resRight . to_vector . should_equal ["", "", "", Nothing, "", "", ""]
                 resMid . to_vector . should_equal ["", "", "", Nothing, "", "", ""]
+
+        group_builder.specify "text_left, _right, and _mid should return Nothing if positions or lengths are Nothing" <|
+            with_mixed_columns_if_supported [["strings", ["a", "foobar", "", Nothing, "👩‍🔬👩‍🔬V👩‍🔬👩‍🔬", "café", "It was the best of times, it was the worst of times, it was the age of wisdom, it was the age of foolishness, it was the epoch of belief, it was the epoch of incredulity, it was the season of light, it was the season of darkness, it was the spring of hope, it was the winter of despair."]]] t->
+                col = t.at "strings"
+                col.text_left Nothing . should_equal [Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing]
+                col.text_right Nothing . should_equal [Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing]
+                col.text_mid Nothing 3 . should_equal [Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing]
+                col.text_mid 3 Nothing . should_equal [Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing]
+                col.text_mid Nothing Nothing . should_equal [Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing]
 
         group_builder.specify "should handle operations like is_empty, is_blank, fill_empty" <|
             with_mixed_columns_if_supported [["s", ["", " ", "  ", Nothing, "foo"]], ["letters", ["a", "b", "c", "d", "e"]]] t->

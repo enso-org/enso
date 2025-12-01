@@ -359,15 +359,26 @@ type In_Memory_Column_Implementation
         Value_Type.expect_text this_column <|
             apply_unary_operation this_column TextLengthOperation.INSTANCE
 
-    text_left (this_column : Column & In_Memory_Column) (n : Column | Integer) =
+    text_left (this_column : Column & In_Memory_Column) (n : Column | Integer | Nothing) =
         Value_Type.expect_text this_column <| Value_Type.expect_integer n <|
             new_name = naming_helper.function_name "text_left" [this_column, n]
             _apply_case_sensitive_text_operation this_column n ..Default TextPartOperation.LEFT (a -> b -> a.take b) new_name
 
-    text_right (this_column : Column & In_Memory_Column) (n : Column | Integer) =
+    text_right (this_column : Column & In_Memory_Column) (n : Column | Integer | Nothing) =
         Value_Type.expect_text this_column <| Value_Type.expect_integer n <|
             new_name = naming_helper.function_name "text_right" [this_column, n]
             _apply_case_sensitive_text_operation this_column n ..Default TextPartOperation.RIGHT (a -> b -> a.take (..Last b)) new_name
+
+    text_mid (this_column : Column & In_Memory_Column) (start : Column | Integer | Nothing) (length : Column | Integer | Nothing) =
+        Value_Type.expect_text this_column <| Value_Type.expect_integer start <| Value_Type.expect_integer length <|
+            # TODO implement this as a ternary operation
+            new_name = naming_helper.function_name "text_mid" [this_column, start, length]
+            combined = (start * 10000) + length
+            fallback a b =
+                s = (b / 10000).floor.to_integer
+                l = (b % 10000).to_integer
+                a.substring s s+l
+            _apply_case_sensitive_text_operation this_column combined ..Default TextPartOperation.MID fallback new_name
 
     contains (this_column : Column & In_Memory_Column) (other : Column | Text | Any) case_sensitivity:Case_Sensitivity = Value_Type.expect_text this_column <| Value_Type.expect_text other <|
         new_name = naming_helper.function_name "contains" [this_column, other]
