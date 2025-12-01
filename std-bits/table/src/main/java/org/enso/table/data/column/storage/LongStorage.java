@@ -68,19 +68,19 @@ public final class LongStorage extends AbstractLongStorage implements ColumnStor
 
   private static class LongStorageIterator implements ColumnLongStorageIterator {
     private final long[] data;
-    private final BitSet isNothing;
+    private final BitSet validityMap;
     private final int size;
     private int index = -1;
 
-    public LongStorageIterator(long[] data, BitSet isNothing, int size) {
+    public LongStorageIterator(long[] data, BitSet validityMap, int size) {
       this.data = data;
-      this.isNothing = isNothing;
+      this.validityMap = validityMap;
       this.size = size;
     }
 
     @Override
     public Long getItemBoxed() {
-      return isNothing.get(index) ? null : data[index];
+      return !validityMap.get(index) ? null : data[index];
     }
 
     @Override
@@ -90,7 +90,7 @@ public final class LongStorage extends AbstractLongStorage implements ColumnStor
 
     @Override
     public boolean isNothing() {
-      return isNothing.get(index);
+      return !validityMap.get(index);
     }
 
     @Override
