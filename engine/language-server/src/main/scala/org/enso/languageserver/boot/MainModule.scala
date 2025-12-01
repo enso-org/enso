@@ -530,8 +530,10 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
   log.trace("Created Binary WebSocket Server [{}]", binaryServer)
 
   private val ydoc = {
-    val c = org.enso.languageserver.boot.config.ApplicationConfig.load().ydoc
-    org.enso.runner.common.YdocServerApi.launchYdocServer(c.hostname, c.port)
+    val c         = org.enso.languageserver.boot.config.ApplicationConfig.load().ydoc
+    val callbacks = org.enso.ydoc.api.NoOpMessageCallbacks.INSTANCE
+    org.enso.runner.common.YdocServerApi
+      .launchYdocServer(c.hostname, c.port, callbacks)
   }
 
   log.debug(

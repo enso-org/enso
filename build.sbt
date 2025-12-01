@@ -406,6 +406,7 @@ lazy val enso = (project in file("."))
     `test-utils`,
     `text-buffer`,
     `version-output`,
+    `ydoc-api`,
     `ydoc-polyfill`,
     `ydoc-server`,
     `ydoc-server-registration`,
@@ -555,6 +556,7 @@ lazy val componentModulesPaths =
     (`task-progress-notifications` / Compile / exportedModuleBin).value,
     (`text-buffer` / Compile / exportedModuleBin).value,
     (`version-output` / Compile / exportedModuleBin).value,
+    (`ydoc-api` / Compile / exportedModuleBin).value,
     (`ydoc-polyfill` / Compile / exportedModuleBin).value,
     (`ydoc-server` / Compile / exportedModuleBin).value,
     (`ydoc-server-registration` / Compile / exportedModuleBin).value,
@@ -1741,6 +1743,20 @@ lazy val searcher = project
   .dependsOn(`polyglot-api`)
   .dependsOn(testkit % Test)
 
+lazy val `ydoc-api` = project
+  .in(file("lib/java/ydoc-api"))
+  .enablePlugins(JPMSPlugin)
+  .configs(Test)
+  .settings(
+    customFrgaalJavaCompilerSettings("21"),
+    javaModuleName := "org.enso.ydoc.api",
+    Compile / exportJars := true,
+    crossPaths := false,
+    autoScalaLibrary := false,
+    Test / fork := true,
+    commands += WithDebugCommand.withDebug,
+  )
+
 lazy val `ydoc-polyfill` = project
   .in(file("lib/java/ydoc-polyfill"))
   .enablePlugins(JPMSPlugin)
@@ -1772,6 +1788,7 @@ lazy val `ydoc-polyfill` = project
         .map(_ % "provided") ++ GraalVM.chromeInspectorPkgs ++ helidon
     }
   )
+  .dependsOn(`ydoc-api`)
   .dependsOn(`syntax-rust-definition`)
 
 lazy val `ydoc-server` = project
@@ -1790,6 +1807,7 @@ lazy val `ydoc-server` = project
       GraalVM.modules ++ GraalVM.jsPkgs ++ GraalVM.chromeInspectorPkgs ++ helidon ++ logbackPkg ++ slf4jApi,
     Compile / internalModuleDependencies := Seq(
       (`syntax-rust-definition` / Compile / exportedModule).value,
+      (`ydoc-api` / Compile / exportedModule).value,
       (`ydoc-polyfill` / Compile / exportedModule).value
     ),
     libraryDependencies ++= slf4jApi ++ Seq(
@@ -1886,6 +1904,7 @@ lazy val `ydoc-server` = project
   )
   .dependsOn(`jvm-interop`)
   .dependsOn(`logging-service-logback`)
+  .dependsOn(`ydoc-api`)
   .dependsOn(`ydoc-polyfill`)
 
 lazy val `ydoc-server-registration` = project
@@ -1903,6 +1922,7 @@ lazy val `ydoc-server-registration` = project
       GraalVM.modules,
     Compile / internalModuleDependencies := Seq(
       (`engine-runner-common` / Compile / exportedModule).value,
+      (`ydoc-api` / Compile / exportedModule).value,
       (`jvm-channel` / Compile / exportedModule).value,
       (`jvm-interop` / Compile / exportedModule).value
     ),
@@ -1917,6 +1937,7 @@ lazy val `ydoc-server-registration` = project
     }
   )
   .dependsOn(`engine-runner-common`)
+  .dependsOn(`ydoc-api`)
   .dependsOn(`jvm-channel`)
   .dependsOn(`jvm-interop`)
 
@@ -2200,6 +2221,7 @@ lazy val `language-server` = (project in file("engine/language-server"))
         (`connected-lock-manager-server` / Compile / exportedModule).value,
         (`language-server-deps-wrapper` / Compile / exportedModule).value,
         (`engine-runner-common` / Compile / exportedModule).value,
+        (`ydoc-api` / Compile / exportedModule).value,
         (`ydoc-polyfill` / Compile / exportedModule).value,
         (`engine-common` / Compile / exportedModule).value,
         (`library-manager` / Compile / exportedModule).value,
@@ -2323,6 +2345,7 @@ lazy val `language-server` = (project in file("engine/language-server"))
       (`task-progress-notifications` / Compile / exportedModule).value,
       (`text-buffer` / Compile / exportedModule).value,
       (`version-output` / Compile / exportedModule).value,
+      (`ydoc-api` / Compile / exportedModule).value,
       (`ydoc-polyfill` / Compile / exportedModule).value
     ),
     Test / javaOptions ++= testLogProviderOptions,
@@ -2340,6 +2363,7 @@ lazy val `language-server` = (project in file("engine/language-server"))
       javaModuleName.value,
       (`syntax-rust-definition` / javaModuleName).value,
       (`profiling-utils` / javaModuleName).value,
+      (`ydoc-api` / javaModuleName).value,
       (`ydoc-polyfill` / javaModuleName).value,
       (`library-manager` / javaModuleName).value
     ),
@@ -2392,6 +2416,7 @@ lazy val `language-server` = (project in file("engine/language-server"))
   .dependsOn(testkit % Test)
   .dependsOn(`text-buffer`)
   .dependsOn(`version-output`)
+  .dependsOn(`ydoc-api`)
   .dependsOn(`ydoc-polyfill`)
 
 lazy val cleanInstruments = taskKey[Unit](
@@ -3623,12 +3648,14 @@ lazy val `engine-runner-common` = project
       (`library-manager` / Compile / exportedModule).value,
       (`logging-utils` / Compile / exportedModule).value,
       (`pkg` / Compile / exportedModule).value,
+      (`ydoc-api` / Compile / exportedModule).value,
       (`polyglot-api` / Compile / exportedModule).value
     )
   )
   .dependsOn(`edition-updater`)
   .dependsOn(`library-manager`)
   .dependsOn(`polyglot-api`)
+  .dependsOn(`ydoc-api`)
   .dependsOn(testkit % Test)
 
 lazy val `engine-runner` = project
