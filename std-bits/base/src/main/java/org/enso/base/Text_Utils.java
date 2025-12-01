@@ -376,7 +376,7 @@ public class Text_Utils {
    */
   public static String take_mid(String str, long combined) {
     long grapheme_start = combined / 10000;
-    long grapheme_length = combined % 10000;
+    long grapheme_length = (combined % 10000);
     return Core_Text_Utils.take_mid(str, grapheme_start, grapheme_length);
   }
 
