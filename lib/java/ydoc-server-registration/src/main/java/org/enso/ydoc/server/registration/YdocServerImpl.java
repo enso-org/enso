@@ -6,14 +6,14 @@ import java.net.URISyntaxException;
 import org.enso.jvm.interop.api.OtherJvmClassLoader;
 import org.enso.runner.common.WrongOption;
 import org.enso.runner.common.YdocServerApi;
+import org.enso.ydoc.api.MessageCallbacks;
 import org.graalvm.nativeimage.ImageInfo;
-import org.graalvm.polyglot.proxy.ProxyArray;
 
 public final class YdocServerImpl extends YdocServerApi {
   public YdocServerImpl() {}
 
   @Override
-  protected AutoCloseable runYdocServer(String hostname, int port)
+  protected AutoCloseable runYdocServer(String hostname, int port, MessageCallbacks callbacks)
       throws WrongOption, IOException, URISyntaxException {
     // the following shall invoke:
     //   return launch(hostname, port);
@@ -40,8 +40,7 @@ public final class YdocServerImpl extends YdocServerApi {
     var fqn = "org.enso.ydoc.server.Main";
     var impl = loader.loadClass(fqn);
     assert impl != null;
-    var arr = ProxyArray.fromArray(hostname, "" + port);
-    impl.invokeMember("main", arr);
+    impl.invokeMember("launch", hostname, port, callbacks);
     return loader;
   }
 }
