@@ -147,8 +147,10 @@ non-sealed class DoubleBuilder extends NumericBuilder implements BuilderForDoubl
    *
    * @param value the double to append
    */
+  @Override
   public DoubleBuilder appendDouble(double value) {
     ensureSpaceToAppend();
+    validityMap.set(currentSize, true);
     data[currentSize++] = value;
     return this;
   }
@@ -158,6 +160,7 @@ non-sealed class DoubleBuilder extends NumericBuilder implements BuilderForDoubl
    *
    * <p>It ensures that any loss of precision is reported.
    */
+  @Override
   public DoubleBuilder appendLong(long value) {
     appendDouble(convertLongToDouble(value));
     return this;

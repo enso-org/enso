@@ -134,6 +134,7 @@ non-sealed class LongBuilder extends NumericBuilder implements BuilderForLong, B
    */
   public LongBuilder appendLong(long value) {
     ensureSpaceToAppend();
+    this.validityMap.set(currentSize, true);
     this.data[currentSize++] = value;
     return this;
   }
