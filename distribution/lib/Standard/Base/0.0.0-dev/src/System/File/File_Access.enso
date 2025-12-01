@@ -49,8 +49,8 @@ type File_Access
        private: true
        ---
        Convert this object into a representation understandable by the JVM.
-    to_java : Text
-    to_java self =
+    to_java : StandardOpenOption
+    private to_java self =
         java_option = case self of
             File_Access.Append            -> StandardOpenOption.APPEND
             File_Access.Create            -> StandardOpenOption.CREATE
@@ -62,7 +62,7 @@ type File_Access
             File_Access.Sync              -> StandardOpenOption.SYNC
             File_Access.Truncate_Existing -> StandardOpenOption.TRUNCATE_EXISTING
             File_Access.Write             -> StandardOpenOption.WRITE
-        java_option.to_text
+        java_option
 
     ## ---
        private: true

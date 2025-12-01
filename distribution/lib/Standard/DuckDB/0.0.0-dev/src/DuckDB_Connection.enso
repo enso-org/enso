@@ -7,9 +7,13 @@ import Standard.Base.Visualization.Table_Viz_Data.Table_Viz_Header
 from Standard.Base.Metadata.Choice import Option
 from Standard.Base.Metadata.Widget import Multiple_Choice, Single_Choice, Text_Input, Vector_Editor
 
+import Standard.Table.In_Memory_Table.In_Memory_Table
 import Standard.Table.Rows_To_Read.Rows_To_Read
-from Standard.Table import Table
+from Standard.Table import Table, Value_Type
+from Standard.Table.In_Memory_Table import to_java_table
+from Standard.Table.Internal.Storage import from_value_type
 
+import Standard.Database.Bulk_Load_Exists.Bulk_Load_Exists
 import Standard.Database.Connection.Connection.Connection
 import Standard.Database.DB_Table as DB_Table_Module
 import Standard.Database.Dialects.Dialect.Dialect
@@ -25,9 +29,11 @@ import project.Internal.DuckDB_Dialect
 import project.Internal.DuckDB_Entity_Naming_Properties
 import project.Internal.DuckDB_Type_Mapping.DuckDB_Type_Mapping
 
+polyglot java import java.lang.ArithmeticException
 polyglot java import org.enso.database.JDBCDriverTypes
 polyglot java import org.enso.database.JDBCProxy
 polyglot java import org.enso.duckdb.DuckDBUtils
+polyglot java import org.enso.table.data.column.storage.type.BigDecimalType
 
 type DuckDB_Connection
     ## ---
@@ -262,7 +268,7 @@ type DuckDB_Connection
             Context.Output.with_enabled <|
                 create_table = self.execute_update query
                 create_table.if_not_error <|
-                    self.create_index as key_columns (escaped_as + '_INDEX') replace_if_present
+                    self.create_index as key_columns (as + '_INDEX') replace_if_present
 
     ## ---
        aliases: [import, load, open, read, sql]
@@ -302,12 +308,9 @@ type DuckDB_Connection
                     ## Get the spatial columns and add RTree indexes on them
                     describe = self.execute_query ('DESCRIBE "' + escaped_as + '";')
                     spatial_columns = describe.filter "column_type" (..Equal "GEOMETRY") . at "column_name" . to_vector
-                    spatial_indexes = spatial_columns.map c->
-                        index_name = escaped_as + '_' + (c.replace '"' '""') + '_SPIDX'
-                        drop = if replace_if_present then 'DROP INDEX IF EXISTS "'+ index_name + '"; ' else ""
-                        make = 'CREATE INDEX "' + index_name + '" ON "' + escaped_as + '" USING RTree("' + (c.replace '"' '""') + '");'
-                        drop + make
-                    with_spatial_indexes = self.execute_update (spatial_indexes.join " ")
+                    with_spatial_indexes = spatial_columns.fold as table->column->
+                        if table.is_error then table else
+                            self.create_spatial_index table column (as+"_"+column+"_RTREE_INDEX") replace_if_present
                     with_spatial_indexes.if_not_error <|
                         self.create_index as key_columns (escaped_as + '_INDEX') replace_if_present
 
@@ -334,12 +337,8 @@ type DuckDB_Connection
         if self.is_in_memory.not then Context.Output.if_enabled disabled_message="As writing is disabled, cannot create a new index. Press the Write button ▶ to perform the operation." panic=False <|
             Nothing
 
-        table_name = case table of
-            _ : Text -> table
-            _ : DB_Table ->
-                names = table.table_name_schema
-                if names.is_nothing.not then names.last else Error.throw (Illegal_Argument.Error "Cannot create index on a non-trivial DB_Table.")
-            _ -> Error.throw (Illegal_Argument.Error "Expect table name.")
+        table_name = _resolve_table self table
+        if table_name.is_error then table_name
 
         escaped_table = table_name.replace '"' '""'
         index = if key_columns.length==0 then "" else
@@ -352,7 +351,48 @@ type DuckDB_Connection
         Context.Output.with_enabled <|
             with_index = if index=="" then Nothing else self.execute_update index
             with_index.if_not_error <|
-                self.query (SQL_Query.Table_Name table_name)
+                if table.is_a DB_Table then table else
+                    self.query (SQL_Query.Table_Name table_name)
+
+    ## ---
+       group: Standard.Base.Database
+       icon: drive
+       ---
+       Creates a RTree index on a single column in an existing table.
+
+       ## Arguments
+        - `table`: the table name or a `DB_Table` to create the index on.
+        - `column`: the name of the column to use as the index.
+        - `as`: the name of the index to create. Defaults to `<table>_<column>_INDEX`.
+        - `replace_if_present`: if set to `True`, will replace the index if it
+          already exists.
+
+       ## Returns
+       A `DB_Table` referencing the newly created table.
+    @table make_table_name_selector
+    @column _column_names_widget single_choice=True
+    @as Text_Input display=..Always
+    create_spatial_index : Text -> Text -> Text -> Boolean -> DB_Table
+    create_spatial_index self (table=Missing_Argument.throw "table") (column:Text=Missing_Argument.throw "column") as:Text="" replace_if_present:Boolean=False =
+        if self.is_in_memory.not then Context.Output.if_enabled disabled_message="As writing is disabled, cannot create a new index. Press the Write button ▶ to perform the operation." panic=False <|
+            Nothing
+
+        table_name = _resolve_table self table
+        if table_name.is_error then table_name
+
+        escaped_table = table_name.replace '"' '""'
+
+        used_as = if as=="" then table_name + column + "_INDEX" else as
+        escaped_index = used_as.replace '"' '""'
+        escaped_column = column.replace '"' '""'
+        drop = if replace_if_present then 'DROP INDEX IF EXISTS "'+ escaped_index + '"; ' else ""
+        base = 'CREATE INDEX "'+ escaped_index + '" ON "' + escaped_table + '" USING RTREE("' + escaped_column + '");'
+
+        Context.Output.with_enabled <|
+            with_index = self.execute_update (drop + base)
+            with_index.if_not_error <|
+                if table.is_a DB_Table then table else
+                    self.query (SQL_Query.Table_Name table_name)
 
     ## ---
        group: Standard.Base.Output
@@ -476,6 +516,66 @@ type DuckDB_Connection
         self.connection.execute query
 
     ## ---
+       icon: data_upload
+       ---
+       Upload a Table to a new table in the database in the current schema.
+
+       ## Arguments:
+       - `table`: The input table to upload.
+       - `table_name`: The name of the table to create.
+       - `if_exists`: What action to take if the table already exists. Defaults to
+          raising a `Table_Already_Exists` error.
+           - `Raise_Error` - a `Table_Already_Exists` error will be raised.
+           - `Drop_Table` - the existing table will be dropped before creating the new one.
+           - `Truncate_Table` - the existing table will be truncated before loading data into it.
+           - `Append_To_Table` - data will be appended to the existing table.
+       - `temporary`: If set to `True`, the created table will be temporary.
+          Defaults to `False`.
+
+       ## Returns
+       A `DB_Table` representing the created table.
+    bulk_load : Table -> Text -> Bulk_Load_Exists -> Boolean -> Table & DB_Table ! Table_Already_Exists
+    bulk_load self table:Table=(Missing_Argument.throw "table") table_name:Text=(Missing_Argument.throw "table_name") if_exists:Bulk_Load_Exists=..Raise_Error temporary:Boolean=False = case table of
+        _ : DB_Table ->
+            Error.throw (Illegal_Argument.Error "Cannot bulk load from a DB_Table, use `read` to materialize or use `select_into_database_table` if on same server.")
+        in_memory : In_Memory_Table ->
+            ## Check for illegal column types
+            removed = table.remove_columns [(..By_Type ..Null), (..By_Type ..Mixed), (..By_Type ..Unsupported_Data_Type), (..By_Type ..Binary)]
+            if removed.column_count != table.column_count then Error.throw (Illegal_Argument.Error "The table contains columns with unsupported types (Null, Mixed, Binary, or Unsupported_Data_Type) that cannot be uploaded to DuckDB. Please remove or convert these columns before uploading.")
+
+            ## Check if table exists
+            exists = self.query (..Table_Name table_name) . is_error . not
+            if exists && if_exists==Bulk_Load_Exists.Raise_Error then Error.throw (Table_Already_Exists.Error table_name)
+
+            ## Check Execution Context
+            if self.is_in_memory.not then Context.Output.if_enabled disabled_message="As writing is disabled, cannot create a new index. Press the Write button ▶ to perform the operation." panic=False <|
+                Nothing
+
+            Context.Output.with_enabled <|
+                ## Drop existing table if needed and then create new table
+                created_table = if exists.not then self.create_table table_name table primary_key=[] temporary=temporary else case if_exists of
+                    Bulk_Load_Exists.Drop_Table ->
+                        self.drop_table table_name if_exists=True
+                        self.create_table table_name table primary_key=[] temporary=temporary
+                    Bulk_Load_Exists.Truncate_Table ->
+                        self.truncate_table table_name
+                        self.query (..Table_Name table_name)
+                    Bulk_Load_Exists.Append_To_Table ->
+                        self.query (..Table_Name table_name)
+
+                ## Assuming we managed to create the table, proceed with upload
+                created_table.if_not_error <|
+                    java_column_types = created_table.columns.map c-> case c.value_type of
+                        Value_Type.Decimal _ s ->
+                            if s>0 then BigDecimalType.new s else from_value_type c.value_type ..Ignore
+                        _ -> from_value_type c.value_type ..Ignore
+                    java_table = to_java_table in_memory
+                    self.jdbc_connection.with_handled_connection connection->
+                        Illegal_Argument.handle_java_exception <| Panic.catch ArithmeticException handler=(err-> Error.throw (Illegal_Argument.Error err.getMessage)) <|
+                            DuckDBUtils.append connection java_table table_name java_column_types
+                            created_table
+
+    ## ---
        private: true
        ---
        Access the dialect.
@@ -566,9 +666,19 @@ Table_Viz_Data.from (that:DuckDB_Connection) =
         False ->
             Table_Viz_Data.GenericGrid [Table_Viz_Header.Link "Table" "table" "query (..Table_Name {{@Table}})"] [tables.at "Name" . to_vector]
 
-private _column_names_widget connection cache=Nothing =
+private _resolve_table connection table = case table of
+    _ : Text -> table
+    _ : DB_Table ->
+        names = table.table_name_schema
+        if names.is_nothing then Error.throw (Illegal_Argument.Error "Cannot use a non-trivial DB_Table to select table.")
+        if names.length == 2 && names.first != connection.schema then Error.throw (Illegal_Argument.Error "Cannot use a DB_Table from a different schema to select table.")
+        names.last
+    _ -> Error.throw (Illegal_Argument.Error "Expect table name or a DB_Table.")
+
+private _column_names_widget connection single_choice:Boolean=False cache=Nothing =
     table = cache.if_not_nothing <| cache "table"
     if table.is_nothing then Vector_Editor display=..Always item_editor=Text_Input item_default='"Column"' else
         db_table = if table.is_a Table then table else connection.query (SQL_Query.Table_Name table)
         col_names = db_table.column_names.map n-> Option n n.pretty
-        Multiple_Choice col_names display=..Always
+        if single_choice then Single_Choice [Option "<Custom>" '"Column"']+col_names display=..Always else
+            Multiple_Choice col_names display=..Always

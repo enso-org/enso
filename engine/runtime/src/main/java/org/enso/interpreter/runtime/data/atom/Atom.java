@@ -180,7 +180,7 @@ public abstract class Atom extends EnsoObject {
     String[] filteredMembers =
         allMembers.stream()
             .filter(method -> includeInternal || !method.getSchema().isProjectPrivate())
-            .map(method -> method.getName())
+            .map(Function::getName)
             .map(fullName -> fullName.substring(fullName.lastIndexOf('.') + 1))
             .distinct()
             .toArray(String[]::new);

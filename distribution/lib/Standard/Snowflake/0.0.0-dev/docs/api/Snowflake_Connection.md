@@ -2,7 +2,7 @@
 ## module Standard.Snowflake.Snowflake_Connection
 - type Snowflake_Connection
     - base_connection self -> Standard.Base.Any.Any
-    - bulk_load self table:Standard.Table.Table.Table= table_name:Standard.Base.Data.Text.Text= drop_if_exists:Standard.Base.Data.Boolean.Boolean= temporary:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Any.Any
+    - bulk_load self table:Standard.Table.Table.Table= table_name:Standard.Base.Data.Text.Text= if_exists:Standard.Database.Bulk_Load_Exists.Bulk_Load_Exists= temporary:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Any.Any
     - close self -> Standard.Base.Any.Any
     - copy_into_table self table_name:Standard.Base.Data.Text.Text= stage:Standard.Snowflake.Identifier.Identifier= file_name:Standard.Base.Data.Text.Text= format:Standard.Snowflake.File_Format.Snowflake_File_Format= match_names_insensitively:Standard.Base.Data.Boolean.Boolean= truncate_first:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Any.Any
     - create_literal_table self source:Standard.Table.Table.Table alias:Standard.Base.Data.Text.Text -> (Standard.Table.Table.Table&Standard.Database.DB_Table.DB_Table&Standard.Base.Any.Any)

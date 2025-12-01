@@ -25,7 +25,6 @@ import org.enso.interpreter.node.ConstantNode;
 import org.enso.interpreter.node.callable.InvokeCallableNode;
 import org.enso.interpreter.node.callable.InvokeCallableNode.ArgumentsExecutionMode;
 import org.enso.interpreter.node.callable.InvokeCallableNode.DefaultsExecutionMode;
-import org.enso.interpreter.node.callable.InvokeMethodNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.ModuleScopeBuilder;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
@@ -428,7 +427,7 @@ public final class Type extends EnsoObject {
         @Cached("findMethod(receiver, cachedMember)") Function func,
         @Cached("buildInvokeCallableNode(func)") InvokeCallableNode invokeCallableNode) {
       Object[] finalArgs = args;
-      if (InvokeMethodNode.shouldPrependSyntheticSelfArg(func.getSchema(), args.length)) {
+      if (func.getSchema().shouldPrependSyntheticSelfArg(args.length)) {
         var argsWithReceiver = new Object[args.length + 1];
         argsWithReceiver[0] = receiver;
         System.arraycopy(args, 0, argsWithReceiver, 1, args.length);

@@ -53,24 +53,6 @@ public class InvokeBuiltinMethodViaInteropTest {
   }
 
   @Test
-  public void invokePathMethodOnFile() {
-    var code =
-        """
-        from Standard.Base import File
-
-        main =
-            File.current_directory
-        """;
-    var file = ctxRule.evalModule(code);
-    var fileType = file.getMetaObject();
-    assertThat(fileType, is(notNullValue()));
-    assertThat(fileType.hasMember("path"), is(true));
-    var res = fileType.invokeMember("path", new Object[] {file});
-    assertThat("path method can be invoked", res, is(notNullValue()));
-    assertThat("path method returns correct result", res.isString(), is(true));
-  }
-
-  @Test
   public void invokeToTextOnVector() {
     var code =
         """

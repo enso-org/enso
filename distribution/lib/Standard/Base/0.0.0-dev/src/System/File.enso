@@ -22,6 +22,7 @@ import project.Meta
 import project.Metadata.Display
 import project.Metadata.Widget
 import project.Panic.Panic
+import project.Runtime
 import project.Runtime.Context
 import project.Runtime.Managed_Resource.Managed_Resource
 import project.System.File.Data_Link_Access.Data_Link_Access
@@ -38,12 +39,23 @@ from project.Error import all
 from project.Metadata.Choice import Option
 from project.Nothing import all
 from project.System.File_Format import Auto_Detect, File_Format
-from project.System.Internal.File_Builtins import all
+import project.System.Internal.File_Helpers
 
+polyglot java import java.lang.System as Java_System
+polyglot java import java.io.IOException
 polyglot java import java.io.File as Java_File
 polyglot java import java.io.InputStream as Java_Input_Stream
 polyglot java import java.io.OutputStream as Java_Output_Stream
+polyglot java import java.nio.channels.ByteChannel
+polyglot java import java.nio.channels.FileChannel
+polyglot java import java.nio.file.attribute.BasicFileAttributes
 polyglot java import java.nio.file.InvalidPathException
+polyglot java import java.nio.file.Files as Java_Files
+polyglot java import java.nio.file.FileSystemException
+polyglot java import java.nio.file.NoSuchFileException
+polyglot java import java.nio.file.Path as Java_Path
+polyglot java import java.nio.ByteBuffer
+polyglot java import java.nio.file.attribute.PosixFilePermissions
 polyglot java import java.nio.file.StandardCopyOption
 polyglot java import java.nio.file.StandardOpenOption
 polyglot java import java.time.ZonedDateTime
@@ -51,8 +63,9 @@ polyglot java import org.enso.base.DryRunFileManager
 polyglot java import org.enso.base.file_system.File_Utils
 
 ## Represents a file or folder on the filesystem.
-@Builtin_Type
 type File
+    private Value java_path:Java_Path
+
     ## ---
        aliases: [new file]
        group: File
@@ -147,7 +160,8 @@ type File
              example_cwd = File.current_directory
        ```
     current_directory : File
-    current_directory = get_cwd
+    current_directory =
+        File.Value (Java_Path.of ".")
 
     ## ---
        aliases: [home directory]
@@ -164,7 +178,9 @@ type File
              example_home = File.home
        ```
     home : File
-    home = @Builtin_Method "File.home"
+    home =
+        prop = Java_System.getProperty "user.home"
+        File.Value (Java_Path.of prop)
 
     ## ---
        private: true
@@ -198,7 +214,8 @@ type File
         new_output_stream : File -> Vector File_Access -> Output_Stream ! File_Error
         new_output_stream file open_options =
             opts = open_options . map (_.to_java)
-            stream = File_Error.handle_java_exceptions file (output_stream_builtin file opts)
+            stream = File_Error.handle_java_exceptions file <|
+                Java_Files.newOutputStream file.java_path opts
 
             ## Re-wrap the File Not Found error to return the parent directory
                instead of the file itself, as that is the issue if not present.
@@ -247,10 +264,11 @@ type File
         new_input_stream : File -> Vector File_Access -> Input_Stream ! File_Error
         new_input_stream file open_options =
             opts = open_options . map (_.to_java)
-            stream = File_Error.handle_java_exceptions file (input_stream_builtin file opts)
+            stream = File_Error.handle_java_exceptions file <|
+                Java_Files.newInputStream file.java_path opts
             Input_Stream.new stream (File_Error.handle_java_exceptions self) associated_source=self
 
-        if (is_directory_builtin self) then Error.throw (File_Error.IO_Error self "File '"+self.path+"' is a directory") else
+        if (_is_directory self) then Error.throw (File_Error.IO_Error self "File '"+self.path+"' is a directory") else
             open_as_data_link = (open_options.contains Data_Link_Access.No_Follow . not) && (self.is_data_link)
             if open_as_data_link then Data_Link_Helpers.read_data_link_as_stream self open_options action else
                 # We ignore the Data_Link_Access options at this stage:
@@ -418,7 +436,8 @@ type File
     resolve_single_part self part:Text -> Any =
         if self.is_data_link then Data_Link_Helpers.interpret_data_link_target_as_file self . resolve_single_part part else
             handle_invalid_path part <|
-                resolve_builtin self part
+                new_path = self.java_path.resolve part
+                File.Value new_path
 
     ## ---
        private: true
@@ -460,7 +479,8 @@ type File
        If the file is a data link, this checks if the data link itself exists.
        It does not tell anything about existence of the data link target.
     exists : Boolean
-    exists self = @Builtin_Method "File.exists"
+    exists self =
+        Java_Files.exists self.java_path.normalize
 
     ## ---
        group: Metadata
@@ -485,7 +505,9 @@ type File
     size : Integer
     size self =
         if self.is_data_link then Data_Link_Helpers.interpret_data_link_target_as_file self . size else
-            File_Error.handle_java_exceptions self (size_builtin self)
+            if self.is_directory then Error.throw (File_Error.IO_Error self "size can only be called on files.") else
+                File_Error.handle_java_exceptions self <|
+                    Java_Files.size self.java_path
 
     ## ---
        group: Text
@@ -504,7 +526,8 @@ type File
              is_not_within = File.new "foo/bar" . starts_with (File.new "f")
        ```
     starts_with : File -> Boolean
-    starts_with self parent = @Builtin_Method "File.starts_with"
+    starts_with self parent:File -> Boolean =
+        self.java_path.startsWith parent.java_path
 
     ## ---
        group: Metadata
@@ -528,7 +551,9 @@ type File
        link.
     creation_time : Date_Time ! File_Error
     creation_time self =
-        File_Error.handle_java_exceptions self (creation_time_builtin self)
+        File_Error.handle_java_exceptions self <|
+            attrs = Java_Files.readAttributes self.java_path BasicFileAttributes.class
+            File_Helpers.file_time_to_date_time attrs.creationTime
 
     ## ---
        group: Metadata
@@ -552,7 +577,9 @@ type File
        data link.
     last_modified_time : Date_Time ! File_Error
     last_modified_time self =
-        File_Error.handle_java_exceptions self (last_modified_time_builtin self)
+        File_Error.handle_java_exceptions self <|
+            mtime = Java_Files.getLastModifiedTime self.java_path
+            File_Helpers.file_time_to_date_time mtime
 
     ## ---
        icon: metadata
@@ -576,7 +603,9 @@ type File
        the target.
     posix_permissions : File_Permissions
     posix_permissions self =
-        File_Permissions.from_java_set (posix_permissions_builtin self)
+        File_Permissions.from_java_set <|
+            perms = Java_Files.getPosixFilePermissions self.java_path
+            PosixFilePermissions.toString perms
 
     ## ---
        group: Metadata
@@ -600,7 +629,7 @@ type File
        link is a directory.
     is_directory : Boolean
     is_directory self =
-        Data_Link_Helpers.is_directory self (is_directory_builtin self)
+        Data_Link_Helpers.is_directory self (_is_directory self)
 
     ## ---
        group: Output
@@ -621,7 +650,11 @@ type File
     create_directory : File ! File_Error
     create_directory self =
         Context.Output.if_enabled disabled_message="As writing is disabled, cannot create directory. Press the Write button ▶ to perform the operation." panic=False <|
-            File_Error.handle_java_exceptions self (create_directory_builtin self) . if_not_error self
+            File_Error.handle_java_exceptions self <|
+                Panic.catch FileSystemException handler=_replace_create_directories_generic_exception <|
+                    Panic.catch NoSuchFileException handler=_replace_create_directories_no_such_file_exception <|
+                        Java_Files.createDirectories self.java_path
+                        self
 
     ## ---
        group: Metadata
@@ -650,13 +683,14 @@ type File
        link is a regular file.
     is_regular_file : Boolean
     is_regular_file self =
-        Data_Link_Helpers.is_regular_file self (is_regular_file_builtin self)
+        Data_Link_Helpers.is_regular_file self <|
+            Java_Files.isRegularFile self.java_path
 
     ## ---
        private: true
        ---
     is_data_link self -> Boolean =
-        (is_directory_builtin self).not && Data_Link.is_data_link_name self.name
+        (_is_directory self).not && Data_Link.is_data_link_name self.name
 
     ## ---
        group: Metadata
@@ -673,7 +707,8 @@ type File
        ### Data Links
        If the file is a data link, this checks if the link itself is  modifiable.
     is_writable : Boolean
-    is_writable self = @Builtin_Method "File.is_writable"
+    is_writable self =
+        Java_Files.isWritable self.java_path
 
     ## ---
        group: Metadata
@@ -693,7 +728,17 @@ type File
              example_parent = Examples.csv.parent
        ```
     parent : File | Nothing
-    parent self = @Builtin_Method "File.parent"
+    parent self =
+        # Normalization is needed to correctly handle paths containing `..` or `.`.
+        parent_or_null = self.normalize.java_path.getParent
+
+        # If the path has no parent because it is relative and there are no
+        # more segments, try again after making it absolute
+        ret_parent = case parent_or_null == Nothing && self.java_path.isAbsolute.not of
+            True -> self.java_path.toAbsolutePath.normalize.getParent
+            False -> parent_or_null
+
+        if ret_parent != Nothing then File.Value ret_parent else Nothing
 
     ## ---
        group: Metadata
@@ -710,7 +755,8 @@ type File
              example_path = Examples.csv.path
        ```
     path : Text
-    path self = @Builtin_Method "File.path"
+    path self =
+        self.java_path.toString
 
     ## ---
        group: Metadata
@@ -727,7 +773,9 @@ type File
              example_name = Examples.csv.name
        ```
     name : Text
-    name self = @Builtin_Method "File.name"
+    name self =
+        nm = self.normalize.java_path.getFileName
+        if nm == Nothing then "" else nm.toString
 
     ## ---
        group: Metadata
@@ -762,7 +810,9 @@ type File
              example_absolute = Examples.csv.absolute
        ```
     absolute : File
-    absolute self = @Builtin_Method "File.absolute"
+    absolute self =
+        abs_path = self.java_path.toAbsolutePath
+        File.Value abs_path
 
     ## ---
        icon: metadata
@@ -778,7 +828,8 @@ type File
              example_is_absolute = Examples.csv.is_absolute
        ```
     is_absolute : Boolean
-    is_absolute self = @Builtin_Method "File.is_absolute"
+    is_absolute self =
+        self.java_path.isAbsolute
 
     ## ---
        icon: convert
@@ -794,7 +845,15 @@ type File
              example_normalize = Examples.csv.normalize
        ```
     normalize : File
-    normalize self = @Builtin_Method "File.normalize"
+    normalize self =
+        simply_normalized = self.java_path.normalize
+        name = simply_normalized.getFileName
+        needs_absolute =
+            case name != Nothing of
+                True -> (name.toString == "." || name.toString == ".." || name.toString.is_empty)
+                False -> False
+        ret = if needs_absolute then simply_normalized.toAbsolutePath.normalize else simply_normalized
+        File.Value ret
 
     ## ---
        icon: data_output
@@ -827,7 +886,7 @@ type File
     delete : Boolean -> Nothing ! File_Error
     delete self (recursive : Boolean = False) -> Nothing ! File_Error =
         Context.Output.if_enabled disabled_message="As writing is disabled, cannot delete file. Press the Write button ▶ to perform the operation." panic=False <|
-            File_Error.handle_java_exceptions self (delete_builtin self recursive)
+            File_Error.handle_java_exceptions self (File_Helpers.delete self recursive)
 
     ## ---
        icon: data_output
@@ -911,8 +970,20 @@ type File
        returns a vector of bytes.
     read_last_bytes : Integer -> Vector ! File_Error
     read_last_bytes self n =
+        read_while_has_remaining channel buffer =
+            if buffer.hasRemaining.not then Nothing else
+                channel.read buffer
+                @Tail_Call read_while_has_remaining channel buffer
+
         File_Error.handle_java_exceptions self <|
-            Vector.from_polyglot_array (read_last_bytes_builtin self n)
+            channel = Java_Files.newByteChannel self.java_path [StandardOpenOption.READ]
+            Panic.with_finalizer (channel.close) <|
+                bytes_to_read = channel.size.min n
+                channel.position (channel.size - bytes_to_read)
+                buffer = ByteBuffer.allocate bytes_to_read
+                read_while_has_remaining channel buffer
+                buffer.flip
+                Vector.from_polyglot_array buffer.array
 
     ## ---
        group: Input
@@ -972,7 +1043,7 @@ type File
     list : Text -> Boolean -> Vector File
     list self name_filter:Text="" recursive:Boolean=False = 
         if self.is_data_link then Data_Link_Helpers.interpret_data_link_target_as_file self . list name_filter=name_filter recursive=recursive else
-            if (is_directory_builtin self).not then Error.throw (Illegal_Argument.Error "Cannot `list` a non-directory.") else
+            if (_is_directory self).not then Error.throw (Illegal_Argument.Error "Cannot `list` a non-directory.") else
                 all_files = if recursive then list_descendants self else self.list_immediate_children
                 filtered_files = case name_filter of
                     "" -> all_files
@@ -997,15 +1068,20 @@ type File
        icon: convert
        ---
        Transforms `child` to a relative path with respect to `self`.
-    relativize : File -> Boolean
-    relativize self child = @Builtin_Method "File.relativize"
+    relativize : File -> File
+    relativize self child:File -> File =
+        p = self.java_path.relativize child.java_path
+        File.Value p
 
     ## ---
        private: true
        ---
        Utility function that lists immediate children of a directory.
     list_immediate_children : Vector File
-    list_immediate_children self = Vector.from_polyglot_array (self.list_immediate_children_array)
+    private list_immediate_children self =
+        File_Error.handle_java_exceptions self <|
+            path_children = Java_Files.list self.java_path . toList
+            path_children.map (File.Value _)
 
     ## ---
        private: true
@@ -1059,8 +1135,8 @@ list_descendants file =
    construct the path from text - we instead find its root (or base directory if
    relative) and rely on the `/` operator to resolve all the parts, allowing the
    data link logic to kick in.
-resolve_local_file (path : Text) = handle_invalid_path path <|
-    local_file = get_file path
+private resolve_local_file (path : Text) = handle_invalid_path path <|
+    local_file = File_Helpers.get_file path
     is_home = path.match "^~([\\/].*|$)"
     is_absolute = local_file.is_absolute
 
@@ -1071,7 +1147,7 @@ resolve_local_file (path : Text) = handle_invalid_path path <|
         base_part = parts.get 0 if_missing=""
 
         # Handle special case when starts with ~
-        base = if is_home.not then get_file base_part else
+        base = if is_home.not then File_Helpers.get_file base_part else
             if Enso_File.cloud_project_parent_directory == Nothing then File.home else Enso_File.home
 
         rest = parts.drop 1
@@ -1130,15 +1206,68 @@ Writable_File.from (that : File) = if that.is_data_link then Data_Link_Helpers.i
    ---
 Data_Link_From_File.from (that : File) = Data_Link_From_File.Value that
 
+private _is_directory file:File -> Boolean =
+    Java_Files.isDirectory file.java_path
+
 private _local_file_copy (source : File) (destination : File) (replace_existing : Boolean) -> Nothing =
     File_Error.handle_java_exceptions source <|
-        copy_options = if replace_existing then [StandardCopyOption.REPLACE_EXISTING.to_text] else []
-        copy_builtin source destination copy_options
+        copy_options = if replace_existing then [StandardCopyOption.REPLACE_EXISTING] else []
+        normalized_src = source.java_path.normalize
+        normalized_dst = destination.java_path.normalize
+        Java_Files.copy normalized_src normalized_dst copy_options
+        Nothing
+
 
 private _local_file_move (source : File) (destination : File) (replace_existing : Boolean) -> Nothing =
     File_Error.handle_java_exceptions source <|
-        copy_options = if replace_existing then [StandardCopyOption.REPLACE_EXISTING.to_text] else []
-        move_builtin source destination copy_options
+        copy_options = if replace_existing then [StandardCopyOption.REPLACE_EXISTING] else []
+        normalized_src = source.java_path.normalize
+        normalized_dst = destination.java_path.normalize
+        Java_Files.move normalized_src normalized_dst copy_options
+        Nothing
+
+
+## This method detects if a more correct exception can be thrown instead of
+   unrelated `NoSuchFileException`.
+
+   On Windows, `createDirectories` wrongly throws a `NoSuchFileException` instead
+   of `NotDirectoryException`, if a file on the parent path is not a directory.
+private _replace_create_directories_no_such_file_exception panic =
+    exception = panic.payload
+    Runtime.assert (Meta.is_a exception NoSuchFileException)
+    path = exception.getFile
+    if path == Nothing then exception else
+        parent = Java_Path.of path . getParent
+        if parent == Nothing then exception else
+            # On Windows, when creating a directory tree `foo/my-file.txt/a/b/c`,
+            # the operation fails with `NoSuchFileException` with path
+            # `foo/my-file.txt/a`. So the heuristic checks the path's parent
+            # `foo/my-file.txt` if it exists but is not a directory, that means
+            # we encountered this edge case and the exception should be replaced.
+            case Java_Files.exists parent && Java_Files.isDirectory parent . not of
+                False -> exception
+                True -> Error.throw (File_Error.Not_A_Directory (File.Value parent))
+
+
+## This method detects if a more specific exception can be throws instead of generic
+   java.nio.file.FileSystemException.
+
+   Apparently, on Linux, `createDirectories` throws `FileSystemException` instead
+   of the more fitting `NotDirectoryException`.
+private _replace_create_directories_generic_exception panic =
+    first_existing path =
+        if path == Nothing || Java_Files.exists path then path else
+            @Tail_Call first_existing path.getParent
+
+    exc = panic.payload
+    reason = exc.getReason
+    if reason != "Not a directory" then panic else
+        path = exc.getFile
+        if path == Nothing then panic else
+            p = first_existing (Java_Path.of path)
+            if p == Nothing || Java_Files.isDirectory p then panic else
+                Error.throw (File_Error.Not_A_Directory (File.Value p))
+
 
 ## On some filesystems some paths may be invalid, we want to catch the Java
    exception and turn it into an Enso error.

@@ -179,6 +179,23 @@ public class TypeMembersTest {
     assertThat("Has correct result value", displayTextRes.asString(), is("My_Type"));
   }
 
+  @Test
+  public void canInvokeInstanceMethod() {
+    var atom =
+        ctxRule.evalModule(
+            """
+            type My_Type
+                Cons
+                method self = 42
+
+            main = My_Type.Cons
+            """);
+    assertTrue(atom.hasMember("method"));
+    assertTrue(atom.canInvokeMember("method"));
+    var res = atom.invokeMember("method");
+    assertThat("Method invocation returns correct result", res.asInt(), is(42));
+  }
+
   /**
    * @param obj {@link ContextUtils#unwrapValue(Value) unwrapped} {@link Value value}.
    */
