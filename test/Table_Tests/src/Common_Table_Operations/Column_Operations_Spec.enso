@@ -1398,7 +1398,7 @@ add_column_operation_specs suite_builder setup =
                 col = t.at "strings"
                 lengths = table_builder [["lengths", [1, 3, 2, 2, 1, 2, 7]]] . at "lengths"
                 col.text_left lengths . to_vector . should_equal ["a", "foo", "", Nothing, "👩‍🔬", "ca", "It was "]
-                col.text_right lengths . to_vector . should_equal ["a", "bar", "", Nothing, "👩‍🔬", "fé", " despair."]
+                col.text_right lengths . to_vector . should_equal ["a", "bar", "", Nothing, "👩‍🔬", "fé", "espair."]
 
         group_builder.specify "text_mid should work with columns of starts and lengths" <|
             with_mixed_columns_if_supported [["strings", ["a", "foobar", "", Nothing, "👩‍🔬👩‍🔬V👩‍🔬👩‍🔬", "café", "It was the best of times, it was the worst of times, it was the age of wisdom, it was the age of foolishness, it was the epoch of belief, it was the epoch of incredulity, it was the season of light, it was the season of darkness, it was the spring of hope, it was the winter of despair."]]] t->
@@ -1406,7 +1406,7 @@ add_column_operation_specs suite_builder setup =
                 starts = table_builder [["starts", [0, 2, 2, 0, 2, 1, 8]]] . at "starts"
                 lengths = table_builder [["lengths", [1, 2, 3, 4, 1, 3, 7]]] . at "lengths"
                 col.text_mid 0 lengths . to_vector . should_equal ["a", "fo", "", Nothing, "👩‍🔬", "caf", "It was "]
-                col.text_mid starts 1 . to_vector . should_equal ["a", "o", "", Nothing, "V", "a", "t was t"]
+                col.text_mid starts 1 . to_vector . should_equal ["a", "o", "", Nothing, "V", "a", "h"]
                 col.text_mid starts lengths . to_vector . should_equal ["a", "ob", "", Nothing, "V", "afé", "he best"]
 
         group_builder.specify "should handle operations like is_empty, is_blank, fill_empty" <|

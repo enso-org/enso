@@ -371,16 +371,6 @@ public class Text_Utils {
   }
 
   /**
-   * Returns a substring of the string starting at the provided grapheme start
-   * and not exceeding the provided grapheme length.
-   */
-  public static String take_mid(String str, long combined) {
-    long grapheme_start = combined / 10000;
-    long grapheme_length = (combined % 10000);
-    return Core_Text_Utils.take_mid(str, grapheme_start, grapheme_length);
-  }
-
-  /**
    * Find the first occurrence of needle in the haystack
    *
    * @param haystack the string to search

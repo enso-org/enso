@@ -14,7 +14,6 @@ import org.enso.table.data.table.problems.MapOperationProblemAggregator;
 public final class TextPartOperation extends BinaryOperationBase<String, String> {
   public static final TextPartOperation LEFT = new TextPartOperation(Text_Utils::take_prefix);
   public static final TextPartOperation RIGHT = new TextPartOperation(Text_Utils::take_suffix);
-  public static final TextPartOperation MID = new TextPartOperation(Text_Utils::take_mid);
 
   @FunctionalInterface
   public interface TextLongToStringFunction {

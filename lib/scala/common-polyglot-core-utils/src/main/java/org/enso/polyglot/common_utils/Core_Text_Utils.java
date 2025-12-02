@@ -61,32 +61,6 @@ public final class Core_Text_Utils {
     }
   }
 
-  /**
-   * Returns a substring of the string starting at the provided grapheme start
-   * and not exceeding the provided grapheme length.
-   */
-  public static String take_mid(String str, long grapheme_start, long grapheme_length) {
-    if (grapheme_length <= 0) {
-      return "";
-    }
-
-    if (grapheme_start < 0) {
-      grapheme_start = 0;
-    }
-
-    BreakIterator iter = BreakIterator.getCharacterInstance();
-    iter.setText(str);
-
-    iter.next(Math.toIntExact(grapheme_start));
-    int charStart = iter.current();
-
-    if (iter.next(Math.toIntExact(grapheme_length)) == BreakIterator.DONE && grapheme_start == 0) {
-      return str;
-    } else {
-      return str.substring(charStart, iter.current());
-    }
-  }
-
   /** Pretty prints the string, escaping special characters. */
   public static String prettyPrint(String str) {
     int len = str.length();
