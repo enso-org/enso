@@ -86,10 +86,14 @@ public final class LogicalOperations {
         var newMissing = new BitSet(size);
         newMissing.flip(0, size);
         newMissing.xor(values);
+        newMissing.flip(0, size);
         return new BoolStorage(values, newMissing, size, true);
       } else {
-        var newValidity = left.getValidityMap().get(0, size);
-        newValidity.and(values);
+        var newMissing = left.getValidityMap().get(0, size);
+        newMissing.flip(0, size);
+        newMissing.or(values);
+        var newValidity = newMissing;
+        newValidity.flip(0, size);
         return new BoolStorage(new BitSet(), newValidity, size, false);
       }
     }
@@ -209,13 +213,10 @@ public final class LogicalOperations {
       BitSet values = left.getValues();
       if (left.isNegated()) {
         var newValidity = left.getValidityMap().get(0, size);
-        newValidity.and(values);
+        newValidity.andNot(values);
         return new BoolStorage(new BitSet(), newValidity, size, true);
       } else {
-        var newMissing = new BitSet(size);
-        newMissing.flip(0, size);
-        newMissing.xor(values);
-        return new BoolStorage(values, newMissing, size, false);
+        return new BoolStorage(values, values, size, false);
       }
     }
 
@@ -260,15 +261,15 @@ public final class LogicalOperations {
       if (size > rightSize) {
         validity.set(rightSize, size, false);
       }
-      int current = validity.nextSetBit(0);
-      while (current != -1) {
+      int current = validity.nextClearBit(0);
+      while (current < size) {
         Boolean a = left.getItemBoxed(current);
         Boolean b = (current < rightSize) ? right.getItemBoxed(current) : null;
         if (a == Boolean.TRUE || b == Boolean.TRUE) {
-          validity.clear(current);
+          validity.set(current);
           out.set(current, !negated);
         }
-        current = validity.nextSetBit(current + 1);
+        current = validity.nextClearBit(current + 1);
       }
 
       return new BoolStorage(out, validity, size, negated);
