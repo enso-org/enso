@@ -1,8 +1,11 @@
 <script setup lang="ts">
 import { useBackends } from '$/providers/backends'
 import { useRightPanelData } from '$/providers/rightPanel'
+import LoadingSpinner from '@/components/shared/LoadingSpinner.vue'
+import { ResultComponent } from '@/util/react'
 import { useQuery } from '@tanstack/vue-query'
-import { computed } from 'vue'
+import { fileExtension } from 'enso-common/src/utilities/file'
+import { computed, watchEffect } from 'vue'
 
 const rightPanel = useRightPanelData()
 const { backendForType } = useBackends()
@@ -11,14 +14,63 @@ const backendForAsset = computed(
     (rightPanel.context?.category && backendForType(rightPanel.context.category.backend)) ?? null,
 )
 
+const filePath = computed(() =>
+  typeof rightPanel.context?.item === 'object' && rightPanel.context.item.type === 'file' ?
+    rightPanel.context.item.ensoPath
+  : undefined,
+)
+
+const projectId = computed(() =>
+  typeof rightPanel.context?.item === 'object' ?
+    rightPanel.context.item.type === 'project' ?
+      rightPanel.context.item.id
+    : undefined
+  : rightPanel.context?.item,
+)
+
+const fileType = computed(() => {
+  if (!filePath.value) {
+    return undefined
+  }
+  const extension = fileExtension(filePath.value)
+  switch (extension?.toLowerCase()) {
+    case 'png':
+    case 'jpg':
+    case 'jpeg':
+    case 'gif':
+    case 'webp': {
+      return 'image'
+    }
+    case 'mp3':
+    case 'wav': {
+      return 'audio'
+    }
+    case 'mp4':
+    case 'mov':
+    case 'webm': {
+      return 'video'
+    }
+    case 'txt':
+    case 'json':
+    case 'yaml':
+    case 'csv':
+    case 'js':
+    case 'ts':
+    case 'vue':
+    case 'jsx':
+    case 'tsx':
+    case 'html': {
+      return 'text'
+    }
+    default:
+      return undefined
+  }
+})
+
 const fileDetails = useQuery({
   queryKey: computed(() => {
-    const filePath =
-      typeof rightPanel.context?.item === 'object' && rightPanel.context.item.type === 'file' ?
-        rightPanel.context.item.ensoPath
-      : undefined
-    // Only preview text files.
-    if (!/[.](?:txt|json|yaml|csv)$/.test(filePath ?? '')) {
+    // Only preview text, image, audio and video files.
+    if (fileType.value === undefined) {
       return []
     }
     const fileId =
@@ -48,32 +100,44 @@ const fileDetails = useQuery({
 const fileUrl = computed(() => fileDetails.data?.value?.url)
 
 const fileContentsQuery = useQuery({
-  queryKey: computed(() => ['fetch', fileUrl] as const),
-  queryFn: async ({ queryKey: [, url] }) => {
-    if (!url) {
+  queryKey: computed(() => ['fetch', fileUrl, fileType] as const),
+  queryFn: async ({ queryKey: [, url, fileType] }) => {
+    if (!url || !fileType) {
       return null
     }
     const response = await fetch(url)
     if (!response.ok) {
       throw new Error(`Failed to fetch file contents: ${response.statusText}`)
     }
-    return await response.text()
+    switch (fileType) {
+      case 'image':
+      case 'audio':
+      case 'video': {
+        const blob = await response.blob()
+        const url = URL.createObjectURL(blob)
+        const type: typeof fileType = fileType
+        return { type, url }
+      }
+      case 'text': {
+        const type: typeof fileType = fileType
+        return { type, text: await response.text() }
+      }
+    }
   },
 })
 
+watchEffect((onCleanup) => {
+  const url = fileContentsQuery.data?.value?.url
+  if (!url) {
+    return
+  }
+  onCleanup(() => {
+    URL.revokeObjectURL(url)
+  })
+})
+
 const projectContentsQuery = useQuery({
-  queryKey: computed(() => {
-    const projectId =
-      typeof rightPanel.context?.item === 'object' ?
-        rightPanel.context.item.type === 'project' ?
-          rightPanel.context.item.id
-        : undefined
-      : rightPanel.context?.item
-    if (!projectId) {
-      return []
-    }
-    return ['getMainFileContent', projectId] as const
-  }),
+  queryKey: computed(() => ['getMainFileContent', projectId.value] as const),
   queryFn: async ({ queryKey: [, projectId] }) => {
     if (!projectId) {
       return null
@@ -101,10 +165,44 @@ const projectContents = computed(() => {
 <template>
   <div class="AssetContentsEditor">
     <h2>File contents</h2>
-    <p v-if="fileContentsQuery.data.value">
-      {{ fileContentsQuery.data }}
-    </p>
-    <pre v-else-if="projectContents"><code>{{ projectContents }}</code></pre>
+    <div class="contents">
+      <template v-if="fileContentsQuery.data.value">
+        <p v-if="fileContentsQuery.data.value.type === 'text'">
+          {{ fileContentsQuery.data }}
+        </p>
+        <img
+          v-else-if="fileContentsQuery.data.value.type === 'image'"
+          :src="fileContentsQuery.data.value.url"
+          alt="Image preview"
+        />
+        <audio
+          v-else-if="fileContentsQuery.data.value.type === 'audio'"
+          :src="fileContentsQuery.data.value.url"
+          controls
+          >Your browser does not support the audio element.</audio
+        >
+        <video
+          v-else-if="fileContentsQuery.data.value.type === 'video'"
+          :src="fileContentsQuery.data.value.url"
+          controls
+          >Your browser does not support the video element.</video
+        >
+      </template>
+      <pre v-else-if="projectContents"><code>{{ projectContents }}</code></pre>
+      <LoadingSpinner v-else-if="fileType || projectId" phase="loading-medium" :size="20" />
+      <ResultComponent
+        v-else-if="rightPanel.context?.item"
+        status="info"
+        title="No preview available for this asset"
+        :centered="true"
+      />
+      <ResultComponent
+        v-else
+        status="info"
+        title="Select a single asset to see its preview"
+        :centered="true"
+      />
+    </div>
   </div>
 </template>
 
@@ -123,8 +221,20 @@ h2 {
   line-height: var(--snug-line-height);
 }
 
+.contents > p,
+.contents > pre {
+  width: 100%;
+  min-height: 100%;
+}
+
 code {
   white-space: pre-wrap;
   word-break: break-word;
+}
+
+.contents {
+  display: grid;
+  place-items: center;
+  height: 100%;
 }
 </style>

@@ -511,7 +511,6 @@ function checkExecutables(...segments: readonly string[]): Path | undefined {
   if (!segments.includes('*')) {
     for (const ensoExecutable of ensoExecutables) {
       const ensoPath = path.join(...segments, ensoExecutable)
-      console.log(ensoPath)
       try {
         fs.accessSync(ensoPath)
         return checkExecutable(ensoPath)
@@ -574,7 +573,7 @@ export function findEnsoExecutable(workDir: string = '.'): Path | undefined {
     // Check built-distribution/*/*/bin/enso
     [workDir, 'built-distribution', '*', '*', 'bin'],
     // Macos dist/backend/dist/*/bin nightly
-    [workDir, 'dist', 'backend', 'dist', '*', 'bin']
+    [workDir, 'dist', 'backend', 'dist', '*', 'bin'],
   ]
 
   for (const directory of directories) {
