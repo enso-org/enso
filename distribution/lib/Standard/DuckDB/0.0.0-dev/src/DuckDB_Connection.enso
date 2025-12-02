@@ -1,5 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Enso_Cloud.Data_Link_Helpers
+import Standard.Base.Errors.File_Error.File_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Runtime.Context
 import Standard.Base.System.File.Generic.Writable_File.Writable_File
@@ -701,7 +702,7 @@ type DuckDB_Connection
     @query make_table_name_with_schema_selector schema_black_list=schema_black_list
     @on_existing_file Existing_File_Behavior.widget include_append=False
     write_file : (SQL_Query_With_Schema | SQL_Query | Table) -> Text -> Existing_File_Behavior -> DuckDB_Connection
-    write_file self (query:SQL_Query_With_Schema | SQL_Query | Table=Missing_Argument.throw "query") (path:Writable_File=Missing_Argument.throw "path") on_existing_file:Existing_File_Behavior=..Backup =
+    write_file self (query:(SQL_Query_With_Schema | SQL_Query | Table)=Missing_Argument.throw "query") (path:Writable_File=Missing_Argument.throw "path") on_existing_file:Existing_File_Behavior=..Backup =
         ## Check a local file (to do add support for non-local files later)
         if path.is_local.not then Error.throw (Illegal_Argument.Error "Only local files are currently supported for writing via DuckDB. Write to a local file and then copy it to the desired location.")
 
@@ -710,10 +711,10 @@ type DuckDB_Connection
             Nothing
 
         ## Rationalise the query to a DB_Table
-        if table.is_error then table
+        if query.is_error then query
         table = case query of
             _ : In_Memory_Table -> Error.throw (Illegal_Argument.Error "Load the table into DuckDB first using `bulk_load`.")
-            _ : DB_Table -> if Meta.is_same_object self query.connection then query else
+            db_table : DB_Table -> if Connection.check_on_connection self db_table then query else
                 Error.throw (Illegal_Argument.Error "Cannot write a DB_Table from a different connection. Load the table into this connection first.")
             _ -> query.to_db_table
 
@@ -723,24 +724,23 @@ type DuckDB_Connection
             Existing_File_Behavior.Error -> Error.throw (File_Error.Already_Exists path)
             _ -> Nothing
         write_action = if path.exists.not || on_existing_file != Existing_File_Behavior then file->action-> action file else
-            file-> action->
+            file -> action ->
                 tmp_file = File.create_temporary_file prefix="duckdb_write_" suffix=".tmp"
-                path.copy_to tmp_file overwrite=True
-                path.delete
+                file.move_to tmp_file replace_existing=True
 
                 ## Convert any Panic to an Error allowing us to restore the original file on failure
-                result = Panic.catch Any (action path) caught_panic-> Error.throw caught_panic.payload
+                result = Panic.catch Any (action file) caught_panic-> Error.throw caught_panic.payload
 
-                case result.is_error then
-                    True -> tmp_file.copy_to path overwrite=True
-                    False -> tmp_file.copy_to (path.parent / (path.name+".bak")) overwrite=True
+                case result.is_error of
+                    True -> tmp_file.move_to file replace_existing=True
+                    False -> tmp_file.move_to (file.parent / (file.name+".bak")) replace_existing=True
 
                 result
 
         ## Write the file
         write_action path file->
             escaped_path = file.path.replace "'" "''"
-            sql_query = query.to_sql.surround 'COPY (' ') TO \'' + escaped_path + '\';'
+            sql_query = table.to_sql.surround "COPY (" ") TO '" + escaped_path + "';'"
             result = self.execute_update sql_query
             result.if_not_error <|
                 path
