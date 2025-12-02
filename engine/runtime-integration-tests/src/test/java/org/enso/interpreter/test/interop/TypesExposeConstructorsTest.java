@@ -67,6 +67,7 @@ public class TypesExposeConstructorsTest {
     var type = typeWithWrapper.type;
     var typeValue = typeWithWrapper.typeValue;
     var consNames = type.getConstructors().keySet();
+    var isPrivate = type.hasAllConstructorsPrivate();
     for (var consName : consNames) {
       assertThat(
           "Constructor " + consName + " should be exposed as a member",
@@ -74,21 +75,22 @@ public class TypesExposeConstructorsTest {
           is(true));
       var consMember = typeValue.getMember(consName);
       assertThat(consMember, is(notNullValue()));
-      assertThat(
-          "Constructor " + consName + " should be instantiable",
-          consMember.canInstantiate(),
-          is(true));
+      if (!isPrivate) {
+        assertThat(
+            "Public constructor " + consName + " should be instantiable",
+            consMember.canInstantiate(),
+            is(true));
+      }
     }
   }
 
-  /**
-   * @param type
-   * @param typeValue The polyglot value of the type (not an object)
-   */
   private static final class TypeWithWrapper implements AutoCloseable {
     private Type type;
     private Value typeValue;
 
+    /**
+     * @param tp The polyglot value of the type (not an object)
+     */
     public TypeWithWrapper(Type type, Value tp) {
       this.type = type;
       this.typeValue = tp;
@@ -98,6 +100,11 @@ public class TypesExposeConstructorsTest {
     public void close() {
       type = null;
       typeValue = null;
+    }
+
+    @Override
+    public String toString() {
+      return "TypeWithWrapper(" + type.getQualifiedName() + "}";
     }
   }
 }
