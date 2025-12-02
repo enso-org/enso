@@ -75,6 +75,7 @@
 - [Add email SMTP support][14350]
 - [Read files into DuckDB both spatial and not.][14367]
 - [Implement Text_Column to_case for DB backends][14386]
+- [Implement bulk loading to DuckDB][14402]
 
 [13769]: https://github.com/enso-org/enso/pull/13769
 [14026]: https://github.com/enso-org/enso/pull/14026
@@ -98,6 +99,7 @@
 [14350]: https://github.com/enso-org/enso/pull/14350
 [14367]: https://github.com/enso-org/enso/pull/14367
 [14386]: https://github.com/enso-org/enso/pull/14386
+[14402]: https://github.com/enso-org/enso/pull/14402
 
 #### Enso Language & Runtime
 

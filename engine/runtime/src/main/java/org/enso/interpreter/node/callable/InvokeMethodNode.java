@@ -8,14 +8,11 @@ import com.oracle.truffle.api.nodes.Node;
 import java.util.UUID;
 import org.enso.compiler.core.ConstantsNames;
 import org.enso.interpreter.node.BaseNode;
-import org.enso.interpreter.node.MethodRootNode;
 import org.enso.interpreter.node.callable.resolver.MethodResolverNode;
 import org.enso.interpreter.runtime.EnsoContext;
-import org.enso.interpreter.runtime.builtin.Builtins;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
-import org.enso.interpreter.runtime.callable.function.FunctionSchema;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
@@ -23,7 +20,7 @@ import org.enso.interpreter.runtime.state.State;
 import org.enso.interpreter.runtime.warning.WarningsLibrary;
 
 /** */
-public abstract class InvokeMethodNode extends BaseNode {
+abstract class InvokeMethodNode extends BaseNode {
   protected static final int CACHE_SIZE = 10;
   protected final int argumentCount;
   protected final boolean onBoundary;
@@ -98,45 +95,6 @@ public abstract class InvokeMethodNode extends BaseNode {
       UnresolvedSymbol symbol, Object self, Type selfTpe, MethodResolverNode methodResolverNode) {
     Function function = methodResolverNode.executeResolution(selfTpe, symbol);
     return function;
-  }
-
-  /**
-   * Returns true if synthetic Self argument should be prepended to the arguments passed to the
-   * function.
-   *
-   * <p>Static method calls on Any are resolved to `Any.type.method`. Such methods take one
-   * additional self argument (with Any.type) as opposed to static method calls resolved on any
-   * other types.
-   *
-   * @param resolvedFunctionSchema Schema of the function that was resolved to be invoked.
-   * @param argumentCount Count of the arguments passed to the function.
-   * @return True if synthetic self argument should be prepended to the arguments.
-   */
-  public static boolean shouldPrependSyntheticSelfArg(
-      FunctionSchema resolvedFunctionSchema, int argumentCount) {
-    var resolvedFuncArgCount = resolvedFunctionSchema.getArgumentsCount();
-    long argsWithDefaultValCount = 0;
-    for (var argDef : resolvedFunctionSchema.getArgumentInfos()) {
-      if (argDef.hasDefaultValue()) {
-        argsWithDefaultValCount++;
-      }
-    }
-    boolean shouldPrependSyntheticSelfArg =
-        resolvedFuncArgCount - argsWithDefaultValCount == argumentCount + 1;
-    return shouldPrependSyntheticSelfArg;
-  }
-
-  private static boolean typeCanOverride(MethodRootNode node, EnsoContext ctx) {
-    Type methodOwnerType = node.getType();
-    Builtins builtins = ctx.getBuiltins();
-    Type any = builtins.any();
-    Type warning = builtins.warning();
-    Type panic = builtins.panic();
-    return methodOwnerType.isEigenType()
-        && builtins.nothing() != methodOwnerType
-        && any.getEigentype() != methodOwnerType
-        && panic.getEigentype() != methodOwnerType
-        && warning.getEigentype() != methodOwnerType;
   }
 
   static PanicException methodNotFound(

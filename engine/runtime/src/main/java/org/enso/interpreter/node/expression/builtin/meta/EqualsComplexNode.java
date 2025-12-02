@@ -24,7 +24,6 @@ import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.callable.UnresolvedConversion;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
-import org.enso.interpreter.runtime.data.EnsoFile;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.atom.Atom;
 import org.enso.interpreter.runtime.data.hash.EnsoHashMap;
@@ -73,15 +72,6 @@ abstract class EqualsComplexNode extends Node {
   @Specialization
   EqualsAndInfo equalsModules(Module selfModule, Module otherModule) {
     return EqualsAndInfo.valueOf(selfModule == otherModule);
-  }
-
-  @Specialization
-  EqualsAndInfo equalsFiles(
-      VirtualFrame frame,
-      EnsoFile selfFile,
-      EnsoFile otherFile,
-      @Shared("equalsNode") @Cached EqualsNode equalsNode) {
-    return equalsNode.execute(frame, selfFile.getPath(), otherFile.getPath());
   }
 
   /**

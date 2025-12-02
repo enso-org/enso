@@ -15,6 +15,7 @@ import Standard.Table.In_Memory_Table.In_Memory_Table
 import Standard.Table.Rows_To_Read.Rows_To_Read
 from Standard.Table import Data_Formatter, Table
 
+import Standard.Database.Bulk_Load_Exists.Bulk_Load_Exists
 import Standard.Database.Column_Description.Column_Description
 import Standard.Database.Connection.Connection.Connection
 import Standard.Database.Connection.Credentials.Credentials
@@ -771,16 +772,19 @@ type Snowflake_Connection
        ## Arguments:
        - `table`: The input table to upload.
        - `table_name`: The name of the table to create.
-       - `drop_if_exists`: If set to `True`, will drop the existing table if it
-          exists. Defaults to `False` - in which case an error is raised if the table
-          already exists.
+       - `if_exists`: What action to take if the table already exists. Defaults to
+          raising a `Table_Already_Exists` error.
+           - `Raise_Error` - a `Table_Already_Exists` error will be raised.
+           - `Drop_Table` - the existing table will be dropped before creating the new one.
+           - `Truncate_Table` - the existing table will be truncated before loading data into it.
+           - `Append_To_Table` - data will be appended to the existing table.
        - `temporary`: If set to `True`, the created table will be temporary.
           Defaults to `False`.
 
        ## Returns
        A `DB_Table` representing the created table.
-    bulk_load : Table -> Text -> Boolean -> Boolean -> Table & DB_Table ! Table_Already_Exists
-    bulk_load self table:Table=(Missing_Argument.throw "table") table_name:Text=(Missing_Argument.throw "table_name") drop_if_exists:Boolean=False temporary:Boolean=False = case table of
+    bulk_load : Table -> Text -> Bulk_Load_Exists -> Boolean -> Table & DB_Table ! Table_Already_Exists
+    bulk_load self table:Table=(Missing_Argument.throw "table") table_name:Text=(Missing_Argument.throw "table_name") if_exists:Bulk_Load_Exists=..Raise_Error temporary:Boolean=False = case table of
         _ : DB_Table ->
             Error.throw (Illegal_Argument.Error "Cannot bulk load from a DB_Table, use `read` to materialize or use `select_into_database_table` if on same server.")
         _ : In_Memory_Table ->
@@ -793,30 +797,40 @@ type Snowflake_Connection
 
             ## Check if table exists
             exists = self.query (..Table_Name table_name) . is_error . not
-            if exists && drop_if_exists.not then Error.throw (Table_Already_Exists.Error table_name)
+            if exists && if_exists==Bulk_Load_Exists.Raise_Error then Error.throw (Table_Already_Exists.Error table_name)
 
+            ## Check Execution Context
             Execution_Context.Output.if_enabled disabled_message="As writing is disabled, cannot load data. Press the Write button ▶ to perform the operation." panic=False <|
-                ## Create temporary file
-                temp_file = File.create_temporary_file "snowflake_bulk_load" ".csv"
-                table.write temp_file (..Delimited value_formatter=self.default_formatter)
+                Nothing
 
-                ## Drop existing table if needed and then create new table
-                if exists then self.drop_table table_name if_exists=True
-                created_table = self.create_table table_name table temporary=temporary
+            ## Create temporary file
+            temp_file = File.create_temporary_file "snowflake_bulk_load" ".csv"
+            table.write temp_file (..Delimited value_formatter=self.default_formatter)
 
-                ## Assuming we managed to create the table, proceed with upload
-                created_table.if_not_error <|
-                    ## Upload to the stage
-                    put_result = self.put_to_stage temp_file (..Name "~") overwrite=True
-                    put_result.if_not_error <|
-                        ## Copy into the table
-                        copy_result = self.copy_into_table table_name (..Name "~") put_result ..CSV
+            ## Drop existing table if needed and then create new table
+            created_table = if exists.not then self.create_table table_name table temporary=temporary else case if_exists of
+                Bulk_Load_Exists.Drop_Table ->
+                    self.drop_table table_name if_exists=True
+                    self.create_table table_name table temporary=temporary
+                Bulk_Load_Exists.Truncate_Table ->
+                    self.truncate_table table_name
+                    self.query (..Table_Name table_name)
+                Bulk_Load_Exists.Append_To_Table ->
+                    self.query (..Table_Name table_name)
 
-                        ## Remove file regardless of copy_result
-                        self.remove_from_stage (..Name "~") put_result
+            ## Assuming we managed to create the table, proceed with upload
+            created_table.if_not_error <|
+                ## Upload to the stage
+                put_result = self.put_to_stage temp_file (..Name "~") overwrite=True
+                put_result.if_not_error <|
+                    ## Copy into the table
+                    copy_result = self.copy_into_table table_name (..Name "~") put_result ..CSV
 
-                        ## Return the copy result if an error or the created table
-                        copy_result.if_not_error created_table
+                    ## Remove file regardless of copy_result
+                    self.remove_from_stage (..Name "~") put_result
+
+                    ## Return the copy result if an error or the created table
+                    copy_result.if_not_error created_table
 
 private make_stage_selector connection include_home:Boolean=True =
     stages = (if include_home then [Option "~" "..Name '~'"] else [])

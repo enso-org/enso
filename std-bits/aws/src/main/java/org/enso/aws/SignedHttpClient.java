@@ -13,7 +13,6 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
-import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
@@ -187,7 +186,8 @@ class SignedHttpClient extends HttpClient {
     var credentials = credentialsProvider.resolveCredentials();
 
     // Create signing string
-    String dateStamp = LocalDate.now().format(DateTimeFormatter.BASIC_ISO_DATE);
+    String dateStamp =
+        ZonedDateTime.now(ZoneId.of("UTC")).format(DateTimeFormatter.ofPattern("yyyyMMdd"));
     String scope = dateStamp + "/" + regionName + "/" + serviceName + "/" + TERMINATOR;
     String toSign =
         String.join(

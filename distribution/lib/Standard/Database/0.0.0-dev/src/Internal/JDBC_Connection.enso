@@ -73,6 +73,15 @@ type JDBC_Connection
     ## ---
        private: true
        ---
+       Open the connection to the database, then run the action wrapping any SQL
+       errors with the action in a sql error handler.
+    with_handled_connection : (Connection -> Any) -> Any
+    with_handled_connection self action = self.sql_error_handler <|
+        self.with_connection action
+
+    ## ---
+       private: true
+       ---
        Runs the provided callback only if no thread is currently inside a
        `synchronized` critical section (including the current thread).
     run_maintenance_action_if_possible : (Nothing -> Any) -> Nothing
