@@ -11,7 +11,7 @@ import project.Enso_Cloud.Enso_File.Enso_File
 ## The attachment of an email.
 type Email_Attachment
     ## A file attachment.
-    File file:Text|URI|File=(Missing_Argument.throw "file") name:Text=""
+    File file:Text|URI|File|Enso_File=(Missing_Argument.throw "file") name:Text=""
 
     ## ---
        private: true
@@ -33,3 +33,8 @@ Email_Attachment.from (that:URI) = Email_Attachment.File that
    private: true
    ---
 Email_Attachment.from (that:Text) = Email_Attachment.File that
+
+## ---
+   private: true
+   ---
+Email_Attachment.from (that:Enso_File) = Email_Attachment.File that
