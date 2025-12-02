@@ -121,7 +121,7 @@ type Table_Column_Helper
     remove_columns self (selectors:(Text | Integer | Regex | Vector)) (case_sensitivity:Case_Sensitivity) (error_on_missing_columns:Boolean) (on_problems:Problem_Behavior) =
         problem_builder = Problem_Builder.new error_on_missing_columns=error_on_missing_columns
         selection = self.select_columns_helper selectors case_sensitivity False problem_builder
-        selected_names = Dictionary.from_vector (selection.map (column-> [column.name, True]) on_problems=No_Wrap.Value)
+        selected_names = Dictionary.from_vector (selection.map column-> [column.name, True])
         result = self.columns.filter column->
             should_be_removed = selected_names.get column.name False
             should_be_removed.not
@@ -220,7 +220,7 @@ type Table_Column_Helper
         selected_columns = (vector.map resolve_selector on_problems=No_Wrap.Value).flatten
         if selected_columns.is_error then Error.throw selected_columns
         if reorder then selected_columns.distinct on=_.name else
-            dict = Dictionary.from_vector (selected_columns.map (column-> [column.name, True]) on_problems=No_Wrap.Value) error_on_duplicates=False
+            dict = Dictionary.from_vector (selected_columns.map column-> [column.name, True]) error_on_duplicates=False
             self.columns.filter column-> dict.contains_key column.name
 
     ## ---
@@ -493,7 +493,6 @@ private _match_columns (name : Text | Regex) (case_sensitivity : Case_Sensitivit
             Case_Sensitivity.Sensitive -> (== name)
             Case_Sensitivity.Insensitive locale -> name.equals_ignore_case locale=locale
         _ : Regex -> name.recompile case_sensitivity . matches
-    if match.is_error then match
     columns.filter c-> match c.name
 
 ## ---
