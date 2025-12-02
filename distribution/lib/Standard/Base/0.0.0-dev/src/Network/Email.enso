@@ -15,7 +15,7 @@ import project.Network.Email.Email_Provider.Email_Provider
 import project.Network.Email.Email_Send_Response.Send_Response
 import project.Runtime.Context
 import project.Warning.Warning
-from project.Data.Boolean import False, True
+from project.Data.Boolean import False
 from project.Error import all
 from project.Metadata.Widget import Text_Input, Vector_Editor, Single_Choice
 from project.Nothing import all
