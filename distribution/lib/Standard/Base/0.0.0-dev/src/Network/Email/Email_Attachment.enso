@@ -23,3 +23,13 @@ type Email_Attachment
    private: true
    ---
 Email_Attachment.from (that:File) = Email_Attachment.File that
+
+## ---
+   private: true
+   ---
+Email_Attachment.from (that:URI) = Email_Attachment.File that
+
+## ---
+   private: true
+   ---
+Email_Attachment.from (that:Text) = Email_Attachment.File that
