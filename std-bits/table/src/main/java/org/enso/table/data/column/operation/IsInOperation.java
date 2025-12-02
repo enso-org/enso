@@ -296,20 +296,23 @@ public final class IsInOperation {
   private static ColumnStorage<?> applyBoolStorage(
       boolean keepValue, BoolStorage boolStorage, int checkedSize) {
     BitSet values = boolStorage.getValues();
-    BitSet validityMap = boolStorage.getValidityMap();
+    BitSet isNothing = (BitSet) boolStorage.getValidityMap().clone();
+    isNothing.flip(0, Math.toIntExact(boolStorage.getSize()));
 
     if (keepValue) {
-      var newValidity =
+      var newIsNothing =
           boolStorage.isNegated()
-              ? orNot(validityMap, values, checkedSize)
-              : or(validityMap, values, checkedSize);
-      return new BoolStorage(values, newValidity, checkedSize, boolStorage.isNegated());
+              ? or(isNothing, values, checkedSize)
+              : orNot(isNothing, values, checkedSize);
+      newIsNothing.flip(0, checkedSize);
+      return new BoolStorage(values, newIsNothing, checkedSize, boolStorage.isNegated());
     } else {
-      var newValidity =
+      var newIsNothing =
           boolStorage.isNegated()
-              ? or(validityMap, values, checkedSize)
-              : orNot(validityMap, values, checkedSize);
-      return new BoolStorage(values, newValidity, checkedSize, !boolStorage.isNegated());
+              ? orNot(isNothing, values, checkedSize)
+              : or(isNothing, values, checkedSize);
+      newIsNothing.flip(0, checkedSize);
+      return new BoolStorage(values, newIsNothing, checkedSize, !boolStorage.isNegated());
     }
   }
 
