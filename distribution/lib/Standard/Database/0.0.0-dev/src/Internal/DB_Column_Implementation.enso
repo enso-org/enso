@@ -553,26 +553,23 @@ adapt_unified_column (column : Column & DB_Column) expected_type =
 
 make_op : Column & DB_Column -> Text -> Vector Text -> (Text | Nothing) -> (Any | Nothing) -> Column
 make_op this_column op_kind operands new_name metadata=Nothing =
-    checked_support = if this_column.connection.dialect.is_operation_supported op_kind then True else
-        Error.throw (Unsupported_Database_Operation.Error op_kind)
-    checked_support.if_not_error <|
-        mapping = this_column.connection.type_mapping
-        prepare_operand operand = case operand of
-            other_column : Column ->
-                if Helpers.check_integrity this_column other_column then (other_column:DB_Column).expression else
-                    Error.throw (Integrity_Error.Error "Column "+other_column.name)
-            sql_expression : SQL_IR_Expression ->
-                sql_expression
-            constant ->
-                SQL_IR_Expression.Constant constant
+    if this_column.connection.dialect.is_operation_supported op_kind . not then Error.throw (Unsupported_Database_Operation.Error op_kind)
 
-        expressions = operands.map prepare_operand
-        new_expr = SQL_IR_Expression.Operation op_kind ([this_column.expression] + expressions) metadata
+    prepare_operand operand = case operand of
+        other_column : Column ->
+            if Helpers.check_integrity this_column other_column then (other_column:DB_Column).expression else
+                Error.throw (Integrity_Error.Error "Column "+other_column.name)
+        sql_expression : SQL_IR_Expression -> sql_expression
+        constant -> SQL_IR_Expression.Constant constant
 
-        infer_from_database_callback expression =
-            SQL_Type_Reference.new this_column.connection this_column.context expression
-        new_type_ref = mapping.infer_return_type infer_from_database_callback op_kind [this_column]+operands new_expr
-        DB_Column.new new_name this_column.connection new_type_ref new_expr this_column.context
+    expressions = operands.map prepare_operand
+    new_expr = SQL_IR_Expression.Operation op_kind ([this_column.expression] + expressions) metadata
+
+    mapping = this_column.connection.type_mapping
+    infer_from_database_callback expression =
+        SQL_Type_Reference.new this_column.connection this_column.context expression
+    new_type_ref = mapping.infer_return_type infer_from_database_callback op_kind [this_column]+operands new_expr
+    DB_Column.new new_name this_column.connection new_type_ref new_expr this_column.context
 
 make_binary_op : Column & DB_Column -> Text -> Text -> (Text | Nothing) -> Column
 make_binary_op this_column op_kind operand new_name=Nothing =

@@ -125,7 +125,7 @@ add_specs suite_builder =
             r1.to_display_text . should_contain "do not support Date/time types"
 
         group_builder.specify "should be able to infer types for all supported operations" <|
-            internal_mapping = SQLite_Connection.dialect.get_dialect_operations.operations_dict
+            internal_mapping = SQLite_Connection.get_dialect.get_dialect_operations.operations_dict
             operation_type_mapping = SQLite_Type_Mapping.operations_dict
 
             operation_type_mapping.keys.sort . should_equal internal_mapping.keys.sort

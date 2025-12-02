@@ -123,7 +123,7 @@ type SQLite_Type_Mapping
        private: true
        ---
        SQLite `ResultSet` metadata may differ row-by-row, so we cannot rely on
-       this metadata. Instead, we get the types inferred for each colum,
+       this metadata. Instead, we get the types inferred for each column,
        regardless if it was initially overridden or not.
     prepare_type_overrides : Nothing | Vector SQL_Type_Reference -> Nothing | Vector (Nothing | SQL_Type)
     prepare_type_overrides column_type_suggestions = case column_type_suggestions of

@@ -3,6 +3,7 @@
 - type File_Like
     - Value underlying:Standard.Base.Any.Any
     - can_write_into_parent self -> Standard.Base.Any.Any
+    - copy_to self destination:Standard.Base.Any.Any replace_existing:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - exists self -> Standard.Base.Any.Any
     - name self -> Standard.Base.Data.Text.Text
     - parent self -> Standard.Base.System.File.Generic.File_Like.File_Like

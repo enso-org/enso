@@ -1,20 +1,23 @@
 use crate::prelude::*;
 
 use crate::empty_tree;
+use crate::syntax::Item;
+use crate::syntax::Token;
+use crate::syntax::Tree;
 use crate::syntax::expression::ExpressionParser;
 use crate::syntax::expression::Spacing;
 use crate::syntax::item;
 use crate::syntax::maybe_with_error;
-use crate::syntax::statement::apply_excess_private_keywords;
-use crate::syntax::statement::apply_private_keywords;
-use crate::syntax::statement::find_top_level_operator;
-use crate::syntax::statement::parse_pattern;
 use crate::syntax::statement::Line;
 use crate::syntax::statement::StatementPrefix;
 use crate::syntax::statement::StatementPrefixLine;
 use crate::syntax::statement::StatementPrefixes;
 use crate::syntax::statement::TopLevelOperator;
 use crate::syntax::statement::VisibilityContext;
+use crate::syntax::statement::apply_excess_private_keywords;
+use crate::syntax::statement::apply_private_keywords;
+use crate::syntax::statement::find_top_level_operator;
+use crate::syntax::statement::parse_pattern;
 use crate::syntax::token;
 use crate::syntax::tree;
 use crate::syntax::tree::AnnotationLine;
@@ -26,9 +29,6 @@ use crate::syntax::tree::DocLine;
 use crate::syntax::tree::ReturnSpecification;
 use crate::syntax::tree::SyntaxError;
 use crate::syntax::tree::TypeSignatureLine;
-use crate::syntax::Item;
-use crate::syntax::Token;
-use crate::syntax::Tree;
 
 pub struct FunctionBuilder<'s> {
     name: Tree<'s>,
@@ -165,8 +165,8 @@ fn qn_equivalent(a: &Tree, b: &Tree) -> bool {
     use tree::Variant::*;
     match (&a.variant, &b.variant) {
         (Ident(a), Ident(b)) => a.token.code.repr == b.token.code.repr,
-        (OprApp(a), OprApp(b)) => {
-            opt_qn_equivalent(&a.lhs, &b.lhs) && opt_qn_equivalent(&a.rhs, &b.rhs)
+        (PropertyAccess(a), PropertyAccess(b)) => {
+            a.rhs.code.repr == b.rhs.code.repr && opt_qn_equivalent(&a.lhs, &b.lhs)
         }
         _ => false,
     }

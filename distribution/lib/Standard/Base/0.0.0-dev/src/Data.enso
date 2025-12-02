@@ -29,7 +29,6 @@ import project.Network.HTTP.HTTP_Method.HTTP_Method
 import project.Network.HTTP.Request_Body.Request_Body
 import project.Network.HTTP.Request_Error
 import project.Network.URI.URI
-import project.Nothing.Nothing
 import project.Runtime
 import project.Runtime.Context
 import project.System.File.File
@@ -39,6 +38,7 @@ from project.Error import all
 from project.Meta.Enso_Project import enso_project
 from project.Metadata.Choice import Option
 from project.Metadata.Widget import File_Browse, Folder_Browse, Numeric_Input, Text_Input, Vector_Editor
+from project.Nothing import all
 from project.System.File_Format import Auto_Detect, File_Format
 
 ## ---
@@ -103,9 +103,11 @@ from project.System.File_Format import Auto_Detect, File_Format
 @format File_Format.default_widget
 read : Text | URI | File -> File_Format -> Problem_Behavior -> Any ! File_Error
 read path=(Missing_Argument.throw "path") format=Auto_Detect (on_problems : Problem_Behavior = ..Report_Warning) = case path of
-    _ : Vector -> Error.throw (Illegal_Argument.Error "Data.read cannot be used with a Vector. Please use Data.read_many.")
-    _ : Text -> if Data_Read_Helpers.looks_like_uri path then Data_Read_Helpers.fetch_following_data_links path format=format else
-        read (File.new path) format on_problems
+    _ : Vector ->
+        Error.throw (Illegal_Argument.Error "Data.read cannot be used with a Vector. Please use Data.read_many.")
+    _ : Text ->
+        resolved = URI.parse_if_http path . if_nothing <| File.new path
+        read resolved format on_problems
     uri : URI ->
         fetch uri format=format
     _ ->

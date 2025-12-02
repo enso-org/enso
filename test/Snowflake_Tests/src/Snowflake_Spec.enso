@@ -164,9 +164,9 @@ snowflake_specific_spec suite_builder default_connection db_name setup =
             tables.at "Name" . to_vector . at 0 . should_equal data.tinfo
             tables.at "Type" . to_vector . at 0 . should_equal "TABLE"
 
-            data.connection.tables "TestT_ble%" . row_count . should_equal 1
-            data.connection.tables "Temporary%ble%" . row_count . should_equal 1
-            data.connection.tables "Temporary%ble%" . at "Type" . to_vector . should_equal ["TEMPORARY"]
+            table_name_filter = data.temporary_table.replace "TemporaryTable" "T_mporary%ble%"
+            data.connection.tables table_name_filter . row_count . should_equal 1
+            data.connection.tables table_name_filter . at "Type" . to_vector . should_equal ["TEMPORARY"]
             data.connection.tables "N_nexistent%" . row_count . should_equal 0
 
         group_builder.specify "should be able to filter tables by type" <|
@@ -533,7 +533,7 @@ add_snowflake_specs suite_builder create_connection_fn db_name =
         default_connection.get.create_literal_table (Table.new columns) "literal_table"
     materialize = .read
 
-    common_selection = Common_Table_Operations.Main.Test_Selection.Config supported_replace_params=Snowflake_Connection.dialect.get_supported_replace_params run_advanced_edge_case_tests_by_default=False
+    common_selection = Common_Table_Operations.Main.Test_Selection.Config supported_replace_params=Snowflake_Connection.get_dialect.get_supported_replace_params run_advanced_edge_case_tests_by_default=False
     aggregate_selection = Common_Table_Operations.Aggregate_Spec.Test_Selection.Config first_last_row_order=False aggregation_problems=False text_concat=False
     agg_in_memory_table = ((Project_Description.new enso_dev.Table_Tests).data / "data.csv") . read
 

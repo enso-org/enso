@@ -1,21 +1,87 @@
 from Standard.Base import all
 from Standard.Table import all
+
 from Standard.Database import all
+from Standard.Database.Errors import Table_Already_Exists
+
 from Standard.DuckDB import all
 
 from Standard.Test import all
 
+make_table start:Integer length:Integer=10 =
+    node1 = start.up_to (start + length) True
+    table1 = node1.to_table "Ints"
+    table3 = table1.set (expr 'if [Ints]%10=8 then nothing else 2^65+[Ints]') "BigInt"
+    table4 = table3.set (expr 'if [Ints]%10=9 then nothing else cast(round([Ints]*1.234,3),..Decimal)') "BigDec"
+    table5 = table4.set (expr 'if [Ints]%10=3 then nothing else date_add(today(),[Ints]-2)') "Date"
+    table6 = table5.set (expr 'if [Ints]%10=4 then nothing else date_add(now(),[Ints]-2)') "DateTime"
+    table7 = table6.set (expr 'if [Ints]%10=7 then Nothing else parse("12:"+format(20+[Ints])+":00")') "Time"
+    table8 = table7.set (expr 'if [Ints]%10=2 then Nothing else [Ints]%2==1') "Bool"
+    table9 = table8.set (expr 'if [Ints]%10=5 then Nothing else 1/[Ints]') "Float"
+    table10 = table9.set (expr 'if [Ints]%10=6 then Nothing else format([Ints])') as="Text"
+    table10
+
+compare_table db_table_read table =
+    table.column_names.each column->
+        values = db_table_read.at column . to_vector . map x-> if x.is_a Date_Time then x.at_zone Time_Zone.system else x
+        expected = table.at column . to_vector . map x-> if x.is_a Date_Time then x.date_add -x.nanosecond ..Nanosecond else x
+        [column]+values . should_equal [column]+expected
+
+
 add_specs suite_builder =
     suite_builder.group "DuckDB_Parquet" group_builder->
+        connect = Database.connect DuckDB.In_Memory
+
         group_builder.specify "Connect to an In-Memory Database" <|
-            connect = Database.connect DuckDB.In_Memory
             connect.database.should_equal "memory"
 
         group_builder.specify "List schemas" <|
-            connect = Database.connect DuckDB.In_Memory
             connect.schema.should_equal "main"
             connect.schemas.should_contain "main"
             connect.schemas.should_contain "information_schema"
+
+    suite_builder.group "DuckDB_Appender" group_builder->
+        connect = Database.connect DuckDB.In_Memory
+        connect.drop_table "test_table" if_exists=True
+        connect.drop_table "clash_table" if_exists=True
+
+        group_builder.specify "Bulk Load to a new table" <|
+            table = make_table 0
+            db_table = connect.bulk_load table "test_table"
+
+            db_table.row_count.should_equal table.row_count
+            db_table.column_count.should_equal table.column_count
+            db_table.column_names.should_equal table.column_names
+            Test.with_clue "Bulk Load (new)" <| compare_table db_table.read table
+
+        group_builder.specify "Bulk Load to an existing table" <|
+            table = make_table 0
+            table_2 = make_table 10
+            connect.bulk_load table "clash_table"
+
+            ## Should fail by default
+            connect.bulk_load table_2 "clash_table" . should_fail_with Table_Already_Exists
+
+            ## Should succeed with truncate
+            trunc_table = connect.bulk_load table_2 "clash_table" ..Truncate_Table
+            trunc_table.row_count.should_equal table_2.row_count
+            trunc_table.column_count.should_equal table_2.column_count
+            trunc_table.column_names.should_equal table_2.column_names
+            Test.with_clue "Bulk Load (truncate)" <| compare_table trunc_table.read table_2
+
+            ## Should succeed with drop
+            drop_table = connect.bulk_load table "clash_table" ..Drop_Table
+            drop_table.row_count.should_equal table.row_count
+            drop_table.column_count.should_equal table.column_count
+            drop_table.column_names.should_equal table.column_names
+            Test.with_clue "Bulk Load (drop)" <| compare_table drop_table.read table
+
+            ## Should succeed with append
+            db_table = connect.bulk_load table_2 "clash_table" ..Append_To_Table
+            db_table.row_count.should_equal (table.row_count + table_2.row_count)
+            read_table = db_table.read
+            Test.with_clue "Append_To_Table (1st)" <| compare_table (read_table.take table.row_count) table
+            Test.with_clue "Append_To_Table (2nd)" <| compare_table (read_table.drop table.row_count) table_2
 
 main filter=Nothing =
     suite = Test.build suite_builder->

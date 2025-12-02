@@ -9,12 +9,13 @@ import com.oracle.truffle.api.interop.StopIterationException;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
+import org.enso.interpreter.Constants;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.runtime.EnsoContext;
 
 @BuiltinMethod(
     type = "Dictionary",
-    name = "to_text",
+    name = Constants.Names.TO_TEXT,
     description =
         """
         Returns text representation of this hash map

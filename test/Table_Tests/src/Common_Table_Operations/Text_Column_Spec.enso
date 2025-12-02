@@ -27,7 +27,7 @@ add_text_columns_specs suite_builder setup =
     prefix = setup.prefix
     build_sorted_table = Common_Table_Operations_Util.build_sorted_table setup
 
-    db_pending = if setup.is_database then "Not implemented for database backends" else Nothing
+    to_case_locale_db_pending = if setup.is_database then "Not implemented for database backends" else Nothing
     text_column = Lazy_Ref.Value <| build_sorted_table [["X", ["asdf", "ZXcv fFFf", "qwER gGgG", "XOMT"]]] . at "X"
 
     suite_builder.group prefix+"Text_Column" group_builder->
@@ -38,25 +38,31 @@ add_text_columns_specs suite_builder setup =
                 (x:Text_Column)
 
     suite_builder.group prefix+"Text_Column (to_case)" group_builder->
-        group_builder.specify "to_case works" pending=db_pending <|
+        group_builder.specify "to_case works" <|
             column = text_column.get
             column.to_case ..Upper . to_vector . should_equal ["ASDF", "ZXCV FFFF", "QWER GGGG", "XOMT"]
             column.to_case ..Lower . to_vector . should_equal ["asdf", "zxcv ffff", "qwer gggg", "xomt"]
-            column.to_case ..Title . to_vector . should_equal ["Asdf", "Zxcv Ffff", "Qwer Gggg", "Xomt"]
+            proper = column.to_case ..Proper . to_vector
+            case setup.flagged ..Supports_Proper_Casing of
+                True  -> proper.should_equal ["Asdf", "Zxcv Ffff", "Qwer Gggg", "Xomt"]
+                False -> proper.should_fail_with Unsupported_Database_Operation
 
-        group_builder.specify "to_case respects locale" pending=db_pending <|
+        group_builder.specify "to_case respects locale" pending=to_case_locale_db_pending <|
             c = build_sorted_table [['x', ['i', 'a', 'b']]] . at 'x'
             c.to_case Case.Upper (Locale.new "tr") . to_vector . should_equal ["İ", 'A', 'B']
 
-        group_builder.specify "to_case column names are correct" pending=db_pending <|
+        group_builder.specify "to_case column names are correct" <|
             column = text_column.get
             column.to_case ..Upper . name . should_equal "to_case([X], 'Uppercase')"
+            column.to_case ..Lower . name . should_equal "to_case([X], 'Lowercase')"
+            if setup.flagged ..Supports_Proper_Casing then
+                column.to_case ..Proper . name . should_equal "to_case([X], 'Proper Case')"
 
         if setup.is_database then
-            group_builder.specify "to_case not implemented for database backend" <|
+            group_builder.specify "locale-specific to_case not implemented for database backend" <|
                 column = text_column.get
                 Test.expect_panic Unimplemented <|
-                    column.to_case ..Upper
+                    column.to_case ..Upper (Locale.new "tr")
 
     suite_builder.group prefix+"Text_Column (length)" group_builder->
         group_builder.specify "length works" <|

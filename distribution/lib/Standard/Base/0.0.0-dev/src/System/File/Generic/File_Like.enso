@@ -45,6 +45,18 @@ type File_Like
        ---
     can_write_into_parent self = self.underlying.can_write_into_parent
 
+    ## ---
+       icon: data_output
+       ---
+       Copies the file to the specified destination.
+
+       ## Arguments
+        - `destination`: the destination to move the file to.
+        - `replace_existing`: specifies if the operation should proceed if the
+          destination file already exists. Defaults to `False`.
+    copy_to self destination replace_existing =
+        self.underlying.copy_to destination replace_existing
+
 ## ---
    private: true
    ---

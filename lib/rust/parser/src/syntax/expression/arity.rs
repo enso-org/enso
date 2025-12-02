@@ -2,15 +2,15 @@ use crate::prelude::*;
 use crate::syntax::expression::apply::*;
 use crate::syntax::expression::types::*;
 
+use crate::syntax::Flush;
+use crate::syntax::GroupHierarchyConsumer;
+use crate::syntax::Token;
 use crate::syntax::expression::whitespace::Spacing;
 use crate::syntax::expression::whitespace::SpacingLookaheadTokenConsumer;
 use crate::syntax::token;
 use crate::syntax::token::OperatorProperties;
 use crate::syntax::token::TokenOperatorProperties;
 use crate::syntax::tree;
-use crate::syntax::Flush;
-use crate::syntax::GroupHierarchyConsumer;
-use crate::syntax::Token;
 
 // ======================
 // === Classify Arity ===

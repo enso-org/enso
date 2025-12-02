@@ -24,6 +24,7 @@ import { partition } from '@/util/data/array'
 import { stringUnionToArray, type Events } from '@/util/data/observable'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
+import { primitiveEquals } from '@/util/equals'
 import type { MethodPointer } from '@/util/methodPointer'
 import { proxyRefs, useWatchContext } from '@/util/reactivity'
 import * as iter from 'enso-common/src/utilities/data/iter'
@@ -753,7 +754,12 @@ export interface ConnectedEdge {
   target: PortId
 }
 
-/** TODO: Add docs */
+/** Equality function for {@link ConnectedEdge}. */
+export function connectedEdgeEquals(a: ConnectedEdge, b: ConnectedEdge) {
+  return primitiveEquals(a.source, b.source) && primitiveEquals(a.target, b.target)
+}
+
+/** Check if edge is connected at both ends. */
 export function isConnected(edge: Edge): edge is ConnectedEdge {
   return edge.source != null && edge.target != null
 }

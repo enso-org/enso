@@ -3,11 +3,12 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Metadata.Display
 import Standard.Base.Metadata.Widget
 from Standard.Base.Metadata.Choice import Option
-from Standard.Base.Metadata.Widget import Single_Choice
+from Standard.Base.Metadata.Widget import Single_Choice, Vector_Editor
 from Standard.Base.Widget_Helpers import make_any_selector, make_format_chooser
 
 import project.Column_Ref.Column_Ref
 import project.Expression.Expression
+import project.In_Memory_Table.In_Memory_Table
 import project.Internal.Table_Ref.Table_Ref
 import project.Internal.Widget_Helpers
 import project.Refined_Types.Numeric_Column.Numeric_Column
@@ -99,9 +100,13 @@ type Simple_Expression
         constants = make_any_selector add_text=True add_number=True add_boolean=True add_date=True add_time=True add_date_time=True . values
         expression = Option "<Expression>" "(expr '["+table.column_names.first+"]')"
 
+        ## SQL Function
+        sql_function = if table.underlying.is_a In_Memory_Table then [] else
+            [Option "<SQL Function>" "..SQL" [["arguments", Vector_Editor item_editor=with_everything item_default="(..Name "+table.underlying.column_names.first.pretty+")"]]]
+
         input_column = Widget_Helpers.make_column_ref_by_name_selector table add_text=True add_number=True add_boolean=True add_date=True add_time=True add_date_time=True columns_first=True
         derived = Option "<Simple Expression>" "..Simple_Expr" [["input", input_column], ["operation", Single_Choice options]]
-        Single_Choice [derived, expression]+constants display=display
+        Single_Choice [derived, expression]+sql_function+constants display=display
 
 ## Defines a set of Text based operations.
 type Text_Operation

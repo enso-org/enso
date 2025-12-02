@@ -414,14 +414,18 @@ final class TruffleCompilerContext implements CompilerContext {
     logSerializationManager(
         Level.FINE, "Requesting serialization for module [{0}].", module.getName());
     var ir = module.getIr();
-    var dupl = ir.duplicate(true, true, true, true);
-    var duplicatedIr = compiler.updateMetadata(ir, dupl);
+    org.enso.compiler.core.ir.Module duplicatedIr;
     Source src;
     try {
+      var dupl = ir.duplicate(true, true, true, true);
+      duplicatedIr = compiler.updateMetadata(ir, dupl);
       var m = org.enso.interpreter.runtime.Module.fromCompilerModule(module);
       src = m.getSource();
     } catch (IOException ex) {
-      logSerializationManager(Level.WARNING, "Cannot get source for " + module.getName(), ex);
+      logSerializationManager(
+          Level.WARNING,
+          "Cannot get source for " + module.getName() + " at stage " + module.getCompilationStage(),
+          ex);
       return CompletableFuture.failedFuture(ex);
     }
     var task =
