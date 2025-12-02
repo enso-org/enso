@@ -349,11 +349,21 @@ const actionHandlers = registerHandlers({
       deleteAndConnectAround: (nodes) => {
         return module.value.edit(async (edit) => {
           if (!detachInfo.value.ok) return detachInfo.value
-          for (const { port, ident } of detachInfo.value.value) {
-            const result = await graphStore.updatePortValue(port, Ast.Ident.new(edit, ident), edit)
-            if (!result.ok) {
-              result.error.log('Failed to connect around')
-            }
+          const results = await Promise.all(
+            detachInfo.value.value.map(async ({ port, ident }) => {
+              const result = await graphStore.updatePortValue(
+                port,
+                Ast.Ident.new(edit, ident),
+                edit,
+              )
+              if (!result.ok) {
+                result.error.log('Failed to connect around')
+              }
+              return result
+            }),
+          )
+          if (results.some((result) => !result.ok)) {
+            toasts.userActionFailed.show('Failed to connect removed component around')
           }
           return graphStore.deleteNodes(nodes.map(nodeId), edit)
         })
