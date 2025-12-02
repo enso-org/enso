@@ -1,0 +1,27 @@
+{
+  "name": "ydoc-channel",
+  "version": "0.1.0",
+  "description": "Y.js-based bidirectional communication channel",
+  "type": "module",
+  "exports": {
+    ".": {
+      "source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "main": "src/index.ts",
+  "scripts": {
+    "test:unit": "vitest run",
+    "compile": "tsc",
+    "lint": "eslint . --cache --max-warnings=0"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "dependencies": {
+    "yjs": "^13.6.19"
+  }
+}
