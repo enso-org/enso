@@ -34,28 +34,26 @@ export function analyzeConnectAround(
     }
   }
 
-  for (const [source, targets] of graph.db.connections.allForward()) {
-    for (const target of targets) {
-      // TODO[ao]: copied from collapsing.ts. Worth merging?
-      const targetNode = graph.db.getExpressionNodeId(target)
-      if (targetNode == null) continue
-      const sourceNode = graph.db.getPatternExpressionNodeId(source)
-      if (sourceNode == null) continue
-      // Sometimes the connection source is in expression, not pattern; for example, when its
-      // lambda.
-      const nodeWithSource = sourceNode ?? graph.db.getExpressionNodeId(source)
-      // If source is not in pattern nor expression of any node, it's a function argument.
-      const startsInside = nodeWithSource != null && selected.has(nodeWithSource)
-      const endsInside = selected.has(targetNode)
-      if (startsInside && !endsInside) {
-        const mainSource = mainSourceIdentifier.get(sourceNode)
-        if (mainSource == null) {
-          // Do not allow the action if any port would miss its source.
-          return Err(`No self-port route for port ${target}`)
-        }
-        result.push({ port: target, ident: mainSource })
+  for (const {
+    targetExprId,
+    sourceNode,
+    targetNode,
+    nodeWithSource,
+  } of graph.db.iterateConnections()) {
+    if (targetNode == null || sourceNode == null) continue
+
+    // If source is not in pattern nor expression of any node, it's a function argument.
+    const startsInside = nodeWithSource != null && selected.has(nodeWithSource)
+    const endsInside = selected.has(targetNode)
+    if (startsInside && !endsInside) {
+      const mainSource = mainSourceIdentifier.get(sourceNode)
+      if (mainSource == null) {
+        // Do not allow the action if any port would miss its source.
+        return Err(`No self-port route for port ${targetExprId}`)
       }
+      result.push({ port: targetExprId, ident: mainSource })
     }
   }
+
   return Ok(result)
 }
