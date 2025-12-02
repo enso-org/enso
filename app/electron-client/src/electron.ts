@@ -1,7 +1,7 @@
 import { Channel } from '@/ipc'
 import { dialog, ipcMain, shell, type BrowserWindow } from 'electron'
 import { download } from 'electron-dl'
-import type { DownloadUrlOptions } from 'enso-gui/src/electronApi'
+import type { DownloadUrlOptions } from 'enso-common/src/download'
 import { unlinkSync } from 'node:fs'
 import { basename, dirname, extname } from 'node:path'
 import { importProjectFromPath, isProjectBundle, isProjectRoot } from 'project-manager-shim'
