@@ -194,7 +194,7 @@ watch(
   () => nodeSelection.deselectAll(),
 )
 
-const detachInfo = computed(() => analyzeConnectAround(nodeSelection.selected, graphStore.db))
+const detachInfo = computed(() => analyzeConnectAround(nodeSelection.selected, graphStore))
 
 // === Node creation ===
 
@@ -341,14 +341,15 @@ const actionHandlers = registerHandlers({
           graphStore.db.nodeIdToNode.get.bind(graphStore.db.nodeIdToNode),
         ),
       ),
-    () => detachInfo.value.length > 0,
+    () => detachInfo.value.ok && detachInfo.value.value.length > 0,
     {
       collapseNodes,
       copyNodesToClipboard,
       deleteNodes: (nodes) => graphStore.deleteNodes(nodes.map(nodeId)),
       deleteAndConnectAround: (nodes) => {
         return module.value.edit(async (edit) => {
-          for (const { port, ident } of detachInfo.value) {
+          if (!detachInfo.value.ok) return detachInfo.value
+          for (const { port, ident } of detachInfo.value.value) {
             const result = await graphStore.updatePortValue(port, Ast.Ident.new(edit, ident), edit)
             if (!result.ok) {
               result.error.log('Failed to connect around')

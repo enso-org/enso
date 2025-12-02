@@ -22,7 +22,8 @@ interface TestCase {
   funcParameters?: string[]
   initialNodes: string[]
   selectedNodesRange: { start: number; end: number }
-  changedNodes: [number, string][]
+  expectError?: boolean
+  changedNodes?: [number, string][]
 }
 
 const cases: TestCase[] = [
@@ -81,7 +82,7 @@ const cases: TestCase[] = [
       'g = 3 + e',
     ],
     selectedNodesRange: { start: 3, end: 5 },
-    changedNodes: [],
+    expectError: true,
   },
   {
     description: 'Detaching unavailable - no output',
@@ -107,24 +108,36 @@ const cases: TestCase[] = [
 
 test.each(cases)(
   'Connecting around nodes: $description',
-  ({ initialNodes, funcParameters, selectedNodesRange, changedNodes }) => {
+  ({ initialNodes, funcParameters, selectedNodesRange, expectError, changedNodes }) => {
     const code = `main ${funcParameters?.join(' ') ?? ''} =\n    ${initialNodes.join('\n    ')}`
     const { graphDb, func } = fixture(code)
     const nodeIds = [...graphDb.nodeIdToNode.entries()]
       .filter(([, node]) => node.type === 'component')
       .map(([id]) => id)
     const selected = new Set(nodeIds.slice(selectedNodesRange.start, selectedNodesRange.end))
-    for (const { port, ident } of analyzeConnectAround(selected, graphDb)) {
-      func.module.replace(port, Ast.Ident.new(func.module, ident))
-    }
-    const changedNodesMap = new Map(changedNodes)
-    nodeIds.forEach((id, index) => {
-      const node = graphDb.nodeIdToNode.get(id)
-      if (changedNodesMap.has(index)) {
-        expect(node?.outerAst.code()).toBe(changedNodesMap.get(index))
-      } else if (!selected.has(id)) {
-        expect(node?.outerAst.code()).toBe(initialNodes[index])
-      }
+    const analyzed = analyzeConnectAround(selected, {
+      db: graphDb,
+      pickInCodeOrder: (set) => {
+        expect([...set.values()]).toEqual([...selected.values()])
+        return [...set.values()]
+      },
     })
+    if (expectError) {
+      expect(analyzed.ok).toBeFalsy()
+    } else {
+      assert(analyzed.ok)
+      for (const { port, ident } of analyzed.value) {
+        func.module.replace(port, Ast.Ident.new(func.module, ident))
+      }
+      const changedNodesMap = new Map(changedNodes)
+      nodeIds.forEach((id, index) => {
+        const node = graphDb.nodeIdToNode.get(id)
+        if (changedNodesMap.has(index)) {
+          expect(node?.outerAst.code()).toBe(changedNodesMap.get(index))
+        } else if (!selected.has(id)) {
+          expect(node?.outerAst.code()).toBe(initialNodes[index])
+        }
+      })
+    }
   },
 )
