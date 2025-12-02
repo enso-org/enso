@@ -103,7 +103,7 @@ final class BoolBuilder implements BuilderForBoolean, BuilderWithRetyping {
   @Override
   public void copyDataTo(Object[] items) {
     for (int i = 0; i < size; i++) {
-      if (validityMap.get(i)) {
+      if (!validityMap.get(i)) {
         items[i] = null;
       } else {
         items[i] = vals.get(i);
