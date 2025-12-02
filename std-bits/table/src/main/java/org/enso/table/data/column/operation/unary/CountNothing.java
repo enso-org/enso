@@ -30,8 +30,10 @@ public class CountNothing {
 
   /** Counts the number of Nothing values in the given storage. */
   public static long apply(ColumnStorage<?> storage) {
-    if (storage instanceof ColumnStorageWithValidityMap withNothingMap) {
-      return withNothingMap.getValidityMap().cardinality();
+    if (storage instanceof ColumnStorageWithValidityMap withValidityMap) {
+      var validityMap = withValidityMap.getValidityMap();
+      var numberOfValidEntries = validityMap.cardinality();
+      return storage.getSize() - numberOfValidEntries;
     }
 
     var accumulator = new Accumulator();
