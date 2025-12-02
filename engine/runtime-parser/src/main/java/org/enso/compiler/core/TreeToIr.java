@@ -1104,8 +1104,8 @@ final class TreeToIr {
             if (expr instanceof Tree.Call call) {
               var value = call.getValue();
               if (value instanceof Tree.Ident) {
-                var call = translateCallArgument(value);
-                args = join(call, args);
+                var arg = translateCallArgument(value);
+                args = join(arg, args);
               }
             }
           }
