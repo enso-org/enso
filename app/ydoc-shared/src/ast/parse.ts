@@ -174,7 +174,7 @@ class Abstractor {
         node = Assignment.concrete(this.module, docLine, pattern, equals, value)
         break
       }
-      case RawAst.Tree.Type.Eval: {
+      case RawAst.Tree.Type.Call: {
         node = this.abstractTree(tree.value).node
         break
       }
