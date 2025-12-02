@@ -28,9 +28,11 @@ public class IsNothingOperation implements UnaryOperation {
   @Override
   public ColumnStorage<?> apply(
       ColumnStorage<?> storage, MapOperationProblemAggregator problemAggregator) {
-    if (storage instanceof ColumnStorageWithValidityMap withNothingMap) {
-      return new BoolStorage(
-          withNothingMap.getValidityMap(), new BitSet(), (int) storage.getSize(), false);
+    if (storage instanceof ColumnStorageWithValidityMap validityMap) {
+      var allValidity = new BitSet();
+      var s = (int) storage.getSize();
+      allValidity.set(0, s);
+      return new BoolStorage(validityMap.getValidityMap(), allValidity, s, true);
     }
 
     return StorageIterators.buildOverStorage(
