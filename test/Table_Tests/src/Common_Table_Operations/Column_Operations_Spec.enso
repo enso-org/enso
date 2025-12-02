@@ -1409,6 +1409,16 @@ add_column_operation_specs suite_builder setup =
                 col.text_mid starts 1 . to_vector . should_equal ["a", "o", "", Nothing, "V", "a", "h"]
                 col.text_mid starts lengths . to_vector . should_equal ["a", "ob", "", Nothing, "V", "afé", "he best"]
 
+        group_builder.specify "text_left, _right, and _mid should have defaults for length" <|
+            with_mixed_columns_if_supported [["strings", ["a", "foobar", "", Nothing, "café", "It was the best of times"]]] t->
+                col = t.at "strings"
+                resLeft = col.text_left
+                resRight = col.text_right
+                resMid = col.text_mid 3
+                resLeft . to_vector . should_equal ["a", "f", "", Nothing, "c", "I"]
+                resRight . to_vector . should_equal ["a", "r", "", Nothing, "é", "s"]
+                resMid . to_vector . should_equal ["", "bar", "", Nothing, "é", "was the best of times"]
+
         group_builder.specify "should handle operations like is_empty, is_blank, fill_empty" <|
             with_mixed_columns_if_supported [["s", ["", " ", "  ", Nothing, "foo"]], ["letters", ["a", "b", "c", "d", "e"]]] t->
                 s = t.at "s"
