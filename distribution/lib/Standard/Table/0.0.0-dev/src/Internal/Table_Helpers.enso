@@ -210,7 +210,7 @@ type Table_Column_Helper
                 _ : By_Type -> self.columns.filter column->
                     column.should_be_selected_by_type selector.type
                 _ ->
-                    matches = match_columns selector case_sensitivity self.columns
+                    matches = _match_columns selector case_sensitivity self.columns
                     if matches.is_empty then problem_builder.report_missing_input_columns [selector]
                     matches
 
@@ -218,6 +218,7 @@ type Table_Column_Helper
             _ : Vector -> selectors
             _ -> [selectors]
         selected_columns = (vector.map resolve_selector on_problems=No_Wrap.Value).flatten
+        if selected_columns.is_error then Error.throw selected_columns
         if reorder then selected_columns.distinct on=_.name else
             dict = Dictionary.from_vector (selected_columns.map (column-> [column.name, True]) on_problems=No_Wrap.Value) error_on_duplicates=False
             self.columns.filter column-> dict.contains_key column.name
@@ -382,7 +383,7 @@ rename_columns (naming_helper : Column_Naming_Helper) (internal_columns:Vector) 
                             problem_builder.report_oob_indices [ix]
                             []
                         _ ->
-                            matches = match_columns selector case_sensitivity internal_columns
+                            matches = _match_columns selector case_sensitivity internal_columns
                             case matches.is_empty of
                                 True ->
                                     problem_builder.report_missing_input_columns [selector]
@@ -484,14 +485,15 @@ is_index_valid length ix =
    private: true
    ---
    A helper method to match columns by name
-match_columns : Text | Regex -> Case_Sensitivity -> Vector -> Vector
-match_columns (name : Text | Regex) (case_sensitivity : Case_Sensitivity) (columns : Vector) =
+_match_columns : Text | Regex -> Case_Sensitivity -> Vector -> Vector
+private _match_columns (name : Text | Regex) (case_sensitivity : Case_Sensitivity) (columns : Vector) =
     match = case name of
         _ : Text -> case case_sensitivity of
             Case_Sensitivity.Default -> (== name)
             Case_Sensitivity.Sensitive -> (== name)
             Case_Sensitivity.Insensitive locale -> name.equals_ignore_case locale=locale
         _ : Regex -> name.recompile case_sensitivity . matches
+    if match.is_error then match
     columns.filter c-> match c.name
 
 ## ---
@@ -531,7 +533,7 @@ resolve_order_by internal_columns column_selectors problem_builder =
                 problem_builder.report_oob_indices [ix]
                 []
         Sort_Column.Select_By_Name name _ case_sensitivity ->
-            matches = match_columns name case_sensitivity internal_columns
+            matches = _match_columns name case_sensitivity internal_columns
             if matches.is_empty then problem_builder.report_missing_input_columns [name]
             matches.map c-> Column_Transform_Element.Value c selector
     Vector.unify_vector_or_element column_selectors . flat_map resolve_selector
