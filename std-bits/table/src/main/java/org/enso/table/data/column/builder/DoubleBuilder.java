@@ -16,7 +16,8 @@ import org.enso.table.problems.ProblemAggregator;
 import org.enso.table.util.BitSets;
 
 /** A builder for floating point columns. */
-non-sealed class DoubleBuilder extends NumericBuilder implements BuilderForDouble {
+sealed class DoubleBuilder extends NumericBuilder implements BuilderForDouble permits
+    InferredDoubleBuilder {
   protected final PrecisionLossAggregator precisionLossAggregator;
   protected double[] data;
 
