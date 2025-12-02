@@ -7,6 +7,10 @@ import { useQuery } from '@tanstack/vue-query'
 import { fileExtension } from 'enso-common/src/utilities/file'
 import { computed, watchEffect } from 'vue'
 
+// Disable media file previews because we do not know how big they might be,
+// which can lead to performance issues.
+const PREVIEW_MEDIA_FILES = false as boolean
+
 const rightPanel = useRightPanelData()
 const { backendForType } = useBackends()
 const backendForAsset = computed(
@@ -92,8 +96,7 @@ const fileDetails = useQuery({
     if (!backend) {
       throw new Error('No backend available for asset')
     }
-    const fileDetails = await backend.getFileDetails(fileId, title, fetchContents)
-    return fileDetails
+    return await backend.getFileDetails(fileId, title, fetchContents)
   },
 })
 
@@ -116,6 +119,9 @@ const fileContentsQuery = useQuery({
         const blob = await response.blob()
         const url = URL.createObjectURL(blob)
         const type: typeof fileType = fileType
+        if (!PREVIEW_MEDIA_FILES) {
+          return null
+        }
         return { type, url }
       }
       case 'text': {
