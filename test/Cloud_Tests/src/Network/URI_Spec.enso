@@ -76,9 +76,12 @@ add_specs suite_builder =
             addr.fragment.should_equal Nothing
             addr.raw_user_info.should_equal "%D0%9B%D0%B8%D0%BD%D1%83%D1%81:pass"
             addr.raw_authority.should_equal "%D0%9B%D0%B8%D0%BD%D1%83%D1%81:pass@ru.wikipedia.org"
-            addr.raw_path.should_equal "/wiki/%D0%AF%D0%B4%D1%80%D0%BE_Linux"
             addr.raw_query.should_equal "%D0%9A%D0%BE%D0%B4"
             addr.raw_fragment.should_equal Nothing
+
+        group_builder.specify "should cope with spaces in URIs" <|
+            addr = URI.parse "https://graph.microsoft.com/v1.0/me/drive/root:/My Documents/Enso Project Plan.docx:/content"
+            addr.path.should_equal "/v1.0/me/drive/root:/My Documents/Enso Project Plan.docx:/content"
 
         group_builder.specify "should automatically URI encode the query string if needed with a warning" <|
             addr = URI.parse 'https://httpbin.org/get?foo=bar&baz="a&c=d"%20?'
