@@ -265,8 +265,8 @@ public final class IsInOperation {
 
     // If had both true and false, then return all true when not nothing
     if (flags.hadTrue && flags.hadFalse) {
-      var isNothing = makeIsNothingMap(boolStorage, checkedSize);
-      return new BoolStorage(new BitSet(), isNothing, checkedSize, true);
+      var validityMap = makeValidityMap(boolStorage, checkedSize);
+      return new BoolStorage(new BitSet(), validityMap, checkedSize, true);
     }
 
     // Only have one of true or false
@@ -313,18 +313,18 @@ public final class IsInOperation {
     }
   }
 
-  private static BitSet makeIsNothingMap(ColumnStorage<?> storage, int size) {
+  private static BitSet makeValidityMap(ColumnStorage<?> storage, int size) {
     if (storage instanceof ColumnStorageWithValidityMap withNothingMap) {
       return withNothingMap.getValidityMap();
     }
 
-    BitSet isNothingMap = new BitSet(size);
+    BitSet validityMap = new BitSet(size);
     for (int i = 0; i < size; i++) {
-      if (storage.isNothing(i)) {
-        isNothingMap.set(i);
+      if (!storage.isNothing(i)) {
+        validityMap.set(i);
       }
     }
-    return isNothingMap;
+    return validityMap;
   }
 
   private static BitSet or(BitSet left, BitSet right, int sizeIsIgnored) {
