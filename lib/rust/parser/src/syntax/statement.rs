@@ -496,7 +496,7 @@ fn to_statement<'s>(
         | Array(_)
         | Tuple(_)
         | PropertyAccess(_)
-        | Eval(_) => Ok(Expression),
+        | Call(_) => Ok(Expression),
         OprApp(app) if app.lhs.is_some() && app.rhs.is_some() => Ok(Expression),
         // Expression, but since it can only occur in tail position, it never needs an
         // `ExpressionStatement` node.

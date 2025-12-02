@@ -102,7 +102,7 @@ fn tree_starts_new_no_space_group(tree: &Tree) -> bool {
             | Documentation(_)
             | ExpressionStatement(_)
             | ConstructorDefinition(_)
-            | Eval(_) => false,
+            | Call(_) => false,
         }
 }
 

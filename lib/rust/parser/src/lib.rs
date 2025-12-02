@@ -192,42 +192,44 @@ impl Default for Parser {
 
 // == Parsing helpers ==
 
-fn unwrap_eval(tree: Tree) -> Tree {
-    if let Tree { variant: Variant::Eval(mut eval), span, .. } = tree {
-        eval.value.span.left_offset = span.left_offset;
-        eval.value
+fn unwrap_call(tree: Tree) -> Tree {
+    if let Tree { variant: Variant::Call(mut call), span, .. } = tree {
+        call.value.span.left_offset = span.left_offset;
+        call.value
     } else {
         tree
     }
 }
 
-/// If the input is a qualified name, return it as Ok after discarding any enclosing Eval node;
+/// If the input is a qualified name, return it as Ok after discarding any enclosing Call node;
 /// otherwise, return the input unchanged as Err.
 fn to_qualified_name(tree: Tree) -> Result<Tree, Tree> {
     use syntax::tree::*;
     if matches!(&tree.variant, Variant::Ident(_) | Variant::PropertyAccess(_)) {
         return Ok(tree);
     }
-    if let Variant::Eval(eval) = &tree.variant
-        && matches!(&eval.value.variant, Variant::Ident(_) | Variant::PropertyAccess(_))
-    {
-        let Tree { variant: Variant::Eval(mut eval), span, .. } = tree else { unreachable!() };
-        eval.value.span.left_offset = span.left_offset;
-        return Ok(eval.value);
+    match tree {
+        Tree { variant: Variant::Call(mut call), span, .. } => {
+            call.value.span.left_offset = span.left_offset;
+            match &call.value.variant {
+                Variant::Ident(_) | Variant::PropertyAccess(_) => Ok(call.value),
+                _ => Err(call.value),
+            }
+        }
+        _ => Err(tree),
     }
-    Err(tree)
 }
 
-fn qn_deep_unwrap_evals(tree: &mut Tree) {
+fn qn_deep_unwrap_calls(tree: &mut Tree) {
     match &mut tree.variant {
-        Variant::Eval(eval) => {
-            let mut inner = mem::take(&mut eval.value);
-            qn_deep_unwrap_evals(&mut inner);
+        Variant::Call(call) => {
+            let mut inner = mem::take(&mut call.value);
+            qn_deep_unwrap_calls(&mut inner);
             tree.variant = inner.variant;
         }
         Variant::PropertyAccess(access) => {
             if let Some(lhs) = &mut access.lhs {
-                qn_deep_unwrap_evals(lhs);
+                qn_deep_unwrap_calls(lhs);
             }
         }
         _ => {}
@@ -235,7 +237,7 @@ fn qn_deep_unwrap_evals(tree: &mut Tree) {
 }
 
 fn expect_qualified_name(tree: Tree) -> Tree {
-    to_qualified_name(unwrap_eval(tree))
+    to_qualified_name(unwrap_call(tree))
         .unwrap_or_else(|tree| tree.with_error(SyntaxError::ExpectedQualifiedName))
 }
 
@@ -275,7 +277,7 @@ fn expression_to_pattern(mut input: Tree<'_>) -> Tree<'_> {
             out.span.left_offset += input.span.left_offset;
             return out;
         }
-        Variant::Eval(value) => {
+        Variant::Call(value) => {
             let mut out = expression_to_pattern(value.value);
             out.span.left_offset += input.span.left_offset;
             return out;

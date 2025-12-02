@@ -8,6 +8,7 @@ use crate::syntax::Tree;
 use crate::syntax::expression::operand::Operand;
 use crate::syntax::token;
 use crate::syntax::tree::apply;
+use crate::unwrap_call;
 
 // ===============
 // === Reducer ===
@@ -184,13 +185,10 @@ fn reduce_step<'s>(
         }
         Arity::App => {
             let (mut lhs, mut rhs) = (additional_operands.pop().unwrap(), operand.unwrap());
-            if let crate::syntax::tree::Variant::Eval(mut eval) = lhs.value.variant {
-                eval.value.span.left_offset = lhs.value.span.left_offset;
-                lhs.value = eval.value;
-            }
-            rhs.eval = false;
+            lhs.value = unwrap_call(lhs.value);
+            rhs.call = false;
             let mut result = lhs.map(|lhs| apply(lhs, Tree::from(rhs)));
-            result.eval = true;
+            result.call = true;
             result
         }
         Arity::NamedApp(app) => app.apply_to_operand(operand),

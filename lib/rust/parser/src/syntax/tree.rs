@@ -142,7 +142,7 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
             pub arg:    Tree<'s>,
             pub close:  Option<token::CloseSymbol<'s>>,
         },
-        Eval {
+        Call {
             pub value: Tree<'s>,
         },
         /// Application of an operator, like `a + b`. The left or right operands might be missing,

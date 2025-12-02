@@ -14,7 +14,7 @@ use crate::syntax::statement::try_parse_doc_comment;
 use crate::syntax::token;
 use crate::syntax::tree::SyntaxError;
 
-use crate::{empty_tree, qn_deep_unwrap_evals, unwrap_eval};
+use crate::{empty_tree, qn_deep_unwrap_calls, unwrap_call};
 
 // =======================
 // === Built-in macros ===
@@ -111,7 +111,7 @@ fn import_body<'s>(
                 if polyglot.is_some()
                     && let Some(raw_body) = &mut raw_body
                 {
-                    qn_deep_unwrap_evals(raw_body);
+                    qn_deep_unwrap_calls(raw_body);
                 }
                 body = raw_body;
                 incomplete_import = body.is_none();
@@ -552,7 +552,7 @@ fn capture_expressions<'s>(
 
 fn expect_ident(mut tree: syntax::Tree) -> syntax::Tree {
     let error = match &mut tree.variant {
-        syntax::tree::Variant::Eval(_) => return expect_ident(unwrap_eval(tree)),
+        syntax::tree::Variant::Call(_) => return expect_ident(unwrap_call(tree)),
         syntax::tree::Variant::Ident(_) => None,
         _ => Some(SyntaxError::ExpectedIdent),
     };
