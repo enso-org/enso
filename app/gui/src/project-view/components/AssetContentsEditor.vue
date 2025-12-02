@@ -2,14 +2,11 @@
 import { useBackends } from '$/providers/backends'
 import { useRightPanelData } from '$/providers/rightPanel'
 import LoadingSpinner from '@/components/shared/LoadingSpinner.vue'
+import StandaloneButton from '@/components/StandaloneButton.vue'
 import { ResultComponent } from '@/util/react'
 import { useQuery } from '@tanstack/vue-query'
 import { fileExtension } from 'enso-common/src/utilities/file'
-import { computed, watchEffect } from 'vue'
-
-// Disable media file previews because we do not know how big they might be,
-// which can lead to performance issues.
-const PREVIEW_MEDIA_FILES = false as boolean
+import { computed, ref, watch, watchEffect } from 'vue'
 
 const rightPanel = useRightPanelData()
 const { backendForType } = useBackends()
@@ -17,12 +14,17 @@ const backendForAsset = computed(
   () =>
     (rightPanel.context?.category && backendForType(rightPanel.context.category.backend)) ?? null,
 )
+const isPreviewingMediaFile = ref(false)
 
 const filePath = computed(() =>
   typeof rightPanel.context?.item === 'object' && rightPanel.context.item.type === 'file' ?
     rightPanel.context.item.ensoPath
   : undefined,
 )
+
+watch(filePath, () => {
+  isPreviewingMediaFile.value = false
+})
 
 const projectId = computed(() =>
   typeof rightPanel.context?.item === 'object' ?
@@ -77,6 +79,10 @@ const fileDetails = useQuery({
     if (fileType.value === undefined) {
       return []
     }
+    if (fileType.value !== 'text' && !isPreviewingMediaFile.value) {
+      // Media file preview not activated yet.
+      return []
+    }
     const fileId =
       typeof rightPanel.context?.item === 'object' && rightPanel.context.item.type === 'file' ?
         rightPanel.context.item.id
@@ -103,7 +109,7 @@ const fileDetails = useQuery({
 const fileUrl = computed(() => fileDetails.data?.value?.url)
 
 const fileContentsQuery = useQuery({
-  queryKey: computed(() => ['fetch', fileUrl, fileType] as const),
+  queryKey: computed(() => ['fetch', fileUrl.value, fileType.value] as const),
   queryFn: async ({ queryKey: [, url, fileType] }) => {
     if (!url || !fileType) {
       return null
@@ -119,9 +125,6 @@ const fileContentsQuery = useQuery({
         const blob = await response.blob()
         const url = URL.createObjectURL(blob)
         const type: typeof fileType = fileType
-        if (!PREVIEW_MEDIA_FILES) {
-          return null
-        }
         return { type, url }
       }
       case 'text': {
@@ -172,7 +175,15 @@ const projectContents = computed(() => {
   <div class="AssetContentsEditor">
     <h2>File contents</h2>
     <div class="contents">
-      <template v-if="fileContentsQuery.data.value">
+      <StandaloneButton
+        v-if="
+          (fileType === 'image' || fileType === 'audio' || fileType === 'video') &&
+          !isPreviewingMediaFile
+        "
+        :label="`Click to preview ${fileType} file`"
+        @activate="isPreviewingMediaFile = true"
+      />
+      <template v-else-if="fileContentsQuery.data.value">
         <p v-if="fileContentsQuery.data.value.type === 'text'">
           {{ fileContentsQuery.data }}
         </p>
