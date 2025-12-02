@@ -69,7 +69,7 @@ type Email
         if resolved_provider.is_nothing then Error.throw (Illegal_Argument.Error "Could not resolve email provider.")
 
         resolved_attachements_to_local_files = resolved_attachments.map a->
-            Data_Link_Helpers.as_file a.file local_file->(Email_Attachment.File file=local_file name=a.name) delete_on_return=False
+            Email_Attachment.File (Data_Link_Helpers.as_file a.file f->f delete_on_return=False) a.name
 
         email = Email.Message from resolved_to resolved_cc resolved_bcc subject body resolved_attachements_to_local_files
         _send_email_with_provider email resolved_provider

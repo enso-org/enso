@@ -299,13 +299,13 @@ is_regular_file file ~check_file_directly =
 as_file path action delete_on_return:Boolean=True = case path of
     _ : Text ->
         resolved = URI.parse_if_http path . if_nothing <| File.new path
-        as_file resolved action
+        as_file resolved action delete_on_return
     _ : File ->
         ## Need to see if a data link otherwise return the file
         if path.exists.not then Error.throw (File_Error.Not_Found path)
         if path.is_directory then Error.throw (Illegal_Argument.Error "Cannot use a directory, pass a file.")
         if path.is_data_link.not then action path else
-            as_file (interpret_data_link_target_as_file path) action
+            as_file (interpret_data_link_target_as_file path) action delete_on_return
     _ : URI ->
         ## Fetch the resource and save it to a temporary file
         ## Best guess filename
