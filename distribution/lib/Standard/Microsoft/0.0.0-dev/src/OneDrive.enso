@@ -1,5 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Enso_Cloud.Data_Link.Data_Link
+import Standard.Base.Enso_Cloud.Data_Link.Data_Link_From_File
 import Standard.Base.Enso_Cloud.Data_Link_Helpers
 import Standard.Base.Errors.File_Error.File_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
@@ -359,6 +360,11 @@ type OneDrive_File
    private: true
    ---
 File_Like.from (that : OneDrive_File) = File_Like.Value that
+
+## ---
+   private: true
+   ---
+Data_Link_From_File.from (that : OneDrive_File) = Data_Link_From_File.Value that
 
 private _check_directory file:OneDrive_File ~action =
     if file.is_directory then action else
