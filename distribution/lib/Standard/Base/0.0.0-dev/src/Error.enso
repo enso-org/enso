@@ -5,6 +5,7 @@ import project.Data.Vector.Vector
 import project.Errors.Common.No_Such_Conversion
 import project.Errors.Wrapped_Error.Wrapped_Error
 import project.Meta
+import project.Nothing.Nothing
 import project.Panic.Panic
 import project.Runtime.Stack_Trace_Element
 from project.Data.Boolean import Boolean, False, True
@@ -206,6 +207,15 @@ type Error
        ```
     is_error : Boolean
     is_error self = True
+
+    ## ---
+       private: true
+       ---
+       A function that will cause an error to be thrown in a Java style
+    return_if_error : Any -> Nothing
+    return_if_error flag =
+        if flag.is_error then flag
+        Nothing
 
     ## ---
        advanced: true

@@ -308,16 +308,21 @@ type DuckDB_Connection
             escaped_path = file.path.replace "'" "''"
             query = 'CREATE' + (if replace_if_present then ' OR REPLACE' else "") + ' TABLE "' + escaped_as + '" AS SELECT * FROM ST_Read(\'' + escaped_path + '\');'
             Context.Output.with_enabled <|
-                create_table = self.execute_update query
-                create_table.if_not_error <|
-                    ## Get the spatial columns and add RTree indexes on them
-                    describe = self.execute_query ('DESCRIBE "' + escaped_as + '";')
-                    spatial_columns = describe.filter "column_type" (..Equal "GEOMETRY") . at "column_name" . to_vector
-                    with_spatial_indexes = spatial_columns.fold as table->column->
-                        if table.is_error then table else
-                            self.create_spatial_index table column (as+"_"+column+"_RTREE_INDEX") replace_if_present
-                    with_spatial_indexes.if_not_error <|
-                        self.create_index as key_columns (escaped_as + '_INDEX') replace_if_present
+                created_table = self.execute_update query
+                Error.return_if_error created_table
+
+                ## Get the spatial columns and add RTree indexes on them
+                describe = self.execute_query ('DESCRIBE "' + escaped_as + '";')
+                spatial_columns = describe.filter "column_type" (..Equal "GEOMETRY") . at "column_name" . to_vector
+
+                ## Create spatial indices
+                with_spatial_indexes = spatial_columns.fold as table->column->
+                    Error.return_if_error table
+                    self.create_spatial_index table column (as+"_"+column+"_RTREE_INDEX") replace_if_present
+                Error.return_if_error with_spatial_indexes
+
+                ## Create any other user requested index.
+                self.create_index as key_columns (escaped_as + '_INDEX') replace_if_present
 
     ## ---
        group: Standard.Base.Database
