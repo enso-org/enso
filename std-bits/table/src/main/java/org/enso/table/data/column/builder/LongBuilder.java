@@ -13,9 +13,11 @@ import org.enso.table.data.column.storage.type.NullType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.error.ValueTypeMismatchException;
 import org.enso.table.problems.ProblemAggregator;
+import org.enso.table.util.ImmutableBitSet;
 
 /** A builder for integer columns. */
-non-sealed class LongBuilder extends NumericBuilder implements BuilderForLong, BuilderWithRetyping {
+sealed class LongBuilder extends NumericBuilder implements BuilderForLong, BuilderWithRetyping
+    permits BoundCheckedIntegerBuilder {
   protected final ProblemAggregator problemAggregator;
   protected long[] data;
 
@@ -185,6 +187,7 @@ non-sealed class LongBuilder extends NumericBuilder implements BuilderForLong, B
 
   @Override
   public ColumnStorage<Long> seal() {
-    return new LongStorage(data, currentSize, validityMap, getType());
+    return new LongStorage(
+        data, currentSize, new ImmutableBitSet(validityMap, currentSize), getType());
   }
 }

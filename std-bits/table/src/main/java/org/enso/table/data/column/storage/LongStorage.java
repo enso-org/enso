@@ -1,6 +1,5 @@
 package org.enso.table.data.column.storage;
 
-import java.util.BitSet;
 import java.util.NoSuchElementException;
 import org.enso.table.data.column.storage.iterators.ColumnLongStorageIterator;
 import org.enso.table.data.column.storage.type.IntegerType;
@@ -12,7 +11,7 @@ public final class LongStorage extends AbstractLongStorage implements ColumnStor
   // for more compact storage and more efficient handling of smaller integers; for now we will be
   // handling this just by checking the bounds
   private final long[] data;
-  private final BitSet validityMap;
+  private final ImmutableBitSet validityMap;
 
   /**
    * @param data the underlying data
@@ -21,15 +20,16 @@ public final class LongStorage extends AbstractLongStorage implements ColumnStor
    *     present.
    * @param type the type specifying the bit-width of integers that are allowed in this storage
    */
-  public LongStorage(long[] data, int size, BitSet validityMap, IntegerType type) {
+  public LongStorage(long[] data, int size, ImmutableBitSet validityMap, IntegerType type) {
     super(size, type);
     this.data = data;
     this.validityMap = validityMap;
   }
 
   public LongStorage(long[] data, IntegerType type) {
-    this(data, data.length, new BitSet(), type);
-    validityMap.set(0, data.length, true);
+    super(data.length, type);
+    this.data = data;
+    this.validityMap = ImmutableBitSet.allTrue(data.length);
   }
 
   @Override
@@ -47,8 +47,7 @@ public final class LongStorage extends AbstractLongStorage implements ColumnStor
 
   @Override
   public ImmutableBitSet getValidityMap() {
-    var size = Math.toIntExact(getSize());
-    return new ImmutableBitSet(validityMap, size);
+    return validityMap;
   }
 
   /** Widening to a bigger type can be done without copying the data. */
@@ -70,11 +69,11 @@ public final class LongStorage extends AbstractLongStorage implements ColumnStor
 
   private static class LongStorageIterator implements ColumnLongStorageIterator {
     private final long[] data;
-    private final BitSet validityMap;
+    private final ImmutableBitSet validityMap;
     private final int size;
     private int index = -1;
 
-    public LongStorageIterator(long[] data, BitSet validityMap, int size) {
+    public LongStorageIterator(long[] data, ImmutableBitSet validityMap, int size) {
       this.data = data;
       this.validityMap = validityMap;
       this.size = size;
