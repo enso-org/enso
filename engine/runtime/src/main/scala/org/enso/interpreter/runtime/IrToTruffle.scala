@@ -2191,7 +2191,7 @@ private[runtime] class IrToTruffle(
           BlockNode.buildInvisible(Array(), operation)
         }
         val initVariablesAndThenBody =
-          BlockNode.buildInvisible(argsExpr._1.toArray, body)
+          BlockNode.buildInvisible(argsExpr._1, body)
         initVariablesAndThenBody
       }
 
