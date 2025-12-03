@@ -61,7 +61,7 @@ object Dependencies {
   // Keep in sync with GraalVM.version. Do not change the name of this variable,
   // it is used by the Rust build script via regex matching.
   val graalMavenPackagesVersion = "25.0.1"
-  val targetJavaVersion         = "24"
+  val targetJavaVersion         = "17"
   val defaultDevEnsoVersion     = "0.0.0-dev"
   val ensoVersion = sys.env.getOrElse(
     "ENSO_VERSION",
