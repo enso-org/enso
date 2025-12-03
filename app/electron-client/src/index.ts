@@ -283,13 +283,13 @@ class App {
     // We catch all errors here. Otherwise, it might be possible that the app will run partially
     // and enter a "zombie mode", where user is not aware of the app still running.
     try {
-      console.log('Starting the application')
-      await this.createWindowIfEnabled(args)
       if (this.electron) {
         // Note that we want to do all the actions synchronously, so when the window
         // appears, it serves the website immediately.
         await this.startContentServerIfEnabled(args)
       }
+      console.log('Starting the application with args', args)
+      await this.createWindowIfEnabled(args)
       initIpc(this.window)
       await this.loadWindowContent(args)
       if (this.electron) {
