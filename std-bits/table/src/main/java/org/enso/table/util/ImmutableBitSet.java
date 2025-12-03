@@ -1,5 +1,7 @@
 package org.enso.table.util;
 
+import java.lang.ref.Reference;
+import java.lang.ref.WeakReference;
 import java.util.BitSet;
 
 /**
@@ -16,17 +18,30 @@ public final class ImmutableBitSet {
   }
 
   public int cardinality() {
-    return bitSet.cardinality();
+    return Math.min(size, bitSet.cardinality());
   }
 
   public boolean get(int i) {
-    return bitSet.get(i);
+    return i < size && bitSet.get(i);
   }
 
+  /**
+   * Modifies {@code other} by applying "and" operation with bits in this immutable set to it.
+   *
+   * @param other bitset to modify
+   */
   public void applyAndTo(BitSet other) {
     other.and(bitSet);
   }
 
+  /**
+   * Modifies {@code copyTo} bitset by appending bits of this immutable bitset to it at {@code at}
+   * position
+   *
+   * @param copyTo bitset to modify
+   * @param at position to append bits to
+   * @param length number of bits to copy
+   */
   public void copyTo(BitSet copyTo, int at, int length) {
     BitSets.copy(bitSet, copyTo, at, length);
   }
@@ -88,10 +103,26 @@ public final class ImmutableBitSet {
     return new ImmutableBitSet(new BitSet(), size);
   }
 
+  private static Reference<BitSet> ALL = new WeakReference<>(null);
+
   public static ImmutableBitSet allTrue(int size) {
-    return new ImmutableBitSet(new BitSet(), size).not();
+    var shared = ALL.get();
+    if (shared == null) {
+      shared = new BitSet();
+      ALL = new WeakReference<>(shared);
+    }
+    if (shared.length() < size) {
+      // fill with true
+      shared.set(shared.length(), size);
+    }
+    return new ImmutableBitSet(shared, size);
   }
 
+  /**
+   * Writable copy of the bitset.
+   *
+   * @return bitset to further modify
+   */
   public BitSet cloneBitSet() {
     return (BitSet) bitSet.clone();
   }
