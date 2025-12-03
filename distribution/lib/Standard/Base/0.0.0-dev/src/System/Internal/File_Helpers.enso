@@ -16,23 +16,10 @@ polyglot java import java.nio.file.Files as Java_Files
 polyglot java import java.nio.file.LinkOption as Java_LinkOption
 polyglot java import java.time.ZonedDateTime as Java_ZonedDateTime
 polyglot java import java.time.ZoneOffset as Java_ZoneOffset
-polyglot java import java.util.stream.Stream
 
 ## The builtin that returns a File instance for a given path.
 get_file path:Text =
     File.Value (Java_Path.of path)
-
-delete file:File recursive:Boolean =
-    should_delete_recursively = recursive && is_dir file
-    if should_delete_recursively then delete_recursively file.java_path else
-        Java_Files.delete file.java_path
-
-delete_recursively path:Java_Path =
-    if (is_dir path).not then Java_Files.delete path else
-        children = Java_Files.list path . toList
-        children.each \child ->
-            delete_recursively child
-        Java_Files.delete path
 
 is_dir file:(File|Java_Path) -> Boolean =
     path = case file of
