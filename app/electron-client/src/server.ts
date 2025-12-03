@@ -14,10 +14,13 @@ import type * as vite from 'vite'
 
 import { COOP_COEP_CORP_HEADERS } from 'enso-common'
 import * as projectManagement from 'project-manager-shim'
+import type { Watcher } from 'project-manager-shim/fs'
 import {
   handleFilesystemCommand,
   handleProjectServiceRequest,
+  handleWatcherRequest,
   isProjectServiceRequest,
+  isWatcherRequest,
 } from 'project-manager-shim/handler'
 import * as ydocServer from 'ydoc-server'
 
@@ -180,6 +183,7 @@ export class Server {
   private projectsRootDirectory: string
   private devServer?: vite.ViteDevServer
   private projectService: ProjectService
+  private watchers: Map<AssetId, Watcher> = new Map()
 
   /** Create a simple HTTP server. */
   constructor(
@@ -268,6 +272,9 @@ export class Server {
         async () => this.projectService,
         headers,
       )
+    } else if (isWatcherRequest(requestUrl)) {
+      const headers = Object.fromEntries(COOP_COEP_CORP_HEADERS)
+      handleWatcherRequest(request, response, headers, this.watchers)
     } else if (request.url?.startsWith('/api/')) {
       const route = new URL(`https://example.com${requestUrl.replace('/api/', '/')}`)
       const params = route.searchParams
