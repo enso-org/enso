@@ -720,12 +720,18 @@ function AssetsTable(props: AssetsTableProps) {
     setSelectedAssets([])
   })
 
-  const doPaste = useEventCallback((newParentKey: DirectoryId, newParentId: DirectoryId) => {
+  const doPaste = useEventCallback((newParentId: DirectoryId) => {
     const { pasteData } = driveStore.getState()
     if (pasteData == null) return
-    if (pasteData.data.assets.some((asset) => asset.id === newParentKey)) {
-      toast.error('Cannot paste a folder into itself.')
-      return
+    if (pasteData.data.assets.some((asset) => asset.id === newParentId)) {
+      if (pasteData.data.assets[0] && pasteData.data.assets.length === 1) {
+        // The folder is the only thing selected.
+        // Instead of pasting into itself, instead we paste into its parent.
+        newParentId = pasteData.data.assets[0].parentId
+      } else {
+        toast.error('Cannot paste a folder into itself.')
+        return
+      }
     }
     void paste({
       fromCategory: pasteData.data.category,
