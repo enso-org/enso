@@ -2181,13 +2181,17 @@ private[runtime] class IrToTruffle(
 
       def args(): Array[ArgumentDefinition] = slots._2
       def bodyNode(): RuntimeExpression = {
+        var operation = argsExpr._2
+        if (!operation.isInstanceOf[BlockNode]) {
+          operation = BlockNode.buildStatements(Array(), operation)
+        }
         val body = if (defineRoot) {
-          BlockNode.buildRoot(Array(), argsExpr._2)
+          BlockNode.buildRoot(Array(), operation)
         } else {
-          BlockNode.buildInvisible(Array(), argsExpr._2)
+          BlockNode.buildInvisible(Array(), operation)
         }
         val initVariablesAndThenBody =
-          BlockNode.buildStatements(argsExpr._1.toArray, body)
+          BlockNode.buildInvisible(argsExpr._1.toArray, body)
         initVariablesAndThenBody
       }
 
