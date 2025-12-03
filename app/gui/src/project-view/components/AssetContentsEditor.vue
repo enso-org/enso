@@ -26,14 +26,6 @@ watch(filePath, () => {
   isPreviewingMediaFile.value = false
 })
 
-const projectId = computed(() =>
-  typeof rightPanel.context?.item === 'object' ?
-    rightPanel.context.item.type === 'project' ?
-      rightPanel.context.item.id
-    : undefined
-  : rightPanel.context?.item,
-)
-
 const fileType = computed(() => {
   if (!filePath.value) {
     return undefined
@@ -117,40 +109,52 @@ const fileContentsQuery = useQuery({
     if (!response.ok) {
       throw new Error(`Failed to fetch file contents: ${response.statusText}`)
     }
-    switch (fileType) {
-      case 'image':
-      case 'audio':
-      case 'video': {
-        const blob = await response.blob()
-        const url = URL.createObjectURL(blob)
-        const type: typeof fileType = fileType
-        return { type, url }
-      }
-      case 'text': {
-        const type: typeof fileType = fileType
-        return { type, text: await response.text() }
-      }
-    }
+    return { type: fileType, response }
   },
 })
 
-watchEffect((onCleanup) => {
-  const url = fileContentsQuery.data?.value?.url
-  if (!url) {
+const fileContents = ref<
+  | null
+  | { type: 'text'; url?: never; text?: string }
+  | { type: 'image' | 'audio' | 'video'; url: string; text?: never }
+>(null)
+
+watchEffect(async (onCleanup) => {
+  const value = fileContentsQuery.data?.value
+  if (!value) {
     return
   }
+  let newValue = fileContents.value
+  switch (value.type) {
+    case 'image':
+    case 'audio':
+    case 'video': {
+      const blob = await value.response.blob()
+      const url = URL.createObjectURL(blob)
+      newValue = fileContents.value = { type: value.type, url }
+      break
+    }
+    case 'text': {
+      newValue = fileContents.value = { type: value.type, text: await value.response.text() }
+      break
+    }
+  }
   onCleanup(() => {
-    URL.revokeObjectURL(url)
+    if (newValue && 'url' in newValue) {
+      URL.revokeObjectURL(newValue.url)
+    }
+    fileContents.value = null
   })
 })
 
 const projectContentsQuery = useQuery({
-  queryKey: computed(() => ['getMainFileContent', projectId.value] as const),
-  queryFn: async ({ queryKey: [, projectId] }) => {
+  queryKey: computed(
+    () => [backendForAsset.value, 'getMainFileContent', rightPanel.focusedProject] as const,
+  ),
+  queryFn: async ({ queryKey: [backend, , projectId] }) => {
     if (!projectId) {
       return null
     }
-    const backend = backendForAsset.value
     if (!backend) {
       throw new Error('No backend available for asset')
     }
@@ -187,25 +191,23 @@ const projectContents = computed(() => {
           {{ fileContentsQuery.data }}
         </p>
         <img
-          v-else-if="fileContentsQuery.data.value.type === 'image'"
-          :src="fileContentsQuery.data.value.url"
+          v-else-if="fileContents?.type === 'image'"
+          :src="fileContents.url"
           alt="Image preview"
         />
-        <audio
-          v-else-if="fileContentsQuery.data.value.type === 'audio'"
-          :src="fileContentsQuery.data.value.url"
-          controls
-          >Your browser does not support the audio element.</audio
-        >
-        <video
-          v-else-if="fileContentsQuery.data.value.type === 'video'"
-          :src="fileContentsQuery.data.value.url"
-          controls
-          >Your browser does not support the video element.</video
-        >
+        <audio v-else-if="fileContents?.type === 'audio'" :src="fileContents.url" controls>
+          Your browser does not support the audio element.
+        </audio>
+        <video v-else-if="fileContents?.type === 'video'" :src="fileContents.url" controls>
+          Your browser does not support the video element.
+        </video>
       </template>
       <pre v-else-if="projectContents"><code>{{ projectContents }}</code></pre>
-      <LoadingSpinner v-else-if="fileType || projectId" phase="loading-medium" :size="20" />
+      <LoadingSpinner
+        v-else-if="fileType || rightPanel.focusedProject"
+        phase="loading-medium"
+        :size="20"
+      />
       <ResultComponent
         v-else-if="rightPanel.context?.item"
         status="info"
