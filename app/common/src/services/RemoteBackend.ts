@@ -9,6 +9,7 @@ import { markRaw } from 'vue'
 import { z } from 'zod'
 import { $config } from '../config'
 import type { DownloadOptions } from '../download.js'
+import type { DefaultGetText } from '../text'
 import { delay } from '../utilities/async.js'
 import * as objects from '../utilities/data/object.js'
 import * as detect from '../utilities/detect.js'
@@ -64,7 +65,7 @@ export class RemoteBackend extends backend.Backend {
     downloadCloudProject,
     getProjectArchive,
   }: {
-    getText: backend.GetText
+    getText: DefaultGetText
     client: HttpClient
     downloader: (options: DownloadOptions) => void | Promise<void>
     downloadCloudProject: DownloadCloudProjectFunction

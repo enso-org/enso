@@ -1,14 +1,14 @@
 import { proxyRefs, type MaybeRefOrGetterArray } from '@/util/reactivity'
 import { createGlobalState } from '@vueuse/core'
 import {
-  DefaultGetText,
   getDictionary,
-  getText as getText_1,
-  Language,
   LANGUAGE_TO_LOCALE,
-  Replacements,
+  getText as originalGetText,
   resolveUserLanguage,
-  TextId,
+  type DefaultGetText,
+  type Language,
+  type Replacements,
+  type TextId,
 } from 'enso-common/src/text'
 import { computed, ref, toValue } from 'vue'
 export type { DefaultGetText as GetText } from 'enso-common/src/text'
@@ -27,7 +27,7 @@ function createTextStore() {
   const localizedText = computed(() => getDictionary(language.value))
 
   const getText: DefaultGetText = (key, ...replacements) =>
-    getText_1(localizedText.value, key, ...replacements)
+    originalGetText(localizedText.value, key, ...replacements)
 
   function textRef<K extends TextId>(
     key: K,

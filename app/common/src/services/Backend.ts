@@ -1,13 +1,7 @@
 /** @file Type definitions common between all backends. */
 import { z } from 'zod'
 import type { DownloadOptions } from '../download.js'
-import {
-  getText,
-  resolveDictionary,
-  type DefaultGetText,
-  type Replacements,
-  type TextId,
-} from '../text.js'
+import { getText, resolveDictionary, type DefaultGetText, type Replacements, type TextId } from '../text.js'
 import * as dateTime from '../utilities/data/dateTime.js'
 import * as newtype from '../utilities/data/newtype.js'
 import * as permissions from '../utilities/permissions.js'

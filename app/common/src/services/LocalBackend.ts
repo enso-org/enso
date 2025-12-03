@@ -8,6 +8,7 @@
 import { markRaw } from 'vue'
 import { PRODUCT_NAME } from '../constants.js'
 import type { DownloadOptions } from '../download.js'
+import type { DefaultGetText } from '../text'
 import { toReadableIsoString } from '../utilities/data/dateTime.js'
 import { tryGetMessage } from '../utilities/errors.js'
 import {
@@ -87,7 +88,7 @@ export class LocalBackend extends backend.Backend {
 
   /** Create a {@link LocalBackend}. */
   constructor(
-    getText: backend.GetText,
+    getText: DefaultGetText,
     projectManagerInstance: ProjectManager,
     client = new HttpClient(),
     downloader: (options: DownloadOptions) => void | Promise<void>,

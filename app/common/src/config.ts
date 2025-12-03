@@ -9,6 +9,9 @@ declare global {
     // strictImportMetaEnv: unknown
   }
 
+  // This needs to be ts-ignore, because not all packages have this key defined.
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  // @ts-ignore This key is also defined in Vite.
   type ImportMetaEnvFallbackKey =
     'strictImportMetaEnv' extends keyof ViteTypeOptions ? never : string
 
