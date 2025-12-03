@@ -675,21 +675,25 @@ type DuckDB_Connection
     write_database self (path:Writable_File=Missing_Argument.throw "path") schema_only:Boolean=False =
         ## Check a local file (to do add support for non-local files later)
         if path.is_local.not then Error.throw (Illegal_Argument.Error "Only local files are currently supported for writing DuckDB databases. Write to a local file and then copy it to the desired location.")
+        path_as_file = path.file
 
         ## Check if it exists
-        if path.exists then Error.throw (Illegal_Argument.Error "The specified file already exists. Please provide a different path or delete the existing file.")
+        if path_as_file.exists then Error.throw (Illegal_Argument.Error "The specified file already exists. Please provide a different path or delete the existing file.")
 
         ## Check Execution Context
         Context.Output.if_enabled disabled_message="As writing is disabled, cannot write the database. Press the Write button ▶ to perform the operation." panic=False <|
             Nothing
 
         ## Write the database
-        escaped_path = path.path.replace "'" "''"
+        escaped_path = path_as_file.path.replace "'" "''"
         query = "ATTACH '" + escaped_path + "' AS copy_to_database; COPY FROM DATABASE " + self.database + " TO copy_to_database" + (if schema_only then " (SCHEMA);" else ";") + " DETACH copy_to_database;"
+
+        ## Copy the database
         result = self.execute_update query
-        result.if_not_error <|
-            ## Return a new connection
-            DuckDB.From_File path schema=self.schema . connect
+        Error.return_if_error result
+
+        ## Return a new connection
+        DuckDB.From_File path_as_file schema=self.schema . connect
 
     ## ---
        icon: data_output
@@ -708,15 +712,17 @@ type DuckDB_Connection
     @on_existing_file Existing_File_Behavior.widget include_append=False
     write_file : (SQL_Query_With_Schema | SQL_Query | Table) -> Text -> Existing_File_Behavior -> DuckDB_Connection
     write_file self (query:(SQL_Query_With_Schema | SQL_Query | Table)=Missing_Argument.throw "query") (path:Writable_File=Missing_Argument.throw "path") on_existing_file:Existing_File_Behavior=..Backup =
+        Error.return_if_error query
+
         ## Check a local file (to do add support for non-local files later)
         if path.is_local.not then Error.throw (Illegal_Argument.Error "Only local files are currently supported for writing via DuckDB. Write to a local file and then copy it to the desired location.")
+        path_as_file = path.file
 
         ## Check Execution Context
         Context.Output.if_enabled disabled_message="As writing is disabled, cannot write the file. Press the Write button ▶ to perform the operation." panic=False <|
             Nothing
 
         ## Rationalise the query to a DB_Table
-        if query.is_error then query
         table = case query of
             _ : In_Memory_Table -> Error.throw (Illegal_Argument.Error "Load the table into DuckDB first using `bulk_load`.")
             db_table : DB_Table -> if Connection.check_on_connection self db_table then query else
@@ -724,11 +730,11 @@ type DuckDB_Connection
             _ -> query.to_db_table
 
         ## Check Existing_File_Behavior
-        if path.exists then case on_existing_file of
+        if path_as_file.exists then case on_existing_file of
             Existing_File_Behavior.Append -> Error.throw (Illegal_Argument.Error "DuckDB does not support appending to existing files.")
-            Existing_File_Behavior.Error -> Error.throw (File_Error.Already_Exists path)
+            Existing_File_Behavior.Error -> Error.throw (File_Error.Already_Exists path_as_file)
             _ -> Nothing
-        write_action = if path.exists.not || on_existing_file != Existing_File_Behavior then file->action-> action file else
+        write_action = if path_as_file.exists.not || on_existing_file != Existing_File_Behavior then file->action-> action file else
             file -> action ->
                 tmp_file = File.create_temporary_file prefix="duckdb_write_" suffix=".tmp"
                 file.move_to tmp_file replace_existing=True
@@ -743,7 +749,7 @@ type DuckDB_Connection
                 result
 
         ## Write the file
-        write_action path file->
+        write_action path_as_file file->
             escaped_path = file.path.replace "'" "''"
             sql_query = table.to_sql.surround "COPY (" ") TO '" + escaped_path + "';'"
             result = self.execute_update sql_query
