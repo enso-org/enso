@@ -45,7 +45,7 @@ public class CountNothing {
   /** Returns true if any value in the storage is Nothing. */
   public static boolean anyNothing(ColumnStorage<?> storage) {
     if (storage instanceof ColumnStorageWithValidityMap withValidityMap) {
-      return withValidityMap.getValidityMap().isEmpty() && storage.getSize() > 0;
+      return withValidityMap.getValidityMap().cardinality() < storage.getSize();
     }
 
     return StorageIterators.forEachOverStorage(
