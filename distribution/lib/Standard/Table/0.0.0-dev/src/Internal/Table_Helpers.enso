@@ -1,5 +1,4 @@
 from Standard.Base import all
-from Standard.Base.Errors import all hiding Problem_Behavior, Illegal_Argument, Illegal_State
 import Standard.Base.Data.Vector.No_Wrap
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
@@ -122,7 +121,7 @@ type Table_Column_Helper
     remove_columns self (selectors:(Text | Integer | Regex | Vector)) (case_sensitivity:Case_Sensitivity) (error_on_missing_columns:Boolean) (on_problems:Problem_Behavior) =
         problem_builder = Problem_Builder.new error_on_missing_columns=error_on_missing_columns
         selection = self.select_columns_helper selectors case_sensitivity False problem_builder
-        if selection.is_errror then Error.throw selection
+        if selection.is_error then Error.throw selection
         selected_names = Dictionary.from_vector (selection.map column-> [column.name, True])
         result = self.columns.filter column->
             should_be_removed = selected_names.get column.name False
