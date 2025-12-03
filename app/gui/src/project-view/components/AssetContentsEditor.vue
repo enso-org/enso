@@ -92,13 +92,12 @@ const fileDetails = useQuery({
     }
     const title =
       typeof rightPanel.context?.item === 'object' ? rightPanel.context.item.title : '(unknown)'
-    return ['getFileDetails', fileId, title, true] as const
+    return [backendForAsset.value, 'getFileDetails', fileId, title, true] as const
   }),
-  queryFn: async ({ queryKey: [, fileId, title, fetchContents] }) => {
+  queryFn: async ({ queryKey: [backend, , fileId, title, fetchContents] }) => {
     if (!fileId) {
       return null
     }
-    const backend = backendForAsset.value
     if (!backend) {
       throw new Error('No backend available for asset')
     }

@@ -15,6 +15,12 @@ import {
 const LOADING_TIMEOUT = 10000
 const TEXT = TEXTS.english
 const TEST_USER_FILE = path.join(import.meta.dirname, '../playwright/.auth/user.json')
+const POSSIBLE_ELECTRON_PATHS = [
+  '../../../dist/ide/linux-unpacked/enso',
+  '../../../dist/ide/win-unpacked/Enso.exe',
+  '../../../dist/ide/mac/Enso.app/Contents/MacOS/Enso',
+  '../../../dist/ide/mac-arm64/Enso.app/Contents/MacOS/Enso',
+]
 
 export const credentials: { readonly user: string; readonly password: string } = await fs
   .readFile(TEST_USER_FILE, { encoding: 'utf-8' })
@@ -34,14 +40,9 @@ export const credentials: { readonly user: string; readonly password: string } =
 
 export const electronExecutablePath = await (async () => {
   try {
-    const promises = [
-      '../../../dist/ide/linux-unpacked/enso',
-      '../../../dist/ide/win-unpacked/Enso.exe',
-      '../../../dist/ide/mac/Enso.app/Contents/MacOS/Enso',
-      '../../../dist/ide/mac-arm64/Enso.app/Contents/MacOS/Enso',
-    ]
-      .map((p) => path.resolve(import.meta.dirname, p))
-      .map((p) => fs.access(p, fs.constants.X_OK).then(() => p))
+    const promises = POSSIBLE_ELECTRON_PATHS.map((p) => path.resolve(import.meta.dirname, p)).map(
+      (p) => fs.access(p, fs.constants.X_OK).then(() => p),
+    )
     return await Promise.any(promises)
   } catch {
     throw Error('Cannot find Enso package')
@@ -50,6 +51,7 @@ export const electronExecutablePath = await (async () => {
 
 /**
  * Tests run on electron executable.
+ *
  * Similar to playwright's test, but launches electron, and passes Page of the main window.
  */
 export const test = base.extend<{

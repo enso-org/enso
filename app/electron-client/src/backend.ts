@@ -3,28 +3,10 @@ import { getUpToDateAccessToken } from '@/authentication'
 import { HttpClient } from 'enso-common/src/services/HttpClient'
 import { RemoteBackend } from 'enso-common/src/services/RemoteBackend'
 import { extractIdFromDirectoryId } from 'enso-common/src/services/RemoteBackend/ids'
-import {
-  getText as originalGetText,
-  TEXTS,
-  type Replacements,
-  type TextId,
-} from 'enso-common/src/text'
+import { defaultGetText } from 'enso-common/src/text'
 import path from 'node:path'
 import { createBundle } from 'project-manager-shim'
 import buildInfo from '../buildInfo'
-
-/**
- * A function that gets localized text for a given key, with optional replacements.
- * @param key - The key of the text to get.
- * @param replacements - The replacements to insert into the text.
- * If the text contains placeholders like `$0`, `$1`, etc.,
- * they will be replaced with the corresponding replacement.
- */
-export type GetText = <K extends TextId>(key: K, ...replacements: Replacements[K]) => string
-
-const getText: GetText = (key, ...replacements) => {
-  return originalGetText(TEXTS.english, key, ...replacements)
-}
 
 /** Create a remote backend */
 export async function createRemoteBackend() {
@@ -44,11 +26,12 @@ export async function createRemoteBackend() {
   })
   httpClient.setSessionToken(accessToken)
   const downloader = () => {
-    // TODO: implement downloading (low priority)
-    throw new Error('Downloading arbitrary URLs is not yet implemented.')
+    throw new Error(
+      'Cannot download files in headless mode. If you see this message, please report a bug, as it means this functionality is now required.',
+    )
   }
   return new RemoteBackend({
-    getText,
+    getText: defaultGetText,
     client: httpClient,
     downloader,
     downloadCloudProject: (params) => downloadCloudProject(params.downloadUrl, params.projectId),

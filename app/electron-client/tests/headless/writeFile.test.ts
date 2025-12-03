@@ -15,7 +15,7 @@ function runAppExecutable(args: readonly string[]): Promise<{
   readonly stderr: string
   readonly code: number
 }> {
-  // `spawnSync` is fine, however async is more flexible.
+  // `spawnSync` is fine, use async here in case blocking will be slower in the future.
   const appProcess = spawn(electronExecutablePath, args, {
     env: { ...process.env, NODE_ENV: 'development' },
   })
