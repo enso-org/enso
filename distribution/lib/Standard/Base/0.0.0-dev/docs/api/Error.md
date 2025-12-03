@@ -6,6 +6,7 @@
     - if_not_error self ~other:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - is_error self -> Standard.Base.Any.Any
     - map_error self f:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - return_if_error flag:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - stack_trace self -> Standard.Base.Any.Any
     - throw payload:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - to_display_text self -> Standard.Base.Any.Any
