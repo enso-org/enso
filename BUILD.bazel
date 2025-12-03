@@ -170,6 +170,7 @@ ENGINE_DIST_SOURCES = STDLIB_SOURCES + SBT_PROJECT_FILES + [
     "std-bits/database/src/**",
     "std-bits/google/src/**",
     "std-bits/image/src/**",
+    "std-bits/duckdb/src/**",
     "std-bits/microsoft/src/**",
     "std-bits/snowflake/src/**",
     "std-bits/table/src/**",
@@ -235,7 +236,7 @@ ENV = {
 
 NATIVE_IMAGE_ENV = dict(
     ENV,
-    ENSO_LAUNCHER = "native,fast,-ls",
+    ENSO_LAUNCHER = "native",
 )
 
 run_sbt(
