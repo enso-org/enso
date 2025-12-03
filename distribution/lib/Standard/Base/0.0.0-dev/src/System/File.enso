@@ -1078,8 +1078,8 @@ type File
     list_immediate_children : Vector File
     private list_immediate_children self =
         File_Error.handle_java_exceptions self <|
-            path_children = Java_Files.list self.java_path . toList
-            path_children.map (File.Value _)
+            paths = File_Utils.listImmediateChildren self.java_path
+            paths.map (File.Value _)
 
     ## ---
        private: true

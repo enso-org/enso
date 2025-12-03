@@ -3,6 +3,7 @@ package org.enso.base.file_system;
 import java.io.IOException;
 import java.nio.file.*;
 import java.nio.file.attribute.PosixFilePermissions;
+import java.util.List;
 
 public final class File_Utils {
   private File_Utils() {}
@@ -31,6 +32,12 @@ public final class File_Utils {
 
   public static String getPosixPermissions(Path path) throws IOException {
     return PosixFilePermissions.toString(Files.getPosixFilePermissions(path));
+  }
+
+  public static List<Path> listImmediateChildren(Path dir) throws IOException {
+    try (var stream = Files.list(dir)) {
+      return stream.toList();
+    }
   }
 
   private static void deleteRecursively(Path file) throws IOException {
