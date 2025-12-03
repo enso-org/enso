@@ -28,19 +28,19 @@ test('Existence of edges between nodes', async ({ editorPage }) => {
     .expectEdgesFromTo(undefined, 'twenty', 0)
 })
 
-/** Prepare the graph for the tests. We drag the `ten` node to the right for better access to its outgoing edge. */
+/** Prepare the graph for the tests. We drag one of the nodes to the right for better access to its outgoing edge. */
 async function initGraph(editorPage: EditorPageActions) {
-  await editorPage.dragNode('ten', { x: 400, y: 0 })
+  await editorPage.dragNode('twenty', { x: 400, y: 0 })
 }
 
 /**
- * Scenario: We hover over the edge to the left of the `ten` node. We expect the edge to be rendered with a dimmed part
+ * Scenario: We hover over the arrow of an edge. We expect the edge to be rendered with a dimmed part
  * and a non-dimmed part.
  */
 test('Hover behaviour of edges', async ({ editorPage, page }) => {
   await initGraph(editorPage)
 
-  const edgeElements = await connectedEdgesFromNodeWithBinding(page, 'ten')
+  const edgeElements = await connectedEdgesFromNodeWithBinding(page, 'twenty')
   await expect(edgeElements).toHaveCount(1)
 
   const targetEdge = edgeElements.locator('.io')
@@ -48,18 +48,18 @@ test('Hover behaviour of edges', async ({ editorPage, page }) => {
 
   // Hover over edge to the left of node with binding `ten`.
   await targetEdge.hover({
-    position: { x: 250, y: 35.0 },
+    position: { x: 30, y: 75.0 },
     force: true,
   })
 
   // Expect an extra edge for the split rendering.
-  const hoveredEdgeElements = await connectedEdgesFromNodeWithBinding(page, 'ten')
+  const hoveredEdgeElements = await connectedEdgesFromNodeWithBinding(page, 'twenty')
   await expect(hoveredEdgeElements).toHaveCount(1)
 
-  // Expect the top edge part to be dimmed
-  const topEdge = edgeElements.locator('path.edge').first()
-  await expect(topEdge).toHaveClass('edge define-node-colors visible dimmed pending')
-  // Expect the bottom edge part not to be dimmed
-  const bottomEdge = edgeElements.locator('path.edge').last()
-  await expect(bottomEdge).toHaveClass('edge define-node-colors visible pending')
+  // Expect the bottom edge part to be dimmed
+  const bottomEdge = edgeElements.locator('path.edge').first()
+  await expect(bottomEdge).toHaveClass('edge define-node-colors visible dimmed hovered pending')
+  // Expect the bottom edge part to be dimmed
+  const topEdge = edgeElements.locator('path.edge').last()
+  await expect(topEdge).toHaveClass('edge define-node-colors visible pending')
 })

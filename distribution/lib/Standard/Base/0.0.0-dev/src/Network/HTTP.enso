@@ -148,7 +148,7 @@ type HTTP
        ### Response caching
        See `Data.fetch` for information about response caching.
     request : Request -> Boolean -> Cache_Policy -> Response ! Request_Error | HTTP_Error | Illegal_Argument | Response_Too_Large
-    request self req error_on_failure_code=True (cache_policy:Cache_Policy = ..Default) =
+    request self req error_on_failure_code:Boolean=True (cache_policy:Cache_Policy = ..Default) =
         # Prevent request if the method is a write-like method and output context is disabled.
         check_output_context ~action =
             if (if_fetch_method req.method True if_not=Context.Output.is_enabled) then action else

@@ -79,6 +79,7 @@ onMounted(() => {
       ref="menu"
       :actions="actions"
       :style="floatingStyles"
+      data-testid="contextMenu"
       @contextmenu.stop.prevent="emit('close')"
       @close="emit('close')"
     >

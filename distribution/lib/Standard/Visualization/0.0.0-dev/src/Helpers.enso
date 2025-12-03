@@ -4,6 +4,7 @@ from Standard.Base.Data.Json import render
 from Standard.Base.Logging import all
 
 import Standard.Table.Row.Row
+import Standard.Table.In_Memory_Table.In_Memory_Table
 from Standard.Table import Column, Table
 
 import project.Id.Id
@@ -130,7 +131,8 @@ Array.to_default_visualization_data self =
    Guides the visualization system to display the most suitable graphical
    representation for this table.
 Table.default_visualization : Id
-Table.default_visualization self = Id.table
+Table.default_visualization self =
+    if self.is_a In_Memory_Table then Id.table else Id.sql_query
 
 ## ---
    private: true
@@ -140,14 +142,18 @@ Table.default_visualization self = Id.table
    values.
 Table.to_default_visualization_data : Text
 Table.to_default_visualization_data self =
-    max_size = 10
-    row_count = ['number_of_rows', self.row_count]
-    cols = self.columns.map c->
-        name = c.name.to_json
-        items = c.to_json_data 0 max_size
-        '{"name":'+name+',"data":' + items + '}'
-    JS_Object.from_pairs [row_count, ['columns', cols]] . to_text
-    '{"number_of_rows":' + self.row_count.to_text + ',"columns":[' + (cols.join ",") + ']}'
+    case self.is_a In_Memory_Table of
+        True ->
+            max_size = 10
+            row_count = ['number_of_rows', self.row_count]
+            cols = self.columns.map c->
+                name = c.name.to_json
+                items = c.to_json_data 0 max_size
+                '{"name":'+name+',"data":' + items + '}'
+            JS_Object.from_pairs [row_count, ['columns', cols]] . to_text
+            '{"number_of_rows":' + self.row_count.to_text + ',"columns":[' + (cols.join ",") + ']}'
+        False ->
+            self.read 10 . to_default_visualization_data
 
 ## ---
    private: true

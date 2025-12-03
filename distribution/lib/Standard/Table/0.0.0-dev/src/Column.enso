@@ -2457,10 +2457,10 @@ type Column
        icon: metadata
        ---
        Returns a column of numbers, in which every entry denotes how many times
-       the value at the given position occured before.
+       the value at the given position occurred before.
 
        ## Examples
-       ### Count duplicate occurences of values in a column.
+       ### Count duplicate occurrences of values in a column.
 
        ```
              import Standard.Examples

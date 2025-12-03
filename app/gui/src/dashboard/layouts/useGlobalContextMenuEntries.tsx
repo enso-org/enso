@@ -22,7 +22,7 @@ export interface GlobalContextMenuEntriesOptions {
   readonly category: Category
   readonly currentDirectoryId: DirectoryId
   readonly directoryId: DirectoryId | null
-  readonly doPaste: (newParentKey: DirectoryId, newParentId: DirectoryId) => void
+  readonly doPaste: (newParentId: DirectoryId) => void
 }
 
 /** Context menu entries available everywhere in the directory. */
@@ -136,7 +136,7 @@ export function useGlobalContextMenuEntries(options: GlobalContextMenuEntriesOpt
         action: 'paste',
         doAction: () => {
           void goToDrive()
-          doPaste(currentDirectoryId, currentDirectoryId)
+          doPaste(currentDirectoryId)
         },
       },
   ])

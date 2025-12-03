@@ -660,6 +660,52 @@ public class DebuggingEnsoTest {
   }
 
   @Test
+  public void debuggerDoesNotEvaluateMethods() {
+    var fooFunc =
+        createEnsoMethod(
+            """
+            from Standard.Base import IO
+
+            type My_Type
+                Cons
+
+                method self =
+                    IO.println "Method evaluated"
+                    42
+
+            foo x =
+                obj = My_Type.Cons
+                obj
+            """,
+            "foo");
+    try (DebuggerSession session =
+        debugger.startSession(
+            (SuspendedEvent event) -> {
+              switch (event.getSourceSection().getCharacters().toString().strip()) {
+                case "obj" -> {
+                  DebugScope scope = event.getTopStackFrame().getScope();
+                  DebugValue objValue = scope.getDeclaredValue("obj");
+                  assertThat(objValue.isReadable(), is(true));
+                  assertThat(objValue.isInternal(), is(false));
+                  assertThat(objValue.hasReadSideEffects(), is(false));
+
+                  var methodProp = objValue.getProperty("method");
+                  assertThat(methodProp.canExecute(), is(true));
+                  assertThat("It is a method, not a number", methodProp.isNumber(), is(false));
+                  assertThat(
+                      "Method should not be evaluated when accessed as a debug property",
+                      out.toString(),
+                      not(containsString("Method evaluated")));
+                }
+              }
+              event.getSession().suspendNextExecution();
+            })) {
+      session.suspendNextExecution();
+      fooFunc.execute(0);
+    }
+  }
+
+  @Test
   public void testAtomFieldAreReadable_MultipleConstructors() {
     var fooFunc =
         createEnsoMethod(

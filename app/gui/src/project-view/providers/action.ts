@@ -36,7 +36,7 @@ export interface Action {
   /** Icon displayed on action buttons or next to the description in dropdowns. */
   icon?: ToValue<Icon | undefined> | undefined
   /** Short name of the action. Shown in the context menu next to the icon, or as a tooltip hover for icon buttons. */
-  description?: ToValue<string> | undefined
+  description?: ToValue<string | undefined> | undefined
   /** When true, action buttons will be highlighted, suggesting that whatever the action represents is currently "on". */
   toggled?: Ref<boolean> | (() => boolean) | undefined
 }
@@ -201,6 +201,11 @@ const displayableActions = {
     icon: 'navigate_up',
     description: 'Navigate Up',
     shortcut: graphBindings.bindings['graph.navigateUp'],
+  },
+  'graph.deleteSelectedEdge': {
+    icon: 'trash',
+    description: 'Delete Selected Connection',
+    shortcut: graphBindings.bindings['graph.deleteSelectedEdge'],
   },
 
   // === File Browser ===

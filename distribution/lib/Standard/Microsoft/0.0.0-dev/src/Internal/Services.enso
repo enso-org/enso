@@ -5,7 +5,7 @@ import Standard.Base.System.File.File_System_SPI
 import Standard.Database.Connection.Database.Database_Connection_Details_SPI
 
 import project.Connection.SQLServer_Details.SQLServer_Details
-import project.OneDrive.OneDrive
+import project.OneDrive.OneDrive_File
 import project.SQLServer_Data_Link.SQLServer_Data_Link
 
 type Impl
@@ -20,4 +20,4 @@ Database_Connection_Details_SPI.from (that:Impl) =
 
 File_System_SPI.from (that:Impl) =
     _ = that
-    File_System_SPI.new "onedrive" OneDrive
+    File_System_SPI.new "onedrive" OneDrive_File

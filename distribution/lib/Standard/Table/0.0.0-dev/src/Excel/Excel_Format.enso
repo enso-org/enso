@@ -133,12 +133,12 @@ type Excel_Format
             Excel_Format.Workbook _ _ ->
                 result = Excel_Workbook.new file format
                 result.if_not_error <|
-                    Telemetry.log "File_Format.read" "Read file: format={}, output={}, sheet_count={}, xls_format={}" ["Excel_Format", "Excel_Workbook", result.sheet_count, format.to_text]
+                    Telemetry.log "File_Format.read" "Read file: format={}, output={}, sheet_count={}, xls_format={}, file_type={}" ["Excel_Format", "Excel_Workbook", result.sheet_count, format==Excel_File_Format.XLS, format.to_text]
                     result
             _ ->
                 result = Excel_Reader.read_file file (as_section self) on_problems format
                 result.if_not_error <|
-                    Telemetry.log "File_Format.read" "Read file: format={}, output={}, row_count={}, column_count={}, xls_format={}" ["Excel_Format", "Table", result.row_count, result.column_count, format.to_text]
+                    Telemetry.log "File_Format.read" "Read file: format={}, output={}, row_count={}, column_count={}, xls_format={}, file_type={}" ["Excel_Format", "Table", result.row_count, result.column_count, format==Excel_File_Format.XLS, format.to_text]
                     result
 
     ## ---
