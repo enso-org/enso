@@ -1,5 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Enso_Cloud.Data_Link.Data_Link
+import Standard.Base.Enso_Cloud.Data_Link.Data_Link_From_File
 import Standard.Base.Enso_Cloud.Data_Link_Helpers
 import Standard.Base.Errors.File_Error.File_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
@@ -10,6 +11,7 @@ import Standard.Base.System.File.Generic.File_Like.File_Like
 import Standard.Base.System.File.Generic.Writable_File.Writable_File
 import Standard.Base.System.File_Format_Metadata.File_Format_Metadata
 import Standard.Base.System.Input_Stream.Input_Stream
+from Standard.Base.Metadata.Widget import Secret_Browse
 from Standard.Base.System.File import find_extension_from_name
 from Standard.Base.System.File.Generic.File_Write_Strategy import generic_copy
 
@@ -25,6 +27,7 @@ type OneDrive
 
        ## Arguments
        - `credential`: A Cloud secret or a file containing Microsoft365 credentials.
+    @credential Secret_Browse
     root : File | Enso_Secret -> OneDrive_File
     root (credential : File | Enso_Secret | Microsoft365_Credential = _default_credential) -> OneDrive_File =
         ms_cred = Microsoft365_Credential.initialize credential
@@ -38,6 +41,7 @@ type OneDrive
        ## Arguments
        - `path`: A path to a file or folder in OneDrive.
        - `credential`: A Cloud secret or a file containing Microsoft365 credentials.
+    @credential Secret_Browse
     new : Text -> File | Enso_Secret -> OneDrive_File
     new path:Text="" (credential : File | Enso_Secret | Microsoft365_Credential = _default_credential) -> OneDrive_File =
         used_path = (if (path.starts_with "onedrive://" ..Insensitive) then path.drop (..First 11) else path) . trim ..Left '/'
@@ -359,6 +363,11 @@ type OneDrive_File
    private: true
    ---
 File_Like.from (that : OneDrive_File) = File_Like.Value that
+
+## ---
+   private: true
+   ---
+Data_Link_From_File.from (that : OneDrive_File) = Data_Link_From_File.Value that
 
 private _check_directory file:OneDrive_File ~action =
     if file.is_directory then action else

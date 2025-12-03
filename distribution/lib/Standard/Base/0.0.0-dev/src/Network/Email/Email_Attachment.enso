@@ -2,14 +2,17 @@ import project.Data.Text.Text
 import project.Errors.Common.Missing_Argument
 import project.Metadata.Display
 import project.Metadata.Widget
+import project.Network.URI.URI
 import project.System.File.File
+import project.System.File.Generic.File_Like.File_Like
 from project.Metadata.Choice import Option
 from project.Metadata.Widget import Text_Input, Vector_Editor, Single_Choice
 
 ## The attachment of an email.
 type Email_Attachment
     ## A file attachment.
-    File file:File=(Missing_Argument.throw "file") name:Text=""
+    @file (Widget.Text_Input display=Display.Always)
+    File file:Text|URI|File|File_Like=(Missing_Argument.throw "file") name:Text=""
 
     ## ---
        private: true
@@ -21,3 +24,13 @@ type Email_Attachment
    private: true
    ---
 Email_Attachment.from (that:File) = Email_Attachment.File that
+
+## ---
+   private: true
+   ---
+Email_Attachment.from (that:URI) = Email_Attachment.File that
+
+## ---
+   private: true
+   ---
+Email_Attachment.from (that:Text) = Email_Attachment.File that

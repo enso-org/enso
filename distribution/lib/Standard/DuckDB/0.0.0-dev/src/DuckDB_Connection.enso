@@ -1,7 +1,9 @@
 from Standard.Base import all
 import Standard.Base.Enso_Cloud.Data_Link_Helpers
+import Standard.Base.Errors.File_Error.File_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Runtime.Context
+import Standard.Base.System.File.Generic.Writable_File.Writable_File
 import Standard.Base.Visualization.Table_Viz_Data.Table_Viz_Data
 import Standard.Base.Visualization.Table_Viz_Data.Table_Viz_Header
 from Standard.Base.Metadata.Choice import Option
@@ -15,6 +17,7 @@ from Standard.Table.Internal.Storage import from_value_type
 
 import Standard.Database.Bulk_Load_Exists.Bulk_Load_Exists
 import Standard.Database.Connection.Connection.Connection
+import Standard.Database.Connection.Connection_Options.Connection_Options
 import Standard.Database.DB_Table as DB_Table_Module
 import Standard.Database.Dialects.Dialect.Dialect
 import Standard.Database.Internal.JDBC_Connection
@@ -25,6 +28,7 @@ from Standard.Database.Errors import SQL_Error, Table_Already_Exists, Table_Not_
 from Standard.Database.Internal.Upload.Helpers.Default_Arguments import first_column_name_in_structure
 from Standard.Database.Internal.Upload.Operations.Create import create_table_implementation
 
+import project.DuckDB.DuckDB
 import project.Internal.DuckDB_Dialect
 import project.Internal.DuckDB_Entity_Naming_Properties
 import project.Internal.DuckDB_Type_Mapping.DuckDB_Type_Mapping
@@ -264,7 +268,8 @@ type DuckDB_Connection
             Nothing
         escaped_as = as.replace '"' '""'
         Data_Link_Helpers.as_file path file->
-            query = 'CREATE' + (if replace_if_present then ' OR REPLACE' else "") + ' TABLE "' + escaped_as + '" AS SELECT * FROM \'' + file.path + '\';'
+            escaped_path = file.path.replace "'" "''"
+            query = 'CREATE' + (if replace_if_present then ' OR REPLACE' else "") + ' TABLE "' + escaped_as + '" AS SELECT * FROM \'' + escaped_path + '\';'
             Context.Output.with_enabled <|
                 create_table = self.execute_update query
                 create_table.if_not_error <|
@@ -301,18 +306,24 @@ type DuckDB_Connection
             Nothing
         escaped_as = as.replace '"' '""'
         Data_Link_Helpers.as_file path file->
-            query = 'CREATE' + (if replace_if_present then ' OR REPLACE' else "") + ' TABLE "' + escaped_as + '" AS SELECT * FROM ST_Read(\'' + file.path + '\');'
+            escaped_path = file.path.replace "'" "''"
+            query = 'CREATE' + (if replace_if_present then ' OR REPLACE' else "") + ' TABLE "' + escaped_as + '" AS SELECT * FROM ST_Read(\'' + escaped_path + '\');'
             Context.Output.with_enabled <|
-                create_table = self.execute_update query
-                create_table.if_not_error <|
-                    ## Get the spatial columns and add RTree indexes on them
-                    describe = self.execute_query ('DESCRIBE "' + escaped_as + '";')
-                    spatial_columns = describe.filter "column_type" (..Equal "GEOMETRY") . at "column_name" . to_vector
-                    with_spatial_indexes = spatial_columns.fold as table->column->
-                        if table.is_error then table else
-                            self.create_spatial_index table column (as+"_"+column+"_RTREE_INDEX") replace_if_present
-                    with_spatial_indexes.if_not_error <|
-                        self.create_index as key_columns (escaped_as + '_INDEX') replace_if_present
+                created_table = self.execute_update query
+                Error.return_if_error created_table
+
+                ## Get the spatial columns and add RTree indexes on them
+                describe = self.execute_query ('DESCRIBE "' + escaped_as + '";')
+                spatial_columns = describe.filter "column_type" (..Equal "GEOMETRY") . at "column_name" . to_vector
+
+                ## Create spatial indices
+                with_spatial_indexes = spatial_columns.fold as table->column->
+                    Error.return_if_error table
+                    self.create_spatial_index table column (as+"_"+column+"_RTREE_INDEX") replace_if_present
+                Error.return_if_error with_spatial_indexes
+
+                ## Create any other user requested index.
+                self.create_index as key_columns (escaped_as + '_INDEX') replace_if_present
 
     ## ---
        group: Standard.Base.Database
@@ -648,6 +659,104 @@ type DuckDB_Connection
     to_js_object self =
         JS_Object.from_pairs <| [["type", "DuckDB_Connection"], ["links", self.connection.tables.at "Name" . to_vector]]
 
+    ## ---
+       icon: data_output
+       ---
+       Writes the current database to a new database file to the specified path
+       and then returns a new connection to the written database.
+
+       ## Arguments
+        - `path`: The path to write the database to.
+        - `schema_only`: If set to `True`, only the schema will be written,
+          without any data. Defaults to `False`.
+        - `on_existing_file`: The behavior to use if the file already exists.
+           Defaults to `Backup`, which will create a backup of the existing file.
+
+       ## Returns
+       A new DuckDB_Connection connected to the written database.
+    write_database : Text -> Boolean -> Existing_File_Behavior -> DuckDB_Connection
+    write_database self (path:Writable_File=Missing_Argument.throw "path") schema_only:Boolean=False on_existing_file:Existing_File_Behavior=..Backup =
+        ## Check a local file (to do add support for non-local files later)
+        if path.is_local.not then Error.throw (Illegal_Argument.Error "Only local files are currently supported for writing DuckDB databases. Write to a local file and then copy it to the desired location.")
+        path_as_file = path.file
+
+        ## Check if it exists and then follow on_existing_file behavior
+        write_action = _handle_existing_file path_as_file on_existing_file allow_append=True
+        Error.return_if_error write_action
+
+        ## Check Execution Context
+        Context.Output.if_enabled disabled_message="As writing is disabled, cannot write the database. Press the Write button ▶ to perform the operation." panic=False <|
+            Nothing
+
+        ## Copy the database
+        write_action file->
+            ## Write the database
+            escaped_path = file.path.replace "'" "''"
+            query = "ATTACH '" + escaped_path + "' AS copy_to_database; COPY FROM DATABASE " + self.database + " TO copy_to_database" + (if schema_only then " (SCHEMA);" else ";") + " DETACH copy_to_database;"
+
+            result = self.execute_update query
+            if result.is_error then
+                _ = self.execute_update "DETACH copy_to_database;"
+                Error.return_if_error result
+
+            ## Return a new connection
+            DuckDB.From_File file schema=self.schema . connect Connection_Options.Value
+
+    ## ---
+       icon: data_output
+       ---
+       Writes a table to a file using DuckDB's writing capabilities.
+
+       ## Arguments
+        - `table`: The input table name or `DB_Table` to write.
+        - `path`: The path to write the database to.
+        - `on_existing_file`: The behavior to use if the file already exists.
+           Defaults to `Backup`, which will create a backup of the existing file.
+
+       ## Returns
+       A file pointing at the written file.
+    @query make_table_name_with_schema_selector schema_black_list=schema_black_list
+    @on_existing_file Existing_File_Behavior.widget include_append=False
+    write_file : (SQL_Query_With_Schema | SQL_Query | Table) -> Text -> Existing_File_Behavior -> DuckDB_Connection
+    write_file self (query:(SQL_Query_With_Schema | SQL_Query | Table)=Missing_Argument.throw "query") (path:Writable_File=Missing_Argument.throw "path") on_existing_file:Existing_File_Behavior=..Backup =
+        Error.return_if_error query
+
+        ## Check a local file (to do add support for non-local files later)
+        if path.is_local.not then Error.throw (Illegal_Argument.Error "Only local files are currently supported for writing via DuckDB. Write to a local file and then copy it to the desired location.")
+        path_as_file = path.file
+
+        ## Check if it exists and then follow on_existing_file behavior
+        write_action = _handle_existing_file path_as_file on_existing_file
+        Error.return_if_error write_action
+
+        ## Check Execution Context
+        Context.Output.if_enabled disabled_message="As writing is disabled, cannot write the file. Press the Write button ▶ to perform the operation." panic=False <|
+            Nothing
+
+        ## Rationalise the query to a DB_Table
+        table = case query of
+            _ : In_Memory_Table -> Error.throw (Illegal_Argument.Error "Load the table into DuckDB first using `bulk_load`.")
+            db_table : DB_Table -> if Connection.check_on_connection self db_table then db_table else
+                Error.throw (Illegal_Argument.Error "Cannot write a DB_Table from a different connection. Load the table into this connection first.")
+            _ -> query.to_db_table
+
+        ## Write the file
+        write_action file->
+            escaped_path = file.path.replace "'" "''"
+            sql_query = table.to_sql.surround "COPY (" (") TO '" + escaped_path + "';")
+            result = self.execute_update sql_query
+            result.if_not_error <|
+                path
+
+    ## ---
+       group: Standard.Base.Metadata
+       icon: drive
+       ---
+       Gets a list of the available drivers for writing spatial data.
+    spatial_drivers : Table
+    spatial_drivers self =
+        self.connection.execute_query "SELECT short_name, long_name, help_url FROM ST_Drivers() WHERE can_create=True" limit=..All_Rows write_operation=False
+
 ## ---
    private: true
    ---
@@ -682,3 +791,31 @@ private _column_names_widget connection single_choice:Boolean=False cache=Nothin
         col_names = db_table.column_names.map n-> Option n n.pretty
         if single_choice then Single_Choice [Option "<Custom>" '"Column"']+col_names display=..Always else
             Multiple_Choice col_names display=..Always
+
+private _spatial_driver_widget connection =
+    names = connection.spatial_drivers.at "short_name" . to_vector
+    options = names.map n-> Option n n.pretty
+    Single_Choice options+[Option "<Custom>" '"DriverName"'] display=..Always
+
+private _handle_existing_file path on_existing_file allow_append:Boolean=False =
+    if path.exists then case on_existing_file of
+        Existing_File_Behavior.Append -> if allow_append then Nothing else
+            Error.throw (Illegal_Argument.Error "DuckDB does not support appending to existing files.")
+        Existing_File_Behavior.Error -> Error.throw (File_Error.Already_Exists path)
+        _ -> Nothing
+
+    if path.exists.not || on_existing_file==Existing_File_Behavior.Append then action-> action path else
+        action ->
+            tmp_file = File.create_temporary_file prefix="duckdb_write_" suffix=".tmp"
+            path.move_to tmp_file replace_existing=True
+
+            ## Convert any Panic to an Error allowing us to restore the original file on failure
+            result = Panic.catch Any (action path) caught_panic-> Error.throw caught_panic.payload
+
+            case result.is_error of
+                True -> tmp_file.move_to path replace_existing=True
+                False ->
+                    if on_existing_file==Existing_File_Behavior.Overwrite then tmp_file.delete else
+                        tmp_file.move_to (path.parent / (path.name+".bak")) replace_existing=True
+
+            result

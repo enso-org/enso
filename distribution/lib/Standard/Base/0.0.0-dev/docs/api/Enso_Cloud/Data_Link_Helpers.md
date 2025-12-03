@@ -3,7 +3,7 @@
 - type Data_Link_Source_Metadata
     - Cloud_Asset id:Standard.Base.Data.Text.Text
     - Unknown
-- as_file path:Standard.Base.Any.Any action:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- as_file path:Standard.Base.Any.Any action:Standard.Base.Any.Any delete_on_return:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Any.Any
 - data_link_content_type -> Standard.Base.Any.Any
 - data_link_encoding -> Standard.Base.Any.Any
 - data_link_extension -> Standard.Base.Any.Any
