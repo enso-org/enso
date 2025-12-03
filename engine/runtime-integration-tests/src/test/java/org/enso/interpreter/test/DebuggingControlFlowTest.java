@@ -161,7 +161,14 @@ public class DebuggingControlFlowTest {
 
   private static void assertSuspendedEvents(
       ArrayList<String> events, final int expectedStops, String... bodyLines) {
-    assertEquals("Events: " + events.size(), expectedStops, events.size());
+    if (events.size() != expectedStops) {
+      var sb = new StringBuilder("Events:");
+      var cnt = 0;
+      for (var e : events) {
+        sb.append("\n#").append(cnt++).append(": ").append(e);
+      }
+      assertEquals(sb.toString(), expectedStops, events.size());
+    }
     for (var i = 0; i < events.size(); i++) {
       if (bodyLines[i] == null) {
         continue;
