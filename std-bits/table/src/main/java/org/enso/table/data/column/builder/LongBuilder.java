@@ -13,7 +13,6 @@ import org.enso.table.data.column.storage.type.NullType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.error.ValueTypeMismatchException;
 import org.enso.table.problems.ProblemAggregator;
-import org.enso.table.util.ImmutableBitSet;
 
 /** A builder for integer columns. */
 sealed class LongBuilder extends NumericBuilder implements BuilderForLong, BuilderWithRetyping
@@ -50,7 +49,7 @@ sealed class LongBuilder extends NumericBuilder implements BuilderForLong, Build
   @Override
   public void copyDataTo(Object[] items) {
     for (int i = 0; i < currentSize; i++) {
-      if (!validityMap.get(i)) {
+      if (!isValid(i)) {
         items[i] = null;
       } else {
         items[i] = data[i];
@@ -97,7 +96,7 @@ sealed class LongBuilder extends NumericBuilder implements BuilderForLong, Build
           int n = (int) longStorage.getSize();
           ensureFreeSpaceFor(n);
           System.arraycopy(longStorage.getData(), 0, data, currentSize, n);
-          longStorage.getValidityMap().copyTo(validityMap, currentSize, n);
+          appendValidityMap(longStorage.getValidityMap(), n);
           currentSize += n;
         } else {
           // No conversions needed, but we need to iterate over the items.
@@ -135,7 +134,7 @@ sealed class LongBuilder extends NumericBuilder implements BuilderForLong, Build
    */
   public LongBuilder appendLong(long value) {
     ensureSpaceToAppend();
-    this.validityMap.set(currentSize, true);
+    this.setValid(currentSize);
     this.data[currentSize++] = value;
     return this;
   }
@@ -145,7 +144,7 @@ sealed class LongBuilder extends NumericBuilder implements BuilderForLong, Build
     if (index >= currentSize) {
       throw new IndexOutOfBoundsException();
     } else {
-      return !validityMap.get((int) index);
+      return !isValid((int) index);
     }
   }
 
@@ -187,7 +186,6 @@ sealed class LongBuilder extends NumericBuilder implements BuilderForLong, Build
 
   @Override
   public ColumnStorage<Long> seal() {
-    return new LongStorage(
-        data, currentSize, new ImmutableBitSet(validityMap, currentSize), getType());
+    return new LongStorage(data, currentSize, validityMap(), getType());
   }
 }

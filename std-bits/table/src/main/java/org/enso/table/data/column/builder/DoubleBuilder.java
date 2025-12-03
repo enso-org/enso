@@ -80,7 +80,7 @@ sealed class DoubleBuilder extends NumericBuilder implements BuilderForDouble
     }
 
     ensureSpaceToAppend();
-    validityMap.set(currentSize, true);
+    setValid(currentSize);
     data[currentSize++] = value;
     return this;
   }
@@ -92,7 +92,7 @@ sealed class DoubleBuilder extends NumericBuilder implements BuilderForDouble
         int n = (int) doubleStorage.getSize();
         ensureFreeSpaceFor(n);
         System.arraycopy(doubleStorage.getData(), 0, data, currentSize, n);
-        doubleStorage.getValidityMap().copyTo(validityMap, currentSize, n);
+        appendValidityMap(doubleStorage.getValidityMap(), n);
         currentSize += n;
       } else {
         var doubleStorage = floatType.asTypedStorage(storage);
@@ -151,7 +151,7 @@ sealed class DoubleBuilder extends NumericBuilder implements BuilderForDouble
   @Override
   public DoubleBuilder appendDouble(double value) {
     ensureSpaceToAppend();
-    validityMap.set(currentSize, true);
+    setValid(currentSize);
     data[currentSize++] = value;
     return this;
   }
@@ -169,7 +169,7 @@ sealed class DoubleBuilder extends NumericBuilder implements BuilderForDouble
 
   @Override
   public ColumnStorage<Double> seal() {
-    return new DoubleStorage(data, currentSize, validityMap);
+    return new DoubleStorage(data, currentSize, validityMap());
   }
 
   /**
