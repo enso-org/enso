@@ -28,6 +28,7 @@ import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.data.column.storage.type.TimeOfDayType;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.problems.MapOperationProblemAggregator;
+import org.enso.table.util.ImmutableBitSet;
 
 /**
  * The IsInOperation class provides a way to check if a value is in a set of values. It checks if
@@ -296,7 +297,7 @@ public final class IsInOperation {
   private static ColumnStorage<?> applyBoolStorage(
       boolean keepValue, BoolStorage boolStorage, int checkedSize) {
     BitSet values = boolStorage.getValues();
-    BitSet isNothing = (BitSet) boolStorage.getValidityMap().clone();
+    BitSet isNothing = boolStorage.getValidityMap().cloneBitSet();
     isNothing.flip(0, Math.toIntExact(boolStorage.getSize()));
 
     if (keepValue) {
@@ -316,7 +317,7 @@ public final class IsInOperation {
     }
   }
 
-  private static BitSet makeValidityMap(ColumnStorage<?> storage, int size) {
+  private static ImmutableBitSet makeValidityMap(ColumnStorage<?> storage, int size) {
     if (storage instanceof ColumnStorageWithValidityMap withNothingMap) {
       return withNothingMap.getValidityMap();
     }
@@ -327,7 +328,7 @@ public final class IsInOperation {
         validityMap.set(i);
       }
     }
-    return validityMap;
+    return new ImmutableBitSet(validityMap, size);
   }
 
   private static BitSet or(BitSet left, BitSet right, int sizeIsIgnored) {

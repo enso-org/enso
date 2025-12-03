@@ -1,7 +1,7 @@
 package org.enso.table.data.column.storage;
 
-import java.util.BitSet;
 import org.enso.table.data.column.storage.type.IntegerType;
+import org.enso.table.util.ImmutableBitSet;
 
 /**
  * Implements a storage that computes the ith stored value using some function.
@@ -33,11 +33,9 @@ public abstract class ComputedLongStorage extends AbstractLongStorage
   }
 
   @Override
-  public BitSet getValidityMap() {
+  public ImmutableBitSet getValidityMap() {
     var size = Math.toIntExact(getSize());
-    var set = new BitSet(size);
-    set.flip(0, size);
-    return set;
+    return ImmutableBitSet.allTrue(size);
   }
 
   @Override

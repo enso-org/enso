@@ -9,7 +9,6 @@ import org.enso.table.data.column.storage.ColumnBooleanStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.type.BooleanType;
 import org.enso.table.data.table.problems.MapOperationProblemAggregator;
-import org.enso.table.util.BitSets;
 
 /**
  * This class contains logical operations that can be applied to columns.
@@ -89,7 +88,7 @@ public final class LogicalOperations {
         newMissing.flip(0, size);
         return new BoolStorage(values, newMissing, size, true);
       } else {
-        var newMissing = left.getValidityMap().get(0, size);
+        var newMissing = left.getValidityMap().cloneBitSet().get(0, size);
         newMissing.flip(0, size);
         newMissing.or(values);
         var newValidity = newMissing;
@@ -133,8 +132,8 @@ public final class LogicalOperations {
         negated = false;
       }
 
-      BitSet newValidity = BitSets.makeDuplicate(left.getValidityMap());
-      newValidity.and(right.getValidityMap());
+      var newValidity = left.getValidityMap().cloneBitSet();
+      right.getValidityMap().applyAndTo(newValidity);
       if (size > rightSize) {
         newValidity.set(rightSize, size, false);
       }
@@ -212,7 +211,7 @@ public final class LogicalOperations {
       int size = (int) left.getSize();
       BitSet values = left.getValues();
       if (left.isNegated()) {
-        var newValidity = left.getValidityMap().get(0, size);
+        var newValidity = left.getValidityMap().cloneBitSet();
         newValidity.andNot(values);
         return new BoolStorage(new BitSet(), newValidity, size, true);
       } else {
@@ -256,8 +255,8 @@ public final class LogicalOperations {
         negated = false;
       }
 
-      BitSet validity = BitSets.makeDuplicate(left.getValidityMap());
-      validity.and(right.getValidityMap());
+      var validity = left.getValidityMap().cloneBitSet();
+      right.getValidityMap().applyAndTo(validity);
       if (size > rightSize) {
         validity.set(rightSize, size, false);
       }

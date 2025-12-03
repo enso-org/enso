@@ -13,7 +13,6 @@ import org.enso.table.data.column.storage.type.NullType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.error.ValueTypeMismatchException;
 import org.enso.table.problems.ProblemAggregator;
-import org.enso.table.util.BitSets;
 
 /** A builder for integer columns. */
 non-sealed class LongBuilder extends NumericBuilder implements BuilderForLong, BuilderWithRetyping {
@@ -96,7 +95,7 @@ non-sealed class LongBuilder extends NumericBuilder implements BuilderForLong, B
           int n = (int) longStorage.getSize();
           ensureFreeSpaceFor(n);
           System.arraycopy(longStorage.getData(), 0, data, currentSize, n);
-          BitSets.copy(longStorage.getValidityMap(), validityMap, currentSize, n);
+          longStorage.getValidityMap().copyTo(validityMap, currentSize, n);
           currentSize += n;
         } else {
           // No conversions needed, but we need to iterate over the items.

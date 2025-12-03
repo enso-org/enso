@@ -73,7 +73,7 @@ final class BoolBuilder implements BuilderForBoolean, BuilderWithRetyping {
       // We know this is valid for a BoolStorage.
       int toCopy = (int) boolStorage.getSize();
       BitSets.copy(boolStorage.getValues(), vals, size, toCopy);
-      BitSets.copy(boolStorage.getValidityMap(), validityMap, size, toCopy);
+      boolStorage.getValidityMap().copyTo(validityMap, size, toCopy);
       size += toCopy;
     } else if (storage instanceof ColumnBooleanStorage columnBooleanStorage) {
       for (long i = 0; i < columnBooleanStorage.getSize(); i++) {

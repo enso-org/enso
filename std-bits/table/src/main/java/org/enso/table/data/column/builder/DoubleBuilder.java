@@ -13,7 +13,6 @@ import org.enso.table.data.column.storage.type.NullType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.error.ValueTypeMismatchException;
 import org.enso.table.problems.ProblemAggregator;
-import org.enso.table.util.BitSets;
 
 /** A builder for floating point columns. */
 sealed class DoubleBuilder extends NumericBuilder implements BuilderForDouble
@@ -93,7 +92,7 @@ sealed class DoubleBuilder extends NumericBuilder implements BuilderForDouble
         int n = (int) doubleStorage.getSize();
         ensureFreeSpaceFor(n);
         System.arraycopy(doubleStorage.getData(), 0, data, currentSize, n);
-        BitSets.copy(doubleStorage.getValidityMap(), validityMap, currentSize, n);
+        doubleStorage.getValidityMap().copyTo(validityMap, currentSize, n);
         currentSize += n;
       } else {
         var doubleStorage = floatType.asTypedStorage(storage);

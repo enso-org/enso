@@ -4,6 +4,7 @@ import java.util.BitSet;
 import java.util.NoSuchElementException;
 import org.enso.table.data.column.storage.iterators.ColumnLongStorageIterator;
 import org.enso.table.data.column.storage.type.IntegerType;
+import org.enso.table.util.ImmutableBitSet;
 
 /** A column storing 64-bit integers. */
 public final class LongStorage extends AbstractLongStorage implements ColumnStorageWithValidityMap {
@@ -45,8 +46,9 @@ public final class LongStorage extends AbstractLongStorage implements ColumnStor
   }
 
   @Override
-  public BitSet getValidityMap() {
-    return validityMap;
+  public ImmutableBitSet getValidityMap() {
+    var size = Math.toIntExact(getSize());
+    return new ImmutableBitSet(validityMap, size);
   }
 
   /** Widening to a bigger type can be done without copying the data. */

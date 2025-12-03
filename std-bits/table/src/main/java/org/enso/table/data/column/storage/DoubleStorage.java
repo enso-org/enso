@@ -4,6 +4,7 @@ import java.util.BitSet;
 import java.util.NoSuchElementException;
 import org.enso.table.data.column.storage.iterators.ColumnDoubleStorageIterator;
 import org.enso.table.data.column.storage.type.FloatType;
+import org.enso.table.util.ImmutableBitSet;
 
 /** A column containing floating point numbers. */
 public final class DoubleStorage extends Storage<Double>
@@ -41,8 +42,8 @@ public final class DoubleStorage extends Storage<Double>
   }
 
   @Override
-  public BitSet getValidityMap() {
-    return validityMap;
+  public ImmutableBitSet getValidityMap() {
+    return new ImmutableBitSet(validityMap, size);
   }
 
   @Override
