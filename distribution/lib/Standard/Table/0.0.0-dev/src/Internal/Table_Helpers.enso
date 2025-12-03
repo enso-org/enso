@@ -219,7 +219,7 @@ type Table_Column_Helper
             _ : Vector -> selectors
             _ -> [selectors]
         selected_columns = (vector.map resolve_selector on_problems=No_Wrap.Value).flatten
-        if selected_columns.is_error then Error.throw selected_columns
+        Error.return_if_error selected_columns
         if reorder then selected_columns.distinct on=_.name else
             dict = Dictionary.from_vector (selected_columns.map column-> [column.name, True]) error_on_duplicates=False
             self.columns.filter column-> dict.contains_key column.name
