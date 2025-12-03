@@ -56,7 +56,7 @@ def _ensure_native_enso_impl(ctx):
             exit 1
         fi
         $PWD/$binary_path --version
-        $PWD/$binary_path --version | grep Substrate > /dev/null
+        file --mime-encoding $PWD/$binary_path | grep -q "binary"
         if [ $? -ne 0 ]; then
             echo "Error: enso binary is not a native image build"
             exit 1
