@@ -67,7 +67,7 @@ npm_package(
     visibility = ["//visibility:public"],
 )
 
-ENV_FILES = glob(["../common/.env*"])
+ENV_FILES = glob(["node_modules/enso-common/.env*"])
 
 # When stamping, `--mode=bazel` will inject placeholders into the code base which will be replaced later by `stamp_files` rule.
 _vite_args = select({
