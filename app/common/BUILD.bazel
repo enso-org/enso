@@ -36,3 +36,9 @@ npm_package(
     ],
     visibility = ["//visibility:public"],
 )
+
+filegroup(
+    name = "env_files",
+    srcs = glob([".env*"]),
+    visibility = ["//visibility:public"],
+)
