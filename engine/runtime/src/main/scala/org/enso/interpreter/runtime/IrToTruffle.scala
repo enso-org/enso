@@ -1451,7 +1451,7 @@ private[runtime] class IrToTruffle(
             arg,
             branch.expression,
             branch.location,
-            false,
+            defineRoot               = false,
             subjectToInstrumentation = subjectToInstrumentation
           )
 
@@ -1464,7 +1464,7 @@ private[runtime] class IrToTruffle(
             Nil,
             branch.expression,
             branch.location,
-            false,
+            defineRoot               = false,
             subjectToInstrumentation = subjectToInstrumentation
           )
           val node = BooleanBranchNode.build(
@@ -1488,8 +1488,8 @@ private[runtime] class IrToTruffle(
             fieldsAsArgs,
             branch.expression,
             branch.location,
-            false,
-            subjectToInstrumentation = subjectToInstrumentation
+            subjectToInstrumentation = subjectToInstrumentation,
+            defineRoot               = false
           )
 
           constructor match {
@@ -1653,8 +1653,8 @@ private[runtime] class IrToTruffle(
             Nil,
             branch.expression,
             branch.location,
-            false,
-            subjectToInstrumentation = subjectToInstrumentation
+            subjectToInstrumentation = subjectToInstrumentation,
+            defineRoot               = false
           )
 
           literalPattern.literal match {
@@ -1725,8 +1725,8 @@ private[runtime] class IrToTruffle(
                     argOfType,
                     branch.expression,
                     branch.location,
-                    false,
-                    subjectToInstrumentation = subjectToInstrumentation
+                    subjectToInstrumentation = subjectToInstrumentation,
+                    defineRoot               = false
                   )
                   Right(
                     CatchTypeBranchNode.build(
@@ -1765,8 +1765,8 @@ private[runtime] class IrToTruffle(
                   argOfType,
                   branch.expression,
                   branch.location,
-                  false,
-                  subjectToInstrumentation = subjectToInstrumentation
+                  subjectToInstrumentation = subjectToInstrumentation,
+                  defineRoot               = false
                 )
                 Right(
                   PolyglotSymbolTypeBranchNode.build(
@@ -2308,9 +2308,9 @@ private[runtime] class IrToTruffle(
       arguments: List[DefinitionArgument],
       body: Expression,
       location: Option[IdentifiedLocation],
-      defineRoot: Boolean,
       binding: Boolean                  = false,
-      subjectToInstrumentation: Boolean = false
+      subjectToInstrumentation: Boolean = false,
+      defineRoot: Boolean               = true
     ): CreateFunctionNode = {
       val bodyBuilder =
         new BuildFunctionBody(
