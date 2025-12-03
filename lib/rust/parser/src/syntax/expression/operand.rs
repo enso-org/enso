@@ -29,7 +29,7 @@ impl<'s> From<Tree<'s>> for Operand<'s> {
             _ => None,
         };
         if let Some(Evaluation::Immediate) = evaluation {
-            value = Tree::call(value);
+            //value = Tree::call(value);
         }
         let call = matches!(evaluation, Some(Evaluation::Deferred));
         let wildcards = matches!(value.variant, tree::Variant::Wildcard(_));
@@ -42,7 +42,7 @@ impl<'s> From<Operand<'s>> for Tree<'s> {
     fn from(operand: Operand<'s>) -> Self {
         let Operand { mut value, wildcards, call } = operand;
         if call && !matches!(value.variant, tree::Variant::Invalid(_)) {
-            value = Tree::call(value);
+            //value = Tree::call(value);
         }
         if wildcards {
             value = Tree::template_function(value);
