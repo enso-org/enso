@@ -61,7 +61,7 @@ public class CountNothing {
 
     if (storage instanceof ColumnStorageWithValidityMap withNothingMap) {
       var cardinality = withNothingMap.getValidityMap().cardinality();
-      return cardinality == storage.getSize();
+      return cardinality == 0;
     }
 
     boolean hasSomething =
