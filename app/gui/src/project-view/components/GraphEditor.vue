@@ -363,7 +363,9 @@ const actionHandlers = registerHandlers({
             }),
           )
           if (results.some((result) => !result.ok)) {
-            toasts.userActionFailed.show('Failed to connect removed component around')
+            toasts.userActionFailed.show(
+              'Errors occurred while connecting around removed components.',
+            )
           }
           return graphStore.deleteNodes(nodes.map(nodeId), edit)
         })
