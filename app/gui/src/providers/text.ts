@@ -1,6 +1,15 @@
 import { proxyRefs, type MaybeRefOrGetterArray } from '@/util/reactivity'
 import { createGlobalState } from '@vueuse/core'
-import { resolveUserLanguage, LANGUAGE_TO_LOCALE, getDictionary, DefaultGetText, getText as getText_1, TextId, Replacements, Language } from 'enso-common/src/text'
+import {
+  DefaultGetText,
+  getDictionary,
+  getText as getText_1,
+  Language,
+  LANGUAGE_TO_LOCALE,
+  Replacements,
+  resolveUserLanguage,
+  TextId,
+} from 'enso-common/src/text'
 import { computed, ref, toValue } from 'vue'
 export type { DefaultGetText as GetText } from 'enso-common/src/text'
 
