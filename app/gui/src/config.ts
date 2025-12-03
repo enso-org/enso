@@ -4,12 +4,7 @@
  * we can easily replace its contents in a separate build postprocessing step in `BUILD.bazel`.
  */
 import { $config, setConfig } from 'enso-common/src/config'
-
-// Undefined env variables are typed as `any`, but we want them to be `string | undefined`.
-export type $Config = {
-  [K in keyof typeof $config]: unknown extends (typeof $config)[K] ? string | undefined
-  : (typeof $config)[K]
-}
+export type { $Config } from 'enso-common/src/config'
 
 setConfig({
   ENVIRONMENT: process.env.ENSO_IDE_ENVIRONMENT ?? import.meta.env.ENSO_IDE_ENVIRONMENT,
