@@ -121,7 +121,7 @@ type Table_Column_Helper
     remove_columns self (selectors:(Text | Integer | Regex | Vector)) (case_sensitivity:Case_Sensitivity) (error_on_missing_columns:Boolean) (on_problems:Problem_Behavior) =
         problem_builder = Problem_Builder.new error_on_missing_columns=error_on_missing_columns
         selection = self.select_columns_helper selectors case_sensitivity False problem_builder
-        if selection.is_error then Error.throw selection
+        Error.return_if_error selection
         selected_names = Dictionary.from_vector (selection.map column-> [column.name, True])
         result = self.columns.filter column->
             should_be_removed = selected_names.get column.name False
@@ -486,8 +486,7 @@ is_index_valid length ix =
    private: true
    ---
    A helper method to match columns by name
-_match_columns : Text | Regex -> Case_Sensitivity -> Vector -> Vector
-private _match_columns (name : Text | Regex) (case_sensitivity : Case_Sensitivity) (columns : Vector) =
+private _match_columns (name : Text | Regex) (case_sensitivity : Case_Sensitivity) (columns : Vector) -> Vector =
     match = case name of
         _ : Text -> case case_sensitivity of
             Case_Sensitivity.Default -> (== name)

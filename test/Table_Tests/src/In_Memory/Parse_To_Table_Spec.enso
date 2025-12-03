@@ -71,7 +71,7 @@ add_specs suite_builder =
             "abc".parse_to_table "(a)(?<<" . should_fail_with Regex_Syntax_Error
 
         group_builder.specify "empty pattern" <|
-            "abc".parse_to_table "" . should_fail_with Missing_Argument
+            "abc".parse_to_table "" . should_fail_with Illegal_Argument
 
         group_builder.specify "bad arg" <|
             Test.expect_panic_with (actual = "a 7 ab12 bt100 c12d20q 12".parse_to_table 12) Type_Error
