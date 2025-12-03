@@ -584,6 +584,17 @@ type Connection
             key_column_names = selected.sort 1 . at 0 . to_vector
             if key_column_names.is_empty then Nothing else key_column_names
 
+    ## ---
+       private: true
+       ---
+       Checks that the DB_Table is using a specified connection.DB_Table
+
+       ## Arguments:
+       - `connection`: Connection to check against
+         - `db_table`: DB_Table to check
+    check_on_connection connection db_table:DB_Table =
+        Meta.is_same_object connection db_table.connection
+
 ## ---
    private: true
    ---

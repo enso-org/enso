@@ -221,16 +221,23 @@ type Error
        advanced: true
        icon: warning
        ---
-       Returns the provided `other` value, unless `self` is an error.
+       Returns the provided `passthru` value, unless `self` is an error.
 
        The primary application of this function is to introduce a dataflow
        dependency between two otherwise unrelated operations. Very useful if one
        of the operations is performing a side-effect.
+
        Aside from ensuring that any dataflow errors are propagated, the result
        will also inherit any warnings attached to any of the two inputs.
 
        ## Arguments
-        - `other`: The value to return if `self` is not an error.
+        - `passthru`: The value to return if `self` is not an error.
+
+       ## Returns
+       `passthru` if `self` is not an error; otherwise, returns the error.
+
+       ## Returns
+       `passthru` if `self` is not an error; otherwise, returns the error.
 
        ## Examples
        ### Writing to a file and returning the file object if all went well, or an
@@ -240,8 +247,8 @@ type Error
              file.write "foo" . if_not_error file
        ```
     if_not_error : Any -> Any
-    if_not_error self ~other =
-        const self other
+    if_not_error self ~passthru =
+        const self passthru
 
 ## ---
    private: true
@@ -353,16 +360,20 @@ Any.is_error self -> Boolean = False
    advanced: true
    icon: warning
    ---
-   Returns the provided `other` value, unless `self` is an error.
+   Returns the provided `passthru` value, unless `self` is an error.
 
    The primary application of this function is to introduce a dataflow
    dependency between two otherwise unrelated operations. Very useful if one
    of the operations is performing a side-effect.
+
    Aside from ensuring that any dataflow errors are propagated, the result
    will also inherit any warnings attached to any of the two inputs.
 
    ## Arguments
-   - `other`: The value to return if `self` is not an error.
+   - `passthru`: The value to return if `self` is not an error.
+
+   ## Returns
+   `passthru` if `self` is not an error; otherwise, returns the error.
 
    ## Examples
    ### Writing to a file and returning the file object if all went well, or an
@@ -371,4 +382,4 @@ Any.is_error self -> Boolean = False
    ```
          file.write "foo" . if_not_error file
    ```
-Any.if_not_error self ~other = other
+Any.if_not_error self ~passthru = passthru
