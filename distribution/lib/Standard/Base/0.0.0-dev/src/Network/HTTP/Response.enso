@@ -235,7 +235,7 @@ type Response
        ```
     @file (Widget.Text_Input display=Display.Always)
     write : Writable_File -> Existing_File_Behavior -> File
-    write self file:Writable_File on_existing_file=Existing_File_Behavior.Backup =
+    write self file:Writable_File on_existing_file:Existing_File_Behavior=..Backup =
         self.body.write file on_existing_file
 
     ## ---
