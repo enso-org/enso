@@ -1647,6 +1647,11 @@ export function isNewTitleUnique(
   )
 }
 
+export interface MapboxToken {
+  token: string
+  expires: Date
+}
+
 /** Network error class. */
 export class NetworkError extends Error {
   /**
@@ -2013,6 +2018,8 @@ export abstract class Backend {
   abstract createApiKey(body: CreateApiKeyRequestBody): Promise<ApiKey>
   /** Delete a API key for the current user. */
   abstract deleteApiKey(apiKeyId: ApiKeyId): Promise<void>
+  /** Retrieve Mapbox token for the current user. */
+  abstract getMapboxToken(): Promise<MapboxToken>
 
   /** Throw a {@link backend.NotAuthorizedError} if the response is a 401 Not Authorized status code. */
   private async checkForAuthenticationError<T>(

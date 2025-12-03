@@ -103,6 +103,7 @@ export const CREATE_API_KEY_PATH = 'credentials'
 export function deleteApiKeyPath(apiKeyId: ApiKeyId) {
   return `credentials/${apiKeyId}`
 }
+export const GET_MAPBOX_TOKEN_PATH = 'mapbox/token'
 
 /** Relative HTTP path to the "cancel subscription" endpoint of the Cloud backend API. */
 export function cancelSubscriptionPath(subscriptionId: SubscriptionId) {
