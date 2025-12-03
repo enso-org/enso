@@ -87,10 +87,10 @@ add_specs suite_builder =
             addr2.to_text . should_equal 'https://httpbin.org/get?c=d+d%3De%3Df&g=h'
 
         group_builder.specify "should return Syntax_Error when parsing invalid URI" <|
-            r = URI.parse "a b c"
+            r = URI.parse "a b://c d e"
             r.should_fail_with Syntax_Error
-            r.catch.to_display_text . should_contain "a b c"
-            URI.from "a b c" . should_fail_with Syntax_Error
+            r.catch.to_display_text . should_contain "a%20b://c%20d%20e"
+            URI.from "a b://c d e" . should_fail_with Syntax_Error
 
         group_builder.specify "should return Syntax_Error when parsing empty URI" <|
             r = URI.parse ""
@@ -249,7 +249,7 @@ add_specs suite_builder =
             r = uri1.fetch
             r.at "path" . should_equal "/get/a b c/d+e/f%20g/ś🚧:@"
 
-            ext = "a [!who puts that//// into URI??!!] ; --- ### a:=b"
+            ext = "a !who puts that//// into URI??!! ; --- a:=b"
             uri3 = uri0 / ext
             r2 = uri3.fetch
             r2.at "path" . should_equal "/get/"+ext
