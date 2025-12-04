@@ -77,6 +77,7 @@
 - [Implement Text_Column to_case for DB backends][14386]
 - [Implement bulk loading to DuckDB][14402]
 - [Implement `Text_Column.text_mid` for in-memory backend.][14420]
+- [Initial file writing from DuckDB][14421]
 
 [13769]: https://github.com/enso-org/enso/pull/13769
 [14026]: https://github.com/enso-org/enso/pull/14026
@@ -102,6 +103,7 @@
 [14386]: https://github.com/enso-org/enso/pull/14386
 [14402]: https://github.com/enso-org/enso/pull/14402
 [14420]: https://github.com/enso-org/enso/pull/14420
+[14421]: https://github.com/enso-org/enso/pull/14421
 
 #### Enso Language & Runtime
 

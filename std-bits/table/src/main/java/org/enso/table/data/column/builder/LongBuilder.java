@@ -13,10 +13,10 @@ import org.enso.table.data.column.storage.type.NullType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.error.ValueTypeMismatchException;
 import org.enso.table.problems.ProblemAggregator;
-import org.enso.table.util.BitSets;
 
 /** A builder for integer columns. */
-class LongBuilder extends NumericBuilder implements BuilderForLong, BuilderWithRetyping {
+sealed class LongBuilder extends NumericBuilder implements BuilderForLong, BuilderWithRetyping
+    permits BoundCheckedIntegerBuilder {
   protected final ProblemAggregator problemAggregator;
   protected long[] data;
 
@@ -49,7 +49,7 @@ class LongBuilder extends NumericBuilder implements BuilderForLong, BuilderWithR
   @Override
   public void copyDataTo(Object[] items) {
     for (int i = 0; i < currentSize; i++) {
-      if (isNothing.get(i)) {
+      if (!isValid(i)) {
         items[i] = null;
       } else {
         items[i] = data[i];
@@ -96,7 +96,7 @@ class LongBuilder extends NumericBuilder implements BuilderForLong, BuilderWithR
           int n = (int) longStorage.getSize();
           ensureFreeSpaceFor(n);
           System.arraycopy(longStorage.getData(), 0, data, currentSize, n);
-          BitSets.copy(longStorage.getIsNothingMap(), isNothing, currentSize, n);
+          appendValidityMap(longStorage.getValidityMap(), n);
           currentSize += n;
         } else {
           // No conversions needed, but we need to iterate over the items.
@@ -134,6 +134,7 @@ class LongBuilder extends NumericBuilder implements BuilderForLong, BuilderWithR
    */
   public LongBuilder appendLong(long value) {
     ensureSpaceToAppend();
+    this.setValid(currentSize);
     this.data[currentSize++] = value;
     return this;
   }
@@ -143,7 +144,7 @@ class LongBuilder extends NumericBuilder implements BuilderForLong, BuilderWithR
     if (index >= currentSize) {
       throw new IndexOutOfBoundsException();
     } else {
-      return isNothing.get((int) index);
+      return !isValid((int) index);
     }
   }
 
@@ -185,6 +186,6 @@ class LongBuilder extends NumericBuilder implements BuilderForLong, BuilderWithR
 
   @Override
   public ColumnStorage<Long> seal() {
-    return new LongStorage(data, currentSize, isNothing, getType());
+    return new LongStorage(data, currentSize, validityMap(), getType());
   }
 }

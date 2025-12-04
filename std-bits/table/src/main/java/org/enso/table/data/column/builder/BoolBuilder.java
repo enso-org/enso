@@ -13,13 +13,13 @@ import org.enso.table.util.BitSets;
 /** A builder for boolean columns. */
 final class BoolBuilder implements BuilderForBoolean, BuilderWithRetyping {
   private final BitSet vals;
-  private final BitSet isNothing;
+  private final BitSet validityMap;
   int size = 0;
 
   // ** Creates a new builder for boolean columns. Should be built via Builder.getForBoolean. */
   BoolBuilder(int capacity) {
     vals = new BitSet(capacity);
-    isNothing = new BitSet(capacity);
+    validityMap = new BitSet(capacity);
   }
 
   @Override
@@ -31,6 +31,7 @@ final class BoolBuilder implements BuilderForBoolean, BuilderWithRetyping {
         if (b) {
           vals.set(size);
         }
+        validityMap.set(size);
       } else {
         throw new ValueTypeMismatchException(getType(), o);
       }
@@ -54,13 +55,14 @@ final class BoolBuilder implements BuilderForBoolean, BuilderWithRetyping {
     if (value) {
       vals.set(size);
     }
+    validityMap.set(size, true);
     size++;
     return this;
   }
 
   @Override
   public BoolBuilder appendNulls(int count) {
-    isNothing.set(size, size + count);
+    validityMap.set(size, size + count, false);
     size += count;
     return this;
   }
@@ -71,7 +73,7 @@ final class BoolBuilder implements BuilderForBoolean, BuilderWithRetyping {
       // We know this is valid for a BoolStorage.
       int toCopy = (int) boolStorage.getSize();
       BitSets.copy(boolStorage.getValues(), vals, size, toCopy);
-      BitSets.copy(boolStorage.getIsNothingMap(), isNothing, size, toCopy);
+      boolStorage.getValidityMap().copyTo(validityMap, size, toCopy);
       size += toCopy;
     } else if (storage instanceof ColumnBooleanStorage columnBooleanStorage) {
       for (long i = 0; i < columnBooleanStorage.getSize(); i++) {
@@ -90,7 +92,7 @@ final class BoolBuilder implements BuilderForBoolean, BuilderWithRetyping {
 
   @Override
   public ColumnStorage<Boolean> seal() {
-    return new BoolStorage(vals, isNothing, size, false);
+    return new BoolStorage(vals, validityMap, size, false);
   }
 
   @Override
@@ -101,7 +103,7 @@ final class BoolBuilder implements BuilderForBoolean, BuilderWithRetyping {
   @Override
   public void copyDataTo(Object[] items) {
     for (int i = 0; i < size; i++) {
-      if (isNothing.get(i)) {
+      if (!validityMap.get(i)) {
         items[i] = null;
       } else {
         items[i] = vals.get(i);

@@ -36,7 +36,7 @@ import project.System.File_Format.File_Format
 import project.System.File_Format.File_Format_SPI
 import project.System.Input_Stream.Input_Stream
 import project.System.Output_Stream.Output_Stream
-from project.Data.Boolean import False, True
+from project.Data.Boolean import Boolean, False, True
 from project.Data.Text.Extensions import all
 from project.Enso_Cloud.Data_Link_Capabilities import Data_Link_With_Input_Stream, Data_Link_With_Output_Stream, File_Like_Data_Link, Writable_Data_Link
 from project.Enso_Cloud.Public_Utils import get_required_field
@@ -296,21 +296,21 @@ is_regular_file file ~check_file_directly =
     - `path`: The path to the resource. Can be a `Text`, `File`, `URI`, or
       other file-like object.
     - `action`: A function that takes a `File` and performs an action with it.
-as_file path action = case path of
+as_file path action delete_on_return:Boolean=True = case path of
     _ : Text ->
         resolved = URI.parse_if_http path . if_nothing <| File.new path
-        as_file resolved action
+        as_file resolved action delete_on_return
     _ : File ->
         ## Need to see if a data link otherwise return the file
         if path.exists.not then Error.throw (File_Error.Not_Found path)
         if path.is_directory then Error.throw (Illegal_Argument.Error "Cannot use a directory, pass a file.")
         if path.is_data_link.not then action path else
-            as_file (interpret_data_link_target_as_file path) action
+            as_file (interpret_data_link_target_as_file path) action delete_on_return
     _ : URI ->
         ## Fetch the resource and save it to a temporary file
         ## Best guess filename
         response = HTTP.fetch path method=..Get headers=[] cache_policy=..Default
-        handle_response_as_file response path action
+        handle_response_as_file response path action delete_on_return
     _ ->
         ## Something that is file like
         file_like = File.new path
@@ -319,9 +319,10 @@ as_file path action = case path of
             name_ext = split_file_name file_like.name
             temp_file = File.create_temporary_file name_ext.first name_ext.second
             written_file = Context.Output.with_enabled <| file_like.copy_to temp_file replace_existing=True
-            Managed_Resource.bracket written_file cleanup_tmp_file (f-> as_file f action)
+            if delete_on_return.not then action written_file else
+                Managed_Resource.bracket written_file cleanup_tmp_file (f-> as_file f action)
 
-private handle_response_as_file response path action =
+private handle_response_as_file response path action delete_on_return:Boolean =
     case Data_Link.is_data_link_from_metadata response.body.metadata of
         True ->
             ## Data link, interpret it
@@ -329,10 +330,10 @@ private handle_response_as_file response path action =
             case data_link of
                 _ : HTTP_Fetch_Data_Link ->
                     inner_response = HTTP.new.request data_link.request
-                    handle_response_as_file inner_response data_link.request.uri action
+                    handle_response_as_file inner_response data_link.request.uri action delete_on_return
                 _ ->
                     target_file = File_Like_Data_Link.find data_link
-                    as_file target_file.as_file action
+                    as_file target_file.as_file action delete_on_return
         False ->
             ## Not a data link, save to temporary file
             uri_path = path.path.split '/' . last
@@ -340,7 +341,8 @@ private handle_response_as_file response path action =
             temp_file = File.create_temporary_file name_ext.first name_ext.second
             written_file = Context.Output.with_enabled <|
                 response.write temp_file ..Overwrite
-            Managed_Resource.bracket written_file cleanup_tmp_file (f-> as_file f action)
+            if delete_on_return.not then as_file written_file action False else
+               Managed_Resource.bracket written_file cleanup_tmp_file (f-> as_file f action True)
 
 private cleanup_tmp_file file =
     Context.Output.with_enabled <|

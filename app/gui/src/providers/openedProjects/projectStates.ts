@@ -29,6 +29,7 @@ import {
   type Ref,
 } from 'vue'
 import { useBackends } from '../backends'
+import { useHttpClient } from '../httpClient'
 import { useSession } from '../session'
 import { useText } from '../text'
 import { useUploadsToCloudStore } from '../upload'
@@ -159,6 +160,7 @@ export function useProjectStates() {
   const config = injectGuiConfig()
   const uploads = useUploadsToCloudStore()
   const queryClient = vueQuery.useQueryClient()
+  const httpClient = useHttpClient()
 
   const openLocalProject = vueQuery.useMutation(
     backendMutationOptions('openProject', backends.localBackend),
@@ -319,6 +321,24 @@ export function useProjectStates() {
     details?: Ref<ProjectDetails>,
   ) {
     if (!backends.localBackend) return Err('Cannot open local project: Local Backend missing.')
+    await backends.localBackend
+      .startWatchingHybridProject(
+        info.id,
+        info.runningId,
+        info.parentId,
+        backends.remoteBackend.baseUrl,
+        httpClient.defaultHeaders,
+      )
+      .catch((err) => {
+        console.error(`Failed to start watching hybrid project ${info.id}`, err)
+      })
+    scope.run(() =>
+      onScopeDispose(async () => {
+        await backends.localBackend?.stopWatchingHybridProject(info.id).catch((err) => {
+          console.error(`Failed to stop watching hybrid project ${info.id}`, err)
+        })
+      }),
+    )
     const cloudParentPath = EnsoPath(info.ensoPath.slice(0, info.ensoPath.lastIndexOf('/')))
     const result = await catchNetworkError(
       backends.localBackend.openProject(
@@ -571,10 +591,12 @@ export function useProjectStates() {
   async function closeHybridProject(
     project: HybridUploaded | HybridOpened | HybridDownloaded,
   ): Promise<Result<NotOpened>> {
-    if (project.status === 'hybrid-uploaded')
+    if (project.status === 'hybrid-uploaded') {
       await deleteLocalVersionOfHybridProject(project.info.localParentId)
-    if (project.status === 'hybrid-downloaded')
+    }
+    if (project.status === 'hybrid-downloaded') {
       await deleteLocalVersionOfHybridProject(project.localProjectParentId)
+    }
     await closeRemoteProject.mutateAsync([project.info.id, project.info.title])
     return Ok({ status: 'not-opened', info: project.info })
   }

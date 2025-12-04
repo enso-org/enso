@@ -13,10 +13,10 @@ import org.enso.table.data.column.storage.type.NullType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.error.ValueTypeMismatchException;
 import org.enso.table.problems.ProblemAggregator;
-import org.enso.table.util.BitSets;
 
 /** A builder for floating point columns. */
-class DoubleBuilder extends NumericBuilder implements BuilderForDouble {
+sealed class DoubleBuilder extends NumericBuilder implements BuilderForDouble
+    permits InferredDoubleBuilder {
   protected final PrecisionLossAggregator precisionLossAggregator;
   protected double[] data;
 
@@ -80,6 +80,7 @@ class DoubleBuilder extends NumericBuilder implements BuilderForDouble {
     }
 
     ensureSpaceToAppend();
+    setValid(currentSize);
     data[currentSize++] = value;
     return this;
   }
@@ -91,7 +92,7 @@ class DoubleBuilder extends NumericBuilder implements BuilderForDouble {
         int n = (int) doubleStorage.getSize();
         ensureFreeSpaceFor(n);
         System.arraycopy(doubleStorage.getData(), 0, data, currentSize, n);
-        BitSets.copy(doubleStorage.getIsNothingMap(), isNothing, currentSize, n);
+        appendValidityMap(doubleStorage.getValidityMap(), n);
         currentSize += n;
       } else {
         var doubleStorage = floatType.asTypedStorage(storage);
@@ -147,8 +148,10 @@ class DoubleBuilder extends NumericBuilder implements BuilderForDouble {
    *
    * @param value the double to append
    */
+  @Override
   public DoubleBuilder appendDouble(double value) {
     ensureSpaceToAppend();
+    setValid(currentSize);
     data[currentSize++] = value;
     return this;
   }
@@ -158,6 +161,7 @@ class DoubleBuilder extends NumericBuilder implements BuilderForDouble {
    *
    * <p>It ensures that any loss of precision is reported.
    */
+  @Override
   public DoubleBuilder appendLong(long value) {
     appendDouble(convertLongToDouble(value));
     return this;
@@ -165,7 +169,7 @@ class DoubleBuilder extends NumericBuilder implements BuilderForDouble {
 
   @Override
   public ColumnStorage<Double> seal() {
-    return new DoubleStorage(data, currentSize, isNothing);
+    return new DoubleStorage(data, currentSize, validityMap());
   }
 
   /**
