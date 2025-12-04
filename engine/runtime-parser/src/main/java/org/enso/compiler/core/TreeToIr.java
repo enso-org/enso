@@ -1592,6 +1592,7 @@ final class TreeToIr {
   private Application.Prefix translateBuiltinAnnotation(
       Name.BuiltinAnnotation ir, Tree expr, List<CallArgument> callArgs) {
     return switch (expr) {
+      case Tree.Call call -> translateBuiltinAnnotation(ir, call.getValue(), callArgs);
       case Tree.App fn -> {
         var fnAsArg = translateCallArgument(fn.getArg());
         yield translateBuiltinAnnotation(ir, fn.getFunc(), join(fnAsArg, callArgs));
