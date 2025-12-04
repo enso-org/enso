@@ -76,7 +76,7 @@
 - [Read files into DuckDB both spatial and not.][14367]
 - [Implement Text_Column to_case for DB backends][14386]
 - [Implement bulk loading to DuckDB][14402]
-- [Implement `Text_Column.text_mid` for in-memory backend.][14420]
+- [Implement `Text_Column.text_mid` for in-memory and database backends.][14420]
 - [Initial file writing from DuckDB][14421]
 
 [13769]: https://github.com/enso-org/enso/pull/13769
