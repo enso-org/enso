@@ -588,9 +588,8 @@ class LibrariesTest extends BaseServerTest with ReportLogsOnFailure {
   }
 
   "library/preinstall" should {
-    // TODO [PM] Will be re-enabled ASAP - https://github.com/enso-org/enso/pull/14406
     "download the library sending progress notifications " +
-    "and correctly place it in cache" ignore {
+    "and correctly place it in cache" in {
       val client = getInitialisedWsClient()
 
       val repositoryPath = getTestDirectory.resolve("repository_path")
