@@ -610,7 +610,7 @@ type In_Memory_Column_Implementation
                         formatter format value
                     _apply_binary_map this_column formatter_function format_column this_column.name skip_nulls=False expected_result_type=Value_Type.Char
         _ ->
-            if format==Nothing && locale==Locale.default then In_Memory_Column_Implementation.cast this_column Value_Type.Char else
+            if format=="" && locale==Locale.default then In_Memory_Column_Implementation.cast this_column Value_Type.Char ..Ignore else
                 formatter = make_value_formatter_for_value_type this_column.value_type locale format
                 _apply_unary_map this_column this_column.name formatter Value_Type.Char on_problems=..Report_Error
 

@@ -430,5 +430,7 @@ type Postgres_Connection
 ## ---
    private: true
    ---
-Table_Viz_Data.from (that:Postgres_Connection) = 
-    Connections_Helpers.get_table_viz_data (that.connection.tables.at "Name" . to_vector)
+Table_Viz_Data.from (that:Postgres_Connection) =
+    tables = that.tables . read . filter "Schema" (..Equal that.schema)
+    names = tables.at "Name" . to_vector
+    Connections_Helpers.get_table_viz_data (names)
