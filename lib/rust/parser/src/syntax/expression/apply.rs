@@ -108,8 +108,7 @@ impl<'s> ApplyOperator<'s> {
             if props.can_form_section() { rhs.map(Tree::from).map(Operand::from) } else { rhs };
         let mut rhs = rhs.map(|operand| {
             if operand.call && !matches!(token.variant, token::Variant::DotOperator(_)) {
-                //Tree::call(operand.value)
-                operand.value
+                Tree::call(operand.value)
             } else {
                 operand.value
             }
@@ -129,7 +128,7 @@ impl<'s> ApplyOperator<'s> {
             }
             token::Variant::DotOperator(_) if dot_type => unwrap_call(operand.value),
             token::Variant::DotOperator(_) => operand.value,
-            //_ if operand.call => Tree::call(operand.value),
+            _ if operand.call => Tree::call(operand.value),
             _ => operand.value,
         });
 
@@ -151,8 +150,7 @@ impl<'s> ApplyOperator<'s> {
                     call = true;
                     value
                 } else {
-                    //Tree::call(value)
-                    value
+                    Tree::call(value)
                 }
             }
             (_, lhs, rhs) => apply_operator(lhs, token, rhs),
