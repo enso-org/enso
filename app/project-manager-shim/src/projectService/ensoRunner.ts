@@ -566,10 +566,8 @@ export function findEnsoExecutable(workDir: string = '.'): Path | undefined {
     ...(executablePath ? [[executablePath, '..', 'Resources', 'enso', 'dist', '*', 'bin']] : []),
     // Check enso/dist/*/bin/enso
     [workDir, 'enso', 'dist', '*', 'bin'],
-    /// Macos
-    // [workDir, '..', '..', 'Contents', 'Resources', 'enso', 'dist', '*', 'bin'],
-    // Check built-distribution/enso/dist/*/bin/enso
-    [workDir, 'built-distribution', 'enso', 'dist', '*', 'bin'],
+    // Check built-distribution/*/enso/dist/*/bin/enso
+    [workDir, 'built-distribution', '*', 'enso', 'dist', '*', 'bin'],
     // Check built-distribution/*/*/bin/enso
     [workDir, 'built-distribution', '*', '*', 'bin'],
     // Macos dist/backend/dist/*/bin nightly
