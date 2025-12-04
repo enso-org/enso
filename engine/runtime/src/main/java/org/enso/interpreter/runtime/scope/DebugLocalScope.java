@@ -21,6 +21,8 @@ import org.enso.interpreter.node.EnsoRootNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.EnsoObject;
+import org.enso.interpreter.runtime.data.atom.Atom;
+import org.enso.interpreter.runtime.data.atom.DebugAtomWrapper;
 import org.enso.interpreter.runtime.error.DataflowError;
 
 /**
@@ -186,6 +188,9 @@ public class DebugLocalScope extends EnsoObject {
     }
     FramePointer framePtr = allBindings.get(member);
     var value = getValue(frame, framePtr);
+    if (value instanceof Atom atom) {
+      return DebugAtomWrapper.wrap(atom);
+    }
     if (value != null) {
       var ensoLang = EnsoLanguage.get(interop);
       var ensoCtx = EnsoContext.get(interop);

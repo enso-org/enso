@@ -589,7 +589,8 @@ export class RemoteBackend extends backend.Backend {
       })
     }
 
-    return await response.json()
+    const { asset } = await response.json()
+    return { asset: this.normalizeAsset(asset, parentDirectoryId) }
   }
 
   /**

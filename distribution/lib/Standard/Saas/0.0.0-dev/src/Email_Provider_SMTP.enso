@@ -1,0 +1,29 @@
+from Standard.Base import all
+import Standard.Base.Errors.Common.Type_Error
+import Standard.Base.Network.Email.Email_Provider.Email_Provider
+from Standard.Base.Metadata.Choice import Option
+from Standard.Base.Network.Email.Email_Provider import make_email_provider
+
+import project.Internal.Email_Provider_SMTP_Implementation.Email_Provider_SMTP_Implementation
+
+## An email provider that sends emails using the SMTP protocol.
+type Email_Provider_SMTP
+    ## An email provider that sends emails using the SMTP protocol.
+
+       ## Arguments
+        - `server`: The SMTP server address.
+        - `username`: The username to authenticate with the SMTP server.
+        - `password`: The password or secret to authenticate with the SMTP server.
+        - `port`: The SMTP server port. Defaults to `587`.
+        - `use_tls`: Whether to use TLS for the SMTP connection. Defaults to `True`.
+    SMTP server:Text=(Missing_Argument.throw "server") username:Text=(Missing_Argument.throw "username") password:(Text|Enso_Secret)=(Missing_Argument.throw "password") port:Integer=587 use_tls:Boolean=True
+
+    ## Gets the options for displaying in a dropdown.
+    get_dropdown_options = [Option "..SMTP" "..SMTP"]
+
+    ## Resolves a constructor into an Email_Provider instance.
+    resolve that:Function -> Email_Provider_SMTP | Nothing =
+        Panic.catch Type_Error (that:Email_Provider_SMTP) _->Nothing
+
+Email_Provider.from (that:Email_Provider_SMTP) =
+    make_email_provider "SMTP" (Email_Provider_SMTP_Implementation.Value that)

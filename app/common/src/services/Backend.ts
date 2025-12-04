@@ -700,16 +700,9 @@ export interface UpdatedDirectory {
 /** The type returned from the "create directory" endpoint. */
 export type Directory = DirectoryAsset
 
-/** The subset of asset fields returned by the "copy asset" endpoint. */
-export interface CopiedAsset {
-  readonly id: AssetId
-  readonly parentId: DirectoryId
-  readonly title: string
-}
-
 /** The type returned from the "copy asset" endpoint. */
 export interface CopyAssetResponse {
-  readonly asset: CopiedAsset
+  readonly asset: AnyAsset
 }
 
 /** Possible filters for the "list directory" endpoint. */
@@ -1347,11 +1340,11 @@ export interface GetProjectSessionLogsRequestParams {
 /** URL query string parameters for the "upload file" endpoint. */
 export interface UploadFileRequestParams {
   readonly fileId: AssetId | null
-  // Marked as optional in the data type, however it is required by the actual route handler.
   readonly fileName: string
   readonly parentDirectoryId: DirectoryId | null
   /** Only used for the Local backend when there is no {@link File} object available. */
   readonly filePath?: Path
+  readonly overwrite?: boolean
 }
 
 /** HTTP request body for the "upload file start" endpoint. */
@@ -1381,6 +1374,7 @@ export interface UploadFileEndRequestBody {
   readonly uploadId: string
   readonly assetId: AssetId | null
   readonly fileName: string
+  readonly overwrite?: boolean
 }
 
 /** A large file that has finished uploading. */

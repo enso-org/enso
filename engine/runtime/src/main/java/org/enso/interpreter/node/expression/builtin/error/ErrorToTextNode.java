@@ -4,6 +4,7 @@ import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.nodes.Node;
+import org.enso.interpreter.Constants;
 import org.enso.interpreter.dsl.AcceptsError;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.runtime.EnsoContext;
@@ -11,7 +12,10 @@ import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.DataflowError;
 
-@BuiltinMethod(type = "Error", name = "to_text", description = "Convert an error to text.")
+@BuiltinMethod(
+    type = "Error",
+    name = Constants.Names.TO_TEXT,
+    description = "Convert an error to text.")
 public abstract class ErrorToTextNode extends Node {
   private static final int DISPATCH_CACHE = 3;
   private @Child InteropLibrary displays =

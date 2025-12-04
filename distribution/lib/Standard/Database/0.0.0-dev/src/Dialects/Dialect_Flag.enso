@@ -76,7 +76,7 @@ type Dialect_Flag
        private: true
        ---
        Specifies if the backend uses unicode normalization when doing case
-       insentive ordering.
+       insensitive ordering.
     Order_By_Unicode_Normalization_When_Case_Insensitive
     ## ---
        private: true
@@ -148,7 +148,7 @@ type Dialect_Flag
        ---
        Specifies how the max size of the char type behaves after
        text_left/text_right.
-       If True the orginal size is kept, if False the size is reset.
+       If True the original size is kept, if False the size is reset.
     Char_Max_Size_After_Substring_Kept
     ## ---
        private: true

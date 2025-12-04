@@ -12,6 +12,7 @@
     - run_without_autocommit self ~action:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - synchronized self ~action:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - with_connection self action:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - with_handled_connection self action:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - with_metadata self ~action:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - with_prepared_statement self query:Standard.Base.Any.Any statement_setter:Standard.Base.Any.Any action:Standard.Base.Any.Any skip_log:Standard.Base.Any.Any= -> Standard.Base.Any.Any
 - close_connection connection:Standard.Base.Any.Any -> Standard.Base.Any.Any

@@ -275,19 +275,19 @@ type S3_File
           will occur.
     copy_to : File_Like -> Boolean -> Any ! S3_Error | File_Error
     copy_to self (destination : File_Like) (replace_existing : Boolean = False) = Data_Link_Helpers.disallow_links_in_copy self destination <|
-        if self.is_directory then Error.throw (S3_Error.Error "Copying S3 folders is currently not implemented." self.uri) else
-            Context.Output.if_enabled disabled_message="As writing is disabled, cannot copy to a file. Press the Write button ▶ to perform the operation." panic=False <|
-                destination_writable = Writable_File.from destination
-                case destination_writable.file of
-                    # Special shortcut for more efficient handling of S3 file copying (no need to move the data to our machine)
-                    s3_destination : S3_File ->
-                        if s3_destination == self then (if self.exists then self else Error.throw (File_Error.Not_Found self)) else
-                            if replace_existing.not && s3_destination.exists then Error.throw (File_Error.Already_Exists destination) else
-                                destination_path = s3_destination.s3_path
-                                _translate_file_errors self <|
-                                    S3.copy_object self.s3_path.bucket self.s3_path.key destination_path.bucket destination_path.key self.credentials
-                                        . if_not_error destination_writable.file_for_return
-                    _ -> generic_copy self destination_writable replace_existing
+        if self.is_directory then Error.throw (S3_Error.Error "Copying S3 folders is currently not implemented." self.uri)
+        Context.Output.if_enabled disabled_message="As writing is disabled, cannot copy to a file. Press the Write button ▶ to perform the operation." panic=False <|
+            destination_writable = Writable_File.from destination
+            case destination_writable.file of
+                # Special shortcut for more efficient handling of S3 file copying (no need to move the data to our machine)
+                s3_destination : S3_File ->
+                    if s3_destination == self then (if self.exists then self else Error.throw (File_Error.Not_Found self)) else
+                        if replace_existing.not && s3_destination.exists then Error.throw (File_Error.Already_Exists destination) else
+                            destination_path = s3_destination.s3_path
+                            _translate_file_errors self <|
+                                S3.copy_object self.s3_path.bucket self.s3_path.key destination_path.bucket destination_path.key self.credentials
+                                    . if_not_error destination_writable.file_for_return
+                _ -> generic_copy self destination_writable replace_existing
 
     ## ---
        icon: data_output

@@ -34,7 +34,7 @@ public class BlockNode extends ExpressionNode {
   }
 
   /**
-   * Creates an "root tagged" instance of block node.
+   * Creates a "root tagged" instance of block node.
    *
    * @param expressions the function body
    * @param returnExpr the return expression from the function
@@ -45,13 +45,26 @@ public class BlockNode extends ExpressionNode {
   }
 
   /**
-   * Creates a non-instrumented instance of block node.
+   * Creates a block node with statements. When instrumented, the statements get wrapped in a into a
+   * {@link StatementNode} so one can step over them.
    *
    * @param expressions the function body
    * @param returnExpr the return expression from the function
    * @return a node representing a block expression
    */
-  public static BlockNode buildSilent(ExpressionNode[] expressions, ExpressionNode returnExpr) {
+  public static BlockNode buildStatements(ExpressionNode[] expressions, ExpressionNode returnExpr) {
+    return new Statements(expressions, returnExpr);
+  }
+
+  /**
+   * Creates a non-instrumented instance of block node. Used by {@code case of} and {@code if then
+   * else} control flow constructs where the block itself shall be invisible to tooling.
+   *
+   * @param expressions the function body
+   * @param returnExpr the return expression from the function
+   * @return a node representing a block expression
+   */
+  public static BlockNode buildInvisible(ExpressionNode[] expressions, ExpressionNode returnExpr) {
     return new BlockNode(expressions, returnExpr);
   }
 
@@ -78,32 +91,6 @@ public class BlockNode extends ExpressionNode {
     return returnExpr.executeGeneric(frame);
   }
 
-  /**
-   * Wrap all the statements inside this block node in {@link StatementNode}. Care is taken not for
-   * wrapping expression twice.
-   *
-   * @return This BlockNode with all the statements wrapped.
-   */
-  @Override
-  public InstrumentableNode materializeInstrumentableNodes(
-      Set<Class<? extends Tag>> materializedTags) {
-    if (materializedTags.contains(StandardTags.StatementTag.class)) {
-      for (int i = 0; i < statements.length; i++) {
-        if (!isNodeWrapped(statements[i])) {
-          statements[i] = insert(StatementNode.wrap(statements[i]));
-        }
-      }
-      if (!isNodeWrapped(returnExpr)) {
-        returnExpr = insert(StatementNode.wrap(returnExpr));
-      }
-    }
-    return this;
-  }
-
-  private static boolean isNodeWrapped(ExpressionNode node) {
-    return node instanceof StatementNode || ExpressionNode.isWrapper(node);
-  }
-
   @Override
   public SourceSection getSourceSection() {
     var ss = super.getSourceSection();
@@ -121,6 +108,38 @@ public class BlockNode extends ExpressionNode {
         return true;
       }
       return tag == StandardTags.RootBodyTag.class || tag == StandardTags.RootTag.class;
+    }
+  }
+
+  private static final class Statements extends BlockNode {
+    Statements(ExpressionNode[] expressions, ExpressionNode returnExpr) {
+      super(expressions, returnExpr);
+    }
+
+    /**
+     * Wrap all the statements inside this block node in {@link StatementNode}. Care is taken not
+     * for wrapping expression twice.
+     *
+     * @return This BlockNode with all the statements wrapped.
+     */
+    @Override
+    public InstrumentableNode materializeInstrumentableNodes(
+        Set<Class<? extends Tag>> materializedTags) {
+      if (materializedTags.contains(StandardTags.StatementTag.class)) {
+        for (int i = 0; i < super.statements.length; i++) {
+          if (!isNodeWrapped(super.statements[i])) {
+            super.statements[i] = insert(StatementNode.wrap(super.statements[i]));
+          }
+        }
+        if (!isNodeWrapped(super.returnExpr)) {
+          super.returnExpr = insert(StatementNode.wrap(super.returnExpr));
+        }
+      }
+      return this;
+    }
+
+    private static boolean isNodeWrapped(ExpressionNode node) {
+      return node instanceof StatementNode || ExpressionNode.isWrapper(node);
     }
   }
 }

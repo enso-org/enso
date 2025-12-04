@@ -321,6 +321,15 @@ const actionHandlers = registerHandlers({
       window.open(result.value, '_blank')
     },
   },
+  'graph.deleteSelectedEdge': {
+    enabled: () =>
+      nodeSelection.selectedEdge != null &&
+      graphStore.db.connectionExists(nodeSelection.selectedEdge),
+    action: () => {
+      if (!nodeSelection.selectedEdge) return
+      graphStore.updatePortValue(nodeSelection.selectedEdge.target, undefined)
+    },
+  },
   ...selectionActionHandlers(
     () =>
       iter.filterDefined(
@@ -359,6 +368,7 @@ const { handleClick } = useDoubleClick(
   (e: MouseEvent) => {
     if (e.target !== e.currentTarget) return false
     clearFocus()
+    nodeSelection.selectedEdge = undefined
   },
   (e: MouseEvent) => {
     if (e.target !== e.currentTarget) return false

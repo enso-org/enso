@@ -977,8 +977,10 @@ add_column_operation_specs suite_builder setup =
 
         group_builder.specify "should support is_blank" <|
             t = build_sorted_table [["X", [1.5, 2, Number.nan, Nothing]], ["Y", [1, Nothing, 3, 4]]]
-            t.at "X" . is_blank treat_nans_as_blank=True . to_vector . should_equal [False, False, True, True]
-            t.at "Y" . is_blank treat_nans_as_blank=True . to_vector . should_equal [False, True, False, False]
+            x = t.at "X" . is_blank treat_nans_as_blank=True
+            x . to_vector . should_equal [False, False, True, True]
+            y = t.at "Y" . is_blank treat_nans_as_blank=True
+            y . to_vector . should_equal [False, True, False, False]
 
         group_builder.specify "division should be aligned with the Enso arithmetic" <|
             a = [1, 5, 10, 100]
