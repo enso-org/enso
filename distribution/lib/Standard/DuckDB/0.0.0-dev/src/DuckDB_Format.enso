@@ -42,6 +42,39 @@ type DuckDB_Format
        - `version`: The Parquet version to use. Default is V1.
     Parquet compression:DuckDB_Parquet_Compression=..Snappy field_ids:Text='auto' version:DuckDB_Parquet_Version=..V1
 
+    private as_sql_function self file =
+        quoted_path = "'" + (file.path.replace "'" "''") + "'"
+        case self of
+            DuckDB_Format.Auto -> quoted_path
+            DuckDB_Format.CSV delimiter header dt ts quote_char escape_char compression ->
+                output = 'read_csv(' + quoted_path
+                    + ", delim = '" + (delimiter.replace "'" "''") + "'"
+                    + (if header then ", header = true" else ", header = false")
+                    + (if quote_char != "" then ", quote = '" + (quote_char.replace "'" "''") + "'" else '')
+                    + (if escape_char != "" then ", escape = '" + (escape_char.replace "'" "''") + "'" else '')
+                    + (if dt != "" then ", date_format = '" + (dt.replace "'" "''") + "'"  else '')
+                    + (if ts != "" then ", timestamp_format = '" + (ts.replace "'" "''") + "'"  else '')
+                    + (compression.to_sql.replace "COMPRESSION " "compression = ")
+                    + ')'
+                output
+            DuckDB_Format.JSON dt ts compression ->
+                output = 'read_json(' + quoted_path
+                    + ", format = 'array'"
+                    + (if dt != "" then ", dateformat = '" + (dt.replace "'" "''") + "'"  else '')
+                    + (if ts != "" then ", timestampformat = '" + (ts.replace "'" "''") + "'"  else '')
+                    + (compression.to_sql.replace "COMPRESSION " "compression = ")
+                    + ')'
+                output
+            DuckDB_Format.JSON_Lines dt ts compression ->
+                output = 'read_json(' + quoted_path
+                    + ", format = 'newline_delimited'"
+                    + (if dt != "" then ", dateformat = '" + (dt.replace "'" "''") + "'"  else '')
+                    + (if ts != "" then ", timestampformat = '" + (ts.replace "'" "''") + "'"  else '')
+                    + (compression.to_sql.replace "COMPRESSION " "compression = ")
+                    + ')'
+                output
+            DuckDB_Format.Parquet _ _ _ -> 'read_parquet(' + quoted_path + ')'
+
     private to_sql self = case self of
         DuckDB_Format.Auto -> ''
         DuckDB_Format.CSV delimiter header dt ts quote_char escape_char compression ->
