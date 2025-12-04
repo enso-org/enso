@@ -48,7 +48,7 @@ type Parquet_Format
                 _ -> Nothing
         from_content_type.if_nothing <|
             case file.guess_extension of
-                ".parquet" -> Parquet_Format.parquet
+                ".parquet" -> Parquet_Format.Parquet
                 _ -> Nothing
 
     ## ---
@@ -123,10 +123,10 @@ type Parquet_Format
         _ = [match_columns, on_problems]
         connection = DuckDB.In_Memory.connect
 
-        db_table = connection.bulk_load table self.to_duckdb_format
+        db_table = connection.bulk_load table "temp_table"
         Error.return_if_error db_table
 
-        connection.write_file db_table file on_existing_file
+        connection.write_file db_table file self.to_duckdb_format on_existing_file
 
     private to_duckdb_format self =
         DuckDB_Format.Parquet self.compression self.field_ids self.version

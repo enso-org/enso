@@ -747,7 +747,7 @@ type DuckDB_Connection
             sql_query = table.to_sql.surround "COPY (" (") TO '" + escaped_path + "'" + format.to_sql + ";")
             result = self.execute_update sql_query
             result.if_not_error <|
-                path
+                path_as_file
 
     ## ---
        group: Standard.Base.Metadata
