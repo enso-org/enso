@@ -1435,10 +1435,10 @@ add_column_operation_specs suite_builder setup =
                 resFoo.name . should_equal "index_of([strings], 'foo')"
                 resTimes.name . should_equal "index_of([strings], 'times')"
 
-                # 1-based indices, 0 when not found, Nothing when input is Nothing
-                resA . to_vector . should_equal [1,5,0,Nothing,0,2,5]
-                resFoo . to_vector . should_equal [0,1,0,Nothing,0,0,98]
-                resTimes . to_vector . should_equal [0,0,0,Nothing,0,0,20]
+                # 0-based indices, -1 when not found, Nothing when input is Nothing
+                resA . to_vector . should_equal [0,4,-1,Nothing,-1,1,4]
+                resFoo . to_vector . should_equal [-1,0,-1,Nothing,-1,-1,97]
+                resTimes . to_vector . should_equal [-1,-1,-1,Nothing,-1,-1,19]
 
         group_builder.specify "index_of should handle grapheme and non-grapheme strings and propagate Nothing" <|
             with_mixed_columns_if_supported [["strings", ["a","foobar","",Nothing,"👩‍🔬👩‍🔬V👩‍🔬👩‍🔬","café"]]] t->
@@ -1451,13 +1451,13 @@ add_column_operation_specs suite_builder setup =
 
                 # only the emoji string has 'V' in the middle
                 case setup.is_database of
-                    False -> resV . to_vector . should_equal [0, 0, 0, Nothing, 3, 0]
-                    True  -> resV . to_vector . should_equal [0, 0, 0, Nothing, 7, 0]
+                    False -> resV . to_vector . should_equal [-1, -1, -1, Nothing, 2, -1]
+                    True  -> resV . to_vector . should_equal [-1, -1, -1, Nothing, 6, -1]
 
                 # only "café" has "é"
                 case setup.is_database of
-                    False -> resE . to_vector . should_equal [0, 0, 0, Nothing, 0, 4]
-                    True  -> resE . to_vector . should_equal [0, 0, 0, Nothing, 0, 4]
+                    False -> resE . to_vector . should_equal [-1, -1, -1, Nothing, -1, 3]
+                    True  -> resE . to_vector . should_equal [-1, -1, -1, Nothing, -1, 3]
 
         group_builder.specify "should handle operations like is_empty, is_blank, fill_empty" <|
             with_mixed_columns_if_supported [["s", ["", " ", "  ", Nothing, "foo"]], ["letters", ["a", "b", "c", "d", "e"]]] t->

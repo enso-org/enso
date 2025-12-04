@@ -71,9 +71,8 @@ public class TextIndexOf extends BinaryOperationBase<String, Long> {
   private static long calculateIndex(String value, String needle) {
     int codeunitIndex = value.indexOf(needle);
     if (codeunitIndex == -1) {
-      return 0;
+      return -1;
     }
-    long graphemeIndex = Text_Utils.utf16_index_to_grapheme_index(value, codeunitIndex);
-    return graphemeIndex + 1;
+    return Text_Utils.utf16_index_to_grapheme_index(value, codeunitIndex);
   }
 }
