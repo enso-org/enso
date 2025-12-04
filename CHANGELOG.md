@@ -76,6 +76,7 @@
 - [Read files into DuckDB both spatial and not.][14367]
 - [Implement Text_Column to_case for DB backends.][14386]
 - [Implement bulk loading to DuckDB.][14402]
+- [Implement `Text_Column.text_mid` for in-memory and database backends.][14420]
 - [Initial file writing from DuckDB.][14421]
 - [Parquet file reading and writing, DuckDB formats.][14427]
 
@@ -102,6 +103,7 @@
 [14367]: https://github.com/enso-org/enso/pull/14367
 [14386]: https://github.com/enso-org/enso/pull/14386
 [14402]: https://github.com/enso-org/enso/pull/14402
+[14420]: https://github.com/enso-org/enso/pull/14420
 [14421]: https://github.com/enso-org/enso/pull/14421
 [14427]: https://github.com/enso-org/enso/pull/14427
 

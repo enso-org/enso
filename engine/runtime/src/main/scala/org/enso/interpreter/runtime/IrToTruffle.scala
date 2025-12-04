@@ -284,6 +284,7 @@ private[runtime] class IrToTruffle(
             case fn: Function =>
               val bodyBuilder =
                 new expressionProcessor.BuildFunctionBody(
+                  true,
                   conversion.methodName.name,
                   fn.arguments,
                   fn.body,
@@ -605,6 +606,7 @@ private[runtime] class IrToTruffle(
   ): RuntimeFunction = {
     val bodyBuilder =
       new expressionProcessor.BuildFunctionBody(
+        true,
         fullMethodDefName,
         fn.arguments,
         fn.body,
@@ -791,6 +793,7 @@ private[runtime] class IrToTruffle(
             }
             val bodyBuilder =
               new expressionProcessor.BuildFunctionBody(
+                true,
                 m.getFunction.getName,
                 fn.arguments,
                 fn.body,
@@ -1339,7 +1342,7 @@ private[runtime] class IrToTruffle(
         val statementExprs = block.expressions.map(this.run(_, true)).toArray
         val retExpr        = this.run(block.returnValue, true)
 
-        val blockNode = BlockNode.buildSilent(statementExprs, retExpr)
+        val blockNode = BlockNode.buildStatements(statementExprs, retExpr)
         setLocation(blockNode, block.location)
       }
     }
@@ -1448,6 +1451,7 @@ private[runtime] class IrToTruffle(
             arg,
             branch.expression,
             branch.location,
+            defineRoot               = false,
             subjectToInstrumentation = subjectToInstrumentation
           )
 
@@ -1460,6 +1464,7 @@ private[runtime] class IrToTruffle(
             Nil,
             branch.expression,
             branch.location,
+            defineRoot               = false,
             subjectToInstrumentation = subjectToInstrumentation
           )
           val node = BooleanBranchNode.build(
@@ -1483,7 +1488,8 @@ private[runtime] class IrToTruffle(
             fieldsAsArgs,
             branch.expression,
             branch.location,
-            subjectToInstrumentation = subjectToInstrumentation
+            subjectToInstrumentation = subjectToInstrumentation,
+            defineRoot               = false
           )
 
           constructor match {
@@ -1647,7 +1653,8 @@ private[runtime] class IrToTruffle(
             Nil,
             branch.expression,
             branch.location,
-            subjectToInstrumentation = subjectToInstrumentation
+            subjectToInstrumentation = subjectToInstrumentation,
+            defineRoot               = false
           )
 
           literalPattern.literal match {
@@ -1718,7 +1725,8 @@ private[runtime] class IrToTruffle(
                     argOfType,
                     branch.expression,
                     branch.location,
-                    subjectToInstrumentation = subjectToInstrumentation
+                    subjectToInstrumentation = subjectToInstrumentation,
+                    defineRoot               = false
                   )
                   Right(
                     CatchTypeBranchNode.build(
@@ -1757,7 +1765,8 @@ private[runtime] class IrToTruffle(
                   argOfType,
                   branch.expression,
                   branch.location,
-                  subjectToInstrumentation = subjectToInstrumentation
+                  subjectToInstrumentation = subjectToInstrumentation,
+                  defineRoot               = false
                 )
                 Right(
                   PolyglotSymbolTypeBranchNode.build(
@@ -2157,6 +2166,7 @@ private[runtime] class IrToTruffle(
       *         argument definitions.
       */
     class BuildFunctionBody(
+      val defineRoot: Boolean,
       val initialName: String,
       val arguments: List[DefinitionArgument],
       val body: Expression,
@@ -2171,9 +2181,17 @@ private[runtime] class IrToTruffle(
 
       def args(): Array[ArgumentDefinition] = slots._2
       def bodyNode(): RuntimeExpression = {
-        val body = BlockNode.buildRoot(Array(), argsExpr._2)
+        var operation = argsExpr._2
+        if (!operation.isInstanceOf[BlockNode]) {
+          operation = BlockNode.buildStatements(Array(), operation)
+        }
+        val body = if (defineRoot) {
+          BlockNode.buildRoot(Array(), operation)
+        } else {
+          BlockNode.buildInvisible(Array(), operation)
+        }
         val initVariablesAndThenBody =
-          BlockNode.buildSilent(argsExpr._1.toArray, body)
+          BlockNode.buildInvisible(argsExpr._1, body)
         initVariablesAndThenBody
       }
 
@@ -2291,10 +2309,12 @@ private[runtime] class IrToTruffle(
       body: Expression,
       location: Option[IdentifiedLocation],
       binding: Boolean                  = false,
-      subjectToInstrumentation: Boolean = false
+      subjectToInstrumentation: Boolean = false,
+      defineRoot: Boolean               = true
     ): CreateFunctionNode = {
       val bodyBuilder =
         new BuildFunctionBody(
+          defineRoot,
           scopeName,
           arguments,
           body,

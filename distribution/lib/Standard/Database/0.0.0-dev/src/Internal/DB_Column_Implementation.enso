@@ -10,6 +10,7 @@ import Standard.Base.Internal.Rounding_Helpers
 from Standard.Base.Metadata.Widget import Text_Input
 from Standard.Base.Widget_Helpers import make_format_chooser
 
+import Standard.Table.Column.Rest_Of_String
 import Standard.Table.Fill_With.Fill_With
 import Standard.Table.Internal.Column_Naming_Helper.Column_Naming_Helper
 import Standard.Table.Internal.Date_Time_Helpers
@@ -341,6 +342,17 @@ type DB_Column_Implementation
             n2 = n.max 0
             new_name = (naming_helper this_column).function_name "text_right" [this_column, n]
             make_binary_op this_column "RIGHT" n2 new_name
+
+    text_mid (this_column : Column & DB_Column) (start : Column | Any) (length : Column | Any) =
+        Value_Type.expect_integer start <|
+            case length of
+                _ : Rest_Of_String ->
+                    new_name = (naming_helper this_column).function_name "text_mid" [this_column, start]
+                    make_op this_column "SUBSTR" [start + 1] new_name
+                _ ->
+                    Value_Type.expect_integer length <|
+                        new_name = (naming_helper this_column).function_name "text_mid" [this_column, start, length]
+                        make_op this_column "SUBSTR" [start + 1, length] new_name
 
     contains (this_column : Column & DB_Column) (other : Column | Text | Any) case_sensitivity:Case_Sensitivity =
         new_name = (naming_helper this_column).function_name "contains" [this_column, other]
