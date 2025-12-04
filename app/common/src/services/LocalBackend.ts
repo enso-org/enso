@@ -875,7 +875,6 @@ export class LocalBackend extends backend.Backend {
     assetId: backend.AssetId,
     localProjectId: backend.ProjectId,
     parentDirectoryId: backend.DirectoryId,
-    baseUrl: URL,
     defaultHeaders: Record<string, string>,
   ): Promise<void> {
     const localProjectDirectory = backend.extractTypeAndPath(localProjectId).path
@@ -883,7 +882,6 @@ export class LocalBackend extends backend.Backend {
       assetId,
       parentDirectoryId,
       directory: localProjectDirectory,
-      baseUrl: baseUrl.toString(),
     }).toString()
     const response = await this.post(
       new URL(`/api/watcher/start?${queryString}`, location.href).toString(),
