@@ -28,6 +28,7 @@ public class BenchProcessor extends AbstractProcessor {
 
   private static final String MODULE_PATH_PROP_NAME =
       BenchProcessor.class.getName() + ".modulePath";
+  private static final String SPEC_COLLECTOR_CLASS = "org.enso.benchmarks.processor.SpecCollector";
 
   @Override
   public SourceVersion getSupportedSourceVersion() {
@@ -160,8 +161,7 @@ public class BenchProcessor extends AbstractProcessor {
       File projectRootDir,
       File ensoHomeOverride) {
     try {
-      var specCollectorClazz =
-          runtimeLoader.loadClass("org.enso.benchmarks.processor.SpecCollector");
+      var specCollectorClazz = runtimeLoader.loadClass(SPEC_COLLECTOR_CLASS);
       var createMethod =
           specCollectorClazz.getDeclaredMethod(
               "create", String.class, String.class, File.class, File.class, BiConsumer.class);
@@ -171,17 +171,30 @@ public class BenchProcessor extends AbstractProcessor {
               null, moduleName, varName, projectRootDir, ensoHomeOverride, createSrcFileFn);
       var genSpecsMethod = specCollectorClazz.getMethod("generateBenchSpecs");
       genSpecsMethod.invoke(specCollector);
-    } catch (ClassNotFoundException
-        | NoSuchMethodException
-        | InvocationTargetException
-        | IllegalAccessException e) {
-      throw new IllegalStateException(e);
+    } catch (ClassNotFoundException | NoSuchMethodException | IllegalAccessException e) {
+      var errMsg =
+          "Error in "
+              + BenchProcessor.class.getName()
+              + " annotation processor: "
+              + e.getMessage()
+              + ". Ensure that the reflective method invocation is correct.";
+      processingEnv.getMessager().printMessage(Kind.ERROR, errMsg);
+      e.printStackTrace(System.err);
+    } catch (InvocationTargetException e) {
+      var targetEx = e.getTargetException();
+      var errMsg =
+          "Error in "
+              + SPEC_COLLECTOR_CLASS
+              + " while generating benchmark specifications: "
+              + targetEx.getMessage();
+      processingEnv.getMessager().printMessage(Kind.ERROR, errMsg);
+      targetEx.printStackTrace(System.err);
     } catch (Exception ex) {
       processingEnv.getMessager().printMessage(Kind.ERROR, ex.getMessage());
       // Better have duplicated error message than none at all
       System.out.println(
           "[org.enso.benchmarks.processor.BenchProcessor]: ERROR: " + ex.getMessage());
-      ex.printStackTrace(System.out);
+      ex.printStackTrace(System.err);
     }
   }
 
