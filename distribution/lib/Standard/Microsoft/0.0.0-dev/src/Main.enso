@@ -7,3 +7,4 @@ export project.Connection.SQLServer_Details.SQLServer_Details
 export project.Microsoft365_Credential.Microsoft365_Credential
 
 export project.OneDrive.OneDrive
+export project.OneDrive.OneDrive_File

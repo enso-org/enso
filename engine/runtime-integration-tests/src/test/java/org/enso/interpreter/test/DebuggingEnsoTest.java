@@ -660,6 +660,52 @@ public class DebuggingEnsoTest {
   }
 
   @Test
+  public void debuggerDoesNotEvaluateMethods() {
+    var fooFunc =
+        createEnsoMethod(
+            """
+            from Standard.Base import IO
+
+            type My_Type
+                Cons
+
+                method self =
+                    IO.println "Method evaluated"
+                    42
+
+            foo x =
+                obj = My_Type.Cons
+                obj
+            """,
+            "foo");
+    try (DebuggerSession session =
+        debugger.startSession(
+            (SuspendedEvent event) -> {
+              switch (event.getSourceSection().getCharacters().toString().strip()) {
+                case "obj" -> {
+                  DebugScope scope = event.getTopStackFrame().getScope();
+                  DebugValue objValue = scope.getDeclaredValue("obj");
+                  assertThat(objValue.isReadable(), is(true));
+                  assertThat(objValue.isInternal(), is(false));
+                  assertThat(objValue.hasReadSideEffects(), is(false));
+
+                  var methodProp = objValue.getProperty("method");
+                  assertThat(methodProp.canExecute(), is(true));
+                  assertThat("It is a method, not a number", methodProp.isNumber(), is(false));
+                  assertThat(
+                      "Method should not be evaluated when accessed as a debug property",
+                      out.toString(),
+                      not(containsString("Method evaluated")));
+                }
+              }
+              event.getSession().suspendNextExecution();
+            })) {
+      session.suspendNextExecution();
+      fooFunc.execute(0);
+    }
+  }
+
+  @Test
   public void testAtomFieldAreReadable_MultipleConstructors() {
     var fooFunc =
         createEnsoMethod(
@@ -738,7 +784,6 @@ public class DebuggingEnsoTest {
    */
   private static Queue<SuspendedCallback> createStepOverEvents(int numSteps) {
     Queue<SuspendedCallback> steps = new ArrayDeque<>();
-    steps.add((event) -> event.prepareStepInto(1));
     for (int i = 0; i < numSteps - 1; i++) {
       steps.add((event) -> event.prepareStepOver(1));
     }
@@ -775,7 +820,7 @@ public class DebuggingEnsoTest {
                 bar 42       # 6
                 end = 0      # 7
             """);
-    List<Integer> expectedLineNumbers = List.of(5, 6, 7);
+    List<Integer> expectedLineNumbers = List.of(6, 7);
     Queue<SuspendedCallback> steps = createStepOverEvents(expectedLineNumbers.size());
     testStepping(src, "foo", new Object[] {0}, steps, expectedLineNumbers);
   }
@@ -805,7 +850,6 @@ public class DebuggingEnsoTest {
 
     List<String> expectedLines =
         List.of(
-            "foo x =",
             "vec_builder = Builder.new",
             "vec_builder.append 1",
             "vec_builder.append 2",
@@ -827,7 +871,7 @@ public class DebuggingEnsoTest {
                 bar 42      # 4
                 end = 0     # 5
             """);
-    List<Integer> expectedLineNumbers = List.of(3, 4, 2, 1, 2, 4, 5);
+    List<Integer> expectedLineNumbers = List.of(4, 2, 1, 2, 4, 5);
     Queue<SuspendedCallback> steps =
         new ArrayDeque<>(
             Collections.nCopies(expectedLineNumbers.size(), (event) -> event.prepareStepInto(1)));
@@ -846,7 +890,7 @@ public class DebuggingEnsoTest {
                 bar (baz x)  # 4
                 end = 0      # 5
             """);
-    List<Integer> expectedLineNumbers = List.of(3, 4, 1, 4, 2, 4, 5);
+    List<Integer> expectedLineNumbers = List.of(4, 1, 4, 2, 4, 5);
     Queue<SuspendedCallback> steps =
         new ArrayDeque<>(
             Collections.nCopies(expectedLineNumbers.size(), (event) -> event.prepareStepInto(1)));

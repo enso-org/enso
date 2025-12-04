@@ -1,6 +1,7 @@
 import project.Data.Text.Text
 import project.Data.Vector.No_Wrap
 import project.Data.Vector.Vector
+import project.Enso_Cloud.Data_Link_Helpers
 import project.Errors.Common.Dry_Run_Operation
 import project.Errors.Common.Missing_Argument
 import project.Errors.Illegal_Argument.Illegal_Argument
@@ -14,6 +15,7 @@ import project.Network.Email.Email_Provider.Email_Provider
 import project.Network.Email.Email_Send_Response.Send_Response
 import project.Runtime.Context
 import project.Warning.Warning
+from project.Data.Boolean import False
 from project.Error import all
 from project.Metadata.Widget import Text_Input, Vector_Editor, Single_Choice
 from project.Nothing import all
@@ -66,7 +68,10 @@ type Email
         resolved_provider = Email_Provider.resolve provider
         if resolved_provider.is_nothing then Error.throw (Illegal_Argument.Error "Could not resolve email provider.")
 
-        email = Email.Message from resolved_to resolved_cc resolved_bcc subject body resolved_attachments
+        resolved_attachements_to_local_files = resolved_attachments.map a->
+            Email_Attachment.File (Data_Link_Helpers.as_file a.file f->f delete_on_return=False) a.name
+
+        email = Email.Message from resolved_to resolved_cc resolved_bcc subject body resolved_attachements_to_local_files
         _send_email_with_provider email resolved_provider
 
     ## ---

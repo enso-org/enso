@@ -2,21 +2,21 @@
 CHANGELOG.md
 
 # The repository settings
-/.github/ @jdunkerley  @AdRiley @hubertp @Frizi
+/.github/ @jdunkerley  @AdRiley @hubertp
 /.github/CODEOWNERS @jdunkerley @jaroslavtulach @farmaazon @AdRiley @PabloBuchu @wdanilo
 
 # Build script & utilities
-/run @jdunkerley  @AdRiley @hubertp @Frizi
-/run.bat @jdunkerley  @AdRiley @hubertp @Frizi
-/build @jdunkerley  @AdRiley @hubertp @Frizi
+/run @jdunkerley  @AdRiley @hubertp
+/run.bat @jdunkerley  @AdRiley @hubertp
+/build @jdunkerley  @AdRiley @hubertp
 
 # Rust Libraries and Related Files
-rust-toolchain.toml @vitvakatu @Frizi @kazcw @farmaazon @AdRiley
-rustfmt.toml @farmaazon @vitvakatu @Frizi @kazcw @AdRiley
+rust-toolchain.toml @vitvakatu @kazcw @farmaazon @AdRiley
+rustfmt.toml @farmaazon @vitvakatu @kazcw @AdRiley
 Cargo.lock
 Cargo.toml
-/lib/rust/ @farmaazon @kazcw @vitvakatu @Frizi @AdRiley
-/lib/rust/parser/ @farmaazon @kazcw @vitvakatu @Frizi @jaroslavtulach @AdRiley
+/lib/rust/ @farmaazon @kazcw @vitvakatu @AdRiley
+/lib/rust/parser/ @farmaazon @kazcw @vitvakatu @jaroslavtulach @AdRiley
 /tools/build-performance/ @kazcw @Akirathan
 
 # Global JS configuration
@@ -30,17 +30,17 @@ tsconfig.json
 /lib/java/ @4e6 @jaroslavtulach @hubertp @Akirathan
 
 # GUI/Dashboard
-/app @Frizi @farmaazon @vitvakatu @kazcw @AdRiley @PabloBuchu @indiv0 @somebody1234
-/app/gui/integration-test @Frizi @farmaazon @vitvakatu @kazcw @AdRiley @PabloBuchu @indiv0 @somebody1234
-/app/gui/src/dashboard @Frizi @farmaazon @vitvakatu @kazcw @AdRiley @PabloBuchu @indiv0 @somebody1234
-/app/gui/src/project-view @Frizi @farmaazon @vitvakatu @kazcw @AdRiley @PabloBuchu @indiv0 @somebody1234
-/app/ide-desktop/ @Frizi @farmaazon @vitvakatu @kazcw @AdRiley @PabloBuchu @indiv0 @somebody1234
+/app @farmaazon @vitvakatu @kazcw @AdRiley @PabloBuchu @indiv0 @somebody1234
+/app/gui/integration-test @farmaazon @vitvakatu @kazcw @AdRiley @PabloBuchu @indiv0 @somebody1234
+/app/gui/src/dashboard @farmaazon @vitvakatu @kazcw @AdRiley @PabloBuchu @indiv0 @somebody1234
+/app/gui/src/project-view @farmaazon @vitvakatu @kazcw @AdRiley @PabloBuchu @indiv0 @somebody1234
+/app/ide-desktop/ @farmaazon @vitvakatu @kazcw @AdRiley @PabloBuchu @indiv0 @somebody1234
 /app/ide-desktop/client/tasks/signArchivesMacOs.ts @jdunkerley @hubertp
-/app/ide-desktop/client/tests @Frizi @farmaazon @vitvakatu @kazcw @AdRiley @PabloBuchu @indiv0 @somebody1234
-/app/ydoc-server/ @Frizi @farmaazon @vitvakatu @kazcw @AdRiley
-/app/ydoc-server-nodejs/ @Frizi @farmaazon @vitvakatu @kazcw @AdRiley
-/app/ydoc-server-polyglot/ @Frizi @farmaazon @vitvakatu @kazcw @AdRiley
-/app/ydoc-shared/ @Frizi @farmaazon @vitvakatu @kazcw @AdRiley
+/app/ide-desktop/client/tests @farmaazon @vitvakatu @kazcw @AdRiley @PabloBuchu @indiv0 @somebody1234
+/app/ydoc-server/ @farmaazon @vitvakatu @kazcw @AdRiley
+/app/ydoc-server-nodejs/ @farmaazon @vitvakatu @kazcw @AdRiley
+/app/ydoc-server-polyglot/ @farmaazon @vitvakatu @kazcw @AdRiley
+/app/ydoc-shared/ @farmaazon @vitvakatu @kazcw @AdRiley
 
 # The data-link schema is owned by the libraries team
 /app/gui/src/dashboard/data/datalinkSchema.json @jdunkerley @GregoryTravis @AdRiley

@@ -98,7 +98,7 @@ make_column_name_vector_selector table display:Display=..Always =
 make_column_name_multi_selector : Table -> Display -> Boolean -> Boolean -> Widget
 make_column_name_multi_selector table display:Display=..Always add_regex:Boolean=False add_by_type:Boolean=False =
     names = table.column_names.map n-> Option n n.pretty
-    regex = if add_regex then [Option "<Regular Expression>" "(regex '')"] else []
+    regex = if add_regex then [Option "<Regular Expression>" "regex"] else []
     by_type = if add_by_type then [Option "<By Type>" "(..By_Type ..Integer)"] else []
     Multiple_Choice values=regex+by_type+names display=display
 

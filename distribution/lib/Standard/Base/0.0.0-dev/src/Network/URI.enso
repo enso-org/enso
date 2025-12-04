@@ -71,12 +71,12 @@ type URI
        ```
     parse : Text -> URI ! Syntax_Error
     parse uri:Text = if uri == "" then Error.throw (Syntax_Error.Error "URI cannot be empty.") else
-        raw_uri = Panic.catch URISyntaxException (URI.Value (Java_URI.new uri) []) caught_panic->
+        raw_uri = Panic.catch URISyntaxException (URI.Value (URITransformer.parse uri) []) caught_panic->
             query_index = uri.index_of '?'
             result = if query_index.is_nothing then Nothing else
                 new_uri = (uri.take query_index+1) + (URITransformer.encodeQuery (uri.drop query_index+1))
                 warning = Invalid_Query_String.Warning (uri.drop query_index+1)
-                Panic.catch URISyntaxException (Warning.attach warning URI.Value (Java_URI.new new_uri) []) _->Nothing
+                Panic.catch URISyntaxException (Warning.attach warning URI.Value (URITransformer.parse new_uri) []) _->Nothing
 
             if result.is_nothing.not then result else
                 message = caught_panic.payload.getMessage

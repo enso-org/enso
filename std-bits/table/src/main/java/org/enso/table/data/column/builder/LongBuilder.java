@@ -18,10 +18,11 @@ import org.enso.table.data.column.storage.type.NullType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.error.ValueTypeMismatchException;
 import org.enso.table.problems.ProblemAggregator;
-import org.enso.table.util.BitSets;
+import org.enso.table.util.ImmutableBitSet;
 
 /** A builder for integer columns. */
-class LongBuilder extends NumericBuilder implements BuilderForLong, BuilderWithRetyping {
+sealed class LongBuilder extends NumericBuilder implements BuilderForLong, BuilderWithRetyping
+    permits BoundCheckedIntegerBuilder {
   protected final ProblemAggregator problemAggregator;
   private ByteBuffer whole;
   private LongBuffer data;
@@ -32,7 +33,6 @@ class LongBuilder extends NumericBuilder implements BuilderForLong, BuilderWithR
   }
 
   private LongBuilder(Object[] bsAndLb, ProblemAggregator problemAggregator) {
-    super(null);
     this.whole = (ByteBuffer) bsAndLb[0];
     this.validityMap = (BitSet) bsAndLb[1];
     this.data = (LongBuffer) bsAndLb[2];
@@ -151,7 +151,7 @@ class LongBuilder extends NumericBuilder implements BuilderForLong, BuilderWithR
           int n = (int) longStorage.getSize();
           ensureFreeSpaceFor(n);
           data.put(currentSize, longStorage.getData(), 0, n);
-          BitSets.copy(longStorage.getIsNothingMap(), validityMap, currentSize, n);
+          longStorage.getValidityMap().copyTo(validityMap, currentSize, n);
           currentSize += n;
         } else {
           // No conversions needed, but we need to iterate over the items.
@@ -260,6 +260,7 @@ class LongBuilder extends NumericBuilder implements BuilderForLong, BuilderWithR
     }
     var buf = data.asReadOnlyBuffer().position(0).limit(currentSize);
     var address = MemorySegment.ofBuffer(whole).address();
-    return new LongStorage(address, buf, validityMap, getType(), otherStorage);
+    var validity = new ImmutableBitSet(validityMap, currentSize);
+    return new LongStorage(address, buf, validity, getType(), otherStorage);
   }
 }

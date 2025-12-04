@@ -207,10 +207,10 @@ add_group_number_specs suite_builder setup =
 
             t.add_group_number (..Equal_Sum "q" 3) "g" . should_fail_with Illegal_Argument
 
-        label_n1 = "Below Average (-1.5 to -0.5 sd)"
-        label_0  = "Average (-0.5 to 0.5 sd)"
-        label_p1 = "Above Average (0.5 to 1.5 sd)"
-        label_p2 = "High (1.5 to 2.5 sd)"
+        label_n1 = "Low"
+        label_0  = "Average"
+        label_p1 = "High"
+        label_p2 = "Very High"
 
         group_builder.specify "should add group number by standard deviation" <|
             t = table_builder [['x', [3, 4, 5, 4, 3, 5, 10, 4, 3]], ['y', [1, 2, 2, 1, 2, 1, 1, 1, 1]]]

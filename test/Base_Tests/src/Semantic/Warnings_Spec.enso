@@ -22,6 +22,21 @@ type Wrap
 
     materialize v -> Wrap = v
 
+type Numb
+    Value x
+
+    mul self (other: Numb) repeat=1 =
+        if repeat <= 0 then self else
+            next = Numb.Value self.x*other.x
+            @Tail_Call next.mul other repeat-1
+
+    neg self =
+        Numb.Value -self.x
+
+    double n =
+        n.mul n ...
+
+
 f x _ = Warning.attach "Baz!" x
 
 type My_Fancy_Collection
@@ -479,6 +494,22 @@ add_specs suite_builder = suite_builder.group "Dataflow Warnings" group_builder-
 
         wrap.foo . should_equal 3
         Warning.get_all wrap.foo . should_equal [ "warn!!!" ]
+
+    group_builder.specify "no warning & suspended return" <|
+        tw = Numb.Value 2
+        mid = Numb.double tw
+        res = mid . neg
+
+        Warning.get_all res . should_equal []
+        res.x . should_equal -4
+
+    group_builder.specify "warning & suspended return" <|
+        tw = Warning.attach "pozor!" (Numb.Value 2)
+        mid = Numb.double tw
+        res = mid . neg
+
+        Warning.get_all res . should_equal [ "pozor!" ]
+        res.x . should_equal -4
 
 main filter=Nothing =
     suite = Test.build suite_builder->
