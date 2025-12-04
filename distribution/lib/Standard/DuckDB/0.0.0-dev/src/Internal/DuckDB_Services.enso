@@ -5,14 +5,16 @@ import Standard.Base.System.File_Format.File_Format_SPI
 import Standard.Database.Connection.Database.Database_Connection_Details_SPI
 
 import project.DuckDB.DuckDB
+import project.File_Formats.DuckDB_File_Format.DuckDB_File_Format
 import project.File_Formats.Parquet_Format.Parquet_Format
 
 type Impl
 
 File_Format_SPI.from (that:Impl) =
     _ = that
+    duckdb = File_Format_SPI.new DuckDB_File_Format "duckdb"
     parquet = File_Format_SPI.new Parquet_Format "parquet"
-    parquet
+    duckdb+parquet
 
 Database_Connection_Details_SPI.from (that:Impl) =
     _ = that
