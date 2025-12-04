@@ -687,7 +687,7 @@ contains = Base_Generator.lift_binary_op "CONTAINS" make_contains_expr
    private: true
    ---
 index_of = Base_Generator.lift_binary_op "INDEX_OF" str-> substr->
-    SQL_Builder.code "position(" ++ substr ++ " in " ++ str ++ ")"
+    SQL_Builder.code "position(" ++ substr ++ " in " ++ str ++ ") - 1"
 
 ## ---
    private: true

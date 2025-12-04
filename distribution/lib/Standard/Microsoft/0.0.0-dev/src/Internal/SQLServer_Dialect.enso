@@ -697,7 +697,7 @@ contains = Base_Generator.lift_binary_op "CONTAINS" make_contains_expr
    private: true
    ---
 index_of = Base_Generator.lift_binary_op "INDEX_OF" str-> substr->
-    SQL_Builder.code "CHARINDEX(" ++ substr ++ ", " ++ str ++ ")"
+    SQL_Builder.code "CHARINDEX(" ++ substr ++ ", " ++ str ++ ") - 1"
 
 ## ---
    private: true

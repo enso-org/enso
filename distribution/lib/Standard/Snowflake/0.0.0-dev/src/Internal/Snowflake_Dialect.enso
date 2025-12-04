@@ -681,7 +681,8 @@ contains = Base_Generator.lift_binary_sql_function "CONTAINS" "CONTAINS"
 ## ---
    private: true
    ---
-make_contains_expr expr substring = contains.second [expr, substring]
+index_of = Base_Generator.lift_binary_op "INDEX_OF" str-> substr->
+    SQL_Builder.code "CHARINDEX(" ++ substr ++ ", " ++ str ++ ") - 1"
 
 ## ---
    private: true
