@@ -221,7 +221,7 @@ sealed class LongBuilder extends NumericBuilder implements BuilderForLong, Build
   @Override
   public LongBuilder appendNulls(int count) {
     var end = currentSize + count;
-    validityMap.set(currentSize, end);
+    validityMap.set(currentSize, end, false);
     currentSize = end;
     return this;
   }
