@@ -17,7 +17,6 @@ from Standard.Table.Internal.Storage import from_value_type
 
 import Standard.Database.Bulk_Load_Exists.Bulk_Load_Exists
 import Standard.Database.Connection.Connection.Connection
-import Standard.Database.Connection.Connection_Options.Connection_Options
 import Standard.Database.DB_Table as DB_Table_Module
 import Standard.Database.Dialects.Dialect.Dialect
 import Standard.Database.Internal.JDBC_Connection
