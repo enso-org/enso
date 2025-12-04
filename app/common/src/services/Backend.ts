@@ -1647,10 +1647,14 @@ export function isNewTitleUnique(
   )
 }
 
-export interface MapboxToken {
-  token: string
-  expires: Date
-}
+export const MAPBOX_TOKEN_SCHEMA = z.object({
+  token: z.string(),
+  expires: z
+    .string()
+    .datetime({ offset: true })
+    .transform((str) => new Date(str)),
+})
+export type MapboxToken = z.infer<typeof MAPBOX_TOKEN_SCHEMA>
 
 /** Network error class. */
 export class NetworkError extends Error {
