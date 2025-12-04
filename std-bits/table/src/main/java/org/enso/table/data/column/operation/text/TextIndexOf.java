@@ -43,7 +43,7 @@ public class TextIndexOf extends BinaryOperationBase<String, Long> {
     return StorageIterators.mapOverStorage(
         left,
         Builder.getForLong(IntegerType.INT_64, left.getSize(), problemAggregator),
-        (index, value) -> (long) value.indexOf(typedRightValue)+1);
+        (index, value) -> (long) value.indexOf(typedRightValue) + 1);
   }
 
   @Override
@@ -61,7 +61,7 @@ public class TextIndexOf extends BinaryOperationBase<String, Long> {
           rightType.asTypedStorage(right),
           length -> Builder.getForLong(IntegerType.INT_64, length, problemAggregator),
           true,
-          (index, leftValue, rightValue) -> (long) leftValue.indexOf(rightValue)+1);
+          (index, leftValue, rightValue) -> (long) leftValue.indexOf(rightValue) + 1);
     }
 
     throw new IllegalArgumentException("Unsupported storage types.");
