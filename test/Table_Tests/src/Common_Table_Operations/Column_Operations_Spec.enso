@@ -1400,7 +1400,6 @@ add_column_operation_specs suite_builder setup =
             with_mixed_columns_if_supported [["lengths", [1, 3, 2, 2, 2, 7]], ["strings", ["a", "foobar", "", Nothing, "café", "It was the best of times, it was the worst of times, it was the age of wisdom, it was the age of foolishness, it was the epoch of belief, it was the epoch of incredulity, it was the season of light, it was the season of darkness, it was the spring of hope, it was the winter of despair."]]] t->
                 col = t.at "strings"
                 lengths = t.at "lengths"
-
                 col.text_left lengths . to_vector . should_equal ["a", "foo", "", Nothing, "ca", "It was "]
                 col.text_right lengths . to_vector . should_equal ["a", "bar", "", Nothing, "fé", "espair."]
 
