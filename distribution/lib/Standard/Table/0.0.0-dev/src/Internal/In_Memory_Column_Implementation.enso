@@ -49,6 +49,7 @@ polyglot java import org.enso.table.data.column.operation.cast.CastOperation
 polyglot java import org.enso.table.data.column.operation.comparators.Comparators
 polyglot java import org.enso.table.data.column.operation.IfOperation
 polyglot java import org.enso.table.data.column.operation.IsInOperation
+polyglot java import org.enso.table.data.column.operation.text.TextIndexOf
 polyglot java import org.enso.table.data.column.operation.text.TextPartOperation
 polyglot java import org.enso.table.data.column.operation.text.TextPredicates
 polyglot java import org.enso.table.data.column.operation.unary.CountNothing
@@ -418,6 +419,10 @@ type In_Memory_Column_Implementation
     contains (this_column : Column & In_Memory_Column) (other : Column | Text | Any) case_sensitivity:Case_Sensitivity = Value_Type.expect_text this_column <| Value_Type.expect_text other <|
         new_name = naming_helper.function_name "contains" [this_column, other]
         _apply_case_sensitive_text_operation this_column other case_sensitivity TextPredicates.CONTAINS (a -> b -> a.contains b case_sensitivity) new_name
+
+    index_of (this_column : Column & In_Memory_Column) (other : Column | Text | Any) case_sensitivity:Case_Sensitivity = Value_Type.expect_text this_column <| Value_Type.expect_text other <|
+        new_name = naming_helper.function_name "index_of" [this_column, other]
+        _apply_case_sensitive_text_operation this_column other case_sensitivity TextIndexOf.INSTANCE (a -> b -> a.index_of b case_sensitivity) new_name
 
     like (this_column : Column & In_Memory_Column) (pattern : Column | Text | Any) = Value_Type.expect_text this_column <| Value_Type.expect_text pattern <|
         new_name = naming_helper.binary_operation_name "like" this_column pattern

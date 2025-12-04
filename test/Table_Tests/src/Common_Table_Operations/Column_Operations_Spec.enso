@@ -1423,6 +1423,23 @@ add_column_operation_specs suite_builder setup =
                 resRight . to_vector . should_equal ["a", "r", "", Nothing, "é", "s"]
                 resMid . to_vector . should_equal ["", "bar", "", Nothing, "é", "was the best of times"]
 
+        group_builder.specify "index_of should return index of first match" <|
+            with_mixed_columns_if_supported [["strings", ["a","foobar","",Nothing,"👩‍🔬👩‍🔬V👩‍🔬👩‍🔬","café","It was the best of times, it was the worst of times, it was the age of wisdom, it was the age of foolishness, it was the epoch of belief, it was the epoch of incredulity, it was the season of light, it was the season of darkness, it was the spring of hope, it was the winter of despair."]]] t->
+                col = t.at "strings"
+
+                resA   = col.index_of "a"
+                resFoo = col.index_of "foo"
+                resTimes = col.index_of "times"
+
+                resA.name . should_equal "index_of([strings], 'a')"
+                resFoo.name . should_equal "index_of([strings], 'foo')"
+                resTimes.name . should_equal "index_of([strings], 'times')"
+
+                # 0-based indices, Nothing when not found or input is Nothing
+                resA . to_vector . should_equal [0,4,-1,Nothing,-1,1,4]
+                resFoo . to_vector . should_equal [-1,0,-1,Nothing,-1,-1,97]
+                resTimes . to_vector . should_equal [-1,-1,-1,Nothing,-1,-1,19]
+
         group_builder.specify "should handle operations like is_empty, is_blank, fill_empty" <|
             with_mixed_columns_if_supported [["s", ["", " ", "  ", Nothing, "foo"]], ["letters", ["a", "b", "c", "d", "e"]]] t->
                 s = t.at "s"
