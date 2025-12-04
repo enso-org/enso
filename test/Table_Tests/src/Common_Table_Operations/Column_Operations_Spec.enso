@@ -1435,7 +1435,7 @@ add_column_operation_specs suite_builder setup =
                 resFoo.name . should_equal "index_of([strings], 'foo')"
                 resTimes.name . should_equal "index_of([strings], 'times')"
 
-                # 0-based indices, Nothing when not found or input is Nothing
+                # 0-based indices, -1 when not found, Nothing when input is Nothing
                 resA . to_vector . should_equal [0,4,-1,Nothing,-1,1,4]
                 resFoo . to_vector . should_equal [-1,0,-1,Nothing,-1,-1,97]
                 resTimes . to_vector . should_equal [-1,-1,-1,Nothing,-1,-1,19]
