@@ -1,5 +1,6 @@
 package org.enso.table.data.column.operation.text;
 
+import org.enso.base.Text_Utils;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.operation.BinaryOperationBase;
 import org.enso.table.data.column.operation.StorageIterators;
@@ -43,7 +44,7 @@ public class TextIndexOf extends BinaryOperationBase<String, Long> {
     return StorageIterators.mapOverStorage(
         left,
         Builder.getForLong(IntegerType.INT_64, left.getSize(), problemAggregator),
-        (index, value) -> (long) value.indexOf(typedRightValue) + 1);
+        (index, value) -> calculateIndex(value, typedRightValue));
   }
 
   @Override
@@ -61,9 +62,18 @@ public class TextIndexOf extends BinaryOperationBase<String, Long> {
           rightType.asTypedStorage(right),
           length -> Builder.getForLong(IntegerType.INT_64, length, problemAggregator),
           true,
-          (index, leftValue, rightValue) -> (long) leftValue.indexOf(rightValue) + 1);
+          (index, leftValue, rightValue) -> calculateIndex(leftValue, rightValue));
     }
 
     throw new IllegalArgumentException("Unsupported storage types.");
+  }
+
+  private static long calculateIndex(String value, String needle) {
+    int codeunitIndex = value.indexOf(needle);
+    if (codeunitIndex == -1) {
+      return 0;
+    }
+    long graphemeIndex = Text_Utils.utf16_index_to_grapheme_index(value, codeunitIndex);
+    return graphemeIndex + 1;
   }
 }

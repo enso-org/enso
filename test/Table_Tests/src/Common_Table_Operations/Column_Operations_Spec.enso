@@ -1440,6 +1440,25 @@ add_column_operation_specs suite_builder setup =
                 resFoo . to_vector . should_equal [0,1,0,Nothing,0,0,98]
                 resTimes . to_vector . should_equal [0,0,0,Nothing,0,0,20]
 
+        group_builder.specify "index_of should handle grapheme and non-grapheme strings and propagate Nothing" <|
+            with_mixed_columns_if_supported [["strings", ["a","foobar","",Nothing,"👩‍🔬👩‍🔬V👩‍🔬👩‍🔬","café"]]] t->
+                col = t.at "strings"
+                resV = col.index_of "V"
+                resE = col.index_of "é"
+
+                resV.name . should_equal "index_of([strings], 'V')"
+                resE.name . should_equal "index_of([strings], 'é')"
+
+                # only the emoji string has 'V' in the middle
+                case setup.is_database of
+                    False -> resV . to_vector . should_equal [0, 0, 0, Nothing, 3, 0]
+                    True  -> resV . to_vector . should_equal [0, 0, 0, Nothing, 7, 0]
+
+                # only "café" has "é"
+                case setup.is_database of
+                    False -> resE . to_vector . should_equal [0, 0, 0, Nothing, 0, 4]
+                    True  -> resE . to_vector . should_equal [0, 0, 0, Nothing, 0, 4]
+
         group_builder.specify "should handle operations like is_empty, is_blank, fill_empty" <|
             with_mixed_columns_if_supported [["s", ["", " ", "  ", Nothing, "foo"]], ["letters", ["a", "b", "c", "d", "e"]]] t->
                 s = t.at "s"
