@@ -16,7 +16,7 @@ type DuckDB_Format
         - `escape_char`: The character used to escape quote characters. Default is double quote (").
         - `compression`: The compression type for the file format. Default is Auto.
     @delimiter make_file_read_delimiter_selector
-    CSV delimiter:Text="," header:Boolean=True date_format:Text="" timestamp_format:Text="" quote_char:Text='"' escape_char:Text='"' compression:DuckDB_CSV_Compression=..Auto
+    CSV delimiter:Text="," header:Boolean=True date_format:Text="" timestamp_format:Text="" quote_char:Text='"' escape_char:Text='"' compression:DuckDB_Compression=..Auto
 
     ## Write the file in JSON format as an array of objects.
 

@@ -39,7 +39,7 @@ type DuckDB
        ## Arguments
         - `options`: Overrides for the connection properties.
     connect : Connection_Options -> DuckDB_Connection
-    connect self options =
+    connect self options=Connection_Options.Value =
         properties = options.merge self.jdbc_properties
 
         make_new schema =

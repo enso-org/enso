@@ -1,10 +1,18 @@
 private
 
+import Standard.Base.System.File_Format.File_Format_SPI
+
 import Standard.Database.Connection.Database.Database_Connection_Details_SPI
 
 import project.DuckDB.DuckDB
+import project.File_Formats.Parquet_Format.Parquet_Format
 
 type Impl
+
+File_Format_SPI.from (that:Impl) =
+    _ = that
+    parquet = File_Format_SPI.new Parquet_Format "parquet"
+    parquet
 
 Database_Connection_Details_SPI.from (that:Impl) =
     _ = that

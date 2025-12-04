@@ -701,7 +701,7 @@ type DuckDB_Connection
                 Error.return_if_error result
 
             ## Return a new connection
-            DuckDB.From_File file schema=self.schema . connect Connection_Options.Value
+            DuckDB.From_File file schema=self.schema . connect
 
     ## ---
        icon: data_output
@@ -718,7 +718,7 @@ type DuckDB_Connection
        A file pointing at the written file.
     @query make_table_name_with_schema_selector schema_black_list=schema_black_list
     @on_existing_file Existing_File_Behavior.widget include_append=False
-    write_file : (SQL_Query_With_Schema | SQL_Query | Table) -> Text -> DuckDB_Format -> Existing_File_Behavior -> DuckDB_Connection
+    write_file : (SQL_Query_With_Schema | SQL_Query | Table) -> Writable_File -> DuckDB_Format -> Existing_File_Behavior -> Writable_File
     write_file self (query:(SQL_Query_With_Schema | SQL_Query | Table)=Missing_Argument.throw "query") (path:Writable_File=Missing_Argument.throw "path") (format:DuckDB_Format=..Auto) on_existing_file:Existing_File_Behavior=..Backup =
         Error.return_if_error query
 
