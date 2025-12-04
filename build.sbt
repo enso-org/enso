@@ -5360,9 +5360,9 @@ lazy val `std-tests` = project
     frgaalJavaCompilerSetting,
     commands += WithDebugCommand.withDebug,
     Test / fork := true,
-      Test / javaOptions ++= Seq(
-        "--add-opens=java.base/java.nio=ALL-UNNAMED" // Tests use Apache Arrow
-      ),
+    Test / javaOptions ++= Seq(
+      "--add-opens=java.base/java.nio=ALL-UNNAMED" // Tests use Apache Arrow
+    ),
     autoScalaLibrary := false,
     Compile / compile / compileInputs := (Compile / compile / compileInputs)
       .dependsOn(SPIHelpers.ensureSPIConsistency)
