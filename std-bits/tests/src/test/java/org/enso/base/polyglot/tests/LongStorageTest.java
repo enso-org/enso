@@ -2,6 +2,7 @@ package org.enso.base.polyglot.tests;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotSame;
 
 import java.util.Objects;
 import java.util.Random;
@@ -21,6 +22,22 @@ public class LongStorageTest {
   @BeforeClass
   public static void importAll() {
     ctx.eval("enso", "from Standard.Base import all");
+  }
+
+  @Test
+  public void makeLocalFromLongStorage() {
+    var b = Builder.getForLong(IntegerType.INT_64, 3, null);
+    b.append(1).appendNulls(1).append(2);
+    var storage = b.seal();
+    var localStorage = Builder.makeLocal(storage);
+    assertNotSame("local storage is a copy of storage", storage, localStorage);
+    assertEquals("They have data at the same address", storage.rawData(), localStorage.rawData());
+    assertEquals("They have the same size", storage.getSize(), localStorage.getSize());
+    for (var i = 0L; i < storage.getSize(); i++) {
+      var elem = storage.getItemBoxed(i);
+      var localElem = localStorage.getItemBoxed(i);
+      assertEquals("At " + i, elem, localElem);
+    }
   }
 
   @Test
@@ -48,9 +65,11 @@ public class LongStorageTest {
     r.forEach(b::append);
     var storage = b.seal();
     assertEquals("Storage has the right size: " + storage, size, storage.getSize());
-    assertNotEquals(0L, storage.rawAddress());
+    assertNotEquals(0L, storage.rawData());
 
-    var arr = ctx.eval("arrow", "cast[Int64]").execute(storage.rawAddress(), storage.rawCapacity());
+    var arr =
+        ctx.eval("arrow", "cast[Int64]")
+            .execute(storage.rawData(), storage.getSize(), storage.rawValidity());
     for (var i = 0L; i < size; i++) {
       var elem0 = storage.getItemBoxed(i);
       var value1 = arr.getArrayElement(i);

@@ -1,7 +1,9 @@
 package org.enso.table.util;
 
+import java.lang.foreign.MemorySegment;
 import java.lang.ref.Reference;
 import java.lang.ref.WeakReference;
+import java.nio.ByteBuffer;
 import java.util.BitSet;
 
 /**
@@ -11,6 +13,7 @@ import java.util.BitSet;
 public final class ImmutableBitSet {
   private final BitSet bitSet;
   private final int size;
+  private ByteBuffer rawData;
 
   public ImmutableBitSet(BitSet bitSet, int size) {
     this.bitSet = bitSet;
@@ -125,5 +128,15 @@ public final class ImmutableBitSet {
    */
   public BitSet cloneBitSet() {
     return (BitSet) bitSet.clone();
+  }
+
+  public long rawData() {
+    if (rawData == null) {
+      var bytes = bitSet.toByteArray();
+      rawData = ByteBuffer.allocateDirect(bytes.length);
+      rawData.put(bytes);
+      rawData.flip();
+    }
+    return MemorySegment.ofBuffer(rawData).address();
   }
 }

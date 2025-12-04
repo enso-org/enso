@@ -96,18 +96,20 @@ public interface Builder {
    * @param <T> type of storage
    * @param storage the storage instance, possibly a {@link Proxy#isProxyClass proxy}
    * @return either {@code storage} itself, or optimized storage of the same {@link
-   *     ColumnStorage#getType() type} over the same {@link ColumnStorage#rawAddress() data}
+   *     ColumnStorage#getType() type} over the same {@link ColumnStorage#rawData() data}
    */
   @SuppressWarnings("unchecked")
   static <T> ColumnStorage<T> makeLocal(ColumnStorage<T> storage) {
-    var address = storage.rawAddress();
-    if (address != 0) {
-      var capacity = storage.rawCapacity();
+    var data = storage.rawData();
+    if (data != 0) {
+      var size = Math.toIntExact(storage.getSize());
+      var validity = storage.rawValidity();
       var proxyType = storage.getType();
       var localType = StorageType.fromTypeCharAndSize(proxyType.typeChar(), proxyType.size());
       var localStorage =
           switch (localType) {
-            case IntegerType type -> LongBuilder.fromAddress(address, capacity, type).seal(storage);
+            case IntegerType type ->
+                LongBuilder.fromAddress(size, data, validity, type).seal(storage);
             default -> storage;
           };
       assert assertSameStorages(storage, localStorage);

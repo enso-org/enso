@@ -13,20 +13,22 @@ public interface ColumnStorage<T> extends Iterable<T> {
   long getSize();
 
   /**
-   * Address of the storage off-heap data.
+   * Address of the off-heap storage of data.
    *
    * @return {@code 0} if there are no data to share, otherwise the address of the data in a format
    *     appropraite for this storage {@link #getType()}.
+   * @see #rawValidity
    */
-  default long rawAddress() {
+  default long rawData() {
     return 0;
   }
 
-  /** The capacity for which the storage at {@link #rawAddress() has originally been allocated.
+  /**
+   * Address of the off-heap storage of validity bitmap.
    *
-   * @return amount of elements allocated in the off-heap memory
+   * @return {@code 0} if there are no bitmap information to share
    */
-  default long rawCapacity() {
+  default long rawValidity() {
     return getSize();
   }
 

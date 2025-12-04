@@ -1,5 +1,6 @@
 package org.enso.table.data.column.storage;
 
+import java.lang.foreign.MemorySegment;
 import java.nio.LongBuffer;
 import java.util.NoSuchElementException;
 import org.enso.table.data.column.storage.iterators.ColumnLongStorageIterator;
@@ -11,7 +12,6 @@ public final class LongStorage extends AbstractLongStorage implements ColumnStor
   // TODO [RW] at some point we will want to add separate storage classes for byte, short and int,
   // for more compact storage and more efficient handling of smaller integers; for now we will be
   // handling this just by checking the bounds
-  private final long rawAddress;
   private final LongBuffer data;
   private final ImmutableBitSet validityMap;
 
@@ -19,7 +19,6 @@ public final class LongStorage extends AbstractLongStorage implements ColumnStor
   private final ColumnStorage<?> proxy;
 
   /**
-   * @param rawAddress raw address of the storage
    * @param data the underlying data up to {@code data.limit()}
    * @param validityMap a bit set denoting at index {@code i} whether or not the real value is
    *     present.
@@ -28,26 +27,24 @@ public final class LongStorage extends AbstractLongStorage implements ColumnStor
    *     is used
    */
   public LongStorage(
-      long rawAddress,
       LongBuffer data,
       ImmutableBitSet validityMap,
       IntegerType type,
       ColumnStorage<?> otherStorage) {
     super(data.limit(), type);
-    this.rawAddress = rawAddress;
     this.data = data;
     this.validityMap = validityMap;
     this.proxy = otherStorage;
   }
 
   @Override
-  public long rawAddress() {
-    return rawAddress;
+  public long rawData() {
+    return MemorySegment.ofBuffer(data).address();
   }
 
   @Override
-  public long rawCapacity() {
-    return data.capacity();
+  public long rawValidity() {
+    return validityMap.rawData();
   }
 
   @Override
@@ -71,7 +68,7 @@ public final class LongStorage extends AbstractLongStorage implements ColumnStor
   @Override
   public LongStorage widen(IntegerType widerType) {
     assert widerType.fits(getType());
-    return new LongStorage(rawAddress, data, validityMap, widerType, proxy);
+    return new LongStorage(data, validityMap, widerType, proxy);
   }
 
   /**
