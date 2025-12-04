@@ -253,6 +253,8 @@ type DuckDB_Connection
         - `path`: the path to the file to read. Can be a `Text`, `URI` or
           `File` object.
         - `as`: the name of the table to create. Defaults to "NewTable".
+        - `format`: the format of the file to read. If not provided, it
+          will be inferred from the file extension.
         - `key_columns`: the names of the columns to use as the primary key. If
           not provided, no primary key will be created.
         - `replace_if_present`: if set to `True`, will replace the table if it
@@ -263,14 +265,14 @@ type DuckDB_Connection
     @path Text_Input display=..Always
     @as Text_Input display=..Always
     @key_columns Vector_Editor display=..Always item_editor=Text_Input item_default='"Column"'
-    read_file : Text | URI | File -> Text -> Vector Text -> Boolean -> DB_Table
-    read_file self path=(Missing_Argument.throw "path") as:Text="NewTable" key_columns:Vector=[] replace_if_present:Boolean=False =
+    read_file : Text | URI | File -> Text -> DuckDB_Format -> Vector Text -> Boolean -> DB_Table
+    read_file self path=(Missing_Argument.throw "path") as:Text="NewTable" (format:DuckDB_Format=..Auto) key_columns:Vector=[] replace_if_present:Boolean=False =
         if self.is_in_memory.not then Context.Output.if_enabled disabled_message="As writing is disabled, cannot create a new table. Press the Write button ▶ to perform the operation." panic=False <|
             Nothing
         escaped_as = as.replace '"' '""'
         Data_Link_Helpers.as_file path file->
             escaped_path = file.path.replace "'" "''"
-            query = 'CREATE' + (if replace_if_present then ' OR REPLACE' else "") + ' TABLE "' + escaped_as + '" AS SELECT * FROM \'' + escaped_path + '\';'
+            query = 'CREATE' + (if replace_if_present then ' OR REPLACE' else "") + ' TABLE "' + escaped_as + '" AS SELECT * FROM \'' + escaped_path + '\'' + format.to_sql + ';'
             Context.Output.with_enabled <|
                 create_table = self.execute_update query
                 create_table.if_not_error <|

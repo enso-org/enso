@@ -79,7 +79,7 @@ type Parquet_Format
     read : File -> Problem_Behavior -> Any
     read self file on_problems:Problem_Behavior =
         _ = on_problems
-        result = _read_file file
+        result = _read_file file self.to_duckdb_format
         result.if_not_error <|
             Telemetry.log "File_Format.read" "Read file: format={}, output={}, row_count={}, column_count={}" ["Parquet_Format", "Table", result.row_count, result.column_count]
             result
@@ -103,7 +103,7 @@ type Parquet_Format
         Error.return_if_error write_result
 
         ## Read the Parquet file using DuckDB
-        output = _read_file tmp_file
+        output = _read_file tmp_file self.to_duckdb_format
 
         ## Clean up temporary file
         Context.with_output_enabled <|
@@ -131,5 +131,5 @@ type Parquet_Format
     private to_duckdb_format self =
         DuckDB_Format.Parquet self.compression self.field_ids self.version
 
-private _read_file file =
-    DuckDB.In_Memory.connect.read_file file . read ..All_Rows
+private _read_file file format =
+    DuckDB.In_Memory.connect.read_file file format=format . read ..All_Rows
