@@ -1435,10 +1435,10 @@ add_column_operation_specs suite_builder setup =
                 resFoo.name . should_equal "index_of([strings], 'foo')"
                 resTimes.name . should_equal "index_of([strings], 'times')"
 
-                # 0-based indices, -1 when not found, Nothing when input is Nothing
-                resA . to_vector . should_equal [0,4,-1,Nothing,-1,1,4]
-                resFoo . to_vector . should_equal [-1,0,-1,Nothing,-1,-1,97]
-                resTimes . to_vector . should_equal [-1,-1,-1,Nothing,-1,-1,19]
+                # 1-based indices, 0 when not found, Nothing when input is Nothing
+                resA . to_vector . should_equal [1,5,0,Nothing,0,2,5]
+                resFoo . to_vector . should_equal [0,1,0,Nothing,0,0,98]
+                resTimes . to_vector . should_equal [0,0,0,Nothing,0,0,20]
 
         group_builder.specify "should handle operations like is_empty, is_blank, fill_empty" <|
             with_mixed_columns_if_supported [["s", ["", " ", "  ", Nothing, "foo"]], ["letters", ["a", "b", "c", "d", "e"]]] t->
