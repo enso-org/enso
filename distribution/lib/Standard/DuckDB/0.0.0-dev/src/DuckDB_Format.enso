@@ -48,7 +48,7 @@ type DuckDB_Format
             DuckDB_Format.Auto -> quoted_path
             DuckDB_Format.CSV delimiter header dt ts quote_char escape_char compression ->
                 output = 'read_csv(' + quoted_path
-                    + ", delim = '" + (delimiter.replace "'" "''") + "'"
+                    + ", delim = '" + (delimiter.replace "'" "''" . replace '\t' "\t") + "'"
                     + (if header then ", header = true" else ", header = false")
                     + (if quote_char != "" then ", quote = '" + (quote_char.replace "'" "''") + "'" else '')
                     + (if escape_char != "" then ", escape = '" + (escape_char.replace "'" "''") + "'" else '')
@@ -79,7 +79,7 @@ type DuckDB_Format
         DuckDB_Format.Auto -> ''
         DuckDB_Format.CSV delimiter header dt ts quote_char escape_char compression ->
             output = ' (FORMAT CSV'
-                + ", DELIMITER '" + (delimiter.replace "'" "''") + "'"
+                + ", DELIMITER '" + (delimiter.replace "'" "''" . replace '\t' "\t") + "'"
                 + (if header then ", HEADER true" else ", HEADER false")
                 + (if dt != "" then ", DATE_FORMAT '" + (dt.replace "'" "''") + "'"  else '')
                 + (if ts != "" then ", TIMESTAMP_FORMAT '" + (ts.replace "'" "''") + "'"  else '')

@@ -1,5 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Errors.Common.Type_Error
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Runtime.Context
 import Standard.Base.System.File.Generic.Writable_File.Writable_File
 import Standard.Base.System.File_Format.File_Name_Pattern
@@ -11,27 +12,26 @@ from Standard.Table import Table, Match_Columns
 
 import project.DuckDB.DuckDB
 import project.DuckDB_Format.DuckDB_Format
-import project.DuckDB_Format.DuckDB_Parquet_Compression
-import project.DuckDB_Format.DuckDB_Parquet_Version
 import project.Internal.Telemetry
+from project.File_Formats.Parquet_Format import _read_file
 
-## Read a file in Parquet format.
-type Parquet_Format
-    ## Read a Parquet file with optional compression, field IDs, and version.
+## Read a file into Enso using DuckDB.
+type DuckDB_Table_Format
+    ## Read a file into using DuckDB
 
        ## Arguments:
-       - `compression`: The compression type for the Parquet file. Default is Snappy.
-       - `field_ids`: How to handle field IDs. Default is 'auto', alternatively provide a struct mapping.
-       - `version`: The Parquet version to use. Default is V1.
-    Parquet compression:DuckDB_Parquet_Compression=..Snappy field_ids:Text='auto' version:DuckDB_Parquet_Version=..V1
+        - `format`: The format of the file to read. Default is Auto.
+        - `in_memory`: Whether to load the data into an in-memory table or
+           use as a DuckDB table. Default is False.
+    DuckDB_Table format:DuckDB_Format=..Auto in_memory:Boolean=False
 
     ## ---
        private: true
        ---
        Resolve an unresolved constructor to the actual type.
-    resolve : Function -> Parquet_Format | Nothing
+    resolve : Function -> DuckDB_Table_Format | Nothing
     resolve constructor =
-        Panic.catch Type_Error (constructor:Parquet_Format) _->Nothing
+        Panic.catch Type_Error (constructor:DuckDB_Table_Format) _->Nothing
 
     ## ---
        private: true
@@ -39,37 +39,30 @@ type Parquet_Format
        ---
        If the File_Format supports reading from the file, return a configured
        instance.
-    for_read : File_Format_Metadata -> Parquet_Format | Nothing
+    for_read : File_Format_Metadata -> DuckDB_Table_Format | Nothing
     for_read file:File_Format_Metadata =
-        content_type = file.interpret_content_type
-        from_content_type = content_type.if_not_nothing <|
-            case content_type.base_type of
-                "application/vnd.apache.parquet" -> Parquet_Format.Parquet
-                _ -> Nothing
-        from_content_type.if_nothing <|
-            case file.guess_extension of
-                ".parquet" -> Parquet_Format.Parquet
-                _ -> Nothing
+        _ = file
+        Nothing
 
     ## ---
        private: true
        ---
        If this File_Format should be used for writing to that file, return a
        configured instance.
-    for_file_write : Writable_File -> Parquet_Format | Nothing
-    for_file_write file = Parquet_Format.for_read file
+    for_file_write : Writable_File -> DuckDB_Table_Format | Nothing
+    for_file_write file = DuckDB_Table_Format.for_read file
 
     ## ---
        private: true
        ---
     get_dropdown_options : Vector Option
-    get_dropdown_options = [Option "Parquet" "..Parquet"]
+    get_dropdown_options = [Option "DuckDB Table" "..DuckDB_Table"]
 
     ## ---
        private: true
        ---
     get_name_patterns -> Vector File_Name_Pattern =
-        [File_Name_Pattern.Value "Parquet" ["*.parquet"]]
+        []
 
     ## ---
        private: true
@@ -79,9 +72,10 @@ type Parquet_Format
     read : File -> Problem_Behavior -> Any
     read self file on_problems:Problem_Behavior =
         _ = on_problems
-        result = _read_file file self.to_duckdb_format . read ..All_Rows
+        db_table = _read_file file self.format
+        result = if self.in_memory then db_table.read ..All_Rows else db_table
         result.if_not_error <|
-            Telemetry.log "File_Format.read" "Read file: format={}, output={}, row_count={}, column_count={}" ["Parquet_Format", "Table", result.row_count, result.column_count]
+            Telemetry.log "File_Format.read" "Read file: format={}, output={}, row_count={}, column_count={}" ["DuckDB_Table_Format", "Table", (if self.in_memory then result.row_count else -1), result.column_count]
             result
 
     ## ---
@@ -92,8 +86,11 @@ type Parquet_Format
     read_stream self stream:Input_Stream (metadata : File_Format_Metadata = File_Format_Metadata.no_information) =
         _ = metadata
 
+        ## Auto cannot be used for stream reading
+        if self.format == DuckDB_Format.Auto then Error.throw (Illegal_Argument.Error "DuckDB cannot read streams using Auto format, specify a format.")
+
         ## Stream must be materialized to a file for DuckDB Parquet reading
-        tmp_file = File.create_temporary_file "parquet_read" ".parquet"
+        tmp_file = File.create_temporary_file "duckdb" ".tmp"
 
         ## Write stream to temporary file
         write_result = Context.Output.with_enabled <|
@@ -125,9 +122,3 @@ type Parquet_Format
         Error.return_if_error db_table
 
         connection.write_file db_table file self.to_duckdb_format on_existing_file
-
-    private to_duckdb_format self =
-        DuckDB_Format.Parquet self.compression self.field_ids self.version
-
-private _read_file file format =
-    DuckDB.In_Memory.connect.read_file file format=format
