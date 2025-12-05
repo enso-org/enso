@@ -51,3 +51,54 @@ type Numeric_Column
        and `limit` (exclusive).
     randbetween self limit seed:Integer=0 -> Column & Numeric_Column =
         self.operations_implementation.randbetween self.column limit seed
+
+    ## ---
+       group: Standard.Base.Math
+       icon: math
+       ---
+       Computes the sine of each element in the column.
+    sin self -> Column & Numeric_Column =
+        self.operations_implementation.sin self.column
+
+    ## ---
+       group: Standard.Base.Math
+       icon: math
+       ---
+       Computes the inverse sine of each element in the column.
+       Selects a value in the -pi/2 through pi/2 range.
+    asin self -> Column & Numeric_Column =
+        self.operations_implementation.asin self.column
+
+    ## ---
+       group: Standard.Base.Math
+       icon: math
+       ---
+       Computes the cosine of each element in the column.
+    cos self -> Column & Numeric_Column =
+        self.operations_implementation.cos self.column
+
+    ## ---
+       group: Standard.Base.Math
+       icon: math
+       ---
+       Computes the inverse cosine of each element in the column.
+       Selects a value in the -pi/2 through pi/2 range.
+    acos self -> Column & Numeric_Column =
+        self.operations_implementation.acos self.column
+
+    ## ---
+       group: Standard.Base.Math
+       icon: math
+       ---
+       Computes the tangent of each element in the column.
+    tan self -> Column & Numeric_Column =
+        self.operations_implementation.tan self.column
+
+    ## ---
+       group: Standard.Base.Math
+       icon: math
+       ---
+       Computes the inverse of the tangent of each element in the column.
+       Selects a value in the -pi/2 through pi/2 range.
+    atan self -> Column & Numeric_Column =
+        self.operations_implementation.atan self.column
