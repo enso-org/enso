@@ -2642,6 +2642,7 @@ lazy val `runtime-language-arrow` =
       javaModuleName := "org.enso.interpreter.arrow",
       inConfig(Compile)(truffleRunOptionsSettings),
       instrumentationSettings,
+      customFrgaalJavaCompilerSettings("24"),
       libraryDependencies ++= GraalVM.modules ++ slf4jApi.map(_ % Test) ++ Seq(
         "junit"            % "junit"              % junitVersion       % Test,
         "com.github.sbt"   % "junit-interface"    % junitIfVersion     % Test,
@@ -5361,7 +5362,7 @@ lazy val `std-tests` = project
     commands += WithDebugCommand.withDebug,
     Test / fork := true,
     Test / javaOptions ++= Seq(
-      "--add-opens=java.base/java.nio=ALL-UNNAMED" // Tests use Apache Arrow
+      "-ea"
     ),
     autoScalaLibrary := false,
     Compile / compile / compileInputs := (Compile / compile / compileInputs)
