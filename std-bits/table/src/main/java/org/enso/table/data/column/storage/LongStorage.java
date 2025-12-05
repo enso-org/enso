@@ -44,7 +44,7 @@ public final class LongStorage extends AbstractLongStorage implements ColumnStor
 
   @Override
   public long addressOfValidity() {
-    return validityMap.rawData();
+    return MemorySegment.ofBuffer(validityMap.rawData()).address();
   }
 
   @Override
