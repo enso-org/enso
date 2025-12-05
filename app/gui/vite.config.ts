@@ -98,7 +98,7 @@ export default defineConfig({
       $: fileURLToPath(new URL('./src', import.meta.url)),
     },
   },
-  envDir: '../common',
+  envDir: process.env.ENSO_ENV_FILES_ARE_IN_GUI === 'true' ? '.' : '../common',
   envPrefix: 'ENSO_IDE_',
   define: {
     // Single hardcoded usage of `global` in aws-amplify.

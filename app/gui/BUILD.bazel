@@ -87,10 +87,12 @@ _vite_env = select({
     "//:stamping": {
         "NODE_ENV": "production",
         "NODE_OPTIONS": "--max-old-space-size=6144",
+        "ENSO_ENV_FILES_ARE_IN_GUI": "true",
     },
     "//conditions:default": {
         "NODE_ENV": getenv("NODE_ENV"),
         "NODE_OPTIONS": "--max-old-space-size=6144",
+        "ENSO_ENV_FILES_ARE_IN_GUI": "true",
     },
 })
 
