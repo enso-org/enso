@@ -169,12 +169,7 @@ function loadAmplifyConfig(
   /** Load the platform-specific Amplify configuration. */
   const signInOutRedirect =
     supportsDeepLinks ? `${common.DEEP_LINK_SCHEME}://auth` : window.location.origin
-  console.log(
-    Object.keys($config),
-    $config.COGNITO_USER_POOL_ID,
-    'COGNITO_USER_POOL_ID' in (process.env ?? {}),
-    'COGNITO_USER_POOL_ID' in (import.meta.env ?? {}),
-  )
+  console.log(process.env, import.meta.env, $config)
   return {
     endpoint: $config.AUTH_ENDPOINT,
     userPoolId: $config.COGNITO_USER_POOL_ID ?? '',
