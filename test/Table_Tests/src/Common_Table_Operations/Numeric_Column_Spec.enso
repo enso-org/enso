@@ -47,11 +47,15 @@ add_numeric_columns_specs suite_builder setup =
 
         add_specific_type_test group_builder "Longs" [-10, 0, Nothing, 1, 12] build_sorted_table
         add_specific_type_test group_builder "Doubles" [-10.5, 0.0, Nothing, 1.2, 12.34] build_sorted_table
-        add_specific_type_test group_builder "BigIntegers" [-10, 0, Nothing, 1, 12, 2^65, -2^70] build_sorted_table
-        add_specific_type_test group_builder "Decimals" [dec "-10.5", dec "0.0", Nothing, dec "1.2", dec "12.34", dec "12345678901234567890.1234567890", dec "-12345678901234567890.1234567890"] build_sorted_table
+
+        if setup.flagged ..Supports_Decimal_Type then
+            add_specific_type_test group_builder "BigIntegers" [-10, 0, Nothing, 1, 12, 2^65, -2^70] build_sorted_table
+            add_specific_type_test group_builder "Decimals" [dec "-10.5", dec "0.0", Nothing, dec "1.2", dec "12.34", dec "123454567890.1234567890", dec "-12345678901890.1234567890"] build_sorted_table
 
 add_specific_type_test group_builder type_name values build_sorted_table =
-    numeric_column = Lazy_Ref.Value <| build_sorted_table [["X", values]] . at "X"
+    sorted_table = Lazy_Ref.Value <| build_sorted_table [["X", values], ["E", 0.up_to values.length . map i-> i-3.25]]
+    numeric_column = Lazy_Ref.Value <| sorted_table.get . at "X"
+    exponential_column = Lazy_Ref.Value <| sorted_table.get . at "E"
     epsilon=0.000000001
 
     group_builder.specify "a numeric column ("+type_name+") supports abs operation" <|
@@ -126,8 +130,11 @@ add_specific_type_test group_builder type_name values build_sorted_table =
         neg_power_column = (column:Numeric_Column).power -1.7
         (neg_power_column:Numeric_Column).should_equal (values.map v-> if v==Nothing then Nothing else (float v) ^ -1.7) epsilon
 
-        self_power = (column:Numeric_Column).power column
-        (self_power:Numeric_Column).should_equal (values.map v-> if v==Nothing then Nothing else (float v) ^ (float v)) epsilon
+        self_power = (column:Numeric_Column).power exponential_column.get
+        expected = values.map_with_index i-> v->
+            exp_v = exponential_column.get.to_vector . at i
+            if v==Nothing then Nothing else (float v) ^ exp_v
+        (self_power:Numeric_Column).should_equal expected epsilon
 
     group_builder.specify "a numeric column ("+type_name+") supports ln operation" <|
         column = numeric_column.get
