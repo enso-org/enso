@@ -1123,6 +1123,11 @@ export class LocalBackend extends backend.Backend {
     return this.invalidOperation()
   }
 
+  /** Invalid operation */
+  override getMapboxToken() {
+    return this.invalidOperation()
+  }
+
   /** Find asset details using directory listing. */
   private async findAsset<Key extends keyof backend.AnyAsset>(
     directory: Path,

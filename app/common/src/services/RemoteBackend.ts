@@ -1270,6 +1270,16 @@ export class RemoteBackend extends backend.Backend {
     }
   }
 
+  /** Retrieve Mapbox token for the current user. */
+  override async getMapboxToken(): Promise<backend.MapboxToken> {
+    const response = await this.get(remoteBackendPaths.GET_MAPBOX_TOKEN_PATH)
+    if (!response.ok) {
+      return await this.throw(response, 'getMapboxTokenBackendError')
+    } else {
+      return backend.MAPBOX_TOKEN_SCHEMA.parse(await response.json())
+    }
+  }
+
   /**
    * Cancel given subscription.
    * @throws An error if a non-successful status code (not 200-299) was received.
