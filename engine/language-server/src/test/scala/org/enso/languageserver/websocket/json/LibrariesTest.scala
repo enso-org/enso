@@ -588,7 +588,7 @@ class LibrariesTest extends BaseServerTest with ReportLogsOnFailure {
   }
 
   "library/preinstall" should {
-    "download the library sending progress notifications " +
+    "XX download the library sending progress notifications " +
     "and correctly place it in cache" in {
       val client = getInitialisedWsClient()
 
