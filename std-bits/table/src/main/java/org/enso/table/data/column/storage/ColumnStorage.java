@@ -29,7 +29,7 @@ public interface ColumnStorage<T> extends Iterable<T> {
    * @return {@code 0} if there are no bitmap information to share
    */
   default long addressOfValidity() {
-    return getSize();
+    return 0;
   }
 
   /* Gets the value type of the storage. */
