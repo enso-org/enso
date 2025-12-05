@@ -229,18 +229,19 @@ sealed class LongBuilder extends NumericBuilder implements BuilderForLong, Build
 
   @Override
   public ColumnStorage<Long> seal() {
-    return seal(null);
+    return seal(null, getType());
   }
 
   /**
    * Seals this buffer as copy of provided storage.
    *
    * @param otherStorage storage to copy size from if non-{@code null}
+   * @param type the type to assign to the created storage
    * @return locally copied storage
    */
-  final LongStorage seal(ColumnStorage<?> otherStorage) {
+  final LongStorage seal(ColumnStorage<?> otherStorage, IntegerType type) {
     var buf = data.asReadOnlyBuffer().position(0).limit(currentSize);
     var validity = this.validityMap();
-    return new LongStorage(buf, validity, getType(), otherStorage);
+    return new LongStorage(buf, validity, type, otherStorage);
   }
 }

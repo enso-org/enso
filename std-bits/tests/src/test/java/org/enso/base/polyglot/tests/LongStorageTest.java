@@ -9,6 +9,8 @@ import java.util.Random;
 import java.util.stream.LongStream;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.storage.type.IntegerType;
+import org.enso.table.problems.BlackholeProblemAggregator;
+import org.enso.table.problems.ProblemAggregator;
 import org.enso.test.utils.ContextUtils;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
@@ -26,7 +28,7 @@ public class LongStorageTest {
 
   @Test
   public void makeLocalFromLongStorage() {
-    var b = Builder.getForLong(IntegerType.INT_64, 3, null);
+    var b = Builder.getForLong(IntegerType.INT_64, 3, problemAggregator());
     b.append(1).appendNulls(1).append(2);
     var storage = b.seal();
     var localStorage = Builder.makeLocal(storage);
@@ -36,6 +38,27 @@ public class LongStorageTest {
         storage.addressOfData(),
         localStorage.addressOfData());
     assertEquals("They have the same size", storage.getSize(), localStorage.getSize());
+    assertEquals("They have the same type", storage.getType(), localStorage.getType());
+    for (var i = 0L; i < storage.getSize(); i++) {
+      var elem = storage.getItemBoxed(i);
+      var localElem = localStorage.getItemBoxed(i);
+      assertEquals("At " + i, elem, localElem);
+    }
+  }
+
+  @Test
+  public void makeLocalFromSmallLongStorage() {
+    var b = Builder.getForLong(IntegerType.INT_32, 3, problemAggregator());
+    b.append(1).appendNulls(1).append(2);
+    var storage = b.seal();
+    var localStorage = Builder.makeLocal(storage);
+    assertNotSame("local storage is a copy of storage", storage, localStorage);
+    assertEquals(
+        "They have data at the same address",
+        storage.addressOfData(),
+        localStorage.addressOfData());
+    assertEquals("They have the same size", storage.getSize(), localStorage.getSize());
+    assertEquals("They have the same type", storage.getType(), localStorage.getType());
     for (var i = 0L; i < storage.getSize(); i++) {
       var elem = storage.getItemBoxed(i);
       var localElem = localStorage.getItemBoxed(i);
@@ -83,5 +106,9 @@ public class LongStorageTest {
       }
     }
     assertEquals(info + "\n" + sb.toString(), 0, sb.length());
+  }
+
+  private static ProblemAggregator problemAggregator() {
+    return BlackholeProblemAggregator.INSTANCE;
   }
 }

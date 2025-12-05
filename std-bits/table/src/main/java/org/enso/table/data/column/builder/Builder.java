@@ -109,7 +109,7 @@ public interface Builder {
       var localStorage =
           switch (localType) {
             case IntegerType type ->
-                LongBuilder.fromAddress(size, data, validity, type).seal(storage);
+                LongBuilder.fromAddress(size, data, validity, type).seal(storage, type);
             default -> storage;
           };
       assert assertSameStorages(storage, localStorage);
