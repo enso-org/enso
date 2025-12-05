@@ -123,3 +123,6 @@ type Text_Column
         ```  
     proper self -> Column & Text_Column =    
         self.operations_implementation.proper self.column
+
+    index_of self (other : Column | Text | Any) case_sensitivity:Case_Sensitivity=..Default -> Column & Numeric_Column =
+        self.operations_implementation.index_of self.column other case_sensitivity

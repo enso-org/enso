@@ -351,11 +351,11 @@ type In_Memory_Column_Implementation
 
     starts_with (this_column : Column & In_Memory_Column) (other : Column | Text | Any) case_sensitivity:Case_Sensitivity = Value_Type.expect_text this_column <| Value_Type.expect_text other <|
         new_name = naming_helper.function_name "starts_with" [this_column, other]
-        _apply_case_sensitive_text_operation this_column other case_sensitivity TextPredicates.STARTS_WITH (a -> b -> a.starts_with b case_sensitivity) new_name
+        apply_case_sensitive_text_operation this_column other case_sensitivity TextPredicates.STARTS_WITH (a -> b -> a.starts_with b case_sensitivity) new_name
 
     ends_with (this_column : Column & In_Memory_Column) (other : Column | Text | Any) case_sensitivity:Case_Sensitivity = Value_Type.expect_text this_column <| Value_Type.expect_text other <|
         new_name = naming_helper.function_name "ends_with" [this_column, other]
-        _apply_case_sensitive_text_operation this_column other case_sensitivity TextPredicates.ENDS_WITH (a -> b -> a.ends_with b case_sensitivity) new_name
+        apply_case_sensitive_text_operation this_column other case_sensitivity TextPredicates.ENDS_WITH (a -> b -> a.ends_with b case_sensitivity) new_name
 
     text_length (this_column : Column & In_Memory_Column) =
         Value_Type.expect_text this_column <|
@@ -364,12 +364,12 @@ type In_Memory_Column_Implementation
     text_left (this_column : Column & In_Memory_Column) (n : Column | Integer | Nothing) =
         Value_Type.expect_text this_column <| Value_Type.expect_integer n <|
             new_name = naming_helper.function_name "text_left" [this_column, n]
-            _apply_case_sensitive_text_operation this_column n ..Default TextPartOperation.LEFT (a -> b -> a.take b) new_name
+            apply_case_sensitive_text_operation this_column n ..Default TextPartOperation.LEFT (a -> b -> a.take b) new_name
 
     text_right (this_column : Column & In_Memory_Column) (n : Column | Integer | Nothing) =
         Value_Type.expect_text this_column <| Value_Type.expect_integer n <|
             new_name = naming_helper.function_name "text_right" [this_column, n]
-            _apply_case_sensitive_text_operation this_column n ..Default TextPartOperation.RIGHT (a -> b -> a.take (..Last b)) new_name
+            apply_case_sensitive_text_operation this_column n ..Default TextPartOperation.RIGHT (a -> b -> a.take (..Last b)) new_name
 
     text_mid (this_column : Column & In_Memory_Column) (start : Column | Integer | Nothing) (length : Column | Integer | Nothing | Rest_Of_String) =
         Value_Type.expect_text this_column <| Value_Type.expect_integer start <|
@@ -418,18 +418,14 @@ type In_Memory_Column_Implementation
 
     contains (this_column : Column & In_Memory_Column) (other : Column | Text | Any) case_sensitivity:Case_Sensitivity = Value_Type.expect_text this_column <| Value_Type.expect_text other <|
         new_name = naming_helper.function_name "contains" [this_column, other]
-        _apply_case_sensitive_text_operation this_column other case_sensitivity TextPredicates.CONTAINS (a -> b -> a.contains b case_sensitivity) new_name
-
-    index_of (this_column : Column & In_Memory_Column) (other : Column | Text | Any) case_sensitivity:Case_Sensitivity = Value_Type.expect_text this_column <| Value_Type.expect_text other <|
-        new_name = naming_helper.function_name "index_of" [this_column, other]
-        _apply_case_sensitive_text_operation this_column other case_sensitivity TextIndexOf.INSTANCE (a -> b -> a.index_of b case_sensitivity) new_name
+        apply_case_sensitive_text_operation this_column other case_sensitivity TextPredicates.CONTAINS (a -> b -> a.contains b case_sensitivity) new_name
 
     like (this_column : Column & In_Memory_Column) (pattern : Column | Text | Any) = Value_Type.expect_text this_column <| Value_Type.expect_text pattern <|
         new_name = naming_helper.binary_operation_name "like" this_column pattern
         fallback x y =
             _ = [x, y]
             Error.throw (Illegal_Argument.Error "LIKE operation is not supported for the given types.")
-        _apply_case_sensitive_text_operation this_column pattern ..Default TextPredicates.LIKE fallback new_name
+        apply_case_sensitive_text_operation this_column pattern ..Default TextPredicates.LIKE fallback new_name
 
     regex_match (this_column : Column & In_Memory_Column) (pattern : Column | Text | Regex) =
         string_pattern = case pattern of
@@ -440,7 +436,7 @@ type In_Memory_Column_Implementation
             fallback x y =
                 _ = [x, y]
                 Error.throw (Illegal_Argument.Error "regex_match is not supported for the given types.")
-            _apply_case_sensitive_text_operation this_column string_pattern ..Default TextPredicates.REGEX_MATCH fallback new_name
+            apply_case_sensitive_text_operation this_column string_pattern ..Default TextPredicates.REGEX_MATCH fallback new_name
 
     trim (this_column : Column & In_Memory_Column) where:Location (what : Text | Column) = Value_Type.expect_text this_column <|
         parsed_what = if what.is_a Column && what.value_type == Value_Type.Null then "" else what
@@ -903,7 +899,7 @@ private _call_binary_operator left:In_Memory_Column other new_name ~operation =
 ## ---
    private: true
    ---
-private _apply_case_sensitive_text_operation left:Column (other : Column | Text | Any) case_sensitivity:Case_Sensitivity operation fallback_fn new_name:Text =
+private apply_case_sensitive_text_operation left:Column (other : Column | Text | Any) case_sensitivity:Case_Sensitivity operation fallback_fn new_name:Text =
     java_other = (if other.is_a Column then (other:In_Memory_Column).java_column else other)
     use_fallback = case case_sensitivity of
         Case_Sensitivity.Insensitive _ -> True

@@ -88,7 +88,7 @@
 - [Implement Text_Column to_case for DB backends][14386]
 - [Implement bulk loading to DuckDB][14402]
 - [Initial file writing from DuckDB][14421]
-- [Add Column.index_of][14428]
+- [Add Text_Column.index_of][14428]
 
 [13769]: https://github.com/enso-org/enso/pull/13769
 [14026]: https://github.com/enso-org/enso/pull/14026
