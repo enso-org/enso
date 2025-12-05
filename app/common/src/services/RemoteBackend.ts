@@ -7,7 +7,7 @@
  */
 import { markRaw } from 'vue'
 import { z } from 'zod'
-import { $config } from '../config'
+import { $config } from '../config.js'
 import type { DownloadOptions } from '../download.js'
 import type { DefaultGetText } from '../text'
 import { delay } from '../utilities/async.js'
@@ -1467,10 +1467,9 @@ export class RemoteBackend extends backend.Backend {
   /** Resolve asset metadata from an enso path. */
   override async resolveEnsoPath(path: backend.EnsoPath): Promise<backend.AnyAsset> {
     const effectivePath = backend.EnsoPath(path.replace(/%20/g, ' '))
-    const response = await this.get<backend.AnyAsset>(
-      remoteBackendPaths.RESOLVE_ENSO_PATH,
-      { path: effectivePath },
-    )
+    const response = await this.get<backend.AnyAsset>(remoteBackendPaths.RESOLVE_ENSO_PATH, {
+      path: effectivePath,
+    })
 
     if (!response.ok) return this.throw(response, 'resolveEnsoPathBackendError', path)
     const asset = await response.json()
