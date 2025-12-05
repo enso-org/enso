@@ -31,7 +31,10 @@ public class LongStorageTest {
     var storage = b.seal();
     var localStorage = Builder.makeLocal(storage);
     assertNotSame("local storage is a copy of storage", storage, localStorage);
-    assertEquals("They have data at the same address", storage.rawData(), localStorage.rawData());
+    assertEquals(
+        "They have data at the same address",
+        storage.addressOfData(),
+        localStorage.addressOfData());
     assertEquals("They have the same size", storage.getSize(), localStorage.getSize());
     for (var i = 0L; i < storage.getSize(); i++) {
       var elem = storage.getItemBoxed(i);
@@ -65,12 +68,12 @@ public class LongStorageTest {
     r.forEach(b::append);
     var storage = b.seal();
     assertEquals("Storage has the right size: " + storage, size, storage.getSize());
-    assertNotEquals("Storage provides acccess to raw data", 0L, storage.rawData());
-    assertNotEquals("Storage provides access to validity bitmap", 0L, storage.rawValidity());
+    assertNotEquals("Storage provides acccess to raw data", 0L, storage.addressOfData());
+    assertNotEquals("Storage provides access to validity bitmap", 0L, storage.addressOfValidity());
 
     var arr =
         ctx.eval("arrow", "cast[Int64]")
-            .execute(storage.rawData(), storage.getSize(), storage.rawValidity());
+            .execute(storage.addressOfData(), storage.getSize(), storage.addressOfValidity());
     for (var i = 0L; i < size; i++) {
       var elem0 = storage.getItemBoxed(i);
       var value1 = arr.getArrayElement(i);

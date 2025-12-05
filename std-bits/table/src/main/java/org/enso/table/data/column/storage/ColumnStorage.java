@@ -17,9 +17,9 @@ public interface ColumnStorage<T> extends Iterable<T> {
    *
    * @return {@code 0} if there are no data to share, otherwise the address of the data in a format
    *     appropraite for this storage {@link #getType()}.
-   * @see #rawValidity
+   * @see #addressOfValidity
    */
-  default long rawData() {
+  default long addressOfData() {
     return 0;
   }
 
@@ -28,7 +28,7 @@ public interface ColumnStorage<T> extends Iterable<T> {
    *
    * @return {@code 0} if there are no bitmap information to share
    */
-  default long rawValidity() {
+  default long addressOfValidity() {
     return getSize();
   }
 

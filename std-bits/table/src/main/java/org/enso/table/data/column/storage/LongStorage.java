@@ -38,12 +38,12 @@ public final class LongStorage extends AbstractLongStorage implements ColumnStor
   }
 
   @Override
-  public long rawData() {
+  public long addressOfData() {
     return MemorySegment.ofBuffer(data).address();
   }
 
   @Override
-  public long rawValidity() {
+  public long addressOfValidity() {
     return validityMap.rawData();
   }
 
