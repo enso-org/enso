@@ -10,6 +10,7 @@ from Standard.Test import all
 
 import project.Common_Table_Operations.Util
 from project.Common_Table_Operations.Util import check_column_refinements, run_default_backend
+from project.Util import all
 
 type Lazy_Ref
     Value ~get
@@ -63,6 +64,16 @@ add_specific_type_test group_builder type_name values build_sorted_table =
         signum_column = (column:Numeric_Column).signum
         signum_column.to_vector . should_equal (values.map v-> if v==Nothing then Nothing else v.signum)
 
+    group_builder.specify "a numeric column ("+type_name+") supports radians operation" <|
+        column = numeric_column.get
+        radians_column = (column:Numeric_Column).radians
+        (radians_column:Numeric_Column).should_equal (values.map v-> if v==Nothing then Nothing else v * (Math.pi / 180.0)) epsilon
+
+    group_builder.specify "a numeric column ("+type_name+") supports degrees operation" <|
+        column = numeric_column.get
+        degrees_column = (column:Numeric_Column).degrees
+        (degrees_column:Numeric_Column).should_equal (values.map v-> if v==Nothing then Nothing else v / (Math.pi / 180.0)) epsilon
+
     group_builder.specify "a numeric column ("+type_name+") supports sin operation" <|
         column = numeric_column.get
         sin_column = (column:Numeric_Column).sin
@@ -86,6 +97,60 @@ add_specific_type_test group_builder type_name values build_sorted_table =
 
         atan_column = (tan_column:Numeric_Column).atan
         (atan_column:Numeric_Column).should_equal (values.map v-> if v==Nothing then Nothing else (float v).tan.atan) epsilon
+
+    group_builder.specify "a numeric column ("+type_name+") supports sinh operation" <|
+        column = numeric_column.get
+        sinh_column = (column:Numeric_Column).sinh
+        (sinh_column:Numeric_Column).should_equal (values.map v-> if v==Nothing then Nothing else (float v).sinh) epsilon
+
+    group_builder.specify "a numeric column ("+type_name+") supports cosh operation" <|
+        column = numeric_column.get
+        cosh_column = (column:Numeric_Column).cosh
+        (cosh_column:Numeric_Column).should_equal (values.map v-> if v==Nothing then Nothing else (float v).cosh) epsilon
+
+    group_builder.specify "a numeric column ("+type_name+") supports tanh operation" <|
+        column = numeric_column.get
+        tanh_column = (column:Numeric_Column).tanh
+        (tanh_column:Numeric_Column).should_equal (values.map v-> if v==Nothing then Nothing else (float v).tanh) epsilon
+
+    group_builder.specify "a numeric column ("+type_name+") supports sqrt operation" <|
+        column = numeric_column.get
+        sqrt_column = (column:Numeric_Column).sqrt
+        (sqrt_column:Numeric_Column).should_equal (values.map v-> if v==Nothing then Nothing else (float v).sqrt) epsilon
+
+    group_builder.specify "a numeric column ("+type_name+") supports power operation" <|
+        column = numeric_column.get
+        power_column = (column:Numeric_Column).power 2.0
+        (power_column:Numeric_Column).should_equal (values.map v-> if v==Nothing then Nothing else (float v) ^ 2.0) epsilon
+
+        neg_power_column = (column:Numeric_Column).power -1.7
+        (neg_power_column:Numeric_Column).should_equal (values.map v-> if v==Nothing then Nothing else (float v) ^ 1.7) epsilon
+
+        self_power = (column:Numeric_Column).power column
+        (self_power:Numeric_Column).should_equal (values.map v-> if v==Nothing then Nothing else (float v) ^ (float v)) epsilon
+
+    group_builder.specify "a numeric column ("+type_name+") supports ln operation" <|
+        column = numeric_column.get
+        ln_column = (column:Numeric_Column).ln
+        (ln_column:Numeric_Column).should_equal (values.map v-> if v==Nothing then Nothing else (float v).ln) epsilon
+
+    group_builder.specify "a numeric column ("+type_name+") supports exp operation" <|
+        column = numeric_column.get
+        exp_column = (column:Numeric_Column).exp
+        (exp_column:Numeric_Column).should_equal (values.map v-> if v==Nothing then Nothing else (float v).exp) epsilon
+
+    group_builder.specify "a numeric column ("+type_name+") supports log10 operation" <|
+        column = numeric_column.get
+        log10_column = (column:Numeric_Column).log10
+        (log10_column:Numeric_Column).should_equal (values.map v-> if v==Nothing then Nothing else (float v).log base=10) epsilon
+
+    group_builder.specify "a numeric column ("+type_name+") supports log operation" <|
+        column = numeric_column.get
+        log10_column = (column:Numeric_Column).log
+        (log10_column:Numeric_Column).should_equal (values.map v-> if v==Nothing then Nothing else (float v).log base=10) epsilon
+
+        log2_column = (column:Numeric_Column).log 2
+        (log2_column:Numeric_Column).should_equal (values.map v-> if v==Nothing then Nothing else (float v).log base=2) epsilon
 
 private float v =
     if v.is_a Decimal then v.to_float else v

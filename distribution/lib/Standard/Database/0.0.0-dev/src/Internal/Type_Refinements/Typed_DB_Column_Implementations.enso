@@ -53,6 +53,41 @@ type DB_Numeric_Column_Implementation
             new_name = (naming_helper column).function_name "atan" [column]
             make_unary_op column "ATAN" new_name
 
+    sinh (column : Column & DB_Column) =
+        Value_Type.expect_numeric column <|
+            new_name = (naming_helper column).function_name "sinh" [column]
+            make_unary_op column "SINH" new_name
+
+    cosh (column : Column & DB_Column) =
+        Value_Type.expect_numeric column <|
+            new_name = (naming_helper column).function_name "cosh" [column]
+            make_unary_op column "COSH" new_name
+
+    tanh (column : Column & DB_Column) =
+        Value_Type.expect_numeric column <|
+            new_name = (naming_helper column).function_name "tanh" [column]
+            make_unary_op column "TANH" new_name
+
+    sqrt (column : Column & DB_Column) =
+        Value_Type.expect_numeric column <|
+            new_name = (naming_helper column).function_name "sqrt" [column]
+            make_unary_op column "SQRT" new_name
+
+    ln (column : Column & DB_Column) =
+        Value_Type.expect_numeric column <|
+            new_name = (naming_helper column).function_name "ln" [column]
+            make_unary_op column "LN" new_name
+
+    exp (column : Column & DB_Column) =
+        Value_Type.expect_numeric column <|
+            new_name = (naming_helper column).function_name "exp" [column]
+            make_unary_op column "EXP" new_name
+
+    log10 (column : Column & DB_Column) =
+        Value_Type.expect_numeric column <|
+            new_name = (naming_helper column).function_name "log10" [column]
+            make_unary_op column "LOG10" new_name
+
 type DB_Text_Column_Implementation
     to_case column case_option:Case=..Lower locale:Locale=Locale.default =
         if locale != Locale.default then
