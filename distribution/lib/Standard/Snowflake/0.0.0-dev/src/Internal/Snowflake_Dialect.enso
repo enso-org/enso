@@ -452,7 +452,7 @@ type Snowflake_Dialect
    private: true
    ---
 make_dialect_operations =
-    arith = [round_bankers]
+    arith = [sqrt, ln, log10, power, round_bankers]
     cases = [["LOWER", Base_Generator.make_function "LOWER"], ["UPPER", Base_Generator.make_function "UPPER"], ["PROPER", Base_Generator.make_function "INITCAP"]]
     text = [starts_with, contains, ends_with, agg_shortest, agg_longest, make_case_sensitive, ["REPLACE", replace], left, right, regex_match]+concat_ops+cases+trim_ops
     counts = [agg_count_is_null, agg_count_empty, agg_count_not_empty, ["COUNT_DISTINCT", agg_count_distinct], ["COUNT_DISTINCT_INCLUDE_NULL", agg_count_distinct_include_null]]
@@ -724,6 +724,30 @@ make_order_descriptor internal_column sort_direction text_ordering =
                             Error.throw (Unsupported_Database_Operation.Error "Case insensitive ordering with custom locale")
                         True ->
                             Order_Descriptor.Value (Internals_Access.column_expression internal_column) sort_direction nulls_order=nulls collation="en-ci"
+
+## ---
+   private: true
+   ---
+sqrt = Base_Generator.lift_unary_op "SQRT" arg->
+    (SQL_Builder.code "CASE WHEN " ++ arg ++ "< 0 THEN ('NaN'::float) ELSE SQRT(" ++ arg ++ ") END").paren
+
+## ---
+   private: true
+   ---
+ln = Base_Generator.lift_unary_op "LN" arg->
+    (SQL_Builder.code "CASE WHEN " ++ arg ++ " < 0 THEN ('NaN'::float) WHEN " ++ arg ++ " = 0 THEN ('-Infinity'::float) ELSE LN(" ++ arg ++ ") END").paren
+
+## ---
+   private: true
+   ---
+log10 = Base_Generator.lift_unary_op "LOG10" arg->
+    (SQL_Builder.code "CASE WHEN " ++ arg ++ " < 0 THEN ('NaN'::float) WHEN " ++ arg ++ " = 0 THEN ('-Infinity'::float) ELSE LOG(10, " ++ arg ++ ") END").paren
+
+## ---
+   private: true
+   ---
+power = Base_Generator.lift_binary_op "^" x-> y->
+    (SQL_Builder.code "CASE WHEN " ++ x ++ " < 0 AND " ++ y ++ " != FLOOR(" ++ y ++ ") THEN ('NaN'::float) WHEN " ++ x ++ " = 0 AND " ++ y ++ " < 0 THEN ('Infinity'::float) ELSE POWER(" ++ x ++ ", " ++ y ++ ") END").paren
 
 ## ---
    private: true
