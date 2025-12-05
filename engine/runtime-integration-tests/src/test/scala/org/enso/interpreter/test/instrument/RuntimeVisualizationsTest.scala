@@ -4265,7 +4265,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
           )
         )
       )
-      val afterIdMapUpdate = context.receiveNIgnorePendingExpressionUpdates(3)
+      val afterIdMapUpdate = context.receiveNIgnorePendingExpressionUpdates(6)
 
       // Can't do comparison directly because of Arrays https://github.com/scalatest/scalatest/issues/491
       afterIdMapUpdate should contain allOf (
@@ -4275,6 +4275,22 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
           s"Standard.Base.Data.Numbers.Integer",
           typeChanged = false,
           payload     = Api.ExpressionUpdate.Payload.Value(None)
+        ),
+        TestMessages.update( // Updates to IdMap in subexpression that are within `x` will invalidate `x`
+          contextId,
+          idX,
+          s"Standard.Base.Data.Numbers.Integer",
+          methodCall = Some(
+            Api.MethodCall(
+              Api
+                .MethodPointer(
+                  moduleNameLib,
+                  s"$moduleNameLib.Singleton",
+                  "test"
+                )
+            )
+          ),
+          payload = Api.ExpressionUpdate.Payload.Value(None)
         ),
         context.executionComplete(contextId)
       )
@@ -5456,9 +5472,25 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
           )
         )
       )
-      val attachVisualizationResponses = context.receiveN(2)
-      attachVisualizationResponses should contain(
-        Api.Response(requestId, Api.VisualizationAttached())
+      val attachVisualizationResponses = context.receiveN(5)
+      attachVisualizationResponses should contain allOf (
+        Api.Response(requestId, Api.VisualizationAttached()),
+        // The ExpressionUpdate's is an unfortunate consequence of the fact
+        // that idV result is NOT cached.
+        // For that to happen, TypeCheckExpressionNode would need to be instrumentable.
+        TestMessages.update(
+          contextId,
+          idV,
+          ConstantsGen.INTEGER,
+          typeChanged = false
+        ),
+        TestMessages.update(
+          contextId,
+          idR,
+          ConstantsGen.INTEGER,
+          typeChanged = false
+        ),
+        context.executionComplete(contextId)
       )
       val Some(data) = attachVisualizationResponses.collectFirst {
         case Api.Response(
