@@ -21,8 +21,6 @@ if (isDevMode) {
 // Used by vite middleware inside devtools plugin. Specifying this by an option doesn't work when `componentInspector` is false.
 process.env.LAUNCH_EDITOR ??= 'code'
 
-console.log('env dir is', process.env.ENSO_ENV_FILES_ARE_IN_GUI === 'true' ? '.' : '../common')
-
 // https://vitejs.dev/config/
 export default defineConfig({
   ...(process.env.MODE && { mode: process.env.MODE }),

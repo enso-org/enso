@@ -54,10 +54,3 @@ Object.defineProperty(window, '$config', {
   enumerable: false,
   value: $config,
 })
-
-throw new Error(
-  JSON.stringify([
-    Object.keys(process.env ?? {}).filter((key) => key.startsWith('ENSO_IDE_')),
-    Object.keys(import.meta.env ?? {}).filter((key) => key.startsWith('ENSO_IDE_')),
-  ]),
-)
