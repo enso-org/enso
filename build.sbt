@@ -340,6 +340,7 @@ lazy val enso = (project in file("."))
     `language-server-deps-wrapper`,
     launcher,
     `library-manager`,
+    `library-server`,
     `locking-test-helper`,
     `logging-config`,
     `logging-service`,
@@ -6604,6 +6605,16 @@ lazy val `http-test-helper` = project
     (Compile / run / connectInput) := true
   )
   .configs(Test)
+
+lazy val `library-server` = project
+  .in(file("lib") / "java" / "library-server")
+  .settings(
+    customFrgaalJavaCompilerSettings(targetJdk = "24"),
+    autoScalaLibrary := false,
+    Compile / mainClass := Some("org.enso.shttp.HTTPTestHelperServer"),
+    Compile / run / fork := true,
+    Compile / run / connectInput := true
+  )
 
 lazy val buildLauncherDistribution =
   taskKey[Unit]("Builds the launcher distribution")
