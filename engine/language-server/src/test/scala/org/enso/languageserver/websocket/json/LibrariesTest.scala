@@ -593,6 +593,7 @@ class LibrariesTest extends BaseServerTest with ReportLogsOnFailure {
       val client = getInitialisedWsClient()
 
       val repositoryPath = getTestDirectory.resolve("repository_path")
+      println("[mylog] Problematic test")
       exampleRepo.createRepository(repositoryPath)
       exampleRepo.withServer(libraryRepositoryPort, repositoryPath) {
         val requestId = 0
