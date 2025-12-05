@@ -240,10 +240,10 @@ export class RemoteBackend extends backend.Backend {
     params: backend.UploadPictureRequestParams,
     file: Blob,
   ): Promise<backend.User> {
-    const paramsString = new URLSearchParams({
+    const paramsString = new URLSearchParams(
       // eslint-disable-next-line camelcase
-      ...(params.fileName != null ? { file_name: params.fileName } : {}),
-    }).toString()
+      params.fileName != null ? { file_name: params.fileName } : {},
+    ).toString()
     const path = `${remoteBackendPaths.UPLOAD_USER_PICTURE_PATH}?${paramsString}`
     const response = await this.putBinary<backend.User>(path, file)
     if (!response.ok) {
@@ -311,10 +311,10 @@ export class RemoteBackend extends backend.Backend {
     params: backend.UploadPictureRequestParams,
     file: Blob,
   ): Promise<backend.OrganizationInfo> {
-    const paramsString = new URLSearchParams({
+    const paramsString = new URLSearchParams(
       // eslint-disable-next-line camelcase
-      ...(params.fileName != null ? { file_name: params.fileName } : {}),
-    }).toString()
+      params.fileName != null ? { file_name: params.fileName } : {},
+    ).toString()
     const path = `${remoteBackendPaths.UPLOAD_ORGANIZATION_PICTURE_PATH}?${paramsString}`
     const response = await this.putBinary<backend.OrganizationInfo>(path, file)
     if (!response.ok) {
@@ -840,9 +840,9 @@ export class RemoteBackend extends backend.Backend {
     params: backend.GetProjectSessionLogsRequestParams,
     title: string,
   ): Promise<backend.ProjectSessionLogs> {
-    const queryParams = new URLSearchParams({
-      ...(params.scrollId != null ? { scrollId: params.scrollId } : {}),
-    })
+    const queryParams = new URLSearchParams(
+      params.scrollId != null ? { scrollId: params.scrollId } : {},
+    )
     const path = remoteBackendPaths.getProjectSessionLogsPath(projectSessionId)
     const response = await this.get<backend.ProjectSessionLogs>(path, queryParams)
     if (!response.ok) {
@@ -1361,10 +1361,7 @@ export class RemoteBackend extends backend.Backend {
       {
         message,
         projectId,
-        metadata: {
-          timestamp: new Date().toISOString(),
-          ...(metadata ?? {}),
-        },
+        metadata: { timestamp: new Date().toISOString(), ...metadata },
       },
       {
         keepalive: true,
@@ -1469,9 +1466,11 @@ export class RemoteBackend extends backend.Backend {
 
   /** Resolve asset metadata from an enso path. */
   override async resolveEnsoPath(path: backend.EnsoPath): Promise<backend.AnyAsset> {
-    const response = await this.get<backend.AnyAsset>(remoteBackendPaths.RESOLVE_ENSO_PATH, {
-      path,
-    })
+    const effectivePath = backend.EnsoPath(path.replace(/%20/g, ' '))
+    const response = await this.get<backend.AnyAsset>(
+      remoteBackendPaths.RESOLVE_ENSO_PATH,
+      { path: effectivePath },
+    )
 
     if (!response.ok) return this.throw(response, 'resolveEnsoPathBackendError', path)
     const asset = await response.json()

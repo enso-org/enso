@@ -17,6 +17,7 @@ interface PreventNavigationOptions {
 }
 
 /** Prevent navigating away from a page. */
+// eslint-disable-next-line react-refresh/only-export-components
 export function usePreventNavigation(options: PreventNavigationOptions) {
   const { isEnabled = true, message } = options
   const messageRef = useSyncRef(message)
@@ -50,8 +51,7 @@ interface ConfirmCloseModalProps {
 }
 
 /** A modal to confirm closing the window. */
-// eslint-disable-next-line react-refresh/only-export-components
-function ConfirmCloseModal(props: ConfirmCloseModalProps) {
+export function ConfirmCloseModal(props: ConfirmCloseModalProps) {
   const { message } = props
   const { getText } = useText()
 

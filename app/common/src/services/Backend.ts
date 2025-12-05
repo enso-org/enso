@@ -636,10 +636,17 @@ export interface CreateCustomerPortalSessionResponse {
   readonly url: string | null
 }
 
+/** Whether a type is `any`. */
+type IsAny<T> = 0 extends 1 & T ? true : false
+
 /** Response from "assets/${assetId}" endpoint. */
 export type AssetDetailsResponse<Id extends AssetId> =
-  | (Asset<AssetTypeFromId<Id>> & { readonly metadataId: MetadataId })
-  | null
+  // `T extends T` where `T` is a type parameter is a trick to distribute union values,
+  // evaluating the conditional type for each member of the union type,
+  // and then resolving to a union of the results of this operation.
+  IsAny<Id> extends true ? AssetDetailsResponse<AssetId>
+  : | (Id extends Id ? AnyAsset<AssetTypeFromId<Id>> & { readonly metadataId: MetadataId } : never)
+    | null
 
 /** Whether the user is on a plan with multiple seats (i.e. a plan that supports multiple users). */
 export function isUserOnPlanWithMultipleSeats(user: User) {

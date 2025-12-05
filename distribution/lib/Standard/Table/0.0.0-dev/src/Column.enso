@@ -1251,7 +1251,7 @@ type Column
              example_text_length =
                 Examples.text_column_1.text_left 5
        ```
-    text_left self (n : Column | Integer) -> Column & Any =
+    text_left self (n : Column | Integer | Nothing = 1) -> Column & Any =
         self.implementation.text_left self n
 
     ## ---
@@ -1271,8 +1271,29 @@ type Column
              example_text_length =
                 Examples.text_column_1.text_right 5
        ```
-    text_right self (n : Column | Integer) -> Column & Any =
+    text_right self (n : Column | Integer | Nothing = 1) -> Column & Any =
         self.implementation.text_right self n
+
+    ## ---
+       group: Standard.Base.Text
+       icon: preparation
+       ---
+       Gets the characters starting at `start` and continuing for `length`
+       characters, for each element of the column.
+       In the Database backends, the default text mid method of the particular
+       database is used.
+       In the in-memory backend, this will give you the `length` graphemes of
+       the string, starting at `start`.
+
+       ## Examples
+       ### import Standard.Examples
+
+       ```
+             example_text_length =
+                Examples.text_column_1.text_mid 5
+       ```
+    text_mid self (start : Column | Integer | Nothing) (length : Column | Integer | Nothing | Rest_Of_String = Rest_Of_String) -> Column & Any =
+        self.implementation.text_mid self start length
 
     ## ---
        group: Standard.Base.Logical
@@ -2574,6 +2595,12 @@ type Column
     @n (self-> Numeric_Input minimum=0-self.length maximum=self.length)
     offset self n:Integer=-1 fill_with:Fill_With=..Nothing -> Column & Any =
         self.implementation.offset self n fill_with
+
+## ---
+   private: true
+   ---
+   Used to specify that the rest of the string is to be return.
+type Rest_Of_String
 
 ## ---
    private: true

@@ -147,7 +147,7 @@ type Dialect_Flag
        private: true
        ---
        Specifies how the max size of the char type behaves after
-       text_left/text_right.
+       text_left, _right, and _mid.
        If True the original size is kept, if False the size is reset.
     Char_Max_Size_After_Substring_Kept
     ## ---
