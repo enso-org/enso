@@ -1,5 +1,7 @@
 package org.enso.interpreter.instrument.command
 
+import java.util
+
 import org.enso.compiler.core.Implicits.AsMetadata
 import org.enso.compiler.pass.analyse.DataflowAnalysis
 import org.enso.compiler.refactoring.IRUtils
@@ -7,14 +9,17 @@ import org.enso.interpreter.instrument.command.RecomputeContextCmd.InvalidateExp
 import org.enso.interpreter.instrument.{
   CacheInvalidation,
   ExecutionConfig,
-  InstrumentFrame
+  InstrumentFrame,
+  RefInvalidation
 }
 import org.enso.interpreter.instrument.execution.RuntimeContext
 import org.enso.interpreter.instrument.job.{EnsureCompiledJob, ExecuteJob}
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.runtime.Runtime.Api.RequestId
 
+import scala.annotation.unused
 import scala.concurrent.{ExecutionContext, Future}
+import scala.jdk.CollectionConverters.IterableHasAsJava
 
 /** A command that forces a recomputation of the current position.
   *
@@ -137,10 +142,21 @@ object RecomputeContextCmd {
             val expressionsInvalidationCommands = expressions.toSeq
               .map(CacheInvalidation.Command(_))
               .map(CacheInvalidation(CacheInvalidation.StackSelector.All, _))
-            val expressionConfigsDependentInvalidationCommands =
-              expressionConfigs
+            val expressionConfigsDependentInvalidationCommands = {
+              val expressionsToInvalidate = expressionConfigs
                 .map(_.expressionId)
-                .flatMap(RecomputeContextCmd.invalidateDependent)
+                .toVector
+                .distinct
+
+              if (expressionsToInvalidate.isEmpty) Seq.empty
+              else {
+                val cmd = CacheInvalidation.Command(
+                  Api.InvalidatedExpressions
+                    .Expressions(expressionsToInvalidate, "recompute")
+                )
+                Seq(CacheInvalidation(CacheInvalidation.StackSelector.All, cmd))
+              }
+            }
             val allInvalidationCommands =
               expressionsInvalidationCommands ++ expressionConfigsDependentInvalidationCommands
 
@@ -159,6 +175,7 @@ object RecomputeContextCmd {
     * @param expressionId the expression id
     * @return commands to invalidate dependent nodes of the provided expression
     */
+  @unused
   private def invalidateDependent(
     expressionId: Api.ExpressionId
   )(implicit ctx: RuntimeContext): Seq[CacheInvalidation] = {
@@ -201,14 +218,32 @@ object RecomputeContextCmd {
     val builder = Set.newBuilder[Api.ExpressionId]
     cacheInvalidations.map(_.command).foreach {
       case CacheInvalidation.Command.InvalidateAll =>
-        stack.headOption
-          .map { frame =>
-            frame.cache.getPreferences.preferences
-              .keySet()
-              .forEach(builder.addOne)
+        stack
+          .foreach { frame =>
+            val toInvalidate = frame.cache.clear()
+            toInvalidate.forEach { runtimeID =>
+              ctx.executionService.getContext
+                .currentRuntimeAnalysis()
+                .get(runtimeID)
+                .reset()
+              // FIXME: invalidate visualizations
+              builder.addOne(runtimeID.uuid())
+            }
           }
       case CacheInvalidation.Command.InvalidateKeys(expressionIds, _) =>
-        builder ++= expressionIds
+        val stackJ = new util.Stack[InstrumentFrame]
+        stack.toList.reverse.foreach(stackJ.push)
+        RefInvalidation
+          .invalidateAffectedIDs(
+            expressionIds.asJava,
+            stackJ,
+            ctx.contextManager.getVisualizationHolder(contextId),
+            ctx.executionService.getContext.currentRuntimeAnalysis()
+          )
+          .stream()
+          .forEach { id =>
+            builder += id.uuid()
+          }
       case _ =>
     }
 

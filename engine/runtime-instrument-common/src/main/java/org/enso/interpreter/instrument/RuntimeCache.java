@@ -5,21 +5,23 @@ import java.lang.ref.Reference;
 import java.lang.ref.SoftReference;
 import java.lang.ref.WeakReference;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionStage;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import org.enso.common.CachePreferences;
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode;
 import org.enso.interpreter.service.ExecutionService;
-import org.enso.interpreter.service.GuestExecutionService;
 import org.enso.polyglot.*;
 
 /** A storage for computed values. */
-public final class RuntimeCache implements java.util.function.Function<String, Object> {
+public final class RuntimeCache implements Function<String, Object> {
+  private static int ID_COUNTER = 0;
+
+  private final int id;
   private final Map<RuntimeID, Reference<Object>> cache = new HashMap<>();
   private final Map<RuntimeID, Observable> observables = new HashMap<>();
   private final Map<UUID, Reference<Object>> expressions = new HashMap<>();
@@ -30,10 +32,8 @@ public final class RuntimeCache implements java.util.function.Function<String, O
   private final Map<UUID, FunctionCallInstrumentationNode.FunctionCall> enterables =
       new HashMap<>();
 
-  private final GuestExecutionService executionService;
-
-  public RuntimeCache(GuestExecutionService executionService) {
-    this.executionService = executionService;
+  public RuntimeCache() {
+    id = ID_COUNTER++;
   }
 
   /**
@@ -61,18 +61,13 @@ public final class RuntimeCache implements java.util.function.Function<String, O
   /** Get the value from the cache. */
   public Object get(RuntimeID key) {
     var ref = cache.get(key);
-    if (ref != null) {
-      return ref.get();
-    } else {
-      return null;
-    }
+    return ref != null ? ref.get() : null;
   }
 
   /** Get the value from the cache. */
   public Object getAnyValue(UUID key) {
     var ref = expressions.get(key);
-    var res = ref != null ? ref.get() : null;
-    return res;
+    return ref != null ? ref.get() : null;
   }
 
   // Accessed in InstrumentorBuiltin
@@ -94,7 +89,7 @@ public final class RuntimeCache implements java.util.function.Function<String, O
   }
 
   /** Remove the value from the cache. */
-  public Object remove(UUID key) {
+  public Object remove(RuntimeID key) {
     var ref = cache.remove(key);
     return ref == null ? null : ref.get();
   }
@@ -107,8 +102,10 @@ public final class RuntimeCache implements java.util.function.Function<String, O
   }
 
   /** Clear the cached values. */
-  public void clear() {
+  public Set<RuntimeID> clear() {
+    var keys = cache.keySet();
     cache.clear();
+    return keys;
   }
 
   /**
@@ -125,7 +122,7 @@ public final class RuntimeCache implements java.util.function.Function<String, O
     }
     return keys;
      */
-    return new java.util.HashSet<>();
+    return new HashSet<>();
   }
 
   /**
@@ -244,8 +241,8 @@ public final class RuntimeCache implements java.util.function.Function<String, O
    *
    * @param callback call with accessed UUIDs
    * @param scope the code to execute
-   * @return value computed by the {@code scope}
    * @param <V> type of the returned value
+   * @return value computed by the {@code scope}
    */
   public <V> V runQuery(Consumer<UUID> callback, Supplier<V> scope) {
     var previousCallback = this.observer;
@@ -257,28 +254,7 @@ public final class RuntimeCache implements java.util.function.Function<String, O
     }
   }
 
-  public CompletionStage<Boolean> registerAction(
-      UUID visualizationId, RuntimeID expressionId, Consumer<Object> action) {
-    var observable = observables.get(expressionId);
-    if (observable == null) {
-      observable = new Observable(expressionId);
-    }
-    observables.put(expressionId, observable);
-    var cachedValue = cache.get(expressionId);
-    if (cachedValue == null || cachedValue.get() != null) {
-      observable.registerVisualization(new ObservableVisualization(action, visualizationId));
-      return CompletableFuture.completedStage(false);
-    } else {
-      var ref = cachedValue.get();
-      return observable.registerAndRunVisualization(
-          new ObservableVisualization(action, visualizationId), ref, executionService);
-    }
-  }
-
-  public void runVisualizations(RuntimeID expressionId, Object value) {
-    var observable = observables.get(expressionId);
-    if (observable != null) {
-      observable.runVisualizations(executionService, value);
-    }
+  public int getId() {
+    return id;
   }
 }

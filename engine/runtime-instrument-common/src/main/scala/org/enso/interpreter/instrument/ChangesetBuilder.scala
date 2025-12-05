@@ -1,9 +1,10 @@
 package org.enso.interpreter.instrument
 
 import com.oracle.truffle.api.source.Source
-import org.enso.compiler.core.Implicits.AsMetadata
+//import org.enso.compiler.core.Implicits.AsMetadata
 import org.enso.compiler.core.ir.{
   CallArgument,
+  DefinitionArgument,
   Expression,
   Literal,
   Location,
@@ -19,6 +20,7 @@ import org.enso.text.editing.model.{IdMap, TextEdit}
 import org.enso.text.editing.{IndexedSource, TextEditor}
 
 import java.util.UUID
+import scala.annotation.unused
 import scala.collection.immutable.HashSet
 import scala.collection.mutable
 
@@ -58,7 +60,11 @@ final class ChangesetBuilder[A: TextEditor: IndexedSource](
     * @return the computed changeset
     */
   @throws[CompilerError]
-  def build(edits: Seq[PendingEdit], idMap: Option[IdMap]): Changeset[A] = {
+  def build(
+    edits: Seq[PendingEdit],
+    idMap: Option[IdMap],
+    diffIdMap: Option[IdMap]
+  ): Changeset[A] = {
 
     val simpleEditOptionFromSetValue: Option[PendingEdit.SetExpressionValue] =
       edits.collect { case edit: PendingEdit.SetExpressionValue =>
@@ -121,62 +127,101 @@ final class ChangesetBuilder[A: TextEditor: IndexedSource](
         }
       }
 
-    Changeset(source, ir, simpleUpdateOption, compute(edits.map(_.edit)), idMap)
+    Changeset(
+      source,
+      ir,
+      simpleUpdateOption,
+      compute(edits.map(_.edit), diffIdMap),
+      idMap
+    )
   }
 
   /** Traverses the IR and returns a list of all IR nodes affected by the edit
-    * using the [[DataflowAnalysis]] information.
+    * using the runtime dependency tracking information.
     *
     * @param edits the text edits
     * @throws CompilerError if the IR is missing DataflowAnalysis metadata
     * @return the set of all IR nodes affected by the edit
     */
   @throws[CompilerError]
-  def compute(edits: Seq[TextEdit]): Set[UUID @ExternalID] = {
-    val metadata = ir
-      .unsafeGetMetadata(
-        DataflowAnalysis,
-        "Empty dataflow analysis metadata during changeset calculation."
-      )
+  def compute(edits: Seq[TextEdit], idMapOpt: Option[IdMap]): Set[UUID] = {
+    val nodeIds = invalidateExact(edits, idMapOpt)
+    nodeIds.map(_.id)
+  }
+
+  def invalidateExact(
+    edits: Seq[TextEdit],
+    idMapOpt: Option[IdMap]
+  ): Set[ChangesetBuilder.NodeId] = {
+    val allEdits = edits.toSet
+
+    def analyzeIdMapChanges(
+      tree: ChangesetBuilder.Tree,
+      values: Seq[(org.enso.compiler.core.ir.Location, UUID)],
+      ids: mutable.Set[ChangesetBuilder.NodeId]
+    ): mutable.Set[ChangesetBuilder.NodeId] = {
+      var toProcess = values
+      while (toProcess.nonEmpty) {
+        val head = toProcess.head
+        toProcess = toProcess.tail
+        val invalidated = ChangesetBuilder.invalidated(
+          tree,
+          head._1,
+          false,
+          false
+        )
+        ids ++= invalidated.map(_.id)
+      }
+      ids
+    }
 
     @scala.annotation.tailrec
     def go(
-      queue: mutable.Queue[DataflowAnalysis.DependencyInfo.Type],
-      visited: mutable.Set[DataflowAnalysis.DependencyInfo.Type]
-    ): Set[UUID @ExternalID] =
-      if (queue.isEmpty) visited.flatMap(_.externalId).toSet
-      else {
-        val elem       = queue.dequeue()
-        val transitive = metadata.dependents.get(elem).getOrElse(Set())
-        val dynamic = transitive
-          .flatMap {
-            case DataflowAnalysis.DependencyInfo.Type.Static(int, _) =>
-              ChangesetBuilder
-                .getExpressionName(ir, int)
-                .map(DataflowAnalysis.DependencyInfo.Type.Dynamic(_, None))
-            case dyn: DataflowAnalysis.DependencyInfo.Type.Dynamic =>
-              Some(dyn)
-            case _ =>
-              None
-          }
-          .flatMap(metadata.dependents.get)
-          .flatten
-        val combined = transitive.union(dynamic)
-
-        go(
-          queue ++= combined.diff(visited),
-          visited ++= combined
+      tree: ChangesetBuilder.Tree,
+      source: A,
+      edits: mutable.Queue[TextEdit],
+      ids: mutable.Set[ChangesetBuilder.NodeId]
+    ): Set[ChangesetBuilder.NodeId] = {
+      if (edits.isEmpty) {
+        val allExpressionBindings =
+          findBindings(
+            new HashSet() concat ids
+              .filter(_.needsRhsInvalidation)
+              .map(_.internalId)
+              .toSet,
+            ir
+          )
+        ids.toSet ++ allExpressionBindings.flatMap(
+          invalidateRhsExpressionAndSelfArgs
         )
+      } else {
+        val edit = edits.dequeue()
+        val locationEdit =
+          ChangesetBuilder.toLocationEdit(edit, source, allEdits)
+        val invalidatedSet =
+          ChangesetBuilder.invalidated(
+            tree,
+            locationEdit.location,
+            locationEdit.isNodeRemoved,
+            false
+          )
+        val newTree   = ChangesetBuilder.updateLocations(tree, locationEdit)
+        val newSource = TextEditor[A].edit(source, edit)
+        go(newTree, newSource, edits, ids ++= invalidatedSet.map(_.id))
       }
-
-    val nodeIds = invalidated(edits)
-    val direct  = nodeIds.flatMap(ChangesetBuilder.toDataflowDependencyTypes)
-    val transitive =
-      go(
-        mutable.Queue().addAll(direct),
-        mutable.Set()
+    }
+    val tree1 = ChangesetBuilder.buildTreeOfExternalIDs(ir)
+    val invalidatedByIdMap = idMapOpt
+      .map(
+        _.values.map(v =>
+          (new org.enso.compiler.core.ir.Location(v._1.start, v._1.end), v._2)
+        )
       )
-    direct.flatMap(_.externalId) ++ transitive
+      .getOrElse(Seq.empty)
+    val invalidatedByIdMapChanges =
+      analyzeIdMapChanges(tree1, invalidatedByIdMap, mutable.HashSet())
+    val tree2 = ChangesetBuilder.buildTree(ir)
+    go(tree2, source, mutable.Queue.from(edits), invalidatedByIdMapChanges)
   }
 
   /** Traverses the IR and returns a list of the most specific (the innermost)
@@ -211,21 +256,13 @@ final class ChangesetBuilder[A: TextEditor: IndexedSource](
         val edit = edits.dequeue()
         val locationEdit =
           ChangesetBuilder.toLocationEdit(edit, source, allEdits)
-        var invalidatedSet =
+        val invalidatedSet =
           ChangesetBuilder.invalidated(
             tree,
             locationEdit.location,
             locationEdit.isNodeRemoved,
-            true
+            false // FIXME: drop argument
           )
-        if (invalidatedSet.isEmpty) {
-          invalidatedSet = ChangesetBuilder.invalidated(
-            tree,
-            locationEdit.location,
-            locationEdit.isNodeRemoved,
-            false
-          )
-        }
         val newTree   = ChangesetBuilder.updateLocations(tree, locationEdit)
         val newSource = TextEditor[A].edit(source, edit)
         go(newTree, newSource, edits, ids ++= invalidatedSet.map(_.id))
@@ -298,7 +335,9 @@ object ChangesetBuilder {
     externalId: Option[UUID @ExternalID],
     name: Option[Symbol],
     needsRhsInvalidation: Boolean
-  )
+  ) {
+    def id: UUID = externalId.getOrElse(internalId)
+  }
 
   object NodeId {
 
@@ -476,10 +515,46 @@ object ChangesetBuilder {
             case binding: Expression.Binding =>
               depthFirstSearch(binding.name, acc, true)
               depthFirstSearch(binding.expression, acc, false)
+            case defArg: DefinitionArgument =>
+              // Ensures that changes to arguments' default values are being invalidated
+              defArg
+                .defaultValue()
+                .foreach(e => Node.fromIr(e, false).foreach(acc.add))
+              currentIr.children.map(depthFirstSearch(_, acc, false))
             case _ =>
               currentIr.children.map(depthFirstSearch(_, acc, false))
           }
         }
+      }
+    }
+    val collectNodes = new Tree()
+    depthFirstSearch(ir, collectNodes, false)
+    collectNodes
+  }
+
+  private def buildTreeOfExternalIDs(ir: IR): Tree = {
+    def depthFirstSearch(currentIr: IR, acc: Tree, isBinding: Boolean): Unit = {
+      val hasImportantId = currentIr.getExternalId.nonEmpty
+      if (hasImportantId) {
+        Node.fromIr(currentIr, isBinding).foreach(acc.add)
+      }
+
+      currentIr match {
+        case binding: Expression.Binding =>
+          if (!hasImportantId) {
+            Node.fromIr(binding.expression, false).foreach(acc.add)
+          }
+          depthFirstSearch(binding.name, acc, true)
+          depthFirstSearch(binding.expression, acc, false)
+        case defArg: DefinitionArgument =>
+          // Ensures that changes to arguments' default values are being invalidated
+          if (!hasImportantId) {
+            defArg
+              .defaultValue()
+              .foreach(e => Node.fromIr(e, false).foreach(acc.add))
+          }
+        case _ =>
+          currentIr.children.foreach(depthFirstSearch(_, acc, isBinding))
       }
     }
     val collectNodes = new Tree()
@@ -660,6 +735,7 @@ object ChangesetBuilder {
     * @param node the invalidated node
     * @return the dataflow dependency type
     */
+  @unused
   private def toDataflowDependencyTypes(
     node: NodeId
   ): Seq[DataflowAnalysis.DependencyInfo.Type] = {
@@ -677,6 +753,7 @@ object ChangesetBuilder {
     * @param id the node identifier
     * @return the node name
     */
+  @unused
   private def getExpressionName(
     ir: IR,
     id: UUID @Identifier

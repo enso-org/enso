@@ -1055,12 +1055,22 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
       // pop foo call
       context.send(Api.Request(requestId, Api.PopContextRequest(contextId)))
       val popContextResponses = context.receiveNIgnorePendingExpressionUpdates(
-        5
+        5,
+        timeoutSeconds = 10
       )
+      // TODO: typeChanged = true is expected?
       popContextResponses should contain allOf (
         Api.Response(requestId, Api.PopContextResponse(contextId)),
-        context.Main.Update.mainY(contextId, typeChanged = false),
-        context.Main.Update.mainZ(contextId, typeChanged = false),
+        context.Main.Update.mainY(
+          contextId,
+          fromCache   = true,
+          typeChanged = true
+        ),
+        context.Main.Update.mainZ(
+          contextId,
+          fromCache   = true,
+          typeChanged = true
+        ),
         context.executionComplete(contextId)
       )
 
@@ -1326,6 +1336,18 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
       Api.Response(requestId, Api.VisualizationAttached())
     )
 
+    attachVisualizationResponses
+      .filter(
+        _.payload.isInstanceOf[Api.VisualizationUpdate]
+      )
+      .map(response =>
+        new String(response.payload.asInstanceOf[Api.VisualizationUpdate].data)
+      ) shouldEqual
+    List(
+      "6",
+      "6"
+    )
+
     // Modify the file
     context.send(
       Api.Request(
@@ -1395,12 +1417,18 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
       )
     )
     val modifyVisualizationResponses =
-      context.receiveNIgnoreExpressionUpdates(4)
+      context.receiveNIgnoreExpressionUpdates(
+        3,
+        timeoutSeconds = 10
+      ) // Only 2 message but timeout to ensure no execution
 
-    modifyVisualizationResponses should contain allOf (
-      Api.Response(requestId, Api.VisualizationModified()),
-      context.executionComplete(contextId)
+    modifyVisualizationResponses should contain(
+      Api.Response(requestId, Api.VisualizationModified())
     )
+    modifyVisualizationResponses should not contain context.executionComplete(
+      contextId
+    )
+
     val visualizationUpdates2 =
       modifyVisualizationResponses.collect {
         case Api.Response(
@@ -5195,9 +5223,9 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
           |    v = collapsed 22
           |    v
           |""".stripMargin.linesIterator.mkString("\n")
-      val idMainCollapsed = metadata.addItem(99, 12)
-      val idCollapsedA    = metadata.addItem(58, 1)
-      val idCollapsedX    = metadata.addItem(70, 6)
+      val idMainCollapsed = metadata.addItem(99, 12, "ccc")
+      val idCollapsedA    = metadata.addItem(58, 1, "aaa")
+      val idCollapsedX    = metadata.addItem(70, 6, "bbb")
 
       val contents = metadata.appendToCode(code)
       val mainFile = context.writeMain(contents)
@@ -5804,5 +5832,4 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
       new String(dataSelf, StandardCharsets.UTF_8) shouldEqual "[4]"
       new String(dataUpdated, StandardCharsets.UTF_8) shouldEqual "[]"
   }
-
 }

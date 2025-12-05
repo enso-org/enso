@@ -83,19 +83,18 @@ object ProgramExecutionSupport {
       if (callStack.isEmpty) {
         logger.trace("ON_CACHED_VALUE {}", value.getExpressionId)
         sendExpressionUpdate(contextId, executionFrame.syncState, value)
-        /*        sendVisualizationUpdates(
+        sendVisualizationUpdates(
           contextId,
           executionFrame.cache,
           executionFrame.syncState,
           value
-        )*/
+        )
       }
     }
 
     val onComputedValueCallback: Consumer[ExpressionValue] = { value =>
       if (callStack.isEmpty) {
         logger.trace("ON_COMPUTED {}", value.getExpressionId)
-
         value.getValue match {
           case sentinel: PanicSentinel =>
             if (VisualizationResult.isInterruptedException(sentinel.getPanic)) {
@@ -111,12 +110,12 @@ object ProgramExecutionSupport {
           case _ =>
         }
         sendExpressionUpdate(contextId, executionFrame.syncState, value)
-        /*sendVisualizationUpdates(
+        sendVisualizationUpdates(
           contextId,
           executionFrame.cache,
           executionFrame.syncState,
           value
-        )*/
+        )
       }
     }
 
@@ -195,6 +194,7 @@ object ProgramExecutionSupport {
         ctx.executionService.execute(
           ctx.contextManager.getVisualizationHolder(contextId),
           module,
+          expressionId,
           callData,
           cache,
           methodCallsCache,
@@ -235,6 +235,10 @@ object ProgramExecutionSupport {
       case item :: tail =>
         val callInfo = executionFrame.cache.getCall(item.expressionId)
         if (callInfo != null) {
+          logger.trace(
+            "Executing instrumented call in function {}",
+            callInfo.functionPointer().functionName()
+          )
           val executionFrame =
             ExecutionFrame(
               ExecutionItem.CallData(item.expressionId, callInfo.ref()),
@@ -650,7 +654,7 @@ object ProgramExecutionSupport {
     * @param value the computed value
     * @param ctx the runtime context
     */
-  /*private def sendVisualizationUpdates(
+  private def sendVisualizationUpdates(
     contextId: Api.ContextId,
     runtimeCache: RuntimeCache,
     syncState: UpdatesSynchronizationState,
@@ -680,7 +684,7 @@ object ProgramExecutionSupport {
         }
       }
     }
-  }*/
+  }
 
   private def executeVisualization(
     contextId: Api.ContextId,
@@ -688,7 +692,9 @@ object ProgramExecutionSupport {
     visualization: Visualization,
     expressionId: UUID,
     expressionValue: AnyRef
-  )(implicit ctx: RuntimeContext): CompletionStage[AnyRef] = {
+  )(implicit
+    ctx: RuntimeContext
+  ): CompletionStage[Either[Throwable, AnyRef]] = {
     logger.trace(
       "Executing visualization [{}] on expression [{}] of [{}]...",
       visualization.id,
@@ -733,7 +739,7 @@ object ProgramExecutionSupport {
         expressionId,
         result
       )
-      result
+      Right(result)
     })
   }
 
@@ -869,7 +875,7 @@ object ProgramExecutionSupport {
         .fold(t => throw t, identity)
     ).whenComplete((data, throwable0) => {
       // Unwrap CompletionException, as it automatically wraps abruptly interruptions when combining stages.
-      // It's a "feature" apparrently, according to
+      // It's a "feature" apparently, according to
       // https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/CompletionStage.html
       val throwable = throwable0 match {
         case t: CompletionException => t.getCause
@@ -971,14 +977,16 @@ object ProgramExecutionSupport {
     *         error
     */
   def visualizationResultToBytes(
-    visualizationResult: AnyRef
+    visualizationResult: Either[Throwable, AnyRef]
   ): Either[Throwable, Array[Byte]] = {
-    Option(VisualizationResult.visualizationResultToBytes(visualizationResult))
-      .toRight(
-        new VisualizationException(
-          s"Cannot encode ${visualizationResult.getClass} to byte array."
+    visualizationResult.flatMap(value =>
+      Option(VisualizationResult.visualizationResultToBytes(value))
+        .toRight(
+          new VisualizationException(
+            s"Cannot encode ${visualizationResult.getClass} to byte array."
+          )
         )
-      )
+    )
   }
 
   /** Extract the method call information from the provided expression value.

@@ -52,16 +52,14 @@ class PushContextCmd(
         case _: Api.StackItem.ExplicitCall if stack.isEmpty =>
           ctx.contextManager.push(
             request.contextId,
-            request.stackItem,
-            ctx.executionService
+            request.stackItem
           )
           true
 
         case _: Api.StackItem.LocalCall if stack.nonEmpty =>
           ctx.contextManager.push(
             request.contextId,
-            request.stackItem,
-            ctx.executionService
+            request.stackItem
           )
           true
 

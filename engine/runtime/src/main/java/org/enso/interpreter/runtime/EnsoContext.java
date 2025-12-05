@@ -99,6 +99,7 @@ public final class EnsoContext {
   private final TruffleLogger logger = TruffleLogger.getLogger(LanguageInfo.ID, EnsoContext.class);
   private final DistributionManager distributionManager;
   private final LockManager lockManager;
+  private final RuntimeAnalysis runtimeAnalysis; // FIXME
   private final AtomicLong clock = new AtomicLong();
 
   /**
@@ -173,6 +174,7 @@ public final class EnsoContext {
     this.lockManager = lockManager;
     this.distributionManager = distributionManager;
     this.warningsLimit = getOption(RuntimeOptions.WARNINGS_LIMIT_KEY);
+    this.runtimeAnalysis = RuntimeAnalysis.create(this);
   }
 
   /** Perform expensive initialization logic for the context. */
@@ -1005,7 +1007,7 @@ public final class EnsoContext {
   }
 
   public RuntimeAnalysis currentRuntimeAnalysis() {
-    return singleRuntimeAnalysisProfile.profile(language.currentRuntimeAnalysis());
+    return runtimeAnalysis;
   }
 
   private Object extraValues(int index, Function<EnsoContext, ?> init) {

@@ -4,6 +4,7 @@ import com.oracle.truffle.api.CallTarget;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.RootCallTarget;
 import com.oracle.truffle.api.Truffle;
+import com.oracle.truffle.api.TruffleLogger;
 import com.oracle.truffle.api.exception.AbstractTruffleException;
 import com.oracle.truffle.api.frame.FrameInstance;
 import com.oracle.truffle.api.frame.FrameInstanceVisitor;
@@ -72,6 +73,7 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
     private final Callbacks callbacks;
     private final Timer timer;
     private final EvalNode evalNode = EvalNode.build();
+    private final TruffleLogger logger;
 
     /**
      * Creates a new event node factory.
@@ -80,10 +82,12 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
      * @param callbacks communication with users
      * @param timer the timer for timing execution
      */
-    IdEventNodeFactory(CallTarget entryCallTarget, Callbacks callbacks, Timer timer) {
+    IdEventNodeFactory(
+        CallTarget entryCallTarget, Callbacks callbacks, Timer timer, TruffleLogger logger) {
       this.entryCallTarget = entryCallTarget;
       this.callbacks = callbacks;
       this.timer = timer;
+      this.logger = logger;
     }
 
     /**
@@ -95,7 +99,7 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
      */
     @Override
     public ExecutionEventNode create(EventContext context) {
-      return new IdExecutionEventNode(context);
+      return new IdExecutionEventNode(context, logger);
     }
 
     /** Implementation of {@link Info} for the instrumented {@link Node}. */
@@ -191,14 +195,16 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
 
       private final EventContext context;
       private long nanoTimeElapsed = 0;
+      private final TruffleLogger logger;
 
       /**
        * Creates a new event node for instrumentation.
        *
        * @param context location where the node is being inserted
        */
-      IdExecutionEventNode(EventContext context) {
+      IdExecutionEventNode(EventContext context, TruffleLogger logger) {
         this.context = context;
+        this.logger = logger;
       }
 
       @Override
@@ -219,7 +225,8 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
         Node node = context.getInstrumentedNode();
         Info info = new NodeInfo(frame.materialize(), node);
         if (node instanceof AssignmentNode assignmentNode) {
-          getAnalysis(node).startExecutingCachedExpression(assignmentNode.getId());
+          getAnalysis(node)
+              .startExecutingCachedExpression(assignmentNode.getId(), assignmentNode.getRhsID());
         }
         RuntimeID runtimeID = info.getId();
         assert runtimeID != null;
@@ -248,7 +255,7 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
         }
         Node node = context.getInstrumentedNode();
         if (node instanceof AssignmentNode assignmentNode) {
-          getAnalysis(node).endExecutingCachedExpression(assignmentNode.getId());
+          getAnalysis(node).endExecutingCachedExpression(assignmentNode.getRhsID());
         }
         if (node instanceof FunctionCallInstrumentationNode functionCallInstrumentationNode
             && result instanceof FunctionCallInstrumentationNode.FunctionCall) {
@@ -273,7 +280,12 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
                 instanceof
                 ReadLocalVariableNode; // That's the only place that can result in Ref tracking
             if (currentAssignmentRef != null) {
-              currentAssignmentRef.registerDependency(ref);
+              ref.registerDependency(currentAssignmentRef);
+            } else {
+              logger.finest(
+                  "No upstream dependency on "
+                      + ref.getRuntimeID()
+                      + ". Last expression of a top function");
             }
             resultUnwrapped = ref.get();
           }
@@ -362,7 +374,7 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
         return result == null;
       }
 
-      private void setExecutionEnvironment(IdExecutionService.Info info) {
+      private void setExecutionEnvironment(Info info) {
         ExecutionEnvironment nodeEnvironment =
             (ExecutionEnvironment) callbacks.getExecutionEnvironment(info);
         if (nodeEnvironment != null) {
@@ -420,7 +432,12 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
       builder.lineIn(SourceSectionFilter.IndexRange.between(firstFunctionLine, afterFunctionLine));
     }
     var filter = builder.build();
-    var factory = new IdEventNodeFactory(entryCallTarget, callbacks, (Timer) timer);
+    var factory =
+        new IdEventNodeFactory(
+            entryCallTarget,
+            callbacks,
+            (Timer) timer,
+            env.getLogger(IdEventNodeFactory.IdExecutionEventNode.class));
     return env.getInstrumenter().attachExecutionEventFactory(filter, factory);
   }
 }

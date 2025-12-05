@@ -24,17 +24,17 @@ public class RuntimeAnalysis {
     return new RuntimeAnalysis(ctx);
   }
 
-  private Ref getOrCreateReference(RuntimeID key) {
-    var ref = references.get(key);
+  private Ref getOrCreateReference(RuntimeID key, RuntimeID cachedID) {
+    var ref = references.get(cachedID);
     if (ref == null) {
-      ref = new RefObject(key);
-      references.put(key, ref);
+      ref = new RefObject(cachedID);
+      references.put(cachedID, ref);
     }
     return ref;
   }
 
-  public Ref startExecutingCachedExpression(RuntimeID runtimeID) {
-    var ref = getOrCreateReference(runtimeID);
+  public Ref startExecutingCachedExpression(RuntimeID runtimeID, RuntimeID cachedID) {
+    var ref = getOrCreateReference(runtimeID, cachedID);
     assignmentsStack.push(ref);
     return ref;
   }
@@ -60,5 +60,14 @@ public class RuntimeAnalysis {
             popped.getRuntimeID());
       }
     }
+  }
+
+  public Ref get(RuntimeID runtimeID) {
+    return references.get(runtimeID);
+  }
+
+  @Override
+  public String toString() {
+    return "RuntimeAnalysis[keys: " + references.keySet() + "]";
   }
 }

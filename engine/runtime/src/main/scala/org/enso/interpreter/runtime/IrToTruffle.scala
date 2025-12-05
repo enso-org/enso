@@ -2250,11 +2250,6 @@ private[runtime] class IrToTruffle(
               setLocation(readArgNoCheck0, unprocessedArg.name().location())
             val readArg   = TypeCheckValueNode.wrap(readArgNoCheck, checkNode)
             val assignArg = AssignmentNode.build(readArg, slotIdx)
-            setLocation(
-              assignArg,
-              unprocessedArg.location(),
-              unprocessedArg.getId
-            )
 
             argExpressions.append(assignArg)
 

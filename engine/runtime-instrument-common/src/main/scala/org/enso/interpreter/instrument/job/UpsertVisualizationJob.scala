@@ -26,11 +26,9 @@ import org.enso.interpreter.instrument.{
 import org.enso.interpreter.runtime.Module
 import org.enso.interpreter.runtime.control.ThreadInterruptedException
 import org.enso.pkg.QualifiedName
-import org.enso.polyglot.ExternalUUID
 import org.enso.polyglot.runtime.Runtime.Api
 
 import java.util.UUID
-import java.util.function.Consumer
 import scala.annotation.unused
 import scala.concurrent.ExecutionException
 import scala.util.Try
@@ -172,11 +170,6 @@ class UpsertVisualizationJob(
       visualizationId,
       expressionId
     )
-    val stack =
-      ctx.contextManager.getStack(config.executionContextId)
-    val runtimeCache = stack.headOption
-      .flatMap(frame => Option(frame.cache))
-      .getOrElse(new RuntimeCache(ctx.executionService))
 
     val visualization =
       UpsertVisualizationJob.updateAttachedVisualization(
@@ -185,33 +178,37 @@ class UpsertVisualizationJob(
         module,
         config,
         callable,
-        arguments,
-        runtimeCache
+        arguments
       )
 
-    val action = new Consumer[Object] {
-      override def accept(value: Object): Unit = {
+    val stack =
+      ctx.contextManager.getStack(config.executionContextId)
+    val runtimeCache = stack.headOption
+      .flatMap(frame => Option(frame.cache))
+    val cachedValue = runtimeCache
+      .flatMap(c => Option(c.get(expressionId)))
+    UpsertVisualizationJob.requireVisualizationSynchronization(
+      stack,
+      visualizationId
+    )
+    cachedValue match {
+      case Some(value) =>
         ProgramExecutionSupport.executeAndSendVisualizationUpdate(
           config.executionContextId,
-          runtimeCache,
+          runtimeCache.getOrElse(new RuntimeCache),
           stack.headOption.get.syncState,
           visualization,
           expressionId,
           value
         )
-      }
+        None
+      case None =>
+        UpsertVisualizationJob.logger.trace(
+          "Cached value for expresion {}: missing",
+          expressionId
+        )
+        Some(Executable(config.executionContextId, stack))
     }
-    val runtimeExpressionId = ExternalUUID.create(expressionId);
-    val registered =
-      runtimeCache.registerAction(visualizationId, runtimeExpressionId, action)
-    registered
-      .thenApply(
-        if (_) None
-        else Some(Executable(config.executionContextId, stack))
-      )
-      .toCompletableFuture
-      .get()
-
   }
 
   private def replyWithExpressionFailedError(
@@ -328,12 +325,11 @@ object UpsertVisualizationJob {
         result.module,
         visualizationConfig,
         result.callback,
-        result.arguments,
-        visualization.cache
+        result.arguments
       )
       val stack =
         ctx.contextManager.getStack(visualizationConfig.executionContextId)
-      requireVisualizationSynchronization(stack, visualizationId) // FIXME
+      requireVisualizationSynchronization(stack, visualizationId)
     }
   }
 
@@ -624,8 +620,7 @@ object UpsertVisualizationJob {
     module: Module,
     visualizationConfig: Api.VisualizationConfiguration,
     callback: AnyRef,
-    arguments: Vector[AnyRef],
-    runtimeCache: RuntimeCache
+    arguments: Vector[AnyRef]
   )(implicit ctx: RuntimeContext): Visualization = {
     val visualizationExpressionId =
       findVisualizationExpressionId(module, visualizationConfig.expression)
@@ -633,7 +628,7 @@ object UpsertVisualizationJob {
       Visualization(
         visualizationId,
         expressionId,
-        runtimeCache, //new RuntimeCache(),
+        new RuntimeCache(),
         module,
         visualizationConfig,
         visualizationExpressionId,

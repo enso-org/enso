@@ -50,6 +50,7 @@ import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.atom.AtomConstructor;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
+import org.enso.interpreter.runtime.execution.RuntimeAnalysis;
 import org.enso.interpreter.runtime.instrument.NotificationHandler;
 import org.enso.interpreter.runtime.instrument.Timer;
 import org.enso.interpreter.runtime.library.dispatch.TypeOfNode;
@@ -65,6 +66,7 @@ import org.enso.interpreter.service.error.TypeNotFoundException;
 import org.enso.lockmanager.client.ConnectedLockManager;
 import org.enso.logger.masking.MaskedString;
 import org.enso.pkg.QualifiedName;
+import org.enso.polyglot.ExternalUUID;
 import org.enso.polyglot.debugger.ExecutedVisualization;
 import org.enso.polyglot.debugger.IdExecutionService;
 import org.enso.polyglot.runtime.Runtime$Api$ExecutionResult$Diagnostic$;
@@ -175,6 +177,7 @@ public final class ExecutionService implements GuestExecutionService {
   public CompletionStage<Object> execute(
       VisualizationHolder visualizationHolder,
       Module module,
+      UUID expressionId,
       FunctionCallInstrumentationNode.FunctionCall call,
       RuntimeCache cache,
       MethodCallsCache methodCallsCache,
@@ -205,13 +208,36 @@ public final class ExecutionService implements GuestExecutionService {
                   service ->
                       service.bind(
                           module, call.getFunction().getCallTarget(), callbacks, this.timer));
+          RuntimeAnalysis runtimeAnalysis = null;
+          var expressionRuntimeID = expressionId != null ? ExternalUUID.create(expressionId) : null;
           try {
             var rootNode = execute.getCallTarget().getRootNode();
             var callFn =
                 Function.fullyApplied(
                     execute.getCallTarget(), substituteMissingArguments(call, rootNode));
+            if (expressionRuntimeID != null) {
+              // This means that we should track dependencies between returned value of the closure
+              // (method call)
+              // and the assignment containing the invocation.
+              // Note that the tracking will only happen if we are currently executing
+              // function call on the stack (i.e. after the push context call.
+
+              context
+                  .getLogger()
+                  .finest(
+                      "Executing function "
+                          + call.getFunction().getName()
+                          + " with instrumentation");
+
+              runtimeAnalysis = EnsoContext.get(rootNode).currentRuntimeAnalysis();
+              var r = runtimeAnalysis.get(ExternalUUID.create(expressionId));
+              runtimeAnalysis.startExecutingCachedExpression(null, expressionRuntimeID);
+            }
             return RunStateNode.getUncached().execute(null, cacheKey(), cache, callFn);
           } finally {
+            if (expressionRuntimeID != null) {
+              runtimeAnalysis.endExecutingCachedExpression(expressionRuntimeID);
+            }
             eventNodeFactory.ifPresent(EventBinding::dispose);
           }
         });
@@ -264,6 +290,7 @@ public final class ExecutionService implements GuestExecutionService {
             execute(
                 visualizationHolder,
                 module,
+                null,
                 call,
                 cache,
                 methodCallsCache,

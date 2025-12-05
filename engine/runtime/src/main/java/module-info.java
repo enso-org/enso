@@ -60,8 +60,10 @@ open module org.enso.runtime {
   exports org.enso.interpreter.node.expression.builtin.text.util;
   exports org.enso.interpreter.node.expression.builtin.runtime;
   exports org.enso.interpreter.node.expression.debug;
+  exports org.enso.interpreter.node.scope;
   exports org.enso.interpreter.util;
   exports org.enso.interpreter.service.error;
+  exports org.enso.interpreter.runtime.execution;
 
   provides com.oracle.truffle.api.provider.TruffleLanguageProvider with
       org.enso.interpreter.EnsoLanguageProvider;

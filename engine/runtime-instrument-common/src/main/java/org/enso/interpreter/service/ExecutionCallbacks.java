@@ -190,7 +190,6 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
 
     if (runtimeID.isExternal()) {
       callOnComputedCallback(expressionValue);
-      cache.runVisualizations(runtimeID, result);
       executeOneshotExpressions(nodeId, result, info);
     }
     if (isPanic) {

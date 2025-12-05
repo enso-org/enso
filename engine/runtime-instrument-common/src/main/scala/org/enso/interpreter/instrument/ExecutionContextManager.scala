@@ -1,6 +1,4 @@
 package org.enso.interpreter.instrument
-
-import org.enso.interpreter.service.GuestExecutionService
 import org.enso.pkg.QualifiedName
 import org.enso.polyglot.runtime.Runtime.Api.{
   ContextId,
@@ -72,13 +70,12 @@ class ExecutionContextManager {
     */
   def push(
     id: ContextId,
-    item: StackItem,
-    executor: GuestExecutionService
+    item: StackItem
   ): Option[Unit] =
     synchronized {
       for {
         state <- contexts.get(id)
-      } yield state.stack.push(InstrumentFrame(item, executor))
+      } yield state.stack.push(InstrumentFrame(item))
     }
 
   /** If the context exists and stack not empty, pop the item from the stack.

@@ -2,7 +2,6 @@ package org.enso.interpreter.instrument.job
 
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-
 import org.enso.common.CachePreferences
 import org.enso.compiler.{data, CompilerResult}
 import org.enso.compiler.context._
@@ -25,6 +24,7 @@ import org.enso.interpreter.instrument.{
   Changeset,
   ChangesetBuilder,
   InstrumentFrame,
+  RefInvalidation,
   Visualization
 }
 import org.enso.interpreter.runtime.Module
@@ -34,12 +34,14 @@ import org.enso.pkg.QualifiedName
 import org.enso.polyglot.runtime.Runtime.Api
 import org.enso.polyglot.runtime.Runtime.Api.StackItem
 import org.enso.text.buffer.Rope
-import org.enso.text.editing.model.IdMap
+import org.enso.text.editing.model.{IdMap, Span}
 
 import java.io.File
 import java.util
 import java.util.UUID
 import java.util.function.Consumer
+import scala.annotation.unused
+import scala.jdk.CollectionConverters.CollectionHasAsScala
 import scala.jdk.OptionConverters._
 
 /** A job that ensures that specified files are compiled.
@@ -68,7 +70,7 @@ class EnsureCompiledJob(
             ctx,
             logger
           )
-        setCacheWeights()
+        //setCacheWeights()
         compilationResult
       }
     )
@@ -286,7 +288,21 @@ class EnsureCompiledJob(
               module.getLiteralSource,
               module.getIr
             )
-            val changeset = changesetBuilder.build(pendingEdits, idMap)
+
+            // Infer what new entries have been added to the IdMap in the current module
+            val idMapDiff = idMap.map { newIdMap =>
+              val existingMap      = fromCompilerIdMap(module.getIdMap).values.toMap
+              val newIdMapMap      = newIdMap.values.toMap
+              val newIdMapReversed = newIdMapMap.map(v => (v._2, v._1))
+
+              val sameUUIDs =
+                newIdMapReversed.keySet.intersect(existingMap.values.toSet)
+              // New entries
+              val newEntries = newIdMapReversed.removedAll(sameUUIDs)
+              IdMap(newEntries.map(kv => (kv._2, kv._1)).toVector)
+            }
+            val changeset =
+              changesetBuilder.build(pendingEdits, idMap, idMapDiff)
             ctx.executionService.modifyModuleSources(
               module,
               edits,
@@ -307,6 +323,7 @@ class EnsureCompiledJob(
     * @param reason human-readable explanation for invalidation
     * @return the list of cache invalidation commands
     */
+  @unused
   private def buildCacheInvalidationCommands(
     changeset: Changeset[_],
     ir: IR,
@@ -319,6 +336,7 @@ class EnsureCompiledJob(
         reason
       )
     val moduleIds = getModuleIds(ir)
+    // FIXME: still valid?
     val invalidateStaleCommand =
       CacheInvalidation.Command.InvalidateStale(moduleIds)
     Seq(
@@ -341,6 +359,7 @@ class EnsureCompiledJob(
     )
   }
 
+  @unused
   private def getModuleIds(ir: IR): Set[UUID @ExternalID] = {
     val builder = Set.newBuilder[UUID @ExternalID]
     IR.preorder(ir, _.getExternalId.foreach(builder.addOne))
@@ -392,52 +411,51 @@ class EnsureCompiledJob(
     module: Module,
     changeset: Changeset[_]
   )(implicit ctx: RuntimeContext): Unit = {
-    val invalidationCommands =
-      buildCacheInvalidationCommands(changeset, module.getIr, "changeset")
-    ctx.contextManager.getAllContexts.values
-      .foreach { stack =>
-        if (stack.nonEmpty && isStackInModule(module.getName, stack)) {
-          CacheInvalidation.runAll(stack, invalidationCommands)
+    val resolutionErrors = findNodesWithResolutionErrors(module.getIr)
+    ctx.state.executionHooks.add(new Runnable {
+      override def run(): Unit = {
+        ctx.contextManager.getAllContexts.foreach { case (ctxId, stack) =>
+          val uuids  = changeset.invalidated ++ resolutionErrors
+          val stackJ = new java.util.Stack[InstrumentFrame]();
+          stack.reverseIterator.foreach(f => stackJ.add(f));
+          val uuidsJ = new java.util.HashSet[UUID]();
+          uuids.foreach(uuid => uuidsJ.add(uuid));
+          val affected =
+            RefInvalidation
+              .invalidateAffectedIDs(
+                uuidsJ,
+                stackJ,
+                ctx.contextManager.getVisualizationHolder(ctxId),
+                ctx.executionService.getContext.currentRuntimeAnalysis()
+              )
+              .asScala
+          val cachedIDs = affected.filter(_.isExternal)
+
+          // pending updates
+          val expressionUpdates =
+            cachedIDs.map(_.uuid()).map { key =>
+              Api.ExpressionUpdate(
+                key,
+                None,
+                None,
+                Vector.empty,
+                true,
+                false,
+                Api.ExpressionUpdate.Payload.Pending(None, None)
+              )
+            }
+
+          if (expressionUpdates.nonEmpty) {
+            ctx.contextManager.getAllContexts.keys.foreach { contextId =>
+              val response = Api.Response(
+                Api.ExpressionUpdates(contextId, expressionUpdates.toSet)
+              )
+              ctx.endpoint.sendToClient(response)
+            }
+          }
         }
       }
-    CacheInvalidation.runAllVisualizations(
-      ctx.contextManager.getVisualizations(module.getName),
-      invalidationCommands
-    )
-
-    val invalidatedVisualizations =
-      ctx.contextManager.getInvalidatedVisualizations(
-        module.getName,
-        changeset.invalidated
-      )
-    invalidatedVisualizations.foreach { visualization =>
-      UpsertVisualizationJob.upsertVisualization(visualization)
-    }
-    if (invalidatedVisualizations.nonEmpty) {
-      logger.trace(
-        "Invalidated visualizations [{}]",
-        invalidatedVisualizations.map(_.id)
-      )
-    }
-
-    // pending updates
-    val updates = changeset.invalidated.map { key =>
-      Api.ExpressionUpdate(
-        key,
-        None,
-        None,
-        Vector.empty,
-        true,
-        false,
-        Api.ExpressionUpdate.Payload.Pending(None, None)
-      )
-    }
-    if (updates.nonEmpty) {
-      ctx.contextManager.getAllContexts.keys.foreach { contextId =>
-        val response = Api.Response(Api.ExpressionUpdates(contextId, updates))
-        ctx.endpoint.sendToClient(response)
-      }
-    }
+    })
   }
 
   /** Send notification about the compilation status.
@@ -463,6 +481,7 @@ class EnsureCompiledJob(
     else
       CompilationStatus.Success
 
+  @unused
   private def setCacheWeights()(implicit ctx: RuntimeContext): Unit = {
     ctx.contextManager.getAllContexts.values.foreach { stack =>
       getCacheMetadata(stack).foreach { metadata =>
@@ -484,6 +503,7 @@ class EnsureCompiledJob(
     }
   }
 
+  @unused
   private def getCacheMetadata(
     stack: Iterable[InstrumentFrame]
   )(implicit ctx: RuntimeContext): Option[CachePreferenceAnalysis.Metadata] =
@@ -500,6 +520,7 @@ class EnsureCompiledJob(
       case _ => None
     }
 
+  @unused
   private def getCacheMetadata(
     visualization: Visualization
   ): Option[CachePreferenceAnalysis.Metadata] = {
@@ -527,6 +548,7 @@ class EnsureCompiledJob(
     * @param module the qualified module name
     * @param stack the execution stack
     */
+  @unused
   private def isStackInModule(
     module: QualifiedName,
     stack: Iterable[InstrumentFrame]
@@ -618,5 +640,22 @@ object EnsureCompiledJob {
           map
       }
     new data.IdMap(values)
+  }
+
+  /** Convert compiler's identifiers map to a runtime representation.
+    *
+    * @param idMap the compiler's identifiers map
+    * @return the identifiers map
+    */
+  private def fromCompilerIdMap(idMap: data.IdMap): IdMap = {
+    if (idMap == null) {
+      IdMap(Vector.empty)
+    } else {
+      val buf = scala.collection.mutable.ArrayBuffer.empty[(Span, UUID)]
+      idMap
+        .values()
+        .forEach((l, uuid) => buf.addOne((Span(l.start(), l.end()), uuid)))
+      IdMap(buf.toArray.toVector)
+    }
   }
 }
