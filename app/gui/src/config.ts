@@ -54,3 +54,7 @@ Object.defineProperty(window, '$config', {
   enumerable: false,
   value: $config,
 })
+
+throw new Error(
+  JSON.stringify([Object.keys(process.env ?? {}), Object.keys(import.meta.env ?? {})]),
+)
