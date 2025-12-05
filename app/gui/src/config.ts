@@ -56,5 +56,8 @@ Object.defineProperty(window, '$config', {
 })
 
 throw new Error(
-  JSON.stringify([Object.keys(process.env ?? {}), Object.keys(import.meta.env ?? {})]),
+  JSON.stringify([
+    Object.keys(process.env ?? {}).filter((key) => key.startsWith('ENSO_IDE_')),
+    Object.keys(import.meta.env ?? {}).filter((key) => key.startsWith('ENSO_IDE_')),
+  ]),
 )
