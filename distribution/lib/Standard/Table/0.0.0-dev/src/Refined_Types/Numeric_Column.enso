@@ -58,7 +58,8 @@ type Numeric_Column
        ---
        Computes the radians value of each element in the column.
     radians self -> Column & Numeric_Column =
-        (self:Column) / _radians_to_degrees
+        float_column = if (self:Column).value_type.is_decimal.not then (self:Column) else (self:Column).cast ..Float
+        float_column / _radians_to_degrees
 
     ## ---
        group: Standard.Base.Math
@@ -66,7 +67,8 @@ type Numeric_Column
        ---
        Computes the degrees value of each element in the column.
     degrees self -> Column & Numeric_Column =
-        (self:Column) * _radians_to_degrees
+        float_column = if (self:Column).value_type.is_decimal.not then (self:Column) else (self:Column).cast ..Float
+        float_column * _radians_to_degrees
 
     ## ---
        group: Standard.Base.Math
@@ -195,6 +197,6 @@ type Numeric_Column
        ## Arguments
         - base: The base of the logarithm.
     log self base=10 -> Column & Numeric_Column =
-        if base==10 then self.log10 else self.ln / (self.ln base)
+        if base==10 then self.log10 else self.ln / base.ln
 
 private _radians_to_degrees = 180 / Math.pi

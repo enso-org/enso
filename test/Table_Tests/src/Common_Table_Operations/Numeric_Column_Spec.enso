@@ -67,12 +67,12 @@ add_specific_type_test group_builder type_name values build_sorted_table =
     group_builder.specify "a numeric column ("+type_name+") supports radians operation" <|
         column = numeric_column.get
         radians_column = (column:Numeric_Column).radians
-        (radians_column:Numeric_Column).should_equal (values.map v-> if v==Nothing then Nothing else v * (Math.pi / 180.0)) epsilon
+        (radians_column:Numeric_Column).should_equal (values.map v-> if v==Nothing then Nothing else (float v) * (Math.pi / 180.0)) epsilon
 
     group_builder.specify "a numeric column ("+type_name+") supports degrees operation" <|
         column = numeric_column.get
         degrees_column = (column:Numeric_Column).degrees
-        (degrees_column:Numeric_Column).should_equal (values.map v-> if v==Nothing then Nothing else v / (Math.pi / 180.0)) epsilon
+        (degrees_column:Numeric_Column).should_equal (values.map v-> if v==Nothing then Nothing else (float v) / (Math.pi / 180.0)) epsilon
 
     group_builder.specify "a numeric column ("+type_name+") supports sin operation" <|
         column = numeric_column.get
@@ -124,7 +124,7 @@ add_specific_type_test group_builder type_name values build_sorted_table =
         (power_column:Numeric_Column).should_equal (values.map v-> if v==Nothing then Nothing else (float v) ^ 2.0) epsilon
 
         neg_power_column = (column:Numeric_Column).power -1.7
-        (neg_power_column:Numeric_Column).should_equal (values.map v-> if v==Nothing then Nothing else (float v) ^ 1.7) epsilon
+        (neg_power_column:Numeric_Column).should_equal (values.map v-> if v==Nothing then Nothing else (float v) ^ -1.7) epsilon
 
         self_power = (column:Numeric_Column).power column
         (self_power:Numeric_Column).should_equal (values.map v-> if v==Nothing then Nothing else (float v) ^ (float v)) epsilon

@@ -35,16 +35,16 @@ Numeric_Column.should_equal self expected:Vector epsilon:Number=0 = Frame_Hider.
             a = p.first
             e = p.second
             if values_not_equal_with_epsilon a e epsilon then
-                Panic.throw (Test_Failure_Error.Error "Numeric column differs at row "+i.to_text+' Actual: '+a.to_text+' Expected: '+e.to_text+'.')
+                Panic.throw (Test_Failure_Error.Error "Numeric column differs at row "+i.to_text+' Actual: '+a.to_text+' Expected: '+e.to_text+(display_loc True)+'.')
 
 ## PRIVATE
 values_not_equal_with_epsilon a e epsilon =
     case a.is_a Number && e.is_a Number of
         False -> a != e
         True ->
-            if a.is_nan && e.is_nan.not then True else
-                if e.is_nan && a.is_nan.not then True else
-                    (a - e).abs > epsilon
+            Panic.catch Any handler=_->True <|
+                _ = a.should_equal e epsilon
+                False
 
 type Test_Failure_Error
     ## PRIVATE
