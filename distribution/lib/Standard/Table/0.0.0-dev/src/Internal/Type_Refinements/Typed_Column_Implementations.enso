@@ -140,4 +140,4 @@ type In_Memory_Text_Column_Implementation
     index_of (column : Column & In_Memory_Column) (other : Column | Text | Any) case_sensitivity:Case_Sensitivity=..Default =
         Value_Type.expect_text column <| Value_Type.expect_text other <|
             new_name = naming_helper.function_name "index_of" [column, other]
-            apply_case_sensitive_text_operation column other case_sensitivity TextIndexOf.INSTANCE (a -> b -> a.index_of b 0 case_sensitivity) new_name
+            apply_case_sensitive_text_operation column other case_sensitivity TextIndexOf.INSTANCE (a -> b -> a.index_of b 0 case_sensitivity) new_name Value_Type.Integer

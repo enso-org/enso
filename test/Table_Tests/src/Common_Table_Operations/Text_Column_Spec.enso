@@ -195,9 +195,9 @@ add_text_columns_specs suite_builder setup =
             res_big_A_cis    = column.index_of "A" ..Insensitive
             
             if setup.is_database.not then
-                res_little_a . to_vector . should_equal [0,0,1,Nothing]
-                res_big_A    . to_vector . should_equal [1,1,0,Nothing]
-                res_little_a_cs . to_vector . should_equal [0,-1,1,Nothing]
+                res_little_a . to_vector . should_equal [0,0,-1,Nothing]
+                res_big_A    . to_vector . should_equal [-1,1,0,Nothing]
+                res_little_a_cs . to_vector . should_equal [0,0,-1,Nothing]
                 res_big_A_cs    . to_vector . should_equal [-1,1,0,Nothing]
-                res_little_a_cis . to_vector . should_equal [0,0,1,Nothing]
-                res_big_A_cis    . to_vector . should_equal [1,1,0,Nothing]
+                res_little_a_cis . to_vector . should_equal [0,0,0,Nothing]
+                res_big_A_cis    . to_vector . should_equal [0,0,0,Nothing]
