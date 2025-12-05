@@ -40,10 +40,9 @@ export function selectionActionHandlers(
     },
     'components.deleteSelected': {
       enabled: atLeastOneComponent,
-      description: computed(() => {
-        console.log('singleNodeSelected.value', singleNodeSelected.value)
-        return singleNodeSelected.value ? 'Delete Component' : 'Delete Selected Components'
-      }),
+      description: computed(() =>
+        singleNodeSelected.value ? 'Delete Component' : 'Delete Selected Components',
+      ),
       action: action('deleteNodes'),
     },
     'components.pickColorMulti': {
@@ -52,6 +51,11 @@ export function selectionActionHandlers(
     },
     'components.deleteAndConnectAround': {
       enabled: computed(() => atLeastOneComponent.value && toValue(detachingPossible)),
+      description: computed(() =>
+        singleNodeSelected.value ?
+          'Delete and Connect Around'
+        : 'Delete Selected and Connect Around',
+      ),
       action: action('deleteAndConnectAround'),
     },
   }

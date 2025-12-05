@@ -192,7 +192,7 @@ export async function createNewComponent(page: Page) {
  * Open new component browser based on the name of referenced parent component
  */
 export async function openComponentBrowser(page: Page, parentComponent: string) {
-  await page.getByText(parentComponent, { exact: true }).click({ button: 'right' })
+  await page.getByText(parentComponent, { exact: true }).click()
   await page.keyboard.press('Enter')
 }
 

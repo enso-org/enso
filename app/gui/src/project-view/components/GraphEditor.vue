@@ -349,7 +349,7 @@ const actionHandlers = registerHandlers({
       deleteAndConnectAround: (nodes) => {
         return module.value.edit(async (edit) => {
           if (!detachInfo.value.ok) return detachInfo.value
-          const results = await Promise.all(
+          const reconnectResults = await Promise.all(
             detachInfo.value.value.map(async ({ port, ident }) => {
               const result = await graphStore.updatePortValue(
                 port,
@@ -362,12 +362,18 @@ const actionHandlers = registerHandlers({
               return result
             }),
           )
-          if (results.some((result) => !result.ok)) {
+          if (reconnectResults.some((result) => !result.ok)) {
             toasts.userActionFailed.show(
               'Errors occurred while connecting around removed components.',
             )
           }
-          return graphStore.deleteNodes(nodes.map(nodeId), edit)
+          for (const node of nodes) {
+            // We cannot call graphStore.deleteNodes, because it bases on the graphDb
+            // which is not updated with reconnections above.
+            const outerAst = edit.getVersion(node.outerAst)
+            if (outerAst.isStatement()) Ast.deleteFromParentBlock(outerAst)
+          }
+          return Ok()
         })
       },
     },
