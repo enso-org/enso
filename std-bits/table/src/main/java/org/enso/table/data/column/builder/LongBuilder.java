@@ -24,7 +24,6 @@ import org.enso.table.util.ImmutableBitSet;
 sealed class LongBuilder extends NumericBuilder implements BuilderForLong, BuilderWithRetyping
     permits BoundCheckedIntegerBuilder {
   protected final ProblemAggregator problemAggregator;
-  private ByteBuffer whole;
   private LongBuffer data;
   private BitSet validityMap;
 
@@ -33,7 +32,6 @@ sealed class LongBuilder extends NumericBuilder implements BuilderForLong, Build
   }
 
   private LongBuilder(Object[] bsAndLb, ProblemAggregator problemAggregator) {
-    this.whole = (ByteBuffer) bsAndLb[0];
     this.validityMap = (BitSet) bsAndLb[1];
     this.data = (LongBuffer) bsAndLb[2];
     this.problemAggregator = problemAggregator;
@@ -81,8 +79,6 @@ sealed class LongBuilder extends NumericBuilder implements BuilderForLong, Build
     BitSet bs;
     if (validity == 0L) {
       bs = new BitSet();
-      // everything we have is valid
-      bs.set(0, size, true);
     } else {
       var seg = MemorySegment.ofAddress(validity).reinterpret((size + 7) / 8);
       var valid = seg.asByteBuffer();
@@ -104,7 +100,6 @@ sealed class LongBuilder extends NumericBuilder implements BuilderForLong, Build
     int toCopy = Math.min(currentSize, data.capacity());
     newData.put(0, data, 0, toCopy);
     data = newData;
-    whole = (ByteBuffer) bsAndLb[0];
     newBs.or(this.validityMap);
     validityMap = newBs;
   }
