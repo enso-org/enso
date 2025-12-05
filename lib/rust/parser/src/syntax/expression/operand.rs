@@ -19,7 +19,7 @@ pub struct Operand<'s> {
 /// Unit. Creates a Operand from a node.
 impl<'s> From<Tree<'s>> for Operand<'s> {
     fn from(value: Tree<'s>) -> Self {
-        let call = false;
+        let call = matches!(value.variant, tree::Variant::Ident(_));
         let wildcards = matches!(value.variant, tree::Variant::Wildcard(_));
         Self { value, wildcards, call }
     }

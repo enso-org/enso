@@ -67,7 +67,6 @@ test.each([
       { tree: Tree.Type.Number, repr: '2' },
       { token: Token.Type.Digits, repr: '2' },
       { token: Token.Type.Operator, repr: '+' },
-      { tree: Tree.Type.Call, repr: 'a' },
       { tree: Tree.Type.Ident, repr: 'a' },
       { token: Token.Type.Ident, repr: 'a' },
     ],
