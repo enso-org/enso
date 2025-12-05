@@ -184,4 +184,20 @@ add_text_columns_specs suite_builder setup =
             case setup.is_database of
                 False -> resE . to_vector . should_equal [-1, -1, -1, Nothing, -1, 3]
                 True  -> resE . to_vector . should_equal [-1, -1, -1, Nothing, -1, 3]
-    
+
+        group_builder.specify "index_of should handle case sensitivity for In-Memory only" <|
+            column = build_sorted_table [["strings", ["a", "aA", "A", Nothing]]] . at 0
+            res_little_a = column.index_of "a"
+            res_big_A    = column.index_of "A" 
+            res_little_a_cs = column.index_of "a" ..Sensitive
+            res_big_A_cs    = column.index_of "A" ..Sensitive
+            res_little_a_cis = column.index_of "a" ..Insensitive
+            res_big_A_cis    = column.index_of "A" ..Insensitive
+            
+            if setup.is_database.not then
+                res_little_a . to_vector . should_equal [0,0,1,Nothing]
+                res_big_A    . to_vector . should_equal [1,1,0,Nothing]
+                res_little_a_cs . to_vector . should_equal [0,-1,1,Nothing]
+                res_big_A_cs    . to_vector . should_equal [-1,1,0,Nothing]
+                res_little_a_cis . to_vector . should_equal [0,0,1,Nothing]
+                res_big_A_cis    . to_vector . should_equal [1,1,0,Nothing]
