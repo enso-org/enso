@@ -60,7 +60,8 @@ export const test = base.extend<{
   app: ElectronApplication
   page: Page
 }>({
-  testRunId: async function (_, use, testInfo) {
+  // eslint-disable-next-line no-empty-pattern
+  testRunId: async function ({}, use, testInfo) {
     await use(`${testInfo.titlePath.join('-')}-${Date.now()}`)
   },
   projectsDir: async function ({ testRunId }, use) {
