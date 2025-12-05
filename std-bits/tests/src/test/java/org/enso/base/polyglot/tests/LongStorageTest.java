@@ -65,7 +65,8 @@ public class LongStorageTest {
     r.forEach(b::append);
     var storage = b.seal();
     assertEquals("Storage has the right size: " + storage, size, storage.getSize());
-    assertNotEquals(0L, storage.rawData());
+    assertNotEquals("Storage provides acccess to raw data", 0L, storage.rawData());
+    assertNotEquals("Storage provides access to validity bitmap", 0L, storage.rawValidity());
 
     var arr =
         ctx.eval("arrow", "cast[Int64]")

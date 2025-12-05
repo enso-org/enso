@@ -97,13 +97,22 @@ final class ByteBufferDirect implements AutoCloseable {
   public static ByteBufferDirect fromAddress(
       long dataAddress, long bitmapAddress, int size, SizeInBytes unit) {
     var padded = RoundingUtil.forValueCount(size, unit);
-    ByteBuffer allocated = MemoryUtil.directBuffer(dataAddress, padded.getTotalSizeInBytes());
-    assert dataAddress + padded.getDataBufferSizeInBytes() == bitmapAddress;
-    ByteBuffer dataBuffer = allocated.slice(0, padded.getDataBufferSizeInBytes());
-    dataBuffer.order(ByteOrder.LITTLE_ENDIAN);
-    ByteBuffer bitmapBuffer =
-        allocated.slice(dataBuffer.capacity(), padded.getValidityBitmapSizeInBytes());
-    return new ByteBufferDirect(allocated, dataBuffer, bitmapBuffer);
+    if (dataAddress + padded.getDataBufferSizeInBytes() == bitmapAddress) {
+      var allocated = MemoryUtil.directBuffer(dataAddress, padded.getTotalSizeInBytes());
+
+      var dataBuffer = allocated.slice(0, padded.getDataBufferSizeInBytes());
+      dataBuffer.order(ByteOrder.LITTLE_ENDIAN);
+      var bitmapBuffer =
+          allocated.slice(dataBuffer.capacity(), padded.getValidityBitmapSizeInBytes());
+      return new ByteBufferDirect(allocated, dataBuffer, bitmapBuffer);
+    } else {
+      assert bitmapAddress != 0;
+      var dataBuffer = MemoryUtil.directBuffer(dataAddress, padded.getDataBufferSizeInBytes());
+      dataBuffer.order(ByteOrder.LITTLE_ENDIAN);
+      var bitmapBuffer =
+          MemoryUtil.directBuffer(bitmapAddress, padded.getValidityBitmapSizeInBytes());
+      return new ByteBufferDirect(dataBuffer, dataBuffer, bitmapBuffer);
+    }
   }
 
   @CompilerDirectives.TruffleBoundary
