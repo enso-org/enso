@@ -1,12 +1,11 @@
 package org.enso.table.data.column.operation.unary;
 
-import org.enso.table.data.column.builder.BuilderForType;
-import org.enso.table.data.column.operation.UnaryOperation;
-import org.enso.table.data.column.storage.type.FloatType;
-
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.function.DoubleUnaryOperator;
+import org.enso.table.data.column.builder.BuilderForType;
+import org.enso.table.data.column.operation.UnaryOperation;
+import org.enso.table.data.column.storage.type.FloatType;
 
 public final class DoubleUnaryOperation extends NumericUnaryTypedOperation<Double> {
   public static UnaryOperation SIN_INSTANCE = new DoubleUnaryOperation("sin", Math::sin);

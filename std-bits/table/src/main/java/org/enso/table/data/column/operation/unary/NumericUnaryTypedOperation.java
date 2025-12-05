@@ -1,5 +1,7 @@
 package org.enso.table.data.column.operation.unary;
 
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.BuilderForType;
 import org.enso.table.data.column.operation.StorageIterators;
@@ -14,9 +16,6 @@ import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.NullType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.table.problems.MapOperationProblemAggregator;
-
-import java.math.BigDecimal;
-import java.math.BigInteger;
 
 /**
  * A base class for numeric unary operations that operate on various numeric types such as integers,
@@ -74,7 +73,7 @@ public abstract class NumericUnaryTypedOperation<T> implements UnaryOperation {
       return StorageIterators.buildOverStorage(
           bigIntegerColumnStorage,
           storageType.makeBuilder(storage.getSize(), problemAggregator),
-          (builder,index, value) -> doBigInteger(builder, value));
+          (builder, index, value) -> doBigInteger(builder, value));
     }
 
     if (storage.getType() instanceof BigDecimalType bigDecimalType) {

@@ -500,7 +500,8 @@ base_dialect_operations =
     types = [simple_cast]
     windows = [["ROW_NUMBER", make_row_number], ["ROW_NUMBER_IN_GROUP", make_row_number_in_group], ["GROUP_NUMBER", make_group_number], ["GROUP_NUMBER_EQUAL_COUNT", make_group_number_equal_count]]
     leadlag = [["LEAD", _make_lead_lag "LEAD"], ["LAG", _make_lead_lag "LAG"], ["LEAD_CLOSEST", _make_lead_lag_closest_value "LEAD"], ["LAG_CLOSEST", _make_lead_lag_closest_value "LAG"]]
-    base_dict = Dictionary.from_vector (arith + logic + compare + functions + agg + counts + text + nulls + contains + types + windows + leadlag)
+    trig = [unary "SIN", unary "ASIN", unary "COS", unary "ACOS", unary "TAN", unary "ATAN"]
+    base_dict = Dictionary.from_vector (arith + logic + compare + functions + agg + counts + text + nulls + contains + types + windows + leadlag + trig)
     Dialect_Operations.Value base_dict
 
 ## ---
