@@ -8,7 +8,6 @@ use crate::syntax::Tree;
 use crate::syntax::expression::operand::Operand;
 use crate::syntax::token;
 use crate::syntax::tree::apply;
-use crate::unwrap_call;
 
 // ===============
 // === Reducer ===
@@ -184,9 +183,8 @@ fn reduce_step<'s>(
             apply_binary_operator(tokens, lhs, rhs)
         }
         Arity::App => {
-            let (mut lhs, mut rhs) = (additional_operands.pop().unwrap(), operand.unwrap());
-            lhs.value = unwrap_call(lhs.value);
-            rhs.call = false;
+            let (mut lhs, rhs) = (additional_operands.pop().unwrap(), operand.unwrap());
+            lhs.call = false;
             let mut result = lhs.map(|lhs| apply(lhs, Tree::from(rhs)));
             result.call = true;
             result

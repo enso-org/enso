@@ -19,7 +19,6 @@ use crate::syntax::expression::whitespace::SpacingLookaheadTreeConsumer;
 use crate::syntax::maybe_with_error;
 use crate::syntax::token;
 use crate::syntax::tree::SyntaxError;
-use crate::unwrap_call;
 
 // ========================
 // === Named-App Parser ===
@@ -89,10 +88,7 @@ impl<'s> From<NamedApp<'s>> for Operand<'s> {
 
 impl<'s> ApplyToOperand<'s> for NamedApp<'s> {
     fn apply_to_operand(self, operand: Option<Operand<'s>>) -> Operand<'s> {
-        let mut operand = operand.unwrap();
-        operand.value = unwrap_call(operand.value);
-        operand.call = false;
-        let mut result = operand.map(|func| self.apply(Tree::from(func)));
+        let mut result = operand.unwrap().map(|func| self.apply(Tree::from(func)));
         result.call = true;
         result
     }

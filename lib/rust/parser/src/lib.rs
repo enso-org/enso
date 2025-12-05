@@ -201,7 +201,7 @@ fn unwrap_call(tree: Tree) -> Tree {
     }
 }
 
-/// If the input is a qualified name, return it as Ok after discarding any enclosing Call node;
+/// If the input is a qualified name, return it as Ok after discarding any Call nodes;
 /// otherwise, return the input unchanged as Err.
 fn to_qualified_name(tree: Tree) -> Result<Tree, Tree> {
     use syntax::tree::*;

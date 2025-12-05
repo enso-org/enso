@@ -18,20 +18,8 @@ pub struct Operand<'s> {
 
 /// Unit. Creates a Operand from a node.
 impl<'s> From<Tree<'s>> for Operand<'s> {
-    fn from(mut value: Tree<'s>) -> Self {
-        enum Evaluation {
-            Deferred,
-            Immediate,
-        }
-        let evaluation = match &value.variant {
-            tree::Variant::Ident(ident) if ident.token.is_type => Some(Evaluation::Deferred),
-            tree::Variant::Ident(_) => Some(Evaluation::Immediate),
-            _ => None,
-        };
-        if let Some(Evaluation::Immediate) = evaluation {
-            value = Tree::call(value);
-        }
-        let call = matches!(evaluation, Some(Evaluation::Deferred));
+    fn from(value: Tree<'s>) -> Self {
+        let call = false;
         let wildcards = matches!(value.variant, tree::Variant::Wildcard(_));
         Self { value, wildcards, call }
     }

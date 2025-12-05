@@ -87,7 +87,7 @@ impl<'s> ApplyOperator<'s> {
     }
 
     pub fn finish(self) -> Operand<'s> {
-        let Self { token, lhs, rhs } = self;
+        let Self { token, lhs, mut rhs } = self;
         let props = token.operator_properties().unwrap();
 
         let wildcards = lhs
@@ -102,37 +102,27 @@ impl<'s> ApplyOperator<'s> {
             .unwrap_or_default()
             || rhs.as_ref().map(|operand| operand.wildcards).unwrap_or_default();
 
-        // For a full QN (starting with project name), remove Call from project name.
-        let mut dot_type = false;
-        let rhs =
-            if props.can_form_section() { rhs.map(Tree::from).map(Operand::from) } else { rhs };
-        let mut rhs = rhs.map(|operand| {
-            if operand.call && !matches!(token.variant, token::Variant::DotOperator(_)) {
-                Tree::call(operand.value)
-            } else {
-                operand.value
+        if let Some(rhs) = &mut rhs {
+            if !props.can_form_section() {
+                rhs.wildcards = false;
             }
-        });
-        if let Some(rhs) = &mut rhs
-            && let (token::Variant::DotOperator(_), Tree { variant: Variant::Call(ident), .. }) =
-                (&token.variant, &mut *rhs)
-            && let Variant::Ident(ident_props) = &ident.value.variant
-        {
-            dot_type = ident_props.token.is_type;
-            rhs.variant = mem::take(&mut ident.value).variant;
+            if matches!(token.variant, token::Variant::DotOperator(_))
+                && matches!(rhs.value.variant, Variant::Ident(_))
+            {
+                rhs.call = false;
+            }
         }
+        let rhs = rhs.map(Tree::from);
 
         let lhs = lhs.map(|operand| match &token.variant {
             token::Variant::AssignmentOperator(_) | token::Variant::ArrowOperator(_) => {
                 unwrap_call(operand.value)
             }
-            token::Variant::DotOperator(_) if dot_type => unwrap_call(operand.value),
-            token::Variant::DotOperator(_) => operand.value,
             _ if operand.call => Tree::call(operand.value),
             _ => operand.value,
         });
 
-        let mut call = false;
+        let call = false;
         let value = match (token.variant, lhs, rhs) {
             (token::Variant::TypeAnnotationOperator(annotation), Some(lhs), Some(rhs)) => {
                 Tree::type_annotated(lhs, token.with_variant(annotation), rhs)
@@ -144,14 +134,8 @@ impl<'s> ApplyOperator<'s> {
             ) => {
                 let mut ident = rhs.token;
                 ident.left_offset = span.left_offset;
-                let is_type = ident.is_type;
                 let value = Tree::property_access(lhs, token.with_variant(dot), ident);
-                if is_type {
-                    call = true;
-                    value
-                } else {
-                    Tree::call(value)
-                }
+                value
             }
             (_, lhs, rhs) => apply_operator(lhs, token, rhs),
         };
