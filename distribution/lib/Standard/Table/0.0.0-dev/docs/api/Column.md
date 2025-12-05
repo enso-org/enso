@@ -48,7 +48,6 @@
     - get self index:Standard.Base.Data.Numbers.Integer= ~default:Standard.Base.Any.Any= -> (Standard.Base.Any.Any|Standard.Base.Nothing.Nothing)
     - hour self -> (Standard.Table.Column.Column&Standard.Base.Any.Any)!Standard.Table.Errors.Invalid_Value_Type
     - iif self when_true:(Standard.Table.Column.Column|Standard.Base.Any.Any) when_false:(Standard.Table.Column.Column|Standard.Base.Any.Any) -> (Standard.Table.Column.Column&Standard.Base.Any.Any)
-    - index_of self other:(Standard.Table.Column.Column|Standard.Base.Data.Text.Text|Standard.Base.Any.Any) case_sensitivity:Standard.Base.Data.Text.Case_Sensitivity.Case_Sensitivity= -> (Standard.Table.Column.Column&Standard.Base.Any.Any)
     - inferred_precise_value_type self -> Standard.Table.Value_Type.Value_Type
     - info self -> (Standard.Table.Table.Table|Standard.Base.Any.Any)
     - is_blank self treat_nans_as_blank:Standard.Base.Data.Boolean.Boolean= -> (Standard.Table.Column.Column&Standard.Base.Any.Any)
