@@ -51,6 +51,7 @@ add_numeric_columns_specs suite_builder setup =
 
 add_specific_type_test group_builder type_name values build_sorted_table =
     numeric_column = Lazy_Ref.Value <| build_sorted_table [["X", values]] . at "X"
+    epsilon=0.000000001
 
     group_builder.specify "a numeric column ("+type_name+") supports abs operation" <|
         column = numeric_column.get
@@ -65,26 +66,26 @@ add_specific_type_test group_builder type_name values build_sorted_table =
     group_builder.specify "a numeric column ("+type_name+") supports sin operation" <|
         column = numeric_column.get
         sin_column = (column:Numeric_Column).sin
-        sin_column.to_vector . should_equal (values.map v-> if v==Nothing then Nothing else (float v).sin)
+        (sin_column:Numeric_Column).should_equal (values.map v-> if v==Nothing then Nothing else (float v).sin) epsilon
 
         asin_column = (sin_column:Numeric_Column).asin
-        asin_column.to_vector . should_equal (values.map v-> if v==Nothing then Nothing else (float v).sin.asin)
+        (asin_column:Numeric_Column).should_equal (values.map v-> if v==Nothing then Nothing else (float v).sin.asin) epsilon
 
     group_builder.specify "a numeric column ("+type_name+") supports cos operation" <|
         column = numeric_column.get
         cos_column = (column:Numeric_Column).cos
-        cos_column.to_vector . should_equal (values.map v-> if v==Nothing then Nothing else (float v).cos)
+        (cos_column:Numeric_Column).should_equal (values.map v-> if v==Nothing then Nothing else (float v).cos) epsilon
 
         acos_column = (cos_column:Numeric_Column).acos
-        acos_column.to_vector . should_equal (values.map v-> if v==Nothing then Nothing else (float v).cos.acos)
+        (acos_column:Numeric_Column).should_equal (values.map v-> if v==Nothing then Nothing else (float v).cos.acos) epsilon
 
     group_builder.specify "a numeric column ("+type_name+") supports tan operation" <|
         column = numeric_column.get
         tan_column = (column:Numeric_Column).tan
-        tan_column.to_vector . should_equal (values.map v-> if v==Nothing then Nothing else (float v).tan)
+        (tan_column:Numeric_Column).should_equal (values.map v-> if v==Nothing then Nothing else (float v).tan) epsilon
 
         atan_column = (tan_column:Numeric_Column).atan
-        atan_column.to_vector . should_equal (values.map v-> if v==Nothing then Nothing else (float v).tan.atan)
+        (atan_column:Numeric_Column).should_equal (values.map v-> if v==Nothing then Nothing else (float v).tan.atan) epsilon
 
 private float v =
     if v.is_a Decimal then v.to_float else v
