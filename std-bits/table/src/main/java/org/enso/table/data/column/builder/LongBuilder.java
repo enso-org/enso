@@ -4,7 +4,6 @@ import java.lang.foreign.MemorySegment;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.LongBuffer;
-import java.util.BitSet;
 import java.util.Objects;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.storage.ColumnBooleanStorage;
@@ -18,22 +17,21 @@ import org.enso.table.data.column.storage.type.NullType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.error.ValueTypeMismatchException;
 import org.enso.table.problems.ProblemAggregator;
-import org.enso.table.util.ImmutableBitSet;
 
 /** A builder for integer columns. */
 sealed class LongBuilder extends NumericBuilder implements BuilderForLong, BuilderWithRetyping
     permits BoundCheckedIntegerBuilder {
   protected final ProblemAggregator problemAggregator;
   private LongBuffer data;
-  private BitSet validityMap;
 
   protected LongBuilder(int initialSize, ProblemAggregator problemAggregator) {
-    this(allocBuffer(initialSize, 0, 0), problemAggregator);
+    this(allocBuffer(initialSize, 0), initialSize, 0, problemAggregator);
   }
 
-  private LongBuilder(Object[] bsAndLb, ProblemAggregator problemAggregator) {
-    this.validityMap = (BitSet) bsAndLb[1];
-    this.data = (LongBuffer) bsAndLb[2];
+  private LongBuilder(
+      LongBuffer data, int initialSize, long validity, ProblemAggregator problemAggregator) {
+    super(initialSize, validity);
+    this.data = data;
     this.problemAggregator = problemAggregator;
   }
 
@@ -47,8 +45,8 @@ sealed class LongBuilder extends NumericBuilder implements BuilderForLong, Build
 
   static LongBuilder fromAddress(int size, long address, long validity, IntegerType type) {
     assert address != 0;
-    var tripple = allocBuffer(size, address, validity);
-    var builder = new LongBuilder(tripple, null);
+    var buf = allocBuffer(size, address);
+    var builder = new LongBuilder(buf, size, validity, null);
     return builder;
   }
 
@@ -58,11 +56,9 @@ sealed class LongBuilder extends NumericBuilder implements BuilderForLong, Build
    *
    * @param size the size of buffer to allocate
    * @param data address of data to read or {@code 0} to allocate new data
-   * @param validity address of validity bitmap to read or {@code 0} to assume all data are valid
-   * @param initialSize the size of the buffer
-   * @return tripple of whole {@link ByteBuffer}, {@link BitSet} and {@link LongBuffer}
+   * @return long buffer representing data
    */
-  private static Object[] allocBuffer(int size, long data, long validity) {
+  private static LongBuffer allocBuffer(int size, long data) {
     var wholeDataSize = Long.BYTES * size;
     ByteBuffer buf;
     if (data == 0L) {
@@ -75,16 +71,7 @@ sealed class LongBuilder extends NumericBuilder implements BuilderForLong, Build
     var lb = buf.order(ByteOrder.LITTLE_ENDIAN).asLongBuffer();
     assert lb.capacity() == size;
     assert lb.order() == ByteOrder.LITTLE_ENDIAN;
-
-    BitSet bs;
-    if (validity == 0L) {
-      bs = new BitSet();
-    } else {
-      var seg = MemorySegment.ofAddress(validity).reinterpret((size + 7) / 8);
-      var valid = seg.asByteBuffer();
-      bs = BitSet.valueOf(valid);
-    }
-    return new Object[] {buf, bs, lb};
+    return lb;
   }
 
   @Override
@@ -94,20 +81,16 @@ sealed class LongBuilder extends NumericBuilder implements BuilderForLong, Build
 
   @Override
   protected void resize(int desiredCapacity) {
-    var bsAndLb = allocBuffer(desiredCapacity, 0, 0);
-    var newBs = (BitSet) bsAndLb[1];
-    var newData = (LongBuffer) bsAndLb[2];
+    var newData = allocBuffer(desiredCapacity, 0);
     int toCopy = Math.min(currentSize, data.capacity());
     newData.put(0, data, 0, toCopy);
     data = newData;
-    newBs.or(this.validityMap);
-    validityMap = newBs;
   }
 
   @Override
   public void copyDataTo(Object[] items) {
     for (int i = 0; i < currentSize; i++) {
-      if (!validityMap.get(i)) {
+      if (!isValid(i)) {
         items[i] = null;
       } else {
         items[i] = data.get(i);
@@ -154,7 +137,7 @@ sealed class LongBuilder extends NumericBuilder implements BuilderForLong, Build
           int n = (int) longStorage.getSize();
           ensureFreeSpaceFor(n);
           data.put(currentSize, longStorage.getData(), 0, n);
-          longStorage.getValidityMap().copyTo(validityMap, currentSize, n);
+          appendValidityMap(longStorage.getValidityMap(), n);
           currentSize += n;
         } else {
           // No conversions needed, but we need to iterate over the items.
@@ -193,7 +176,7 @@ sealed class LongBuilder extends NumericBuilder implements BuilderForLong, Build
   @Override
   public LongBuilder appendLong(long value) {
     ensureSpaceToAppend();
-    this.validityMap.set(currentSize);
+    this.setValid(currentSize);
     this.data.put(currentSize++, value);
     return this;
   }
@@ -203,7 +186,7 @@ sealed class LongBuilder extends NumericBuilder implements BuilderForLong, Build
     if (index >= currentSize) {
       throw new IndexOutOfBoundsException();
     } else {
-      return !validityMap.get((int) index);
+      return !isValid((int) index);
     }
   }
 
@@ -223,16 +206,14 @@ sealed class LongBuilder extends NumericBuilder implements BuilderForLong, Build
 
   @Override
   public LongBuilder appendNulls(int count) {
-    var end = currentSize + count;
-    validityMap.set(currentSize, end, false);
-    currentSize = end;
+    doAppendNulls(count);
     return this;
   }
 
   @Override
   public LongBuilder append(Object o) {
     if (o == null) {
-      validityMap.set(currentSize++, false);
+      doAppendNulls(1);
       return this;
     }
 
@@ -258,11 +239,8 @@ sealed class LongBuilder extends NumericBuilder implements BuilderForLong, Build
    * @return locally copied storage
    */
   final LongStorage seal(ColumnStorage<?> otherStorage) {
-    if (otherStorage != null) {
-      currentSize = Math.toIntExact(otherStorage.getSize());
-    }
     var buf = data.asReadOnlyBuffer().position(0).limit(currentSize);
-    var validity = new ImmutableBitSet(validityMap, currentSize);
+    var validity = this.validityMap();
     return new LongStorage(buf, validity, getType(), otherStorage);
   }
 }

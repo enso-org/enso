@@ -21,7 +21,7 @@ sealed class DoubleBuilder extends NumericBuilder implements BuilderForDouble
   protected double[] data;
 
   DoubleBuilder(int initialSize, ProblemAggregator problemAggregator) {
-    super();
+    super(initialSize, 0L);
     this.data = new double[initialSize];
     precisionLossAggregator = new PrecisionLossAggregator(problemAggregator);
   }
