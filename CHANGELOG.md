@@ -14,6 +14,7 @@
   is included][14028]
 - [Function docs in autocomplete in table expressions][14059]
 - [Many CLI arguments removed][14069]
+- [Support opening project by clicking on link in documentation][14136]
 - [Images may be added to assets descriptions][14247]
 - [Dragging edges from plus button on nodes is now possible][14246]
 - [JSON and SQL visualizations' content may be now selected and copied][14262]
@@ -39,6 +40,7 @@
 [13976]: https://github.com/enso-org/enso/pull/13976
 [14059]: https://github.com/enso-org/enso/pull/14059
 [14069]: https://github.com/enso-org/enso/pull/14069
+[14136]: https://github.com/enso-org/enso/pull/14136
 [14247]: https://github.com/enso-org/enso/pull/14247
 [14262]: https://github.com/enso-org/enso/pull/14262
 [14246]: https://github.com/enso-org/enso/pull/14246

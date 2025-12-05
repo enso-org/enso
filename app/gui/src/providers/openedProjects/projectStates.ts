@@ -753,45 +753,19 @@ async function getProjectDetailsFromBackend(
         refetchOnMount: true,
         networkMode: backend.type === BackendType.remote ? 'online' : 'always',
         meta: { persist: false },
-        refetchInterval: (query): number | false => {
-          const { state } = query
-
-          if (state.status === 'error') {
+        refetchInterval: ({ state }): number | false => {
+          if (state.status === 'error' || !state.data) {
             return false
           }
-
-          if (state.data == null) {
-            return false
+          if (CREATED_PROJECT_STATES.has(state.data.state.type)) {
+            return isLocal ? LOCAL_OPENING_INTERVAL_MS : CLOUD_OPENING_INTERVAL_MS
           }
-
-          const currentState = state.data.state.type
-
-          if (isLocal) {
-            if (CREATED_PROJECT_STATES.has(currentState)) {
-              return LOCAL_OPENING_INTERVAL_MS
-            }
-
-            if (STATIC_PROJECT_STATES.has(state.data.state.type)) {
-              return OPENED_INTERVAL_MS
-            }
-
-            if (IS_OPENING[state.data.state.type]) {
-              return LOCAL_OPENING_INTERVAL_MS
-            }
-          }
-
-          if (CREATED_PROJECT_STATES.has(currentState)) {
-            return CLOUD_OPENING_INTERVAL_MS
-          }
-
-          // Cloud project
           if (STATIC_PROJECT_STATES.has(state.data.state.type)) {
             return OPENED_INTERVAL_MS
           }
           if (IS_OPENING[state.data.state.type]) {
-            return CLOUD_OPENING_INTERVAL_MS
+            return isLocal ? LOCAL_OPENING_INTERVAL_MS : CLOUD_OPENING_INTERVAL_MS
           }
-
           return DEFAULT_INTERVAL_MS
         },
       },
