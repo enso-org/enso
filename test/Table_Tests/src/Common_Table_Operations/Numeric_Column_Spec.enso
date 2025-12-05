@@ -142,9 +142,10 @@ add_specific_type_test group_builder type_name values build_sorted_table =
         (ln_column:Numeric_Column).should_equal (values.map v-> if v==Nothing then Nothing else (float v).ln) epsilon
 
     group_builder.specify "a numeric column ("+type_name+") supports exp operation" <|
-        column = numeric_column.get
+        ## Exp function grows very fast, so we only test it on first 5 values
+        column = numeric_column.get.take (..First 5)
         exp_column = (column:Numeric_Column).exp
-        (exp_column:Numeric_Column).should_equal (values.map v-> if v==Nothing then Nothing else (float v).exp) epsilon
+        (exp_column:Numeric_Column).should_equal (values.take (..First 5) . map v-> if v==Nothing then Nothing else (float v).exp) epsilon
 
     group_builder.specify "a numeric column ("+type_name+") supports log10 operation" <|
         column = numeric_column.get
