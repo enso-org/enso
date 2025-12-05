@@ -4958,6 +4958,7 @@ lazy val `library-manager` = project
   .dependsOn(`distribution-manager`)
   .dependsOn(downloader)
   .dependsOn(editions)
+  .dependsOn(`library-server` % "test->compile")
   .dependsOn(`logging-service-logback` % "test->test")
   .dependsOn(`process-utils` % "test->compile")
   .dependsOn(testkit % "test->test")

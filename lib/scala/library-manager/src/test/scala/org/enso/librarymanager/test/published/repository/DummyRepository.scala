@@ -5,6 +5,7 @@ import org.enso.distribution.FileSystem
 import org.enso.downloader.archive.TarGzWriter
 import org.enso.editions.Editions.RawEdition
 import org.enso.editions.{Editions, LibraryName}
+import org.enso.libraryserver.LibraryServer
 import org.enso.pkg.{Package, PackageManager}
 import org.enso.process.WrappedProcess
 import org.enso.semver.SemVer
@@ -160,9 +161,26 @@ abstract class DummyRepository(toolsRootDirectory: Path) {
     */
   def withServer[R](port: Int, root: Path, uploads: Boolean = false)(
     action: => R
-  ): R = Using(startServer(port, root, uploads)) { _ =>
-    action
-  }.get
+  ): R = {
+    if (uploads) {
+      Using(startExternalServer(port, root, uploads)) { _ =>
+        action
+      }.get
+    } else {
+      Using(startLibraryServer(port, root)) { _ =>
+        action
+      }.get
+    }
+  }
+
+  private def startLibraryServer(
+    port: Int,
+    root: Path
+  ): LibraryServer = {
+    val server = new LibraryServer(port, root)
+    server.start()
+    server
+  }
 
   /** Starts a server for the library repository.
     *
@@ -171,7 +189,7 @@ abstract class DummyRepository(toolsRootDirectory: Path) {
     *             [[createRepository]]
     * @param uploads specifies whether to enable uploads in the server
     */
-  private def startServer(
+  private def startExternalServer(
     port: Int,
     root: Path,
     uploads: Boolean
