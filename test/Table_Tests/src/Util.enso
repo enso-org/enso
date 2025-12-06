@@ -1,7 +1,7 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
-from Standard.Table import Column, Table
+from Standard.Table import Column, Table, Numeric_Column
 
 from Standard.Test import all
 
@@ -24,6 +24,28 @@ Column.should_equal self expected = Frame_Hider.hide <|
     expected_materialized = expected.read ..All_Rows
     Panic.catch Test_Failure_Error (column_should_equal_impl self_materialized expected_materialized) error->
         Test.fail error.payload.message
+
+Numeric_Column.should_equal : Vector -> Float -> Any
+Numeric_Column.should_equal self expected:Vector epsilon:Number=0 = Frame_Hider.hide <|
+    rhs_error_check expected
+    self_materialized = (self:Column).to_vector
+    Panic.catch Test_Failure_Error handler=(error-> Test.fail error.payload.message) <|
+        pairs = self_materialized.zip expected
+        pairs.map_with_index i-> p->
+            a = p.first
+            e = p.second
+            if values_not_equal_with_epsilon a e epsilon then
+                Panic.throw (Test_Failure_Error.Error "Numeric column differs at row "+i.to_text+' Actual: '+a.to_text+' ('+(Meta.type_of a . to_text)+') Expected: '+e.to_text+(display_loc True)+' ('+(Meta.type_of e . to_text)+').')
+
+## PRIVATE
+values_not_equal_with_epsilon a e epsilon =
+    case a.is_a Number && e.is_a Number of
+        False -> if e.is_a Number && e.is_finite.not && a==Nothing then False else a != e
+        True ->
+            Panic.catch Any handler=_->True <|
+                _ = a.should_equal e epsilon
+                False
+
 type Test_Failure_Error
     ## PRIVATE
        The runtime representation of a test failure.

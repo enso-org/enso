@@ -486,7 +486,7 @@ base_dialect_operations =
     unary = name -> [name, make_unary_op name]
     fun = name -> [name, make_function name]
 
-    arith = [["ADD_NUMBER", make_binary_op "+"], ["ADD_TEXT", make_binary_op "||"], bin "-", bin "*", bin "/", bin "%", ["MOD", make_function "MOD"], ["^", make_function "POWER"], ["ROUND", make_function "ROUND"], ["TRUNCATE", make_function "TRUNC"], ["CEIL", make_function "CEIL"], ["FLOOR", make_function "FLOOR"], ["ABS", make_function "ABS"], ["SIGNUM", make_function "SIGN"]]
+    arith = [["ADD_NUMBER", make_binary_op "+"], ["ADD_TEXT", make_binary_op "||"], bin "-", bin "*", bin "/", bin "%", ["MOD", make_function "MOD"], ["^", make_function "POWER"], ["ROUND", make_function "ROUND"], ["TRUNCATE", make_function "TRUNC"], ["CEIL", make_function "CEIL"], ["FLOOR", make_function "FLOOR"], ["ABS", make_function "ABS"], ["SIGNUM", make_function "SIGN"], ["EXP", make_function "EXP"], ["LN", make_function "LN"], ["LOG10", make_function "LOG10"], ["SQRT", make_function "SQRT"]]
     logic = [bin "AND", bin "OR", unary "NOT", ["IIF", make_iif], ["CASE", case_when]]
     eq = lift_binary_op "==" make_equals
     neq = lift_binary_op "!=" make_not_equals
@@ -500,7 +500,8 @@ base_dialect_operations =
     types = [simple_cast]
     windows = [["ROW_NUMBER", make_row_number], ["ROW_NUMBER_IN_GROUP", make_row_number_in_group], ["GROUP_NUMBER", make_group_number], ["GROUP_NUMBER_EQUAL_COUNT", make_group_number_equal_count]]
     leadlag = [["LEAD", _make_lead_lag "LEAD"], ["LAG", _make_lead_lag "LAG"], ["LEAD_CLOSEST", _make_lead_lag_closest_value "LEAD"], ["LAG_CLOSEST", _make_lead_lag_closest_value "LAG"]]
-    base_dict = Dictionary.from_vector (arith + logic + compare + functions + agg + counts + text + nulls + contains + types + windows + leadlag)
+    trig = [["SIN", make_function "SIN"], ["ASIN", make_function "ASIN"], ["COS", make_function "COS"], ["ACOS", make_function "ACOS"], ["TAN", make_function "TAN"], ["ATAN", make_function "ATAN"], ["SINH", make_function "SINH"], ["COSH", make_function "COSH"], ["TANH", make_function "TANH"]]
+    base_dict = Dictionary.from_vector (arith + logic + compare + functions + agg + counts + text + nulls + contains + types + windows + leadlag + trig)
     Dialect_Operations.Value base_dict
 
 ## ---

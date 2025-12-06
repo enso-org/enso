@@ -344,13 +344,13 @@ type DB_Column_Implementation
             make_binary_op this_column "RIGHT" n2 new_name
 
     text_mid (this_column : Column & DB_Column) (start : Column | Any) (length : Column | Any) =
-        Value_Type.expect_integer start <|
+        Helpers.expect_specific_integer_type this_column start <|
             case length of
                 _ : Rest_Of_String ->
                     new_name = (naming_helper this_column).function_name "text_mid" [this_column, start]
                     make_op this_column "SUBSTR" [start + 1] new_name
                 _ ->
-                    Value_Type.expect_integer length <|
+                    Helpers.expect_specific_integer_type this_column length <|
                         new_name = (naming_helper this_column).function_name "text_mid" [this_column, start, length]
                         make_op this_column "SUBSTR" [start + 1, length] new_name
 

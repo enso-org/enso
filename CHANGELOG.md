@@ -74,16 +74,17 @@
 - [Add error_on_missing_columns to more methods.][14236]
 - [Add `OneDrive_File` to Microsoft 365 implementation.][14237]
 - [Progress of `Runtime.sleep` visualized.][14275]
-- [Add Email.send][14258]
+- [Add `Email.send`][14258]
 - [Full DuckDB Dialect.][14298]
-- [Initial Spatial support within DuckDB][14331]
-- [Add email SMTP support][14350]
+- [Initial Spatial support within DuckDB.][14331]
+- [Add email SMTP support.][14350]
 - [Read files into DuckDB both spatial and not.][14367]
 - [Implement Text_Column to_case for DB backends.][14386]
 - [Implement bulk loading to DuckDB.][14402]
 - [Implement `Text_Column.text_mid` for in-memory and database backends.][14420]
 - [Initial file writing from DuckDB.][14421]
 - [Parquet file reading and writing, DuckDB formats.][14427]
+- [Trigonometry and other maths function on Column.][14433]
 
 [13769]: https://github.com/enso-org/enso/pull/13769
 [14026]: https://github.com/enso-org/enso/pull/14026
@@ -111,6 +112,7 @@
 [14420]: https://github.com/enso-org/enso/pull/14420
 [14421]: https://github.com/enso-org/enso/pull/14421
 [14427]: https://github.com/enso-org/enso/pull/14427
+[14433]: https://github.com/enso-org/enso/pull/14433
 
 #### Enso Language & Runtime
 
