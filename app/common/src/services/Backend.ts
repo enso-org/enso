@@ -635,10 +635,17 @@ export interface CreateCustomerPortalSessionResponse {
 /** Response from the "path/resolve" endpoint. */
 export interface PathResolveResponse extends Omit<AnyRealAsset, 'type' | 'ensoPath'> {}
 
+/** Whether a type is `any`. */
+type IsAny<T> = 0 extends 1 & T ? true : false
+
 /** Response from "assets/${assetId}" endpoint. */
 export type AssetDetailsResponse<Id extends AssetId> =
-  | (Asset<AssetTypeFromId<Id>> & { readonly metadataId: MetadataId })
-  | null
+  // `T extends T` where `T` is a type parameter is a trick to distribute union values,
+  // evaluating the conditional type for each member of the union type,
+  // and then resolving to a union of the results of this operation.
+  IsAny<Id> extends true ? AssetDetailsResponse<AssetId>
+  : | (Id extends Id ? AnyAsset<AssetTypeFromId<Id>> & { readonly metadataId: MetadataId } : never)
+    | null
 
 /** Whether the user is on a plan with multiple seats (i.e. a plan that supports multiple users). */
 export function isUserOnPlanWithMultipleSeats(user: User) {
@@ -1648,6 +1655,15 @@ export function isNewTitleUnique(
   )
 }
 
+export const MAPBOX_TOKEN_SCHEMA = z.object({
+  token: z.string(),
+  expires: z
+    .string()
+    .datetime({ offset: true })
+    .transform((str) => new Date(str)),
+})
+export type MapboxToken = z.infer<typeof MAPBOX_TOKEN_SCHEMA>
+
 /** Network error class. */
 export class NetworkError extends Error {
   /**
@@ -2014,6 +2030,8 @@ export abstract class Backend {
   abstract createApiKey(body: CreateApiKeyRequestBody): Promise<ApiKey>
   /** Delete a API key for the current user. */
   abstract deleteApiKey(apiKeyId: ApiKeyId): Promise<void>
+  /** Retrieve Mapbox token for the current user. */
+  abstract getMapboxToken(): Promise<MapboxToken>
 
   /** Throw a {@link backend.NotAuthorizedError} if the response is a 401 Not Authorized status code. */
   private async checkForAuthenticationError<T>(

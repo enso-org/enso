@@ -17,7 +17,6 @@ from Standard.Table.Internal.Storage import from_value_type
 
 import Standard.Database.Bulk_Load_Exists.Bulk_Load_Exists
 import Standard.Database.Connection.Connection.Connection
-import Standard.Database.Connection.Connection_Options.Connection_Options
 import Standard.Database.DB_Table as DB_Table_Module
 import Standard.Database.Dialects.Dialect.Dialect
 import Standard.Database.Internal.JDBC_Connection
@@ -29,6 +28,7 @@ from Standard.Database.Internal.Upload.Helpers.Default_Arguments import first_co
 from Standard.Database.Internal.Upload.Operations.Create import create_table_implementation
 
 import project.DuckDB.DuckDB
+import project.DuckDB_Format.DuckDB_Format
 import project.Internal.DuckDB_Dialect
 import project.Internal.DuckDB_Entity_Naming_Properties
 import project.Internal.DuckDB_Type_Mapping.DuckDB_Type_Mapping
@@ -252,6 +252,8 @@ type DuckDB_Connection
         - `path`: the path to the file to read. Can be a `Text`, `URI` or
           `File` object.
         - `as`: the name of the table to create. Defaults to "NewTable".
+        - `format`: the format of the file to read. If not provided, it
+          will be inferred from the file extension.
         - `key_columns`: the names of the columns to use as the primary key. If
           not provided, no primary key will be created.
         - `replace_if_present`: if set to `True`, will replace the table if it
@@ -262,14 +264,14 @@ type DuckDB_Connection
     @path Text_Input display=..Always
     @as Text_Input display=..Always
     @key_columns Vector_Editor display=..Always item_editor=Text_Input item_default='"Column"'
-    read_file : Text | URI | File -> Text -> Vector Text -> Boolean -> DB_Table
-    read_file self path=(Missing_Argument.throw "path") as:Text="NewTable" key_columns:Vector=[] replace_if_present:Boolean=False =
+    read_file : Text | URI | File -> Text -> DuckDB_Format -> Vector Text -> Boolean -> DB_Table
+    read_file self path=(Missing_Argument.throw "path") as:Text="NewTable" (format:DuckDB_Format=..Auto) key_columns:Vector=[] replace_if_present:Boolean=False =
         if self.is_in_memory.not then Context.Output.if_enabled disabled_message="As writing is disabled, cannot create a new table. Press the Write button ▶ to perform the operation." panic=False <|
             Nothing
         escaped_as = as.replace '"' '""'
         Data_Link_Helpers.as_file path file->
-            escaped_path = file.path.replace "'" "''"
-            query = 'CREATE' + (if replace_if_present then ' OR REPLACE' else "") + ' TABLE "' + escaped_as + '" AS SELECT * FROM \'' + escaped_path + '\';'
+            read_function = format.as_sql_function file
+            query = 'CREATE' + (if replace_if_present then ' OR REPLACE' else "") + ' TABLE "' + escaped_as + '" AS SELECT * FROM ' + read_function + ';'
             Context.Output.with_enabled <|
                 create_table = self.execute_update query
                 create_table.if_not_error <|
@@ -700,7 +702,7 @@ type DuckDB_Connection
                 Error.return_if_error result
 
             ## Return a new connection
-            DuckDB.From_File file schema=self.schema . connect Connection_Options.Value
+            DuckDB.From_File file schema=self.schema . connect
 
     ## ---
        icon: data_output
@@ -717,8 +719,8 @@ type DuckDB_Connection
        A file pointing at the written file.
     @query make_table_name_with_schema_selector schema_black_list=schema_black_list
     @on_existing_file Existing_File_Behavior.widget include_append=False
-    write_file : (SQL_Query_With_Schema | SQL_Query | Table) -> Text -> Existing_File_Behavior -> DuckDB_Connection
-    write_file self (query:(SQL_Query_With_Schema | SQL_Query | Table)=Missing_Argument.throw "query") (path:Writable_File=Missing_Argument.throw "path") on_existing_file:Existing_File_Behavior=..Backup =
+    write_file : (SQL_Query_With_Schema | SQL_Query | Table) -> Writable_File -> DuckDB_Format -> Existing_File_Behavior -> Writable_File
+    write_file self (query:(SQL_Query_With_Schema | SQL_Query | Table)=Missing_Argument.throw "query") (path:Writable_File=Missing_Argument.throw "path") (format:DuckDB_Format=..Auto) on_existing_file:Existing_File_Behavior=..Backup =
         Error.return_if_error query
 
         ## Check a local file (to do add support for non-local files later)
@@ -743,10 +745,10 @@ type DuckDB_Connection
         ## Write the file
         write_action file->
             escaped_path = file.path.replace "'" "''"
-            sql_query = table.to_sql.surround "COPY (" (") TO '" + escaped_path + "';")
+            sql_query = table.to_sql.surround "COPY (" (") TO '" + escaped_path + "'" + format.to_sql + ";")
             result = self.execute_update sql_query
             result.if_not_error <|
-                path
+                path_as_file
 
     ## ---
        group: Standard.Base.Metadata

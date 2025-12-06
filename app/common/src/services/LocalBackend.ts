@@ -778,7 +778,7 @@ export class LocalBackend extends backend.Backend {
 
   /** Resolve path to asset. In case of LocalBackend, this is just the filesystem path. */
   override resolveEnsoPath(path: backend.EnsoPath): Promise<backend.PathResolveResponse> {
-    const { directoryPath } = getDirectoryAndName(Path(path as string))
+    const { directoryPath } = getDirectoryAndName(Path(String(path)))
     return this.findAsset(directoryPath, 'ensoPath', path)
   }
 
@@ -1120,6 +1120,11 @@ export class LocalBackend extends backend.Backend {
 
   /** Invalid operation. */
   override deleteApiKey() {
+    return this.invalidOperation()
+  }
+
+  /** Invalid operation */
+  override getMapboxToken() {
     return this.invalidOperation()
   }
 

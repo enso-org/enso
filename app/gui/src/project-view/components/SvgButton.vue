@@ -10,6 +10,7 @@ defineProps<{
   disabled?: boolean | undefined
   title?: string | undefined
   extraClickZone?: number | undefined
+  variant?: 'submit' | undefined
 }>()
 const emit = defineEmits<{ activate: [] }>()
 </script>
@@ -19,6 +20,7 @@ const emit = defineEmits<{ activate: [] }>()
     v-model="toggledOn"
     :disabled="disabled"
     class="SvgButton"
+    :class="[variant && `variant-${variant}`, label !== undefined ? 'with-label' : undefined]"
     :title="title"
     :extraClickZone="extraClickZone"
     @activate="emit('activate')"
@@ -36,5 +38,14 @@ const emit = defineEmits<{ activate: [] }>()
   &.disabled {
     opacity: 0.2;
   }
+}
+
+.with-label {
+  padding: var(--button-padding, 4px) 1em;
+}
+
+.variant-submit {
+  background-color: var(--color-submit);
+  color: var(--color-text-light);
 }
 </style>

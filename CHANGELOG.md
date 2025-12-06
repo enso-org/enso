@@ -14,6 +14,7 @@
   is included][14028]
 - [Function docs in autocomplete in table expressions][14059]
 - [Many CLI arguments removed][14069]
+- [Support opening project by clicking on link in documentation][14136]
 - [Images may be added to assets descriptions][14247]
 - [Dragging edges from plus button on nodes is now possible][14246]
 - [JSON and SQL visualizations' content may be now selected and copied][14262]
@@ -27,6 +28,8 @@
   top.
 - [Context menu for connections][14325].
 - [Warnings and Errors no longer become transparent][14388]
+- [GeoMap visualization is now working without need of Mapbox Token in
+  environment][14429]
 
 [13685]: https://github.com/enso-org/enso/pull/13685
 [13658]: https://github.com/enso-org/enso/pull/13658
@@ -39,6 +42,7 @@
 [13976]: https://github.com/enso-org/enso/pull/13976
 [14059]: https://github.com/enso-org/enso/pull/14059
 [14069]: https://github.com/enso-org/enso/pull/14069
+[14136]: https://github.com/enso-org/enso/pull/14136
 [14247]: https://github.com/enso-org/enso/pull/14247
 [14262]: https://github.com/enso-org/enso/pull/14262
 [14246]: https://github.com/enso-org/enso/pull/14246
@@ -49,6 +53,7 @@
 [14267]: https://github.com/enso-org/enso/pull/14267
 [14325]: https://github.com/enso-org/enso/pull/14325
 [14388]: https://github.com/enso-org/enso/pull/14388
+[14429]: https://github.com/enso-org/enso/pull/14429
 
 #### Enso Standard Library
 
@@ -74,9 +79,11 @@
 - [Initial Spatial support within DuckDB][14331]
 - [Add email SMTP support][14350]
 - [Read files into DuckDB both spatial and not.][14367]
-- [Implement Text_Column to_case for DB backends][14386]
-- [Implement bulk loading to DuckDB][14402]
-- [Initial file writing from DuckDB][14421]
+- [Implement Text_Column to_case for DB backends.][14386]
+- [Implement bulk loading to DuckDB.][14402]
+- [Implement `Text_Column.text_mid` for in-memory and database backends.][14420]
+- [Initial file writing from DuckDB.][14421]
+- [Parquet file reading and writing, DuckDB formats.][14427]
 
 [13769]: https://github.com/enso-org/enso/pull/13769
 [14026]: https://github.com/enso-org/enso/pull/14026
@@ -101,7 +108,9 @@
 [14367]: https://github.com/enso-org/enso/pull/14367
 [14386]: https://github.com/enso-org/enso/pull/14386
 [14402]: https://github.com/enso-org/enso/pull/14402
+[14420]: https://github.com/enso-org/enso/pull/14420
 [14421]: https://github.com/enso-org/enso/pull/14421
+[14427]: https://github.com/enso-org/enso/pull/14427
 
 #### Enso Language & Runtime
 
