@@ -35,7 +35,7 @@ Numeric_Column.should_equal self expected:Vector epsilon:Number=0 = Frame_Hider.
             a = p.first
             e = p.second
             if values_not_equal_with_epsilon a e epsilon then
-                Panic.throw (Test_Failure_Error.Error "Numeric column differs at row "+i.to_text+' Actual: '+a.to_text+' Expected: '+e.to_text+(display_loc True)+'.')
+                Panic.throw (Test_Failure_Error.Error "Numeric column differs at row "+i.to_text+' Actual: '+a.to_text+' (' + (Meta.type_of a . to_text) + ') Expected: '+e.to_text+(display_loc True)+' (' + (Meta.type_of e . to_text) + ').')
 
 ## PRIVATE
 values_not_equal_with_epsilon a e epsilon =

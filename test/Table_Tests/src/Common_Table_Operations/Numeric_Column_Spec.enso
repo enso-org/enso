@@ -49,8 +49,8 @@ add_numeric_columns_specs suite_builder setup =
         add_specific_type_test group_builder "Doubles" [-10.5, 0.0, Nothing, 1.2, 12.34] build_sorted_table
 
         if setup.flagged ..Supports_Decimal_Type then
-            add_specific_type_test group_builder "BigIntegers" [-1, 0, Nothing, 1, 12, 2^65, -2^70] build_sorted_table
-            add_specific_type_test group_builder "Decimals" [dec "-1.5", dec "0.0", Nothing, dec "1.2", dec "12.34", dec "123454567890.1234567890", dec "-12345678901890.1234567890"] build_sorted_table
+            add_specific_type_test group_builder "BigIntegers" [-10, 0, Nothing, 1, 12, 2^65, -2^70] build_sorted_table
+            add_specific_type_test group_builder "Decimals" [dec "-10.5", dec "0.0", Nothing, dec "1.2", dec "12.34", dec "123454567890.1234567890", dec "-12345678901890.1234567890"] build_sorted_table
 
 add_specific_type_test group_builder type_name values build_sorted_table =
     sorted_table = Lazy_Ref.Value <| build_sorted_table [["X", values], ["E", 0.up_to values.length . map i-> i-3.25]]
