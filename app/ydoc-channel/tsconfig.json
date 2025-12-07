@@ -4,7 +4,6 @@
     "outDir": "dist",
     "rootDir": "src",
     "noEmit": false,
-    "declaration": true,
     "isolatedModules": true,
     "composite": true
   },
