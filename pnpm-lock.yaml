@@ -1003,6 +1003,9 @@ importers:
       rust-ffi:
         specifier: workspace:*
         version: link:../rust-ffi
+      ydoc-channel:
+        specifier: workspace:*
+        version: link:../ydoc-channel
       yjs:
         specifier: ^13.6.21
         version: 13.6.21
