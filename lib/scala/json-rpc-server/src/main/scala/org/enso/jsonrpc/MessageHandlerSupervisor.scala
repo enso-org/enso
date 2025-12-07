@@ -20,8 +20,7 @@ import java.util.UUID
   */
 final class MessageHandlerSupervisor(
   clientControllerFactory: ClientControllerFactory,
-  protocolFactory: ProtocolFactory,
-  port: Int
+  protocolFactory: ProtocolFactory
 ) extends Actor
     with LazyLogging
     with Stash {
@@ -61,7 +60,7 @@ final class MessageHandlerSupervisor(
           s"message-handler-$clientId"
         )
       context.watch(messageHandler)
-      clientActor ! JsonRpcServer.WebConnect(messageHandler, port)
+      clientActor ! JsonRpcServer.WebConnect(messageHandler)
       context.become(initialized(messageHandler))
       unstashAll()
 
