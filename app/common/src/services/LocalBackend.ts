@@ -8,7 +8,7 @@
 import { markRaw } from 'vue'
 import { PRODUCT_NAME } from '../constants.js'
 import type { DownloadOptions } from '../download.js'
-import type { DefaultGetText } from '../text'
+import type { DefaultGetText } from '../text.js'
 import { toReadableIsoString } from '../utilities/data/dateTime.js'
 import { tryGetMessage } from '../utilities/errors.js'
 import {

@@ -199,7 +199,7 @@ export class AsyncResource {
 const MAX_CACHED_UNUSED_RESOURCES = 64
 
 /**
- * Create a cache that maintains reference counded resources.
+ * Create a cache that maintains reference counted resources.
  *
  * Part of 'asyncResources' store.
  * @internal
