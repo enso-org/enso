@@ -2,10 +2,10 @@ import { fileURLToPath } from 'node:url'
 import { configDefaults, defineConfig, mergeConfig } from 'vitest/config'
 import viteConfig from './vite.config'
 
-console.log(viteConfig.mode, process.env.MODE)
 const config = mergeConfig(
   viteConfig,
   defineConfig({
+    envDir: '../common',
     test: {
       reporters: process.env.CI ? ['dot', 'github-actions'] : ['default'],
       environment: 'jsdom',
