@@ -87,6 +87,10 @@
 - [Initial file writing from DuckDB.][14421]
 - [Parquet file reading and writing, DuckDB formats.][14427]
 - [Trigonometry and other maths function on Column.][14433]
+- [Implement Text_Column to_case for DB backends][14386]
+- [Implement bulk loading to DuckDB][14402]
+- [Initial file writing from DuckDB][14421]
+- [Add Text_Column.index_of][14428]
 
 [13769]: https://github.com/enso-org/enso/pull/13769
 [14026]: https://github.com/enso-org/enso/pull/14026
@@ -115,6 +119,7 @@
 [14421]: https://github.com/enso-org/enso/pull/14421
 [14427]: https://github.com/enso-org/enso/pull/14427
 [14433]: https://github.com/enso-org/enso/pull/14433
+[14428]: https://github.com/enso-org/enso/pull/14428
 
 #### Enso Language & Runtime
 
