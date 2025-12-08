@@ -12,7 +12,11 @@ import org.enso.distribution.{DistributionManager, Environment, LanguageHome}
 import org.enso.editions.EditionResolver
 import org.enso.profiling.events.EventsMonitor
 import org.enso.editions.updater.EditionManager
-import org.enso.jsonrpc.{JsonRpcServer, SecureConnectionConfig}
+import org.enso.jsonrpc.{
+  JsonRpcServer,
+  SecureConnectionConfig,
+  YdocJsonRpcServer
+}
 import org.enso.runner.common.CompilerBasedDependencyExtractor
 import org.enso.languageserver.capability.CapabilityRouter
 import org.enso.languageserver.data._
@@ -501,7 +505,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
 
   val materializer: Materializer = Materializer.createMaterializer(system)
   val jsonRpcServer =
-    new JsonRpcServer(
+    new YdocJsonRpcServer(
       jsonRpcProtocolFactory,
       jsonRpcControllerFactory,
       JsonRpcServer
@@ -512,7 +516,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
         ),
       List(healthCheckEndpoint, idlenessEndpoint, renameProjectEndpoint),
       messagesCallback
-    )(system, materializer)
+    )(system)
   log.trace("Created JSON RPC Server [{}]", jsonRpcServer)
 
   val binaryServer =
@@ -530,10 +534,9 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
   log.trace("Created Binary WebSocket Server [{}]", binaryServer)
 
   private val ydoc = {
-    val c         = org.enso.languageserver.boot.config.ApplicationConfig.load().ydoc
-    val callbacks = org.enso.ydoc.api.NoOpMessageCallbacks.INSTANCE
+    val c = org.enso.languageserver.boot.config.ApplicationConfig.load().ydoc
     org.enso.runner.common.YdocServerApi
-      .launchYdocServer(c.hostname, c.port, callbacks)
+      .launchYdocServer(c.hostname, c.port, jsonRpcServer.yjsChannelCallbacks)
   }
 
   log.debug(
