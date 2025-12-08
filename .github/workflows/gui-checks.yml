@@ -71,6 +71,11 @@ jobs:
         continue-on-error: true
         run: pnpm run ci:typecheck
 
+      - name: 🧹 Lint (Testing)
+        id: lint
+        continue-on-error: true
+        run: pnpm run --filter enso-gui test:unit src/project-view/providers/__tests__/asyncResources.test.ts
+
       - name: 🧹 Lint
         id: lint
         continue-on-error: true
