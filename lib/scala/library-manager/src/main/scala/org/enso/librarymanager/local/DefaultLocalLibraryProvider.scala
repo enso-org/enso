@@ -25,6 +25,15 @@ class DefaultLocalLibraryProvider(searchPaths: List[Path], checkAot: Boolean)
       .map(LibraryRoot(_))
   }
 
+  override def toString: String = {
+    val sb = new StringBuilder
+    sb.append("DefaultLocalLibraryProvider(\n")
+    sb.append(s"  searchPaths: $searchPaths\n")
+    sb.append(s"  checkAot: $checkAot\n")
+    sb.append(")\n")
+    sb.toString
+  }
+
   /** Searches through the available library paths, checking if any one of them
     * contains the requested library.
     *

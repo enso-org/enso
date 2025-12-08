@@ -7,18 +7,11 @@ import org.enso.semver.SemVer
 import org.enso.distribution.FileSystem
 import org.enso.editions.{Editions, LibraryName}
 import org.enso.languageserver.libraries.LibraryEntry.PublishedLibraryVersion
-import org.enso.languageserver.libraries.{
-  LibraryComponentGroup,
-  LibraryComponentGroups,
-  LibraryEntry
-}
+import org.enso.languageserver.libraries.{LibraryComponentGroup, LibraryComponentGroups, LibraryEntry}
 import org.enso.languageserver.runtime.TestComponentGroups
 import org.enso.librarymanager.published.bundles.LocalReadOnlyRepository
 import org.enso.librarymanager.published.repository.LibraryManifest
-import org.enso.librarymanager.test.published.repository.{
-  EmptyRepository,
-  ExampleRepository
-}
+import org.enso.librarymanager.test.published.repository.{EmptyRepository, ExampleRepository}
 import org.enso.pkg.{Config, Contact, Package, PackageManager}
 import org.enso.testkit.ReportLogsOnFailure
 import org.enso.version.BuildVersion
@@ -27,6 +20,8 @@ import org.enso.yaml.YamlHelper
 import java.nio.file.Files
 import java.nio.file.Path
 import scala.concurrent.duration._
+import scala.jdk.CollectionConverters.CollectionHasAsScala
+import scala.util.Using
 
 class LibrariesTest extends BaseServerTest with ReportLogsOnFailure {
   private val libraryRepositoryPort: Int = 47308
@@ -587,6 +582,30 @@ class LibrariesTest extends BaseServerTest with ReportLogsOnFailure {
     }
   }
 
+  private def recursivelyPrintDir(dir: Path, depth: Int = 0): Unit = {
+    val prefix = "  " * depth
+    if (Files.isDirectory(dir)) {
+      val name = dir.getFileName.toString + "/"
+      println(prefix + name)
+      Using(Files.list(dir)) { children =>
+        children.forEach { child =>
+          recursivelyPrintDir(child, depth + 1)
+        }
+      }
+    } else {
+      val name = dir.getFileName.toString
+      if (name.endsWith(".yaml")) {
+        println(prefix + name + ":")
+        val lines = Files.readAllLines(dir)
+        val indentedLines = lines.stream.map(line => prefix + "  " + line).toList
+        val content = indentedLines.asScala.mkString("\n")
+        println(content)
+      } else {
+        println(prefix + name)
+      }
+    }
+  }
+
   "library/preinstall" should {
     "XX download the library sending progress notifications " +
     "and correctly place it in cache" in {
@@ -595,6 +614,7 @@ class LibrariesTest extends BaseServerTest with ReportLogsOnFailure {
       val repositoryPath = getTestDirectory.resolve("repository_path")
       println("[mylog] Problematic test")
       exampleRepo.createRepository(repositoryPath)
+      recursivelyPrintDir(repositoryPath)
       exampleRepo.withServer(libraryRepositoryPort, repositoryPath) {
         val requestId = 0
         client.send(json"""

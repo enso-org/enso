@@ -22,6 +22,15 @@ class DefaultPublishedLibraryProvider(
     with PublishedLibraryProvider {
   private val logger = Logger[DefaultPublishedLibraryProvider]
 
+  override def toString: String = {
+    val sb = new StringBuilder
+    sb.append("DefaultPublishedLibraryProvider(\n")
+    sb.append(s"  primaryCache: $primaryCache\n")
+    sb.append(s"  auxiliaryCaches: $auxiliaryCaches\n")
+    sb.append(")\n")
+    sb.toString
+  }
+
   /** @inheritdoc */
   override def findLibrary(
     libraryName: LibraryName,
