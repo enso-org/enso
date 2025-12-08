@@ -1,6 +1,10 @@
 from Standard.Base import all
 
+import Standard.Table.In_Memory_Table.In_Memory_Table
 from Standard.Table import Column, Table
+
+import Standard.Database.DB_Column.DB_Column
+import Standard.Database.DB_Table.DB_Table
 
 import project.Helpers
 from project.Helpers import time_visualization
@@ -93,9 +97,13 @@ json_from_vector vec bounds limit =
     - `value`: the value to be visualized.
 process_to_json_text : Any -> Integer | Nothing -> Integer | Nothing -> Text
 process_to_json_text value bounds=Nothing limit=Nothing = time_visualization Scatter_Plot ("process_to_json_text: " + value.to_display_text) <|
+    ## If limit is Nothing will use 15,000 for in database operations
     json = case value of
-        _ : Table  -> json_from_table  value bounds limit
+        _ : DB_Table -> json_from_table (value.read (..First (limit.if_nothing 15000))) bounds limit
+        _ : DB_Column -> json_from_table (value.to_table.read (..First (limit.if_nothing 15000))) bounds limit
+        _ : In_Memory_Table -> json_from_table value bounds limit
+        _ : Column -> json_from_table value.to_table bounds limit
         _ : Vector -> json_from_vector value bounds limit
-        _ : Column -> json_from_table  value.to_table bounds limit
-        _          -> json_from_vector value.to_vector bounds limit
+        _ : Array -> json_from_vector value bounds limit
+        _ -> json_from_vector value.to_vector bounds limit
     json
