@@ -305,6 +305,7 @@ lazy val checkNativeImageSize =
 lazy val enso = (project in file("."))
   .settings(version := "0.1")
   .aggregate(
+    `akka-native`,
     `akka-wrapper`,
     `benchmark-java-helpers`,
     `benchmarks-common`,
@@ -418,6 +419,7 @@ lazy val enso = (project in file("."))
     `ydoc-polyfill`,
     `ydoc-server`,
     `ydoc-server-registration`,
+    `zio-wrapper`
   )
   .settings(Global / concurrentRestrictions += Tags.exclusive(Exclusive))
   .settings(
@@ -567,6 +569,7 @@ lazy val componentModulesPaths =
     (`ydoc-polyfill` / Compile / exportedModuleBin).value,
     (`ydoc-server` / Compile / exportedModuleBin).value,
     (`ydoc-server-registration` / Compile / exportedModuleBin).value,
+    (`zio-wrapper` / Compile / exportedModuleBin).value
   )
   ourMods ++ thirdPartyModFiles
 }
@@ -972,6 +975,18 @@ lazy val `python-resource-provider` = project
     )
   )
 
+lazy val `akka-native` = project
+  .in(file("lib/scala/akka-native"))
+  .configs(Test)
+  .settings(
+    frgaalJavaCompilerSetting,
+    version := "0.1",
+    libraryDependencies ++= Seq(
+      akkaActor
+    ),
+    // Note [Native Image Workaround for GraalVM 20.2]
+    libraryDependencies += "org.graalvm.nativeimage" % "svm" % graalMavenPackagesVersion % "provided"
+  )
 
 lazy val `profiling-utils` = project
   .in(file("lib/scala/profiling-utils"))
@@ -1517,6 +1532,64 @@ lazy val `akka-wrapper` = project
     }
   )
 
+lazy val `zio-wrapper` = project
+  .in(file("lib/java/zio-wrapper"))
+  .enablePlugins(JPMSPlugin)
+  .settings(
+    modularFatJarWrapperSettings,
+    scalaModuleDependencySetting,
+    javaModuleName := "org.enso.zio.wrapper",
+    libraryDependencies ++= zio ++ Seq(
+      "dev.zio" %% "zio-internal-macros"                       % zioVersion,
+      "dev.zio" %% "zio-stacktracer"                           % zioVersion,
+      "dev.zio" %% "izumi-reflect"                             % zioIzumiReflectVersion,
+      "dev.zio" %% "izumi-reflect-thirdparty-boopickle-shaded" % zioIzumiReflectVersion
+    ),
+    assembly / assemblyExcludedJars := {
+      val excludedJars = JPMSUtils.filterModulesFromUpdate(
+        update.value,
+        scalaLibrary ++ scalaReflect,
+        streams.value.log,
+        moduleName.value,
+        scalaBinaryVersion.value,
+        shouldContainAll = true
+      )
+      excludedJars
+        .map(Attributed.blank)
+    },
+    Compile / internalModuleDependencies := Seq(
+      (`scala-libs-wrapper` / Compile / exportedModule).value
+    ),
+    Compile / patchModules := {
+      val scalaLibs = JPMSUtils.filterModulesFromUpdate(
+        update.value,
+        scalaLibrary ++
+        Seq(
+          "dev.zio" %% "zio"                                       % zioVersion,
+          "dev.zio" %% "zio-internal-macros"                       % zioVersion,
+          "dev.zio" %% "zio-interop-cats"                          % zioInteropCatsVersion,
+          "dev.zio" %% "zio-stacktracer"                           % zioVersion,
+          "dev.zio" %% "izumi-reflect"                             % zioIzumiReflectVersion,
+          "dev.zio" %% "izumi-reflect-thirdparty-boopickle-shaded" % zioIzumiReflectVersion
+        ),
+        streams.value.log,
+        moduleName.value,
+        scalaBinaryVersion.value,
+        shouldContainAll = true
+      )
+      Map(
+        javaModuleName.value -> scalaLibs
+      )
+    },
+    Runtime / addReads := {
+      Map(
+        // zio internals tries to access classes from `jdk.unsupported`.
+        javaModuleName.value -> Seq(
+          "jdk.unsupported"
+        )
+      )
+    }
+  )
 
 lazy val cli = project
   .in(file("lib/scala/cli"))
@@ -2164,6 +2237,7 @@ lazy val `language-server` = (project in file("engine/language-server"))
       (`logging-service-logback` / Compile / internalModuleDependencies).value ++
       Seq(
         (`akka-wrapper` / Compile / exportedModule).value,
+        (`zio-wrapper` / Compile / exportedModule).value,
         (`scala-libs-wrapper` / Compile / exportedModule).value,
         (`connected-lock-manager-server` / Compile / exportedModule).value,
         (`language-server-deps-wrapper` / Compile / exportedModule).value,
