@@ -187,7 +187,8 @@ JSON_Lines_Format.write_table : Writable_File -> Table -> Existing_File_Behavior
 JSON_Lines_Format.write_table self file:Writable_File table on_existing_file match_columns on_problems:Problem_Behavior=..Report_Warning =
     _ = match_columns
     table_json = table.to_js_object.map .to_json . join '\n'
-    table_json.write file on_existing_file=on_existing_file on_problems=on_problems
+    used_json = if on_existing_file==Existing_File_Behavior.Append && file.exists then '\n'+table_json else table_json
+    used_json.write file on_existing_file=on_existing_file on_problems=on_problems
 
 ## ---
    private: true

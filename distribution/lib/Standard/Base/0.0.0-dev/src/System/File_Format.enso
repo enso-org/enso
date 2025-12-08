@@ -478,8 +478,7 @@ type JSON_Lines_Format
     read : File -> Problem_Behavior -> Any
     read self file on_problems:Problem_Behavior =
         text = file.read_text
-        read_text text on_problems
-
+        self.read_text text on_problems file
 
     ## ---
        private: true
@@ -489,9 +488,9 @@ type JSON_Lines_Format
     read_stream self stream:Input_Stream (metadata : File_Format_Metadata) =
         _ = metadata
         text = Text.from_bytes (stream.read_all_bytes) Encoding.utf_8
-        read_text text Problem_Behavior.Report_Warning
+        self.read_text text Problem_Behavior.Report_Warning Nothing
 
-    private read_text text on_problems =
+    private read_text text on_problems file =
         warnings = Ref.new []
         result = text.lines.map_with_index on_problems=No_Wrap.Value i->l->
             parsed = l.parse_json
