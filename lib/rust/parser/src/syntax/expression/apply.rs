@@ -122,7 +122,7 @@ impl<'s> ApplyOperator<'s> {
             _ => operand.value,
         });
 
-        let mut call = false;
+        let call = false;
         let value = match (token.variant, lhs, rhs) {
             (token::Variant::TypeAnnotationOperator(annotation), Some(lhs), Some(rhs)) => {
                 Tree::type_annotated(lhs, token.with_variant(annotation), rhs)
@@ -135,7 +135,6 @@ impl<'s> ApplyOperator<'s> {
                 let mut ident = rhs.token;
                 ident.left_offset = span.left_offset;
                 let value = Tree::property_access(lhs, token.with_variant(dot), ident);
-                call = true;
                 value
             }
             (_, lhs, rhs) => apply_operator(lhs, token, rhs),
