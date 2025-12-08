@@ -137,7 +137,7 @@ sealed class DoubleBuilder extends NumericBuilder implements BuilderForDouble
       if (storage instanceof DoubleStorage doubleStorage) {
         int n = (int) doubleStorage.getSize();
         ensureFreeSpaceFor(n);
-        data.put(currentSize, doubleStorage.getData(), currentSize, n);
+        data.put(currentSize, doubleStorage.getData(), 0, n);
         appendValidityMap(doubleStorage.getValidityMap(), n);
         currentSize += n;
       } else {
