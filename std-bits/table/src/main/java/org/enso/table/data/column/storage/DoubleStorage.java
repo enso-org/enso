@@ -1,5 +1,6 @@
 package org.enso.table.data.column.storage;
 
+import java.nio.DoubleBuffer;
 import java.util.NoSuchElementException;
 import org.enso.table.data.column.storage.iterators.ColumnDoubleStorageIterator;
 import org.enso.table.data.column.storage.type.FloatType;
@@ -8,7 +9,7 @@ import org.enso.table.util.ImmutableBitSet;
 /** A column containing floating point numbers. */
 public final class DoubleStorage extends Storage<Double>
     implements ColumnDoubleStorage, ColumnStorageWithValidityMap {
-  private final double[] data;
+  private final DoubleBuffer data;
   private final ImmutableBitSet validityMap;
   private final int size;
 
@@ -18,7 +19,7 @@ public final class DoubleStorage extends Storage<Double>
    * @param validityMap a bit set denoting at index {@code i} whether there is a real value at that
    *     index.
    */
-  public DoubleStorage(double[] data, int size, ImmutableBitSet validityMap) {
+  public DoubleStorage(DoubleBuffer data, int size, ImmutableBitSet validityMap) {
     super(FloatType.FLOAT_64);
     this.data = data;
     this.validityMap = validityMap;
@@ -37,7 +38,7 @@ public final class DoubleStorage extends Storage<Double>
 
   @Override
   public Double getItemBoxed(long idx) {
-    return isNothing(idx) ? null : data[Math.toIntExact(idx)];
+    return isNothing(idx) ? null : data.get(Math.toIntExact(idx));
   }
 
   @Override
@@ -50,7 +51,7 @@ public final class DoubleStorage extends Storage<Double>
     if (isNothing(index)) {
       throw new ValueIsNothingException(index);
     }
-    return data[Math.toIntExact(index)];
+    return data.get(Math.toIntExact(index));
   }
 
   @Override
@@ -62,8 +63,8 @@ public final class DoubleStorage extends Storage<Double>
   }
 
   /** Allow access to the underlying data array for copying. */
-  public double[] getData() {
-    return data;
+  public DoubleBuffer getData() {
+    return data.asReadOnlyBuffer();
   }
 
   @Override
@@ -72,12 +73,12 @@ public final class DoubleStorage extends Storage<Double>
   }
 
   private static class DoubleStorageIterator implements ColumnDoubleStorageIterator {
-    private final double[] data;
+    private final DoubleBuffer data;
     private final ImmutableBitSet validityMap;
     private final int size;
     private int index = -1;
 
-    public DoubleStorageIterator(double[] data, ImmutableBitSet validityMap, int size) {
+    public DoubleStorageIterator(DoubleBuffer data, ImmutableBitSet validityMap, int size) {
       this.data = data;
       this.validityMap = validityMap;
       this.size = size;
@@ -85,12 +86,12 @@ public final class DoubleStorage extends Storage<Double>
 
     @Override
     public Double getItemBoxed() {
-      return !validityMap.get(index) ? null : data[index];
+      return !validityMap.get(index) ? null : data.get(index);
     }
 
     @Override
     public double getItemAsDouble() {
-      return data[index];
+      return data.get(index);
     }
 
     @Override

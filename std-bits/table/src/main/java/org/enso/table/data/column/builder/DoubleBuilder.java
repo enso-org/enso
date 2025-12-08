@@ -2,6 +2,9 @@ package org.enso.table.data.column.builder;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+import java.nio.DoubleBuffer;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.storage.ColumnBooleanStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
@@ -18,24 +21,31 @@ import org.enso.table.problems.ProblemAggregator;
 sealed class DoubleBuilder extends NumericBuilder implements BuilderForDouble
     permits InferredDoubleBuilder {
   protected final PrecisionLossAggregator precisionLossAggregator;
-  protected double[] data;
+  private DoubleBuffer data;
 
   DoubleBuilder(int initialSize, ProblemAggregator problemAggregator) {
     super(initialSize, 0L);
-    this.data = new double[initialSize];
+    var buf = ByteBuffer.allocateDirect(Double.SIZE * initialSize).order(ByteOrder.LITTLE_ENDIAN);
+    this.data = buf.asDoubleBuffer();
+    assert ByteOrder.LITTLE_ENDIAN == this.data.order();
     precisionLossAggregator = new PrecisionLossAggregator(problemAggregator);
   }
 
   @Override
   protected int getDataSize() {
-    return data.length;
+    return data.capacity();
+  }
+
+  final double getData(int i) {
+    return data.get(i);
   }
 
   @Override
   protected void resize(int desiredCapacity) {
-    double[] newData = new double[desiredCapacity];
-    int toCopy = Math.min(currentSize, data.length);
-    System.arraycopy(data, 0, newData, 0, toCopy);
+    var buf =
+        ByteBuffer.allocateDirect(Double.SIZE * desiredCapacity).order(ByteOrder.LITTLE_ENDIAN);
+    var newData = buf.asDoubleBuffer();
+    newData.put(0, data, 0, currentSize);
     data = newData;
   }
 
@@ -81,7 +91,7 @@ sealed class DoubleBuilder extends NumericBuilder implements BuilderForDouble
 
     ensureSpaceToAppend();
     setValid(currentSize);
-    data[currentSize++] = value;
+    data.put(currentSize++, value);
     return this;
   }
 
@@ -152,7 +162,7 @@ sealed class DoubleBuilder extends NumericBuilder implements BuilderForDouble
   public DoubleBuilder appendDouble(double value) {
     ensureSpaceToAppend();
     setValid(currentSize);
-    data[currentSize++] = value;
+    data.put(currentSize++, value);
     return this;
   }
 
@@ -169,7 +179,10 @@ sealed class DoubleBuilder extends NumericBuilder implements BuilderForDouble
 
   @Override
   public ColumnStorage<Double> seal() {
-    return new DoubleStorage(data, currentSize, validityMap());
+    var copy = data.asReadOnlyBuffer();
+    copy.position(0);
+    copy.limit(currentSize);
+    return new DoubleStorage(copy, currentSize, validityMap());
   }
 
   /**
