@@ -1685,9 +1685,11 @@ lazy val `json-rpc-server` = project
     Compile / moduleDependencies ++= slf4jApi,
     Compile / internalModuleDependencies := Seq(
       (`akka-wrapper` / Compile / exportedModule).value,
+      (`ydoc-api` / Compile / exportedModule).value,
       (`scala-libs-wrapper` / Compile / exportedModule).value
     )
   )
+  .dependsOn(`ydoc-api`)
   .dependsOn(`runtime-utils` % "test->compile")
 
 // An automatic JPMS module
