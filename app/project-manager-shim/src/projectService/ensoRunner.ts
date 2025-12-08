@@ -161,12 +161,13 @@ export class EnsoRunner implements Runner {
           const cmd = this.ensoPath.endsWith('.bat') ? 'cmd.exe' : this.ensoPath
           const cmdArgs = this.ensoPath.endsWith('.bat') ? ['/c', this.ensoPath, ...args] : args
           const cwd = path.dirname(projectPath)
+          const showWindows = process.env.ENSO_SHOW_ENGINE_WINDOW === 'true'
           const serverProcess = childProcess.spawn(cmd, cmdArgs, {
             env,
             detached: false,
             cwd,
             stdio: ['pipe', 'inherit', 'inherit'],
-            windowsHide: true,
+            windowsHide: !showWindows,
           })
 
           let resolved = false
