@@ -239,6 +239,7 @@ sealed class LongBuilder extends NumericBuilder implements BuilderForLong, Build
    * @return locally copied storage
    */
   final LongStorage seal(ColumnStorage<?> otherStorage, IntegerType type) {
+    ensureFreeSpaceFor(0);
     var buf = data.asReadOnlyBuffer().position(0).limit(currentSize);
     var validity = this.validityMap();
     return new LongStorage(buf, validity, type, otherStorage);

@@ -225,6 +225,7 @@ sealed class DoubleBuilder extends NumericBuilder implements BuilderForDouble
    * @return locally copied storage
    */
   final DoubleStorage seal(ColumnStorage<?> otherStorage, StorageType<Double> type) {
+    ensureFreeSpaceFor(0);
     var buf = data.asReadOnlyBuffer().position(0).limit(currentSize);
     var validity = this.validityMap();
     return new DoubleStorage(buf, validity, otherStorage);
