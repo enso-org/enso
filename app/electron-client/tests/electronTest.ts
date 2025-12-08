@@ -154,6 +154,8 @@ export async function getNewestProject(page: Page): Promise<Locator> {
   const dataCatalogTab = page.getByRole('tab', { name: 'Data Catalog' })
   await dataCatalogTab.click()
 
+  await expect(page.getByTestId('drive-view')).toBeVisible({ timeout: LOADING_TIMEOUT })
+
   const projects = await page
     .getByTestId('drive-view')
     .getByText(/New Project \d+/)
@@ -167,6 +169,11 @@ export async function getNewestProject(page: Page): Promise<Locator> {
     }),
   )
 
+  if (numbered.length == 0) {
+    console.error('No projects found: ' + projects + ", let's again!")
+    const again: Locator = await getNewestProject(page)
+    return again
+  }
   return numbered.reduce((a, b) => (a.num > b.num ? a : b)).locator
 }
 

@@ -11,6 +11,7 @@ from project.Internal.In_Memory_Column_Implementation import _call_binary_operat
 polyglot java import org.enso.table.data.column.operation.binary.RandBetweenOperation
 polyglot java import org.enso.table.data.column.operation.unary.AbsOperation
 polyglot java import org.enso.table.data.column.operation.unary.CaseOperation
+polyglot java import org.enso.table.data.column.operation.unary.DoubleUnaryOperation
 polyglot java import org.enso.table.data.column.operation.unary.SignumOperation
 polyglot java import org.enso.table.data.column.operation.unary.TextCharLengthOperation
 polyglot java import org.enso.table.data.column.operation.unary.TextLengthOperation
@@ -32,6 +33,71 @@ type In_Memory_Numeric_Column_Implementation
             if operation.is_nothing then Error.throw (Illegal_State.Error "Unsupported randbetween operation.")
             new_name = naming_helper.function_name "randbetween" [column, limit]
             _call_binary_operator column limit new_name operation
+
+    sin (column : Column & In_Memory_Column) =
+        Value_Type.expect_numeric column <|
+            new_name = naming_helper.function_name "sin" [column]
+            apply_unary_operation column DoubleUnaryOperation.SIN_INSTANCE new_name
+
+    asin (column : Column & In_Memory_Column) =
+        Value_Type.expect_numeric column <|
+            new_name = naming_helper.function_name "asin" [column]
+            apply_unary_operation column DoubleUnaryOperation.ASIN_INSTANCE new_name
+
+    cos (column : Column & In_Memory_Column) =
+        Value_Type.expect_numeric column <|
+            new_name = naming_helper.function_name "cos" [column]
+            apply_unary_operation column DoubleUnaryOperation.COS_INSTANCE new_name
+
+    acos (column : Column & In_Memory_Column) =
+        Value_Type.expect_numeric column <|
+            new_name = naming_helper.function_name "acos" [column]
+            apply_unary_operation column DoubleUnaryOperation.ACOS_INSTANCE new_name
+
+    tan (column : Column & In_Memory_Column) =
+        Value_Type.expect_numeric column <|
+            new_name = naming_helper.function_name "tan" [column]
+            apply_unary_operation column DoubleUnaryOperation.TAN_INSTANCE new_name
+
+    atan (column : Column & In_Memory_Column) =
+        Value_Type.expect_numeric column <|
+            new_name = naming_helper.function_name "atan" [column]
+            apply_unary_operation column DoubleUnaryOperation.ATAN_INSTANCE new_name
+
+    sinh (column : Column & In_Memory_Column) =
+        Value_Type.expect_numeric column <|
+            new_name = naming_helper.function_name "sinh" [column]
+            apply_unary_operation column DoubleUnaryOperation.SINH_INSTANCE new_name
+
+    cosh (column : Column & In_Memory_Column) =
+        Value_Type.expect_numeric column <|
+            new_name = naming_helper.function_name "cosh" [column]
+            apply_unary_operation column DoubleUnaryOperation.COSH_INSTANCE new_name
+
+    tanh (column : Column & In_Memory_Column) =
+        Value_Type.expect_numeric column <|
+            new_name = naming_helper.function_name "tanh" [column]
+            apply_unary_operation column DoubleUnaryOperation.TANH_INSTANCE new_name
+
+    sqrt (column : Column & In_Memory_Column) =
+        Value_Type.expect_numeric column <|
+            new_name = naming_helper.function_name "sqrt" [column]
+            apply_unary_operation column DoubleUnaryOperation.SQRT_INSTANCE new_name
+
+    ln (column : Column & In_Memory_Column) =
+        Value_Type.expect_numeric column <|
+            new_name = naming_helper.function_name "ln" [column]
+            apply_unary_operation column DoubleUnaryOperation.LN_INSTANCE new_name
+
+    exp (column : Column & In_Memory_Column) =
+        Value_Type.expect_numeric column <|
+            new_name = naming_helper.function_name "exp" [column]
+            apply_unary_operation column DoubleUnaryOperation.EXP_INSTANCE new_name
+
+    log10 (column : Column & In_Memory_Column) =
+        Value_Type.expect_numeric column <|
+            new_name = naming_helper.function_name "log10" [column]
+            apply_unary_operation column DoubleUnaryOperation.LOG10_INSTANCE new_name
 
 type In_Memory_Text_Column_Implementation
     to_case (column : Column & In_Memory_Column) case_option:Case=..Lower locale:Locale=Locale.default =

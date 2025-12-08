@@ -89,6 +89,7 @@ declare const deck: typeof import('deck.gl')
 
 <script setup lang="ts">
 /// <reference types="@danmarshall/deckgl-typings" />
+import { useMapboxToken } from '$/providers/mapboxToken'
 import { useVisualizationConfig } from '@/util/visualizationBuiltins'
 import type { Deck } from 'deck.gl'
 import { computed, onUnmounted, ref, watchPostEffect } from 'vue'
@@ -96,17 +97,6 @@ import { computed, onUnmounted, ref, watchPostEffect } from 'vue'
 const props = defineProps<{ data: Data }>()
 
 /** GeoMap Visualization. */
-
-/**
- * Mapbox API access token.
- * All the limits of API are listed here: https://docs.mapbox.com/api/#rate-limits
- */
-const TOKEN = $config.MAPBOX_API_TOKEN
-if (!TOKEN) {
-  console.warn(
-    'Mapbox API token is missing, to use Geo Map visualization please provide ENSO_IDE_MAPBOX_API_TOKEN.',
-  )
-}
 const SCATTERPLOT_LAYER = 'Scatterplot_Layer'
 const DEFAULT_POINT_RADIUS = 150
 
@@ -143,6 +133,13 @@ const viewState = computed(() => ({
   zoom: zoom.value,
   pitch: pitch.value,
 }))
+
+const mapboxTokenStore = useMapboxToken()
+/**
+ * Mapbox API access token.
+ * All the limits of API are listed here: https://docs.mapbox.com/api/#rate-limits
+ */
+const token = await mapboxTokenStore.acquire()
 
 watchPostEffect(() => {
   if (updateState(props.data)) {
@@ -230,7 +227,7 @@ function initDeckGl() {
       // These are valid properties, but they do not exist in the typings.
       ...{
         container: mapNode.value,
-        mapboxApiAccessToken: TOKEN,
+        mapboxApiAccessToken: token.value.token,
         mapStyle: mapStyle.value,
       },
       initialViewState: viewState.value,
@@ -283,6 +280,8 @@ function updateDeckGl() {
     return
   }
   deckgl_.viewState = viewState.value
+  // @ts-expect-error TODO[ao]: linter need explanation. Perhaps some DeckGL problems, but @somebody1234 should know the answer.
+  deckgl_.mapboxApiAccessToken = token.value.token
   // @ts-expect-error TODO[ao]: linter need explanation. Perhaps some DeckGL problems, but @somebody1234 should know the answer.
   deckgl_.mapStyle = mapStyle.value
   // @ts-expect-error TODO[ao]: linter need explanation. Perhaps some DeckGL problems, but @somebody1234 should know the answer.

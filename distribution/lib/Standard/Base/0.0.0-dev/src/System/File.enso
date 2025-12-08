@@ -55,7 +55,6 @@ polyglot java import java.nio.file.FileSystemException
 polyglot java import java.nio.file.NoSuchFileException
 polyglot java import java.nio.file.Path as Java_Path
 polyglot java import java.nio.ByteBuffer
-polyglot java import java.nio.file.attribute.PosixFilePermissions
 polyglot java import java.nio.file.StandardCopyOption
 polyglot java import java.nio.file.StandardOpenOption
 polyglot java import java.time.ZonedDateTime
@@ -604,8 +603,7 @@ type File
     posix_permissions : File_Permissions
     posix_permissions self =
         File_Permissions.from_java_set <|
-            perms = Java_Files.getPosixFilePermissions self.java_path
-            PosixFilePermissions.toString perms
+            File_Utils.getPosixPermissions self.java_path
 
     ## ---
        group: Metadata
@@ -886,7 +884,7 @@ type File
     delete : Boolean -> Nothing ! File_Error
     delete self (recursive : Boolean = False) -> Nothing ! File_Error =
         Context.Output.if_enabled disabled_message="As writing is disabled, cannot delete file. Press the Write button ▶ to perform the operation." panic=False <|
-            File_Error.handle_java_exceptions self (File_Helpers.delete self recursive)
+            File_Error.handle_java_exceptions self (File_Utils.delete self.java_path recursive)
 
     ## ---
        icon: data_output
@@ -1080,8 +1078,8 @@ type File
     list_immediate_children : Vector File
     private list_immediate_children self =
         File_Error.handle_java_exceptions self <|
-            path_children = Java_Files.list self.java_path . toList
-            path_children.map (File.Value _)
+            paths = File_Utils.listImmediateChildren self.java_path
+            paths.map (File.Value _)
 
     ## ---
        private: true

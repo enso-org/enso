@@ -778,7 +778,7 @@ export class LocalBackend extends backend.Backend {
 
   /** Resolve path to asset. In case of LocalBackend, this is just the filesystem path. */
   override resolveEnsoPath(path: backend.EnsoPath): Promise<backend.PathResolveResponse> {
-    const { directoryPath } = getDirectoryAndName(Path(path as string))
+    const { directoryPath } = getDirectoryAndName(Path(String(path)))
     return this.findAsset(directoryPath, 'ensoPath', path)
   }
 
@@ -867,6 +867,67 @@ export class LocalBackend extends backend.Backend {
       })
       return { filePath: null }
     }
+  }
+
+  /** Start watching project directory. */
+  async startWatchingHybridProject(
+    assetId: backend.AssetId,
+    localProjectId: backend.ProjectId,
+    parentDirectoryId: backend.DirectoryId,
+    baseUrl: URL,
+    defaultHeaders: Record<string, string>,
+  ): Promise<void> {
+    const localProjectDirectory = backend.extractTypeAndPath(localProjectId).path
+    const queryString = new URLSearchParams({
+      assetId,
+      parentDirectoryId,
+      directory: localProjectDirectory,
+      baseUrl: baseUrl.toString(),
+    }).toString()
+    const response = await this.post(
+      new URL(`/api/watcher/start?${queryString}`, location.href).toString(),
+      defaultHeaders,
+    )
+    if (!response.ok) {
+      return await this.throw(response, 'resolveProjectAssetPathBackendError')
+    }
+  }
+
+  /**
+   * Stop watching project directory.
+   * @returns true if the project directory has unsaved changes.
+   */
+  async stopWatchingHybridProject(assetId: backend.AssetId): Promise<boolean> {
+    const queryString = new URLSearchParams({
+      assetId,
+    }).toString()
+    const response = await this.post(
+      new URL(`/api/watcher/stop?${queryString}`, location.href).toString(),
+      null,
+    )
+    if (!response.ok) {
+      return await this.throw(response, 'resolveProjectAssetPathBackendError')
+    }
+    const httpStatusIsDirty = 201
+    return response.status === httpStatusIsDirty
+  }
+
+  /**
+   * Get the state of the watched project directory.
+   * @returns true if the project directory has unsaved changes.
+   */
+  async getStateOfWatchedHybridProject(assetId: backend.AssetId): Promise<boolean> {
+    const queryString = new URLSearchParams({
+      assetId,
+    }).toString()
+    const response = await this.get(
+      new URL(`/api/watcher/state?${queryString}`, location.href).toString(),
+    )
+    if (!response.ok) {
+      return await this.throw(response, 'resolveProjectAssetPathBackendError')
+    }
+    const httpStatusIsDirty = 201
+    return response.status === httpStatusIsDirty
   }
 
   /** Invalid operation. */
@@ -1059,6 +1120,11 @@ export class LocalBackend extends backend.Backend {
 
   /** Invalid operation. */
   override deleteApiKey() {
+    return this.invalidOperation()
+  }
+
+  /** Invalid operation */
+  override getMapboxToken() {
     return this.invalidOperation()
   }
 
