@@ -110,6 +110,8 @@ public interface Builder {
           switch (localType) {
             case IntegerType type ->
                 LongBuilder.fromAddress(size, data, validity, type).seal(storage, type);
+            case FloatType type ->
+                DoubleBuilder.fromAddress(size, data, validity, type).seal(storage, type);
             default -> storage;
           };
       assert assertSameStorages(storage, localStorage);

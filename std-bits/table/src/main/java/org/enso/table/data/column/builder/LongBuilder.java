@@ -51,8 +51,7 @@ sealed class LongBuilder extends NumericBuilder implements BuilderForLong, Build
   }
 
   /**
-   * Allocates continuous direct memory buffer. First of all there is a validity bit map (padded to
-   * 8 bytes) followed by the actual data.
+   * Allocates continuous direct memory buffer.
    *
    * @param size the size of buffer to allocate
    * @param data address of data to read or {@code 0} to allocate new data

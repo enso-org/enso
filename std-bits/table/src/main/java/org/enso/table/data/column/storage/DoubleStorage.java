@@ -1,5 +1,6 @@
 package org.enso.table.data.column.storage;
 
+import java.lang.foreign.MemorySegment;
 import java.nio.DoubleBuffer;
 import java.util.NoSuchElementException;
 import org.enso.table.data.column.storage.iterators.ColumnDoubleStorageIterator;
@@ -13,17 +14,23 @@ public final class DoubleStorage extends Storage<Double>
   private final ImmutableBitSet validityMap;
   private final int size;
 
+  /** original proxy storage to keep from being garbage collected */
+  private final ColumnStorage<?> proxy;
+
   /**
    * @param data the underlying data
-   * @param size the number of items stored
    * @param validityMap a bit set denoting at index {@code i} whether there is a real value at that
    *     index.
+   * @param otherStorage reference to proxy storage to prevent it from being GCed while this storage
+   *     is used
    */
-  public DoubleStorage(DoubleBuffer data, int size, ImmutableBitSet validityMap) {
+  public DoubleStorage(
+      DoubleBuffer data, ImmutableBitSet validityMap, ColumnStorage<?> otherStorage) {
     super(FloatType.FLOAT_64);
     this.data = data;
     this.validityMap = validityMap;
-    this.size = size;
+    this.size = data.limit();
+    this.proxy = otherStorage;
   }
 
   @Override
@@ -34,6 +41,16 @@ public final class DoubleStorage extends Storage<Double>
   @Override
   public long getSize() {
     return size;
+  }
+
+  @Override
+  public long addressOfData() {
+    return MemorySegment.ofBuffer(data).address();
+  }
+
+  @Override
+  public long addressOfValidity() {
+    return MemorySegment.ofBuffer(validityMap.rawData()).address();
   }
 
   @Override
