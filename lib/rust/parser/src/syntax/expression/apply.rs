@@ -9,7 +9,7 @@ use crate::syntax::token;
 use crate::syntax::token::TokenOperatorProperties;
 
 use crate::syntax::tree::{MultipleOperatorError, Variant};
-use crate::unwrap_call;
+use crate::{expression_to_type, unwrap_call};
 // ==========================
 // === Applying operators ===
 // ==========================
@@ -122,10 +122,10 @@ impl<'s> ApplyOperator<'s> {
             _ => operand.value,
         });
 
-        let call = false;
+        let mut call = false;
         let value = match (token.variant, lhs, rhs) {
             (token::Variant::TypeAnnotationOperator(annotation), Some(lhs), Some(rhs)) => {
-                Tree::type_annotated(lhs, token.with_variant(annotation), rhs)
+                Tree::type_annotated(lhs, token.with_variant(annotation), expression_to_type(rhs))
             }
             (
                 token::Variant::DotOperator(dot),
@@ -135,6 +135,7 @@ impl<'s> ApplyOperator<'s> {
                 let mut ident = rhs.token;
                 ident.left_offset = span.left_offset;
                 let value = Tree::property_access(lhs, token.with_variant(dot), ident);
+                call = true;
                 value
             }
             (_, lhs, rhs) => apply_operator(lhs, token, rhs),

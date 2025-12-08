@@ -20,6 +20,7 @@ use crate::syntax::token::TokenOperatorProperties;
 use crate::syntax::tree::block::Line;
 use crate::syntax::tree::block::OperatorBlockExpression;
 use crate::syntax::tree::block::OperatorLine;
+use crate::unwrap_call;
 
 /// Consumes `Item`s and passes their content to a token/tree consumer, using an
 /// [`ExpressionParser`] to flatten blocks.
@@ -145,6 +146,7 @@ impl<'s> ApplicableBlock<'s> {
                 Tree::operator_block_application(expression, operator_lines, excess)
             }
             Self::ArgumentBlock { body_lines } => {
+                let expression = expression.map(unwrap_call);
                 Tree::argument_block_application(expression, body_lines)
             }
         }

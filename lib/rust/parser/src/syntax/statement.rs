@@ -3,7 +3,6 @@
 mod function_def;
 mod type_def;
 
-use crate::expression_to_pattern;
 use crate::prelude::*;
 use crate::syntax::Item;
 use crate::syntax::Token;
@@ -27,6 +26,7 @@ use crate::syntax::tree::TypeSignature;
 use crate::syntax::tree::TypeSignatureLine;
 use crate::syntax::tree::block;
 use crate::{empty_tree, to_qualified_name};
+use crate::{expression_to_pattern, expression_to_type};
 
 pub use function_def::parse_args;
 
@@ -595,7 +595,7 @@ fn parse_type_annotation_statement<'s>(
     let operator: token::TypeAnnotationOperator =
         items.pop().unwrap().into_token().unwrap().try_into().unwrap();
     let lhs = expression_parser.parse_non_section_offset(start, items);
-    let type_ = type_.unwrap_or_else(|| {
+    let type_ = type_.map(expression_to_type).unwrap_or_else(|| {
         empty_tree(operator.code.position_after()).with_error(SyntaxError::ExpectedType)
     });
     debug_assert!(items.len() <= start);

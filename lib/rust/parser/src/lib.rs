@@ -90,7 +90,8 @@ use crate::prelude::*;
 use crate::lexer::Lexer;
 use crate::macros::resolver::RootContext;
 use crate::source::Code;
-use crate::syntax::token;
+
+use crate::syntax::{maybe_with_error, token};
 
 use crate::syntax::tree::{SyntaxError, Variant};
 use crate::syntax::{Finish, Tree};
@@ -201,44 +202,51 @@ fn unwrap_call(tree: Tree) -> Tree {
     }
 }
 
-/// If the input is a qualified name, return it as Ok after discarding any Call nodes;
-/// otherwise, return the input unchanged as Err.
-fn to_qualified_name(tree: Tree) -> Result<Tree, Tree> {
-    use syntax::tree::*;
-    if matches!(&tree.variant, Variant::Ident(_) | Variant::PropertyAccess(_)) {
-        return Ok(tree);
-    }
-    match tree {
-        Tree { variant: Variant::Call(mut call), span, .. } => {
-            call.value.span.left_offset = span.left_offset;
-            match &call.value.variant {
-                Variant::Ident(_) | Variant::PropertyAccess(_) => Ok(call.value),
-                _ => Err(call.value),
-            }
-        }
-        _ => Err(tree),
+fn is_qualified_name(tree: &Tree) -> bool {
+    match &tree.variant {
+        Variant::Call(call) => is_qualified_name(&call.value),
+        Variant::PropertyAccess(access) => match &access.lhs {
+            Some(lhs) => is_qualified_name(&lhs),
+            None => false,
+        },
+        Variant::Ident(_) => true,
+        _ => false,
     }
 }
 
-fn qn_deep_unwrap_calls(tree: &mut Tree) {
+/// If the input is a qualified name, return it as Ok after discarding any Call nodes;
+/// otherwise, return the input unchanged as Err.
+fn to_qualified_name(mut tree: Tree) -> Result<Tree, Tree> {
+    if !is_qualified_name(&tree) {
+        return Err(tree);
+    }
+    qn_deep_unwrap_calls(&mut tree);
+    Ok(tree)
+}
+
+fn qn_deep_unwrap_calls(tree: &mut Tree) -> bool {
     match &mut tree.variant {
         Variant::Call(call) => {
             let mut inner = mem::take(&mut call.value);
-            qn_deep_unwrap_calls(&mut inner);
+            let result = qn_deep_unwrap_calls(&mut inner);
             tree.variant = inner.variant;
+            result
         }
         Variant::PropertyAccess(access) => {
             if let Some(lhs) = &mut access.lhs {
-                qn_deep_unwrap_calls(lhs);
+                qn_deep_unwrap_calls(lhs)
+            } else {
+                false
             }
         }
-        _ => {}
+        Variant::Ident(_) => true,
+        _ => false,
     }
 }
 
-fn expect_qualified_name(tree: Tree) -> Tree {
-    to_qualified_name(unwrap_call(tree))
-        .unwrap_or_else(|tree| tree.with_error(SyntaxError::ExpectedQualifiedName))
+fn expect_qualified_name(mut tree: Tree) -> Tree {
+    let error = (!qn_deep_unwrap_calls(&mut tree)).then_some(SyntaxError::ExpectedQualifiedName);
+    maybe_with_error(tree, error)
 }
 
 fn empty_tree(location: Code) -> Tree {
@@ -253,6 +261,11 @@ fn expression_to_pattern(mut input: Tree<'_>) -> Tree<'_> {
         Variant::Group(ref mut group) => {
             if let Group { body: Some(body), .. } = &mut **group {
                 transform_tree(body, expression_to_pattern)
+            }
+        }
+        Variant::PropertyAccess(ref mut access) => {
+            if let Some(value) = &mut access.lhs {
+                transform_tree(value, expression_to_pattern)
             }
         }
         Variant::App(ref mut app) => match &mut **app {
@@ -291,6 +304,57 @@ fn expression_to_pattern(mut input: Tree<'_>) -> Tree<'_> {
         _ => {}
     };
     maybe_with_error(input, error)
+}
+
+fn expression_to_type(mut input: Tree<'_>) -> Tree<'_> {
+    use syntax::tree::*;
+    match input.variant {
+        // === Recursions ===
+        Variant::Group(ref mut group) => {
+            if let Group { body: Some(body), .. } = &mut **group {
+                transform_tree(body, expression_to_type)
+            }
+        }
+        Variant::App(ref mut app) => match &mut **app {
+            App { func, arg } => {
+                transform_tree(func, expression_to_type);
+                transform_tree(arg, expression_to_type);
+            }
+        },
+        Variant::OprApp(ref mut opr_app) => match &mut **opr_app {
+            OprApp { lhs, rhs, .. } => {
+                if let Some(lhs) = lhs.as_mut() {
+                    transform_tree(lhs, expression_to_type);
+                }
+                if let Some(rhs) = rhs.as_mut() {
+                    transform_tree(rhs, expression_to_type);
+                }
+            }
+        },
+        Variant::Array(ref mut array) => match &mut **array {
+            Array { first, .. } => {
+                if let Some(first) = first.as_mut() {
+                    transform_tree(first, expression_to_type);
+                }
+            }
+        },
+        Variant::PropertyAccess(ref mut access) => {
+            if let Some(value) = &mut access.lhs {
+                transform_tree(value, expression_to_type)
+            }
+        }
+
+        // === Transformations ===
+        Variant::Call(value) => {
+            let mut out = expression_to_type(value.value);
+            out.span.left_offset += input.span.left_offset;
+            return out;
+        }
+
+        // === Unhandled ===
+        _ => {}
+    };
+    input
 }
 
 thread_local! {

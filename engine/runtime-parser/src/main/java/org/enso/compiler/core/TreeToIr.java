@@ -1921,6 +1921,9 @@ final class TreeToIr {
       names = join(sanitizeName(buildName(app.getRhs(), generateId)), names);
       t = app.getLhs();
     }
+    if (t instanceof Tree.Call call) {
+        t = call.getValue();
+    }
     if (t instanceof Tree.Ident id) {
       names = join(sanitizeName(buildName(id, generateId)), names);
     } else {
