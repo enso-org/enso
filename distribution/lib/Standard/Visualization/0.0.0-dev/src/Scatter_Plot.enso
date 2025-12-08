@@ -26,7 +26,7 @@ x_column table = if table.column_count==1 then Nothing else
    private: true
    ---
 json_from_table : Table -> Vector Integer | Nothing -> Integer | Nothing -> Text
-json_from_table table bounds limit = if table.column_count==1 && table.column_names.first.equals_ignore_case "x" then json_from_table (table.rename_columns ["Value"] . add_row_number "x") bounds limit else
+json_from_table table bounds limit = if table.column_count==1 && table.column_names.first.equals_ignore_case "x" then json_from_table (table.rename_columns ["Value"] . add_row_number "Index" . reorder_columns ["Index","Value"]) bounds limit else
     ## Get the x column
     col_x = x_column table
     if Nothing == col_x then json_from_table (table.add_row_number "x") bounds limit else
