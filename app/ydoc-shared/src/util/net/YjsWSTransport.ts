@@ -1,7 +1,6 @@
 /**
- * A JSON-RPC transport implementation that uses YjsChannel for communication
- * instead of WebSocket. This allows JSON-RPC to work over Y.js CRDT
- * synchronization.
+ * A JSON-RPC transport implementation that uses YjsChannel for communication.
+ * This allows JSON-RPC to work over Y.js CRDT synchronization.
  */
 
 import { JSONRPCError } from '@open-rpc/client-js'
@@ -112,7 +111,7 @@ export class YjsWSTransport extends Transport {
     }
 
     // Store original callback for later removal
-    (wrappedCb as any).__original = cb
+    ;(wrappedCb as any).__original = cb
 
     this.eventListeners.get(type)!.add(wrappedCb)
 
@@ -125,10 +124,7 @@ export class YjsWSTransport extends Transport {
   }
 
   /** Remove an event listener. */
-  off<K extends keyof YjsWSEventMap>(
-    type: K,
-    cb: (event: YjsWSEventMap[K]) => void,
-  ): void {
+  off<K extends keyof YjsWSEventMap>(type: K, cb: (event: YjsWSEventMap[K]) => void): void {
     const listeners = this.eventListeners.get(type)
     if (!listeners) return
 
