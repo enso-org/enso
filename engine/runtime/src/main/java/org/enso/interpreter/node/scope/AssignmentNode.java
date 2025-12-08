@@ -40,66 +40,8 @@ public final class AssignmentNode extends ExpressionNode {
     var result = rhsNode.executeGeneric(frame);
     frame.getFrameDescriptor().setSlotKind(frameSlotIdx, FrameSlotKind.Object);
     frame.setObject(frameSlotIdx, result);
-    /*var analysis = EnsoContext.get(this).currentRuntimeAnalysis();
-    var ref = analysis.startExecutingCachedExpression(getId());
-    try {
-      var result = rhsNode.executeGeneric(frame);
-      ref.update(result);
-      frame.getFrameDescriptor().setSlotKind(frameSlotIdx, FrameSlotKind.Object);
-      frame.setObject(frameSlotIdx, ref);
-    } finally {
-      analysis.endExecutingCachedExpression(getId());
-    }*/
     return EnsoContext.get(this).getNothing();
   }
-
-  /**
-   * Writes a long value into the provided frame.
-   *
-   * @param frame the frame to write to
-   * @param value the value to write
-   * @return the unit type
-   */
-  /*@Specialization(guards = "isLongOrIllegal(frame)")
-  protected Object writeLong(VirtualFrame frame, long value) {
-
-    var ref =  EnsoContext.get(this).currentRuntimeAnalysis().currentlyExecutingExpression();
-    System.out.println("Updating " + getId() + " long with " + value + " and ref " + ref);
-    if (ref != null) {
-        ref.update(value);
-        frame.getFrameDescriptor().setSlotKind(frameSlotIdx, FrameSlotKind.Object);
-        frame.setObject(frameSlotIdx, ref);
-    } else {
-        frame.getFrameDescriptor().setSlotKind(frameSlotIdx, FrameSlotKind.Long);
-        frame.setObject(frameSlotIdx, value);
-    }
-
-    return EnsoContext.get(this).getNothing();
-  }*/
-
-  /**
-   * Writes an object value into the provided frame.
-   *
-   * @param frame the frame to write to
-   * @param value the value to write
-   * @return the unit type
-   */
-  /*@Fallback
-  protected Object writeObject(VirtualFrame frame, Object value) {
-
-    var ref =  EnsoContext.get(this).currentRuntimeAnalysis().currentlyExecutingExpression();
-    //var ref = new RefObject(getId(), value);
-    System.out.println("Updating " + getId() + " with " + value);
-    frame.getFrameDescriptor().setSlotKind(frameSlotIdx, FrameSlotKind.Object);
-    if (ref != null) {
-        ref.update(value);
-        frame.setObject(frameSlotIdx, ref);
-    } else {
-        frame.setObject(frameSlotIdx, value);
-    }
-
-    return EnsoContext.get(this).getNothing();
-  }*/
 
   @Override
   public RuntimeID getId() {

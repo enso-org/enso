@@ -41,10 +41,8 @@ public class RuntimeAnalysis {
 
   public Ref currentlyExecutingExpression() {
     if (assignmentsStack.isEmpty()) {
-      LOGGER.warn("Attempted to retrieve an empty assignment stack");
       return null;
     }
-
     return assignmentsStack.peek();
   }
 

@@ -2,8 +2,7 @@ package org.enso.interpreter.instrument.job
 
 import org.slf4j.LoggerFactory
 import org.enso.compiler.core.Implicits.AsMetadata
-import org.enso.compiler.core.ir.Function
-import org.enso.compiler.core.ir.Name
+import org.enso.compiler.core.ir.{Expression, Function, Name}
 import org.enso.compiler.core.ir.module.scope.{definition, Definition}
 import org.enso.compiler.refactoring.IRUtils
 import org.enso.compiler.pass.analyse.{
@@ -26,9 +25,10 @@ import org.enso.interpreter.instrument.{
 import org.enso.interpreter.runtime.Module
 import org.enso.interpreter.runtime.control.ThreadInterruptedException
 import org.enso.pkg.QualifiedName
+import org.enso.polyglot.{ExternalUUID, RuntimeID}
 import org.enso.polyglot.runtime.Runtime.Api
 
-import java.util.UUID
+import java.util.{Optional, UUID}
 import scala.annotation.unused
 import scala.concurrent.ExecutionException
 import scala.util.Try
@@ -171,6 +171,31 @@ class UpsertVisualizationJob(
       expressionId
     )
 
+    val expressionModuleOpt =
+      ctx.executionService.getContext.findModuleByExpressionId(expressionId)
+    val optParentExpressionId = expressionModuleOpt
+      .flatMap(expressionModule =>
+        Optional.ofNullable(
+          findParentAssignment(expressionModule, expressionId)
+        )
+      )
+      .filter(parentId => parentId.uuid() != expressionId)
+    optParentExpressionId.ifPresent { parentID =>
+      UpsertVisualizationJob.logger.trace(
+        "Found a parent expression of " + parentID + " for " + expressionId
+      )
+      ctx.contextManager.setExpressionFlyby(
+        config.executionContextId,
+        parentID.uuid()
+      )
+    }
+
+    if (optParentExpressionId.isEmpty) {
+      UpsertVisualizationJob.logger.trace(
+        "No parent for visualization expression " + expressionId
+      )
+    }
+
     val visualization =
       UpsertVisualizationJob.updateAttachedVisualization(
         visualizationId,
@@ -209,6 +234,41 @@ class UpsertVisualizationJob(
         )
         Some(Executable(config.executionContextId, stack))
     }
+  }
+
+  def findParentAssignment(
+    module: Module,
+    expressionID: Api.ExpressionId
+  ): RuntimeID = {
+    val bindings         = module.getIr.bindings()
+    var i                = 0
+    var found: RuntimeID = null
+    while (i < bindings.length && found == null) {
+      bindings(i) match {
+        case d: Definition =>
+          val r = d.fold {
+            case x: Expression.Binding =>
+              val rhsID =
+                x.expression.getExternalId.getOrElse(x.expression.getId)
+              val foundExpression = x.expression.findInExpression(
+                _.getExternalId.exists(_ == expressionID)
+              )
+              if (foundExpression != null) {
+                ExternalUUID.create(rhsID)
+              } else {
+                null
+              }
+            case _ =>
+              null;
+          }
+          if (r != null) {
+            found = r
+          }
+        case _ =>
+      }
+      i = i + 1
+    }
+    found
   }
 
   private def replyWithExpressionFailedError(
@@ -628,6 +688,7 @@ object UpsertVisualizationJob {
       Visualization(
         visualizationId,
         expressionId,
+        None, // FIXME
         new RuntimeCache(),
         module,
         visualizationConfig,
@@ -688,6 +749,7 @@ object UpsertVisualizationJob {
   }
 
   /** Update the caches. */
+  @unused
   private def invalidateCaches(
     expressionId: Api.ExpressionId
   )(implicit ctx: RuntimeContext): Unit = {
@@ -716,6 +778,7 @@ object UpsertVisualizationJob {
     * @param stack the execution stack
     * @return `true` if the expression exists in the frame cache
     */
+  @unused
   private def isExpressionCached(
     expressionId: Api.ExpressionId,
     stack: Iterable[InstrumentFrame]
@@ -745,6 +808,7 @@ object UpsertVisualizationJob {
     *
     * @param expressionId the expression id
     */
+  @unused
   private def invalidateFirstDependent(
     expressionId: Api.ExpressionId
   )(implicit ctx: RuntimeContext): Unit = {

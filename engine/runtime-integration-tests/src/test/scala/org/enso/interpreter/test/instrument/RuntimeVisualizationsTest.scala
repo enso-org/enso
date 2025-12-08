@@ -4290,7 +4290,8 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
                 )
             )
           ),
-          payload = Api.ExpressionUpdate.Payload.Value(None)
+          typeChanged = false,
+          payload     = Api.ExpressionUpdate.Payload.Value(None)
         ),
         context.executionComplete(contextId)
       )
@@ -5681,11 +5682,11 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
       )
 
       val attachVisualizationResponses3 =
-        context.receiveNIgnoreExpressionUpdates(2)
+        context.receiveNIgnoreExpressionUpdates(3, timeoutSeconds = 10)
       attachVisualizationResponses3 should contain(
         Api.Response(requestId, Api.VisualizationAttached())
       )
-      val Some(data3) = attachVisualizationResponses3.collectFirst {
+      val Some(data3Self) = attachVisualizationResponses3.collectFirst {
         case Api.Response(
               None,
               Api.VisualizationUpdate(
@@ -5699,7 +5700,22 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
             ) =>
           data
       }
-      new String(data3, StandardCharsets.UTF_8) shouldEqual "[1, 2, 3, 4]"
+      new String(data3Self, StandardCharsets.UTF_8) shouldEqual "[1, 2, 3, 4]"
+      val Some(data3) = attachVisualizationResponses3.collectFirst {
+        case Api.Response(
+              None,
+              Api.VisualizationUpdate(
+                Api.VisualizationContext(
+                  `visualizationId`,
+                  `contextId`,
+                  `idVector3`
+                ),
+                data
+              )
+            ) =>
+          data
+      }
+      new String(data3, StandardCharsets.UTF_8) shouldEqual "[1]"
 
       val idVector4     = UUID.randomUUID()
       val idVector4Self = UUID.randomUUID()
@@ -5813,8 +5829,9 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
       )
 
       // Includes a warning about unused variable
-      val editFileResponse2 = context.receiveNIgnoreExpressionUpdates(4)
+      val editFileResponse2 = context.receiveNIgnoreExpressionUpdates(5)
       editFileResponse2 should contain allOf (
+        // TODO Appears to be reported twice. Need to investigate to potentially eliminate duplicate.
         Api.Response(
           Api.ExecutionUpdate(
             contextId,

@@ -101,16 +101,17 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
     // When executing the call stack we need to capture the FunctionCall of the next (top) stack
     // item in the `functionCallCallback`. We allow to execute the cached `stackTop` value to be
     // able to continue the stack execution, and unwind later from the `onReturnValue` callback.
+    var requiresReExecution = visualizationHolder.hasNestedVisualizationToExecute(nodeId);
     if (result != null && !nodeId.equals(nextExecutionItem)) {
       callOnCachedCallback(nodeId, result);
-      return result;
+      return requiresReExecution ? null : result;
     } else {
       if (onProgressCallbackOrNull != null) {
         reportEvaluationProgress(nodeId);
       }
     }
 
-    return result;
+    return requiresReExecution ? null : result;
   }
 
   @CompilerDirectives.TruffleBoundary

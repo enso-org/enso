@@ -16,6 +16,9 @@ class VisualizationHolder {
   private val visualizationMap: mutable.Map[ExpressionId, List[Visualization]] =
     mutable.Map.empty.withDefaultValue(List.empty)
 
+  private val pendingSubExpressionVisualizations: mutable.Set[ExpressionId] =
+    mutable.HashSet.empty
+
   /** Upserts a visualization.
     *
     * @param visualization the visualization to upsert
@@ -96,6 +99,14 @@ class VisualizationHolder {
   def setOneshotExpression(oneshotExpression: OneshotExpression): Unit = {
     this.oneshotExpressions
       .put(oneshotExpression.expressionId, oneshotExpression)
+  }
+
+  def upsertNestedVisualization(nodeID: ExpressionId): Unit = {
+    pendingSubExpressionVisualizations.add(nodeID)
+  }
+
+  def hasNestedVisualizationToExecute(nodeID: ExpressionId): Boolean = {
+    pendingSubExpressionVisualizations.remove(nodeID)
   }
 }
 

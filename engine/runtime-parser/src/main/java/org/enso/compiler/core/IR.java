@@ -11,6 +11,7 @@ import org.enso.compiler.core.ir.ProcessingPass.Metadata;
 import org.enso.compiler.debug.Debug;
 import scala.Option;
 import scala.collection.immutable.List;
+import scala.jdk.javaapi.CollectionConverters$;
 
 /**
  * {@link IR} is a temporary and fairly unsophisticated internal representation format for Enso
@@ -116,6 +117,39 @@ public interface IR {
    * @return this node's children.
    */
   List<IR> children();
+
+  default java.util.List<IR> jChildren() {
+    return CollectionConverters$.MODULE$.asJava(children());
+  }
+
+  default <T> T fold(java.util.function.Function<IR, T> fn) {
+    var test = fn.apply(this);
+    if (test != null) {
+      return test;
+    } else {
+      for (IR child : jChildren()) {
+        var result = child.fold(fn);
+        if (result != null) {
+          return result;
+        }
+      }
+      return null;
+    }
+  }
+
+  default Object findInExpression(java.util.function.Predicate<IR> fn) {
+    if (fn.test(this)) {
+      return this;
+    } else {
+      for (IR child : jChildren()) {
+        var result = child.findInExpression(fn);
+        if (result != null) {
+          return result;
+        }
+      }
+      return null;
+    }
+  }
 
   /**
    * Applies the callback to nodes in the preorder walk of the tree of this node.

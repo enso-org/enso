@@ -303,7 +303,12 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
           if (info.isPanic()) {
             throw context.createUnwind(resultUnwrapped);
           } else if (cached) {
-            // Only RHS is being cached and should be wrapped in a Ref
+            // This assumes only the RHS is being cached and should be wrapped in a Ref.
+            // If there is any other expression wrapping somehow RHS (due to a bug in IrToTruffle)
+            // then it would likely receive Ref as a result and (maybe) crash due to unexpected type
+            // of the result.
+            // One fragile example is when someone manipulates TypeCheckExpressionNode, which is NOT
+            // instrumentable.
             if (currentAssignmentRef != null) {
               currentAssignmentRef.update(resultUnwrapped);
             }
