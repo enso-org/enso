@@ -31,6 +31,7 @@
 - ["Delete and Connect Around" option in node's menu][14403]
 - [GeoMap visualization is now working without need of Mapbox Token in
   environment][14429]
+- [Fix non-visible button and wrong layout in GeoMap Visualization][14443]
 
 [13685]: https://github.com/enso-org/enso/pull/13685
 [13658]: https://github.com/enso-org/enso/pull/13658
@@ -56,6 +57,7 @@
 [14388]: https://github.com/enso-org/enso/pull/14388
 [14403]: https://github.com/enso-org/enso/pull/14403
 [14429]: https://github.com/enso-org/enso/pull/14429
+[14443]: https://github.com/enso-org/enso/pull/14443
 
 #### Enso Standard Library
 
