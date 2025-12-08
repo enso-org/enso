@@ -142,7 +142,7 @@ type Text_Column
              example_text_length =
                 Examples.text_column_1.text_eft 5
        ```
-    left self (n : Column | Integer | Nothing = 1) -> Column & Any =
+    left self (n : Column | Integer | Nothing = 1) -> Column & Text_Column =
         self.operations_implementation.left self.column n
 
     ## ---
@@ -162,7 +162,7 @@ type Text_Column
              example_text_length =
                 Examples.text_column_1.right 5
        ```
-    right self (n : Column | Integer | Nothing = 1) -> Column & Any =
+    right self (n : Column | Integer | Nothing = 1) -> Column & Text_Column =
         self.operations_implementation.right self.column n
 
     ## ---
