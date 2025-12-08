@@ -61,13 +61,13 @@ const COLUMN_TYPE = ProjectPath.create(
 )
 
 const NUMERIC_COLUMN_TYPE = ProjectPath.create(
-    'Standard.Table' as QualifiedName,
-    'Refined_Types.Numeric_Column.Numeric_Column' as QualifiedName,
+  'Standard.Table' as QualifiedName,
+  'Refined_Types.Numeric_Column.Numeric_Column' as QualifiedName,
 )
 
 const TEXT_COLUMN_TYPE = ProjectPath.create(
-    'Standard.Table' as QualifiedName,
-    'Refined_Types.Text_Column.Text_Column' as QualifiedName,
+  'Standard.Table' as QualifiedName,
+  'Refined_Types.Text_Column.Text_Column' as QualifiedName,
 )
 
 const EXPRESSION_STATICS_TYPE = ProjectPath.create(
