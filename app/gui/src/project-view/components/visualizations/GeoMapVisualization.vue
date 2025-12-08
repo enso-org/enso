@@ -421,28 +421,15 @@ function pushPoints(newPoints: Location[]) {
   }
 }
 
-config.setToolbar([
-  {
-    icon: 'find',
-    onClick: () => {},
-  },
-  {
-    icon: 'path2',
-    onClick: () => {},
-  },
-  {
-    icon: 'geo_map_distance',
-    onClick: () => {},
-  },
-  {
-    icon: 'geo_map_pin',
-    onClick: () => {},
-  },
-])
 config.setToolbarOverlay(true)
 </script>
 
 <template>
+  <link
+    href="https://api.tiles.mapbox.com/mapbox-gl-js/v3.8.0/mapbox-gl.css"
+    rel="stylesheet"
+    crossorigin="anonymous"
+  />
   <div ref="mapNode" class="GeoMapVisualization" @pointerdown.stop @wheel.stop.passive></div>
 </template>
 
