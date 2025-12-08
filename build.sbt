@@ -6281,7 +6281,6 @@ lazy val fetchZipToUnmanaged =
 lazy val unmanagedExternalZip =
   settingKey[URL]("URL to zip file with dependencies")
 
-
 lazy val engineDistributionRoot =
   settingKey[File]("Root of built engine distribution")
 lazy val launcherDistributionRoot =
