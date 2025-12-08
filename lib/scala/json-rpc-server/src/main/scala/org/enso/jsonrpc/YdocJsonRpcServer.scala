@@ -125,9 +125,9 @@ class YdocJsonRpcServer(
     config.secureConfig
 }
 
-object JsonRpcServer {
+object YdocJsonRpcServer {
 
-  /** A configuration object for properties of the JsonRpcServer.
+  /** A configuration object for properties of the YdocJsonRpcServer.
     *
     * @param outgoingBufferSize the number of messages buffered internally
     *                           if the downstream connection is lagging behind.

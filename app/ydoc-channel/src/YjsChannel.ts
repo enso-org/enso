@@ -1,5 +1,5 @@
-import * as Y from 'yjs'
 import { randomUUID } from 'node:crypto'
+import * as Y from 'yjs'
 
 /**
  * A message in the channel.
@@ -20,8 +20,7 @@ export type MessageHandler<T = unknown> = (message: T) => void
  * A bidirectional communication channel backed by Y.Array.
  *
  * This class allows multiple parties to send and receive messages through a shared
- * Y.Array CRDT. Each party creates their own YjsChannel instance from a common Y.Doc,
- * and messages sent by one party are received by all other parties (but not by the sender).
+ * Y.Array CRDT.
  */
 export class YjsChannel<T = unknown> {
   private readonly senderId: string
