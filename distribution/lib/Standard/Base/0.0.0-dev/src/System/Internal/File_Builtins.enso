@@ -3,6 +3,7 @@ private
 import project.System.File_Format.Bytes
 import project.System.File_Format.File_Format_SPI
 import project.System.File_Format.JSON_Format
+import project.System.File_Format.JSON_Lines_Format
 import project.System.File_Format.Plain_Text_Format
 
 ## Gets a file corresponding to the current working directory of the program.
@@ -59,5 +60,6 @@ File_Format_SPI.from (that:Default_File_Formats) =
     _ = that
     bytes = File_Format_SPI.new Bytes
     json = File_Format_SPI.new JSON_Format "json"
+    jsonl = File_Format_SPI.new JSON_Lines_Format "jsonlines"
     plain = File_Format_SPI.new Plain_Text_Format
-    bytes+json+plain
+    bytes+json+jsonl+plain

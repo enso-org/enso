@@ -88,11 +88,9 @@
 - [Implement `Text_Column.text_mid` for in-memory and database backends.][14420]
 - [Initial file writing from DuckDB.][14421]
 - [Parquet file reading and writing, DuckDB formats.][14427]
-- [Trigonometry and other maths function on Column.][14433]
-- [Implement Text_Column to_case for DB backends][14386]
-- [Implement bulk loading to DuckDB][14402]
-- [Initial file writing from DuckDB][14421]
 - [Add Text_Column.index_of][14428]
+- [Trigonometry and other maths function on Column.][14433]
+- [Support for reading JSON lines files.][14439]
 
 [13769]: https://github.com/enso-org/enso/pull/13769
 [14026]: https://github.com/enso-org/enso/pull/14026
@@ -120,8 +118,9 @@
 [14420]: https://github.com/enso-org/enso/pull/14420
 [14421]: https://github.com/enso-org/enso/pull/14421
 [14427]: https://github.com/enso-org/enso/pull/14427
-[14433]: https://github.com/enso-org/enso/pull/14433
 [14428]: https://github.com/enso-org/enso/pull/14428
+[14433]: https://github.com/enso-org/enso/pull/14433
+[14439]: https://github.com/enso-org/enso/pull/14439
 
 #### Enso Language & Runtime
 
