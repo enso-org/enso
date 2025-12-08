@@ -28,6 +28,7 @@
   top.
 - [Context menu for connections][14325].
 - [Warnings and Errors no longer become transparent][14388]
+- ["Delete and Connect Around" option in node's menu][14403]
 - [GeoMap visualization is now working without need of Mapbox Token in
   environment][14429]
 
@@ -53,6 +54,7 @@
 [14267]: https://github.com/enso-org/enso/pull/14267
 [14325]: https://github.com/enso-org/enso/pull/14325
 [14388]: https://github.com/enso-org/enso/pull/14388
+[14403]: https://github.com/enso-org/enso/pull/14403
 [14429]: https://github.com/enso-org/enso/pull/14429
 
 #### Enso Standard Library
@@ -84,6 +86,7 @@
 - [Implement `Text_Column.text_mid` for in-memory and database backends.][14420]
 - [Initial file writing from DuckDB.][14421]
 - [Parquet file reading and writing, DuckDB formats.][14427]
+- [Add Text_Column.index_of][14428]
 - [Trigonometry and other maths function on Column.][14433]
 - [Support for reading JSON lines files.][14439]
 
@@ -113,6 +116,7 @@
 [14420]: https://github.com/enso-org/enso/pull/14420
 [14421]: https://github.com/enso-org/enso/pull/14421
 [14427]: https://github.com/enso-org/enso/pull/14427
+[14428]: https://github.com/enso-org/enso/pull/14428
 [14433]: https://github.com/enso-org/enso/pull/14433
 [14439]: https://github.com/enso-org/enso/pull/14439
 

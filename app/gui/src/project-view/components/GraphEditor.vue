@@ -75,6 +75,7 @@ import {
   watch,
   watchEffect,
 } from 'vue'
+import { analyzeConnectAround } from './GraphEditor/detaching'
 import { provideRenameSchedule } from './GraphEditor/widgets/WidgetFunctionName.vue'
 
 const keyboard = injectKeyboard()
@@ -192,6 +193,8 @@ watch(
   () => projectStore.executionContext.getStackTop(),
   () => nodeSelection.deselectAll(),
 )
+
+const detachInfo = computed(() => analyzeConnectAround(nodeSelection.selected, graphStore))
 
 // === Node creation ===
 
@@ -338,10 +341,41 @@ const actionHandlers = registerHandlers({
           graphStore.db.nodeIdToNode.get.bind(graphStore.db.nodeIdToNode),
         ),
       ),
+    () => detachInfo.value.ok && detachInfo.value.value.length > 0,
     {
       collapseNodes,
       copyNodesToClipboard,
       deleteNodes: (nodes) => graphStore.deleteNodes(nodes.map(nodeId)),
+      deleteAndConnectAround: (nodes) => {
+        return module.value.edit(async (edit) => {
+          if (!detachInfo.value.ok) return detachInfo.value
+          const reconnectResults = await Promise.all(
+            detachInfo.value.value.map(async ({ port, ident }) => {
+              const result = await graphStore.updatePortValue(
+                port,
+                Ast.Ident.new(edit, ident),
+                edit,
+              )
+              if (!result.ok) {
+                result.error.log('Failed to connect around')
+              }
+              return result
+            }),
+          )
+          if (reconnectResults.some((result) => !result.ok)) {
+            toasts.userActionFailed.show(
+              'Errors occurred while connecting around removed components.',
+            )
+          }
+          for (const node of nodes) {
+            // We cannot call graphStore.deleteNodes, because it bases on the graphDb
+            // which is not updated with reconnections above.
+            const outerAst = edit.getVersion(node.outerAst)
+            if (outerAst.isStatement()) Ast.deleteFromParentBlock(outerAst)
+          }
+          return Ok()
+        })
+      },
     },
   ),
 })
