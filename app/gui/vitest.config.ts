@@ -5,7 +5,6 @@ import viteConfig from './vite.config'
 const config = mergeConfig(
   viteConfig,
   defineConfig({
-    envDir: '../common',
     test: {
       reporters: process.env.CI ? ['dot', 'github-actions'] : ['default'],
       environment: 'jsdom',
