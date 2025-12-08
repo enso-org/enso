@@ -3,24 +3,90 @@ private
 from Standard.Base import all
 import Standard.Base.Errors.Unimplemented.Unimplemented
 
-from Standard.Table import Value_Type
+from Standard.Table import Column, Value_Type
 
+import project.DB_Column.DB_Column
 from project.Internal.DB_Column_Implementation import make_unary_op, naming_helper
 
 type DB_Numeric_Column_Implementation
-    abs column =
+    abs (column : Column & DB_Column) =
         Value_Type.expect_numeric column <|
             new_name = (naming_helper column).function_name "abs" [column]
             make_unary_op column "ABS" new_name
 
-    signum column =
+    signum (column : Column & DB_Column) =
         Value_Type.expect_numeric column <|
             new_name = (naming_helper column).function_name "signum" [column]
             make_unary_op column "SIGNUM" new_name
 
-    randbetween column limit seed =
+    randbetween (column : Column & DB_Column) limit seed =
         _ = [column, limit, seed]
         Unimplemented.throw "randbetween is not implemented for database backends."
+
+    sin (column : Column & DB_Column) =
+        Value_Type.expect_numeric column <|
+            new_name = (naming_helper column).function_name "sin" [column]
+            make_unary_op column "SIN" new_name
+
+    asin (column : Column & DB_Column) =
+        Value_Type.expect_numeric column <|
+            new_name = (naming_helper column).function_name "asin" [column]
+            make_unary_op column "ASIN" new_name
+
+    cos (column : Column & DB_Column) =
+        Value_Type.expect_numeric column <|
+            new_name = (naming_helper column).function_name "cos" [column]
+            make_unary_op column "COS" new_name
+
+    acos (column : Column & DB_Column) =
+        Value_Type.expect_numeric column <|
+            new_name = (naming_helper column).function_name "acos" [column]
+            make_unary_op column "ACOS" new_name
+
+    tan (column : Column & DB_Column) =
+        Value_Type.expect_numeric column <|
+            new_name = (naming_helper column).function_name "tan" [column]
+            make_unary_op column "TAN" new_name
+
+    atan (column : Column & DB_Column) =
+        Value_Type.expect_numeric column <|
+            new_name = (naming_helper column).function_name "atan" [column]
+            make_unary_op column "ATAN" new_name
+
+    sinh (column : Column & DB_Column) =
+        Value_Type.expect_numeric column <|
+            new_name = (naming_helper column).function_name "sinh" [column]
+            make_unary_op column "SINH" new_name
+
+    cosh (column : Column & DB_Column) =
+        Value_Type.expect_numeric column <|
+            new_name = (naming_helper column).function_name "cosh" [column]
+            make_unary_op column "COSH" new_name
+
+    tanh (column : Column & DB_Column) =
+        Value_Type.expect_numeric column <|
+            new_name = (naming_helper column).function_name "tanh" [column]
+            make_unary_op column "TANH" new_name
+
+    sqrt (column : Column & DB_Column) =
+        Value_Type.expect_numeric column <|
+            new_name = (naming_helper column).function_name "sqrt" [column]
+            make_unary_op column "SQRT" new_name
+
+    ln (column : Column & DB_Column) =
+        Value_Type.expect_numeric column <|
+            new_name = (naming_helper column).function_name "ln" [column]
+            make_unary_op column "LN" new_name
+
+    exp (column : Column & DB_Column) =
+        Value_Type.expect_numeric column <|
+            new_name = (naming_helper column).function_name "exp" [column]
+            make_unary_op column "EXP" new_name
+
+    log10 (column : Column & DB_Column) =
+        Value_Type.expect_numeric column <|
+            new_name = (naming_helper column).function_name "log10" [column]
+            make_unary_op column "LOG10" new_name
 
 type DB_Text_Column_Implementation
     to_case column case_option:Case=..Lower locale:Locale=Locale.default =

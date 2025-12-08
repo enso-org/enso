@@ -2642,6 +2642,7 @@ lazy val `runtime-language-arrow` =
       javaModuleName := "org.enso.interpreter.arrow",
       inConfig(Compile)(truffleRunOptionsSettings),
       instrumentationSettings,
+      customFrgaalJavaCompilerSettings("24"),
       libraryDependencies ++= GraalVM.modules ++ slf4jApi.map(_ % Test) ++ Seq(
         "junit"            % "junit"              % junitVersion       % Test,
         "com.github.sbt"   % "junit-interface"    % junitIfVersion     % Test,
@@ -5289,7 +5290,7 @@ lazy val `std-table` = project
   .in(file("std-bits") / "table")
   .enablePlugins(Antlr4Plugin)
   .settings(
-    frgaalJavaCompilerSetting,
+    customFrgaalJavaCompilerSettings("24"),
     mockitoAgentSettings,
     autoScalaLibrary := false,
     Compile / compile / compileInputs := (Compile / compile / compileInputs)
@@ -5360,6 +5361,9 @@ lazy val `std-tests` = project
     frgaalJavaCompilerSetting,
     commands += WithDebugCommand.withDebug,
     Test / fork := true,
+    Test / javaOptions ++= Seq(
+      "-ea"
+    ),
     autoScalaLibrary := false,
     Compile / compile / compileInputs := (Compile / compile / compileInputs)
       .dependsOn(SPIHelpers.ensureSPIConsistency)
@@ -5371,6 +5375,7 @@ lazy val `std-tests` = project
   )
   .dependsOn(`std-base`)
   .dependsOn(`std-table`)
+  .dependsOn(`runtime-language-arrow`)
   .dependsOn(`test-utils`)
 
 lazy val `opencv-wrapper` = project

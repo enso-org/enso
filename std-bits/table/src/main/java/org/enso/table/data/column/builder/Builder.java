@@ -1,5 +1,6 @@
 package org.enso.table.data.column.builder;
 
+import java.lang.reflect.Proxy;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.time.LocalDate;
@@ -87,6 +88,63 @@ public interface Builder {
             ? builder.seal()
             : MaskOperation.getSlicedStorage(builder.seal(), new IndexMapper.Constant(size));
     return storageType.asTypedStorage(unTyped);
+  }
+
+  /**
+   * Converts a proxy storage to local storage.
+   *
+   * @param <T> type of storage
+   * @param storage the storage instance, possibly a {@link Proxy#isProxyClass proxy}
+   * @return either {@code storage} itself, or optimized storage of the same {@link
+   *     ColumnStorage#getType() type} over the same {@link ColumnStorage#addressOfData() data}
+   */
+  @SuppressWarnings("unchecked")
+  static <T> ColumnStorage<T> makeLocal(ColumnStorage<T> storage) {
+    var data = storage.addressOfData();
+    if (data != 0) {
+      var size = Math.toIntExact(storage.getSize());
+      var validity = storage.addressOfValidity();
+      var proxyType = storage.getType();
+      var localType = StorageType.fromTypeCharAndSize(proxyType.typeChar(), proxyType.size());
+      var localStorage =
+          switch (localType) {
+            case IntegerType type ->
+                LongBuilder.fromAddress(size, data, validity, type).seal(storage, type);
+            default -> storage;
+          };
+      assert assertSameStorages(storage, localStorage);
+      return (ColumnStorage<T>) localStorage;
+    }
+    return storage;
+  }
+
+  private static boolean assertSameStorages(ColumnStorage<?> s1, ColumnStorage<?> s2) {
+    var sb = new java.lang.StringBuilder();
+    if (s1.getSize() != s2.getSize()) {
+      sb.append("Unexpected size %d != %d\n".formatted(s1.getSize(), s2.getSize()));
+    }
+    var t1 = s1.getType();
+    var t2 = s2.getType();
+    if (t1.typeChar() != t2.typeChar()) {
+      sb.append("Unexpected type %s != %s\n".formatted(t1.typeChar(), t2.typeChar()));
+    }
+    if (t1.size() != t2.size()) {
+      sb.append("Unexpected type %d != %d\n".formatted(t1.size(), t2.size()));
+    }
+    /*
+    for (var i = 0L; i < s1.getSize(); i++) {
+      var elem1 = s1.getItemBoxed(i);
+      var elem2 = s2.getItemBoxed(i);
+      if (!Objects.equals(elem1, elem2)) {
+          sb.append("  at %d, but %s != %s\n".formatted(i, elem1, elem2));
+      }
+      if (sb.length() > 1024) {
+          break;
+      }
+    }
+    */
+    assert sb.isEmpty() : sb;
+    return sb.isEmpty();
   }
 
   /**

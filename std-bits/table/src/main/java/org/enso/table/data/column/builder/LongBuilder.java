@@ -1,5 +1,9 @@
 package org.enso.table.data.column.builder;
 
+import java.lang.foreign.MemorySegment;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+import java.nio.LongBuffer;
 import java.util.Objects;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.storage.ColumnBooleanStorage;
@@ -18,10 +22,16 @@ import org.enso.table.problems.ProblemAggregator;
 sealed class LongBuilder extends NumericBuilder implements BuilderForLong, BuilderWithRetyping
     permits BoundCheckedIntegerBuilder {
   protected final ProblemAggregator problemAggregator;
-  protected long[] data;
+  private LongBuffer data;
 
   protected LongBuilder(int initialSize, ProblemAggregator problemAggregator) {
-    this.data = new long[initialSize];
+    this(allocBuffer(initialSize, 0), initialSize, 0, problemAggregator);
+  }
+
+  private LongBuilder(
+      LongBuffer data, int initialSize, long validity, ProblemAggregator problemAggregator) {
+    super(initialSize, validity);
+    this.data = data;
     this.problemAggregator = problemAggregator;
   }
 
@@ -33,16 +43,47 @@ sealed class LongBuilder extends NumericBuilder implements BuilderForLong, Build
     }
   }
 
+  static LongBuilder fromAddress(int size, long address, long validity, IntegerType type) {
+    assert address != 0;
+    var buf = allocBuffer(size, address);
+    var builder = new LongBuilder(buf, size, validity, null);
+    return builder;
+  }
+
+  /**
+   * Allocates continuous direct memory buffer. First of all there is a validity bit map (padded to
+   * 8 bytes) followed by the actual data.
+   *
+   * @param size the size of buffer to allocate
+   * @param data address of data to read or {@code 0} to allocate new data
+   * @return long buffer representing data
+   */
+  private static LongBuffer allocBuffer(int size, long data) {
+    var wholeDataSize = Long.BYTES * size;
+    ByteBuffer buf;
+    if (data == 0L) {
+      buf = ByteBuffer.allocateDirect(wholeDataSize).order(ByteOrder.LITTLE_ENDIAN);
+    } else {
+      var seg = MemorySegment.ofAddress(data).reinterpret(wholeDataSize);
+      buf = seg.asByteBuffer().order(ByteOrder.LITTLE_ENDIAN);
+    }
+    assert buf.capacity() == wholeDataSize;
+    var lb = buf.order(ByteOrder.LITTLE_ENDIAN).asLongBuffer();
+    assert lb.capacity() == size;
+    assert lb.order() == ByteOrder.LITTLE_ENDIAN;
+    return lb;
+  }
+
   @Override
   protected int getDataSize() {
-    return data.length;
+    return data.capacity();
   }
 
   @Override
   protected void resize(int desiredCapacity) {
-    long[] newData = new long[desiredCapacity];
-    int toCopy = Math.min(currentSize, data.length);
-    System.arraycopy(data, 0, newData, 0, toCopy);
+    var newData = allocBuffer(desiredCapacity, 0);
+    int toCopy = Math.min(currentSize, data.capacity());
+    newData.put(0, data, 0, toCopy);
     data = newData;
   }
 
@@ -52,7 +93,7 @@ sealed class LongBuilder extends NumericBuilder implements BuilderForLong, Build
       if (!isValid(i)) {
         items[i] = null;
       } else {
-        items[i] = data[i];
+        items[i] = data.get(i);
       }
     }
   }
@@ -95,7 +136,7 @@ sealed class LongBuilder extends NumericBuilder implements BuilderForLong, Build
           // A fast path for the same type (or compatible) - no conversions/checks needed.
           int n = (int) longStorage.getSize();
           ensureFreeSpaceFor(n);
-          System.arraycopy(longStorage.getData(), 0, data, currentSize, n);
+          data.put(currentSize, longStorage.getData(), 0, n);
           appendValidityMap(longStorage.getValidityMap(), n);
           currentSize += n;
         } else {
@@ -132,10 +173,11 @@ sealed class LongBuilder extends NumericBuilder implements BuilderForLong, Build
    *
    * @param value the integer to append
    */
+  @Override
   public LongBuilder appendLong(long value) {
     ensureSpaceToAppend();
     this.setValid(currentSize);
-    this.data[currentSize++] = value;
+    this.data.put(currentSize++, value);
     return this;
   }
 
@@ -153,13 +195,13 @@ sealed class LongBuilder extends NumericBuilder implements BuilderForLong, Build
     if (index >= currentSize) {
       throw new IndexOutOfBoundsException();
     } else {
-      return data[(int) index];
+      return data.get((int) index);
     }
   }
 
   @Override
   public long getCurrentCapacity() {
-    return data.length;
+    return data.capacity();
   }
 
   @Override
@@ -171,7 +213,8 @@ sealed class LongBuilder extends NumericBuilder implements BuilderForLong, Build
   @Override
   public LongBuilder append(Object o) {
     if (o == null) {
-      return appendNulls(1);
+      doAppendNulls(1);
+      return this;
     }
 
     Long x = NumericConverter.tryConvertingToLong(o);
@@ -186,6 +229,19 @@ sealed class LongBuilder extends NumericBuilder implements BuilderForLong, Build
 
   @Override
   public ColumnStorage<Long> seal() {
-    return new LongStorage(data, currentSize, validityMap(), getType());
+    return seal(null, getType());
+  }
+
+  /**
+   * Seals this buffer as copy of provided storage.
+   *
+   * @param otherStorage storage to copy size from if non-{@code null}
+   * @param type the type to assign to the created storage
+   * @return locally copied storage
+   */
+  final LongStorage seal(ColumnStorage<?> otherStorage, IntegerType type) {
+    var buf = data.asReadOnlyBuffer().position(0).limit(currentSize);
+    var validity = this.validityMap();
+    return new LongStorage(buf, validity, type, otherStorage);
   }
 }

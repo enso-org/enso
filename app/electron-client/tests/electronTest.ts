@@ -154,6 +154,10 @@ export async function getNewestProject(page: Page): Promise<Locator> {
   const dataCatalogTab = page.getByRole('tab', { name: 'Data Catalog' })
   await dataCatalogTab.click()
 
+  await expect(page.getByTestId('drive-view')).toBeVisible({ timeout: LOADING_TIMEOUT })
+  const projectsLocator = page.getByTestId('drive-view').getByText(/New Project \d+/)
+  await expect(projectsLocator).not.toHaveCount(0)
+
   const projects = await page
     .getByTestId('drive-view')
     .getByText(/New Project \d+/)
@@ -166,7 +170,6 @@ export async function getNewestProject(page: Page): Promise<Locator> {
       return { locator: p, num }
     }),
   )
-
   return numbered.reduce((a, b) => (a.num > b.num ? a : b)).locator
 }
 
@@ -192,7 +195,7 @@ export async function createNewComponent(page: Page) {
  * Open new component browser based on the name of referenced parent component
  */
 export async function openComponentBrowser(page: Page, parentComponent: string) {
-  await page.getByText(parentComponent, { exact: true }).click({ button: 'right' })
+  await page.getByText(parentComponent, { exact: true }).click()
   await page.keyboard.press('Enter')
 }
 
