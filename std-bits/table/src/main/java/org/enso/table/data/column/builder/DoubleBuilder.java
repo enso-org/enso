@@ -78,10 +78,9 @@ sealed class DoubleBuilder extends NumericBuilder implements BuilderForDouble
 
   @Override
   protected void resize(int desiredCapacity) {
-    var buf =
-        ByteBuffer.allocateDirect(Double.SIZE * desiredCapacity).order(ByteOrder.LITTLE_ENDIAN);
-    var newData = buf.asDoubleBuffer();
-    newData.put(0, data, 0, currentSize);
+    var newData = allocBuffer(desiredCapacity, 0);
+    int toCopy = Math.min(currentSize, data.capacity());
+    newData.put(0, data, 0, toCopy);
     data = newData;
   }
 
