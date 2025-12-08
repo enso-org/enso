@@ -6,8 +6,8 @@ public class NoOpMessageCallbacks implements MessageCallbacks {
   private NoOpMessageCallbacks() {}
 
   @Override
-  public void sendText(String message) {}
+  public void onConnect(YjsChannel channel) {}
 
   @Override
-  public void onText(String message) {}
+  public void onMessage(Object message) {}
 }
