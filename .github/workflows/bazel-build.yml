@@ -9,7 +9,8 @@ jobs:
     name: Run bazel GUI build
     # if: github.ref != 'refs/heads/develop'
     runs-on:
-      - ubuntu-latest
+      - self-hosted
+      - Linux
     steps:
       - uses: bazel-contrib/setup-bazel@0.15.0
         with:
@@ -53,7 +54,8 @@ jobs:
   build-engine:
     name: Run bazel Engine build
     runs-on:
-      - ubuntu-latest
+      - self-hosted
+      - Linux
     steps:
       - uses: bazel-contrib/setup-bazel@0.15.0
         with:
