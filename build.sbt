@@ -305,7 +305,6 @@ lazy val checkNativeImageSize =
 lazy val enso = (project in file("."))
   .settings(version := "0.1")
   .aggregate(
-    `akka-native`,
     `akka-wrapper`,
     `benchmark-java-helpers`,
     `benchmarks-common`,
@@ -973,19 +972,6 @@ lazy val `python-resource-provider` = project
       "org.graalvm.truffle" % "truffle-api" % graalMavenPackagesVersion,
       "org.graalvm.sdk"     % "word"        % graalMavenPackagesVersion
     )
-  )
-
-lazy val `akka-native` = project
-  .in(file("lib/scala/akka-native"))
-  .configs(Test)
-  .settings(
-    frgaalJavaCompilerSetting,
-    version := "0.1",
-    libraryDependencies ++= Seq(
-      akkaActor
-    ),
-    // Note [Native Image Workaround for GraalVM 20.2]
-    libraryDependencies += "org.graalvm.nativeimage" % "svm" % graalMavenPackagesVersion % "provided"
   )
 
 lazy val `profiling-utils` = project
