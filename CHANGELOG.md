@@ -28,6 +28,7 @@
   top.
 - [Context menu for connections][14325].
 - [Warnings and Errors no longer become transparent][14388]
+- ["Delete and Connect Around" option in node's menu][14403]
 - [GeoMap visualization is now working without need of Mapbox Token in
   environment][14429]
 
@@ -53,6 +54,7 @@
 [14267]: https://github.com/enso-org/enso/pull/14267
 [14325]: https://github.com/enso-org/enso/pull/14325
 [14388]: https://github.com/enso-org/enso/pull/14388
+[14403]: https://github.com/enso-org/enso/pull/14403
 [14429]: https://github.com/enso-org/enso/pull/14429
 
 #### Enso Standard Library
