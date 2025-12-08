@@ -477,8 +477,22 @@ type JSON_Lines_Format
        Implements the `File.read` for this `File_Format`
     read : File -> Problem_Behavior -> Any
     read self file on_problems:Problem_Behavior =
-        warnings = Ref.new []
         text = file.read_text
+        read_text text on_problems
+
+
+    ## ---
+       private: true
+       ---
+       Implements decoding the format from a stream.
+    read_stream : Input_Stream -> File_Format_Metadata -> Any
+    read_stream self stream:Input_Stream (metadata : File_Format_Metadata) =
+        _ = metadata
+        text = Text.from_bytes (stream.read_all_bytes) Encoding.utf_8
+        read_text text Problem_Behavior.Report_Warning
+
+    private read_text text on_problems =
+        warnings = Ref.new []
         result = text.lines.map_with_index on_problems=No_Wrap.Value i->l->
             parsed = l.parse_json
             if parsed.is_error.not then parsed else case on_problems of
@@ -491,15 +505,6 @@ type JSON_Lines_Format
         result.if_not_error <|
             Telemetry.log "File_Format.read" "Read file: format={}, output={}" ["JSON Lines", result.to Meta.Type . name]
             warnings.get.reverse.fold result (r->w-> Warning.attach w r)
-
-    ## ---
-       private: true
-       ---
-       Implements decoding the format from a stream.
-    read_stream : Input_Stream -> File_Format_Metadata -> Any
-    read_stream self stream:Input_Stream (metadata : File_Format_Metadata) =
-        _ = metadata
-        Text.from_bytes (stream.read_all_bytes) Encoding.utf_8 . lines . map .parse_json
 
 ## ---
    private: true
