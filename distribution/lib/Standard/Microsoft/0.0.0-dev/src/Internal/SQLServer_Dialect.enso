@@ -317,6 +317,7 @@ type SQLServer_Dialect
             Feature.Aggregate -> True
             Feature.Offset -> True
             Feature.Add_Group_Number -> True
+            Feature.Spatial -> False
             _ -> False
 
     ## ---
@@ -376,6 +377,15 @@ type SQLServer_Dialect
     prepare_metadata_for_period self period operation_input_type =
         if period == Time_Period.Nanosecond then Error.throw (Unsupported_Database_Operation.Error "Nanosecond precision date/times") else
             Date_Period_Metadata.Value period operation_input_type
+
+    ## ---
+       private: true
+       ---
+       Returns the set of all supported Replace_Params
+    get_supported_replace_params : Hashset Replace_Params
+    get_supported_replace_params self =
+        _ = self
+        supported_replace_params
 
     ## ---
        private: true
@@ -539,7 +549,7 @@ private _op_needs_to_materialize_null_checks op -> Boolean =
    ---
 make_dialect_operations =
     cases = [["LOWER", Base_Generator.make_function "LOWER"], ["UPPER", Base_Generator.make_function "UPPER"]]
-    text = [starts_with, contains, ends_with, like, agg_shortest, agg_longest, make_case_sensitive, ["REPLACE", replace], left, right]+concat_ops+cases+trim_ops
+    text = [starts_with, contains, ends_with, like, agg_shortest, agg_longest, make_case_sensitive, ["REPLACE", replace], left, right, ["SUBSTR", _make_mid]]+concat_ops+cases+trim_ops
     counts = [agg_count_is_null, agg_count_empty, agg_count_not_empty, ["COUNT_DISTINCT", agg_count_distinct], ["COUNT_DISTINCT_INCLUDE_NULL", agg_count_distinct_include_null]]
     arith_extensions = [floating_point_div, mod_op, decimal_div, decimal_mod, ["ROW_MIN", Base_Generator.make_function "LEAST"], ["ROW_MAX", Base_Generator.make_function "GREATEST"]]
     bool = [bool_or]
@@ -704,6 +714,22 @@ right = Base_Generator.lift_binary_op "RIGHT" str-> n->
 ## ---
    private: true
    ---
+private _make_mid arguments:Vector -> SQL_Builder =
+    case arguments.length of
+        2 ->
+            str = arguments.at 0
+            start = arguments.at 1
+            SQL_Builder.code "substring(" ++ str ++ ", " ++ start ++ ")"
+        3 ->
+            str = arguments.at 0
+            start = arguments.at 1
+            length = arguments.at 2
+            SQL_Builder.code "substring(" ++ str ++ ", " ++ start ++ ", " ++ length ++ ")"
+        _ -> Error.throw (Illegal_Argument.Error "SUBSTRING requires 2 or 3 arguments.")
+
+## ---
+   private: true
+   ---
 _build_partition_sql grouping:SQL_Builder ordering:SQL_Builder -> SQL_Builder =
     group_part = if grouping.is_empty then "" else
         SQL_Builder.code "PARTITION BY " ++ grouping
@@ -820,7 +846,7 @@ replace args metadata =
     pattern = args.at 1
     replacement = args.at 2
 
-    ## `raw_pattern` is a `Text1 or `Regex`; it's the same value as `input`, but not
+    ## `raw_pattern` is a `Text` or `Regex`; it's the same value as `input`, but not
        embedded in IR.
     raw_pattern = metadata.at 0
     replace_params = metadata.at 1

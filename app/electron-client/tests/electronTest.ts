@@ -99,6 +99,11 @@ export async function loginAsTestUser(page: Page) {
   await page.getByRole('textbox', { name: 'password' }).fill('mellon')
   await page.getByRole('button', { name: TEXT.login, exact: true }).click()
 
+  await expect(
+    page
+      .getByRole('group', { name: TEXT.licenseAgreementCheckbox })
+      .getByText(TEXT.licenseAgreementCheckbox),
+  ).toBeVisible({ timeout: 60000 })
   await page
     .getByRole('group', { name: TEXT.licenseAgreementCheckbox })
     .getByText(TEXT.licenseAgreementCheckbox)
@@ -115,14 +120,10 @@ export async function loginAsTestUser(page: Page) {
  * The funcion creates a new Enso project
  */
 export async function createNewProject(page: Page) {
-  const newProjectTab = page.getByRole('button', { name: 'New Project', exact: true })
-
-  await expect(newProjectTab).toBeVisible()
-  await newProjectTab.click()
+  await page.getByRole('button', { name: 'New Project' }).click()
   await expect(page.locator('.GraphNode')).toHaveCount(1, { timeout: 60000 })
 
   const tableViz = page.locator('.TableVisualization')
-  await expect(tableViz).toBeVisible({ timeout: 30000 })
   await expect(tableViz).toContainText('Welcome To Enso!')
 }
 
@@ -131,10 +132,10 @@ export async function createNewProject(page: Page) {
  */
 export async function closeWelcome(page: Page) {
   const welcomeProjectTab = page.getByRole('tab', { name: 'Getting Started with Enso' })
-  const loadingIndicator = page.locator('.LoadingSpinner')
+  const loadingIndicator = welcomeProjectTab.locator('.LoadingSpinner')
   await Promise.race([
     welcomeProjectTab
-      .waitFor({ state: 'visible' })
+      .waitFor({ state: 'visible', timeout: 0 })
       .then(() => loadingIndicator.waitFor({ state: 'hidden' })),
     page.waitForTimeout(3000),
   ])
@@ -151,8 +152,11 @@ export async function closeWelcome(page: Page) {
 export async function getNewestProject(page: Page): Promise<Locator> {
   // Returning back to the data catalog
   const dataCatalogTab = page.getByRole('tab', { name: 'Data Catalog' })
-  await expect(dataCatalogTab).toBeVisible()
   await dataCatalogTab.click()
+
+  await expect(page.getByTestId('drive-view')).toBeVisible({ timeout: LOADING_TIMEOUT })
+  const projectsLocator = page.getByTestId('drive-view').getByText(/New Project \d+/)
+  await expect(projectsLocator).not.toHaveCount(0)
 
   const projects = await page
     .getByTestId('drive-view')
@@ -166,6 +170,76 @@ export async function getNewestProject(page: Page): Promise<Locator> {
       return { locator: p, num }
     }),
   )
-
   return numbered.reduce((a, b) => (a.num > b.num ? a : b)).locator
+}
+
+/**
+ * Click the eye button, visualizing component data
+ */
+export async function visualizeData(page: Page) {
+  const showViz = page.getByLabel('Show visualization (Space)')
+  await showViz.click({ timeout: 5000 })
+}
+
+/**
+ * Open new component browser refefencing the last created component
+ */
+export async function createNewComponent(page: Page) {
+  const moreButton = page.getByTestId('more-button').getByRole('button', { name: 'More' }).last()
+  await moreButton.click()
+
+  await page.keyboard.press('Enter')
+}
+
+/**
+ * Open new component browser based on the name of referenced parent component
+ */
+export async function openComponentBrowser(page: Page, parentComponent: string) {
+  await page.getByText(parentComponent, { exact: true }).click()
+  await page.keyboard.press('Enter')
+}
+
+/**
+ * Find textbox located in parent component and fill in text value
+ */
+export async function fillWidgetText(
+  page: Page,
+  containerName: string,
+  value: string,
+  index?: number,
+) {
+  const cont = page.getByText(containerName)
+
+  const box = cont.getByTestId('widget-text-content')
+  if (index) return box.nth(index).fill(value)
+  else return box.fill(value)
+}
+
+/**
+ * Wait for the Samples folder download
+ * This function retries to access passed file every 5 sec, fails after 1 min
+ */
+export async function waitForDownload(pathToFile: string): Promise<void> {
+  const start = Date.now()
+  while (true) {
+    try {
+      await fs.access(pathToFile) // ✅ file exists
+      return
+    } catch {
+      if (Date.now() - start > 60_000) {
+        throw new Error(`File ${pathToFile} not found within 60 seconds`)
+      }
+      await new Promise((r) => setTimeout(r, 5_000))
+    }
+  }
+}
+
+/** Open drop-down menu in WidgetSelection with given label. */
+export function openDropdownInWidget(page: Page, label: string) {
+  return page.locator('.WidgetSelection', { hasText: new RegExp(`^${label}$`) }).click()
+}
+
+/** Find and click + button in an empty Vector Widget inside provided locator. */
+export function addFirstElementToWidgetVector(locator: Locator) {
+  return locator.getByRole('list').filter({ hasText: /^$/ }).getByLabel('Add a new item').click()
 }

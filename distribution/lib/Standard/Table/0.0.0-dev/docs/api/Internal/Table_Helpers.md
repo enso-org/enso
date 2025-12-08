@@ -20,7 +20,6 @@
 - duplicate_rows table:Standard.Base.Any.Any counts:(Standard.Base.Data.Vector.Vector Standard.Base.Data.Numbers.Integer) -> Standard.Table.Table.Table
 - filter_blank_rows table:Standard.Base.Any.Any when:Standard.Base.Any.Any treat_nans_as_blank:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - is_index_valid length:Standard.Base.Any.Any ix:Standard.Base.Any.Any -> Standard.Base.Any.Any
-- match_columns name:(Standard.Base.Data.Text.Text|Standard.Base.Data.Text.Regex.Regex) case_sensitivity:Standard.Base.Data.Text.Case_Sensitivity.Case_Sensitivity columns:Standard.Base.Data.Vector.Vector -> Standard.Base.Any.Any
 - prepare_order_by internal_columns:Standard.Base.Any.Any column_selectors:Standard.Base.Any.Any problem_builder:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - read_name_mapping_from_table column_map:Standard.Table.Table.Table -> Standard.Base.Any.Any
 - rename_columns naming_helper:Standard.Table.Internal.Column_Naming_Helper.Column_Naming_Helper internal_columns:Standard.Base.Data.Vector.Vector mapping:(Standard.Base.Data.Dictionary.Dictionary|Standard.Base.Data.Vector.Vector) case_sensitivity:Standard.Base.Data.Text.Case_Sensitivity.Case_Sensitivity error_on_missing_columns:Standard.Base.Data.Boolean.Boolean on_problems:Standard.Base.Errors.Problem_Behavior.Problem_Behavior -> Standard.Base.Any.Any

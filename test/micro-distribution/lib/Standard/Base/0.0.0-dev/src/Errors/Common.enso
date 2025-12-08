@@ -92,7 +92,10 @@ type Forbidden_Operation
 
     to_display_text self = self.message
 
-## PRIVATE
+
+## ---
+   private: true
+   ---
    A helper that replaces complicated `Text.replace` from main distribution, used for simple error message formatting.
 replace_regex (text : Text) (regex : Text) (replacement : Text) -> Text =
     Java_Pattern.compile regex . matcher text . replaceAll replacement

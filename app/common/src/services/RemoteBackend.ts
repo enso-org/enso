@@ -208,10 +208,10 @@ export class RemoteBackend extends backend.Backend {
     params: backend.UploadPictureRequestParams,
     file: Blob,
   ): Promise<backend.User> {
-    const paramsString = new URLSearchParams({
+    const paramsString = new URLSearchParams(
       // eslint-disable-next-line camelcase
-      ...(params.fileName != null ? { file_name: params.fileName } : {}),
-    }).toString()
+      params.fileName != null ? { file_name: params.fileName } : {},
+    ).toString()
     const path = `${remoteBackendPaths.UPLOAD_USER_PICTURE_PATH}?${paramsString}`
     const response = await this.putBinary<backend.User>(path, file)
     if (!response.ok) {
@@ -279,10 +279,10 @@ export class RemoteBackend extends backend.Backend {
     params: backend.UploadPictureRequestParams,
     file: Blob,
   ): Promise<backend.OrganizationInfo> {
-    const paramsString = new URLSearchParams({
+    const paramsString = new URLSearchParams(
       // eslint-disable-next-line camelcase
-      ...(params.fileName != null ? { file_name: params.fileName } : {}),
-    }).toString()
+      params.fileName != null ? { file_name: params.fileName } : {},
+    ).toString()
     const path = `${remoteBackendPaths.UPLOAD_ORGANIZATION_PICTURE_PATH}?${paramsString}`
     const response = await this.putBinary<backend.OrganizationInfo>(path, file)
     if (!response.ok) {
@@ -557,7 +557,8 @@ export class RemoteBackend extends backend.Backend {
       })
     }
 
-    return await response.json()
+    const { asset } = await response.json()
+    return { asset: this.normalizeAsset(asset, parentDirectoryId) }
   }
 
   /**
@@ -807,9 +808,9 @@ export class RemoteBackend extends backend.Backend {
     params: backend.GetProjectSessionLogsRequestParams,
     title: string,
   ): Promise<backend.ProjectSessionLogs> {
-    const queryParams = new URLSearchParams({
-      ...(params.scrollId != null ? { scrollId: params.scrollId } : {}),
-    })
+    const queryParams = new URLSearchParams(
+      params.scrollId != null ? { scrollId: params.scrollId } : {},
+    )
     const path = remoteBackendPaths.getProjectSessionLogsPath(projectSessionId)
     const response = await this.get<backend.ProjectSessionLogs>(path, queryParams)
     if (!response.ok) {
@@ -829,6 +830,7 @@ export class RemoteBackend extends backend.Backend {
     title: string,
   ): Promise<void> {
     const path = remoteBackendPaths.openProjectPath(projectId)
+    // `cognitoCredentials` is a legacy field, should be removed when no longer needed by the runtime.
     if (body.cognitoCredentials == null) {
       return this.throw(null, 'openProjectMissingCredentialsBackendError', title)
     } else {
@@ -845,7 +847,6 @@ export class RemoteBackend extends backend.Backend {
         cognitoCredentials: exactCredentials,
       }
       const response = await this.post(path, filteredBody)
-
       if (!response.ok) {
         return this.throw(response, 'openProjectBackendError', title)
       } else {
@@ -1218,13 +1219,64 @@ export class RemoteBackend extends backend.Backend {
    * Fetches a configuration for a payment pricing page.
    * @throws An error if a non-successful status code (not 200-299) was received.
    */
-  async getPaymentsConfig(): Promise<backend.PaymentsConfig> {
+  override async getPaymentsConfig(): Promise<backend.PaymentsConfig> {
     const response = await this.get<backend.PaymentsConfig>(remoteBackendPaths.PAYMENTS_CONFIG_PATH)
-
     if (!response.ok) {
       return await this.throw(response, 'getPaymentsConfigBackendError')
     } else {
       return await response.json()
+    }
+  }
+
+  /**
+   * List all personal access tokens for the current user.
+   * @throws An error if a non-successful status code (not 200-299) was received.
+   */
+  override async listApiKeys(): Promise<readonly backend.ApiKey[]> {
+    const response = await this.get<backend.ListApiKeysResponse>(
+      remoteBackendPaths.LIST_API_KEYS_PATH,
+    )
+    if (!response.ok) {
+      return await this.throw(response, 'listApiKeysBackendError')
+    } else {
+      return (await response.json()).credentials
+    }
+  }
+
+  /**
+   * Create a new personal access token for the current user.
+   * @throws An error if a non-successful status code (not 200-299) was received.
+   */
+  override async createApiKey(body: backend.CreateApiKeyRequestBody): Promise<backend.ApiKey> {
+    const response = await this.post<backend.ApiKey>(remoteBackendPaths.LIST_API_KEYS_PATH, body)
+    if (!response.ok) {
+      return await this.throw(response, 'createApiKeyBackendError')
+    } else {
+      return await response.json()
+    }
+  }
+
+  /**
+   * Delete a personal access token for the current user.
+   * @throws An error if a non-successful status code (not 200-299) was received.
+   */
+  override async deleteApiKey(apiKeyId: backend.ApiKeyId) {
+    const path = remoteBackendPaths.deleteApiKeyPath(apiKeyId)
+    const response = await this.delete(path)
+    if (!response.ok) {
+      return await this.throw(response, 'deleteApiKeyBackendError')
+    } else {
+      return
+    }
+  }
+
+  /** Retrieve Mapbox token for the current user. */
+  override async getMapboxToken(): Promise<backend.MapboxToken> {
+    const response = await this.get(remoteBackendPaths.GET_MAPBOX_TOKEN_PATH)
+    if (!response.ok) {
+      return await this.throw(response, 'getMapboxTokenBackendError')
+    } else {
+      return backend.MAPBOX_TOKEN_SCHEMA.parse(await response.json())
     }
   }
 
@@ -1287,10 +1339,7 @@ export class RemoteBackend extends backend.Backend {
       {
         message,
         projectId,
-        metadata: {
-          timestamp: new Date().toISOString(),
-          ...(metadata ?? {}),
-        },
+        metadata: { timestamp: new Date().toISOString(), ...metadata },
       },
       {
         keepalive: true,
@@ -1429,9 +1478,10 @@ export class RemoteBackend extends backend.Backend {
 
   /** Resolve asset metadata from an enso path. */
   override async resolveEnsoPath(path: backend.EnsoPath): Promise<backend.PathResolveResponse> {
+    const effectivePath = backend.EnsoPath(path.replace(/%20/g, ' '))
     const response = await this.get<backend.Asset<backend.RealAssetType>>(
       remoteBackendPaths.RESOLVE_ENSO_PATH,
-      { path },
+      { path: effectivePath },
     )
 
     if (!response.ok) return this.throw(response, 'resolveEnsoPathBackendError')
@@ -1533,14 +1583,19 @@ export class RemoteBackend extends backend.Backend {
     assets: readonly backend.AnyAsset[],
     parentId: backend.DirectoryId | null,
   ): readonly backend.AnyAsset[] {
-    return assets.map((asset) =>
-      objects.merge(asset, {
-        type: backend.getAssetTypeFromId(asset.id),
-        // `Users` and `Teams` folders are virtual, so their children incorrectly have
-        // the organization root id as their parent id.
-        parentId: parentId ?? asset.parentId,
-      }),
-    )
+    return assets.map((asset) => this.normalizeAsset(asset, parentId))
+  }
+
+  private normalizeAsset<T extends backend.AssetType>(
+    asset: backend.AnyAsset<T>,
+    parentId: backend.DirectoryId | null,
+  ): backend.AnyAsset<T> {
+    return objects.merge(asset, {
+      type: backend.getAssetTypeFromId(asset.id),
+      // `Users` and `Teams` folders are virtual, so their children incorrectly have
+      // the organization root id as their parent id.
+      parentId: parentId ?? asset.parentId,
+    } as Partial<backend.AnyAsset<T>>)
   }
 }
 

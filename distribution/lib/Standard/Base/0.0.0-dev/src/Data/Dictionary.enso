@@ -165,7 +165,7 @@ type Dictionary key value
        calls can be chained, e.g., `dictionary.insert "A" 1 . insert "B" 2`.
        Due to the limitation of the current implementation, inserts with a key
        that is already contained in the dictionary, or insert on a dictionary
-       instance that is re-used in other computations, have a linear time
+       instance that is reused in other computations, have a linear time
        complexity. For all the other cases, the time complexity of this method is
        constant.
 

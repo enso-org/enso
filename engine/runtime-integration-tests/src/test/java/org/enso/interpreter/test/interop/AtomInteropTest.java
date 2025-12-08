@@ -477,6 +477,51 @@ public class AtomInteropTest {
   }
 
   @Test
+  public void instanceMethod_CanBeInvokedViaAtom() {
+    var atom =
+        ctxRule.evalModule(
+            """
+            type My_Type
+                Cons
+                method self = 42
+            main = My_Type.Cons
+            """);
+    assertThat(atom.hasMember("method"), is(true));
+    assertThat(atom.canInvokeMember("method"), is(true));
+    var res = atom.invokeMember("method");
+    assertThat(res.asInt(), is(42));
+  }
+
+  @Test
+  public void instanceMethod_IsMemberOfType() {
+    var type =
+        ctxRule.evalModule(
+            """
+            type My_Type
+                Cons
+                method self = 42
+            main = My_Type
+            """);
+    assertThat(type.hasMember("method"), is(true));
+    assertThat(type.canInvokeMember("method"), is(true));
+  }
+
+  @Test
+  public void instanceMethod_CanBeInvokedViaType() {
+    var atom =
+        ctxRule.evalModule(
+            """
+            type My_Type
+                Cons
+                method self = 42
+            main = My_Type.Cons
+            """);
+    var type = atom.getMetaObject();
+    var res = type.invokeMember("method", atom);
+    assertThat(res.asInt(), is(42));
+  }
+
+  @Test
   public void invokeVsReadAndExecute() throws Exception {
     var atom =
         ctxRule.evalModule(

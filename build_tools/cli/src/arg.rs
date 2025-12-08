@@ -27,7 +27,6 @@ pub mod java_gen;
 pub mod libraries;
 pub mod release;
 pub mod runtime;
-pub mod wasm;
 
 /// The prefix that will be used when reading the build script arguments from environment.
 pub const ENVIRONMENT_VARIABLE_NAME_PREFIX: &str = "ENSO_BUILD";
@@ -110,8 +109,6 @@ macro_rules! source_args_hlp {
 #[allow(clippy::large_enum_variant)]
 #[derive(Subcommand, Clone, Debug)]
 pub enum Target {
-    /// Build/Test the Rust part of the GUI.
-    Wasm(wasm::Target),
     /// Build/Run the Vue-based GUI.
     Gui(gui::Target),
     /// Enso Engine Runtime.

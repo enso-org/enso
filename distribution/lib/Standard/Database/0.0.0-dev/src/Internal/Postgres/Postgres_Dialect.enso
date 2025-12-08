@@ -1,3 +1,5 @@
+private
+
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
@@ -17,6 +19,7 @@ import project.Dialects.Dialect_Flag.Dialect_Flag
 import project.Dialects.Feature.Feature
 import project.Errors.Unsupported_Database_Operation
 import project.Internal.Base_Generator
+import project.Internal.Base_Generator.Dialect_Operations
 import project.Internal.Common.Database_Distinct_Helper
 import project.Internal.Common.Database_Join_Helper
 import project.Internal.Internals_Access
@@ -58,6 +61,13 @@ type Postgres_Dialect
        ---
        The dialect of PostgreSQL databases.
     private Value dialect_operations
+
+    ## ---
+       private: true
+       ---
+       Access underlying dialect operations.
+    get_dialect_operations : Dialect_Operations
+    get_dialect_operations self = self.dialect_operations
 
     ## ---
        private: true
@@ -299,6 +309,7 @@ type Postgres_Dialect
     is_feature_supported self feature:Feature -> Boolean =
         case feature of
             Feature.Generate_Rows -> False
+            Feature.Spatial -> False
             _ -> True
 
     ## ---
@@ -363,6 +374,15 @@ type Postgres_Dialect
     ## ---
        private: true
        ---
+       Returns the set of all supported Replace_Params
+    get_supported_replace_params : Hashset Replace_Params
+    get_supported_replace_params self =
+        _ = self
+        supported_replace_params
+
+    ## ---
+       private: true
+       ---
        Returns true if the `replace` parameters are supported by this backend.
     if_replace_params_supports : Replace_Params -> Any -> Any
     if_replace_params_supports self replace_params ~action =
@@ -419,9 +439,9 @@ type Postgres_Dialect
    ---
 make_dialect_operations =
     cases = [["LOWER", Base_Generator.make_function "LOWER"], ["UPPER", Base_Generator.make_function "UPPER"], ["PROPER", Base_Generator.make_function "INITCAP"]]
-    text = [starts_with, contains, ends_with, agg_shortest, agg_longest, make_case_sensitive, ["REPLACE", replace], left, right, regex_match]+concat_ops+cases+trim_ops
+    text = [starts_with, contains, ends_with, agg_shortest, agg_longest, make_case_sensitive, ["REPLACE", replace], left, right, ["SUBSTR", _make_mid], regex_match]+concat_ops+cases+trim_ops
     counts = [agg_count_is_null, agg_count_empty, agg_count_not_empty, ["COUNT_DISTINCT", agg_count_distinct], ["COUNT_DISTINCT_INCLUDE_NULL", agg_count_distinct_include_null]]
-    arith_extensions = [is_nan, is_inf, is_finite, floating_point_div, mod_op, decimal_div, decimal_mod, ["ROW_MIN", Base_Generator.make_function "LEAST"], ["ROW_MAX", Base_Generator.make_function "GREATEST"]]
+    arith_extensions = [power, sqrt, exp, ln, log10, is_nan, is_inf, is_finite, floating_point_div, mod_op, decimal_div, decimal_mod, ["ROW_MIN", Base_Generator.make_function "LEAST"], ["ROW_MAX", Base_Generator.make_function "GREATEST"]]
     bool = [bool_or]
 
     stddev_pop = ["STDDEV_POP", Base_Generator.make_function "stddev_pop"]
@@ -678,6 +698,22 @@ right = Base_Generator.lift_binary_op "RIGHT" str-> n->
 ## ---
    private: true
    ---
+private _make_mid arguments:Vector -> SQL_Builder =
+    case arguments.length of
+        2 ->
+            str = arguments.at 0
+            start = arguments.at 1
+            SQL_Builder.code "substr(" ++ str ++ ", (" ++ start ++ ")::integer)"
+        3 ->
+            str = arguments.at 0
+            start = arguments.at 1
+            length = arguments.at 2
+            SQL_Builder.code "substr(" ++ str ++ ", (" ++ start ++ ")::integer, (" ++ length ++ ")::integer)"
+        _ -> Error.throw (Illegal_Argument.Error "SUBSTR requires 2 or 3 arguments.")
+
+## ---
+   private: true
+   ---
 make_order_descriptor internal_column:Internal_Column sort_direction text_ordering =
     nulls = case sort_direction of
         Sort_Direction.Ascending -> Nulls_Order.First
@@ -700,6 +736,36 @@ make_order_descriptor internal_column:Internal_Column sort_direction text_orderi
                             upper = SQL_IR_Expression.Operation "UPPER" [internal_column.expression]
                             folded_expression = SQL_IR_Expression.Operation "LOWER" [upper]
                             Order_Descriptor.Value folded_expression sort_direction nulls_order=nulls collation=Nothing
+
+## ---
+   private: true
+   ---
+sqrt = Base_Generator.lift_unary_op "SQRT" arg->
+    (SQL_Builder.code "CASE WHEN " ++ arg ++ "< 0 THEN (double precision 'NaN') ELSE SQRT(" ++ arg ++ ") END").paren
+
+## ---
+   private: true
+   ---
+ln = Base_Generator.lift_unary_op "LN" arg->
+    (SQL_Builder.code "CASE WHEN " ++ arg ++ " < 0 THEN (double precision 'NaN') WHEN " ++ arg ++ " = 0 THEN (double precision '-Infinity') ELSE LN(" ++ arg ++ ") END").paren
+
+## ---
+   private: true
+   ---
+log10 = Base_Generator.lift_unary_op "LOG10" arg->
+    (SQL_Builder.code "CASE WHEN " ++ arg ++ " < 0 THEN (double precision 'NaN') WHEN " ++ arg ++ " = 0 THEN (double precision '-Infinity') ELSE LOG10(" ++ arg ++ ") END").paren
+
+## ---
+   private: true
+   ---
+power = Base_Generator.lift_binary_op "^" x-> y->
+    (SQL_Builder.code "CASE WHEN " ++ x ++ " < 0 AND " ++ y ++ " != FLOOR(" ++ y ++ ") THEN (double precision 'NaN') WHEN " ++ x ++ " = 0 AND " ++ y ++ " < 0 THEN (double precision 'Infinity') ELSE POWER(" ++ x ++ ", " ++ y ++ ") END").paren
+
+## ---
+   private: true
+   ---
+exp = Base_Generator.lift_unary_op "EXP" arg->
+    SQL_Builder.code "EXP(CAST(" ++ arg ++ " AS double precision))"
 
 ## ---
    private: true
@@ -770,7 +836,7 @@ replace args metadata =
     pattern = args.at 1
     replacement = args.at 2
 
-    ## `raw_pattern` is a `Text1 or `Regex`; it's the same value as `input`, but not
+    ## `raw_pattern` is a `Text` or `Regex`; it's the same value as `input`, but not
        embedded in IR.
     raw_pattern = metadata.at 0
     replace_params = metadata.at 1

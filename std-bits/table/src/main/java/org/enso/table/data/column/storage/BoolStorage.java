@@ -4,19 +4,24 @@ import java.util.BitSet;
 import java.util.NoSuchElementException;
 import org.enso.table.data.column.storage.iterators.ColumnBooleanStorageIterator;
 import org.enso.table.data.column.storage.type.BooleanType;
+import org.enso.table.util.ImmutableBitSet;
 
 /** A boolean column storage. */
 public final class BoolStorage extends Storage<Boolean>
-    implements ColumnBooleanStorage, ColumnStorageWithNothingMap {
+    implements ColumnBooleanStorage, ColumnStorageWithValidityMap {
   private final BitSet values;
-  private final BitSet isNothing;
+  private final ImmutableBitSet validityMap;
   private final int size;
   private final boolean negated;
 
-  public BoolStorage(BitSet values, BitSet isNothing, int size, boolean negated) {
+  public BoolStorage(BitSet values, BitSet validityMap, int size, boolean negated) {
+    this(values, new ImmutableBitSet(validityMap, size), size, negated);
+  }
+
+  public BoolStorage(BitSet values, ImmutableBitSet validityMap, int size, boolean negated) {
     super(BooleanType.INSTANCE);
     this.values = values;
-    this.isNothing = isNothing;
+    this.validityMap = validityMap;
     this.size = size;
     this.negated = negated;
   }
@@ -45,7 +50,7 @@ public final class BoolStorage extends Storage<Boolean>
     if (idx < 0 || idx >= getSize()) {
       throw new IndexOutOfBoundsException(idx);
     }
-    return isNothing.get((int) idx);
+    return !validityMap.get((int) idx);
   }
 
   public boolean isNegated() {
@@ -57,8 +62,8 @@ public final class BoolStorage extends Storage<Boolean>
   }
 
   @Override
-  public BitSet getIsNothingMap() {
-    return isNothing;
+  public ImmutableBitSet getValidityMap() {
+    return validityMap;
   }
 
   @Override

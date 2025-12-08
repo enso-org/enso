@@ -1,2 +1,17 @@
 Enso
 Copyright 2020 - 2025 New Byte Order sp. z o. o.
+
+'javax.mail', licensed under the CDDL/GPLv2+CE, is distributed with the Saas.
+The license information can be found along with the copyright notices.
+Copyright notices related to this dependency can be found in the directory `com.sun.mail.javax.mail-1.5.6`.
+
+
+'activation', licensed under the Common Development and Distribution License (CDDL) v1.0, is distributed with the Saas.
+The license file can be found at `licenses/CDDL_1.0`.
+Copyright notices related to this dependency can be found in the directory `javax.activation.activation-1.1`.
+
+
+'commons-email', licensed under the Apache License, Version 2.0, is distributed with the Saas.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `org.apache.commons.commons-email-1.5`.
+

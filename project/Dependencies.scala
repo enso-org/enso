@@ -127,6 +127,7 @@ object Dependencies {
   val commonsTextVersion        = "1.10.0"
   val commonsMathVersion        = "3.6.1"
   val commonsCompressVersion    = "1.23.0"
+  val commonsEmailVersion       = "1.5"
   val commonsCliVersion         = "1.5.0"
   val commons = Seq(
     "org.apache.commons" % "commons-collections4" % commonsCollectionsVersion,

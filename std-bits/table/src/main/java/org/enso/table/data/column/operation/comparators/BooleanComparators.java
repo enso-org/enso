@@ -63,7 +63,7 @@ final class BooleanComparators {
           return rightBoolean
               ? NotOperation.applySpecializedBoolStorage(left)
               : new BoolStorage(
-                  new BitSet(), left.getIsNothingMap(), Builder.checkSize(left.getSize()), false);
+                  new BitSet(), left.getValidityMap(), Builder.checkSize(left.getSize()), false);
         }
       };
 
@@ -83,7 +83,7 @@ final class BooleanComparators {
             MapOperationProblemAggregator problemAggregator) {
           return rightBoolean
               ? new BoolStorage(
-                  new BitSet(), left.getIsNothingMap(), Builder.checkSize(left.getSize()), true)
+                  new BitSet(), left.getValidityMap(), Builder.checkSize(left.getSize()), true)
               : NotOperation.applySpecializedBoolStorage(left);
         }
       };
@@ -104,7 +104,7 @@ final class BooleanComparators {
             MapOperationProblemAggregator problemAggregator) {
           return rightBoolean
               ? new BoolStorage(
-                  new BitSet(), left.getIsNothingMap(), Builder.checkSize(left.getSize()), false)
+                  new BitSet(), left.getValidityMap(), Builder.checkSize(left.getSize()), false)
               : left;
         }
       };
@@ -126,7 +126,7 @@ final class BooleanComparators {
           return rightBoolean
               ? left
               : new BoolStorage(
-                  new BitSet(), left.getIsNothingMap(), Builder.checkSize(left.getSize()), true);
+                  new BitSet(), left.getValidityMap(), Builder.checkSize(left.getSize()), true);
         }
       };
 }

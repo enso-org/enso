@@ -1,33 +1,9 @@
 package org.enso.interpreter.arrow.util;
 
-import com.oracle.truffle.api.CompilerDirectives;
-import java.lang.invoke.MethodHandle;
-import java.lang.invoke.MethodHandles;
-import java.lang.reflect.Constructor;
+import java.lang.foreign.MemorySegment;
 import java.nio.ByteBuffer;
 
 public final class MemoryUtil {
-
-  private static MethodHandle byteBufferConstr;
-
-  static {
-    ByteBuffer buffer = null;
-    try {
-      buffer = ByteBuffer.allocateDirect(1);
-      Constructor<?> constr = buffer.getClass().getDeclaredConstructor(long.class, long.class);
-      constr.setAccessible(true);
-      byteBufferConstr = MethodHandles.lookup().unreflectConstructor(constr);
-    } catch (NoSuchMethodException | IllegalAccessException e) {
-      CompilerDirectives.transferToInterpreter();
-      throw new ExceptionInInitializerError(
-          "Unable to find a constructor for ByteBuffer created directly from a memory address");
-    } finally {
-      if (buffer != null) {
-        buffer.clear();
-      }
-    }
-  }
-
   private MemoryUtil() {}
 
   /**
@@ -38,17 +14,7 @@ public final class MemoryUtil {
    * @return ByteBuffer instance
    */
   public static ByteBuffer directBuffer(long address, long capacity) {
-    if (byteBufferConstr != null) {
-      try {
-        return (ByteBuffer) byteBufferConstr.invoke(address, capacity);
-      } catch (Throwable e) {
-        CompilerDirectives.transferToInterpreter();
-        throw new RuntimeException(e);
-      }
-    } else {
-      CompilerDirectives.transferToInterpreter();
-      throw new RuntimeException(
-          "constructor for a ByteBuffer created from a memory address is missing");
-    }
+    var seg = MemorySegment.ofAddress(address).reinterpret(capacity);
+    return seg.asByteBuffer();
   }
 }

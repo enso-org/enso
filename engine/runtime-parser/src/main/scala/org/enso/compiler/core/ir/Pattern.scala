@@ -398,6 +398,93 @@ object Pattern {
     override def showCode(indent: Int): String = literal.showCode(indent)
   }
 
+  /** True/False pattern.
+    *
+    * @param passData any pass metadata associated with the node
+    */
+  sealed case class Bool(
+    condition: Boolean,
+    override val identifiedLocation: IdentifiedLocation,
+    override val passData: MetadataStorage = new MetadataStorage()
+  ) extends Pattern
+      with LazyDiagnosticStorage
+      with LazyId {
+
+    /** Creates a copy of `this`.
+      *
+      * @param condition    the boolean value to check for
+      * @param location    the source location for this IR node
+      * @param passData    any pass metadata associated with the node
+      * @param diagnostics compiler diagnostics for this node
+      * @param id          the identifier for the new node
+      * @return a copy of `this`, updated with the provided values
+      */
+    def copy(
+      condition: Boolean                   = condition,
+      location: Option[IdentifiedLocation] = location,
+      passData: MetadataStorage            = passData,
+      diagnostics: DiagnosticStorage       = diagnostics,
+      id: UUID @Identifier                 = id
+    ): Bool = {
+      if (
+        condition != this.condition
+        || location != this.location
+        || (passData ne this.passData)
+        || diagnostics != this.diagnostics
+        || id != this.id
+      ) {
+        val res = Bool(condition, location.orNull, passData)
+        res.diagnostics = diagnostics
+        res.id          = id
+        res
+      } else this
+    }
+
+    /** @inheritdoc */
+    override def duplicate(
+      keepLocations: Boolean   = true,
+      keepMetadata: Boolean    = true,
+      keepDiagnostics: Boolean = true,
+      keepIdentifiers: Boolean = false
+    ): Bool =
+      copy(
+        location = if (keepLocations) location else None,
+        passData =
+          if (keepMetadata) passData.duplicate else new MetadataStorage(),
+        diagnostics = if (keepDiagnostics) diagnosticsCopy else null,
+        id          = if (keepIdentifiers) id else null
+      )
+
+    /** @inheritdoc */
+    override def mapExpressions(
+      fn: java.util.function.Function[Expression, Expression]
+    ): Bool = {
+      this
+    }
+
+    /** String representation. */
+    override def toString: String =
+      s"""
+         |Case.Pattern.Bool(
+         |condition = $condition,
+         |location = $location,
+         |passData = ${this.showPassData},
+         |diagnostics = $diagnostics,
+         |id = $id
+         |)
+         |""".toSingleLine
+
+    /** @inheritdoc */
+    override def setLocation(location: Option[IdentifiedLocation]): Bool =
+      copy(location = location)
+
+    /** @inheritdoc */
+    override def children: List[IR] = List()
+
+    /** @inheritdoc */
+    override def showCode(indent: Int): String = " ".repeat(indent) + condition
+  }
+
   /** A type pattern.
     *
     * A type pattern matches on types. Type pattern is composed of two parts:

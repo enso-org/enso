@@ -2,12 +2,12 @@ use crate::prelude::*;
 use crate::syntax::expression::apply::*;
 use crate::syntax::expression::types::*;
 
-use crate::syntax::expression::section::MaybeSection;
-use crate::syntax::token;
-use crate::syntax::tree::apply;
 use crate::syntax::Finish;
 use crate::syntax::ScopeHierarchyConsumer;
 use crate::syntax::Tree;
+use crate::syntax::expression::section::MaybeSection;
+use crate::syntax::token;
+use crate::syntax::tree::apply;
 
 // ===============
 // === Reducer ===

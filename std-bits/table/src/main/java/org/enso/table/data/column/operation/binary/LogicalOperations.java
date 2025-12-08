@@ -9,7 +9,6 @@ import org.enso.table.data.column.storage.ColumnBooleanStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.type.BooleanType;
 import org.enso.table.data.table.problems.MapOperationProblemAggregator;
-import org.enso.table.util.BitSets;
 
 /**
  * This class contains logical operations that can be applied to columns.
@@ -86,11 +85,15 @@ public final class LogicalOperations {
         var newMissing = new BitSet(size);
         newMissing.flip(0, size);
         newMissing.xor(values);
+        newMissing.flip(0, size);
         return new BoolStorage(values, newMissing, size, true);
       } else {
-        var newMissing = left.getIsNothingMap().get(0, size);
+        var newMissing = left.getValidityMap().cloneBitSet().get(0, size);
+        newMissing.flip(0, size);
         newMissing.or(values);
-        return new BoolStorage(new BitSet(), newMissing, size, false);
+        var newValidity = newMissing;
+        newValidity.flip(0, size);
+        return new BoolStorage(new BitSet(), newValidity, size, false);
       }
     }
 
@@ -129,23 +132,23 @@ public final class LogicalOperations {
         negated = false;
       }
 
-      BitSet isNothing = BitSets.makeDuplicate(left.getIsNothingMap());
-      isNothing.or(right.getIsNothingMap());
+      var newValidity = left.getValidityMap().cloneBitSet();
+      right.getValidityMap().applyAndTo(newValidity);
       if (size > rightSize) {
-        isNothing.set(rightSize, size);
+        newValidity.set(rightSize, size, false);
       }
-      int current = isNothing.nextSetBit(0);
-      while (current != -1) {
+      var current = newValidity.nextClearBit(0);
+      while (current < size) {
         Boolean a = left.getItemBoxed(current);
         Boolean b = (current < rightSize) ? right.getItemBoxed(current) : null;
         if (a == Boolean.FALSE || b == Boolean.FALSE) {
-          isNothing.clear(current);
+          newValidity.set(current);
           out.set(current, negated);
         }
-        current = isNothing.nextSetBit(current + 1);
+        current = newValidity.nextClearBit(current + 1);
       }
 
-      return new BoolStorage(out, isNothing, size, negated);
+      return new BoolStorage(out, newValidity, size, negated);
     }
   }
 
@@ -208,14 +211,11 @@ public final class LogicalOperations {
       int size = (int) left.getSize();
       BitSet values = left.getValues();
       if (left.isNegated()) {
-        var newMissing = left.getIsNothingMap().get(0, size);
-        newMissing.or(values);
-        return new BoolStorage(new BitSet(), newMissing, size, true);
+        var newValidity = left.getValidityMap().cloneBitSet();
+        newValidity.andNot(values);
+        return new BoolStorage(new BitSet(), newValidity, size, true);
       } else {
-        var newMissing = new BitSet(size);
-        newMissing.flip(0, size);
-        newMissing.xor(values);
-        return new BoolStorage(values, newMissing, size, false);
+        return new BoolStorage(values, values, size, false);
       }
     }
 
@@ -255,23 +255,23 @@ public final class LogicalOperations {
         negated = false;
       }
 
-      BitSet isNothing = BitSets.makeDuplicate(left.getIsNothingMap());
-      isNothing.or(right.getIsNothingMap());
+      var validity = left.getValidityMap().cloneBitSet();
+      right.getValidityMap().applyAndTo(validity);
       if (size > rightSize) {
-        isNothing.set(rightSize, size);
+        validity.set(rightSize, size, false);
       }
-      int current = isNothing.nextSetBit(0);
-      while (current != -1) {
+      int current = validity.nextClearBit(0);
+      while (current < size) {
         Boolean a = left.getItemBoxed(current);
         Boolean b = (current < rightSize) ? right.getItemBoxed(current) : null;
         if (a == Boolean.TRUE || b == Boolean.TRUE) {
-          isNothing.clear(current);
+          validity.set(current);
           out.set(current, !negated);
         }
-        current = isNothing.nextSetBit(current + 1);
+        current = validity.nextClearBit(current + 1);
       }
 
-      return new BoolStorage(out, isNothing, size, negated);
+      return new BoolStorage(out, validity, size, negated);
     }
   }
 }

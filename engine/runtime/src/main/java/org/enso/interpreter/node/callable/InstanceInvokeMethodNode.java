@@ -346,11 +346,14 @@ abstract class InstanceInvokeMethodNode extends InvokeMethodNode {
       Object self,
       Object[] arguments,
       @Shared("warnings") @CachedLibrary(limit = "10") WarningsLibrary warnings,
-      @Shared @Cached AppendWarningNode appendWarningNode) {
+      @Shared @Cached AppendWarningNode appendWarningNode,
+      @Cached ThunkExecutorNode thunkNode) {
     Object selfWithoutWarnings;
     EnsoHashMap warnsMap;
     try {
-      selfWithoutWarnings = warnings.removeWarnings(self);
+      var selfNoWarnings = warnings.removeWarnings(self);
+      selfWithoutWarnings =
+          thunkNode.executeThunk(frame, selfNoWarnings, state, TailStatus.NOT_TAIL);
       warnsMap = warnings.getWarnings(self, false);
     } catch (UnsupportedMessageException e) {
       var ctx = EnsoContext.get(this);

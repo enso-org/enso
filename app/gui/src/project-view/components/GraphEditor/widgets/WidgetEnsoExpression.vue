@@ -69,7 +69,7 @@ export const widgetDefinition = defineWidget(
 
 <template>
   <div
-    class="WidgetEnsoExpression widgetRounded widgetPill"
+    class="WidgetEnsoExpression widgetExpanded widgetRounded widgetPill"
     @click.stop="cmWidget?.focusAndSelect()"
   >
     <CodeMirrorWidgetBase
@@ -85,11 +85,3 @@ export const widgetDefinition = defineWidget(
     />
   </div>
 </template>
-
-<style scoped>
-.WidgetEnsoExpression {
-  display: inline-flex;
-  justify-content: center;
-  align-items: center;
-}
-</style>

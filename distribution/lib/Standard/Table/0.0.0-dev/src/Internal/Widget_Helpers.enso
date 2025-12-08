@@ -9,6 +9,8 @@ from Standard.Base.Widget_Helpers import make_any_selector, make_format_chooser,
 
 import project.Expression.Expression
 import project.Internal.Parse_Values_Helper
+import project.Spatial_Table.Spatial_Join_Condition
+import project.Spatial_Table.Spatial_Table
 import project.Table.Table
 import project.Value_Type.Auto
 import project.Value_Type.Value_Type
@@ -96,7 +98,7 @@ make_column_name_vector_selector table display:Display=..Always =
 make_column_name_multi_selector : Table -> Display -> Boolean -> Boolean -> Widget
 make_column_name_multi_selector table display:Display=..Always add_regex:Boolean=False add_by_type:Boolean=False =
     names = table.column_names.map n-> Option n n.pretty
-    regex = if add_regex then [Option "<Regular Expression>" "(regex '')"] else []
+    regex = if add_regex then [Option "<Regular Expression>" "regex"] else []
     by_type = if add_by_type then [Option "<By Type>" "(..By_Type ..Integer)"] else []
     Multiple_Choice values=regex+by_type+names display=display
 
@@ -221,7 +223,9 @@ make_join_condition_selector table display:Display=..Always cache=Nothing =
     between = Option "Between" "..Between" [["left", self_selector], ["right_lower", right_selector], ["right_upper", right_selector]]
     names=[equals, equals_ci, between]
 
-    item_editor = Single_Choice display=display values=names
+    spatial = if table.is_a Spatial_Table then [Spatial_Join_Condition.default_widget self_selector right_selector] else []
+
+    item_editor = Single_Choice display=display values=names+spatial
     Vector_Editor item_editor=item_editor item_default="(..Equals "+table.column_names.first.pretty+")" display=display
 
 ## ---

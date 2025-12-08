@@ -1,5 +1,6 @@
 import { newtypeConstructor, type Newtype } from '../../utilities/data/newtype.js'
 import type { IdType } from '../Backend.js'
+export { EnsoPath, EnsoPathValue } from './ensoPath.js'
 
 /** A KSUID. */
 export type KSUID = Newtype<string, 'KSUID'>
@@ -110,6 +111,10 @@ export const ZipAssetsJobId = newtypeConstructor<ZipAssetsJobId>()
 export type UnzipAssetsJobId = Newtype<string, 'UnzipAssetsJobId'>
 export const UnzipAssetsJobId = newtypeConstructor<UnzipAssetsJobId>()
 
+/** Unique identifier for an API key. */
+export type ApiKeyId = Newtype<string, 'ApiKeyId'>
+export const ApiKeyId = newtypeConstructor<ApiKeyId>()
+
 /** The name of an asset label. */
 export type LabelName = Newtype<string, 'LabelName'>
 export const LabelName = newtypeConstructor<LabelName>()
@@ -156,14 +161,6 @@ export const ParentsPath = newtypeConstructor<ParentsPath>()
 /** The path of directory names to this asset, excluding the root directory. */
 export type VirtualParentsPath = Newtype<string, 'VirtualParentsPath'>
 export const VirtualParentsPath = newtypeConstructor<VirtualParentsPath>()
-
-/** The path of this asset, including the root directory. */
-export type EnsoPath = Newtype<string, 'EnsoPath'>
-export const EnsoPath = newtypeConstructor<EnsoPath>()
-
-/** The path string of this asset, including the root directory. */
-export type EnsoPathValue = Newtype<string, 'EnsoPathValue'>
-export const EnsoPathValue = newtypeConstructor<EnsoPathValue>()
 
 /** A pagination token for an arbitrary endpoint. */
 export type PaginationToken = Newtype<string, 'PaginationToken'>
