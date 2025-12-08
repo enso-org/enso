@@ -70,7 +70,7 @@ final class InferredDoubleBuilder extends DoubleBuilder implements BuilderWithRe
         items[i] = null;
       } else {
         if (isLongCompactedAsDouble.get(i)) {
-          items[i] = getData(i);
+          items[i] = (long) getData(i);
         } else if (i < rawN && rawData[i] != null) {
           items[i] = rawData[i];
         } else {
