@@ -66,7 +66,7 @@ final class InferredDoubleBuilder extends DoubleBuilder implements BuilderWithRe
   public void copyDataTo(Object[] items) {
     int rawN = rawData == null ? 0 : rawData.length;
     for (int i = 0; i < currentSize; i++) {
-      if (isNothing.get(i)) {
+      if (!isValid(i)) {
         items[i] = null;
       } else {
         if (isLongCompactedAsDouble.get(i)) {
@@ -160,7 +160,7 @@ final class InferredDoubleBuilder extends DoubleBuilder implements BuilderWithRe
     if (type instanceof BigDecimalType) {
       Builder res = Builder.getForBigDecimal(data.length);
       for (int i = 0; i < currentSize; i++) {
-        if (isNothing.get(i)) {
+        if (!isValid(i)) {
           res.appendNulls(1);
         } else {
           BigDecimal bigDecimal = BigDecimal.valueOf(data[i]);

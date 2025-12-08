@@ -16,6 +16,7 @@ from project.Errors import SQL_Error
     - sqlite: details=SQLite.From_File
     - sql_server: details=..SQLServer
     - snowflake: details=..Snowflake
+    - duckdb: details=DuckDB.From_File
    group: Standard.Base.Database
    icon: drive
    suggested: 5

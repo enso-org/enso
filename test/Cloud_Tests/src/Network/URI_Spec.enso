@@ -76,9 +76,12 @@ add_specs suite_builder =
             addr.fragment.should_equal Nothing
             addr.raw_user_info.should_equal "%D0%9B%D0%B8%D0%BD%D1%83%D1%81:pass"
             addr.raw_authority.should_equal "%D0%9B%D0%B8%D0%BD%D1%83%D1%81:pass@ru.wikipedia.org"
-            addr.raw_path.should_equal "/wiki/%D0%AF%D0%B4%D1%80%D0%BE_Linux"
             addr.raw_query.should_equal "%D0%9A%D0%BE%D0%B4"
             addr.raw_fragment.should_equal Nothing
+
+        group_builder.specify "should cope with spaces in URIs" <|
+            addr = URI.parse "https://graph.microsoft.com/v1.0/me/drive/root:/My Documents/Enso Project Plan.docx:/content"
+            addr.path.should_equal "/v1.0/me/drive/root:/My Documents/Enso Project Plan.docx:/content"
 
         group_builder.specify "should automatically URI encode the query string if needed with a warning" <|
             addr = URI.parse 'https://httpbin.org/get?foo=bar&baz="a&c=d"%20?'
@@ -90,10 +93,10 @@ add_specs suite_builder =
             addr2.to_text . should_equal 'https://httpbin.org/get?c=d+d%3De%3Df&g=h'
 
         group_builder.specify "should return Syntax_Error when parsing invalid URI" <|
-            r = URI.parse "a b c"
+            r = URI.parse "a b://c d e"
             r.should_fail_with Syntax_Error
-            r.catch.to_display_text . should_contain "a b c"
-            URI.from "a b c" . should_fail_with Syntax_Error
+            r.catch.to_display_text . should_contain "a%20b://c%20d%20e"
+            URI.from "a b://c d e" . should_fail_with Syntax_Error
 
         group_builder.specify "should return Syntax_Error when parsing empty URI" <|
             r = URI.parse ""
@@ -252,7 +255,7 @@ add_specs suite_builder =
             r = uri1.fetch
             r.at "path" . should_equal "/get/a b c/d+e/f%20g/ś🚧:@"
 
-            ext = "a [!who puts that//// into URI??!!] ; --- ### a:=b"
+            ext = "a !who puts that//// into URI??!! ; --- a:=b"
             uri3 = uri0 / ext
             r2 = uri3.fetch
             r2.at "path" . should_equal "/get/"+ext

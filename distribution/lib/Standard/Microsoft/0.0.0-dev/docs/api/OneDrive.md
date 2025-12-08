@@ -26,3 +26,4 @@
     - uri self -> Standard.Base.Any.Any
     - with_input_stream self open_options:Standard.Base.Data.Vector.Vector action:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - Standard.Base.System.File.Generic.File_Like.File_Like.from that:Standard.Microsoft.OneDrive.OneDrive_File -> Standard.Base.System.File.Generic.File_Like.File_Like
+- Standard.Base.Enso_Cloud.Data_Link.Data_Link_From_File.from that:Standard.Microsoft.OneDrive.OneDrive_File -> Standard.Base.Enso_Cloud.Data_Link.Data_Link_From_File

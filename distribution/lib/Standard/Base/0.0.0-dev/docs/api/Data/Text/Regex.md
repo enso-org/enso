@@ -32,4 +32,4 @@
 - match_to_group_maybe match:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - polyglot_map_to_dictionary map:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - read_group_map polyglot_map:Standard.Base.Any.Any name:Standard.Base.Any.Any -> Standard.Base.Any.Any
-- regex expression:Standard.Base.Data.Text.Text -> Standard.Base.Any.Any
+- regex expression:Standard.Base.Data.Text.Text= -> Standard.Base.Any.Any

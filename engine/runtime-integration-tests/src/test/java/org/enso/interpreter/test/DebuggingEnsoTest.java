@@ -784,7 +784,6 @@ public class DebuggingEnsoTest {
    */
   private static Queue<SuspendedCallback> createStepOverEvents(int numSteps) {
     Queue<SuspendedCallback> steps = new ArrayDeque<>();
-    steps.add((event) -> event.prepareStepInto(1));
     for (int i = 0; i < numSteps - 1; i++) {
       steps.add((event) -> event.prepareStepOver(1));
     }
@@ -821,7 +820,7 @@ public class DebuggingEnsoTest {
                 bar 42       # 6
                 end = 0      # 7
             """);
-    List<Integer> expectedLineNumbers = List.of(5, 6, 7);
+    List<Integer> expectedLineNumbers = List.of(6, 7);
     Queue<SuspendedCallback> steps = createStepOverEvents(expectedLineNumbers.size());
     testStepping(src, "foo", new Object[] {0}, steps, expectedLineNumbers);
   }
@@ -851,7 +850,6 @@ public class DebuggingEnsoTest {
 
     List<String> expectedLines =
         List.of(
-            "foo x =",
             "vec_builder = Builder.new",
             "vec_builder.append 1",
             "vec_builder.append 2",
@@ -873,7 +871,7 @@ public class DebuggingEnsoTest {
                 bar 42      # 4
                 end = 0     # 5
             """);
-    List<Integer> expectedLineNumbers = List.of(3, 4, 2, 1, 2, 4, 5);
+    List<Integer> expectedLineNumbers = List.of(4, 2, 1, 2, 4, 5);
     Queue<SuspendedCallback> steps =
         new ArrayDeque<>(
             Collections.nCopies(expectedLineNumbers.size(), (event) -> event.prepareStepInto(1)));
@@ -892,7 +890,7 @@ public class DebuggingEnsoTest {
                 bar (baz x)  # 4
                 end = 0      # 5
             """);
-    List<Integer> expectedLineNumbers = List.of(3, 4, 1, 4, 2, 4, 5);
+    List<Integer> expectedLineNumbers = List.of(4, 1, 4, 2, 4, 5);
     Queue<SuspendedCallback> steps =
         new ArrayDeque<>(
             Collections.nCopies(expectedLineNumbers.size(), (event) -> event.prepareStepInto(1)));

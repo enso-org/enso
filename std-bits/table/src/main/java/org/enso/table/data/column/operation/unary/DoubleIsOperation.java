@@ -8,7 +8,7 @@ import org.enso.table.data.column.operation.UnaryOperation;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.ColumnDoubleStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
-import org.enso.table.data.column.storage.ColumnStorageWithNothingMap;
+import org.enso.table.data.column.storage.ColumnStorageWithValidityMap;
 import org.enso.table.data.column.storage.type.BigDecimalType;
 import org.enso.table.data.column.storage.type.BigIntegerType;
 import org.enso.table.data.column.storage.type.IntegerType;
@@ -61,9 +61,9 @@ public class DoubleIsOperation implements UnaryOperation {
       ColumnStorage<?> storage, MapOperationProblemAggregator problemAggregator) {
     // For Finite
     if (isAllFinite(storage.getType())) {
-      if (storage instanceof ColumnStorageWithNothingMap withNothingMap) {
+      if (storage instanceof ColumnStorageWithValidityMap withNothingMap) {
         return new BoolStorage(
-            new BitSet(), withNothingMap.getIsNothingMap(), (int) storage.getSize(), finiteValue);
+            new BitSet(), withNothingMap.getValidityMap(), (int) storage.getSize(), finiteValue);
       }
 
       return StorageIterators.mapOverStorage(

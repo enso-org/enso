@@ -549,7 +549,7 @@ private _op_needs_to_materialize_null_checks op -> Boolean =
    ---
 make_dialect_operations =
     cases = [["LOWER", Base_Generator.make_function "LOWER"], ["UPPER", Base_Generator.make_function "UPPER"]]
-    text = [starts_with, contains, ends_with, like, agg_shortest, agg_longest, make_case_sensitive, ["REPLACE", replace], left, right]+concat_ops+cases+trim_ops
+    text = [starts_with, contains, ends_with, like, agg_shortest, agg_longest, make_case_sensitive, ["REPLACE", replace], left, right, ["SUBSTR", _make_mid]]+concat_ops+cases+trim_ops
     counts = [agg_count_is_null, agg_count_empty, agg_count_not_empty, ["COUNT_DISTINCT", agg_count_distinct], ["COUNT_DISTINCT_INCLUDE_NULL", agg_count_distinct_include_null]]
     arith_extensions = [floating_point_div, mod_op, decimal_div, decimal_mod, ["ROW_MIN", Base_Generator.make_function "LEAST"], ["ROW_MAX", Base_Generator.make_function "GREATEST"]]
     bool = [bool_or]
@@ -710,6 +710,22 @@ left = Base_Generator.lift_binary_op "LEFT" str-> n->
    ---
 right = Base_Generator.lift_binary_op "RIGHT" str-> n->
     SQL_Builder.code "right(" ++ str ++ ", CAST(" ++ n ++ " AS INT))"
+
+## ---
+   private: true
+   ---
+private _make_mid arguments:Vector -> SQL_Builder =
+    case arguments.length of
+        2 ->
+            str = arguments.at 0
+            start = arguments.at 1
+            SQL_Builder.code "substring(" ++ str ++ ", " ++ start ++ ")"
+        3 ->
+            str = arguments.at 0
+            start = arguments.at 1
+            length = arguments.at 2
+            SQL_Builder.code "substring(" ++ str ++ ", " ++ start ++ ", " ++ length ++ ")"
+        _ -> Error.throw (Illegal_Argument.Error "SUBSTRING requires 2 or 3 arguments.")
 
 ## ---
    private: true

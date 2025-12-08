@@ -1,13 +1,13 @@
 package org.enso.table.data.column.operation.unary;
 
-import java.util.BitSet;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.operation.StorageIterators;
 import org.enso.table.data.column.operation.UnaryOperation;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
-import org.enso.table.data.column.storage.ColumnStorageWithNothingMap;
+import org.enso.table.data.column.storage.ColumnStorageWithValidityMap;
 import org.enso.table.data.table.problems.MapOperationProblemAggregator;
+import org.enso.table.util.ImmutableBitSet;
 
 public class IsNothingOperation implements UnaryOperation {
   public static final String NAME = "is_nothing";
@@ -28,9 +28,10 @@ public class IsNothingOperation implements UnaryOperation {
   @Override
   public ColumnStorage<?> apply(
       ColumnStorage<?> storage, MapOperationProblemAggregator problemAggregator) {
-    if (storage instanceof ColumnStorageWithNothingMap withNothingMap) {
-      return new BoolStorage(
-          withNothingMap.getIsNothingMap(), new BitSet(), (int) storage.getSize(), false);
+    if (storage instanceof ColumnStorageWithValidityMap validityMap) {
+      var size = (int) storage.getSize();
+      var allValidity = ImmutableBitSet.allTrue(size);
+      return new BoolStorage(validityMap.getValidityMap().cloneBitSet(), allValidity, size, true);
     }
 
     return StorageIterators.buildOverStorage(
