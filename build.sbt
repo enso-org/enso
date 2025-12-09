@@ -5083,7 +5083,6 @@ lazy val `edition-updater` = project
   .dependsOn(`distribution-manager`)
   .dependsOn(`library-manager` % "test->test")
 
-
 lazy val `library-manager` = project
   .in(file("lib/scala/library-manager"))
   .enablePlugins(JPMSPlugin)
