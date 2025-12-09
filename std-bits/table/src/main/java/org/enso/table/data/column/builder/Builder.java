@@ -114,6 +114,16 @@ public interface Builder {
           };
       assert assertSameStorages(storage, localStorage);
       return (ColumnStorage<T>) localStorage;
+    } else {
+      if (BuilderUtil.LOG.isLoggable(System.Logger.Level.TRACE)) {
+        var t = storage.getType();
+        BuilderUtil.LOG.log(
+            System.Logger.Level.TRACE,
+            "makeLocal unsuccessful for {0}:{1} size {2}",
+            t.typeChar(),
+            t.size(),
+            storage.getSize());
+      }
     }
     return storage;
   }
