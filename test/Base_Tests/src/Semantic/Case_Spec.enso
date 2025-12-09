@@ -3,6 +3,7 @@ import Standard.Base.Data.Array as Array_Module
 import Standard.Base.Data.Text as Text_Module
 import Standard.Base.Data.Vector as Vector_Module
 
+polyglot java import org.enso.base_test_helpers.Constants as Java_Constants
 polyglot java import java.lang.Class
 polyglot java import java.lang.Long as Java_Long
 polyglot java import java.lang.Object as Java_Object
@@ -346,6 +347,23 @@ add_specs suite_builder = suite_builder.group "Pattern Matches" group_builder->
         case (.name) of
             _ : Function -> Nothing
             _ -> Test.fail "Expected to match on Function type."
+
+    group_builder.specify "should pattern match on Java constant fields" <|
+        case 1 of
+            Java_Constants.SMALL_INT -> Nothing
+            _ -> Test.fail "Expected to match on SMALL_INT."
+        case "string" of
+            Java_Constants.STRING -> Nothing
+            _ -> Test.fail "Expected to match on STRING."
+        case 2 of
+            Java_Constants.SMALL_LONG -> Nothing
+            _ -> Test.fail "Expected to match on SMALL_LONG."
+        case 20000 of
+            Java_Constants.BIG_LONG -> Nothing
+            _ -> Test.fail "Expected to match on BIG_LONG."
+        case 2020 of
+            Java_Constants.BIG_INT -> Nothing
+            _ -> Test.fail "Expected to match on BIG_INT."
 
 main filter=Nothing =
     suite = Test.build suite_builder->
