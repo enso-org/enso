@@ -41,7 +41,7 @@ add_specs prefix suite_builder file_maker =
         # With retries because it relies on a short `sleep`
         group_builder.specify prefix+"Will download a file if it is older than a specified duration for mode If_Older_Than" <| Test.with_retries <|
             with_test_file (file_maker "if_older_than") file->
-                sleep_duration_secs = 3
+                sleep_duration_secs = 6
 
                 file.exists . should_be_false
 
