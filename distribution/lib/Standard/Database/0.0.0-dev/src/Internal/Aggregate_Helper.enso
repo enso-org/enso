@@ -107,6 +107,7 @@ make_aggregate_column table aggregate as dialect infer_return_type problem_build
         Aggregate_Column.Sum c _ -> simple_aggregate "SUM" [c]
         Aggregate_Column.Average c _ -> simple_aggregate "AVG" [c]
         Aggregate_Column.Median c _ -> simple_aggregate "MEDIAN" [c]
+        Aggregate_Column.SQL fn columns _ -> simple_aggregate "CUSTOM_SQL" [SQL_IR_Expression.Literal fn]+columns
 
 ## ---
    private: true
