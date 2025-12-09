@@ -7,7 +7,7 @@ import Standard.Table.Expression.Expression_Error
 from Standard.Table.Errors import all
 
 import Standard.Database.Dialects.Feature.Feature
-from Standard.Database.Errors import Unsupported_Database_Operation, Aggregagtion_Requires_Order
+from Standard.Database.Errors import Unsupported_Database_Operation, Aggregation_Requires_Order
 
 from Standard.Test import all
 
@@ -1531,14 +1531,14 @@ add_aggregate_specs suite_builder setup =
                     materialized.column_count . should_equal 1
                     materialized.columns.first.name . should_equal "Sum A"
                     materialized.columns.first.to_vector . should_equal [6]
-                problems = [Aggregagtion_Requires_Order.Error "First", Aggregagtion_Requires_Order.Error "Last"]
+                problems = [Aggregation_Requires_Order.Error "First", Aggregation_Requires_Order.Error "Last"]
                 Problems.test_problem_handling action problems tester
 
             group_builder.specify "will include unsupported feature problem in No_Output_Columns" <|
                 table = table_builder [["A", [1,2,Nothing,3]]]
                 r1 = table.aggregate columns=[First ignore_nothing=False "A"]
                 r1.should_fail_with No_Output_Columns
-                r1.catch.cause . should_be_a Aggregagtion_Requires_Order.Error
+                r1.catch.cause . should_be_a Aggregation_Requires_Order.Error
                 r1.to_display_text . should_contain "No columns in the result"
                 r1.to_display_text . should_contain "`First`"
 
