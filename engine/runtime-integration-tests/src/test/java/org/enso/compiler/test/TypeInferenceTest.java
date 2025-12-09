@@ -485,7 +485,6 @@ public class TypeInferenceTest extends StaticAnalysisTest {
         Optional.of(myType), getInferredTypeOption(ModuleUtils.findAssignment(foo, "x7")));
   }
 
-  @Ignore("TODO: ifte")
   @Test
   public void commonIfThenElse() throws Exception {
     final URI uri = new URI("memory://commonIfThenElse.enso");
@@ -667,7 +666,6 @@ public class TypeInferenceTest extends StaticAnalysisTest {
     assertSumType(ModuleUtils.findAssignment(f, "y"), "My_Type", "Other_Type");
   }
 
-  @Ignore("TODO: ifte")
   @Test
   public void sumTypeFromIf() throws Exception {
     final URI uri = new URI("memory://sumTypeFromIf.enso");
@@ -688,7 +686,6 @@ public class TypeInferenceTest extends StaticAnalysisTest {
     assertSumType(ModuleUtils.findAssignment(f, "y"), "Text", "Integer");
   }
 
-  @Ignore("TODO: ifte")
   @Test
   public void sumTypeFromIfWithoutElse() throws Exception {
     final URI uri = new URI("memory://sumTypeFromIf.enso");
