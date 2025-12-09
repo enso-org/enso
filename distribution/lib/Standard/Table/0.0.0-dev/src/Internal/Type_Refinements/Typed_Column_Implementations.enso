@@ -6,6 +6,9 @@ import Standard.Base.Errors.Illegal_State.Illegal_State
 import project.Column.Column
 import project.Column.Rest_Of_String
 import project.In_Memory_Column.In_Memory_Column
+import project.Internal.Type_Refinements.Typed_Column_Helpers
+import project.Internal.Type_Refinements.Typed_Column_Implementations.In_Memory_Text_Column_Implementation
+import project.Refined_Types.Text_Column.Text_Column
 import project.Value_Type.Value_Type
 from project.Internal.In_Memory_Column_Implementation import _apply_unary_map, _apply_binary_map, _apply_case_sensitive_text_operation, _call_binary_operator, _java_other, apply_unary_operation, naming_helper
 from project.Internal.Java_Exports import make_string_builder
@@ -163,7 +166,7 @@ type In_Memory_Text_Column_Implementation
                         _ : Integer ->
                             if length < 0 || nonneg_start >= s.length then "" else s.substring nonneg_start length
 
-            if Nothing == start || Nothing == length then this_column . const Nothing . rename new_name else
+            res = if Nothing == start || Nothing == length then this_column . const Nothing . cast this_column.value_type . rename new_name else
                 case start of
                     _ : Integer ->
                         case length of
@@ -193,3 +196,4 @@ type In_Memory_Text_Column_Implementation
                                         builder.append replaced
 
                                     In_Memory_Column.from_storage new_name builder.seal . cast this_column.value_type
+            res

@@ -360,16 +360,19 @@ type In_Memory_Column_Implementation
             apply_unary_operation this_column TextLengthOperation.INSTANCE
 
     text_left this_column (n : Column | Integer | Nothing) =
-       new_name = naming_helper.function_name "text_left" [this_column, n]
-       (this_column : Text_Column) . left n . rename new_name
+        Value_Type.expect_text this_column <|
+            new_name = naming_helper.function_name "text_left" [this_column, n]
+            (this_column : Text_Column) . left n . rename new_name
 
     text_right this_column (n : Column | Integer | Nothing) =
-       new_name = naming_helper.function_name "text_right" [this_column, n]
-       (this_column : Text_Column) . right n . rename new_name
+        Value_Type.expect_text this_column <|
+            new_name = naming_helper.function_name "text_right" [this_column, n]
+            (this_column : Text_Column) . right n . rename new_name
 
     text_mid this_column (start : Column | Any) (length : Column | Any) =
-       new_name = naming_helper.function_name "text_mid" [this_column, start, length]
-       (this_column : Text_Column) . mid start length . rename new_name
+        Value_Type.expect_text this_column <|
+            new_name = naming_helper.function_name "text_mid" [this_column, start, length]
+            (this_column : Text_Column) . mid start length . rename new_name
 
     contains (this_column : Column & In_Memory_Column) (other : Column | Text | Any) case_sensitivity:Case_Sensitivity = Value_Type.expect_text this_column <| Value_Type.expect_text other <|
         new_name = naming_helper.function_name "contains" [this_column, other]
