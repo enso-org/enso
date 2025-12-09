@@ -187,6 +187,11 @@ add_core_specs suite_builder setup =
                 problems2 = [Arithmetic_Error.Error "Division by zero (at rows [2])."]
                 Problems.test_problem_handling action2 problems2 tester2
 
+        group_builder.specify "qwershould allow adding a constant integer column" <|
+            t2 = data.table.set 42 as="bar3"
+            t2.column_names . should_equal ["foo", "bar", "Baz", "foo 1", "foo 2", "ab.+123", "abcd123","bar3"]
+            t2.get "bar3" . to_vector . should_equal [42, 42, 42]
+
         group_builder.specify "should gracefully handle columns from different backends" <|
             t1 = build_sorted_table [["A", [1, 2, 3]]]
             alternative_connection = Database.connect (SQLite.In_Memory)
