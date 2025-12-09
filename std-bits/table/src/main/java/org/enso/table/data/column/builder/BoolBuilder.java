@@ -8,7 +8,6 @@ import org.enso.table.data.column.storage.type.BooleanType;
 import org.enso.table.data.column.storage.type.NullType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.error.ValueTypeMismatchException;
-import org.enso.table.util.BitSets;
 
 /** A builder for boolean columns. */
 final class BoolBuilder implements BuilderForBoolean, BuilderWithRetyping {
@@ -72,7 +71,7 @@ final class BoolBuilder implements BuilderForBoolean, BuilderWithRetyping {
     if (storage instanceof BoolStorage boolStorage) {
       // We know this is valid for a BoolStorage.
       int toCopy = (int) boolStorage.getSize();
-      BitSets.copy(boolStorage.getValues(), vals, size, toCopy);
+      boolStorage.getValues().copyTo(vals, size, toCopy);
       boolStorage.getValidityMap().copyTo(validityMap, size, toCopy);
       size += toCopy;
     } else if (storage instanceof ColumnBooleanStorage columnBooleanStorage) {

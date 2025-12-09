@@ -9,16 +9,17 @@ import org.enso.table.util.ImmutableBitSet;
 /** A boolean column storage. */
 public final class BoolStorage extends Storage<Boolean>
     implements ColumnBooleanStorage, ColumnStorageWithValidityMap {
-  private final BitSet values;
+  private final ImmutableBitSet values;
   private final ImmutableBitSet validityMap;
   private final int size;
   private final boolean negated;
 
   public BoolStorage(BitSet values, BitSet validityMap, int size, boolean negated) {
-    this(values, new ImmutableBitSet(validityMap, size), size, negated);
+    this(new ImmutableBitSet(values, size), new ImmutableBitSet(validityMap, size), size, negated);
   }
 
-  public BoolStorage(BitSet values, ImmutableBitSet validityMap, int size, boolean negated) {
+  public BoolStorage(
+      ImmutableBitSet values, ImmutableBitSet validityMap, int size, boolean negated) {
     super(BooleanType.INSTANCE);
     this.values = values;
     this.validityMap = validityMap;
@@ -57,7 +58,7 @@ public final class BoolStorage extends Storage<Boolean>
     return negated;
   }
 
-  public BitSet getValues() {
+  public ImmutableBitSet getValues() {
     return values;
   }
 

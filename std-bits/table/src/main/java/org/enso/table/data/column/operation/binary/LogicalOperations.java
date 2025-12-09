@@ -80,7 +80,7 @@ public final class LogicalOperations {
       }
 
       int size = (int) left.getSize();
-      BitSet values = left.getValues();
+      BitSet values = left.getValues().cloneBitSet();
       if (left.isNegated()) {
         var newMissing = new BitSet(size);
         newMissing.flip(0, size);
@@ -110,10 +110,10 @@ public final class LogicalOperations {
         BoolStorage left, BoolStorage right, MapOperationProblemAggregator problemAggregator) {
       int size = (int) left.getSize();
       int rightSize = (int) right.getSize();
-      BitSet values = left.getValues();
+      BitSet values = left.getValues().cloneBitSet();
 
       // Compute the output set
-      BitSet out = right.getValues().get(0, size);
+      BitSet out = right.getValues().cloneBitSet().get(0, size);
       boolean negated;
       if (left.isNegated()) {
         if (right.isNegated()) {
@@ -209,7 +209,7 @@ public final class LogicalOperations {
       }
 
       int size = (int) left.getSize();
-      BitSet values = left.getValues();
+      BitSet values = left.getValues().cloneBitSet();
       if (left.isNegated()) {
         var newValidity = left.getValidityMap().cloneBitSet();
         newValidity.andNot(values);
@@ -232,10 +232,10 @@ public final class LogicalOperations {
         BoolStorage left, BoolStorage right, MapOperationProblemAggregator problemAggregator) {
       int size = (int) left.getSize();
       int rightSize = (int) right.getSize();
-      BitSet values = left.getValues();
+      BitSet values = left.getValues().cloneBitSet();
 
       // Compute the output set
-      BitSet out = right.getValues().get(0, size);
+      BitSet out = right.getValues().cloneBitSet().get(0, size);
       boolean negated;
       if (left.isNegated()) {
         if (right.isNegated()) {
