@@ -181,8 +181,12 @@ public class EnsoYamlProjectTest extends NbTestCase {
     var dataNodes = dataNode.getChildren().getNodes(true);
     assertEquals("One nodes: " + Arrays.toString(dataNodes), 1, dataNodes.length);
     assertEquals("input.txt", dataNodes[0].getName());
-    
+
     assertEquals(input, dataNodes[0].getLookup().lookup(FileObject.class));
+
+    var copy = dataNode.clipboardCopy();
+    var text = copy.getTransferData(DataFlavor.stringFlavor);
+    assertEquals("Meta.Enso_Project.enso_project.data", text);
   }
 
   public void testDocumentation() throws Exception {

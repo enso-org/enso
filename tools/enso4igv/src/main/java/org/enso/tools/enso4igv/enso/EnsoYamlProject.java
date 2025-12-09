@@ -1,6 +1,9 @@
 package org.enso.tools.enso4igv.enso;
 
 import java.awt.GraphicsEnvironment;
+import java.awt.datatransfer.DataFlavor;
+import java.awt.datatransfer.Transferable;
+import java.awt.datatransfer.UnsupportedFlavorException;
 import java.beans.BeanInfo;
 import java.beans.PropertyChangeListener;
 import java.io.IOException;
@@ -31,6 +34,7 @@ import org.openide.util.Exceptions;
 import org.openide.util.ImageUtilities;
 import org.openide.util.Lookup;
 import org.openide.util.NbBundle;
+import org.openide.util.datatransfer.ExTransferable;
 import org.openide.util.lookup.Lookups;
 
 @NbBundle.Messages({
@@ -291,7 +295,20 @@ public final class EnsoYamlProject implements Project {
       try {
         var data = p.root.getFileObject("data", true);
         if (data != null) {
-          var dataNode = DataObject.find(data).getNodeDelegate().cloneNode();
+          var dataNode = new FilterNode(DataObject.find(data).getNodeDelegate()) {
+              @Override
+              public Transferable clipboardCopy() throws IOException {
+                  var t = ExTransferable.create(super.clipboardCopy());
+                  var dataDir = new ExTransferable.Single(DataFlavor.stringFlavor) {
+                      @Override
+                      protected Object getData() throws IOException, UnsupportedFlavorException {
+                          return "Meta.Enso_Project.enso_project.data";
+                      }
+                  };
+                  t.put(dataDir);
+                  return t;
+              }
+          };
           dataNode.setDisplayName(Bundle.LAB_EnsoData());
           ch.add(new Node[]{dataNode});
         }
