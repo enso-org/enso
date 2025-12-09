@@ -39,7 +39,7 @@ class ImportsTest extends PackageTest {
     outLines(0) should include(
       "Package containing the module Surely_This.Does_Not_Exist.My_Module " +
       "could not be loaded: The package could not be resolved: The library " +
-      "`Surely_This.Does_Not_Exist` is not defined within the edition."
+      "`Surely_This.Does_Not_Exist` is not defined within the edition"
     )
     outLines(1) should include(
       "The module Enso_Test.Test_Bad_Imports.Oopsie does not exist."
