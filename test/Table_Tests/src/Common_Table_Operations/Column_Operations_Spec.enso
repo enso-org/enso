@@ -1388,7 +1388,7 @@ add_column_operation_specs suite_builder setup =
                     resMid.name . should_equal "text_mid([strings], -3, 3)"
                     resMid . to_vector . should_equal ["a", "foo", "", Nothing, "👩‍🔬👩‍🔬V", "caf", "It "]
 
-            group_builder.specify "text_left, _right, and _mid should return Nothing if positions or lengths are Nothing" <|
+            group_builder.specify "text_left, _right, and _mid should return the empty string if positions or lengths are Nothing" <|
                 with_mixed_columns_if_supported [["strings", ["a", "foobar", "", Nothing, "👩‍🔬👩‍🔬V👩‍🔬👩‍🔬", "café", "It was the best of times, it was the worst of times, it was the age of wisdom, it was the age of foolishness, it was the epoch of belief, it was the epoch of incredulity, it was the season of light, it was the season of darkness, it was the spring of hope, it was the winter of despair."]]] t->
                     col = t.at "strings"
                     col.text_left Nothing . to_vector . should_equal [Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing]

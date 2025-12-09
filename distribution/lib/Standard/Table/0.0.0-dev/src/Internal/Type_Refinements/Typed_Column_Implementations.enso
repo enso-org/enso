@@ -166,34 +166,37 @@ type In_Memory_Text_Column_Implementation
                         _ : Integer ->
                             if length < 0 || nonneg_start >= s.length then "" else s.substring nonneg_start length
 
-            res = if Nothing == start || Nothing == length then this_column . const Nothing . cast this_column.value_type . rename new_name else
-                case start of
-                    _ : Integer ->
-                        case length of
-                            _ : Integer ->
-                                _apply_unary_map this_column new_name (s -> do_substring s start length) expected_result_type=Value_Type.Char . cast this_column.value_type
-                            _ : Rest_Of_String ->
-                                _apply_unary_map this_column new_name (s -> do_substring s start length) expected_result_type=Value_Type.Char . cast this_column.value_type
-                            _ : Column ->
-                                Value_Type.expect_integer length <|
-                                    _apply_binary_map this_column (s -> l-> do_substring s start l) length new_name skip_nulls=False expected_result_type=Value_Type.Char . cast this_column.value_type
-                    _ : Column ->
-                        case length of
-                            _ : Integer ->
-                                _apply_binary_map this_column (s -> st-> do_substring s st length) start new_name skip_nulls=False expected_result_type=Value_Type.Char . cast this_column.value_type
-                            _ : Rest_Of_String ->
-                                _apply_binary_map this_column (s -> st-> do_substring s st length) start new_name skip_nulls=False expected_result_type=Value_Type.Char . cast this_column.value_type
-                            _ : Column ->
-                                Value_Type.expect_integer length <|
-                                    row_count = this_column.row_count
-                                    java_this = this_column.java_column
-                                    java_start = (start:In_Memory_Column).java_column
-                                    java_length = (length:In_Memory_Column).java_column
+            res = case start of
+                _ : Nothing ->
+                    _apply_unary_map this_column new_name (s -> do_substring s start length) expected_result_type=Value_Type.Char
+                _ : Integer ->
+                    case length of
+                        _ : Nothing ->
+                            _apply_unary_map this_column new_name (s -> do_substring s start length) expected_result_type=Value_Type.Char
+                        _ : Integer ->
+                            _apply_unary_map this_column new_name (s -> do_substring s start length) expected_result_type=Value_Type.Char
+                        _ : Rest_Of_String ->
+                            _apply_unary_map this_column new_name (s -> do_substring s start length) expected_result_type=Value_Type.Char
+                        _ : Column ->
+                            Value_Type.expect_integer length <|
+                                _apply_binary_map this_column (s -> l-> do_substring s start l) length new_name skip_nulls=False expected_result_type=Value_Type.Char
+                _ : Column ->
+                    case length of
+                        _ : Integer ->
+                            _apply_binary_map this_column (s -> st-> do_substring s st length) start new_name skip_nulls=False expected_result_type=Value_Type.Char
+                        _ : Rest_Of_String ->
+                            _apply_binary_map this_column (s -> st-> do_substring s st length) start new_name skip_nulls=False expected_result_type=Value_Type.Char
+                        _ : Column ->
+                            Value_Type.expect_integer length <|
+                                row_count = this_column.row_count
+                                java_this = this_column.java_column
+                                java_start = (start:In_Memory_Column).java_column
+                                java_length = (length:In_Memory_Column).java_column
 
-                                    builder = make_string_builder row_count
-                                    0.up_to row_count . each i->
-                                        replaced = do_substring (java_this.getItem i) (java_start.getItem i) (java_length.getItem i)
-                                        builder.append replaced
+                                builder = make_string_builder row_count
+                                0.up_to row_count . each i->
+                                    replaced = do_substring (java_this.getItem i) (java_start.getItem i) (java_length.getItem i)
+                                    builder.append replaced
 
-                                    In_Memory_Column.from_storage new_name builder.seal . cast this_column.value_type
-            res
+                                In_Memory_Column.from_storage new_name builder.seal
+            res . cast this_column.value_type
