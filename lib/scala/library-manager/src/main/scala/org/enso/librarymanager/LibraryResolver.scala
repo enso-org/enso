@@ -2,6 +2,7 @@ package org.enso.librarymanager
 
 import org.enso.editions.{Editions, LibraryName, LibraryVersion}
 import org.enso.librarymanager.local.LocalLibraryProvider
+import org.slf4j.LoggerFactory
 
 /** A helper class that figures out which library version should be used in a
   * given configuration.
@@ -13,6 +14,7 @@ import org.enso.librarymanager.local.LocalLibraryProvider
 case class LibraryResolver(
   localLibraryProvider: LocalLibraryProvider
 ) {
+  private lazy val logger = LoggerFactory.getLogger(classOf[LibraryResolver])
 
   /** Resolves the library version that entails from the provided configuration.
     *
@@ -31,7 +33,13 @@ case class LibraryResolver(
     edition: Editions.ResolvedEdition,
     preferLocalLibraries: Boolean
   ): Either[LibraryResolutionError, LibraryVersion] = {
-    if (preferLocalLibraries) {
+    logger.trace(
+      "Resolving version of library '{}' with edition {}, preferLocalLibraries={}",
+      libraryName,
+      edition,
+      preferLocalLibraries
+    )
+    val ret = if (preferLocalLibraries) {
       localLibraryProvider
         .findLibrary(libraryName)
         .map(_ => Right(LibraryVersion.Local))
@@ -39,6 +47,8 @@ case class LibraryResolver(
           resolveLibraryFromEdition(libraryName, edition)
         }
     } else resolveLibraryFromEdition(libraryName, edition)
+    logger.trace("Resolved version of library '{}' to {}", libraryName, ret)
+    ret
   }
 
   /** Resolves the library version that entails from the edition.
