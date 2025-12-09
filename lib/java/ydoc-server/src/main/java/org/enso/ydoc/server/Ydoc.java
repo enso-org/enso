@@ -11,6 +11,7 @@ import org.enso.ydoc.api.NoOpMessageCallbacks;
 import org.enso.ydoc.polyfill.ParserPolyfill;
 import org.enso.ydoc.polyfill.web.WebEnvironment;
 import org.graalvm.polyglot.Context;
+import org.graalvm.polyglot.HostAccess;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.io.IOAccess;
 
@@ -51,6 +52,7 @@ public final class Ydoc implements AutoCloseable {
     private ScheduledExecutorService executor;
     private ParserPolyfill parser;
     private Context.Builder contextBuilder;
+    private HostAccess.Builder hostAccessBuilder;
     private String hostname;
     private int port = -1;
     private MessageCallbacks callbacks;
@@ -64,6 +66,11 @@ public final class Ydoc implements AutoCloseable {
 
     public Builder parser(ParserPolyfill parser) {
       this.parser = parser;
+      return this;
+    }
+
+    public Builder hostAccessBuilder(HostAccess.Builder hostAccessBuilder) {
+      this.hostAccessBuilder = hostAccessBuilder;
       return this;
     }
 
@@ -102,8 +109,13 @@ public final class Ydoc implements AutoCloseable {
         parser = new ParserPolyfill();
       }
 
+      if (hostAccessBuilder == null) {
+        hostAccessBuilder = WebEnvironment.defaultHostAccess;
+      }
+
       if (contextBuilder == null) {
-        contextBuilder = WebEnvironment.createContext().allowIO(IOAccess.ALL);
+        contextBuilder =
+            WebEnvironment.createContext(hostAccessBuilder.build()).allowIO(IOAccess.ALL);
       }
 
       if (hostname == null) {
