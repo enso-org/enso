@@ -61,7 +61,7 @@ make_aggregate_column_selector table display:Display=..Always =
 
     ## SQL Aggregation Function
     sql_function = if table.underlying.is_a In_Memory_Table then [] else
-        [Option "<SQL Function>" "..SQL" [["arguments", Vector_Editor item_editor=col_list_selector item_default="(..Name "+table.underlying.column_names.first.pretty+")"]]]
+        [Option "<SQL Function>" "..SQL" [["arguments", col_list_selector]]]
 
     Single_Choice display=display values=[count, sum, average, maximum, minimum, count_distinct, first, last, count_not_nothing, count_nothing, count_not_empty, count_empty, concatenate, shortest, longest, median, percentile, mode, standard_deviation]+sql_function
 
