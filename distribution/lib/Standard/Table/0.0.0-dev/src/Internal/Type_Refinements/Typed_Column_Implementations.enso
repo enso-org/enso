@@ -6,9 +6,10 @@ import Standard.Base.Errors.Illegal_State.Illegal_State
 import project.Column.Column
 import project.In_Memory_Column.In_Memory_Column
 import project.Value_Type.Value_Type
-from project.Internal.In_Memory_Column_Implementation import _call_binary_operator, _java_other, apply_unary_operation, naming_helper
+from project.Internal.In_Memory_Column_Implementation import _call_binary_operator, _java_other, apply_unary_operation, naming_helper, apply_case_sensitive_text_operation
 
 polyglot java import org.enso.table.data.column.operation.binary.RandBetweenOperation
+polyglot java import org.enso.table.data.column.operation.text.TextIndexOf
 polyglot java import org.enso.table.data.column.operation.unary.AbsOperation
 polyglot java import org.enso.table.data.column.operation.unary.CaseOperation
 polyglot java import org.enso.table.data.column.operation.unary.DoubleUnaryOperation
@@ -135,3 +136,8 @@ type In_Memory_Text_Column_Implementation
             new_name = naming_helper.function_name "proper" [column]
             operation = CaseOperation.new Case.Proper.to_java Locale.default.java_locale
             apply_unary_operation column operation new_name
+
+    index_of (column : Column & In_Memory_Column) (other : Column | Text | Any) case_sensitivity:Case_Sensitivity=..Default =
+        Value_Type.expect_text column <| Value_Type.expect_text other <|
+            new_name = naming_helper.function_name "index_of" [column, other]
+            apply_case_sensitive_text_operation column other case_sensitivity TextIndexOf.INSTANCE (a -> b -> a.index_of b 0 case_sensitivity) new_name Value_Type.Integer

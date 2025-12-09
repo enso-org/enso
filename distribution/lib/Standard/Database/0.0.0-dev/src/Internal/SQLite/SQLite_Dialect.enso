@@ -490,7 +490,7 @@ type SQLite_Dialect
    ---
 make_dialect_operations =
     cases = [["LOWER", Base_Generator.make_function "LOWER"], ["UPPER", Base_Generator.make_function "UPPER"]]
-    text = [starts_with, contains, ends_with, make_case_sensitive, ["REPLACE", replace], left, right]+concat_ops+cases+trim_ops
+    text = [starts_with, contains, ends_with, make_case_sensitive, ["REPLACE", replace], left, right, index_of]+concat_ops+cases+trim_ops
     counts = [agg_count_is_null, agg_count_empty, agg_count_not_empty, ["COUNT_DISTINCT", agg_count_distinct], ["COUNT_DISTINCT_INCLUDE_NULL", agg_count_distinct_include_null]]
     stats = [agg_stddev_pop, agg_stddev_samp]
     arith_extensions = [is_inf, is_finite, floating_point_div, mod_op]
@@ -662,6 +662,12 @@ make_contains_expr expr substring =
    private: true
    ---
 contains = Base_Generator.lift_binary_op "CONTAINS" make_contains_expr
+
+## ---
+   private: true
+   ---
+index_of = Base_Generator.lift_binary_op "INDEX_OF" str-> substr->
+    SQL_Builder.code "instr(" ++ str ++ ", " ++ substr ++ ") - 1"
 
 ## ---
    private: true

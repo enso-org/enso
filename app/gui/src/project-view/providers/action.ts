@@ -76,6 +76,10 @@ const displayableActions = {
     description: 'Color Selected Components',
     shortcut: graphBindings.bindings['components.pickColorMulti'],
   },
+  'components.deleteAndConnectAround': {
+    icon: 'graph',
+    description: 'Delete and Connect Around',
+  },
 
   // === Component ===
 
