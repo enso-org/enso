@@ -109,7 +109,7 @@ public class FillMissingOperation implements BinaryOperation {
       }
       var validity = ImmutableBitSet.allTrue(size);
       return new BoolStorage(
-          new ImmutableBitSet(newValues, size), validity, size, storage.isNegated());
+          new ImmutableBitSet(newValues, size), validity, size, storage.isNegated(), null);
     }
 
     public BooleanFillMissingOperation(StorageType<?> resultType) {
