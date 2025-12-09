@@ -13,6 +13,7 @@
     - ^ self that:Standard.Base.Data.Numbers.Number -> Standard.Base.Data.Numbers.Number
     - abs self -> Standard.Base.Data.Numbers.Float
     - ceil self -> Standard.Base.Data.Numbers.Integer
+    - compare_ulp self that:Standard.Base.Data.Numbers.Float -> Standard.Base.Data.Boolean.Boolean
     - floor self -> Standard.Base.Data.Numbers.Integer
     - max_value -> Standard.Base.Any.Any
     - min_value -> Standard.Base.Any.Any
@@ -86,12 +87,11 @@
     - sqrt self -> Standard.Base.Any.Any
     - tan self -> Standard.Base.Any.Any
     - tanh self -> Standard.Base.Any.Any
-- Standard.Base.Data.Numbers.Positive_Integer.new integer:Standard.Base.Data.Numbers.Integer -> Standard.Base.Any.Any
 - Standard.Base.Data.Numbers.Float.from that:Standard.Base.Data.Numbers.Integer -> Standard.Base.Data.Numbers.Float
+- Standard.Base.Data.Numbers.Integer.from that:Standard.Base.Data.Numbers.Positive_Integer -> Standard.Base.Data.Numbers.Integer
 - type Number_Parse_Error
     - Error text:Standard.Base.Any.Any
     - to_display_text self -> Standard.Base.Any.Any
-- Standard.Base.Data.Numbers.Integer.from that:Standard.Base.Data.Numbers.Positive_Integer -> Standard.Base.Data.Numbers.Integer
 - type Positive_Integer
     - Value integer:Standard.Base.Data.Numbers.Integer
     - new integer:Standard.Base.Data.Numbers.Integer -> Standard.Base.Any.Any
