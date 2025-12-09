@@ -13,6 +13,7 @@ import org.enso.table.data.column.operation.masks.MaskOperation;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.PreciseTypeOptions;
+import org.enso.table.data.column.storage.TypedStorage;
 import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.enso.table.data.column.storage.type.BigDecimalType;
 import org.enso.table.data.column.storage.type.BigIntegerType;
@@ -100,6 +101,11 @@ public interface Builder {
    */
   @SuppressWarnings("unchecked")
   static <T> ColumnStorage<T> makeLocal(ColumnStorage<T> storage) {
+    if (storage.getSize() == 0) {
+      var proxyType = storage.getType();
+      var localType = StorageType.fromTypeCharAndSize(proxyType.typeChar(), proxyType.size());
+      return (ColumnStorage<T>) new TypedStorage(localType, new Object[0]);
+    }
     var data = storage.addressOfData();
     if (data != 0) {
       var size = Math.toIntExact(storage.getSize());
