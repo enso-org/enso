@@ -26,11 +26,12 @@ trait ReadOnlyLibraryCache {
 
 object ReadOnlyLibraryCache {
   def recursivelyToString(
-                        path: Path,
-                        indentPrefix: Int = 0,
-                        depth: Int = 0,
-                        maxDepth: Int = 5,
-                        sb: StringBuilder = new StringBuilder): String = {
+    path: Path,
+    indentPrefix: Int = 0,
+    depth: Int        = 0,
+    maxDepth: Int     = 5,
+    sb: StringBuilder = new StringBuilder
+  ): String = {
     val prefix = "  " * indentPrefix
     if (Files.isDirectory(path)) {
       val name = path.getFileName.toString + "/"
@@ -40,9 +41,9 @@ object ReadOnlyLibraryCache {
           recursivelyToString(
             child,
             indentPrefix = indentPrefix + 1,
-            depth = depth + 1,
-            maxDepth = maxDepth,
-            sb = sb
+            depth        = depth + 1,
+            maxDepth     = maxDepth,
+            sb           = sb
           )
         }
       }
@@ -51,7 +52,8 @@ object ReadOnlyLibraryCache {
       if (name.endsWith(".yaml")) {
         println(prefix + name + ":")
         val lines = Files.readAllLines(path)
-        val indentedLines = lines.stream.map(line => prefix + "  " + line).toList
+        val indentedLines =
+          lines.stream.map(line => prefix + "  " + line).toList
         val content = indentedLines.asScala.mkString("\n")
         sb.append(content)
         sb.append("\n")

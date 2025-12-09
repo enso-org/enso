@@ -166,8 +166,10 @@ object DefaultLibraryProvider {
     val publishedLibraryProvider =
       new DefaultPublishedLibraryProvider(primaryCache, additionalCaches)
     val providers = (localLibraryProvider, publishedLibraryProvider)
-    println(s"[DefaultLibraryProvider.makeProviders] created providers: localLibraryProvider=$localLibraryProvider, "
-        + s"publishedLibraryProvider=$publishedLibraryProvider")
+    println(
+      s"[DefaultLibraryProvider.makeProviders] created providers: localLibraryProvider=$localLibraryProvider, "
+      + s"publishedLibraryProvider=$publishedLibraryProvider"
+    )
     providers
   }
 }

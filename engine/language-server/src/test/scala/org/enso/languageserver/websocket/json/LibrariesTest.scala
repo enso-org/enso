@@ -7,11 +7,18 @@ import org.enso.semver.SemVer
 import org.enso.distribution.FileSystem
 import org.enso.editions.{Editions, LibraryName}
 import org.enso.languageserver.libraries.LibraryEntry.PublishedLibraryVersion
-import org.enso.languageserver.libraries.{LibraryComponentGroup, LibraryComponentGroups, LibraryEntry}
+import org.enso.languageserver.libraries.{
+  LibraryComponentGroup,
+  LibraryComponentGroups,
+  LibraryEntry
+}
 import org.enso.languageserver.runtime.TestComponentGroups
 import org.enso.librarymanager.published.bundles.LocalReadOnlyRepository
 import org.enso.librarymanager.published.repository.LibraryManifest
-import org.enso.librarymanager.test.published.repository.{EmptyRepository, ExampleRepository}
+import org.enso.librarymanager.test.published.repository.{
+  EmptyRepository,
+  ExampleRepository
+}
 import org.enso.pkg.{Config, Contact, Package, PackageManager}
 import org.enso.testkit.ReportLogsOnFailure
 import org.enso.version.BuildVersion
@@ -597,7 +604,8 @@ class LibrariesTest extends BaseServerTest with ReportLogsOnFailure {
       if (name.endsWith(".yaml")) {
         println(prefix + name + ":")
         val lines = Files.readAllLines(dir)
-        val indentedLines = lines.stream.map(line => prefix + "  " + line).toList
+        val indentedLines =
+          lines.stream.map(line => prefix + "  " + line).toList
         val content = indentedLines.asScala.mkString("\n")
         println(content)
       } else {

@@ -52,7 +52,8 @@ class DownloadingLibraryCache(
     val sb = new StringBuilder()
     sb.append("DownloadingLibraryCache(\n")
     sb.append(s"  cacheRoot: $cacheRoot\n")
-    val cacheContent = ReadOnlyLibraryCache.recursivelyToString(cacheRoot, indentPrefix = 2)
+    val cacheContent =
+      ReadOnlyLibraryCache.recursivelyToString(cacheRoot, indentPrefix = 2)
     sb.append(cacheContent)
     sb.append(")\n")
     sb.toString
