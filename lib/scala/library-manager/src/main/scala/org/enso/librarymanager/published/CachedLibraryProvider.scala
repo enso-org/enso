@@ -13,6 +13,14 @@ import scala.annotation.tailrec
 class CachedLibraryProvider(caches: List[ReadOnlyLibraryCache])
     extends PublishedLibraryCache {
 
+  override def toString: String = {
+    val sb = new StringBuilder
+    sb.append("CachedLibraryProvider(\n")
+    sb.append(s"  caches: $caches\n")
+    sb.append(")\n")
+    sb.toString
+  }
+
   @tailrec
   private def findCachedHelper(
     libraryName: LibraryName,
