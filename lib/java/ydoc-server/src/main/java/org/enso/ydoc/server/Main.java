@@ -5,6 +5,8 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Semaphore;
 import org.enso.ydoc.api.MessageCallbacks;
 import org.enso.ydoc.api.NoOpMessageCallbacks;
+import org.enso.ydoc.api.YjsChannel;
+import org.enso.ydoc.polyfill.web.WebEnvironment;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -41,7 +43,8 @@ public final class Main {
     }
   }
 
-  public static AutoCloseable launch(String ydocHost, String ydocPort, MessageCallbacks callbacks) throws IOException {
+  public static AutoCloseable launch(String ydocHost, String ydocPort, MessageCallbacks callbacks)
+      throws IOException {
     try {
       var builder = Ydoc.builder();
       if (ydocHost != null) {
@@ -54,10 +57,18 @@ public final class Main {
       if (callbacks != null) {
         builder.callbacks(callbacks);
       }
+      var hostAccess =
+          WebEnvironment.defaultHostAccess
+              // allowImplementations is required to call methods on JS objects from Java, i.e. to
+              // call methods on `YjsChannel` object returned from JS
+              .allowImplementations(YjsChannel.class)
+              .allowAccess(callbacks.getClass().getDeclaredMethod("onMessage", Object.class))
+              .allowAccess(callbacks.getClass().getDeclaredMethod("onConnect", YjsChannel.class));
+      builder.hostAccessBuilder(hostAccess);
       var ydoc = builder.build();
       ydoc.start();
       return ydoc;
-    } catch (ExecutionException | InterruptedException ex) {
+    } catch (ExecutionException | NoSuchMethodException | InterruptedException ex) {
       throw new IOException(ex);
     }
   }
