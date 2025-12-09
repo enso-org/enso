@@ -28,16 +28,6 @@ import java.nio.file.{Files, Path}
 class LocalReadOnlyRepository(root: Path) extends ReadOnlyLibraryCache {
   private val logger = Logger[LocalReadOnlyRepository]
 
-  override def toString: String = {
-    val sb = new StringBuilder
-    val rootContent = ReadOnlyLibraryCache.recursivelyToString(root, indentPrefix = 2)
-    sb.append("LocalReadOnlyRepository(\n")
-    sb.append(s"  root: $root\n")
-    sb.append(rootContent + "\n")
-    sb.append(")\n")
-    sb.toString
-  }
-
   /** @inheritdoc */
   override def findCachedLibrary(
     libraryName: LibraryName,

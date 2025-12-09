@@ -368,7 +368,7 @@ impl RunContext {
         // tests (including standard library ones) even if Scala tests fail.
         let scala_test_result = if self.config.test_jvm {
             // Run unit tests
-            sbt.call_arg("set Global / parallelExecution := false; project language-server; testOnly *LibrariesTest -- -z XX").await.inspect_err(|e| {
+            sbt.call_arg("set Global / parallelExecution := false; test").await.inspect_err(|e| {
                 ide_ci::actions::workflow::error(format!("Scala Tests failed: {e:?}"))
             })
         } else {

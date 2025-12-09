@@ -102,14 +102,9 @@ class DependencyResolver(
     libraryName: LibraryName,
     version: LibraryVersion.Published
   ): LibraryManifest = {
-    logger.trace("Getting manifest for library '{}' version {}", libraryName, version)
     val cachedManifest = publishedLibraryProvider
       .findCachedLibrary(libraryName, version.version)
       .flatMap(_.getReadAccess.readManifest().flatMap(_.toOption))
-    logger.trace("Cached manifest: {}", cachedManifest)
-    if (cachedManifest.isEmpty) {
-      logger.trace("Manifest is not cached. publishedLibraryProvider: {}", publishedLibraryProvider)
-    }
     cachedManifest.getOrElse {
       version.repository
         .accessLibrary(libraryName, version.version)
