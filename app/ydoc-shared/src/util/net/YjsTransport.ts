@@ -21,8 +21,8 @@ export interface AddEventListenerOptions {
   signal?: AbortSignal
 }
 
-/** Event map for YjsWSTransport events. */
-interface YjsWSEventMap {
+/** Event map for YjsTransport events. */
+interface YjsEventMap {
   open: Event
   close: CloseEvent
   message: MessageEvent<string>
@@ -32,13 +32,13 @@ interface YjsWSEventMap {
 type EventListener<T = Event> = (event: T) => void
 
 /** A JSON-RPC transport that uses YjsChannel for communication. */
-export class YjsWSTransport extends Transport {
+export class YjsTransport extends Transport {
   private channel: YjsChannel<string>
   private yjsUnsubscribe?: (() => void) | undefined
   private eventListeners: Map<string, Set<EventListener<any>>> = new Map()
 
   /**
-   * Create a {@link YjsWSTransport}.
+   * Create a {@link YjsTransport}.
    * @param doc - The shared Y.Doc document
    * @param channelName - The name of the channel (used to get/create the Y.Array)
    */
@@ -94,16 +94,16 @@ export class YjsWSTransport extends Transport {
   }
 
   /** Add an event listener. */
-  on<K extends keyof YjsWSEventMap>(
+  on<K extends keyof YjsEventMap>(
     type: K,
-    cb: (event: YjsWSEventMap[K]) => void,
+    cb: (event: YjsEventMap[K]) => void,
     options?: AddEventListenerOptions,
   ): void {
     if (!this.eventListeners.has(type)) {
       this.eventListeners.set(type, new Set())
     }
 
-    const wrappedCb = (event: YjsWSEventMap[K]) => {
+    const wrappedCb = (event: YjsEventMap[K]) => {
       cb(event)
       if (options?.once) {
         this.off(type, cb)
@@ -124,7 +124,7 @@ export class YjsWSTransport extends Transport {
   }
 
   /** Remove an event listener. */
-  off<K extends keyof YjsWSEventMap>(type: K, cb: (event: YjsWSEventMap[K]) => void): void {
+  off<K extends keyof YjsEventMap>(type: K, cb: (event: YjsEventMap[K]) => void): void {
     const listeners = this.eventListeners.get(type)
     if (!listeners) return
 
@@ -138,7 +138,7 @@ export class YjsWSTransport extends Transport {
   }
 
   /** Emit an event to all registered listeners. */
-  private emit<K extends keyof YjsWSEventMap>(type: K, event: YjsWSEventMap[K]): void {
+  private emit<K extends keyof YjsEventMap>(type: K, event: YjsEventMap[K]): void {
     const listeners = this.eventListeners.get(type)
     if (!listeners) return
 
