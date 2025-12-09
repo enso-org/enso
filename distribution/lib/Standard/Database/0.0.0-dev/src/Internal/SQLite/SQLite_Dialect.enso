@@ -7,7 +7,6 @@ import Standard.Base.Runtime.Ref.Ref
 
 import Standard.Table.Internal.Problem_Builder.Problem_Builder
 from Standard.Table import Aggregate_Column, Table, Value_Type
-from Standard.Table.Aggregate_Column.Aggregate_Column import all
 
 import project.DB_Column.DB_Column
 import project.DB_Table.DB_Table
@@ -275,34 +274,34 @@ type SQLite_Dialect
        ---
     check_aggregate_support : Aggregate_Column -> Boolean ! Unsupported_Database_Operation
     check_aggregate_support self aggregate = case aggregate of
-        Group_By _ _ -> True
-        Count _ -> True
-        Count_Distinct columns _ _ ->
+        Aggregate_Column.Group_By _ _ -> True
+        Aggregate_Column.Count _ -> True
+        Aggregate_Column.Count_Distinct columns _ _ ->
             if columns.length == 1 then True else
                 unsupported "Count_Distinct on multiple columns"
-        Count_Not_Nothing _ _ -> True
-        Count_Nothing _ _ -> True
-        Count_Not_Empty _ _ -> True
-        Count_Empty _ _ -> True
-        Percentile _ _ _ -> unsupported "Percentile"
-        Mode _ _ -> unsupported "Mode"
-        First _ _ ignore_nothing order_by ->
+        Aggregate_Column.Count_Not_Nothing _ _ -> True
+        Aggregate_Column.Count_Nothing _ _ -> True
+        Aggregate_Column.Count_Not_Empty _ _ -> True
+        Aggregate_Column.Count_Empty _ _ -> True
+        Aggregate_Column.Percentile _ _ _ -> unsupported "Percentile"
+        Aggregate_Column.Mode _ _ -> unsupported "Mode"
+        Aggregate_Column.First _ _ ignore_nothing order_by ->
             if ignore_nothing then unsupported "First with ignore_nothing=True" else
                 if Aggregate_Helper.is_non_empty_selector order_by . not then Aggregate_Helper.throw_ordering_required "First" else
                     True
-        Last _ _ ignore_nothing order_by ->
+        Aggregate_Column.Last _ _ ignore_nothing order_by ->
             if ignore_nothing then unsupported "Last with ignore_nothing=True" else
                 if Aggregate_Helper.is_non_empty_selector order_by . not then Aggregate_Helper.throw_ordering_required "Last" else
                     True
-        Maximum _ _ -> True
-        Minimum _ _ -> True
-        Shortest _ _ -> unsupported "Shortest"
-        Longest _ _ -> unsupported "Longest"
-        Standard_Deviation _ _ _ -> True
-        Concatenate _ _ _ _ _ _ -> True
-        Sum _ _ -> True
-        Average _ _ -> True
-        Median _ _ -> unsupported "Median"
+        Aggregate_Column.Maximum _ _ -> True
+        Aggregate_Column.Minimum _ _ -> True
+        Aggregate_Column.Shortest _ _ -> unsupported "Shortest"
+        Aggregate_Column.Longest _ _ -> unsupported "Longest"
+        Aggregate_Column.Standard_Deviation _ _ _ -> True
+        Aggregate_Column.Concatenate _ _ _ _ _ _ -> True
+        Aggregate_Column.Sum _ _ -> True
+        Aggregate_Column.Average _ _ -> True
+        Aggregate_Column.Median _ _ -> unsupported "Median"
 
     ## ---
        private: true
