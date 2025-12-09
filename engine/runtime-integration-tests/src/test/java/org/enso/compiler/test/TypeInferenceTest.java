@@ -1114,6 +1114,40 @@ public class TypeInferenceTest extends StaticAnalysisTest {
   }
 
   @Test
+  public void integerIsSubclassOfNumber() throws Exception {
+    final URI uri = new URI("memory://notInvokable.enso");
+    final Source src =
+        Source.newBuilder(
+                "enso",
+                """
+                from Standard.Base import Integer, Number
+
+                foo =
+                    num -> Number = 42
+                    neg n:Integer -> Integer = -n
+                    neg num
+                """,
+                uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
+
+    var module = compile(src);
+    var foo = ModuleUtils.findStaticMethod(module, "foo");
+    foo.preorder()
+        .foreach(
+            (ir) -> {
+              if (ir.getDiagnostics().toList().nonEmpty()) {
+                fail(
+                    "There should be no warnings "
+                        + ir.getDiagnostics().toList()
+                        + " at "
+                        + ir.showCode());
+              }
+              return null;
+            });
+  }
+
+  @Test
   public void noTypeErrorIfUnsure() throws Exception {
     final URI uri = new URI("memory://notInvokable.enso");
     final Source src =
