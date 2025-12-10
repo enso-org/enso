@@ -401,7 +401,7 @@ export function useProjectStates() {
       const runningId = project.info.mode === 'hybrid' ? project.info.runningId : project.info.id
       const projectNames = createProjectNameStore({
         projectNamespace: 'local', // Even in cloud, the namespace seems to be always "local".
-        projectDisplayedName: details.value.name,
+        projectDisplayedName: () => details.value.name,
         projectInitialName: runDetails.value.packageName,
       })
       const rpcUrl = runDetails.value.jsonAddress

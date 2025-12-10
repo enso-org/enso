@@ -32,6 +32,7 @@
 - [GeoMap visualization is now working without need of Mapbox Token in
   environment][14429]
 - [Fix non-visible button and wrong layout in GeoMap Visualization][14443]
+- [Maximum height of the file browser is slightly reduced][14467]
 
 [13685]: https://github.com/enso-org/enso/pull/13685
 [13658]: https://github.com/enso-org/enso/pull/13658
@@ -58,6 +59,7 @@
 [14403]: https://github.com/enso-org/enso/pull/14403
 [14429]: https://github.com/enso-org/enso/pull/14429
 [14443]: https://github.com/enso-org/enso/pull/14443
+[14467]: https://github.com/enso-org/enso/pull/14467
 
 #### Enso Standard Library
 

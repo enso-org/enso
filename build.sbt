@@ -317,7 +317,6 @@ lazy val enso = (project in file("."))
     downloader,
     editions,
     `edition-updater`,
-    `edition-uploader`,
     `engine-common`,
     `engine-runner`,
     `engine-runner-common`,
@@ -4862,17 +4861,6 @@ lazy val `edition-updater` = project
   .dependsOn(downloader)
   .dependsOn(editions)
   .dependsOn(`library-manager` % "test->test")
-
-lazy val `edition-uploader` = project
-  .in(file("lib/scala/edition-uploader"))
-  .settings(
-    frgaalJavaCompilerSetting,
-    libraryDependencies ++= Seq(
-      "io.circe" %% "circe-core" % circeVersion % "provided"
-    )
-  )
-  .dependsOn(editions)
-  .dependsOn(`version-output`)
 
 lazy val `library-manager` = project
   .in(file("lib/scala/library-manager"))

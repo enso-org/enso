@@ -137,7 +137,6 @@ SRCS = STDLIB_SOURCES + [
     "lib/scala/distribution-manager/src/**",
     "lib/scala/downloader/src/**",
     "lib/scala/edition-updater/src/**",
-    "lib/scala/edition-uploader/src/**",
     "lib/scala/editions/src/**",
     "lib/scala/filewatcher/src/**",
     "lib/scala/json-rpc-server/src/**",
