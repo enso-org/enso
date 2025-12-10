@@ -137,7 +137,21 @@ export class EnsoRunner implements Runner {
     const args = ['--run', projectPath]
     const env = { ...process.env, ...(extraEnv ? Object.fromEntries(extraEnv) : {}) }
     const cwd = path.dirname(projectPath)
-    return await this.runCommand(args, { env, cwd })
+    const spawnedProcess = await this.runProcess(args, (cmd, cmdArgs) =>
+      childProcess.spawn(cmd, cmdArgs, { env, cwd, stdio: ['inherit', 'inherit', 'inherit'] }),
+    )
+    return new Promise((resolve, reject) => {
+      spawnedProcess.on('error', (error) => {
+        reject(new Error(`Failed to spawn enso process: ${error.message}`))
+      })
+      spawnedProcess.on('exit', (code) => {
+        if (code === 0) {
+          resolve()
+        } else {
+          reject(new Error(`Enso process exited with code ${code}.`))
+        }
+      })
+    })
   }
 
   /** Create a new Enso project at the specified path. */
