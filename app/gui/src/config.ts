@@ -8,8 +8,6 @@ export type { $Config } from 'enso-common/src/config'
 
 const processEnv = typeof process !== 'undefined' ? process.env : {}
 const importEnv = import.meta.env ?? {}
-console.log('processEnv:', processEnv)
-console.log('importEnv:', importEnv)
 
 setConfig({
   ENVIRONMENT: processEnv.ENSO_IDE_ENVIRONMENT ?? importEnv.ENSO_IDE_ENVIRONMENT,
