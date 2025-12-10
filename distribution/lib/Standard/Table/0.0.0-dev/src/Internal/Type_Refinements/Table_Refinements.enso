@@ -24,7 +24,7 @@ refine_table (table : Table & In_Memory_Table) =
             Value_Type.Float _ -> _refine_numeric_column table column
             Value_Type.Decimal _ _ -> _refine_numeric_column table column
             Value_Type.Char _ _ -> _refine_text_column table column
-            Value_Type.Date _ _ -> _refine_date_column table column
+            Value_Type.Date -> _refine_date_column table column
             _ -> _refine_other_column table column
 
 private _refine_numeric_column (table : In_Memory_Table) (column : Column & In_Memory_Column) -> Table & In_Memory_Table & Column & In_Memory_Column & Numeric_Column = case column.row_count of

@@ -6,7 +6,7 @@ import Standard.Base.Errors.Illegal_State.Illegal_State
 import project.Column.Column
 import project.In_Memory_Column.In_Memory_Column
 import project.Value_Type.Value_Type
-from project.Internal.In_Memory_Column_Implementation import _call_binary_operator, _java_other, _apply_unary_map, apply_unary_operation, naming_helper, apply_case_sensitive_text_operation
+from project.Internal.In_Memory_Column_Implementation import _call_binary_operator, _java_other, apply_unary_map, apply_unary_operation, naming_helper, apply_case_sensitive_text_operation
 
 polyglot java import org.enso.table.data.column.operation.binary.RandBetweenOperation
 polyglot java import org.enso.table.data.column.operation.text.TextIndexOf
@@ -145,10 +145,10 @@ type In_Memory_Text_Column_Implementation
 type In_Memory_Date_Column_Implementation
     first_of_month (column : Column & In_Memory_Column)  =
         Value_Type.expect_date column <|
-            new_name = (naming_helper column).function_name "first_of_month" [column]
-            apply_unary_map this_column new_name .first_of_month Value_Type.Date
+            new_name = naming_helper.function_name "first_of_month" [column]
+            apply_unary_map column new_name .first_of_month Value_Type.Date
 
     end_of_month (column : Column & In_Memory_Column)  =
         Value_Type.expect_date column <|
-            new_name = (naming_helper column).function_name "end_of_month" [column]
-            apply_unary_map this_column new_name .end_of_month Value_Type.Date
+            new_name = naming_helper.function_name "end_of_month" [column]
+            apply_unary_map column new_name .end_of_month Value_Type.Date
