@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { TypeInfo } from '$/providers/openedProjects/project/computedValueRegistry'
 import ActionButton from '@/components/ActionButton.vue'
-import componentTypeLabel from '@/components/ComponentBrowser/componentTypeLabel.vue'
+import ComponentTypeLabel from '@/components/ComponentBrowser/ComponentTypeLabel.vue'
 import { useVisualizationSelector } from '@/components/GraphEditor/GraphVisualization/visualizationSelector'
 import SelectionDropdown from '@/components/SelectionDropdown.vue'
 import SelectionDropdownText from '@/components/SelectionDropdownText.vue'
@@ -86,7 +86,7 @@ const visualizationSelector = useVisualizationSelector({
       </div>
     </template>
     <div class="after-toolbars node-type" data-testid="visualisationNodeType">
-      <componentTypeLabel
+      <ComponentTypeLabel
         v-if="props.typeinfo"
         :unknownLabel="UNKNOWN_TYPE"
         :typeInfo="props.typeinfo"

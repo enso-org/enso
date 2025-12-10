@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useGraphStore } from '$/components/WithCurrentProject.vue'
 import CodeMirrorRoot from '@/components/CodeMirrorRoot.vue'
-import componentTypeLabel from '@/components/ComponentBrowser/componentTypeLabel.vue'
+import ComponentTypeLabel from '@/components/ComponentBrowser/ComponentTypeLabel.vue'
 import type { ComponentBrowserMode, Usage } from '@/components/ComponentBrowser/input'
 import SvgIcon from '@/components/SvgIcon.vue'
 import { useCodeMirror, useStringSync } from '@/util/codemirror'
@@ -76,8 +76,8 @@ const rootStyle = computed(() => {
     </div>
     <div class="componentEditorContent">
       <CodeMirrorRoot ref="editorRoot" class="componentEditorInput" />
-      <div v-if="props.mode.mode === 'componentBrowsing'" class="componentTypeLabel">
-        <componentTypeLabel
+      <div v-if="props.mode.mode === 'componentBrowsing'" class="ComponentTypeLabel">
+        <ComponentTypeLabel
           testId="component-editor-label"
           :typeInfo="
             props.mode.filter.selfArg?.type === 'known' ?
@@ -133,7 +133,7 @@ const rootStyle = computed(() => {
   flex-grow: 1;
 }
 
-.componentTypeLabel {
+.ComponentTypeLabel {
   margin: 0 0px;
 }
 </style>
