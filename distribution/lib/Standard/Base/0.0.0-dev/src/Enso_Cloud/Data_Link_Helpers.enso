@@ -305,19 +305,23 @@ resolve_path path = case path of
         response = HTTP.fetch path method=..Get headers=[] cache_policy=..Default
         if Data_Link.is_data_link_from_metadata response.body.metadata . not then path else
             data_link = interpret_json_as_data_link response.decode_as_json
-            case data_link of
-                _ : HTTP_Fetch_Data_Link -> resolve_path data_link.request.uri
-                _ ->
-                    target_file = File_Like_Data_Link.find data_link
-                    resolve_path target_file.as_file
+            _resolve_data_link data_link
     _ ->
         ## Something that is file like
         file_like = File.new path
-        if file_like.is_a File then resolve_path file_like else
-            if file_like.exists.not then Error.throw (File_Error.Not_Found file_like)
-            case file_like.is_a Data_Link_From_File && file_like.is_data_link of
-                False -> file_like
-                True -> resolve_path (interpret_data_link_target_as_file file_like)
+        if file_like.exists.not then Error.throw (File_Error.Not_Found file_like)
+        if file_like.is_data_link.not then file_like else
+            data_link = read_and_interpret_data_link file_like
+            _resolve_data_link data_link
+
+private _resolve_data_link data_link =
+    case data_link of
+        _ : HTTP_Fetch_Data_Link ->
+            if data_link.request.method == HTTP_Method.Get then resolve_path data_link.request.uri else
+                Error.throw (Illegal_Argument.Error "Cannot resolve a data link that requires a non-GET HTTP method to a file.")
+        _ ->
+            target_file = File_Like_Data_Link.find data_link
+            resolve_path target_file.as_file
 
 ## ---
    private: true
