@@ -306,8 +306,16 @@ type DuckDB_Connection
     read_spatial_file self path=(Missing_Argument.throw "path") as:Text="NewSpatialTable" key_columns:Vector=[] replace_if_present:Boolean=False =
         if self.is_in_memory.not then Context.Output.if_enabled disabled_message="As writing is disabled, cannot create a new table. Press the Write button ▶ to perform the operation." panic=False <|
             Nothing
+
+        resolved_file = Data_Link_Helpers.resolve_path path
+        Error.return_if_error resolved_file
+        additional_files = case resolved_file of
+            _ : File -> []
+            _ : Vector -> []
+            _ -> _additional_files resolved_file.extension
+
         escaped_as = as.replace '"' '""'
-        Data_Link_Helpers.as_file path file->
+        Data_Link_Helpers.resolved_file path file->
             escaped_path = file.path.replace "'" "''"
             query = 'CREATE' + (if replace_if_present then ' OR REPLACE' else "") + ' TABLE "' + escaped_as + '" AS SELECT * FROM ST_Read(\'' + escaped_path + '\');'
             Context.Output.with_enabled <|
@@ -821,3 +829,12 @@ private _handle_existing_file path on_existing_file allow_append:Boolean=False =
                         tmp_file.move_to (path.parent / (path.name+".bak")) replace_existing=True
 
             result
+
+private _additional_files extension = case extension.to_case ..Lower of
+    ".tab" ->
+        ## Map Info - 2 files needed .tab, .dat and optionally .id, .shp
+        [".dat", ".id", ".shp"]
+    ".shp" ->
+        ## Shapefile - 3 files needed .shp, .shx, .dbf and optionally .prj
+        [".shx", ".dbf", ".prj"]
+    _ -> []

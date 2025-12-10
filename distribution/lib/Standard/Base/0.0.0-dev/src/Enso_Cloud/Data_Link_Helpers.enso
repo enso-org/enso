@@ -342,12 +342,12 @@ as_file path action delete_on_return:Boolean=True =
     Error.return_if_error resolved
 
     case resolved of
-        _ : File -> action path
+        _ : File -> action resolved
         _ : URI ->
             ## Fetch the resource and save it to a temporary file
             ## Best guess filename
-            response = HTTP.fetch path method=..Get headers=[] cache_policy=..Default
-            handle_response_as_file response path action delete_on_return
+            response = HTTP.fetch resolved method=..Get headers=[] cache_policy=..Default
+            handle_response_as_file response resolved action delete_on_return
         file_like ->
             ## Something that is file like, copy the file to a temporary file
             name_ext = split_file_name file_like.name
