@@ -26,8 +26,8 @@ import type {
   VisualizationConfiguration,
 } from './languageServerTypes'
 import { AbortScope, exponentialBackoff } from './util/net'
-import type { ReconnectingWebSocketTransport } from './util/net/ReconnectingWSTransport'
 import { isHeadless } from './util/types'
+import type { YjsTransport } from './util/net/YjsTransport'
 import type { Uuid } from './yjsModel'
 
 const debugLog = debug('ydoc-shared:languageServer')
@@ -149,7 +149,7 @@ export class LanguageServer extends ObservableV2<Notifications & TransportEvents
   /** Create a {@link LanguageServer}. */
   constructor(
     private clientID: Uuid,
-    private transport: ReconnectingWebSocketTransport,
+    private transport: YjsTransport,
   ) {
     super()
     this.initialized = this.scheduleInitializationAfterConnect()
@@ -233,7 +233,8 @@ export class LanguageServer extends ObservableV2<Notifications & TransportEvents
 
   /** Reconnect the underlying network transport. */
   reconnect() {
-    this.transport.reconnect()
+    this.transport.close()
+    this.transport.connect()
   }
 
   // The "magic bag of holding" generic that is only present in the return type is UNSOUND.
