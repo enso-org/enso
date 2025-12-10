@@ -334,7 +334,8 @@ type Date
        group: DateTime
        icon: metadata
        ---
-       Returns the date that is the first day of the month containing the specified date.
+       Returns the date that is the first day of the month containing the
+       specified date.
     first_of_month : Integer
     first_of_month self =
         Time_Utils.first_of_month self
@@ -343,7 +344,8 @@ type Date
        group: DateTime
        icon: metadata
        ---
-       Returns the date that is the last day of the month containing the specified date.
+       Returns the date that is the last day of the month containing the
+       specified date.
     end_of_month : Integer
     end_of_month self =
         Time_Utils.end_of_month self
