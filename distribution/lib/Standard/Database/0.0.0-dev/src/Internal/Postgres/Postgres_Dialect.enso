@@ -8,7 +8,6 @@ import Standard.Base.Errors.Unimplemented.Unimplemented
 import Standard.Table.In_Memory_Column.In_Memory_Column
 import Standard.Table.Internal.Problem_Builder.Problem_Builder
 from Standard.Table import Aggregate_Column, Column, Table, Value_Type
-from Standard.Table.Aggregate_Column.Aggregate_Column import all
 from Standard.Table.Errors import Inexact_Type_Coercion
 
 import project.DB_Column.DB_Column

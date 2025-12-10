@@ -93,6 +93,7 @@
 - [Add Text_Column.index_of][14428]
 - [Trigonometry and other maths function on Column.][14433]
 - [Support for reading JSON lines files.][14439]
+- [Add Custom SQL to in database aggreates.][14472]
 
 [13769]: https://github.com/enso-org/enso/pull/13769
 [14026]: https://github.com/enso-org/enso/pull/14026
@@ -123,6 +124,7 @@
 [14428]: https://github.com/enso-org/enso/pull/14428
 [14433]: https://github.com/enso-org/enso/pull/14433
 [14439]: https://github.com/enso-org/enso/pull/14439
+[14472]: https://github.com/enso-org/enso/pull/14472
 
 #### Enso Language & Runtime
 
