@@ -76,7 +76,7 @@ const rootStyle = computed(() => {
     </div>
     <div class="componentEditorContent">
       <CodeMirrorRoot ref="editorRoot" class="componentEditorInput" />
-      <div v-if="props.mode.mode === 'componentBrowsing'" class="ComponentTypeLabel">
+      <div v-if="props.mode.mode === 'componentBrowsing'" class="typeLabel">
         <ComponentTypeLabel
           testId="component-editor-label"
           :typeInfo="
@@ -133,7 +133,7 @@ const rootStyle = computed(() => {
   flex-grow: 1;
 }
 
-.ComponentTypeLabel {
+.typeLabel {
   margin: 0 0px;
 }
 </style>
