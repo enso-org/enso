@@ -180,7 +180,7 @@
               export LD_LIBRARY_PATH="${pkgs.lib.makeLibraryPath buildInputs}:$LD_LIBRARY_PATH"
 
               if ! readlink "''${PWD}/.bazelrc.local" >/dev/null \
-                || [[ $(readlink "''${PWD}/.bazelrc.local") != ${bazelrc} ]]; then
+                || [[ $(readlink "''${PWD}/.bazelrc.local") != "${bazelrc}" ]]; then
                 echo 1>&2 "Darwin: updating $PWD repository"
                 [ -L .bazelrc.local ] && unlink .bazelrc.local
 
