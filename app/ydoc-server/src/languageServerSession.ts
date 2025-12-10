@@ -19,7 +19,7 @@ import type {
 } from 'ydoc-shared/languageServerTypes'
 import { assertNever } from 'ydoc-shared/util/assert'
 import { AbortScope, exponentialBackoff, printingCallbacks } from 'ydoc-shared/util/net'
-import { ReconnectingWebSocketTransport } from 'ydoc-shared/util/net/ReconnectingWSTransport'
+import { YjsTransport } from 'ydoc-shared/util/net/YjsTransport'
 import {
   DistributedProject,
   IdMap,
@@ -90,8 +90,10 @@ export class LanguageServerSession {
   /** Get a {@link LanguageServerSession} by its URL. */
   static get(url: string): LanguageServerSession {
     const session = map.setIfUndefined(LanguageServerSession.sessions, url, () => {
-      const ws = new ReconnectingWebSocketTransport(url)
-      const ls = new LanguageServer(crypto.randomUUID(), ws)
+      const doc = new Y.Doc()
+      const transport = new YjsTransport(doc, url)
+      transport.connect()
+      const ls = new LanguageServer(crypto.randomUUID(), transport)
       return new LanguageServerSession(ls, () => LanguageServerSession.sessions.delete(url))
     })
     session.retain()
