@@ -1420,4 +1420,108 @@ class RuntimeRefactoringTest
     )
     context.consumeOut shouldEqual List("42")
   }
+
+  it should "rename module method in main body by applying text edit" in {
+    val contextId  = UUID.randomUUID()
+    val requestId  = UUID.randomUUID()
+    val moduleName = "Enso_Test.Test.Main"
+
+    val metadata    = new Metadata
+    val operator1Id = metadata.addItem(75, 2)
+    val operator2Id = metadata.addItem(94, 24)
+    val code =
+      """from Standard.Base import all
+        |
+        |function1 x = x + 1
+        |
+        |main =
+        |    operator1 = 41
+        |    operator2 = Main.function1 operator1
+        |    IO.println operator2
+        |""".stripMargin.linesIterator.mkString("\n")
+    val contents = metadata.appendToCode(code)
+    val mainFile = context.writeMain(contents)
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // open file
+    context.send(
+      Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
+    )
+    context.receive shouldEqual Some(
+      Api.Response(Some(requestId), Api.OpenFileResponse)
+    )
+
+    // push main
+    context.send(
+      Api.Request(
+        requestId,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(moduleName, moduleName, "main"),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
+
+    context.receiveNIgnoreStdLib(4) should contain theSameElementsAs Seq(
+      Api.Response(requestId, Api.PushContextResponse(contextId)),
+      TestMessages.update(contextId, operator1Id, ConstantsGen.INTEGER),
+      TestMessages.update(
+        contextId,
+        operator2Id,
+        ConstantsGen.INTEGER,
+        methodCall = Some(
+          Api.MethodCall(Api.MethodPointer(moduleName, moduleName, "function1"))
+        )
+      ),
+      context.executionComplete(contextId)
+    )
+    context.consumeOut shouldEqual List("42")
+
+    // rename function1
+    val newName = "function2"
+    val edits = Vector(
+      TextEdit(
+        model.Range(model.Position(2, 0), model.Position(2, 9)),
+        newName
+      ),
+      TextEdit(
+        model.Range(model.Position(6, 21), model.Position(6, 30)),
+        newName
+      )
+    )
+    // Modify the file
+    context.send(
+      Api.Request(
+        Api.EditFileNotification(
+          mainFile,
+          edits,
+          execute = true,
+          idMap   = None
+        )
+      )
+    )
+    context.receiveNIgnorePendingExpressionUpdates(
+      2
+    ) should contain theSameElementsAs Seq(
+      context.executionComplete(contextId),
+      TestMessages.update(
+        contextId,
+        operator2Id,
+        ConstantsGen.INTEGER,
+        methodCall = Some(
+          Api.MethodCall(Api.MethodPointer(moduleName, moduleName, "function2"))
+        )
+      )
+    )
+    context.consumeOut shouldEqual List("42")
+  }
 }
