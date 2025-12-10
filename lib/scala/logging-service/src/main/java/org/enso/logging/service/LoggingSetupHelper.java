@@ -78,12 +78,12 @@ public abstract class LoggingSetupHelper {
                     setup(Option.apply(logLevel), Option.empty(), logMasking, loggerSetup);
                   } else {
                     Masking.setup(logMasking);
-                    if (!loggerSetup.setup(logLevel)) {
+                    var socketLogConfig = result.get();
+                    if (!loggerSetup.setup(socketLogConfig.minLogLevel())) {
                       LoggingServiceManager.teardown();
                       loggingServiceEndpointPromise.failure(new LoggerInitializationFailed());
                     } else {
-                      URI uri = result.get();
-                      loggingServiceEndpointPromise.success(Option.apply(uri));
+                      loggingServiceEndpointPromise.success(Option.apply(socketLogConfig.uri()));
                     }
                   }
                   return Unit$.MODULE$;

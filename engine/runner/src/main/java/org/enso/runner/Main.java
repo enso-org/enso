@@ -1578,12 +1578,18 @@ public class Main {
         System.setProperty(e.getKey(), e.getValue());
       }
     }
+    var logLevel =
+        scala.Option.apply(line.getOptionValue(LOG_LEVEL))
+            .map(this::parseLogLevel)
+            .getOrElse(() -> defaultLogLevel);
     if (line.hasOption(LANGUAGE_SERVER_OPTION)) {
       // Setup application-ls.conf as the default config file
       // https://github.com/lightbend/config?tab=readme-ov-file#standard-behavior
+      // Language Server will also set up logging on its own.
       System.setProperty("config.resource", "application-ls.conf");
+    } else {
+      setupLogging(line, logLevel, logMasking);
     }
-    var logLevel = setupLogging(line, logMasking);
 
     var loc = Main.class.getProtectionDomain().getCodeSource().getLocation();
     var component = new File(loc.toURI().resolve("..")).getAbsoluteFile();
@@ -1647,11 +1653,7 @@ public class Main {
     }
   }
 
-  private Level setupLogging(CommandLine line, boolean[] logMasking) {
-    var logLevel =
-        scala.Option.apply(line.getOptionValue(LOG_LEVEL))
-            .map(this::parseLogLevel)
-            .getOrElse(() -> defaultLogLevel);
+  private Level setupLogging(CommandLine line, Level logLevel, boolean[] logMasking) {
     URI connectionUri;
     if (line.getOptionValue(LOGGER_CONNECT) != null) {
       connectionUri = parseUri(line.getOptionValue(LOGGER_CONNECT));
