@@ -36,22 +36,9 @@ public abstract class IsSameObjectNode extends Node {
     }
   }
 
-  @Specialization(
-      guards = {
-        "interop.fitsInLong(left)",
-        "interop.fitsInLong(right)",
-      })
-  boolean isSameLong(
-      Object left,
-      Object right,
-      @Shared("interop") @CachedLibrary(limit = "2") InteropLibrary interop) {
-    try {
-      var leftLong = interop.asLong(left);
-      var rightLong = interop.asLong(right);
-      return leftLong == rightLong;
-    } catch (UnsupportedMessageException e) {
-      return false;
-    }
+  @Specialization
+  boolean isSameLong(long left, long right) {
+    return left == right;
   }
 
   @Specialization(
