@@ -44,7 +44,7 @@ const label = computed(() => {
   <div v-if="label" :data-testid="props.testId" class="typeLabelBackground">
     <TooltipTrigger v-if="additionalTypes.length + hiddenTypes.length > 1" :showOnClick="true">
       <template #default="triggerProps">
-        <span class="additionalTypesPlaceholder" v-bind="triggerProps" v-text="`${label}...`" />
+        <span v-bind="triggerProps" v-text="`${label}...`" />
       </template>
       <template #tooltip>
         <div class="flex flex-col">
