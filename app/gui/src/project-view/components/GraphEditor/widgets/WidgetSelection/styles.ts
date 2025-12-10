@@ -33,8 +33,10 @@ function sizeOptions(limitWidth: boolean): () => SizeOptions {
       const minWidth = `${Math.max(portWidth - screenOverflow, 0)}px`
       const maxWidth = getMaxWidth(portWidth, limitWidth)
 
-      Object.assign(elements.floating.style, { minWidth, maxWidth })
-      elements.floating.style.setProperty('--dropdown-max-width', maxWidth)
+      requestAnimationFrame(() => {
+        Object.assign(elements.floating.style, { minWidth, maxWidth })
+        elements.floating.style.setProperty('--dropdown-max-width', maxWidth)
+      })
     },
   })
 }
