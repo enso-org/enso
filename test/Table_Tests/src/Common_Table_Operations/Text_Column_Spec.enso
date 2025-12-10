@@ -149,3 +149,65 @@ add_text_columns_specs suite_builder setup =
             case setup.flagged ..Supports_Proper_Casing of
                 True  -> result.should_equal expected_proper_column
                 False -> result.should_fail_with Unsupported_Database_Operation
+
+    suite_builder.group prefix+"Text_Column index_of" group_builder->
+        group_builder.specify "index_of should return index of first match" <|
+            column = build_sorted_table [["strings", ["a","foobar","",Nothing,"👩‍🔬👩‍🔬V👩‍🔬👩‍🔬","café","It was the best of times, it was the worst of times, it was the age of wisdom, it was the age of foolishness, it was the epoch of belief, it was the epoch of incredulity, it was the season of light, it was the season of darkness, it was the spring of hope, it was the winter of despair."]]] . at 0
+
+            resA   = column.index_of "a"
+            resFoo = column.index_of "foo"
+            resTimes = column.index_of "times"
+
+            resA.name . should_equal "index_of([strings], 'a')"
+            resFoo.name . should_equal "index_of([strings], 'foo')"
+            resTimes.name . should_equal "index_of([strings], 'times')"
+
+            # 0-based indices, -1 when not found, Nothing when input is Nothing
+            resA . to_vector . should_equal [0,4,-1,Nothing,-1,1,4]
+            resFoo . to_vector . should_equal [-1,0,-1,Nothing,-1,-1,97]
+            resTimes . to_vector . should_equal [-1,-1,-1,Nothing,-1,-1,19]
+
+        group_builder.specify "index_of should handle grapheme and non-grapheme strings and propagate Nothing" <|
+            column = build_sorted_table [["strings", ["a","foobar","",Nothing,"👩‍🔬👩‍🔬V👩‍🔬👩‍🔬","café"]]] . at 0
+            resV = column.index_of "V"
+            resE = column.index_of "é"
+
+            resV.name . should_equal "index_of([strings], 'V')"
+            resE.name . should_equal "index_of([strings], 'é')"
+
+            # only the emoji string has 'V' in the middle
+            case setup.is_database of
+                False -> resV . to_vector . should_equal [-1, -1, -1, Nothing, 2, -1]
+                True  -> resV . to_vector . should_equal [-1, -1, -1, Nothing, 6, -1]
+
+            # only "café" has "é"
+            case setup.is_database of
+                False -> resE . to_vector . should_equal [-1, -1, -1, Nothing, -1, 3]
+                True  -> resE . to_vector . should_equal [-1, -1, -1, Nothing, -1, 3]
+
+        group_builder.specify "index_of should handle case sensitivity for In-Memory only" <|
+            column = build_sorted_table [["strings", ["a", "aA", "A", Nothing]]] . at 0
+            res_little_a = column.index_of "a"
+            res_big_A    = column.index_of "A" 
+            res_little_a_cs = column.index_of "a" ..Sensitive
+            res_big_A_cs    = column.index_of "A" ..Sensitive
+            res_little_a_cis = column.index_of "a" ..Insensitive
+            res_big_A_cis    = column.index_of "A" ..Insensitive
+            
+            if setup.is_database.not then
+                res_little_a . to_vector . should_equal [0,0,-1,Nothing]
+                res_big_A    . to_vector . should_equal [-1,1,0,Nothing]
+                res_little_a_cs . to_vector . should_equal [0,0,-1,Nothing]
+                res_big_A_cs    . to_vector . should_equal [-1,1,0,Nothing]
+                res_little_a_cis . to_vector . should_equal [0,0,0,Nothing]
+                res_big_A_cis    . to_vector . should_equal [0,0,0,Nothing]
+
+            if setup.is_database then
+                res_little_a . to_vector . should_equal [0,0,-1,Nothing]
+                res_big_A    . to_vector . should_equal [-1,1,0,Nothing]
+                res_little_a_cs . to_vector . should_equal [0,0,-1,Nothing]
+                res_big_A_cs    . to_vector . should_equal [-1,1,0,Nothing]
+                res_little_a_cis . to_vector . should_equal [0,0,0,Nothing]
+                res_big_A_cis    . to_vector . should_equal [0,0,0,Nothing]
+            
+            

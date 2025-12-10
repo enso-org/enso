@@ -549,7 +549,7 @@ private _op_needs_to_materialize_null_checks op -> Boolean =
    ---
 make_dialect_operations =
     cases = [["LOWER", Base_Generator.make_function "LOWER"], ["UPPER", Base_Generator.make_function "UPPER"]]
-    text = [starts_with, contains, ends_with, like, agg_shortest, agg_longest, make_case_sensitive, ["REPLACE", replace], left, right, ["SUBSTR", _make_mid]]+concat_ops+cases+trim_ops
+    text = [starts_with, contains, ends_with, like, agg_shortest, agg_longest, make_case_sensitive, ["REPLACE", replace], left, right, ["SUBSTR", _make_mid], index_of]+concat_ops+cases+trim_ops
     counts = [agg_count_is_null, agg_count_empty, agg_count_not_empty, ["COUNT_DISTINCT", agg_count_distinct], ["COUNT_DISTINCT_INCLUDE_NULL", agg_count_distinct_include_null]]
     arith_extensions = [floating_point_div, mod_op, decimal_div, decimal_mod, ["ROW_MIN", Base_Generator.make_function "LEAST"], ["ROW_MAX", Base_Generator.make_function "GREATEST"]]
     bool = [bool_or]
@@ -692,6 +692,12 @@ make_contains_expr expr substring =
    private: true
    ---
 contains = Base_Generator.lift_binary_op "CONTAINS" make_contains_expr
+
+## ---
+   private: true
+   ---
+index_of = Base_Generator.lift_binary_op "INDEX_OF" str-> substr->
+    SQL_Builder.code "CHARINDEX(" ++ substr ++ ", " ++ str ++ ") - 1"
 
 ## ---
    private: true

@@ -197,7 +197,7 @@ type Test
            For local development, a bit less retries is enough - there it is more
            likely that a failure is not flaky but it is an actual error so we
            don't want to spend too much time retrying when debugging the tests locally.
-        max_retries = if Environment.get "CI" . is_nothing . not then 100 else 20
+        max_retries = if Environment.get "CI" . is_nothing . not then 50 else 20
 
         ## The `hide` is here because if it were at the top of the function, the
            tail call confuses the location finder.
