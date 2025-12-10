@@ -298,7 +298,9 @@ resolve_path path = case path of
         ## Need to see if a data link otherwise return the file
         if path.exists.not then Error.throw (File_Error.Not_Found path)
         if path.is_directory then Error.throw (Illegal_Argument.Error "Cannot use a directory, pass a file.")
-        if path.is_data_link.not then path else resolve_path (interpret_data_link_target_as_file path)
+        if path.is_data_link.not then path else
+            data_link = read_and_interpret_data_link path
+            _resolve_data_link data_link
     _ : URI ->
         ## Fetch the resource and save it to a temporary file
         ## Best guess filename
