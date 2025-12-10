@@ -10,10 +10,9 @@ import project.Internal.Type_Refinements.Typed_Column_Helpers
 import project.Internal.Type_Refinements.Typed_Column_Implementations.In_Memory_Text_Column_Implementation
 import project.Refined_Types.Text_Column.Text_Column
 import project.Value_Type.Value_Type
-from project.Internal.In_Memory_Column_Implementation import _apply_unary_map, _apply_binary_map, _apply_case_sensitive_text_operation, _call_binary_operator, _java_other, apply_unary_operation, naming_helper
+from project.Internal.In_Memory_Column_Implementation import _apply_unary_map, _apply_binary_map, apply_case_sensitive_text_operation, _call_binary_operator, _java_other, apply_unary_operation, naming_helper
 from project.Internal.Java_Exports import make_string_builder
 
-polyglot java import org.enso.table.data.column.operation.binary.RandBetweenOperation
 polyglot java import org.enso.table.data.column.operation.binary.RandBetweenOperation
 polyglot java import org.enso.table.data.column.operation.text.TextIndexOf
 polyglot java import org.enso.table.data.column.operation.text.TextPartOperation
@@ -147,12 +146,12 @@ type In_Memory_Text_Column_Implementation
     left (this_column : Column & In_Memory_Column) (n : Column | Integer | Nothing) =
         Value_Type.expect_text this_column <| Value_Type.expect_integer n <|
             new_name = naming_helper.function_name "left" [this_column, n]
-            _apply_case_sensitive_text_operation this_column n ..Default TextPartOperation.LEFT (a -> b -> a.take b) new_name
+            apply_case_sensitive_text_operation this_column n ..Default TextPartOperation.LEFT (a -> b -> a.take b) new_name
 
     right (this_column : Column & In_Memory_Column) (n : Column | Integer | Nothing) =
         Value_Type.expect_text this_column <| Value_Type.expect_integer n <|
             new_name = naming_helper.function_name "right" [this_column, n]
-            _apply_case_sensitive_text_operation this_column n ..Default TextPartOperation.RIGHT (a -> b -> a.take (..Last b)) new_name
+            apply_case_sensitive_text_operation this_column n ..Default TextPartOperation.RIGHT (a -> b -> a.take (..Last b)) new_name
 
     mid (this_column : Column & In_Memory_Column) (start : Column | Integer | Nothing) (length : Column | Integer | Nothing | Rest_Of_String) =
         Value_Type.expect_text this_column <| Value_Type.expect_integer start <|
