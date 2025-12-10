@@ -1,6 +1,5 @@
 package org.enso.table.data.column.operation.comparators;
 
-import java.util.BitSet;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.operation.BinaryOperationBoolean;
 import org.enso.table.data.column.operation.BinaryOperationTyped;
@@ -8,6 +7,7 @@ import org.enso.table.data.column.operation.unary.NotOperation;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.ColumnBooleanStorage;
 import org.enso.table.data.table.problems.MapOperationProblemAggregator;
+import org.enso.table.util.ImmutableBitSet;
 
 final class BooleanComparators {
   public static final BinaryOperationTyped<Boolean> EQ =
@@ -60,10 +60,15 @@ final class BooleanComparators {
             boolean rightBoolean,
             boolean rightIsNothing,
             MapOperationProblemAggregator problemAggregator) {
+          var size = (int) left.getSize();
           return rightBoolean
               ? NotOperation.applySpecializedBoolStorage(left)
               : new BoolStorage(
-                  new BitSet(), left.getValidityMap(), Builder.checkSize(left.getSize()), false);
+                  ImmutableBitSet.allFalse(size),
+                  left.getValidityMap(),
+                  Builder.checkSize(size),
+                  false,
+                  null);
         }
       };
 
@@ -81,9 +86,14 @@ final class BooleanComparators {
             boolean rightBoolean,
             boolean rightIsNothing,
             MapOperationProblemAggregator problemAggregator) {
+          var size = (int) left.getSize();
           return rightBoolean
               ? new BoolStorage(
-                  new BitSet(), left.getValidityMap(), Builder.checkSize(left.getSize()), true)
+                  ImmutableBitSet.allFalse(size),
+                  left.getValidityMap(),
+                  Builder.checkSize(size),
+                  true,
+                  null)
               : NotOperation.applySpecializedBoolStorage(left);
         }
       };
@@ -102,9 +112,10 @@ final class BooleanComparators {
             boolean rightBoolean,
             boolean rightIsNothing,
             MapOperationProblemAggregator problemAggregator) {
+          var size = Builder.checkSize(left.getSize());
           return rightBoolean
               ? new BoolStorage(
-                  new BitSet(), left.getValidityMap(), Builder.checkSize(left.getSize()), false)
+                  ImmutableBitSet.allFalse(size), left.getValidityMap(), size, false, null)
               : left;
         }
       };
@@ -123,10 +134,15 @@ final class BooleanComparators {
             boolean rightBoolean,
             boolean rightIsNothing,
             MapOperationProblemAggregator problemAggregator) {
+          var size = (int) left.getSize();
           return rightBoolean
               ? left
               : new BoolStorage(
-                  new BitSet(), left.getValidityMap(), Builder.checkSize(left.getSize()), true);
+                  ImmutableBitSet.allFalse(size),
+                  left.getValidityMap(),
+                  Builder.checkSize(left.getSize()),
+                  true,
+                  null);
         }
       };
 }

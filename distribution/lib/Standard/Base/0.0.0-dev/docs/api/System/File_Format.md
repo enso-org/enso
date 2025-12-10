@@ -39,6 +39,20 @@
     - read self file:Standard.Base.Any.Any on_problems:Standard.Base.Errors.Problem_Behavior.Problem_Behavior -> Standard.Base.Any.Any
     - read_stream self stream:Standard.Base.System.Input_Stream.Input_Stream metadata:Standard.Base.System.File_Format_Metadata.File_Format_Metadata -> Standard.Base.Any.Any
     - resolve constructor:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- Standard.Base.System.File_Format.JSON_Lines_Format.for_file_write file:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- Standard.Base.System.File_Format.JSON_Lines_Format.get_dropdown_options -> Standard.Base.Any.Any
+- Standard.Base.System.File_Format.JSON_Lines_Format.get_name_patterns -> (Standard.Base.Data.Vector.Vector Standard.Base.System.File_Format.File_Name_Pattern)
+- Standard.Base.System.File_Format.JSON_Lines_Format.read_stream self stream:Standard.Base.System.Input_Stream.Input_Stream metadata:Standard.Base.System.File_Format_Metadata.File_Format_Metadata -> Standard.Base.Any.Any
+- parse_boolean_with_infer field_name:Standard.Base.Data.Text.Text value:(Standard.Base.Data.Boolean.Boolean|Standard.Base.Data.Text.Text|Standard.Base.Nothing.Nothing) -> (Standard.Base.Data.Boolean.Boolean|Standard.Base.System.File_Format.Infer)
+- Standard.Base.System.File_Format.JSON_Format.from that:Standard.Base.Data.Json.JS_Object -> Standard.Base.System.File_Format.JSON_Format
+- type JSON_Lines_Format
+    - for_file_write file:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - get_dropdown_options -> Standard.Base.Any.Any
+    - get_name_patterns -> (Standard.Base.Data.Vector.Vector Standard.Base.System.File_Format.File_Name_Pattern)
+    - read_stream self stream:Standard.Base.System.Input_Stream.Input_Stream metadata:Standard.Base.System.File_Format_Metadata.File_Format_Metadata -> Standard.Base.Any.Any
+    - for_read file:Standard.Base.System.File_Format_Metadata.File_Format_Metadata -> Standard.Base.Any.Any
+    - read self file:Standard.Base.Any.Any on_problems:Standard.Base.Errors.Problem_Behavior.Problem_Behavior -> Standard.Base.Any.Any
+    - resolve constructor:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - type Plain_Text_Format
     - Plain_Text encoding:(Standard.Base.Data.Text.Encoding.Encoding|Standard.Base.System.File_Format.Infer)=
     - for_file_write file:Standard.Base.Any.Any -> Standard.Base.Any.Any
@@ -50,5 +64,4 @@
     - resolve constructor:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - resolve_encoding self metadata:Standard.Base.System.File_Format_Metadata.File_Format_Metadata -> Standard.Base.Any.Any
 - get_format callback:Standard.Base.Any.Any -> Standard.Base.Any.Any
-- parse_boolean_with_infer field_name:Standard.Base.Data.Text.Text value:(Standard.Base.Data.Boolean.Boolean|Standard.Base.Data.Text.Text|Standard.Base.Nothing.Nothing) -> (Standard.Base.Data.Boolean.Boolean|Standard.Base.System.File_Format.Infer)
-- Standard.Base.System.File_Format.JSON_Format.from that:Standard.Base.Data.Json.JS_Object -> Standard.Base.System.File_Format.JSON_Format
+- Standard.Base.System.File_Format.JSON_Lines_Format.from that:Standard.Base.Data.Json.JS_Object -> Standard.Base.System.File_Format.JSON_Lines_Format

@@ -14,6 +14,8 @@ from project.Internal.In_Memory_Column_Implementation import _apply_unary_map, _
 from project.Internal.Java_Exports import make_string_builder
 
 polyglot java import org.enso.table.data.column.operation.binary.RandBetweenOperation
+polyglot java import org.enso.table.data.column.operation.binary.RandBetweenOperation
+polyglot java import org.enso.table.data.column.operation.text.TextIndexOf
 polyglot java import org.enso.table.data.column.operation.text.TextPartOperation
 polyglot java import org.enso.table.data.column.operation.unary.AbsOperation
 polyglot java import org.enso.table.data.column.operation.unary.CaseOperation
@@ -195,3 +197,8 @@ type In_Memory_Text_Column_Implementation
                             _apply_unary_map this_column new_name (s -> do_substring s start length) expected_result_type=Value_Type.Char
 
             res . cast this_column.value_type
+
+    index_of (column : Column & In_Memory_Column) (other : Column | Text | Any) case_sensitivity:Case_Sensitivity=..Default =
+        Value_Type.expect_text column <| Value_Type.expect_text other <|
+            new_name = naming_helper.function_name "index_of" [column, other]
+            apply_case_sensitive_text_operation column other case_sensitivity TextIndexOf.INSTANCE (a -> b -> a.index_of b 0 case_sensitivity) new_name Value_Type.Integer

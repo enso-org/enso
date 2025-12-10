@@ -70,11 +70,11 @@ final class InferredDoubleBuilder extends DoubleBuilder implements BuilderWithRe
         items[i] = null;
       } else {
         if (isLongCompactedAsDouble.get(i)) {
-          items[i] = (long) data[i];
+          items[i] = (long) getData(i);
         } else if (i < rawN && rawData[i] != null) {
           items[i] = rawData[i];
         } else {
-          items[i] = data[i];
+          items[i] = getData(i);
         }
       }
     }
@@ -158,12 +158,12 @@ final class InferredDoubleBuilder extends DoubleBuilder implements BuilderWithRe
   @Override
   public Builder retypeTo(StorageType<?> type) {
     if (type instanceof BigDecimalType) {
-      Builder res = Builder.getForBigDecimal(data.length);
+      Builder res = Builder.getForBigDecimal(getDataSize());
       for (int i = 0; i < currentSize; i++) {
         if (!isValid(i)) {
           res.appendNulls(1);
         } else {
-          BigDecimal bigDecimal = BigDecimal.valueOf(data[i]);
+          BigDecimal bigDecimal = BigDecimal.valueOf(getData(i));
           res.append(bigDecimal);
         }
       }

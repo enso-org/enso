@@ -2,7 +2,6 @@ package org.enso.table.data.column.operation.binary;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.util.BitSet;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.operation.BinaryOperation;
@@ -100,7 +99,7 @@ public class FillMissingOperation implements BinaryOperation {
   public static class BooleanFillMissingOperation extends FillMissingOperation {
     public static BoolStorage fillMissingBoolStorage(BoolStorage storage, boolean fillValue) {
       var size = (int) storage.getSize();
-      var newValues = (BitSet) storage.getValues().clone();
+      var newValues = storage.getValues().cloneBitSet();
       var isNothingMap = storage.getValidityMap().cloneBitSet();
       isNothingMap.flip(0, size);
       if (fillValue != storage.isNegated()) {
@@ -109,7 +108,8 @@ public class FillMissingOperation implements BinaryOperation {
         newValues.andNot(isNothingMap);
       }
       var validity = ImmutableBitSet.allTrue(size);
-      return new BoolStorage(newValues, validity, size, storage.isNegated());
+      return new BoolStorage(
+          new ImmutableBitSet(newValues, size), validity, size, storage.isNegated(), null);
     }
 
     public BooleanFillMissingOperation(StorageType<?> resultType) {
