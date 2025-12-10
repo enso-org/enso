@@ -173,7 +173,10 @@ function loadAmplifyConfig(
     endpoint: $config.AUTH_ENDPOINT,
     userPoolId:
       process.env.NODE_ENV === 'test' ? 'mars_AAAAAAAAA' : ($config.COGNITO_USER_POOL_ID ?? ''),
-    userPoolWebClientId: $config.COGNITO_USER_POOL_WEB_CLIENT_ID ?? '',
+    userPoolWebClientId:
+      process.env.NODE_ENV === 'test' ?
+        'zzzzzzzzzzzzzzzzzzzzzzzzzz'
+      : ($config.COGNITO_USER_POOL_WEB_CLIENT_ID ?? ''),
     domain: $config.COGNITO_DOMAIN ?? '',
     region: $config.COGNITO_REGION ?? '',
     redirectSignIn: signInOutRedirect,
