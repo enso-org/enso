@@ -1,4 +1,5 @@
 <script lang="ts">
+import { ModalWrapper as ModalWrapperReact } from '#/components/ModalWrapper'
 import type { PaywallFeatureName } from '#/hooks/billing'
 import { UserBar as UserBarReact } from '#/pages/dashboard/UserBar'
 import CommandPalette from '$/components/CommandPalette.vue'
@@ -25,6 +26,7 @@ import { Drive, Settings } from './reactTabs'
 import RightPanel from './RightPanel.vue'
 import SelectableTab from './SelectableTab.vue'
 
+const ModalWrapper = reactComponent(ModalWrapperReact)
 const UserBar = reactComponent(UserBarReact)
 </script>
 
@@ -130,6 +132,7 @@ onUnmounted(() => {
   <div class="TabView">
     <CommandPalette />
     <ContainerProviderForReact>
+      <ModalWrapper />
       <div class="bar">
         <div role="tablist" class="tablist">
           <SelectableTab
@@ -176,10 +179,7 @@ onUnmounted(() => {
             <Drive v-if="tab === 'drive'" />
           </KeepAlive>
           <KeepAlive v-for="project in projectTabs" :key="project.state.info.id">
-            <ProjectView
-              v-if="tab === project.state.info.ensoPath"
-              :projectId="project.state.info.id"
-            />
+            <ProjectView v-if="project.shown.value" :projectId="project.state.info.id" />
           </KeepAlive>
           <KeepAlive>
             <Settings v-if="tab === 'settings'" />

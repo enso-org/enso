@@ -21,7 +21,7 @@
     - jdbc_connection self -> Standard.Base.Any.Any
     - query self query:(Standard.Database.SQL_Query.SQL_Query_With_Schema|Standard.Database.SQL_Query.SQL_Query) alias:Standard.Base.Any.Any= -> Standard.Base.Any.Any
     - read self query:(Standard.Database.SQL_Query.SQL_Query_With_Schema|Standard.Database.SQL_Query.SQL_Query) limit:Standard.Table.Rows_To_Read.Rows_To_Read= -> Standard.Base.Any.Any
-    - read_file self path:Standard.Base.Any.Any= as:Standard.Base.Data.Text.Text= key_columns:Standard.Base.Data.Vector.Vector= replace_if_present:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Any.Any
+    - read_file self path:Standard.Base.Any.Any= as:Standard.Base.Data.Text.Text= format:Standard.DuckDB.DuckDB_Format.DuckDB_Format= key_columns:Standard.Base.Data.Vector.Vector= replace_if_present:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Any.Any
     - read_spatial_file self path:Standard.Base.Any.Any= as:Standard.Base.Data.Text.Text= key_columns:Standard.Base.Data.Vector.Vector= replace_if_present:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Any.Any
     - schema self -> Standard.Base.Any.Any
     - schemas self -> Standard.Base.Any.Any
@@ -35,6 +35,6 @@
     - type_mapping self -> Standard.Base.Any.Any
     - version self -> Standard.Base.Data.Text.Text
     - write_database self path:Standard.Base.System.File.Generic.Writable_File.Writable_File= schema_only:Standard.Base.Data.Boolean.Boolean= on_existing_file:Standard.Base.System.File.Existing_File_Behavior.Existing_File_Behavior= -> Standard.Base.Any.Any
-    - write_file self query:(Standard.Database.SQL_Query.SQL_Query_With_Schema|Standard.Database.SQL_Query.SQL_Query|Standard.Table.Table.Table)= path:Standard.Base.System.File.Generic.Writable_File.Writable_File= on_existing_file:Standard.Base.System.File.Existing_File_Behavior.Existing_File_Behavior= -> Standard.Base.Any.Any
+    - write_file self query:(Standard.Database.SQL_Query.SQL_Query_With_Schema|Standard.Database.SQL_Query.SQL_Query|Standard.Table.Table.Table)= path:Standard.Base.System.File.Generic.Writable_File.Writable_File= format:Standard.DuckDB.DuckDB_Format.DuckDB_Format= on_existing_file:Standard.Base.System.File.Existing_File_Behavior.Existing_File_Behavior= -> Standard.Base.Any.Any
 - schema_black_list -> Standard.Base.Any.Any
 - Standard.Base.Visualization.Table_Viz_Data.Table_Viz_Data.from that:Standard.DuckDB.DuckDB_Connection.DuckDB_Connection -> Standard.Base.Visualization.Table_Viz_Data.Table_Viz_Data

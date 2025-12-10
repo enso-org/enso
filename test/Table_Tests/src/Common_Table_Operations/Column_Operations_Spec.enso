@@ -1290,15 +1290,18 @@ add_column_operation_specs suite_builder setup =
             col = t.at "numbers"
             col.text_length . should_fail_with Invalid_Value_Type
 
-        group_builder.specify "should handle operation text_left and text_right with length 1" <|
+        group_builder.specify "should handle operation text_left, _right, and _mid with length 1" <|
             with_mixed_columns_if_supported [["strings", ["a", "foobar", "", Nothing, "café", "It was the best of times, it was the worst of times, it was the age of wisdom, it was the age of foolishness, it was the epoch of belief, it was the epoch of incredulity, it was the season of light, it was the season of darkness, it was the spring of hope, it was the winter of despair."]]] t->
                 col = t.at "strings" . cast (Value_Type.Char size=286 variable_length=True)
                 resLeft = col.text_left 1
                 resLeft.name . should_equal "text_left([strings], 1)"
                 resRight = col.text_right 1
                 resRight.name . should_equal "text_right([strings], 1)"
+                resMid = col.text_mid 3 1
+                resMid.name . should_equal "text_mid([strings], 3, 1)"
                 resLeft . to_vector . should_equal ["a", "f", "", Nothing, "c", "I"]
                 resRight . to_vector . should_equal ["a", "r", "", Nothing, "é", "."]
+                resMid . to_vector . should_equal ["", "b", "", Nothing, "é", "w"]
 
                 expected_new_size = case setup.flagged ..Char_Max_Size_After_Substring_Kept of
                     False   -> Nothing
@@ -1311,55 +1314,114 @@ add_column_operation_specs suite_builder setup =
                 Test.with_clue "(Expected behaviour for substring size = "+expected_behavior+".) " <|
                     resLeft.value_type . should_equal (Value_Type.Char size=expected_new_size variable_length=True)
                     resRight.value_type . should_equal (Value_Type.Char size=expected_new_size variable_length=True)
+                    resMid.value_type . should_equal (Value_Type.Char size=expected_new_size variable_length=True)
 
-        group_builder.specify "should handle operation text_left and text_right of grapheme and non-grapheme" <|
+        group_builder.specify "should handle operation text_left, _right, and _mid of grapheme and non-grapheme" <|
             with_mixed_columns_if_supported [["strings", ["a", "foobar", "", Nothing, "👩‍🔬👩‍🔬V👩‍🔬👩‍🔬", "café", "It was the best of times, it was the worst of times, it was the age of wisdom, it was the age of foolishness, it was the epoch of belief, it was the epoch of incredulity, it was the season of light, it was the season of darkness, it was the spring of hope, it was the winter of despair."]]] t->
                 col = t.at "strings"
                 resLeft = col.text_left 3
                 resLeft.name . should_equal "text_left([strings], 3)"
                 resRight = col.text_right 3
                 resRight.name . should_equal "text_right([strings], 3)"
+                resMid = col.text_mid 3 4
+                resMid.name . should_equal "text_mid([strings], 3, 4)"
 
                 case setup.is_database of
-                    False -> resLeft . to_vector . should_equal ["a", "foo", "", Nothing, "👩‍🔬👩‍🔬V", "caf", "It "] # Grapheme Length
-                    True -> resLeft . to_vector . should_equal ["a", "foo", "", Nothing, "👩‍🔬", "caf", "It "]  # Storage Length
-                case setup.is_database of
-                    False -> resRight . to_vector . should_equal ["a", "bar", "", Nothing, "V👩‍🔬👩‍🔬", "afé", "ir."] # Grapheme Length
-                    True -> resRight . to_vector . should_equal ["a", "bar", "", Nothing, "👩‍🔬", "afé", "ir."]  # Storage Length
+                    False ->
+                        resLeft . to_vector . should_equal ["a", "foo", "", Nothing, "👩‍🔬👩‍🔬V", "caf", "It "] # Grapheme Length
+                        resRight . to_vector . should_equal ["a", "bar", "", Nothing, "V👩‍🔬👩‍🔬", "afé", "ir."] # Grapheme Length
+                        resMid . to_vector . should_equal ["", "bar", "", Nothing, "👩‍🔬👩‍🔬", "é", "was "] # Grapheme Length
+                    True ->
+                        resLeft . to_vector . should_equal ["a", "foo", "", Nothing, "👩‍🔬", "caf", "It "]  # Storage Length
+                        resRight . to_vector . should_equal ["a", "bar", "", Nothing, "👩‍🔬", "afé", "ir."]  # Storage Length
+                        resMid . to_vector . should_equal ["", "bar", "", Nothing, "👩‍🔬V", "é", "was "]  # Storage Length
 
-        group_builder.specify "text_left and text_right should error on non-string columns" <|
-            t = table_builder [["numbers", [1, 2, 3]]]
-            col = t.at "numbers"
-            col.text_left 6 . should_fail_with Invalid_Value_Type
-            col.text_right 6 . should_fail_with Invalid_Value_Type
-
-        group_builder.specify "text_left and text_right should error on non integer parameters" <|
+        group_builder.specify "text_left, _right, and _mid should error on non integer parameters" <|
             t = table_builder [["numbers", [1, 2, 3]]]
             col = t.at "numbers"
             Test.expect_panic Type_Error <| col.text_left 3.14
             Test.expect_panic Type_Error <| col.text_right 3.14
+            Test.expect_panic Type_Error <| col.text_mid 3.14 2.71
             Test.expect_panic Type_Error <| col.text_left "7"
-            Test.expect_panic Type_Error <| col.text_left "7"
+            Test.expect_panic Type_Error <| col.text_right "7"
+            Test.expect_panic Type_Error <| col.text_mid "7" "8"
 
-        group_builder.specify "text_left and text_right should return empty on zero argument" <|
+        group_builder.specify "text_left, _right, and _mid should return empty on zero argument" <|
             with_mixed_columns_if_supported [["strings", ["a", "foobar", "", Nothing, "👩‍🔬👩‍🔬V👩‍🔬👩‍🔬", "café", "It was the best of times, it was the worst of times, it was the age of wisdom, it was the age of foolishness, it was the epoch of belief, it was the epoch of incredulity, it was the season of light, it was the season of darkness, it was the spring of hope, it was the winter of despair."]]] t->
                 col = t.at "strings"
                 resLeft = col.text_left 0
                 resLeft.name . should_equal "text_left([strings], 0)"
                 resRight = col.text_right 0
                 resRight.name . should_equal "text_right([strings], 0)"
+                resMid = col.text_mid 3 0
+                resMid.name . should_equal "text_mid([strings], 3, 0)"
                 resLeft . to_vector . should_equal ["", "", "", Nothing, "", "", ""]
                 resRight . to_vector . should_equal ["", "", "", Nothing, "", "", ""]
+                resMid . to_vector . should_equal ["", "", "", Nothing, "", "", ""]
 
-        group_builder.specify "text_left and text_right should return empty on negative arguments" <|
-            with_mixed_columns_if_supported [["strings", ["a", "foobar", "", Nothing, "👩‍🔬👩‍🔬V👩‍🔬👩‍🔬", "café", "It was the best of times, it was the worst of times, it was the age of wisdom, it was the age of foolishness, it was the epoch of belief, it was the epoch of incredulity, it was the season of light, it was the season of darkness, it was the spring of hope, it was the winter of despair."]]] t->
+        if setup.is_database.not then
+            group_builder.specify "text_left, _right, and _mid should error on non-string columns" <|
+                t = table_builder [["numbers", [1, 2, 3]]]
+                col = t.at "numbers"
+                col.text_left 6 . should_fail_with Invalid_Value_Type
+                col.text_right 6 . should_fail_with Invalid_Value_Type
+                col.text_mid 6 1 . should_fail_with Invalid_Value_Type
+
+            group_builder.specify "text_left, _right, and _mid should return empty on negative lengths" <|
+                with_mixed_columns_if_supported [["strings", ["a", "foobar", "", Nothing, "👩‍🔬👩‍🔬V👩‍🔬👩‍🔬", "café", "It was the best of times, it was the worst of times, it was the age of wisdom, it was the age of foolishness, it was the epoch of belief, it was the epoch of incredulity, it was the season of light, it was the season of darkness, it was the spring of hope, it was the winter of despair."]]] t->
+                    col = t.at "strings"
+                    resLeft = col.text_left -3
+                    resLeft.name . should_equal "text_left([strings], -3)"
+                    resRight = col.text_right -3
+                    resRight.name . should_equal "text_right([strings], -3)"
+                    resMid = col.text_mid 3 -3
+                    resMid.name . should_equal "text_mid([strings], 3, -3)"
+                    resLeft . to_vector . should_equal ["", "", "", Nothing, "", "", ""]
+                    resRight . to_vector . should_equal ["", "", "", Nothing, "", "", ""]
+                    resMid . to_vector . should_equal ["", "", "", Nothing, "", "", ""]
+
+            group_builder.specify "text_mid should treat a negative start as 0" <|
+                with_mixed_columns_if_supported [["strings", ["a", "foobar", "", Nothing, "👩‍🔬👩‍🔬V👩‍🔬👩‍🔬", "café", "It was the best of times, it was the worst of times, it was the age of wisdom, it was the age of foolishness, it was the epoch of belief, it was the epoch of incredulity, it was the season of light, it was the season of darkness, it was the spring of hope, it was the winter of despair."]]] t->
+                    col = t.at "strings"
+                    resMid = col.text_mid -3 3
+                    resMid.name . should_equal "text_mid([strings], -3, 3)"
+                    resMid . to_vector . should_equal ["a", "foo", "", Nothing, "👩‍🔬👩‍🔬V", "caf", "It "]
+
+            group_builder.specify "text_left, _right, and _mid should return Nothing if positions or lengths are Nothing" <|
+                with_mixed_columns_if_supported [["strings", ["a", "foobar", "", Nothing, "👩‍🔬👩‍🔬V👩‍🔬👩‍🔬", "café", "It was the best of times, it was the worst of times, it was the age of wisdom, it was the age of foolishness, it was the epoch of belief, it was the epoch of incredulity, it was the season of light, it was the season of darkness, it was the spring of hope, it was the winter of despair."]]] t->
+                    col = t.at "strings"
+                    col.text_left Nothing . to_vector . should_equal [Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing]
+                    col.text_right Nothing . to_vector . should_equal [Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing]
+                    col.text_mid Nothing 3 . to_vector . should_equal [Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing]
+                    col.text_mid 3 Nothing . to_vector . should_equal [Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing]
+                    col.text_mid Nothing Nothing . to_vector . should_equal [Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Nothing]
+
+        group_builder.specify "text_left and text_right should work with a column of lengths" <|
+            with_mixed_columns_if_supported [["lengths", [1, 3, 2, 2, 2, 7]], ["strings", ["a", "foobar", "", Nothing, "café", "It was the best of times, it was the worst of times, it was the age of wisdom, it was the age of foolishness, it was the epoch of belief, it was the epoch of incredulity, it was the season of light, it was the season of darkness, it was the spring of hope, it was the winter of despair."]]] t->
                 col = t.at "strings"
-                resLeft = col.text_left -3
-                resLeft.name . should_equal "text_left([strings], -3)"
-                resRight = col.text_right -3
-                resRight.name . should_equal "text_right([strings], -3)"
-                resLeft . to_vector . should_equal ["", "", "", Nothing, "", "", ""]
-                resRight . to_vector . should_equal ["", "", "", Nothing, "", "", ""]
+                lengths = t.at "lengths"
+
+                col.text_left lengths . to_vector . should_equal ["a", "foo", "", Nothing, "ca", "It was "]
+                col.text_right lengths . to_vector . should_equal ["a", "bar", "", Nothing, "fé", "espair."]
+
+        group_builder.specify "text_mid should work with columns of starts and lengths" <|
+            with_mixed_columns_if_supported [["starts", [0, 2, 2, 0, 1, 8]], ["lengths", [1, 3, 2, 2, 2, 7]], ["strings", ["a", "foobar", "", Nothing, "café", "It was the best of times, it was the worst of times, it was the age of wisdom, it was the age of foolishness, it was the epoch of belief, it was the epoch of incredulity, it was the season of light, it was the season of darkness, it was the spring of hope, it was the winter of despair."]]] t->
+                col = t.at "strings"
+                starts = t.at "starts"
+                lengths = t.at "lengths"
+                col.text_mid 0 lengths . to_vector . should_equal ["a", "foo", "", Nothing, "ca", "It was "]
+                col.text_mid starts 1 . to_vector . should_equal ["a", "o", "", Nothing, "a", "h"]
+                col.text_mid starts lengths . to_vector . should_equal ["a", "oba", "", Nothing, "af", "he best"]
+
+        group_builder.specify "text_left, _right, and _mid should have defaults for length" <|
+            with_mixed_columns_if_supported [["strings", ["a", "foobar", "", Nothing, "café", "It was the best of times"]]] t->
+                col = t.at "strings"
+                resLeft = col.text_left
+                resRight = col.text_right
+                resMid = col.text_mid 3
+                resLeft . to_vector . should_equal ["a", "f", "", Nothing, "c", "I"]
+                resRight . to_vector . should_equal ["a", "r", "", Nothing, "é", "s"]
+                resMid . to_vector . should_equal ["", "bar", "", Nothing, "é", "was the best of times"]
 
         group_builder.specify "should handle operations like is_empty, is_blank, fill_empty" <|
             with_mixed_columns_if_supported [["s", ["", " ", "  ", Nothing, "foo"]], ["letters", ["a", "b", "c", "d", "e"]]] t->

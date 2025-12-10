@@ -3,7 +3,6 @@ import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { CATEGORY_TO_FILTER_BY, type Category } from '#/layouts/CategorySwitcher/Category'
 import { useSetAssetToRename, useSetSelectedAssets } from '#/providers/DriveProvider'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
-import { flagsStore } from '$/providers/featureFlags'
 import type { ProjectInfo } from '$/providers/openedProjects/projectInfo'
 import { useFullUserSession } from '$/providers/react'
 import { useFeatureFlag } from '$/providers/react/featureFlags'
@@ -83,50 +82,8 @@ export function backendQueryOptions<Method extends BackendQueryMethod>(
     ...backendQueryOptionsBase(backend, method, args, options?.queryKey),
     staleTime: options?.staleTime ?? STALE_TIME_MAP[method] ?? 0,
     meta: { ...options?.meta, persist: PERSISTENCE_MAP[method] ?? options?.meta?.persist ?? true },
-    queryFn: async () => {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, no-restricted-syntax, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-explicit-any
-      let result = await (backend?.[method] as any)?.(...args)
-      // eslint-disable-next-line @typescript-eslint/switch-exhaustiveness-check
-      switch (method) {
-        case 'listUsers': {
-          const { multiplyUserList } = flagsStore.getState().featureFlags
-          if (multiplyUserList) {
-            // eslint-disable-next-line no-restricted-syntax
-            const typedResult = result as readonly Omit<User, 'groups'>[]
-            const user = typedResult[0]
-            result = [
-              ...(user != null ?
-                [
-                  {
-                    email: backendModule.EmailAddress('test@example.com'),
-                    isEnabled: true,
-                    isEnsoTeamMember: false,
-                    isOrganizationAdmin: false,
-                    name: 'Test User',
-                    organizationId: user.organizationId,
-                    plan: backendModule.Plan.free,
-                    rootDirectoryId: user.rootDirectoryId,
-                    userId: user.userId,
-                    userGroups: [
-                      ...new Set(typedResult.flatMap((otherUser) => otherUser.userGroups ?? [])),
-                    ],
-                  } satisfies Omit<User, 'groups'>,
-                ]
-              : []),
-              // eslint-disable-next-line @typescript-eslint/no-magic-numbers, @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-assignment
-              ...Array.from({ length: 10 }).flatMap(() => result),
-            ]
-          }
-          break
-        }
-        default: {
-          // No action needed.
-          break
-        }
-      }
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-      return result
-    },
+    // eslint-disable-next-line no-restricted-syntax, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-return
+    queryFn: () => (backend?.[method] as any)?.(...args),
   })
 }
 

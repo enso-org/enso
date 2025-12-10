@@ -129,14 +129,14 @@ const groupColors = computed(() => {
 
 <template>
   <div class="WithCurrentProject" :style="groupColors">
-    <slot v-if="initializedProject != null" />
-    <slot v-else-if="project?.error != null" name="error">
+    <slot v-if="project?.error != null" name="error">
       <ResultComponent
         status="error"
         title="Failed to open project"
         :subtitle="`${project.error}`"
       />
     </slot>
+    <slot v-else-if="initializedProject != null" />
     <slot
       v-else-if="
         project?.nextTask?.process === 'opening' || project?.nextTask?.process === 'restoring'
