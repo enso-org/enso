@@ -129,7 +129,6 @@ SRCS = STDLIB_SOURCES + [
     "lib/java/ydoc-server/src/**",
     "lib/java/ydoc-server-registration/src/**",
     "lib/java/zio-wrapper/src/**",
-    "lib/scala/akka-native/src/**",
     "lib/scala/bench-processor/src/**",
     "lib/scala/cli/src/**",
     "lib/scala/common-polyglot-core-utils/src/**",

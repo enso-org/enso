@@ -1265,6 +1265,7 @@
   "listApiKeysBackendError": "Could not list API keys.",
   "createApiKeyBackendError": "Could not create API key.",
   "deleteApiKeyBackendError": "Could not delete API key.",
+  "getMapboxTokenBackendError": "Could not retrieve Mapbox token.",
   "keyId": "Access key",
   "secretId": "Secret access key",
   "accessKeyAlert": "If you lose or forget your secret access key, you cannot retrieve it. Instead, create a new access key and make the old key inactive.",
