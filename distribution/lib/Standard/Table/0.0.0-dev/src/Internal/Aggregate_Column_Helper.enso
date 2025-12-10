@@ -121,6 +121,10 @@ default_aggregate_column_name aggregate_column include_column=True =
         Aggregate_Column.Count_Distinct columns _ _ ->
             "Count Distinct " + (columns.map .name . join " ")
         Aggregate_Column.Percentile p c _ -> ((p*100).floor.to_text + "%-ile ") + (if include_column then c.name else "")
+        Aggregate_Column.SQL fn columns _ ->
+            cols = if columns.is_empty then "" else
+                columns.map .name . join ", "
+            fn + "(" + cols + ")"
         _ ->
             atom = Meta.meta aggregate_column : Meta.Atom
             prefix = atom.constructor.name . replace "_" " "
@@ -215,7 +219,7 @@ resolve_aggregate table problem_builder aggregate_column:Aggregate_Column =
         Aggregate_Column.Minimum c as -> Aggregate_Column.Minimum (resolve c) as
         Aggregate_Column.Shortest c as -> Aggregate_Column.Shortest (resolve_text c) as
         Aggregate_Column.Longest c as -> Aggregate_Column.Longest (resolve_text c) as
-        Aggregate_Column.SQL fn c as -> Aggregate_Column.SQL fn (resolve_selector_to_vector c) as
+        Aggregate_Column.SQL fn c as -> Aggregate_Column.SQL fn (if c==[] then [] else resolve_selector_to_vector c) as
 
     ## Downgrade the `Internal_Missing_Column_Error` error into a `Nothing`
        value, keeping any other dataflow errors intact.

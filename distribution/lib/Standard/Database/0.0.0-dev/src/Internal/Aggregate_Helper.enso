@@ -41,6 +41,12 @@ make_aggregate_column table aggregate as dialect infer_return_type problem_build
         sql_type_ref = infer_return_type op_kind columns expression
         Internal_Column.Value as sql_type_ref expression
 
+    custom_sql function columns =
+        expression = dialect.cast_aggregate_columns "CUSTOM_SQL" columns
+        with_function = SQL_IR_Expression.Operation "CUSTOM_SQL" [SQL_IR_Expression.Literal function]+expression.expressions expression.metadata
+        sql_type_ref = infer_return_type "CUSTOM_SQL" columns with_function
+        Internal_Column.Value as sql_type_ref with_function
+
     aggregate_with_order_by op_kind column order_by =
         order_bys = order_by.map sc->
             effective_ordering = if sc.column.value_type.is_text then Text_Ordering.Default else Nothing
@@ -107,7 +113,7 @@ make_aggregate_column table aggregate as dialect infer_return_type problem_build
         Aggregate_Column.Sum c _ -> simple_aggregate "SUM" [c]
         Aggregate_Column.Average c _ -> simple_aggregate "AVG" [c]
         Aggregate_Column.Median c _ -> simple_aggregate "MEDIAN" [c]
-        Aggregate_Column.SQL fn columns _ -> simple_aggregate "CUSTOM_SQL" [SQL_IR_Expression.Literal fn]+columns
+        Aggregate_Column.SQL fn columns _ -> custom_sql fn columns
 
 ## ---
    private: true
