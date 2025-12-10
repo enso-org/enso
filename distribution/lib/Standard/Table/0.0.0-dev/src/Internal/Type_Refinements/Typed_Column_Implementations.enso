@@ -8,7 +8,6 @@ import project.Column.Rest_Of_String
 import project.In_Memory_Column.In_Memory_Column
 import project.Internal.Type_Refinements.Typed_Column_Helpers
 import project.Internal.Type_Refinements.Typed_Column_Implementations.In_Memory_Text_Column_Implementation
-import project.Refined_Types.Text_Column.Text_Column
 import project.Value_Type.Value_Type
 from project.Internal.In_Memory_Column_Implementation import _apply_unary_map, _apply_binary_map, apply_case_sensitive_text_operation, _call_binary_operator, _java_other, apply_unary_operation, naming_helper
 from project.Internal.Java_Exports import make_string_builder
