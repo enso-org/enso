@@ -7,6 +7,7 @@
 import { Checkbox } from '#/components/Checkbox'
 import { Form } from '#/components/Form'
 import { Input } from '#/components/Inputs/Input'
+import { Selector } from '#/components/Inputs/Selector/Selector'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import { useText } from '$/providers/react'
 import { CredentialsFormFooter } from './CredentialsFormFooter'
@@ -24,7 +25,8 @@ export function MS365CredentialsForm(props: CredentialFormProps) {
       method="dialog"
       schema={ms365.FORM_SCHEMA}
       defaultValues={{
-        scopes: ['User.Read', 'Files.Read'],
+        scopes: ['User.Read'],
+        filesPermission: 'Files.Read',
       }}
       className="w-full"
       onSubmit={async (values) => {
@@ -40,8 +42,18 @@ export function MS365CredentialsForm(props: CredentialFormProps) {
           <Input form={form} name="name" label={getText('name')} defaultValue="Microsoft365" />
           <Checkbox.Group form={form} name="scopes" label={getText('ms365CredentialScopes')}>
             <Checkbox value="User.Read">{getText('ms365CredentialUserReadScope')}</Checkbox>
-            <Checkbox value="Files.Read">{getText('ms365CredentialFilesReadScope')}</Checkbox>
           </Checkbox.Group>
+          <Selector
+            form={form}
+            name="filesPermission"
+            label={getText('ms365CredentialFilesPermission')}
+            items={['Files.ReadWrite.All', 'Files.Read.All', 'Files.ReadWrite', 'Files.Read'] as const}
+          >
+            {(item) => {
+              const key = `ms365CredentialFilesPermission${item.replace(/\./g, '')}` as any
+              return getText(key)
+            }}
+          </Selector>
           <CredentialsFormFooter isCreating={true} canCancel={false} canReset={false} />
         </>
       )}
