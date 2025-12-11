@@ -26,7 +26,6 @@ type DuckDB_GeoFormat
     Custom_Driver driver_name:Text=(Missing_Argument.throw "driver_name") layer_creation_options:Text=""
 
     private to_sql self = case self of
-        DuckDB_GeoFormat.Auto -> ""
         DuckDB_GeoFormat.Shapefile -> ", DRIVER 'ESRI Shapefile'"
         DuckDB_GeoFormat.MapInfo -> ", DRIVER 'MapInfo File'"
         DuckDB_GeoFormat.GeoJSON fc -> if fc then ", DRIVER 'GeoJSONSeq'" else ", DRIVER 'GeoJSON'"
@@ -35,5 +34,5 @@ type DuckDB_GeoFormat
 
     private default_widget connection:DuckDB_Connection display:Display=..When_Modified -> Widget =
         drivers = connection.spatial_drivers.at "short_name" . to_vector . map n-> Option n n.pretty
-        values = [Option "..Auto" "..Auto", Option "..Shapefile" "..Shapefile", Option "..MapInfo" "..MapInfo", Option "..GeoJSON" "..GeoJSON", Option "..KML" "..KML", Option "<Custom>" "..Custom_Driver" parameters=[["driver_name", Single_Choice values=drivers display=..Always]]]
+        values = [Option "..Shapefile" "..Shapefile", Option "..MapInfo" "..MapInfo", Option "..GeoJSON" "..GeoJSON", Option "..KML" "..KML", Option "<Custom>" "..Custom_Driver" parameters=[["driver_name", Single_Choice values=drivers display=..Always]]]
         Single_Choice values=values display=display
