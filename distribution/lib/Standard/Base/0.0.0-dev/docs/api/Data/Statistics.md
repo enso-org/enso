@@ -45,6 +45,7 @@
     - running_bulk data:Standard.Base.Any.Any statistics:Standard.Base.Any.Any= -> Standard.Base.Any.Any
     - spearman_correlation data:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - to_java self -> Standard.Base.Any.Any
+    - to_text self -> Standard.Base.Any.Any
 - calculate_correlation_statistics x_data:Standard.Base.Any.Any y_data:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - calculate_correlation_statistics_matrix data:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - calculate_spearman_rank x_data:Standard.Base.Any.Any y_data:Standard.Base.Any.Any -> Standard.Base.Any.Any
