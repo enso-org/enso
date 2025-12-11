@@ -1467,12 +1467,6 @@ Float.from (that : Decimal) =
 ## ---
    private: true
    ---
-   Helper method allowing access to the backing field.
-get_big_decimal (that : Decimal) = that.big_decimal
-
-## ---
-   private: true
-   ---
    Create a Decimal from the Java backing field.
 from_big_decimal that = Decimal.Value that
 

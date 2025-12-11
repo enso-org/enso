@@ -47,7 +47,6 @@
 - dec x:(Standard.Base.Data.Text.Text|Standard.Base.Data.Numbers.Integer|Standard.Base.Data.Numbers.Float) mc:(Standard.Base.Data.Numeric.Math_Context.Math_Context|Standard.Base.Nothing.Nothing)= -> Standard.Base.Data.Decimal.Decimal!(Standard.Base.Errors.Common.Arithmetic_Error|Standard.Base.Data.Numbers.Number_Parse_Error)
 - error_if_from_float left:Standard.Base.Any.Any right:Standard.Base.Any.Any ~action:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - from_big_decimal that:Standard.Base.Any.Any -> Standard.Base.Any.Any
-- get_big_decimal that:Standard.Base.Data.Decimal.Decimal -> Standard.Base.Any.Any
 - handle_java_exception ~action:Standard.Base.Any.Any extra_message:Standard.Base.Data.Text.Text= -> Standard.Base.Any.Any
 - handle_number_format_exception ~action:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - handle_precision_loss original_value:Standard.Base.Any.Any conversion_result:Standard.Base.Data.Decimal.ConversionResult -> Standard.Base.Any.Any
