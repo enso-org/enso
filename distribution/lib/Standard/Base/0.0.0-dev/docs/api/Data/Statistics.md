@@ -21,16 +21,16 @@
     - compute self input:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - type Statistic
     - Count
-    - Covariance series:Standard.Base.Data.Vector.Vector
+    - Covariance series:Standard.Base.Data.Vector.Vector=
     - Kurtosis
     - Maximum
     - Mean
     - Minimum
-    - Pearson series:Standard.Base.Data.Vector.Vector
+    - Pearson series:Standard.Base.Data.Vector.Vector=
     - Product
-    - R_Squared predicted:Standard.Base.Data.Vector.Vector
+    - R_Squared predicted:Standard.Base.Data.Vector.Vector=
     - Skew population:Standard.Base.Data.Boolean.Boolean=
-    - Spearman series:Standard.Base.Data.Vector.Vector
+    - Spearman series:Standard.Base.Data.Vector.Vector=
     - Standard_Deviation population:Standard.Base.Data.Boolean.Boolean=
     - Sum
     - Variance population:Standard.Base.Data.Boolean.Boolean=

@@ -8,6 +8,7 @@ import project.Data.Vector.No_Wrap
 import project.Data.Vector.Vector
 import project.Error.Error
 import project.Errors.Common.Incomparable_Values
+import project.Errors.Common.Missing_Argument
 import project.Errors.Empty_Error.Empty_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Meta
@@ -114,26 +115,26 @@ type Statistic
 
        ## Arguments
         - `series`: the series to compute the covariance with.
-    Covariance (series:Vector)
+    Covariance (series:Vector=(Missing_Argument.throw "series"))
 
     ## Calculate the Pearson Correlation between data and series.
 
        ## Arguments
         - `series`: the series to compute the correlation with.
-    Pearson (series:Vector)
+    Pearson (series:Vector=(Missing_Argument.throw "series"))
 
     ## Calculate the Spearman Rank Correlation between data and series.
 
        ## Arguments
         - `series`: the series to compute the correlation with.
-    Spearman (series:Vector)
+    Spearman (series:Vector=(Missing_Argument.throw "series"))
 
     ## Calculate the coefficient of determination between data and predicted
        series.
 
        ## Arguments
         - `predicted`: the series to compute the r_squared with.
-    R_Squared (predicted:Vector)
+    R_Squared (predicted:Vector=(Missing_Argument.throw "predicted"))
 
     ## ---
        private: true
