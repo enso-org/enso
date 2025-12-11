@@ -31,7 +31,7 @@ final class StringBuilder extends TypedBuilder<String> {
     var indexBuffer = rawIndexBuffer.asIntBuffer();
     var textSize = indexBuffer.get(size);
     var textBuffer =
-        MemorySegment.ofAddress(data + indexBuffer.limit()).reinterpret(textSize).asByteBuffer();
+        MemorySegment.ofAddress(data + rawIndexBuffer.limit()).reinterpret(textSize).asByteBuffer();
 
     var b = new StringBuilder(size, type);
     for (var i = 0; i < size; i++) {

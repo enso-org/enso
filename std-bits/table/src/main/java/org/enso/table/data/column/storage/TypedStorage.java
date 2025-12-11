@@ -51,17 +51,22 @@ public class TypedStorage<T> extends Storage<T> {
       buf.position(indexSize);
       var validity = new BitSet();
       for (var value : data) {
+        var at = index.position();
         index.put(buf.position() - indexSize);
         if (value instanceof String s) {
-          validity.set(index.position(), true);
-          buf.put(s.getBytes(StandardCharsets.UTF_8));
+          validity.set(at, true);
         } else {
-          validity.set(index.position(), false);
+          validity.set(at, false);
+          continue;
         }
+        buf.put(s.getBytes(StandardCharsets.UTF_8));
       }
       assert buf.limit() == buf.position();
       index.put(buf.position() - indexSize);
+      assert index.position() == index.limit();
       buf.flip();
+      assert buf.position() == 0;
+      assert buf.limit() == fullSize;
       offheapBuffer = buf;
       validitySet = new ImmutableBitSet(validity, data.length);
     }
