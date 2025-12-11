@@ -99,7 +99,7 @@ type Panic
              example_rethrow = Panic.rethrow Examples.throw_error
        ```
     rethrow : (Any ! Any) -> Any
-    rethrow value = value.catch Any Panic.throw
+    rethrow value = panic_rethrow value
 
     ## ---
        advanced: true
@@ -346,3 +346,5 @@ type Wrapped_Dataflow_Error
        private: true
        ---
     to_display_text self -> Text = "Wrapped_Dataflow_Error: "+self.payload.to_display_text
+
+private panic_rethrow err = @Builtin_Method "Panic.rethrow"
