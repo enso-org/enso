@@ -7,6 +7,7 @@ import project.Runtime
 from project.Data.Boolean import False, True
 from project.Error import all
 from project.Nothing import all
+from project.Internal.Error_Builtins import panic_rethrow
 
 polyglot java import java.lang.Throwable
 
@@ -346,5 +347,3 @@ type Wrapped_Dataflow_Error
        private: true
        ---
     to_display_text self -> Text = "Wrapped_Dataflow_Error: "+self.payload.to_display_text
-
-private panic_rethrow err = @Builtin_Method "Panic.rethrow"

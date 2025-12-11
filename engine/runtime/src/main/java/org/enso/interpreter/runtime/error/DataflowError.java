@@ -237,7 +237,7 @@ public final class DataflowError extends AbstractTruffleException {
 
   public PanicException rethrow() throws PanicException {
     if (getStackTraceElementLimit() == 1) {
-      throw new PanicException(getPayload(), this, getLocation());
+      throw new PanicException(ctx(), getPayload(), this, getLocation());
     } else {
       throw new PanicException(this);
     }
