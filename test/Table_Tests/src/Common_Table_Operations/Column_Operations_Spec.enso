@@ -1407,8 +1407,8 @@ add_column_operation_specs suite_builder setup =
         group_builder.specify "text_mid should work with columns of starts and lengths" <|
             with_mixed_columns_if_supported [["starts", [0, 2, 2, 0, 1, 8]], ["lengths", [1, 3, 2, 2, 2, 7]], ["strings", ["a", "foobar", "", Nothing, "café", "It was the best of times, it was the worst of times, it was the age of wisdom, it was the age of foolishness, it was the epoch of belief, it was the epoch of incredulity, it was the season of light, it was the season of darkness, it was the spring of hope, it was the winter of despair."]]] t->
                 col = t.at "strings"
-                starts = t.at "starts" . cast Value_Type.Integer
-                lengths = t.at "lengths" . cast Value_Type.Integer
+                starts = t.at "starts"
+                lengths = t.at "lengths"
                 col.text_mid 0 lengths . to_vector . should_equal ["a", "foo", "", Nothing, "ca", "It was "]
                 col.text_mid starts 1 . to_vector . should_equal ["a", "o", "", Nothing, "a", "h"]
                 col.text_mid starts lengths . to_vector . should_equal ["a", "oba", "", Nothing, "af", "he best"]
