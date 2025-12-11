@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Data.Vector.No_Wrap
 import Standard.Base.Enso_Cloud.Data_Link_Helpers
 import Standard.Base.Errors.File_Error.File_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
@@ -306,8 +307,12 @@ type DuckDB_Connection
     read_spatial_file self path=(Missing_Argument.throw "path") as:Text="NewSpatialTable" key_columns:Vector=[] replace_if_present:Boolean=False =
         if self.is_in_memory.not then Context.Output.if_enabled disabled_message="As writing is disabled, cannot create a new table. Press the Write button ▶ to perform the operation." panic=False <|
             Nothing
+
+        resolved_file = Data_Link_Helpers.resolve_path path
+        Error.return_if_error resolved_file
+
         escaped_as = as.replace '"' '""'
-        Data_Link_Helpers.as_file path file->
+        _with_additional_files resolved_file file->
             escaped_path = file.path.replace "'" "''"
             query = 'CREATE' + (if replace_if_present then ' OR REPLACE' else "") + ' TABLE "' + escaped_as + '" AS SELECT * FROM ST_Read(\'' + escaped_path + '\');'
             Context.Output.with_enabled <|
@@ -821,3 +826,56 @@ private _handle_existing_file path on_existing_file allow_append:Boolean=False =
                         tmp_file.move_to (path.parent / (path.name+".bak")) replace_existing=True
 
             result
+
+private _additional_files extension = case extension.to_case ..Lower of
+    ".tab" ->
+        ## Map Info - 2 files needed .tab, .dat and optionally .id, .shp
+        [".dat", "*.id", "*.shp"]
+    ".shp" ->
+        ## Shapefile - 3 files needed .shp, .shx, .dbf and optionally .prj
+        [".shx", ".dbf", "*.prj"]
+    _ -> []
+
+private _with_additional_files resolved_file action =
+    extras = case resolved_file of
+        _ : File -> []
+        _ : URI ->
+            possible_extension = resolved_file.path.drop (..Before_Last ".")
+            extras = _additional_files possible_extension
+            if extras==[] then Data_Link_Helpers.as_file resolved_file action else
+                Error.throw (Illegal_Argument.Error "Cannot use a URI with a file type that requires additional files. Please download all related files first.")
+        _ -> _additional_files resolved_file.extension
+
+    if extras==[] then Data_Link_Helpers.as_file resolved_file action else
+        file = Data_Link_Helpers.as_file resolved_file f->f delete_on_return=False
+        Error.return_if_error file
+
+        parent_source = resolved_file.parent
+        base_name = resolved_file.name.drop (..After_Last ".") . drop (..Last 1)
+        parent_dest = file.parent
+        parent_name = file.name.drop (..After_Last ".") . drop (..Last 1)
+
+        ## Check if all required files exist as then can fail fast
+        check_required = extras.map on_problems=No_Wrap.Value extra->
+            required = extra.starts_with "*" . not
+            if required.not then Nothing else
+                extra_name = base_name + extra
+                source_file = parent_source / extra_name
+                if source_file.exists.not then
+                    Error.throw (File_Error.Not_Found source_file)
+        Error.return_if_error check_required
+
+        ## Copy files locally
+        added = extras.map on_problems=No_Wrap.Value extra->
+            required = extra.starts_with "*" . not
+            extension = if required then extra else extra.drop (..First 1)
+            extra_name = base_name + extension
+            source_file = parent_source / extra_name
+            if source_file.exists.not then Nothing else
+                dest_file = parent_dest / (parent_name + extension)
+                Context.Output.with_enabled <| source_file.copy_to dest_file replace_existing=True
+
+        Panic.with_finalizer action=(action file) <|
+            Context.Output.with_enabled <|
+                file.delete_if_exists
+                added.map f-> if f.is_nothing.not then f.delete_if_exists
