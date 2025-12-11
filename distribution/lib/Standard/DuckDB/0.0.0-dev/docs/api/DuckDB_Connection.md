@@ -36,5 +36,6 @@
     - version self -> Standard.Base.Data.Text.Text
     - write_database self path:Standard.Base.System.File.Generic.Writable_File.Writable_File= schema_only:Standard.Base.Data.Boolean.Boolean= on_existing_file:Standard.Base.System.File.Existing_File_Behavior.Existing_File_Behavior= -> Standard.Base.Any.Any
     - write_file self query:(Standard.Database.SQL_Query.SQL_Query_With_Schema|Standard.Database.SQL_Query.SQL_Query|Standard.Table.Table.Table)= path:Standard.Base.System.File.Generic.Writable_File.Writable_File= format:Standard.DuckDB.DuckDB_Format.DuckDB_Format= on_existing_file:Standard.Base.System.File.Existing_File_Behavior.Existing_File_Behavior= -> Standard.Base.Any.Any
+    - write_spatial_file self query:(Standard.Database.SQL_Query.SQL_Query_With_Schema|Standard.Database.SQL_Query.SQL_Query|Standard.Table.Table.Table)= path:Standard.Base.System.File.Generic.Writable_File.Writable_File= format:Standard.DuckDB.DuckDB_GeoFormat.DuckDB_GeoFormat= on_existing_file:Standard.Base.System.File.Existing_File_Behavior.Existing_File_Behavior= -> Standard.Base.Any.Any
 - schema_black_list -> Standard.Base.Any.Any
 - Standard.Base.Visualization.Table_Viz_Data.Table_Viz_Data.from that:Standard.DuckDB.DuckDB_Connection.DuckDB_Connection -> Standard.Base.Visualization.Table_Viz_Data.Table_Viz_Data
