@@ -65,14 +65,17 @@ export function MS365CredentialsForm(props: CredentialFormProps) {
               }
             >
               {(item) => {
+                // eslint-disable-next-line no-restricted-syntax
                 const key = `ms365CredentialFilesPermission${item.replace(/\./g, '')}` as TextId
                 return getText(key)
               }}
             </Selector>
             <Text variant="body" color="primary">
-              {getText(
-                `ms365CredentialFilesPermission${filesPermission.replace(/\./g, '')}Description` as TextId,
-              )}
+              {(() => {
+                // eslint-disable-next-line no-restricted-syntax
+                const key = `ms365CredentialFilesPermission${filesPermission.replace(/\./g, '')}Description` as TextId
+                return getText(key)
+              })()}
             </Text>
             <Selector
               form={form}
@@ -83,14 +86,17 @@ export function MS365CredentialsForm(props: CredentialFormProps) {
               }
             >
               {(item) => {
+                // eslint-disable-next-line no-restricted-syntax
                 const key = `ms365CredentialSitesPermission${item.replace(/\./g, '')}` as TextId
                 return getText(key)
               }}
             </Selector>
             <Text variant="body" color="primary">
-              {getText(
-                `ms365CredentialSitesPermission${sitesPermission.replace(/\./g, '')}Description` as TextId,
-              )}
+              {(() => {
+                // eslint-disable-next-line no-restricted-syntax
+                const key = `ms365CredentialSitesPermission${sitesPermission.replace(/\./g, '')}Description` as TextId
+                return getText(key)
+              })()}
             </Text>
             <CredentialsFormFooter isCreating={true} canCancel={false} canReset={false} />
           </>
