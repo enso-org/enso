@@ -73,7 +73,8 @@ export function MS365CredentialsForm(props: CredentialFormProps) {
             <Text variant="body" color="primary">
               {(() => {
                 // eslint-disable-next-line no-restricted-syntax
-                const key = `ms365CredentialFilesPermission${filesPermission.replace(/\./g, '')}Description` as TextId
+                const key =
+                  `ms365CredentialFilesPermission${filesPermission.replace(/\./g, '')}Description` as TextId
                 return getText(key)
               })()}
             </Text>
@@ -94,7 +95,8 @@ export function MS365CredentialsForm(props: CredentialFormProps) {
             <Text variant="body" color="primary">
               {(() => {
                 // eslint-disable-next-line no-restricted-syntax
-                const key = `ms365CredentialSitesPermission${sitesPermission.replace(/\./g, '')}Description` as TextId
+                const key =
+                  `ms365CredentialSitesPermission${sitesPermission.replace(/\./g, '')}Description` as TextId
                 return getText(key)
               })()}
             </Text>
