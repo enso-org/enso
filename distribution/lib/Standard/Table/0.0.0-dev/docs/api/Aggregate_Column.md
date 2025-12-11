@@ -18,6 +18,7 @@
     - Minimum column:(Standard.Base.Data.Text.Text|Standard.Base.Data.Numbers.Integer|Standard.Base.Any.Any)= as:Standard.Base.Data.Text.Text=
     - Mode column:(Standard.Base.Data.Text.Text|Standard.Base.Data.Numbers.Integer|Standard.Base.Any.Any)= as:Standard.Base.Data.Text.Text=
     - Percentile percentile:Standard.Base.Data.Numbers.Number= column:(Standard.Base.Data.Text.Text|Standard.Base.Data.Numbers.Integer|Standard.Base.Any.Any)= as:Standard.Base.Data.Text.Text=
+    - SQL function:Standard.Base.Data.Text.Text= arguments:(Standard.Base.Data.Vector.Vector Standard.Base.Any.Any)= as:Standard.Base.Data.Text.Text=
     - Shortest column:(Standard.Base.Data.Text.Text|Standard.Base.Data.Numbers.Integer|Standard.Base.Any.Any)= as:Standard.Base.Data.Text.Text=
     - Standard_Deviation column:(Standard.Base.Data.Text.Text|Standard.Base.Data.Numbers.Integer|Standard.Base.Any.Any)= as:Standard.Base.Data.Text.Text= population:Standard.Base.Data.Boolean.Boolean=
     - Sum column:(Standard.Base.Data.Text.Text|Standard.Base.Data.Numbers.Integer|Standard.Base.Any.Any)= as:Standard.Base.Data.Text.Text=

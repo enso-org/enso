@@ -1,5 +1,6 @@
 package org.enso.table.data.column.builder;
 
+import java.lang.foreign.MemorySegment;
 import java.util.BitSet;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.ColumnBooleanStorage;
@@ -8,18 +9,31 @@ import org.enso.table.data.column.storage.type.BooleanType;
 import org.enso.table.data.column.storage.type.NullType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.error.ValueTypeMismatchException;
-import org.enso.table.util.BitSets;
+import org.enso.table.util.ImmutableBitSet;
 
 /** A builder for boolean columns. */
 final class BoolBuilder implements BuilderForBoolean, BuilderWithRetyping {
   private final BitSet vals;
   private final BitSet validityMap;
-  int size = 0;
+  private int size;
 
   // ** Creates a new builder for boolean columns. Should be built via Builder.getForBoolean. */
   BoolBuilder(int capacity) {
-    vals = new BitSet(capacity);
-    validityMap = new BitSet(capacity);
+    this(new BitSet(capacity), new BitSet(capacity), 0);
+  }
+
+  private BoolBuilder(BitSet vals, BitSet validityMap, int size) {
+    this.vals = vals;
+    this.validityMap = validityMap;
+    this.size = size;
+  }
+
+  static BoolBuilder fromAddress(int sizeInBits, long data, long validity) {
+    var bytesSize = (sizeInBits + 7) / 8;
+    var vals = BitSet.valueOf(MemorySegment.ofAddress(data).reinterpret(bytesSize).asByteBuffer());
+    var validityMap =
+        BitSet.valueOf(MemorySegment.ofAddress(validity).reinterpret(bytesSize).asByteBuffer());
+    return new BoolBuilder(vals, validityMap, sizeInBits);
   }
 
   @Override
@@ -72,7 +86,7 @@ final class BoolBuilder implements BuilderForBoolean, BuilderWithRetyping {
     if (storage instanceof BoolStorage boolStorage) {
       // We know this is valid for a BoolStorage.
       int toCopy = (int) boolStorage.getSize();
-      BitSets.copy(boolStorage.getValues(), vals, size, toCopy);
+      boolStorage.getValues().copyTo(vals, size, toCopy);
       boolStorage.getValidityMap().copyTo(validityMap, size, toCopy);
       size += toCopy;
     } else if (storage instanceof ColumnBooleanStorage columnBooleanStorage) {
@@ -92,7 +106,13 @@ final class BoolBuilder implements BuilderForBoolean, BuilderWithRetyping {
 
   @Override
   public ColumnStorage<Boolean> seal() {
-    return new BoolStorage(vals, validityMap, size, false);
+    return seal(null);
+  }
+
+  final ColumnStorage<Boolean> seal(ColumnStorage<?> other) {
+    var vals = new ImmutableBitSet(this.vals, size);
+    var validityMap = new ImmutableBitSet(this.validityMap, size);
+    return new BoolStorage(vals, validityMap, size, false, other);
   }
 
   @Override

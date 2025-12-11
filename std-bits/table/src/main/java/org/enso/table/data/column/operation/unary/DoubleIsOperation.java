@@ -1,6 +1,5 @@
 package org.enso.table.data.column.operation.unary;
 
-import java.util.BitSet;
 import java.util.function.DoublePredicate;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.operation.StorageIterators;
@@ -14,6 +13,7 @@ import org.enso.table.data.column.storage.type.BigIntegerType;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.table.problems.MapOperationProblemAggregator;
+import org.enso.table.util.ImmutableBitSet;
 
 public class DoubleIsOperation implements UnaryOperation {
   public static final String FINITE_NAME = "is_finite";
@@ -62,8 +62,13 @@ public class DoubleIsOperation implements UnaryOperation {
     // For Finite
     if (isAllFinite(storage.getType())) {
       if (storage instanceof ColumnStorageWithValidityMap withNothingMap) {
+        var size = (int) storage.getSize();
         return new BoolStorage(
-            new BitSet(), withNothingMap.getValidityMap(), (int) storage.getSize(), finiteValue);
+            ImmutableBitSet.allFalse(size),
+            withNothingMap.getValidityMap(),
+            size,
+            finiteValue,
+            null);
       }
 
       return StorageIterators.mapOverStorage(

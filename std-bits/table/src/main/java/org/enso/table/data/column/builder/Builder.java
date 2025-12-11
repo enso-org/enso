@@ -13,6 +13,7 @@ import org.enso.table.data.column.operation.masks.MaskOperation;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.PreciseTypeOptions;
+import org.enso.table.data.column.storage.TypedStorage;
 import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.enso.table.data.column.storage.type.BigDecimalType;
 import org.enso.table.data.column.storage.type.BigIntegerType;
@@ -100,6 +101,11 @@ public interface Builder {
    */
   @SuppressWarnings("unchecked")
   static <T> ColumnStorage<T> makeLocal(ColumnStorage<T> storage) {
+    if (storage.getSize() == 0) {
+      var proxyType = storage.getType();
+      var localType = StorageType.fromTypeCharAndSize(proxyType.typeChar(), proxyType.size());
+      return (ColumnStorage<T>) new TypedStorage(localType, new Object[0]);
+    }
     var data = storage.addressOfData();
     if (data != 0) {
       var size = Math.toIntExact(storage.getSize());
@@ -108,12 +114,23 @@ public interface Builder {
       var localType = StorageType.fromTypeCharAndSize(proxyType.typeChar(), proxyType.size());
       var localStorage =
           switch (localType) {
+            case BooleanType type -> BoolBuilder.fromAddress(size, data, validity).seal(storage);
             case IntegerType type ->
                 LongBuilder.fromAddress(size, data, validity, type).seal(storage, type);
+            case FloatType type ->
+                DoubleBuilder.fromAddress(size, data, validity, type).seal(storage, type);
+            case TextType type ->
+                StringBuilder.fromAddress(size, data, validity, type).seal(storage, type);
             default -> storage;
           };
       assert assertSameStorages(storage, localStorage);
       return (ColumnStorage<T>) localStorage;
+    } else {
+      if (BuilderUtil.LOG.isTraceEnabled()) {
+        var t = storage.getType();
+        BuilderUtil.LOG.trace(
+            "makeLocal unsuccessful for {}:{} size {}", t.typeChar(), t.size(), storage.getSize());
+      }
     }
     return storage;
   }

@@ -69,7 +69,7 @@ case class LibraryResolver(
           Left(
             LibraryResolutionError(
               s"The library `$libraryName` is not defined within " +
-              s"the edition."
+              s"the edition $edition."
             )
           )
       }

@@ -140,7 +140,6 @@ ENGINE_DIST_SOURCES = STDLIB_SOURCES + SBT_PROJECT_FILES + [
     "lib/scala/distribution-manager/src/**",
     "lib/scala/downloader/src/**",
     "lib/scala/edition-updater/src/**",
-    "lib/scala/edition-uploader/src/**",
     "lib/scala/editions/src/**",
     "lib/scala/filewatcher/src/**",
     "lib/scala/json-rpc-server/src/**",
