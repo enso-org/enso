@@ -859,7 +859,7 @@ private _with_additional_files resolved_file action =
         check_required = extras.map on_problems=No_Wrap.Value extra->
             required = extra.starts_with "*" . not
             if required.not then Nothing else
-                extra_name = if required then base_name + extra else base_name + extra.drop (..First 1)
+                extra_name = base_name + extra
                 source_file = parent_source / extra_name
                 if source_file.exists.not then
                     Error.throw (File_Error.Not_Found source_file)
