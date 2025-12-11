@@ -8,6 +8,7 @@ import { Checkbox } from '#/components/Checkbox'
 import { Form } from '#/components/Form'
 import { Input } from '#/components/Inputs/Input'
 import { Selector } from '#/components/Inputs/Selector/Selector'
+import { Text } from '#/components/Text'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import { useText } from '$/providers/react'
 import { CredentialsFormFooter } from './CredentialsFormFooter'
@@ -61,6 +62,11 @@ export function MS365CredentialsForm(props: CredentialFormProps) {
               return getText(key)
             }}
           </Selector>
+          <Text variant="body" color="primary">
+            {getText(
+              `ms365CredentialFilesPermission${form.watch('filesPermission').replace(/\./g, '')}Description` as any,
+            )}
+          </Text>
           <Selector
             form={form}
             name="sitesPermission"
@@ -72,6 +78,11 @@ export function MS365CredentialsForm(props: CredentialFormProps) {
               return getText(key)
             }}
           </Selector>
+          <Text variant="body" color="primary">
+            {getText(
+              `ms365CredentialSitesPermission${form.watch('sitesPermission').replace(/\./g, '')}Description` as any,
+            )}
+          </Text>
           <CredentialsFormFooter isCreating={true} canCancel={false} canReset={false} />
         </>
       )}
