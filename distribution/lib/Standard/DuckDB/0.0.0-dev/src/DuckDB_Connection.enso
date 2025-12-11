@@ -843,7 +843,7 @@ private _with_additional_files resolved_file action =
             possible_extension = resolved_file.path.drop (..Before_Last ".")
             extras = _additional_files possible_extension
             if extras==[] then Data_Link_Helpers.as_file resolved_file action else
-                Error.throw (Illegal_Argument.Error "Cannot use a URI wit a file type that requires additional files. Please download all related files first.")
+                Error.throw (Illegal_Argument.Error "Cannot use a URI with a file type that requires additional files. Please download all related files first.")
         _ -> _additional_files resolved_file.extension
 
     if extras==[] then Data_Link_Helpers.as_file resolved_file action else

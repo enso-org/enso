@@ -124,7 +124,7 @@ type OneDrive_File
        aliases: [import, load, open]
        group: Standard.Base.Input
        icon: data_input
-       ---78
+       ---
        Read a file using the specified file format.
 
        ## Arguments
