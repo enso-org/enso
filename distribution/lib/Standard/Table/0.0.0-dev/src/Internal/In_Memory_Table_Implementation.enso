@@ -784,6 +784,10 @@ type In_Memory_Table_Implementation
         _ = [this_table, column, as]
         Unimplemented.throw "Spatial functions are not currently implemented for in-memory tables."
 
+    spatial_extent (this_table : Table & In_Memory_Table) (column : Column) (as : Text) =
+        _ = [this_table, column, as]
+        Unimplemented.throw "Spatial functions are not currently implemented for in-memory tables."
+
     spatial_perimeter (this_table : Table & In_Memory_Table) (column : Column) (as : Text) =
         _ = [this_table, column, as]
         Unimplemented.throw "Spatial functions are not currently implemented for in-memory tables."
@@ -808,13 +812,22 @@ type In_Memory_Table_Implementation
         _ = [this_table, columns, as]
         Unimplemented.throw "Spatial functions are not currently implemented for in-memory tables."
 
-    spatial_to_geojson (this_table : Table & In_Memory_Table) (columns : Vector Column) (as : Text) =
-        _ = [this_table, columns, as]
+    spatial_to_geojson (this_table : Table & In_Memory_Table) (column : Column) (as : Text) =
+        _ = [this_table, column, as]
         Unimplemented.throw "Spatial functions are not currently implemented for in-memory tables."
 
-    spatial_to_wkt (this_table : Table & In_Memory_Table) (columns : Vector Column) (as : Text) =
-        _ = [this_table, columns, as]
+    spatial_from_geojson (this_table : Table & In_Memory_Table) (column : Column) (as : Text) =
+        _ = [this_table, column, as]
         Unimplemented.throw "Spatial functions are not currently implemented for in-memory tables."
+
+    spatial_to_wkt (this_table : Table & In_Memory_Table) (column : Column) (as : Text) =
+        _ = [this_table, column, as]
+        Unimplemented.throw "Spatial functions are not currently implemented for in-memory tables."
+
+    spatial_from_wkt (this_table : Table & In_Memory_Table) (column : Column) (as : Text) =
+        _ = [this_table, column, as]
+        Unimplemented.throw "Spatial functions are not currently implemented for in-memory tables."
+
 ## ---
    private: true
    ---

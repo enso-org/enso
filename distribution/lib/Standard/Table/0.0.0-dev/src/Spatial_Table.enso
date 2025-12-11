@@ -120,6 +120,22 @@ type Spatial_Table
        group: Standard.Base.Calculations
        icon: spatial
        ---
+       Gets the bounding box surrounding each spatial object in the spatial column.
+
+       ## Arguments
+        - `column`: The column, expression, or name/index of the column containing spatial objects.
+
+       ## Returns
+       A new table with the existing columns and a new column containing the bounding boxes.
+    @column _spatial_widget single_choice=True
+    st_extent self (column : Column | Expression | Text | Integer = Missing_Argument.throw "column") as:Text="" =
+        resolved = _resolve_column column self.parent
+        (self:Table).implementation.spatial_extent self.parent.underlying resolved as
+
+    ## ---
+       group: Standard.Base.Calculations
+       icon: spatial
+       ---
        Gets the perimeter of each spatial object in the spatial column in meters.
        Note this assumes that the spatial objects are in WGS84 coordinate system (EPSG:4326).
 
