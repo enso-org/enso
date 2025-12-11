@@ -31,6 +31,8 @@
 - ["Delete and Connect Around" option in node's menu][14403]
 - [GeoMap visualization is now working without need of Mapbox Token in
   environment][14429]
+- [Fix non-visible button and wrong layout in GeoMap Visualization][14443]
+- [Maximum height of the file browser is slightly reduced][14467]
 
 [13685]: https://github.com/enso-org/enso/pull/13685
 [13658]: https://github.com/enso-org/enso/pull/13658
@@ -56,6 +58,8 @@
 [14388]: https://github.com/enso-org/enso/pull/14388
 [14403]: https://github.com/enso-org/enso/pull/14403
 [14429]: https://github.com/enso-org/enso/pull/14429
+[14443]: https://github.com/enso-org/enso/pull/14443
+[14467]: https://github.com/enso-org/enso/pull/14467
 
 #### Enso Standard Library
 
@@ -86,7 +90,10 @@
 - [Implement `Text_Column.text_mid` for in-memory and database backends.][14420]
 - [Initial file writing from DuckDB.][14421]
 - [Parquet file reading and writing, DuckDB formats.][14427]
+- [Add Text_Column.index_of][14428]
 - [Trigonometry and other maths function on Column.][14433]
+- [Support for reading JSON lines files.][14439]
+- [Add Custom SQL to in database aggreates.][14472]
 
 [13769]: https://github.com/enso-org/enso/pull/13769
 [14026]: https://github.com/enso-org/enso/pull/14026
@@ -114,7 +121,10 @@
 [14420]: https://github.com/enso-org/enso/pull/14420
 [14421]: https://github.com/enso-org/enso/pull/14421
 [14427]: https://github.com/enso-org/enso/pull/14427
+[14428]: https://github.com/enso-org/enso/pull/14428
 [14433]: https://github.com/enso-org/enso/pull/14433
+[14439]: https://github.com/enso-org/enso/pull/14439
+[14472]: https://github.com/enso-org/enso/pull/14472
 
 #### Enso Language & Runtime
 
