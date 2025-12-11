@@ -769,7 +769,7 @@ type In_Memory_Table_Implementation
         Unimplemented.throw "Spatial functions are not currently implemented for in-memory tables."
 
     spatial_geometry_type (this_table : Table & In_Memory_Table) (column : Column) (as : Text) =
-        _ = [this_table, longitude, latitude, as]
+        _ = [this_table, column, as]
         Unimplemented.throw "Spatial functions are not currently implemented for in-memory tables."
 
     spatial_longitude (this_table : Table & In_Memory_Table) (column : Column) (value : Lat_Long_Type) (as : Text) =
