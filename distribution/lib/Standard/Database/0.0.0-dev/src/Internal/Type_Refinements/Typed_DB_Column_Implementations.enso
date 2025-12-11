@@ -134,9 +134,9 @@ type DB_Date_Column_Implementation
     first_of_month column =
         Value_Type.expect_date column <|
             new_name = (naming_helper column).function_name "first_of_month" [column]
-            make_unary_op column "FIRST_OF_MONTH" new_name
+            make_unary_op column "first_of_month" new_name
 
     end_of_month column =
         Value_Type.expect_date column <|
             new_name = (naming_helper column).function_name "end_of_month" [column]
-            make_unary_op column "END_OF_MONTH" new_name
+            make_unary_op column "end_of_month" new_name
