@@ -51,7 +51,7 @@ collect_benches = Bench.build builder->
             group_builder.specify "hello_world_startup" (data.bench_hello in_jvm)
             group_builder.specify "import_world_startup" (data.bench_import in_jvm)
             
-    once = Bench.options . set_warmup (Bench.phase_conf 1 3) . set_measure (Bench.phase_conf 1 1)
+    once = Bench.options . set_warmup (Bench.phase_conf 1 1) . set_measure (Bench.phase_conf 1 1)
     builder.group "Native_Image_Size" once \group_builder->
         group_builder.specify "enso" <|
             # turn size into milliseconds
