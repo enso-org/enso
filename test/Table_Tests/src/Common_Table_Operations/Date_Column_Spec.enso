@@ -19,7 +19,7 @@ type Lazy_Ref
 main filter=Nothing = run_default_backend add_specs filter
 
 add_specs suite_builder setup =
-    if setup.is_feature_supported Feature.Column_Operations then (add_date_columns_specs suite_builder setup)
+    if setup.is_feature_supported Feature.Column_Operations && setup.flagged ..Date_Time then (add_date_columns_specs suite_builder setup)
 
 add_date_columns_specs suite_builder setup =
     prefix = setup.prefix
