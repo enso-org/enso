@@ -32,7 +32,7 @@
 - [GeoMap visualization is now working without need of Mapbox Token in
   environment][14429]
 - [Fix non-visible button and wrong layout in GeoMap Visualization][14443]
-- [Added addditonal file and site options for MS365 credentials][14477]
+- [Added additonal file and site options for MS365 credentials][14477]
 - [Maximum height of the file browser is slightly reduced][14467]
 
 [13685]: https://github.com/enso-org/enso/pull/13685
