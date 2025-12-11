@@ -8,6 +8,7 @@ from Standard.Base.System.File_Format import File_Format_SPI
 from Standard.Base.Widget_Helpers import make_any_selector, make_format_chooser, make_separator_selector
 
 import project.Expression.Expression
+import project.In_Memory_Table.In_Memory_Table
 import project.Internal.Parse_Values_Helper
 import project.Spatial_Table.Spatial_Join_Condition
 import project.Spatial_Table.Spatial_Table
@@ -58,7 +59,11 @@ make_aggregate_column_selector table display:Display=..Always =
     maximum = Option "..Maximum" "..Maximum" [column_widget]
     minimum = Option "..Minimum" "..Minimum" [column_widget]
 
-    Single_Choice display=display values=[count, sum, average, maximum, minimum, count_distinct, first, last, count_not_nothing, count_nothing, count_not_empty, count_empty, concatenate, shortest, longest, median, percentile, mode, standard_deviation]
+    ## SQL Aggregation Function
+    sql_function = if table.underlying.is_a In_Memory_Table then [] else
+        [Option "<SQL Function>" "..SQL" [["arguments", col_list_selector]]]
+
+    Single_Choice display=display values=[count, sum, average, maximum, minimum, count_distinct, first, last, count_not_nothing, count_nothing, count_not_empty, count_empty, concatenate, shortest, longest, median, percentile, mode, standard_deviation]+sql_function
 
 ## ---
    private: true

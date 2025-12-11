@@ -8,7 +8,6 @@ import Standard.Base.Runtime.Ref.Ref
 
 import Standard.Table.Internal.Problem_Builder.Problem_Builder
 from Standard.Table import Aggregate_Column, Column, Table, Value_Type
-from Standard.Table.Aggregate_Column.Aggregate_Column import all
 from Standard.Table.Errors import Inexact_Type_Coercion
 
 import Standard.Database.DB_Column.DB_Column
