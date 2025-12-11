@@ -759,6 +759,10 @@ type In_Memory_Table_Implementation
         data = this_table.columns.map c->("[" + c.name.pretty + ", " + c.to_vector.pretty + "]") . join ", "
         "Table.new [" + data + "]"
 
+    spatial_columns (this_table : Table & In_Memory_Table) =
+        _ = this_table
+        []
+
 ## ---
    private: true
    ---

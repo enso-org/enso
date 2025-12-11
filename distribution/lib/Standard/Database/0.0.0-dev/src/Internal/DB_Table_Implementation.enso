@@ -41,6 +41,7 @@ import Standard.Table.Internal.Widget_Helpers
 import Standard.Table.Prefix_Name.Prefix_Name
 import Standard.Table.Row_Limit.Row_Limit
 import Standard.Table.Rows_To_Read.Rows_To_Read
+import Standard.Table.Spatial_Table.Lat_Long_Type
 import Standard.Table.SQL_Function.SQL_Function
 import Standard.Table.Value_Type.By_Type
 from Standard.Table import Aggregate_Column, Auto, Blank_Selector, Column, Column_Ref, Data_Formatter, Fill_With, Generate_Rows_Range, Join_Condition, Join_Kind, Match_Columns, Position, Previous_Value, Set_Mode, Simple_Expression, Sort_Column, Table, Value_Type
@@ -760,6 +761,45 @@ type DB_Table_Implementation
     generate_rows (this_table : Table & DB_Table) over:Generate_Rows_Range as:Text on_problems:Problem_Behavior =
         _ = [this_table, over, as, on_problems]
         Error.throw (Unsupported_Database_Operation.Error "generate_rows")
+
+    spatial_columns (this_table : Table & DB_Table) = if this_table.connection.dialect.is_feature_supported ..Spatial . not then [] else
+        this_table.columns.filter c-> case c.value_type of
+            Value_Type.Unsupported_Data_Type type_name _ ->
+                this_table.connection.dialect.spatial_types.contains type_name
+            _ -> False
+
+    spatial_point (this_table : Table & DB_Table) (longitude : Column) (latitude : Column) (as : Text) =
+        Feature.Spatial.if_supported_else_throw this_table.connection.dialect "st_point" <|
+            new_column = _resolve_sql_function this_table (SQL_Function.SQL "ST_Point" [longitude, latitude])
+            new_name = if as!="" then as else this_table.column_naming_helper.function_name "st_point" [longitude, latitude]
+            this_table.set new_column as=new_name
+
+    spatial_longitude (this_table : Table & DB_Table) (column : Column) (value : Lat_Long_Type) (as : Text) =
+        Feature.Spatial.if_supported_else_throw this_table.connection.dialect "st_longitude" <|
+            function_name = case value of
+                Lat_Long_Type.Default -> "ST_X"
+                Lat_Long_Type.Minimum -> "ST_XMin"
+                Lat_Long_Type.Maximum -> "ST_XMax"
+            new_column = _resolve_sql_function this_table (SQL_Function.SQL function_name [column])
+            new_name = if as!="" then as else this_table.column_naming_helper.function_name "st_longitude" [column]
+            this_table.set new_column as=new_name
+            this_table.set new_column as=new_name
+
+    spatial_latitude (this_table : Table & DB_Table) (column : Column) (value : Lat_Long_Type) (as : Text) =
+        Feature.Spatial.if_supported_else_throw this_table.connection.dialect "st_latitude" <|
+            function_name = case value of
+                Lat_Long_Type.Default -> "ST_Y"
+                Lat_Long_Type.Minimum -> "ST_YMin"
+                Lat_Long_Type.Maximum -> "ST_YMax"
+            new_column = _resolve_sql_function this_table (SQL_Function.SQL function_name [column])
+            new_name = if as!="" then as else this_table.column_naming_helper.function_name "st_latitude" [column]
+            this_table.set new_column as=new_name
+
+    spatial_centroid (this_table : Table & DB_Table) (column : Column) (as : Text) =
+        Feature.Spatial.if_supported_else_throw this_table.connection.dialect "st_centroid" <|
+            new_column = _resolve_sql_function this_table (SQL_Function.SQL "ST_Centroid" [column])
+            new_name = if as!="" then as else this_table.column_naming_helper.function_name "st_centroid" [column]
+            this_table.set new_column as=new_name
 
 ## ---
    private: true

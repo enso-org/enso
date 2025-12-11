@@ -381,6 +381,14 @@ type DuckDB_Dialect
     ensure_query_has_no_holes self jdbc:JDBC_Connection raw_sql:Text =
         jdbc.ensure_query_has_no_holes raw_sql
 
+    ## ---
+       private: true
+       ---
+    spatial_types : Hashset Text
+    spatial_types self =
+        _ = self
+        Hashset.from_vector ["GEOMETRY"]
+
 ## ---
    private: true
    ---
