@@ -89,6 +89,10 @@ const NUMERIC_COLUMN_METHODS = {
   selfType: NUMERIC_COLUMN_TYPE,
   name: (name: string) => !EXCLUDED_COLUMN_METHODS.has(name),
 }
+const TEXT_COLUMN_METHODS = {
+  selfType: TEXT_COLUMN_TYPE,
+  name: (name: string) => !EXCLUDED_COLUMN_METHODS.has(name),
+}
 const DATE_COLUMN_METHODS = {
   selfType: DATE_COLUMN_TYPE,
   name: (name: string) => !EXCLUDED_COLUMN_METHODS.has(name),
