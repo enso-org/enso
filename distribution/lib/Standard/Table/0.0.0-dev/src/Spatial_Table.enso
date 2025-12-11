@@ -18,6 +18,7 @@ type Spatial_Table
     ## ---
        group: Standard.Base.Metadata
        icon: spatial
+       private: true
        ---
        Get the columns in the table which contain spatial data.
     spatial_columns self =
@@ -29,6 +30,7 @@ type Spatial_Table
        icon: spatial
        ---
        Creates a new column containing points from longitude and latitude columns.
+       Note: Enso assumes that the points are in WGS84 coordinate system (EPSG:4326).
 
        ## Arguments
         - `longitude`: The column, expression, or name/index of the column containing longitude values
@@ -42,6 +44,23 @@ type Spatial_Table
         lon_resolved = _resolve_column longitude self.parent
         lat_resolved = _resolve_column latitude self.parent
         (self:Table).implementation.spatial_point self.parent.underlying lon_resolved lat_resolved as
+
+    ## ---
+       aliases: [create_points]
+       group: Standard.Base.Calculations
+       icon: spatial
+       ---
+       Gets the geometry type of each spatial object in the spatial column.
+
+       ## Arguments
+        - `column`: The column, expression, or name/index of the column containing spatial objects.
+
+       ## Returns
+       A new table with the existing columns and the new geometry type column as text.
+    @column _spatial_widget single_choice=True
+    st_geometry_type self (column : Column | Expression | Text | Integer = Missing_Argument.throw "column") as:Text="" =
+        resolved = _resolve_column column self.parent
+        (self:Table).implementation.spatial_geometry_type self.parent.underlying resolved as
 
     ## ---
        aliases: [st_x]
@@ -96,6 +115,120 @@ type Spatial_Table
     st_centroid self (column : Column | Expression | Text | Integer = Missing_Argument.throw "column") as:Text="" =
         resolved = _resolve_column column self.parent
         (self:Table).implementation.spatial_centroid self.parent.underlying resolved as
+
+    ## ---
+       group: Standard.Base.Calculations
+       icon: spatial
+       ---
+       Gets the perimeter of each spatial object in the spatial column in meters.
+       Note this assumes that the spatial objects are in WGS84 coordinate system (EPSG:4326).
+
+       ## Arguments
+        - `column`: The column, expression, or name/index of the column containing spatial objects.
+
+       ## Returns
+       A new table with the existing columns and a new column containing the perimeter.
+    @column _spatial_widget single_choice=True
+    st_perimeter self (column : Column | Expression | Text | Integer = Missing_Argument.throw "column") as:Text="" =
+        resolved = _resolve_column column self.parent
+        (self:Table).implementation.spatial_perimeter self.parent.underlying resolved as
+
+    ## ---
+       group: Standard.Base.Calculations
+       icon: spatial
+       ---
+       Gets the area of each spatial object in the spatial column in meters².
+       Note this assumes that the spatial objects are in WGS84 coordinate system (EPSG:4326).
+
+       ## Arguments
+        - `column`: The column, expression, or name/index of the column containing spatial objects.
+
+       ## Returns
+       A new table with the existing columns and a new column containing the area.
+    @column _spatial_widget single_choice=True
+    st_area self (column : Column | Expression | Text | Integer = Missing_Argument.throw "column") as:Text="" =
+        resolved = _resolve_column column self.parent
+        (self:Table).implementation.spatial_area self.parent.underlying resolved as
+
+    ## ---
+       group: Standard.Base.Calculations
+       icon: spatial
+       ---
+       Gets the distance between two spatial objects on each row.
+       Note this will be the distance in the coordinate system of the spatial objects, i.e. for
+         WGS84 coordinates this will be in degrees. For distance in metres use st_length.
+
+       ## Arguments
+        - `from_column`: The column, expression, or name/index of the column containing the starting spatial objects.
+        - `end_column`: The column, expression, or name/index of the column containing the ending spatial objects.
+
+       ## Returns
+       A new table with the existing columns and a new column containing the distance.
+    @from_column _spatial_widget single_choice=True
+    @to_column _spatial_widget single_choice=True
+    st_distance self (from_column : Column | Expression | Text | Integer = Missing_Argument.throw "from_column") (to_column : Column | Expression | Text | Integer = Missing_Argument.throw "to_column") as:Text="" =
+        from_resolved = _resolve_column from_column self.parent
+        to_resolved = _resolve_column to_column self.parent
+        (self:Table).implementation.spatial_distance self.parent.underlying from_resolved to_resolved as
+
+    ## ---
+       aliases: [st_distance]
+       group: Standard.Base.Calculations
+       icon: spatial
+       ---
+       Gets the distance in meters between two spatial objects on each row.
+       Note this assumes that the spatial objects are in WGS84 coordinate system (EPSG:4326).
+
+       ## Arguments
+        - `from_column`: The column, expression, or name/index of the column containing the starting spatial objects.
+        - `end_column`: The column, expression, or name/index of the column containing the ending spatial objects.
+
+       ## Returns
+       A new table with the existing columns and a new column containing the distance.
+    @from_column _spatial_widget single_choice=True
+    @to_column _spatial_widget single_choice=True
+    st_length self (from_column : Column | Expression | Text | Integer = Missing_Argument.throw "from_column") (to_column : Column | Expression | Text | Integer = Missing_Argument.throw "to_column") as:Text="" =
+        from_resolved = _resolve_column from_column self.parent
+        to_resolved = _resolve_column to_column self.parent
+        (self:Table).implementation.spatial_length self.parent.underlying from_resolved to_resolved as
+
+    ## ---
+       group: Standard.Base.Calculations
+       icon: spatial
+       ---
+       Gets the intersection of multiple spatial objects in the specified
+       columns on each row.
+
+       ## Arguments
+        - `columns`: A Vector of columns, expressions, or names/indexes of the
+          columns containing spatial objects to union.
+
+       ## Returns
+       A new table with the existing columns and a new column containing the
+       intersected spatial object.
+    @column _spatial_widget single_choice=False
+    st_intersection self (columns : Vector (Column | Expression | Text | Integer) = Missing_Argument.throw "columns") as:Text="" =
+        resolved_columns = columns.map c-> _resolve_column c self.parent
+        (self:Table).implementation.spatial_intersection self.parent.underlying resolved_columns as
+
+    ## ---
+       group: Standard.Base.Calculations
+       icon: spatial
+       ---
+       Gets the union of multiple spatial objects in the specified columns on
+       each row.
+
+       ## Arguments
+        - `columns`: A Vector of columns, expressions, or names/indexes of the
+          columns containing spatial objects to union.
+
+       ## Returns
+       A new table with the existing columns and a new column containing the
+       unioned spatial object.
+    @column _spatial_widget single_choice=False
+    st_union self (columns : Vector (Column | Expression | Text | Integer) = Missing_Argument.throw "columns") as:Text="" =
+        resolved_columns = columns.map c-> _resolve_column c self.parent
+        (self:Table).implementation.spatial_union self.parent.underlying resolved_columns as
 
 type Lat_Long_Type
     Default
