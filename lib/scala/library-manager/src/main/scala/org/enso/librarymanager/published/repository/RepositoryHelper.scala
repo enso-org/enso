@@ -30,7 +30,7 @@ object RepositoryHelper {
     /** Creates a [[URIBuilder]] that points to the directory in the repository
       * corresponding to the given library.
       */
-    def resolveLibraryRoot(name: LibraryName, version: SemVer): URIBuilder =
+    private def resolveLibraryRoot(name: LibraryName, version: SemVer): URIBuilder =
       URIBuilder
         .fromUri(repository.url)
         .addPathSegment(name.namespace)
