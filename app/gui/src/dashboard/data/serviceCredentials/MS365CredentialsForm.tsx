@@ -49,13 +49,15 @@ export function MS365CredentialsForm(props: CredentialFormProps) {
             form={form}
             name="filesPermission"
             label={getText('ms365CredentialFilesPermission')}
-            items={[
-              'Files.ReadWrite.All',
-              'Files.Read.All',
-              'Files.ReadWrite',
-              'Files.Read',
-              'NoAccess',
-            ] as const}
+            items={
+              [
+                'Files.ReadWrite.All',
+                'Files.Read.All',
+                'Files.ReadWrite',
+                'Files.Read',
+                'NoAccess',
+              ] as const
+            }
           >
             {(item) => {
               const key = `ms365CredentialFilesPermission${item.replace(/\./g, '')}` as any
@@ -71,7 +73,9 @@ export function MS365CredentialsForm(props: CredentialFormProps) {
             form={form}
             name="sitesPermission"
             label={getText('ms365CredentialSitesPermission')}
-            items={['Sites.Manage.All', 'Sites.ReadWrite.All', 'Sites.Read.All', 'NoAccess'] as const}
+            items={
+              ['Sites.Manage.All', 'Sites.ReadWrite.All', 'Sites.Read.All', 'NoAccess'] as const
+            }
           >
             {(item) => {
               const key = `ms365CredentialSitesPermission${item.replace(/\./g, '')}` as any

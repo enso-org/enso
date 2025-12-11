@@ -20,7 +20,12 @@ export const FORM_SCHEMA = z.object({
     'Files.Read',
     'NoAccess',
   ]),
-  sitesPermission: z.enum(['Sites.Read.All', 'Sites.ReadWrite.All', 'Sites.Manage.All', 'NoAccess']),
+  sitesPermission: z.enum([
+    'Sites.Read.All',
+    'Sites.ReadWrite.All',
+    'Sites.Manage.All',
+    'NoAccess',
+  ]),
 })
 
 /**
