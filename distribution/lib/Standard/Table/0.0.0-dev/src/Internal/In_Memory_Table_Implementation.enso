@@ -808,6 +808,13 @@ type In_Memory_Table_Implementation
         _ = [this_table, columns, as]
         Unimplemented.throw "Spatial functions are not currently implemented for in-memory tables."
 
+    spatial_to_geojson (this_table : Table & In_Memory_Table) (columns : Vector Column) (as : Text) =
+        _ = [this_table, columns, as]
+        Unimplemented.throw "Spatial functions are not currently implemented for in-memory tables."
+
+    spatial_to_wkt (this_table : Table & In_Memory_Table) (columns : Vector Column) (as : Text) =
+        _ = [this_table, columns, as]
+        Unimplemented.throw "Spatial functions are not currently implemented for in-memory tables."
 ## ---
    private: true
    ---

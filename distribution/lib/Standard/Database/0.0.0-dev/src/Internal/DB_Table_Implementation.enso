@@ -769,19 +769,19 @@ type DB_Table_Implementation
             _ -> False
 
     spatial_point (this_table : Table & DB_Table) (longitude : Column) (latitude : Column) (as : Text) =
-        Feature.Spatial.if_supported_else_throw this_table.connection.dialect "st_point" <|
+        Feature.Spatial.if_supported_else_throw this_table.connection.dialect "st_point" <| Value_Type.expect_numeric longitude <| Value_Type.expect_numeric latitude <|
             new_column = _resolve_sql_function this_table (SQL_Function.SQL "ST_Point" [longitude, latitude])
             new_name = if as!="" then as else this_table.column_naming_helper.function_name "st_point" [longitude, latitude]
             this_table.set new_column as=new_name
 
     spatial_geometry_type (this_table : Table & DB_Table) (column : Column) (as : Text) =
-        Feature.Spatial.if_supported_else_throw this_table.connection.dialect "st_geometry_type" <|
+        Feature.Spatial.if_supported_else_throw this_table.connection.dialect "st_geometry_type" <| expect_spatial_type column this_table.connection.dialect <|
             new_column = _resolve_sql_function this_table (SQL_Function.SQL "ST_GeometryType" [column])
             new_name = if as!="" then as else this_table.column_naming_helper.function_name "st_geometry_type" [column]
             this_table.set new_column as=new_name
 
     spatial_longitude (this_table : Table & DB_Table) (column : Column) (value : Lat_Long_Type) (as : Text) =
-        Feature.Spatial.if_supported_else_throw this_table.connection.dialect "st_longitude" <|
+        Feature.Spatial.if_supported_else_throw this_table.connection.dialect "st_longitude" <| expect_spatial_type column this_table.connection.dialect <|
             used_column = case value of
                 Lat_Long_Type.Default -> _resolve_sql_function this_table (SQL_Function.SQL "ST_Centroid" [column])
                 _ -> column
@@ -794,7 +794,7 @@ type DB_Table_Implementation
             this_table.set new_column as=new_name
 
     spatial_latitude (this_table : Table & DB_Table) (column : Column) (value : Lat_Long_Type) (as : Text) =
-        Feature.Spatial.if_supported_else_throw this_table.connection.dialect "st_latitude" <|
+        Feature.Spatial.if_supported_else_throw this_table.connection.dialect "st_latitude" <| expect_spatial_type column this_table.connection.dialect <|
             used_column = case value of
                 Lat_Long_Type.Default -> _resolve_sql_function this_table (SQL_Function.SQL "ST_Centroid" [column])
                 _ -> column
@@ -807,25 +807,25 @@ type DB_Table_Implementation
             this_table.set new_column as=new_name
 
     spatial_centroid (this_table : Table & DB_Table) (column : Column) (as : Text) =
-        Feature.Spatial.if_supported_else_throw this_table.connection.dialect "st_centroid" <|
+        Feature.Spatial.if_supported_else_throw this_table.connection.dialect "st_centroid" <| expect_spatial_type column this_table.connection.dialect <|
             new_column = _resolve_sql_function this_table (SQL_Function.SQL "ST_Centroid" [column])
             new_name = if as!="" then as else this_table.column_naming_helper.function_name "st_centroid" [column]
             this_table.set new_column as=new_name
 
     spatial_perimeter (this_table : Table & DB_Table) (column : Column) (as : Text) =
-        Feature.Spatial.if_supported_else_throw this_table.connection.dialect "st_perimeter" <|
+        Feature.Spatial.if_supported_else_throw this_table.connection.dialect "st_perimeter" <| expect_spatial_type column this_table.connection.dialect <|
             new_column = _resolve_sql_function this_table (SQL_Function.SQL "ST_Perimeter_Spheroid" [column])
             new_name = if as!="" then as else this_table.column_naming_helper.function_name "st_perimeter" [column]
             this_table.set new_column as=new_name
 
     spatial_area (this_table : Table & DB_Table) (column : Column) (as : Text) =
-        Feature.Spatial.if_supported_else_throw this_table.connection.dialect "st_area" <|
+        Feature.Spatial.if_supported_else_throw this_table.connection.dialect "st_area" <| expect_spatial_type column this_table.connection.dialect <|
             new_column = _resolve_sql_function this_table (SQL_Function.SQL "ST_Area_Spheroid" [column])
             new_name = if as!="" then as else this_table.column_naming_helper.function_name "st_area" [column]
             this_table.set new_column as=new_name
 
     spatial_distance (this_table : Table & DB_Table) (from_column : Column) (to_column : Column) (as : Text) =
-        Feature.Spatial.if_supported_else_throw this_table.connection.dialect "st_distance" <|
+        Feature.Spatial.if_supported_else_throw this_table.connection.dialect "st_distance" <| expect_spatial_type from_column this_table.connection.dialect <| expect_spatial_type to_column this_table.connection.dialect <|
             new_column = _resolve_sql_function this_table (SQL_Function.SQL "ST_Distance_Spheroid" [from_column, to_column])
             new_name = if as!="" then as else this_table.column_naming_helper.function_name "st_distance" [from_column, to_column]
             this_table.set new_column as=new_name
@@ -840,17 +840,36 @@ type DB_Table_Implementation
     spatial_intersection (this_table : Table & DB_Table) (columns : Vector Column) (as : Text) =
         Feature.Spatial.if_supported_else_throw this_table.connection.dialect "st_intersection" <|
             if columns.is_empty then Error.throw (Missing_Argument.throw "columns")
-            new_column = if columns.length == 1 then columns.first else
-                columns.fold columns.first cur->col-> _resolve_sql_function this_table (SQL_Function.SQL "ST_Intersection" [cur, col])
-            new_name = if as!="" then as else this_table.column_naming_helper.function_name "st_intersection" columns
-            this_table.set new_column as=new_name
+            expect_spatial_type columns.first this_table.connection.dialect <|
+                new_column = if columns.length == 1 then columns.first else
+                    columns.fold columns.first cur->col->
+                        expect_spatial_type col this_table.connection.dialect <|
+                            _resolve_sql_function this_table (SQL_Function.SQL "ST_Intersection" [cur, col])
+                new_name = if as!="" then as else this_table.column_naming_helper.function_name "st_intersection" columns
+                this_table.set new_column as=new_name
 
     spatial_union (this_table : Table & DB_Table) (columns : Vector Column) (as : Text) =
         Feature.Spatial.if_supported_else_throw this_table.connection.dialect "st_union" <|
             if columns.is_empty then Error.throw (Missing_Argument.throw "columns")
-            new_column = if columns.length == 1 then columns.first else
-                columns.fold columns.first cur->col-> _resolve_sql_function this_table (SQL_Function.SQL "ST_Union" [cur, col])
-            new_name = if as!="" then as else this_table.column_naming_helper.function_name "st_union" columns
+            expect_spatial_type columns.first this_table.connection.dialect <|
+                new_column = if columns.length == 1 then columns.first else
+                    columns.fold columns.first cur->col->
+                        expect_spatial_type col this_table.connection.dialect <|
+                            _resolve_sql_function this_table (SQL_Function.SQL "ST_Union" [cur, col])
+                new_name = if as!="" then as else this_table.column_naming_helper.function_name "st_union" columns
+                this_table.set new_column as=new_name
+
+    spatial_to_geojson (this_table : Table & DB_Table) (column : Column) (as : Text) =
+        Feature.Spatial.if_supported_else_throw this_table.connection.dialect "spatial_to_geojson" <| expect_spatial_type column this_table.connection.dialect <|
+            new_column = _resolve_sql_function this_table (SQL_Function.SQL "ST_AsGeoJSON" [column])
+            cast_column = new_column.cast ..Char
+            new_name = if as!="" then as else this_table.column_naming_helper.function_name "st_to_geojson" [column]
+            this_table.set cast_column as=new_name
+
+    spatial_to_wkt (this_table : Table & DB_Table) (column : Column) (as : Text) =
+        Feature.Spatial.if_supported_else_throw this_table.connection.dialect "spatial_to_wkt" <| expect_spatial_type column this_table.connection.dialect <|
+            new_column = _resolve_sql_function this_table (SQL_Function.SQL "ST_AsText" [column])
+            new_name = if as!="" then as else this_table.column_naming_helper.function_name "st_to_wkt" [column]
             this_table.set new_column as=new_name
 
 ## ---
@@ -930,6 +949,13 @@ _join_or_cross_join (this_table : Table & DB_Table) (right : Table & DB_Table) j
             new_from = SQL_IR_From_Part.Join sql_join_kind left_setup.subquery right_setup.subquery on_expressions
             new_ctx = SQL_IR_Source.for_subquery new_from . set_where_filters where_expressions
             DB_Table.new new_table_name this_table.connection result_columns new_ctx
+
+private expect_spatial_type column:Column dialect ~action =
+    is_valid = case column.value_type of
+        Value_Type.Unsupported_Data_Type type_name _ -> dialect.spatial_types.contains type_name
+        _ -> False
+    if is_valid then action else
+        Error.throw (Illegal_Argument.Error "Column "+column.name+" is not of a spatial type.")
 
 private _resolve_sql_function this_table:(Table & DB_Table) function:SQL_Function =
     ## Resolve Arguments
