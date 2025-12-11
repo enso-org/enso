@@ -221,12 +221,18 @@ class DistributionManager(val env: Environment) {
   /** Finds the paths to look for custom editions, which may be overridden by
     * setting the ENSO_EDITION_PATH environment variable.
     */
-  protected def detectCustomEditionPaths(ensoHome: Path): Seq[Path] =
-    env
-      .getEnvPaths(ENSO_EDITION_PATH)
-      .getOrElse {
-        Seq(ensoHome / DistributionManager.Home.EDITIONS_DIRECTORY)
-      }
+  protected def detectCustomEditionPaths(ensoHome: Path): Seq[Path] = {
+    val prop = System.getProperty("enso.edition.path")
+    if (prop != null) {
+      Seq(Path.of(prop))
+    } else {
+      env
+        .getEnvPaths(ENSO_EDITION_PATH)
+        .getOrElse {
+          Seq(ensoHome / DistributionManager.Home.EDITIONS_DIRECTORY)
+        }
+    }
+  }
 
   /** Finds the paths to look for local libraries, which may be overridden by
     * setting the ENSO_LIBRARY_PATH environment variable.
