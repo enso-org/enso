@@ -1,3 +1,11 @@
+# Next Next Release
+
+#### Enso Language & Runtime
+
+- [`Panic.rethrow` keeps original location][14480]
+
+[14480]: https://github.com/enso-org/enso/pull/14480
+
 # Next Release
 
 #### Enso IDE
