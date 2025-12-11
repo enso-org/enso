@@ -1428,9 +1428,9 @@ class RuntimeRefactoringTest
     val moduleName      = "Enso_Test.Test.Main"
 
     val metadata      = new Metadata
-    val operator1Id   = metadata.addItem(75, 2)
-    val operator2Id   = metadata.addItem(94, 24)
-    val selfOperator2 = metadata.addItem(94, 4)
+    val operator1Id   = metadata.addItem(75, 2, "aa")
+    val operator2Id   = metadata.addItem(94, 24, "ba")
+    val selfOperator2 = metadata.addItem(94, 4, "bb")
     val code =
       """from Standard.Base import all
         |
@@ -1558,7 +1558,7 @@ class RuntimeRefactoringTest
     )
     val afterModificationResponse =
       context.receiveNIgnorePendingExpressionUpdates(
-        3,
+        4,
         timeoutSeconds = 10
       )
     afterModificationResponse should contain allOf (
@@ -1570,7 +1570,13 @@ class RuntimeRefactoringTest
         methodCall = Some(
           Api.MethodCall(Api.MethodPointer(moduleName, moduleName, "function2"))
         )
-      )
+      ),
+      TestMessages.update(
+        contextId,
+        selfOperator2,
+        moduleName,
+        typeChanged = false
+      ),
     )
     context.consumeOut shouldEqual List("42")
 
