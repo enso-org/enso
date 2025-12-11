@@ -41,7 +41,7 @@ const label = computed(() => {
 </script>
 
 <template>
-  <div v-if="label" :data-testid="props.testId" class="typeLabelBackground">
+  <div v-if="label" :data-testid="props.testId" class="ComponentTypeLabel">
     <TooltipTrigger v-if="additionalTypes.length + hiddenTypes.length > 1" :showOnClick="true">
       <template #default="triggerProps">
         <span v-bind="triggerProps" v-text="`${label}...`" />
@@ -58,7 +58,7 @@ const label = computed(() => {
 </template>
 
 <style scoped>
-.typeLabelBackground {
+.ComponentTypeLabel {
   background-color: rgba(0, 0, 0, 0.1);
   padding: 3px 6px;
   border-radius: 20px;
