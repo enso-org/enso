@@ -1422,13 +1422,15 @@ class RuntimeRefactoringTest
   }
 
   it should "rename module method in main body by applying text edit" in {
-    val contextId  = UUID.randomUUID()
-    val requestId  = UUID.randomUUID()
-    val moduleName = "Enso_Test.Test.Main"
+    val contextId       = UUID.randomUUID()
+    val requestId       = UUID.randomUUID()
+    val visualizationId = UUID.randomUUID()
+    val moduleName      = "Enso_Test.Test.Main"
 
-    val metadata    = new Metadata
-    val operator1Id = metadata.addItem(75, 2)
-    val operator2Id = metadata.addItem(94, 24)
+    val metadata      = new Metadata
+    val operator1Id   = metadata.addItem(75, 2)
+    val operator2Id   = metadata.addItem(94, 24)
+    val selfOperator2 = metadata.addItem(94, 4)
     val code =
       """from Standard.Base import all
         |
@@ -1471,7 +1473,7 @@ class RuntimeRefactoringTest
       )
     )
 
-    context.receiveNIgnoreStdLib(4) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(5) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(contextId, operator1Id, ConstantsGen.INTEGER),
       TestMessages.update(
@@ -1482,9 +1484,54 @@ class RuntimeRefactoringTest
           Api.MethodCall(Api.MethodPointer(moduleName, moduleName, "function1"))
         )
       ),
+      TestMessages.update(
+        contextId,
+        selfOperator2,
+        moduleName
+      ),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("42")
+
+    // attach visualization
+    context.send(
+      Api.Request(
+        requestId,
+        Api.AttachVisualization(
+          visualizationId,
+          operator2Id,
+          Api.VisualizationConfiguration(
+            contextId,
+            Api.VisualizationExpression.Text(
+              moduleName,
+              "x -> x.to_text",
+              Vector()
+            ),
+            moduleName
+          )
+        )
+      )
+    )
+    val attachVisualizationResponses =
+      context.receiveNIgnoreExpressionUpdates(2, timeoutSeconds = 10)
+    attachVisualizationResponses should contain(
+      Api.Response(requestId, Api.VisualizationAttached())
+    )
+    val Some(data) = attachVisualizationResponses.collectFirst {
+      case Api.Response(
+            None,
+            Api.VisualizationUpdate(
+              Api.VisualizationContext(
+                `visualizationId`,
+                `contextId`,
+                `operator2Id`
+              ),
+              data
+            )
+          ) =>
+        data
+    }
+    data.sameElements("42".getBytes) shouldBe true
 
     // rename function1
     val newName = "function2"
@@ -1509,9 +1556,12 @@ class RuntimeRefactoringTest
         )
       )
     )
-    context.receiveNIgnorePendingExpressionUpdates(
-      2
-    ) should contain theSameElementsAs Seq(
+    val afterModificationResponse =
+      context.receiveNIgnorePendingExpressionUpdates(
+        3,
+        timeoutSeconds = 10
+      )
+    afterModificationResponse should contain allOf (
       context.executionComplete(contextId),
       TestMessages.update(
         contextId,
@@ -1523,5 +1573,22 @@ class RuntimeRefactoringTest
       )
     )
     context.consumeOut shouldEqual List("42")
+
+    val Some(data2) = afterModificationResponse.collectFirst {
+      case Api.Response(
+            None,
+            Api.VisualizationUpdate(
+              Api.VisualizationContext(
+                `visualizationId`,
+                `contextId`,
+                `operator2Id`
+              ),
+              data
+            )
+          ) =>
+        data
+    }
+    data2.sameElements("42".getBytes) shouldBe true
+
   }
 }
