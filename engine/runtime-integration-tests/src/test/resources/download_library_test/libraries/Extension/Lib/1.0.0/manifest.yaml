@@ -1,0 +1,4 @@
+archives:
+  - main.tgz
+dependencies:
+  - Standard.Base
