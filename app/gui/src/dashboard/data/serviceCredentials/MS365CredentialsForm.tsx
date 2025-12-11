@@ -10,6 +10,7 @@ import { Input } from '#/components/Inputs/Input'
 import { Selector } from '#/components/Inputs/Selector/Selector'
 import { Text } from '#/components/Text'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
+import type { TextId } from 'enso-common/src/text'
 import { useText } from '$/providers/react'
 import { CredentialsFormFooter } from './CredentialsFormFooter'
 import * as ms365 from './ms365'
@@ -40,8 +41,8 @@ export function MS365CredentialsForm(props: CredentialFormProps) {
       }}
     >
       {(form) => {
-        const filesPermission = form.watch('filesPermission') ?? 'NoAccess'
-        const sitesPermission = form.watch('sitesPermission') ?? 'NoAccess'
+        const filesPermission = form.watch('filesPermission')
+        const sitesPermission = form.watch('sitesPermission')
 
         return (
           <>
@@ -64,13 +65,13 @@ export function MS365CredentialsForm(props: CredentialFormProps) {
               }
             >
               {(item) => {
-                const key = `ms365CredentialFilesPermission${item.replace(/\./g, '')}` as any
+                const key = `ms365CredentialFilesPermission${item.replace(/\./g, '')}` as TextId
                 return getText(key)
               }}
             </Selector>
             <Text variant="body" color="primary">
               {getText(
-                `ms365CredentialFilesPermission${filesPermission.replace(/\./g, '')}Description` as any,
+                `ms365CredentialFilesPermission${filesPermission.replace(/\./g, '')}Description` as TextId,
               )}
             </Text>
             <Selector
@@ -82,13 +83,13 @@ export function MS365CredentialsForm(props: CredentialFormProps) {
               }
             >
               {(item) => {
-                const key = `ms365CredentialSitesPermission${item.replace(/\./g, '')}` as any
+                const key = `ms365CredentialSitesPermission${item.replace(/\./g, '')}` as TextId
                 return getText(key)
               }}
             </Selector>
             <Text variant="body" color="primary">
               {getText(
-                `ms365CredentialSitesPermission${sitesPermission.replace(/\./g, '')}Description` as any,
+                `ms365CredentialSitesPermission${sitesPermission.replace(/\./g, '')}Description` as TextId,
               )}
             </Text>
             <CredentialsFormFooter isCreating={true} canCancel={false} canReset={false} />
