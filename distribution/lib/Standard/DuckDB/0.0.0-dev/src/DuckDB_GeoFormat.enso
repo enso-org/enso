@@ -8,9 +8,6 @@ import project.DuckDB_Connection.DuckDB_Connection
 
 ## Represents a spatial data format supported by DuckDB.
 type DuckDB_GeoFormat
-    ## Detect the format automatically based on the filename.
-    Auto
-
     ## ESRI Shapefile (https://gdal.org/en/stable/drivers/vector/shapefile.html)
     Shapefile
 

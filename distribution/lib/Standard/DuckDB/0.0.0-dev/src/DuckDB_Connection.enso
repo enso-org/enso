@@ -774,7 +774,7 @@ type DuckDB_Connection
     @on_existing_file Existing_File_Behavior.widget include_append=False
     @format DuckDB_GeoFormat.default_widget
     write_spatial_file : (SQL_Query_With_Schema | SQL_Query | Table) -> Writable_File -> DuckDB_GeoFormat -> Existing_File_Behavior -> Writable_File
-    write_spatial_file self (query:(SQL_Query_With_Schema | SQL_Query | Table)=Missing_Argument.throw "query") (path:Writable_File=Missing_Argument.throw "path") (format:DuckDB_GeoFormat=..Auto) on_existing_file:Existing_File_Behavior=..Backup =
+    write_spatial_file self (query:(SQL_Query_With_Schema | SQL_Query | Table)=Missing_Argument.throw "query") (path:Writable_File=Missing_Argument.throw "path") (format:DuckDB_GeoFormat=Missing_Argument.throw "format") on_existing_file:Existing_File_Behavior=..Backup =
         Error.return_if_error query
 
         ## Check a local file (to do add support for non-local files later)
