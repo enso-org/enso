@@ -16,9 +16,19 @@ case class URIBuilder private (uri: URI) {
     * `http://example.com/foo/bar`.
     */
   def addPathSegment(segment: String): URIBuilder = {
-    val pathItems = uri.getRawPath.split("/")
-    val newPath   = (pathItems :+ segment).mkString("/")
-    copy(uri.resolve(newPath))
+    if (uri.getScheme == "jar") {
+      val ssp = uri.getSchemeSpecificPart
+      val newSsp = if (ssp.endsWith("/")) {
+        ssp + segment
+      } else {
+        ssp + "/" + segment
+      }
+      copy(new URI(uri.getScheme, newSsp, uri.getFragment))
+    } else {
+      val pathItems = uri.getRawPath.split("/")
+      val newPath   = (pathItems :+ segment).mkString("/")
+      copy(uri.resolve(newPath))
+    }
   }
 
   /** Add a query parameter to the URI.
