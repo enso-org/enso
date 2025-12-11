@@ -6,7 +6,6 @@ import project.Data.Text.Encoding.Encoding
 import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Enso_Cloud.Data_Link.Data_Link
-import project.Enso_Cloud.Data_Link.Data_Link_From_File
 import project.Enso_Cloud.Data_Link.Data_Link_SPI
 import project.Enso_Cloud.Enso_File.Enso_Asset_Type
 import project.Enso_Cloud.Enso_File.Enso_File
