@@ -28,7 +28,7 @@ export function MS365CredentialsForm(props: CredentialFormProps) {
       defaultValues={{
         scopes: ['User.Read'],
         filesPermission: 'Files.ReadWrite.All',
-        sitesPermission: 'Sites.Read.All',
+        sitesPermission: 'NoAccess',
       }}
       className="w-full"
       onSubmit={async (values) => {
