@@ -324,7 +324,7 @@ impl Display for StandardLibraryTestsScope {
                 write!(f, "standard-library-in-native")
             }
             StandardLibraryTestsScope::Microsoft => {
-                write!(f, "std-microsoft std-mock-dual-microsoft")
+                write!(f, "std-microsoft")
             }
         }
     }

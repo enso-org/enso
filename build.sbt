@@ -3874,15 +3874,7 @@ lazy val `engine-runner` = project
             .map(_.getAbsolutePath()) ++
           `std-duckdb-polyglot-root`
             .listFiles("*.jar")
-            .map(_.getAbsolutePath()) ++ (if (
-                                            GraalVM.EnsoLauncher.disableMicrosoft
-                                          ) {
-                                            Seq()
-                                          } else {
-                                            `std-microsoft-polyglot-root`
-                                              .listFiles("*.jar")
-                                              .map(_.getAbsolutePath())
-                                          })
+            .map(_.getAbsolutePath())
         }
       }
       core ++ stdLibsJars ++ extraNITestLibs.value
@@ -3917,9 +3909,6 @@ lazy val `engine-runner` = project
         )
         if (areStdlibsIncluded) {
           features = features ++ Seq(databaseFeature)
-          if (!GraalVM.EnsoLauncher.disableMicrosoft) {
-            features = features ++ Seq(azureFeature)
-          }
         }
         // heapdump monitoring is not supported on Windows
         val enableHeapDumpOpts =
