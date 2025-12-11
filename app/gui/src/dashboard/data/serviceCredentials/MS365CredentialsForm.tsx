@@ -39,57 +39,62 @@ export function MS365CredentialsForm(props: CredentialFormProps) {
         }
       }}
     >
-      {(form) => (
-        <>
-          <Input form={form} name="name" label={getText('name')} defaultValue="Microsoft365" />
-          <Checkbox.Group form={form} name="scopes" label={getText('ms365CredentialScopes')}>
-            <Checkbox value="User.Read">{getText('ms365CredentialUserReadScope')}</Checkbox>
-          </Checkbox.Group>
-          <Selector
-            form={form}
-            name="filesPermission"
-            label={getText('ms365CredentialFilesPermission')}
-            items={
-              [
-                'Files.ReadWrite.All',
-                'Files.Read.All',
-                'Files.ReadWrite',
-                'Files.Read',
-                'NoAccess',
-              ] as const
-            }
-          >
-            {(item) => {
-              const key = `ms365CredentialFilesPermission${item.replace(/\./g, '')}` as any
-              return getText(key)
-            }}
-          </Selector>
-          <Text variant="body" color="primary">
-            {getText(
-              `ms365CredentialFilesPermission${form.watch('filesPermission').replace(/\./g, '')}Description` as any,
-            )}
-          </Text>
-          <Selector
-            form={form}
-            name="sitesPermission"
-            label={getText('ms365CredentialSitesPermission')}
-            items={
-              ['Sites.Manage.All', 'Sites.ReadWrite.All', 'Sites.Read.All', 'NoAccess'] as const
-            }
-          >
-            {(item) => {
-              const key = `ms365CredentialSitesPermission${item.replace(/\./g, '')}` as any
-              return getText(key)
-            }}
-          </Selector>
-          <Text variant="body" color="primary">
-            {getText(
-              `ms365CredentialSitesPermission${form.watch('sitesPermission').replace(/\./g, '')}Description` as any,
-            )}
-          </Text>
-          <CredentialsFormFooter isCreating={true} canCancel={false} canReset={false} />
-        </>
-      )}
+      {(form) => {
+        const filesPermission = form.watch('filesPermission') ?? 'NoAccess'
+        const sitesPermission = form.watch('sitesPermission') ?? 'NoAccess'
+
+        return (
+          <>
+            <Input form={form} name="name" label={getText('name')} defaultValue="Microsoft365" />
+            <Checkbox.Group form={form} name="scopes" label={getText('ms365CredentialScopes')}>
+              <Checkbox value="User.Read">{getText('ms365CredentialUserReadScope')}</Checkbox>
+            </Checkbox.Group>
+            <Selector
+              form={form}
+              name="filesPermission"
+              label={getText('ms365CredentialFilesPermission')}
+              items={
+                [
+                  'Files.ReadWrite.All',
+                  'Files.Read.All',
+                  'Files.ReadWrite',
+                  'Files.Read',
+                  'NoAccess',
+                ] as const
+              }
+            >
+              {(item) => {
+                const key = `ms365CredentialFilesPermission${item.replace(/\./g, '')}` as any
+                return getText(key)
+              }}
+            </Selector>
+            <Text variant="body" color="primary">
+              {getText(
+                `ms365CredentialFilesPermission${filesPermission.replace(/\./g, '')}Description` as any,
+              )}
+            </Text>
+            <Selector
+              form={form}
+              name="sitesPermission"
+              label={getText('ms365CredentialSitesPermission')}
+              items={
+                ['Sites.Manage.All', 'Sites.ReadWrite.All', 'Sites.Read.All', 'NoAccess'] as const
+              }
+            >
+              {(item) => {
+                const key = `ms365CredentialSitesPermission${item.replace(/\./g, '')}` as any
+                return getText(key)
+              }}
+            </Selector>
+            <Text variant="body" color="primary">
+              {getText(
+                `ms365CredentialSitesPermission${sitesPermission.replace(/\./g, '')}Description` as any,
+              )}
+            </Text>
+            <CredentialsFormFooter isCreating={true} canCancel={false} canReset={false} />
+          </>
+        )
+      }}
     </Form>
   )
 }
