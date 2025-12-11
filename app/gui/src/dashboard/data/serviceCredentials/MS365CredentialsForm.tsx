@@ -26,7 +26,8 @@ export function MS365CredentialsForm(props: CredentialFormProps) {
       schema={ms365.FORM_SCHEMA}
       defaultValues={{
         scopes: ['User.Read'],
-        filesPermission: 'Files.Read',
+        filesPermission: 'Files.ReadWrite.All',
+        sitesPermission: 'Sites.Read.All',
       }}
       className="w-full"
       onSubmit={async (values) => {
@@ -51,6 +52,17 @@ export function MS365CredentialsForm(props: CredentialFormProps) {
           >
             {(item) => {
               const key = `ms365CredentialFilesPermission${item.replace(/\./g, '')}` as any
+              return getText(key)
+            }}
+          </Selector>
+          <Selector
+            form={form}
+            name="sitesPermission"
+            label={getText('ms365CredentialSitesPermission')}
+            items={['Sites.Manage.All', 'Sites.ReadWrite.All', 'Sites.Read.All'] as const}
+          >
+            {(item) => {
+              const key = `ms365CredentialSitesPermission${item.replace(/\./g, '')}` as any
               return getText(key)
             }}
           </Selector>
