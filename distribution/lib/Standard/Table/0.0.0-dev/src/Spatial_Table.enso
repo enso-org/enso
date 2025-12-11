@@ -242,7 +242,8 @@ type Spatial_Table
 
        ## Returns
        A new table with the existing columns and a new column containing the
-       GeoJSON representation of the spatial objects.
+       GeoJSON representation as text of the spatial objects.
+    @column _spatial_widget single_choice=True
     st_to_geojson self (column : Column | Expression | Text | Integer = Missing_Argument.throw "column") as:Text="" =
         resolved = _resolve_column column self.parent
         (self:Table).implementation.spatial_to_geojson self.parent.underlying resolved as
@@ -261,6 +262,7 @@ type Spatial_Table
        ## Returns
        A new table with the existing columns and a new column containing the
        WKT representation of the spatial objects.
+    @column _spatial_widget single_choice=True
     st_to_wkt self (column : Column | Expression | Text | Integer = Missing_Argument.throw "column") as:Text="" =
         resolved = _resolve_column column self.parent
         (self:Table).implementation.spatial_to_wkt self.parent.underlying resolved as

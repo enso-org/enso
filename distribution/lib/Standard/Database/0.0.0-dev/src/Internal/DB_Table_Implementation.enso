@@ -74,6 +74,7 @@ import project.SQL.SQL_Type
 from project.DB_Table import DB_Table, make_literal_table, MAX_LITERAL_ELEMENT_COUNT
 from project.Errors import Integrity_Error, SQL_Error, Unsupported_Database_Operation
 from project.Internal.Type_Refinements.DB_Table_Conversions import all
+from project.Internal.DB_Column_Implementation import make_unary_op
 
 type DB_Table_Implementation
     name (this_table : Table & DB_Table) = this_table.internal_name
@@ -861,10 +862,9 @@ type DB_Table_Implementation
 
     spatial_to_geojson (this_table : Table & DB_Table) (column : Column) (as : Text) =
         Feature.Spatial.if_supported_else_throw this_table.connection.dialect "spatial_to_geojson" <| expect_spatial_type column this_table.connection.dialect <|
-            new_column = _resolve_sql_function this_table (SQL_Function.SQL "ST_AsGeoJSON" [column])
-            cast_column = new_column.cast ..Char
             new_name = if as!="" then as else this_table.column_naming_helper.function_name "st_to_geojson" [column]
-            this_table.set cast_column as=new_name
+            new_column = make_unary_op column "ST_ASGEOJSON" new_name
+            this_table.set new_column as=new_name
 
     spatial_to_wkt (this_table : Table & DB_Table) (column : Column) (as : Text) =
         Feature.Spatial.if_supported_else_throw this_table.connection.dialect "spatial_to_wkt" <| expect_spatial_type column this_table.connection.dialect <|
