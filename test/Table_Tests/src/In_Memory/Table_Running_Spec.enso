@@ -376,7 +376,7 @@ add_specs suite_builder =
         data = Data.setup
         group_builder.specify "Can calculate Standard Deviation with population" <|
             result = data.table.running (Statistic.Standard_Deviation True) "Ticket Price"
-            expected_column = Column.from_vector "Running Standard_Deviation (Population) of Ticket Price" [0.0, 237.74499999999998, 230.84434645208208, 208.60295881171004, 195.00466339039176]
+            expected_column = Column.from_vector "Running Standard Deviation (Population) of Ticket Price" [0.0, 237.74499999999998, 230.84434645208208, 208.60295881171004, 195.00466339039176]
             #   | Flight | Passenger | Ticket Price | Running Standard_Deviation (Population) of Ticket Price
             #---+--------+-----------+--------------+-------------------------
             # 0 | BA0123 | A         | 100.5        | 0.0
@@ -388,7 +388,7 @@ add_specs suite_builder =
             result.should_equal expected_table
         group_builder.specify "Can calculate Standard Deviation without population" <|
             result = data.table.running (Statistic.Standard_Deviation False) "Ticket Price"
-            expected_column = Column.from_vector "Running Standard_Deviation (Sample) of Ticket Price" [Number.nan, 336.2222033863914, 282.7254294069307, 240.8739488473864, 218.02184163519027]
+            expected_column = Column.from_vector "Running Standard Deviation (Sample) of Ticket Price" [Number.nan, 336.2222033863914, 282.7254294069307, 240.8739488473864, 218.02184163519027]
             #   | Flight | Passenger | Ticket Price | Running Standard_Deviation (Sample) of Ticket Price
             #---+--------+-----------+--------------+-------------------------
             # 0 | BA0123 | A         | 100.5        | NaN
