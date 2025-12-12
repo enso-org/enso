@@ -421,7 +421,8 @@ type Connection
                 _check_statement_is_allowed self stmt
                 result = case self.supports_large_update.get of
                     True -> Panic.catch Any stmt.executeLargeUpdate ex->
-                        if Meta.meta ex . name != "java.lang.UnsupportedOperationException" then Panic.throw ex else
+                        type_name = Meta.type_of ex.payload . getName
+                        if type_name != "java.lang.UnsupportedOperationException" then Panic.throw ex else
                           self.supports_large_update.put False
                           stmt.executeUpdate
                     False -> stmt.executeUpdate
