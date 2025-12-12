@@ -61,7 +61,7 @@ test('Removing node', async ({ editorPage, page }) => {
   const nodesCount = await locate.graphNode(page).count()
   const deletedNode = locate.graphNodeByBinding(page, 'final')
   const deletedNodeBBox = await deletedNode.boundingBox()
-  await deletedNode.click()
+  await deletedNode.locator('.grab-handle').click()
   await page.keyboard.press(DELETE_KEY)
   await expect(locate.graphNode(page)).toHaveCount(nodesCount - 1)
 
