@@ -146,7 +146,7 @@ type DB_Text_Column_Implementation
                     new_name = (naming_helper this_column).function_name "mid" [this_column, start]
                     make_op this_column "SUBSTR" [start + 1] new_name
                 _ ->
-                    Helpers.expect_specific_integer_type length <|
+                    Helpers.expect_specific_integer_type this_column length <|
                         new_name = (naming_helper this_column).function_name "mid" [this_column, start, length]
                         make_op this_column "SUBSTR" [start + 1, length] new_name
 
