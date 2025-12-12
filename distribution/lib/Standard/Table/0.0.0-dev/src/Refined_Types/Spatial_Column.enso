@@ -169,3 +169,50 @@ type Spatial_Column
     st_to_wkt self =
         temp_name = self.parent_table.parent.make_temp_column_name
         self.parent_table.st_to_wkt self.column as=temp_name . get temp_name
+
+## A column that contains spatial values - designed for use by Expression at the moment.
+type Spatial_Input_Column
+    Value column parent_table:Spatial_Table
+
+    ## ---
+       aliases: [create_points]
+       group: Standard.Base.Calculations
+       icon: spatial
+       ---
+       Creates a new column containing points from longitude and latitude columns.
+       Note: Enso assumes that the points are in WGS84 coordinate system (EPSG:4326).
+
+       ## Arguments
+        - `latitude`: The column, expression, or name/index of the column containing latitude values
+
+       ## Returns
+       A new table with the existing columns and the new point column.
+    st_point self (latitude : Column | Expression | Text | Integer = Missing_Argument.throw "latitude") =
+        temp_name = self.parent_table.parent.make_temp_column_name
+        self.parent_table.st_point self.column latitude as=temp_name . get temp_name
+
+    ## ---
+       group: Standard.Base.Conversions
+       icon: convert
+       ---
+       Converts a text column in GeoJSON format to spatial objects.
+
+       ## Returns
+       A new table with the existing columns and a new column containing the
+       spatial objects.
+    st_from_geojson self =
+        temp_name = self.parent_table.parent.make_temp_column_name
+        self.parent_table.st_from_geojson self.column as=temp_name . get temp_name
+
+    ## ---
+       group: Standard.Base.Conversions
+       icon: convert
+       ---
+       Converts a text column in Well Known Text format to spatial objects.
+
+       ## Returns
+       A new table with the existing columns and a new column containing the
+       spatial objects.
+    st_from_wkt self =
+        temp_name = self.parent_table.parent.make_temp_column_name
+        self.parent_table.st_from_wkt self.column as=temp_name . get temp_name
