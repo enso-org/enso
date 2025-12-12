@@ -19,7 +19,7 @@ type Spatial_Column
        ## Returns
        A new table with the existing columns and the new geometry type column as text.
     st_geometry_type self =
-        temp_name = self.parent_table..underlying.make_temp_column_name
+        temp_name = self.parent_table.underlying.make_temp_column_name
         self.parent_table.st_geometry_type self.column as=temp_name . get temp_name
 
     ## ---
@@ -36,7 +36,7 @@ type Spatial_Column
        ## Returns
        A new table with the existing columns and the new longitude column.
     st_longitude self (value:Lat_Long_Type=..Default) =
-        temp_name = self.parent_table..underlying.make_temp_column_name
+        temp_name = self.parent_table.underlying.make_temp_column_name
         self.parent_table.st_longitude self.column value as=temp_name . get temp_name
 
     ## ---
@@ -53,7 +53,7 @@ type Spatial_Column
        ## Returns
        A new table with the existing columns and the new latitude column.
     st_latitude self (value:Lat_Long_Type=..Default) =
-        temp_name = self.parent_table..underlying.make_temp_column_name
+        temp_name = self.parent_table.underlying.make_temp_column_name
         self.parent_table.st_latitude self.column value as=temp_name . get temp_name
 
     ## ---
@@ -65,7 +65,7 @@ type Spatial_Column
        ## Returns
        A new table with the existing columns and a new column containing the centroid points.
     st_centroid self =
-        temp_name = self.parent_table..underlying.make_temp_column_name
+        temp_name = self.parent_table.underlying.make_temp_column_name
         self.parent_table.st_centroid self.column as=temp_name . get temp_name
 
     ## ---
@@ -77,7 +77,7 @@ type Spatial_Column
        ## Returns
        A new table with the existing columns and a new column containing the bounding boxes.
     st_extent self =
-        temp_name = self.parent_table..underlying.make_temp_column_name
+        temp_name = self.parent_table.underlying.make_temp_column_name
         self.parent_table.st_extent self.column as=temp_name . get temp_name
 
     ## ---
@@ -90,7 +90,7 @@ type Spatial_Column
        ## Returns
        A new table with the existing columns and a new column containing the perimeter.
     st_perimeter self =
-        temp_name = self.parent_table..underlying.make_temp_column_name
+        temp_name = self.parent_table.underlying.make_temp_column_name
         self.parent_table.st_perimeter self.column as=temp_name . get temp_name
 
     ## ---
@@ -103,7 +103,7 @@ type Spatial_Column
        ## Returns
        A new table with the existing columns and a new column containing the area.
     st_area self =
-        temp_name = self.parent_table..underlying.make_temp_column_name
+        temp_name = self.parent_table.underlying.make_temp_column_name
         self.parent_table.st_area self.column as=temp_name . get temp_name
 
     ## ---
@@ -121,7 +121,7 @@ type Spatial_Column
        ## Returns
        A new table with the existing columns and a new column containing the distance.
     st_distance self (to_column : Column | Expression | Text | Integer = Missing_Argument.throw "to_column") =
-        temp_name = self.parent_table..underlying.make_temp_column_name
+        temp_name = self.parent_table.underlying.make_temp_column_name
         self.parent_table.st_distance self.column to_column as=temp_name . get temp_name
 
     ## ---
@@ -140,7 +140,7 @@ type Spatial_Column
        ## Returns
        A new table with the existing columns and a new column containing the distance.
     st_length self (to_column : Column | Expression | Text | Integer = Missing_Argument.throw "to_column") =
-        temp_name = self.parent_table..underlying.make_temp_column_name
+        temp_name = self.parent_table.underlying.make_temp_column_name
         self.parent_table.st_length self.column to_column as=temp_name . get temp_name
 
     ## ---
@@ -153,7 +153,7 @@ type Spatial_Column
        A new table with the existing columns and a new column containing the
        GeoJSON representation as text of the spatial objects.
     st_to_geojson self =
-        temp_name = self.parent_table..underlying.make_temp_column_name
+        temp_name = self.parent_table.underlying.make_temp_column_name
         self.parent_table.spatial_to_geojson self.column as=temp_name . get temp_name
 
     ## ---
@@ -167,5 +167,5 @@ type Spatial_Column
        A new table with the existing columns and a new column containing the
        WKT representation of the spatial objects.
     st_to_wkt self =
-        temp_name = self.parent_table..underlying.make_temp_column_name
+        temp_name = self.parent_table.underlying.make_temp_column_name
         self.parent_table.spatial_to_wkt self.column as=temp_name . get temp_name
