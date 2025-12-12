@@ -766,7 +766,7 @@ pub async fn main_internal(config: Option<Config>) -> Result {
                 enso_build::release::deploy_runtime_to_ecr(&ctx, args.ecr_repository).await?;
             }
             Action::DispatchBuildImage => {
-                if !(&ctx.triple.versions.version.pre.to_string().starts_with("nightly")) {
+                if ctx.triple.versions.version.pre.is_empty() {
                     enso_build::repo::cloud::build_image_workflow_dispatch_input(
                         &ctx.octocrab,
                         &ctx.triple.versions.version,
