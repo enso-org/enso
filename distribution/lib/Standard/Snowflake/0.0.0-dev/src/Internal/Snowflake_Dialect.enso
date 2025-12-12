@@ -1006,7 +1006,7 @@ sql_type_string_for_date_time value_type = case value_type of
 make_first_of_month arguments =
     if arguments.length != 1 then Error.throw (Illegal_State.Error "first_of_month expects exactly one sub expression. This is a bug in Database library.") else
         expr = arguments.at 0
-        SQL_Builder.code "(select date_trunc('MONTH'," ++ expr ++ "))"
+        SQL_Builder.code "(date_trunc('MONTH'," ++ expr ++ "))"
 
 ## ---
    private: true
@@ -1014,7 +1014,7 @@ make_first_of_month arguments =
 make_end_of_month arguments =
     if arguments.length != 1 then Error.throw (Illegal_State.Error "end_of_month expects exactly one sub expression. This is a bug in Database library.") else
         expr = arguments.at 0
-        SQL_Builder.code "select last_day(" ++ expr ++ ")"
+        SQL_Builder.code "(last_day(" ++ expr ++ "))"
 
 ## ---
    private: true

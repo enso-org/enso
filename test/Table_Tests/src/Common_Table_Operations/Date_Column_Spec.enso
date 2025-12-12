@@ -35,7 +35,7 @@ add_date_columns_specs suite_builder setup =
             check_column_refinements column x->
                 (x:Date_Column)
 
-    suite_builder.group prefix+"Date_Column (to_case)" group_builder->
+    suite_builder.group prefix+"Date_Column (first/end_of_month)" group_builder->
         group_builder.specify "first_of_month and end_of_month work" <|
             column = date_column.get
             column.first_of_month . to_vector . should_equal [Date.new 1987 1 1, Date.new 2000 2 1, Date.new 2005 4 1]
