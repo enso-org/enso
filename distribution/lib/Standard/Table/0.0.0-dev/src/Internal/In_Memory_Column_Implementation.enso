@@ -751,8 +751,9 @@ type In_Memory_Column_Implementation
         Statistic.compute_bulk this_column.to_vector [statistic] . first
 
     compute_bulk (this_column : Column & In_Memory_Column) (statistics : Vector Statistic) =
-        values = Statistic.compute_bulk this_column.to_vector statistics
-        names = statistics.map _.to_text
+        resolved_stats = statistics.map s-> s:Statistic
+        values = Statistic.compute_bulk this_column.to_vector resolved_stats
+        names = resolved_stats.map _.to_text
         Table.from_rows names [values]
 
     running (this_column : Column & In_Memory_Column) statistic:Statistic (name : Text) =

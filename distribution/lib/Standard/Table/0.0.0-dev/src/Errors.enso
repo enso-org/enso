@@ -715,7 +715,7 @@ type Cross_Join_Row_Limit_Exceeded
        Create a human-readable version of the error.
     to_display_text : Text
     to_display_text self =
-        "The cross join operation exceeded the maximum number of rows allowed. The limit is "+self.limit.to_text+" and the number of rows in the right table was "+self.existing_rows.to_text+". The limit may be turned off by setting the `right_row_limit` option to `Nothing`."
+        "The cross join operation exceeded the maximum number of rows allowed. The limit is "+self.limit.to_text+" and the number of rows in the right table was "+self.existing_rows.to_text+". The limit may be turned off by setting the `right_row_limit` option to `..No_Limit`."
 
 type Row_Count_Mismatch
     ## ---

@@ -2539,6 +2539,7 @@ type Column
 
        ## Arguments
         - `statistics`: Set of statistics to calculate.
+    @statistics (Statistic.bulk_widget display=..Always)
     compute_bulk self (statistics : Vector Statistic = [Statistic.Count, Statistic.Sum]) -> Table | Any =
         self.implementation.compute_bulk self statistics
 

@@ -1,3 +1,11 @@
+# Next Next Release
+
+#### Enso Language & Runtime
+
+- [`Panic.rethrow` keeps original location][14480]
+
+[14480]: https://github.com/enso-org/enso/pull/14480
+
 # Next Release
 
 #### Enso IDE
@@ -32,6 +40,7 @@
 - [GeoMap visualization is now working without need of Mapbox Token in
   environment][14429]
 - [Fix non-visible button and wrong layout in GeoMap Visualization][14443]
+- [Added additonal file and site options for MS365 credentials][14477]
 - [Maximum height of the file browser is slightly reduced][14467]
 
 [13685]: https://github.com/enso-org/enso/pull/13685
@@ -59,6 +68,7 @@
 [14403]: https://github.com/enso-org/enso/pull/14403
 [14429]: https://github.com/enso-org/enso/pull/14429
 [14443]: https://github.com/enso-org/enso/pull/14443
+[14477]: https://github.com/enso-org/enso/pull/14477
 [14467]: https://github.com/enso-org/enso/pull/14467
 
 #### Enso Standard Library
@@ -93,7 +103,9 @@
 - [Add Text_Column.index_of][14428]
 - [Trigonometry and other maths function on Column.][14433]
 - [Support for reading JSON lines files.][14439]
-- [Add Custom SQL to in database aggreates.][14472]
+- [Add Custom SQL to in database aggregates.][14472]
+- [Add spatial functions and `write_spatial_file` to DuckDB.][14488]
+- [Add spatial function support to expressions.][14492]
 
 [13769]: https://github.com/enso-org/enso/pull/13769
 [14026]: https://github.com/enso-org/enso/pull/14026
@@ -125,6 +137,8 @@
 [14433]: https://github.com/enso-org/enso/pull/14433
 [14439]: https://github.com/enso-org/enso/pull/14439
 [14472]: https://github.com/enso-org/enso/pull/14472
+[14488]: https://github.com/enso-org/enso/pull/14488
+[14492]: https://github.com/enso-org/enso/pull/14492
 
 #### Enso Language & Runtime
 

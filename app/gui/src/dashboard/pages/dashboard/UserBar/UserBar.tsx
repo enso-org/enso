@@ -115,6 +115,7 @@ export function UserBar(props: UserBarProps) {
               variant="clipped"
               className="absolute inset-0"
               progressBarClassName="bg-accent/50"
+              aria-label={getText('trialProgressLabel')}
             />
             <Text className="absolute inset-0 mx-2 cursor-help text-center">{trialText}</Text>
           </VisualTooltip>
