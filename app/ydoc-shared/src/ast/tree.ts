@@ -1266,7 +1266,7 @@ applyMixins(MutableOprApp, [MutableAst])
 interface PropertyAccessFields {
   lhs: NodeChild<AstId> | undefined
   operator: NodeChild<SyncTokenId>
-  rhs: NodeChild<AstId>
+  rhs: NodeChild<SyncTokenId>
 }
 /** TODO: Add docs */
 export class PropertyAccess extends BaseExpression {
@@ -1298,7 +1298,7 @@ export class PropertyAccess extends BaseExpression {
       module,
       unspaced(lhs),
       { whitespace, node: dot },
-      { whitespace, node: Ident.newAllowingOperators(module, toIdent(rhs)) },
+      { whitespace, node: toIdent(rhs) },
     )
   }
 
@@ -1337,31 +1337,34 @@ export class PropertyAccess extends BaseExpression {
     module: MutableModule,
     lhs: NodeChild<Owned<MutableExpression>> | undefined,
     operator: NodeChild<Token>,
-    rhs: NodeChild<Owned<MutableIdent>>,
+    rhs: NodeChild<Token>,
   ) {
     const base = module.baseObject('PropertyAccess')
     const id_ = base.get('id')
     const fields = composeFieldData(base, {
       lhs: concreteChild(module, lhs, id_),
       operator,
-      rhs: concreteChild(module, rhs, id_),
+      rhs,
     })
     return asOwned(new MutablePropertyAccess(module, fields))
   }
 
-  /** TODO: Add docs */
+  /** Returns the left side of the operator, i.e., the value upon which a name lookup is to be performed. */
   get lhs(): Expression | undefined {
     return this.module.get(this.fields.get('lhs')?.node) as Expression | undefined
   }
-  /** TODO: Add docs */
+
+  /** Returns the dot token, with any leading whitespace if present. */
   get operator(): Token {
     return this.module.getToken(this.fields.get('operator').node)
   }
-  /** TODO: Add docs */
-  get rhs(): Ident {
-    const ast = this.module.get(this.fields.get('rhs').node)
-    assert(ast instanceof Ident)
-    return ast
+
+  /**
+   * Returns the token to the right of the dot, i.e., the name to be looked up. It may be an ordinary identifier token;
+   * an operator symbol is also allowed in this position and is treated as a type of identifier.
+   */
+  get rhs(): IdentifierOrOperatorIdentifierToken {
+    return this.module.getToken(this.fields.get('rhs').node) as IdentifierOrOperatorIdentifierToken
   }
 
   /** TODO: Add docs */
@@ -1382,7 +1385,7 @@ export class MutablePropertyAccess extends PropertyAccess implements MutableExpr
     setNode(this.fields, 'lhs', this.claimChild(value))
   }
   setRhs(ident: IdentLike) {
-    const node = this.claimChild(Ident.newAllowingOperators(this.module, ident))
+    const node = toIdent(ident)
     const old = this.fields.get('rhs')
     this.fields.set('rhs', old ? { ...old, node } : unspaced(node))
   }

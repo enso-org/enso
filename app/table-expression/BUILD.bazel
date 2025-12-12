@@ -56,6 +56,10 @@ lezer_generator_bin.lezer_generator(
         "src/generated/parser",
     ],
     chdir = package_name(),
+    env = {
+        # Disable Node fs patching to avoid EPERM on Bazel symlinked outputs on Windows.
+        "JS_BINARY__PATCH_NODE_FS": "0",
+    },
     visibility = ["//visibility:public"],
 )
 

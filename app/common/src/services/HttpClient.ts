@@ -148,7 +148,7 @@ export class HttpClient {
       }
     }
 
-    if (!navigator.onLine) {
+    if (navigator.onLine !== undefined && !navigator.onLine) {
       return Promise.reject(new OfflineError('User is offline'))
     }
 
@@ -164,19 +164,21 @@ export class HttpClient {
       })) as ResponseWithTypedJson<T> & {
         readonly body: Method extends 'GET' | 'HEAD' ? null : NonNullable<Response['body']>
       }
-      document.dispatchEvent(new Event(FETCH_SUCCESS_EVENT_NAME))
+      if (typeof document !== 'undefined')
+        document.dispatchEvent(new Event(FETCH_SUCCESS_EVENT_NAME))
       return response
     } catch (error) {
       // Even though the condition might seem always falsy,
       // offline mode might happen during the request
       // and this case need to be handled
-      if (!navigator.onLine) {
-        document.dispatchEvent(new Event(OFFLINE_EVENT_NAME))
+      if (navigator.onLine !== undefined && !navigator.onLine) {
+        if (typeof document !== 'undefined') document.dispatchEvent(new Event(OFFLINE_EVENT_NAME))
         throw new OfflineError('User is offline', { cause: error })
       }
 
       if (isNetworkError(error)) {
-        document.dispatchEvent(new Event(FETCH_ERROR_EVENT_NAME))
+        if (typeof document !== 'undefined')
+          document.dispatchEvent(new Event(FETCH_ERROR_EVENT_NAME))
         throw new NetworkError(error.message, { cause: error })
       }
       throw error

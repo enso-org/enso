@@ -26,6 +26,7 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 import org.enso.common.LanguageInfo;
 import org.enso.common.MethodNames;
+import org.enso.compiler.core.ConstantsNames;
 import org.enso.compiler.suggestions.SimpleUpdate;
 import org.enso.interpreter.instrument.Endpoint;
 import org.enso.interpreter.instrument.ExpressionExecutionState;
@@ -628,8 +629,8 @@ public final class ExecutionService {
       // contrary to what is
       // expected from the documentation, throw an `UnsupportedMessageException`.
       // Instead it will crash with some internal assertion deep inside runtime. Hence the check.
-      if (iop.isMemberInvocable(payload, "to_display_text")) {
-        return iop.asString(iop.invokeMember(payload, "to_display_text"));
+      if (iop.isMemberInvocable(payload, ConstantsNames.TO_DISPLAY_TEXT)) {
+        return iop.asString(iop.invokeMember(payload, ConstantsNames.TO_DISPLAY_TEXT));
       } else throw UnsupportedMessageException.create();
     } catch (UnsupportedMessageException
         | ArityException

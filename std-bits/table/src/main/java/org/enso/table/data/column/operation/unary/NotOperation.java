@@ -62,9 +62,10 @@ public class NotOperation implements UnaryOperation {
   public static ColumnBooleanStorage applySpecializedBoolStorage(BoolStorage boolStorage) {
     return new BoolStorage(
         boolStorage.getValues(),
-        boolStorage.getIsNothingMap(),
+        boolStorage.getValidityMap(),
         (int) boolStorage.getSize(),
-        !boolStorage.isNegated());
+        !boolStorage.isNegated(),
+        null);
   }
 
   public static ColumnBooleanStorage applySpecializedNullStorage(ColumnStorage<?> storage) {

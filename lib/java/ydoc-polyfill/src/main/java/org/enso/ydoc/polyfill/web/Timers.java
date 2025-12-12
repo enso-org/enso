@@ -69,8 +69,10 @@ final class Timers implements ProxyExecutable {
         yield setInterval(func, normalizedDelay(delay), args);
       }
       case CLEAR_INTERVAL -> {
-        var intervalId = arguments[1].asHostObject();
-        clearInterval(intervalId);
+        if (arguments[1].isHostObject()) {
+          var intervalId = arguments[1].asHostObject();
+          clearInterval(intervalId);
+        }
         yield null;
       }
       case SET_TIMEOUT -> {
@@ -80,8 +82,10 @@ final class Timers implements ProxyExecutable {
         yield setTimeout(func, normalizedDelay(delay), args);
       }
       case CLEAR_TIMEOUT -> {
-        var timeoutId = arguments[1].asHostObject();
-        clearTimeout(timeoutId);
+        if (arguments[1].isHostObject()) {
+          var timeoutId = arguments[1].asHostObject();
+          clearTimeout(timeoutId);
+        }
         yield null;
       }
       default -> throw new IllegalStateException(command);

@@ -16,6 +16,7 @@ import Standard.Base.Internal.Rounding_Helpers
 from Standard.Base.Data.Index_Sub_Range import drop_helper, normalize_ranges, take_helper
 
 import project.Column.Column
+import project.Column.Rest_Of_String
 import project.Constants.Previous_Value
 import project.Data_Formatter.Data_Formatter
 import project.Fill_With.Fill_With
@@ -48,6 +49,7 @@ polyglot java import org.enso.table.data.column.operation.cast.CastOperation
 polyglot java import org.enso.table.data.column.operation.comparators.Comparators
 polyglot java import org.enso.table.data.column.operation.IfOperation
 polyglot java import org.enso.table.data.column.operation.IsInOperation
+polyglot java import org.enso.table.data.column.operation.text.TextIndexOf
 polyglot java import org.enso.table.data.column.operation.text.TextPartOperation
 polyglot java import org.enso.table.data.column.operation.text.TextPredicates
 polyglot java import org.enso.table.data.column.operation.unary.CountNothing
@@ -349,36 +351,81 @@ type In_Memory_Column_Implementation
 
     starts_with (this_column : Column & In_Memory_Column) (other : Column | Text | Any) case_sensitivity:Case_Sensitivity = Value_Type.expect_text this_column <| Value_Type.expect_text other <|
         new_name = naming_helper.function_name "starts_with" [this_column, other]
-        _apply_case_sensitive_text_operation this_column other case_sensitivity TextPredicates.STARTS_WITH (a -> b -> a.starts_with b case_sensitivity) new_name
+        apply_case_sensitive_text_operation this_column other case_sensitivity TextPredicates.STARTS_WITH (a -> b -> a.starts_with b case_sensitivity) new_name
 
     ends_with (this_column : Column & In_Memory_Column) (other : Column | Text | Any) case_sensitivity:Case_Sensitivity = Value_Type.expect_text this_column <| Value_Type.expect_text other <|
         new_name = naming_helper.function_name "ends_with" [this_column, other]
-        _apply_case_sensitive_text_operation this_column other case_sensitivity TextPredicates.ENDS_WITH (a -> b -> a.ends_with b case_sensitivity) new_name
+        apply_case_sensitive_text_operation this_column other case_sensitivity TextPredicates.ENDS_WITH (a -> b -> a.ends_with b case_sensitivity) new_name
 
     text_length (this_column : Column & In_Memory_Column) =
         Value_Type.expect_text this_column <|
             apply_unary_operation this_column TextLengthOperation.INSTANCE
 
-    text_left (this_column : Column & In_Memory_Column) (n : Column | Integer) =
+    text_left (this_column : Column & In_Memory_Column) (n : Column | Integer | Nothing) =
         Value_Type.expect_text this_column <| Value_Type.expect_integer n <|
             new_name = naming_helper.function_name "text_left" [this_column, n]
-            _apply_case_sensitive_text_operation this_column n ..Default TextPartOperation.LEFT (a -> b -> a.take b) new_name
+            apply_case_sensitive_text_operation this_column n ..Default TextPartOperation.LEFT (a -> b -> a.take b) new_name
 
-    text_right (this_column : Column & In_Memory_Column) (n : Column | Integer) =
+    text_right (this_column : Column & In_Memory_Column) (n : Column | Integer | Nothing) =
         Value_Type.expect_text this_column <| Value_Type.expect_integer n <|
             new_name = naming_helper.function_name "text_right" [this_column, n]
-            _apply_case_sensitive_text_operation this_column n ..Default TextPartOperation.RIGHT (a -> b -> a.take (..Last b)) new_name
+            apply_case_sensitive_text_operation this_column n ..Default TextPartOperation.RIGHT (a -> b -> a.take (..Last b)) new_name
+
+    text_mid (this_column : Column & In_Memory_Column) (start : Column | Integer | Nothing) (length : Column | Integer | Nothing | Rest_Of_String) =
+        Value_Type.expect_text this_column <| Value_Type.expect_integer start <|
+            new_name = naming_helper.function_name "text_mid" [this_column, start, length]
+
+            # Returns Nothing if any argument is Nothing, and returns "" for start out-of-bounds or if length is negative.
+            do_substring s start length =
+                if s.is_nothing || start.is_nothing || length.is_nothing then Nothing else
+                    nonneg_start = if start < 0 then 0 else start
+                    case length of
+                        _ : Rest_Of_String ->
+                            if nonneg_start >= s.length then "" else s.substring nonneg_start
+                        _ : Integer ->
+                            if length < 0 || nonneg_start >= s.length then "" else s.substring nonneg_start length
+
+            if Nothing == start || Nothing == length then this_column . const Nothing . rename new_name else
+                case start of
+                    _ : Integer ->
+                        case length of
+                            _ : Integer ->
+                                _apply_unary_map this_column new_name (s -> do_substring s start length) expected_result_type=Value_Type.Char . cast this_column.value_type
+                            _ : Rest_Of_String ->
+                                _apply_unary_map this_column new_name (s -> do_substring s start length) expected_result_type=Value_Type.Char . cast this_column.value_type
+                            _ : Column ->
+                                Value_Type.expect_integer length <|
+                                    _apply_binary_map this_column (s -> l-> do_substring s start l) length new_name skip_nulls=False expected_result_type=Value_Type.Char . cast this_column.value_type
+                    _ : Column ->
+                        case length of
+                            _ : Integer ->
+                                _apply_binary_map this_column (s -> st-> do_substring s st length) start new_name skip_nulls=False expected_result_type=Value_Type.Char . cast this_column.value_type
+                            _ : Rest_Of_String ->
+                                _apply_binary_map this_column (s -> st-> do_substring s st length) start new_name skip_nulls=False expected_result_type=Value_Type.Char . cast this_column.value_type
+                            _ : Column ->
+                                Value_Type.expect_integer length <|
+                                    row_count = this_column.row_count
+                                    java_this = this_column.java_column
+                                    java_start = (start:In_Memory_Column).java_column
+                                    java_length = (length:In_Memory_Column).java_column
+
+                                    builder = make_string_builder row_count
+                                    0.up_to row_count . each i->
+                                        replaced = do_substring (java_this.getItem i) (java_start.getItem i) (java_length.getItem i)
+                                        builder.append replaced
+
+                                    In_Memory_Column.from_storage new_name builder.seal . cast this_column.value_type
 
     contains (this_column : Column & In_Memory_Column) (other : Column | Text | Any) case_sensitivity:Case_Sensitivity = Value_Type.expect_text this_column <| Value_Type.expect_text other <|
         new_name = naming_helper.function_name "contains" [this_column, other]
-        _apply_case_sensitive_text_operation this_column other case_sensitivity TextPredicates.CONTAINS (a -> b -> a.contains b case_sensitivity) new_name
+        apply_case_sensitive_text_operation this_column other case_sensitivity TextPredicates.CONTAINS (a -> b -> a.contains b case_sensitivity) new_name
 
     like (this_column : Column & In_Memory_Column) (pattern : Column | Text | Any) = Value_Type.expect_text this_column <| Value_Type.expect_text pattern <|
         new_name = naming_helper.binary_operation_name "like" this_column pattern
         fallback x y =
             _ = [x, y]
             Error.throw (Illegal_Argument.Error "LIKE operation is not supported for the given types.")
-        _apply_case_sensitive_text_operation this_column pattern ..Default TextPredicates.LIKE fallback new_name
+        apply_case_sensitive_text_operation this_column pattern ..Default TextPredicates.LIKE fallback new_name
 
     regex_match (this_column : Column & In_Memory_Column) (pattern : Column | Text | Regex) =
         string_pattern = case pattern of
@@ -389,7 +436,7 @@ type In_Memory_Column_Implementation
             fallback x y =
                 _ = [x, y]
                 Error.throw (Illegal_Argument.Error "regex_match is not supported for the given types.")
-            _apply_case_sensitive_text_operation this_column string_pattern ..Default TextPredicates.REGEX_MATCH fallback new_name
+            apply_case_sensitive_text_operation this_column string_pattern ..Default TextPredicates.REGEX_MATCH fallback new_name
 
     trim (this_column : Column & In_Memory_Column) where:Location (what : Text | Column) = Value_Type.expect_text this_column <|
         parsed_what = if what.is_a Column && what.value_type == Value_Type.Null then "" else what
@@ -564,7 +611,7 @@ type In_Memory_Column_Implementation
                         formatter format value
                     _apply_binary_map this_column formatter_function format_column this_column.name skip_nulls=False expected_result_type=Value_Type.Char
         _ ->
-            if format==Nothing && locale==Locale.default then In_Memory_Column_Implementation.cast this_column Value_Type.Char else
+            if format=="" && locale==Locale.default then In_Memory_Column_Implementation.cast this_column Value_Type.Char ..Ignore else
                 formatter = make_value_formatter_for_value_type this_column.value_type locale format
                 _apply_unary_map this_column this_column.name formatter Value_Type.Char on_problems=..Report_Error
 
@@ -704,8 +751,9 @@ type In_Memory_Column_Implementation
         Statistic.compute_bulk this_column.to_vector [statistic] . first
 
     compute_bulk (this_column : Column & In_Memory_Column) (statistics : Vector Statistic) =
-        values = Statistic.compute_bulk this_column.to_vector statistics
-        names = statistics.map _.to_text
+        resolved_stats = statistics.map s-> s:Statistic
+        values = Statistic.compute_bulk this_column.to_vector resolved_stats
+        names = resolved_stats.map _.to_text
         Table.from_rows names [values]
 
     running (this_column : Column & In_Memory_Column) statistic:Statistic (name : Text) =
@@ -852,13 +900,13 @@ private _call_binary_operator left:In_Memory_Column other new_name ~operation =
 ## ---
    private: true
    ---
-private _apply_case_sensitive_text_operation left:Column (other : Column | Text | Any) case_sensitivity:Case_Sensitivity operation fallback_fn new_name:Text =
+private apply_case_sensitive_text_operation left:Column (other : Column | Text | Any) case_sensitivity:Case_Sensitivity operation fallback_fn new_name:Text expected_result_type=Value_Type.Boolean =
     java_other = (if other.is_a Column then (other:In_Memory_Column).java_column else other)
     use_fallback = case case_sensitivity of
         Case_Sensitivity.Insensitive _ -> True
         _ -> operation.canApply (left:In_Memory_Column).java_column java_other . not
     case use_fallback of
-        True -> _apply_binary_map left fallback_fn other new_name=new_name skip_nulls=True expected_result_type=Value_Type.Boolean
+        True -> _apply_binary_map left fallback_fn other new_name=new_name skip_nulls=True expected_result_type=expected_result_type
         _ ->
             Java_Problems.with_map_operation_problem_aggregator new_name Problem_Behavior.Report_Warning java_problem_aggregator->
                 java_column = operation.apply (left:In_Memory_Column).java_column java_other new_name java_problem_aggregator

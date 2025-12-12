@@ -11,6 +11,7 @@ import {
   type UseMutationOptions,
   type UseMutationResult,
 } from '@tanstack/react-query'
+import * as vueQuery from '@tanstack/vue-query'
 
 /**
  * Return a function that will execute the given mutation.
@@ -53,4 +54,21 @@ export function useEnsureQueryData(queryClient?: QueryClient) {
       options: EnsureQueryDataOptions<TQueryFnData, TError, TData, TQueryKey>,
     ) => ctxQueryClient.ensureQueryData(options),
   )
+}
+
+/**
+ * Return a function that will execute the given query.
+ * Unlike `useQuery`, this function returns a function instead of the state of the query.
+ */
+export function useVueEnsureQueryData() {
+  const ctxQueryClient = vueQuery.useQueryClient()
+
+  return <
+    TQueryFnData,
+    TError = DefaultError,
+    TData = TQueryFnData,
+    TQueryKey extends QueryKey = QueryKey,
+  >(
+    options: EnsureQueryDataOptions<TQueryFnData, TError, TData, TQueryKey>,
+  ) => ctxQueryClient.ensureQueryData(options)
 }

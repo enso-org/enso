@@ -1,6 +1,5 @@
 package org.enso.table.data.column.operation.unary;
 
-import java.util.BitSet;
 import java.util.function.DoublePredicate;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.operation.StorageIterators;
@@ -8,12 +7,13 @@ import org.enso.table.data.column.operation.UnaryOperation;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.ColumnDoubleStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
-import org.enso.table.data.column.storage.ColumnStorageWithNothingMap;
+import org.enso.table.data.column.storage.ColumnStorageWithValidityMap;
 import org.enso.table.data.column.storage.type.BigDecimalType;
 import org.enso.table.data.column.storage.type.BigIntegerType;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.table.problems.MapOperationProblemAggregator;
+import org.enso.table.util.ImmutableBitSet;
 
 public class DoubleIsOperation implements UnaryOperation {
   public static final String FINITE_NAME = "is_finite";
@@ -61,9 +61,14 @@ public class DoubleIsOperation implements UnaryOperation {
       ColumnStorage<?> storage, MapOperationProblemAggregator problemAggregator) {
     // For Finite
     if (isAllFinite(storage.getType())) {
-      if (storage instanceof ColumnStorageWithNothingMap withNothingMap) {
+      if (storage instanceof ColumnStorageWithValidityMap withNothingMap) {
+        var size = (int) storage.getSize();
         return new BoolStorage(
-            new BitSet(), withNothingMap.getIsNothingMap(), (int) storage.getSize(), finiteValue);
+            ImmutableBitSet.allFalse(size),
+            withNothingMap.getValidityMap(),
+            size,
+            finiteValue,
+            null);
       }
 
       return StorageIterators.mapOverStorage(

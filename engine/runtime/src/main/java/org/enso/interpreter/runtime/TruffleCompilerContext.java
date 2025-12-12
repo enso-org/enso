@@ -360,11 +360,17 @@ final class TruffleCompilerContext implements CompilerContext {
             diagnosticFormatter.format(), diagnosticFormatter.where());
       }
     }
-    var emptySource = Source.newBuilder(LanguageInfo.ID, "", null).build();
+    Source fallbackSource;
+    try {
+      fallbackSource = m.getSource();
+    } catch (IOException ex) {
+      fallbackSource = Source.newBuilder(LanguageInfo.ID, "", null).build();
+    }
     diagnosticFormatter =
         DiagnosticFormatter.create(
-            diagnostic, emptySource, isOutputRedirected, context.isColorTerminalOutput());
-    return new CompilationAbortedException(diagnosticFormatter.format(), null);
+            diagnostic, fallbackSource, isOutputRedirected, context.isColorTerminalOutput());
+    var ss = fallbackSource.createUnavailableSection();
+    return new CompilationAbortedException(diagnosticFormatter.format(), ss);
   }
 
   @SuppressWarnings("unchecked")
@@ -408,14 +414,18 @@ final class TruffleCompilerContext implements CompilerContext {
     logSerializationManager(
         Level.FINE, "Requesting serialization for module [{0}].", module.getName());
     var ir = module.getIr();
-    var dupl = ir.duplicate(true, true, true, true);
-    var duplicatedIr = compiler.updateMetadata(ir, dupl);
+    org.enso.compiler.core.ir.Module duplicatedIr;
     Source src;
     try {
+      var dupl = ir.duplicate(true, true, true, true);
+      duplicatedIr = compiler.updateMetadata(ir, dupl);
       var m = org.enso.interpreter.runtime.Module.fromCompilerModule(module);
       src = m.getSource();
     } catch (IOException ex) {
-      logSerializationManager(Level.WARNING, "Cannot get source for " + module.getName(), ex);
+      logSerializationManager(
+          Level.WARNING,
+          "Cannot get source for " + module.getName() + " at stage " + module.getCompilationStage(),
+          ex);
       return CompletableFuture.failedFuture(ex);
     }
     var task =

@@ -37,7 +37,7 @@ import type { ActionHandler, DisplayableActionName } from '@/providers/action'
 import { registerHandlers, toggledAction } from '@/providers/action'
 import { injectGraphNavigator } from '@/providers/graphNavigator'
 import { injectNodeColors } from '@/providers/graphNodeColors'
-import { injectGraphSelection } from '@/providers/graphSelection'
+import { useGraphSelection } from '@/providers/graphSelection'
 import { providePopoverRoot } from '@/providers/popoverRoot'
 import { provideResizableWidgetRegistry } from '@/providers/resizableWidgetRegistry'
 import { provideWidgetControlledActions } from '@/providers/widgetActions'
@@ -78,7 +78,7 @@ const emit = defineEmits<{
   'update:visualizationHeight': [height: number]
 }>()
 
-const nodeSelection = injectGraphSelection(true)
+const nodeSelection = useGraphSelection(true)
 const projectStore = useProjectStore()
 const graph = useGraphStore()
 const { module } = useCurrentProject()
@@ -107,7 +107,6 @@ providePopoverRoot(rootNode)
 const { visibleMessage, hiddenMessage } = useNodeMessage({
   projectStore,
   graphDb: graph.db,
-  passEvents: () => outputVisible.value,
   expand: () => nodeHovered.value || selected.value,
   nodeId,
 })
@@ -175,7 +174,6 @@ function ensureSelected() {
   }
 }
 
-const outputVisible = computed(() => graph.nodeOutputVisible.get(nodeId.value))
 const outputHovered = computed(() => graph.nodeOutputHovered.get(nodeId.value))
 
 const scale = computed(() => navigator?.scale ?? 1)
@@ -406,6 +404,7 @@ const nodeMenuActions: DisplayableActionName[] = [
   'component.startEditing',
   'components.copy',
   'components.deleteSelected',
+  'components.deleteAndConnectAround',
 ]
 
 onWindowBlur(() => {
@@ -497,8 +496,9 @@ const nodeName = computed(() => props.node.pattern?.code())
   border-radius: var(--node-border-radius);
   transition: box-shadow 0.2s ease-in-out;
   box-sizing: border-box;
+  --z-index-component: 24;
   --z-index-component-menu: 20;
-  --z-index-selection-submenu: calc(var(--z-index-component-menu) + 1);
+  --z-index-selection-submenu: 25;
 }
 
 .nodeBackground {
@@ -522,7 +522,7 @@ const nodeName = computed(() => props.node.pattern?.code())
   flex-direction: row;
   align-items: center;
   white-space: nowrap;
-  z-index: 24;
+  z-index: var(--z-index-component);
 }
 
 .binding {

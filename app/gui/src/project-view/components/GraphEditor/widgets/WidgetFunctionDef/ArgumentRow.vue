@@ -210,7 +210,6 @@ const defaultEntries = [
         :show="defaultValueDropdownInteraction.isActive()"
         :entries="defaultEntries"
         :topLevel="true"
-        :extendUpwards="false"
         @clickedEntry="defaultOnClick"
       />
       <span class="tokenText" data-testid="missing-behaviour">{{ defaultKindText }}</span>

@@ -3,7 +3,9 @@ package org.enso.table.util;
 import java.util.BitSet;
 import org.graalvm.polyglot.Context;
 
-public class BitSets {
+public final class BitSets {
+  private BitSets() {}
+
   /**
    * An utility to copy a part of one bitset onto another, with a possible destination offset.
    *
@@ -25,11 +27,5 @@ public class BitSets {
 
       context.safepoint();
     }
-  }
-
-  public static BitSet makeDuplicate(BitSet source) {
-    BitSet result = new BitSet();
-    result.or(source);
-    return result;
   }
 }

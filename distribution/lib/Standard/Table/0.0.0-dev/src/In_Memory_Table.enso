@@ -1,9 +1,9 @@
 from Standard.Base import all
-from Standard.Base.Logging import all
 import Standard.Base.Data.Vector.No_Wrap
 import Standard.Base.Errors.Deprecated.Deprecated
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Runtime.Context
+from Standard.Base.Logging import all
 from Standard.Base.Widget_Helpers import make_delimiter_selector
 
 import project.Column.Column

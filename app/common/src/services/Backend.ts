@@ -7,6 +7,7 @@ import * as newtype from '../utilities/data/newtype.js'
 import * as permissions from '../utilities/permissions.js'
 import { getFileDetailsPath } from './Backend/remoteBackendPaths.js'
 import {
+  ApiKeyId,
   DatalinkId,
   DirectoryId,
   EnsoPath,
@@ -591,6 +592,11 @@ export interface RemoteBackendError {
   readonly param: string
 }
 
+/** HTTP response body for the "list api keys" endpoint. */
+export interface ListApiKeysResponse {
+  readonly credentials: readonly ApiKey[]
+}
+
 /** HTTP response body for the "list users" endpoint. */
 export interface ListUsersResponseBody {
   readonly users: readonly User[]
@@ -629,10 +635,17 @@ export interface CreateCustomerPortalSessionResponse {
 /** Response from the "path/resolve" endpoint. */
 export interface PathResolveResponse extends Omit<AnyRealAsset, 'type' | 'ensoPath'> {}
 
+/** Whether a type is `any`. */
+type IsAny<T> = 0 extends 1 & T ? true : false
+
 /** Response from "assets/${assetId}" endpoint. */
 export type AssetDetailsResponse<Id extends AssetId> =
-  | (Asset<AssetTypeFromId<Id>> & { readonly metadataId: MetadataId })
-  | null
+  // `T extends T` where `T` is a type parameter is a trick to distribute union values,
+  // evaluating the conditional type for each member of the union type,
+  // and then resolving to a union of the results of this operation.
+  IsAny<Id> extends true ? AssetDetailsResponse<AssetId>
+  : | (Id extends Id ? AnyAsset<AssetTypeFromId<Id>> & { readonly metadataId: MetadataId } : never)
+    | null
 
 /** Whether the user is on a plan with multiple seats (i.e. a plan that supports multiple users). */
 export function isUserOnPlanWithMultipleSeats(user: User) {
@@ -693,16 +706,9 @@ export interface UpdatedDirectory {
 /** The type returned from the "create directory" endpoint. */
 export type Directory = DirectoryAsset
 
-/** The subset of asset fields returned by the "copy asset" endpoint. */
-export interface CopiedAsset {
-  readonly id: AssetId
-  readonly parentId: DirectoryId
-  readonly title: string
-}
-
 /** The type returned from the "copy asset" endpoint. */
 export interface CopyAssetResponse {
-  readonly asset: CopiedAsset
+  readonly asset: AnyAsset
 }
 
 /** Possible filters for the "list directory" endpoint. */
@@ -793,6 +799,36 @@ export interface LChColor {
   readonly hue: number
   readonly alpha?: number | undefined
 }
+
+/** Type used when creating api key credential. */
+export interface CreateApiKeyRequestBody {
+  readonly name: string
+  readonly description: string
+  readonly expiresIn: ApiKeyExpiresIn
+}
+
+/** Api key credential. */
+export interface ApiKey {
+  readonly id: ApiKeyId
+  // Field populated only once after creation.
+  readonly secretId: string | null
+  readonly name: string
+  readonly description: string
+  readonly createdAt: dateTime.Rfc3339DateTime
+  readonly lastUsedAt: dateTime.Rfc3339DateTime | null
+  readonly expiresAt: dateTime.Rfc3339DateTime | null
+  readonly expiresIn: ApiKeyExpiresIn
+}
+
+/** Possible types of lifetime span for api key credentials. */
+export enum ApiKeyExpiresIn {
+  Week = 'Week',
+  Month = 'Month',
+  Year = 'Year',
+  Indefinetly = 'Indefinetly',
+}
+
+export const API_KEY_EXPIRES_IN_VALUES: readonly ApiKeyExpiresIn[] = Object.values(ApiKeyExpiresIn)
 
 /** A pre-selected list of colors to be used in color pickers. */
 export const COLORS = [
@@ -1167,9 +1203,7 @@ export interface UpdateProjectRequestBody {
   readonly projectName: string | null
 }
 
-/**
- * Extra parameters required when opening the project in hybrid mode.
- */
+/** Extra parameters required when opening the project in hybrid mode. */
 export interface OpenHybridProjectParameters {
   /** Cloud project directory path. */
   readonly cloudProjectDirectoryPath: EnsoPath
@@ -1312,11 +1346,11 @@ export interface GetProjectSessionLogsRequestParams {
 /** URL query string parameters for the "upload file" endpoint. */
 export interface UploadFileRequestParams {
   readonly fileId: AssetId | null
-  // Marked as optional in the data type, however it is required by the actual route handler.
   readonly fileName: string
   readonly parentDirectoryId: DirectoryId | null
   /** Only used for the Local backend when there is no {@link File} object available. */
   readonly filePath?: Path
+  readonly overwrite?: boolean
 }
 
 /** HTTP request body for the "upload file start" endpoint. */
@@ -1346,6 +1380,7 @@ export interface UploadFileEndRequestBody {
   readonly uploadId: string
   readonly assetId: AssetId | null
   readonly fileName: string
+  readonly overwrite?: boolean
 }
 
 /** A large file that has finished uploading. */
@@ -1619,6 +1654,15 @@ export function isNewTitleUnique(
       sibling.title.trim().toLowerCase() !== newTitle.trim().toLowerCase(),
   )
 }
+
+export const MAPBOX_TOKEN_SCHEMA = z.object({
+  token: z.string(),
+  expires: z
+    .string()
+    .datetime({ offset: true })
+    .transform((str) => new Date(str)),
+})
+export type MapboxToken = z.infer<typeof MAPBOX_TOKEN_SCHEMA>
 
 /** Network error class. */
 export class NetworkError extends Error {
@@ -1979,6 +2023,15 @@ export abstract class Backend {
   abstract createCustomerPortalSession(returnUrl: string): Promise<string | null>
   /** Fetches pricing page configuration. */
   abstract getPaymentsConfig(): Promise<PaymentsConfig>
+
+  /** List all API keys for the current user. */
+  abstract listApiKeys(): Promise<readonly ApiKey[]>
+  /** Create a new API key for the current user. */
+  abstract createApiKey(body: CreateApiKeyRequestBody): Promise<ApiKey>
+  /** Delete a API key for the current user. */
+  abstract deleteApiKey(apiKeyId: ApiKeyId): Promise<void>
+  /** Retrieve Mapbox token for the current user. */
+  abstract getMapboxToken(): Promise<MapboxToken>
 
   /** Throw a {@link backend.NotAuthorizedError} if the response is a 401 Not Authorized status code. */
   private async checkForAuthenticationError<T>(

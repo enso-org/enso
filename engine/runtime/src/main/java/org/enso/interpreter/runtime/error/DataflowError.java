@@ -234,4 +234,12 @@ public final class DataflowError extends AbstractTruffleException {
   Type getType(@Bind Node node) {
     return EnsoContext.get(node).getBuiltins().dataflowError();
   }
+
+  public PanicException rethrow() throws PanicException {
+    if (getStackTraceElementLimit() == 1) {
+      throw new PanicException(ctx(), getPayload(), this, getLocation());
+    } else {
+      throw new PanicException(this);
+    }
+  }
 }

@@ -8,7 +8,7 @@ import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
 import org.enso.interpreter.runtime.error.PanicSentinel;
 
 @NodeInfo(shortName = "[]", description = "Creates a vector from given expressions.")
-public class SequenceLiteralNode extends ExpressionNode {
+public final class SequenceLiteralNode extends ExpressionNode {
   private @Children ExpressionNode[] items;
 
   private SequenceLiteralNode(ExpressionNode[] items) {
