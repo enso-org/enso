@@ -18,7 +18,7 @@ pub struct BuildInput {
     #[clap(flatten)]
     pub gui: Source<Gui>,
     #[clap(flatten)]
-    pub backend:         Source<Backend>,
+    pub backend: Source<Backend>,
     #[clap(flatten)]
     pub output_path: OutputPath<Target>,
     /// Override the default target for electron-builder. E.g. pass `dir` for unpacked directory

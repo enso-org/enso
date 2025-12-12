@@ -62,7 +62,7 @@ impl Artifact {
 pub struct BuildInput {
     pub version: Version,
     #[derive_where(skip)]
-    pub backend:         BoxFuture<'static, Result<crate::project::backend::Artifact>>,
+    pub backend: BoxFuture<'static, Result<crate::project::backend::Artifact>>,
     #[derive_where(skip)]
     pub gui: BoxFuture<'static, Result<crate::project::gui::Artifact>>,
     #[derive_where(skip)]

@@ -162,7 +162,6 @@ pub struct BackendInfo {
     pub latest_bundled_engine: Version,
     /// Root of the Backend bundle.
     pub bundle_location: PathBuf,
-
 }
 
 impl BackendInfo {

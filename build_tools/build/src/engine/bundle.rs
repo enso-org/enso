@@ -91,7 +91,6 @@ pub trait IsBundle: AsRef<Path> + IsArtifact {
     }
 }
 
-
 impl IsBundle for crate::paths::generated::LauncherBundle {
     fn graalvm_dir(&self) -> PathBuf {
         self.runtime.path.clone()

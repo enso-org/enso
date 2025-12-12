@@ -66,7 +66,6 @@ impl IsArtifact for crate::paths::generated::EnginePackage {
     }
 }
 
-
 impl IsArtifact for crate::paths::generated::LauncherPackage {
     fn kind(&self) -> ArtifactKind {
         ArtifactKind::LauncherPackage
