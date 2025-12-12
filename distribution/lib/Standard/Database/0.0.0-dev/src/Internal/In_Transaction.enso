@@ -12,8 +12,7 @@ type In_Transaction
        ---
        Checks if a transaction is currently being run.
     is_in_transaction : Boolean
-    is_in_transaction =
-        Panic.catch Uninitialized_State (State.get In_Transaction) (_->False)
+    is_in_transaction = State.get In_Transaction if_missing=False
 
     ## ---
        private: true
