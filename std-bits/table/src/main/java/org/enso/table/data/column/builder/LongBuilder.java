@@ -51,8 +51,7 @@ sealed class LongBuilder extends NumericBuilder implements BuilderForLong, Build
   }
 
   /**
-   * Allocates continuous direct memory buffer. First of all there is a validity bit map (padded to
-   * 8 bytes) followed by the actual data.
+   * Allocates continuous direct memory buffer.
    *
    * @param size the size of buffer to allocate
    * @param data address of data to read or {@code 0} to allocate new data
@@ -240,6 +239,7 @@ sealed class LongBuilder extends NumericBuilder implements BuilderForLong, Build
    * @return locally copied storage
    */
   final LongStorage seal(ColumnStorage<?> otherStorage, IntegerType type) {
+    ensureFreeSpaceFor(0);
     var buf = data.asReadOnlyBuffer().position(0).limit(currentSize);
     var validity = this.validityMap();
     return new LongStorage(buf, validity, type, otherStorage);

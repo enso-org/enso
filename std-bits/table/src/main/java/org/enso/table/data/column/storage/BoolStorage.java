@@ -1,5 +1,6 @@
 package org.enso.table.data.column.storage;
 
+import java.lang.foreign.MemorySegment;
 import java.util.BitSet;
 import java.util.NoSuchElementException;
 import org.enso.table.data.column.storage.iterators.ColumnBooleanStorageIterator;
@@ -9,21 +10,43 @@ import org.enso.table.util.ImmutableBitSet;
 /** A boolean column storage. */
 public final class BoolStorage extends Storage<Boolean>
     implements ColumnBooleanStorage, ColumnStorageWithValidityMap {
-  private final BitSet values;
+  private final ImmutableBitSet values;
   private final ImmutableBitSet validityMap;
   private final int size;
   private final boolean negated;
+  private final ColumnStorage<?> proxy;
 
   public BoolStorage(BitSet values, BitSet validityMap, int size, boolean negated) {
-    this(values, new ImmutableBitSet(validityMap, size), size, negated);
+    this(
+        new ImmutableBitSet(values, size),
+        new ImmutableBitSet(validityMap, size),
+        size,
+        negated,
+        null);
   }
 
-  public BoolStorage(BitSet values, ImmutableBitSet validityMap, int size, boolean negated) {
+  public BoolStorage(
+      ImmutableBitSet values,
+      ImmutableBitSet validityMap,
+      int size,
+      boolean negated,
+      ColumnStorage<?> other) {
     super(BooleanType.INSTANCE);
     this.values = values;
     this.validityMap = validityMap;
     this.size = size;
     this.negated = negated;
+    this.proxy = other;
+  }
+
+  @Override
+  public long addressOfData() {
+    return MemorySegment.ofBuffer(values.rawData()).address();
+  }
+
+  @Override
+  public long addressOfValidity() {
+    return MemorySegment.ofBuffer(validityMap.rawData()).address();
   }
 
   @Override
@@ -57,7 +80,7 @@ public final class BoolStorage extends Storage<Boolean>
     return negated;
   }
 
-  public BitSet getValues() {
+  public ImmutableBitSet getValues() {
     return values;
   }
 

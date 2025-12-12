@@ -69,7 +69,7 @@ function useRightPanelTabs(
     [
       'description',
       {
-        icon: 'text',
+        icon: 'info',
         enabled: enabledInCloudOnly,
         title: 'Description',
       },
@@ -85,7 +85,7 @@ function useRightPanelTabs(
     [
       'versions',
       {
-        icon: 'versions',
+        icon: 'history',
         enabled: enabledInCloudOnly,
         title: textRef('versions'),
       },
@@ -93,7 +93,7 @@ function useRightPanelTabs(
     [
       'sessions',
       {
-        icon: 'sessions',
+        icon: 'activity',
         enabled: enabledInCloudOnly,
         title: textRef('projectSessions'),
       },

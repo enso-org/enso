@@ -178,9 +178,58 @@ add_specs suite_builder =
             (rethrown_panic.stack_trace.length > 0).should_be_true
             (rethrown_panic.stack_trace.map .name) . should_equal (caught_panic.stack_trace.map .name)
 
-        group_builder.specify "panic.rethrow" <|
+        group_builder.specify "Panic.rethrow" <|
             result = (Error.throw 42)
             Test.expect_panic_with (Panic.rethrow result) Integer
+
+        group_builder.specify "Panic.rethrow with Dataflow_Stack_Trace enabled" <|
+            deep_error n:Integer = if n <= 0 then Error.throw "Here is an error" else
+                deep_error n-1
+
+            deep_throw n:Integer ~action = if n <= 0 then action else
+                deep_throw n-1 action
+
+            action n = Runtime.Context.Dataflow_Stack_Trace.with_enabled <|
+                deep_error n
+
+            stack = Panic.catch Text action=(deep_throw 10 (Panic.rethrow (action 10))) handler=\err->
+                err.stack_trace
+            deep_text = stack . map .name . join "\n"
+
+            assert_stack msg:Text name_contains:Text expect:Integer =
+                deep_stack = stack . filter \element->
+                    element.name . contains name_contains
+
+                if deep_stack.length != expect then
+                    Test.fail msg+"\n\nExpecting depth of "+expect.to_text+", but was "+deep_stack.length.to_text+'\n\n'+deep_text
+
+            assert_stack "Prior to #14480 the depth of Error.throw was ignored altogether" "deep" 21
+            assert_stack "Now there is eleven deep_error invocations on stack" "deep_error" 11
+            assert_stack "And also ten deep_throw invocations on stack" "deep_throw" 10
+
+        group_builder.specify "Panic.rethrow without Dataflow_Stack_Trace enabled" <|
+            deep_error n:Integer = if n <= 0 then Error.throw "Here is an error" else
+                deep_error n-1
+
+            deep_throw n:Integer ~action = if n <= 0 then action else
+                deep_throw n-1 action
+
+            action n =
+                deep_error n
+
+            stack = Panic.catch Text action=(deep_throw 10 (Panic.rethrow (action 10))) handler=\err->
+                err.stack_trace
+            deep_text = stack . map .name . join "\n"
+
+            assert_stack msg:Text name_contains:Text expect:Integer =
+                deep_stack = stack . filter \element->
+                    element.name . contains name_contains
+
+                if deep_stack.length != expect then
+                    Test.fail msg+"\n\nExpecting depth of "+expect.to_text+", but was "+deep_stack.length.to_text+'\n\n'+deep_text
+
+            assert_stack "Just deep_throw invocations on stack" "deep_throw" 11
+            assert_stack "No deep_error in stack" "deep" 11
 
         group_builder.specify "PanicException.rethrow in polyglot java" <|
             Test.expect_panic_with (CallbackHelper.rethrow Error 42) Integer

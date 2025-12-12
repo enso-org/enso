@@ -267,7 +267,8 @@ public final class IsInOperation {
     // If had both true and false, then return all true when not nothing
     if (flags.hadTrue && flags.hadFalse) {
       var validityMap = makeValidityMap(boolStorage, checkedSize);
-      return new BoolStorage(new BitSet(), validityMap, checkedSize, true);
+      return new BoolStorage(
+          ImmutableBitSet.allFalse(checkedSize), validityMap, checkedSize, true, null);
     }
 
     // Only have one of true or false
@@ -296,7 +297,7 @@ public final class IsInOperation {
 
   private static ColumnStorage<?> applyBoolStorage(
       boolean keepValue, BoolStorage boolStorage, int checkedSize) {
-    BitSet values = boolStorage.getValues();
+    BitSet values = boolStorage.getValues().cloneBitSet();
     BitSet isNothing = boolStorage.getValidityMap().cloneBitSet();
     isNothing.flip(0, Math.toIntExact(boolStorage.getSize()));
 

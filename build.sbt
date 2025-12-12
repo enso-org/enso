@@ -305,7 +305,6 @@ lazy val checkNativeImageSize =
 lazy val enso = (project in file("."))
   .settings(version := "0.1")
   .aggregate(
-    `akka-native`,
     `akka-wrapper`,
     `benchmark-java-helpers`,
     `benchmarks-common`,
@@ -318,7 +317,6 @@ lazy val enso = (project in file("."))
     downloader,
     editions,
     `edition-updater`,
-    `edition-uploader`,
     `engine-common`,
     `engine-runner`,
     `engine-runner-common`,
@@ -973,19 +971,6 @@ lazy val `python-resource-provider` = project
       "org.graalvm.truffle" % "truffle-api" % graalMavenPackagesVersion,
       "org.graalvm.sdk"     % "word"        % graalMavenPackagesVersion
     )
-  )
-
-lazy val `akka-native` = project
-  .in(file("lib/scala/akka-native"))
-  .configs(Test)
-  .settings(
-    frgaalJavaCompilerSetting,
-    version := "0.1",
-    libraryDependencies ++= Seq(
-      akkaActor
-    ),
-    // Note [Native Image Workaround for GraalVM 20.2]
-    libraryDependencies += "org.graalvm.nativeimage" % "svm" % graalMavenPackagesVersion % "provided"
   )
 
 lazy val `profiling-utils` = project
@@ -1905,14 +1890,22 @@ lazy val `ydoc-server` = project
     NativeImage.smallJdk := None,
     NativeImage.additionalCp := Seq.empty,
     rebuildNativeImage := Def.taskDyn {
+      val cLibraryOpts = (Bazel / cLibraryPath).value
+        .map(cLib =>
+          Seq(
+            "-H:CLibraryPath=" + cLib.getAbsolutePath
+          )
+        )
+        .getOrElse(Seq())
       NativeImage
         .buildNativeImage(
           "org.enso.ydoc.server",
-          staticOnLinux = false,
-          targetDir     = engineDistributionRoot.value / "component",
-          mainClass     = Some("org.enso.ydoc.server.Main"),
-          symlink       = false,
-          shared        = true
+          staticOnLinux     = false,
+          additionalOptions = cLibraryOpts,
+          targetDir         = engineDistributionRoot.value / "component",
+          mainClass         = Some("org.enso.ydoc.server.Main"),
+          symlink           = false,
+          shared            = true
         )
     }.value,
     buildNativeImage := Def.taskDyn {
@@ -3969,6 +3962,13 @@ lazy val `engine-runner` = project
               "-Dnic=nic"
             )
           else Seq()
+        val cLibraryOpts = (Bazel / cLibraryPath).value
+          .map(cLib =>
+            Seq(
+              "-H:CLibraryPath=" + cLib.getAbsolutePath
+            )
+          )
+          .getOrElse(Seq())
         val mp = (Runtime / modulePath).value.map(_.getAbsolutePath)
         NativeImage
           .buildNativeImage(
@@ -4001,7 +4001,7 @@ lazy val `engine-runner` = project
               "--add-opens=java.base/java.nio=ALL-UNNAMED",
               // Needed for grpc-gax
               "--add-opens=java.base/java.time=ALL-UNNAMED"
-            ) ++ enableHeapDumpOpts ++ debugOpts ++ linkOpts,
+            ) ++ enableHeapDumpOpts ++ debugOpts ++ linkOpts ++ cLibraryOpts,
             mainModule = Some("org.enso.runner"),
             mainClass  = Some("org.enso.runner.Main"),
             initializeAtRuntime = Seq(
@@ -4876,17 +4876,6 @@ lazy val `edition-updater` = project
   .dependsOn(downloader)
   .dependsOn(editions)
   .dependsOn(`library-manager` % "test->test")
-
-lazy val `edition-uploader` = project
-  .in(file("lib/scala/edition-uploader"))
-  .settings(
-    frgaalJavaCompilerSetting,
-    libraryDependencies ++= Seq(
-      "io.circe" %% "circe-core" % circeVersion % "provided"
-    )
-  )
-  .dependsOn(editions)
-  .dependsOn(`version-output`)
 
 lazy val `library-manager` = project
   .in(file("lib/scala/library-manager"))
@@ -6294,35 +6283,6 @@ lazy val fetchZipToUnmanaged =
   )
 lazy val unmanagedExternalZip =
   settingKey[URL]("URL to zip file with dependencies")
-
-/* Note [Native Image Workaround for GraalVM 20.2]
- * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
- * In GraalVM 20.2 the Native Image build of even simple Scala programs has
- * started to fail on a call to `Statics.releaseFence`. It has been reported as
- * a bug in the GraalVM repository: https://github.com/oracle/graal/issues/2770
- *
- * A proposed workaround for this bug is to substitute the original function
- * with a different implementation that does not use the problematic
- * MethodHandle. This is implemented in class
- * `org.enso.launcher.workarounds.ReplacementStatics` using
- * `org.enso.launcher.workarounds.Unsafe` which gives access to
- * `sun.misc.Unsafe` which contains a low-level function corresponding to the
- * required "release fence".
- *
- * To allow for that substitution, the launcher code requires annotations from
- * the `svm` module and that is why this additional dependency is needed as long
- * as that workaround is in-place. The dependency is marked as "provided"
- * because it is included within the native-image build.
- */
-
-/* Note [WSLoggerManager Shutdown Hook]
- * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
- * As the WSLoggerManager registers a shutdown hook when its initialized to
- * ensure that logs are not lost in case of logging service initialization
- * failure, it has to be initialized at runtime, as otherwise if the
- * initialization was done at build time, the shutdown hook would actually also
- * run at build time and have no effect at runtime.
- */
 
 lazy val engineDistributionRoot =
   settingKey[File]("Root of built engine distribution")

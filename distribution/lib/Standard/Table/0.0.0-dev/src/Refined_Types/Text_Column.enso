@@ -123,3 +123,21 @@ type Text_Column
         ```  
     proper self -> Column & Text_Column =    
         self.operations_implementation.proper self.column
+
+    ## ---
+       group: Standard.Base.Text
+       icon: text
+       ---
+       Returns the index of the first occurrence of `other` in each element of the column.
+       The index is zero-based. If `other` is not found, -1 is returned
+
+        ## Examples
+        ### Find the index of a substring in each element of a column.
+
+        ```
+            import Standard.Examples
+
+            example_index_of = Examples.text_column_1.index_of "e"
+        ```  
+    index_of self (other : Column | Text | Any) case_sensitivity:Case_Sensitivity=..Default -> Column & Numeric_Column =
+        self.operations_implementation.index_of self.column other case_sensitivity

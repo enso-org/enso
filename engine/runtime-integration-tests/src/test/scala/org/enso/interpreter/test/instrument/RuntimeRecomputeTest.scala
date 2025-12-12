@@ -841,7 +841,7 @@ class RuntimeRecomputeTest
       )
     )
     context.receiveNIgnorePendingExpressionUpdates(
-      4
+      5
     ) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.RecomputeContextResponse(contextId)),
       TestMessages.update(
@@ -875,6 +875,12 @@ class RuntimeRecomputeTest
             Vector()
           )
         )
+      ),
+      TestMessages.update(
+        contextId,
+        idX,
+        "Enso_Test.Test.Main.Test",
+        typeChanged = false
       ),
       context.executionComplete(contextId)
     )

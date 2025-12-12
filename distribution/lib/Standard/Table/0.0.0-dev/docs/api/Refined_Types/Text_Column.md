@@ -2,6 +2,7 @@
 ## module Standard.Table.Refined_Types.Text_Column
 - type Text_Column
     - char_length self -> (Standard.Table.Column.Column&Standard.Table.Refined_Types.Numeric_Column.Numeric_Column)
+    - index_of self other:(Standard.Table.Column.Column|Standard.Base.Data.Text.Text|Standard.Base.Any.Any) case_sensitivity:Standard.Base.Data.Text.Case_Sensitivity.Case_Sensitivity= -> (Standard.Table.Column.Column&Standard.Table.Refined_Types.Numeric_Column.Numeric_Column)
     - length self -> (Standard.Table.Column.Column&Standard.Table.Refined_Types.Numeric_Column.Numeric_Column)
     - lower self -> (Standard.Table.Column.Column&Standard.Table.Refined_Types.Text_Column.Text_Column)
     - proper self -> (Standard.Table.Column.Column&Standard.Table.Refined_Types.Text_Column.Text_Column)

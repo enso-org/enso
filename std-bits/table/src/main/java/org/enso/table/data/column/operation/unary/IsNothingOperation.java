@@ -31,7 +31,7 @@ public class IsNothingOperation implements UnaryOperation {
     if (storage instanceof ColumnStorageWithValidityMap validityMap) {
       var size = (int) storage.getSize();
       var allValidity = ImmutableBitSet.allTrue(size);
-      return new BoolStorage(validityMap.getValidityMap().cloneBitSet(), allValidity, size, true);
+      return new BoolStorage(validityMap.getValidityMap(), allValidity, size, true, null);
     }
 
     return StorageIterators.buildOverStorage(

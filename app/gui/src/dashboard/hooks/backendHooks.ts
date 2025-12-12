@@ -344,7 +344,8 @@ export function unsafe_assetFromCacheQueryOptions(options: AssetFromCacheQueryOp
           }
           // And sometimes we store them directly
           const result = assetSchema.safeParse(data)
-          if (result.success) return result.data
+          // eslint-disable-next-line no-restricted-syntax
+          if (result.success) return data as AnyAsset | undefined
           return null
         })
         .filter((asset) => asset != null)[0],

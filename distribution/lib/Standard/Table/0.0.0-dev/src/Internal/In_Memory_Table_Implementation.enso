@@ -67,6 +67,7 @@ import project.Rows_To_Read.Rows_To_Read
 import project.Set_Mode.Set_Mode
 import project.Simple_Expression.Simple_Expression
 import project.Sort_Column.Sort_Column
+import project.Spatial_Table.Lat_Long_Type
 import project.SQL_Function.SQL_Function
 import project.Table.Table
 import project.Value_Type.Auto
@@ -758,6 +759,74 @@ type In_Memory_Table_Implementation
     pretty_implementation (this_table : Table & In_Memory_Table) =
         data = this_table.columns.map c->("[" + c.name.pretty + ", " + c.to_vector.pretty + "]") . join ", "
         "Table.new [" + data + "]"
+
+    spatial_columns (this_table : Table & In_Memory_Table) =
+        _ = this_table
+        []
+
+    spatial_point (this_table : Table & In_Memory_Table) (longitude : Column) (latitude : Column) (as : Text) =
+        _ = [this_table, longitude, latitude, as]
+        Unimplemented.throw "Spatial functions are not currently implemented for in-memory tables."
+
+    spatial_geometry_type (this_table : Table & In_Memory_Table) (column : Column) (as : Text) =
+        _ = [this_table, column, as]
+        Unimplemented.throw "Spatial functions are not currently implemented for in-memory tables."
+
+    spatial_longitude (this_table : Table & In_Memory_Table) (column : Column) (value : Lat_Long_Type) (as : Text) =
+        _ = [this_table, column, value, as]
+        Unimplemented.throw "Spatial functions are not currently implemented for in-memory tables."
+
+    spatial_latitude (this_table : Table & In_Memory_Table) (column : Column) (value : Lat_Long_Type) (as : Text) =
+        _ = [this_table, column, value, as]
+        Unimplemented.throw "Spatial functions are not currently implemented for in-memory tables."
+
+    spatial_centroid (this_table : Table & In_Memory_Table) (column : Column) (as : Text) =
+        _ = [this_table, column, as]
+        Unimplemented.throw "Spatial functions are not currently implemented for in-memory tables."
+
+    spatial_extent (this_table : Table & In_Memory_Table) (column : Column) (as : Text) =
+        _ = [this_table, column, as]
+        Unimplemented.throw "Spatial functions are not currently implemented for in-memory tables."
+
+    spatial_perimeter (this_table : Table & In_Memory_Table) (column : Column) (as : Text) =
+        _ = [this_table, column, as]
+        Unimplemented.throw "Spatial functions are not currently implemented for in-memory tables."
+
+    spatial_area (this_table : Table & In_Memory_Table) (column : Column) (as : Text) =
+        _ = [this_table, column, as]
+        Unimplemented.throw "Spatial functions are not currently implemented for in-memory tables."
+
+    spatial_distance (this_table : Table & In_Memory_Table) (from_column : Column) (to_column : Column) (as : Text) =
+        _ = [this_table, from_column, to_column, as]
+        Unimplemented.throw "Spatial functions are not currently implemented for in-memory tables."
+
+    spatial_length (this_table : Table & In_Memory_Table) (from_column : Column) (to_column : Column) (as : Text) =
+        _ = [this_table, from_column, to_column, as]
+        Unimplemented.throw "Spatial functions are not currently implemented for in-memory tables."
+
+    spatial_intersection (this_table : Table & In_Memory_Table) (columns : Vector Column) (as : Text) =
+        _ = [this_table, columns, as]
+        Unimplemented.throw "Spatial functions are not currently implemented for in-memory tables."
+
+    spatial_union (this_table : Table & In_Memory_Table) (columns : Vector Column) (as : Text) =
+        _ = [this_table, columns, as]
+        Unimplemented.throw "Spatial functions are not currently implemented for in-memory tables."
+
+    spatial_to_geojson (this_table : Table & In_Memory_Table) (column : Column) (as : Text) =
+        _ = [this_table, column, as]
+        Unimplemented.throw "Spatial functions are not currently implemented for in-memory tables."
+
+    spatial_from_geojson (this_table : Table & In_Memory_Table) (column : Column) (as : Text) =
+        _ = [this_table, column, as]
+        Unimplemented.throw "Spatial functions are not currently implemented for in-memory tables."
+
+    spatial_to_wkt (this_table : Table & In_Memory_Table) (column : Column) (as : Text) =
+        _ = [this_table, column, as]
+        Unimplemented.throw "Spatial functions are not currently implemented for in-memory tables."
+
+    spatial_from_wkt (this_table : Table & In_Memory_Table) (column : Column) (as : Text) =
+        _ = [this_table, column, as]
+        Unimplemented.throw "Spatial functions are not currently implemented for in-memory tables."
 
 ## ---
    private: true
