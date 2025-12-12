@@ -116,8 +116,9 @@
     "https://bcr.bazel.build/modules/rules_cc/0.0.6/MODULE.bazel": "abf360251023dfe3efcef65ab9d56beefa8394d4176dd29529750e1c57eaa33f",
     "https://bcr.bazel.build/modules/rules_cc/0.0.8/MODULE.bazel": "964c85c82cfeb6f3855e6a07054fdb159aced38e99a5eecf7bce9d53990afa3e",
     "https://bcr.bazel.build/modules/rules_cc/0.0.9/MODULE.bazel": "836e76439f354b89afe6a911a7adf59a6b2518fafb174483ad78a2a2fde7b1c5",
+    "https://bcr.bazel.build/modules/rules_cc/0.2.12/MODULE.bazel": "4216c383ce3223c7dfbd3afcb09c7056265156150b2a3bd3fd9d02949a7ee1bc",
+    "https://bcr.bazel.build/modules/rules_cc/0.2.12/source.json": "593d822a2ce7b70d5fad3195f7eb64d519dde94d7c20b0b79e6c23891a79b2bd",
     "https://bcr.bazel.build/modules/rules_cc/0.2.4/MODULE.bazel": "1ff1223dfd24f3ecf8f028446d4a27608aa43c3f41e346d22838a4223980b8cc",
-    "https://bcr.bazel.build/modules/rules_cc/0.2.4/source.json": "2bd87ef9b41d4753eadf65175745737135cba0e70b479bdc204ef0c67404d0c4",
     "https://bcr.bazel.build/modules/rules_foreign_cc/0.9.0/MODULE.bazel": "c9e8c682bf75b0e7c704166d79b599f93b72cfca5ad7477df596947891feeef6",
     "https://bcr.bazel.build/modules/rules_fuzzing/0.5.2/MODULE.bazel": "40c97d1144356f52905566c55811f13b299453a14ac7769dfba2ac38192337a8",
     "https://bcr.bazel.build/modules/rules_fuzzing/0.5.2/source.json": "c8b1e2c717646f1702290959a3302a178fb639d987ab61d548105019f11e527e",
@@ -199,7 +200,8 @@
     "https://bcr.bazel.build/modules/zlib/1.2.11/MODULE.bazel": "07b389abc85fdbca459b69e2ec656ae5622873af3f845e1c9d80fe179f3effa0",
     "https://bcr.bazel.build/modules/zlib/1.2.12/MODULE.bazel": "3b1a8834ada2a883674be8cbd36ede1b6ec481477ada359cd2d3ddc562340b27",
     "https://bcr.bazel.build/modules/zlib/1.3.1.bcr.3/MODULE.bazel": "af322bc08976524477c79d1e45e241b6efbeb918c497e8840b8ab116802dda79",
-    "https://bcr.bazel.build/modules/zlib/1.3.1.bcr.3/source.json": "2be409ac3c7601245958cd4fcdff4288be79ed23bd690b4b951f500d54ee6e7d",
+    "https://bcr.bazel.build/modules/zlib/1.3.1.bcr.7/MODULE.bazel": "26a6764cda2bfa720e5ea6bea9e6aa4282b69f96d3b9cfcfbce1ef596ce30e43",
+    "https://bcr.bazel.build/modules/zlib/1.3.1.bcr.7/source.json": "086122bc43f9108094fed21aaace4c0affd5abd8364af0520dbacdb76cc0546d",
     "https://bcr.bazel.build/modules/zlib/1.3.1/MODULE.bazel": "751c9940dcfe869f5f7274e1295422a34623555916eb98c174c1e945594bf198"
   },
   "selectedYankedVersions": {},
@@ -755,7 +757,7 @@
     },
     "@@rules_rust+//crate_universe:extension.bzl%crate": {
       "general": {
-        "bzlTransitiveDigest": "eniTmqzftt4aJxe5q5BdEXLtdGEDSB2wyl3eVZFR0QE=",
+        "bzlTransitiveDigest": "OpJ0UnxVnEWoxuHWpEN0kKkg2/zJNJgiL9nkSl3ONHg=",
         "usagesDigest": "IQLYw1Zg2nmVhPZ5hVom2Hr1U7+l9X9ew1gzWiGuU6M=",
         "recordedFileInputs": {
           "@@//.cargo/config.toml": "3c2c15666dd61127d12c2e17a582baf32f567c9392680bd0b1fce208491f907f",
@@ -8532,6 +8534,16 @@
           ],
           [
             "rules_cc+",
+            "cc_compatibility_proxy",
+            "rules_cc++compatibility_proxy+cc_compatibility_proxy"
+          ],
+          [
+            "rules_cc+",
+            "rules_cc",
+            "rules_cc+"
+          ],
+          [
+            "rules_cc++compatibility_proxy+cc_compatibility_proxy",
             "rules_cc",
             "rules_cc+"
           ],
@@ -8590,7 +8602,7 @@
     },
     "@@rules_scala+//scala/extensions:deps.bzl%scala_deps": {
       "general": {
-        "bzlTransitiveDigest": "/UHf2ihcgfAhhqW7n0i9Kjdt6YCi9rp/ycwIS9wpDcg=",
+        "bzlTransitiveDigest": "549fqmKs9JIloxL5kc8Kdl8UZdRTySzcm4mR2XXhC3A=",
         "usagesDigest": "E7lroe2isETSB+l0XjaGFno4zpkMnJd36Lk8WOz1gEo=",
         "recordedFileInputs": {},
         "recordedDirentsInputs": {},
@@ -9024,6 +9036,16 @@
           ],
           [
             "rules_cc+",
+            "cc_compatibility_proxy",
+            "rules_cc++compatibility_proxy+cc_compatibility_proxy"
+          ],
+          [
+            "rules_cc+",
+            "rules_cc",
+            "rules_cc+"
+          ],
+          [
+            "rules_cc++compatibility_proxy+cc_compatibility_proxy",
             "rules_cc",
             "rules_cc+"
           ],

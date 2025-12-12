@@ -1,6 +1,8 @@
 from Standard.Base import all
 import Standard.Base.Errors.Common.Type_Error
+from Standard.Base.Metadata.Widget import Text_Input, Vector_Editor
 
+from Standard.Database import DB_Table
 import Standard.Database.Connection.Connection_Options.Connection_Options
 
 import project.DuckDB_Connection.DuckDB_Connection
@@ -70,3 +72,30 @@ type DuckDB
         DuckDB.From_File _ _ True -> [Pair.new "duckdb.read_only" "true"]
         DuckDB.In_Memory _ True -> [Pair.new "duckdb.read_only" "true"]
         _ -> []
+
+    ## ---
+       group: Standard.Base.Input
+       icon: spatial
+       ---
+       ToDo: Hidden until we do a shared in memory instance.
+       Reads a spatial file into a new In-Memory DuckDB database.
+
+       ## Arguments
+        - `path`: the path to the file to read. Can be a `Text`, `URI` or
+          `File` object.
+        - `as`: the name of the table to create. Defaults to "NewTable".
+        - `key_columns`: the names of the columns to use as the primary key. If
+          not provided, no primary key will be created.
+
+       ## Returns
+       A `DB_Table` referencing the newly created table.
+
+       ## Table.load_to_duckdb -> bulk load from DuckDB to the share memory instance
+       ## Table.export_as_duckdb -> bulk load to DuckDB and then write as a file
+    @path Text_Input display=..Always
+    @as Text_Input display=..Always
+    @key_columns Vector_Editor display=..Always item_editor=Text_Input item_default='"Column"'
+    open_spatial_file : Text | URI | File -> Text -> Vector Text -> DB_Table
+    private open_spatial_file path=(Missing_Argument.throw "path") as:Text="NewSpatialTable" key_columns:Vector=[] =
+        connect = DuckDB.In_Memory.connect
+        connect.read_spatial_file path as key_columns

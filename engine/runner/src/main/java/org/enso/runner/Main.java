@@ -1578,12 +1578,19 @@ public class Main {
         System.setProperty(e.getKey(), e.getValue());
       }
     }
+    var logLevel =
+        scala.Option.apply(line.getOptionValue(LOG_LEVEL))
+            .map(this::parseLogLevel)
+            .getOrElse(() -> defaultLogLevel);
+    setupLoggingContext(line);
     if (line.hasOption(LANGUAGE_SERVER_OPTION)) {
       // Setup application-ls.conf as the default config file
       // https://github.com/lightbend/config?tab=readme-ov-file#standard-behavior
+      // Language Server will also set up logging on its own.
       System.setProperty("config.resource", "application-ls.conf");
+    } else {
+      setupLogging(line, logLevel, logMasking);
     }
-    var logLevel = setupLogging(line, logMasking);
 
     var loc = Main.class.getProtectionDomain().getCodeSource().getLocation();
     var component = new File(loc.toURI().resolve("..")).getAbsoluteFile();
@@ -1647,20 +1654,9 @@ public class Main {
     }
   }
 
-  private Level setupLogging(CommandLine line, boolean[] logMasking) {
-    var logLevel =
-        scala.Option.apply(line.getOptionValue(LOG_LEVEL))
-            .map(this::parseLogLevel)
-            .getOrElse(() -> defaultLogLevel);
-    URI connectionUri;
-    if (line.getOptionValue(LOGGER_CONNECT) != null) {
-      connectionUri = parseUri(line.getOptionValue(LOGGER_CONNECT));
-    } else {
-      connectionUri = null;
-    }
-    logMasking[0] = !line.hasOption(NO_LOG_MASKING);
-    var projectIdOptional = line.getOptionValue(LanguageServerApi.PROJECT_ID_OPTION);
+  private void setupLoggingContext(CommandLine line) {
     String projectId;
+    var projectIdOptional = line.getOptionValue(LanguageServerApi.PROJECT_ID_OPTION);
     try {
       // sanity check
       projectId =
@@ -1685,6 +1681,16 @@ public class Main {
           System.getenv(LanguageServerApi.ENSO_CLOUD_PROJECT_SESSION_ID_ENV_NAME));
     }
     MDC.put("projectLocalId", projectId);
+  }
+
+  private Level setupLogging(CommandLine line, Level logLevel, boolean[] logMasking) {
+    URI connectionUri;
+    if (line.getOptionValue(LOGGER_CONNECT) != null) {
+      connectionUri = parseUri(line.getOptionValue(LOGGER_CONNECT));
+    } else {
+      connectionUri = null;
+    }
+    logMasking[0] = !line.hasOption(NO_LOG_MASKING);
     RunnerLogging.setup(connectionUri, logLevel, logMasking[0]);
     return logLevel;
   }
