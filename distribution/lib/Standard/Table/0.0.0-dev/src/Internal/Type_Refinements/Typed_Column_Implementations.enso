@@ -4,12 +4,17 @@ from Standard.Base import all
 import Standard.Base.Errors.Illegal_State.Illegal_State
 
 import project.Column.Column
+import project.Column.Rest_Of_String
 import project.In_Memory_Column.In_Memory_Column
+import project.Internal.Type_Refinements.Typed_Column_Helpers
+import project.Internal.Type_Refinements.Typed_Column_Implementations.In_Memory_Text_Column_Implementation
 import project.Value_Type.Value_Type
-from project.Internal.In_Memory_Column_Implementation import _call_binary_operator, _java_other, apply_unary_operation, naming_helper, apply_case_sensitive_text_operation
+from project.Internal.In_Memory_Column_Implementation import _apply_unary_map, _apply_binary_map, apply_case_sensitive_text_operation, _call_binary_operator, _java_other, apply_unary_operation, naming_helper
+from project.Internal.Java_Exports import make_string_builder
 
 polyglot java import org.enso.table.data.column.operation.binary.RandBetweenOperation
 polyglot java import org.enso.table.data.column.operation.text.TextIndexOf
+polyglot java import org.enso.table.data.column.operation.text.TextPartOperation
 polyglot java import org.enso.table.data.column.operation.unary.AbsOperation
 polyglot java import org.enso.table.data.column.operation.unary.CaseOperation
 polyglot java import org.enso.table.data.column.operation.unary.DoubleUnaryOperation
@@ -136,6 +141,60 @@ type In_Memory_Text_Column_Implementation
             new_name = naming_helper.function_name "proper" [column]
             operation = CaseOperation.new Case.Proper.to_java Locale.default.java_locale
             apply_unary_operation column operation new_name
+
+    left (this_column : Column & In_Memory_Column) (n : Column | Integer | Nothing) =
+        Value_Type.expect_text this_column <| Value_Type.expect_integer n <|
+            new_name = naming_helper.function_name "left" [this_column, n]
+            apply_case_sensitive_text_operation this_column n ..Default TextPartOperation.LEFT (a -> b -> a.take b) new_name
+
+    right (this_column : Column & In_Memory_Column) (n : Column | Integer | Nothing) =
+        Value_Type.expect_text this_column <| Value_Type.expect_integer n <|
+            new_name = naming_helper.function_name "right" [this_column, n]
+            apply_case_sensitive_text_operation this_column n ..Default TextPartOperation.RIGHT (a -> b -> a.take (..Last b)) new_name
+
+    mid (this_column : Column & In_Memory_Column) (start : Column | Integer | Nothing) (length : Column | Integer | Nothing | Rest_Of_String) =
+        Value_Type.expect_text this_column <| Value_Type.expect_integer start <|
+            new_name = naming_helper.function_name "mid" [this_column, start, length]
+
+            # Returns Nothing if any argument is Nothing, and returns "" for start out-of-bounds or if length is negative.
+            do_substring s start length =
+                if s.is_nothing || start.is_nothing || length.is_nothing then Nothing else
+                    nonneg_start = if start < 0 then 0 else start
+                    case length of
+                        _ : Rest_Of_String ->
+                            if nonneg_start >= s.length then "" else s.substring nonneg_start
+                        _ : Integer ->
+                            if length < 0 || nonneg_start >= s.length then "" else s.substring nonneg_start length
+
+            start_is_column = start.is_a Column
+            length_is_column = length.is_a Column
+            res = case start_is_column of
+                True ->
+                    case length_is_column of
+                        True ->
+                            Value_Type.expect_integer length <|
+                                row_count = this_column.row_count
+                                java_this = this_column.java_column
+                                java_start = (start:In_Memory_Column).java_column
+                                java_length = (length:In_Memory_Column).java_column
+
+                                builder = make_string_builder row_count
+                                0.up_to row_count . each i->
+                                    replaced = do_substring (java_this.getItem i) (java_start.getItem i) (java_length.getItem i)
+                                    builder.append replaced
+
+                                In_Memory_Column.from_storage new_name builder.seal
+                        False ->
+                            _apply_binary_map this_column (s -> st-> do_substring s st length) start new_name skip_nulls=False expected_result_type=Value_Type.Char
+                False ->
+                    case length_is_column of
+                        True ->
+                            Value_Type.expect_integer length <|
+                                _apply_binary_map this_column (s -> l-> do_substring s start l) length new_name skip_nulls=False expected_result_type=Value_Type.Char
+                        False ->
+                            _apply_unary_map this_column new_name (s -> do_substring s start length) expected_result_type=Value_Type.Char
+
+            res . cast this_column.value_type
 
     index_of (column : Column & In_Memory_Column) (other : Column | Text | Any) case_sensitivity:Case_Sensitivity=..Default =
         Value_Type.expect_text column <| Value_Type.expect_text other <|

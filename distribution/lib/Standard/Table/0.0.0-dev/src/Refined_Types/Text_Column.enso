@@ -1,6 +1,7 @@
 from Standard.Base import all
 
 import project.Column.Column
+import project.Column.Rest_Of_String
 import project.Refined_Types.Numeric_Column.Numeric_Column
 
 ## A column that contains text values.
@@ -123,6 +124,67 @@ type Text_Column
         ```  
     proper self -> Column & Text_Column =    
         self.operations_implementation.proper self.column
+
+    ## ---
+       group: Standard.Base.Text
+       icon: preparation
+       ---
+       Gets the left n characters for each element of the column.
+       In the Database backends, the default text left method of the particular
+       database is used.
+       In the in-memory backend, this will give you the left n graphemes of the
+       string.
+
+       ## Examples
+       ### import Standard.Examples
+
+       ```
+             example_text_length =
+                Examples.text_column_1.text_eft 5
+       ```
+    left self (n : Column | Integer | Nothing = 1) -> Column & Text_Column =
+        self.operations_implementation.left self.column n
+
+    ## ---
+       group: Standard.Base.Text
+       icon: preparation
+       ---
+       Gets the right n characters for each element of the column.
+       In the Database backends, the default text right method of the particular
+       database is used.
+       In the in-memory backend, this will give you the right n graphemes of the
+       string.
+
+       ## Examples
+       ### import Standard.Examples
+
+       ```
+             example_text_length =
+                Examples.text_column_1.right 5
+       ```
+    right self (n : Column | Integer | Nothing = 1) -> Column & Text_Column =
+        self.operations_implementation.right self.column n
+
+    ## ---
+       group: Standard.Base.Text
+       icon: preparation
+       ---
+       Gets the characters starting at `start` and continuing for `length`
+       characters, for each element of the column.
+       In the Database backends, the default text mid method of the particular
+       database is used.
+       In the in-memory backend, this will give you the `length` graphemes of
+       the string, starting at `start`.
+
+       ## Examples
+       ### import Standard.Examples
+
+       ```
+             example_text_length =
+                Examples.text_column_1.mid 5
+       ```
+    mid (self : Column & Text_Column) (start : Column | Any) (length : Column | Any | Rest_Of_String = Rest_Of_String) -> Column & Text_Column =
+        self.operations_implementation.mid self.column start length
 
     ## ---
        group: Standard.Base.Text

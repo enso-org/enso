@@ -16,7 +16,6 @@ import Standard.Base.Internal.Rounding_Helpers
 from Standard.Base.Data.Index_Sub_Range import drop_helper, normalize_ranges, take_helper
 
 import project.Column.Column
-import project.Column.Rest_Of_String
 import project.Constants.Previous_Value
 import project.Data_Formatter.Data_Formatter
 import project.Fill_With.Fill_With
@@ -28,6 +27,7 @@ import project.Internal.Java_Problems
 import project.Internal.Offset_Helper
 import project.Internal.Storage
 import project.Internal.Value_Type_Helpers
+import project.Refined_Types.Text_Column.Text_Column
 import project.Rows_To_Read.Rows_To_Read
 import project.Table.Table
 import project.Value_Type.Auto
@@ -361,60 +361,20 @@ type In_Memory_Column_Implementation
         Value_Type.expect_text this_column <|
             apply_unary_operation this_column TextLengthOperation.INSTANCE
 
-    text_left (this_column : Column & In_Memory_Column) (n : Column | Integer | Nothing) =
-        Value_Type.expect_text this_column <| Value_Type.expect_integer n <|
+    text_left this_column (n : Column | Integer | Nothing) =
+        Value_Type.expect_text this_column <|
             new_name = naming_helper.function_name "text_left" [this_column, n]
-            apply_case_sensitive_text_operation this_column n ..Default TextPartOperation.LEFT (a -> b -> a.take b) new_name
+            (this_column : Text_Column) . left n . rename new_name
 
-    text_right (this_column : Column & In_Memory_Column) (n : Column | Integer | Nothing) =
-        Value_Type.expect_text this_column <| Value_Type.expect_integer n <|
+    text_right this_column (n : Column | Integer | Nothing) =
+        Value_Type.expect_text this_column <|
             new_name = naming_helper.function_name "text_right" [this_column, n]
-            apply_case_sensitive_text_operation this_column n ..Default TextPartOperation.RIGHT (a -> b -> a.take (..Last b)) new_name
+            (this_column : Text_Column) . right n . rename new_name
 
-    text_mid (this_column : Column & In_Memory_Column) (start : Column | Integer | Nothing) (length : Column | Integer | Nothing | Rest_Of_String) =
-        Value_Type.expect_text this_column <| Value_Type.expect_integer start <|
+    text_mid this_column (start : Column | Any) (length : Column | Any) =
+        Value_Type.expect_text this_column <|
             new_name = naming_helper.function_name "text_mid" [this_column, start, length]
-
-            # Returns Nothing if any argument is Nothing, and returns "" for start out-of-bounds or if length is negative.
-            do_substring s start length =
-                if s.is_nothing || start.is_nothing || length.is_nothing then Nothing else
-                    nonneg_start = if start < 0 then 0 else start
-                    case length of
-                        _ : Rest_Of_String ->
-                            if nonneg_start >= s.length then "" else s.substring nonneg_start
-                        _ : Integer ->
-                            if length < 0 || nonneg_start >= s.length then "" else s.substring nonneg_start length
-
-            if Nothing == start || Nothing == length then this_column . const Nothing . rename new_name else
-                case start of
-                    _ : Integer ->
-                        case length of
-                            _ : Integer ->
-                                _apply_unary_map this_column new_name (s -> do_substring s start length) expected_result_type=Value_Type.Char . cast this_column.value_type
-                            _ : Rest_Of_String ->
-                                _apply_unary_map this_column new_name (s -> do_substring s start length) expected_result_type=Value_Type.Char . cast this_column.value_type
-                            _ : Column ->
-                                Value_Type.expect_integer length <|
-                                    _apply_binary_map this_column (s -> l-> do_substring s start l) length new_name skip_nulls=False expected_result_type=Value_Type.Char . cast this_column.value_type
-                    _ : Column ->
-                        case length of
-                            _ : Integer ->
-                                _apply_binary_map this_column (s -> st-> do_substring s st length) start new_name skip_nulls=False expected_result_type=Value_Type.Char . cast this_column.value_type
-                            _ : Rest_Of_String ->
-                                _apply_binary_map this_column (s -> st-> do_substring s st length) start new_name skip_nulls=False expected_result_type=Value_Type.Char . cast this_column.value_type
-                            _ : Column ->
-                                Value_Type.expect_integer length <|
-                                    row_count = this_column.row_count
-                                    java_this = this_column.java_column
-                                    java_start = (start:In_Memory_Column).java_column
-                                    java_length = (length:In_Memory_Column).java_column
-
-                                    builder = make_string_builder row_count
-                                    0.up_to row_count . each i->
-                                        replaced = do_substring (java_this.getItem i) (java_start.getItem i) (java_length.getItem i)
-                                        builder.append replaced
-
-                                    In_Memory_Column.from_storage new_name builder.seal . cast this_column.value_type
+            (this_column : Text_Column) . mid start length . rename new_name
 
     contains (this_column : Column & In_Memory_Column) (other : Column | Text | Any) case_sensitivity:Case_Sensitivity = Value_Type.expect_text this_column <| Value_Type.expect_text other <|
         new_name = naming_helper.function_name "contains" [this_column, other]

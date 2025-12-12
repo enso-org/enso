@@ -150,6 +150,30 @@ add_text_columns_specs suite_builder setup =
                 True  -> result.should_equal expected_proper_column
                 False -> result.should_fail_with Unsupported_Database_Operation
 
+    suite_builder.group prefix+"Text_Column (left, right, mid)" group_builder->
+        group_builder.specify "work with scalar arguments" <|
+            column = build_sorted_table [["X", ["street", "Main", "rOaD", "3rd floor flat"]]] . at 0
+            column.left 2 . to_vector . should_equal ["st", "Ma", "rO", "3r"]
+            column.right 3 . to_vector . should_equal ["eet", "ain", "OaD", "lat"]
+            column.mid 2 2 . to_vector . should_equal ["re", "in", "aD", "d "]
+
+        group_builder.specify "work with column arguments" <|
+            t = build_sorted_table [["starts", [0, 2, 2, 0, 1, 8]], ["lengths", [1, 3, 2, 2, 2, 7]], ["strings", ["a", "foobar", "", Nothing, "café", "It was the best of times"]]]
+            column = t.at "strings"
+            starts = t.at "starts"
+            lengths = t.at "lengths"
+            column.left lengths . to_vector . should_equal ["a", "foo", "", Nothing, "ca", "It was "]
+            column.right lengths . to_vector . should_equal ["a", "bar", "", Nothing, "fé", "f times"]
+            column.mid 0 lengths . to_vector . should_equal ["a", "foo", "", Nothing, "ca", "It was "]
+            column.mid starts 1 . to_vector . should_equal ["a", "o", "", Nothing, "a", "h"]
+            column.mid starts lengths . to_vector . should_equal ["a", "oba", "", Nothing, "af", "he best"]
+
+        group_builder.specify "work with default arguments" <|
+            column = build_sorted_table [["X", ["street", "Main", "rOaD", "3rd floor flat"]]] . at 0
+            column.left . to_vector . should_equal ["s", "M", "r", "3"]
+            column.right . to_vector . should_equal ["t", "n", "D", "t"]
+            column.mid 2 . to_vector . should_equal ["reet", "in", "aD", "d floor flat"]
+
     suite_builder.group prefix+"Text_Column index_of" group_builder->
         group_builder.specify "index_of should return index of first match" <|
             column = build_sorted_table [["strings", ["a","foobar","",Nothing,"👩‍🔬👩‍🔬V👩‍🔬👩‍🔬","café","It was the best of times, it was the worst of times, it was the age of wisdom, it was the age of foolishness, it was the epoch of belief, it was the epoch of incredulity, it was the season of light, it was the season of darkness, it was the spring of hope, it was the winter of despair."]]] . at 0
