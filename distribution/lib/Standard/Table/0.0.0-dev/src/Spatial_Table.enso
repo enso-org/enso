@@ -22,8 +22,8 @@ type Spatial_Table
        ---
        If the column is a spatial column, returns it as a Spatial_Column
        otherwise throws a type error.
-    as_spatial_columns self column:Column =
-        (self:Table).implementation.as_spatial_columns self.parent.underlying column
+    as_spatial_column self column:Column =
+        (self:Table).implementation.as_spatial_column self.parent.underlying column
 
     ## ---
        group: Standard.Base.Metadata

@@ -7,7 +7,7 @@ import project.Spatial_Table.Spatial_Table
 
 ## A column that contains spatial values - designed for use by Expression at the moment.
 type Spatial_Column
-    private Value column parent_table:Spatial_Table
+    Value column parent_table:Spatial_Table
 
     ## ---
        aliases: [create_points]
@@ -18,7 +18,8 @@ type Spatial_Column
 
        ## Returns
        A new table with the existing columns and the new geometry type column as text.
-    st_geometry_type self as:Text="" = self.parent_table.st_geometry_type self.column as
+    st_geometry_type self as:Text="" =
+        self.parent_table.st_geometry_type self.column as
 
     ## ---
        aliases: [st_x]
@@ -107,7 +108,7 @@ type Spatial_Column
        ## Returns
        A new table with the existing columns and a new column containing the distance.
     st_distance self (to_column : Column | Expression | Text | Integer = Missing_Argument.throw "to_column") as:Text="" =
-        self.parent_table.st_distance self.column self.parent as
+        self.parent_table.st_distance self.column to_column as
 
     ## ---
        aliases: [st_distance]
@@ -125,7 +126,7 @@ type Spatial_Column
        ## Returns
        A new table with the existing columns and a new column containing the distance.
     st_length self (to_column : Column | Expression | Text | Integer = Missing_Argument.throw "to_column") as:Text="" =
-        self.parent_table.st_length self.column self.parent as
+        self.parent_table.st_length self.column to_column as
 
     ## ---
        group: Standard.Base.Conversions
@@ -136,7 +137,6 @@ type Spatial_Column
        ## Returns
        A new table with the existing columns and a new column containing the
        GeoJSON representation as text of the spatial objects.
-    @column _spatial_widget single_choice=True
     st_to_geojson self as:Text="" = self.parent_table.spatial_to_geojson self.column as
 
     ## ---
@@ -149,5 +149,4 @@ type Spatial_Column
        ## Returns
        A new table with the existing columns and a new column containing the
        WKT representation of the spatial objects.
-    @column _spatial_widget single_choice=True
     st_to_wkt self as:Text="" = self.parent_table.spatial_to_wkt self.column as
