@@ -73,13 +73,13 @@ const TEXT_COLUMN_TYPE = ProjectPath.create(
 )
 
 const SPATIAL_COLUMN_TYPE = ProjectPath.create(
-    'Standard.Table' as QualifiedName,
-    'Refined_Types.Spatial_Column.Spatial_Column' as QualifiedName,
+  'Standard.Table' as QualifiedName,
+  'Refined_Types.Spatial_Column.Spatial_Column' as QualifiedName,
 )
 
 const SPATIAL_INPUT_COLUMN_TYPE = ProjectPath.create(
-    'Standard.Table' as QualifiedName,
-    'Refined_Types.Spatial_Column.Spatial_Input_Column' as QualifiedName,
+  'Standard.Table' as QualifiedName,
+  'Refined_Types.Spatial_Column.Spatial_Input_Column' as QualifiedName,
 )
 
 const EXPRESSION_STATICS_TYPE = ProjectPath.create(
