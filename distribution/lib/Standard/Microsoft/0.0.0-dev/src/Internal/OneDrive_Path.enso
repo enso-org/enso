@@ -8,6 +8,14 @@ type OneDrive_Path
     ## ---
        private: true
        ---
+    resolve self subpath:Text =
+        if subpath == "." then self else
+            if subpath == ".." then self.parent.if_nothing self else
+                self.extend subpath
+
+    ## ---
+       private: true
+       ---
     parent self =
         if self.path.length == 0 then Nothing else
             OneDrive_Path.Value (self.path.drop (..Last 1))

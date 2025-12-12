@@ -6,6 +6,7 @@ import Standard.Base.Errors.File_Error.File_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Errors.Unimplemented.Unimplemented
+import Standard.Base.Internal.Path_Helpers
 import Standard.Base.Runtime.Context
 import Standard.Base.System.File.Data_Link_Access.Data_Link_Access
 import Standard.Base.System.File.Generic.File_Like.File_Like
@@ -73,13 +74,17 @@ type OneDrive
 
         target_file = if is_folder then parsed_destination / resolved_file.name else parsed_destination
         if target_file.exists then Error.throw (File_Error.Already_Exists target_file)
+        upload_target = if is_folder then parsed_destination else parsed_destination.parent
 
         ## Check Execution Context
         Context.Output.if_enabled disabled_message="As writing is disabled, cannot write the file. Press the Write button ▶ to perform the operation." panic=False <|
             Nothing
 
         Data_Link_Helpers.as_file resolved_file file->
-            frag = target_file.onedrive_path.to_human_readable_fragment_file
+            if file.size > 4000000 then Error.throw (Unimplemented.Error "Writing files larger than 4 MB to OneDrive is not currently implemented.")
+
+            parent_id = upload_target.id
+            frag = "/me/drive/items/" + parent_id + ":/" + resolved_file.name + ":/content"
             response = Graph.post_file credential Graph.base_url+frag file method=..Put
             if response.code.is_success then target_file else
                 Error.throw (File_Error.Write_Error target_file "Failed to write file to OneDrive. HTTP response code: "+response.code.to_text)
@@ -272,6 +277,15 @@ type OneDrive_File
         Graph.fetch_json self.credential Graph.base_url+frag
 
     ## ---
+       private: true
+       ---
+       Returns the id for the OneDrive object
+    id self =
+        metadata = self.metadata
+        if metadata.is_error then Error.throw (File_Error.Not_Found self)
+        metadata.get "id"
+
+    ## ---
        group: Standard.Base.Metadata
        icon: metadata
        ---
@@ -379,6 +393,30 @@ type OneDrive_File
        private: true
        ---
     can_write_into_parent self -> Boolean = False
+
+    ## ---
+       group: Standard.Base.Operators
+       icon: folder
+       ---
+       Join two path segments together, normalizing the `..` and `.` sub-paths.
+
+       ## Arguments
+        - `subpath`: The path to join to the path of `self`.
+
+       ## Returns
+       - An `OneDrive_Path` representing the joined and normalised path, with
+         the same credentials.
+    / : Text -> OneDrive_File
+    / self subpath =
+        Path_Helpers.resolve_many_parts self subpath
+
+    ## ---
+       private: true
+       ---
+       An internal helper method that resolves a single part (subpath) of a path.
+    resolve_single_part self part:Text -> Any =
+        if self.is_data_link then Error.throw (Illegal_Argument.Error "Cannot resolve path parts on a OneDrive data link: "+self.uri)
+        OneDrive_File.Value self.credential (self.onedrive_path.resolve part)
 
     ## ---
        private: true
