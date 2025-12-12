@@ -113,7 +113,6 @@ type Spatial_Column
        Gets the distance between two spatial objects on each row.
        Note this will be the distance in the coordinate system of the spatial objects, i.e. for
          WGS84 coordinates this will be in degrees. For distance in metres use st_length.
-       The self argument is used as the starting spatial object.
 
        ## Arguments
         - `end_column`: The column, expression, or name/index of the column containing the ending spatial objects.
@@ -131,7 +130,6 @@ type Spatial_Column
        ---
        Gets the distance in meters between two spatial objects on each row.
        Note this assumes that the spatial objects are in WGS84 coordinate system (EPSG:4326).
-       The self argument is used as the starting spatial object.
 
 
        ## Arguments
