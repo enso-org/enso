@@ -351,6 +351,16 @@ case object DataflowAnalysis extends IRPass {
         val fnDep     = asStatic(prefix.function)
         val prefixDep = asStatic(prefix)
         info.dependents.updateAt(fnDep, Set(prefixDep))
+        prefix.arguments().headOption.map(_.value()).foreach {
+          case literalSelfArg: Name.Literal =>
+            // Self arguments are cached, so whenever the type (or method in it)
+            // changes, then it should be invalidated as well.
+            // Tracking a dependency between the application
+            // and the self argument ensures correct invalidation.
+            val selfArgDep = asStatic(literalSelfArg)
+            info.dependents.updateAt(prefixDep, Set(selfArgDep))
+          case _ =>
+        }
         info.dependencies.updateAt(prefixDep, Set(fnDep))
         prefix.arguments.foreach(arg => {
           val argDep = asStatic(arg)
