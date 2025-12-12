@@ -212,10 +212,7 @@ export async function mockLocalApi(page: Page) {
 
   const addProject = (options: ProjectEntryOptions) => {
     const project = createProject(options)
-    const result = addEntry(project.entry.path, project)
-    console.debug('Project Entry', fileSystem.get(project.entry.path))
-    console.debug('Root contents', fileSystem.get(ROOT_PATH))
-    return result
+    return addEntry(project.entry.path, project)
   }
 
   type FileEntryOptions = {
