@@ -330,7 +330,7 @@ type DB_Table_Implementation
             _ : Column ->
                 if Helpers.check_integrity this_table value then value else
                     Error.throw (Integrity_Error.Error "Column "+value.name)
-            _ : Constant_Column -> this_table.make_constant_column value
+            _ : Constant_Column -> this_table.make_constant_column value.value
             _ : Simple_Expression -> value.evaluate this_table (set_mode==Set_Mode.Update && as=="") on_problems
             _ : SQL_Function -> _resolve_sql_function this_table value
 
