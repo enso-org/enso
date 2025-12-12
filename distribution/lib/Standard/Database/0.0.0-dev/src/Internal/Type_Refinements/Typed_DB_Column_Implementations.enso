@@ -140,7 +140,7 @@ type DB_Text_Column_Implementation
             make_binary_op this_column "RIGHT" n2 new_name
 
     mid (this_column : Column & DB_Column) (start : Column | Any) (length : Column | Any) =
-        Helpers.expect_specific_integer_type start <|
+        Helpers.expect_specific_integer_type this_column start <|
             case length of
                 _ : Rest_Of_String ->
                     new_name = (naming_helper this_column).function_name "mid" [this_column, start]
