@@ -68,12 +68,12 @@ final class EnsoPolyglotJava {
    * @return {@code null} on failure or an object representing the {@code className}
    */
   final TruffleObject lookupJavaClass(
-      String className, Collection<? super Exception> collectExceptions) {
+      Package<?> requestedBy, String className, Collection<? super Exception> collectExceptions) {
     var binaryName = new StringBuilder(className);
     for (; ; ) {
       var fqn = binaryName.toString();
       try {
-        var hostSymbol = loadClass(fqn);
+        var hostSymbol = loadClass(fqn, requestedBy);
 
         if (hostSymbol != null) {
           return hostSymbol;
@@ -281,8 +281,15 @@ final class EnsoPolyglotJava {
     return null;
   }
 
-  final TruffleObject loadClass(String fqn) throws InteropException {
+  private final TruffleObject loadClass(String fqn, Package<?> requestedBy)
+      throws InteropException {
     var raw = InteropLibrary.getUncached().readMember(findPolyglotJava(), fqn);
+    logger.log(
+        Level.DEBUG,
+        "Classloading of {0} as {1} requested by {2}",
+        fqn,
+        raw,
+        requestedBy.libraryName());
     return (TruffleObject) raw;
   }
 
