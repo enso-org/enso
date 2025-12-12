@@ -8,8 +8,12 @@ import project.Internal.Expression_Statics as Expression_Statics_Module
 import project.Internal.Expression_Statics.Expression_Statics
 import project.Refined_Types.Numeric_Column as Numeric_Column_Module
 import project.Refined_Types.Numeric_Column.Numeric_Column
+import project.Refined_Types.Spatial_Column as Spatial_Column_Module
+import project.Refined_Types.Spatial_Column.Spatial_Column
+import project.Refined_Types.Spatial_Column.Spatial_Input_Column
 import project.Refined_Types.Text_Column as Text_Column_Module
 import project.Refined_Types.Text_Column.Text_Column
+import project.Spatial_Table.Spatial_Table
 import project.Table.Table
 
 polyglot java import java.lang.IllegalArgumentException
@@ -67,7 +71,9 @@ type Expression
         mr2 = ExpressionVisitorImpl.newMethodResolver Column_Module Column isStaticMethod=False makeTypedColumn=c->c
         mr3 = ExpressionVisitorImpl.newMethodResolver Numeric_Column_Module Numeric_Column isStaticMethod=False makeTypedColumn=c->(c : Numeric_Column)
         mr4 = ExpressionVisitorImpl.newMethodResolver Text_Column_Module Text_Column isStaticMethod=False makeTypedColumn=c->(c : Text_Column)
-        method_resolvers = [mr1, mr2, mr3, mr4]
+        mr6 = ExpressionVisitorImpl.newMethodResolver Spatial_Column_Module Spatial_Column isStaticMethod=False makeTypedColumn=c-> (table : Spatial_Table).as_spatial_column c
+        mr7 = ExpressionVisitorImpl.newMethodResolver Spatial_Column_Module Spatial_Input_Column isStaticMethod=False makeTypedColumn=c-> Spatial_Input_Column.Value c table
+        method_resolvers = [mr1, mr2, mr3, mr4, mr6, mr7]
 
         ## Define error handlers to convert java exceptions to Enso errors
         handle_parse_error = Panic.catch SyntaxErrorException handler=(cause-> Error.throw (Expression_Error.Syntax_Error cause.payload.getMessage cause.payload.getLine cause.payload.getColumn))

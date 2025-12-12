@@ -39,6 +39,7 @@ import Standard.Table.Internal.Table_Ref.Table_Ref
 import Standard.Table.Internal.Value_Type_Helpers
 import Standard.Table.Internal.Widget_Helpers
 import Standard.Table.Prefix_Name.Prefix_Name
+import Standard.Table.Refined_Types.Spatial_Column.Spatial_Column
 import Standard.Table.Row_Limit.Row_Limit
 import Standard.Table.Rows_To_Read.Rows_To_Read
 import Standard.Table.Spatial_Table.Lat_Long_Type
@@ -78,6 +79,10 @@ from project.Internal.DB_Column_Implementation import make_unary_op
 
 type DB_Table_Implementation
     name (this_table : Table & DB_Table) = this_table.internal_name
+
+    pretty_implementation (this_table : Table & DB_Table) =
+        data = this_table.columns.map c->("[" + c.name.pretty + ", " + c.to_vector.pretty + "]") . join ", "
+        "DB_Table.new [" + data + "]"
 
     display (this_table : Table & DB_Table) show_rows:Integer format_terminal:Boolean =
         data_fragment_with_warning = this_table.read (..First_With_Warning show_rows)
@@ -768,6 +773,15 @@ type DB_Table_Implementation
             Value_Type.Unsupported_Data_Type type_name _ ->
                 this_table.connection.dialect.spatial_types.contains type_name
             _ -> False
+
+    as_spatial_column (this_table : Table & DB_Table) (column : Column) =
+        dialect = this_table.connection.dialect
+        if dialect.is_feature_supported ..Spatial . not then Panic.throw (Type_Error.Error Spatial_Column column "Spatial functions are not currently implemented for "+dialect.name+".")
+        is_spatial = case column.value_type of
+            Value_Type.Unsupported_Data_Type type_name _ -> dialect.spatial_types.contains type_name
+            _ -> False
+        if is_spatial then Spatial_Column.Value column this_table else
+            Panic.throw (Type_Error.Error Spatial_Column column "The column '"+column.name+"' is not a spatial column.")
 
     spatial_point (this_table : Table & DB_Table) (longitude : Column) (latitude : Column) (as : Text) =
         Feature.Spatial.if_supported_else_throw this_table.connection.dialect "st_point" <| Value_Type.expect_numeric longitude <| Value_Type.expect_numeric latitude <|
