@@ -769,6 +769,15 @@ type DB_Table_Implementation
                 this_table.connection.dialect.spatial_types.contains type_name
             _ -> False
 
+    as_spatial_column (this_table : Table & DB_Table) (column : Column) =
+        dialect = this_table.connection.dialect
+        if dialect.is_feature_supported ..Spatial . not then Panic.throw (Type_Error.Error Spatial_Column column "Spatial functions are not currently implemented for "+dialect.name+".")
+        is_spatial = case column.value_type of
+            Value_Type.Unsupported_Data_Type type_name _ -> dialect.spatial_types.contains type_name
+            _ -> False
+        if is_spatial then Spatial_Column.Value column (this_table:Spatial_Table) else
+            Panic.throw (Type_Error.Error Spatial_Column column "The column '"+column.name+"' is not a spatial column.")
+
     spatial_point (this_table : Table & DB_Table) (longitude : Column) (latitude : Column) (as : Text) =
         Feature.Spatial.if_supported_else_throw this_table.connection.dialect "st_point" <| Value_Type.expect_numeric longitude <| Value_Type.expect_numeric latitude <|
             new_column = _resolve_sql_function this_table (SQL_Function.SQL "ST_Point" [longitude, latitude])
