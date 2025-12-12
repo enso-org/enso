@@ -7,6 +7,7 @@ import project.Runtime
 from project.Data.Boolean import False, True
 from project.Error import all
 from project.Nothing import all
+from project.Internal.Error_Builtins import panic_rethrow
 
 polyglot java import java.lang.Throwable
 
@@ -99,7 +100,7 @@ type Panic
              example_rethrow = Panic.rethrow Examples.throw_error
        ```
     rethrow : (Any ! Any) -> Any
-    rethrow value = value.catch Any Panic.throw
+    rethrow value = panic_rethrow value
 
     ## ---
        advanced: true

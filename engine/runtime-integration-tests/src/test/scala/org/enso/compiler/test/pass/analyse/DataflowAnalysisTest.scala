@@ -408,7 +408,15 @@ class DataflowAnalysisTest extends CompilerTest {
 
     "correctly identify global symbol indirect dependents" in {
       depInfo.dependents.get(frobnicateSymbol) shouldEqual Some(
-        Set(frobFnId, frobExprId, fnBodyId, fnId, methodId)
+        Set(
+          frobFnId,
+          frobExprId,
+          fnBodyId,
+          fnId,
+          methodId,
+          frobArgAId,
+          frobArgAExprId
+        )
       )
       depInfo.dependents.get(ioSymbol) shouldEqual Some(
         Set(printlnArgIOExprId, printlnArgIOId, printlnExprId)
@@ -420,7 +428,11 @@ class DataflowAnalysisTest extends CompilerTest {
         Set(
           plusExprFnId,
           plusExprId,
+          plusExprArgAExprId,
+          plusExprArgAId,
           cBindExprId,
+          frobArgAExprId,
+          frobArgAId,
           frobArgCExprId,
           frobArgCId,
           frobExprId,
@@ -474,7 +486,7 @@ class DataflowAnalysisTest extends CompilerTest {
         Set(cBindExprId)
       )
       depInfo.dependents.getDirect(plusExprId) shouldEqual Some(
-        Set(cBindExprId)
+        Set(cBindExprId, plusExprArgAExprId)
       )
       depInfo.dependents.getDirect(plusExprFnId) shouldEqual Some(
         Set(plusExprId)
@@ -493,7 +505,9 @@ class DataflowAnalysisTest extends CompilerTest {
       )
 
       // The `frobnicate` expression
-      depInfo.dependents.getDirect(frobExprId) shouldEqual Some(Set(fnBodyId))
+      depInfo.dependents.getDirect(frobExprId) shouldEqual Some(
+        Set(fnBodyId, frobArgAExprId)
+      )
       depInfo.dependents.getDirect(frobFnId) shouldEqual Some(Set(frobExprId))
       depInfo.dependents.getDirect(frobArgAId) shouldEqual Some(Set(frobExprId))
       depInfo.dependents.getDirect(frobArgAExprId) shouldEqual Some(
@@ -582,7 +596,11 @@ class DataflowAnalysisTest extends CompilerTest {
           plusExprArgBExprId,
           plusExprArgBId,
           plusExprId,
+          plusExprArgAExprId,
+          plusExprArgAId,
           cBindExprId,
+          frobArgAId,
+          frobArgAExprId,
           frobArgCExprId,
           frobArgCId,
           frobExprId,
@@ -609,11 +627,22 @@ class DataflowAnalysisTest extends CompilerTest {
 
       // The `c = ` expression
       depInfo.dependents.get(cBindExprId) shouldEqual Some(
-        Set(frobArgCExprId, frobArgCId, frobExprId, fnBodyId, fnId, methodId)
+        Set(
+          frobArgAId,
+          frobArgAExprId,
+          frobArgCExprId,
+          frobArgCId,
+          frobExprId,
+          fnBodyId,
+          fnId,
+          methodId
+        )
       )
       depInfo.dependents.get(cBindNameId) shouldEqual Some(
         Set(
           cBindExprId,
+          frobArgAId,
+          frobArgAExprId,
           frobArgCExprId,
           frobArgCId,
           frobExprId,
@@ -625,6 +654,11 @@ class DataflowAnalysisTest extends CompilerTest {
       depInfo.dependents.get(plusExprId) shouldEqual Some(
         Set(
           cBindExprId,
+          plusExprId,
+          plusExprArgAId,
+          plusExprArgAExprId,
+          frobArgAId,
+          frobArgAExprId,
           frobArgCExprId,
           frobArgCId,
           frobExprId,
@@ -636,7 +670,11 @@ class DataflowAnalysisTest extends CompilerTest {
       depInfo.dependents.get(plusExprFnId) shouldEqual Some(
         Set(
           plusExprId,
+          plusExprArgAId,
+          plusExprArgAExprId,
           cBindExprId,
+          frobArgAId,
+          frobArgAExprId,
           frobArgCExprId,
           frobArgCId,
           frobExprId,
@@ -647,8 +685,12 @@ class DataflowAnalysisTest extends CompilerTest {
       )
       depInfo.dependents.get(plusExprArgAId) shouldEqual Some(
         Set(
+          plusExprArgAId,
+          plusExprArgAExprId,
           plusExprId,
           cBindExprId,
+          frobArgAId,
+          frobArgAExprId,
           frobArgCExprId,
           frobArgCId,
           frobExprId,
@@ -659,9 +701,12 @@ class DataflowAnalysisTest extends CompilerTest {
       )
       depInfo.dependents.get(plusExprArgAExprId) shouldEqual Some(
         Set(
+          plusExprArgAExprId,
           plusExprArgAId,
           plusExprId,
           cBindExprId,
+          frobArgAId,
+          frobArgAExprId,
           frobArgCExprId,
           frobArgCId,
           frobExprId,
@@ -673,8 +718,12 @@ class DataflowAnalysisTest extends CompilerTest {
 
       depInfo.dependents.get(plusExprArgBId) shouldEqual Some(
         Set(
+          plusExprArgAExprId,
+          plusExprArgAId,
           plusExprId,
           cBindExprId,
+          frobArgAId,
+          frobArgAExprId,
           frobArgCExprId,
           frobArgCId,
           frobExprId,
@@ -685,9 +734,13 @@ class DataflowAnalysisTest extends CompilerTest {
       )
       depInfo.dependents.get(plusExprArgBExprId) shouldEqual Some(
         Set(
+          plusExprArgAExprId,
+          plusExprArgAId,
           plusExprArgBId,
           plusExprId,
           cBindExprId,
+          frobArgAId,
+          frobArgAExprId,
           frobArgCExprId,
           frobArgCId,
           frobExprId,
@@ -700,25 +753,36 @@ class DataflowAnalysisTest extends CompilerTest {
       // The `frobnicate` expression
       depInfo.dependents.get(frobExprId) shouldEqual Some(
         Set(
+          frobArgAExprId,
+          frobArgAId,
+          frobExprId,
           fnBodyId,
           fnId,
           methodId
         )
       )
       depInfo.dependents.get(frobFnId) shouldEqual Some(
-        Set(frobExprId, fnBodyId, fnId, methodId)
+        Set(frobArgAExprId, frobArgAId, frobExprId, fnBodyId, fnId, methodId)
       )
       depInfo.dependents.get(frobArgAId) shouldEqual Some(
-        Set(frobExprId, fnBodyId, fnId, methodId)
+        Set(frobArgAExprId, frobArgAId, frobExprId, fnBodyId, fnId, methodId)
       )
       depInfo.dependents.get(frobArgAExprId) shouldEqual Some(
-        Set(frobArgAId, frobExprId, fnBodyId, fnId, methodId)
+        Set(frobArgAExprId, frobArgAId, frobExprId, fnBodyId, fnId, methodId)
       )
       depInfo.dependents.get(frobArgCId) shouldEqual Some(
-        Set(frobExprId, fnBodyId, fnId, methodId)
+        Set(frobArgAExprId, frobArgAId, frobExprId, fnBodyId, fnId, methodId)
       )
       depInfo.dependents.get(frobArgCExprId) shouldEqual Some(
-        Set(frobArgCId, frobExprId, fnBodyId, fnId, methodId)
+        Set(
+          frobArgAExprId,
+          frobArgAId,
+          frobArgCId,
+          frobExprId,
+          fnBodyId,
+          fnId,
+          methodId
+        )
       )
     }
 
@@ -982,7 +1046,7 @@ class DataflowAnalysisTest extends CompilerTest {
       // The Tests for dependents
       dependents.getDirect(fnId) should not be defined
       dependents.getDirect(fnArgYId) shouldEqual Some(Set(plusArgYExprId))
-      dependents.getDirect(fnBodyId) shouldEqual Some(Set(fnId))
+      dependents.getDirect(fnBodyId) shouldEqual Some(Set(fnId, plusArgXExprId))
       dependents.getDirect(plusSym) shouldEqual Some(Set(plusFnId))
       dependents.getDirect(plusArgXId) shouldEqual Some(Set(fnBodyId))
       dependents.getDirect(plusArgXExprId) shouldEqual Some(Set(plusArgXId))
@@ -1065,7 +1129,7 @@ class DataflowAnalysisTest extends CompilerTest {
       dependents.getDirect(lamArgXId) shouldEqual Some(
         Set(mulArg1ExprId, mulArg2ExprId)
       )
-      dependents.getDirect(mulId) shouldEqual Some(Set(lamId))
+      dependents.getDirect(mulId) shouldEqual Some(Set(lamId, mulArg1ExprId))
       dependents.getDirect(mulFnId) shouldEqual Some(Set(mulId))
       dependents.getDirect(mulArg1Id) shouldEqual Some(Set(mulId))
       dependents.getDirect(mulArg1ExprId) shouldEqual Some(Set(mulArg1Id))
@@ -1427,7 +1491,7 @@ class DataflowAnalysisTest extends CompilerTest {
       )
 
       dependents.getDirect(consBranchExpressionId) shouldEqual Some(
-        Set(consBranchId)
+        Set(consBranchId, aUseId)
       )
       dependents.getDirect(aArgId) shouldEqual Some(Set(consBranchExpressionId))
       dependents.getDirect(aUseId) shouldEqual Some(Set(aArgId))
@@ -1602,7 +1666,9 @@ class DataflowAnalysisTest extends CompilerTest {
       dependents.getDirect(fnArgThisId) shouldBe empty
       dependents.getDirect(fnArgValueId) shouldBe Some(Set(fooArg1ExprId))
       dependents.getDirect(fnBodyId) shouldBe Some(Set(lambdaId))
-      dependents.getDirect(fooExprId) shouldBe Some(Set(fnBodyId))
+      dependents.getDirect(fooExprId) shouldBe Some(
+        Set(fnBodyId, fooArg1ExprId)
+      )
       dependents.getDirect(fooFunctionId) shouldBe Some(Set(fooExprId))
       dependents.getDirect(fooArg1Id) shouldBe Some(Set(fooExprId))
       dependents.getDirect(fooArg1ExprId) shouldBe Some(Set(fooArg1Id))

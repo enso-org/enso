@@ -170,7 +170,7 @@ export interface DropdownEntry {
   display: inline-block;
   max-width: 100%;
   white-space: nowrap;
-  overflow: hidden;
+  overflow: clip;
   vertical-align: middle;
   margin: 3px 0;
   text-wrap: nowrap;

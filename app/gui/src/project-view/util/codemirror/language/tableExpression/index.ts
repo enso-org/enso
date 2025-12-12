@@ -36,6 +36,8 @@ export function useTableExpressionExtension(
             ...suggestionDb.value.methods(COLUMN_METHODS),
             ...suggestionDb.value.methods(NUMERIC_COLUMN_METHODS),
             ...suggestionDb.value.methods(TEXT_COLUMN_METHODS),
+            ...suggestionDb.value.methods(SPATIAL_COLUMN_METHODS),
+            ...suggestionDb.value.methods(SPATIAL_INPUT_COLUMN_METHODS),
           ].map((entry) => [entry.name, entry]),
         ).values(),
         methodInfoFromEntry,
@@ -70,6 +72,16 @@ const TEXT_COLUMN_TYPE = ProjectPath.create(
   'Refined_Types.Text_Column.Text_Column' as QualifiedName,
 )
 
+const SPATIAL_COLUMN_TYPE = ProjectPath.create(
+  'Standard.Table' as QualifiedName,
+  'Refined_Types.Spatial_Column.Spatial_Column' as QualifiedName,
+)
+
+const SPATIAL_INPUT_COLUMN_TYPE = ProjectPath.create(
+  'Standard.Table' as QualifiedName,
+  'Refined_Types.Spatial_Column.Spatial_Input_Column' as QualifiedName,
+)
+
 const EXPRESSION_STATICS_TYPE = ProjectPath.create(
   'Standard.Table' as QualifiedName,
   'Internal.Expression_Statics.Expression_Statics' as QualifiedName,
@@ -85,6 +97,14 @@ const NUMERIC_COLUMN_METHODS = {
 }
 const TEXT_COLUMN_METHODS = {
   selfType: TEXT_COLUMN_TYPE,
+  name: (name: string) => !EXCLUDED_COLUMN_METHODS.has(name),
+}
+const SPATIAL_COLUMN_METHODS = {
+  selfType: SPATIAL_COLUMN_TYPE,
+  name: (name: string) => !EXCLUDED_COLUMN_METHODS.has(name),
+}
+const SPATIAL_INPUT_COLUMN_METHODS = {
+  selfType: SPATIAL_INPUT_COLUMN_TYPE,
   name: (name: string) => !EXCLUDED_COLUMN_METHODS.has(name),
 }
 const EXPRESSION_STATICS_METHODS = {
