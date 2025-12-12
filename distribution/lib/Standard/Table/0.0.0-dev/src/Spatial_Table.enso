@@ -4,11 +4,11 @@ import Standard.Base.Runtime.Ref.Ref
 from Standard.Base.Metadata.Choice import Option
 from Standard.Base.Metadata.Widget import Single_Choice, Multiple_Choice
 
-
 import project.Column.Column
 import project.Expression.Expression
 import project.Internal.Widget_Helpers
 import project.Join_Condition.Join_Condition
+import project.Rows_To_Read.Rows_To_Read
 import project.Table.Table
 
 ## Extension methods for Spatial Tables
@@ -33,6 +33,34 @@ type Spatial_Table
        Get the columns in the table which contain spatial data.
     spatial_columns self =
         (self:Table).implementation.spatial_columns self.parent.underlying
+
+    ## ---
+       icon: data_input
+       ---
+       Returns a materialized dataframe containing rows of this table but with
+       any spatial columns materialized as GeoJSON. This is useful for exporting
+       data to other systems that may not support spatial data types.
+
+       ## Arguments
+        - `max_rows`: specifies the maximum number of rows to read.
+    @max_rows Rows_To_Read.default_widget
+    read_as_geojson self (max_rows : Rows_To_Read = self.implementation.default_max_rows) -> Table & Any =
+        folded = self.spatial_columns.fold self cur->col-> cur.st_to_geojson col as=col.name
+        folded.read max_rows
+
+    ## ---
+       icon: data_input
+       ---
+       Returns a materialized dataframe containing rows of this table but with
+       any spatial columns materialized as GeoJSON. This is useful for exporting
+       data to other systems that may not support spatial data types.
+
+       ## Arguments
+        - `max_rows`: specifies the maximum number of rows to read.
+    @max_rows Rows_To_Read.default_widget
+    read_as_wkt self (max_rows : Rows_To_Read = self.implementation.default_max_rows) -> Table & Any =
+        folded = self.spatial_columns.fold self cur->col-> cur.st_to_wkt col as=col.name
+        folded.read max_rows
 
     ## ---
        aliases: [create_points]

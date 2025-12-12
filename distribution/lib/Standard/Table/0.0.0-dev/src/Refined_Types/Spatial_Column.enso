@@ -154,7 +154,7 @@ type Spatial_Column
        GeoJSON representation as text of the spatial objects.
     st_to_geojson self =
         temp_name = self.parent_table.parent.make_temp_column_name
-        self.parent_table.spatial_to_geojson self.column as=temp_name . get temp_name
+        self.parent_table.st_to_geojson self.column as=temp_name . get temp_name
 
     ## ---
        group: Standard.Base.Conversions
@@ -168,4 +168,4 @@ type Spatial_Column
        WKT representation of the spatial objects.
     st_to_wkt self =
         temp_name = self.parent_table.parent.make_temp_column_name
-        self.parent_table.spatial_to_wkt self.column as=temp_name . get temp_name
+        self.parent_table.st_to_wkt self.column as=temp_name . get temp_name

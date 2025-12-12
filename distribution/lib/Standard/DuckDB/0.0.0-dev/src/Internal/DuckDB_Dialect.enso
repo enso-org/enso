@@ -387,8 +387,7 @@ type DuckDB_Dialect
     spatial_types : Hashset Text
     spatial_types self =
         _ = self
-        Hashset.from_vector ["GEOMETRY"]
-
+        Hashset.from_vector ["GEOMETRY", "POINT_2D", "LINESTRING_2D", "BOX_2D", "POLYGON_2D"]
 ## ---
    private: true
    ---
