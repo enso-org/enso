@@ -281,10 +281,13 @@ impl RunContext {
         // === Build project-manager distribution and native image ===
         let mut tasks = vec![];
         let mut run_sbt_clean = false;
-        if self.config.build_engine_package || self.config.test_jvm {
+        if self.config.build_engine_package {
+            run_sbt_clean = true;
+            tasks.push("buildEngineDistribution");
+        }
+        if self.config.test_jvm {
             // Some JVM tests expect that the engine distribution is built, so
             // build it even if `config.build_engine_package` is false.
-            run_sbt_clean = true;
             tasks.push("buildEngineDistribution");
         }
         if self.config.build_native_ydoc {
