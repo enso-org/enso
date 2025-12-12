@@ -7,6 +7,7 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Errors.Unimplemented.Unimplemented
 import Standard.Base.Runtime.Context
+import Standard.Base.System.File.Data_Link_Access.Data_Link_Access
 import Standard.Base.System.File.Generic.File_Like.File_Like
 import Standard.Base.System.File.Generic.Writable_File.Writable_File
 import Standard.Base.System.File_Format_Metadata.File_Format_Metadata
@@ -114,7 +115,7 @@ type OneDrive_File
     with_input_stream : Vector File_Access -> (Input_Stream -> Any ! File_Error) -> Any ! Illegal_Argument
     with_input_stream self (open_options : Vector) action =
         _check_not_directory self <|
-            File_Access.ensure_only_allowed_options "with_input_stream" [File_Access.Read] open_options <|
+            File_Access.ensure_only_allowed_options "with_input_stream" [File_Access.Read, Data_Link_Access.No_Follow] open_options <|
                 frag = self.onedrive_path.to_human_readable_fragment_file
                 response = Graph.fetch self.credential Graph.base_url+frag
                 response.body.with_stream action

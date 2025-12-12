@@ -9,7 +9,8 @@ jobs:
     name: Run bazel GUI build
     # if: github.ref != 'refs/heads/develop'
     runs-on:
-      - ubuntu-latest
+      - self-hosted
+      - Linux
     steps:
       - uses: bazel-contrib/setup-bazel@0.15.0
         with:
@@ -53,7 +54,8 @@ jobs:
   build-engine:
     name: Run bazel Engine build
     runs-on:
-      - ubuntu-latest
+      - self-hosted
+      - Linux
     steps:
       - uses: bazel-contrib/setup-bazel@0.15.0
         with:
@@ -61,11 +63,11 @@ jobs:
           bazelisk-cache: true
           bazelrc: build --remote_cache=grpcs://${{ vars.ENSO_BAZEL_CACHE_URI }} --remote_cache_header="authorization=Basic ${{ secrets.ENSO_BAZEL_CACHE_TOKEN }}"
       - uses: actions/checkout@v4
-      - run: bazel build //:sbt_build_engine_distribution
+      - run: bazel build --verbose_failures //:sbt_build_native_engine_distribution
       - name: Get Engine build output location
         id: get_bazel_output
         run: |
-          OUTPUT_SYMLINK=$(bazel cquery --output=files //:sbt_build_engine_distribution)
+          OUTPUT_SYMLINK=$(bazel cquery --output=files //:sbt_build_native_engine_distribution)
           BAZEL_OUTPUT=$(readlink -f "$OUTPUT_SYMLINK")
           echo "location=$BAZEL_OUTPUT" >> $GITHUB_OUTPUT
       - uses: actions/upload-artifact@v4

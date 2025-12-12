@@ -5,6 +5,9 @@
 - [Use `State.get if_missing` to avoid too frequent `Panic.throw`][14490]
 
 [14490]: https://github.com/enso-org/enso/pull/14490
+- [`Panic.rethrow` keeps original location][14480]
+
+[14480]: https://github.com/enso-org/enso/pull/14480
 
 # Next Release
 
@@ -103,7 +106,8 @@
 - [Add Text_Column.index_of][14428]
 - [Trigonometry and other maths function on Column.][14433]
 - [Support for reading JSON lines files.][14439]
-- [Add Custom SQL to in database aggreates.][14472]
+- [Add Custom SQL to in database aggregates.][14472]
+- [Add spatial functions and `write_spatial_file` to DuckDB.][14488]
 
 [13769]: https://github.com/enso-org/enso/pull/13769
 [14026]: https://github.com/enso-org/enso/pull/14026
@@ -135,6 +139,7 @@
 [14433]: https://github.com/enso-org/enso/pull/14433
 [14439]: https://github.com/enso-org/enso/pull/14439
 [14472]: https://github.com/enso-org/enso/pull/14472
+[14488]: https://github.com/enso-org/enso/pull/14488
 
 #### Enso Language & Runtime
 
