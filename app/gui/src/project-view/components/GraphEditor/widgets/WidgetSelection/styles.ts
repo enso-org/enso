@@ -29,6 +29,7 @@ function sizeOptions(limitWidth: boolean): () => SizeOptions {
       const minWidth = `${Math.max(portWidth - screenOverflow, 0)}px`
       const maxWidth = limitWidth ? `${MAX_DROPDOWN_OVERSIZE_PX}px` : null
 
+      // Delay changing styles to avoid "ResizeObserver loop completed with undelivered notifications" error.
       requestAnimationFrame(() => {
         Object.assign(elements.floating.style, { minWidth, maxWidth })
         elements.floating.style.setProperty('--dropdown-max-width', maxWidth)
