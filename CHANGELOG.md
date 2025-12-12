@@ -1,3 +1,11 @@
+# Next Next Release
+
+#### Enso Language & Runtime
+
+- [Use `State.get if_missing` to avoid too frequent `Panic.throw`][14490]
+
+[14490]: https://github.com/enso-org/enso/pull/14490
+
 # Next Release
 
 #### Enso IDE
