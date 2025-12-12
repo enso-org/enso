@@ -36,8 +36,11 @@ sleep milliseconds:Integer ~result=Nothing sleep=(\n -> Thread.sleep n) =
     result
 
 state_run key state ~computation = @Builtin_Method "State.run"
+
 state_get key ~if_missing = @Builtin_Method "State.get"
+
 state_put key new_state = @Builtin_Method "State.put"
+
 state_uninitialized key =
     Panic.throw
         Uninitialized_State.Error key
