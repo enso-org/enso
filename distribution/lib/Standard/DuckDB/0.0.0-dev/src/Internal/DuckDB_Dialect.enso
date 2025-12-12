@@ -381,6 +381,14 @@ type DuckDB_Dialect
     ensure_query_has_no_holes self jdbc:JDBC_Connection raw_sql:Text =
         jdbc.ensure_query_has_no_holes raw_sql
 
+    ## ---
+       private: true
+       ---
+    spatial_types : Hashset Text
+    spatial_types self =
+        _ = self
+        Hashset.from_vector ["GEOMETRY"]
+
 ## ---
    private: true
    ---
@@ -420,7 +428,7 @@ private duckdb_overrides =
     scalars = [["ROUND_BANKERS", Base_Generator.make_function "ROUND_EVEN"], ["GROUP_NUMBER_EQUAL_COUNT", make_group_number_equal_count]]
     date_ops = [["quarter", make_quarter],["date_diff", make_date_diff], ["date_add", make_date_add]]
     aggs = [make_first_aggr, make_first_aggr not_null=True, make_last_aggr, make_last_aggr not_null=True, agg_shortest, agg_longest, agg_median, agg_stddev, agg_stddev_pop, agg_mode]
-    other = [["RUNTIME_ERROR", make_runtime_error_op]]
+    other = [["RUNTIME_ERROR", make_runtime_error_op], make_st_to_geojson]
     text_ops + scalars + date_ops + aggs + other
 
 ## ---
@@ -538,6 +546,12 @@ make_last_aggr not_null:Boolean=False =
         filter_clause = if not_null then SQL_Builder.code " FILTER (" ++ args.first ++ " IS NOT NULL)" else ""
         SQL_Builder.code "(array_agg(" ++ args.first.paren ++ order_clause ++ ")" ++ filter_clause ++ ")[-1]"
     [(if not_null then "LAST_NOT_NULL" else "LAST"), func]
+
+## ---
+   private: true
+   ---
+make_st_to_geojson = Base_Generator.lift_unary_op "ST_ASGEOJSON" arg->
+    SQL_Builder.code "CAST(ST_AsGeoJSON(" ++ arg ++ ') AS VARCHAR)'
 
 ## ---
    private: true

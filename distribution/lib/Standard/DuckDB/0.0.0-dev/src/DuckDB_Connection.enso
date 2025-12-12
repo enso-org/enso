@@ -30,6 +30,7 @@ from Standard.Database.Internal.Upload.Operations.Create import create_table_imp
 
 import project.DuckDB.DuckDB
 import project.DuckDB_Format.DuckDB_Format
+import project.DuckDB_GeoFormat.DuckDB_GeoFormat
 import project.Internal.DuckDB_Dialect
 import project.Internal.DuckDB_Entity_Naming_Properties
 import project.Internal.DuckDB_Type_Mapping.DuckDB_Type_Mapping
@@ -281,7 +282,7 @@ type DuckDB_Connection
     ## ---
        aliases: [import, load, open, read, sql]
        group: Standard.Base.Input
-       icon: data_input
+       icon: spatial
        ---
        Reads a spatial file into a new table in the database and returns a
        query referencing the new table. An RTree index will be created on
@@ -374,7 +375,7 @@ type DuckDB_Connection
 
     ## ---
        group: Standard.Base.Database
-       icon: drive
+       icon: spatial
        ---
        Creates a RTree index on a single column in an existing table.
 
@@ -756,8 +757,56 @@ type DuckDB_Connection
                 path_as_file
 
     ## ---
+       icon: data_output
+       ---
+       Writes a table to a file using DuckDB's writing capabilities.
+
+       ## Arguments
+        - `table`: The input table name or `DB_Table` to write.
+        - `path`: The path to write the database to.
+        - `format`: The spatial format to use when writing the file.
+        - `on_existing_file`: The behavior to use if the file already exists.
+           Defaults to `Backup`, which will create a backup of the existing file.
+
+       ## Returns
+       A file pointing at the written file.
+    @query make_table_name_with_schema_selector schema_black_list=schema_black_list
+    @on_existing_file Existing_File_Behavior.widget include_append=False
+    @format DuckDB_GeoFormat.default_widget
+    write_spatial_file : (SQL_Query_With_Schema | SQL_Query | Table) -> Writable_File -> DuckDB_GeoFormat -> Existing_File_Behavior -> Writable_File
+    write_spatial_file self (query:(SQL_Query_With_Schema | SQL_Query | Table)=Missing_Argument.throw "query") (path:Writable_File=Missing_Argument.throw "path") (format:DuckDB_GeoFormat=Missing_Argument.throw "format") on_existing_file:Existing_File_Behavior=..Backup =
+        Error.return_if_error query
+
+        ## Check a local file (to do add support for non-local files later)
+        if path.is_local.not then Error.throw (Illegal_Argument.Error "Only local files are currently supported for writing via DuckDB. Write to a local file and then copy it to the desired location.")
+        path_as_file = path.file
+
+        ## Check if it exists and then follow on_existing_file behavior
+        write_action = _handle_existing_file path_as_file on_existing_file
+        Error.return_if_error write_action
+
+        ## Check Execution Context
+        Context.Output.if_enabled disabled_message="As writing is disabled, cannot write the file. Press the Write button ▶ to perform the operation." panic=False <|
+            Nothing
+
+        ## Rationalise the query to a DB_Table
+        table = case query of
+            _ : In_Memory_Table -> Error.throw (Illegal_Argument.Error "Load the table into DuckDB first using `bulk_load`.")
+            db_table : DB_Table -> if Connection.check_on_connection self db_table then db_table else
+                Error.throw (Illegal_Argument.Error "Cannot write a DB_Table from a different connection. Load the table into this connection first.")
+            _ -> query.to_db_table
+
+        ## Write the file
+        write_action file->
+            escaped_path = file.path.replace "'" "''"
+            sql_query = table.to_sql.surround "COPY (" (") TO '" + escaped_path + "' WITH (FORMAT gdal" + format.to_sql + ");")
+            result = self.execute_update sql_query
+            result.if_not_error <|
+                path_as_file
+
+    ## ---
        group: Standard.Base.Metadata
-       icon: drive
+       icon: spatial
        ---
        Gets a list of the available drivers for writing spatial data.
     spatial_drivers : Table
