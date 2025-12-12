@@ -192,7 +192,7 @@ type In_Memory_Text_Column_Implementation
                             Value_Type.expect_integer length <|
                                 _apply_binary_map this_column (s -> l-> do_substring s start l) length new_name skip_nulls=False expected_result_type=Value_Type.Char
                         False ->
-                            _apply_unary_map this_column new_name (s -> do_substring s start length) expected_result_type=Value_Type.Char
+                            apply_unary_map this_column new_name (s -> do_substring s start length) expected_result_type=Value_Type.Char
 
             res . cast this_column.value_type
 
