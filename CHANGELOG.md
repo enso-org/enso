@@ -102,6 +102,8 @@
 - [Parquet file reading and writing, DuckDB formats.][14427]
 - [Add Text_Column.index_of][14428]
 - [Trigonometry and other maths function on Column.][14433]
+- [Implement `Text_Column.left, right, and mid` for in-memory and database
+  backends.][14420]
 - [Support for reading JSON lines files.][14439]
 - [Add Custom SQL to in database aggregates.][14472]
 - [Add spatial functions and `write_spatial_file` to DuckDB.][14488]
@@ -136,6 +138,7 @@
 [14427]: https://github.com/enso-org/enso/pull/14427
 [14428]: https://github.com/enso-org/enso/pull/14428
 [14433]: https://github.com/enso-org/enso/pull/14433
+[14420]: https://github.com/enso-org/enso/pull/14420
 [14439]: https://github.com/enso-org/enso/pull/14439
 [14472]: https://github.com/enso-org/enso/pull/14472
 [14488]: https://github.com/enso-org/enso/pull/14488
