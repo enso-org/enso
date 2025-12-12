@@ -5,7 +5,6 @@ import org.enso.compiler.core.Implicits.AsMetadata
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.{
   `type`,
-  AscriptionReason,
   CallArgument,
   Expression,
   IdentifiedLocation,
@@ -198,11 +197,26 @@ case object TypeFunctions extends IRPass {
       val rightArg = resolveExpression(arguments.last.value)
 
       if (name.name == Type.Ascription.name) {
-        Type.Ascription(leftArg, rightArg, AscriptionReason.empty(), location)
+        Type.Ascription
+          .builder()
+          .typed(leftArg)
+          .signature(rightArg)
+          .location(location)
+          .build()
       } else if (name.name == Type.Context.name) {
-        Type.Context(leftArg, rightArg, location)
+        Type.Context
+          .builder()
+          .typed(leftArg)
+          .context(rightArg)
+          .location(location)
+          .build()
       } else if (name.name == Type.Error.name) {
-        Type.Error(leftArg, rightArg, location)
+        Type.Error
+          .builder()
+          .typed(leftArg)
+          .error(rightArg)
+          .location(location)
+          .build()
       } else if (name.name == `type`.Set.Concat.name) {
         `type`.Set.Concat
           .builder()

@@ -420,22 +420,26 @@ case object DataflowAnalysis extends IRPass {
     */
   def analyseType(typ: Type, info: DependencyInfo): Type = {
     typ match {
-      case asc @ Type.Ascription(typed, signature, _, _, _) =>
-        val ascrDep  = asStatic(asc)
-        val typedDep = asStatic(typed)
-        val sigDep   = asStatic(signature)
+      case asc: Type.Ascription =>
+        val typed     = asc.typed()
+        val signature = asc.signature()
+        val ascrDep   = asStatic(asc)
+        val typedDep  = asStatic(typed)
+        val sigDep    = asStatic(signature)
         info.dependents.updateAt(typedDep, Set(ascrDep))
         info.dependents.updateAt(sigDep, Set(ascrDep))
         info.dependencies.updateAt(ascrDep, Set(typedDep, sigDep))
 
         asc
-          .copy(
-            typed     = analyseExpression(typed, info),
-            signature = analyseExpression(signature, info)
-          )
+          .copyBuilder()
+          .typed(analyseExpression(typed, info))
+          .signature(analyseExpression(signature, info))
+          .build()
           .updateMetadata(new MetadataPair(this, info))
 
-      case fun @ Type.Function(args, result, _, _) =>
+      case fun: Type.Function =>
+        val args    = fun.args()
+        val result  = fun.result()
         val funDep  = asStatic(fun)
         val argDeps = args.map(asStatic)
         val resDep  = asStatic(result)
@@ -444,12 +448,15 @@ case object DataflowAnalysis extends IRPass {
         info.dependencies.updateAt(funDep, Set(resDep :: argDeps: _*))
 
         fun
-          .copy(
-            args   = args.map(analyseExpression(_, info)),
-            result = analyseExpression(result, info)
-          )
+          .copyBuilder()
+          .args(args.map(analyseExpression(_, info)))
+          .result(analyseExpression(result, info))
+          .build()
           .updateMetadata(new MetadataPair(this, info))
-      case ctx @ Type.Context(typed, context, _, _) =>
+
+      case ctx: Type.Context =>
+        val typed      = ctx.typed()
+        val context    = ctx.context()
         val ctxDep     = asStatic(ctx)
         val typedDep   = asStatic(typed)
         val contextDep = asStatic(context)
@@ -458,12 +465,15 @@ case object DataflowAnalysis extends IRPass {
         info.dependencies.updateAt(ctxDep, Set(typedDep, contextDep))
 
         ctx
-          .copy(
-            typed   = analyseExpression(typed, info),
-            context = analyseExpression(context, info)
-          )
+          .copyBuilder()
+          .typed(analyseExpression(typed, info))
+          .context(analyseExpression(context, info))
+          .build()
           .updateMetadata(new MetadataPair(this, info))
-      case err @ Type.Error(typed, error, _, _) =>
+
+      case err: Type.Error =>
+        val typed    = err.typed()
+        val error    = err.error()
         val errDep   = asStatic(err)
         val typedDep = asStatic(typed)
         val errorDep = asStatic(error)
@@ -472,11 +482,12 @@ case object DataflowAnalysis extends IRPass {
         info.dependencies.updateAt(errDep, Set(typedDep, errorDep))
 
         err
-          .copy(
-            typed = analyseExpression(typed, info),
-            error = analyseExpression(error, info)
-          )
+          .copyBuilder()
+          .typed(analyseExpression(typed, info))
+          .error(analyseExpression(error, info))
+          .build()
           .updateMetadata(new MetadataPair(this, info))
+
       case member: `type`.Set.Member =>
         val memberType    = member.memberType()
         val value         = member.value()

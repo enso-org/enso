@@ -17,7 +17,11 @@ public interface Type extends Expression {
   Type setLocation(Option<IdentifiedLocation> location);
 
   @Override
-  Type duplicate(boolean keepLocations, boolean keepMetadata, boolean keepDiagnostics, boolean keepIdentifiers);
+  Type duplicate(
+      boolean keepLocations,
+      boolean keepMetadata,
+      boolean keepDiagnostics,
+      boolean keepIdentifiers);
 
   @GenerateIR(interfaces = {Type.class})
   final class Function extends TypeFunctionGen {
@@ -34,25 +38,22 @@ public interface Type extends Expression {
       return new Builder().args(emptyScalaList());
     }
 
-    public Builder copyBuilder(Function fn) {
-      return new Builder(fn);
+    public Builder copyBuilder() {
+      return new Builder(this);
     }
 
     @Override
     public String showCode(int indent) {
-      return args().map(IR::showCode).mkString(" -> ")
-          + " -> "
-          + result().showCode();
+      return args().map(IR::showCode).mkString(" -> ") + " -> " + result().showCode();
     }
   }
 
-  /**
-   * The ascription of a type to a value
-   */
+  /** The ascription of a type to a value */
   @GenerateIR(interfaces = {Type.class, Definition.class, IRKind.Primitive.class})
   final class Ascription extends TypeAscriptionGen {
+    public static final String name = ":";
+
     /**
-     *
      * @param typed the expression being ascribed a type
      * @param signature the signature being ascribed to `typed`
      */
@@ -70,24 +71,28 @@ public interface Type extends Expression {
       return new Builder().reason(AscriptionReason.empty());
     }
 
-    public Builder copyBuilder(Ascription ascription) {
-      return new Builder(ascription);
+    public Builder copyBuilder() {
+      return new Builder(this);
+    }
+
+    public Ascription copyWithTyped(Expression typed) {
+      return new Builder(this).typed(typed).build();
     }
 
     @Override
     public String showCode(int indent) {
-      return typed().showCode(indent)
-          + " : "
-          + signature().showCode(indent);
+      return typed().showCode(indent) + " : " + signature().showCode(indent);
     }
   }
 
   /**
-   * A representation of the {@code in} portion of a type signature that
-   * represents the ascription of a monadic context.
+   * A representation of the {@code in} portion of a type signature that represents the ascription
+   * of a monadic context.
    */
   @GenerateIR(interfaces = {Type.class, IRKind.Primitive.class})
   final class Context extends TypeContextGen {
+    public static final String name = "in";
+
     /**
      * @param typed the type being ascribed a monadic context
      * @param context the context being ascribed to `typed`
@@ -105,23 +110,21 @@ public interface Type extends Expression {
       return new Builder();
     }
 
-    public Builder copyBuilder(Context context) {
-      return new Builder(context);
+    public Builder copyBuilder() {
+      return new Builder(this);
     }
 
     @Override
     public String showCode(int indent) {
-      return typed().showCode(indent)
-          + " in "
-          + context().showCode(indent);
+      return typed().showCode(indent) + " in " + context().showCode(indent);
     }
   }
 
-  /**
-   * Represents the ascription of an error context to an expression
-   */
+  /** Represents the ascription of an error context to an expression */
   @GenerateIR(interfaces = {Type.class, IRKind.Primitive.class})
   final class Error extends TypeErrorGen {
+    public static final String name = "!";
+
     /**
      * @param typed The expression being ascribed an error context.
      * @param error The error being ascribed.
@@ -139,22 +142,17 @@ public interface Type extends Expression {
       return new Builder();
     }
 
-    public Builder copyBuilder(Error error) {
-      return new Builder(error);
+    public Builder copyBuilder() {
+      return new Builder(this);
     }
 
     @Override
     public String showCode(int indent) {
-      return "("
-          + typed().showCode(indent)
-          + " ! "
-          + error().showCode(indent)
-          + ")";
+      return "(" + typed().showCode(indent) + " ! " + error().showCode(indent) + ")";
     }
   }
 
   private static <T> scala.collection.immutable.List<T> emptyScalaList() {
     return scala.collection.immutable.List$.MODULE$.empty();
   }
-
 }
