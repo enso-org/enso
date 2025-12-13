@@ -74,8 +74,8 @@ import project.Internal.Type_Refinements.DB_Table_Refinements
 import project.SQL.SQL_Type
 from project.DB_Table import DB_Table, make_literal_table, MAX_LITERAL_ELEMENT_COUNT
 from project.Errors import Integrity_Error, SQL_Error, Unsupported_Database_Operation
-from project.Internal.Type_Refinements.DB_Table_Conversions import all
 from project.Internal.DB_Column_Implementation import make_unary_op
+from project.Internal.Type_Refinements.DB_Table_Conversions import all
 
 type DB_Table_Implementation
     name (this_table : Table & DB_Table) = this_table.internal_name

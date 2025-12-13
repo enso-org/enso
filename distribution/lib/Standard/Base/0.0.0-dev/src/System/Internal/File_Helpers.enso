@@ -1,9 +1,9 @@
 private
 
 import project.Data.Boolean.Boolean
+import project.Data.Text.Text
 import project.Data.Time.Date_Time.Date_Time
 import project.Data.Time.Time_Zone
-import project.Data.Text.Text
 import project.System.File.File
 import project.System.File_Format.Bytes
 import project.System.File_Format.File_Format_SPI
@@ -12,9 +12,9 @@ import project.System.File_Format.JSON_Lines_Format
 import project.System.File_Format.Plain_Text_Format
 
 polyglot java import java.nio.file.attribute.FileTime
-polyglot java import java.nio.file.Path as Java_Path
 polyglot java import java.nio.file.Files as Java_Files
 polyglot java import java.nio.file.LinkOption as Java_LinkOption
+polyglot java import java.nio.file.Path as Java_Path
 polyglot java import java.time.ZonedDateTime as Java_ZonedDateTime
 polyglot java import java.time.ZoneOffset as Java_ZoneOffset
 
