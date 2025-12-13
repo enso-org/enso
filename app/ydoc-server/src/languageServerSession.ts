@@ -61,13 +61,13 @@ export class LanguageServerSession {
   static DEBUG = false
 
   /** Create a {@link LanguageServerSession}. */
-  constructor(ls: LanguageServer, unregister: () => void) {
+  constructor(ls: LanguageServer, indexDoc: WSSharedDoc, unregister: () => void) {
     this.clientScope = new AbortScope()
     this.docs = new Map()
     this.retainCount = 0
     this.ls = ls
     this.unregister = unregister
-    this.indexDoc = new WSSharedDoc()
+    this.indexDoc = indexDoc
     this.docs.set('index', this.indexDoc)
     this.model = new DistributedProject(this.indexDoc.doc)
     this.projectRootId = null
@@ -89,12 +89,15 @@ export class LanguageServerSession {
 
   /** Get a {@link LanguageServerSession} by its URL. */
   static get(url: string): LanguageServerSession {
+    console.log('DEBUG LanguageServerSession.get', url)
     const session = map.setIfUndefined(LanguageServerSession.sessions, url, () => {
-      const doc = new Y.Doc()
-      const transport = new YjsTransport(doc, url)
+      const indexDoc = new WSSharedDoc()
+      const transport = new YjsTransport(indexDoc.doc, url)
       transport.connect()
       const ls = new LanguageServer(crypto.randomUUID(), transport)
-      return new LanguageServerSession(ls, () => LanguageServerSession.sessions.delete(url))
+      return new LanguageServerSession(ls, indexDoc, () =>
+        LanguageServerSession.sessions.delete(url),
+      )
     })
     session.retain()
     return session
