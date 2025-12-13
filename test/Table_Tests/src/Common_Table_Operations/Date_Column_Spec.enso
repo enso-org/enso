@@ -1,0 +1,64 @@
+from Standard.Base import all
+import Standard.Base.Errors.Common.No_Such_Method
+
+from Standard.Table import all
+from Standard.Table.Errors import all
+import Standard.Table.Expression.Expression_Error
+
+import Standard.Database.Dialects.Feature.Feature
+
+from Standard.Test import all
+import enso_dev.Table_Tests.Util
+
+import project.Common_Table_Operations.Util as Common_Table_Operations_Util
+from project.Common_Table_Operations.Util import check_column_refinements, run_default_backend
+
+type Lazy_Ref
+    Value ~get
+
+main filter=Nothing = run_default_backend add_specs filter
+
+add_specs suite_builder setup =
+    if setup.is_feature_supported Feature.Column_Operations && setup.flagged ..Date_Time then (add_date_columns_specs suite_builder setup)
+
+add_date_columns_specs suite_builder setup =
+    prefix = setup.prefix
+    build_sorted_table = Common_Table_Operations_Util.build_sorted_table setup
+
+    date_table = Lazy_Ref.Value <| build_sorted_table [["X", [Date.new 1987 1 1, Date.new 2000 2 29, Date.new 2005 4 30]]]
+    date_column = Lazy_Ref.Value <| date_table . get . at "X"
+
+    suite_builder.group prefix+"Date_Column" group_builder->
+        group_builder.specify "a date column can be cast to Date_Column" <|
+            column = date_column.get
+            column.value_type.is_date . should_be_true
+            check_column_refinements column x->
+                (x:Date_Column)
+
+    suite_builder.group prefix+"Date_Column (first/end_of_month)" group_builder->
+        group_builder.specify "first_of_month and end_of_month work" <|
+            column = date_column.get
+            column.first_of_month . to_vector . should_equal [Date.new 1987 1 1, Date.new 2000 2 1, Date.new 2005 4 1]
+            column.end_of_month . to_vector . should_equal [Date.new 1987 1 31, Date.new 2000 2 29, Date.new 2005 4 30]
+
+        group_builder.specify "can be used inside a set component expression" <|     
+            table = date_table.get
+            expected = build_sorted_table [["X", [Date.new 1987 1 1, Date.new 2000 2 29, Date.new 2005 4 30]], ["first_of_month([X])", [Date.new 1987 1 1, Date.new 2000 2 1, Date.new 2005 4 1]], ["end_of_month([X])", [Date.new 1987 1 31, Date.new 2000 2 29, Date.new 2005 4 30]]]
+
+            result = table . set (expr "first_of_month([X])") . set (expr "end_of_month([X])")
+            result.should_equal expected
+
+        group_builder.specify "first_of_month and end_of_month error on non-date columns" <|
+            non_date_column = build_sorted_table [["X", [1, 2, 3, 4]]] . at 0
+            Test.expect_panic_with non_date_column.length No_Such_Method
+            Test.expect_panic_with non_date_column.char_length No_Such_Method
+
+            table = build_sorted_table [["X", [1, 2, 3, 4]]]
+
+            result = table.set (expr "first_of_month([X])")
+            result.should_fail_with Expression_Error
+            result.catch.should_equal (Expression_Error.Type_Error "method 'first_of_month' expected first argument to be Date_Column, but got Column.")
+
+            result2 = table.set (expr "end_of_month([X])")
+            result2.should_fail_with Expression_Error
+            result2.catch.should_equal (Expression_Error.Type_Error "method 'end_of_month' expected first argument to be Date_Column, but got Column.")

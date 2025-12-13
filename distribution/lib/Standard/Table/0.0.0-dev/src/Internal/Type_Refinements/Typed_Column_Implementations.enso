@@ -9,7 +9,7 @@ import project.In_Memory_Column.In_Memory_Column
 import project.Internal.Type_Refinements.Typed_Column_Helpers
 import project.Internal.Type_Refinements.Typed_Column_Implementations.In_Memory_Text_Column_Implementation
 import project.Value_Type.Value_Type
-from project.Internal.In_Memory_Column_Implementation import _apply_unary_map, _apply_binary_map, apply_case_sensitive_text_operation, _call_binary_operator, _java_other, apply_unary_operation, naming_helper
+from project.Internal.In_Memory_Column_Implementation import apply_unary_map, _apply_binary_map, apply_case_sensitive_text_operation, _call_binary_operator, _java_other, apply_unary_operation, naming_helper
 from project.Internal.Java_Exports import make_string_builder
 
 polyglot java import org.enso.table.data.column.operation.binary.RandBetweenOperation
@@ -192,7 +192,7 @@ type In_Memory_Text_Column_Implementation
                             Value_Type.expect_integer length <|
                                 _apply_binary_map this_column (s -> l-> do_substring s start l) length new_name skip_nulls=False expected_result_type=Value_Type.Char
                         False ->
-                            _apply_unary_map this_column new_name (s -> do_substring s start length) expected_result_type=Value_Type.Char
+                            apply_unary_map this_column new_name (s -> do_substring s start length) expected_result_type=Value_Type.Char
 
             res . cast this_column.value_type
 
@@ -200,3 +200,14 @@ type In_Memory_Text_Column_Implementation
         Value_Type.expect_text column <| Value_Type.expect_text other <|
             new_name = naming_helper.function_name "index_of" [column, other]
             apply_case_sensitive_text_operation column other case_sensitivity TextIndexOf.INSTANCE (a -> b -> a.index_of b 0 case_sensitivity) new_name Value_Type.Integer
+
+type In_Memory_Date_Column_Implementation
+    first_of_month (column : Column & In_Memory_Column)  =
+        Value_Type.expect_date column <|
+            new_name = naming_helper.function_name "first_of_month" [column]
+            apply_unary_map column new_name .first_of_month Value_Type.Date
+
+    end_of_month (column : Column & In_Memory_Column)  =
+        Value_Type.expect_date column <|
+            new_name = naming_helper.function_name "end_of_month" [column]
+            apply_unary_map column new_name .end_of_month Value_Type.Date

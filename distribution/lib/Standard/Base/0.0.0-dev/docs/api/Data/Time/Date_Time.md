@@ -18,7 +18,9 @@
     - day_of_week self -> Standard.Base.Any.Any
     - day_of_year self -> Standard.Base.Any.Any
     - end_of self period:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+    - end_of_month self -> Standard.Base.Any.Any
     - enso_epoch_start -> Standard.Base.Any.Any
+    - first_of_month self -> Standard.Base.Any.Any
     - format self format:Standard.Base.Data.Time.Date_Time_Formatter.Date_Time_Formatter -> Standard.Base.Any.Any
     - from_unix_epoch_milliseconds milliseconds:Standard.Base.Data.Numbers.Integer -> Standard.Base.Any.Any
     - from_unix_epoch_seconds seconds:Standard.Base.Data.Numbers.Integer nanoseconds:Standard.Base.Data.Numbers.Integer= -> Standard.Base.Any.Any

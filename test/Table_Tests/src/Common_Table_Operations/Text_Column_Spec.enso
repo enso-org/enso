@@ -233,5 +233,3 @@ add_text_columns_specs suite_builder setup =
                 res_big_A_cs    . to_vector . should_equal [-1,1,0,Nothing]
                 res_little_a_cis . to_vector . should_equal [0,0,0,Nothing]
                 res_big_A_cis    . to_vector . should_equal [0,0,0,Nothing]
-            
-            

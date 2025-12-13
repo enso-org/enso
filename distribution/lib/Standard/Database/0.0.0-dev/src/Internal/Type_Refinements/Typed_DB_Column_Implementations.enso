@@ -154,3 +154,14 @@ type DB_Text_Column_Implementation
         Value_Type.expect_text column <| Value_Type.expect_text other <|
             new_name = (naming_helper column).function_name "index_of" [column, other]
             make_text_case_op column "INDEX_OF" other case_sensitivity new_name
+
+type DB_Date_Column_Implementation
+    first_of_month column =
+        Value_Type.expect_date column <|
+            new_name = (naming_helper column).function_name "first_of_month" [column]
+            make_unary_op column "first_of_month" new_name
+
+    end_of_month column =
+        Value_Type.expect_date column <|
+            new_name = (naming_helper column).function_name "end_of_month" [column]
+            make_unary_op column "end_of_month" new_name

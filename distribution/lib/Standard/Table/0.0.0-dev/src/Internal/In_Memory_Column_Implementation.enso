@@ -289,21 +289,21 @@ type In_Memory_Column_Implementation
         fallback x = case x of
             _ : Float   -> x.is_nan
             _           -> False
-        apply_unary_operation this_column DoubleIsOperation.IS_NAN new_name if_unsupported=(_apply_unary_map this_column new_name fallback Value_Type.Boolean)
+        apply_unary_operation this_column DoubleIsOperation.IS_NAN new_name if_unsupported=(apply_unary_map this_column new_name fallback Value_Type.Boolean)
 
     is_infinite (this_column : Column & In_Memory_Column) = Value_Type.expect_numeric this_column <|
         new_name = naming_helper.function_name "is_infinite" [this_column]
         fallback x = case x of
             _ : Float   -> x.is_infinite
             _           -> False
-        apply_unary_operation this_column DoubleIsOperation.IS_INFINITE new_name if_unsupported=(_apply_unary_map this_column new_name fallback Value_Type.Boolean)
+        apply_unary_operation this_column DoubleIsOperation.IS_INFINITE new_name if_unsupported=(apply_unary_map this_column new_name fallback Value_Type.Boolean)
 
     is_finite (this_column : Column & In_Memory_Column) = Value_Type.expect_numeric this_column <|
         new_name = naming_helper.function_name "is_finite" [this_column]
         fallback x = case x of
             _ : Float   -> x.is_finite
             _           -> True
-        apply_unary_operation this_column DoubleIsOperation.IS_FINITE new_name if_unsupported=(_apply_unary_map this_column new_name fallback Value_Type.Boolean)
+        apply_unary_operation this_column DoubleIsOperation.IS_FINITE new_name if_unsupported=(apply_unary_map this_column new_name fallback Value_Type.Boolean)
 
     is_empty (this_column : Column & In_Memory_Column) = Value_Type.expect_text this_column <|
         In_Memory_Column_Implementation.internal_is_empty this_column
@@ -314,7 +314,7 @@ type In_Memory_Column_Implementation
             _ : Text -> x == ""
             Nothing  -> True
             _        -> False
-        apply_unary_operation this_column IsEmptyOperation.INSTANCE new_name if_unsupported=(_apply_unary_map this_column new_name fallback Value_Type.Boolean nothing_unchanged=False)
+        apply_unary_operation this_column IsEmptyOperation.INSTANCE new_name if_unsupported=(apply_unary_map this_column new_name fallback Value_Type.Boolean nothing_unchanged=False)
 
     is_present (this_column : Column & In_Memory_Column) =
         new_name = naming_helper.function_name "is_present" [this_column]
@@ -406,7 +406,7 @@ type In_Memory_Column_Implementation
             _ : Text ->
                 trim_fn = if parsed_what.is_empty then t-> t.trim where else
                     t-> t.trim where parsed_what
-                _apply_unary_map this_column new_name trim_fn expected_result_type=Value_Type.Char
+                apply_unary_map this_column new_name trim_fn expected_result_type=Value_Type.Char
             _ : Column -> Value_Type.expect_text parsed_what <|
                     fn = t-> w-> if t.is_nothing then Nothing else
                         if w.is_nothing || w.is_empty then t.trim where else t.trim where w
@@ -420,7 +420,7 @@ type In_Memory_Column_Implementation
 
         ## Text and Regex have same implementation
         perform_scalar used_term =
-            if parsed_new.is_a Text then _apply_unary_map this_column new_name (t-> t.replace used_term parsed_new case_sensitivity only_first) expected_result_type=Value_Type.Char else
+            if parsed_new.is_a Text then apply_unary_map this_column new_name (t-> t.replace used_term parsed_new case_sensitivity only_first) expected_result_type=Value_Type.Char else
                 Value_Type.expect_text parsed_new <|
                     fn = t-> r-> if t.is_nothing then Nothing else
                         if r.is_nothing.not then t.replace used_term (r.if_nothing "") case_sensitivity only_first else
@@ -547,7 +547,7 @@ type In_Memory_Column_Implementation
                 In_Memory_Column.from_java_column java_result
             False ->
                 set = Hashset.from_vector as_vector error_on_duplicates=False
-                _apply_unary_map this_column new_name set.contains_relational Value_Type.Boolean nothing_unchanged=False
+                apply_unary_map this_column new_name set.contains_relational Value_Type.Boolean nothing_unchanged=False
 
     parse (this_column : Column & In_Memory_Column) (type : Value_Type | Auto = Auto) (format : Text | Data_Formatter) on_problems:Problem_Behavior =
         if type != Auto && this_column.value_type.is_same_type type then this_column else
@@ -573,7 +573,7 @@ type In_Memory_Column_Implementation
         _ ->
             if format=="" && locale==Locale.default then In_Memory_Column_Implementation.cast this_column Value_Type.Char ..Ignore else
                 formatter = make_value_formatter_for_value_type this_column.value_type locale format
-                _apply_unary_map this_column this_column.name formatter Value_Type.Char on_problems=..Report_Error
+                apply_unary_map this_column this_column.name formatter Value_Type.Char on_problems=..Report_Error
 
     cast (this_column : Column & In_Memory_Column) value_type:Value_Type on_problems:Problem_Behavior =
         Cast_Helpers.check_cast_compatibility this_column.value_type value_type <|
@@ -833,7 +833,7 @@ apply_unary_operation column:Column operation:UnaryOperation new_name:Text|Nothi
     - `nothing_unchanged`: If set to `True`, `Nothing` values will be passed
       through the operation without being changed. If set to `False`, `Nothing`
       values will be passed to the function.
-private _apply_unary_map column:Column new_name:Text function expected_result_type:Value_Type|Nothing=Nothing nothing_unchanged:Boolean=True on_problems:Problem_Behavior=..Report_Warning =
+private apply_unary_map column:Column new_name:Text function expected_result_type:Value_Type|Nothing=Nothing nothing_unchanged:Boolean=True on_problems:Problem_Behavior=..Report_Warning =
     storage_type = resolve_storage_type expected_result_type
     Java_Problems.with_map_operation_problem_aggregator column.name on_problems java_problem_aggregator->
         map_column = Polyglot_Helpers.handle_polyglot_dataflow_errors <|
