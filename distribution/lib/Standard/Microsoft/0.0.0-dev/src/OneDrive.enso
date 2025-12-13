@@ -6,13 +6,14 @@ import Standard.Base.Errors.File_Error.File_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Errors.Unimplemented.Unimplemented
+import Standard.Base.Internal.Path_Helpers
 import Standard.Base.Runtime.Context
 import Standard.Base.System.File.Data_Link_Access.Data_Link_Access
 import Standard.Base.System.File.Generic.File_Like.File_Like
 import Standard.Base.System.File.Generic.Writable_File.Writable_File
 import Standard.Base.System.File_Format_Metadata.File_Format_Metadata
 import Standard.Base.System.Input_Stream.Input_Stream
-from Standard.Base.Metadata.Widget import Secret_Browse
+from Standard.Base.Metadata.Widget import Secret_Browse, Text_Input
 from Standard.Base.System.File import find_extension_from_name
 from Standard.Base.System.File.Generic.File_Write_Strategy import generic_copy
 
@@ -43,12 +44,51 @@ type OneDrive
        - `path`: A path to a file or folder in OneDrive.
        - `credential`: A Cloud secret or a file containing Microsoft365 credentials.
     @credential Secret_Browse
-    new : Text -> File | Enso_Secret -> OneDrive_File
+    new : Text -> File | Enso_Secret | Microsoft365_Credential -> OneDrive_File
     new path:Text="" (credential : File | Enso_Secret | Microsoft365_Credential = _default_credential) -> OneDrive_File =
         used_path = (if (path.starts_with "onedrive://" ..Insensitive) then path.drop (..First 11) else path) . trim ..Left '/'
         parts = if used_path == "" then [] else used_path.replace "\" "/" . split "/"
         ms_cred = Microsoft365_Credential.initialize credential
         OneDrive_File.Value ms_cred (OneDrive_Path.Value parts)
+
+    ## ---
+       icon: cloud
+       ---
+       Writes a file to the user's OneDrive.
+    @path Text_Input display=..Always
+    @destination Text_Input display=..Always
+    @credential Secret_Browse
+    write : Text | URI | File -> Text | OneDrive_File -> File | Enso_Secret | Microsoft365_Credential -> OneDrive_File
+    write source=(Missing_Argument.throw "source") (destination:(Text | OneDrive_File)=Missing_Argument.throw "destination") (credential : File | Enso_Secret | Microsoft365_Credential = _default_credential destination) -> OneDrive_File =
+        parsed_destination = case destination of
+            _ : Text -> OneDrive.new destination credential
+            _ : OneDrive_File -> OneDrive_File.Value credential destination.onedrive_path
+
+        is_folder = parsed_destination.exists && parsed_destination.is_directory
+        parent = if is_folder then parsed_destination else parsed_destination.parent
+        parent_exists = parent.exists
+        if parent_exists.not then Error.throw (File_Error.Not_Found parent)
+
+        resolved_file = Data_Link_Helpers.resolve_path source
+        Error.return_if_error resolved_file
+        if resolved_file.is_a URI then Error.throw (Illegal_Argument.Error "Writing from URI to OneDrive is not currently supported: "+resolved_file.to_text)
+
+        target_file = if is_folder then parsed_destination / resolved_file.name else parsed_destination
+        if target_file.exists then Error.throw (File_Error.Already_Exists target_file)
+        upload_target = if is_folder then parsed_destination else parsed_destination.parent
+
+        ## Check Execution Context
+        Context.Output.if_enabled disabled_message="As writing is disabled, cannot write the file. Press the Write button ▶ to perform the operation." panic=False <|
+            Nothing
+
+        Data_Link_Helpers.as_file resolved_file file->
+            if file.size > 4000000 then Error.throw (Unimplemented.Error "Writing files larger than 4 MB to OneDrive is not currently implemented.")
+
+            parent_id = upload_target.id
+            frag = "/me/drive/items/" + parent_id + ":/" + resolved_file.name + ":/content"
+            response = Graph.post_file parsed_destination.credential Graph.base_url+frag file method=..Put
+            if response.code.is_success then target_file else
+                Error.throw (File_Error.Write_Error target_file "Failed to write file to OneDrive. HTTP response code: "+response.code.to_text)
 
 type OneDrive_File
     private Value (credential : Microsoft365_Credential) (onedrive_path : OneDrive_Path)
@@ -198,9 +238,7 @@ type OneDrive_File
        ---
        Does the file exist.
     exists self -> Boolean =
-        frag = self.onedrive_path.to_human_readable_fragment
-        response = Graph.fetch self.credential Graph.base_url+frag
-        response.code.is_success
+        self.metadata.is_error.not
 
     ## ---
        icon: data_output
@@ -236,6 +274,15 @@ type OneDrive_File
     metadata self =
         frag = self.onedrive_path.to_human_readable_fragment
         Graph.fetch_json self.credential Graph.base_url+frag
+
+    ## ---
+       private: true
+       ---
+       Returns the id for the OneDrive object
+    id self =
+        metadata = self.metadata
+        if metadata.is_error then Error.throw (File_Error.Not_Found self)
+        metadata.get "id"
 
     ## ---
        group: Standard.Base.Metadata
@@ -347,6 +394,30 @@ type OneDrive_File
     can_write_into_parent self -> Boolean = False
 
     ## ---
+       group: Standard.Base.Operators
+       icon: folder
+       ---
+       Join two path segments together, normalizing the `..` and `.` sub-paths.
+
+       ## Arguments
+        - `subpath`: The path to join to the path of `self`.
+
+       ## Returns
+       - An `OneDrive_Path` representing the joined and normalised path, with
+         the same credentials.
+    / : Text -> OneDrive_File
+    / self subpath =
+        Path_Helpers.resolve_many_parts self subpath
+
+    ## ---
+       private: true
+       ---
+       An internal helper method that resolves a single part (subpath) of a path.
+    resolve_single_part self part:Text -> Any =
+        if self.is_data_link then Error.throw (Illegal_Argument.Error "Cannot resolve path parts on a OneDrive data link: "+self.uri)
+        OneDrive_File.Value self.credential (self.onedrive_path.resolve part)
+
+    ## ---
        private: true
        ---
        Return the absolute path of this OneDrive_File.
@@ -378,7 +449,9 @@ private _check_not_directory file:OneDrive_File ~action =
     if file.is_directory.not then action else
         Error.throw <| Illegal_Argument.Error "The OneDrive_File must represent a file, not a folder: "+file.onedrive_path.path.to_text
 
-private _default_credential =
-    test = Enso_Secret.get "Microsoft365" Enso_File.home
-    if test.is_error.not then test else
-        Error.throw (Illegal_Argument.Error "Default credentials not found - log in as new credential in cloud home called Microsoft365.")
+private _default_credential existing=Nothing =
+    Error.return_if_error existing
+    if existing.is_a OneDrive_File then existing.credential else
+        test = Enso_Secret.get "Microsoft365" Enso_File.home
+        if test.is_error.not then test else
+            Error.throw (Illegal_Argument.Error "Default credentials not found - log in as new credential in cloud home called Microsoft365.")
