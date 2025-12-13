@@ -17,6 +17,23 @@ interface ChannelMessage<T = unknown> {
 export type MessageHandler<T = unknown> = (message: T) => void
 
 /**
+ * Callbacks for YjsChannel lifecycle events.
+ */
+export interface YjsChannelCallbacks<T = unknown> {
+  /**
+   * Called when the channel is connected and ready to use.
+   * @param channel - The connected YjsChannel instance
+   */
+  onConnect(channel: YjsChannel): void
+
+  /**
+   * Called when a message is received from another party.
+   * @param message - The received message payload
+   */
+  onMessage(message: T): void
+}
+
+/**
  * A bidirectional communication channel backed by Y.Array.
  *
  * This class allows multiple parties to send and receive messages through a shared
@@ -28,14 +45,21 @@ export class YjsChannel<T = unknown> {
   private readonly handlers: Set<MessageHandler<T>> = new Set()
   private readonly observeHandler: (event: Y.YArrayEvent<ChannelMessage<T>>) => void
 
+  readonly callbacks: YjsChannelCallbacks | undefined
+
   /**
    * Creates a new YjsChannel.
    * @param doc - The shared Y.Doc document
    * @param channelName - The name of the channel (used to get/create the Y.Array)
    */
-  constructor(doc: Y.Doc, channelName: string) {
+  constructor(doc: Y.Doc, channelName: string, callbacks?: YjsChannelCallbacks) {
     this.senderId = randomUUID()
     this.array = doc.getArray<ChannelMessage<T>>(channelName)
+    this.callbacks = callbacks
+
+    if (callbacks) {
+      this.handlers.add(callbacks.onMessage)
+    }
 
     this.observeHandler = (event: Y.YArrayEvent<ChannelMessage<T>>) => {
       // Process all added items
