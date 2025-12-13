@@ -28,6 +28,7 @@
     "lib0": "^0.2.99",
     "modern-isomorphic-ws": "^1.0.5",
     "y-protocols": "^1.0.6",
+    "ydoc-channel": "workspace:*",
     "ydoc-shared": "workspace:*",
     "yjs": "^13.6.21",
     "zod": "catalog:"

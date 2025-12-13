@@ -10,6 +10,7 @@ import * as Y from 'yjs'
 import * as decoding from 'lib0/decoding'
 import * as encoding from 'lib0/encoding'
 import { ObservableV2 } from 'lib0/observable'
+import type { YjsChannelCallbacks } from 'ydoc-channel'
 import { LanguageServerSession } from './languageServerSession'
 
 const pingTimeout = 30000
@@ -97,9 +98,10 @@ export function setupGatewayClient(
   ws: YjsSocket,
   lsUrl: string | undefined | null,
   docName: string,
+  callbacks?: YjsChannelCallbacks,
 ): void {
   console.log(`setupGatewayClient(${lsUrl ? 'lsUrl: ' + lsUrl : 'no lsUrl'}, docName: ${docName})`)
-  const lsSession = getSessionForUrl(lsUrl)
+  const lsSession = getSessionForUrl(lsUrl, callbacks)
   const wsDoc = getSessionDoc(lsSession, docName)
   if (!wsDoc) {
     ws.close()
@@ -116,10 +118,10 @@ export function setupGatewayClient(
   })
 }
 
-function getSessionForUrl(lsUrl: string | undefined | null) {
+function getSessionForUrl(lsUrl: string | undefined | null, callbacks?: YjsChannelCallbacks) {
   let lsSession: LanguageServerSession
   if (lsUrl) {
-    lsSession = LanguageServerSession.get(lsUrl)
+    lsSession = LanguageServerSession.get(lsUrl, callbacks)
   } else {
     const anySession = LanguageServerSession.sessions.values().next().value
     if (LanguageServerSession.sessions.size === 1 && anySession) {
