@@ -76,7 +76,7 @@ export function createProjectStore(
   const awareness = new Awareness(doc)
 
   const clientId = crypto.randomUUID() as Uuid
-  const lsRpcConnection = createLsRpcConnection(clientId, props.engine.rpcUrl, abort)
+  const lsRpcConnection = createLsRpcConnection(clientId, doc, props.engine.rpcUrl, abort)
   const projectRootId = lsRpcConnection.contentRoots.then(
     (roots) => roots.find((root) => root.type === 'Project')?.id,
   )
@@ -443,8 +443,13 @@ function resolveYDocUrl(rpcUrl: string, url: string): URL {
   return resolved
 }
 
-function createLsRpcConnection(clientId: Uuid, url: string, abort: AbortScope): LanguageServer {
-  const transport = createRpcTransport(url)
+function createLsRpcConnection(
+  clientId: Uuid,
+  doc: Y.Doc,
+  url: string,
+  abort: AbortScope,
+): LanguageServer {
+  const transport = createRpcTransport(doc, url)
   const connection = new LanguageServer(clientId, transport)
   abort.onAbort(() => {
     connection.stopReconnecting()
