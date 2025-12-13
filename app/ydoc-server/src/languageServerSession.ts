@@ -4,6 +4,7 @@ import * as json from 'lib0/json'
 import * as map from 'lib0/map'
 import { ObservableV2 } from 'lib0/observable'
 import * as zlib from 'node:zlib'
+import { type YjsChannelCallbacks } from 'ydoc-channel'
 import * as Ast from 'ydoc-shared/ast'
 import { astCount } from 'ydoc-shared/ast'
 import { combineFileParts, splitFileContents, type EnsoFileParts } from 'ydoc-shared/ensoFile'
@@ -88,11 +89,11 @@ export class LanguageServerSession {
   static sessions: Map<string, LanguageServerSession> = new Map<string, LanguageServerSession>()
 
   /** Get a {@link LanguageServerSession} by its URL. */
-  static get(url: string): LanguageServerSession {
+  static get(url: string, callbacks?: YjsChannelCallbacks): LanguageServerSession {
     console.log('DEBUG LanguageServerSession.get', url)
     const session = map.setIfUndefined(LanguageServerSession.sessions, url, () => {
       const indexDoc = new WSSharedDoc()
-      const transport = new YjsTransport(indexDoc.doc, url)
+      const transport = new YjsTransport(indexDoc.doc, url, callbacks)
       transport.connect()
       const ls = new LanguageServer(crypto.randomUUID(), transport)
       return new LanguageServerSession(ls, indexDoc, () =>

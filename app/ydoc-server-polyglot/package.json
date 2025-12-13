@@ -15,6 +15,7 @@
     "lint": "eslint . --cache --max-warnings=0"
   },
   "dependencies": {
+    "ydoc-channel": "workspace:*",
     "ydoc-server": "workspace:*",
     "ydoc-shared": "workspace:*"
   },

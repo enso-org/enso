@@ -902,6 +902,9 @@ importers:
       y-protocols:
         specifier: ^1.0.6
         version: 1.0.6(yjs@13.6.21)
+      ydoc-channel:
+        specifier: workspace:*
+        version: link:../ydoc-channel
       ydoc-shared:
         specifier: workspace:*
         version: link:../ydoc-shared
@@ -936,6 +939,9 @@ importers:
 
   app/ydoc-server-polyglot:
     dependencies:
+      ydoc-channel:
+        specifier: workspace:*
+        version: link:../ydoc-channel
       ydoc-server:
         specifier: workspace:*
         version: link:../ydoc-server

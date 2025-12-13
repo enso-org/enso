@@ -11,6 +11,7 @@ import {
   type JSONRPCRequestData,
 } from '@open-rpc/client-js/build/Request.js'
 import { Transport } from '@open-rpc/client-js/build/transports/Transport.js'
+import type { YjsChannelCallbacks } from 'ydoc-channel'
 import { YjsChannel } from 'ydoc-channel'
 import type * as Y from 'yjs'
 
@@ -42,9 +43,9 @@ export class YjsTransport extends Transport {
    * @param doc - The shared Y.Doc document
    * @param channelName - The name of the channel (used to get/create the Y.Array)
    */
-  constructor(doc: Y.Doc, channelName: string) {
+  constructor(doc: Y.Doc, channelName: string, callbacks?: YjsChannelCallbacks) {
     super()
-    this.channel = new YjsChannel<string>(doc, channelName)
+    this.channel = new YjsChannel<string>(doc, channelName, callbacks)
   }
 
   /**
@@ -52,6 +53,9 @@ export class YjsTransport extends Transport {
    */
   public connect(): Promise<void> {
     return new Promise((resolve) => {
+      if (this.channel.callbacks) {
+        this.channel.callbacks.onConnect(this.channel)
+      }
       this.yjsUnsubscribe = this.channel.subscribe((message) => {
         this.emit('message', new MessageEvent('message', { data: message }))
         this.transportRequestManager.resolveResponse(message)
