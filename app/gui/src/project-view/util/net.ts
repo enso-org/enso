@@ -1,9 +1,8 @@
 import { onScopeDispose } from 'vue'
 import { AbortScope } from 'ydoc-shared/util/net'
-import {
-  ReconnectingWebSocket,
-  ReconnectingWebSocketTransport,
-} from 'ydoc-shared/util/net/ReconnectingWSTransport'
+import { ReconnectingWebSocket } from 'ydoc-shared/util/net/ReconnectingWSTransport'
+import { YjsTransport } from 'ydoc-shared/util/net/YjsTransport'
+import * as Y from 'yjs'
 
 export { AbortScope }
 
@@ -13,8 +12,8 @@ const WS_OPTIONS = {
 }
 
 /** TODO: Add docs */
-export function createRpcTransport(url: string): ReconnectingWebSocketTransport {
-  return new ReconnectingWebSocketTransport(url, WS_OPTIONS)
+export function createRpcTransport(indexDoc: Y.Doc, url: string): YjsTransport {
+  return new YjsTransport(indexDoc, url)
 }
 
 /** TODO: Add docs */
