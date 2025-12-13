@@ -30,7 +30,7 @@ type OneDrive
        ## Arguments
        - `credential`: A Cloud secret or a file containing Microsoft365 credentials.
     @credential Secret_Browse
-    root : File | Enso_Secret -> OneDrive_File
+    root : File | Enso_Secret | Microsoft365_Credential -> OneDrive_File
     root (credential : File | Enso_Secret | Microsoft365_Credential = _default_credential) -> OneDrive_File =
         ms_cred = Microsoft365_Credential.initialize credential
         OneDrive_File.root ms_cred
