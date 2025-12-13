@@ -66,7 +66,7 @@ type OneDrive
 
         is_folder = parsed_destination.exists && parsed_destination.is_directory
         parent_exists = if is_folder then parsed_destination.exists else parsed_destination.parent.exists
-        if parent_exists.not then Error.throw (Illegal_Argument.Error "The destination or its parent folder does not exist: "+parsed_destination.uri)
+        if parent_exists.not then Error.throw (File_Error.Not_Found (if is_folder then parsed_destination else parsed_destination.parent) "The destination or its parent folder does not exist: "+parsed_destination.uri)
 
         resolved_file = Data_Link_Helpers.resolve_path source
         Error.return_if_error resolved_file
@@ -85,7 +85,7 @@ type OneDrive
 
             parent_id = upload_target.id
             frag = "/me/drive/items/" + parent_id + ":/" + resolved_file.name + ":/content"
-            response = Graph.post_file credential Graph.base_url+frag file method=..Put
+            response = Graph.post_file parsed_destination.credential Graph.base_url+frag file method=..Put
             if response.code.is_success then target_file else
                 Error.throw (File_Error.Write_Error target_file "Failed to write file to OneDrive. HTTP response code: "+response.code.to_text)
 
@@ -237,9 +237,7 @@ type OneDrive_File
        ---
        Does the file exist.
     exists self -> Boolean =
-        frag = self.onedrive_path.to_human_readable_fragment
-        response = Graph.fetch self.credential Graph.base_url+frag
-        response.code.is_success
+        self.metadata.is_error.not
 
     ## ---
        icon: data_output
