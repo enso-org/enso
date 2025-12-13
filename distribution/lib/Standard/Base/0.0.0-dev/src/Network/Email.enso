@@ -17,7 +17,7 @@ import project.Runtime.Context
 import project.Warning.Warning
 from project.Data.Boolean import False
 from project.Error import all
-from project.Metadata.Widget import Text_Input, Vector_Editor, Single_Choice
+from project.Metadata.Widget import Single_Choice, Text_Input, Vector_Editor
 from project.Nothing import all
 
 ## An email object representing all parts of an email.
