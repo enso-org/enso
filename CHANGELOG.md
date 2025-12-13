@@ -109,6 +109,7 @@
 - [Add spatial functions and `write_spatial_file` to DuckDB.][14488]
 - [Add spatial function support to expressions.][14492]
 - [Add `Date_Column` class, and `first_of_month` and `end_of_month`.][14485]
+- [Add `OneDrive.write` allowing a first API to write to OneDrive.][14494]
 
 [13769]: https://github.com/enso-org/enso/pull/13769
 [14026]: https://github.com/enso-org/enso/pull/14026
@@ -141,9 +142,10 @@
 [14420]: https://github.com/enso-org/enso/pull/14420
 [14439]: https://github.com/enso-org/enso/pull/14439
 [14472]: https://github.com/enso-org/enso/pull/14472
+[14485]: https://github.com/enso-org/enso/pull/14485
 [14488]: https://github.com/enso-org/enso/pull/14488
 [14492]: https://github.com/enso-org/enso/pull/14492
-[14485]: https://github.com/enso-org/enso/pull/14485
+[14494]: https://github.com/enso-org/enso/pull/14494
 
 #### Enso Language & Runtime
 
