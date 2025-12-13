@@ -16,9 +16,9 @@ type Spatial_Table
     private Table parent:Table
 
     ## ---
+       private: true
        group: Standard.Base.Metadata
        icon: spatial
-       private: true
        ---
        If the column is a spatial column, returns it as a Spatial_Column
        otherwise throws a type error.
@@ -26,9 +26,9 @@ type Spatial_Table
         (self:Table).implementation.as_spatial_column self.parent.underlying column
 
     ## ---
+       private: true
        group: Standard.Base.Metadata
        icon: spatial
-       private: true
        ---
        Get the columns in the table which contain spatial data.
     spatial_columns self =
