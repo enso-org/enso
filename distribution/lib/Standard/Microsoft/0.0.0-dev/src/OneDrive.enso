@@ -65,8 +65,9 @@ type OneDrive
             _ : OneDrive_File -> OneDrive_File.Value credential destination.onedrive_path
 
         is_folder = parsed_destination.exists && parsed_destination.is_directory
-        parent_exists = if is_folder then parsed_destination.exists else parsed_destination.parent.exists
-        if parent_exists.not then Error.throw (File_Error.Not_Found (if is_folder then parsed_destination else parsed_destination.parent) "The destination or its parent folder does not exist: "+parsed_destination.uri)
+        parent = if is_folder then parsed_destination else parsed_destination.parent
+        parent_exists = parent.exists
+        if parent_exists.not then Error.throw (File_Error.Not_Found parent)
 
         resolved_file = Data_Link_Helpers.resolve_path source
         Error.return_if_error resolved_file
