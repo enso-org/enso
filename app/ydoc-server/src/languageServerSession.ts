@@ -90,7 +90,7 @@ export class LanguageServerSession {
 
   /** Get a {@link LanguageServerSession} by its URL. */
   static get(url: string, callbacks?: YjsChannelCallbacks): LanguageServerSession {
-    console.log('DEBUG LanguageServerSession.get', url)
+    console.log('DEBUG LanguageServerSession.get', url, callbacks)
     const session = map.setIfUndefined(LanguageServerSession.sessions, url, () => {
       const indexDoc = new WSSharedDoc()
       const transport = new YjsTransport(indexDoc.doc, url, callbacks)
