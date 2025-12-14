@@ -1,4 +1,3 @@
-import { randomUUID } from 'node:crypto'
 import * as Y from 'yjs'
 
 /**
@@ -53,12 +52,12 @@ export class YjsChannel<T = unknown> {
    * @param channelName - The name of the channel (used to get/create the Y.Array)
    */
   constructor(doc: Y.Doc, channelName: string, callbacks?: YjsChannelCallbacks) {
-    this.senderId = randomUUID()
+    this.senderId = crypto.randomUUID()
     this.array = doc.getArray<ChannelMessage<T>>(channelName)
     this.callbacks = callbacks
 
     if (callbacks) {
-      this.handlers.add(callbacks.onMessage)
+      this.handlers.add((message) => callbacks.onMessage(message))
     }
 
     this.observeHandler = (event: Y.YArrayEvent<ChannelMessage<T>>) => {
