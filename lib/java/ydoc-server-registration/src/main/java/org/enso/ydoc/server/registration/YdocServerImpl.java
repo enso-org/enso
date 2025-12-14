@@ -40,7 +40,7 @@ public final class YdocServerImpl extends YdocServerApi {
     var fqn = "org.enso.ydoc.server.Main";
     var impl = loader.loadClass(fqn);
     assert impl != null;
-    impl.invokeMember("launch", hostname, port, callbacks);
+    impl.invokeMember("launch", hostname, port + "", callbacks);
     return loader;
   }
 }

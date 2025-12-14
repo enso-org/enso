@@ -13,7 +13,7 @@ wss.onconnect = (socket, url) => {
   const ls = url.searchParams.get('ls')
   if (doc != null && ls != null) {
     console.log('setupGatewayClient', ls, doc, YDOC_MESSAGE_CALLBACKS)
-    setupGatewayClient(socket, ls, doc)
+    setupGatewayClient(socket, ls, doc, YDOC_MESSAGE_CALLBACKS)
   } else {
     console.log('Failed to authenticate user', ls, doc)
   }
