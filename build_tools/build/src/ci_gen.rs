@@ -756,9 +756,9 @@ pub fn ide_packaging() -> Result<Workflow> {
 
     let engine_launcher = engine::EngineLauncher::Native;
     for target in PR_REQUIRED_TARGETS {
-        let project_manager_job = workflow.add(target, job::BuildBackend { engine_launcher });
+        let backend_job = workflow.add(target, job::BuildBackend { engine_launcher });
         workflow.add_customized(target, job::PackageIde, |job| {
-            job.needs.insert(project_manager_job.clone());
+            job.needs.insert(backend_job.clone());
         });
         workflow.add(target, job::GuiBuild);
     }

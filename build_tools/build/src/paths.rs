@@ -2,7 +2,6 @@ use crate::prelude::*;
 
 use crate::version::Versions;
 
-use std::env::consts::EXE_EXTENSION;
 use std::env::consts::EXE_SUFFIX;
 
 #[allow(clippy::all)] // [mwu] Little reason to bother in the generated code.
@@ -203,13 +202,6 @@ pub fn data_directory() -> PathBuf {
 /// Get the place where global IR caches are stored.
 pub fn cache_directory() -> PathBuf {
     data_directory().join("cache")
-}
-
-pub fn project_manager(base_path: impl AsRef<Path>) -> PathBuf {
-    base_path
-        .as_ref()
-        .join_iter(["enso", "bin", "project-manager"])
-        .with_appended_extension(EXE_EXTENSION)
 }
 
 /// The path to the first `Cargo.toml` above the given path.

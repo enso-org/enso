@@ -32,7 +32,7 @@ export const ASSETS_PATH = path.join(APP_PATH, 'assets')
 /**
  * Path to the `resources` folder.
  *
- * Contains other app resources, including binaries, such a project manager.
+ * Contains other app resources and backend assets.
  */
 export const RESOURCES_PATH = electronIsDev ? APP_PATH : path.join(APP_PATH, '..')
 

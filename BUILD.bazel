@@ -153,7 +153,6 @@ ENGINE_DIST_SOURCES = STDLIB_SOURCES + SBT_PROJECT_FILES + [
     "lib/scala/pkg/src/**",
     "lib/scala/process-utils/src/**",
     "lib/scala/profiling-utils/src/**",
-    "lib/scala/project-manager/src/**",
     "lib/scala/refactoring-utils/src/**",
     "lib/scala/runtime-version-manager/src/**",
     "lib/scala/searcher/src/**",

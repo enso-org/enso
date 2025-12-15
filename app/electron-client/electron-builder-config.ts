@@ -17,7 +17,6 @@ import yargs from 'yargs'
 
 import * as common from 'enso-common'
 
-import * as paths from './paths'
 import computeHashes from './tasks/computeHashes'
 import signArchivesMacOs from './tasks/signArchivesMacOs'
 
@@ -39,7 +38,7 @@ export interface Arguments {
   readonly target?: string | undefined
   readonly guiDist: string
   readonly ideDist: string
-  readonly projectManagerDist: string
+  readonly backendDist: string
   readonly platform: electronBuilder.Platform
   readonly sign: boolean
 }
@@ -87,10 +86,10 @@ export const args: Arguments = await yargs(process.argv.slice(2))
       description: 'Output directory with GUI',
       demandOption: true,
     },
-    projectManagerDist: {
-      alias: 'project-manager',
+    backendDist: {
+      alias: 'backend',
       type: 'string',
-      description: 'Output directory with project manager',
+      description: 'Output directory with backend assets',
       demandOption: true,
     },
     platform: {
@@ -247,8 +246,8 @@ export function createElectronBuilderConfig(passedArgs: Arguments): electronBuil
     ],
     extraResources: [
       {
-        from: `${passedArgs.projectManagerDist}/`,
-        to: paths.PROJECT_MANAGER_BUNDLE,
+        from: `${passedArgs.backendDist}/`,
+        to: 'enso',
         filter: ['!**.tar.gz', '!**.zip'],
       },
     ],

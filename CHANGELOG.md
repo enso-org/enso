@@ -9,8 +9,10 @@
 #### Enso Language & Runtime
 
 - [`Panic.rethrow` keeps original location][14480]
+- [Use `State.get if_missing` to avoid too frequent `Panic.throw`][14490]
 
 [14480]: https://github.com/enso-org/enso/pull/14480
+[14490]: https://github.com/enso-org/enso/pull/14490
 
 # Next Release
 
