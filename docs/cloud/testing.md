@@ -23,7 +23,6 @@ export AWS_PROFILE=cloud-staging
 export ENSO_RUN_REAL_CLOUD_TEST=1
 export ENSO_CLOUD_API_URL=https://kb6aej61n3.execute-api.eu-west-1.amazonaws.com
 export ENSO_CLOUD_ENV=staging
-
 ```
 
 ### Production
