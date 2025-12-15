@@ -19,8 +19,6 @@ from project.Internal.Result_Set import result_set_to_table
 polyglot java import java.sql.Connection
 polyglot java import java.sql.DatabaseMetaData
 polyglot java import java.sql.PreparedStatement
-
-## Needed to help Native Image include the classes.
 polyglot java import org.enso.base.enso_cloud.HideableValue
 polyglot java import org.enso.base.enso_cloud.HideableValue.Factory
 polyglot java import org.enso.base.enso_cloud.HideableValue.KeyValuePair

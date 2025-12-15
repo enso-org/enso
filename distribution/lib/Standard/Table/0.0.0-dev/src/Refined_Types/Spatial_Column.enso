@@ -7,6 +7,7 @@ import project.Spatial_Table.Spatial_Table
 
 ## A column that contains spatial values - designed for use by Expression at the moment.
 type Spatial_Column
+    ## Wraps a column and its parent table allowing spatial operations to be performed on it.
     Value column parent_table:Spatial_Table
 
     ## ---
@@ -170,6 +171,7 @@ type Spatial_Column
 
 ## A column that contains spatial values - designed for use by Expression at the moment.
 type Spatial_Input_Column
+    ## Wraps a column and its parent table allowing conversion to spatial objects.
     Value column parent_table:Spatial_Table
 
     ## ---

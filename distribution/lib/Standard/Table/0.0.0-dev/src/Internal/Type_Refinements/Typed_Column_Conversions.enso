@@ -12,8 +12,8 @@ import project.Internal.Type_Refinements.Typed_Column_Helpers
 import project.Internal.Type_Refinements.Typed_Column_Implementations.In_Memory_Date_Column_Implementation
 import project.Internal.Type_Refinements.Typed_Column_Implementations.In_Memory_Numeric_Column_Implementation
 import project.Internal.Type_Refinements.Typed_Column_Implementations.In_Memory_Text_Column_Implementation
-import project.Refined_Types.Numeric_Column.Numeric_Column
 import project.Refined_Types.Date_Column.Date_Column
+import project.Refined_Types.Numeric_Column.Numeric_Column
 import project.Refined_Types.Text_Column.Text_Column
 
 ## This conversion is internal and should never be exported.
