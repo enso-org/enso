@@ -1,12 +1,18 @@
 package org.enso.librarymanager.published.repository
 
-import org.enso.semver.SemVer
 import org.enso.cli.task.TaskProgress
 import org.enso.distribution.FileSystem.PathSyntax
-import org.enso.downloader.http.{HTTPDownload, ResourceNotFound, URIBuilder}
+import org.enso.downloader.http.{
+  HTTPDownload,
+  HTTPURIBuilder,
+  JarURIBuilder,
+  ResourceNotFound,
+  URIBuilder
+}
 import org.enso.editions.Editions.Repository
 import org.enso.editions.LibraryName
 import org.enso.pkg.{Config, Package}
+import org.enso.semver.SemVer
 import org.enso.yaml.YamlHelper
 
 import java.io.IOException
@@ -26,8 +32,16 @@ object RepositoryHelper {
     /** Creates a [[LibraryAccess]] instance that aids with downloading data of
       * the given library.
       */
-    def accessLibrary(name: LibraryName, version: SemVer): LibraryAccess =
-      new LibraryAccess(name, version, resolveLibraryRoot(name, version))
+    def accessLibrary(name: LibraryName, version: SemVer): LibraryAccess = {
+      val libRoot = resolveLibraryRoot(name, version)
+      libRoot match {
+        case httpBldr: HTTPURIBuilder =>
+          new HTTPLibraryAccess(name, version, httpBldr)
+        case jarBldr: JarURIBuilder =>
+          new JarLibraryAccess(name, version, jarBldr)
+        case _ => throw new AssertionError(s"Unsupported URI scheme: $libRoot")
+      }
+    }
 
     /** Creates a [[URIBuilder]] that points to the directory in the repository
       * corresponding to the given library.
@@ -45,113 +59,10 @@ object RepositoryHelper {
 
   /** A helper class that allows to access the Library Repository to query it
     * for metadata of a specific library or download its packages.
-    *
-    * @param libraryName name of the library
-    * @param version     version of the library
-    * @param libraryRoot a [[URIBuilder]] that points to the directory
-    *                    corresponding to the library
     */
-  class LibraryAccess(
-    libraryName: LibraryName,
-    version: SemVer,
-    libraryRoot: URIBuilder
-  ) {
-
-    /** Fetches the contents of manifest file and parses it.
-      *
-      * If the repository responds with 404 status code, it returns a special
-      * [[LibraryNotFoundException]] indicating that the repository does not
-      * provide that library. Any other failures are indicated with the more
-      * generic [[LibraryDownloadFailure]].
-      */
-    def fetchManifest(): TaskProgress[LibraryManifest] = {
-      val uri = (libraryRoot / LibraryManifest.filename).build()
-      if (uri.getScheme == "jar") {
-        val jarUrl = uri.toURL.openConnection().asInstanceOf[JarURLConnection]
-        val res = Using(jarUrl.getInputStream) { is =>
-          val manifestContent = new String(is.readAllBytes())
-          YamlHelper.parseString[LibraryManifest](manifestContent).toTry
-        }
-        TaskProgress.fromTry(res.flatten)
-      } else {
-        HTTPDownload.fetchString(uri).flatMap { response =>
-          response.statusCode match {
-            case 200 =>
-              YamlHelper.parseString[LibraryManifest](response.content).toTry
-            case 404 =>
-              Failure(
-                LibraryNotFoundException(libraryName, version, uri.toString)
-              )
-            case code =>
-              Failure(
-                new LibraryDownloadFailure(
-                  s"Could not download the manifest: The repository responded " +
-                  s"with $code status code."
-                )
-              )
-          }
-        }
-      }
-    }
-
-    /** Fetches the contents of package config file and parses it.
-      *
-      * If the repository responds with 404 status code, it returns a special
-      * [[LibraryNotFoundException]] indicating that the repository does not
-      * provide that library. Any other failures are indicated with the more
-      * generic [[LibraryDownloadFailure]].
-      */
-    def fetchPackageConfig(): TaskProgress[Config] = {
-      val url = (libraryRoot / Package.configFileName).build()
-      if (url.getScheme == "jar") {
-        val jarUrl = url.toURL.openConnection().asInstanceOf[JarURLConnection]
-        val res = Using(jarUrl.getInputStream) { is =>
-          val cfgContent = new String(is.readAllBytes())
-          YamlHelper.parseString[Config](cfgContent).toTry
-        }
-        TaskProgress.fromTry(res.flatten)
-      } else {
-        HTTPDownload.fetchString(url).flatMap { response =>
-          response.statusCode match {
-            case 200 =>
-              YamlHelper.parseString[Config](response.content).toTry
-            case 404 =>
-              Failure(
-                LibraryNotFoundException(libraryName, version, url.toString)
-              )
-            case code =>
-              Failure(
-                new LibraryDownloadFailure(
-                  s"Could not download the package config: The repository responded " +
-                  s"with $code status code."
-                )
-              )
-          }
-        }
-      }
-    }
-
-    /** A helper that downloads an artifact to a specific location. */
-    private def downloadArtifact(
-      artifactName: String,
-      destination: Path
-    ): TaskProgress[Unit] = {
-      val url = (libraryRoot / artifactName).build()
-      if (url.getScheme == "jar") {
-        val jarUrl = url.toURL.openConnection().asInstanceOf[JarURLConnection]
-        try {
-          val is    = jarUrl.getInputStream
-          val bytes = is.readAllBytes()
-          Files.write(destination, bytes)
-          TaskProgress.runImmediately((): Unit)
-        } catch {
-          case _: IOException =>
-            TaskProgress.immediateFailure(ResourceNotFound())
-        }
-      } else {
-        HTTPDownload.download(url, destination).map(_ => ())
-      }
-    }
+  sealed trait LibraryAccess {
+    def fetchManifest():      TaskProgress[LibraryManifest]
+    def fetchPackageConfig(): TaskProgress[Config]
 
     /** Downloads the license file.
       *
@@ -170,11 +81,123 @@ object RepositoryHelper {
       archiveName: String,
       destinationDirectory: Path
     ): TaskProgress[Unit] = downloadArtifact(archiveName, destinationDirectory)
+
+    protected def downloadArtifact(
+      artifactName: String,
+      destination: Path
+    ): TaskProgress[Unit]
+
+    /** Name of the attached license file. */
+    private val licenseFilename = "LICENSE.md"
+
+    /** Name of the package config file. */
+    private val packageFileName: String = Package.configFileName
   }
 
-  /** Name of the attached license file. */
-  val licenseFilename = "LICENSE.md"
+  /** Represents access to a JAR-based (zip) remote library repository.
+    */
+  sealed private class JarLibraryAccess(
+    libraryName: LibraryName,
+    version: SemVer,
+    libraryRoot: JarURIBuilder
+  ) extends LibraryAccess {
 
-  /** Name of the package config file. */
-  val packageFileName: String = Package.configFileName
+    override def fetchManifest(): TaskProgress[LibraryManifest] = {
+      val uri    = (libraryRoot / LibraryManifest.filename).build()
+      val jarUrl = uri.toURL.openConnection().asInstanceOf[JarURLConnection]
+      val res = Using(jarUrl.getInputStream) { is =>
+        val manifestContent = new String(is.readAllBytes())
+        YamlHelper.parseString[LibraryManifest](manifestContent).toTry
+      }.recoverWith { case _: IOException =>
+        Failure(LibraryNotFoundException(libraryName, version, uri.toString))
+      }
+      TaskProgress.fromTry(res.flatten)
+    }
+
+    override def fetchPackageConfig(): TaskProgress[Config] = {
+      val url    = (libraryRoot / Package.configFileName).build()
+      val jarUrl = url.toURL.openConnection().asInstanceOf[JarURLConnection]
+      val res = Using(jarUrl.getInputStream) { is =>
+        val cfgContent = new String(is.readAllBytes())
+        YamlHelper.parseString[Config](cfgContent).toTry
+      }.recoverWith { case _: IOException =>
+        Failure(LibraryNotFoundException(libraryName, version, url.toString))
+      }
+      TaskProgress.fromTry(res.flatten)
+    }
+
+    override protected def downloadArtifact(
+      artifactName: String,
+      destination: Path
+    ): TaskProgress[Unit] = {
+      val url    = (libraryRoot / artifactName).build()
+      val jarUrl = url.toURL.openConnection().asInstanceOf[JarURLConnection]
+      try {
+        val is    = jarUrl.getInputStream
+        val bytes = is.readAllBytes()
+        Files.write(destination, bytes)
+        TaskProgress.runImmediately((): Unit)
+      } catch {
+        case _: IOException =>
+          TaskProgress.immediateFailure(ResourceNotFound())
+      }
+    }
+  }
+
+  sealed private class HTTPLibraryAccess(
+    libraryName: LibraryName,
+    version: SemVer,
+    libraryRoot: HTTPURIBuilder
+  ) extends LibraryAccess {
+
+    override def fetchManifest(): TaskProgress[LibraryManifest] = {
+      val uri = (libraryRoot / LibraryManifest.filename).build()
+      HTTPDownload.fetchString(uri).flatMap { response =>
+        response.statusCode match {
+          case 200 =>
+            YamlHelper.parseString[LibraryManifest](response.content).toTry
+          case 404 =>
+            Failure(
+              LibraryNotFoundException(libraryName, version, uri.toString)
+            )
+          case code =>
+            Failure(
+              new LibraryDownloadFailure(
+                s"Could not download the manifest: The repository responded " +
+                s"with $code status code."
+              )
+            )
+        }
+      }
+    }
+
+    override def fetchPackageConfig(): TaskProgress[Config] = {
+      val url = (libraryRoot / Package.configFileName).build()
+      HTTPDownload.fetchString(url).flatMap { response =>
+        response.statusCode match {
+          case 200 =>
+            YamlHelper.parseString[Config](response.content).toTry
+          case 404 =>
+            Failure(
+              LibraryNotFoundException(libraryName, version, url.toString)
+            )
+          case code =>
+            Failure(
+              new LibraryDownloadFailure(
+                s"Could not download the package config: The repository responded " +
+                s"with $code status code."
+              )
+            )
+        }
+      }
+    }
+
+    override protected def downloadArtifact(
+      artifactName: String,
+      destination: Path
+    ): TaskProgress[Unit] = {
+      val url = (libraryRoot / artifactName).build()
+      HTTPDownload.download(url, destination).map(_ => ())
+    }
+  }
 }

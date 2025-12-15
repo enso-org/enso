@@ -6,7 +6,7 @@ import java.net.URISyntaxException;
 /**
  * @see java.net.JarURLConnection
  */
-final class JarURIBuilder implements URIBuilder {
+public final class JarURIBuilder implements URIBuilder {
   private final URI uri;
 
   JarURIBuilder(URI uri) {
