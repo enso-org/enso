@@ -4,7 +4,7 @@
  * we can easily replace its contents in a separate build postprocessing step in `BUILD.bazel`.
  */
 
-import { unsafeKeys } from './utilities/data/object'
+import { unsafeKeys } from './utilities/data/object.js'
 
 declare global {
   interface ViteTypeOptions {
