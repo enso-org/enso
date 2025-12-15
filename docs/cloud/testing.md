@@ -72,8 +72,9 @@ lrwxr-xr-x   1 gmt  staff    12 Dec 12 13:42 .env.development@ -> .env.staging
 ...
 ```
 
-(Note that any permanent changes to the files in `app/gui/.dev-env` are submodule
-changes, and must be integrated into the main repo as a submodule change.)
+(Note that any permanent changes to the files in `app/gui/.dev-env` are
+submodule changes, and must be integrated into the main repo as a submodule
+change.)
 
 ### Staging
 
@@ -127,9 +128,7 @@ reauthenticate multiple times a day.
 1. Update the values of `access_token` and `refresh_token` using the values
    taken from the token endpoint response
 1. Make sure the `client_id` value in your `.credentials` matches the
-   corresponding value of `cognito_client_id` in the [Terraform config
-   files](https://github.com/enso-org/cloud-v2/tree/main/terraform).
+   corresponding value of `cognito_client_id` in the
+   [Terraform config files](https://github.com/enso-org/cloud-v2/tree/main/terraform).
 
 <img width="604" height="261" alt="creds" src="https://github.com/user-attachments/assets/afe4dc88-b68a-4dc4-9cb3-6e7d8bf541d9" />
-
-
