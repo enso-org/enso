@@ -193,4 +193,29 @@ public class ExecStrictCompilerTest {
           AllOf.allOf(containsString("The name `f`"), containsString("could not be found")));
     }
   }
+
+  @Test
+  public void suspendedDefaultedUnionArgument() throws Exception {
+    var code =
+        """
+        from Standard.Base import all
+        def a:Integer ~b:Text|Nothing=Nothing -> Text:Nothing =
+            if a < 0 then "Minus" else
+                b
+        """;
+    var module = ctxRule.eval(LanguageInfo.ID, code);
+    var def = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "def");
+    var hi = def.execute(1, "Hi");
+    assertEquals("Hi", hi.asString());
+    try {
+      var r = def.execute(-2, 20);
+      fail("We don't expect any result, but exception: " + r);
+    } catch (PolyglotException ex) {
+      assertThat(
+          ex.getMessage(),
+          AllOf.allOf(
+              containsString("expected `b` to be Text"), containsString("but got Integer")));
+    }
+    assertTrue("Returns nothing", def.execute(3).isNull());
+  }
 }
