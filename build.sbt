@@ -113,7 +113,6 @@ GatherLicenses.distributions := Seq(
       `language-server`
     )
   ),
-
   makeStdLibDistribution("Base", Distribution.sbtProjects(`std-base`)),
   makeStdLibDistribution(
     "Generic_JDBC",

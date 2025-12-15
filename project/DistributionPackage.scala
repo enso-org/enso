@@ -112,7 +112,6 @@ object DistributionPackage {
       baseName
     }
 
-
   /** @param distributionRoot Root directory for the engine build distribution. Will be populated.
     * @param jarModulesToCopy Modular Jar archives that will be copied into the `component` directory.
     * @param pythonResources Directories with extracted resources from GraalPy
