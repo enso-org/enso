@@ -27,6 +27,7 @@ import {
   VirtualParentsPath,
   type Address,
   type AssetId,
+  type Config,
   type CredentialInput,
   type EmailAddress,
   type HttpsUrl,
@@ -2033,6 +2034,8 @@ export abstract class Backend {
   abstract deleteApiKey(apiKeyId: ApiKeyId): Promise<void>
   /** Retrieve Mapbox token for the current user. */
   abstract getMapboxToken(): Promise<MapboxToken>
+  /** Retrieve configuration settings for the current environment. */
+  abstract getConfig(): Promise<Config>
 
   /** Throw a {@link backend.NotAuthorizedError} if the response is a 401 Not Authorized status code. */
   private async checkForAuthenticationError<T>(
@@ -2120,13 +2123,9 @@ export abstract class Backend {
   }
 }
 
-/**
- * Error thrown when an asset does not exist.
- */
+/** Error thrown when an asset does not exist. */
 export class AssetDoesNotExistError extends Error {
-  /**
-   * Create a new instance of the {@link AssetDoesNotExistError} class.
-   */
+  /** Create a new instance of the {@link AssetDoesNotExistError} class. */
   constructor(message: string = 'Asset could not be found.') {
     super(message)
   }

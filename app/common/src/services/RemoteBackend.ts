@@ -1312,6 +1312,17 @@ export class RemoteBackend extends backend.Backend {
     }
   }
 
+  /** Fetches the raw backend configuration. */
+  override async getConfig(): Promise<backend.Config> {
+    const response = await this.get<backend.ConfigRaw>(remoteBackendPaths.GET_CONFIG_PATH)
+    if (!response.ok) {
+      return await this.throw(response, 'getConfigBackendError')
+    } else {
+      const json = await response.json()
+      return backend.configFromRaw(json)
+    }
+  }
+
   /**
    * Cancel given subscription.
    * @throws An error if a non-successful status code (not 200-299) was received.

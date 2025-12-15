@@ -99,11 +99,15 @@ export const CUSTOMER_PORTAL_SESSION_CREATE_PATH = 'payments/customer-portal-ses
 export const LIST_API_KEYS_PATH = 'credentials'
 /** Relative HTTP path to the "create API key" endpoint of the Cloud backend API. */
 export const CREATE_API_KEY_PATH = 'credentials'
+/** Relative HTTP path to the "get Mapbox token" endpoint of the Cloud backend API. */
+export const GET_MAPBOX_TOKEN_PATH = 'mapbox/token'
+/** Relative HTTP path to the "get config" endpoint of the Cloud backend API. */
+export const GET_CONFIG_PATH = 'utils/config'
+
 /** Relative HTTP path to the "delete API key" endpoint of the Cloud backend API. */
 export function deleteApiKeyPath(apiKeyId: ApiKeyId) {
   return `credentials/${apiKeyId}`
 }
-export const GET_MAPBOX_TOKEN_PATH = 'mapbox/token'
 
 /** Relative HTTP path to the "cancel subscription" endpoint of the Cloud backend API. */
 export function cancelSubscriptionPath(subscriptionId: SubscriptionId) {

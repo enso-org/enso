@@ -166,6 +166,32 @@ export const VirtualParentsPath = newtypeConstructor<VirtualParentsPath>()
 export type PaginationToken = Newtype<string, 'PaginationToken'>
 export const PaginationToken = newtypeConstructor<PaginationToken>()
 
+/** Configuration settings for the current environment (e.g. production). */
+export interface ConfigRaw {
+  readonly environment: string
+  readonly url: string
+  readonly auth_endpoint: string
+  readonly stripe_key: string
+}
+
+/** CamelCase configuration settings for the current environment (e.g. production). */
+export interface Config {
+  readonly environment: string
+  readonly url: string
+  readonly authEndpoint: string
+  readonly stripeKey: string
+}
+
+/** Convert raw configuration settings to camelCase configuration settings. */
+export function configFromRaw(raw: ConfigRaw): Config {
+  return {
+    environment: raw.environment,
+    url: raw.url,
+    authEndpoint: raw.auth_endpoint,
+    stripeKey: raw.stripe_key,
+  }
+}
+
 /** User settings for a Snowflake credential. */
 export interface SnowflakeCredentialInput {
   readonly type: 'Snowflake'
