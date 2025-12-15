@@ -61,7 +61,7 @@ export function assetsPath(electron: Electron | undefined) {
 /**
  * Path to the `resources` folder.
  *
- * Contains other app resources, including binaries, such a project manager.
+ * Contains other app resources and backend assets.
  */
 export function resourcesPath(electron: Electron | undefined, electronIsDev: boolean): string {
   return electronIsDev ? appPath(electron) : path.join(appPath(electron), '..')

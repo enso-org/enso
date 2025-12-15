@@ -77,25 +77,11 @@ impl RunContext {
             launcher_package: self.config.build_launcher_package.then(|| {
                 self.repo_root.built_distribution.enso_launcher_triple.launcher_package.clone()
             }),
-            project_manager_package: self.config.build_project_manager_package.then(|| {
-                self.repo_root
-                    .built_distribution
-                    .enso_project_manager_triple
-                    .project_manager_package
-                    .clone()
-            }),
             engine_bundle: self.config.build_engine_bundle.then(|| {
                 self.repo_root.built_distribution.engine_bundle_triple.engine_bundle.clone()
             }),
             launcher_bundle: self.config.build_launcher_bundle.then(|| {
                 self.repo_root.built_distribution.enso_bundle_triple.launcher_bundle.clone()
-            }),
-            project_manager_bundle: self.config.build_project_manager_bundle.then(|| {
-                self.repo_root
-                    .built_distribution
-                    .project_manager_bundle_triple
-                    .project_manager_bundle
-                    .clone()
             }),
         }
     }
@@ -278,7 +264,7 @@ impl RunContext {
         // of SBT invocations significantly helps build time. However, it is more memory heavy, so
         // we don't want to call this in environments like GH-hosted runners.
 
-        // === Build project-manager distribution and native image ===
+        // === Build distributions and native images ===
         let mut tasks = vec![];
         let mut run_sbt_clean = false;
         if self.config.build_engine_package {
@@ -293,9 +279,7 @@ impl RunContext {
         if self.config.build_native_ydoc {
             tasks.push("ydoc-server/buildNativeImage");
         }
-        if self.config.build_project_manager_package() {
-            tasks.push("buildProjectManagerDistribution");
-        }
+
         if self.config.build_launcher_package() {
             tasks.push("buildLauncherDistribution");
         }
@@ -330,7 +314,7 @@ impl RunContext {
             sbt.call_arg(sbt_cmd).await?;
         }
 
-        // === End of Build project-manager distribution and native image ===
+        // === End of Build distributions and native images ===
 
         if self.config.build_engine_package {
             debug!("Checking IR cache sizes of std libs.");
@@ -642,7 +626,7 @@ impl RunContext {
             Err(err) => {
                 error!("API check failed for library Standard.{}", lib.name);
                 error!("Current API vs Old API: {}", err);
-                error!("If you wish to overwrite the current API in the directory {}, run the following command 
+                error!("If you wish to overwrite the current API in the directory {}, run the following command
                        sbt \"runEngineDistribution --no-ir-caches --docs=api --in-project {}\"
                        and commit the modified files",
                   self.short_path(&old_api_dir).display(),

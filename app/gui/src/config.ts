@@ -9,6 +9,7 @@ export type { $Config } from 'enso-common/src/config'
 const processEnv = typeof process !== 'undefined' ? process.env : {}
 const importEnv = import.meta.env ?? {}
 
+/** When running dev server, the config variables are grabbed from appropriate .env file. */
 setConfig({
   ENVIRONMENT: processEnv.ENSO_IDE_ENVIRONMENT ?? importEnv.ENSO_IDE_ENVIRONMENT,
   ENSO_HOST: processEnv.ENSO_IDE_HOST ?? importEnv.ENSO_IDE_HOST,
@@ -27,8 +28,6 @@ setConfig({
   COGNITO_REGION: processEnv.ENSO_IDE_COGNITO_REGION ?? importEnv.ENSO_IDE_COGNITO_REGION,
   VERSION: processEnv.ENSO_IDE_VERSION ?? importEnv.ENSO_IDE_VERSION,
   COMMIT_HASH: processEnv.ENSO_IDE_COMMIT_HASH ?? importEnv.ENSO_IDE_COMMIT_HASH,
-  PROJECT_MANAGER_URL:
-    processEnv.ENSO_IDE_PROJECT_MANAGER_URL ?? importEnv.ENSO_IDE_PROJECT_MANAGER_URL,
   YDOC_SERVER_URL: processEnv.ENSO_IDE_YDOC_SERVER_URL ?? importEnv.ENSO_IDE_YDOC_SERVER_URL,
   CLOUD_BUILD: processEnv.ENSO_IDE_CLOUD_BUILD ?? importEnv.ENSO_IDE_CLOUD_BUILD,
   AG_GRID_LICENSE_KEY:

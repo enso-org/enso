@@ -68,7 +68,6 @@ use ide_ci::ok_ready_boxed;
 use ide_ci::programs::git;
 use octocrab::models::ReleaseId;
 use std::time::Duration;
-use tokio::process::Child;
 
 pub fn void<T>(_t: T) {}
 
@@ -581,41 +580,16 @@ impl Processor {
         }
     }
 
-    /// Spawns a Project Manager.
-    pub fn spawn_project_manager(
-        &self,
-        source: arg::Source<Backend>,
-        custom_root: Option<PathBuf>,
-    ) -> BoxFuture<'static, Result<Child>> {
-        let get_task = self.get(source);
-        async move {
-            let project_manager = get_task.await?;
-            let mut command =
-                enso_build::programs::project_manager::spawn_from(&project_manager.path);
-            if let Some(custom_root) = custom_root {
-                command
-                    .set_env(enso_build::programs::project_manager::PROJECTS_ROOT, &custom_root)?;
-            }
-            command.spawn_intercepting()
-        }
-        .boxed()
-    }
-
     pub fn build_ide(
         &self,
         params: arg::ide::BuildInput,
     ) -> BoxFuture<'static, Result<ide::Artifact>> {
-        let arg::ide::BuildInput {
-            gui,
-            project_manager,
-            output_path,
-            electron_target,
-            sign_artifacts,
-        } = params;
+        let arg::ide::BuildInput { gui, backend, output_path, electron_target, sign_artifacts } =
+            params;
 
         let input = ide::BuildInput {
             gui: self.get(gui),
-            project_manager: self.get(project_manager),
+            backend: self.get(backend),
             version: self.triple.versions.version.clone(),
             commit_hash: self.commit(),
             electron_target,
