@@ -317,7 +317,6 @@ lazy val enso = (project in file("."))
     downloader,
     editions,
     `edition-updater`,
-    `edition-uploader`,
     `engine-common`,
     `engine-runner`,
     `engine-runner-common`,
@@ -1891,14 +1890,22 @@ lazy val `ydoc-server` = project
     NativeImage.smallJdk := None,
     NativeImage.additionalCp := Seq.empty,
     rebuildNativeImage := Def.taskDyn {
+      val cLibraryOpts = (Bazel / cLibraryPath).value
+        .map(cLib =>
+          Seq(
+            "-H:CLibraryPath=" + cLib.getAbsolutePath
+          )
+        )
+        .getOrElse(Seq())
       NativeImage
         .buildNativeImage(
           "org.enso.ydoc.server",
-          staticOnLinux = false,
-          targetDir     = engineDistributionRoot.value / "component",
-          mainClass     = Some("org.enso.ydoc.server.Main"),
-          symlink       = false,
-          shared        = true
+          staticOnLinux     = false,
+          additionalOptions = cLibraryOpts,
+          targetDir         = engineDistributionRoot.value / "component",
+          mainClass         = Some("org.enso.ydoc.server.Main"),
+          symlink           = false,
+          shared            = true
         )
     }.value,
     buildNativeImage := Def.taskDyn {
@@ -3955,6 +3962,13 @@ lazy val `engine-runner` = project
               "-Dnic=nic"
             )
           else Seq()
+        val cLibraryOpts = (Bazel / cLibraryPath).value
+          .map(cLib =>
+            Seq(
+              "-H:CLibraryPath=" + cLib.getAbsolutePath
+            )
+          )
+          .getOrElse(Seq())
         val mp = (Runtime / modulePath).value.map(_.getAbsolutePath)
         NativeImage
           .buildNativeImage(
@@ -3987,7 +4001,7 @@ lazy val `engine-runner` = project
               "--add-opens=java.base/java.nio=ALL-UNNAMED",
               // Needed for grpc-gax
               "--add-opens=java.base/java.time=ALL-UNNAMED"
-            ) ++ enableHeapDumpOpts ++ debugOpts ++ linkOpts,
+            ) ++ enableHeapDumpOpts ++ debugOpts ++ linkOpts ++ cLibraryOpts,
             mainModule = Some("org.enso.runner"),
             mainClass  = Some("org.enso.runner.Main"),
             initializeAtRuntime = Seq(
@@ -4862,17 +4876,6 @@ lazy val `edition-updater` = project
   .dependsOn(downloader)
   .dependsOn(editions)
   .dependsOn(`library-manager` % "test->test")
-
-lazy val `edition-uploader` = project
-  .in(file("lib/scala/edition-uploader"))
-  .settings(
-    frgaalJavaCompilerSetting,
-    libraryDependencies ++= Seq(
-      "io.circe" %% "circe-core" % circeVersion % "provided"
-    )
-  )
-  .dependsOn(editions)
-  .dependsOn(`version-output`)
 
 lazy val `library-manager` = project
   .in(file("lib/scala/library-manager"))

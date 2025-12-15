@@ -10,7 +10,6 @@ import Standard.Base.Internal.Rounding_Helpers
 from Standard.Base.Metadata.Widget import Text_Input
 from Standard.Base.Widget_Helpers import make_format_chooser
 
-import Standard.Table.Column.Rest_Of_String
 import Standard.Table.Fill_With.Fill_With
 import Standard.Table.Internal.Column_Naming_Helper.Column_Naming_Helper
 import Standard.Table.Internal.Date_Time_Helpers
@@ -18,6 +17,7 @@ import Standard.Table.Internal.Java_Problems
 import Standard.Table.Internal.Problem_Builder.Problem_Builder
 import Standard.Table.Internal.Value_Type_Helpers
 import Standard.Table.Internal.Widget_Helpers
+import Standard.Table.Refined_Types.Text_Column.Text_Column
 import Standard.Table.Rows_To_Read.Rows_To_Read
 from Standard.Table import Auto, Column, Data_Formatter, Previous_Value, Table, Value_Type
 from Standard.Table.Errors import Inexact_Type_Coercion, Invalid_Value_Type
@@ -331,28 +331,20 @@ type DB_Column_Implementation
             new_name = (naming_helper this_column).function_name "text_length" [this_column]
             make_unary_op this_column "LENGTH" new_name
 
-    text_left (this_column : Column & DB_Column) n:Column|Integer =
-        Value_Type.expect_text this_column <| Helpers.expect_specific_integer_type this_column n <|
-            n2 = n.max 0
+    text_left this_column  n:Column|Integer =
+        Value_Type.expect_text this_column <|
             new_name = (naming_helper this_column).function_name "text_left" [this_column, n]
-            make_binary_op this_column "LEFT" n2 new_name
+            (this_column : Text_Column) . left n . rename new_name
 
-    text_right (this_column : Column & DB_Column) n:Column|Integer =
-        Value_Type.expect_text this_column <| Helpers.expect_specific_integer_type this_column n <|
-            n2 = n.max 0
+    text_right this_column n:Column|Integer =
+        Value_Type.expect_text this_column <|
             new_name = (naming_helper this_column).function_name "text_right" [this_column, n]
-            make_binary_op this_column "RIGHT" n2 new_name
+            (this_column : Text_Column) . right n . rename new_name
 
-    text_mid (this_column : Column & DB_Column) (start : Column | Any) (length : Column | Any) =
-        Helpers.expect_specific_integer_type this_column start <|
-            case length of
-                _ : Rest_Of_String ->
-                    new_name = (naming_helper this_column).function_name "text_mid" [this_column, start]
-                    make_op this_column "SUBSTR" [start + 1] new_name
-                _ ->
-                    Helpers.expect_specific_integer_type this_column length <|
-                        new_name = (naming_helper this_column).function_name "text_mid" [this_column, start, length]
-                        make_op this_column "SUBSTR" [start + 1, length] new_name
+    text_mid this_column (start : Column | Any) (length : Column | Any) =
+        Value_Type.expect_text this_column <|
+            new_name = (naming_helper this_column).function_name "text_mid" [this_column, start, length]
+            (this_column : Text_Column) . mid start length . rename new_name
 
     contains (this_column : Column & DB_Column) (other : Column | Text | Any) case_sensitivity:Case_Sensitivity =
         new_name = (naming_helper this_column).function_name "contains" [this_column, other]

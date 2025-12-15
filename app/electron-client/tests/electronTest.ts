@@ -136,7 +136,7 @@ export async function createNewProject(page: Page) {
 
 /** If welcome project is to be opened, navigate back to the dashboard. */
 export async function closeWelcome(page: Page) {
-  const welcomeProjectTab = page.getByRole('tab', { name: 'Getting Started with Enso' })
+  const welcomeProjectTab = page.getByRole('tab', { name: 'Getting Started with Enso Analytics' })
   const loadingIndicator = welcomeProjectTab.locator('.LoadingSpinner')
   await Promise.race([
     welcomeProjectTab
@@ -145,7 +145,7 @@ export async function closeWelcome(page: Page) {
     page.waitForTimeout(3000),
   ])
   if (await welcomeProjectTab.isVisible()) {
-    await page.getByRole('tab', { name: 'Data Catalog' }).click()
+    await welcomeProjectTab.locator('.CloseButton').click()
   }
 }
 
