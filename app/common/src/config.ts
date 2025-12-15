@@ -4,6 +4,8 @@
  * we can easily replace its contents in a separate build postprocessing step in `BUILD.bazel`.
  */
 
+import { unsafeKeys } from './utilities/data/object'
+
 declare global {
   interface ViteTypeOptions {
     // strictImportMetaEnv: unknown
@@ -34,9 +36,9 @@ const processEnv = typeof process !== 'undefined' ? process.env : {}
 const importEnv = import.meta.env ?? {}
 
 /** When running dev server, the config variables are grabbed from appropriate .env file. */
-export let $config = {
+export const $config = {
   ENVIRONMENT: processEnv.ENSO_IDE_ENVIRONMENT ?? importEnv.ENSO_IDE_ENVIRONMENT,
-  ENSO_HOST: processEnv.ENSO_IDE_HOST ?? importEnv.ENSO_IDE_HOST,
+  ENSO_HOST: processEnv.ENSO_IDE_HOST ?? importEnv.ENSO_IDE_HOST ?? 'https://ensoanalytics.com',
   API_URL: processEnv.ENSO_IDE_API_URL ?? importEnv.ENSO_IDE_API_URL,
   SENTRY_DSN: processEnv.ENSO_IDE_SENTRY_DSN ?? importEnv.ENSO_IDE_SENTRY_DSN,
   STRIPE_KEY: processEnv.ENSO_IDE_STRIPE_KEY ?? importEnv.ENSO_IDE_STRIPE_KEY,
@@ -74,11 +76,16 @@ export let $config = {
       typeof window.api.mapBoxApiToken === 'function' &&
       window.api?.mapBoxApiToken()) ||
     (processEnv.ENSO_IDE_MAPBOX_API_TOKEN ?? importEnv.ENSO_IDE_MAPBOX_API_TOKEN),
-} as const
+}
 
 /** Sets the global configuration. */
 export function setConfig(config: typeof $config) {
-  $config = config
+  for (const k of unsafeKeys(config)) {
+    if (config[k] === undefined) {
+      continue
+    }
+    $config[k] = config[k]
+  }
 }
 
 // Undefined env variables are typed as `any`, but we want them to be `string | undefined`.
