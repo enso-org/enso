@@ -41,23 +41,21 @@ const navigator = injectGraphNavigator(true)
 const tree = injectWidgetTree()
 const selection = useGraphSelection(true)
 
-const hasConnection = computed(() => graph.isConnectedTarget(portId.value))
-const isCurrentEdgeHoverTarget = computed(
-  () =>
+const hasPersistedConnection = computed(() => graph.isConnectedTarget(portId.value))
+const isBeingDraggedAwayFrom = computed(() => graph.isTargetBeingDraggedAwayFrom(portId.value))
+const isCurrentEdgeHoverTarget = computed(() => {
+  const edgeSourceAtThisNode =
     graph.mouseEditedEdge?.source != null &&
-    selection?.hoveredPort === portId.value &&
-    (tree.externalId == null ||
-      graph.db.getPatternExpressionNodeId(graph.mouseEditedEdge.source) !== tree.externalId),
+    tree.externalId != null &&
+    graph.db.getPatternExpressionNodeId(graph.mouseEditedEdge.source) === tree.externalId
+  return selection?.hoveredPort === portId.value && !edgeSourceAtThisNode
+})
+const showConnectedStyle = computed(
+  () => hasPersistedConnection.value || isCurrentEdgeHoverTarget.value,
 )
-const isCurrentDisconnectedEdgeTarget = computed(
+const isVisualTarget = computed(
   () =>
-    graph.mouseEditedEdge?.disconnectedEdgeTarget === portId.value &&
-    graph.mouseEditedEdge?.target !== portId.value,
-)
-const connected = computed(() => hasConnection.value || isCurrentEdgeHoverTarget.value)
-const isTarget = computed(
-  () =>
-    (hasConnection.value && !isCurrentDisconnectedEdgeTarget.value) ||
+    (hasPersistedConnection.value && !isBeingDraggedAwayFrom.value) ||
     isCurrentEdgeHoverTarget.value,
 )
 
@@ -87,7 +85,7 @@ const innerWidget = computed(() => {
   return { ...props.input, forcePort: false }
 })
 
-providePortInfo(proxyRefs({ portId, connected }))
+providePortInfo(proxyRefs({ portId, hasPersistedConnection, isVisualTarget }))
 
 watchEffect(
   (onCleanup) => {
@@ -199,10 +197,10 @@ export const widgetDefinition = defineWidget(
     :data-port="props.input.portId"
     :class="{
       enabled,
-      connected,
-      isTarget,
-      widgetRounded: connected,
-      newToConnect: !hasConnection && isCurrentEdgeHoverTarget,
+      connected: showConnectedStyle,
+      isVisualTarget,
+      widgetRounded: showConnectedStyle,
+      newToConnect: !hasPersistedConnection && isCurrentEdgeHoverTarget,
       primary: props.nesting < 2,
     }"
   >

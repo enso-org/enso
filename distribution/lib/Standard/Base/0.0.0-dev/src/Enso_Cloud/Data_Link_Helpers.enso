@@ -288,6 +288,45 @@ is_regular_file file ~check_file_directly =
 ## ---
    private: true
    ---
+   Resolve through data links and get a file like object.
+resolve_path path = case path of
+    _ : Text ->
+        resolved = URI.parse_if_http path . if_nothing <| File.new path
+        resolve_path resolved
+    _ : File ->
+        ## Need to see if a data link otherwise return the file
+        if path.exists.not then Error.throw (File_Error.Not_Found path)
+        if path.is_directory then Error.throw (Illegal_Argument.Error "Cannot use a directory, pass a file.")
+        if path.is_data_link.not then path else
+            data_link = read_and_interpret_data_link path
+            _resolve_data_link data_link
+    _ : URI ->
+        ## Fetch the resource and save it to a temporary file
+        ## Best guess filename
+        response = HTTP.fetch path method=..Get headers=[] cache_policy=..Default
+        if Data_Link.is_data_link_from_metadata response.body.metadata . not then path else
+            data_link = interpret_json_as_data_link response.decode_as_json
+            _resolve_data_link data_link
+    _ ->
+        ## Something that is file like
+        file_like = File.new path
+        if file_like.exists.not then Error.throw (File_Error.Not_Found file_like)
+        if file_like.is_data_link.not then file_like else
+            data_link = read_and_interpret_data_link file_like
+            _resolve_data_link data_link
+
+private _resolve_data_link data_link =
+    case data_link of
+        _ : HTTP_Fetch_Data_Link ->
+            if data_link.request.method == HTTP_Method.Get then resolve_path data_link.request.uri else
+                Error.throw (Illegal_Argument.Error "Cannot resolve a data link that requires a non-GET HTTP method to a file.")
+        _ ->
+            target_file = File_Like_Data_Link.find data_link
+            resolve_path target_file.as_file
+
+## ---
+   private: true
+   ---
    A common implementation for getting a file like resource. If the path is
    not a local file, then a temporary file be created and after execution has
    finished, it will be deleted.
@@ -296,53 +335,35 @@ is_regular_file file ~check_file_directly =
     - `path`: The path to the resource. Can be a `Text`, `File`, `URI`, or
       other file-like object.
     - `action`: A function that takes a `File` and performs an action with it.
-as_file path action delete_on_return:Boolean=True = case path of
-    _ : Text ->
-        resolved = URI.parse_if_http path . if_nothing <| File.new path
-        as_file resolved action delete_on_return
-    _ : File ->
-        ## Need to see if a data link otherwise return the file
-        if path.exists.not then Error.throw (File_Error.Not_Found path)
-        if path.is_directory then Error.throw (Illegal_Argument.Error "Cannot use a directory, pass a file.")
-        if path.is_data_link.not then action path else
-            as_file (interpret_data_link_target_as_file path) action delete_on_return
-    _ : URI ->
-        ## Fetch the resource and save it to a temporary file
-        ## Best guess filename
-        response = HTTP.fetch path method=..Get headers=[] cache_policy=..Default
-        handle_response_as_file response path action delete_on_return
-    _ ->
-        ## Something that is file like
-        file_like = File.new path
-        if file_like.is_a File then as_file file_like action else
-            ## Copy the file to a temporary file
+as_file path action delete_on_return:Boolean=True =
+    ## Resolve path and handle datalinks
+    resolved = resolve_path path
+    Error.return_if_error resolved
+
+    case resolved of
+        _ : File -> action resolved
+        _ : URI ->
+            ## Fetch the resource and save it to a temporary file
+            ## Best guess filename
+            response = HTTP.fetch resolved method=..Get headers=[] cache_policy=..Default
+            handle_response_as_file response resolved action delete_on_return
+        file_like ->
+            ## Something that is file like, copy the file to a temporary file
             name_ext = split_file_name file_like.name
             temp_file = File.create_temporary_file name_ext.first name_ext.second
             written_file = Context.Output.with_enabled <| file_like.copy_to temp_file replace_existing=True
-            if delete_on_return.not then action written_file else
+            if delete_on_return.not then as_file written_file action False else
                 Managed_Resource.bracket written_file cleanup_tmp_file (f-> as_file f action)
 
 private handle_response_as_file response path action delete_on_return:Boolean =
-    case Data_Link.is_data_link_from_metadata response.body.metadata of
-        True ->
-            ## Data link, interpret it
-            data_link = interpret_json_as_data_link response.decode_as_json
-            case data_link of
-                _ : HTTP_Fetch_Data_Link ->
-                    inner_response = HTTP.new.request data_link.request
-                    handle_response_as_file inner_response data_link.request.uri action delete_on_return
-                _ ->
-                    target_file = File_Like_Data_Link.find data_link
-                    as_file target_file.as_file action delete_on_return
-        False ->
-            ## Not a data link, save to temporary file
-            uri_path = path.path.split '/' . last
-            name_ext = split_file_name uri_path
-            temp_file = File.create_temporary_file name_ext.first name_ext.second
-            written_file = Context.Output.with_enabled <|
-                response.write temp_file ..Overwrite
-            if delete_on_return.not then as_file written_file action False else
-               Managed_Resource.bracket written_file cleanup_tmp_file (f-> as_file f action True)
+    ## Not a data link, save to temporary file
+    uri_path = path.path.split '/' . last
+    name_ext = split_file_name uri_path
+    temp_file = File.create_temporary_file name_ext.first name_ext.second
+    written_file = Context.Output.with_enabled <|
+        response.write temp_file ..Overwrite
+    if delete_on_return.not then as_file written_file action False else
+       Managed_Resource.bracket written_file cleanup_tmp_file (f-> as_file f action True)
 
 private cleanup_tmp_file file =
     Context.Output.with_enabled <|

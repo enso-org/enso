@@ -1369,7 +1369,11 @@ Text.drop self range:(Text_Sub_Range | Index_Sub_Range | Range | Integer)=..Firs
             _slice_text self inverted
 
 ## ---
-   aliases: [lower, proper, title, upper]
+   macros:
+    - lower: ..Lower
+    - upper: ..Upper
+    - proper: ..Proper
+    - title: ..Proper
    group: Text
    icon: text
    ---

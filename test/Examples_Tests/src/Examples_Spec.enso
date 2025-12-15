@@ -108,6 +108,7 @@ add_specs suite_builder = suite_builder.group "Examples" group_builder->
         Examples.bool_column_2
         Examples.text_column_1
         Examples.text_column_2
+        Examples.date_column_1
 
     group_builder.specify "should provide various example tables" <|
         Examples.inventory_table

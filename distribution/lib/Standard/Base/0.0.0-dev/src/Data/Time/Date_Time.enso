@@ -684,6 +684,26 @@ type Date_Time
     length_of_month self = ensure_in_epoch self <| self.date.length_of_month
 
     ## ---
+       group: DateTime
+       icon: metadata
+       ---
+       Returns the date that is the first day of the month containing the
+       specified date.
+    first_of_month : Integer
+    first_of_month self =
+        Time_Utils.first_of_month self
+
+    ## ---
+       group: DateTime
+       icon: metadata
+       ---
+       Returns the date that is the last day of the month containing the
+       specified date.
+    end_of_month : Integer
+    end_of_month self =
+        Time_Utils.end_of_month self
+
+    ## ---
        icon: metadata
        ---
        Returns the day of the year.
