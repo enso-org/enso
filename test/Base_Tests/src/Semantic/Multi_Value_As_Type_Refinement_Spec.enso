@@ -196,7 +196,7 @@ add_specs suite_builder =
                 _ -> "structural matching of A.A_Ctor failed"
             r.should_equal "matched: 1"
 
-        group_builder.specify "should structural matching match other types?" <|
+        group_builder.specify "should structural matching match other types" <|
             ab = make_a_and_b
             r = case ab of
                 B.B_Ctor x -> "matched: "+x.to_text
@@ -216,6 +216,21 @@ add_specs suite_builder =
             case any of
                 A.A_Ctor _ -> Nothing
                 _ -> Test.fail "should match A.A_Ctor"
+
+        group_builder.specify "structural pattern matching on hidden type" <|
+            ab = make_a_and_b
+            a_only = (ab : A)
+            case a_only of
+                B.B_Ctor _ -> Nothing
+                _ -> Test.fail "should match B.B_Ctor"
+
+        group_builder.specify "structural pattern matching on hidden type - destruct" <|
+            ab = make_a_and_b
+            a_only = (ab : A)
+            case a_only of
+                B.B_Ctor (A.A_Ctor x) ->
+                    x.should_equal 1
+                _ -> Test.fail "should match B.B_Ctor"
 
         group_builder.specify "nested structural pattern matching on primary type" <|
             ab = make_a_and_b
