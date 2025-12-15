@@ -41,14 +41,10 @@ const label = computed(() => {
 </script>
 
 <template>
-  <div v-if="label" :data-testid="props.testId" class="componentEditorLabel">
+  <div v-if="label" :data-testid="props.testId" class="ComponentTypeLabel">
     <TooltipTrigger v-if="additionalTypes.length + hiddenTypes.length > 1" :showOnClick="true">
       <template #default="triggerProps">
-        <span
-          class="additionalTypesPlaceholder"
-          v-bind="triggerProps"
-          v-text="`${label} & +${additionalTypes.length + hiddenTypes.length - 1}`"
-        />
+        <span v-bind="triggerProps" v-text="`${label}...`" />
       </template>
       <template #tooltip>
         <div class="flex flex-col">
@@ -62,15 +58,10 @@ const label = computed(() => {
 </template>
 
 <style scoped>
-.additionalTypesPlaceholder {
+.ComponentTypeLabel {
   background-color: rgba(0, 0, 0, 0.1);
-  padding: 1px 3px;
-  border-radius: 2px;
-}
-
-.componentEditorLabel {
-  white-space: nowrap;
-  opacity: 0.7;
+  padding: 3px 6px;
+  border-radius: 20px;
 }
 
 .hiddenType {

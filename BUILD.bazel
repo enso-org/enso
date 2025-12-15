@@ -2,7 +2,7 @@ load("@aspect_bazel_lib//lib:write_source_files.bzl", "write_source_files")
 load("@aspect_rules_ts//ts:defs.bzl", "ts_config")
 load("@buildifier_prebuilt//:rules.bzl", "buildifier")
 load("@npm//:defs.bzl", "npm_link_all_packages")
-load("//:bazel_scripts/run_engine_distribution.bzl", "run_enso")
+load("//:bazel_scripts/run_engine_distribution.bzl", "ensure_native_enso", "run_enso")
 load("//:bazel_scripts/stdlibs.bzl", "stdlib_source_patterns")
 load("//toolchains/sbt:run_sbt.bzl", "run_sbt")
 
@@ -61,14 +61,23 @@ buildifier(
 ### Engine distribution ###
 ###########################
 
-STDLIB_SOURCES = glob(stdlib_source_patterns())
+STDLIB_SOURCES = glob(
+    stdlib_source_patterns(),
+    allow_empty = True,
+)
 
-# TODO: some dependencies might be unnecessary here, but checking everything is time-consuming.
-SRCS = STDLIB_SOURCES + [
+SBT_PROJECT_FILES = [
     ".scalafmt.conf",
     "build.sbt",
     "project/plugins.sbt",
     "project/build.properties",
+] + glob([
+    "project/*.scala",
+    "project/src/**",
+])
+
+# TODO: some dependencies might be unnecessary here, but checking everything is time-consuming.
+ENGINE_DIST_SOURCES = STDLIB_SOURCES + SBT_PROJECT_FILES + [
     "distribution/manifest.template.yaml",
     "distribution/launcher-manifest.yaml",
     "distribution/enso.bundle.template",
@@ -81,7 +90,6 @@ SRCS = STDLIB_SOURCES + [
     "//app/ydoc-server-polyglot:dist",
 ] + glob([
     "engine/common/src/**",
-    "engine/interpreter-dsl-test/src/**",
     "engine/language-server/src/**",
     "engine/launcher/src/**",
     "engine/polyglot-api/src/**",
@@ -90,7 +98,6 @@ SRCS = STDLIB_SOURCES + [
     "engine/runner/src/**",
     "engine/runner-common/src/**",
     "engine/runtime/src/**",
-    "engine/runtime-benchmarks/src/**",
     "engine/runtime-compiler/src/**",
     "engine/runtime-compiler-dump/src/**",
     "engine/runtime-compiler-dump-igv/src/**",
@@ -98,17 +105,15 @@ SRCS = STDLIB_SOURCES + [
     "engine/runtime-instrument-id-execution/src/**",
     "engine/runtime-instrument-repl-debugger/src/**",
     "engine/runtime-instrument-runtime-server/src/**",
-    "engine/runtime-integration-tests/src/**",
     "engine/runtime-language-arrow/src/**",
     "engine/runtime-language-epb/src/**",
     "engine/runtime-parser/src/**",
     "engine/runtime-parser-dsl/src/**",
     "engine/runtime-parser-processor/src/**",
-    "engine/runtime-parser-processor-tests/src/**",
     "engine/runtime-suggestions/src/**",
     "engine/runtime-test-instruments/src/**",
+    "distribution/engine/THIRD-PARTY/**",
     "lib/java/akka-wrapper/src/**",
-    "lib/java/benchmarks-common/src/**",
     "lib/java/fansi-wrapper/src/**",
     "lib/java/interpreter-dsl/src/**",
     "lib/java/jna-wrapper/src/**",
@@ -124,12 +129,10 @@ SRCS = STDLIB_SOURCES + [
     "lib/java/poi-wrapper/src/**",
     "lib/java/runtime-utils/src/**",
     "lib/java/scala-libs-wrapper/src/**",
-    "lib/java/test-utils/src/**",
     "lib/java/ydoc-polyfill/src/**",
     "lib/java/ydoc-server/src/**",
     "lib/java/ydoc-server-registration/src/**",
     "lib/java/zio-wrapper/src/**",
-    "lib/scala/bench-processor/src/**",
     "lib/scala/cli/src/**",
     "lib/scala/common-polyglot-core-utils/src/**",
     "lib/scala/connected-lock-manager/src/**",
@@ -141,7 +144,6 @@ SRCS = STDLIB_SOURCES + [
     "lib/scala/filewatcher/src/**",
     "lib/scala/json-rpc-server/src/**",
     "lib/scala/library-manager/src/**",
-    "lib/scala/locking-test-helper/src/**",
     "lib/scala/logging-config/src/**",
     "lib/scala/logging-service/src/**",
     "lib/scala/logging-service-logback/src/**",
@@ -160,14 +162,13 @@ SRCS = STDLIB_SOURCES + [
     "lib/scala/text-buffer/src/**",
     "lib/scala/version-output/src/**",
     "lib/scala/yaml/src/**",
-    "project/*.scala",
-    "project/src/**",
     "std-bits/aws/src/**",
     "std-bits/base/src/**",
     "std-bits/benchmarks/src/**",
     "std-bits/database/src/**",
     "std-bits/google/src/**",
     "std-bits/image/src/**",
+    "std-bits/duckdb/src/**",
     "std-bits/microsoft/src/**",
     "std-bits/snowflake/src/**",
     "std-bits/table/src/**",
@@ -219,6 +220,11 @@ EXTRA_SYSTEM_PROPS = [
     "-Denso.BazelSupport.ydocServer.polyglotMainJs=$(location //app/ydoc-server-polyglot:dist)",
 ]
 
+SMALL_JDK_SYSTEM_PROPS = [
+    "-Denso.BazelSupport.enabled=true",
+    "-Denso.BazelSupport.home=$(BINDIR)/home",
+]
+
 ENV = {
     "JAVA_HOME": "$(JAVABASE)",
     "PATH": "$(FLATC_PATH):$(JAVABASE)/bin:$$PATH",
@@ -226,9 +232,14 @@ ENV = {
     "SBT_SERVER_FORCESTART": "1",
 }
 
+NATIVE_IMAGE_ENV = dict(
+    ENV,
+    ENSO_LAUNCHER = "native",
+)
+
 run_sbt(
     name = "sbt_build_engine_distribution",
-    srcs = SRCS,
+    srcs = ENGINE_DIST_SOURCES,
     args = [
         "buildEngineDistribution",
     ],
@@ -239,14 +250,26 @@ run_sbt(
 )
 
 run_sbt(
+    name = "sbt_build_native_engine_distribution",
+    srcs = ENGINE_DIST_SOURCES,
+    args = [
+        "buildEngineDistribution",
+    ],
+    env = NATIVE_IMAGE_ENV,
+    out_dir = "built-distribution-native",
+    system_props = SBT_SYSTEM_PROPS + EXTRA_SYSTEM_PROPS,
+    visibility = ["//visibility:public"],
+)
+
+run_sbt(
     name = "sbt_build_small_jdk",
-    srcs = SRCS,
+    srcs = SBT_PROJECT_FILES,
     args = [
         "buildSmallJdkForRelease",
     ],
     env = ENV,
     out_dir = "built-small-jdk",
-    system_props = SBT_SYSTEM_PROPS + EXTRA_SYSTEM_PROPS,
+    system_props = SBT_SYSTEM_PROPS + SMALL_JDK_SYSTEM_PROPS,
     visibility = ["//visibility:public"],
 )
 
@@ -254,8 +277,15 @@ run_sbt(
 run_enso(
     name = "run_enso_test",
     src = "//test/Base_Tests:maybe_spec",
-    distribution = ":sbt_build_engine_distribution",
+    distribution = ":sbt_build_native_engine_distribution",
     run_args = [
         "--no-ir-caches",
     ],
+)
+
+# Sanity check that ensure that the distribution was built with native image.
+ensure_native_enso(
+    name = "ensure_native_enso",
+    distribution = ":sbt_build_native_engine_distribution",
+    visibility = ["//visibility:public"],
 )

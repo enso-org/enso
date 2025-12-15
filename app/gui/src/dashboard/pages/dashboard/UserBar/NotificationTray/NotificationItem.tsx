@@ -25,7 +25,7 @@ export interface NotificationItemProps extends NotificationInfo {
 /** An item in the notification tray. */
 export function NotificationItem(props: NotificationItemProps) {
   const { message, icon, progress, color, timestamp, remove } = props
-  const { locale } = useText()
+  const { locale, getText } = useText()
   const dateTime = timestamp != null ? new Date(timestamp) : undefined
 
   const styles = NOTIFICATION_ITEM_STYLES()
@@ -48,7 +48,9 @@ export function NotificationItem(props: NotificationItemProps) {
         )}
         <CloseButton className={remove ? '' : 'invisible'} onPress={remove} />
       </div>
-      {progress != null && <ProgressBar progress={progress} />}
+      {progress != null && (
+        <ProgressBar progress={progress} aria-label={getText('notificationProgressLabel')} />
+      )}
     </div>
   )
 }
