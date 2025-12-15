@@ -185,14 +185,14 @@ add_specs suite_builder =
             (c:A).to_text . should_equal "(A_Ctor 1)"
             (c:B).to_text . should_equal "(B_Ctor (A_Ctor 1))"
 
-        group_builder.specify "structural pattern matching should be able to match the primary type" pending="Pattern matching: #12142" <|
+        group_builder.specify "structural pattern matching should be able to match the primary type" <|
             ab = make_a_and_b
             r = case ab of
                 A.A_Ctor x -> "matched: "+x.to_text
                 _ -> "structural matching of A.A_Ctor failed"
             r.should_equal "matched: 1"
 
-        group_builder.specify "should structural matching match other types?" pending="Pattern matching: decide if we keep this test in #12142" <|
+        group_builder.specify "should structural matching match other types?" <|
             ab = make_a_and_b
             r = case ab of
                 B.B_Ctor x -> "matched: "+x.to_text
