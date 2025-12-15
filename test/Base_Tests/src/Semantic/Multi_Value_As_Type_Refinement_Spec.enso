@@ -23,6 +23,10 @@ type C
 
 C.from (that:B) = C.C_Ctor that
 
+type Wrapper
+    Wrapper_Ctor x
+
+
 add_specs suite_builder =
     suite_builder.group "Multi Value as type refinement" group_builder->
         group_builder.specify "conversion A -> B should not be available" <|
@@ -198,6 +202,27 @@ add_specs suite_builder =
                 B.B_Ctor x -> "matched: "+x.to_text
                 _ -> "structural matching of B.B_Ctor failed"
             r.should_equal "matched: (A_Ctor 1)"
+
+        group_builder.specify "structural pattern matchings match on open intersection type" <|
+            a = A.A_Ctor 1
+            a_any = (a : A & Any)
+            case a_any of
+                A.A_Ctor _ -> Nothing
+                _ -> Test.fail "should match A.A_Ctor"
+
+        group_builder.specify "structural pattern matchings match on open type" <|
+            a = A.A_Ctor 1
+            any = (a : Any)
+            case any of
+                A.A_Ctor _ -> Nothing
+                _ -> Test.fail "should match A.A_Ctor"
+
+        group_builder.specify "nested structural pattern matching on primary type" <|
+            ab = make_a_and_b
+            wrapper = Wrapper.Wrapper_Ctor ab
+            case wrapper of
+                Wrapper.Wrapper_Ctor (A.A_Ctor _) -> Nothing
+                _ -> Test.fail "should match A.A_Ctor inside Wrapper"
 
         group_builder.specify "calling a method on one of the types should not lose the intersection type" <|
             ab = make_a_and_b
