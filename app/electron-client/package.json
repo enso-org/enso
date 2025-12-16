@@ -31,6 +31,7 @@
     "semver": "^7.6.3",
     "tar-fs": "^3.0.9",
     "tar-stream": "^3.1.7",
+    "vitest": "catalog:",
     "yargs": "17.6.2",
     "yauzl": "^3.2.0",
     "ydoc-server": "workspace:*",

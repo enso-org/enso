@@ -16,3 +16,11 @@ export interface AccessToken {
    */
   readonly expireAt: string
 }
+
+export interface RawAccessToken {
+  readonly access_token: string
+  readonly client_id: string
+  readonly refresh_token: string
+  readonly refresh_url: string
+  readonly expire_at: string
+}

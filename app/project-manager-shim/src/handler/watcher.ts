@@ -1,8 +1,12 @@
-import { AssetId, DirectoryId, ProjectId, type GetText } from 'enso-common/src/services/Backend'
+import { AssetId, DirectoryId, ProjectId } from 'enso-common/src/services/Backend'
 import { HttpClient } from 'enso-common/src/services/HttpClient'
 import { RemoteBackend } from 'enso-common/src/services/RemoteBackend'
-import { getText, resolveDictionary } from 'enso-common/src/text'
+import { extractIdFromDirectoryId } from 'enso-common/src/services/RemoteBackend/ids'
+import { getText, resolveDictionary, type DefaultGetText } from 'enso-common/src/text'
+import { mkdir, rm } from 'node:fs/promises'
 import type * as http from 'node:http'
+import * as https from 'node:https'
+import path from 'node:path'
 import { watch, type Watcher } from '../fs.js'
 import * as projectManagement from '../projectManagement.js'
 import { uploadFile } from '../upload.js'
@@ -26,16 +30,39 @@ const PROJECT_WATCHER_CALLBACK_TIMEOUT = 60000
 // ===========================
 
 /** Create a RemoteBackend instance. */
-function createRemoteBackend(headers: Record<string, string>, baseUrl: string): RemoteBackend {
+function createRemoteBackend(headers: Record<string, string>): RemoteBackend {
   const client = new HttpClient(headers)
   const downloader = () => {
     // not required for watcher
   }
   const dictionary = resolveDictionary()
-  const backendGetText: GetText = function (key, ...replacements) {
+  const backendGetText: DefaultGetText = function (key, ...replacements) {
     return getText(dictionary, key, ...replacements)
   }
-  return new RemoteBackend(backendGetText, client, downloader, new URL(baseUrl))
+  return new RemoteBackend({
+    getText: backendGetText,
+    client,
+    downloader,
+    downloadCloudProject: async (params) => {
+      const response = await new Promise<http.IncomingMessage>((resolve) =>
+        https.get(params.downloadUrl, resolve),
+      )
+      const projectsDirectory = projectManagement.getProjectsDirectory()
+      const parentDirectory = path.join(projectsDirectory, `cloud-${params.projectId}`)
+      const projectRootDirectory = path.join(parentDirectory, 'project_root')
+
+      await rm(parentDirectory, { recursive: true, force: true, maxRetries: 3 })
+      await mkdir(projectRootDirectory, { recursive: true })
+      await projectManagement.unpackBundle(response, projectRootDirectory)
+      return { projectRootDirectory, parentDirectory }
+    },
+    getProjectArchive: async (directoryId, fileName) => {
+      const parentDir = extractIdFromDirectoryId(directoryId)
+      const projectDir = path.join(parentDir, 'project_root')
+      const projectBundle = await projectManagement.createBundle(projectDir)
+      return new File([projectBundle], fileName)
+    },
+  })
 }
 
 // ============================
@@ -79,19 +106,12 @@ export async function handleWatcherRequest(
           .end('Request is missing search parameter `parentDirectoryId`.')
         break
       }
-      const baseUrl = url.searchParams.get('baseUrl')
-      if (baseUrl == null) {
-        response
-          .writeHead(HTTP_STATUS_BAD_REQUEST, headers)
-          .end('Request is missing search parameter `baseUrl`.')
-        break
-      }
       const parentDirectoryId = parentDirectoryIdString as DirectoryId
       const assetId = ProjectId(assetIdString)
 
       try {
         const defaultHeaders = await bodyJson<Record<string, string>>(request)
-        const backend = createRemoteBackend(defaultHeaders, baseUrl)
+        const backend = createRemoteBackend(defaultHeaders)
         const fileName = 'project_root.enso-project'
         const uploadParams = {
           fileId: assetId,

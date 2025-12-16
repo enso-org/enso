@@ -10,6 +10,7 @@ import { extract } from 'tar'
 import { Path } from './types.js'
 
 export interface Runner {
+  runProject(projectPath: Path, extraEnv?: readonly (readonly [string, string])[]): Promise<void>
   createProject(path: Path, name: string, projectTemplate?: string): Promise<void>
   openProject(
     projectPath: Path,
@@ -46,12 +47,29 @@ export interface Socket {
   readonly port: number
 }
 
-export type ShutdownHookType = 'rename-project-directory'
+/**
+ * Use declaration merging to allow extension of ShutdownHookRegistry in other modules.
+ * This enables adding new shutdown hook types without modifying the original interface.
+ *
+ * For example, in another module, you can add:
+ * ```ts
+ * declare module './projectService/ensoRunner.js' {
+ *   interface ShutdownHookRegistry {
+ *     'my-new-hook-type': true
+ *   }
+ * }
+ * ```
+ */
+export interface ShutdownHookRegistry {
+  'rename-project-directory': true
+}
+
+export type ShutdownHookType = keyof ShutdownHookRegistry
 
 interface RunningProject {
   process: childProcess.ChildProcess
   sockets: LanguageServerSockets
-  shutdownHooks: Map<ShutdownHookType, () => Promise<void>>
+  shutdownHooks: Map<ShutdownHookType, () => void | Promise<void>>
 }
 
 const DEFAULT_JSONRPC_PORT = 30616
@@ -65,25 +83,28 @@ export class EnsoRunner implements Runner {
   /** Creates a new EnsoRunner with the path to the Enso executable. */
   constructor(private ensoPath: Path) {}
 
-  /** Creates a new Enso project at the specified path. */
-  async createProject(projectPath: Path, name: string, projectTemplate?: string): Promise<void> {
-    const args: string[] = []
-    args.push('--new', projectPath)
-    args.push('--new-project-name', name)
-    if (projectTemplate) {
-      args.push('--new-project-template', projectTemplate)
-    }
+  private async runProcess<T extends childProcess.ChildProcess>(
+    args: readonly string[],
+    spawnCallback: (cmd: string, cmdArgs: readonly string[]) => T,
+  ) {
+    const cmd = this.ensoPath.endsWith('.bat') ? 'cmd.exe' : this.ensoPath
+    const cmdArgs = this.ensoPath.endsWith('.bat') ? ['/c', this.ensoPath, ...args] : args
+    return spawnCallback(cmd, cmdArgs)
+  }
 
+  private async runCommand(
+    args: readonly string[],
+    options?: childProcess.SpawnOptionsWithoutStdio,
+  ): Promise<void> {
+    const process = await this.runProcess(args, (cmd, cmdArgs) =>
+      childProcess.spawn(cmd, cmdArgs, options),
+    )
     return new Promise((resolve, reject) => {
-      const cmd = this.ensoPath.endsWith('.bat') ? 'cmd.exe' : this.ensoPath
-      const cmdArgs = this.ensoPath.endsWith('.bat') ? ['/c', this.ensoPath, ...args] : args
-      const process = childProcess.spawn(cmd, cmdArgs)
-
-      let _stdout = ''
+      let stdout = ''
       let stderr = ''
 
       process.stdout.on('data', (data) => {
-        _stdout += data.toString()
+        stdout += data.toString()
       })
 
       process.stderr.on('data', (data) => {
@@ -98,13 +119,53 @@ export class EnsoRunner implements Runner {
         if (code === 0) {
           resolve()
         } else {
-          reject(new Error(`Enso process exited with code ${code}. stderr: ${stderr}`))
+          reject(
+            new Error(
+              `Enso process exited with code ${code}.\nstdout: ${stdout}\nstderr: ${stderr}`,
+            ),
+          )
         }
       })
     })
   }
 
-  /** Opens a project and starts its language server. */
+  /** Run an existing Enso project at the specified path. */
+  async runProject(
+    projectPath: Path,
+    extraEnv?: readonly (readonly [string, string])[],
+  ): Promise<void> {
+    const args = ['--run', projectPath]
+    const env = { ...process.env, ...(extraEnv ? Object.fromEntries(extraEnv) : {}) }
+    const cwd = path.dirname(projectPath)
+    const spawnedProcess = await this.runProcess(args, (cmd, cmdArgs) =>
+      childProcess.spawn(cmd, cmdArgs, { env, cwd, stdio: ['inherit', 'inherit', 'inherit'] }),
+    )
+    return new Promise((resolve, reject) => {
+      spawnedProcess.on('error', (error) => {
+        reject(new Error(`Failed to spawn enso process: ${error.message}`))
+      })
+      spawnedProcess.on('exit', (code) => {
+        if (code === 0) {
+          resolve()
+        } else {
+          reject(new Error(`Enso process exited with code ${code}.`))
+        }
+      })
+    })
+  }
+
+  /** Create a new Enso project at the specified path. */
+  async createProject(projectPath: Path, name: string, projectTemplate?: string): Promise<void> {
+    return await this.runCommand([
+      '--new',
+      projectPath,
+      '--new-project-name',
+      name,
+      ...(projectTemplate ? ['--new-project-template', projectTemplate] : []),
+    ])
+  }
+
+  /** Open a project and starts its language server. */
   async openProject(
     projectPath: Path,
     projectId: string,
@@ -126,9 +187,9 @@ export class EnsoRunner implements Runner {
       await this.loadingProjects.values().next().value
     }
     const promise = this.findServerPorts(DEFAULT_JSONRPC_PORT).then(
-      ([jsonPort, binaryPort, ydocPort]) => {
+      async ([jsonPort, binaryPort, ydocPort]) => {
         const rootId = crypto.randomUUID()
-        const args: string[] = [
+        const args: readonly string[] = [
           '--server',
           '--root-id',
           rootId,
@@ -142,33 +203,27 @@ export class EnsoRunner implements Runner {
           jsonPort.toString(),
           '--data-port',
           binaryPort.toString(),
+          ...(extraArgs ?? []),
         ]
 
-        // Add extra arguments if provided
-        if (extraArgs) {
-          args.push(...extraArgs)
+        const env = {
+          ...process.env,
+          LANGUAGE_SERVER_YDOC_PORT: ydocPort.toString(),
+          ...(extraEnv ? Object.fromEntries(extraEnv) : {}),
         }
 
-        const env = { ...process.env }
-        env['LANGUAGE_SERVER_YDOC_PORT'] = ydocPort.toString()
-        if (extraEnv) {
-          for (const [key, value] of extraEnv) {
-            env[key] = value
-          }
-        }
-
-        return new Promise<LanguageServerSockets>((resolve, reject) => {
-          const cmd = this.ensoPath.endsWith('.bat') ? 'cmd.exe' : this.ensoPath
-          const cmdArgs = this.ensoPath.endsWith('.bat') ? ['/c', this.ensoPath, ...args] : args
-          const cwd = path.dirname(projectPath)
-          const serverProcess = childProcess.spawn(cmd, cmdArgs, {
+        const cwd = path.dirname(projectPath)
+        const serverProcess = await this.runProcess(args, (cmd, cmdArgs) =>
+          childProcess.spawn(cmd, cmdArgs, {
             env,
             detached: false,
             cwd,
             stdio: ['pipe', 'inherit', 'inherit'],
             windowsHide: true,
-          })
+          }),
+        )
 
+        return new Promise<LanguageServerSockets>((resolve, reject) => {
           let resolved = false
 
           // Health check function
@@ -326,7 +381,7 @@ export class EnsoRunner implements Runner {
   async registerShutdownHook(
     projectId: string,
     hookType: ShutdownHookType,
-    hook: () => Promise<void>,
+    hook: () => void | Promise<void>,
   ): Promise<void> {
     const runningProject = this.runningProjects.get(projectId)
 
@@ -444,23 +499,67 @@ export class EnsoRunner implements Runner {
   }
 }
 
+function checkExecutable(filePath: string) {
+  try {
+    fs.accessSync(filePath, fs.constants.X_OK)
+  } catch {
+    throw new Error(`Enso executable at ${filePath} is not executable`)
+  }
+  return Path(filePath)
+}
+
+const ensoExecutables = (() => {
+  switch (os.platform()) {
+    case 'win32': {
+      return ['enso.exe', 'enso.bat']
+    }
+    case 'darwin':
+    case 'linux':
+    default: {
+      return ['enso']
+    }
+  }
+})()
+
+function checkExecutables(...segments: readonly string[]): Path | undefined {
+  if (!segments.includes('*')) {
+    for (const ensoExecutable of ensoExecutables) {
+      const ensoPath = path.join(...segments, ensoExecutable)
+      try {
+        fs.accessSync(ensoPath)
+        return checkExecutable(ensoPath)
+      } catch {
+        // File doesn't exist, continue searching
+      }
+    }
+    return
+  }
+  const literalSegments: string[] = []
+  let i = -1
+  for (const segment of segments) {
+    i += 1
+    if (segment === '*') {
+      const basePath = path.join(...literalSegments)
+      try {
+        for (const entry of fs.readdirSync(basePath)) {
+          const result = checkExecutables(basePath, entry, ...segments.slice(i + 1))
+          if (result) {
+            return result
+          }
+        }
+      } catch {
+        // Directory doesn't exist, continue searching
+      }
+    } else {
+      literalSegments.push(segment)
+    }
+  }
+  return
+}
+
 /** Find the path to the `enso` executable. */
 export function findEnsoExecutable(workDir: string = '.'): Path | undefined {
-  const checkExecutable = (filePath: string) => {
-    try {
-      fs.accessSync(filePath, fs.constants.X_OK)
-    } catch {
-      throw new Error(`Enso executable at ${filePath} is not executable`)
-    }
-    return Path(filePath)
-  }
-
-  let ensoExecutables: string[]
-  if (os.platform() === 'win32') {
-    ensoExecutables = ['enso.exe', 'enso.bat']
-  } else {
-    ensoExecutables = ['enso']
-  }
+  workDir = path.resolve(workDir)
 
   // Check ENSO_ENGINE_PATH environment variable first
   const envPath = process.env.ENSO_ENGINE_PATH
@@ -473,96 +572,28 @@ export function findEnsoExecutable(workDir: string = '.'): Path | undefined {
     }
   }
 
-  // Check enso/dist/*/bin/enso
-  const ensoDistPath = path.join(workDir, 'enso', 'dist')
-  try {
-    const stat = fs.statSync(ensoDistPath)
-    if (stat.isDirectory()) {
-      const distDirs = fs.readdirSync(ensoDistPath)
-      for (const distDir of distDirs) {
-        for (const ensoExecutable of ensoExecutables) {
-          const ensoPath = path.join(ensoDistPath, distDir, 'bin', ensoExecutable)
-          try {
-            fs.accessSync(ensoPath)
-            return checkExecutable(ensoPath)
-          } catch {
-            // File doesn't exist, continue searching
-          }
-        }
-      }
-    }
-  } catch {
-    // Directory doesn't exist, continue to next directory
-  }
+  const executablePath = process.argv[0] ? path.dirname(process.argv[0]) : undefined
+  const directories: readonly (readonly string[])[] = [
+    // Check executable path
+    ...(executablePath ? [[executablePath, 'resources', 'enso', 'dist', '*', 'bin']] : []),
+    // Check executable path for MacOs
+    ...(executablePath ? [[executablePath, '..', 'Resources', 'enso', 'dist', '*', 'bin']] : []),
+    // Check enso/dist/*/bin/enso
+    [workDir, 'enso', 'dist', '*', 'bin'],
+    // Check built-distribution/*/enso/dist/*/bin/enso
+    [workDir, 'built-distribution', '*', 'enso', 'dist', '*', 'bin'],
+    // Check built-distribution/*/*/bin/enso
+    [workDir, 'built-distribution', '*', '*', 'bin'],
+    // Macos dist/backend/dist/*/bin nightly
+    [workDir, 'dist', 'backend', 'dist', '*', 'bin'],
+  ]
 
-  // Check built-distribution/*/enso/dist/*/bin/enso
-  const builtDistEnsoPath = path.join(workDir, 'built-distribution')
-  try {
-    const stat = fs.statSync(builtDistEnsoPath)
-    if (stat.isDirectory()) {
-      const topLevelDirs = fs.readdirSync(builtDistEnsoPath)
-      for (const topDir of topLevelDirs) {
-        const topPath = path.join(builtDistEnsoPath, topDir)
-        const topStat = fs.statSync(topPath)
-        if (topStat.isDirectory()) {
-          const ensoDistPath = path.join(topPath, 'enso', 'dist')
-          try {
-            const distStat = fs.statSync(ensoDistPath)
-            if (distStat.isDirectory()) {
-              const distDirs = fs.readdirSync(ensoDistPath)
-              for (const distDir of distDirs) {
-                for (const ensoExecutable of ensoExecutables) {
-                  const ensoPath = path.join(ensoDistPath, distDir, 'bin', ensoExecutable)
-                  try {
-                    fs.accessSync(ensoPath)
-                    return checkExecutable(ensoPath)
-                  } catch {
-                    // File doesn't exist, continue searching
-                  }
-                }
-              }
-            }
-          } catch {
-            // enso/dist directory doesn't exist, continue searching
-          }
-        }
-      }
+  for (const directory of directories) {
+    const result = checkExecutables(...directory)
+    if (result) {
+      return result
     }
-  } catch {
-    // Directory doesn't exist, continue to next directory
   }
-
-  // Check built-distribution/*/*/bin/enso
-  const builtDistDir = path.join(workDir, 'built-distribution')
-  try {
-    const stat = fs.statSync(builtDistDir)
-    if (stat.isDirectory()) {
-      const topLevelDirs = fs.readdirSync(builtDistDir)
-      for (const topDir of topLevelDirs) {
-        const topPath = path.join(builtDistDir, topDir)
-        const topStat = fs.statSync(topPath)
-        if (topStat.isDirectory()) {
-          const subDirs = fs.readdirSync(topPath)
-          for (const subDir of subDirs) {
-            for (const ensoExecutable of ensoExecutables) {
-              const ensoPath = path.join(topPath, subDir, 'bin', ensoExecutable)
-              try {
-                fs.accessSync(ensoPath)
-                return checkExecutable(ensoPath)
-              } catch {
-                // File doesn't exist, continue searching
-              }
-            }
-          }
-        }
-      }
-    }
-  } catch {
-    // Directory doesn't exist
-  }
-
-  // No enso executable found
-  return undefined
 }
 
 /**
@@ -696,12 +727,7 @@ export async function downloadEnsoEngine(projectRoot: string): Promise<string> {
 
   // Extract the archive
   if (extensionString === '.tar.gz') {
-    await pipeline(
-      fs.createReadStream(archivePath),
-      extract({
-        cwd: extractDir,
-      }),
-    )
+    await pipeline(fs.createReadStream(archivePath), extract({ cwd: extractDir }))
   } else {
     await extractZip(archivePath, { dir: extractDir })
   }

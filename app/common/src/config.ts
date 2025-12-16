@@ -3,15 +3,42 @@
  * It is included directly into index.html and kept as a separate built artifact, so that
  * we can easily replace its contents in a separate build postprocessing step in `BUILD.bazel`.
  */
-import { $config, setConfig } from 'enso-common/src/config'
-export type { $Config } from 'enso-common/src/config'
+
+import { unsafeKeys } from './utilities/data/object.js'
+
+declare global {
+  interface ViteTypeOptions {
+    // strictImportMetaEnv: unknown
+  }
+
+  // This needs to be ts-ignore, because not all packages have this key defined.
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  // @ts-ignore This key is also defined in Vite.
+  type ImportMetaEnvFallbackKey =
+    'strictImportMetaEnv' extends keyof ViteTypeOptions ? never : string
+
+  interface ImportMetaEnv {
+    [key: ImportMetaEnvFallbackKey]: any
+    BASE_URL: string
+    MODE: string
+    DEV: boolean
+    PROD: boolean
+    SSR: boolean
+  }
+
+  interface ImportMeta {
+    url: string
+    readonly env: ImportMetaEnv
+  }
+}
 
 const processEnv = typeof process !== 'undefined' ? process.env : {}
 
 /** When running dev server, the config variables are grabbed from appropriate .env file. */
-setConfig({
+export const $config = {
   ENVIRONMENT: processEnv.ENSO_IDE_ENVIRONMENT ?? import.meta.env?.ENSO_IDE_ENVIRONMENT,
-  ENSO_HOST: processEnv.ENSO_IDE_HOST ?? import.meta.env?.ENSO_IDE_HOST,
+  ENSO_HOST:
+    processEnv.ENSO_IDE_HOST ?? (import.meta.env?.ENSO_IDE_HOST || 'https://ensoanalytics.com'),
   API_URL: processEnv.ENSO_IDE_API_URL ?? import.meta.env?.ENSO_IDE_API_URL,
   SENTRY_DSN: processEnv.ENSO_IDE_SENTRY_DSN ?? import.meta.env?.ENSO_IDE_SENTRY_DSN,
   STRIPE_KEY: processEnv.ENSO_IDE_STRIPE_KEY ?? import.meta.env?.ENSO_IDE_STRIPE_KEY,
@@ -47,11 +74,24 @@ setConfig({
       typeof window.api.mapBoxApiToken === 'function' &&
       window.api?.mapBoxApiToken()) ||
     (processEnv.ENSO_IDE_MAPBOX_API_TOKEN ?? import.meta.env?.ENSO_IDE_MAPBOX_API_TOKEN),
-})
+}
 
-Object.defineProperty(window, '$config', {
-  writable: false,
-  configurable: false,
-  enumerable: false,
-  value: $config,
-})
+/** Sets the global configuration. */
+export function setConfig(config: typeof $config) {
+  for (const k of unsafeKeys(config)) {
+    if (config[k] === undefined) {
+      continue
+    }
+    // Special-case as ENSO_HOST may currently be an empty string when it is unset in CI.
+    if (k === 'ENSO_HOST' && config[k] === '') {
+      continue
+    }
+    $config[k] = config[k]
+  }
+}
+
+// Undefined env variables are typed as `any`, but we want them to be `string | undefined`.
+export type $Config = {
+  [K in keyof typeof $config]: unknown extends (typeof $config)[K] ? string | undefined
+  : (typeof $config)[K]
+}

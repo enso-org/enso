@@ -6,7 +6,7 @@ import { Text } from '#/components/Text'
 import { AboutModal } from '#/modals/AboutModal'
 import { LOGIN_PATH } from '$/appUtils'
 import { useAuth, useRouter, useSession, useText } from '$/providers/react'
-import { PRODUCT_NAME } from 'enso-common'
+import { PRODUCT_NAME } from 'enso-common/src/constants'
 
 /** A menu containing info about the app. */
 export function InfoMenu() {

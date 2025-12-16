@@ -7,7 +7,9 @@
  */
 import { markRaw } from 'vue'
 import { z } from 'zod'
+import { $config } from '../config.js'
 import type { DownloadOptions } from '../download.js'
+import type { DefaultGetText } from '../text.js'
 import { delay } from '../utilities/async.js'
 import * as objects from '../utilities/data/object.js'
 import * as detect from '../utilities/detect.js'
@@ -15,7 +17,7 @@ import { getFileName, getFolderPath } from '../utilities/file.js'
 import * as backend from './Backend.js'
 import * as remoteBackendPaths from './Backend/remoteBackendPaths.js'
 import type { HttpClient } from './HttpClient.js'
-import { extractIdFromDirectoryId, organizationIdToDirectoryId } from './RemoteBackend/ids.js'
+import { organizationIdToDirectoryId } from './RemoteBackend/ids.js'
 
 /** HTTP status indicating that the resource does not exist. */
 const STATUS_NOT_FOUND = 404
@@ -26,22 +28,52 @@ const EXPORT_STATUS_INTERVAL_MS = 5_000
 /** The interval between checks for the import status. */
 const IMPORT_STATUS_INTERVAL_MS = 5_000
 
+export type DownloadCloudProjectFunction = (
+  this: RemoteBackend,
+  params: {
+    downloadUrl: backend.HttpsUrl
+    projectId: backend.ProjectId
+  },
+) => Promise<{
+  readonly projectRootDirectory: string
+  readonly parentDirectory: string
+}>
+
+export type GetProjectArchiveFunction = (
+  this: RemoteBackend,
+  directoryId: backend.DirectoryId,
+  fileName: string,
+) => Promise<File>
+
 /** Class for sending requests to the Cloud backend API endpoints. */
 export class RemoteBackend extends backend.Backend {
   static readonly type = backend.BackendType.remote
   override readonly type = RemoteBackend.type
-  override readonly baseUrl: URL
+  override readonly baseUrl: URL = new URL(
+    $config.API_URL ?? '',
+    typeof location !== 'undefined' ? location.href : 'https://example.com',
+  )
   private user: objects.Mutable<backend.User> | null = null
+  private readonly downloadCloudProject: DownloadCloudProjectFunction
+  readonly getProjectArchive: GetProjectArchiveFunction
 
   /** Create a {@link RemoteBackend}. */
-  constructor(
-    getText: backend.GetText,
-    client: HttpClient,
-    downloader: (options: DownloadOptions) => void | Promise<void>,
-    baseUrl: URL,
-  ) {
+  constructor({
+    getText,
+    client,
+    downloader,
+    downloadCloudProject,
+    getProjectArchive,
+  }: {
+    getText: DefaultGetText
+    client: HttpClient
+    downloader: (options: DownloadOptions) => void | Promise<void>
+    downloadCloudProject: DownloadCloudProjectFunction
+    getProjectArchive: GetProjectArchiveFunction
+  }) {
     super(getText, client, downloader)
-    this.baseUrl = baseUrl
+    this.downloadCloudProject = downloadCloudProject
+    this.getProjectArchive = getProjectArchive
   }
 
   /** The path to the root directory of this {@link Backend}. */
@@ -879,7 +911,7 @@ export class RemoteBackend extends backend.Backend {
    */
   override async uploadFileStart(
     body: backend.UploadFileRequestParams,
-    file: Blob,
+    file: File,
     abort?: AbortSignal,
   ): Promise<backend.UploadLargeFileMetadata> {
     const path = remoteBackendPaths.UPLOAD_FILE_START_PATH
@@ -889,7 +921,7 @@ export class RemoteBackend extends backend.Backend {
     }
     const response = await this.post<backend.UploadLargeFileMetadata>(path, requestBody, { abort })
     if (!response.ok) {
-      return await this.throw(response, 'uploadFileStartBackendError')
+      return await this.throw(response, 'uploadFileStartBackendError', body.fileName)
     } else {
       return await response.json()
     }
@@ -928,7 +960,7 @@ export class RemoteBackend extends backend.Backend {
     const path = remoteBackendPaths.UPLOAD_FILE_END_PATH
     const response = await this.post<backend.UploadedAsset>(path, body, { abort })
     if (!response.ok) {
-      return await this.throw(response, 'uploadFileEndBackendError')
+      return await this.throw(response, 'uploadFileEndBackendError', body.fileName)
     } else {
       const result = await response.json()
       if (result.jobId != null) {
@@ -1414,52 +1446,18 @@ export class RemoteBackend extends backend.Backend {
 
   /** Download the project to a temporary location. */
   async downloadProject(id: backend.ProjectId) {
-    /** The type of the response body of this endpoint. */
-    interface ResponseBody {
-      readonly projectRootDirectory: string
-      readonly parentDirectory: string
-    }
     const details = await this.getProjectDetails(id, true)
-
     if (details.url == null) {
       return this.throw(null, 'getProjectDetailsBackendError')
     }
-
-    const queryString = new URLSearchParams({
+    const responseBody = await this.downloadCloudProject({
       downloadUrl: details.url,
       projectId: id,
     })
-
-    const response = await this.get<ResponseBody>(
-      new URL(`/api/cloud/download-project?${queryString}`, location.href).toString(),
-    )
-    if (!response.ok) {
-      return await this.throw(response, 'resolveProjectAssetPathBackendError')
-    }
-
-    const responseBody = await response.json()
-
     return {
       projectRootId: backend.DirectoryId(`directory-${responseBody.projectRootDirectory}`),
       parentId: backend.DirectoryId(`directory-${responseBody.parentDirectory}`),
     }
-  }
-
-  /** Get the enso-project archive contents. */
-  async getProjectArchive(directoryId: backend.DirectoryId, fileName: string): Promise<File> {
-    const queryString = new URLSearchParams({
-      directory: extractIdFromDirectoryId(directoryId),
-    }).toString()
-    const response = await this.get(
-      new URL(`/api/cloud/get-project-archive?${queryString}`, location.href).toString(),
-    )
-    if (!response.ok) {
-      return await this.throw(response, 'resolveProjectAssetPathBackendError')
-    }
-
-    const responseBody = await response.arrayBuffer()
-
-    return new File([responseBody], fileName)
   }
 
   /** Fetch the URL of the customer portal. */
@@ -1477,15 +1475,16 @@ export class RemoteBackend extends backend.Backend {
   }
 
   /** Resolve asset metadata from an enso path. */
-  override async resolveEnsoPath(path: backend.EnsoPath): Promise<backend.PathResolveResponse> {
+  override async resolveEnsoPath(path: backend.EnsoPath): Promise<backend.AnyAsset> {
     const effectivePath = backend.EnsoPath(path.replace(/%20/g, ' '))
-    const response = await this.get<backend.Asset<backend.RealAssetType>>(
-      remoteBackendPaths.RESOLVE_ENSO_PATH,
-      { path: effectivePath },
-    )
+    const response = await this.get<backend.AnyAsset>(remoteBackendPaths.RESOLVE_ENSO_PATH, {
+      path: effectivePath,
+    })
 
-    if (!response.ok) return this.throw(response, 'resolveEnsoPathBackendError')
-    return await response.json()
+    if (!response.ok) return this.throw(response, 'resolveEnsoPathBackendError', path)
+    const asset = await response.json()
+    // `ensoPath` is currently necessary; the response (supposedly) does not include it.
+    return this.normalizeAsset({ ...asset, ensoPath: path }, null)
   }
 
   /**
