@@ -24,10 +24,10 @@ public interface Literal extends Expression, IRKind.Primitive {
     public Number(
         @IRField Option<String> base,
         @IRField String value,
-        IdentifiedLocation location,
+        IdentifiedLocation identifiedLocation,
         MetadataStorage passData
     ) {
-      super(base, value, location, passData);
+      super(base, value, identifiedLocation, passData);
     }
 
     /** Checks whether the literal represents a fractional value.
@@ -51,10 +51,10 @@ public interface Literal extends Expression, IRKind.Primitive {
     @GenerateFields
     public Text(
         @IRField String text,
-        IdentifiedLocation location,
+        IdentifiedLocation identifiedLocation,
         MetadataStorage passData
     ) {
-      super(text, location, passData);
+      super(text, identifiedLocation, passData);
     }
 
     @Override
