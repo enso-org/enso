@@ -95,6 +95,10 @@ public interface Literal extends Expression, IRKind.Primitive {
       super(text, identifiedLocation, passData);
     }
 
+    public static Text fromString(String str) {
+      return builder().text(str).build();
+    }
+
     @Override
     public String showCode(int indent) {
       return "\"" + text() + "\"";
