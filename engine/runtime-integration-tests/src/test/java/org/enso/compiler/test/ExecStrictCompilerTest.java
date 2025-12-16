@@ -199,7 +199,7 @@ public class ExecStrictCompilerTest {
     var code =
         """
         from Standard.Base import all
-        def a:Integer ~b:Text|Nothing=Nothing -> Text:Nothing =
+        def a:Integer ~b:Text|Nothing=Nothing -> Text|Nothing =
             if a < 0 then "Minus" else
                 b
         call_def_with_thunk a:Integer =
