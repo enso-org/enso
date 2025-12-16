@@ -2,6 +2,7 @@ import { localRootDirectoryStore } from '#/layouts/Drive/persistentState'
 import { download } from '#/utilities/download'
 import { proxyRefs, type ToValue } from '@/util/reactivity'
 import { createGlobalState } from '@vueuse/core'
+import { setConfig } from 'enso-common/src/config'
 import { BackendType, DirectoryId, Path } from 'enso-common/src/services/Backend'
 import { HttpClient } from 'enso-common/src/services/HttpClient'
 import { LocalBackend } from 'enso-common/src/services/LocalBackend'
@@ -74,6 +75,10 @@ function initializeBackends(
       return new File([responseBody], fileName)
     },
   })
+
+  void (async () => {
+    setConfig(await remoteBackend.getConfig())
+  })()
 
   watch(
     () => getText,

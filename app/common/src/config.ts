@@ -79,7 +79,7 @@ export const $config = {
 }
 
 /** Sets the global configuration. */
-export function setConfig(config: typeof $config) {
+export function setConfig(config: Partial<typeof $config>) {
   for (const k of unsafeKeys(config)) {
     if (config[k] === undefined) {
       continue

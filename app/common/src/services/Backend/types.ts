@@ -1,3 +1,4 @@
+import type { $Config } from '../../config'
 import { newtypeConstructor, type Newtype } from '../../utilities/data/newtype.js'
 import type { IdType } from '../Backend.js'
 export { EnsoPath, EnsoPathValue } from './ensoPath.js'
@@ -175,20 +176,15 @@ export interface ConfigRaw {
 }
 
 /** CamelCase configuration settings for the current environment (e.g. production). */
-export interface Config {
-  readonly environment: string
-  readonly url: string
-  readonly authEndpoint: string
-  readonly stripeKey: string
-}
+export type Config = Pick<$Config, 'ENVIRONMENT' | 'API_URL' | 'AUTH_ENDPOINT' | 'STRIPE_KEY'>
 
 /** Convert raw configuration settings to camelCase configuration settings. */
 export function configFromRaw(raw: ConfigRaw): Config {
   return {
-    environment: raw.environment,
-    url: raw.url,
-    authEndpoint: raw.auth_endpoint,
-    stripeKey: raw.stripe_key,
+    ENVIRONMENT: raw.environment,
+    API_URL: raw.url,
+    AUTH_ENDPOINT: raw.auth_endpoint,
+    STRIPE_KEY: raw.stripe_key,
   }
 }
 
