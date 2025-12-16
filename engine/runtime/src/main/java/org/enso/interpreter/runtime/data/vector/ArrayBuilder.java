@@ -1,6 +1,6 @@
 package org.enso.interpreter.runtime.data.vector;
 
-import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.InvalidArrayIndexException;
 import com.oracle.truffle.api.interop.UnknownIdentifierException;
@@ -62,32 +62,22 @@ final class ArrayBuilder extends EnsoObject {
     } else if (primitiveArray instanceof long[] longArray) {
       if (e instanceof Long l) {
         if (size == longArray.length) {
-          CompilerDirectives.transferToInterpreter();
-          primitiveArray = longArray = Arrays.copyOf(longArray, size * 2);
+          primitiveArray = longArray = boundaryCopyOf(longArray, size * 2);
         }
         longArray[size++] = l;
       } else {
-        CompilerDirectives.transferToInterpreter();
-        objectArray = new Object[longArray.length];
-        for (int i = 0; i < size; i++) {
-          objectArray[i] = longArray[i];
-        }
+        objectArray = boundaryCopyOfLongToObject(longArray, size);
         primitiveArray = null;
         addToObjectArray(e);
       }
     } else if (primitiveArray instanceof double[] doubleArray) {
       if (e instanceof Double d) {
         if (size == doubleArray.length) {
-          CompilerDirectives.transferToInterpreter();
-          primitiveArray = doubleArray = Arrays.copyOf(doubleArray, size * 2);
+          primitiveArray = doubleArray = boundaryCopyOf(doubleArray, size * 2);
         }
         doubleArray[size++] = d;
       } else {
-        CompilerDirectives.transferToInterpreter();
-        objectArray = new Object[doubleArray.length];
-        for (int i = 0; i < size; i++) {
-          objectArray[i] = doubleArray[i];
-        }
+        objectArray = boundaryCopyOfDoubleToObject(doubleArray, size);
         primitiveArray = null;
         addToObjectArray(e);
       }
@@ -118,8 +108,7 @@ final class ArrayBuilder extends EnsoObject {
 
   private void addToObjectArray(Object e) {
     if (size == objectArray.length) {
-      CompilerDirectives.transferToInterpreter();
-      objectArray = Arrays.copyOf(objectArray, size * 2);
+      objectArray = boundaryCopyOf(objectArray, size * 2);
     }
     objectArray[size++] = e;
   }
@@ -142,31 +131,17 @@ final class ArrayBuilder extends EnsoObject {
     }
   }
 
-  private static boolean checkArraySize(boolean mustBeExact, int real, int expected) {
-    if (real == expected) {
-      return true;
-    } else {
-      if (mustBeExact) {
-        CompilerDirectives.transferToInterpreter();
-      }
-      return false;
-    }
-  }
-
   /** Returns the current array of the builder. */
   private Object toArray(boolean mustBeExact) {
     if (objectArray != null) {
-      return checkArraySize(mustBeExact, objectArray.length, size)
-          ? objectArray
-          : Arrays.copyOf(objectArray, size);
+      assert !mustBeExact || objectArray.length == size;
+      return objectArray.length == size ? objectArray : boundaryCopyOf(objectArray, size);
     } else if (primitiveArray instanceof long[] longArray) {
-      return checkArraySize(mustBeExact, longArray.length, size)
-          ? longArray
-          : Arrays.copyOf(longArray, size);
+      assert !mustBeExact || longArray.length == size;
+      return longArray.length == size ? longArray : boundaryCopyOf(longArray, size);
     } else if (primitiveArray instanceof double[] doubleArray) {
-      return checkArraySize(mustBeExact, doubleArray.length, size)
-          ? doubleArray
-          : Arrays.copyOf(doubleArray, size);
+      assert !mustBeExact || doubleArray.length == size;
+      return doubleArray.length == size ? doubleArray : boundaryCopyOf(doubleArray, size);
     } else {
       return null;
     }
@@ -259,5 +234,38 @@ final class ArrayBuilder extends EnsoObject {
     } else {
       return Vector.fromEnsoOnlyArray((Object[]) res);
     }
+  }
+
+  @TruffleBoundary
+  private static Object[] boundaryCopyOfLongToObject(long[] longArray, int size) {
+    var arr = new Object[longArray.length];
+    for (int i = 0; i < size; i++) {
+      arr[i] = longArray[i];
+    }
+    return arr;
+  }
+
+  @TruffleBoundary
+  private static Object[] boundaryCopyOfDoubleToObject(double[] doubleArray, int size) {
+    var arr = new Object[doubleArray.length];
+    for (int i = 0; i < size; i++) {
+      arr[i] = doubleArray[i];
+    }
+    return arr;
+  }
+
+  @TruffleBoundary
+  private static double[] boundaryCopyOf(double[] arr, int size) {
+    return Arrays.copyOf(arr, size);
+  }
+
+  @TruffleBoundary
+  private static long[] boundaryCopyOf(long[] arr, int size) {
+    return Arrays.copyOf(arr, size);
+  }
+
+  @TruffleBoundary
+  private static Object[] boundaryCopyOf(Object[] arr, int size) {
+    return Arrays.copyOf(arr, size);
   }
 }
