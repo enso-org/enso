@@ -97,8 +97,7 @@ public interface Literal extends Expression, IRKind.Primitive {
 
     @Override
     public String showCode(int indent) {
-      var tripleQuotes = "\"\"\"";
-      return tripleQuotes + text() + tripleQuotes;
+      return "\"" + text() + "\"";
     }
   }
 }
