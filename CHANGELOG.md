@@ -38,12 +38,21 @@
   top.
 - [Context menu for connections][14325].
 - [Warnings and Errors no longer become transparent][14388]
+- [`--headless` flag to run a project without the User Interface][14310]
+- [Preview for assets (text, main files of Projects, audio, video, images) in
+  Right Sidebar][14310]
 - ["Delete and Connect Around" option in node's menu][14403]
 - [GeoMap visualization is now working without need of Mapbox Token in
   environment][14429]
 - [Fix non-visible button and wrong layout in GeoMap Visualization][14443]
 - [Added additonal file and site options for MS365 credentials][14477]
 - [Maximum height of the file browser is slightly reduced][14467]
+- [Fix mispositioned bottom panel][14506]
+- ["Paste component" option in graph menu][14504]
+- [Fix bug where Table Expressions weren't saved after finishing edit by mouse
+  click][14500]
+- [Fix "What's new", "Documentation" and similar buttons opening external page
+  twice][14507]
 
 [13685]: https://github.com/enso-org/enso/pull/13685
 [13658]: https://github.com/enso-org/enso/pull/13658
@@ -63,6 +72,7 @@
 [14209]: https://github.com/enso-org/enso/pull/14209
 [14215]: https://github.com/enso-org/enso/pull/14215
 [14270]: https://github.com/enso-org/enso/pull/14270
+[14310]: https://github.com/enso-org/enso/pull/14310
 [14311]: https://github.com/enso-org/enso/pull/14311
 [14267]: https://github.com/enso-org/enso/pull/14267
 [14325]: https://github.com/enso-org/enso/pull/14325
@@ -72,6 +82,10 @@
 [14443]: https://github.com/enso-org/enso/pull/14443
 [14477]: https://github.com/enso-org/enso/pull/14477
 [14467]: https://github.com/enso-org/enso/pull/14467
+[14506]: https://github.com/enso-org/enso/pull/14506
+[14504]: https://github.com/enso-org/enso/pull/14504
+[14500]: https://github.com/enso-org/enso/pull/14500
+[14507]: https://github.com/enso-org/enso/pull/14507
 
 #### Enso Standard Library
 

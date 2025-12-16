@@ -95,6 +95,9 @@ pub mod env {
 
         ENSO_IDE_COMMIT_HASH, String;
         ENSO_IDE_VERSION, String;
+
+        /// Vite mode.
+        MODE, String;
     }
 }
 
