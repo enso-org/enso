@@ -319,6 +319,12 @@ type DB_Table_Implementation
                         renamed_table = Add_Row_Number.rename_columns_if_needed this_table name on_problems rebuild_table
                         updated_table = renamed_table.updated_columns (renamed_table.internal_columns + [new_column])
                         updated_table.as_subquery
+                Grouping_Method.Equal_Sum on group_count order_by ->
+                    _ = [on, group_count, order_by]
+                    Error.throw (Unsupported_Database_Operation.Error "add_group_number with Equal_Sum")
+                Grouping_Method.Standard_Deviation on population ->
+                    _ = [on, population]
+                    Error.throw (Unsupported_Database_Operation.Error "add_group_number with Standard_Deviation")
 
     find_group_number (this_table : Table & DB_Table) predicate over group_row name:Text from:Integer step:Integer on_problems:Problem_Behavior =
         _ = [this_table, predicate, over, group_row, name, from, step, on_problems]
