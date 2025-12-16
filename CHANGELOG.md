@@ -45,6 +45,8 @@
 - [Added additonal file and site options for MS365 credentials][14477]
 - [Maximum height of the file browser is slightly reduced][14467]
 - [Fix mispositioned bottom panel][14506]
+- [Fix bug where Table Expressions weren't saved after finishing edit by mouse
+  click][14500]
 
 [13685]: https://github.com/enso-org/enso/pull/13685
 [13658]: https://github.com/enso-org/enso/pull/13658
@@ -74,6 +76,7 @@
 [14477]: https://github.com/enso-org/enso/pull/14477
 [14467]: https://github.com/enso-org/enso/pull/14467
 [14506]: https://github.com/enso-org/enso/pull/14506
+[14500]: https://github.com/enso-org/enso/pull/14500
 
 #### Enso Standard Library
 
