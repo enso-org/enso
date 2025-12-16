@@ -58,7 +58,7 @@ import org.graalvm.collections.Pair;
  * EnsoMultiValue#values} (both visible and hidden). If any of the stored values is a primitive, the
  * {@link EnsoMultiValue} will respond positively to the corresponding interop query (like {@code
  * isNumber}) and will delegate the conversion to that value. If multiple stored values match the
- * same primitive category, an arbitrary one is chosen for the conversion.
+ * same primitive category, the first one is chosen for the conversion.
  *
  * <p>See, e.g., {@link EnsoMultiValue#isBoolean(InteropLibrary)}.
  *
