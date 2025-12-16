@@ -228,7 +228,10 @@ export class LanguageServer extends ObservableV2<Notifications & TransportEvents
 
   /** The {@link ContentRoot}s of this {@link LanguageServer}. */
   get contentRoots(): Promise<ContentRoot[]> {
-    return this.initialized.then((result) => (result.ok ? result.value.contentRoots : []))
+    return this.initialized.then((result) => {
+      console.log("DEBUG contentRoots()", result)
+      return result.ok ? result.value.contentRoots : []
+    })
   }
 
   /** Reconnect the underlying network transport. */
