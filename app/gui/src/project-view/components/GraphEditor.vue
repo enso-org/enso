@@ -765,7 +765,7 @@ const contextMenuActions: DisplayableActionName[] = [
 .vertical {
   display: flex;
   flex-direction: column;
-  & .bottomPanel {
+  & :deep(.bottomPanel) {
     flex: none;
   }
   & .viewportPanel {

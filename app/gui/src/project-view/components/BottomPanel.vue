@@ -38,36 +38,35 @@ const style = computed(() =>
 </script>
 
 <template>
-  <div>
-    <ActionButton
-      action="graph.toggleCodeEditor"
-      class="gutterButton bottomOfGutter"
-      :class="{ aboveFullscreen: fullscreen || fullscreenAnimating }"
-    />
-    <Transition>
-      <div
-        v-if="show"
-        ref="rootElement"
-        class="BottomPanel dock"
-        :style="style"
-        data-testid="bottomDock"
-      >
-        <WithFullscreenMode v-model="fullscreen" @update:animating="fullscreenAnimating = $event">
-          <ActionButton
-            action="panel.fullscreen"
-            class="gutterButton topOfGutter"
-            :class="{ aboveFullscreen: fullscreen || fullscreenAnimating }"
-          />
-          <slot />
-        </WithFullscreenMode>
-        <ResizeHandles
-          top
-          :modelValue="computedBounds"
-          @update:modelValue="savedSize = { height: $event.height }"
+  <ActionButton
+    action="graph.toggleCodeEditor"
+    class="gutterButton bottomOfGutter"
+    :class="{ aboveFullscreen: fullscreen || fullscreenAnimating }"
+  />
+  <Transition>
+    <div
+      v-if="show"
+      ref="rootElement"
+      class="BottomPanel dock"
+      :style="style"
+      data-testid="bottomDock"
+      v-bind="$attrs"
+    >
+      <WithFullscreenMode v-model="fullscreen" @update:animating="fullscreenAnimating = $event">
+        <ActionButton
+          action="panel.fullscreen"
+          class="gutterButton topOfGutter"
+          :class="{ aboveFullscreen: fullscreen || fullscreenAnimating }"
         />
-      </div>
-    </Transition>
-  </div>
+        <slot />
+      </WithFullscreenMode>
+      <ResizeHandles
+        top
+        :modelValue="computedBounds"
+        @update:modelValue="savedSize = { height: $event.height }"
+      />
+    </div>
+  </Transition>
 </template>
 
 <style scoped>
