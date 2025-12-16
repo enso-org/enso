@@ -75,7 +75,11 @@ export const test = base.extend<{
     const app = await _electron.launch({
       executablePath: electronExecutablePath,
       args,
-      env: { ...process.env, ENSO_TEST: 'true', ENSO_TEST_PROJECTS_DIR: projectsDir },
+      env: {
+        ...process.env,
+        ENSO_TEST: 'true',
+        ENSO_TEST_PROJECTS_DIR: projectsDir.replace(/\\/g, '/'),
+      },
     })
     // Set the password as global var before turning on tracing.
     // This way it will be not disclosed to anyone downloading traces of failed tests.
