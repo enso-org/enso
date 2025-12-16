@@ -13,6 +13,7 @@ import java.nio.file.StandardOpenOption;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 import org.enso.common.RuntimeOptions;
+import org.enso.distribution.DistributionManager;
 import org.enso.test.utils.ContextUtils;
 import org.enso.test.utils.ProjectUtils;
 import org.junit.Before;
@@ -50,7 +51,8 @@ public final class DownloadLibraryTest {
     createZippedLibrary();
     createEditions(rootDir);
     createProject(rootDir);
-    System.setProperty("enso.edition.path", editionsDir.toAbsolutePath().toString());
+    System.setProperty(
+        DistributionManager.EDITION_PATH_SYSPROP(), editionsDir.toAbsolutePath().toString());
   }
 
   /**
