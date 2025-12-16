@@ -313,7 +313,7 @@ const actionHandlers = registerHandlers({
       })
     },
   },
-  'graph.pasteNode': { action: () => createNodesFromClipboard() },
+  'graph.pasteNode': { action: createNodesFromClipboard },
   'graph.openDocumentation': {
     action: () => {
       const result = tryGetSelectionDocUrl()
@@ -687,6 +687,7 @@ const contextMenuActions: DisplayableActionName[] = [
   'graph.redo',
   'graph.addComponent',
   'graph.fitAll',
+  'graph.pasteNode',
   'graph.toggleCodeEditor',
   'graph.toggleDocumentationEditor',
 ]

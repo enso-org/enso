@@ -34,6 +34,7 @@
 - [Fix non-visible button and wrong layout in GeoMap Visualization][14443]
 - [Added additonal file and site options for MS365 credentials][14477]
 - [Maximum height of the file browser is slightly reduced][14467]
+- ["Paste component" option in graph menu][14504]
 - [Fix bug where Table Expressions weren't saved after finishing edit by mouse
   click][14500]
 
@@ -64,6 +65,7 @@
 [14443]: https://github.com/enso-org/enso/pull/14443
 [14477]: https://github.com/enso-org/enso/pull/14477
 [14467]: https://github.com/enso-org/enso/pull/14467
+[14504]: https://github.com/enso-org/enso/pull/14504
 [14500]: https://github.com/enso-org/enso/pull/14500
 
 #### Enso Standard Library
