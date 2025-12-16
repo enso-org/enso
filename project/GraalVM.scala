@@ -236,7 +236,7 @@ object GraalVM {
   )
 
   private val downloadLink =
-    s"https://github.com/graalvm/graalvm-ce-builds/releases/tag/jdk-${Dependencies.graalVersion}"
+    s"https://github.com/graalvm/graalvm-ce-builds/releases/tag/jdk-$version"
 
   /** Augments a state transition to do GraalVM version check.
     *
