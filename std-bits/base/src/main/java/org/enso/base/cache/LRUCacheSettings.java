@@ -64,7 +64,7 @@ public class LRUCacheSettings {
   private static long parseMaxFileSizeEnvVar() {
     var maxFileSizeSpec =
         EnsoMeta.callStaticModuleMethod(
-            "Standard.Base.System.Environment", "get", TOTAL_CACHE_SIZE_ENV_VAR);
+            "Standard.Base.System.Environment", "get", MAX_FILE_SIZE_ENV_VAR);
     if (maxFileSizeSpec.isNull()) {
       return DEFAULT_MAX_FILE_SIZE;
     }
