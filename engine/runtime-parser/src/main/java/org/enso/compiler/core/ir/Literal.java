@@ -1,11 +1,12 @@
 package org.enso.compiler.core.ir;
 
+import java.math.BigInteger;
+import java.util.function.Function;
+import org.enso.compiler.core.CompilerError;
 import org.enso.runtime.parser.dsl.GenerateFields;
 import org.enso.runtime.parser.dsl.GenerateIR;
 import org.enso.runtime.parser.dsl.IRField;
 import scala.Option;
-
-import java.util.function.Function;
 
 public interface Literal extends Expression, IRKind.Primitive {
 
@@ -16,7 +17,11 @@ public interface Literal extends Expression, IRKind.Primitive {
   Literal setLocation(Option<IdentifiedLocation> location);
 
   @Override
-  Literal duplicate(boolean keepLocations, boolean keepMetadata, boolean keepDiagnostics, boolean keepIdentifiers);
+  Literal duplicate(
+      boolean keepLocations,
+      boolean keepMetadata,
+      boolean keepDiagnostics,
+      boolean keepIdentifiers);
 
   @GenerateIR(interfaces = {Literal.class})
   final class Number extends LiteralNumberGen {
@@ -25,15 +30,51 @@ public interface Literal extends Expression, IRKind.Primitive {
         @IRField Option<String> base,
         @IRField String value,
         IdentifiedLocation identifiedLocation,
-        MetadataStorage passData
-    ) {
+        MetadataStorage passData) {
       super(base, value, identifiedLocation, passData);
     }
 
-    /** Checks whether the literal represents a fractional value.
-     */
+    public Builder copyBuilder() {
+      return new Builder(this);
+    }
+
+    /** Checks whether the literal represents a fractional value. */
     public boolean isFractional() {
       return value().contains(".");
+    }
+
+    /**
+     * Checks the values in the literal converts that to approviate JVM value.
+     *
+     * @return Double, Long, BigInteger
+     */
+    public Object numericValue() {
+      if (isFractional()) {
+        return Double.parseDouble(value());
+      }
+      if (base().isDefined()) {
+        int baseNum;
+        try {
+          baseNum = Integer.parseInt(base().get());
+        } catch (NumberFormatException e) {
+          throw new CompilerError("Invalid number base " + base().get() + " seen during codegen.");
+        }
+        try {
+          return Long.parseLong(value(), baseNum);
+        } catch (NumberFormatException e) {
+          try {
+            return new BigInteger(value(), baseNum);
+          } catch (NumberFormatException e2) {
+            throw new CompilerError(
+                "Invalid number base " + base().get() + " seen during codegen.");
+          }
+        }
+      }
+      try {
+        return Long.parseLong(value());
+      } catch (NumberFormatException e) {
+        return new BigInteger(value());
+      }
     }
 
     @Override
@@ -50,10 +91,7 @@ public interface Literal extends Expression, IRKind.Primitive {
   final class Text extends LiteralTextGen {
     @GenerateFields
     public Text(
-        @IRField String text,
-        IdentifiedLocation identifiedLocation,
-        MetadataStorage passData
-    ) {
+        @IRField String text, IdentifiedLocation identifiedLocation, MetadataStorage passData) {
       super(text, identifiedLocation, passData);
     }
 
