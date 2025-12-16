@@ -46,6 +46,8 @@
 - [Maximum height of the file browser is slightly reduced][14467]
 - [Fix bug where Table Expressions weren't saved after finishing edit by mouse
   click][14500]
+- [Fix "What's new", "Documentation" and similar buttons opening external page
+  twice][14507]
 
 [13685]: https://github.com/enso-org/enso/pull/13685
 [13658]: https://github.com/enso-org/enso/pull/13658
@@ -75,6 +77,7 @@
 [14477]: https://github.com/enso-org/enso/pull/14477
 [14467]: https://github.com/enso-org/enso/pull/14467
 [14500]: https://github.com/enso-org/enso/pull/14500
+[14507]: https://github.com/enso-org/enso/pull/14507
 
 #### Enso Standard Library
 
