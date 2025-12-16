@@ -94,7 +94,9 @@ export class LanguageServerSession {
     const session = map.setIfUndefined(LanguageServerSession.sessions, url, () => {
       const indexDoc = new WSSharedDoc()
       const transport = new YjsTransport(indexDoc.doc, url, callbacks)
+      console.log('DEBUG LanguageServerSession.get transport created', url)
       transport.connect()
+      console.log('DEBUG LanguageServerSession.get transport connected', url)
       const ls = new LanguageServer(crypto.randomUUID(), transport)
       return new LanguageServerSession(ls, indexDoc, () =>
         LanguageServerSession.sessions.delete(url),

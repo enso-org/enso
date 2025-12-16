@@ -126,7 +126,7 @@ public final class Ydoc implements AutoCloseable {
         port = DEFAULT_PORT;
       }
 
-      if (callbacks != null) {
+      if (callbacks == null) {
         callbacks = NoOpMessageCallbacks.INSTANCE;
       }
 
