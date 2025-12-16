@@ -25,7 +25,7 @@ polyglot java import java.lang.System as JSystem
 
          example_get = Environment.get "PATH"
    ```
-get key:Text ~if_missing=Nothing -> (Text|Nothing) =
+get key:Text ~if_missing:Text|Nothing=Nothing -> (Text|Nothing) =
     mock_dict = State.get Environment if_missing=Nothing
     mock_value = if mock_dict == Nothing then Nothing else
         (mock_dict:Dictionary).get key
