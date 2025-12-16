@@ -2,7 +2,7 @@ from Standard.Base import all
 import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Runtime.Ref.Ref
 from Standard.Base.Metadata.Choice import Option
-from Standard.Base.Metadata.Widget import Single_Choice, Multiple_Choice
+from Standard.Base.Metadata.Widget import Multiple_Choice, Single_Choice
 
 import project.Column.Column
 import project.Expression.Expression
@@ -16,9 +16,9 @@ type Spatial_Table
     private Table parent:Table
 
     ## ---
+       private: true
        group: Standard.Base.Metadata
        icon: spatial
-       private: true
        ---
        If the column is a spatial column, returns it as a Spatial_Column
        otherwise throws a type error.
@@ -26,9 +26,9 @@ type Spatial_Table
         (self:Table).implementation.as_spatial_column self.parent.underlying column
 
     ## ---
+       private: true
        group: Standard.Base.Metadata
        icon: spatial
-       private: true
        ---
        Get the columns in the table which contain spatial data.
     spatial_columns self =
@@ -357,11 +357,15 @@ type Spatial_Table
         resolved = _resolve_column column self.parent
         (self:Table).implementation.spatial_from_wkt self.parent.underlying resolved as
 
+## When extracting latitude or longitude, which value to extract.
 type Lat_Long_Type
+    ## Uses the centroid of the spatial object to extract the latitude or longitude.
     Default
 
+    ## Extracts the minimum latitude or longitude from the spatial object.
     Minimum
 
+    ## Extracts the maximum latitude or longitude from the spatial object.
     Maximum
 
 ## ---

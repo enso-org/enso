@@ -9,7 +9,7 @@ import project.In_Memory_Column.In_Memory_Column
 import project.Internal.Type_Refinements.Typed_Column_Helpers
 import project.Internal.Type_Refinements.Typed_Column_Implementations.In_Memory_Text_Column_Implementation
 import project.Value_Type.Value_Type
-from project.Internal.In_Memory_Column_Implementation import apply_unary_map, _apply_binary_map, apply_case_sensitive_text_operation, _call_binary_operator, _java_other, apply_unary_operation, naming_helper
+from project.Internal.In_Memory_Column_Implementation import _apply_binary_map, _call_binary_operator, _java_other, apply_case_sensitive_text_operation, apply_unary_map, apply_unary_operation, naming_helper
 from project.Internal.Java_Exports import make_string_builder
 
 polyglot java import org.enso.table.data.column.operation.binary.RandBetweenOperation

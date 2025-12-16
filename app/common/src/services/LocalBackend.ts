@@ -6,8 +6,9 @@
  * the API.
  */
 import { markRaw } from 'vue'
+import { PRODUCT_NAME } from '../constants.js'
 import type { DownloadOptions } from '../download.js'
-import { PRODUCT_NAME } from '../index.js'
+import type { DefaultGetText } from '../text.js'
 import { toReadableIsoString } from '../utilities/data/dateTime.js'
 import { tryGetMessage } from '../utilities/errors.js'
 import {
@@ -87,7 +88,7 @@ export class LocalBackend extends backend.Backend {
 
   /** Create a {@link LocalBackend}. */
   constructor(
-    getText: backend.GetText,
+    getText: DefaultGetText,
     projectManagerInstance: ProjectManager,
     client = new HttpClient(),
     downloader: (options: DownloadOptions) => void | Promise<void>,
@@ -777,8 +778,8 @@ export class LocalBackend extends backend.Backend {
   }
 
   /** Resolve path to asset. In case of LocalBackend, this is just the filesystem path. */
-  override resolveEnsoPath(path: backend.EnsoPath): Promise<backend.PathResolveResponse> {
-    const { directoryPath } = getDirectoryAndName(Path(String(path)))
+  override resolveEnsoPath(path: backend.EnsoPath): Promise<backend.AnyAsset> {
+    const { directoryPath } = getDirectoryAndName(Path(path as string))
     return this.findAsset(directoryPath, 'ensoPath', path)
   }
 
@@ -874,7 +875,6 @@ export class LocalBackend extends backend.Backend {
     assetId: backend.AssetId,
     localProjectId: backend.ProjectId,
     parentDirectoryId: backend.DirectoryId,
-    baseUrl: URL,
     defaultHeaders: Record<string, string>,
   ): Promise<void> {
     const localProjectDirectory = backend.extractTypeAndPath(localProjectId).path
@@ -882,7 +882,6 @@ export class LocalBackend extends backend.Backend {
       assetId,
       parentDirectoryId,
       directory: localProjectDirectory,
-      baseUrl: baseUrl.toString(),
     }).toString()
     const response = await this.post(
       new URL(`/api/watcher/start?${queryString}`, location.href).toString(),

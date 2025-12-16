@@ -24,6 +24,7 @@ console.log(chalk.cyan('Cleaning IDE dist directory.'))
 await rm(IDE_DIR_PATH, { recursive: true, force: true })
 await mkdir(IDE_DIR_PATH, { recursive: true })
 const NODE_MODULES_PATH = path.resolve('./node_modules')
+const GUI_CONFIG_PATH = path.resolve('../gui/vite.config.ts')
 
 const BUNDLE_READY = (async (): Promise<BuildResult> => {
   console.log(chalk.cyan('Bundling client.'))
@@ -94,7 +95,7 @@ console.log(chalk.cyan('Spawning Electron process.'))
 const electronProcess = spawn('electron', ELECTRON_ARGS, {
   stdio: 'inherit',
   shell: true,
-  env: Object.assign({ NODE_MODULES_PATH }, process.env),
+  env: Object.assign({ NODE_MODULES_PATH, GUI_CONFIG_PATH }, process.env),
 })
   .on('close', (code) => {
     if (code === 0) {
@@ -108,4 +109,8 @@ const electronProcess = spawn('electron', ELECTRON_ARGS, {
     electronProcess.removeAllListeners()
     electronProcess.kill()
     exit(1)
+  })
+  .on('exit', (code) => {
+    console.log((code ? chalk.red : chalk.cyan)(`Electron process exited with code ${code}.`))
+    exit(code ?? 0)
   })

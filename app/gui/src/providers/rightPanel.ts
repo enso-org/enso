@@ -75,6 +75,14 @@ function useRightPanelTabs(
       },
     ],
     [
+      'contents',
+      {
+        icon: 'docs',
+        enabled: Ok(),
+        title: 'Contents',
+      },
+    ],
+    [
       'settings',
       {
         icon: 'properties',
@@ -224,6 +232,7 @@ function useRightPanel(
       return await backendForType(backendType).getAssetDetails(currentItem.id, undefined)
     },
     enabled: () => backendType.value != null && focusedAsset.value != null,
+    meta: { persist: false },
   })
   const focusedAssetDetails = focusedAssetDetailsQuery.data
 

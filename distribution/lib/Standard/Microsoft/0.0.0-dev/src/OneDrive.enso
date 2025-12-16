@@ -21,6 +21,7 @@ import project.Internal.Graph.Graph
 import project.Internal.OneDrive_Path.OneDrive_Path
 import project.Microsoft365_Credential.Microsoft365_Credential
 
+## API for interacting with OneDrive files and folders.
 type OneDrive
     ## ---
        icon: cloud
@@ -30,7 +31,7 @@ type OneDrive
        ## Arguments
        - `credential`: A Cloud secret or a file containing Microsoft365 credentials.
     @credential Secret_Browse
-    root : File | Enso_Secret -> OneDrive_File
+    root : File | Enso_Secret | Microsoft365_Credential -> OneDrive_File
     root (credential : File | Enso_Secret | Microsoft365_Credential = _default_credential) -> OneDrive_File =
         ms_cred = Microsoft365_Credential.initialize credential
         OneDrive_File.root ms_cred
@@ -90,6 +91,7 @@ type OneDrive
             if response.code.is_success then target_file else
                 Error.throw (File_Error.Write_Error target_file "Failed to write file to OneDrive. HTTP response code: "+response.code.to_text)
 
+## Represents a file or folder in OneDrive.
 type OneDrive_File
     private Value (credential : Microsoft365_Credential) (onedrive_path : OneDrive_Path)
 

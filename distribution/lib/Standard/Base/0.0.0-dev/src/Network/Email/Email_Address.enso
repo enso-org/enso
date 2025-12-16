@@ -3,7 +3,7 @@ import project.Errors.Common.Missing_Argument
 import project.Metadata.Display
 import project.Metadata.Widget
 from project.Metadata.Choice import Option
-from project.Metadata.Widget import Text_Input, Vector_Editor, Single_Choice
+from project.Metadata.Widget import Single_Choice, Text_Input, Vector_Editor
 
 ## The email address of a sender or recipient.
 type Email_Address

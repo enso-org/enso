@@ -11,6 +11,7 @@ import java.util.Objects;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 import org.enso.compiler.core.ir.AscriptionReason;
+import org.enso.interpreter.EnsoLanguage;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.expression.builtin.meta.AtomWithAHoleNode;
 import org.enso.interpreter.runtime.EnsoContext;
@@ -89,8 +90,20 @@ public final class TypeCheckValueNode extends Node {
     }
   }
 
+  @CompilerDirectives.CompilationFinal private LazyCheckRootNode lazyCheck;
+
   private final Object handleCheckOrConversionImpl(VirtualFrame frame, Object value) {
     var direct = check.findDirectMatch(frame, value);
+    if (direct instanceof Function fn && fn.isThunk()) {
+      if (lazyCheck == null) {
+        CompilerDirectives.transferToInterpreter();
+        var enso = EnsoLanguage.get(this);
+        var node = (AbstractTypeCheckNode) check.copy();
+        lazyCheck = new LazyCheckRootNode(enso, new TypeCheckValueNode(node, isAllTypes()));
+      }
+      var lazyCheckFn = lazyCheck.wrapThunk(fn);
+      return lazyCheckFn;
+    }
     if (direct != null) {
       return direct;
     }

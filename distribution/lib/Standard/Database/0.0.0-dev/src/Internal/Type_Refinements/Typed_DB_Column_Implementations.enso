@@ -8,7 +8,7 @@ from Standard.Table import Column, Value_Type
 
 import project.DB_Column.DB_Column
 import project.Internal.Helpers
-from project.Internal.DB_Column_Implementation import make_op, make_unary_op, make_binary_op, make_text_case_op, naming_helper
+from project.Internal.DB_Column_Implementation import make_binary_op, make_op, make_text_case_op, make_unary_op, naming_helper
 
 type DB_Numeric_Column_Implementation
     abs (column : Column & DB_Column) =

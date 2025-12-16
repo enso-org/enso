@@ -17,7 +17,7 @@ export interface ArchiveEntryMetadata extends FileDataInput {
 }
 
 export interface ArchiveBuilder {
-  readonly stream: Stream
+  readonly stream: Readable
   readonly addFile: (
     source: Buffer | _Readable.Stream | Stream | string,
     data: ArchiveEntryMetadata,

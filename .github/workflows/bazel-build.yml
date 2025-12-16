@@ -22,7 +22,7 @@ jobs:
         run: bazel run //:lint_bazel_files
       - name: Expose env variables
         run: |
-          cat << END > app/gui/.env.production
+          cat << END > app/common/.env.production
           ENSO_IDE_ENVIRONMENT="${{ vars.ENSO_CLOUD_ENVIRONMENT }}"
           ENSO_IDE_API_URL="${{ vars.ENSO_CLOUD_API_URL }}"
           ENSO_IDE_CHAT_URL="${{ vars.ENSO_CLOUD_CHAT_URL }}"
