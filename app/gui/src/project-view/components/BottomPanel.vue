@@ -38,6 +38,11 @@ const style = computed(() =>
 </script>
 
 <template>
+  <ActionButton
+    action="graph.toggleCodeEditor"
+    class="gutterButton bottomOfGutter"
+    :class="{ aboveFullscreen: fullscreen || fullscreenAnimating }"
+  />
   <Transition>
     <div
       v-if="show"
@@ -45,12 +50,8 @@ const style = computed(() =>
       class="BottomPanel dock"
       :style="style"
       data-testid="bottomDock"
+      v-bind="$attrs"
     >
-      <ActionButton
-        action="graph.toggleCodeEditor"
-        class="gutterButton bottomOfGutter"
-        :class="{ aboveFullscreen: fullscreen || fullscreenAnimating }"
-      />
       <WithFullscreenMode v-model="fullscreen" @update:animating="fullscreenAnimating = $event">
         <ActionButton
           action="panel.fullscreen"
