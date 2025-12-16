@@ -295,7 +295,7 @@ class App {
     const backendProfileOpts =
       args.debug.profile ? ['--profiling-path', 'profiling.npss', ...backendProfileTime] : []
     // On Windows, we always use the JVM backend, as the native image has issues at present
-    const backendJvmOpts = args.useJvm || process.platform === 'win32' ? ['--jvm'] : []
+    const backendJvmOpts = args.useJvm ? ['--jvm'] : ['-XX:+TraceDeoptimization']
     const backendOpts = [...backendVerboseOpts, ...backendProfileOpts, ...backendJvmOpts]
 
     return projectService.setupProjectService(backendOpts)

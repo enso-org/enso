@@ -149,6 +149,10 @@ export class EnsoRunner implements Runner {
           args.push(...extraArgs)
         }
 
+        if (process.platform === 'win32' && args.indexOf('--jvm') === -1) {
+          args.push('--jvm')
+        }
+
         const env = { ...process.env }
         env['LANGUAGE_SERVER_YDOC_PORT'] = ydocPort.toString()
         if (extraEnv) {
