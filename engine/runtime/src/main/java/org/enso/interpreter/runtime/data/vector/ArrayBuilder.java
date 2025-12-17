@@ -62,24 +62,22 @@ final class ArrayBuilder extends EnsoObject {
     } else if (primitiveArray instanceof long[] longArray) {
       if (e instanceof Long l) {
         if (size == longArray.length) {
-          primitiveArray = longArray = boundaryCopyOf(longArray, size * 2);
+          reallocAndAddToLongArray(longArray, l);
+        } else {
+          longArray[size++] = l;
         }
-        longArray[size++] = l;
       } else {
-        objectArray = boundaryCopyOfLongToObject(longArray, size);
-        primitiveArray = null;
-        addToObjectArray(e);
+        boundaryCopyOfLongToObject(longArray, e);
       }
     } else if (primitiveArray instanceof double[] doubleArray) {
       if (e instanceof Double d) {
         if (size == doubleArray.length) {
-          primitiveArray = doubleArray = boundaryCopyOf(doubleArray, size * 2);
+          reallocAndAddToDoubleArray(doubleArray, d);
+        } else {
+          doubleArray[size++] = d;
         }
-        doubleArray[size++] = d;
       } else {
-        objectArray = boundaryCopyOfDoubleToObject(doubleArray, size);
-        primitiveArray = null;
-        addToObjectArray(e);
+        boundaryCopyOfDoubleToObject(doubleArray, e);
       }
     } else {
       assert objectArray == null;
@@ -108,9 +106,10 @@ final class ArrayBuilder extends EnsoObject {
 
   private void addToObjectArray(Object e) {
     if (size == objectArray.length) {
-      objectArray = boundaryCopyOf(objectArray, size * 2);
+      reallocAndAddToObjectArray(e);
+    } else {
+      objectArray[size++] = e;
     }
-    objectArray[size++] = e;
   }
 
   /** Obtains an element from the builder */
@@ -237,21 +236,43 @@ final class ArrayBuilder extends EnsoObject {
   }
 
   @TruffleBoundary
-  private static Object[] boundaryCopyOfLongToObject(long[] longArray, int size) {
+  private void reallocAndAddToLongArray(long[] longArray, long l) {
+    primitiveArray = longArray = boundaryCopyOf(longArray, size * 2);
+    longArray[size++] = l;
+  }
+
+  @TruffleBoundary
+  private void reallocAndAddToDoubleArray(double[] doubleArray, double l) {
+    primitiveArray = doubleArray = boundaryCopyOf(doubleArray, size * 2);
+    doubleArray[size++] = l;
+  }
+
+  @TruffleBoundary
+  private void reallocAndAddToObjectArray(Object e) {
+    objectArray = boundaryCopyOf(objectArray, size * 2);
+    objectArray[size++] = e;
+  }
+
+  @TruffleBoundary
+  private void boundaryCopyOfLongToObject(long[] longArray, Object e) {
     var arr = new Object[longArray.length];
     for (int i = 0; i < size; i++) {
       arr[i] = longArray[i];
     }
-    return arr;
+    objectArray = arr;
+    primitiveArray = null;
+    addToObjectArray(e);
   }
 
   @TruffleBoundary
-  private static Object[] boundaryCopyOfDoubleToObject(double[] doubleArray, int size) {
+  private void boundaryCopyOfDoubleToObject(double[] doubleArray, Object e) {
     var arr = new Object[doubleArray.length];
     for (int i = 0; i < size; i++) {
       arr[i] = doubleArray[i];
     }
-    return arr;
+    objectArray = arr;
+    primitiveArray = null;
+    addToObjectArray(e);
   }
 
   @TruffleBoundary
