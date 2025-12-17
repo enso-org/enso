@@ -62,7 +62,7 @@ public abstract class ConstructorBranchNode extends BranchNode {
       @Cached EnsoMultiValue.CastToNode castNode) {
     var expectedType = matcher.getType();
     if (profile.profile(isValueOfTypeNode.execute(expectedType, target, true))) {
-      var replacement = castNode.findTypeOrNull(expectedType, target, true, true);
+      var replacement = castNode.findTypeOrNull(expectedType, target, true, false);
       assert replacement != null : "Must find the type, when isValueOfTypeNode is true";
       var arr = fieldsFromObject(replacement, matcher, structsLib);
       accept(frame, state, arr);
