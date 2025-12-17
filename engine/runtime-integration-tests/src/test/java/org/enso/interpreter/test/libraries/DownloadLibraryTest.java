@@ -78,8 +78,8 @@ public final class DownloadLibraryTest {
     editionsDir.toFile().mkdirs();
     var editionContent =
         """
-        extends: 0.0.0-dev
-        engine-version: 0.0.0-dev
+        extends: ${parent_edition}
+        engine-version: ${engine_version}
         repositories:
           - name: ${repo_name}
             url: ${repo_url}
@@ -88,12 +88,32 @@ public final class DownloadLibraryTest {
             version: ${lib_version}
             repository: ${repo_name}
         """
+            .replace("${parent_edition}", parentEdition())
+            .replace("${engine_version}", engineVersion())
             .replace("${repo_name}", "local_repo")
             .replace("${repo_url}", zippedLibsURL.toString())
             .replace("${lib_name}", LIB_NAMESPACE + "." + LIB_NAME)
             .replace("${lib_version}", LIB_VERSION);
     var editionFile = editionsDir.resolve(EDITION_NAME + ".yaml");
     Files.writeString(editionFile, editionContent);
+  }
+
+  private static String parentEdition() {
+    var env = System.getenv("ENSO_EDITION");
+    if (env != null) {
+      return env;
+    } else {
+      return "0.0.0-dev";
+    }
+  }
+
+  private static String engineVersion() {
+    var env = System.getenv("ENSO_VERSION");
+    if (env != null) {
+      return env;
+    } else {
+      return "0.0.0-dev";
+    }
   }
 
   /**
