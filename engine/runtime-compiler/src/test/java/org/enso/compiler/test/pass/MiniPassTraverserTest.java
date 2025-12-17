@@ -17,7 +17,6 @@ import org.enso.compiler.core.ir.MetadataStorage;
 import org.enso.compiler.core.ir.Module;
 import org.enso.compiler.core.ir.Pattern;
 import org.enso.compiler.core.ir.expression.Case;
-import org.enso.compiler.core.ir.expression.Operator;
 import org.enso.compiler.pass.MiniIRPass;
 import org.enso.persist.Persistance.Reference;
 import org.junit.Test;
