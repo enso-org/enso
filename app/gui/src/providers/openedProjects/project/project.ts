@@ -7,7 +7,7 @@ import {
 } from '$/providers/openedProjects/project/executionContext'
 import { VisualizationDataRegistry } from '$/providers/openedProjects/project/visualizationDataRegistry'
 import { type ProjectNameStore } from '$/providers/openedProjects/projectNames'
-import { computedAsyncPromise, proxyRefs } from '$/utils/reactivity'
+import { proxyRefs } from '$/utils/reactivity'
 import { Awareness } from '@/stores/awareness'
 import { attachProvider, useObserveYjs } from '@/util/crdt'
 import { nextEvent } from '@/util/data/observable'
@@ -37,12 +37,7 @@ import { OutboundPayload, VisualizationUpdate } from 'ydoc-shared/binaryProtocol
 import { LanguageServer } from 'ydoc-shared/languageServer'
 import type { Diagnostic, ExpressionId } from 'ydoc-shared/languageServerTypes'
 import type { AbortScope } from 'ydoc-shared/util/net'
-import {
-  DistributedProject,
-  localUserActionOrigins,
-  type ExternalId,
-  type Uuid,
-} from 'ydoc-shared/yjsModel'
+import { DistributedProject, type ExternalId, type Uuid } from 'ydoc-shared/yjsModel'
 import * as Y from 'yjs'
 
 export interface LsUrls {
@@ -56,14 +51,14 @@ const VISUALIZATION_PREPROCESSOR_PATH = ProjectPath.create(
   'Preprocessor' as Identifier,
 )
 
-export type ProjectStore = Awaited<ReturnType<typeof createProjectStore>>
+export type ProjectStore = ReturnType<typeof createProjectStore>
 
 /**
  * The project store synchronizes and holds the open project-related data. The synchronization is
  * performed using a CRDT data types from Yjs. Once the data is synchronized with a "LS bridge"
  * client, it is submitted to the language server as a document update.
  */
-export async function createProjectStore(
+export function createProjectStore(
   props: {
     projectId: ProjectId
     projectAssetId: ProjectId
@@ -85,6 +80,7 @@ export async function createProjectStore(
   const projectRootId = lsRpcConnection.contentRoots.then(
     (roots) => roots.find((root) => root.type === 'Project')?.id,
   )
+  onScopeDispose(() => lsRpcConnection.release())
 
   const dataConnection = initializeDataConnection(clientId, props.engine.dataUrl, abort)
   const rpcUrl = new URL(props.engine.rpcUrl)
@@ -122,21 +118,8 @@ export async function createProjectStore(
   })
 
   const projectModel = new DistributedProject(doc)
-  const moduleDocGuid = ref<string>()
-
-  function currentDocGuid() {
-    const name = observedFileName.value
-    if (name == null) return
-    return projectModel.modules.get(name)?.guid
-  }
-  function tryReadDocGuid() {
-    const guid = currentDocGuid()
-    if (guid === moduleDocGuid.value) return
-    moduleDocGuid.value = guid
-  }
-
-  projectModel.modules.observe(tryReadDocGuid)
-  watchEffect(tryReadDocGuid)
+  projectModel.doc.on('sync', (a1) => console.debug('SYNC', a1, projectModel.modules.size))
+  console.debug('PM', projectModel.modules.size, projectModel.modules)
 
   const entryPoint = computed<MethodPointer>(() => {
     const mainModule = ProjectPath.create(undefined, 'Main' as Identifier)
@@ -416,25 +399,6 @@ export async function createProjectStore(
     projectNames.onProjectRenamed(oldNormalizedName, newNormalizedName)
   })
 
-  const module = await computedAsyncPromise(
-    async () => {
-      const guid = moduleDocGuid.value
-      if (guid == null) return null
-      const moduleName = projectModel.findModuleByDocId(guid)
-      if (moduleName == null) return null
-      const mod = await projectModel.openModule(moduleName)
-      for (const origin of localUserActionOrigins) mod?.undoManager.addTrackedOrigin(origin)
-      return mod ? markRaw(mod) : null
-    },
-    // undefined,
-    // { onError: console.error },
-  )
-  console.debug('...', module.value)
-
-  function stopCapturingUndo() {
-    module.value?.undoManager.stopCapturing()
-  }
-
   return proxyRefs({
     setObservedFileName(name: string) {
       observedFileName.value = name
@@ -447,7 +411,6 @@ export async function createProjectStore(
     executionContext,
     firstExecution,
     diagnostics,
-    module,
     moduleProjectPath,
     entryPoint,
     projectModel,
@@ -458,7 +421,6 @@ export async function createProjectStore(
     dataConnection: markRaw(dataConnection),
     useVisualizationData,
     isRecordingEnabled,
-    stopCapturingUndo,
     executionMode,
     recordMode,
     dataflowErrors,

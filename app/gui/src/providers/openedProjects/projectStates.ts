@@ -420,12 +420,12 @@ export function useProjectStates() {
       )
     })!
 
+    const suggestionDb = scope.run(() => createSuggestionDbStore(store, projectNames))!
+    const module = await scope.run(() => createModuleStore(store, projectNames, suggestionDb))!
+    // if (!module.ok) return module
+
     return scope.run(() => {
-      const suggestionDb = createSuggestionDbStore(store, projectNames)
-      console.debug('Creating module store')
-      const module = createModuleStore(store, projectNames, suggestionDb)
-      console.debug('Module store created')
-      const graph = createGraphStore(store, suggestionDb, projectNames, module)
+      const graph = createGraphStore(store, suggestionDb, projectNames, module.value)
       const widgetRegistry = new WidgetRegistry(graph.db)
       const logger = eventLogger(project.info.id)
 
@@ -443,7 +443,7 @@ export function useProjectStates() {
           store,
           projectNames,
           suggestionDb,
-          module,
+          module: module.value,
           graph,
           widgetRegistry,
           scope,
@@ -521,9 +521,7 @@ export function useProjectStates() {
   async function closeProject(
     project: Opened | Initialized,
   ): Promise<Result<NotOpened | HybridLocallyClosed>> {
-    if (project.status === 'initialized') {
-      project.scope.stop()
-    }
+    project.scope.stop()
     switch (project.info.mode) {
       case 'local':
         if (backends.localBackend == null)
@@ -597,6 +595,7 @@ export function useProjectStates() {
       await deleteLocalVersionOfHybridProject(project.info.localParentId)
     }
     if (project.status === 'hybrid-downloaded') {
+      project.scope.stop()
       await deleteLocalVersionOfHybridProject(project.localProjectParentId)
     }
     await closeRemoteProject.mutateAsync([project.info.id, project.info.title])

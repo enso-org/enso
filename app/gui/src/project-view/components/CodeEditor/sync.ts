@@ -1,5 +1,4 @@
 import type { ModuleStore } from '$/providers/openedProjects/module'
-import type { ProjectStore } from '$/providers/openedProjects/project'
 import { changeSetToTextEdits } from '@/util/codemirror/text'
 import { useToast } from '@/util/toast'
 import {
@@ -21,7 +20,6 @@ const synchronizedModule = Annotation.define<true>()
 
 /** @returns A CodeMirror Extension that synchronizes the editor state with the AST of an Enso module. */
 export function useEnsoSourceSync(
-  projectStore: Ref<Pick<ProjectStore, 'module'>>,
   moduleStore: Ref<Pick<ModuleStore, 'source' | 'ast' | 'edit' | 'onBeforeEdit'>>,
   editorView: EditorView,
 ) {
@@ -127,9 +125,8 @@ export function useEnsoSourceSync(
   function connectModuleListener() {
     let cleanup: (() => void) | undefined = undefined
     watch(
-      () => projectStore.value.module,
-      (module, _oldValue, onCleanup) => {
-        if (!module) return
+      moduleStore,
+      (_module, _oldValue, onCleanup) => {
         const beforeEditHandler = moduleStore.value.onBeforeEdit(beforeSourceChange)
         moduleStore.value.source.observe(observeSourceChange)
         cleanup = () => {
