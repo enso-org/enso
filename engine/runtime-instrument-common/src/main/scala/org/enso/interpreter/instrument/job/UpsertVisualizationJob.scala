@@ -53,7 +53,8 @@ class UpsertVisualizationJob(
       List(config.executionContextId),
       false,
       false,
-      true
+      true,
+      false
     )
     with UniqueJob[Option[Executable]] {
 
@@ -200,6 +201,9 @@ class UpsertVisualizationJob(
       UpsertVisualizationJob.updateAttachedVisualization(
         visualizationId,
         expressionId,
+        optParentExpressionId
+          .map(e => Some(e.uuid()).asInstanceOf[Option[Api.ExpressionId]])
+          .orElseGet(() => None),
         module,
         config,
         callable,
@@ -382,6 +386,7 @@ object UpsertVisualizationJob {
       updateAttachedVisualization(
         visualizationId,
         expressionId,
+        visualization.parentExpressionId,
         result.module,
         visualizationConfig,
         result.callback,
@@ -677,6 +682,7 @@ object UpsertVisualizationJob {
   def updateAttachedVisualization(
     visualizationId: Api.VisualizationId,
     expressionId: Api.ExpressionId,
+    parentExpressionId: Option[Api.ExpressionId],
     module: Module,
     visualizationConfig: Api.VisualizationConfiguration,
     callback: AnyRef,
@@ -688,7 +694,7 @@ object UpsertVisualizationJob {
       Visualization(
         visualizationId,
         expressionId,
-        None, // FIXME
+        parentExpressionId,
         new RuntimeCache(),
         module,
         visualizationConfig,

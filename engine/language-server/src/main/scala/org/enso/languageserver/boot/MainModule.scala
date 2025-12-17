@@ -324,7 +324,9 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
   )
   extraOptions.put(
     RuntimeOptions.JOB_PARALLELISM,
-    Runtime.getRuntime.availableProcessors().toString
+    Math
+      .min(Runtime.getRuntime.availableProcessors(), 4)
+      .toString // Limit for up-to 4 jobs in parallel
   )
 
   if (HostEnsoUtils.isAot()) {

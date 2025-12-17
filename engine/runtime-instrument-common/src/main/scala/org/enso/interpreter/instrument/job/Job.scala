@@ -11,12 +11,14 @@ import org.enso.interpreter.instrument.execution.RuntimeContext
   * @param isCancellable says if the job is cancellable
   * @param mayInterruptIfRunning determines if the job may be interrupted when
   *                              running
+  * @param highPriority flag indicating a job should be served immediately on a separate ThreadPool
   */
 abstract class Job[+A](
   val contextIds: List[UUID],
   val isCancellable: Boolean,
   val mayInterruptIfRunning: Boolean,
-  val highPriority: Boolean
+  val highPriority: Boolean,
+  val executeProgram: Boolean
 ) {
 
   @volatile private var _hasStarted = false
@@ -26,7 +28,7 @@ abstract class Job[+A](
     isCancellable: Boolean,
     mayInterruptIfRunning: Boolean
   ) = {
-    this(contextIds, isCancellable, mayInterruptIfRunning, false)
+    this(contextIds, isCancellable, mayInterruptIfRunning, false, false)
   }
 
   /** Executes a job. Will mark the job as "started".

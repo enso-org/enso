@@ -33,7 +33,9 @@ class ExecuteJob(
       // until https://github.com/oracle/graal/issues/3590 is resolved
       mayInterruptIfRunning = executionEnvironment.forall(ee =>
         ee.name != Api.ExecutionEnvironment.Live().name
-      )
+      ),
+      highPriority   = false,
+      executeProgram = true
     ) {
 
   private var _threadName: String            = "<unknown>"
@@ -85,8 +87,9 @@ class ExecuteJob(
         )
     } finally {
       ExecuteJob.logger.trace(
-        "Finished ExecuteJob[{}]",
-        _jobId
+        "Finished ExecuteJob[{}, trigger={}]",
+        _jobId,
+        triggerContext
       )
     }
   }
@@ -204,4 +207,19 @@ object ExecuteJob {
     triggerContext: String
   ): ExecuteJob =
     new ExecuteJob(contextId, stack, None, triggerContext)
+
+  /** Create execute job.
+    *
+    * @param contextId the contextId to execute
+    * @param stack the stack to execute
+    * @param triggerContext human-readable explanation for execution job
+    * @return new execute job
+    */
+  def apply(
+    contextId: UUID,
+    stack: List[InstrumentFrame],
+    executionEnvironment: Option[Api.ExecutionEnvironment],
+    triggerContext: String
+  ): ExecuteJob =
+    new ExecuteJob(contextId, stack, executionEnvironment, triggerContext)
 }

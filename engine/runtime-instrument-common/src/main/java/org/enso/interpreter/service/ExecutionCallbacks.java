@@ -21,6 +21,8 @@ import org.enso.interpreter.instrument.profiling.ProfilingInfo;
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.data.Type;
+import org.enso.interpreter.runtime.execution.Ref;
+import org.enso.interpreter.runtime.execution.RuntimeAnalysis;
 import org.enso.interpreter.runtime.library.dispatch.TypeOfNode;
 import org.enso.interpreter.runtime.type.Constants;
 import org.enso.interpreter.service.ExecutionService.ExpressionCall;
@@ -29,12 +31,15 @@ import org.enso.interpreter.service.ExecutionService.FunctionCallInfo;
 import org.enso.polyglot.RuntimeID;
 import org.enso.polyglot.debugger.ExecutedVisualization;
 import org.enso.polyglot.debugger.IdExecutionService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 final class ExecutionCallbacks implements IdExecutionService.Callbacks {
 
   private final VisualizationHolder visualizationHolder;
   private final UUID nextExecutionItem;
   private final RuntimeCache cache;
+  private final RuntimeAnalysis runtimeAnalysis;
   private final MethodCallsCache methodCallsCache;
   private final UpdatesSynchronizationState syncState;
   private final Map<UUID, FunctionCallInfo> calls = new HashMap<>();
@@ -46,6 +51,8 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
   private final Consumer<ExpressionValue> onProgressCallbackOrNull;
   private ExecutionProgressObserver progressObserver;
   private final Map<RuntimeID, Object> savedNodeExecutionEnvironment;
+
+  private static Logger LOGGER = LoggerFactory.getLogger(ExecutionCallbacks.class);
 
   /**
    * Creates callbacks instance.
@@ -66,6 +73,7 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
       VisualizationHolder visualizationHolder,
       UUID nextExecutionItem,
       RuntimeCache cache,
+      RuntimeAnalysis runtimeAnalysis,
       MethodCallsCache methodCallsCache,
       UpdatesSynchronizationState syncState,
       ExpressionExecutionState expressionExecutionState,
@@ -77,6 +85,7 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
     this.visualizationHolder = visualizationHolder;
     this.nextExecutionItem = nextExecutionItem;
     this.cache = cache;
+    this.runtimeAnalysis = runtimeAnalysis;
     this.methodCallsCache = methodCallsCache;
     this.syncState = syncState;
     this.expressionExecutionState = expressionExecutionState;
@@ -238,6 +247,47 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
       } else {
         savedNodeExecutionEnvironment.put(uuid, replacement);
       }
+    }
+  }
+
+  @Override
+  public void startExecutionBlock(RuntimeID toRuntimeId, String explanation) {
+    runtimeAnalysis.startRhsExecution(toRuntimeId, explanation);
+  }
+
+  @Override
+  public void endExecutionBlock(RuntimeID runtimeID, String explanation) {
+    runtimeAnalysis.endRhsExecution(runtimeID, explanation);
+  }
+
+  @Override
+  public Object registerRuntimeDependency(Object result) {
+    if (result instanceof Ref r) {
+      var currentAssingmentRef = runtimeAnalysis.currentRhs("register runtime dep");
+      if (currentAssingmentRef != null) {
+        LOGGER.warn(
+            "Requesting ? {} for {} @ {}",
+            currentAssingmentRef.getRuntimeID(),
+            r.getRuntimeID(),
+            runtimeAnalysis.getId());
+        r.registerDependency(currentAssingmentRef);
+      } else {
+        // report problem?
+      }
+      return r.get();
+    } else {
+      return result;
+    }
+  }
+
+  @Override
+  public Object wrapAsReference(Object value) {
+    var currentAssingmentRef = runtimeAnalysis.currentRhs("wrap as a ref");
+    if (currentAssingmentRef != null) {
+      currentAssingmentRef.update(value);
+      return currentAssingmentRef;
+    } else {
+      return value;
     }
   }
 

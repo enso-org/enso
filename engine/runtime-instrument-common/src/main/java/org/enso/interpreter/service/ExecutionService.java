@@ -191,11 +191,13 @@ public final class ExecutionService implements GuestExecutionService {
       Consumer<ExecutedVisualization> onExecutedVisualizationCallback) {
     return submitExecution(
         () -> {
+          var runtimeAnalysis = RuntimeAnalysis.create(cache.getAnalysis());
           var callbacks =
               new ExecutionCallbacks(
                   visualizationHolder,
                   nextExecutionItem,
                   cache,
+                  runtimeAnalysis,
                   methodCallsCache,
                   syncState,
                   expressionExecutionState,
@@ -209,7 +211,6 @@ public final class ExecutionService implements GuestExecutionService {
                   service ->
                       service.bind(
                           module, call.getFunction().getCallTarget(), callbacks, this.timer));
-          RuntimeAnalysis runtimeAnalysis = null;
           var expressionRuntimeID = expressionId != null ? ExternalUUID.create(expressionId) : null;
           try {
             var rootNode = execute.getCallTarget().getRootNode();
@@ -222,7 +223,6 @@ public final class ExecutionService implements GuestExecutionService {
               // and the assignment containing the invocation.
               // Note that the tracking will only happen if we are currently executing
               // function call on the stack (i.e. after the push context call.
-
               context
                   .getLogger()
                   .finest(
@@ -230,15 +230,21 @@ public final class ExecutionService implements GuestExecutionService {
                           + call.getFunction().getName()
                           + " with instrumentation");
 
-              runtimeAnalysis = EnsoContext.get(rootNode).currentRuntimeAnalysis();
-              var r = runtimeAnalysis.get(ExternalUUID.create(expressionId));
-              runtimeAnalysis.startExecutingCachedExpression(null, expressionRuntimeID);
+              callbacks.startExecutionBlock(expressionRuntimeID, "execute");
             }
+            context
+                .getLogger()
+                .info(
+                    "Execute function "
+                        + call.getFunction().getName()
+                        + " with runtime analysis "
+                        + runtimeAnalysis);
             return RunStateNode.getUncached().execute(null, cacheKey(), cache, callFn);
           } finally {
             if (expressionRuntimeID != null) {
-              runtimeAnalysis.endExecutingCachedExpression(expressionRuntimeID);
+              callbacks.endExecutionBlock(expressionRuntimeID, "end-execute");
             }
+            cache.mergeAnalysis(runtimeAnalysis);
             eventNodeFactory.ifPresent(EventBinding::dispose);
           }
         });
@@ -415,11 +421,13 @@ public final class ExecutionService implements GuestExecutionService {
           Consumer<ExpressionValue> onProgressCallback =
               (value) -> context.getLogger().finest("_ON_PROGRESS " + value.getExpressionId());
 
+          var runtimeAnalysisBuilder = RuntimeAnalysis.create(cache.getAnalysis());
           var callbacks =
               new ExecutionCallbacks(
                   visualizationHolder,
                   nextExecutionItem,
                   cache,
+                  runtimeAnalysisBuilder,
                   methodCallsCache,
                   syncState,
                   expressionExecutionState,
@@ -433,14 +441,19 @@ public final class ExecutionService implements GuestExecutionService {
                   service -> service.bind(module, entryCallTarget, callbacks, this.timer));
           var ret = new Object[1];
           try {
+            var name = "unknown";
             if (fn instanceof Function tmp) {
               State state = State.create(context);
               fn = new FunctionCallInstrumentationNode.FunctionCall(tmp, state, new Object[0]);
+              name = tmp.getName();
             }
             var callArgs = new Object[] {fn, arguments};
             var callFn = Function.fullyApplied(call.getCallTarget(), callArgs);
+            context.getLogger().finest("Calling function with instrument (" + name + ")");
+
             ret[0] = RunStateNode.getUncached().execute(null, cacheKey(), executionCache, callFn);
           } finally {
+            cache.mergeAnalysis(runtimeAnalysisBuilder);
             eventNodeFactory.ifPresent(EventBinding::dispose);
           }
           return ret[0];

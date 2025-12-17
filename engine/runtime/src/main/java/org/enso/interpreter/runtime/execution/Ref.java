@@ -4,7 +4,7 @@ import java.util.stream.Stream;
 import org.enso.polyglot.RuntimeID;
 
 public abstract sealed class Ref permits RefObject {
-  private final RuntimeID runtimeID;
+  protected final RuntimeID runtimeID;
 
   public Ref(RuntimeID runtimeID) {
     this.runtimeID = runtimeID;
@@ -21,4 +21,6 @@ public abstract sealed class Ref permits RefObject {
   public abstract void registerDependency(Ref dep);
 
   public abstract Object get();
+
+  public abstract void merge(Ref r);
 }

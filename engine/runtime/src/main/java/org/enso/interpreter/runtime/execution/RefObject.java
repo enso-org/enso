@@ -1,22 +1,29 @@
 package org.enso.interpreter.runtime.execution;
 
 import com.oracle.truffle.api.interop.TruffleObject;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.LinkedHashSet;
+import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.enso.polyglot.RuntimeID;
 
 public final class RefObject extends Ref implements TruffleObject {
   private Object value;
-  private final List<Ref> deps;
+  private final Set<Ref> deps;
 
   public RefObject(RuntimeID runtimeID) {
     super(runtimeID);
-    deps = new ArrayList<>();
+    deps = new LinkedHashSet<>();
   }
 
   public Object get() {
     return value;
+  }
+
+  @Override
+  public void merge(Ref ref) {
+    assert ref.getRuntimeID().equals(this.runtimeID);
+    // FIXME
   }
 
   @Override
@@ -32,6 +39,7 @@ public final class RefObject extends Ref implements TruffleObject {
 
   @Override
   public void registerDependency(Ref dep) {
+    assert (!this.runtimeID.equals(dep.getRuntimeID())); // cyclic dependencies are not allowed
     this.deps.add(dep);
   }
 
@@ -42,7 +50,7 @@ public final class RefObject extends Ref implements TruffleObject {
         + ", hasValue="
         + (value != null)
         + ", deps="
-        + deps.size()
+        + deps.stream().map(Ref::getRuntimeID).collect(Collectors.toSet())
         + "]";
   }
 }

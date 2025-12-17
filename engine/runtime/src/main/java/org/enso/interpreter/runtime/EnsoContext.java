@@ -51,7 +51,6 @@ import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.atom.Atom;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicException;
-import org.enso.interpreter.runtime.execution.RuntimeAnalysis;
 import org.enso.interpreter.runtime.instrument.NotificationHandler;
 import org.enso.interpreter.runtime.scope.TopLevelScope;
 import org.enso.interpreter.runtime.state.ExecutionEnvironment;
@@ -99,7 +98,6 @@ public final class EnsoContext {
   private final TruffleLogger logger = TruffleLogger.getLogger(LanguageInfo.ID, EnsoContext.class);
   private final DistributionManager distributionManager;
   private final LockManager lockManager;
-  private final RuntimeAnalysis runtimeAnalysis; // FIXME
   private final AtomicLong clock = new AtomicLong();
 
   /**
@@ -112,7 +110,6 @@ public final class EnsoContext {
 
   private final int warningsLimit;
   private final ValueProfile singleStateProfile = ValueProfile.createIdentityProfile();
-  private final ValueProfile singleRuntimeAnalysisProfile = ValueProfile.createIdentityProfile();
 
   /**
    * Creates a new Enso context.
@@ -174,7 +171,6 @@ public final class EnsoContext {
     this.lockManager = lockManager;
     this.distributionManager = distributionManager;
     this.warningsLimit = getOption(RuntimeOptions.WARNINGS_LIMIT_KEY);
-    this.runtimeAnalysis = RuntimeAnalysis.create(this);
   }
 
   /** Perform expensive initialization logic for the context. */
@@ -1004,10 +1000,6 @@ public final class EnsoContext {
   /** Access to state associated with this context and current thread. */
   public State currentState() {
     return singleStateProfile.profile(language.currentState());
-  }
-
-  public RuntimeAnalysis currentRuntimeAnalysis() {
-    return runtimeAnalysis;
   }
 
   private Object extraValues(int index, Function<EnsoContext, ?> init) {

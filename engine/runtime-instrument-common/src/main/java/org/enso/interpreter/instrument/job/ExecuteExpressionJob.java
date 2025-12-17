@@ -24,7 +24,7 @@ public class ExecuteExpressionJob extends Job<Executable> implements UniqueJob<E
    */
   public ExecuteExpressionJob(
       UUID contextId, UUID visualizationId, UUID expressionId, String expression) {
-    super(ScalaConversions.cons(contextId, ScalaConversions.nil()), true, false, true);
+    super(ScalaConversions.cons(contextId, ScalaConversions.nil()), true, false, true, false);
     this.contextId = contextId;
     this.visualizationId = visualizationId;
     this.expressionId = expressionId;
@@ -42,6 +42,10 @@ public class ExecuteExpressionJob extends Job<Executable> implements UniqueJob<E
             ctx.locking().getOrCreateContextLock(contextId),
             this.getClass(),
             () -> {
+              ctx.executionService()
+                  .getContext()
+                  .getLogger()
+                  .fine("Execute on shot expression for expression " + expressionId);
               OneshotExpression oneshotExpression =
                   new OneshotExpression(visualizationId, expressionId, contextId, expression);
               ctx.contextManager().setOneshotExpression(contextId, oneshotExpression);

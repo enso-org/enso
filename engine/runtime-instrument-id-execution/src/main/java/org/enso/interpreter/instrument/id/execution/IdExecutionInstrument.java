@@ -29,7 +29,6 @@ import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode;
 import org.enso.interpreter.node.expression.debug.EvalNode;
 import org.enso.interpreter.node.scope.AssignmentNode;
-import org.enso.interpreter.node.scope.ReadLocalVariableNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.callable.CallerInfo;
@@ -39,7 +38,6 @@ import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicSentinel;
 import org.enso.interpreter.runtime.execution.Ref;
-import org.enso.interpreter.runtime.execution.RuntimeAnalysis;
 import org.enso.interpreter.runtime.instrument.Timer;
 import org.enso.interpreter.runtime.state.ExecutionEnvironment;
 import org.enso.interpreter.runtime.tag.AvoidIdInstrumentationTag;
@@ -195,7 +193,8 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
 
       private final EventContext context;
       private long nanoTimeElapsed = 0;
-      private final TruffleLogger logger;
+      private static int COUNTER = 0;
+      private final int eventNodeId;
 
       /**
        * Creates a new event node for instrumentation.
@@ -204,16 +203,12 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
        */
       IdExecutionEventNode(EventContext context, TruffleLogger logger) {
         this.context = context;
-        this.logger = logger;
+        this.eventNodeId = COUNTER++;
       }
 
       @Override
       public Object onUnwind(VirtualFrame frame, Object info) {
         return info;
-      }
-
-      private RuntimeAnalysis getAnalysis(Node node) {
-        return EnsoContext.get(node).currentRuntimeAnalysis();
       }
 
       @Override
@@ -225,8 +220,7 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
         Node node = context.getInstrumentedNode();
         Info info = new NodeInfo(frame.materialize(), node);
         if (node instanceof AssignmentNode assignmentNode) {
-          getAnalysis(node)
-              .startExecutingCachedExpression(assignmentNode.getId(), assignmentNode.getRhsID());
+          callbacks.startExecutionBlock(assignmentNode.getRhsID(), "enter-" + eventNodeId);
         }
         RuntimeID runtimeID = info.getId();
         assert runtimeID != null;
@@ -255,7 +249,7 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
         }
         Node node = context.getInstrumentedNode();
         if (node instanceof AssignmentNode assignmentNode) {
-          getAnalysis(node).endExecutingCachedExpression(assignmentNode.getRhsID());
+          callbacks.endExecutionBlock(assignmentNode.getRhsID(), "end-enter-" + eventNodeId);
         }
         if (node instanceof FunctionCallInstrumentationNode functionCallInstrumentationNode
             && result instanceof FunctionCallInstrumentationNode.FunctionCall) {
@@ -272,23 +266,7 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
           }
         } else if (node instanceof ExpressionNode expressionNode
             && !(result instanceof UnresolvedConstructor)) {
-          Object resultUnwrapped = result;
-          var currentAssignmentRef = getAnalysis(node).currentlyExecutingExpression();
-          // Unwrap result
-          if (result instanceof Ref ref) {
-            assert node
-                instanceof
-                ReadLocalVariableNode; // That's the only place that can result in Ref tracking
-            if (currentAssignmentRef != null) {
-              ref.registerDependency(currentAssignmentRef);
-            } else {
-              logger.finest(
-                  "No upstream dependency on "
-                      + ref.getRuntimeID()
-                      + ". Last expression of a top function");
-            }
-            resultUnwrapped = ref.get();
-          }
+          Object resultUnwrapped = callbacks.registerRuntimeDependency(result);
           assert !(resultUnwrapped instanceof Ref);
           Info info =
               new NodeInfo(
@@ -309,10 +287,8 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
             // of the result.
             // One fragile example is when someone manipulates TypeCheckExpressionNode, which is NOT
             // instrumentable.
-            if (currentAssignmentRef != null) {
-              currentAssignmentRef.update(resultUnwrapped);
-            }
-            throw context.createUnwind(currentAssignmentRef);
+            var wrappedRef = callbacks.wrapAsReference(resultUnwrapped);
+            throw context.createUnwind(wrappedRef);
           } else if (result != resultUnwrapped) {
             // Any intermediate results that read local variable (so a Ref) should be unwrapped
             throw context.createUnwind(resultUnwrapped);

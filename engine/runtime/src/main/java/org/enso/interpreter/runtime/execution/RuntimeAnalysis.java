@@ -3,28 +3,39 @@ package org.enso.interpreter.runtime.execution;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Stack;
-import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.polyglot.RuntimeID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class RuntimeAnalysis {
-  private final EnsoContext ctx;
   private final Stack<Ref> assignmentsStack;
   private final Map<RuntimeID, Ref> references = new HashMap<>(); // Make it a soft reference
 
+  private static int COUNTER = 0;
+  private final int id;
+  private final int parentId;
+
   private Logger LOGGER = LoggerFactory.getLogger(RuntimeAnalysis.class);
 
-  private RuntimeAnalysis(EnsoContext ctx) {
-    this.ctx = ctx;
+  private RuntimeAnalysis(int parentId) {
+    this.id = COUNTER++;
     this.assignmentsStack = new Stack<>();
+    this.parentId = parentId;
   }
 
-  public static RuntimeAnalysis create(EnsoContext ctx) {
-    return new RuntimeAnalysis(ctx);
+  public static RuntimeAnalysis create() {
+    return new RuntimeAnalysis(-1);
   }
 
-  private Ref getOrCreateReference(RuntimeID key, RuntimeID cachedID) {
+  public static RuntimeAnalysis create(RuntimeAnalysis parent) {
+    if (parent != null) {
+      return new RuntimeAnalysis(parent.getId());
+    } else {
+      return RuntimeAnalysis.create();
+    }
+  }
+
+  private Ref getOrCreateReference(RuntimeID cachedID) {
     var ref = references.get(cachedID);
     if (ref == null) {
       ref = new RefObject(cachedID);
@@ -33,29 +44,31 @@ public class RuntimeAnalysis {
     return ref;
   }
 
-  public Ref startExecutingCachedExpression(RuntimeID runtimeID, RuntimeID cachedID) {
-    var ref = getOrCreateReference(runtimeID, cachedID);
+  public Ref startRhsExecution(RuntimeID rhsId, String explanation) {
+    var ref = getOrCreateReference(rhsId);
     assignmentsStack.push(ref);
     return ref;
   }
 
-  public Ref currentlyExecutingExpression() {
+  public Ref currentRhs(String explanation) {
     if (assignmentsStack.isEmpty()) {
       return null;
     }
     return assignmentsStack.peek();
   }
 
-  public void endExecutingCachedExpression(RuntimeID runtimeID) {
+  public void endRhsExecution(RuntimeID runtimeID, String explanation) {
     if (assignmentsStack.isEmpty()) {
-      LOGGER.debug("Empty runtime assignments stack");
+      LOGGER.warn("Empty runtime assignments stack @ {}", this.getId());
     } else {
+
       var popped = assignmentsStack.pop();
-      if (runtimeID != popped.getRuntimeID()) {
+      if (!runtimeID.equals(popped.getRuntimeID())) {
         LOGGER.warn(
-            "Unexpected expression ID popped from the stack. Expected {}, got {}",
+            "Unexpected expression ID popped from the stack. Expected {}, got {} in {}",
             runtimeID,
-            popped.getRuntimeID());
+            popped.getRuntimeID(),
+            explanation);
       }
     }
   }
@@ -64,8 +77,28 @@ public class RuntimeAnalysis {
     return references.get(runtimeID);
   }
 
+  public void merge(RuntimeAnalysis analysis) {
+    analysis.references.forEach(
+        (key, value) -> {
+          var existing = this.references.get(key);
+          if (existing != null) {
+            existing.merge(value);
+          }
+        });
+  }
+
+  public int getId() {
+    return id;
+  }
+
   @Override
   public String toString() {
-    return "RuntimeAnalysis[keys: " + references.keySet() + "]";
+    return "RuntimeAnalysis[id: "
+        + id
+        + ", parent: "
+        + parentId
+        + ", keys: "
+        + references.keySet()
+        + "]";
   }
 }

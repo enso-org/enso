@@ -62,6 +62,14 @@ final class JobExecutionEngine(
       MaxJobLimit
     )
 
+  val executeJobExecutor: ExecutorService =
+    context.getThreadManager.newCachedThreadPool(
+      "execute-job-pool",
+      1,
+      1,
+      MaxJobLimit
+    )
+
   private val backgroundJobExecutor: ExecutorService =
     context.getThreadManager.newCachedThreadPool(
       "background-job-pool",
@@ -172,7 +180,9 @@ final class JobExecutionEngine(
   override def run[A](job: Job[A]): Future[A] = {
     cancelDuplicateJobs(job, runningJobsRef)
     val executor =
-      if (job.highPriority) highPriorityJobExecutor else jobExecutor
+      if (job.highPriority) highPriorityJobExecutor
+      else if (job.executeProgram) executeJobExecutor
+      else jobExecutor
     runInternal(job, executor, runningJobsRef, "regular")
   }
 

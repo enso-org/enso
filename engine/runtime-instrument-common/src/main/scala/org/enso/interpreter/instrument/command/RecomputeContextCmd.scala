@@ -107,7 +107,7 @@ class RecomputeContextCmd(
       for {
         _ <- ctx.jobProcessor.run(EnsureCompiledJob(stack))
         _ <- ctx.jobProcessor.run(
-          new ExecuteJob(
+          ExecuteJob(
             request.contextId,
             stack.toList,
             request.executionEnvironment,
@@ -220,10 +220,10 @@ object RecomputeContextCmd {
       case CacheInvalidation.Command.InvalidateAll =>
         stack
           .foreach { frame =>
-            val toInvalidate = frame.cache.clear()
+            val toInvalidate    = frame.cache.clear()
+            val runtimeAnalysis = frame.cache.getAnalysis
             toInvalidate.forEach { runtimeID =>
-              ctx.executionService.getContext
-                .currentRuntimeAnalysis()
+              runtimeAnalysis
                 .get(runtimeID)
                 .reset()
               // FIXME: invalidate visualizations
@@ -237,8 +237,7 @@ object RecomputeContextCmd {
           .invalidateAffectedIDs(
             expressionIds.asJava,
             stackJ,
-            ctx.contextManager.getVisualizationHolder(contextId),
-            ctx.executionService.getContext.currentRuntimeAnalysis()
+            ctx.contextManager.getVisualizationHolder(contextId)
           )
           .stream()
           .forEach { id =>
