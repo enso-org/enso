@@ -238,47 +238,14 @@ add_specs suite_builder =
                 Wrapper.Wrapper_Ctor (A.A_Ctor _) -> Nothing
                 _ -> Test.fail "should match A.A_Ctor inside Wrapper"
 
-        group_builder.specify "structural pattern match keeps warning on field - first visible type" <|
+        # See test "constructor pattern match does not preserve warning on a field"
+        # In Warnings_Spec.enso
+        group_builder.specify "structural pattern match drops warning from field" <|
             field_with_warn = Warning.attach "warn" 42
             ab = make_a_and_b field=field_with_warn
             case ab of
                 A.A_Ctor x ->
-                    Warning.has_warnings x . should_be_true
-                _ -> Test.fail "should match A.A_Ctor"
-
-        group_builder.specify "structural pattern match keeps warning on field - second visible type" <|
-            field_with_warn = Warning.attach "warn" 42
-            ab = make_a_and_b field=field_with_warn
-            case ab of
-                B.B_Ctor (A.A_Ctor x) ->
-                    Warning.has_warnings x . should_be_true
-                _ -> Test.fail "should match B.B_Ctor"
-
-        group_builder.specify "structural pattern match keeps warning on field after narrowing to first visible type" <|
-            field_with_warn = Warning.attach "warn" 42
-            ab = make_a_and_b field=field_with_warn
-            a = ab:A
-            case a of
-                A.A_Ctor x ->
-                    Warning.has_warnings x . should_be_true
-                _ -> Test.fail "should match A.A_Ctor"
-
-        group_builder.specify "structural pattern match keeps warning on field after narrowing to second visible type" <|
-            field_with_warn = Warning.attach "warn" 42
-            ab = make_a_and_b field=field_with_warn
-            b = ab:B
-            case b of
-                B.B_Ctor (A.A_Ctor x) ->
-                    Warning.has_warnings x . should_be_true
-                _ -> Test.fail "should match B.B_Ctor"
-
-        group_builder.specify "nested structural pattern match keeps warning on field" <|
-            field_with_warn = Warning.attach "warn" 42
-            ab = make_a_and_b field=field_with_warn
-            wrapper = Wrapper.Wrapper_Ctor ab
-            case wrapper of
-                Wrapper.Wrapper_Ctor (A.A_Ctor x) ->
-                    Warning.has_warnings x . should_be_true
+                    Warning.has_warnings x . should_be_false
                 _ -> Test.fail "should match A.A_Ctor"
 
         group_builder.specify "calling a method on one of the types should not lose the intersection type" <|
