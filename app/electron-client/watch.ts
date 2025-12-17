@@ -12,10 +12,10 @@ import { mkdir, rm, symlink } from 'node:fs/promises'
 import * as path from 'node:path'
 import process from 'node:process'
 import { bundlerOptionsFromEnv } from './esbuildConfig'
-import { getIdeDirectory, getProjectManagerBundlePath, PROJECT_MANAGER_BUNDLE } from './paths'
+import { getBackendBundlePath, getIdeDirectory } from './paths'
 
 const IDE_DIR_PATH = getIdeDirectory()
-const PROJECT_MANAGER_BUNDLE_PATH = getProjectManagerBundlePath()
+const BACKEND_BUNDLE_PATH = getBackendBundlePath()
 
 // @ts-expect-error This is the only place where an environment variable should be written to.
 process.env.ELECTRON_DEV_MODE = 'true'
@@ -24,6 +24,7 @@ console.log(chalk.cyan('Cleaning IDE dist directory.'))
 await rm(IDE_DIR_PATH, { recursive: true, force: true })
 await mkdir(IDE_DIR_PATH, { recursive: true })
 const NODE_MODULES_PATH = path.resolve('./node_modules')
+const GUI_CONFIG_PATH = path.resolve('../gui/vite.config.ts')
 
 const BUNDLE_READY = (async (): Promise<BuildResult> => {
   console.log(chalk.cyan('Bundling client.'))
@@ -60,13 +61,10 @@ const BUNDLE_READY = (async (): Promise<BuildResult> => {
 await BUNDLE_READY
 console.log(
   chalk.cyan(
-    `Linking Project Manager bundle at '${PROJECT_MANAGER_BUNDLE_PATH}' to '${path.join(
-      IDE_DIR_PATH,
-      PROJECT_MANAGER_BUNDLE,
-    )}'.`,
+    `Linking Backend bundle at '${BACKEND_BUNDLE_PATH}' to '${path.join(IDE_DIR_PATH, 'enso')}'.`,
   ),
 )
-await symlink(PROJECT_MANAGER_BUNDLE_PATH, path.join(IDE_DIR_PATH, PROJECT_MANAGER_BUNDLE), 'dir')
+await symlink(BACKEND_BUNDLE_PATH, path.join(IDE_DIR_PATH, 'enso'), 'dir')
 
 const ELECTRON_FLAGS =
   process.env.ELECTRON_FLAGS == null ? [] : String(process.env.ELECTRON_FLAGS).split(' ')
@@ -97,7 +95,7 @@ console.log(chalk.cyan('Spawning Electron process.'))
 const electronProcess = spawn('electron', ELECTRON_ARGS, {
   stdio: 'inherit',
   shell: true,
-  env: Object.assign({ NODE_MODULES_PATH }, process.env),
+  env: Object.assign({ NODE_MODULES_PATH, GUI_CONFIG_PATH }, process.env),
 })
   .on('close', (code) => {
     if (code === 0) {
@@ -111,4 +109,8 @@ const electronProcess = spawn('electron', ELECTRON_ARGS, {
     electronProcess.removeAllListeners()
     electronProcess.kill()
     exit(1)
+  })
+  .on('exit', (code) => {
+    console.log((code ? chalk.red : chalk.cyan)(`Electron process exited with code ${code}.`))
+    exit(code ?? 0)
   })

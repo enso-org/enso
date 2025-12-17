@@ -2,7 +2,6 @@
 
 import * as mkcert from 'mkcert'
 import * as http from 'node:http'
-import * as https from 'node:https'
 import * as path from 'node:path'
 import * as stream from 'node:stream'
 import * as streamConsumers from 'node:stream/consumers'
@@ -12,7 +11,7 @@ import * as mime from 'mime-types'
 import * as portfinder from 'portfinder'
 import type * as vite from 'vite'
 
-import { COOP_COEP_CORP_HEADERS } from 'enso-common'
+import { COOP_COEP_CORP_HEADERS } from 'enso-common/src/constants'
 import * as projectManagement from 'project-manager-shim'
 import type { Watcher } from 'project-manager-shim/fs'
 import {
@@ -25,8 +24,10 @@ import {
 import * as ydocServer from 'ydoc-server'
 
 import { tarFsPack, unzipEntries, zipWriteStream } from '@/archive'
+import { downloadCloudProject } from '@/assetManagement'
 import { BUNDLED_PROJECT_SUFFIX } from '@/fileAssociations'
 import * as paths from '@/paths'
+import * as electron from 'electron'
 import { app } from 'electron'
 import {
   type AnyAsset,
@@ -59,7 +60,7 @@ import {
   GET_FILE_DETAILS_REGEX,
 } from 'enso-common/src/services/Backend/remoteBackendPaths'
 import { createReadStream, createWriteStream, statSync } from 'node:fs'
-import { access, mkdir, mkdtemp, readdir, readFile, rm, stat, writeFile } from 'node:fs/promises'
+import { access, mkdtemp, readdir, readFile, rm, stat, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { finished } from 'node:stream/promises'
 import { pathToFileURL } from 'node:url'
@@ -169,10 +170,6 @@ async function findPort(port: number): Promise<number> {
   return await portfinder.getPortPromise({ port, startPort: port, stopPort: port + 4 })
 }
 
-// ==============
-// === Server ===
-// ==============
-
 /**
  * A simple server implementation.
  *
@@ -190,7 +187,7 @@ export class Server {
     public config: Config,
     projectService: ProjectService,
   ) {
-    this.projectsRootDirectory = projectManagement.getProjectsDirectory().replace(/\\/g, '/')
+    this.projectsRootDirectory = projectManagement.getProjectsDirectory()
     this.projectService = projectService
   }
 
@@ -352,7 +349,9 @@ export class Server {
       // in contrast to all assets loaded by the window, which are loaded from `assets/` via
       // this server.
       const resourceFile =
-        resource === '/preload.mjs.map' ? paths.APP_PATH + resource : this.config.dir + resource
+        resource === '/preload.mjs.map' ?
+          paths.appPath(electron) + resource
+        : this.config.dir + resource
       for (const [header, value] of COOP_COEP_CORP_HEADERS) {
         response.setHeader(header, value)
       }
@@ -437,21 +436,6 @@ export class Server {
     this.httpOkText(response, this.apiGetDownloadDirectoryPath())
   }
 
-  /** Download a project from the cloud. */
-  async apiCloudDownloadProject(downloadUrl: string, projectId: ProjectId) {
-    const response = await new Promise<http.IncomingMessage>((resolve) =>
-      https.get(downloadUrl, resolve),
-    )
-    const projectsDirectory = projectManagement.getProjectsDirectory()
-    const parentDirectory = path.join(projectsDirectory, `cloud-${projectId}`)
-    const projectRootDirectory = path.join(parentDirectory, 'project_root')
-
-    await rm(parentDirectory, { recursive: true, force: true, maxRetries: 3 })
-    await mkdir(projectRootDirectory, { recursive: true })
-    await projectManagement.unpackBundle(response, projectRootDirectory)
-    return { projectRootDirectory, parentDirectory }
-  }
-
   /** Response handler for "download project from cloud" endpoint. */
   async httpCloudDownloadProject(
     _request: http.IncomingMessage,
@@ -468,7 +452,7 @@ export class Server {
       this.httpOkJson<{
         readonly projectRootDirectory: string
         readonly parentDirectory: string
-      }>(response, await this.apiCloudDownloadProject(downloadUrl, ProjectId(projectId)))
+      }>(response, await downloadCloudProject(downloadUrl, ProjectId(projectId)))
     } catch (error) {
       console.error(error)
       const projectsDirectory = projectManagement.getProjectsDirectory()

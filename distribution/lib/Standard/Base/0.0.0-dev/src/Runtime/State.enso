@@ -4,6 +4,7 @@
 
 import project.Any.Any
 from project.Errors.Common import Uninitialized_State
+import project.Internal.Runtime_Helpers
 
 ## ---
    private: true
@@ -25,7 +26,8 @@ from project.Errors.Common import Uninitialized_State
          State.run Integer 0 <| IO.println (State.get Integer)
    ```
 run : Any -> Any -> Any -> Any
-run key local_state ~computation = @Builtin_Method "State.run"
+run key local_state ~computation =
+    Runtime_Helpers.state_run key local_state computation
 
 ## ---
    private: true
@@ -38,6 +40,7 @@ run key local_state ~computation = @Builtin_Method "State.run"
 
    ## Arguments
     - `key`: The key into the state to get the associated value for.
+    - `if_missing`: action to perform when the state isn't set, by default throws Uninitialized_State panic
 
    ## Examples
    ### Get the value of state for a key.
@@ -46,8 +49,9 @@ run key local_state ~computation = @Builtin_Method "State.run"
 
          State.get Float
    ```
-get : Any -> Any ! Uninitialized_State
-get key = @Builtin_Method "State.get"
+get : Any -> Any -> Any ! Uninitialized_State
+get key ~if_missing=(Runtime_Helpers.state_uninitialized key ...) =
+    Runtime_Helpers.state_get key (if_missing...)
 
 ## ---
    private: true
@@ -71,4 +75,5 @@ get key = @Builtin_Method "State.get"
          State.put Text 2821
    ```
 put : Any -> Any -> Any ! Uninitialized_State
-put key new_state = @Builtin_Method "State.put"
+put key new_state =
+    Runtime_Helpers.state_put key new_state

@@ -442,6 +442,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - run: ./run ide upload --backend-source release --backend-release ${{env.ENSO_RELEASE_ID}} --sign-artifacts
         env:
+          ENSO_IDE_HOST: ${{ vars.ENSO_HOST }}
           ENSO_IDE_AG_GRID_LICENSE_KEY: ${{ vars.ENSO_AG_GRID_LICENSE_KEY }}
           ENSO_IDE_API_URL: ${{ vars.ENSO_CLOUD_API_URL }}
           ENSO_IDE_AUTH_ENDPOINT: ${{ vars.ENSO_CLOUD_AUTH_ENDPOINT }}

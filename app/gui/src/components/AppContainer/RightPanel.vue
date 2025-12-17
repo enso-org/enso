@@ -7,6 +7,7 @@ import {
 } from '$/components/AppContainer/reactTabs'
 import SelectableTab from '$/components/AppContainer/SelectableTab.vue'
 import { useRightPanelData, type RightPanelTabId } from '$/providers/rightPanel'
+import AssetContentsEditor from '@/components/AssetContentsEditor.vue'
 import ComponentHelpPanel from '@/components/ComponentHelpPanel.vue'
 import DescriptionEditor from '@/components/DescriptionEditor.vue'
 import DocumentationEditor from '@/components/DocumentationEditor'
@@ -22,11 +23,13 @@ import { computed, toValue, useTemplateRef } from 'vue'
 
 const data = useRightPanelData()
 
-// Not a  part of RightPanelTabInfo, because it would create cyclic imports.
+// Not a part of RightPanelTabInfo, because it would create cyclic imports.
 const component = computed(() => {
   switch (data.displayedTab) {
     case 'description':
       return DescriptionEditor
+    case 'contents':
+      return AssetContentsEditor
     case 'settings':
       return AssetProperties
     case 'versions':

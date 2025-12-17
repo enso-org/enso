@@ -113,11 +113,6 @@ GatherLicenses.distributions := Seq(
       `language-server`
     )
   ),
-  Distribution(
-    "project-manager",
-    file("distribution/project-manager/THIRD-PARTY"),
-    Distribution.sbtProjects(`project-manager`)
-  ),
   makeStdLibDistribution("Base", Distribution.sbtProjects(`std-base`)),
   makeStdLibDistribution(
     "Generic_JDBC",
@@ -362,7 +357,6 @@ lazy val enso = (project in file("."))
     `polyglot-api-macros`,
     `process-utils`,
     `profiling-utils`,
-    `project-manager`,
     `python-extract`,
     `python-resource-provider`,
     `refactoring-utils`,
@@ -434,7 +428,6 @@ lazy val enso = (project in file("."))
       val filesToDelete = Seq(
         engineDistributionRoot.value,
         launcherDistributionRoot.value,
-        projectManagerDistributionRoot.value,
         packageBuilder.value.artifactRoot
       )
       IO.delete(filesToDelete)
@@ -1668,30 +1661,6 @@ lazy val `refactoring-utils` = project
   .dependsOn(`runtime-parser`)
   .dependsOn(testkit % Test)
   .dependsOn(`text-buffer`)
-
-lazy val `project-manager` = (project in file("lib/scala/project-manager"))
-  .settings(
-    frgaalJavaCompilerSetting,
-    (Compile / mainClass) := Some("org.enso.projectmanager.EmptyProjectManager")
-  )
-  .settings(
-    NativeImage.smallJdk := None,
-    NativeImage.additionalCp := Seq.empty,
-    rebuildNativeImage := Def.taskDyn {
-      NativeImage
-        .buildNativeImage(
-          "project-manager",
-          staticOnLinux = true,
-          mainClass     = (Compile / mainClass).value
-        )
-    }.value,
-    buildNativeImage := NativeImage
-      .incrementalNativeImageBuild(
-        rebuildNativeImage,
-        "project-manager"
-      )
-      .value
-  )
 
 lazy val `json-rpc-server` = project
   .in(file("lib/scala/json-rpc-server"))
@@ -6288,16 +6257,12 @@ lazy val engineDistributionRoot =
   settingKey[File]("Root of built engine distribution")
 lazy val launcherDistributionRoot =
   settingKey[File]("Root of built launcher distribution")
-lazy val projectManagerDistributionRoot =
-  settingKey[File]("Root of built project manager distribution")
 
 engineDistributionRoot :=
   packageBuilder.value.localArtifact("engine") / s"enso-$ensoVersion"
 launcherDistributionRoot := packageBuilder.value.localArtifact(
   "launcher"
 ) / "enso"
-projectManagerDistributionRoot :=
-  packageBuilder.value.localArtifact("project-manager") / "enso"
 
 lazy val extraBazelEnvForStdLibIndexes = taskKey[Map[String, String]](
   "Extra environment variables for subprocesses when running from Bazel - when compiling std libs"
@@ -6515,36 +6480,6 @@ lintEnso := {
   linter.check(whatToLint)
 }
 
-lazy val buildProjectManagerDistributionCond =
-  taskKey[Unit](
-    "Builds the project manager distribution either via NativeImage, or just assembly Jar"
-  )
-buildProjectManagerDistributionCond := Def.taskIf {
-  if (shouldBuildNativeImage.value) {
-    buildProjectManagerDistribution.value
-  } else {
-    (`project-manager` / Compile / compile).value
-  }
-}.value
-
-lazy val runProjectManagerDistribution =
-  inputKey[Unit](
-    "Run or --debug the project manager distribution with arguments"
-  )
-runProjectManagerDistribution := {
-  buildEngineDistributionNoIndex.value
-  buildProjectManagerDistributionCond.value
-  val projManagerOpts   = (`project-manager` / Runtime / javaOptions).value
-  val args: Seq[String] = spaceDelimited("<arg>").parsed
-  DistributionPackage.runProjectManagerPackage(
-    engineDistributionRoot.value,
-    projectManagerDistributionRoot.value,
-    projManagerOpts,
-    args,
-    streams.value.log
-  )
-}
-
 lazy val `http-test-helper` = project
   .in(file("tools") / "http-test-helper")
   .settings(
@@ -6581,16 +6516,6 @@ buildLauncherDistribution := {
   log.info(s"Launcher package created at $root")
 }
 
-lazy val buildProjectManagerDistribution =
-  taskKey[Unit]("Builds the project manager distribution")
-buildProjectManagerDistribution := {
-  val _            = (`project-manager` / buildNativeImage).value
-  val root         = projectManagerDistributionRoot.value
-  val log          = streams.value.log
-  val cacheFactory = streams.value.cacheStoreFactory
-  DistributionPackage.createProjectManagerPackage(root, cacheFactory)
-  log.info(s"Project Manager package created at $root")
-}
 lazy val extraBazelEnvForManifestUpdate = taskKey[Map[String, String]](
   "Extra environment variables for subprocesses when running from Bazel - manifest update"
 )

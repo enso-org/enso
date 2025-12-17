@@ -1,7 +1,13 @@
 /** @file Type definitions common between all backends. */
 import { z } from 'zod'
 import type { DownloadOptions } from '../download.js'
-import { getText, resolveDictionary, type Replacements, type TextId } from '../text.js'
+import {
+  getText,
+  resolveDictionary,
+  type DefaultGetText,
+  type Replacements,
+  type TextId,
+} from '../text.js'
 import * as dateTime from '../utilities/data/dateTime.js'
 import * as newtype from '../utilities/data/newtype.js'
 import * as permissions from '../utilities/permissions.js'
@@ -96,8 +102,6 @@ export interface Logger {
   /** Log an error message to the console. */
   readonly error: (message: unknown, ...optionalParams: unknown[]) => void
 }
-
-export type GetText = <K extends TextId>(key: K, ...replacements: Replacements[K]) => string
 
 /** The {@link Backend} variant. If a new variant is created, it should be added to this enum. */
 export enum BackendType {
@@ -631,9 +635,6 @@ export interface ListTagsResponseBody {
 export interface CreateCustomerPortalSessionResponse {
   readonly url: string | null
 }
-
-/** Response from the "path/resolve" endpoint. */
-export interface PathResolveResponse extends Omit<AnyRealAsset, 'type' | 'ensoPath'> {}
 
 /** Whether a type is `any`. */
 type IsAny<T> = 0 extends 1 & T ? true : false
@@ -1686,13 +1687,13 @@ export class NotAuthorizedError extends NetworkError {}
 export abstract class Backend {
   abstract readonly type: BackendType
   abstract readonly baseUrl: URL
-  protected getText: GetText
+  protected getText: DefaultGetText
   private readonly client: HttpClient
   protected readonly downloader: (options: DownloadOptions) => void | Promise<void>
 
   /** Create a {@link Backend}. */
   constructor(
-    getText: GetText,
+    getText: DefaultGetText,
     client: HttpClient,
     downloader: (options: DownloadOptions) => void | Promise<void>,
   ) {
@@ -1705,7 +1706,7 @@ export abstract class Backend {
    * Set `this.getText`. This function is exposed rather than the property itself to make it clear
    * that it is intended to be mutable.
    */
-  setGetText(getText: GetText) {
+  setGetText(getText: DefaultGetText) {
     this.getText = getText
   }
 
@@ -1897,7 +1898,7 @@ export abstract class Backend {
     return (await this.resolveProjectAssetData(projectId, 'src/Main.enso', versionId)).text()
   }
   /** Resolve enso path to an asset */
-  abstract resolveEnsoPath(path: EnsoPath): Promise<PathResolveResponse>
+  abstract resolveEnsoPath(path: EnsoPath): Promise<AnyAsset>
   /** Resolve the data of a project asset relative to the project root directory. */
   abstract resolveProjectAssetData(
     projectId: ProjectId,

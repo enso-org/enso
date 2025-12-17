@@ -91,28 +91,6 @@ pub trait IsBundle: AsRef<Path> + IsArtifact {
     }
 }
 
-impl IsBundle for crate::paths::generated::ProjectManagerBundle {
-    fn graalvm_dir(&self) -> PathBuf {
-        self.runtime.path.clone()
-    }
-
-    fn engine_dir(&self) -> PathBuf {
-        self.dist.version.to_path_buf()
-    }
-
-    fn base_component(&self, repo_root: &RepoRoot) -> PathBuf {
-        repo_root
-            .built_distribution
-            .enso_project_manager_triple
-            .project_manager_package
-            .to_path_buf()
-    }
-
-    fn distribution_marker(&self) -> PathBuf {
-        self.enso_bundle.to_path_buf()
-    }
-}
-
 impl IsBundle for crate::paths::generated::LauncherBundle {
     fn graalvm_dir(&self) -> PathBuf {
         self.runtime.path.clone()

@@ -8,7 +8,6 @@ import com.oracle.truffle.api.frame.MaterializedFrame;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.Node;
-import org.enso.interpreter.EnsoLanguage;
 import org.enso.interpreter.node.EnsoRootNode;
 import org.enso.interpreter.node.callable.dispatch.InvokeFunctionNode;
 import org.enso.interpreter.node.expression.builtin.meta.IsValueOfTypeNode;
@@ -27,7 +26,6 @@ abstract non-sealed class SingleTypeCheckNode extends AbstractTypeCheckNode {
   private final Type expectedType;
   @Node.Child IsValueOfTypeNode checkType;
   @CompilerDirectives.CompilationFinal private String expectedTypeMessage;
-  @CompilerDirectives.CompilationFinal private LazyCheckRootNode lazyCheck;
   @Node.Child private EnsoMultiValue.CastToNode castTo;
 
   SingleTypeCheckNode(String name, Type expectedType) {
@@ -79,14 +77,7 @@ abstract non-sealed class SingleTypeCheckNode extends AbstractTypeCheckNode {
   @ExplodeLoop
   private final Object directMatchImpl(Object v) {
     if (v instanceof Function fn && fn.isThunk()) {
-      if (lazyCheck == null) {
-        CompilerDirectives.transferToInterpreter();
-        var enso = EnsoLanguage.get(this);
-        var node = (AbstractTypeCheckNode) copy();
-        lazyCheck = new LazyCheckRootNode(enso, new TypeCheckValueNode(node, isAllTypes()));
-      }
-      var lazyCheckFn = lazyCheck.wrapThunk(fn);
-      return lazyCheckFn;
+      return fn;
     }
     assert EnsoContext.get(this).getBuiltins().any() != expectedType
         : "Don't check for Any: " + expectedType;
