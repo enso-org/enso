@@ -67,6 +67,8 @@ public interface Set extends Type {
   /** The typeset subsumption judgement {@code <:}. */
   @GenerateIR(interfaces = {Set.class, IRKind.Primitive.class})
   final class Subsumption extends SetSubsumptionGen {
+    public static final String NAME = "<:";
+
     /**
      * @param left the left operand
      * @param right the right operand
@@ -86,10 +88,6 @@ public interface Set extends Type {
       return new Builder();
     }
 
-    public static String name() {
-      return "<:";
-    }
-
     public Builder copyBuilder() {
       return new Builder(this);
     }
@@ -103,6 +101,8 @@ public interface Set extends Type {
   /** The typeset equality judgement {@code ~}. */
   @GenerateIR(interfaces = {Set.class, IRKind.Primitive.class})
   final class Equality extends SetEqualityGen {
+    public static final String NAME = "~";
+
     @GenerateFields
     public Equality(
         @IRChild Expression left,
@@ -116,10 +116,6 @@ public interface Set extends Type {
       return new Builder();
     }
 
-    public static String name() {
-      return "~";
-    }
-
     public Builder copyBuilder() {
       return new Builder(this);
     }
@@ -130,9 +126,11 @@ public interface Set extends Type {
     }
   }
 
-  /** The typeset concatenation operator {@code ,}. */
+  /** The typeset concatenation operator {@code ;}. */
   @GenerateIR(interfaces = {Set.class, IRKind.Primitive.class})
   final class Concat extends SetConcatGen {
+    public static final String NAME = ";";
+
     @GenerateFields
     public Concat(
         @IRChild Expression left,
@@ -144,10 +142,6 @@ public interface Set extends Type {
 
     public static Builder builder() {
       return new Builder();
-    }
-
-    public static String name() {
-      return ";";
     }
 
     public Builder copyBuilder() {
@@ -163,6 +157,8 @@ public interface Set extends Type {
   /** The typeset union operator {@code |}. */
   @GenerateIR(interfaces = {Set.class, IRKind.Primitive.class})
   final class Union extends SetUnionGen {
+    public static final String NAME = "|";
+
     @GenerateFields
     public Union(
         @IRChild List<Expression> operands,
@@ -173,10 +169,6 @@ public interface Set extends Type {
 
     public static Builder builder() {
       return new Builder();
-    }
-
-    public static String name() {
-      return "|";
     }
 
     public Union copyWithOperands(List<Expression> newOperands) {
@@ -192,6 +184,8 @@ public interface Set extends Type {
   /** The typeset intersection operator {@code &}. */
   @GenerateIR(interfaces = {Set.class, IRKind.Primitive.class})
   final class Intersection extends SetIntersectionGen {
+    public static final String NAME = "&";
+
     @GenerateFields
     public Intersection(
         @IRChild Expression left,
@@ -203,10 +197,6 @@ public interface Set extends Type {
 
     public static Builder builder() {
       return new Builder();
-    }
-
-    public static String name() {
-      return "&";
     }
 
     public Builder copyBuilder() {

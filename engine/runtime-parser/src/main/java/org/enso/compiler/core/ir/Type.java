@@ -51,7 +51,7 @@ public interface Type extends Expression {
   /** The ascription of a type to a value */
   @GenerateIR(interfaces = {Type.class, Definition.class, IRKind.Primitive.class})
   final class Ascription extends TypeAscriptionGen {
-    public static final String name = ":";
+    public static final String NAME = ":";
 
     /**
      * @param typed the expression being ascribed a type
@@ -91,7 +91,7 @@ public interface Type extends Expression {
    */
   @GenerateIR(interfaces = {Type.class, IRKind.Primitive.class})
   final class Context extends TypeContextGen {
-    public static final String name = "in";
+    public static final String NAME = "in";
 
     /**
      * @param typed the type being ascribed a monadic context
@@ -123,7 +123,7 @@ public interface Type extends Expression {
   /** Represents the ascription of an error context to an expression */
   @GenerateIR(interfaces = {Type.class, IRKind.Primitive.class})
   final class Error extends TypeErrorGen {
-    public static final String name = "!";
+    public static final String NAME = "!";
 
     /**
      * @param typed The expression being ascribed an error context.
