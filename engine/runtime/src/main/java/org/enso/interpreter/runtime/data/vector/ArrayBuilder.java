@@ -1,5 +1,6 @@
 package org.enso.interpreter.runtime.data.vector;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.InvalidArrayIndexException;
@@ -106,6 +107,7 @@ final class ArrayBuilder extends EnsoObject {
 
   private void addToObjectArray(Object e) {
     if (size == objectArray.length) {
+      CompilerDirectives.transferToInterpreter();
       reallocAndAddToObjectArray(e);
     } else {
       objectArray[size++] = e;
