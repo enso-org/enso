@@ -506,22 +506,26 @@ make_date_diff arguments (metadata : Date_Period_Metadata) =
 ## ---
    private: true
    ---
-   GroupNumber = FLOOR(RowNumber / CEIL(TotalRowCount / GroupCount)) (0 based)
 make_group_number_equal_count : Vector SQL_Builder -> SQL_Builder
 make_group_number_equal_count (arguments : Vector) = if arguments.length < 3 then Error.throw (Illegal_State.Error "Wrong amount of parameters in GROUP_NUMBER_EQUAL_COUNT IR. This is a bug in the Database library.") else
-    ordering = arguments.drop 3
-    ordering_part = if ordering.length == 0 then "" else
-        SQL_Builder.code " OVER (ORDER BY " ++ SQL_Builder.join ", " ordering ++ ")"
-    row_number_minus_1 = (SQL_Builder.code "ROW_NUMBER()" ++ ordering_part).paren ++ " - 1"
-
-    group_count = arguments.at 2
-    group_size = SQL_Builder.code "CEIL((COUNT(*) OVER ()) / " ++ group_count ++ ")"
-
-    base_value = SQL_Builder.code "FLOOR(" ++ row_number_minus_1.paren ++ " / " ++ group_size ++ ") + 1"
-
     offset = arguments.at 0
     step = arguments.at 1
-    (base_value.paren ++ " * " ++ step) . paren ++ " + " ++ offset
+    group_count = arguments.at 2
+
+    ordering = arguments.drop 3
+
+    ordering_part = if ordering.length == 0 then "" else
+        SQL_Builder.code "ORDER BY " ++ SQL_Builder.join ", " ordering
+    count = SQL_Builder.code "(count(*) over ())"
+    row_number_minus_1 = SQL_Builder.code "((row_number() over (" ++ ordering_part ++ ")) - 1)"
+    small_group_size = SQL_Builder.code "(floor(" ++ count ++ " / " ++ group_count.paren ++ "))"
+    extra = SQL_Builder.code "(" ++ count ++ " % " ++ group_count.paren ++ ")"
+    is_in_large_groups = SQL_Builder.code "(" ++ row_number_minus_1 ++ " < (" ++ extra.paren ++ " * (" ++ small_group_size.paren ++ " + 1)))"
+    gn_large_groups = SQL_Builder.code "(floor(" ++ row_number_minus_1 ++ " / (" ++ small_group_size.paren ++ " + 1)))"
+    gn_small_groups = SQL_Builder.code "(floor(((" ++ row_number_minus_1 ++ " - (" ++ extra.paren ++ " * (" ++ small_group_size.paren ++ " + 1))) / " ++ small_group_size.paren ++ ") + " ++ extra.paren ++ "))"
+    base_group_number = SQL_Builder.code "(case when " ++ is_in_large_groups.paren ++ " then " ++ gn_large_groups.paren ++ " else " ++ gn_small_groups.paren ++ " end)"
+
+    SQL_Builder.code "((" ++ base_group_number.paren ++ " * " ++ step.paren ++ ") + " ++ offset.paren ++ ")"
 
 ## ---
    private: true
