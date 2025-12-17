@@ -16,6 +16,7 @@ import org.enso.common.RuntimeOptions;
 import org.enso.distribution.DistributionManager;
 import org.enso.test.utils.ContextUtils;
 import org.enso.test.utils.ProjectUtils;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -53,6 +54,11 @@ public final class DownloadLibraryTest {
     createProject(rootDir);
     System.setProperty(
         DistributionManager.EDITION_PATH_SYSPROP(), editionsDir.toAbsolutePath().toString());
+  }
+
+  @After
+  public void tearDown() {
+    System.clearProperty(DistributionManager.EDITION_PATH_SYSPROP());
   }
 
   /**
