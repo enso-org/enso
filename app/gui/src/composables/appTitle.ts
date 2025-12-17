@@ -1,6 +1,6 @@
 import type { UserSession } from '$/providers/auth'
 import { useText } from '$/providers/text'
-import type { ToValue } from '@/util/reactivity'
+import type { ToValue } from '$/utils/reactivity'
 import { Plan } from 'enso-common/src/services/Backend'
 import type { Opt } from 'enso-common/src/utilities/data/opt'
 import { computed, toValue, watch } from 'vue'

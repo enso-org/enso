@@ -7,6 +7,7 @@ import {
 } from '$/providers/openedProjects/project/executionContext'
 import { VisualizationDataRegistry } from '$/providers/openedProjects/project/visualizationDataRegistry'
 import { type ProjectNameStore } from '$/providers/openedProjects/projectNames'
+import { computedAsyncPromise, proxyRefs } from '$/utils/reactivity'
 import { Awareness } from '@/stores/awareness'
 import { attachProvider, useObserveYjs } from '@/util/crdt'
 import { nextEvent } from '@/util/data/observable'
@@ -17,8 +18,6 @@ import { createDataWebsocket, createRpcTransport, useAbortScope } from '@/util/n
 import { DataServer } from '@/util/net/dataServer'
 import { ProjectPath } from '@/util/projectPath'
 import { tryQualifiedName, type QualifiedName } from '@/util/qualifiedName'
-import { proxyRefs } from '@/util/reactivity'
-import { computedAsync } from '@vueuse/core'
 import { ProjectId } from 'enso-common/src/services/Backend'
 import { Err, Ok, type Result } from 'enso-common/src/utilities/data/result'
 import { wait } from 'lib0/promise'
@@ -57,14 +56,14 @@ const VISUALIZATION_PREPROCESSOR_PATH = ProjectPath.create(
   'Preprocessor' as Identifier,
 )
 
-export type ProjectStore = ReturnType<typeof createProjectStore>
+export type ProjectStore = Awaited<ReturnType<typeof createProjectStore>>
 
 /**
  * The project store synchronizes and holds the open project-related data. The synchronization is
  * performed using a CRDT data types from Yjs. Once the data is synchronized with a "LS bridge"
  * client, it is submitted to the language server as a document update.
  */
-export function createProjectStore(
+export async function createProjectStore(
   props: {
     projectId: ProjectId
     projectAssetId: ProjectId
@@ -138,20 +137,6 @@ export function createProjectStore(
 
   projectModel.modules.observe(tryReadDocGuid)
   watchEffect(tryReadDocGuid)
-
-  const module = computedAsync(
-    async () => {
-      const guid = moduleDocGuid.value
-      if (guid == null) return null
-      const moduleName = projectModel.findModuleByDocId(guid)
-      if (moduleName == null) return null
-      const mod = await projectModel.openModule(moduleName)
-      for (const origin of localUserActionOrigins) mod?.undoManager.addTrackedOrigin(origin)
-      return mod ? markRaw(mod) : null
-    },
-    undefined,
-    { onError: console.error },
-  )
 
   const entryPoint = computed<MethodPointer>(() => {
     const mainModule = ProjectPath.create(undefined, 'Main' as Identifier)
@@ -258,10 +243,6 @@ export function createProjectStore(
   })
 
   const isRecordingEnabled = computed(() => executionMode.value === 'live')
-
-  function stopCapturingUndo() {
-    module.value?.undoManager.stopCapturing()
-  }
 
   function executeExpression(
     expressionId: ExternalId,
@@ -434,6 +415,25 @@ export function createProjectStore(
   lsRpcConnection.on('refactoring/projectRenamed', ({ oldNormalizedName, newNormalizedName }) => {
     projectNames.onProjectRenamed(oldNormalizedName, newNormalizedName)
   })
+
+  const module = await computedAsyncPromise(
+    async () => {
+      const guid = moduleDocGuid.value
+      if (guid == null) return null
+      const moduleName = projectModel.findModuleByDocId(guid)
+      if (moduleName == null) return null
+      const mod = await projectModel.openModule(moduleName)
+      for (const origin of localUserActionOrigins) mod?.undoManager.addTrackedOrigin(origin)
+      return mod ? markRaw(mod) : null
+    },
+    // undefined,
+    // { onError: console.error },
+  )
+  console.debug('...', module.value)
+
+  function stopCapturingUndo() {
+    module.value?.undoManager.stopCapturing()
+  }
 
   return proxyRefs({
     setObservedFileName(name: string) {

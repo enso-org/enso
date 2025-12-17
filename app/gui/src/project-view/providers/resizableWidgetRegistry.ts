@@ -1,8 +1,8 @@
+import type { ToValue } from '$/utils/reactivity'
 import { createContextStore } from '@/providers'
 import type { PortId } from '@/providers/portInfo'
 import { Rect, type BoundsSet } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
-import type { ToValue } from '@/util/reactivity'
 import { ref, toValue, watch, type Ref } from 'vue'
 
 /**

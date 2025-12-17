@@ -1,6 +1,6 @@
+import { proxyRefs, type ToValue } from '$/utils/reactivity'
 import { isMacLike, useEvent } from '@/composables/events'
 import { useGlobalEventRegistry, type GlobalEventRegistry } from '@/providers/globalEventRegistry'
-import { proxyRefs, type ToValue } from '@/util/reactivity'
 import type { Opt } from 'enso-common/src/utilities/data/opt'
 import { ref, toRef, watch, type Ref } from 'vue'
 

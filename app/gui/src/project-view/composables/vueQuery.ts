@@ -1,4 +1,4 @@
-import type { ToValue } from '@/util/reactivity'
+import type { ToValue } from '$/utils/reactivity'
 import type { QueryKey } from '@tanstack/vue-query'
 import { computed, toValue } from 'vue'
 

@@ -391,19 +391,22 @@ export function useProjectStates() {
       })
     })
 
-    return scope.run(() => {
-      const runningId = project.info.mode === 'hybrid' ? project.info.runningId : project.info.id
-      const projectNames = createProjectNameStore({
+    const runningId = project.info.mode === 'hybrid' ? project.info.runningId : project.info.id
+    const projectNames = scope.run(() =>
+      createProjectNameStore({
         projectNamespace: 'local', // Even in cloud, the namespace seems to be always "local".
         projectDisplayedName: () => details.value.name,
         projectInitialName: runDetails.value.packageName,
-      })
+      }),
+    )!
+
+    const store = await scope.run(() => {
       const rpcUrl = runDetails.value.jsonAddress
       const dataUrl = runDetails.value.binaryAddress
       const ydocUrl = runDetails.value.ydocAddress ?? config.ydocUrl ?? ''
       assert(rpcUrl != null, text.getText('noJSONEndpointError'))
       assert(dataUrl != null, text.getText('noBinaryEndpointError'))
-      const store = createProjectStore(
+      return createProjectStore(
         {
           projectId: runningId,
           projectAssetId: project.info.id,
@@ -415,8 +418,13 @@ export function useProjectStates() {
         },
         projectNames,
       )
+    })!
+
+    return scope.run(() => {
       const suggestionDb = createSuggestionDbStore(store, projectNames)
+      console.debug('Creating module store')
       const module = createModuleStore(store, projectNames, suggestionDb)
+      console.debug('Module store created')
       const graph = createGraphStore(store, suggestionDb, projectNames, module)
       const widgetRegistry = new WidgetRegistry(graph.db)
       const logger = eventLogger(project.info.id)

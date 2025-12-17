@@ -1,4 +1,5 @@
 /** @file Low-level logic for the File Browser Widget. */
+import type { ToValue } from '$/utils/reactivity'
 import {
   type EnsoPath,
   ensoPathEqual,
@@ -6,7 +7,6 @@ import {
 } from '@/components/widgets/FileBrowserWidget/ensoPath'
 import type { Directory } from '@/components/widgets/FileBrowserWidget/pathBrowsing'
 import type { Mutation } from '@/composables/backend'
-import type { ToValue } from '@/util/reactivity'
 import { useToast } from '@/util/toast'
 import { Backend, type CreatedDirectory } from 'enso-common/src/services/Backend'
 import type { Result } from 'enso-common/src/utilities/data/result'

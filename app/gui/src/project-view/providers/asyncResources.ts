@@ -1,7 +1,7 @@
 import { useBackends } from '$/providers/backends'
 import type { OpenedProjectsStore } from '$/providers/openedProjects'
+import type { ToValue } from '$/utils/reactivity'
 import { createContextStore } from '@/providers'
-import type { ToValue } from '@/util/reactivity'
 import { useQueryClient } from '@tanstack/vue-query'
 import { andThen, mapOk, Ok, type Result } from 'enso-common/src/utilities/data/result'
 import { computed, onScopeDispose, toValue, type ComputedRef } from 'vue'

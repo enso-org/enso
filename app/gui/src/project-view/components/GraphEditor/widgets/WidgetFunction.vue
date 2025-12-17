@@ -9,6 +9,7 @@ import {
   type HandledUpdate,
   type WidgetUpdate,
 } from '$/providers/openedProjects/widgetRegistry'
+import { proxyRefs } from '$/utils/reactivity'
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import {
   getPotentialModuleFunctionPointer,
@@ -28,7 +29,6 @@ import {
 import { partitionPoint } from '@/util/data/array'
 import { methodPointerEquals, type MethodPointer } from '@/util/methodPointer'
 import { isIdentifier } from '@/util/qualifiedName'
-import { proxyRefs } from '@/util/reactivity'
 import { Err, Ok } from 'enso-common/src/utilities/data/result'
 import { computed } from 'vue'
 import { FunctionName } from './WidgetFunctionName.vue'

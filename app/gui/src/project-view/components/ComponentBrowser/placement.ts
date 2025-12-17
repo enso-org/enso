@@ -1,7 +1,7 @@
+import type { ToValue } from '$/utils/reactivity'
 import { assert } from '@/util/assert'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
-import type { ToValue } from '@/util/reactivity'
 import theme from '@/util/theme.json'
 import { toValue } from 'vue'
 

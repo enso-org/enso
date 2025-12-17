@@ -1,10 +1,10 @@
 import { type ProjectStore } from '$/providers/openedProjects/project'
+import { proxyRefs } from '$/utils/reactivity'
 import { assert, assertDefined } from '@/util/assert'
 import { Ast } from '@/util/ast'
 import { type AstId, MutableModule } from '@/util/ast/abstract'
 import { reactiveModule } from '@/util/ast/reactive'
 import { type MethodPointer } from '@/util/methodPointer'
-import { proxyRefs } from '@/util/reactivity'
 import { Err, Ok, type Result } from 'enso-common/src/utilities/data/result'
 import { computed, reactive, type Ref, ref, watch } from 'vue'
 import { SourceDocument } from 'ydoc-shared/ast/sourceDocument'
@@ -55,11 +55,14 @@ export function createModuleStore(
   watch(
     () => proj.module,
     (projModule, _, onCleanup) => {
+      console.debug('WATCH')
       if (!projModule) return
       const module = reactiveModule(projModule.doc.ydoc, onCleanup)
       const handle = module.observe((update) => {
         const rootAst = module.root()
+        console.debug('>', rootAst)
         if (rootAst instanceof Ast.BodyBlock) {
+          console.debug('>>', rootAst.lines.length)
           root.value = rootAst
           if (
             update.nodesAdded.size != 0 ||
@@ -79,6 +82,7 @@ export function createModuleStore(
         source.clear()
       })
     },
+    { immediate: true },
   )
 
   function observe(f: (update: Ast.ModuleUpdate) => void) {

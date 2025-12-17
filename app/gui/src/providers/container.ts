@@ -1,5 +1,5 @@
+import { proxyRefs } from '$/utils/reactivity'
 import { createContextStore } from '@/providers'
-import { proxyRefs } from '@/util/reactivity'
 import { normalizeRouteParamToString } from '@/util/router'
 import { EnsoPath } from 'enso-common/src/services/Backend'
 import { ensoPathEq } from 'enso-common/src/services/Backend/ensoPath'

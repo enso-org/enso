@@ -27,6 +27,7 @@ import {
   queuePostFlushCb,
   reactive,
   ReactiveEffect,
+  ref,
   shallowReactive,
   shallowRef,
   toRaw,
@@ -35,7 +36,9 @@ import {
   // eslint-disable-next-line no-restricted-imports
   proxyRefs as unsafeProxyRefs,
   watch,
+  watchEffect,
 } from 'vue'
+import { assertDefined } from 'ydoc-shared/util/assert'
 
 /** Create a `ReactiveEffect`. This is similar to the `effect` function, but doesn't immediately run the created effect. */
 export function lazyEffect<T = any>(
@@ -363,6 +366,29 @@ export function useSelectRef<T>(
       }
     },
   })
+}
+
+export function computedAsyncPromise<T>(evalCb: () => Promise<T>): Promise<Ref<T>> {
+  let valueRef: Ref<T> | undefined
+  let promise: Promise<Ref<T>> | undefined
+  watchEffect(async () => {
+    if (valueRef == null) {
+      if (promise == null) {
+        promise = evalCb().then((result) => {
+          // TODO[ao]: its wrong
+          valueRef = ref(result) as Ref<T>
+          return valueRef
+        })
+      } else {
+        const nextVal = await evalCb()
+        ;(await promise).value = nextVal
+      }
+    } else {
+      valueRef.value = await evalCb()
+    }
+  })
+  assertDefined(promise)
+  return promise!
 }
 
 /**
