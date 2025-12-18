@@ -7,7 +7,6 @@ import {
   useSuggestionDbStore,
   useWidgetRegistry,
 } from '$/components/WithCurrentProject.vue'
-import { useContainerData } from '$/providers/container'
 import type { Node, NodeId } from '$/providers/openedProjects/graph'
 import { isInputNode, nodeId } from '$/providers/openedProjects/graph/graphDatabase'
 import type { RequiredImport } from '$/providers/openedProjects/module/imports'
@@ -80,11 +79,10 @@ import { provideRenameSchedule } from './GraphEditor/widgets/WidgetFunctionName.
 
 const keyboard = injectKeyboard()
 const rightPanel = useRightPanelData()
-const containerData = useContainerData()
 const projectStore = useProjectStore()
 const projectNames = useProjectNames()
 const graphStore = useGraphStore()
-const { id: assetId, module } = useCurrentProject()
+const { id: assetId, module, ensoPath } = useCurrentProject()
 const widgetRegistry = useWidgetRegistry()
 const suggestionDb = useSuggestionDbStore()
 provideVisualizationStore(projectStore)
@@ -438,7 +436,7 @@ const displayedDocs = computed(() =>
 )
 
 watchEffect(() => {
-  rightPanel.setContext(containerData.tab, {
+  rightPanel.setContext(ensoPath.value, {
     item: assetId.value,
     help: { item: displayedDocs.value, aiMode: aiMode.value },
   })
