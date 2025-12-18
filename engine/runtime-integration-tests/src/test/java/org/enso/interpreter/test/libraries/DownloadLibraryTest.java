@@ -171,7 +171,7 @@ public final class DownloadLibraryTest {
               .filter(path -> !Files.isDirectory(path))
               .forEach(
                   path -> {
-                    var zipEntryName = dirToZip.relativize(path).toString();
+                    var zipEntryName = normalizeZipEntryName(dirToZip.relativize(path).toString());
                     try {
                       zipOutStream.putNextEntry(new ZipEntry(zipEntryName));
                       Files.copy(path, zipOutStream);
@@ -183,5 +183,9 @@ public final class DownloadLibraryTest {
         }
       }
     }
+  }
+
+  private static String normalizeZipEntryName(String entryName) {
+    return entryName.replace('\\', '/');
   }
 }
