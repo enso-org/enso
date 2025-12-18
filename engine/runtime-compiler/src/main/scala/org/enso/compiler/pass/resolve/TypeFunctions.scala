@@ -94,9 +94,6 @@ case object TypeFunctions extends IRPass {
     Type.Ascription.NAME,
     Type.Context.NAME,
     Type.Error.NAME,
-    `type`.Set.Concat.NAME,
-    `type`.Set.Subsumption.NAME,
-    `type`.Set.Equality.NAME,
     `type`.Set.Union.NAME,
     `type`.Set.Intersection.NAME
   )
@@ -216,27 +213,6 @@ case object TypeFunctions extends IRPass {
             .builder()
             .typed(leftArg)
             .error(rightArg)
-            .location(location)
-            .build()
-        case `type`.Set.Concat.NAME =>
-          `type`.Set.Concat
-            .builder()
-            .left(leftArg)
-            .right(rightArg)
-            .location(location)
-            .build()
-        case `type`.Set.Subsumption.NAME =>
-          `type`.Set.Subsumption
-            .builder()
-            .left(leftArg)
-            .right(rightArg)
-            .location(location)
-            .build()
-        case `type`.Set.Equality.NAME =>
-          `type`.Set.Equality
-            .builder()
-            .left(leftArg)
-            .right(rightArg)
             .location(location)
             .build()
         case `type`.Set.Intersection.NAME =>

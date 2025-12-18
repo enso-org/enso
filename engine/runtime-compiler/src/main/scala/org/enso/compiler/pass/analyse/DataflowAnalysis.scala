@@ -504,35 +504,6 @@ case object DataflowAnalysis extends IRPass {
           .value(analyseExpression(value, info))
           .build()
           .updateMetadata(new MetadataPair(this, info))
-      case concat: `type`.Set.Concat =>
-        val left      = concat.left()
-        val right     = concat.right()
-        val concatDep = asStatic(concat)
-        val leftDep   = asStatic(left)
-        val rightDep  = asStatic(right)
-        info.dependents.updateAt(leftDep, Set(concatDep))
-        info.dependents.updateAt(rightDep, Set(concatDep))
-        info.dependencies.updateAt(concatDep, Set(rightDep, leftDep))
-
-        concat
-          .copyBuilder()
-          .left(analyseExpression(left, info))
-          .right(analyseExpression(right, info))
-          .build()
-          .updateMetadata(new MetadataPair(this, info))
-      case eq: `type`.Set.Equality =>
-        val eqDep    = asStatic(eq)
-        val leftDep  = asStatic(eq.left)
-        val rightDep = asStatic(eq.right)
-        info.dependents.updateAt(leftDep, Set(eqDep))
-        info.dependents.updateAt(rightDep, Set(eqDep))
-        info.dependencies.updateAt(eqDep, Set(leftDep, rightDep))
-
-        eq.copyBuilder()
-          .left(analyseExpression(eq.left, info))
-          .right(analyseExpression(eq.right, info))
-          .build()
-          .updateMetadata(new MetadataPair(this, info))
       case intersect: `type`.Set.Intersection =>
         val intersectDep = asStatic(intersect)
         val leftDep      = asStatic(intersect.left)
@@ -555,20 +526,6 @@ case object DataflowAnalysis extends IRPass {
         info.dependencies.updateAt(unionDep, opDeps.toSet)
         union
           .copyWithOperands(operands.map(analyseExpression(_, info)))
-          .updateMetadata(new MetadataPair(this, info))
-      case subsumption: `type`.Set.Subsumption =>
-        val subDep   = asStatic(subsumption)
-        val leftDep  = asStatic(subsumption.left)
-        val rightDep = asStatic(subsumption.right)
-        info.dependents.updateAt(leftDep, Set(subDep))
-        info.dependents.updateAt(rightDep, Set(subDep))
-        info.dependencies.updateAt(subDep, Set(leftDep, rightDep))
-
-        subsumption
-          .copyBuilder()
-          .left(analyseExpression(subsumption.left, info))
-          .right(analyseExpression(subsumption.right, info))
-          .build()
           .updateMetadata(new MetadataPair(this, info))
     }
   }
