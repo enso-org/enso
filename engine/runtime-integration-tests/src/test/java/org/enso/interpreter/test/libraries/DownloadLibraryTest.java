@@ -150,7 +150,8 @@ public final class DownloadLibraryTest {
                     b.option(RuntimeOptions.EDITION_OVERRIDE, EDITION_NAME)
                         .option(
                             RuntimeOptions.EDITIONS_DIRECTORY,
-                            editionsDir.toAbsolutePath().toString()));
+                            editionsDir.toAbsolutePath().toString())
+                        .option(RuntimeOptions.LOG_MASKING, "false"));
     ProjectUtils.testProjectRun(
         ctxBldr,
         projDir,
