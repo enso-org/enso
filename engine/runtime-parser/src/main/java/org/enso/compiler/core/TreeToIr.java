@@ -1172,13 +1172,7 @@ final class TreeToIr {
       case Tree.UnaryOprApp un when "-".equals(un.getOpr().codeRepr()) ->
           switch (translateExpression(un.getRhs(), false)) {
             case Literal.Number n ->
-                n.copy(
-                    n.copy$default$1(),
-                    "-" + n.copy$default$2(),
-                    Option.apply(getIdentifiedLocation(un)),
-                    n.copy$default$4(),
-                    n.copy$default$5(),
-                    n.copy$default$6());
+                n.copyBuilder().value("-" + n.value()).location(getIdentifiedLocation(un)).build();
             case Expression expr -> {
               var negate = new Name.Literal("negate", true, null, Option.empty(), meta());
               var arg =
@@ -1806,14 +1800,7 @@ final class TreeToIr {
       case Tree.UnaryOprApp num when num.getOpr().codeRepr().equals("-") -> {
         var n = (Literal.Number) translateExpression(num.getRhs());
         var loc = getIdentifiedLocation(num);
-        var t =
-            n.copy(
-                n.copy$default$1(),
-                "-" + n.copy$default$2(),
-                Option.apply(loc),
-                n.copy$default$4(),
-                n.copy$default$5(),
-                n.copy$default$6());
+        var t = n.copyBuilder().value("-" + n.value()).location(loc).build();
         yield new Pattern.Literal(t, loc, meta());
       }
       case Tree.TypeAnnotated anno -> {
