@@ -1,7 +1,6 @@
 package org.enso.compiler.core;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
 import java.util.UUID;
@@ -1272,7 +1271,7 @@ final class TreeToIr {
   }
 
   /** Translate a statement in the body of function. */
-  private void translateBlockStatement(Tree tree, Collection<Expression> appendTo) {
+  private void translateBlockStatement(Tree tree, java.util.List<Expression> appendTo) {
     switch (tree) {
       case null -> {}
       case Tree.Assignment assignment -> {
@@ -1332,6 +1331,23 @@ final class TreeToIr {
       default -> {
         var expressionStatement = translateExpression(tree);
         if (expressionStatement != null) {
+          int last = appendTo.size() - 1;
+          if (last >= 0
+              && appendTo.get(last) instanceof IfThenElse ife
+              && ife.falseBranchOrNull() == null) {
+            if (expressionStatement instanceof Application.Prefix app
+                && app.arguments().length() == 1
+                && app.function() instanceof Name.Literal lit
+                && "else".equals(lit.name())) {
+              var newIfe =
+                  IfThenElse.builder(ife)
+                      .falseBranchOrNull(app.arguments().apply(0).value())
+                      .build();
+              appendTo.set(last, newIfe);
+              // no appendTo.add, but return
+              return;
+            }
+          }
           appendTo.add(expressionStatement);
         }
       }
