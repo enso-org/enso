@@ -13,10 +13,8 @@ import java.nio.file.StandardOpenOption;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 import org.enso.common.RuntimeOptions;
-import org.enso.distribution.DistributionManager;
 import org.enso.test.utils.ContextUtils;
 import org.enso.test.utils.ProjectUtils;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -52,13 +50,6 @@ public final class DownloadLibraryTest {
     createZippedLibrary();
     createEditions(rootDir);
     createProject(rootDir);
-    System.setProperty(
-        DistributionManager.EDITION_PATH_SYSPROP(), editionsDir.toAbsolutePath().toString());
-  }
-
-  @After
-  public void tearDown() {
-    System.clearProperty(DistributionManager.EDITION_PATH_SYSPROP());
   }
 
   /**
@@ -154,7 +145,12 @@ public final class DownloadLibraryTest {
   public void downloadExtensionLibraryFromCustomEdition() {
     var ctxBldr =
         ContextUtils.newBuilder()
-            .withModifiedContext(b -> b.option(RuntimeOptions.EDITION_OVERRIDE, EDITION_NAME));
+            .withModifiedContext(
+                b ->
+                    b.option(RuntimeOptions.EDITION_OVERRIDE, EDITION_NAME)
+                        .option(
+                            RuntimeOptions.EDITIONS_DIRECTORY,
+                            editionsDir.toAbsolutePath().toString()));
     ProjectUtils.testProjectRun(
         ctxBldr,
         projDir,
