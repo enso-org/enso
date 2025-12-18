@@ -1080,10 +1080,24 @@ final class TreeToIr {
           if (expr == null) {
             continue;
           }
+          var next = translateExpression(expr, false);
+          if (last instanceof IfThenElse ife && ife.falseBranchOrNull() == null) {
+            if (next instanceof Application.Prefix app
+                && app.arguments().length() == 1
+                && app.function() instanceof Name.Literal lit
+                && "else".equals(lit.name())) {
+              var newIfe =
+                  IfThenElse.builder(ife)
+                      .falseBranchOrNull(app.arguments().apply(0).value())
+                      .build();
+              next = newIfe;
+              last = null;
+            }
+          }
           if (last != null) {
             expressions = join(last, expressions);
           }
-          last = translateExpression(expr, false);
+          last = next;
         }
         if (last == null) {
           last = new Name.Blank(null, meta());

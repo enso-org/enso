@@ -171,11 +171,11 @@ sort_and_merge_ranges ranges =
         Vector.build builder->
             sorted.drop 1 . each range->
                 current = current_ref.get
-                case range.start <= current.end of
-                    True -> current_ref.put (current.start.up_to (current.end.max range.end))
-                    False ->
-                        builder.append current
-                        current_ref.put range
+                if range.start <= current.end then
+                    current_ref.put (current.start.up_to (current.end.max range.end))
+                else
+                    builder.append current
+                    current_ref.put range
             builder.append current_ref.get
 
 ## ---
