@@ -62,8 +62,16 @@ public abstract class ConstructorBranchNode extends BranchNode {
       @Cached EnsoMultiValue.CastToNode castNode) {
     var expectedType = matcher.getType();
     if (profile.profile(isValueOfTypeNode.execute(expectedType, target, false))) {
+      // replacement is the narrowed (type) value.
       var replacement = castNode.findTypeOrNull(expectedType, target, true, false);
       assert replacement != null : "Must find the type, when isValueOfTypeNode is true";
+      if (replacement instanceof EnsoMultiValue mv
+          && mv.firstDispatchValue() instanceof Atom replacementAtom) {
+        if (matcher != replacementAtom.getConstructor()) {
+          // The narrowed value atom has a different constructor - it cannot match.
+          return;
+        }
+      }
       var arr = fieldsFromObject(replacement, matcher, structsLib);
       accept(frame, state, arr);
     }

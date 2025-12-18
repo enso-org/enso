@@ -96,7 +96,7 @@ public final class EnsoMultiValue extends EnsoObject {
     this.values = values;
   }
 
-  final Object firstDispatchValue() {
+  public Object firstDispatchValue() {
     return values[firstDispatch];
   }
 
