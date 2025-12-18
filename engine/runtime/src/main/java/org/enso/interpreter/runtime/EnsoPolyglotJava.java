@@ -1,7 +1,6 @@
 package org.enso.interpreter.runtime;
 
 import com.oracle.truffle.api.CompilerDirectives;
-import com.oracle.truffle.api.TruffleSafepoint;
 import com.oracle.truffle.api.interop.ArityException;
 import com.oracle.truffle.api.interop.InteropException;
 import com.oracle.truffle.api.interop.InteropLibrary;
@@ -19,7 +18,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.Semaphore;
 import org.enso.common.HostEnsoUtils;
 import org.enso.common.RuntimeOptions;
 import org.enso.interpreter.runtime.util.TruffleFileSystem;
@@ -40,13 +38,26 @@ final class EnsoPolyglotJava {
   private final List<File> classPath;
 
   /**
-   * the amount of elements from {@link #classPath} already added to {@link
-   * #polyglotJava}. @GuardedBy("lock")
+   * the amount of elements from {@link #classPath} already added to {@link #polyglotJava}.
+   *
+   * <p>TBD: guard somehow to prevent race conditions
    */
   private int classPathSize;
 
+  /**
+   * Few state object encapsulating communication with the Java {@link TruffleObject} to communicate
+   * with.
+   *
+   * <ul>
+   *   <li>{@code this} - not yet initialized
+   *   <li>some {@code Throwable} - there was an error initializing
+   *   <li>non-{@code null} value - the actual object to talk with
+   *   <li>{@code null} - the runtime is (being) closed
+   * </ul>
+   *
+   * TBD: guard somehow to prevent race conditions
+   */
   private Object polyglotJava = this;
-  private Semaphore lock = new Semaphore(1, true);
 
   /**
    * @param ctx associated conext
@@ -171,28 +182,23 @@ final class EnsoPolyglotJava {
 
   @CompilerDirectives.TruffleBoundary
   private Object findPolyglotJava() throws InteropException {
-    TruffleSafepoint.setBlockedThreadInterruptible(null, Semaphore::acquire, lock);
-    try {
-      if (polyglotJava instanceof Throwable t) {
-        throw ctx.raiseAssertionPanic(null, t.getMessage(), t);
-      }
-      if (polyglotJava != this) {
-        return polyglotJava;
-      }
-      if (polyglotJava == this) {
-        polyglotJava = createPolyglotJava(ctx);
-        try {
-          InteropLibrary.getUncached()
-              .invokeMember(polyglotJava, "findLibraries", new LibraryResolver());
-        } catch (InteropException ex) {
-          logger.log(Level.WARNING, "Cannot register findLibraries", ex);
-        }
-      }
-      adjustClassPath();
-      return polyglotJava;
-    } finally {
-      lock.release();
+    if (polyglotJava instanceof Throwable t) {
+      throw ctx.raiseAssertionPanic(null, t.getMessage(), t);
     }
+    if (polyglotJava != this) {
+      return polyglotJava;
+    }
+    if (polyglotJava == this) {
+      polyglotJava = createPolyglotJava(ctx);
+      try {
+        InteropLibrary.getUncached()
+            .invokeMember(polyglotJava, "findLibraries", new LibraryResolver());
+      } catch (InteropException ex) {
+        logger.log(Level.WARNING, "Cannot register findLibraries", ex);
+      }
+    }
+    adjustClassPath();
+    return polyglotJava;
   }
 
   private void adjustClassPath()
@@ -223,7 +229,6 @@ final class EnsoPolyglotJava {
 
   @CompilerDirectives.TruffleBoundary
   private final void close() {
-    TruffleSafepoint.setBlockedThreadInterruptible(null, Semaphore::acquire, lock);
     try {
       if (polyglotJava instanceof TruffleObject closeJava) {
         polyglotJava = null;
@@ -236,7 +241,6 @@ final class EnsoPolyglotJava {
         polyglotJava = null;
       }
     } finally {
-      lock.release();
     }
   }
 
