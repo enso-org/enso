@@ -16,6 +16,7 @@ import java.nio.file.StandardOpenOption;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
+import org.enso.compiler.core.ir.Expression;
 import org.enso.compiler.core.ir.Function.Binding;
 import org.enso.compiler.core.ir.Module;
 import org.enso.compiler.core.ir.expression.Error;
@@ -517,7 +518,28 @@ public class EnsoParserTest {
           else
               c
         """;
-    equivalenceTest("fn a b c = if a then b else c", multiline);
+
+    var simpleIr = compile("fn a b c = if a then b else c");
+    var multilineIr = compile(multiline);
+
+    class RemoveEmptyBlocks implements Function<Expression, Expression> {
+      @Override
+      public Expression apply(Expression ex) {
+        return switch (ex.mapExpressions(this)) {
+          case Expression.Block b -> {
+            if (b.expressions().isEmpty()) {
+              yield b.returnValue();
+            } else {
+              yield b;
+            }
+          }
+          case Expression any -> any;
+        };
+      }
+    }
+
+    var irWithoutBlocks = multilineIr.mapExpressions(new RemoveEmptyBlocks());
+    assertIR("Single and multiline if then else are similar", simpleIr, irWithoutBlocks);
   }
 
   @Test
