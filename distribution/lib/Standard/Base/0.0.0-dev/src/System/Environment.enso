@@ -3,7 +3,7 @@ import project.Data.Text.Text
 import project.Nothing.Nothing
 import project.Runtime.State
 
-polyglot java import java.lang.System as JSystem
+polyglot java import java.lang.System as Java_System
 
 ## ---
    aliases: [read environment]
@@ -29,6 +29,6 @@ get key:Text ~if_missing:Text|Nothing=Nothing -> (Text|Nothing) =
     mock_value = if mock_dict == Nothing then Nothing else
         (mock_dict:Dictionary).get key
     value = if mock_value != Nothing then mock_value else
-        JSystem.getenv key
+        Java_System.getenv key
     if value != Nothing then value else
         if_missing
