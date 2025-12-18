@@ -76,7 +76,7 @@ public final class DownloadLibraryTest {
     var zipOut = tmpFolder.newFile("Libs.zip");
     zipDirectory(libDir, zipOut.toPath());
     assertThat(zipOut.exists(), is(true));
-    zippedLibsURL = URI.create("jar:file:" + zipOut.toPath().toAbsolutePath() + "!/").toURL();
+    zippedLibsURL = URI.create("jar:" + zipOut.toPath().toAbsolutePath().toUri() + "!/").toURL();
   }
 
   private void createEditions(Path rootDir) throws IOException {
