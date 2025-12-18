@@ -508,6 +508,19 @@ public class EnsoParserTest {
   }
 
   @Test
+  public void testMultiLineIfThenElse() throws Exception {
+    var multiline =
+        """
+        fn a b c =
+          if a then
+              b
+          else
+              c
+        """;
+    equivalenceTest("fn a b c = if a then b else c", multiline);
+  }
+
+  @Test
   public void testInvokeFilePermissions() {
     parseTest(
         """
