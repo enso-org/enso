@@ -155,7 +155,7 @@ public final class EnsoLanguage extends TruffleLanguage<EnsoContext> {
     var editionsDir = env.getOptions().get(RuntimeOptions.EDITIONS_DIRECTORY_KEY);
     var environment = new Environment() {};
     DistributionManager distributionManager;
-    if (editionsDir != null) {
+    if (!editionsDir.isEmpty()) {
       distributionManager =
           new DistributionManager(environment) {
             @Override
