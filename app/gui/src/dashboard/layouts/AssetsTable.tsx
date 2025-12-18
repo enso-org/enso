@@ -1127,7 +1127,7 @@ function AssetsTable(props: AssetsTableProps) {
               </Text>
             </td>
           </tr>
-          {isFetching && (
+          {(assetsPages.isLoading || assetsPages.isFetchingNextPage) && (
             <tr className="h-row">
               <td colSpan={columns.length} className="rounded-full bg-transparent">
                 <div className="flex justify-center">

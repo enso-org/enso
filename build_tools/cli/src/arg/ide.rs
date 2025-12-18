@@ -18,7 +18,7 @@ pub struct BuildInput {
     #[clap(flatten)]
     pub gui: Source<Gui>,
     #[clap(flatten)]
-    pub project_manager: Source<Backend>,
+    pub backend: Source<Backend>,
     #[clap(flatten)]
     pub output_path: OutputPath<Target>,
     /// Override the default target for electron-builder. E.g. pass `dir` for unpacked directory
@@ -31,7 +31,7 @@ pub struct BuildInput {
 
 #[derive(Subcommand, Clone, Debug)]
 pub enum Command {
-    /// Builds both Project Manager and GUI, puts them together into a single, client Electron
+    /// Builds both backend and GUI, puts them together into a single, client Electron
     /// application.
     Build {
         #[clap(flatten)]

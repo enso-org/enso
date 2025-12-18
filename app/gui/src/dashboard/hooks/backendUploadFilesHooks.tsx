@@ -49,13 +49,11 @@ declare module '$/utils/queryClient' {
  * upload to Cloud.
  */
 function useUploadLocally(backend: Backend) {
-  const localUploadFileStart = useMutationCallback(
-    backendMutationOptions(backend, 'uploadFileStart'),
-  )
+  const uploadFileStart = useMutationCallback(backendMutationOptions(backend, 'uploadFileStart'))
   const uploadFileEnd = useMutationCallback(backendMutationOptions(backend, 'uploadFileEnd'))
 
   return async (file: File, params: UploadFileRequestParams) => {
-    const { uploadId, sourcePath } = await localUploadFileStart([params, file])
+    const { uploadId, sourcePath } = await uploadFileStart([params, file])
     return uploadFileEnd([
       {
         uploadId,

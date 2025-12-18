@@ -172,15 +172,26 @@ function portGroupStyle(port: PortData) {
 function isPlusButtonVisible(portId: AstId): boolean {
   return !componentBrowserOpened.value && isPortDisconnected(portId)
 }
+function resetHoverState() {
+  mouseOverOutput.value = undefined
+  mouseOverCreateNodeFromPortButton.value = 0
+}
+
 // Opening component browser should manually clear output hover state, because
 // plus button disappears when component browser opens, and we cannot receive pointerleave event
 // in this case.
 watch(componentBrowserOpened, (opened) => {
-  if (opened) {
-    mouseOverOutput.value = undefined
-    mouseOverCreateNodeFromPortButton.value = 0
-  }
+  if (opened) resetHoverState()
 })
+
+// When the plus button becomes invisible for the currently hovered port, we want to reset the hover state.
+// This because we won’t receive a pointerleave event in this case.
+watch(
+  () => mouseOverOutput.value && isPlusButtonVisible(mouseOverOutput.value),
+  (visible, prevVisible) => {
+    if (prevVisible && !visible) resetHoverState()
+  },
+)
 
 graph.value?.suggestEdgeFromOutput(outputHovered)
 </script>

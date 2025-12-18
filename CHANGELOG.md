@@ -1,3 +1,13 @@
+# Next Next Release
+
+#### Enso Language & Runtime
+
+- [`Panic.rethrow` keeps original location][14480]
+- [Use `State.get if_missing` to avoid too frequent `Panic.throw`][14490]
+
+[14480]: https://github.com/enso-org/enso/pull/14480
+[14490]: https://github.com/enso-org/enso/pull/14490
+
 # Next Release
 
 #### Enso IDE
@@ -28,6 +38,21 @@
   top.
 - [Context menu for connections][14325].
 - [Warnings and Errors no longer become transparent][14388]
+- [`--headless` flag to run a project without the User Interface][14310]
+- [Preview for assets (text, main files of Projects, audio, video, images) in
+  Right Sidebar][14310]
+- ["Delete and Connect Around" option in node's menu][14403]
+- [GeoMap visualization is now working without need of Mapbox Token in
+  environment][14429]
+- [Fix non-visible button and wrong layout in GeoMap Visualization][14443]
+- [Added additonal file and site options for MS365 credentials][14477]
+- [Maximum height of the file browser is slightly reduced][14467]
+- [Fix mispositioned bottom panel][14506]
+- ["Paste component" option in graph menu][14504]
+- [Fix bug where Table Expressions weren't saved after finishing edit by mouse
+  click][14500]
+- [Fix "What's new", "Documentation" and similar buttons opening external page
+  twice][14507]
 
 [13685]: https://github.com/enso-org/enso/pull/13685
 [13658]: https://github.com/enso-org/enso/pull/13658
@@ -47,10 +72,20 @@
 [14209]: https://github.com/enso-org/enso/pull/14209
 [14215]: https://github.com/enso-org/enso/pull/14215
 [14270]: https://github.com/enso-org/enso/pull/14270
+[14310]: https://github.com/enso-org/enso/pull/14310
 [14311]: https://github.com/enso-org/enso/pull/14311
 [14267]: https://github.com/enso-org/enso/pull/14267
 [14325]: https://github.com/enso-org/enso/pull/14325
 [14388]: https://github.com/enso-org/enso/pull/14388
+[14403]: https://github.com/enso-org/enso/pull/14403
+[14429]: https://github.com/enso-org/enso/pull/14429
+[14443]: https://github.com/enso-org/enso/pull/14443
+[14477]: https://github.com/enso-org/enso/pull/14477
+[14467]: https://github.com/enso-org/enso/pull/14467
+[14506]: https://github.com/enso-org/enso/pull/14506
+[14504]: https://github.com/enso-org/enso/pull/14504
+[14500]: https://github.com/enso-org/enso/pull/14500
+[14507]: https://github.com/enso-org/enso/pull/14507
 
 #### Enso Standard Library
 
@@ -71,16 +106,26 @@
 - [Add error_on_missing_columns to more methods.][14236]
 - [Add `OneDrive_File` to Microsoft 365 implementation.][14237]
 - [Progress of `Runtime.sleep` visualized.][14275]
-- [Add Email.send][14258]
+- [Add `Email.send`][14258]
 - [Full DuckDB Dialect.][14298]
-- [Initial Spatial support within DuckDB][14331]
-- [Add email SMTP support][14350]
+- [Initial Spatial support within DuckDB.][14331]
+- [Add email SMTP support.][14350]
 - [Read files into DuckDB both spatial and not.][14367]
 - [Implement Text_Column to_case for DB backends.][14386]
 - [Implement bulk loading to DuckDB.][14402]
 - [Implement `Text_Column.text_mid` for in-memory and database backends.][14420]
 - [Initial file writing from DuckDB.][14421]
 - [Parquet file reading and writing, DuckDB formats.][14427]
+- [Add Text_Column.index_of][14428]
+- [Trigonometry and other maths function on Column.][14433]
+- [Implement `Text_Column.left, right, and mid` for in-memory and database
+  backends.][14420]
+- [Support for reading JSON lines files.][14439]
+- [Add Custom SQL to in database aggregates.][14472]
+- [Add spatial functions and `write_spatial_file` to DuckDB.][14488]
+- [Add spatial function support to expressions.][14492]
+- [Add `Date_Column` class, and `first_of_month` and `end_of_month`.][14485]
+- [Add `OneDrive.write` allowing a first API to write to OneDrive.][14494]
 
 [13769]: https://github.com/enso-org/enso/pull/13769
 [14026]: https://github.com/enso-org/enso/pull/14026
@@ -108,6 +153,15 @@
 [14420]: https://github.com/enso-org/enso/pull/14420
 [14421]: https://github.com/enso-org/enso/pull/14421
 [14427]: https://github.com/enso-org/enso/pull/14427
+[14428]: https://github.com/enso-org/enso/pull/14428
+[14433]: https://github.com/enso-org/enso/pull/14433
+[14420]: https://github.com/enso-org/enso/pull/14420
+[14439]: https://github.com/enso-org/enso/pull/14439
+[14472]: https://github.com/enso-org/enso/pull/14472
+[14485]: https://github.com/enso-org/enso/pull/14485
+[14488]: https://github.com/enso-org/enso/pull/14488
+[14492]: https://github.com/enso-org/enso/pull/14492
+[14494]: https://github.com/enso-org/enso/pull/14494
 
 #### Enso Language & Runtime
 

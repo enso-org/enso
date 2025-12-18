@@ -832,6 +832,8 @@ function toLinkField(fieldName: string, options: LinkFieldOptions): ColDef {
       params.value !== null && params.value !== undefined ?
         `<div class='link'> ${params.value} </div>`
       : null,
+    cellStyle: { 'padding-left': '13px', 'border-right': '1px solid #C0C0C0' },
+    headerClass: 'indexColumnHeader',
     filter: fieldName != INDEX_FIELD_NAME,
   }
 }
@@ -1279,5 +1281,9 @@ config.setToolbar(
   flex-direction: row;
   justify-content: space-between;
   width: inherit;
+}
+
+:deep(.indexColumnHeader) {
+  padding-left: 13px;
 }
 </style>

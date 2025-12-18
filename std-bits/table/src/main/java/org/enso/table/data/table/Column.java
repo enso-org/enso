@@ -1,5 +1,6 @@
 package org.enso.table.data.table;
 
+import java.lang.reflect.Proxy;
 import java.util.List;
 import org.enso.base.polyglot.Polyglot_Utils;
 import org.enso.table.data.column.builder.Builder;
@@ -28,7 +29,7 @@ public final class Column {
   public Column(String name, ColumnStorage<?> storage) {
     ensureNameIsValid(name);
     this.name = name;
-    this.storage = storage;
+    this.storage = Proxy.isProxyClass(storage.getClass()) ? Builder.makeLocal(storage) : storage;
   }
 
   public static boolean isColumnNameValid(String name) {

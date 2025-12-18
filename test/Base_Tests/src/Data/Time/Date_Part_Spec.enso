@@ -97,3 +97,31 @@ add_specs suite_builder name create_new_date pending=Nothing =
             create_new_date 2021 11 25 . week_of_year . should_equal 47
             create_new_date 2023 1 1 . week_of_year . should_equal 52
             create_new_date 2024 1 1 . week_of_year . should_equal 1
+
+        group_builder.specify "should return the first of the month" <|
+            create_new_date 1987 1 1 . first_of_month . should_equal <| Date.new 1987 1 1
+            create_new_date 1987 1 2 . first_of_month . should_equal <| Date.new 1987 1 1
+            create_new_date 1987 1 29 . first_of_month . should_equal <| Date.new 1987 1 1
+            create_new_date 1987 1 30 . first_of_month . should_equal <| Date.new 1987 1 1
+            create_new_date 1987 1 31 . first_of_month . should_equal <| Date.new 1987 1 1
+            create_new_date 1999 2 7 . first_of_month . should_equal <| Date.new 1999 2 1
+            create_new_date 1999 2 28 . first_of_month . should_equal <| Date.new 1999 2 1
+            create_new_date 2000 2 7 . first_of_month . should_equal <| Date.new 2000 2 1
+            create_new_date 2000 2 28 . first_of_month . should_equal <| Date.new 2000 2 1
+            create_new_date 2000 2 29 . first_of_month . should_equal <| Date.new 2000 2 1
+            create_new_date 2005 4 7 . first_of_month . should_equal <| Date.new 2005 4 1
+            create_new_date 2005 4 30 . first_of_month . should_equal <| Date.new 2005 4 1
+
+        group_builder.specify "should return the first of the month" <|
+            create_new_date 1987 1 1 . end_of_month . should_equal <| Date.new 1987 1 31
+            create_new_date 1987 1 2 . end_of_month . should_equal <| Date.new 1987 1 31
+            create_new_date 1987 1 29 . end_of_month . should_equal <| Date.new 1987 1 31
+            create_new_date 1987 1 30 . end_of_month . should_equal <| Date.new 1987 1 31
+            create_new_date 1987 1 31 . end_of_month . should_equal <| Date.new 1987 1 31
+            create_new_date 1999 2 7 . end_of_month . should_equal <| Date.new 1999 2 28
+            create_new_date 1999 2 28 . end_of_month . should_equal <| Date.new 1999 2 28
+            create_new_date 2000 2 7 . end_of_month . should_equal <| Date.new 2000 2 29
+            create_new_date 2000 2 28 . end_of_month . should_equal <| Date.new 2000 2 29
+            create_new_date 2000 2 29 . end_of_month . should_equal <| Date.new 2000 2 29
+            create_new_date 2005 4 7 . end_of_month . should_equal <| Date.new 2005 4 30
+            create_new_date 2005 4 30 . end_of_month . should_equal <| Date.new 2005 4 30

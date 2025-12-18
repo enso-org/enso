@@ -187,6 +187,75 @@ add_core_specs suite_builder setup =
                 problems2 = [Arithmetic_Error.Error "Division by zero (at rows [2])."]
                 Problems.test_problem_handling action2 problems2 tester2
 
+        
+        group_builder.specify "should allow adding a constant text column" <|
+            t2 = data.table.set "Expelliarmus" as="bar3"
+            t2.column_names . should_equal ["foo", "bar", "Baz", "foo 1", "foo 2", "ab.+123", "abcd123","bar3"]
+            t2.get "bar3" . to_vector . should_equal ["Expelliarmus", "Expelliarmus", "Expelliarmus"]
+
+        group_builder.specify "should allow adding a constant text column overriding an existing column" <|
+            t2 = data.table.set "Expelliarmus" as="foo"
+            t2.column_names . should_equal ["foo", "bar", "Baz", "foo 1", "foo 2", "ab.+123", "abcd123"]
+            t2.get "foo" . to_vector . should_equal ["Expelliarmus", "Expelliarmus", "Expelliarmus"]
+        
+        group_builder.specify "should allow adding a constant integer column" <|
+            t2 = data.table.set 42 as="bar3"
+            t2.column_names . should_equal ["foo", "bar", "Baz", "foo 1", "foo 2", "ab.+123", "abcd123","bar3"]
+            t2.get "bar3" . to_vector . should_equal [42, 42, 42]
+
+        group_builder.specify "should allow adding a constant integer column overriding an existing column" <|
+            t2 = data.table.set 42 as="foo"
+            t2.column_names . should_equal ["foo", "bar", "Baz", "foo 1", "foo 2", "ab.+123", "abcd123"]
+            t2.get "foo" . to_vector . should_equal [42, 42, 42]
+
+        group_builder.specify "should allow adding a constant boolean column" <|
+            t2 = data.table.set True as="bar3"
+            t2.column_names . should_equal ["foo", "bar", "Baz", "foo 1", "foo 2", "ab.+123", "abcd123","bar3"]
+            t2.get "bar3" . to_vector . should_equal [True, True, True]
+
+        group_builder.specify "should allow adding a constant boolean column overriding an existing column" <|
+            t2 = data.table.set False as="foo"
+            t2.column_names . should_equal ["foo", "bar", "Baz", "foo 1", "foo 2", "ab.+123", "abcd123"]
+            t2.get "foo" . to_vector . should_equal [False, False, False]
+
+        if setup.flagged ..Date_Time then group_builder.specify "should allow adding a constant date column" <|
+            t2 = data.table.set (Date.new 2025 12 9) as="bar3"
+            t2.column_names . should_equal ["foo", "bar", "Baz", "foo 1", "foo 2", "ab.+123", "abcd123","bar3"]
+            t2.get "bar3" . to_vector . should_equal [Date.new 2025 12 9, Date.new 2025 12 9, Date.new 2025 12 9]
+
+        if setup.flagged ..Date_Time then group_builder.specify "should allow adding a constant date column overriding an existing column" <|
+            t2 = data.table.set (Date.new 2025 12 9) as="foo"
+            t2.column_names . should_equal ["foo", "bar", "Baz", "foo 1", "foo 2", "ab.+123", "abcd123"]
+            t2.get "foo" . to_vector . should_equal [Date.new 2025 12 9, Date.new 2025 12 9, Date.new 2025 12 9]
+
+        if setup.flagged ..Date_Time then group_builder.specify "should allow adding a constant time column" <|
+            t2 = data.table.set (Time_Of_Day.new 15 59 15) as="bar3"
+            t2.column_names . should_equal ["foo", "bar", "Baz", "foo 1", "foo 2", "ab.+123", "abcd123","bar3"]
+            t2.get "bar3" . to_vector . should_equal [Time_Of_Day.new 15 59 15, Time_Of_Day.new 15 59 15, Time_Of_Day.new 15 59 15]
+
+        if setup.flagged ..Date_Time then group_builder.specify "should allow adding a constant time column overriding an existing column" <|
+            t2 = data.table.set (Time_Of_Day.new 15 59 15) as="foo"
+            t2.column_names . should_equal ["foo", "bar", "Baz", "foo 1", "foo 2", "ab.+123", "abcd123"]
+            t2.get "foo" . to_vector . should_equal [Time_Of_Day.new 15 59 15, Time_Of_Day.new 15 59 15, Time_Of_Day.new 15 59 15]
+
+        if setup.flagged ..Date_Time then group_builder.specify "should allow adding a constant datetime column" <|
+            ## The DB may change the timezone of the values, so we need to convert them back to be able to check for equality.
+                   All that we require is that the instant in time represented by the values is preserved.
+            at_system_tz dt =
+                dt.at_zone Time_Zone.system
+            t2 = data.table.set (Date_Time.new 2025 12 9 15 59 15) as="bar3"
+            t2.column_names . should_equal ["foo", "bar", "Baz", "foo 1", "foo 2", "ab.+123", "abcd123","bar3"]
+            t2.at "bar3" . to_vector . map at_system_tz . should_equal [Date_Time.new 2025 12 9 15 59 15, Date_Time.new 2025 12 9 15 59 15, Date_Time.new 2025 12 9 15 59 15]
+
+        if setup.flagged ..Date_Time then group_builder.specify "should allow adding a constant datetime column overriding an existing column" <|
+            ## The DB may change the timezone of the values, so we need to convert them back to be able to check for equality.
+                   All that we require is that the instant in time represented by the values is preserved.
+            at_system_tz dt =
+                dt.at_zone Time_Zone.system
+            t2 = data.table.set (Date_Time.new 2025 12 9 15 59 15) as="foo"
+            t2.column_names . should_equal ["foo", "bar", "Baz", "foo 1", "foo 2", "ab.+123", "abcd123"]
+            t2.at "foo" . to_vector . map at_system_tz . should_equal [Date_Time.new 2025 12 9 15 59 15, Date_Time.new 2025 12 9 15 59 15, Date_Time.new 2025 12 9 15 59 15]
+
         group_builder.specify "should gracefully handle columns from different backends" <|
             t1 = build_sorted_table [["A", [1, 2, 3]]]
             alternative_connection = Database.connect (SQLite.In_Memory)

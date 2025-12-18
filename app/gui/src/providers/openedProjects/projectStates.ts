@@ -322,13 +322,7 @@ export function useProjectStates() {
   ) {
     if (!backends.localBackend) return Err('Cannot open local project: Local Backend missing.')
     await backends.localBackend
-      .startWatchingHybridProject(
-        info.id,
-        info.runningId,
-        info.parentId,
-        backends.remoteBackend.baseUrl,
-        httpClient.defaultHeaders,
-      )
+      .startWatchingHybridProject(info.id, info.runningId, info.parentId, httpClient.defaultHeaders)
       .catch((err) => {
         console.error(`Failed to start watching hybrid project ${info.id}`, err)
       })
@@ -401,7 +395,7 @@ export function useProjectStates() {
       const runningId = project.info.mode === 'hybrid' ? project.info.runningId : project.info.id
       const projectNames = createProjectNameStore({
         projectNamespace: 'local', // Even in cloud, the namespace seems to be always "local".
-        projectDisplayedName: details.value.name,
+        projectDisplayedName: () => details.value.name,
         projectInitialName: runDetails.value.packageName,
       })
       const rpcUrl = runDetails.value.jsonAddress

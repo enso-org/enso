@@ -485,7 +485,6 @@ public class TypeInferenceTest extends StaticAnalysisTest {
         Optional.of(myType), getInferredTypeOption(ModuleUtils.findAssignment(foo, "x7")));
   }
 
-  @Ignore("TODO: ifte")
   @Test
   public void commonIfThenElse() throws Exception {
     final URI uri = new URI("memory://commonIfThenElse.enso");
@@ -667,7 +666,6 @@ public class TypeInferenceTest extends StaticAnalysisTest {
     assertSumType(ModuleUtils.findAssignment(f, "y"), "My_Type", "Other_Type");
   }
 
-  @Ignore("TODO: ifte")
   @Test
   public void sumTypeFromIf() throws Exception {
     final URI uri = new URI("memory://sumTypeFromIf.enso");
@@ -688,7 +686,6 @@ public class TypeInferenceTest extends StaticAnalysisTest {
     assertSumType(ModuleUtils.findAssignment(f, "y"), "Text", "Integer");
   }
 
-  @Ignore("TODO: ifte")
   @Test
   public void sumTypeFromIfWithoutElse() throws Exception {
     final URI uri = new URI("memory://sumTypeFromIf.enso");
@@ -1114,6 +1111,40 @@ public class TypeInferenceTest extends StaticAnalysisTest {
 
     var x = ModuleUtils.findAssignment(foo, "x");
     assertTypeMismatch(x.expression(), "My_Type", "Integer");
+  }
+
+  @Test
+  public void integerIsSubclassOfNumber() throws Exception {
+    final URI uri = new URI("memory://notInvokable.enso");
+    final Source src =
+        Source.newBuilder(
+                "enso",
+                """
+                from Standard.Base import Integer, Number
+
+                foo =
+                    num -> Number = 42
+                    neg n:Integer -> Integer = -n
+                    neg num
+                """,
+                uri.getAuthority())
+            .uri(uri)
+            .buildLiteral();
+
+    var module = compile(src);
+    var foo = ModuleUtils.findStaticMethod(module, "foo");
+    foo.preorder()
+        .foreach(
+            (ir) -> {
+              if (ir.getDiagnostics().toList().nonEmpty()) {
+                fail(
+                    "There should be no warnings "
+                        + ir.getDiagnostics().toList()
+                        + " at "
+                        + ir.showCode());
+              }
+              return null;
+            });
   }
 
   @Test

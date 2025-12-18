@@ -32,6 +32,7 @@ import project.System.File.Generic.File_Like.File_Like
 import project.System.File.Generic.Writable_File.Writable_File
 import project.System.File.Local_File_Write_Strategy
 import project.System.Input_Stream.Input_Stream
+import project.System.Internal.File_Helpers
 import project.System.Output_Stream.Output_Stream
 import project.Warning.Warning
 from project.Data.Boolean import Boolean, False, True
@@ -39,22 +40,21 @@ from project.Error import all
 from project.Metadata.Choice import Option
 from project.Nothing import all
 from project.System.File_Format import Auto_Detect, File_Format
-import project.System.Internal.File_Helpers
 
-polyglot java import java.lang.System as Java_System
-polyglot java import java.io.IOException
 polyglot java import java.io.File as Java_File
 polyglot java import java.io.InputStream as Java_Input_Stream
+polyglot java import java.io.IOException
 polyglot java import java.io.OutputStream as Java_Output_Stream
+polyglot java import java.lang.System as Java_System
+polyglot java import java.nio.ByteBuffer
 polyglot java import java.nio.channels.ByteChannel
 polyglot java import java.nio.channels.FileChannel
 polyglot java import java.nio.file.attribute.BasicFileAttributes
-polyglot java import java.nio.file.InvalidPathException
 polyglot java import java.nio.file.Files as Java_Files
 polyglot java import java.nio.file.FileSystemException
+polyglot java import java.nio.file.InvalidPathException
 polyglot java import java.nio.file.NoSuchFileException
 polyglot java import java.nio.file.Path as Java_Path
-polyglot java import java.nio.ByteBuffer
 polyglot java import java.nio.file.StandardCopyOption
 polyglot java import java.nio.file.StandardOpenOption
 polyglot java import java.time.ZonedDateTime

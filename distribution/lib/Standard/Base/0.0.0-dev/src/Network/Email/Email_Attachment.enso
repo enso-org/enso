@@ -6,7 +6,7 @@ import project.Network.URI.URI
 import project.System.File.File
 import project.System.File.Generic.File_Like.File_Like
 from project.Metadata.Choice import Option
-from project.Metadata.Widget import Text_Input, Vector_Editor, Single_Choice
+from project.Metadata.Widget import Single_Choice, Text_Input, Vector_Editor
 
 ## The attachment of an email.
 type Email_Attachment

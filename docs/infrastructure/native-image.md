@@ -11,8 +11,8 @@ order: 3
 [`NativeImage`](../../project/NativeImage.scala) defines a task that is used for
 compiling a project into a native binary using Graal's Native Image. It compiles
 the project and runs the Native Image tool which builds the image. Currently,
-Native Image is used for building the `ensoup` launcher, `project-manager` and
-also `enso` executable once one **opts-in** to it via `ENSO_LAUNCHER` option.
+Native Image is used for building the `ensoup` launcher and `enso` executable
+once one **opts-in** to it via `ENSO_LAUNCHER` option.
 
 <!-- MarkdownTOC levels="2,3" autolink="true" -->
 
@@ -176,29 +176,6 @@ created that gathers workarounds required to be able to build native images
 using Akka, so it is enough to just add it as a dependency. It does not handle
 other reflective accesses that are related to Akka, because the ones that are
 needed are gathered automatically using the tool described above.
-
-### Project Manager Configuration
-
-Configuring the Native Image for the Project Manager goes similarly as with the
-launcher. You need to build the JAR with `project-manager/assembly` and execute
-the test scenarios by starting it with:
-
-```
-java -agentlib:native-image-agent=config-merge-dir=lib/scala/project-manager/src/main/resources/META-INF/native-image/org/enso/projectmanager -jar project-manager.jar
-```
-
-To trace relevant reflection paths, the primary scenario is to start the Project
-Manager and connect an IDE to it. Since the Project Manager is able to install
-engine versions, similar steps should be taken to force it to extract a zip
-archive, as described in [Launcher Configuration](#launcher-configuration)
-above. If necessary, other scenarios, like project renaming may be covered.
-
-Remember to run the cleanup script as described above, as tracing the Project
-Manager seems to find recursive accesses of some ephemeral-like classes named
-`Foo/0x00001234...`. This classes are not accessible when building the Native
-Image and they lead to warnings. For now no clues have been found that ignoring
-these classes would impact the native build, it seems that they can be ignored
-safely.
 
 ### Engine runner Configuration
 

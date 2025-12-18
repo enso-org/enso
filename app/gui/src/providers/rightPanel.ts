@@ -69,9 +69,17 @@ function useRightPanelTabs(
     [
       'description',
       {
-        icon: 'text',
+        icon: 'info',
         enabled: enabledInCloudOnly,
         title: 'Description',
+      },
+    ],
+    [
+      'contents',
+      {
+        icon: 'docs',
+        enabled: Ok(),
+        title: 'Contents',
       },
     ],
     [
@@ -85,7 +93,7 @@ function useRightPanelTabs(
     [
       'versions',
       {
-        icon: 'versions',
+        icon: 'history',
         enabled: enabledInCloudOnly,
         title: textRef('versions'),
       },
@@ -93,7 +101,7 @@ function useRightPanelTabs(
     [
       'sessions',
       {
-        icon: 'sessions',
+        icon: 'activity',
         enabled: enabledInCloudOnly,
         title: textRef('projectSessions'),
       },
@@ -224,6 +232,7 @@ function useRightPanel(
       return await backendForType(backendType).getAssetDetails(currentItem.id, undefined)
     },
     enabled: () => backendType.value != null && focusedAsset.value != null,
+    meta: { persist: false },
   })
   const focusedAssetDetails = focusedAssetDetailsQuery.data
 

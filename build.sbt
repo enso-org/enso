@@ -113,11 +113,6 @@ GatherLicenses.distributions := Seq(
       `language-server`
     )
   ),
-  Distribution(
-    "project-manager",
-    file("distribution/project-manager/THIRD-PARTY"),
-    Distribution.sbtProjects(`project-manager`)
-  ),
   makeStdLibDistribution("Base", Distribution.sbtProjects(`std-base`)),
   makeStdLibDistribution(
     "Generic_JDBC",
@@ -305,7 +300,6 @@ lazy val checkNativeImageSize =
 lazy val enso = (project in file("."))
   .settings(version := "0.1")
   .aggregate(
-    `akka-native`,
     `akka-wrapper`,
     `benchmark-java-helpers`,
     `benchmarks-common`,
@@ -318,7 +312,6 @@ lazy val enso = (project in file("."))
     downloader,
     editions,
     `edition-updater`,
-    `edition-uploader`,
     `engine-common`,
     `engine-runner`,
     `engine-runner-common`,
@@ -364,7 +357,6 @@ lazy val enso = (project in file("."))
     `polyglot-api-macros`,
     `process-utils`,
     `profiling-utils`,
-    `project-manager`,
     `python-extract`,
     `python-resource-provider`,
     `refactoring-utils`,
@@ -436,7 +428,6 @@ lazy val enso = (project in file("."))
       val filesToDelete = Seq(
         engineDistributionRoot.value,
         launcherDistributionRoot.value,
-        projectManagerDistributionRoot.value,
         packageBuilder.value.artifactRoot
       )
       IO.delete(filesToDelete)
@@ -973,19 +964,6 @@ lazy val `python-resource-provider` = project
       "org.graalvm.truffle" % "truffle-api" % graalMavenPackagesVersion,
       "org.graalvm.sdk"     % "word"        % graalMavenPackagesVersion
     )
-  )
-
-lazy val `akka-native` = project
-  .in(file("lib/scala/akka-native"))
-  .configs(Test)
-  .settings(
-    frgaalJavaCompilerSetting,
-    version := "0.1",
-    libraryDependencies ++= Seq(
-      akkaActor
-    ),
-    // Note [Native Image Workaround for GraalVM 20.2]
-    libraryDependencies += "org.graalvm.nativeimage" % "svm" % graalMavenPackagesVersion % "provided"
   )
 
 lazy val `profiling-utils` = project
@@ -1684,30 +1662,6 @@ lazy val `refactoring-utils` = project
   .dependsOn(testkit % Test)
   .dependsOn(`text-buffer`)
 
-lazy val `project-manager` = (project in file("lib/scala/project-manager"))
-  .settings(
-    frgaalJavaCompilerSetting,
-    (Compile / mainClass) := Some("org.enso.projectmanager.EmptyProjectManager")
-  )
-  .settings(
-    NativeImage.smallJdk := None,
-    NativeImage.additionalCp := Seq.empty,
-    rebuildNativeImage := Def.taskDyn {
-      NativeImage
-        .buildNativeImage(
-          "project-manager",
-          staticOnLinux = true,
-          mainClass     = (Compile / mainClass).value
-        )
-    }.value,
-    buildNativeImage := NativeImage
-      .incrementalNativeImageBuild(
-        rebuildNativeImage,
-        "project-manager"
-      )
-      .value
-  )
-
 lazy val `json-rpc-server` = project
   .in(file("lib/scala/json-rpc-server"))
   .enablePlugins(JPMSPlugin)
@@ -1905,14 +1859,22 @@ lazy val `ydoc-server` = project
     NativeImage.smallJdk := None,
     NativeImage.additionalCp := Seq.empty,
     rebuildNativeImage := Def.taskDyn {
+      val cLibraryOpts = (Bazel / cLibraryPath).value
+        .map(cLib =>
+          Seq(
+            "-H:CLibraryPath=" + cLib.getAbsolutePath
+          )
+        )
+        .getOrElse(Seq())
       NativeImage
         .buildNativeImage(
           "org.enso.ydoc.server",
-          staticOnLinux = false,
-          targetDir     = engineDistributionRoot.value / "component",
-          mainClass     = Some("org.enso.ydoc.server.Main"),
-          symlink       = false,
-          shared        = true
+          staticOnLinux     = false,
+          additionalOptions = cLibraryOpts,
+          targetDir         = engineDistributionRoot.value / "component",
+          mainClass         = Some("org.enso.ydoc.server.Main"),
+          symlink           = false,
+          shared            = true
         )
     }.value,
     buildNativeImage := Def.taskDyn {
@@ -2642,6 +2604,7 @@ lazy val `runtime-language-arrow` =
       javaModuleName := "org.enso.interpreter.arrow",
       inConfig(Compile)(truffleRunOptionsSettings),
       instrumentationSettings,
+      customFrgaalJavaCompilerSettings("24"),
       libraryDependencies ++= GraalVM.modules ++ slf4jApi.map(_ % Test) ++ Seq(
         "junit"            % "junit"              % junitVersion       % Test,
         "com.github.sbt"   % "junit-interface"    % junitIfVersion     % Test,
@@ -3968,6 +3931,13 @@ lazy val `engine-runner` = project
               "-Dnic=nic"
             )
           else Seq()
+        val cLibraryOpts = (Bazel / cLibraryPath).value
+          .map(cLib =>
+            Seq(
+              "-H:CLibraryPath=" + cLib.getAbsolutePath
+            )
+          )
+          .getOrElse(Seq())
         val mp = (Runtime / modulePath).value.map(_.getAbsolutePath)
         NativeImage
           .buildNativeImage(
@@ -4000,7 +3970,7 @@ lazy val `engine-runner` = project
               "--add-opens=java.base/java.nio=ALL-UNNAMED",
               // Needed for grpc-gax
               "--add-opens=java.base/java.time=ALL-UNNAMED"
-            ) ++ enableHeapDumpOpts ++ debugOpts ++ linkOpts,
+            ) ++ enableHeapDumpOpts ++ debugOpts ++ linkOpts ++ cLibraryOpts,
             mainModule = Some("org.enso.runner"),
             mainClass  = Some("org.enso.runner.Main"),
             initializeAtRuntime = Seq(
@@ -4876,17 +4846,6 @@ lazy val `edition-updater` = project
   .dependsOn(editions)
   .dependsOn(`library-manager` % "test->test")
 
-lazy val `edition-uploader` = project
-  .in(file("lib/scala/edition-uploader"))
-  .settings(
-    frgaalJavaCompilerSetting,
-    libraryDependencies ++= Seq(
-      "io.circe" %% "circe-core" % circeVersion % "provided"
-    )
-  )
-  .dependsOn(editions)
-  .dependsOn(`version-output`)
-
 lazy val `library-manager` = project
   .in(file("lib/scala/library-manager"))
   .enablePlugins(JPMSPlugin)
@@ -5289,7 +5248,7 @@ lazy val `std-table` = project
   .in(file("std-bits") / "table")
   .enablePlugins(Antlr4Plugin)
   .settings(
-    frgaalJavaCompilerSetting,
+    customFrgaalJavaCompilerSettings("24"),
     mockitoAgentSettings,
     autoScalaLibrary := false,
     Compile / compile / compileInputs := (Compile / compile / compileInputs)
@@ -5360,6 +5319,9 @@ lazy val `std-tests` = project
     frgaalJavaCompilerSetting,
     commands += WithDebugCommand.withDebug,
     Test / fork := true,
+    Test / javaOptions ++= Seq(
+      "-ea"
+    ),
     autoScalaLibrary := false,
     Compile / compile / compileInputs := (Compile / compile / compileInputs)
       .dependsOn(SPIHelpers.ensureSPIConsistency)
@@ -5371,6 +5333,7 @@ lazy val `std-tests` = project
   )
   .dependsOn(`std-base`)
   .dependsOn(`std-table`)
+  .dependsOn(`runtime-language-arrow`)
   .dependsOn(`test-utils`)
 
 lazy val `opencv-wrapper` = project
@@ -6290,49 +6253,16 @@ lazy val fetchZipToUnmanaged =
 lazy val unmanagedExternalZip =
   settingKey[URL]("URL to zip file with dependencies")
 
-/* Note [Native Image Workaround for GraalVM 20.2]
- * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
- * In GraalVM 20.2 the Native Image build of even simple Scala programs has
- * started to fail on a call to `Statics.releaseFence`. It has been reported as
- * a bug in the GraalVM repository: https://github.com/oracle/graal/issues/2770
- *
- * A proposed workaround for this bug is to substitute the original function
- * with a different implementation that does not use the problematic
- * MethodHandle. This is implemented in class
- * `org.enso.launcher.workarounds.ReplacementStatics` using
- * `org.enso.launcher.workarounds.Unsafe` which gives access to
- * `sun.misc.Unsafe` which contains a low-level function corresponding to the
- * required "release fence".
- *
- * To allow for that substitution, the launcher code requires annotations from
- * the `svm` module and that is why this additional dependency is needed as long
- * as that workaround is in-place. The dependency is marked as "provided"
- * because it is included within the native-image build.
- */
-
-/* Note [WSLoggerManager Shutdown Hook]
- * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
- * As the WSLoggerManager registers a shutdown hook when its initialized to
- * ensure that logs are not lost in case of logging service initialization
- * failure, it has to be initialized at runtime, as otherwise if the
- * initialization was done at build time, the shutdown hook would actually also
- * run at build time and have no effect at runtime.
- */
-
 lazy val engineDistributionRoot =
   settingKey[File]("Root of built engine distribution")
 lazy val launcherDistributionRoot =
   settingKey[File]("Root of built launcher distribution")
-lazy val projectManagerDistributionRoot =
-  settingKey[File]("Root of built project manager distribution")
 
 engineDistributionRoot :=
   packageBuilder.value.localArtifact("engine") / s"enso-$ensoVersion"
 launcherDistributionRoot := packageBuilder.value.localArtifact(
   "launcher"
 ) / "enso"
-projectManagerDistributionRoot :=
-  packageBuilder.value.localArtifact("project-manager") / "enso"
 
 lazy val extraBazelEnvForStdLibIndexes = taskKey[Map[String, String]](
   "Extra environment variables for subprocesses when running from Bazel - when compiling std libs"
@@ -6550,36 +6480,6 @@ lintEnso := {
   linter.check(whatToLint)
 }
 
-lazy val buildProjectManagerDistributionCond =
-  taskKey[Unit](
-    "Builds the project manager distribution either via NativeImage, or just assembly Jar"
-  )
-buildProjectManagerDistributionCond := Def.taskIf {
-  if (shouldBuildNativeImage.value) {
-    buildProjectManagerDistribution.value
-  } else {
-    (`project-manager` / Compile / compile).value
-  }
-}.value
-
-lazy val runProjectManagerDistribution =
-  inputKey[Unit](
-    "Run or --debug the project manager distribution with arguments"
-  )
-runProjectManagerDistribution := {
-  buildEngineDistributionNoIndex.value
-  buildProjectManagerDistributionCond.value
-  val projManagerOpts   = (`project-manager` / Runtime / javaOptions).value
-  val args: Seq[String] = spaceDelimited("<arg>").parsed
-  DistributionPackage.runProjectManagerPackage(
-    engineDistributionRoot.value,
-    projectManagerDistributionRoot.value,
-    projManagerOpts,
-    args,
-    streams.value.log
-  )
-}
-
 lazy val `http-test-helper` = project
   .in(file("tools") / "http-test-helper")
   .settings(
@@ -6616,16 +6516,6 @@ buildLauncherDistribution := {
   log.info(s"Launcher package created at $root")
 }
 
-lazy val buildProjectManagerDistribution =
-  taskKey[Unit]("Builds the project manager distribution")
-buildProjectManagerDistribution := {
-  val _            = (`project-manager` / buildNativeImage).value
-  val root         = projectManagerDistributionRoot.value
-  val log          = streams.value.log
-  val cacheFactory = streams.value.cacheStoreFactory
-  DistributionPackage.createProjectManagerPackage(root, cacheFactory)
-  log.info(s"Project Manager package created at $root")
-}
 lazy val extraBazelEnvForManifestUpdate = taskKey[Map[String, String]](
   "Extra environment variables for subprocesses when running from Bazel - manifest update"
 )

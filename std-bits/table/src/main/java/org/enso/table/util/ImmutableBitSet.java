@@ -2,6 +2,7 @@ package org.enso.table.util;
 
 import java.lang.ref.Reference;
 import java.lang.ref.WeakReference;
+import java.nio.ByteBuffer;
 import java.util.BitSet;
 
 /**
@@ -11,6 +12,7 @@ import java.util.BitSet;
 public final class ImmutableBitSet {
   private final BitSet bitSet;
   private final int size;
+  private ByteBuffer rawData;
 
   public ImmutableBitSet(BitSet bitSet, int size) {
     this.bitSet = bitSet;
@@ -125,5 +127,22 @@ public final class ImmutableBitSet {
    */
   public BitSet cloneBitSet() {
     return (BitSet) bitSet.clone();
+  }
+
+  /**
+   * Creates an off-heap memory representation of this bitmap.
+   *
+   * @return buffer to be read by {@link BitSet#valueOf(java.nio.ByteBuffer)}
+   */
+  public ByteBuffer rawData() {
+    if (rawData == null) {
+      var bytes = bitSet.toByteArray();
+      var sizeInBytes = (size + 7) / 8;
+      rawData = ByteBuffer.allocateDirect(sizeInBytes);
+      rawData.put(bytes, 0, Math.min(bytes.length, sizeInBytes));
+      rawData.position(0);
+      rawData.limit(sizeInBytes);
+    }
+    return rawData;
   }
 }

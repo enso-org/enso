@@ -1,13 +1,7 @@
 /** @file URL associations for the IDE. */
+import * as common from 'enso-common/src/constants'
 
-import * as electron from 'electron'
-import electronIsDev from 'electron-is-dev'
-
-import * as common from 'enso-common'
-
-// ============================
-// === Protocol Association ===
-// ============================
+type Electron = typeof import('electron')
 
 /**
  * Register the application as a handler for our [deep link scheme]{@link common.DEEP_LINK_SCHEME}.
@@ -18,7 +12,7 @@ import * as common from 'enso-common'
  * It is also no-op on macOS, as the OS handles the URL opening by passing the `open-url` event to
  * the application, thanks to the information baked in our application by `electron-builder`.
  */
-export function registerAssociations() {
+export function registerAssociations(electron: Electron, electronIsDev: boolean) {
   if (!electron.app.isDefaultProtocolClient(common.DEEP_LINK_SCHEME)) {
     if (process.platform === 'darwin') {
       // Registration is handled automatically there thanks to electron-builder.
@@ -27,10 +21,6 @@ export function registerAssociations() {
     }
   }
 }
-
-// ====================
-// === URL handling ===
-// ====================
 
 /**
  * Check if the given list of application startup arguments denotes an attempt to open a URL.
@@ -42,7 +32,7 @@ export function registerAssociations() {
  * executable name and any electron dev mode arguments.
  * @returns The URL to open, or `null` if no file was specified.
  */
-export function argsDenoteUrlOpenAttempt(clientArgs: readonly string[]): URL | null {
+export function getUrlToOpen(clientArgs: readonly string[]): URL | null {
   const arg = clientArgs[0]
   let result: URL | null = null
   // Check if the first argument parses as a URL using our deep link scheme.
@@ -80,7 +70,7 @@ export function handleOpenUrl(openedUrl: URL) {
  * new instance of the application is started and the URL is passed as a command line argument.
  * @param callback - The callback to call when the application is requested to open a URL.
  */
-export function registerUrlCallback(callback: (url: URL) => void) {
+export function registerUrlCallback(electron: Electron, callback: (url: URL) => void) {
   if (initialUrl != null) {
     callback(initialUrl)
   }
