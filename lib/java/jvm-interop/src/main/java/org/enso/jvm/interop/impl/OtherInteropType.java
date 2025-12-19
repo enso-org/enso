@@ -4,6 +4,7 @@ import com.oracle.truffle.api.interop.ExceptionType;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.library.Message;
+import com.oracle.truffle.api.strings.TruffleString;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
@@ -598,6 +599,27 @@ final class OtherInteropType {
       var s = in.readLong();
       var n = in.readInt();
       return Duration.ofSeconds(s, n);
+    }
+  }
+
+  @Persistable(id = 127)
+  static final class PersistTruffleString extends Persistance<TruffleString> {
+
+    public PersistTruffleString() {
+      super(TruffleString.class, true, 127);
+    }
+
+    @Override
+    protected void writeObject(TruffleString obj, Persistance.Output out) throws IOException {
+      var s = obj.toJavaStringUncached();
+      out.writeUTF(s);
+    }
+
+    @Override
+    protected TruffleString readObject(Persistance.Input in)
+        throws IOException, ClassNotFoundException {
+      var s = in.readUTF();
+      return TruffleString.fromJavaStringUncached(s, TruffleString.Encoding.UTF_8);
     }
   }
 }
