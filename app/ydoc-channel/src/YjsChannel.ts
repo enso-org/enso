@@ -44,21 +44,14 @@ export class YjsChannel<T = unknown> {
   private readonly handlers: Set<MessageHandler<T>> = new Set()
   private readonly observeHandler: (event: Y.YArrayEvent<ChannelMessage<T>>) => void
 
-  readonly callbacks: YjsChannelCallbacks | undefined
-
   /**
    * Creates a new YjsChannel.
    * @param doc - The shared Y.Doc document
    * @param channelName - The name of the channel (used to get/create the Y.Array)
    */
-  constructor(doc: Y.Doc, channelName: string, callbacks?: YjsChannelCallbacks) {
+  constructor(doc: Y.Doc, channelName: string) {
     this.senderId = crypto.randomUUID()
     this.array = doc.getArray<ChannelMessage<T>>(channelName)
-    this.callbacks = callbacks
-
-    if (callbacks) {
-      this.handlers.add((message) => callbacks.onMessage(message))
-    }
 
     this.observeHandler = (event: Y.YArrayEvent<ChannelMessage<T>>) => {
       // Process all added items

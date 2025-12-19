@@ -219,58 +219,6 @@ describe('YjsTransport', () => {
     expect(closeListener).toHaveBeenCalledWith(expect.objectContaining({ type: 'close' }))
   })
 
-  test('calls onConnect callback when provided', async () => {
-    const onConnect = vi.fn()
-    const onMessage = vi.fn()
-
-    const transport3 = new YjsTransport(doc, 'test-channel-4', {
-      onConnect,
-      onMessage,
-    })
-
-    await transport3.connect()
-
-    expect(onConnect).toHaveBeenCalledTimes(1)
-
-    transport3.close()
-  })
-
-  test('receives messages through event listeners when using callbacks', async () => {
-    const onConnect = vi.fn()
-    const onMessage = vi.fn()
-
-    // Create transport3 on a separate channel with callbacks
-    const transport3 = new YjsTransport(doc, 'test-channel-5', {
-      onConnect,
-      onMessage,
-    })
-
-    // Also add a regular message event listener to verify messages are received
-    const messageListener = vi.fn()
-    transport3.on('message', messageListener)
-
-    // Create transport4 on the same channel as transport3 to send to it
-    const transport4 = new YjsTransport(doc, 'test-channel-5')
-
-    await transport3.connect()
-    await transport4.connect()
-
-    await transport4.sendData(createNotification('test.message', { content: 'hello' }))
-
-    await new Promise((resolve) => setTimeout(resolve, 50))
-
-    // The message event listener should definitely be called
-    expect(messageListener).toHaveBeenCalledTimes(1)
-    expect(messageListener).toHaveBeenCalledWith(
-      expect.objectContaining({
-        type: 'message',
-      }),
-    )
-
-    transport3.close()
-    transport4.close()
-  })
-
   test('can close without connecting', () => {
     const transport3 = new YjsTransport(doc, 'test-channel-6')
     expect(() => transport3.close()).not.toThrow()
