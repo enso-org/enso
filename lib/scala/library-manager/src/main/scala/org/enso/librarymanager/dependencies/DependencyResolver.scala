@@ -8,6 +8,7 @@ import org.enso.librarymanager.published.repository.LibraryManifest
 import org.enso.librarymanager.published.repository.RepositoryHelper.RepositoryMethods
 import org.enso.libraryupload.DependencyExtractor
 import org.enso.pkg.PackageManager
+import org.slf4j.LoggerFactory
 
 import java.io.File
 import scala.util.Try
@@ -23,6 +24,7 @@ class DependencyResolver(
   libraryResolver: LibraryResolver,
   dependencyExtractor: DependencyExtractor[File]
 ) {
+  private lazy val logger = LoggerFactory.getLogger(classOf[DependencyResolver])
 
   /** Finds all transitive dependencies of the requested library.
     *
@@ -47,6 +49,11 @@ class DependencyResolver(
     libraryName: LibraryName,
     parents: Set[LibraryName]
   ): Set[Dependency] = {
+    logger.trace(
+      "Finding dependencies for library '{}' with parents {}",
+      libraryName,
+      parents
+    )
     if (parents.contains(libraryName)) {
       Set.empty
     } else {

@@ -48,7 +48,7 @@ export function CreateCredentialModal(props: CreateCredentialModalProps) {
   const { getText } = useText()
 
   return (
-    <Dialog title={getText('newCredential')} isDismissable={false}>
+    <Dialog title={getText('newCredential')} isDismissable={false} size="xlarge">
       <CreateCredentialForm {...props} />
     </Dialog>
   )

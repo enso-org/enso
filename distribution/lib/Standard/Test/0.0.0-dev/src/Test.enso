@@ -1,6 +1,5 @@
 from Standard.Base import all
 import Standard.Base.Data.Vector.Builder
-from Standard.Base.Errors.Common import Uninitialized_State
 from Standard.Base.Runtime import State
 
 import project.Clue.Clue
@@ -125,7 +124,7 @@ type Test
        ---
     enrich_message_with_clue : Text -> Text
     enrich_message_with_clue message =
-        clue = Panic.catch Uninitialized_State (State.get Clue) handler=(_-> Nothing)
+        clue = State.get Clue if_missing=Nothing
         case clue of
             Clue.Value add_clue -> add_clue message
             _                   -> message

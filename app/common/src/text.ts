@@ -185,6 +185,10 @@ interface PlaceholderOverrides {
   readonly welcomeToTeam: [organizationName: string]
   readonly invitationText: [organizationName: string]
 
+  readonly resolveEnsoPathBackendError: [ensoPath: string]
+  readonly uploadFileStartBackendError: [fileName: string]
+  readonly uploadFileEndBackendError: [fileName: string]
+
   readonly youCanCreateXMoreApiKeys: [apiKeysLeft: number]
   readonly deleteApiKeyConfirmation: [tokenName: string]
 }
@@ -215,6 +219,19 @@ export type GetText = <K extends TextId>(
   key: K,
   ...replacements: Replacements[K]
 ) => string
+
+/**
+ * A function that gets localized text for a given key, with optional replacements.
+ * @param key - The key of the text to get.
+ * @param replacements - The replacements to insert into the text.
+ * If the text contains placeholders like `$0`, `$1`, etc.,
+ * they will be replaced with the corresponding replacement.
+ */
+export type DefaultGetText = <K extends TextId>(key: K, ...replacements: Replacements[K]) => string
+
+export const defaultGetText: DefaultGetText = (key, ...replacements) => {
+  return getText(TEXTS.english, key, ...replacements)
+}
 
 /** Resolves the language texts based on the user's preferred language. */
 export function resolveUserLanguage(): Language {

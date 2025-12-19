@@ -1,6 +1,4 @@
 /** @file Commonly used functions for electron tests */
-/* eslint-disable no-empty-pattern */
-
 import { TEXTS } from 'enso-common/src/text'
 import fs from 'node:fs/promises'
 import os from 'node:os'
@@ -17,22 +15,34 @@ import {
 const LOADING_TIMEOUT = 10000
 const TEXT = TEXTS.english
 const TEST_USER_FILE = path.join(import.meta.dirname, '../playwright/.auth/user.json')
+const POSSIBLE_ELECTRON_PATHS = [
+  '../../../dist/ide/linux-unpacked/enso',
+  '../../../dist/ide/win-unpacked/Enso.exe',
+  '../../../dist/ide/mac/Enso.app/Contents/MacOS/Enso',
+  '../../../dist/ide/mac-arm64/Enso.app/Contents/MacOS/Enso',
+]
 
-const credentials = JSON.parse(
-  await fs.readFile(TEST_USER_FILE, { encoding: 'utf-8' }).catch((err) => {
-    throw Error('Cannot read Test User credentials.', { cause: err })
-  }),
-)
+export const credentials: { readonly user: string; readonly password: string } = await fs
+  .readFile(TEST_USER_FILE, { encoding: 'utf-8' })
+  .then(
+    (contents) => JSON.parse(contents),
+    (error) => {
+      throw new Error(`Cannot read Test User credentials from '${TEST_USER_FILE}'.`, {
+        cause: error,
+      })
+    },
+  )
+  .catch((error) => {
+    throw new Error(`Cannot parse Test User credentials from '${TEST_USER_FILE}'.`, {
+      cause: error,
+    })
+  })
 
-const electronExecutablePath = await (async () => {
-  const POSSIBLE_EXEC_PATHS = [
-    '../../../dist/ide/linux-unpacked/enso',
-    '../../../dist/ide/win-unpacked/Enso.exe',
-    '../../../dist/ide/mac/Enso.app/Contents/MacOS/Enso',
-    '../../../dist/ide/mac-arm64/Enso.app/Contents/MacOS/Enso',
-  ].map((p) => path.resolve(import.meta.dirname, p))
+export const electronExecutablePath = await (async () => {
   try {
-    const promises = POSSIBLE_EXEC_PATHS.map((p) => fs.access(p, fs.constants.X_OK).then(() => p))
+    const promises = POSSIBLE_ELECTRON_PATHS.map((p) => path.resolve(import.meta.dirname, p)).map(
+      (p) => fs.access(p, fs.constants.X_OK).then(() => p),
+    )
     return await Promise.any(promises)
   } catch {
     throw Error('Cannot find Enso package')
@@ -50,6 +60,7 @@ export const test = base.extend<{
   app: ElectronApplication
   page: Page
 }>({
+  // eslint-disable-next-line no-empty-pattern
   testRunId: async function ({}, use, testInfo) {
     await use(`${testInfo.titlePath.join('-')}-${Date.now()}`)
   },
@@ -58,15 +69,17 @@ export const test = base.extend<{
     await use(projectsDir)
   },
 
-  /**
-   * Setup for all tests: Create an electron-based app instance.
-   */
+  /** Setup for all tests: Create an electron-based app instance. */
   app: async function ({ projectsDir, testRunId }, use) {
     const args = process.env.ENSO_TEST_APP_ARGS?.split(',') ?? []
     const app = await _electron.launch({
       executablePath: electronExecutablePath,
       args,
-      env: { ...process.env, ENSO_TEST: 'true', ENSO_TEST_PROJECTS_DIR: projectsDir },
+      env: {
+        ...process.env,
+        ENSO_TEST: 'true',
+        ENSO_TEST_PROJECTS_DIR: projectsDir.replace(/\\/g, '/'),
+      },
     })
     // Set the password as global var before turning on tracing.
     // This way it will be not disclosed to anyone downloading traces of failed tests.
@@ -86,8 +99,8 @@ export const test = base.extend<{
 })
 
 /**
- * Login as test user. This function asserts that page is the login page, and uses
- * credentials from playwright/.auth/user.json file.
+ * Login as test user - assert that page is the login page, and use credentials from
+ * `playwright/.auth/user.json`.
  */
 export async function loginAsTestUser(page: Page) {
   // Login screen
@@ -116,9 +129,7 @@ export async function loginAsTestUser(page: Page) {
   await page.getByRole('button', { name: TEXT.accept }).click()
 }
 
-/**
- * The funcion creates a new Enso project
- */
+/** Create a new Enso project */
 export async function createNewProject(page: Page) {
   await page.getByRole('button', { name: 'New Project' }).click()
   await expect(page.locator('.GraphNode')).toHaveCount(1, { timeout: 60000 })
@@ -127,9 +138,7 @@ export async function createNewProject(page: Page) {
   await expect(tableViz).toContainText('Welcome To Enso!')
 }
 
-/**
- * If welcome project is to be opened, this function takes you back to your dashboard
- */
+/** If welcome project is to be opened, navigate back to the dashboard. */
 export async function closeWelcome(page: Page) {
   const welcomeProjectTab = page.getByRole('tab', { name: 'Getting Started with Enso Analytics' })
   const loadingIndicator = welcomeProjectTab.locator('.LoadingSpinner')

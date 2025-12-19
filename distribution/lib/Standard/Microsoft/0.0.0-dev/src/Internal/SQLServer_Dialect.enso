@@ -556,7 +556,7 @@ make_dialect_operations =
     stddev_pop = ["STDDEV_POP", Base_Generator.make_function "STDEVP"]
     stddev_samp = ["STDDEV_SAMP", Base_Generator.make_function "STDEV"]
     stats = [stddev_pop, stddev_samp]
-    date_ops = [["year", Base_Generator.make_function "year"], make_datepart "quarter", ["month", Base_Generator.make_function "month"], make_datepart "week" "iso_week", ["day", Base_Generator.make_function "day"], make_datepart "hour", make_datepart "minute", make_datepart "day_of_year" "dayofyear", make_day_of_week, make_datepart "second", make_datepart "millisecond", make_extract_microsecond, ["date_add", make_date_add], ["date_diff", make_date_diff], ["date_trunc_to_day", make_date_trunc_to_day]]
+    date_ops = [["year", Base_Generator.make_function "year"], make_datepart "quarter", ["month", Base_Generator.make_function "month"], make_datepart "week" "iso_week", ["day", Base_Generator.make_function "day"], make_datepart "hour", make_datepart "minute", make_datepart "day_of_year" "dayofyear", make_day_of_week, make_datepart "second", make_datepart "millisecond", make_extract_microsecond, ["date_add", make_date_add], ["date_diff", make_date_diff], ["date_trunc_to_day", make_date_trunc_to_day], ["first_of_month", make_first_of_month], ["end_of_month", make_end_of_month]]
     special_overrides = [is_empty, ["IIF", _make_iif]]
     other = [["RUNTIME_ERROR", make_runtime_error_op]]
     windows = [["LEAD", _make_lead_lag "LEAD"], ["LAG", _make_lead_lag "LAG"], ["LEAD_CLOSEST", _make_lead_lag_closest_value "LEAD"], ["LAG_CLOSEST", _make_lead_lag_closest_value "LAG"]]
@@ -960,6 +960,22 @@ make_date_trunc_to_day arguments =
     if arguments.length != 1 then Error.throw (Illegal_State.Error "date_trunc_to_day expects exactly one sub expression. This is a bug in Database library.") else
         expr = arguments.at 0
         SQL_Builder.code "(DATE_TRUNC('day'," ++ expr ++ ") :: DATE)"
+
+## ---
+   private: true
+   ---
+make_first_of_month arguments =
+    if arguments.length != 1 then Error.throw (Illegal_State.Error "first_of_month expects exactly one sub expression. This is a bug in Database library.") else
+        expr = arguments.at 0
+        SQL_Builder.code "(select datetrunc(MONTH," ++ expr ++ "))"
+
+## ---
+   private: true
+   ---
+make_end_of_month arguments =
+    if arguments.length != 1 then Error.throw (Illegal_State.Error "end_of_month expects exactly one sub expression. This is a bug in Database library.") else
+        expr = arguments.at 0
+        SQL_Builder.code "select eomonth(" ++ expr ++ ")"
 
 ## ---
    private: true

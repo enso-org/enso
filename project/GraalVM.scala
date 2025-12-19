@@ -27,13 +27,12 @@ object GraalVM {
     }
 
     private lazy val parsed
-      : (Boolean, Boolean, Boolean, Boolean, Boolean, Boolean, Boolean) = {
+      : (Boolean, Boolean, Boolean, Boolean, Boolean, Boolean) = {
       var shell                 = false
       var native                = false
       var test                  = false
       var debug                 = false
       var fast                  = false
-      var disableMicrosoft      = false
       var disableLanguageServer = false
       toString().split(",").foreach {
         case "shell"  => shell  = true
@@ -55,8 +54,7 @@ object GraalVM {
           disableLanguageServer = true
         }
         case "-ms" => {
-          native           = true
-          disableMicrosoft = true
+          native = true
         }
         case v =>
           throw new IllegalStateException(s"Unexpected value of $VAR_NAME: $v")
@@ -66,19 +64,13 @@ object GraalVM {
           s"Cannot specify `shell` and other properties in $VAR_NAME env variable"
         )
       }
-      if (fast && disableMicrosoft) {
-        throw new IllegalStateException(
-          s"Cannot specify `fast` and `-ms` in $VAR_NAME env variable at the same time"
-        )
-      }
       (
         shell,
         native,
         test,
         debug,
         fast,
-        disableLanguageServer,
-        disableMicrosoft
+        disableLanguageServer
       )
     }
     def native                = parsed._2
@@ -86,9 +78,8 @@ object GraalVM {
     def debug                 = parsed._4
     def fast                  = parsed._5
     def disableLanguageServer = parsed._6
-    def disableMicrosoft      = parsed._7
     def release =
-      native && !test && !debug && !fast && !disableLanguageServer && !disableMicrosoft
+      native && !test && !debug && !fast && !disableLanguageServer
   }
 
   case class NativeImageSize(
