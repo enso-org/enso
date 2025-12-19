@@ -1778,7 +1778,7 @@ lazy val `ydoc-api` = project
     crossPaths := false,
     autoScalaLibrary := false,
     Test / fork := true,
-    commands += WithDebugCommand.withDebug,
+    commands += WithDebugCommand.withDebug
   )
 
 lazy val `ydoc-polyfill` = project
@@ -4321,11 +4321,12 @@ lazy val `jvm-interop` =
       (Test / fork) := true,
       commands += WithDebugCommand.withDebug,
       libraryDependencies ++= Seq(
-        "org.graalvm.truffle" % "truffle-api"           % graalMavenPackagesVersion % "provided",
-        "org.graalvm.truffle" % "truffle-dsl-processor" % graalMavenPackagesVersion % "provided",
-        "org.graalvm.sdk"     % "graal-sdk"             % graalMavenPackagesVersion % Test,
-        "junit"               % "junit"                 % junitVersion              % Test,
-        "com.github.sbt"      % "junit-interface"       % junitIfVersion            % Test
+        "org.graalvm.truffle"  % "truffle-api"           % graalMavenPackagesVersion % "provided",
+        "org.graalvm.truffle"  % "truffle-dsl-processor" % graalMavenPackagesVersion % "provided",
+        "org.graalvm.sdk"      % "graal-sdk"             % graalMavenPackagesVersion % Test,
+        "junit"                % "junit"                 % junitVersion              % Test,
+        "com.github.sbt"       % "junit-interface"       % junitIfVersion            % Test,
+        "org.graalvm.polyglot" % "js-community"          % graalMavenPackagesVersion % Test
       ),
       Compile / moduleDependencies ++= Seq(
         "org.graalvm.truffle"  % "truffle-api" % graalMavenPackagesVersion,
@@ -4337,7 +4338,8 @@ lazy val `jvm-interop` =
         (`jvm-channel` / Compile / exportedModule).value,
         (`engine-common` / Compile / exportedModule).value,
         (`persistance` / Compile / exportedModule).value
-      )
+      ),
+      Test / libraryDependencies ++= GraalVM.jsPkgs
     )
     .dependsOn(`engine-common`)
     .dependsOn(`jvm-channel`)
