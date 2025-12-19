@@ -1,6 +1,7 @@
 package org.enso.interpreter.node.controlflow.caseexpr;
 
 import com.oracle.truffle.api.CompilerAsserts;
+import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.RootCallTarget;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Cached.Shared;
@@ -93,14 +94,19 @@ public abstract class ConstructorBranchNode extends BranchNode {
       // Wrap suspended fields in functions, so that they are not evaluated
       // too eagerly.
       if (fields[i].isSuspended() && obj instanceof Atom atom) {
-        var getFieldNode = new GetSuspendedFieldNode(atom, i);
-        var func = Function.fullyApplied(getFieldNode.getCallTarget());
+        var func = createSuspendedFieldFunction(atom, i);
         arr[i] = func;
       } else {
         arr[i] = structsLib.getField(obj, i);
       }
     }
     return arr;
+  }
+
+  @TruffleBoundary
+  private static Function createSuspendedFieldFunction(Atom atom, int fieldIdx) {
+    var getFieldNode = new GetSuspendedFieldNode(atom, fieldIdx);
+    return Function.fullyApplied(getFieldNode.getCallTarget());
   }
 
   private static final class GetSuspendedFieldNode extends RootNode {
