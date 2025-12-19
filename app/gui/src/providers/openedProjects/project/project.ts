@@ -74,9 +74,25 @@ export function createProjectStore(
 
   const doc = new Y.Doc()
   const awareness = new Awareness(doc)
+  const ydocUrl = resolveYDocUrl(props.engine.rpcUrl, props.engine.ydocUrl)
+  const guiId = `gui-${crypto.randomUUID()}`
+  let yDocsProvider: ReturnType<typeof attachProvider> | undefined
+  watchEffect((onCleanup) => {
+    yDocsProvider = attachProvider(
+      ydocUrl.href,
+      'index',
+      { ls: guiId },
+      doc,
+      awareness.internal,
+    )
+    onCleanup(() => {
+      yDocsProvider?.dispose()
+      yDocsProvider = undefined
+    })
+  })
 
   const clientId = crypto.randomUUID() as Uuid
-  const lsRpcConnection = createLsRpcConnection(clientId, doc, props.engine.rpcUrl, abort)
+  const lsRpcConnection = createLsRpcConnection(clientId, doc, guiId, abort)
   const projectRootId = lsRpcConnection.contentRoots.then(
     (roots) => roots.find((root) => root.type === 'Project')?.id,
   )
@@ -99,22 +115,6 @@ export function createProjectStore(
     const qn = tryQualifiedName(withDotSeparators)
     if (!qn.ok) return qn
     return Ok(ProjectPath.create(undefined, qn.value))
-  })
-
-  const ydocUrl = resolveYDocUrl(props.engine.rpcUrl, props.engine.ydocUrl)
-  let yDocsProvider: ReturnType<typeof attachProvider> | undefined
-  watchEffect((onCleanup) => {
-    yDocsProvider = attachProvider(
-      ydocUrl.href,
-      'index',
-      { ls: props.engine.rpcUrl },
-      doc,
-      awareness.internal,
-    )
-    onCleanup(() => {
-      yDocsProvider?.dispose()
-      yDocsProvider = undefined
-    })
   })
 
   const projectModel = new DistributedProject(doc)

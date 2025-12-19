@@ -20,7 +20,7 @@ import type {
 } from 'ydoc-shared/languageServerTypes'
 import { assertNever } from 'ydoc-shared/util/assert'
 import { AbortScope, exponentialBackoff, printingCallbacks } from 'ydoc-shared/util/net'
-import { YjsTransport } from 'ydoc-shared/util/net/YjsTransport'
+import { YjsBackendTransport, YjsTransport } from 'ydoc-shared/util/net/YjsTransport'
 import {
   DistributedProject,
   IdMap,
@@ -90,19 +90,22 @@ export class LanguageServerSession {
 
   /** Get a {@link LanguageServerSession} by its URL. */
   static get(url: string, callbacks?: YjsChannelCallbacks): LanguageServerSession {
-    console.log('DEBUG LanguageServerSession.get', url, callbacks)
     const session = map.setIfUndefined(LanguageServerSession.sessions, url, () => {
       const indexDoc = new WSSharedDoc()
-      const transport = new YjsTransport(indexDoc.doc, url, callbacks)
-      console.log('DEBUG LanguageServerSession.get transport created', url)
-      transport.connect()
-      console.log('DEBUG LanguageServerSession.get transport connected', url)
+      let transport
+      if (callbacks) {
+        transport = new YjsBackendTransport(indexDoc.doc, url, callbacks)
+      } else {
+        transport = new YjsTransport(indexDoc.doc, url)
+      }
       const ls = new LanguageServer(crypto.randomUUID(), transport)
+      console.log('DEBUG LanguageServerSession.get transport created', url)
       return new LanguageServerSession(ls, indexDoc, () =>
         LanguageServerSession.sessions.delete(url),
       )
     })
     session.retain()
+    console.log('DEBUG LanguageServerSession.get session returned', url)
     return session
   }
 

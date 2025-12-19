@@ -34,18 +34,22 @@ type EventListener<T = Event> = (event: T) => void
 
 /** A JSON-RPC transport that uses YjsChannel for communication. */
 export class YjsTransport extends Transport {
-  private channel: YjsChannel<string>
-  private yjsUnsubscribe?: (() => void) | undefined
-  private eventListeners: Map<string, Set<EventListener<any>>> = new Map()
+  protected channel: YjsChannel<string>
+  protected doc: Y.Doc
+  protected channelName: string
+  protected yjsUnsubscribe?: (() => void) | undefined
+  protected eventListeners: Map<string, Set<EventListener<any>>> = new Map()
 
   /**
    * Create a {@link YjsTransport}.
    * @param doc - The shared Y.Doc document
    * @param channelName - The name of the channel (used to get/create the Y.Array)
    */
-  constructor(doc: Y.Doc, channelName: string, callbacks?: YjsChannelCallbacks) {
+  constructor(doc: Y.Doc, channelName: string) {
     super()
-    this.channel = new YjsChannel<string>(doc, channelName, callbacks)
+    this.doc = doc
+    this.channelName = channelName
+    this.channel = new YjsChannel<string>(doc, channelName)
   }
 
   /**
@@ -53,10 +57,9 @@ export class YjsTransport extends Transport {
    */
   public connect(): Promise<void> {
     return new Promise((resolve) => {
-      if (this.channel.callbacks) {
-        this.channel.callbacks.onConnect(this.channel)
-      }
+      console.log('DEBUG YjsTransport.connect', this.channelName)
       this.yjsUnsubscribe = this.channel.subscribe((message) => {
+        console.log('DEBUG YjsTransport.channel emit', message)
         this.emit('message', new MessageEvent('message', { data: message }))
         this.transportRequestManager.resolveResponse(message)
       })
@@ -69,10 +72,12 @@ export class YjsTransport extends Transport {
    * Send JSON-RPC data through the channel.
    */
   public async sendData(data: JSONRPCRequestData, timeout: number | null = 5000): Promise<any> {
+    console.log('YjsTransport.sendData', data)
     let prom = this.transportRequestManager.addRequest(data, timeout)
     const notifications = getNotifications(data)
     try {
-      this.channel.send(JSON.stringify(this.parseData(data)))
+      const message = JSON.stringify(this.parseData(data))
+      this.channel.send(message)
       this.transportRequestManager.settlePendingRequest(notifications)
     } catch (err) {
       const jsonError = new JSONRPCError((err as any).message, ERR_UNKNOWN, err)
@@ -142,12 +147,69 @@ export class YjsTransport extends Transport {
   }
 
   /** Emit an event to all registered listeners. */
-  private emit<K extends keyof YjsEventMap>(type: K, event: YjsEventMap[K]): void {
+  protected emit<K extends keyof YjsEventMap>(type: K, event: YjsEventMap[K]): void {
     const listeners = this.eventListeners.get(type)
     if (!listeners) return
 
     for (const listener of listeners) {
       listener(event)
     }
+  }
+}
+
+/** A JSON-RPC transport that uses YjsChannel for communication. */
+export class YjsBackendTransport extends YjsTransport {
+  private readonly backendChannel: YjsChannel<string>
+  private readonly callbacks: YjsChannelCallbacks
+  private yjsBackendUnsubscribe?: (() => void) | undefined
+
+  /**
+   * Create a {@link YjsTransport}.
+   * @param doc - The shared Y.Doc document
+   * @param channelName - The name of the channel (used to get/create the Y.Array)
+   */
+  constructor(doc: Y.Doc, channelName: string, callbacks: YjsChannelCallbacks) {
+    super(doc, channelName)
+    this.callbacks = callbacks
+    this.backendChannel = new YjsChannel<string>(doc, `backend-${channelName}`)
+  }
+
+  /**
+   * Initiate the channel subscription.
+   */
+  override connect(): Promise<void> {
+    return new Promise((resolve) => {
+      console.log('DEBUG YjsBackendTransport.connect', this.channelName)
+      this.callbacks.onConnect(new YjsChannel<string>(this.doc, `backend-${this.channelName}`))
+      this.yjsUnsubscribe = this.channel.subscribe((message) => {
+        console.log('DEBUG YjsBackendTransport.channel msg', message)
+        this.callbacks.onMessage(message)
+      })
+      this.yjsBackendUnsubscribe = this.backendChannel.subscribe((message) => {
+        console.log('DEBUG YjsBackendTransport.backend msg', message)
+        this.channel.send(message)
+      })
+      this.emit('open', new Event('open'))
+      resolve()
+    })
+  }
+
+  /**
+   * Send JSON-RPC data through the channel.
+   */
+  override async sendData(data: JSONRPCRequestData, timeout: number | null = 5000): Promise<any> {
+    console.log('YjsBackendTransport.sendData', JSON.stringify(data))
+    const message = JSON.stringify(this.parseData(data))
+    this.callbacks.onMessage(message)
+  }
+
+  /** Close the channel and clean up subscriptions. */
+  override close(): void {
+    if (this.yjsBackendUnsubscribe) {
+      this.yjsBackendUnsubscribe()
+      this.yjsBackendUnsubscribe = undefined
+    }
+    this.backendChannel.dispose()
+    super.close()
   }
 }
