@@ -25,7 +25,7 @@ object Ydoc {
     ydocServerResourceManaged: File,
     streams: TaskStreams
   ): Seq[File] = {
-    runNpmInstallCached(base, streams)
+    //runNpmInstallCached(base, streams)
 
     generateJsBundleCached(
       base,

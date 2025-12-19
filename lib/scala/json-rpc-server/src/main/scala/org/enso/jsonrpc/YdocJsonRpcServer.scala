@@ -77,7 +77,7 @@ object YdocJsonRpcServer {
       with LazyLogging {
 
     override def onConnect(channel: YjsChannel): Unit = {
-      logger.info("ServerCallbacks.onConnect", channel)
+      logger.info(s"ServerCallbacks.onConnect ${channel.getClass()}")
       val outgoingMessageHandler = system.actorOf(
         Props(
           new OutgoingMessageHandler(channel)
@@ -89,7 +89,7 @@ object YdocJsonRpcServer {
     override def onMessage(message: Object): Unit = {
       message match {
         case m: String =>
-          logger.info("Received message", m)
+          logger.info(s"Received message $m")
           val webMessage = MessageHandler.WebMessage(m)
           incomingMessageHandler ! webMessage
           messageCallbacks.foreach(cb => cb(webMessage))
@@ -105,7 +105,7 @@ object YdocJsonRpcServer {
 
     override def receive: Receive = {
       case MessageHandler.WebMessage(message) =>
-        logger.info("Sending message", message)
+        logger.info(s"Sending message $message")
         channel.send(message)
       case unknown =>
         logger.error("Sending unsupported message:", unknown)
