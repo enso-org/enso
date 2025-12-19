@@ -11,6 +11,8 @@ import com.google.testing.compile.CompilationSubject;
 import com.google.testing.compile.Compiler;
 import com.google.testing.compile.JavaFileObjects;
 import java.io.IOException;
+import java.util.List;
+import javax.tools.JavaFileObject;
 import org.enso.runtime.parser.processor.IRProcessor;
 import org.junit.Test;
 
@@ -40,8 +42,12 @@ public class TestIRProcessorInline {
 
   private static Compilation expectCompilationSuccessful(String name, String src) {
     var srcObject = JavaFileObjects.forSourceString(name, src);
+    return expectCompilationSuccessful(List.of(srcObject));
+  }
+
+  private static Compilation expectCompilationSuccessful(List<JavaFileObject> srcs) {
     var compiler = Compiler.javac().withProcessors(new IRProcessor());
-    var compilation = compiler.compile(srcObject);
+    var compilation = compiler.compile(srcs);
     if (compilation.status() != Status.SUCCESS) {
       var failureMsg = new StringBuilder();
       failureMsg.append("Compilation failed with diagnostics: ");
@@ -985,15 +991,7 @@ public class TestIRProcessorInline {
             .replace("${pkg}", pkg);
     var litSrc = JavaFileObjects.forSourceString(pkg + ".JLiteral", literalNameCode);
     var patSrc = JavaFileObjects.forSourceString(pkg + ".JPattern", patternNameCode);
-    var compiler = Compiler.javac().withProcessors(new IRProcessor());
-    var compilation = compiler.compile(litSrc, patSrc);
-    if (compilation.status() != Status.SUCCESS) {
-      var failureMsg = new StringBuilder();
-      failureMsg.append("Compilation failed with diagnostics: ");
-      for (var diag : compilation.diagnostics()) {
-        failureMsg.append("  ").append(diag.toString()).append(System.lineSeparator());
-      }
-      fail(failureMsg.toString());
-    }
+    var compilation = expectCompilationSuccessful(List.of(litSrc, patSrc));
+    assertThat(compilation.generatedSourceFiles().size(), is(2));
   }
 }
