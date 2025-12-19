@@ -228,7 +228,7 @@ add_specs suite_builder =
             ab = make_a_and_b
             a_only = (ab : A)
             case a_only of
-                B.B_Ctor (A.A_Ctor x) -> Test.fail "should not match B.B_Ctor"
+                B.B_Ctor (A.A_Ctor _) -> Test.fail "should not match B.B_Ctor"
                 _ -> Nothing
 
         group_builder.specify "nested structural pattern matching on primary type" <|
