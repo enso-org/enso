@@ -36,7 +36,7 @@ type JDBC_Connection
         - `operation_synchronizer`: a helper for synchronizing access to the
           underlying Connection.
         - `sql_error_handler`: a function wrapper to catch SQL errors.
-    private Value connection_resource operation_synchronizer sql_error_handler
+    private Value connection_resource operation_synchronizer sql_error_handler types_record
 
     ## ---
        private: true
@@ -334,7 +334,7 @@ create types_record url:Text properties:Vector catalog:Text="" schema:Text="" =
     java_props = properties_as_java_props properties types_record.hideableValueFactory
     java_connection = sql_error_handler <| types_record.getConnectionWithCatalogSchema url java_props catalog schema
     resource = Managed_Resource.register java_connection close_connection
-    JDBC_Connection.Value resource types_record.newOperationSynchronizer sql_error_handler
+    JDBC_Connection.Value resource types_record.newOperationSynchronizer sql_error_handler types_record
 
 ## ---
    private: true

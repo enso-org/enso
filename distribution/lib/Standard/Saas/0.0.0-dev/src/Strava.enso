@@ -19,7 +19,7 @@ type Strava
         - `credentials`: a Cloud secret or a file containing Strava credentials.
     initialize : File | Enso_Secret -> Strava
     initialize credentials =
-        credentials_reference = as_credential_reference credentials
+        credentials_reference = as_credential_reference credentials CredentialReference
         Strava.Service (StravaService.new credentials_reference)
 
     ## ---

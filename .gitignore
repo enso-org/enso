@@ -79,6 +79,7 @@ eslint_report.json
 .enso-sources*
 .metals
 tools/performance/engine-benchmarks/generated_site
+.venv
 *.tsbuildinfo
 vite.config.ts.timestamp-*.mjs
 vitest.config.ts.timestamp-*.mjs
