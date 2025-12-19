@@ -1,6 +1,7 @@
 package org.enso.database;
 
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Types;
@@ -67,9 +68,10 @@ public class JDBCValueSetter {
     stmt.setObject(columnIndex, localDate, Types.DATE);
   }
 
-  public void setBigDecimal(PreparedStatement stmt, int columnIndex, String value)
+  public void setBigDecimal(
+      PreparedStatement stmt, int columnIndex, BigInteger unscaledValue, int scale)
       throws SQLException {
-    var big = new BigDecimal(value);
+    var big = new BigDecimal(unscaledValue, scale);
     stmt.setBigDecimal(columnIndex, big);
   }
 }
