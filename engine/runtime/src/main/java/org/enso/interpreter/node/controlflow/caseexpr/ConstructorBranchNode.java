@@ -13,8 +13,8 @@ import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.nodes.RootNode;
 import com.oracle.truffle.api.profiles.CountingConditionProfile;
 import org.enso.interpreter.EnsoLanguage;
-import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.node.expression.builtin.meta.IsValueOfTypeNode;
+import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.EnsoMultiValue;
 import org.enso.interpreter.runtime.data.atom.Atom;
 import org.enso.interpreter.runtime.data.atom.AtomConstructor;
@@ -89,14 +89,16 @@ public abstract class ConstructorBranchNode extends BranchNode {
     CompilerAsserts.partialEvaluationConstant(cons);
     var arr = new Object[cons.getArity()];
     var fields = cons.getFields();
-      for (var i = 0; i < arr.length; i++) {
-        if (fields[i].isSuspended()) {
-          var getFieldNode = new GetSuspendedFieldNode(atom, i);
-          var func = Function.fullyApplied(getFieldNode.getCallTarget());
-          arr[i] = func;
-        } else {
-          arr[i] = structsLib.getField(obj, i);
-        }
+    for (var i = 0; i < arr.length; i++) {
+      // Wrap suspended fields in functions, so that they are not evaluated
+      // too eagerly.
+      if (fields[i].isSuspended() && obj instanceof Atom atom) {
+        var getFieldNode = new GetSuspendedFieldNode(atom, i);
+        var func = Function.fullyApplied(getFieldNode.getCallTarget());
+        arr[i] = func;
+      } else {
+        arr[i] = structsLib.getField(obj, i);
+      }
     }
     return arr;
   }
