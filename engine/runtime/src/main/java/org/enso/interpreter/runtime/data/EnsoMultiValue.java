@@ -41,14 +41,50 @@ import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.graalvm.collections.Pair;
 
+/**
+ * This class represents a value that can have multiple types at the same time - an intersection
+ * type.
+ *
+ * <h2>Method invocation</h2>
+ *
+ * Method invocation on {@link EnsoMultiValue} dispatches the method based on the {@link
+ * EnsoMultiValue#getVisibleTypes() visible types} only. The {@link EnsoMultiValue#getExtraTypes()
+ * hidden types} are not considered during method dispatch, but they are still part of the {@link
+ * EnsoMultiValue}'s type set and can be cast to.
+ *
+ * <h2>Primitive values</h2>
+ *
+ * For interop purposes, primitive values are detected among all the values stored in the {@link
+ * EnsoMultiValue#values} (both visible and hidden). If any of the stored values is a primitive, the
+ * {@link EnsoMultiValue} will respond positively to the corresponding interop query (like {@code
+ * isNumber}) and will delegate the conversion to that value. If multiple stored values match the
+ * same primitive category, the first one is chosen for the conversion.
+ *
+ * <p>See, e.g., {@link EnsoMultiValue#isBoolean(InteropLibrary)}.
+ *
+ * <h2>Documentation</h2>
+ *
+ * @see <a
+ *     href="https://github.com/enso-org/enso/blob/3e730e9569cd3692c3acb35b35f62e48e5b18dee/docs/types/intersection-types.md">
+ *     Intersection types documentation </a>
+ */
 @ExportLibrary(TypesLibrary.class)
 @ExportLibrary(InteropLibrary.class)
 @ExportLibrary(value = StructsLibrary.class)
 public final class EnsoMultiValue extends EnsoObject {
+  /** <i>Visible</i> types. */
   private final EnsoMultiType dispatch;
+
+  /** <i>Hidden</i> types. */
   private final EnsoMultiType extra;
+
+  /** Index into {@link #values} where the first {@link #dispatch} value is located. */
   private final int firstDispatch;
 
+  /**
+   * All the values that this {@link EnsoMultiValue} can represent. Length of this array is the same
+   * as number of types in {@link #dispatch} and {@link #extra} combined.
+   */
   @CompilationFinal(dimensions = 1)
   private final Object[] values;
 
@@ -60,7 +96,7 @@ public final class EnsoMultiValue extends EnsoObject {
     this.values = values;
   }
 
-  final Object firstDispatchValue() {
+  public Object firstDispatchValue() {
     return values[firstDispatch];
   }
 

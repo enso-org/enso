@@ -89,7 +89,7 @@ public abstract class ImportResolverAlgorithm<
       java.util.List<Export> exp,
       java.util.List<ResolvedConversionMethod> conversionMethods);
 
-  protected abstract Result createErrorPackageCoundNotBeLoaded(
+  protected abstract Result createErrorPackageCouldNotBeLoaded(
       Import imp, String impName, String loadingError);
 
   protected abstract Result createErrorModuleDoesNotExist(Import imp, String impName);
@@ -149,7 +149,7 @@ public abstract class ImportResolverAlgorithm<
       }
       return createErrorModuleDoesNotExist(imp, impName);
     } catch (IOException e) {
-      return createErrorPackageCoundNotBeLoaded(imp, impName, e.getMessage());
+      return createErrorPackageCouldNotBeLoaded(imp, impName, e.getMessage());
     }
   }
 

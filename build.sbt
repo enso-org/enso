@@ -3851,15 +3851,7 @@ lazy val `engine-runner` = project
             .map(_.getAbsolutePath()) ++
           `std-duckdb-polyglot-root`
             .listFiles("*.jar")
-            .map(_.getAbsolutePath()) ++ (if (
-                                            GraalVM.EnsoLauncher.disableMicrosoft
-                                          ) {
-                                            Seq()
-                                          } else {
-                                            `std-microsoft-polyglot-root`
-                                              .listFiles("*.jar")
-                                              .map(_.getAbsolutePath())
-                                          })
+            .map(_.getAbsolutePath())
         }
       }
       core ++ stdLibsJars ++ extraNITestLibs.value
@@ -3881,8 +3873,6 @@ lazy val `engine-runner` = project
           sys.env.get("CI").isDefined && Platform.isMacOS && Platform.isArm64
         val maxLimit           = if (macArmOnCI) Some(14336) else Some(15608)
         val areStdlibsIncluded = !GraalVM.EnsoLauncher.fast
-        val azureFeature =
-          "org.enso.microsoft.nativeimage.AzureNativeImageFeature"
         val databaseFeature =
           "org.enso.database.nativeimage.SqliteJdbcPatchedFeature"
         // Features from gax-grpc-2.31.0
@@ -3894,9 +3884,6 @@ lazy val `engine-runner` = project
         )
         if (areStdlibsIncluded) {
           features = features ++ Seq(databaseFeature)
-          if (!GraalVM.EnsoLauncher.disableMicrosoft) {
-            features = features ++ Seq(azureFeature)
-          }
         }
         // heapdump monitoring is not supported on Windows
         val enableHeapDumpOpts =
