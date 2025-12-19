@@ -925,4 +925,75 @@ public class TestIRProcessorInline {
     var generatedSrcs = compilation.generatedSourceFiles();
     assertThat(generatedSrcs.size(), is(2));
   }
+
+  @Test
+  public void resolvesSimpleTypeNameClashes() {
+    var pkg = "processor.test";
+
+    var literalNameCode =
+        """
+        package ${pkg};
+
+        import org.enso.runtime.parser.dsl.GenerateIR;
+        import org.enso.runtime.parser.dsl.GenerateFields;
+        import org.enso.runtime.parser.dsl.IRField;
+        import org.enso.compiler.core.IR;
+
+        public interface JLiteral extends IR {
+          @GenerateIR(interfaces = {JLiteral.class})
+          final class Name extends LiteralNameGen {
+            @GenerateFields
+            public Name(@IRField String name) {
+              super(name);
+            }
+
+            @Override
+            public String showCode(int indent) {
+              return name();
+            }
+          }
+        }
+        """
+            .replace("${pkg}", pkg);
+
+    var patternNameCode =
+        """
+        package ${pkg};
+
+        import org.enso.runtime.parser.dsl.GenerateIR;
+        import org.enso.runtime.parser.dsl.GenerateFields;
+        import org.enso.runtime.parser.dsl.IRField;
+        import org.enso.runtime.parser.dsl.IRChild;
+        import org.enso.compiler.core.IR;
+        import processor.test.JLiteral;
+
+        public interface JPattern extends IR {
+          @GenerateIR(interfaces = {JPattern.class})
+          final class Name extends PatternNameGen {
+            @GenerateFields
+            public Name(@IRChild JLiteral.Name litName) {
+              super(litName);
+            }
+
+            @Override
+            public String showCode(int indent) {
+              return litName().name();
+            }
+          }
+        }
+        """
+            .replace("${pkg}", pkg);
+    var litSrc = JavaFileObjects.forSourceString(pkg + ".JLiteral", literalNameCode);
+    var patSrc = JavaFileObjects.forSourceString(pkg + ".JPattern", patternNameCode);
+    var compiler = Compiler.javac().withProcessors(new IRProcessor());
+    var compilation = compiler.compile(litSrc, patSrc);
+    if (compilation.status() != Status.SUCCESS) {
+      var failureMsg = new StringBuilder();
+      failureMsg.append("Compilation failed with diagnostics: ");
+      for (var diag : compilation.diagnostics()) {
+        failureMsg.append("  ").append(diag.toString()).append(System.lineSeparator());
+      }
+      fail(failureMsg.toString());
+    }
+  }
 }
