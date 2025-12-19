@@ -132,6 +132,7 @@
 - [Add spatial function support to expressions.][14492]
 - [Add `Date_Column` class, and `first_of_month` and `end_of_month`.][14485]
 - [Add `OneDrive.write` allowing a first API to write to OneDrive.][14494]
+- [Add `Grouping_Method.Equal_Sum` for database backends.][14528]
 
 [13769]: https://github.com/enso-org/enso/pull/13769
 [14026]: https://github.com/enso-org/enso/pull/14026
@@ -168,6 +169,7 @@
 [14488]: https://github.com/enso-org/enso/pull/14488
 [14492]: https://github.com/enso-org/enso/pull/14492
 [14494]: https://github.com/enso-org/enso/pull/14494
+[14528]: https://github.com/enso-org/enso/pull/14528
 
 #### Enso Language & Runtime
 
