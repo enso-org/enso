@@ -7,6 +7,7 @@ import static org.junit.Assert.fail;
 import com.oracle.truffle.api.TruffleLanguage;
 import org.enso.jvm.channel.Channel;
 import org.enso.test.utils.ContextUtils;
+import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
@@ -14,10 +15,7 @@ import org.junit.Test;
 
 public class OtherJvmJavaScriptTest {
   @ClassRule
-  public static final ContextUtils ctx =
-      ContextUtils.newBuilder("host", "js")
-          .assertGC(false) // but then we cannot try to GC EnsoC`sontext!
-          .build();
+  public static final ContextUtils ctx = ContextUtils.newBuilder("host").assertGC(false).build();
 
   private static Channel<OtherJvmPool> CHANNEL;
 
@@ -62,12 +60,23 @@ public class OtherJvmJavaScriptTest {
   }
 
   public static String multiString(String txt, int count, ResultCallbacks onResult) {
-    StringBuilder sb = new StringBuilder();
-    for (var i = 0; i < count; i++) {
-      sb.append(txt);
+    try (var jsCtx = Context.newBuilder("js").build()) {
+      var fn =
+          jsCtx.eval(
+              "js",
+              """
+              (function(txt, count, onResult) {
+                  let sb = "";
+                  for (let i = 0; i < count; i++) {
+                      sb = sb + txt;
+                  }
+                  onResult.onMessage(sb);
+                  return sb;
+              })
+              """);
+      var res = fn.execute(txt, count, onResult).asString();
+      return res;
     }
-    onResult.onMessage(sb);
-    return sb.toString();
   }
 
   private static Value loadOtherJvmClass(String name) throws Exception {
