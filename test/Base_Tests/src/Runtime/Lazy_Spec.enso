@@ -14,6 +14,9 @@ type Lazy
 type Generator
     Value n ~next
 
+type Wrapper
+    Value field
+
 
 add_specs suite_builder = suite_builder.group "Lazy" group_builder->
     group_builder.specify "should compute the result only once" <|
@@ -109,6 +112,37 @@ add_specs suite_builder = suite_builder.group "Lazy" group_builder->
         atom = Lazy.new (1+1)
         atom.get . should_equal 2 # Force evaluation
         atom.to_text . should_equal "(Lazy.Value 2)"
+
+    group_builder.specify "lazy atom field is not evaluated in structural pattern match" <|
+        ref = Ref.new 0
+        l = Lazy.new <|
+            ref.modify (_ + 1)
+        case l of
+            Lazy.Value _ -> Nothing
+            _ -> Test.fail "should match Lazy.Value ctor"
+        ref.get . should_equal 0
+
+    group_builder.specify "lazy atom field is not evaluated in structural pattern match with bounded field" <|
+        ref = Ref.new 0
+        l = Lazy.new <|
+            ref.modify (_ + 1)
+        should_compute = False
+        case l of
+            Lazy.Value x ->
+                if should_compute then x else Nothing
+            _ -> Test.fail "should match Lazy.Value ctor"
+        ref.get . should_equal 0
+
+    group_builder.specify "lazy atom field is not evaluated in structural pattern match when wrapped" <|
+        ref = Ref.new 0
+        l = Lazy.new <|
+            ref.modify (_ + 1)
+        wrap = Wrapper.Value l
+        case wrap of
+            Wrapper.Value (Lazy.Value _) -> Nothing
+            _ -> Test.fail "should match Wrapper.Value ctor"
+        ref.get . should_equal 0
+
 
 main filter=Nothing =
     suite = Test.build suite_builder->
