@@ -164,7 +164,7 @@ public class IRProcessor extends AbstractProcessor {
     try {
       DependencySorter.ensureNoCycles(dependencies);
     } catch (CyclicDependencyException e) {
-      throw new IRProcessingException("Cyclic dependency detected", null, e);
+      throw new IRProcessingException("Cyclic dependency detected: " + e.getMessage(), null, e);
     }
     var sortedDeps = DependencySorter.topologicalSort(dependencies);
     // Map class names to their TypeElements
