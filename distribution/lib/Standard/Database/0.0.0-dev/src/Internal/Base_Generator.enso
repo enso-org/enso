@@ -662,13 +662,16 @@ make_group_number_equal_sum (arguments : Vector) = if arguments.length < 3 then 
 
     ordering = arguments.drop 3
 
+    # Necessary in a window ordering to ensure that duplicate elements get different values
+    dedup = "ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW"
+
     ordering_part = if ordering.length == 0 then "" else
         SQL_Builder.code "ORDER BY " ++ SQL_Builder.join ", " ordering
-    running_sum = SQL_Builder.code "(sum(" ++ sum_column ++ ") over (" ++ ordering_part ++ "))"
+    running_sum = SQL_Builder.code "(sum(" ++ sum_column ++ ") over (" ++ ordering_part ++ " " ++ dedup ++ "))"
     full_sum = SQL_Builder.code "(sum(" ++ sum_column ++ ") over ())"
-    ideal_group_size = SQL_Builder.code "((" ++ full_sum.paren ++ ") / (cast(" ++ group_count.paren ++ " as float)))"
+    ideal_group_size = SQL_Builder.code "((" ++ full_sum.paren ++ " + 1) / (cast(" ++ group_count.paren ++ " as float)))"
     fractional_group_number = SQL_Builder.code "(" ++ running_sum.paren ++ " / " ++ ideal_group_size.paren ++ ")"
-    base_value = SQL_Builder.code "(float(" ++ fractional_group_number.paren ++ "))"
+    base_value = SQL_Builder.code "(cast(floor(" ++ fractional_group_number.paren ++ ") as integer))"
     SQL_Builder.code "((" ++ base_value.paren ++ " * " ++ step.paren ++ ") + " ++ offset.paren ++ ")"
 
 ## ---

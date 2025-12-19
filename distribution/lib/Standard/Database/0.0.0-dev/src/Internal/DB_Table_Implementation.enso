@@ -322,13 +322,17 @@ type DB_Table_Implementation
                 Grouping_Method.Equal_Sum on group_count order_by ->
                     if group_count < 1 then
                         Error.throw (Illegal_Argument.Error "group_count must be at least 1")
-                    defaulted_order_by = order_by.if_empty
                     ordering = Table_Helpers.resolve_order_by this_table.columns order_by problem_builder
                     problem_builder.attach_problems_before on_problems <|
                         order_descriptors = _resolve_order_descriptors this_table ordering "add_group_number"
-                        sum_column = this_table.columns_helper.select_columns_helper [on] Case_Sensitivity.Default True problem_builder
+                        sum_columns = this_table.columns_helper.select_columns_helper [on] Case_Sensitivity.Default True problem_builder
+                        if sum_columns.is_empty then
+                            Error.throw (Illegal_Argument.Error 'Sum column \"'+on.to_text+'\" not found')
+                        sum_column = sum_columns.at 0
 
-                        new_expr = Group_Number_Helpers.make_group_number_equal_sum from step sum_column group_count order_descriptors
+                        sum_expression = Internal_Column.from sum_column . expression
+
+                        new_expr = Group_Number_Helpers.make_group_number_equal_sum from step sum_expression group_count order_descriptors
 
                         mapping = this_table.connection.type_mapping
                         infer_from_database_callback expression =
