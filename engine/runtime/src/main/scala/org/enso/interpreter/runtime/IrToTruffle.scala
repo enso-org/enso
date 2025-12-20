@@ -78,7 +78,9 @@ import org.enso.interpreter.node.expression.builtin.BuiltinRootNode
 import org.enso.interpreter.node.expression.constant._
 import org.enso.interpreter.node.expression.foreign.ForeignMethodCallNode
 import org.enso.interpreter.node.expression.literal.LiteralNode
-import org.enso.interpreter.node.scope.{AssignmentNode, ReadLocalVariableNode}
+import org.enso.interpreter.node.scope.LazyAssignmentNode
+import org.enso.interpreter.node.scope.AssignmentNode
+import org.enso.interpreter.node.scope.ReadLocalVariableNode
 import org.enso.interpreter.node.{
   BaseNode,
   ClosureRootNode,
@@ -255,10 +257,12 @@ private[runtime] class IrToTruffle(
         DataflowAnalysis,
         "Method definition missing dataflow information."
       )
-      def frameInfo() = conversion.unsafeGetMetadata(
-        FramePointerAnalysis,
-        "Method definition missing frame information."
-      )
+      def frameInfo() = conversion
+        .unsafeGetMetadata(
+          FramePointerAnalysis,
+          "Method definition missing frame information."
+        )
+        .asInstanceOf[FrameVariableNames]
 
       val toType =
         conversion.methodReference.typePointer match {
@@ -335,10 +339,12 @@ private[runtime] class IrToTruffle(
         DataflowAnalysis,
         "Method definition missing dataflow information."
       )
-      def frameInfo() = method.unsafeGetMetadata(
-        FramePointerAnalysis,
-        "Method definition missing frame information."
-      )
+      def frameInfo() = method
+        .unsafeGetMetadata(
+          FramePointerAnalysis,
+          "Method definition missing frame information."
+        )
+        .asInstanceOf[FrameVariableNames]
 
       @tailrec
       def getContext(tp: Expression): Option[String] = tp match {
@@ -447,10 +453,12 @@ private[runtime] class IrToTruffle(
           DataflowAnalysis,
           "No dataflow information associated with an atom."
         )
-        def frameInfo() = atomDefn.unsafeGetMetadata(
-          FramePointerAnalysis,
-          "Method definition missing frame information."
-        )
+        def frameInfo() = atomDefn
+          .unsafeGetMetadata(
+            FramePointerAnalysis,
+            "Method definition missing frame information."
+          )
+          .asInstanceOf[FrameVariableNames]
         val localScope = new LocalScope(
           None,
           () => scopeInfo().graph,
@@ -676,10 +684,12 @@ private[runtime] class IrToTruffle(
               scopeElements.init
                 .mkString(Constants.SCOPE_SEPARATOR)
             )
-            def frameInfo() = annotation.unsafeGetMetadata(
-              FramePointerAnalysis,
-              "Method definition missing frame information."
-            )
+            def frameInfo() = annotation
+              .unsafeGetMetadata(
+                FramePointerAnalysis,
+                "Method definition missing frame information."
+              )
+              .asInstanceOf[FrameVariableNames]
             val expressionProcessor = new ExpressionProcessor(
               scopeName,
               () => scopeInfo().graph,
@@ -1182,7 +1192,7 @@ private[runtime] class IrToTruffle(
       scope: () => AliasScope,
       dataflowInfo: () => DataflowAnalysis.Metadata,
       initialName: String,
-      frameInfo: () => FramePointerAnalysis.Metadata = null
+      frameInfo: () => FrameVariableNames = null
     ) = {
       this(
         new LocalScope(None, graph, scope, dataflowInfo, frameInfo),
@@ -1220,20 +1230,21 @@ private[runtime] class IrToTruffle(
     def run(
       ir: Expression,
       subjectToInstrumentation: Boolean
-    ): RuntimeExpression = run(ir, false, subjectToInstrumentation)
+    ): RuntimeExpression = run(ir, -1, subjectToInstrumentation)
 
     private def run(
       ir: Expression,
-      binding: Boolean,
+      bindingToIndex: Int,
       subjectToInstrumentation: Boolean
     ): RuntimeExpression = {
       var runtimeExpression = ir match {
-        case block: Expression.Block => processBlock(block)
+        case block: Expression.Block => processBlock(block, bindingToIndex)
         case literal: Literal        => processLiteral(literal)
         case app: Application =>
           processApplication(app, subjectToInstrumentation)
-        case name: Name                  => processName(name)
-        case function: Function          => processFunction(function, binding)
+        case name: Name => processName(name)
+        case function: Function =>
+          processFunction(function, bindingToIndex >= 0)
         case binding: Expression.Binding => processBinding(binding)
         case caseExpr: Case =>
           processCase(caseExpr, subjectToInstrumentation)
@@ -1245,7 +1256,7 @@ private[runtime] class IrToTruffle(
               asc.signature
             )
           if (checkNode != null) {
-            val body = run(asc.typed, binding, subjectToInstrumentation)
+            val body = run(asc.typed, bindingToIndex, subjectToInstrumentation)
             TypeCheckValueNode.wrap(body, checkNode)
           } else {
             processType(asc)
@@ -1304,8 +1315,11 @@ private[runtime] class IrToTruffle(
       * @param block the block to generate code for
       * @return the truffle nodes corresponding to `block`
       */
-    private def processBlock(block: Expression.Block): RuntimeExpression = {
-      if (block.suspended) {
+    private def processBlock(
+      block: Expression.Block,
+      bindingToIndex: Int
+    ): RuntimeExpression = {
+      if (block.suspended && bindingToIndex >= 0) {
         val scopeInfo = childScopeInfo("block", block)
         def frameInfo() = block
           .unsafeGetMetadata(
@@ -1322,13 +1336,15 @@ private[runtime] class IrToTruffle(
         )
         val childScope = childFactory.scope
 
-        val blockNode = childFactory.processBlock(block.copy(suspended = false))
+        val blockNode = childFactory.processBlock(block, -1)
+        val blockNodeWithAssignment =
+          LazyAssignmentNode.build(blockNode, 1, bindingToIndex)
 
         val defaultRootNode = ClosureRootNode.build(
           language,
           childScope,
           scopeBuilder.asModuleScope(),
-          blockNode,
+          blockNodeWithAssignment,
           makeSource(scopeBuilder.getModule),
           makeLocation(block.location),
           currentVarName,
@@ -1843,8 +1859,9 @@ private[runtime] class IrToTruffle(
 
       currentVarName = binding.name.name
       val slotIdx = fp.frameSlotIdx()
+      val rhs     = this.run(binding.expression, slotIdx, true)
       setLocation(
-        AssignmentNode.build(this.run(binding.expression, true, true), slotIdx),
+        AssignmentNode.build(rhs, slotIdx),
         binding.location
       )
     }
@@ -2209,7 +2226,7 @@ private[runtime] class IrToTruffle(
               argSlotIdxs
             )
           case _ =>
-            ExpressionProcessor.this.run(body, false, subjectToInstrumentation)
+            ExpressionProcessor.this.run(body, -1, subjectToInstrumentation)
         }
 
         if (typeCheck == null) {

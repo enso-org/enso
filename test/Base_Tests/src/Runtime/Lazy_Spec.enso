@@ -33,7 +33,7 @@ add_specs suite_builder = suite_builder.group "Lazy" group_builder->
         compute . should_equal "Value"
         compute . should_equal "Value"
 
-        ref.get . should_equal 3
+        ref.get . should_equal 1
 
     group_builder.specify "should compute the result only once, even if copied" <|
         ref = Ref.new 0

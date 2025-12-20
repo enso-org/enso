@@ -1,7 +1,6 @@
 package org.enso.compiler.context
 
 import org.enso.scala.wrapper.ScalaConversions
-import org.enso.compiler.pass.analyse.FrameAnalysisMeta
 import org.enso.compiler.pass.analyse.FramePointer
 import org.enso.compiler.pass.analyse.FrameVariableNames
 import org.enso.compiler.pass.analyse.DataflowAnalysis
@@ -39,7 +38,7 @@ class LocalScope(
   final val aliasingGraph: () => AliasGraph,
   final private val scopeProvider: () => AliasGraph.Scope,
   final private val dataflowInfoProvider: () => DataflowAnalysis.Metadata,
-  final private val symbolsProvider: () => FrameAnalysisMeta     = null,
+  final private val symbolsProvider: () => FrameVariableNames    = null,
   final val flattenToParent: Boolean                             = false,
   private val parentFrameSlotIdxs: () => Map[AliasGraph.Id, Int] = () => Map()
 ) {

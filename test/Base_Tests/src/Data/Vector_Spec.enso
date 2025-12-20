@@ -91,9 +91,9 @@ type_spec suite_builder name alter = suite_builder.group name group_builder->
         Vector.new 100 (ix -> ix + 1) . fold 0 (+) . should_equal 5050
 
         r = Ref.new 0
-        next =
+        next _ =
             r.put r.get+1
-        const = Vector.new 4 _->next
+        const = Vector.new 4 next
         const.should_equal [0, 1, 2, 3]
 
     group_builder.specify "should allow vector creation with a constant constructor" <|
