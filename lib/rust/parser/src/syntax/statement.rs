@@ -124,6 +124,51 @@ fn compound_lines_maybe_with_tail<'s>(
         }
     }
     line_prefixes.drain_unused_into(&mut block_lines);
+    println!("Processing lines {:}", block_lines.len());
+    let mut prev = None;
+    for (i, line) in block_lines.clone().into_iter().enumerate() {
+        if let Some(e) = line.expression {
+            match e.variant {
+                tree::Variant::ExpressionStatement(exp) => {
+                    match exp.expression.variant {
+                        tree::Variant::MultiSegmentApp(app) => {
+                            let head = app.segments[0].header.code.to_string();
+                            if head == "if"
+                                && app.segments.len() == 2
+                                && app.segments[1].header.code == "then"
+                            {
+                                prev = Some((line.newline.clone(), app.clone()));
+                            }
+                            if head == "else"
+                                && let Some((prev_line, prev_app)) = prev.clone()
+                            {
+                                // println!("Found Block IF THEN {:?} ELSE {:} there is {:?}", prev, i, app);
+                                let mut all_segments = prev_app.segments.clone();
+                                let seg = app.segments[0].clone();
+                                all_segments.push(seg);
+                                let combine = Tree::multi_segment_app(all_segments);
+                                // println!(".  Combined to {:?}", combine);
+                                let new_prev_line = block::Line {
+                                    newline: prev_line.into(),
+                                    expression: Some(combine),
+                                };
+                                let new_line =
+                                    block::Line { newline: line.newline.into(), expression: None };
+                                block_lines[i - 1] = new_prev_line;
+                                block_lines[i] = new_line;
+                            }
+                        }
+                        _ => {
+                            prev = None;
+                        }
+                    }
+                }
+                _ => {
+                    prev = None;
+                }
+            }
+        }
+    }
     block_lines
 }
 

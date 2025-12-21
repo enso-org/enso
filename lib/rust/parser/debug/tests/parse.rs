@@ -111,6 +111,12 @@ fn else_block() {
 }
 
 #[test]
+fn if_block_else_block() {
+    test_block!("if True then\n True\nelse\n False",
+        @"(BodyBlock #((ExpressionStatement () (MultiSegmentApp #(((Ident if) (Ident True)h) ((Ident then) (Ident True)) ((Ident else) (BodyBlock #((ExpressionStatement () (Ident False))))))))))");
+}
+
+#[test]
 fn if_then_else_chained_block() {
     test_block!("if True then True else False\n    . to_text",
         @r#"(BodyBlock #((ExpressionStatement () (OperatorBlockApplication (MultiSegmentApp #(((Ident if) (Ident True)) ((Ident then) (Ident True)) ((Ident else) (Ident False)))) #(((Ok ".") (Ident to_text))) #()))))"#);
