@@ -20,7 +20,7 @@ import type {
 } from 'ydoc-shared/languageServerTypes'
 import { assertNever } from 'ydoc-shared/util/assert'
 import { AbortScope, exponentialBackoff, printingCallbacks } from 'ydoc-shared/util/net'
-import { YjsBackendTransport, YjsTransport } from 'ydoc-shared/util/net/YjsTransport'
+import { YjsServerTransport } from 'ydoc-shared/util/net/YjsTransport'
 import {
   DistributedProject,
   IdMap,
@@ -89,15 +89,10 @@ export class LanguageServerSession {
   static sessions: Map<string, LanguageServerSession> = new Map<string, LanguageServerSession>()
 
   /** Get a {@link LanguageServerSession} by its URL. */
-  static get(url: string, callbacks?: YjsChannelCallbacks): LanguageServerSession {
+  static get(url: string, callbacks: YjsChannelCallbacks): LanguageServerSession {
     const session = map.setIfUndefined(LanguageServerSession.sessions, url, () => {
       const indexDoc = new WSSharedDoc()
-      let transport
-      if (callbacks) {
-        transport = new YjsBackendTransport(indexDoc.doc, url, callbacks)
-      } else {
-        transport = new YjsTransport(indexDoc.doc, url)
-      }
+      let transport = new YjsServerTransport(indexDoc.doc, url, callbacks)
       const ls = new LanguageServer(crypto.randomUUID(), transport)
       console.log('DEBUG LanguageServerSession.get transport created', url)
       return new LanguageServerSession(ls, indexDoc, () =>
