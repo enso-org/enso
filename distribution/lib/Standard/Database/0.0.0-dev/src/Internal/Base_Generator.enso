@@ -660,7 +660,7 @@ make_group_number_equal_sum (arguments : Vector) = if arguments.length < 3 then 
     sum_column = arguments.at 2
     group_count = arguments.at 3
 
-    ordering = arguments.drop 3
+    ordering = arguments.drop 4
 
     # Necessary in a window ordering to ensure that duplicate elements get different values
     dedup = "ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW"
