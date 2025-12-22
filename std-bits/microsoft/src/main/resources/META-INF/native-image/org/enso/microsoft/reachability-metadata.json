@@ -1,67 +1,118 @@
 {
   "reflection": [
     {
-      "type" : "org.enso.microsoft.azure.AzureCredential"
+      "type": "com.azure.core.exception.ClientAuthenticationException"
     },
     {
-      "type" : "org.enso.microsoft.azure.AzureCredential$Default",
-      "methods" : [
+      "type": "com.azure.core.http.HttpHeaderName",
+      "methods": [
         {
-          "name" : "<init>",
-          "parameterTypes" : []
+          "name": "<init>",
+          "parameterTypes": []
         }
       ]
     },
     {
-      "type" : "org.enso.microsoft.azure.AzureCredential.Default"
+      "type": "com.azure.core.http.netty.NettyAsyncHttpClientProvider"
     },
     {
-      "type" : "org.enso.microsoft.azure.AzureCredential$Environment",
-      "methods" : [
+      "type": "com.azure.core.http.netty.implementation.AzureSdkHandler",
+      "methods": [
         {
-          "name" : "<init>",
-          "parameterTypes" : []
+          "name": "channelRead",
+          "parameterTypes": ["io.netty.channel.ChannelHandlerContext", "java.lang.Object"]
+        },
+        {
+          "name": "channelReadComplete",
+          "parameterTypes": ["io.netty.channel.ChannelHandlerContext"]
+        },
+        {
+          "name": "write",
+          "parameterTypes": ["io.netty.channel.ChannelHandlerContext", "java.lang.Object", "io.netty.channel.ChannelPromise"]
         }
       ]
     },
     {
-      "type" : "org.enso.microsoft.azure.AzureCredential.Environment"
-    },
-    {
-      "type" : "org.enso.microsoft.azure.AzureCredential$CLI",
-      "methods" : [
+      "type": "com.azure.core.http.rest.ResponseBase",
+      "methods": [
         {
-          "name" : "<init>",
-          "parameterTypes" : []
+          "name": "<init>",
+          "parameterTypes": [
+            "com.azure.core.http.HttpRequest",
+            "int",
+            "com.azure.core.http.HttpHeaders",
+            "java.lang.Object",
+            "java.lang.Object"
+          ]
         }
       ]
     },
     {
-      "type" : "org.enso.microsoft.azure.AzureCredential.CLI"
-    },
-    {
-      "type" : "org.enso.microsoft.azure.AzureCredential$ClientSecret",
-      "methods" : [
+      "type": "com.azure.core.util.Header",
+      "fields": [
         {
-          "name" : "<init>",
-          "parameterTypes" : ["org.enso.base.enso_cloud.HideableValue", "org.enso.base.enso_cloud.HideableValue", "org.enso.base.enso_cloud.HideableValue"]
+          "name": "cachedStringValue"
         }
       ]
     },
     {
-      "type" : "org.enso.microsoft.azure.AzureCredential.ClientSecret"
-    },
-    {
-      "type" : "org.enso.microsoft.azure.AzureCredential$BlobStorageSASToken",
-      "methods" : [
+      "type": "com.azure.core.util.QueryParameter",
+      "fields": [
         {
-          "name" : "<init>",
-          "parameterTypes" : ["org.enso.base.enso_cloud.HideableValue"]
+          "name": "cachedStringValue"
         }
       ]
     },
     {
-      "type" : "org.enso.microsoft.azure.AzureCredential.BlobStorageSASToken"
+      "type": "com.azure.identity.implementation.RegionalAuthority",
+      "methods": [
+        {
+          "name" : "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "com.azure.storage.blob.implementation.models.ContainersGetPropertiesHeaders",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "com.azure.core.http.HttpHeaders"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "com.azure.storage.blob.implementation.models.ContainersListBlobFlatSegmentHeaders",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "com.azure.core.http.HttpHeaders"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "com.azure.storage.blob.implementation.models.ListBlobsFlatSegmentResponse",
+      "methods": [
+        {
+          "name": "fromXml",
+          "parameterTypes": [
+            "com.azure.xml.XmlReader"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "com.azure.storage.blob.models.AccessTier",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
     },
     {
       "type": "io.netty.buffer.AbstractByteBufAllocator"
@@ -431,6 +482,69 @@
           "parameterTypes": []
         }
       ]
+    },
+    {
+      "type": "org.enso.microsoft.azure.AzureCredential"
+    },
+    {
+      "type" : "org.enso.microsoft.azure.AzureCredential$BlobStorageSASToken",
+      "methods" : [
+        {
+          "name" : "<init>",
+          "parameterTypes" : ["org.enso.base.enso_cloud.HideableValue"]
+        }
+      ]
+    },
+    {
+      "type" : "org.enso.microsoft.azure.AzureCredential$CLI",
+      "methods" : [
+        {
+          "name" : "<init>",
+          "parameterTypes" : []
+        }
+      ]
+    },
+    {
+      "type" : "org.enso.microsoft.azure.AzureCredential$ClientSecret",
+      "methods" : [
+        {
+          "name" : "<init>",
+          "parameterTypes" : ["org.enso.base.enso_cloud.HideableValue", "org.enso.base.enso_cloud.HideableValue", "org.enso.base.enso_cloud.HideableValue"]
+        }
+      ]
+    },
+    {
+      "type" : "org.enso.microsoft.azure.AzureCredential$Default",
+      "methods" : [
+        {
+          "name" : "<init>",
+          "parameterTypes" : []
+        }
+      ]
+    },
+    {
+      "type" : "org.enso.microsoft.azure.AzureCredential$Environment",
+      "methods" : [
+        {
+          "name" : "<init>",
+          "parameterTypes" : []
+        }
+      ]
+    },
+    {
+      "type" : "org.enso.microsoft.azure.AzureCredential.BlobStorageSASToken"
+    },
+    {
+      "type" : "org.enso.microsoft.azure.AzureCredential.CLI"
+    },
+    {
+      "type" : "org.enso.microsoft.azure.AzureCredential.ClientSecret"
+    },
+    {
+      "type" : "org.enso.microsoft.azure.AzureCredential.Default"
+    },
+    {
+      "type" : "org.enso.microsoft.azure.AzureCredential.Environment"
     },
     {
       "type": "reactor.core.publisher.EmitterProcessor",
@@ -806,120 +920,6 @@
         },
         {
           "name": "producerIndex"
-        }
-      ]
-    },
-    {
-      "type": "com.azure.identity.implementation.RegionalAuthority",
-      "methods": [
-        {
-          "name" : "<init>",
-          "parameterTypes": []
-        }
-      ]
-    },
-    {
-      "type": "com.azure.core.exception.ClientAuthenticationException"
-    },
-    {
-      "type": "com.azure.core.http.HttpHeaderName",
-      "methods": [
-        {
-          "name": "<init>",
-          "parameterTypes": []
-        }
-      ]
-    },
-    {
-      "type": "com.azure.core.http.netty.NettyAsyncHttpClientProvider"
-    },
-    {
-      "type": "com.azure.core.http.netty.implementation.AzureSdkHandler",
-      "methods": [
-        {
-          "name": "channelRead",
-          "parameterTypes": ["io.netty.channel.ChannelHandlerContext", "java.lang.Object"]
-        },
-        {
-          "name": "channelReadComplete",
-          "parameterTypes": ["io.netty.channel.ChannelHandlerContext"]
-        },
-        {
-          "name": "write",
-          "parameterTypes": ["io.netty.channel.ChannelHandlerContext", "java.lang.Object", "io.netty.channel.ChannelPromise"]
-        }
-      ]
-    },
-    {
-      "type": "com.azure.core.http.rest.ResponseBase",
-      "methods": [
-        {
-          "name": "<init>",
-          "parameterTypes": [
-            "com.azure.core.http.HttpRequest",
-            "int",
-            "com.azure.core.http.HttpHeaders",
-            "java.lang.Object",
-            "java.lang.Object"
-          ]
-        }
-      ]
-    },
-    {
-      "type": "com.azure.core.util.Header",
-      "fields": [
-        {
-          "name": "cachedStringValue"
-        }
-      ]
-    },
-    {
-      "type": "com.azure.core.util.QueryParameter",
-      "fields": [
-        {
-          "name": "cachedStringValue"
-        }
-      ]
-    },
-    {
-      "type": "com.azure.storage.blob.implementation.models.ContainersGetPropertiesHeaders",
-      "methods": [
-        {
-          "name": "<init>",
-          "parameterTypes": [
-            "com.azure.core.http.HttpHeaders"
-          ]
-        }
-      ]
-    },
-    {
-      "type": "com.azure.storage.blob.implementation.models.ContainersListBlobFlatSegmentHeaders",
-      "methods": [
-        {
-          "name": "<init>",
-          "parameterTypes": [
-            "com.azure.core.http.HttpHeaders"
-          ]
-        }
-      ]
-    },
-    {
-      "type": "com.azure.storage.blob.implementation.models.ListBlobsFlatSegmentResponse",
-      "methods": [
-        {
-          "name": "fromXml",
-          "parameterTypes": [
-            "com.azure.xml.XmlReader"
-          ]
-        }
-      ]
-    },
-    {
-      "type": "com.azure.storage.blob.models.AccessTier",
-      "methods": [
-        {
-          "name": "<init>",
-          "parameterTypes": []
         }
       ]
     }
