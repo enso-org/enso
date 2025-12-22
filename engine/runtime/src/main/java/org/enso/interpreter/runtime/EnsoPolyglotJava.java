@@ -12,7 +12,6 @@ import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.source.Source;
 import java.io.File;
-import java.lang.System.Logger.Level;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -23,13 +22,15 @@ import org.enso.common.RuntimeOptions;
 import org.enso.interpreter.runtime.util.TruffleFileSystem;
 import org.enso.pkg.NativeLibraryFinder;
 import org.enso.pkg.Package;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Handles a polyglot Java system for loading classes from a single source. <em>Single source</em>
  * is a collection of Java modules/libraries/JARs that belong together.
  */
 final class EnsoPolyglotJava {
-  private static final System.Logger logger = System.getLogger(EnsoPolyglotJava.class.getName());
+  private static final Logger logger = LoggerFactory.getLogger(EnsoPolyglotJava.class);
   private static final EnsoContext.Extra<CtxData> KEY =
       new EnsoContext.Extra<>(CtxData.class, CtxData::new);
 
@@ -78,12 +79,12 @@ final class EnsoPolyglotJava {
    * @return {@code null} on failure or an object representing the {@code className}
    */
   final TruffleObject lookupJavaClass(
-      String className, Collection<? super Exception> collectExceptions) {
+      Package<?> requestedBy, String className, Collection<? super Exception> collectExceptions) {
     var binaryName = new StringBuilder(className);
     for (; ; ) {
       var fqn = binaryName.toString();
       try {
-        var hostSymbol = loadClass(fqn);
+        var hostSymbol = loadClass(fqn, requestedBy);
 
         if (hostSymbol != null) {
           return hostSymbol;
@@ -135,9 +136,8 @@ final class EnsoPolyglotJava {
         if (pkgOrNull != null) {
           pkgOrNull.checkAotReady(
               () -> {
-                logger.log(
-                    Level.WARNING,
-                    "Package {0} forced to guest classloading. Use --jvm when encountering"
+                logger.warn(
+                    "Package {} forced to guest classloading. Use --jvm when encountering"
                         + " problems.",
                     logNameForPkg(pkgOrNull));
               });
@@ -197,7 +197,7 @@ final class EnsoPolyglotJava {
       try {
         InteropLibrary.getUncached().invokeMember(pj, "findLibraries", new LibraryResolver());
       } catch (InteropException ex) {
-        logger.log(Level.WARNING, "Cannot register findLibraries", ex);
+        logger.warn("Cannot register findLibraries", ex);
       }
       synchronized (pj) {
         if (polyglotJava == this) {
@@ -265,7 +265,7 @@ final class EnsoPolyglotJava {
       try {
         InteropLibrary.getUncached().invokeMember(toClose, "close");
       } catch (InteropException ex) {
-        logger.log(Level.WARNING, "Cannot close " + toClose, ex);
+        logger.warn("Cannot close " + toClose, ex);
       }
     }
   }
@@ -278,7 +278,7 @@ final class EnsoPolyglotJava {
     } else {
       var envJava = System.getenv("ENSO_JAVA");
       if (envJava == null) {
-        logger.log(Level.INFO, "Initializing OtherJvm support!");
+        logger.info("Initializing OtherJvm support!");
         var src = Source.newBuilder("epb", "java:0#guest", "<Bindings>").build();
         var target = ctx.parseInternal(src);
         return target.call();
@@ -287,16 +287,15 @@ final class EnsoPolyglotJava {
         var src = Source.newBuilder("java", "<Bindings>", "getbindings.java").build();
         try {
           var java = ctx.parseInternal(src).call();
-          logger.log(Level.ERROR, "Using experimental Espresso support!");
+          logger.error("Using experimental Espresso support!");
           return java;
         } catch (Exception ex) {
           if (ex.getMessage().contains("No language for id java found.")) {
-            logger.log(
-                Level.ERROR,
-                "Environment variable ENSO_JAVA={0}, but {1}",
+            logger.error(
+                "Environment variable ENSO_JAVA={}, but {}",
                 new Object[] {envJava, ex.getMessage()});
-            logger.log(Level.ERROR, "Copy missing libraries to components directory");
-            logger.log(Level.ERROR, "Continuing in regular Java mode");
+            logger.error("Copy missing libraries to components directory");
+            logger.error("Continuing in regular Java mode");
           } else {
             var ise = new IllegalStateException(ex.getMessage());
             ise.setStackTrace(ex.getStackTrace());
@@ -311,8 +310,14 @@ final class EnsoPolyglotJava {
     return null;
   }
 
-  final TruffleObject loadClass(String fqn) throws InteropException {
+  private final TruffleObject loadClass(String fqn, Package<?> requestedBy)
+      throws InteropException {
     var raw = InteropLibrary.getUncached().readMember(findPolyglotJava(), fqn);
+    logger.debug(
+        "Classloading of {} as {} requested by {}",
+        fqn,
+        raw,
+        requestedBy == null ? "null" : requestedBy.libraryName());
     return (TruffleObject) raw;
   }
 

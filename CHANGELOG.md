@@ -1,5 +1,11 @@
 # Next Next Release
 
+#### Enso Standard Library
+
+- [Using dual JVM mode for Standard.Microsoft][14476].
+
+[14476]: https://github.com/enso-org/enso/pull/14476
+
 #### Enso Language & Runtime
 
 - [`Panic.rethrow` keeps original location][14480]
