@@ -38,9 +38,8 @@ final class EnsoPolyglotJava {
   private final List<File> classPath;
 
   /**
-   * the amount of elements from {@link #classPath} already added to {@link #polyglotJava}.
-   *
-   * <p>TBD: guard somehow to prevent race conditions
+   * the amount of elements from {@link #classPath} already added to {@link
+   * #polyglotJava}. @GuardedBy("classPath")
    */
   private int classPathSize;
 
@@ -206,13 +205,28 @@ final class EnsoPolyglotJava {
           ArityException,
           UnsupportedMessageException,
           UnsupportedTypeException {
-    var size = classPath.size();
     var iop = InteropLibrary.getUncached();
-    while (classPathSize < size) {
-      // we are the thread to add this classpath element
-      var elem = classPath.get(classPathSize);
+    while (true) {
+      int indexToAdd;
+      synchronized (classPath) {
+        indexToAdd = classPathSize;
+        if (indexToAdd >= classPath.size()) {
+          break;
+        }
+      }
+
+      File elem = classPath.get(indexToAdd);
+      // multiple concurrent threads can add the same classpath element
+      // that's OK, classpath elements can be duplicated
       iop.invokeMember(polyglotJava, "addPath", elem.toString());
-      classPathSize++;
+
+      synchronized (classPath) {
+        // only after an indexToAdd element is added
+        // we make sure the classPathSize is at least one higher than the index
+        if (classPathSize <= indexToAdd) {
+          classPathSize = indexToAdd + 1;
+        }
+      }
     }
   }
 
