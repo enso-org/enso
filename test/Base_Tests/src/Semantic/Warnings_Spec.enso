@@ -160,6 +160,14 @@ add_specs suite_builder = suite_builder.group "Dataflow Warnings" group_builder-
         r.should_equal 6
         Warning.get_all r . map .value . should_equal [My_Warning.Value "warn!", My_Warning.Value "warn!!", My_Warning.Value "warn!!!"]
 
+    group_builder.specify "constructor pattern match does not preserve warning on a field" <|
+        field_with_warn = Warning.attach "warn" 42
+        obj = Wrap.Value field_with_warn
+        case obj of
+            Wrap.Value x ->
+                Warning.has_warnings x . should_be_false
+            _ -> Test.fail "Should match on Wrap.Value ctor"
+
     group_builder.specify "should thread warnings through conversions" <|
         z = Wrap.Value (Warning.attach 'warn!' 1)
         i = Integer.from z
