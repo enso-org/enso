@@ -34,23 +34,13 @@ class YdocJsonRpcServer(
 
   implicit val ec: ExecutionContext = system.dispatcher
 
-  val yjsChannelCallbacks = {
-    val incomingMessageHandler: ActorRef =
-      system.actorOf(
-        Props(
-          new MessageHandlerSupervisor(
-            clientControllerFactory,
-            protocolFactory
-          )
-        ),
-        s"ydoc-message-handler-supervisor-${UUID.randomUUID()}"
-      )
+  val yjsChannelCallbacks =
     new YdocJsonRpcServer.ServerCallbacks(
-      incomingMessageHandler,
+      protocolFactory,
+      clientControllerFactory,
       messageCallbacks,
       system
     )
-  }
 
   override protected def serverRoute(port: Int): Route = {
     val emptyEndpoint =
@@ -70,7 +60,8 @@ class YdocJsonRpcServer(
 object YdocJsonRpcServer {
 
   final class ServerCallbacks(
-    incomingMessageHandler: ActorRef,
+    protocolFactory: ProtocolFactory,
+    clientControllerFactory: ClientControllerFactory,
     messageCallbacks: List[MessageHandler.WebMessage => Unit],
     system: ActorSystem
   ) extends MessageCallbacks
@@ -78,15 +69,32 @@ object YdocJsonRpcServer {
 
     override def onConnect(channel: YjsChannel): Unit = {
       logger.info(s"ServerCallbacks.onConnect ${channel.getClass()}")
-      val outgoingMessageHandler = system.actorOf(
-        Props(
-          new OutgoingMessageHandler(channel)
+
+      val incomingMessageHandler =
+        system.actorOf(
+          Props(
+            new MessageHandlerSupervisor(
+              clientControllerFactory,
+              protocolFactory
+            )
+          ),
+          s"message-handler-supervisor-${UUID.randomUUID()}"
         )
-      )
+      channel.subscribe(this.onMessage(incomingMessageHandler, _))
+
+      val outgoingMessageHandler =
+        system.actorOf(
+          Props(
+            new OutgoingMessageHandler(channel)
+          )
+        )
       incomingMessageHandler ! MessageHandler.Connected(outgoingMessageHandler)
     }
 
-    override def onMessage(message: Object): Unit = {
+    private def onMessage(
+      incomingMessageHandler: ActorRef,
+      message: Object
+    ): Unit = {
       message match {
         case m: String =>
           logger.info(s"Received message $m")

@@ -98,7 +98,7 @@ export function setupGatewayClient(
   ws: YjsSocket,
   lsUrl: string | undefined | null,
   docName: string,
-  callbacks?: YjsChannelCallbacks,
+  callbacks: YjsChannelCallbacks,
 ): void {
   console.log(`setupGatewayClient(${lsUrl ? 'lsUrl: ' + lsUrl : 'no lsUrl'}, docName: ${docName}), callbacks: ${callbacks}`)
   const lsSession = getSessionForUrl(lsUrl, callbacks)
@@ -118,7 +118,7 @@ export function setupGatewayClient(
   })
 }
 
-function getSessionForUrl(lsUrl: string | undefined | null, callbacks?: YjsChannelCallbacks) {
+function getSessionForUrl(lsUrl: string | undefined | null, callbacks: YjsChannelCallbacks) {
   let lsSession: LanguageServerSession
   if (lsUrl) {
     lsSession = LanguageServerSession.get(lsUrl, callbacks)

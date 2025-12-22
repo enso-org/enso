@@ -23,13 +23,7 @@ export interface YjsChannelCallbacks<T = unknown> {
    * Called when the channel is connected and ready to use.
    * @param channel - The connected YjsChannel instance
    */
-  onConnect(channel: YjsChannel): void
-
-  /**
-   * Called when a message is received from another party.
-   * @param message - The received message payload
-   */
-  onMessage(message: T): void
+  onConnect(channel: YjsChannel<T>): void
 }
 
 /**
