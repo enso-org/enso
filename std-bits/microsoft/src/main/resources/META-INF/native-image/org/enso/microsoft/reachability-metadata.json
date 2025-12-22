@@ -1,6 +1,69 @@
 {
   "reflection": [
     {
+      "type" : "org.enso.microsoft.azure.AzureCredential"
+    },
+    {
+      "type" : "org.enso.microsoft.azure.AzureCredential$Default",
+      "methods" : [
+        {
+          "name" : "<init>",
+          "parameterTypes" : []
+        }
+      ]
+    },
+    {
+      "type" : "org.enso.microsoft.azure.AzureCredential.Default"
+    },
+    {
+      "type" : "org.enso.microsoft.azure.AzureCredential$Environment",
+      "methods" : [
+        {
+          "name" : "<init>",
+          "parameterTypes" : []
+        }
+      ]
+    },
+    {
+      "type" : "org.enso.microsoft.azure.AzureCredential.Environment"
+    },
+    {
+      "type" : "org.enso.microsoft.azure.AzureCredential$CLI",
+      "methods" : [
+        {
+          "name" : "<init>",
+          "parameterTypes" : []
+        }
+      ]
+    },
+    {
+      "type" : "org.enso.microsoft.azure.AzureCredential.CLI"
+    },
+    {
+      "type" : "org.enso.microsoft.azure.AzureCredential$ClientSecret",
+      "methods" : [
+        {
+          "name" : "<init>",
+          "parameterTypes" : ["org.enso.base.enso_cloud.HideableValue", "org.enso.base.enso_cloud.HideableValue", "org.enso.base.enso_cloud.HideableValue"]
+        }
+      ]
+    },
+    {
+      "type" : "org.enso.microsoft.azure.AzureCredential.ClientSecret"
+    },
+    {
+      "type" : "org.enso.microsoft.azure.AzureCredential$BlobStorageSASToken",
+      "methods" : [
+        {
+          "name" : "<init>",
+          "parameterTypes" : ["org.enso.base.enso_cloud.HideableValue"]
+        }
+      ]
+    },
+    {
+      "type" : "org.enso.microsoft.azure.AzureCredential.BlobStorageSASToken"
+    },
+    {
       "type": "io.netty.buffer.AbstractByteBufAllocator"
     },
     {
@@ -34,6 +97,19 @@
     },
     {
       "type": "io.netty.channel.epoll.Epoll"
+    },
+    {
+      "type": "io.netty.channel.epoll.LinuxSocket",
+      "methods": [
+        {
+          "name": "setIpBindAddressNoPort",
+          "parameterTypes": ["boolean"]
+        },
+        {
+          "name": "setIpBindAddressNoPort",
+          "parameterTypes": ["int", "int"]
+        }
+      ]
     },
     {
       "type": "io.netty.channel.epoll.NativeDatagramPacketArray$NativeDatagramPacket"
@@ -359,12 +435,6 @@
   ],
   "jni": [
     {
-      "type": "[B"
-    },
-    {
-      "type": "[Ljava.lang.String;"
-    },
-    {
       "type": "io.netty.handler.ssl.OpenSslClientSessionCache"
     },
     {
@@ -498,54 +568,503 @@
       "type": "io.netty.resolver.dns.macos.MacOSDnsServerAddressStreamProvider"
     },
     {
-      "type": "java.lang.Class",
+      "type": "com.azure.identity.implementation.RegionalAuthority",
       "methods": [
         {
-          "name": "getClassLoader",
+          "name" : "<init>",
           "parameterTypes": []
         }
       ]
     },
     {
-      "type": "java.lang.ClassLoader",
+      "type": "com.azure.core.exception.ClientAuthenticationException"
+    },
+    {
+      "type": "com.azure.core.http.HttpHeaderName",
       "methods": [
         {
-          "name": "loadClass",
-          "parameterTypes": [
-            "java.lang.String"
-          ]
+          "name": "<init>",
+          "parameterTypes": []
         }
       ]
     },
     {
-      "type": "java.lang.Exception"
+      "type": "com.azure.core.http.netty.NettyAsyncHttpClientProvider"
     },
     {
-      "type": "java.lang.IllegalArgumentException"
+      "type": "com.azure.core.http.netty.implementation.AzureSdkHandler",
+      "methods": [
+        {
+          "name": "channelRead",
+          "parameterTypes": ["io.netty.channel.ChannelHandlerContext", "java.lang.Object"]
+        },
+        {
+          "name": "channelReadComplete",
+          "parameterTypes": ["io.netty.channel.ChannelHandlerContext"]
+        },
+        {
+          "name": "write",
+          "parameterTypes": ["io.netty.channel.ChannelHandlerContext", "java.lang.Object", "io.netty.channel.ChannelPromise"]
+        }
+      ]
     },
     {
-      "type": "java.lang.NullPointerException"
-    },
-    {
-      "type": "java.lang.OutOfMemoryError"
-    },
-    {
-      "type": "java.lang.String",
+      "type": "com.azure.core.http.rest.ResponseBase",
       "methods": [
         {
           "name": "<init>",
           "parameterTypes": [
-            "byte[]"
+            "com.azure.core.http.HttpRequest",
+            "int",
+            "com.azure.core.http.HttpHeaders",
+            "java.lang.Object",
+            "java.lang.Object"
           ]
-        },
+        }
+      ]
+    },
+    {
+      "type": "com.azure.core.util.Header",
+      "fields": [
         {
-          "name": "getBytes",
+          "name": "cachedStringValue"
+        }
+      ]
+    },
+    {
+      "type": "com.azure.core.util.QueryParameter",
+      "fields": [
+        {
+          "name": "cachedStringValue"
+        }
+      ]
+    },
+    {
+      "type": "com.azure.storage.blob.implementation.models.ContainersGetPropertiesHeaders",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "com.azure.core.http.HttpHeaders"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "com.azure.storage.blob.implementation.models.ContainersListBlobFlatSegmentHeaders",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "com.azure.core.http.HttpHeaders"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "com.azure.storage.blob.implementation.models.ListBlobsFlatSegmentResponse",
+      "methods": [
+        {
+          "name": "fromXml",
+          "parameterTypes": [
+            "com.azure.xml.XmlReader"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "com.azure.storage.blob.models.AccessTier",
+      "methods": [
+        {
+          "name": "<init>",
           "parameterTypes": []
         }
       ]
     },
     {
-      "type": "jdk.internal.loader.ClassLoaders$AppClassLoader"
+      "type": "reactor.core.publisher.EmitterProcessor",
+      "fields": [
+        {
+          "name": "error"
+        },
+        {
+          "name": "s"
+        },
+        {
+          "name": "subscribers"
+        },
+        {
+          "name": "upstreamDisposable"
+        },
+        {
+          "name": "wip"
+        }
+      ]
+    },
+    {
+      "type": "reactor.core.publisher.FluxConcatMap$ConcatMapImmediate",
+      "fields": [
+        {
+          "name": "error"
+        },
+        {
+          "name": "guard"
+        },
+        {
+          "name": "wip"
+        }
+      ]
+    },
+    {
+      "type": "reactor.core.publisher.FluxDoFinally$DoFinallySubscriber",
+      "fields": [
+        {
+          "name": "once"
+        }
+      ]
+    },
+    {
+      "type": "reactor.core.publisher.FluxFirstWithSignal$RaceCoordinator",
+      "fields": [
+        {
+          "name": "winner"
+        }
+      ]
+    },
+    {
+      "type": "reactor.core.publisher.FluxPublish$PubSubInner",
+      "fields": [
+        {
+          "name": "requested"
+        }
+      ]
+    },
+    {
+      "type": "reactor.core.publisher.FluxPublish$PublishSubscriber",
+      "fields": [
+        {
+          "name": "connected"
+        },
+        {
+          "name": "error"
+        },
+        {
+          "name": "s"
+        },
+        {
+          "name": "subscribers"
+        },
+        {
+          "name": "wip"
+        }
+      ]
+    },
+    {
+      "type": "reactor.core.publisher.FluxRetryWhen$RetryWhenMainSubscriber",
+      "fields": [
+        {
+          "name": "wip"
+        }
+      ]
+    },
+    {
+      "type": "reactor.core.publisher.LambdaMonoSubscriber",
+      "fields": [
+        {
+          "name": "subscription"
+        }
+      ]
+    },
+    {
+      "type": "reactor.core.publisher.MonoCreate$DefaultMonoSink",
+      "fields": [
+        {
+          "name": "disposable"
+        },
+        {
+          "name": "requestConsumer"
+        },
+        {
+          "name": "state"
+        }
+      ]
+    },
+    {
+      "type": "reactor.core.publisher.MonoFlatMap$FlatMapInner",
+      "fields": [
+        {
+          "name": "s"
+        }
+      ]
+    },
+    {
+      "type": "reactor.core.publisher.MonoFlatMap$FlatMapMain",
+      "fields": [
+        {
+          "name": "s"
+        }
+      ]
+    },
+    {
+      "type": "reactor.core.publisher.MonoFlatMapMany$FlatMapManyMain",
+      "fields": [
+        {
+          "name": "inner"
+        },
+        {
+          "name": "requested"
+        }
+      ]
+    },
+    {
+      "type": "reactor.core.publisher.MonoUsing$MonoUsingSubscriber",
+      "fields": [
+        {
+          "name": "wip"
+        }
+      ]
+    },
+    {
+      "type": "reactor.core.publisher.Operators$DeferredSubscription",
+      "fields": [
+        {
+          "name": "requested"
+        }
+      ]
+    },
+    {
+      "type": "reactor.core.publisher.Operators$MonoInnerProducerBase",
+      "fields": [
+        {
+          "name": "state"
+        }
+      ]
+    },
+    {
+      "type": "reactor.core.publisher.Operators$MonoSubscriber",
+      "fields": [
+        {
+          "name": "state"
+        }
+      ]
+    },
+    {
+      "type": "reactor.core.publisher.Operators$MultiSubscriptionSubscriber",
+      "fields": [
+        {
+          "name": "missedProduced"
+        },
+        {
+          "name": "missedRequested"
+        },
+        {
+          "name": "missedSubscription"
+        },
+        {
+          "name": "wip"
+        }
+      ]
+    },
+    {
+      "type": "reactor.core.publisher.Operators$ScalarSubscription",
+      "fields": [
+        {
+          "name": "once"
+        }
+      ]
+    },
+    {
+      "type": "reactor.core.publisher.SinkEmptyMulticast",
+      "fields": [
+        {
+          "name": "subscribers"
+        }
+      ]
+    },
+    {
+      "type": "reactor.core.publisher.SinksSpecs$AbstractSerializedSink",
+      "fields": [
+        {
+          "name": "lockedAt"
+        },
+        {
+          "name": "wip"
+        }
+      ]
+    },
+    {
+      "type": "reactor.netty.channel.ChannelOperations",
+      "fields": [
+        {
+          "name": "outboundSubscription"
+        }
+      ]
+    },
+    {
+      "type": "reactor.netty.channel.ChannelOperationsHandler",
+      "methods": [
+        {
+          "name": "channelInactive",
+          "parameterTypes": ["io.netty.channel.ChannelHandlerContext"]
+        },
+        {
+          "name": "channelActive",
+          "parameterTypes": ["io.netty.channel.ChannelHandlerContext"]
+        },
+        {
+          "name": "channelRead",
+          "parameterTypes": ["io.netty.channel.ChannelHandlerContext", "java.lang.Object"]
+        },
+        {
+          "name": "channelWritabilityChanged",
+          "parameterTypes": ["io.netty.channel.ChannelHandlerContext"]
+        },
+        {
+          "name": "userEventTriggered",
+          "parameterTypes": ["io.netty.channel.ChannelHandlerContext", "java.lang.Object"]
+        },
+        {
+          "name": "exceptionCaught",
+          "parameterTypes": ["io.netty.channel.ChannelHandlerContext", "java.lang.Throwable"]
+        }
+      ]
+    },
+    {
+      "type": "reactor.netty.channel.FluxReceive",
+      "fields": [
+        {
+          "name": "receiverCancel"
+        }
+      ]
+    },
+    {
+      "type": "reactor.netty.http.Cookies",
+      "fields": [
+        {
+          "name": "state"
+        }
+      ]
+    },
+    {
+      "type": "reactor.netty.http.HttpOperations",
+      "fields": [
+        {
+          "name": "statusAndHeadersSent"
+        }
+      ]
+    },
+    {
+      "type": "reactor.netty.internal.shaded.reactor.pool.AbstractPool$AbstractPooledRef",
+      "fields": [
+        {
+          "name": "state"
+        }
+      ]
+    },
+    {
+      "type": "reactor.netty.internal.shaded.reactor.pool.AllocationStrategies$SizeBasedAllocationStrategy",
+      "fields": [
+        {
+          "name": "permits"
+        }
+      ]
+    },
+    {
+      "type": "reactor.netty.internal.shaded.reactor.pool.SimpleDequePool",
+      "fields": [
+        {
+          "name": "acquired"
+        },
+        {
+          "name": "idleResources"
+        },
+        {
+          "name": "idleSize"
+        },
+        {
+          "name": "pending"
+        },
+        {
+          "name": "pendingSize"
+        },
+        {
+          "name": "wip"
+        }
+      ]
+    },
+    {
+      "type": "reactor.netty.internal.shaded.reactor.pool.SimpleDequePool$QueuePoolRecyclerInner",
+      "fields": [
+        {
+          "name": "once"
+        }
+      ]
+    },
+    {
+      "type": "reactor.netty.resources.DefaultPooledConnectionProvider$PooledConnectionAllocator$PooledConnectionInitializer"
+    },
+    {
+      "type": "reactor.netty.tcp.SslProvider$SslReadHandler",
+      "methods": [
+        {
+          "name": "channelReadComplete",
+          "parameterTypes": ["io.netty.channel.ChannelHandlerContext"]
+        },
+        {
+          "name": "channelActive",
+          "parameterTypes": ["io.netty.channel.ChannelHandlerContext"]
+        },
+        {
+          "name": "userEventTriggered",
+          "parameterTypes": ["io.netty.channel.ChannelHandlerContext", "java.lang.Object"]
+        }
+      ]
+    },
+    {
+      "type": "reactor.netty.transport.TransportConfig$TransportChannelInitializer"
+    },
+    {
+      "type": "reactor.netty.transport.TransportConnector$MonoChannelPromise",
+      "fields": [
+        {
+          "name": "result"
+        }
+      ]
+    },
+    {
+      "type": "reactor.util.concurrent.SpscArrayQueueConsumer",
+      "fields": [
+        {
+          "name": "consumerIndex"
+        }
+      ]
+    },
+    {
+      "type": "reactor.util.concurrent.SpscArrayQueueProducer",
+      "fields": [
+        {
+          "name": "producerIndex"
+        }
+      ]
+    },
+    {
+      "type": "reactor.util.concurrent.SpscLinkedArrayQueue",
+      "fields": [
+        {
+          "name": "consumerIndex"
+        },
+        {
+          "name": "producerIndex"
+        }
+      ]
+    }
+  ],
+  "resources": [
+    {
+      "glob": "META-INF/services/java.sql.Driver"
+    },
+    {
+      "bundle": "com.microsoft.sqlserver.jdbc.SQLServerResource"
     }
   ]
 }
