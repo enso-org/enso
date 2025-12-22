@@ -6,6 +6,10 @@ const debug = typeof YDOC_LS_DEBUG != 'undefined'
 
 configureAllDebugLogs(debug)
 
+if (YDOC_MESSAGE_CALLBACKS == undefined) {
+  throw new Error('YDOC_MESSAGE_CALLBACKS undefined')
+}
+
 const wss = new WebSocketServer({ host, port })
 
 wss.onconnect = (socket, url) => {
