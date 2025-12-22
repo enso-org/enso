@@ -33,10 +33,14 @@ add_specs suite_builder setup =
 add_offset_specs suite_builder setup =
     prefix = setup.prefix
     build_sorted_table = Util.build_sorted_table setup
-    t = build_sorted_table [["A", [1, 2, 3]], ["B", [Nothing, Nothing, Nothing], Value_Type.Integer], ["Text Values", ["A", "B", "C"]]]
-    c = t.at 0
-    c_nothings = t.at 1
-    c_zero_rows = t.take 0 . at 0
+    t =
+        build_sorted_table [["A", [1, 2, 3]], ["B", [Nothing, Nothing, Nothing], Value_Type.Integer], ["Text Values", ["A", "B", "C"]]]
+    c =
+        t.at 0
+    c_nothings =
+        t.at 1
+    c_zero_rows =
+        t.take 0 . at 0
     if setup.is_database then suite_builder.group prefix+"Column.Offset does not work in database" group_builder->
         group_builder.specify "Gives an error message" <|
             r = c.offset
