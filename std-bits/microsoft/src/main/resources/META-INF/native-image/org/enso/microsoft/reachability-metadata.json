@@ -431,255 +431,6 @@
           "parameterTypes": []
         }
       ]
-    }
-  ],
-  "jni": [
-    {
-      "type": "io.netty.handler.ssl.OpenSslClientSessionCache"
-    },
-    {
-      "type": "io.netty.handler.ssl.OpenSslSessionCache",
-      "methods": [
-        {
-          "name": "getSession",
-          "parameterTypes": [
-            "long",
-            "byte[]"
-          ]
-        },
-        {
-          "name": "sessionCreated",
-          "parameterTypes": [
-            "long",
-            "long"
-          ]
-        }
-      ]
-    },
-    {
-      "type": "io.netty.handler.ssl.ReferenceCountedOpenSslClientContext$ExtendedTrustManagerVerifyCallback"
-    },
-    {
-      "type": "io.netty.handler.ssl.ReferenceCountedOpenSslContext$AbstractCertificateVerifier",
-      "methods": [
-        {
-          "name": "verify",
-          "parameterTypes": [
-            "long",
-            "byte[][]",
-            "java.lang.String"
-          ]
-        }
-      ]
-    },
-    {
-      "type": "io.netty.internal.tcnative.Buffer"
-    },
-    {
-      "type": "io.netty.internal.tcnative.CertificateCallbackTask",
-      "methods": [
-        {
-          "name": "<init>",
-          "parameterTypes": [
-            "long",
-            "byte[]",
-            "byte[][]",
-            "io.netty.internal.tcnative.CertificateCallback"
-          ]
-        }
-      ]
-    },
-    {
-      "type": "io.netty.internal.tcnative.CertificateVerifierTask",
-      "methods": [
-        {
-          "name": "<init>",
-          "parameterTypes": [
-            "long",
-            "byte[][]",
-            "java.lang.String",
-            "io.netty.internal.tcnative.CertificateVerifier"
-          ]
-        }
-      ]
-    },
-    {
-      "type": "io.netty.internal.tcnative.Library"
-    },
-    {
-      "type": "io.netty.internal.tcnative.NativeStaticallyReferencedJniMethods"
-    },
-    {
-      "type": "io.netty.internal.tcnative.SSL"
-    },
-    {
-      "type": "io.netty.internal.tcnative.SSLContext"
-    },
-    {
-      "type": "io.netty.internal.tcnative.SSLPrivateKeyMethodDecryptTask",
-      "methods": [
-        {
-          "name": "<init>",
-          "parameterTypes": [
-            "long",
-            "byte[]",
-            "io.netty.internal.tcnative.AsyncSSLPrivateKeyMethod"
-          ]
-        }
-      ]
-    },
-    {
-      "type": "io.netty.internal.tcnative.SSLPrivateKeyMethodSignTask",
-      "methods": [
-        {
-          "name": "<init>",
-          "parameterTypes": [
-            "long",
-            "int",
-            "byte[]",
-            "io.netty.internal.tcnative.AsyncSSLPrivateKeyMethod"
-          ]
-        }
-      ]
-    },
-    {
-      "type": "io.netty.internal.tcnative.SSLPrivateKeyMethodTask",
-      "fields": [
-        {
-          "name": "resultBytes"
-        }
-      ]
-    },
-    {
-      "type": "io.netty.internal.tcnative.SSLSession"
-    },
-    {
-      "type": "io.netty.internal.tcnative.SSLTask",
-      "fields": [
-        {
-          "name": "complete"
-        },
-        {
-          "name": "returnValue"
-        }
-      ]
-    },
-    {
-      "type": "io.netty.resolver.dns.macos.MacOSDnsServerAddressStreamProvider"
-    },
-    {
-      "type": "com.azure.identity.implementation.RegionalAuthority",
-      "methods": [
-        {
-          "name" : "<init>",
-          "parameterTypes": []
-        }
-      ]
-    },
-    {
-      "type": "com.azure.core.exception.ClientAuthenticationException"
-    },
-    {
-      "type": "com.azure.core.http.HttpHeaderName",
-      "methods": [
-        {
-          "name": "<init>",
-          "parameterTypes": []
-        }
-      ]
-    },
-    {
-      "type": "com.azure.core.http.netty.NettyAsyncHttpClientProvider"
-    },
-    {
-      "type": "com.azure.core.http.netty.implementation.AzureSdkHandler",
-      "methods": [
-        {
-          "name": "channelRead",
-          "parameterTypes": ["io.netty.channel.ChannelHandlerContext", "java.lang.Object"]
-        },
-        {
-          "name": "channelReadComplete",
-          "parameterTypes": ["io.netty.channel.ChannelHandlerContext"]
-        },
-        {
-          "name": "write",
-          "parameterTypes": ["io.netty.channel.ChannelHandlerContext", "java.lang.Object", "io.netty.channel.ChannelPromise"]
-        }
-      ]
-    },
-    {
-      "type": "com.azure.core.http.rest.ResponseBase",
-      "methods": [
-        {
-          "name": "<init>",
-          "parameterTypes": [
-            "com.azure.core.http.HttpRequest",
-            "int",
-            "com.azure.core.http.HttpHeaders",
-            "java.lang.Object",
-            "java.lang.Object"
-          ]
-        }
-      ]
-    },
-    {
-      "type": "com.azure.core.util.Header",
-      "fields": [
-        {
-          "name": "cachedStringValue"
-        }
-      ]
-    },
-    {
-      "type": "com.azure.core.util.QueryParameter",
-      "fields": [
-        {
-          "name": "cachedStringValue"
-        }
-      ]
-    },
-    {
-      "type": "com.azure.storage.blob.implementation.models.ContainersGetPropertiesHeaders",
-      "methods": [
-        {
-          "name": "<init>",
-          "parameterTypes": [
-            "com.azure.core.http.HttpHeaders"
-          ]
-        }
-      ]
-    },
-    {
-      "type": "com.azure.storage.blob.implementation.models.ContainersListBlobFlatSegmentHeaders",
-      "methods": [
-        {
-          "name": "<init>",
-          "parameterTypes": [
-            "com.azure.core.http.HttpHeaders"
-          ]
-        }
-      ]
-    },
-    {
-      "type": "com.azure.storage.blob.implementation.models.ListBlobsFlatSegmentResponse",
-      "methods": [
-        {
-          "name": "fromXml",
-          "parameterTypes": [
-            "com.azure.xml.XmlReader"
-          ]
-        }
-      ]
-    },
-    {
-      "type": "com.azure.storage.blob.models.AccessTier",
-      "methods": [
-        {
-          "name": "<init>",
-          "parameterTypes": []
-        }
-      ]
     },
     {
       "type": "reactor.core.publisher.EmitterProcessor",
@@ -1057,6 +808,255 @@
           "name": "producerIndex"
         }
       ]
+    },
+    {
+      "type": "com.azure.identity.implementation.RegionalAuthority",
+      "methods": [
+        {
+          "name" : "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "com.azure.core.exception.ClientAuthenticationException"
+    },
+    {
+      "type": "com.azure.core.http.HttpHeaderName",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "com.azure.core.http.netty.NettyAsyncHttpClientProvider"
+    },
+    {
+      "type": "com.azure.core.http.netty.implementation.AzureSdkHandler",
+      "methods": [
+        {
+          "name": "channelRead",
+          "parameterTypes": ["io.netty.channel.ChannelHandlerContext", "java.lang.Object"]
+        },
+        {
+          "name": "channelReadComplete",
+          "parameterTypes": ["io.netty.channel.ChannelHandlerContext"]
+        },
+        {
+          "name": "write",
+          "parameterTypes": ["io.netty.channel.ChannelHandlerContext", "java.lang.Object", "io.netty.channel.ChannelPromise"]
+        }
+      ]
+    },
+    {
+      "type": "com.azure.core.http.rest.ResponseBase",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "com.azure.core.http.HttpRequest",
+            "int",
+            "com.azure.core.http.HttpHeaders",
+            "java.lang.Object",
+            "java.lang.Object"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "com.azure.core.util.Header",
+      "fields": [
+        {
+          "name": "cachedStringValue"
+        }
+      ]
+    },
+    {
+      "type": "com.azure.core.util.QueryParameter",
+      "fields": [
+        {
+          "name": "cachedStringValue"
+        }
+      ]
+    },
+    {
+      "type": "com.azure.storage.blob.implementation.models.ContainersGetPropertiesHeaders",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "com.azure.core.http.HttpHeaders"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "com.azure.storage.blob.implementation.models.ContainersListBlobFlatSegmentHeaders",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "com.azure.core.http.HttpHeaders"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "com.azure.storage.blob.implementation.models.ListBlobsFlatSegmentResponse",
+      "methods": [
+        {
+          "name": "fromXml",
+          "parameterTypes": [
+            "com.azure.xml.XmlReader"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "com.azure.storage.blob.models.AccessTier",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    }
+  ],
+  "jni": [
+    {
+      "type": "io.netty.handler.ssl.OpenSslClientSessionCache"
+    },
+    {
+      "type": "io.netty.handler.ssl.OpenSslSessionCache",
+      "methods": [
+        {
+          "name": "getSession",
+          "parameterTypes": [
+            "long",
+            "byte[]"
+          ]
+        },
+        {
+          "name": "sessionCreated",
+          "parameterTypes": [
+            "long",
+            "long"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "io.netty.handler.ssl.ReferenceCountedOpenSslClientContext$ExtendedTrustManagerVerifyCallback"
+    },
+    {
+      "type": "io.netty.handler.ssl.ReferenceCountedOpenSslContext$AbstractCertificateVerifier",
+      "methods": [
+        {
+          "name": "verify",
+          "parameterTypes": [
+            "long",
+            "byte[][]",
+            "java.lang.String"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "io.netty.internal.tcnative.Buffer"
+    },
+    {
+      "type": "io.netty.internal.tcnative.CertificateCallbackTask",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "long",
+            "byte[]",
+            "byte[][]",
+            "io.netty.internal.tcnative.CertificateCallback"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "io.netty.internal.tcnative.CertificateVerifierTask",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "long",
+            "byte[][]",
+            "java.lang.String",
+            "io.netty.internal.tcnative.CertificateVerifier"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "io.netty.internal.tcnative.Library"
+    },
+    {
+      "type": "io.netty.internal.tcnative.NativeStaticallyReferencedJniMethods"
+    },
+    {
+      "type": "io.netty.internal.tcnative.SSL"
+    },
+    {
+      "type": "io.netty.internal.tcnative.SSLContext"
+    },
+    {
+      "type": "io.netty.internal.tcnative.SSLPrivateKeyMethodDecryptTask",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "long",
+            "byte[]",
+            "io.netty.internal.tcnative.AsyncSSLPrivateKeyMethod"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "io.netty.internal.tcnative.SSLPrivateKeyMethodSignTask",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "long",
+            "int",
+            "byte[]",
+            "io.netty.internal.tcnative.AsyncSSLPrivateKeyMethod"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "io.netty.internal.tcnative.SSLPrivateKeyMethodTask",
+      "fields": [
+        {
+          "name": "resultBytes"
+        }
+      ]
+    },
+    {
+      "type": "io.netty.internal.tcnative.SSLSession"
+    },
+    {
+      "type": "io.netty.internal.tcnative.SSLTask",
+      "fields": [
+        {
+          "name": "complete"
+        },
+        {
+          "name": "returnValue"
+        }
+      ]
+    },
+    {
+      "type": "io.netty.resolver.dns.macos.MacOSDnsServerAddressStreamProvider"
     }
   ],
   "resources": [
