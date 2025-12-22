@@ -54,7 +54,7 @@ final class EnsoPolyglotJava {
    *   <li>{@code null} - the runtime is (being) closed
    * </ul>
    *
-   * TBD: guard somehow to prevent race conditions
+   * @GuardedBy("this")
    */
   private Object polyglotJava = this;
 
@@ -181,26 +181,33 @@ final class EnsoPolyglotJava {
 
   @CompilerDirectives.TruffleBoundary
   private Object findPolyglotJava() throws InteropException {
-    if (polyglotJava instanceof Throwable t) {
-      throw ctx.raiseAssertionPanic(null, t.getMessage(), t);
-    }
-    if (polyglotJava != this) {
-      return polyglotJava;
-    }
-    if (polyglotJava == this) {
-      polyglotJava = createPolyglotJava(ctx);
+    while (true) {
+      Object pj;
+      synchronized (this) {
+        pj = polyglotJava;
+      }
+      if (pj instanceof Throwable t) {
+        throw ctx.raiseAssertionPanic(null, t.getMessage(), t);
+      }
+      if (pj != this) {
+        adjustClassPath(pj);
+        return pj;
+      }
+      pj = createPolyglotJava(ctx);
       try {
-        InteropLibrary.getUncached()
-            .invokeMember(polyglotJava, "findLibraries", new LibraryResolver());
+        InteropLibrary.getUncached().invokeMember(pj, "findLibraries", new LibraryResolver());
       } catch (InteropException ex) {
         logger.log(Level.WARNING, "Cannot register findLibraries", ex);
       }
+      synchronized (pj) {
+        if (polyglotJava == this) {
+          polyglotJava = pj;
+        }
+      }
     }
-    adjustClassPath();
-    return polyglotJava;
   }
 
-  private void adjustClassPath()
+  private void adjustClassPath(Object pj)
       throws UnknownIdentifierException,
           ArityException,
           UnsupportedMessageException,
@@ -218,7 +225,7 @@ final class EnsoPolyglotJava {
       File elem = classPath.get(indexToAdd);
       // multiple concurrent threads can add the same classpath element
       // that's OK, classpath elements can be duplicated
-      iop.invokeMember(polyglotJava, "addPath", elem.toString());
+      iop.invokeMember(pj, "addPath", elem.toString());
 
       synchronized (classPath) {
         // only after an indexToAdd element is added
@@ -243,18 +250,23 @@ final class EnsoPolyglotJava {
 
   @CompilerDirectives.TruffleBoundary
   private final void close() {
-    try {
-      if (polyglotJava instanceof TruffleObject closeJava) {
-        polyglotJava = null;
-        try {
-          InteropLibrary.getUncached().invokeMember(closeJava, "close");
-        } catch (InteropException ex) {
-          logger.log(Level.WARNING, "Cannot close " + closeJava, ex);
-        }
-      } else {
-        polyglotJava = null;
+    TruffleObject toClose = null;
+    synchronized (this) {
+      if (polyglotJava == null) {
+        return;
       }
-    } finally {
+      if (polyglotJava instanceof TruffleObject closeJava) {
+        toClose = closeJava;
+      }
+      polyglotJava = null;
+    }
+    // one thread is selected {@code toClose}
+    if (toClose != null) {
+      try {
+        InteropLibrary.getUncached().invokeMember(toClose, "close");
+      } catch (InteropException ex) {
+        logger.log(Level.WARNING, "Cannot close " + toClose, ex);
+      }
     }
   }
 
