@@ -16,6 +16,7 @@ import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.core.exception.SdkClientException;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.ses.SesClient;
 
 public class ClientBuilder {
   private static AwsCredential defaultCredentialOverride = null;
@@ -60,6 +61,13 @@ public class ClientBuilder {
             .credentialsProvider(unsafeBuildCredentialProvider())
             .region(AWSRegion.underlying(awsRegion)));
   }
+
+  public SesClient buildSESClient() {
+      return SesClient.builder()
+              .credentialsProvider(unsafeBuildCredentialProvider())
+              .region(AWSRegion.underlying(awsRegion))
+              .build();
+  } 
 
   /**
    * Builds an HttpClient that will sign requests and payloads using the AWSv4 Signature algorithm.
