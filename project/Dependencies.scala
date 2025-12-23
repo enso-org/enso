@@ -304,6 +304,7 @@ object Dependencies {
   val opencvVersion           = "4.7.0-0"
   val fansiVersion            = "0.4.0"
   val httpComponentsVersion   = "4.4.1"
+  val apacheMime4jVersion     = "0.8.11"
   val apacheArrowVersion      = "14.0.1"
   val snowflakeJDBCVersion    = "3.15.0"
   val mssqlserverJDBCVersion  = "12.6.2.jre11"
