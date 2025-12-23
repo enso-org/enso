@@ -17,6 +17,14 @@ import Standard.Base.Nothing.Nothing
 import Standard.Base.System.File.File
 from Standard.Base.Error import all
 
+polyglot java import org.enso.aws.regions.AWSRegion
+polyglot java import software.amazon.awssdk.regions.Region
+polyglot java import software.amazon.awssdk.services.ses.SesClient
+polyglot java import software.amazon.awssdk.services.ses.model.Body
+polyglot java import software.amazon.awssdk.services.ses.model.Content
+polyglot java import software.amazon.awssdk.services.ses.model.Destination
+polyglot java import software.amazon.awssdk.services.ses.model.Message
+polyglot java import software.amazon.awssdk.services.ses.model.SendEmailRequest
 polyglot java import java.util.Base64
 
 type Email_Provider_SES_Implementation
@@ -26,37 +34,6 @@ type Email_Provider_SES_Implementation
         _send_email_with_ses_provider email self.config.region self.config.credentials
 
 _send_email_with_ses_provider email:Email region credentials =
-    to_object = JS_Object.from_pairs ([_create_to_email_object email.to "to", _create_to_email_object email.cc "cc", _create_to_email_object email.bcc "bcc"].filter ..Not_Nothing)
-    base_email_pairs = [["personalizations", [to_object]], ["from", (_create_to_email email.from_address)], ["subject", email.subject], ["content", [_prepare_html_body email.body]]]
-
-    attachment_list = if email.attachments.length == 0 then [] else email.attachments.map _prepare_attachment
-    final_email_pairs = if email.attachments.length == 0 then base_email_pairs else base_email_pairs + [["attachments", attachment_list]]
-    send_grid_request_body = JS_Object.from_pairs final_email_pairs
-
-    uri = "https://email." + region.resolve_id + "/v2/email/outbound-emails"
-    api_response = Data.post uri (..Json send_grid_request_body) headers=[Header.authorization_bearer ""]
-    if api_response.is_error.not then Send_Response.Sent email else
-        api_response.catch Any error->
-            Error.throw (Send_Error.Error error.to_display_text)
-
-_create_to_email_object emails send_type =
-    if emails.length > 0 then [send_type, emails.map _create_to_email] else Nothing
-
-_create_to_email recipient_email:Email_Address =
-    if recipient_email.name == "" then JS_Object.from_pairs [["email", recipient_email.address]] else
-        JS_Object.from_pairs [["name", recipient_email.name], ["email", recipient_email.address]]
-
-_prepare_html_body html_content =
-    html_object = case html_content of
-        Email_Body.No_Body -> JS_Object.from_pairs [["type", "text/plain"], ["value", " "]]
-        Email_Body.Plain_Text _ -> JS_Object.from_pairs [["type", "text/plain"], ["value", html_content.body]]
-        Email_Body.HTML _ _ -> JS_Object.from_pairs [["type", "text/html"], ["value", html_content.html]]
-    html_object
-
-_prepare_attachment attachment:Email_Attachment =
-    file_handle = File.new attachment.file
-    file_bytes = file_handle.read_bytes
-    encoded_content = Base64.getEncoder.encodeToString file_bytes
-    filename = if attachment.name == "" then attachment.file.name else attachment.name
-    attachment_object = JS_Object.from_pairs [["content", encoded_content], ["type", "text/plain"], ["filename", filename]]
-    attachment_object
+    ses_client1 = SesClient.builder.region (AWSRegion.underlying region.as_java)
+    ses_client2 = ses_client1.credentialsProvider credentials.as_java
+    ses_client2.build
