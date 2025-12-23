@@ -41,7 +41,11 @@ _send_email_with_ses_provider email:Email region credentials =
     body_text = Content.builder.data "This is a test email sent through Amazon SES." . build
     body = Body.builder.text body_text . build
     message = Message.builder.subject subject . body body . build
-    destination = Destination.builder.toAddresses (email.to.map .to_text) . build
+    destination = Destination.builder
+        . toAddresses (email.to.map .to_text) 
+        . ccAddresses (email.cc.map .to_text)
+        . bccAddresses (email.bcc.map .to_text)
+        . build
     send_email_request = SendEmailRequest.builder
         . source email.from_address.to_text
         . destination destination
