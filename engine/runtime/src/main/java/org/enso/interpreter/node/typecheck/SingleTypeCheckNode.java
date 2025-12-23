@@ -76,7 +76,7 @@ abstract non-sealed class SingleTypeCheckNode extends AbstractTypeCheckNode {
 
   @ExplodeLoop
   private final Object directMatchImpl(Object v) {
-    if (v instanceof Function fn && fn.isThunk()) {
+    if (v instanceof Function fn && fn.isFullyApplied()) {
       return fn;
     }
     assert EnsoContext.get(this).getBuiltins().any() != expectedType
