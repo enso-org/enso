@@ -1,50 +1,29 @@
 private
 
-import Standard.Base.Any.Any
-import Standard.Base.Data
-import Standard.Base.Data.Json.JS_Object
 import Standard.Base.Data.Text.Text
-import Standard.Base.Enso_Cloud.Enso_Secret.Enso_Secret
 import Standard.Base.Network.Email.Email
-import Standard.Base.Network.Email.Email_Address.Email_Address
-import Standard.Base.Network.Email.Email_Attachment.Email_Attachment
 import Standard.Base.Network.Email.Email_Body.Email_Body
-import Standard.Base.Network.Email.Email_Send_Response.Send_Response
 import project.SES.Email_Provider_SES.Email_Provider_SES
-import Standard.Base.Network.Email.Send_Error.Send_Error
-import Standard.Base.Network.HTTP.Header.Header
-import Standard.Base.Nothing.Nothing
-import Standard.Base.System.File.File
-from Standard.Base.Error import all
 
-polyglot java import org.enso.aws.regions.AWSRegion
 polyglot java import org.enso.aws.ClientBuilder
+polyglot java import org.enso.aws.ses.EmailMimeBuilder
 polyglot java import software.amazon.awssdk.core.SdkBytes
 polyglot java import software.amazon.awssdk.services.ses.model.RawMessage
 polyglot java import software.amazon.awssdk.services.ses.model.SendRawEmailRequest
-polyglot java import software.amazon.awssdk.regions.Region
 polyglot java import software.amazon.awssdk.services.ses.SesClient
 polyglot java import software.amazon.awssdk.services.ses.model.Body
 polyglot java import software.amazon.awssdk.services.ses.model.Content
 polyglot java import software.amazon.awssdk.services.ses.model.Destination
 polyglot java import software.amazon.awssdk.services.ses.model.Message
 polyglot java import software.amazon.awssdk.services.ses.model.SendEmailRequest
-polyglot java import java.util.Base64
 
-polyglot java import java.io.ByteArrayOutputStream
-polyglot java import java.nio.charset.StandardCharsets
-polyglot java import java.util.Date
 
-polyglot java import org.apache.james.mime4j.dom.TextBody
-polyglot java import org.apache.james.mime4j.field.address.Mailbox
-polyglot java import org.apache.james.mime4j.message.BodyFactory
-polyglot java import org.apache.james.mime4j.message.MessageImpl
 
 type Email_Provider_SES_Implementation
     private Value config:Email_Provider_SES
 
     send self email:Email =
-        _send_email_with_ses_provider email self.config.region self.config.credentials
+        _send_email_with_ses_provider_mime email self.config.region self.config.credentials
 
 _send_email_with_ses_provider_mime email:Email region credentials =
     ses_client = _make_client credentials region
@@ -52,17 +31,17 @@ _send_email_with_ses_provider_mime email:Email region credentials =
 
     raw_msg =
         RawMessage.builder
-            .data (SdkBytes.fromByteArray raw_bytes)
-            .build
+            . data (SdkBytes.fromByteArray raw_bytes)
+            . build
 
     # Envelope destinations (important later for bcc):
     destinations = email.to.map .to_text
 
     req =
         SendRawEmailRequest.builder
-            .rawMessage raw_msg
-            .destinations destinations
-            .build
+            . rawMessage raw_msg
+            . destinations destinations
+            . build
 
     ses_client.sendRawEmail req
 
@@ -96,18 +75,5 @@ _make_client credentials region =
 _build_content text:Text =
     Content.builder.data text . build
 
-_build_simple_mime from:Text to:Text subject:Text body_text:Text =
-    msg = MessageImpl.new
-    msg.setDate (Date.new)
-    msg.setFrom (Mailbox.parse from)
-    msg.setTo (Mailbox.parse to)
-    msg.setSubject subject
-
-    bf = BodyFactory.new
-    charset = StandardCharsets.UTF_8.name
-    text_body = bf.textBody body_text charset
-    msg.setText text_body
-
-    out = ByteArrayOutputStream.new
-    msg.writeTo out
-    out.toByteArray
+_build_simple_mime email =
+    EmailMimeBuilder.buildSimpleMime email.from_address.to_text (email.to.at 0).to_text email.subject email.body.body
