@@ -23,9 +23,9 @@ type Email_Provider_SES_Implementation
     private Value config:Email_Provider_SES
 
     send self email:Email =
-        _send_email_with_send_grid_provider email self.config.api_key
+        _send_email_with_ses_provider email self.config.region self.config.credentials
 
-_send_email_with_send_grid_provider email:Email api_key:(Text|Enso_Secret) =
+_send_email_with_ses_provider email:Email region credentials =
     to_object = JS_Object.from_pairs ([_create_to_email_object email.to "to", _create_to_email_object email.cc "cc", _create_to_email_object email.bcc "bcc"].filter ..Not_Nothing)
     base_email_pairs = [["personalizations", [to_object]], ["from", (_create_to_email email.from_address)], ["subject", email.subject], ["content", [_prepare_html_body email.body]]]
 
@@ -33,7 +33,8 @@ _send_email_with_send_grid_provider email:Email api_key:(Text|Enso_Secret) =
     final_email_pairs = if email.attachments.length == 0 then base_email_pairs else base_email_pairs + [["attachments", attachment_list]]
     send_grid_request_body = JS_Object.from_pairs final_email_pairs
 
-    api_response = Data.post 'https://api.sendgrid.com/v3/mail/send' (..Json send_grid_request_body) headers=[Header.authorization_bearer api_key]
+    uri = "https://email." + region.resolve_id + "/v2/email/outbound-emails"
+    api_response = Data.post uri (..Json send_grid_request_body) headers=[Header.authorization_bearer ""]
     if api_response.is_error.not then Send_Response.Sent email else
         api_response.catch Any error->
             Error.throw (Send_Error.Error error.to_display_text)
