@@ -43,7 +43,7 @@ _send_email_with_ses_provider email:Email region credentials =
     message = Message.builder.subject subject . body body . build
     destination = Destination.builder.toAddresses (email.to.map .address) . build
     send_email_request = SendEmailRequest.builder
-        . source email.from_address.address
+        . source email.from_address.to_text
         . destination destination
         . message message
         . build
