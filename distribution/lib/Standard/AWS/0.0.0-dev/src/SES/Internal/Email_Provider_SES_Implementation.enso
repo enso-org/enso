@@ -37,9 +37,12 @@ type Email_Provider_SES_Implementation
 _send_email_with_ses_provider email:Email region credentials =
     ses_client = _make_client credentials region
     
-    subject = Content.builder.data email.subject . build
-    body_text = Content.builder.data email.body.body . build
-    body = Body.builder.text body_text . build
+    subject = _build_content email.subject    
+    body = case email.body of
+        Email_Body.Plain_Text text -> Body.builder.text (_build_content text) . build
+        Email_Body.HTML html text -> Body.builder.html (_build_content html) 
+            . text (_build_content text) 
+            . build
     message = Message.builder.subject subject . body body . build
     destination = Destination.builder
         . toAddresses (email.to.map .to_text) 
@@ -57,3 +60,6 @@ _send_email_with_ses_provider email:Email region credentials =
 _make_client credentials region =
     builder = ClientBuilder.new credentials.as_java region.as_java
     builder.buildSESClient
+
+_build_content text:Text =
+    Content.builder.data text . build
