@@ -1,10 +1,12 @@
+private
+
 from Standard.Base import all
 import Standard.Base.Runtime.Ref.Ref
 
-import project.Frame_Hider
-import project.Spec_Result.Spec_Result
-from project import Test
-from project.Extensions import all
+import Standard.Test.Frame_Hider
+import Standard.Test.Spec_Result.Spec_Result
+from Standard.Test import Test
+from Standard.Test.Extensions import all
 
 ## Test class for checking if a certain point in the code has been reached.
 type Should_Reach
