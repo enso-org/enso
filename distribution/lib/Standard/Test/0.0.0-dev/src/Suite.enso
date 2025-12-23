@@ -34,7 +34,7 @@ type Suite_Builder
     group self (name:Text) (fn : (Group_Builder -> Any)) (~pending : (Text | Nothing) = Nothing) =
         group_builder = Group_Builder.Impl name
         fn group_builder
-        group = Group.Impl name group_builder.teardown_ref.get group_builder.builder.to_vector pending
+        group = Group.Impl name group_builder.teardown_ref.get group_builder.builder.to_vector (pending...)
         self.builder.append group
 
 
