@@ -2,7 +2,8 @@ from Standard.Base import all
 
 from Standard.Table import Table, Aggregate_Column
 
-from Standard.Test import Bench, Faker
+from Standard.Test import Bench
+import project.Faker.Faker
 
 
 create_table : Integer -> Integer -> Table
