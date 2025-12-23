@@ -2,12 +2,15 @@ package org.enso.aws.ses;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
-import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.Locale;
-import java.util.TimeZone;
+import org.apache.james.mime4j.codec.DecodeMonitor;
+import org.apache.james.mime4j.dom.TextBody;
+import org.apache.james.mime4j.field.Fields;
+import org.apache.james.mime4j.field.address.DefaultAddressParser;
+import org.apache.james.mime4j.message.BasicBodyFactory;
+import org.apache.james.mime4j.message.DefaultMessageWriter;
+import org.apache.james.mime4j.message.MessageImpl;
 
 /** Helper for building MIME payloads for SES raw email sends. */
 public final class EmailMimeBuilder {
@@ -28,32 +31,32 @@ public final class EmailMimeBuilder {
       throw new IllegalArgumentException("A recipient is required.");
     }
 
-    try (ByteArrayOutputStream out = new ByteArrayOutputStream();
-         PrintWriter writer = new PrintWriter(out, false, StandardCharsets.UTF_8)) {
-      
-      // Write headers
-      writer.println("From: " + from);
-      writer.println("To: " + to);
-      writer.println("Subject: " + subject);
-      writer.println("Date: " + formatDate(new Date()));
-      writer.println("MIME-Version: 1.0");
-      writer.println("Content-Type: text/plain; charset=utf-8");
-      writer.println("Content-Transfer-Encoding: 8bit");
-      writer.println();
-      
-      // Write body
-      writer.print(body);
-      writer.flush();
-      
+    MessageImpl msg = new MessageImpl();
+    var header = msg.getHeader();
+    var addressParser = DefaultAddressParser.DEFAULT;
+
+    try {
+      header.setField(Fields.version("1.0"));
+      header.setField(Fields.date(new Date()));
+      header.setField(Fields.from(addressParser.parseMailbox(from, DecodeMonitor.SILENT)));
+      header.setField(Fields.to(addressParser.parseMailbox(to, DecodeMonitor.SILENT)));
+      header.setField(Fields.subject(subject));
+      header.setField(Fields.contentType("text/plain; charset=UTF-8"));
+      header.setField(Fields.contentTransferEncoding("8bit"));
+    } catch (Exception ex) {
+      throw new IllegalArgumentException("Invalid email header values.", ex);
+    }
+
+    BasicBodyFactory bf = new BasicBodyFactory(StandardCharsets.UTF_8);
+    TextBody textBody = bf.textBody(body);
+    msg.setBody(textBody);
+
+    try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+      DefaultMessageWriter writer = new DefaultMessageWriter();
+      writer.writeMessage(msg, out);
       return out.toByteArray();
     } catch (IOException e) {
       throw new IllegalStateException("Unable to serialize MIME message.", e);
     }
-  }
-
-  private static String formatDate(Date date) {
-    SimpleDateFormat dateFormat = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss Z", Locale.US);
-    dateFormat.setTimeZone(TimeZone.getTimeZone("GMT"));
-    return dateFormat.format(date);
   }
 }
