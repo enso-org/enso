@@ -17,12 +17,9 @@ type Email_Provider_SES
        ## Arguments
         - `region`: AWS region where SES is enabled.
         - `credentials`: AWS credentials used to authorize the request.
-        - `configuration_set`: Optional configuration set name applied to the
-          send operation.
     @region (AWS_Region.default_widget display=Display.Always)
     @credentials (AWS_Credential.default_widget display=Display.Always)
-    @configuration_set (Text_Input display=Display.When_Modified)
-    Amazon_SES region:AWS_Region=AWS_Region.Default credentials:AWS_Credential=AWS_Credential.Default configuration_set:(Text|Nothing)=Nothing
+    Amazon_SES region:AWS_Region=AWS_Region.Default credentials:AWS_Credential=AWS_Credential.Default
 
     ## Options displayed in the provider selector.
     get_dropdown_options = [Option "..Amazon_SES" "..Amazon_SES"]
