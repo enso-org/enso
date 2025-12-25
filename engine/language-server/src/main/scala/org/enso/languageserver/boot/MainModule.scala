@@ -536,7 +536,12 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
   private val ydoc = {
     val c = org.enso.languageserver.boot.config.ApplicationConfig.load().ydoc
     org.enso.runner.common.YdocServerApi
-      .launchYdocServer(c.hostname, c.port, jsonRpcServer.yjsChannelCallbacks)
+      .launchYdocServer(
+        c.hostname,
+        c.port,
+        null,
+        jsonRpcServer.yjsChannelCallbacks
+      )
   }
 
   log.debug(

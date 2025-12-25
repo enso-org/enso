@@ -9,6 +9,11 @@ import org.enso.ydoc.api.MessageCallbacks
 import org.enso.ydoc.api.YjsChannel
 
 import java.util.UUID
+import java.util.concurrent.{
+  ExecutorService,
+  Executors,
+  ScheduledExecutorService
+}
 
 import scala.concurrent.ExecutionContext
 
@@ -19,7 +24,6 @@ import scala.concurrent.ExecutionContext
   * @param config a server config
   * @param optionalEndpoints a list of optional endpoints
   * @param system an actor system
-  * @param materializer a materializer
   */
 class YdocJsonRpcServer(
   protocolFactory: ProtocolFactory,
@@ -34,11 +38,19 @@ class YdocJsonRpcServer(
 
   implicit val ec: ExecutionContext = system.dispatcher
 
+  val executor: ScheduledExecutorService =
+    Executors.newSingleThreadScheduledExecutor { r =>
+      val t = new Thread(r)
+      t.setName(YdocJsonRpcServer.YDOC_EXECUTOR_THREAD_NAME)
+      t
+    }
+
   val yjsChannelCallbacks =
     new YdocJsonRpcServer.ServerCallbacks(
       protocolFactory,
       clientControllerFactory,
       messageCallbacks,
+      executor,
       system
     )
 
@@ -59,10 +71,13 @@ class YdocJsonRpcServer(
 
 object YdocJsonRpcServer {
 
+  final private val YDOC_EXECUTOR_THREAD_NAME = "Ydoc executor"
+
   final class ServerCallbacks(
     protocolFactory: ProtocolFactory,
     clientControllerFactory: ClientControllerFactory,
     messageCallbacks: List[MessageHandler.WebMessage => Unit],
+    executor: ExecutorService,
     system: ActorSystem
   ) extends MessageCallbacks
       with LazyLogging {
@@ -85,7 +100,7 @@ object YdocJsonRpcServer {
       val outgoingMessageHandler =
         system.actorOf(
           Props(
-            new OutgoingMessageHandler(channel)
+            new OutgoingMessageHandler(channel, executor)
           )
         )
       incomingMessageHandler ! MessageHandler.Connected(outgoingMessageHandler)
@@ -107,14 +122,26 @@ object YdocJsonRpcServer {
     }
   }
 
-  final class OutgoingMessageHandler(channel: YjsChannel)
-      extends Actor
+  final class OutgoingMessageHandler(
+    channel: YjsChannel,
+    @scala.annotation.unused executor: ExecutorService
+  ) extends Actor
       with LazyLogging {
 
     override def receive: Receive = {
       case MessageHandler.WebMessage(message) =>
         logger.info(s"Sending message $message")
-        channel.send(message)
+        //executor.execute(() => channel.send(message))
+        var continue = true
+        while (continue) {
+          try {
+            channel.send(message)
+            continue = false
+          } catch {
+            case _: Exception =>
+              logger.info("Oops... retry send")
+          }
+        }
       case unknown =>
         logger.error("Sending unsupported message:", unknown)
     }

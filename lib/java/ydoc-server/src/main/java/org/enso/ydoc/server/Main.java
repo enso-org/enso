@@ -2,9 +2,9 @@ package org.enso.ydoc.server;
 
 import java.io.IOException;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.Semaphore;
 import org.enso.ydoc.api.MessageCallbacks;
-import org.enso.ydoc.api.NoOpMessageCallbacks;
 import org.enso.ydoc.api.YjsChannel;
 import org.enso.ydoc.polyfill.web.WebEnvironment;
 import org.slf4j.Logger;
@@ -29,7 +29,7 @@ public final class Main {
       var then = System.currentTimeMillis();
       var hostname = args[0];
       var port = args[1];
-      launch(hostname, port, NoOpMessageCallbacks.INSTANCE);
+      launch(hostname, port, null, null);
 
       var now = System.currentTimeMillis();
       var took = now - then;
@@ -37,13 +37,17 @@ public final class Main {
     } else {
       var hostname = System.getenv(ENSO_YDOC_HOST);
       var port = System.getenv(ENSO_YDOC_PORT);
-      try (var ydoc = launch(hostname, port, NoOpMessageCallbacks.INSTANCE)) {
+      try (var ydoc = launch(hostname, port, null, null)) {
         lock.acquire();
       }
     }
   }
 
-  public static AutoCloseable launch(String ydocHost, String ydocPort, MessageCallbacks callbacks)
+  public static AutoCloseable launch(
+      String ydocHost,
+      String ydocPort,
+      ScheduledExecutorService executor,
+      MessageCallbacks callbacks)
       throws IOException {
     try {
       var builder = Ydoc.builder();
@@ -53,6 +57,9 @@ public final class Main {
       if (ydocPort != null) {
         var port = Integer.parseInt(ydocPort);
         builder.port(port);
+      }
+      if (executor != null) {
+        builder.executor(executor);
       }
       if (callbacks != null) {
         builder.callbacks(callbacks);
