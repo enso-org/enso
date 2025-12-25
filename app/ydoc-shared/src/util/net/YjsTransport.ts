@@ -175,7 +175,7 @@ export class YjsServerTransport extends YjsTransport {
     const proxyConnect = new Promise<void>((resolve) => {
       console.log('DEBUG YjsBackendTransport.connect', this.channelName)
       this.callbacks.onConnect(this.proxyChannel)
-      this.callbacks.onConnect(new YjsChannel(this.doc, `backend-${this.channelName}`))
+      this.callbacks.onConnect(new YjsChannel(this.doc, this.channelName))
       resolve()
     })
     return proxyConnect.then(() => super.connect())

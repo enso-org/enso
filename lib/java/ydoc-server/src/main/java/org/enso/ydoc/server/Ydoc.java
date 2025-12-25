@@ -7,7 +7,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import org.enso.ydoc.api.MessageCallbacks;
-import org.enso.ydoc.api.NoOpMessageCallbacks;
+import org.enso.ydoc.api.YjsChannel;
 import org.enso.ydoc.polyfill.ParserPolyfill;
 import org.enso.ydoc.polyfill.web.WebEnvironment;
 import org.graalvm.polyglot.Context;
@@ -42,6 +42,15 @@ public final class Ydoc implements AutoCloseable {
     this.hostname = hostname;
     this.port = port;
     this.callbacks = callbacks;
+  }
+
+  private static final class NoOpMessageCallbacks implements MessageCallbacks {
+    public static final NoOpMessageCallbacks INSTANCE = new NoOpMessageCallbacks();
+
+    private NoOpMessageCallbacks() {}
+
+    @Override
+    public void onConnect(YjsChannel channel) {}
   }
 
   public static final class Builder {
