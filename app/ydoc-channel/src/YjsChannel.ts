@@ -48,18 +48,21 @@ export class YjsChannel<T = unknown> {
     this.array = doc.getArray<ChannelMessage<T>>(channelName)
 
     this.observeHandler = (event: Y.YArrayEvent<ChannelMessage<T>>) => {
-      // Process all added items
-      for (const delta of event.changes.delta) {
-        if (delta.insert) {
-          const items = Array.isArray(delta.insert) ? delta.insert : [delta.insert]
-          for (const item of items) {
-            // Only notify handlers if the message is from another sender
-            if (item.senderId !== this.senderId) {
-              this.notifyHandlers(item.payload)
+      doc.transact(() => {
+        // Process all added items
+        for (const delta of event.changes.delta) {
+          if (delta.insert) {
+            const items = Array.isArray(delta.insert) ? delta.insert : [delta.insert]
+            for (const item of items) {
+              // Only notify handlers if the message is from another sender
+              if (item.senderId !== this.senderId) {
+                this.notifyHandlers(item.payload)
+                this.array.delete(0)
+              }
             }
           }
         }
-      }
+      })
     }
 
     this.array.observe(this.observeHandler)
@@ -102,7 +105,11 @@ export class YjsChannel<T = unknown> {
    */
   private notifyHandlers(message: T): void {
     for (const handler of this.handlers) {
-      handler(message)
+      try {
+        handler(message)
+      } catch (e) {
+        console.error('YjsChannel error handling', message, e)
+      }
     }
   }
 }
