@@ -2,6 +2,7 @@ package org.enso.ydoc.api;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
 import org.enso.ydoc.polyfill.ExecutorSetup;
 import org.enso.ydoc.polyfill.web.WebEnvironment;
 import org.graalvm.polyglot.Context;
@@ -18,21 +19,15 @@ public class CallbacksTest extends ExecutorSetup {
 
   public final class TestCallbacks implements MessageCallbacks {
 
-    private final AtomicReference<Object> ref;
+    private Consumer<YjsChannel> handler;
 
-    public TestCallbacks(AtomicReference<Object> ref) {
-      this.ref = ref;
+    public TestCallbacks(Consumer<YjsChannel> handler) {
+      this.handler = handler;
     }
 
     @Override
     public void onConnect(YjsChannel channel) {
-      // allowImplementations(YjsChannel.class) host access is required to make this call
-      channel.send("World!");
-    }
-
-    @Override
-    public void onMessage(Object message) {
-      ref.set(message);
+      this.handler.accept(channel);
     }
   }
 
@@ -45,7 +40,9 @@ public class CallbacksTest extends ExecutorSetup {
             // allowImplementations is required to call methods on JS objects from Java,
             // i.e. to call `YjsChannel::send` in the `TestCallbacks::onConnect` method
             .allowImplementations(YjsChannel.class)
-            .allowAccess(TestCallbacks.class.getDeclaredMethod("onMessage", Object.class))
+            // public access is required to recognize Java lambdas passed to
+            // `YjsChannel::subscribe` method as JS functions.
+            .allowPublicAccess(true)
             .allowAccess(TestCallbacks.class.getDeclaredMethod("onConnect", YjsChannel.class))
             .allowAccess(AtomicReference.class.getDeclaredMethod("set", Object.class))
             .build();
@@ -61,23 +58,7 @@ public class CallbacksTest extends ExecutorSetup {
   }
 
   @Test
-  public void onMessage() throws Exception {
-    var res = new AtomicReference<>();
-    var code =
-        """
-        callbacks.onMessage('Hello!');
-        """;
-
-    var callbacks = new TestCallbacks(res);
-    context.getBindings("js").putMember("callbacks", callbacks);
-
-    CompletableFuture.runAsync(() -> context.eval("js", code), executor).get();
-
-    Assert.assertEquals("Hello!", res.get());
-  }
-
-  @Test
-  public void onConnect() throws Exception {
+  public void onConnectSend() throws Exception {
     var res = new AtomicReference<>();
     var code =
         """
@@ -91,9 +72,33 @@ public class CallbacksTest extends ExecutorSetup {
         callbacks.onConnect(channel);
         """;
 
-    var callbacks = new TestCallbacks(null);
+    var callbacks = new TestCallbacks((channel) -> channel.send("Hello!"));
     context.getBindings("js").putMember("callbacks", callbacks);
     context.getBindings("js").putMember("res", res);
+
+    CompletableFuture.runAsync(() -> context.eval("js", code), executor).get();
+
+    Assert.assertEquals("Hello!", res.get());
+  }
+
+  @Test
+  public void onConnectSubscribe() throws Exception {
+    var res = new AtomicReference<>();
+    var code =
+        """
+        class YjsChannel {
+          subscribe(messageHandler) {
+            messageHandler('World!');
+          }
+        }
+
+        var channel = new YjsChannel();
+        callbacks.onConnect(channel);
+        """;
+
+    var callbacks =
+        new TestCallbacks((channel) -> channel.subscribe((message) -> res.set(message)));
+    context.getBindings("js").putMember("callbacks", callbacks);
 
     CompletableFuture.runAsync(() -> context.eval("js", code), executor).get();
 
