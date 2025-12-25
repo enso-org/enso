@@ -58,6 +58,13 @@ describe('YjsChannel', () => {
     // Both subscribers should receive the message
     expect(received1).toEqual(['Broadcast message'])
     expect(received2).toEqual(['Broadcast message'])
+
+    // Send message from channel1
+    channel1.send('Broadcast message 1')
+
+    // Both subscribers should receive the message
+    expect(received1).toEqual(['Broadcast message', 'Broadcast message 1'])
+    expect(received2).toEqual(['Broadcast message', 'Broadcast message 1'])
   })
 
   it('should support unsubscribing', () => {
@@ -124,5 +131,26 @@ describe('YjsChannel', () => {
     channel2.send('Message after dispose')
 
     expect(receivedMessages).toEqual([])
+  })
+
+  it('should cleanup internal storage after receiving', () => {
+    const doc = new Y.Doc()
+    const channel1 = new YjsChannel<string>(doc, 'test-channel')
+    const channel2 = new YjsChannel<string>(doc, 'test-channel')
+
+    const receivedMessages: string[] = []
+
+    // Subscribe channel2 to receive messages
+    channel2.subscribe((message) => {
+      receivedMessages.push(message)
+    })
+
+    // Send message from channel1
+    channel1.send('Hello from channel1')
+
+    // Channel2 should receive the message
+    expect(receivedMessages).toEqual(['Hello from channel1'])
+
+    expect(doc.getArray('test-channel').length).toEqual(0)
   })
 })
