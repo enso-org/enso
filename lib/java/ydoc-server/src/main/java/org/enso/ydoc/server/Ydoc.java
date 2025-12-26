@@ -44,15 +44,6 @@ public final class Ydoc implements AutoCloseable {
     this.callbacks = callbacks;
   }
 
-  private static final class NoOpMessageCallbacks implements MessageCallbacks {
-    public static final NoOpMessageCallbacks INSTANCE = new NoOpMessageCallbacks();
-
-    private NoOpMessageCallbacks() {}
-
-    @Override
-    public void onConnect(YjsChannel channel) {}
-  }
-
   public static final class Builder {
 
     private static final String DEFAULT_HOSTNAME = "localhost";
@@ -67,6 +58,15 @@ public final class Ydoc implements AutoCloseable {
     private MessageCallbacks callbacks;
 
     private Builder() {}
+
+    private static final class NoOpMessageCallbacks implements MessageCallbacks {
+      public static final NoOpMessageCallbacks INSTANCE = new NoOpMessageCallbacks();
+
+      private NoOpMessageCallbacks() {}
+
+      @Override
+      public void onConnect(YjsChannel channel) {}
+    }
 
     public Builder executor(ScheduledExecutorService executor) {
       this.executor = executor;
@@ -137,6 +137,8 @@ public final class Ydoc implements AutoCloseable {
 
       if (callbacks == null) {
         callbacks = NoOpMessageCallbacks.INSTANCE;
+      } else {
+        callbacks = new YjsCallbacksSynchronized(callbacks, executor);
       }
 
       return new Ydoc(executor, parser, contextBuilder, hostname, port, callbacks);
