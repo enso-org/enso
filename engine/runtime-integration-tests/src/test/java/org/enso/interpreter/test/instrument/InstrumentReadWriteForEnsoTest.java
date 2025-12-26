@@ -8,6 +8,7 @@ import java.io.StringWriter;
 import java.util.function.Consumer;
 import org.enso.interpreter.test.instruments.VariablesTestInstrument;
 import org.enso.test.utils.ContextUtils;
+import org.graalvm.polyglot.Value;
 import org.junit.ClassRule;
 import org.junit.Test;
 
@@ -29,11 +30,30 @@ public class InstrumentReadWriteForEnsoTest {
               return r;
             });
             """);
+    verifyReadAndWriteTrace(main);
+  }
 
+  @Test
+  public void verifyInEnso() throws Exception {
+    var main =
+        ctxRule.evalModule(
+            """
+            from Standard.Base import all
+
+            main n =
+              a = n + 2
+              b = n * 3
+              r = b - a
+              r
+            """);
+    verifyReadAndWriteTrace(main);
+  }
+
+  private void verifyReadAndWriteTrace(Value main) {
     var w = new StringWriter();
     var pw = new PrintWriter(w);
 
-    var instr = context.getEngine().getInstruments();
+    var instr = ctxRule.context().getEngine().getInstruments();
     var vars = instr.get(VariablesTestInstrument.ID);
     assertNotNull("VariablesInstrument found among " + instr, vars);
     @SuppressWarnings("unchecked")
