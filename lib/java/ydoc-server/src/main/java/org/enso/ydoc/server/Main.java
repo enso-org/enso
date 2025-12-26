@@ -69,12 +69,12 @@ public final class Main {
               // allowImplementations is required to call methods on JS objects from Java, i.e. to
               // call methods on `YjsChannel` object returned from JS
               .allowImplementations(YjsChannel.class)
-              .allowAccess(callbacks.getClass().getDeclaredMethod("onConnect", YjsChannel.class));
+              .allowPublicAccess(true);
       builder.hostAccessBuilder(hostAccess);
       var ydoc = builder.build();
       ydoc.start();
       return ydoc;
-    } catch (ExecutionException | NoSuchMethodException | InterruptedException ex) {
+    } catch (ExecutionException | InterruptedException ex) {
       throw new IOException(ex);
     }
   }
