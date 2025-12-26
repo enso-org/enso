@@ -2,6 +2,7 @@ package org.enso.interpreter.node.scope;
 
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.NodeChild;
+import com.oracle.truffle.api.dsl.NodeField;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.FrameSlotKind;
 import com.oracle.truffle.api.frame.VirtualFrame;
@@ -13,10 +14,13 @@ import org.enso.interpreter.runtime.EnsoContext;
 
 /** This node represents an assignment to a variable in a given scope. */
 @NodeInfo(shortName = "=", description = "Assigns expression result to a variable.")
+@NodeField(name = "name", type = String.class)
 @NodeChild(value = "rhsNode", type = ExpressionNode.class)
 public abstract class AssignmentNode extends ExpressionNode {
 
   private final int frameSlotIdx;
+
+  abstract String getName();
 
   AssignmentNode(int frameSlotIdx) {
     this.frameSlotIdx = frameSlotIdx;
@@ -29,8 +33,8 @@ public abstract class AssignmentNode extends ExpressionNode {
    * @param frameSlotIdx the slot index to which {@code expression} is being assigned
    * @return a node representing an assignment
    */
-  public static AssignmentNode build(ExpressionNode expression, int frameSlotIdx) {
-    return AssignmentNodeGen.create(frameSlotIdx, expression);
+  public static AssignmentNode build(String name, ExpressionNode expression, int frameSlotIdx) {
+    return AssignmentNodeGen.create(frameSlotIdx, expression, name);
   }
 
   /**
@@ -66,6 +70,11 @@ public abstract class AssignmentNode extends ExpressionNode {
   boolean isLongOrIllegal(VirtualFrame frame) {
     FrameSlotKind kind = frame.getFrameDescriptor().getSlotKind(frameSlotIdx);
     return kind == FrameSlotKind.Long || kind == FrameSlotKind.Illegal;
+  }
+
+  @Override
+  public Object getNodeObject() {
+    return new VariableNodeObject(StandardTags.WriteVariableTag.NAME, getName());
   }
 
   @Override

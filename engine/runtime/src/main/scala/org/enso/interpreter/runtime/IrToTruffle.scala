@@ -486,10 +486,14 @@ private[runtime] class IrToTruffle(
               idx,
               arg.getDefaultValue.orElse(null)
             )
-          val readArg       = TypeCheckValueNode.wrap(readArgNoCheck, checkNode)
-          val assignmentArg = AssignmentNode.build(readArg, slotIdx)
+          val readArg = TypeCheckValueNode.wrap(readArgNoCheck, checkNode)
+          val assignmentArg =
+            AssignmentNode.build(arg.getName, readArg, slotIdx)
           val argRead =
-            ReadLocalVariableNode.build(new FramePointer(0, slotIdx))
+            ReadLocalVariableNode.build(
+              arg.getName,
+              new FramePointer(0, slotIdx)
+            )
           argumentExpressions.append((assignmentArg, argRead))
         }
 
@@ -1844,7 +1848,11 @@ private[runtime] class IrToTruffle(
       currentVarName = binding.name.name
       val slotIdx = fp.frameSlotIdx()
       setLocation(
-        AssignmentNode.build(this.run(binding.expression, true, true), slotIdx),
+        AssignmentNode.build(
+          binding.name.name,
+          this.run(binding.expression, true, true),
+          slotIdx
+        ),
         binding.location
       )
     }
@@ -1973,9 +1981,10 @@ private[runtime] class IrToTruffle(
       }
 
       override protected def resolveLocalName(
+        name: String,
         localLink: FramePointer
       ): RuntimeExpression =
-        ReadLocalVariableNode.build(localLink)
+        ReadLocalVariableNode.build(name, localLink)
 
       override protected def resolveGlobalName(
         resolvedName: BindingsMap.ResolvedName,
@@ -2249,7 +2258,7 @@ private[runtime] class IrToTruffle(
             val readArgNoCheck =
               setLocation(readArgNoCheck0, unprocessedArg.name().location())
             val readArg   = TypeCheckValueNode.wrap(readArgNoCheck, checkNode)
-            val assignArg = AssignmentNode.build(readArg, slotIdx)
+            val assignArg = AssignmentNode.build(arg.getName, readArg, slotIdx)
 
             argExpressions.append(assignArg)
 
@@ -2286,7 +2295,8 @@ private[runtime] class IrToTruffle(
       val src = b.build()
       val argumentReaders = argumentSlotIdxs
         .map(slotIdx =>
-          ReadLocalVariableNode.build(new FramePointer(0, slotIdx))
+          ReadLocalVariableNode
+            .build(argumentNames(slotIdx), new FramePointer(0, slotIdx))
         )
         .toArray[RuntimeExpression]
       ForeignMethodCallNode.buildDeferred(
