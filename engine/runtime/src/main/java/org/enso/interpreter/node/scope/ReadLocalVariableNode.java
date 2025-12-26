@@ -6,6 +6,8 @@ import com.oracle.truffle.api.frame.Frame;
 import com.oracle.truffle.api.frame.FrameSlotTypeException;
 import com.oracle.truffle.api.frame.MaterializedFrame;
 import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.instrumentation.StandardTags;
+import com.oracle.truffle.api.instrumentation.Tag;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import org.enso.compiler.pass.analyse.FramePointer;
@@ -101,5 +103,14 @@ public abstract class ReadLocalVariableNode extends ExpressionNode {
       currentFrame = getParentFrame(currentFrame);
     }
     return currentFrame;
+  }
+
+  @Override
+  public boolean hasTag(Class<? extends Tag> tag) {
+    if (super.hasTag(tag)) {
+      return true;
+    } else {
+      return getSourceSectionBounds() != null && StandardTags.ReadVariableTag.class == tag;
+    }
   }
 }

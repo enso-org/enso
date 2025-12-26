@@ -5,6 +5,8 @@ import com.oracle.truffle.api.dsl.NodeChild;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.FrameSlotKind;
 import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.instrumentation.StandardTags;
+import com.oracle.truffle.api.instrumentation.Tag;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.EnsoContext;
@@ -64,5 +66,14 @@ public abstract class AssignmentNode extends ExpressionNode {
   boolean isLongOrIllegal(VirtualFrame frame) {
     FrameSlotKind kind = frame.getFrameDescriptor().getSlotKind(frameSlotIdx);
     return kind == FrameSlotKind.Long || kind == FrameSlotKind.Illegal;
+  }
+
+  @Override
+  public boolean hasTag(Class<? extends Tag> tag) {
+    if (super.hasTag(tag)) {
+      return true;
+    } else {
+      return getSourceSectionBounds() != null && StandardTags.WriteVariableTag.class == tag;
+    }
   }
 }
