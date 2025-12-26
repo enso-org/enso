@@ -539,7 +539,6 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
       .launchYdocServer(
         c.hostname,
         c.port,
-        null,
         jsonRpcServer.yjsChannelCallbacks
       )
   }
