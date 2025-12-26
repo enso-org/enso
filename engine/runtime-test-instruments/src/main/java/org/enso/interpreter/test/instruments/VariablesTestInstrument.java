@@ -12,6 +12,7 @@ import com.oracle.truffle.api.interop.InteropException;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import java.io.PrintWriter;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 
 @TruffleInstrument.Registration(id = VariablesTestInstrument.ID, services = Consumer.class)
 public final class VariablesTestInstrument extends TruffleInstrument
@@ -36,14 +37,23 @@ public final class VariablesTestInstrument extends TruffleInstrument
     }
     if (pw != null) {
       var indent = new StringBuilder();
-
+      Predicate<String> nameCheck =
+          (n) -> {
+            return n.endsWith("main");
+          };
       var filterRead =
-          SourceSectionFilter.newBuilder().tagIs(StandardTags.ReadVariableTag.class).build();
+          SourceSectionFilter.newBuilder()
+              .rootNameIs(nameCheck)
+              .tagIs(StandardTags.ReadVariableTag.class)
+              .build();
       close1 =
           instr.attachExecutionEventListener(
               filterRead, new TraceExecution(StandardTags.ReadVariableTag.NAME, pw, indent));
       var filterWrite =
-          SourceSectionFilter.newBuilder().tagIs(StandardTags.WriteVariableTag.class).build();
+          SourceSectionFilter.newBuilder()
+              .rootNameIs(nameCheck)
+              .tagIs(StandardTags.WriteVariableTag.class)
+              .build();
       close2 =
           instr.attachExecutionEventListener(
               filterWrite, new TraceExecution(StandardTags.WriteVariableTag.NAME, pw, indent));
