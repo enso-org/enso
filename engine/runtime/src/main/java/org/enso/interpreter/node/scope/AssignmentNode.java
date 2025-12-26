@@ -1,14 +1,18 @@
 package org.enso.interpreter.node.scope;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.NodeChild;
 import com.oracle.truffle.api.dsl.NodeField;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.FrameSlotKind;
 import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.instrumentation.InstrumentableNode;
 import com.oracle.truffle.api.instrumentation.StandardTags;
 import com.oracle.truffle.api.instrumentation.Tag;
 import com.oracle.truffle.api.nodes.NodeInfo;
+import com.oracle.truffle.api.nodes.NodeUtil;
+import java.util.Set;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.EnsoContext;
 
@@ -21,6 +25,8 @@ public abstract class AssignmentNode extends ExpressionNode {
   private final int frameSlotIdx;
 
   abstract String getName();
+
+  abstract ExpressionNode getRhsNode();
 
   AssignmentNode(int frameSlotIdx) {
     this.frameSlotIdx = frameSlotIdx;
@@ -73,16 +79,25 @@ public abstract class AssignmentNode extends ExpressionNode {
   }
 
   @Override
-  public Object getNodeObject() {
-    return new VariableNodeObject(StandardTags.WriteVariableTag.NAME, getName());
+  public InstrumentableNode materializeInstrumentableNodes(
+      Set<Class<? extends Tag>> materializedTags) {
+    if (materializedTags.contains(StandardTags.WriteVariableTag.class)) {
+      var rhs = getRhsNode();
+      var bounds = getSourceSectionBounds();
+      if (bounds != null && !isNodeWrapped(rhs)) {
+        CompilerDirectives.transferToInterpreterAndInvalidate();
+        var newRhs = new VariableAccessNode(getName(), rhs);
+        newRhs.setSourceLocation(bounds[0], bounds[1]);
+        var res = NodeUtil.replaceChild(this, getRhsNode(), newRhs);
+        insert(newRhs);
+        notifyInserted(newRhs);
+        assert res;
+      }
+    }
+    return this;
   }
 
-  @Override
-  public boolean hasTag(Class<? extends Tag> tag) {
-    if (super.hasTag(tag)) {
-      return true;
-    } else {
-      return getSourceSectionBounds() != null && StandardTags.WriteVariableTag.class == tag;
-    }
+  private static boolean isNodeWrapped(ExpressionNode node) {
+    return node instanceof VariableAccessNode || ExpressionNode.isWrapper(node);
   }
 }
