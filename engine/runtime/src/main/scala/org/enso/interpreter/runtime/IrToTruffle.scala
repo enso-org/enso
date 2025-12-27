@@ -2296,11 +2296,11 @@ private[runtime] class IrToTruffle(
       val b    = Source.newBuilder("epb", language + ":" + line + "#" + code, name)
       b.uri(source.getURI())
       val src = b.build()
-      val argumentReaders = argumentSlotIdxs
-        .map(slotIdx =>
+      val argumentReaders = argumentSlotIdxs.zipWithIndex
+        .map { case (slotIdx, i) =>
           ReadLocalVariableNode
-            .build(argumentNames(slotIdx), new FramePointer(0, slotIdx))
-        )
+            .build(argumentNames(i), new FramePointer(0, slotIdx))
+        }
         .toArray[RuntimeExpression]
       ForeignMethodCallNode.buildDeferred(
         src,
