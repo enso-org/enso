@@ -91,7 +91,8 @@ add_specs suite_builder =
     backends.each source_backend-> backends.each destination_backend->
         suite_builder.group "("+source_backend.name+" -> "+destination_backend.name+") copying/moving" pending=(any_pending [source_backend, destination_backend]) group_builder->
             source_file_provider = source_backend.make_temp_file "src.txt"
-            destination_file_provider = destination_backend.make_temp_file "dest.txt"
+            destination_file_provider =
+                destination_backend.make_temp_file "dest.txt"
             group_builder.teardown <|
                 source_file_provider.cleanup
                 destination_file_provider.cleanup
