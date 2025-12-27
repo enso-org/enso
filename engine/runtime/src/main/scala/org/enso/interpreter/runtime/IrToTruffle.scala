@@ -488,7 +488,12 @@ private[runtime] class IrToTruffle(
             )
           val readArg = TypeCheckValueNode.wrap(readArgNoCheck, checkNode)
           val assignmentArg =
-            AssignmentNode.build(arg.getName, readArg, slotIdx)
+            AssignmentNode.build(
+              arg.getName,
+              readArgNoCheck.getSourceSectionBounds,
+              readArg,
+              slotIdx
+            )
           val argRead =
             ReadLocalVariableNode.build(
               arg.getName,
@@ -1850,6 +1855,7 @@ private[runtime] class IrToTruffle(
       setLocation(
         AssignmentNode.build(
           binding.name.name,
+          null,
           this.run(binding.expression, true, true),
           slotIdx
         ),
@@ -2259,11 +2265,14 @@ private[runtime] class IrToTruffle(
               setLocation(readArgNoCheck0, unprocessedArg.name().location())
             val readArg = TypeCheckValueNode.wrap(readArgNoCheck, checkNode)
             val assignArgNoLock =
-              AssignmentNode.build(arg.getName, readArg, slotIdx)
-            val assignArg =
-              setLocation(assignArgNoLock, unprocessedArg.name().location())
+              AssignmentNode.build(
+                arg.getName,
+                readArgNoCheck.getSourceSectionBounds,
+                readArg,
+                slotIdx
+              )
 
-            argExpressions.append(assignArg)
+            argExpressions.append(assignArgNoLock)
 
             val argName = arg.getName
 

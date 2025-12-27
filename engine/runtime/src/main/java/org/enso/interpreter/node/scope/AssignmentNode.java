@@ -19,12 +19,15 @@ import org.enso.interpreter.runtime.EnsoContext;
 /** This node represents an assignment to a variable in a given scope. */
 @NodeInfo(shortName = "=", description = "Assigns expression result to a variable.")
 @NodeField(name = "name", type = String.class)
+@NodeField(name = "assignmentBounds", type = int[].class)
 @NodeChild(value = "rhsNode", type = ExpressionNode.class)
 public abstract class AssignmentNode extends ExpressionNode {
 
   private final int frameSlotIdx;
 
   abstract String getName();
+
+  abstract int[] getAssignmentBounds();
 
   abstract ExpressionNode getRhsNode();
 
@@ -35,12 +38,16 @@ public abstract class AssignmentNode extends ExpressionNode {
   /**
    * Creates an instance of this node.
    *
+   * @param name the name of the variable to assign to
+   * @param bounds the location of the assignment for {@link StandardTags.WriteVariableTag}
+   *     instrumentation
    * @param expression the expression being assigned
    * @param frameSlotIdx the slot index to which {@code expression} is being assigned
    * @return a node representing an assignment
    */
-  public static AssignmentNode build(String name, ExpressionNode expression, int frameSlotIdx) {
-    return AssignmentNodeGen.create(frameSlotIdx, expression, name);
+  public static AssignmentNode build(
+      String name, int[] bounds, ExpressionNode expression, int frameSlotIdx) {
+    return AssignmentNodeGen.create(frameSlotIdx, expression, name, bounds);
   }
 
   /**
@@ -83,10 +90,13 @@ public abstract class AssignmentNode extends ExpressionNode {
       Set<Class<? extends Tag>> materializedTags) {
     if (materializedTags.contains(StandardTags.WriteVariableTag.class)) {
       var rhs = getRhsNode();
-      var bounds = getSourceSectionBounds();
+      var bounds = getAssignmentBounds();
+      if (bounds == null) {
+        bounds = getSourceSectionBounds();
+      }
       if (bounds != null && !isNodeWrapped(rhs)) {
         CompilerDirectives.transferToInterpreterAndInvalidate();
-        var newRhs = new VariableAccessNode(getName(), rhs);
+        var newRhs = new AssignLocalVariableNode(getName(), rhs);
         newRhs.setSourceLocation(bounds[0], bounds[1]);
         var res = NodeUtil.replaceChild(this, getRhsNode(), newRhs);
         insert(newRhs);
@@ -98,6 +108,6 @@ public abstract class AssignmentNode extends ExpressionNode {
   }
 
   private static boolean isNodeWrapped(ExpressionNode node) {
-    return node instanceof VariableAccessNode || ExpressionNode.isWrapper(node);
+    return node instanceof AssignLocalVariableNode || ExpressionNode.isWrapper(node);
   }
 }
