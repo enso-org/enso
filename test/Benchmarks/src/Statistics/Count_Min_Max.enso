@@ -2,8 +2,7 @@ from Standard.Base import Integer, Vector
 from Standard.Base.Data.Statistics import all
 import Standard.Base.Data.Range
 
-from Standard.Test import Bench
-import project.Faker.Faker
+from Standard.Test import Bench, Faker
 
 
 create_vector : Integer -> Integer -> Vector

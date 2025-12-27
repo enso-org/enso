@@ -1,7 +1,6 @@
 from Standard.Base import all
 
-from Standard.Test import Bench
-import project.Faker.Faker
+from Standard.Test import Bench, Faker
 
 
 compare_all_adjacent text_vector =

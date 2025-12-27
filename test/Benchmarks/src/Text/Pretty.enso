@@ -1,7 +1,6 @@
 from Standard.Base import all
 
-from Standard.Test import Bench
-import project.Faker.Faker
+from Standard.Test import Bench, Faker
 
 
 cycle_character_template num character_templates =
