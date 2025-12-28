@@ -28,5 +28,5 @@ type Should_Reach
     ## Checks if a point was reached in execution.
     should_have_reached : Spec_Result
     should_have_reached self -> Spec_Result = Frame_Hider.hide <|
-        if self.reached_ref.get then Spec_Result.Success else 
+        if self.reached_ref.get then Spec_Result.Success else
             Test.fail ("Did not reach Should_Reach (at "+Frame_Hider.get_top_stack_frame+").")
