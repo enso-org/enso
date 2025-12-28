@@ -45,6 +45,17 @@ public class BlockNode extends ExpressionNode {
   }
 
   /**
+   * Creates a "root body tagged" instance of block node.
+   *
+   * @param expressions the function body
+   * @param returnExpr the return expression from the function
+   * @return a node representing a block expression
+   */
+  public static BlockNode buildRootBody(ExpressionNode[] expressions, ExpressionNode returnExpr) {
+    return new RootBody(expressions, returnExpr);
+  }
+
+  /**
    * Creates a block node with statements. When instrumented, the statements get wrapped in a into a
    * {@link StatementNode} so one can step over them.
    *
@@ -107,7 +118,21 @@ public class BlockNode extends ExpressionNode {
       if (super.hasTag(tag)) {
         return true;
       }
-      return tag == StandardTags.RootBodyTag.class || tag == StandardTags.RootTag.class;
+      return tag == StandardTags.RootTag.class;
+    }
+  }
+
+  private static final class RootBody extends BlockNode {
+    RootBody(ExpressionNode[] expressions, ExpressionNode returnExpr) {
+      super(expressions, returnExpr);
+    }
+
+    @Override
+    public boolean hasTag(Class<? extends Tag> tag) {
+      if (super.hasTag(tag)) {
+        return true;
+      }
+      return tag == StandardTags.RootBodyTag.class;
     }
   }
 
