@@ -395,9 +395,11 @@ add_specs suite_builder setup:Cloud_Tests_Setup = suite_builder.group "Enso Clou
     Local_File_Spec.add_create_and_delete_directory_specs group_builder test_root.get
     Local_File_Spec.add_copy_edge_cases_specs group_builder test_root.get
 
-add_data_specs suite_builder root =
-    my_dir = (root / "data_specs-").create_directory
-    file_maker path_element:Text = my_dir / (path_element+".txt")
+add_data_specs suite_builder ~root =
+    my_dir =
+        (root / "data_specs-").create_directory
+    file_maker path_element:Text =
+        my_dir / (path_element+".txt")
     Data_Spec.add_specs "(Enso_File) " suite_builder file_maker
 
 main filter=Nothing =
