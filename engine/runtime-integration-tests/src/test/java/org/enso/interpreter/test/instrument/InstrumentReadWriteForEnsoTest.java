@@ -85,7 +85,7 @@ public class InstrumentReadWriteForEnsoTest {
         readVariableNameEnter r
         readVariableNameReturn = 8
         """;
-    var trace = w.toString();
+    var trace = w.toString().replace("\r\n", "\n");
     assertEquals(
         "Expected traces generated and show that:" //
             + "- a depends on n" //
