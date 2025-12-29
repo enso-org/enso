@@ -78,13 +78,7 @@ export function createProjectStore(
   const guiId = `gui-${crypto.randomUUID()}`
   let yDocsProvider: ReturnType<typeof attachProvider> | undefined
   watchEffect((onCleanup) => {
-    yDocsProvider = attachProvider(
-      ydocUrl.href,
-      'index',
-      { ls: guiId },
-      doc,
-      awareness.internal,
-    )
+    yDocsProvider = attachProvider(ydocUrl.href, 'index', { ls: guiId }, doc, awareness.internal)
     onCleanup(() => {
       yDocsProvider?.dispose()
       yDocsProvider = undefined
