@@ -1,4 +1,12 @@
+import { ObservableV2 } from 'lib0/observable'
 import * as Y from 'yjs'
+
+interface AddEventListenerOptions {
+  capture?: boolean
+  once?: boolean
+  passive?: boolean
+  signal?: AbortSignal
+}
 
 /**
  * A message in the channel.
@@ -27,12 +35,19 @@ export interface YjsChannelCallbacks<T = unknown> {
 }
 
 /**
+ * ObservableV2-compatible event handlers for WebSocketEventMap.
+ */
+type WebSocketEventHandlers = {
+  [K in keyof WebSocketEventMap]: (event: WebSocketEventMap[K]) => void
+}
+
+/**
  * A bidirectional communication channel backed by Y.Array.
  *
  * This class allows multiple parties to send and receive messages through a shared
- * Y.Array CRDT.
+ * Y.Array CRDT. Implements WebSocket-like event API for compatibility.
  */
-export class YjsChannel<T = unknown> {
+export class YjsChannel<T = unknown> extends ObservableV2<WebSocketEventHandlers> {
   private readonly senderId: string
   private readonly array: Y.Array<ChannelMessage<T>>
   private readonly handlers: Set<MessageHandler<T>> = new Set()
@@ -44,6 +59,7 @@ export class YjsChannel<T = unknown> {
    * @param channelName - The name of the channel (used to get/create the Y.Array)
    */
   constructor(doc: Y.Doc, channelName: string) {
+    super()
     this.senderId = crypto.randomUUID()
     this.array = doc.getArray<ChannelMessage<T>>(channelName)
 
@@ -98,18 +114,110 @@ export class YjsChannel<T = unknown> {
   dispose(): void {
     this.array.unobserve(this.observeHandler)
     this.handlers.clear()
+    this.emitClose()
+  }
+
+  /**
+   * Add an event listener to the channel (alias for addEventListener).
+   */
+  override on<K extends keyof WebSocketEventMap>(
+    type: K,
+    cb: (event: WebSocketEventMap[K]) => void,
+    options?: AddEventListenerOptions,
+  ): any {
+    // If subscribing to 'open' event, call the callback immediately
+    // since the channel is always open after creation
+    if (type === 'open') {
+      try {
+        cb(new Event('open') as WebSocketEventMap[K])
+      } catch (e) {
+        console.error('YjsChannel error handling open event', e)
+      }
+      // Don't add to listeners if 'once' option is set
+      if (options?.once) {
+        return cb
+      }
+    }
+
+    if (options?.once) {
+      return super.once(type, cb as any)
+    } else {
+      return super.on(type, cb as any)
+    }
+  }
+
+  /**
+   * Remove an event listener from the channel (alias for removeEventListener).
+   */
+  override off<K extends keyof WebSocketEventMap>(
+    type: K,
+    cb: (event: WebSocketEventMap[K]) => void,
+    _options?: AddEventListenerOptions,
+  ): void {
+    super.off(type, cb as any)
+  }
+
+  /**
+   * WebSocket-compatible addEventListener method.
+   * Add an event listener to the channel.
+   */
+  addEventListener<K extends keyof WebSocketEventMap>(
+    type: K,
+    cb: (event: WebSocketEventMap[K]) => void,
+    options?: AddEventListenerOptions,
+  ): void {
+    this.on(type, cb, options)
+  }
+
+  /**
+   * WebSocket-compatible removeEventListener method.
+   * Remove an event listener from the channel.
+   */
+  removeEventListener<K extends keyof WebSocketEventMap>(
+    type: K,
+    cb: (event: WebSocketEventMap[K]) => void,
+    options?: AddEventListenerOptions,
+  ): void {
+    this.off(type, cb, options)
   }
 
   /**
    * Notifies all subscribed handlers with the received message.
    */
   private notifyHandlers(message: T): void {
+    // Create a MessageEvent-like object for WebSocket compatibility
+    const messageEvent = { data: message } as MessageEvent
+
+    // Emit event for addEventListener listeners
+    super.emit('message', [messageEvent])
+
+    // Call legacy subscribe handlers for backward compatibility
     for (const handler of this.handlers) {
       try {
         handler(message)
       } catch (e) {
-        console.error('YjsChannel error handling', message, e)
+        const error = new Error(`Failed to handle message: ${message}`)
+        ;(error as any).target = e
+        this.emitError(error)
       }
     }
+  }
+
+  /**
+   * Emit a 'close' event to signal the channel is closed.
+   */
+  private emitClose(): void {
+    super.emit('close', [new CloseEvent('close')])
+  }
+
+  /**
+   * Emit an 'error' event to signal an error occurred.
+   */
+  private emitError(error?: Error): void {
+    const errorEvent = new Event('error')
+    if (error) {
+      ;(errorEvent as any).error = error
+    }
+    super.emit('error', [errorEvent])
   }
 }
