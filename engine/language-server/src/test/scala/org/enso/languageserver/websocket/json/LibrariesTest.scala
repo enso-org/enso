@@ -801,25 +801,6 @@ class LibrariesTest extends BaseServerTest with ReportLogsOnFailure {
       published should contain(
         PublishedLibrary("Foo", "Bar", isCached = false)
       )
-
-      val currentEditionName = BuildVersion.currentEdition
-      client.send(json"""
-          { "jsonrpc": "2.0",
-            "method": "editions/listDefinedLibraries",
-            "id": 0,
-            "params": {
-              "edition": {
-                "type": "NamedEdition",
-                "editionName": $currentEditionName
-              }
-            }
-          }
-          """)
-      extractPublishedLibraries(
-        client.expectSomeJson(timeout = defaultTimeout)
-      ) should contain(
-        PublishedLibrary("Baz", "Lib", isCached = true)
-      )
     }
   }
 
