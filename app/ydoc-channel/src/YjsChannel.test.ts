@@ -125,7 +125,7 @@ describe('YjsChannel', () => {
     expect(receivedMessage).toEqual(testMessage)
   })
 
-  it('should clean up properly when disposed', () => {
+  it('should clean up properly when closed', () => {
     const doc = new Y.Doc()
     const channel = new YjsChannel<string>(doc, 'test-channel')
 
@@ -134,7 +134,7 @@ describe('YjsChannel', () => {
       receivedMessages.push(message)
     })
 
-    channel.dispose()
+    channel.close()
 
     // After dispose, the channel should no longer receive messages
     const channel2 = new YjsChannel<string>(doc, 'test-channel')
@@ -254,7 +254,7 @@ describe('YjsChannel', () => {
       expect(receivedMessages).toEqual(['First message'])
     })
 
-    it('should emit close event when disposed', () => {
+    it('should emit close event when closed', () => {
       const doc = new Y.Doc()
       const channel = new YjsChannel<string>(doc, 'test-channel')
 
@@ -264,7 +264,7 @@ describe('YjsChannel', () => {
         closeEventFired = true
       })
 
-      channel.dispose()
+      channel.close()
 
       expect(closeEventFired).toBe(true)
     })

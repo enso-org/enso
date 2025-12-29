@@ -10,7 +10,7 @@ import * as Y from 'yjs'
 import * as decoding from 'lib0/decoding'
 import * as encoding from 'lib0/encoding'
 import { ObservableV2 } from 'lib0/observable'
-import type { YjsChannelCallbacks } from 'ydoc-channel'
+import { YjsDataChannel, type YjsChannelCallbacks } from 'ydoc-channel'
 import { LanguageServerSession } from './languageServerSession'
 
 const pingTimeout = 30000
@@ -97,11 +97,12 @@ export class WSSharedDoc {
 export function setupGatewayClient(
   ws: YjsSocket,
   lsUrl: string | undefined | null,
+  dataUrl: string | undefined | null,
   docName: string,
   callbacks: YjsChannelCallbacks,
 ): void {
   console.log(
-    `setupGatewayClient(${lsUrl ? 'lsUrl: ' + lsUrl : 'no lsUrl'}, docName: ${docName}), callbacks: ${callbacks}`,
+    `setupGatewayClient(${lsUrl ? 'lsUrl: ' + lsUrl : 'no lsUrl'}, ${dataUrl ? 'dataUrl: ' + dataUrl : 'no dataUrl'} docName: ${docName}), callbacks: ${callbacks}`,
   )
   const lsSession = getSessionForUrl(lsUrl, callbacks)
   const wsDoc = getSessionDoc(lsSession, docName)
@@ -110,9 +111,15 @@ export function setupGatewayClient(
     return
   }
 
+  let dataSocket: YjsDataChannel | undefined
+  if (dataUrl) {
+    dataSocket = new YjsDataChannel(wsDoc.doc, dataUrl, callbacks)
+  }
+
   const connection = new YjsConnection(ws, wsDoc)
   connection.once('close', async () => {
     try {
+      dataSocket?.close()
       await lsSession.release()
     } catch (error) {
       console.error('Session release failed.\n', error)

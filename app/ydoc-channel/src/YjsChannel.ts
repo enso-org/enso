@@ -28,10 +28,16 @@ export type MessageHandler<T = unknown> = (message: T) => void
  */
 export interface YjsChannelCallbacks<T = unknown> {
   /**
-   * Called when the channel is connected and ready to use.
+   * Called when the RPC channel is connected and ready to use.
    * @param channel - The connected YjsChannel instance
    */
   onConnect(channel: YjsChannel<T>): void
+
+  /**
+   * Called when the data channel is connected and ready to use.
+   * @param channel - The connected YjsChannel instance
+   */
+  onDataConnect(channel: YjsChannel<T>): void
 }
 
 /**
@@ -111,7 +117,7 @@ export class YjsChannel<T = unknown> extends ObservableV2<WebSocketEventHandlers
   /**
    * Removes all message handlers and stops observing the Y.Array.
    */
-  dispose(): void {
+  close(): void {
     this.array.unobserve(this.observeHandler)
     this.handlers.clear()
     this.emitClose()
@@ -219,5 +225,15 @@ export class YjsChannel<T = unknown> extends ObservableV2<WebSocketEventHandlers
       ;(errorEvent as any).error = error
     }
     super.emit('error', [errorEvent])
+  }
+}
+
+export class YjsDataChannel<T = unknown> extends YjsChannel<T> {
+  private readonly callbacks: YjsChannelCallbacks<T>
+
+  constructor(doc: Y.Doc, channelName: string, callbacks: YjsChannelCallbacks<T>) {
+    super(doc, channelName)
+    this.callbacks = callbacks
+    this.callbacks.onDataConnect(this)
   }
 }
