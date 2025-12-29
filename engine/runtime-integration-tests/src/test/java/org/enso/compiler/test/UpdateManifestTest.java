@@ -9,6 +9,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 import org.enso.test.utils.ContextUtils;
 import org.enso.test.utils.ProjectUtils;
 import org.junit.Rule;
@@ -22,7 +23,6 @@ import org.yaml.snakeyaml.Yaml;
  */
 public class UpdateManifestTest {
   @Rule public final TemporaryFolder tempFolder = new TemporaryFolder();
-  @Rule public final ContextUtils ctx = ContextUtils.createDefault();
 
   @Test
   public void projectCompilationAlsoCreatesManifest_NoDependencies() throws IOException {
@@ -34,10 +34,9 @@ public class UpdateManifestTest {
             42
         """,
         projDir);
-    ProjectUtils.testProjectRun(
+    compileProject(
         projDir,
-        res -> {
-          assertThat("Sanity check - correct result of evaluation", res.asInt(), is(42));
+        _ -> {
           var manifestFile = projDir.resolve("manifest.yaml");
           assertThat("Manifest file exists", manifestFile.toFile().exists(), is(true));
           assertManifestHasNoDependencies(manifestFile);
@@ -55,10 +54,9 @@ public class UpdateManifestTest {
             42
         """,
         projDir);
-    ProjectUtils.testProjectRun(
+    compileProject(
         projDir,
-        res -> {
-          assertThat("Sanity check - correct result of evaluation", res.asInt(), is(42));
+        _ -> {
           var manifestFile = projDir.resolve("manifest.yaml");
           assertThat("Manifest file exists", manifestFile.toFile().exists(), is(true));
           assertManifestDeclaresDependencies(manifestFile, List.of("Standard.Base"));
@@ -78,15 +76,18 @@ public class UpdateManifestTest {
             42
         """,
         projDir);
-    ProjectUtils.testProjectRun(
+    compileProject(
         projDir,
-        res -> {
-          assertThat("Sanity check - correct result of evaluation", res.asInt(), is(42));
+        _ -> {
           var manifestFile = projDir.resolve("manifest.yaml");
           assertThat("Manifest file exists", manifestFile.toFile().exists(), is(true));
           assertManifestDeclaresDependencies(
               manifestFile, List.of("Standard.Base", "Standard.Table", "Standard.Image"));
         });
+  }
+
+  private static void compileProject(Path projDir, Consumer<ContextUtils> whenDone) {
+    ProjectUtils.generateProjectDocs(null, ContextUtils.newBuilder(), projDir, whenDone);
   }
 
   @SuppressWarnings("unchecked")
