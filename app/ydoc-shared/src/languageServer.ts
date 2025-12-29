@@ -26,8 +26,8 @@ import type {
   VisualizationConfiguration,
 } from './languageServerTypes'
 import { AbortScope, exponentialBackoff } from './util/net'
-import { isHeadless } from './util/types'
 import type { YjsTransport } from './util/net/YjsTransport'
+import { isHeadless } from './util/types'
 import type { Uuid } from './yjsModel'
 
 const debugLog = debug('ydoc-shared:languageServer')
