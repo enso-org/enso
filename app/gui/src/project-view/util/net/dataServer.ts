@@ -1,5 +1,6 @@
 import { Err, Ok, type Result } from 'enso-common/src/utilities/data/result'
 import { ObservableV2 } from 'lib0/observable'
+import type { YjsChannel } from 'ydoc-channel'
 import {
   Builder,
   ByteBuffer,
@@ -60,7 +61,7 @@ export class DataServer extends ObservableV2<DataServerEvents> {
   /** `websocket.binaryType` should be `ArrayBuffer`. */
   constructor(
     public clientId: string,
-    public websocket: WebSocket,
+    public websocket: YjsChannel,
     abort: AbortScope,
   ) {
     super()
@@ -101,8 +102,7 @@ export class DataServer extends ObservableV2<DataServerEvents> {
       this.scheduleInitializationAfterConnect()
     })
 
-    if (websocket.readyState === WebSocket.OPEN) this.initialized = this.initialize()
-    else this.initialized = this.scheduleInitializationAfterConnect()
+    this.initialized = this.initialize()
   }
 
   /** TODO: Add docs */

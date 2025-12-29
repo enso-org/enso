@@ -15,8 +15,9 @@ const wss = new WebSocketServer({ host, port })
 wss.onconnect = (socket, url) => {
   const doc = docName(url.pathname)
   const ls = url.searchParams.get('ls')
+  const data = url.searchParams.get('data')
   if (doc != null && ls != null) {
-    setupGatewayClient(socket, ls, doc, YDOC_MESSAGE_CALLBACKS)
+    setupGatewayClient(socket, ls, data, doc, YDOC_MESSAGE_CALLBACKS)
   } else {
     console.log('Failed to authenticate user', ls, doc)
   }

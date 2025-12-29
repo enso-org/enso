@@ -93,7 +93,7 @@ export class YjsTransport extends Transport {
 
   /** Close the channel and clean up subscriptions. */
   public close(): void {
-    this.channel.dispose()
+    this.channel.close()
     this.emit('close', new CloseEvent('close'))
   }
 
@@ -183,7 +183,7 @@ export class YjsServerTransport extends YjsTransport {
 
   /** Close the channel and clean up subscriptions. */
   override close(): void {
-    this.proxyChannel.dispose()
+    this.proxyChannel.close()
     super.close()
   }
 }
