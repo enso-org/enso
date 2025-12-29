@@ -2185,13 +2185,13 @@ private[runtime] class IrToTruffle(
         if (!operation.isInstanceOf[BlockNode]) {
           operation = BlockNode.buildStatements(Array(), operation)
         }
-        val body = if (defineRoot) {
-          BlockNode.buildRootBody(Array(), operation)
-        } else {
-          BlockNode.buildInvisible(Array(), operation)
-        }
-        val initVariablesAndThenBody =
+        val initVariablesAndThenBody = if (defineRoot) {
+          val body =
+            BlockNode.buildRootBody(Array(), operation)
           BlockNode.buildRoot(argsExpr._1, body)
+        } else {
+          BlockNode.buildInvisible(argsExpr._1, operation)
+        }
         initVariablesAndThenBody
       }
 
