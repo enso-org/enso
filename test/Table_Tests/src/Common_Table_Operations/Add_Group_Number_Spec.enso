@@ -244,6 +244,49 @@ add_group_number_specs suite_builder setup =
 
             t.add_group_number (..Equal_Sum "q" 3) "g" . should_fail_with Illegal_Argument
 
+    suite_builder.group prefix+"Table.add_group_number (common)" group_builder->
+        group_builder.specify "should default the column name to 'Group'" <|
+            t = table_builder_from_rows ['x', 'y', 'z'] [[1, 0, 2], [0, 1, 0], [1, 2, 0], [0, 1, 1], [1, 0, 1], [1, 2, 1]]
+
+            g0 = t.add_group_number (..Unique on=['x', 'y'])
+            g0.at 'Group' . to_vector . sort . should_equal [0, 0, 1, 1, 2, 2]
+
+        group_builder.specify "must specify group_by with Unique" <|
+            t = table_builder_from_rows ['x', 'y', 'z'] [[1, 0, 2], [0, 1, 0], [1, 2, 0], [0, 1, 1], [1, 0, 1], [1, 2, 1]]
+
+            t.add_group_number ..Unique "g" . should_fail_with Missing_Argument
+
+        group_builder.specify "must specify nonempty group_by with Unique" <|
+            t = table_builder_from_rows ['x', 'y', 'z'] [[1, 0, 2], [0, 1, 0], [1, 2, 0], [0, 1, 1], [1, 0, 1], [1, 2, 1]]
+
+            t.add_group_number (..Unique on=[]) "g" . should_fail_with Illegal_Argument
+
+        group_builder.specify "Equal_Count group count should default to 5" <|
+            Grouping_Method.Equal_Count . group_count . should_equal 5
+
+        group_builder.specify "must specify one or more groups with Equal_Count" <|
+            t = table_builder [['x', [1, 2, 3, 4, 5]], ['y', [5, 4, 3, 2, 1]], ['z', [1, 5, 4, 2, 3]]]
+            t.add_group_number (..Equal_Count 0) "g" . should_fail_with (Illegal_Argument.Error 'group_count must be at least 1' Nothing)
+            t.add_group_number (..Equal_Count -1) "g" . should_fail_with (Illegal_Argument.Error 'group_count must be at least 1' Nothing)
+
+        group_builder.specify "should fail if columns provided in group_by do not exist" <|
+            t = table_builder_from_rows ['x', 'y', 'z'] [[1, 0, 2], [0, 1, 0], [1, 2, 0], [0, 1, 1], [1, 0, 1], [1, 2, 1]]
+
+            t.add_group_number (..Unique on=['x', 'q']) . should_fail_with Missing_Input_Columns
+
+        group_builder.specify "should fail if columns provided in order_by do not exist" <|
+            t = table_builder [['x', [1, 2, 3, 4, 5]], ['y', [5, 4, 3, 2, 1]], ['z', [1, 5, 4, 2, 3]]]
+
+            t.add_group_number (..Equal_Count 3 order_by=['q']) "g" . should_fail_with Missing_Input_Columns
+
+        group_builder.specify "should rename existing column upon a name clash, and attach a warning" <|
+            t = table_builder_from_rows ['x', 'y', 'z'] [['b', 'a', 'c'], ['a', 'b', 'a'], ['b', 'b', 'a'], ['a', 'b', 'b'], ['b', 'a', 'b'], ['b', 'b', 'b']]
+
+            g0 = t.add_group_number (..Unique on=['x', 'y']) "y"
+            g0.at 'y' . to_vector . sort . should_equal [0, 0, 1, 1, 2, 2]
+            g0.at 'y 1' . to_vector . sort . should_equal ['a', 'a', 'b', 'b', 'b', 'b']
+            Problems.expect_warning Duplicate_Output_Column_Names g0
+
         label_n1 = "Low"
         label_0  = "Average"
         label_p1 = "High"
@@ -299,49 +342,6 @@ add_group_number_specs suite_builder setup =
             t = table_builder [['x', [3, 4, 5, 4, 3, 5, 10, 4, '3']], ['y', [1, 2, 2, 1, 2, 1, 1, 1, 1]]]
 
             t.add_group_number (..Standard_Deviation "x") "g" . should_fail_with Illegal_Argument
-
-    suite_builder.group prefix+"Table.add_group_number (common)" group_builder->
-        group_builder.specify "should default the column name to 'Group'" <|
-            t = table_builder_from_rows ['x', 'y', 'z'] [[1, 0, 2], [0, 1, 0], [1, 2, 0], [0, 1, 1], [1, 0, 1], [1, 2, 1]]
-
-            g0 = t.add_group_number (..Unique on=['x', 'y'])
-            g0.at 'Group' . to_vector . sort . should_equal [0, 0, 1, 1, 2, 2]
-
-        group_builder.specify "must specify group_by with Unique" <|
-            t = table_builder_from_rows ['x', 'y', 'z'] [[1, 0, 2], [0, 1, 0], [1, 2, 0], [0, 1, 1], [1, 0, 1], [1, 2, 1]]
-
-            t.add_group_number ..Unique "g" . should_fail_with Missing_Argument
-
-        group_builder.specify "must specify nonempty group_by with Unique" <|
-            t = table_builder_from_rows ['x', 'y', 'z'] [[1, 0, 2], [0, 1, 0], [1, 2, 0], [0, 1, 1], [1, 0, 1], [1, 2, 1]]
-
-            t.add_group_number (..Unique on=[]) "g" . should_fail_with Illegal_Argument
-
-        group_builder.specify "Equal_Count group count should default to 5" <|
-            Grouping_Method.Equal_Count . group_count . should_equal 5
-
-        group_builder.specify "must specify one or more groups with Equal_Count" <|
-            t = table_builder [['x', [1, 2, 3, 4, 5]], ['y', [5, 4, 3, 2, 1]], ['z', [1, 5, 4, 2, 3]]]
-            t.add_group_number (..Equal_Count 0) "g" . should_fail_with (Illegal_Argument.Error 'group_count must be at least 1' Nothing)
-            t.add_group_number (..Equal_Count -1) "g" . should_fail_with (Illegal_Argument.Error 'group_count must be at least 1' Nothing)
-
-        group_builder.specify "should fail if columns provided in group_by do not exist" <|
-            t = table_builder_from_rows ['x', 'y', 'z'] [[1, 0, 2], [0, 1, 0], [1, 2, 0], [0, 1, 1], [1, 0, 1], [1, 2, 1]]
-
-            t.add_group_number (..Unique on=['x', 'q']) . should_fail_with Missing_Input_Columns
-
-        group_builder.specify "should fail if columns provided in order_by do not exist" <|
-            t = table_builder [['x', [1, 2, 3, 4, 5]], ['y', [5, 4, 3, 2, 1]], ['z', [1, 5, 4, 2, 3]]]
-
-            t.add_group_number (..Equal_Count 3 order_by=['q']) "g" . should_fail_with Missing_Input_Columns
-
-        group_builder.specify "should rename existing column upon a name clash, and attach a warning" <|
-            t = table_builder_from_rows ['x', 'y', 'z'] [['b', 'a', 'c'], ['a', 'b', 'a'], ['b', 'b', 'a'], ['a', 'b', 'b'], ['b', 'a', 'b'], ['b', 'b', 'b']]
-
-            g0 = t.add_group_number (..Unique on=['x', 'y']) "y"
-            g0.at 'y' . to_vector . sort . should_equal [0, 0, 1, 1, 2, 2]
-            g0.at 'y 1' . to_vector . sort . should_equal ['a', 'a', 'b', 'b', 'b', 'b']
-            Problems.expect_warning Duplicate_Output_Column_Names g0
 
     if setup.is_database.not then suite_builder.group prefix+"Table.find_group_number (in-memory)" group_builder->
         group_builder.specify "should add group number by predicate" <|
