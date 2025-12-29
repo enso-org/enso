@@ -868,6 +868,9 @@ importers:
 
   app/ydoc-channel:
     dependencies:
+      lib0:
+        specifier: ^0.2.99
+        version: 0.2.99
       yjs:
         specifier: ^13.6.19
         version: 13.6.21
