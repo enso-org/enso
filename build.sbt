@@ -2374,11 +2374,6 @@ lazy val `language-server` = (project in file("engine/language-server"))
       exports ++ testPkgsExports
     }
   )
-  .settings(
-    Test / envVars ++= Map(
-      "ENSO_EDITION_PATH" -> file("distribution/editions").getCanonicalPath
-    )
-  )
   .dependsOn(`connected-lock-manager-server`)
   .dependsOn(`edition-updater`)
   .dependsOn(`engine-runner-common`)
