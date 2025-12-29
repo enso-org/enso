@@ -546,6 +546,9 @@ importers:
       y-websocket:
         specifier: ^1.5.4
         version: 1.5.4(yjs@13.6.21)
+      ydoc-channel:
+        specifier: workspace:*
+        version: link:../ydoc-channel
       ydoc-shared:
         specifier: workspace:*
         version: link:../ydoc-shared

@@ -126,6 +126,7 @@
     "y-protocols": "^1.0.6",
     "y-textarea": "^1.0.2",
     "y-websocket": "^1.5.4",
+    "ydoc-channel": "workspace:*",
     "ydoc-shared": "workspace:*",
     "yjs": "^13.6.21",
     "zod": "catalog:",

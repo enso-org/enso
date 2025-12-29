@@ -1,8 +1,8 @@
 import { onScopeDispose } from 'vue'
 import { AbortScope } from 'ydoc-shared/util/net'
-import { ReconnectingWebSocket } from 'ydoc-shared/util/net/ReconnectingWSTransport'
 import { YjsTransport } from 'ydoc-shared/util/net/YjsTransport'
 import * as Y from 'yjs'
+import { YjsChannel } from 'ydoc-channel'
 
 export { AbortScope }
 
@@ -17,10 +17,8 @@ export function createRpcTransport(indexDoc: Y.Doc, url: string): YjsTransport {
 }
 
 /** TODO: Add docs */
-export function createDataWebsocket(url: string, binaryType: 'arraybuffer' | 'blob'): WebSocket {
-  const websocket = new ReconnectingWebSocket(url, undefined, WS_OPTIONS)
-  websocket.binaryType = binaryType
-  return websocket as WebSocket
+export function createDataSocket(indexDoc: Y.Doc, url: string): YjsChannel {
+  return new YjsChannel(indexDoc, url)
 }
 
 export interface WebSocketHandler {
