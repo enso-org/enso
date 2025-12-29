@@ -100,7 +100,9 @@ export function setupGatewayClient(
   docName: string,
   callbacks: YjsChannelCallbacks,
 ): void {
-  console.log(`setupGatewayClient(${lsUrl ? 'lsUrl: ' + lsUrl : 'no lsUrl'}, docName: ${docName}), callbacks: ${callbacks}`)
+  console.log(
+    `setupGatewayClient(${lsUrl ? 'lsUrl: ' + lsUrl : 'no lsUrl'}, docName: ${docName}), callbacks: ${callbacks}`,
+  )
   const lsSession = getSessionForUrl(lsUrl, callbacks)
   const wsDoc = getSessionDoc(lsSession, docName)
   if (!wsDoc) {
