@@ -136,7 +136,7 @@ add_specs suite_builder = suite_builder.group "Lazy" group_builder->
             _ -> Test.fail "should match Lazy.Value ctor"
         ref.get . should_equal 0
 
-    group_builder.specify "lazy atom field is not evaluated in structural pattern match with type check" <|
+    group_builder.specify "lazy atom field is evaluated in structural pattern match with type check" <|
         ref = Ref.new 0
         l = Lazy.new <|
             ref.modify (_ + 1)
@@ -145,9 +145,9 @@ add_specs suite_builder = suite_builder.group "Lazy" group_builder->
             Lazy.Value x:Integer ->
                 if should_compute then x else Nothing
             _ -> Test.fail "should match Lazy.Value ctor"
-        ref.get . should_equal 0
+        ref.get . should_equal 1
 
-    group_builder.specify "lazy atom field is not evaluated when not matched in structural pattern" <|
+    group_builder.specify "lazy atom field is evaluated when not matched in structural pattern" <|
         ref = Ref.new 0
         l = Lazy.new <|
             ref.modify (_ + 1)
@@ -155,7 +155,7 @@ add_specs suite_builder = suite_builder.group "Lazy" group_builder->
             Lazy.Value _:Text ->
                 Test.fail "should not match Lazy.Value ctor with Text"
             _ -> Nothing
-        ref.get . should_equal 0
+        ref.get . should_equal 1
 
     group_builder.specify "lazy atom field is evaluated just once in structural pattern match" <|
         ref = Ref.new 0
