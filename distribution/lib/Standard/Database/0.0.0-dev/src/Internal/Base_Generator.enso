@@ -654,7 +654,7 @@ make_group_number_equal_count (arguments : Vector) = if arguments.length < 3 the
    private: true
    ---
 make_group_number_equal_sum : Vector SQL_Builder -> SQL_Builder
-make_group_number_equal_sum (arguments : Vector) = if arguments.length < 3 then Error.throw (Illegal_State.Error "Wrong amount of parameters in GROUP_NUMBER_EQUAL_COUNT IR. This is a bug in the Database library.") else
+make_group_number_equal_sum (arguments : Vector) = if arguments.length < 4 then Error.throw (Illegal_State.Error "Wrong amount of parameters in GROUP_NUMBER_EQUAL_COUNT IR. This is a bug in the Database library.") else
     offset = arguments.at 0
     step = arguments.at 1
     sum_column = arguments.at 2
