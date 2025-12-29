@@ -37,15 +37,22 @@ class LibrariesTest extends BaseServerTest with ReportLogsOnFailure {
   ) {
     override def libraries: Seq[DummyLibrary] = Seq(
       DummyLibrary(
+        LibraryName("Baz", "Lib"),
+        SemVer.of(0, 0, 9),
+        """
+          |quuz = 23
+          |""".stripMargin
+      ),
+      DummyLibrary(
         LibraryName("Foo", "Bar"),
         SemVer.of(1, 0, 0),
-        """import Standard.Base
+        """import Baz.Lib
           |
           |baz = 42
           |
           |quux = "foobar"
           |""".stripMargin,
-        dependencies = Seq(LibraryName("Standard", "Base"))
+        dependencies = Seq(LibraryName("Baz", "Lib"))
       )
     )
   }
@@ -53,7 +60,13 @@ class LibrariesTest extends BaseServerTest with ReportLogsOnFailure {
   private val repositoryUrl = baseUrl + "libraries"
 
   override protected def customEdition: Option[Editions.RawEdition] = Some(
-    exampleRepo.createEdition(repositoryUrl)
+    exampleRepo.createEdition(
+      repositoryUrl,
+      parent = None,
+      engineVersion = Some(
+        SemVer.parse(BuildVersion.currentEdition()).get
+      )
+    )
   )
 
   "LocalLibraryManager" should {
@@ -783,7 +796,7 @@ class LibrariesTest extends BaseServerTest with ReportLogsOnFailure {
       )
 
       published should contain(
-        PublishedLibrary("Standard", "Base", isCached = true)
+        PublishedLibrary("Baz", "Lib", isCached = false)
       )
       published should contain(
         PublishedLibrary("Foo", "Bar", isCached = false)
@@ -805,7 +818,7 @@ class LibrariesTest extends BaseServerTest with ReportLogsOnFailure {
       extractPublishedLibraries(
         client.expectSomeJson(timeout = defaultTimeout)
       ) should contain(
-        PublishedLibrary("Standard", "Base", isCached = true)
+        PublishedLibrary("Baz", "Lib", isCached = true)
       )
     }
   }
@@ -834,7 +847,7 @@ class LibrariesTest extends BaseServerTest with ReportLogsOnFailure {
 
       components should not be empty
       components.map(_.library).toSet should contain theSameElementsAs Seq(
-        LibraryName("Standard", "Base")
+        LibraryName("Baz", "Lib")
       )
 
       val currentEditionName = BuildVersion.currentEdition
@@ -860,7 +873,7 @@ class LibrariesTest extends BaseServerTest with ReportLogsOnFailure {
 
       components2 should not be empty
       components2.map(_.library).toSet should contain theSameElementsAs Seq(
-        LibraryName("Standard", "Base")
+        LibraryName("Baz", "Lib")
       )
 
     }
