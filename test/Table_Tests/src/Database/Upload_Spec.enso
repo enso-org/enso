@@ -22,8 +22,6 @@ from Standard.Test.Execution_Context_Helpers import run_with_and_without_output
 
 import project.Database.Helpers.Name_Generator
 
-import enso_dev.Table_Tests
-
 polyglot java import org.enso.table_test_helpers.ExplodingStorage
 polyglot java import org.enso.table_test_helpers.ExplodingStoragePayload
 polyglot java import java.lang.Thread
