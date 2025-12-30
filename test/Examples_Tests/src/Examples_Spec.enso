@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Network.HTTP.HTTP_Error.HTTP_Error
 
 import Standard.Examples
 
@@ -80,13 +81,16 @@ add_specs suite_builder = suite_builder.group "Examples" group_builder->
         Examples.uri
 
     group_builder.specify "should provide an image file" <|
-        Examples.image_file
+        ignore_http_errors <|
+            Examples.image_file
 
     group_builder.specify "should provide an image" <|
-        Examples.image
+        ignore_http_errors <|
+            Examples.image
 
     group_builder.specify "should provide a matrix" <|
-        Examples.matrix
+        ignore_http_errors <|
+            Examples.matrix
 
     group_builder.specify "should provide a silly function" <|
         Examples.add_1_to 4 . should_equal 5
@@ -124,3 +128,12 @@ main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
     suite.run_with_filter filter
+
+ignore_http_errors ~action =
+    handler caught_panic =
+        case caught_panic of
+            _ : HTTP_Error -> Nothing
+            _ ->
+                Test.fail ("Uncaught error: " + caught_panic.to_text)
+    Panic.catch Any handler=handler <|
+        action.catch handler=handler
