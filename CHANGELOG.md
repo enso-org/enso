@@ -1,5 +1,11 @@
 # Next Next Release
 
+#### Enso Standard Library
+
+- [Using dual JVM mode for Standard.Microsoft][14476].
+
+[14476]: https://github.com/enso-org/enso/pull/14476
+
 #### Enso Language & Runtime
 
 - [`Panic.rethrow` keeps original location][14480]
@@ -39,8 +45,6 @@
 - [Context menu for connections][14325].
 - [Warnings and Errors no longer become transparent][14388]
 - [`--headless` flag to run a project without the User Interface][14310]
-- [Preview for assets (text, main files of Projects, audio, video, images) in
-  Right Sidebar][14310]
 - ["Delete and Connect Around" option in node's menu][14403]
 - [GeoMap visualization is now working without need of Mapbox Token in
   environment][14429]

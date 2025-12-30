@@ -438,16 +438,17 @@ class DistributionManager(val env: Environment) {
   * directories used by Enso components.
   */
 object DistributionManager {
-  val ENGINES_DIRECTORY   = "dist"
-  val RUNTIMES_DIRECTORY  = "runtime"
-  val CONFIG_DIRECTORY    = "config"
-  val BIN_DIRECTORY       = "bin"
-  val LOCK_DIRECTORY      = "lock"
-  val LOG_DIRECTORY       = "log"
-  val TMP_DIRECTORY       = "tmp"
-  val EDITIONS_DIRECTORY  = "editions"
-  val LIBRARIES_DIRECTORY = "lib"
-  val PROFILING_DIRECTORY = "profiling"
+  val ENGINES_DIRECTORY    = "dist"
+  val RUNTIMES_DIRECTORY   = "runtime"
+  val CONFIG_DIRECTORY     = "config"
+  val BIN_DIRECTORY        = "bin"
+  val LOCK_DIRECTORY       = "lock"
+  val LOG_DIRECTORY        = "log"
+  val TMP_DIRECTORY        = "tmp"
+  val EDITIONS_DIRECTORY   = "editions"
+  val LIBRARIES_DIRECTORY  = "lib"
+  val PROFILING_DIRECTORY  = "profiling"
+  val EDITION_PATH_SYSPROP = "enso.edition.path"
 
   /** Defines paths inside of the ENSO_HOME directory. */
   object Home {

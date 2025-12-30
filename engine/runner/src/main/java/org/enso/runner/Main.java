@@ -1199,7 +1199,7 @@ public class Main {
           cwd,
           packagePaths,
           shouldCompileDependencies,
-          shouldEnableIrCaches(line),
+          shouldEnableIrCaches(line, null),
           line.hasOption(DISABLE_PRIVATE_CHECK_OPTION),
           line.hasOption(ENABLE_STATIC_ANALYSIS_OPTION),
           line.hasOption(TREAT_WARNINGS_AS_ERRORS_OPTION),
@@ -1216,7 +1216,7 @@ public class Main {
           line.getOptionValue(IN_PROJECT_OPTION),
           logLevel,
           logMasking,
-          shouldEnableIrCaches(line),
+          shouldEnableIrCaches(line, null),
           line.hasOption(DISABLE_PRIVATE_CHECK_OPTION),
           line.hasOption(AUTO_PARALLELISM_OPTION),
           line.hasOption(ENABLE_STATIC_ANALYSIS_OPTION),
@@ -1233,7 +1233,7 @@ public class Main {
           line.getOptionValue(IN_PROJECT_OPTION),
           logLevel,
           logMasking,
-          shouldEnableIrCaches(line),
+          shouldEnableIrCaches(line, null),
           line.hasOption(ENABLE_STATIC_ANALYSIS_OPTION),
           line.hasOption(TREAT_WARNINGS_AS_ERRORS_OPTION));
     }
@@ -1244,7 +1244,7 @@ public class Main {
           line.getOptionValue(IN_PROJECT_OPTION),
           logLevel,
           logMasking,
-          shouldEnableIrCaches(line));
+          shouldEnableIrCaches(line, false));
     }
     if (line.hasOption(PREINSTALL_OPTION)) {
       preinstallDependencies(line.getOptionValue(IN_PROJECT_OPTION), logLevel);
@@ -1264,7 +1264,10 @@ public class Main {
    * @param line the command-line
    * @return `true` if caching should be enabled, `false`, otherwise
    */
-  private boolean shouldEnableIrCaches(CommandLine line) {
+  private boolean shouldEnableIrCaches(CommandLine line, Boolean defaultValue) {
+    if (defaultValue == null) {
+      defaultValue = !isDevBuild();
+    }
     if (line.hasOption(ENABLE_STATIC_ANALYSIS_OPTION)) {
       if (line.hasOption(IR_CACHES_OPTION)) {
         throw exitFail(
@@ -1293,7 +1296,7 @@ public class Main {
     } else if (line.hasOption(NO_IR_CACHES_OPTION)) {
       return false;
     } else {
-      return !isDevBuild();
+      return defaultValue;
     }
   }
 

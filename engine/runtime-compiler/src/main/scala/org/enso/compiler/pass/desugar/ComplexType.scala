@@ -171,8 +171,8 @@ case object ComplexType extends IRPass {
     ): List[Definition] = {
       var unusedSig: Option[Type.Ascription] = None
       val sig = lastSignature match {
-        case Some(Type.Ascription(typed, _, _, _, _)) =>
-          typed match {
+        case Some(asc: Type.Ascription) =>
+          asc.typed() match {
             case literal: Name.Literal =>
               if (name.name == literal.name) {
                 lastSignature
@@ -323,7 +323,7 @@ case object ComplexType extends IRPass {
     )
 
     val newSig =
-      signature.map(sig => sig.copy(typed = methodRef.duplicate()).duplicate())
+      signature.map(sig => sig.copyWithTyped(methodRef.duplicate()).duplicate())
 
     val binding = definition.Method.Binding
       .builder()

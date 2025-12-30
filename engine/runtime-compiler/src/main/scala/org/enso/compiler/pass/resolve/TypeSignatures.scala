@@ -118,7 +118,7 @@ case object TypeSignatures extends IRPass {
         )
 
         val res = lastSignature match {
-          case Some(asc @ Type.Ascription(typed, sig, comment, _, _)) =>
+          case Some(asc: Type.Ascription) =>
             val methodRef = meth.methodReference
             val newMethodWithDoc = asc
               .getMetadata(DocumentationComments)
@@ -137,12 +137,15 @@ case object TypeSignatures extends IRPass {
               )
               .getOrElse(newMethodWithDoc)
 
-            typed match {
+            asc.typed() match {
               case ref: Name.MethodReference =>
                 if (ref isSameReferenceAs methodRef) {
                   Some(
                     newMethodWithAnnotations.updateMetadata(
-                      new MetadataPair(this, Signature(sig, comment))
+                      new MetadataPair(
+                        this,
+                        Signature(asc.signature(), asc.reason())
+                      )
                     )
                   )
                 } else {
@@ -167,11 +170,11 @@ case object TypeSignatures extends IRPass {
             )
               .filter(_.nonEmpty)
               .foreach { inferred =>
-                val typeFun = Type.Function(
-                  inferred.init,
-                  inferred.last,
-                  identifiedLocation = null
-                )
+                val typeFun = Type.Function
+                  .builder()
+                  .args(inferred.init)
+                  .result(inferred.last)
+                  .build()
                 newMethod.updateMetadata(
                   new MetadataPair(this, Signature(typeFun))
                 )
@@ -365,7 +368,7 @@ case object TypeSignatures extends IRPass {
       case binding: Expression.Binding =>
         val newBinding = binding.mapExpressions(resolveExpression)
         val res = lastSignature match {
-          case Some(asc @ Type.Ascription(typed, sig, comment, _, _)) =>
+          case Some(asc: Type.Ascription) =>
             val name = binding.name
             val newBindingWithDoc = asc
               .getMetadata(DocumentationComments)
@@ -376,12 +379,15 @@ case object TypeSignatures extends IRPass {
               )
               .getOrElse(newBinding)
 
-            typed match {
+            asc.typed() match {
               case typedName: Name =>
                 if (typedName.name == name.name) {
                   Some(
                     newBindingWithDoc.updateMetadata(
-                      new MetadataPair(this, Signature(sig, comment))
+                      new MetadataPair(
+                        this,
+                        Signature(asc.signature(), asc.reason())
+                      )
                     )
                   )
                 } else {
@@ -404,9 +410,9 @@ case object TypeSignatures extends IRPass {
       case a => Some(resolveExpression(a))
     } ::: lastSignature
       .map({
-        case asc @ Type.Ascription(_, sig, comment, _, _) =>
+        case asc: Type.Ascription =>
           asc.updateMetadata(
-            new MetadataPair(this, Signature(sig, comment))
+            new MetadataPair(this, Signature(asc.signature(), asc.reason()))
           )
         case any => errors.Unexpected.TypeSignature(any)
       })
