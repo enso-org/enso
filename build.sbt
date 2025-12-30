@@ -5141,7 +5141,8 @@ lazy val `enso-test-java-helpers` = project
       val result          = (Compile / packageBin).value
       val primaryLocation = (Compile / packageBin / artifactPath).value
       val secondaryLocations = Seq(
-        file("test/Table_Tests/polyglot/java/base-test-java-helpers.jar")
+        file("test/Table_Tests/polyglot/java/base-test-java-helpers.jar"),
+        file("test/Image_Tests/polyglot/java/base-test-java-helpers.jar")
       )
       secondaryLocations.foreach { target =>
         IO.copyFile(primaryLocation, target)
