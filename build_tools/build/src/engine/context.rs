@@ -271,11 +271,6 @@ impl RunContext {
             run_sbt_clean = true;
             tasks.push("buildEngineDistribution");
         }
-        if self.config.test_jvm {
-            // Some JVM tests expect that the engine distribution is built, so
-            // build it even if `config.build_engine_package` is false.
-            tasks.push("buildEngineDistribution");
-        }
         if self.config.build_native_ydoc {
             tasks.push("ydoc-server/buildNativeImage");
         }
