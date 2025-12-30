@@ -16,8 +16,8 @@ with_test_file f ~action =
    "if_not_exist"
      =>
    (enso_project.data / "transient" / "if_not_exist.txt")
-add_specs prefix suite_builder file_maker =
-    suite_builder.group prefix+"Download Mode" pending=pending_has_url group_builder->
+add_specs prefix suite_builder file_maker ~pending=pending_has_url =
+    suite_builder.group prefix+"Download Mode" pending=pending group_builder->
         url_n_bytes n = base_url_with_slash+'test_download?length='+n.to_text
 
         group_builder.specify prefix+"Will always download a file for mode Always" <|
