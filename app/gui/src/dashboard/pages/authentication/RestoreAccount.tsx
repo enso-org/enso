@@ -16,11 +16,7 @@ export default function RestoreAccount() {
   return (
     <div className="flex h-full w-full overflow-auto">
       <div className="flex min-h-96 w-full flex-col items-center justify-center">
-        <SvgMask
-          src={UntrashIcon}
-          className="bg-icon-selected mb-4 aspect-square h-12"
-          color={''}
-        />
+        <SvgMask src={UntrashIcon} className="bg-icon-selected mb-4 aspect-square h-12" color="" />
         <aria.Heading level={1} className="mb-4 text-3xl">
           {getText('restoreAccount')}
         </aria.Heading>
@@ -43,9 +39,8 @@ export default function RestoreAccount() {
           <Button
             variant="icon"
             onPress={async () => {
-              await signOut().then(() => {
-                void router.push(LOGIN_PATH)
-              })
+              await signOut()
+              void router.push(LOGIN_PATH)
             }}
           >
             {getText('signOutShortcut')}
