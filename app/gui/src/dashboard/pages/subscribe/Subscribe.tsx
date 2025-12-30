@@ -33,7 +33,6 @@ export function Subscribe() {
 
   return (
     <Page>
-      <Fail />
       <div className="flex h-full w-full flex-col overflow-y-auto bg-hover-bg">
         <div className="mx-auto mt-16 flex w-full min-w-96 max-w-[1400px] flex-col items-start justify-center p-12">
           <div className="flex flex-col items-start">
@@ -68,11 +67,4 @@ export function Subscribe() {
       </div>
     </Page>
   )
-}
-
-/**
- *
- */
-function Fail(): null {
-  throw new Error('testing error boundary')
 }

@@ -38,6 +38,10 @@ const routes = [
         meta: { access: 'guest' },
         component: withDataLoader(() => import('$/components/RegistrationPage.vue')),
       },
+      // NOTE: All React (non-`.vue`) routes MUST be wrapped in `<Page>`,
+      // otherwise the error boundary and other layout components will not be applied.
+      // The error boundary is in `Page.tsx` - it cannot be in ReactRoot/App because Vue Router
+      // is inside ReactRoot, so the router is not available when ReactRoot/App is rendered.
       {
         path: UNAVAILABLE_PATH,
         meta: { access: 'anyLoggedIn' },
@@ -49,13 +53,13 @@ const routes = [
             path: '/:path(.*)*',
             beforeEnter: maybeRedirectToProject,
             component: () =>
-              import('#/pages/dashboard/Dashboard.tsx').then((mod) =>
-                reactComponent(mod.Dashboard),
-              ),
+              // Wrapped in `Page`: Yes.
+              import('#/pages/dashboard/Dashboard').then((mod) => reactComponent(mod.Dashboard)),
           },
           {
             path: SUBSCRIBE_PATH,
             component: () =>
+              // Wrapped in `Page`: Yes.
               import('#/pages/subscribe/Subscribe').then((mod) => reactComponent(mod.Subscribe)),
           },
         ],
@@ -64,6 +68,7 @@ const routes = [
         path: RESTORE_USER_PATH,
         meta: { access: 'deleted' },
         component: () =>
+          // Wrapped in `Page`: Yes.
           import('#/pages/authentication/RestoreAccount').then((mod) =>
             reactComponent(mod.default),
           ),
@@ -73,6 +78,7 @@ const routes = [
         name: 'cloudDisabled',
         meta: { access: 'anyLoggedIn' },
         component: () =>
+          // Wrapped in `Page`: Yes.
           import('#/layouts/CloudBrowserDisabled').then((mod) =>
             reactComponent(mod.CloudBrowserDisabledPage),
           ),
@@ -91,6 +97,7 @@ const routes = [
   {
     path: CONFIRM_REGISTRATION_PATH,
     component: () =>
+      // Wrapped in `Page`: Yes (`AuthenticationPage` uses `Page` internally).
       import('#/pages/authentication/ConfirmRegistration').then((mod) =>
         reactComponent(mod.default),
       ),
@@ -98,11 +105,13 @@ const routes = [
   {
     path: FORGOT_PASSWORD_PATH,
     component: () =>
+      // Wrapped in `Page`: Yes (`AuthenticationPage` uses `Page` internally).
       import('#/pages/authentication/ForgotPassword').then((mod) => reactComponent(mod.default)),
   },
   {
     path: RESET_PASSWORD_PATH,
     component: () =>
+      // Wrapped in `Page`: Yes (`AuthenticationPage` uses `Page` internally).
       import('#/pages/authentication/ResetPassword').then((mod) => reactComponent(mod.default)),
   },
   {
