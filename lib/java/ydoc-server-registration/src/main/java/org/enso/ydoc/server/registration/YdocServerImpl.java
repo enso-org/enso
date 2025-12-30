@@ -13,7 +13,11 @@ public final class YdocServerImpl extends YdocServerApi {
   public YdocServerImpl() {}
 
   @Override
-  protected AutoCloseable runYdocServer(String hostname, int port, MessageCallbacks callbacks)
+  protected AutoCloseable runYdocServer(
+      String hostname,
+      int port,
+      MessageCallbacks jsonChannelCallbacks,
+      MessageCallbacks binaryChannelCallbacks)
       throws WrongOption, IOException, URISyntaxException {
     // the following shall invoke:
     //   return launch(hostname, port);
@@ -40,7 +44,7 @@ public final class YdocServerImpl extends YdocServerApi {
     var fqn = "org.enso.ydoc.server.Main";
     var impl = loader.loadClass(fqn);
     assert impl != null;
-    impl.invokeMember("launch", hostname, port + "", callbacks);
+    impl.invokeMember("launch", hostname, port + "", jsonChannelCallbacks, binaryChannelCallbacks);
     return loader;
   }
 }

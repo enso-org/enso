@@ -25,7 +25,8 @@ public final class Ydoc implements AutoCloseable {
   private final Context.Builder contextBuilder;
   private final String hostname;
   private final int port;
-  private final MessageCallbacks callbacks;
+  private final MessageCallbacks jsonChannelCallbacks;
+  private final MessageCallbacks binaryChannelCallbacks;
 
   private Context context;
 
@@ -35,13 +36,15 @@ public final class Ydoc implements AutoCloseable {
       Context.Builder contextBuilder,
       String hostname,
       int port,
-      MessageCallbacks callbacks) {
+      MessageCallbacks jsonChannelCallbacks,
+      MessageCallbacks binaryChannelCallbacks) {
     this.executor = executor;
     this.parser = parser;
     this.contextBuilder = contextBuilder;
     this.hostname = hostname;
     this.port = port;
-    this.callbacks = callbacks;
+    this.jsonChannelCallbacks = jsonChannelCallbacks;
+    this.binaryChannelCallbacks = binaryChannelCallbacks;
   }
 
   public static final class Builder {
@@ -55,7 +58,8 @@ public final class Ydoc implements AutoCloseable {
     private HostAccess.Builder hostAccessBuilder;
     private String hostname;
     private int port = -1;
-    private MessageCallbacks callbacks;
+    private MessageCallbacks jsonChannelCallbacks;
+    private MessageCallbacks binaryChannelCallbacks;
 
     private Builder() {}
 
@@ -98,8 +102,13 @@ public final class Ydoc implements AutoCloseable {
       return this;
     }
 
-    public Builder callbacks(MessageCallbacks callbacks) {
-      this.callbacks = callbacks;
+    public Builder jsonChannelCallbacks(MessageCallbacks callbacks) {
+      this.jsonChannelCallbacks = callbacks;
+      return this;
+    }
+
+    public Builder binaryChannelCallbacks(MessageCallbacks callbacks) {
+      this.binaryChannelCallbacks = callbacks;
       return this;
     }
 
@@ -135,13 +144,26 @@ public final class Ydoc implements AutoCloseable {
         port = DEFAULT_PORT;
       }
 
-      if (callbacks == null) {
-        callbacks = NoOpMessageCallbacks.INSTANCE;
+      if (jsonChannelCallbacks == null) {
+        jsonChannelCallbacks = NoOpMessageCallbacks.INSTANCE;
       } else {
-        callbacks = new YjsCallbacksSynchronized(callbacks, executor);
+        jsonChannelCallbacks = new YjsCallbacksSynchronized(jsonChannelCallbacks, executor);
       }
 
-      return new Ydoc(executor, parser, contextBuilder, hostname, port, callbacks);
+      if (binaryChannelCallbacks == null) {
+        binaryChannelCallbacks = NoOpMessageCallbacks.INSTANCE;
+      } else {
+        binaryChannelCallbacks = new YjsCallbacksSynchronized(binaryChannelCallbacks, executor);
+      }
+
+      return new Ydoc(
+          executor,
+          parser,
+          contextBuilder,
+          hostname,
+          port,
+          jsonChannelCallbacks,
+          binaryChannelCallbacks);
     }
   }
 
@@ -173,7 +195,8 @@ public final class Ydoc implements AutoCloseable {
                   var bindings = ctx.getBindings("js");
                   bindings.putMember("YDOC_HOST", hostname);
                   bindings.putMember("YDOC_PORT", port);
-                  bindings.putMember("YDOC_MESSAGE_CALLBACKS", callbacks);
+                  bindings.putMember("YDOC_JSON_CHANNEL_CALLBACKS", jsonChannelCallbacks);
+                  bindings.putMember("YDOC_BINARY_CHANNEL_CALLBACKS", binaryChannelCallbacks);
                   bindings.putMember("YDOC_LS_DEBUG", "false");
 
                   ctx.eval(ydocJs);

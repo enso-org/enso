@@ -22,7 +22,7 @@ import org.enso.languageserver.capability.CapabilityRouter
 import org.enso.languageserver.data._
 import org.enso.languageserver.effect
 import org.enso.languageserver.filemanager._
-import org.enso.languageserver.http.server.BinaryWebSocketServer
+import org.enso.languageserver.http.server.BinaryYdocServer
 import org.enso.languageserver.io._
 import org.enso.languageserver.libraries._
 import org.enso.languageserver.monitoring.{
@@ -519,19 +519,15 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
     )(system)
   log.trace("Created JSON RPC Server [{}]", jsonRpcServer)
 
-  val binaryServer =
-    new BinaryWebSocketServer(
+  val binaryChannelCallbacks =
+    new BinaryYdocServer.BinaryServerCallbacks(
       InboundMessageDecoder,
       BinaryEncoder.empty,
       new BinaryConnectionControllerFactory(fileManager)(system),
-      BinaryWebSocketServer.Config(
-        outgoingBufferSize = 100,
-        lazyMessageTimeout = 10.seconds,
-        secureConfig       = secureConfig
-      ),
-      messagesCallback
-    )(system, materializer)
-  log.trace("Created Binary WebSocket Server [{}]", binaryServer)
+      messagesCallback,
+      system
+    )
+  log.trace("Created Binary Channel Callbacks [{}]", binaryChannelCallbacks)
 
   private val ydoc = {
     val c = org.enso.languageserver.boot.config.ApplicationConfig.load().ydoc
@@ -539,7 +535,8 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
       .launchYdocServer(
         c.hostname,
         c.port,
-        jsonRpcServer.yjsChannelCallbacks
+        jsonRpcServer.yjsChannelCallbacks,
+        binaryChannelCallbacks
       )
   }
 
