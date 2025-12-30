@@ -360,7 +360,8 @@ type DB_Table_Implementation
                         mapping = this_table.connection.type_mapping
                         infer_from_database_callback expression =
                             SQL_Type_Reference.new this_table.connection this_table.context expression
-                        new_type_ref = mapping.infer_return_type infer_from_database_callback "GROUP_NUMBER_STANDARD_DEVIATION" [] new_expr
+                        op = if population then "GROUP_NUMBER_STANDARD_DEVIATION_POPULATION" else "GROUP_NUMBER_STANDARD_DEVIATION_SAMPLE"
+                        new_type_ref = mapping.infer_return_type infer_from_database_callback op [] new_expr
 
                         new_column = Internal_Column.Value name new_type_ref new_expr
 
