@@ -678,10 +678,8 @@ make_group_number_equal_sum (arguments : Vector) = if arguments.length < 3 then 
    private: true
    ---
 make_group_number_standard_deviation : Vector SQL_Builder -> SQL_Builder
-make_group_number_standard_deviation (population : Boolean) (arguments : Vector) = if arguments.length < 3 then Error.throw (Illegal_State.Error "Wrong amount of parameters in GROUP_NUMBER_STANDARD_DEVIATION IR. This is a bug in the Database library.") else
-    offset = arguments.at 0
-    step = arguments.at 1
-    stddev_column = arguments.at 2
+make_group_number_standard_deviation (population : Boolean) (arguments : Vector) = if arguments.length < 1 then Error.throw (Illegal_State.Error "Wrong amount of parameters in GROUP_NUMBER_STANDARD_DEVIATION IR. This is a bug in the Database library.") else
+    stddev_column = arguments.at 0
 
     stddev_fun = if population then "STDDEV_POP" else "STDDEV_SAMP"
     stddev = SQL_Builder.code stddev_fun ++ "(" ++ stddev_column ++ ") over ()"
@@ -692,7 +690,7 @@ make_group_number_standard_deviation (population : Boolean) (arguments : Vector)
     stddev_safe = SQL_Builder.code "(case when " ++ stddev.paren ++ " = 0 or " ++ stddev.paren ++ " is null then 1 else " ++ stddev.paren ++ " end)"
     mean = SQL_Builder.code "(avg(" ++ stddev_column ++ ") over ())"
     zscore = SQL_Builder.code "((" ++ stddev_column.paren ++ " - " ++ mean.paren ++ ") / " ++ stddev_safe.paren ++ ")"
-    group_index = SQL_Builder.code "(floor(" ++ zscore.paren ++ " + 0.5) * " ++ step.paren ++ " + " ++ offset.paren ++ ")"
+    group_index = SQL_Builder.code "(floor(" ++ zscore.paren ++ " + 0.5))"
     whener gi op name = SQL_Builder.code "when " ++ group_index.paren ++ " " ++ op ++ gi.to_text ++ " then '" ++ name ++ "'"
     whens = Vector.build builder->
         builder.append (whener -2 "<=" "Very Low")

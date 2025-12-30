@@ -33,7 +33,7 @@ make_group_number_equal_sum (from : Integer) (step : Integer) (sum_column : SQL_
    ---
 make_group_number_standard_deviation (from : Integer) (step : Integer) (stddev_column : SQL_IR_Expression) (population : Boolean) -> SQL_IR_Expression =
     _require_default_scale from step <|
-        params = [SQL_IR_Expression.Literal from.to_text, SQL_IR_Expression.Literal step.to_text, stddev_column]
+        params = [stddev_column]
         op = if population then "GROUP_NUMBER_STANDARD_DEVIATION_POPULATION" else "GROUP_NUMBER_STANDARD_DEVIATION_SAMPLE"
         SQL_IR_Expression.Operation op params
 
