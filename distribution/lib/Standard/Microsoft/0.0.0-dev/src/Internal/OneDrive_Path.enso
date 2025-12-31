@@ -1,0 +1,59 @@
+private
+
+from Standard.Base import all
+
+type OneDrive_Path
+    Value (path : Vector Text)
+
+    ## ---
+       private: true
+       ---
+    resolve self subpath:Text =
+        if subpath == "." then self else
+            if subpath == ".." then self.parent.if_nothing self else
+                self.extend subpath
+
+    ## ---
+       private: true
+       ---
+    parent self =
+        if self.path.length == 0 then Nothing else
+            OneDrive_Path.Value (self.path.drop (..Last 1))
+
+    ## ---
+       private: true
+       ---
+    extend self subpath:Text =
+        OneDrive_Path.Value (self.path + [subpath])
+
+    ## ---
+       private: true
+       ---
+    to_text self -> Text =
+        "/" + (self.path.join "/")
+
+    ## ---
+       private: true
+       ---
+    file_name self -> Text =
+        if self.path.is_empty then "/" else self.path.last
+
+    ## ---
+       private: true
+       ---
+    to_human_readable_fragment self =
+        if self.path.is_empty then "/me/drive/root" else
+            "/me/drive/root:/" + (self.path.join "/")
+
+    ## ---
+       private: true
+       ---
+    to_human_readable_fragment_dir self =
+        if self.path.is_empty then "/me/drive/root/children" else
+            "/me/drive/root:/" + (self.path.join "/") + ":/children"
+
+    ## ---
+       private: true
+       ---
+    to_human_readable_fragment_file self =
+        "/me/drive/root:/" + (self.path.join "/") + ":/content"

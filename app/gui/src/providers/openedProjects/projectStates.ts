@@ -29,6 +29,7 @@ import {
   type Ref,
 } from 'vue'
 import { useBackends } from '../backends'
+import { useHttpClient } from '../httpClient'
 import { useSession } from '../session'
 import { useText } from '../text'
 import { useUploadsToCloudStore } from '../upload'
@@ -159,6 +160,7 @@ export function useProjectStates() {
   const config = injectGuiConfig()
   const uploads = useUploadsToCloudStore()
   const queryClient = vueQuery.useQueryClient()
+  const httpClient = useHttpClient()
 
   const openLocalProject = vueQuery.useMutation(
     backendMutationOptions('openProject', backends.localBackend),
@@ -319,6 +321,18 @@ export function useProjectStates() {
     details?: Ref<ProjectDetails>,
   ) {
     if (!backends.localBackend) return Err('Cannot open local project: Local Backend missing.')
+    await backends.localBackend
+      .startWatchingHybridProject(info.id, info.runningId, info.parentId, httpClient.defaultHeaders)
+      .catch((err) => {
+        console.error(`Failed to start watching hybrid project ${info.id}`, err)
+      })
+    scope.run(() =>
+      onScopeDispose(async () => {
+        await backends.localBackend?.stopWatchingHybridProject(info.id).catch((err) => {
+          console.error(`Failed to stop watching hybrid project ${info.id}`, err)
+        })
+      }),
+    )
     const cloudParentPath = EnsoPath(info.ensoPath.slice(0, info.ensoPath.lastIndexOf('/')))
     const result = await catchNetworkError(
       backends.localBackend.openProject(
@@ -381,7 +395,7 @@ export function useProjectStates() {
       const runningId = project.info.mode === 'hybrid' ? project.info.runningId : project.info.id
       const projectNames = createProjectNameStore({
         projectNamespace: 'local', // Even in cloud, the namespace seems to be always "local".
-        projectDisplayedName: details.value.name,
+        projectDisplayedName: () => details.value.name,
         projectInitialName: runDetails.value.packageName,
       })
       const rpcUrl = runDetails.value.jsonAddress
@@ -571,10 +585,12 @@ export function useProjectStates() {
   async function closeHybridProject(
     project: HybridUploaded | HybridOpened | HybridDownloaded,
   ): Promise<Result<NotOpened>> {
-    if (project.status === 'hybrid-uploaded')
+    if (project.status === 'hybrid-uploaded') {
       await deleteLocalVersionOfHybridProject(project.info.localParentId)
-    if (project.status === 'hybrid-downloaded')
+    }
+    if (project.status === 'hybrid-downloaded') {
       await deleteLocalVersionOfHybridProject(project.localProjectParentId)
+    }
     await closeRemoteProject.mutateAsync([project.info.id, project.info.title])
     return Ok({ status: 'not-opened', info: project.info })
   }
@@ -731,45 +747,19 @@ async function getProjectDetailsFromBackend(
         refetchOnMount: true,
         networkMode: backend.type === BackendType.remote ? 'online' : 'always',
         meta: { persist: false },
-        refetchInterval: (query): number | false => {
-          const { state } = query
-
-          if (state.status === 'error') {
+        refetchInterval: ({ state }): number | false => {
+          if (state.status === 'error' || !state.data) {
             return false
           }
-
-          if (state.data == null) {
-            return false
+          if (CREATED_PROJECT_STATES.has(state.data.state.type)) {
+            return isLocal ? LOCAL_OPENING_INTERVAL_MS : CLOUD_OPENING_INTERVAL_MS
           }
-
-          const currentState = state.data.state.type
-
-          if (isLocal) {
-            if (CREATED_PROJECT_STATES.has(currentState)) {
-              return LOCAL_OPENING_INTERVAL_MS
-            }
-
-            if (STATIC_PROJECT_STATES.has(state.data.state.type)) {
-              return OPENED_INTERVAL_MS
-            }
-
-            if (IS_OPENING[state.data.state.type]) {
-              return LOCAL_OPENING_INTERVAL_MS
-            }
-          }
-
-          if (CREATED_PROJECT_STATES.has(currentState)) {
-            return CLOUD_OPENING_INTERVAL_MS
-          }
-
-          // Cloud project
           if (STATIC_PROJECT_STATES.has(state.data.state.type)) {
             return OPENED_INTERVAL_MS
           }
           if (IS_OPENING[state.data.state.type]) {
-            return CLOUD_OPENING_INTERVAL_MS
+            return isLocal ? LOCAL_OPENING_INTERVAL_MS : CLOUD_OPENING_INTERVAL_MS
           }
-
           return DEFAULT_INTERVAL_MS
         },
       },

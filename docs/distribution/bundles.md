@@ -19,42 +19,16 @@ any additional dependencies.
 
 <!-- /MarkdownTOC -->
 
-## Project Manager Bundle
+## Backend Assets
 
-The Project Manager is distributed with latest engine version and its
-corresponding Graal runtime to avoid having to download them at first startup.
+The IDE bundles backend assets required to run the language server: engine
+distribution (in `dist/`), Graal runtime (in `runtime/`), and licenses
+(`THIRD-PARTY`).
 
-The bundled components are placed in their respective subdirectories (not as
-packages, but extracted and ready to use) and a bundle marker file called
-`.enso.bundle` must be placed next to these directories so that the Project
-Manager can detect the bundle.
+These components are placed in their respective subdirectories (not as packages,
+but extracted and ready to use).
 
-The `project-manager` executable looks for the `.enso.bundle` marker in the
-parent directory of the directory that it is, itself, located in. So overall,
-the bundle should have the following structure (the actual engine and Graal
-versions may of course differ):
-
-```
-enso
-├── bin
-│   └── project-manager
-├── dist
-│   └── 0.2.1-SNAPSHOT
-├── other-project-manager-files
-└── runtime
-    └── graalvm-ce-java11-20.2.0
-```
-
-If the bundle is detected, the additional `dist` and `runtime` directories are
-added as secondary search paths for components. Thus, the `project-manager` can
-use both components present in the default
-[installed location](distribution.md#installed-enso-distribution-layout) or
-those from the bundle. In a situation that the same component were to be
-available both in the installed location and the bundle, the installed location
-is preferred. New components are installed in the installed location, never next
-to the bundles.
-
-In fact, it is possible for the bundle directory to be read-only (which may be
+In fact, it is possible for the assets directory to be read-only (which may be
 the case for example if the Project Manager bundle is packaged as part of IDE's
 AppImage package). In such situation, it will be impossible to uninstall the
 bundled components and a relevant error message will be returned.

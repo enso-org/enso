@@ -3,9 +3,10 @@
 - type Connection
     - Value jdbc_connection:Standard.Base.Any.Any dialect:Standard.Base.Any.Any type_mapping:Standard.Base.Any.Any entity_naming_properties:Standard.Database.Internal.Connection.Entity_Naming_Properties.Entity_Naming_Properties supports_large_update:(Standard.Base.Runtime.Ref.Ref Standard.Base.Data.Boolean.Boolean) hidden_table_registry:Standard.Database.Internal.Hidden_Table_Registry.Hidden_Table_Registry data_link_setup:(Standard.Database.Internal.Data_Link_Setup.Data_Link_Setup|Standard.Base.Nothing.Nothing)=
     - base_connection self -> Standard.Base.Any.Any
+    - check_on_connection connection:Standard.Base.Any.Any db_table:Standard.Database.DB_Table.DB_Table -> Standard.Base.Any.Any
     - close self -> Standard.Base.Any.Any
     - column_naming_helper self -> Standard.Base.Any.Any
-    - create_literal_table self source:Standard.Table.Table.Table alias:Standard.Base.Data.Text.Text -> (Standard.Table.Table.Table&Standard.Database.DB_Table.DB_Table)
+    - create_literal_table self source:Standard.Table.Table.Table alias:Standard.Base.Data.Text.Text -> (Standard.Table.Table.Table&Standard.Database.DB_Table.DB_Table&Standard.Base.Any.Any)
     - create_table self table_name:Standard.Base.Data.Text.Text structure:(Standard.Base.Any.Any|Standard.Table.Table.Table) primary_key:(Standard.Base.Any.Any|Standard.Base.Nothing.Nothing)= temporary:Standard.Base.Data.Boolean.Boolean= allow_existing:Standard.Base.Data.Boolean.Boolean= on_problems:Standard.Base.Errors.Problem_Behavior.Problem_Behavior= -> Standard.Base.Any.Any
     - database self -> Standard.Base.Any.Any
     - databases self -> Standard.Base.Any.Any

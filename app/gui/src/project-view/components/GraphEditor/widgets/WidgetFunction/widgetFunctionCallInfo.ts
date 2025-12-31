@@ -24,7 +24,7 @@ import { ProjectPath } from '@/util/projectPath'
 import type { ToValue } from '@/util/reactivity'
 import type { Opt } from 'enso-common/src/utilities/data/opt'
 import { computed, toValue, type DeepReadonly } from 'vue'
-import type { Identifier } from 'ydoc-shared/ast'
+import type { IdentifierOrOperatorIdentifier } from 'ydoc-shared/ast'
 import type { ExternalId } from 'ydoc-shared/yjsModel'
 import { GET_WIDGETS_METHOD, WIDGETS_ENSO_MODULE, WIDGETS_ENSO_PATH } from './consts'
 
@@ -275,7 +275,7 @@ export function getPotentialModuleFunctionPointer(
   projectNames: ToValue<ProjectNameStore>,
   graphDb: ToValue<GraphDb>,
 ): MethodPointer | undefined {
-  let candidateFunctionName: Identifier | null = null
+  let candidateFunctionName: IdentifierOrOperatorIdentifier | null = null
   while (expr instanceof Ast.App) expr = expr.function
   if (expr instanceof Ast.Ident) {
     const db = toValue(graphDb)
@@ -287,7 +287,7 @@ export function getPotentialModuleFunctionPointer(
     expr.lhs &&
     isModuleExpression(expr.lhs, modulePath, projectNames)
   ) {
-    candidateFunctionName = expr.rhs.token.code()
+    candidateFunctionName = expr.rhs.code()
   }
 
   if (candidateFunctionName) {

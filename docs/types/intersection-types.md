@@ -78,6 +78,7 @@ requested).
 The following operations consider only the _visible_ part of the type:
 
 - [dynamic dispatch](../types/dynamic-dispatch.md)
+- [Positional (structural) pattern matching](./pattern-matching.md#positional-matching)
 - cases when value is passed as an argument
 
 However the value still keeps internal knowledge of all the types it represents.

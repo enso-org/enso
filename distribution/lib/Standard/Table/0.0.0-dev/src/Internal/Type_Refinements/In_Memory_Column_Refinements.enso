@@ -5,6 +5,7 @@ from Standard.Base import all
 import project.Column.Column
 import project.In_Memory_Column.In_Memory_Column
 import project.Internal.Value_Type_Helpers
+import project.Refined_Types.Date_Column.Date_Column
 import project.Refined_Types.Numeric_Column.Numeric_Column
 import project.Refined_Types.Text_Column.Text_Column
 import project.Value_Type.Value_Type
@@ -19,6 +20,7 @@ refine_column (column : Column & In_Memory_Column) =
         Value_Type.Float _ -> _refine_numeric_column column
         Value_Type.Decimal _ _ -> _refine_numeric_column column
         Value_Type.Char _ _ -> _refine_text_column column
+        Value_Type.Date  -> _refine_date_column column
         _ -> _refine_other_column column
 
 private _refine_numeric_column (column : Column & In_Memory_Column) -> Column & In_Memory_Column & Numeric_Column = case column.row_count of
@@ -34,6 +36,12 @@ private _refine_text_column (column : Column & In_Memory_Column) -> Column & In_
         _ : Text -> column : Column & In_Memory_Column & Text_Column & Text
         _ -> column : Column & In_Memory_Column & Text_Column
     _ -> column : Column & In_Memory_Column & Text_Column
+
+private _refine_date_column (column : Column & In_Memory_Column) -> Column & In_Memory_Column & Date_Column = case column.row_count of
+    1 -> case column.at 0 of
+        _ : Date -> column : Column & In_Memory_Column & Date_Column & Date
+        _ -> column : Column & In_Memory_Column & Date_Column
+    _ -> column : Column & In_Memory_Column & Date_Column
 
 private _refine_other_column (column : Column & In_Memory_Column) -> Column & In_Memory_Column =
     ## We treat a column as single value if it contains a single not-nothing value.

@@ -7,14 +7,14 @@ import SelectionMenu from '@/components/SelectionMenu.vue'
 import ZoomControl from '@/components/ZoomControl.vue'
 import { useResizeObserver } from '@/composables/events'
 import type { DisplayableActionName } from '@/providers/action'
-import { injectGraphSelection } from '@/providers/graphSelection'
+import { useGraphSelection } from '@/providers/graphSelection'
 import { computed, useTemplateRef } from 'vue'
 
 const GAP = 8
 
 const projectNameEdited = defineModel<boolean>('projectNameEdited', { default: false })
 const props = defineProps<{ zoomLevel: number; menuActions: DisplayableActionName[] }>()
-const selection = injectGraphSelection()
+const selection = useGraphSelection()
 
 const rootElement = useTemplateRef('rootElement')
 const leftGroups = useTemplateRef('leftGroups')

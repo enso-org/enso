@@ -18,6 +18,7 @@
     - Sample
     - Select_Columns
     - Sort
+    - Spatial
     - Text_Cleanse
     - Union
     - if_supported_else_throw self dialect:Standard.Base.Any.Any error_name:Standard.Base.Data.Text.Text ~action:Standard.Base.Any.Any -> Standard.Base.Any.Any

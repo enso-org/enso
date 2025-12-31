@@ -112,6 +112,8 @@ final class JavaFinder {
       } else {
         processBuilder = new ProcessBuilder("java", "-h");
       }
+      // don't pass -agentlib:jdwp & co. arguments to this process
+      processBuilder.environment().remove("JAVA_TOOL_OPTIONS");
       Process process = processBuilder.start();
       var pathOpt = process.info().command();
       boolean exitSucc = process.waitFor(5L, TimeUnit.SECONDS);

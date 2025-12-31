@@ -374,7 +374,7 @@ abstract class ImportResolverForIR
 
   @Override
   protected final Tuple2<Import, Option<BindingsMap.ResolvedImport>>
-      createErrorPackageCoundNotBeLoaded(Import.Module imp, String impName, String loadingError) {
+      createErrorPackageCouldNotBeLoaded(Import.Module imp, String impName, String loadingError) {
     org.enso.compiler.core.ir.expression.errors.ImportExport importError =
         new ImportExport(
             imp,

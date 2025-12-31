@@ -24,20 +24,20 @@
 
 use crate::prelude::*;
 
+use crate::SyntaxError;
 use crate::im_list::List;
 use crate::lexer::GroupDelimiterConsumer;
 use crate::macros;
 use crate::macros::pattern;
 use crate::source::Code;
 use crate::syntax;
-use crate::syntax::token;
-use crate::syntax::token::Token;
 use crate::syntax::BlockHierarchyConsumer;
 use crate::syntax::Finish;
 use crate::syntax::Item;
 use crate::syntax::NewlineConsumer;
 use crate::syntax::TokenConsumer;
-use crate::SyntaxError;
+use crate::syntax::token;
+use crate::syntax::token::Token;
 
 use std::collections::HashMap;
 use std::collections::VecDeque;

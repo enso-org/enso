@@ -58,18 +58,16 @@ use enso_build::source::WatchTargetJob;
 use enso_build::source::WithDestination;
 use enso_build::version;
 use ide_ci::actions::workflow::is_in_env;
+use ide_ci::cache::goodie::graalvm;
 use ide_ci::cache::Cache;
 use ide_ci::fs::remove_if_exists;
 use ide_ci::github::release;
 use ide_ci::github::setup_octocrab;
 use ide_ci::global;
 use ide_ci::ok_ready_boxed;
-use ide_ci::programs::cargo;
 use ide_ci::programs::git;
-use ide_ci::programs::Cargo;
 use octocrab::models::ReleaseId;
 use std::time::Duration;
-use tokio::process::Child;
 
 pub fn void<T>(_t: T) {}
 
@@ -265,41 +263,6 @@ impl Processor {
         .boxed()
     }
 
-    pub fn handle_wasm(&self, wasm: arg::wasm::Target) -> BoxFuture<'static, Result> {
-        match wasm.command {
-            arg::wasm::Command::Test => {
-                let repo_root = self.repo_root.clone();
-                async move {
-                    Cargo
-                        .cmd()?
-                        .current_dir(&repo_root)
-                        .apply(&cargo::Command::Test)
-                        .apply(&cargo::Options::Workspace)
-                        // Color needs to be passed to tests themselves separately.
-                        // See: https://github.com/rust-lang/cargo/issues/1983
-                        .arg("--")
-                        .apply(&cargo::Color::Always)
-                        .run_ok()
-                        .await
-                }
-                .boxed()
-            }
-            arg::wasm::Command::Lint => {
-                let repo_root = self.repo_root.clone();
-                async move {
-                    Cargo
-                        .cmd()?
-                        .current_dir(&repo_root)
-                        .arg("fmt")
-                        .args(["--", "--check"])
-                        .run_ok()
-                        .await
-                }
-                .boxed()
-            }
-        }
-    }
-
     pub fn handle_gui(&self, gui: arg::gui::Target) -> BoxFuture<'static, Result> {
         match gui.command {
             arg::gui::Command::Build(job) => self.build(job),
@@ -408,18 +371,25 @@ impl Processor {
                             config.check_enso_benchmarks = TARGET_OS == OS::Linux;
                         }
                         Tests::StandardLibrary => {
-                            config.build_small_jdk = true;
-                            let small_jdk_dir =
-                                self.context.repo_root.target.small_jdk.path.clone();
-                            config.small_jdk_dir = Some(small_jdk_dir.clone());
+                            config.build_small_jdk = enso_build::engine::env::GRAAL_EDITION
+                                .get()
+                                .map_or(true, |e| e != graalvm::Edition::Enterprise);
+                            if config.build_small_jdk {
+                                let small_jdk_dir =
+                                    self.context.repo_root.target.small_jdk.path.clone();
+                                config.small_jdk_dir = Some(small_jdk_dir.clone());
+                                config.add_engine_runner_arg("--jvm");
+                                config.add_engine_runner_arg(
+                                    small_jdk_dir.to_string_lossy().to_string().as_str(),
+                                );
+                            } else {
+                                config.small_jdk_dir = None
+                            }
+
                             config.test_standard_library =
                                 Some(StandardLibraryTestsSelection::blacklist(vec![
                                     "Microsoft_Tests".to_string(),
                                 ]));
-                            config.add_engine_runner_arg("--jvm");
-                            config.add_engine_runner_arg(
-                                small_jdk_dir.to_string_lossy().to_string().as_str(),
-                            );
                             config.use_native_runner = true;
                         }
                         Tests::StandardLibraryInNative => {
@@ -458,6 +428,8 @@ impl Processor {
                                     // Image tests check interaction between Image read/write and
                                     // datalinks
                                     "Image_Tests".to_string(),
+                                    // Microsoft tests check interaction with OneDrive
+                                    "Microsoft_Tests".to_string(),
                                 ]));
                             config.use_native_runner = true;
                         }
@@ -608,41 +580,16 @@ impl Processor {
         }
     }
 
-    /// Spawns a Project Manager.
-    pub fn spawn_project_manager(
-        &self,
-        source: arg::Source<Backend>,
-        custom_root: Option<PathBuf>,
-    ) -> BoxFuture<'static, Result<Child>> {
-        let get_task = self.get(source);
-        async move {
-            let project_manager = get_task.await?;
-            let mut command =
-                enso_build::programs::project_manager::spawn_from(&project_manager.path);
-            if let Some(custom_root) = custom_root {
-                command
-                    .set_env(enso_build::programs::project_manager::PROJECTS_ROOT, &custom_root)?;
-            }
-            command.spawn_intercepting()
-        }
-        .boxed()
-    }
-
     pub fn build_ide(
         &self,
         params: arg::ide::BuildInput,
     ) -> BoxFuture<'static, Result<ide::Artifact>> {
-        let arg::ide::BuildInput {
-            gui,
-            project_manager,
-            output_path,
-            electron_target,
-            sign_artifacts,
-        } = params;
+        let arg::ide::BuildInput { gui, backend, output_path, electron_target, sign_artifacts } =
+            params;
 
         let input = ide::BuildInput {
             gui: self.get(gui),
-            project_manager: self.get(project_manager),
+            backend: self.get(backend),
             version: self.triple.versions.version.clone(),
             commit_hash: self.commit(),
             electron_target,
@@ -772,7 +719,6 @@ pub async fn main_internal(config: Option<Config>) -> Result {
 
     let ctx: Processor = Processor::new(&cli).instrument(info_span!("Building context.")).await?;
     match cli.target {
-        Target::Wasm(wasm) => ctx.handle_wasm(wasm).await?,
         Target::Gui(gui) => ctx.handle_gui(gui).await?,
         Target::Runtime(runtime) => ctx.handle_runtime(runtime).await?,
         Target::Backend(backend) => ctx.handle_backend(backend).await?,
@@ -794,7 +740,7 @@ pub async fn main_internal(config: Option<Config>) -> Result {
                 enso_build::release::deploy_runtime_to_ecr(&ctx, args.ecr_repository).await?;
             }
             Action::DispatchBuildImage => {
-                if !(&ctx.triple.versions.version.pre.to_string().starts_with("nightly")) {
+                if ctx.triple.versions.version.pre.is_empty() {
                     enso_build::repo::cloud::build_image_workflow_dispatch_input(
                         &ctx.octocrab,
                         &ctx.triple.versions.version,

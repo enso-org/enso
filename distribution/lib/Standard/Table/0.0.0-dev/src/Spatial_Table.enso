@@ -1,0 +1,476 @@
+from Standard.Base import all
+import Standard.Base.Errors.Common.Type_Error
+import Standard.Base.Runtime.Ref.Ref
+from Standard.Base.Metadata.Choice import Option
+from Standard.Base.Metadata.Widget import Multiple_Choice, Single_Choice
+
+import project.Column.Column
+import project.Expression.Expression
+import project.Internal.Widget_Helpers
+import project.Join_Condition.Join_Condition
+import project.Rows_To_Read.Rows_To_Read
+import project.Table.Table
+
+## Extension methods for Spatial Tables
+type Spatial_Table
+    private Table parent:Table
+
+    ## ---
+       private: true
+       group: Standard.Base.Metadata
+       icon: spatial
+       ---
+       If the column is a spatial column, returns it as a Spatial_Column
+       otherwise throws a type error.
+    as_spatial_column self column:Column =
+        (self:Table).implementation.as_spatial_column self.parent.underlying column
+
+    ## ---
+       private: true
+       group: Standard.Base.Metadata
+       icon: spatial
+       ---
+       Get the columns in the table which contain spatial data.
+    spatial_columns self =
+        (self:Table).implementation.spatial_columns self.parent.underlying
+
+    ## ---
+       icon: data_input
+       ---
+       Returns a materialized dataframe containing rows of this table but with
+       any spatial columns materialized as GeoJSON. This is useful for exporting
+       data to other systems that may not support spatial data types.
+
+       ## Arguments
+        - `max_rows`: specifies the maximum number of rows to read.
+    @max_rows Rows_To_Read.default_widget
+    read_as_geojson self (max_rows : Rows_To_Read = (self:Table).implementation.default_max_rows) -> Table & Any =
+        folded = self.spatial_columns.fold self cur->col-> cur.st_to_geojson col as=col.name
+        folded.read max_rows
+
+    ## ---
+       icon: data_input
+       ---
+       Returns a materialized dataframe containing rows of this table but with
+       any spatial columns materialized as well-known text. This is useful for
+       exporting data to other systems that may not support spatial data types.
+
+       ## Arguments
+        - `max_rows`: specifies the maximum number of rows to read.
+    @max_rows Rows_To_Read.default_widget
+    read_as_wkt self (max_rows : Rows_To_Read = (self:Table).implementation.default_max_rows) -> Table & Any =
+        folded = self.spatial_columns.fold self cur->col-> cur.st_to_wkt col as=col.name
+        folded.read max_rows
+
+    ## ---
+       aliases: [create_points]
+       group: Standard.Base.Calculations
+       icon: spatial
+       ---
+       Creates a new column containing points from longitude and latitude columns.
+       Note: Enso assumes that the points are in WGS84 coordinate system (EPSG:4326).
+
+       ## Arguments
+        - `longitude`: The column, expression, or name/index of the column containing longitude values
+        - `latitude`: The column, expression, or name/index of the column containing latitude values
+
+       ## Returns
+       A new table with the existing columns and the new point column.
+    @longitude Widget_Helpers.make_column_name_selector add_expression=True
+    @latitude Widget_Helpers.make_column_name_selector add_expression=True
+    st_point self (longitude : Column | Expression | Text | Integer = Missing_Argument.throw "longitude") (latitude : Column | Expression | Text | Integer = Missing_Argument.throw "latitude") as:Text="" =
+        lon_resolved = _resolve_column longitude self.parent
+        lat_resolved = _resolve_column latitude self.parent
+        (self:Table).implementation.spatial_point self.parent.underlying lon_resolved lat_resolved as
+
+    ## ---
+       aliases: [create_points]
+       group: Standard.Base.Calculations
+       icon: spatial
+       ---
+       Gets the geometry type of each spatial object in the spatial column.
+
+       ## Arguments
+        - `column`: The column, expression, or name/index of the column containing spatial objects.
+
+       ## Returns
+       A new table with the existing columns and the new geometry type column as text.
+    @column _spatial_widget single_choice=True
+    st_geometry_type self (column : Column | Expression | Text | Integer = _default_if_single self) as:Text="" =
+        resolved = _resolve_column column self.parent
+        (self:Table).implementation.spatial_geometry_type self.parent.underlying resolved as
+
+    ## ---
+       aliases: [st_x]
+       group: Standard.Base.Calculations
+       icon: spatial
+       ---
+       Gets the longitude values from each point in the spatial column.
+
+       ## Arguments
+        - `column`: The column, expression, or name/index of the column containing spatial objects.
+        - `value`: Specifies whether to get the minimum, maximum, or default longitude value
+           from each spatial object.
+
+       ## Returns
+       A new table with the existing columns and the new longitude column.
+    @column _spatial_widget single_choice=True
+    st_longitude self (column : Column | Expression | Text | Integer = _default_if_single self) (value:Lat_Long_Type=..Default) as:Text="" =
+        resolved = _resolve_column column self.parent
+        (self:Table).implementation.spatial_longitude self.parent.underlying resolved value as
+
+    ## ---
+       aliases: [st_y]
+       group: Standard.Base.Calculations
+       icon: spatial
+       ---
+       Gets the latitude values from each point in the spatial column.
+
+       ## Arguments
+        - `column`: The column, expression, or name/index of the column containing spatial objects.
+        - `value`: Specifies whether to get the minimum, maximum, or default latitude value
+           from each spatial object.
+
+       ## Returns
+       A new table with the existing columns and the new latitude column.
+    @column _spatial_widget single_choice=True
+    st_latitude self (column : Column | Expression | Text | Integer = _default_if_single self) (value:Lat_Long_Type=..Default) as:Text="" =
+        resolved = _resolve_column column self.parent
+        (self:Table).implementation.spatial_latitude self.parent.underlying resolved value as
+
+    ## ---
+       group: Standard.Base.Calculations
+       icon: spatial
+       ---
+       Gets the centroid point of each spatial object in the spatial column.
+
+       ## Arguments
+        - `column`: The column, expression, or name/index of the column containing spatial objects.
+
+       ## Returns
+       A new table with the existing columns and a new column containing the centroid points.
+    @column _spatial_widget single_choice=True
+    st_centroid self (column : Column | Expression | Text | Integer = _default_if_single self) as:Text="" =
+        resolved = _resolve_column column self.parent
+        (self:Table).implementation.spatial_centroid self.parent.underlying resolved as
+
+    ## ---
+       group: Standard.Base.Calculations
+       icon: spatial
+       ---
+       Gets the bounding box surrounding each spatial object in the spatial column.
+
+       ## Arguments
+        - `column`: The column, expression, or name/index of the column containing spatial objects.
+
+       ## Returns
+       A new table with the existing columns and a new column containing the bounding boxes.
+    @column _spatial_widget single_choice=True
+    st_extent self (column : Column | Expression | Text | Integer = _default_if_single self) as:Text="" =
+        resolved = _resolve_column column self.parent
+        (self:Table).implementation.spatial_extent self.parent.underlying resolved as
+
+    ## ---
+       group: Standard.Base.Calculations
+       icon: spatial
+       ---
+       Gets the perimeter of each spatial object in the spatial column in meters.
+       Note this assumes that the spatial objects are in WGS84 coordinate system (EPSG:4326).
+
+       ## Arguments
+        - `column`: The column, expression, or name/index of the column containing spatial objects.
+
+       ## Returns
+       A new table with the existing columns and a new column containing the perimeter.
+    @column _spatial_widget single_choice=True
+    st_perimeter self (column : Column | Expression | Text | Integer = _default_if_single self) as:Text="" =
+        resolved = _resolve_column column self.parent
+        (self:Table).implementation.spatial_perimeter self.parent.underlying resolved as
+
+    ## ---
+       group: Standard.Base.Calculations
+       icon: spatial
+       ---
+       Gets the area of each spatial object in the spatial column in meters².
+       Note this assumes that the spatial objects are in WGS84 coordinate system (EPSG:4326).
+
+       ## Arguments
+        - `column`: The column, expression, or name/index of the column containing spatial objects.
+
+       ## Returns
+       A new table with the existing columns and a new column containing the area.
+    @column _spatial_widget single_choice=True
+    st_area self (column : Column | Expression | Text | Integer = _default_if_single self) as:Text="" =
+        resolved = _resolve_column column self.parent
+        (self:Table).implementation.spatial_area self.parent.underlying resolved as
+
+    ## ---
+       group: Standard.Base.Calculations
+       icon: spatial
+       ---
+       Gets the distance between two spatial objects on each row.
+       Note this will be the distance in the coordinate system of the spatial objects, i.e. for
+         WGS84 coordinates this will be in degrees. For distance in metres use st_length.
+
+       ## Arguments
+        - `from_column`: The column, expression, or name/index of the column containing the starting spatial objects.
+        - `end_column`: The column, expression, or name/index of the column containing the ending spatial objects.
+
+       ## Returns
+       A new table with the existing columns and a new column containing the distance.
+    @from_column _spatial_widget single_choice=True
+    @to_column _spatial_widget single_choice=True
+    st_distance self (from_column : Column | Expression | Text | Integer = Missing_Argument.throw "from_column") (to_column : Column | Expression | Text | Integer = Missing_Argument.throw "to_column") as:Text="" =
+        from_resolved = _resolve_column from_column self.parent
+        to_resolved = _resolve_column to_column self.parent
+        (self:Table).implementation.spatial_distance self.parent.underlying from_resolved to_resolved as
+
+    ## ---
+       aliases: [st_distance]
+       group: Standard.Base.Calculations
+       icon: spatial
+       ---
+       Gets the distance in meters between two spatial objects on each row.
+       Note this assumes that the spatial objects are in WGS84 coordinate system (EPSG:4326).
+
+       ## Arguments
+        - `from_column`: The column, expression, or name/index of the column containing the starting spatial objects.
+        - `end_column`: The column, expression, or name/index of the column containing the ending spatial objects.
+
+       ## Returns
+       A new table with the existing columns and a new column containing the distance.
+    @from_column _spatial_widget single_choice=True
+    @to_column _spatial_widget single_choice=True
+    st_length self (from_column : Column | Expression | Text | Integer = Missing_Argument.throw "from_column") (to_column : Column | Expression | Text | Integer = Missing_Argument.throw "to_column") as:Text="" =
+        from_resolved = _resolve_column from_column self.parent
+        to_resolved = _resolve_column to_column self.parent
+        (self:Table).implementation.spatial_length self.parent.underlying from_resolved to_resolved as
+
+    ## ---
+       group: Standard.Base.Calculations
+       icon: spatial
+       ---
+       Gets the intersection of multiple spatial objects in the specified
+       columns on each row.
+
+       ## Arguments
+        - `columns`: A Vector of columns, expressions, or names/indexes of the
+          columns containing spatial objects to union.
+
+       ## Returns
+       A new table with the existing columns and a new column containing the
+       intersected spatial object.
+    @column _spatial_widget single_choice=False
+    st_intersection self (columns : Vector (Column | Expression | Text | Integer) = Missing_Argument.throw "columns") as:Text="" =
+        resolved_columns = columns.map c-> _resolve_column c self.parent
+        (self:Table).implementation.spatial_intersection self.parent.underlying resolved_columns as
+
+    ## ---
+       group: Standard.Base.Calculations
+       icon: spatial
+       ---
+       Gets the union of multiple spatial objects in the specified columns on
+       each row.
+
+       ## Arguments
+        - `columns`: A Vector of columns, expressions, or names/indexes of the
+          columns containing spatial objects to union.
+
+       ## Returns
+       A new table with the existing columns and a new column containing the
+       union of spatial objects.
+    @column _spatial_widget single_choice=False
+    st_union self (columns : Vector (Column | Expression | Text | Integer) = Missing_Argument.throw "columns") as:Text="" =
+        resolved_columns = columns.map c-> _resolve_column c self.parent
+        (self:Table).implementation.spatial_union self.parent.underlying resolved_columns as
+
+    ## ---
+       group: Standard.Base.Conversions
+       icon: convert
+       ---
+       Converts the spatial objects in the specified column to GeoJSON format.
+
+       ## Arguments
+        - `column`: The column, expression, or name/index of the column
+          containing spatial objects.
+
+       ## Returns
+       A new table with the existing columns and a new column containing the
+       GeoJSON representation as text of the spatial objects.
+    @column _spatial_widget single_choice=True
+    st_to_geojson self (column : Column | Expression | Text | Integer = _default_if_single self) as:Text="" =
+        resolved = _resolve_column column self.parent
+        (self:Table).implementation.spatial_to_geojson self.parent.underlying resolved as
+
+    ## ---
+       group: Standard.Base.Conversions
+       icon: convert
+       ---
+       Converts a text column in GeoJSON format to spatial objects.
+
+       ## Arguments
+        - `column`: The column, expression, or name/index of the column
+          containing GeoJSON text.
+
+       ## Returns
+       A new table with the existing columns and a new column containing the
+       spatial objects.
+    @column Widget_Helpers.make_column_name_selector add_expression=True
+    st_from_geojson self (column : Column | Expression | Text | Integer = _default_if_single self) as:Text="" =
+        resolved = _resolve_column column self.parent
+        (self:Table).implementation.spatial_from_geojson self.parent.underlying resolved as
+
+    ## ---
+       group: Standard.Base.Conversions
+       icon: convert
+       ---
+       Converts the spatial objects in the specified column to Well Known Text
+       format.
+
+       ## Arguments
+        - `column`: The column, expression, or name/index of the column
+          containing spatial objects.
+
+       ## Returns
+       A new table with the existing columns and a new column containing the
+       WKT representation of the spatial objects.
+    @column _spatial_widget single_choice=True
+    st_to_wkt self (column : Column | Expression | Text | Integer = _default_if_single self) as:Text="" =
+        resolved = _resolve_column column self.parent
+        (self:Table).implementation.spatial_to_wkt self.parent.underlying resolved as
+
+    ## ---
+       group: Standard.Base.Conversions
+       icon: convert
+       ---
+       Converts a text column in Well Known Text format to spatial objects.
+
+       ## Arguments
+        - `column`: The column, expression, or name/index of the column
+          containing WKT text.
+
+       ## Returns
+       A new table with the existing columns and a new column containing the
+       spatial objects.
+    @column Widget_Helpers.make_column_name_selector add_expression=True
+    st_from_wkt self (column : Column | Expression | Text | Integer = _default_if_single self) as:Text="" =
+        resolved = _resolve_column column self.parent
+        (self:Table).implementation.spatial_from_wkt self.parent.underlying resolved as
+
+## When extracting latitude or longitude, which value to extract.
+type Lat_Long_Type
+    ## Uses the centroid of the spatial object to extract the latitude or longitude.
+    Default
+
+    ## Extracts the minimum latitude or longitude from the spatial object.
+    Minimum
+
+    ## Extracts the maximum latitude or longitude from the spatial object.
+    Maximum
+
+## ---
+   private: true
+   ---
+Spatial_Table.from (that:Table) = Spatial_Table.Table that
+
+## ---
+   private: true
+   ---
+Table.from (that:Spatial_Table) = that.parent
+
+## Additional join kind for Spatial Table joins
+type Spatial_Join_Condition
+    ## Do the left and right spatial objects have at least one point in common.
+    Intersect (left : Text | Integer = Missing_Argument.throw "left") (right : Text | Integer = "")
+
+    ## Does the whole of the right object lie inside the left object.
+    Contains (left : Text | Integer = Missing_Argument.throw "left") (right : Text | Integer = "")
+
+    ## Does the whole of the right object lie inside the left object not
+       touching the boundary.
+    Contains_Properly (left : Text | Integer = Missing_Argument.throw "left") (right : Text | Integer = "")
+
+    ## Does the whole of the left object lie inside the right object
+       (equivalent to `Contains right left`).
+    Within (left : Text | Integer = Missing_Argument.throw "left") (right : Text | Integer = "")
+
+    ## Does left object overlap right object.
+    Overlaps (left : Text | Integer = Missing_Argument.throw "left") (right : Text | Integer = "")
+
+    ## Does left object touch right object.
+    Touches (left : Text | Integer = Missing_Argument.throw "left") (right : Text | Integer = "")
+
+    ## Does left object crosses right object.
+    Crosses (left : Text | Integer = Missing_Argument.throw "left") (right : Text | Integer = "")
+
+    ## Does left object cover right object.
+    Covers (left : Text | Integer = Missing_Argument.throw "left") (right : Text | Integer = "")
+
+    ## Is left object covered by right object.
+    Covered_By (left : Text | Integer = Missing_Argument.throw "left") (right : Text | Integer = "")
+
+    ## Resolves Spatial_Join_Condition into Join_Conditions
+       Used by Table.join when joining Spatial_Tables.
+
+       ## Arguments
+       - `on`: A single Spatial_Join_Condition, Join_Condition, Text or a
+          Vector of them.
+
+       ## Returns
+       A pair where:
+       - First element is a Boolean indicating if any `Spatial_Join_Condition`
+         was present in the input.
+       - Second element is a Vector of Join_Condition representing the resolved
+         conditions.
+    private resolve on:(Vector (Spatial_Join_Condition | Join_Condition | Text) | Text | Join_Condition | Spatial_Join_Condition) =
+        any_spatial = Ref.new False
+        result = Vector.unify_vector_or_element on . map jc->
+            if jc.is_a Function . not then Join_Condition.from jc else
+                sjc = Panic.catch Type_Error handler=_->jc <|
+                    spatial_join = jc:Spatial_Join_Condition
+                    any_spatial.put True
+                    spatial_join
+                sjc
+        [any_spatial.get, result]
+
+    ## Creates a Widget for selecting Spatial_Join_Condition
+    private default_widget left_selector right_selector =
+        intersect = Option "Intersect" "..Intersect" [["left", left_selector], ["right", right_selector]]
+        contains = Option "Contains" "..Contains" [["left", left_selector], ["right", right_selector]]
+        contains_properly = Option "Contains_Properly" "..Contains_Properly" [["left", left_selector], ["right", right_selector]]
+        within = Option "Within" "..Within" [["left", left_selector], ["right", right_selector]]
+        overlaps = Option "Overlaps" "..Overlaps" [["left", left_selector], ["right", right_selector]]
+        touches = Option "Touches" "..Touches" [["left", left_selector], ["right", right_selector]]
+        crosses = Option "Crosses" "..Crosses" [["left", left_selector], ["right", right_selector]]
+        covers = Option "Covers" "..Covers" [["left", left_selector], ["right", right_selector]]
+        covered_by = Option "Covered_By" "..Covered_By" [["left", left_selector], ["right", right_selector]]
+        Option "Spatial" [intersect, contains, contains_properly, within, overlaps, touches, crosses, covers, covered_by]
+
+## ---
+   private: true
+   ---
+Join_Condition.from (that:Spatial_Join_Condition) = case that of
+    Spatial_Join_Condition.Intersect left right -> Join_Condition.Custom_SQL "ST_Intersects" left right
+    Spatial_Join_Condition.Contains left right -> Join_Condition.Custom_SQL "ST_Contains" left right
+    Spatial_Join_Condition.Contains_Properly left right -> Join_Condition.Custom_SQL "ST_ContainsProperly"  left right
+    Spatial_Join_Condition.Within left right -> Join_Condition.Custom_SQL "ST_Within" left right
+    Spatial_Join_Condition.Overlaps left right -> Join_Condition.Custom_SQL "ST_Overlaps" left right
+    Spatial_Join_Condition.Touches left right -> Join_Condition.Custom_SQL "ST_Touches" left right
+    Spatial_Join_Condition.Crosses left right -> Join_Condition.Custom_SQL "ST_Crosses" left right
+    Spatial_Join_Condition.Covers left right -> Join_Condition.Custom_SQL "ST_Covers" left right
+    Spatial_Join_Condition.Covered_By left right -> Join_Condition.Custom_SQL "ST_CoveredBy" left right
+
+private _spatial_widget table single_choice:Boolean=False =
+    col_names = table.spatial_columns.map .name
+    col_opts = col_names.map n-> Option n n.pretty
+    if single_choice then Single_Choice [Option "<Expression>" "(expr '["+col_names.first+"]')"]+col_opts display=..Always else
+        Multiple_Choice col_opts display=..Always
+
+private _resolve_column column parent = case column of
+    _ : Column -> column
+    _ : Expression -> parent.evaluate_expression column ..Report_Warning
+    _ -> parent.at column
+
+private _default_if_single table =
+    spatial_cols = table.spatial_columns
+    if spatial_cols.length == 1 then spatial_cols.first.name else Missing_Argument.throw "column"

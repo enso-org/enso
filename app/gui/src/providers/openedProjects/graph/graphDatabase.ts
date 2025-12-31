@@ -12,7 +12,7 @@ import type { CallableSuggestionEntry } from '$/providers/openedProjects/suggest
 import { computeNodeColor } from '@/composables/nodeColors'
 import { Ast } from '@/util/ast'
 import type { AstId, NodeMetadata } from '@/util/ast/abstract'
-import { MutableModule } from '@/util/ast/abstract'
+import { isAstId, MutableModule } from '@/util/ast/abstract'
 import { analyzeBindings, type BindingInfo } from '@/util/ast/bindings'
 import { inputNodeFromAst, nodeFromAst, nodeRootExpr } from '@/util/ast/node'
 import { arrayEquals, tryGetIndex } from '@/util/data/array'
@@ -47,6 +47,7 @@ import {
 import type { SourceDocument } from 'ydoc-shared/ast/sourceDocument'
 import type { ExternalId, VisualizationMetadata } from 'ydoc-shared/yjsModel'
 import { isUuid, visMetadataEquals } from 'ydoc-shared/yjsModel'
+import type { ConnectedEdge } from './graph'
 
 export interface MethodCallInfo {
   methodCall: MethodCall
@@ -54,7 +55,11 @@ export interface MethodCallInfo {
   suggestion: CallableSuggestionEntry
 }
 
-/** TODO: Add docs */
+/**
+ * Graph database.
+ *
+ * A class containing a ReactiveDb of nodes and connections with all helpful indexes.
+ */
 export class GraphDb {
   nodeIdToNode = new ReactiveDb<NodeId, Node>()
   private readonly nodeSources = new Map<NodeId, { data: NodeSource; stop: WatchStopHandle }>()
@@ -168,6 +173,11 @@ export class GraphDb {
   isNodeUsage(id: AstId | undefined): boolean {
     if (!id) return false
     return this.connections.reverseLookup(id).size != 0
+  }
+
+  /** @returns True if the edge exists in the graph. */
+  connectionExists(edge: ConnectedEdge) {
+    return isAstId(edge.target) && this.connections.lookup(edge.source).has(edge.target)
   }
 
   /** TODO: Add docs */
@@ -486,6 +496,33 @@ export class GraphDb {
    */
   idToExternal(id: AstId | undefined): ExternalId | undefined {
     return id ? this.idToExternalMap.get(id) : undefined
+  }
+
+  /** Iterate over all connections with helper data (nodes and identifier). */
+  *iterateConnections() {
+    for (const [targetExprId, sourceExprIds] of this.connections.allReverse()) {
+      const targetNode = this.getExpressionNodeId(targetExprId)
+      for (const sourceExprId of sourceExprIds) {
+        const sourceNode = this.getPatternExpressionNodeId(sourceExprId)
+        const nodeWithSource = sourceNode ?? this.getExpressionNodeId(sourceExprId)
+        // If source is not in pattern nor expression of any node, it's a function argument.
+        const stringIdentifier = this.getOutputPortIdentifier(sourceExprId)
+        const identifier = stringIdentifier ? unwrap(tryIdentifier(stringIdentifier)) : undefined
+        yield {
+          sourceExprId,
+          targetExprId,
+          sourceNode,
+          targetNode,
+          /// A node with source port.
+          ///
+          /// It differs from `sourceNode` because it is defined also when
+          /// the connection source is in expression, not pattern; for example, when its
+          /// lambda.
+          nodeWithSource,
+          identifier,
+        }
+      }
+    }
   }
 
   /**

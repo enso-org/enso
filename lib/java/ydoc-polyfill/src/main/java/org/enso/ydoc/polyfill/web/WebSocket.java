@@ -142,17 +142,24 @@ final class WebSocket implements ProxyExecutable {
                     () -> {
                       var connectionFuture =
                           executor.submit(
-                              () -> handleConnect.execute().as(WebSocketConnection.class));
-
-                      WebSocketConnection connection;
-                      try {
-                        connection = connectionFuture.get();
-                      } catch (InterruptedException | ExecutionException e) {
-                        log.error("Connection error", e);
-                        throw new RuntimeException(e);
+                              () -> {
+                                var value = handleConnect.execute();
+                                return value.as(WebSocketConnection.class);
+                              });
+                      for (; ; ) {
+                        WebSocketConnection connection;
+                        try {
+                          log.trace("Waiting for connection");
+                          connection = connectionFuture.get();
+                        } catch (InterruptedException e) {
+                          log.debug("Interrupted", e);
+                          continue;
+                        } catch (ExecutionException e) {
+                          log.error("Connection error", e);
+                          throw new RuntimeException(e);
+                        }
+                        return connection;
                       }
-
-                      return connection;
                     });
 
         var httpRouting = HttpRouting.builder().route(Method.GET, "_health", () -> "OK");

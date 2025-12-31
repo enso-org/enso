@@ -150,7 +150,7 @@ public class BuilderMethodGenerator {
     sb.append("  ").append("validate();").append(System.lineSeparator());
     sb.append("  ")
         .append(processedClassName)
-        .append(" result = new ")
+        .append(" _result = new ")
         .append(processedClassName)
         .append("(")
         .append(ctorParamsStr)
@@ -160,14 +160,14 @@ public class BuilderMethodGenerator {
     for (var fieldNotInCtor : fieldsNotInCtor) {
       sb.append("  ((")
           .append(superClassType.getSimpleName())
-          .append(")result).")
+          .append(")_result).")
           .append(fieldNotInCtor.name())
           .append(" = ")
           .append(fieldNotInCtor.name())
           .append(";")
           .append(System.lineSeparator());
     }
-    sb.append("  ").append("return result;").append(System.lineSeparator());
+    sb.append("  ").append("return _result;").append(System.lineSeparator());
     sb.append("}").append(System.lineSeparator());
     return sb.toString();
   }

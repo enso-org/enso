@@ -674,7 +674,7 @@ class LibrariesTest extends BaseServerTest with ReportLogsOnFailure {
 
         assert(
           Files.exists(cachedLibraryRoot / LibraryManifest.filename),
-          "The manifest file of a downloaded library should be saved in the cache too."
+          "The manifest file of a downloaded library should be saved in the cache too"
         )
       }
     }

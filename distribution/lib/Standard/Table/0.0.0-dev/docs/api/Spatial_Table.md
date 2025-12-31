@@ -1,0 +1,40 @@
+## Enso Signatures 1.0
+## module Standard.Table.Spatial_Table
+- type Lat_Long_Type
+    - Default
+    - Maximum
+    - Minimum
+- type Spatial_Join_Condition
+    - Contains left:(Standard.Base.Data.Text.Text|Standard.Base.Data.Numbers.Integer)= right:(Standard.Base.Data.Text.Text|Standard.Base.Data.Numbers.Integer)=
+    - Contains_Properly left:(Standard.Base.Data.Text.Text|Standard.Base.Data.Numbers.Integer)= right:(Standard.Base.Data.Text.Text|Standard.Base.Data.Numbers.Integer)=
+    - Covered_By left:(Standard.Base.Data.Text.Text|Standard.Base.Data.Numbers.Integer)= right:(Standard.Base.Data.Text.Text|Standard.Base.Data.Numbers.Integer)=
+    - Covers left:(Standard.Base.Data.Text.Text|Standard.Base.Data.Numbers.Integer)= right:(Standard.Base.Data.Text.Text|Standard.Base.Data.Numbers.Integer)=
+    - Crosses left:(Standard.Base.Data.Text.Text|Standard.Base.Data.Numbers.Integer)= right:(Standard.Base.Data.Text.Text|Standard.Base.Data.Numbers.Integer)=
+    - Intersect left:(Standard.Base.Data.Text.Text|Standard.Base.Data.Numbers.Integer)= right:(Standard.Base.Data.Text.Text|Standard.Base.Data.Numbers.Integer)=
+    - Overlaps left:(Standard.Base.Data.Text.Text|Standard.Base.Data.Numbers.Integer)= right:(Standard.Base.Data.Text.Text|Standard.Base.Data.Numbers.Integer)=
+    - Touches left:(Standard.Base.Data.Text.Text|Standard.Base.Data.Numbers.Integer)= right:(Standard.Base.Data.Text.Text|Standard.Base.Data.Numbers.Integer)=
+    - Within left:(Standard.Base.Data.Text.Text|Standard.Base.Data.Numbers.Integer)= right:(Standard.Base.Data.Text.Text|Standard.Base.Data.Numbers.Integer)=
+- type Spatial_Table
+    - as_spatial_column self column:Standard.Table.Column.Column -> Standard.Base.Any.Any
+    - read_as_geojson self max_rows:Standard.Table.Rows_To_Read.Rows_To_Read= -> (Standard.Table.Table.Table&Standard.Base.Any.Any)
+    - read_as_wkt self max_rows:Standard.Table.Rows_To_Read.Rows_To_Read= -> (Standard.Table.Table.Table&Standard.Base.Any.Any)
+    - spatial_columns self -> Standard.Base.Any.Any
+    - st_area self column:(Standard.Table.Column.Column|Standard.Table.Expression.Expression|Standard.Base.Data.Text.Text|Standard.Base.Data.Numbers.Integer)= as:Standard.Base.Data.Text.Text= -> Standard.Base.Any.Any
+    - st_centroid self column:(Standard.Table.Column.Column|Standard.Table.Expression.Expression|Standard.Base.Data.Text.Text|Standard.Base.Data.Numbers.Integer)= as:Standard.Base.Data.Text.Text= -> Standard.Base.Any.Any
+    - st_distance self from_column:(Standard.Table.Column.Column|Standard.Table.Expression.Expression|Standard.Base.Data.Text.Text|Standard.Base.Data.Numbers.Integer)= to_column:(Standard.Table.Column.Column|Standard.Table.Expression.Expression|Standard.Base.Data.Text.Text|Standard.Base.Data.Numbers.Integer)= as:Standard.Base.Data.Text.Text= -> Standard.Base.Any.Any
+    - st_extent self column:(Standard.Table.Column.Column|Standard.Table.Expression.Expression|Standard.Base.Data.Text.Text|Standard.Base.Data.Numbers.Integer)= as:Standard.Base.Data.Text.Text= -> Standard.Base.Any.Any
+    - st_from_geojson self column:(Standard.Table.Column.Column|Standard.Table.Expression.Expression|Standard.Base.Data.Text.Text|Standard.Base.Data.Numbers.Integer)= as:Standard.Base.Data.Text.Text= -> Standard.Base.Any.Any
+    - st_from_wkt self column:(Standard.Table.Column.Column|Standard.Table.Expression.Expression|Standard.Base.Data.Text.Text|Standard.Base.Data.Numbers.Integer)= as:Standard.Base.Data.Text.Text= -> Standard.Base.Any.Any
+    - st_geometry_type self column:(Standard.Table.Column.Column|Standard.Table.Expression.Expression|Standard.Base.Data.Text.Text|Standard.Base.Data.Numbers.Integer)= as:Standard.Base.Data.Text.Text= -> Standard.Base.Any.Any
+    - st_intersection self columns:(Standard.Base.Data.Vector.Vector Standard.Base.Any.Any)= as:Standard.Base.Data.Text.Text= -> Standard.Base.Any.Any
+    - st_latitude self column:(Standard.Table.Column.Column|Standard.Table.Expression.Expression|Standard.Base.Data.Text.Text|Standard.Base.Data.Numbers.Integer)= value:Standard.Table.Spatial_Table.Lat_Long_Type= as:Standard.Base.Data.Text.Text= -> Standard.Base.Any.Any
+    - st_length self from_column:(Standard.Table.Column.Column|Standard.Table.Expression.Expression|Standard.Base.Data.Text.Text|Standard.Base.Data.Numbers.Integer)= to_column:(Standard.Table.Column.Column|Standard.Table.Expression.Expression|Standard.Base.Data.Text.Text|Standard.Base.Data.Numbers.Integer)= as:Standard.Base.Data.Text.Text= -> Standard.Base.Any.Any
+    - st_longitude self column:(Standard.Table.Column.Column|Standard.Table.Expression.Expression|Standard.Base.Data.Text.Text|Standard.Base.Data.Numbers.Integer)= value:Standard.Table.Spatial_Table.Lat_Long_Type= as:Standard.Base.Data.Text.Text= -> Standard.Base.Any.Any
+    - st_perimeter self column:(Standard.Table.Column.Column|Standard.Table.Expression.Expression|Standard.Base.Data.Text.Text|Standard.Base.Data.Numbers.Integer)= as:Standard.Base.Data.Text.Text= -> Standard.Base.Any.Any
+    - st_point self longitude:(Standard.Table.Column.Column|Standard.Table.Expression.Expression|Standard.Base.Data.Text.Text|Standard.Base.Data.Numbers.Integer)= latitude:(Standard.Table.Column.Column|Standard.Table.Expression.Expression|Standard.Base.Data.Text.Text|Standard.Base.Data.Numbers.Integer)= as:Standard.Base.Data.Text.Text= -> Standard.Base.Any.Any
+    - st_to_geojson self column:(Standard.Table.Column.Column|Standard.Table.Expression.Expression|Standard.Base.Data.Text.Text|Standard.Base.Data.Numbers.Integer)= as:Standard.Base.Data.Text.Text= -> Standard.Base.Any.Any
+    - st_to_wkt self column:(Standard.Table.Column.Column|Standard.Table.Expression.Expression|Standard.Base.Data.Text.Text|Standard.Base.Data.Numbers.Integer)= as:Standard.Base.Data.Text.Text= -> Standard.Base.Any.Any
+    - st_union self columns:(Standard.Base.Data.Vector.Vector Standard.Base.Any.Any)= as:Standard.Base.Data.Text.Text= -> Standard.Base.Any.Any
+- Standard.Table.Spatial_Table.Spatial_Table.from that:Standard.Table.Table.Table -> Standard.Table.Spatial_Table.Spatial_Table
+- Standard.Table.Table.Table.from that:Standard.Table.Spatial_Table.Spatial_Table -> Standard.Table.Table.Table
+- Standard.Table.Join_Condition.Join_Condition.from that:Standard.Table.Spatial_Table.Spatial_Join_Condition -> Standard.Table.Join_Condition.Join_Condition

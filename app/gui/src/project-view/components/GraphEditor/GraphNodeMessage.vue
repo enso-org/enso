@@ -12,7 +12,6 @@ const { projectNames: names, module } = useCurrentProject()
 const props = defineProps<{
   message: string
   type: MessageType
-  passEvents?: boolean
 }>()
 
 function containsLibraryName(): ProjectPath | null {
@@ -65,11 +64,7 @@ export const colorForMessageType: Record<MessageType, string> = {
 </script>
 
 <template>
-  <div
-    class="GraphNodeMessage"
-    :class="{ passEvents }"
-    :style="{ '--background-color': colorForMessageType[props.type] }"
-  >
+  <div class="GraphNodeMessage" :style="{ '--background-color': colorForMessageType[props.type] }">
     <SvgIcon class="icon" :name="iconForMessageType[props.type]" />
     <div class="message" v-text="props.message"></div>
     <div class="toolbar">
@@ -109,10 +104,6 @@ export const colorForMessageType: Record<MessageType, string> = {
   pointer-events: none;
   opacity: 1;
   transition: opacity 0.2s ease;
-
-  &.passEvents {
-    opacity: 0.5;
-  }
 }
 
 .icon {

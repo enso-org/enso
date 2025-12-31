@@ -1,5 +1,6 @@
 package org.enso.tools.enso4igv.enso;
 
+import java.awt.datatransfer.DataFlavor;
 import java.io.File;
 import java.net.URISyntaxException;
 import java.util.Arrays;
@@ -14,6 +15,7 @@ import org.netbeans.junit.NbTestCase;
 import org.netbeans.spi.project.ui.LogicalViewProvider;
 import org.openide.filesystems.FileObject;
 import org.openide.filesystems.FileUtil;
+import org.openide.nodes.Node;
 import org.openide.util.Utilities;
 
 public class EnsoYamlProjectTest extends NbTestCase {
@@ -149,6 +151,42 @@ public class EnsoYamlProjectTest extends NbTestCase {
     var packages = javaLibs[0].getChildren().getNodes(true);
     var testCasePkg = Stream.of(packages).filter(n -> TestCase.class.getPackageName().equals(n.getName())).findAny();
     assertTrue("junit framework package is found among " + Arrays.toString(packages), testCasePkg.isPresent());
+  }
+
+  public void testData() throws Exception {
+    var yaml = FileUtil.createData(root, "data/package.yaml");
+    var main = FileUtil.createData(root, "data/src/Main.enso");
+    var input = FileUtil.createData(root, "data/data/input.txt");
+
+    var rootFO = root.getFileObject("data");
+    var poly = ProjectManager.getDefault().findProject(rootFO);
+    assertNotNull("Project found", poly);
+    var lvp = poly.getLookup().lookup(LogicalViewProvider.class);
+
+    var node = lvp.createLogicalView();
+
+    assertEquals("data", node.getName());
+    var prjNodes = node.getChildren().getNodes(true);
+    assertEquals("Three nodes", 3, prjNodes.length);
+
+    assertEquals("package.yaml", prjNodes[2].getName());
+    assertEquals("represents the package.yaml file", yaml, prjNodes[2].getLookup().lookup(FileObject.class));
+
+    assertEquals("src", prjNodes[0].getName());
+    assertEquals("Enso Sources", prjNodes[0].getDisplayName());
+
+    var dataNode = prjNodes[1];
+    assertEquals("data", dataNode.getName());
+    assertEquals("Data", dataNode.getDisplayName());
+    var dataNodes = dataNode.getChildren().getNodes(true);
+    assertEquals("One nodes: " + Arrays.toString(dataNodes), 1, dataNodes.length);
+    assertEquals("input.txt", dataNodes[0].getName());
+
+    assertEquals(input, dataNodes[0].getLookup().lookup(FileObject.class));
+
+    var copy = dataNode.clipboardCopy();
+    var text = copy.getTransferData(DataFlavor.stringFlavor);
+    assertEquals("Meta.Enso_Project.enso_project.data", text);
   }
 
   public void testDocumentation() throws Exception {

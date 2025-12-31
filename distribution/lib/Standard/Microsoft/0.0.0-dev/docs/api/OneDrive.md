@@ -1,0 +1,33 @@
+## Enso Signatures 1.0
+## module Standard.Microsoft.OneDrive
+- type OneDrive
+    - new path:Standard.Base.Data.Text.Text= credential:(Standard.Base.System.File.File|Standard.Base.Enso_Cloud.Enso_Secret.Enso_Secret|Standard.Microsoft.Microsoft365_Credential.Microsoft365_Credential)= -> Standard.Microsoft.OneDrive.OneDrive_File
+    - root credential:(Standard.Base.System.File.File|Standard.Base.Enso_Cloud.Enso_Secret.Enso_Secret|Standard.Microsoft.Microsoft365_Credential.Microsoft365_Credential)= -> Standard.Microsoft.OneDrive.OneDrive_File
+    - write source:Standard.Base.Any.Any= destination:(Standard.Base.Data.Text.Text|Standard.Microsoft.OneDrive.OneDrive_File)= credential:(Standard.Base.System.File.File|Standard.Base.Enso_Cloud.Enso_Secret.Enso_Secret|Standard.Microsoft.Microsoft365_Credential.Microsoft365_Credential)= -> Standard.Microsoft.OneDrive.OneDrive_File
+- type OneDrive_File
+    - / self subpath:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - can_write_into_parent self -> Standard.Base.Data.Boolean.Boolean
+    - copy_to self destination:Standard.Base.System.File.Generic.File_Like.File_Like replace_existing:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Any.Any
+    - creation_time self -> Standard.Base.Any.Any
+    - exists self -> Standard.Base.Data.Boolean.Boolean
+    - extension self -> Standard.Base.Any.Any
+    - id self -> Standard.Base.Any.Any
+    - is_data_link self -> Standard.Base.Data.Boolean.Boolean
+    - is_directory self -> Standard.Base.Data.Boolean.Boolean
+    - last_modified_time self -> Standard.Base.Any.Any
+    - list self name_filter:Standard.Base.Data.Text.Text= recursive:Standard.Base.Data.Boolean.Boolean= -> (Standard.Base.Data.Vector.Vector Standard.Microsoft.OneDrive.OneDrive_File)
+    - metadata self -> Standard.Base.Any.Any
+    - name self -> Standard.Base.Data.Text.Text
+    - new path:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - parent self -> Standard.Microsoft.OneDrive.OneDrive_File
+    - path self -> Standard.Base.Data.Text.Text
+    - read self format:Standard.Base.Any.Any= on_problems:Standard.Base.Errors.Problem_Behavior.Problem_Behavior= -> Standard.Base.Any.Any!Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+    - resolve_single_part self part:Standard.Base.Data.Text.Text -> Standard.Base.Any.Any
+    - root credential:Standard.Microsoft.Microsoft365_Credential.Microsoft365_Credential -> Standard.Base.Any.Any
+    - size self -> Standard.Base.Any.Any
+    - to_display_text self -> Standard.Base.Any.Any
+    - to_text self -> Standard.Base.Any.Any
+    - uri self -> Standard.Base.Any.Any
+    - with_input_stream self open_options:Standard.Base.Data.Vector.Vector action:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- Standard.Base.System.File.Generic.File_Like.File_Like.from that:Standard.Microsoft.OneDrive.OneDrive_File -> Standard.Base.System.File.Generic.File_Like.File_Like
+- Standard.Base.Enso_Cloud.Data_Link.Data_Link_From_File.from that:Standard.Microsoft.OneDrive.OneDrive_File -> Standard.Base.Enso_Cloud.Data_Link.Data_Link_From_File

@@ -387,16 +387,6 @@ public final class ValuesGenerator implements AutoCloseable {
         .type();
   }
 
-  public Value typeFile() {
-    return v(
-            "typeFile",
-            """
-            import Standard.Base.System.File.File
-            """,
-            "File")
-        .type();
-  }
-
   public Value typeRef() {
     return v(
             "typeRef",

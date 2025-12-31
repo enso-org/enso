@@ -1,0 +1,218 @@
+from Standard.Base import all
+
+import project.Column.Column
+import project.Expression.Expression
+import project.Spatial_Table.Lat_Long_Type
+import project.Spatial_Table.Spatial_Table
+
+## A column that contains spatial values - designed for use by Expression at the moment.
+type Spatial_Column
+    ## Wraps a column and its parent table allowing spatial operations to be performed on it.
+    Value column parent_table:Spatial_Table
+
+    ## ---
+       aliases: [create_points]
+       group: Standard.Base.Calculations
+       icon: spatial
+       ---
+       Gets the geometry type of each spatial object in the spatial column.
+
+       ## Returns
+       A new table with the existing columns and the new geometry type column as text.
+    st_geometry_type self =
+        temp_name = self.parent_table.parent.make_temp_column_name
+        self.parent_table.st_geometry_type self.column as=temp_name . get temp_name
+
+    ## ---
+       aliases: [st_x]
+       group: Standard.Base.Calculations
+       icon: spatial
+       ---
+       Gets the longitude values from each point in the spatial column.
+
+       ## Arguments
+        - `value`: Specifies whether to get the minimum, maximum, or default longitude value
+           from each spatial object.
+
+       ## Returns
+       A new table with the existing columns and the new longitude column.
+    st_longitude self (value:Lat_Long_Type=..Default) =
+        temp_name = self.parent_table.parent.make_temp_column_name
+        self.parent_table.st_longitude self.column value as=temp_name . get temp_name
+
+    ## ---
+       aliases: [st_y]
+       group: Standard.Base.Calculations
+       icon: spatial
+       ---
+       Gets the latitude values from each point in the spatial column.
+
+       ## Arguments
+        - `value`: Specifies whether to get the minimum, maximum, or default latitude value
+           from each spatial object.
+
+       ## Returns
+       A new table with the existing columns and the new latitude column.
+    st_latitude self (value:Lat_Long_Type=..Default) =
+        temp_name = self.parent_table.parent.make_temp_column_name
+        self.parent_table.st_latitude self.column value as=temp_name . get temp_name
+
+    ## ---
+       group: Standard.Base.Calculations
+       icon: spatial
+       ---
+       Gets the centroid point of each spatial object in the spatial column.
+
+       ## Returns
+       A new table with the existing columns and a new column containing the centroid points.
+    st_centroid self =
+        temp_name = self.parent_table.parent.make_temp_column_name
+        self.parent_table.st_centroid self.column as=temp_name . get temp_name
+
+    ## ---
+       group: Standard.Base.Calculations
+       icon: spatial
+       ---
+       Gets the bounding box surrounding each spatial object in the spatial column.
+
+       ## Returns
+       A new table with the existing columns and a new column containing the bounding boxes.
+    st_extent self =
+        temp_name = self.parent_table.parent.make_temp_column_name
+        self.parent_table.st_extent self.column as=temp_name . get temp_name
+
+    ## ---
+       group: Standard.Base.Calculations
+       icon: spatial
+       ---
+       Gets the perimeter of each spatial object in the spatial column in meters.
+       Note this assumes that the spatial objects are in WGS84 coordinate system (EPSG:4326).
+
+       ## Returns
+       A new table with the existing columns and a new column containing the perimeter.
+    st_perimeter self =
+        temp_name = self.parent_table.parent.make_temp_column_name
+        self.parent_table.st_perimeter self.column as=temp_name . get temp_name
+
+    ## ---
+       group: Standard.Base.Calculations
+       icon: spatial
+       ---
+       Gets the area of each spatial object in the spatial column in meters².
+       Note this assumes that the spatial objects are in WGS84 coordinate system (EPSG:4326).
+
+       ## Returns
+       A new table with the existing columns and a new column containing the area.
+    st_area self =
+        temp_name = self.parent_table.parent.make_temp_column_name
+        self.parent_table.st_area self.column as=temp_name . get temp_name
+
+    ## ---
+       group: Standard.Base.Calculations
+       icon: spatial
+       ---
+       Gets the distance between two spatial objects on each row.
+       Note this will be the distance in the coordinate system of the spatial objects, i.e. for
+         WGS84 coordinates this will be in degrees. For distance in metres use st_length.
+
+       ## Arguments
+        - `end_column`: The column, expression, or name/index of the column containing the ending spatial objects.
+
+       ## Returns
+       A new table with the existing columns and a new column containing the distance.
+    st_distance self (to_column : Column | Expression | Text | Integer = Missing_Argument.throw "to_column") =
+        temp_name = self.parent_table.parent.make_temp_column_name
+        self.parent_table.st_distance self.column to_column as=temp_name . get temp_name
+
+    ## ---
+       aliases: [st_distance]
+       group: Standard.Base.Calculations
+       icon: spatial
+       ---
+       Gets the distance in meters between two spatial objects on each row.
+       Note this assumes that the spatial objects are in WGS84 coordinate system (EPSG:4326).
+
+
+       ## Arguments
+        - `end_column`: The column, expression, or name/index of the column containing the ending spatial objects.
+
+       ## Returns
+       A new table with the existing columns and a new column containing the distance.
+    st_length self (to_column : Column | Expression | Text | Integer = Missing_Argument.throw "to_column") =
+        temp_name = self.parent_table.parent.make_temp_column_name
+        self.parent_table.st_length self.column to_column as=temp_name . get temp_name
+
+    ## ---
+       group: Standard.Base.Conversions
+       icon: convert
+       ---
+       Converts the spatial objects in the specified column to GeoJSON format.
+
+       ## Returns
+       A new table with the existing columns and a new column containing the
+       GeoJSON representation as text of the spatial objects.
+    st_to_geojson self =
+        temp_name = self.parent_table.parent.make_temp_column_name
+        self.parent_table.st_to_geojson self.column as=temp_name . get temp_name
+
+    ## ---
+       group: Standard.Base.Conversions
+       icon: convert
+       ---
+       Converts the spatial objects in the specified column to Well Known Text
+       format.
+
+       ## Returns
+       A new table with the existing columns and a new column containing the
+       WKT representation of the spatial objects.
+    st_to_wkt self =
+        temp_name = self.parent_table.parent.make_temp_column_name
+        self.parent_table.st_to_wkt self.column as=temp_name . get temp_name
+
+## A column that contains spatial values - designed for use by Expression at the moment.
+type Spatial_Input_Column
+    ## Wraps a column and its parent table allowing conversion to spatial objects.
+    Value column parent_table:Spatial_Table
+
+    ## ---
+       aliases: [create_points]
+       group: Standard.Base.Calculations
+       icon: spatial
+       ---
+       Creates a new column containing points from longitude and latitude columns.
+       Note: Enso assumes that the points are in WGS84 coordinate system (EPSG:4326).
+
+       ## Arguments
+        - `latitude`: The column, expression, or name/index of the column containing latitude values
+
+       ## Returns
+       A new table with the existing columns and the new point column.
+    st_point self (latitude : Column | Expression | Text | Integer = Missing_Argument.throw "latitude") =
+        temp_name = self.parent_table.parent.make_temp_column_name
+        self.parent_table.st_point self.column latitude as=temp_name . get temp_name
+
+    ## ---
+       group: Standard.Base.Conversions
+       icon: convert
+       ---
+       Converts a text column in GeoJSON format to spatial objects.
+
+       ## Returns
+       A new table with the existing columns and a new column containing the
+       spatial objects.
+    st_from_geojson self =
+        temp_name = self.parent_table.parent.make_temp_column_name
+        self.parent_table.st_from_geojson self.column as=temp_name . get temp_name
+
+    ## ---
+       group: Standard.Base.Conversions
+       icon: convert
+       ---
+       Converts a text column in Well Known Text format to spatial objects.
+
+       ## Returns
+       A new table with the existing columns and a new column containing the
+       spatial objects.
+    st_from_wkt self =
+        temp_name = self.parent_table.parent.make_temp_column_name
+        self.parent_table.st_from_wkt self.column as=temp_name . get temp_name

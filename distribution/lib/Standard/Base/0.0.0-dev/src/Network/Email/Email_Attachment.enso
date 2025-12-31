@@ -1,0 +1,36 @@
+import project.Data.Text.Text
+import project.Errors.Common.Missing_Argument
+import project.Metadata.Display
+import project.Metadata.Widget
+import project.Network.URI.URI
+import project.System.File.File
+import project.System.File.Generic.File_Like.File_Like
+from project.Metadata.Choice import Option
+from project.Metadata.Widget import Single_Choice, Text_Input, Vector_Editor
+
+## The attachment of an email.
+type Email_Attachment
+    ## A file attachment.
+    @file (Widget.Text_Input display=Display.Always)
+    File file:Text|URI|File|File_Like=(Missing_Argument.throw "file") name:Text=""
+
+    ## ---
+       private: true
+       ---
+    default_widget (display : Display = ..Always) -> Widget =
+        Single_Choice values=[Option "..File" "..File"] display=display
+
+## ---
+   private: true
+   ---
+Email_Attachment.from (that:File) = Email_Attachment.File that
+
+## ---
+   private: true
+   ---
+Email_Attachment.from (that:URI) = Email_Attachment.File that
+
+## ---
+   private: true
+   ---
+Email_Attachment.from (that:Text) = Email_Attachment.File that

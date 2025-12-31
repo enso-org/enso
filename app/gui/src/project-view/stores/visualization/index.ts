@@ -21,7 +21,6 @@ import {
   type VisualizationId,
 } from '@/stores/visualization/metadata'
 import type { VisualizationModule } from '@/stores/visualization/runtimeTypes'
-import { assert } from '@/util/assert'
 import type { Opt } from '@/util/data/opt'
 import { isUrlString } from '@/util/data/urlString'
 import { ANY_TYPE_QN } from '@/util/ensoTypes'
@@ -103,47 +102,42 @@ export const [provideVisualizationStore, useVisualizationStore] = createContextS
       })
     }
 
-    const loadedScripts = new Set<string>()
-    const loadedStyles = new Set<string>()
     const scriptsNode = document.head.appendChild(document.createElement('div'))
     scriptsNode.classList.add('visualization-scripts')
 
-    function loadAsync(
-      urls: string[],
-      type: 'scripts' | 'styles',
-      container: HTMLElement,
-      loaded: Set<string>,
-    ) {
+    const loadedScripts = new Set<string>()
+    function loadScripts(module: VisualizationModule) {
       const promises: Promise<void>[] = []
-      for (const url of urls) {
-        if (!loaded.has(url)) {
-          loaded.add(url)
-          const nodeKind = type === 'scripts' ? 'script' : 'link'
-          const node = document.createElement(nodeKind)
-          if (type === 'styles') {
-            assert(node instanceof HTMLLinkElement)
-            node.href = url
-            node.rel = 'stylesheet'
-          } else if (type === 'scripts') {
-            assert(node instanceof HTMLScriptElement)
+      if ('scripts' in module && module.scripts) {
+        if (!Array.isArray(module.scripts)) {
+          console.warn('Visualiation scripts should be an array:', module.scripts)
+        }
+        const scripts = Array.isArray(module.scripts) ? module.scripts : [module.scripts]
+        for (const url of scripts) {
+          if (typeof url !== 'string') {
+            console.warn('Visualization script should be a string, skipping URL:', url)
+          } else if (!loadedScripts.has(url)) {
+            loadedScripts.add(url)
+            const node = document.createElement('script')
             node.src = url
+            // Some resources still set only "Access-Control-Allow-Origin" in the response.
+            // We need to explicitly make a request CORS - see https://resourcepolicy.fyi
+            node.crossOrigin = 'anonymous'
+            promises.push(
+              new Promise<void>((resolve, reject) => {
+                node.addEventListener('load', () => {
+                  resolve()
+                  // Once scripts are loaded and run, there is no need to keep the tag.
+                  node.remove()
+                })
+                node.addEventListener('error', () => {
+                  reject()
+                  node.remove()
+                })
+              }),
+            )
+            scriptsNode.appendChild(node)
           }
-          // Some resources still set only "Access-Control-Allow-Origin" in the response.
-          // We need to explicitly make a request CORS - see https://resourcepolicy.fyi
-          node.crossOrigin = 'anonymous'
-          promises.push(
-            new Promise<void>((resolve, reject) => {
-              node.addEventListener('load', () => {
-                resolve()
-                node.remove()
-              })
-              node.addEventListener('error', () => {
-                reject()
-                node.remove()
-              })
-            }),
-          )
-          container.appendChild(node)
         }
       }
       return Promise.allSettled(promises)
@@ -175,12 +169,7 @@ export const [provideVisualizationStore, useVisualizationStore] = createContextS
               await projectRoot,
               await proj.dataConnection,
             ).then(async (viz) => {
-              const styles = viz.styles ?? []
-              const scripts = viz.scripts ?? []
-              await Promise.allSettled([
-                loadAsync(styles, 'styles', document.head, loadedStyles),
-                loadAsync(scripts, 'scripts', scriptsNode, loadedScripts),
-              ])
+              await loadScripts(viz)
               return viz
             })
             if (key) cache.set(key, vizPromise)
@@ -302,11 +291,7 @@ export const [provideVisualizationStore, useVisualizationStore] = createContextS
     async function resolveBuiltinVisualization(type: string) {
       const module = builtinVisualizationsByName[type]
       if (!module) throw new Error(`Unknown visualization type: ${type}`)
-      const { scripts, styles } = module
-      await Promise.allSettled([
-        loadAsync(styles ?? [], 'styles', document.head, loadedStyles),
-        loadAsync(scripts ?? [], 'scripts', scriptsNode, loadedScripts),
-      ])
+      await loadScripts(module)
       return module
     }
 

@@ -6,6 +6,7 @@
     - cast_op_type self op_kind:Standard.Base.Data.Text.Text args:(Standard.Base.Data.Vector.Vector Standard.Database.Internal.IR.Internal_Column.Internal_Column) expression:Standard.Database.Internal.IR.SQL_IR_Expression.SQL_IR_Expression -> Standard.Base.Any.Any
     - check_aggregate_support self aggregate:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - default_table_types self -> Standard.Base.Any.Any
+    - dialect_operations self -> Standard.Base.Any.Any
     - ensure_query_has_no_holes self jdbc:Standard.Database.Internal.JDBC_Connection.JDBC_Connection raw_sql:Standard.Base.Data.Text.Text -> Standard.Base.Any.Any
     - flagged self flag:Standard.Database.Dialects.Dialect_Flag.Dialect_Flag -> Standard.Base.Data.Boolean.Boolean
     - generate_collate self collation_name:Standard.Base.Data.Text.Text -> Standard.Base.Data.Text.Text
@@ -30,5 +31,16 @@
     - to_text self -> Standard.Base.Any.Any
     - value_type_for_upload_of_existing_column self column:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - wrap_identifier self identifier:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- agg_longest -> Standard.Base.Any.Any
+- agg_median -> Standard.Base.Any.Any
+- agg_shortest -> Standard.Base.Any.Any
+- agg_stddev -> Standard.Base.Any.Any
+- agg_stddev_pop -> Standard.Base.Any.Any
 - duckdb -> Standard.Base.Any.Any
 - duckdb_dialect_name -> Standard.Base.Any.Any
+- make_case_sensitive -> Standard.Base.Any.Any
+- make_date_diff arguments:Standard.Base.Any.Any metadata:Standard.Database.Internal.IR.Operation_Metadata.Date_Period_Metadata -> Standard.Base.Any.Any
+- make_first_aggr method:Standard.Base.Any.Any not_null:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Any.Any
+- make_group_number_equal_count arguments:Standard.Base.Data.Vector.Vector -> Standard.Base.Any.Any
+- make_order_descriptor internal_column:Standard.Database.Internal.IR.Internal_Column.Internal_Column sort_direction:Standard.Base.Any.Any text_ordering:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- make_quarter -> Standard.Base.Any.Any
