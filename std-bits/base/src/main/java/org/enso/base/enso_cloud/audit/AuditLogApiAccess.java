@@ -243,7 +243,8 @@ public final class AuditLogApiAccess implements ReloadDetector.HasClearableCache
       } catch (IOException | InterruptedException e) {
         // Promote a checked exception to a runtime exception to simplify the code.
         var errorMessage = e.getMessage() != null ? e.getMessage() : e.toString();
-        throw new RequestFailureException("Failed to send log messages: " + errorMessage, e);
+        throw new RequestFailureException(
+            "Failed to send log messages to " + request.uri() + ": " + errorMessage, e);
       }
     } catch (RequestFailureException e) {
       if (retryCount < 0) {
