@@ -143,14 +143,14 @@ fn compound_lines_maybe_with_tail<'s>(
                                 && let Some((prev_line, prev_app)) = prev.clone()
                             {
                                 // println!("Found Block IF THEN {:?} ELSE {:} there is {:?}", prev, i, app);
-                                let mut all_segments = prev_app.segments.clone();
-                                let seg = app.segments[0].clone();
-                                all_segments.push(seg);
-                                let combine = Tree::multi_segment_app(all_segments);
+                                let mut if_then_segments = prev_app.segments.clone();
+                                let else_segment = app.segments[0].clone();
+                                if_then_segments.push(else_segment);
+                                let combined_multi_segment_app = Tree::multi_segment_app(if_then_segments);
                                 // println!(".  Combined to {:?}", combine);
                                 let new_prev_line = block::Line {
                                     newline: prev_line.into(),
-                                    expression: Some(combine),
+                                    expression: Some(combined_multi_segment_app),
                                 };
                                 let new_line =
                                     block::Line { newline: line.newline.into(), expression: None };
