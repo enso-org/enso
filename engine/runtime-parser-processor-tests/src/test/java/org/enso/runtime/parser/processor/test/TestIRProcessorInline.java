@@ -971,7 +971,7 @@ public class TestIRProcessorInline {
         import org.enso.runtime.parser.dsl.IRField;
         import org.enso.runtime.parser.dsl.IRChild;
         import org.enso.compiler.core.IR;
-        import processor.test.JLiteral;
+        import ${pkg}.JLiteral;
 
         public interface JPattern extends IR {
           @GenerateIR(interfaces = {JPattern.class})
