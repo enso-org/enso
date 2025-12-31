@@ -11,13 +11,14 @@ import org.enso.runtime.parser.processor.GeneratedClassContext;
 import org.enso.runtime.parser.processor.IRProcessingException;
 import org.enso.runtime.parser.processor.field.Field;
 import org.enso.runtime.parser.processor.field.OptionListField;
+import org.enso.runtime.parser.processor.utils.TypeNames;
 import org.enso.runtime.parser.processor.utils.Utils;
 
 /**
  * Code generator for {@code org.enso.compiler.core.ir.IR#duplicate} method or any of its override.
  * Note that in the interface hierarchy, there can be an override with a different return type.
  */
-public class DuplicateMethodGenerator {
+public final class DuplicateMethodGenerator extends MethodGenerator {
 
   private final GeneratedClassContext ctx;
   private final List<Parameter> parameters;
@@ -25,7 +26,9 @@ public class DuplicateMethodGenerator {
   /**
    * @param duplicateMethod ExecutableElement representing the duplicate method (or its override).
    */
-  public DuplicateMethodGenerator(ExecutableElement duplicateMethod, GeneratedClassContext ctx) {
+  public DuplicateMethodGenerator(
+      ExecutableElement duplicateMethod, GeneratedClassContext ctx, TypeNames typeNames) {
+    super(typeNames);
     this.ctx = Objects.requireNonNull(ctx);
     var boolType = ctx.getProcessingEnvironment().getTypeUtils().getPrimitiveType(TypeKind.BOOLEAN);
     this.parameters =
@@ -258,8 +261,8 @@ public class DuplicateMethodGenerator {
       $dupName = Option.apply(duplicated);
     }
     """
-        .replace("$childOptType", optionChild.getSimpleTypeName())
-        .replace("$childType", optionChild.getTypeParameter().getSimpleName())
+        .replace("$childOptType", typeName(optionChild))
+        .replace("$childType", typeName(optionChild.getTypeParameter()))
         .replace("$childName", optionChild.getName())
         .replace("$dupName", dupFieldName(optionChild))
         .replace("$parameterNames", String.join(", ", parameterNames()));
@@ -295,19 +298,19 @@ public class DuplicateMethodGenerator {
       ${dupName} = Reference.of(duplicated);
     }
     """
-        .replace("${perRefType}", perRefChild.getSimpleTypeName())
-        .replace("${type}", perRefChild.getTypeParameter().getSimpleName())
+        .replace("${perRefType}", typeName(perRefChild))
+        .replace("${type}", typeName(perRefChild.getTypeParameter()))
         .replace("${childName}", perRefChild.getName())
         .replace("${dupName}", dupFieldName(perRefChild))
         .replace("${parameterNames}", String.join(", ", parameterNames()));
   }
 
-  private static String nonChildCode(Field field) {
+  private String nonChildCode(Field field) {
     Utils.hardAssert(!field.isChild());
     return """
     $childType $dupName = $childName;
     """
-        .replace("$childType", field.getSimpleTypeName())
+        .replace("$childType", typeName(field))
         .replace("$childName", field.getName())
         .replace("$dupName", dupFieldName(field));
   }
@@ -318,7 +321,7 @@ public class DuplicateMethodGenerator {
 
   /** Generate code for call of a constructor of the subclass. */
   private String newSubclass(List<DuplicateVar> ctorParams) {
-    var subClassType = ctx.getProcessedClass().getClazz().getSimpleName().toString();
+    var subClassType = typeName(ctx.getProcessedClass().getClazz());
     var ctor = ctx.getProcessedClass().getCtor();
     Utils.hardAssert(ctor.getParameters().size() == ctorParams.size());
     var sb = new StringBuilder();
@@ -334,7 +337,7 @@ public class DuplicateMethodGenerator {
             .map(
                 ctorParam -> {
                   if (ctorParam.needsCast) {
-                    return "(" + ctorParam.type + ") " + ctorParam.duplicatedName;
+                    return "(" + typeName(ctorParam.type) + ") " + ctorParam.duplicatedName;
                   } else {
                     return ctorParam.duplicatedName;
                   }
@@ -377,7 +380,7 @@ public class DuplicateMethodGenerator {
   }
 
   private String dupMethodRetType() {
-    return ctx.getProcessedClass().getClazz().getSimpleName().toString();
+    return typeName(ctx.getProcessedClass().getClazz());
   }
 
   /**

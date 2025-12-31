@@ -20,6 +20,7 @@ import org.enso.runtime.parser.processor.methodgen.HashCodeMethodGenerator;
 import org.enso.runtime.parser.processor.methodgen.MapExpressionsMethodGenerator;
 import org.enso.runtime.parser.processor.methodgen.SetLocationMethodGenerator;
 import org.enso.runtime.parser.processor.methodgen.ToStringMethodGenerator;
+import org.enso.runtime.parser.processor.utils.TypeNames;
 import org.enso.runtime.parser.processor.utils.Utils;
 
 /**
@@ -34,6 +35,7 @@ final class IRNodeClassGenerator {
   private final String className;
 
   private final GeneratedClassContext generatedClassContext;
+  private final TypeNames typeNames;
   private final DuplicateMethodGenerator duplicateMethodGenerator;
   private final CopyMethodGenerator copyMethodGenerator;
   private final ChildrenMethodGenerator childrenMethodGenerator;
@@ -56,7 +58,6 @@ final class IRNodeClassGenerator {
           "org.enso.compiler.core.ir.DiagnosticStorage$",
           "org.enso.compiler.core.ir.Expression",
           "org.enso.compiler.core.ir.IdentifiedLocation",
-          "org.enso.compiler.core.ir.Name",
           "org.enso.compiler.core.ir.MetadataStorage",
           "scala.Option");
 
@@ -74,22 +75,23 @@ final class IRNodeClassGenerator {
         Utils.findDuplicateMethod(processedClass.getIrInterfaceElem(), processingEnv);
     this.generatedClassContext =
         new GeneratedClassContext(className, userFields, processingEnv, processedClass);
+    this.typeNames = new TypeNames(shouldUseFQN());
     this.duplicateMethodGenerator =
-        new DuplicateMethodGenerator(duplicateMethod, generatedClassContext);
-    this.copyMethodGenerator = new CopyMethodGenerator(generatedClassContext);
+        new DuplicateMethodGenerator(duplicateMethod, generatedClassContext, typeNames);
+    this.copyMethodGenerator = new CopyMethodGenerator(generatedClassContext, typeNames);
     this.childrenMethodGenerator = new ChildrenMethodGenerator(generatedClassContext);
-    this.builderMethodGenerator = new BuilderMethodGenerator(generatedClassContext);
+    this.builderMethodGenerator = new BuilderMethodGenerator(generatedClassContext, typeNames);
     var mapExpressionsMethod =
         Utils.findMapExpressionsMethod(processedClass.getIrInterfaceElem(), processingEnv);
     this.mapExpressionsMethodGenerator =
-        new MapExpressionsMethodGenerator(mapExpressionsMethod, generatedClassContext);
+        new MapExpressionsMethodGenerator(mapExpressionsMethod, generatedClassContext, typeNames);
     var setLocationMethod =
         Utils.findMethod(
             processedClass.getIrInterfaceElem(),
             processingEnv,
             method -> method.getSimpleName().toString().equals("setLocation"));
     this.setLocationMethodGenerator =
-        new SetLocationMethodGenerator(setLocationMethod, generatedClassContext);
+        new SetLocationMethodGenerator(setLocationMethod, generatedClassContext, typeNames);
     this.equalsMethodGenerator = new EqualsMethodGenerator(generatedClassContext);
     this.hashCodeMethodGenerator = new HashCodeMethodGenerator(generatedClassContext);
     this.toStringMethodGenerator = new ToStringMethodGenerator(generatedClassContext);
@@ -113,6 +115,28 @@ final class IRNodeClassGenerator {
 
   /** Returns set of import statements that should be included in the generated class. */
   Set<String> imports() {
+    var allImports = importedFullTypeNames();
+    var simpleImportNames = allImports.stream().map(IRNodeClassGenerator::toSimpleName).toList();
+    var distinctSimpleImportNames = simpleImportNames.stream().distinct().toList();
+    Set<String> importsWithoutNameClash;
+    if (distinctSimpleImportNames.size() == simpleImportNames.size()) {
+      importsWithoutNameClash = allImports;
+    } else {
+      // Use only default imports and imports of the class that is
+      // being processed. Do not use imports for fields.
+      importsWithoutNameClash = new HashSet<>();
+      importsWithoutNameClash.addAll(defaultImportedTypes);
+      addImportForType(importsWithoutNameClash, processedClass.getClazz());
+      for (var ifaceToImplement : processedClass.getInterfaces()) {
+        addImportForType(importsWithoutNameClash, ifaceToImplement);
+      }
+    }
+    return importsWithoutNameClash.stream()
+        .map(importedType -> "import " + importedType + ";")
+        .collect(Collectors.toUnmodifiableSet());
+  }
+
+  private Set<String> importedFullTypeNames() {
     var importsForFields =
         generatedClassContext.getUserFields().stream()
             .filter(field -> !field.isPrimitive())
@@ -126,9 +150,27 @@ final class IRNodeClassGenerator {
       addImportForType(allImports, ifaceToImplement);
     }
     allImports.addAll(importsForFields);
-    return allImports.stream()
-        .map(importedType -> "import " + importedType + ";")
-        .collect(Collectors.toUnmodifiableSet());
+    return allImports;
+  }
+
+  /**
+   * Returns true if the entire generated code should use fully-qualified names for types instead of
+   * importing them. This should be done if there is a simple name clash in imports.
+   */
+  private boolean shouldUseFQN() {
+    var imports = importedFullTypeNames();
+    var simpleNames = imports.stream().map(IRNodeClassGenerator::toSimpleName).toList();
+    var distinctNames = simpleNames.stream().distinct().toList();
+    return simpleNames.size() != distinctNames.size();
+  }
+
+  private static String toSimpleName(String qualifiedName) {
+    var lastDot = qualifiedName.lastIndexOf('.');
+    if (lastDot == -1) {
+      return qualifiedName;
+    } else {
+      return qualifiedName.substring(lastDot + 1);
+    }
   }
 
   /**
@@ -228,7 +270,7 @@ final class IRNodeClassGenerator {
                     """
                     private final ${type} ${name};
                     """
-                        .replace("${type}", field.getSimpleTypeName())
+                        .replace("${type}", typeNames.typeName(field))
                         .replace("${name}", field.getName()))
             .collect(Collectors.joining(System.lineSeparator()));
     var comment =
@@ -322,7 +364,7 @@ final class IRNodeClassGenerator {
             .map(
                 consParam ->
                     "$consType $consName"
-                        .replace("$consType", consParam.getSimpleTypeName())
+                        .replace("$consType", typeNames.typeName(consParam))
                         .replace("$consName", consParam.name()))
             .collect(Collectors.joining(", "));
     sb.append(inParens).append(") {").append(System.lineSeparator());
@@ -471,7 +513,7 @@ final class IRNodeClassGenerator {
           }
           """
               .replace("${comment}", commentForField(field))
-              .replace("${returnType}", field.getSimpleTypeName())
+              .replace("${returnType}", typeNames.typeName(field))
               .replace("${fieldName}", field.getName());
       sb.append(code);
       sb.append(System.lineSeparator());

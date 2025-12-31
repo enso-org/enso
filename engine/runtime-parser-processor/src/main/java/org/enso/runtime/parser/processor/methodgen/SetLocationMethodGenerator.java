@@ -3,13 +3,15 @@ package org.enso.runtime.parser.processor.methodgen;
 import javax.lang.model.element.ExecutableElement;
 import org.enso.runtime.parser.processor.GeneratedClassContext;
 import org.enso.runtime.parser.processor.IRProcessingException;
+import org.enso.runtime.parser.processor.utils.TypeNames;
 
-public class SetLocationMethodGenerator {
+public final class SetLocationMethodGenerator extends MethodGenerator {
   private final ExecutableElement setLocationMethod;
   private final GeneratedClassContext ctx;
 
   public SetLocationMethodGenerator(
-      ExecutableElement setLocationMethod, GeneratedClassContext ctx) {
+      ExecutableElement setLocationMethod, GeneratedClassContext ctx, TypeNames typeNames) {
+    super(typeNames);
     ensureCorrectSignature(setLocationMethod);
     this.ctx = ctx;
     this.setLocationMethod = setLocationMethod;
@@ -46,6 +48,6 @@ public class SetLocationMethodGenerator {
   }
 
   private String retType() {
-    return ctx.getProcessedClass().getClazz().getSimpleName().toString();
+    return typeName(ctx.getProcessedClass().getClazz());
   }
 }
