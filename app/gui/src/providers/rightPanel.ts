@@ -79,6 +79,7 @@ function useRightPanelTabs(
       {
         icon: 'docs',
         enabled: Ok(),
+        hidden: true,
         title: 'Contents',
       },
     ],
@@ -181,7 +182,9 @@ function useRightPanel(
   const displayedTab = computed(() => {
     const markedTab = temporaryTab.value ?? tab.value
     if (markedTab == null) return undefined
-    if (!toValue(allTabs.get(markedTab)?.enabled)?.ok) return undefined
+    const tabInfo = allTabs.get(markedTab)
+    if (!tabInfo || toValue(tabInfo.hidden)) return undefined
+    if (!toValue(tabInfo.enabled)?.ok) return undefined
     return markedTab
   })
 
