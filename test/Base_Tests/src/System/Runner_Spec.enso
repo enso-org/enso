@@ -111,12 +111,3 @@ main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder
     suite.run_with_filter filter
-
-
-# TODO: Remove
-list_dir dir:File -> Vector Text =
-    Runtime.assert dir.exists
-    Runtime.assert dir.is_directory
-    paths = dir.list recursive=True . map \child ->
-        child.absolute.path
-    paths
