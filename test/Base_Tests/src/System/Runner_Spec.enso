@@ -81,7 +81,7 @@ add_specs suite_builder = suite_builder.group "Engine runner" group_builder->
 
         Panic.with_finalizer cleanup <|
             proj_dir = create_new_project tmp_dir "Proj" "main = 42"
-            enso_run args=["--compile", proj_dir.path]
+            enso_run args=["--vm.D=polyglot.enso.checkCurrentDirectory=false", "--compile", proj_dir.path]
             manifest = proj_dir / "manifest.yaml"
             manifest.exists . should_be_true
 
@@ -97,7 +97,7 @@ add_specs suite_builder = suite_builder.group "Engine runner" group_builder->
                 from Standard.Image import all
                 main = 42
             proj_dir = create_new_project tmp_dir "Proj" code
-            enso_run args=["--compile", proj_dir.path]
+            enso_run args=["--vm.D=polyglot.enso.checkCurrentDirectory=false", "--compile", proj_dir.path]
             manifest = proj_dir / "manifest.yaml"
             manifest.exists . should_be_true
             manifest_lines = manifest.read_text.lines . map (_.trim)
