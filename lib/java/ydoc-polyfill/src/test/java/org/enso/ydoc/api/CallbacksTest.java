@@ -104,4 +104,31 @@ public class CallbacksTest extends ExecutorSetup {
 
     Assert.assertEquals("World!", res.get());
   }
+
+  @Test
+  public void onConnectSubscribeBuffer() throws Exception {
+    var res = new AtomicReference<>();
+    var code =
+        """
+        class YjsChannel {
+          subscribe(messageHandler) {
+            var arr = new Uint8Array([0, 128, 255]);
+            messageHandler(arr.buffer);
+          }
+        }
+
+        var channel = new YjsChannel();
+        callbacks.onConnect(channel);
+        """;
+
+    var callbacks =
+        new TestCallbacks((channel) -> channel.subscribe((message) -> res.set(message)));
+    context.getBindings("js").putMember("callbacks", callbacks);
+
+    CompletableFuture.runAsync(() -> context.eval("js", code), executor).get();
+    var value = context.asValue(res.get());
+    var arr = value.as(byte[].class);
+
+    Assert.assertArrayEquals(new byte[] {0, -128, -1}, arr);
+  }
 }

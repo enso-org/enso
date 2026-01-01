@@ -146,14 +146,10 @@ public final class Ydoc implements AutoCloseable {
 
       if (jsonChannelCallbacks == null) {
         jsonChannelCallbacks = NoOpMessageCallbacks.INSTANCE;
-      } else {
-        jsonChannelCallbacks = new YjsCallbacksSynchronized(jsonChannelCallbacks, executor);
       }
 
       if (binaryChannelCallbacks == null) {
         binaryChannelCallbacks = NoOpMessageCallbacks.INSTANCE;
-      } else {
-        binaryChannelCallbacks = new YjsCallbacksSynchronized(binaryChannelCallbacks, executor);
       }
 
       return new Ydoc(
@@ -173,6 +169,14 @@ public final class Ydoc implements AutoCloseable {
 
   public Context.Builder getContextBuilder() {
     return contextBuilder;
+  }
+
+  public MessageCallbacks getJsonChannelCallbacksSynchronized() {
+    return new YjsCallbacksSynchronized(jsonChannelCallbacks, executor);
+  }
+
+  public MessageCallbacks getBinaryChannelCallbacksSynchronized(Context context) {
+    return new YjsBinaryChannelCallbacksSynchronized(binaryChannelCallbacks, executor, context);
   }
 
   public void start() throws ExecutionException, InterruptedException, IOException {
@@ -195,8 +199,10 @@ public final class Ydoc implements AutoCloseable {
                   var bindings = ctx.getBindings("js");
                   bindings.putMember("YDOC_HOST", hostname);
                   bindings.putMember("YDOC_PORT", port);
-                  bindings.putMember("YDOC_JSON_CHANNEL_CALLBACKS", jsonChannelCallbacks);
-                  bindings.putMember("YDOC_BINARY_CHANNEL_CALLBACKS", binaryChannelCallbacks);
+                  bindings.putMember(
+                      "YDOC_JSON_CHANNEL_CALLBACKS", getJsonChannelCallbacksSynchronized());
+                  bindings.putMember(
+                      "YDOC_BINARY_CHANNEL_CALLBACKS", getBinaryChannelCallbacksSynchronized(ctx));
                   bindings.putMember("YDOC_LS_DEBUG", "false");
 
                   ctx.eval(ydocJs);
