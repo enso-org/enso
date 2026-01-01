@@ -46,9 +46,9 @@ interface SubdocsEvent {
 /** URL query parameters used in gateway server websocket connection. */
 export type ProviderParams = {
   /** URL for the project's language server RPC connection. */
-  ls: string,
+  ls: string
   /** URL for the project's data connection. */
-  data: string,
+  data: string
 }
 
 /** TODO: Add docs */

@@ -125,6 +125,53 @@ describe('YjsChannel', () => {
     expect(receivedMessage).toEqual(testMessage)
   })
 
+  it('should send and receive ArrayBuffer messages', () => {
+    const doc = new Y.Doc()
+    const channel1 = new YjsChannel<ArrayBuffer>(doc, 'test-channel')
+    const channel2 = new YjsChannel<ArrayBuffer>(doc, 'test-channel')
+
+    let receivedBuffer: ArrayBuffer | undefined
+
+    channel2.subscribe((message) => {
+      receivedBuffer = message
+    })
+
+    // Create a test ArrayBuffer with some data
+    const view = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8])
+    const testBuffer = view.buffer
+
+    channel1.send(testBuffer)
+
+    expect(receivedBuffer).toBeDefined()
+    expect(receivedBuffer?.byteLength).toBe(8)
+
+    // Verify the contents
+    const receivedView = new Uint8Array(receivedBuffer!)
+    expect(Array.from(receivedView)).toEqual([1, 2, 3, 4, 5, 6, 7, 8])
+  })
+
+    it('should send and receive Uint8Array messages', () => {
+    const doc = new Y.Doc()
+    const channel1 = new YjsChannel<Uint8Array>(doc, 'test-channel')
+    const channel2 = new YjsChannel<Uint8Array>(doc, 'test-channel')
+
+    let receivedArray: Uint8Array | undefined
+    channel2.subscribe((message) => {
+      receivedArray = message
+    })
+
+    // Create a test Uint8Array with some data
+    const view = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8])
+
+    channel1.send(view)
+
+    expect(receivedArray).toBeDefined()
+    expect(receivedArray?.byteLength).toBe(8)
+
+    // Verify the contents
+    expect(Array.from(receivedArray!)).toEqual([1, 2, 3, 4, 5, 6, 7, 8])
+  })
+
   it('should clean up properly when closed', () => {
     const doc = new Y.Doc()
     const channel = new YjsChannel<string>(doc, 'test-channel')
