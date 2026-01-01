@@ -378,7 +378,7 @@ public class IRProcessor extends AbstractProcessor {
     var pkg = pkgName.isEmpty() ? "" : "package " + pkgName + ";";
     var interfaces =
         processedClass.getInterfaces().stream()
-            .map(TypeElement::getSimpleName)
+            .map(TypeElement::getQualifiedName)
             .collect(Collectors.joining(", "));
     var code =
         """
