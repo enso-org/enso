@@ -162,7 +162,6 @@ distribution/lib/Standard/Database/*/polyglot/
 distribution/lib/Standard/Microsoft/*/polyglot/
 distribution/lib/Standard/Examples/*/data/spreadsheet.xls
 distribution/lib/Standard/Examples/*/data/spreadsheet.xlsx
-distribution/lib/*/*/*/manifest.yaml
 
 # Resources that are downloaded during the build.
 /lib/scala/pkg/src/main/resources/*

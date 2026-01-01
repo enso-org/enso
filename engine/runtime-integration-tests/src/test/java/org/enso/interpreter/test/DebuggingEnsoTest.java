@@ -19,6 +19,7 @@ import com.oracle.truffle.api.debug.SuspendedEvent;
 import com.oracle.truffle.api.nodes.LanguageInfo;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.StringWriter;
 import java.net.URI;
 import java.nio.file.Paths;
 import java.util.ArrayDeque;
@@ -26,6 +27,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -184,6 +186,93 @@ public class DebuggingEnsoTest {
       Assert.assertEquals("5!", 120, fac5.asInt());
     }
     assertEquals("Accumulator gets following values one by one", Set.of(1, 5, 20, 60, 120), values);
+  }
+
+  @Test
+  public void unwindFrameTest() {
+    var log = new StringWriter();
+    log.append("\n");
+
+    final Value compute =
+        createEnsoMethod(
+            """
+            from Standard.Base import all
+
+            combine a b =
+                p =
+                    x = a + b
+                    x
+                m =
+                    a - b
+                p * m
+
+            compute u v =
+                combine u v
+            """,
+            "compute");
+
+    var check = compute.execute(5, 3);
+    assertTrue("An integer produced", check.fitsInInt());
+    assertEquals("Result is good", 16, check.asInt());
+
+    final var values = new LinkedList<Integer>();
+    final var rewinded = new boolean[] {false};
+    try (var session =
+        debugger.startSession(
+            (event) -> {
+              var aValue = findDebugValue(event, "a");
+              var bValue = findDebugValue(event, "b");
+              log.append("a " + aValue + " b " + bValue + "\n");
+              var xValue = findDebugValue(event, "x");
+              if (xValue != null && xValue.fitsInInt()) {
+                log.append("x " + xValue + "\n");
+                values.add(xValue.asInt());
+                if (!rewinded[0]) {
+                  rewinded[0] = true;
+                  var it = event.getStackFrames().iterator();
+                  var frame = it.next();
+                  event.prepareUnwindFrame(frame);
+                  return;
+                }
+              }
+              if (aValue != null && aValue.fitsInInt() && bValue != null && bValue.fitsInInt()) {
+                values.add(aValue.asInt());
+                values.add(bValue.asInt());
+              }
+              event.getSession().suspendNextExecution();
+            })) {
+      session.suspendNextExecution();
+      var ab = compute.execute(5, 3);
+      assertTrue("An integer produced again: " + ab + log, ab.fitsInInt());
+      assertEquals("Same result as before" + log, 16, ab.asInt());
+    }
+    assertEquals(
+        "Up to x=8, then again and then final result",
+        List.of(
+            5,
+            3,
+            5,
+            3,
+            5,
+            3,
+            5,
+            3,
+            8, // unwinded here
+            5,
+            3,
+            5,
+            3,
+            5,
+            3,
+            5,
+            3,
+            8, // not unwinded again
+            5,
+            3,
+            5,
+            3 // computed to the end
+            ),
+        values);
   }
 
   /**
@@ -1004,9 +1093,11 @@ public class DebuggingEnsoTest {
 
   private static DebugValue findDebugValue(SuspendedEvent event, final String n)
       throws DebugException {
-    for (var v : event.getTopStackFrame().getScope().getDeclaredValues()) {
-      if (v.getName().contains(n)) {
-        return v;
+    for (var frame : event.getStackFrames()) {
+      for (var v : frame.getScope().getDeclaredValues()) {
+        if (v.getName().contains(n)) {
+          return v;
+        }
       }
     }
     return null;

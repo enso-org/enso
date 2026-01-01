@@ -37,7 +37,7 @@ final class LazyCheckRootNode extends RootNode {
     var state = EnsoContext.get(this).currentState();
     var args = Function.ArgumentsHelper.getPositionalArguments(frame.getArguments());
     assert args.length == 1;
-    assert args[0] instanceof Function fn && fn.isThunk();
+    assert args[0] instanceof Function fn && fn.isFullyApplied();
     var raw = evalThunk.executeThunk(frame, args[0], state, BaseNode.TailStatus.NOT_TAIL);
     var result = check.handleCheckOrConversion(frame, raw);
     return result;

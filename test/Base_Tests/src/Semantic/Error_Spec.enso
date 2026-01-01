@@ -9,7 +9,7 @@ import Standard.Base.Errors.Empty_Error.Empty_Error
 import Standard.Base.Runtime.Ref.Ref
 from Standard.Base.Panic import Wrapped_Dataflow_Error
 
-import Standard.Test.Should_Reach.Should_Reach
+import project.Semantic.Should_Reach.Should_Reach
 from Standard.Test import all
 
 polyglot java import java.lang.Long
