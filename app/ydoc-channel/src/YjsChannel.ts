@@ -173,7 +173,7 @@ export class YjsChannel<T = unknown> extends ObservableV2<WebSocketEventHandlers
   /**
    * Notifies all subscribed handlers with the received message.
    */
-  private notifyHandlers(message: T): void {
+  protected notifyHandlers(message: any): void {
     // Create a MessageEvent-like object for WebSocket compatibility
     const messageEvent = { data: message } as MessageEvent
 
@@ -228,5 +228,10 @@ export class YjsDataChannel<T = unknown> extends YjsChannel<T> {
       console.log('DEBUG YjdDataChannel.get', channelName)
       return new YjsDataChannel(doc, channelName, callbacks)
     })
+  }
+
+  override notifyHandlers(message: any): void {
+    const arr = message as Uint8Array
+    super.notifyHandlers(arr.buffer)
   }
 }
