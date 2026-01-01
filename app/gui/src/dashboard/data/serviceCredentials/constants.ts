@@ -3,6 +3,7 @@ import { GoogleCredentialsForm } from '#/data/serviceCredentials/GoogleCredentia
 import { MS365CredentialsForm } from '#/data/serviceCredentials/MS365CredentialsForm'
 import { SnowflakeCredentialsForm } from '#/data/serviceCredentials/SnowflakeCredentialsForm'
 import { StravaCredentialsForm } from '#/data/serviceCredentials/StravaCredentialsForm'
+import { SalesforceCredentialsForm } from '#/data/serviceCredentials/SalesforceCredentialsForm'
 import type { CredentialInfo } from '#/data/serviceCredentials/types'
 
 export const CREDENTIAL_INFOS: readonly [CredentialInfo, ...CredentialInfo[]] = [
@@ -29,5 +30,11 @@ export const CREDENTIAL_INFOS: readonly [CredentialInfo, ...CredentialInfo[]] = 
     nameId: 'ms365CredentialType',
     credentialType: 'ms365',
     form: MS365CredentialsForm,
+  },
+  {
+    icon: undefined,
+    nameId: 'salesforceCredentialType',
+    credentialType: 'salesforce',
+    form: SalesforceCredentialsForm,
   },
 ]
