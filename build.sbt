@@ -4746,22 +4746,6 @@ lazy val semver = project
       (`scala-yaml` / Compile / exportedModule).value
     )
   )
-  .settings(
-    (Compile / compile) := (Compile / compile)
-      .dependsOn(
-        Def.task {
-          Editions.writeEditionConfig(
-            editionsRoot   = file("distribution") / "editions",
-            ensoVersion    = ensoVersion,
-            editionName    = currentEdition,
-            libraryVersion = stdLibVersion,
-            log            = streams.value.log
-          )
-        }
-      )
-      .value,
-    cleanFiles += baseDirectory.value / ".." / ".." / "distribution" / "editions"
-  )
   .dependsOn(`scala-yaml`)
   .dependsOn(testkit % Test)
 
