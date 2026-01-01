@@ -147,6 +147,8 @@ pub mod secret {
     pub const ENSO_IDE_STRAVA_OAUTH_CLIENT_ID: &str = "ENSO_IDE_STRAVA_OAUTH_CLIENT_ID";
     /// The client ID for the MS365 OAuth integration used for MS365 Credentials.
     pub const ENSO_IDE_MS365_OAUTH_CLIENT_ID: &str = "ENSO_IDE_MS365_OAUTH_CLIENT_ID";
+    /// The client ID for the Salesforce OAuth integration used for Salesforce Credentials.
+    pub const ENSO_IDE_SALESFORCE_OAUTH_CLIENT_ID: &str = "ENSO_IDE_SALESFORCE_OAUTH_CLIENT_ID";
 }
 
 pub mod variables {
