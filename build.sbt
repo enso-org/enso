@@ -4715,7 +4715,7 @@ lazy val editions = project
         }
       )
       .value,
-    cleanFiles += baseDirectory.value / ".." / ".." / "distribution" / "editions"
+    cleanFiles += (ThisBuild / baseDirectory).value / "distribution" / "editions"
   )
   .dependsOn(semver)
   .dependsOn(testkit % Test)
