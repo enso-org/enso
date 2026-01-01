@@ -35,7 +35,7 @@ impl Asset {
         Self { os: triple.os, arch: triple.arch, url, target_pretty }
     }
 
-    /// Description od the asset with IDE image.
+    /// Description of the asset with IDE image.
     pub fn new_ide(repo: &impl IsRepo, triple: &TargetTriple) -> Self {
         let filename =
             project::ide::electron_image_filename(triple.os, triple.arch, &triple.versions.version);
@@ -43,7 +43,7 @@ impl Asset {
         Self::new(url, triple)
     }
 
-    /// Description od the asset with Engine bundle.
+    /// Description of the asset with Engine bundle.
     pub fn new_engine(repo: &impl IsRepo, triple: &TargetTriple) -> Self {
         use crate::paths::generated::RepoRootBuiltDistributionEnsoBundleTriple;
         let stem = RepoRootBuiltDistributionEnsoBundleTriple::segment_name(triple.to_string());
