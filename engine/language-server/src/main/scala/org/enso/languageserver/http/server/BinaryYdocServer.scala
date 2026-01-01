@@ -48,15 +48,16 @@ object BinaryYdocServer {
     ): Unit = {
       logger.info(s"BinaryServerCallbacks.onMessage ${message.getClass}")
       message match {
-        case bytes: ByteBuffer =>
-          logger.info(s"Received binary message ${bytes.getClass}")
-          decoder.decode(bytes) match {
+        case bytes: Array[Byte] =>
+          //val bytes = value.as(classOf[Array[Byte]])
+          logger.info(s"Received binary message")
+          decoder.decode(ByteBuffer.wrap(bytes)) match {
             case Right(message) =>
               incomingMessageHandler ! message
             case Left(error) =>
               logger.error("Failed to decode binary message", error)
           }
-          messageCallbacks.foreach(cb => cb(bytes))
+          messageCallbacks.foreach(cb => cb(ByteBuffer.wrap(bytes)))
         case _ =>
           logger.error(
             s"Received unsupported message: ${message.getClass}"
