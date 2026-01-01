@@ -58,7 +58,7 @@ export class YjsTransport extends Transport {
     return new Promise((resolve) => {
       console.log('DEBUG YjsTransport.connect', this.channelName)
       this.channel.subscribe((message) => {
-        console.log('DEBUG YjsTransport.channel emit', message)
+        //console.log('DEBUG YjsTransport.channel emit', message)
         this.emit('message', new MessageEvent('message', { data: message }))
         this.transportRequestManager.resolveResponse(message)
       })
@@ -71,7 +71,7 @@ export class YjsTransport extends Transport {
    * Send JSON-RPC data through the channel.
    */
   public async sendData(data: JSONRPCRequestData, timeout: number | null = 5000): Promise<any> {
-    console.log('YjsTransport.sendData', data)
+    //console.log('YjsTransport.sendData', data)
     let prom = this.transportRequestManager.addRequest(data, timeout)
     const notifications = getNotifications(data)
     try {
