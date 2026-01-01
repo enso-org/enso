@@ -96,6 +96,9 @@ pub mod env {
         /// The client ID for the MS365 OAuth integration used for MS365 Credentials.
         ENSO_IDE_MS365_OAUTH_CLIENT_ID, String;
 
+        /// The client ID for the Salesforce OAuth integration used for Salesforce Credentials.
+        ENSO_IDE_SALESFORCE_OAUTH_CLIENT_ID, String;
+
         ENSO_IDE_COMMIT_HASH, String;
         ENSO_IDE_VERSION, String;
 
