@@ -12,10 +12,9 @@ import org.enso.runtime.parser.processor.field.ListField;
 import org.enso.runtime.parser.processor.field.OptionField;
 import org.enso.runtime.parser.processor.field.OptionListField;
 import org.enso.runtime.parser.processor.field.PersistanceReferenceField;
-import org.enso.runtime.parser.processor.utils.TypeNames;
 import org.enso.runtime.parser.processor.utils.Utils;
 
-public final class MapExpressionsMethodGenerator extends MethodGenerator {
+public final class MapExpressionsMethodGenerator {
   private final ExecutableElement mapExpressionsMethod;
   private final GeneratedClassContext ctx;
   private static final String METHOD_NAME = "mapExpressions";
@@ -34,8 +33,7 @@ public final class MapExpressionsMethodGenerator extends MethodGenerator {
    * @param ctx
    */
   public MapExpressionsMethodGenerator(
-      ExecutableElement mapExpressionsMethod, GeneratedClassContext ctx, TypeNames typeNames) {
-    super(typeNames);
+      ExecutableElement mapExpressionsMethod, GeneratedClassContext ctx) {
     ensureMapExpressionsMethodHasExpectedSignature(mapExpressionsMethod);
     this.mapExpressionsMethod = mapExpressionsMethod;
     this.ctx = Objects.requireNonNull(ctx);
@@ -52,7 +50,7 @@ public final class MapExpressionsMethodGenerator extends MethodGenerator {
 
   public String generateMapExpressionsMethodCode() {
     var sb = new StringBuilder();
-    var subclassType = typeName(ctx.getProcessedClass().getClazz());
+    var subclassType = ctx.getProcessedClass().getClazz().getSimpleName().toString();
     sb.append(doMapExprCode());
     sb.append(System.lineSeparator());
     sb.append(System.lineSeparator());
@@ -105,7 +103,7 @@ public final class MapExpressionsMethodGenerator extends MethodGenerator {
                         !typeUtils.isSameType(
                             childTypeParameter.asType(), childsMapExprMethodRetType.asType());
                   }
-                  String newChildType = typeName(childsMapExprMethodRetType);
+                  String newChildType = childsMapExprMethodRetType.getSimpleName().toString();
 
                   var newChildName = child.getName() + "Mapped";
                   var mapCode =
@@ -141,7 +139,7 @@ public final class MapExpressionsMethodGenerator extends MethodGenerator {
     if (newChildren.isEmpty()) {
       sb.append("  return ")
           .append("(")
-          .append(typeName(ctx.getProcessedClass().getClazz()))
+          .append(ctx.getProcessedClass().getClazz().getSimpleName().toString())
           .append(") this;")
           .append(System.lineSeparator());
       sb.append("}").append(System.lineSeparator());
@@ -165,7 +163,7 @@ public final class MapExpressionsMethodGenerator extends MethodGenerator {
             .append("if (!(")
             .append(newChild.newChildName)
             .append(" instanceof ")
-            .append(typeName(newChild.child))
+            .append(newChild.child.getSimpleTypeName())
             .append(")) {")
             .append(System.lineSeparator());
         sb.append("      ")
@@ -179,7 +177,7 @@ public final class MapExpressionsMethodGenerator extends MethodGenerator {
       }
       sb.append("    ").append("bldr.").append(newChild.child.getName()).append("(");
       if (newChild.shouldCast) {
-        sb.append("(").append(typeName(newChild.child)).append(") ");
+        sb.append("(").append(newChild.child.getSimpleTypeName()).append(") ");
       }
       sb.append(newChild.newChildName).append(");").append(System.lineSeparator());
     }
@@ -218,7 +216,7 @@ public final class MapExpressionsMethodGenerator extends MethodGenerator {
         .append(System.lineSeparator());
     sb.append("    return ")
         .append("(")
-        .append(typeName(ctx.getProcessedClass().getClazz()))
+        .append(ctx.getProcessedClass().getClazz().getSimpleName().toString())
         .append(") this;")
         .append(System.lineSeparator());
     sb.append("  }").append(System.lineSeparator());
@@ -323,7 +321,8 @@ public final class MapExpressionsMethodGenerator extends MethodGenerator {
   }
 
   private String mapOptionListField(String newVarName, OptionListField field) {
-    var newVarType = "Option<List<" + typeName(field.getNestedTypeParameter()) + ">>";
+    var newVarType =
+        "Option<List<" + field.getNestedTypeParameter().getSimpleName().toString() + ">>";
     var code =
         """
         ${newVarType} ${newVarName} = Option.empty();
@@ -347,12 +346,12 @@ public final class MapExpressionsMethodGenerator extends MethodGenerator {
         """
             .replace("${newVarName}", newVarName)
             .replace("${fieldName}", field.getName())
-            .replace("${type}", typeName(field.getTypeParameter()));
+            .replace("${type}", field.getTypeParameter().getSimpleName().toString());
     return code;
   }
 
   private String mapList(String newVarName, ListField field) {
-    var newVarType = "List<" + typeName(field.getTypeParameter()) + ">";
+    var newVarType = "List<" + field.getTypeParameter().getSimpleName().toString() + ">";
     var code =
         """
         ${newVarType} ${newVarName} = null;
@@ -367,8 +366,8 @@ public final class MapExpressionsMethodGenerator extends MethodGenerator {
   }
 
   private String mapOption(String newVarName, OptionField field) {
-    var newVarType = "Option<" + typeName(field.getTypeParameter()) + ">";
-    var type = field.getTypeParameter();
+    var newVarType = "Option<" + field.getTypeParameter().getSimpleName().toString() + ">";
+    var type = field.getTypeParameter().getSimpleName();
     var code =
         """
         ${newVarType} ${newVarName} = Option.empty();
@@ -384,7 +383,7 @@ public final class MapExpressionsMethodGenerator extends MethodGenerator {
           ${newVarName} = Option.apply((${type}) mapped);
         }
         """
-            .replace("${type}", typeName(type))
+            .replace("${type}", type.toString())
             .replace("${newVarType}", newVarType)
             .replace("${newVarName}", newVarName)
             .replace("${fieldName}", field.getName());

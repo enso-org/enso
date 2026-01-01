@@ -3,7 +3,6 @@ package org.enso.runtime.parser.processor.methodgen;
 import java.util.stream.Collectors;
 import org.enso.runtime.parser.processor.ClassField;
 import org.enso.runtime.parser.processor.GeneratedClassContext;
-import org.enso.runtime.parser.processor.utils.TypeNames;
 import org.enso.runtime.parser.processor.utils.Utils;
 
 /**
@@ -13,11 +12,10 @@ import org.enso.runtime.parser.processor.utils.Utils;
  * class object and prefills all the fields with the values from the object. This copy constructor
  * is called from either the {@code duplicate} method or from copy methods.
  */
-public class BuilderMethodGenerator extends MethodGenerator {
+public class BuilderMethodGenerator {
   private final GeneratedClassContext generatedClassContext;
 
-  public BuilderMethodGenerator(GeneratedClassContext generatedClassContext, TypeNames typeNames) {
-    super(typeNames);
+  public BuilderMethodGenerator(GeneratedClassContext generatedClassContext) {
     this.generatedClassContext = generatedClassContext;
   }
 
@@ -28,7 +26,7 @@ public class BuilderMethodGenerator extends MethodGenerator {
                 field -> {
                   var initializer = field.initializer() != null ? " = " + field.initializer() : "";
                   return "private $type $name $initializer;"
-                      .replace("$type", typeName(field))
+                      .replace("$type", field.getSimpleTypeName())
                       .replace("$name", field.name())
                       .replace("$initializer", initializer);
                 })
@@ -45,7 +43,7 @@ public class BuilderMethodGenerator extends MethodGenerator {
                     }
                     """
                         .replace("$fieldName", field.name())
-                        .replace("$fieldType", typeName(field)))
+                        .replace("$fieldType", field.getSimpleTypeName()))
             .collect(Collectors.joining(System.lineSeparator()));
 
     // Validation code for all non-nullable user fields
@@ -106,7 +104,7 @@ public class BuilderMethodGenerator extends MethodGenerator {
         """;
     sb.append(docs);
     sb.append("Builder(")
-        .append(typeName(generatedClassContext.getProcessedClass().getClazz()))
+        .append(generatedClassContext.getProcessedClass().getClazz().getSimpleName())
         .append(" obj) {")
         .append(System.lineSeparator());
     var clazz = generatedClassContext.getProcessedClass().getClazz().getSuperclass();
@@ -118,7 +116,7 @@ public class BuilderMethodGenerator extends MethodGenerator {
           .append("this.")
           .append(metaField.name())
           .append(" = ((")
-          .append(typeName(superClassType))
+          .append(superClassType.getSimpleName().toString())
           .append(")obj).")
           .append(metaField.name())
           .append(";")
@@ -140,7 +138,8 @@ public class BuilderMethodGenerator extends MethodGenerator {
 
   private String buildMethod() {
     var sb = new StringBuilder();
-    var processedClassName = typeName(generatedClassContext.getProcessedClass().getClazz());
+    var processedClassName =
+        generatedClassContext.getProcessedClass().getClazz().getSimpleName().toString();
     var ctorParams = generatedClassContext.getSubclassConstructorParameters();
     var ctorParamsStr = ctorParams.stream().map(ClassField::name).collect(Collectors.joining(", "));
     var fieldsNotInCtor = Utils.diff(generatedClassContext.getAllFields(), ctorParams);
@@ -160,7 +159,7 @@ public class BuilderMethodGenerator extends MethodGenerator {
     var superClassType = generatedClassContext.getSuperClass();
     for (var fieldNotInCtor : fieldsNotInCtor) {
       sb.append("  ((")
-          .append(typeName(superClassType))
+          .append(superClassType.getSimpleName())
           .append(")_result).")
           .append(fieldNotInCtor.name())
           .append(" = ")

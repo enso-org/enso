@@ -3,13 +3,11 @@ package org.enso.runtime.parser.processor.methodgen;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.enso.runtime.parser.processor.GeneratedClassContext;
-import org.enso.runtime.parser.processor.utils.TypeNames;
 
-public final class CopyMethodGenerator extends MethodGenerator {
+public final class CopyMethodGenerator {
   private final GeneratedClassContext ctx;
 
-  public CopyMethodGenerator(GeneratedClassContext ctx, TypeNames typeNames) {
-    super(typeNames);
+  public CopyMethodGenerator(GeneratedClassContext ctx) {
     this.ctx = ctx;
   }
 
@@ -66,11 +64,13 @@ public final class CopyMethodGenerator extends MethodGenerator {
   }
 
   private String copyMethodRetType() {
-    return typeName(ctx.getProcessedClass().getClazz());
+    return ctx.getProcessedClass().getClazz().getSimpleName().toString();
   }
 
   private List<String> parameters() {
-    return ctx.getAllFields().stream().map(field -> typeName(field) + " " + field.name()).toList();
+    return ctx.getAllFields().stream()
+        .map(field -> field.getSimpleTypeName() + " " + field.name())
+        .toList();
   }
 
   /** Condition expression if one of the parameters is a different object than the field. */

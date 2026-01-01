@@ -148,38 +148,16 @@ public final class Utils {
 
   /** Converts all the FQN parts of the type name to simple names. Includes type arguments. */
   public static String simpleTypeName(TypeMirror typeMirror) {
-    return typeName(typeMirror, false);
-  }
-
-  /**
-   * Returns the fully qualified type name of the given {@code typeMirror}, including type
-   * arguments. For example {@code java.util.List<org.enso.pkg.MyType>}.
-   */
-  public static String qualifiedTypeName(TypeMirror typeMirror) {
-    return typeName(typeMirror, true);
-  }
-
-  private static String typeName(TypeMirror typeMirror, boolean qualified) {
     if (typeMirror.getKind() == TypeKind.DECLARED) {
       var declared = (DeclaredType) typeMirror;
       var typeArgs = declared.getTypeArguments();
       var typeElem = (TypeElement) declared.asElement();
       if (!typeArgs.isEmpty()) {
         var typeArgsStr =
-            typeArgs.stream()
-                .map(typeArg -> typeName(typeArg, qualified))
-                .collect(Collectors.joining(", "));
-        if (qualified) {
-          return typeElem.getQualifiedName() + "<" + typeArgsStr + ">";
-        } else {
-          return typeElem.getSimpleName() + "<" + typeArgsStr + ">";
-        }
+            typeArgs.stream().map(Utils::simpleTypeName).collect(Collectors.joining(", "));
+        return typeElem.getSimpleName().toString() + "<" + typeArgsStr + ">";
       } else {
-        if (qualified) {
-          return typeElem.getQualifiedName().toString();
-        } else {
-          return typeElem.getSimpleName().toString();
-        }
+        return typeElem.getSimpleName().toString();
       }
     }
     return typeMirror.toString();

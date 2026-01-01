@@ -11,14 +11,13 @@ import org.enso.runtime.parser.processor.GeneratedClassContext;
 import org.enso.runtime.parser.processor.IRProcessingException;
 import org.enso.runtime.parser.processor.field.Field;
 import org.enso.runtime.parser.processor.field.OptionListField;
-import org.enso.runtime.parser.processor.utils.TypeNames;
 import org.enso.runtime.parser.processor.utils.Utils;
 
 /**
  * Code generator for {@code org.enso.compiler.core.ir.IR#duplicate} method or any of its override.
  * Note that in the interface hierarchy, there can be an override with a different return type.
  */
-public final class DuplicateMethodGenerator extends MethodGenerator {
+public class DuplicateMethodGenerator {
 
   private final GeneratedClassContext ctx;
   private final List<Parameter> parameters;
@@ -26,9 +25,7 @@ public final class DuplicateMethodGenerator extends MethodGenerator {
   /**
    * @param duplicateMethod ExecutableElement representing the duplicate method (or its override).
    */
-  public DuplicateMethodGenerator(
-      ExecutableElement duplicateMethod, GeneratedClassContext ctx, TypeNames typeNames) {
-    super(typeNames);
+  public DuplicateMethodGenerator(ExecutableElement duplicateMethod, GeneratedClassContext ctx) {
     this.ctx = Objects.requireNonNull(ctx);
     var boolType = ctx.getProcessingEnvironment().getTypeUtils().getPrimitiveType(TypeKind.BOOLEAN);
     this.parameters =
@@ -261,8 +258,8 @@ public final class DuplicateMethodGenerator extends MethodGenerator {
       $dupName = Option.apply(duplicated);
     }
     """
-        .replace("$childOptType", typeName(optionChild))
-        .replace("$childType", typeName(optionChild.getTypeParameter()))
+        .replace("$childOptType", optionChild.getSimpleTypeName())
+        .replace("$childType", optionChild.getTypeParameter().getSimpleName())
         .replace("$childName", optionChild.getName())
         .replace("$dupName", dupFieldName(optionChild))
         .replace("$parameterNames", String.join(", ", parameterNames()));
@@ -298,19 +295,19 @@ public final class DuplicateMethodGenerator extends MethodGenerator {
       ${dupName} = Reference.of(duplicated);
     }
     """
-        .replace("${perRefType}", typeName(perRefChild))
-        .replace("${type}", typeName(perRefChild.getTypeParameter()))
+        .replace("${perRefType}", perRefChild.getSimpleTypeName())
+        .replace("${type}", perRefChild.getTypeParameter().getSimpleName())
         .replace("${childName}", perRefChild.getName())
         .replace("${dupName}", dupFieldName(perRefChild))
         .replace("${parameterNames}", String.join(", ", parameterNames()));
   }
 
-  private String nonChildCode(Field field) {
+  private static String nonChildCode(Field field) {
     Utils.hardAssert(!field.isChild());
     return """
     $childType $dupName = $childName;
     """
-        .replace("$childType", typeName(field))
+        .replace("$childType", field.getSimpleTypeName())
         .replace("$childName", field.getName())
         .replace("$dupName", dupFieldName(field));
   }
@@ -321,7 +318,7 @@ public final class DuplicateMethodGenerator extends MethodGenerator {
 
   /** Generate code for call of a constructor of the subclass. */
   private String newSubclass(List<DuplicateVar> ctorParams) {
-    var subClassType = typeName(ctx.getProcessedClass().getClazz());
+    var subClassType = ctx.getProcessedClass().getClazz().getSimpleName().toString();
     var ctor = ctx.getProcessedClass().getCtor();
     Utils.hardAssert(ctor.getParameters().size() == ctorParams.size());
     var sb = new StringBuilder();
@@ -337,7 +334,7 @@ public final class DuplicateMethodGenerator extends MethodGenerator {
             .map(
                 ctorParam -> {
                   if (ctorParam.needsCast) {
-                    return "(" + typeName(ctorParam.type) + ") " + ctorParam.duplicatedName;
+                    return "(" + ctorParam.type + ") " + ctorParam.duplicatedName;
                   } else {
                     return ctorParam.duplicatedName;
                   }
@@ -380,7 +377,7 @@ public final class DuplicateMethodGenerator extends MethodGenerator {
   }
 
   private String dupMethodRetType() {
-    return typeName(ctx.getProcessedClass().getClazz());
+    return ctx.getProcessedClass().getClazz().getSimpleName().toString();
   }
 
   /**
