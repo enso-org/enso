@@ -6,8 +6,11 @@ const debug = typeof YDOC_LS_DEBUG != 'undefined'
 
 configureAllDebugLogs(debug)
 
-if (YDOC_MESSAGE_CALLBACKS == undefined) {
-  throw new Error('YDOC_MESSAGE_CALLBACKS undefined')
+if (YDOC_JSON_CHANNEL_CALLBACKS == undefined) {
+  throw new Error('YDOC_JSON_CHANNEL_CALLBACKS undefined')
+}
+if (YDOC_BINARY_CHANNEL_CALLBACKS == undefined) {
+  throw new Error('YDOC_BINARY_CHANNEL_CALLBACKS undefined')
 }
 
 const wss = new WebSocketServer({ host, port })
@@ -17,7 +20,14 @@ wss.onconnect = (socket, url) => {
   const ls = url.searchParams.get('ls')
   const data = url.searchParams.get('data')
   if (doc != null && ls != null) {
-    setupGatewayClient(socket, ls, data, doc, YDOC_MESSAGE_CALLBACKS)
+    setupGatewayClient(
+      socket,
+      ls,
+      data,
+      doc,
+      YDOC_JSON_CHANNEL_CALLBACKS,
+      YDOC_BINARY_CHANNEL_CALLBACKS,
+    )
   } else {
     console.log('Failed to authenticate user', ls, doc)
   }

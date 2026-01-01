@@ -1,3 +1,4 @@
+import * as map from 'lib0/map'
 import { ObservableV2 } from 'lib0/observable'
 import * as Y from 'yjs'
 
@@ -6,16 +7,6 @@ interface AddEventListenerOptions {
   once?: boolean
   passive?: boolean
   signal?: AbortSignal
-}
-
-/**
- * A message in the channel.
- */
-interface ChannelMessage<T = unknown> {
-  /** Unique ID of the sender. */
-  senderId: string
-  /** The message payload. */
-  payload: T
 }
 
 /**
@@ -28,16 +19,10 @@ export type MessageHandler<T = unknown> = (message: T) => void
  */
 export interface YjsChannelCallbacks<T = unknown> {
   /**
-   * Called when the RPC channel is connected and ready to use.
+   * Called when the message channel is connected and ready to use.
    * @param channel - The connected YjsChannel instance
    */
   onConnect(channel: YjsChannel<T>): void
-
-  /**
-   * Called when the data channel is connected and ready to use.
-   * @param channel - The connected YjsChannel instance
-   */
-  onDataConnect(channel: YjsChannel<T>): void
 }
 
 /**
@@ -55,9 +40,10 @@ type WebSocketEventHandlers = {
  */
 export class YjsChannel<T = unknown> extends ObservableV2<WebSocketEventHandlers> {
   private readonly senderId: string
-  private readonly array: Y.Array<ChannelMessage<T>>
+  private readonly doc: Y.Doc
+  private readonly array: Y.Array<T>
   private readonly handlers: Set<MessageHandler<T>> = new Set()
-  private readonly observeHandler: (event: Y.YArrayEvent<ChannelMessage<T>>) => void
+  private readonly observeHandler: (event: Y.YArrayEvent<T>, tr: Y.Transaction) => void
 
   /**
    * Creates a new YjsChannel.
@@ -67,24 +53,25 @@ export class YjsChannel<T = unknown> extends ObservableV2<WebSocketEventHandlers
   constructor(doc: Y.Doc, channelName: string) {
     super()
     this.senderId = crypto.randomUUID()
-    this.array = doc.getArray<ChannelMessage<T>>(channelName)
+    this.doc = doc
+    this.array = doc.getArray<T>(channelName)
 
-    this.observeHandler = (event: Y.YArrayEvent<ChannelMessage<T>>) => {
-      doc.transact(() => {
-        // Process all added items
-        for (const delta of event.changes.delta) {
-          if (delta.insert) {
-            const items = Array.isArray(delta.insert) ? delta.insert : [delta.insert]
-            for (const item of items) {
-              // Only notify handlers if the message is from another sender
-              if (item.senderId !== this.senderId) {
-                this.notifyHandlers(item.payload)
+    this.observeHandler = (event: Y.YArrayEvent<T>, transaction) => {
+      // Only notify handlers if the message is from another sender
+      if (transaction.origin !== this.senderId) {
+        doc.transact(() => {
+          // Process all added items
+          for (const delta of event.changes.delta) {
+            if (delta.insert) {
+              const items = Array.isArray(delta.insert) ? delta.insert : [delta.insert]
+              for (const item of items) {
+                this.notifyHandlers(item)
                 this.array.delete(0)
               }
             }
           }
-        }
-      })
+        }, this.senderId)
+      }
     }
 
     this.array.observe(this.observeHandler)
@@ -95,11 +82,7 @@ export class YjsChannel<T = unknown> extends ObservableV2<WebSocketEventHandlers
    * @param message - The message to send
    */
   send(message: T): void {
-    const channelMessage: ChannelMessage<T> = {
-      senderId: this.senderId,
-      payload: message,
-    }
-    this.array.push([channelMessage])
+    this.doc.transact(() => this.array.push([message]), this.senderId)
   }
 
   /**
@@ -229,11 +212,21 @@ export class YjsChannel<T = unknown> extends ObservableV2<WebSocketEventHandlers
 }
 
 export class YjsDataChannel<T = unknown> extends YjsChannel<T> {
+  private static channels = new Map<string, YjsDataChannel>()
+
   private readonly callbacks: YjsChannelCallbacks<T>
 
   constructor(doc: Y.Doc, channelName: string, callbacks: YjsChannelCallbacks<T>) {
     super(doc, channelName)
     this.callbacks = callbacks
-    this.callbacks.onDataConnect(this)
+    this.callbacks.onConnect(this)
+  }
+
+  /** Get a {@link YjsDataChannel}. */
+  static get(doc: Y.Doc, channelName: string, callbacks: YjsChannelCallbacks): YjsDataChannel {
+    return map.setIfUndefined(YjsDataChannel.channels, channelName, () => {
+      console.log('DEBUG YjdDataChannel.get', channelName)
+      return new YjsDataChannel(doc, channelName, callbacks)
+    })
   }
 }

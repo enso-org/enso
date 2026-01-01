@@ -30,7 +30,7 @@ object BinaryYdocServer {
       with LazyLogging {
 
     override def onConnect(channel: YjsChannel): Unit = {
-      logger.info(s"BinaryServerCallbacks.onConnect ${channel.getClass()}")
+      logger.info("BinaryServerCallbacks.onConnect")
 
       val incomingMessageHandler = factory.createController()
       channel.subscribe(this.onMessage(incomingMessageHandler, _))
@@ -46,6 +46,7 @@ object BinaryYdocServer {
       incomingMessageHandler: ActorRef,
       message: Object
     ): Unit = {
+      logger.info(s"BinaryServerCallbacks.onMessage ${message.getClass}")
       message match {
         case bytes: ByteBuffer =>
           logger.info(s"Received binary message ${bytes.getClass}")
@@ -58,8 +59,7 @@ object BinaryYdocServer {
           messageCallbacks.foreach(cb => cb(bytes))
         case _ =>
           logger.error(
-            s"Received unsupported message: ${message.getClass}",
-            message
+            s"Received unsupported message: ${message.getClass}"
           )
       }
     }
@@ -73,7 +73,7 @@ object BinaryYdocServer {
 
     override def receive: Receive = {
       case message: B @unchecked =>
-        logger.info(s"Sending message $message")
+        logger.info(s"Sending binary message $message")
         val bytes = encoder.encode(message)
         channel.send(bytes)
       case unknown =>

@@ -1,15 +1,10 @@
 import { onScopeDispose } from 'vue'
+import { YjsChannel } from 'ydoc-channel'
 import { AbortScope } from 'ydoc-shared/util/net'
 import { YjsTransport } from 'ydoc-shared/util/net/YjsTransport'
 import * as Y from 'yjs'
-import { YjsChannel } from 'ydoc-channel'
 
 export { AbortScope }
-
-const WS_OPTIONS = {
-  // We do not want to enqueue any messages, because after reconnecting we have to initProtocol again.
-  maxEnqueuedMessages: 0,
-}
 
 /** TODO: Add docs */
 export function createRpcTransport(indexDoc: Y.Doc, url: string): YjsTransport {
