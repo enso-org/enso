@@ -11,4 +11,4 @@ maintainers:
 
 services:
   - provides: Standard.Base.System.File_Format.File_Format_SPI
-    with: Standard.Image.Image_Services.Impl
+    with: Enso.Image.Image_Services.Impl
