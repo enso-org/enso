@@ -13,7 +13,6 @@ object Editions {
     "Standard.Table",
     "Standard.Database",
     "Standard.AWS",
-    "Standard.Image",
     "Standard.Geo",
     "Standard.Visualization",
     "Standard.Examples",
@@ -33,7 +32,9 @@ object Editions {
   /** A list of additional libraries from external sources that are published in
     * the main repository and should be available in the default edition.
     */
-  val contribLibraries: Seq[ContribLibrary] = Seq()
+  val contribLibraries: Seq[ContribLibrary] = Seq(
+    ContribLibrary("Enso.Image", Dependencies.stdLibVersion)
+  )
 
   /** The URL to the main library repository. */
   val mainLibraryRepositoryUrl = "https://libraries.release.enso.org/libraries"
