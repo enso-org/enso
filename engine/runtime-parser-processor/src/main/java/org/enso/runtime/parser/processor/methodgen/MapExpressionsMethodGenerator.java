@@ -50,7 +50,7 @@ public final class MapExpressionsMethodGenerator {
 
   public String generateMapExpressionsMethodCode() {
     var sb = new StringBuilder();
-    var subclassType = ctx.getProcessedClass().getClazz().getSimpleName().toString();
+    var subclassType = ctx.getProcessedClassName();
     sb.append(doMapExprCode());
     sb.append(System.lineSeparator());
     sb.append(System.lineSeparator());
@@ -61,7 +61,9 @@ public final class MapExpressionsMethodGenerator {
         .append(" ")
         .append(METHOD_NAME)
         .append("(")
-        .append("java.util.function.Function<Expression, Expression> fn")
+        .append(
+            "java.util.function.Function<org.enso.compiler.core.ir.Expression,"
+                + " org.enso.compiler.core.ir.Expression> fn")
         .append(") {")
         .append(System.lineSeparator());
 
@@ -103,7 +105,7 @@ public final class MapExpressionsMethodGenerator {
                         !typeUtils.isSameType(
                             childTypeParameter.asType(), childsMapExprMethodRetType.asType());
                   }
-                  String newChildType = childsMapExprMethodRetType.getSimpleName().toString();
+                  var newChildType = Utils.qualifiedTypeName(childsMapExprMethodRetType);
 
                   var newChildName = child.getName() + "Mapped";
                   var mapCode =
@@ -139,7 +141,7 @@ public final class MapExpressionsMethodGenerator {
     if (newChildren.isEmpty()) {
       sb.append("  return ")
           .append("(")
-          .append(ctx.getProcessedClass().getClazz().getSimpleName().toString())
+          .append(ctx.getProcessedClassName())
           .append(") this;")
           .append(System.lineSeparator());
       sb.append("}").append(System.lineSeparator());
@@ -163,7 +165,7 @@ public final class MapExpressionsMethodGenerator {
             .append("if (!(")
             .append(newChild.newChildName)
             .append(" instanceof ")
-            .append(newChild.child.getSimpleTypeName())
+            .append(newChild.child.getQualifiedTypeName())
             .append(")) {")
             .append(System.lineSeparator());
         sb.append("      ")
@@ -177,7 +179,7 @@ public final class MapExpressionsMethodGenerator {
       }
       sb.append("    ").append("bldr.").append(newChild.child.getName()).append("(");
       if (newChild.shouldCast) {
-        sb.append("(").append(newChild.child.getSimpleTypeName()).append(") ");
+        sb.append("(").append(newChild.child.getQualifiedTypeName()).append(") ");
       }
       sb.append(newChild.newChildName).append(");").append(System.lineSeparator());
     }
@@ -216,7 +218,7 @@ public final class MapExpressionsMethodGenerator {
         .append(System.lineSeparator());
     sb.append("    return ")
         .append("(")
-        .append(ctx.getProcessedClass().getClazz().getSimpleName().toString())
+        .append(ctx.getProcessedClassName())
         .append(") this;")
         .append(System.lineSeparator());
     sb.append("  }").append(System.lineSeparator());
@@ -295,12 +297,12 @@ public final class MapExpressionsMethodGenerator {
         @SuppressWarnings("unchecked")
         private <T extends IR> T doMapExpr(
             T ir,
-            java.util.function.Function<Expression, Expression> fn) {
+            java.util.function.Function<org.enso.compiler.core.ir.Expression, org.enso.compiler.core.ir.Expression> fn) {
           ${specialHandling}
           // Either recurse to `mapExpression` or call `fn.apply` on the expression.
           return switch(ir) {
             case org.enso.compiler.core.ir.Name.MethodReference nameRef -> (T) nameRef.mapExpressions(fn);
-            case Expression expr -> (T) fn.apply(expr);
+            case org.enso.compiler.core.ir.Expression expr -> (T) fn.apply(expr);
             default -> (T) ir.mapExpressions(fn);
           };
         }
@@ -322,7 +324,9 @@ public final class MapExpressionsMethodGenerator {
 
   private String mapOptionListField(String newVarName, OptionListField field) {
     var newVarType =
-        "Option<List<" + field.getNestedTypeParameter().getSimpleName().toString() + ">>";
+        "Option<scala.collection.immutable.List<"
+            + field.getNestedTypeParameter().getQualifiedName()
+            + ">>";
     var code =
         """
         ${newVarType} ${newVarName} = Option.empty();
@@ -340,18 +344,19 @@ public final class MapExpressionsMethodGenerator {
   private String mapPersistanceReference(String newVarName, PersistanceReferenceField field) {
     var code =
         """
-        var ${newVarName} = Reference.of(
+        var ${newVarName} = org.enso.persist.Persistance.Reference.of(
             doMapExpr(${fieldName}.get(${type}.class), fn)
         );
         """
             .replace("${newVarName}", newVarName)
             .replace("${fieldName}", field.getName())
-            .replace("${type}", field.getTypeParameter().getSimpleName().toString());
+            .replace("${type}", field.getTypeParameter().getQualifiedName().toString());
     return code;
   }
 
   private String mapList(String newVarName, ListField field) {
-    var newVarType = "List<" + field.getTypeParameter().getSimpleName().toString() + ">";
+    var newVarType =
+        "scala.collection.immutable.List<" + field.getTypeParameter().getQualifiedName() + ">";
     var code =
         """
         ${newVarType} ${newVarName} = null;
@@ -366,8 +371,8 @@ public final class MapExpressionsMethodGenerator {
   }
 
   private String mapOption(String newVarName, OptionField field) {
-    var newVarType = "Option<" + field.getTypeParameter().getSimpleName().toString() + ">";
-    var type = field.getTypeParameter().getSimpleName();
+    var newVarType = "Option<" + field.getTypeParameter().getQualifiedName() + ">";
+    var type = field.getTypeParameter().getQualifiedName();
     var code =
         """
         ${newVarType} ${newVarName} = Option.empty();

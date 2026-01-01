@@ -710,6 +710,7 @@ public class Main {
       if (isProjectMode) {
         var topScope = context.getTopScope();
         topScope.compile(shouldCompileDependencies, paths);
+        updateManifests(paths, logLevel);
       } else {
         context.evalModule(fileAndProject._2());
       }
@@ -728,6 +729,12 @@ public class Main {
 
     } finally {
       context.context().close();
+    }
+  }
+
+  private static void updateManifests(String[] paths, Level logLevel) {
+    for (var path : paths) {
+      ProjectUploader.updateManifest(Path.of(path), logLevel);
     }
   }
 
