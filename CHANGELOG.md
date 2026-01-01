@@ -4,9 +4,11 @@
 
 - [Using dual JVM mode for Standard.Microsoft][14476].
 - [Standard.Test pending field is lazy][14536].
+- [Salesforce OAuth support.][14550]
 
 [14476]: https://github.com/enso-org/enso/pull/14476
 [14536]: https://github.com/enso-org/enso/pull/14536
+[14550]: https://github.com/enso-org/enso/pull/14550
 
 #### Enso Language & Runtime
 
