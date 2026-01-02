@@ -29,26 +29,37 @@ export const FORM_SCHEMA = z.object({
   ]),
 })
 
+export type SalesforceFormValues = z.infer<typeof FORM_SCHEMA>
+
+export const DEFAULT_FORM_VALUES: SalesforceFormValues = {
+  name: 'Salesforce',
+  scopes: ['User.Read'],
+  filesPermission: 'Files.ReadWrite.All',
+  sitesPermission: 'NoAccess',
+}
+
 /**
  * The logic for submitting the Salesforce credential form.
  */
 export function submitForm(
   createCredentials: (recipe: CredentialRecipe) => Promise<void>,
-  values: z.infer<typeof FORM_SCHEMA>,
+  values: SalesforceFormValues,
 ): Promise<void> {
   invariant($config.SALESFORCE_OAUTH_CLIENT_ID != null, 'Salesforce OAuth client id is missing')
   const salesforceOauthClientId = $config.SALESFORCE_OAUTH_CLIENT_ID
 
-  const permissions = [values.filesPermission, values.sitesPermission].filter(
+  const valuesWithDefaults = { ...DEFAULT_FORM_VALUES, ...values }
+
+  const permissions = [valuesWithDefaults.filesPermission, valuesWithDefaults.sitesPermission].filter(
     (permission) => permission !== 'NoAccess',
   )
-  const oauthScopes: string[] = [...EXTRA_SCOPES, ...values.scopes, ...permissions]
+  const oauthScopes: string[] = [...EXTRA_SCOPES, ...valuesWithDefaults.scopes, ...permissions]
   const input: SalesforceCredentialInput = {
     type: 'Salesforce',
     scopes: oauthScopes,
   }
   return createCredentials({
-    name: values.name,
+    name: valuesWithDefaults.name,
     input,
     makeAuthUrl: (secretId: SecretId, nonce: string) => {
       const state = btoa(JSON.stringify({ secretId, nonce }))
