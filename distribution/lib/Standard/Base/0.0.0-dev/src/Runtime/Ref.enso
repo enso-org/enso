@@ -38,7 +38,7 @@ type Ref
        ### Defer initialization of local values until needed
 
        ```
-             value_ref = Ref.new (long_computation_yielding 7)
+             value_ref = Ref.memoize(long_computation_yielding 7)
              value =
                  value_ref.get
     memoize ~value -> Ref = Runtime_Helpers.ref_new value
