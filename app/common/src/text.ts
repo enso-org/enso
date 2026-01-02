@@ -268,11 +268,11 @@ export function resolveDictionary() {
 export const getText: GetText = (dictionary, key, ...replacements) => {
   const template = dictionary[key]
   const missingText = `MISSING: ${String(key)}`
-  return template == null ?
-      missingText
-    : replacements.length === 0 ?
-        template
-      : template.replace(/[$]([$]|\d+)/g, (_match, placeholder: string) =>
-          placeholder === '$' ? '$' : String(replacements[Number(placeholder)] ?? `$${placeholder}`),
-        )
+  return (
+    template == null ? missingText
+    : replacements.length === 0 ? template
+    : template.replace(/[$]([$]|\d+)/g, (_match, placeholder: string) =>
+        placeholder === '$' ? '$' : String(replacements[Number(placeholder)] ?? `$${placeholder}`),
+      )
+  )
 }
