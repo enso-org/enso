@@ -12,9 +12,11 @@
 
 - [`Panic.rethrow` keeps original location][14480]
 - [Use `State.get if_missing` to avoid too frequent `Panic.throw`][14490]
+- [Lazily initialized local variables with Ref.memoize][14554].
 
 [14480]: https://github.com/enso-org/enso/pull/14480
 [14490]: https://github.com/enso-org/enso/pull/14490
+[14536]: https://github.com/enso-org/enso/pull/14554
 
 # Next Release
 
