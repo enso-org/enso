@@ -647,4 +647,22 @@ public class ExecCompilerTest {
           AllOf.allOf(containsString("The name `f`"), containsString("could not be found")));
     }
   }
+
+  @Test
+  public void onlyElse() throws Exception {
+    var code =
+        """
+        from Standard.Base import all
+        def a:Integer =
+            else a
+        """;
+    var module = ctxRule.eval(LanguageInfo.ID, code);
+    var def = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "def");
+    try {
+      var noResult = def.execute(20);
+      fail("Yields an error: " + noResult);
+    } catch (PolyglotException ex) {
+      assertThat(ex.getMessage(), containsString("no branch matches"));
+    }
+  }
 }
