@@ -1,4 +1,5 @@
 import project.Any.Any
+import project.Internal.Runtime_Helpers
 
 ## ---
    private: true
@@ -22,8 +23,25 @@ type Ref
        ```
              Ref.new 7
        ```
-    new : Any -> Ref
-    new value = @Builtin_Method "Ref.new"
+    new value -> Ref = Ref.memoize value
+
+    ## ---
+       private: true
+       advanced: true
+       ---
+       Creates a new reference with a lazily initialized value
+
+       ## Arguments
+        - `value`: lazy computation to create a value to be contained in the ref.
+
+       ## Examples
+       ### Defer initialization of local values until needed
+
+       ```
+             value_ref = Ref.new (long_computation_yielding 7)
+             value =
+                 value_ref.get
+    memoize ~value -> Ref = Runtime_Helpers.ref_new value
 
     ## ---
        group: Metadata
@@ -38,7 +56,7 @@ type Ref
              (Ref.new 0) . get
        ```
     get : Any
-    get self = @Builtin_Method "Ref.get"
+    get self = Runtime_Helpers.ref_get self
 
     ## ---
        icon: edit
@@ -55,7 +73,7 @@ type Ref
              (Ref.new 0) . put 10
        ```
     put : Any -> Any
-    put self new_value = @Builtin_Method "Ref.put"
+    put self new_value = Runtime_Helpers.ref_put self new_value
 
     ## ---
        group: Calculations
