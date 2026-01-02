@@ -27,6 +27,9 @@ final class PerInputImpl implements Input {
 
   static Reference<?> readObject(PerMap map, ByteBuffer buf, Function<Object, Object> readResolve)
       throws IOException {
+    if (buf.limit() < 16) {
+      throw new IOException("Wrong (short) header");
+    }
     for (var i = 0; i < PerGenerator.HEADER.length; i++) {
       if (buf.get(i) != PerGenerator.HEADER[i]) {
         throw new IOException("Wrong header");

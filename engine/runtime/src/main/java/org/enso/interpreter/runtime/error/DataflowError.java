@@ -84,13 +84,15 @@ public final class DataflowError extends AbstractTruffleException {
    * <p>This is useful for when the dataflow error is created from the recovery of a panic, and we
    * want to point to the original location of the panic.
    *
+   * @param ctx Enso context to operate in
    * @param payload the user-provided value carried by the error
    * @param prototype the exception to derive the stacktrace from
    * @return a new dataflow error
    */
-  public static DataflowError withTrace(Object payload, AbstractTruffleException prototype) {
+  public static DataflowError withTrace(
+      EnsoContext ctx, Object payload, AbstractTruffleException prototype) {
     assert payload != null;
-    var result = new DataflowError(payload, prototype);
+    var result = new DataflowError(ctx, payload, prototype);
     TruffleStackTrace.fillIn(result);
     return result;
   }
@@ -110,11 +112,11 @@ public final class DataflowError extends AbstractTruffleException {
     this.ctx = EnsoContext.get(location);
   }
 
-  private DataflowError(Object payload, AbstractTruffleException prototype) {
+  private DataflowError(EnsoContext ctx, Object payload, AbstractTruffleException prototype) {
     super(prototype);
     this.payload = payload;
     this.ownTrace = false;
-    this.ctx = prototype instanceof PanicException panic ? panic.ctx() : EnsoContext.get(null);
+    this.ctx = ctx;
   }
 
   private DataflowError(Object payload, int stackTraceElementLimit, Node location) {

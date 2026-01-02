@@ -12,9 +12,6 @@
         "name": "org.enso.base.Encoding_Utils"
     },
     {
-        "name": "org.enso.base.Environment_Utils"
-    },
-    {
         "name": "org.enso.base.FileLineReader"
     },
     {

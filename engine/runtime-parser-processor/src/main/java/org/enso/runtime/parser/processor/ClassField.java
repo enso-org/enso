@@ -51,11 +51,7 @@ public final class ClassField {
   }
 
   public String getTypeName() {
-    return type.toString();
-  }
-
-  public String getSimpleTypeName() {
-    return Utils.simpleTypeName(type);
+    return Utils.qualifiedTypeName(type);
   }
 
   public boolean isPrimitive() {

@@ -125,10 +125,15 @@ abstract class DummyRepository(toolsRootDirectory: Path) {
     * @param repoUrl the URL where the repository is going to be accessible; the
     *                URL should include the `libraries` prefix
     */
-  def createEdition(repoUrl: String): RawEdition = {
+  def createEdition(
+    repoUrl: String,
+    parent: Option[String]        = Some(BuildVersion.currentEdition()),
+    engineVersion: Option[SemVer] = None
+  ): RawEdition = {
     Editions.Raw.Edition(
-      parent       = Some(BuildVersion.currentEdition),
-      repositories = Map(repoName -> Editions.Repository(repoName, repoUrl)),
+      parent        = parent,
+      engineVersion = engineVersion,
+      repositories  = Map(repoName -> Editions.Repository(repoName, repoUrl)),
       libraries = Map.from(libraries.map { lib =>
         lib.libraryName -> Editions.Raw
           .PublishedLibrary(lib.libraryName, lib.version, repoName)

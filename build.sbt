@@ -1,4 +1,3 @@
-import LibraryManifestGenerator.BundledLibrary
 import org.enso.build.BenchTasks.*
 import org.enso.build.WithDebugCommand
 import org.apache.commons.io.FileUtils
@@ -2374,11 +2373,6 @@ lazy val `language-server` = (project in file("engine/language-server"))
       exports ++ testPkgsExports
     }
   )
-  .settings(
-    Test / envVars ++= Map(
-      "ENSO_EDITION_PATH" -> file("distribution/editions").getCanonicalPath
-    )
-  )
   .dependsOn(`connected-lock-manager-server`)
   .dependsOn(`edition-updater`)
   .dependsOn(`engine-runner-common`)
@@ -3851,15 +3845,7 @@ lazy val `engine-runner` = project
             .map(_.getAbsolutePath()) ++
           `std-duckdb-polyglot-root`
             .listFiles("*.jar")
-            .map(_.getAbsolutePath()) ++ (if (
-                                            GraalVM.EnsoLauncher.disableMicrosoft
-                                          ) {
-                                            Seq()
-                                          } else {
-                                            `std-microsoft-polyglot-root`
-                                              .listFiles("*.jar")
-                                              .map(_.getAbsolutePath())
-                                          })
+            .map(_.getAbsolutePath())
         }
       }
       core ++ stdLibsJars ++ extraNITestLibs.value
@@ -3881,8 +3867,6 @@ lazy val `engine-runner` = project
           sys.env.get("CI").isDefined && Platform.isMacOS && Platform.isArm64
         val maxLimit           = if (macArmOnCI) Some(14336) else Some(15608)
         val areStdlibsIncluded = !GraalVM.EnsoLauncher.fast
-        val azureFeature =
-          "org.enso.microsoft.nativeimage.AzureNativeImageFeature"
         val databaseFeature =
           "org.enso.database.nativeimage.SqliteJdbcPatchedFeature"
         // Features from gax-grpc-2.31.0
@@ -3894,9 +3878,6 @@ lazy val `engine-runner` = project
         )
         if (areStdlibsIncluded) {
           features = features ++ Seq(databaseFeature)
-          if (!GraalVM.EnsoLauncher.disableMicrosoft) {
-            features = features ++ Seq(azureFeature)
-          }
         }
         // heapdump monitoring is not supported on Windows
         val enableHeapDumpOpts =
@@ -5154,7 +5135,8 @@ lazy val `enso-test-java-helpers` = project
       val result          = (Compile / packageBin).value
       val primaryLocation = (Compile / packageBin / artifactPath).value
       val secondaryLocations = Seq(
-        file("test/Table_Tests/polyglot/java/base-test-java-helpers.jar")
+        file("test/Table_Tests/polyglot/java/base-test-java-helpers.jar"),
+        file("test/Image_Tests/polyglot/java/base-test-java-helpers.jar")
       )
       secondaryLocations.foreach { target =>
         IO.copyFile(primaryLocation, target)
@@ -6291,7 +6273,6 @@ extraBazelEnvForStdLibIndexes := Def.taskIf {
 lazy val createStdLibsIndexes =
   taskKey[Unit]("Creates index files for standard libraries")
 createStdLibsIndexes := {
-  updateLibraryManifests.value
   buildEngineDistributionNoIndex.value
   val distributionRoot = engineDistributionRoot.value
   val log              = streams.value.log
@@ -6338,7 +6319,6 @@ ThisBuild / pythonHome := {
 lazy val createEnginePackageNoIndex =
   taskKey[Unit]("Creates the engine distribution package")
 createEnginePackageNoIndex := {
-  updateLibraryManifests.value
   val modulesToCopy = componentModulesPaths.value
   val extraJars     = (`jline-wrapper` / thinJarOutput).value
   val nativeLibsDir = (`jline-wrapper` / extractedFilesDir).value
@@ -6390,7 +6370,6 @@ buildEngineDistributionNoIndex := Def.taskIf {
 // This makes the buildEngineDistribution task usable as a dependency
 // of other tasks.
 ThisBuild / buildEngineDistributionNoIndex := {
-  updateLibraryManifests.value
   createEnginePackageNoIndex.value
 }
 
@@ -6514,59 +6493,4 @@ buildLauncherDistribution := {
   val cacheFactory = streams.value.cacheStoreFactory
   DistributionPackage.createLauncherPackage(root, cacheFactory)
   log.info(s"Launcher package created at $root")
-}
-
-lazy val extraBazelEnvForManifestUpdate = taskKey[Map[String, String]](
-  "Extra environment variables for subprocesses when running from Bazel - manifest update"
-)
-
-/** Note that when updating library manifests, `engineDistributionRoot` does not yet exist.
-  * This is unlike to when running `createStdLibIndexes`.
-  */
-extraBazelEnvForManifestUpdate := Def.taskIf {
-  if ((Bazel / wasStartedFromBazel).value) {
-    val home     = (Bazel / homeDir).value.get.getAbsolutePath
-    val repoRoot = (enso / baseDirectory).value
-    val libPath =
-      (engineDistributionRoot.value / "lib" / "Standard").getCanonicalPath
-    val langHome = (engineDistributionRoot.value / "component").getCanonicalPath
-    Map(
-      "HOME"              -> home,
-      "ENSO_HOME"         -> repoRoot.getAbsolutePath,
-      "ENSO_EDITION_PATH" -> (repoRoot / "distribution" / "editions").getCanonicalPath
-    )
-  } else {
-    Map.empty[String, String]
-  }
-}.value
-
-lazy val updateLibraryManifests =
-  taskKey[Unit](
-    "Recomputes dependencies to update manifests bundled with libraries."
-  )
-updateLibraryManifests := {
-  val log          = streams.value.log
-  val cacheFactory = streams.value.cacheStoreFactory
-  val libraries = Editions.standardLibraries.map(libName =>
-    BundledLibrary(libName, stdLibVersion)
-  )
-  val runnerCp   = (`engine-runner` / Runtime / fullClasspath).value
-  val runtimeCp  = (`runtime` / Runtime / fullClasspath).value
-  val fullCp     = (runnerCp ++ runtimeCp).distinct
-  val modulePath = componentModulesPaths.value
-  val env        = extraBazelEnvForManifestUpdate.value
-  val javaOpts = (ThisBuild / javaOptions).value ++ Seq(
-    "--module-path",
-    modulePath.map(_.getAbsolutePath).mkString(File.pathSeparator),
-    "-m",
-    "org.enso.runner/org.enso.runner.Main"
-  )
-  LibraryManifestGenerator.generateManifests(
-    libraries,
-    file("distribution"),
-    log,
-    javaOpts,
-    cacheFactory,
-    env
-  )
 }

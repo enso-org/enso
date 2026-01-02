@@ -2,13 +2,11 @@ package org.enso.runtime.parser.processor.utils;
 
 import java.lang.annotation.Annotation;
 import java.util.ArrayDeque;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.Element;
-import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.type.DeclaredType;
@@ -76,13 +74,6 @@ public final class Utils {
     return anot != null && superClassDoesNotExist;
   }
 
-  /** Returns true if the given {@code type} is an {@code org.enso.compiler.core.IR} interface. */
-  public static boolean isIRInterface(TypeMirror type, ProcessingEnvironment processingEnv) {
-    var elem = processingEnv.getTypeUtils().asElement(type);
-    return elem.getKind() == ElementKind.INTERFACE
-        && elem.getSimpleName().toString().equals(IR_INTERFACE_SIMPLE_NAME);
-  }
-
   public static TypeElement irTypeElement(ProcessingEnvironment procEnv) {
     var ret = procEnv.getElementUtils().getTypeElement(IR_INTERFACE_FQN);
     hardAssert(
@@ -127,14 +118,6 @@ public final class Utils {
     return ret;
   }
 
-  public static boolean isExpression(Element elem, ProcessingEnvironment processingEnvironment) {
-    if (elem instanceof TypeElement typeElem) {
-      var exprType = expressionType(processingEnvironment);
-      return processingEnvironment.getTypeUtils().isSameType(typeElem.asType(), exprType.asType());
-    }
-    return false;
-  }
-
   /** Returns true if the given type extends {@code org.enso.compiler.core.ir.Expression} */
   public static boolean isSubtypeOfExpression(
       TypeMirror type, ProcessingEnvironment processingEnv) {
@@ -146,41 +129,32 @@ public final class Utils {
     return procEnv.getElementUtils().getTypeElement(EXPRESSION_FQN);
   }
 
-  /** Converts all the FQN parts of the type name to simple names. Includes type arguments. */
-  public static String simpleTypeName(TypeMirror typeMirror) {
+  /**
+   * Returns the qualified type name of the given {@code typeMirror}. For generic types, the type
+   * arguments are included, e.g., {@code java.util.List<java.lang.String>}.
+   */
+  public static String qualifiedTypeName(TypeMirror typeMirror) {
     if (typeMirror.getKind() == TypeKind.DECLARED) {
       var declared = (DeclaredType) typeMirror;
       var typeArgs = declared.getTypeArguments();
       var typeElem = (TypeElement) declared.asElement();
       if (!typeArgs.isEmpty()) {
         var typeArgsStr =
-            typeArgs.stream().map(Utils::simpleTypeName).collect(Collectors.joining(", "));
-        return typeElem.getSimpleName().toString() + "<" + typeArgsStr + ">";
+            typeArgs.stream().map(Utils::qualifiedTypeName).collect(Collectors.joining(", "));
+        return typeElem.getQualifiedName() + "<" + typeArgsStr + ">";
       } else {
-        return typeElem.getSimpleName().toString();
+        return typeElem.getQualifiedName().toString();
       }
     }
     return typeMirror.toString();
   }
 
-  /**
-   * Returns (a possibly empty) list of FQN that should be imported in order to use the given {@code
-   * typeMirror}.
-   *
-   * @return List of FQN, intended to be used in import statements.
-   */
-  public static List<String> getImportedTypes(TypeMirror typeMirror) {
-    var importedTypes = new ArrayList<String>();
-    if (typeMirror.getKind() == TypeKind.DECLARED) {
-      var declared = (DeclaredType) typeMirror;
-      var typeElem = (TypeElement) declared.asElement();
-      var typeArgs = declared.getTypeArguments();
-      importedTypes.add(typeElem.getQualifiedName().toString());
-      for (var typeArg : typeArgs) {
-        importedTypes.addAll(getImportedTypes(typeArg));
-      }
+  public static String qualifiedTypeName(Element element) {
+    if (element instanceof TypeElement typeElem) {
+      return typeElem.getQualifiedName().toString();
+    } else {
+      return element.getSimpleName().toString();
     }
-    return importedTypes;
   }
 
   public static String indent(String code, int indentation) {

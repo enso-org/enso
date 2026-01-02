@@ -36,8 +36,6 @@ from project.Internal.Upload.Helpers.Default_Arguments import first_column_name_
 from project.Internal.Upload.Operations.Create import create_table_implementation
 from project.SQL_Query import make_table_for_name
 
-polyglot java import java.lang.UnsupportedOperationException
-
 type Connection
     ## ---
        private: true
@@ -422,9 +420,11 @@ type Connection
             self.jdbc_connection.with_prepared_statement query self.type_mapping.statement_setter stmt->
                 _check_statement_is_allowed self stmt
                 result = case self.supports_large_update.get of
-                    True -> Panic.catch UnsupportedOperationException stmt.executeLargeUpdate _->
-                        self.supports_large_update.put False
-                        stmt.executeUpdate
+                    True ->
+                        unsupported_exception = self.jdbc_connection.types_record.unsupportedExceptionClass
+                        Panic.catch unsupported_exception stmt.executeLargeUpdate _->
+                            self.supports_large_update.put False
+                            stmt.executeUpdate
                     False -> stmt.executeUpdate
                 SQL_Warning_Helper.process_warnings stmt <|
                     result
