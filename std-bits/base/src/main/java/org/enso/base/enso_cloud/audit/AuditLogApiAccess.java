@@ -36,7 +36,7 @@ public final class AuditLogApiAccess implements ReloadDetector.HasClearableCache
 
   private static final int MAX_RETRIES = 5;
 
-  public static AuditLogApiAccess INSTANCE = new AuditLogApiAccess();
+  public static final AuditLogApiAccess INSTANCE = new AuditLogApiAccess();
 
   private HttpClient httpClient;
   private final LogJobsQueue logQueue = new LogJobsQueue();
@@ -202,7 +202,8 @@ public final class AuditLogApiAccess implements ReloadDetector.HasClearableCache
     }
 
     var uri = URI.create(CloudAPI.getAPIRootURI() + "logs");
-    var config = new RequestConfig(uri, AuthenticationProvider.INSTANCE.getAccessToken());
+    var token = AuthenticationProvider.INSTANCE.getAccessToken();
+    var config = new RequestConfig(uri, token);
     cachedRequestConfig = config;
     return config;
   }
