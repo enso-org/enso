@@ -94,7 +94,7 @@ public final class TypeCheckValueNode extends Node {
 
   private final Object handleCheckOrConversionImpl(VirtualFrame frame, Object value) {
     var direct = check.findDirectMatch(frame, value);
-    if (direct instanceof Function fn && fn.isThunk()) {
+    if (direct instanceof Function fn && fn.isFullyApplied()) {
       if (lazyCheck == null) {
         CompilerDirectives.transferToInterpreter();
         var enso = EnsoLanguage.get(this);

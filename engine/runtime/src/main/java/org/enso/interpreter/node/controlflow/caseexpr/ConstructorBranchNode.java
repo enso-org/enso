@@ -1,6 +1,7 @@
 package org.enso.interpreter.node.controlflow.caseexpr;
 
 import com.oracle.truffle.api.CompilerAsserts;
+import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.RootCallTarget;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Cached.Shared;
@@ -10,8 +11,11 @@ import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.NodeInfo;
+import com.oracle.truffle.api.nodes.RootNode;
 import com.oracle.truffle.api.profiles.CountingConditionProfile;
+import org.enso.interpreter.EnsoLanguage;
 import org.enso.interpreter.node.expression.builtin.meta.IsValueOfTypeNode;
+import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.EnsoMultiValue;
 import org.enso.interpreter.runtime.data.atom.Atom;
 import org.enso.interpreter.runtime.data.atom.AtomConstructor;
@@ -85,9 +89,41 @@ public abstract class ConstructorBranchNode extends BranchNode {
       Object obj, AtomConstructor cons, StructsLibrary structsLib) {
     CompilerAsserts.partialEvaluationConstant(cons);
     var arr = new Object[cons.getArity()];
+    var fields = cons.getFields();
     for (var i = 0; i < arr.length; i++) {
-      arr[i] = structsLib.getField(obj, i);
+      // Wrap suspended fields in functions, so that they are not evaluated
+      // too eagerly.
+      if (fields[i].isSuspended() && obj instanceof Atom atom) {
+        var func = createSuspendedFieldFunction(atom, i);
+        arr[i] = func;
+      } else {
+        arr[i] = structsLib.getField(obj, i);
+      }
     }
     return arr;
+  }
+
+  @TruffleBoundary
+  private static Function createSuspendedFieldFunction(Atom atom, int fieldIdx) {
+    var getFieldNode = new GetSuspendedFieldNode(atom, fieldIdx);
+    return Function.fullyApplied(getFieldNode.getCallTarget());
+  }
+
+  private static final class GetSuspendedFieldNode extends RootNode {
+    private final Atom atom;
+    private final int fieldIdx;
+    @Child private StructsLibrary structsLib = StructsLibrary.getFactory().createDispatched(3);
+
+    GetSuspendedFieldNode(Atom atom, int fieldIdx) {
+      super(EnsoLanguage.get(null));
+      this.atom = atom;
+      this.fieldIdx = fieldIdx;
+    }
+
+    @Override
+    public Object execute(VirtualFrame frame) {
+      // Forces evaluation of the suspended field.
+      return structsLib.getField(atom, fieldIdx);
+    }
   }
 }
