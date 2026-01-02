@@ -81,7 +81,7 @@ case object TailCallMegaPass extends IRPass {
     ir: Module,
     moduleContext: ModuleContext
   ): Module = {
-    ir.copyWithBindings(bindings = ir.bindings.map(analyseModuleBinding))
+    ir.copyWithBindings(ir.bindings.map(analyseModuleBinding))
   }
 
   /** Analyses tail call state for an arbitrary expression.
@@ -419,25 +419,24 @@ case object TailCallMegaPass extends IRPass {
     pattern: Pattern
   ): Pattern = {
     pattern match {
-      case namePat @ Pattern.Name(name, _, _) =>
-        namePat
-          .copy(
-            name = analyseName(name, isInTailPosition = false)
-          )
-      case cons @ Pattern.Constructor(constructor, fields, _, _) =>
+      case namePat: Pattern.Name =>
+        namePat.copyWithName(
+          analyseName(namePat.name, isInTailPosition = false)
+        )
+      case cons: Pattern.Constructor =>
         cons
-          .copy(
-            constructor = analyseName(constructor, isInTailPosition = false),
-            fields      = fields.map(analysePattern)
-          )
+          .copyBuilder()
+          .constructor(analyseName(cons.constructor, isInTailPosition = false))
+          .fields(cons.fields.map(analysePattern))
+          .build()
       case literal: Pattern.Literal => literal
       case bool: Pattern.Bool       => bool
-      case tpePattern @ Pattern.Type(name, tpe, _, _) =>
+      case tpePattern: Pattern.Type =>
         tpePattern
-          .copy(
-            name = analyseName(name, isInTailPosition = false),
-            tpe  = analyseName(tpe, isInTailPosition = false)
-          )
+          .copyBuilder()
+          .name(analyseName(tpePattern.name, isInTailPosition = false))
+          .tpe(analyseName(tpePattern.tpe, isInTailPosition = false))
+          .build()
       case err: errors.Pattern => err
       case _: Pattern.Documentation =>
         throw new CompilerError(
