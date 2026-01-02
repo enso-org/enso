@@ -1,13 +1,9 @@
 package org.enso.runtime.parser.processor;
 
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 import javax.annotation.processing.ProcessingEnvironment;
-import javax.lang.model.element.Element;
-import javax.lang.model.element.ElementKind;
-import javax.lang.model.element.PackageElement;
 import javax.lang.model.element.TypeElement;
 import org.enso.runtime.parser.processor.field.Field;
 import org.enso.runtime.parser.processor.field.FieldCollector;
@@ -54,9 +50,7 @@ final class IRNodeClassGenerator {
           "org.enso.compiler.core.IR",
           "org.enso.compiler.core.ir.DiagnosticStorage",
           "org.enso.compiler.core.ir.DiagnosticStorage$",
-          "org.enso.compiler.core.ir.Expression",
           "org.enso.compiler.core.ir.IdentifiedLocation",
-          "org.enso.compiler.core.ir.Name",
           "org.enso.compiler.core.ir.MetadataStorage",
           "scala.Option");
 
@@ -100,58 +94,11 @@ final class IRNodeClassGenerator {
     return className;
   }
 
-  private boolean isInSameCompilationUnit(Field field) {
-    var elem = processingEnv.getTypeUtils().asElement(field.getType());
-    var enclosingElem = elem.getEnclosingElement();
-    var thisEnclosingElem = processedClass.getClazz().getEnclosingElement();
-    if (enclosingElem instanceof TypeElement enclosingTypeElem
-        && thisEnclosingElem instanceof TypeElement thisEnclosingTypeElem) {
-      return enclosingTypeElem.getQualifiedName().equals(thisEnclosingTypeElem.getQualifiedName());
-    }
-    return false;
-  }
-
   /** Returns set of import statements that should be included in the generated class. */
   Set<String> imports() {
-    var importsForFields =
-        generatedClassContext.getUserFields().stream()
-            .filter(field -> !field.isPrimitive())
-            .filter(field -> !isInSameCompilationUnit(field))
-            .flatMap(field -> field.getImportedTypes().stream())
-            .collect(Collectors.toUnmodifiableSet());
-    var allImports = new HashSet<String>();
-    allImports.addAll(defaultImportedTypes);
-    addImportForType(allImports, processedClass.getClazz());
-    for (var ifaceToImplement : processedClass.getInterfaces()) {
-      addImportForType(allImports, ifaceToImplement);
-    }
-    allImports.addAll(importsForFields);
-    return allImports.stream()
+    return defaultImportedTypes.stream()
         .map(importedType -> "import " + importedType + ";")
         .collect(Collectors.toUnmodifiableSet());
-  }
-
-  /**
-   * Adds import for a type that is not in an unnamed package.
-   *
-   * @param imports Set of imports to potentially add to
-   */
-  private void addImportForType(Set<String> imports, TypeElement type) {
-    if (!isInUnnamedPackage(type)) {
-      imports.add(type.getQualifiedName().toString());
-    }
-  }
-
-  private boolean isInUnnamedPackage(TypeElement type) {
-    Element enclosingElement = type.getEnclosingElement();
-    while (enclosingElement != null) {
-      if (enclosingElement.getKind() == ElementKind.PACKAGE) {
-        var pkg = (PackageElement) enclosingElement;
-        return pkg.isUnnamed();
-      }
-      enclosingElement = enclosingElement.getEnclosingElement();
-    }
-    return false;
   }
 
   /** Generates the body of the class - fields, field setters, method overrides, builder, etc. */
@@ -228,7 +175,7 @@ final class IRNodeClassGenerator {
                     """
                     private final ${type} ${name};
                     """
-                        .replace("${type}", field.getSimpleTypeName())
+                        .replace("${type}", field.getQualifiedTypeName())
                         .replace("${name}", field.getName()))
             .collect(Collectors.joining(System.lineSeparator()));
     var comment =
@@ -322,7 +269,7 @@ final class IRNodeClassGenerator {
             .map(
                 consParam ->
                     "$consType $consName"
-                        .replace("$consType", consParam.getSimpleTypeName())
+                        .replace("$consType", consParam.getTypeName())
                         .replace("$consName", consParam.name()))
             .collect(Collectors.joining(", "));
     sb.append(inParens).append(") {").append(System.lineSeparator());
@@ -471,7 +418,7 @@ final class IRNodeClassGenerator {
           }
           """
               .replace("${comment}", commentForField(field))
-              .replace("${returnType}", field.getSimpleTypeName())
+              .replace("${returnType}", field.getQualifiedTypeName())
               .replace("${fieldName}", field.getName());
       sb.append(code);
       sb.append(System.lineSeparator());
