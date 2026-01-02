@@ -2,7 +2,6 @@ package org.enso.table.data.table;
 
 import java.lang.reflect.Proxy;
 import java.util.List;
-
 import org.enso.base.polyglot.Polyglot_Utils;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.operation.masks.IndexMapper;
