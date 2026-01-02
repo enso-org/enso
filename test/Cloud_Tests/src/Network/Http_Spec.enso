@@ -89,8 +89,10 @@ add_specs suite_builder =
 
     url_get = base_url_with_slash.if_not_nothing <| base_url_with_slash + "get"
     suite_builder.group "fetch" pending=pending_has_url group_builder->
-        url_head = base_url_with_slash + "head"
-        url_options = base_url_with_slash + "options"
+        url_head =
+            base_url_with_slash + "head"
+        url_options =
+            base_url_with_slash + "options"
 
         group_builder.specify "Can perform a GET with a JSON response" <| Test.with_retries <|
             response = Data.fetch url_get
@@ -238,10 +240,14 @@ add_specs suite_builder =
             err.catch.message.should_equal "Data.read cannot be used with a Vector. Please use Data.read_many."
 
     suite_builder.group "post" pending=pending_has_url group_builder->
-        url_post = base_url_with_slash + "post"
-        url_put = base_url_with_slash + "put"
-        url_patch = base_url_with_slash + "patch"
-        url_delete = base_url_with_slash + "delete"
+        url_post =
+            base_url_with_slash + "post"
+        url_put =
+            base_url_with_slash + "put"
+        url_patch =
+            base_url_with_slash + "patch"
+        url_delete =
+            base_url_with_slash + "delete"
 
         group_builder.specify "Can perform a Request_Body.Text POST" <| Test.with_retries <|
             response = Data.post url_post (Request_Body.Text "hello world")
@@ -455,7 +461,8 @@ add_specs suite_builder =
             Data.post url_post (Request_Body.Binary test_file) . should_fail_with Request_Error
 
     suite_builder.group "Headers" pending=pending_has_url group_builder->
-        url_post = base_url_with_slash + "post"
+        url_post =
+            base_url_with_slash + "post"
 
         group_builder.specify "Content-type in the body is respected" <| Test.with_retries <|
             response = Data.post url_post (Request_Body.Text '{"a": "asdf", "b": 123}' content_type="application/json")

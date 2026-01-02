@@ -3,8 +3,10 @@
 #### Enso Standard Library
 
 - [Using dual JVM mode for Standard.Microsoft][14476].
+- [Standard.Test pending field is lazy][14536].
 
 [14476]: https://github.com/enso-org/enso/pull/14476
+[14536]: https://github.com/enso-org/enso/pull/14536
 
 #### Enso Language & Runtime
 
