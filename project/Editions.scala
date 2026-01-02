@@ -27,13 +27,8 @@ object Editions {
     "Standard.DuckDB"
   )
 
-  case class ContribLibrary(name: String, version: String)
-
-  /** A list of additional libraries from external sources that are published in
-    * the main repository and should be available in the default edition.
-    */
-  val contribLibraries: Seq[ContribLibrary] = Seq(
-    ContribLibrary("Enso.Image", Dependencies.stdLibVersion)
+  val contribLibraries: Seq[String] = Seq(
+    "Enso.Image"
   )
 
   /** The URL to the main library repository. */
@@ -68,11 +63,10 @@ object Editions {
            |    version: $libraryVersion""".stripMargin
       }
 
-      val contribLibrariesConfigs = contribLibraries.map {
-        case ContribLibrary(name, version) =>
-          s"""  - name: $name
-             |    repository: main
-             |    version: $version""".stripMargin
+      val contribLibrariesConfigs = contribLibraries.map { libName =>
+        s"""  - name: $libName
+           |    repository: main
+           |    version: $libraryVersion""".stripMargin
       }
 
       val librariesConfigs = standardLibrariesConfigs ++ contribLibrariesConfigs
