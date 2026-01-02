@@ -1052,6 +1052,13 @@ final class TreeToIr {
           yield new IfThenElse(
               ifArg.value(), trueArg.value(), null, getIdentifiedLocation(tree), meta());
         }
+        if ("else".equals(fullName) && args.size() == 1) {
+          var falseArg = args.apply(0);
+          if (falseArg == null) {
+            yield translateSyntaxError(app, new Syntax.UnsupportedSyntax("Missing else branch"));
+          }
+          yield IfThenElse.buildOnlyElse(falseArg.value(), getIdentifiedLocation(tree), meta());
+        }
         if (fullName.equals(FREEZE_MACRO_IDENTIFIER)) {
           yield translateExpression(app.getSegments().get(0).getBody(), false);
         } else if (fullName.equals(SKIP_MACRO_IDENTIFIER)) {
@@ -1082,14 +1089,9 @@ final class TreeToIr {
           }
           var next = translateExpression(expr, false);
           if (last instanceof IfThenElse ife && ife.falseBranchOrNull() == null) {
-            if (next instanceof Application.Prefix app
-                && app.arguments().length() == 1
-                && app.function() instanceof Name.Literal lit
-                && "else".equals(lit.name())) {
+            if (next instanceof IfThenElse other && other.isOnlyElse()) {
               var newIfe =
-                  IfThenElse.builder(ife)
-                      .falseBranchOrNull(app.arguments().apply(0).value())
-                      .build();
+                  IfThenElse.builder(other).falseBranchOrNull(other.falseBranchOrNull()).build();
               next = newIfe;
               last = null;
             }
@@ -1349,14 +1351,9 @@ final class TreeToIr {
           if (last >= 0
               && appendTo.get(last) instanceof IfThenElse ife
               && ife.falseBranchOrNull() == null) {
-            if (expressionStatement instanceof Application.Prefix app
-                && app.arguments().length() == 1
-                && app.function() instanceof Name.Literal lit
-                && "else".equals(lit.name())) {
+            if (expressionStatement instanceof IfThenElse other && other.isOnlyElse()) {
               var newIfe =
-                  IfThenElse.builder(ife)
-                      .falseBranchOrNull(app.arguments().apply(0).value())
-                      .build();
+                  IfThenElse.builder(ife).falseBranchOrNull(other.falseBranchOrNull()).build();
               appendTo.set(last, newIfe);
               // no appendTo.add, but return
               return;
