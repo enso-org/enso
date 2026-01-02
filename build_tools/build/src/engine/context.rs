@@ -443,7 +443,7 @@ impl RunContext {
                 package.verify_package_sbt(&sbt).await?;
             }
             if self.config.build_engine_package {
-                for libname in ["Base", "Table", "Image", "Database"] {
+                for libname in ["Base", "Table", "Database"] {
                     let lib_path = self
                         .repo_root
                         .built_distribution
