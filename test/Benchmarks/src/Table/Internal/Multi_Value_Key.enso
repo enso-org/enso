@@ -4,6 +4,8 @@ from Standard.Table import Table, Value_Type
 import Standard.Table.In_Memory_Column.In_Memory_Column
 import Standard.Table.Internal.Multi_Value_Key.Ordered_Multi_Value_Key
 import Standard.Table.Internal.Multi_Value_Key.Unordered_Multi_Value_Key
+from Standard.Table.Internal.In_Memory_Test_Helpers import get_java_column_test_only
+
 from Standard.Test import Bench
 
 polyglot java import org.enso.table.data.index.OrderedMultiValueKey
@@ -79,7 +81,7 @@ collect_benches = Bench.build builder->
             compare_ordered_keys make_key table compare_keys
 
         run_java table =
-            java_columns = table.columns.map column-> (column:In_Memory_Column).java_column_test_only
+            java_columns = table.columns.map column-> get_java_column_test_only column
             directions = Vector.fill java_columns.length 1
             make_key row_ix = OrderedMultiValueKey.new java_columns row_ix directions
             compare_keys key1 key2 = key1.compareTo key2 < 0
@@ -101,7 +103,7 @@ collect_benches = Bench.build builder->
             get_hash key = key.hash_code
 
         run_java table =
-            java_columns = table.columns.map column-> (column:In_Memory_Column).java_column_test_only
+            java_columns = table.columns.map column-> get_java_column_test_only column
             text_folding_strategies = Vector.fill java_columns.length TextFoldingStrategy.unicodeNormalizedFold
             make_key row_ix = UnorderedMultiValueKey.new java_columns row_ix text_folding_strategies
             get_hash key = key.hashCode

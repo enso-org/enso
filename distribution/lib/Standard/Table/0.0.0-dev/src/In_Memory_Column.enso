@@ -45,11 +45,6 @@ type In_Memory_Column
     ## ---
        private: true
        ---
-    java_column_test_only self = self.java_column
-
-    ## ---
-       private: true
-       ---
     pretty : Text
     pretty self =
         as_column = self:Column
