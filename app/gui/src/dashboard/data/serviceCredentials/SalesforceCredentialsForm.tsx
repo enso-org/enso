@@ -6,6 +6,7 @@
 
 import { Form } from '#/components/Form'
 import { Input } from '#/components/Inputs/Input'
+import { Text } from '#/components/Text'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import { useText } from '$/providers/react'
 import { CredentialsFormFooter } from './CredentialsFormFooter'
@@ -43,6 +44,9 @@ export function SalesforceCredentialsForm(props: CredentialFormProps) {
             label={getText('name')}
             defaultValue={salesforce.DEFAULT_FORM_VALUES.name}
           />
+          <Text variant="body" color="primary">
+            {getText('salesforceCredentialScopesSummary')}
+          </Text>
           <CredentialsFormFooter isCreating={true} canCancel={false} canReset={false} />
         </>
       )}
