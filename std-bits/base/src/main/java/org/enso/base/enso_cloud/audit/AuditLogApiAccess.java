@@ -197,11 +197,12 @@ public final class AuditLogApiAccess implements ReloadDetector.HasClearableCache
    * flushed (which is mostly used in tests).
    */
   private RequestConfig getRequestConfig() {
+    var cloudAPI = CloudAPI.getInstance();
     if (cachedRequestConfig != null) {
       return cachedRequestConfig;
     }
 
-    var uri = URI.create(CloudAPI.getAPIRootURI() + "logs");
+    var uri = URI.create(cloudAPI.getAPIRootURI() + "logs");
     var token = AuthenticationProvider.INSTANCE.getAccessToken();
     var config = new RequestConfig(uri, token);
     cachedRequestConfig = config;
@@ -252,7 +253,10 @@ public final class AuditLogApiAccess implements ReloadDetector.HasClearableCache
         LOGGER.error("Failed to send log messages after retrying.", e);
         throw e;
       } else {
-        LOGGER.warn("Exception when sending log messages to {}: {}. Retrying...", request.uri(), e.getMessage());
+        LOGGER.warn(
+            "Exception when sending log messages to {}: {}. Retrying...",
+            request.uri(),
+            e.getMessage());
         sendLogRequest(request, retryCount - 1);
       }
     }
