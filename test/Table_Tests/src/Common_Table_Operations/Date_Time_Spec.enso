@@ -99,6 +99,19 @@ add_specs suite_builder setup =
             # We now look at the values ignoring the time zone / offset - only from local time perspective.
             ordered.at "C" . to_vector . map as_local_date_time_repr . should_equal ["2020-10-24 01:02:03.004005", "2021-11-23 01:02:03.0", "2019-11-23 04:05:06.0"]
 
+        group_builder.specify "Should support translation of time zones." <|
+            offset_zone = Time_Zone.new hours=(-11) minutes=(-30)
+            dt1 = Date_Time.new 2021 11 23 1 2 3 zone=offset_zone
+            named_zone = Time_Zone.parse "US/Hawaii"
+            dt2 = Date_Time.new 2019 11 23 4 5 6 zone=named_zone
+
+            cet = Time_Zone.parse "CET"
+            lon = Time_Zone.parse "Europe/London"
+
+            t = table_builder [["A", [dt1, dt2]]]
+            t . at translate_time_zone cet . to_vector .should_equal [dt1 . at_zone cet, dt2 . at_zone cet]
+            t . at translate_time_zone lon . to_vector .should_equal [dt1 . at_zone lon, dt2 . at_zone lon]
+
     suite_builder.group prefix+"Date-Time operations" pending=pending_datetime group_builder->
         group_builder.specify "should allow to get the year/month/day/day_of_year/day_of_week of a Date" <|
             t = data.dates
