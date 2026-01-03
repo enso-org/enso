@@ -252,7 +252,7 @@ public final class AuditLogApiAccess implements ReloadDetector.HasClearableCache
         LOGGER.error("Failed to send log messages after retrying.", e);
         throw e;
       } else {
-        LOGGER.warn("Exception when sending log messages: {}. Retrying...", e.getMessage());
+        LOGGER.warn("Exception when sending log messages to {}: {}. Retrying...", request.uri(), e.getMessage());
         sendLogRequest(request, retryCount - 1);
       }
     }
