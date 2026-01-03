@@ -24,8 +24,10 @@ public abstract class GCNode extends Node {
 
   @Specialization
   Object doGc() {
+    var ctx = EnsoContext.get(this);
     runGC();
-    return EnsoContext.get(this).getBuiltins().nothing();
+    ctx.getResourceManager().scheduleFinalizationOfSystemReferences();
+    return ctx.getBuiltins().nothing();
   }
 
   @CompilerDirectives.TruffleBoundary
