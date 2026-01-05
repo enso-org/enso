@@ -7,7 +7,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public final class CloudAPI {
-  private static final Logger LOG = LoggerFactory.getLogger(CloudAPI.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(CloudAPI.class);
   private static CloudAPI cached;
 
   private final String apiRootUri;
@@ -33,7 +33,7 @@ public final class CloudAPI {
           if (cached.equals(fresh)) {
             return cached;
           }
-          LOG.warn("CloudAPI settings change detected. Dropping {}. Installing {}.", cached, fresh);
+          LOGGER.warn("CloudAPI settings change detected. Dropping {}. Installing {}.", cached, fresh);
         }
       }
       flushCloudCaches();
@@ -93,7 +93,7 @@ public final class CloudAPI {
   }
 
   public static void flushCloudCaches() {
-    LOG.warn(
+    LOGGER.warn(
         "Flushing CloudAPI@0x{}", Integer.toHexString(System.identityHashCode(CloudAPI.class)));
     cached = null;
     CloudRequestCache.INSTANCE.clear();

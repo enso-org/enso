@@ -19,7 +19,7 @@ import org.slf4j.LoggerFactory;
 
 /** A representation of a column. Consists of a column name and the underlying storage. */
 public final class Column {
-  private static final Logger LOG = LoggerFactory.getLogger(Column.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(Column.class);
   private final String name;
   private final ColumnStorage<?> storage;
 
@@ -35,7 +35,7 @@ public final class Column {
     var isProxy = Proxy.isProxyClass(storage.getClass());
     this.storage = isProxy ? Builder.makeLocal(storage) : storage;
     var type = this.storage.getType();
-    LOG.trace(
+    LOGGER.trace(
         "Column[{}] of {}:{} type with size: {}",
         name,
         type.typeChar(),

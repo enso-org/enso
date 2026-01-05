@@ -134,9 +134,9 @@ public interface Builder {
           return (ColumnStorage<T>) localStorage;
         }
         default -> {
-          if (BuilderUtil.LOG.isTraceEnabled()) {
+          if (BuilderUtil.LOGGER.isTraceEnabled()) {
             var t = storage.getType();
-            BuilderUtil.LOG.trace(
+            BuilderUtil.LOGGER.trace(
                 "makeLocal unsuccessful for {}:{} size {}",
                 t.typeChar(),
                 t.size(),
