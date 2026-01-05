@@ -490,13 +490,13 @@ impl RunContext {
                     for bundle in artifacts.bundles() {
                         bundle.upload_as_asset(release.clone()).await?;
                     }
-                    if self.config.library_repo_url.clone().is_some() {
-                        let zip = self.create_extension_libs_zip().await?;
-                        release.upload_asset_file(zip).await?;
-                    }
                     if TARGET_OS == OS::Linux {
                         release.upload_asset_file(self.paths.manifest_file()).await?;
                         release.upload_asset_file(self.paths.launcher_manifest_file()).await?;
+                        if self.config.library_repo_url.clone().is_some() {
+                            let zip = self.create_extension_libs_zip().await?;
+                            release.upload_asset_file(zip).await?;
+                        }
                     }
                 }
             },
