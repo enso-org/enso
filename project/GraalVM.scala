@@ -94,12 +94,12 @@ object GraalVM {
           windowsX64Release
         } else if (Platform.isLinux) {
           linuxX64Release
-        } else if (Platform.isMacOS && Platform.isAmd64) {
-          throw new IllegalArgumentException("Mac x64 is no longer supported")
         } else if (Platform.isMacOS && Platform.isArm64) {
           macARM64Release
         } else {
-          throw new IllegalArgumentException("Unexpected platform")
+          throw new IllegalArgumentException(
+            s"Unexpected platform: ${Platform.arch()} ${Platform.osName()}"
+          )
         }
       } else {
         testNISize
