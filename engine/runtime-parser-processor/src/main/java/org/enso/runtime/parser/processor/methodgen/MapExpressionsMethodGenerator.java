@@ -26,6 +26,10 @@ public final class MapExpressionsMethodGenerator {
       "org.enso.compiler.core.ir.module.scope.Definition.Type";
   private static final String DEF_DATA_CLASS =
       "org.enso.compiler.core.ir.module.scope.Definition.Data";
+  private static final String PATTERN_NAME_CLASS = "org.enso.compiler.core.ir.Pattern.Name";
+  private static final String PATTERN_TYPE_CLASS = "org.enso.compiler.core.ir.Pattern.Type";
+  private static final String PATTERN_CONSTRUCTOR_CLASS =
+      "org.enso.compiler.core.ir.Pattern.Constructor";
 
   /**
    * @param mapExpressionsMethod Reference to {@code mapExpressions} method in the interface for
@@ -242,6 +246,18 @@ public final class MapExpressionsMethodGenerator {
     return ctx.getProcessedClass().getClazz().getQualifiedName().toString().equals(DEF_DATA_CLASS);
   }
 
+  private boolean isProcessingPatternName() {
+    return ctx.getProcessedClassName().equals(PATTERN_NAME_CLASS);
+  }
+
+  private boolean isProcessingPatternType() {
+    return ctx.getProcessedClassName().equals(PATTERN_TYPE_CLASS);
+  }
+
+  private boolean isProcessingPatternConstructor() {
+    return ctx.getProcessedClassName().equals(PATTERN_CONSTRUCTOR_CLASS);
+  }
+
   private String doMapExprCode() {
     var specialHandling = new StringBuilder();
     if (isProcessingDefinitionArgument()) {
@@ -291,6 +307,42 @@ public final class MapExpressionsMethodGenerator {
             }
           """
               .replace("${defDataClass}", DEF_DATA_CLASS));
+    }
+    if (isProcessingPatternName()) {
+      specialHandling.append(
+          """
+          // Special case - name of `Pattern.Name` is not processed.
+          // This means no `fn.apply` call on it.
+          assert this instanceof ${patternNameClass};
+          if (ir == this.name()) {
+            return (T) ir.mapExpressions(fn);
+          }
+          """
+              .replace("${patternNameClass}", PATTERN_NAME_CLASS));
+    }
+    if (isProcessingPatternType()) {
+      specialHandling.append(
+          """
+          // Special case - `name` and `tpe` of `Pattern.Type` are not processed.
+          // This means no `fn.apply` call on them.
+          assert this instanceof ${patternTypeClass};
+          if (ir == this.name() || ir == this.tpe()) {
+            return (T) ir.mapExpressions(fn);
+          }
+          """
+              .replace("${patternTypeClass}", PATTERN_TYPE_CLASS));
+    }
+    if (isProcessingPatternConstructor()) {
+      specialHandling.append(
+          """
+          // Special case - `constructor` of `Pattern.Constructor` is not processed.
+          // This means no `fn.apply` call on it.
+          assert this instanceof ${patternConstructorClass};
+          if (ir == this.constructor()) {
+            return (T) ir.mapExpressions(fn);
+          }
+          """
+              .replace("${patternConstructorClass}", PATTERN_CONSTRUCTOR_CLASS));
     }
     var code =
         """

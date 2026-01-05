@@ -7,9 +7,14 @@ import { defaultGetText } from 'enso-common/src/text'
 import path from 'node:path'
 import { createBundle } from 'project-manager-shim'
 import buildInfo from '../buildInfo'
+import { loadGuiConfig } from './guiConfig'
 
 /** Create a remote backend */
 export async function createRemoteBackend() {
+  const { API_URL } = await loadGuiConfig()
+  if (API_URL == null) {
+    throw new Error('API_URL is not set in the GUI config.')
+  }
   const accessToken = await getUpToDateAccessToken()
   if (!accessToken) {
     throw new Error('No access token found for remote backend.')
@@ -31,6 +36,7 @@ export async function createRemoteBackend() {
     )
   }
   return new RemoteBackend({
+    apiUrl: API_URL,
     getText: defaultGetText,
     client: httpClient,
     downloader,

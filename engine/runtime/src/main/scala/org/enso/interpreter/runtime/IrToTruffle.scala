@@ -1459,7 +1459,8 @@ private[runtime] class IrToTruffle(
             CatchAllBranchNode.build(branchCodeNode.getCallTarget, true)
 
           Right(branchNode)
-        case Pattern.Bool(condition, _, _) =>
+        case b: Pattern.Bool =>
+          val condition = b.condition()
           val branchCodeNode = childProcessor.processFunctionBody(
             Nil,
             branch.expression,
@@ -1473,7 +1474,7 @@ private[runtime] class IrToTruffle(
             branch.terminalBranch
           )
           Right(node)
-        case cons @ Pattern.Constructor(constructor, _, _, _) =>
+        case cons: Pattern.Constructor =>
           if (!cons.isDesugared) {
             throw new CompilerError(
               "Nested patterns desugaring must have taken place by the " +
@@ -1481,6 +1482,7 @@ private[runtime] class IrToTruffle(
             )
           }
 
+          val constructor = cons.constructor()
           constructor match {
             case err: errors.Resolution =>
               Left(BadPatternMatch.NonVisibleConstructor(err.name))

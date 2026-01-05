@@ -1137,7 +1137,7 @@ final class TreeToIr {
           if (branch.getDocLine() instanceof DocLine docLine) {
             var comment = translateComment(cas, docLine.getDocs());
             var loc = getIdentifiedLocation(cas);
-            var doc = new Pattern.Documentation(comment.doc(), loc, meta());
+            var doc = Pattern.Documentation.builder().doc(comment.doc()).location(loc).build();
             var br =
                 Case.Branch.builder()
                     .pattern(doc)
