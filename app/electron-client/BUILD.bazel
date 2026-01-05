@@ -1,4 +1,5 @@
 load("@aspect_rules_esbuild//esbuild:defs.bzl", "esbuild")
+load("@aspect_rules_js//js:defs.bzl", "js_binary", "js_run_binary")
 load("@aspect_rules_js//npm:defs.bzl", "npm_package")
 load("@aspect_rules_ts//ts:defs.bzl", "ts_config", "ts_project")
 load("@npm//:defs.bzl", "npm_link_all_packages", "npm_link_targets")
@@ -128,5 +129,55 @@ electron_builder_bin.electron_builder(
         "JS_BINARY__PATCH_NODE_FS": "0",
     },
     out_dirs = ["ide-dist"],
+    visibility = ["//visibility:public"],
+)
+
+# =================================
+# === Windows Installer Targets ===
+# =================================
+
+# Export the icon file for use by the installer build
+exports_files(["assets/icons/icon.ico"])
+
+# Generate payload archive and metadata from dist output
+genrule(
+    name = "installer_artifacts",
+    srcs = [":dist"],
+    outs = [
+        "installer_payload.tar.gz",
+        "installer_metadata.json",
+    ],
+    cmd = """
+        DIST_DIR=$$(dirname $(location :dist))/ide-dist
+        $(execpath //build_tools/install/config:prepare_payload) \
+            "$$DIST_DIR/win-unpacked" \
+            $(location installer_payload.tar.gz) \
+            $(location installer_metadata.json)
+    """,
+    target_compatible_with = ["@platforms//os:windows"],
+    tools = ["//build_tools/install/config:prepare_payload"],
+    visibility = ["//visibility:public"],
+)
+
+# Export electron-builder config as JSON for the installer build
+js_binary(
+    name = "export_config_script",
+    entry_point = "export-config.mjs",
+    data = ["electron-builder-config.cjs"],
+)
+
+js_run_binary(
+    name = "electron_builder_config",
+    srcs = ["electron-builder-config.cjs"],
+    args = ["$(location electron-builder-config.cjs)"],
+    stdout = "electron-builder-config.json",
+    tool = ":export_config_script",
+    visibility = ["//visibility:public"],
+)
+
+# Final installer target
+alias(
+    name = "win_installer",
+    actual = "//build_tools/install/installer:enso_installer",
     visibility = ["//visibility:public"],
 )

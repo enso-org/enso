@@ -1,0 +1,1442 @@
+diff --git a/app/electron-client/BUILD.bazel b/app/electron-client/BUILD.bazel
+index a0bd5889b5..fa82071956 100644
+--- a/app/electron-client/BUILD.bazel
++++ b/app/electron-client/BUILD.bazel
+@@ -3,8 +3,11 @@
+ load("@aspect_rules_ts//ts:defs.bzl", "ts_config", "ts_project")
+ load("@npm//:defs.bzl", "npm_link_all_packages", "npm_link_targets")
+ load("@npm//app/electron-client:electron-builder/package_json.bzl", electron_builder_bin = "bin")
++load("//:bazel_scripts/installer.bzl", "win_installer")
+ load("//internal:stampFiles.bzl", "stamp_files")
+ 
++exports_files(["assets/icons/icon.ico"])
++
+ npm_link_all_packages(name = "node_modules")
+ 
+ ts_config(
+@@ -130,3 +133,12 @@
+     out_dirs = ["ide-dist"],
+     visibility = ["//visibility:public"],
+ )
++
++win_installer(
++    name = "win_installer",
++    dist = ":dist",
++    output_name = "enso-win-installer.exe",
++    prebuilt_installer = "//build_tools/install/installer:enso_installer",
++    prebuilt_uninstaller = "//build_tools/install/uninstaller:enso_uninstaller",
++    visibility = ["//visibility:public"],
++)
+diff --git a/bazel_scripts/installer.bzl b/bazel_scripts/installer.bzl
+new file mode 100644
+index 0000000000..2770176a1c
+--- /dev/null
++++ b/bazel_scripts/installer.bzl
+@@ -0,0 +1,85 @@
++"""Rules for building the Windows installer from the Electron dist output."""
++
++DEFAULT_BUNDLER = Label("//build_tools/install/config:bundle")
++
++def _win_installer_impl(ctx):
++    dist_files = ctx.attr.dist[DefaultInfo].files.to_list()
++    if len(dist_files) != 1:
++        fail("Expected a single output from dist, got {}".format(len(dist_files)))
++    dist = dist_files[0]
++
++    installer = ctx.actions.declare_file(ctx.attr.output_name)
++    sanitized_config = ctx.actions.declare_file("electron-builder-config.json")
++    payload_archive = ctx.actions.declare_file("payload.tar.gz")
++    intermediate = ctx.actions.declare_directory(ctx.label.name + "_intermediate")
++
++    config_path = "{}/{}".format(dist.path, ctx.attr.config_name)
++    unpacked_path = "{}/{}".format(dist.path, ctx.attr.unpacked_dir)
++
++    ctx.actions.run(
++        executable = ctx.executable.bundler,
++        arguments = [
++            config_path,
++            unpacked_path,
++            intermediate.path,
++            installer.path,
++            sanitized_config.path,
++            payload_archive.path,
++            ctx.executable.prebuilt_installer.path,
++            ctx.executable.prebuilt_uninstaller.path,
++        ],
++        inputs = [dist],
++        tools = [
++            ctx.executable.bundler,
++            ctx.executable.prebuilt_installer,
++            ctx.executable.prebuilt_uninstaller,
++        ],
++        outputs = [installer, sanitized_config, payload_archive, intermediate],
++        progress_message = "Building Windows installer for {}".format(ctx.label),
++        mnemonic = "WinInstaller",
++    )
++
++    return [
++        DefaultInfo(files = depset([installer, sanitized_config, payload_archive])),
++    ]
++
++win_installer = rule(
++    implementation = _win_installer_impl,
++    attrs = {
++        "dist": attr.label(
++            allow_single_file = True,
++            mandatory = True,
++        ),
++        "bundler": attr.label(
++            default = DEFAULT_BUNDLER,
++            executable = True,
++            cfg = "exec",
++            doc = "Executable bundler binary (rules_rust).",
++        ),
++        "prebuilt_installer": attr.label(
++            mandatory = True,
++            executable = True,
++            cfg = "exec",
++            doc = "Prebuilt installer binary (rules_rust).",
++        ),
++        "prebuilt_uninstaller": attr.label(
++            mandatory = True,
++            executable = True,
++            cfg = "exec",
++            doc = "Prebuilt uninstaller binary (rules_rust).",
++        ),
++        "output_name": attr.string(
++            default = "enso-win-installer.exe",
++            doc = "File name of the produced installer executable.",
++        ),
++        "config_name": attr.string(
++            default = "electron-builder-config.yaml",
++            doc = "Path to the electron-builder config JSON relative to the dist directory.",
++        ),
++        "unpacked_dir": attr.string(
++            default = "win-unpacked",
++            doc = "Path to the unpacked Electron bundle relative to the dist directory.",
++        ),
++    },
++    doc = "Packages the Windows Electron distribution into the Rust-based installer.",
++)
+diff --git a/build_tools/install/BUILD.bazel b/build_tools/install/BUILD.bazel
+new file mode 100644
+index 0000000000..ad4862ceac
+--- /dev/null
++++ b/build_tools/install/BUILD.bazel
+@@ -0,0 +1,19 @@
++load("@crates//:defs.bzl", "aliases", "all_crate_deps")
++load("@rules_rust//rust:defs.bzl", "rust_library")
++
++# Export the manifest file so it can be used by the installer/uninstaller binaries.
++exports_files(["enso-install.manifest"])
++
++rust_library(
++    name = "enso_install",
++    srcs = glob(["src/**/*.rs"]),
++    aliases = aliases(),
++    crate_name = "enso_install",
++    edition = "2021",
++    proc_macro_deps = all_crate_deps(proc_macro = True),
++    visibility = ["//visibility:public"],
++    deps = all_crate_deps(normal = True) + [
++        "//build_tools/ci_utils:ide_ci",
++        "//build_tools/install/config:enso_install_config",
++    ],
++)
+diff --git a/build_tools/install/Cargo.toml b/build_tools/install/Cargo.toml
+index 75692efb07..51694dc108 100644
+--- a/build_tools/install/Cargo.toml
++++ b/build_tools/install/Cargo.toml
+@@ -25,7 +25,6 @@
+ winreg = { workspace = true }
+ 
+ [build-dependencies]
+-embed-resource = "2.4.0"
+ ide-ci = { path = "../ci_utils" }
+ enso-install-config = { path = "config" }
+ 
+diff --git a/build_tools/install/build.rs b/build_tools/install/build.rs
+index 6535d28524..3edb3b7aad 100644
+--- a/build_tools/install/build.rs
++++ b/build_tools/install/build.rs
+@@ -1,92 +1,13 @@
+ //! The build script of crate that is dependency of both the installer and the uninstaller.
+ //!
+-//! Currently, it is used to include the resources (icons, manifests, version information) into the
+-//! installer and uninstaller binaries.
+-
+-use enso_install_config::prelude::*;
+-
+-#[cfg(windows)]
+-use enso_install_config::embed_resource_from_file;
++//! This build script sanitizes and exposes the electron-builder configuration.
++//! Note: The Windows manifest embedding is now done in the installer/uninstaller binaries directly.
++
+ use enso_install_config::sanitize_and_expose_electron_builder_config;
+-#[cfg(windows)]
+-use enso_install_config::ResourceType;
+-#[cfg(windows)]
+-use enso_install_config::ENSO_ICON_ID;
+-use ide_ci::programs::cargo::build_env::OUT_DIR;
+ 
+ fn main() {
+-    setup_logging().ok();
+-    // Ignore error, not compiling the icon is not a big deal, especially if we compile to check, to
+-    // not generate final package. (Obtaining icon is a bit of a hassle, as it is generated
+-    // temporarily by the enso-build.)
+-    #[cfg(windows)]
+-    if let Err(err) = embed_resource_from_file(
+-        ENSO_ICON_ID,
+-        ResourceType::Icon,
+-        &Path::new(env!("CARGO_MANIFEST_DIR"))
+-            .join("../../app/electron-client/assets/icons/icon.ico"),
+-    ) {
+-        // We do not use `cargo:warning` here, as we do not want to pollute the output if the icon
+-        // is not available. Still, to enable debugging, we print to stderr, which is captured by
+-        // the cargo and stored in `target/debug/build/<pkg>/output`.
+-        eprintln!("Failed to embed icon: {err:?}");
+-    }
+-
+-    let config = sanitize_and_expose_electron_builder_config();
+-    if let Ok(config) = config {
+-        // Content on the rc file with the version information.
+-        let version_rc = format!(
+-            r#"
+-#include "winres.h"
+-#define IDS_VERSION_INFO 1
+-
+-VS_VERSION_INFO VERSIONINFO
+-FILEVERSION {major},{minor},{patch},0
+-PRODUCTVERSION {major},{minor},{patch},0
+-FILEOS 0x4
+-FILETYPE 0x1
+-BEGIN
+-    BLOCK "StringFileInfo"
+-    BEGIN
+-        BLOCK "040904e4"
+-        BEGIN
+-            VALUE "CompanyName", "{company}"
+-            VALUE "FileVersion", "{version}"
+-            VALUE "LegalCopyright", "{copyright}"
+-            VALUE "ProductName", "{name}"
+-            VALUE "ProductVersion", "{version}"
+-        END
+-    END
+-    BLOCK "VarFileInfo"
+-    BEGIN
+-        VALUE "Translation", 0x409, 1252
+-    END
+-END
+-"#,
+-            major = config.extra_metadata.version.major,
+-            minor = config.extra_metadata.version.minor,
+-            patch = config.extra_metadata.version.patch,
+-            company = config.copyright,
+-            name = config.product_name,
+-            version = config.extra_metadata.version,
+-            copyright = config.copyright
+-        );
+-        let path = OUT_DIR.get().unwrap().join("version.rc");
+-        ide_ci::fs::write_if_different(&path, version_rc).unwrap();
+-        embed_resource::compile(&path, embed_resource::NONE);
+-    }
+-
+-    // Embed the manifest file.
+-    // Necessary to avoid the issue with `GetWindowSubclass`. See:
+-    // * https://github.com/gabdube/native-windows-gui/issues/251
+-    // * https://github.com/microsoft/windows-rs/issues/1294
+-    let manifest_path = Path::new("enso-install.manifest");
+-    assert!(manifest_path.exists(), "Manifest file does not exist: {}", manifest_path.display());
+-    let rc_path = OUT_DIR.get().unwrap().join("manifest.rc");
+-    ide_ci::fs::write_if_different(
+-        &rc_path,
+-        format!("#define RT_MANIFEST 24\n1 RT_MANIFEST \"{}\"", manifest_path.display()),
+-    )
+-    .unwrap();
+-    embed_resource::compile(&rc_path, embed_resource::NONE);
++    // Sanitize and expose the electron-builder config (used at runtime).
++    let _ = sanitize_and_expose_electron_builder_config();
++
++    println!("cargo:rerun-if-changed=build.rs");
+ }
+diff --git a/build_tools/install/config/BUILD.bazel b/build_tools/install/config/BUILD.bazel
+index efc8d8308c..6443bb1e6f 100644
+--- a/build_tools/install/config/BUILD.bazel
++++ b/build_tools/install/config/BUILD.bazel
+@@ -1,5 +1,5 @@
+ load("@crates//:defs.bzl", "aliases", "all_crate_deps")
+-load("@rules_rust//rust:defs.bzl", "rust_library")
++load("@rules_rust//rust:defs.bzl", "rust_binary", "rust_library")
+ 
+ rust_library(
+     name = "enso_install_config",
+@@ -13,3 +13,15 @@
+         "//build_tools/ci_utils:ide_ci",
+     ],
+ )
++
++rust_binary(
++    name = "bundle",
++    srcs = ["src/bin/bundle.rs"],
++    aliases = aliases(),
++    edition = "2021",
++    proc_macro_deps = all_crate_deps(proc_macro = True),
++    visibility = ["//visibility:public"],
++    deps = all_crate_deps(normal = True) + [
++        ":enso_install_config",
++    ],
++)
+diff --git a/build_tools/install/config/Cargo.toml b/build_tools/install/config/Cargo.toml
+index 3a087f5262..c5af1aeed8 100644
+--- a/build_tools/install/config/Cargo.toml
++++ b/build_tools/install/config/Cargo.toml
+@@ -6,11 +6,17 @@
+ [dependencies]
+ embed-resource = "2.4.0"
+ enso-build-base = { path = "../../base" }
++flate2 = { workspace = true }
+ ide-ci = { path = "../../ci_utils" }
+ serde = { workspace = true }
+ serde_json = { workspace = true }
++tar = { workspace = true }
+ tempfile = "3.2.0"
+ walkdir = { workspace = true }
++tokio = { workspace = true, features = ["rt-multi-thread"] }
++
++[target.'cfg(windows)'.dependencies]
++windows = { workspace = true }
+ 
+ [lints]
+ workspace = true
+diff --git a/build_tools/install/config/src/bin/bundle.rs b/build_tools/install/config/src/bin/bundle.rs
+new file mode 100644
+index 0000000000..f63383d683
+--- /dev/null
++++ b/build_tools/install/config/src/bin/bundle.rs
+@@ -0,0 +1,45 @@
++use enso_install_config::bundler;
++use enso_install_config::prelude::*;
++
++use std::env;
++use std::path::PathBuf;
++
++fn main() -> Result {
++    let mut args = env::args_os().skip(1);
++
++    let electron_builder_config =
++        args.next().map(PathBuf::from).context("Missing path to electron-builder config JSON")?;
++    let unpacked_electron_bundle =
++        args.next().map(PathBuf::from).context("Missing path to unpacked electron bundle")?;
++    let intermediate_dir =
++        args.next().map(PathBuf::from).context("Missing path to intermediate directory")?;
++    let output_file =
++        args.next().map(PathBuf::from).context("Missing path to output installer executable")?;
++    let sanitized_config_path =
++        args.next().map(PathBuf::from).context("Missing path to sanitized config output")?;
++    let payload_out =
++        args.next().map(PathBuf::from).context("Missing path to payload archive output")?;
++    let installer_binary = args.next().map(PathBuf::from);
++    let uninstaller_binary = args.next().map(PathBuf::from);
++
++    // Repo root defaults to current working directory; Bazel will set cwd appropriately.
++    let repo_root = env::current_dir().context("Failed to determine current working directory")?;
++
++    ensure!(args.next().is_none(), "Unexpected extra arguments provided to bundler");
++
++    let config = bundler::Config {
++        electron_builder_config,
++        sanitized_config_path,
++        payload_out,
++        unpacked_electron_bundle,
++        repo_root,
++        output_file,
++        intermediate_dir,
++        certificate: None,
++        installer_binary,
++        uninstaller_binary,
++    };
++
++    let rt = tokio::runtime::Runtime::new()?;
++    rt.block_on(bundler::bundle(config))
++}
+diff --git a/build_tools/install/config/src/bundler.rs b/build_tools/install/config/src/bundler.rs
+index a079be7cb9..bb837d874d 100644
+--- a/build_tools/install/config/src/bundler.rs
++++ b/build_tools/install/config/src/bundler.rs
+@@ -4,6 +4,7 @@
+ 
+ use crate::prelude::*;
+ 
++use crate::electron_builder::Config as ElectronBuilderConfig;
+ use crate::INSTALLER_NAME;
+ use crate::UNINSTALLER_NAME;
+ 
+@@ -16,6 +17,10 @@
+ pub struct Config {
+     /// File to the JSON file containing the Electron Builder configuration.
+     pub electron_builder_config: PathBuf,
++    /// Where to write the sanitized Electron Builder configuration for runtime use.
++    pub sanitized_config_path: PathBuf,
++    /// Where to write the prepared payload archive.
++    pub payload_out: PathBuf,
+     /// Path to the directory containing the unpacked Electron application bundle.
+     ///
+     /// It is obtained by running the `electron-builder` with the `--dir` option.
+@@ -30,6 +35,10 @@
+     ///
+     /// If `None`, the installer and uninstaller will not be signed.
+     pub certificate: Option<WindowsSigningCredentials>,
++    /// Optional prebuilt installer binary to embed instead of building via Cargo.
++    pub installer_binary: Option<PathBuf>,
++    /// Optional prebuilt uninstaller binary to embed instead of building via Cargo.
++    pub uninstaller_binary: Option<PathBuf>,
+ }
+ 
+ /// Builds a package using Cargo and optionally signs it with a certificate.
+@@ -67,34 +76,103 @@
+ pub async fn bundle(config: Config) -> Result {
+     let Config {
+         electron_builder_config,
++        sanitized_config_path,
+         unpacked_electron_bundle,
+         repo_root,
+         output_file,
+         intermediate_dir,
+         certificate,
++        installer_binary,
++        uninstaller_binary,
++        payload_out,
+     } = config;
+ 
+-    // The uninstaller must be built first, as it is part of the distribution package.
+-    let uninstaller_path =
+-        unpacked_electron_bundle.join(UNINSTALLER_NAME).with_executable_extension();
+-    build_package(UNINSTALLER_NAME, &uninstaller_path, certificate.as_ref(), |cmd| {
+-        cmd.current_dir(&repo_root);
+-        cmd.set_env(crate::ENSO_BUILD_ELECTRON_BUILDER_CONFIG, &electron_builder_config)
+-    })
+-    .await?;
++    ide_ci::fs::create_dir_if_missing(&intermediate_dir)?;
++
++    // Prepare the uninstaller. It will be added as an extra file to the payload archive.
++    let uninstaller_filename =
++        PathBuf::from(UNINSTALLER_NAME).with_executable_extension().to_string_lossy().to_string();
++    let uninstaller_path = intermediate_dir.join(&uninstaller_filename);
++    if let Some(prebuilt_uninstaller) = uninstaller_binary {
++        ide_ci::fs::tokio::copy(&prebuilt_uninstaller, &uninstaller_path).await?;
++    } else {
++        build_package(UNINSTALLER_NAME, &uninstaller_path, certificate.as_ref(), |cmd| {
++            cmd.current_dir(&repo_root);
++            cmd.set_env(crate::ENSO_BUILD_ELECTRON_BUILDER_CONFIG, &electron_builder_config)
++        })
++        .await?;
++    }
++
++    // Prepare the sanitized electron-builder config. It will also be added to the payload.
++    let sanitized_config = {
++        // Try to read the electron-builder config file. If it doesn't exist or can't be parsed,
++        // fall back to the default config with placeholder values. This allows Bazel builds to
++        // proceed without the config dump that was previously generated by electron-builder.
++        let raw: ElectronBuilderConfig = ide_ci::fs::read_json(&electron_builder_config)
++            .unwrap_or_else(|err| {
++                eprintln!(
++                    "Failed to read electron-builder config from {}: {}. Using default config.",
++                    electron_builder_config.display(),
++                    err
++                );
++                ElectronBuilderConfig::default()
++            });
++        serde_json::to_string_pretty(&raw)?
++    };
++    ide_ci::fs::tokio::write(&sanitized_config_path, &sanitized_config).await?;
+ 
+     // Prepare the archive payload for the installer.
++    // The archive contains all files from the unpacked bundle plus extra files (uninstaller, config).
+     let archive_path = intermediate_dir.join("payload.tar.gz");
+-    let metadata_path = intermediate_dir.join("payload.json");
+-    crate::payload::prepare_payload(&unpacked_electron_bundle, &archive_path, &metadata_path)
+-        .await?;
++    let extra_files = vec![
++        crate::payload::ExtraFile::new(&uninstaller_path, &uninstaller_filename),
++        crate::payload::ExtraFile::new(&sanitized_config_path, "electron-builder-config.json"),
++    ];
++    crate::payload::prepare_payload(&unpacked_electron_bundle, &extra_files, &archive_path)?;
++    ide_ci::fs::tokio::copy(&archive_path, &payload_out).await?;
+ 
+     // Finally build the installer.
+-    build_package(INSTALLER_NAME, &output_file, certificate.as_ref(), |cmd| {
+-        cmd.current_dir(&repo_root)
+-            .set_env(crate::ENSO_INSTALL_ARCHIVE_PATH, &archive_path)?
+-            .set_env(crate::ENSO_INSTALL_METADATA_PATH, &metadata_path)?
+-            .set_env(crate::ENSO_BUILD_ELECTRON_BUILDER_CONFIG, &electron_builder_config)
+-    })
+-    .await
++    if let Some(prebuilt_installer) = installer_binary {
++        // Copy the prebuilt installer to the output location
++        ide_ci::fs::tokio::copy(&prebuilt_installer, &output_file).await?;
++
++        // Bazel outputs are read-only; we need to make the file writable before modifying it.
++        #[cfg(windows)]
++        {
++            let mut perms = std::fs::metadata(&output_file)
++                .context("Failed to get metadata for output file")?
++                .permissions();
++            perms.set_readonly(false);
++            std::fs::set_permissions(&output_file, perms)
++                .context("Failed to make output file writable")?;
++        }
++
++        // Embed the payload archive as a Windows resource into the installer binary.
++        // This is necessary because in Bazel builds, the installer is compiled without
++        // the payload (it's not available at compile time). We add it post-build.
++        crate::resource_embed::embed_resource_from_file(
++            &output_file,
++            crate::INSTALLER_PAYLOAD_ID,
++            &archive_path,
++        )
++        .context("Failed to embed installer payload into the executable")?;
++
++        // Embed the electron-builder config as a Windows resource.
++        // The installer needs this to know product name, file associations, etc.
++        crate::resource_embed::embed_resource_from_file(
++            &output_file,
++            crate::ELECTRON_BUILDER_CONFIG_ID,
++            &sanitized_config_path,
++        )
++        .context("Failed to embed electron-builder config into the executable")?;
++    } else {
++        build_package(INSTALLER_NAME, &output_file, certificate.as_ref(), |cmd| {
++            cmd.current_dir(&repo_root)
++                .set_env(crate::ENSO_INSTALL_ARCHIVE_PATH, &archive_path)?
++                .set_env(crate::ENSO_BUILD_ELECTRON_BUILDER_CONFIG, &electron_builder_config)
++        })
++        .await?;
++    }
++
++    Ok(())
+ }
+diff --git a/build_tools/install/config/src/electron_builder.rs b/build_tools/install/config/src/electron_builder.rs
+index 6b554f604b..0d95a8ec9b 100644
+--- a/build_tools/install/config/src/electron_builder.rs
++++ b/build_tools/install/config/src/electron_builder.rs
+@@ -129,3 +129,65 @@
+         &self.base
+     }
+ }
++
++/// Creates a default configuration with placeholder values.
++///
++/// This is intended to be used when the electron-builder config file is not available,
++/// such as during Bazel builds where the config dump is not produced.
++impl Default for Config {
++    fn default() -> Self {
++        Self {
++            app_id: "org.enso".to_string(),
++            product_name: "Enso".to_string(),
++            extra_metadata: ExtraMetadata::default(),
++            copyright: "Copyright © 2024 New Byte Order sp. z o.o.".to_string(),
++            artifact_name: "enso-${os}-${arch}-0.0.0-dev.${ext}".to_string(),
++            protocols: vec![Protocol {
++                name: "Enso url".to_string(),
++                schemes: vec!["enso".to_string()],
++                role: "Editor".to_string(),
++            }],
++            win: WinConfig { icon: PathBuf::from("icon.ico") },
++            file_associations: vec![
++                FileAssociation { ext: "enso".to_string(), name: "Enso Source File".to_string() },
++                FileAssociation {
++                    ext: "enso-project".to_string(),
++                    name: "Enso Project Bundle".to_string(),
++                },
++            ],
++            directories: Directories { output: PathBuf::from(".") },
++        }
++    }
++}
++
++impl Default for ExtraMetadata {
++    fn default() -> Self {
++        Self { version: Version::new(0, 0, 0), installer: InstallerConfig::default() }
++    }
++}
++
++impl Default for InstallerConfig {
++    fn default() -> Self {
++        Self {
++            publisher: "New Byte Order sp. z o.o.".to_string(),
++            file_associations: vec![
++                ExtendedFileAssociation {
++                    prog_id: "Enso.Source".to_string(),
++                    mime_type: "text/plain".to_string(),
++                    base: FileAssociation {
++                        ext: "enso".to_string(),
++                        name: "Enso Source File".to_string(),
++                    },
++                },
++                ExtendedFileAssociation {
++                    prog_id: "Enso.ProjectBundle".to_string(),
++                    mime_type: "application/gzip".to_string(),
++                    base: FileAssociation {
++                        ext: "enso-project".to_string(),
++                        name: "Enso Project Bundle".to_string(),
++                    },
++                },
++            ],
++        }
++    }
++}
+diff --git a/build_tools/install/config/src/lib.rs b/build_tools/install/config/src/lib.rs
+index ffcaad188b..1f95c00c4f 100644
+--- a/build_tools/install/config/src/lib.rs
++++ b/build_tools/install/config/src/lib.rs
+@@ -13,6 +13,7 @@
+ pub mod bundler;
+ pub mod electron_builder;
+ pub mod payload;
++pub mod resource_embed;
+ 
+ use prelude::*;
+ 
+@@ -46,11 +47,6 @@
+     /// The path to the `tar.gz` archive containing the Enso IDE payload. Provided by the
+     /// enso-build to the enso-installer's `build.rs`, which embeds it into the installer's binary.
+     ENSO_INSTALL_ARCHIVE_PATH, PathBuf;
+-
+-    /// The path to the JSON file containing the metadata of the Enso IDE payload.
+-    ///
+-    /// The metadata is modeled by the [`crate::payload::Metadata`] struct.
+-    ENSO_INSTALL_METADATA_PATH, PathBuf;
+ }
+ 
+ /// Build-time script (build.rs) that retrieves the electron-builder configuration from the
+@@ -106,6 +102,11 @@
+ /// The payload is a `tar.gz` archive containing the Enso IDE.
+ pub const INSTALLER_PAYLOAD_ID: &str = "INSTALLER_PAYLOAD";
+ 
++/// The resource (RCDATA) ID of the electron-builder configuration.
++///
++/// This JSON configuration contains product name, file associations, and other installer settings.
++pub const ELECTRON_BUILDER_CONFIG_ID: &str = "ELECTRON_BUILDER_CONFIG";
++
+ /// Identifier for the Enso icon resource.
+ pub const ENSO_ICON_ID: &str = "ENSO_ICON_ID";
+ 
+diff --git a/build_tools/install/config/src/payload.rs b/build_tools/install/config/src/payload.rs
+index 02fa9110f6..71856baa51 100644
+--- a/build_tools/install/config/src/payload.rs
++++ b/build_tools/install/config/src/payload.rs
+@@ -2,11 +2,16 @@
+ 
+ use crate::prelude::*;
+ 
++use flate2::read::GzDecoder;
++use flate2::write::GzEncoder;
++use flate2::Compression;
++use std::fs::File;
++use std::io::BufWriter;
++
+ /// Information about the archive payload of the installer.
+ ///
+-/// This information is used to display progress information to the user. While it could be
+-/// generated at runtime by inspecting the archive, it is more efficient to generate it at build
+-/// time and embed it into the installer binary.
++/// This information is used to display progress information to the user (disk space check and
++/// extraction progress bar).
+ #[derive(Clone, Copy, Debug, Serialize, Deserialize)]
+ pub struct Metadata {
+     /// Number of files in the archive.
+@@ -16,33 +21,114 @@
+ }
+ 
+ impl Metadata {
+-    /// Scans the given directory and calculates the payload information.
+-    pub fn from_directory(unpacked_directory: &Path) -> Result<Self> {
+-        let mut total_files = 0;
+-        let mut total_bytes = 0;
+-        for entry in walkdir::WalkDir::new(unpacked_directory) {
+-            let entry = entry?;
+-            let metadata = entry.metadata()?;
+-            total_files += 1;
+-            // We treat directories as empty files.
+-            total_bytes += if metadata.is_dir() { 0 } else { metadata.len() };
+-        }
+-        Ok(Self { total_files, total_bytes })
+-    }
+-}
+-
+-/// Take the electron-builder output and prepare the payload files for the installer.
+-///
+-/// These files need to be provided to the installer at build time, so they can be embedded into
+-/// the installer binary
+-pub async fn prepare_payload(
++    /// Creates new empty metadata.
++    pub fn new() -> Self {
++        Self { total_files: 0, total_bytes: 0 }
++    }
++
++    /// Adds file statistics to the metadata.
++    pub fn add_file(&mut self, size: u64) {
++        self.total_files += 1;
++        self.total_bytes += size;
++    }
++
++    /// Adds directory statistics to the metadata.
++    pub fn add_directory(&mut self) {
++        self.total_files += 1;
++        // Directories contribute 0 bytes.
++    }
++}
++
++impl Default for Metadata {
++    fn default() -> Self {
++        Self::new()
++    }
++}
++
++/// An extra file to include in the payload archive.
++pub struct ExtraFile {
++    /// Path to the source file on disk.
++    pub source: PathBuf,
++    /// Target path within the archive.
++    pub archive_path: PathBuf,
++}
++
++impl ExtraFile {
++    /// Creates a new extra file entry.
++    pub fn new(source: impl Into<PathBuf>, archive_path: impl Into<PathBuf>) -> Self {
++        Self { source: source.into(), archive_path: archive_path.into() }
++    }
++}
++
++/// Take the electron-builder output and prepare the payload archive for the installer.
++///
++/// This function creates a tar.gz archive containing:
++/// - All files from `unpacked_directory` (at the root of the archive)
++/// - Any extra files specified in `extra_files` (at their specified archive paths)
++///
++/// The archive is created using pure Rust, without relying on external tools like `tar` or
++/// `robocopy`, making it suitable for use in sandboxed build environments like Bazel.
++///
++/// Note: Archive metadata (file count, total size) is computed at runtime by the installer
++/// using [`scan_archive_metadata`].
++pub fn prepare_payload(
+     unpacked_directory: &Path,
++    extra_files: &[ExtraFile],
+     output_archive: &Path,
+-    output_metadata: &Path,
+ ) -> Result {
+-    let metadata = Metadata::from_directory(unpacked_directory)?;
+-    ide_ci::archive::compress_directory_contents(&output_archive, &unpacked_directory).await?;
+-    let metadata_json = serde_json::to_string_pretty(&metadata)?;
+-    ide_ci::fs::write_if_different(output_metadata, metadata_json)?;
++    // Create the tar.gz archive.
++    let file = File::create(output_archive)
++        .with_context(|| format!("Failed to create archive: {}", output_archive.display()))?;
++    let encoder = GzEncoder::new(BufWriter::new(file), Compression::default());
++    let mut archive = tar::Builder::new(encoder);
++
++    // Add all files from the unpacked directory.
++    for entry in walkdir::WalkDir::new(unpacked_directory) {
++        let entry = entry?;
++        let full_path = entry.path();
++        let relative_path = full_path.strip_prefix(unpacked_directory)?;
++
++        // Skip the root directory itself.
++        if relative_path.as_os_str().is_empty() {
++            continue;
++        }
++
++        let file_metadata = entry.metadata()?;
++        if file_metadata.is_dir() {
++            archive.append_dir(relative_path, full_path)?;
++        } else {
++            archive.append_path_with_name(full_path, relative_path)?;
++        }
++    }
++
++    // Add extra files.
++    for extra in extra_files {
++        archive.append_path_with_name(&extra.source, &extra.archive_path)?;
++    }
++
++    // Finish writing the archive.
++    let encoder = archive.into_inner()?;
++    encoder.finish()?;
++
+     Ok(())
+ }
++
++/// Scan a gzipped tar archive and compute metadata by reading tar headers.
++///
++/// This function reads through the archive entries without extracting file contents,
++/// counting files and summing their sizes. This is used at installer runtime to compute
++/// the metadata needed for disk space checks and progress display.
++pub fn scan_archive_metadata(archive_data: &[u8]) -> Result<Metadata> {
++    let decoder = GzDecoder::new(archive_data);
++    let mut archive = tar::Archive::new(decoder);
++    let mut metadata = Metadata::new();
++    for entry in archive.entries()? {
++        let entry = entry?;
++        if entry.header().entry_type().is_dir() {
++            metadata.add_directory();
++        } else {
++            metadata.add_file(entry.header().size()?);
++        }
++    }
++    Ok(metadata)
++}
+diff --git a/build_tools/install/config/src/resource_embed.rs b/build_tools/install/config/src/resource_embed.rs
+new file mode 100644
+index 0000000000..e5d853c8a5
+--- /dev/null
++++ b/build_tools/install/config/src/resource_embed.rs
+@@ -0,0 +1,107 @@
++//! Functionality for embedding resources into Windows PE executables at runtime.
++//!
++//! This module provides the ability to add binary resources (like the installer payload)
++//! into an already-compiled executable. This is used in the Bazel build where the installer
++//! binary is built separately from the payload creation.
++
++use crate::prelude::*;
++
++/// Resource type for arbitrary binary data (RCDATA).
++///
++/// See https://learn.microsoft.com/en-us/windows/win32/menurc/resource-types
++pub const RT_RCDATA: u16 = 10;
++
++/// Embeds a binary resource into a Windows PE executable.
++///
++/// This function uses the Windows Resource API to add a binary resource to an existing
++/// executable file. The resource can later be retrieved at runtime using `FindResource`
++/// and `LoadResource`.
++///
++/// # Arguments
++/// * `executable_path` - Path to the PE executable to modify
++/// * `resource_id` - String identifier for the resource (e.g., "INSTALLER_PAYLOAD")
++/// * `data` - The binary data to embed
++///
++/// # Platform
++/// This function only works on Windows. On other platforms, it will return an error.
++#[cfg(windows)]
++pub fn embed_binary_resource(executable_path: &Path, resource_id: &str, data: &[u8]) -> Result<()> {
++    use std::ffi::c_void;
++    use std::ffi::OsStr;
++    use std::os::windows::ffi::OsStrExt;
++    use windows::core::PCWSTR;
++    use windows::Win32::System::LibraryLoader::{
++        BeginUpdateResourceW, EndUpdateResourceW, UpdateResourceW,
++    };
++
++    // Convert path to wide string for Windows API
++    let wide_path: Vec<u16> =
++        OsStr::new(executable_path).encode_wide().chain(std::iter::once(0)).collect();
++
++    // Convert resource ID to wide string
++    let wide_id: Vec<u16> =
++        OsStr::new(resource_id).encode_wide().chain(std::iter::once(0)).collect();
++
++    // Begin updating resources
++    let handle = unsafe { BeginUpdateResourceW(PCWSTR(wide_path.as_ptr()), false) }
++        .context("Failed to begin updating resources. Is the file locked?")?;
++
++    // Add the resource
++    // RT_RCDATA = 10, language neutral = 0
++    let result = unsafe {
++        UpdateResourceW(
++            handle,
++            PCWSTR(RT_RCDATA as *const u16),
++            PCWSTR(wide_id.as_ptr()),
++            0, // Language neutral
++            Some(data.as_ptr() as *const c_void),
++            data.len() as u32,
++        )
++    };
++
++    if let Err(e) = result {
++        // Try to discard changes on error
++        let _ = unsafe { EndUpdateResourceW(handle, true) };
++        return Err(e).context("Failed to update resource");
++    }
++
++    // Commit the changes
++    unsafe { EndUpdateResourceW(handle, false) }.context("Failed to commit resource updates")?;
++
++    Ok(())
++}
++
++/// Embeds a binary resource from a file into a Windows PE executable.
++///
++/// This is a convenience wrapper around [`embed_binary_resource`] that reads the
++/// resource data from a file.
++#[cfg(windows)]
++pub fn embed_resource_from_file(
++    executable_path: &Path,
++    resource_id: &str,
++    resource_file: &Path,
++) -> Result<()> {
++    let data = std::fs::read(resource_file)
++        .with_context(|| format!("Failed to read resource file: {}", resource_file.display()))?;
++    embed_binary_resource(executable_path, resource_id, &data)
++}
++
++/// Non-Windows stub that returns an error.
++#[cfg(not(windows))]
++pub fn embed_binary_resource(
++    _executable_path: &Path,
++    _resource_id: &str,
++    _data: &[u8],
++) -> Result<()> {
++    bail!("Resource embedding is only supported on Windows")
++}
++
++/// Non-Windows stub that returns an error.
++#[cfg(not(windows))]
++pub fn embed_resource_from_file(
++    _executable_path: &Path,
++    _resource_id: &str,
++    _resource_file: &Path,
++) -> Result<()> {
++    bail!("Resource embedding is only supported on Windows")
++}
+diff --git a/build_tools/install/installer/BUILD.bazel b/build_tools/install/installer/BUILD.bazel
+new file mode 100644
+index 0000000000..5d2feab4d1
+--- /dev/null
++++ b/build_tools/install/installer/BUILD.bazel
+@@ -0,0 +1,55 @@
++load("@crates//:defs.bzl", "aliases", "all_crate_deps")
++load("@rules_rust//cargo:defs.bzl", "cargo_build_script")
++load("@rules_rust//rust:defs.bzl", "rust_binary", "rust_library")
++
++cargo_build_script(
++    name = "build_script",
++    srcs = ["build.rs"],
++    aliases = aliases(build = True),
++    edition = "2021",
++    deps = all_crate_deps(build = True) + [
++        "//build_tools/ci_utils:ide_ci",
++        "//build_tools/install/config:enso_install_config",
++    ],
++)
++
++rust_library(
++    name = "enso_installer_lib",
++    srcs = glob(
++        ["src/**/*.rs"],
++        exclude = ["src/main.rs"],
++    ),
++    aliases = aliases(),
++    crate_name = "enso_installer",
++    edition = "2021",
++    proc_macro_deps = all_crate_deps(proc_macro = True),
++    visibility = ["//visibility:public"],
++    deps = all_crate_deps(normal = True) + [
++        "//build_tools/ci_utils:ide_ci",
++        "//build_tools/install:enso_install",
++        "//build_tools/install/config:enso_install_config",
++    ],
++)
++
++rust_binary(
++    name = "enso_installer",
++    srcs = ["src/main.rs"],
++    aliases = aliases(),
++    compile_data = ["//build_tools/install:enso-install.manifest"],
++    crate_root = "src/main.rs",
++    edition = "2021",
++    proc_macro_deps = all_crate_deps(proc_macro = True),
++    # Embed the Windows manifest for Common Controls v6.0 (required for GetWindowSubclass).
++    rustc_flags = select({
++        "@platforms//os:windows": [
++            "-Clink-arg=/MANIFEST:EMBED",
++            "-Clink-arg=/MANIFESTINPUT:$(execpath //build_tools/install:enso-install.manifest)",
++        ],
++        "//conditions:default": [],
++    }),
++    visibility = ["//visibility:public"],
++    deps = all_crate_deps(normal = True) + [
++        ":build_script",
++        ":enso_installer_lib",
++    ],
++)
+diff --git a/build_tools/install/installer/Cargo.toml b/build_tools/install/installer/Cargo.toml
+index ab15833aa8..bafaba4a6f 100644
+--- a/build_tools/install/installer/Cargo.toml
++++ b/build_tools/install/installer/Cargo.toml
+@@ -19,7 +19,7 @@
+ native-windows-gui = { workspace = true }
+ 
+ [build-dependencies]
+-embed-resource = "2.4.0"
++embed-manifest = "1.4.0"
+ ide-ci = { path = "../../ci_utils" }
+ enso-install-config = { path = "../config" }
+ flate2 = { workspace = true }
+diff --git a/build_tools/install/installer/build.rs b/build_tools/install/installer/build.rs
+index cc69246651..fef951c13b 100644
+--- a/build_tools/install/installer/build.rs
++++ b/build_tools/install/installer/build.rs
+@@ -1,44 +1,34 @@
+ //! The build script of the installer.
+ //!
+-//! It is used to compile in the binary payload and metadata about it into the installer binary.
++//! It is used to:
++//! - Embed the Windows manifest (required for Common Controls v6.0 / GetWindowSubclass).
++//! - Sanitize and expose the electron-builder configuration for legacy builds.
+ //!
+-//! Note that other resources (icons, manifests, version information) are already included in the
+-//! installer binary by the `enso-install` library crate.
+-
+-use ide_ci::prelude::*;
++//! Note: In Bazel builds, the payload and config are embedded differently (not via build.rs).
+ 
+ use enso_install_config::sanitize_and_expose_electron_builder_config;
+-use enso_install_config::ENSO_INSTALL_ARCHIVE_PATH;
+-use enso_install_config::ENSO_INSTALL_METADATA_PATH;
+-use enso_install_config::INSTALLER_PAYLOAD_ID;
+-use ide_ci::env::known::cargo::build::OUT_DIR;
+-use ide_ci::programs::cargo;
+ 
+ fn main() {
+-    let rc_file = OUT_DIR.get().unwrap().join("archive.rc");
+-    cargo::build::rerun_if_file_changed(&rc_file);
++    // Embed the Windows manifest using embed-manifest (pure Rust, no external tools needed).
++    // This is necessary to avoid the issue with `GetWindowSubclass`. See:
++    // * https://github.com/gabdube/native-windows-gui/issues/251
++    // * https://github.com/microsoft/windows-rs/issues/1294
++    #[cfg(windows)]
++    {
++        use embed_manifest::manifest::ActiveCodePage;
++        use embed_manifest::manifest::ExecutionLevel;
++        use embed_manifest::manifest::SupportedOS;
++        use embed_manifest::new_manifest;
+ 
+-    cargo::build::rerun_if_env_changed(ENSO_INSTALL_ARCHIVE_PATH);
+-    if let Ok(archive) = ENSO_INSTALL_ARCHIVE_PATH.get() {
+-        cargo::build::rerun_if_file_changed(archive.as_str());
+-        // We need to either replace backslashes with forward slashes or escape them, as RC file is
+-        // kinda-compiled. The former is easier.
+-        let sanitized_path = archive.as_str().replace('\\', "/");
+-        let contents = format!(r#"{INSTALLER_PAYLOAD_ID} RCDATA "{sanitized_path}""#);
+-        ide_ci::fs::write_if_different(&rc_file, contents).unwrap();
+-        embed_resource::compile(&rc_file, embed_resource::NONE);
+-    } else {
+-        println!("cargo:warning={ENSO_INSTALL_ARCHIVE_PATH} is not set, the installer will fail at runtime.");
+-    }
++        let manifest = new_manifest("Enso Installer")
++            .version(1, 0, 0, 0)
++            .requested_execution_level(ExecutionLevel::AsInvoker)
++            .active_code_page(ActiveCodePage::Utf8)
++            .supported_os(SupportedOS::Windows7..=SupportedOS::Windows10);
+ 
+-    cargo::build::rerun_if_env_changed(ENSO_INSTALL_METADATA_PATH);
+-    if !ENSO_INSTALL_METADATA_PATH.is_set() {
+-        println!("cargo:warning={ENSO_INSTALL_METADATA_PATH} is not set, the installer will fail at runtime.");
+-        let placeholder_path = OUT_DIR.get().unwrap().join("metadata.json");
+-        ide_ci::fs::write_if_different(&placeholder_path, "{}").unwrap();
+-        // Set env for the crate.
+-        cargo::build::expose_env_var(ENSO_INSTALL_METADATA_PATH, placeholder_path.as_str());
++        embed_manifest::embed_manifest(manifest).expect("Failed to embed manifest");
+     }
+ 
+     let _ = sanitize_and_expose_electron_builder_config();
++    println!("cargo:rerun-if-changed=build.rs");
+ }
+diff --git a/build_tools/install/installer/src/lib.rs b/build_tools/install/installer/src/lib.rs
+index 5e4c1971da..bc47d47312 100644
+--- a/build_tools/install/installer/src/lib.rs
++++ b/build_tools/install/installer/src/lib.rs
+@@ -2,8 +2,6 @@
+ 
+ use enso_install::prelude::*;
+ 
+-use enso_install::access_built_time_env;
+-
+ // ==============
+ // === Export ===
+ // ==============
+@@ -32,19 +30,10 @@
+ }
+ 
+ /// Handle to the compiled-in installer payload.
+-#[derive(Copy, Clone, Debug)]
++#[derive(Clone, Debug)]
+ pub struct Payload {
+     /// The binary data of the payload.
+     pub data: &'static [u8],
+-    /// The metadata of the payload.
+-    pub metadata: &'static enso_install_config::payload::Metadata,
+-}
+-
+-/// Retrieve the compiled-in installer payload metadata.
+-pub fn access_payload_metadata() -> &'static enso_install_config::payload::Metadata {
+-    access_built_time_env!(
+-        ENSO_INSTALL_METADATA_PATH,
+-        enso_install_config::payload::Metadata,
+-        "payload metadata"
+-    )
++    /// The metadata of the payload (computed at runtime by scanning tar headers).
++    pub metadata: enso_install_config::payload::Metadata,
+ }
+diff --git a/build_tools/install/installer/src/win/app/ui.rs b/build_tools/install/installer/src/win/app/ui.rs
+index 7d9c756963..11e19ed77c 100644
+--- a/build_tools/install/installer/src/win/app/ui.rs
++++ b/build_tools/install/installer/src/win/app/ui.rs
+@@ -42,20 +42,24 @@
+ impl NativeUi<Ui> for InstallerApp {
+     fn build_ui(mut data: InstallerApp) -> std::result::Result<Ui, nwg::NwgError> {
+         nwg::EmbedResource::builder().build(&mut data.embed)?;
+-        nwg::Icon::builder()
++        // Try to load the icon, but don't fail if it's not available.
++        // The icon might not be embedded in Bazel builds.
++        let icon_available = nwg::Icon::builder()
+             .source_embed(Some(&data.embed))
+             .source_embed_str(Some(ENSO_ICON_ID))
+             .strict(false)
+             .size(Some((ICON_SIZE, ICON_SIZE)))
+-            .build(&mut data.enso_icon)?;
++            .build(&mut data.enso_icon)
++            .is_ok();
++        let window_icon = if icon_available { Some(&data.enso_icon) } else { None };
+         nwg::Window::builder()
+             .title(&data.window_title)
+             .flags(nwg::WindowFlags::WINDOW | nwg::WindowFlags::VISIBLE)
+-            .icon(Some(&data.enso_icon))
++            .icon(window_icon)
+             .size((400, 100))
+             .build(&mut data.window)?;
+         nwg::ImageFrame::builder()
+-            .icon(Some(&data.enso_icon))
++            .icon(window_icon)
+             .size((ICON_SIZE as i32, ICON_SIZE as i32))
+             .parent(&data.window)
+             .build(&mut data.image)?;
+diff --git a/build_tools/install/installer/src/win/logic.rs b/build_tools/install/installer/src/win/logic.rs
+index 07327afcb3..c9a99e1981 100644
+--- a/build_tools/install/installer/src/win/logic.rs
++++ b/build_tools/install/installer/src/win/logic.rs
+@@ -92,7 +92,7 @@
+     // Only one installer / uninstaller can run at a time.
+     let _guard = enso_install::locked_installation_lock()?;
+ 
+-    let enso_install_config::payload::Metadata { total_files, total_bytes } = *payload.metadata;
++    let enso_install_config::payload::Metadata { total_files, total_bytes } = payload.metadata;
+     stage_at!(0.00, "Checking disk space.");
+     // TODO? A potential improvement would be to take account for previous installation size when
+     //       performing the in-place update. Then the needed space would be the difference between
+diff --git a/build_tools/install/installer/src/win.rs b/build_tools/install/installer/src/win.rs
+index 2a6d46c551..81d65e5010 100644
+--- a/build_tools/install/installer/src/win.rs
++++ b/build_tools/install/installer/src/win.rs
+@@ -1,6 +1,5 @@
+ use ide_ci::prelude::*;
+ 
+-use crate::access_payload_metadata;
+ use crate::win::config::Config;
+ use crate::win::logic::install_with_updates;
+ use crate::Payload;
+@@ -15,12 +14,12 @@
+ pub mod config;
+ pub mod logic;
+ 
+-/// Retrieve the compiled-in installer payload with metadata.
++/// Retrieve the compiled-in installer payload with metadata computed at runtime.
+ pub fn access_payload() -> Result<Payload> {
+-    Ok(Payload {
+-        data: enso_install::win::get_installer_payload()?,
+-        metadata: access_payload_metadata(),
+-    })
++    let data = enso_install::win::get_installer_payload()?;
++    let metadata = enso_install_config::payload::scan_archive_metadata(data)
++        .context("Failed to scan payload archive for metadata")?;
++    Ok(Payload { data, metadata })
+ }
+ 
+ /// Spawn a thread that will install the Enso IDE at the given location.
+diff --git a/build_tools/install/src/lib.rs b/build_tools/install/src/lib.rs
+index 1a0f8b1aac..854eb58f3d 100644
+--- a/build_tools/install/src/lib.rs
++++ b/build_tools/install/src/lib.rs
+@@ -21,46 +21,43 @@
+ #[cfg(windows)]
+ pub mod win;
+ 
+-/// A macro for accessing compiled-in JSON data.
++static SANITIZED_CONFIG: std::sync::OnceLock<electron_builder::Config> = std::sync::OnceLock::new();
++
++fn sanitized_electron_builder_config_path() -> Result<PathBuf> {
++    if let Ok(from_env) = std::env::var("ENSO_INSTALL_ELECTRON_BUILDER_CONFIG") {
++        return Ok(PathBuf::from(from_env));
++    }
++    let exe_dir = ide_ci::env::current_exe()?
++        .parent()
++        .map(PathBuf::from)
++        .ok_or_else(|| anyhow!("Cannot determine executable directory"))?;
++    Ok(exe_dir.join("electron-builder-config.json"))
++}
++
++/// Access sanitized electron-builder configuration at runtime.
+ ///
+-/// # Parameters
+-/// - `$env` - the name of the environment variable that contains the path to the JSON file.
+-/// - `$typename` - the type of the data that is stored in the JSON file.
+-/// - `$pretty_name` - a human-readable name of the data type that will be used in error messages.
+-#[macro_export]
+-macro_rules! access_built_time_env {
+-    ($env:ident, $typename:ty, $pretty_name:expr) => {
++/// For Bazel-built installers, the config is embedded as a Windows resource.
++/// For legacy builds and the uninstaller, the config is read from a file next to the executable.
++pub fn sanitized_electron_builder_config() -> &'static electron_builder::Config {
++    SANITIZED_CONFIG.get_or_init(|| {
++        // Try embedded resource first (Bazel-built installer)
++        #[cfg(windows)]
++        if let Ok(data) = win::resource::get_binary(enso_install_config::ELECTRON_BUILDER_CONFIG_ID)
+         {
+-        static DATA: std::sync::LazyLock<$typename> = std::sync::LazyLock::new(|| {
+-            let crate_name = env!("CARGO_PKG_NAME");
+-            let pretty = $pretty_name;
+-            let path = env!(stringify!($env));
+-            let data = include_str!(env!(stringify!($env)));
+-            if path.is_empty() {
+-                panic!("The path to the {pretty} is empty. The {crate_name} was built without `{}` environment variable set.", stringify!($env));
+-            }
+-            if data.is_empty() {
+-                panic!("The {pretty} file is empty. Likely the stub was provided to enable compilation. Investigate the build logs warnings.");
+-            }
+-            serde_json::from_str(data).expect(&format!("Failed to parse the {pretty}."))
++            if let Ok(config) = serde_json::from_slice(data) {
++                return config;
++            }
++        }
++        // Fall back to file (legacy builds, uninstaller)
++        let path = sanitized_electron_builder_config_path()
++            .expect("Failed to resolve sanitized electron-builder config path");
++        let data = std::fs::read_to_string(&path).unwrap_or_else(|e| {
++            panic!("Failed to read sanitized electron-builder config at {path:?}: {e}")
+         });
+-        &DATA
+-        }
+-    };
+-}
+-
+-/// Access compiled-in `electron builder`-based configuration.
+-///
+-/// # Panics
+-///
+-/// This function will panic if the path to the configuration was not set during the build process,
+-/// or if the configuration was invalid.
+-pub fn sanitized_electron_builder_config() -> &'static electron_builder::Config {
+-    access_built_time_env!(
+-        ENSO_INSTALL_ELECTRON_BUILDER_CONFIG,
+-        electron_builder::Config,
+-        "Electron Builder configuration"
+-    )
++        serde_json::from_str(&data).unwrap_or_else(|e| {
++            panic!("Failed to parse sanitized electron-builder config at {path:?}: {e}")
++        })
++    })
+ }
+ 
+ /// The name of the Windows registry key where uninstall information is stored.
+diff --git a/build_tools/install/uninstaller/BUILD.bazel b/build_tools/install/uninstaller/BUILD.bazel
+new file mode 100644
+index 0000000000..131b7e7e01
+--- /dev/null
++++ b/build_tools/install/uninstaller/BUILD.bazel
+@@ -0,0 +1,52 @@
++load("@crates//:defs.bzl", "aliases", "all_crate_deps")
++load("@rules_rust//cargo:defs.bzl", "cargo_build_script")
++load("@rules_rust//rust:defs.bzl", "rust_binary", "rust_library")
++
++cargo_build_script(
++    name = "build_script",
++    srcs = ["build.rs"],
++    aliases = aliases(build = True),
++    edition = "2021",
++    deps = all_crate_deps(build = True),
++)
++
++rust_library(
++    name = "enso_uninstaller_lib",
++    srcs = glob(
++        ["src/**/*.rs"],
++        exclude = ["src/main.rs"],
++    ),
++    aliases = aliases(),
++    crate_name = "enso_uninstaller",
++    edition = "2021",
++    proc_macro_deps = all_crate_deps(proc_macro = True),
++    visibility = ["//visibility:public"],
++    deps = all_crate_deps(normal = True) + [
++        "//build_tools/ci_utils:ide_ci",
++        "//build_tools/install:enso_install",
++        "//build_tools/install/config:enso_install_config",
++    ],
++)
++
++rust_binary(
++    name = "enso_uninstaller",
++    srcs = ["src/main.rs"],
++    aliases = aliases(),
++    compile_data = ["//build_tools/install:enso-install.manifest"],
++    crate_root = "src/main.rs",
++    edition = "2021",
++    proc_macro_deps = all_crate_deps(proc_macro = True),
++    # Embed the Windows manifest for Common Controls v6.0 (required for GetWindowSubclass).
++    rustc_flags = select({
++        "@platforms//os:windows": [
++            "-Clink-arg=/MANIFEST:EMBED",
++            "-Clink-arg=/MANIFESTINPUT:$(execpath //build_tools/install:enso-install.manifest)",
++        ],
++        "//conditions:default": [],
++    }),
++    visibility = ["//visibility:public"],
++    deps = all_crate_deps(normal = True) + [
++        ":build_script",
++        ":enso_uninstaller_lib",
++    ],
++)
+diff --git a/build_tools/install/uninstaller/Cargo.toml b/build_tools/install/uninstaller/Cargo.toml
+index 0dd408110c..e197d2aaf3 100644
+--- a/build_tools/install/uninstaller/Cargo.toml
++++ b/build_tools/install/uninstaller/Cargo.toml
+@@ -17,5 +17,8 @@
+ [target.'cfg(windows)'.dependencies]
+ native-windows-gui = { workspace = true }
+ 
++[build-dependencies]
++embed-manifest = "1.4.0"
++
+ [lints]
+ workspace = true
+diff --git a/build_tools/install/installer/build.rs b/build_tools/install/uninstaller/build.rs
+copy from build_tools/install/installer/build.rs
+copy to build_tools/install/uninstaller/build.rs
+index cc69246651..29d262e8b2 100644
+--- a/build_tools/install/installer/build.rs
++++ b/build_tools/install/uninstaller/build.rs
+@@ -1,44 +1,27 @@
+-//! The build script of the installer.
+-//!
+-//! It is used to compile in the binary payload and metadata about it into the installer binary.
+-//!
+-//! Note that other resources (icons, manifests, version information) are already included in the
+-//! installer binary by the `enso-install` library crate.
+-
+-use ide_ci::prelude::*;
+-
+-use enso_install_config::sanitize_and_expose_electron_builder_config;
+-use enso_install_config::ENSO_INSTALL_ARCHIVE_PATH;
+-use enso_install_config::ENSO_INSTALL_METADATA_PATH;
+-use enso_install_config::INSTALLER_PAYLOAD_ID;
+-use ide_ci::env::known::cargo::build::OUT_DIR;
+-use ide_ci::programs::cargo;
++//! The build script of the uninstaller.
++//!
++//! It is used to embed the Windows manifest (required for Common Controls v6.0 / GetWindowSubclass).
+ 
+ fn main() {
+-    let rc_file = OUT_DIR.get().unwrap().join("archive.rc");
+-    cargo::build::rerun_if_file_changed(&rc_file);
++    // Embed the Windows manifest using embed-manifest (pure Rust, no external tools needed).
++    // This is necessary to avoid the issue with `GetWindowSubclass`. See:
++    // * https://github.com/gabdube/native-windows-gui/issues/251
++    // * https://github.com/microsoft/windows-rs/issues/1294
++    #[cfg(windows)]
++    {
++        use embed_manifest::manifest::ActiveCodePage;
++        use embed_manifest::manifest::ExecutionLevel;
++        use embed_manifest::manifest::SupportedOS;
++        use embed_manifest::new_manifest;
+ 
+-    cargo::build::rerun_if_env_changed(ENSO_INSTALL_ARCHIVE_PATH);
+-    if let Ok(archive) = ENSO_INSTALL_ARCHIVE_PATH.get() {
+-        cargo::build::rerun_if_file_changed(archive.as_str());
+-        // We need to either replace backslashes with forward slashes or escape them, as RC file is
+-        // kinda-compiled. The former is easier.
+-        let sanitized_path = archive.as_str().replace('\\', "/");
+-        let contents = format!(r#"{INSTALLER_PAYLOAD_ID} RCDATA "{sanitized_path}""#);
+-        ide_ci::fs::write_if_different(&rc_file, contents).unwrap();
+-        embed_resource::compile(&rc_file, embed_resource::NONE);
+-    } else {
+-        println!("cargo:warning={ENSO_INSTALL_ARCHIVE_PATH} is not set, the installer will fail at runtime.");
+-    }
++        let manifest = new_manifest("Enso Uninstaller")
++            .version(1, 0, 0, 0)
++            .requested_execution_level(ExecutionLevel::AsInvoker)
++            .active_code_page(ActiveCodePage::Utf8)
++            .supported_os(SupportedOS::Windows7..=SupportedOS::Windows10);
+ 
+-    cargo::build::rerun_if_env_changed(ENSO_INSTALL_METADATA_PATH);
+-    if !ENSO_INSTALL_METADATA_PATH.is_set() {
+-        println!("cargo:warning={ENSO_INSTALL_METADATA_PATH} is not set, the installer will fail at runtime.");
+-        let placeholder_path = OUT_DIR.get().unwrap().join("metadata.json");
+-        ide_ci::fs::write_if_different(&placeholder_path, "{}").unwrap();
+-        // Set env for the crate.
+-        cargo::build::expose_env_var(ENSO_INSTALL_METADATA_PATH, placeholder_path.as_str());
++        embed_manifest::embed_manifest(manifest).expect("Failed to embed manifest");
+     }
+ 
+-    let _ = sanitize_and_expose_electron_builder_config();
++    println!("cargo:rerun-if-changed=build.rs");
+ }
+diff --git a/build_tools/install/uninstaller/src/lib.rs b/build_tools/install/uninstaller/src/lib.rs
+new file mode 100644
+index 0000000000..61143d0ee5
+--- /dev/null
++++ b/build_tools/install/uninstaller/src/lib.rs
+@@ -0,0 +1,14 @@
++//! This crate implements the Windows uninstaller for the Enso IDE.
++
++// ==============
++// === Export ===
++// ==============
++
++#[cfg(windows)]
++pub mod win;
++
++pub use enso_install::prelude;
++
++// Re-export items used by the binary.
++pub use enso_install;
++pub use ide_ci;
+diff --git a/build_tools/install/uninstaller/src/main.rs b/build_tools/install/uninstaller/src/main.rs
+index 835c2db67e..3da8099ec9 100644
+--- a/build_tools/install/uninstaller/src/main.rs
++++ b/build_tools/install/uninstaller/src/main.rs
+@@ -1,18 +1,11 @@
+ #![windows_subsystem = "windows"] // Do not display a console window when running the uninstaller.
+ 
+-use enso_install::prelude::*;
+-
+-// ==============
+-// === Export ===
+-// ==============
+-
+-#[cfg(windows)]
+-pub mod win;
++use enso_uninstaller::prelude::*;
+ 
+ #[cfg(windows)]
+ #[tokio::main]
+ pub async fn main() -> Result {
+-    win::main().await
++    enso_uninstaller::win::main().await
+ }
+ 
+ #[cfg(not(windows))]
+diff --git a/build_tools/install/uninstaller/src/win.rs b/build_tools/install/uninstaller/src/win.rs
+index e0ea3f88ad..6cf7613c9a 100644
+--- a/build_tools/install/uninstaller/src/win.rs
++++ b/build_tools/install/uninstaller/src/win.rs
+@@ -1,4 +1,6 @@
+-use enso_install::prelude::*;
++use crate::enso_install;
++use crate::ide_ci;
++use crate::prelude::*;
+ 
+ use enso_install::is_already_running;
+ use enso_install::locked_installation_lock;
+diff --git a/changes.diff b/changes.diff
+new file mode 100644
+index 0000000000..e69de29bb2
