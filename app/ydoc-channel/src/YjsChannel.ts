@@ -230,6 +230,13 @@ export class YjsDataChannel<T = unknown> extends YjsChannel<T> {
     })
   }
 
+  override send(message: any): void {
+    console.log('DEBUG YjsDataChannel.send', message)
+    const arr = new Uint8Array(new ArrayBuffer(message))
+    super.send(arr as T)
+  }
+
+
   override notifyHandlers(message: any): void {
     const arr = message as Uint8Array
     super.notifyHandlers(arr.buffer)
