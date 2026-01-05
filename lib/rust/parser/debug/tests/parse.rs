@@ -197,6 +197,16 @@ fn type_constructors() {
 }
 
 #[test]
+fn type_constructors_crash_with_a_new_line() {
+    test_module!([
+            "type Missing",
+            "    Error",
+            "        (argument_name : Text) (function_name : Text | Nothing = Nothing) (call_location : Source_Location | Nothing = Nothing)",
+        ].join("\n"),
+        @"(BodyBlock #((TypeDef Missing)))");
+}
+
+#[test]
 fn type_constructor_documentation() {
     test_module!("type Foo\n ## Bar\n Baz",
         @r#"(BodyBlock #((TypeDef Foo #() #((ConstructorDefinition ((#((Section " Bar"))) #(())) #() () Baz #() #())))))"#);
