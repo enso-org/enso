@@ -59,11 +59,9 @@ refresh_access_token = Panic.recover Enso_Cloud_Error <|
    ---
 credentials_file : File
 credentials_file =
-    f = case Environment.get "ENSO_CLOUD_CREDENTIALS_FILE" of
+    case Environment.get "ENSO_CLOUD_CREDENTIALS_FILE" of
         Nothing -> File.home / ".enso" / "credentials"
         path -> File.new path
-    Authentication_Service.log_message level=..Warning "credentials_file is "+f.to_text
-    f
 
 ## ---
    private: true
