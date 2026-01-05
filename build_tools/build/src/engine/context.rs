@@ -490,8 +490,9 @@ impl RunContext {
                     for bundle in artifacts.bundles() {
                         bundle.upload_as_asset(release.clone()).await?;
                     }
-                    if let Some(repo_url) = self.config.library_repo_url.clone() {
-                        self.upload_extension_libs(repo_url.as_str(), &release).await?;
+                    if self.config.library_repo_url.clone().is_some() {
+                        let zip = self.create_extension_libs_zip().await?;
+                        release.upload_asset_file(zip).await?;
                     }
                     if TARGET_OS == OS::Linux {
                         release.upload_asset_file(self.paths.manifest_file()).await?;
@@ -561,21 +562,6 @@ impl RunContext {
             None => None,
             Some(benchs) => benchs.sbt_task(),
         }
-    }
-
-    async fn upload_extension_libs(&self, repo_url: &str, release_handle: &Handle) -> Result {
-        assert!(self.config.library_repo_url.is_some());
-        let zip = self.create_extension_libs_zip().await?;
-        let uploaded_asset = release_handle.upload_asset_file(zip).await?;
-        let uploaded_asset_url = uploaded_asset.browser_download_url;
-        let repo_url = Url::from_str(repo_url)?;
-        // The URL taken from the environment variable should be roughly the same as the
-        // URL of the asset that we have just uploaded. The URL from the env var
-        // is the URL that is written into the edition config. So if they are not
-        // the same, the library downloading would fail.
-        assert_eq!(repo_url.path(), uploaded_asset_url.path());
-        assert_eq!(repo_url.domain(), uploaded_asset_url.domain());
-        Ok(())
     }
 
     /// Checks API for all the standard libraries that have non-empty `docs/api` directory.
