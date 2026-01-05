@@ -107,7 +107,7 @@ object GraalVM {
     }
 
     // Expected production NI sizes deduced from sizes on latest
-    // nightly builds: https://github.com/enso-org/enso/pull/12843#issuecomment-2869897463
+    // nightly builds: https://github.com/enso-org/enso/pull/14565#issue-3781936779
     // With maximal size relaxed by 30 MB.
     private val windowsX64Release = NativeImageSize(200, 350)
     private val linuxX64Release   = NativeImageSize(200, 400)
