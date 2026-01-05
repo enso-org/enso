@@ -95,7 +95,7 @@ object GraalVM {
         } else if (Platform.isLinux) {
           linuxX64Release
         } else if (Platform.isMacOS && Platform.isAmd64) {
-          macX64Release
+          throw new IllegalArgumentException("Mac x64 is no longer supported")
         } else if (Platform.isMacOS && Platform.isArm64) {
           macARM64Release
         } else {
@@ -109,11 +109,10 @@ object GraalVM {
     // Expected production NI sizes deduced from sizes on latest
     // nightly builds: https://github.com/enso-org/enso/pull/12843#issuecomment-2869897463
     // With maximal size relaxed by 30 MB.
-    private val windowsX64Release = NativeImageSize(200, 470)
-    private val linuxX64Release   = NativeImageSize(200, 490)
-    private val macX64Release     = NativeImageSize(200, 457)
-    private val macARM64Release   = NativeImageSize(200, 473)
-    private val testNISize        = NativeImageSize(100, 592)
+    private val windowsX64Release = NativeImageSize(200, 350)
+    private val linuxX64Release   = NativeImageSize(200, 400)
+    private val macARM64Release   = NativeImageSize(200, 350)
+    private val testNISize        = NativeImageSize(100, 450)
   }
 
   /** Has the user requested to use Espresso for Java interop? */
