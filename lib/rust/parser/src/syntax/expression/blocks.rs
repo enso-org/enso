@@ -1,12 +1,16 @@
 use crate::prelude::*;
 
+use crate::syntax::Finish;
+use crate::syntax::Item;
+use crate::syntax::ItemConsumer;
+use crate::syntax::Tree;
+use crate::syntax::expression::ExpressionParser;
+use crate::syntax::expression::Spacing;
 use crate::syntax::expression::section::MaybeSection;
 use crate::syntax::expression::types::Arity;
 use crate::syntax::expression::types::ModifiedPrecedence;
 use crate::syntax::expression::types::Operator;
 use crate::syntax::expression::types::OperatorConsumer;
-use crate::syntax::expression::ExpressionParser;
-use crate::syntax::expression::Spacing;
 use crate::syntax::item;
 use crate::syntax::statement::BodyBlockParser;
 use crate::syntax::token;
@@ -16,10 +20,6 @@ use crate::syntax::token::TokenOperatorProperties;
 use crate::syntax::tree::block::Line;
 use crate::syntax::tree::block::OperatorBlockExpression;
 use crate::syntax::tree::block::OperatorLine;
-use crate::syntax::Finish;
-use crate::syntax::Item;
-use crate::syntax::ItemConsumer;
-use crate::syntax::Tree;
 
 /// Consumes `Item`s and passes their content to a token/tree consumer, using an
 /// [`ExpressionParser`] to flatten blocks.

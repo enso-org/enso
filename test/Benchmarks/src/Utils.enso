@@ -19,7 +19,12 @@ find_enso_bin =
     enso = find_prefix enso_engine "enso-"
     bin = find_prefix enso "bin"
 
-    exe = File.new bin / if Platform.os == Platform.OS.Windows then "enso.bat" else "enso"
+    exe = case Platform.os == Platform.OS.Windows of
+        False -> File.new (bin / "enso")
+        True ->
+            e = File.new (bin / "enso.exe")
+            if e.is_regular_file then e else
+                File.new (bin / "enso.bat")
 
     if exe.is_regular_file.not then Panic.throw "Cannot find "+exe.to_text
 

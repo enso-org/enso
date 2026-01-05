@@ -18,7 +18,7 @@ type Suite_Builder
 
        ## Arguments
         - `builder`: Vector builder that holds all the groups.
-    Impl builder
+    private Impl builder
 
     ## Add a group to the suite builder.
 
@@ -31,16 +31,11 @@ type Suite_Builder
         - `pending`: Contains a reason for why the test group should be ignored.
           If Nothing, the test is not ignored.
     group : Text -> (Group_Builder -> Any) -> (Text | Nothing) -> Nothing
-    group self (name:Text) (fn : (Group_Builder -> Any)) (pending : (Text | Nothing) = Nothing) =
+    group self (name:Text) (fn : (Group_Builder -> Any)) (~pending : (Text | Nothing) = Nothing) =
         group_builder = Group_Builder.Impl name
-        case pending of
-            Nothing ->
-                fn group_builder
-                group = Group.Impl name group_builder.teardown_ref.get group_builder.builder.to_vector pending
-                self.builder.append group
-            pend_reason : Text ->
-                group = Group.Impl name group_builder.teardown_ref.get [] pend_reason
-                self.builder.append group
+        fn group_builder
+        group = Group.Impl name group_builder.teardown_ref.get group_builder.builder.to_vector pending
+        self.builder.append group
 
 
 ## A testing suite that holds all the groups with test specs.
@@ -50,7 +45,7 @@ type Suite
     ## ---
        private: true
        ---
-    Impl (groups : Vector Group)
+    private Impl (groups : Vector Group)
 
     ## Run only tests that match the provided filter.
 

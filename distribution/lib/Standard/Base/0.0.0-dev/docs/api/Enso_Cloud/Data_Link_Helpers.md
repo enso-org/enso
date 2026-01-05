@@ -3,6 +3,7 @@
 - type Data_Link_Source_Metadata
     - Cloud_Asset id:Standard.Base.Data.Text.Text
     - Unknown
+- as_file path:Standard.Base.Any.Any action:Standard.Base.Any.Any delete_on_return:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Any.Any
 - data_link_content_type -> Standard.Base.Any.Any
 - data_link_encoding -> Standard.Base.Any.Any
 - data_link_extension -> Standard.Base.Any.Any
@@ -21,6 +22,7 @@
 - read_and_interpret_data_link file:Standard.Base.System.File.Generic.File_Like.File_Like -> Standard.Base.Any.Any
 - read_data_link file:Standard.Base.System.File.Generic.File_Like.File_Like format:Standard.Base.Any.Any on_problems:Standard.Base.Errors.Problem_Behavior.Problem_Behavior -> Standard.Base.Any.Any
 - read_data_link_as_stream file:Standard.Base.System.File.Generic.File_Like.File_Like open_options:Standard.Base.Data.Vector.Vector f:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- resolve_path path:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - save_data_link_to_file data_link_instance:Standard.Base.Any.Any target_file:Standard.Base.System.File.Generic.Writable_File.Writable_File -> Standard.Base.Any.Any
 - save_password_for_data_link data_link_location:Standard.Base.Enso_Cloud.Enso_File.Enso_File secure_value:(Standard.Base.Data.Text.Text|Standard.Base.Enso_Cloud.Enso_Secret.Enso_Secret) name_hint:Standard.Base.Data.Text.Text= -> Standard.Base.Enso_Cloud.Enso_Secret.Enso_Secret
 - secure_value_to_json value:(Standard.Base.Data.Text.Text|Standard.Base.Enso_Cloud.Enso_Secret.Enso_Secret) -> (Standard.Base.Data.Json.JS_Object|Standard.Base.Data.Text.Text)

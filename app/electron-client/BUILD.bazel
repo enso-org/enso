@@ -74,6 +74,7 @@ esbuild(
         "utf-8-validate",
         "encoding",
         "supports-color",
+        "original-fs",
     ],
     format = "esm",
     output_dir = True,
@@ -162,8 +163,8 @@ genrule(
 # Export electron-builder config as JSON for the installer build
 js_binary(
     name = "export_config_script",
-    entry_point = "export-config.mjs",
     data = ["electron-builder-config.cjs"],
+    entry_point = "export-config.mjs",
 )
 
 js_run_binary(

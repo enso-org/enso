@@ -12,7 +12,7 @@ add_specs suite_builder =
     test_headers = [Header.application_json, Header.new "X-Foo-Id" "0123456789"]
     suite_builder.group "Request" group_builder->
         group_builder.specify "should return error when creating request from invalid URI" <|
-            Request.new HTTP_Method.Post "invalid uri" . should_fail_with Syntax_Error
+            Request.new HTTP_Method.Post "a b://invalid uri" . should_fail_with Syntax_Error
         group_builder.specify "should get method" <|
             req = Request.new HTTP_Method.Post test_uri
             req.method.should_equal HTTP_Method.Post

@@ -108,17 +108,10 @@ type DuckDB_Type_Mapping
         Types.DATE -> Value_Type.Date
         Types.TIME_WITH_TIMEZONE -> Value_Type.Time
         Types.TIMESTAMP_WITH_TIMEZONE -> Value_Type.Date_Time True
-        2014 ->
-            ## Types.TIMESTAMPTZ (doesn't seem to work in Types.TIMESTAMP_WITH_TIMEZONE)
-            Value_Type.Date_Time True
         Types.TIMESTAMP -> Value_Type.Date_Time False
         Types.BLOB -> Value_Type.Binary Nothing False
         Types.BIT -> Value_Type.Binary Nothing False
-        _ -> case sql_type.name of
-            "TIMESTAMP_NS" -> Value_Type.Date_Time False
-            "TIMESTAMPTZ" -> Value_Type.Date_Time True
-            "TIMESTAMP WITH TIME ZONE" -> Value_Type.Date_Time True
-            _ -> Value_Type.Unsupported_Data_Type sql_type.name sql_type
+        _ -> Value_Type.Unsupported_Data_Type sql_type.name sql_type
 
     ## ---
        private: true

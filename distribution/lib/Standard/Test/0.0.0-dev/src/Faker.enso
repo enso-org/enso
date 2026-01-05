@@ -192,7 +192,7 @@ type Faker
         sign = if self.integer 0 2 == 0 then 1 else -1
         mantissa = self.float 0 max_mantissa
         exponent = self.integer 0 max_exponent+1
-        (2.0 ^ exponent) * sign * mantissa
+        sign * mantissa * (2.0 ^ exponent)
 
     ## ---
        group: Standard.Base.Random

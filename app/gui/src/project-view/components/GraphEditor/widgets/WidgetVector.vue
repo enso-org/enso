@@ -150,6 +150,7 @@ export const widgetDefinition = defineWidget(
     score: (props) =>
       props.input.dynamicConfig?.kind === 'Vector_Editor' ? Score.Perfect
       : props.input.dynamicConfig?.kind === 'SomeOfFunctionCalls' ? Score.Perfect
+      : props.input.dynamicConfig?.kind === 'Pending' ? Score.Mismatch
       : props.input.value instanceof Ast.Vector ? Score.Good
       : props.input.expectedType?.startsWith('Standard.Base.Data.Vector.Vector') ? Score.Good
       : Score.Mismatch,

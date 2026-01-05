@@ -1,5 +1,9 @@
 use crate::prelude::*;
 
+use crate::syntax::Inspect;
+use crate::syntax::Token;
+use crate::syntax::Tree;
+use crate::syntax::TreeConsumer;
 use crate::syntax::expression::annotations::Annotation;
 use crate::syntax::expression::blocks::ApplicableBlock;
 use crate::syntax::expression::named_app::NamedApp;
@@ -7,10 +11,6 @@ use crate::syntax::expression::section::MaybeSection;
 use crate::syntax::expression::whitespace::Spacing;
 use crate::syntax::token;
 use crate::syntax::tree;
-use crate::syntax::Inspect;
-use crate::syntax::Token;
-use crate::syntax::Tree;
-use crate::syntax::TreeConsumer;
 
 use std::fmt::Debug;
 

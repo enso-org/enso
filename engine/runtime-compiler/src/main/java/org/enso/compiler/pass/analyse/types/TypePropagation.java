@@ -9,6 +9,7 @@ import org.enso.compiler.core.CompilerError;
 import org.enso.compiler.core.ConstantsNames;
 import org.enso.compiler.core.IR;
 import org.enso.compiler.core.ir.CallArgument;
+import org.enso.compiler.core.ir.Empty;
 import org.enso.compiler.core.ir.Expression;
 import org.enso.compiler.core.ir.Function;
 import org.enso.compiler.core.ir.Literal;
@@ -155,8 +156,9 @@ abstract class TypePropagation {
           }
           case Function.Lambda f -> processLambda(f, localBindingsTyping);
           case Literal l -> processLiteral(l);
-          case Application.Sequence sequence -> BuiltinTypes.VECTOR;
+          case Application.Sequence _ -> BuiltinTypes.VECTOR;
           case Case.Expr caseExpr -> processCaseExpression(caseExpr, localBindingsTyping);
+          case Empty _ -> BuiltinTypes.NOTHING;
           default -> {
             logger.trace(
                 "type propagation: UNKNOWN branch: {}", expression.getClass().getCanonicalName());

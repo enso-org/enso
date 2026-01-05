@@ -42,6 +42,10 @@ public class ExcelHeaders {
     return name;
   }
 
+  public int count() {
+    return names == null ? 0 : names.length;
+  }
+
   public int getRowsUsed() {
     return this.names == null ? 0 : 1;
   }

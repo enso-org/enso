@@ -6,16 +6,16 @@ cargo_build_script(
     name = "build_script",
     srcs = ["build.rs"],
     aliases = aliases(build = True),
-    data = [
-        "//app/electron-client:installer_payload.tar.gz",
-        "//app/electron-client:installer_metadata.json",
-        "//app/electron-client:electron_builder_config",
-    ],
     build_script_env = {
         "ENSO_INSTALL_ARCHIVE_PATH": "$(execpath //app/electron-client:installer_payload.tar.gz)",
         "ENSO_INSTALL_METADATA_PATH": "$(execpath //app/electron-client:installer_metadata.json)",
         "ENSO_BUILD_ELECTRON_BUILDER_CONFIG": "$(execpath //app/electron-client:electron_builder_config)",
     },
+    data = [
+        "//app/electron-client:electron_builder_config",
+        "//app/electron-client:installer_metadata.json",
+        "//app/electron-client:installer_payload.tar.gz",
+    ],
     edition = "2021",
     deps = all_crate_deps(build = True) + [
         "//build_tools/ci_utils:ide_ci",

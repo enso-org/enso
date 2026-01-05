@@ -1,7 +1,7 @@
 import { useCurrentProject } from '$/components/WithCurrentProject.vue'
 import { type NodeId } from '$/providers/openedProjects/graph'
 import { useApproach } from '@/composables/animation'
-import { injectGraphSelection } from '@/providers/graphSelection'
+import { useGraphSelection } from '@/providers/graphSelection'
 import { partitionPoint } from '@/util/data/array'
 import type { Opt } from '@/util/data/opt'
 import { Rect } from '@/util/data/rect'
@@ -113,7 +113,7 @@ export class SnapGrid {
  */
 export function useNodesDragging() {
   const { module, graph } = useCurrentProject()
-  const selection = injectGraphSelection(true)
+  const selection = useGraphSelection(true)
 
   // Logically, those fields could be inside CurrentDrag, but animations need component scope.
   const offset = ref(Vec2.Zero)

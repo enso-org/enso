@@ -274,10 +274,10 @@ registerHandlers({
   --corner-radius: var(--file-browser-corner-radius, var(--radius-default));
   background-color: var(--background-color);
   padding: var(--border-width);
-  border-radius: 0 0 var(--corner-radius) var(--corner-radius);
+  border-radius: var(--corner-radius);
   min-width: var(--file-browser-min-width, 400px);
   min-height: 200px;
-  max-height: 600px;
+  max-height: 412px;
   overflow: hidden;
   display: flex;
   flex-direction: column;

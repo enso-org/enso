@@ -1,5 +1,6 @@
 package org.enso.compiler.pass.analyse.types.scope;
 
+import org.enso.compiler.core.ConstantsNames;
 import org.enso.compiler.pass.analyse.types.BuiltinTypes;
 import org.enso.compiler.pass.analyse.types.TypeRepresentation;
 import org.enso.pkg.QualifiedName;
@@ -21,8 +22,9 @@ public final class BuiltinsFallbackScope {
   private static StaticModuleScope constructFallbackScope() {
     var scopeBuilder =
         new StaticModuleScope.Builder(QualifiedName.fromString("Standard.Builtins.Main"));
-    scopeBuilder.registerMethod(TypeScopeReference.ANY, "to_text", BuiltinTypes.TEXT);
-    scopeBuilder.registerMethod(TypeScopeReference.ANY, "to_display_text", BuiltinTypes.TEXT);
+    scopeBuilder.registerMethod(TypeScopeReference.ANY, ConstantsNames.TO_TEXT, BuiltinTypes.TEXT);
+    scopeBuilder.registerMethod(
+        TypeScopeReference.ANY, ConstantsNames.TO_DISPLAY_TEXT, BuiltinTypes.TEXT);
     scopeBuilder.registerMethod(TypeScopeReference.ANY, "pretty", BuiltinTypes.TEXT);
 
     var any = new TypeRepresentation.TopType();

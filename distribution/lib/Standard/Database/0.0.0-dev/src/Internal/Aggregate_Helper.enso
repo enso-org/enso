@@ -7,7 +7,6 @@ import Standard.Table.Internal.Aggregate_Column_Helper
 import Standard.Table.Internal.Aggregate_Column_Helper.Internal_Order_By_Column_Reference
 import Standard.Table.Internal.Problem_Builder.Problem_Builder
 from Standard.Table import Aggregate_Column, Table
-from Standard.Table.Aggregate_Column.Aggregate_Column import all
 from Standard.Table.Errors import No_Output_Columns
 
 import project.DB_Table.DB_Table
@@ -18,7 +17,7 @@ import project.Internal.IR.Internal_Column.Internal_Column
 import project.Internal.IR.SQL_IR_Expression.SQL_IR_Expression
 import project.Internal.IR.SQL_IR_Source.SQL_IR_Source
 import project.Internal.SQL_Type_Reference.SQL_Type_Reference
-from project.Errors import Aggregagtion_Requires_Order
+from project.Errors import Aggregation_Requires_Order
 
 ## ---
    private: true
@@ -41,6 +40,12 @@ make_aggregate_column table aggregate as dialect infer_return_type problem_build
         expression = dialect.cast_aggregate_columns op_kind columns
         sql_type_ref = infer_return_type op_kind columns expression
         Internal_Column.Value as sql_type_ref expression
+
+    custom_sql function columns =
+        expression = dialect.cast_aggregate_columns "CUSTOM_SQL" columns
+        with_function = SQL_IR_Expression.Operation "CUSTOM_SQL" [SQL_IR_Expression.Literal function]+expression.expressions expression.metadata
+        sql_type_ref = infer_return_type "CUSTOM_SQL" columns with_function
+        Internal_Column.Value as sql_type_ref with_function
 
     aggregate_with_order_by op_kind column order_by =
         order_bys = order_by.map sc->
@@ -108,6 +113,7 @@ make_aggregate_column table aggregate as dialect infer_return_type problem_build
         Aggregate_Column.Sum c _ -> simple_aggregate "SUM" [c]
         Aggregate_Column.Average c _ -> simple_aggregate "AVG" [c]
         Aggregate_Column.Median c _ -> simple_aggregate "MEDIAN" [c]
+        Aggregate_Column.SQL fn columns _ -> custom_sql fn columns
 
 ## ---
    private: true
@@ -266,27 +272,27 @@ map_column_inputs f:Function aggregate_column:Aggregate_Column -> Aggregate_Colu
             Internal_Order_By_Column_Reference.Value c direction -> Internal_Order_By_Column_Reference.Value (f c) direction
 
     case aggregate_column of
-        Group_By c as -> Group_By (f c) as
-        Count as -> Count as
-        Count_Distinct c as ignore_nothing ->
-            Count_Distinct ((c:Vector).map f) as ignore_nothing
-        Count_Not_Nothing c as -> Count_Not_Nothing (f c) as
-        Count_Nothing c as -> Count_Nothing (f c) as
-        Count_Not_Empty c as -> Count_Not_Empty (f c) as
-        Count_Empty c as ->  Count_Empty (f c) as
-        Sum c as -> Sum (f c) as
-        Average c as -> Average (f c) as
-        Median c as -> Median (f c) as
-        Percentile p c as -> Percentile p (f c) as
-        Mode c as -> Mode (f c) as
-        Standard_Deviation c as population -> Standard_Deviation (f c) as population
-        Concatenate c as separator prefix suffix quote_char -> Concatenate (f c) as separator prefix suffix quote_char
-        First c as ignore_nothing order_by -> First (f c) as ignore_nothing (update_order_by order_by)
-        Last c as ignore_nothing order_by -> Last (f c) as ignore_nothing (update_order_by order_by)
-        Maximum c as -> Maximum (f c) as
-        Minimum c as -> Minimum (f c) as
-        Shortest c as -> Shortest (f c) as
-        Longest c as -> Longest (f c) as
+        Aggregate_Column.Group_By c as -> Aggregate_Column.Group_By (f c) as
+        Aggregate_Column.Count as -> Aggregate_Column.Count as
+        Aggregate_Column.Count_Distinct c as ignore_nothing ->
+            Aggregate_Column.Count_Distinct ((c:Vector).map f) as ignore_nothing
+        Aggregate_Column.Count_Not_Nothing c as -> Aggregate_Column.Count_Not_Nothing (f c) as
+        Aggregate_Column.Count_Nothing c as -> Aggregate_Column.Count_Nothing (f c) as
+        Aggregate_Column.Count_Not_Empty c as -> Aggregate_Column.Count_Not_Empty (f c) as
+        Aggregate_Column.Count_Empty c as -> Aggregate_Column.Count_Empty (f c) as
+        Aggregate_Column.Sum c as -> Aggregate_Column.Sum (f c) as
+        Aggregate_Column.Average c as -> Aggregate_Column.Average (f c) as
+        Aggregate_Column.Median c as -> Aggregate_Column.Median (f c) as
+        Aggregate_Column.Percentile p c as -> Aggregate_Column.Percentile p (f c) as
+        Aggregate_Column.Mode c as -> Aggregate_Column.Mode (f c) as
+        Aggregate_Column.Standard_Deviation c as population -> Aggregate_Column.Standard_Deviation (f c) as population
+        Aggregate_Column.Concatenate c as separator prefix suffix quote_char -> Aggregate_Column.Concatenate (f c) as separator prefix suffix quote_char
+        Aggregate_Column.First c as ignore_nothing order_by -> Aggregate_Column.First (f c) as ignore_nothing (update_order_by order_by)
+        Aggregate_Column.Last c as ignore_nothing order_by -> Aggregate_Column.Last (f c) as ignore_nothing (update_order_by order_by)
+        Aggregate_Column.Maximum c as -> Aggregate_Column.Maximum (f c) as
+        Aggregate_Column.Minimum c as -> Aggregate_Column.Minimum (f c) as
+        Aggregate_Column.Shortest c as -> Aggregate_Column.Shortest (f c) as
+        Aggregate_Column.Longest c as -> Aggregate_Column.Longest (f c) as
 
 ## ---
    private: true
@@ -296,4 +302,4 @@ is_non_empty_selector v = v.is_nothing.not && v.not_empty
 ## ---
    private: true
    ---
-throw_ordering_required op_name = Error.throw (Aggregagtion_Requires_Order.Error op_name)
+throw_ordering_required op_name = Error.throw (Aggregation_Requires_Order.Error op_name)

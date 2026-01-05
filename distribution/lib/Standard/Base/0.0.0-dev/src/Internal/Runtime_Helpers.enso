@@ -4,9 +4,11 @@ import project.Data.Numbers.Integer
 import project.Data.Range.Extensions
 import project.Error.Error
 import project.Errors.Illegal_Argument.Illegal_Argument
+import project.Panic.Panic
 import project.Logging.Progress
 import project.Nothing.Nothing
 
+from project.Errors.Common import Uninitialized_State
 polyglot java import java.lang.Thread
 
 ## ---
@@ -32,3 +34,13 @@ sleep milliseconds:Integer ~result=Nothing sleep=(\n -> Thread.sleep n) =
                     sleep remaining
                 p.advance 100
     result
+
+state_run key state ~computation = @Builtin_Method "State.run"
+
+state_get key ~if_missing = @Builtin_Method "State.get"
+
+state_put key new_state = @Builtin_Method "State.put"
+
+state_uninitialized key =
+    Panic.throw
+        Uninitialized_State.Error key

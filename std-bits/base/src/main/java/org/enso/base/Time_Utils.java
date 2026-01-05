@@ -90,6 +90,14 @@ public class Time_Utils {
     return date.lengthOfMonth();
   }
 
+  public static LocalDate first_of_month(LocalDate date) {
+    return LocalDate.of(date.getYear(), date.getMonthValue(), 1);
+  }
+
+  public static LocalDate end_of_month(LocalDate date) {
+    return LocalDate.of(date.getYear(), date.getMonthValue(), date.lengthOfMonth());
+  }
+
   public static long week_of_year_localdate(LocalDate date, Locale locale) {
     return WeekFields.of(locale).weekOfYear().getFrom(date);
   }

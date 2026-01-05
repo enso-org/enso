@@ -112,23 +112,6 @@ object DistributionPackage {
       baseName
     }
 
-  def createProjectManagerPackage(
-    distributionRoot: File,
-    cacheFactory: CacheStoreFactory
-  ): Unit = {
-    copyDirectoryIncremental(
-      file("distribution/project-manager/THIRD-PARTY"),
-      distributionRoot / "THIRD-PARTY",
-      cacheFactory.make("project-manager-third-party")
-    )
-
-    copyFilesIncremental(
-      Seq(file(executableName("project-manager"))),
-      distributionRoot / "bin",
-      cacheFactory.make("project-manager-exe")
-    )
-  }
-
   /** @param distributionRoot Root directory for the engine build distribution. Will be populated.
     * @param jarModulesToCopy Modular Jar archives that will be copied into the `component` directory.
     * @param pythonResources Directories with extracted resources from GraalPy
@@ -586,49 +569,6 @@ object DistributionPackage {
     }
   }
 
-  /** @param projManagerCmdLine Options for the java process.
-    * @param args Args for the project manager.
-    * @return
-    */
-  def runProjectManagerPackage(
-    engineRoot: File,
-    distributionRoot: File,
-    projManagerCmdLine: Seq[String],
-    args: Seq[String],
-    log: Logger
-  ): Boolean = {
-    import scala.collection.JavaConverters._
-
-    val pb   = new java.lang.ProcessBuilder()
-    val all  = new java.util.ArrayList[String]()
-    val enso = distributionRoot / "bin" / "project-manager"
-    if (enso.canExecute()) {
-      log.info(s"Executing $enso ${args.mkString(" ")}")
-      all.add(enso.getAbsolutePath())
-    } else {
-      val java =
-        new File(System.getProperty("java.home")) / "bin" / executableName(
-          "java"
-        )
-      log.info(
-        s"Cannot find $enso, trying to execute via JVM with ${args.mkString(" ")}"
-      )
-      all.add(java.getPath())
-      all.addAll(projManagerCmdLine.asJava)
-    }
-    all.addAll(args.asJava)
-    pb.environment().put("ENSO_ENGINE_PATH", engineRoot.toString())
-    pb.environment().put("ENSO_JVM_PATH", System.getProperty("java.home"))
-    pb.environment().put("ENSO_OPENSEARCH_APPENDER_ENABLED", "false")
-    val p =
-      adjustArgsAndStart(log, all, "ENSO_JVM_OPTS", pb, appendJvmOpts = "")
-    val exitCode = p.waitFor()
-    if (exitCode != 0) {
-      log.warn(enso + " finished with exit code " + exitCode)
-    }
-    exitCode == 0
-  }
-
   def fixLibraryManifest(
     packageRoot: File,
     targetVersion: String,
@@ -1038,7 +978,7 @@ object DistributionPackage {
       state
     }
 
-    /** Creates launcher and project-manager bundles that include the component
+    /** Creates launcher bundle that includes the component
       * itself, the engine and a Graal runtime.
       *
       * It will download the GraalVM runtime and cache it in `artifactRoot` so
@@ -1075,32 +1015,6 @@ object DistributionPackage {
           log.info(s"Created $archive")
         }
 
-        val pm = builtArtifact("project-manager", os, arch)
-        if (pm.exists()) {
-          if (os.isUNIX) {
-            makeExecutable(pm / "enso" / "bin" / "project-manager")
-          }
-
-          copyEngine(os, arch, pm / "enso" / "dist")
-          copyGraal(
-            os,
-            arch,
-            pm / "enso" / "runtime" / s"graalvm-ce-java$graalJavaVersion-$graalVersion/"
-          )
-
-          IO.copyFile(
-            file("distribution/enso.bundle.template"),
-            pm / "enso" / ".enso.bundle"
-          )
-
-          val archive = builtArchive("project-manager", os, arch)
-          makeArchive(pm, "enso", archive)
-
-          cleanDirectory(pm / "enso" / "dist")
-          cleanDirectory(pm / "enso" / "runtime")
-
-          log.info(s"Created $archive")
-        }
       }
       state
     }

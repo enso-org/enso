@@ -1,0 +1,25 @@
+from Standard.Base import all
+
+import project.Column.Column
+
+## A column that contains Date values.
+type Date_Column
+    private Value column operations_implementation
+
+    ## ---
+       group: DateTime
+       icon: metadata
+       ---
+       For each date in the column, returns the date that is the first day of
+       the month containing the specified date.
+    first_of_month self -> Column & Date_Column =
+        self.operations_implementation.first_of_month self.column
+
+    ## ---
+       group: DateTime
+       icon: metadata
+       ---
+       For each date in the column, returns the date that is the last day of
+       the month containing the specified date.
+    end_of_month self -> Column & Date_Column =
+        self.operations_implementation.end_of_month self.column
