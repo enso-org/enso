@@ -30,7 +30,7 @@ const PROJECT_WATCHER_CALLBACK_TIMEOUT = 60000
 // ===========================
 
 /** Create a RemoteBackend instance. */
-function createRemoteBackend(headers: Record<string, string>): RemoteBackend {
+function createRemoteBackend(headers: Record<string, string>, apiUrl: string): RemoteBackend {
   const client = new HttpClient(headers)
   const downloader = () => {
     // not required for watcher
@@ -40,6 +40,7 @@ function createRemoteBackend(headers: Record<string, string>): RemoteBackend {
     return getText(dictionary, key, ...replacements)
   }
   return new RemoteBackend({
+    apiUrl,
     getText: backendGetText,
     client,
     downloader,
@@ -111,7 +112,14 @@ export async function handleWatcherRequest(
 
       try {
         const defaultHeaders = await bodyJson<Record<string, string>>(request)
-        const backend = createRemoteBackend(defaultHeaders)
+        const requestApiUrl = url.searchParams.get('apiUrl')
+        if (requestApiUrl == null) {
+          response
+            .writeHead(HTTP_STATUS_BAD_REQUEST, headers)
+            .end('Request is missing search parameter `apiUrl`.')
+          break
+        }
+        const backend = createRemoteBackend(defaultHeaders, requestApiUrl)
         const fileName = 'project_root.enso-project'
         const uploadParams = {
           fileId: assetId,

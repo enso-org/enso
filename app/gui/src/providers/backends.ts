@@ -42,6 +42,7 @@ function initializeBackends(
     : null,
   )
   const remoteBackend = new RemoteBackend({
+    apiUrl: $config.API_URL ?? '',
     getText,
     client: httpClient,
     downloader: download,
