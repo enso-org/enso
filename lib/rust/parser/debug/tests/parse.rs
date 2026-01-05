@@ -203,6 +203,22 @@ fn type_constructor_documentation() {
 }
 
 #[test]
+fn type_constructors_panic_14559() {
+    test_module!([
+            "type Missing",
+            "    Error",
+            "        (argument_name : Text) (function_name : Text | Nothing = Nothing) all_location : Source_Location | Nothing = Nothing)",
+        ].join("\n"),
+        @r#"Expected identifier or wildcard in argument binding: (BodyBlock #((TypeDef Missing #() #((ConstructorDefinition () #() () Error #() #(((() (Invalid) (":" (OprApp (Ident Source_Location) (Ok "|") (Ident Nothing))) ((Invalid))))))))))"#);
+    test_module!([
+            "type Missing",
+            "    Error",
+            "        (argument_name : Text) (function_name : Text) = Nothing",
+        ].join("\n"),
+        @"Expected identifier or wildcard in argument binding: (BodyBlock #((TypeDef Missing #() #((ConstructorDefinition () #() () Error #() #(((() (Invalid) () ((Ident Nothing))))))))))");
+}
+
+#[test]
 fn type_constructor_private() {
     test_module!(["type Foo", "    private Bar"].join("\n"),
         @"(BodyBlock #((TypeDef Foo #() #((ConstructorDefinition () #() private Bar #() #())))))");
@@ -387,6 +403,10 @@ fn foreign_functions() {
         @r#"(BodyBlock #((ForeignFunction python my_method #((() (Ident a) () ()) (() (Ident b) () ())) (TextLiteral #((Section "42"))))))"#);
     test_module!("foreign python my_method = \"42\"",
         @r#"(BodyBlock #((ForeignFunction python my_method #() (TextLiteral #((Section "42"))))))"#);
+    test_module!("foreign = \"🥖\"",
+        @"Expected language name in foreign function definition: (BodyBlock #((Invalid)))");
+    test_module!("foreign python = \"🐍🥖\"",
+        @"Expected function name in foreign function definition: (BodyBlock #((Invalid)))");
 }
 
 #[test]
@@ -496,7 +516,7 @@ fn complex_arguments() {
     test_module!("f (x):Number=1 = x",
         @r#"Expected identifier or wildcard in argument binding: (BodyBlock #((Function () #() () () (Ident f) #((() (Invalid) (":" (Ident Number)) ((Number () "1" ())))) () (Ident x))))"#);
     test_module!("f ((x:Number=1)) = x",
-        @"Unexpected operator in parenthesized argument definition clause: (BodyBlock #((Function () #() () () (Ident f) #((() (Invalid) () ())) () (Ident x))))");
+        @"Expected identifier or wildcard in argument binding: (BodyBlock #((Function () #() () () (Ident f) #((() (Invalid) () ())) () (Ident x))))");
     test_module!("f (x : Number)=1 = x",
         @r#"(BodyBlock #((Function () #() () () (Ident f) #((() (Ident x) (":" (Ident Number)) ((Number () "1" ())))) () (Ident x))))"#);
     test_module!("f (x:Number = 1) = x",

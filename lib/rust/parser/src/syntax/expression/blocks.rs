@@ -243,7 +243,7 @@ fn to_operator_block_expression<'s>(
             let operator = Ok(items
                 .pop()
                 .unwrap()
-                .into_token()
+                .try_into_token()
                 .unwrap()
                 .with_variant(token::variant::Operator()));
             Ok(OperatorBlockExpression { operator, expression })
