@@ -434,7 +434,7 @@ fn parse_arg_def<'s>(
     let mut open2 = None;
     let mut close2 = None;
     let mut suspension_and_pattern = None;
-    let type_ = type_.map(|(parenthesized, type_)| {
+    let type_option = type_.map(|(parenthesized, type_)| {
         let mut parenthesized_body = None;
         if parenthesized == Parenthesized
             && (start..items.len()).len() == 1
@@ -450,17 +450,24 @@ fn parse_arg_def<'s>(
         }
         let items = parenthesized_body.as_mut().unwrap_or(items);
         let tree = expression_parser.parse_non_section_offset(start + type_ + 1, items);
-        let operator = items.pop().unwrap().into_token().unwrap();
-        let type_ = tree.unwrap_or_else(|| {
-            empty_tree(operator.code.position_after()).with_error(SyntaxError::ExpectedType)
-        });
-        let token::Variant::TypeAnnotationOperator(variant) = operator.variant else {
-            unreachable!()
-        };
-        let operator = operator.with_variant(variant);
-        suspension_and_pattern = Some(parse_pattern(items, start, expression_parser));
-        ArgumentType { operator, type_ }
+        let item_option = items.pop();
+        let item = item_option.unwrap();
+        let operator_option = item.into_token();
+        if let Some(operator) = operator_option {
+            let type_ = tree.unwrap_or_else(|| {
+                empty_tree(operator.code.position_after()).with_error(SyntaxError::ExpectedType)
+            });
+            let token::Variant::TypeAnnotationOperator(variant) = operator.variant else {
+                unreachable!()
+            };
+            let operator = operator.with_variant(variant);
+            suspension_and_pattern = Some(parse_pattern(items, start, expression_parser));
+            Some(ArgumentType { operator, type_ })
+        } else {
+            None
+        }
     });
+    let type_ = type_option.unwrap_or_default();
     let (suspension, pattern) =
         suspension_and_pattern.unwrap_or_else(|| parse_pattern(items, start, expression_parser));
     let pattern = pattern.unwrap_or_else(|| {
