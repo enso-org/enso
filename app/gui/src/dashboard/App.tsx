@@ -35,7 +35,7 @@ import { useOffline } from '#/hooks/offlineHooks'
 import type { ModalApi } from '#/utilities/modal'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { unsafeWriteValue } from '#/utilities/write'
-import { useRouter, useText } from '$/providers/react'
+import { useRouter, useSession, useText } from '$/providers/react'
 import { useFeatureFlag } from '$/providers/react/featureFlags'
 
 declare module '#/utilities/LocalStorage' {
@@ -114,6 +114,7 @@ export default function App(props: React.PropsWithChildren) {
 function AppRouter(props: React.PropsWithChildren) {
   const { children } = props
   const aboutModalRef = React.useRef<ModalApi>(null)
+  const { signOut } = useSession()
 
   React.useEffect(() => {
     let isClick = false
@@ -156,7 +157,15 @@ function AppRouter(props: React.PropsWithChildren) {
   }, [])
 
   return (
-    <ErrorBoundary>
+    <ErrorBoundary
+      onReset={async () => {
+        // All React pages should be wrapped in <Page>, which has its own error boundary.
+        // Therefore, reaching this point indicates a serious error that cannot be recovered from
+        // without a full application reload.
+        await signOut()
+        location.reload()
+      }}
+    >
       <InputBindingsProvider>
         <VersionChecker />
         <ThemeSynchronizer />
