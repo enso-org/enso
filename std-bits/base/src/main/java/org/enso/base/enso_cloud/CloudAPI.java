@@ -33,7 +33,8 @@ public final class CloudAPI {
           if (cached.equals(fresh)) {
             return cached;
           }
-          LOGGER.warn("CloudAPI settings change detected. Dropping {}. Installing {}.", cached, fresh);
+          LOGGER.warn(
+              "CloudAPI settings change detected. Dropping {}. Installing {}.", cached, fresh);
         }
       }
       flushCloudCaches();
