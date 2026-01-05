@@ -69,7 +69,7 @@ add_specs suite_builder setup make_new_connection persistent_connector=True =
 
     primary_key_allows_nulls =
         if data.connection.dialect.flagged ..Primary_Key_Allows_Nulls then Nothing else
-            "No primary key allows nulls"
+            "Primary key does not allow null values"
 
     primary_key_does_not_allow_nulls =
         if data.connection.dialect.flagged ..Primary_Key_Allows_Nulls . not then Nothing else
