@@ -158,7 +158,6 @@ export async function mockCloudApi(page: Page) {
     name: defaultUsername,
     organizationId: defaultOrganizationId,
     userId: defaultUserId,
-    isEnabled: true,
     rootDirectoryId: defaultDirectoryId,
     userGroups: null,
     plan: backend.Plan.solo,
@@ -579,7 +578,6 @@ export async function mockCloudApi(page: Page) {
       email: backend.EmailAddress(`${name}@example.org`),
       organizationId,
       rootDirectoryId: organizationIdToDirectoryId(organizationId),
-      isEnabled: true,
       userGroups: null,
       plan: backend.Plan.enterprise,
       isOrganizationAdmin: true,
@@ -902,7 +900,7 @@ export async function mockCloudApi(page: Page) {
             id,
             parentId,
             title: asset.title + ' (copy)',
-          },
+          } as backend.AnyAsset,
         }
         const newAsset = { ...asset }
         newAsset.id = id
@@ -1238,7 +1236,6 @@ export async function mockCloudApi(page: Page) {
         name: body.userName,
         organizationId,
         userId: backend.UserId(`user-${uniqueString()}`),
-        isEnabled: true,
         rootDirectoryId,
         userGroups: null,
         isOrganizationAdmin: true,
