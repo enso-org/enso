@@ -2,7 +2,6 @@ load("@crates//:defs.bzl", "aliases", "all_crate_deps")
 load("@rules_rust//cargo:defs.bzl", "cargo_build_script")
 load("@rules_rust//rust:defs.bzl", "rust_library")
 
-# Export the manifest file so it can be used by the installer/uninstaller binaries.
 exports_files(["enso-install.manifest"])
 
 cargo_build_script(

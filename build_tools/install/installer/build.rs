@@ -40,7 +40,6 @@ fn main() {
         ide_ci::fs::write_if_different(&placeholder_path, "{}").unwrap();
         placeholder_path
     };
-    // ALWAYS expose to make available for env!() macro at compile time
     cargo::build::expose_env_var(ENSO_INSTALL_METADATA_PATH, metadata_path.as_str());
 
     let _ = sanitize_and_expose_electron_builder_config();

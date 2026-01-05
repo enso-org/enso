@@ -37,8 +37,6 @@ impl Metadata {
 }
 
 /// Create a tar.gz archive from a directory using pure Rust (no external tools).
-///
-/// This function creates the archive synchronously without requiring external programs like `tar`.
 pub fn compress_directory_to_tar_gz(source_dir: &Path, output_archive: &Path) -> Result {
     let file = File::create(output_archive)
         .with_context(|| format!("Failed to create archive file: {}", output_archive.display()))?;
@@ -75,7 +73,6 @@ pub fn compress_directory_to_tar_gz(source_dir: &Path, output_archive: &Path) ->
 
 /// Take the electron-builder output and prepare the payload files for the installer.
 ///
-/// This is a synchronous, pure-Rust version that doesn't require external tools.
 /// It should be used for Bazel builds where `tar` may not be available in the sandbox.
 pub fn prepare_payload_sync(
     unpacked_directory: &Path,

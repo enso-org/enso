@@ -133,14 +133,8 @@ electron_builder_bin.electron_builder(
     visibility = ["//visibility:public"],
 )
 
-# =================================
-# === Windows Installer Targets ===
-# =================================
-
-# Export the icon file for use by the installer build
 exports_files(["assets/icons/icon.ico"])
 
-# Generate payload archive and metadata from dist output
 genrule(
     name = "installer_artifacts",
     srcs = [":dist"],
@@ -160,7 +154,6 @@ genrule(
     visibility = ["//visibility:public"],
 )
 
-# Export electron-builder config as JSON for the installer build
 js_binary(
     name = "export_config_script",
     data = ["electron-builder-config.cjs"],
@@ -176,7 +169,6 @@ js_run_binary(
     visibility = ["//visibility:public"],
 )
 
-# Final installer target
 alias(
     name = "win_installer",
     actual = "//build_tools/install/installer:enso_installer",

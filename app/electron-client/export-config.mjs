@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 /**
  * Exports the electron-builder configuration as JSON for use by the Rust installer build.
  * Output is written to stdout and captured by Bazel's js_run_binary stdout parameter.
@@ -17,14 +16,13 @@ if (!configPath) {
 
 const require = createRequire(import.meta.url)
 
-// Load the CommonJS config using absolute path
 const config = require(path.resolve(configPath))
 
-// Map file associations to the extended format required by the Rust installer
-// The Rust code expects: { progId, mimeType, ext, name }
+// Map file associations to the extended format required by the Rust installer.
+// The Rust code expects: { progId, mimeType, ext, name }.
 function toExtendedFileAssociation(fa) {
-  // Generate progId from extension (e.g., ".enso" -> "Enso.Source")
-  const extName = fa.ext.replace(/^\./, '') // Remove leading dot
+  // Generate progId from extension (e.g., ".enso" -> "Enso.Source").
+  const extName = fa.ext.replace(/^\./, '') // Remove leading dot.
   const progId = `Enso.${extName.charAt(0).toUpperCase() + extName.slice(1)}`
   return {
     progId,
