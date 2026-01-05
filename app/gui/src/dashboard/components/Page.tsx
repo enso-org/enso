@@ -3,6 +3,7 @@ import { ErrorBoundary } from '#/components/ErrorBoundary'
 import { ModalWrapper } from '#/components/ModalWrapper'
 import InfoBar from '#/layouts/InfoBar'
 import { useSession } from '$/providers/react'
+import { useOpenedProjects } from '$/providers/react/openedProjects'
 import * as React from 'react'
 import { toast } from 'react-toastify'
 
@@ -16,12 +17,14 @@ export interface PageProps extends Readonly<React.PropsWithChildren> {
 export default function Page(props: PageProps) {
   const { hideInfoBar = false, hideModalWrapper = false, children } = props
   const { signOut } = useSession()
+  const openedProjects = useOpenedProjects()
 
   return (
     <>
       <ErrorBoundary
         onReset={async () => {
           toast.error('An unexpected error occurred. You have been signed out.')
+          openedProjects.closeAllProjects()
           await signOut()
         }}
       >
