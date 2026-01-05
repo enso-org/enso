@@ -143,7 +143,7 @@ genrule(
         "installer_metadata.json",
     ],
     cmd = """
-        DIST_DIR=$$(dirname $(location :dist))/ide-dist
+        DIST_DIR=$(location :dist)
         $(execpath //build_tools/install/config:prepare_payload) \
             "$$DIST_DIR/win-unpacked" \
             $(location installer_payload.tar.gz) \
