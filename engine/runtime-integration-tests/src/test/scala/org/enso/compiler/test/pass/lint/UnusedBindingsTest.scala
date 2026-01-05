@@ -190,7 +190,7 @@ class UnusedBindingsTest extends CompilerTest with Inside {
 
       val pattern = ir.branches.head.pattern.asInstanceOf[Pattern.Constructor]
       val field1  = pattern.fields.head.asInstanceOf[Pattern.Name]
-      val field2  = pattern.fields(1).asInstanceOf[Pattern.Name]
+      val field2  = pattern.fields.apply(1).asInstanceOf[Pattern.Name]
 
       val lintMeta1 = field1.diagnosticsList.collect {
         case u: warnings.Unused =>
@@ -245,7 +245,7 @@ class UnusedBindingsTest extends CompilerTest with Inside {
 
       val pattern = ir.branches.head.pattern.asInstanceOf[Pattern.Constructor]
       val field1  = pattern.fields.head.asInstanceOf[Pattern.Name]
-      val field2  = pattern.fields(1).asInstanceOf[Pattern.Name]
+      val field2  = pattern.fields.apply(1).asInstanceOf[Pattern.Name]
 
       val lintMeta1 = field1.diagnosticsList.collect {
         case u: warnings.Unused =>
