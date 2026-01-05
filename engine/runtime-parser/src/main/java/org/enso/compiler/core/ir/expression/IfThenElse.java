@@ -43,7 +43,7 @@ public final class IfThenElse extends IfThenElseGen {
   }
 
   /**
-   * Builds "else only" insance.
+   * Builds "else only" instance.
    *
    * @param value the else branch
    * @param where location of the value
