@@ -1,4 +1,6 @@
 import project.Any.Any
+import project.Data.Boolean.Boolean
+from project.Data.Boolean.Boolean import False
 import project.Internal.Runtime_Helpers
 
 ## ---
@@ -16,6 +18,7 @@ type Ref
 
        ## Arguments
         - `value`: The value to be contained in the ref.
+        - `lazy`: should the evaluation of `value` be deferred until used by `Ref.get`
 
        ## Examples
        ### Creating a new reference containing the value 7.
@@ -23,25 +26,20 @@ type Ref
        ```
              Ref.new 7
        ```
-    new value -> Ref = Ref.memoize value
 
-    ## ---
-       private: true
-       advanced: true
-       ---
-       Creates a new reference with a lazily initialized value
-
-       ## Arguments
-        - `value`: lazy computation to create a value to be contained in the ref.
-
-       ## Examples
        ### Defer initialization of local values until needed
 
        ```
-             value_ref = Ref.memoize(long_computation_yielding 7)
+             value_ref = Ref.new lazy=True (long_computation_yielding 7)
              value =
                  value_ref.get
-    memoize ~value -> Ref = Runtime_Helpers.ref_new value
+       ```
+    new ~value lazy:Boolean=False -> Ref = 
+        ref = Runtime_Helpers.ref_new value
+        if lazy.not then
+            # initialize immediatelly
+            ref.get
+        ref
 
     ## ---
        group: Metadata

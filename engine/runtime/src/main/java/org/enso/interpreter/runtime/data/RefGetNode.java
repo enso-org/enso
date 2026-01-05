@@ -26,7 +26,7 @@ final class RefGetNode extends BaseNode {
         CompilerDirectives.transferToInterpreterAndInvalidate();
         thunkNode = ThunkExecutorNode.build();
       }
-      var ctx = EnsoContext.get(null);
+      var ctx = EnsoContext.get(this);
       var state = ctx.currentState();
       var newValue =
           thunkNode.executeThunk(

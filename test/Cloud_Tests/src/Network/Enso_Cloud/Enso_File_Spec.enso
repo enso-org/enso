@@ -397,7 +397,7 @@ add_specs suite_builder setup:Cloud_Tests_Setup = suite_builder.group "Enso Clou
     Local_File_Spec.add_copy_edge_cases_specs group_builder test_root.get
 
 private add_data_specs setup:Cloud_Tests_Setup suite_builder root_provider =
-    my_dir_ref = Ref.memoize (root_provider.get / "data_specs-").create_directory
+    my_dir_ref = Ref.new lazy=True (root_provider.get / "data_specs-").create_directory
     my_dir =
         my_dir_ref.get
     file_maker path_element:Text = my_dir / (path_element+".txt")

@@ -53,7 +53,7 @@ add_specs suite_builder = suite_builder.group "Refs" group_builder->
     group_builder.specify "lazy local variable memoization" <|
         counter = Ref.new 0
 
-        memo_ref = Ref.memoize <|
+        memo_ref = Ref.new lazy=True <|
             # count costly computation
             counter.modify (_+1)
             6*7
@@ -90,15 +90,15 @@ add_specs suite_builder = suite_builder.group "Refs" group_builder->
         # Ref.new initialized even it is never needed
         counter.get . should_equal 1
 
-    group_builder.specify "layz initialization of Ref.memoize" <|
-        counter = Ref.new 0
+    group_builder.specify "lazy initialization of Ref.new lazy=True" <|
+        counter = Ref.new 0 False
 
-        _ = Ref.memoize <|
+        _ = Ref.new lazy=True <|
             # count costly computation
             counter.modify (_+1)
             6*7
 
-        # Ref.memoize is never initialized when not needed
+        # Lazy Ref.new is never initialized when not needed
         counter.get . should_equal 0
 
 main filter=Nothing =
