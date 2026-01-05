@@ -1,6 +1,7 @@
 import sbt._
 
 object Editions {
+  val MAIN_REPO_ENV = "ENSO_MAIN_LIBRARY_REPOSITORY_URL"
 
   /** List of libraries that are shipped with the engine and reside in the
     * engine repository.
@@ -32,7 +33,13 @@ object Editions {
   )
 
   /** The URL to the main library repository. */
-  val mainLibraryRepositoryUrl = "https://libraries.release.enso.org/libraries"
+  private val mainLibraryRepositoryUrl: String = {
+    val fallbackUrl = "https://libraries.release.enso.org/libraries"
+    System.getenv(MAIN_REPO_ENV) match {
+      case null | "" => fallbackUrl
+      case url       => url
+    }
+  }
 
   private val extension = ".yaml"
 

@@ -22,4 +22,8 @@ define_env_var! {
 
     //// path to JUnit output directory
     ENSO_TEST_JUNIT_DIR, String;
+
+    /// URL of the main editions library repository which will be written
+    /// to the `editions.yaml` by sbt.
+    ENSO_MAIN_LIBRARY_REPOSITORY_URL, String;
 }

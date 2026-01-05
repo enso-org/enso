@@ -94,6 +94,7 @@
     rust/:
     test-results/:
     small-jdk/:
+    extension-libs.zip:
   test/:
     Benchmarks/:
   tools/:

@@ -26,7 +26,6 @@ use crate::arg::WatchJob;
 use anyhow::Context;
 use arg::BuildDescription;
 use clap::Parser;
-use enso_build::cloud_tests;
 use enso_build::config::Config;
 use enso_build::context::BuildContext;
 use enso_build::engine::context::EnginePackageProvider;
@@ -57,6 +56,7 @@ use enso_build::source::Source;
 use enso_build::source::WatchTargetJob;
 use enso_build::source::WithDestination;
 use enso_build::version;
+use enso_build::{cloud_tests, env};
 use ide_ci::actions::workflow::is_in_env;
 use ide_ci::cache::goodie::graalvm;
 use ide_ci::cache::Cache;
@@ -303,8 +303,10 @@ impl Processor {
                 let repo = self.remote_repo.clone();
                 let context = self.context();
                 let small_jdk_dir = context.repo_root.target.small_jdk.path.clone();
+                let cloned_self = self.clone();
                 async move {
                     let input = input.await?;
+                    let extension_lib_url = cloned_self.extensions_lib_url().await?;
                     let operation = enso_build::engine::Operation::Release(
                         enso_build::engine::ReleaseOperation {
                             repo,
@@ -318,6 +320,7 @@ impl Processor {
                         build_small_jdk: true,
                         small_jdk_dir: Some(small_jdk_dir),
                         verify_packages: true,
+                        library_repo_url: extension_lib_url,
                         ..default()
                     };
                     let context = input.prepare_context(context, config)?;
@@ -522,6 +525,34 @@ impl Processor {
             Ok(enso_build::engine::RunContext { inner, config, paths, external_runtime: None })
         }
         .boxed()
+    }
+
+    /// Returns URL to the extension library zip archive. This URL points to an artifact from the release.
+    /// If [env::RELEASE_ID] is not set, it returns None.
+    ///
+    /// The returned URL has a format similar to:
+    /// `jar:https://github.com/enso-org/enso/releases/download/2025.4.1-nightly.2025.12.28/extension-libs.zip`
+    async fn extensions_lib_url(&self) -> Result<Option<String>> {
+        match env::ENSO_RELEASE_ID.get() {
+            Ok(_) => {
+                let extension_libs_fname = self
+                    .repo_root
+                    .target
+                    .extension_libs_zip
+                    .as_path()
+                    .file_name()
+                    .unwrap()
+                    .to_str()
+                    .unwrap();
+                let tag = version::ENSO_VERSION.get()?;
+                let final_url = format!(
+                    "jar:https://github.com/enso-org/enso/releases/download/{}/{}",
+                    tag, extension_libs_fname
+                );
+                Ok(Some(final_url))
+            }
+            Err(_) => Ok(None),
+        }
     }
 
     /// Add options to produce heap dumps on OOM errors.

@@ -21,10 +21,11 @@ use crate::project::ProcessWrapper;
 
 use ide_ci::actions::workflow::is_in_env;
 use ide_ci::cache;
-use ide_ci::github::release::IsReleaseExt;
+use ide_ci::github::release::{Handle, IsReleaseExt};
 use ide_ci::platform::DEFAULT_SHELL;
 use ide_ci::programs::sbt;
 use ide_ci::programs::Sbt;
+use octocrab::models::repos::Release;
 use std::env::consts::DLL_EXTENSION;
 use std::env::consts::EXE_EXTENSION;
 
@@ -265,6 +266,10 @@ impl RunContext {
         // we don't want to call this in environments like GH-hosted runners.
 
         // === Build distributions and native images ===
+        if let Some(repo_url) = self.config.library_repo_url.clone() {
+            debug!("Using library repository in main edition: {}", repo_url);
+            env::ENSO_MAIN_LIBRARY_REPOSITORY_URL.set(&repo_url)?;
+        }
         let mut tasks = vec![];
         let mut run_sbt_clean = false;
         if self.config.build_engine_package {
@@ -485,6 +490,9 @@ impl RunContext {
                     for bundle in artifacts.bundles() {
                         bundle.upload_as_asset(release.clone()).await?;
                     }
+                    if let Some(repo_url) = self.config.library_repo_url.clone() {
+                        self.upload_extension_libs(repo_url.as_str(), &release).await?;
+                    }
                     if TARGET_OS == OS::Linux {
                         release.upload_asset_file(self.paths.manifest_file()).await?;
                         release.upload_asset_file(self.paths.launcher_manifest_file()).await?;
@@ -553,6 +561,21 @@ impl RunContext {
             None => None,
             Some(benchs) => benchs.sbt_task(),
         }
+    }
+
+    async fn upload_extension_libs(&self, repo_url: &str, release_handle: &Handle) -> Result {
+        assert!(self.config.library_repo_url.is_some());
+        let zip = self.create_extension_libs_zip().await?;
+        let uploaded_asset = release_handle.upload_asset_file(zip).await?;
+        let uploaded_asset_url = uploaded_asset.browser_download_url;
+        let repo_url = Url::from_str(repo_url)?;
+        // The URL taken from the environment variable should be roughly the same as the
+        // URL of the asset that we have just uploaded. The URL from the env var
+        // is the URL that is written into the edition config. So if they are not
+        // the same, the library downloading would fail.
+        assert_eq!(repo_url.path(), uploaded_asset_url.path());
+        assert_eq!(repo_url.domain(), uploaded_asset_url.domain());
+        Ok(())
     }
 
     /// Checks API for all the standard libraries that have non-empty `docs/api` directory.
@@ -630,6 +653,27 @@ impl RunContext {
                 bail!("API check failed for library Standard.{}", lib.name);
             }
         }
+    }
+
+    /// Creates a zip archive that contains all the extension libraries.
+    /// This ZIP should be later uploaded as an artifact to the GH
+    /// release.
+    async fn create_extension_libs_zip(&self) -> Result<PathBuf> {
+        debug!("Creating ZIP of all extension libraries");
+        let zip_path = self.repo_root.target.extension_libs_zip.path.clone();
+        let libs_root_dir = self.extension_libs_root_dir()?;
+        let paths = vec![libs_root_dir];
+        ide_ci::archive::create(&zip_path, paths).await?;
+        Ok(zip_path)
+    }
+
+    /// Returns root directory for all the extension libraries.
+    fn extension_libs_root_dir(&self) -> Result<PathBuf> {
+        let lib_root_dir =
+            self.repo_root.built_distribution.enso_engine_triple.engine_package.lib.clone();
+        let lib_root_dir = lib_root_dir.canonicalize()?;
+        let extension_libs_root_dir = lib_root_dir.join("Enso");
+        Ok(extension_libs_root_dir)
     }
 
     fn short_path(&self, full: &Path) -> PathBuf {
