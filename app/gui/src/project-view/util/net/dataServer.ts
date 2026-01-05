@@ -68,15 +68,19 @@ export class DataServer extends ObservableV2<DataServerEvents> {
     abort.handleDispose(this)
 
     websocket.addEventListener('message', ({ data: rawPayload }) => {
-      if (!(rawPayload instanceof ArrayBuffer)) {
+      console.info('Data Server.on message', rawPayload)
+      if (!(ArrayBuffer.isView(rawPayload))) {
         console.warn('Data Server: Data type was invalid:', rawPayload)
         // Ignore all non-binary messages. If the messages are `Blob`s instead, this is a
         // misconfiguration and should also be ignored.
         return
       }
-      const binaryMessage = OutboundMessage.getRootAsOutboundMessage(new ByteBuffer(rawPayload))
+      const binaryMessage = OutboundMessage.getRootAsOutboundMessage(new ByteBuffer(rawPayload.buffer))
+      console.info('Data Server.on message binaryMessage:', binaryMessage)
       const payloadType = binaryMessage.payloadType()
+      console.info('Data Server.on message payloadType:', payloadType)
       const payload = binaryMessage.payload(new PAYLOAD_CONSTRUCTOR[payloadType]())
+      console.info('Data Server.on message payload:', payload)
       if (!payload) return
       if (payload instanceof VisualizationUpdate) {
         const id = payload.visualizationContext()?.visualizationId()
