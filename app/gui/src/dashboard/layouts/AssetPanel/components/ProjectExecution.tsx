@@ -223,7 +223,7 @@ export function ProjectExecution(props: ProjectExecutionProps) {
 
             <Menu>
               <Menu.Item
-                icon="trash2"
+                icon="trash"
                 onAction={() => {
                   setModal(
                     <ConfirmDeleteModal
