@@ -82,6 +82,17 @@
       ]
     },
     {
+      "type": "com.azure.resourcemanager.resources.models.SubscriptionListResult",
+      "methods": [
+        {
+          "name": "fromJson",
+          "parameterTypes": [
+            "com.azure.json.JsonReader"
+          ]
+        }
+      ]
+    },
+    {
       "type": "com.azure.resourcemanager.resources.models.TenantListResult",
       "methods": [
         {
