@@ -89,7 +89,6 @@ stamp_files(
     name = "bundle_stamped",
     srcs = [":bundle"],
     out = "bundle_stamped",
-    files_regex = ".*\\.mjs$",
     input_dir = "$(location :bundle)",
     visibility = ["//visibility:public"],
 )
