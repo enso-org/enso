@@ -6,6 +6,7 @@ import org.enso.common.ContextFactory;
 import org.enso.common.LanguageInfo;
 import org.enso.languageserver.boot.ComponentSupervisor;
 import org.enso.languageserver.event.InitializedEvent;
+import org.graalvm.polyglot.Context;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -15,6 +16,7 @@ public class TruffleContextInitialization extends LockedInitialization {
   private final ContextFactory contextFactory;
   private final ComponentSupervisor supervisor;
   private final EventStream eventStream;
+  private Context context;
 
   private final Logger logger = LoggerFactory.getLogger(this.getClass());
 
@@ -45,7 +47,12 @@ public class TruffleContextInitialization extends LockedInitialization {
     logger.trace("Created Runtime context [{}]", truffleContext);
     logger.trace("Initializing Runtime context [{}]", truffleContext);
     truffleContext.initialize(LanguageInfo.ID);
+    this.context = truffleContext;
     eventStream.publish(InitializedEvent.TruffleContextInitialized$.MODULE$);
     logger.trace("Initialized Runtime context [{}]", truffleContext);
+  }
+
+  public Context getContext() {
+    return context;
   }
 }

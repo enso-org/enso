@@ -5,8 +5,11 @@ import com.typesafe.scalalogging.LazyLogging
 import org.enso.languageserver.http.server.BinaryWebSocketControlProtocol.OutboundStreamEstablished
 import org.enso.languageserver.util.binary.{BinaryDecoder, BinaryEncoder}
 import org.enso.ydoc.api.{MessageCallbacks, YjsChannel}
+import org.graalvm.polyglot.Context
 
 import java.nio.ByteBuffer
+
+import scala.util.control.NonFatal
 
 object BinaryYdocServer {
 
@@ -17,6 +20,7 @@ object BinaryYdocServer {
     * @param factory creates front controller per a single connection that is responsible for handling all incoming requests
     * @param messageCallbacks a list of message callbacks
     * @param system an actor system that hosts the server
+    * @param context a runtime context
     * @tparam A a type of messages sent to a connection controller
     * @tparam B a type of messages received from a connection controller
     */
@@ -25,6 +29,7 @@ object BinaryYdocServer {
     encoder: BinaryEncoder[B],
     factory: ConnectionControllerFactory,
     messageCallbacks: List[ByteBuffer => Unit],
+    context: Context,
     system: ActorSystem
   ) extends MessageCallbacks
       with LazyLogging {
@@ -47,20 +52,17 @@ object BinaryYdocServer {
       message: Object
     ): Unit = {
       logger.info(s"BinaryServerCallbacks.onMessage ${message.getClass}")
-      message match {
-        case bytes: Array[Byte] =>
-          //val bytes = value.as(classOf[Array[Byte]])
-          logger.info(s"Received binary message")
-          decoder.decode(ByteBuffer.wrap(bytes)) match {
-            case Right(message) =>
-              incomingMessageHandler ! message
-            case Left(error) =>
-              logger.error("Failed to decode binary message", error)
-          }
-          messageCallbacks.foreach(cb => cb(ByteBuffer.wrap(bytes)))
-        case _ =>
+      try {
+        val bytes = context.asValue(message).as(classOf[Array[Byte]])
+        val decoded = decoder.decode(ByteBuffer.wrap(bytes))
+        logger.info(s"Received binary message $decoded")
+        incomingMessageHandler ! decoded
+        messageCallbacks.foreach(cb => cb(ByteBuffer.wrap(bytes)))
+      } catch {
+        case NonFatal(e) =>
           logger.error(
-            s"Received unsupported message: ${message.getClass}"
+            s"Received unsupported message: ${message.getClass}",
+            e
           )
       }
     }
@@ -76,7 +78,7 @@ object BinaryYdocServer {
       case message: B @unchecked =>
         logger.info(s"Sending binary message $message")
         val bytes = encoder.encode(message)
-        channel.send(bytes)
+        channel.send(bytes.compact())
       case unknown =>
         logger.error(
           s"Sending unsupported message ${unknown.getClass}",

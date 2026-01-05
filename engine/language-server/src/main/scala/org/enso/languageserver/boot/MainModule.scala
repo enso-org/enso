@@ -60,6 +60,7 @@ import org.enso.common.{
   RuntimeOptions
 }
 import org.enso.filewatcher.WatcherFactory
+import org.enso.languageserver.boot.resource.TruffleContextInitialization
 import org.enso.logging.utils.akka.AkkaConverter
 import org.enso.polyglot.RuntimeServerInfo
 import org.enso.searcher.memory.InMemorySuggestionsRepo
@@ -74,6 +75,7 @@ import java.lang.management.ManagementFactory
 import java.net.URI
 import java.nio.charset.StandardCharsets
 import java.time.Clock
+
 import scala.concurrent.duration.DurationInt
 
 /** A main module containing all components of the server.
@@ -461,14 +463,23 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
 
   private val jsonRpcProtocolFactory = new JsonRpcProtocolFactory
 
+  private val truffleContext = {
+    val contextInitialization =
+      new TruffleContextInitialization(
+        system.dispatcher,
+        builder,
+        contextSupervisor,
+        system.eventStream
+      )
+    contextInitialization.initComponent()
+    contextInitialization.getContext
+  }
   private val initializationComponent =
     ResourcesInitialization(
       system.eventStream,
       directoriesConfig,
       jsonRpcProtocolFactory,
       suggestionsRepo,
-      builder,
-      contextSupervisor,
       zioRuntime
     )(system.dispatcher)
 
@@ -525,6 +536,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
       BinaryEncoder.empty,
       new BinaryConnectionControllerFactory(fileManager)(system),
       messagesCallback,
+      truffleContext,
       system
     )
   log.trace("Created Binary Channel Callbacks [{}]", binaryChannelCallbacks)
