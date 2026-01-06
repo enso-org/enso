@@ -73,6 +73,39 @@ add_specs suite_builder = suite_builder.group "Engine runner" group_builder->
             Test.with_clue clue <|
                 clue . should_contain "org.enso.runner.Main"
 
+    group_builder.specify "--compile creates manifest" <|
+        tmp_dir = create_tmp_dir
+
+        cleanup =
+            tmp_dir.delete recursive=True
+
+        Panic.with_finalizer cleanup <|
+            proj_dir = create_new_project tmp_dir "Proj" "main = 42"
+            enso_run args=["--vm.D=polyglot.enso.checkCurrentDirectory=false", "--compile", proj_dir.path]
+            manifest = proj_dir / "manifest.yaml"
+            manifest.exists . should_be_true
+
+    group_builder.specify "created manifest after --compile has correct dependencies" <|
+        tmp_dir = create_tmp_dir
+
+        cleanup =
+            tmp_dir.delete recursive=True
+
+        Panic.with_finalizer cleanup <|
+            code = """
+                from Standard.Base import all
+                from Standard.Image import all
+                main = 42
+            proj_dir = create_new_project tmp_dir "Proj" code
+            enso_run args=["--vm.D=polyglot.enso.checkCurrentDirectory=false", "--compile", proj_dir.path]
+            manifest = proj_dir / "manifest.yaml"
+            manifest.exists . should_be_true
+            manifest_lines = manifest.read_text.lines . map (_.trim)
+            manifest_lines . should_contain "dependencies:"
+            dep_idx = manifest_lines.index_of (_ == "dependencies:") + 1
+            manifest_lines.at dep_idx . should_contain "Standard.Base"
+            manifest_lines.at (dep_idx + 1) . should_contain "Standard.Image"
+
 
 main filter=Nothing =
     suite = Test.build suite_builder->

@@ -26,7 +26,7 @@ public class BuilderMethodGenerator {
                 field -> {
                   var initializer = field.initializer() != null ? " = " + field.initializer() : "";
                   return "private $type $name $initializer;"
-                      .replace("$type", field.getSimpleTypeName())
+                      .replace("$type", field.getTypeName())
                       .replace("$name", field.name())
                       .replace("$initializer", initializer);
                 })
@@ -43,7 +43,7 @@ public class BuilderMethodGenerator {
                     }
                     """
                         .replace("$fieldName", field.name())
-                        .replace("$fieldType", field.getSimpleTypeName()))
+                        .replace("$fieldType", field.getTypeName()))
             .collect(Collectors.joining(System.lineSeparator()));
 
     // Validation code for all non-nullable user fields
@@ -104,19 +104,17 @@ public class BuilderMethodGenerator {
         """;
     sb.append(docs);
     sb.append("Builder(")
-        .append(generatedClassContext.getProcessedClass().getClazz().getSimpleName())
+        .append(generatedClassContext.getProcessedClassName())
         .append(" obj) {")
         .append(System.lineSeparator());
-    var clazz = generatedClassContext.getProcessedClass().getClazz().getSuperclass();
-    var superClassType =
-        generatedClassContext.getProcessingEnvironment().getTypeUtils().asElement(clazz);
+    var superClass = generatedClassContext.getProcessedClass().getClazz().getSuperclass();
     // Meta fields are accessed directly.
     for (var metaField : generatedClassContext.getMetaFields()) {
       sb.append("  ")
           .append("this.")
           .append(metaField.name())
           .append(" = ((")
-          .append(superClassType.getSimpleName().toString())
+          .append(superClass)
           .append(")obj).")
           .append(metaField.name())
           .append(";")
@@ -138,8 +136,7 @@ public class BuilderMethodGenerator {
 
   private String buildMethod() {
     var sb = new StringBuilder();
-    var processedClassName =
-        generatedClassContext.getProcessedClass().getClazz().getSimpleName().toString();
+    var processedClassName = generatedClassContext.getProcessedClassName();
     var ctorParams = generatedClassContext.getSubclassConstructorParameters();
     var ctorParamsStr = ctorParams.stream().map(ClassField::name).collect(Collectors.joining(", "));
     var fieldsNotInCtor = Utils.diff(generatedClassContext.getAllFields(), ctorParams);

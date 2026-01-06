@@ -1209,7 +1209,8 @@ class AliasAnalysisTest extends CompilerTest {
           .unsafeAs[AliasMetadata.Occurrence]
           .id
 
-      val consBranchBDef = pattern.fields(1).asInstanceOf[Pattern.Name].name
+      val consBranchBDef =
+        pattern.fields.apply(1).asInstanceOf[Pattern.Name].name
       val consBranchBDefId = consBranchBDef
         .getMetadata(AliasAnalysis)
         .get

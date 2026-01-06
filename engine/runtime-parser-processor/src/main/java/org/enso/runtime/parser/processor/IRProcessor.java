@@ -114,7 +114,7 @@ public class IRProcessor extends AbstractProcessor {
    *     set.
    */
   private List<TypeElement> orderByReferences(Set<TypeElement> classesToProcess) {
-    var classesToProcessSimpleNames =
+    var classesToProcessNames =
         classesToProcess.stream().map(type -> type.getSimpleName().toString()).toList();
     var classesToProcessMap =
         classesToProcess.stream()
@@ -145,12 +145,17 @@ public class IRProcessor extends AbstractProcessor {
                       throw new IRProcessingException(
                           "Cannot find element for type " + paramType, null);
                     }
-                    return paramTypeElem.getSimpleName().toString();
+                    if (paramTypeElem instanceof TypeElement typeElem) {
+                      return typeElem.getQualifiedName().toString();
+                    } else {
+                      throw new IRProcessingException(
+                          "Parameter type is not a TypeElement: " + paramTypeElem, paramTypeElem);
+                    }
                   })
               .toList();
       for (var childTypeName : childTypeNames) {
-        if (classesToProcessSimpleNames.contains(childTypeName)) {
-          var clazzName = clazz.getSimpleName().toString();
+        if (classesToProcessNames.contains(childTypeName)) {
+          var clazzName = clazz.getQualifiedName().toString();
           var deps = dependencies.computeIfAbsent(clazzName, k -> new HashSet<>());
           deps.add(childTypeName);
         }
@@ -164,7 +169,7 @@ public class IRProcessor extends AbstractProcessor {
     try {
       DependencySorter.ensureNoCycles(dependencies);
     } catch (CyclicDependencyException e) {
-      throw new IRProcessingException("Cyclic dependency detected", null, e);
+      throw new IRProcessingException("Cyclic dependency detected: " + e.getMessage(), null, e);
     }
     var sortedDeps = DependencySorter.topologicalSort(dependencies);
     // Map class names to their TypeElements
@@ -200,7 +205,7 @@ public class IRProcessor extends AbstractProcessor {
               + "sortedDepTypes: "
               + sortedDepTypes
               + ", classesToProcess: "
-              + classesToProcessSimpleNames,
+              + classesToProcessNames,
           null);
     }
     return sortedDepTypes;
@@ -378,7 +383,7 @@ public class IRProcessor extends AbstractProcessor {
     var pkg = pkgName.isEmpty() ? "" : "package " + pkgName + ";";
     var interfaces =
         processedClass.getInterfaces().stream()
-            .map(TypeElement::getSimpleName)
+            .map(TypeElement::getQualifiedName)
             .collect(Collectors.joining(", "));
     var code =
         """
