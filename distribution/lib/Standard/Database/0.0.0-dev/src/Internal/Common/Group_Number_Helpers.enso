@@ -17,3 +17,10 @@ make_group_number (from : Integer) (step : Integer) (grouping_expressions : Vect
 make_group_number_equal_count (from : Integer) (step : Integer) (group_count : Integer) (ordering_expressions : Vector SQL_IR_Expression) -> SQL_IR_Expression =
     params = [SQL_IR_Expression.Literal from.to_text, SQL_IR_Expression.Literal step.to_text, SQL_IR_Expression.Literal group_count.to_text] + ordering_expressions
     SQL_IR_Expression.Operation "GROUP_NUMBER_EQUAL_COUNT" params
+
+## ---
+   private: true
+   ---
+make_group_number_equal_sum (from : Integer) (step : Integer) (sum_column : SQL_IR_Expression) (group_count : Integer) (ordering_expressions : Vector SQL_IR_Expression) -> SQL_IR_Expression =
+    params = [SQL_IR_Expression.Literal from.to_text, SQL_IR_Expression.Literal step.to_text, sum_column, SQL_IR_Expression.Literal group_count.to_text] + ordering_expressions
+    SQL_IR_Expression.Operation "GROUP_NUMBER_EQUAL_SUM" params

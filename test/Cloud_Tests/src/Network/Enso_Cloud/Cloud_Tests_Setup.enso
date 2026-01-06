@@ -3,12 +3,12 @@ import Standard.Base.Enso_Cloud.Data_Link.Data_Link
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Runtime.Context
 import Standard.Base.Runtime.Ref.Ref
+from Standard.Base.Logging import all
 
 from Standard.Test import Problems
 import Standard.Test.Test_Environment
 
 
-polyglot java import java.lang.System as JSystem
 polyglot java import java.security.KeyStore
 polyglot java import javax.net.ssl.SSLContext
 polyglot java import javax.net.ssl.TrustManagerFactory
@@ -24,8 +24,11 @@ type Cloud_Tests_Setup
             Panic.with_finalizer Cloud_Tests_Setup.reset <|
                 Test_Environment.unsafe_with_environment_override "ENSO_CLOUD_API_URL" self.api_url.to_text <|
                     Test_Environment.unsafe_with_environment_override "ENSO_CLOUD_CREDENTIALS_FILE" self.credentials_location.absolute.normalize.path <|
+                        Cloud_Tests_Setup.log_message level=..Warning "Start running with ENSO_CLOUD_API_URL and ENSO_CLOUD_CREDENTIALS_FILE override"
                         Cloud_Tests_Setup.reset
-                        action
+                        r = action
+                        Cloud_Tests_Setup.log_message level=..Warning "End of running with ENSO_CLOUD_API_URL and ENSO_CLOUD_CREDENTIALS_FILE override"
+                        r
         _ -> action
 
     pending self = case self of
@@ -75,7 +78,10 @@ type Cloud_Tests_Setup
         _ -> False
 
     ## Flushes all cloud caches in order to allow switch between real and mock cloud environments.
-    reset = CloudAPI.flushCloudCaches
+    reset =
+        Cloud_Tests_Setup.log_message level=..Warning "Cloud_Tests_Setup.reset called"
+        CloudAPI.flushCloudCaches
+        Cloud_Tests_Setup.log_message level=..Warning "Cloud_Tests_Setup.reset done"
 
     ## Detects the setup based on environment settings.
        If `ENSO_RUN_REAL_CLOUD_TEST` is defined, the tests will try running

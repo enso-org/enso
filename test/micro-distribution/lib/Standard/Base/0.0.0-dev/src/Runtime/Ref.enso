@@ -1,4 +1,6 @@
 @Builtin_Type
 type Ref
 
-new value = @Builtin_Method "Ref.new"
+new value = ref_alloc value
+
+private ref_alloc value = @Builtin_Method "Ref.alloc"

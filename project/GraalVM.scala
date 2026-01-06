@@ -109,11 +109,11 @@ object GraalVM {
     // Expected production NI sizes deduced from sizes on latest
     // nightly builds: https://github.com/enso-org/enso/pull/12843#issuecomment-2869897463
     // With maximal size relaxed by 30 MB.
-    private val windowsX64Release = NativeImageSize(200, 470)
-    private val linuxX64Release   = NativeImageSize(200, 490)
-    private val macX64Release     = NativeImageSize(200, 457)
-    private val macARM64Release   = NativeImageSize(200, 473)
-    private val testNISize        = NativeImageSize(100, 592)
+    private val windowsX64Release = NativeImageSize(200, 390)
+    private val linuxX64Release   = NativeImageSize(200, 410)
+    private val macX64Release     = NativeImageSize(200, 380)
+    private val macARM64Release   = NativeImageSize(200, 390)
+    private val testNISize        = NativeImageSize(100, 510)
   }
 
   /** Has the user requested to use Espresso for Java interop? */
