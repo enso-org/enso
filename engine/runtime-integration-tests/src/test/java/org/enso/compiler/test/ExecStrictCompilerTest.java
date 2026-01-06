@@ -256,4 +256,27 @@ public class ExecStrictCompilerTest {
       assertThat(ex.getMessage(), containsString("no branch matches"));
     }
   }
+
+  @Test
+  public void missingElseBranch() throws Exception {
+    var code =
+        """
+        from Standard.Base import all
+        def a:Boolean ~b c =
+            if a then
+                b
+            else
+            node = c
+            node
+        """;
+    try {
+      var module = ctxRule.eval(LanguageInfo.ID, code);
+      fail("Compilation produces an error, not a module: " + module);
+    } catch (PolyglotException ex) {
+      assertThat(
+          "In strict mode the error happens when compiling the module. No execution is needed.",
+          ex.getMessage(),
+          containsString("error: Missing else branch."));
+    }
+  }
 }
