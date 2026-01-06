@@ -1,6 +1,151 @@
 {
   "reflection": [
     {
+      "type": "com.azure.core.exception.ClientAuthenticationException"
+    },
+    {
+      "type": "com.azure.core.http.HttpHeaderName",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "com.azure.core.http.netty.NettyAsyncHttpClientProvider"
+    },
+    {
+      "type": "com.azure.core.http.netty.implementation.AzureSdkHandler",
+      "methods": [
+        {
+          "name": "channelRead",
+          "parameterTypes": ["io.netty.channel.ChannelHandlerContext", "java.lang.Object"]
+        },
+        {
+          "name": "channelReadComplete",
+          "parameterTypes": ["io.netty.channel.ChannelHandlerContext"]
+        },
+        {
+          "name": "write",
+          "parameterTypes": ["io.netty.channel.ChannelHandlerContext", "java.lang.Object", "io.netty.channel.ChannelPromise"]
+        }
+      ]
+    },
+    {
+      "type": "com.azure.core.http.rest.ResponseBase",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "com.azure.core.http.HttpRequest",
+            "int",
+            "com.azure.core.http.HttpHeaders",
+            "java.lang.Object",
+            "java.lang.Object"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "com.azure.core.models.AzureCloud",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "com.azure.core.util.Header",
+      "fields": [
+        {
+          "name": "cachedStringValue"
+        }
+      ]
+    },
+    {
+      "type": "com.azure.core.util.QueryParameter",
+      "fields": [
+        {
+          "name": "cachedStringValue"
+        }
+      ]
+    },
+    {
+      "type": "com.azure.identity.implementation.RegionalAuthority",
+      "methods": [
+        {
+          "name" : "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "com.azure.resourcemanager.resources.models.SubscriptionListResult",
+      "methods": [
+        {
+          "name": "fromJson",
+          "parameterTypes": [
+            "com.azure.json.JsonReader"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "com.azure.resourcemanager.resources.models.TenantListResult",
+      "methods": [
+        {
+          "name": "fromJson",
+          "parameterTypes": [
+            "com.azure.json.JsonReader"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "com.azure.storage.blob.implementation.models.ContainersGetPropertiesHeaders",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "com.azure.core.http.HttpHeaders"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "com.azure.storage.blob.implementation.models.ContainersListBlobFlatSegmentHeaders",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": [
+            "com.azure.core.http.HttpHeaders"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "com.azure.storage.blob.implementation.models.ListBlobsFlatSegmentResponse",
+      "methods": [
+        {
+          "name": "fromXml",
+          "parameterTypes": [
+            "com.azure.xml.XmlReader"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "com.azure.storage.blob.models.AccessTier",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
       "type": "io.netty.buffer.AbstractByteBufAllocator"
     },
     {
@@ -34,6 +179,19 @@
     },
     {
       "type": "io.netty.channel.epoll.Epoll"
+    },
+    {
+      "type": "io.netty.channel.epoll.LinuxSocket",
+      "methods": [
+        {
+          "name": "setIpBindAddressNoPort",
+          "parameterTypes": ["boolean"]
+        },
+        {
+          "name": "setIpBindAddressNoPort",
+          "parameterTypes": ["int", "int"]
+        }
+      ]
     },
     {
       "type": "io.netty.channel.epoll.NativeDatagramPacketArray$NativeDatagramPacket"
@@ -355,197 +513,215 @@
           "parameterTypes": []
         }
       ]
+    },
+    {
+      "type": "org.enso.microsoft.azure.AzureCredential"
+    },
+    {
+      "type" : "org.enso.microsoft.azure.AzureCredential$BlobStorageSASToken",
+      "methods" : [
+        {
+          "name" : "<init>",
+          "parameterTypes" : ["org.enso.base.enso_cloud.HideableValue"]
+        }
+      ]
+    },
+    {
+      "type" : "org.enso.microsoft.azure.AzureCredential$CLI",
+      "methods" : [
+        {
+          "name" : "<init>",
+          "parameterTypes" : []
+        }
+      ]
+    },
+    {
+      "type" : "org.enso.microsoft.azure.AzureCredential$ClientSecret",
+      "methods" : [
+        {
+          "name" : "<init>",
+          "parameterTypes" : ["org.enso.base.enso_cloud.HideableValue", "org.enso.base.enso_cloud.HideableValue", "org.enso.base.enso_cloud.HideableValue"]
+        }
+      ]
+    },
+    {
+      "type" : "org.enso.microsoft.azure.AzureCredential$Default",
+      "methods" : [
+        {
+          "name" : "<init>",
+          "parameterTypes" : []
+        }
+      ]
+    },
+    {
+      "type" : "org.enso.microsoft.azure.AzureCredential$Environment",
+      "methods" : [
+        {
+          "name" : "<init>",
+          "parameterTypes" : []
+        }
+      ]
+    },
+    {
+      "type" : "org.enso.microsoft.azure.AzureCredential.BlobStorageSASToken"
+    },
+    {
+      "type" : "org.enso.microsoft.azure.AzureCredential.CLI"
+    },
+    {
+      "type" : "org.enso.microsoft.azure.AzureCredential.ClientSecret"
+    },
+    {
+      "type" : "org.enso.microsoft.azure.AzureCredential.Default"
+    },
+    {
+      "type" : "org.enso.microsoft.azure.AzureCredential.Environment"
+    },
+    {
+      "type": "reactor.core.publisher.EmitterProcessor"
+    },
+    {
+      "type": "reactor.core.publisher.FluxConcatMap$ConcatMapImmediate"
+    },
+    {
+      "type": "reactor.core.publisher.FluxDoFinally$DoFinallySubscriber"
+    },
+    {
+      "type": "reactor.core.publisher.FluxFirstWithSignal$RaceCoordinator"
+    },
+    {
+      "type": "reactor.core.publisher.FluxPublish$PubSubInner"
+    },
+    {
+      "type": "reactor.core.publisher.FluxPublish$PublishSubscriber"
+    },
+    {
+      "type": "reactor.core.publisher.FluxRepeatWhen$RepeatWhenMainSubscriber"
+    },
+    {
+      "type": "reactor.core.publisher.FluxRetryWhen$RetryWhenMainSubscriber"
+    },
+    {
+      "type": "reactor.core.publisher.FluxSubscribeOnCallable$CallableSubscribeOnSubscription"
+    },
+    {
+      "type": "reactor.core.publisher.LambdaMonoSubscriber"
+    },
+    {
+      "type": "reactor.core.publisher.MonoCacheTime"
+    },
+    {
+      "type": "reactor.core.publisher.MonoCreate$DefaultMonoSink"
+    },
+    {
+      "type": "reactor.core.publisher.MonoFlatMap$FlatMapInner"
+    },
+    {
+      "type": "reactor.core.publisher.MonoFlatMap$FlatMapMain"
+    },
+    {
+      "type": "reactor.core.publisher.MonoFlatMapMany$FlatMapManyMain"
+    },
+    {
+      "type": "reactor.core.publisher.MonoIgnoreThen$ThenIgnoreMain"
+    },
+    {
+      "type": "reactor.core.publisher.MonoNext$NextSubscriber"
+    },
+    {
+      "type": "reactor.core.publisher.MonoUsing$MonoUsingSubscriber"
+    },
+    {
+      "type": "reactor.core.publisher.Operators$DeferredSubscription"
+    },
+    {
+      "type": "reactor.core.publisher.Operators$MonoInnerProducerBase"
+    },
+    {
+      "type": "reactor.core.publisher.Operators$MonoSubscriber"
+    },
+    {
+      "type": "reactor.core.publisher.Operators$MultiSubscriptionSubscriber"
+    },
+    {
+      "type": "reactor.core.publisher.Operators$ScalarSubscription"
+    },
+    {
+      "type": "reactor.core.publisher.SinkEmptyMulticast"
+    },
+    {
+      "type": "reactor.core.publisher.SinksSpecs$AbstractSerializedSink"
+    },
+    {
+      "type": "reactor.core.scheduler.BoundedElasticScheduler"
+    },
+    {
+      "type": "reactor.core.scheduler.BoundedElasticScheduler$BoundedServices"
+    },
+    {
+      "type": "reactor.core.scheduler.BoundedElasticScheduler$BoundedState"
+    },
+    {
+      "type": "reactor.core.scheduler.ParallelScheduler"
+    },
+    {
+      "type": "reactor.core.scheduler.SchedulerTask"
+    },
+    {
+      "type": "reactor.netty.channel.ChannelOperations"
+    },
+    {
+      "type": "reactor.netty.channel.ChannelOperationsHandler"
+    },
+    {
+      "type": "reactor.netty.channel.FluxReceive"
+    },
+    {
+      "type": "reactor.netty.http.Cookies"
+    },
+    {
+      "type": "reactor.netty.http.HttpOperations"
+    },
+    {
+      "type": "reactor.netty.internal.shaded.reactor.pool.AbstractPool$AbstractPooledRef"
+    },
+    {
+      "type": "reactor.netty.internal.shaded.reactor.pool.AllocationStrategies$SizeBasedAllocationStrategy"
+    },
+    {
+      "type": "reactor.netty.internal.shaded.reactor.pool.SimpleDequePool"
+    },
+    {
+      "type": "reactor.netty.internal.shaded.reactor.pool.SimpleDequePool$QueuePoolRecyclerInner"
+    },
+    {
+      "type": "reactor.netty.resources.DefaultPooledConnectionProvider$PooledConnectionAllocator$PooledConnectionInitializer"
+    },
+    {
+      "type": "reactor.netty.tcp.SslProvider$SslReadHandler"
+    },
+    {
+      "type": "reactor.netty.transport.TransportConfig$TransportChannelInitializer"
+    },
+    {
+      "type": "reactor.netty.transport.TransportConnector$MonoChannelPromise"
+    },
+    {
+      "type": "reactor.util.concurrent.SpscArrayQueueConsumer"
+    },
+    {
+      "type": "reactor.util.concurrent.SpscArrayQueueProducer"
+    },
+    {
+      "type": "reactor.util.concurrent.SpscLinkedArrayQueue"
     }
   ],
-  "jni": [
+  "resources": [
     {
-      "type": "[B"
+      "glob": "META-INF/services/java.sql.Driver"
     },
     {
-      "type": "[Ljava.lang.String;"
-    },
-    {
-      "type": "io.netty.handler.ssl.OpenSslClientSessionCache"
-    },
-    {
-      "type": "io.netty.handler.ssl.OpenSslSessionCache",
-      "methods": [
-        {
-          "name": "getSession",
-          "parameterTypes": [
-            "long",
-            "byte[]"
-          ]
-        },
-        {
-          "name": "sessionCreated",
-          "parameterTypes": [
-            "long",
-            "long"
-          ]
-        }
-      ]
-    },
-    {
-      "type": "io.netty.handler.ssl.ReferenceCountedOpenSslClientContext$ExtendedTrustManagerVerifyCallback"
-    },
-    {
-      "type": "io.netty.handler.ssl.ReferenceCountedOpenSslContext$AbstractCertificateVerifier",
-      "methods": [
-        {
-          "name": "verify",
-          "parameterTypes": [
-            "long",
-            "byte[][]",
-            "java.lang.String"
-          ]
-        }
-      ]
-    },
-    {
-      "type": "io.netty.internal.tcnative.Buffer"
-    },
-    {
-      "type": "io.netty.internal.tcnative.CertificateCallbackTask",
-      "methods": [
-        {
-          "name": "<init>",
-          "parameterTypes": [
-            "long",
-            "byte[]",
-            "byte[][]",
-            "io.netty.internal.tcnative.CertificateCallback"
-          ]
-        }
-      ]
-    },
-    {
-      "type": "io.netty.internal.tcnative.CertificateVerifierTask",
-      "methods": [
-        {
-          "name": "<init>",
-          "parameterTypes": [
-            "long",
-            "byte[][]",
-            "java.lang.String",
-            "io.netty.internal.tcnative.CertificateVerifier"
-          ]
-        }
-      ]
-    },
-    {
-      "type": "io.netty.internal.tcnative.Library"
-    },
-    {
-      "type": "io.netty.internal.tcnative.NativeStaticallyReferencedJniMethods"
-    },
-    {
-      "type": "io.netty.internal.tcnative.SSL"
-    },
-    {
-      "type": "io.netty.internal.tcnative.SSLContext"
-    },
-    {
-      "type": "io.netty.internal.tcnative.SSLPrivateKeyMethodDecryptTask",
-      "methods": [
-        {
-          "name": "<init>",
-          "parameterTypes": [
-            "long",
-            "byte[]",
-            "io.netty.internal.tcnative.AsyncSSLPrivateKeyMethod"
-          ]
-        }
-      ]
-    },
-    {
-      "type": "io.netty.internal.tcnative.SSLPrivateKeyMethodSignTask",
-      "methods": [
-        {
-          "name": "<init>",
-          "parameterTypes": [
-            "long",
-            "int",
-            "byte[]",
-            "io.netty.internal.tcnative.AsyncSSLPrivateKeyMethod"
-          ]
-        }
-      ]
-    },
-    {
-      "type": "io.netty.internal.tcnative.SSLPrivateKeyMethodTask",
-      "fields": [
-        {
-          "name": "resultBytes"
-        }
-      ]
-    },
-    {
-      "type": "io.netty.internal.tcnative.SSLSession"
-    },
-    {
-      "type": "io.netty.internal.tcnative.SSLTask",
-      "fields": [
-        {
-          "name": "complete"
-        },
-        {
-          "name": "returnValue"
-        }
-      ]
-    },
-    {
-      "type": "io.netty.resolver.dns.macos.MacOSDnsServerAddressStreamProvider"
-    },
-    {
-      "type": "java.lang.Class",
-      "methods": [
-        {
-          "name": "getClassLoader",
-          "parameterTypes": []
-        }
-      ]
-    },
-    {
-      "type": "java.lang.ClassLoader",
-      "methods": [
-        {
-          "name": "loadClass",
-          "parameterTypes": [
-            "java.lang.String"
-          ]
-        }
-      ]
-    },
-    {
-      "type": "java.lang.Exception"
-    },
-    {
-      "type": "java.lang.IllegalArgumentException"
-    },
-    {
-      "type": "java.lang.NullPointerException"
-    },
-    {
-      "type": "java.lang.OutOfMemoryError"
-    },
-    {
-      "type": "java.lang.String",
-      "methods": [
-        {
-          "name": "<init>",
-          "parameterTypes": [
-            "byte[]"
-          ]
-        },
-        {
-          "name": "getBytes",
-          "parameterTypes": []
-        }
-      ]
-    },
-    {
-      "type": "jdk.internal.loader.ClassLoaders$AppClassLoader"
+      "bundle": "com.microsoft.sqlserver.jdbc.SQLServerResource"
     }
   ]
 }
