@@ -54,9 +54,7 @@ public class NativeLibraryFinderTest {
         """);
     var ensoCtx = ctxRule.ensoContext();
     var stdImg =
-        ensoCtx
-            .getPackageRepository()
-            .getPackageForLibraryJava(LibraryName.apply("Enso", "Image"));
+        ensoCtx.getPackageRepository().getPackageForLibraryJava(LibraryName.apply("Enso", "Image"));
     assertThat(stdImg.isPresent(), is(true));
     this.stdImgPkg = stdImg.get();
     var nativeLibs =

@@ -5009,7 +5009,7 @@ lazy val `locking-test-helper` = project
     assembly / assemblyOutputPath := file("locking-test-helper.jar")
   )
 
-val `std-lib-root` = file("distribution/lib/Standard/")
+val `std-lib-root`       = file("distribution/lib/Standard/")
 val `extension-lib-root` = file("distribution/lib/Enso/")
 
 def stdLibComponentRoot(name: String): File =
@@ -5019,8 +5019,10 @@ def extensionLibComponentRoot(name: String): File =
 
 val `base-polyglot-root`  = stdLibComponentRoot("Base") / "polyglot" / "java"
 val `table-polyglot-root` = stdLibComponentRoot("Table") / "polyglot" / "java"
-val `image-polyglot-root` = extensionLibComponentRoot("Image") / "polyglot" / "java"
-val `image-native-libs`   = extensionLibComponentRoot("Image") / "polyglot" / "lib"
+val `image-polyglot-root` =
+  extensionLibComponentRoot("Image") / "polyglot" / "java"
+val `image-native-libs` =
+  extensionLibComponentRoot("Image") / "polyglot" / "lib"
 val `generic-jdbc-polyglot-root` =
   stdLibComponentRoot("Generic_JDBC") / "polyglot" / "java"
 val `generic-jdbc-native-libs` =

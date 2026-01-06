@@ -616,9 +616,9 @@ object DistributionPackage {
         val libSourceDir = sourceRoot / prefix / libName / sourceVersion
         if (libSourceDir.exists() && libSourceDir.isDirectory) {
           val copied = copyDirectoryIncremental(
-            source = libSourceDir,
+            source      = libSourceDir,
             destination = targetPackageRoot,
-            cache = cacheFactory.make(s"$prefix.$libName")
+            cache       = cacheFactory.make(s"$prefix.$libName")
           )
           val bindingsDir = targetPackageRoot / ".enso" / "cache" / "bindings"
           if (copied && bindingsDir.exists()) {
