@@ -51,11 +51,18 @@ public class NumericConverter {
   }
 
   public static BigInteger coerceToBigInteger(Object o) {
-    if (o instanceof BigInteger bigInteger) {
-      return bigInteger;
-    } else {
-      long longValue = coerceToLong(o);
-      return BigInteger.valueOf(longValue);
+    try {
+      return switch (o) {
+        case BigInteger big -> big;
+        case Double d -> new BigDecimal(d).toBigIntegerExact();
+        case Float f -> new BigDecimal(f).toBigIntegerExact();
+        default -> {
+          var longValue = coerceToLong(o);
+          yield BigInteger.valueOf(longValue);
+        }
+      };
+    } catch (ArithmeticException ex) {
+      throw new UnsupportedOperationException("Cannot coerce " + o + " to a big integer.");
     }
   }
 

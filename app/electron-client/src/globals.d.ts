@@ -14,6 +14,14 @@ declare global {
     readonly api: ElectronApi
   }
 
+  interface ImportMetaEnv {
+    readonly [key: string]: string | undefined
+  }
+
+  interface ImportMeta {
+    readonly env: ImportMetaEnv
+  }
+
   namespace NodeJS {
     /** Environment variables. */
     interface ProcessEnv {

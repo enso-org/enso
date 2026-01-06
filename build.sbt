@@ -3837,9 +3837,6 @@ lazy val `engine-runner` = project
             .listFiles("*.jar")
             .map(_.getAbsolutePath()) ++
           `std-aws-polyglot-root`.listFiles("*.jar").map(_.getAbsolutePath()) ++
-          `std-snowflake-polyglot-root`
-            .listFiles("*.jar")
-            .map(_.getAbsolutePath()) ++
           `std-tableau-polyglot-root`
             .listFiles("*.jar")
             .map(_.getAbsolutePath()) ++

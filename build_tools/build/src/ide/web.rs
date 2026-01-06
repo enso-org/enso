@@ -39,6 +39,9 @@ pub mod env {
 
     // GUI-specific environment variables
     define_env_var! {
+        /// The host URL for the Enso Cloud.
+        ENSO_IDE_HOST, String;
+
         /// The name of the backend environment, typically 'production' for production builds.
         ENSO_IDE_ENVIRONMENT, String;
 

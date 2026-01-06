@@ -44,3 +44,7 @@ state_put key new_state = @Builtin_Method "State.put"
 state_uninitialized key =
     Panic.throw
         Uninitialized_State.Error key
+
+ref_new ~value = @Builtin_Method "Ref.alloc"
+ref_get ref = @Builtin_Method "Ref.get"
+ref_put ref new_value = @Builtin_Method "Ref.put"

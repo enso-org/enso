@@ -23,7 +23,7 @@ process.env.LAUNCH_EDITOR ??= 'code'
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  ...(process.env.MODE && { mode: process.env.MODE }),
+  ...(process.env.MODE ? { mode: process.env.MODE } : {}),
   ...(IS_ELECTRON_DEV_MODE ? { root: fileURLToPath(new URL('.', import.meta.url)) } : {}),
   cacheDir: fileURLToPath(new URL('../../node_modules/.cache/vite', import.meta.url)),
   plugins: [
@@ -98,7 +98,6 @@ export default defineConfig({
       $: fileURLToPath(new URL('./src', import.meta.url)),
     },
   },
-  envDir: process.env.ENSO_ENV_FILES_ARE_IN_GUI === 'true' ? '.' : '../common',
   envPrefix: 'ENSO_IDE_',
   define: {
     // Single hardcoded usage of `global` in aws-amplify.
@@ -123,6 +122,12 @@ export default defineConfig({
     sourcemap: true,
     rollupOptions: {
       output: {
+        chunkFileNames: (chunkInfo) => {
+          if (chunkInfo.name === 'config') {
+            return 'assets/config.js'
+          }
+          return 'assets/[name]-[hash].js'
+        },
         manualChunks: {
           config: ['./src/config'],
           entrypoint: ['./src/entrypoint'],
