@@ -1,6 +1,5 @@
 package org.enso.compiler.test;
 
-import static org.enso.compiler.test.ExecStrictCompilerTest.ctxRule;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertEquals;
@@ -13,7 +12,7 @@ import org.enso.common.LanguageInfo;
 import org.enso.common.MethodNames;
 import org.enso.common.MethodNames.Module;
 import org.enso.common.RuntimeOptions;
-import org.enso.compiler.core.ir.expression.errors.Conversion.DeclaredAsPrivate$;
+import org.enso.compiler.core.ir.expression.errors.Conversion.DeclaredAsPrivate;
 import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Source;
@@ -575,7 +574,7 @@ public class ExecCompilerTest {
             run value =
                 42
             """);
-    var expectedErrMsg = DeclaredAsPrivate$.MODULE$.explain();
+    var expectedErrMsg = DeclaredAsPrivate.INSTANCE.explain();
     var runMethod = module.invokeMember(Module.EVAL_EXPRESSION, "run");
     runMethod.execute(0);
     assertThat(ctxRule.getOut(), containsString(expectedErrMsg));

@@ -13,7 +13,7 @@ import org.enso.compiler.core.ir.MetadataStorage;
 import org.enso.compiler.core.ir.Module;
 import org.enso.compiler.core.ir.Name;
 import org.enso.compiler.core.ir.expression.errors.Conversion;
-import org.enso.compiler.core.ir.expression.errors.Conversion.UnsupportedSourceType$;
+import org.enso.compiler.core.ir.expression.errors.Conversion.UnsupportedSourceType;
 import org.enso.compiler.core.ir.module.scope.definition.Method;
 import org.enso.compiler.data.BindingsMap;
 import org.enso.compiler.data.BindingsMap.Resolution;
@@ -138,10 +138,8 @@ public final class MethodDefinitions implements MiniPassFactory {
                               switch (sourceTypeExpr) {
                                 case Name name -> resolveType(name, bindingsMap);
                                 default ->
-                                    new Conversion(
-                                        sourceTypeExpr,
-                                        UnsupportedSourceType$.MODULE$,
-                                        new MetadataStorage());
+                                    Conversion.create(
+                                        sourceTypeExpr, UnsupportedSourceType.INSTANCE);
                               };
                           var resolvedMethod =
                               conversionMethod
