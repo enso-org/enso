@@ -2177,7 +2177,7 @@ private[runtime] class IrToTruffle(
       */
     private def processError(error: Error): RuntimeExpression = {
       val payload: Atom = error match {
-        case Error.InvalidIR(_, _) =>
+        case _: Error.InvalidIR =>
           throw new CompilerError("Unexpected Invalid IR during codegen.")
         case err: errors.Syntax =>
           getBuiltins

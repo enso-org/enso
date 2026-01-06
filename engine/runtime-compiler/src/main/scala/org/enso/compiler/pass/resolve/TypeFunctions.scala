@@ -222,11 +222,11 @@ case object TypeFunctions extends IRPass {
             .right(rightArg)
             .location(location)
             .build()
-        case _ => Error.InvalidIR(originalIR)
+        case _ => Error.InvalidIR.create(originalIR)
       }
 
     } else {
-      Error.InvalidIR(originalIR)
+      Error.InvalidIR.create(originalIR)
     }
   }
 
