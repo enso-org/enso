@@ -1088,11 +1088,11 @@ final class TreeToIr {
             continue;
           }
           var next = translateExpression(expr, false);
-          if (last instanceof IfThenElse ife && ife.falseBranchOrNull() == null) {
+          if (last instanceof IfThenElse previous && previous.falseBranchOrNull() == null) {
             if (next instanceof IfThenElse other && other.isOnlyElse()) {
-              var newIfe =
+              var replacement =
                   IfThenElse.builder(other).falseBranchOrNull(other.falseBranchOrNull()).build();
-              next = newIfe;
+              next = replacement;
               last = null;
             }
           }
@@ -1349,12 +1349,12 @@ final class TreeToIr {
         if (expressionStatement != null) {
           int last = appendTo.size() - 1;
           if (last >= 0
-              && appendTo.get(last) instanceof IfThenElse ife
-              && ife.falseBranchOrNull() == null) {
+              && appendTo.get(last) instanceof IfThenElse previous
+              && previous.falseBranchOrNull() == null) {
             if (expressionStatement instanceof IfThenElse other && other.isOnlyElse()) {
-              var newIfe =
-                  IfThenElse.builder(ife).falseBranchOrNull(other.falseBranchOrNull()).build();
-              appendTo.set(last, newIfe);
+              var replacement =
+                  IfThenElse.builder(previous).falseBranchOrNull(other.falseBranchOrNull()).build();
+              appendTo.set(last, replacement);
               // no appendTo.add, but return
               return;
             }
