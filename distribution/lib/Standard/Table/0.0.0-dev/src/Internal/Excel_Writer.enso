@@ -4,7 +4,6 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Runtime.Context
 import Standard.Base.System.File.Generic.Writable_File.Writable_File
-from Standard.Base.System.File import file_as_java
 
 import project.Excel.Excel_File_Format.Excel_File_Format
 import project.Excel.Excel_Range.Excel_Range
@@ -70,19 +69,22 @@ write_file (file : Writable_File) (table : Table) (on_existing_file : Existing_F
    private: true
    ---
 write_local_file (file:File) table on_existing_file section match_columns xls_format =
-    java_file = file_as_java file
+    to_java f:File =
+        Java_File.new f.absolute.normalize.path
+
+    java_file = to_java file
     file_format = xls_format.to_java
 
     ExcelWriter.setEnsoToTextCallbackIfUnset (.to_text)
     is_dry_run = Context.Output.is_enabled.not
 
     Panic.recover File_Error <| File_Error.handle_java_exceptions file <| handle_writer <|
-        possible_backup_file = if on_existing_file == Existing_File_Behavior.Backup then file_as_java (find_bak_file file) else Nothing
+        possible_backup_file = if on_existing_file == Existing_File_Behavior.Backup then to_java (find_bak_file file) else Nothing
         possible_dry_run_file = if is_dry_run.not then Nothing else
             preexisting_dry_run_file = DryRunFileManager.preExistingTemporaryFile file.absolute.normalize.path
             preexisting_dry_run_file.if_not_nothing <|
                 Java_File.new preexisting_dry_run_file
-        
+
         ## Make sure all of the files we may touch as part of the write operation are not open for reading in the cache
         possible_backup_file.if_not_nothing <| ExcelReader.closeFile possible_backup_file file_format
         possible_dry_run_file.if_not_nothing <| ExcelReader.closeFile possible_dry_run_file file_format
@@ -95,8 +97,8 @@ write_local_file (file:File) table on_existing_file section match_columns xls_fo
             doesn't exist we also ensure that the temp file is not polluted with data from previous (dry-run) writes.
         Context.Output.with_enabled <| Panic.rethrow <|
             if file.exists then (file.copy_to temp_file replace_existing=True) else (temp_file.delete_if_exists)
-        
-        write_to_workbook (file_as_java temp_file) file_format table section on_existing_file match_columns
+
+        write_to_workbook (to_java temp_file) file_format table section on_existing_file match_columns
 
         Context.Output.with_enabled <|
             result_file = if is_dry_run then temp_file else
