@@ -80,7 +80,7 @@ type Cloud_Tests_Setup
     ## Flushes all cloud caches in order to allow switch between real and mock cloud environments.
     reset =
         Cloud_Tests_Setup.log_message level=..Warning "Cloud_Tests_Setup.reset called"
-        CloudAPI.flushCloudCaches
+        Runtime.gc flush_caches=True
         Cloud_Tests_Setup.log_message level=..Warning "Cloud_Tests_Setup.reset done"
 
     ## Detects the setup based on environment settings.

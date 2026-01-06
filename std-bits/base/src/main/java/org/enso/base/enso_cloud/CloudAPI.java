@@ -1,7 +1,6 @@
 package org.enso.base.enso_cloud;
 
 import java.util.Objects;
-import org.enso.base.enso_cloud.audit.AuditLog;
 import org.enso.base.polyglot.EnsoMeta;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,7 +36,7 @@ public final class CloudAPI {
               "CloudAPI settings change detected. Dropping {}. Installing {}.", cached, fresh);
         }
       }
-      flushCloudCaches();
+      EnsoMeta.callStaticModuleMethod("Standard.Base.Runtime", "gc", true);
       synchronized (CloudAPI.class) {
         if (cached == null) {
           cached = fresh;
@@ -91,14 +90,6 @@ public final class CloudAPI {
     var cloudSessionId = sessionId.isNull() ? null : sessionId.asString();
 
     return new CloudAPI(apiRootUri, cloudProjectId, cloudSessionId);
-  }
-
-  public static void flushCloudCaches() {
-    cached = null;
-    CloudRequestCache.INSTANCE.clear();
-    AuthenticationProvider.INSTANCE.reset();
-    EnsoSecretReader.INSTANCE.flushCache();
-    AuditLog.resetCache();
   }
 
   @Override
