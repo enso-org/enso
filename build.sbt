@@ -3928,7 +3928,7 @@ lazy val `engine-runner` = project
             // native library from the jar.
             excludeConfigs = Seq(
               s".*sqlite-jdbc-.*\\.jar,META-INF/native-image/org\\.xerial/sqlite-jdbc/native-image\\.properties",
-              s".*snowflake-jdbc-.*\\.jar,META-INF/native-image/.*",
+              s"META-INF/native-image/.*",
               ".*gax-grpc-.*\\.jar,META-INF/native-image/com.google.api/gax-grpc/native-image.properties"
             ),
             modulePath = mp,
@@ -3937,9 +3937,6 @@ lazy val `engine-runner` = project
               "-H:+AddAllCharsets",
               "-H:+IncludeAllLocales",
               "-R:-InstallSegfaultHandler",
-              // Workaround a problem with build-/runtime-initialization conflict
-              // by disabling this service provider
-              "-H:ServiceLoaderFeatureExcludeServiceProviders=net.snowflake.client.core.FileTypeDetector",
               "-Dorg.sqlite.lib.exportPath=" + (engineDistributionRoot.value / "bin"),
               "--features=" + features.mkString(","),
               // Needed for the NativeLibraryFeature
@@ -3981,7 +3978,6 @@ lazy val `engine-runner` = project
               "io.netty.util.concurrent.AbstractScheduledEventExecutor",
               "io.netty.resolver.dns",
               "io.opencensus",
-              "net.snowflake.client",
               "com.sun.jna",
               "com.tableau.hyperapi",
               "com.typesafe.config.impl.ConfigImpl$EnvVariablesHolder",
