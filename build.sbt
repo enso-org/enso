@@ -5316,13 +5316,25 @@ lazy val `opencv-wrapper` = project
     ),
     inputJar := "org.openpnp" % "opencv" % opencvVersion,
     jarExtractor := JarExtractor(
-      "nu/pattern/opencv/linux/x86_64/*.so"    -> PolyglotLib(LinuxAMD64),
-      "nu/pattern/opencv/osx/ARMv8/*.dylib"    -> PolyglotLib(MacOSArm64),
-      "nu/pattern/opencv/osx/x86_64/*.dylib"   -> PolyglotLib(MacOSAMD64),
-      "nu/pattern/opencv/windows/x86_64/*.dll" -> PolyglotLib(WindowsAMD64),
-      "nu/pattern/*.class"                     -> CopyToOutputJar,
-      "META-INF/**"                            -> CopyToOutputJar,
-      "org/**"                                 -> CopyToOutputJar
+      "nu/pattern/opencv/linux/x86_64/*.so" -> PolyglotLib(
+        LinuxAMD64,
+        matchArch = false
+      ),
+      "nu/pattern/opencv/osx/ARMv8/*.dylib" -> PolyglotLib(
+        MacOSArm64,
+        matchArch = false
+      ),
+      "nu/pattern/opencv/osx/x86_64/*.dylib" -> PolyglotLib(
+        MacOSAMD64,
+        matchArch = false
+      ),
+      "nu/pattern/opencv/windows/x86_64/*.dll" -> PolyglotLib(
+        WindowsAMD64,
+        matchArch = false
+      ),
+      "nu/pattern/*.class" -> CopyToOutputJar,
+      "META-INF/**"        -> CopyToOutputJar,
+      "org/**"             -> CopyToOutputJar
     )
   )
 

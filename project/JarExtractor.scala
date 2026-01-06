@@ -67,14 +67,15 @@ object JarExtractor {
     * For example, if the entry is `foo.so` and the `arch` parameter is
     * [[LinuxAMD64]], the entry will be copied to `amd64/linux/foo.so`.
     *
-    * The entry will be copied only if the architecture matches the current
-    * platform's architecture.
+    * If `matchArch` is true, the entry will be copied only if the architecture matches the current
+    * platform's architecture, otherwise it will be copied unconditionally.
     *
     * @param arch If specified, will be copied only iff the architecture is
     *        the same as the current platform.
     */
   case class PolyglotLib(
-    arch: NativeLibArch
+    arch: NativeLibArch,
+    matchArch: Boolean = true
   ) extends Command
 
   /** Traverses all the entries in the input JAR file and extracts files
@@ -116,7 +117,7 @@ object JarExtractor {
                 command match {
                   case CopyToOutputJar =>
                     copyEntry(outputJar, inputJar, entry, logger)
-                  case PolyglotLib(arch) =>
+                  case PolyglotLib(arch, matchArch) =>
                     // Silently rename the old `*.jnilib` files to `*.dylib`.
                     val fullPath = entryPath.getFileName.toString
                     val idx      = fullPath.lastIndexOf('.')
@@ -142,7 +143,9 @@ object JarExtractor {
                       val destPath = polyglotLibDir
                         .resolve(arch.path)
                         .resolve(fullPath2)
-                      if (archMatchesCurPlatform(arch)) {
+                      val shouldCopy =
+                        if (matchArch) archMatchesCurPlatform(arch) else true
+                      if (shouldCopy) {
                         copyEntry(destPath, inputJar, entry, logger)
                       }
                     }
