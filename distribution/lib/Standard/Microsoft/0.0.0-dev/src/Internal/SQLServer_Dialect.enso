@@ -785,7 +785,7 @@ make_group_number_standard_deviation (stddev_variant : Text) (arguments : Vector
        If stanard deviation is NULL, using 1 instead for the same reason.
        (STDDEV_SAMP will return NULL for a single value input.)
     stddev_safe = SQL_Builder.code "(case when " ++ stddev.paren ++ " = 0 or " ++ stddev.paren ++ " is null then 1 else " ++ stddev.paren ++ " end)"
-    mean = SQL_Builder.code "(avg(cast(" ++ stddev_column.paren ++ " as decimal)) over ())"
+    mean = SQL_Builder.code "(avg(" ++ stddev_column.paren ++ " * 1.0) over ())"
     zscore = SQL_Builder.code "((" ++ stddev_column.paren ++ " - " ++ mean.paren ++ ") / " ++ stddev_safe.paren ++ ")"
     group_index = SQL_Builder.code "(floor(" ++ zscore.paren ++ " + 0.5))"
     whener gi op name = SQL_Builder.code "when " ++ group_index.paren ++ " " ++ op ++ gi.to_text ++ " then '" ++ name ++ "'"
