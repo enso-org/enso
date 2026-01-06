@@ -324,7 +324,6 @@ add_group_number_specs suite_builder setup =
 
         group_builder.specify "add group number by standard deviation with 0 or 1 element works" <|
             t_one = table_builder [['x', [3]]] . order_by 'x'
-            t_zero = t_one . take 0
 
             g0 = t_one.add_group_number (..Standard_Deviation "x") "g"
             g0.at "g" . to_vector . should_equal [label_0]
@@ -332,11 +331,14 @@ add_group_number_specs suite_builder setup =
             g1 = t_one.add_group_number (..Standard_Deviation "x" population=True) "g"
             g1.at "g" . to_vector . should_equal [label_0]
 
-            g2 = t_zero.add_group_number (..Standard_Deviation "x") "g"
-            g2.at "g" . to_vector . should_equal []
+            if setup.is_feature_supported Feature.Sample then
+                t_zero = t_one . take 0
 
-            g3 = t_zero.add_group_number (..Standard_Deviation "x" population=True) "g"
-            g3.at "g" . to_vector . should_equal []
+                g2 = t_zero.add_group_number (..Standard_Deviation "x") "g"
+                g2.at "g" . to_vector . should_equal []
+
+                g3 = t_zero.add_group_number (..Standard_Deviation "x" population=True) "g"
+                g3.at "g" . to_vector . should_equal []
 
         group_builder.specify "add group number by standard deviation does not allow from/step" <|
             t = table_builder [['x', [3, 4, 5, 4, 3, 5, 10, 4, 3]]]
