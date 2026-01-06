@@ -94,8 +94,6 @@ public final class CloudAPI {
   }
 
   public static void flushCloudCaches() {
-    LOGGER.warn(
-        "Flushing CloudAPI@0x{}", Integer.toHexString(System.identityHashCode(CloudAPI.class)));
     cached = null;
     CloudRequestCache.INSTANCE.clear();
     AuthenticationProvider.INSTANCE.reset();
