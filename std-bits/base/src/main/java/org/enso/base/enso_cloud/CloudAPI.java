@@ -1,23 +1,58 @@
 package org.enso.base.enso_cloud;
 
+import java.util.Objects;
 import org.enso.base.enso_cloud.audit.AuditLog;
 import org.enso.base.polyglot.EnsoMeta;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class CloudAPI {
-  private CloudAPI() {}
+  private static final Logger LOGGER = LoggerFactory.getLogger(CloudAPI.class);
+  private static CloudAPI cached;
+
+  private final String apiRootUri;
+  private final String cloudProjectId;
+  private final String cloudSessionId;
+
+  private CloudAPI(String apiRootUri, String cloudProjectId, String cloudSessionId) {
+    this.apiRootUri = apiRootUri;
+    this.cloudProjectId = cloudProjectId;
+    this.cloudSessionId = cloudSessionId;
+  }
+
+  /**
+   * Obtains cached or fresh instance of CloudAPI
+   *
+   * @return values of cloud API to use
+   */
+  public static CloudAPI getInstance() {
+    while (true) {
+      var fresh = readFromEnv();
+      synchronized (CloudAPI.class) {
+        if (cached != null) {
+          if (cached.equals(fresh)) {
+            return cached;
+          }
+          LOGGER.warn(
+              "CloudAPI settings change detected. Dropping {}. Installing {}.", cached, fresh);
+        }
+      }
+      flushCloudCaches();
+      synchronized (CloudAPI.class) {
+        if (cached == null) {
+          cached = fresh;
+        }
+      }
+    }
+  }
 
   /**
    * Returns the URI to the root of the Cloud API.
    *
    * <p>It always ends with a slash.
    */
-  public static String getAPIRootURI() {
-    var envUrl =
-        EnsoMeta.callStaticModuleMethod(
-            "Standard.Base.System.Environment", "get", "ENSO_CLOUD_API_URL");
-    var effectiveUrl = envUrl.isNull() ? "https://api.cloud.enso.org/" : envUrl.asString();
-    var urlWithSlash = effectiveUrl.endsWith("/") ? effectiveUrl : effectiveUrl + "/";
-    return urlWithSlash;
+  public String getAPIRootURI() {
+    return apiRootUri;
   }
 
   /**
@@ -25,11 +60,8 @@ public final class CloudAPI {
    *
    * <p>When running locally, this returns {@code null}.
    */
-  public static String getCloudProjectId() {
-    var id =
-        EnsoMeta.callStaticModuleMethod(
-            "Standard.Base.System.Environment", "get", "ENSO_CLOUD_PROJECT_ID");
-    return id.isNull() ? null : id.asString();
+  public String getCloudProjectId() {
+    return cloudProjectId;
   }
 
   /**
@@ -37,17 +69,77 @@ public final class CloudAPI {
    *
    * <p>When running locally, this returns {@code null}.
    */
-  public static String getCloudSessionId() {
-    var id =
+  public String getCloudSessionId() {
+    return cloudSessionId;
+  }
+
+  private static CloudAPI readFromEnv() {
+    var envUrl =
+        EnsoMeta.callStaticModuleMethod(
+            "Standard.Base.System.Environment", "get", "ENSO_CLOUD_API_URL");
+    var effectiveUrl = envUrl.isNull() ? "https://api.cloud.enso.org/" : envUrl.asString();
+    var apiRootUri = effectiveUrl.endsWith("/") ? effectiveUrl : effectiveUrl + "/";
+
+    var projectId =
+        EnsoMeta.callStaticModuleMethod(
+            "Standard.Base.System.Environment", "get", "ENSO_CLOUD_PROJECT_ID");
+    var cloudProjectId = projectId.isNull() ? null : projectId.asString();
+
+    var sessionId =
         EnsoMeta.callStaticModuleMethod(
             "Standard.Base.System.Environment", "get", "ENSO_CLOUD_PROJECT_SESSION_ID");
-    return id.isNull() ? null : id.asString();
+    var cloudSessionId = sessionId.isNull() ? null : sessionId.asString();
+
+    return new CloudAPI(apiRootUri, cloudProjectId, cloudSessionId);
   }
 
   public static void flushCloudCaches() {
+    cached = null;
     CloudRequestCache.INSTANCE.clear();
     AuthenticationProvider.INSTANCE.reset();
     EnsoSecretReader.INSTANCE.flushCache();
     AuditLog.resetCache();
+  }
+
+  @Override
+  public int hashCode() {
+    int hash = 3;
+    hash = 29 * hash + Objects.hashCode(this.apiRootUri);
+    hash = 29 * hash + Objects.hashCode(this.cloudProjectId);
+    hash = 29 * hash + Objects.hashCode(this.cloudSessionId);
+    return hash;
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) {
+      return true;
+    }
+    if (obj == null) {
+      return false;
+    }
+    if (getClass() != obj.getClass()) {
+      return false;
+    }
+    final CloudAPI other = (CloudAPI) obj;
+    if (!Objects.equals(this.apiRootUri, other.apiRootUri)) {
+      return false;
+    }
+    if (!Objects.equals(this.cloudProjectId, other.cloudProjectId)) {
+      return false;
+    }
+    return Objects.equals(this.cloudSessionId, other.cloudSessionId);
+  }
+
+  @Override
+  public String toString() {
+    return "CloudAPI{"
+        + "apiRootUri="
+        + apiRootUri
+        + ", cloudProjectId="
+        + cloudProjectId
+        + ", cloudSessionId="
+        + cloudSessionId
+        + '}';
   }
 }

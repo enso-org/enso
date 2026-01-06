@@ -150,6 +150,7 @@ pub mod secret {
 }
 
 pub mod variables {
+    pub const ENSO_HOST: &str = "ENSO_HOST";
     pub const ENSO_CLOUD_ENVIRONMENT: &str = "ENSO_CLOUD_ENVIRONMENT";
     pub const ENSO_CLOUD_API_URL: &str = "ENSO_CLOUD_API_URL";
     pub const ENSO_CLOUD_CHAT_URL: &str = "ENSO_CLOUD_CHAT_URL";

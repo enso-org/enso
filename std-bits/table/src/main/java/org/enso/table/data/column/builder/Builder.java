@@ -107,14 +107,14 @@ public interface Builder {
       return (ColumnStorage<T>) new TypedStorage(localType, new Object[0]);
     }
     var data = storage.addressOfData();
+    var size = Math.toIntExact(storage.getSize());
+    var proxyType = storage.getType();
+    var localType = StorageType.fromTypeCharAndSize(proxyType.typeChar(), proxyType.size());
     if (data != 0) {
-      var size = Math.toIntExact(storage.getSize());
       var validity = storage.addressOfValidity();
-      var proxyType = storage.getType();
-      var localType = StorageType.fromTypeCharAndSize(proxyType.typeChar(), proxyType.size());
       var localStorage =
           switch (localType) {
-            case BooleanType type -> BoolBuilder.fromAddress(size, data, validity).seal(storage);
+            case BooleanType _ -> BoolBuilder.fromAddress(size, data, validity).seal(storage);
             case IntegerType type ->
                 LongBuilder.fromAddress(size, data, validity, type).seal(storage, type);
             case FloatType type ->
@@ -126,10 +126,23 @@ public interface Builder {
       assert assertSameStorages(storage, localStorage);
       return (ColumnStorage<T>) localStorage;
     } else {
-      if (BuilderUtil.LOG.isTraceEnabled()) {
-        var t = storage.getType();
-        BuilderUtil.LOG.trace(
-            "makeLocal unsuccessful for {}:{} size {}", t.typeChar(), t.size(), storage.getSize());
+      switch (localType) {
+        case BigIntegerType _ -> {
+          var b = Builder.getForBigInteger(size, null);
+          b.appendBulkStorage(storage);
+          var localStorage = b.seal();
+          return (ColumnStorage<T>) localStorage;
+        }
+        default -> {
+          if (BuilderUtil.LOGGER.isTraceEnabled()) {
+            var t = storage.getType();
+            BuilderUtil.LOGGER.trace(
+                "makeLocal unsuccessful for {}:{} size {}",
+                t.typeChar(),
+                t.size(),
+                storage.getSize());
+          }
+        }
       }
     }
     return storage;

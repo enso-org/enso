@@ -498,7 +498,7 @@ base_dialect_operations =
     nulls = [["IS_NULL", make_right_unary_op "IS NULL"], ["FILL_NULL", make_function "COALESCE"]]
     contains = [["IS_IN", make_is_in], ["IS_IN_COLUMN", make_is_in_column]]
     types = [simple_cast]
-    windows = [["ROW_NUMBER", make_row_number], ["ROW_NUMBER_IN_GROUP", make_row_number_in_group], ["GROUP_NUMBER", make_group_number], ["GROUP_NUMBER_EQUAL_COUNT", make_group_number_equal_count]]
+    windows = [["ROW_NUMBER", make_row_number], ["ROW_NUMBER_IN_GROUP", make_row_number_in_group], ["GROUP_NUMBER", make_group_number], ["GROUP_NUMBER_EQUAL_COUNT", make_group_number_equal_count], ["GROUP_NUMBER_EQUAL_SUM", make_group_number_equal_sum]]
     leadlag = [["LEAD", _make_lead_lag "LEAD"], ["LAG", _make_lead_lag "LAG"], ["LEAD_CLOSEST", _make_lead_lag_closest_value "LEAD"], ["LAG_CLOSEST", _make_lead_lag_closest_value "LAG"]]
     trig = [["SIN", make_function "SIN"], ["ASIN", make_function "ASIN"], ["COS", make_function "COS"], ["ACOS", make_function "ACOS"], ["TAN", make_function "TAN"], ["ATAN", make_function "ATAN"], ["SINH", make_function "SINH"], ["COSH", make_function "COSH"], ["TANH", make_function "TANH"]]
     base_dict = Dictionary.from_vector (arith + logic + compare + functions + agg + counts + text + nulls + contains + types + windows + leadlag + trig)
@@ -655,6 +655,30 @@ make_group_number_equal_count (arguments : Vector) = if arguments.length < 3 the
     base_group_number = SQL_Builder.code "(case when " ++ is_in_large_groups.paren ++ " then " ++ gn_large_groups.paren ++ " else " ++ gn_small_groups.paren ++ " end)"
 
     SQL_Builder.code "((" ++ base_group_number.paren ++ " * " ++ step.paren ++ ") + " ++ offset.paren ++ ")"
+
+## ---
+   private: true
+   ---
+make_group_number_equal_sum : Vector SQL_Builder -> SQL_Builder
+make_group_number_equal_sum (arguments : Vector) = if arguments.length < 4 then Error.throw (Illegal_State.Error "Wrong amount of parameters in GROUP_NUMBER_EQUAL_COUNT IR. This is a bug in the Database library.") else
+    offset = arguments.at 0
+    step = arguments.at 1
+    sum_column = arguments.at 2
+    group_count = arguments.at 3
+
+    ordering = arguments.drop 4
+
+    # Necessary in a window ordering to ensure that duplicate elements get different values
+    dedup = "ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW"
+
+    ordering_part = if ordering.length == 0 then "" else
+        SQL_Builder.code "ORDER BY " ++ SQL_Builder.join ", " ordering
+    running_sum = SQL_Builder.code "(sum(" ++ sum_column ++ ") over (" ++ ordering_part ++ " " ++ dedup ++ "))"
+    full_sum = SQL_Builder.code "(sum(" ++ sum_column ++ ") over ())"
+    ideal_group_size = SQL_Builder.code "((" ++ full_sum.paren ++ " + 1) / (cast(" ++ group_count.paren ++ " as float)))"
+    fractional_group_number = SQL_Builder.code "(" ++ running_sum.paren ++ " / " ++ ideal_group_size.paren ++ ")"
+    base_value = SQL_Builder.code "(cast(floor(" ++ fractional_group_number.paren ++ ") as integer))"
+    SQL_Builder.code "((" ++ base_value.paren ++ " * " ++ step.paren ++ ") + " ++ offset.paren ++ ")"
 
 ## ---
    private: true

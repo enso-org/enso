@@ -1416,7 +1416,7 @@ class DataflowAnalysisTest extends CompilerTest {
         consBranchPattern.fields.head.asInstanceOf[Pattern.Name]
       val consBranchADef = consBranchAPattern.name
       val consBranchBPattern =
-        consBranchPattern.fields(1).asInstanceOf[Pattern.Name]
+        consBranchPattern.fields.apply(1).asInstanceOf[Pattern.Name]
       val consBranchBDef = consBranchBPattern.name
 
       val consBranchExpression =

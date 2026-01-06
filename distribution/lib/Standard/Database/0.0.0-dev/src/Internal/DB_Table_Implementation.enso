@@ -319,6 +319,36 @@ type DB_Table_Implementation
                         renamed_table = Add_Row_Number.rename_columns_if_needed this_table name on_problems rebuild_table
                         updated_table = renamed_table.updated_columns (renamed_table.internal_columns + [new_column])
                         updated_table.as_subquery
+                Grouping_Method.Equal_Sum on group_count order_by ->
+                    if group_count < 1 then
+                        Error.throw (Illegal_Argument.Error "group_count must be at least 1")
+                    ordering = Table_Helpers.resolve_order_by this_table.columns order_by problem_builder
+                    problem_builder.attach_problems_before on_problems <|
+                        order_descriptors = _resolve_order_descriptors this_table ordering "add_group_number"
+                        sum_columns = this_table.columns_helper.select_columns_helper [on] Case_Sensitivity.Default True problem_builder
+                        if sum_columns.is_empty then
+                            Error.throw (Illegal_Argument.Error 'Sum column \"'+on.to_text+'\" not found')
+                        sum_column = sum_columns.at 0
+
+                        sum_expression = Internal_Column.from sum_column . expression
+
+                        new_expr = Group_Number_Helpers.make_group_number_equal_sum from step sum_expression group_count order_descriptors
+
+                        mapping = this_table.connection.type_mapping
+                        infer_from_database_callback expression =
+                            SQL_Type_Reference.new this_table.connection this_table.context expression
+                        new_type_ref = mapping.infer_return_type infer_from_database_callback "GROUP_NUMBER_EQUAL_SUM" [] new_expr
+
+                        new_column = Internal_Column.Value name new_type_ref new_expr
+
+                        rebuild_table columns =
+                            this_table.updated_columns (columns.map (Internal_Column.from _))
+                        renamed_table = Add_Row_Number.rename_columns_if_needed this_table name on_problems rebuild_table
+                        updated_table = renamed_table.updated_columns (renamed_table.internal_columns + [new_column])
+                        updated_table.as_subquery
+                Grouping_Method.Standard_Deviation on population ->
+                    _ = [on, population]
+                    Error.throw (Unsupported_Database_Operation.Error "add_group_number with Standard_Deviation")
 
     find_group_number (this_table : Table & DB_Table) predicate over group_row name:Text from:Integer step:Integer on_problems:Problem_Behavior =
         _ = [this_table, predicate, over, group_row, name, from, step, on_problems]
