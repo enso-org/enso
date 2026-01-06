@@ -34,7 +34,7 @@ polyglot java import org.enso.base.enso_cloud.CloudRequestCache
 ## ---
    private: true
    ---
-cloud_root_uri = "" + CloudAPI.getAPIRootURI
+cloud_root_uri = "" + CloudAPI.getInstance.getAPIRootURI
 
 ## ---
    private: true

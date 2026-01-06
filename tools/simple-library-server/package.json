@@ -15,7 +15,7 @@
   "license": "Apache-2.0",
   "dependencies": {
     "compression": "^1.8.1",
-    "express": "^4.21.2",
+    "express": "^4.22.1",
     "multer": "^2.0.2",
     "semver": "^7.5.2",
     "yargs": "^17.0.1"

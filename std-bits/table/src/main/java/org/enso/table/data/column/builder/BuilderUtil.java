@@ -6,5 +6,5 @@ import org.slf4j.LoggerFactory;
 final class BuilderUtil {
   private BuilderUtil() {}
 
-  static final Logger LOG = LoggerFactory.getLogger(BuilderUtil.class);
+  static final Logger LOGGER = LoggerFactory.getLogger(BuilderUtil.class);
 }
