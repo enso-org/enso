@@ -215,18 +215,20 @@ export class YjsDataChannel<T = unknown> extends YjsChannel<T> {
   private static channels = new Map<string, YjsDataChannel>()
 
   private readonly callbacks: YjsChannelCallbacks<T>
+  private readonly ByteBuffer: any
 
-  constructor(doc: Y.Doc, channelName: string, callbacks: YjsChannelCallbacks<T>) {
+  constructor(doc: Y.Doc, channelName: string, callbacks: YjsChannelCallbacks<T>, byteBuffer: any) {
     super(doc, channelName)
     this.callbacks = callbacks
+    this.ByteBuffer = byteBuffer
     this.callbacks.onConnect(this)
   }
 
   /** Get a {@link YjsDataChannel}. */
-  static get(doc: Y.Doc, channelName: string, callbacks: YjsChannelCallbacks): YjsDataChannel {
+  static get(doc: Y.Doc, channelName: string, callbacks: YjsChannelCallbacks, byteBuffer: any): YjsDataChannel {
     return map.setIfUndefined(YjsDataChannel.channels, channelName, () => {
       console.log('DEBUG YjdDataChannel.get', channelName)
-      return new YjsDataChannel(doc, channelName, callbacks)
+      return new YjsDataChannel(doc, channelName, callbacks, byteBuffer)
     })
   }
 
@@ -236,9 +238,16 @@ export class YjsDataChannel<T = unknown> extends YjsChannel<T> {
     super.send(arr as T)
   }
 
-
-  override notifyHandlers(message: any): void {
-    const arr = message as Uint8Array
-    super.notifyHandlers(arr.buffer)
+  override subscribe(handler: MessageHandler<T>): () => void {
+    console.log('YjsDataChannel.subscribe', handler)
+    const f = (contents: Uint8Array) => {
+      console.log('YjsDataChannel.subscribe f', contents)
+      const bb = this.ByteBuffer.allocateDirect(contents.byteLength)
+      console.log('YjsDataChannel.subscribe f bb', bb)
+      const arr = new Uint8Array(new ArrayBuffer(bb))
+      arr.set(contents)
+      return handler(bb)
+    }
+    return super.subscribe(f as MessageHandler<T>)
   }
 }

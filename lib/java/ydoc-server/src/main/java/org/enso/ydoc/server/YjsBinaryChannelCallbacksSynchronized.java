@@ -5,7 +5,7 @@ import org.enso.ydoc.api.MessageCallbacks;
 import org.enso.ydoc.api.YjsChannel;
 import org.graalvm.polyglot.Context;
 
-public class YjsBinaryChannelCallbacksSynchronized implements MessageCallbacks {
+public final class YjsBinaryChannelCallbacksSynchronized implements MessageCallbacks {
 
   private final MessageCallbacks callbacks;
   private final ExecutorService executor;

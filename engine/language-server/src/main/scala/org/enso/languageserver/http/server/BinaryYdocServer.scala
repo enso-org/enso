@@ -7,6 +7,7 @@ import org.enso.languageserver.util.binary.{BinaryDecoder, BinaryEncoder}
 import org.enso.ydoc.api.{MessageCallbacks, YjsChannel}
 import org.graalvm.polyglot.Context
 
+import java.lang.foreign.MemorySegment
 import java.nio.ByteBuffer
 
 import scala.util.control.NonFatal
@@ -53,11 +54,14 @@ object BinaryYdocServer {
     ): Unit = {
       logger.info(s"BinaryServerCallbacks.onMessage ${message.getClass}")
       try {
-        val bytes = context.asValue(message).as(classOf[Array[Byte]])
-        val decoded = decoder.decode(ByteBuffer.wrap(bytes))
+        val value = context.asValue(message)
+        val address = value.asNativePointer()
+        val segment = MemorySegment.ofAddress(address).reinterpret(value.getBufferSize());
+        val buffer = segment.asByteBuffer()
+        val decoded = decoder.decode(buffer)
         logger.info(s"Received binary message $decoded")
         incomingMessageHandler ! decoded
-        messageCallbacks.foreach(cb => cb(ByteBuffer.wrap(bytes)))
+        messageCallbacks.foreach(cb => cb(buffer))
       } catch {
         case NonFatal(e) =>
           logger.error(

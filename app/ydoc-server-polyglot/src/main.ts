@@ -13,6 +13,8 @@ if (YDOC_BINARY_CHANNEL_CALLBACKS == undefined) {
   throw new Error('YDOC_BINARY_CHANNEL_CALLBACKS undefined')
 }
 
+const ByteBuffer = Java.type('java.nio.ByteBuffer')
+
 const wss = new WebSocketServer({ host, port })
 
 wss.onconnect = (socket, url) => {
@@ -25,6 +27,7 @@ wss.onconnect = (socket, url) => {
       ls,
       data,
       doc,
+      ByteBuffer,
       YDOC_JSON_CHANNEL_CALLBACKS,
       YDOC_BINARY_CHANNEL_CALLBACKS,
     )

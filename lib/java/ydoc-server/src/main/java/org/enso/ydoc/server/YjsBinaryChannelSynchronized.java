@@ -5,7 +5,7 @@ import java.util.function.Consumer;
 import org.enso.ydoc.api.YjsChannel;
 import org.graalvm.polyglot.Context;
 
-public class YjsBinaryChannelSynchronized implements YjsChannel {
+public final class YjsBinaryChannelSynchronized implements YjsChannel {
 
   private final YjsChannel channel;
   private final ExecutorService executor;

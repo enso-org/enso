@@ -4,7 +4,7 @@ import java.util.concurrent.ExecutorService;
 import org.enso.ydoc.api.MessageCallbacks;
 import org.enso.ydoc.api.YjsChannel;
 
-public class YjsCallbacksSynchronized implements MessageCallbacks {
+public final class YjsCallbacksSynchronized implements MessageCallbacks {
 
   private final MessageCallbacks callbacks;
   private final ExecutorService executor;
