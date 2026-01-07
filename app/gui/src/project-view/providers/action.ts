@@ -92,6 +92,10 @@ const displayableActions = {
     icon: 'bottom_panel',
     description: 'Align Selected Components Bottom',
   },
+  'components.alignCenter': {
+    icon: 'points',
+    description: 'Center Selected Components Horizontally',
+  },
   'components.deleteAndConnectAround': {
     icon: 'graph',
     description: 'Delete and Connect Around',

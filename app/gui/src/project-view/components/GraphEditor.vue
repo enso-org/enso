@@ -406,6 +406,26 @@ const actionHandlers = registerHandlers({
           }
         })
       },
+      alignCenterNodes: (nodes) => {
+        const rects = nodes
+          .map((node) => {
+            const rect = graphStore.visibleArea(nodeId(node))
+            return rect ? { node, rect } : null
+          })
+          .filter((entry): entry is { node: Node; rect: Rect } => entry != null)
+        if (rects.length === 0) return
+        const centerX =
+          rects.reduce((sum, { rect }) => sum + rect.left + rect.width / 2, 0) / rects.length
+        if (!Number.isFinite(centerX)) return
+        module.value.batchEdits(() => {
+          for (const { node, rect } of rects) {
+            graphStore.setNodePosition(
+              nodeId(node),
+              new Vec2(centerX - rect.width / 2, node.position.y),
+            )
+          }
+        })
+      },
       deleteNodes: (nodes) => graphStore.deleteNodes(nodes.map(nodeId)),
       deleteAndConnectAround: (nodes) => {
         return module.value.edit(async (edit) => {
