@@ -77,23 +77,23 @@ const displayableActions = {
     shortcut: graphBindings.bindings['components.pickColorMulti'],
   },
   'components.alignLeft': {
-    icon: 'arrow_left',
+    icon: 'align_left',
     description: 'Align Selected Components Left',
   },
   'components.alignRight': {
-    icon: 'arrow_right',
+    icon: 'align_right',
     description: 'Align Selected Components Right',
   },
   'components.alignTop': {
-    icon: 'arrow_circle_up',
+    icon: 'align_top',
     description: 'Align Selected Components Top',
   },
   'components.alignBottom': {
-    icon: 'bottom_panel',
+    icon: 'align_bottom',
     description: 'Align Selected Components Bottom',
   },
   'components.alignCenter': {
-    icon: 'points',
+    icon: 'align_center',
     description: 'Center Selected Components Horizontally',
   },
   'components.deleteAndConnectAround': {
