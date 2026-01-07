@@ -1,11 +1,12 @@
 package org.enso.base.enso_cloud;
 
 import java.util.Objects;
+import org.enso.base.cache.ReloadDetector;
 import org.enso.base.polyglot.EnsoMeta;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public final class CloudAPI {
+public final class CloudAPI implements ReloadDetector.HasClearableCache {
   private static final Logger LOGGER = LoggerFactory.getLogger(CloudAPI.class);
   private static CloudAPI cached;
 
@@ -17,6 +18,7 @@ public final class CloudAPI {
     this.apiRootUri = apiRootUri;
     this.cloudProjectId = cloudProjectId;
     this.cloudSessionId = cloudSessionId;
+    ReloadDetector.register(this);
   }
 
   /**
@@ -32,6 +34,7 @@ public final class CloudAPI {
           if (cached.equals(fresh)) {
             return cached;
           }
+          cached = null;
           LOGGER.warn(
               "CloudAPI settings change detected. Dropping {}. Installing {}.", cached, fresh);
         }
@@ -132,5 +135,10 @@ public final class CloudAPI {
         + ", cloudSessionId="
         + cloudSessionId
         + '}';
+  }
+
+  @Override
+  public void clearCache() {
+    cached = null;
   }
 }
