@@ -21,6 +21,7 @@ const pickColorMulti = resolveAction('components.pickColorMulti')
         disableInput: toValue(pickColorMulti.toggled),
       }"
     />
+    <ActionButton action="components.alignLeft" />
     <ActionButton action="components.copy" />
     <ActionButton action="components.deleteSelected" />
     <ColorPickerMenu

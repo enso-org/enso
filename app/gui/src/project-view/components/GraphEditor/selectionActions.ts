@@ -13,6 +13,7 @@ export function selectionActionHandlers(
   actions: {
     collapseNodes: (nodes: Node[]) => void
     copyNodesToClipboard: (nodes: Node[]) => void
+    alignLeftNodes: (nodes: Node[]) => void
     deleteNodes: (nodes: Node[]) => void
     deleteAndConnectAround: (nodes: Node[]) => void
   },
@@ -48,6 +49,10 @@ export function selectionActionHandlers(
     'components.pickColorMulti': {
       ...toggledAction(),
       enabled: computed(() => multipleNodesSelected.value && atLeastOneComponent.value),
+    },
+    'components.alignLeft': {
+      enabled: computed(() => multipleNodesSelected.value && atLeastOneComponent.value),
+      action: action('alignLeftNodes'),
     },
     'components.deleteAndConnectAround': {
       enabled: computed(() => atLeastOneComponent.value && toValue(detachingPossible)),

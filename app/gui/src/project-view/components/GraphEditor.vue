@@ -343,6 +343,17 @@ const actionHandlers = registerHandlers({
     {
       collapseNodes,
       copyNodesToClipboard,
+      alignLeftNodes: (nodes) => {
+        const alignable = nodes.filter((node) => Number.isFinite(node.position.x))
+        if (alignable.length === 0) return
+        const leftMostX = Math.min(...alignable.map((node) => node.position.x))
+        if (!Number.isFinite(leftMostX)) return
+        module.value.batchEdits(() => {
+          for (const node of alignable) {
+            graphStore.setNodePosition(nodeId(node), new Vec2(leftMostX, node.position.y))
+          }
+        })
+      },
       deleteNodes: (nodes) => graphStore.deleteNodes(nodes.map(nodeId)),
       deleteAndConnectAround: (nodes) => {
         return module.value.edit(async (edit) => {
