@@ -118,6 +118,24 @@ class LibraryUploader(dependencyExtractor: DependencyExtractor[File]) {
       .build()
   }
 
+  def createMainArchive(
+    projectRoot: Path,
+    progressReporter: ProgressReporter
+  ): Unit = {
+    val filesToIgnoreInArchive = Seq(
+      Package.configFileName,
+      LibraryManifest.filename
+    )
+    val archivePath = projectRoot / mainArchiveName
+    val compressing =
+      createMainArchive(projectRoot, filesToIgnoreInArchive, archivePath)
+    progressReporter.trackProgress(
+      s"Creating the [$mainArchiveName] archive.",
+      compressing
+    )
+    compressing.force()
+  }
+
   /** Gathers project files to create the main archive.
     *
     * For now it just filters out the files like manifest which are uploaded

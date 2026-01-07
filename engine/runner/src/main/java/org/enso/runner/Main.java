@@ -675,6 +675,7 @@ public class Main {
       boolean disablePrivateCheck,
       boolean enableStaticAnalysis,
       boolean treatWarningsAsErrors,
+      boolean showProgress,
       Level logLevel,
       boolean logMasking)
       throws IOException {
@@ -704,6 +705,7 @@ public class Main {
         var topScope = context.getTopScope();
         topScope.compile(shouldCompileDependencies, paths);
         updateManifests(paths, logLevel);
+        createSourceArchives(paths, logLevel, showProgress);
       } else {
         context.evalModule(fileAndProject._2());
       }
@@ -728,6 +730,12 @@ public class Main {
   private static void updateManifests(String[] paths, Level logLevel) {
     for (var path : paths) {
       ProjectUploader.updateManifest(Path.of(path), logLevel);
+    }
+  }
+
+  private static void createSourceArchives(String[] paths, Level logLevel, boolean showProgress) {
+    for (var path : paths) {
+      ProjectUploader.createSourceArchive(Path.of(path), logLevel, showProgress);
     }
   }
 
@@ -1186,6 +1194,7 @@ public class Main {
           line.hasOption(DISABLE_PRIVATE_CHECK_OPTION),
           line.hasOption(ENABLE_STATIC_ANALYSIS_OPTION),
           line.hasOption(TREAT_WARNINGS_AS_ERRORS_OPTION),
+          !line.hasOption(HIDE_PROGRESS),
           logLevel,
           logMasking);
     }

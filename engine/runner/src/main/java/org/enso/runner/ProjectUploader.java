@@ -19,6 +19,15 @@ final class ProjectUploader {
 
   private static final Logger logger = LoggerFactory.getLogger(ProjectUploader.class);
 
+  private static ProgressReporter progressReporter(boolean showProgress) {
+    return (message, task) -> {
+      logger.info(message);
+      if (showProgress) {
+        ProgressBar.waitWithProgress(task);
+      }
+    };
+  }
+
   /**
    * Uploads a project to a library repository
    *
@@ -31,16 +40,7 @@ final class ProjectUploader {
    */
   static void uploadProject(
       Path projectRoot, String uploadUrl, String authToken, boolean showProgress, Level logLevel) {
-    var progressReporter =
-        new ProgressReporter() {
-          @Override
-          public void trackProgress(String message, TaskProgress<?> task) {
-            logger.info(message);
-            if (showProgress) {
-              ProgressBar.waitWithProgress(task);
-            }
-          }
-        };
+    var progressReporter = progressReporter(showProgress);
 
     Token token;
     if (authToken != null) {
@@ -54,6 +54,13 @@ final class ProjectUploader {
     var uploadedRes =
         libraryUploader.uploadLibrary(projectRoot, uploadUrl, token, progressReporter);
     uploadedRes.get();
+  }
+
+  static void createSourceArchive(Path projectRoot, Level logLevel, boolean showProgress) {
+    var reporter = progressReporter(showProgress);
+    var dependencyExtractor = new CompilerBasedDependencyExtractor(logLevel);
+    var libraryUploader = new LibraryUploader(dependencyExtractor);
+    libraryUploader.createMainArchive(projectRoot, reporter);
   }
 
   /**
