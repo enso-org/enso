@@ -6,6 +6,7 @@ private
 import project.In_Memory_Column.In_Memory_Column
 import project.In_Memory_Table.In_Memory_Table
 import project.Refined_Types.Date_Column.Date_Column
+import project.Refined_Types.Date_Time_Column.Date_Time_Column
 import project.Refined_Types.Numeric_Column.Numeric_Column
 import project.Refined_Types.Text_Column.Text_Column
 from project.Internal.Type_Refinements.Single_Column_Table_Conversions import all
@@ -22,3 +23,7 @@ Text_Column.from (that : In_Memory_Table) =
 ## This conversion is internal and should never be exported.
 Date_Column.from (that : In_Memory_Table) =
     Date_Column.from (In_Memory_Column.from that)
+
+## This conversion is internal and should never be exported.
+Date_Time_Column.from (that : In_Memory_Table) =
+    Date_Time_Column.from (In_Memory_Column.from that)
