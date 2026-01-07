@@ -354,6 +354,28 @@ const actionHandlers = registerHandlers({
           }
         })
       },
+      alignRightNodes: (nodes) => {
+        const alignable = nodes.filter((node) => Number.isFinite(node.position.x))
+        const rects = alignable
+          .map((node) => ({
+            node,
+            rect: graphStore.nodeRects.get(nodeId(node)),
+          }))
+          .filter((entry): entry is { node: Node; rect: Rect } => entry.rect != null)
+        if (rects.length === 0) return
+        const rightMostX = Math.max(
+          ...rects.map(({ node, rect }) => node.position.x + rect.size.x),
+        )
+        if (!Number.isFinite(rightMostX)) return
+        module.value.batchEdits(() => {
+          for (const { node, rect } of rects) {
+            graphStore.setNodePosition(
+              nodeId(node),
+              new Vec2(rightMostX - rect.size.x, node.position.y),
+            )
+          }
+        })
+      },
       deleteNodes: (nodes) => graphStore.deleteNodes(nodes.map(nodeId)),
       deleteAndConnectAround: (nodes) => {
         return module.value.edit(async (edit) => {

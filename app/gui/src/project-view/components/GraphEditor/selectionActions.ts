@@ -14,6 +14,7 @@ export function selectionActionHandlers(
     collapseNodes: (nodes: Node[]) => void
     copyNodesToClipboard: (nodes: Node[]) => void
     alignLeftNodes: (nodes: Node[]) => void
+    alignRightNodes: (nodes: Node[]) => void
     deleteNodes: (nodes: Node[]) => void
     deleteAndConnectAround: (nodes: Node[]) => void
   },
@@ -53,6 +54,10 @@ export function selectionActionHandlers(
     'components.alignLeft': {
       enabled: computed(() => multipleNodesSelected.value && atLeastOneComponent.value),
       action: action('alignLeftNodes'),
+    },
+    'components.alignRight': {
+      enabled: computed(() => multipleNodesSelected.value && atLeastOneComponent.value),
+      action: action('alignRightNodes'),
     },
     'components.deleteAndConnectAround': {
       enabled: computed(() => atLeastOneComponent.value && toValue(detachingPossible)),
