@@ -84,6 +84,10 @@ const displayableActions = {
     icon: 'arrow_right',
     description: 'Align Selected Components Right',
   },
+  'components.alignTop': {
+    icon: 'arrow_circle_up',
+    description: 'Align Selected Components Top',
+  },
   'components.deleteAndConnectAround': {
     icon: 'graph',
     description: 'Delete and Connect Around',

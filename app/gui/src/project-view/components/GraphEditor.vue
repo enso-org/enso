@@ -376,6 +376,17 @@ const actionHandlers = registerHandlers({
           }
         })
       },
+      alignTopNodes: (nodes) => {
+        const alignable = nodes.filter((node) => Number.isFinite(node.position.y))
+        if (alignable.length === 0) return
+        const topMostY = Math.min(...alignable.map((node) => node.position.y))
+        if (!Number.isFinite(topMostY)) return
+        module.value.batchEdits(() => {
+          for (const node of alignable) {
+            graphStore.setNodePosition(nodeId(node), new Vec2(node.position.x, topMostY))
+          }
+        })
+      },
       deleteNodes: (nodes) => graphStore.deleteNodes(nodes.map(nodeId)),
       deleteAndConnectAround: (nodes) => {
         return module.value.edit(async (edit) => {
