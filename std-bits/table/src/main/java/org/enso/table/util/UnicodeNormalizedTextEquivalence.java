@@ -1,32 +1,23 @@
 package org.enso.table.util;
 
+import java.util.Comparator;
 import org.enso.base.Text_Utils;
-import org.graalvm.collections.Equivalence;
 
 /**
  * An {@link Equivalence} for Text that ensures the same behaviour as Enso equality (`==`) on the
  * Text type.
  */
-final class UnicodeNormalizedTextEquivalence extends Equivalence {
+final class UnicodeNormalizedTextEquivalence implements Comparator<Object> {
   @Override
-  public boolean equals(Object a, Object b) {
+  public int compare(Object a, Object b) {
     if (a instanceof String sa) {
       if (b instanceof String sb) {
-        return Text_Utils.equals(sa, sb);
+        return Text_Utils.compare_normalized(sa, sb);
       }
     }
 
     throw new IllegalStateException("UnicodeNormalizedTextEquivalence can only compare Strings.");
   }
 
-  public int hashCode(Object o) {
-    if (o instanceof String s) {
-      return Text_Utils.unicodeNormalizedHashCode(s);
-    }
-
-    throw new IllegalStateException("UnicodeNormalizedTextEquivalence can only hash Strings.");
-  }
-
-  public static final UnicodeNormalizedTextEquivalence INSTANCE =
-      new UnicodeNormalizedTextEquivalence();
+  static final UnicodeNormalizedTextEquivalence INSTANCE = new UnicodeNormalizedTextEquivalence();
 }

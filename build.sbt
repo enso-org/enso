@@ -5229,8 +5229,7 @@ lazy val `std-table` = project
       (Antlr4 / sourceManaged).value / "main" / "antlr4"
     },
     libraryDependencies ++= Seq(
-      "org.graalvm.polyglot"     % "polyglot"              % graalMavenPackagesVersion % "provided",
-      "org.graalvm.truffle"      % "truffle-api"           % graalMavenPackagesVersion % "provided",
+      "org.graalvm.polyglot"     % "polyglot"              % graalMavenPackagesVersion % "provided" exclude ("org.graalvm.sdk", "collections"),
       "com.univocity"            % "univocity-parsers"     % univocityParsersVersion,
       "org.apache.poi"           % "poi-ooxml"             % poiOoxmlVersion,
       "org.apache.xmlbeans"      % "xmlbeans"              % xmlbeansVersion,

@@ -1,19 +1,21 @@
 package org.enso.table.util;
 
+import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
+import java.util.TreeSet;
 import java.util.stream.Collectors;
 import org.enso.table.data.table.Column;
 import org.enso.table.problems.BlackholeProblemAggregator;
 import org.enso.table.problems.ProblemAggregator;
 import org.enso.table.util.problems.DuplicateNames;
 import org.enso.table.util.problems.InvalidNames;
-import org.graalvm.collections.EconomicMap;
-import org.graalvm.collections.EconomicSet;
-import org.graalvm.collections.Equivalence;
-import org.graalvm.collections.Pair;
 
 public class NameDeduplicator {
 
@@ -35,9 +37,9 @@ public class NameDeduplicator {
     return new NameDeduplicator(problemAggregator);
   }
 
-  private final EconomicSet<String> usedNames;
+  private final Set<String> usedNames;
   private final List<String> invalidNames = new ArrayList<>();
-  private final EconomicMap<String, String> truncatedNames;
+  private final Map<String, String> truncatedNames;
   private final List<String> duplicatedNames = new ArrayList<>();
 
   private final String invalidNameReplacement;
@@ -76,14 +78,14 @@ public class NameDeduplicator {
 
     this.invalidNameReplacement = invalidNameReplacement;
 
-    Equivalence nameEquivalence;
+    Comparator<Object> nameEquivalence;
     if (namingProperties.is_case_sensitive()) {
       nameEquivalence = UnicodeNormalizedTextEquivalence.INSTANCE;
     } else {
       nameEquivalence = new CaseInsensitiveUnicodeNormalizedTextEquivalence(Locale.ROOT);
     }
-    usedNames = EconomicSet.create(nameEquivalence);
-    truncatedNames = EconomicMap.create(nameEquivalence);
+    usedNames = new TreeSet<>(nameEquivalence);
+    truncatedNames = new TreeMap<>(nameEquivalence);
   }
 
   public String makeValidAndTruncate(String input) {
@@ -232,11 +234,10 @@ public class NameDeduplicator {
     return this.duplicatedNames.toArray(String[]::new);
   }
 
-  public List<Pair<String, String>> getTruncatedNames() {
-    ArrayList<Pair<String, String>> output = new ArrayList<>(truncatedNames.size());
-    var cursor = truncatedNames.getEntries();
-    while (cursor.advance()) {
-      output.add(Pair.create(cursor.getKey(), cursor.getValue()));
+  public List<Map.Entry<String, String>> getTruncatedNames() {
+    List<Map.Entry<String, String>> output = new ArrayList<>(truncatedNames.size());
+    for (var cursor : truncatedNames.entrySet()) {
+      output.add(new AbstractMap.SimpleEntry<>(cursor.getKey(), cursor.getValue()));
     }
     return output;
   }
