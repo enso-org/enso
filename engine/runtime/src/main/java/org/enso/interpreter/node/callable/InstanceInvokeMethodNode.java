@@ -201,14 +201,14 @@ abstract class InstanceInvokeMethodNode extends InvokeMethodNode {
     var fnAndType = self.resolveSymbol(methodResolverNode, symbol);
     if (fnAndType != null) {
       var ctx = EnsoContext.get(this);
-      if (ctx.getBuiltins().any() != fnAndType.getRight()) {
-        var unwrapSelf = castTo.findTypeOrNull(fnAndType.getRight(), self, true, false);
+      if (ctx.getBuiltins().any() != fnAndType.type()) {
+        var unwrapSelf = castTo.findTypeOrNull(fnAndType.type(), self, true, false);
         if (unwrapSelf != null) {
           assert arguments[0] == self;
           arguments[0] = unwrapSelf;
         }
       }
-      return invokeFunctionNode.execute(fnAndType.getLeft(), frame, state, arguments);
+      return invokeFunctionNode.execute(fnAndType.function(), frame, state, arguments);
     }
     throw methodNotFound(this, onBoundary, symbol, self);
   }
@@ -278,7 +278,7 @@ abstract class InstanceInvokeMethodNode extends InvokeMethodNode {
     var selfType = types.getType(selfWithoutWarnings);
     var fnAndType = symbol.resolveFor(this, selfType);
     var builtins = EnsoContext.get(this).getBuiltins();
-    if (fnAndType != null && fnAndType.getRight() == builtins.any()) {
+    if (fnAndType != null && fnAndType.type() == builtins.any()) {
       return symbol
           .getScope()
           .lookupMethodDefinition(builtins.warning().getEigentype(), symbol.getName());
