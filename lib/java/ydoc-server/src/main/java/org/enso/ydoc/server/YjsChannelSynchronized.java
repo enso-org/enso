@@ -4,7 +4,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.function.Consumer;
 import org.enso.ydoc.api.YjsChannel;
 
-public class YjsChannelSynchronized implements YjsChannel {
+public final class YjsChannelSynchronized implements YjsChannel {
 
   private final YjsChannel channel;
   private final ExecutorService executor;

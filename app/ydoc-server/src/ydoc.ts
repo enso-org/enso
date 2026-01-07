@@ -99,11 +99,12 @@ export function setupGatewayClient(
   lsUrl: string | undefined | null,
   dataUrl: string | undefined | null,
   docName: string,
+  byteBuffer: any,
   jsonChannelCallbacks: YjsChannelCallbacks,
   binaryChannelCallbacks: YjsChannelCallbacks,
 ): void {
   console.log(
-    `setupGatewayClient(${lsUrl ? 'lsUrl: ' + lsUrl : 'no lsUrl'}, ${dataUrl ? 'dataUrl: ' + dataUrl : 'no dataUrl'} docName: ${docName}), jsonChannelCallbacks: ${jsonChannelCallbacks}, binaryChannelCallbacks: ${binaryChannelCallbacks}`,
+    `setupGatewayClient(${lsUrl ? 'lsUrl: ' + lsUrl : 'no lsUrl'}, ${dataUrl ? 'dataUrl: ' + dataUrl : 'no dataUrl'} docName: ${docName}), byteBuffer: ${byteBuffer}, jsonChannelCallbacks: ${jsonChannelCallbacks}, binaryChannelCallbacks: ${binaryChannelCallbacks}`,
   )
   const lsSession = getSessionForUrl(lsUrl, jsonChannelCallbacks)
   const wsDoc = getSessionDoc(lsSession, docName)
@@ -114,7 +115,7 @@ export function setupGatewayClient(
 
   let dataSocket: YjsDataChannel | undefined
   if (dataUrl) {
-    dataSocket = YjsDataChannel.get(wsDoc.doc, dataUrl, binaryChannelCallbacks)
+    dataSocket = YjsDataChannel.get(wsDoc.doc, dataUrl, binaryChannelCallbacks, byteBuffer)
   }
 
   const connection = new YjsConnection(ws, wsDoc)
