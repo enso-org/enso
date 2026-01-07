@@ -327,7 +327,7 @@ type DB_Table_Implementation
                         order_descriptors = _resolve_order_descriptors this_table ordering "add_group_number"
                         sum_columns = this_table.columns_helper.select_columns_helper [on] Case_Sensitivity.Default True problem_builder
                         if sum_columns.is_empty then
-                            Error.throw (No_Such_Columm.Error on.to_text)
+                            Error.throw (No_Such_Column.Error on.to_text)
                         sum_column = sum_columns.at 0
 
                         sum_expression = Internal_Column.from sum_column . expression
@@ -350,7 +350,7 @@ type DB_Table_Implementation
                     problem_builder.attach_problems_before on_problems <|
                         stddev_columns = this_table.columns_helper.select_columns_helper [on] Case_Sensitivity.Default True problem_builder
                         if stddev_columns.is_empty then
-                            Error.throw (No_Such_Columm.Error on.to_text)
+                            Error.throw (No_Such_Column.Error on.to_text)
                         stddev_column = stddev_columns.at 0
 
                         stddev_expression = Internal_Column.from stddev_column . expression
