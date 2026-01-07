@@ -169,6 +169,6 @@ type DB_Date_Column_Implementation
             make_unary_op column "end_of_month" new_name
 
 type DB_Date_Time_Column_Implementation
-    translate_time_zone column time_zone =
+    at_time_zone column time_zone =
         _ = [column, time_zone]
-        Error.throw (Unsupported_Database_Operation "translate_time_zone is not supported by database backends.")
+        Error.throw (Unsupported_Database_Operation "at_time_zone is not supported by database backends.")

@@ -22,7 +22,7 @@ add_date_time_columns_specs suite_builder setup =
     build_sorted_table = Common_Table_Operations_Util.build_sorted_table setup
 
     if setup.is_database.not then
-        suite_builder.group prefix+"Date_Time_Column (translate_time_zone)" group_builder->
+        suite_builder.group prefix+"Date_Time_Column (at_time_zone)" group_builder->
             group_builder.specify "Should support translation of time zones." <|
                 offset_zone = Time_Zone.new hours=(-11) minutes=(-30)
                 dt1 = Date_Time.new 2021 11 23 1 2 3 zone=offset_zone
@@ -33,9 +33,9 @@ add_date_time_columns_specs suite_builder setup =
                 lon = Time_Zone.parse "Europe/London"
 
                 t = build_sorted_table [["A", [dt1, dt2]]]
-                cet_a = t . at "A" . translate_time_zone cet
-                cet_a . name . should_equal "translate_time_zone([A], 'CET')"
+                cet_a = t . at "A" . at_time_zone cet
+                cet_a . name . should_equal "at_time_zone([A], 'CET')"
                 cet_a . to_vector . should_equal [dt1 . at_zone cet, dt2 . at_zone cet]
-                lon_a = t . at "A" . translate_time_zone lon
-                lon_a . name . should_equal "translate_time_zone([A], 'Europe/London')"
+                lon_a = t . at "A" . at_time_zone lon
+                lon_a . name . should_equal "at_time_zone([A], 'Europe/London')"
                 lon_a . to_vector . should_equal [dt1 . at_zone lon, dt2 . at_zone lon]

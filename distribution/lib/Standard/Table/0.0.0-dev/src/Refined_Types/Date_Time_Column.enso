@@ -12,5 +12,5 @@ type Date_Time_Column
        ---
        Change the time zone of eadh date-time in the column to the specified
        time zone. This preserves the instant that the time represents.
-    translate_time_zone self (time_zone:Time_Zone) -> Column & Date_Time_Column =
-        self.operations_implementation.translate_time_zone self.column time_zone
+    at_time_zone self (time_zone:Time_Zone) -> Column & Date_Time_Column =
+        self.operations_implementation.at_time_zone self.column time_zone
