@@ -200,7 +200,7 @@ final class EnsoPolyglotJava {
       } catch (InteropException ex) {
         logger.warn("Cannot register findLibraries", ex);
       }
-      synchronized (pj) {
+      synchronized (this) {
         if (polyglotJava == this) {
           polyglotJava = pj;
         }
