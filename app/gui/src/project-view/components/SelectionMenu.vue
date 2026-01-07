@@ -24,6 +24,7 @@ const pickColorMulti = resolveAction('components.pickColorMulti')
     <ActionButton action="components.alignLeft" />
     <ActionButton action="components.alignRight" />
     <ActionButton action="components.alignTop" />
+    <ActionButton action="components.alignBottom" />
     <ActionButton action="components.copy" />
     <ActionButton action="components.deleteSelected" />
     <ColorPickerMenu

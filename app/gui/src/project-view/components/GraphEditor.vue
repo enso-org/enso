@@ -387,6 +387,25 @@ const actionHandlers = registerHandlers({
           }
         })
       },
+      alignBottomNodes: (nodes) => {
+        const rects = nodes
+          .map((node) => {
+            const rect = graphStore.visibleArea(nodeId(node))
+            return rect ? { node, rect } : null
+          })
+          .filter((entry): entry is { node: Node; rect: Rect } => entry != null)
+        if (rects.length === 0) return
+        const bottomMostY = Math.max(...rects.map(({ rect }) => rect.bottom))
+        if (!Number.isFinite(bottomMostY)) return
+        module.value.batchEdits(() => {
+          for (const { node, rect } of rects) {
+            graphStore.setNodePosition(
+              nodeId(node),
+              new Vec2(node.position.x, bottomMostY - rect.height),
+            )
+          }
+        })
+      },
       deleteNodes: (nodes) => graphStore.deleteNodes(nodes.map(nodeId)),
       deleteAndConnectAround: (nodes) => {
         return module.value.edit(async (edit) => {

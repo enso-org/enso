@@ -88,6 +88,10 @@ const displayableActions = {
     icon: 'arrow_circle_up',
     description: 'Align Selected Components Top',
   },
+  'components.alignBottom': {
+    icon: 'bottom_panel',
+    description: 'Align Selected Components Bottom',
+  },
   'components.deleteAndConnectAround': {
     icon: 'graph',
     description: 'Delete and Connect Around',

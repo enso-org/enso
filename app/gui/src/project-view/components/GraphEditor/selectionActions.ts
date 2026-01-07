@@ -16,6 +16,7 @@ export function selectionActionHandlers(
     alignLeftNodes: (nodes: Node[]) => void
     alignRightNodes: (nodes: Node[]) => void
     alignTopNodes: (nodes: Node[]) => void
+    alignBottomNodes: (nodes: Node[]) => void
     deleteNodes: (nodes: Node[]) => void
     deleteAndConnectAround: (nodes: Node[]) => void
   },
@@ -63,6 +64,10 @@ export function selectionActionHandlers(
     'components.alignTop': {
       enabled: computed(() => multipleNodesSelected.value && atLeastOneComponent.value),
       action: action('alignTopNodes'),
+    },
+    'components.alignBottom': {
+      enabled: computed(() => multipleNodesSelected.value && atLeastOneComponent.value),
+      action: action('alignBottomNodes'),
     },
     'components.deleteAndConnectAround': {
       enabled: computed(() => atLeastOneComponent.value && toValue(detachingPossible)),
