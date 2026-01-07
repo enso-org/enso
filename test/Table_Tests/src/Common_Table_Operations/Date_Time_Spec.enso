@@ -13,6 +13,7 @@ import Standard.Database.Internal.Internals_Access
 import Standard.Database.Extensions.Upload_Table
 
 from Standard.Test import all
+from Standard.Test.Problems import get_attached_warnings
 
 from project.Common_Table_Operations.Util import all
 import project.Common_Table_Operations.Util
@@ -93,6 +94,10 @@ add_specs suite_builder setup =
             local_table_with_tz = Table.new [["C", dates], ["X", xs]]
             db_table.update_rows local_table_with_tz key_columns=["X"] . should_succeed
             ordered = db_table.sort "X"
+
+            Problems.expect_only_warning "Inexact_Type_Coercion" db_table
+            warning = get_attached_warnings db_table . at 0
+            warning.extra_message . should_contain "Consider using .at_time_zone or .set_time_zone to explicitly convert Date_Time values before upload"
 
             ordered.at "X" . to_vector . should_equal xs
             ordered.at "C" . value_type . should_equal (Value_Type.Date_Time with_timezone=False)
