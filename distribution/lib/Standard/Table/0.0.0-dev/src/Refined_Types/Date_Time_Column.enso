@@ -14,3 +14,13 @@ type Date_Time_Column
        time zone. This preserves the instant that the time represents.
     at_time_zone self (time_zone:Time_Zone) -> Column & Date_Time_Column =
         self.operations_implementation.at_time_zone self.column time_zone
+
+    ## ---
+       group: DateTime
+       icon: metadata
+       ---
+       Constructs a new time instant by changing the time zone but not altering
+       the local date-time, which results in a value representing a different
+       instant.
+    set_time_zone self (time_zone:Time_Zone) -> Column & Date_Time_Column =
+        self.operations_implementation.set_time_zone self.column time_zone

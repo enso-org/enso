@@ -788,6 +788,30 @@ type Date_Time
         Time_Utils.with_zone_same_instant self zone
 
     ## ---
+       aliases: [change time zone]
+       group: DateTime
+       icon: time
+       ---
+       Constructs a new time instant by changing the time zone but not altering
+       the local date-time, which results in a value representing a different
+       instant.
+
+       ## Arguments
+        - `zone`: The timezone to change the time instant's zone to.
+
+       ## Examples
+       ### Convert time instance to -04:00 timezone.
+
+       ```
+             from Standard.Base import Date_Time, Time_Zone
+
+             example_at_time_zone = Date_Time.new 2020 . set_time_zone (Time_Zone.new -4)
+       ```
+    set_time_zone : Time_Zone -> Date_Time
+    set_time_zone self zone =
+        Time_Utils.with_zone_same_local self zone
+
+    ## ---
        group: DateTime
        icon: time
        ---
