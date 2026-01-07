@@ -103,7 +103,6 @@ public class Main {
   private static final String LOGGER_CONNECT = "logger-connect";
   private static final String NO_LOG_MASKING = "no-log-masking";
   private static final String UPLOAD_OPTION = "upload";
-  private static final String UPDATE_MANIFEST_OPTION = "update-manifest";
   private static final String HIDE_PROGRESS = "hide-progress";
   private static final String AUTH_TOKEN = "auth-token";
   private static final String AUTO_PARALLELISM_OPTION = "with-auto-parallelism";
@@ -393,11 +392,6 @@ public class Main {
                 "Uploads the library to a repository. "
                     + "The url defines the repository to upload to.")
             .build();
-    var updateManifestOption =
-        cliOptionBuilder()
-            .longOpt(UPDATE_MANIFEST_OPTION)
-            .desc("Updates the library manifest with the updated list of direct " + "dependencies.")
-            .build();
     var hideProgressOption =
         cliOptionBuilder()
             .longOpt(HIDE_PROGRESS)
@@ -548,7 +542,6 @@ public class Main {
         .addOption(loggerConnectOption)
         .addOption(noLogMaskingOption)
         .addOption(uploadOption)
-        .addOption(updateManifestOption)
         .addOption(hideProgressOption)
         .addOption(authTokenOption)
         .addOption(noReadIrCachesOption)
@@ -1179,23 +1172,6 @@ public class Main {
         // The error itself is already logged.
         throw exitFail(ex.getMessage());
       }
-    }
-
-    if (line.hasOption(UPDATE_MANIFEST_OPTION)) {
-      Path projectRoot =
-          scala.Option.apply(line.getOptionValue(IN_PROJECT_OPTION))
-              .map(x -> Path.of(x))
-              .getOrElse(
-                  () -> {
-                    throw exitFail("The " + IN_PROJECT_OPTION + " is mandatory.");
-                  });
-      try {
-        ProjectUploader.updateManifest(projectRoot, logLevel);
-      } catch (Throwable err) {
-        err.printStackTrace();
-        throw exitFail(err.getMessage());
-      }
-      throw exitSuccess();
     }
 
     if (line.hasOption(COMPILE_OPTION)) {
