@@ -547,7 +547,10 @@ agg_stddev_samp = Base_Generator.lift_unary_op "STDDEV_SAMP" arg->
    private: true
    ---
 make_group_number_standard_deviation : Vector SQL_Builder -> SQL_Builder
-make_group_number_standard_deviation (population : Boolean) (arguments : Vector) = if arguments.length < 1 then Error.throw (Illegal_State.Error "Wrong amount of parameters in GROUP_NUMBER_STANDARD_DEVIATION IR. This is a bug in the Database library.") else
+make_group_number_standard_deviation (population : Boolean) (arguments : Vector) =
+    if arguments.length < 1 then
+        Error.throw (Illegal_State.Error "Wrong amount of parameters in GROUP_NUMBER_STANDARD_DEVIATION IR. This is a bug in the Database library.")
+
     stddev_column = arguments.at 0
 
     sum_of_squares = SQL_Builder.code "SUM(" ++ stddev_column.paren ++ "*" ++ stddev_column.paren ++ ") over ()"

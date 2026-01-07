@@ -776,7 +776,10 @@ _make_lead_lag_closest_value lead_lag:Text arguments:Vector -> SQL_Builder = if 
    private: true
    ---
 make_group_number_standard_deviation : Text -> Vector SQL_Builder -> SQL_Builder
-make_group_number_standard_deviation (stddev_variant : Text) (arguments : Vector) = if arguments.length < 1 then Error.throw (Illegal_State.Error "Wrong amount of parameters in GROUP_NUMBER_STANDARD_DEVIATION IR. This is a bug in the Database library.") else
+make_group_number_standard_deviation (stddev_variant : Text) (arguments : Vector) =
+    if arguments.length < 1 then
+        Error.throw (Illegal_State.Error "Wrong amount of parameters in GROUP_NUMBER_STANDARD_DEVIATION IR. This is a bug in the Database library.")
+
     stddev_column = arguments.at 0
 
     stddev = SQL_Builder.code stddev_variant ++ "(" ++ stddev_column ++ ") over ()"
