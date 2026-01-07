@@ -1,0 +1,16 @@
+from Standard.Base import all
+
+import project.Column.Column
+
+## A column that contains Date values.
+type Date_Time_Column
+    private Value column operations_implementation
+
+    ## ---
+       group: DateTime
+       icon: metadata
+       ---
+       Change the time zone of eadh date-time in the column to the specified
+       time zone. This preserves the instant that the time represents.
+    translate_time_zone self (time_zone:Time_Zone) -> Column & Date_Time_Column =
+        self.operations_implementation.translate_time_zone self.column time_zone

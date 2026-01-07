@@ -1,0 +1,37 @@
+from Standard.Base import all
+
+from Standard.Table import all
+from Standard.Table.Errors import all
+import Standard.Table.Expression.Expression_Error
+
+import Standard.Database.Dialects.Feature.Feature
+
+from Standard.Test import all
+import enso_dev.Table_Tests.Util
+
+import project.Common_Table_Operations.Util as Common_Table_Operations_Util
+from project.Common_Table_Operations.Util import check_column_refinements, run_default_backend
+
+main filter=Nothing = run_default_backend add_specs filter
+
+add_specs suite_builder setup =
+    if setup.is_feature_supported Feature.Column_Operations && setup.flagged ..Date_Time then (add_date_time_columns_specs suite_builder setup)
+
+add_date_time_columns_specs suite_builder setup =
+    prefix = setup.prefix
+    build_sorted_table = Common_Table_Operations_Util.build_sorted_table setup
+
+    if setup.is_database.not then
+        suite_builder.group prefix+"Date_Time_Column (translate_time_zone)" group_builder->
+            group_builder.specify "Should support translation of time zones." <|
+                offset_zone = Time_Zone.new hours=(-11) minutes=(-30)
+                dt1 = Date_Time.new 2021 11 23 1 2 3 zone=offset_zone
+                named_zone = Time_Zone.parse "US/Hawaii"
+                dt2 = Date_Time.new 2019 11 23 4 5 6 zone=named_zone
+
+                cet = Time_Zone.parse "CET"
+                lon = Time_Zone.parse "Europe/London"
+
+                t = build_sorted_table [["A", [dt1, dt2]]]
+                t . at "A" . translate_time_zone cet . to_vector .should_equal [dt1 . at_zone cet, dt2 . at_zone cet]
+                t . at "A" . translate_time_zone lon . to_vector .should_equal [dt1 . at_zone lon, dt2 . at_zone lon]
