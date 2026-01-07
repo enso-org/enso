@@ -175,8 +175,8 @@ public final class Ydoc implements AutoCloseable {
     return new YjsCallbacksSynchronized(jsonChannelCallbacks, executor);
   }
 
-  public MessageCallbacks getBinaryChannelCallbacksSynchronized(Context context) {
-    return new YjsBinaryChannelCallbacksSynchronized(binaryChannelCallbacks, executor, context);
+  public MessageCallbacks getBinaryChannelCallbacksSynchronized() {
+    return new YjsCallbacksSynchronized(binaryChannelCallbacks, executor);
   }
 
   public void start() throws ExecutionException, InterruptedException, IOException {
@@ -202,7 +202,7 @@ public final class Ydoc implements AutoCloseable {
                   bindings.putMember(
                       "YDOC_JSON_CHANNEL_CALLBACKS", getJsonChannelCallbacksSynchronized());
                   bindings.putMember(
-                      "YDOC_BINARY_CHANNEL_CALLBACKS", getBinaryChannelCallbacksSynchronized(ctx));
+                      "YDOC_BINARY_CHANNEL_CALLBACKS", getBinaryChannelCallbacksSynchronized());
                   bindings.putMember("YDOC_LS_DEBUG", "false");
 
                   ctx.eval(ydocJs);
