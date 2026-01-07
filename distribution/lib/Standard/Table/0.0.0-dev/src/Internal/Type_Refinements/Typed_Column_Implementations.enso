@@ -215,5 +215,5 @@ type In_Memory_Date_Column_Implementation
 type In_Memory_Date_Time_Column_Implementation
     translate_time_zone (column : Column & In_Memory_Column) (time_zone : Time_Zone) =
         Value_Type.expect_date_time column <|
-            new_name = naming_helper.function_name "translate_time_zone" [column, time_zone]
-            apply_unary_map column new_name (d -> d.at_zone time_zone) Value_Type.Date
+            new_name = naming_helper.function_name "translate_time_zone" [column, time_zone.zone_id]
+            apply_unary_map column new_name (d -> d.at_zone time_zone) Value_Type.Date_Time

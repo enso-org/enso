@@ -33,5 +33,9 @@ add_date_time_columns_specs suite_builder setup =
                 lon = Time_Zone.parse "Europe/London"
 
                 t = build_sorted_table [["A", [dt1, dt2]]]
-                t . at "A" . translate_time_zone cet . to_vector .should_equal [dt1 . at_zone cet, dt2 . at_zone cet]
-                t . at "A" . translate_time_zone lon . to_vector .should_equal [dt1 . at_zone lon, dt2 . at_zone lon]
+                cet_a = t . at "A" . translate_time_zone cet
+                cet_a . name . should_equal "translate_time_zone([A], 'CET')"
+                cet_a . to_vector . should_equal [dt1 . at_zone cet, dt2 . at_zone cet]
+                lon_a = t . at "A" . translate_time_zone lon
+                lon_a . name . should_equal "translate_time_zone([A], 'Europe/London')"
+                lon_a . to_vector . should_equal [dt1 . at_zone lon, dt2 . at_zone lon]

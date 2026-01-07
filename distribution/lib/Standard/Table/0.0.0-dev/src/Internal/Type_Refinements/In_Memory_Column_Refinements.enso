@@ -22,7 +22,7 @@ refine_column (column : Column & In_Memory_Column) =
         Value_Type.Decimal _ _ -> _refine_numeric_column column
         Value_Type.Char _ _ -> _refine_text_column column
         Value_Type.Date  -> _refine_date_column column
-        Value_Type.Date_Time  -> _refine_date_time_column column
+        Value_Type.Date_Time _ -> _refine_date_time_column column
         _ -> _refine_other_column column
 
 private _refine_numeric_column (column : Column & In_Memory_Column) -> Column & In_Memory_Column & Numeric_Column = case column.row_count of

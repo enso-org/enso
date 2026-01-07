@@ -20,5 +20,5 @@ refine_column (column : DB_Column) =
         Value_Type.Decimal _ _ -> (column : Column & DB_Column & Numeric_Column)
         Value_Type.Char _ _ -> (column : Column & DB_Column & Text_Column)
         Value_Type.Date -> (column : Column & DB_Column & Date_Column)
-        Value_Type.Date_Time -> (column : Column & DB_Column & Date_Time_Column)
+        Value_Type.Date_Time _ -> (column : Column & DB_Column & Date_Time_Column)
         _ -> (column : Column & DB_Column)
