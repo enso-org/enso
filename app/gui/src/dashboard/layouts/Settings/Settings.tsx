@@ -59,6 +59,8 @@ export function Settings() {
     backendMutationOptions(backend, 'updateOrganization'),
   )
 
+  throw new Error('what')
+
   const localRootDirectory = useLocalRootDirectory() ?? localBackend?.rootPath() ?? null
   const downloadDirectory = useDownloadDirectory()
 
