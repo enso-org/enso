@@ -251,7 +251,7 @@ add_nothing_specs suite_builder setup =
                 v . length . should_equal 3
                 ## Database Can Report Date_Time in different zone
                 m = case value_type of
-                    Value_Type.Date_Time True -> v.map d-> if d.is_a Date_Time then d.at_zone zone else d
+                    Value_Type.Date_Time True -> v.map d-> if d.is_a Date_Time then d.at_time_zone zone else d
                     _ -> v
                 m . should_equal_ignoring_order [value, other_value, Nothing]
 
@@ -280,7 +280,7 @@ add_nothing_specs suite_builder setup =
                     v = t1.at "x" . to_vector
                     ## Database Can Report Date_Time in different zone
                     m = case value_type of
-                        Value_Type.Date_Time True -> v.map d-> if d.is_a Date_Time then d.at_zone zone else d
+                        Value_Type.Date_Time True -> v.map d-> if d.is_a Date_Time then d.at_time_zone zone else d
                         _ -> v
                     m . should_equal [Nothing, Nothing, Nothing, value, value, other_value, other_value]
 
@@ -289,6 +289,6 @@ add_nothing_specs suite_builder setup =
                     v = t1.at "x" . to_vector
                     ## Database Can Report Date_Time in different zone
                     m = case value_type of
-                        Value_Type.Date_Time True -> v.map d-> if d.is_a Date_Time then d.at_zone zone else d
+                        Value_Type.Date_Time True -> v.map d-> if d.is_a Date_Time then d.at_time_zone zone else d
                         _ -> v
                     m . should_equal [other_value, other_value, value, value, Nothing, Nothing, Nothing]

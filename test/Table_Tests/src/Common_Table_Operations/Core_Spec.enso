@@ -242,7 +242,7 @@ add_core_specs suite_builder setup =
             ## The DB may change the timezone of the values, so we need to convert them back to be able to check for equality.
                    All that we require is that the instant in time represented by the values is preserved.
             at_system_tz dt =
-                dt.at_zone Time_Zone.system
+                dt.at_time_zone Time_Zone.system
             t2 = data.table.set (Date_Time.new 2025 12 9 15 59 15) as="bar3"
             t2.column_names . should_equal ["foo", "bar", "Baz", "foo 1", "foo 2", "ab.+123", "abcd123","bar3"]
             t2.at "bar3" . to_vector . map at_system_tz . should_equal [Date_Time.new 2025 12 9 15 59 15, Date_Time.new 2025 12 9 15 59 15, Date_Time.new 2025 12 9 15 59 15]
@@ -251,7 +251,7 @@ add_core_specs suite_builder setup =
             ## The DB may change the timezone of the values, so we need to convert them back to be able to check for equality.
                    All that we require is that the instant in time represented by the values is preserved.
             at_system_tz dt =
-                dt.at_zone Time_Zone.system
+                dt.at_time_zone Time_Zone.system
             t2 = data.table.set (Date_Time.new 2025 12 9 15 59 15) as="foo"
             t2.column_names . should_equal ["foo", "bar", "Baz", "foo 1", "foo 2", "ab.+123", "abcd123"]
             t2.at "foo" . to_vector . map at_system_tz . should_equal [Date_Time.new 2025 12 9 15 59 15, Date_Time.new 2025 12 9 15 59 15, Date_Time.new 2025 12 9 15 59 15]

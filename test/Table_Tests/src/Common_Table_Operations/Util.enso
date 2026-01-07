@@ -64,7 +64,7 @@ Vector.should_equal_tz_agnostic self other = Frame_Hider.hide <|
         _ : Vector ->
             utc = Time_Zone.utc
             normalize_date_time dt = case dt of
-                _ : Date_Time -> dt.at_zone utc
+                _ : Date_Time -> dt.at_time_zone utc
                 _ -> Test.fail "The vector should contain Date_Time objects but it contained "+dt.to_display_text+" (at "+Frame_Hider.get_top_stack_frame+")"
             self_normalized = self.map normalize_date_time
             other_normalized = other.map normalize_date_time

@@ -23,7 +23,7 @@ make_table start:Integer length:Integer=10 =
 
 compare_table db_table_read table =
     table.column_names.each column->
-        values = db_table_read.at column . to_vector . map x-> if x.is_a Date_Time then x.at_zone Time_Zone.system else x
+        values = db_table_read.at column . to_vector . map x-> if x.is_a Date_Time then x.at_time_zone Time_Zone.system else x
         expected = table.at column . to_vector . map x-> if x.is_a Date_Time then x.date_add -x.nanosecond ..Nanosecond else x
         [column]+values . should_equal [column]+expected
 

@@ -25,7 +25,7 @@
    ```
          from Standard.Base import Date_Time, Time_Zone
 
-         example_at_zone = Date_Time.new 2020 . at_zone (Time_Zone.new -4)
+         example_at_time_zone = Date_Time.new 2020 . at_time_zone (Time_Zone.new -4)
    ```
 
    ### Convert the current time to a date.

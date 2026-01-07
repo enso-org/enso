@@ -549,7 +549,7 @@ js_parse text format=Date_Time_Formatter.iso_date =
 ## Here, we explicitly convert JS ZonedDateTime to LocalDate
 js_set_zone local_datetime =
     zone = Time_Zone.utc
-    datetime_with_tz = local_datetime.at_zone zone
+    datetime_with_tz = local_datetime.at_time_zone zone
     diff = Duration.between datetime_with_tz local_datetime (timezone_aware=False)
     (datetime_with_tz + diff).date
 
