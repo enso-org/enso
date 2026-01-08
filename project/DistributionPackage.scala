@@ -271,9 +271,15 @@ object DistributionPackage {
     log.info(s"Generating indexes for libraries [$libNames]")
     val javaCommand = javaExecutable()
 
+    // Don't create source archives for standard libraries.
+    val noSrcArchivesOpt =
+      "--vm.D=org.enso.compiler.noSourceArchives=" +
+      libPaths.mkString(",")
+
     val command = Seq(
       javaCommand
     ) ++ javaOpts ++ Seq(
+      noSrcArchivesOpt,
       "--no-compile-dependencies",
       "--compile"
     ) ++ libPaths
