@@ -391,8 +391,8 @@ fn parse_arg_def<'s>(
     expression_parser: &mut ExpressionParser<'s>,
 ) -> ArgumentDefinition<'s> {
     let mut items = items;
-    let mut _parenthesized_body = None;
-    let mut _inner_parenthesized_body = None;
+    let mut parenthesized_body: Option<Vec<Item>>;
+    let mut inner_parenthesized_body: Option<Vec<Item>>;
 
     // If the entire definition is parenthesized, enter it.
     let mut open1 = None;
@@ -403,13 +403,13 @@ fn parse_arg_def<'s>(
         };
         open1 = open.into();
         close1 = close;
-        _parenthesized_body = body.into_vec().into();
+        parenthesized_body = body.into_vec().into();
         debug_assert_eq!(items.len(), start);
-        items = _parenthesized_body.as_mut().unwrap();
+        items = parenthesized_body.as_mut().unwrap();
         start = 0;
     }
 
-    let ArgDefInfo { type_, default } = match analyze_arg_def(&items[start..]) {
+    let ArgDefInfo { type_: type_op, default } = match analyze_arg_def(&items[start..]) {
         Err(e) => {
             let pattern =
                 expression_parser.parse_non_section_offset(start, items).unwrap().with_error(e);
@@ -440,7 +440,8 @@ fn parse_arg_def<'s>(
     });
     let mut open2 = None;
     let mut close2 = None;
-    let type_ = type_.map(|(parenthesized, type_)| {
+    let mut type_ = None;
+    if let Some((parenthesized, type_op)) = type_op {
         if parenthesized == Parenthesized {
             debug_assert_eq!(items.len(), start + 1);
             let Some(Item::Group(item::Group { open, body, close })) = items.pop() else {
@@ -448,21 +449,21 @@ fn parse_arg_def<'s>(
             };
             open2 = open.into();
             close2 = close;
-            _inner_parenthesized_body = body.into_vec().into();
-            items = _inner_parenthesized_body.as_mut().unwrap();
+            inner_parenthesized_body = body.into_vec().into();
+            items = inner_parenthesized_body.as_mut().unwrap();
             start = 0;
         }
-        let tree = expression_parser.parse_non_section_offset(start + type_ + 1, items);
+        let tree = expression_parser.parse_non_section_offset(start + type_op + 1, items);
         let operator = items.pop().unwrap().try_into_token().unwrap();
-        let type_ = tree.unwrap_or_else(|| {
+        let tree = tree.unwrap_or_else(|| {
             empty_tree(operator.code.position_after()).with_error(SyntaxError::ExpectedType)
         });
         let token::Variant::TypeAnnotationOperator(variant) = operator.variant else {
             unreachable!()
         };
         let operator = operator.with_variant(variant);
-        ArgumentType { operator, type_ }
-    });
+        type_ = ArgumentType { operator, type_: tree }.into();
+    }
     let (suspension, pattern) = parse_pattern(items, start, expression_parser);
     let pattern = pattern.unwrap_or_else(|| {
         empty_tree(
