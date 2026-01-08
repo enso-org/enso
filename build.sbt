@@ -3742,6 +3742,7 @@ lazy val `engine-runner` = project
       (`runtime-version-manager` / Compile / exportedModule).value,
       (`semver` / Compile / exportedModule).value,
       (`version-output` / Compile / exportedModule).value,
+      (`ydoc-api` / Compile / exportedModule).value,
       (`ydoc-server-registration` / Compile / exportedModule).value
     ),
     // Runtime / modulePath is used as module-path for the native image build.
