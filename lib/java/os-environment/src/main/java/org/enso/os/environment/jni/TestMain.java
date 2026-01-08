@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.function.Function;
 import org.enso.jvm.channel.Channel;
 import org.enso.persist.Persistable;
+import org.slf4j.LoggerFactory;
 
 final class TestMain {
   static final Map<Long, String> CORRECT_RESULTS = new HashMap<>();
@@ -85,6 +86,15 @@ final class TestMain {
       } else {
         return otherVM.execute(Void.class, new CountDownAndThrow(value - 1, acc * value));
       }
+    }
+  }
+
+  @Persistable(id = 430611)
+  record LogMessage(String msg) implements Function<Channel<?>, Void> {
+    @Override
+    public Void apply(Channel<?> otherVM) {
+      LoggerFactory.getLogger(LogMessage.class).warn(msg);
+      return null;
     }
   }
 }
