@@ -1,6 +1,7 @@
 package org.enso.runner;
 
 import java.nio.file.Path;
+import java.util.List;
 import org.enso.cli.ProgressBar;
 import org.enso.cli.task.ProgressReporter;
 import org.enso.libraryupload.LibraryUploader;
@@ -13,8 +14,6 @@ import org.enso.runner.common.CompilerBasedDependencyExtractor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.event.Level;
-import scala.collection.immutable.Seq;
-import scala.collection.immutable.Seq$;
 
 final class ProjectUploader {
   private ProjectUploader() {}
@@ -77,24 +76,8 @@ final class ProjectUploader {
     var dependencyExtractor = new CompilerBasedDependencyExtractor(logLevel);
     var libraryUploader = new LibraryUploader(dependencyExtractor);
     var archiveName = LibraryUploader$.MODULE$.mainArchiveName();
-    Seq<String> archives;
-    if (willCreateSrcArchive) {
-      archives = seq(archiveName);
-    } else {
-      archives = emptySeq();
-    }
+    List<String> archives = willCreateSrcArchive ? List.of(archiveName) : List.of();
     var uploadedRes = libraryUploader.updateManifest(pkg, archives);
     uploadedRes.get();
-  }
-
-  private static <T> Seq<T> seq(T item) {
-    var mutableSeq = new scala.collection.mutable.ArrayBuffer<T>();
-    mutableSeq.append(item);
-    return mutableSeq.toSeq();
-  }
-
-  @SuppressWarnings("unchecked")
-  private static Seq<String> emptySeq() {
-    return (Seq<String>) Seq$.MODULE$.empty();
   }
 }

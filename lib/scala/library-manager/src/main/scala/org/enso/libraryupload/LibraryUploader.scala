@@ -108,6 +108,13 @@ class LibraryUploader(dependencyExtractor: DependencyExtractor[File]) {
     FileSystem.writeTextFile(manifestPath, YamlHelper.toYaml(updatedManifest))
   }
 
+  def updateManifest(
+    pkg: Package[File],
+    archives: java.util.List[String]
+  ): Try[Unit] = {
+    updateManifest(pkg, archives.asScala.toSeq)
+  }
+
   /** Creates an URL for the upload, including information identifying the
     * library version.
     */
