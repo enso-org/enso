@@ -4268,17 +4268,18 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
           )
         )
       )
-      val afterIdMapUpdate = context.receiveNIgnorePendingExpressionUpdates(6)
+      val afterIdMapUpdate = context.receiveNIgnorePendingExpressionUpdates(5)
 
       // Can't do comparison directly because of Arrays https://github.com/scalatest/scalatest/issues/491
       afterIdMapUpdate should contain allOf (
-        TestMessages.update(
+        // idRes is not invalidated in any way, meaning expression's state is still insync and no update is sent.
+        /*TestMessages.update(
           contextId,
           idRes,
           s"Standard.Base.Data.Numbers.Integer",
           typeChanged = false,
           payload     = Api.ExpressionUpdate.Payload.Value(None)
-        ),
+        ),*/
         TestMessages.update( // Updates to IdMap in subexpression that are within `x` will invalidate `x`
           contextId,
           idX,
