@@ -10,6 +10,10 @@ public final class Main {
 
   private Main() {}
 
+  public static void main(String[] args) {
+    // main method declaration is required to build the native library
+  }
+
   public static AutoCloseable launch(
       String ydocHost,
       String ydocPort,
