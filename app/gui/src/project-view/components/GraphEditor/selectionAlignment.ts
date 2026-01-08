@@ -22,8 +22,7 @@ export function createSelectionAlignmentHandlers(
   }
 
   function alignRightNodes(nodes: Node[]) {
-    const alignable = nodes.filter((node) => Number.isFinite(node.position.x))
-    const rects = alignable
+    const rects = nodes
       .map((node) => ({
         node,
         rect: graphStore.nodeRects.get(nodeId(node)),
