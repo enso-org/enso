@@ -1,4 +1,4 @@
-# Next Next Release
+# Next Release
 
 #### Enso Standard Library
 
@@ -22,7 +22,7 @@
 [14536]: https://github.com/enso-org/enso/pull/14554
 [14557]: https://github.com/enso-org/enso/pull/14557
 
-# Next Release
+# Enso 2025.3
 
 #### Enso IDE
 
