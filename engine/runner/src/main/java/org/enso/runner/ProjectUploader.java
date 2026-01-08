@@ -3,7 +3,6 @@ package org.enso.runner;
 import java.nio.file.Path;
 import org.enso.cli.ProgressBar;
 import org.enso.cli.task.ProgressReporter;
-import org.enso.cli.task.TaskProgress;
 import org.enso.libraryupload.LibraryUploader;
 import org.enso.libraryupload.auth.NoAuthorization$;
 import org.enso.libraryupload.auth.SimpleHeaderToken;

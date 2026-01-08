@@ -112,6 +112,9 @@ public class Main {
 
   private static final String DEFAULT_MAIN_METHOD_NAME = "main";
 
+  /** Value of this sys prop is comma-separated list of project paths. */
+  private static final String CREATE_SRC_ARCHIVE_SYS_PROP = "org.enso.compiler.createSourceArchive";
+
   private static final Logger LOGGER = LoggerFactory.getLogger(Main.class);
 
   Main() {}
@@ -705,7 +708,7 @@ public class Main {
         var topScope = context.getTopScope();
         topScope.compile(shouldCompileDependencies, paths);
         updateManifests(paths, logLevel);
-        createSourceArchives(paths, logLevel, showProgress);
+        maybeCreateSourceArchives(paths, logLevel, showProgress);
       } else {
         context.evalModule(fileAndProject._2());
       }
@@ -733,10 +736,31 @@ public class Main {
     }
   }
 
-  private static void createSourceArchives(String[] paths, Level logLevel, boolean showProgress) {
+  /**
+   * Creates source tarball ({@code .tgz}) archives for projects that are specified in {@link
+   * #CREATE_SRC_ARCHIVE_SYS_PROP} system property.
+   */
+  private static void maybeCreateSourceArchives(
+      String[] paths, Level logLevel, boolean showProgress) {
     for (var path : paths) {
-      ProjectUploader.createSourceArchive(Path.of(path), logLevel, showProgress);
+      if (shouldCreateSourceArchiveForProject(path)) {
+        ProjectUploader.createSourceArchive(Path.of(path), logLevel, showProgress);
+      }
     }
+  }
+
+  private static boolean shouldCreateSourceArchiveForProject(String projPath) {
+    var prop = System.getProperty(CREATE_SRC_ARCHIVE_SYS_PROP);
+    if (prop == null) {
+      return false;
+    }
+    var paths = prop.split(",");
+    for (var p : paths) {
+      if (p.equals(projPath)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   /**
