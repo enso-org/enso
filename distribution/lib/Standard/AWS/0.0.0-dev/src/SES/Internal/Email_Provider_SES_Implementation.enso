@@ -1,0 +1,81 @@
+private
+
+from Standard.Base import all
+import Standard.Base.Any.Any
+import Standard.Base.Data.Json.JS_Object
+import Standard.Base.Network.Email.Email
+import Standard.Base.Network.Email.Email_Address.Email_Address
+import Standard.Base.Network.Email.Email_Body.Email_Body
+import Standard.Base.Network.Email.Email_Send_Response.Send_Response
+import Standard.Base.Network.Email.Send_Error.Send_Error
+import Standard.Base.Network.HTTP.HTTP_Error.HTTP_Error
+import Standard.Base.Network.HTTP.Header.Header
+import Standard.Base.Network.HTTP.Request_Body.Request_Body
+import Standard.Base.Network.HTTP.Request_Error
+import Standard.Base.Network.URI.URI
+
+import project.AWS.AWS
+import project.AWS.AWS_Region_Service.AWS_Region_Service
+import project.SES.Email_Provider_SES.Email_Provider_SES
+
+## Amazon SES implementation of the Email Provider SPI.
+type Email_Provider_SES_Implementation
+    private Value config:Email_Provider_SES
+
+    send self email:Email =
+        _ensure_no_attachments email
+        payload = _build_payload email self.config.configuration_set
+        region_id = self.config.region.as_java.id
+        uri = URI.parse ("https://email."+region_id+".amazonaws.com/v2/email/outbound-emails")
+        headers = [Header.content_type "application/json"]
+        region_service = AWS_Region_Service.Region_Service region_id "ses"
+        response = AWS.signed_post uri (Request_Body.Json payload) headers=headers credentials=self.config.credentials region_service=region_service
+            . catch HTTP_Error error-> _throw_send_error error.to_display_text
+            . catch Request_Error error-> _throw_send_error error.to_display_text
+        if response.code.is_success then Send_Response.Sent email else
+            body_text = response.decode_as_text . catch Any _-> Nothing
+            message = "Amazon SES responded with status "+response.code.to_text+". " + (body_text.if_nothing "No response body returned.")
+            _throw_send_error message
+
+_throw_send_error message =
+    Error.throw (Send_Error.Error message)
+
+_ensure_no_attachments email =
+    if email.attachments.length > 0 then
+        _throw_send_error "Attachments are not supported by the Amazon SES email provider."
+    email
+
+_build_payload email configuration_set =
+    destination_pairs = [_addresses_pair "ToAddresses" email.to, _addresses_pair "CcAddresses" email.cc, _addresses_pair "BccAddresses" email.bcc].filter pair->pair != Nothing
+    destination = JS_Object.from_pairs destination_pairs
+    simple_content = JS_Object.from_pairs [["Subject", _text_value email.subject], ["Body", _build_body email.body]]
+    content = JS_Object.from_pairs [["Simple", simple_content]]
+    base_pairs = [["FromEmailAddress", _format_from_address email.from_address], ["Destination", destination], ["Content", content]]
+    full_pairs = if configuration_set.is_nothing then base_pairs else base_pairs + [["ConfigurationSetName", configuration_set]]
+    JS_Object.from_pairs full_pairs
+
+_addresses_pair label addresses =
+    if addresses.length == 0 then Nothing else
+        [label, addresses.map _address_to_text]
+
+_address_to_text address =
+    case address of
+        Email_Address.Address addr _ -> addr
+
+_format_from_address address =
+    case address of
+        Email_Address.Address addr name ->
+            if name.is_empty then addr else name+" <"+addr+">"
+
+_text_value value =
+    JS_Object.from_pairs [["Data", value], ["Charset", "UTF-8"]]
+
+_build_body body =
+    entries = case body of
+        Email_Body.No_Body -> [["Text", _text_value ""]]
+        Email_Body.Plain_Text text -> [["Text", _text_value text]]
+        Email_Body.HTML html fallback ->
+            html_entry = ["Html", _text_value html]
+            text_entries = if fallback.is_empty then [] else [["Text", _text_value fallback]]
+            [html_entry] + text_entries
+    JS_Object.from_pairs entries
