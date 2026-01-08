@@ -79,14 +79,14 @@ public class NameDeduplicator {
 
     this.invalidNameReplacement = invalidNameReplacement;
 
-    Comparator<Object> nameEquivalence;
+    Comparator<Object> nameComparator;
     if (namingProperties.is_case_sensitive()) {
-      nameEquivalence = UnicodeNormalizedTextEquivalence.INSTANCE;
+      nameComparator = UnicodeNormalizedTextComparator.INSTANCE;
     } else {
-      nameEquivalence = new CaseInsensitiveUnicodeNormalizedTextComparator(Locale.ROOT);
+      nameComparator = new CaseInsensitiveUnicodeNormalizedTextComparator(Locale.ROOT);
     }
-    usedNames = new TreeSet<>(nameEquivalence);
-    truncatedNames = new TreeMap<>(nameEquivalence);
+    usedNames = new TreeSet<>(nameComparator);
+    truncatedNames = new TreeMap<>(nameComparator);
   }
 
   public String makeValidAndTruncate(String input) {
