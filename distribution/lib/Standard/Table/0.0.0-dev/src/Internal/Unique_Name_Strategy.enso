@@ -110,8 +110,8 @@ type Unique_Name_Strategy
        A mapping of original names to their truncated counterpart.
     truncated_names : Dictionary Text Text
     truncated_names self =
-        entries = Vector.from_polyglot_array self.deduplicator.getTruncatedNames
-        Dictionary.from_vector <| entries.map e-> [e.getKey, e.getValue]
+        map = self.deduplicator.getTruncatedNames
+        map:Dictionary
 
     ## ---
        private: true

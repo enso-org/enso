@@ -1,6 +1,5 @@
 package org.enso.table.util;
 
-import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -11,7 +10,6 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.stream.Collectors;
-
 import org.enso.table.data.table.Column;
 import org.enso.table.problems.BlackholeProblemAggregator;
 import org.enso.table.problems.ProblemAggregator;
@@ -235,10 +233,10 @@ public class NameDeduplicator {
     return this.duplicatedNames.toArray(String[]::new);
   }
 
-  public List<Map.Entry<String, String>> getTruncatedNames() {
-    List<Map.Entry<String, String>> output = new ArrayList<>(truncatedNames.size());
+  public Map<String, String> getTruncatedNames() {
+    var output = new TreeMap<String, String>();
     for (var cursor : truncatedNames.entrySet()) {
-      output.add(new AbstractMap.SimpleEntry<>(cursor.getKey(), cursor.getValue()));
+      output.put(cursor.getKey(), cursor.getValue());
     }
     return output;
   }
