@@ -111,7 +111,7 @@ type Unique_Name_Strategy
     truncated_names : Dictionary Text Text
     truncated_names self =
         entries = Vector.from_polyglot_array self.deduplicator.getTruncatedNames
-        Dictionary.from_vector <| entries.map e-> [e.getLeft, e.getRight]
+        Dictionary.from_vector <| entries.map e-> [e.getKey, e.getValue]
 
     ## ---
        private: true
