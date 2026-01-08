@@ -2,7 +2,6 @@ package org.enso.table.util;
 
 import java.util.Comparator;
 import java.util.Locale;
-
 import org.enso.base.Text_Utils;
 
 /**
@@ -24,6 +23,7 @@ final class CaseInsensitiveUnicodeNormalizedTextComparator implements Comparator
       }
     }
 
-    throw new IllegalStateException("CaseInsensitiveUnicodeNormalizedTextComparator can only compare Strings.");
+    throw new IllegalStateException(
+        "CaseInsensitiveUnicodeNormalizedTextComparator can only compare Strings.");
   }
 }

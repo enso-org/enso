@@ -1,7 +1,6 @@
 package org.enso.table.util;
 
 import java.util.Comparator;
-
 import org.enso.base.Text_Utils;
 
 /**
