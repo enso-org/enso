@@ -3969,7 +3969,6 @@ lazy val `engine-runner` = project
               "org.enso.database",
               "org.enso.tableau",
               "org.eclipse.jgit",
-              "com.amazonaws",
               "com.google",
               "io.grpc",
               "io.netty.util.concurrent.AbstractScheduledEventExecutor",
