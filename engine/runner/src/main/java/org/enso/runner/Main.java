@@ -113,7 +113,8 @@ public class Main {
   private static final String DEFAULT_MAIN_METHOD_NAME = "main";
 
   /** Value of this sys prop is comma-separated list of project paths. */
-  private static final String CREATE_SRC_ARCHIVES_SYS_PROP = "org.enso.compiler.createSourceArchives";
+  private static final String DONT_CREATE_SRC_ARCHIVES_SYS_PROP =
+      "org.enso.compiler.noSourceArchives";
 
   private static final Logger LOGGER = LoggerFactory.getLogger(Main.class);
 
@@ -745,17 +746,17 @@ public class Main {
   }
 
   private static boolean shouldCreateSourceArchiveForProject(String projPath) {
-    var prop = System.getProperty(CREATE_SRC_ARCHIVES_SYS_PROP);
+    var prop = System.getProperty(DONT_CREATE_SRC_ARCHIVES_SYS_PROP);
     if (prop == null) {
-      return false;
+      return true;
     }
     var paths = prop.split(",");
     for (var p : paths) {
       if (p.equals(projPath)) {
-        return true;
+        return false;
       }
     }
-    return false;
+    return true;
   }
 
   /**
