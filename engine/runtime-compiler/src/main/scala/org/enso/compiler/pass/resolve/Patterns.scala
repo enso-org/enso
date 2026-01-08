@@ -252,9 +252,9 @@ object Patterns extends IRPass {
             expectedArity match {
               case Some(arity) =>
                 if (consPat.fields.length != arity) {
-                  errors.Pattern(
+                  errors.Pattern.create(
                     consPat,
-                    errors.Pattern.WrongArity(
+                    new errors.Pattern.WrongArity(
                       consPat.constructor.name,
                       arity,
                       consPat.fields.length
