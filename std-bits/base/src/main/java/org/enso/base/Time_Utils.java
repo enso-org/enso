@@ -186,9 +186,8 @@ public class Time_Utils {
   }
 
   /**
-   * Constructs a new time instant by changing the time zone but not altering
-   * the local date-time, which results in a value representing a different
-   * instant.
+   * Constructs a new time instant by changing the time zone but not altering the local date-time,
+   * which results in a value representing a different instant.
    */
   public static ZonedDateTime with_zone_same_local(ZonedDateTime dateTime, ZoneId zone) {
     return dateTime.withZoneSameLocal(zone);
