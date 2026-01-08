@@ -6,7 +6,7 @@ import java.util.Locale;
 import org.enso.base.Text_Utils;
 
 /**
- * An {@link Equivalence} for Text that ensures the same behaviour as Enso case-insensitive equality
+ * An {@link Comparator} for Text that ensures the same behaviour as Enso case-insensitive equality
  * (`equals_ignore_case`) on the Text type.
  */
 final class CaseInsensitiveUnicodeNormalizedTextComparator implements Comparator<Object> {
