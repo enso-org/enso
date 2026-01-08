@@ -1,18 +1,18 @@
 package org.enso.ydoc.server;
 
 import java.util.concurrent.ExecutorService;
-import org.enso.ydoc.api.MessageCallbacks;
+import org.enso.ydoc.api.YjsChannelCallbacks;
 import org.enso.ydoc.api.YjsChannel;
 import org.graalvm.polyglot.Context;
 
-public final class YjsBinaryChannelCallbacksSynchronized implements MessageCallbacks {
+public final class YjsBinaryChannelCallbacksSynchronized implements YjsChannelCallbacks {
 
-  private final MessageCallbacks callbacks;
+  private final YjsChannelCallbacks callbacks;
   private final ExecutorService executor;
   private final Context context;
 
   public YjsBinaryChannelCallbacksSynchronized(
-      MessageCallbacks callbacks, ExecutorService executor, Context context) {
+      YjsChannelCallbacks callbacks, ExecutorService executor, Context context) {
     this.callbacks = callbacks;
     this.executor = executor;
     this.context = context;
