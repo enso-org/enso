@@ -27,6 +27,7 @@ import { performCollapse, prepareCollapsedInfo } from '@/components/GraphEditor/
 import { useGraphEditorClipboard } from '@/components/GraphEditor/graphClipboard'
 import type { NodeCreationOptions } from '@/components/GraphEditor/nodeCreation'
 import { selectionActionHandlers } from '@/components/GraphEditor/selectionActions'
+import { createSelectionAlignmentHandlers } from '@/components/GraphEditor/selectionAlignment'
 import { useGraphEditorToasts } from '@/components/GraphEditor/toasts'
 import { uploadedExpression, Uploader } from '@/components/GraphEditor/upload'
 import GraphMissingView from '@/components/GraphMissingView.vue'
@@ -343,89 +344,7 @@ const actionHandlers = registerHandlers({
     {
       collapseNodes,
       copyNodesToClipboard,
-      alignLeftNodes: (nodes) => {
-        const alignable = nodes.filter((node) => Number.isFinite(node.position.x))
-        if (alignable.length === 0) return
-        const leftMostX = Math.min(...alignable.map((node) => node.position.x))
-        if (!Number.isFinite(leftMostX)) return
-        module.value.batchEdits(() => {
-          for (const node of alignable) {
-            graphStore.setNodePosition(nodeId(node), new Vec2(leftMostX, node.position.y))
-          }
-        })
-      },
-      alignRightNodes: (nodes) => {
-        const alignable = nodes.filter((node) => Number.isFinite(node.position.x))
-        const rects = alignable
-          .map((node) => ({
-            node,
-            rect: graphStore.nodeRects.get(nodeId(node)),
-          }))
-          .filter((entry): entry is { node: Node; rect: Rect } => entry.rect != null)
-        if (rects.length === 0) return
-        const rightMostX = Math.max(
-          ...rects.map(({ node, rect }) => node.position.x + rect.size.x),
-        )
-        if (!Number.isFinite(rightMostX)) return
-        module.value.batchEdits(() => {
-          for (const { node, rect } of rects) {
-            graphStore.setNodePosition(
-              nodeId(node),
-              new Vec2(rightMostX - rect.size.x, node.position.y),
-            )
-          }
-        })
-      },
-      alignTopNodes: (nodes) => {
-        const alignable = nodes.filter((node) => Number.isFinite(node.position.y))
-        if (alignable.length === 0) return
-        const topMostY = Math.min(...alignable.map((node) => node.position.y))
-        if (!Number.isFinite(topMostY)) return
-        module.value.batchEdits(() => {
-          for (const node of alignable) {
-            graphStore.setNodePosition(nodeId(node), new Vec2(node.position.x, topMostY))
-          }
-        })
-      },
-      alignBottomNodes: (nodes) => {
-        const rects = nodes
-          .map((node) => {
-            const rect = graphStore.visibleArea(nodeId(node))
-            return rect ? { node, rect } : null
-          })
-          .filter((entry): entry is { node: Node; rect: Rect } => entry != null)
-        if (rects.length === 0) return
-        const bottomMostY = Math.max(...rects.map(({ rect }) => rect.bottom))
-        if (!Number.isFinite(bottomMostY)) return
-        module.value.batchEdits(() => {
-          for (const { node, rect } of rects) {
-            graphStore.setNodePosition(
-              nodeId(node),
-              new Vec2(node.position.x, bottomMostY - rect.height),
-            )
-          }
-        })
-      },
-      alignCenterNodes: (nodes) => {
-        const rects = nodes
-          .map((node) => {
-            const rect = graphStore.visibleArea(nodeId(node))
-            return rect ? { node, rect } : null
-          })
-          .filter((entry): entry is { node: Node; rect: Rect } => entry != null)
-        if (rects.length === 0) return
-        const centerX =
-          rects.reduce((sum, { rect }) => sum + rect.left + rect.width / 2, 0) / rects.length
-        if (!Number.isFinite(centerX)) return
-        module.value.batchEdits(() => {
-          for (const { node, rect } of rects) {
-            graphStore.setNodePosition(
-              nodeId(node),
-              new Vec2(centerX - rect.width / 2, node.position.y),
-            )
-          }
-        })
-      },
+      ...createSelectionAlignmentHandlers(graphStore, module),
       deleteNodes: (nodes) => graphStore.deleteNodes(nodes.map(nodeId)),
       deleteAndConnectAround: (nodes) => {
         return module.value.edit(async (edit) => {
