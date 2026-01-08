@@ -4,6 +4,7 @@ import java.nio.file.Path;
 import org.enso.cli.ProgressBar;
 import org.enso.cli.task.ProgressReporter;
 import org.enso.libraryupload.LibraryUploader;
+import org.enso.libraryupload.LibraryUploader$;
 import org.enso.libraryupload.auth.NoAuthorization$;
 import org.enso.libraryupload.auth.SimpleHeaderToken;
 import org.enso.libraryupload.auth.Token;
@@ -12,6 +13,8 @@ import org.enso.runner.common.CompilerBasedDependencyExtractor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.event.Level;
+import scala.collection.immutable.Seq;
+import scala.collection.immutable.Seq$;
 
 final class ProjectUploader {
   private ProjectUploader() {}
@@ -68,12 +71,30 @@ final class ProjectUploader {
    * @param projectRoot path to the root of the project
    * @param logLevel the log level to use for the context gathering dependencies
    */
-  static void updateManifest(Path projectRoot, Level logLevel) {
+  static void updateManifest(Path projectRoot, Level logLevel, boolean willCreateSrcArchive) {
     var pkg = PackageManager.Default().loadPackage(projectRoot.toFile()).get();
 
     var dependencyExtractor = new CompilerBasedDependencyExtractor(logLevel);
     var libraryUploader = new LibraryUploader(dependencyExtractor);
-    var uploadedRes = libraryUploader.updateManifest(pkg);
+    var archiveName = LibraryUploader$.MODULE$.mainArchiveName();
+    Seq<String> archives;
+    if (willCreateSrcArchive) {
+      archives = seq(archiveName);
+    } else {
+      archives = emptySeq();
+    }
+    var uploadedRes = libraryUploader.updateManifest(pkg, archives);
     uploadedRes.get();
+  }
+
+  private static <T> Seq<T> seq(T item) {
+    var mutableSeq = new scala.collection.mutable.ArrayBuffer<T>();
+    mutableSeq.append(item);
+    return mutableSeq.toSeq();
+  }
+
+  @SuppressWarnings("unchecked")
+  private static Seq<String> emptySeq() {
+    return (Seq<String>) Seq$.MODULE$.empty();
   }
 }

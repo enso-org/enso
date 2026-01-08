@@ -707,8 +707,9 @@ public class Main {
       if (isProjectMode) {
         var topScope = context.getTopScope();
         topScope.compile(shouldCompileDependencies, paths);
-        updateManifests(paths, logLevel);
-        maybeCreateSourceArchives(paths, logLevel, showProgress);
+        for (var path : paths) {
+          updateManifestAndCreateArchive(path, logLevel, showProgress);
+        }
       } else {
         context.evalModule(fileAndProject._2());
       }
@@ -730,22 +731,16 @@ public class Main {
     }
   }
 
-  private static void updateManifests(String[] paths, Level logLevel) {
-    for (var path : paths) {
-      ProjectUploader.updateManifest(Path.of(path), logLevel);
-    }
-  }
-
   /**
-   * Creates source tarball ({@code .tgz}) archives for projects that are specified in {@link
-   * #CREATE_SRC_ARCHIVE_SYS_PROP} system property.
+   * Updates the manifest of the project specified by its path and maybe creates a source archive.
    */
-  private static void maybeCreateSourceArchives(
-      String[] paths, Level logLevel, boolean showProgress) {
-    for (var path : paths) {
-      if (shouldCreateSourceArchiveForProject(path)) {
-        ProjectUploader.createSourceArchive(Path.of(path), logLevel, showProgress);
-      }
+  private static void updateManifestAndCreateArchive(
+      String path, Level logLevel, boolean showProgress) {
+    var shouldCreateArchive = shouldCreateSourceArchiveForProject(path);
+    var p = Path.of(path);
+    ProjectUploader.updateManifest(p, logLevel, shouldCreateArchive);
+    if (shouldCreateArchive) {
+      ProjectUploader.createSourceArchive(p, logLevel, showProgress);
     }
   }
 
