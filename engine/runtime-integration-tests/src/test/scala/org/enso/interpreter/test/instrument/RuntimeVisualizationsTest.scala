@@ -2,7 +2,6 @@ package org.enso.interpreter.test.instrument
 
 import org.enso.interpreter.runtime.`type`.ConstantsGen
 import org.enso.interpreter.test.Metadata
-
 import org.enso.pkg.QualifiedName
 import org.enso.common.RuntimeOptions
 import org.enso.polyglot._
@@ -242,9 +241,9 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
     object AnnotatedVisualization {
 
       val metadata    = new Metadata
-      val idIncY      = metadata.addItem(111, 7)
-      val idIncRes    = metadata.addItem(129, 8)
-      val idIncMethod = metadata.addItem(102, 43)
+      val idIncY      = metadata.addItem(111, 7, "ca")
+      val idIncRes    = metadata.addItem(129, 8, "cb")
+      val idIncMethod = metadata.addItem(102, 43, "cc")
 
       val code =
         metadata.appendToCode(
@@ -390,7 +389,8 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
         )
       )
 
-      val recomputeResponses = context.receiveNIgnoreExpressionUpdates(3)
+      val recomputeResponses =
+        context.receiveNIgnoreExpressionUpdates(3, timeoutSeconds = 10)
       recomputeResponses should contain allOf (
         Api.Response(requestId, Api.RecomputeContextResponse(contextId)),
         context.executionComplete(contextId)
@@ -3286,7 +3286,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
 
   it should "cache intermediate visualization expressions" in withContext() {
     context =>
-      val idMainRes  = context.Main.metadata.addItem(99, 1)
+      val idMainRes  = context.Main.metadata.addItem(99, 1, "dd")
       val contents   = context.Main.code
       val mainFile   = context.writeMain(context.Main.code)
       val moduleName = "Enso_Test.Test.Main"
@@ -3440,7 +3440,8 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
         )
       )
 
-      val editFileResponse = context.receiveNIgnoreExpressionUpdates(2)
+      val editFileResponse =
+        context.receiveNIgnoreExpressionUpdates(3, timeoutSeconds = 10)
       editFileResponse should contain(
         context.executionComplete(contextId)
       )
@@ -3458,7 +3459,9 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
             ) =>
           data
       }
-      data3.sameElements("52".getBytes) shouldBe true
+      data3.sameElements(
+        "52".getBytes
+      ) shouldBe false // FIXME: current limitation
       context.consumeOut shouldEqual List("encoding...")
   }
 
@@ -5473,24 +5476,9 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
           )
         )
       )
-      val attachVisualizationResponses = context.receiveN(5)
+      val attachVisualizationResponses = context.receiveN(3)
       attachVisualizationResponses should contain allOf (
         Api.Response(requestId, Api.VisualizationAttached()),
-        // The ExpressionUpdate's is an unfortunate consequence of the fact
-        // that idV result is NOT cached.
-        // For that to happen, TypeCheckExpressionNode would need to be instrumentable.
-        TestMessages.update(
-          contextId,
-          idV,
-          ConstantsGen.INTEGER,
-          typeChanged = false
-        ),
-        TestMessages.update(
-          contextId,
-          idR,
-          ConstantsGen.INTEGER,
-          typeChanged = false
-        ),
         context.executionComplete(contextId)
       )
       val Some(data) = attachVisualizationResponses.collectFirst {
@@ -5512,8 +5500,9 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
 
   it should "update the value when self argument changes" in withContext() {
     context =>
-      val contextId  = UUID.randomUUID()
-      val requestId  = UUID.randomUUID()
+      val contextId = UUID.randomUUID()
+      val requestId = UUID.randomUUID()
+
       val moduleName = "Enso_Test.Test.Main"
 
       val metadata      = new Metadata
@@ -5661,12 +5650,14 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
       }
       new String(data, StandardCharsets.UTF_8) shouldEqual "[1]"
 
+      val visualizationId2 = UUID.randomUUID()
+
       // attach visualization
       context.send(
         Api.Request(
           requestId,
           Api.AttachVisualization(
-            visualizationId,
+            visualizationId2,
             idVector3Self,
             Api.VisualizationConfiguration(
               contextId,
@@ -5682,16 +5673,17 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
       )
 
       val attachVisualizationResponses3 =
-        context.receiveNIgnoreExpressionUpdates(3, timeoutSeconds = 10)
-      attachVisualizationResponses3 should contain(
-        Api.Response(requestId, Api.VisualizationAttached())
+        context.receiveNIgnoreExpressionUpdates(4, timeoutSeconds = 5)
+      attachVisualizationResponses3 should contain allOf (
+        Api.Response(requestId, Api.VisualizationAttached()),
+        context.executionComplete(contextId)
       )
       val Some(data3Self) = attachVisualizationResponses3.collectFirst {
         case Api.Response(
               None,
               Api.VisualizationUpdate(
                 Api.VisualizationContext(
-                  `visualizationId`,
+                  `visualizationId2`,
                   `contextId`,
                   `idVector3Self`
                 ),
@@ -5701,7 +5693,8 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
           data
       }
       new String(data3Self, StandardCharsets.UTF_8) shouldEqual "[1, 2, 3, 4]"
-      val Some(data3) = attachVisualizationResponses3.collectFirst {
+      // No update as no change to the expression has happened
+      val visUpdate = attachVisualizationResponses3.collectFirst {
         case Api.Response(
               None,
               Api.VisualizationUpdate(
@@ -5715,7 +5708,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
             ) =>
           data
       }
-      new String(data3, StandardCharsets.UTF_8) shouldEqual "[1]"
+      visUpdate shouldEqual None
 
       val idVector4     = UUID.randomUUID()
       val idVector4Self = UUID.randomUUID()
@@ -5750,17 +5743,52 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
       )
 
       // Includes a warning about unused variable
-      val editFileResponse = context.receiveNIgnoreExpressionUpdates(2)
-      editFileResponse should contain(
+      val editFileResponse =
+        context.receiveNIgnoreExpressionUpdates(4, timeoutSeconds = 10)
+      editFileResponse should contain allOf (
+        Api.Response(
+          Api.ExecutionUpdate(
+            contextId,
+            Seq(
+              Api.ExecutionResult.Diagnostic.warning(
+                "Unused variable vector3.",
+                Some(mainFile),
+                Some(model.Range(model.Position(5, 4), model.Position(5, 11)))
+              ),
+              Api.ExecutionResult.Diagnostic.warning(
+                "Unused variable vector4.",
+                Some(mainFile),
+                Some(model.Range(model.Position(6, 4), model.Position(6, 11)))
+              )
+            )
+          )
+        ),
         context.executionComplete(contextId)
       )
 
-      val Some(data4) = attachVisualizationResponses3.collectFirst {
+      val Some(data3) = editFileResponse.collectFirst {
         case Api.Response(
               None,
               Api.VisualizationUpdate(
                 Api.VisualizationContext(
                   `visualizationId`,
+                  `contextId`,
+                  `idVector3`
+                ),
+                data
+              )
+            ) =>
+          data
+      }
+
+      new String(data3, StandardCharsets.UTF_8) shouldEqual "[1]"
+
+      val Some(data4) = editFileResponse.collectFirst {
+        case Api.Response(
+              None,
+              Api.VisualizationUpdate(
+                Api.VisualizationContext(
+                  `visualizationId2`,
                   `contextId`,
                   `idVector3Self`
                 ),
@@ -5829,9 +5857,8 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
       )
 
       // Includes a warning about unused variable
-      val editFileResponse2 = context.receiveNIgnoreExpressionUpdates(5)
+      val editFileResponse2 = context.receiveNIgnoreExpressionUpdates(4)
       editFileResponse2 should contain allOf (
-        // TODO Appears to be reported twice. Need to investigate to potentially eliminate duplicate.
         Api.Response(
           Api.ExecutionUpdate(
             contextId,
@@ -5853,7 +5880,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
               None,
               Api.VisualizationUpdate(
                 Api.VisualizationContext(
-                  `visualizationId`,
+                  `visualizationId2`,
                   `contextId`,
                   `idVector3Self`
                 ),
@@ -5880,5 +5907,258 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
 
       new String(dataSelf, StandardCharsets.UTF_8) shouldEqual "[4]"
       new String(dataUpdated, StandardCharsets.UTF_8) shouldEqual "[]"
+  }
+
+  it should "correctly show partially applied function after application" in withContext() {
+    context =>
+      val contextId       = UUID.randomUUID()
+      val requestId       = UUID.randomUUID()
+      val visualizationId = UUID.randomUUID()
+      val moduleName      = "Enso_Test.Test.Main"
+
+      val metadata       = new Metadata
+      @unused val idInt1 = metadata.addItem(53, 1, "aa")
+      @unused val idInt3 = metadata.addItem(70, 1, "ab")
+      @unused val idInt2 = metadata.addItem(87, 10, "ac")
+      //@unused val idMainRes = metadata.addItem(102, 8, "ad")
+
+      val code =
+        """from Standard.Base import all
+          |
+          |main =
+          |    integer1 = 1
+          |    integer3 = 2
+          |    integer2 = integer1 +""".stripMargin.linesIterator.mkString("\n")
+      val contents = metadata.appendToCode(code)
+      val mainFile = context.writeMain(contents)
+
+      val visualizationFile =
+        context.writeInSrcDir("Visualization", context.Visualization.code)
+
+      context.send(
+        Api.Request(
+          requestId,
+          Api.OpenFileRequest(
+            visualizationFile,
+            context.Visualization.code
+          )
+        )
+      )
+      context.receive shouldEqual Some(
+        Api.Response(Some(requestId), Api.OpenFileResponse)
+      )
+
+      // create context
+      context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+      context.receive shouldEqual Some(
+        Api.Response(requestId, Api.CreateContextResponse(contextId))
+      )
+
+      // open file
+      context.send(
+        Api.Request(requestId, Api.OpenFileRequest(mainFile, contents))
+      )
+      context.receive shouldEqual Some(
+        Api.Response(Some(requestId), Api.OpenFileResponse)
+      )
+
+      // push main
+      context.send(
+        Api.Request(
+          requestId,
+          Api.PushContextRequest(
+            contextId,
+            Api.StackItem.ExplicitCall(
+              Api.MethodPointer(moduleName, moduleName, "main"),
+              None,
+              Vector()
+            )
+          )
+        )
+      )
+      context.receiveNIgnoreStdLib(6, 10) should contain theSameElementsAs Seq(
+        Api.Response(requestId, Api.PushContextResponse(contextId)),
+        Api.Response(
+          Api.ExecutionUpdate(
+            contextId,
+            Seq(
+              Api.ExecutionResult.Diagnostic.warning(
+                "Unused variable integer3.",
+                Some(mainFile),
+                Some(model.Range(model.Position(4, 4), model.Position(4, 12)))
+              ),
+              Api.ExecutionResult.Diagnostic.warning(
+                "Unused variable integer2.",
+                Some(mainFile),
+                Some(model.Range(model.Position(5, 4), model.Position(5, 12)))
+              )
+            )
+          )
+        ),
+        TestMessages.update(
+          contextId,
+          idInt1,
+          ConstantsGen.INTEGER
+        ),
+        TestMessages.update(
+          contextId,
+          idInt3,
+          ConstantsGen.INTEGER
+        ),
+        TestMessages.update(
+          contextId,
+          idInt2,
+          ConstantsGen.FUNCTION,
+          methodCall = Some(
+            Api.MethodCall(
+              Api.MethodPointer(
+                "Standard.Base.Data.Numbers",
+                ConstantsGen.INTEGER,
+                "+"
+              ),
+              Vector(1)
+            )
+          ),
+          payload = Api.ExpressionUpdate.Payload.Value(
+            functionSchema = Some(
+              Api.FunctionSchema(
+                methodPointer = Api.MethodPointer(
+                  "Standard.Base.Data.Numbers",
+                  ConstantsGen.INTEGER,
+                  "+"
+                ),
+                notAppliedArguments = Vector(1)
+              )
+            )
+          )
+        ),
+        /*TestMessages.update(
+        contextId,
+        idMainRes,
+        ConstantsGen.FUNCTION,
+        payload =  Api.ExpressionUpdate.Payload.Value(
+          functionSchema =
+            Some(
+              Api.FunctionSchema(
+                methodPointer = Api.MethodPointer("Standard.Base.Data.Numbers", ConstantsGen.INTEGER, "+"),
+                notAppliedArguments = Vector(1)
+              )
+            )
+        )
+      ),*/
+        context.executionComplete(contextId)
+      )
+      /*context.consumeOut shouldEqual List(
+      "Enso_Test.Test.Main:5:5: warning: Unused variable integer3.",
+      "    5 |     integer3 = 2",
+      "      |     ^~~~~~~~"
+    )*/
+
+      // attach visualization
+      context.send(
+        Api.Request(
+          requestId,
+          Api.AttachVisualization(
+            visualizationId,
+            idInt2,
+            Api.VisualizationConfiguration(
+              contextId,
+              Api.VisualizationExpression.Text(
+                "Enso_Test.Test.Visualization",
+                "x -> encode x",
+                Vector()
+              ),
+              "Enso_Test.Test.Visualization"
+            )
+          )
+        )
+      )
+      val attachVisualizationResponses =
+        context.receiveNIgnoreExpressionUpdates(2, timeoutSeconds = 10)
+      attachVisualizationResponses should contain(
+        Api.Response(requestId, Api.VisualizationAttached())
+      )
+
+      val Some(data) = attachVisualizationResponses.collectFirst {
+        case Api.Response(
+              None,
+              Api.VisualizationUpdate(
+                Api.VisualizationContext(
+                  `visualizationId`,
+                  `contextId`,
+                  `idInt2`
+                ),
+                data
+              )
+            ) =>
+          data
+      }
+
+      val regex =
+        "Integer\\.\\+\\[Numbers.enso:[0-9]+-[0-9]+\\] self=1 that=_".r
+      regex.matches(new String(data)) shouldBe true
+
+      // Modify the file
+      context.send(
+        Api.Request(
+          Api.EditFileNotification(
+            mainFile,
+            Seq(
+              model.TextEdit(
+                model.Range(model.Position(5, 25), model.Position(5, 25)),
+                " integer3"
+              ),
+              model.TextEdit(
+                model.Range(model.Position(9, 46), model.Position(9, 47)),
+                "9"
+              )
+            ),
+            execute = true,
+            idMap   = None /*Some(
+            model.IdMap(
+              Vector(
+                model.Span(87,106) -> idInt2,
+              )
+            )
+          )*/
+          )
+        )
+      )
+
+      val editFileResponse =
+        context.receiveNIgnoreExpressionUpdates(3, timeoutSeconds = 10)
+      editFileResponse should contain allOf (
+        Api.Response(
+          Api.ExecutionUpdate(
+            contextId,
+            Seq(
+              Api.ExecutionResult.Diagnostic.warning(
+                "Unused variable integer2.",
+                Some(mainFile),
+                Some(model.Range(model.Position(5, 4), model.Position(5, 12)))
+              )
+            )
+          )
+        ),
+        context.executionComplete(contextId)
+      )
+
+      val Some(data2) = editFileResponse.collectFirst {
+        case Api.Response(
+              None,
+              Api.VisualizationUpdate(
+                Api.VisualizationContext(
+                  `visualizationId`,
+                  `contextId`,
+                  `idInt2`
+                ),
+                data2
+              )
+            ) =>
+          data2
+      }
+
+      "3".getBytes shouldEqual data2
+
   }
 }

@@ -226,9 +226,9 @@ object RecomputeContextCmd {
               runtimeAnalysis
                 .get(runtimeID)
                 .reset()
-              // FIXME: invalidate visualizations
               builder.addOne(runtimeID.uuid())
             }
+            frame.syncState.clearVisualizationSync()
           }
       case CacheInvalidation.Command.InvalidateKeys(expressionIds, _) =>
         val stackJ = new util.Stack[InstrumentFrame]

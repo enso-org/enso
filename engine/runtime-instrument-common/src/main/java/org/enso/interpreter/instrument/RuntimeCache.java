@@ -5,7 +5,6 @@ import java.lang.ref.Reference;
 import java.lang.ref.SoftReference;
 import java.lang.ref.WeakReference;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -24,7 +23,6 @@ public final class RuntimeCache implements Function<String, Object> {
 
   private final int id;
   private final Map<RuntimeID, Reference<Object>> cache = new HashMap<>();
-  private final Map<RuntimeID, Observable> observables = new HashMap<>();
   private final Map<UUID, Reference<Object>> expressions = new HashMap<>();
   private final Map<UUID, TypeInfo> types = new HashMap<>();
   private final Map<UUID, ExecutionService.FunctionCallInfo> calls = new HashMap<>();
@@ -61,14 +59,34 @@ public final class RuntimeCache implements Function<String, Object> {
    * @return {@code true} if the value was added to the cache.
    */
   @CompilerDirectives.TruffleBoundary
-  public boolean offer(RuntimeID key, Object value) {
+  public CachedResult offer(RuntimeID key, Object value) {
     expressions.put(key.uuid(), new WeakReference<>(value));
     if (key.isCached()) {
+      if (cache.containsKey(key)) {
+        return new CachedResult(true, true);
+      }
       var ref = new SoftReference<>(value);
       cache.put(key, ref);
-      return true;
+      return new CachedResult(true, false);
     }
-    return false;
+    return CachedResult.uncacheable();
+  }
+
+  /**
+   * Encapsulates the state of encapsulating some value.
+   *
+   * @param canBeCached true if the value with the given runtime ID can be cached, false otherwise
+   * @param valueAlreadyCached true if there exists already an cache entry for the given runtime ID,
+   *     false otherwise
+   */
+  public record CachedResult(boolean canBeCached, boolean valueAlreadyCached) {
+    public boolean updated() {
+      return canBeCached && !valueAlreadyCached;
+    }
+
+    public static CachedResult uncacheable() {
+      return new CachedResult(false, false);
+    }
   }
 
   public Object get(UUID key) {
@@ -79,6 +97,10 @@ public final class RuntimeCache implements Function<String, Object> {
   public Object get(RuntimeID key) {
     var ref = cache.get(key);
     return ref != null ? ref.get() : null;
+  }
+
+  public boolean hasValue(UUID key) {
+    return cache.containsKey(ExternalUUID.create(key));
   }
 
   /** Get the value from the cache. */
@@ -123,23 +145,6 @@ public final class RuntimeCache implements Function<String, Object> {
     var keys = cache.keySet();
     cache.clear();
     return keys;
-  }
-
-  /**
-   * Clear cached values of the provided kind.
-   *
-   * @param kind the kind of cached value to clear
-   * @return the set of cleared keys
-   */
-  public Set<UUID> clear(CachePreferences.Kind kind) {
-    // Do nothing
-    /*var keys = preferences.get(kind);
-    for (var key : keys) {
-      cache.remove(key);
-    }
-    return keys;
-     */
-    return new HashSet<>();
   }
 
   /**

@@ -178,25 +178,30 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
             false,
             -1.0,
             null);
-    syncState.setExpressionUnsync(nodeId);
-    visualizationHolder
-        .find(nodeId)
-        .foreach(
-            visualization -> {
-              syncState.setVisualizationUnsync(visualization.id());
-              return null;
-            });
 
     boolean isPanic = info.isPanic();
     // Panics are not cached because a panic can be fixed by changing seemingly unrelated code,
     // like imports, and the invalidation mechanism can not always track those changes and
     // appropriately invalidate all dependent expressions.
-    var cached = false;
+    var cached = RuntimeCache.CachedResult.uncacheable();
     if (!isPanic) {
       cached = cache.offer(runtimeID, result);
       cache.putCall(nodeId, call);
     }
     cache.putType(nodeId, resultType);
+
+    if (cached.updated()) {
+      // Ensure that we send updates only when we real update cached expressions.
+      // This is important for RHS when we only re-execute for subexpressions
+      syncState.setExpressionUnsync(nodeId);
+      visualizationHolder
+          .find(nodeId)
+          .foreach(
+              visualization -> {
+                syncState.setVisualizationUnsync(visualization.id());
+                return null;
+              });
+    }
 
     if (runtimeID.isExternal()) {
       callOnComputedCallback(expressionValue);
@@ -208,7 +213,7 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
       // up the `typeChanged` field of the expression update.
       methodCallsCache.setExecuted(nodeId);
     }
-    return cached;
+    return cached.canBeCached();
   }
 
   @CompilerDirectives.TruffleBoundary

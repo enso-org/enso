@@ -65,10 +65,11 @@ public class RuntimeAnalysis {
       var popped = assignmentsStack.pop();
       if (!runtimeID.equals(popped.getRuntimeID())) {
         LOGGER.warn(
-            "Unexpected expression ID popped from the stack. Expected {}, got {} in {}",
+            "Unexpected expression ID popped from the stack. Expected {}, got {} in {} @ {}",
             runtimeID,
             popped.getRuntimeID(),
-            explanation);
+            explanation,
+            this.id);
       }
     }
   }

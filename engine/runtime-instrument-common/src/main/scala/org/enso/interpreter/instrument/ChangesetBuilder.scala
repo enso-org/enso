@@ -1,6 +1,7 @@
 package org.enso.interpreter.instrument
 
 import com.oracle.truffle.api.source.Source
+
 //import org.enso.compiler.core.Implicits.AsMetadata
 import org.enso.compiler.core.ir.{
   CallArgument,
@@ -178,6 +179,7 @@ final class ChangesetBuilder[A: TextEditor: IndexedSource](
     @scala.annotation.tailrec
     def go(
       tree: ChangesetBuilder.Tree,
+      externalIDsTree: ChangesetBuilder.Tree,
       source: A,
       edits: mutable.Queue[TextEdit],
       ids: mutable.Set[ChangesetBuilder.NodeId]
@@ -198,6 +200,7 @@ final class ChangesetBuilder[A: TextEditor: IndexedSource](
         val edit = edits.dequeue()
         val locationEdit =
           ChangesetBuilder.toLocationEdit(edit, source, allEdits)
+
         val invalidatedSet =
           ChangesetBuilder.invalidated(
             tree,
@@ -205,9 +208,23 @@ final class ChangesetBuilder[A: TextEditor: IndexedSource](
             locationEdit.isNodeRemoved,
             false
           )
-        val newTree   = ChangesetBuilder.updateLocations(tree, locationEdit)
+
+        val invalidatedExternal = ChangesetBuilder.invalidatedExternal(
+          externalIDsTree,
+          locationEdit.location,
+          locationEdit.isNodeRemoved
+        )
+        val newTree = ChangesetBuilder.updateLocations(tree, locationEdit)
+        val newExternalIDsTree =
+          ChangesetBuilder.updateLocations(externalIDsTree, locationEdit)
         val newSource = TextEditor[A].edit(source, edit)
-        go(newTree, newSource, edits, ids ++= invalidatedSet.map(_.id))
+        go(
+          newTree,
+          newExternalIDsTree,
+          newSource,
+          edits,
+          ids ++= (invalidatedSet.map(_.id) ++ invalidatedExternal.map(_.id))
+        )
       }
     }
     val tree1 = ChangesetBuilder.buildTreeOfExternalIDs(ir)
@@ -221,7 +238,14 @@ final class ChangesetBuilder[A: TextEditor: IndexedSource](
     val invalidatedByIdMapChanges =
       analyzeIdMapChanges(tree1, invalidatedByIdMap, mutable.HashSet())
     val tree2 = ChangesetBuilder.buildTree(ir)
-    go(tree2, source, mutable.Queue.from(edits), invalidatedByIdMapChanges)
+    val tree3 = ChangesetBuilder.buildTreeOfExternalIDs(ir)
+    go(
+      tree2,
+      tree3,
+      source,
+      mutable.Queue.from(edits),
+      invalidatedByIdMapChanges
+    )
   }
 
   /** Traverses the IR and returns a list of the most specific (the innermost)
@@ -627,6 +651,21 @@ object ChangesetBuilder {
           invalidated += node
           tree -= node
         }
+      }
+    }
+    invalidated
+  }
+
+  private def invalidatedExternal(
+    tree: Tree,
+    edit: Location,
+    isNodeRemoved: Boolean
+  ): Tree = {
+    val invalidated = mutable.TreeSet[ChangesetBuilder.Node]()
+    tree.iterator.foreach { node =>
+      if (intersect(edit, node, isNodeRemoved)) {
+        invalidated += node
+        tree -= node
       }
     }
     invalidated

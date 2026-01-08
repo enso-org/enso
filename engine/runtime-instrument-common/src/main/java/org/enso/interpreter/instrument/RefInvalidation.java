@@ -47,7 +47,6 @@ public class RefInvalidation {
         }
       }
 
-      LOGGER.trace("Invalidating " + directlyInvalidated);
       var transitivelyInvalidated =
           invalidateTransitiveDependencies(
               directlyInvalidated, Set.of(), frames1.stream().toList(), frame, visHolder, true);
@@ -56,7 +55,6 @@ public class RefInvalidation {
               .filter(AffectedID::currentFrame)
               .map(AffectedID::id)
               .collect(Collectors.toSet());
-      LOGGER.trace("Transitively invalidated: " + result);
       return result;
     }
   }

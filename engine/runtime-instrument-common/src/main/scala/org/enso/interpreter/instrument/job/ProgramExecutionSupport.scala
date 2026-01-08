@@ -48,6 +48,7 @@ import java.util.concurrent.{
   ExecutionException
 }
 import java.util.function.{Consumer, Supplier}
+import scala.annotation.unused
 import scala.jdk.OptionConverters.RichOptional
 import scala.util.Try
 
@@ -144,6 +145,7 @@ object ProgramExecutionSupport {
               syncState,
               executedVisualization.visualizationId(),
               executedVisualization.expressionId(),
+              cache.hasValue(executedVisualization.expressionId()),
               executedVisualization.expressionValue()
             )
         }
@@ -182,6 +184,7 @@ object ProgramExecutionSupport {
               syncState,
               executedVisualization.visualizationId(),
               executedVisualization.expressionId(),
+              cache.hasValue(executedVisualization.expressionId()),
               executedVisualization.expressionValue()
             )
         }
@@ -679,7 +682,8 @@ object ProgramExecutionSupport {
             syncState,
             visualization,
             value.getExpressionId,
-            v
+            v,
+            "callback"
           )
         }
       }
@@ -757,6 +761,7 @@ object ProgramExecutionSupport {
     syncState: UpdatesSynchronizationState,
     visualizationId: UUID,
     expressionId: UUID,
+    cachedExpression: Boolean,
     expressionValue: AnyRef
   )(implicit ctx: RuntimeContext): Unit = {
     visualizationResultToBytes(visualizationResult) match {
@@ -803,6 +808,7 @@ object ProgramExecutionSupport {
         }
         syncState.runAndSetVisualizationSync(
           visualizationId,
+          false,
           () => {
             ctx.endpoint.sendToClient(
               Api.Response(
@@ -828,6 +834,7 @@ object ProgramExecutionSupport {
         )
         syncState.runAndSetVisualizationSync(
           visualizationId,
+          cachedExpression,
           () => {
             ctx.endpoint.sendToClient(
               Api.Response(
@@ -862,7 +869,8 @@ object ProgramExecutionSupport {
     syncState: UpdatesSynchronizationState,
     visualization: Visualization,
     expressionId: UUID,
-    expressionValue: AnyRef
+    expressionValue: AnyRef,
+    @unused reason: String
   )(implicit ctx: RuntimeContext): CompletionStage[AnyRef] = {
     executeVisualization(
       contextId,
@@ -926,6 +934,7 @@ object ProgramExecutionSupport {
             }
             syncState.runAndSetVisualizationSync(
               visualization.id,
+              runtimeCache.hasValue(expressionId),
               () => {
                 ctx.endpoint.sendToClient(
                   Api.Response(
@@ -951,6 +960,7 @@ object ProgramExecutionSupport {
         )
         syncState.runAndSetVisualizationSync(
           visualization.id,
+          runtimeCache.hasValue(expressionId),
           () => {
             ctx.endpoint.sendToClient(
               Api.Response(

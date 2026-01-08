@@ -594,7 +594,7 @@ class ChangesetBuilderTest
     code: String,
     edits: TextEdit*
   ): Set[UUID @ExternalID] =
-    new ChangesetBuilder(Rope(code), ir).compute(edits)
+    new ChangesetBuilder(Rope(code), ir).compute(edits, None)
 
   def freshModuleContext: ModuleContext =
     buildModuleContext(freshNameSupply = Some(new FreshNameSupply))

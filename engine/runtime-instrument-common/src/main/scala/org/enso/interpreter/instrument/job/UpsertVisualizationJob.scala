@@ -166,7 +166,7 @@ class UpsertVisualizationJob(
     evaluatedVisualization: EvaluationResult
   )(implicit ctx: RuntimeContext): Option[Executable] = {
     val EvaluationResult(module, callable, arguments) = evaluatedVisualization
-    UpsertVisualizationJob.logger.trace(
+    UpsertVisualizationJob.logger.debug(
       "Executing visualization {} for expression {}",
       visualizationId,
       expressionId
@@ -181,9 +181,10 @@ class UpsertVisualizationJob(
         )
       )
       .filter(parentId => parentId.uuid() != expressionId)
+
     optParentExpressionId.ifPresent { parentID =>
       UpsertVisualizationJob.logger.trace(
-        "Found a parent expression of " + parentID + " for " + expressionId
+        "Found a parent expression for visualization (" + visualizationId + "): " + parentID + " for " + expressionId
       )
       ctx.contextManager.setExpressionFlyby(
         config.executionContextId,
@@ -216,24 +217,31 @@ class UpsertVisualizationJob(
       .flatMap(frame => Option(frame.cache))
     val cachedValue = runtimeCache
       .flatMap(c => Option(c.get(expressionId)))
-    UpsertVisualizationJob.requireVisualizationSynchronization(
-      stack,
-      visualizationId
-    )
     cachedValue match {
       case Some(value) =>
+        UpsertVisualizationJob.requireVisualizationPending(
+          stack,
+          visualizationId
+        )
         ProgramExecutionSupport.executeAndSendVisualizationUpdate(
           config.executionContextId,
           runtimeCache.getOrElse(new RuntimeCache),
           stack.headOption.get.syncState,
           visualization,
           expressionId,
-          value
+          value,
+          "upsert"
         )
         None
       case None =>
+        // Only reset visualizations if one cannot read the cached value immediately.
+        // Otherwise we can have double visualization updates.
+        UpsertVisualizationJob.requireVisualizationSynchronization(
+          stack,
+          visualizationId
+        )
         UpsertVisualizationJob.logger.trace(
-          "Cached value for expresion {}: missing",
+          "Cached value for expression {}: missing",
           expressionId
         )
         Some(Executable(config.executionContextId, stack))
@@ -258,7 +266,7 @@ class UpsertVisualizationJob(
                 _.getExternalId.exists(_ == expressionID)
               )
               if (foundExpression != null) {
-                ExternalUUID.create(rhsID)
+                ExternalUUID.createCached(rhsID)
               } else {
                 null
               }
@@ -310,7 +318,7 @@ object UpsertVisualizationJob {
     LoggerFactory.getLogger(classOf[UpsertVisualizationJob])
 
   /** Invalidate caches for a particular expression id. */
-  sealed private case class InvalidateCaches(
+  /*sealed private case class InvalidateCaches(
     expressionId: Api.ExpressionId
   )(implicit ctx: RuntimeContext)
       extends Runnable {
@@ -321,7 +329,7 @@ object UpsertVisualizationJob {
         () => invalidateCaches(expressionId)
       )
     }
-  }
+  }*/
 
   /** The number of times to retry the expression evaluation. */
   private val MaxEvaluationRetryCount: Int = 5
@@ -870,5 +878,11 @@ object UpsertVisualizationJob {
     visualizationId: Api.VisualizationId
   ): Unit =
     stack.foreach(_.syncState.setVisualizationUnsync(visualizationId))
+
+  private def requireVisualizationPending(
+    stack: Iterable[InstrumentFrame],
+    visualizationId: Api.VisualizationId
+  ): Unit =
+    stack.foreach(_.syncState.setVisualizationPending(visualizationId))
 
 }
