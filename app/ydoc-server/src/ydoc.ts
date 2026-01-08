@@ -10,7 +10,8 @@ import * as Y from 'yjs'
 import * as decoding from 'lib0/decoding'
 import * as encoding from 'lib0/encoding'
 import { ObservableV2 } from 'lib0/observable'
-import { YjsDataChannel, type YjsChannelCallbacks } from 'ydoc-channel'
+import type { YjsChannelCallbacks } from 'ydoc-channel'
+import { YjsBinaryChannel } from './YjsBinaryChannel'
 import { LanguageServerSession } from './languageServerSession'
 
 const pingTimeout = 30000
@@ -113,9 +114,9 @@ export function setupGatewayClient(
     return
   }
 
-  let dataSocket: YjsDataChannel | undefined
+  let dataSocket: YjsBinaryChannel | undefined
   if (dataUrl) {
-    dataSocket = YjsDataChannel.get(wsDoc.doc, dataUrl, binaryChannelCallbacks, byteBuffer)
+    dataSocket = YjsBinaryChannel.get(wsDoc.doc, dataUrl, binaryChannelCallbacks, byteBuffer)
   }
 
   const connection = new YjsConnection(ws, wsDoc)
