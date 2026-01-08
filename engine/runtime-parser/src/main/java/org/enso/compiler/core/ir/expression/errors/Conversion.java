@@ -1,7 +1,9 @@
 package org.enso.compiler.core.ir.expression.errors;
 
+import java.util.function.Function;
 import org.enso.compiler.core.IR;
 import org.enso.compiler.core.ir.Diagnostic$Kind$Interactive;
+import org.enso.compiler.core.ir.Expression;
 import org.enso.compiler.core.ir.IRKind;
 import org.enso.compiler.core.ir.IdentifiedLocation;
 import org.enso.compiler.core.ir.MetadataStorage;
@@ -44,6 +46,11 @@ public final class Conversion extends ConversionGen {
   @Override
   public Object[] diagnosticKeys() {
     return new Object[] {reason().explain()};
+  }
+
+  @Override
+  public Conversion mapExpressions(Function<Expression, Expression> fn) {
+    return this;
   }
 
   @Override
