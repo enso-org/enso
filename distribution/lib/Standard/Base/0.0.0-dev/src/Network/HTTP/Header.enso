@@ -21,6 +21,7 @@ from project.Metadata.Widget import Single_Choice, Vector_Editor
 from project.Nothing import all
 
 polyglot java import org.graalvm.collections.Pair as Java_Pair
+polyglot java import org.enso.base.enso_cloud.HideableValue
 
 type Header
     ## ---
@@ -290,7 +291,7 @@ type Header
        ---
     to_java_pair : Java_Pair
     to_java_pair self =
-        Java_Pair.create self.name (as_hideable_value self.value)
+        Java_Pair.create self.name (as_hideable_value self.value factory=HideableValue)
 
     ## ---
        private: true

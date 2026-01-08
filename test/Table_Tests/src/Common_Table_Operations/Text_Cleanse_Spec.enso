@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Runtime.Ref.Ref
 
 import project.Util
 from project.Util import all
@@ -13,9 +14,6 @@ from Standard.Table.Errors import Invalid_Value_Type
 from project.Common_Table_Operations.Util import run_default_backend, build_sorted_table
 
 from Standard.Test import all
-
-type Lazy_Ref
-    Value ~get
 
 main filter=Nothing = run_default_backend add_specs filter
 
@@ -35,7 +33,7 @@ add_text_cleanse_specs suite_builder setup =
         flight = ["Flight", [" BA0123", "BA0123 ", "  SG0456  ", "BA  0123", " S G 0 4 5 6 "]]
         passenger = ["Passenger", ["   Albert Einstein", "Marie Curie   ", "   Isaac Newton   ", "Stephen   Hawking", " A d a Lovelace "]]
         ticket_price = ["Ticket Price", [101, 576, 73, 112, 74]]
-        table = Lazy_Ref.Value <|
+        table = Ref.new lazy=True <|
             build_sorted_table setup [flight, passenger, ticket_price]
         group_builder.specify "should remove leading whitespace" <|
             clean_flight = ["Flight", ["BA0123", "BA0123 ", "SG0456  ", "BA  0123", "S G 0 4 5 6 "]]
@@ -80,7 +78,10 @@ add_text_cleanse_specs suite_builder setup =
             res.should_fail_with Missing_Argument
             res.catch.to_display_text . should_equal "Provide a value for the argument `columns`."
     suite_builder.group "Column Text Cleanse" group_builder->
-        test_col = Column.from_vector "Test" ["  It was", "the best  ", "of  times", "  it was  the  worst  of  times  "]
+        test_col_ref = Ref.new lazy=True <|
+            Column.from_vector "Test" ["  It was", "the best  ", "of  times", "  it was  the  worst  of  times  "]
+        test_col =
+            test_col_ref.get
         group_builder.specify "should remove leading whitespace" <|
             expected_col = Column.from_vector "Test" ["It was", "the best  ", "of  times", "it was  the  worst  of  times  "]
             res = test_col.text_cleanse [..Leading_Whitespace]
@@ -101,12 +102,18 @@ add_text_cleanse_specs suite_builder setup =
             expected_col = Column.from_vector "Test" ["Itwas", "thebest", "oftimes", "itwastheworstoftimes"]
             res = test_col.text_cleanse [..All_Whitespace]
             res.should_equal expected_col
-        test_col_with_newlines = Column.from_vector "Test" ['\nIt was', 'the best\r', '\rof  times\n', '\r\nit was \r\n the  worst  of  times\n\r']
+        test_col_with_newlines_ref = Ref.new lazy=True <|
+            Column.from_vector "Test" ['\nIt was', 'the best\r', '\rof  times\n', '\r\nit was \r\n the  worst  of  times\n\r']
+        test_col_with_newlines =
+            test_col_with_newlines_ref.get
         group_builder.specify "should remove all whitespace" <|
             expected_col = Column.from_vector "Test" ["It was", "the best", "of  times", "it was  the  worst  of  times"]
             res = test_col_with_newlines.text_cleanse [..Newlines]
             res.should_equal expected_col
-        test_col_with_nums = Column.from_vector "Test" ["1It was", "the best2", "3of  times4", " 1984 it was  the  worst  of  times  72"]
+        test_col_with_nums_ref = Ref.new lazy=True <|
+            Column.from_vector "Test" ["1It was", "the best2", "3of  times4", " 1984 it was  the  worst  of  times  72"]
+        test_col_with_nums =
+            test_col_with_nums_ref.get
         group_builder.specify "should remove leading numbers" <|
             expected_col = Column.from_vector "Test" ["It was", "the best2", "of  times4", " 1984 it was  the  worst  of  times  72"]
             res = test_col_with_nums.text_cleanse [..Leading_Numbers]
@@ -115,7 +122,10 @@ add_text_cleanse_specs suite_builder setup =
             expected_col = Column.from_vector "Test" ["1It was", "the best", "3of  times", " 1984 it was  the  worst  of  times  "]
             res = test_col_with_nums.text_cleanse [..Trailing_Numbers]
             res.should_equal expected_col
-        test_col_with_non_ascii_chars = Column.from_vector "Test" ["  It was the 🥇", "of  🕒s", "  it was  the  𒀂  of  🕒s  "]
+        test_col_with_non_ascii_chars_ref = Ref.new lazy=True <|
+            Column.from_vector "Test" ["  It was the 🥇", "of  🕒s", "  it was  the  𒀂  of  🕒s  "]
+        test_col_with_non_ascii_chars =
+            test_col_with_non_ascii_chars_ref.get
         group_builder.specify "should remove non-ascii characters" <|
             expected_col = Column.from_vector "Test" ["  It was the ", "of  s", "  it was  the    of  s  "]
             res = test_col_with_non_ascii_chars.text_cleanse [..Non_ASCII]

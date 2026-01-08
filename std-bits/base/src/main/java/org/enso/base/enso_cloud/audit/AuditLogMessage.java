@@ -29,7 +29,7 @@ final class AuditLogMessage implements AuditLogApiAccess.LogMessage {
   private final String message;
   private final ObjectNode metadata;
 
-  public AuditLogMessage(String operation, String message, ObjectNode metadata) {
+  AuditLogMessage(String operation, String message, ObjectNode metadata) {
     this.operation = Objects.requireNonNull(operation);
     this.message = Objects.requireNonNull(message);
     this.metadata = Objects.requireNonNull(metadata);
@@ -39,8 +39,10 @@ final class AuditLogMessage implements AuditLogApiAccess.LogMessage {
     checkNoRestrictedField(metadata, PROJECT_SESSION_ID);
     checkNoRestrictedField(metadata, LOCAL_TIMESTAMP);
 
-    this.projectId = CloudAPI.getCloudProjectId();
-    this.projectSessionId = CloudAPI.getCloudSessionId();
+    var cloudAPI = CloudAPI.getInstance();
+
+    this.projectId = cloudAPI.getCloudProjectId();
+    this.projectSessionId = cloudAPI.getCloudSessionId();
 
     var currentProject = CurrentEnsoProject.get();
     this.projectName = currentProject == null ? null : currentProject.fullName();

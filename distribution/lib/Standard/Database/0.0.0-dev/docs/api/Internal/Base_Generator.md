@@ -48,6 +48,7 @@
 - make_function name:Standard.Base.Any.Any arguments:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - make_group_number arguments:Standard.Base.Data.Vector.Vector -> Standard.Base.Any.Any
 - make_group_number_equal_count arguments:Standard.Base.Data.Vector.Vector -> Standard.Base.Any.Any
+- make_group_number_equal_sum arguments:Standard.Base.Data.Vector.Vector -> Standard.Base.Any.Any
 - make_iif arguments:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - make_is_in arguments:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - make_is_in_column arguments:Standard.Base.Any.Any -> Standard.Base.Any.Any

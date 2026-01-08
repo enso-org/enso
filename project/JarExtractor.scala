@@ -44,11 +44,6 @@ object JarExtractor {
     override val extension: String                      = "dll"
     override val prefix: Option[Either[String, String]] = Some(Left("lib"))
   }
-  case object MacOSAMD64 extends NativeLibArch {
-    override val path: String                           = "amd64/macos"
-    override val extension: String                      = "dylib"
-    override val prefix: Option[Either[String, String]] = Some(Right("lib"))
-  }
   case object MacOSArm64 extends NativeLibArch {
     override val path: String                           = "aarch64/macos"
     override val extension: String                      = "dylib"
@@ -169,7 +164,6 @@ object JarExtractor {
     (arch, Platform.osName(), Platform.arch()) match {
       case (LinuxAMD64, "linux", "x86_64")     => true
       case (WindowsAMD64, "windows", "x86_64") => true
-      case (MacOSAMD64, "osx", "x86_64")       => true
       case (MacOSArm64, "osx", "aarch64")      => true
       case _                                   => false
     }

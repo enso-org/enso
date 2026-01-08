@@ -4,17 +4,23 @@
 
 - [Using dual JVM mode for Standard.Microsoft][14476].
 - [Standard.Test pending field is lazy][14536].
+- [Using dual JVM mode for Standard.AWS][14568].
 
 [14476]: https://github.com/enso-org/enso/pull/14476
 [14536]: https://github.com/enso-org/enso/pull/14536
+[14568]: https://github.com/enso-org/enso/pull/14568
 
 #### Enso Language & Runtime
 
 - [`Panic.rethrow` keeps original location][14480]
 - [Use `State.get if_missing` to avoid too frequent `Panic.throw`][14490]
+- [Lazily initialized local variables with Ref.memoize][14554].
+- [Flush system caches via Runtime.gc][14557]
 
 [14480]: https://github.com/enso-org/enso/pull/14480
 [14490]: https://github.com/enso-org/enso/pull/14490
+[14536]: https://github.com/enso-org/enso/pull/14554
+[14557]: https://github.com/enso-org/enso/pull/14557
 
 # Next Release
 
@@ -132,6 +138,7 @@
 - [Add spatial function support to expressions.][14492]
 - [Add `Date_Column` class, and `first_of_month` and `end_of_month`.][14485]
 - [Add `OneDrive.write` allowing a first API to write to OneDrive.][14494]
+- [Add `Grouping_Method.Equal_Sum` for database backends.][14528]
 
 [13769]: https://github.com/enso-org/enso/pull/13769
 [14026]: https://github.com/enso-org/enso/pull/14026
@@ -168,6 +175,7 @@
 [14488]: https://github.com/enso-org/enso/pull/14488
 [14492]: https://github.com/enso-org/enso/pull/14492
 [14494]: https://github.com/enso-org/enso/pull/14494
+[14528]: https://github.com/enso-org/enso/pull/14528
 
 #### Enso Language & Runtime
 
