@@ -11,6 +11,7 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.stream.Collectors;
+
 import org.enso.table.data.table.Column;
 import org.enso.table.problems.BlackholeProblemAggregator;
 import org.enso.table.problems.ProblemAggregator;
@@ -82,7 +83,7 @@ public class NameDeduplicator {
     if (namingProperties.is_case_sensitive()) {
       nameEquivalence = UnicodeNormalizedTextEquivalence.INSTANCE;
     } else {
-      nameEquivalence = new CaseInsensitiveUnicodeNormalizedTextEquivalence(Locale.ROOT);
+      nameEquivalence = new CaseInsensitiveUnicodeNormalizedTextComparator(Locale.ROOT);
     }
     usedNames = new TreeSet<>(nameEquivalence);
     truncatedNames = new TreeMap<>(nameEquivalence);

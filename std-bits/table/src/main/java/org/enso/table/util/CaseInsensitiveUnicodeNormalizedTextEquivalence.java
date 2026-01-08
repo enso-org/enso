@@ -2,16 +2,17 @@ package org.enso.table.util;
 
 import java.util.Comparator;
 import java.util.Locale;
+
 import org.enso.base.Text_Utils;
 
 /**
  * An {@link Equivalence} for Text that ensures the same behaviour as Enso case-insensitive equality
  * (`equals_ignore_case`) on the Text type.
  */
-final class CaseInsensitiveUnicodeNormalizedTextEquivalence implements Comparator<Object> {
+final class CaseInsensitiveUnicodeNormalizedTextComparator implements Comparator<Object> {
   private final Locale locale;
 
-  CaseInsensitiveUnicodeNormalizedTextEquivalence(Locale locale) {
+  CaseInsensitiveUnicodeNormalizedTextComparator(Locale locale) {
     this.locale = locale;
   }
 
