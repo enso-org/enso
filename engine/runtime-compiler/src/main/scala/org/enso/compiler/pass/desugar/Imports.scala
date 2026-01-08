@@ -60,9 +60,11 @@ case object Imports extends IRPass {
             } else { i.copyWithName(newName) }
           }
           .getOrElse(
-            errors.ImportExport(
+            errors.ImportExport.create(
               i,
-              errors.ImportExport.ProjectKeywordUsedButNotInProject("import")
+              new errors.ImportExport.ProjectKeywordUsedButNotInProject(
+                "import"
+              )
             )
           )
       case other => other
@@ -86,9 +88,11 @@ case object Imports extends IRPass {
             } else { ex.copyWithName(newName) }
           }
           .getOrElse(
-            errors.ImportExport(
+            errors.ImportExport.create(
               ex,
-              errors.ImportExport.ProjectKeywordUsedButNotInProject("export")
+              new errors.ImportExport.ProjectKeywordUsedButNotInProject(
+                "export"
+              )
             )
           )
       case other => other
