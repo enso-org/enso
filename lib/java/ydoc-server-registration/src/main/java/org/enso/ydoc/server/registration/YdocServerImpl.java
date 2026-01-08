@@ -6,7 +6,7 @@ import java.net.URISyntaxException;
 import org.enso.jvm.interop.api.OtherJvmClassLoader;
 import org.enso.runner.common.WrongOption;
 import org.enso.runner.common.YdocServerApi;
-import org.enso.ydoc.api.MessageCallbacks;
+import org.enso.ydoc.api.YjsChannelCallbacks;
 import org.graalvm.nativeimage.ImageInfo;
 
 public final class YdocServerImpl extends YdocServerApi {
@@ -16,8 +16,8 @@ public final class YdocServerImpl extends YdocServerApi {
   protected AutoCloseable runYdocServer(
       String hostname,
       int port,
-      MessageCallbacks jsonChannelCallbacks,
-      MessageCallbacks binaryChannelCallbacks)
+      YjsChannelCallbacks jsonChannelCallbacks,
+      YjsChannelCallbacks binaryChannelCallbacks)
       throws WrongOption, IOException, URISyntaxException {
     // the following shall invoke:
     //   return launch(hostname, port);

@@ -2,7 +2,7 @@ package org.enso.ydoc.server;
 
 import java.io.IOException;
 import java.util.concurrent.ExecutionException;
-import org.enso.ydoc.api.MessageCallbacks;
+import org.enso.ydoc.api.YjsChannelCallbacks;
 import org.enso.ydoc.api.YjsChannel;
 import org.enso.ydoc.polyfill.web.WebEnvironment;
 
@@ -13,8 +13,8 @@ public final class Main {
   public static AutoCloseable launch(
       String ydocHost,
       String ydocPort,
-      MessageCallbacks jsonChannelCallbacks,
-      MessageCallbacks binaryChannelCallbacks)
+      YjsChannelCallbacks jsonChannelCallbacks,
+      YjsChannelCallbacks binaryChannelCallbacks)
       throws IOException {
     try {
       var builder = Ydoc.builder();

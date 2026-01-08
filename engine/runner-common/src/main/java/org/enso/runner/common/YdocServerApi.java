@@ -3,15 +3,15 @@ package org.enso.runner.common;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.util.ServiceLoader;
-import org.enso.ydoc.api.MessageCallbacks;
+import org.enso.ydoc.api.YjsChannelCallbacks;
 
 public abstract class YdocServerApi {
 
   public static AutoCloseable launchYdocServer(
       String hostname,
       int port,
-      MessageCallbacks jsonChannelCallbacks,
-      MessageCallbacks binaryChannelCallbacks)
+      YjsChannelCallbacks jsonChannelCallbacks,
+      YjsChannelCallbacks binaryChannelCallbacks)
       throws WrongOption, IOException, URISyntaxException {
     var loader = YdocServerApi.class.getClassLoader();
     var it = ServiceLoader.load(YdocServerApi.class, loader).iterator();
@@ -25,7 +25,7 @@ public abstract class YdocServerApi {
   protected abstract AutoCloseable runYdocServer(
       String hostname,
       int port,
-      MessageCallbacks jsonChannelCallbacks,
-      MessageCallbacks binaryChannelCallbacks)
+      YjsChannelCallbacks jsonChannelCallbacks,
+      YjsChannelCallbacks binaryChannelCallbacks)
       throws WrongOption, IOException, URISyntaxException;
 }

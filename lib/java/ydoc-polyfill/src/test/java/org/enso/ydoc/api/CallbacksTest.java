@@ -17,7 +17,7 @@ public class CallbacksTest extends ExecutorSetup {
 
   public CallbacksTest() {}
 
-  public final class TestCallbacks implements MessageCallbacks {
+  public final class TestCallbacks implements YjsChannelCallbacks {
 
     private Consumer<YjsChannel> handler;
 
