@@ -65,6 +65,8 @@
   click][14500]
 - [Fix "What's new", "Documentation" and similar buttons opening external page
   twice][14507]
+- [Add `Date_Time_Column.set_time_zone` and `.at_time_zone` to in-memory
+  tables.][14591]
 
 [13685]: https://github.com/enso-org/enso/pull/13685
 [13658]: https://github.com/enso-org/enso/pull/13658
@@ -98,6 +100,7 @@
 [14504]: https://github.com/enso-org/enso/pull/14504
 [14500]: https://github.com/enso-org/enso/pull/14500
 [14507]: https://github.com/enso-org/enso/pull/14507
+[14591]: https://github.com/enso-org/enso/pull/14591
 
 #### Enso Standard Library
 
