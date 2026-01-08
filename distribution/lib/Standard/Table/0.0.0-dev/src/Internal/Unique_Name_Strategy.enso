@@ -108,10 +108,8 @@ type Unique_Name_Strategy
        private: true
        ---
        A mapping of original names to their truncated counterpart.
-    truncated_names : Dictionary Text Text
-    truncated_names self =
-        map = self.deduplicator.getTruncatedNames
-        map:Dictionary
+    truncated_names self -> Dictionary Text Text =
+        self.deduplicator.getTruncatedNames
 
     ## ---
        private: true
