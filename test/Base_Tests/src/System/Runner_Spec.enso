@@ -114,7 +114,7 @@ add_specs suite_builder = suite_builder.group "Engine runner" group_builder->
 
         Panic.with_finalizer cleanup <|
             proj_dir = create_new_project tmp_dir "Proj" "main = 42"
-            enso_run args=["--vm.D=polyglot.enso.checkCurrentDirectory=false", "--vm.D=org.enso.compiler.createSourceArchive="+proj_dir.path, "--compile", proj_dir.path]
+            enso_run args=["--vm.D=polyglot.enso.checkCurrentDirectory=false", "--vm.D=org.enso.compiler.createSourceArchives="+proj_dir.path, "--compile", proj_dir.path]
             manifest = proj_dir / "manifest.yaml"
             manifest_lines = manifest.read_text.lines . map (_.trim)
             manifest_lines . should_contain "archives:"
