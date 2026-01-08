@@ -1,6 +1,5 @@
 ## Enso Signatures 1.0
 ## module Standard.Database.Internal.Common.Group_Number_Helpers
-- _require_default_scale from:Standard.Base.Any.Any step:Standard.Base.Any.Any ~cont:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - make_group_number from:Standard.Base.Data.Numbers.Integer step:Standard.Base.Data.Numbers.Integer grouping_expressions:(Standard.Base.Data.Vector.Vector Standard.Database.Internal.IR.SQL_IR_Expression.SQL_IR_Expression) -> Standard.Database.Internal.IR.SQL_IR_Expression.SQL_IR_Expression
 - make_group_number_equal_count from:Standard.Base.Data.Numbers.Integer step:Standard.Base.Data.Numbers.Integer group_count:Standard.Base.Data.Numbers.Integer ordering_expressions:(Standard.Base.Data.Vector.Vector Standard.Database.Internal.IR.SQL_IR_Expression.SQL_IR_Expression) -> Standard.Database.Internal.IR.SQL_IR_Expression.SQL_IR_Expression
 - make_group_number_equal_sum from:Standard.Base.Data.Numbers.Integer step:Standard.Base.Data.Numbers.Integer sum_column:Standard.Database.Internal.IR.SQL_IR_Expression.SQL_IR_Expression group_count:Standard.Base.Data.Numbers.Integer ordering_expressions:(Standard.Base.Data.Vector.Vector Standard.Database.Internal.IR.SQL_IR_Expression.SQL_IR_Expression) -> Standard.Database.Internal.IR.SQL_IR_Expression.SQL_IR_Expression

@@ -6,7 +6,7 @@ import Standard.Database.Dialects.Feature.Feature
 from Standard.Database.Errors import all
 
 from Standard.Table import all
-from Standard.Table.Errors import Duplicate_Output_Column_Names, Missing_Input_Columns, Not_Enough_Groups
+from Standard.Table.Errors import Duplicate_Output_Column_Names, Missing_Input_Columns, No_Such_Column, Not_Enough_Groups
 
 from Standard.Test import all
 
@@ -128,7 +128,7 @@ add_group_number_specs suite_builder setup =
         group_builder.specify "should report an error if the sum column does not exist" <|
             t = table_builder [['x', [1, 2, 3, 4, 5]], ['y', [5, 4, 3, 2, 1]], ['z', [5, 2, 3, 1, 4]]]
 
-            t.add_group_number (..Equal_Sum "q" 3) "g" . should_fail_with Illegal_Argument
+            t.add_group_number (..Equal_Sum "q" 3) "g" . should_fail_with No_Such_Column
 
     if setup.is_database.not then suite_builder.group prefix+"Table.add_group_number (in-memory)" group_builder->
         group_builder.specify "should add group number by unique values" <|
