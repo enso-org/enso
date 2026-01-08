@@ -1,4 +1,3 @@
-import * as map from 'lib0/map'
 import { ObservableV2 } from 'lib0/observable'
 import * as Y from 'yjs'
 
@@ -56,7 +55,7 @@ export class YjsChannel<T = unknown> extends ObservableV2<WebSocketEventHandlers
     this.doc = doc
     this.array = doc.getArray<T>(channelName)
 
-    this.observeHandler = (event: Y.YArrayEvent<T>, transaction) => {
+    this.observeHandler = (event: Y.YArrayEvent<T>, transaction: Y.Transaction) => {
       // Only notify handlers if the message is from another sender
       if (transaction.origin !== this.senderId) {
         doc.transact(() => {
@@ -208,46 +207,5 @@ export class YjsChannel<T = unknown> extends ObservableV2<WebSocketEventHandlers
       ;(errorEvent as any).error = error
     }
     super.emit('error', [errorEvent])
-  }
-}
-
-export class YjsDataChannel<T = unknown> extends YjsChannel<T> {
-  private static channels = new Map<string, YjsDataChannel>()
-
-  private readonly callbacks: YjsChannelCallbacks<T>
-  private readonly ByteBuffer: any
-
-  constructor(doc: Y.Doc, channelName: string, callbacks: YjsChannelCallbacks<T>, byteBuffer: any) {
-    super(doc, channelName)
-    this.callbacks = callbacks
-    this.ByteBuffer = byteBuffer
-    this.callbacks.onConnect(this)
-  }
-
-  /** Get a {@link YjsDataChannel}. */
-  static get(doc: Y.Doc, channelName: string, callbacks: YjsChannelCallbacks, byteBuffer: any): YjsDataChannel {
-    return map.setIfUndefined(YjsDataChannel.channels, channelName, () => {
-      console.log('DEBUG YjdDataChannel.get', channelName)
-      return new YjsDataChannel(doc, channelName, callbacks, byteBuffer)
-    })
-  }
-
-  override send(message: any): void {
-    console.log('DEBUG YjsDataChannel.send', message)
-    const arr = new Uint8Array(new ArrayBuffer(message))
-    super.send(arr as T)
-  }
-
-  override subscribe(handler: MessageHandler<T>): () => void {
-    console.log('YjsDataChannel.subscribe', handler)
-    const f = (contents: Uint8Array) => {
-      console.log('YjsDataChannel.subscribe f', contents)
-      const bb = this.ByteBuffer.allocateDirect(contents.byteLength)
-      console.log('YjsDataChannel.subscribe f bb', bb)
-      const arr = new Uint8Array(new ArrayBuffer(bb))
-      arr.set(contents)
-      return handler(bb)
-    }
-    return super.subscribe(f as MessageHandler<T>)
   }
 }
