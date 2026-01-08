@@ -1,14 +1,11 @@
 import type { GraphStore, Node } from '$/providers/openedProjects/graph'
-import type { ModuleStore } from '$/providers/openedProjects/module/module'
 import { nodeId } from '$/providers/openedProjects/graph/graphDatabase'
+import type { ModuleStore } from '$/providers/openedProjects/module/module'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import type { Ref } from 'vue'
 
-export function createSelectionAlignmentHandlers(
-  graphStore: GraphStore,
-  module: Ref<ModuleStore>,
-) {
+export function createSelectionAlignmentHandlers(graphStore: GraphStore, module: Ref<ModuleStore>) {
   function alignLeftNodes(nodes: Node[]) {
     const alignable = nodes.filter((node) => Number.isFinite(node.position.x))
     if (alignable.length === 0) return
