@@ -5,6 +5,12 @@ import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import type { Ref } from 'vue'
 
+/**
+ * Create handlers for aligning selected nodes in the graph.
+ * @param graphStore - The graph store containing node information
+ * @param module - A reference to the module store for batch editing
+ * @returns An object containing alignment handler functions
+ */
 export function createSelectionAlignmentHandlers(graphStore: GraphStore, module: Ref<ModuleStore>) {
   function alignLeftNodes(nodes: Node[]) {
     const alignable = nodes.filter((node) => Number.isFinite(node.position.x))
