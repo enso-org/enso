@@ -1,5 +1,11 @@
 # Next Next Release
 
+#### Enso IDE
+
+- [Add component alignment options][14590].
+
+[14590]: https://github.com/enso-org/enso/pull/14590
+
 #### Enso Standard Library
 
 - [Using dual JVM mode for Standard.Microsoft][14476].
