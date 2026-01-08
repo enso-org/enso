@@ -6,7 +6,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import org.enso.ydoc.api.MessageCallbacks;
+import org.enso.ydoc.api.YjsChannelCallbacks;
 import org.enso.ydoc.api.YjsChannel;
 import org.enso.ydoc.polyfill.ParserPolyfill;
 import org.enso.ydoc.polyfill.web.WebEnvironment;
@@ -25,8 +25,8 @@ public final class Ydoc implements AutoCloseable {
   private final Context.Builder contextBuilder;
   private final String hostname;
   private final int port;
-  private final MessageCallbacks jsonChannelCallbacks;
-  private final MessageCallbacks binaryChannelCallbacks;
+  private final YjsChannelCallbacks jsonChannelCallbacks;
+  private final YjsChannelCallbacks binaryChannelCallbacks;
 
   private Context context;
 
@@ -36,8 +36,8 @@ public final class Ydoc implements AutoCloseable {
       Context.Builder contextBuilder,
       String hostname,
       int port,
-      MessageCallbacks jsonChannelCallbacks,
-      MessageCallbacks binaryChannelCallbacks) {
+      YjsChannelCallbacks jsonChannelCallbacks,
+      YjsChannelCallbacks binaryChannelCallbacks) {
     this.executor = executor;
     this.parser = parser;
     this.contextBuilder = contextBuilder;
@@ -58,15 +58,15 @@ public final class Ydoc implements AutoCloseable {
     private HostAccess.Builder hostAccessBuilder;
     private String hostname;
     private int port = -1;
-    private MessageCallbacks jsonChannelCallbacks;
-    private MessageCallbacks binaryChannelCallbacks;
+    private YjsChannelCallbacks jsonChannelCallbacks;
+    private YjsChannelCallbacks binaryChannelCallbacks;
 
     private Builder() {}
 
-    private static final class NoOpMessageCallbacks implements MessageCallbacks {
-      public static final NoOpMessageCallbacks INSTANCE = new NoOpMessageCallbacks();
+    private static final class NoOpYjsChannelCallbacks implements YjsChannelCallbacks {
+      public static final NoOpYjsChannelCallbacks INSTANCE = new NoOpYjsChannelCallbacks();
 
-      private NoOpMessageCallbacks() {}
+      private NoOpYjsChannelCallbacks() {}
 
       @Override
       public void onConnect(YjsChannel channel) {}
@@ -102,12 +102,12 @@ public final class Ydoc implements AutoCloseable {
       return this;
     }
 
-    public Builder jsonChannelCallbacks(MessageCallbacks callbacks) {
+    public Builder jsonChannelCallbacks(YjsChannelCallbacks callbacks) {
       this.jsonChannelCallbacks = callbacks;
       return this;
     }
 
-    public Builder binaryChannelCallbacks(MessageCallbacks callbacks) {
+    public Builder binaryChannelCallbacks(YjsChannelCallbacks callbacks) {
       this.binaryChannelCallbacks = callbacks;
       return this;
     }
@@ -145,11 +145,11 @@ public final class Ydoc implements AutoCloseable {
       }
 
       if (jsonChannelCallbacks == null) {
-        jsonChannelCallbacks = NoOpMessageCallbacks.INSTANCE;
+        jsonChannelCallbacks = NoOpYjsChannelCallbacks.INSTANCE;
       }
 
       if (binaryChannelCallbacks == null) {
-        binaryChannelCallbacks = NoOpMessageCallbacks.INSTANCE;
+        binaryChannelCallbacks = NoOpYjsChannelCallbacks.INSTANCE;
       }
 
       return new Ydoc(
@@ -171,11 +171,11 @@ public final class Ydoc implements AutoCloseable {
     return contextBuilder;
   }
 
-  public MessageCallbacks getJsonChannelCallbacksSynchronized() {
+  public YjsChannelCallbacks getJsonChannelCallbacksSynchronized() {
     return new YjsCallbacksSynchronized(jsonChannelCallbacks, executor);
   }
 
-  public MessageCallbacks getBinaryChannelCallbacksSynchronized() {
+  public YjsChannelCallbacks getBinaryChannelCallbacksSynchronized() {
     return new YjsCallbacksSynchronized(binaryChannelCallbacks, executor);
   }
 

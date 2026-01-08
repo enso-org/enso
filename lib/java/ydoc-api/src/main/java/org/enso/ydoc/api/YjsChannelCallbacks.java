@@ -1,6 +1,6 @@
 package org.enso.ydoc.api;
 
-public interface MessageCallbacks {
+public interface YjsChannelCallbacks {
 
   public void onConnect(YjsChannel channel);
 }
