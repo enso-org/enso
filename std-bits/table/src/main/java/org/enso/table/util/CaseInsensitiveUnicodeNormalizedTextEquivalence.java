@@ -24,6 +24,6 @@ final class CaseInsensitiveUnicodeNormalizedTextComparator implements Comparator
       }
     }
 
-    throw new IllegalStateException("UnicodeNormalizedTextEquivalence can only compare Strings.");
+    throw new IllegalStateException("CaseInsensitiveUnicodeNormalizedTextComparator can only compare Strings.");
   }
 }
