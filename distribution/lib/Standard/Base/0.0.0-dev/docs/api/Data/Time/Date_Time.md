@@ -39,6 +39,7 @@
     - pretty self -> Standard.Base.Any.Any
     - quarter self -> Standard.Base.Any.Any
     - second self -> Standard.Base.Any.Any
+    - set_time_zone self zone:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - start_of self period:Standard.Base.Any.Any= -> Standard.Base.Any.Any
     - time_of_day self -> Standard.Base.Any.Any
     - to_display_text self -> Standard.Base.Any.Any
