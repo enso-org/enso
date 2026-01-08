@@ -62,6 +62,10 @@ test('Exercise 1', async ({ page, projectsDir }) => {
     await openComponentBrowser(page, 'readquery‘Sheet1’')
     await page.locator('.ComponentEntry', { hasText: 'set' }).click()
 
+    await page
+      .getByText('readquery‘Sheet1’')
+      .evaluate((element) => element.dispatchEvent(new PointerEvent('pointerleave')))
+
     // Set parameters
     await openDropdownInWidget(page, 'value')
     await page.getByRole('button', { name: '<Simple Expression>', exact: true }).click()

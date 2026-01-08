@@ -187,9 +187,6 @@ export async function getNewestProject(page: Page): Promise<Locator> {
  */
 export async function visualizeData(page: Page) {
   const showViz = page.getByLabel('Show visualization (Space)')
-  // Move mouse and wait for any "hovered node" buttons disappear
-  await page.mouse.move(10, 100)
-  await expect(showViz).toHaveCount(1)
   await showViz.click({ timeout: 5000 })
 }
 
