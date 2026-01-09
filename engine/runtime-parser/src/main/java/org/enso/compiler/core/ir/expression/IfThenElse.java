@@ -71,7 +71,7 @@ public final class IfThenElse extends IfThenElseGen {
    * @see #isOnlyElse()
    */
   public boolean isOnlyElse() {
-    return cond() instanceof Empty && trueBranch() instanceof Empty;
+    return cond() instanceof Empty c && trueBranch() instanceof Empty t && c == t;
   }
 
   @Override
