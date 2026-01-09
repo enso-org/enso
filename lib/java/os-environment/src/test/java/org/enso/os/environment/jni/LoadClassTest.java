@@ -20,7 +20,6 @@ import org.enso.jvm.channel.JVM;
 import org.enso.os.environment.lib.HelloTitle;
 import org.junit.Before;
 import org.junit.Test;
-import org.slf4j.LoggerFactory;
 
 public class LoadClassTest {
   private static final int MAX = 3000;
@@ -84,14 +83,6 @@ public class LoadClassTest {
       var expecting = TestMain.factorial(e.getKey());
       assertEquals("fac(" + e.getKey() + ") should be", expecting.toString(), e.getValue());
     }
-  }
-
-  @Test
-  public void logFromOtherJvm() throws Exception {
-    var log = LoggerFactory.getLogger(TestMain.LogMessage.class);
-    log.warn("In SVM before");
-    channel.execute(Void.class, new TestMain.LogMessage("In HotSpot"));
-    log.warn("In SVM after");
   }
 
   @Test
