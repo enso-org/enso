@@ -1,0 +1,48 @@
+## Enso Signatures 1.0
+## module Standard.Examples.Main
+- type Example_Error_Type
+    - Error message:Standard.Base.Any.Any
+- type My_Error
+    - Error message:Standard.Base.Any.Any
+- type No_Methods
+- add_1_to n:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- bool_column_1 -> Standard.Base.Any.Any
+- bool_column_2 -> Standard.Base.Any.Any
+- csv -> Standard.Base.Any.Any
+- csv_2500_rows -> Standard.Base.Any.Any
+- csv_path -> Standard.Base.Any.Any
+- data_dir -> Standard.Base.Any.Any
+- date_column_1 -> Standard.Base.Any.Any
+- decimal_column -> Standard.Base.Any.Any
+- dictionary -> Standard.Base.Any.Any
+- duration -> Standard.Base.Any.Any
+- geo_data_url -> Standard.Base.Any.Any
+- geo_json -> Standard.Base.Any.Any
+- get_boolean -> Standard.Base.Any.Any
+- get_geo_data -> Standard.Base.Any.Any
+- get_response -> Standard.Base.Any.Any
+- image -> Standard.Base.Any.Any
+- image_file -> Standard.Base.Any.Any
+- integer_column -> Standard.Base.Any.Any
+- inventory_table -> Standard.Base.Any.Any
+- json -> Standard.Base.Any.Any
+- json_object -> Standard.Base.Any.Any
+- json_text -> Standard.Base.Any.Any
+- list -> Standard.Base.Any.Any
+- match -> Standard.Base.Any.Any
+- matrix -> Standard.Base.Any.Any
+- no_such_method -> Standard.Base.Any.Any
+- popularity_table -> Standard.Base.Any.Any
+- scratch_file -> Standard.Base.Any.Any
+- simple_table_json -> Standard.Base.Any.Any
+- simple_table_json_headers -> Standard.Base.Any.Any
+- text_column_1 -> Standard.Base.Any.Any
+- text_column_2 -> Standard.Base.Any.Any
+- throw_error -> Standard.Base.Any.Any
+- throw_panic -> Standard.Base.Any.Any
+- transactions_table -> Standard.Base.Any.Any
+- uri -> Standard.Base.Any.Any
+- welcome -> Standard.Base.Any.Any
+- xls -> Standard.Base.Any.Any
+- xlsb -> Standard.Base.Any.Any
+- xlsx -> Standard.Base.Any.Any
