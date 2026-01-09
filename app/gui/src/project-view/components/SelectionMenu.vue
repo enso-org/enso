@@ -19,10 +19,8 @@ const { floatingStyles, update } = useFloating(colorButtonRef, colorMenuRef, {
 
 watch(
   () => toValue(pickColorMulti.toggled),
-  async (opened) => {
-    if (!opened) return
-    await nextTick()
-    update()
+  (opened) => {
+    if (opened) nextTick(update)
   },
 )
 </script>
