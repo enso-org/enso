@@ -1,7 +1,6 @@
 package org.enso.compiler.core;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
 import java.util.UUID;
@@ -1053,6 +1052,13 @@ final class TreeToIr {
           yield new IfThenElse(
               ifArg.value(), trueArg.value(), null, getIdentifiedLocation(tree), meta());
         }
+        if ("else".equals(fullName) && args.size() == 1) {
+          var falseArg = args.apply(0);
+          if (falseArg == null) {
+            yield translateSyntaxError(app, new Syntax.UnsupportedSyntax("Missing else branch"));
+          }
+          yield IfThenElse.buildOnlyElse(falseArg.value(), getIdentifiedLocation(tree), meta());
+        }
         if (fullName.equals(FREEZE_MACRO_IDENTIFIER)) {
           yield translateExpression(app.getSegments().get(0).getBody(), false);
         } else if (fullName.equals(SKIP_MACRO_IDENTIFIER)) {
@@ -1081,10 +1087,15 @@ final class TreeToIr {
           if (expr == null) {
             continue;
           }
+          var next = translateExpression(expr, false);
+          if (mergeExpressions(last, next) instanceof Expression replacement) {
+            next = replacement;
+            last = null;
+          }
           if (last != null) {
             expressions = join(last, expressions);
           }
-          last = translateExpression(expr, false);
+          last = next;
         }
         if (last == null) {
           last = new Name.Blank(null, meta());
@@ -1272,7 +1283,7 @@ final class TreeToIr {
   }
 
   /** Translate a statement in the body of function. */
-  private void translateBlockStatement(Tree tree, Collection<Expression> appendTo) {
+  private void translateBlockStatement(Tree tree, java.util.List<Expression> appendTo) {
     switch (tree) {
       case null -> {}
       case Tree.Assignment assignment -> {
@@ -1330,12 +1341,38 @@ final class TreeToIr {
         translateBlockStatement(statement.getExpression(), appendTo);
       }
       default -> {
-        var expressionStatement = translateExpression(tree);
-        if (expressionStatement != null) {
-          appendTo.add(expressionStatement);
+        var next = translateExpression(tree);
+        int lastIndex = appendTo.size() - 1;
+        if (lastIndex >= 0
+            && mergeExpressions(appendTo.get(lastIndex), next) instanceof Expression replacement) {
+          appendTo.set(lastIndex, replacement);
+        } else {
+          appendTo.add(next);
         }
       }
     }
+  }
+
+  /**
+   * Checks whether previous expression should be somehow combined with next one. Currently merges
+   * multi line if then else. If the expressions cannot be combined, then {@code null} is returned
+   * to normally proceed with adding the {@code next} expression into the list of expressions.
+   *
+   * @param previous previous expression
+   * @param next next expression
+   * @return non-{@code null} a combined expression to replace the {@code previous} or {@code null}
+   *     if no combination shall happen
+   */
+  private static Expression mergeExpressions(Expression previous, Expression next) {
+    if (previous instanceof IfThenElse original && original.falseBranchOrNull() == null) {
+      // if_then without else was the previous expression
+      if (next instanceof IfThenElse other && other.isOnlyElse()) {
+        var replacement =
+            IfThenElse.builder(original).falseBranchOrNull(other.falseBranchOrNull()).build();
+        return replacement;
+      }
+    }
+    return null;
   }
 
   private Expression translateAssignment(Tree.Assignment assign) {

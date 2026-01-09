@@ -27,6 +27,7 @@ import { performCollapse, prepareCollapsedInfo } from '@/components/GraphEditor/
 import { useGraphEditorClipboard } from '@/components/GraphEditor/graphClipboard'
 import type { NodeCreationOptions } from '@/components/GraphEditor/nodeCreation'
 import { selectionActionHandlers } from '@/components/GraphEditor/selectionActions'
+import { createSelectionAlignmentHandlers } from '@/components/GraphEditor/selectionAlignment'
 import { useGraphEditorToasts } from '@/components/GraphEditor/toasts'
 import { uploadedExpression, Uploader } from '@/components/GraphEditor/upload'
 import GraphMissingView from '@/components/GraphMissingView.vue'
@@ -343,6 +344,7 @@ const actionHandlers = registerHandlers({
     {
       collapseNodes,
       copyNodesToClipboard,
+      ...createSelectionAlignmentHandlers(graphStore, module),
       deleteNodes: (nodes) => graphStore.deleteNodes(nodes.map(nodeId)),
       deleteAndConnectAround: (nodes) => {
         return module.value.edit(async (edit) => {

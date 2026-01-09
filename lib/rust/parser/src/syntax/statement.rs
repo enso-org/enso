@@ -577,8 +577,8 @@ fn try_parse_annotation<'s>(
             let ident = *ident;
             let opr = *opr;
             let argument = expression_parser.parse_non_section_offset(start + 2, items);
-            let annotation = items.pop().unwrap().into_token().unwrap().with_variant(ident);
-            let operator = items.pop().unwrap().into_token().unwrap().with_variant(opr);
+            let annotation = items.pop().unwrap().try_into_token().unwrap().with_variant(ident);
+            let operator = items.pop().unwrap().try_into_token().unwrap().with_variant(opr);
             Some(FunctionAnnotation { operator, annotation, argument })
         }
         _ => None,
@@ -593,7 +593,7 @@ fn parse_type_annotation_statement<'s>(
 ) -> StatementOrPrefix<'s> {
     let type_ = expression_parser.parse_non_section_offset(operator_index + 1, items);
     let operator: token::TypeAnnotationOperator =
-        items.pop().unwrap().into_token().unwrap().try_into().unwrap();
+        items.pop().unwrap().try_into_token().unwrap().try_into().unwrap();
     let lhs = expression_parser.parse_non_section_offset(start, items);
     let type_ = type_.unwrap_or_else(|| {
         empty_tree(operator.code.position_after()).with_error(SyntaxError::ExpectedType)
@@ -618,7 +618,7 @@ fn apply_private_keywords<'s, U: From<Tree<'s>> + Into<Tree<'s>>>(
     visibility_context: VisibilityContext,
 ) -> Option<U> {
     for item in keywords {
-        let private = Tree::private(item.into_token().unwrap().try_into().unwrap());
+        let private = Tree::private(item.try_into_token().unwrap().try_into().unwrap());
         statement = Some(
             match statement.take() {
                 Some(statement) => Tree::app(
@@ -653,8 +653,8 @@ fn apply_excess_private_keywords<'s>(
     error: SyntaxError,
 ) -> Option<Tree<'s>> {
     for item in keywords {
-        let private =
-            Tree::private(item.into_token().unwrap().try_into().unwrap()).with_error(error.clone());
+        let private = Tree::private(item.try_into_token().unwrap().try_into().unwrap())
+            .with_error(error.clone());
         statement = match statement.take() {
             Some(statement) => Tree::app(private, statement),
             None => private,
@@ -719,7 +719,7 @@ fn parse_assignment_like_statement<'s>(
 
     let mut expression = expression_parser.parse_offset(operator + 1, items);
 
-    let operator = items.pop().unwrap().into_token().unwrap().try_into().unwrap();
+    let operator = items.pop().unwrap().try_into_token().unwrap().try_into().unwrap();
 
     let qn_len = match (evaluation_context, scan_qn(&items[start..])) {
         (_, Some(Qn::Binding { len }))
@@ -846,7 +846,7 @@ fn parse_pattern<'s>(
     let pattern = if items.len() - pattern_start == 1 {
         Some(match items.last().unwrap() {
             Item::Token(_) => {
-                let token = items.pop().unwrap().into_token().unwrap();
+                let token = items.pop().unwrap().try_into_token().unwrap();
                 match token.variant {
                     token::Variant::Ident(variant) => Tree::ident(token.with_variant(variant)),
                     token::Variant::Wildcard(variant) => {
@@ -866,7 +866,7 @@ fn parse_pattern<'s>(
             .map(|tree| tree.with_error(SyntaxError::ArgDefExpectedPattern))
     };
     let suspension =
-        have_suspension.then(|| items.pop().unwrap().into_token().unwrap().try_into().unwrap());
+        have_suspension.then(|| items.pop().unwrap().try_into_token().unwrap().try_into().unwrap());
     (suspension, pattern)
 }
 

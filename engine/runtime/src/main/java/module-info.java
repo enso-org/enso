@@ -27,7 +27,6 @@ open module org.enso.runtime {
   requires org.apache.commons.lang3;
   requires org.apache.tika.core;
   requires org.slf4j;
-  requires org.graalvm.collections;
   requires org.graalvm.nativeimage;
   requires org.graalvm.polyglot;
   requires org.graalvm.truffle;

@@ -392,11 +392,10 @@ type Dictionary key value
         vec_transformed = self.to_vector.map func_pairs
         new_dictionary = Dictionary.from_vector vec_transformed error_on_duplicates=True
         new_dictionary.catch Illegal_Argument error->
-            case error.message.starts_with "`Dictionary.from_vector` encountered duplicate key" of
-                True ->
-                    new_message = error.message.replace "from_vector" "transform"
-                    Error.throw (Illegal_Argument.Error new_message error.cause)
-                False -> new_dictionary
+            if error.message.starts_with "`Dictionary.from_vector` encountered duplicate key" then
+                new_message = error.message.replace "from_vector" "transform"
+                Error.throw (Illegal_Argument.Error new_message error.cause)
+            else new_dictionary
 
     ## ---
        icon: transform4

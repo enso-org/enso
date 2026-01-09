@@ -2103,7 +2103,6 @@ lazy val `polyglot-api` = project
       "com.google.flatbuffers" % "flatbuffers-java" % flatbuffersVersion,
       "org.graalvm.sdk"        % "word"             % graalMavenPackagesVersion,
       "org.graalvm.polyglot"   % "polyglot"         % graalMavenPackagesVersion,
-      "org.graalvm.sdk"        % "collections"      % graalMavenPackagesVersion,
       "org.graalvm.sdk"        % "nativeimage"      % graalMavenPackagesVersion,
       "org.graalvm.truffle"    % "truffle-api"      % graalMavenPackagesVersion
     ),
@@ -2575,7 +2574,6 @@ lazy val `runtime-language-epb` =
       Compile / moduleDependencies ++= Seq(
         "org.graalvm.truffle"  % "truffle-api" % graalMavenPackagesVersion,
         "org.graalvm.polyglot" % "polyglot"    % graalMavenPackagesVersion,
-        "org.graalvm.sdk"      % "collections" % graalMavenPackagesVersion,
         "org.graalvm.sdk"      % "word"        % graalMavenPackagesVersion,
         "org.graalvm.sdk"      % "nativeimage" % graalMavenPackagesVersion
       ),
@@ -2699,7 +2697,6 @@ lazy val runtime = (project in file("engine/runtime"))
       "org.apache.tika"      % "tika-core"               % tikaVersion,
       "org.graalvm.truffle"  % "truffle-api"             % graalMavenPackagesVersion,
       "org.graalvm.polyglot" % "polyglot"                % graalMavenPackagesVersion,
-      "org.graalvm.sdk"      % "collections"             % graalMavenPackagesVersion,
       "org.graalvm.sdk"      % "word"                    % graalMavenPackagesVersion,
       "org.graalvm.sdk"      % "nativeimage"             % graalMavenPackagesVersion,
       "com.ibm.icu"          % "icu4j"                   % icuVersion,
@@ -3472,7 +3469,6 @@ lazy val `runtime-instrument-common` =
       Compile / moduleDependencies ++= slf4jApi ++ Seq(
         "org.graalvm.truffle"  % "truffle-api" % graalMavenPackagesVersion,
         "org.graalvm.polyglot" % "polyglot"    % graalMavenPackagesVersion,
-        "org.graalvm.sdk"      % "collections" % graalMavenPackagesVersion,
         "org.graalvm.sdk"      % "nativeimage" % graalMavenPackagesVersion,
         "org.graalvm.sdk"      % "word"        % graalMavenPackagesVersion
       ),
@@ -3511,7 +3507,6 @@ lazy val `runtime-instrument-id-execution` =
       Compile / moduleDependencies ++= Seq(
         "org.graalvm.truffle"  % "truffle-api" % graalMavenPackagesVersion,
         "org.graalvm.polyglot" % "polyglot"    % graalMavenPackagesVersion,
-        "org.graalvm.sdk"      % "collections" % graalMavenPackagesVersion,
         "org.graalvm.sdk"      % "word"        % graalMavenPackagesVersion,
         "org.graalvm.sdk"      % "nativeimage" % graalMavenPackagesVersion
       ),
@@ -3536,7 +3531,6 @@ lazy val `runtime-instrument-repl-debugger` =
       Compile / moduleDependencies ++= Seq(
         "org.graalvm.truffle"  % "truffle-api" % graalMavenPackagesVersion,
         "org.graalvm.polyglot" % "polyglot"    % graalMavenPackagesVersion,
-        "org.graalvm.sdk"      % "collections" % graalMavenPackagesVersion,
         "org.graalvm.sdk"      % "word"        % graalMavenPackagesVersion,
         "org.graalvm.sdk"      % "nativeimage" % graalMavenPackagesVersion
       ),
@@ -3562,7 +3556,6 @@ lazy val `runtime-instrument-runtime-server` =
       Compile / moduleDependencies ++= Seq(
         "org.graalvm.truffle"  % "truffle-api" % graalMavenPackagesVersion,
         "org.graalvm.polyglot" % "polyglot"    % graalMavenPackagesVersion,
-        "org.graalvm.sdk"      % "collections" % graalMavenPackagesVersion,
         "org.graalvm.sdk"      % "word"        % graalMavenPackagesVersion,
         "org.graalvm.sdk"      % "nativeimage" % graalMavenPackagesVersion
       ),
@@ -5065,7 +5058,7 @@ lazy val `std-base` = project
     Compile / packageBin / artifactPath :=
       `base-polyglot-root` / "std-base.jar",
     libraryDependencies ++= Seq(
-      "org.graalvm.polyglot"       % "polyglot"         % graalMavenPackagesVersion,
+      "org.graalvm.polyglot"       % "polyglot"         % graalMavenPackagesVersion exclude ("org.graalvm.sdk", "collections"),
       "com.fasterxml.jackson.core" % "jackson-databind" % jacksonVersion,
       "org.slf4j"                  % "slf4j-api"        % slf4jVersion
     ),
@@ -5235,14 +5228,14 @@ lazy val `std-table` = project
       (Antlr4 / sourceManaged).value / "main" / "antlr4"
     },
     libraryDependencies ++= Seq(
-      "org.graalvm.polyglot"     % "polyglot"              % graalMavenPackagesVersion % "provided",
-      "org.graalvm.truffle"      % "truffle-api"           % graalMavenPackagesVersion % "provided",
+      "org.graalvm.polyglot"     % "polyglot"              % graalMavenPackagesVersion % "provided" exclude ("org.graalvm.sdk", "collections"),
       "com.univocity"            % "univocity-parsers"     % univocityParsersVersion,
       "org.apache.poi"           % "poi-ooxml"             % poiOoxmlVersion,
       "org.apache.xmlbeans"      % "xmlbeans"              % xmlbeansVersion,
       "org.antlr"                % "antlr4-runtime"        % antlrVersion,
       "org.apache.logging.log4j" % "log4j"                 % "2.24.3",
       "org.apache.logging.log4j" % "log4j-to-slf4j"        % "2.24.3", // org.apache.poi uses log4j
+      "org.graalvm.truffle"      % "truffle-api"           % graalMavenPackagesVersion % Test,
       "junit"                    % "junit"                 % junitVersion              % Test,
       "com.github.sbt"           % "junit-interface"       % junitIfVersion            % Test,
       "org.mockito"              % "mockito-core"          % mockitoJavaVersion        % Test,
