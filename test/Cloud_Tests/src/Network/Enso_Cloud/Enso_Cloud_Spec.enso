@@ -6,11 +6,9 @@ import Standard.Base.Errors.Common.No_Such_Conversion
 import Standard.Base.Errors.Illegal_State.Illegal_State
 
 from Standard.Test import all
-from Standard.Test.Execution_Context_Helpers import run_with_and_without_output
 
 
-import project.Network.Enso_Cloud.Cloud_Tests_Setup.Cloud_Tests_Setup
-import project.Network.Enso_Cloud.Cloud_Tests_Setup.Mock_Credentials
+from project.Network.Enso_Cloud.Cloud_Tests_Setup import Cloud_Tests_Setup, Mock_Credentials, run_with_and_without_output
 
 polyglot java import org.enso.base.enso_cloud.AuthenticationProvider
 polyglot java import org.enso.base.enso_cloud.CloudRequestCache
