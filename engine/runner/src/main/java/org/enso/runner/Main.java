@@ -103,7 +103,6 @@ public class Main {
   private static final String LOGGER_CONNECT = "logger-connect";
   private static final String NO_LOG_MASKING = "no-log-masking";
   private static final String UPLOAD_OPTION = "upload";
-  private static final String UPDATE_MANIFEST_OPTION = "update-manifest";
   private static final String HIDE_PROGRESS = "hide-progress";
   private static final String AUTH_TOKEN = "auth-token";
   private static final String AUTO_PARALLELISM_OPTION = "with-auto-parallelism";
@@ -112,6 +111,10 @@ public class Main {
   private static final String SYSTEM_PROPERTY = "vm.D";
 
   private static final String DEFAULT_MAIN_METHOD_NAME = "main";
+
+  /** Value of this sys prop is comma-separated list of project paths. */
+  private static final String DONT_CREATE_SRC_ARCHIVES_SYS_PROP =
+      "org.enso.compiler.noSourceArchives";
 
   private static final Logger LOGGER = LoggerFactory.getLogger(Main.class);
 
@@ -393,11 +396,6 @@ public class Main {
                 "Uploads the library to a repository. "
                     + "The url defines the repository to upload to.")
             .build();
-    var updateManifestOption =
-        cliOptionBuilder()
-            .longOpt(UPDATE_MANIFEST_OPTION)
-            .desc("Updates the library manifest with the updated list of direct " + "dependencies.")
-            .build();
     var hideProgressOption =
         cliOptionBuilder()
             .longOpt(HIDE_PROGRESS)
@@ -548,7 +546,6 @@ public class Main {
         .addOption(loggerConnectOption)
         .addOption(noLogMaskingOption)
         .addOption(uploadOption)
-        .addOption(updateManifestOption)
         .addOption(hideProgressOption)
         .addOption(authTokenOption)
         .addOption(noReadIrCachesOption)
@@ -682,6 +679,7 @@ public class Main {
       boolean disablePrivateCheck,
       boolean enableStaticAnalysis,
       boolean treatWarningsAsErrors,
+      boolean showProgress,
       Level logLevel,
       boolean logMasking)
       throws IOException {
@@ -710,7 +708,9 @@ public class Main {
       if (isProjectMode) {
         var topScope = context.getTopScope();
         topScope.compile(shouldCompileDependencies, paths);
-        updateManifests(paths, logLevel);
+        for (var path : paths) {
+          updateManifestAndCreateArchive(path, logLevel, showProgress);
+        }
       } else {
         context.evalModule(fileAndProject._2());
       }
@@ -732,10 +732,31 @@ public class Main {
     }
   }
 
-  private static void updateManifests(String[] paths, Level logLevel) {
-    for (var path : paths) {
-      ProjectUploader.updateManifest(Path.of(path), logLevel);
+  /**
+   * Updates the manifest of the project specified by its path and maybe creates a source archive.
+   */
+  private static void updateManifestAndCreateArchive(
+      String path, Level logLevel, boolean showProgress) {
+    var shouldCreateArchive = shouldCreateSourceArchiveForProject(path);
+    var p = Path.of(path);
+    ProjectUploader.updateManifest(p, logLevel, shouldCreateArchive);
+    if (shouldCreateArchive) {
+      ProjectUploader.createSourceArchive(p, logLevel, showProgress);
     }
+  }
+
+  private static boolean shouldCreateSourceArchiveForProject(String projPath) {
+    var prop = System.getProperty(DONT_CREATE_SRC_ARCHIVES_SYS_PROP);
+    if (prop == null) {
+      return true;
+    }
+    var paths = prop.split(",");
+    for (var p : paths) {
+      if (p.equals(projPath)) {
+        return false;
+      }
+    }
+    return true;
   }
 
   /**
@@ -1181,23 +1202,6 @@ public class Main {
       }
     }
 
-    if (line.hasOption(UPDATE_MANIFEST_OPTION)) {
-      Path projectRoot =
-          scala.Option.apply(line.getOptionValue(IN_PROJECT_OPTION))
-              .map(x -> Path.of(x))
-              .getOrElse(
-                  () -> {
-                    throw exitFail("The " + IN_PROJECT_OPTION + " is mandatory.");
-                  });
-      try {
-        ProjectUploader.updateManifest(projectRoot, logLevel);
-      } catch (Throwable err) {
-        err.printStackTrace();
-        throw exitFail(err.getMessage());
-      }
-      throw exitSuccess();
-    }
-
     if (line.hasOption(COMPILE_OPTION)) {
       var packagePaths = line.getOptionValues(COMPILE_OPTION);
       var shouldCompileDependencies = !line.hasOption(NO_COMPILE_DEPENDENCIES_OPTION);
@@ -1210,6 +1214,7 @@ public class Main {
           line.hasOption(DISABLE_PRIVATE_CHECK_OPTION),
           line.hasOption(ENABLE_STATIC_ANALYSIS_OPTION),
           line.hasOption(TREAT_WARNINGS_AS_ERRORS_OPTION),
+          !line.hasOption(HIDE_PROGRESS),
           logLevel,
           logMasking);
     }

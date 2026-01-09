@@ -92,9 +92,10 @@ public class ExternalLibraryCredentialHelper {
 
   public static AccessToken requestAccessToken(CredentialReference credentialReference)
       throws EnsoSecretAccessDenied {
+    var cloudAPI = CloudAPI.getInstance();
     RestrictedAccess.checkAccess(allowRefreshCredential);
     var apiUri =
-        CloudAPI.getAPIRootURI()
+        cloudAPI.getAPIRootURI()
             + "oauth/"
             + credentialReference.serviceName().toLowerCase()
             + "/refresh/"

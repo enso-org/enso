@@ -17,6 +17,7 @@
     "url": "https://github.com/enso-org/ide/issues"
   },
   "dependencies": {
+    "@electron/asar": "^3.2.9",
     "chalk": "^5.4.1",
     "commander": "^14.0.1",
     "create-servers": "3.2.0",

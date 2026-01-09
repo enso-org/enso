@@ -36,7 +36,7 @@ public final class AuditLogApiAccess implements ReloadDetector.HasClearableCache
 
   private static final int MAX_RETRIES = 5;
 
-  public static AuditLogApiAccess INSTANCE = new AuditLogApiAccess();
+  public static final AuditLogApiAccess INSTANCE = new AuditLogApiAccess();
 
   private HttpClient httpClient;
   private final LogJobsQueue logQueue = new LogJobsQueue();
@@ -197,12 +197,14 @@ public final class AuditLogApiAccess implements ReloadDetector.HasClearableCache
    * flushed (which is mostly used in tests).
    */
   private RequestConfig getRequestConfig() {
+    var cloudAPI = CloudAPI.getInstance();
     if (cachedRequestConfig != null) {
       return cachedRequestConfig;
     }
 
-    var uri = URI.create(CloudAPI.getAPIRootURI() + "logs");
-    var config = new RequestConfig(uri, AuthenticationProvider.INSTANCE.getAccessToken());
+    var uri = URI.create(cloudAPI.getAPIRootURI() + "logs");
+    var token = AuthenticationProvider.INSTANCE.getAccessToken();
+    var config = new RequestConfig(uri, token);
     cachedRequestConfig = config;
     return config;
   }
@@ -243,14 +245,18 @@ public final class AuditLogApiAccess implements ReloadDetector.HasClearableCache
       } catch (IOException | InterruptedException e) {
         // Promote a checked exception to a runtime exception to simplify the code.
         var errorMessage = e.getMessage() != null ? e.getMessage() : e.toString();
-        throw new RequestFailureException("Failed to send log messages: " + errorMessage, e);
+        throw new RequestFailureException(
+            "Failed to send log messages to " + request.uri() + ": " + errorMessage, e);
       }
     } catch (RequestFailureException e) {
       if (retryCount < 0) {
         LOGGER.error("Failed to send log messages after retrying.", e);
         throw e;
       } else {
-        LOGGER.warn("Exception when sending log messages: {}. Retrying...", e.getMessage());
+        LOGGER.warn(
+            "Exception when sending log messages to {}: {}. Retrying...",
+            request.uri(),
+            e.getMessage());
         sendLogRequest(request, retryCount - 1);
       }
     }

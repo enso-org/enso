@@ -67,7 +67,7 @@ npm_package(
     visibility = ["//visibility:public"],
 )
 
-ENV_FILES = ["//app/common:env_files"]
+ENV_FILES = glob([".env*"])
 
 # When stamping, `--mode=bazel` will inject placeholders into the code base which will be replaced later by `stamp_files` rule.
 _vite_args = select({
@@ -87,12 +87,10 @@ _vite_env = select({
     "//:stamping": {
         "NODE_ENV": "production",
         "NODE_OPTIONS": "--max-old-space-size=6144",
-        "ENSO_ENV_FILES_ARE_IN_GUI": "true",
     },
     "//conditions:default": {
         "NODE_ENV": getenv("NODE_ENV"),
         "NODE_OPTIONS": "--max-old-space-size=6144",
-        "ENSO_ENV_FILES_ARE_IN_GUI": "true",
     },
 })
 
@@ -148,7 +146,7 @@ stamp_files(
         ":dist",
     ],
     out = "dist_stamped",
-    files_regex = "config-[0-9a-zA-Z]+\\.js$|index\\.html$",
+    files_regex = "config(-[0-9a-zA-Z]+)?\\.js$|index\\.html$",
     input_dir = "$(location :dist)",
     visibility = ["//visibility:public"],
 )

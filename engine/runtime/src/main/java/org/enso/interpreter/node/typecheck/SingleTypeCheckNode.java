@@ -12,6 +12,7 @@ import org.enso.interpreter.node.EnsoRootNode;
 import org.enso.interpreter.node.callable.dispatch.InvokeFunctionNode;
 import org.enso.interpreter.node.expression.builtin.meta.IsValueOfTypeNode;
 import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.runtime.callable.FunctionAndType;
 import org.enso.interpreter.runtime.callable.UnresolvedConstructor;
 import org.enso.interpreter.runtime.callable.UnresolvedConversion;
 import org.enso.interpreter.runtime.callable.function.Function;
@@ -20,7 +21,6 @@ import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.error.PanicSentinel;
 import org.enso.interpreter.runtime.library.dispatch.TypeOfNode;
-import org.graalvm.collections.Pair;
 
 abstract non-sealed class SingleTypeCheckNode extends AbstractTypeCheckNode {
   private final Type expectedType;
@@ -97,7 +97,7 @@ abstract non-sealed class SingleTypeCheckNode extends AbstractTypeCheckNode {
     return null;
   }
 
-  private Pair<Function, Type> findConversion(Type from) {
+  private FunctionAndType findConversion(Type from) {
     if (expectedType == from) {
       return null;
     }
@@ -107,7 +107,7 @@ abstract non-sealed class SingleTypeCheckNode extends AbstractTypeCheckNode {
       var convert = UnresolvedConversion.build(root.getModuleScope());
       var conv = convert.resolveFor(ctx, expectedType, from);
       if (conv != null) {
-        return Pair.create(conv, expectedType);
+        return new FunctionAndType(conv, expectedType);
       }
     }
     return null;
@@ -140,8 +140,8 @@ abstract non-sealed class SingleTypeCheckNode extends AbstractTypeCheckNode {
 
       if (convAndType != null) {
         CompilerAsserts.neverPartOfCompilation();
-        var confFn = convAndType.getLeft();
-        var intoType = convAndType.getRight();
+        var confFn = convAndType.function();
+        var intoType = convAndType.type();
         return new TypeToConvertNode(confFn, intoType);
       }
     }

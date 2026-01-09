@@ -147,7 +147,7 @@ abstract class InvokeMethodNode extends BaseNode {
     var selfType = types.getType(selfWithoutWarnings);
     var fnAndType = symbol.resolveFor(this, selfType);
     var builtins = EnsoContext.get(this).getBuiltins();
-    if (fnAndType != null && fnAndType.getRight() == builtins.any()) {
+    if (fnAndType != null && fnAndType.type() == builtins.any()) {
       return symbol
           .getScope()
           .lookupMethodDefinition(builtins.warning().getEigentype(), symbol.getName());

@@ -68,15 +68,15 @@ jobs:
         with:
           name: fbs-schema
           path: engine/language-server/src/main/schema/
-      - name: Archive project-manager
-        run: tar -cvf project-manager.tar -C dist/backend .
-      - name: Upload project-manager
+      - name: Archive backend
+        run: tar -cvf backend.tar -C dist/backend .
+      - name: Upload backend
         uses: actions/upload-artifact@v4
         with:
-          name: project-manager-linux
-          path: project-manager.tar
+          name: backend-linux
+          path: backend.tar
       - name: Cleanup
-        run: rm project-manager.tar
+        run: rm backend.tar
       - if: "${{ (always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || (github.ref == 'refs/heads/develop') || inputs.clean_build_required) }}"
         name: Clean after
         run: corepack pnpm run git-clean --verbose --clean-bazel
@@ -127,15 +127,15 @@ jobs:
       - run: ./run backend get
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Archive project-manager
-        run: tar -cvf project-manager.tar -C dist/backend .
-      - name: Upload project-manager
+      - name: Archive backend
+        run: tar -cvf backend.tar -C dist/backend .
+      - name: Upload backend
         uses: actions/upload-artifact@v4
         with:
-          name: project-manager-windows
-          path: project-manager.tar
+          name: backend-windows
+          path: backend.tar
       - name: Cleanup
-        run: rm project-manager.tar
+        run: rm backend.tar
       - if: "${{ (always()) && (contains(github.event.pull_request.labels.*.name, 'CI: Clean build required') || (github.ref == 'refs/heads/develop') || inputs.clean_build_required) }}"
         name: Clean after
         run: corepack pnpm run git-clean --verbose --clean-bazel
@@ -196,6 +196,7 @@ jobs:
           ENSO_IDE_ENVIRONMENT: ${{ vars.ENSO_CLOUD_ENVIRONMENT }}
           ENSO_IDE_GOOGLE_ANALYTICS_TAG: ${{ vars.ENSO_CLOUD_GOOGLE_ANALYTICS_TAG }}
           ENSO_IDE_GOOGLE_OAUTH_CLIENT_ID: ${{ secrets.ENSO_IDE_GOOGLE_OAUTH_CLIENT_ID }}
+          ENSO_IDE_HOST: ${{ vars.ENSO_HOST }}
           ENSO_IDE_MAPBOX_API_TOKEN: ${{ vars.ENSO_MAPBOX_API_TOKEN }}
           ENSO_IDE_MS365_OAUTH_CLIENT_ID: ${{ secrets.ENSO_IDE_MS365_OAUTH_CLIENT_ID }}
           ENSO_IDE_SENTRY_DSN: ${{ vars.ENSO_CLOUD_SENTRY_DSN }}
@@ -265,6 +266,7 @@ jobs:
           ENSO_IDE_ENVIRONMENT: ${{ vars.ENSO_CLOUD_ENVIRONMENT }}
           ENSO_IDE_GOOGLE_ANALYTICS_TAG: ${{ vars.ENSO_CLOUD_GOOGLE_ANALYTICS_TAG }}
           ENSO_IDE_GOOGLE_OAUTH_CLIENT_ID: ${{ secrets.ENSO_IDE_GOOGLE_OAUTH_CLIENT_ID }}
+          ENSO_IDE_HOST: ${{ vars.ENSO_HOST }}
           ENSO_IDE_MAPBOX_API_TOKEN: ${{ vars.ENSO_MAPBOX_API_TOKEN }}
           ENSO_IDE_MS365_OAUTH_CLIENT_ID: ${{ secrets.ENSO_IDE_MS365_OAUTH_CLIENT_ID }}
           ENSO_IDE_SENTRY_DSN: ${{ vars.ENSO_CLOUD_SENTRY_DSN }}
@@ -319,17 +321,16 @@ jobs:
         run: corepack pnpm run git-clean --verbose --clean-bazel
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Download project-manager
+      - name: Download backend
         uses: actions/download-artifact@v4
         with:
-          name: project-manager-linux
+          name: backend-linux
           path: dist/backend
       - run: |-
-          tar -xvf dist/backend/project-manager.tar -C dist/backend
-          rm dist/backend/project-manager.tar
+          tar -xvf dist/backend/backend.tar -C dist/backend
+          rm dist/backend/backend.tar
       - run: ./run ide build --backend-source local --gui-upload-artifact false
         env:
-          ENSO_IDE_HOST: ${{ vars.ENSO_HOST }}
           ENSO_IDE_AG_GRID_LICENSE_KEY: ${{ vars.ENSO_AG_GRID_LICENSE_KEY }}
           ENSO_IDE_API_URL: ${{ vars.ENSO_CLOUD_API_URL }}
           ENSO_IDE_AUTH_ENDPOINT: ${{ vars.ENSO_CLOUD_AUTH_ENDPOINT }}
@@ -341,6 +342,7 @@ jobs:
           ENSO_IDE_ENVIRONMENT: ${{ vars.ENSO_CLOUD_ENVIRONMENT }}
           ENSO_IDE_GOOGLE_ANALYTICS_TAG: ${{ vars.ENSO_CLOUD_GOOGLE_ANALYTICS_TAG }}
           ENSO_IDE_GOOGLE_OAUTH_CLIENT_ID: ${{ secrets.ENSO_IDE_GOOGLE_OAUTH_CLIENT_ID }}
+          ENSO_IDE_HOST: ${{ vars.ENSO_HOST }}
           ENSO_IDE_MAPBOX_API_TOKEN: ${{ vars.ENSO_MAPBOX_API_TOKEN }}
           ENSO_IDE_MS365_OAUTH_CLIENT_ID: ${{ secrets.ENSO_IDE_MS365_OAUTH_CLIENT_ID }}
           ENSO_IDE_SENTRY_DSN: ${{ vars.ENSO_CLOUD_SENTRY_DSN }}
@@ -425,14 +427,14 @@ jobs:
         run: corepack pnpm run git-clean --verbose --clean-bazel
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Download project-manager
+      - name: Download backend
         uses: actions/download-artifact@v4
         with:
-          name: project-manager-windows
+          name: backend-windows
           path: dist/backend
       - run: |-
-          tar -xvf dist/backend/project-manager.tar -C dist/backend
-          rm dist/backend/project-manager.tar
+          tar -xvf dist/backend/backend.tar -C dist/backend
+          rm dist/backend/backend.tar
       - run: ./run ide build --backend-source local --gui-upload-artifact false
         env:
           ENSO_IDE_AG_GRID_LICENSE_KEY: ${{ vars.ENSO_AG_GRID_LICENSE_KEY }}
@@ -446,6 +448,7 @@ jobs:
           ENSO_IDE_ENVIRONMENT: ${{ vars.ENSO_CLOUD_ENVIRONMENT }}
           ENSO_IDE_GOOGLE_ANALYTICS_TAG: ${{ vars.ENSO_CLOUD_GOOGLE_ANALYTICS_TAG }}
           ENSO_IDE_GOOGLE_OAUTH_CLIENT_ID: ${{ secrets.ENSO_IDE_GOOGLE_OAUTH_CLIENT_ID }}
+          ENSO_IDE_HOST: ${{ vars.ENSO_HOST }}
           ENSO_IDE_MAPBOX_API_TOKEN: ${{ vars.ENSO_MAPBOX_API_TOKEN }}
           ENSO_IDE_MS365_OAUTH_CLIENT_ID: ${{ secrets.ENSO_IDE_MS365_OAUTH_CLIENT_ID }}
           ENSO_IDE_SENTRY_DSN: ${{ vars.ENSO_CLOUD_SENTRY_DSN }}
