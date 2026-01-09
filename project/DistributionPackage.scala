@@ -271,22 +271,24 @@ object DistributionPackage {
     log.info(s"Generating indexes for libraries [$libNames]")
     val javaCommand = javaExecutable()
 
-    // Don't create source archives for standard libraries.
-    val noSrcArchivesOpt =
-      "--vm.D=org.enso.compiler.noSourceArchives=" +
-      libPaths.mkString(",")
-
     val command = Seq(
       javaCommand
     ) ++ javaOpts ++ Seq(
-      noSrcArchivesOpt,
       "--no-compile-dependencies",
       "--compile"
     ) ++ libPaths
     log.debug(command.mkString(" "))
-    val allEnv = mapAppend(
+    val allEnv1 = mapAppend(
       env,
       "NO_COLOR" -> "true"
+    )
+    // Don't create source archives for standard libraries.
+    val noSrcArchivesSysProp =
+      "-Dorg.enso.compiler.noSourceArchives=" +
+      libPaths.mkString(",")
+    val allEnv = mapAppend(
+      allEnv1,
+      "JAVA_TOOL_OPTIONS" -> noSrcArchivesSysProp
     )
     val procBldr = new java.lang.ProcessBuilder(asJava(command))
     val cwd      = libRootDirs.head.getAbsoluteFile.getParentFile
