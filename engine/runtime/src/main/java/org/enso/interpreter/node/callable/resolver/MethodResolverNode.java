@@ -7,11 +7,11 @@ import com.oracle.truffle.api.dsl.ReportPolymorphism;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.runtime.callable.FunctionAndType;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.error.PanicException;
-import org.graalvm.collections.Pair;
 
 @GenerateUncached
 @ReportPolymorphism
@@ -27,11 +27,11 @@ public abstract class MethodResolverNode extends Node {
     return EnsoContext.get(this);
   }
 
-  public abstract Pair<Function, Type> execute(Type type, UnresolvedSymbol symbol);
+  public abstract FunctionAndType execute(Type type, UnresolvedSymbol symbol);
 
   public final Function executeResolution(Type type, UnresolvedSymbol symbol) {
     var pair = execute(type, symbol);
-    return pair == null ? null : pair.getLeft();
+    return pair == null ? null : pair.function();
   }
 
   public final Function expectNonNull(Object self, Type type, UnresolvedSymbol symbol) {
@@ -40,7 +40,7 @@ public abstract class MethodResolverNode extends Node {
       throw new PanicException(
           EnsoContext.get(this).getBuiltins().error().makeNoSuchMethod(self, symbol), this);
     }
-    return result.getLeft();
+    return result.function();
   }
 
   @Specialization(
@@ -50,17 +50,17 @@ public abstract class MethodResolverNode extends Node {
         "cachedType == type"
       },
       limit = "CACHE_SIZE")
-  Pair<Function, Type> resolveCached(
+  FunctionAndType resolveCached(
       Type type,
       UnresolvedSymbol symbol,
       @Cached("symbol") UnresolvedSymbol cachedSymbol,
       @Cached("type") Type cachedType,
-      @Cached("resolveUncached(cachedType, cachedSymbol)") Pair<Function, Type> function) {
+      @Cached("resolveUncached(cachedType, cachedSymbol)") FunctionAndType function) {
     return function;
   }
 
   @Specialization(replaces = "resolveCached")
-  Pair<Function, Type> resolveUncached(Type self, UnresolvedSymbol symbol) {
+  FunctionAndType resolveUncached(Type self, UnresolvedSymbol symbol) {
     return symbol.resolveFor(this, self);
   }
 }

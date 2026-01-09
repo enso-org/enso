@@ -63,7 +63,7 @@ add_specs suite_builder =
                 windows_log.read (..Plain_Text Encoding.ascii)
 
     suite_builder.group "JSON_Format" group_builder->
-        group_builder.specify "should be able to read a file as Json" <|
+        group_builder.specify "should be able to read a file as JSON" <|
             f1 = enso_project.data / "sample.json"
             j1 = f1.read
             j1.at "arr" . should_equal [1, 2, 3]
@@ -82,6 +82,66 @@ add_specs suite_builder =
             r1 = f1.read
             r1.should_fail_with File_Error
             r1.catch.should_be_a File_Error.Corrupted_Format
+
+    suite_builder.group "JSON_Lines_Format" group_builder->
+        group_builder.specify "should be able to read a file as JSON Lines" <|
+            f1 = enso_project.data / "sample.jsonl"
+            a1 = f1.read
+            a1.length.should_equal 5
+
+            j1 = a1.at 0
+            j1.at "arr" . should_equal [1, 2, 3]
+            j1.at "num" . should_equal 42.5
+            j1.at "not" . should_equal Nothing
+
+            a1.at 1 . should_equal [1, 2, 3, Nothing, 5]
+            a1.at 2 . should_equal True
+            a1.at 3 . should_equal Nothing
+            a1.at 4 . should_equal "Hello World!"
+
+        group_builder.specify "should be able to read a file as JSON Lines with odd extension" <|
+            f1 = enso_project.data / "sample-jsonl.weird-extension"
+            a1 = f1.read JSON_Lines_Format
+            a1.length.should_equal 5
+
+            j1 = a1.at 0
+            j1.at "arr" . should_equal [1, 2, 3]
+            j1.at "num" . should_equal 42.5
+            j1.at "not" . should_equal Nothing
+
+            a1.at 1 . should_equal [1, 2, 3, Nothing, 5]
+            a1.at 2 . should_equal True
+            a1.at 3 . should_equal Nothing
+            a1.at 4 . should_equal "Hello World!"
+
+        group_builder.specify "should gracefully handle malformed files (with error)" <|
+            f1 = enso_project.data / "sample-malformed.jsonl"
+            r1 = f1.read on_problems=..Report_Error
+            r1.should_fail_with File_Error
+            r1.catch.should_be_a File_Error.Corrupted_Format
+
+        group_builder.specify "should gracefully handle malformed files (with warnings)" <|
+            f1 = enso_project.data / "sample-malformed.jsonl"
+            r2 = f1.read on_problems=..Report_Warning
+            warnings = Problems.get_attached_warnings r2
+            warnings.length.should_equal 2
+            warnings.at 0 . should_equal (File_Error.Corrupted_Format f1 ("Malformed JSON line (1): [1,2,3,n"))
+            warnings.at 1 . should_equal (File_Error.Corrupted_Format f1 ("Malformed JSON line (2): True"))
+
+        group_builder.specify "should gracefully handle malformed files (with warnings)" <|
+            f1 = enso_project.data / "sample-malformed.jsonl"
+            r2 = f1.read on_problems=..Ignore
+            r2.length.should_equal 5
+            j1 = r2.at 0
+            j1.at "arr" . should_equal [1, 2, 3]
+            j1.at "num" . should_equal 42.5
+            j1.at "not" . should_equal Nothing
+            r2.at 1 . should_equal Nothing
+            r2.at 2 . should_equal Nothing
+            r2.at 3 . should_equal Nothing
+            r2.at 4 . should_equal "Hello World!"
+            warnings = Problems.get_attached_warnings r2
+            warnings.length.should_equal 0
 
     suite_builder.group "File Format" group_builder->
         group_builder.specify "should provide a list of all supported file format name patterns" <|

@@ -127,58 +127,65 @@ pub fn sbt_command(command: impl AsRef<str>) -> String {
 
 /// Expose variables for the GUI build.
 pub fn expose_gui_vars(step: Step) -> Step {
-    step.with_variable_exposed_as(
-        variables::ENSO_CLOUD_ENVIRONMENT,
-        ide::web::env::ENSO_IDE_ENVIRONMENT,
-    )
-    .with_variable_exposed_as(variables::ENSO_CLOUD_API_URL, ide::web::env::ENSO_IDE_API_URL)
-    .with_variable_exposed_as(variables::ENSO_CLOUD_CHAT_URL, ide::web::env::ENSO_IDE_CHAT_URL)
-    .with_variable_exposed_as(variables::ENSO_CLOUD_SENTRY_DSN, ide::web::env::ENSO_IDE_SENTRY_DSN)
-    .with_variable_exposed_as(variables::ENSO_CLOUD_STRIPE_KEY, ide::web::env::ENSO_IDE_STRIPE_KEY)
-    .with_variable_exposed_as(
-        variables::ENSO_CLOUD_AUTH_ENDPOINT,
-        ide::web::env::ENSO_IDE_AUTH_ENDPOINT,
-    )
-    .with_variable_exposed_as(
-        variables::ENSO_CLOUD_COGNITO_USER_POOL_ID,
-        ide::web::env::ENSO_IDE_COGNITO_USER_POOL_ID,
-    )
-    .with_variable_exposed_as(
-        variables::ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID,
-        ide::web::env::ENSO_IDE_COGNITO_USER_POOL_WEB_CLIENT_ID,
-    )
-    .with_variable_exposed_as(
-        variables::ENSO_CLOUD_COGNITO_DOMAIN,
-        ide::web::env::ENSO_IDE_COGNITO_DOMAIN,
-    )
-    .with_variable_exposed_as(
-        variables::ENSO_CLOUD_COGNITO_REGION,
-        ide::web::env::ENSO_IDE_COGNITO_REGION,
-    )
-    .with_variable_exposed_as(
-        variables::ENSO_CLOUD_GOOGLE_ANALYTICS_TAG,
-        ide::web::env::ENSO_IDE_GOOGLE_ANALYTICS_TAG,
-    )
-    .with_variable_exposed_as(
-        variables::ENSO_AG_GRID_LICENSE_KEY,
-        ide::web::env::ENSO_IDE_AG_GRID_LICENSE_KEY,
-    )
-    .with_variable_exposed_as(
-        variables::ENSO_MAPBOX_API_TOKEN,
-        ide::web::env::ENSO_IDE_MAPBOX_API_TOKEN,
-    )
-    .with_secret_exposed_as(
-        secret::ENSO_IDE_GOOGLE_OAUTH_CLIENT_ID,
-        ide::web::env::ENSO_IDE_GOOGLE_OAUTH_CLIENT_ID,
-    )
-    .with_secret_exposed_as(
-        secret::ENSO_IDE_STRAVA_OAUTH_CLIENT_ID,
-        ide::web::env::ENSO_IDE_STRAVA_OAUTH_CLIENT_ID,
-    )
-    .with_secret_exposed_as(
-        secret::ENSO_IDE_MS365_OAUTH_CLIENT_ID,
-        ide::web::env::ENSO_IDE_MS365_OAUTH_CLIENT_ID,
-    )
+    step.with_variable_exposed_as(variables::ENSO_HOST, ide::web::env::ENSO_IDE_HOST)
+        .with_variable_exposed_as(
+            variables::ENSO_CLOUD_ENVIRONMENT,
+            ide::web::env::ENSO_IDE_ENVIRONMENT,
+        )
+        .with_variable_exposed_as(variables::ENSO_CLOUD_API_URL, ide::web::env::ENSO_IDE_API_URL)
+        .with_variable_exposed_as(variables::ENSO_CLOUD_CHAT_URL, ide::web::env::ENSO_IDE_CHAT_URL)
+        .with_variable_exposed_as(
+            variables::ENSO_CLOUD_SENTRY_DSN,
+            ide::web::env::ENSO_IDE_SENTRY_DSN,
+        )
+        .with_variable_exposed_as(
+            variables::ENSO_CLOUD_STRIPE_KEY,
+            ide::web::env::ENSO_IDE_STRIPE_KEY,
+        )
+        .with_variable_exposed_as(
+            variables::ENSO_CLOUD_AUTH_ENDPOINT,
+            ide::web::env::ENSO_IDE_AUTH_ENDPOINT,
+        )
+        .with_variable_exposed_as(
+            variables::ENSO_CLOUD_COGNITO_USER_POOL_ID,
+            ide::web::env::ENSO_IDE_COGNITO_USER_POOL_ID,
+        )
+        .with_variable_exposed_as(
+            variables::ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID,
+            ide::web::env::ENSO_IDE_COGNITO_USER_POOL_WEB_CLIENT_ID,
+        )
+        .with_variable_exposed_as(
+            variables::ENSO_CLOUD_COGNITO_DOMAIN,
+            ide::web::env::ENSO_IDE_COGNITO_DOMAIN,
+        )
+        .with_variable_exposed_as(
+            variables::ENSO_CLOUD_COGNITO_REGION,
+            ide::web::env::ENSO_IDE_COGNITO_REGION,
+        )
+        .with_variable_exposed_as(
+            variables::ENSO_CLOUD_GOOGLE_ANALYTICS_TAG,
+            ide::web::env::ENSO_IDE_GOOGLE_ANALYTICS_TAG,
+        )
+        .with_variable_exposed_as(
+            variables::ENSO_AG_GRID_LICENSE_KEY,
+            ide::web::env::ENSO_IDE_AG_GRID_LICENSE_KEY,
+        )
+        .with_variable_exposed_as(
+            variables::ENSO_MAPBOX_API_TOKEN,
+            ide::web::env::ENSO_IDE_MAPBOX_API_TOKEN,
+        )
+        .with_secret_exposed_as(
+            secret::ENSO_IDE_GOOGLE_OAUTH_CLIENT_ID,
+            ide::web::env::ENSO_IDE_GOOGLE_OAUTH_CLIENT_ID,
+        )
+        .with_secret_exposed_as(
+            secret::ENSO_IDE_STRAVA_OAUTH_CLIENT_ID,
+            ide::web::env::ENSO_IDE_STRAVA_OAUTH_CLIENT_ID,
+        )
+        .with_secret_exposed_as(
+            secret::ENSO_IDE_MS365_OAUTH_CLIENT_ID,
+            ide::web::env::ENSO_IDE_MS365_OAUTH_CLIENT_ID,
+        )
 }
 
 /// Expose variables for debugging purposes.
@@ -324,7 +331,7 @@ impl Display for StandardLibraryTestsScope {
                 write!(f, "standard-library-in-native")
             }
             StandardLibraryTestsScope::Microsoft => {
-                write!(f, "std-microsoft std-mock-dual-microsoft")
+                write!(f, "std-microsoft")
             }
         }
     }
@@ -769,21 +776,21 @@ impl JobArchetype for BuildBackend {
                     steps.push(upload_fbs_schema)
                 }
 
-                let archive_project_manager = Step {
-                    name: Some("Archive project-manager".into()),
-                    run: Some("tar -cvf project-manager.tar -C dist/backend .".into()),
+                let archive_backend = Step {
+                    name: Some("Archive backend".into()),
+                    run: Some("tar -cvf backend.tar -C dist/backend .".into()),
                     ..Default::default()
                 };
-                steps.push(archive_project_manager);
+                steps.push(archive_backend);
 
-                let upload_project_manager = step::upload_artifact("Upload project-manager")
-                    .with_custom_argument("name", format!("project-manager-{}", target.0))
-                    .with_custom_argument("path", "project-manager.tar");
-                steps.push(upload_project_manager);
+                let upload_backend = step::upload_artifact("Upload backend")
+                    .with_custom_argument("name", format!("backend-{}", target.0))
+                    .with_custom_argument("path", "backend.tar");
+                steps.push(upload_backend);
 
                 let cleanup = Step {
                     name: Some("Cleanup".into()),
-                    run: Some("rm project-manager.tar".into()),
+                    run: Some("rm backend.tar".into()),
                     ..Default::default()
                 };
                 steps.push(cleanup);
@@ -932,20 +939,20 @@ impl JobArchetype for PackageIde {
             .customize(move |step| {
                 let mut steps = vec![];
 
-                let download_project_manager = step::download_artifact("Download project-manager")
-                    .with_custom_argument("name", format!("project-manager-{}", target.0))
+                let download_backend = step::download_artifact("Download backend")
+                    .with_custom_argument("name", format!("backend-{}", target.0))
                     .with_custom_argument("path", "dist/backend");
-                steps.push(download_project_manager);
+                steps.push(download_backend);
 
-                let unpack_project_manager = Step {
+                let unpack_backend = Step {
                     run: Some(
-                        "tar -xvf dist/backend/project-manager.tar -C dist/backend
-rm dist/backend/project-manager.tar"
+                        "tar -xvf dist/backend/backend.tar -C dist/backend
+rm dist/backend/backend.tar"
                             .into(),
                     ),
                     ..Default::default()
                 };
-                steps.push(unpack_project_manager);
+                steps.push(unpack_backend);
 
                 let mut packaging_steps =
                     prepare_packaging_steps(target.0, step, PackagingTarget::Development);

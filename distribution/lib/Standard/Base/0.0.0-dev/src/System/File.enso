@@ -32,6 +32,7 @@ import project.System.File.Generic.File_Like.File_Like
 import project.System.File.Generic.Writable_File.Writable_File
 import project.System.File.Local_File_Write_Strategy
 import project.System.Input_Stream.Input_Stream
+import project.System.Internal.File_Helpers
 import project.System.Output_Stream.Output_Stream
 import project.Warning.Warning
 from project.Data.Boolean import Boolean, False, True
@@ -39,23 +40,21 @@ from project.Error import all
 from project.Metadata.Choice import Option
 from project.Nothing import all
 from project.System.File_Format import Auto_Detect, File_Format
-import project.System.Internal.File_Helpers
 
-polyglot java import java.lang.System as Java_System
-polyglot java import java.io.IOException
 polyglot java import java.io.File as Java_File
 polyglot java import java.io.InputStream as Java_Input_Stream
+polyglot java import java.io.IOException
 polyglot java import java.io.OutputStream as Java_Output_Stream
+polyglot java import java.lang.System as Java_System
+polyglot java import java.nio.ByteBuffer
 polyglot java import java.nio.channels.ByteChannel
 polyglot java import java.nio.channels.FileChannel
 polyglot java import java.nio.file.attribute.BasicFileAttributes
-polyglot java import java.nio.file.InvalidPathException
 polyglot java import java.nio.file.Files as Java_Files
 polyglot java import java.nio.file.FileSystemException
+polyglot java import java.nio.file.InvalidPathException
 polyglot java import java.nio.file.NoSuchFileException
 polyglot java import java.nio.file.Path as Java_Path
-polyglot java import java.nio.ByteBuffer
-polyglot java import java.nio.file.attribute.PosixFilePermissions
 polyglot java import java.nio.file.StandardCopyOption
 polyglot java import java.nio.file.StandardOpenOption
 polyglot java import java.time.ZonedDateTime
@@ -604,8 +603,7 @@ type File
     posix_permissions : File_Permissions
     posix_permissions self =
         File_Permissions.from_java_set <|
-            perms = Java_Files.getPosixFilePermissions self.java_path
-            PosixFilePermissions.toString perms
+            File_Utils.getPosixPermissions self.java_path
 
     ## ---
        group: Metadata
@@ -886,7 +884,7 @@ type File
     delete : Boolean -> Nothing ! File_Error
     delete self (recursive : Boolean = False) -> Nothing ! File_Error =
         Context.Output.if_enabled disabled_message="As writing is disabled, cannot delete file. Press the Write button ▶ to perform the operation." panic=False <|
-            File_Error.handle_java_exceptions self (File_Helpers.delete self recursive)
+            File_Error.handle_java_exceptions self (File_Utils.delete self.java_path recursive)
 
     ## ---
        icon: data_output
@@ -1080,8 +1078,8 @@ type File
     list_immediate_children : Vector File
     private list_immediate_children self =
         File_Error.handle_java_exceptions self <|
-            path_children = Java_Files.list self.java_path . toList
-            path_children.map (File.Value _)
+            paths = File_Utils.listImmediateChildren self.java_path
+            paths.map (File.Value _)
 
     ## ---
        private: true
@@ -1183,12 +1181,6 @@ find_extension_from_name name =
    ---
    Convert from a Text to a File.
 File.from (that:Text) = File.new that
-
-## ---
-   private: true
-   ---
-file_as_java : File -> Java_File
-file_as_java (file : File) = Java_File.new file.absolute.normalize.path
 
 ## ---
    private: true

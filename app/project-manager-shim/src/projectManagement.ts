@@ -18,17 +18,13 @@ import type * as stream from 'node:stream'
 
 import * as tar from 'tar'
 
-import { PRODUCT_NAME } from 'enso-common'
+import { PRODUCT_NAME } from 'enso-common/src/constants'
 import { Path, UUID } from 'enso-common/src/services/Backend'
 import { Rfc3339DateTime, toRfc3339 } from 'enso-common/src/utilities/data/dateTime'
 
 import * as desktopEnvironment from './desktopEnvironment.js'
 
 const logger = console
-
-// =================
-// === Constants ===
-// =================
 
 export const PACKAGE_METADATA_RELATIVE_PATH = 'package.yaml'
 export const PROJECT_METADATA_RELATIVE_PATH = '.enso/project.json'
@@ -37,10 +33,6 @@ const SAMPLES_URL = 'https://github.com/enso-org/project-templates/archive/refs/
 const SAMPLES_DIRECTORY_NAME = 'Samples'
 const BUNDLED_PROJECT_SUFFIX = '.enso-project'
 
-// ===================
-// === ProjectInfo ===
-// ===================
-
 /** Metadata for a newly imported project. */
 export interface ProjectInfo {
   readonly id: UUID
@@ -48,10 +40,6 @@ export interface ProjectInfo {
   readonly projectRoot: Path
   readonly parentDirectory: string
 }
-
-// ======================
-// === Project Import ===
-// ======================
 
 /**
  * Check if the given path is a project bundle.
@@ -420,9 +408,9 @@ export function getProjectsDirectory(): string {
   const documentsPath = desktopEnvironment.DOCUMENTS
 
   if (documentsPath === undefined) {
-    return pathModule.join(os.homedir(), 'enso', 'projects')
+    return pathModule.join(os.homedir(), 'enso', 'projects').replace(/\\/g, '/')
   } else {
-    return pathModule.join(documentsPath, 'enso-projects')
+    return pathModule.join(documentsPath, 'enso-projects').replace(/\\/g, '/')
   }
 }
 
@@ -434,7 +422,7 @@ function isProjectInstalled(projectRoot: string, directory = getProjectsDirector
 }
 
 /** Create a .tar.gz enso-project bundle. */
-export function createBundle(directory: string): Promise<Buffer> {
+export function createBundle(directory: string): Promise<Buffer<ArrayBuffer>> {
   const readableStream = tar.c(
     {
       z: true,

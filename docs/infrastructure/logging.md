@@ -21,7 +21,6 @@ architecture, see [Logging server](#logging-server).
 - [Configuration](#configuration)
   - [Custom Log Levels](#custom-log-levels)
   - [Appenders](#appenders)
-    - [Project Manager](#project-manager)
     - [Engine runner](#engine-runner)
     - [Format](#format)
     - [File](#file-appender)
@@ -51,7 +50,6 @@ configuration is using HOCON-style, as defined by
 accepted in the config are inspired by SLF4J's properties, formatting and
 implementations. Currently 3 components define logging configuration:
 
-- [`project-manager`](../../lib/scala/project-manager/src/main/resources/application.conf)
 - [`launcher`](../../engine/launcher/src/main/resources/application.conf)
 - [CLI](../../engine/runner/src/main/resources/application.conf)
 

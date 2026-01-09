@@ -11,4 +11,4 @@
     - mark_used self names:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - new naming_properties:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - renames self -> Standard.Base.Any.Any
-    - truncated_names self -> Standard.Base.Any.Any
+    - truncated_names self -> (Standard.Base.Data.Dictionary.Dictionary Standard.Base.Data.Text.Text Standard.Base.Data.Text.Text)

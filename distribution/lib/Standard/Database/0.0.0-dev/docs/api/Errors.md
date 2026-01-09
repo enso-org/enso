@@ -1,6 +1,6 @@
 ## Enso Signatures 1.0
 ## module Standard.Database.Errors
-- type Aggregagtion_Requires_Order
+- type Aggregation_Requires_Order
     - Error op_name:Standard.Base.Data.Text.Text
     - to_display_text self -> Standard.Base.Data.Text.Text
     - to_text self -> Standard.Base.Data.Text.Text

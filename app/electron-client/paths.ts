@@ -1,23 +1,13 @@
 /** @file This module defines paths within the client distribution's resources. */
 
-// ==========================
-// === Paths to resources ===
-// ==========================
-
-/**
- * Path to the Project Manager bundle within the electron distribution
- * (relative to electron's resources directory).
- */
-export const PROJECT_MANAGER_BUNDLE = 'enso'
-
 /** Distribution directory for IDE. */
 export function getIdeDirectory(): string {
   return requireEnv('ENSO_BUILD_IDE')
 }
 
-/** Path to the project manager bundle root. */
-export function getProjectManagerBundlePath(): string {
-  return requireEnv('ENSO_BUILD_PROJECT_MANAGER')
+/** Path to the backend bundle root. */
+export function getBackendBundlePath(): string {
+  return requireEnv('ENSO_BUILD_BACKEND')
 }
 
 /** Get the environment variable value, assert that it is set. */

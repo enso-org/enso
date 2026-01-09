@@ -36,6 +36,11 @@ public abstract class IsSameObjectNode extends Node {
     }
   }
 
+  @Specialization
+  boolean isSameLong(long left, long right) {
+    return left == right;
+  }
+
   @Specialization(
       guards = {
         "interop.isString(left)",

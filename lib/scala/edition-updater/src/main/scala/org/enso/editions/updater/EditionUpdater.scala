@@ -90,7 +90,7 @@ class EditionUpdater(cachePath: Path, sources: Seq[String]) {
   ): Unit =
     tryDownloadEdition(repositoryRoot, editionName).getOrElse {
       logger.warn(
-        s"Failed to download edition [$editionName] from [${repositoryRoot.uri}]."
+        s"Failed to download edition [$editionName] from [${repositoryRoot.build()}]."
       )
     }
 

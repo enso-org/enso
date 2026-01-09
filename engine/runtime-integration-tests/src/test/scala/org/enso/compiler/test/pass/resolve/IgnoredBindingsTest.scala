@@ -151,7 +151,7 @@ class IgnoredBindingsTest extends CompilerTest {
 
     val pattern    = ir.branches.head.pattern.asInstanceOf[Pattern.Constructor]
     val aPat       = pattern.fields.head.asInstanceOf[Pattern.Name]
-    val ignoredPat = pattern.fields(1).asInstanceOf[Pattern.Name]
+    val ignoredPat = pattern.fields.apply(1).asInstanceOf[Pattern.Name]
 
     val nestedCase = ir.branches.head.expression
       .asInstanceOf[Expression.Block]
@@ -159,8 +159,9 @@ class IgnoredBindingsTest extends CompilerTest {
       .asInstanceOf[Case.Expr]
     val nestedPattern =
       nestedCase.branches.head.pattern.asInstanceOf[Pattern.Constructor]
-    val nestedAPat       = nestedPattern.fields.head.asInstanceOf[Pattern.Name]
-    val nestedIgnoredPat = nestedPattern.fields(1).asInstanceOf[Pattern.Name]
+    val nestedAPat = nestedPattern.fields.head.asInstanceOf[Pattern.Name]
+    val nestedIgnoredPat =
+      nestedPattern.fields.apply(1).asInstanceOf[Pattern.Name]
 
     "replace the ignored binding with a fresh name" in {
       ignoredPat.name should not be an[Name.Blank]

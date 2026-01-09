@@ -11,6 +11,7 @@ import project.Email_Provider_SMTP.Email_Provider_SMTP
 polyglot java import org.apache.commons.mail.EmailAttachment
 polyglot java import org.apache.commons.mail.EmailException
 polyglot java import org.apache.commons.mail.HtmlEmail
+polyglot java import org.enso.base.enso_cloud.HideableValue
 polyglot java import org.enso.saas.CredentialSetter
 
 ## The SMTP implementation of the Email Provider SPI.
@@ -21,7 +22,7 @@ type Email_Provider_SMTP_Implementation
         java_email = HtmlEmail.new
         java_email.setHostName self.config.server
         java_email.setSmtpPort self.config.port
-        CredentialSetter.setAuthenticator java_email self.config.username (as_hideable_value self.config.password)
+        CredentialSetter.setAuthenticator java_email self.config.username (as_hideable_value self.config.password factory=HideableValue)
         java_email.setSSLOnConnect self.config.use_tls
 
         from_address = email.from_address

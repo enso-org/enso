@@ -1,5 +1,5 @@
 Enso
-Copyright 2020 - 2025 New Byte Order sp. z o. o.
+Copyright 2020 - 2026 New Byte Order sp. z o. o.
 
 'jackson-annotations', licensed under the The Apache Software License, Version 2.0, is distributed with the Base.
 The license file can be found at `licenses/APACHE2.0`.
@@ -24,11 +24,6 @@ Copyright notices related to this dependency can be found in the directory `com.
 'polyglot', licensed under the Universal Permissive License, Version 1.0, is distributed with the Base.
 The license file can be found at `licenses/Universal_Permissive_License__Version_1.0`.
 Copyright notices related to this dependency can be found in the directory `org.graalvm.polyglot.polyglot-25.0.1`.
-
-
-'collections', licensed under the Universal Permissive License, Version 1.0, is distributed with the Base.
-The license file can be found at `licenses/Universal_Permissive_License__Version_1.0`.
-Copyright notices related to this dependency can be found in the directory `org.graalvm.sdk.collections-25.0.1`.
 
 
 'nativeimage', licensed under the Universal Permissive License, Version 1.0, is distributed with the Base.

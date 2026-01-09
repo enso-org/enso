@@ -473,7 +473,11 @@ case object AliasAnalysis extends IRPass {
     builder: GraphBuilder
   ): Type = {
     value match {
-      case member @ `type`.Set.Member(label, memberType, value, _, _) =>
+      case member: `type`.Set.Member =>
+        val label      = member.label()
+        val memberType = member.memberType()
+        val value      = member.value()
+
         val memberTypeScope = memberType match {
           case _: Literal => builder
           case _          => builder.addChild()
@@ -491,10 +495,10 @@ case object AliasAnalysis extends IRPass {
         )
 
         val mc = member
-          .copy(
-            memberType = analyseExpression(memberType, memberTypeScope),
-            value      = analyseExpression(value, valueScope)
-          )
+          .copyBuilder()
+          .memberType(analyseExpression(memberType, memberTypeScope))
+          .value(analyseExpression(value, valueScope))
+          .build()
         alias.AliasMetadata
           .updateMetadata(
             mc,
@@ -805,8 +809,8 @@ case object AliasAnalysis extends IRPass {
   ): Pattern = {
     pattern match {
       case named: Pattern.Name =>
-        named.copy(
-          name = analyseName(
+        named.copyWithName(
+          analyseName(
             named.name,
             isInPatternContext                = true,
             isConstructorNameInPatternContext = false,
@@ -821,32 +825,40 @@ case object AliasAnalysis extends IRPass {
           )
         }
 
-        cons.copy(
-          constructor = analyseName(
-            cons.constructor,
-            isInPatternContext                = true,
-            isConstructorNameInPatternContext = true,
-            builder
-          ),
-          fields = cons.fields.map(analysePattern(_, builder))
-        )
+        cons
+          .copyBuilder()
+          .constructor(
+            analyseName(
+              cons.constructor,
+              isInPatternContext                = true,
+              isConstructorNameInPatternContext = true,
+              builder
+            )
+          )
+          .fields(cons.fields.map(analysePattern(_, builder)))
+          .build()
       case literalPattern: Pattern.Literal => literalPattern
       case boolPattern: Pattern.Bool       => boolPattern
       case typePattern: Pattern.Type =>
-        typePattern.copy(
-          name = analyseName(
-            typePattern.name,
-            isInPatternContext                = true,
-            isConstructorNameInPatternContext = false,
-            builder
-          ),
-          tpe = analyseName(
-            typePattern.tpe,
-            isInPatternContext                = false,
-            isConstructorNameInPatternContext = false,
-            builder
+        typePattern
+          .copyBuilder()
+          .name(
+            analyseName(
+              typePattern.name,
+              isInPatternContext                = true,
+              isConstructorNameInPatternContext = false,
+              builder
+            )
           )
-        )
+          .tpe(
+            analyseName(
+              typePattern.tpe,
+              isInPatternContext                = false,
+              isConstructorNameInPatternContext = false,
+              builder
+            )
+          )
+          .build()
       case _: Pattern.Documentation =>
         throw new CompilerError(
           "Branch documentation should be desugared at an earlier stage."

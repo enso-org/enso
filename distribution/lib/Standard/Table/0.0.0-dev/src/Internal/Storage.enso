@@ -2,7 +2,7 @@ from Standard.Base import all
 import Standard.Base.Errors.Common.Index_Out_Of_Bounds
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
-from Standard.Base.Data.Decimal import from_big_decimal, get_big_decimal
+from Standard.Base.Data.Decimal import from_big_decimal, value_with_scale
 
 import project.Internal.Value_Type_Helpers
 import project.Value_Type.Bits
@@ -89,7 +89,9 @@ closest_storage_type value_type = case value_type of
    This step is unnecessary for primitive and builtin values, but necessary for
    values such as `Decimal`/`BigDecimal`.
 enso_to_java x = case x of
-    _ : Decimal -> get_big_decimal x
+    _ : Decimal ->
+        pair = value_with_scale x
+        BigDecimal.new pair.first pair.second
     _ -> x
 
 ## ---
@@ -98,10 +100,20 @@ enso_to_java x = case x of
    Convert a Java value to an Enso value before returning it to Enso from a Java
    `Column`.  This step is unnecessary for primitive and builtin values, but
    necessary for values such as `Decimal`/`BigDecimal`.
-java_to_enso x = case x of
-    _ : Nothing -> Nothing
-    _ : BigDecimal -> from_big_decimal x
-    _ -> x
+java_to_enso x =
+    case x of
+        _ : Nothing -> Nothing
+        _ : Integer -> x
+        _ : Float -> x
+        _ : Text -> x
+        _ : BigDecimal -> from_big_decimal x
+        _ ->
+            type_name = (Meta.type_of x).to_text
+            case type_name of
+                "java.math.BigDecimal" ->
+                    big = BigDecimal.new x.unscaledValue x.scale
+                    from_big_decimal big
+                _ -> x
 
 ## ---
    private: true

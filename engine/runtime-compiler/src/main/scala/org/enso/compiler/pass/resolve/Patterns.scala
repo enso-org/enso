@@ -42,7 +42,7 @@ object Patterns extends IRPass {
       BindingAnalysis,
       "Binding resolution was not run before pattern resolution"
     )
-    ir.copyWithBindings(bindings = ir.bindings.map(doDefinition(_, bindings)))
+    ir.copyWithBindings(ir.bindings.map(doDefinition(_, bindings)))
   }
 
   /** Executes the pass on the provided `ir`, and returns a possibly transformed
@@ -261,11 +261,12 @@ object Patterns extends IRPass {
                     )
                   )
                 } else {
-                  consPat.copy(constructor = resolvedName)
+                  consPat.copyWithName(resolvedName)
                 }
-              case None => consPat.copy(constructor = resolvedName)
+              case None => consPat.copyWithName(resolvedName)
             }
-          case tpePattern @ Pattern.Type(_, tpeName, _, _) =>
+          case tpePattern: Pattern.Type =>
+            val tpeName = tpePattern.tpe()
             val resolution = tpeName match {
               case qual: Name.Qualified =>
                 val parts = qual.parts.map(_.name)
@@ -336,7 +337,7 @@ object Patterns extends IRPass {
               }
               .getOrElse(tpeName)
 
-            tpePattern.copy(tpe = resolvedTpeName)
+            tpePattern.copyBuilder().tpe(resolvedTpeName).build()
           case other => other
         }
         branch.copy(

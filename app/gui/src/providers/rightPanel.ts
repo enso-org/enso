@@ -69,9 +69,18 @@ function useRightPanelTabs(
     [
       'description',
       {
-        icon: 'text',
+        icon: 'info',
         enabled: enabledInCloudOnly,
         title: 'Description',
+      },
+    ],
+    [
+      'contents',
+      {
+        icon: 'docs',
+        enabled: Ok(),
+        hidden: true,
+        title: 'Contents',
       },
     ],
     [
@@ -85,7 +94,7 @@ function useRightPanelTabs(
     [
       'versions',
       {
-        icon: 'versions',
+        icon: 'history',
         enabled: enabledInCloudOnly,
         title: textRef('versions'),
       },
@@ -93,7 +102,7 @@ function useRightPanelTabs(
     [
       'sessions',
       {
-        icon: 'sessions',
+        icon: 'activity',
         enabled: enabledInCloudOnly,
         title: textRef('projectSessions'),
       },
@@ -173,7 +182,9 @@ function useRightPanel(
   const displayedTab = computed(() => {
     const markedTab = temporaryTab.value ?? tab.value
     if (markedTab == null) return undefined
-    if (!toValue(allTabs.get(markedTab)?.enabled)?.ok) return undefined
+    const tabInfo = allTabs.get(markedTab)
+    if (!tabInfo || toValue(tabInfo.hidden)) return undefined
+    if (!toValue(tabInfo.enabled)?.ok) return undefined
     return markedTab
   })
 
@@ -224,6 +235,7 @@ function useRightPanel(
       return await backendForType(backendType).getAssetDetails(currentItem.id, undefined)
     },
     enabled: () => backendType.value != null && focusedAsset.value != null,
+    meta: { persist: false },
   })
   const focusedAssetDetails = focusedAssetDetailsQuery.data
 
