@@ -1909,7 +1909,7 @@ final class TreeToIr {
       t = app.getLhs();
     }
     if (t instanceof Tree.Call call) {
-        t = call.getValue();
+      t = call.getValue();
     }
     if (t instanceof Tree.Ident id) {
       names = join(sanitizeName(buildName(id, generateId)), names);
