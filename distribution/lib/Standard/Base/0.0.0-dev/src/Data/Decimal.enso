@@ -241,10 +241,12 @@ type Decimal
                 decimal_format.setParseBigDecimal True
                 Panic.catch ParseException (Decimal.Value (decimal_format.parse txt)) _->
                     Error.throw (Number_Parse_Error.Error text)
-            decimal = case format == "" && locale == Locale.default of
-                True -> Panic.catch ParseException (Decimal.Value (Decimal_Utils.fromString text)) _->
+            decimal =
+                if format == "" && locale == Locale.default then
+                    Panic.catch ParseException (Decimal.Value (Decimal_Utils.fromString text)) _->
+                        number_format_parse text
+                else
                     number_format_parse text
-                False -> number_format_parse text
             if mc == Nothing then decimal else
                 Decimal.Value <| handle_precision_loss text <| Decimal_Utils.applyMathContext decimal.big_decimal mc.math_context
 
