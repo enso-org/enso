@@ -55,6 +55,9 @@ test('Align Right button aligns multiple nodes to rightmost position', async ({
   const node2 = locate.graphNodeByBinding(page, 'ten')
   const selectionMenu = page.locator('.SelectionMenu')
 
+  // Move node2 to ensure nodes have different x positions
+  await editorPage.dragNode('ten', { x: 20, y: 0 })
+
   // Select both nodes
   await locate.graphNodeIcon(node1).click()
   await page.waitForTimeout(300)
