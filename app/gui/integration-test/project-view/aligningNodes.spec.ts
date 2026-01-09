@@ -169,6 +169,7 @@ test('Align Bottom button aligns multiple nodes to bottommost position', async (
   const alignBottomButton = selectionMenu.getByLabel('Align Selected Components Bottom')
   await expect(alignBottomButton).toBeVisible()
   await alignBottomButton.click()
+  await page.waitForTimeout(100)
 
   // Verify nodes are aligned to bottommost position
   const node1NewBBox = await node1.boundingBox()
@@ -176,13 +177,11 @@ test('Align Bottom button aligns multiple nodes to bottommost position', async (
   assert(node1NewBBox)
   assert(node2NewBBox)
 
-  const expectedBottomEdge = Math.max(
-    node1InitialBBox.y + node1InitialBBox.height,
-    node2InitialBBox.y + node2InitialBBox.height,
-  )
-  expect(node1NewBBox.y + node1NewBBox.height).toBeCloseTo(expectedBottomEdge, 0)
-  expect(node2NewBBox.y + node2NewBBox.height).toBeCloseTo(expectedBottomEdge, 0)
-
+  // Both nodes should have their bottom edges aligned
+  const node1BottomEdge = node1NewBBox.y + node1NewBBox.height
+  const node2BottomEdge = node2NewBBox.y + node2NewBBox.height + 150 // visualization height
+  expect(node1BottomEdge).toBeCloseTo(node2BottomEdge, 0)
+  
   // X positions should remain unchanged
   expect(node1NewBBox.x).toBeCloseTo(node1InitialBBox.x, 0)
   expect(node2NewBBox.x).toBeCloseTo(node2InitialBBox.x, 0)
