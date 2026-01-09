@@ -1,4 +1,5 @@
 import { type ProjectStore } from '$/providers/openedProjects/project'
+import { ConditionVariable } from '$/utils/ConditionVariable'
 import { proxyRefs } from '$/utils/reactivity'
 import { assert } from '@/util/assert'
 import { Ast } from '@/util/ast'
@@ -7,7 +8,7 @@ import { reactiveModule } from '@/util/ast/reactive'
 import { type Events, stringUnionToArray } from '@/util/data/observable'
 import { type MethodPointer } from '@/util/methodPointer'
 import { Err, Ok, type Result } from 'enso-common/src/utilities/data/result'
-import { computed, effectScope, onScopeDispose, reactive, ref } from 'vue'
+import { computed, effectScope, markRaw, reactive, ref, type Ref, watch } from 'vue'
 import { SourceDocument } from 'ydoc-shared/ast/sourceDocument'
 import {
   defaultLocalOrigin,
@@ -58,58 +59,64 @@ export async function createModuleStore(
   proj.setObservedFileName(FILE_NAME)
 
   const scope = effectScope()
-  //TODO[ao] refactor & timeout
-  const modPromise = new Promise<DistributedModule>(async (resolve) => {
-    const mod = await proj.projectModel.openModule(FILE_NAME)
-    if (mod != null) resolve(mod)
+
+  const moduleModel = ref<DistributedModule | null>()
+  const module = ref<Ast.MutableModule | null>()
+
+  async function updateModuleModelIfChanged() {
+    const currentGuid = proj.projectModel.modules.get(FILE_NAME)?.guid
+    if (currentGuid !== moduleModel.value?.doc.ydoc.guid) {
+      const newModule = await proj.projectModel.openModule(FILE_NAME)
+      if (newModule != null) {
+        for (const origin of localUserActionOrigins) newModule.undoManager.addTrackedOrigin(origin)
+        moduleModel.value = markRaw(newModule)
+      } else {
+        moduleModel.value = null
+      }
+    }
+  }
+  proj.projectModel.modules.observe(updateModuleModelIfChanged)
+
+  watch(moduleModel, (moduleModel, _, onCleanup) => {
+    module.value = moduleModel != null ? reactiveModule(moduleModel.doc.ydoc, onCleanup) : null
+  })
+  const source = SourceDocument.Empty(reactive)
+  const root = ref<Ast.BodyBlock>()
+  const ast = module as Ref<Ast.Module | null>
+  const observers: ((update: Ast.ModuleUpdate) => void)[] = []
+  const astLoaded = new ConditionVariable()
+
+  watch(module, (module, _, onCleanup) => {
+    if (module == null) root.value = undefined
     else {
-      const cb = () => proj.projectModel.openModule
-      proj.projectModel.modules.observe(() => {
-        proj.projectModel.openModule(FILE_NAME).then((mod) => {
-          if (mod != null) {
-            proj.projectModel.modules.unobserve(cb)
-            resolve(mod)
+      const handle = module.observe((update) => {
+        const rootAst = module.root()
+        if (rootAst instanceof Ast.BodyBlock) {
+          root.value = rootAst
+          astLoaded.notifyAll()
+          if (
+            update.nodesAdded.size != 0 ||
+            update.nodesDeleted.size != 0 ||
+            update.nodesUpdated.size != 0 ||
+            update.updateRoots.size != 0
+          ) {
+            source.applyUpdate(module, update)
           }
-        })
+          for (const observer of observers) observer(update)
+        } else {
+          root.value = undefined
+        }
+      })
+      onCleanup(() => {
+        module.unobserve(handle)
+        source.clear()
       })
     }
   })
-  const mod = await modPromise //proj.projectModel.openModule(FILE_NAME)
-  // if (mod == null) return Err(`Cannot load module ${FILE_NAME}`)
-  const moduleModel = mod
-  for (const origin of localUserActionOrigins) mod.undoManager.addTrackedOrigin(origin)
-  const module = reactiveModule(moduleModel.doc.ydoc, onScopeDispose)
+
+  await astLoaded.wait(5000)
 
   return scope.run(() => {
-    const source = SourceDocument.Empty(reactive)
-    const root = ref<Ast.BodyBlock>()
-    const ast = module as Ast.Module
-    const observers: ((update: Ast.ModuleUpdate) => void)[] = []
-
-    const handle = module.observe((update) => {
-      const rootAst = module.root()
-      console.debug('>', rootAst)
-      if (rootAst instanceof Ast.BodyBlock) {
-        console.debug('>>', rootAst.lines.length)
-        root.value = rootAst
-        if (
-          update.nodesAdded.size != 0 ||
-          update.nodesDeleted.size != 0 ||
-          update.nodesUpdated.size != 0 ||
-          update.updateRoots.size != 0
-        ) {
-          source.applyUpdate(module, update)
-        }
-        for (const observer of observers) observer(update)
-      } else {
-        root.value = undefined
-      }
-    })
-    onScopeDispose(() => {
-      module.unobserve(handle)
-      source.clear()
-    })
-
     const undoManagerStatus = reactive({
       canUndo: false,
       canRedo: false,
@@ -118,31 +125,38 @@ export async function createModuleStore(
         this.canRedo = m.canRedo()
       },
     })
-    const update = () => undoManagerStatus.update(moduleModel.undoManager)
-    const events = stringUnionToArray<keyof Events<Y.UndoManager>>()(
-      'stack-item-added',
-      'stack-item-popped',
-      'stack-cleared',
-      'stack-item-updated',
+    watch(
+      () => moduleModel.value?.undoManager,
+      (m) => {
+        if (m) {
+          const update = () => undoManagerStatus.update(m)
+          const events = stringUnionToArray<keyof Events<Y.UndoManager>>()(
+            'stack-item-added',
+            'stack-item-popped',
+            'stack-cleared',
+            'stack-item-updated',
+          )
+          events.forEach((event) => m.on(event, update))
+        }
+      },
     )
-    events.forEach((event) => moduleModel.undoManager.on(event, update))
 
     const undoManager = proxyRefs({
       undo() {
-        moduleModel.undoManager.undo()
+        moduleModel.value?.undoManager.undo()
       },
       redo() {
-        moduleModel.undoManager.redo()
+        moduleModel.value?.undoManager.redo()
       },
       undoStackBoundary() {
-        moduleModel.undoManager.stopCapturing()
+        moduleModel.value?.undoManager.stopCapturing()
       },
       canUndo: computed(() => undoManagerStatus.canUndo),
       canRedo: computed(() => undoManagerStatus.canRedo),
     })
 
     function stopCapturingUndo() {
-      moduleModel.undoManager.stopCapturing()
+      moduleModel.value?.undoManager.stopCapturing()
     }
 
     function observe(f: (update: Ast.ModuleUpdate) => void) {
@@ -162,6 +176,7 @@ export async function createModuleStore(
       f: (edit: MutableModule) => R | Promise<R>,
       options?: EditOptions,
     ): R | Promise<R>
+
     /**
      * Edit the AST module.
      *
@@ -173,7 +188,11 @@ export async function createModuleStore(
       f: (edit: MutableModule) => Promise<Result> | Result,
       options: EditOptions = {},
     ): Promise<Result> | Result {
-      const edit = module.edit()
+      const mod = module.value
+      if (!mod) {
+        return Err('Cannot apply edit, because module is unloaded.')
+      }
+      const edit = mod.edit()
       const logLevel = options.logLevel ?? 'error'
 
       const treeRepair = (result: Result) => {
@@ -186,7 +205,7 @@ export async function createModuleStore(
       }
 
       const applyEdit = (result: Result) => {
-        if (result.ok) module.applyEdit(edit, options.origin)
+        if (result.ok) mod.applyEdit(edit, options.origin)
         else if (logLevel !== 'none')
           console[logLevel](result.error.message(options.logPreamble ?? 'Cannot commit AST edit.'))
         return result
@@ -201,16 +220,20 @@ export async function createModuleStore(
     }
 
     function batchEdits(f: () => void, origin: Origin = defaultLocalOrigin) {
-      module.transact(f, origin)
+      if (!module.value) {
+        console.error('Skipping batching edits, because module is gone.')
+        return f()
+      }
+      return module.value.transact(f, origin)
     }
 
     function hasMethod(name: string): boolean {
-      const root = ast.root()
+      const root = ast.value?.root()
       return root != null && Ast.findModuleMethod(root, name) != null
     }
 
     function getMethodAst(ptr: MethodPointer, edit?: Ast.Module): Result<Ast.FunctionDef> {
-      const topLevel = (edit ?? ast).root()
+      const topLevel = (edit ?? ast.value)?.root()
       if (!topLevel) return Err('Module unavailable')
       assert(topLevel instanceof Ast.BodyBlock)
       if (!proj.moduleProjectPath?.ok)
@@ -227,12 +250,12 @@ export async function createModuleStore(
     }
 
     function mutableNodeMetadata(node: AstId | undefined, edit?: Ast.MutableModule) {
-      edit ??= module
-      return edit.tryGet(node)?.mutableNodeMetadata()
+      const edit_ = edit ?? module.value
+      return edit_?.tryGet(node)?.mutableNodeMetadata()
     }
 
     function setWidgetMetadata(widget: AstId, widgetKey: string, md: unknown) {
-      const ast = module.tryGet(widget)
+      const ast = module.value?.tryGet(widget)
       if (!ast) return
       ast.setWidgetMetadata(widgetKey, md)
     }
@@ -288,8 +311,13 @@ export async function createModuleStore(
     }
 
     function onBeforeEdit(f: (transaction: Y.Transaction) => void): { unregister: () => void } {
-      moduleModel.doc.ydoc.on('beforeTransaction', f)
-      return { unregister: () => moduleModel.doc.ydoc.off('beforeTransaction', f) }
+      const m = moduleModel.value
+      if (m) {
+        m.doc.ydoc.on('beforeTransaction', f)
+        return { unregister: () => m.doc.ydoc.off('beforeTransaction', f) }
+      } else {
+        return { unregister: () => {} }
+      }
     }
 
     return Ok(

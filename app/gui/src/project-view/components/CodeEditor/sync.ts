@@ -74,7 +74,7 @@ export function useEnsoSourceSync(
     try {
       const result = moduleStore.value.edit(
         (editedModule) => {
-          editedModule.applyTextEdits(edits, moduleStore.value.ast)
+          editedModule.applyTextEdits(edits, moduleStore.value.ast ?? undefined)
           if (editedModule.root()?.code() === editorView.state.doc.toString()) {
             return Ok()
           } else

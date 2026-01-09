@@ -118,8 +118,6 @@ export function createProjectStore(
   })
 
   const projectModel = new DistributedProject(doc)
-  projectModel.doc.on('sync', (a1) => console.debug('SYNC', a1, projectModel.modules.size))
-  console.debug('PM', projectModel.modules.size, projectModel.modules)
 
   const entryPoint = computed<MethodPointer>(() => {
     const mainModule = ProjectPath.create(undefined, 'Main' as Identifier)

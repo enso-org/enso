@@ -1,5 +1,7 @@
 /** @file A promise queue. */
 
+import { wait } from 'lib0/promise.js'
+
 /**
  * A condition variable.
  *
@@ -11,8 +13,13 @@ export class ConditionVariable {
   private resolveQueue: (() => void)[] = []
 
   /** Add a new promise to the queue. */
-  wait(): Promise<void> {
-    return new Promise((resolve) => this.resolveQueue.push(resolve))
+  wait(timeoutMs?: number): Promise<void> {
+    const promise = new Promise<void>((resolve) => this.resolveQueue.push(resolve))
+    if (timeoutMs == null) {
+      return promise
+    } else {
+      return Promise.race([promise, wait(timeoutMs)])
+    }
   }
 
   /** Resolve all promises in the queue. */
