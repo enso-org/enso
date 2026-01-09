@@ -8,7 +8,7 @@ test('Align Left button aligns multiple nodes to leftmost position', async ({
 }) => {
   await editorPage
   const node1 = locate.graphNodeByBinding(page, 'five')
-  const node2 = locate.graphNodeByBinding(page, 'ten')
+  const node2 = locate.graphNodeByBinding(page, 'sum')
   const selectionMenu = page.locator('.SelectionMenu')
 
   // Move node2 to ensure nodes have different x positions
@@ -52,11 +52,11 @@ test('Align Right button aligns multiple nodes to rightmost position', async ({
 }) => {
   await editorPage
   const node1 = locate.graphNodeByBinding(page, 'five')
-  const node2 = locate.graphNodeByBinding(page, 'ten')
+  const node2 = locate.graphNodeByBinding(page, 'sum')
   const selectionMenu = page.locator('.SelectionMenu')
 
   // Move node2 to ensure nodes have different x positions
-  await editorPage.dragNode('ten', { x: 20, y: 0 })
+  await editorPage.dragNode('sum', { x: 20, y: 0 })
 
   // Select both nodes
   await locate.graphNodeIcon(node1).click()
@@ -102,6 +102,11 @@ test('Align Top button aligns multiple nodes to topmost position', async ({
   const node2 = locate.graphNodeByBinding(page, 'sum')
   const selectionMenu = page.locator('.SelectionMenu')
 
+  // Open visualization on node2 to make it taller
+  await locate.graphNodeIcon(node2).click()
+  await page.keyboard.press('Space')
+  await page.waitForTimeout(100)
+
   // Select both nodes
   await locate.graphNodeIcon(node1).click()
   await page.waitForTimeout(300)
@@ -143,6 +148,11 @@ test('Align Bottom button aligns multiple nodes to bottommost position', async (
   const node2 = locate.graphNodeByBinding(page, 'sum')
   const selectionMenu = page.locator('.SelectionMenu')
 
+  // Open visualization on node2 to make it taller
+  await locate.graphNodeIcon(node2).click()
+  await page.keyboard.press('Space')
+  await page.waitForTimeout(100)
+
   // Select both nodes
   await locate.graphNodeIcon(node1).click()
   await page.waitForTimeout(300)
@@ -181,8 +191,11 @@ test('Align Bottom button aligns multiple nodes to bottommost position', async (
 test('Align Center button centers multiple nodes horizontally', async ({ editorPage, page }) => {
   await editorPage
   const node1 = locate.graphNodeByBinding(page, 'five')
-  const node2 = locate.graphNodeByBinding(page, 'ten')
+  const node2 = locate.graphNodeByBinding(page, 'sum')
   const selectionMenu = page.locator('.SelectionMenu')
+
+  // Move node2 to ensure nodes have different x positions
+  await editorPage.dragNode('sum', { x: 20, y: 0 })
 
   // Select both nodes
   await locate.graphNodeIcon(node1).click()
@@ -243,7 +256,7 @@ test('Alignment buttons are visible when multiple nodes are selected', async ({
 }) => {
   await editorPage
   const node1 = locate.graphNodeByBinding(page, 'five')
-  const node2 = locate.graphNodeByBinding(page, 'ten')
+  const node2 = locate.graphNodeByBinding(page, 'sum')
   const selectionMenu = page.locator('.SelectionMenu')
 
   // Select both nodes
@@ -266,8 +279,11 @@ test('Multiple alignment operations can be performed sequentially', async ({
 }) => {
   await editorPage
   const node1 = locate.graphNodeByBinding(page, 'five')
-  const node2 = locate.graphNodeByBinding(page, 'ten')
+  const node2 = locate.graphNodeByBinding(page, 'sum')
   const selectionMenu = page.locator('.SelectionMenu')
+
+  // Move node2 to ensure nodes have different x positions
+  await editorPage.dragNode('sum', { x: 20, y: 0 })
 
   // Select both nodes
   await locate.graphNodeIcon(node1).click()
