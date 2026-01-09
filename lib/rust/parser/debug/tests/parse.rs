@@ -215,7 +215,7 @@ fn type_constructors_panic_14559() {
             "    Error",
             "        (argument_name : Text) (function_name : Text) = Nothing",
         ].join("\n"),
-        @"Expected identifier or wildcard in argument binding: (BodyBlock #((TypeDef Missing #() #((ConstructorDefinition () #() () Error #() #(((() (Invalid) () ((Ident Nothing))))))))))");
+        @"Expected identifier or wildcard in argument binding: (BodyBlock #((TypeDef Missing #() #((ConstructorDefinition () #() () Error #() #(((() (Invalid) () ((Call (Ident Nothing)))))))))))");
 }
 
 #[test]
