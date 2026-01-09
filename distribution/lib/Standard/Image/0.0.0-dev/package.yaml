@@ -1,5 +1,5 @@
 name: Image
-namespace: Enso
+namespace: Standard
 version: 0.0.0-dev
 license: APLv2
 authors:
@@ -11,4 +11,4 @@ maintainers:
 
 services:
   - provides: Standard.Base.System.File_Format.File_Format_SPI
-    with: Enso.Image.Image_Services.Impl
+    with: Standard.Image.Image_Services.Impl
