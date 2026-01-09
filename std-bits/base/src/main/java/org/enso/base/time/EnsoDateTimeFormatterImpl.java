@@ -15,8 +15,8 @@ import java.time.temporal.ChronoField;
 import java.time.temporal.TemporalQueries;
 import java.util.Arrays;
 import java.util.Locale;
+import java.util.Objects;
 import org.enso.polyglot.common_utils.Core_Date_Utils;
-import org.graalvm.collections.Pair;
 
 /**
  * An Enso representation of the DateTimeFormatter.
@@ -26,35 +26,38 @@ import org.graalvm.collections.Pair;
  */
 final class EnsoDateTimeFormatterImpl implements EnsoDateTimeFormatter {
   private final DateTimeFormatter formatter;
-  private final Pair<Character, String> isoReplacementPair;
+  private final Character isoReplacementKey;
+  private final String isoReplacementValue;
   private final String originalPattern;
   private final FormatterKind formatterKind;
 
   private EnsoDateTimeFormatterImpl(
       DateTimeFormatter formatter,
-      Pair<Character, String> isoReplacementPair,
+      Character isoReplacementKey,
+      String isoReplacementValue,
       String originalPattern,
       FormatterKind formatterKind) {
     this.formatter = formatter;
-    this.isoReplacementPair = isoReplacementPair;
+    this.isoReplacementKey = isoReplacementKey;
+    this.isoReplacementValue = isoReplacementValue;
     this.originalPattern = originalPattern;
     this.formatterKind = formatterKind;
   }
 
   EnsoDateTimeFormatterImpl(
       DateTimeFormatter formatter, String originalPattern, FormatterKind formatterKind) {
-    this(formatter, null, originalPattern, formatterKind);
+    this(formatter, null, null, originalPattern, formatterKind);
   }
 
   public static EnsoDateTimeFormatter makeISOConstant(DateTimeFormatter formatter, String name) {
-    return new EnsoDateTimeFormatterImpl(
-        formatter, Pair.create(' ', "T"), name, FormatterKind.CONSTANT);
+    return new EnsoDateTimeFormatterImpl(formatter, ' ', "T", name, FormatterKind.CONSTANT);
   }
 
   public static EnsoDateTimeFormatter default_enso_zoned_date_time_formatter() {
     return new EnsoDateTimeFormatterImpl(
         Core_Date_Utils.defaultZonedDateTimeFormatter,
-        Pair.create('T', " "),
+        'T',
+        " ",
         "default_enso_zoned_date_time",
         FormatterKind.CONSTANT);
   }
@@ -62,7 +65,11 @@ final class EnsoDateTimeFormatterImpl implements EnsoDateTimeFormatter {
   @Override
   public EnsoDateTimeFormatter withLocale(Locale locale) {
     return new EnsoDateTimeFormatterImpl(
-        formatter.withLocale(locale), isoReplacementPair, originalPattern, formatterKind);
+        formatter.withLocale(locale),
+        isoReplacementKey,
+        isoReplacementValue,
+        originalPattern,
+        formatterKind);
   }
 
   public DateTimeFormatter getRawJavaFormatter() {
@@ -78,13 +85,13 @@ final class EnsoDateTimeFormatterImpl implements EnsoDateTimeFormatter {
   }
 
   private String normaliseInput(String dateString) {
-    if (isoReplacementPair == null) {
+    if (isoReplacementKey == null) {
       // Nothing to do
       return dateString;
     }
 
-    char from = isoReplacementPair.getLeft();
-    String to = isoReplacementPair.getRight();
+    char from = isoReplacementKey;
+    String to = isoReplacementValue;
 
     if (dateString != null && dateString.length() > 10 && dateString.charAt(10) == from) {
       var builder = new StringBuilder(dateString);
@@ -193,7 +200,8 @@ final class EnsoDateTimeFormatterImpl implements EnsoDateTimeFormatter {
   @Override
   public int hashCode() {
     // We ignore formatter here because it has identity semantics.
-    return Arrays.hashCode(new Object[] {isoReplacementPair, originalPattern, formatterKind});
+    return Arrays.hashCode(
+        new Object[] {isoReplacementKey, isoReplacementValue, originalPattern, formatterKind});
   }
 
   @Override
@@ -204,7 +212,8 @@ final class EnsoDateTimeFormatterImpl implements EnsoDateTimeFormatter {
       if (originalPattern != null) {
         return formatterKind == other.formatterKind
             && originalPattern.equals(other.originalPattern)
-            && isoReplacementPair.equals(other.isoReplacementPair)
+            && Objects.equals(isoReplacementKey, other.isoReplacementKey)
+            && Objects.equals(isoReplacementValue, other.isoReplacementValue)
             && formatter.getLocale().equals(other.formatter.getLocale());
       } else {
         return formatterKind == other.formatterKind && formatter.equals(other.formatter);

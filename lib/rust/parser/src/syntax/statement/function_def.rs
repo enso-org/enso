@@ -85,7 +85,7 @@ impl<'s> FunctionBuilder<'s> {
 
         let private = (visibility_context != VisibilityContext::Private
             && self.start > private_keywords_start)
-            .then(|| items.pop().unwrap().into_token().unwrap().try_into().unwrap());
+            .then(|| items.pop().unwrap().try_into_token().unwrap().try_into().unwrap());
 
         let mut first_newline = self.line.newline;
 
@@ -224,7 +224,7 @@ pub fn parse_constructor_definition<'s>(
     }
     let (name, inline_args) = parse_constructor_decl(items, start, expression_parser, args_buffer);
     let private = (private_keywords_start < start)
-        .then(|| items.pop().unwrap().into_token().unwrap().try_into().unwrap());
+        .then(|| items.pop().unwrap().try_into_token().unwrap().try_into().unwrap());
 
     let mut first_newline = newline;
     let mut annotations_reversed = vec![];
@@ -277,9 +277,19 @@ fn parse_constructor_decl<'s>(
     args_buffer: &mut Vec<ArgumentDefinition<'s>>,
 ) -> (token::Ident<'s>, Vec<ArgumentDefinition<'s>>) {
     let args = parse_args(items, start + 1, expression_parser, args_buffer);
-    let name = items.pop().unwrap().into_token().unwrap().try_into().unwrap();
+    let name = items.pop().unwrap().try_into_token().unwrap().try_into().unwrap();
     debug_assert_eq!(items.len(), start);
     (name, args)
+}
+
+fn item_is_non_type_ident(item: &Item) -> bool {
+    matches!(
+        item,
+        Item::Token(Token {
+            variant: token::Variant::Ident(token::variant::Ident { is_type: false, .. }),
+            ..
+        })
+    )
 }
 
 pub fn try_parse_foreign_function<'s>(
@@ -295,31 +305,19 @@ pub fn try_parse_foreign_function<'s>(
         _ => return None,
     }
     let operator = operator.take().unwrap();
-    match items.get(start + 1) {
-        Some(Item::Token(Token { variant: token::Variant::Ident(ident), .. }))
-            if !ident.is_type => {}
-        _ => {
-            items.push(Item::from(Token::from(operator)));
-            items.extend(expression.take().map(Item::from));
-            return expression_parser
-                .parse_non_section_offset(start, items)
-                .unwrap()
-                .with_error(SyntaxError::ForeignFnExpectedLanguage)
-                .into();
-        }
-    }
-    match items.get(start + 2) {
-        Some(Item::Token(Token { variant: token::Variant::Ident(ident), .. }))
-            if !ident.is_type => {}
-        _ => {
-            items.push(Item::from(Token::from(operator)));
-            items.extend(expression.take().map(Item::from));
-            return expression_parser
-                .parse_non_section_offset(start, items)
-                .unwrap()
-                .with_error(SyntaxError::ForeignFnExpectedName)
-                .into();
-        }
+
+    let error_missing_language = (!items.get(start + 1).is_some_and(item_is_non_type_ident))
+        .then_some(SyntaxError::ForeignFnExpectedLanguage);
+    let error_missing_name = (!items.get(start + 2).is_some_and(item_is_non_type_ident))
+        .then_some(SyntaxError::ForeignFnExpectedName);
+    if let Some(error) = error_missing_language.or(error_missing_name) {
+        items.push(Item::from(Token::from(operator)));
+        items.extend(expression.take().map(Item::from));
+        return expression_parser
+            .parse_non_section_offset(start, items)
+            .unwrap()
+            .with_error(error)
+            .into();
     }
 
     let body = expression
@@ -350,10 +348,14 @@ pub fn try_parse_foreign_function<'s>(
     );
     let args = args_buffer.drain(..).rev().collect();
 
-    let name = items.pop().unwrap().into_token().unwrap().try_into().unwrap();
-    let language = items.pop().unwrap().into_token().unwrap().try_into().unwrap();
-    let keyword =
-        items.pop().unwrap().into_token().unwrap().with_variant(token::variant::ForeignKeyword());
+    let name = items.pop().unwrap().try_into_token().unwrap().try_into().unwrap();
+    let language = items.pop().unwrap().try_into_token().unwrap().try_into().unwrap();
+    let keyword = items
+        .pop()
+        .unwrap()
+        .try_into_token()
+        .unwrap()
+        .with_variant(token::variant::ForeignKeyword());
     Tree::foreign_function(keyword, language, name, args, operator, body).into()
 }
 
@@ -376,7 +378,7 @@ fn parse_return_spec<'s>(
 ) -> ReturnSpecification<'s> {
     let r#type = expression_parser.parse_non_section_offset(arrow + 1, items);
     let arrow: token::ArrowOperator =
-        items.pop().unwrap().into_token().unwrap().try_into().unwrap();
+        items.pop().unwrap().try_into_token().unwrap().try_into().unwrap();
     let r#type = r#type.unwrap_or_else(|| {
         empty_tree(arrow.code.position_after()).with_error(SyntaxError::ExpectedExpression)
     });
@@ -388,9 +390,13 @@ fn parse_arg_def<'s>(
     mut start: usize,
     expression_parser: &mut ExpressionParser<'s>,
 ) -> ArgumentDefinition<'s> {
+    let mut items = items;
+    let mut parenthesized_body: Option<Vec<Item>>;
+    let mut inner_parenthesized_body: Option<Vec<Item>>;
+
+    // If the entire definition is parenthesized, enter it.
     let mut open1 = None;
     let mut close1 = None;
-    let mut parenthesized_body = None;
     if matches!(items[start..], [Item::Group(_)]) {
         let Some(Item::Group(item::Group { open, body, close })) = items.pop() else {
             unreachable!()
@@ -399,10 +405,11 @@ fn parse_arg_def<'s>(
         close1 = close;
         parenthesized_body = body.into_vec().into();
         debug_assert_eq!(items.len(), start);
+        items = parenthesized_body.as_mut().unwrap();
         start = 0;
     }
-    let items = parenthesized_body.as_mut().unwrap_or(items);
-    let ArgDefInfo { type_, default } = match analyze_arg_def(&items[start..]) {
+
+    let ArgDefInfo { type_: type_op, default } = match analyze_arg_def(&items[start..]) {
         Err(e) => {
             let pattern =
                 expression_parser.parse_non_section_offset(start, items).unwrap().with_error(e);
@@ -421,7 +428,7 @@ fn parse_arg_def<'s>(
     };
     let default = default.map(|default| {
         let tree = expression_parser.parse_offset(start + default + 1, items);
-        let equals = items.pop().unwrap().into_token().unwrap();
+        let equals = items.pop().unwrap().try_into_token().unwrap();
         let expression = tree.unwrap_or_else(|| {
             empty_tree(equals.code.position_after()).with_error(SyntaxError::ExpectedExpression)
         });
@@ -433,36 +440,31 @@ fn parse_arg_def<'s>(
     });
     let mut open2 = None;
     let mut close2 = None;
-    let mut suspension_and_pattern = None;
-    let type_ = type_.map(|(parenthesized, type_)| {
-        let mut parenthesized_body = None;
-        if parenthesized == Parenthesized
-            && (start..items.len()).len() == 1
-            && matches!(items.last(), Some(Item::Group(_)))
-        {
+    let mut type_ = None;
+    if let Some((parenthesized, type_op)) = type_op {
+        if parenthesized == Parenthesized {
+            debug_assert_eq!(items.len(), start + 1);
             let Some(Item::Group(item::Group { open, body, close })) = items.pop() else {
                 unreachable!()
             };
             open2 = open.into();
             close2 = close;
-            parenthesized_body = body.into_vec().into();
+            inner_parenthesized_body = body.into_vec().into();
+            items = inner_parenthesized_body.as_mut().unwrap();
             start = 0;
         }
-        let items = parenthesized_body.as_mut().unwrap_or(items);
-        let tree = expression_parser.parse_non_section_offset(start + type_ + 1, items);
-        let operator = items.pop().unwrap().into_token().unwrap();
-        let type_ = tree.unwrap_or_else(|| {
+        let tree = expression_parser.parse_non_section_offset(start + type_op + 1, items);
+        let operator = items.pop().unwrap().try_into_token().unwrap();
+        let tree = tree.unwrap_or_else(|| {
             empty_tree(operator.code.position_after()).with_error(SyntaxError::ExpectedType)
         });
         let token::Variant::TypeAnnotationOperator(variant) = operator.variant else {
             unreachable!()
         };
         let operator = operator.with_variant(variant);
-        suspension_and_pattern = Some(parse_pattern(items, start, expression_parser));
-        ArgumentType { operator, type_ }
-    });
-    let (suspension, pattern) =
-        suspension_and_pattern.unwrap_or_else(|| parse_pattern(items, start, expression_parser));
+        type_ = ArgumentType { operator, type_: tree }.into();
+    }
+    let (suspension, pattern) = parse_pattern(items, start, expression_parser);
     let pattern = pattern.unwrap_or_else(|| {
         empty_tree(
             suspension
@@ -491,33 +493,32 @@ fn parse_arg_def<'s>(
 }
 
 fn analyze_arg_def(outer: &[Item]) -> Result<ArgDefInfo, SyntaxError> {
-    let mut default = None;
-    let mut type_ = None;
-    match find_top_level_operator(outer)? {
-        None => {}
+    Ok(match find_top_level_operator(outer)? {
+        None => ArgDefInfo { type_: None, default: None },
         Some(TopLevelOperator::TypeAnnotationOperator(annotation_op_pos)) => {
-            type_ = (Unparenthesized, annotation_op_pos).into();
+            ArgDefInfo { type_: (Unparenthesized, annotation_op_pos).into(), default: None }
         }
-        Some(TopLevelOperator::AssignmentOperator(assignment_op_pos)) => {
-            default = assignment_op_pos.into();
-            match find_top_level_operator(&outer[..assignment_op_pos])? {
-                None => {}
-                Some(TopLevelOperator::TypeAnnotationOperator(annotation_op_pos)) => {
-                    type_ = (Unparenthesized, annotation_op_pos).into();
+        Some(TopLevelOperator::AssignmentOperator(assignment_op_pos)) => ArgDefInfo {
+            type_: match &outer[..assignment_op_pos] {
+                [Item::Group(item::Group { body: inner, .. })] => {
+                    let inner_type = match find_top_level_operator(inner)? {
+                        None => return Err(SyntaxError::ArgDefSpuriousParens),
+                        Some(TopLevelOperator::TypeAnnotationOperator(inner_op_pos)) => {
+                            inner_op_pos
+                        }
+                        Some(_) => return Err(SyntaxError::ArgDefUnexpectedOpInParenClause),
+                    };
+                    (Parenthesized, inner_type).into()
                 }
-                Some(_) => return Err(SyntaxError::ArgDefUnexpectedOp),
-            }
-        }
-    };
-    if type_.is_none() {
-        if let Item::Group(item::Group { body: inner, .. }) = &outer[0] {
-            let inner_type = match find_top_level_operator(inner)? {
-                None => return Err(SyntaxError::ArgDefSpuriousParens),
-                Some(TopLevelOperator::TypeAnnotationOperator(inner_op_pos)) => inner_op_pos,
-                Some(_) => return Err(SyntaxError::ArgDefUnexpectedOpInParenClause),
-            };
-            type_ = (Parenthesized, inner_type).into();
-        }
-    }
-    Ok(ArgDefInfo { type_, default })
+                items => match find_top_level_operator(items)? {
+                    None => None,
+                    Some(TopLevelOperator::TypeAnnotationOperator(annotation_op_pos)) => {
+                        (Unparenthesized, annotation_op_pos).into()
+                    }
+                    Some(_) => return Err(SyntaxError::ArgDefUnexpectedOp),
+                },
+            },
+            default: assignment_op_pos.into(),
+        },
+    })
 }

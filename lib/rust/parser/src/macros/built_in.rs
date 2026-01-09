@@ -29,6 +29,7 @@ fn expression() -> resolver::SegmentMap<'static> {
     let mut macro_map = resolver::SegmentMap::default();
     macro_map.register(if_then());
     macro_map.register(if_then_else());
+    macro_map.register(just_else());
     macro_map.register(lambda());
     macro_map.register(case());
     macro_map.register(array());
@@ -248,12 +249,24 @@ pub fn if_then_else<'s>() -> Definition<'s> {
     ("if", everything(), "then", everything(), "else", or(block(), many(not_block()))) if_body}
 }
 
+pub fn just_else<'s>() -> Definition<'s> {
+    crate::macro_definition! {
+    ("else", or(block(), many(not_block()))) else_body}
+}
+
 /// If-then macro definition.
 pub fn if_then<'s>() -> Definition<'s> {
     crate::macro_definition! {("if", everything(), "then", everything()) if_body}
 }
 
 fn if_body<'s>(
+    segments: NonEmptyVec<MatchedSegment<'s>>,
+    expression_parser: &mut ExpressionParser<'s>,
+) -> syntax::Tree<'s> {
+    capture_expressions(segments, expression_parser)
+}
+
+fn else_body<'s>(
     segments: NonEmptyVec<MatchedSegment<'s>>,
     expression_parser: &mut ExpressionParser<'s>,
 ) -> syntax::Tree<'s> {
@@ -360,7 +373,7 @@ fn parse_case<'s>(
         } else {
             None
         };
-        let op = items.pop().unwrap().into_token().unwrap();
+        let op = items.pop().unwrap().try_into_token().unwrap();
         arrow = Some(op.with_variant(token::variant::ArrowOperator()));
         pattern = expression_parser.parse(items).map(expression_to_pattern);
     } else {
@@ -466,7 +479,7 @@ fn sequence<'s>(
                 let operator = tokens
                     .pop()
                     .unwrap()
-                    .into_token()
+                    .try_into_token()
                     .unwrap()
                     .with_variant(token::variant::Operator());
                 rest.push(OperatorDelimitedTree { operator, body });

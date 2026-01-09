@@ -24,10 +24,10 @@ type Cloud_Tests_Setup
             Panic.with_finalizer Cloud_Tests_Setup.reset <|
                 Test_Environment.unsafe_with_environment_override "ENSO_CLOUD_API_URL" self.api_url.to_text <|
                     Test_Environment.unsafe_with_environment_override "ENSO_CLOUD_CREDENTIALS_FILE" self.credentials_location.absolute.normalize.path <|
-                        Cloud_Tests_Setup.log_message level=..Warning "Start running with ENSO_CLOUD_API_URL and ENSO_CLOUD_CREDENTIALS_FILE override"
+                        Cloud_Tests_Setup.log_message level=..Finest "Start running with ENSO_CLOUD_API_URL and ENSO_CLOUD_CREDENTIALS_FILE override"
                         Cloud_Tests_Setup.reset
                         r = action
-                        Cloud_Tests_Setup.log_message level=..Warning "End of running with ENSO_CLOUD_API_URL and ENSO_CLOUD_CREDENTIALS_FILE override"
+                        Cloud_Tests_Setup.log_message level=..Finest "End of running with ENSO_CLOUD_API_URL and ENSO_CLOUD_CREDENTIALS_FILE override"
                         r
         _ -> action
 
@@ -79,9 +79,9 @@ type Cloud_Tests_Setup
 
     ## Flushes all cloud caches in order to allow switch between real and mock cloud environments.
     reset =
-        Cloud_Tests_Setup.log_message level=..Warning "Cloud_Tests_Setup.reset called"
-        CloudAPI.flushCloudCaches
-        Cloud_Tests_Setup.log_message level=..Warning "Cloud_Tests_Setup.reset done"
+        Cloud_Tests_Setup.log_message level=..Finest "Cloud_Tests_Setup.reset called"
+        Runtime.gc flush_caches=True
+        Cloud_Tests_Setup.log_message level=..Finest "Cloud_Tests_Setup.reset done"
 
     ## Detects the setup based on environment settings.
        If `ENSO_RUN_REAL_CLOUD_TEST` is defined, the tests will try running

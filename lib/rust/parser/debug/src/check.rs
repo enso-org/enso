@@ -21,7 +21,7 @@ pub fn validate_spans(
         Ok(match a {
             Some(a) => {
                 if a.end != b.start {
-                    return Err(format!("{:?} != {:?}", &a.end, b.start));
+                    return Err("AST must exactly represent source code".to_owned());
                 }
                 a.start..b.end
             }
@@ -51,11 +51,14 @@ pub fn validate_spans(
         }
     });
     if expected_span.is_empty() {
-        assert!(sum_span.is_none_or(|range| range.is_empty()));
+        assert!(
+            sum_span.is_none_or(|range| range.is_empty()),
+            "AST must exactly represent source code"
+        );
     } else {
         let sum_span = sum_span.unwrap_or_default();
         let sum_span = sum_span.start.utf16..sum_span.end.utf16;
-        assert_eq!(sum_span, expected_span);
+        assert_eq!(sum_span, expected_span, "AST must exactly represent source code");
     }
     Ok(())
 }
