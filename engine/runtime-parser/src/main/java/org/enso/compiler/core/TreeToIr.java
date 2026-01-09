@@ -1088,13 +1088,9 @@ final class TreeToIr {
             continue;
           }
           var next = translateExpression(expr, false);
-          if (last instanceof IfThenElse previous && previous.falseBranchOrNull() == null) {
-            if (next instanceof IfThenElse other && other.isOnlyElse()) {
-              var replacement =
-                  IfThenElse.builder(previous).falseBranchOrNull(other.falseBranchOrNull()).build();
-              next = replacement;
-              last = null;
-            }
+          if (mergeExpressions(last, next) instanceof Expression replacement) {
+            next = replacement;
+            last = null;
           }
           if (last != null) {
             expressions = join(last, expressions);
@@ -1345,24 +1341,38 @@ final class TreeToIr {
         translateBlockStatement(statement.getExpression(), appendTo);
       }
       default -> {
-        var expressionStatement = translateExpression(tree);
-        if (expressionStatement != null) {
-          int last = appendTo.size() - 1;
-          if (last >= 0
-              && appendTo.get(last) instanceof IfThenElse previous
-              && previous.falseBranchOrNull() == null) {
-            if (expressionStatement instanceof IfThenElse other && other.isOnlyElse()) {
-              var replacement =
-                  IfThenElse.builder(previous).falseBranchOrNull(other.falseBranchOrNull()).build();
-              appendTo.set(last, replacement);
-              // no appendTo.add, but return
-              return;
-            }
-          }
-          appendTo.add(expressionStatement);
+        var next = translateExpression(tree);
+        int lastIndex = appendTo.size() - 1;
+        if (lastIndex >= 0
+            && mergeExpressions(appendTo.get(lastIndex), next) instanceof Expression replacement) {
+          appendTo.set(lastIndex, replacement);
+        } else {
+          appendTo.add(next);
         }
       }
     }
+  }
+
+  /**
+   * Checks whether previous expression should be somehow combined with next one. Currently merges
+   * multi line if then else. If the expressions cannot be combined, then {@code null} is returned
+   * to normally proceed with adding the {@code next} expression into the list of expressions.
+   *
+   * @param previous previous expression
+   * @param next next expression
+   * @return non-{@code null} a combined expression to replace the {@code previous} or {@code null}
+   *     if no combination shall happen
+   */
+  private static Expression mergeExpressions(Expression previous, Expression next) {
+    if (previous instanceof IfThenElse original && original.falseBranchOrNull() == null) {
+      // if_then without else was the previous expression
+      if (next instanceof IfThenElse other && other.isOnlyElse()) {
+        var replacement =
+            IfThenElse.builder(original).falseBranchOrNull(other.falseBranchOrNull()).build();
+        return replacement;
+      }
+    }
+    return null;
   }
 
   private Expression translateAssignment(Tree.Assignment assign) {
