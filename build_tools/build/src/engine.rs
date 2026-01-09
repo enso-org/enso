@@ -24,6 +24,7 @@ use package::IsPackage;
 pub mod artifact;
 pub mod bundle;
 pub mod context;
+pub mod edition;
 pub mod env;
 pub mod package;
 pub mod sbt;
