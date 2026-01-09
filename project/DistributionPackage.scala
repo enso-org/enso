@@ -168,11 +168,12 @@ object DistributionPackage {
 
     (distributionRoot / "editions").mkdirs()
     Editions.writeEditionConfig(
-      editionsRoot   = distributionRoot / "editions",
-      ensoVersion    = ensoVersion,
-      editionName    = editionName,
-      libraryVersion = targetStdlibVersion,
-      log            = log
+      editionsRoot    = distributionRoot / "editions",
+      editionTemplate = file("distribution/edition.template.yaml"),
+      ensoVersion     = ensoVersion,
+      editionName     = editionName,
+      libraryVersion  = targetStdlibVersion,
+      log             = log
     )
 
     copyLibraryCacheIncremental(

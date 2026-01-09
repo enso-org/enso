@@ -1,41 +1,21 @@
 import sbt._
 
 object Editions {
-  val MAIN_REPO_ENV = "ENSO_MAIN_LIBRARY_REPOSITORY_URL"
+  val MAIN_REPO_ENV      = "ENSO_MAIN_LIBRARY_REPOSITORY_URL"
+  val STD_IMAGE_REPO_ENV = "ENSO_STD_IMAGE_REPOSITORY_URL"
 
-  /** List of libraries that are shipped with the engine and reside in the
-    * engine repository.
-    *
-    * They currently all share the version number.
-    */
-  val standardLibraries: Seq[String] = Seq(
-    "Standard.Base",
-    "Standard.Test",
-    "Standard.Table",
-    "Standard.Database",
-    "Standard.AWS",
-    "Standard.Geo",
-    "Standard.Visualization",
-    "Standard.Examples",
-    "Standard.Searcher",
-    "Standard.Generic_JDBC",
-    "Standard.Google",
-    "Standard.Google_Api",
-    "Standard.Snowflake",
-    "Standard.Microsoft",
-    "Standard.Tableau",
-    "Standard.Saas",
-    "Standard.DuckDB"
-  )
-
-  val contribLibraries: Seq[String] = Seq(
-    "Enso.Image"
-  )
+  private val fallbackUrl = "https://libraries.release.enso.org/libraries"
 
   /** The URL to the main library repository. */
   private val mainLibraryRepositoryUrl: String = {
-    val fallbackUrl = "https://libraries.release.enso.org/libraries"
     System.getenv(MAIN_REPO_ENV) match {
+      case null | "" => fallbackUrl
+      case url       => url
+    }
+  }
+
+  private val stdImageRepositoryUrl: String = {
+    System.getenv(STD_IMAGE_REPO_ENV) match {
       case null | "" => fallbackUrl
       case url       => url
     }
@@ -48,11 +28,18 @@ object Editions {
     */
   def writeEditionConfig(
     editionsRoot: File,
+    editionTemplate: File,
     ensoVersion: String,
     editionName: String,
     libraryVersion: String,
     log: Logger
   ): Unit = {
+    if (!editionTemplate.exists()) {
+      log.error(
+        s"Edition template file [${editionTemplate.getAbsolutePath}] does " +
+        s"not exist. Skipping edition generation."
+      )
+    }
     IO.createDirectory(editionsRoot)
     val edition = editionsRoot / (editionName + extension)
 
@@ -63,30 +50,26 @@ object Editions {
       }
     }
 
+    val templateContent = IO.read(editionTemplate)
+    val comment =
+      """
+        |# This file was generated automatically by `project/Editions.scala`.
+        |# Do not edit it directly.
+        |""".stripMargin
     val editionConfigContent = {
-      val standardLibrariesConfigs = standardLibraries.map { libName =>
-        s"""  - name: $libName
-           |    repository: main
-           |    version: $libraryVersion""".stripMargin
+      val replaced = templateContent
+        .replaceAll("\\{\\{ENGINE_VERSION}}", ensoVersion)
+        .replaceAll("\\{\\{LIBS_VERSION}}", libraryVersion)
+        .replaceAll("\\{\\{MAIN_REPO_URL}}", mainLibraryRepositoryUrl)
+        .replaceAll("\\{\\{STD_IMAGE_REPO_URL}}", stdImageRepositoryUrl)
+      val allVarsReplaced = !replaced.contains("{{")
+      if (!allVarsReplaced) {
+        log.error(
+          s"Not all template variables were replaced in edition template " +
+          s"[${editionTemplate.getAbsolutePath}]."
+        )
       }
-
-      val contribLibrariesConfigs = contribLibraries.map { libName =>
-        s"""  - name: $libName
-           |    repository: main
-           |    version: $libraryVersion""".stripMargin
-      }
-
-      val librariesConfigs = standardLibrariesConfigs ++ contribLibrariesConfigs
-
-      val editionConfig =
-        s"""engine-version: $ensoVersion
-           |repositories:
-           |  - name: main
-           |    url: $mainLibraryRepositoryUrl
-           |libraries:
-           |${librariesConfigs.mkString("\n")}
-           |""".stripMargin
-      editionConfig
+      comment + System.lineSeparator() + replaced
     }
 
     val currentContent = if (edition.exists()) Some(IO.read(edition)) else None

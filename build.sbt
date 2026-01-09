@@ -4706,11 +4706,12 @@ lazy val editions = project
       .dependsOn(
         Def.task {
           Editions.writeEditionConfig(
-            editionsRoot   = file("distribution") / "editions",
-            ensoVersion    = ensoVersion,
-            editionName    = currentEdition,
-            libraryVersion = stdLibVersion,
-            log            = streams.value.log
+            editionsRoot    = file("distribution") / "editions",
+            editionTemplate = file("distribution") / "edition.template.yaml",
+            ensoVersion     = ensoVersion,
+            editionName     = currentEdition,
+            libraryVersion  = stdLibVersion,
+            log             = streams.value.log
           )
         }
       )
