@@ -222,6 +222,9 @@ export function createGraphStore(
     return imm
   })
 
+  if (module.root) {
+    db.updateExternalIds(module.root)
+  }
   const unobserveModule = module.observe((update) => {
     if (
       module.root &&
