@@ -49,12 +49,14 @@ public class NativeLibraryFinderTest {
     // Evaluate dummy sources to force loading Standard.Image
     ctxRule.evalModule(
         """
-        from Enso.Image import all
+        from Standard.Image import all
         main = 42
         """);
     var ensoCtx = ctxRule.ensoContext();
     var stdImg =
-        ensoCtx.getPackageRepository().getPackageForLibraryJava(LibraryName.apply("Enso", "Image"));
+        ensoCtx
+            .getPackageRepository()
+            .getPackageForLibraryJava(LibraryName.apply("Standard", "Image"));
     assertThat(stdImg.isPresent(), is(true));
     this.stdImgPkg = stdImg.get();
     var nativeLibs =
