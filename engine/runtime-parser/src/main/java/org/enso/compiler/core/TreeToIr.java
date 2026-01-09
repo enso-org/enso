@@ -1091,7 +1091,7 @@ final class TreeToIr {
           if (last instanceof IfThenElse previous && previous.falseBranchOrNull() == null) {
             if (next instanceof IfThenElse other && other.isOnlyElse()) {
               var replacement =
-                  IfThenElse.builder(other).falseBranchOrNull(other.falseBranchOrNull()).build();
+                  IfThenElse.builder(previous).falseBranchOrNull(other.falseBranchOrNull()).build();
               next = replacement;
               last = null;
             }

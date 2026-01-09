@@ -689,4 +689,24 @@ public class ExecCompilerTest {
           containsString("error: Missing else branch."));
     }
   }
+
+  @Test
+  public void ifThenElseInABlockApplication() throws Exception {
+    var code =
+        """
+        act n a b =
+          fn = (* 2)
+          fn
+              if n<5 then
+                  a+b
+              else
+                  a*b
+        """;
+
+    var module = ctxRule.eval(LanguageInfo.ID, code);
+    var act = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "act");
+
+    assertEquals(26, act.execute(3, 6, 7).asInt());
+    assertEquals(84, act.execute(7, 6, 7).asInt());
+  }
 }
