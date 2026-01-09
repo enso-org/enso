@@ -1,0 +1,8 @@
+from Standard.Base import all
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+
+from Standard.Table import Column
+from Standard.Table.Errors import all
+
+Column.round_pure_column_ops self decimal_places:Integer=0 (rounding_mode : Rounding_Mode = ..Half_Up) -> Column & Any ! Illegal_Argument | Invalid_Value_Type =
+    self.implementation.round_pure_column_ops self decimal_places rounding_mode
