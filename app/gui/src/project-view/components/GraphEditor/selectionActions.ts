@@ -55,23 +55,23 @@ export function selectionActionHandlers(
       enabled: computed(() => multipleNodesSelected.value && atLeastOneComponent.value),
     },
     'components.alignLeft': {
-      enabled: computed(() => multipleNodesSelected.value && atLeastOneComponent.value),
+      enabled: computed(() => multipleNodesSelected.value),
       action: action('alignLeftNodes'),
     },
     'components.alignRight': {
-      enabled: computed(() => multipleNodesSelected.value && atLeastOneComponent.value),
+      enabled: computed(() => multipleNodesSelected.value),
       action: action('alignRightNodes'),
     },
     'components.alignTop': {
-      enabled: computed(() => multipleNodesSelected.value && atLeastOneComponent.value),
+      enabled: computed(() => multipleNodesSelected.value),
       action: action('alignTopNodes'),
     },
     'components.alignBottom': {
-      enabled: computed(() => multipleNodesSelected.value && atLeastOneComponent.value),
+      enabled: computed(() => multipleNodesSelected.value),
       action: action('alignBottomNodes'),
     },
     'components.alignCenter': {
-      enabled: computed(() => multipleNodesSelected.value && atLeastOneComponent.value),
+      enabled: computed(() => multipleNodesSelected.value),
       action: action('alignCenterNodes'),
     },
     'components.deleteAndConnectAround': {
