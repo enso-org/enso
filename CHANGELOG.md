@@ -5,10 +5,12 @@
 - [Using dual JVM mode for Standard.Microsoft][14476].
 - [Standard.Test pending field is lazy][14536].
 - [Using dual JVM mode for Standard.AWS][14568].
+- [Polishing Standard.Test API][14599].
 
 [14476]: https://github.com/enso-org/enso/pull/14476
 [14536]: https://github.com/enso-org/enso/pull/14536
 [14568]: https://github.com/enso-org/enso/pull/14568
+[14599]: https://github.com/enso-org/enso/pull/14599
 
 #### Enso Language & Runtime
 
