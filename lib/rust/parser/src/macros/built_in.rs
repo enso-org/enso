@@ -360,7 +360,7 @@ fn parse_case<'s>(
         } else {
             None
         };
-        let op = items.pop().unwrap().into_token().unwrap();
+        let op = items.pop().unwrap().try_into_token().unwrap();
         arrow = Some(op.with_variant(token::variant::ArrowOperator()));
         pattern = expression_parser.parse(items).map(expression_to_pattern);
     } else {
@@ -466,7 +466,7 @@ fn sequence<'s>(
                 let operator = tokens
                     .pop()
                     .unwrap()
-                    .into_token()
+                    .try_into_token()
                     .unwrap()
                     .with_variant(token::variant::Operator());
                 rest.push(OperatorDelimitedTree { operator, body });

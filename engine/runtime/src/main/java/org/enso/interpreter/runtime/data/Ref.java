@@ -6,13 +6,19 @@ import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import org.enso.interpreter.dsl.Builtin;
+import org.enso.interpreter.dsl.Suspend;
 import org.enso.interpreter.runtime.builtin.BuiltinObject;
+import org.enso.interpreter.runtime.callable.function.Function;
 
 /** A mutable reference type. */
 @ExportLibrary(InteropLibrary.class)
 @Builtin(pkg = "mutable", stdlibName = "Standard.Base.Runtime.Ref.Ref")
 public final class Ref extends BuiltinObject {
   private volatile Object value;
+
+  private Ref(Object v) {
+    this.value = v;
+  }
 
   @Override
   protected String builtinName() {
@@ -25,17 +31,12 @@ public final class Ref extends BuiltinObject {
    * @param value the initial value to store in the reference.
    */
   @Builtin.Method(description = "Creates a new Ref", autoRegister = false)
-  public Ref(Object value) {
-    this.value = value;
+  public static Ref alloc(@Suspend Object value) {
+    return new Ref(value);
   }
 
-  /**
-   * @return the current value of the reference.
-   */
-  @Builtin.Method(name = "get", description = "Gets the value stored in the reference")
-  @SuppressWarnings("generic-enso-builtin-type")
-  public Object getValue() {
-    return value;
+  final boolean needsEval() {
+    return value instanceof Function fn && fn.isFullyApplied();
   }
 
   /**
@@ -46,9 +47,9 @@ public final class Ref extends BuiltinObject {
    */
   @Builtin.Method(name = "put", description = "Stores a new value in the reference")
   @SuppressWarnings("generic-enso-builtin-type")
-  public Object setValue(Object value) {
-    Object old = this.value;
-    this.value = value;
+  public static Object putValue(Ref ref, Object value) {
+    Object old = ref.value;
+    ref.value = value;
     return old;
   }
 
@@ -63,5 +64,9 @@ public final class Ref extends BuiltinObject {
   @ExportMessage.Ignore
   public Object toDisplayString(boolean allowSideEffects) {
     return toDisplayString(allowSideEffects, InteropLibrary.getUncached());
+  }
+
+  final Object value() {
+    return value;
   }
 }

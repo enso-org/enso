@@ -2,6 +2,8 @@ from Standard.Base import all
 from Standard.Test import all
 from Standard.Table import all
 
+import Standard.Base.Runtime.Ref.Ref
+
 from Standard.Database.Errors import Unsupported_Database_Operation
 import Standard.Database.Dialects.Feature.Feature
 from Standard.Base.Errors.Common import Floating_Point_Equality
@@ -28,10 +30,16 @@ add_specs suite_builder setup =
 add_offset_specs suite_builder setup =
     prefix = setup.prefix
     build_sorted_table = Util.build_sorted_table setup
-    t = build_sorted_table [["A", [1, 2, 3]], ["B", [Nothing, Nothing, Nothing], Value_Type.Integer], ["Text Values", ["A", "B", "C"]]]
-    c = t.at 0 
-    c_nothings = t.at 1
-    c_zero_rows = t.take 0 . at 0
+    t_ref = Ref.new lazy=True <|
+        build_sorted_table [["A", [1, 2, 3]], ["B", [Nothing, Nothing, Nothing], Value_Type.Integer], ["Text Values", ["A", "B", "C"]]]
+    t =
+        t_ref.get
+    c =
+        t.at 0
+    c_nothings =
+        t.at 1
+    c_zero_rows =
+        t.take 0 . at 0
     if setup.is_database then suite_builder.group prefix+"Column.Offset does not work in database" group_builder->
         group_builder.specify "Gives an error message" <|
             r = c.offset
@@ -165,7 +173,10 @@ add_offset_specs suite_builder setup =
             r.to_vector . should_equal [Nothing, Nothing, Nothing]
     suite_builder.group prefix+"Table.Offset with default fill strategy" group_builder->
         colA = ["A", [1, 2, 3]]
-        t1 = build_sorted_table [colA]
+        t1_ref = Ref.new lazy=True <|
+            build_sorted_table [colA]
+        t1 =
+            t1_ref.get
         group_builder.specify "Works with default values" <|
             t1.offset ["A"] . should_equal ignore_order=setup.is_database
                 Table.new [colA, ["offset([A], -1, ..Nothing)", [Nothing, 1, 2]]]
@@ -192,7 +203,10 @@ add_offset_specs suite_builder setup =
                 Table.new [["A", [], Value_Type.Integer], ["B", [], Value_Type.Integer], ["offset([A], -1, ..Nothing)", [], Value_Type.Integer]]
     suite_builder.group prefix+"Table.Offset with default fill strategy (Text Values)" group_builder->
         colText = ["Text Values", ["A", "B", "C"]]
-        t1 = build_sorted_table [colText]
+        t1_ref = Ref.new lazy=True <| 
+            build_sorted_table [colText]
+        t1 =
+            t1_ref.get
         group_builder.specify "Works with default values" <|
             t1.offset ["Text Values"] . should_equal ignore_order=setup.is_database
                 Table.new [colText, ["offset([Text Values], -1, ..Nothing)", [Nothing, "A", "B"]]]
@@ -208,7 +222,10 @@ add_offset_specs suite_builder setup =
     suite_builder.group prefix+"Table.Offset with closest value fill strategy" group_builder->
         colA = ["A", [1, 2, 3]]
         colB = ["B", [Nothing, Nothing, Nothing], Value_Type.Integer]
-        t1 = build_sorted_table [colA, colB]
+        t1_ref = Ref.new lazy=True <|
+            build_sorted_table [colA, colB]
+        t1 =
+            t1_ref.get
         group_builder.specify "Negative n shifts the values down" <|
             t1.offset ["A"] -1 ..Closest_Value . should_equal ignore_order=setup.is_database
                 Table.new [colA, colB, ["offset([A], -1, ..Closest_Value)", [1, 1, 2]]]
@@ -236,14 +253,20 @@ add_offset_specs suite_builder setup =
     if setup.is_database then suite_builder.group prefix+"Table.Offset with wrap around fill strategy" group_builder->
         colA = ["A", [1, 2, 3]]
         colB = ["B", [Nothing, Nothing, Nothing], Value_Type.Integer]
-        t1 = build_sorted_table [colA, colB]
+        t1_ref = Ref.new lazy=True <| 
+            build_sorted_table [colA, colB]
+        t1 =
+            t1_ref.get
         group_builder.specify "Reports unsupported for in database" <|
             r = t1.offset ["A"] -1 ..Wrap_Around
             r.should_fail_with (Unsupported_Database_Operation.Error "offset with Fill_With.Wrap_Around")
     if setup.is_database.not then suite_builder.group prefix+"Table.Offset with wrap around fill strategy" group_builder->
         colA = ["A", [1, 2, 3]]
         colB = ["B", [Nothing, Nothing, Nothing], Value_Type.Integer]
-        t1 = build_sorted_table [colA, colB]
+        t1_ref = Ref.new lazy=True <|
+            build_sorted_table [colA, colB]
+        t1 =
+            t1_ref.get
         group_builder.specify "Negative n shifts the values down" <|
             t1.offset ["A"] -1 ..Wrap_Around . should_equal ignore_order=setup.is_database
                 Table.new [colA, colB, ["offset([A], -1, ..Wrap_Around)", [3, 1, 2]]]
@@ -283,7 +306,10 @@ add_offset_specs suite_builder setup =
     suite_builder.group prefix+"Table.Offset works with grouping - default fill strategy" group_builder->
         groupColumn = ["Group", ["A", "A", "A", "B", "B", "B", "B", "C", "C"]]
         dataCol = ["Col", [1, 2, 3, 1, 2, 3, 4, 1, 2]]
-        t2 = build_sorted_table [groupColumn, dataCol]
+        t2_ref = Ref.new lazy=True <|
+            build_sorted_table [groupColumn, dataCol]
+        t2 =
+            t2_ref.get
         group_builder.specify "Negative n shifts the values down" <|
             t2.offset ["Col"] -1 ..Nothing group_by=["Group"] . should_equal ignore_order=setup.is_database
                 Table.new [groupColumn, dataCol, ["offset([Col], -1, ..Nothing)", [Nothing, 1, 2, Nothing, 1, 2, 3, Nothing, 1]]]
@@ -308,7 +334,10 @@ add_offset_specs suite_builder setup =
     suite_builder.group prefix+"Table.Offset works with grouping - closest fill strategy" group_builder->
         groupColumn = ["Group", ["A", "A", "A", "B", "B", "B", "B", "C", "C"]]
         dataCol = ["Col", [1, 2, 3, 10, 20, 30, 40, 100, 200]]
-        t2 = build_sorted_table [groupColumn, dataCol]
+        t2_ref = Ref.new lazy=True <|
+            build_sorted_table [groupColumn, dataCol]
+        t2 =
+            t2_ref.get
         group_builder.specify "Negative n shifts the values down" <|
             t2.offset ["Col"] -1 ..Closest_Value group_by=["Group"] . should_equal ignore_order=setup.is_database
                 Table.new [groupColumn, dataCol, ["offset([Col], -1, ..Closest_Value)", [1, 1, 2, 10, 10, 20, 30, 100, 100]]]
@@ -333,7 +362,10 @@ add_offset_specs suite_builder setup =
     if setup.is_database.not then suite_builder.group prefix+"Table.Offset works with grouping - wrap around fill strategy" group_builder->
         groupColumn = ["Group", ["A", "A", "A", "B", "B", "B", "B", "C", "C"]]
         dataCol = ["Col", [1, 2, 3, 1, 2, 3, 4, 1, 2]]
-        t2 = build_sorted_table [groupColumn, dataCol]
+        t2_ref = Ref.new lazy=True <|
+            build_sorted_table [groupColumn, dataCol]
+        t2 =
+            t2_ref.get
         group_builder.specify "Negative n shifts the values down" <|
             t2.offset ["Col"] -1 ..Wrap_Around group_by=["Group"] . should_equal ignore_order=setup.is_database
                 Table.new [groupColumn, dataCol, ["offset([Col], -1, ..Wrap_Around)", [3, 1, 2, 4, 1, 2, 3, 2, 1]]]
@@ -358,7 +390,10 @@ add_offset_specs suite_builder setup =
     suite_builder.group prefix+"Table.Offset works with ordering - default fill strategy" group_builder->
         orderColumn = ["Order", [1, 4, 2, 5, 3]]
         dataCol = ["Col", ["A", "D", "B", "E", "C"]]
-        t2 = build_sorted_table [orderColumn, dataCol]
+        t2_ref = Ref.new lazy=True <|
+            build_sorted_table [orderColumn, dataCol]
+        t2 =
+            t2_ref.get
         group_builder.specify "Negative n shifts the values down" <|
             t2.offset ["Col"] -1 ..Nothing order_by=["Order"] . should_equal ignore_order=setup.is_database
                 Table.new [orderColumn, dataCol, ["offset([Col], -1, ..Nothing)", [Nothing, "C", "A", "D", "B"]]]
@@ -383,7 +418,10 @@ add_offset_specs suite_builder setup =
     suite_builder.group prefix+"Table.Offset works with ordering - closest fill strategy" group_builder->
         orderColumn = ["Order", [1, 4, 2, 5, 3]]
         dataCol = ["Col", ["A", "D", "B", "E", "C"]]
-        t2 = build_sorted_table [orderColumn, dataCol]
+        t2_ref = Ref.new lazy=True <|
+            build_sorted_table [orderColumn, dataCol]
+        t2 =
+            t2_ref.get
         group_builder.specify "Negative n shifts the values down" <|
             t2.offset ["Col"] -1 ..Closest_Value order_by=["Order"] . should_equal ignore_order=setup.is_database
                 Table.new [orderColumn, dataCol, ["offset([Col], -1, ..Closest_Value)", ["A", "C", "A", "D", "B"]]]
@@ -408,7 +446,10 @@ add_offset_specs suite_builder setup =
     if setup.is_database.not then suite_builder.group prefix+"Table.Offset works with ordering - wrap around fill strategy" group_builder->
         orderColumn = ["Order", [1, 4, 2, 5, 3]]
         dataCol = ["Col", ["A", "D", "B", "E", "C"]]
-        t2 = build_sorted_table [orderColumn, dataCol]
+        t2_ref = Ref.new lazy=True <|
+            build_sorted_table [orderColumn, dataCol]
+        t2 =
+            t2_ref.get
         group_builder.specify "Negative n shifts the values down" <|
             t2.offset ["Col"] -1 ..Wrap_Around order_by=["Order"] . should_equal ignore_order=setup.is_database
                 Table.new [orderColumn, dataCol, ["offset([Col], -1, ..Wrap_Around)", ["E", "C", "A", "D", "B"]]]
@@ -433,10 +474,13 @@ add_offset_specs suite_builder setup =
     suite_builder.group prefix+"Table.Offset works with multiple columns" group_builder->
         col1 = ["Col1", ["A", "B", "C", "D"]]
         col2 = ["Col2", [1, 2, 3, 4]]
-        t2 = build_sorted_table [col1, col2]
+        t2_ref = Ref.new lazy=True <|
+            build_sorted_table [col1, col2]
+        t2 =
+            t2_ref.get
         group_builder.specify "Negative n shifts the values down" <|
             t2.offset ["Col1", "Col2"] -1 ..Nothing . should_equal ignore_order=setup.is_database
-                Table.new [col1, col2, ["offset([Col1], -1, ..Nothing)", [Nothing, "A", "B", "C"]], ["offset([Col2], -1, ..Nothing)", [Nothing, 1, 2, 3]]]           
+                Table.new [col1, col2, ["offset([Col1], -1, ..Nothing)", [Nothing, "A", "B", "C"]], ["offset([Col2], -1, ..Nothing)", [Nothing, 1, 2, 3]]]
         group_builder.specify "Positive n shifts the values up" <|
             t2.offset ["Col1", "Col2"] 1 ..Nothing . should_equal ignore_order=setup.is_database
                 Table.new [col1, col2, ["offset([Col1], 1, ..Nothing)", ["B", "C", "D", Nothing]], ["offset([Col2], 1, ..Nothing)", [2, 3, 4, Nothing]]]
@@ -458,7 +502,10 @@ add_offset_specs suite_builder setup =
     suite_builder.group prefix+"Table.Offset works with multiple columns - updating in place" group_builder->
         col1 = ["Col1", ["A", "B", "C", "D"]]
         col2 = ["Col2", [1, 2, 3, 4]]
-        t2 = build_sorted_table [col1, col2]
+        t2_ref = Ref.new lazy=True <|
+            build_sorted_table [col1, col2]
+        t2 =
+            t2_ref.get
         group_builder.specify "Negative n shifts the values down" <|
             t2.offset ["Col1", "Col2"] -1 ..Nothing set_mode=..Update . should_equal ignore_order=setup.is_database
                 Table.new [["Col1", [Nothing, "A", "B", "C"]], ["Col2", [Nothing, 1, 2, 3]]]
@@ -484,8 +531,14 @@ add_offset_specs suite_builder setup =
             t2.offset ["Col1", "Col2"] -1 ..Nothing set_mode=..Add_Or_Update . should_equal ignore_order=setup.is_database
                 Table.new [["Col1", [Nothing, "A", "B", "C"]], ["Col2", [Nothing, 1, 2, 3]]]
     suite_builder.group prefix+"Table.Offset handles bad inputs gracefully" group_builder->
-        t2 = build_sorted_table [["Col1", ["A", "B", "C", "D"]], ["Col2", [1, 2, 3, 4]]]
-        t3 = build_sorted_table [["Group", [1.1, 1.1, 1.1, 1.1]], ["Col2", [1, 2, 3, 4]]]
+        t2_ref = Ref.new lazy=True <|
+            build_sorted_table [["Col1", ["A", "B", "C", "D"]], ["Col2", [1, 2, 3, 4]]]
+        t2 =
+            t2_ref.get
+        t3_ref = Ref.new lazy=True <|
+            build_sorted_table [["Group", [1.1, 1.1, 1.1, 1.1]], ["Col2", [1, 2, 3, 4]]]
+        t3 =
+            t3_ref.get
         group_builder.specify "Missing offset columns error" <|
             r = t2.offset
             r.should_fail_with Missing_Argument
@@ -509,6 +562,3 @@ add_offset_specs suite_builder setup =
             r = t3.offset ["Col2"] group_by=["Group"] on_problems=..Ignore
             Warning.get_all r wrap_errors=True . should_equal []
             r . at "offset([Col2], -1, ..Nothing)" .  to_vector . should_equal [Nothing, 1, 2, 3]
-        
-
-

@@ -73,6 +73,7 @@ esbuild(
         "utf-8-validate",
         "encoding",
         "supports-color",
+        "original-fs",
     ],
     format = "esm",
     output_dir = True,

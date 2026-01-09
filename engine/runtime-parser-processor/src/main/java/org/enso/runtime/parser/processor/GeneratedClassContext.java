@@ -137,6 +137,14 @@ public final class GeneratedClassContext {
     return processedClass;
   }
 
+  /**
+   * Returns qualified name of the class that is being processed. More specifically of the class
+   * that is annotated with {@link org.enso.runtime.parser.dsl.GenerateIR}.
+   */
+  public String getProcessedClassName() {
+    return processedClass.getClazz().getQualifiedName().toString();
+  }
+
   public TypeElement getSuperClass() {
     var clazz = getProcessedClass().getClazz().getSuperclass();
     var superClassType = getProcessingEnvironment().getTypeUtils().asElement(clazz);
@@ -230,7 +238,7 @@ public final class GeneratedClassContext {
     }
 
     String simpleTypeName() {
-      return Utils.simpleTypeName(type);
+      return Utils.qualifiedTypeName(type);
     }
   }
 }

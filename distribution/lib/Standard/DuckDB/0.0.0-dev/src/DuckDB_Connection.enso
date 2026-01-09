@@ -682,7 +682,8 @@ type DuckDB_Connection
 
        ## Returns
        A new DuckDB_Connection connected to the written database.
-    write_database : Text -> Boolean -> Existing_File_Behavior -> DuckDB_Connection
+    @path Text_Input display=..Always
+    write_database : Writable_File -> Boolean -> Existing_File_Behavior -> DuckDB_Connection
     write_database self (path:Writable_File=Missing_Argument.throw "path") schema_only:Boolean=False on_existing_file:Existing_File_Behavior=..Backup =
         ## Check a local file (to do add support for non-local files later)
         if path.is_local.not then Error.throw (Illegal_Argument.Error "Only local files are currently supported for writing DuckDB databases. Write to a local file and then copy it to the desired location.")

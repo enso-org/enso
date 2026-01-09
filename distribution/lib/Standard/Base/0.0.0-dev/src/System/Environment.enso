@@ -1,8 +1,9 @@
-import project.Any.Any
+import project.Data.Dictionary.Dictionary
 import project.Data.Text.Text
 import project.Nothing.Nothing
+import project.Runtime.State
 
-polyglot java import org.enso.base.Environment_Utils
+polyglot java import java.lang.System as Java_System
 
 ## ---
    aliases: [read environment]
@@ -23,8 +24,11 @@ polyglot java import org.enso.base.Environment_Utils
 
          example_get = Environment.get "PATH"
    ```
-get : Text -> Any -> Text | Nothing
-get key ~if_missing=Nothing =
-    case Environment_Utils.get_environment_variable key of
-        Nothing -> if_missing
-        value -> value
+get key:Text ~if_missing:Text|Nothing=Nothing -> (Text|Nothing) =
+    mock_dict = State.get Environment if_missing=Nothing
+    mock_value = if mock_dict == Nothing then Nothing else
+        (mock_dict:Dictionary).get key
+    value = if mock_value != Nothing then mock_value else
+        Java_System.getenv key
+    if value != Nothing then value else
+        if_missing

@@ -66,6 +66,8 @@ type Simple_Expression
             Simple_Calculation.Text_Left length -> input_column.text_left (table.resolve length)
             Simple_Calculation.Text_Right length -> input_column.text_right (table.resolve length)
             Simple_Calculation.Text_Length -> input_column.text_length
+            Simple_Calculation.First_Of_Month -> input_column.first_of_month
+            Simple_Calculation.End_Of_Month -> input_column.end_of_month
             Simple_Calculation.Format format -> input_column.format format
             Simple_Calculation.If condition true_value false_value ->
                 condition_column = case condition of
@@ -443,6 +445,12 @@ type Simple_Calculation
 
     ## Returns the character length of the input column.
     Text_Length
+
+    ## Returns the first day of the month for each date in the column.
+    First_Of_Month
+
+    ## Returns the last day of the month for each date in the column.
+    End_Of_Month
 
     ## Formats a column with the specified format.
     Format (format : Text = "")

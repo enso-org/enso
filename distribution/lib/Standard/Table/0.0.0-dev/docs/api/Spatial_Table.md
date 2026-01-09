@@ -15,6 +15,9 @@
     - Touches left:(Standard.Base.Data.Text.Text|Standard.Base.Data.Numbers.Integer)= right:(Standard.Base.Data.Text.Text|Standard.Base.Data.Numbers.Integer)=
     - Within left:(Standard.Base.Data.Text.Text|Standard.Base.Data.Numbers.Integer)= right:(Standard.Base.Data.Text.Text|Standard.Base.Data.Numbers.Integer)=
 - type Spatial_Table
+    - as_spatial_column self column:Standard.Table.Column.Column -> Standard.Base.Any.Any
+    - read_as_geojson self max_rows:Standard.Table.Rows_To_Read.Rows_To_Read= -> (Standard.Table.Table.Table&Standard.Base.Any.Any)
+    - read_as_wkt self max_rows:Standard.Table.Rows_To_Read.Rows_To_Read= -> (Standard.Table.Table.Table&Standard.Base.Any.Any)
     - spatial_columns self -> Standard.Base.Any.Any
     - st_area self column:(Standard.Table.Column.Column|Standard.Table.Expression.Expression|Standard.Base.Data.Text.Text|Standard.Base.Data.Numbers.Integer)= as:Standard.Base.Data.Text.Text= -> Standard.Base.Any.Any
     - st_centroid self column:(Standard.Table.Column.Column|Standard.Table.Expression.Expression|Standard.Base.Data.Text.Text|Standard.Base.Data.Numbers.Integer)= as:Standard.Base.Data.Text.Text= -> Standard.Base.Any.Any

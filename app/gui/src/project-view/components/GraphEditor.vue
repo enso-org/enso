@@ -7,7 +7,6 @@ import {
   useSuggestionDbStore,
   useWidgetRegistry,
 } from '$/components/WithCurrentProject.vue'
-import { useContainerData } from '$/providers/container'
 import type { Node, NodeId } from '$/providers/openedProjects/graph'
 import { isInputNode, nodeId } from '$/providers/openedProjects/graph/graphDatabase'
 import type { RequiredImport } from '$/providers/openedProjects/module/imports'
@@ -28,6 +27,7 @@ import { performCollapse, prepareCollapsedInfo } from '@/components/GraphEditor/
 import { useGraphEditorClipboard } from '@/components/GraphEditor/graphClipboard'
 import type { NodeCreationOptions } from '@/components/GraphEditor/nodeCreation'
 import { selectionActionHandlers } from '@/components/GraphEditor/selectionActions'
+import { createSelectionAlignmentHandlers } from '@/components/GraphEditor/selectionAlignment'
 import { useGraphEditorToasts } from '@/components/GraphEditor/toasts'
 import { uploadedExpression, Uploader } from '@/components/GraphEditor/upload'
 import GraphMissingView from '@/components/GraphMissingView.vue'
@@ -80,11 +80,10 @@ import { provideRenameSchedule } from './GraphEditor/widgets/WidgetFunctionName.
 
 const keyboard = injectKeyboard()
 const rightPanel = useRightPanelData()
-const containerData = useContainerData()
 const projectStore = useProjectStore()
 const projectNames = useProjectNames()
 const graphStore = useGraphStore()
-const { id: assetId, module } = useCurrentProject()
+const { id: assetId, module, ensoPath } = useCurrentProject()
 const widgetRegistry = useWidgetRegistry()
 const suggestionDb = useSuggestionDbStore()
 provideVisualizationStore(projectStore)
@@ -313,7 +312,7 @@ const actionHandlers = registerHandlers({
       })
     },
   },
-  'graph.pasteNode': { action: () => createNodesFromClipboard() },
+  'graph.pasteNode': { action: createNodesFromClipboard },
   'graph.openDocumentation': {
     action: () => {
       const result = tryGetSelectionDocUrl()
@@ -345,6 +344,7 @@ const actionHandlers = registerHandlers({
     {
       collapseNodes,
       copyNodesToClipboard,
+      ...createSelectionAlignmentHandlers(graphStore, module),
       deleteNodes: (nodes) => graphStore.deleteNodes(nodes.map(nodeId)),
       deleteAndConnectAround: (nodes) => {
         return module.value.edit(async (edit) => {
@@ -438,7 +438,7 @@ const displayedDocs = computed(() =>
 )
 
 watchEffect(() => {
-  rightPanel.setContext(containerData.tab, {
+  rightPanel.setContext(ensoPath.value, {
     item: assetId.value,
     help: { item: displayedDocs.value, aiMode: aiMode.value },
   })
@@ -687,6 +687,7 @@ const contextMenuActions: DisplayableActionName[] = [
   'graph.redo',
   'graph.addComponent',
   'graph.fitAll',
+  'graph.pasteNode',
   'graph.toggleCodeEditor',
   'graph.toggleDocumentationEditor',
 ]
@@ -764,7 +765,7 @@ const contextMenuActions: DisplayableActionName[] = [
 .vertical {
   display: flex;
   flex-direction: column;
-  & .bottomPanel {
+  & :deep(.bottomPanel) {
     flex: none;
   }
   & .viewportPanel {

@@ -10,6 +10,6 @@
     "outDir": "dist",
     "rootDir": "src"
   },
-  "include": ["src", "./src/text/english.json"],
+  "include": ["./src", "./src/text/english.json"],
   "exclude": []
 }

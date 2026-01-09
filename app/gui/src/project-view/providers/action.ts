@@ -76,6 +76,26 @@ const displayableActions = {
     description: 'Color Selected Components',
     shortcut: graphBindings.bindings['components.pickColorMulti'],
   },
+  'components.alignLeft': {
+    icon: 'align_left',
+    description: 'Align Selected Components Left',
+  },
+  'components.alignRight': {
+    icon: 'align_right',
+    description: 'Align Selected Components Right',
+  },
+  'components.alignTop': {
+    icon: 'align_top',
+    description: 'Align Selected Components Top',
+  },
+  'components.alignBottom': {
+    icon: 'align_bottom',
+    description: 'Align Selected Components Bottom',
+  },
+  'components.alignCenter': {
+    icon: 'align_center',
+    description: 'Center Selected Components Horizontally',
+  },
   'components.deleteAndConnectAround': {
     icon: 'graph',
     description: 'Delete and Connect Around',
@@ -210,6 +230,11 @@ const displayableActions = {
     icon: 'trash',
     description: 'Delete Selected Connection',
     shortcut: graphBindings.bindings['graph.deleteSelectedEdge'],
+  },
+  'graph.pasteNode': {
+    icon: 'paste',
+    description: 'Paste Component',
+    shortcut: graphBindings.bindings['graph.pasteNode'],
   },
 
   // === File Browser ===
@@ -346,9 +371,6 @@ const undisplayableActions = {
   },
   'graph.deselectAll': {
     shortcut: graphBindings.bindings['graph.deselectAll'],
-  },
-  'graph.pasteNode': {
-    shortcut: graphBindings.bindings['graph.pasteNode'],
   },
   'graph.startProfiling': {
     shortcut: graphBindings.bindings['graph.startProfiling'],

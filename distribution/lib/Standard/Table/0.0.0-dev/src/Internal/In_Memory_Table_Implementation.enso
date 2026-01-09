@@ -61,6 +61,7 @@ import project.Join_Kind.Join_Kind
 import project.Match_Columns.Match_Columns
 import project.Position.Position
 import project.Prefix_Name.Prefix_Name
+import project.Refined_Types.Spatial_Column.Spatial_Column
 import project.Row.Row
 import project.Row_Limit.Row_Limit
 import project.Rows_To_Read.Rows_To_Read
@@ -763,6 +764,10 @@ type In_Memory_Table_Implementation
     spatial_columns (this_table : Table & In_Memory_Table) =
         _ = this_table
         []
+
+    as_spatial_column (this_table : Table & In_Memory_Table) (column : Column) =
+        _ = [this_table, column]
+        Panic.throw (Type_Error.Error Spatial_Column column "Spatial functions are not currently implemented for in-memory tables.")
 
     spatial_point (this_table : Table & In_Memory_Table) (longitude : Column) (latitude : Column) (as : Text) =
         _ = [this_table, longitude, latitude, as]

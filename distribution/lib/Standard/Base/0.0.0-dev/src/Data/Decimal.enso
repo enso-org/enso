@@ -5,6 +5,7 @@ import project.Data.Numeric.Math_Context.Math_Context
 import project.Data.Numeric.Rounding_Mode.Rounding_Mode
 import project.Data.Text.Text
 import project.Data.Vector.Vector
+import project.Data.Pair.Pair
 import project.Error.Error
 import project.Errors.Deprecated.Deprecated
 import project.Errors.Illegal_Argument.Illegal_Argument
@@ -1467,8 +1468,10 @@ Float.from (that : Decimal) =
 ## ---
    private: true
    ---
-   Helper method allowing access to the backing field.
-get_big_decimal (that : Decimal) = that.big_decimal
+   Returns two numbers: the actual value and the scale associated to it
+
+value_with_scale (that : Decimal) -> Pair Integer Integer =
+    Pair.new that.big_decimal.unscaledValue that.big_decimal.scale
 
 ## ---
    private: true

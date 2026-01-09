@@ -6,8 +6,8 @@ import project.Meta
 import project.Runtime
 from project.Data.Boolean import False, True
 from project.Error import all
-from project.Nothing import all
 from project.Internal.Error_Builtins import panic_rethrow
+from project.Nothing import all
 
 polyglot java import java.lang.Throwable
 

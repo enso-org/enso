@@ -6,8 +6,10 @@ import static org.hamcrest.Matchers.is;
 
 import com.oracle.truffle.api.source.Source;
 import java.io.IOException;
+import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import org.enso.common.LanguageInfo;
 import org.enso.common.MethodNames.Module;
 import org.enso.common.RuntimeOptions;
@@ -15,7 +17,6 @@ import org.enso.compiler.core.ir.Diagnostic;
 import org.enso.interpreter.runtime.util.DiagnosticFormatter;
 import org.enso.interpreter.runtime.util.GitHubDiagnosticFormatter;
 import org.enso.test.utils.ContextUtils;
-import org.graalvm.collections.Pair;
 import org.graalvm.polyglot.PolyglotException;
 import org.junit.Assert;
 import org.junit.Before;
@@ -42,7 +43,7 @@ public class DiagnosticFormatterTest {
             |        ^~~\
       """;
 
-  private Pair<Diagnostic, Source> compileExample() throws IOException {
+  private Map.Entry<Diagnostic, Source> compileExample() throws IOException {
     var code = "main = foo";
     var polyglotSrc =
         org.graalvm.polyglot.Source.newBuilder(LanguageInfo.ID, code, "tmp_test.enso").build();
@@ -61,14 +62,14 @@ public class DiagnosticFormatterTest {
     assertThat("There should be just one Diagnostic in main method", diags.size(), is(1));
 
     var src = Source.newBuilder(LanguageInfo.ID, code, "tmp_test").build();
-    return Pair.create(diags.get(0), src);
+    return new AbstractMap.SimpleEntry<>(diags.get(0), src);
   }
 
   @Test
   public void testOneLineDiagnostics() throws IOException {
     var pair = compileExample();
-    var diag = pair.getLeft();
-    var src = pair.getRight();
+    var diag = pair.getKey();
+    var src = pair.getValue();
     var diagFormatter = new DiagnosticFormatter(diag, src, true, false);
     var formattedDiag = diagFormatter.format();
     assertThat(formattedDiag, containsString(exampleExpectedDiagnostics));
@@ -80,8 +81,8 @@ public class DiagnosticFormatterTest {
         "::error line=1,col=8,file=tmp_test,title=Enso Compiler Error @ tmp_test,endCol=10::The"
             + " name `foo` could not be found.";
     var pair = compileExample();
-    var diag = pair.getLeft();
-    var src = pair.getRight();
+    var diag = pair.getKey();
+    var src = pair.getValue();
     var diagFormatter = new GitHubDiagnosticFormatter(diag, src, true, false);
     var formattedDiag = diagFormatter.format();
     assertThat(formattedDiag, containsString(exampleExpectedDiagnostics));

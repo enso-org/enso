@@ -213,7 +213,7 @@ export function Card(props: CardProps) {
         <div className="mt-4">
           <Button
             variant="link"
-            href="https://ensoanalytics.com/pricing"
+            href={`${$config.ENSO_HOST}/pricing`}
             target="_blank"
             icon={OpenInNewTabIcon}
             iconPosition="end"

@@ -64,11 +64,11 @@ impl<'s> Item<'s> {
         }
     }
 
-    /// If this item is a token, return it.
-    pub fn into_token(self) -> Option<Token<'s>> {
+    /// If this item is a token, return it successfully; otherwise, returns it as an error.
+    pub fn try_into_token(self) -> Result<Token<'s>, Item<'s>> {
         match self {
-            Item::Token(token) => Some(token),
-            _ => None,
+            Item::Token(token) => Ok(token),
+            _ => Err(self),
         }
     }
 }

@@ -1,6 +1,5 @@
 package org.enso.runtime.parser.processor.field;
 
-import java.util.List;
 import java.util.function.Function;
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.TypeElement;
@@ -37,8 +36,8 @@ public abstract class Field {
    * Does not return null. If the type is generic, the type parameter is included in the name.
    * Returns non-qualified name.
    */
-  public String getSimpleTypeName() {
-    return Utils.simpleTypeName(type);
+  public String getQualifiedTypeName() {
+    return Utils.qualifiedTypeName(type);
   }
 
   /**
@@ -54,14 +53,6 @@ public abstract class Field {
    * @return
    */
   public abstract boolean isNullable();
-
-  /**
-   * Returns list of (fully-qualified) types that are necessary to import in order to use simple
-   * type names.
-   */
-  public List<String> getImportedTypes() {
-    return Utils.getImportedTypes(type);
-  }
 
   /** Returns true if this field is a scala immutable list. */
   public boolean isList() {
