@@ -93,10 +93,7 @@ test('Align Right button aligns multiple nodes to rightmost position', async ({
   expect(node2NewBBox.y).toBeCloseTo(node2InitialBBox.y, 0)
 })
 
-test('Align Top button aligns multiple nodes to topmost position', async ({
-  editorPage,
-  page,
-}) => {
+test('Align Top button aligns multiple nodes to topmost position', async ({ editorPage, page }) => {
   await editorPage
   const node1 = locate.graphNodeByBinding(page, 'five')
   const node2 = locate.graphNodeByBinding(page, 'sum')
@@ -181,7 +178,7 @@ test('Align Bottom button aligns multiple nodes to bottommost position', async (
   const node1BottomEdge = node1NewBBox.y + node1NewBBox.height
   const node2BottomEdge = node2NewBBox.y + node2NewBBox.height + 150 // visualization height
   expect(node1BottomEdge).toBeCloseTo(node2BottomEdge, 0)
-  
+
   // X positions should remain unchanged
   expect(node1NewBBox.x).toBeCloseTo(node1InitialBBox.x, 0)
   expect(node2NewBBox.x).toBeCloseTo(node2InitialBBox.x, 0)
