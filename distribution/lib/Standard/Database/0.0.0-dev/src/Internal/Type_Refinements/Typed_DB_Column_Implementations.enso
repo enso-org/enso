@@ -171,8 +171,8 @@ type DB_Date_Column_Implementation
 type DB_Date_Time_Column_Implementation
     at_time_zone column time_zone =
         _ = [column, time_zone]
-        Error.throw (Unsupported_Database_Operation "at_time_zone is not supported by database backends.")
+        Error.throw (Unsupported_Database_Operation.Error "at_time_zone is not supported by database backends.")
 
     set_time_zone column time_zone =
         _ = [column, time_zone]
-        Error.throw (Unsupported_Database_Operation "set_time_zone is not supported by database backends.")
+        Error.throw (Unsupported_Database_Operation.Error "set_time_zone is not supported by database backends.")
