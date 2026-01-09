@@ -1,5 +1,8 @@
 from Standard.Base import all
 import Standard.Base.Enso_Cloud.Data_Link_Helpers
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+import Standard.Base.Errors.Illegal_State.Illegal_State
+import Standard.Base.Errors.File_Error.File_Error
 import Standard.Base.Runtime.Context
 import Standard.Base.System.File.Generic.Writable_File.Writable_File
 import Standard.Base.System.File_Format.File_Name_Pattern
@@ -11,6 +14,9 @@ import project.Internal.Java_Problems
 import project.Internal.Telemetry
 from project.In_Memory_Table import from_java_table
 
+polyglot java import java.io.FileNotFoundException
+polyglot java import java.lang.IllegalArgumentException
+polyglot java import java.lang.IllegalStateException
 polyglot java import org.enso.table.read.AlteryxYXDBReader
 
 ## A file format for reading Alteryx YXDB files.
@@ -97,6 +103,14 @@ type Alteryx_Format
 private _read_file path on_problems:Problem_Behavior =
     Data_Link_Helpers.as_file path file->
         Java_Problems.with_problem_aggregator on_problems java_problem_aggregator->
-            java_table = Panic.catch Any handler=_.convert_to_dataflow_error <|
+            java_table = Panic.catch Any handler=handle_java_exceptions <|
                 AlteryxYXDBReader.read file.path java_problem_aggregator
             from_java_table java_table
+
+private handle_java_exceptions caught_panic =
+    error = case caught_panic.payload of
+        ex : IllegalArgumentException -> Illegal_Argument.Error ex.getMessage ex
+        ex : IllegalStateException -> Illegal_State.Error ex.getMessage ex
+        ex : FileNotFoundException -> File_Error.Not_Found ex.getMessage
+        _ -> Illegal_State.Error "Unexpected error reading Alteryx YXDB file." caught_panic.payload
+    Error.throw error
