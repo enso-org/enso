@@ -54,6 +54,7 @@ import org.enso.table.data.table.Column;
 import org.enso.table.data.table.Table;
 import org.enso.table.problems.ProblemAggregator;
 import org.graalvm.polyglot.Context;
+import org.graalvm.polyglot.Value;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -168,7 +169,7 @@ public class HyperFormat {
             dotIdx == -1 ? name.substring(libIdx + 1) : name.substring(libIdx + 1, dotIdx);
         // Windows libs don't have `lib` prefix.
         var libName = osLibName.startsWith("lib") ? osLibName.substring(3) : osLibName;
-        var bindings = Context.getCurrent().getBindings("enso");
+        var bindings = getBindings();
         var found = bindings.invokeMember("find_native_library", libName);
         try {
           if (found == null || found.asString() == null) {
@@ -195,7 +196,7 @@ public class HyperFormat {
             dotIdx == -1 ? name.substring(libIdx + 1) : name.substring(libIdx + 1, dotIdx);
         // Windows libs don't have `lib` prefix.
         var libName = osLibName.startsWith("lib") ? osLibName.substring(3) : osLibName;
-        var bindings = Context.getCurrent().getBindings("enso");
+        var bindings = getBindings();
         var found = bindings.invokeMember("find_native_library", libName);
         try {
           if (found == null || found.asString() == null) {
@@ -586,6 +587,16 @@ public class HyperFormat {
         throw new HyperTypeMismatch(
             columnName, expectedSqlType.toString(), actualSqlType.toString());
       }
+    }
+  }
+
+  private static Value getBindings() {
+    var ctx = Context.getCurrent();
+    var bindings = ctx.getPolyglotBindings().getMember("ensoBindings");
+    if (bindings != null) {
+      return bindings.execute("enso");
+    } else {
+      return ctx.getBindings("enso");
     }
   }
 }
