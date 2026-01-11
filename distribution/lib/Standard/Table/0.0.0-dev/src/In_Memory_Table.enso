@@ -109,8 +109,8 @@ from_java_table java_table =
    private: true
    ---
    Helper method for internal use to make a Java Table from a Table.
-to_java_table table:In_Memory_Table =
-    table.java_table
+to_java_table table:In_Memory_Table table_class=Java_Table column_class=Java_Column =
+    table.java_table table_class column_class
 
 ## ---
    private: true
