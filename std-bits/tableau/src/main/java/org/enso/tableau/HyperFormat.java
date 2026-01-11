@@ -11,12 +11,14 @@ import com.tableau.hyperapi.SqlType;
 import com.tableau.hyperapi.TableDefinition;
 import com.tableau.hyperapi.TableName;
 import com.tableau.hyperapi.Telemetry;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.reflect.Proxy;
 import java.math.BigDecimal;
 import java.net.MalformedURLException;
 import java.net.URI;
@@ -35,6 +37,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.storage.ColumnBooleanStorage;
 import org.enso.table.data.column.storage.ColumnDoubleStorage;
@@ -400,8 +403,18 @@ public class HyperFormat {
     return tableDef;
   }
 
+  @SuppressWarnings("unchecked")
+  private static <T> StorageType<T> toLocal(StorageType<T> type) {
+    if (Proxy.isProxyClass(type.getClass())) {
+      var local = StorageType.fromTypeCharAndSize(type.typeChar(), type.size());
+      return (StorageType<T>) local;
+    } else {
+      return type;
+    }
+  }
+
   private static SqlType mapEnsoTypeToSqlType(StorageType<?> type) {
-    return switch (type) {
+    return switch (toLocal(type)) {
       case TextType t -> SqlType.text();
       case IntegerType t -> SqlType.bigInt();
       case FloatType t -> SqlType.doublePrecision();
@@ -505,7 +518,22 @@ public class HyperFormat {
             case LocalTime lt -> inserter.add(lt);
             case ZonedDateTime zdt -> inserter.add(zdt);
             case BigDecimal bd -> inserter.add(bd);
-            default -> throw new HyperUnsupportedTypeError(value.toString());
+            default -> {
+              var v = Value.asValue(value);
+              if (v.isDate() && v.isTime() && v.isTimeZone()) {
+                inserter.add(ZonedDateTime.of(v.asDate(), v.asTime(), v.asTimeZone()));
+              } else if (v.isDate()) {
+                inserter.add(v.asDate());
+              } else if (v.isTime()) {
+                inserter.add(v.asTime());
+              } else {
+                var type = value.getClass().getName();
+                if (v.getMetaObject() instanceof Value meta) {
+                  type = meta.getMetaQualifiedName();
+                }
+                throw new HyperUnsupportedTypeError(value.toString() + " type: " + type);
+              }
+            }
           }
         }
       }
