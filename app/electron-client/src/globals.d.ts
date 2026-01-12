@@ -61,6 +61,8 @@ declare global {
 
       // @ts-expect-error The index signature is intentional to disallow unknown env vars.
       readonly ELECTRON_DEV_MODE?: string
+      // @ts-expect-error The index signature is intentional to disallow unknown env vars.
+      readonly NODE_ENV?: string
     }
   }
 }

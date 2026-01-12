@@ -1,6 +1,6 @@
 import { EnsoPath, FileId } from 'enso-common/src/services/Backend'
 import { RemoteBackend } from 'enso-common/src/services/RemoteBackend'
-import { spawn } from 'node:child_process'
+import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process'
 import process from 'node:process'
 import { arrayBuffer } from 'node:stream/consumers'
 import { expect, test } from 'vitest'
@@ -16,8 +16,8 @@ function runAppExecutable(args: readonly string[]): Promise<{
   readonly code: number
 }> {
   // `spawnSync` is fine, use async here in case blocking will be slower in the future.
-  const appProcess = spawn(electronExecutablePath, args, {
-    env: { ...process.env, NODE_ENV: 'development' },
+  const appProcess: ChildProcessWithoutNullStreams = spawn(electronExecutablePath, args, {
+    env: { ...process.env, NODE_ENV: 'development' } as NodeJS.ProcessEnv,
   })
   return new Promise<{
     readonly stdout: string
