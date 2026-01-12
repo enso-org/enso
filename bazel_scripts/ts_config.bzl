@@ -181,6 +181,7 @@ write_tsconfig_rule = rule(
 def _format_json_impl(ctx):
     """Formats a JSON file using prettier."""
     args = ctx.actions.args()
+
     # Use short_path because aspect_rules_js changes CWD to BAZEL_BINDIR
     args.add(ctx.file.src.short_path)
     args.add(ctx.outputs.out.short_path)
