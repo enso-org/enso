@@ -128,7 +128,8 @@ type Alteryx_Format
             inner
         Error.return_if_error write_result
 
-        result = self.read tmp_file ..Report_Warning
+        result = Panic.recover Any <|
+            self.read tmp_file ..Report_Warning
 
         ## Clean up temporary file
         Context.Output.with_enabled <|
