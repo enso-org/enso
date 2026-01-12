@@ -4,11 +4,11 @@
 # See [editions.md](https://github.com/enso-org/enso/blob/87ce78615afecb8bd8d586c798c97ab5e28083cd/docs/libraries/editions.md)
 # for the description of its contents.
 #
-# Parameters for the template:
-# - ENGINE_VERSION: the version of the engine to use in this edition.
-# - LIBS_VERSION: version of all the standard libraries.
-# - MAIN_REPO_URL: URL of the main repository hosting the standard libraries.
-# - STD_IMAGE_REPO_URL: URL of the repository hosting the Standard.Image library.
+# === Library upload ===
+# Some libraries may be uploaded during the (nightly) release.
+# Such libraries need to have an associated repository with URL with `jar` scheme.
+# See [sharing.md](https://github.com/enso-org/enso/blob/87ce78615afecb8bd8d586c798c97ab5e28083cd/docs/libraries/sharing.md)
+#
 
 engine-version: {{ENGINE_VERSION}}
 repositories:
