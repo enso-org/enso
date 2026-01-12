@@ -14,6 +14,9 @@ engine-version: '{{ENGINE_VERSION}}'
 repositories:
   - name: std_image_repo
     url: '{{STD_IMAGE_REPO_URL}}'
+  - name: std_image_repo.zip
+    url: 'jar:https://github.com/enso-org/enso/releases/download/{{ENGINE_VERSION}}/std_image_repo.zip'
+
 libraries:
   - name: Standard.Base
     repository: main
@@ -67,5 +70,5 @@ libraries:
     repository: main
     version: {{LIBS_VERSION}}
   - name: Standard.Image
-    repository: std_image_repo
-    version: '{{LIBS_VERSION}}'
+    repository: std_image_repo.zip
+    version: {{LIBS_VERSION}}
