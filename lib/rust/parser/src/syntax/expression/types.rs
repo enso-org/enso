@@ -7,18 +7,17 @@ use crate::syntax::TreeConsumer;
 use crate::syntax::expression::annotations::Annotation;
 use crate::syntax::expression::blocks::ApplicableBlock;
 use crate::syntax::expression::named_app::NamedApp;
-use crate::syntax::expression::section::MaybeSection;
 use crate::syntax::expression::whitespace::Spacing;
 use crate::syntax::token;
 use crate::syntax::tree;
 
 use std::fmt::Debug;
 
-// ===============
-// === Operand ===
-// ===============
+// ==============
+// === Export ===
+// ==============
 
-pub type Operand<'s> = MaybeSection<Tree<'s>>;
+pub use crate::syntax::expression::operand::Operand;
 
 // ================
 // === Operator ===
@@ -52,7 +51,7 @@ impl<'s> Operator<'s> {
 #[derive(Debug)]
 pub enum Arity<'s> {
     Unary(token::UnaryOperator<'s>),
-    Binary { tokens: Vec<Token<'s>>, missing: Option<BinaryOperand>, reify_rhs_section: bool },
+    Binary { tokens: Vec<Token<'s>>, missing: Option<BinaryOperand> },
     App,
     NamedApp(Box<NamedApp<'s>>),
     Annotation(Annotation<'s>),
@@ -136,7 +135,7 @@ impl Warnings {
 // ======================================
 
 pub trait OperandConsumer<'s> {
-    fn push_operand(&mut self, operand: MaybeSection<Tree<'s>>);
+    fn push_operand(&mut self, operand: Operand<'s>);
 }
 
 pub trait OperatorConsumer<'s> {
@@ -169,7 +168,7 @@ impl<'s, T> OperandConsumer<'s> for T
 where
     T: NamedOperandConsumer<'s>,
 {
-    fn push_operand(&mut self, operand: MaybeSection<Tree<'s>>) {
+    fn push_operand(&mut self, operand: Operand<'s>) {
         self.push_maybe_named_operand(OperandMaybeNamed::Unnamed(operand));
     }
 }
@@ -190,18 +189,6 @@ where
 #[derive(Debug, From)]
 #[allow(clippy::large_enum_variant)] // Clippy considers the `Unnamed` is "at least 0 bytes".
 pub enum OperandMaybeNamed<'s> {
-    Unnamed(MaybeSection<Tree<'s>>),
+    Unnamed(Operand<'s>),
     Named(NamedApp<'s>),
-}
-
-// ==========================
-// === SectionTermination ===
-// ==========================
-
-/// Operator-section/template-function termination behavior of an operator with regard to an
-/// operand.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub enum SectionTermination {
-    /// Discard any operator-section/template-function properties associated with the operand.
-    Unwrap,
 }

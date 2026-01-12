@@ -14,28 +14,31 @@ pub mod prelude {
 
 use crate::prelude::*;
 
-use crate::arg::java_gen;
-use crate::arg::libraries;
-use crate::arg::release::Action;
 use crate::arg::BuildJob;
 use crate::arg::Cli;
 use crate::arg::IsTargetSource;
 use crate::arg::IsWatchableSource;
 use crate::arg::Target;
 use crate::arg::WatchJob;
+use crate::arg::java_gen;
+use crate::arg::libraries;
+use crate::arg::release::Action;
 use anyhow::Context;
 use arg::BuildDescription;
 use clap::Parser;
 use enso_build::cloud_tests;
 use enso_build::config::Config;
 use enso_build::context::BuildContext;
-use enso_build::engine::context::EnginePackageProvider;
 use enso_build::engine::BenchmarkType;
 use enso_build::engine::Benchmarks;
 use enso_build::engine::StandardLibraryTestsSelection;
 use enso_build::engine::Tests;
+use enso_build::engine::context::EnginePackageProvider;
 use enso_build::paths::TargetTriple;
 use enso_build::project;
+use enso_build::project::IsTarget;
+use enso_build::project::IsWatchable;
+use enso_build::project::IsWatcher;
 use enso_build::project::backend;
 use enso_build::project::backend::Backend;
 use enso_build::project::gui::Gui;
@@ -43,9 +46,6 @@ use enso_build::project::ide;
 use enso_build::project::ide::Ide;
 use enso_build::project::runtime;
 use enso_build::project::runtime::Runtime;
-use enso_build::project::IsTarget;
-use enso_build::project::IsWatchable;
-use enso_build::project::IsWatcher;
 use enso_build::source::BuildSource;
 use enso_build::source::BuildTargetJob;
 use enso_build::source::CiRunSource;
@@ -58,8 +58,8 @@ use enso_build::source::WatchTargetJob;
 use enso_build::source::WithDestination;
 use enso_build::version;
 use ide_ci::actions::workflow::is_in_env;
-use ide_ci::cache::goodie::graalvm;
 use ide_ci::cache::Cache;
+use ide_ci::cache::goodie::graalvm;
 use ide_ci::fs::remove_if_exists;
 use ide_ci::github::release;
 use ide_ci::github::setup_octocrab;
@@ -551,11 +551,7 @@ impl Processor {
     ) -> BoxFuture<'static, Result> {
         let release = self.release(release_id);
         let add_prefix = move |name: String| {
-            if let Some(prefix) = name_prefix.clone() {
-                format!("{prefix}-{name}")
-            } else {
-                name
-            }
+            if let Some(prefix) = name_prefix.clone() { format!("{prefix}-{name}") } else { name }
         };
         async move {
             let artifacts = build_job.await?;

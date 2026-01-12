@@ -1,9 +1,9 @@
 use crate::prelude::*;
 
 use crate::fs::create_dir_if_missing;
+use crate::programs::SevenZip;
 use crate::programs::tar::Compression;
 use crate::programs::tar::Tar;
-use crate::programs::SevenZip;
 
 use tracing::Span;
 
@@ -42,7 +42,10 @@ impl Format {
                     if secondary_extension == Some(OsStr::new("tar")) {
                         Ok(Format::Tar(Some(compression)))
                     } else {
-                        bail!("Extension `.{}` looks like a tar compression, but there is no `.tar.` component in the name", other)
+                        bail!(
+                            "Extension `.{}` looks like a tar compression, but there is no `.tar.` component in the name",
+                            other
+                        )
                     }
                 } else {
                     bail!("Unrecognized archive extension `{}`.", other)

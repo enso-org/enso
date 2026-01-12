@@ -2,14 +2,14 @@
 
 use enso_build::prelude::*;
 
-use clap::builder::ArgPredicate;
-use clap::builder::PossibleValuesParser;
-use clap::builder::TypedValueParser;
 use clap::Arg;
 use clap::Args;
 use clap::Parser;
 use clap::Subcommand;
 use clap::ValueEnum;
+use clap::builder::ArgPredicate;
+use clap::builder::PossibleValuesParser;
+use clap::builder::TypedValueParser;
 use derive_where::derive_where;
 use ide_ci::cache;
 use ide_ci::github::Repo;
@@ -286,6 +286,6 @@ pub struct WatchJob<Target: IsWatchableSource> {
 }
 
 /// Clap parser supporting a given set of [`OS`] values.
-pub fn possible_os_parser(possible_os: &[OS]) -> impl TypedValueParser<Value = OS> {
+pub fn possible_os_parser(possible_os: &[OS]) -> impl TypedValueParser<Value = OS> + use<> {
     PossibleValuesParser::new(possible_os.iter().map(|os| os.as_str())).map(|s| OS::from_str(&s))
 }

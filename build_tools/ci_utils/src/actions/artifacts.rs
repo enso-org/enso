@@ -161,10 +161,10 @@ mod tests {
     use super::*;
     use crate::actions::artifacts::models::CreateArtifactResponse;
     use reqwest::StatusCode;
-    use wiremock::matchers::method;
     use wiremock::Mock;
     use wiremock::MockServer;
     use wiremock::ResponseTemplate;
+    use wiremock::matchers::method;
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
     #[ignore]

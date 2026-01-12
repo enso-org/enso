@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 import project.Internal.IR.SQL_IR_Expression.SQL_IR_Expression
 
@@ -24,3 +25,15 @@ make_group_number_equal_count (from : Integer) (step : Integer) (group_count : I
 make_group_number_equal_sum (from : Integer) (step : Integer) (sum_column : SQL_IR_Expression) (group_count : Integer) (ordering_expressions : Vector SQL_IR_Expression) -> SQL_IR_Expression =
     params = [SQL_IR_Expression.Literal from.to_text, SQL_IR_Expression.Literal step.to_text, sum_column, SQL_IR_Expression.Literal group_count.to_text] + ordering_expressions
     SQL_IR_Expression.Operation "GROUP_NUMBER_EQUAL_SUM" params
+
+## ---
+   private: true
+   ---
+make_group_number_standard_deviation (from : Integer) (step : Integer) (stddev_column : SQL_IR_Expression) (population : Boolean) -> SQL_IR_Expression =
+    _warn_if_not_default_scale from step <|
+        params = [stddev_column]
+        op = if population then "GROUP_NUMBER_STANDARD_DEVIATION_POPULATION" else "GROUP_NUMBER_STANDARD_DEVIATION_SAMPLE"
+        SQL_IR_Expression.Operation op params
+
+private _warn_if_not_default_scale from step ~cont =
+    if from != 0 || step != 1 then Warning.attach (Illegal_Argument.Error "'from' and 'step' parameters are not supported when using Standard_Deviation grouping method. They must be left to their default values of 0 and 1 (repsectively).") cont else cont

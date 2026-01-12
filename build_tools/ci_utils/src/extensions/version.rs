@@ -63,11 +63,7 @@ pub trait PrereleaseExt {
 
 impl PrereleaseExt for Prerelease {
     fn identifiers(&self) -> Vec<&str> {
-        if self.is_empty() {
-            default()
-        } else {
-            self.split('.').collect()
-        }
+        if self.is_empty() { default() } else { self.split('.').collect() }
     }
 }
 

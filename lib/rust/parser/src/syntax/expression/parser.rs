@@ -11,9 +11,10 @@ use crate::syntax::expression::group::BuildGroups;
 use crate::syntax::expression::group::FlattenGroups;
 use crate::syntax::expression::named_app::ParseAppNames;
 use crate::syntax::expression::numbers::ParseNumbers;
+use crate::syntax::expression::operand::Operand;
 use crate::syntax::expression::reducer::Reduce;
-use crate::syntax::expression::section::MaybeSection;
 use crate::syntax::expression::whitespace::PeekSpacing;
+use crate::unwrap_call;
 
 // =========================
 // === Expression Parser ===
@@ -86,14 +87,10 @@ impl<'s> ExpressionParser<'s> {
         start: usize,
         items: &mut Vec<Item<'s>>,
     ) -> Option<Tree<'s>> {
-        self.parse_item_tree(start, items).map(|op| op.value)
+        self.parse_item_tree(start, items).map(|op| op.value).map(unwrap_call)
     }
 
-    fn parse_item_tree(
-        &mut self,
-        start: usize,
-        items: &mut Vec<Item<'s>>,
-    ) -> Option<MaybeSection<Tree<'s>>> {
+    fn parse_item_tree(&mut self, start: usize, items: &mut Vec<Item<'s>>) -> Option<Operand<'s>> {
         self.pipeline.run(start, items)
     }
 }

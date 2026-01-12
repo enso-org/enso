@@ -6,7 +6,7 @@ use crate::syntax::ItemConsumer;
 use crate::syntax::Tree;
 use crate::syntax::expression::ExpressionParser;
 use crate::syntax::expression::Spacing;
-use crate::syntax::expression::section::MaybeSection;
+use crate::syntax::expression::operand::Operand;
 use crate::syntax::expression::types::Arity;
 use crate::syntax::expression::types::ModifiedPrecedence;
 use crate::syntax::expression::types::Operator;
@@ -20,6 +20,7 @@ use crate::syntax::token::TokenOperatorProperties;
 use crate::syntax::tree::block::Line;
 use crate::syntax::tree::block::OperatorBlockExpression;
 use crate::syntax::tree::block::OperatorLine;
+use crate::unwrap_call;
 
 /// Consumes `Item`s and passes their content to a token/tree consumer, using an
 /// [`ExpressionParser`] to flatten blocks.
@@ -53,14 +54,9 @@ impl<'s> From<ApplicableBlock<'s>> for Operator<'s> {
 
 impl<'s, Inner> FlattenBlockTrees<'s, Inner>
 where
-    Inner:
-        ItemConsumer<'s> + OperatorConsumer<'s> + Finish<Result = Option<MaybeSection<Tree<'s>>>>,
+    Inner: ItemConsumer<'s> + OperatorConsumer<'s> + Finish<Result = Option<Operand<'s>>>,
 {
-    pub fn run(
-        &mut self,
-        start: usize,
-        items: &mut Vec<Item<'s>>,
-    ) -> Option<MaybeSection<Tree<'s>>> {
+    pub fn run(&mut self, start: usize, items: &mut Vec<Item<'s>>) -> Option<Operand<'s>> {
         if let Some(Item::Block(_)) = items.last() {
             let Some(Item::Block(lines)) = items.pop() else { unreachable!() };
             let block_context = match items.last() {
@@ -150,6 +146,7 @@ impl<'s> ApplicableBlock<'s> {
                 Tree::operator_block_application(expression, operator_lines, excess)
             }
             Self::ArgumentBlock { body_lines } => {
+                let expression = expression.map(unwrap_call);
                 Tree::argument_block_application(expression, body_lines)
             }
         }

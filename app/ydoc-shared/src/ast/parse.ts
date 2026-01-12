@@ -174,6 +174,10 @@ class Abstractor {
         node = Assignment.concrete(this.module, docLine, pattern, equals, value)
         break
       }
+      case RawAst.Tree.Type.Call: {
+        node = this.abstractTree(tree.value).node
+        break
+      }
       case RawAst.Tree.Type.App: {
         const func = this.abstractExpression(tree.func)
         const arg = this.abstractExpression(tree.arg)

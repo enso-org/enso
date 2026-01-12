@@ -3,7 +3,6 @@
 use crate::macros::pattern::*;
 use crate::macros::*;
 
-use crate::empty_tree;
 use crate::expect_qualified_name;
 use crate::expression_to_pattern;
 use crate::source::Code;
@@ -14,6 +13,8 @@ use crate::syntax::maybe_with_error;
 use crate::syntax::statement::try_parse_doc_comment;
 use crate::syntax::token;
 use crate::syntax::tree::SyntaxError;
+
+use crate::{empty_tree, qn_deep_unwrap_calls, unwrap_call};
 
 // =======================
 // === Built-in macros ===
@@ -107,7 +108,13 @@ fn import_body<'s>(
                     Some(_) => expect_ident,
                     None => expect_qualified_name,
                 };
-                body = sequence_tree(expression_parser, &mut tokens, expect);
+                let mut raw_body = sequence_tree(expression_parser, &mut tokens, expect);
+                if polyglot.is_some()
+                    && let Some(raw_body) = &mut raw_body
+                {
+                    qn_deep_unwrap_calls(raw_body);
+                }
+                body = raw_body;
                 incomplete_import = body.is_none();
                 &mut import
             }
@@ -556,8 +563,9 @@ fn capture_expressions<'s>(
 
 // === Validators ===
 
-fn expect_ident(tree: syntax::Tree) -> syntax::Tree {
-    let error = match &tree.variant {
+fn expect_ident(mut tree: syntax::Tree) -> syntax::Tree {
+    let error = match &mut tree.variant {
+        syntax::tree::Variant::Call(_) => return expect_ident(unwrap_call(tree)),
         syntax::tree::Variant::Ident(_) => None,
         _ => Some(SyntaxError::ExpectedIdent),
     };

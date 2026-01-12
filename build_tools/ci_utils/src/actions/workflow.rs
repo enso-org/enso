@@ -24,7 +24,9 @@ pub async fn set_output(name: &str, value: &(impl ToString + ?Sized)) -> Result 
         debug!("Setting GitHub Actions step output {name} to {value}.");
         env_file::GITHUB_OUTPUT.append_key_value(name, &value).await?;
     } else {
-        debug!("Not setting GitHub Actions step output {name} to {value} because we are not in GitHub Actions environment.");
+        debug!(
+            "Not setting GitHub Actions step output {name} to {value} because we are not in GitHub Actions environment."
+        );
     }
     Ok(())
 }

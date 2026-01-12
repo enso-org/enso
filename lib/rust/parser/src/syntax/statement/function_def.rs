@@ -1,6 +1,5 @@
 use crate::prelude::*;
 
-use crate::empty_tree;
 use crate::syntax::Item;
 use crate::syntax::Token;
 use crate::syntax::Tree;
@@ -29,6 +28,8 @@ use crate::syntax::tree::DocLine;
 use crate::syntax::tree::ReturnSpecification;
 use crate::syntax::tree::SyntaxError;
 use crate::syntax::tree::TypeSignatureLine;
+
+use crate::{empty_tree, expression_to_type, qn_deep_unwrap_calls};
 
 pub struct FunctionBuilder<'s> {
     name: Tree<'s>,
@@ -68,7 +69,8 @@ impl<'s> FunctionBuilder<'s> {
         );
         let args = args_buffer.drain(..).rev().collect();
 
-        let name = expression_parser.parse_non_section_offset(start, items).unwrap();
+        let mut name = expression_parser.parse_non_section_offset(start, items).unwrap();
+        qn_deep_unwrap_calls(&mut name);
 
         Self { name, return_, args, line, start }
     }
@@ -164,6 +166,7 @@ impl<'s> FunctionBuilder<'s> {
 fn qn_equivalent(a: &Tree, b: &Tree) -> bool {
     use tree::Variant::*;
     match (&a.variant, &b.variant) {
+        (Call(a), Call(b)) => qn_equivalent(&a.value, &b.value),
         (Ident(a), Ident(b)) => a.token.code.repr == b.token.code.repr,
         (PropertyAccess(a), PropertyAccess(b)) => {
             a.rhs.code.repr == b.rhs.code.repr && opt_qn_equivalent(&a.lhs, &b.lhs)
@@ -455,7 +458,7 @@ fn parse_arg_def<'s>(
         }
         let tree = expression_parser.parse_non_section_offset(start + type_op + 1, items);
         let operator = items.pop().unwrap().try_into_token().unwrap();
-        let tree = tree.unwrap_or_else(|| {
+        let tree = tree.map(expression_to_type).unwrap_or_else(|| {
             empty_tree(operator.code.position_after()).with_error(SyntaxError::ExpectedType)
         });
         let token::Variant::TypeAnnotationOperator(variant) = operator.variant else {

@@ -38,7 +38,11 @@ pub trait RawVariable {
 
     /// Remove (i.e. unset) this variable.
     fn remove(&self) {
-        std::env::remove_var(self.name());
+        // See API docs, this is safe on Windows but inherently unsafe on other operating systems.
+        #[allow(unsafe_code)]
+        unsafe {
+            std::env::remove_var(self.name());
+        }
     }
 }
 
