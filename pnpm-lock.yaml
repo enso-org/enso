@@ -31,8 +31,8 @@ catalogs:
       specifier: ^24.2.1
       version: 24.2.1
     playwright:
-      specifier: 1.54.1
-      version: 1.54.1
+      specifier: 1.55.1
+      version: 1.55.1
     typescript:
       specifier: ^5.7.2
       version: 5.8.2
@@ -68,7 +68,7 @@ importers:
         version: 1.25.0
       playwright:
         specifier: 'catalog:'
-        version: 1.54.1
+        version: 1.55.1
       tslib:
         specifier: ^2.8.1
         version: 2.8.1
@@ -275,7 +275,7 @@ importers:
         version: 3.3.2
       playwright:
         specifier: 'catalog:'
-        version: 1.54.1
+        version: 1.55.1
       portfinder:
         specifier: ^1.0.38
         version: 1.0.38
@@ -690,7 +690,7 @@ importers:
         version: 26.1.0
       playwright:
         specifier: 'catalog:'
-        version: 1.54.1
+        version: 1.55.1
       postcss:
         specifier: ^8.5.6
         version: 8.5.6
@@ -6037,13 +6037,13 @@ packages:
     resolution: {integrity: sha512-saLsH7WeYYPiD25LDuLRRY/i+6HaPYr6G1OUlN39otzkSTxKnubR9RTxS3/Kk50s1g2JTgFwWQDQyplC5/SHZg==}
     engines: {node: '>= 6'}
 
-  playwright-core@1.54.1:
-    resolution: {integrity: sha512-Nbjs2zjj0htNhzgiy5wu+3w09YetDx5pkrpI/kZotDlDUaYk0HVA5xrBVPdow4SAUIlhgKcJeJg4GRKW6xHusA==}
+  playwright-core@1.55.1:
+    resolution: {integrity: sha512-Z6Mh9mkwX+zxSlHqdr5AOcJnfp+xUWLCt9uKV18fhzA8eyxUd8NUWzAjxUh55RZKSYwDGX0cfaySdhZJGMoJ+w==}
     engines: {node: '>=18'}
     hasBin: true
 
-  playwright@1.54.1:
-    resolution: {integrity: sha512-peWpSwIBmSLi6aW2auvrUtf2DqY16YYcCMO8rTVx486jKmDTJg7UAhyrraP98GB8BoPURZP8+nxO7TSd4cPr5g==}
+  playwright@1.55.1:
+    resolution: {integrity: sha512-cJW4Xd/G3v5ovXtJJ52MAOclqeac9S/aGGgRzLabuF8TnIb6xHvMzKIa6JmrRzUkeXJgfL1MhukP0NK6l39h3A==}
     engines: {node: '>=18'}
     hasBin: true
 
@@ -7378,6 +7378,7 @@ packages:
   whatwg-encoding@3.1.1:
     resolution: {integrity: sha512-6qN4hJdMwfYBtE3YBTTHhoeuUrDBPZmbQaxWAqSALV/MeEnR5z1xd8UKud2RAkFoPkmB+hli1TZSnyi84xz1vQ==}
     engines: {node: '>=18'}
+    deprecated: Use @exodus/bytes instead for a more spec-conformant and faster implementation
 
   whatwg-fetch@3.6.20:
     resolution: {integrity: sha512-EqhiFU6daOA8kpjOWTL0olhVOF3i7OrFzSYiGsEMB8GcXS+RrzauAERX65xMeNWVqxA6HXH2m69Z9LaKKdisfg==}
@@ -10624,7 +10625,7 @@ snapshots:
       vite: 7.1.2(@types/node@24.2.1)(jiti@1.21.7)(terser@5.37.0)(yaml@2.7.0)
       vue: 3.5.13(typescript@5.7.2)
 
-  '@vitest/browser@3.2.4(playwright@1.54.1)(vite@7.1.2(@types/node@24.2.1)(jiti@1.21.7)(terser@5.37.0)(yaml@2.7.0))(vitest@3.2.4)':
+  '@vitest/browser@3.2.4(playwright@1.55.1)(vite@7.1.2(@types/node@24.2.1)(jiti@1.21.7)(terser@5.37.0)(yaml@2.7.0))(vitest@3.2.4)':
     dependencies:
       '@testing-library/dom': 10.4.0
       '@testing-library/user-event': 14.6.1(@testing-library/dom@10.4.0)
@@ -10636,7 +10637,7 @@ snapshots:
       vitest: 3.2.4(@types/debug@4.1.12)(@types/node@24.2.1)(@vitest/browser@3.2.4)(jiti@1.21.7)(jsdom@26.1.0)(terser@5.37.0)(yaml@2.7.0)
       ws: 8.18.0
     optionalDependencies:
-      playwright: 1.54.1
+      playwright: 1.55.1
     transitivePeerDependencies:
       - bufferutil
       - msw
@@ -13891,11 +13892,11 @@ snapshots:
 
   pirates@4.0.6: {}
 
-  playwright-core@1.54.1: {}
+  playwright-core@1.55.1: {}
 
-  playwright@1.54.1:
+  playwright@1.55.1:
     dependencies:
-      playwright-core: 1.54.1
+      playwright-core: 1.55.1
     optionalDependencies:
       fsevents: 2.3.2
 
@@ -15368,7 +15369,7 @@ snapshots:
     optionalDependencies:
       '@types/debug': 4.1.12
       '@types/node': 24.2.1
-      '@vitest/browser': 3.2.4(playwright@1.54.1)(vite@7.1.2(@types/node@24.2.1)(jiti@1.21.7)(terser@5.37.0)(yaml@2.7.0))(vitest@3.2.4)
+      '@vitest/browser': 3.2.4(playwright@1.55.1)(vite@7.1.2(@types/node@24.2.1)(jiti@1.21.7)(terser@5.37.0)(yaml@2.7.0))(vitest@3.2.4)
       jsdom: 26.1.0
     transitivePeerDependencies:
       - jiti
