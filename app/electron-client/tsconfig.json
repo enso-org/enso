@@ -15,14 +15,18 @@
     "./paths.ts",
     "./playwright.config.ts",
     "./src/archive.ts",
+    "./src/assetManagement.ts",
     "./src/authentication.ts",
+    "./src/backend.ts",
     "./src/cjs-shim.ts",
     "./src/configParser.ts",
     "./src/contentConfig.ts",
     "./src/debug.ts",
+    "./src/electron.ts",
     "./src/fileAssociations.ts",
     "./src/fileBrowser.ts",
     "./src/globals.d.ts",
+    "./src/guiConfig.ts",
     "./src/index.ts",
     "./src/ipc.ts",
     "./src/log.ts",
@@ -41,6 +45,7 @@
     "./tests/electronTest.ts",
     "./tests/gettingStarted.spec.ts",
     "./tests/localWorkflow.spec.ts",
+    "./vitest.config.ts",
     "./watch.ts"
   ]
 }
