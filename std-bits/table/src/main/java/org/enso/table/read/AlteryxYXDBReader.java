@@ -24,6 +24,7 @@ import org.enso.table.problems.ProblemAggregator;
 import uk.co.jdunkerley.yxdb.Spatial;
 import uk.co.jdunkerley.yxdb.YxdbField;
 import uk.co.jdunkerley.yxdb.YxdbReader;
+import uk.co.jdunkerley.yxdb.YxdbType;
 
 public final class AlteryxYXDBReader {
   /**
@@ -95,19 +96,19 @@ public final class AlteryxYXDBReader {
 
   private static StorageType<?> mapYXDBField(YxdbField field) {
     return switch (field.yxdbType()) {
-      case "Bool" -> BooleanType.INSTANCE;
-      case "Byte" -> IntegerType.INT_8;
-      case "Int16" -> IntegerType.INT_16;
-      case "Int32" -> IntegerType.INT_32;
-      case "Int64" -> IntegerType.INT_64;
-      case "Float", "Double" -> FloatType.FLOAT_64;
-      case "FixedDecimal" -> BigDecimalType.INSTANCE;
-      case "String", "WString" -> TextType.variableLengthWithLimit(field.size());
-      case "V_String", "V_WString" -> TextType.VARIABLE_LENGTH;
-      case "Date" -> DateType.INSTANCE;
-      case "Time" -> TimeOfDayType.INSTANCE;
-      case "DateTime" -> DateTimeType.INSTANCE;
-      case "Blob", "SpatialObj" -> AnyObjectType.INSTANCE;
+      case YxdbType.BOOLEAN -> BooleanType.INSTANCE;
+      case YxdbType.BYTE -> IntegerType.INT_8;
+      case YxdbType.INT16 -> IntegerType.INT_16;
+      case YxdbType.INT32 -> IntegerType.INT_32;
+      case YxdbType.INT64 -> IntegerType.INT_64;
+      case YxdbType.FLOAT, YxdbType.DOUBLE -> FloatType.FLOAT_64;
+      case YxdbType.DECIMAL -> BigDecimalType.INSTANCE;
+      case YxdbType.STRING, YxdbType.WSTRING -> TextType.variableLengthWithLimit(field.size());
+      case YxdbType.V_STRING, YxdbType.V_WSTRING -> TextType.VARIABLE_LENGTH;
+      case YxdbType.DATE -> DateType.INSTANCE;
+      case YxdbType.TIME -> TimeOfDayType.INSTANCE;
+      case YxdbType.DATETIME -> DateTimeType.INSTANCE;
+      case YxdbType.BLOB, YxdbType.SPATIAL_OBJ -> AnyObjectType.INSTANCE;
       default ->
           throw new IllegalStateException("Unsupported YXDB field type: " + field.yxdbType());
     };
