@@ -12,62 +12,26 @@
 
 engine-version: {{ENGINE_VERSION}}
 repositories:
-  - name: main
-    url: {{MAIN_REPO_URL}}
   - name: std_image_repo
     url: {{STD_IMAGE_REPO_URL}}
 libraries:
   - name: Standard.Base
-    repository: main
-    version: {{LIBS_VERSION}}
   - name: Standard.Test
-    repository: main
-    version: {{LIBS_VERSION}}
   - name: Standard.Table
-    repository: main
-    version: {{LIBS_VERSION}}
   - name: Standard.Database
-    repository: main
-    version: {{LIBS_VERSION}}
   - name: Standard.AWS
-    repository: main
-    version: {{LIBS_VERSION}}
   - name: Standard.Geo
-    repository: main
-    version: {{LIBS_VERSION}}
   - name: Standard.Visualization
-    repository: main
-    version: {{LIBS_VERSION}}
   - name: Standard.Examples
-    repository: main
-    version: {{LIBS_VERSION}}
   - name: Standard.Searcher
-    repository: main
-    version: {{LIBS_VERSION}}
   - name: Standard.Generic_JDBC
-    repository: main
-    version: {{LIBS_VERSION}}
   - name: Standard.Google
-    repository: main
-    version: {{LIBS_VERSION}}
   - name: Standard.Google_Api
-    repository: main
-    version: {{LIBS_VERSION}}
   - name: Standard.Snowflake
-    repository: main
-    version: {{LIBS_VERSION}}
   - name: Standard.Microsoft
-    repository: main
-    version: {{LIBS_VERSION}}
   - name: Standard.Tableau
-    repository: main
-    version: {{LIBS_VERSION}}
   - name: Standard.Saas
-    repository: main
-    version: {{LIBS_VERSION}}
   - name: Standard.DuckDB
-    repository: main
-    version: {{LIBS_VERSION}}
   - name: Standard.Image
     repository: std_image_repo
     version: {{LIBS_VERSION}}
