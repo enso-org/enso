@@ -199,9 +199,6 @@ pub struct BuildConfigurationFlags {
     pub verify_packages: bool,
     pub stdlib_api_check: bool,
     pub run_enso_lint: bool,
-    /// URL that should be used for a `main` repository in the
-    /// edition.
-    pub library_repo_url: Option<String>,
 }
 
 #[derive(Clone, Debug)]
@@ -340,7 +337,6 @@ impl Default for BuildConfigurationFlags {
             extra_java_tool_opts: None,
             build_small_jdk: false,
             small_jdk_dir: None,
-            library_repo_url: None,
             build_benchmarks: false,
             check_enso_benchmarks: false,
             execute_benchmarks: default(),

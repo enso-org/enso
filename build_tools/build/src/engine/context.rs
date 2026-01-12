@@ -266,10 +266,6 @@ impl RunContext {
         // we don't want to call this in environments like GH-hosted runners.
 
         // === Build distributions and native images ===
-        if let Some(repo_url) = self.config.library_repo_url.clone() {
-            debug!("Using library repository in main edition: {}", repo_url);
-            env::ENSO_MAIN_LIBRARY_REPOSITORY_URL.set(&repo_url)?;
-        }
         let mut tasks = vec![];
         let mut run_sbt_clean = false;
         if self.config.build_engine_package {
