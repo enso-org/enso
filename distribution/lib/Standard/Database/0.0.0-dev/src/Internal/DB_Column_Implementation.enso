@@ -198,7 +198,6 @@ type DB_Column_Implementation
                 DB_Column_Implementation.round_pure_column_ops this_column decimal_places rounding_mode
 
     round_pure_column_ops (this_column : Column & DB_Column) decimal_places:Integer (rounding_mode : Rounding_Mode) =
-        IO.println "PURE "+this_column.value_type.to_text+" "+decimal_places.to_text+" "+rounding_mode.to_text
         short_circuit_special_floating_point this_column <|
             case this_column.value_type of
                 Value_Type.Integer _ -> round_integer this_column decimal_places rounding_mode
