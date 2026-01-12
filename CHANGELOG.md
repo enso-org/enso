@@ -13,12 +13,14 @@
 - [Standard.Test pending field is lazy][14536].
 - [Using dual JVM mode for Standard.AWS][14568].
 - [Polishing Standard.Test API][14599].
+- [Add Amazon SES email provider][14597]
 
 [14522]: https://github.com/enso-org/enso/pull/14522
 [14476]: https://github.com/enso-org/enso/pull/14476
 [14536]: https://github.com/enso-org/enso/pull/14536
 [14568]: https://github.com/enso-org/enso/pull/14568
 [14599]: https://github.com/enso-org/enso/pull/14599
+[14597]: https://github.com/enso-org/enso/pull/14597
 
 #### Enso Language & Runtime
 
