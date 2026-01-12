@@ -63,11 +63,11 @@ public class ClientBuilder {
   }
 
   public SesClient buildSESClient() {
-      return SesClient.builder()
-              .credentialsProvider(unsafeBuildCredentialProvider())
-              .region(AWSRegion.underlying(awsRegion))
-              .build();
-  } 
+    return SesClient.builder()
+        .credentialsProvider(unsafeBuildCredentialProvider())
+        .region(AWSRegion.underlying(awsRegion))
+        .build();
+  }
 
   /**
    * Builds an HttpClient that will sign requests and payloads using the AWSv4 Signature algorithm.
