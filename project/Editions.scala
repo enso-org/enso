@@ -1,25 +1,6 @@
 import sbt._
 
 object Editions {
-  val MAIN_REPO_ENV      = "ENSO_MAIN_LIBRARY_REPOSITORY_URL"
-  val STD_IMAGE_REPO_ENV = "ENSO_STD_IMAGE_REPOSITORY_URL"
-
-  private val fallbackUrl = "https://libraries.release.enso.org/libraries"
-
-  /** The URL to the main library repository. */
-  private val mainLibraryRepositoryUrl: String = {
-    System.getenv(MAIN_REPO_ENV) match {
-      case null | "" => fallbackUrl
-      case url       => url
-    }
-  }
-
-  private val stdImageRepositoryUrl: String = {
-    System.getenv(STD_IMAGE_REPO_ENV) match {
-      case null | "" => fallbackUrl
-      case url       => url
-    }
-  }
 
   private val extension = ".yaml"
 
@@ -60,8 +41,6 @@ object Editions {
       val replaced = templateContent
         .replaceAll("\\{\\{ENGINE_VERSION}}", ensoVersion)
         .replaceAll("\\{\\{LIBS_VERSION}}", libraryVersion)
-        .replaceAll("\\{\\{MAIN_REPO_URL}}", mainLibraryRepositoryUrl)
-        .replaceAll("\\{\\{STD_IMAGE_REPO_URL}}", stdImageRepositoryUrl)
       val allVarsReplaced = !replaced.contains("{{")
       if (!allVarsReplaced) {
         log.error(
