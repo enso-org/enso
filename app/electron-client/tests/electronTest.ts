@@ -183,7 +183,7 @@ export async function getNewestProject(page: Page): Promise<Locator> {
 }
 
 /**
- * Click the eye button in the selected component, visualizing component data.
+ * Click the eye button, visualizing component data
  */
 export async function visualizeData(page: Page) {
   const showViz = page.getByLabel('Show visualization (Space)')
