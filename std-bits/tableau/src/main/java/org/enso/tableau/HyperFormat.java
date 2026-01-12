@@ -11,7 +11,6 @@ import com.tableau.hyperapi.SqlType;
 import com.tableau.hyperapi.TableDefinition;
 import com.tableau.hyperapi.TableName;
 import com.tableau.hyperapi.Telemetry;
-
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -37,7 +36,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.storage.ColumnBooleanStorage;
 import org.enso.table.data.column.storage.ColumnDoubleStorage;
@@ -530,6 +528,17 @@ public class HyperFormat {
                 var type = value.getClass().getName();
                 if (v.getMetaObject() instanceof Value meta) {
                   type = meta.getMetaQualifiedName();
+                }
+                if ("java.math.BigDecimal".equals(type)) {
+                  var unscaledValue = v.invokeMember("unscaledValue");
+                  var scale = v.invokeMember("scale");
+                  if (unscaledValue != null
+                      && unscaledValue.fitsInBigInteger()
+                      && scale != null
+                      && scale.fitsInInt()) {
+                    inserter.add(new BigDecimal(unscaledValue.asBigInteger(), scale.asInt()));
+                    return;
+                  }
                 }
                 throw new HyperUnsupportedTypeError(value.toString() + " type: " + type);
               }
