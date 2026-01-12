@@ -140,7 +140,7 @@ final class IRNodeClassGenerator {
             .replace("$fields", fieldsCode())
             .replace("$defaultCtor", defaultConstructor())
             .replace("$validateConstructor", validateConstructor())
-            .replace("$processedClassName", processedClass.getClazz().getSimpleName().toString())
+            .replace("$processedClassName", processedClass.getClazz().getQualifiedName().toString())
             .replace("$copyMethod", copyMethodGenerator.generateMethodCode())
             .replace("$userDefinedGetters", userDefinedGetters())
             .replace("$overrideIRMethods", overrideIRMethods())
