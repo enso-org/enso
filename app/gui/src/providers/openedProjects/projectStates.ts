@@ -422,7 +422,7 @@ export function useProjectStates() {
 
     const suggestionDb = scope.run(() => createSuggestionDbStore(store, projectNames))!
     const module = await scope.run(() => createModuleStore(store, projectNames, suggestionDb))!
-    // if (!module.ok) return module
+    if (!module.ok) return module
 
     return scope.run(() => {
       const graph = createGraphStore(store, suggestionDb, projectNames, module.value)

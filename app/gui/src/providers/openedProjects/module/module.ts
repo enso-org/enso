@@ -29,10 +29,8 @@ import {
   type RequiredImport,
 } from './imports'
 
-export type X = Awaited<ReturnType<typeof createModuleStore>>
-export type XX = X extends Result<infer T> ? T : never
-export type XXX<T extends Result<any, any>> = T extends Result<infer V> ? V : never
-export type XY = XXX<X>
+const AST_LOAD_TIMEOUT_MS = 30000
+
 /**
  * Module Store
  *
@@ -40,7 +38,8 @@ export type XY = XXX<X>
  * "code" perspective. It does not manage graph's nodes and connections, although it exposes
  * API for node and widgets metadata, as it is defined at AST level.
  */
-export type ModuleStore = X extends Result<infer T> ? T : never
+export type ModuleStore =
+  Awaited<ReturnType<typeof createModuleStore>> extends Result<infer T> ? T : never
 
 export interface EditOptions {
   skipTreeRepair?: boolean
@@ -114,7 +113,10 @@ export async function createModuleStore(
     }
   })
 
-  await astLoaded.wait(5000)
+  await astLoaded.wait(AST_LOAD_TIMEOUT_MS)
+  if (root.value == null) {
+    return Err("Module's AST loading timed out")
+  }
 
   return scope.run(() => {
     const undoManagerStatus = reactive({

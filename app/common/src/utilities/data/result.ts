@@ -34,9 +34,6 @@ export interface Err<in out E> {
   error: ResultError<E>
 }
 
-/** A type helper for getting type under Result */
-export type ResultValue<T> = T extends Result<infer V> ? V : never
-
 /** Constructor of success {@link Result}. */
 export function Ok(): Ok<undefined>
 export function Ok<const T>(data: T): Ok<T>
