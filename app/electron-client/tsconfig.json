@@ -44,6 +44,7 @@
     "./tests/cloudWorkflow.spec.ts",
     "./tests/electronTest.ts",
     "./tests/gettingStarted.spec.ts",
+    "./tests/headless/writeFile.test.ts",
     "./tests/localWorkflow.spec.ts",
     "./vitest.config.ts",
     "./watch.ts"

@@ -192,6 +192,10 @@ const config = [
     // Based on a 3rd party library that doesn't use ESLint.
     ignores: ['app/lang-markdown/', 'app/lezer-markdown/'],
   },
+  {
+    // Template/documentation file, not actual code.
+    ignores: ['app/gui/templates/visualization.vue'],
+  },
   eslintJs.configs.recommended,
   ...pluginVue.configs['flat/recommended'],
   ...vueTsEslintConfig(),
@@ -213,12 +217,13 @@ const config = [
             'eslint.config.mjs',
             'internal/envReplacer.mjs',
             'internal/workspaceStatus.mjs',
-            // 'app/ydoc-server/vitest.config.ts',
+            'app/ydoc-server/vitest.config.ts',
             'app/ydoc-shared/vitest.config.ts',
             'app/project-manager-shim/scripts/*.js',
             'app/ide-desktop/icons/src/index.js',
             'app/electron-client/electron-builder-config.cjs',
             'app/electron-client/esbuild.config.mjs',
+            'app/gui/scripts/generateIconMetadata.mjs',
           ],
         },
       },

@@ -27,7 +27,6 @@ APP_TSCONFIG_FILES = glob(
         "lib0-ext.d.ts",
     ],
     [
-        ICON_GENERATED_DIR + "/**",
         TESTS_PATTERN_BASE,
     ],
 )
