@@ -141,6 +141,7 @@ export async function createModuleStore(
           events.forEach((event) => m.on(event, update))
         }
       },
+      { immediate: true },
     )
 
     const undoManager = proxyRefs({
