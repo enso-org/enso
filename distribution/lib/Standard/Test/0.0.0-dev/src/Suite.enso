@@ -1,11 +1,10 @@
 from Standard.Base import all
 import Standard.Base.Data.Vector.Builder
-import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Runtime.State
 
 import project.Group.Group
 import project.Group.Group_Builder
-import project.Helpers
+import project.Internal.Helpers
 import project.Suite_Config.Suite_Config
 import project.Test_Reporter
 
@@ -64,7 +63,7 @@ type Suite
 
         # List of pairs of groups and their specs that match the filter
         matching_specs = self.groups.flat_map group->
-            group_matches = name_matches group.name filter
+            group_matches = Helpers.name_matches group.name filter
             case group_matches of
                 True ->
                     # Include all the specs from the group
@@ -72,7 +71,7 @@ type Suite
                 False ->
                     # Try to include only some specs from the group
                     matched_specs = group.specs.filter spec->
-                        name_matches spec.name filter
+                        Helpers.name_matches spec.name filter
                     case matched_specs.is_empty of
                         True -> []
                         False ->
@@ -141,13 +140,3 @@ type Suite
                 IO.println <| "    " + spec.name
 
 
-## ---
-   private: true
-   ---
-name_matches (name : Text) (filter : (Text | Nothing)) -> Boolean =
-    case filter of
-        text : Text ->
-            regex = Regex.compile text
-            if regex.is_error.not then regex.match name != Nothing else
-                Panic.throw (Illegal_Argument.Error ("Filter " + text.pretty + " cannot be converted to regex"))
-        Nothing -> True

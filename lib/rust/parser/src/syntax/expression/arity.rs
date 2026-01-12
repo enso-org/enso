@@ -146,10 +146,6 @@ where
             (Some(_), Some(_)) => None,
         };
         let properties = token.operator_properties().unwrap();
-        // The spacing logic here only affects some error representations, except in the `._` case,
-        // which is not implemented and will probably be made a syntax error.
-        let reify_rhs_section = properties.can_form_section()
-            && (lhs == Some(Spacing::Spaced) || rhs == Some(Spacing::Spaced));
         let is_value_operation = missing.is_none() && properties.is_value_operation();
         self.emit(Operator {
             left_precedence: lhs
@@ -157,7 +153,7 @@ where
             right_precedence: rhs
                 .map(|spacing| ModifiedPrecedence::new(spacing, precedence, is_value_operation)),
             associativity,
-            arity: Arity::Binary { tokens: vec![token], missing, reify_rhs_section },
+            arity: Arity::Binary { tokens: vec![token], missing },
         });
     }
 
@@ -172,9 +168,11 @@ where
                     match missing {
                         None => *missing = Some(BinaryOperand::Right),
                         Some(BinaryOperand::Left) => {
-                            let operand = OperandMaybeNamed::Unnamed(
-                                ApplyOperator::tokens(mem::take(tokens)).finish(),
-                            );
+                            let operand = OperandMaybeNamed::Unnamed(apply_binary_operator(
+                                mem::take(tokens),
+                                None,
+                                None,
+                            ));
                             self.inner.push_maybe_named_operand(operand);
                             self.lhs_item = Some(MaybeOperator::Operand);
                         }

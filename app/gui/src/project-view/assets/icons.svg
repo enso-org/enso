@@ -41,6 +41,26 @@
     <path fill-rule="evenodd" clip-rule="evenodd" d="M2.5 0H4.5V12H16V16H0V12H2.5V0ZM11.5 2H9.5V5H6.5V7H9.5V10H11.5V7H14.5V5H11.5V2Z" fill="currentColor"></path>
   </symbol>
 
+  <symbol id="align_bottom" viewBox="0 0 16 16" width="16" height="16" fill="none">
+    <path d="M10.8333 8.5L8.00001 11.3333M8.00001 11.3333L5.16667 8.5M8.00001 11.3333L8.00001 2M12.6667 14H3.33334" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+  </symbol>
+
+  <symbol id="align_center" viewBox="0 0 16 16" width="16" height="16" fill="none">
+    <path d="M2.66666 3.33334H13.3333M5.33332 8.00001H10.6667M2.66666 12.6667H13.3333" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+  </symbol>
+
+  <symbol id="align_left" viewBox="0 0 16 16" width="16" height="16" fill="none">
+    <path d="M2.66667 3.33334H13.3333M2.66667 8.00001H8M2.66667 12.6667H13.3333" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+  </symbol>
+
+  <symbol id="align_right" viewBox="0 0 16 16" width="16" height="16" fill="none">
+    <path d="M2.66667 3.33334H13.3333M8 8.00001H13.3333M2.66667 12.6667H13.3333" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+  </symbol>
+
+  <symbol id="align_top" viewBox="0 0 16 16" width="16" height="16" fill="none">
+    <path d="M10.8333 7.5L8.00001 4.66667M8.00001 4.66667L5.16667 7.5M8.00001 4.66667L8.00001 14M12.6667 2L3.33334 2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+  </symbol>
+
   <symbol id="apple_color" viewBox="0 0 16 16" width="16" height="16" fill="none">
     <g clip-path="url(#clip0_1445_187)">
       <path d="M14.1096 5.4544C14.0168 5.5264 12.3784 6.4496 12.3784 8.5024C12.3784 10.8768 14.4632 11.7168 14.5256 11.7376C14.516 11.7888 14.1944 12.888 13.4264 14.008C12.7416 14.9936 12.0264 15.9776 10.9384 15.9776C9.8504 15.9776 9.5704 15.3456 8.3144 15.3456C7.0904 15.3456 6.6552 15.9984 5.66 15.9984C4.6648 15.9984 3.9704 15.0864 3.172 13.9664C2.2472 12.6512 1.5 10.608 1.5 8.6688C1.5 5.5584 3.5224 3.9088 5.5128 3.9088C6.5704 3.9088 7.452 4.6032 8.116 4.6032C8.748 4.6032 9.7336 3.8672 10.9368 3.8672C11.3928 3.8672 13.0312 3.9088 14.1096 5.4544ZM10.3656 2.5504C10.8632 1.96 11.2152 1.1408 11.2152 0.3216C11.2152 0.208 11.2056 0.0928 11.1848 0C10.3752 0.0304 9.412 0.5392 8.8312 1.2128C8.3752 1.7312 7.9496 2.5504 7.9496 3.3808C7.9496 3.5056 7.9704 3.6304 7.98 3.6704C8.0312 3.68 8.1144 3.6912 8.1976 3.6912C8.924 3.6912 9.8376 3.2048 10.3656 2.5504Z" fill="black"></path>

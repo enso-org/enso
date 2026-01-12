@@ -11,8 +11,8 @@ use enso_install_config::INSTALLER_PAYLOAD_ID;
 use std::ffi::c_void;
 #[cfg(windows)]
 use std::os::windows::ffi::OsStringExt;
-use windows::core::PCWSTR;
 use windows::Win32::UI::Shell;
+use windows::core::PCWSTR;
 
 // ==============
 // === Export ===

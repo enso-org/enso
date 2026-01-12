@@ -7,10 +7,10 @@
 
 use ide_ci::prelude::*;
 
-use enso_install_config::sanitize_and_expose_electron_builder_config;
 use enso_install_config::ENSO_INSTALL_ARCHIVE_PATH;
 use enso_install_config::ENSO_INSTALL_METADATA_PATH;
 use enso_install_config::INSTALLER_PAYLOAD_ID;
+use enso_install_config::sanitize_and_expose_electron_builder_config;
 use ide_ci::env::known::cargo::build::OUT_DIR;
 use ide_ci::programs::cargo;
 
@@ -28,12 +28,16 @@ fn main() {
         ide_ci::fs::write_if_different(&rc_file, contents).unwrap();
         embed_resource::compile(&rc_file, embed_resource::NONE);
     } else {
-        println!("cargo:warning={ENSO_INSTALL_ARCHIVE_PATH} is not set, the installer will fail at runtime.");
+        println!(
+            "cargo:warning={ENSO_INSTALL_ARCHIVE_PATH} is not set, the installer will fail at runtime."
+        );
     }
 
     cargo::build::rerun_if_env_changed(ENSO_INSTALL_METADATA_PATH);
     if !ENSO_INSTALL_METADATA_PATH.is_set() {
-        println!("cargo:warning={ENSO_INSTALL_METADATA_PATH} is not set, the installer will fail at runtime.");
+        println!(
+            "cargo:warning={ENSO_INSTALL_METADATA_PATH} is not set, the installer will fail at runtime."
+        );
         let placeholder_path = OUT_DIR.get().unwrap().join("metadata.json");
         ide_ci::fs::write_if_different(&placeholder_path, "{}").unwrap();
         // Set env for the crate.

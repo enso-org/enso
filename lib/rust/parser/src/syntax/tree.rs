@@ -114,10 +114,6 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
         /// The wildcard marker, `_`.
         Wildcard {
             pub token: token::Wildcard<'s>,
-            #[serde(serialize_with = "crate::serialization::serialize_optional_int")]
-            #[serde(deserialize_with = "crate::serialization::deserialize_optional_int")]
-            #[reflect(as = i32)]
-            pub de_bruijn_index: Option<u32>,
         },
         /// The suspended-default-arguments marker, `...`.
         SuspendedDefaultArguments {
@@ -146,6 +142,9 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
             pub arg:    Tree<'s>,
             pub close:  Option<token::CloseSymbol<'s>>,
         },
+        Call {
+            pub value: Tree<'s>,
+        },
         /// Application of an operator, like `a + b`. The left or right operands might be missing,
         /// thus creating an operator section like `a +`, `+ b`, or simply `+`.
         OprApp {
@@ -170,7 +169,6 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
             pub ident: token::Ident<'s>,
         },
         TemplateFunction {
-            pub arguments: u32,
             pub ast:       Tree<'s>,
         },
         /// An application of a multi-segment function, such as `if ... then ... else ...`. Each
@@ -774,7 +772,7 @@ pub type OperatorOrError<'s> = Result<token::Operator<'s>, MultipleOperatorError
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Reflect, Deserialize)]
 #[allow(missing_docs)]
 pub struct MultipleOperatorError<'s> {
-    pub operators: Box<NonEmptyVec<token::Operator<'s>>>,
+    pub operators: NonEmptyVec<token::Operator<'s>>,
 }
 
 impl<'s> span::Builder<'s> for MultipleOperatorError<'s> {
@@ -1056,70 +1054,11 @@ fn maybe_apply<'s>(f: Option<Tree<'s>>, x: Tree<'s>) -> Tree<'s> {
     }
 }
 
-/// Join two nodes with an operator, in a way appropriate for their types.
-pub fn apply_operator<'s>(
-    lhs: Option<Tree<'s>>,
-    opr: Vec<Token<'s>>,
-    rhs: Option<Tree<'s>>,
-) -> Tree<'s> {
-    match opr.len() {
-        0 => unreachable!(),
-        1 => {
-            let opr = opr.into_iter().next().unwrap();
-            match (opr.variant, lhs, rhs) {
-                (token::Variant::TypeAnnotationOperator(annotation), Some(lhs), Some(rhs)) => {
-                    Tree::type_annotated(lhs, opr.with_variant(annotation), rhs)
-                }
-                (
-                    token::Variant::DotOperator(dot),
-                    lhs,
-                    Some(Tree { variant: Variant::Ident(rhs), span, .. }),
-                ) => {
-                    let mut ident = rhs.token;
-                    ident.left_offset = span.left_offset;
-                    Tree::property_access(lhs, opr.with_variant(dot), ident)
-                }
-                (_, lhs, rhs) => {
-                    let error = match (&opr.variant, lhs.as_ref().map(|tree| &tree.variant), &rhs) {
-                        (_, Some(Variant::AutoscopedIdentifier(_)), _) if !opr.is_spaced() => {
-                            Some(SyntaxError::UnexpectedUnspacedOperand)
-                        }
-                        (_, _, None) | (_, None, _) if opr.is_syntactic_binary_operator() => {
-                            Some(SyntaxError::SyntacticOperatorMissingOperand)
-                        }
-                        (token::Variant::Operator(_) | token::Variant::ArrowOperator(_), _, _) => {
-                            None
-                        }
-                        _ => Some(SyntaxError::ExprUnexpectedSyntacticOperator),
-                    };
-                    let tree =
-                        Tree::opr_app(lhs, Ok(opr.with_variant(token::variant::Operator())), rhs);
-                    maybe_with_error(tree, error)
-                }
-            }
-        }
-        _ => Tree::opr_app(
-            lhs,
-            Err(MultipleOperatorError {
-                operators: Box::new(
-                    NonEmptyVec::try_from(
-                        opr.into_iter()
-                            .map(|opr| opr.with_variant(token::variant::Operator()))
-                            .collect::<Vec<_>>(),
-                    )
-                    .unwrap(),
-                ),
-            }),
-            rhs,
-        ),
-    }
-}
-
 /// Create an AST node for a token.
 pub fn to_ast(token: Token) -> Tree {
     match token.variant {
         token::Variant::Ident(ident) => token.with_variant(ident).into(),
-        token::Variant::Wildcard(wildcard) => Tree::wildcard(token.with_variant(wildcard), default()),
+        token::Variant::Wildcard(wildcard) => Tree::wildcard(token.with_variant(wildcard)),
         token::Variant::SuspendedDefaultArguments(t) => Tree::suspended_default_arguments(token.with_variant(t)),
         token::Variant::OpenSymbol(s) =>
             Tree::group(Some(token.with_variant(s)), default(), default()).with_error(SyntaxError::UnmatchedDelimiter),

@@ -2,9 +2,9 @@
 
 use crate::prelude::*;
 
-use futures_util::future::MapOk;
 use futures_util::FutureExt as _;
 use futures_util::TryFutureExt as _;
+use futures_util::future::MapOk;
 
 /// Extension methods for [`Future`].
 pub trait FutureExt: Future {}
@@ -41,7 +41,7 @@ pub trait TryFutureExt: TryFuture {
         F: FnOnce() -> C + Send + Sync + 'static,
         C: Display + Send + Sync + 'static,
     {
-        self.into_future().map(|res| res.with_context(context)).boxed()
+        futures_util::TryFutureExt::into_future(self).map(|res| res.with_context(context)).boxed()
     }
 }
 

@@ -5,9 +5,9 @@ use crate::prelude::*;
 use crate::github::Repo;
 
 use mime::Mime;
+use octocrab::models::ReleaseId;
 use octocrab::models::repos::Asset;
 use octocrab::models::repos::Release;
-use octocrab::models::ReleaseId;
 use reqwest::Body;
 use tracing::instrument;
 

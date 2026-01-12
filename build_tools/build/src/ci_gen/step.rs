@@ -4,10 +4,10 @@ use crate::ci_gen::not_a_fork;
 use crate::engine;
 use crate::paths;
 
-use ide_ci::actions::workflow::definition::env_expression;
 use ide_ci::actions::workflow::definition::Shell;
 use ide_ci::actions::workflow::definition::Step;
 use ide_ci::actions::workflow::definition::Target;
+use ide_ci::actions::workflow::definition::env_expression;
 use ide_ci::cache::goodie::graalvm;
 
 pub fn test_reporter(

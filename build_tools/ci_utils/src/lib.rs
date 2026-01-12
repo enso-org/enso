@@ -59,13 +59,13 @@ pub mod prelude {
     pub use crate::os::target::OS;
     pub use crate::os::target::TARGET_ARCH;
     pub use crate::os::target::TARGET_OS;
-    pub use crate::program::command::default_status_checker;
-    pub use crate::program::command::provider::CommandProvider;
+    pub use crate::program::Program;
+    pub use crate::program::Shell;
     pub use crate::program::command::Command;
     pub use crate::program::command::IsCommandWrapper;
     pub use crate::program::command::MyCommand;
-    pub use crate::program::Program;
-    pub use crate::program::Shell;
+    pub use crate::program::command::default_status_checker;
+    pub use crate::program::command::provider::CommandProvider;
 
     pub use crate::cache::goodie::GoodieExt as _;
     pub use crate::env::accessor::RawVariable as _;
@@ -76,9 +76,9 @@ pub mod prelude {
     pub use crate::extensions::version::PrereleaseExt as _;
     pub use crate::extensions::version::VersionExt as _;
     pub use crate::github::release::IsReleaseExt as _;
+    pub use crate::program::ProgramExt as _;
     pub use crate::program::command::provider::CommandProviderExt as _;
     pub use crate::program::version::IsVersion as _;
-    pub use crate::program::ProgramExt as _;
 
     pub fn into<T, U>(u: U) -> T
     where

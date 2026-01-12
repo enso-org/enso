@@ -1,6 +1,7 @@
 package org.enso.os.environment.jni;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -207,6 +208,7 @@ public class LoadClassTest {
   @Test
   public void loadChannelFromDynamicLibrary() throws Exception {
     var libPath = System.getenv("OS_ENVIRONMENT_LIB");
+    assertNotNull("Set OS_ENVIRONMENT_LIB env variable!", libPath);
     var libFile = new File(libPath);
     assert libFile.isFile() : "Library file must exists at " + libPath;
     var nativeJvm = JVM.create(libFile);

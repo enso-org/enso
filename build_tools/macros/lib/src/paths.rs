@@ -69,11 +69,7 @@ pub enum Shape {
 
 impl Shape {
     pub fn new(text: impl AsRef<str>) -> Self {
-        if text.as_ref().ends_with('/') {
-            Shape::Directory(default())
-        } else {
-            Shape::File
-        }
+        if text.as_ref().ends_with('/') { Shape::Directory(default()) } else { Shape::File }
     }
 }
 

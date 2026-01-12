@@ -1,14 +1,24 @@
 # Next Release
 
+#### Enso IDE
+
+- [Add component alignment options][14590].
+
+[14590]: https://github.com/enso-org/enso/pull/14590
+
 #### Enso Standard Library
 
+- [Multiline if_then_else][14522].
 - [Using dual JVM mode for Standard.Microsoft][14476].
 - [Standard.Test pending field is lazy][14536].
 - [Using dual JVM mode for Standard.AWS][14568].
+- [Polishing Standard.Test API][14599].
 
+[14522]: https://github.com/enso-org/enso/pull/14522
 [14476]: https://github.com/enso-org/enso/pull/14476
 [14536]: https://github.com/enso-org/enso/pull/14536
 [14568]: https://github.com/enso-org/enso/pull/14568
+[14599]: https://github.com/enso-org/enso/pull/14599
 
 #### Enso Language & Runtime
 
@@ -139,6 +149,7 @@
 - [Add `Date_Column` class, and `first_of_month` and `end_of_month`.][14485]
 - [Add `OneDrive.write` allowing a first API to write to OneDrive.][14494]
 - [Add `Grouping_Method.Equal_Sum` for database backends.][14528]
+- [Add `Grouping_Method.Standard_Deviation` for database backends.][14546]
 
 [13769]: https://github.com/enso-org/enso/pull/13769
 [14026]: https://github.com/enso-org/enso/pull/14026
@@ -176,6 +187,7 @@
 [14492]: https://github.com/enso-org/enso/pull/14492
 [14494]: https://github.com/enso-org/enso/pull/14494
 [14528]: https://github.com/enso-org/enso/pull/14528
+[14546]: https://github.com/enso-org/enso/pull/14528
 
 #### Enso Language & Runtime
 

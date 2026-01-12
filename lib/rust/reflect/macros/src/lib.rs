@@ -113,10 +113,10 @@
 #![warn(unused_qualifications)]
 
 use proc_macro2::TokenStream;
-use quote::quote;
 use quote::ToTokens;
-use syn::punctuated::Punctuated;
+use quote::quote;
 use syn::Token;
+use syn::punctuated::Punctuated;
 
 mod analyze;
 mod runtime;
