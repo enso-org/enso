@@ -76,24 +76,18 @@ impl Edition {
     pub fn libs_to_upload(&self) -> Vec<PublishedLibrary> {
         let mut published_libs: Vec<PublishedLibrary> = Vec::new();
         for lib in &self.libraries {
-            match (&lib.repository, &lib.version) {
-                (Some(repo_name), Some(version)) => {
-                    let repo = self.repo_for_library(lib);
-                    match repo {
-                        None => (),
-                        Some(repo) => {
-                            assert_eq!(*repo_name, repo.name);
-                            if Self::url_has_jar_scheme(repo.url.as_str()) {
-                                published_libs.push(PublishedLibrary {
-                                    name: lib.name.clone(),
-                                    version: version.clone(),
-                                    repository: repo.clone(),
-                                })
-                            }
-                        }
+            if let (Some(repo_name), Some(version)) = (&lib.repository, &lib.version) {
+                let repo = self.repo_for_library(lib);
+                if let Some(repo) = repo {
+                    assert_eq!(*repo_name, repo.name);
+                    if Self::url_has_jar_scheme(repo.url.as_str()) {
+                        published_libs.push(PublishedLibrary {
+                            name: lib.name.clone(),
+                            version: version.clone(),
+                            repository: repo.clone(),
+                        })
                     }
                 }
-                _ => (),
             }
         }
         published_libs
@@ -110,13 +104,10 @@ impl Edition {
 
     fn repo_for_library(&self, lib: &Library) -> Option<&Repository> {
         for repo in &self.repositories {
-            match &lib.repository {
-                Some(repo_name) => {
-                    if repo.name == *repo_name {
-                        return Some(repo);
-                    }
-                }
-                None => (),
+            if let Some(repo_name) = &lib.repository
+                && repo.name == *repo_name
+            {
+                return Some(repo);
             }
         }
         None
