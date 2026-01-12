@@ -10,10 +10,10 @@
 # - MAIN_REPO_URL: URL of the main repository hosting the standard libraries.
 # - STD_IMAGE_REPO_URL: URL of the repository hosting the Standard.Image library.
 
-engine-version: {{ENGINE_VERSION}}
+engine-version: '{{ENGINE_VERSION}}'
 repositories:
   - name: std_image_repo
-    url: {{STD_IMAGE_REPO_URL}}
+    url: '{{STD_IMAGE_REPO_URL}}'
 libraries:
   - name: Standard.Base
   - name: Standard.Test
@@ -34,4 +34,4 @@ libraries:
   - name: Standard.DuckDB
   - name: Standard.Image
     repository: std_image_repo
-    version: {{LIBS_VERSION}}
+    version: '{{LIBS_VERSION}}'
