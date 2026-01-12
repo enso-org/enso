@@ -55,7 +55,9 @@ _send_email_with_ses_provider email:Email region credentials =
         . message message
         . build
     response = ses_client.sendEmail send_email_request
-    response
+    http_response = response.sdkHttpResponse
+    if http_response.isSuccessful then Send_Response.Sent email else
+        Error.throw (Send_Error.Error ("SES send failed with status " + http_response.statusCode.to_text))
 
 _make_client credentials region =
     builder = ClientBuilder.new credentials.as_java region.as_java
