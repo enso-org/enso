@@ -16,6 +16,7 @@ import org.enso.runtime.parser.dsl.GenerateIR;
 import org.enso.runtime.parser.dsl.IRChild;
 import org.enso.runtime.parser.dsl.IRField;
 import scala.Function1;
+import scala.Option;
 
 /** An erroneous import or export statement. */
 @GenerateIR(
@@ -51,8 +52,18 @@ public final class ImportExport extends ErrorImportExportGen {
   }
 
   @Override
+  public ImportExport setLocation(Option<IdentifiedLocation> location) {
+    return this;
+  }
+
+  @Override
   public IdentifiedLocation identifiedLocation() {
     return ir().identifiedLocation();
+  }
+
+  @Override
+  public Option<IdentifiedLocation> location() {
+    return ir().location();
   }
 
   @Override
