@@ -1,7 +1,6 @@
 use crate::prelude::*;
 
 use crate::engine;
-use crate::engine::env;
 use crate::engine::sbt::SbtCommandProvider;
 use crate::engine::BenchmarkType;
 use crate::engine::BuildConfigurationResolved;
@@ -10,6 +9,7 @@ use crate::engine::Operation;
 use crate::engine::ReleaseCommand;
 use crate::engine::ReleaseOperation;
 use crate::engine::PARALLEL_ENSO_TESTS;
+use crate::engine::{edition, env};
 use crate::enso::BenchmarkOptions;
 use crate::enso::BuiltEnso;
 use crate::enso::IrCaches;
@@ -25,7 +25,6 @@ use ide_ci::github::release::{Handle, IsReleaseExt};
 use ide_ci::platform::DEFAULT_SHELL;
 use ide_ci::programs::sbt;
 use ide_ci::programs::Sbt;
-use octocrab::models::repos::Release;
 use std::env::consts::DLL_EXTENSION;
 use std::env::consts::EXE_EXTENSION;
 
@@ -475,11 +474,7 @@ impl RunContext {
                 ReleaseCommand::Upload => {
                     let artifacts = self.build().await?;
                     let release_id = crate::env::ENSO_RELEASE_ID.get()?;
-                    let release = ide_ci::github::release::Handle::new(
-                        &self.inner.octocrab,
-                        repo,
-                        release_id,
-                    );
+                    let release = Handle::new(&self.inner.octocrab, repo, release_id);
                     for package in artifacts.packages() {
                         package.upload_as_asset(release.clone()).await?;
                     }
@@ -489,10 +484,7 @@ impl RunContext {
                     if TARGET_OS == OS::Linux {
                         release.upload_asset_file(self.paths.manifest_file()).await?;
                         release.upload_asset_file(self.paths.launcher_manifest_file()).await?;
-                        if self.config.library_repo_url.clone().is_some() {
-                            let zip = self.create_extension_libs_zip().await?;
-                            release.upload_asset_file(zip).await?;
-                        }
+                        self.upload_libs(&release).await?;
                     }
                 }
             },
@@ -637,25 +629,40 @@ impl RunContext {
         }
     }
 
-    /// Creates a zip archive that contains all the extension libraries.
-    /// This ZIP should be later uploaded as an artifact to the GH
-    /// release.
-    async fn create_extension_libs_zip(&self) -> Result<PathBuf> {
-        debug!("Creating ZIP of all extension libraries");
-        let zip_path = self.repo_root.target.extension_libs_zip.path.clone();
-        let libs_root_dir = self.extension_libs_root_dir()?;
-        let paths = vec![libs_root_dir];
-        ide_ci::archive::create(&zip_path, paths).await?;
-        Ok(zip_path)
+    /// Uploads all the librariesS that should be uploaded.
+    /// See [edition::libs_to_upload].
+    async fn upload_libs(&self, release_handle: &Handle) -> Result {
+        let edition = edition::Edition::parse_from_generated_manifest(&self.repo_root)?;
+        let libs_to_upload = edition.libs_to_upload();
+        debug!("Uploading libraries: {:?}", libs_to_upload);
+        for lib in libs_to_upload {
+            let lib_path = lib.find_in_repo_root(&self.repo_root);
+            let repo = lib.repository;
+            debug!("Will upload library in {}", lib_path.to_string_lossy());
+            self.upload_as_zip(lib_path.as_path(), repo.name.as_str(), release_handle.clone())
+                .await?;
+        }
+        Ok(())
     }
 
-    /// Returns root directory for all the extension libraries.
-    fn extension_libs_root_dir(&self) -> Result<PathBuf> {
-        let lib_root_dir =
-            self.repo_root.built_distribution.enso_engine_triple.engine_package.lib.clone();
-        let lib_root_dir = lib_root_dir.canonicalize()?;
-        let extension_libs_root_dir = lib_root_dir.join("Enso");
-        Ok(extension_libs_root_dir)
+    /// Uploads the given directory as a zip asset. Name of the asset is
+    /// created from the directory name with `.zip` suffix.
+    async fn upload_as_zip(
+        &self,
+        dir_path: &Path,
+        asset_name: &str,
+        release_handle: Handle,
+    ) -> Result {
+        if !Path::is_dir(dir_path) {
+            bail!("{} is not a directory.", dir_path.display());
+        }
+        assert!(asset_name.ends_with(".zip"));
+        let tmp_dir = tempfile::tempdir()?;
+        let zip_file_path = tmp_dir.path().join(asset_name);
+        ide_ci::archive::create(&zip_file_path, vec![dir_path.to_owned()]).await?;
+        debug!("Will upload {:?} as asset", zip_file_path);
+        release_handle.upload_asset_file(zip_file_path).await?;
+        Ok(())
     }
 
     fn short_path(&self, full: &Path) -> PathBuf {
