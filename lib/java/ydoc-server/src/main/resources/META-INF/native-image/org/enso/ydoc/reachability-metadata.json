@@ -565,6 +565,15 @@
       "type": "org.enso.ydoc.server.Main",
       "methods": [
         {
+          "name": "launch",
+          "parameterTypes": [
+            "java.lang.String",
+            "java.lang.String",
+            "org.enso.ydoc.api.YjsChannelCallbacks",
+            "org.enso.ydoc.api.YjsChannelCallbacks"
+          ]
+        },
+        {
           "name": "main",
           "parameterTypes": [
             "java.lang.String[]"
@@ -842,6 +851,13 @@
           ]
         }
       ]
+    },
+    {
+      "type": {
+        "proxy": [
+          "org.enso.ydoc.api.YjsChannelCallbacks"
+        ]
+      }
     }
   ]
 }
