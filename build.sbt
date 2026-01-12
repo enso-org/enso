@@ -5236,7 +5236,7 @@ lazy val `std-table` = project
       "org.apache.logging.log4j" % "log4j"                 % "2.24.3",
       "org.apache.logging.log4j" % "log4j-to-slf4j"        % "2.24.3", // org.apache.poi uses log4j
       "org.graalvm.truffle"      % "truffle-api"           % graalMavenPackagesVersion % Test,
-      "uk.co.jdunkerley"         % "yxdb-java"             % "0.1.1",
+      "uk.co.jdunkerley"         % "yxdb-java"             % "0.1.3",
       "junit"                    % "junit"                 % junitVersion              % Test,
       "com.github.sbt"           % "junit-interface"       % junitIfVersion            % Test,
       "org.mockito"              % "mockito-core"          % mockitoJavaVersion        % Test,
