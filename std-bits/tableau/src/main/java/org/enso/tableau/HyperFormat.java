@@ -524,6 +524,12 @@ public class HyperFormat {
                 inserter.add(v.asDate());
               } else if (v.isTime()) {
                 inserter.add(v.asTime());
+              } else if (v.fitsInLong()) {
+                inserter.add(v.asLong());
+              } else if (v.fitsInDouble()) {
+                inserter.add(v.asDouble());
+              } else if (v.isBoolean()) {
+                inserter.add(v.asBoolean());
               } else {
                 var type = value.getClass().getName();
                 if (v.getMetaObject() instanceof Value meta) {
