@@ -3,41 +3,14 @@ package org.enso.interpreter.runtime.builtin;
 import static com.oracle.truffle.api.CompilerDirectives.transferToInterpreterAndInvalidate;
 
 import com.oracle.truffle.api.CompilerDirectives;
-import org.enso.interpreter.node.expression.builtin.error.ArithmeticError;
-import org.enso.interpreter.node.expression.builtin.error.ArityError;
-import org.enso.interpreter.node.expression.builtin.error.AssertionError;
-import org.enso.interpreter.node.expression.builtin.error.CaughtPanic;
-import org.enso.interpreter.node.expression.builtin.error.CompileError;
-import org.enso.interpreter.node.expression.builtin.error.ForbiddenOperation;
-import org.enso.interpreter.node.expression.builtin.error.IncomparableValues;
-import org.enso.interpreter.node.expression.builtin.error.IndexOutOfBounds;
-import org.enso.interpreter.node.expression.builtin.error.InexhaustivePatternMatch;
-import org.enso.interpreter.node.expression.builtin.error.InvalidArrayIndex;
-import org.enso.interpreter.node.expression.builtin.error.InvalidConversionTarget;
-import org.enso.interpreter.node.expression.builtin.error.MapError;
-import org.enso.interpreter.node.expression.builtin.error.MissingArgument;
-import org.enso.interpreter.node.expression.builtin.error.ModuleDoesNotExist;
-import org.enso.interpreter.node.expression.builtin.error.ModuleNotInPackageError;
-import org.enso.interpreter.node.expression.builtin.error.NoConversionCurrying;
-import org.enso.interpreter.node.expression.builtin.error.NoSuchArgument;
-import org.enso.interpreter.node.expression.builtin.error.NoSuchConversion;
-import org.enso.interpreter.node.expression.builtin.error.NoSuchField;
-import org.enso.interpreter.node.expression.builtin.error.NoSuchMethod;
-import org.enso.interpreter.node.expression.builtin.error.NotInvokable;
-import org.enso.interpreter.node.expression.builtin.error.NumberParseError;
-import org.enso.interpreter.node.expression.builtin.error.Panic;
-import org.enso.interpreter.node.expression.builtin.error.PrivateAccess;
-import org.enso.interpreter.node.expression.builtin.error.SyntaxError;
-import org.enso.interpreter.node.expression.builtin.error.TypeError;
-import org.enso.interpreter.node.expression.builtin.error.Unimplemented;
-import org.enso.interpreter.node.expression.builtin.error.UninitializedState;
-import org.enso.interpreter.node.expression.builtin.error.UnsupportedArgumentTypes;
+import com.oracle.truffle.api.exception.AbstractTruffleException;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.UnresolvedConversion;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.atom.Atom;
+import org.enso.interpreter.runtime.data.atom.AtomConstructor;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
 import org.enso.interpreter.runtime.error.DataflowError;
@@ -45,36 +18,35 @@ import org.enso.interpreter.runtime.error.DataflowError;
 /** Container for builtin Error types */
 public final class Error {
   private final EnsoContext context;
-  private final SyntaxError syntaxError;
-  private final TypeError typeError;
-  private final CompileError compileError;
-  private final AssertionError assertionError;
-  private final IndexOutOfBounds indexOutOfBounds;
-  private final InexhaustivePatternMatch inexhaustivePatternMatch;
-  private final UninitializedState uninitializedState;
-  private final NoSuchMethod noSuchMethod;
-  private final NoSuchConversion noSuchConversion;
-  private final NoConversionCurrying noConversionCurrying;
-  private final ModuleNotInPackageError moduleNotInPackageError;
-  private final ArithmeticError arithmeticError;
-  private final InvalidArrayIndex invalidArrayIndex;
-  private final ArityError arityError;
-  private final IncomparableValues incomparableValues;
-  private final UnsupportedArgumentTypes unsupportedArgumentsError;
-  private final ModuleDoesNotExist moduleDoesNotExistError;
-  private final NotInvokable notInvokable;
-  private final NoSuchArgument noSuchArgument;
-  private final MissingArgument missingArgument;
-  private final PrivateAccess privateAccessError;
-  private final InvalidConversionTarget invalidConversionTarget;
-  private final NoSuchField noSuchField;
-  private final NumberParseError numberParseError;
-  private final Panic panic;
-  private final CaughtPanic caughtPanic;
-  private final ForbiddenOperation forbiddenOperation;
-  private final MapError mapError;
-
-  private final Unimplemented unimplemented;
+  private final AtomFactory syntaxError;
+  private final AtomFactory typeError;
+  private final AtomFactory compileError;
+  private final AtomFactory assertionError;
+  private final AtomFactory indexOutOfBounds;
+  private final AtomFactory inexhaustivePatternMatch;
+  private final AtomFactory uninitializedState;
+  private final AtomFactory noSuchMethod;
+  private final AtomFactory noSuchConversion;
+  private final AtomFactory noConversionCurrying;
+  private final AtomFactory moduleNotInPackageError;
+  private final AtomFactory arithmeticError;
+  private final AtomFactory invalidArrayIndex;
+  private final AtomFactory arityError;
+  private final AtomFactory incomparableValues;
+  private final AtomFactory unsupportedArgumentsError;
+  private final AtomFactory moduleDoesNotExistError;
+  private final AtomFactory notInvokable;
+  private final AtomFactory noSuchArgument;
+  private final AtomFactory missingArgument;
+  private final AtomFactory privateAccessError;
+  private final AtomFactory invalidConversionTarget;
+  private final AtomFactory noSuchField;
+  private final AtomFactory numberParseError;
+  private final org.enso.interpreter.node.expression.builtin.error.Panic panic;
+  private final AtomFactory caughtPanic;
+  private final AtomFactory forbiddenOperation;
+  private final AtomFactory mapError;
+  private final AtomFactory unimplemented;
 
   @CompilerDirectives.CompilationFinal private Atom arithmeticErrorShiftTooBig;
 
@@ -86,35 +58,36 @@ public final class Error {
   /** Creates builders for error Atom Constructors. */
   Error(Builtins builtins, EnsoContext context) {
     this.context = context;
-    syntaxError = builtins.getBuiltinType(SyntaxError.class);
-    typeError = builtins.getBuiltinType(TypeError.class);
-    compileError = builtins.getBuiltinType(CompileError.class);
-    assertionError = builtins.getBuiltinType(AssertionError.class);
-    indexOutOfBounds = builtins.getBuiltinType(IndexOutOfBounds.class);
-    inexhaustivePatternMatch = builtins.getBuiltinType(InexhaustivePatternMatch.class);
-    uninitializedState = builtins.getBuiltinType(UninitializedState.class);
-    noSuchMethod = builtins.getBuiltinType(NoSuchMethod.class);
-    noSuchConversion = builtins.getBuiltinType(NoSuchConversion.class);
-    noConversionCurrying = builtins.getBuiltinType(NoConversionCurrying.class);
-    moduleNotInPackageError = builtins.getBuiltinType(ModuleNotInPackageError.class);
-    arithmeticError = builtins.getBuiltinType(ArithmeticError.class);
-    invalidArrayIndex = builtins.getBuiltinType(InvalidArrayIndex.class);
-    arityError = builtins.getBuiltinType(ArityError.class);
-    incomparableValues = builtins.getBuiltinType(IncomparableValues.class);
-    unsupportedArgumentsError = builtins.getBuiltinType(UnsupportedArgumentTypes.class);
-    moduleDoesNotExistError = builtins.getBuiltinType(ModuleDoesNotExist.class);
-    notInvokable = builtins.getBuiltinType(NotInvokable.class);
-    noSuchArgument = builtins.getBuiltinType(NoSuchArgument.class);
-    missingArgument = builtins.getBuiltinType(MissingArgument.class);
-    privateAccessError = builtins.getBuiltinType(PrivateAccess.class);
-    invalidConversionTarget = builtins.getBuiltinType(InvalidConversionTarget.class);
-    noSuchField = builtins.getBuiltinType(NoSuchField.class);
-    numberParseError = builtins.getBuiltinType(NumberParseError.class);
-    panic = builtins.getBuiltinType(Panic.class);
-    caughtPanic = builtins.getBuiltinType(CaughtPanic.class);
-    forbiddenOperation = builtins.getBuiltinType(ForbiddenOperation.class);
-    unimplemented = builtins.getBuiltinType(Unimplemented.class);
-    mapError = builtins.getBuiltinType(MapError.class);
+    syntaxError = AtomFactory.unique("Errors", "Common", "Syntax_Error");
+    typeError = AtomFactory.unique("Errors", "Common", "Type_Error");
+    compileError = AtomFactory.unique("Errors", "Common", "Compile_Error");
+    assertionError = AtomFactory.unique("Errors", "Common", "Assertion_Error");
+    indexOutOfBounds = AtomFactory.unique("Errors", "Common", "Index_Out_Of_Bounds");
+    inexhaustivePatternMatch = AtomFactory.unique("Errors", "Common", "Inexhaustive_Pattern_Match");
+    uninitializedState = AtomFactory.unique("Errors", "Common", "Uninitialized_State");
+    noSuchMethod = AtomFactory.unique("Errors", "Common", "No_Such_Method");
+    noSuchConversion = AtomFactory.unique("Errors", "Common", "No_Such_Conversion");
+    noConversionCurrying = AtomFactory.unique("Errors", "Common", "No_Conversion_Currying");
+    moduleNotInPackageError = AtomFactory.unique("Errors", "Common", "Module_Not_In_Package_Error");
+    arithmeticError = AtomFactory.unique("Errors", "Common", "Arithmetic_Error");
+    invalidArrayIndex = AtomFactory.unique("Errors", "Common", "Invalid_Array_Index");
+    arityError = AtomFactory.unique("Errors", "Common", "Arity_Error");
+    incomparableValues = AtomFactory.unique("Errors", "Common", "Incomparable_Values");
+    unsupportedArgumentsError =
+        AtomFactory.unique("Errors", "Common", "Unsupported_Argument_Types");
+    moduleDoesNotExistError = AtomFactory.unique("Errors", "Common", "Module_Does_Not_Exist");
+    notInvokable = AtomFactory.unique("Errors", "Common", "Not_Invokable");
+    noSuchArgument = AtomFactory.unique("Errors", "Common", "No_Such_Argument");
+    missingArgument = AtomFactory.unique("Errors", "Common", "Missing_Argument");
+    privateAccessError = AtomFactory.unique("Errors", "Common", "Private_Access");
+    invalidConversionTarget = AtomFactory.unique("Errors", "Common", "Invalid_Conversion_Target");
+    noSuchField = AtomFactory.unique("Errors", "Common", "No_Such_Field");
+    numberParseError = AtomFactory.unique("Data", "Numbers", "Number_Parse_Error");
+    panic = builtins.getBuiltinType(org.enso.interpreter.node.expression.builtin.error.Panic.class);
+    caughtPanic = AtomFactory.unique("Panic", "Caught_Panic");
+    forbiddenOperation = AtomFactory.unique("Errors", "Common", "Forbidden_Operation");
+    unimplemented = AtomFactory.unique("Errors", "Unimplemented");
+    mapError = AtomFactory.unique("Data", "Vector", "Map_Error");
   }
 
   public Atom makeSyntaxError(String message) {
@@ -153,8 +126,12 @@ public final class Error {
     return panic.getType();
   }
 
-  public CaughtPanic caughtPanic() {
-    return caughtPanic;
+  public Type caughtPanic() {
+    return caughtPanic.getType();
+  }
+
+  public Atom newCaughtPanic(Object payload, AbstractTruffleException originalException) {
+    return caughtPanic.newInstance(payload, originalException);
   }
 
   /**
@@ -168,8 +145,8 @@ public final class Error {
     return noSuchMethod.newInstance(target, symbol);
   }
 
-  public NoSuchField getNoSuchFieldError() {
-    return noSuchField;
+  public Atom makeNoSuchFieldError(Atom atom, Text name) {
+    return noSuchField.newInstance(atom, name);
   }
 
   public Atom makeNoSuchConversion(Object target, Object that, UnresolvedConversion conversion) {
@@ -280,10 +257,6 @@ public final class Error {
     return invalidArrayIndex.newInstance(array, index);
   }
 
-  public InvalidArrayIndex getInvalidArrayIndex() {
-    return invalidArrayIndex;
-  }
-
   /**
    * @param expected_min the minimum expected arity
    * @param expected_max the maximum expected arity
@@ -378,10 +351,6 @@ public final class Error {
         thisProjName, targetProjName, Text.create(targetMethodName), msgOrNothing);
   }
 
-  public ForbiddenOperation getForbiddenOperation() {
-    return forbiddenOperation;
-  }
-
   public Atom makeUnimplemented(String operation) {
     return unimplemented.newInstance(operation);
   }
@@ -409,5 +378,31 @@ public final class Error {
     var msg = "No polyglot symbol for " + className;
     var err = makeCompileError(msg);
     return DataflowError.withDefaultTrace(err, null);
+  }
+
+  private static final class AtomFactory {
+    private final String[] shortFqn;
+    private AtomConstructor uniqueAtomConstructor;
+
+    private AtomFactory(String[] shortFqn) {
+      this.shortFqn = shortFqn;
+    }
+
+    static AtomFactory unique(String... shortFqn) {
+      return new AtomFactory(shortFqn);
+    }
+
+    final Atom newInstance(Object... args) {
+      return org.enso.interpreter.runtime.data.atom.AtomNewInstanceNode.getUncached()
+          .newInstance(uniqueAtomConstructor, args);
+    }
+
+    final Type getType() {
+      return uniqueAtomConstructor.getType();
+    }
+
+    final AtomConstructor getUniqueConstructor() {
+      return uniqueAtomConstructor;
+    }
   }
 }

@@ -19,7 +19,6 @@ import org.enso.interpreter.node.callable.thunk.ThunkExecutorNode;
 import org.enso.interpreter.node.expression.builtin.meta.IsValueOfTypeNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
-import org.enso.interpreter.runtime.data.atom.AtomNewInstanceNode;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.error.PanicSentinel;
 
@@ -90,7 +89,6 @@ public abstract class CatchPanicNode extends Node {
       var ctx = EnsoContext.get(this);
       var state = ctx.currentState();
       var builtins = ctx.getBuiltins();
-      var cons = builtins.caughtPanic().getUniqueConstructor();
       if (originalException instanceof PanicException panic) {
         panic.assignCaughtLocation(this);
       } else {
@@ -98,8 +96,7 @@ public abstract class CatchPanicNode extends Node {
         // exceptions in case it is needed by the handler
         TruffleStackTrace.fillIn(originalException);
       }
-      var caughtPanic =
-          AtomNewInstanceNode.getUncached().newInstance(cons, payload, originalException);
+      var caughtPanic = builtins.error().newCaughtPanic(payload, originalException);
       return invokeCallableNode.execute(handler, frame, state, new Object[] {caughtPanic});
     } else {
       try {
