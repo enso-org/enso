@@ -8,7 +8,6 @@ use crate::engine::Operation;
 use crate::engine::PARALLEL_ENSO_TESTS;
 use crate::engine::ReleaseCommand;
 use crate::engine::ReleaseOperation;
-use crate::engine::env;
 use crate::engine::sbt::SbtCommandProvider;
 use crate::engine::{edition, env};
 use crate::enso::BenchmarkOptions;
