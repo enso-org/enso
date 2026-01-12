@@ -3,8 +3,8 @@
 use crate::prelude::*;
 
 use ide_ci::program::command::provider::CommandProviderExt;
-use ide_ci::programs::sbt;
 use ide_ci::programs::Sbt;
+use ide_ci::programs::sbt;
 
 pub fn verify_generated_package_task(package: &str, path: impl AsRef<Path>) -> String {
     format!(

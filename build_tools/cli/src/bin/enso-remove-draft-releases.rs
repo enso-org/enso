@@ -1,7 +1,7 @@
 use enso_build_cli::prelude::*;
 
-use ide_ci::github::setup_octocrab;
 use ide_ci::github::RepoRef;
+use ide_ci::github::setup_octocrab;
 use ide_ci::io::web::handle_error_response;
 
 const REPO: RepoRef = RepoRef { owner: "enso-org", name: "enso" };

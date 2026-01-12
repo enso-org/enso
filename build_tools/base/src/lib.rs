@@ -32,21 +32,21 @@ pub mod prelude {
     pub use std::fmt::Debug;
     pub use std::fmt::Display;
     pub use std::fmt::Formatter;
-    pub use std::future::ready;
     pub use std::future::Future;
+    pub use std::future::ready;
     pub use std::hash::Hash;
     pub use std::io::Read;
     pub use std::io::Seek;
-    pub use std::iter::once;
     pub use std::iter::FromIterator;
+    pub use std::iter::once;
     pub use std::marker::PhantomData;
     pub use std::ops::Deref;
     pub use std::ops::DerefMut;
     pub use std::ops::Range;
     pub use std::path::Path;
     pub use std::path::PathBuf;
-    pub use std::pin::pin;
     pub use std::pin::Pin;
+    pub use std::pin::pin;
     pub use std::str::FromStr;
     pub use std::sync::Arc;
 
@@ -59,15 +59,11 @@ pub mod prelude {
     pub use crate::extensions::pathbuf::PathBufExt as _;
     pub use crate::extensions::result::ResultExt as _;
 
+    pub use anyhow::Context as _;
     pub use anyhow::anyhow;
     pub use anyhow::bail;
     pub use anyhow::ensure;
-    pub use anyhow::Context as _;
     pub use fn_error_context::context;
-    pub use futures_util::future::BoxFuture;
-    pub use futures_util::select;
-    pub use futures_util::stream::BoxStream;
-    pub use futures_util::try_join;
     pub use futures_util::FutureExt as _;
     pub use futures_util::Stream;
     pub use futures_util::StreamExt as _;
@@ -75,9 +71,14 @@ pub mod prelude {
     pub use futures_util::TryFutureExt as _;
     pub use futures_util::TryStream;
     pub use futures_util::TryStreamExt as _;
-    pub use serde::de::DeserializeOwned;
+    pub use futures_util::future::BoxFuture;
+    pub use futures_util::select;
+    pub use futures_util::stream::BoxStream;
+    pub use futures_util::try_join;
     pub use serde::Deserialize;
     pub use serde::Serialize;
+    pub use serde::de::DeserializeOwned;
+    pub use tracing::Instrument;
     pub use tracing::debug;
     pub use tracing::debug_span;
     pub use tracing::error;
@@ -90,7 +91,6 @@ pub mod prelude {
     pub use tracing::trace_span;
     pub use tracing::warn;
     pub use tracing::warn_span;
-    pub use tracing::Instrument;
 
     /// Get the default value of a type as defined by the `Default` trait.
     ///

@@ -8,8 +8,8 @@ use crate::INSTALLER_NAME;
 use crate::UNINSTALLER_NAME;
 
 use ide_ci::env::known::electron_builder::WindowsSigningCredentials;
-use ide_ci::programs::cargo;
 use ide_ci::programs::Cargo;
+use ide_ci::programs::cargo;
 
 /// Input necessary to generate a Windows installer from unpacked Electron application bundle.
 #[derive(Debug)]

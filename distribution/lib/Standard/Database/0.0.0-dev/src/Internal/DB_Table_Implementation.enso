@@ -327,7 +327,7 @@ type DB_Table_Implementation
                         order_descriptors = _resolve_order_descriptors this_table ordering "add_group_number"
                         sum_columns = this_table.columns_helper.select_columns_helper [on] Case_Sensitivity.Default True problem_builder
                         if sum_columns.is_empty then
-                            Error.throw (Illegal_Argument.Error 'Sum column \"'+on.to_text+'\" not found')
+                            Error.throw (No_Such_Column.Error on.to_text)
                         sum_column = sum_columns.at 0
 
                         sum_expression = Internal_Column.from sum_column . expression
@@ -347,8 +347,29 @@ type DB_Table_Implementation
                         updated_table = renamed_table.updated_columns (renamed_table.internal_columns + [new_column])
                         updated_table.as_subquery
                 Grouping_Method.Standard_Deviation on population ->
-                    _ = [on, population]
-                    Error.throw (Unsupported_Database_Operation.Error "add_group_number with Standard_Deviation")
+                    problem_builder.attach_problems_before on_problems <|
+                        stddev_columns = this_table.columns_helper.select_columns_helper [on] Case_Sensitivity.Default True problem_builder
+                        if stddev_columns.is_empty then
+                            Error.throw (No_Such_Column.Error on.to_text)
+                        stddev_column = stddev_columns.at 0
+
+                        stddev_expression = Internal_Column.from stddev_column . expression
+
+                        new_expr = Group_Number_Helpers.make_group_number_standard_deviation from step stddev_expression population
+
+                        mapping = this_table.connection.type_mapping
+                        infer_from_database_callback expression =
+                            SQL_Type_Reference.new this_table.connection this_table.context expression
+                        op = if population then "GROUP_NUMBER_STANDARD_DEVIATION_POPULATION" else "GROUP_NUMBER_STANDARD_DEVIATION_SAMPLE"
+                        new_type_ref = mapping.infer_return_type infer_from_database_callback op [] new_expr
+
+                        new_column = Internal_Column.Value name new_type_ref new_expr
+
+                        rebuild_table columns =
+                            this_table.updated_columns (columns.map (Internal_Column.from _))
+                        renamed_table = Add_Row_Number.rename_columns_if_needed this_table name on_problems rebuild_table
+                        updated_table = renamed_table.updated_columns (renamed_table.internal_columns + [new_column])
+                        updated_table.as_subquery
 
     find_group_number (this_table : Table & DB_Table) predicate over group_row name:Text from:Integer step:Integer on_problems:Problem_Behavior =
         _ = [this_table, predicate, over, group_row, name, from, step, on_problems]

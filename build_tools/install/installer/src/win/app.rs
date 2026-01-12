@@ -4,11 +4,11 @@ use native_windows_gui::NativeUi;
 use std::sync::mpsc::Receiver;
 
 extern crate native_windows_gui as nwg;
+use crate::InstallerUpdate;
 use crate::win::access_payload;
 use crate::win::config;
 use crate::win::get_install_dir;
 use crate::win::spawn_installer_thread;
-use crate::InstallerUpdate;
 
 pub mod ui;
 

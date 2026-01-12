@@ -1,9 +1,9 @@
 use ide_ci::prelude::*;
 
+use crate::Payload;
 use crate::access_payload_metadata;
 use crate::win::config::Config;
 use crate::win::logic::install_with_updates;
-use crate::Payload;
 
 use enso_install::win::local_app_data;
 

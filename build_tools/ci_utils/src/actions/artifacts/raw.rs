@@ -11,10 +11,10 @@ use crate::reqwest::ContentRange;
 
 use anyhow::Context;
 use bytes::BytesMut;
-use reqwest::header::HeaderMap;
 use reqwest::Body;
 use reqwest::Response;
 use reqwest::StatusCode;
+use reqwest::header::HeaderMap;
 use tokio::io::AsyncReadExt;
 
 pub mod endpoints {

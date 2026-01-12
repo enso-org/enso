@@ -4,19 +4,19 @@ use crate::prelude::*;
 
 use crate::cache::download::DownloadFile;
 use crate::github;
-use crate::github::model;
 use crate::github::MAX_PER_PAGE;
+use crate::github::model;
 
 use headers::HeaderMap;
 use headers::HeaderValue;
-use octocrab::models::repos::Asset;
-use octocrab::models::repos::Ref;
-use octocrab::models::repos::Release;
-use octocrab::models::workflows::WorkflowListArtifact;
 use octocrab::models::ArtifactId;
 use octocrab::models::AssetId;
 use octocrab::models::ReleaseId;
 use octocrab::models::RunId;
+use octocrab::models::repos::Asset;
+use octocrab::models::repos::Ref;
+use octocrab::models::repos::Release;
+use octocrab::models::workflows::WorkflowListArtifact;
 use octocrab::params::actions::ArchiveFormat;
 use octocrab::params::repos::Reference;
 use reqwest::Response;
@@ -113,7 +113,11 @@ impl<'a> TryFrom<&'a str> for RepoRef<'a> {
     fn try_from(value: &'a str) -> std::result::Result<Self, Self::Error> {
         match value.split('/').collect_vec().as_slice() {
             [owner, name] => Ok(Self { owner, name }),
-            slice => bail!("Failed to parse string '{}': Splitting by '/' should yield exactly 2 pieces, found: {}", value, slice.len()),
+            slice => bail!(
+                "Failed to parse string '{}': Splitting by '/' should yield exactly 2 pieces, found: {}",
+                value,
+                slice.len()
+            ),
         }
     }
 }
