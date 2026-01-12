@@ -149,7 +149,8 @@ libraries:
         assert_eq!(edition.libraries.len(), 3);
         assert_eq!(edition.repositories.len(), 1);
         let std_img_lib = edition.libraries.get(2).unwrap();
-        assert!(std_img_lib.is_published());
+        assert!(std_img_lib.repository.is_some());
+        assert!(std_img_lib.version.is_some());
         assert_eq!(std_img_lib.name, "Standard.Image");
     }
 
