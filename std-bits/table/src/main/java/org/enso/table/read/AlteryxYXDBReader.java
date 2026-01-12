@@ -21,6 +21,7 @@ import org.enso.table.data.column.storage.type.TimeOfDayType;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.Table;
 import org.enso.table.problems.ProblemAggregator;
+import uk.co.jdunkerley.yxdb.Spatial;
 import uk.co.jdunkerley.yxdb.YxdbField;
 import uk.co.jdunkerley.yxdb.YxdbReader;
 
@@ -80,6 +81,16 @@ public final class AlteryxYXDBReader {
     } catch (Exception exc) {
       throw new IllegalStateException("An unexpected error occurred: " + exc.getMessage(), exc);
     }
+  }
+
+  /**
+   * Converts a spatial object in byte array format to its GeoJSON representation.
+   *
+   * @param spatialObj the spatial object as a byte array.
+   * @return the GeoJSON representation of the spatial object.
+   */
+  public static String spatialObjectToGeoJSON(byte[] spatialObj) {
+    return spatialObj == null ? null : Spatial.toGeoJson(spatialObj);
   }
 
   private static StorageType<?> mapYXDBField(YxdbField field) {
