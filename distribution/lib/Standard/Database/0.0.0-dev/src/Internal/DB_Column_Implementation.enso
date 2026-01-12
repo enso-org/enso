@@ -197,6 +197,17 @@ type DB_Column_Implementation
             if should_use_builtin_round this_column decimal_places rounding_mode then round_builtin this_column decimal_places rounding_mode else
                 DB_Column_Implementation.round_pure_column_ops this_column decimal_places rounding_mode
 
+    ## ---
+       private: true
+       ---
+       Implements rounding using only Enso column operations, and bypasses using
+       database-specific builtin rounding functions. This is only called from
+       .round in this class, or for from tests.
+
+       Outside of testing, database-specific builtin rounding functions are
+       always used where available. However, it is important ensure that the
+       pure versions work for all cases, since different database backends
+       provide different builtins.
     round_pure_column_ops (this_column : Column & DB_Column) decimal_places:Integer (rounding_mode : Rounding_Mode) =
         short_circuit_special_floating_point this_column <|
             case this_column.value_type of
