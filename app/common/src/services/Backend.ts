@@ -1,7 +1,13 @@
 /** @file Type definitions common between all backends. */
 import { z } from 'zod'
 import type { DownloadOptions } from '../download.js'
-import { getText, resolveDictionary, type Replacements, type TextId } from '../text.js'
+import {
+  getText,
+  resolveDictionary,
+  type DefaultGetText,
+  type Replacements,
+  type TextId,
+} from '../text.js'
 import * as dateTime from '../utilities/data/dateTime.js'
 import * as newtype from '../utilities/data/newtype.js'
 import * as permissions from '../utilities/permissions.js'
@@ -96,8 +102,6 @@ export interface Logger {
   /** Log an error message to the console. */
   readonly error: (message: unknown, ...optionalParams: unknown[]) => void
 }
-
-export type GetText = <K extends TextId>(key: K, ...replacements: Replacements[K]) => string
 
 /** The {@link Backend} variant. If a new variant is created, it should be added to this enum. */
 export enum BackendType {
@@ -632,13 +636,17 @@ export interface CreateCustomerPortalSessionResponse {
   readonly url: string | null
 }
 
-/** Response from the "path/resolve" endpoint. */
-export interface PathResolveResponse extends Omit<AnyRealAsset, 'type' | 'ensoPath'> {}
+/** Whether a type is `any`. */
+type IsAny<T> = 0 extends 1 & T ? true : false
 
 /** Response from "assets/${assetId}" endpoint. */
 export type AssetDetailsResponse<Id extends AssetId> =
-  | (Asset<AssetTypeFromId<Id>> & { readonly metadataId: MetadataId })
-  | null
+  // `T extends T` where `T` is a type parameter is a trick to distribute union values,
+  // evaluating the conditional type for each member of the union type,
+  // and then resolving to a union of the results of this operation.
+  IsAny<Id> extends true ? AssetDetailsResponse<AssetId>
+  : | (Id extends Id ? AnyAsset<AssetTypeFromId<Id>> & { readonly metadataId: MetadataId } : never)
+    | null
 
 /** Whether the user is on a plan with multiple seats (i.e. a plan that supports multiple users). */
 export function isUserOnPlanWithMultipleSeats(user: User) {
@@ -1339,11 +1347,11 @@ export interface GetProjectSessionLogsRequestParams {
 /** URL query string parameters for the "upload file" endpoint. */
 export interface UploadFileRequestParams {
   readonly fileId: AssetId | null
-  // Marked as optional in the data type, however it is required by the actual route handler.
   readonly fileName: string
   readonly parentDirectoryId: DirectoryId | null
   /** Only used for the Local backend when there is no {@link File} object available. */
   readonly filePath?: Path
+  readonly overwrite?: boolean
 }
 
 /** HTTP request body for the "upload file start" endpoint. */
@@ -1373,6 +1381,7 @@ export interface UploadFileEndRequestBody {
   readonly uploadId: string
   readonly assetId: AssetId | null
   readonly fileName: string
+  readonly overwrite?: boolean
 }
 
 /** A large file that has finished uploading. */
@@ -1647,6 +1656,15 @@ export function isNewTitleUnique(
   )
 }
 
+export const MAPBOX_TOKEN_SCHEMA = z.object({
+  token: z.string(),
+  expires: z
+    .string()
+    .datetime({ offset: true })
+    .transform((str) => new Date(str)),
+})
+export type MapboxToken = z.infer<typeof MAPBOX_TOKEN_SCHEMA>
+
 /** Network error class. */
 export class NetworkError extends Error {
   /**
@@ -1669,13 +1687,13 @@ export class NotAuthorizedError extends NetworkError {}
 export abstract class Backend {
   abstract readonly type: BackendType
   abstract readonly baseUrl: URL
-  protected getText: GetText
+  protected getText: DefaultGetText
   private readonly client: HttpClient
   protected readonly downloader: (options: DownloadOptions) => void | Promise<void>
 
   /** Create a {@link Backend}. */
   constructor(
-    getText: GetText,
+    getText: DefaultGetText,
     client: HttpClient,
     downloader: (options: DownloadOptions) => void | Promise<void>,
   ) {
@@ -1688,7 +1706,7 @@ export abstract class Backend {
    * Set `this.getText`. This function is exposed rather than the property itself to make it clear
    * that it is intended to be mutable.
    */
-  setGetText(getText: GetText) {
+  setGetText(getText: DefaultGetText) {
     this.getText = getText
   }
 
@@ -1880,7 +1898,7 @@ export abstract class Backend {
     return (await this.resolveProjectAssetData(projectId, 'src/Main.enso', versionId)).text()
   }
   /** Resolve enso path to an asset */
-  abstract resolveEnsoPath(path: EnsoPath): Promise<PathResolveResponse>
+  abstract resolveEnsoPath(path: EnsoPath): Promise<AnyAsset>
   /** Resolve the data of a project asset relative to the project root directory. */
   abstract resolveProjectAssetData(
     projectId: ProjectId,
@@ -2013,6 +2031,8 @@ export abstract class Backend {
   abstract createApiKey(body: CreateApiKeyRequestBody): Promise<ApiKey>
   /** Delete a API key for the current user. */
   abstract deleteApiKey(apiKeyId: ApiKeyId): Promise<void>
+  /** Retrieve Mapbox token for the current user. */
+  abstract getMapboxToken(): Promise<MapboxToken>
 
   /** Throw a {@link backend.NotAuthorizedError} if the response is a 401 Not Authorized status code. */
   private async checkForAuthenticationError<T>(

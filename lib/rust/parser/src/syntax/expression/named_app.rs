@@ -6,7 +6,6 @@ use crate::syntax::ScopeHierarchyConsumer;
 use crate::syntax::Token;
 use crate::syntax::Tree;
 use crate::syntax::expression::reducer::ApplyToOperand;
-use crate::syntax::expression::section::MaybeSection;
 use crate::syntax::expression::types::Arity;
 use crate::syntax::expression::types::ModifiedPrecedence;
 use crate::syntax::expression::types::NamedOperandConsumer;
@@ -88,8 +87,10 @@ impl<'s> From<NamedApp<'s>> for Operand<'s> {
 }
 
 impl<'s> ApplyToOperand<'s> for NamedApp<'s> {
-    fn apply_to_operand(self, operand: Option<MaybeSection<Tree<'s>>>) -> MaybeSection<Tree<'s>> {
-        operand.unwrap().map(|func| self.apply(func))
+    fn apply_to_operand(self, operand: Option<Operand<'s>>) -> Operand<'s> {
+        let mut result = operand.unwrap().map(|func| self.apply(Tree::from(func)));
+        result.call = true;
+        result
     }
 }
 
@@ -272,7 +273,7 @@ where
     fn push_tree(&mut self, tree: Tree<'s>, following_spacing: Option<Spacing>) {
         self.flush_partial(|| Spacing::of_tree(&tree).into());
         self.maybe_end_unspaced_expression(Some(Spacing::of_tree(&tree)), false);
-        self.inner.push_maybe_named_operand(OperandMaybeNamed::Unnamed(MaybeSection::from(tree)));
+        self.inner.push_maybe_named_operand(OperandMaybeNamed::Unnamed(Operand::from(tree)));
         self.maybe_end_unspaced_expression(following_spacing, false);
     }
 }

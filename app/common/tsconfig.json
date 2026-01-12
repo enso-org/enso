@@ -47,4 +47,6 @@
     "./src/utilities/uniqueString.ts",
     "./src/text/english.json"
   ]
+  "include": ["./src", "./src/text/english.json"],
+   "exclude": []
 }

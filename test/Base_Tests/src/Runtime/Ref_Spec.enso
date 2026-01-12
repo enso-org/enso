@@ -50,6 +50,57 @@ add_specs suite_builder = suite_builder.group "Refs" group_builder->
         is_eleven.should_be_true
         r.get . should_equal 10
 
+    group_builder.specify "lazy local variable memoization" <|
+        counter = Ref.new 0
+
+        memo_ref = Ref.new lazy=True <|
+            # count costly computation
+            counter.modify (_+1)
+            6*7
+        memo -> Integer =
+            memo_ref.get
+
+        # no "expensive computation" happened so far
+        # even we have memo variable defined
+        counter.get . should_equal 0
+
+        # first access to memo variable triggers
+        # computation
+        memo . should_equal 42
+        counter.get . should_equal 1
+
+        # subsequent access to memo doesn't
+        # trigger any computation as the value
+        # has been memoized
+        memo . should_equal 42
+        counter.get . should_equal 1
+
+        # no computation on any other access
+        memo . should_equal 42
+        counter.get . should_equal 1
+
+    group_builder.specify "eager initialization of Ref.new" <|
+        counter = Ref.new 0
+
+        _ = Ref.new <|
+            # count costly computation
+            counter.modify (_+1)
+            6*7
+
+        # Ref.new initialized even it is never needed
+        counter.get . should_equal 1
+
+    group_builder.specify "lazy initialization of Ref.new lazy=True" <|
+        counter = Ref.new 0 False
+
+        _ = Ref.new lazy=True <|
+            # count costly computation
+            counter.modify (_+1)
+            6*7
+
+        # Lazy Ref.new is never initialized when not needed
+        counter.get . should_equal 0
+
 main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder

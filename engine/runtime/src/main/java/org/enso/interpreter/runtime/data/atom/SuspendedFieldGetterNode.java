@@ -102,7 +102,8 @@ final class SuspendedFieldGetterNode extends UnboxingAtom.FieldGetterNode {
         return newValue;
       } catch (AbstractTruffleException ex) {
         exceptionalState.enter();
-        var rethrow = DataflowError.withTrace(ex, ex);
+        var ctx = EnsoContext.get(this);
+        var rethrow = DataflowError.withTrace(ctx, ex, ex);
         set.execute(atom, rethrow);
         throw ex;
       } finally {

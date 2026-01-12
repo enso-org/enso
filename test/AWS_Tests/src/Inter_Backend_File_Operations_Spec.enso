@@ -90,8 +90,10 @@ add_specs suite_builder =
        Still, every backend should have at least X->Local, Local->X, X->X (within itself) and one test with another remote backend (e.g. X->S3).
     backends.each source_backend-> backends.each destination_backend->
         suite_builder.group "("+source_backend.name+" -> "+destination_backend.name+") copying/moving" pending=(any_pending [source_backend, destination_backend]) group_builder->
-            source_file_provider = source_backend.make_temp_file "src.txt"
-            destination_file_provider = destination_backend.make_temp_file "dest.txt"
+            source_file_provider =
+                source_backend.make_temp_file "src.txt"
+            destination_file_provider =
+                destination_backend.make_temp_file "dest.txt"
             group_builder.teardown <|
                 source_file_provider.cleanup
                 destination_file_provider.cleanup
@@ -178,10 +180,14 @@ add_specs suite_builder =
            so `api_pending` is always checked and the test will not be run without S3 config present.
         pending = any_pending [source_backend, destination_backend] . if_nothing api_pending
         suite_builder.group "("+source_backend.name+" -> "+destination_backend.name+") Data Link copying/moving" pending=pending group_builder->
-            source_link_provider = source_backend.make_temp_file "src.datalink"
-            regular_source_file_provider = source_backend.make_temp_file "src.txt"
-            destination_link_provider = destination_backend.make_temp_file "dest.datalink"
-            regular_destination_file_provider = destination_backend.make_temp_file "dest.txt"
+            source_link_provider =
+                source_backend.make_temp_file "src.datalink"
+            regular_source_file_provider =
+                source_backend.make_temp_file "src.txt"
+            destination_link_provider =
+                destination_backend.make_temp_file "dest.datalink"
+            regular_destination_file_provider =
+                destination_backend.make_temp_file "dest.txt"
             group_builder.teardown <|
                 source_link_provider.cleanup
                 destination_link_provider.cleanup

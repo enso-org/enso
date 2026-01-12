@@ -75,8 +75,11 @@ add_specs suite_builder = suite_builder.group "[In-Memory] Boolean Column operat
 
                 [True, False, Nothing].each scalar-> Test.with_clue "([X] "+op_name+" "+scalar.to_text+"): " <|
                     got_2 = op x_col scalar
-                    expected_2 = xs.map x-> enso_op x scalar
-                    got_2.to_vector . should_equal expected_2
+                    vec_2 = got_2.to_vector
+                    expected_2 =
+                        xs.map x->
+                            enso_op x scalar
+                    vec_2 . should_equal expected_2
 
     group_builder.specify "min/max" <| with_transformed_columns x_col-> y_col->
         enso_min x y = if x.is_nothing then y else if y.is_nothing then x else if x < y then x else y

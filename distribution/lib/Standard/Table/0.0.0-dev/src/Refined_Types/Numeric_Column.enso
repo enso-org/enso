@@ -51,3 +51,152 @@ type Numeric_Column
        and `limit` (exclusive).
     randbetween self limit seed:Integer=0 -> Column & Numeric_Column =
         self.operations_implementation.randbetween self.column limit seed
+
+    ## ---
+       group: Standard.Base.Math
+       icon: math
+       ---
+       Computes the radians value of each element in the column.
+    radians self -> Column & Numeric_Column =
+        float_column = if (self:Column).value_type.is_decimal.not then (self:Column) else (self:Column).cast ..Float
+        float_column / _radians_to_degrees
+
+    ## ---
+       group: Standard.Base.Math
+       icon: math
+       ---
+       Computes the degrees value of each element in the column.
+    degrees self -> Column & Numeric_Column =
+        float_column = if (self:Column).value_type.is_decimal.not then (self:Column) else (self:Column).cast ..Float
+        float_column * _radians_to_degrees
+
+    ## ---
+       group: Standard.Base.Math
+       icon: math
+       ---
+       Computes the sine of each element in the column.
+    sin self -> Column & Numeric_Column =
+        self.operations_implementation.sin self.column
+
+    ## ---
+       group: Standard.Base.Math
+       icon: math
+       ---
+       Computes the inverse sine of each element in the column.
+       Selects a value in the -pi/2 through pi/2 range.
+    asin self -> Column & Numeric_Column =
+        self.operations_implementation.asin self.column
+
+    ## ---
+       group: Standard.Base.Math
+       icon: math
+       ---
+       Computes the cosine of each element in the column.
+    cos self -> Column & Numeric_Column =
+        self.operations_implementation.cos self.column
+
+    ## ---
+       group: Standard.Base.Math
+       icon: math
+       ---
+       Computes the inverse cosine of each element in the column.
+       Selects a value in the -pi/2 through pi/2 range.
+    acos self -> Column & Numeric_Column =
+        self.operations_implementation.acos self.column
+
+    ## ---
+       group: Standard.Base.Math
+       icon: math
+       ---
+       Computes the tangent of each element in the column.
+    tan self -> Column & Numeric_Column =
+        self.operations_implementation.tan self.column
+
+    ## ---
+       group: Standard.Base.Math
+       icon: math
+       ---
+       Computes the inverse of the tangent of each element in the column.
+       Selects a value in the -pi/2 through pi/2 range.
+    atan self -> Column & Numeric_Column =
+        self.operations_implementation.atan self.column
+
+    ## ---
+       group: Standard.Base.Math
+       icon: math
+       ---
+       Computes the hyperbolic sine of each element in the column.
+    sinh self -> Column & Numeric_Column =
+        self.operations_implementation.sinh self.column
+
+    ## ---
+       group: Standard.Base.Math
+       icon: math
+       ---
+       Computes the hyperbolic cosine of each element in the column.
+    cosh self -> Column & Numeric_Column =
+        self.operations_implementation.cosh self.column
+
+    ## ---
+       group: Standard.Base.Math
+       icon: math
+       ---
+       Computes the hyperbolic tangent of each element in the column.
+    tanh self -> Column & Numeric_Column =
+        self.operations_implementation.tanh self.column
+
+    ## ---
+       group: Standard.Base.Math
+       icon: math
+       ---
+       Computes the square root of each element in the column.
+    sqrt self -> Column & Numeric_Column =
+        self.operations_implementation.sqrt self.column
+
+    ## ---
+       group: Standard.Base.Math
+       icon: math
+       ---
+       Raises each element in the column to the power of `power`.
+
+       ## Arguments
+       - power: The exponent to raise each element of the column to.
+    power self power -> Column & Numeric_Column =
+        (self:Column) ^ power
+
+    ## ---
+       group: Standard.Base.Math
+       icon: math
+       ---
+       Computes the natural logarithm (base e) of each element in the column.
+    ln self -> Column & Numeric_Column =
+        self.operations_implementation.ln self.column
+
+    ## ---
+       group: Standard.Base.Math
+       icon: math
+       ---
+       Computes the exponential (e^x) of each element in the column.
+    exp self -> Column & Numeric_Column =
+        self.operations_implementation.exp self.column
+
+    ## ---
+       group: Standard.Base.Math
+       icon: math
+       ---
+       Computes the base-10 logarithm of each element in the column.
+    log10 self -> Column & Numeric_Column =
+        self.operations_implementation.log10 self.column
+
+    ## ---
+       group: Standard.Base.Math
+       icon: math
+       ---
+       Computes the logarithm of each element in the column with the specified base.
+
+       ## Arguments
+        - base: The base of the logarithm.
+    log self base=10 -> Column & Numeric_Column =
+        if base==10 then self.log10 else self.ln / base.ln
+
+private _radians_to_degrees = 180 / Math.pi

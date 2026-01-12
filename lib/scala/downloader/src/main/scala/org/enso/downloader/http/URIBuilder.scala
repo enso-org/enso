@@ -1,45 +1,29 @@
 package org.enso.downloader.http
 
-import java.net.{URI, URLEncoder}
-import java.nio.charset.StandardCharsets
+import java.net.URI
 
 /** A simple immutable builder for URIs based on URLs.
   *
   * It contains very limited functionality that is needed by the APIs used in
   * the launcher. It can be easily extended if necessary.
   */
-case class URIBuilder private (uri: URI) {
+trait URIBuilder {
 
   /** Resolve a segment over the path in the URI.
     *
     * For example adding `bar` to `http://example.com/foo` will result in
     * `http://example.com/foo/bar`.
     */
-  def addPathSegment(segment: String): URIBuilder = {
-    val pathItems = uri.getRawPath.split("/")
-    val newPath   = (pathItems :+ segment).mkString("/")
-    copy(uri.resolve(newPath))
-  }
+  def addPathSegment(segment: String): URIBuilder
 
   /** Add a query parameter to the URI.
     *
     * The query is appended at the end.
     */
-  def addQuery(key: String, value: String): URIBuilder = {
-    val scheme       = uri.getScheme
-    val authority    = uri.getAuthority
-    val path         = uri.getPath
-    val query        = if (uri.getQuery == null) "" else uri.getQuery + "&"
-    val fragment     = uri.getFragment
-    val encodedKey   = URLEncoder.encode(key, StandardCharsets.UTF_8)
-    val encodedValue = URLEncoder.encode(value, StandardCharsets.UTF_8)
-    val newQuery     = query + encodedKey + "=" + encodedValue
-    val newUri       = new URI(scheme, authority, path, newQuery, fragment)
-    copy(newUri)
-  }
+  def addQuery(key: String, value: String): URIBuilder
 
   /** Build the URI represented by this builder. */
-  def build(): URI = uri
+  def build(): URI
 }
 
 object URIBuilder {
@@ -53,18 +37,26 @@ object URIBuilder {
     val scheme           = "https"
     val path: String     = null
     val fragment: String = null
-    new URIBuilder(new URI(scheme, host, path, fragment))
+    HTTPURIBuilder(new URI(scheme, host, path, fragment))
   }
 
   /** Creates a builder from an arbitrary [[URI]] instance. */
   def fromUri(uri: URI): URIBuilder = {
-    new URIBuilder(uri)
+    if (uri.getScheme == "jar") {
+      new JarURIBuilder(uri)
+    } else {
+      HTTPURIBuilder(uri)
+    }
   }
 
   /** Creates a builder from an arbitrary URI represented as string.
     */
   def fromUri(uri: String): URIBuilder = {
-    new URIBuilder(new URI(uri))
+    if (uri.startsWith("jar:")) {
+      new JarURIBuilder(new URI(uri))
+    } else {
+      HTTPURIBuilder(new URI(uri))
+    }
   }
 
   /** A simple DSL for the URIBuilder. */

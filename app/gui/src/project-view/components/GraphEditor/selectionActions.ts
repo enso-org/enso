@@ -9,10 +9,17 @@ import { computed, toValue } from 'vue'
  */
 export function selectionActionHandlers(
   selectedNodes: ToValue<Iterable<Node>>,
+  detachingPossible: ToValue<boolean>,
   actions: {
     collapseNodes: (nodes: Node[]) => void
     copyNodesToClipboard: (nodes: Node[]) => void
+    alignLeftNodes: (nodes: Node[]) => void
+    alignRightNodes: (nodes: Node[]) => void
+    alignTopNodes: (nodes: Node[]) => void
+    alignBottomNodes: (nodes: Node[]) => void
+    alignCenterNodes: (nodes: Node[]) => void
     deleteNodes: (nodes: Node[]) => void
+    deleteAndConnectAround: (nodes: Node[]) => void
   },
 ) {
   const selectedNodesArray = computed(() => [...toValue(selectedNodes)])
@@ -38,15 +45,43 @@ export function selectionActionHandlers(
     },
     'components.deleteSelected': {
       enabled: atLeastOneComponent,
-      description: computed(() => {
-        console.log('singleNodeSelected.value', singleNodeSelected.value)
-        return singleNodeSelected.value ? 'Delete Component' : 'Delete Selected Components'
-      }),
+      description: computed(() =>
+        singleNodeSelected.value ? 'Delete Component' : 'Delete Selected Components',
+      ),
       action: action('deleteNodes'),
     },
     'components.pickColorMulti': {
       ...toggledAction(),
       enabled: computed(() => multipleNodesSelected.value && atLeastOneComponent.value),
+    },
+    'components.alignLeft': {
+      enabled: computed(() => multipleNodesSelected.value),
+      action: action('alignLeftNodes'),
+    },
+    'components.alignRight': {
+      enabled: computed(() => multipleNodesSelected.value),
+      action: action('alignRightNodes'),
+    },
+    'components.alignTop': {
+      enabled: computed(() => multipleNodesSelected.value),
+      action: action('alignTopNodes'),
+    },
+    'components.alignBottom': {
+      enabled: computed(() => multipleNodesSelected.value),
+      action: action('alignBottomNodes'),
+    },
+    'components.alignCenter': {
+      enabled: computed(() => multipleNodesSelected.value),
+      action: action('alignCenterNodes'),
+    },
+    'components.deleteAndConnectAround': {
+      enabled: computed(() => atLeastOneComponent.value && toValue(detachingPossible)),
+      description: computed(() =>
+        singleNodeSelected.value ?
+          'Delete and Connect Around'
+        : 'Delete Selected and Connect Around',
+      ),
+      action: action('deleteAndConnectAround'),
     },
   }
 }

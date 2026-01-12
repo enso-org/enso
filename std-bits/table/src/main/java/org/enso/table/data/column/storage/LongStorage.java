@@ -1,38 +1,55 @@
 package org.enso.table.data.column.storage;
 
-import java.util.BitSet;
+import java.lang.foreign.MemorySegment;
+import java.nio.LongBuffer;
 import java.util.NoSuchElementException;
 import org.enso.table.data.column.storage.iterators.ColumnLongStorageIterator;
 import org.enso.table.data.column.storage.type.IntegerType;
+import org.enso.table.util.ImmutableBitSet;
 
 /** A column storing 64-bit integers. */
-public final class LongStorage extends AbstractLongStorage implements ColumnStorageWithNothingMap {
+public final class LongStorage extends AbstractLongStorage implements ColumnStorageWithValidityMap {
   // TODO [RW] at some point we will want to add separate storage classes for byte, short and int,
   // for more compact storage and more efficient handling of smaller integers; for now we will be
   // handling this just by checking the bounds
-  final long[] data;
-  final BitSet isNothing;
+  private final LongBuffer data;
+  private final ImmutableBitSet validityMap;
+
+  /** original proxy storage to keep from being garbage collected */
+  private final ColumnStorage<?> proxy;
 
   /**
-   * @param data the underlying data
-   * @param size the number of items stored
-   * @param isNothing a bit set denoting at index {@code i} whether or not the value at index {@code
-   *     i} is missing.
+   * @param data the underlying data up to {@code data.limit()}
+   * @param validityMap a bit set denoting at index {@code i} whether or not the real value is
+   *     present.
    * @param type the type specifying the bit-width of integers that are allowed in this storage
+   * @param otherStorage reference to proxy storage to prevent it from being GCed while this storage
+   *     is used
    */
-  public LongStorage(long[] data, int size, BitSet isNothing, IntegerType type) {
-    super(size, type);
+  public LongStorage(
+      LongBuffer data,
+      ImmutableBitSet validityMap,
+      IntegerType type,
+      ColumnStorage<?> otherStorage) {
+    super(data.limit(), type);
     this.data = data;
-    this.isNothing = isNothing;
+    this.validityMap = validityMap;
+    this.proxy = otherStorage;
   }
 
-  public LongStorage(long[] data, IntegerType type) {
-    this(data, data.length, new BitSet(), type);
+  @Override
+  public long addressOfData() {
+    return MemorySegment.ofBuffer(data).address();
+  }
+
+  @Override
+  public long addressOfValidity() {
+    return MemorySegment.ofBuffer(validityMap.rawData()).address();
   }
 
   @Override
   public long getItemAsLong(long index) {
-    return data[(int) index];
+    return data.get((int) index);
   }
 
   @Override
@@ -40,61 +57,62 @@ public final class LongStorage extends AbstractLongStorage implements ColumnStor
     if (idx < 0 || idx >= getSize()) {
       throw new IndexOutOfBoundsException(idx);
     }
-    return isNothing.get(Math.toIntExact(idx));
+    return !validityMap.get(Math.toIntExact(idx));
   }
 
-  @Override
-  public BitSet getIsNothingMap() {
-    return isNothing;
+  public ImmutableBitSet getValidityMap() {
+    return validityMap;
   }
 
   /** Widening to a bigger type can be done without copying the data. */
   @Override
   public LongStorage widen(IntegerType widerType) {
     assert widerType.fits(getType());
-    return new LongStorage(data, (int) getSize(), getIsNothingMap(), widerType);
+    return new LongStorage(data, validityMap, widerType, proxy);
   }
 
-  /** Allow access to the underlying data array for copying. */
-  public long[] getData() {
-    return data;
+  /**
+   * Allow access to the underlying data array for copying.
+   *
+   * @return
+   */
+  public LongBuffer getData() {
+    return data.asReadOnlyBuffer();
   }
 
   @Override
   public ColumnLongStorageIterator iteratorWithIndex() {
-    return new LongStorageIterator(data, isNothing, (int) getSize());
+    return new LongStorageIterator(data.asReadOnlyBuffer(), validityMap);
   }
 
-  private static class LongStorageIterator implements ColumnLongStorageIterator {
-    private final long[] data;
-    private final BitSet isNothing;
-    private final int size;
+  private static final class LongStorageIterator implements ColumnLongStorageIterator {
+    private final LongBuffer data;
+    private final ImmutableBitSet validityMap;
     private int index = -1;
 
-    public LongStorageIterator(long[] data, BitSet isNothing, int size) {
+    LongStorageIterator(LongBuffer data, ImmutableBitSet validityMap) {
       this.data = data;
-      this.isNothing = isNothing;
-      this.size = size;
+      this.validityMap = validityMap;
     }
 
     @Override
     public Long getItemBoxed() {
-      return isNothing.get(index) ? null : data[index];
+      return !validityMap.get(index) ? null : data.get(index);
     }
 
     @Override
     public long getItemAsLong() {
-      return data[index];
+      return data.get(index);
     }
 
     @Override
     public boolean isNothing() {
-      return isNothing.get(index);
+      return !validityMap.get(index);
     }
 
     @Override
     public boolean hasNext() {
-      return index + 1 < size;
+      return index + 1 < data.limit();
     }
 
     @Override

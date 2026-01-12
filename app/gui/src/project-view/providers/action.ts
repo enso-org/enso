@@ -36,7 +36,7 @@ export interface Action {
   /** Icon displayed on action buttons or next to the description in dropdowns. */
   icon?: ToValue<Icon | undefined> | undefined
   /** Short name of the action. Shown in the context menu next to the icon, or as a tooltip hover for icon buttons. */
-  description?: ToValue<string> | undefined
+  description?: ToValue<string | undefined> | undefined
   /** When true, action buttons will be highlighted, suggesting that whatever the action represents is currently "on". */
   toggled?: Ref<boolean> | (() => boolean) | undefined
 }
@@ -75,6 +75,30 @@ const displayableActions = {
     icon: 'paint_palette',
     description: 'Color Selected Components',
     shortcut: graphBindings.bindings['components.pickColorMulti'],
+  },
+  'components.alignLeft': {
+    icon: 'align_left',
+    description: 'Align Selected Components Left',
+  },
+  'components.alignRight': {
+    icon: 'align_right',
+    description: 'Align Selected Components Right',
+  },
+  'components.alignTop': {
+    icon: 'align_top',
+    description: 'Align Selected Components Top',
+  },
+  'components.alignBottom': {
+    icon: 'align_bottom',
+    description: 'Align Selected Components Bottom',
+  },
+  'components.alignCenter': {
+    icon: 'align_center',
+    description: 'Center Selected Components Horizontally',
+  },
+  'components.deleteAndConnectAround': {
+    icon: 'graph',
+    description: 'Delete and Connect Around',
   },
 
   // === Component ===
@@ -206,6 +230,11 @@ const displayableActions = {
     icon: 'trash',
     description: 'Delete Selected Connection',
     shortcut: graphBindings.bindings['graph.deleteSelectedEdge'],
+  },
+  'graph.pasteNode': {
+    icon: 'paste',
+    description: 'Paste Component',
+    shortcut: graphBindings.bindings['graph.pasteNode'],
   },
 
   // === File Browser ===
@@ -342,9 +371,6 @@ const undisplayableActions = {
   },
   'graph.deselectAll': {
     shortcut: graphBindings.bindings['graph.deselectAll'],
-  },
-  'graph.pasteNode': {
-    shortcut: graphBindings.bindings['graph.pasteNode'],
   },
   'graph.startProfiling': {
     shortcut: graphBindings.bindings['graph.startProfiling'],

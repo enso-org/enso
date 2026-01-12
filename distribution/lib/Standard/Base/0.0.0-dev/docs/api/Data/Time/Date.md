@@ -19,6 +19,8 @@
     - default_widget include_today:Standard.Base.Data.Boolean.Boolean= display:Standard.Base.Metadata.Display= -> Standard.Base.Metadata.Widget
     - down_to self end:Standard.Base.Data.Time.Date.Date include_end:Standard.Base.Data.Boolean.Boolean= step:(Standard.Base.Data.Time.Date_Period.Date_Period|Standard.Base.Data.Time.Period.Period)= -> Standard.Base.Any.Any
     - end_of self period:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+    - end_of_month self -> Standard.Base.Any.Any
+    - first_of_month self -> Standard.Base.Any.Any
     - format self format:Standard.Base.Data.Time.Date_Time_Formatter.Date_Time_Formatter= -> Standard.Base.Any.Any
     - internal_add_work_days self days:Standard.Base.Any.Any= holidays:Standard.Base.Any.Any= -> Standard.Base.Any.Any
     - is_leap_year self -> Standard.Base.Any.Any

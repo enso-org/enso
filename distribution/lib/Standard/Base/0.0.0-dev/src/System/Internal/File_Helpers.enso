@@ -1,0 +1,46 @@
+private
+
+import project.Data.Boolean.Boolean
+import project.Data.Text.Text
+import project.Data.Time.Date_Time.Date_Time
+import project.Data.Time.Time_Zone
+import project.System.File.File
+import project.System.File_Format.Bytes
+import project.System.File_Format.File_Format_SPI
+import project.System.File_Format.JSON_Format
+import project.System.File_Format.JSON_Lines_Format
+import project.System.File_Format.Plain_Text_Format
+
+polyglot java import java.nio.file.attribute.FileTime
+polyglot java import java.nio.file.Files as Java_Files
+polyglot java import java.nio.file.LinkOption as Java_LinkOption
+polyglot java import java.nio.file.Path as Java_Path
+polyglot java import java.time.ZonedDateTime as Java_ZonedDateTime
+polyglot java import java.time.ZoneOffset as Java_ZoneOffset
+
+## The builtin that returns a File instance for a given path.
+get_file path:Text =
+    File.Value (Java_Path.of path)
+
+is_dir file:(File|Java_Path) -> Boolean =
+    path = case file of
+        _ : File -> file.java_path
+        p : Java_Path -> p
+    Java_Files.isDirectory path Java_LinkOption.NOFOLLOW_LINKS
+
+
+## Converts `java.nio.file.attribute.FileTime` to Enso `Date_Time`.
+file_time_to_date_time file_time -> Date_Time =
+    instant = file_time.toInstant
+    zoned_dt = Java_ZonedDateTime.ofInstant instant Java_ZoneOffset.UTC
+    zoned_dt
+
+## registration of basic file format implementations
+type Default_File_Formats
+File_Format_SPI.from (that:Default_File_Formats) =
+    _ = that
+    bytes = File_Format_SPI.new Bytes
+    json = File_Format_SPI.new JSON_Format "json"
+    jsonl = File_Format_SPI.new JSON_Lines_Format "jsonlines"
+    plain = File_Format_SPI.new Plain_Text_Format
+    bytes+json+jsonl+plain

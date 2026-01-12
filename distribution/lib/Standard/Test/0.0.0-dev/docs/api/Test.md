@@ -3,7 +3,6 @@
 - type Test
     - assert_no_problems value:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - build fn:Standard.Base.Any.Any -> Standard.Base.Any.Any
-    - enrich_message_with_clue message:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - expect_panic matcher:Standard.Base.Any.Any ~action:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - expect_panic_with ~action:Standard.Base.Any.Any matcher:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - fail message:Standard.Base.Any.Any details:Standard.Base.Any.Any= -> Standard.Base.Any.Any

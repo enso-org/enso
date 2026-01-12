@@ -1,5 +1,9 @@
 package org.enso.interpreter.test;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -173,6 +177,63 @@ public class LazyAtomFieldTest {
             """,
             "main");
     assertTrue(res.isString());
+  }
+
+  @Test
+  public void lazyAtomFieldIsNotEvaluated_InStructuralPatternMatch() {
+    var code =
+        """
+        from Standard.Base import Nothing, IO
+
+        type My_Ref
+            Lazy ~lazy
+            Eager eager
+
+        main =
+            v1 = My_Ref.Lazy <|
+                IO.println "Computing v1"
+                42
+
+            case v1 of
+                My_Ref.Eager e -> e
+                My_Ref.Lazy _ -> Nothing
+        """;
+    var res = ctxRule.evalModule(code);
+    assertThat(res.isNull(), is(true));
+    assertThat(
+        "Lazy field is not evaluated in pattern match",
+        ctxRule.getStdOut(),
+        not(containsString("Computing v1")));
+  }
+
+  @Test
+  public void lazyAtomFieldIsNotEvaluated_InStructuralPatternMatch_WithBoundedField() {
+    var code =
+        """
+        from Standard.Base import Nothing, IO, False
+
+        type My_Ref
+            Lazy ~lazy
+            Eager eager
+
+        main =
+            v2 = My_Ref.Lazy <|
+                IO.println "Computing v2"
+                42
+
+            should_compute = False
+
+            case v2 of
+                My_Ref.Eager e -> e
+                My_Ref.Lazy l ->
+                    if should_compute then l else Nothing
+        """;
+    var res = ctxRule.evalModule(code);
+    assertThat(res.isNull(), is(true));
+    assertThat(
+        "Lazy field is not evaluated in pattern match with bounded field",
+        ctxRule.getStdOut(),
+        not(containsString("Computing v2")));
   }
 
   private void checkNumHolder(String typeDefinition) throws Exception {

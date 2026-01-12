@@ -21,6 +21,7 @@ const [provideCurrentProject, useCurrentProjectRaw] = createContextStore(
     return {
       maybeRef: project,
       id: computed(() => ref.value.info.id),
+      ensoPath: computed(() => ref.value.info.ensoPath),
       store: computed(() => ref.value.store),
       projectNames: computed(() => ref.value.projectNames),
       suggestionDb: computed(() => ref.value.suggestionDb),
@@ -53,9 +54,9 @@ export function useCurrentProject(allowMissing?: boolean) {
   return currentProjectStore
 }
 
-function useStoreTemplate<K extends Exclude<keyof CurrentProjectStore, 'maybeRef' | 'id'>>(
-  storeKey: K,
-): () => NonNullable<CurrentProjectStore[K]['value']> {
+function useStoreTemplate<
+  K extends Exclude<keyof CurrentProjectStore, 'maybeRef' | 'id' | 'ensoPath'>,
+>(storeKey: K): () => NonNullable<CurrentProjectStore[K]['value']> {
   return () => {
     const currentProject = useCurrentProject().maybeRef
     const store: Opt<CurrentProjectStore[K]['value']> = currentProject.value?.[storeKey]
@@ -129,14 +130,14 @@ const groupColors = computed(() => {
 
 <template>
   <div class="WithCurrentProject" :style="groupColors">
-    <slot v-if="initializedProject != null" />
-    <slot v-else-if="project?.error != null" name="error">
+    <slot v-if="project?.error != null" name="error">
       <ResultComponent
         status="error"
         title="Failed to open project"
         :subtitle="`${project.error}`"
       />
     </slot>
+    <slot v-else-if="initializedProject != null" />
     <slot
       v-else-if="
         project?.nextTask?.process === 'opening' || project?.nextTask?.process === 'restoring'

@@ -302,11 +302,7 @@ impl<T: Default> Default for NonEmptyVec<T> {
 impl<T> TryFrom<Vec<T>> for NonEmptyVec<T> {
     type Error = ();
     fn try_from(elems: Vec<T>) -> Result<Self, Self::Error> {
-        if elems.is_empty() {
-            Err(())
-        } else {
-            Ok(NonEmptyVec { elems })
-        }
+        if elems.is_empty() { Err(()) } else { Ok(NonEmptyVec { elems }) }
     }
 }
 

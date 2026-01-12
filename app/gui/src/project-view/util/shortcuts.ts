@@ -345,9 +345,12 @@ export function defineKeybinds<
     return (event) => {
       const eventModifierFlags = modifierFlagsForEvent(event)
       const keybinds =
-        event instanceof KeyboardEvent ?
-          keyboardShortcuts[eventKey(event)]?.[eventModifierFlags]
-        : mouseShortcuts[buttonFlagsForEvent(event)]?.[eventModifierFlags]
+        event instanceof KeyboardEvent ? keyboardShortcuts[eventKey(event)]?.[eventModifierFlags]
+          // Chrome sometimes sends `keydown` which is not of type `KeyboardEvent`. For now, we
+          // ignore them, as these are unusual (like picking a cached form value).
+        : event instanceof MouseEvent || event instanceof PointerEvent ?
+          mouseShortcuts[buttonFlagsForEvent(event)]?.[eventModifierFlags]
+        : undefined
 
       const isRepeat = event instanceof KeyboardEvent && event.repeat
       let handled = false

@@ -109,9 +109,5 @@ impl Config {
 
 /// The extension used by the scripts that are part of GitHub Actions Runner distribution.
 pub fn script_extension(os: OS) -> &'static str {
-    if os == OS::Windows {
-        "cmd"
-    } else {
-        "sh"
-    }
+    if os == OS::Windows { "cmd" } else { "sh" }
 }

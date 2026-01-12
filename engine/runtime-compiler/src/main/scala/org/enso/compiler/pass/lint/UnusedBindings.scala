@@ -256,7 +256,8 @@ case object UnusedBindings extends IRPass {
     */
   def lintPattern(pattern: Pattern): Pattern = {
     pattern match {
-      case n @ Pattern.Name(name, _, _) =>
+      case n: Pattern.Name =>
+        val name = n.name()
         val isIgnored = name
           .unsafeGetMetadata(
             IgnoredBindings,
@@ -276,17 +277,16 @@ case object UnusedBindings extends IRPass {
         if (!isIgnored && !isUsed) {
           n.addDiagnostic(warnings.Unused.PatternBinding(name))
         } else pattern
-      case cons @ Pattern.Constructor(_, fields, _, _) =>
+      case cons: Pattern.Constructor =>
         if (!cons.isDesugared) {
           throw new CompilerError(
             "Nested patterns should not be present during linting."
           )
         }
 
-        cons.copy(
-          fields = fields.map(lintPattern)
-        )
-      case typed @ Pattern.Type(name, _, _, _) =>
+        cons.copyWithFields(cons.fields.map(lintPattern))
+      case typed: Pattern.Type =>
+        val name = typed.name()
         val isIgnored = name
           .unsafeGetMetadata(
             IgnoredBindings,

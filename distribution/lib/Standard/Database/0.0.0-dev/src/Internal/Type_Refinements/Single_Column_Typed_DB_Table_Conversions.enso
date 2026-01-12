@@ -5,6 +5,7 @@ private
 
 from Standard.Base import all
 
+import Standard.Table.Refined_Types.Date_Column.Date_Column
 import Standard.Table.Refined_Types.Numeric_Column.Numeric_Column
 import Standard.Table.Refined_Types.Text_Column.Text_Column
 
@@ -20,3 +21,7 @@ Numeric_Column.from (that : DB_Table) =
 ## This conversion is internal and should never be exported.
 Text_Column.from (that : DB_Table) =
     Text_Column.from (DB_Column.from that)
+
+## This conversion is internal and should never be exported.
+Date_Column.from (that : DB_Table) =
+    Date_Column.from (DB_Column.from that)

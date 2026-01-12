@@ -1,0 +1,24 @@
+## Enso Signatures 1.0
+## module Standard.DuckDB.DuckDB_Format
+- type DuckDB_Compression
+    - Auto
+    - GZip
+    - None
+    - Zstandard
+- type DuckDB_Format
+    - Auto
+    - CSV delimiter:Standard.Base.Data.Text.Text= header:Standard.Base.Data.Boolean.Boolean= date_format:Standard.Base.Data.Text.Text= timestamp_format:Standard.Base.Data.Text.Text= quote_char:Standard.Base.Data.Text.Text= escape_char:Standard.Base.Data.Text.Text= compression:Standard.DuckDB.DuckDB_Format.DuckDB_Compression=
+    - JSON date_format:Standard.Base.Data.Text.Text= timestamp_format:Standard.Base.Data.Text.Text= compression:Standard.DuckDB.DuckDB_Format.DuckDB_Compression=
+    - JSON_Lines date_format:Standard.Base.Data.Text.Text= timestamp_format:Standard.Base.Data.Text.Text= compression:Standard.DuckDB.DuckDB_Format.DuckDB_Compression=
+    - Parquet compression:Standard.DuckDB.DuckDB_Format.DuckDB_Parquet_Compression= field_ids:Standard.Base.Data.Text.Text= version:Standard.DuckDB.DuckDB_Format.DuckDB_Parquet_Version=
+- type DuckDB_Parquet_Compression
+    - Brotli
+    - GZip
+    - LZ4
+    - LZ4_Raw
+    - None
+    - Snappy
+    - Zstandard compression_level:Standard.Base.Data.Numbers.Integer=
+- type DuckDB_Parquet_Version
+    - V1
+    - V2

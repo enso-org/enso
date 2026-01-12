@@ -21,11 +21,6 @@ pub async fn read_length(mut read: impl AsyncRead + Unpin) -> Result<u64> {
     Ok(tokio::io::copy(&mut read, &mut sink).await?)
 }
 
-/// Get the the response body as a byte stream.
-pub async fn download(url: impl IntoUrl) -> Result<impl Stream<Item = reqwest::Result<Bytes>>> {
-    client::download(&default(), url).await
-}
-
 pub async fn download_to_dir(url: impl IntoUrl, dir: impl AsRef<Path>) -> Result<PathBuf> {
     let url = url.into_url()?;
     let response = client::get(&default(), url.clone()).await?;
@@ -138,11 +133,13 @@ mod tests {
         mirror_directory(foo.parent().unwrap(), foo.parent().unwrap().with_file_name("dest2"))
             .await?;
 
-        assert!(tokio::process::Command::new(r"C:\msys64\usr\bin\ls.exe")
-            .arg("-laR")
-            .status()
-            .await?
-            .success());
+        assert!(
+            tokio::process::Command::new(r"C:\msys64\usr\bin\ls.exe")
+                .arg("-laR")
+                .status()
+                .await?
+                .success()
+        );
 
         Ok(())
     }

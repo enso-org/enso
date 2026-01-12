@@ -194,6 +194,7 @@ export project.System.File_Format.Bytes
 export project.System.File_Format.File_Format
 export project.System.File_Format.Infer
 export project.System.File_Format.JSON_Format
+export project.System.File_Format.JSON_Lines_Format
 export project.System.File_Format.Plain_Text_Format
 export project.System.Platform
 export project.System.Process

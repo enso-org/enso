@@ -89,7 +89,7 @@ pub struct Context {
 
 impl Context {
     /// Get a `git` program handle for the repository.
-    pub fn git(&self) -> impl Future<Output = Result<git::Context>> + 'static {
+    pub fn git(&self) -> impl Future<Output = Result<git::Context>> + 'static + use<> {
         let root = self.repo_root.to_path_buf();
         git::new(root)
     }

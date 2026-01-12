@@ -5,12 +5,12 @@ use crate::prelude::*;
 use crate::changelog::Changelog;
 use crate::context::BuildContext;
 use crate::env::ENSO_ADMIN_TOKEN;
-use crate::paths::generated;
 use crate::paths::TargetTriple;
+use crate::paths::generated;
 use crate::project;
 use crate::version;
-use crate::version::promote::Designation;
 use crate::version::Versions;
+use crate::version::promote::Designation;
 
 use ide_ci::github;
 use ide_ci::io::web::handle_error_response;

@@ -45,6 +45,7 @@ import project.Internal.Snowflake_Type_Mapping.Snowflake_Type_Mapping
 polyglot java import org.enso.database.JDBCDriverTypes
 polyglot java import org.enso.database.JDBCProxy
 polyglot java import org.enso.snowflake.SnowflakeCloudCredentials
+polyglot java import org.enso.base.enso_cloud.ExternalLibraryCredentialHelper.CredentialReference
 
 type Snowflake_Connection
     ## ---
@@ -68,7 +69,7 @@ type Snowflake_Connection
         auth_properties = case credentials of
             cloud_credentials : Enso_Secret ->
                 # Special handling for OAuth credentials stored in the cloud
-                SnowflakeCloudCredentials.makePairs (as_credential_reference cloud_credentials)
+                SnowflakeCloudCredentials.makePairs (as_credential_reference cloud_credentials CredentialReference)
             _ -> auth_jdbc_properties credentials
 
         clashing = (Hashset.from_vector (properties.map .first)) . intersection (Hashset.from_vector (auth_properties.map .first))

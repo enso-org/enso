@@ -19,7 +19,7 @@ const [, useWidgetActions] = createContextStore('widget actions', () => {
         action: (ctx) => currentAction.value?.action(ctx),
         available: () => currentAction.value != null,
         enabled: () => toValue(currentAction.value?.enabled) ?? true,
-        description: () => toValue(currentAction.value?.description) ?? '',
+        description: () => toValue(currentAction.value?.description),
         icon: () => toValue(currentAction.value?.icon),
         shortcut: () => toValue(currentAction.value?.shortcut),
         toggled: () => toValue(currentAction.value?.toggled) ?? false,
