@@ -16,10 +16,10 @@
     "exactOptionalPropertyTypes": true,
     "jsx": "react-jsx",
     "paths": {
-        "@/*": ["./src/project-view/*"],
-        "#/*": ["./src/dashboard/*"],
-        "$/*": ["./src/*"],
-        "integration-test/*": ["./integration-test/*"]
+      "@/*": ["./src/project-view/*"],
+      "#/*": ["./src/dashboard/*"],
+      "$/*": ["./src/*"],
+      "integration-test/*": ["./integration-test/*"]
     }
   }
 }

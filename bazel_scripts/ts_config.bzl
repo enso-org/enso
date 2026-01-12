@@ -178,6 +178,40 @@ write_tsconfig_rule = rule(
     },
 )
 
+def _format_json_impl(ctx):
+    """Formats a JSON file using prettier."""
+    args = ctx.actions.args()
+    # Use short_path because aspect_rules_js changes CWD to BAZEL_BINDIR
+    args.add(ctx.file.src.short_path)
+    args.add(ctx.outputs.out.short_path)
+
+    ctx.actions.run(
+        inputs = [ctx.file.src] + ctx.files._prettier_data,
+        outputs = [ctx.outputs.out],
+        executable = ctx.executable._formatter,
+        arguments = [args],
+        env = {
+            "BAZEL_BINDIR": ctx.bin_dir.path,
+        },
+    )
+    return [DefaultInfo(files = depset([ctx.outputs.out]))]
+
+format_json_rule = rule(
+    implementation = _format_json_impl,
+    attrs = {
+        "src": attr.label(allow_single_file = True, mandatory = True),
+        "out": attr.output(mandatory = True),
+        "_formatter": attr.label(
+            executable = True,
+            default = Label("//internal:script_prettier_json"),
+            cfg = "exec",
+        ),
+        "_prettier_data": attr.label(
+            default = Label("//:node_modules/prettier"),
+        ),
+    },
+)
+
 # Syntax sugar around skylib's write_file
 def write_tsconfig(name, config, files, out, extends = None, allow_js = None, resolve_json_module = None, **kwargs):
     """Wrapper around bazel_skylib's write_file which understands tsconfig paths
@@ -199,13 +233,25 @@ def write_tsconfig(name, config, files, out, extends = None, allow_js = None, re
         files = "__files__",
         **config
     )
+
+    # Generate raw (unformatted) tsconfig first
+    raw_name = name + "_raw"
+    raw_out = out + ".raw"
+
     write_tsconfig_rule(
-        name = name,
+        name = raw_name,
         files = files,
         extends = extends,
         content = json.encode(amended_config),
-        out = out,
+        out = raw_out,
         allow_js = allow_js,
         resolve_json_module = resolve_json_module,
+    )
+
+    # Format the raw JSON with prettier
+    format_json_rule(
+        name = name,
+        src = ":" + raw_name,
+        out = out,
         **kwargs
     )

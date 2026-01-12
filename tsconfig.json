@@ -19,5 +19,5 @@
     "skipLibCheck": true,
     "verbatimModuleSyntax": true,
     "target": "ES2022"
-  },
+  }
 }

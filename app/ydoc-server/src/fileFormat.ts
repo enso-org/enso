@@ -60,7 +60,6 @@ export const metadata = z
     return defaultMetadata()
   })
 
-
 const idMapValue = z.object({
   value: z.number(),
 })

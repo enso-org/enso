@@ -1,1 +1,14 @@
-{"compilerOptions":{"allowJs":true,"checkJs":true,"exactOptionalPropertyTypes":true,"module":"Node16","noEmit":true,"noUncheckedIndexedAccess":true,"strict":true,"target":"ES2017","types":["node"]},"files":["./scripts/generateIconMetadata.mjs"]}
+{
+  "compilerOptions": {
+    "allowJs": true,
+    "checkJs": true,
+    "exactOptionalPropertyTypes": true,
+    "module": "Node16",
+    "noEmit": true,
+    "noUncheckedIndexedAccess": true,
+    "strict": true,
+    "target": "ES2017",
+    "types": ["node"]
+  },
+  "files": ["./scripts/generateIconMetadata.mjs"]
+}

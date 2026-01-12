@@ -1,1 +1,17 @@
-{"compilerOptions":{"composite":true,"lib":["es2017"],"module":"es2015","moduleResolution":"node","newLine":"lf","noImplicitReturns":true,"noUnusedLocals":true,"outDir":"dist","rootDir":"src","strict":true,"stripInternal":true,"target":"es6"},"files":["./src/extension.ts", "./src/index.ts", "./src/markdown.ts", "./src/nest.ts"]}
+{
+  "compilerOptions": {
+    "composite": true,
+    "lib": ["es2017"],
+    "module": "es2015",
+    "moduleResolution": "node",
+    "newLine": "lf",
+    "noImplicitReturns": true,
+    "noUnusedLocals": true,
+    "outDir": "dist",
+    "rootDir": "src",
+    "strict": true,
+    "stripInternal": true,
+    "target": "es6"
+  },
+  "files": ["./src/extension.ts", "./src/index.ts", "./src/markdown.ts", "./src/nest.ts"]
+}
