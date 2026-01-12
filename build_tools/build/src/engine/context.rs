@@ -1,30 +1,30 @@
 use crate::prelude::*;
 
 use crate::engine;
-use crate::engine::env;
-use crate::engine::sbt::SbtCommandProvider;
 use crate::engine::BenchmarkType;
 use crate::engine::BuildConfigurationResolved;
 use crate::engine::BuiltArtifacts;
 use crate::engine::Operation;
+use crate::engine::PARALLEL_ENSO_TESTS;
 use crate::engine::ReleaseCommand;
 use crate::engine::ReleaseOperation;
-use crate::engine::PARALLEL_ENSO_TESTS;
+use crate::engine::env;
+use crate::engine::sbt::SbtCommandProvider;
 use crate::enso::BenchmarkOptions;
 use crate::enso::BuiltEnso;
 use crate::enso::IrCaches;
-use crate::paths::cache_directory;
+use crate::paths::ENSO_TEST_JUNIT_DIR;
 use crate::paths::Paths;
 use crate::paths::TargetTriple;
-use crate::paths::ENSO_TEST_JUNIT_DIR;
+use crate::paths::cache_directory;
 use crate::project::ProcessWrapper;
 
 use ide_ci::actions::workflow::is_in_env;
 use ide_ci::cache;
 use ide_ci::github::release::IsReleaseExt;
 use ide_ci::platform::DEFAULT_SHELL;
-use ide_ci::programs::sbt;
 use ide_ci::programs::Sbt;
+use ide_ci::programs::sbt;
 use std::env::consts::DLL_EXTENSION;
 use std::env::consts::EXE_EXTENSION;
 
@@ -634,11 +634,7 @@ impl RunContext {
 
     fn short_path(&self, full: &Path) -> PathBuf {
         let strip = full.strip_prefix(self.repo_root.path.clone());
-        if let Ok(relative) = strip {
-            relative.to_path_buf()
-        } else {
-            full.to_path_buf()
-        }
+        if let Ok(relative) = strip { relative.to_path_buf() } else { full.to_path_buf() }
     }
 }
 

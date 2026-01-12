@@ -45,7 +45,10 @@ impl Compression {
         } else if extension == "xz" {
             Ok(Compression::Xz)
         } else {
-            bail!("The extension `{}` does not denote a supported compression algorithm for TAR archives.", extension)
+            bail!(
+                "The extension `{}` does not denote a supported compression algorithm for TAR archives.",
+                extension
+            )
         }
     }
 }
@@ -120,7 +123,9 @@ impl Flavor {
         } else if text.contains("GNU tar") {
             Ok(Flavor::Gnu)
         } else {
-            bail!("The output of `tar --version` does not contain a recognizable flavor. The version text was: {text}")
+            bail!(
+                "The output of `tar --version` does not contain a recognizable flavor. The version text was: {text}"
+            )
         }
     }
 }
@@ -190,9 +195,11 @@ impl Tar {
         match paths.as_slice() {
             [item] => {
                 if let Some(parent) = crate::fs::canonicalize(item)?.parent() {
+                    let file_name = item.file_name();
+                    // None can happen only when path ends with ".." - that's why we canonicalize
+                    let file_name = file_name.unwrap();
                     cmd.args(&Switch::WorkingDir(parent));
-                    cmd.arg(item.file_name().unwrap()); // None can happen only when path ends with
-                                                        // ".." - that's why we canonicalize
+                    cmd.arg(file_name);
                 }
             }
             // [dir] if dir.is_dir() => {

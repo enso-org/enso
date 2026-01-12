@@ -491,7 +491,7 @@ make_dialect_operations =
     cases = [["LOWER", Base_Generator.make_function "LOWER"], ["UPPER", Base_Generator.make_function "UPPER"]]
     text = [starts_with, contains, ends_with, make_case_sensitive, ["REPLACE", replace], left, right, index_of]+concat_ops+cases+trim_ops
     counts = [agg_count_is_null, agg_count_empty, agg_count_not_empty, ["COUNT_DISTINCT", agg_count_distinct], ["COUNT_DISTINCT_INCLUDE_NULL", agg_count_distinct_include_null]]
-    stats = [agg_stddev_pop, agg_stddev_samp]
+    stats = [agg_stddev_pop, agg_stddev_samp, ["GROUP_NUMBER_STANDARD_DEVIATION_POPULATION", make_group_number_standard_deviation True], ["GROUP_NUMBER_STANDARD_DEVIATION_SAMPLE", make_group_number_standard_deviation False]]
     arith_extensions = [is_inf, is_finite, floating_point_div, mod_op]
     other = [["RUNTIME_ERROR", make_runtime_error_op]]
 
@@ -542,6 +542,41 @@ agg_stddev_samp = Base_Generator.lift_unary_op "STDDEV_SAMP" arg->
     n = SQL_Builder.code "CAST(COUNT(" ++ arg ++ ") AS REAL)"
     var = SQL_Builder.code "(" ++ sum_of_squares ++ " - (" ++ square_of_sums ++ " / " ++ n ++ ")) / (" ++ n ++ " - 1)"
     SQL_Builder.code "SQRT(" ++ var ++ ")"
+
+## ---
+   private: true
+   ---
+make_group_number_standard_deviation : Vector SQL_Builder -> SQL_Builder
+make_group_number_standard_deviation (population : Boolean) (arguments : Vector) =
+    if arguments.length < 1 then
+        Error.throw (Illegal_State.Error "Wrong amount of parameters in GROUP_NUMBER_STANDARD_DEVIATION IR. This is a bug in the Database library.")
+
+    stddev_column = arguments.at 0
+
+    sum_of_squares = SQL_Builder.code "SUM(" ++ stddev_column.paren ++ "*" ++ stddev_column.paren ++ ") over ()"
+    sum = SQL_Builder.code "SUM(" ++ stddev_column.paren ++ ") over ()"
+    square_of_sums = SQL_Builder.code "(" ++ sum.paren ++ " * " ++ sum.paren ++ ")"
+    n = SQL_Builder.code "CAST(COUNT(" ++ stddev_column.paren ++ ") over () AS REAL)"
+    denominator = if population then n else SQL_Builder.code "(" ++ n.paren ++ " - 1)"
+    var = SQL_Builder.code "((" ++ sum_of_squares.paren ++ " - (" ++ square_of_sums.paren ++ " / " ++ n.paren ++ ")) / " ++ denominator.paren ++ ")"
+    stddev = SQL_Builder.code "SQRT(" ++ var.paren ++ ")"
+
+    ## If standard deviation is 0, using 1 instead to avoid division by zero,
+       resulting in all z-scores being zero and thus "Average" group.
+       If stanard deviation is NULL, using 1 instead for the same reason.
+       (STDDEV_SAMP will return NULL for a single value input.)
+    stddev_safe = SQL_Builder.code "(case when " ++ stddev.paren ++ " = 0 or " ++ stddev.paren ++ " is null then 1 else " ++ stddev.paren ++ " end)"
+    mean = SQL_Builder.code "(avg(" ++ stddev_column ++ ") over ())"
+    zscore = SQL_Builder.code "((" ++ stddev_column.paren ++ " - " ++ mean.paren ++ ") / " ++ stddev_safe.paren ++ ")"
+    group_index = SQL_Builder.code "(floor(" ++ zscore.paren ++ " + 0.5))"
+    whener gi op name = SQL_Builder.code "when " ++ group_index.paren ++ " " ++ op ++ gi.to_text ++ " then '" ++ name ++ "'"
+    whens = Vector.build builder->
+        builder.append (whener -2 "<=" "Very Low")
+        builder.append (whener -1 "=" "Low")
+        builder.append (whener 0 "=" "Average")
+        builder.append (whener 1 "=" "High")
+        builder.append (whener 2 ">=" "Very High")
+    SQL_Builder.code "(case " ++ SQL_Builder.join " " whens ++ " end)"
 
 ## ---
    private: true

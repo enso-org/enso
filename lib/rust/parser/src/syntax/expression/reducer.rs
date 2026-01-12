@@ -5,7 +5,7 @@ use crate::syntax::expression::types::*;
 use crate::syntax::Finish;
 use crate::syntax::ScopeHierarchyConsumer;
 use crate::syntax::Tree;
-use crate::syntax::expression::section::MaybeSection;
+use crate::syntax::expression::operand::Operand;
 use crate::syntax::token;
 use crate::syntax::tree::apply;
 
@@ -23,13 +23,13 @@ use crate::syntax::tree::apply;
 /// [^2](https://en.wikipedia.org/wiki/Shunting_yard_algorithm)
 #[derive(Default, Debug)]
 pub struct Reduce<'s> {
-    output: Vec<MaybeSection<Tree<'s>>>,
+    output: Vec<Operand<'s>>,
     operator_stack: Vec<StackOperator<'s>>,
     scope_stack: Vec<(u32, u32)>,
 }
 
 impl<'s> OperandConsumer<'s> for Reduce<'s> {
-    fn push_operand(&mut self, operand: MaybeSection<Tree<'s>>) {
+    fn push_operand(&mut self, operand: Operand<'s>) {
         self.output.push(operand)
     }
 }
@@ -60,7 +60,7 @@ impl<'s> OperatorConsumer<'s> for Reduce<'s> {
 }
 
 impl<'s> Finish for Reduce<'s> {
-    type Result = Option<MaybeSection<Tree<'s>>>;
+    type Result = Option<Operand<'s>>;
 
     fn finish(&mut self) -> Self::Result {
         self.reduce(ModifiedPrecedence::min());
@@ -138,37 +138,37 @@ impl<'s> Reduce<'s> {
 pub trait ApplyToOperands<'s> {
     fn apply_to_operands(
         self,
-        operand: Option<MaybeSection<Tree<'s>>>,
-        additional_operands: &mut Vec<MaybeSection<Tree<'s>>>,
-    ) -> MaybeSection<Tree<'s>>;
+        operand: Option<Operand<'s>>,
+        additional_operands: &mut Vec<Operand<'s>>,
+    ) -> Operand<'s>;
 }
 
 pub trait ApplyToOperand<'s> {
-    fn apply_to_operand(self, operand: Option<MaybeSection<Tree<'s>>>) -> MaybeSection<Tree<'s>>;
+    fn apply_to_operand(self, operand: Option<Operand<'s>>) -> Operand<'s>;
 }
 
 impl<'s, T: ApplyToOperand<'s>> ApplyToOperands<'s> for T {
     fn apply_to_operands(
         self,
-        operand: Option<MaybeSection<Tree<'s>>>,
-        _: &mut Vec<MaybeSection<Tree<'s>>>,
-    ) -> MaybeSection<Tree<'s>> {
+        operand: Option<Operand<'s>>,
+        _: &mut Vec<Operand<'s>>,
+    ) -> Operand<'s> {
         self.apply_to_operand(operand)
     }
 }
 
 fn reduce_step<'s>(
     arity: Arity<'s>,
-    operand: Option<MaybeSection<Tree<'s>>>,
-    additional_operands: &mut Vec<MaybeSection<Tree<'s>>>,
-) -> MaybeSection<Tree<'s>> {
+    operand: Option<Operand<'s>>,
+    additional_operands: &mut Vec<Operand<'s>>,
+) -> Operand<'s> {
     match arity {
         Arity::Unary(token) => {
             let rhs = operand;
             debug_assert_ne!(rhs, None);
-            ApplyUnaryOperator::token(token).with_rhs(rhs).finish()
+            apply_unary_operator(token, rhs)
         }
-        Arity::Binary { tokens, missing, reify_rhs_section } => {
+        Arity::Binary { tokens, missing } => {
             let op1 = operand;
             debug_assert_ne!(op1, None);
             let (lhs, rhs) = match missing {
@@ -180,11 +180,14 @@ fn reduce_step<'s>(
                     (lhs, op1)
                 }
             };
-            ApplyOperator::tokens(tokens).with_lhs(lhs).with_rhs(rhs, reify_rhs_section).finish()
+            apply_binary_operator(tokens, lhs, rhs)
         }
         Arity::App => {
-            let (lhs, rhs) = (additional_operands.pop().unwrap(), operand);
-            lhs.map(|lhs| apply(lhs, rhs.unwrap().into()))
+            let (mut lhs, rhs) = (additional_operands.pop().unwrap(), operand.unwrap());
+            lhs.call = false;
+            let mut result = lhs.map(|lhs| apply(lhs, Tree::from(rhs)));
+            result.call = true;
+            result
         }
         Arity::NamedApp(app) => app.apply_to_operand(operand),
         Arity::Annotation(annotation) => annotation.apply_to_operand(operand),

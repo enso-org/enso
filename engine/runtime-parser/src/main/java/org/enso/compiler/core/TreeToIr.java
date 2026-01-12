@@ -699,6 +699,7 @@ final class TreeToIr {
     var tree = ast;
     for (; ; ) {
       switch (tree) {
+        case Tree.Call call -> tree = call.getValue();
         case Tree.App app when app.getArg() instanceof Tree.SuspendedDefaultArguments -> {
           hasDefaultsSuspended = true;
           tree = app.getFunc();
@@ -827,6 +828,8 @@ final class TreeToIr {
   private Name translateOldStyleLambdaArgumentName(
       Tree arg, boolean[] suspended, Expression[] defaultValue) throws SyntaxException {
     return switch (arg) {
+      case Tree.Call e ->
+          translateOldStyleLambdaArgumentName(e.getValue(), suspended, defaultValue);
       case Tree.Group g ->
           translateOldStyleLambdaArgumentName(g.getBody(), suspended, defaultValue);
       case Tree.Wildcard wild -> new Name.Blank(getIdentifiedLocation(wild.getToken()), meta());
@@ -1017,6 +1020,7 @@ final class TreeToIr {
       }
       case Tree.Number n -> translateNumber(n);
       case Tree.Ident id -> translateIdent(id, isMethod);
+      case Tree.Call call -> translateExpressionImpl(call.getValue(), isMethod);
       case Tree.MultiSegmentApp app -> {
         var fnName = new StringBuilder();
         var sep = "";
@@ -1108,9 +1112,12 @@ final class TreeToIr {
           List<CallArgument> args = nil();
           for (var line : body.getArguments()) {
             var expr = line.getExpression();
-            if (expr instanceof Tree.Ident) {
-              var call = translateCallArgument(expr);
-              args = join(call, args);
+            if (expr instanceof Tree.Call call) {
+              var value = call.getValue();
+              if (value instanceof Tree.Ident) {
+                var arg = translateCallArgument(value);
+                args = join(arg, args);
+              }
             }
           }
           yield patchPrefixWithBlock(fn, block, args);
@@ -1436,6 +1443,7 @@ final class TreeToIr {
             case Tree.OprApp app -> app.getLhs();
             case Tree.PropertyAccess access -> access.getLhs();
             case Tree.Ident ident when ident.getToken().isTypeOrConstructor() -> null;
+            case Tree.Call call -> call.getValue();
             case Tree.Ident ignored -> {
               done = true;
               yield tree;
@@ -1544,6 +1552,7 @@ final class TreeToIr {
             .build();
       }
       case Tree.Ident id -> buildName(getIdentifiedLocation(id), id.getToken(), false);
+      case Tree.Call call -> translateType(call.getValue());
       case Tree.Group group -> translateType(group.getBody());
       case Tree.UnaryOprApp un -> translateType(un.getRhs());
       case Tree.Wildcard wild -> new Name.Blank(getIdentifiedLocation(wild), meta());
@@ -1614,6 +1623,7 @@ final class TreeToIr {
   private Application.Prefix translateBuiltinAnnotation(
       Name.BuiltinAnnotation ir, Tree expr, List<CallArgument> callArgs) {
     return switch (expr) {
+      case Tree.Call call -> translateBuiltinAnnotation(ir, call.getValue(), callArgs);
       case Tree.App fn -> {
         var fnAsArg = translateCallArgument(fn.getArg());
         yield translateBuiltinAnnotation(ir, fn.getFunc(), join(fnAsArg, callArgs));
@@ -1927,10 +1937,16 @@ final class TreeToIr {
       return join(
           new Name.Blank(getIdentifiedLocation(wild.getToken(), generateId), meta()), nil());
     }
+    if (t instanceof Tree.Call call) {
+      t = call.getValue();
+    }
     List<Name> names = nil();
     while (t instanceof Tree.PropertyAccess app) {
       names = join(sanitizeName(buildName(app.getRhs(), generateId)), names);
       t = app.getLhs();
+    }
+    if (t instanceof Tree.Call call) {
+      t = call.getValue();
     }
     if (t instanceof Tree.Ident id) {
       names = join(sanitizeName(buildName(id, generateId)), names);

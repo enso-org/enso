@@ -6,9 +6,9 @@
 
 use crate::prelude::*;
 
+use crate::RECORD_SEPARATOR;
 use crate::new_command_type;
 use crate::programs::git::pretty_format::refs_from_decoration;
-use crate::RECORD_SEPARATOR;
 
 use std::process::Stdio;
 

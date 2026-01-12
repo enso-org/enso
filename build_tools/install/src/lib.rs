@@ -4,17 +4,17 @@ pub mod prelude {
     pub use ide_ci::prelude::*;
 
     #[cfg(windows)]
-    pub use winreg::types::ToRegValue;
-    #[cfg(windows)]
     pub use winreg::RegKey;
     #[cfg(windows)]
     pub use winreg::RegValue;
+    #[cfg(windows)]
+    pub use winreg::types::ToRegValue;
 }
 
 use enso_install_config::electron_builder;
+use ide_ci::log::GlobalFilteringLayer;
 use ide_ci::log::file_log_layer;
 use ide_ci::log::stderr_log_layer;
-use ide_ci::log::GlobalFilteringLayer;
 use prelude::*;
 use sysinfo::Pid;
 
@@ -29,7 +29,7 @@ pub mod win;
 /// - `$pretty_name` - a human-readable name of the data type that will be used in error messages.
 #[macro_export]
 macro_rules! access_built_time_env {
-    ($env:ident, $typename:ty, $pretty_name:expr) => {
+    ($env:ident, $typename:ty, $pretty_name:expr_2021) => {
         {
         static DATA: std::sync::LazyLock<$typename> = std::sync::LazyLock::new(|| {
             let crate_name = env!("CARGO_PKG_NAME");
@@ -141,7 +141,10 @@ pub fn is_already_running(install_dir: &Path, ignored_pids: &[Pid]) -> Result<Op
             .iter()
             .map(|p| format!(" * {} (pid {})", p.name(), p.pid()))
             .join("\n");
-        let message = format!("It seems that the application is currently running. Please close it before running the installer.\n\nThe following processes are running from the installation directory:\n{}", processes_list);
+        let message = format!(
+            "It seems that the application is currently running. Please close it before running the installer.\n\nThe following processes are running from the installation directory:\n{}",
+            processes_list
+        );
         Ok(Some(message))
     } else {
         Ok(None)
