@@ -3,6 +3,7 @@ load("@aspect_rules_js//js:defs.bzl", "js_binary", "js_run_binary")
 load("@aspect_rules_js//npm:defs.bzl", "npm_package")
 load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
 load("@npm//:defs.bzl", "npm_link_all_packages", "npm_link_targets")
+load("//:bazel_scripts/ts_config.bzl", "write_tsconfig")
 
 npm_link_all_packages(name = "node_modules")
 
@@ -16,15 +17,18 @@ ts_project(
     ) + [":generate_ast_typedefs"],
     composite = True,
     declaration = True,
+    extends = "//:tsconfig",
     out_dir = "dist",
     root_dir = "src",
-    extends = "//:tsconfig",
     tsconfig = {
         "compilerOptions": {
             "composite": True,
             "isolatedModules": True,
-            "types": ["node", "vitest/importMeta"]
-        }
+            "types": [
+                "node",
+                "vitest/importMeta",
+            ],
+        },
     },
     validate = select({
         "@platforms//os:windows": False,
@@ -61,8 +65,8 @@ ts_project(
             "verbatimModuleSyntax": True,
             "noUncheckedIndexedAccess": True,
             "exactOptionalPropertyTypes": True,
-            "strictNullChecks": True
-        }
+            "strictNullChecks": True,
+        },
     },
     validate = select({
         "@platforms//os:windows": False,
@@ -97,6 +101,62 @@ write_source_files(
     name = "write_ast_codegen",
     files = {
         "src/ast/generated/ast.ts": ":generate_ast_typedefs",
+    },
+    suggested_update_target = "//:write_all",
+    visibility = ["//visibility:public"],
+)
+
+write_tsconfig(
+    name = "tsconfig_generated",
+    out = "tsconfig.json",
+    config = {
+        "compilerOptions": {
+            "composite": True,
+            "isolatedModules": True,
+            "noEmit": False,
+            "rootDir": "src",
+            "outDir": "dist",
+            "types": [
+                "node",
+                "vitest/importMeta",
+            ],
+        },
+    },
+    extends = "//:tsconfig",
+    files = glob(
+        ["src/**/*.ts"],
+        [GENERATED_TYPEDEF_FILE],
+    ) + [GENERATED_TYPEDEF_FILE],
+)
+
+write_tsconfig(
+    name = "tsconfig_parser_codegen_generated",
+    out = "parser-codegen/tsconfig.json",
+    config = {
+        "compilerOptions": {
+            "types": ["node"],
+            "lib": ["es2023"],
+            "target": "es2022",
+            "esModuleInterop": True,
+            "skipLibCheck": True,
+            "module": "ESNext",
+            "moduleResolution": "Node",
+            "strict": True,
+            "verbatimModuleSyntax": True,
+            "noUncheckedIndexedAccess": True,
+            "exactOptionalPropertyTypes": True,
+            "strictNullChecks": True,
+        },
+        "exclude": ["generated"],
+    },
+    files = glob(["parser-codegen/*.ts"]),
+)
+
+write_source_files(
+    name = "write_tsconfigs",
+    files = {
+        "tsconfig.json": ":tsconfig_generated",
+        "parser-codegen/tsconfig.json": ":tsconfig_parser_codegen_generated",
     },
     suggested_update_target = "//:write_all",
     visibility = ["//visibility:public"],

@@ -1,14 +1,1 @@
-{
-  "include": ["scripts/**/*"],
-  "compilerOptions": {
-    "module": "Node16",
-    "target": "ES2017",
-    "strict": true,
-    "noEmit": true,
-    "allowJs": true,
-    "checkJs": true,
-    "exactOptionalPropertyTypes": true,
-    "noUncheckedIndexedAccess": true,
-    "types": ["node"]
-  }
-}
+{"compilerOptions":{"allowJs":true,"checkJs":true,"exactOptionalPropertyTypes":true,"module":"Node16","noEmit":true,"noUncheckedIndexedAccess":true,"strict":true,"target":"ES2017","types":["node"]},"files":["./scripts/generateIconMetadata.mjs"]}

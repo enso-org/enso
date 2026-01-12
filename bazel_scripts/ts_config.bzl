@@ -127,15 +127,6 @@ def _write_tsconfig_rule(ctx):
             extends_path = "./" + extends_path
         content = content.replace("__extends__", extends_path)
 
-    # The prefix of source files that are within the same package as the tsconfig file.
-    local_package_prefix = "%s/" % ctx.label.package if ctx.label.package else ""
-    if (len(ctx.label.repo_name) > 0):
-        # If the target is inside another workspace the prefix also contains the navigation to that workspace.
-        local_package_prefix = "../{}/{}".format(ctx.label.repo_name, local_package_prefix)
-
-    # The path to navigate to the root of the workspace
-    path_to_root = "/".join([".."] * (ctx.label.package.count("/") + 1))
-
     # Compute the list of source files with paths relative to the generated tsconfig file.
     src_files = []
     for f in ctx.files.files:
@@ -143,12 +134,11 @@ def _write_tsconfig_rule(ctx):
         if not _is_ts_src(f.basename, ctx.attr.allow_js, ctx.attr.resolve_json_module, True):
             continue
 
-        if f.short_path.startswith(local_package_prefix):
-            # Files within this project or subdirs can avoid the ugly ../ prefix
-            src_files.append("./{}".format(f.short_path.removeprefix(local_package_prefix)))
-        else:
-            # Files from parent/sibling projects must navigate up to the workspace root
-            src_files.append("./{}/{}".format(path_to_root, f.short_path))
+        # Compute path relative to the output tsconfig file location
+        rel_path = relative_file(f.short_path, ctx.outputs.out.short_path)
+        if not rel_path.startswith("../"):
+            rel_path = "./" + rel_path
+        src_files.append(rel_path)
 
     content = content.replace("\"__files__\"", str(src_files))
     ctx.actions.write(
@@ -176,7 +166,6 @@ def _is_ts_src(src, allow_js, resolve_json_module, include_typings):
 
     return _is_js_src(src, allow_js, resolve_json_module)
 
-
 write_tsconfig_rule = rule(
     implementation = _write_tsconfig_rule,
     attrs = {
@@ -203,9 +192,6 @@ def write_tsconfig(name, config, files, out, extends = None, allow_js = None, re
         resolve_json_module: value of the resolveJsonModule tsconfig property
         **kwargs: Other common named parameters such as `tags` or `visibility`
     """
-    if out.find("/") >= 0:
-        fail("tsconfig should be generated in the package directory, to make relative pathing simple")
-
     if extends:
         config["extends"] = "__extends__"
 

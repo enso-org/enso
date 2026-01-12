@@ -1,11 +1,1 @@
-{
-  "extends": "../../tsconfig.json",
-  "compilerOptions": {
-    "outDir": "dist",
-    "rootDir": "src",
-    "noEmit": false,
-    "isolatedModules": true,
-    "composite": true
-  },
-  "include": ["src/**/*", "scripts/**/*"]
-}
+{"compilerOptions":{"composite":true,"isolatedModules":true,"noEmit":false,"outDir":"dist","rootDir":"src"},"extends":"../../tsconfig.json","files":["./src/desktopEnvironment.ts", "./src/handler/filesystem.ts", "./src/handler/index.ts", "./src/handler/jsonrpc.ts", "./src/handler/projectService.ts", "./src/index.ts", "./src/projectManagement.ts", "./src/projectService/__tests__/ProjectService.test.ts", "./src/projectService/__tests__/nameValidation.test.ts", "./src/projectService/ensoRunner.ts", "./src/projectService/index.ts", "./src/projectService/nameValidation.ts", "./src/projectService/projectRepository.ts", "./src/projectService/types.ts"]}

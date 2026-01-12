@@ -2,20 +2,22 @@ load("@aspect_bazel_lib//lib:write_source_files.bzl", "write_source_files")
 load("@aspect_rules_js//js:defs.bzl", "js_binary", "js_run_binary")
 load("@aspect_rules_js//npm:defs.bzl", "npm_package")
 load("@aspect_rules_ts//ts:defs.bzl", "ts_config", "ts_project")
-load("//:bazel_scripts/ts_config.bzl", "write_tsconfig")
-
 load("@env//:defs.bzl", "getenv")
 load("@npm//:defs.bzl", "npm_link_all_packages", "npm_link_targets")
 load("@npm//app/gui:vite/package_json.bzl", vite_bin = "bin")
+load("//:bazel_scripts/ts_config.bzl", "write_tsconfig")
 load("//internal:stampFiles.bzl", "stamp_files")
 
 npm_link_all_packages(name = "node_modules")
 
-
 ICON_GENERATED_DIR = "src/project-view/util/iconMetadata"
+
 TESTS_PATTERN_BASE = "src/**/__tests__/*"
+
 VITEST_TEST_FILES = glob([TESTS_PATTERN_BASE + ".ts"])
+
 PUBLIC_FILES = glob(["public/**"])
+
 APP_TSCONFIG_FILES = glob(
     [
         "src/**",
@@ -24,7 +26,10 @@ APP_TSCONFIG_FILES = glob(
         "env.d.ts",
         "lib0-ext.d.ts",
     ],
-    [ICON_GENERATED_DIR + "/**", TESTS_PATTERN_BASE],
+    [
+        ICON_GENERATED_DIR + "/**",
+        TESTS_PATTERN_BASE,
+    ],
 )
 
 PACKAGE_SRCS = [
@@ -40,9 +45,6 @@ PACKAGE_SRCS = [
     "index.html",
 ] + APP_TSCONFIG_FILES + PUBLIC_FILES + npm_link_targets()
 
-
-
-
 # This can use `ts_config` rule because the file list is empty.
 ts_config(
     name = "tsconfig",
@@ -52,6 +54,19 @@ ts_config(
 
 write_tsconfig(
     name = "tsconfig_node",
+    out = "tsconfig.node.json",
+    config = {
+        "compilerOptions": {
+            "baseUrl": ".",
+            "module": "ESNext",
+            "verbatimModuleSyntax": True,
+            "types": [
+                "node",
+                "vitest/importMeta",
+            ],
+        },
+    },
+    extends = ":tsconfig",
     files = glob([
         "integration-test/**/*",
         "project-manager-shim-middleware/*.ts",
@@ -73,36 +88,25 @@ write_tsconfig(
         "src/providers/featureFlags.ts",
 
         # Transitive dependencies of above files
-        "src/project-view/util/projectPath.ts", # WidgetFunction/consts.ts
-        "src/project-view/util/qualifiedName.ts", # abstract.ts, projectPath.ts
-        "src/dashboard/utilities/write.ts", # featureFlags.ts
-        "src/utils/zustand.ts", # featureFlags.ts
+        "src/project-view/util/projectPath.ts",  # WidgetFunction/consts.ts
+        "src/project-view/util/qualifiedName.ts",  # abstract.ts, projectPath.ts
+        "src/dashboard/utilities/write.ts",  # featureFlags.ts
+        "src/utils/zustand.ts",  # featureFlags.ts
     ],
-    out = "tsconfig.node.json",
-    extends = ":tsconfig",
-    config = {
-        "compilerOptions": {
-            "baseUrl": ".",
-            "module": "ESNext",
-            "verbatimModuleSyntax": True,
-            "types": ["node", "vitest/importMeta"],
-        },
-    }
 )
-
 
 write_tsconfig(
     name = "tsconfig_app",
-    files = APP_TSCONFIG_FILES,
     out = "tsconfig.app.json",
-    extends = ":tsconfig",
     config = {
         "compilerOptions": {
             "composite": True,
             "allowImportingTsExtensions": True,
             "types": ["vitest/importMeta"],
-        }  
-    }
+        },
+    },
+    extends = ":tsconfig",
+    files = APP_TSCONFIG_FILES,
 )
 
 ts_project(
@@ -117,21 +121,51 @@ ts_project(
             "composite": True,
             "allowImportingTsExtensions": True,
             "types": ["vitest/importMeta"],
-        }  
-    }
+        },
+    },
 )
-
 
 write_tsconfig(
     name = "tsconfig_app_vitest",
-    files = VITEST_TEST_FILES,
     out = "tsconfig.app.vitest.json",
-    extends = ":tsconfig_app",
     config = {
         "compilerOptions": {
-            "types": ["node", "vitest/importMeta", "@testing-library/jest-dom"]
-        }
-    }
+            "types": [
+                "node",
+                "vitest/importMeta",
+                "@testing-library/jest-dom",
+            ],
+        },
+    },
+    extends = ":tsconfig_app",
+    files = VITEST_TEST_FILES,
+)
+
+write_tsconfig(
+    name = "tsconfig_scripts",
+    out = "tsconfig.scripts.json",
+    allow_js = True,
+    config = {
+        "compilerOptions": {
+            "module": "Node16",
+            "target": "ES2017",
+            "strict": True,
+            "noEmit": True,
+            "allowJs": True,
+            "checkJs": True,
+            "exactOptionalPropertyTypes": True,
+            "noUncheckedIndexedAccess": True,
+            "types": ["node"],
+        },
+    },
+    files = glob(
+        [
+            "scripts/**/*.ts",
+            "scripts/**/*.mjs",
+            "scripts/**/*.js",
+        ],
+        allow_empty = True,
+    ),
 )
 
 npm_package(
@@ -240,9 +274,10 @@ write_source_files(
 write_source_files(
     name = "write_tsconfigs",
     files = {
-        'tsconfig.app.json': ":tsconfig_app",
-        'tsconfig.app.vitest.json': ":tsconfig_app_vitest",
-        'tsconfig.node.json': ":tsconfig_node",
+        "tsconfig.app.json": ":tsconfig_app",
+        "tsconfig.app.vitest.json": ":tsconfig_app_vitest",
+        "tsconfig.node.json": ":tsconfig_node",
+        "tsconfig.scripts.json": ":tsconfig_scripts",
     },
     suggested_update_target = "//:write_all",
     visibility = ["//visibility:public"],

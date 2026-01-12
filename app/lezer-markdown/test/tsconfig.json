@@ -1,12 +1,1 @@
-{
-  "compilerOptions": {
-    "lib": ["es2017"],
-    "noImplicitReturns": true,
-    "noUnusedLocals": true,
-    "strict": true,
-    "target": "es6",
-    "newLine": "lf",
-    "moduleResolution": "node"
-  },
-  "include": ["*.ts"]
-}
+{"compilerOptions":{"lib":["es2017"],"moduleResolution":"node","newLine":"lf","noImplicitReturns":true,"noUnusedLocals":true,"strict":true,"target":"es6"},"files":["./compare-tree.ts", "./spec.ts", "./test-extension.ts", "./test-incremental.ts", "./test-markdown.ts", "./test-nesting.ts"]}
