@@ -261,10 +261,15 @@ final class TruffleCompilerContext implements CompilerContext {
     TruffleCompilerModuleScopeBuilder compilerScope = scope.toCompilerBuilder();
     types.foreach(
         tp -> {
+          Type registerConstructorsTo = null;
           if (tp.builtinType()) {
             Builtin builtinType = builtins.getBuiltinType(tp.name());
             if (builtinType == null) {
               throw new CompilerError("Unknown @Builtin_Type " + tp.name());
+            }
+            var rtp = builtinType.getType();
+            if (tp.toString().contains("Missing_Argument")) {
+              registerConstructorsTo = rtp;
             }
             Set tpNames = tp.members().map(c -> c.name()).toSet();
             Set exNames =
@@ -275,8 +280,8 @@ final class TruffleCompilerContext implements CompilerContext {
               throw new CompilerError(
                   "Wrong constructors declared in the builtin " + tp.name() + ".");
             }
-            scope.registerType(builtinType.getType());
-            builtinType.getType().setShadowDefinitions(builtins.getLanguage(), compilerScope, true);
+            scope.registerType(rtp);
+            rtp.setShadowDefinitions(builtins.getLanguage(), compilerScope, true);
           } else {
             boolean hasAllConstructorsPrivate =
                 tp.isPrivate()
@@ -293,11 +298,14 @@ final class TruffleCompilerContext implements CompilerContext {
                         hasAllConstructorsPrivate)
                     : Type.createSingleton(
                         tp.name(), compilerScope, builtins.any(), false, hasAllConstructorsPrivate);
-            Type rtp = scope.registerType(createdType);
+            registerConstructorsTo = scope.registerType(createdType);
+          }
+          if (registerConstructorsTo != null) {
+            var rtp = registerConstructorsTo;
             tp.members()
                 .foreach(
                     cons -> {
-                      AtomConstructor constructor =
+                      var constructor =
                           new AtomConstructor(cons.name(), scope.getModule(), rtp, false);
                       rtp.registerConstructor(constructor);
                       return null;
