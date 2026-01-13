@@ -3934,7 +3934,8 @@ lazy val `engine-runner` = project
               // Snowflake uses Apache Arrow (equivalent of #9664 in native-image setup)
               "--add-opens=java.base/java.nio=ALL-UNNAMED",
               // Needed for grpc-gax
-              "--add-opens=java.base/java.time=ALL-UNNAMED"
+              "--add-opens=java.base/java.time=ALL-UNNAMED",
+              "--enable-url-protocols=jar"
             ) ++ enableHeapDumpOpts ++ debugOpts ++ linkOpts ++ cLibraryOpts,
             mainModule = Some("org.enso.runner"),
             mainClass  = Some("org.enso.runner.Main"),
