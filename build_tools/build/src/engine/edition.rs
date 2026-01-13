@@ -39,6 +39,40 @@ impl PublishedLibrary {
         lib_path
     }
 
+    /// Creates a zip file from this library. This zip will be a valid _library repository_.
+    /// This means, for example, that the directory hierarchy of the zip file will be
+    /// `<namespace>/<name>/<version>/...`.
+    ///
+    /// This is ensured by first copying the library directory to a temporary directory
+    /// with the structure `<tmp>/<namespace>/<name>/...` and then zipping the
+    /// `<tmp>/<namespace>` directory.
+    ///
+    /// # Parameters
+    ///
+    /// `zip_file` - Destination where the zip file should be put. Does not have to exist.
+    ///  But its parent directory should exist.
+    pub async fn create_zip(&self, repo_root: &RepoRoot, zip_file: &Path) -> Result {
+        let lib_dir = self.find_in_repo_root(repo_root);
+        let tmp_dir = tempfile::tempdir()?;
+        let (namespace, lib_name) = self.split_name();
+        let tmp_dir = tmp_dir.path().join(namespace);
+        std::fs::create_dir(&tmp_dir)?;
+        let lib_in_tmp_dir = ide_ci::fs::copy_to(lib_dir, &tmp_dir)?;
+        assert_eq!(Self::file_name(&tmp_dir)?, String::from(namespace));
+        assert_eq!(Self::file_name(&lib_in_tmp_dir)?, String::from(lib_name));
+        ide_ci::archive::create(zip_file, vec![tmp_dir]).await?;
+        Ok(())
+    }
+
+    fn file_name(path: &Path) -> Result<String> {
+        let s = path
+            .file_name()
+            .ok_or_else(|| anyhow!("file_name not UTF-8"))?
+            .to_str()
+            .ok_or_else(|| anyhow!("file name not UTF-8"));
+        Ok(s?.to_string())
+    }
+
     fn split_name(&self) -> (&str, &str) {
         let items: Vec<&str> = self.name.split(".").collect();
         assert_eq!(items.len(), 2);
@@ -129,6 +163,8 @@ fn is_yaml_file(path: &Path) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::paths::TargetTriple;
+    use crate::version::Versions;
 
     #[test]
     fn test_parse_manifest() {
@@ -160,5 +196,50 @@ libraries:
         engine-version: 0.0.0-dev
         "#;
         Edition::from_yaml_content(manifest_content).expect_err("Expected edition parsing error");
+    }
+
+    #[tokio::test]
+    async fn test_create_zip_of_library() -> Result {
+        setup_logging().ok();
+        let crate_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        let repo_root_path = crate_dir.parent().unwrap().parent().unwrap();
+        let version = Version::from_str("0.0.0-dev")?;
+        let triple = TargetTriple::new(Versions::new(version.clone()));
+        let repo_root = crate::paths::new_repo_root(repo_root_path, &triple);
+        let published_lib = PublishedLibrary {
+            name: String::from("Standard.Image"),
+            version: String::from("0.0.0-dev"),
+            repository: Repository {
+                name: String::from("main"),
+                url: String::from("https://releases.enso.org"),
+            },
+        };
+        if !published_lib.find_in_repo_root(&repo_root).exists() {
+            // This test makes sense only if `built-distribution` directory exist, which is true iff
+            // `sbt buildEngineDistribution` was run.
+            eprintln!(
+                "Skipping test, library not found in repo root.\
+                       Run `sbt buildEngineDistribution` first."
+            );
+            return Ok(());
+        }
+        let tmp_dir = tempfile::tempdir()?;
+        let zip_file_path = tmp_dir.path().join("tmp.zip");
+        published_lib.create_zip(&repo_root, &zip_file_path).await?;
+        assert!(Path::is_file(&zip_file_path));
+
+        let extract_dir = tmp_dir.path().join("extracted");
+        std::fs::create_dir(&extract_dir)?;
+        ide_ci::archive::extract_to(&zip_file_path, &extract_dir).await?;
+        assert!(extract_dir.join("Standard").exists(), "lib namespace directory is the root dir");
+        assert!(
+            extract_dir.join("Standard").join("Image").exists(),
+            "lib name directory is the second dir"
+        );
+        assert!(
+            extract_dir.join("Standard").join("Image").join("0.0.0-dev").exists(),
+            "lib content directory is the third dir"
+        );
+        Ok(())
     }
 }
