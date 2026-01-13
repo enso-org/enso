@@ -64,6 +64,11 @@ public interface Redefined extends Error {
       return "Methods must have only one definition of the `self` argument, and "
           + "it must be the first.";
     }
+
+    @Override
+    public SelfArg mapExpressions(Function<Expression, Expression> fn) {
+      return this;
+    }
   }
 
   /** An error representing the redefinition of a conversion in a given module */
@@ -119,6 +124,11 @@ public interface Redefined extends Error {
           + src
           + " is defined multiple times in this module.";
     }
+
+    @Override
+    public Conversion mapExpressions(Function<Expression, Expression> fn) {
+      return this;
+    }
   }
 
   @GenerateIR(
@@ -164,6 +174,11 @@ public interface Redefined extends Error {
       } else {
         return new Object[] {methodName().name()};
       }
+    }
+
+    @Override
+    public Method mapExpressions(Function<Expression, Expression> fn) {
+      return this;
     }
   }
 
@@ -215,6 +230,11 @@ public interface Redefined extends Error {
     public String showCode(int indent) {
       return "(Redefined (MethodClash " + atomName().name() + " " + methodName().name() + "))";
     }
+
+    @Override
+    public MethodClashWithAtom mapExpressions(Function<Expression, Expression> fn) {
+      return this;
+    }
   }
 
   /** An error representing the redefinition of an atom in a given module. */
@@ -253,6 +273,12 @@ public interface Redefined extends Error {
     public String showCode(int indent) {
       return "(Redefined (Type " + typeName().name() + "))";
     }
+
+    @Override
+    public org.enso.compiler.core.ir.expression.errors.Redefined.Type mapExpressions(
+        Function<Expression, Expression> fn) {
+      return this;
+    }
   }
 
   @GenerateIR(
@@ -290,6 +316,11 @@ public interface Redefined extends Error {
     public String showCode(int indent) {
       return "(Redefined (Argument " + name().name() + "))";
     }
+
+    @Override
+    public Arg mapExpressions(Function<Expression, Expression> fn) {
+      return this;
+    }
   }
 
   /** An error representing the redefinition of an atom in a given module. */
@@ -318,6 +349,11 @@ public interface Redefined extends Error {
     @Override
     public String showCode(int indent) {
       return "(Redefined (Binding " + invalidBinding() + "))";
+    }
+
+    @Override
+    public Binding mapExpressions(Function<Expression, Expression> fn) {
+      return this;
     }
   }
 }
