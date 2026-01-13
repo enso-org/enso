@@ -109,8 +109,8 @@ type Decimal
            Decimal.parse '12.345'
     pretty : Text
     pretty self = case self of
-        _ : Decimal.Value -> "Decimal.parse "+self.big_decimal.toString.pretty
-        _ : Decimal.From_Float -> "Decimal.from_float "+self.original_value.pretty
+        Decimal.Value _ -> "Decimal.parse "+self.big_decimal.toString.pretty
+        Decimal.From_Float _ _ -> "Decimal.from_float "+self.original_value.pretty + " explicit=False"
 
     ## ---
        icon: input_number
