@@ -5,22 +5,22 @@ from Standard.Table import all
 from Standard.Test import all
 
 add_specs suite_builder =
-    suite_builder.group "Alteryx_Format" group_builder->
+    suite_builder.group "YXDB_Format" group_builder->
         group_builder.specify "Should read a YXDB without error (with explicit format)" <|
-            data_file = enso_project.data / 'alteryx' / 'AllNormalFields.yxdb'
-            yxdb_read = Data.read data_file ..Alteryx_Format
+            data_file = enso_project.data / 'yxdb' / 'AllNormalFields.yxdb'
+            yxdb_read = Data.read data_file ..YXDB_Format
             yxdb_read.should_succeed
             yxdb_read.should_be_a Table
 
         group_builder.specify "Should read a YXDB without error (with auto format)" <|
-            data_file = enso_project.data / 'alteryx' / 'AllNormalFields.yxdb'
+            data_file = enso_project.data / 'yxdb' / 'AllNormalFields.yxdb'
             yxdb_read = Data.read data_file
             yxdb_read.should_succeed
             yxdb_read.should_be_a Table
 
         group_builder.specify "Should read normal data from YXDB" <|
-            data_file = enso_project.data / 'alteryx' / 'AllNormalFields.yxdb'
-            table = Data.read data_file ..Alteryx_Format
+            data_file = enso_project.data / 'yxdb' / 'AllNormalFields.yxdb'
+            table = Data.read data_file ..YXDB_Format
 
             table.row_count.should_equal 1
 
@@ -32,8 +32,8 @@ add_specs suite_builder =
             actual.should_equal expected
 
         group_builder.specify "Should read spatial data from YXDB" <|
-            data_file = enso_project.data / 'alteryx' / 'line.yxdb'
-            table = Data.read data_file ..Alteryx_Format
+            data_file = enso_project.data / 'yxdb' / 'line.yxdb'
+            table = Data.read data_file ..YXDB_Format
 
             table.row_count.should_equal 1
             table.column_count.should_equal 2
@@ -50,16 +50,16 @@ add_specs suite_builder =
         group_builder.specify "Should be able to convert spatial data to GeoJSON" <|
             byte_vec = [3, 0, 0, 0, 0, 0, 0, 0, 0, -103, 91, -64, -90, 97, -8, -120, -104, 58, 61, 64, 0, 0, 0, 0, 0, 24, 85, -64, 56, -92, 81, -127, -109, 37, 69, 64, 1, 0, 0, 0, 6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -72, 90, -64, 56, -92, 81, -127, -109, 37, 69, 64, 0, 0, 0, 0, 0, 24, 85, -64, -2, 124, 91, -80, 84, -97, 68, 64, -122, -112, -13, -2, 63, -106, 90, -64, -46, -60, 59, -64, -109, 94, 66, 64, -122, -112, -13, -2, 63, 80, 85, -64, 63, -28, 45, 87, 63, -106, 65, 64, 0, 0, 0, 0, 0, -103, 91, -64, -118, 3, -24, -9, -3, 69, 64, 64, -122, -112, -13, -2, 63, 94, 86, -64, -90, 97, -8, -120, -104, 58, 61, 64]
             expected = '{"yxdbType":"LineString","coordinates":[[-106.875,42.293564],[-84.375,41.244772],[-106.347656,36.738884],[-85.253906,35.173808],[-110.390625,32.546813],[-89.472656,29.22889]]}'
-            actual = Alteryx_Format.spatial_to_geojson byte_vec
+            actual = YXDB_Format.spatial_to_geojson byte_vec
             actual.should_equal expected
 
         group_builder.specify "Should be able to convert spatial column to GeoJSON" <|
-            data_file = enso_project.data / 'alteryx' / 'line.yxdb'
-            table = Data.read data_file ..Alteryx_Format
+            data_file = enso_project.data / 'yxdb' / 'line.yxdb'
+            table = Data.read data_file ..YXDB_Format
 
             expected = '{"yxdbType":"LineString","coordinates":[[-106.875,42.293564],[-84.375,41.244772],[-106.347656,36.738884],[-85.253906,35.173808],[-110.390625,32.546813],[-89.472656,29.22889]]}'
 
-            converted_table = Alteryx_Format.spatial_column_to_geojson table "Spatial"
+            converted_table = YXDB_Format.spatial_column_to_geojson table "Spatial"
             converted_table.row_count.should_equal 1
             converted_table.column_count.should_equal 2
             converted_table.column_names.should_equal ["RecordID", "Spatial"]
@@ -67,9 +67,9 @@ add_specs suite_builder =
             converted_table.get_value "Spatial" 0 . should_equal expected
 
         group_builder.specify "Should error gracefully when reading an AMP file" <|
-            data_file = enso_project.data / 'alteryx' / 'ampdata.yxdb'
+            data_file = enso_project.data / 'yxdb' / 'ampdata.yxdb'
 
-            yxdb_read = Data.read data_file ..Alteryx_Format
+            yxdb_read = Data.read data_file ..YXDB_Format
             yxdb_read.should_fail_with Illegal_Argument
             yxdb_read.catch.message . should_equal "Reading AMP YXDB files is not supported."
 
@@ -80,7 +80,7 @@ add_specs suite_builder =
         group_builder.specify "Should error gracefully when reading a non-YXDB file" <|
             data_file = enso_project.data / 'data.csv'
 
-            yxdb_read = Data.read data_file ..Alteryx_Format
+            yxdb_read = Data.read data_file ..YXDB_Format
             yxdb_read.should_fail_with Illegal_Argument
 
 main filter=Nothing =

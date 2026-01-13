@@ -26,9 +26,9 @@ import uk.co.jdunkerley.yxdb.YxdbField;
 import uk.co.jdunkerley.yxdb.YxdbReader;
 import uk.co.jdunkerley.yxdb.YxdbType;
 
-public final class AlteryxYXDBReader {
+public final class YXDBReader {
   /**
-   * Reads an Alteryx YXDB file and returns its contents as a Table.
+   * Reads an YXDB file and returns its contents as a Table.
    *
    * @param path the path to the YXDB file.
    * @return a Table containing the data from the YXDB file.
@@ -44,7 +44,7 @@ public final class AlteryxYXDBReader {
       var recordCount = yxdbReader.numRecords();
       var fields = yxdbReader.fields();
       var storageTypes =
-          Arrays.stream(fields).map(AlteryxYXDBReader::mapYXDBField).toArray(StorageType[]::new);
+          Arrays.stream(fields).map(YXDBReader::mapYXDBField).toArray(StorageType[]::new);
       var storages =
           Arrays.stream(storageTypes)
               .map(st -> st.makeBuilder(recordCount, problemAggregator))
