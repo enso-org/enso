@@ -11,6 +11,7 @@ load("//internal:stampFiles.bzl", "stamp_files")
 npm_link_all_packages(name = "node_modules")
 
 ICON_GENERATED_DIR = "src/project-view/util/iconMetadata"
+ICON_NAME_FILE = ICON_GENERATED_DIR + "/iconName.ts"
 
 TESTS_PATTERN_BASE = "src/**/__tests__/*"
 
@@ -240,7 +241,7 @@ js_run_binary(
     name = "icon_metadata",
     srcs = ["src/project-view/assets/icons.svg"],
     chdir = package_name(),
-    out_dirs = [ICON_GENERATED_DIR],
+    outs = [ICON_NAME_FILE],
     tool = ":script_generate_icon_metadata",
     visibility = ["//visibility:public"],
 )
@@ -263,7 +264,7 @@ stamp_files(
 write_source_files(
     name = "write_icon_metadata",
     files = {
-        ICON_GENERATED_DIR: ":icon_metadata",
+        ICON_NAME_FILE: ":icon_metadata",
     },
     suggested_update_target = "//:write_all",
     visibility = ["//visibility:public"],
