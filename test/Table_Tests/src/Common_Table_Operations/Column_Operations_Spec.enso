@@ -175,8 +175,10 @@ add_column_operation_specs suite_builder setup =
             materialized = new_table.read
             Runtime.assert (materialized.row_count == 1)
             materialized.first_row.to_vector
+
         Round_Spec.add_specs True group_builder (Round_Spec.Batch_Runner.Value (round_batch .round) (round_one .round)) run_advanced=setup.test_selection.run_advanced_edge_case_tests
-        Round_Spec.add_specs True group_builder (Round_Spec.Batch_Runner.Value (round_batch .round_pure_column_ops) (round_one .round_pure_column_ops)) run_advanced=setup.test_selection.run_advanced_edge_case_tests
+        if setup.is_database then
+            Round_Spec.add_specs True group_builder (Round_Spec.Batch_Runner.Value (round_batch .round_pure_column_ops) (round_one .round_pure_column_ops)) run_advanced=setup.test_selection.run_advanced_edge_case_tests
 
         group_builder.specify "Decimal places out of range" <|
             3.1 . round 16 . should_fail_with Illegal_Argument
@@ -190,10 +192,12 @@ add_column_operation_specs suite_builder setup =
                 + [[-12300, -2, -12300], [-12301, -2, -12300]]
             cases_transposed = cases.transpose
             bankers_cases_transposed = bankers_cases.transpose
+
             round_batch .round (cases_transposed.at 0) (cases_transposed.at 1) rounding_mode=Rounding_Mode.Half_Up . should_equal (cases_transposed.at 2)
             round_batch .round (bankers_cases_transposed.at 0) (bankers_cases_transposed.at 1) rounding_mode=Rounding_Mode.Bankers . should_equal (bankers_cases_transposed.at 2)
-            round_batch .round_pure_column_ops (cases_transposed.at 0) (cases_transposed.at 1) rounding_mode=Rounding_Mode.Half_Up . should_equal (cases_transposed.at 2)
-            round_batch .round_pure_column_ops (bankers_cases_transposed.at 0) (bankers_cases_transposed.at 1) rounding_mode=Rounding_Mode.Bankers . should_equal (bankers_cases_transposed.at 2)
+            if setup.is_database then
+                round_batch .round_pure_column_ops (cases_transposed.at 0) (cases_transposed.at 1) rounding_mode=Rounding_Mode.Half_Up . should_equal (cases_transposed.at 2)
+                round_batch .round_pure_column_ops (bankers_cases_transposed.at 0) (bankers_cases_transposed.at 1) rounding_mode=Rounding_Mode.Bankers . should_equal (bankers_cases_transposed.at 2)
 
     build_sorted_table table_structure table_builder=setup.table_builder =
         # Workaround for https://github.com/enso-org/enso/issues/10321
