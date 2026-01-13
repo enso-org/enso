@@ -27,7 +27,9 @@ type Salesforce
        ---
        Get the Salesforce information about the authenticated user.
     user self =
-        _salesforce_get self "https://login.salesforce.com/services/oauth2/userinfo"
+        raw_result = _salesforce_get self "https://login.salesforce.com/services/oauth2/userinfo"
+        result = raw_result.decode_as_json
+        result
 
     ## ---
        private: true

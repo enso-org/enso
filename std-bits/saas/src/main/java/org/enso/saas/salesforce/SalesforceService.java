@@ -34,6 +34,10 @@ public final class SalesforceService {
   }
 
   private static boolean closeToExpiring(AccessToken accessToken) {
+    // If no expiration date is provided, assume token doesn't expire
+    if (accessToken.expirationDate() == null) {
+      return false;
+    }
     return ZonedDateTime.now()
         .isAfter(accessToken.expirationDate().minusMinutes(CLOSE_TO_EXPIRATION_MINUTES));
   }
