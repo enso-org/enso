@@ -19,6 +19,7 @@ use crate::paths::TargetTriple;
 use crate::paths::cache_directory;
 use crate::project::ProcessWrapper;
 
+use crate::engine::edition::PublishedLibrary;
 use ide_ci::actions::workflow::is_in_env;
 use ide_ci::cache;
 use ide_ci::github::release::{Handle, IsReleaseExt};
@@ -637,29 +638,25 @@ impl RunContext {
         debug!("Uploading libraries: {:?}", libs_to_upload);
         for lib in libs_to_upload {
             let lib_path = lib.find_in_repo_root(&self.repo_root);
-            let repo = lib.repository;
             debug!("Will upload library in {}", lib_path.to_string_lossy());
-            self.upload_as_zip(lib_path.as_path(), repo.name.as_str(), release_handle.clone())
-                .await?;
+            self.upload_as_zip(&lib, release_handle.clone()).await?;
         }
         Ok(())
     }
 
-    /// Uploads the given directory as a zip asset. Name of the asset is
-    /// created from the directory name with `.zip` suffix.
-    async fn upload_as_zip(
-        &self,
-        dir_path: &Path,
-        asset_name: &str,
-        release_handle: Handle,
-    ) -> Result {
-        if !Path::is_dir(dir_path) {
-            bail!("{} is not a directory.", dir_path.display());
+    /// Uploads the given library as a zip asset. Name of the asset is
+    /// derived from the library's repository name.
+    async fn upload_as_zip(&self, lib: &PublishedLibrary, release_handle: Handle) -> Result {
+        let lib_path = lib.find_in_repo_root(&self.repo_root);
+        if !Path::is_dir(&lib_path) {
+            return Err(anyhow!("{:?} is not a directory.", lib_path));
         }
+        debug!("Will upload library in {:?}", lib_path);
+        let asset_name = &lib.repository.name;
         assert!(asset_name.ends_with(".zip"));
         let tmp_dir = tempfile::tempdir()?;
         let zip_file_path = tmp_dir.path().join(asset_name);
-        ide_ci::archive::create(&zip_file_path, vec![dir_path.to_owned()]).await?;
+        lib.create_zip(&self.repo_root, &zip_file_path).await?;
         debug!("Will upload {:?} as asset", zip_file_path);
         release_handle.upload_asset_file(zip_file_path).await?;
         Ok(())
