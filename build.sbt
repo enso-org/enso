@@ -3828,9 +3828,6 @@ lazy val `engine-runner` = project
           `database-polyglot-root`
             .listFiles("*.jar")
             .map(_.getAbsolutePath()) ++
-          `std-tableau-polyglot-root`
-            .listFiles("*.jar")
-            .map(_.getAbsolutePath()) ++
           `std-duckdb-polyglot-root`
             .listFiles("*.jar")
             .map(_.getAbsolutePath())
@@ -5235,6 +5232,7 @@ lazy val `std-table` = project
       "org.antlr"                % "antlr4-runtime"        % antlrVersion,
       "org.apache.logging.log4j" % "log4j"                 % "2.24.3",
       "org.apache.logging.log4j" % "log4j-to-slf4j"        % "2.24.3", // org.apache.poi uses log4j
+      "uk.co.jdunkerley"         % "yxdb-java"             % "0.1.4",
       "org.graalvm.truffle"      % "truffle-api"           % graalMavenPackagesVersion % Test,
       "junit"                    % "junit"                 % junitVersion              % Test,
       "com.github.sbt"           % "junit-interface"       % junitIfVersion            % Test,

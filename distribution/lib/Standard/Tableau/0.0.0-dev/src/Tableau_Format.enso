@@ -21,6 +21,8 @@ import project.Internal.Telemetry
 from project.Hyper_Errors import Hyper_Unsupported_Type
 
 polyglot java import org.enso.tableau.HyperFormat
+polyglot java import org.enso.table.data.table.Column as Java_Column
+polyglot java import org.enso.table.data.table.Table as Java_Table
 
 ## Read the file to a `Hyper_File` object.
 type Tableau_Format
@@ -127,7 +129,8 @@ type Tableau_Format
                 Tableau_Format.Hyper_Table _ t -> t
                 _ -> "Extract"
             warning_unmatched_columns = Hyper_Errors.handle_java_exceptions <|
-                HyperFormat.writeTable resolved_file resolved_schema resolved_table (to_java_table table:In_Memory_Table) (on_existing_file == Existing_File_Behavior.Append) (match_columns == Match_Columns.By_Name) (on_problems == Problem_Behavior.Report_Error)
+                java_table = to_java_table table:In_Memory_Table Java_Table Java_Column
+                HyperFormat.writeTable resolved_file resolved_schema resolved_table java_table (on_existing_file == Existing_File_Behavior.Append) (match_columns == Match_Columns.By_Name) (on_problems == Problem_Behavior.Report_Error)
             problems = if warning_unmatched_columns.length > 0 then [Unmatched_Columns.Error warning_unmatched_columns.to_vector] else []
             on_problems.attach_problems_before problems <|
                 File.new resolved_file
