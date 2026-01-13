@@ -126,12 +126,12 @@ export function useEnsoSourceSync(
     let cleanup: (() => void) | undefined = undefined
     watch(
       moduleStore,
-      (_module, _oldValue, onCleanup) => {
-        const beforeEditHandler = moduleStore.value.onBeforeEdit(beforeSourceChange)
-        moduleStore.value.source.observe(observeSourceChange)
+      (module, _oldValue, onCleanup) => {
+        const beforeEditHandler = module.onBeforeEdit(beforeSourceChange)
+        module.source.observe(observeSourceChange)
         cleanup = () => {
           beforeEditHandler?.unregister()
-          moduleStore.value.source.unobserve(observeSourceChange)
+          module.source.unobserve(observeSourceChange)
           cleanup = undefined
         }
         onCleanup(cleanup)

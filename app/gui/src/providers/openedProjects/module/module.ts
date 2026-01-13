@@ -61,11 +61,20 @@ export async function createModuleStore(
 
   const moduleModel = ref<DistributedModule | null>()
   const module = ref<Ast.MutableModule | null>()
+  let abortModuleLoading: AbortController | undefined
 
   async function updateModuleModelIfChanged() {
     const currentGuid = proj.projectModel.modules.get(FILE_NAME)?.guid
     if (currentGuid !== moduleModel.value?.doc.ydoc.guid) {
+      abortModuleLoading?.abort()
+      const abort = new AbortController()
+      abortModuleLoading = abort
       const newModule = await proj.projectModel.openModule(FILE_NAME)
+      if (abort.signal.aborted) {
+        newModule?.dispose()
+        return
+      }
+      moduleModel.value?.dispose()
       if (newModule != null) {
         for (const origin of localUserActionOrigins) newModule.undoManager.addTrackedOrigin(origin)
         moduleModel.value = markRaw(newModule)
