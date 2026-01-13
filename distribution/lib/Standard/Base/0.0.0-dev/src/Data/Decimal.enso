@@ -90,6 +90,28 @@ type Decimal
        ---
     private From_Float (big_decimal : BigDecimal) (original_value : Float)
 
+    ### ---
+       private: true
+       group: convert
+       icon: enso_logo
+       ---
+       Convert the value to a corresponding Enso code representation.
+
+       ## Examples
+       ### Getting the Enso code of the Decimal with value 12.345
+
+       ```
+           (Decimal.new "12.345").pretty
+       ```
+
+       Returns a Text
+
+           Decimal.parse '12.345'
+    pretty : Text
+    pretty self = case self of
+        Decimal.Value _ -> "Decimal.parse "+self.big_decimal.toString.pretty
+        Decimal.From_Float _ _ -> "Decimal.from_float "+self.original_value.pretty + " explicit=False"
+
     ## ---
        icon: input_number
        ---

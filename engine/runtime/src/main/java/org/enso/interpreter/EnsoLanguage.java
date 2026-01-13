@@ -112,6 +112,8 @@ import scala.collection.immutable.Seq;
   StandardTags.RootTag.class,
   StandardTags.RootBodyTag.class,
   StandardTags.TryBlockTag.class,
+  StandardTags.ReadVariableTag.class,
+  StandardTags.WriteVariableTag.class,
   IdentifiedTag.class,
   AvoidIdInstrumentationTag.class,
   Patchable.Tag.class

@@ -10,10 +10,14 @@ public class XSSFReaderRow implements ExcelRow {
   private static final DataFormatter formatter = new DataFormatter();
   private final SortedMap<Short, XSSFReaderSheetXMLHandler.CellValue> data;
   private final boolean use1904Dates;
+  private final int lastCol;
 
   public XSSFReaderRow(
-      SortedMap<Short, XSSFReaderSheetXMLHandler.CellValue> data, boolean use1904Dates) {
+      SortedMap<Short, XSSFReaderSheetXMLHandler.CellValue> data,
+      boolean use1904Dates,
+      short lastCol) {
     this.data = data;
+    this.lastCol = Math.min(lastCol, data.lastKey());
     this.use1904Dates = use1904Dates;
   }
 
@@ -24,7 +28,7 @@ public class XSSFReaderRow implements ExcelRow {
 
   @Override
   public int getLastColumn() {
-    return data.lastKey();
+    return lastCol;
   }
 
   @Override
