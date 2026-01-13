@@ -58,36 +58,36 @@ public final class Error {
   /** Creates builders for error Atom Constructors. */
   Error(Builtins builtins, EnsoContext context) {
     this.context = context;
-    syntaxError = AtomFactory.unique("Errors", "Common", "Syntax_Error");
-    typeError = AtomFactory.unique("Errors", "Common", "Type_Error");
-    compileError = AtomFactory.unique("Errors", "Common", "Compile_Error");
-    assertionError = AtomFactory.unique("Errors", "Common", "Assertion_Error");
-    indexOutOfBounds = AtomFactory.unique("Errors", "Common", "Index_Out_Of_Bounds");
-    inexhaustivePatternMatch = AtomFactory.unique("Errors", "Common", "Inexhaustive_Pattern_Match");
-    uninitializedState = AtomFactory.unique("Errors", "Common", "Uninitialized_State");
-    noSuchMethod = AtomFactory.unique("Errors", "Common", "No_Such_Method");
-    noSuchConversion = AtomFactory.unique("Errors", "Common", "No_Such_Conversion");
-    noConversionCurrying = AtomFactory.unique("Errors", "Common", "No_Conversion_Currying");
-    moduleNotInPackageError = AtomFactory.unique("Errors", "Common", "Module_Not_In_Package_Error");
-    arithmeticError = AtomFactory.unique("Errors", "Common", "Arithmetic_Error");
-    invalidArrayIndex = AtomFactory.unique("Errors", "Common", "Invalid_Array_Index");
-    arityError = AtomFactory.unique("Errors", "Common", "Arity_Error");
-    incomparableValues = AtomFactory.unique("Errors", "Common", "Incomparable_Values");
-    unsupportedArgumentsError =
-        AtomFactory.unique("Errors", "Common", "Unsupported_Argument_Types");
-    moduleDoesNotExistError = AtomFactory.unique("Errors", "Common", "Module_Does_Not_Exist");
-    notInvokable = AtomFactory.unique("Errors", "Common", "Not_Invokable");
-    noSuchArgument = AtomFactory.unique("Errors", "Common", "No_Such_Argument");
-    missingArgument = AtomFactory.unique("Errors", "Common", "Missing_Argument");
-    privateAccessError = AtomFactory.unique("Errors", "Common", "Private_Access");
-    invalidConversionTarget = AtomFactory.unique("Errors", "Common", "Invalid_Conversion_Target");
-    noSuchField = AtomFactory.unique("Errors", "Common", "No_Such_Field");
-    numberParseError = AtomFactory.unique("Data", "Numbers", "Number_Parse_Error");
+    syntaxError = createErrorsCommon("Syntax_Error");
+    typeError = createErrorsCommon("Type_Error");
+    compileError = createErrorsCommon("Compile_Error");
+    assertionError = createErrorsCommon("Assertion_Error");
+    indexOutOfBounds = createErrorsCommon("Index_Out_Of_Bounds");
+    inexhaustivePatternMatch = createErrorsCommon("Inexhaustive_Pattern_Match");
+    uninitializedState = createErrorsCommon("Uninitialized_State");
+    noSuchMethod = createErrorsCommon("No_Such_Method");
+    noSuchConversion = createErrorsCommon("No_Such_Conversion");
+    noConversionCurrying = createErrorsCommon("No_Conversion_Currying");
+    moduleNotInPackageError = createErrorsCommon("Module_Not_In_Package_Error");
+    arithmeticError = createErrorsCommon("Arithmetic_Error");
+    invalidArrayIndex = createErrorsCommon("Invalid_Array_Index");
+    arityError = createErrorsCommon("Arity_Error");
+    incomparableValues = createErrorsCommon("Incomparable_Values");
+    unsupportedArgumentsError = createErrorsCommon("Unsupported_Argument_Types");
+    moduleDoesNotExistError = createErrorsCommon("Module_Does_Not_Exist");
+    notInvokable = createErrorsCommon("Not_Invokable");
+    noSuchArgument = createErrorsCommon("No_Such_Argument");
+    missingArgument = createErrorsCommon("Missing_Argument");
+    privateAccessError = createErrorsCommon("Private_Access");
+    invalidConversionTarget = createErrorsCommon("Invalid_Conversion_Target");
+    noSuchField = createErrorsCommon("No_Such_Field");
     panic = builtins.getBuiltinType(org.enso.interpreter.node.expression.builtin.error.Panic.class);
-    caughtPanic = AtomFactory.unique("Panic", "Caught_Panic");
-    forbiddenOperation = AtomFactory.unique("Errors", "Common", "Forbidden_Operation");
-    unimplemented = AtomFactory.unique("Errors", "Unimplemented");
-    mapError = AtomFactory.unique("Data", "Vector", "Map_Error");
+    forbiddenOperation = createErrorsCommon("Forbidden_Operation");
+
+    numberParseError = new AtomFactory("Data", "Numbers", "Number_Parse_Error");
+    caughtPanic = new AtomFactory("Panic", "Caught_Panic");
+    unimplemented = new AtomFactory("Errors", "Unimplemented");
+    mapError = new AtomFactory("Data", "Vector", "Map_Error");
   }
 
   public Atom makeSyntaxError(String message) {
@@ -380,28 +380,45 @@ public final class Error {
     return DataflowError.withDefaultTrace(err, null);
   }
 
-  private static final class AtomFactory {
+  private AtomFactory createErrorsCommon(String typeName) {
+    return new AtomFactory("Errors", "Common", typeName);
+  }
+
+  private final class AtomFactory {
     private final String[] shortFqn;
     private AtomConstructor uniqueAtomConstructor;
 
-    private AtomFactory(String[] shortFqn) {
+    private AtomFactory(String... shortFqn) {
       this.shortFqn = shortFqn;
-    }
-
-    static AtomFactory unique(String... shortFqn) {
-      return new AtomFactory(shortFqn);
     }
 
     final Atom newInstance(Object... args) {
       return org.enso.interpreter.runtime.data.atom.AtomNewInstanceNode.getUncached()
-          .newInstance(uniqueAtomConstructor, args);
+          .newInstance(getUniqueConstructor(), args);
     }
 
     final Type getType() {
-      return uniqueAtomConstructor.getType();
+      return getUniqueConstructor().getType();
     }
 
     final AtomConstructor getUniqueConstructor() {
+      if (uniqueAtomConstructor == null) {
+        CompilerDirectives.transferToInterpreterAndInvalidate();
+        var sb = new StringBuilder();
+        sb.append("Standard.Base");
+        var last = shortFqn.length - 1;
+        for (var i = 0; i < last; i++) {
+          var segment = shortFqn[i];
+          sb.append(".").append(segment);
+        }
+        var moduleOpt = context.getTopScope().getModule(sb.toString());
+        assert moduleOpt.isPresent() : sb.toString();
+        var type = moduleOpt.get().getScope().getType(shortFqn[last], true);
+        assert type != null : shortFqn[last] + " in " + sb;
+        assert type.getConstructors().size() == 1
+            : "Only one constructor available: " + type.getConstructors();
+        uniqueAtomConstructor = type.getConstructors().values().iterator().next();
+      }
       return uniqueAtomConstructor;
     }
   }
