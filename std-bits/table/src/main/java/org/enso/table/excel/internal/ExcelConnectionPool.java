@@ -54,7 +54,13 @@ public class ExcelConnectionPool implements ReloadDetector.HasClearableCache {
       ExcelFileFormat format,
       FunctionWithException<ExcelWorkbookReader, R, InterruptedException> action)
       throws IOException, InterruptedException {
-    ReloadDetector.clearOnReload(this);
+
+    // Catch and ignore IllegalStateException to allow JUnit tests to run without the full context.
+    try {
+      ReloadDetector.clearOnReload(this);
+    } catch (IllegalStateException _) {
+    }
+
     var workbook = openCachedConnection(file, format);
     return action.apply(workbook);
   }
