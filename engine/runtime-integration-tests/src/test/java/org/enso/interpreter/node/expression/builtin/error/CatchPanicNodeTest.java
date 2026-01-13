@@ -9,6 +9,7 @@ import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.callable.function.FunctionSchema;
+import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.error.PanicSentinel;
@@ -83,7 +84,7 @@ public class CatchPanicNodeTest {
               var args = Function.ArgumentsHelper.getPositionalArguments(frame.getArguments());
               assertEquals("One argument expected", 1, args.length);
               var argType = TypeOfNode.getUncached().findTypeOrError(args[0]);
-              if (argType == ctx.getBuiltins().caughtPanic().getType()) {
+              if (argType == caughtPanic(ctx)) {
                 assertThat(args[0].toString(), Matchers.containsString("Thrown"));
                 return text;
               } else {
@@ -114,7 +115,7 @@ public class CatchPanicNodeTest {
               var args = Function.ArgumentsHelper.getPositionalArguments(frame.getArguments());
               assertEquals("One argument expected", 1, args.length);
               var argType = TypeOfNode.getUncached().findTypeOrError(args[0]);
-              if (argType == ctx.getBuiltins().caughtPanic().getType()) {
+              if (argType == caughtPanic(ctx)) {
                 assertThat(args[0].toString(), Matchers.containsString("Thrown"));
                 return text;
               } else {
@@ -141,7 +142,7 @@ public class CatchPanicNodeTest {
               var args = Function.ArgumentsHelper.getPositionalArguments(frame.getArguments());
               assertEquals("One argument expected", 1, args.length);
               var argType = TypeOfNode.getUncached().findTypeOrError(args[0]);
-              if (argType == ctx.getBuiltins().caughtPanic().getType()) {
+              if (argType == caughtPanic(ctx)) {
                 assertThat(args[0].toString(), Matchers.containsString("Thrown"));
                 return text;
               } else {
@@ -172,7 +173,7 @@ public class CatchPanicNodeTest {
               var args = Function.ArgumentsHelper.getPositionalArguments(frame.getArguments());
               assertEquals("One argument expected", 1, args.length);
               var argType = TypeOfNode.getUncached().findTypeOrError(args[0]);
-              if (argType == ctx.getBuiltins().caughtPanic().getType()) {
+              if (argType == caughtPanic(ctx)) {
                 assertThat(args[0].toString(), Matchers.containsString("Thrown"));
                 return text;
               } else {
@@ -203,7 +204,7 @@ public class CatchPanicNodeTest {
               var args = Function.ArgumentsHelper.getPositionalArguments(frame.getArguments());
               assertEquals("One argument expected", 1, args.length);
               var argType = TypeOfNode.getUncached().findTypeOrError(args[0]);
-              if (argType == ctx.getBuiltins().caughtPanic().getType()) {
+              if (argType == caughtPanic(ctx)) {
                 assertThat(args[0].toString(), Matchers.containsString("Thrown"));
                 return text;
               } else {
@@ -239,7 +240,7 @@ public class CatchPanicNodeTest {
               var args = Function.ArgumentsHelper.getPositionalArguments(frame.getArguments());
               assertEquals("One argument expected", 1, args.length);
               var argType = TypeOfNode.getUncached().findTypeOrError(args[0]);
-              if (argType == ctx.getBuiltins().caughtPanic().getType()) {
+              if (argType == caughtPanic(ctx)) {
                 assertThat(args[0].toString(), Matchers.containsString("Thrown"));
                 return text;
               } else {
@@ -261,6 +262,10 @@ public class CatchPanicNodeTest {
       // OK
       assertEquals("Thrown", ex.getMessage());
     }
+  }
+
+  private static Type caughtPanic(EnsoContext ctx) {
+    return ctx.getBuiltins().error().caughtPanic();
   }
 
   private static FunctionSchema schema(String argName) {
