@@ -29,7 +29,7 @@ APP_TSCONFIG_FILES = glob(
     [
         TESTS_PATTERN_BASE,
     ],
-)
+) + [":icon_metadata"]
 
 PACKAGE_SRCS = [
     "//:tsconfig",
@@ -37,7 +37,6 @@ PACKAGE_SRCS = [
     ":tsconfig_app",
     ":tsconfig_node",
     ":tsconfig_app_vitest",
-    ":icon_metadata",
     "vite.config.ts",
     "tailwind.config.ts",
     "package.json",
