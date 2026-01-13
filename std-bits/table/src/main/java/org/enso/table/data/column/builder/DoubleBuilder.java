@@ -90,7 +90,8 @@ class DoubleBuilder extends NumericBuilder implements BuilderForDouble {
       if (storage instanceof DoubleStorage doubleStorage) {
         int n = (int) doubleStorage.getSize();
         ensureFreeSpaceFor(n);
-        System.arraycopy(doubleStorage.getData(), 0, data, currentSize, n);
+        var doubleData = doubleStorage.getData();
+        System.arraycopy(doubleData, 0, data, currentSize, Math.min(n, doubleData.length));
         BitSets.copy(doubleStorage.getIsNothingMap(), isNothing, currentSize, n);
         currentSize += n;
       } else {

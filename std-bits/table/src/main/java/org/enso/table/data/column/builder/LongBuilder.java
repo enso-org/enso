@@ -95,7 +95,8 @@ class LongBuilder extends NumericBuilder implements BuilderForLong, BuilderWithR
           // A fast path for the same type (or compatible) - no conversions/checks needed.
           int n = (int) longStorage.getSize();
           ensureFreeSpaceFor(n);
-          System.arraycopy(longStorage.getData(), 0, data, currentSize, n);
+          var longData = longStorage.getData();
+          System.arraycopy(longData, 0, data, currentSize, Math.min(n, longData.length));
           BitSets.copy(longStorage.getIsNothingMap(), isNothing, currentSize, n);
           currentSize += n;
         } else {
