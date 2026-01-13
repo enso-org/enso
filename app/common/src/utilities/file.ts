@@ -94,7 +94,8 @@ export function normalizeSlashes(path: string): Path {
 
 /** Split a {@link Path} into the path of its parent directory, and its file name. */
 export function getDirectoryAndName(path: Path) {
-  const normalizedPath = normalizePath(path)
-  const [, directoryPath = '', fileName = ''] = normalizedPath.match(/^(.+)[/]([^/]+)$/) ?? []
+  const [, directoryPath = '', fileName = ''] = isOnWindows()
+    ? path.match(/^(.+)[\\/]([^\\/]+)$/) ?? []
+    : path.match(/^(.+)[/]([^/]+)$/) ?? []
   return { directoryPath: Path(directoryPath), fileName }
 }
