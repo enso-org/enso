@@ -355,5 +355,20 @@ public interface Redefined extends Error {
     public Binding mapExpressions(Function<Expression, Expression> fn) {
       return this;
     }
+
+    @Override
+    public Binding setLocation(Option<IdentifiedLocation> location) {
+      return this;
+    }
+
+    @Override
+    public IdentifiedLocation identifiedLocation() {
+      return invalidBinding().identifiedLocation();
+    }
+
+    @Override
+    public Option<IdentifiedLocation> location() {
+      return invalidBinding().location();
+    }
   }
 }
