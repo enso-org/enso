@@ -632,6 +632,7 @@ impl RunContext {
 
     /// Uploads all the librariesS that should be uploaded.
     /// See [edition::libs_to_upload].
+    /// Also removes them from the release.
     async fn upload_libs(&self, release_handle: &Handle) -> Result {
         let edition = edition::Edition::parse_from_generated_manifest(&self.repo_root)?;
         let libs_to_upload = edition.libs_to_upload();
@@ -640,6 +641,7 @@ impl RunContext {
             let lib_path = lib.find_in_repo_root(&self.repo_root);
             debug!("Will upload library in {}", lib_path.to_string_lossy());
             self.upload_as_zip(&lib, release_handle.clone()).await?;
+            self.remove_library_from_release(&lib)?;
         }
         Ok(())
     }
@@ -659,6 +661,14 @@ impl RunContext {
         lib.create_zip(&self.repo_root, &zip_file_path).await?;
         debug!("Will upload {:?} as asset", zip_file_path);
         release_handle.upload_asset_file(zip_file_path).await?;
+        Ok(())
+    }
+
+    ///
+    fn remove_library_from_release(&self, lib: &PublishedLibrary) -> Result {
+        debug!("Removing library from release: {:?}", lib);
+        let lib_path = lib.find_in_repo_root(&self.repo_root);
+        ide_ci::fs::remove_dir_if_exists(&lib_path)?;
         Ok(())
     }
 
