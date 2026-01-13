@@ -15,7 +15,7 @@ repositories:
   - name: main
     url: 'https://libraries.release.enso.org/libraries'
   - name: std_image_repo.zip
-    url: 'jar:https://github.com/enso-org/enso/releases/download/{{ENGINE_VERSION}}/std_image_repo.zip'
+    url: 'jar:https://github.com/enso-org/enso/releases/download/{{ENGINE_VERSION}}/std_image_repo.zip!/'
 
 libraries:
   - name: Standard.Base
