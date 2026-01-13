@@ -1,5 +1,7 @@
 from Standard.Base import all
 
+export project.Alteryx_Format.Alteryx_Format
+
 export project.Aggregate_Column.Aggregate_Column
 
 export project.Blank_Selector.Blank_Selector
@@ -69,4 +71,3 @@ export project.Table.Table
 export project.Value_Type.Auto
 export project.Value_Type.Bits
 export project.Value_Type.Value_Type
-

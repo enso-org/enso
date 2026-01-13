@@ -2,6 +2,7 @@ from Standard.Base import all
 
 from Standard.Test import all
 
+import project.IO.Alteryx_YXDB_Spec
 import project.IO.Cloud_Spec
 import project.IO.Csv_Spec
 import project.IO.Data_Link_Formats_Spec
@@ -13,6 +14,7 @@ import project.IO.Json_Spec
 import project.IO.Read_Many_Spec
 
 add_specs suite_builder =
+    Alteryx_YXDB_Spec.add_specs suite_builder
     Cloud_Spec.add_specs suite_builder
     Csv_Spec.add_specs suite_builder
     Delimited_Read_Spec.add_specs suite_builder
