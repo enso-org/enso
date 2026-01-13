@@ -45,8 +45,10 @@ public final class Error {
   private final org.enso.interpreter.node.expression.builtin.error.Panic panic;
   private final AtomFactory caughtPanic;
   private final AtomFactory forbiddenOperation;
+  private final AtomFactory additionalWarnings;
   private final AtomFactory mapError;
   private final AtomFactory unimplemented;
+  private final AtomFactory noWrap;
 
   @CompilerDirectives.CompilationFinal private Atom arithmeticErrorShiftTooBig;
 
@@ -83,11 +85,13 @@ public final class Error {
     noSuchField = createErrorsCommon("No_Such_Field");
     panic = builtins.getBuiltinType(org.enso.interpreter.node.expression.builtin.error.Panic.class);
     forbiddenOperation = createErrorsCommon("Forbidden_Operation");
+    additionalWarnings = createErrorsCommon("Additional_Warnings");
 
     numberParseError = new AtomFactory("Data", "Numbers", "Number_Parse_Error");
     caughtPanic = new AtomFactory("Panic", "Caught_Panic");
     unimplemented = new AtomFactory("Errors", "Unimplemented");
     mapError = new AtomFactory("Data", "Vector", "Map_Error");
+    noWrap = new AtomFactory("Data", "Vector", "No_Wrap");
   }
 
   public Atom makeSyntaxError(String message) {
@@ -378,6 +382,14 @@ public final class Error {
     var msg = "No polyglot symbol for " + className;
     var err = makeCompileError(msg);
     return DataflowError.withDefaultTrace(err, null);
+  }
+
+  public Atom makeAdditionalWarnings(long cnt) {
+    return additionalWarnings.newInstance(cnt);
+  }
+
+  final boolean isNoWrapBuiltin(AtomConstructor cons) {
+    return noWrap.getUniqueConstructor() == cons;
   }
 
   private AtomFactory createErrorsCommon(String typeName) {

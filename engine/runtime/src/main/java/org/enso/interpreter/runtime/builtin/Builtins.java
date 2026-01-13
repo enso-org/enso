@@ -32,6 +32,7 @@ import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.ModuleScopeBuilder;
 import org.enso.interpreter.runtime.data.Type;
+import org.enso.interpreter.runtime.data.atom.AtomConstructor;
 import org.enso.pkg.QualifiedName;
 
 /** Container class for static predefined atoms, methods, and their containing scope. */
@@ -312,15 +313,14 @@ public final class Builtins {
     return problemBehavior;
   }
 
-  /** Returns the {@code No_Wrap} atom constructor. */
-  public org.enso.interpreter.node.expression.builtin.UniquelyConstructibleBuiltin noWrap() {
-    throw new UnsupportedOperationException();
-  }
-
-  /** Returns the {@code Additional_Warnings} atom constructor. */
-  public org.enso.interpreter.node.expression.builtin.UniquelyConstructibleBuiltin
-      additionalWarnings() {
-    throw new UnsupportedOperationException();
+  /**
+   * Checks whether given atom represents {@code Vector.No_Wrap}.
+   *
+   * @param c constructor
+   * @return true if it is an constructor of that type, false otherwise
+   */
+  public boolean isNoWrapBuiltin(AtomConstructor c) {
+    return error().isNoWrapBuiltin(c);
   }
 
   /**

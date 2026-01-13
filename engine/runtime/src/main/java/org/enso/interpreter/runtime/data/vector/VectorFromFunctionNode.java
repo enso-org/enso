@@ -95,9 +95,8 @@ public abstract class VectorFromFunctionNode extends Node {
     }
     var vector = target.asVector(true);
     if (errorsEncountered >= MAX_MAP_WARNINGS) {
-      var additionalWarnsBuiltin = ctx.getBuiltins().additionalWarnings();
       long additionalWarnsCnt = errorsEncountered - MAX_MAP_WARNINGS;
-      var additionalWarns = additionalWarnsBuiltin.newInstance(additionalWarnsCnt);
+      var additionalWarns = ctx.getBuiltins().error().makeAdditionalWarnings(additionalWarnsCnt);
       var vecWithAdditionalWarns =
           Warning.attach(ctx, frame, vector, additionalWarns, null, warnsLib, appendWarningNode);
       return vecWithAdditionalWarns;
@@ -122,14 +121,13 @@ public abstract class VectorFromFunctionNode extends Node {
   protected OnProblems processOnProblemsArg(AtomConstructor onProblems) {
     var ctx = EnsoContext.get(this);
     var problemBehaviorBuiltin = ctx.getBuiltins().problemBehavior();
-    var noWrapBuiltin = ctx.getBuiltins().noWrap();
     if (onProblems == problemBehaviorBuiltin.getIgnore()) {
       return OnProblems.IGNORE;
     } else if (onProblems == problemBehaviorBuiltin.getReportError()) {
       return OnProblems.REPORT_ERROR;
     } else if (onProblems == problemBehaviorBuiltin.getReportWarning()) {
       return OnProblems.REPORT_WARNING;
-    } else if (onProblems == noWrapBuiltin.getUniqueConstructor()) {
+    } else if (ctx.getBuiltins().isNoWrapBuiltin(onProblems)) {
       return OnProblems.NO_WRAP;
     }
     throw makeTypeError(problemBehaviorBuiltin.getType(), onProblems, "onProblems");
