@@ -6,3 +6,10 @@ type Panic
     catch panic_type ~action handler = @Builtin_Method "Panic.catch"
     ## Remove once https://www.pivotaltracker.com/story/show/184054024 is fixed
     catch_primitive ~action handler = Panic.catch Any action handler
+
+type Caught_Panic
+    private Panic internal_payload internal_original_exception
+
+    convert_to_dataflow_error self = @Builtin_Method "Caught_Panic.convert_to_dataflow_error"
+    stack_trace self = Panic.get_attached_stack_trace self
+    payload self = self.internal_payload

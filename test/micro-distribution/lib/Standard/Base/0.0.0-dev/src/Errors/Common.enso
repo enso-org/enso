@@ -5,19 +5,16 @@ import project.Meta
 
 polyglot java import java.util.regex.Pattern as Java_Pattern
 
-@Builtin_Type
 type Syntax_Error
     Error message
 
     to_display_text self = "Syntax error: "+self.message+"."
 
-@Builtin_Type
 type Arithmetic_Error
     Error message
 
     to_display_text self = "Arithmetic error: "+self.message+"."
 
-@Builtin_Type
 type Type_Error
     Error expected actual comment
 
@@ -34,32 +31,27 @@ type Type_Error
         msg = replace_regex msg_1 "\{got\}" got
         "Type error: "+msg+"."
 
-@Builtin_Type
 type Not_Invokable
     Error target cause
 
     to_display_text self = "Type error: expected a function, but got "+self.target.to_display_text+"."
 
-@Builtin_Type
 type No_Such_Argument
     Error argument_name
 
     to_display_text self = "The named argument `"+self.argument_name.to_text+"` did not match any argument names. Perhaps it is misspelled?"
 
-@Builtin_Type
 type Compile_Error
     Error message
 
     to_display_text self = "Compile error: "+self.message+"."
 
-@Builtin_Type
 type Inexhaustive_Pattern_Match
     Error scrutinee
 
     to_display_text self = "Inexhaustive pattern match: no branch matches "+self.scrutinee.to_display_text+"."
 
 
-@Builtin_Type
 type No_Such_Method
     Error target symbol
 
@@ -69,13 +61,11 @@ type No_Such_Method
         target_type_name = if Meta.is_polyglot self.target then self.target.to_display_text else (Meta.type_of self.target).to_display_text
         "Method `"+self.method_name+"` of type "+target_type_name+" could not be found."
 
-@Builtin_Type
 type Module_Not_In_Package_Error
     Error
 
     to_display_text self = "Module is not a part of a package."
 
-@Builtin_Type
 type Arity_Error
     Error expected_min expected_max actual
 
@@ -86,7 +76,6 @@ type Arity_Error
 
         "Wrong number of arguments. Expected "+expected_range+", but got "+self.actual.to_text+"."
 
-@Builtin_Type
 type Forbidden_Operation
     Error message
 
