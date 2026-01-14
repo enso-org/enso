@@ -109,6 +109,7 @@ public interface Builder {
 
     if (data != 0) {
       var validity = storage.addressOfValidity();
+
       var localStorage =
           switch (localType) {
             case BooleanType _ -> BoolBuilder.fromAddress(size, data, validity).seal(storage);
@@ -124,27 +125,25 @@ public interface Builder {
                 TimeOfDayBuilder.fromAddress(size, data, validity).seal(storage, type);
             default -> storage;
           };
+
       assert assertSameStorages(storage, localStorage);
       return localType.asTypedStorage(localStorage);
     }
 
-    switch (localType) {
-      case BigIntegerType _ -> {
-        var b = Builder.getForBigInteger(size, null);
-        b.appendBulkStorage(storage);
-        var localStorage = b.seal();
-        return (ColumnStorage<T>) localStorage;
-      }
-      default -> {
-        if (BuilderUtil.LOGGER.isTraceEnabled()) {
-          var t = storage.getType();
-          BuilderUtil.LOGGER.trace(
-              "makeLocal unsuccessful for {}:{} size {}",
-              t.typeChar(),
-              t.size(),
-              storage.getSize());
-        }
-      }
+    if (localType instanceof BigIntegerType) {
+      var b = Builder.getForBigInteger(size, null);
+      b.appendBulkStorage(storage);
+      var localStorage = b.seal();
+      return (ColumnStorage<T>) localStorage;
+    }
+
+    if (BuilderUtil.LOGGER.isTraceEnabled()) {
+      var t = storage.getType();
+      BuilderUtil.LOGGER.trace(
+          "makeLocal unsuccessful for {}:{} size {}",
+          t.typeChar(),
+          t.size(),
+          storage.getSize());
     }
 
     return storage;
