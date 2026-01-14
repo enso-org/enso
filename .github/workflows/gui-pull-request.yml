@@ -6,7 +6,6 @@ on:
   push:
     branches:
       - develop
-  pull_request:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-gui-pull-request

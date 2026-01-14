@@ -3,8 +3,6 @@ name: Code Formatting Check
 on:
   push:
     branches: [develop, "release/*"]
-  pull_request:
-    branches: ["*"]
 
 env:
   # Please ensure that this is in sync with graalVersion in build.sbt

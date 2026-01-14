@@ -3,15 +3,6 @@ name: Enso Language Support for VSCode, IGV, NetBeans
 on:
   push:
     branches: [develop]
-  pull_request:
-    branches: [develop]
-    paths:
-      - ".github/workflows/enso4igv.yml"
-      - "tools/enso4igv/**/*"
-      - "engine/**/*"
-      - "lib/java/**/*"
-      - "lib/scala/**/*"
-      - "build.sbt"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-enso4igv
