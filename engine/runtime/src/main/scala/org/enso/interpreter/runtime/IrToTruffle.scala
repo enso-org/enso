@@ -943,7 +943,10 @@ private[runtime] class IrToTruffle(
       }
     }
     if (!idSet && internalID != null) {
-      expr.setId(new InternalUUID(internalID))
+      val id =
+        if (canBeCached) InternalUUID.createCached(internalID)
+        else InternalUUID.create(internalID)
+      expr.setId(id);
     }
     expr
   }

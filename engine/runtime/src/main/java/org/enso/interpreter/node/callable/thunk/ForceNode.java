@@ -8,6 +8,7 @@ import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.runtime.execution.Ref;
 import org.enso.interpreter.runtime.state.State;
 import org.enso.polyglot.RuntimeID;
 
@@ -34,7 +35,14 @@ public abstract class ForceNode extends ExpressionNode {
   Object passToExecutorNode(
       VirtualFrame frame, Object thunk, @Cached("build()") ThunkExecutorNode thunkExecutorNode) {
     State state = EnsoContext.get(this).currentState();
-    return thunkExecutorNode.executeThunk(frame, thunk, state, getTailStatus());
+    // FIXME avoid unwrapping references, see problems in RuntimeVisualizationsTest."run
+    // visualization error preprocessor"
+    // due to missing unwrapping of references when mixing instrumented vs non-instrumented code
+    if (thunk instanceof Ref r) {
+      return thunkExecutorNode.executeThunk(frame, r.get(), state, getTailStatus());
+    } else {
+      return thunkExecutorNode.executeThunk(frame, thunk, state, getTailStatus());
+    }
   }
 
   @Override

@@ -186,13 +186,19 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
     var cached = RuntimeCache.CachedResult.uncacheable();
     if (!isPanic) {
       cached = cache.offer(runtimeID, result);
-      cache.putCall(nodeId, call);
+      if (runtimeID.isExternal()) {
+        // We also potentially cache internal UUIDs for RHS, which may involve calls.
+        // We don't want to cache calls for internal nodes
+        cache.putCall(nodeId, call);
+      }
     }
     cache.putType(nodeId, resultType);
 
     if (cached.updated()) {
-      // Ensure that we send updates only when we real update cached expressions.
-      // This is important for RHS when we only re-execute for subexpressions
+      // Ensure that we send updates only when we really update cached expressions.
+      // This is important for RHS when we only re-execute for subexpressions.
+      // Without this condition, every time a subexpression would be executed, a visualization
+      // for parent expression would be executed as well, which is undesirable (or even expensive).
       syncState.setExpressionUnsync(nodeId);
       visualizationHolder
           .find(nodeId)
@@ -201,6 +207,10 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
                 syncState.setVisualizationUnsync(visualization.id());
                 return null;
               });
+    } else if (!cached.canBeCached()) {
+      // Send intermediate expression updates for expressions with external UUID as GUI appears to
+      // expect those.
+      syncState.setExpressionUnsync(nodeId);
     }
 
     if (runtimeID.isExternal()) {
@@ -270,14 +280,7 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
     if (result instanceof Ref r) {
       var currentAssingmentRef = runtimeAnalysis.currentRhs("register runtime dep");
       if (currentAssingmentRef != null) {
-        LOGGER.warn(
-            "Requesting ? {} for {} @ {}",
-            currentAssingmentRef.getRuntimeID(),
-            r.getRuntimeID(),
-            runtimeAnalysis.getId());
         r.registerDependency(currentAssingmentRef);
-      } else {
-        // report problem?
       }
       return r.get();
     } else {

@@ -21,9 +21,14 @@ public final class RefObject extends Ref implements TruffleObject {
   }
 
   @Override
+  public Set<Ref> dependencies() {
+    return deps;
+  }
+
+  @Override
   public void merge(Ref ref) {
     assert ref.getRuntimeID().equals(this.runtimeID);
-    // FIXME
+    deps.addAll(ref.dependencies());
   }
 
   @Override

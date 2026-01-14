@@ -285,8 +285,8 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
             // If there is any other expression wrapping somehow RHS (due to a bug in IrToTruffle)
             // then it would likely receive Ref as a result and (maybe) crash due to unexpected type
             // of the result.
-            // One fragile example is when someone manipulates TypeCheckExpressionNode, which is NOT
-            // instrumentable.
+            // One example where one has to be extra careful is for example TypeCheckExpressionNode,
+            // which is NOT instrumentable.
             var wrappedRef = callbacks.wrapAsReference(resultUnwrapped);
             throw context.createUnwind(wrappedRef);
           } else if (result != resultUnwrapped) {

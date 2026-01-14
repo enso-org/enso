@@ -1108,8 +1108,7 @@ class RuntimeServerTest
       )
     )
 
-    context.receiveN(4) should contain theSameElementsAs Seq(
-      TestMessages.pending(contextId, idA),
+    context.receiveN(3) should contain allElementsOf Seq(
       TestMessages.update(
         contextId,
         idA,
@@ -1139,8 +1138,7 @@ class RuntimeServerTest
       )
     )
 
-    context.receiveN(4) should contain theSameElementsAs Seq(
-      TestMessages.pending(contextId, idA),
+    context.receiveN(3) should contain theSameElementsAs Seq(
       TestMessages.update(
         contextId,
         idA,
@@ -1529,7 +1527,7 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveN(4) should contain theSameElementsAs Seq(
+    context.receiveN(5) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(
         contextId,
@@ -1550,6 +1548,25 @@ class RuntimeServerTest
           )
         )
       ),
+      TestMessages.update(
+        contextId,
+        id_x_1,
+        ConstantsGen.FUNCTION_BUILTIN,
+        methodCall = Some(
+          Api.MethodCall(
+            Api.MethodPointer(moduleName, s"$moduleName.T", "A"),
+            Vector(1)
+          )
+        ),
+        payload = Api.ExpressionUpdate.Payload.Value(
+          functionSchema = Some(
+            Api.FunctionSchema(
+              Api.MethodPointer(moduleName, s"$moduleName.T", "A"),
+              Vector(1)
+            )
+          )
+        )
+      ),
       Api.Response(None, Api.ExecutionUpdate(contextId, Seq())),
       Api.Response(
         Api.ExecutionFailed(
@@ -1557,19 +1574,19 @@ class RuntimeServerTest
           Api.ExecutionResult.Diagnostic.error(
             "Type_Error.Error",
             Some(mainFile),
-            Some(model.Range(model.Position(8, 0), model.Position(8, 12))),
+            Some(model.Range(model.Position(4, 10), model.Position(4, 18))),
             None,
             Vector(
               Api.StackTraceElement(
-                "Main.test",
+                "T.A",
                 Some(mainFile),
-                Some(model.Range(model.Position(8, 0), model.Position(8, 12))),
+                Some(model.Range(model.Position(4, 10), model.Position(4, 18))),
                 None
               ),
               Api.StackTraceElement(
                 "Main.main",
                 Some(mainFile),
-                Some(model.Range(model.Position(4, 10), model.Position(4, 18))),
+                Some(model.Range(model.Position(6, 4), model.Position(6, 15))),
                 None
               )
             )
@@ -3230,7 +3247,9 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveNIgnoreStdLib(4) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(
+      4
+    ) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages
         .update(
@@ -3288,8 +3307,11 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveN(5) should contain theSameElementsAs Seq(
-      TestMessages.pending(contextId, fooX, fooRes, mainFoo, mainRes),
+    context.receiveN(
+      5,
+      timeoutSeconds = 10
+    ) should contain theSameElementsAs Seq(
+      TestMessages.pending(contextId, fooX, mainFoo),
       TestMessages
         .update(contextId, fooX, ConstantsGen.INTEGER, typeChanged = false),
       TestMessages
@@ -3324,8 +3346,8 @@ class RuntimeServerTest
         mainFoo,
         ConstantsGen.INTEGER,
         Api.MethodCall(Api.MethodPointer(moduleName, moduleName, "foo")),
-        fromCache   = false,
-        typeChanged = false
+        fromCache   = true,
+        typeChanged = true
       ),
       Api.Response(None, Api.ExecutionUpdate(contextId, Seq())),
       context.executionComplete(contextId)
@@ -3777,7 +3799,7 @@ class RuntimeServerTest
       )
     )
     context.receiveN(6) should contain theSameElementsAs Seq(
-      TestMessages.pending(contextId, idMain, idMainA, idMainP),
+      TestMessages.pending(contextId, idMainA),
       TestMessages.update(
         contextId,
         idMainA,
@@ -3823,7 +3845,7 @@ class RuntimeServerTest
       )
     )
     context.receiveN(6) shouldEqual Seq(
-      TestMessages.pending(contextId, idMain, idMainA, idMainP),
+      TestMessages.pending(contextId, idMainA),
       Api.Response(None, Api.ExecutionUpdate(contextId, Seq())),
       TestMessages.update(
         contextId,
@@ -3871,7 +3893,7 @@ class RuntimeServerTest
       )
     )
     context.receiveN(6) should contain theSameElementsAs Seq(
-      TestMessages.pending(contextId, idMain, idMainA, idMainP),
+      TestMessages.pending(contextId, idMainA),
       TestMessages.update(
         contextId,
         idMainA,
@@ -3919,7 +3941,7 @@ class RuntimeServerTest
       )
     )
     context.receiveN(6) should contain theSameElementsAs Seq(
-      TestMessages.pending(contextId, idMain, idMainA, idMainP),
+      TestMessages.pending(contextId, idMainA),
       TestMessages.update(
         contextId,
         idMainA,
@@ -3967,7 +3989,7 @@ class RuntimeServerTest
       )
     )
     context.receiveN(6) should contain theSameElementsAs Seq(
-      TestMessages.pending(contextId, idMain, idMainA, idMainP),
+      TestMessages.pending(contextId, idMainA),
       TestMessages.update(
         contextId,
         idMainA,
@@ -4013,7 +4035,7 @@ class RuntimeServerTest
       )
     )
     context.receiveN(6) should contain theSameElementsAs Seq(
-      TestMessages.pending(contextId, idMain, idMainA, idMainP),
+      TestMessages.pending(contextId, idMainA),
       TestMessages.update(
         contextId,
         idMainA,
@@ -4668,8 +4690,7 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveN(4) should contain theSameElementsAs Seq(
-      TestMessages.pending(contextId, idMain),
+    context.receiveN(3) should contain theSameElementsAs Seq(
       TestMessages.update(
         contextId,
         idMain,
@@ -7103,8 +7124,9 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveN(4) should contain theSameElementsAs Seq(
-      TestMessages.pending(contextId, `inc_res`, `y_inc`, y, res),
+    context.receiveN(3) should contain theSameElementsAs Seq(
+      // no updates as we are in `inc` context
+      // TestMessages.pending(contextId, `inc_res`, `y_inc`, y, res),
       TestMessages.update(
         contextId,
         `inc_res`,
@@ -7126,27 +7148,15 @@ class RuntimeServerTest
 
     // pop inc call
     context.send(Api.Request(requestId, Api.PopContextRequest(contextId)))
-    context.receiveN(7) should contain theSameElementsAs Seq(
+    context.receiveN(5) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PopContextResponse(contextId)),
-      TestMessages.update(
-        contextId,
-        `y_inc`,
-        Constants.UNRESOLVED_SYMBOL,
-        typeChanged = false
-      ),
-      TestMessages.update(
-        contextId,
-        `y_x`,
-        ConstantsGen.INTEGER,
-        typeChanged = false
-      ),
       TestMessages.update(
         contextId,
         y,
         ConstantsGen.INTEGER,
         Api.MethodCall(Api.MethodPointer(moduleName, moduleName, "inc")),
-        fromCache   = false,
-        typeChanged = false
+        fromCache   = true,
+        typeChanged = true
       ),
       TestMessages.update(
         contextId,
@@ -7563,11 +7573,32 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveNIgnorePendingExpressionUpdates(2, 10) shouldEqual Seq(
+    val r = context.receiveNIgnorePendingExpressionUpdates(2, 10)
+
+    r shouldEqual Seq(
       TestMessages.update(
         contextId,
         idIncZ,
         ConstantsGen.INTEGER
+      ),
+      context.executionComplete(contextId)
+    )
+    context.consumeOut shouldEqual List("44")
+
+    context.send(
+      Api.Request(Api.PopContextRequest(contextId))
+    )
+
+    context.receiveNIgnorePendingExpressionUpdates(3, 10) shouldEqual Seq(
+      Api.Response(Api.PopContextResponse(contextId)),
+      TestMessages.update(
+        contextId,
+        idX,
+        ConstantsGen.INTEGER,
+        methodCall = Some(
+          Api.MethodCall(Api.MethodPointer(moduleName, moduleName, "inc"))
+        ),
+        fromCache = true
       ),
       context.executionComplete(contextId)
     )

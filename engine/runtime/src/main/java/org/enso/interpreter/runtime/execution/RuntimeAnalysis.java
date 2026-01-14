@@ -3,19 +3,20 @@ package org.enso.interpreter.runtime.execution;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Stack;
+import java.util.UUID;
 import org.enso.polyglot.RuntimeID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class RuntimeAnalysis {
   private final Stack<Ref> assignmentsStack;
-  private final Map<RuntimeID, Ref> references = new HashMap<>(); // Make it a soft reference
+  private final Map<UUID, Ref> references = new HashMap<>(); // TODO: Make it a soft reference
 
   private static int COUNTER = 0;
   private final int id;
   private final int parentId;
 
-  private Logger LOGGER = LoggerFactory.getLogger(RuntimeAnalysis.class);
+  private final Logger LOGGER = LoggerFactory.getLogger(RuntimeAnalysis.class);
 
   private RuntimeAnalysis(int parentId) {
     this.id = COUNTER++;
@@ -35,47 +36,47 @@ public class RuntimeAnalysis {
     }
   }
 
-  private Ref getOrCreateReference(RuntimeID cachedID) {
-    var ref = references.get(cachedID);
+  private Ref getOrCreateReference(RuntimeID runtimeID) {
+    var ref = references.get(runtimeID.uuid());
     if (ref == null) {
-      ref = new RefObject(cachedID);
-      references.put(cachedID, ref);
+      ref = new RefObject(runtimeID);
+      references.put(runtimeID.uuid(), ref);
     }
     return ref;
   }
 
-  public Ref startRhsExecution(RuntimeID rhsId, String explanation) {
+  public void startRhsExecution(RuntimeID rhsId, String description) {
     var ref = getOrCreateReference(rhsId);
     assignmentsStack.push(ref);
-    return ref;
   }
 
-  public Ref currentRhs(String explanation) {
+  public Ref currentRhs(String description) {
     if (assignmentsStack.isEmpty()) {
       return null;
     }
     return assignmentsStack.peek();
   }
 
-  public void endRhsExecution(RuntimeID runtimeID, String explanation) {
+  public void endRhsExecution(RuntimeID runtimeID, String description) {
     if (assignmentsStack.isEmpty()) {
-      LOGGER.warn("Empty runtime assignments stack @ {}", this.getId());
+      LOGGER.warn(
+          "Empty runtime assignments stack encountered in {} @ {}", description, this.getId());
     } else {
 
       var popped = assignmentsStack.pop();
       if (!runtimeID.equals(popped.getRuntimeID())) {
-        LOGGER.warn(
+        LOGGER.debug(
             "Unexpected expression ID popped from the stack. Expected {}, got {} in {} @ {}",
             runtimeID,
             popped.getRuntimeID(),
-            explanation,
+            description,
             this.id);
       }
     }
   }
 
   public Ref get(RuntimeID runtimeID) {
-    return references.get(runtimeID);
+    return references.get(runtimeID.uuid());
   }
 
   public void merge(RuntimeAnalysis analysis) {
