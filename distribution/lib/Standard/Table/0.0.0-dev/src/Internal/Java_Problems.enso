@@ -11,6 +11,7 @@ from project.Internal.Storage import java_to_enso
 
 polyglot java import org.enso.table.data.column.builder.LossOfBigDecimalPrecision
 polyglot java import org.enso.table.data.column.builder.LossOfIntegerPrecision
+polyglot java import org.enso.table.data.column.operation.cast.CastOperation
 polyglot java import org.enso.table.data.column.operation.cast.ConversionFailure
 polyglot java import org.enso.table.data.column.operation.cast.ConversionFailureType
 polyglot java import org.enso.table.data.table.problems.ArithmeticError
@@ -56,14 +57,16 @@ translate_problem p = case p.problemType of
     "LossOfBigDecimalPrecision" ->
         Loss_Of_Decimal_Precision.Warning p.getAffectedRowsCount (java_to_enso p.getExampleValue) p.getExampleValueConverted
     "ArithmeticOverflow" ->
-        target_type = Storage.to_value_type p.targetType
+        storage_type = CastOperation.makeLocalType p.target_type
+        target_type = Storage.to_value_type storage_type
         example_operands = case p.exampleOperands of
             Nothing -> Nothing
             array -> Vector.from_polyglot_array array
         Arithmetic_Overflow.Warning target_type p.affectedRowCount example_operands
     "ConversionFailure" ->
         examples = Vector.from_polyglot_array p.examples
-        target_type = Storage.to_value_type p.targetType
+        storage_type = CastOperation.makeLocalType p.target_type
+        target_type = Storage.to_value_type storage_type
         related_column = p.relatedColumn
         affected_rows_count = p.affectedRowCount
         constructor = if p.errorType == ConversionFailureType.NUMBER_OUT_OF_RANGE then Conversion_Failure.Out_Of_Range else

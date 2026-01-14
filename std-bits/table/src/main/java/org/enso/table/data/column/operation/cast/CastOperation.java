@@ -40,21 +40,26 @@ public class CastOperation {
   /** Construct a StorageConverter for the given target type. */
   private static StorageConverter<?> fromStorageType(StorageType<?> storageType) {
     return switch (StorageType.makeLocal(storageType)) {
-      case AnyObjectType anyObjectType -> new ToMixedStorageConverter();
-      case BooleanType booleanType -> new ToBooleanStorageConverter();
-      case DateType dateType -> new ToDateStorageConverter();
-      case DateTimeType dateTimeType -> new ToDateTimeStorageConverter();
+      case AnyObjectType _ -> new ToMixedStorageConverter();
+      case BooleanType _ -> new ToBooleanStorageConverter();
+      case DateType _ -> new ToDateStorageConverter();
+      case DateTimeType _ -> new ToDateTimeStorageConverter();
       case FloatType floatType -> new ToFloatStorageConverter(floatType);
       case IntegerType integerType -> new ToIntegerStorageConverter(integerType);
       case TextType textType -> new ToTextStorageConverter(textType);
-      case TimeOfDayType timeOfDayType -> new ToTimeOfDayStorageConverter();
-      case BigIntegerType bigIntegerType -> new ToBigIntegerConverter();
-      case BigDecimalType bigDecimalType -> new ToBigDecimalConverter();
-      case NullType nullType -> throw new IllegalArgumentException("Cannot cast to Null type.");
+      case TimeOfDayType _ -> new ToTimeOfDayStorageConverter();
+      case BigIntegerType _ -> new ToBigIntegerConverter();
+      case BigDecimalType _ -> new ToBigDecimalConverter();
+      case NullType _ -> throw new IllegalArgumentException("Cannot cast to Null type.");
       default ->
           throw new IllegalStateException(
               "Unsupported type: " + storageType + " - this is a bug in the Table library.");
     };
+  }
+
+  /** Helper method until Java Problems code in Enso is re-visited. */
+  public static StorageType<?> makeLocalType(StorageType<?> type) {
+    return StorageType.makeLocal(type);
   }
 
   public static StorageType<?> inferPreciseType(Column column) {
@@ -65,13 +70,14 @@ public class CastOperation {
     var columnStorage = column.getStorage();
     var storage = ColumnStorageWithInferredStorage.resolveStorage(columnStorage);
 
-    return switch (storage.getType()) {
-      case TextType textType -> inferTextType(storage, options);
-      case IntegerType integerType -> inferIntegerType(storage, options);
-      case FloatType floatType -> inferFloatType(storage, options);
-      case BigIntegerType bigIntegerType -> inferBigIntegerType(storage, options);
-      case BigDecimalType bigDecimalType -> inferBigDecimalType(storage, options);
-      default -> storage.getType();
+    var storageType = StorageType.makeLocal(storage.getType());
+    return switch (storageType) {
+      case TextType textType -> inferTextType(storage, textType, options);
+      case IntegerType integerType -> inferIntegerType(storage, integerType, options);
+      case FloatType floatType -> inferFloatType(storage, floatType, options);
+      case BigIntegerType bigIntegerType -> inferBigIntegerType(storage, bigIntegerType, options);
+      case BigDecimalType bigDecimalType -> inferBigDecimalType(storage, bigDecimalType, options);
+      default -> storageType;
     };
   }
 
@@ -104,17 +110,8 @@ public class CastOperation {
   }
 
   private static StorageType<?> inferTextType(
-      ColumnStorage<?> columnStorage, PreciseTypeOptions options) {
-    if (!options.shrinkText()) {
-      return columnStorage.getType();
-    }
-
-    if (!(columnStorage.getType() instanceof TextType textType)) {
-      throw new IllegalArgumentException(
-          "Cannot infer text type from non-text storage: " + columnStorage.getType());
-    }
-
-    if (textType.fixedLength()) {
+      ColumnStorage<?> columnStorage, TextType textType, PreciseTypeOptions options) {
+    if (!options.shrinkText() || textType.fixedLength()) {
       return textType;
     }
 
@@ -180,14 +177,9 @@ public class CastOperation {
   }
 
   private static StorageType<?> inferIntegerType(
-      ColumnStorage<?> columnStorage, PreciseTypeOptions options) {
+      ColumnStorage<?> columnStorage, IntegerType integerType, PreciseTypeOptions options) {
     if (!options.shrinkIntegers()) {
-      return columnStorage.getType();
-    }
-
-    if (!(columnStorage.getType() instanceof IntegerType integerType)) {
-      throw new IllegalArgumentException(
-          "Cannot infer integer type from non-integer storage: " + columnStorage.getType());
+      return integerType;
     }
 
     if (integerType.size() <= 16) {
@@ -206,12 +198,7 @@ public class CastOperation {
   }
 
   private static StorageType<?> inferBigIntegerType(
-      ColumnStorage<?> columnStorage, PreciseTypeOptions options) {
-    if (!(columnStorage.getType() instanceof BigIntegerType bigIntegerType)) {
-      throw new IllegalArgumentException(
-          "Cannot infer integer type from non-integer storage: " + columnStorage.getType());
-    }
-
+      ColumnStorage<?> columnStorage, BigIntegerType bigIntegerType, PreciseTypeOptions options) {
     // Build the min and max of values in the column.
     var accumulator = new LongAccumulator();
     var endedEarly =
@@ -239,14 +226,9 @@ public class CastOperation {
   }
 
   private static StorageType<?> inferFloatType(
-      ColumnStorage<?> columnStorage, PreciseTypeOptions options) {
+      ColumnStorage<?> columnStorage, FloatType floatType, PreciseTypeOptions options) {
     if (!options.wholeFloatsBecomeIntegers()) {
-      return columnStorage.getType();
-    }
-
-    if (!(columnStorage.getType() instanceof FloatType floatType)) {
-      throw new IllegalArgumentException(
-          "Cannot infer float type from non-integer storage: " + columnStorage.getType());
+      return floatType;
     }
 
     // Build the min and max of values in the column.
@@ -301,14 +283,9 @@ public class CastOperation {
   }
 
   private static StorageType<?> inferBigDecimalType(
-      ColumnStorage<?> columnStorage, PreciseTypeOptions options) {
+      ColumnStorage<?> columnStorage, BigDecimalType bigDecimalType, PreciseTypeOptions options) {
     if (!options.wholeFloatsBecomeIntegers()) {
-      return columnStorage.getType();
-    }
-
-    if (!(columnStorage.getType() instanceof BigDecimalType bigDecimalType)) {
-      throw new IllegalArgumentException(
-          "Cannot infer decimal type from non-decimal storage: " + columnStorage.getType());
+      return bigDecimalType;
     }
 
     // Build the min and max of values in the column.
