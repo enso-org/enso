@@ -37,7 +37,10 @@ jobs:
           ENSO_IDE_CLOUD_BUILD="false"
           END
       - name: Build DMG package
-        run: bazel build //app/electron-client:dist
+        run: bazel build --sandbox_debug --verbose_failures --subcommands //app/electron-client:dist
+        env:
+          DEBUG: electron-builder
+          ELECTRON_BUILDER_DEBUG: "1"
       - name: Get DMG build output location
         id: get_bazel_output
         run: |
