@@ -32,7 +32,6 @@ public final class AssignmentNode extends ExpressionNode {
    * @return a node representing an assignment
    */
   public static AssignmentNode build(ExpressionNode expression, int frameSlotIdx) {
-    // return AssignmentNodeGen.create(frameSlotIdx, expression);
     return new AssignmentNode(frameSlotIdx, expression);
   }
 

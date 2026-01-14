@@ -81,10 +81,9 @@ public class RefInvalidation {
       // Invalidate reference and get all dependents
       var toProcessInCurrentCache =
           head.reset().filter(o -> !newAcc.contains(new AffectedID(o.getRuntimeID(), topFrame)));
-      // var toProcessInCurrentCache = head.reset().filter(o -> !newAcc.contains(o.getRuntimeID()));
 
       // Invalidate associated cache entry
-      currentFrame.cache().remove(head.getRuntimeID()); // Ignore cache result
+      currentFrame.cache().remove(head.getRuntimeID());
 
       // Invalidate associated visualizations
       visHolder
@@ -95,7 +94,7 @@ public class RefInvalidation {
                 return null;
               });
       Set<AffectedID> unrolledDependencies = Set.of();
-      if (!frames.isEmpty()) { // && head.getRuntimeID().equals(currentCallID)) {
+      if (!frames.isEmpty()) {
         var frameOneLevelUp = frames.get(0);
         var runtimeAnalysis = frameOneLevelUp.cache().getAnalysis();
         var refOneLevelUp = frameOneLevelUp.cache().get(head.getRuntimeID());
@@ -115,6 +114,7 @@ public class RefInvalidation {
     return newAcc;
   }
 
+  // FIXME: simplify usage
   record AffectedID(RuntimeID id, boolean currentFrame) {
     @Override
     public boolean equals(Object o) {

@@ -66,32 +66,17 @@ public abstract class ReadLocalVariableNode extends ExpressionNode {
   @Specialization(rewriteOn = FrameSlotTypeException.class)
   protected Object readGeneric(VirtualFrame frame) throws FrameSlotTypeException {
     if (getFramePointer().parentLevel() == 0)
-      return registerDependency(frame.getObject(getFramePointer().frameSlotIdx()));
+      return frame.getObject(getFramePointer().frameSlotIdx());
     MaterializedFrame currentFrame = getProperFrame(frame);
-    return registerDependency(currentFrame.getObject(getFramePointer().frameSlotIdx()));
+    return currentFrame.getObject(getFramePointer().frameSlotIdx());
   }
 
   @Specialization
   protected Object readGenericValue(VirtualFrame frame) {
     if (getFramePointer().parentLevel() == 0)
-      return registerDependency(frame.getValue(getFramePointer().frameSlotIdx()));
+      return frame.getValue(getFramePointer().frameSlotIdx());
     MaterializedFrame currentFrame = getProperFrame(frame);
-    return registerDependency(currentFrame.getValue(getFramePointer().frameSlotIdx()));
-  }
-
-  private Object registerDependency(Object obj) {
-    return obj;
-    /*if (obj instanceof Ref r) {
-      var ref = EnsoContext.get(this).currentRuntimeAnalysis().currentlyExecutingExpression();
-      // A body of a method can end with a simple reading of a local value
-      // and returning it as a result. Then no registration to the owner assignment is performed.
-      if (ref != null) {
-        ref.registerDependency(r);
-      }
-      return r.get();
-    } else {
-      return obj;
-    }*/
+    return currentFrame.getValue(getFramePointer().frameSlotIdx());
   }
 
   /**

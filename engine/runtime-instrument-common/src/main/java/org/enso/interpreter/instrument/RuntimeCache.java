@@ -15,7 +15,8 @@ import org.enso.common.CachePreferences;
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode;
 import org.enso.interpreter.runtime.execution.RuntimeAnalysis;
 import org.enso.interpreter.service.ExecutionService;
-import org.enso.polyglot.*;
+import org.enso.polyglot.ExternalUUID;
+import org.enso.polyglot.RuntimeID;
 
 /** A storage for computed values. */
 public final class RuntimeCache implements Function<String, Object> {
@@ -89,6 +90,7 @@ public final class RuntimeCache implements Function<String, Object> {
     }
   }
 
+  // TODO: avoid creating a temporary ID
   public Object get(UUID key) {
     return get(new ExternalUUID(key, false));
   }
@@ -99,6 +101,7 @@ public final class RuntimeCache implements Function<String, Object> {
     return ref != null ? ref.get() : null;
   }
 
+  // TODO: avoid creating a temporary ID
   public boolean hasValue(UUID key) {
     return cache.containsKey(ExternalUUID.create(key));
   }

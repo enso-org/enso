@@ -45,7 +45,7 @@ public class ExecuteExpressionJob extends Job<Executable> implements UniqueJob<E
               ctx.executionService()
                   .getContext()
                   .getLogger()
-                  .fine("Execute on shot expression for expression " + expressionId);
+                  .fine("Execute one-shot expression for expression " + expressionId);
               OneshotExpression oneshotExpression =
                   new OneshotExpression(visualizationId, expressionId, contextId, expression);
               ctx.contextManager().setOneshotExpression(contextId, oneshotExpression);
