@@ -121,6 +121,7 @@ electron_builder_bin.electron_builder(
     srcs = npm_link_targets() + [
         "package.json",
         ":electron-builder-config.cjs",
+        "entitlements.mac.plist",
         ":selected_bundle",
         ":selected_gui_dist",
         "//:sbt_build_engine_distribution",
