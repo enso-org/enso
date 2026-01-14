@@ -15,6 +15,7 @@ import org.enso.runtime.parser.dsl.IRChild;
 import org.enso.runtime.parser.dsl.IRField;
 import scala.Function1;
 
+/** A representation of an erro resulting from name resolution. */
 @GenerateIR(
     interfaces = {
       Error.class,
@@ -23,6 +24,10 @@ import scala.Function1;
       Name.class
     })
 public final class Resolution extends ResolutionErrorGen {
+
+  /**
+   * @param originalName the original name that could not be resolved.
+   */
   @GenerateFields
   public Resolution(
       @IRChild Name originalName,
@@ -86,6 +91,7 @@ public final class Resolution extends ResolutionErrorGen {
     }
   }
 
+  /** An error coming from a tail call annotation placed in a syntactically incorrect position. */
   public static final class UnexpectedAnnotation implements Reason {
     private UnexpectedAnnotation() {}
 
@@ -100,6 +106,11 @@ public final class Resolution extends ResolutionErrorGen {
     }
   }
 
+  /**
+   * An error coming from an unexpected occurence of a polyglot symbol.
+   *
+   * @param context the description of a context in which the error happened.
+   */
   public record UnexpectedPolyglot(String context) implements Reason {
     @Override
     public String explain(Name originalName) {
@@ -111,6 +122,11 @@ public final class Resolution extends ResolutionErrorGen {
     }
   }
 
+  /**
+   * An error coming from an unexpected occurence of a constructor.
+   *
+   * @param context the description of a context in which the error happened.
+   */
   public record UnexpectedConstructor(String context) implements Reason {
     @Override
     public String explain(Name originalName) {
@@ -122,6 +138,11 @@ public final class Resolution extends ResolutionErrorGen {
     }
   }
 
+  /**
+   * An error coming from an unexpected occurence of a static method.
+   *
+   * @param context the description of a context in which the error happened.
+   */
   public record UnexpectedMethod(String context) implements Reason {
     @Override
     public String explain(Name originalName) {
@@ -133,6 +154,11 @@ public final class Resolution extends ResolutionErrorGen {
     }
   }
 
+  /**
+   * An error coming from an unexpected occurence of a module.
+   *
+   * @param context the description of a context in which the error happened.
+   */
   public record UnexpectedModule(String context) implements Reason {
     @Override
     public String explain(Name originalName) {
@@ -144,6 +170,12 @@ public final class Resolution extends ResolutionErrorGen {
     }
   }
 
+  /**
+   * An error when a project-private entity (module, type, method) is used from a different project.
+   *
+   * @param callerProject Name of the project of caller.
+   * @param calleeProject Name of the project of callee.
+   */
   public record PrivateEntity(String callerProject, String calleeProject) implements Reason {
     @Override
     public String explain(Name originalName) {
@@ -157,6 +189,7 @@ public final class Resolution extends ResolutionErrorGen {
     }
   }
 
+  /** An error coming from name resolver. */
   public record ResolverError(ExplainResolution explain) implements Reason {
 
     @Override
