@@ -24,6 +24,7 @@ import {
   Path,
   ProjectId,
   SecretId,
+  UUID,
   VirtualParentsPath,
   type Address,
   type AssetId,
@@ -279,6 +280,8 @@ export interface Project extends CreatedProject {
   readonly openedBy?: EmailAddress
   /** On the Remote (Cloud) Backend, this is a S3 url that is valid for only 120 seconds. */
   readonly url?: HttpsUrl
+  /** On Local Backend, this is the internal UUID of the project read from `.enso/project.json` */
+  readonly internalId?: UUID
 }
 
 /** A user/organization's project containing and/or currently executing code. */

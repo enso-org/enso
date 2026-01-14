@@ -138,6 +138,7 @@ export interface CreateProject {
 
 /** The return value of the "open project" endpoint. */
 export interface OpenProject {
+  readonly projectId: UUID
   readonly languageServerJsonAddress: IpWithSocket
   readonly languageServerBinaryAddress: IpWithSocket
   readonly languageServerYdocAddress?: IpWithSocket

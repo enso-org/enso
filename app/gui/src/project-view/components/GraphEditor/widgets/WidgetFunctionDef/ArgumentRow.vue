@@ -7,6 +7,7 @@ import {
   type WidgetUpdate,
 } from '$/providers/openedProjects/widgetRegistry'
 import { WidgetEditHandler } from '$/providers/openedProjects/widgetRegistry/editHandler'
+import { proxyRefs } from '$/utils/reactivity'
 import { EnsoExpression } from '@/components/GraphEditor/widgets/WidgetEnsoExpression.vue'
 import {
   createDefaultExpressionOfKind,
@@ -20,7 +21,6 @@ import { type DropdownEntry } from '@/components/widgets/DropdownWidget.vue'
 import { syntheticPortId, type PortId } from '@/providers/portInfo'
 import { Ast } from '@/util/ast'
 import { mapOrUndefined, type Opt } from '@/util/data/opt'
-import { proxyRefs } from '@/util/reactivity'
 import { Err, Ok } from 'enso-common/src/utilities/data/result'
 import { computed, useTemplateRef } from 'vue'
 import type { ComponentProps } from 'vue-component-type-helpers'

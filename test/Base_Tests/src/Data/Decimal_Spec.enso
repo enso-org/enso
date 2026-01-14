@@ -766,6 +766,11 @@ add_specs suite_builder =
             Decimal.new "10" . pow 99999999999 . should_fail_with Arithmetic_Error
 
     suite_builder.group "(Decimal_Spec) text conversion" group_builder->
+        group_builder.specify "should convert to Enso code correctly" <|
+            Decimal.new "34.56" . pretty . should_equal "Decimal.parse '34.56'"
+            Decimal.from_float 123.45 . pretty . should_equal "Decimal.parse '123.45'"
+            123.45 . to Decimal . pretty . should_equal "Decimal.from_float 123.45 explicit=False"
+
         group_builder.specify "should convert to text correctly" <|
             Decimal.new "34.56" . to_text . should_equal "34.56"
             Decimal.new "34.56" . to_display_text . should_equal "34.56"

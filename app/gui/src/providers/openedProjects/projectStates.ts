@@ -391,19 +391,22 @@ export function useProjectStates() {
       })
     })
 
-    return scope.run(() => {
-      const runningId = project.info.mode === 'hybrid' ? project.info.runningId : project.info.id
-      const projectNames = createProjectNameStore({
+    const runningId = project.info.mode === 'hybrid' ? project.info.runningId : project.info.id
+    const projectNames = scope.run(() =>
+      createProjectNameStore({
         projectNamespace: 'local', // Even in cloud, the namespace seems to be always "local".
         projectDisplayedName: () => details.value.name,
         projectInitialName: runDetails.value.packageName,
-      })
+      }),
+    )!
+
+    const store = await scope.run(() => {
       const rpcUrl = runDetails.value.jsonAddress
       const dataUrl = runDetails.value.binaryAddress
       const ydocUrl = runDetails.value.ydocAddress ?? config.ydocUrl ?? ''
       assert(rpcUrl != null, text.getText('noJSONEndpointError'))
       assert(dataUrl != null, text.getText('noBinaryEndpointError'))
-      const store = createProjectStore(
+      return createProjectStore(
         {
           projectId: runningId,
           projectAssetId: project.info.id,
@@ -415,11 +418,16 @@ export function useProjectStates() {
         },
         projectNames,
       )
-      const suggestionDb = createSuggestionDbStore(store, projectNames)
-      const module = createModuleStore(store, projectNames, suggestionDb)
-      const graph = createGraphStore(store, suggestionDb, projectNames, module)
+    })!
+
+    const suggestionDb = scope.run(() => createSuggestionDbStore(store, projectNames))!
+    const module = await scope.run(() => createModuleStore(store, projectNames, suggestionDb))!
+    if (!module.ok) return module
+
+    return scope.run(() => {
+      const graph = createGraphStore(store, suggestionDb, projectNames, module.value)
       const widgetRegistry = new WidgetRegistry(graph.db)
-      const logger = eventLogger(project.info.id)
+      const logger = eventLogger(project, runDetails.value)
 
       logger.send('ide_project_opened')
       onScopeDispose(() => logger.send('ide_project_closed'))
@@ -435,7 +443,7 @@ export function useProjectStates() {
           store,
           projectNames,
           suggestionDb,
-          module,
+          module: module.value,
           graph,
           widgetRegistry,
           scope,
@@ -494,17 +502,14 @@ export function useProjectStates() {
   }
 
   /** Create an event logger for given project. */
-  function eventLogger(projectId: ProjectId) {
-    const logProjectId = computed(() => {
-      const prefix = 'project-'
-      const projectUuid =
-        projectId.startsWith(prefix) ? projectId.substring(prefix.length) : projectId
-      return `${prefix}${projectUuid.replace(/-/g, '')}`
-    })
-
+  function eventLogger(project: Opened, runDetails: ProjectDetails) {
+    const logProjectId =
+      project.info.mode === 'local' ?
+        `project-${runDetails.internalId?.replaceAll('-', '')}`
+      : project.info.id
     return {
       async send(message: string) {
-        backends.remoteBackend.logEvent(message, logProjectId.value)
+        backends.remoteBackend.logEvent(message, logProjectId)
       },
     }
   }
@@ -513,9 +518,7 @@ export function useProjectStates() {
   async function closeProject(
     project: Opened | Initialized,
   ): Promise<Result<NotOpened | HybridLocallyClosed>> {
-    if (project.status === 'initialized') {
-      project.scope.stop()
-    }
+    project.scope.stop()
     switch (project.info.mode) {
       case 'local':
         if (backends.localBackend == null)
@@ -589,6 +592,7 @@ export function useProjectStates() {
       await deleteLocalVersionOfHybridProject(project.info.localParentId)
     }
     if (project.status === 'hybrid-downloaded') {
+      project.scope.stop()
       await deleteLocalVersionOfHybridProject(project.localProjectParentId)
     }
     await closeRemoteProject.mutateAsync([project.info.id, project.info.title])

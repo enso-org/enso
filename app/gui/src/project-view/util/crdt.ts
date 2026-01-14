@@ -1,5 +1,5 @@
+import { type ToValue } from '$/utils/reactivity'
 import type { Opt } from '@/util/data/opt'
-import { type ToValue } from '@/util/reactivity'
 import { ref, toValue, watchEffect, type Ref } from 'vue'
 import type { Awareness } from 'y-protocols/awareness'
 import { WebsocketProvider } from 'y-websocket'

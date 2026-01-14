@@ -1,6 +1,6 @@
+import type { ToValue } from '$/utils/reactivity'
 import type SelectionDropdown from '@/components/SelectionDropdown.vue'
 import { useVisualizationStore } from '@/stores/visualization'
-import type { ToValue } from '@/util/reactivity'
 import { bindModelValue } from '@/util/vueDom'
 import { computed, type Ref, toValue } from 'vue'
 import type { ComponentProps } from 'vue-component-type-helpers'

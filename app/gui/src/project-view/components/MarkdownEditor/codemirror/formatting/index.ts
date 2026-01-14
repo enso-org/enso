@@ -1,4 +1,5 @@
 /** @file Provides a Vue reactive API for Markdown formatting in CodeMirror. */
+import { proxyRefs } from '$/utils/reactivity'
 import {
   getBlockType,
   insertCodeBlock,
@@ -14,7 +15,6 @@ import {
 } from '@/components/MarkdownEditor/codemirror/formatting/inline'
 import type { SupportedBlockType as BlockType } from '@/components/MarkdownEditor/markdown/types'
 import { assert } from '@/util/assert'
-import { proxyRefs } from '@/util/reactivity'
 import { Facet, type EditorState, type Extension, type TransactionSpec } from '@codemirror/state'
 import { EditorView } from '@codemirror/view'
 import * as objects from 'enso-common/src/utilities/data/object'

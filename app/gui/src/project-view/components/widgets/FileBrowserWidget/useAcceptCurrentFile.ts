@@ -1,6 +1,6 @@
 /** @file Encapsulates the logic for accepting the currently selected file in the File Browser. */
+import type { ToValue } from '$/utils/reactivity'
 import { mapPath, type EnsoPath } from '@/components/widgets/FileBrowserWidget/ensoPath'
-import type { ToValue } from '@/util/reactivity'
 import { AssetType } from 'enso-common/src/services/Backend'
 import type { Result } from 'enso-common/src/utilities/data/result'
 import { ref, toValue, type Ref } from 'vue'

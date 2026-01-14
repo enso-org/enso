@@ -16,13 +16,13 @@ import type {
   Choice,
   WidgetConfiguration,
 } from '$/providers/openedProjects/widgetRegistry/configuration'
+import type { ToValue } from '$/utils/reactivity'
 import type { SubmenuEntry } from '@/components/GraphEditor/widgets/WidgetSelection/submenuEntry'
 import { Ast } from '@/util/ast'
 import type { Opt } from '@/util/data/opt'
 import { isIconName, type Icon } from '@/util/iconMetadata/iconName'
 import { ProjectPath } from '@/util/projectPath'
 import { qnLastSegment, tryQualifiedName } from '@/util/qualifiedName'
-import type { ToValue } from '@/util/reactivity'
 import { computed, toValue, type ComputedRef, type Ref, type VNode } from 'vue'
 
 /**

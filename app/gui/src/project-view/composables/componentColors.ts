@@ -1,7 +1,7 @@
 import type { NodeId } from '$/providers/openedProjects/graph'
 import type { GraphDb } from '$/providers/openedProjects/graph/graphDatabase'
+import type { ToValue } from '$/utils/reactivity'
 import type { Opt } from '@/util/data/opt'
-import type { ToValue } from '@/util/reactivity'
 import { computed, toValue } from 'vue'
 
 /** Returns the component's base color, and information about state that may modify it. */

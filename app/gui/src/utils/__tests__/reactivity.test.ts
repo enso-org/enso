@@ -1,4 +1,4 @@
-import { LazySyncEffectSet, syncSet, useWatchContext } from '@/util/reactivity'
+import { LazySyncEffectSet, syncSet, useWatchContext } from '$/utils/reactivity'
 import { fc, test } from '@fast-check/vitest'
 import { describe, expect, vi } from 'vitest'
 import { nextTick, reactive, ref, watchEffect, type WatchStopHandle } from 'vue'
