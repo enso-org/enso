@@ -104,7 +104,7 @@ case object TypeSignatures extends IRPass {
 
     val newBindings: List[Definition] = mod.bindings.flatMap {
       case sig: Type.Ascription =>
-        val res = lastSignature.map(errors.Unexpected.TypeSignature(_))
+        val res = lastSignature.map(errors.UnexpectedTypeSignature.create(_))
         lastSignature = Some(sig)
         res
       case meth: definition.Method =>
@@ -150,13 +150,13 @@ case object TypeSignatures extends IRPass {
                   )
                 } else {
                   List(
-                    errors.Unexpected.TypeSignature(asc),
+                    errors.UnexpectedTypeSignature.create(asc),
                     newMethodWithAnnotations
                   )
                 }
               case _ =>
                 List(
-                  errors.Unexpected.TypeSignature(asc),
+                  errors.UnexpectedTypeSignature.create(asc),
                   newMethodWithAnnotations
                 )
             }
@@ -210,7 +210,7 @@ case object TypeSignatures extends IRPass {
           "signature resolution."
         )
     } ::: lastSignature
-      .map(asc => errors.Unexpected.TypeSignature(asc))
+      .map(asc => errors.UnexpectedTypeSignature.create(asc))
       .toList
 
     mod.copyWithBindings(
@@ -359,8 +359,9 @@ case object TypeSignatures extends IRPass {
     val newExpressions = allBlockExpressions.flatMap {
       case sig: Type.Ascription =>
         val res = lastSignature match {
-          case Some(oldSig) => Some(errors.Unexpected.TypeSignature(oldSig))
-          case None         => None
+          case Some(oldSig) =>
+            Some(errors.UnexpectedTypeSignature.create(oldSig))
+          case None => None
         }
 
         lastSignature = Some(sig)
@@ -392,13 +393,13 @@ case object TypeSignatures extends IRPass {
                   )
                 } else {
                   List(
-                    errors.Unexpected.TypeSignature(asc),
+                    errors.UnexpectedTypeSignature.create(asc),
                     newBindingWithDoc
                   )
                 }
               case _ =>
                 List(
-                  errors.Unexpected.TypeSignature(asc),
+                  errors.UnexpectedTypeSignature.create(asc),
                   newBindingWithDoc
                 )
             }
@@ -414,7 +415,7 @@ case object TypeSignatures extends IRPass {
           asc.updateMetadata(
             new MetadataPair(this, Signature(asc.signature(), asc.reason()))
           )
-        case any => errors.Unexpected.TypeSignature(any)
+        case any => errors.UnexpectedTypeSignature.create(any)
       })
       .toList
 
