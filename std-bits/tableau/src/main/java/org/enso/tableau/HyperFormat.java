@@ -34,9 +34,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.storage.ColumnBooleanStorage;
 import org.enso.table.data.column.storage.ColumnDoubleStorage;
 import org.enso.table.data.column.storage.ColumnLongStorage;
@@ -52,7 +50,6 @@ import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.data.column.storage.type.TimeOfDayType;
 import org.enso.table.data.table.Column;
-import org.enso.table.data.table.Table;
 import org.enso.table.problems.ProblemAggregator;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
@@ -354,11 +351,14 @@ public class HyperFormat {
       String path,
       String schemaName,
       String tableName,
-      Table table,
+      String[] names,
+      ColumnStorage<?>[] storages,
       boolean append,
       boolean matchColumnsByName,
       boolean throwDontWarn)
       throws IOException {
+    assert names.length == storages.length;
+
     List<String> warningUnmatchedColumns = new ArrayList<>();
     getProcess();
     try (var connection =
@@ -367,11 +367,16 @@ public class HyperFormat {
       if (append && tableExists(schemaName, tableName, connection)) {
         tableDef = connection.getCatalog().getTableDefinition(new TableName(schemaName, tableName));
       } else {
-        tableDef = createTable(schemaName, tableName, table.getColumns(), connection);
+        tableDef = createTable(schemaName, tableName, names, storages, connection);
       }
       insertData(
-          table, tableDef, connection, matchColumnsByName, warningUnmatchedColumns, throwDontWarn);
-      connection.close();
+          names,
+          storages,
+          tableDef,
+          connection,
+          matchColumnsByName,
+          warningUnmatchedColumns,
+          throwDontWarn);
     }
     return warningUnmatchedColumns.toArray(String[]::new);
   }
@@ -383,17 +388,22 @@ public class HyperFormat {
   }
 
   private static TableDefinition createTable(
-      String schemaName, String tableName, Column[] columns, Connection connection) {
+      String schemaName,
+      String tableName,
+      String[] columnNames,
+      ColumnStorage<?>[] columns,
+      Connection connection) {
+    assert columnNames.length == columns.length;
+
     final var sn = new SchemaName(schemaName);
     if (!connection.getCatalog().getSchemaNames().contains(sn)) {
       connection.getCatalog().createSchema(sn);
     }
 
     var tableDef = new TableDefinition(new TableName(schemaName, tableName));
-    for (var col : columns) {
-      String columnName = col.getName();
-      var sqlType = mapEnsoTypeToSqlType(col.getStorage().getType());
-      tableDef.addColumn(columnName, sqlType);
+    for (int i = 0; i < columnNames.length; i++) {
+      var sqlType = mapEnsoTypeToSqlType(columns[i].getType());
+      tableDef.addColumn(columnNames[i], sqlType);
     }
 
     connection.executeCommand("DROP TABLE IF EXISTS \"" + schemaName + "\".\"" + tableName + "\"");
@@ -432,7 +442,8 @@ public class HyperFormat {
   }
 
   private static void insertData(
-      Table table,
+      String[] names,
+      ColumnStorage<?>[] storages,
       TableDefinition tableDef,
       Connection connection,
       boolean matchColumnsByName,
@@ -440,12 +451,12 @@ public class HyperFormat {
       boolean throwDontWarn) {
     var columnStorages =
         getOrderedStorages(
-            table, tableDef, matchColumnsByName, warningUnmatchedColumns, throwDontWarn);
+            names, storages, tableDef, matchColumnsByName, warningUnmatchedColumns, throwDontWarn);
 
     validateTypesMatch(columnStorages, tableDef);
 
     try (Inserter inserter = new Inserter(connection, tableDef)) {
-      for (int row = 0; row < table.rowCount(); ++row) {
+      for (int row = 0; row < storages[0].getSize(); ++row) {
         for (ColumnStorage<?> storage : columnStorages) {
           addValueToInserter(inserter, storage, row);
         }
@@ -456,12 +467,12 @@ public class HyperFormat {
   }
 
   private static ColumnStorage<?>[] getOrderedStorages(
-      Table table,
+      String[] columnNames,
+      ColumnStorage<?>[] storages,
       TableDefinition tableDef,
       boolean matchColumnsByName,
       List<String> warningUnmatchedColumns,
       boolean throwDontWarn) {
-    int numberOfRows = table.rowCount();
     if (matchColumnsByName) {
       var tableDefColumns = tableDef.getColumns();
       var existingColumnNames = new String[tableDefColumns.size()];
@@ -471,37 +482,39 @@ public class HyperFormat {
       }
 
       validateNoExtraColumnsByName(
-          table, existingColumnNames, warningUnmatchedColumns, throwDontWarn);
+          columnNames, existingColumnNames, warningUnmatchedColumns, throwDontWarn);
 
       var result = new ColumnStorage[existingColumnNames.length];
       for (int i = 0; i < existingColumnNames.length; ++i) {
         String name = existingColumnNames[i];
-        var tableColumn = table.getColumnByName(name);
-        result[i] =
-            tableColumn == null
-                ? Builder.fromRepeatedItem(null, numberOfRows)
-                : tableColumn.getStorage();
-        ;
+        int index = indexOf(columnNames, name);
+        result[i] = index == -1 ? null : storages[index];
       }
       return result;
     } else { // match by position
-      validateNoExtraColumnsByPosition(table, tableDef, warningUnmatchedColumns, throwDontWarn);
-      Column[] sourceColumns = table.getColumns();
+      validateNoExtraColumnsByPosition(
+          columnNames, tableDef, warningUnmatchedColumns, throwDontWarn);
       int defColumnCount = tableDef.getColumns().size();
 
       var result = new ColumnStorage[defColumnCount];
       for (int i = 0; i < result.length; i++) {
-        result[i] =
-            i < sourceColumns.length
-                ? sourceColumns[i].getStorage()
-                : Builder.fromRepeatedItem(null, numberOfRows);
+        result[i] = i < storages.length ? storages[i] : null;
       }
       return result;
     }
   }
 
+  private static int indexOf(String[] array, String value) {
+    for (int i = 0; i < array.length; i++) {
+      if (array[i].equals(value)) {
+        return i;
+      }
+    }
+    return -1;
+  }
+
   private static void addValueToInserter(Inserter inserter, ColumnStorage<?> storage, int row) {
-    if (storage.isNothing(row)) {
+    if (storage == null || storage.isNothing(row)) {
       inserter.addNull();
     } else {
       switch (storage) {
@@ -556,13 +569,12 @@ public class HyperFormat {
   }
 
   private static void validateNoExtraColumnsByName(
-      Table table,
+      String[] columnNames,
       String[] allowedColumnNames,
       List<String> warningUnmatchedColumns,
       boolean throwDontWarn) {
     Set<String> allowed = Set.of(allowedColumnNames);
-    Set<String> tableColumnNames =
-        Arrays.stream(table.getColumns()).map(Column::getName).collect(Collectors.toSet());
+    Set<String> tableColumnNames = Set.of(columnNames);
 
     String[] extraColumns =
         tableColumnNames.stream().filter(name -> !allowed.contains(name)).toArray(String[]::new);
@@ -584,17 +596,17 @@ public class HyperFormat {
   }
 
   private static void validateNoExtraColumnsByPosition(
-      Table table,
+      String[] columnNames,
       TableDefinition tableDef,
       List<String> warningUnmatchedColumns,
       boolean throwDontWarn) {
-    int tableColumnCount = table.getColumns().length;
+    int tableColumnCount = columnNames.length;
     int defColumnCount = tableDef.getColumns().size();
 
     if (tableColumnCount > defColumnCount) {
       String[] extraColumnNames =
           IntStream.range(defColumnCount, tableColumnCount)
-              .mapToObj(i -> table.getColumns()[i].getName())
+              .mapToObj(i -> columnNames[i])
               .toArray(String[]::new);
 
       throw new HyperUnmatchedColumns(extraColumnNames);
