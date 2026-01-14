@@ -331,6 +331,11 @@ The license file can be found at `licenses/APACHE2.0`.
 Copyright notices related to this dependency can be found in the directory `io.helidon.logging.helidon-logging-common-4.2.2`.
 
 
+'helidon-logging-slf4j', licensed under the Apache 2.0, is distributed with the engine.
+The license file can be found at `licenses/APACHE2.0`.
+Copyright notices related to this dependency can be found in the directory `io.helidon.logging.helidon-logging-slf4j-4.2.2`.
+
+
 'helidon-metadata-hson', licensed under the Apache 2.0, is distributed with the engine.
 The license file can be found at `licenses/APACHE2.0`.
 Copyright notices related to this dependency can be found in the directory `io.helidon.metadata.helidon-metadata-hson-4.2.2`.
@@ -599,6 +604,11 @@ Copyright notices related to this dependency can be found in the directory `org.
 'slf4j-api', licensed under the MIT License, is distributed with the engine.
 The license file can be found at `licenses/MIT`.
 Copyright notices related to this dependency can be found in the directory `org.slf4j.slf4j-api-2.0.16`.
+
+
+'slf4j-jdk-platform-logging', licensed under the MIT License, is distributed with the engine.
+The license file can be found at `licenses/MIT`.
+Copyright notices related to this dependency can be found in the directory `org.slf4j.slf4j-jdk-platform-logging-2.0.16`.
 
 
 'cats-core_2.13', licensed under the MIT, is distributed with the engine.
