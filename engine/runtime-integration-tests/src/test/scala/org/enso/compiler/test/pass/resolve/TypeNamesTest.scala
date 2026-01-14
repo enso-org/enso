@@ -121,9 +121,14 @@ class TypeNamesTest extends CompilerTest {
       diagnostics.length shouldEqual 1
       val resolutionFailure = diagnostics.head.asInstanceOf[errors.Resolution]
       resolutionFailure.name shouldBe "C"
-      resolutionFailure.reason shouldBe errors.Resolution.ResolverError(
-        ResolutionNotFound
-      )
+      resolutionFailure
+        .reason()
+        .isInstanceOf[errors.Resolution.ResolverError] shouldBe true
+      resolutionFailure
+        .reason()
+        .asInstanceOf[errors.Resolution.ResolverError]
+        .explain()
+        .isInstanceOf[ResolutionNotFound.type] shouldBe true
     }
 
     "should report every failed name resolution" in {
@@ -145,9 +150,11 @@ class TypeNamesTest extends CompilerTest {
       diagnostics.foreach {
         case d: errors.Resolution =>
           d.name shouldBe "Integer"
-          d.reason shouldBe errors.Resolution.ResolverError(
-            ResolutionNotFound
-          )
+          d.reason().isInstanceOf[errors.Resolution.ResolverError] shouldBe true
+          d.reason()
+            .asInstanceOf[errors.Resolution.ResolverError]
+            .explain()
+            .isInstanceOf[ResolutionNotFound.type] shouldBe true
         case _ =>
           fail()
       }
