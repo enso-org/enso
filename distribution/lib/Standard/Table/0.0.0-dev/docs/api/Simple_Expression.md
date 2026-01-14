@@ -37,6 +37,7 @@
 - type Simple_Calculation
     - Add rhs:(Standard.Table.Column_Ref.Column_Ref|Standard.Table.Expression.Expression|Standard.Base.Data.Numbers.Number|Standard.Base.Data.Text.Text)=
     - And rhs:(Standard.Table.Column_Ref.Column_Ref|Standard.Table.Expression.Expression|Standard.Base.Data.Boolean.Boolean)=
+    - At_Time_Zone
     - Ceil
     - Copy
     - Date operation:Standard.Table.Simple_Expression.Date_Operation=
@@ -59,6 +60,7 @@
     - Or rhs:(Standard.Table.Column_Ref.Column_Ref|Standard.Table.Expression.Expression|Standard.Base.Data.Boolean.Boolean)=
     - Power rhs:(Standard.Table.Column_Ref.Column_Ref|Standard.Table.Expression.Expression|Standard.Base.Data.Numbers.Number)=
     - Round precision:Standard.Base.Data.Numbers.Integer= rounding_mode:Standard.Base.Data.Numeric.Rounding_Mode.Rounding_Mode=
+    - Set_Time_Zone
     - Subtract rhs:(Standard.Table.Column_Ref.Column_Ref|Standard.Table.Expression.Expression|Standard.Base.Data.Numbers.Number)=
     - Text operation:Standard.Table.Simple_Expression.Text_Operation=
     - Text_Left length:(Standard.Table.Column_Ref.Column_Ref|Standard.Table.Expression.Expression|Standard.Base.Data.Numbers.Integer)=
