@@ -6,6 +6,7 @@ import static org.junit.Assert.fail;
 import org.enso.compiler.core.ir.Function;
 import org.enso.compiler.core.ir.Name;
 import org.enso.compiler.core.ir.expression.errors.Syntax;
+import org.enso.compiler.core.ir.expression.errors.Syntax.UnexpectedDeclarationInType;
 import org.enso.compiler.core.ir.module.scope.Definition;
 import org.junit.Test;
 
@@ -102,7 +103,7 @@ public class AnnotationsCompilerTest extends CompilerTests {
     var methodOrError = typeDefinition.body().apply(0);
 
     if (methodOrError instanceof Syntax error) {
-      assertEquals(error.reason(), Syntax.UnexpectedDeclarationInType$.MODULE$);
+      assertEquals(error.reason(), UnexpectedDeclarationInType.INSTANCE);
     } else {
       fail("Expecting error instead of bar function: " + methodOrError);
     }

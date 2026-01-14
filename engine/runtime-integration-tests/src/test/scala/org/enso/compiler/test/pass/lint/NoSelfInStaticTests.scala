@@ -55,8 +55,7 @@ class NoSelfInStaticTests extends CompilerTest {
           |    bar = self.x + self.x
           |""".stripMargin.preprocessModule.lint
       val errs = ir.bindings.flatMap(_.preorder).collect {
-        case err @ errors.Syntax(_, errors.Syntax.InvalidSelfArgUsage, _) =>
-          err
+        case err: errors.Syntax if isInvalidSelfArgSyntaxError(err) => err
       }
       errs should have size 2
     }
@@ -68,8 +67,7 @@ class NoSelfInStaticTests extends CompilerTest {
           |static_method x y = x + y + self.data
           |""".stripMargin.preprocessModule.lint
       val errs = ir.bindings.flatMap(_.preorder).collect {
-        case err @ errors.Syntax(_, errors.Syntax.InvalidSelfArgUsage, _) =>
-          err
+        case err: errors.Syntax if isInvalidSelfArgSyntaxError(err) => err
       }
       errs should have size 1
     }
@@ -85,8 +83,7 @@ class NoSelfInStaticTests extends CompilerTest {
           |    nested_method (x + y)
           |""".stripMargin.preprocessModule.lint
       val errs = ir.bindings.flatMap(_.preorder).collect {
-        case err @ errors.Syntax(_, errors.Syntax.InvalidSelfArgUsage, _) =>
-          err
+        case err: errors.Syntax if isInvalidSelfArgSyntaxError(err) => err
       }
       errs should have size 1
     }
@@ -103,8 +100,7 @@ class NoSelfInStaticTests extends CompilerTest {
           |        nested_method 42
           |""".stripMargin.preprocessModule.lint
       val errs = ir.bindings.flatMap(_.preorder).collect {
-        case err @ errors.Syntax(_, errors.Syntax.InvalidSelfArgUsage, _) =>
-          err
+        case err: errors.Syntax if isInvalidSelfArgSyntaxError(err) => err
       }
       errs should be(empty)
     }
@@ -119,10 +115,15 @@ class NoSelfInStaticTests extends CompilerTest {
           |My_Type.extension_method = self.value + 1
           |""".stripMargin.preprocessModule.lint
       val errs = ir.bindings.flatMap(_.preorder).collect {
-        case err @ errors.Syntax(_, errors.Syntax.InvalidSelfArgUsage, _) =>
-          err
+        case err: errors.Syntax if isInvalidSelfArgSyntaxError(err) => err
       }
       errs should have size 1
     }
+  }
+
+  private def isInvalidSelfArgSyntaxError(
+    err: errors.Syntax
+  ): Boolean = {
+    err.reason == errors.Syntax.InvalidSelfArgUsage.INSTANCE
   }
 }

@@ -195,7 +195,7 @@ class ComplexTypeTest extends CompilerTest {
     "have their errors translated untouched" in {
       ir.bindings.last shouldBe an[errors.Syntax]
       val err = ir.bindings.last.asInstanceOf[errors.Syntax]
-      err.reason shouldBe an[errors.Syntax.UnexpectedDeclarationInType.type]
+      err.reason shouldBe errors.Syntax.UnexpectedDeclarationInType.INSTANCE
     }
 
     "have their valid methods desugared" in {

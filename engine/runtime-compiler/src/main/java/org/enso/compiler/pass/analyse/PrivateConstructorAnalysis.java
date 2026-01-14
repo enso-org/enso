@@ -7,7 +7,7 @@ import org.enso.compiler.core.IR;
 import org.enso.compiler.core.ir.Expression;
 import org.enso.compiler.core.ir.Module;
 import org.enso.compiler.core.ir.expression.errors.Syntax;
-import org.enso.compiler.core.ir.expression.errors.Syntax.InconsistentConstructorVisibility$;
+import org.enso.compiler.core.ir.expression.errors.Syntax.IncosistentConstructorVisibility;
 import org.enso.compiler.core.ir.module.scope.Definition;
 import org.enso.compiler.pass.IRProcessingPass;
 import org.enso.compiler.pass.MiniIRPass;
@@ -73,11 +73,12 @@ public final class PrivateConstructorAnalysis implements MiniPassFactory {
                       var ctorsCnt = type.members().size();
                       if (!(privateCtorsCnt == ctorsCnt || publicCtorsCnt == ctorsCnt)) {
                         assert type.location().isDefined();
-                        return new Syntax(
-                            type.location().get(),
-                            InconsistentConstructorVisibility$.MODULE$,
-                            type.passData(),
-                            type.diagnostics());
+                        return Syntax.builder()
+                            .reason(IncosistentConstructorVisibility.INSTANCE)
+                            .location(type.location().get())
+                            .passData(type.passData())
+                            .diagnostics(type.diagnostics())
+                            .build();
                       }
                     }
                     return binding;
