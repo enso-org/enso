@@ -484,10 +484,11 @@ public class HyperFormat {
       validateNoExtraColumnsByName(
           columnNames, existingColumnNames, warningUnmatchedColumns, throwDontWarn);
 
+      var columnNameList = Arrays.asList(columnNames);
       var result = new ColumnStorage[existingColumnNames.length];
       for (int i = 0; i < existingColumnNames.length; ++i) {
         String name = existingColumnNames[i];
-        int index = indexOf(columnNames, name);
+        int index = columnNameList.indexOf(name);
         result[i] = index == -1 ? null : storages[index];
       }
       return result;
@@ -502,15 +503,6 @@ public class HyperFormat {
       }
       return result;
     }
-  }
-
-  private static int indexOf(String[] array, String value) {
-    for (int i = 0; i < array.length; i++) {
-      if (array[i].equals(value)) {
-        return i;
-      }
-    }
-    return -1;
   }
 
   private static void addValueToInserter(Inserter inserter, ColumnStorage<?> storage, int row) {
@@ -605,8 +597,7 @@ public class HyperFormat {
 
     if (tableColumnCount > defColumnCount) {
       String[] extraColumnNames =
-          IntStream.range(defColumnCount, tableColumnCount)
-              .mapToObj(i -> columnNames[i])
+          Arrays.stream(columnNames, defColumnCount, tableColumnCount)
               .toArray(String[]::new);
 
       throw new HyperUnmatchedColumns(extraColumnNames);

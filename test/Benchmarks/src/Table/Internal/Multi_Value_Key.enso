@@ -1,9 +1,9 @@
 from Standard.Base import all
 
 from Standard.Table import Table, Value_Type
+import Standard.Table.Internal.In_Memory_Helpers
 import Standard.Table.Internal.Multi_Value_Key.Ordered_Multi_Value_Key
 import Standard.Table.Internal.Multi_Value_Key.Unordered_Multi_Value_Key
-from Standard.Table.Internal.In_Memory_Test_Helpers import get_java_column
 
 from Standard.Test import Bench
 
@@ -80,7 +80,7 @@ collect_benches = Bench.build builder->
             compare_ordered_keys make_key table compare_keys
 
         run_java table =
-            java_columns = table.columns.map column-> get_java_column column
+            java_columns = table.columns.map column-> In_Memory_Helpers.get_java_column column
             directions = Vector.fill java_columns.length 1
             make_key row_ix = OrderedMultiValueKey.new java_columns row_ix directions
             compare_keys key1 key2 = key1.compareTo key2 < 0
