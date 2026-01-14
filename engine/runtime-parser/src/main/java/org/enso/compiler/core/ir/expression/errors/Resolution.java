@@ -64,7 +64,7 @@ public final class Resolution extends ResolutionErrorGen {
 
   @Override
   public String formattedMessage(Function1<IdentifiedLocation, String> source) {
-    return message(source);
+    return message(source) + ".";
   }
 
   @Override
