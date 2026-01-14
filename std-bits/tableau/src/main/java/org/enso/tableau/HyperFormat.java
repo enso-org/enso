@@ -630,7 +630,7 @@ public class HyperFormat {
   private static void validateTypesMatch(ColumnStorage<?>[] storages, TableDefinition tableDef) {
     for (int i = 0; i < storages.length; i++) {
       var storage = storages[i];
-      if (storage.getType() instanceof NullType) {
+      if (storage == null || storage.getType() instanceof NullType) {
         continue; // Allow NULLs to append to anything
       }
 
