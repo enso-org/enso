@@ -1,4 +1,5 @@
 import { LINE_BOUNDARIES } from '$/utils/data/string'
+import type { ToValue } from '$/utils/reactivity'
 import { textEditorsBindings } from '@/bindings'
 import type CodeMirrorRoot from '@/components/CodeMirrorRoot.vue'
 import type { VueHost } from '@/components/VueHostRender.vue'
@@ -15,7 +16,6 @@ import { setVueHost, vueHostExt } from '@/util/codemirror/vueHostExt'
 import { yCollab } from '@/util/codemirror/yCollab'
 import type { Vec2 } from '@/util/data/vec2'
 import { elementHierarchy } from '@/util/dom'
-import type { ToValue } from '@/util/reactivity'
 import type { AnyHandlerEvent } from '@/util/shortcuts'
 import {
   Compartment,

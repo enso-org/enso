@@ -1,8 +1,8 @@
 /** @file Vue composables for running a callback on every frame, and smooth interpolation. */
 
+import type { ToValue } from '$/utils/reactivity'
+import { proxyRefs } from '$/utils/reactivity'
 import type { Vec2 } from '@/util/data/vec2'
-import type { ToValue } from '@/util/reactivity'
-import { proxyRefs } from '@/util/reactivity'
 import {
   computed,
   nextTick,

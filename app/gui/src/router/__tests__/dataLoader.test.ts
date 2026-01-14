@@ -1,5 +1,5 @@
 /* eslint-disable vue/one-component-per-file */
-import { proxyRefs } from '@/util/reactivity'
+import { proxyRefs } from '$/utils/reactivity'
 import { Ok } from 'enso-common/src/utilities/data/result'
 import { describe, expect, test } from 'vitest'
 import { createApp, defineComponent, nextTick, onScopeDispose, ref, watch } from 'vue'

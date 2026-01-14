@@ -253,12 +253,12 @@ const actionHandlers = registerHandlers({
     action: () => nodeExecution.recomputeAll('Live'),
   },
   'graph.undo': {
-    enabled: () => graphStore.undoManager.canUndo,
-    action: () => graphStore.undoManager.undo(),
+    enabled: () => module.value.undoManager.canUndo,
+    action: () => module.value.undoManager.undo(),
   },
   'graph.redo': {
-    enabled: () => graphStore.undoManager.canRedo,
-    action: () => graphStore.undoManager.redo(),
+    enabled: () => module.value.undoManager.canRedo,
+    action: () => module.value.undoManager.redo(),
   },
   'graph.fitAll': {
     action: zoomToSelected,
@@ -294,7 +294,7 @@ const actionHandlers = registerHandlers({
     action: () => {
       nodeSelection.deselectAll()
       clearFocus()
-      graphStore.undoManager.undoStackBoundary()
+      module.value.undoManager.undoStackBoundary()
     },
   },
   'graph.toggleVisualization': {

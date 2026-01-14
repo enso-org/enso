@@ -1,4 +1,4 @@
-import { proxyRefs, type MaybeRefOrGetterArray } from '@/util/reactivity'
+import { proxyRefs, type MaybeRefOrGetterArray } from '$/utils/reactivity'
 import { createGlobalState } from '@vueuse/core'
 import {
   getDictionary,

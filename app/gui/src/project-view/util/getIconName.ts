@@ -5,11 +5,11 @@ import {
   SuggestionKind,
   type SuggestionEntry,
 } from '$/providers/openedProjects/suggestionDatabase/entry'
+import { type ToValue } from '$/utils/reactivity'
 import { type Icon } from '@/util/iconMetadata/iconName'
 import { type MethodPointer } from '@/util/methodPointer'
 import { type ProjectPath } from '@/util/projectPath'
 import { type QualifiedName } from '@/util/qualifiedName'
-import { type ToValue } from '@/util/reactivity'
 import { computed, toValue, type ComputedRef } from 'vue'
 import type { ExternalId } from 'ydoc-shared/yjsModel'
 import type { AnyIcon, AnyWidgetIcon } from './icons'
