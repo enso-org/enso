@@ -90,7 +90,7 @@ public final class Error {
 
     numberParseError = new AtomFactory("Data", "Numbers", "Number_Parse_Error");
     caughtPanic = new AtomFactory("Panic", "Caught_Panic");
-    unimplemented = new AtomFactory("Errors", "Unimplemented");
+    unimplemented = new AtomFactory("Errors", "Unimplemented", "Unimplemented");
     mapError = new AtomFactory("Data", "Vector", "Map_Error");
     noWrap = new AtomFactory("Data", "Vector", "No_Wrap");
   }
