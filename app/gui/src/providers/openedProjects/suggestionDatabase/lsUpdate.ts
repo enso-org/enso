@@ -17,6 +17,7 @@ import {
   type Typename,
   type TypeSuggestionEntry,
 } from '$/providers/openedProjects/suggestionDatabase/entry'
+import type { ToValue } from '$/utils/reactivity'
 import { assert, assertNever } from '@/util/assert'
 import type { Opt } from '@/util/data/opt'
 import { ANY_TYPE_QN } from '@/util/ensoTypes'
@@ -29,7 +30,6 @@ import {
   type Identifier,
   type IdentifierOrOperatorIdentifier,
 } from '@/util/qualifiedName'
-import type { ToValue } from '@/util/reactivity'
 import { Err, Ok, withContext, type Result } from 'enso-common/src/utilities/data/result'
 import { toValue, type DeepReadonly } from 'vue'
 import type {

@@ -391,6 +391,7 @@ export class LocalBackend extends backend.Backend {
         },
         url: backend.HttpsUrl(this.resolvePath(downloadProjectPath(projectId))),
         ensoPath: backend.EnsoPath(`${directoryPath}/${cachedProject.projectNormalizedName}`),
+        internalId: cachedProject.projectId,
       }
     }
   }

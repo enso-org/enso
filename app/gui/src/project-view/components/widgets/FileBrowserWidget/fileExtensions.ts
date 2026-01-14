@@ -4,6 +4,7 @@ import {
   isFileTypes,
   isGlobAll,
 } from '$/providers/openedProjects/widgetRegistry/configuration'
+import type { ToValue } from '$/utils/reactivity'
 import type SelectionSubmenu from '@/components/GraphEditor/widgets/WidgetSelection/SelectionSubmenu.vue'
 import type { SubmenuComponent } from '@/components/GraphEditor/widgets/WidgetSelection/SelectionSubmenu.vue'
 import type { SubmenuEntry } from '@/components/GraphEditor/widgets/WidgetSelection/submenuEntry'
@@ -11,7 +12,6 @@ import type AutoSizedInput from '@/components/widgets/AutoSizedInput.vue'
 import type { Filter } from '@/components/widgets/FileBrowserWidget/fileExtensionFilter'
 import { injectInteractionHandler, type Interaction } from '@/providers/interactionHandler'
 import { endOnClick, targetIsOutside } from '@/util/autoBlur'
-import type { ToValue } from '@/util/reactivity'
 import type { HTMLElementEventHandler } from '@/util/vueDom'
 import type { Opt } from 'enso-common/src/utilities/data/opt'
 import { computed, type Ref, ref, toValue } from 'vue'

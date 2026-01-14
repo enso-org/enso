@@ -1,9 +1,9 @@
 import { type GraphStore } from '$/providers/openedProjects/graph'
+import type { ToValue } from '$/utils/reactivity'
 import CodeEditorTooltip from '@/components/CodeEditor/CodeEditorTooltip.vue'
 import { astProp } from '@/components/CodeEditor/ensoSyntax'
 import { type VueHost } from '@/components/VueHostRender.vue'
 import { Ast } from '@/util/ast'
-import type { ToValue } from '@/util/reactivity'
 import { syntaxTree } from '@codemirror/language'
 import type { Extension } from '@codemirror/state'
 import {

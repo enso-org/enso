@@ -1,5 +1,5 @@
+import type { ToValue } from '$/utils/reactivity'
 import { useLanguageSupportExtensions } from '@/providers/languageSupportExtensions'
-import type { ToValue } from '@/util/reactivity'
 import { acceptCompletion, autocompletion, startCompletion } from '@codemirror/autocomplete'
 import { Prec, type Extension } from '@codemirror/state'
 import { keymap, ViewPlugin, type PluginValue, type ViewUpdate } from '@codemirror/view'

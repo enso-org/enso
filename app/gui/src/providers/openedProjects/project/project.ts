@@ -7,6 +7,7 @@ import {
 } from '$/providers/openedProjects/project/executionContext'
 import { VisualizationDataRegistry } from '$/providers/openedProjects/project/visualizationDataRegistry'
 import { type ProjectNameStore } from '$/providers/openedProjects/projectNames'
+import { proxyRefs } from '$/utils/reactivity'
 import { Awareness } from '@/stores/awareness'
 import { attachProvider, useObserveYjs } from '@/util/crdt'
 import { nextEvent } from '@/util/data/observable'
@@ -17,8 +18,6 @@ import { createDataWebsocket, createRpcTransport, useAbortScope } from '@/util/n
 import { DataServer } from '@/util/net/dataServer'
 import { ProjectPath } from '@/util/projectPath'
 import { tryQualifiedName, type QualifiedName } from '@/util/qualifiedName'
-import { proxyRefs } from '@/util/reactivity'
-import { computedAsync } from '@vueuse/core'
 import { ProjectId } from 'enso-common/src/services/Backend'
 import { Err, Ok, type Result } from 'enso-common/src/utilities/data/result'
 import { wait } from 'lib0/promise'
@@ -38,12 +37,7 @@ import { OutboundPayload, VisualizationUpdate } from 'ydoc-shared/binaryProtocol
 import { LanguageServer } from 'ydoc-shared/languageServer'
 import type { Diagnostic, ExpressionId } from 'ydoc-shared/languageServerTypes'
 import type { AbortScope } from 'ydoc-shared/util/net'
-import {
-  DistributedProject,
-  localUserActionOrigins,
-  type ExternalId,
-  type Uuid,
-} from 'ydoc-shared/yjsModel'
+import { DistributedProject, type ExternalId, type Uuid } from 'ydoc-shared/yjsModel'
 import * as Y from 'yjs'
 
 export interface LsUrls {
@@ -86,6 +80,7 @@ export function createProjectStore(
   const projectRootId = lsRpcConnection.contentRoots.then(
     (roots) => roots.find((root) => root.type === 'Project')?.id,
   )
+  onScopeDispose(() => lsRpcConnection.release())
 
   const dataConnection = initializeDataConnection(clientId, props.engine.dataUrl, abort)
   const rpcUrl = new URL(props.engine.rpcUrl)
@@ -123,35 +118,6 @@ export function createProjectStore(
   })
 
   const projectModel = new DistributedProject(doc)
-  const moduleDocGuid = ref<string>()
-
-  function currentDocGuid() {
-    const name = observedFileName.value
-    if (name == null) return
-    return projectModel.modules.get(name)?.guid
-  }
-  function tryReadDocGuid() {
-    const guid = currentDocGuid()
-    if (guid === moduleDocGuid.value) return
-    moduleDocGuid.value = guid
-  }
-
-  projectModel.modules.observe(tryReadDocGuid)
-  watchEffect(tryReadDocGuid)
-
-  const module = computedAsync(
-    async () => {
-      const guid = moduleDocGuid.value
-      if (guid == null) return null
-      const moduleName = projectModel.findModuleByDocId(guid)
-      if (moduleName == null) return null
-      const mod = await projectModel.openModule(moduleName)
-      for (const origin of localUserActionOrigins) mod?.undoManager.addTrackedOrigin(origin)
-      return mod ? markRaw(mod) : null
-    },
-    undefined,
-    { onError: console.error },
-  )
 
   const entryPoint = computed<MethodPointer>(() => {
     const mainModule = ProjectPath.create(undefined, 'Main' as Identifier)
@@ -258,10 +224,6 @@ export function createProjectStore(
   })
 
   const isRecordingEnabled = computed(() => executionMode.value === 'live')
-
-  function stopCapturingUndo() {
-    module.value?.undoManager.stopCapturing()
-  }
 
   function executeExpression(
     expressionId: ExternalId,
@@ -447,7 +409,6 @@ export function createProjectStore(
     executionContext,
     firstExecution,
     diagnostics,
-    module,
     moduleProjectPath,
     entryPoint,
     projectModel,
@@ -458,7 +419,6 @@ export function createProjectStore(
     dataConnection: markRaw(dataConnection),
     useVisualizationData,
     isRecordingEnabled,
-    stopCapturingUndo,
     executionMode,
     recordMode,
     dataflowErrors,

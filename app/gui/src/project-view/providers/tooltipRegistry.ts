@@ -1,5 +1,5 @@
+import type { ToValue } from '$/utils/reactivity'
 import { createContextStore } from '@/providers'
-import type { ToValue } from '@/util/reactivity'
 import type { Placement } from '@floating-ui/vue'
 import * as iter from 'enso-common/src/utilities/data/iter'
 import {

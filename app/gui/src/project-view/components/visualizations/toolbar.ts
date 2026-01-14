@@ -1,5 +1,5 @@
+import type { ToValue } from '$/utils/reactivity'
 import type { AnyIcon } from '@/util/icons'
-import type { ToValue } from '@/util/reactivity'
 import type { Ref } from 'vue'
 
 export interface Button {

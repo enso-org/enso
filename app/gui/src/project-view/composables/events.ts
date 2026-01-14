@@ -1,12 +1,12 @@
 /** @file Vue composables for listening to DOM events. */
 
+import type { ToValue } from '$/utils/reactivity'
+import { proxyRefs } from '$/utils/reactivity'
 import { useRaf } from '@/composables/animation'
 import type { KeyboardComposable } from '@/composables/keyboard'
 import { useGlobalEventRegistry } from '@/providers/globalEventRegistry'
 import type { Opt } from '@/util/data/opt'
 import { Vec2 } from '@/util/data/vec2'
-import type { ToValue } from '@/util/reactivity'
-import { proxyRefs } from '@/util/reactivity'
 import type { VueInstance } from '@vueuse/core'
 import {
   computed,

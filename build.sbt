@@ -3823,7 +3823,6 @@ lazy val `engine-runner` = project
         } else {
           base ++
           databaseCp ++
-          `image-polyglot-root`.listFiles("*.jar").map(_.getAbsolutePath()) ++
           `table-polyglot-root`.listFiles("*.jar").map(_.getAbsolutePath()) ++
           `database-polyglot-root`
             .listFiles("*.jar")
@@ -3952,7 +3951,6 @@ lazy val `engine-runner` = project
               "com.azure",
               "akka.http",
               "org.enso.base",
-              "org.enso.image",
               "org.enso.logging",
               "org.enso.common.ContextLoggingConfigurator",
               "org.enso.table",
