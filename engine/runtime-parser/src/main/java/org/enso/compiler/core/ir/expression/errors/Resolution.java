@@ -14,6 +14,7 @@ import org.enso.runtime.parser.dsl.GenerateIR;
 import org.enso.runtime.parser.dsl.IRChild;
 import org.enso.runtime.parser.dsl.IRField;
 import scala.Function1;
+import scala.Option;
 
 /** A representation of an erro resulting from name resolution. */
 @GenerateIR(
@@ -74,6 +75,11 @@ public final class Resolution extends ResolutionErrorGen {
   @Override
   public IdentifiedLocation identifiedLocation() {
     return originalName().identifiedLocation();
+  }
+
+  @Override
+  public Option<IdentifiedLocation> location() {
+    return Option.apply(identifiedLocation());
   }
 
   sealed interface Reason {
