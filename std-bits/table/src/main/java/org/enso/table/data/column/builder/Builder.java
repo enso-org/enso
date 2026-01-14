@@ -140,10 +140,7 @@ public interface Builder {
     if (BuilderUtil.LOGGER.isTraceEnabled()) {
       var t = storage.getType();
       BuilderUtil.LOGGER.trace(
-          "makeLocal unsuccessful for {}:{} size {}",
-          t.typeChar(),
-          t.size(),
-          storage.getSize());
+          "makeLocal unsuccessful for {}:{} size {}", t.typeChar(), t.size(), storage.getSize());
     }
 
     return storage;
