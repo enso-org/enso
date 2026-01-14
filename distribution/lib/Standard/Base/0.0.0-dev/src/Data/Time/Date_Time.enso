@@ -783,6 +783,7 @@ type Date_Time
 
              example_at_time_zone = Date_Time.new 2020 . at_time_zone (Time_Zone.new -4)
        ```
+    @zone Time_Zone.default_widget
     at_time_zone : Time_Zone -> Date_Time
     at_time_zone self zone =
         Time_Utils.with_zone_same_instant self zone
@@ -807,6 +808,7 @@ type Date_Time
 
              example_at_time_zone = Date_Time.new 2020 . set_time_zone (Time_Zone.new -4)
        ```
+    @zone Time_Zone.default_widget
     set_time_zone : Time_Zone -> Date_Time
     set_time_zone self zone =
         Time_Utils.with_zone_same_local self zone
