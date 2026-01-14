@@ -474,14 +474,10 @@ impl RunContext {
             Operation::Release(ReleaseOperation { command, repo }) => match command {
                 ReleaseCommand::Upload => {
                     let artifacts = self.build().await?;
-                    let edition = edition::Edition::parse_from_generated_manifest(&self.repo_root)?;
-                    // Ensure the libraries that will be uploaded are not part of any other
-                    // asset - delete them from the `built-distribution` directory.
-                    for lib_to_upload in edition.libs_to_upload() {
-                        self.remove_library_from_release(&lib_to_upload)?;
-                    }
                     let release_id = crate::env::ENSO_RELEASE_ID.get()?;
                     let release = Handle::new(&self.inner.octocrab, repo, release_id);
+                    self.upload_libs(&release).await?;
+                    self.remove_uploaded_libs().await?;
                     for package in artifacts.packages() {
                         package.upload_as_asset(release.clone()).await?;
                     }
@@ -493,7 +489,6 @@ impl RunContext {
                     if TARGET_OS == OS::Linux {
                         release.upload_asset_file(self.paths.manifest_file()).await?;
                         release.upload_asset_file(self.paths.launcher_manifest_file()).await?;
-                        self.upload_libs(&release).await?;
                     }
                 }
             },
@@ -640,14 +635,18 @@ impl RunContext {
 
     /// Uploads all the librariesS that should be uploaded.
     /// See [edition::libs_to_upload].
+    /// Note that the library asset is platform independent, so it should run only
+    /// in once job, hence the check for the current os.
     async fn upload_libs(&self, release_handle: &Handle) -> Result {
-        let edition = edition::Edition::parse_from_generated_manifest(&self.repo_root)?;
-        let libs_to_upload = edition.libs_to_upload();
-        debug!("Uploading libraries: {:?}", libs_to_upload);
-        for lib in libs_to_upload {
-            let lib_path = lib.find_in_repo_root(&self.repo_root);
-            debug!("Will upload library in {}", lib_path.to_string_lossy());
-            self.upload_as_zip(&lib, release_handle.clone()).await?;
+        if TARGET_OS == OS::Linux {
+            let edition = edition::Edition::parse_from_generated_manifest(&self.repo_root)?;
+            let libs_to_upload = edition.libs_to_upload();
+            debug!("Uploading libraries: {:?}", libs_to_upload);
+            for lib in libs_to_upload {
+                let lib_path = lib.find_in_repo_root(&self.repo_root);
+                debug!("Will upload library in {}", lib_path.to_string_lossy());
+                self.upload_as_zip(&lib, release_handle.clone()).await?;
+            }
         }
         Ok(())
     }
@@ -670,11 +669,17 @@ impl RunContext {
         Ok(())
     }
 
-    ///
-    fn remove_library_from_release(&self, lib: &PublishedLibrary) -> Result {
-        debug!("Removing library from release: {:?}", lib);
-        let lib_path = lib.find_in_repo_root(&self.repo_root);
-        ide_ci::fs::remove_dir_if_exists(&lib_path)?;
+    /// Remove the libraries that were just uploaded from the release. That is,
+    /// remove them from the `built-distribution` directory.
+    /// This is needed to ensure that the libraries that are uploaded as separate
+    /// assets are not part of any other uploaded asset.
+    async fn remove_uploaded_libs(&self) -> Result {
+        let edition = edition::Edition::parse_from_generated_manifest(&self.repo_root)?;
+        for lib in edition.libs_to_upload() {
+            debug!("Removing library from release: {:?}", lib);
+            let lib_dir = lib.find_in_repo_root(&self.repo_root);
+            ide_ci::fs::remove_dir_if_exists(&lib_dir)?;
+        }
         Ok(())
     }
 
