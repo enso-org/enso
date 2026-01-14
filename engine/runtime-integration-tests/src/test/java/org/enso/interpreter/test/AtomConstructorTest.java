@@ -156,23 +156,24 @@ public class AtomConstructorTest {
   }
 
   private static void assertLessArguments(String msg, Function<Object[], Atom> factory) {
+    var arityErrorMatcher = containsString("Wrong number of arguments");
     try {
       var zero = factory.apply(new Object[0]);
       fail("Expecting exception: " + zero);
     } catch (PanicException e) {
-      assertThat(msg + " no arguments", e.getMessage(), containsString("Arity_Error"));
+      assertThat(msg + " no arguments", e.getMessage(), arityErrorMatcher);
     }
     try {
       var one = factory.apply(new Object[] {"a"});
       fail("Expecting exception: " + one);
     } catch (PanicException e) {
-      assertThat(msg + " one argument", e.getMessage(), containsString("Arity_Error"));
+      assertThat(msg + " one argument", e.getMessage(), arityErrorMatcher);
     }
     try {
       var two = factory.apply(new Object[] {"a", "b"});
       fail("Expecting exception: " + two);
     } catch (PanicException e) {
-      assertThat(msg + " two arguments", e.getMessage(), containsString("Arity_Error"));
+      assertThat(msg + " two arguments", e.getMessage(), arityErrorMatcher);
     }
   }
 

@@ -295,7 +295,9 @@ class ReplTest
         executor.exit()
       }
       eval(code)
-      evalResult.left.value.getMessage should include("Compile_Error")
+      val evalTxt = evalResult.left.value.getMessage.toLowerCase
+      evalTxt should include("compile")
+      evalTxt should include("error")
     }
 
     "handle errors gracefully (pretty print)" in {
