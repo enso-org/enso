@@ -1143,7 +1143,7 @@ object BindingsMap {
     */
   case object ResolutionNotFound extends ResolutionError {
     override def explain(originalName: ir.Name): String =
-      s"The name `${originalName.name}` could not be found"
+      s"The name `${originalName.name}` could not be found."
   }
 
   /** A resolution error due to usage of Self type reference outside of a type scope.
