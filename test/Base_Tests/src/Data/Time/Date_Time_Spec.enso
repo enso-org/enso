@@ -217,6 +217,21 @@ spec_with suite_builder name create_new_datetime parse_datetime nanoseconds_loss
             time . zone . zone_id . should_equal tz.zone_id
             time.to_display_text . should_equal "1970-01-01 00:00:00[Europe/Moscow]"
 
+        group_builder.specify "should convert to UTC" <|
+            tz = Time_Zone.parse "Europe/Moscow"
+            time = create_new_datetime 1970 (zone = tz) . to_utc
+            time . year . should_equal 1969
+            time . month . should_equal 12
+            time . day . should_equal 31
+            time . hour . should_equal 21
+            time . minute . should_equal 0
+            time . second . should_equal 0
+            time . millisecond . should_equal 0
+            time . microsecond . should_equal 0
+            time . nanosecond . should_equal 0
+            time . zone . zone_id . should_equal "UTC"
+            time.to_display_text . should_equal "1969-12-31 21:00:00[UTC]"
+
         group_builder.specify "should allow to set an interop timezone" <|
             interop_tz = ZoneOffset.ofTotalSeconds 3600
             dt0 = create_new_datetime 2020 (zone = Time_Zone.utc)
