@@ -98,7 +98,7 @@ module.exports = {
     },
   ],
   mac: {
-    target: 'dir',
+    target: 'dmg',
     icon: './assets/icons/icon.icns',
     category: 'public.app-category.developer-tools',
     type: 'distribution',
