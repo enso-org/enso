@@ -474,6 +474,12 @@ impl RunContext {
             Operation::Release(ReleaseOperation { command, repo }) => match command {
                 ReleaseCommand::Upload => {
                     let artifacts = self.build().await?;
+                    let edition = edition::Edition::parse_from_generated_manifest(&self.repo_root)?;
+                    // Ensure the libraries that will be uploaded are not part of any other
+                    // asset - delete them from the `built-distribution` directory.
+                    for lib_to_upload in edition.libs_to_upload() {
+                        self.remove_library_from_release(&lib_to_upload)?;
+                    }
                     let release_id = crate::env::ENSO_RELEASE_ID.get()?;
                     let release = Handle::new(&self.inner.octocrab, repo, release_id);
                     for package in artifacts.packages() {
@@ -482,6 +488,8 @@ impl RunContext {
                     for bundle in artifacts.bundles() {
                         bundle.upload_as_asset(release.clone()).await?;
                     }
+                    // This condition ensures that the following assets are only uploaded from a single job.
+                    // Which is desirable because they are platform independent.
                     if TARGET_OS == OS::Linux {
                         release.upload_asset_file(self.paths.manifest_file()).await?;
                         release.upload_asset_file(self.paths.launcher_manifest_file()).await?;
@@ -632,7 +640,6 @@ impl RunContext {
 
     /// Uploads all the librariesS that should be uploaded.
     /// See [edition::libs_to_upload].
-    /// Also removes them from the release.
     async fn upload_libs(&self, release_handle: &Handle) -> Result {
         let edition = edition::Edition::parse_from_generated_manifest(&self.repo_root)?;
         let libs_to_upload = edition.libs_to_upload();
@@ -641,7 +648,6 @@ impl RunContext {
             let lib_path = lib.find_in_repo_root(&self.repo_root);
             debug!("Will upload library in {}", lib_path.to_string_lossy());
             self.upload_as_zip(&lib, release_handle.clone()).await?;
-            self.remove_library_from_release(&lib)?;
         }
         Ok(())
     }
