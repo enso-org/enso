@@ -186,6 +186,28 @@ packageBuilder := {
   )
 }
 
+lazy val writeEditionConfig = taskKey[Editions.EditionTemplate](
+  "Writes the edition configuration yaml file."
+)
+writeEditionConfig := {
+  Editions.writeEditionConfig(
+    editionsRoot    = file("distribution") / "editions",
+    editionTemplate = file("distribution") / "edition.template.yaml",
+    ensoVersion     = ensoVersion,
+    editionName     = currentEdition,
+    libraryVersion  = stdLibVersion,
+    log             = streams.value.log
+  )
+}
+
+lazy val librariesToUpload = taskKey[Seq[String]](
+  "List of libraries that will be uploaded as release assets"
+)
+librariesToUpload := {
+  val editionTemplate = writeEditionConfig.value
+  editionTemplate.libsToUpload()
+}
+
 lazy val checkIRCacheSizes = taskKey[Unit](
   "Checks that the IR caches of all standard libraries are within the size limit."
 )
@@ -6241,6 +6263,7 @@ createStdLibsIndexes := {
     ensoVersion   = ensoVersion,
     libRoot       = distributionRoot / "lib",
     javaOpts      = javaOpts,
+    libsToUpload  = librariesToUpload.value,
     env           = extraBazelEnvForStdLibIndexes.value,
     cacheFactory  = cacheFactory.sub("stdlib"),
     log           = log
