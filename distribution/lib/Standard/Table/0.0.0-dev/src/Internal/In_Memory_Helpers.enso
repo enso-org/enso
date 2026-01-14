@@ -1,0 +1,26 @@
+import project.In_Memory_Column.In_Memory_Column
+
+polyglot java import org.enso.table.data.column.storage.ColumnStorage as Java_ColumnStorage
+polyglot java import org.enso.table.data.table.Table as Java_Table
+polyglot java import org.enso.table.data.table.Column as Java_Column
+
+## ---
+   private: true
+   ---
+   Gets the Java Table object from an In_Memory_Table.
+get_java_table (table : In_Memory_Table) -> Java_Table =
+    table.java_table
+
+## ---
+   private: true
+   ---
+   Gets the Java ColumnStorage object from an In_Memory_Table.
+get_java_column_storages (table : In_Memory_Table) -> Vector Java_ColumnStorage =
+    java_columns = table.java_table.getColumns
+    java_columns.map c->c.getStorage
+
+## ---
+   private: true
+   ---
+get_java_column (column : In_Memory_Column) -> Java_Column =
+    column.java_column
