@@ -26,28 +26,13 @@ import java.nio.channels.Channels;
 import java.nio.file.Files;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
-import java.time.LocalDate;
-import java.time.LocalTime;
-import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.IntStream;
-import org.enso.table.data.column.storage.ColumnBooleanStorage;
-import org.enso.table.data.column.storage.ColumnDoubleStorage;
-import org.enso.table.data.column.storage.ColumnLongStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
-import org.enso.table.data.column.storage.type.BigDecimalType;
-import org.enso.table.data.column.storage.type.BooleanType;
-import org.enso.table.data.column.storage.type.DateTimeType;
-import org.enso.table.data.column.storage.type.DateType;
-import org.enso.table.data.column.storage.type.FloatType;
-import org.enso.table.data.column.storage.type.IntegerType;
-import org.enso.table.data.column.storage.type.NullType;
-import org.enso.table.data.column.storage.type.StorageType;
-import org.enso.table.data.column.storage.type.TextType;
-import org.enso.table.data.column.storage.type.TimeOfDayType;
+import org.enso.table.data.column.storage.type.*;
 import org.enso.table.data.table.Column;
 import org.enso.table.problems.ProblemAggregator;
 import org.graalvm.polyglot.Context;
@@ -498,53 +483,25 @@ public class HyperFormat {
     if (storage == null || storage.isNothing(row)) {
       inserter.addNull();
     } else {
-      switch (storage) {
-        case ColumnDoubleStorage doubleStorage -> inserter.add(doubleStorage.getItemAsDouble(row));
-        case ColumnLongStorage longStorage -> inserter.add(longStorage.getItemAsLong(row));
-        case ColumnBooleanStorage boolStorage -> inserter.add(boolStorage.getItemAsBoolean(row));
-        default -> {
-          Object value = storage.getItemBoxed(row);
-          switch (value) {
-            case String s -> inserter.add(s);
-            case LocalDate ld -> inserter.add(ld);
-            case LocalTime lt -> inserter.add(lt);
-            case ZonedDateTime zdt -> inserter.add(zdt);
-            case BigDecimal bd -> inserter.add(bd);
-            default -> {
-              var v = Value.asValue(value);
-              if (v.isDate() && v.isTime() && v.isTimeZone()) {
-                inserter.add(ZonedDateTime.of(v.asDate(), v.asTime(), v.asTimeZone()));
-              } else if (v.isDate()) {
-                inserter.add(v.asDate());
-              } else if (v.isTime()) {
-                inserter.add(v.asTime());
-              } else if (v.fitsInLong()) {
-                inserter.add(v.asLong());
-              } else if (v.fitsInDouble()) {
-                inserter.add(v.asDouble());
-              } else if (v.isBoolean()) {
-                inserter.add(v.asBoolean());
-              } else {
-                var type = value.getClass().getName();
-                if (v.getMetaObject() instanceof Value meta) {
-                  type = meta.getMetaQualifiedName();
-                }
-                if ("java.math.BigDecimal".equals(type)) {
-                  var unscaledValue = v.invokeMember("unscaledValue");
-                  var scale = v.invokeMember("scale");
-                  if (unscaledValue != null
-                      && unscaledValue.fitsInBigInteger()
-                      && scale != null
-                      && scale.fitsInInt()) {
-                    inserter.add(new BigDecimal(unscaledValue.asBigInteger(), scale.asInt()));
-                    return;
-                  }
-                }
-                throw new HyperUnsupportedTypeError(value.toString() + " type: " + type);
-              }
-            }
-          }
+      var localType = StorageType.makeLocal(storage.getType());
+      switch (localType) {
+        case FloatType ft -> inserter.add(ft.asTypedStorage(storage).getItemAsDouble(row));
+        case IntegerType it -> inserter.add(it.asTypedStorage(storage).getItemAsLong(row));
+        case BooleanType bt -> inserter.add(bt.asTypedStorage(storage).getItemAsBoolean(row));
+        case TextType tt -> inserter.add(tt.asTypedStorage(storage).getItemBoxed(row));
+        case DateType dt -> inserter.add(dt.asTypedStorage(storage).getItemBoxed(row));
+        case TimeOfDayType tot -> inserter.add(tot.asTypedStorage(storage).getItemBoxed(row));
+        case DateTimeType dtt -> inserter.add(dtt.asTypedStorage(storage).getItemBoxed(row));
+        case BigDecimalType bdt -> inserter.add(bdt.asTypedStorage(storage).getItemBoxed(row));
+        case BigIntegerType bit -> {
+          var bigIntValue = bit.asTypedStorage(storage).getItemBoxed(row);
+          inserter.add(new BigDecimal(bigIntValue.toString()));
         }
+        default ->
+            throw new IllegalStateException(
+                "Unexpected storage type: "
+                    + localType
+                    + " - this is a bug in the Tableau library.");
       }
     }
   }
