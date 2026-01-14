@@ -514,6 +514,13 @@ type Invalid_Conversion_Target
         - `target`: the type trying to be converted to.
     Error target
 
+    ## ---
+       private: true
+       ---
+       Convert to a human-readable format.
+    to_display_text self -> Text =
+        self.target.to_display_text + " is not a valid conversion target. Expected a type."
+
 type No_Such_Conversion
     ## ---
        private: true
