@@ -56,7 +56,10 @@ abstract class InstrumentTestContext(packageName: String) {
     Option(messageQueue.poll(timeoutSeconds, TimeUnit.SECONDS))
   }
 
-  def receiveN(n: Int, timeoutSeconds: Long = 60): List[Api.Response] = {
+  def receiveN(
+    n: Int,
+    timeoutSeconds: Long = InstrumentTestContext.DEFAULT_TIMEOUT
+  ): List[Api.Response] = {
     Iterator
       .continually(receiveWithTimeout(timeoutSeconds))
       .take(n)
@@ -66,7 +69,7 @@ abstract class InstrumentTestContext(packageName: String) {
 
   def receiveNIgnoreExpressionUpdates(
     n: Int,
-    timeoutSeconds: Long = 60
+    timeoutSeconds: Long = InstrumentTestContext.DEFAULT_TIMEOUT
   ): List[Api.Response] = {
     receiveNWithFilter(
       n,
@@ -82,7 +85,7 @@ abstract class InstrumentTestContext(packageName: String) {
 
   def receiveNIgnorePendingExpressionUpdates(
     n: Int,
-    timeoutSeconds: Long                  = 60,
+    timeoutSeconds: Long                  = InstrumentTestContext.DEFAULT_TIMEOUT,
     updatesOnlyFor: Set[Api.ExpressionId] = Set()
   ): List[Api.Response] = {
     receiveNWithFilter(
@@ -108,7 +111,7 @@ abstract class InstrumentTestContext(packageName: String) {
 
   def receiveNIgnoreStdLib(
     n: Int,
-    timeoutSeconds: Long = 60
+    timeoutSeconds: Long = InstrumentTestContext.DEFAULT_TIMEOUT
   ): List[Api.Response] = {
     receiveNWithFilter(
       n,
@@ -190,4 +193,5 @@ abstract class InstrumentTestContext(packageName: String) {
 object InstrumentTestContext {
   val DISABLE_IR_CACHE =
     Option(System.getenv("ENSO_TEST_DISABLE_IR_CACHE")).getOrElse("true")
+  private val DEFAULT_TIMEOUT: Long = 60
 }
