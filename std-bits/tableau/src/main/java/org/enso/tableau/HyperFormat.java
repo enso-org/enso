@@ -17,7 +17,6 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.lang.reflect.Proxy;
 import java.math.BigDecimal;
 import java.net.MalformedURLException;
 import java.net.URI;
@@ -411,18 +410,8 @@ public class HyperFormat {
     return tableDef;
   }
 
-  @SuppressWarnings("unchecked")
-  private static <T> StorageType<T> toLocal(StorageType<T> type) {
-    if (Proxy.isProxyClass(type.getClass())) {
-      var local = StorageType.fromTypeCharAndSize(type.typeChar(), type.size());
-      return (StorageType<T>) local;
-    } else {
-      return type;
-    }
-  }
-
-  private static SqlType mapEnsoTypeToSqlType(StorageType<?> type) {
-    return switch (toLocal(type)) {
+  private static SqlType mapEnsoTypeToSqlType(StorageType<?> storageType) {
+    return switch (StorageType.makeLocal(storageType)) {
       case TextType t -> SqlType.text();
       case IntegerType t -> SqlType.bigInt();
       case FloatType t -> SqlType.doublePrecision();
@@ -437,7 +426,7 @@ public class HyperFormat {
       // precision by default.
       // TODO fix this after https://github.com/enso-org/enso/issues/13022
       case BigDecimalType t -> SqlType.numeric(18, 9);
-      default -> throw new HyperUnsupportedTypeError(type.toString());
+      default -> throw new HyperUnsupportedTypeError(storageType.toString());
     };
   }
 
@@ -597,8 +586,7 @@ public class HyperFormat {
 
     if (tableColumnCount > defColumnCount) {
       String[] extraColumnNames =
-          Arrays.stream(columnNames, defColumnCount, tableColumnCount)
-              .toArray(String[]::new);
+          Arrays.stream(columnNames, defColumnCount, tableColumnCount).toArray(String[]::new);
 
       throw new HyperUnmatchedColumns(extraColumnNames);
     }

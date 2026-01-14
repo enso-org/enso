@@ -13,7 +13,6 @@ import org.enso.table.data.column.operation.masks.MaskOperation;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.PreciseTypeOptions;
-import org.enso.table.data.column.storage.TypedStorage;
 import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.enso.table.data.column.storage.type.BigDecimalType;
 import org.enso.table.data.column.storage.type.BigIntegerType;
@@ -99,17 +98,15 @@ public interface Builder {
    * @return either {@code storage} itself, or optimized storage of the same {@link
    *     ColumnStorage#getType() type} over the same {@link ColumnStorage#addressOfData() data}
    */
-  @SuppressWarnings("unchecked")
   static <T> ColumnStorage<T> makeLocal(ColumnStorage<T> storage) {
+    var localType = StorageType.makeLocal(storage.getType());
     if (storage.getSize() == 0) {
-      var proxyType = storage.getType();
-      var localType = StorageType.fromTypeCharAndSize(proxyType.typeChar(), proxyType.size());
-      return (ColumnStorage<T>) new TypedStorage(localType, new Object[0]);
+      return Builder.makeEmpty(localType, 0);
     }
+
     var data = storage.addressOfData();
     var size = Math.toIntExact(storage.getSize());
-    var proxyType = storage.getType();
-    var localType = StorageType.fromTypeCharAndSize(proxyType.typeChar(), proxyType.size());
+
     if (data != 0) {
       var validity = storage.addressOfValidity();
       var localStorage =
@@ -128,27 +125,28 @@ public interface Builder {
             default -> storage;
           };
       assert assertSameStorages(storage, localStorage);
-      return (ColumnStorage<T>) localStorage;
-    } else {
-      switch (localType) {
-        case BigIntegerType _ -> {
-          var b = Builder.getForBigInteger(size, null);
-          b.appendBulkStorage(storage);
-          var localStorage = b.seal();
-          return (ColumnStorage<T>) localStorage;
-        }
-        default -> {
-          if (BuilderUtil.LOGGER.isTraceEnabled()) {
-            var t = storage.getType();
-            BuilderUtil.LOGGER.trace(
-                "makeLocal unsuccessful for {}:{} size {}",
-                t.typeChar(),
-                t.size(),
-                storage.getSize());
-          }
+      return localType.asTypedStorage(localStorage);
+    }
+
+    switch (localType) {
+      case BigIntegerType _ -> {
+        var b = Builder.getForBigInteger(size, null);
+        b.appendBulkStorage(storage);
+        var localStorage = b.seal();
+        return (ColumnStorage<T>) localStorage;
+      }
+      default -> {
+        if (BuilderUtil.LOGGER.isTraceEnabled()) {
+          var t = storage.getType();
+          BuilderUtil.LOGGER.trace(
+              "makeLocal unsuccessful for {}:{} size {}",
+              t.typeChar(),
+              t.size(),
+              storage.getSize());
         }
       }
     }
+
     return storage;
   }
 
@@ -187,14 +185,15 @@ public interface Builder {
    * <p>If {@code type} is {@code null}, it will return an {@link InferredBuilder} that will infer
    * the type from the data.
    */
-  static Builder getForType(StorageType<?> type, long size, ProblemAggregator problemAggregator) {
+  static Builder getForType(
+      StorageType<?> storageType, long size, ProblemAggregator problemAggregator) {
     Builder builder =
-        switch (type) {
-          case AnyObjectType t -> getForAnyObject(size);
-          case BooleanType t -> getForBoolean(size);
-          case DateType t -> getForDate(size);
-          case DateTimeType t -> getForDateTime(size);
-          case TimeOfDayType t -> getForTime(size);
+        switch (StorageType.makeLocal(storageType)) {
+          case AnyObjectType _ -> getForAnyObject(size);
+          case BooleanType _ -> getForBoolean(size);
+          case DateType _ -> getForDate(size);
+          case DateTimeType _ -> getForDateTime(size);
+          case TimeOfDayType _ -> getForTime(size);
           case FloatType floatType -> getForDouble(floatType, size, problemAggregator);
           case IntegerType integerType -> getForLong(integerType, size, problemAggregator);
           case TextType textType -> getForText(textType, size);
@@ -203,13 +202,11 @@ public interface Builder {
           case NullType t -> new NullBuilder();
           case null -> getInferredBuilder(size, problemAggregator);
           default ->
-              getForType(
-                  StorageType.fromTypeCharAndSize(type.typeChar(), type.size()),
-                  size,
-                  problemAggregator);
+              throw new IllegalStateException(
+                  "Unsupported type: " + storageType + " - this is a bug in the Table library.");
         };
 
-    assert Objects.equals(builder.getType(), type);
+    assert Objects.equals(builder.getType(), storageType);
     return builder;
   }
 

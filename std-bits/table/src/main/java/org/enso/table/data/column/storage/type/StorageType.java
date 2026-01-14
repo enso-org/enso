@@ -1,5 +1,6 @@
 package org.enso.table.data.column.storage.type;
 
+import java.lang.reflect.Proxy;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.time.LocalDate;
@@ -17,6 +18,16 @@ import org.enso.table.problems.ProblemAggregator;
  * exposed to users.
  */
 public interface StorageType<T> {
+  @SuppressWarnings("unchecked")
+  static <T> StorageType<T> makeLocal(StorageType<T> type) {
+    if (Proxy.isProxyClass(type.getClass())) {
+      var local = StorageType.fromTypeCharAndSize(type.typeChar(), type.size());
+      return (StorageType<T>) local;
+    } else {
+      return type;
+    }
+  }
+
   /**
    * @param item the item whose type is to be determined.
    * @param options specifies details on how the precise type should be determined

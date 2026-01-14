@@ -1,6 +1,5 @@
 package org.enso.table.data.column.builder;
 
-import java.lang.reflect.Proxy;
 import java.util.Arrays;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.TypedStorage;
@@ -52,19 +51,16 @@ abstract class TypedBuilder<T> implements BuilderWithRetyping, BuilderForType<T>
       int newSizeInt = Builder.checkSize(newSize);
       resize(newSizeInt);
     }
-    var type = storage.getType();
-    if (Proxy.isProxyClass(type.getClass())) {
-      type = StorageType.fromTypeCharAndSize(type.typeChar(), type.size());
-    }
 
+    var type = StorageType.makeLocal(storage.getType());
     if (type.equals(getType())) {
       if (storage instanceof TypedStorage<?>) {
         // This cast is safe, because storage.getType() == this.getType() iff storage.T == this.T
         @SuppressWarnings("unchecked")
         TypedStorage<T> specializedStorage = (TypedStorage<T>) storage;
-        System.arraycopy(
-            specializedStorage.getData(), 0, data, currentSize, (int) storage.getSize());
-        currentSize += storage.getSize();
+        int storageSize = (int) storage.getSize();
+        System.arraycopy(specializedStorage.getData(), 0, data, currentSize, storageSize);
+        currentSize += storageSize;
       } else {
         // This is a fallback for non-specialized storages, which are not optimized for bulk
         // appends.

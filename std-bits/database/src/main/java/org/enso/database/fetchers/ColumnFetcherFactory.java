@@ -1,6 +1,5 @@
 package org.enso.database.fetchers;
 
-import java.lang.reflect.Proxy;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
@@ -61,7 +60,7 @@ public interface ColumnFetcherFactory {
         ProblemAggregator problemAggregator) {
       // JDBC column indices are 1-based.
       int colIndex = index + 1;
-      return switch (storageType) {
+      return switch (StorageType.makeLocal(storageType)) {
         case BooleanType bt -> new BooleanColumnFetcher(colIndex, columnName);
         case IntegerType it -> new LongColumnFetcher(colIndex, columnName, it, problemAggregator);
         case FloatType ft -> new DoubleColumnFetcher(colIndex, columnName, ft, problemAggregator);
@@ -135,15 +134,7 @@ public interface ColumnFetcherFactory {
                     return offsetDateTime == null ? null : offsetDateTime.toZonedDateTime();
                   }
                 };
-        default -> {
-          if (Proxy.isProxyClass(storageType.getClass())) {
-            var fromProxy =
-                StorageType.fromTypeCharAndSize(storageType.typeChar(), storageType.size());
-            yield forStorageType(fromProxy, index, columnName, problemAggregator);
-          } else {
-            yield new InferredColumnFetcher(colIndex, columnName, problemAggregator);
-          }
-        }
+        default -> new InferredColumnFetcher(colIndex, columnName, problemAggregator);
       };
     }
   }
