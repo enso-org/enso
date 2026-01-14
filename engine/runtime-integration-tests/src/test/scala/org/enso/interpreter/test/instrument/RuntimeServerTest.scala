@@ -326,7 +326,7 @@ class RuntimeServerTest
         .update(
           contextId,
           identityResultId,
-          ConstantsGen.ERROR_BUILTIN,
+          ConstantsGen.ERROR,
           payload = Api.ExpressionUpdate.Payload.DataflowError(Nil)
         ),
       Api.Response(None, Api.ExecutionUpdate(contextId, Seq())),
@@ -5175,7 +5175,7 @@ class RuntimeServerTest
         Api.ExecutionFailed(
           contextId,
           Api.ExecutionResult.Diagnostic.error(
-            "Not_Invokable.Error",
+            "Type error: expected a function, but got 42.",
             Some(mainFile),
             Some(model.Range(model.Position(1, 7), model.Position(1, 19))),
             None,

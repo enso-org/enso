@@ -81,6 +81,15 @@ type Forbidden_Operation
 
     to_display_text self = self.message
 
+type Index_Out_Of_Bounds
+    Error index length
+
+    to_display_text self =
+        "The index " + self.index.to_text + " is out of bounds in a collection of length " + self.length.to_text + "."
+
+type Missing_Argument
+    Error (argument_name : Text) (function_name : Text | Nothing = Nothing) (call_location : Source_Location | Nothing = Nothing) (message : Text = "Provide a value for the argument `" + argument_name + "`.")
+    to_display_text self = self.message
 
 ## ---
    private: true
