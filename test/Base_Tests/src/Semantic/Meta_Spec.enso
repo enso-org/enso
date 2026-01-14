@@ -699,7 +699,9 @@ add_specs suite_builder =
     suite_builder.group "Meta.meta" group_builder->
         group_builder.specify "should report private error on synthetic module" <|
             meta_type = Meta.meta Standard.Base.Network
-            meta_type.catch . should_equal (Private_Access.Error Nothing Nothing 'meta' 'No Meta.meta for private objects')
+            payload = meta_type.catch
+            payload.to_text . should_equal "(Private_Access.Error Nothing Nothing 'meta' 'No Meta.meta for private objects')"
+            payload.to_display_text . should_equal "No Meta.meta for private objects"
 
         group_builder.specify "function with argument" <|
             plus x by=1 = x+by
