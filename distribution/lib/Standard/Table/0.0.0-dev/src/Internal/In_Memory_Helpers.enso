@@ -1,4 +1,7 @@
+import Standard.Base.Data.Vector.Vector
+
 import project.In_Memory_Column.In_Memory_Column
+import project.In_Memory_Table.In_Memory_Table
 
 polyglot java import org.enso.table.data.column.storage.ColumnStorage as Java_ColumnStorage
 polyglot java import org.enso.table.data.table.Table as Java_Table
