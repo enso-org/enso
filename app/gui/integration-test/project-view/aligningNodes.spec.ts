@@ -331,3 +331,95 @@ test('Multiple alignment operations can be performed sequentially', async ({
   // Both nodes should be at the same y position (from align top)
   expect(node1Final.y).toBeCloseTo(node2Final.y, 0)
 })
+
+test('Right-click on multiple nodes shows group context menu with alignment submenu', async ({
+  editorPage,
+  page,
+}) => {
+  await editorPage
+  const node1 = locate.graphNodeByBinding(page, 'five')
+  const node2 = locate.graphNodeByBinding(page, 'sum')
+
+  // Select both nodes
+  await locate.graphNodeIcon(node1).click()
+  await page.waitForTimeout(300)
+  await locate.graphNodeIcon(node2).click({ modifiers: ['Shift'] })
+
+  // Right-click on one of the selected nodes
+  await node1.click({ button: 'right' })
+
+  // Verify context menu appears with group-specific actions
+  const contextMenu = page.locator('.ContextMenu, .ActionMenu')
+  await expect(contextMenu).toBeVisible()
+
+  // Verify alignment submenu option is present
+  const alignSubmenu = contextMenu.getByText('Align')
+  await expect(alignSubmenu).toBeVisible()
+})
+
+test('Right-click on background deselects components', async ({ editorPage, page }) => {
+  await editorPage
+  const node1 = locate.graphNodeByBinding(page, 'five')
+  const node2 = locate.graphNodeByBinding(page, 'sum')
+  const selectionMenu = page.locator('.SelectionMenu')
+
+  // Select both nodes
+  await locate.graphNodeIcon(node1).click()
+  await page.waitForTimeout(300)
+  await locate.graphNodeIcon(node2).click({ modifiers: ['Shift'] })
+  await expect(selectionMenu).toBeVisible()
+
+  // Right-click on the background (viewport)
+  const viewport = page.locator('.viewport')
+  const viewportBox = await viewport.boundingBox()
+  assert(viewportBox)
+  // Click in an empty area far from any nodes
+  await page.mouse.click(viewportBox.x + 50, viewportBox.y + 50, { button: 'right' })
+
+  // Verify selection menu disappears (nodes are deselected)
+  await expect(selectionMenu).toBeHidden()
+})
+
+test('Alignment actions work from context menu submenu', async ({ editorPage, page }) => {
+  await editorPage
+  const node1 = locate.graphNodeByBinding(page, 'five')
+  const node2 = locate.graphNodeByBinding(page, 'sum')
+
+  // Move node2 to ensure nodes have different x positions
+  await editorPage.dragNode('ten', { x: 20, y: 0 })
+
+  // Select both nodes
+  await locate.graphNodeIcon(node1).click()
+  await page.waitForTimeout(300)
+  await locate.graphNodeIcon(node2).click({ modifiers: ['Shift'] })
+
+  // Get initial positions
+  const node1InitialBBox = await node1.boundingBox()
+  const node2InitialBBox = await node2.boundingBox()
+  assert(node1InitialBBox)
+  assert(node2InitialBBox)
+
+  // Right-click to open context menu
+  await node1.click({ button: 'right' })
+
+  // Open alignment submenu
+  const contextMenu = page.locator('.ContextMenu, .ActionMenu')
+  const alignSubmenu = contextMenu.getByText('Align')
+  await alignSubmenu.hover()
+  await page.waitForTimeout(250) // Wait for hover delay
+
+  // Click align left from the submenu
+  const alignLeftButton = page.getByLabel('Align Left')
+  await expect(alignLeftButton).toBeVisible()
+  await alignLeftButton.click()
+
+  // Verify nodes are aligned
+  const node1NewBBox = await node1.boundingBox()
+  const node2NewBBox = await node2.boundingBox()
+  assert(node1NewBBox)
+  assert(node2NewBBox)
+
+  const expectedX = Math.min(node1InitialBBox.x, node2InitialBBox.x)
+  expect(node1NewBBox.x).toBeCloseTo(expectedX, 0)
+  expect(node2NewBBox.x).toBeCloseTo(expectedX, 0)
+})
