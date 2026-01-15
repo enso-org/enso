@@ -2,7 +2,6 @@ from Standard.Base import all
 
 from Standard.Table import all
 from Standard.Table.Errors import all
-import Standard.Table.Expression.Expression_Error
 
 import Standard.Database.Dialects.Feature.Feature
 
@@ -10,7 +9,7 @@ from Standard.Test import all
 import enso_dev.Table_Tests.Util
 
 import project.Common_Table_Operations.Util as Common_Table_Operations_Util
-from project.Common_Table_Operations.Util import check_column_refinements, run_default_backend
+from project.Common_Table_Operations.Util import run_default_backend
 
 main filter=Nothing = run_default_backend add_specs filter
 
