@@ -367,6 +367,13 @@ export function createGraphStore(
       metadata.set('position', { x: position.x, y: position.y })
   }
 
+  function setNodeDisplayMode(nodeId: NodeId, mode: 'expanded' | 'collapsed') {
+    const metadata = module.mutableNodeMetadata(db.idFromExternal(nodeId))
+    if (!metadata) return
+    const oldMode = metadata.get('displayMode')
+    if (oldMode !== mode) metadata.set('displayMode', mode)
+  }
+
   function overrideNodeColor(nodeId: NodeId, color: string | undefined) {
     const metadata = module.mutableNodeMetadata(db.idFromExternal(nodeId))
     metadata?.set('colorOverride', color)
@@ -682,6 +689,7 @@ export function createGraphStore(
     getNodeColorOverride,
     setNodeContent,
     setNodePosition,
+    setNodeDisplayMode,
     setNodeVisualization,
     updateNodeRect,
     updateNodeOutputAnim,

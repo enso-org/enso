@@ -362,6 +362,7 @@ export class GraphDb {
         position: new Vec2(pos.x, pos.y),
         vis: nodeMeta.get('visualization'),
         colorOverride: nodeMeta.get('colorOverride'),
+        isExpanded: (nodeMeta.get('displayMode') ?? 'expanded') === 'expanded',
       }
       this.nodeIdToNode.set(nodeId, {
         ...newNode,
@@ -589,6 +590,7 @@ export class GraphDb {
       innerExpr: expression,
       zIndex: this.highestZIndex,
       argIndex: undefined,
+      isExpanded: false,
     }
     const bindingId = pattern.id
     this.nodeIdToNode.set(id, node)
@@ -705,6 +707,7 @@ export interface NodeDataFromMetadata {
   position: Vec2
   vis: Opt<VisualizationMetadata>
   colorOverride: Opt<string>
+  isExpanded: boolean
 }
 
 export type Node = NodeDataFromAst &

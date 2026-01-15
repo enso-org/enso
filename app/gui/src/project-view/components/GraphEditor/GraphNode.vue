@@ -360,6 +360,10 @@ function selectBeforeAction<Handlers extends { [K in string]?: ActionHandler }>(
 
 const editingComment = ref(false)
 const colorPickerOpened = ref(false)
+const isExpanded = computed({
+  get: () => props.node.isExpanded,
+  set: (value) => graph.setNodeDisplayMode(nodeId.value, value ? 'expanded' : 'collapsed'),
+})
 
 const actionHandlers = registerHandlers(
   selectBeforeAction({
@@ -382,6 +386,10 @@ const actionHandlers = registerHandlers(
       description: computed(() =>
         isVisualizationEnabled.value ? 'Hide visualization' : 'Show visualization',
       ),
+    },
+    'component.toggleExpanded': {
+      ...toggledAction(isExpanded),
+      description: computed(() => (isExpanded.value ? 'Collapse Component' : 'Expand Component')),
     },
     'component.pickColor': toggledAction(colorPickerOpened),
     'component.recompute': {
