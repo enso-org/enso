@@ -2,7 +2,6 @@ from Standard.Base import all
 import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Metadata.Display
 from Standard.Base.Metadata.Choice import Option
-from Standard.Base.Metadata.Widget import Text_Input
 import Standard.Base.Network.Email.Email_Provider.Email_Provider
 from Standard.Base.Network.Email.Email_Provider import make_email_provider
 
