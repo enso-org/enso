@@ -1,9 +1,9 @@
 use crate::prelude::*;
 
-use crate::cache::goodie;
 use crate::cache::Cache;
-use crate::env::known::PATH;
+use crate::cache::goodie;
 use crate::env::Modification;
+use crate::env::known::PATH;
 use crate::github::RepoRef;
 
 /// The repository of the FlatBuffers project.

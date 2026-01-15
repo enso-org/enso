@@ -1,11 +1,11 @@
 use crate::prelude::*;
 
 use mime::Mime;
+use reqwest::header::CONNECTION;
+use reqwest::header::CONTENT_TYPE;
 use reqwest::header::HeaderMap;
 use reqwest::header::HeaderName;
 use reqwest::header::HeaderValue;
-use reqwest::header::CONNECTION;
-use reqwest::header::CONTENT_TYPE;
 
 pub trait ClientBuilderExt: Sized {
     fn default_content_type(self, mime_type: Mime) -> Self;

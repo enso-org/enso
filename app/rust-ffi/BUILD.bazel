@@ -9,7 +9,7 @@ rust_shared_library(
     name = "rust_lib",
     srcs = glob(["src/**/*.rs"]),
     aliases = aliases(),
-    edition = "2021",
+    edition = "2024",
     proc_macro_deps = all_crate_deps(proc_macro = True),
     deps = all_crate_deps(normal = True) + [
         "//lib/rust/parser:enso_parser",

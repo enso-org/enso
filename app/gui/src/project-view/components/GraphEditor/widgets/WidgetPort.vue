@@ -7,6 +7,7 @@ import {
   defineWidget,
   widgetProps,
 } from '$/providers/openedProjects/widgetRegistry'
+import { cachedGetter, proxyRefs } from '$/utils/reactivity'
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import { useRaf } from '@/composables/animation'
 import { useResizeObserver } from '@/composables/events'
@@ -20,7 +21,6 @@ import { assert } from '@/util/assert'
 import { Ast } from '@/util/ast'
 import { ArgumentInfoKey } from '@/util/callTree'
 import { Rect } from '@/util/data/rect'
-import { cachedGetter, proxyRefs } from '@/util/reactivity'
 import {
   computed,
   nextTick,

@@ -9,8 +9,8 @@ use crate::version::ENSO_VERSION;
 use ide_ci::env::known::electron_builder::WindowsSigningCredentials;
 use ide_ci::program::command::FallibleManipulator;
 use ide_ci::program::command::Manipulator;
-use ide_ci::programs::node::PnpmCommand;
 use ide_ci::programs::Pnpm;
+use ide_ci::programs::node::PnpmCommand;
 use sha2::Digest;
 use std::process::Stdio;
 

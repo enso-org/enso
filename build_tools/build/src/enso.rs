@@ -2,11 +2,11 @@ use crate::prelude::*;
 
 use crate::cloud_tests;
 use crate::engine::StandardLibraryTestsSelection;
-use crate::paths::Paths;
 use crate::paths::ENSO_ENABLE_ASSERTIONS;
 use crate::paths::ENSO_META_TEST_ARGS;
 use crate::paths::ENSO_META_TEST_COMMAND;
 use crate::paths::ENSO_TEST_ANSI_COLORS;
+use crate::paths::Paths;
 use crate::postgres;
 use crate::postgres::EndpointConfiguration as PostgresEndpointConfiguration;
 use crate::postgres::Postgresql;
@@ -26,11 +26,7 @@ pub enum Boolean {
 
 impl From<bool> for Boolean {
     fn from(value: bool) -> Self {
-        if value {
-            Self::True
-        } else {
-            Self::False
-        }
+        if value { Self::True } else { Self::False }
     }
 }
 
@@ -216,7 +212,10 @@ impl BuiltEnso {
                 Some(file)
             }
             Err(err) => {
-                info!("Enso Cloud authentication (for cloud integration tests) is skipped, because of: {}", err);
+                info!(
+                    "Enso Cloud authentication (for cloud integration tests) is skipped, because of: {}",
+                    err
+                );
                 None
             }
         };

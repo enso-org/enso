@@ -103,11 +103,7 @@ pub fn remove_file_if_exists(path: impl AsRef<Path>) -> Result<()> {
 #[context("Failed to remove entry {} (if exists)", path.as_ref().display())]
 pub fn remove_if_exists(path: impl AsRef<Path>) -> Result {
     let path = path.as_ref();
-    if path.is_dir() {
-        remove_dir_if_exists(path)
-    } else {
-        remove_file_if_exists(path)
-    }
+    if path.is_dir() { remove_dir_if_exists(path) } else { remove_file_if_exists(path) }
 }
 
 /// Recreate directory, so it exists and is empty.

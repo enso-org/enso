@@ -2,7 +2,7 @@
 name = "enso-parser-schema"
 version = "0.1.0"
 authors = ["Enso Team <enso-dev@enso.org>"]
-edition = "2021"
+edition = "2024"
 description = "Generates schema describing Enso Parser AST types."
 readme = "README.md"
 homepage = "https://github.com/enso-org/enso"

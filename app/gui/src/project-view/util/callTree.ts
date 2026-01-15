@@ -18,9 +18,9 @@ import { findLastIndex, tryGetIndex } from '@/util/data/array'
 import type { DeepReadonly } from 'vue'
 import { toValue } from 'vue'
 import type { ExternalId } from 'ydoc-shared/yjsModel'
+import type { ToValue } from '../../utils/reactivity'
 import { assert } from './assert'
 import type { MethodPointer } from './methodPointer'
-import type { ToValue } from './reactivity'
 
 export const enum ApplicationKind {
   Prefix,

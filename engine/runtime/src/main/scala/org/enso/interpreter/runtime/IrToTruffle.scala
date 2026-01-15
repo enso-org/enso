@@ -487,10 +487,19 @@ private[runtime] class IrToTruffle(
               idx,
               arg.getDefaultValue.orElse(null)
             )
-          val readArg       = TypeCheckValueNode.wrap(readArgNoCheck, checkNode)
-          val assignmentArg = AssignmentNode.build(readArg, slotIdx)
+          val readArg = TypeCheckValueNode.wrap(readArgNoCheck, checkNode)
+          val assignmentArg =
+            AssignmentNode.build(
+              arg.getName,
+              readArgNoCheck.getSourceSectionBounds,
+              readArg,
+              slotIdx
+            )
           val argRead =
-            ReadLocalVariableNode.build(new FramePointer(0, slotIdx))
+            ReadLocalVariableNode.build(
+              arg.getName,
+              new FramePointer(0, slotIdx)
+            )
           argumentExpressions.append((assignmentArg, argRead))
         }
 
@@ -1957,7 +1966,12 @@ private[runtime] class IrToTruffle(
         binding.expression.getId,
         canBeCached = true
       )
-      val assignment = AssignmentNode.build(rhs, slotIdx)
+      val assignment =  AssignmentNode.build(
+          binding.name.name,
+          null,
+          rhs,
+          slotIdx
+        )
       setLocation(
         assignment,
         binding.location(),
@@ -2105,9 +2119,10 @@ private[runtime] class IrToTruffle(
       }
 
       override protected def resolveLocalName(
+        name: String,
         localLink: FramePointer
       ): RuntimeExpression =
-        ReadLocalVariableNode.build(localLink)
+        ReadLocalVariableNode.build(name, localLink)
 
       override protected def resolveGlobalName(
         resolvedName: BindingsMap.ResolvedName,
@@ -2380,10 +2395,16 @@ private[runtime] class IrToTruffle(
               )
             val readArgNoCheck =
               setLocation(readArgNoCheck0, unprocessedArg.name().location())
-            val readArg   = TypeCheckValueNode.wrap(readArgNoCheck, checkNode)
-            val assignArg = AssignmentNode.build(readArg, slotIdx)
+            val readArg = TypeCheckValueNode.wrap(readArgNoCheck, checkNode)
+            val assignArgNoLock =
+              AssignmentNode.build(
+                arg.getName,
+                readArgNoCheck.getSourceSectionBounds,
+                readArg,
+                slotIdx
+              )
 
-            argExpressions.append(assignArg)
+            argExpressions.append(assignArgNoLock)
 
             val argName = arg.getName
 
@@ -2416,10 +2437,11 @@ private[runtime] class IrToTruffle(
       val b    = Source.newBuilder("epb", language + ":" + line + "#" + code, name)
       b.uri(source.getURI())
       val src = b.build()
-      val argumentReaders = argumentSlotIdxs
-        .map(slotIdx =>
-          ReadLocalVariableNode.build(new FramePointer(0, slotIdx))
-        )
+      val argumentReaders = argumentSlotIdxs.zipWithIndex
+        .map { case (slotIdx, i) =>
+          ReadLocalVariableNode
+            .build(argumentNames(i), new FramePointer(0, slotIdx))
+        }
         .toArray[RuntimeExpression]
       ForeignMethodCallNode.buildDeferred(
         src,

@@ -1,6 +1,5 @@
 package org.enso.compiler.test;
 
-import static org.enso.compiler.test.ExecStrictCompilerTest.ctxRule;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertEquals;
@@ -646,5 +645,68 @@ public class ExecCompilerTest {
           ex.getMessage(),
           AllOf.allOf(containsString("The name `f`"), containsString("could not be found")));
     }
+  }
+
+  @Test
+  public void onlyElse() throws Exception {
+    var code =
+        """
+        from Standard.Base import all
+        def a:Integer =
+            else a
+        """;
+    var module = ctxRule.eval(LanguageInfo.ID, code);
+    var def = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "def");
+    try {
+      var noResult = def.execute(20);
+      fail("Yields an error: " + noResult);
+    } catch (PolyglotException ex) {
+      assertThat(ex.getMessage(), containsString("no branch matches"));
+    }
+  }
+
+  @Test
+  public void missingElseBranch() throws Exception {
+    var code =
+        """
+        from Standard.Base import all
+        def a:Boolean ~b c =
+            if a then
+                b
+            else
+            node = c
+            node
+        """;
+    var module = ctxRule.eval(LanguageInfo.ID, code);
+    var def = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "def");
+    try {
+      var noResult = def.execute(true, 6, 7);
+      fail("Yields an error: " + noResult);
+    } catch (PolyglotException ex) {
+      assertThat(
+          "In non-strict mode the error happens when executing the def function.",
+          ex.getMessage(),
+          containsString("error: Missing else branch."));
+    }
+  }
+
+  @Test
+  public void ifThenElseInABlockApplication() throws Exception {
+    var code =
+        """
+        act n a b =
+          fn = (* 2)
+          fn
+              if n<5 then
+                  a+b
+              else
+                  a*b
+        """;
+
+    var module = ctxRule.eval(LanguageInfo.ID, code);
+    var act = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "act");
+
+    assertEquals(26, act.execute(3, 6, 7).asInt());
+    assertEquals(84, act.execute(7, 6, 7).asInt());
   }
 }

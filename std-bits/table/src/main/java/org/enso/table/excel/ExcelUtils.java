@@ -11,8 +11,30 @@ import org.apache.poi.ss.usermodel.DateUtil;
 import org.apache.poi.ss.usermodel.ExcelNumberFormat;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.graalvm.polyglot.Context;
 
-public class ExcelUtils {
+public final class ExcelUtils {
+  private static Boolean noContext = false;
+  private static Context context;
+
+  static void safepoint() {
+    if (noContext) {
+      return;
+    }
+
+    if (context != null) {
+      context.safepoint();
+      return;
+    }
+
+    try {
+      context = Context.getCurrent();
+      context.safepoint();
+    } catch (IllegalStateException e) {
+      noContext = true;
+    }
+  }
+
   // The epoch for Excel date-time values. Due to 1900-02-29 being a valid date
   // in Excel, it is actually 1899-12-30. Excel dates are counted from 1 being
   // 1900-01-01.

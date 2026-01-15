@@ -1797,7 +1797,6 @@ lazy val `ydoc-server` = project
       "org.graalvm.sdk"            % "nativeimage"                 % graalMavenPackagesVersion % "provided",
       "org.graalvm.polyglot"       % "inspect-community"           % graalMavenPackagesVersion % "runtime",
       "org.graalvm.polyglot"       % "js-community"                % graalMavenPackagesVersion % "runtime",
-      "io.helidon.common"          % "helidon-common"              % helidonVersion,
       "io.helidon.webclient"       % "helidon-webclient-websocket" % helidonVersion            % Test,
       "io.helidon.webserver"       % "helidon-webserver-websocket" % helidonVersion            % Test,
       "junit"                      % "junit"                       % junitVersion              % Test,
@@ -3823,12 +3822,8 @@ lazy val `engine-runner` = project
         } else {
           base ++
           databaseCp ++
-          `image-polyglot-root`.listFiles("*.jar").map(_.getAbsolutePath()) ++
           `table-polyglot-root`.listFiles("*.jar").map(_.getAbsolutePath()) ++
           `database-polyglot-root`
-            .listFiles("*.jar")
-            .map(_.getAbsolutePath()) ++
-          `std-tableau-polyglot-root`
             .listFiles("*.jar")
             .map(_.getAbsolutePath()) ++
           `std-duckdb-polyglot-root`
@@ -3955,7 +3950,6 @@ lazy val `engine-runner` = project
               "com.azure",
               "akka.http",
               "org.enso.base",
-              "org.enso.image",
               "org.enso.logging",
               "org.enso.common.ContextLoggingConfigurator",
               "org.enso.table",
@@ -5235,6 +5229,7 @@ lazy val `std-table` = project
       "org.antlr"                % "antlr4-runtime"        % antlrVersion,
       "org.apache.logging.log4j" % "log4j"                 % "2.24.3",
       "org.apache.logging.log4j" % "log4j-to-slf4j"        % "2.24.3", // org.apache.poi uses log4j
+      "uk.co.jdunkerley"         % "yxdb-java"             % "0.1.4",
       "org.graalvm.truffle"      % "truffle-api"           % graalMavenPackagesVersion % Test,
       "junit"                    % "junit"                 % junitVersion              % Test,
       "com.github.sbt"           % "junit-interface"       % junitIfVersion            % Test,

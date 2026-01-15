@@ -578,7 +578,7 @@ abstract class TypePropagation {
     }
 
     @Override
-    protected TypeRepresentation resolveLocalName(LinkInfo localLink) {
+    protected TypeRepresentation resolveLocalName(String name, LinkInfo localLink) {
       return localBindingsTyping.getBindingType(localLink.graph, localLink.link.target());
     }
 

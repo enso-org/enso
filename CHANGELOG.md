@@ -8,22 +8,28 @@
 
 #### Enso Standard Library
 
-- [Using dual JVM mode for Standard.Microsoft][14476].
+- [Multiline if_then_else][14522].
+- [Using dual JVM mode for `Standard.Microsoft`][14476].
 - [Standard.Test pending field is lazy][14536].
-- [Using dual JVM mode for Standard.AWS][14568].
+- [Using dual JVM mode for `Standard.AWS`][14568].
+- [Running `Standard.Tableau` in dual JVM mode][14607].
 - [Polishing Standard.Test API][14599].
+- [Support for reading Alteryx YXDB files][14602].
 
+[14522]: https://github.com/enso-org/enso/pull/14522
 [14476]: https://github.com/enso-org/enso/pull/14476
 [14536]: https://github.com/enso-org/enso/pull/14536
 [14568]: https://github.com/enso-org/enso/pull/14568
+[14607]: https://github.com/enso-org/enso/pull/14607
 [14599]: https://github.com/enso-org/enso/pull/14599
+[14602]: https://github.com/enso-org/enso/pull/14602
 
 #### Enso Language & Runtime
 
 - [`Panic.rethrow` keeps original location][14480]
 - [Use `State.get if_missing` to avoid too frequent `Panic.throw`][14490]
-- [Lazily initialized local variables with Ref.memoize][14554].
-- [Flush system caches via Runtime.gc][14557]
+- [Lazily initialized local variables with `Ref.new lazy=True`][14554].
+- [Flush system caches via `Runtime.gc`][14557]
 
 [14480]: https://github.com/enso-org/enso/pull/14480
 [14490]: https://github.com/enso-org/enso/pull/14490
@@ -147,6 +153,7 @@
 - [Add `Date_Column` class, and `first_of_month` and `end_of_month`.][14485]
 - [Add `OneDrive.write` allowing a first API to write to OneDrive.][14494]
 - [Add `Grouping_Method.Equal_Sum` for database backends.][14528]
+- [Add `Grouping_Method.Standard_Deviation` for database backends.][14546]
 
 [13769]: https://github.com/enso-org/enso/pull/13769
 [14026]: https://github.com/enso-org/enso/pull/14026
@@ -184,6 +191,7 @@
 [14492]: https://github.com/enso-org/enso/pull/14492
 [14494]: https://github.com/enso-org/enso/pull/14494
 [14528]: https://github.com/enso-org/enso/pull/14528
+[14546]: https://github.com/enso-org/enso/pull/14528
 
 #### Enso Language & Runtime
 

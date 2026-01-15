@@ -1,6 +1,6 @@
 /** @file Support for getting information about a user's cloud files. */
+import type { ToValue } from '$/utils/reactivity'
 import type { Opt } from '@/util/data/opt'
-import type { ToValue } from '@/util/reactivity'
 import type { DirectoryId, OrganizationInfo, User } from 'enso-common/src/services/Backend'
 import { computed, toValue, type Ref } from 'vue'
 

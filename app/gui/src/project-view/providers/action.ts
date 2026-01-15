@@ -1,3 +1,4 @@
+import type { ToValue } from '$/utils/reactivity'
 import {
   appBindings,
   appContainerBindings,
@@ -12,7 +13,6 @@ import { createContextStore } from '@/providers'
 import { injectActionContext, type ActionContext } from '@/providers/actionContext'
 import { assert } from '@/util/assert'
 import type { Icon } from '@/util/iconMetadata/iconName'
-import type { ToValue } from '@/util/reactivity'
 import type { BindingInfo } from '@/util/shortcuts'
 import { identity } from '@vueuse/core'
 import { ref, toValue, type Ref } from 'vue'

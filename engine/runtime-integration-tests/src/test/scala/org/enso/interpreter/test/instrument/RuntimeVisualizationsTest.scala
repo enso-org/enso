@@ -5929,9 +5929,9 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
       val moduleName      = "Enso_Test.Test.Main"
 
       val metadata       = new Metadata
-      @unused val idInt1 = metadata.addItem(53, 1, "aa")
-      @unused val idInt3 = metadata.addItem(70, 1, "ab")
-      @unused val idInt2 = metadata.addItem(87, 10, "ac")
+      val idInt1 = metadata.addItem(53, 1, "aa")
+      val idInt3 = metadata.addItem(70, 1, "ab")
+      val idInt2 = metadata.addItem(87, 10, "ac")
       //@unused val idMainRes = metadata.addItem(102, 8, "ad")
 
       val code =

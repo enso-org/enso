@@ -4,8 +4,8 @@
 
 use crate::prelude::*;
 
-use crate::ide::web::env as ide_env;
 use crate::ide::web::IdeDesktop;
+use crate::ide::web::env as ide_env;
 use crate::paths::generated::RepoRootAppGuiDist;
 use crate::paths::generated::RepoRootDistGuiAssets;
 use crate::project::Context;

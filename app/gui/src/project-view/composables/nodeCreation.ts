@@ -3,6 +3,7 @@ import { asNodeId } from '$/providers/openedProjects/graph/graphDatabase'
 import { type ModuleStore } from '$/providers/openedProjects/module'
 import type { RequiredImport } from '$/providers/openedProjects/module/imports'
 import type { Typename } from '$/providers/openedProjects/suggestionDatabase/entry'
+import type { ToValue } from '$/utils/reactivity'
 import {
   DEFAULT_NODE_SIZE,
   mouseDictatedPlacement,
@@ -16,7 +17,6 @@ import { partition } from '@/util/data/array'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import { qnLastSegment, tryQualifiedName } from '@/util/qualifiedName'
-import type { ToValue } from '@/util/reactivity'
 import { identity } from '@vueuse/core'
 import * as iter from 'enso-common/src/utilities/data/iter'
 import { Ok } from 'enso-common/src/utilities/data/result'

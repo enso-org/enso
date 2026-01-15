@@ -14,6 +14,7 @@ import { type SuggestionDbStore } from '$/providers/openedProjects/suggestionDat
 import { type Typename } from '$/providers/openedProjects/suggestionDatabase/entry'
 import type { UpdateHandler, UpdateResult } from '$/providers/openedProjects/widgetRegistry'
 import { useCallbackRegistry } from '$/utils/data/callbacks'
+import { proxyRefs, useWatchContext } from '$/utils/reactivity'
 import { usePlacement } from '@/components/ComponentBrowser/placement'
 import type { PortId } from '@/providers/portInfo'
 import { assert, assertNever } from '@/util/assert'
@@ -21,12 +22,10 @@ import { Ast } from '@/util/ast'
 import type { AstId, Identifier, MutableModule } from '@/util/ast/abstract'
 import { isAstId, isIdentifier } from '@/util/ast/abstract'
 import { partition } from '@/util/data/array'
-import { stringUnionToArray, type Events } from '@/util/data/observable'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import { primitiveEquals } from '@/util/equals'
 import type { MethodPointer } from '@/util/methodPointer'
-import { proxyRefs, useWatchContext } from '@/util/reactivity'
 import * as iter from 'enso-common/src/utilities/data/iter'
 import { andThen, Err, Ok, unwrap, type Result } from 'enso-common/src/utilities/data/result'
 import { map, set } from 'lib0'
@@ -50,7 +49,6 @@ import type { ExpressionUpdate } from 'ydoc-shared/languageServerTypes'
 import { reachable } from 'ydoc-shared/util/data/graph'
 import type { ExternalId, VisualizationMetadata } from 'ydoc-shared/yjsModel'
 import { visMetadataEquals } from 'ydoc-shared/yjsModel'
-import * as Y from 'yjs'
 import { type ModuleStore } from '../module'
 
 const FALLBACK_BINDING_PREFIX = 'node'
@@ -224,6 +222,9 @@ export function createGraphStore(
     return imm
   })
 
+  if (module.root) {
+    db.updateExternalIds(module.root)
+  }
   const unobserveModule = module.observe((update) => {
     if (
       module.root &&
@@ -357,43 +358,6 @@ export function createGraphStore(
       return Ok()
     })
   }
-
-  const undoManagerStatus = reactive({
-    canUndo: false,
-    canRedo: false,
-    update(m: Y.UndoManager) {
-      this.canUndo = m.canUndo()
-      this.canRedo = m.canRedo()
-    },
-  })
-  watch(
-    () => proj.module?.undoManager,
-    (m) => {
-      if (m) {
-        const update = () => undoManagerStatus.update(m)
-        const events = stringUnionToArray<keyof Events<Y.UndoManager>>()(
-          'stack-item-added',
-          'stack-item-popped',
-          'stack-cleared',
-          'stack-item-updated',
-        )
-        events.forEach((event) => m.on(event, update))
-      }
-    },
-  )
-  const undoManager = proxyRefs({
-    undo() {
-      proj.module?.undoManager.undo()
-    },
-    redo() {
-      proj.module?.undoManager.redo()
-    },
-    undoStackBoundary() {
-      proj.module?.undoManager.stopCapturing()
-    },
-    canUndo: computed(() => undoManagerStatus.canUndo),
-    canRedo: computed(() => undoManagerStatus.canRedo),
-  })
 
   function setNodePosition(nodeId: NodeId, position: Vec2) {
     const metadata = module.mutableNodeMetadata(db.idFromExternal(nodeId))
@@ -702,11 +666,6 @@ export function createGraphStore(
     return true
   }
 
-  function onBeforeEdit(f: (transaction: Y.Transaction) => void): { unregister: () => void } {
-    proj.module?.doc.ydoc.on('beforeTransaction', f)
-    return { unregister: () => proj.module?.doc.ydoc.off('beforeTransaction', f) }
-  }
-
   return proxyRefs({
     db: markRaw(db),
     mockExpressionUpdate,
@@ -724,7 +683,6 @@ export function createGraphStore(
     setNodeContent,
     setNodePosition,
     setNodeVisualization,
-    undoManager,
     updateNodeRect,
     updateNodeOutputAnim,
     updateVizRect,
@@ -738,7 +696,6 @@ export function createGraphStore(
     isPortEnabled,
     updatePortValue,
     setEditedNode,
-    onBeforeEdit,
     isConnectedSource,
     isConnectedTarget,
     isTargetBeingDraggedAwayFrom,

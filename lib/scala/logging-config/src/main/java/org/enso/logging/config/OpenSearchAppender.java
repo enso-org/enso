@@ -35,7 +35,7 @@ public final class OpenSearchAppender extends Appender {
 
   @Override
   public boolean setup(Level logLevel, LoggerSetup loggerSetup) {
-    var maxLogLevelInt = Math.max(logLevel.toInt(), maxLogLevel.toInt());
+    var maxLogLevelInt = Math.min(logLevel.toInt(), maxLogLevel.toInt());
     return enabled
         && loggerSetup.setupOpenSearchAppender(
             Level.intToLevel(maxLogLevelInt), URI.create(logsUri), logConnectionFailures);

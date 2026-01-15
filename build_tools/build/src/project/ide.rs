@@ -1,8 +1,8 @@
 #[allow(unused_imports)]
 use crate::prelude::*;
 
-use crate::project::gui::ide_desktop_from_context;
 use crate::project::Context;
+use crate::project::gui::ide_desktop_from_context;
 
 #[derive(Clone, Debug)]
 pub struct Artifact {

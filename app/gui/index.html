@@ -16,7 +16,7 @@
             default-src     'self';
             frame-src       'self' data: https://js.stripe.com https://www.youtube.com https://www.youtube-nocookie.com;
             script-src      'self' 'unsafe-eval' data: https://*;
-            script-src-elem 'self' 'unsafe-inline' https://*;
+            script-src-elem 'self' 'unsafe-inline' https://* blob:;
             style-src       'self' 'unsafe-inline' data: https://*;
             connect-src     'self' data: ws://localhost:* ws://127.0.0.1:* http://localhost:* https://* wss://*;
             worker-src      'self' blob:;
