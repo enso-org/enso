@@ -27,7 +27,7 @@ test('Align Left button aligns multiple nodes to leftmost position', async ({
   assert(node2InitialBBox)
 
   // Click align left button
-  const alignLeftButton = selectionMenu.getByLabel('Align Selected Components Left')
+  const alignLeftButton = selectionMenu.getByLabel('Align Left')
   await expect(alignLeftButton).toBeVisible()
   await alignLeftButton.click()
 
@@ -71,7 +71,7 @@ test('Align Right button aligns multiple nodes to rightmost position', async ({
   assert(node2InitialBBox)
 
   // Click align right button
-  const alignRightButton = selectionMenu.getByLabel('Align Selected Components Right')
+  const alignRightButton = selectionMenu.getByLabel('Align Right')
   await expect(alignRightButton).toBeVisible()
   await alignRightButton.click()
 
@@ -117,7 +117,7 @@ test('Align Top button aligns multiple nodes to topmost position', async ({ edit
   assert(node2InitialBBox)
 
   // Click align top button
-  const alignTopButton = selectionMenu.getByLabel('Align Selected Components Top')
+  const alignTopButton = selectionMenu.getByLabel('Align Top')
   await expect(alignTopButton).toBeVisible()
   await alignTopButton.click()
 
@@ -163,7 +163,7 @@ test('Align Bottom button aligns multiple nodes to bottommost position', async (
   assert(node2InitialBBox)
 
   // Click align bottom button
-  const alignBottomButton = selectionMenu.getByLabel('Align Selected Components Bottom')
+  const alignBottomButton = selectionMenu.getByLabel('Align Bottom')
   await expect(alignBottomButton).toBeVisible()
   await alignBottomButton.click()
   await page.waitForTimeout(100)
@@ -206,7 +206,7 @@ test('Align Center button centers multiple nodes horizontally', async ({ editorP
   assert(node2InitialBBox)
 
   // Click align center button
-  const alignCenterButton = selectionMenu.getByLabel('Center Selected Components Horizontally')
+  const alignCenterButton = selectionMenu.getByLabel('Center')
   await expect(alignCenterButton).toBeVisible()
   await alignCenterButton.click()
 
@@ -262,11 +262,11 @@ test('Alignment buttons are visible when multiple nodes are selected', async ({
   await expect(selectionMenu).toBeVisible()
 
   // Verify all alignment buttons are present
-  await expect(selectionMenu.getByLabel('Align Selected Components Left')).toBeVisible()
-  await expect(selectionMenu.getByLabel('Align Selected Components Right')).toBeVisible()
-  await expect(selectionMenu.getByLabel('Align Selected Components Top')).toBeVisible()
-  await expect(selectionMenu.getByLabel('Align Selected Components Bottom')).toBeVisible()
-  await expect(selectionMenu.getByLabel('Center Selected Components Horizontally')).toBeVisible()
+  await expect(selectionMenu.getByLabel('Align Left')).toBeVisible()
+  await expect(selectionMenu.getByLabel('Align Right')).toBeVisible()
+  await expect(selectionMenu.getByLabel('Align Top')).toBeVisible()
+  await expect(selectionMenu.getByLabel('Align Bottom')).toBeVisible()
+  await expect(selectionMenu.getByLabel('Center')).toBeVisible()
 })
 
 test('Multiple alignment operations can be performed sequentially', async ({
@@ -288,7 +288,7 @@ test('Multiple alignment operations can be performed sequentially', async ({
   await expect(selectionMenu).toBeVisible()
 
   // First align left
-  const alignLeftButton = selectionMenu.getByLabel('Align Selected Components Left')
+  const alignLeftButton = selectionMenu.getByLabel('Align Left')
   await alignLeftButton.click()
 
   // Get positions after left alignment
@@ -298,7 +298,7 @@ test('Multiple alignment operations can be performed sequentially', async ({
   assert(node2AfterLeft)
 
   // Then align top
-  const alignTopButton = selectionMenu.getByLabel('Align Selected Components Top')
+  const alignTopButton = selectionMenu.getByLabel('Align Top')
   await alignTopButton.click()
 
   // Verify both alignments took effect
