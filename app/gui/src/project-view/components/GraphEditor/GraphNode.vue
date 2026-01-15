@@ -36,6 +36,7 @@ import ResizeHandles from '@/components/ResizeHandles.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
 import { useComponentColors } from '@/composables/componentColors'
 import { useClickableDraggable } from '@/composables/dragging'
+import { useHoverMenu } from '@/composables/hoverMenu'
 import { useResizeObserver } from '@/composables/events'
 import { useProgressBackground } from '@/composables/progressBar'
 import type { ActionHandler, DisplayableActionName } from '@/providers/action'
@@ -444,68 +445,12 @@ const contextMenuActions = computed<DisplayableActionName[]>(() =>
   nodeSelection.selected.size > 1 ? multiSelectionMenuActions : nodeMenuActions,
 )
 
-const alignmentMenuOpen = ref(false)
-const alignmentMenuOpenedByHover = ref(false)
-const alignmentMenuHovering = ref(false)
-const alignmentMenuOpenModel = computed({
-  get: () => alignmentMenuOpen.value,
-  set: (open) => {
-    if (!open && alignmentMenuOpenedByHover.value && alignmentMenuHovering.value) return
-    alignmentMenuOpen.value = open
-    if (!open) alignmentMenuOpenedByHover.value = false
-  },
-})
-let alignmentMenuOpenTimeout: number | undefined
-let alignmentMenuCloseTimeout: number | undefined
-
-function clearAlignmentMenuOpenTimeout() {
-  if (alignmentMenuOpenTimeout != null) {
-    window.clearTimeout(alignmentMenuOpenTimeout)
-    alignmentMenuOpenTimeout = undefined
-  }
-}
-
-function clearAlignmentMenuCloseTimeout() {
-  if (alignmentMenuCloseTimeout != null) {
-    window.clearTimeout(alignmentMenuCloseTimeout)
-    alignmentMenuCloseTimeout = undefined
-  }
-}
-
-function scheduleAlignmentMenuOpen() {
-  clearAlignmentMenuCloseTimeout()
-  clearAlignmentMenuOpenTimeout()
-  alignmentMenuOpenTimeout = window.setTimeout(() => {
-    if (!alignmentMenuHovering.value) return
-    alignmentMenuOpenedByHover.value = true
-    alignmentMenuOpen.value = true
-  }, 200)
-}
-
-function scheduleAlignmentMenuClose() {
-  clearAlignmentMenuOpenTimeout()
-  clearAlignmentMenuCloseTimeout()
-  if (!alignmentMenuOpenedByHover.value) return
-  alignmentMenuCloseTimeout = window.setTimeout(() => {
-    if (alignmentMenuHovering.value) return
-    alignmentMenuOpenedByHover.value = false
-    alignmentMenuOpen.value = false
-  }, 150)
-}
-
-function handleAlignmentMenuEnter() {
-  alignmentMenuHovering.value = true
-  scheduleAlignmentMenuOpen()
-}
-
-function handleAlignmentMenuLeave() {
-  alignmentMenuHovering.value = false
-  scheduleAlignmentMenuClose()
-}
-
-watch(alignmentMenuOpen, (open) => {
-  if (!open) alignmentMenuOpenedByHover.value = false
-})
+const {
+  menuOpen: alignmentMenuOpen,
+  menuOpenModel: alignmentMenuOpenModel,
+  handleMenuEnter: handleAlignmentMenuEnter,
+  handleMenuLeave: handleAlignmentMenuLeave,
+} = useHoverMenu()
 
 onWindowBlur(() => {
   graph.nodeHovered.delete(nodeId.value)
@@ -572,16 +517,14 @@ resizeHandles.onResizeHeight((value) => emit('update:height', value))
           class="alignmentSubmenu"
           placement="right-start"
           title="Align"
-          @mouseenter="handleAlignmentMenuEnter"
-          @mouseleave="handleAlignmentMenuLeave"
           @pointerenter="handleAlignmentMenuEnter"
           @pointerleave="handleAlignmentMenuLeave"
         >
           <template #button>
             <div
               class="alignmentSubmenuTrigger"
-              @mouseenter="handleAlignmentMenuEnter"
-              @mouseleave="handleAlignmentMenuLeave"
+              @pointerenter="handleAlignmentMenuEnter"
+              @pointerleave="handleAlignmentMenuLeave"
             >
               <SvgIcon name="align_left" class="rowIcon" />
               <span>Align</span>
@@ -591,8 +534,8 @@ resizeHandles.onResizeHeight((value) => emit('update:height', value))
           <template #menu>
             <div
               class="alignmentSubmenuPanel"
-              @mouseenter="handleAlignmentMenuEnter"
-              @mouseleave="handleAlignmentMenuLeave"
+              @pointerenter="handleAlignmentMenuEnter"
+              @pointerleave="handleAlignmentMenuLeave"
             >
               <MenuPanel class="alignmentMenu">
                 <MenuEntry

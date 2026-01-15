@@ -4,10 +4,11 @@ import ColorPickerMenu from '@/components/ColorPickerMenu.vue'
 import DropdownMenu from '@/components/DropdownMenu.vue'
 import MenuPanel from '@/components/MenuPanel.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
+import { useHoverMenu } from '@/composables/hoverMenu'
 import { resolveAction } from '@/providers/action'
 import { useGraphSelection } from '@/providers/graphSelection'
 import { flip, offset, shift, useFloating } from '@floating-ui/vue'
-import { computed, nextTick, ref, toValue, watch } from 'vue'
+import { nextTick, ref, toValue, watch } from 'vue'
 
 const selection = useGraphSelection()
 const pickColorMulti = resolveAction('components.pickColorMulti')
@@ -26,68 +27,13 @@ watch(
     if (opened) nextTick(update)
   },
 )
-const alignmentMenuOpen = ref(false)
-const alignmentMenuOpenedByHover = ref(false)
-const alignmentMenuHovering = ref(false)
-const alignmentMenuOpenModel = computed({
-  get: () => alignmentMenuOpen.value,
-  set: (open) => {
-    if (!open && alignmentMenuOpenedByHover.value && alignmentMenuHovering.value) return
-    alignmentMenuOpen.value = open
-    if (!open) alignmentMenuOpenedByHover.value = false
-  },
-})
-let alignmentMenuOpenTimeout: number | undefined
-let alignmentMenuCloseTimeout: number | undefined
 
-function clearAlignmentMenuOpenTimeout() {
-  if (alignmentMenuOpenTimeout != null) {
-    window.clearTimeout(alignmentMenuOpenTimeout)
-    alignmentMenuOpenTimeout = undefined
-  }
-}
-
-function clearAlignmentMenuCloseTimeout() {
-  if (alignmentMenuCloseTimeout != null) {
-    window.clearTimeout(alignmentMenuCloseTimeout)
-    alignmentMenuCloseTimeout = undefined
-  }
-}
-
-function scheduleAlignmentMenuOpen() {
-  clearAlignmentMenuCloseTimeout()
-  clearAlignmentMenuOpenTimeout()
-  alignmentMenuOpenTimeout = window.setTimeout(() => {
-    if (!alignmentMenuHovering.value) return
-    alignmentMenuOpenedByHover.value = true
-    alignmentMenuOpen.value = true
-  }, 200)
-}
-
-function scheduleAlignmentMenuClose() {
-  clearAlignmentMenuOpenTimeout()
-  clearAlignmentMenuCloseTimeout()
-  if (!alignmentMenuOpenedByHover.value) return
-  alignmentMenuCloseTimeout = window.setTimeout(() => {
-    if (alignmentMenuHovering.value) return
-    alignmentMenuOpenedByHover.value = false
-    alignmentMenuOpen.value = false
-  }, 150)
-}
-
-function handleAlignmentMenuEnter() {
-  alignmentMenuHovering.value = true
-  scheduleAlignmentMenuOpen()
-}
-
-function handleAlignmentMenuLeave() {
-  alignmentMenuHovering.value = false
-  scheduleAlignmentMenuClose()
-}
-
-watch(alignmentMenuOpen, (open) => {
-  if (!open) alignmentMenuOpenedByHover.value = false
-})
+const {
+  menuOpen: alignmentMenuOpen,
+  menuOpenModel: alignmentMenuOpenModel,
+  handleMenuEnter: handleAlignmentMenuEnter,
+  handleMenuLeave: handleAlignmentMenuLeave,
+} = useHoverMenu()
 </script>
 
 <template>
@@ -109,8 +55,6 @@ watch(alignmentMenuOpen, (open) => {
       placement="bottom-start"
       title="Align"
       alwaysShowArrow
-      @mouseenter="handleAlignmentMenuEnter"
-      @mouseleave="handleAlignmentMenuLeave"
       @pointerenter="handleAlignmentMenuEnter"
       @pointerleave="handleAlignmentMenuLeave"
     >
@@ -120,8 +64,6 @@ watch(alignmentMenuOpen, (open) => {
       <template #menu>
         <div
           class="alignmentMenuHover"
-          @mouseenter="handleAlignmentMenuEnter"
-          @mouseleave="handleAlignmentMenuLeave"
           @pointerenter="handleAlignmentMenuEnter"
           @pointerleave="handleAlignmentMenuLeave"
         >
