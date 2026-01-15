@@ -26,7 +26,9 @@ test('Align Left button aligns multiple nodes to leftmost position', async ({
   assert(node1InitialBBox)
   assert(node2InitialBBox)
 
-  // Click align left button
+  // Open alignment dropdown and click align left button
+  const alignMenu = selectionMenu.getByTitle('Align')
+  await alignMenu.click()
   const alignLeftButton = selectionMenu.getByLabel('Align Left')
   await expect(alignLeftButton).toBeVisible()
   await alignLeftButton.click()
@@ -70,7 +72,9 @@ test('Align Right button aligns multiple nodes to rightmost position', async ({
   assert(node1InitialBBox)
   assert(node2InitialBBox)
 
-  // Click align right button
+  // Open alignment dropdown and click align right button
+  const alignMenu = selectionMenu.getByTitle('Align')
+  await alignMenu.click()
   const alignRightButton = selectionMenu.getByLabel('Align Right')
   await expect(alignRightButton).toBeVisible()
   await alignRightButton.click()
@@ -116,7 +120,9 @@ test('Align Top button aligns multiple nodes to topmost position', async ({ edit
   assert(node1InitialBBox)
   assert(node2InitialBBox)
 
-  // Click align top button
+  // Open alignment dropdown and click align top button
+  const alignMenu = selectionMenu.getByTitle('Align')
+  await alignMenu.click()
   const alignTopButton = selectionMenu.getByLabel('Align Top')
   await expect(alignTopButton).toBeVisible()
   await alignTopButton.click()
@@ -162,7 +168,9 @@ test('Align Bottom button aligns multiple nodes to bottommost position', async (
   assert(node1InitialBBox)
   assert(node2InitialBBox)
 
-  // Click align bottom button
+  // Open alignment dropdown and click align bottom button
+  const alignMenu = selectionMenu.getByTitle('Align')
+  await alignMenu.click()
   const alignBottomButton = selectionMenu.getByLabel('Align Bottom')
   await expect(alignBottomButton).toBeVisible()
   await alignBottomButton.click()
@@ -205,7 +213,9 @@ test('Align Center button centers multiple nodes horizontally', async ({ editorP
   assert(node1InitialBBox)
   assert(node2InitialBBox)
 
-  // Click align center button
+  // Open alignment dropdown and click align center button
+  const alignMenu = selectionMenu.getByTitle('Align')
+  await alignMenu.click()
   const alignCenterButton = selectionMenu.getByLabel('Center')
   await expect(alignCenterButton).toBeVisible()
   await alignCenterButton.click()
@@ -261,7 +271,12 @@ test('Alignment buttons are visible when multiple nodes are selected', async ({
   await locate.graphNodeIcon(node2).click({ modifiers: ['Shift'] })
   await expect(selectionMenu).toBeVisible()
 
-  // Verify all alignment buttons are present
+  // Verify alignment dropdown button is present
+  const alignMenu = selectionMenu.getByTitle('Align')
+  await expect(alignMenu).toBeVisible()
+  
+  // Open the dropdown and verify all alignment buttons are present
+  await alignMenu.click()
   await expect(selectionMenu.getByLabel('Align Left')).toBeVisible()
   await expect(selectionMenu.getByLabel('Align Right')).toBeVisible()
   await expect(selectionMenu.getByLabel('Align Top')).toBeVisible()
@@ -288,6 +303,8 @@ test('Multiple alignment operations can be performed sequentially', async ({
   await expect(selectionMenu).toBeVisible()
 
   // First align left
+  const alignMenu = selectionMenu.getByTitle('Align')
+  await alignMenu.click()
   const alignLeftButton = selectionMenu.getByLabel('Align Left')
   await alignLeftButton.click()
 
@@ -297,7 +314,8 @@ test('Multiple alignment operations can be performed sequentially', async ({
   assert(node1AfterLeft)
   assert(node2AfterLeft)
 
-  // Then align top
+  // Then align top - need to reopen the dropdown
+  await alignMenu.click()
   const alignTopButton = selectionMenu.getByLabel('Align Top')
   await alignTopButton.click()
 
