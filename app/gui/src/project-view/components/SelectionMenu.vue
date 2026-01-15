@@ -7,7 +7,7 @@ import SvgIcon from '@/components/SvgIcon.vue'
 import { resolveAction } from '@/providers/action'
 import { useGraphSelection } from '@/providers/graphSelection'
 import { flip, offset, shift, useFloating } from '@floating-ui/vue'
-import { nextTick, ref, toValue, watch } from 'vue'
+import { computed, nextTick, ref, toValue, watch } from 'vue'
 
 const selection = useGraphSelection()
 const pickColorMulti = resolveAction('components.pickColorMulti')
@@ -29,6 +29,14 @@ watch(
 const alignmentMenuOpen = ref(false)
 const alignmentMenuOpenedByHover = ref(false)
 const alignmentMenuHovering = ref(false)
+const alignmentMenuOpenModel = computed({
+  get: () => alignmentMenuOpen.value,
+  set: (open) => {
+    if (!open && alignmentMenuOpenedByHover.value && alignmentMenuHovering.value) return
+    alignmentMenuOpen.value = open
+    if (!open) alignmentMenuOpenedByHover.value = false
+  },
+})
 let alignmentMenuOpenTimeout: number | undefined
 let alignmentMenuCloseTimeout: number | undefined
 
@@ -97,7 +105,7 @@ watch(alignmentMenuOpen, (open) => {
       />
     </span>
     <DropdownMenu
-      v-model:open="alignmentMenuOpen"
+      v-model:open="alignmentMenuOpenModel"
       placement="bottom-start"
       title="Align"
       alwaysShowArrow
@@ -110,17 +118,25 @@ watch(alignmentMenuOpen, (open) => {
         <SvgIcon name="align_left" />
       </template>
       <template #menu>
-        <MenuPanel class="alignmentMenu">
-          <div class="alignmentMenuRow horizontal">
-            <ActionButton action="components.alignLeft" @click="alignmentMenuOpen = false" />
-            <ActionButton action="components.alignCenter" @click="alignmentMenuOpen = false" />
-            <ActionButton action="components.alignRight" @click="alignmentMenuOpen = false" />
-          </div>
-          <div class="alignmentMenuRow vertical">
-            <ActionButton action="components.alignTop" @click="alignmentMenuOpen = false" />
-            <ActionButton action="components.alignBottom" @click="alignmentMenuOpen = false" />
-          </div>
-        </MenuPanel>
+        <div
+          class="alignmentMenuHover"
+          @mouseenter="handleAlignmentMenuEnter"
+          @mouseleave="handleAlignmentMenuLeave"
+          @pointerenter="handleAlignmentMenuEnter"
+          @pointerleave="handleAlignmentMenuLeave"
+        >
+          <MenuPanel class="alignmentMenu">
+            <div class="alignmentMenuRow horizontal">
+              <ActionButton action="components.alignLeft" @click="alignmentMenuOpen = false" />
+              <ActionButton action="components.alignCenter" @click="alignmentMenuOpen = false" />
+              <ActionButton action="components.alignRight" @click="alignmentMenuOpen = false" />
+            </div>
+            <div class="alignmentMenuRow vertical">
+              <ActionButton action="components.alignTop" @click="alignmentMenuOpen = false" />
+              <ActionButton action="components.alignBottom" @click="alignmentMenuOpen = false" />
+            </div>
+          </MenuPanel>
+        </div>
       </template>
     </DropdownMenu>
     <ActionButton action="components.copy" />

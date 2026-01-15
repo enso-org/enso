@@ -439,6 +439,14 @@ const contextMenuActions = computed<DisplayableActionName[]>(() =>
 const alignmentMenuOpen = ref(false)
 const alignmentMenuOpenedByHover = ref(false)
 const alignmentMenuHovering = ref(false)
+const alignmentMenuOpenModel = computed({
+  get: () => alignmentMenuOpen.value,
+  set: (open) => {
+    if (!open && alignmentMenuOpenedByHover.value && alignmentMenuHovering.value) return
+    alignmentMenuOpen.value = open
+    if (!open) alignmentMenuOpenedByHover.value = false
+  },
+})
 let alignmentMenuOpenTimeout: number | undefined
 let alignmentMenuCloseTimeout: number | undefined
 
@@ -552,7 +560,7 @@ resizeHandles.onResizeHeight((value) => emit('update:height', value))
       <template #menuElements>
         <DropdownMenu
           v-if="nodeSelection.selected.size > 1"
-          v-model:open="alignmentMenuOpen"
+          v-model:open="alignmentMenuOpenModel"
           class="alignmentSubmenu"
           placement="right-start"
           title="Align"
