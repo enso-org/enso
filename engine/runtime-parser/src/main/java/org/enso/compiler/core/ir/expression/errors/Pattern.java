@@ -11,6 +11,7 @@ import org.enso.runtime.parser.dsl.GenerateIR;
 import org.enso.runtime.parser.dsl.IRChild;
 import org.enso.runtime.parser.dsl.IRField;
 import scala.Function1;
+import scala.Option;
 
 /** A representation of an error resulting from wrong pattern matches. */
 @GenerateIR(
@@ -47,6 +48,17 @@ public final class Pattern extends ErrorPatternGen {
   @Override
   public Object[] diagnosticKeys() {
     return new Object[] {reason()};
+  }
+
+  @Override
+  public IdentifiedLocation identifiedLocation() {
+    return originalPattern().identifiedLocation();
+  }
+
+  @Override
+  public Pattern setLocation(Option<IdentifiedLocation> location) {
+    var newOrigPattern = originalPattern().setLocation(location);
+    return builder(this).originalPattern(newOrigPattern).build();
   }
 
   @Override

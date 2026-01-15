@@ -73,6 +73,12 @@ public final class Resolution extends ResolutionErrorGen {
   }
 
   @Override
+  public Resolution setLocation(Option<IdentifiedLocation> location) {
+    var newOrigName = originalName().setLocation(location);
+    return builder(this).originalName(newOrigName).build();
+  }
+
+  @Override
   public IdentifiedLocation identifiedLocation() {
     return originalName().identifiedLocation();
   }
