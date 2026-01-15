@@ -37,6 +37,9 @@ export const $config = {
     processEnv.ENSO_IDE_STRAVA_OAUTH_CLIENT_ID ?? import.meta.env.ENSO_IDE_STRAVA_OAUTH_CLIENT_ID,
   MS365_OAUTH_CLIENT_ID:
     processEnv.ENSO_IDE_MS365_OAUTH_CLIENT_ID ?? import.meta.env.ENSO_IDE_MS365_OAUTH_CLIENT_ID,
+  SALESFORCE_OAUTH_CLIENT_ID:
+    processEnv.ENSO_IDE_SALESFORCE_OAUTH_CLIENT_ID ??
+    import.meta.env?.ENSO_IDE_SALESFORCE_OAUTH_CLIENT_ID,
   MAPBOX_API_TOKEN:
     processEnv.ENSO_IDE_MAPBOX_API_TOKEN ??
     (typeof window !== 'undefined' ? window.api?.mapBoxApiToken() : undefined) ??

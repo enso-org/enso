@@ -15,6 +15,7 @@
 - [Running `Standard.Tableau` in dual JVM mode][14607].
 - [Polishing Standard.Test API][14599].
 - [Support for reading Alteryx YXDB files][14602].
+- [Salesforce OAuth support.][14550]
 
 [14522]: https://github.com/enso-org/enso/pull/14522
 [14476]: https://github.com/enso-org/enso/pull/14476
@@ -23,6 +24,7 @@
 [14607]: https://github.com/enso-org/enso/pull/14607
 [14599]: https://github.com/enso-org/enso/pull/14599
 [14602]: https://github.com/enso-org/enso/pull/14602
+[14550]: https://github.com/enso-org/enso/pull/14550
 
 #### Enso Language & Runtime
 

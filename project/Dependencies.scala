@@ -167,6 +167,7 @@ object Dependencies {
       "io.helidon.http.encoding" % "helidon-http-encoding"       % helidonVersion,
       "io.helidon.http.media"    % "helidon-http-media"          % helidonVersion,
       "io.helidon.logging"       % "helidon-logging-common"      % helidonVersion,
+      "io.helidon.logging"       % "helidon-logging-slf4j"       % helidonVersion,
       "io.helidon.metadata"      % "helidon-metadata-hson"       % helidonVersion,
       "io.helidon.service"       % "helidon-service-metadata"    % helidonVersion,
       "io.helidon.service"       % "helidon-service-registry"    % helidonVersion,
@@ -185,6 +186,7 @@ object Dependencies {
       "io.helidon.common.features"    % "helidon-common-features"           % helidonVersion,
       "io.helidon.common.features"    % "helidon-common-features-api"       % helidonVersion,
       "io.helidon.common"             % "helidon-common-task"               % helidonVersion,
+      "io.helidon.logging"            % "helidon-logging-slf4j"             % helidonVersion,
       "io.helidon.metrics"            % "helidon-metrics-api"               % helidonVersion
     )
     clientAndSharedDeps ++ serverDeps
