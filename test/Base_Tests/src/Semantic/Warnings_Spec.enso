@@ -13,6 +13,12 @@ from Standard.Test import all
 type My_Warning
     Value reason
 
+type My_Warning_Method_Override
+    Value reason
+
+    to_text self = "My_Warning_Method_Override (to_text): "+self.reason.to_text
+    to_display_text self = "My_Warning_Method_Override (to_display_text): "+self.reason.to_display_text
+
 type My_Type
     Value a b c
 My_Type.my_method self = self.a + self.b + self.c
@@ -135,6 +141,12 @@ add_specs suite_builder = suite_builder.group "Dataflow Warnings" group_builder-
         r = Long.sum x y
         r.should_equal 3
         Warning.get_all r . map .value . should_equal ['warn!', 'warn!!']
+
+    group_builder.specify "should respect to_text method override" <|
+        with_warn = Warning.attach (My_Warning_Method_Override.Value "custom warn") 42
+        warn = Warning.get_all with_warn . first
+        warn.to_text . should_equal "My_Warning_Method_Override (to_text): custom warn"
+        warn.to_display_text . should_equal "My_Warning_Method_Override (to_display_text): custom warn"
 
     group_builder.specify "should be passed correctly when combined with warnings added in branches" <|
         one = Warning.attach "first" "1"
