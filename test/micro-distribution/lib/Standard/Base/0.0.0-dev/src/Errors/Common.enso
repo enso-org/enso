@@ -2,6 +2,7 @@ import project.Any.Any
 import project.Data.Text.Text
 import project.Error.Error
 import project.Meta
+import project.Nothing.Nothing
 
 polyglot java import java.util.regex.Pattern as Java_Pattern
 
@@ -88,7 +89,7 @@ type Index_Out_Of_Bounds
         "The index " + self.index.to_text + " is out of bounds in a collection of length " + self.length.to_text + "."
 
 type Missing_Argument
-    Error (argument_name : Text) (function_name : Text | Nothing = Nothing) (call_location : Source_Location | Nothing = Nothing) (message : Text = "Provide a value for the argument `" + argument_name + "`.")
+    Error argument_name function_name=Nothing call_location=Nothing message="Provide a value for the argument `"+argument_name+"`."
     to_display_text self = self.message
 
 ## ---
