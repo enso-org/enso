@@ -1,4 +1,4 @@
-import { computed, onUnmounted, ref, watch, type Ref } from 'vue'
+import { computed, onUnmounted, ref, type Ref } from 'vue'
 
 const HOVER_OPEN_DELAY_MS = 200
 const HOVER_CLOSE_DELAY_MS = 150
@@ -95,11 +95,6 @@ export function useHoverMenu(options: UseHoverMenuOptions = {}) {
       menuOpen.value = open
       if (!open) menuOpenedByHover.value = false
     },
-  })
-
-  // Clean up hover state when menu closes
-  watch(menuOpen, (open) => {
-    if (!open) menuOpenedByHover.value = false
   })
 
   // Clean up timeouts on unmount to prevent memory leaks
