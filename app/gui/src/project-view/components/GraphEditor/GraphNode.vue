@@ -437,6 +437,59 @@ const contextMenuActions = computed<DisplayableActionName[]>(() =>
 )
 
 const alignmentMenuOpen = ref(false)
+const alignmentMenuOpenedByHover = ref(false)
+const alignmentMenuHovering = ref(false)
+let alignmentMenuOpenTimeout: number | undefined
+let alignmentMenuCloseTimeout: number | undefined
+
+function clearAlignmentMenuOpenTimeout() {
+  if (alignmentMenuOpenTimeout != null) {
+    window.clearTimeout(alignmentMenuOpenTimeout)
+    alignmentMenuOpenTimeout = undefined
+  }
+}
+
+function clearAlignmentMenuCloseTimeout() {
+  if (alignmentMenuCloseTimeout != null) {
+    window.clearTimeout(alignmentMenuCloseTimeout)
+    alignmentMenuCloseTimeout = undefined
+  }
+}
+
+function scheduleAlignmentMenuOpen() {
+  clearAlignmentMenuCloseTimeout()
+  clearAlignmentMenuOpenTimeout()
+  alignmentMenuOpenTimeout = window.setTimeout(() => {
+    if (!alignmentMenuHovering.value) return
+    alignmentMenuOpenedByHover.value = true
+    alignmentMenuOpen.value = true
+  }, 200)
+}
+
+function scheduleAlignmentMenuClose() {
+  clearAlignmentMenuOpenTimeout()
+  clearAlignmentMenuCloseTimeout()
+  if (!alignmentMenuOpenedByHover.value) return
+  alignmentMenuCloseTimeout = window.setTimeout(() => {
+    if (alignmentMenuHovering.value) return
+    alignmentMenuOpenedByHover.value = false
+    alignmentMenuOpen.value = false
+  }, 150)
+}
+
+function handleAlignmentMenuEnter() {
+  alignmentMenuHovering.value = true
+  scheduleAlignmentMenuOpen()
+}
+
+function handleAlignmentMenuLeave() {
+  alignmentMenuHovering.value = false
+  scheduleAlignmentMenuClose()
+}
+
+watch(alignmentMenuOpen, (open) => {
+  if (!open) alignmentMenuOpenedByHover.value = false
+})
 
 onWindowBlur(() => {
   graph.nodeHovered.delete(nodeId.value)
@@ -503,20 +556,36 @@ resizeHandles.onResizeHeight((value) => emit('update:height', value))
           class="alignmentSubmenu"
           placement="right-start"
           title="Align"
+          @mouseenter="handleAlignmentMenuEnter"
+          @mouseleave="handleAlignmentMenuLeave"
+          @pointerenter="handleAlignmentMenuEnter"
+          @pointerleave="handleAlignmentMenuLeave"
         >
           <template #button>
-            <SvgIcon name="align_left" class="rowIcon" />
-            <span>Align</span>
-            <SvgIcon name="arrow_right_head_only" class="submenuArrow" />
+            <div
+              class="alignmentSubmenuTrigger"
+              @mouseenter="handleAlignmentMenuEnter"
+              @mouseleave="handleAlignmentMenuLeave"
+            >
+              <SvgIcon name="align_left" class="rowIcon" />
+              <span>Align</span>
+              <SvgIcon name="arrow_right_head_only" class="submenuArrow" />
+            </div>
           </template>
           <template #menu>
-            <MenuPanel class="alignmentMenu">
-              <MenuEntry action="components.alignLeft" @click="alignmentMenuOpen = false" />
-              <MenuEntry action="components.alignCenter" @click="alignmentMenuOpen = false" />
-              <MenuEntry action="components.alignRight" @click="alignmentMenuOpen = false" />
-              <MenuEntry action="components.alignTop" @click="alignmentMenuOpen = false" />
-              <MenuEntry action="components.alignBottom" @click="alignmentMenuOpen = false" />
-            </MenuPanel>
+            <div
+              class="alignmentSubmenuPanel"
+              @mouseenter="handleAlignmentMenuEnter"
+              @mouseleave="handleAlignmentMenuLeave"
+            >
+              <MenuPanel class="alignmentMenu">
+                <MenuEntry action="components.alignLeft" @click="alignmentMenuOpen = false" />
+                <MenuEntry action="components.alignCenter" @click="alignmentMenuOpen = false" />
+                <MenuEntry action="components.alignRight" @click="alignmentMenuOpen = false" />
+                <MenuEntry action="components.alignTop" @click="alignmentMenuOpen = false" />
+                <MenuEntry action="components.alignBottom" @click="alignmentMenuOpen = false" />
+              </MenuPanel>
+            </div>
           </template>
         </DropdownMenu>
       </template>
@@ -686,6 +755,13 @@ resizeHandles.onResizeHeight((value) => emit('update:height', value))
   width: 100%;
   margin: 0;
   --drop-down-panel-z-index: 40;
+}
+
+.alignmentSubmenuTrigger {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  gap: 8px;
 }
 
 .alignmentSubmenu :deep(.MenuButton) {
