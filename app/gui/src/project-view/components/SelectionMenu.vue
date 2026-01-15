@@ -120,11 +120,11 @@ const {
   padding: 10px 12px;
 }
 
+/* Rows for horizontal and vertical alignment buttons */
 .alignmentMenuRow {
   display: flex;
   gap: 10px;
 }
-
 
 .disableInput {
   pointer-events: none;
