@@ -1,6 +1,6 @@
 import { useUploadsToCloudStore } from '$/providers/upload'
+import type { ToValue } from '$/utils/reactivity'
 import { backendMutationOptions } from '@/composables/backend'
-import type { ToValue } from '@/util/reactivity'
 import { useMutation } from '@tanstack/vue-query'
 import type { Backend, UploadFileRequestParams } from 'enso-common/src/services/Backend'
 import { computed, toValue } from 'vue'

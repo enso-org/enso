@@ -1,4 +1,4 @@
-import { proxyRefs } from '@/util/reactivity'
+import { proxyRefs } from '$/utils/reactivity'
 import { createGlobalState } from '@vueuse/core'
 import { parseWebAppOptionsFromSearchParams, type Options } from 'enso-common/src/options'
 import { computed } from 'vue'

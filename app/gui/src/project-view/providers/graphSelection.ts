@@ -1,10 +1,10 @@
 import { type NodeId } from '$/providers/openedProjects/graph'
 import type { ConnectedEdge } from '$/providers/openedProjects/graph/graph'
+import { proxyRefs } from '$/utils/reactivity'
 import type { NavigatorComposable } from '@/composables/navigator'
 import { useGraphHover, useSelection, type SelectionOptions } from '@/composables/selection'
 import { createContextStore } from '@/providers'
 import type { Rect } from '@/util/data/rect'
-import { proxyRefs } from '@/util/reactivity'
 import { ref } from 'vue'
 import type { ExternalId } from 'ydoc-shared/yjsModel'
 

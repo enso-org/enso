@@ -15,6 +15,7 @@ import {
   type SuggestionEntry,
   type SuggestionId,
 } from '$/providers/openedProjects/suggestionDatabase/entry'
+import { proxyRefs, type ToValue } from '$/utils/reactivity'
 import { useAI } from '@/components/ComponentBrowser/ai'
 import type { Filter, SelfArg } from '@/components/ComponentBrowser/filtering'
 import { Ast } from '@/util/ast'
@@ -22,7 +23,6 @@ import { selfArgSeparator } from '@/util/ast/abstract'
 import { ANY_TYPE } from '@/util/ensoTypes'
 import type { ProjectPath } from '@/util/projectPath'
 import { qnLastSegment } from '@/util/qualifiedName'
-import { proxyRefs, type ToValue } from '@/util/reactivity'
 import { useToast } from '@/util/toast'
 import { Err, Ok, type Result } from 'enso-common/src/utilities/data/result'
 import { computed, readonly, ref, shallowRef, toRef, toValue, type ComputedRef } from 'vue'
