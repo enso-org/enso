@@ -17,6 +17,7 @@ import { useNodeExecution } from '$/providers/openedProjects/project/nodeExecuti
 import { nodeEditBindings } from '@/bindings'
 import ComponentMenu from '@/components/ComponentMenu.vue'
 import ContextMenuTrigger from '@/components/ContextMenuTrigger.vue'
+import DropdownMenu from '@/components/DropdownMenu.vue'
 import ComponentWidgetTree, {
   GRAB_HANDLE_X_MARGIN_L,
   GRAB_HANDLE_X_MARGIN_R,
@@ -28,6 +29,8 @@ import GraphNodeComment from '@/components/GraphEditor/GraphNodeComment.vue'
 import GraphNodeMessage from '@/components/GraphEditor/GraphNodeMessage.vue'
 import GraphVisualization from '@/components/GraphEditor/GraphVisualization.vue'
 import type { NodeCreationOptions } from '@/components/GraphEditor/nodeCreation'
+import MenuEntry from '@/components/MenuEntry.vue'
+import MenuPanel from '@/components/MenuPanel.vue'
 import { useResizeHandles } from '@/components/resizeHandles'
 import ResizeHandles from '@/components/ResizeHandles.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
@@ -425,11 +428,6 @@ const nodeMenuActions: DisplayableActionName[] = [
 const multiSelectionMenuActions: DisplayableActionName[] = [
   'components.collapse',
   'components.pickColorMulti',
-  'components.alignLeft',
-  'components.alignCenter',
-  'components.alignRight',
-  'components.alignTop',
-  'components.alignBottom',
   'components.copy',
   'components.deleteSelected',
 ]
@@ -437,6 +435,8 @@ const multiSelectionMenuActions: DisplayableActionName[] = [
 const contextMenuActions = computed<DisplayableActionName[]>(() =>
   nodeSelection.selected.size > 1 ? multiSelectionMenuActions : nodeMenuActions,
 )
+
+const alignmentMenuOpen = ref(false)
 
 onWindowBlur(() => {
   graph.nodeHovered.delete(nodeId.value)
@@ -496,6 +496,30 @@ resizeHandles.onResizeHeight((value) => emit('update:height', value))
       @click.capture="setSoleSelected"
     />
     <ContextMenuTrigger :actions="contextMenuActions" @contextmenu="ensureSelected">
+      <template #menuElements>
+        <DropdownMenu
+          v-if="nodeSelection.selected.size > 1"
+          v-model:open="alignmentMenuOpen"
+          class="alignmentSubmenu"
+          placement="right-start"
+          title="Align"
+        >
+          <template #button>
+            <SvgIcon name="align_left" class="rowIcon" />
+            <span>Align</span>
+            <SvgIcon name="arrow_right_head_only" class="submenuArrow" />
+          </template>
+          <template #menu>
+            <MenuPanel class="alignmentMenu">
+              <MenuEntry action="components.alignLeft" @click="alignmentMenuOpen = false" />
+              <MenuEntry action="components.alignCenter" @click="alignmentMenuOpen = false" />
+              <MenuEntry action="components.alignRight" @click="alignmentMenuOpen = false" />
+              <MenuEntry action="components.alignTop" @click="alignmentMenuOpen = false" />
+              <MenuEntry action="components.alignBottom" @click="alignmentMenuOpen = false" />
+            </MenuPanel>
+          </template>
+        </DropdownMenu>
+      </template>
       <div
         ref="contentNode"
         :class="{ content: true, dragged: isDragged }"
@@ -656,6 +680,34 @@ resizeHandles.onResizeHeight((value) => emit('update:height', value))
 
 .GraphNode.selected .statuses {
   opacity: 0;
+}
+
+.alignmentSubmenu {
+  width: 100%;
+  margin: 0;
+  --drop-down-panel-z-index: 40;
+}
+
+.alignmentSubmenu :deep(.MenuButton) {
+  width: 100%;
+  justify-content: flex-start;
+  gap: 8px;
+  padding-left: 8px;
+  padding-right: 8px;
+}
+
+.alignmentSubmenu :deep(.DropDownPanel) {
+  background: var(--dropdown-opened-background, var(--color-app-bg));
+  backdrop-filter: none;
+}
+
+.alignmentSubmenu :deep(.arrow) {
+  display: none;
+}
+
+.submenuArrow {
+  margin-left: auto;
+  opacity: 0.7;
 }
 
 .overrideRecordButton {

@@ -4,11 +4,13 @@ import ActionMenu from '@/components/ActionMenu.vue'
 import { unrefElement, useEvent, useResizeObserver } from '@/composables/events'
 import type { DisplayableActionName } from '@/providers/action'
 import { injectInteractionHandler } from '@/providers/interactionHandler'
+import { providePopoverRoot } from '@/providers/popoverRoot'
 import { endOnClickOutside, targetIsOutside } from '@/util/autoBlur'
 import { autoUpdate, flip, shift, useFloating } from '@floating-ui/vue'
 import { computed, onMounted, ref, watch } from 'vue'
 
 const menu = ref<HTMLElement>()
+providePopoverRoot(menu)
 const { actions, point } = defineProps<{
   actions: DisplayableActionName[]
   /** Location to display the menu near, in client coordinates. */
