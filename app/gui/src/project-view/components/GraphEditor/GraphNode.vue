@@ -422,6 +422,22 @@ const nodeMenuActions: DisplayableActionName[] = [
   'components.deleteAndConnectAround',
 ]
 
+const multiSelectionMenuActions: DisplayableActionName[] = [
+  'components.collapse',
+  'components.pickColorMulti',
+  'components.alignLeft',
+  'components.alignCenter',
+  'components.alignRight',
+  'components.alignTop',
+  'components.alignBottom',
+  'components.copy',
+  'components.deleteSelected',
+]
+
+const contextMenuActions = computed<DisplayableActionName[]>(() =>
+  nodeSelection.selected.size > 1 ? multiSelectionMenuActions : nodeMenuActions,
+)
+
 onWindowBlur(() => {
   graph.nodeHovered.delete(nodeId.value)
   updateNodeHover(undefined)
@@ -479,7 +495,7 @@ resizeHandles.onResizeHeight((value) => emit('update:height', value))
       class="beforeNode"
       @click.capture="setSoleSelected"
     />
-    <ContextMenuTrigger :actions="nodeMenuActions" @contextmenu="ensureSelected">
+    <ContextMenuTrigger :actions="contextMenuActions" @contextmenu="ensureSelected">
       <div
         ref="contentNode"
         :class="{ content: true, dragged: isDragged }"
