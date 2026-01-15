@@ -1,8 +1,8 @@
+import type { ToValue } from '$/utils/reactivity'
 import { textEditorsBindings } from '@/bindings'
 import { injectKeyboard } from '@/providers/keyboard'
 import { useStateEffect } from '@/util/codemirror/reactivity'
 import { valueExt } from '@/util/codemirror/stateEffect'
-import type { ToValue } from '@/util/reactivity'
 import type { EditorView } from '@codemirror/view'
 import { toValue } from 'vue'
 

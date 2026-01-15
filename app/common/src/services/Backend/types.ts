@@ -193,9 +193,16 @@ export interface MS365CredentialInput {
   readonly scopes: readonly string[]
 }
 
+/** User settings for a Salesforce credential. */
+export interface SalesforceCredentialInput {
+  readonly type: 'Salesforce'
+  readonly scopes: readonly string[]
+}
+
 /** User settings for an arbitrary credential. */
 export type CredentialInput =
   | SnowflakeCredentialInput
   | GoogleCredentialInput
   | StravaCredentialInput
   | MS365CredentialInput
+  | SalesforceCredentialInput

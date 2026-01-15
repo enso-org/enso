@@ -42,7 +42,7 @@ public abstract class NameResolutionAlgorithm<ResultType, LocalNameLinkType, Met
     if (meta != null) {
       var maybeLocalLink = findLocalLink(meta);
       if (maybeLocalLink.isDefined()) {
-        return resolveLocalName(maybeLocalLink.get());
+        return resolveLocalName(name.name(), maybeLocalLink.get());
       }
     }
 
@@ -69,7 +69,7 @@ public abstract class NameResolutionAlgorithm<ResultType, LocalNameLinkType, Met
    */
   protected abstract Option<LocalNameLinkType> findLocalLink(MetadataType metadata);
 
-  protected abstract ResultType resolveLocalName(LocalNameLinkType localLink);
+  protected abstract ResultType resolveLocalName(String name, LocalNameLinkType localLink);
 
   protected abstract ResultType resolveGlobalName(
       BindingsMap.ResolvedName resolvedName, IR relatedIr);

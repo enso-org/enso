@@ -7,7 +7,7 @@ import {
   type BackendMutationMethod,
   type BackendQueryMethod,
 } from '$/utils/backendQuery'
-import type { ToValue } from '@/util/reactivity'
+import type { ToValue } from '$/utils/reactivity'
 import type {
   UseMutationOptions,
   UseMutationReturnType,

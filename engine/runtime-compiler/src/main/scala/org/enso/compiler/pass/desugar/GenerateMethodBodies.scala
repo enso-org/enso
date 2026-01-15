@@ -74,7 +74,7 @@ case object GenerateMethodBodies extends IRPass {
     moduleContext: ModuleContext
   ): Module = {
     ir.copyWithBindings(
-      bindings = ir.bindings.map {
+      ir.bindings.map {
         case m: definition.Method => processMethodDef(m)
         case x                    => x
       }
@@ -141,8 +141,8 @@ case object GenerateMethodBodies extends IRPass {
 
     selfArgs match {
       case _ :: (redefined, _) :: _ =>
-        val errorBody = errors.Redefined.SelfArg(
-          identifiedLocation = redefined.identifiedLocation()
+        val errorBody = errors.Redefined.SelfArg.createFromLocation(
+          redefined.identifiedLocation()
         )
         fun match {
           case functionBinding: Function.Binding =>

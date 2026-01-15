@@ -62,6 +62,12 @@ test('Exercise 1', async ({ page, projectsDir }) => {
     await openComponentBrowser(page, 'readquery‘Sheet1’')
     await page.locator('.ComponentEntry', { hasText: 'set' }).click()
 
+    // Playwright seems to not always fire proper pointerleave event
+    // We must do that ourselves, to hide circular menu of the node.
+    await page
+      .getByText('readquery‘Sheet1’')
+      .evaluate((element) => element.dispatchEvent(new PointerEvent('pointerleave')))
+
     // Set parameters
     await openDropdownInWidget(page, 'value')
     await page.getByRole('button', { name: '<Simple Expression>', exact: true }).click()

@@ -9,6 +9,12 @@ import {
 } from '$/providers/openedProjects/projectNames'
 import { SuggestionDb, type GroupInfo } from '$/providers/openedProjects/suggestionDatabase'
 import type { CallableSuggestionEntry } from '$/providers/openedProjects/suggestionDatabase/entry'
+import {
+  nonReactiveView,
+  resumeReactivity,
+  resumeShallowReactivity,
+  syncSetDiff,
+} from '$/utils/reactivity'
 import { computeNodeColor } from '@/composables/nodeColors'
 import { Ast } from '@/util/ast'
 import type { AstId, NodeMetadata } from '@/util/ast/abstract'
@@ -26,12 +32,6 @@ import {
   type StackItem,
 } from '@/util/methodPointer'
 import { tryIdentifier } from '@/util/qualifiedName'
-import {
-  nonReactiveView,
-  resumeReactivity,
-  resumeShallowReactivity,
-  syncSetDiff,
-} from '@/util/reactivity'
 import * as objects from 'enso-common/src/utilities/data/object'
 import type { Opt } from 'enso-common/src/utilities/data/opt'
 import { unwrap } from 'enso-common/src/utilities/data/result'
