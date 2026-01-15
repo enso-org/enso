@@ -82,7 +82,7 @@ public final class Syntax extends SyntaxErrorGen {
   public record InvalidEscapeSequence(String lit) implements Reason {
     @Override
     public String explanation() {
-      return "Invalid escape sequence: " + lit;
+      return "Invalid escape sequence " + lit;
     }
   }
 
