@@ -791,7 +791,7 @@ resizeHandles.onResizeHeight((value) => emit('update:height', value))
 .alignmentMenu {
   padding: 4px;
   margin: 0 -4px;
-  background: transparent;
+  background: var(--dropdown-opened-background, var(--color-app-bg));
   backdrop-filter: none;
 }
 
