@@ -4,6 +4,7 @@ import static com.oracle.truffle.api.CompilerDirectives.transferToInterpreterAnd
 
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.exception.AbstractTruffleException;
+import org.enso.editions.LibraryName;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.UnresolvedConversion;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
@@ -89,7 +90,7 @@ public final class Error {
 
     numberParseError = new AtomFactory("Data", "Numbers", "Number_Parse_Error");
     caughtPanic = new AtomFactory("Panic", "Caught_Panic");
-    unimplemented = new AtomFactory("Errors", "Unimplemented");
+    unimplemented = new AtomFactory("Errors", "Unimplemented", "Unimplemented");
     mapError = new AtomFactory("Data", "Vector", "Map_Error");
     noWrap = new AtomFactory("Data", "Vector", "No_Wrap");
   }
@@ -424,8 +425,15 @@ public final class Error {
           sb.append(".").append(segment);
         }
         var moduleOpt = context.getTopScope().getModule(sb.toString());
+        if (moduleOpt.isEmpty()) {
+          var stdBase = LibraryName.apply("Standard", "Base");
+          context.getPackageRepository().ensurePackageIsLoaded(stdBase);
+          moduleOpt = context.getTopScope().getModule(sb.toString());
+        }
         assert moduleOpt.isPresent() : sb.toString();
-        var type = moduleOpt.get().getScope().getType(shortFqn[last], true);
+        var module = moduleOpt.get();
+        var scope = module.compileScope(context);
+        var type = scope.getType(shortFqn[last], true);
         assert type != null : shortFqn[last] + " in " + sb;
         assert type.getConstructors().size() == 1
             : "Only one constructor available: " + type.getConstructors();

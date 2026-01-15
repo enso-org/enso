@@ -3,6 +3,7 @@ package org.enso.interpreter.runtime;
 import com.oracle.truffle.api.ThreadLocalAction;
 import com.oracle.truffle.api.TruffleLanguage.Env;
 import com.oracle.truffle.api.TruffleLogger;
+import java.time.Duration;
 import java.util.Collections;
 import java.util.Map;
 import java.util.WeakHashMap;
@@ -53,10 +54,14 @@ final class ThreadExecutors {
     synchronized (threads) {
       for (var t : threads.keySet()) {
         try {
-          t.join();
+          // wait for threads, but don't deadlock
+          if (t.join(Duration.ofSeconds(10))) {
+            continue;
+          }
         } catch (InterruptedException ex) {
-          logger.log(Level.WARNING, "Cannot shutdown {0} thread", t.getName());
+          logger.log(Level.FINEST, null, ex);
         }
+        logger.log(Level.WARNING, "Cannot shutdown {0} thread", t.getName());
       }
     }
   }
