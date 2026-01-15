@@ -27,6 +27,59 @@ watch(
   },
 )
 const alignmentMenuOpen = ref(false)
+const alignmentMenuOpenedByHover = ref(false)
+const alignmentMenuHovering = ref(false)
+let alignmentMenuOpenTimeout: number | undefined
+let alignmentMenuCloseTimeout: number | undefined
+
+function clearAlignmentMenuOpenTimeout() {
+  if (alignmentMenuOpenTimeout != null) {
+    window.clearTimeout(alignmentMenuOpenTimeout)
+    alignmentMenuOpenTimeout = undefined
+  }
+}
+
+function clearAlignmentMenuCloseTimeout() {
+  if (alignmentMenuCloseTimeout != null) {
+    window.clearTimeout(alignmentMenuCloseTimeout)
+    alignmentMenuCloseTimeout = undefined
+  }
+}
+
+function scheduleAlignmentMenuOpen() {
+  clearAlignmentMenuCloseTimeout()
+  clearAlignmentMenuOpenTimeout()
+  alignmentMenuOpenTimeout = window.setTimeout(() => {
+    if (!alignmentMenuHovering.value) return
+    alignmentMenuOpenedByHover.value = true
+    alignmentMenuOpen.value = true
+  }, 200)
+}
+
+function scheduleAlignmentMenuClose() {
+  clearAlignmentMenuOpenTimeout()
+  clearAlignmentMenuCloseTimeout()
+  if (!alignmentMenuOpenedByHover.value) return
+  alignmentMenuCloseTimeout = window.setTimeout(() => {
+    if (alignmentMenuHovering.value) return
+    alignmentMenuOpenedByHover.value = false
+    alignmentMenuOpen.value = false
+  }, 150)
+}
+
+function handleAlignmentMenuEnter() {
+  alignmentMenuHovering.value = true
+  scheduleAlignmentMenuOpen()
+}
+
+function handleAlignmentMenuLeave() {
+  alignmentMenuHovering.value = false
+  scheduleAlignmentMenuClose()
+}
+
+watch(alignmentMenuOpen, (open) => {
+  if (!open) alignmentMenuOpenedByHover.value = false
+})
 </script>
 
 <template>
@@ -48,6 +101,10 @@ const alignmentMenuOpen = ref(false)
       placement="bottom-start"
       title="Align"
       alwaysShowArrow
+      @mouseenter="handleAlignmentMenuEnter"
+      @mouseleave="handleAlignmentMenuLeave"
+      @pointerenter="handleAlignmentMenuEnter"
+      @pointerleave="handleAlignmentMenuLeave"
     >
       <template #button>
         <SvgIcon name="align_left" />
