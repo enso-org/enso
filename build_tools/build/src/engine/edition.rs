@@ -73,7 +73,7 @@ impl PublishedLibrary {
         Ok(s?.to_string())
     }
 
-    fn split_name(&self) -> (&str, &str) {
+    pub fn split_name(&self) -> (&str, &str) {
         let items: Vec<&str> = self.name.split(".").collect();
         assert_eq!(items.len(), 2);
         (items[0], items[1])

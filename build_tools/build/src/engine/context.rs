@@ -673,14 +673,39 @@ impl RunContext {
     /// remove them from the `built-distribution` directory.
     /// This is needed to ensure that the libraries that are uploaded as separate
     /// assets are not part of any other uploaded asset.
+    ///
+    /// Note that there are multiple _distributions_ (e.g. subdirectories) under
+    /// `built-distribution`, and we have to remove the library from all of those
+    /// subdirectories.
     async fn remove_uploaded_libs(&self) -> Result {
+        let lib_root_dirs = self.std_lib_root_dirs();
         let edition = edition::Edition::parse_from_generated_manifest(&self.repo_root)?;
         for lib in edition.libs_to_upload() {
-            debug!("Removing library from release: {:?}", lib);
-            let lib_dir = lib.find_in_repo_root(&self.repo_root);
-            ide_ci::fs::remove_dir_if_exists(&lib_dir)?;
+            debug!("Removing all copies of library {:?} from built-distribution", lib);
+            let (namespace, name) = lib.split_name();
+            for lib_root_dir in &lib_root_dirs {
+                let lib_dir = lib_root_dir.join(namespace).join(name);
+                ide_ci::fs::remove_dir_if_exists(&lib_dir)?;
+            }
         }
         Ok(())
+    }
+
+    /// Returns list of all library root directories that should be present after building.
+    /// All of these root directories are located in some subdirectory of `built-distribution`.
+    fn std_lib_root_dirs(&self) -> Vec<PathBuf> {
+        let artifacts = self.expected_artifacts();
+        let mut lib_root_dirs: Vec<PathBuf> = Vec::new();
+        if let Some(engine_package) = artifacts.engine_package {
+            lib_root_dirs.push(engine_package.lib.path);
+        }
+        if let Some(engine_bundle) = artifacts.engine_bundle {
+            lib_root_dirs.push(engine_bundle.dist.version.path.join("lib"));
+        }
+        if let Some(launcher_bundle) = artifacts.launcher_bundle {
+            lib_root_dirs.push(launcher_bundle.dist.version.path.join("lib"));
+        }
+        lib_root_dirs
     }
 
     fn short_path(&self, full: &Path) -> PathBuf {
