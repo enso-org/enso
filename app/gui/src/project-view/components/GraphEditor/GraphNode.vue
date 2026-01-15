@@ -432,6 +432,14 @@ const multiSelectionMenuActions: DisplayableActionName[] = [
   'components.deleteSelected',
 ]
 
+const alignmentMenuActions: DisplayableActionName[] = [
+  'components.alignLeft',
+  'components.alignCenter',
+  'components.alignRight',
+  'components.alignTop',
+  'components.alignBottom',
+]
+
 const contextMenuActions = computed<DisplayableActionName[]>(() =>
   nodeSelection.selected.size > 1 ? multiSelectionMenuActions : nodeMenuActions,
 )
@@ -587,11 +595,12 @@ resizeHandles.onResizeHeight((value) => emit('update:height', value))
               @mouseleave="handleAlignmentMenuLeave"
             >
               <MenuPanel class="alignmentMenu">
-                <MenuEntry action="components.alignLeft" @click="alignmentMenuOpen = false" />
-                <MenuEntry action="components.alignCenter" @click="alignmentMenuOpen = false" />
-                <MenuEntry action="components.alignRight" @click="alignmentMenuOpen = false" />
-                <MenuEntry action="components.alignTop" @click="alignmentMenuOpen = false" />
-                <MenuEntry action="components.alignBottom" @click="alignmentMenuOpen = false" />
+                <MenuEntry
+                  v-for="action in alignmentMenuActions"
+                  :key="action"
+                  :action="action"
+                  @click="alignmentMenuOpen = false"
+                />
               </MenuPanel>
             </div>
           </template>
