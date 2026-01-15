@@ -1,21 +1,11 @@
 private
 
-import Standard.Base.Any.Any
-import Standard.Base.Data
-import Standard.Base.Data.Json.JS_Object
-import Standard.Base.Data.Text.Text
-import Standard.Base.Enso_Cloud.Enso_Secret.Enso_Secret
-import Standard.Base.Network.Email.Email
-import Standard.Base.Network.Email.Email_Address.Email_Address
-import Standard.Base.Network.Email.Email_Attachment.Email_Attachment
+from Standard.Base import all
+
 import Standard.Base.Network.Email.Email_Body.Email_Body
 import Standard.Base.Network.Email.Email_Send_Response.Send_Response
 import project.SES.Email_Provider_SES.Email_Provider_SES
 import Standard.Base.Network.Email.Send_Error.Send_Error
-import Standard.Base.Network.HTTP.Header.Header
-import Standard.Base.Nothing.Nothing
-import Standard.Base.System.File.File
-from Standard.Base.Error import all
 
 polyglot java import org.enso.aws.regions.AWSRegion
 polyglot java import org.enso.aws.ClientBuilder
