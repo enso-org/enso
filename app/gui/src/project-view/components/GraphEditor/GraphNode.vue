@@ -770,6 +770,9 @@ resizeHandles.onResizeHeight((value) => emit('update:height', value))
   gap: 8px;
   padding-left: 8px;
   padding-right: 8px;
+  background: transparent;
+  backdrop-filter: none;
+  color: inherit;
 }
 
 .alignmentSubmenu :deep(.DropDownPanel) {
