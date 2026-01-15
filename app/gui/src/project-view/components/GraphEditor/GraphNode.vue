@@ -16,6 +16,7 @@ import { evaluationProgress } from '$/providers/openedProjects/project/computedV
 import { useNodeExecution } from '$/providers/openedProjects/project/nodeExecution'
 import { nodeEditBindings } from '@/bindings'
 import ComponentMenu from '@/components/ComponentMenu.vue'
+import ContextMenuContent from '@/components/ContextMenuContent.vue'
 import ContextMenuTrigger from '@/components/ContextMenuTrigger.vue'
 import DropdownMenu from '@/components/DropdownMenu.vue'
 import ComponentWidgetTree, {
@@ -452,6 +453,14 @@ const {
   handleMenuLeave: handleAlignmentMenuLeave,
 } = useHoverMenu()
 
+const contextMenuContent = ref<InstanceType<typeof ContextMenuContent>>()
+
+function closeAllMenus() {
+  // Close both menus
+  alignmentMenuOpen.value = false
+  contextMenuContent.value?.close()
+}
+
 onWindowBlur(() => {
   graph.nodeHovered.delete(nodeId.value)
   updateNodeHover(undefined)
@@ -511,15 +520,16 @@ resizeHandles.onResizeHeight((value) => emit('update:height', value))
     />
     <ContextMenuTrigger :actions="contextMenuActions" @contextmenu="ensureSelected">
       <template #menuElements>
-        <DropdownMenu
-          v-if="nodeSelection.selected.size > 1"
-          v-model:open="alignmentMenuOpenModel"
-          class="alignmentSubmenu"
-          placement="right-start"
-          title="Align"
-          @pointerenter="handleAlignmentMenuEnter"
-          @pointerleave="handleAlignmentMenuLeave"
-        >
+        <ContextMenuContent ref="contextMenuContent">
+          <DropdownMenu
+            v-if="nodeSelection.selected.size > 1"
+            v-model:open="alignmentMenuOpenModel"
+            class="alignmentSubmenu"
+            placement="right-start"
+            title="Align"
+            @pointerenter="handleAlignmentMenuEnter"
+            @pointerleave="handleAlignmentMenuLeave"
+          >
           <template #button>
             <div
               class="alignmentSubmenuTrigger"
@@ -542,12 +552,13 @@ resizeHandles.onResizeHeight((value) => emit('update:height', value))
                   v-for="action in alignmentMenuActions"
                   :key="action"
                   :action="action"
-                  @click="alignmentMenuOpen = false"
+                  @click="closeAllMenus"
                 />
               </MenuPanel>
             </div>
           </template>
         </DropdownMenu>
+        </ContextMenuContent>
       </template>
       <div
         ref="contentNode"
