@@ -105,13 +105,27 @@ public class GoogleSheetsForEnso {
     if (cell == null || cell.getEffectiveValue() == null) {
       return null;
     }
+
+    var effectiveValue = cell.getEffectiveValue();
+    var errorValue = effectiveValue.getErrorValue();
+    if (errorValue != null) {
+      return null;
+    }
+
     var format = cell.getUserEnteredFormat();
-    if (format == null || format.getNumberFormat() == null || cell.getEffectiveValue() == null) {
-      if (cell.getEffectiveValue().getStringValue() != null)
-        return cell.getEffectiveValue().getStringValue();
-      double value = cell.getEffectiveValue().getNumberValue();
+    if (format == null || format.getNumberFormat() == null) {
+      if (effectiveValue.getStringValue() != null) {
+        return effectiveValue.getStringValue();
+      }
+
+      Double value = effectiveValue.getNumberValue();
+      if (value == null) {
+        // Should not happen, but just in case.
+        return null;
+      }
+
       if (value % 1 == 0) {
-        return (int) value;
+        return value.intValue();
       } else {
         return value;
       }
