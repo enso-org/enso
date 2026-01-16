@@ -17,7 +17,7 @@ import { useNodeExecution } from '$/providers/openedProjects/project/nodeExecuti
 import { nodeEditBindings } from '@/bindings'
 import ComponentMenu from '@/components/ComponentMenu.vue'
 import ContextMenuTrigger from '@/components/ContextMenuTrigger.vue'
-import DropdownMenu from '@/components/DropdownMenu.vue'
+import MenuButton from '@/components/MenuButton.vue'
 import ComponentWidgetTree, {
   GRAB_HANDLE_X_MARGIN_L,
   GRAB_HANDLE_X_MARGIN_R,
@@ -52,7 +52,17 @@ import type { Opt } from '@/util/data/opt'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import { Ok } from 'enso-common/src/utilities/data/result'
-import { computed, onUnmounted, ref, toRef, watch, watchEffect } from 'vue'
+import { autoUpdate, flip, offset, shift, useFloating } from '@floating-ui/vue'
+import {
+  computed,
+  nextTick,
+  onUnmounted,
+  ref,
+  toRef,
+  watch,
+  watchEffect,
+  type ComponentInstance,
+} from 'vue'
 import type { VisualizationIdentifier } from 'ydoc-shared/yjsModel'
 
 const contentNodeStyle = {
@@ -452,6 +462,22 @@ const {
 } = useHoverMenu()
 
 const contextMenuTrigger = ref<InstanceType<typeof ContextMenuTrigger>>()
+const alignmentMenuTrigger = ref<HTMLElement>()
+const alignmentMenuPanel = ref<HTMLElement>()
+const { floatingStyles: alignmentMenuStyles, update: updateAlignmentMenu } = useFloating(
+  alignmentMenuTrigger,
+  alignmentMenuPanel,
+  {
+    placement: 'right-start',
+    strategy: 'fixed',
+    middleware: [offset(4), flip(), shift({ padding: 8 })],
+    whileElementsMounted: autoUpdate,
+  },
+)
+
+watch(alignmentMenuOpen, (open) => {
+  if (open) nextTick(updateAlignmentMenu)
+})
 
 function closeAllMenus() {
   // Close both menus
@@ -520,42 +546,33 @@ resizeHandles.onResizeHeight((value) => emit('update:height', value))
       ref="contextMenuTrigger"
       :actions="contextMenuActions"
       @contextmenu="ensureSelected"
+      @hidden="(alignmentMenuOpen = false)"
     >
       <template #menuElements>
-        <DropdownMenu
-          v-if="nodeSelection.selected.size > 1"
-          v-model:open="alignmentMenuOpenModel"
-          class="alignmentSubmenu"
-          placement="right-start"
-          title="Align"
-          @pointerenter="handleAlignmentMenuEnter"
-          @pointerleave="handleAlignmentMenuLeave"
-        >
-          <template #button>
-            <div
-              class="alignmentSubmenuTrigger"
-              @pointerenter="handleAlignmentMenuEnter"
-              @pointerleave="handleAlignmentMenuLeave"
-            >
+        <div v-if="nodeSelection.selected.size > 1">
+          <div
+            ref="alignmentMenuTrigger"
+            class="alignmentSubmenuTrigger"
+            @pointerenter="handleAlignmentMenuEnter"
+            @pointerleave="handleAlignmentMenuLeave"
+          >
+            <MenuButton v-model="alignmentMenuOpenModel" class="alignmentSubmenuEntry">
               <SvgIcon name="align_left" class="rowIcon" />
               <span>Align</span>
               <SvgIcon name="arrow_right_head_only" class="submenuArrow" />
-            </div>
-          </template>
-          <template #menu>
-            <div
-              class="alignmentSubmenuPanel"
-              @pointerenter="handleAlignmentMenuEnter"
-              @pointerleave="handleAlignmentMenuLeave"
-            >
-              <ActionMenu
-                class="alignmentMenu"
-                :actions="alignmentMenuActions"
-                @close="closeAllMenus"
-              />
-            </div>
-          </template>
-        </DropdownMenu>
+            </MenuButton>
+          </div>
+          <div
+            v-if="alignmentMenuOpen"
+            ref="alignmentMenuPanel"
+            class="alignmentSubmenuPanel"
+            :style="alignmentMenuStyles"
+            @pointerenter="handleAlignmentMenuEnter"
+            @pointerleave="handleAlignmentMenuLeave"
+          >
+            <ActionMenu class="alignmentMenu" :actions="alignmentMenuActions" @close="closeAllMenus" />
+          </div>
+        </div>
       </template>
       <div
         ref="contentNode"
@@ -719,23 +736,16 @@ resizeHandles.onResizeHeight((value) => emit('update:height', value))
   opacity: 0;
 }
 
-.alignmentSubmenu {
+.alignmentSubmenuTrigger {
   width: 100%;
-  margin: 0;
-  --drop-down-panel-z-index: 40;
 }
 
-.alignmentSubmenuTrigger {
+.alignmentSubmenuEntry {
   display: flex;
   align-items: center;
   width: 100%;
   gap: 8px;
-}
-
-.alignmentSubmenu :deep(.MenuButton) {
-  width: 100%;
-  justify-content: flex-start;
-  gap: 8px;
+  justify-content: left;
   padding-left: 8px;
   padding-right: 8px;
   background: transparent;
@@ -743,24 +753,17 @@ resizeHandles.onResizeHeight((value) => emit('update:height', value))
   color: inherit;
 }
 
-.alignmentSubmenu :deep(.DropDownPanel) {
-  background: var(--dropdown-opened-background, var(--color-app-bg));
-  backdrop-filter: none;
+.alignmentSubmenuPanel {
+  z-index: var(--z-index-selection-submenu);
 }
 
 .alignmentMenu {
   padding: 4px;
-  margin: 0 -4px;
-  background: var(--dropdown-opened-background, var(--color-app-bg));
   backdrop-filter: none;
 }
 
 .alignmentMenu :deep(.rowIcon) {
   margin-right: 4px;
-}
-
-.alignmentSubmenu :deep(.arrow) {
-  display: none;
 }
 
 .submenuArrow {
