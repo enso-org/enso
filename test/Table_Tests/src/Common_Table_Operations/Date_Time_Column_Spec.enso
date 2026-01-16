@@ -2,7 +2,6 @@ from Standard.Base import all
 
 from Standard.Table import all
 from Standard.Table.Errors import all
-import Standard.Table.Expression.Expression_Error
 
 import Standard.Database.Dialects.Feature.Feature
 
@@ -12,6 +11,9 @@ import enso_dev.Table_Tests.Util
 import project.Common_Table_Operations.Util as Common_Table_Operations_Util
 from project.Common_Table_Operations.Util import check_column_refinements, run_default_backend
 
+type Lazy_Ref
+    Value ~get
+
 main filter=Nothing = run_default_backend add_specs filter
 
 add_specs suite_builder setup =
@@ -20,6 +22,16 @@ add_specs suite_builder setup =
 add_date_time_columns_specs suite_builder setup =
     prefix = setup.prefix
     build_sorted_table = Common_Table_Operations_Util.build_sorted_table setup
+
+    date_time_table = Lazy_Ref.Value <| build_sorted_table [["X", [Date_Time.new 1987 1 1, Date_Time.new 2000 2 29, Date_Time.new 2005 4 30]]]
+    date_time_column = Lazy_Ref.Value <| date_time_table . get . at "X"
+
+    suite_builder.group prefix+"Date_Time_Column" group_builder->
+        group_builder.specify "a datetime column can be cast to Date_Time_Column" <|
+            column = date_time_column.get
+            column.value_type.is_date_time . should_be_true
+            check_column_refinements column x->
+                (x:Date_Time_Column)
 
     if setup.is_database.not then
         suite_builder.group prefix+"Date_Time_Column (time zones)" group_builder->
