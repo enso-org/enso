@@ -6,6 +6,7 @@ open module org.enso.runtime.language.epb {
   requires org.enso.ydoc.polyfill;
   requires org.enso.jvm.channel;
   requires org.enso.jvm.interop;
+  requires org.graalvm.nativeimage;
 
   provides com.oracle.truffle.api.provider.TruffleLanguageProvider with
       org.enso.interpreter.epb.EpbLanguageProvider;

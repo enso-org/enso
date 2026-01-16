@@ -19,6 +19,7 @@ import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import org.graalvm.nativeimage.ImageInfo;
 import org.graalvm.polyglot.Context;
 
 /**
@@ -96,9 +97,35 @@ final class HostClassLoader extends URLClassLoader implements AutoCloseable, Tru
         logger.log(Logger.Level.TRACE, "Class {0} not found, delegating to super", name);
         return super.loadClass(name, resolve);
       } catch (Throwable e) {
-        logger.log(Logger.Level.TRACE, "Failure while loading a class: " + e.getMessage(), e);
-        throw e;
+        if (isAttemptToLoadBytecodeInNI(e)) {
+          logger.log(
+              Logger.Level.TRACE,
+              "Attempt to load bytecode for class {0}, delegating to super" + name);
+          return super.loadClass(name, resolve);
+        } else {
+          logger.log(Logger.Level.TRACE, "Failure while loading a class: " + e.getMessage(), e);
+          throw e;
+        }
       }
+    }
+  }
+
+  /**
+   * Returns true if the given exception represents {@code
+   * com.oracle.svm.core.jdk.UnsupportedFeatureError} thrown when an attempt to load a class via
+   * bytecode is made. It is known that {@link #findClass(String)} throws this Error if {@code jar}
+   * URL protocol is enabled (via {@code --enable-protocols=jar} option) during native image build,
+   * because it tries to define the class.
+   *
+   * <p>This exception is more or less an equivalent of {@link ClassNotFoundException} so we treat
+   * it that way.
+   */
+  private static boolean isAttemptToLoadBytecodeInNI(Throwable t) {
+    if (ImageInfo.inImageRuntimeCode()) {
+      return t instanceof Error err
+          && err.getMessage().contains("Classes cannot be defined at runtime");
+    } else {
+      return false;
     }
   }
 
