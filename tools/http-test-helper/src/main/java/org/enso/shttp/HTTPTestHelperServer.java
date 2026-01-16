@@ -1,7 +1,6 @@
 package org.enso.shttp;
 
 import com.sun.net.httpserver.SimpleFileServer;
-
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
@@ -10,7 +9,6 @@ import java.util.Arrays;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Semaphore;
 import java.util.stream.Stream;
-
 import org.enso.shttp.auth.BasicAuthTestHandler;
 import org.enso.shttp.auth.TokenAuthTestHandler;
 import org.enso.shttp.cloud_mock.CloudAuthRenew;

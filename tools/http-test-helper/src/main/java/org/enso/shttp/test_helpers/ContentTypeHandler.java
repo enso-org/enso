@@ -2,10 +2,10 @@ package org.enso.shttp.cloud_mock;
 
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
-import java.io.FileInputStream;
 import java.io.File;
-import java.io.OutputStream;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.net.URI;
 import java.nio.file.Path;
 import org.apache.http.client.utils.URIBuilder;
@@ -31,9 +31,9 @@ public class ContentTypeHandler implements HttpHandler {
 
     try (FileInputStream fis = new FileInputStream(file);
         OutputStream os = exchange.getResponseBody()) {
-        fis.transferTo(os);
+      fis.transferTo(os);
     } finally {
-        exchange.close();
+      exchange.close();
     }
   }
 
