@@ -6,10 +6,10 @@
  * - System validation dialogs are not reliable between computers, as they may have different
  * default fonts.
  */
+import { defineConfig } from '@playwright/test'
 import net from 'node:net'
 import path from 'node:path'
 import url from 'node:url'
-import { defineConfig } from 'playwright/test'
 import invariant from 'tiny-invariant'
 
 const UNSAFE_SKIP_BUILD = process.env.PW_UNSAFE_SKIP_BUILD === 'true'

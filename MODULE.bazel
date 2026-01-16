@@ -47,6 +47,16 @@ rules_ts_ext = use_extension("@aspect_rules_ts//ts:extensions.bzl", "ext", dev_d
 rules_ts_ext.deps()
 use_repo(rules_ts_ext, "npm_typescript")
 
+## Playwright
+bazel_dep(name = "rules_playwright", version = "0.5.3")
+
+playwright = use_extension("@rules_playwright//playwright:extensions.bzl", "playwright")
+playwright.repo(
+    name = "playwright",
+    playwright_version = "1.55.1",
+)
+use_repo(playwright, "playwright")
+
 ############
 ### RUST ###
 ############

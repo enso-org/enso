@@ -1,6 +1,6 @@
 /** @file A series of tests designed for testing GUI behavior in Cloud. */
 
-import { expect } from 'playwright/test'
+import { expect } from '@playwright/test'
 import {
   closeWelcome,
   createNewProject,

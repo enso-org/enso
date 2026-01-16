@@ -1,8 +1,10 @@
 load("@aspect_rules_esbuild//esbuild:defs.bzl", "esbuild")
 load("@aspect_rules_js//npm:defs.bzl", "npm_package")
+load("@aspect_rules_js//js:defs.bzl", "js_binary")
 load("@aspect_rules_ts//ts:defs.bzl", "ts_config", "ts_project")
 load("@npm//:defs.bzl", "npm_link_all_packages", "npm_link_targets")
 load("@npm//app/electron-client:electron-builder/package_json.bzl", electron_builder_bin = "bin")
+load("@npm//:@playwright/test/package_json.bzl", playwright_bin = "bin")
 load("//internal:stampFiles.bzl", "stamp_files")
 
 npm_link_all_packages(name = "node_modules")
@@ -131,3 +133,34 @@ electron_builder_bin.electron_builder(
     out_dirs = ["ide-dist"],
     visibility = ["//visibility:public"],
 )
+
+playwright_bin.playwright_test(
+    name = "test",
+    data = ["//:node_modules/@playwright/test"] + glob(["tests/*.ts"]) + ['playwright.config.ts', 'playwright/.auth/user.json', ':tsconfig', ':dist'],
+    chdir = package_name(),
+    env = {
+        "ENSO_EXEC_PATH": "$(location :dist)",
+          # Disable Node fs patching for this target to avoid readlink issues on Bazel bin symlinks.
+        # "JS_BINARY__PATCH_NODE_FS": "0",
+        
+    },
+    args = ["test"],
+    visibility = ["//visibility:public"],
+    tags = ["no-sandbox"],
+)
+
+# js_binary(
+#     name = "test",
+#     data = ["//:node_modules/@playwright/test"] + glob(["tests/*.ts"]) + ['playwright.config.ts', 'playwright/.auth/user.json', ':tsconfig', ':dist'],
+#     entry_point = "node_modules/@playwright/test/cli.js",
+#     # chdir = package_name(),
+#     env = {
+#         "ENSO_EXEC_PATH": "$(location :dist)",
+#           # Disable Node fs patching for this target to avoid readlink issues on Bazel bin symlinks.
+#         # "JS_BINARY__PATCH_NODE_FS": "0",
+        
+#     },
+#     args = ["test"],
+#     visibility = ["//visibility:public"],
+#     tags = ["no-sandbox"],
+# )

@@ -1,7 +1,7 @@
 /** @file A series of tests designed for testing 'Getting Started with Enso Analytics'. */
 
+import { expect } from '@playwright/test'
 import path from 'path'
-import { expect } from 'playwright/test'
 import {
   addFirstElementToWidgetVector,
   closeWelcome,

@@ -1,8 +1,4 @@
 /** @file Commonly used functions for electron tests */
-import { TEXTS } from 'enso-common/src/text'
-import fs from 'node:fs/promises'
-import os from 'node:os'
-import path from 'node:path'
 import {
   _electron,
   test as base,
@@ -10,7 +6,11 @@ import {
   type ElectronApplication,
   type Locator,
   type Page,
-} from 'playwright/test'
+} from '@playwright/test'
+import { TEXTS } from 'enso-common/src/text'
+import fs from 'node:fs/promises'
+import os from 'node:os'
+import path from 'node:path'
 
 const LOADING_TIMEOUT = 10000
 const TEXT = TEXTS.english
@@ -40,6 +40,9 @@ export const credentials: { readonly user: string; readonly password: string } =
 
 export const electronExecutablePath = await (async () => {
   try {
+    if (process.env.ENSO_EXEC_PATH) {
+      return process.env.ENSO_EXEC_PATH
+    }
     const promises = POSSIBLE_ELECTRON_PATHS.map((p) => path.resolve(import.meta.dirname, p)).map(
       (p) => fs.access(p, fs.constants.X_OK).then(() => p),
     )

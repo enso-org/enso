@@ -1,7 +1,7 @@
 /** @file A series of tests designed for testing GUI behavior in Local workflow. */
+import { expect, type Page } from '@playwright/test'
 import fs from 'node:fs/promises'
 import pathModule from 'node:path'
-import { expect, type Page } from 'playwright/test'
 import {
   closeWelcome,
   createNewProject,
