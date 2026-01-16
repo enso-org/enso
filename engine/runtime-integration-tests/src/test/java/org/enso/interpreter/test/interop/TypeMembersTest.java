@@ -86,7 +86,6 @@ public class TypeMembersTest {
         Source.newBuilder(
                 "enso",
                 """
-                @Builtin_Type
                 type Compile_Error
                     Error message
 

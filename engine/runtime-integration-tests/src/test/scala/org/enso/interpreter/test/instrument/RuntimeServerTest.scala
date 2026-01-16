@@ -320,16 +320,15 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveN(4) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(3) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages
         .update(
           contextId,
           identityResultId,
-          ConstantsGen.ERROR_BUILTIN,
+          ConstantsGen.ERROR,
           payload = Api.ExpressionUpdate.Payload.DataflowError(Nil)
         ),
-      Api.Response(None, Api.ExecutionUpdate(contextId, Seq())),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List()
@@ -1529,7 +1528,7 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveN(4) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(3) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
       TestMessages.update(
         contextId,
@@ -1550,12 +1549,11 @@ class RuntimeServerTest
           )
         )
       ),
-      Api.Response(None, Api.ExecutionUpdate(contextId, Seq())),
       Api.Response(
         Api.ExecutionFailed(
           contextId,
           Api.ExecutionResult.Diagnostic.error(
-            "Type_Error.Error",
+            "Type error: Expected `..A` to be T, but got Function.",
             Some(mainFile),
             Some(model.Range(model.Position(8, 0), model.Position(8, 12))),
             None,
@@ -5175,7 +5173,7 @@ class RuntimeServerTest
         Api.ExecutionFailed(
           contextId,
           Api.ExecutionResult.Diagnostic.error(
-            "Not_Invokable.Error",
+            "Type error: expected a function, but got 42.",
             Some(mainFile),
             Some(model.Range(model.Position(1, 7), model.Position(1, 19))),
             None,
@@ -5304,14 +5302,13 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveN(3) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(2) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
-      Api.Response(None, Api.ExecutionUpdate(contextId, Seq())),
       Api.Response(
         Api.ExecutionFailed(
           contextId,
           Api.ExecutionResult.Diagnostic.error(
-            "No_Such_Method.Error",
+            "Method `+` of type Function could not be found.",
             Some(mainFile),
             Some(model.Range(model.Position(2, 14), model.Position(2, 23))),
             None,
@@ -5456,14 +5453,13 @@ class RuntimeServerTest
         )
       )
     )
-    context.receiveN(3) should contain theSameElementsAs Seq(
+    context.receiveNIgnoreStdLib(2) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.PushContextResponse(contextId)),
-      Api.Response(None, Api.ExecutionUpdate(contextId, Seq())),
       Api.Response(
         Api.ExecutionFailed(
           contextId,
           Api.ExecutionResult.Diagnostic.error(
-            "Type_Error.Error",
+            "Type error: Expected `str` to be Text, but got Integer.",
             Some(mainFile),
             Some(model.Range(model.Position(2, 10), model.Position(2, 15))),
             None,
@@ -5615,7 +5611,7 @@ class RuntimeServerTest
         Api.ExecutionFailed(
           contextId,
           Api.ExecutionResult.Diagnostic.error(
-            "No_Such_Method.Error",
+            "Method `pi` of type Number.type could not be found.",
             Some(mainFile),
             Some(model.Range(model.Position(2, 7), model.Position(2, 16))),
             None,
@@ -5761,7 +5757,7 @@ class RuntimeServerTest
         Api.ExecutionFailed(
           contextId,
           Api.ExecutionResult.Diagnostic.error(
-            "Type_Error.Error",
+            "Type error: Expected `that` to be Integer, but got Function.",
             None,
             Some(model.Range(model.Position(6, 18), model.Position(6, 43))),
             None,

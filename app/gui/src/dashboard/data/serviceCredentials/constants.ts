@@ -8,31 +8,26 @@ import type { CredentialInfo } from '#/data/serviceCredentials/types'
 
 export const CREDENTIAL_INFOS: readonly [CredentialInfo, ...CredentialInfo[]] = [
   {
-    icon: undefined,
     nameId: 'snowflakeCredentialType',
     credentialType: 'snowflake',
     form: SnowflakeCredentialsForm,
   },
   {
-    icon: undefined,
     nameId: 'googleCredentialType',
     credentialType: 'google',
     form: GoogleCredentialsForm,
   },
   {
-    icon: undefined,
     nameId: 'stravaCredentialType',
     credentialType: 'strava',
     form: StravaCredentialsForm,
   },
   {
-    icon: undefined,
     nameId: 'ms365CredentialType',
     credentialType: 'ms365',
     form: MS365CredentialsForm,
   },
   {
-    icon: undefined,
     nameId: 'salesforceCredentialType',
     credentialType: 'salesforce',
     form: SalesforceCredentialsForm,

@@ -297,7 +297,6 @@ type Panic
 ## ---
    private: true
    ---
-@Builtin_Type
 type Caught_Panic
     ## ---
        private: true
@@ -308,7 +307,7 @@ type Caught_Panic
         - `payload`: the payload carried by the error.
         - `internal_original_exception (private)`: the original Java exception
           that is the source of this panic. Only for internal use.
-    Panic payload internal_original_exception
+    private Panic internal_payload internal_original_exception
 
     ## ---
        icon: panic
@@ -325,6 +324,13 @@ type Caught_Panic
     stack_trace : Vector Runtime.Stack_Trace_Element
     stack_trace self =
         Panic.get_attached_stack_trace self
+
+    ## ---
+       private: true
+       ---
+       Getter for the payload
+
+    payload self = self.internal_payload
 
 ## ---
    private: true
