@@ -154,7 +154,7 @@ case object UnusedBindings extends IRPass {
                 body1
               case _ =>
                 body1.addDiagnostic(
-                  Warning.WrongBuiltinMethod(body.identifiedLocation())
+                  new Warning.WrongBuiltinMethod(body.identifiedLocation())
                 )
             }
           else body1
