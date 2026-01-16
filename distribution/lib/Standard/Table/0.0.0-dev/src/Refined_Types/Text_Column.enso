@@ -203,3 +203,78 @@ type Text_Column
         ```  
     index_of self (other : Column | Text | Any) case_sensitivity:Case_Sensitivity=..Default -> Column & Numeric_Column =
         self.operations_implementation.index_of self.column other case_sensitivity
+
+    ## ---
+       group: Standard.Base.Text
+       icon: preparation
+       ---
+       Removes the specified characters from the start, end, or both ends of each element of the column.
+
+       ## Arguments
+       - where: The location of where to trim the text. By default, trims both ends.
+       - what: Either a `Text` containing characters that should be removed or a
+         predicate taking single character strings and specifying if they should be
+         removed. By default, all Unicode whitespace is removed.
+
+       ## Examples
+       ### Trimming whitespace from both ends of each element in a column.
+
+       ```
+             import Standard.Examples
+
+             example_trim = Examples.text_column_1.trim
+       ```
+
+       ### Trimming specific characters from the left of each element.
+
+       ```
+             import Standard.Examples
+
+             example_trim_left = Examples.text_column_1.trim ..Left "AB"
+       ```
+    trim self (where : Location = Location.Both) (what : Column | Text | Any = _.is_whitespace) -> Column & Text_Column =
+        self.operations_implementation.trim self.column where what
+
+    ## ---
+       group: Standard.Base.Text
+       icon: preparation
+       ---
+       Removes the specified characters from the start of each element of the column.
+
+       ## Arguments
+       - what: Either a `Text` containing characters that should be removed or a
+         predicate taking single character strings and specifying if they should be
+         removed. By default, all Unicode whitespace is removed.
+
+       ## Examples
+       ### Trimming whitespace from the start of each element in a column.
+
+       ```
+             import Standard.Examples
+
+             example_trim_left = Examples.text_column_1.trim_left
+       ```
+    trim_left self (what : Column | Text | Any = _.is_whitespace) -> Column & Text_Column =
+        self.operations_implementation.trim self.column Location.Left what
+
+    ## ---
+       group: Standard.Base.Text
+       icon: preparation
+       ---
+       Removes the specified characters from the end of each element of the column.
+
+       ## Arguments
+       - what: Either a `Text` containing characters that should be removed or a
+         predicate taking single character strings and specifying if they should be
+         removed. By default, all Unicode whitespace is removed.
+
+       ## Examples
+       ### Trimming whitespace from the end of each element in a column.
+
+       ```
+             import Standard.Examples
+
+             example_trim_right = Examples.text_column_1.trim_right
+       ```
+    trim_right self (what : Column | Text | Any = _.is_whitespace) -> Column & Text_Column =
+        self.operations_implementation.trim self.column Location.Right what
