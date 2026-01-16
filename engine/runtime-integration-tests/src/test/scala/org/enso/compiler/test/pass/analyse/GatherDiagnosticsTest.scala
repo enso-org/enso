@@ -23,7 +23,8 @@ import org.enso.persist.Persistance.Reference
 class GatherDiagnosticsTest extends CompilerTest {
 
   "Error Gathering" should {
-    val error1 = errors.Syntax(null, errors.Syntax.UnrecognizedToken)
+    val error1 =
+      errors.Syntax.create(null, errors.Syntax.UnrecognizedToken.INSTANCE)
     val plusOp = Name.Literal("+", isMethod = true, identifiedLocation = null)
     val plusApp = Application.Prefix
       .builder()
@@ -65,8 +66,10 @@ class GatherDiagnosticsTest extends CompilerTest {
     }
 
     "work with module flow" in {
-      val error2 = errors.Syntax(null, errors.Syntax.UnexpectedExpression)
-      val error3 = errors.Syntax(null, errors.Syntax.AmbiguousExpression)
+      val error2 =
+        errors.Syntax.create(null, errors.Syntax.UnexpectedExpression.INSTANCE)
+      val error3 =
+        errors.Syntax.create(null, errors.Syntax.AmbiguousExpression.INSTANCE)
 
       val typeName =
         Name.Literal("Foo", isMethod = false, identifiedLocation = null)

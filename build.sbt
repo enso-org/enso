@@ -1797,7 +1797,6 @@ lazy val `ydoc-server` = project
       "org.graalvm.sdk"            % "nativeimage"                 % graalMavenPackagesVersion % "provided",
       "org.graalvm.polyglot"       % "inspect-community"           % graalMavenPackagesVersion % "runtime",
       "org.graalvm.polyglot"       % "js-community"                % graalMavenPackagesVersion % "runtime",
-      "io.helidon.common"          % "helidon-common"              % helidonVersion,
       "io.helidon.webclient"       % "helidon-webclient-websocket" % helidonVersion            % Test,
       "io.helidon.webserver"       % "helidon-webserver-websocket" % helidonVersion            % Test,
       "junit"                      % "junit"                       % junitVersion              % Test,
@@ -3823,7 +3822,6 @@ lazy val `engine-runner` = project
         } else {
           base ++
           databaseCp ++
-          `image-polyglot-root`.listFiles("*.jar").map(_.getAbsolutePath()) ++
           `table-polyglot-root`.listFiles("*.jar").map(_.getAbsolutePath()) ++
           `database-polyglot-root`
             .listFiles("*.jar")
@@ -3952,7 +3950,6 @@ lazy val `engine-runner` = project
               "com.azure",
               "akka.http",
               "org.enso.base",
-              "org.enso.image",
               "org.enso.logging",
               "org.enso.common.ContextLoggingConfigurator",
               "org.enso.table",
@@ -5821,6 +5818,7 @@ lazy val `std-aws` = project
       "software.amazon.awssdk" % "auth"                  % awsJavaSdkV2Version,
       "software.amazon.awssdk" % "bom"                   % awsJavaSdkV2Version,
       "software.amazon.awssdk" % "s3"                    % awsJavaSdkV2Version,
+      "software.amazon.awssdk" % "ses"                   % awsJavaSdkV2Version,
       "software.amazon.awssdk" % "sso"                   % awsJavaSdkV2Version,
       "software.amazon.awssdk" % "ssooidc"               % awsJavaSdkV2Version
     ),

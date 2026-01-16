@@ -367,10 +367,11 @@ case object FullyQualifiedNames extends IRPass {
                 // IR for it. Triggering a full compilation at this stage may have
                 // undesired consequences and is therefore prohibited on purpose.
                 Left(
-                  errors.Resolution(
+                  errors.Resolution.create(
                     consName,
-                    errors.Resolution
-                      .MissingLibraryImportInFQNError(thisResolution.namespace)
+                    new errors.Resolution.MissingLibraryImportInFQNError(
+                      thisResolution.namespace
+                    )
                   )
                 )
               } else {
@@ -388,10 +389,11 @@ case object FullyQualifiedNames extends IRPass {
         } else {
           Some(
             Left(
-              errors.Resolution(
+              errors.Resolution.create(
                 consName,
-                errors.Resolution
-                  .MissingLibraryImportInFQNError(thisResolution.namespace)
+                new errors.Resolution.MissingLibraryImportInFQNError(
+                  thisResolution.namespace
+                )
               )
             )
           )

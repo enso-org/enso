@@ -14,7 +14,9 @@
 - [Using dual JVM mode for `Standard.AWS`][14568].
 - [Running `Standard.Tableau` in dual JVM mode][14607].
 - [Polishing Standard.Test API][14599].
+- [Add Amazon SES email provider][14597]
 - [Support for reading Alteryx YXDB files][14602].
+- [Salesforce OAuth support.][14550]
 
 [14522]: https://github.com/enso-org/enso/pull/14522
 [14476]: https://github.com/enso-org/enso/pull/14476
@@ -22,7 +24,9 @@
 [14568]: https://github.com/enso-org/enso/pull/14568
 [14607]: https://github.com/enso-org/enso/pull/14607
 [14599]: https://github.com/enso-org/enso/pull/14599
+[14597]: https://github.com/enso-org/enso/pull/14597
 [14602]: https://github.com/enso-org/enso/pull/14602
+[14550]: https://github.com/enso-org/enso/pull/14550
 
 #### Enso Language & Runtime
 
@@ -79,6 +83,8 @@
   click][14500]
 - [Fix "What's new", "Documentation" and similar buttons opening external page
   twice][14507]
+- [Add `Date_Time_Column.set_time_zone` and `.at_time_zone` to in-memory
+  tables.][14591]
 
 [13685]: https://github.com/enso-org/enso/pull/13685
 [13658]: https://github.com/enso-org/enso/pull/13658
@@ -112,6 +118,7 @@
 [14504]: https://github.com/enso-org/enso/pull/14504
 [14500]: https://github.com/enso-org/enso/pull/14500
 [14507]: https://github.com/enso-org/enso/pull/14507
+[14591]: https://github.com/enso-org/enso/pull/14591
 
 #### Enso Standard Library
 

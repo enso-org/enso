@@ -149,9 +149,9 @@ spec_with suite_builder name create_new_datetime parse_datetime nanoseconds_loss
             (create_new_datetime 1582 10 15 0 0 8 (zone = Time_Zone.utc)).to_enso_epoch_milliseconds . should_equal 8000
             (Date_Time.enso_epoch_start + (Duration.new seconds=2)).to_enso_epoch_milliseconds . should_equal (2 * 1000)
 
-        group_builder.specify "should set offset-based timezone" <|
+        group_builder.specify "should translate with an offset-based timezone" <|
             tz = Time_Zone.new 1 1 1
-            time = create_new_datetime 1970 (zone = Time_Zone.utc) . at_zone tz
+            time = create_new_datetime 1970 (zone = Time_Zone.utc) . at_time_zone tz
             time . year . should_equal 1970
             time . month . should_equal 1
             time . day . should_equal 1
@@ -164,9 +164,9 @@ spec_with suite_builder name create_new_datetime parse_datetime nanoseconds_loss
             time . zone . zone_id . should_equal tz.zone_id
             time.to_display_text . should_equal "1970-01-01 01:01:01[+01:01:01]"
 
-        group_builder.specify "should set id-based timezone" <|
+        group_builder.specify "should translate with an id-based timezone" <|
             tz = Time_Zone.parse "Europe/Moscow"
-            time = create_new_datetime 1970 (zone = Time_Zone.utc) . at_zone tz
+            time = create_new_datetime 1970 (zone = Time_Zone.utc) . at_time_zone tz
             time . year . should_equal 1970
             time . month . should_equal 1
             time . day . should_equal 1
@@ -179,13 +179,51 @@ spec_with suite_builder name create_new_datetime parse_datetime nanoseconds_loss
             time . zone . zone_id . should_equal tz.zone_id
             time.to_display_text . should_equal "1970-01-01 03:00:00[Europe/Moscow]"
 
-        group_builder.specify "should allow to set an interop timezone" <|
+        group_builder.specify "should allow to translate with an interop timezone" <|
             interop_tz = ZoneOffset.ofTotalSeconds 3600
             dt0 = create_new_datetime 2020 (zone = Time_Zone.utc)
-            dt1 = dt0.at_zone interop_tz
+            dt1 = dt0.at_time_zone interop_tz
 
             dt1.zone . zone_id . should_equal interop_tz.zone_id
             dt1.to_display_text . should_equal "2020-01-01 01:00:00[+01:00]"
+
+        group_builder.specify "should set an offset-based timezone" <|
+            tz = Time_Zone.new 1 1 1
+            time = create_new_datetime 1970 (zone = Time_Zone.utc) . set_time_zone tz
+            time . year . should_equal 1970
+            time . month . should_equal 1
+            time . day . should_equal 1
+            time . hour . should_equal 0
+            time . minute . should_equal 0
+            time . second . should_equal 0
+            time . millisecond . should_equal 0
+            time . microsecond . should_equal 0
+            time . nanosecond . should_equal 0
+            time . zone . zone_id . should_equal tz.zone_id
+            time.to_display_text . should_equal "1970-01-01 00:00:00[+01:01:01]"
+
+        group_builder.specify "should set an id-based timezone" <|
+            tz = Time_Zone.parse "Europe/Moscow"
+            time = create_new_datetime 1970 (zone = Time_Zone.utc) . set_time_zone tz
+            time . year . should_equal 1970
+            time . month . should_equal 1
+            time . day . should_equal 1
+            time . hour . should_equal 0
+            time . minute . should_equal 0
+            time . second . should_equal 0
+            time . millisecond . should_equal 0
+            time . microsecond . should_equal 0
+            time . nanosecond . should_equal 0
+            time . zone . zone_id . should_equal tz.zone_id
+            time.to_display_text . should_equal "1970-01-01 00:00:00[Europe/Moscow]"
+
+        group_builder.specify "should allow to set an interop timezone" <|
+            interop_tz = ZoneOffset.ofTotalSeconds 3600
+            dt0 = create_new_datetime 2020 (zone = Time_Zone.utc)
+            dt1 = dt0.set_time_zone interop_tz
+
+            dt1.zone . zone_id . should_equal interop_tz.zone_id
+            dt1.to_display_text . should_equal "2020-01-01 00:00:00[+01:00]"
 
         group_builder.specify "epoch in New York" <|
             tz = Time_Zone.parse "America/New_York"
@@ -769,7 +807,7 @@ js_datetime_with_zone year month day hour minute second nanosecond zone =
     js_set_zone (js_local_datetime_impl year month day hour minute second nanosecond) zone
 
 js_set_zone local_datetime zone =
-    datetime_with_tz = local_datetime.at_zone zone
+    datetime_with_tz = local_datetime.at_time_zone zone
     diff = Duration.between datetime_with_tz local_datetime (timezone_aware=False)
     datetime_with_tz + diff
 

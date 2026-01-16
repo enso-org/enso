@@ -30,7 +30,6 @@ type Not_Found
     to_display_text self =
         "The target was not found."
 
-@Builtin_Type
 type Index_Out_Of_Bounds
     ## ---
        private: true
@@ -52,7 +51,6 @@ type Index_Out_Of_Bounds
     to_display_text self =
         "The index " + self.index.to_text + " is out of bounds in a collection of length " + self.length.to_text + "."
 
-@Builtin_Type
 type Syntax_Error
     ## ---
        private: true
@@ -70,7 +68,6 @@ type Syntax_Error
     to_display_text : Text
     to_display_text self = "Syntax error: "+self.message+"."
 
-@Builtin_Type
 type Type_Error
     ## ---
        private: true
@@ -135,7 +132,6 @@ type Type_Error
     to_js_object self =
         JS_Object.from_pairs [["type", "Type_Error"], ["expected", self.expected], ["actual", self.actual], ["comment", self.comment]]
 
-@Builtin_Type
 type Compile_Error
     ## ---
        private: true
@@ -153,7 +149,6 @@ type Compile_Error
     to_display_text : Text
     to_display_text self = "Compile error: "+self.message+"."
 
-@Builtin_Type
 type Assertion_Error
     ## ---
        private: true
@@ -167,7 +162,6 @@ type Assertion_Error
     to_display_text : Text
     to_display_text self = "Assertion Error: '" + self.message.to_text + "'"
 
-@Builtin_Type
 type Inexhaustive_Pattern_Match
     ## ---
        private: true
@@ -185,7 +179,6 @@ type Inexhaustive_Pattern_Match
     to_display_text : Text
     to_display_text self = "Inexhaustive pattern match: no branch matches "+self.scrutinee.to_display_text+"."
 
-@Builtin_Type
 type Arity_Error
     ## ---
        private: true
@@ -211,7 +204,6 @@ type Arity_Error
 
         "Wrong number of arguments. Expected "+expectedRange+", but got "+self.actual.to_text+"."
 
-@Builtin_Type
 type Uninitialized_State
     ## ---
        private: true
@@ -230,7 +222,6 @@ type Uninitialized_State
     to_display_text : Text
     to_display_text self = "State is not initialized for type "+self.key.to_display_text+"."
 
-@Builtin_Type
 type No_Such_Method
     ## ---
        private: true
@@ -277,7 +268,6 @@ type No_Such_Method
                 "type " + (Meta.type_of self.target).to_display_text
         "Method `"+self.method_name+"` of "+target_name+" could not be found."
 
-@Builtin_Type
 type No_Such_Field
     ## ---
        private: true
@@ -299,7 +289,6 @@ type No_Such_Field
         value_type_name = if Meta.is_polyglot self.value then self.value.to_display_text else (Meta.type_of self.value).to_display_text
         "Field `"+self.field_name+"` of "+value_type_name+" could not be found."
 
-@Builtin_Type
 type Module_Not_In_Package_Error
     ## An error that occurs when the enso_project function is called in a file
        that is not part of a project.
@@ -312,7 +301,6 @@ type Module_Not_In_Package_Error
     to_display_text : Text
     to_display_text self = "Module is not a part of a package."
 
-@Builtin_Type
 type Arithmetic_Error
     ## ---
        private: true
@@ -338,7 +326,6 @@ type Arithmetic_Error
     handle_java_exception =
         Panic.catch ArithmeticException handler=(cause-> Error.throw (Arithmetic_Error.Error cause.payload.getMessage))
 
-@Builtin_Type
 type Incomparable_Values
     ## An error that indicates that the two values are not comparable.
 
@@ -374,7 +361,6 @@ type Incomparable_Values
         handle Type_Error <| handle Unsupported_Argument_Types <| handle ClassCastException <| handle_cmp_exc <|
             function
 
-@Builtin_Type
 type Invalid_Array_Index
     ## ---
        private: true
@@ -394,7 +380,6 @@ type Invalid_Array_Index
     to_display_text : Text
     to_display_text self = "Invalid array index: "+self.index.to_text+"."
 
-@Builtin_Type
 type Not_Invokable
     ## ---
        private: true
@@ -418,7 +403,6 @@ type Not_Invokable
             _ -> " Caused by: "+self.cause.to_display_text
         "Type error: expected a function, but got "+self.target.to_display_text+"."+suffix
 
-@Builtin_Type
 type No_Such_Argument
     ## ---
        private: true
@@ -437,7 +421,6 @@ type No_Such_Argument
     to_display_text : Text
     to_display_text self = "The named argument `"+self.argument_name.to_text+"` did not match any argument names. Perhaps it is misspelled?"
 
-@Builtin_Type
 type Private_Access
     ## ---
        private: true
@@ -484,7 +467,6 @@ type Private_Access
             + this_proj
             + "."
 
-@Builtin_Type
 type Unsupported_Argument_Types
     ## ---
        private: true
@@ -504,7 +486,6 @@ type Unsupported_Argument_Types
     to_display_text : Text
     to_display_text self = self.message.to_text
 
-@Builtin_Type
 type Module_Does_Not_Exist
     ## ---
        private: true
@@ -522,7 +503,6 @@ type Module_Does_Not_Exist
     to_display_text : Text
     to_display_text self = "Module "+self.name+" does not exist."
 
-@Builtin_Type
 type Invalid_Conversion_Target
     ## ---
        private: true
@@ -534,7 +514,13 @@ type Invalid_Conversion_Target
         - `target`: the type trying to be converted to.
     Error target
 
-@Builtin_Type
+    ## ---
+       private: true
+       ---
+       Convert to a human-readable format.
+    to_display_text self -> Text =
+        self.target.to_display_text + " is not a valid conversion target. Expected a type."
+
 type No_Such_Conversion
     ## ---
        private: true
@@ -555,7 +541,6 @@ type No_Such_Conversion
     to_display_text : Text
     to_display_text self = "Could not find a conversion from `"+self.that.to_display_text+"` to `"+self.target.to_display_text+"`."
 
-@Builtin_Type
 type No_Conversion_Currying
     ## ---
        private: true
@@ -585,7 +570,6 @@ type No_Conversion_Currying
                   True -> "Conversion currying without `this` argument is not supported."
                   False -> "Conversion currying without `this` and `that` arguments is not supported."
 
-@Builtin_Type
 type Forbidden_Operation
     ## ---
        private: true
@@ -646,7 +630,6 @@ type Out_Of_Memory
 
 ## Indicates that an expression cannot be evaluated because somewhere within it,
    a function does not have all required arguments provided.
-@Builtin_Type
 type Missing_Argument
     ## ---
        private: true
@@ -674,13 +657,13 @@ type Missing_Argument
         function_name = function_frame.name
         call_location = caller_frame.source_location
 
-        # FIXME: Default arguments do not appear to be applied to constructors of builtin types
-        error = if message_override.is_nothing then Missing_Argument.Error argument_name function_name call_location ("Provide a value for the argument `" + argument_name + "`.") else
-            Missing_Argument.Error argument_name function_name call_location message_override
-        Error.throw error
+        Error.throw <|
+            if message_override.is_nothing then
+               Missing_Argument.Error argument_name function_name call_location
+            else
+               Missing_Argument.Error argument_name function_name call_location message_override
 
 ## Warning when additional warnings occurred.
-@Builtin_Type
 type Additional_Warnings
     ## ---
        private: true

@@ -16,9 +16,6 @@ import org.enso.interpreter.node.expression.builtin.Builtin;
 import org.enso.interpreter.node.expression.builtin.Nothing;
 import org.enso.interpreter.node.expression.builtin.Polyglot;
 import org.enso.interpreter.node.expression.builtin.debug.Debug;
-import org.enso.interpreter.node.expression.builtin.error.AdditionalWarnings;
-import org.enso.interpreter.node.expression.builtin.error.CaughtPanic;
-import org.enso.interpreter.node.expression.builtin.error.NoWrap;
 import org.enso.interpreter.node.expression.builtin.error.ProblemBehavior;
 import org.enso.interpreter.node.expression.builtin.error.Warning;
 import org.enso.interpreter.node.expression.builtin.immutable.Vector;
@@ -35,6 +32,7 @@ import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.ModuleScopeBuilder;
 import org.enso.interpreter.runtime.data.Type;
+import org.enso.interpreter.runtime.data.atom.AtomConstructor;
 import org.enso.pkg.QualifiedName;
 
 /** Container class for static predefined atoms, methods, and their containing scope. */
@@ -80,9 +78,7 @@ public final class Builtins {
   private final Builtin timeOfDay;
   private final Builtin timeZone;
   private final Builtin warning;
-  private final NoWrap noWrap;
   private final ProblemBehavior problemBehavior;
-  private final AdditionalWarnings additionalWarnings;
   private final Builtin instrumentor;
 
   /** Factory method to create the builtins. */
@@ -136,9 +132,7 @@ public final class Builtins {
     timeOfDay = getBuiltinType(org.enso.interpreter.node.expression.builtin.date.TimeOfDay.class);
     timeZone = getBuiltinType(org.enso.interpreter.node.expression.builtin.date.TimeZone.class);
     warning = getBuiltinType(Warning.class);
-    noWrap = getBuiltinType(NoWrap.class);
     problemBehavior = getBuiltinType(ProblemBehavior.class);
-    additionalWarnings = getBuiltinType(AdditionalWarnings.class);
     instrumentor = getBuiltinType(org.enso.interpreter.node.expression.builtin.Instrumentor.class);
 
     error = new Error(this, ctx);
@@ -319,14 +313,14 @@ public final class Builtins {
     return problemBehavior;
   }
 
-  /** Returns the {@code No_Wrap} atom constructor. */
-  public NoWrap noWrap() {
-    return noWrap;
-  }
-
-  /** Returns the {@code Additional_Warnings} atom constructor. */
-  public AdditionalWarnings additionalWarnings() {
-    return additionalWarnings;
+  /**
+   * Checks whether given atom represents {@code Vector.No_Wrap}.
+   *
+   * @param c constructor
+   * @return true if it is an constructor of that type, false otherwise
+   */
+  public boolean isNoWrapBuiltin(AtomConstructor c) {
+    return error().isNoWrapBuiltin(c);
   }
 
   /**
@@ -425,13 +419,6 @@ public final class Builtins {
    */
   public Type polyglot() {
     return polyglot.getType();
-  }
-
-  /**
-   * @return the {@code Caught_Panic} atom constructor
-   */
-  public CaughtPanic caughtPanic() {
-    return this.error.caughtPanic();
   }
 
   /**

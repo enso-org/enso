@@ -540,7 +540,7 @@ postgres_specific_spec suite_builder create_connection_fn db_name setup =
                 table.update_rows (Table.new [["A", v]]) update_action=Update_Action.Insert
 
             tz_zero = Time_Zone.parse "Z"
-            v_at_z = v.map dt-> dt.at_zone tz_zero
+            v_at_z = v.map dt-> dt.at_time_zone tz_zero
             table.at "A" . to_vector . should_equal v_at_z
             table.at "A" . to_vector . should_equal_tz_agnostic v
 
@@ -549,7 +549,7 @@ postgres_specific_spec suite_builder create_connection_fn db_name setup =
             v.each my_dt-> Test.with_clue my_dt.to_text+" " <|
                 # Checks if the two date-times represent the same instant in time.
                 is_same_time_instant dt1 dt2 =
-                    dt1.at_zone tz_zero == dt2.at_zone tz_zero
+                    dt1.at_time_zone tz_zero == dt2.at_time_zone tz_zero
                 local_equals = v.filter (is_same_time_instant my_dt)
                 # Depending on test runner's timezone, the `my_dt` may be equal to 1 or 2 entries in `v`.
                 [1, 2].should_contain local_equals.length
@@ -577,7 +577,7 @@ postgres_specific_spec suite_builder create_connection_fn db_name setup =
                 table.update_rows source_table update_action=Update_Action.Insert
             w.requested_type . should_equal (source_table.at "A" . value_type)
             w.actual_type . should_equal (table.at "A" . value_type)
-            w.to_display_text . should_equal "The type Date_Time (with timezone) has been coerced to Date_Time (without timezone). Some information may be lost."
+            w.to_display_text . should_equal "The type Date_Time (with timezone) has been coerced to Date_Time (without timezone). Some information may be lost. Consider using .at_time_zone or .set_time_zone to explicitly convert Date_Time values before upload."
 
             # When uploading we want to just strip the timezone information and treat every timestamp as LocalDateTime.
             # This is verified by checking the text representation in the DB: it should show the same local time in all 4 cases, regardless of original timezone.
@@ -594,7 +594,7 @@ postgres_specific_spec suite_builder create_connection_fn db_name setup =
             # We also check how the timestamp column behaves with interpolations:
             v.each my_dt-> Test.with_clue my_dt.to_text+": " <|
                 t2 = table.filter "A" (Filter_Condition.Equal to=my_dt)
-                is_in_system_tz = my_dt.at_zone Time_Zone.system . time_of_day == my_dt.time_of_day
+                is_in_system_tz = my_dt.at_time_zone Time_Zone.system . time_of_day == my_dt.time_of_day
                 ## Unfortunately, this will work in the following way:
                    - if the date-time represented as local time in the current system default timezone is 15:30,
                      then it will match _all_ entries (as they do not have a timezone).
@@ -614,11 +614,11 @@ postgres_specific_spec suite_builder create_connection_fn db_name setup =
                    second operand.
                 case is_in_system_tz of
                     True ->
-                        my_dt.at_zone Time_Zone.system . time_of_day . to_display_text . should_equal "15:30:00"
+                        my_dt.at_time_zone Time_Zone.system . time_of_day . to_display_text . should_equal "15:30:00"
                         t2.row_count . should_equal 4
                         t2.at "A" . to_vector . should_equal [dt1, dt1, dt1, dt1]
                     False ->
-                        my_dt.at_zone Time_Zone.system . time_of_day . to_display_text . should_not_equal "15:30:00"
+                        my_dt.at_time_zone Time_Zone.system . time_of_day . to_display_text . should_not_equal "15:30:00"
                         t2.row_count . should_equal 0
                         t2.at "A" . to_vector . should_equal []
 

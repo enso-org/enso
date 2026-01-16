@@ -122,9 +122,9 @@ case object SuspendedArguments extends IRPass {
               case Some(Signature(signature, _)) =>
                 val newArgs = computeSuspensions(args.drop(1), signature)
                 if (newArgs.head.suspended) {
-                  errors.Conversion(
+                  errors.Conversion.create(
                     method,
-                    errors.Conversion.SuspendedSourceArgument(
+                    new errors.Conversion.SuspendedSourceArgument(
                       newArgs.head.name.name
                     )
                   )
@@ -142,16 +142,16 @@ case object SuspendedArguments extends IRPass {
               case None =>
                 args match {
                   case _ :: Nil =>
-                    errors.Conversion(
+                    errors.Conversion.create(
                       method,
-                      errors.Conversion.SuspendedSourceArgument(
+                      new errors.Conversion.SuspendedSourceArgument(
                         "unknown"
                       )
                     )
                   case _ :: sourceArg :: _ if sourceArg.suspended =>
-                    errors.Conversion(
+                    errors.Conversion.create(
                       method,
-                      errors.Conversion.SuspendedSourceArgument(
+                      new errors.Conversion.SuspendedSourceArgument(
                         sourceArg.name.name
                       )
                     )
