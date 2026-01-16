@@ -274,7 +274,7 @@ test('Alignment buttons are visible when multiple nodes are selected', async ({
   // Verify alignment dropdown button is present
   const alignMenu = selectionMenu.getByTitle('Align')
   await expect(alignMenu).toBeVisible()
-  
+
   // Open the dropdown and verify all alignment buttons are present
   await alignMenu.click()
   await expect(selectionMenu.getByLabel('Align Left')).toBeVisible()
