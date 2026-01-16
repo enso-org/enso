@@ -1,24 +1,24 @@
 load("@aspect_bazel_lib//lib:write_source_files.bzl", "write_source_files")
 load("@aspect_rules_js//npm:defs.bzl", "npm_package")
-load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
+load("@aspect_rules_ts//ts:defs.bzl", "ts_config", "ts_project")
 load("@npm//:defs.bzl", "npm_link_all_packages", "npm_link_targets")
 load("//:bazel_scripts/ts_config.bzl", "write_tsconfig")
 
 npm_link_all_packages(name = "node_modules")
 
+ts_config(
+    name = "tsconfig",
+    src = "tsconfig.json",
+    deps = ["//:tsconfig"],
+)
+
 ts_project(
     name = "tsc",
     srcs = glob(["src/**/*.ts"]),
     composite = True,
-    declaration = True,
-    extends = "//:tsconfig",
     out_dir = "dist",
     root_dir = "src",
-    tsconfig = {
-        "compilerOptions": {
-            "composite": True,
-        },
-    },
+    tsconfig = ":tsconfig",
     validate = select({
         "@platforms//os:windows": False,
         "//conditions:default": True,

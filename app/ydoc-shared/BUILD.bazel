@@ -1,13 +1,19 @@
 load("@aspect_bazel_lib//lib:write_source_files.bzl", "write_source_files")
 load("@aspect_rules_js//js:defs.bzl", "js_binary", "js_run_binary")
 load("@aspect_rules_js//npm:defs.bzl", "npm_package")
-load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
+load("@aspect_rules_ts//ts:defs.bzl", "ts_config", "ts_project")
 load("@npm//:defs.bzl", "npm_link_all_packages", "npm_link_targets")
 load("//:bazel_scripts/ts_config.bzl", "write_tsconfig")
 
 npm_link_all_packages(name = "node_modules")
 
 GENERATED_TYPEDEF_FILE = "src/ast/generated/ast.ts"
+
+ts_config(
+    name = "tsconfig",
+    src = "tsconfig.json",
+    deps = ["//:tsconfig"],
+)
 
 ts_project(
     name = "tsc",
@@ -16,20 +22,9 @@ ts_project(
         [GENERATED_TYPEDEF_FILE],
     ) + [":generate_ast_typedefs"],
     composite = True,
-    declaration = True,
-    extends = "//:tsconfig",
     out_dir = "dist",
     root_dir = "src",
-    tsconfig = {
-        "compilerOptions": {
-            "composite": True,
-            "isolatedModules": True,
-            "types": [
-                "node",
-                "vitest/importMeta",
-            ],
-        },
-    },
+    tsconfig = ":tsconfig",
     validate = select({
         "@platforms//os:windows": False,
         "//conditions:default": True,
@@ -49,25 +44,15 @@ npm_package(
 
 # parser-codegen
 
+ts_config(
+    name = "tsconfig_parser_codegen",
+    src = "parser-codegen/tsconfig.json",
+)
+
 ts_project(
     name = "parser_codegen_tsc",
     srcs = glob(["parser-codegen/*.ts"]),
-    tsconfig = {
-        "compilerOptions": {
-            "types": ["node"],
-            "lib": ["es2023"],
-            "target": "es2022",
-            "esModuleInterop": True,
-            "skipLibCheck": True,
-            "module": "ESNext",
-            "moduleResolution": "Node",
-            "strict": True,
-            "verbatimModuleSyntax": True,
-            "noUncheckedIndexedAccess": True,
-            "exactOptionalPropertyTypes": True,
-            "strictNullChecks": True,
-        },
-    },
+    tsconfig = ":tsconfig_parser_codegen",
     validate = select({
         "@platforms//os:windows": False,
         "//conditions:default": True,

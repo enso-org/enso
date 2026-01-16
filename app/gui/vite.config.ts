@@ -109,7 +109,6 @@ export default defineConfig({
       'top-level-await': true,
     },
   },
-  assetsInclude: ['src/dashboard/assets/*.svg'],
   css: {
     postcss: {
       plugins: [tailwindcssNesting(postcssNesting()), tailwindcss(tailwindConfig)],

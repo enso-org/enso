@@ -1,7 +1,11 @@
 {
   "compilerOptions": {
+    "composite": true,
     "esModuleInterop": true,
+    "noEmit": false,
     "paths": { "@/*": ["./src/*"] },
+    "resolveJsonModule": true,
+    "sourceMap": true,
     "types": ["node"]
   },
   "extends": "../../tsconfig.json",

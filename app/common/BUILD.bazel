@@ -1,10 +1,16 @@
 load("@aspect_bazel_lib//lib:write_source_files.bzl", "write_source_files")
 load("@aspect_rules_js//npm:defs.bzl", "npm_package")
-load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
+load("@aspect_rules_ts//ts:defs.bzl", "ts_config", "ts_project")
 load("@npm//:defs.bzl", "npm_link_all_packages", "npm_link_targets")
 load("//:bazel_scripts/ts_config.bzl", "write_tsconfig")
 
 npm_link_all_packages(name = "node_modules")
+
+ts_config(
+    name = "tsconfig",
+    src = "tsconfig.json",
+    deps = ["//:tsconfig"],
+)
 
 ts_project(
     name = "tsc",
@@ -13,25 +19,11 @@ ts_project(
     ]) + ["src/text/english.json"],
     allow_js = True,
     composite = True,
-    declaration = True,
-    extends = "//:tsconfig",
     no_emit = False,
     out_dir = "dist",
     resolve_json_module = True,
     root_dir = "src",
-    tsconfig = {
-        "compilerOptions": {
-            "lib": [
-                "DOM",
-                "es2023",
-            ],
-            "composite": True,
-            "allowJs": True,
-            "checkJs": True,
-            "noEmit": False,
-            "resolveJsonModule": True,
-        },
-    },
+    tsconfig = ":tsconfig",
     validate = select({
         "@platforms//os:windows": False,
         "//conditions:default": True,
