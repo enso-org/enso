@@ -3,6 +3,8 @@ from Standard.Base import all
 import project.Column.Column
 import project.Column.Rest_Of_String
 import project.Refined_Types.Numeric_Column.Numeric_Column
+import project.Refined_Types.Trim_What.Trim_What
+import project.Refined_Types.Trim_Where.Trim_Where
 
 ## A column that contains text values.
 type Text_Column
@@ -230,10 +232,9 @@ type Text_Column
        ```
              import Standard.Examples
 
-             example_trim_left = Examples.text_column_1.trim "AB" ..Left
+             example_trim_left = Examples.text_column_1.trim (Trim_What.Characters "AB") ..Left
        ```
-    @where (make_single_choice [["Both", "..Both"], ["Left", "..Left"], ["Right", "..Right"]])
-    trim self (what : Column | Text | Any = _.is_whitespace) (where : Location = Location.Both) -> Column & Text_Column =
+    trim self (what : Trim_What = ..Whitespace) (where : Trim_Where = ..Both) -> Column & Text_Column =
         self.operations_implementation.trim self.column where what
 
     ## ---
@@ -255,8 +256,8 @@ type Text_Column
 
              example_trim_left = Examples.text_column_1.trim_left
        ```
-    trim_left self (what : Column | Text | Any = _.is_whitespace) -> Column & Text_Column =
-        self.operations_implementation.trim self.column Location.Left what
+    trim_left self (what : Trim_What = ..Whitespace) -> Column & Text_Column =
+        self.operations_implementation.trim self.column ..Left what
 
     ## ---
        group: Standard.Base.Text
@@ -277,5 +278,5 @@ type Text_Column
 
              example_trim_right = Examples.text_column_1.trim_right
        ```
-    trim_right self (what : Column | Text | Any = _.is_whitespace) -> Column & Text_Column =
-        self.operations_implementation.trim self.column Location.Right what
+    trim_right self (what : Trim_What = ..Whitespace) -> Column & Text_Column =
+        self.operations_implementation.trim self.column ..Right what

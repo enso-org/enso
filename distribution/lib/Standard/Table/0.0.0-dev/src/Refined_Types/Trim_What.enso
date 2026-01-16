@@ -1,0 +1,11 @@
+from Standard.Base import all
+
+type Trim_What
+    ## Trim whitespace characters.
+    Whitespace
+
+    ## Trim specific characters.
+    ##
+    ## Arguments:
+    ## - characters: The characters to trim.
+    Characters characters:Text

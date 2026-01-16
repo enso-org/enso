@@ -1,0 +1,11 @@
+from Standard.Base import all
+
+type Trim_Where
+    ## Indicates the beginning of the text.
+    Left
+
+    ## Indicates the end of the text.
+    Right
+
+    ## Indicates both the beginning and end of the text.
+    Both
