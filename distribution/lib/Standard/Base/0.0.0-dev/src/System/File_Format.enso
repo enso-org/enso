@@ -22,6 +22,7 @@ import project.Runtime
 import project.Runtime.Ref.Ref
 import project.System.File.File
 import project.System.File.Generic.Writable_File.Writable_File
+import project.System.File_Format_Metadata.Content_Type_Metadata
 import project.System.File_Format_Metadata.File_Format_Metadata
 import project.System.Input_Stream.Input_Stream
 import project.Warning.Warning
