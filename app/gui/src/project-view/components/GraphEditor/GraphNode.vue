@@ -762,10 +762,6 @@ resizeHandles.onResizeHeight((value) => emit('update:height', value))
   backdrop-filter: none;
 }
 
-.alignmentMenu :deep(.rowIcon) {
-  margin-right: 4px;
-}
-
 .submenuArrow {
   margin-left: auto;
   opacity: 0.7;
