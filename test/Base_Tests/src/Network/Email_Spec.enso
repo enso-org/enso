@@ -1,8 +1,6 @@
 from Standard.Base import all
 from Standard.AWS import all
-import Standard.Base.Errors.File_Error.File_Error
 import Standard.Base.Network.Email.Email_Address.Email_Address
-from Standard.Base.Runtime import assert
 
 from Standard.Test import all
 
@@ -44,16 +42,16 @@ add_specs suite_builder =
     suite_builder.group "Email Sending - Body Types" group_builder->
         group_builder.specify "should send a plain text email" <|
             body_text = "This is plain text content.\nWith multiple lines.\nAnd formatting."
-            response = Email.send from_address [to_address_1] subject="Plain Text" body=(..Plain_Text body_text) provider=test_provider
+            Email.send from_address [to_address_1] subject="Plain Text" body=(..Plain_Text body_text) provider=test_provider
         
         group_builder.specify "should send an HTML email with plain text fallback" <|
             html_content = "<html><body><h1>Hello</h1><p>This is <strong>HTML</strong> content.</p></body></html>"
             plain_fallback = "Hello\n\nThis is HTML content."
-            response = Email.send from_address [to_address_1] subject="HTML Email" body=(..HTML html_content plain_fallback) provider=test_provider
+            Email.send from_address [to_address_1] subject="HTML Email" body=(..HTML html_content plain_fallback) provider=test_provider
         
         group_builder.specify "should send an HTML email without plain text fallback" <|
             html_content = "<html><body><p>HTML only content</p></body></html>"
-            response = Email.send from_address [to_address_1] subject="HTML Only" body=(..HTML html_content) provider=test_provider
+            Email.send from_address [to_address_1] subject="HTML Only" body=(..HTML html_content) provider=test_provider
     
     suite_builder.group "Email Sending - CC and BCC" group_builder->
         group_builder.specify "should send an email with CC recipient" <|
@@ -99,7 +97,7 @@ add_specs suite_builder =
         
         group_builder.specify "should send an email with unicode content" <|
             unicode_body = "Hello 世界! Привет мир! مرحبا بالعالم! 🎉🚀✨"
-            response = Email.send from_address [to_address_1] subject="Unicode Test" body=(..Plain_Text unicode_body) provider=test_provider
+            Email.send from_address [to_address_1] subject="Unicode Test" body=(..Plain_Text unicode_body) provider=test_provider
     
     suite_builder.group "Email Sending - Using Email.new" group_builder->
         group_builder.specify "should create and send an email using Email.new" <|
