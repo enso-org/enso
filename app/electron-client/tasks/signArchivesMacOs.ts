@@ -308,7 +308,7 @@ class BinaryToSign implements Signable {
               `--keychain-profile="${keyProfile}"`,
             ])
             const matched = out.match('/id: ([\w-]+)/')
-            if (matched && matched.length < 2) {
+            if (matched && matched.length >= 2) {
               const submissionId = matched[1]
               const log = run('xcrun', [
                 'notarytool',
