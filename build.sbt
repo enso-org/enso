@@ -3953,7 +3953,7 @@ lazy val `engine-runner` = project
               "--add-opens=java.base/java.nio=ALL-UNNAMED",
               // Needed for grpc-gax
               "--add-opens=java.base/java.time=ALL-UNNAMED",
-              "--enable-url-protocols=jar"
+              "--enable-url-protocols=jar,https"
             ) ++ enableHeapDumpOpts ++ debugOpts ++ linkOpts ++ cLibraryOpts,
             mainModule = Some("org.enso.runner"),
             mainClass  = Some("org.enso.runner.Main"),
