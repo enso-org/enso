@@ -29,8 +29,7 @@ import GraphNodeComment from '@/components/GraphEditor/GraphNodeComment.vue'
 import GraphNodeMessage from '@/components/GraphEditor/GraphNodeMessage.vue'
 import GraphVisualization from '@/components/GraphEditor/GraphVisualization.vue'
 import type { NodeCreationOptions } from '@/components/GraphEditor/nodeCreation'
-import MenuEntry from '@/components/MenuEntry.vue'
-import MenuPanel from '@/components/MenuPanel.vue'
+import ActionMenu from '@/components/ActionMenu.vue'
 import { useResizeHandles } from '@/components/resizeHandles'
 import ResizeHandles from '@/components/ResizeHandles.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
@@ -549,14 +548,11 @@ resizeHandles.onResizeHeight((value) => emit('update:height', value))
               @pointerenter="handleAlignmentMenuEnter"
               @pointerleave="handleAlignmentMenuLeave"
             >
-              <MenuPanel class="alignmentMenu">
-                <MenuEntry
-                  v-for="action in alignmentMenuActions"
-                  :key="action"
-                  :action="action"
-                  @click="closeAllMenus"
-                />
-              </MenuPanel>
+              <ActionMenu
+                class="alignmentMenu"
+                :actions="alignmentMenuActions"
+                @close="closeAllMenus"
+              />
             </div>
           </template>
         </DropdownMenu>
