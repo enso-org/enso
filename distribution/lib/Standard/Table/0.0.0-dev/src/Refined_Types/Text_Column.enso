@@ -211,10 +211,10 @@ type Text_Column
        Removes the specified characters from the start, end, or both ends of each element of the column.
 
        ## Arguments
-       - where: The location of where to trim the text. By default, trims both ends.
        - what: Either a `Text` containing characters that should be removed or a
          predicate taking single character strings and specifying if they should be
          removed. By default, all Unicode whitespace is removed.
+       - where: The location of where to trim the text. By default, trims both ends.
 
        ## Examples
        ### Trimming whitespace from both ends of each element in a column.
@@ -230,9 +230,10 @@ type Text_Column
        ```
              import Standard.Examples
 
-             example_trim_left = Examples.text_column_1.trim ..Left "AB"
+             example_trim_left = Examples.text_column_1.trim "AB" ..Left
        ```
-    trim self (where : Location = Location.Both) (what : Column | Text | Any = _.is_whitespace) -> Column & Text_Column =
+    @where (make_single_choice [["Both", "..Both"], ["Left", "..Left"], ["Right", "..Right"]])
+    trim self (what : Column | Text | Any = _.is_whitespace) (where : Location = Location.Both) -> Column & Text_Column =
         self.operations_implementation.trim self.column where what
 
     ## ---
