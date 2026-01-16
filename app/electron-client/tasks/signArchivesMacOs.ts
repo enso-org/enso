@@ -281,16 +281,61 @@ class BinaryToSign implements Signable {
   /** Sign this binary. */
   async sign({ entitlements, identity }: SigningContext) {
     console.log(`Signing ${this.path}`)
-    run('codesign', [
-      '-vvv',
-      '--entitlements',
-      entitlements,
-      '--force',
-      '--options=runtime',
-      '--sign',
-      identity,
-      this.path,
-    ])
+    try {
+      run('codesign', [
+        '-vvv',
+        '--entitlements',
+        entitlements,
+        '--force',
+        '--options=runtime',
+        '--sign',
+        identity,
+        this.path,
+      ])
+    } catch (err) {
+      if (err.code) {
+        console.error(err.code)
+      } else {
+        const { stdout, stderr } = err
+        const keyProfile = 'Enso NotaryProfile'
+
+        if (stderr.includes('Error: Failed to staple your application with code: 65')) {
+          console.error({ stdout, stderr })
+          try {
+            const out = run('xcrun', [
+              'notarytool',
+              'history',
+              `--keychain-profile="${keyProfile}"`,
+            ])
+            const matched = out.match('/id: ([\w-]+)/')
+            if (matched && matched.length < 2) {
+              const submissionId = matched[1]
+              const log = run('xcrun', [
+                'notarytool',
+                'log',
+                `--keychain-profile="${keyProfile}"`,
+                submissionId,
+              ])
+              console.error(`Notary log for submission ${submissionId}:\n${log}`)
+            } else {
+              console.error(
+                'Unable to find submission in notarytool history. Needs manual inspection',
+              )
+            }
+          } catch (err) {
+            console.error(
+              'Unable to find failed submission status in notarytool. Needs manual inspection: ' +
+                err,
+            )
+          }
+        } else {
+          console.error(
+            'Unable to find failed submission status in notarytool. Needs manual inspection',
+          )
+        }
+        throw err
+      }
+    }
     // Async functions should contain await.
     await Promise.resolve()
   }
