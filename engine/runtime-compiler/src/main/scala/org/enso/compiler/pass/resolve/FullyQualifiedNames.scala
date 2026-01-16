@@ -112,7 +112,7 @@ case object FullyQualifiedNames extends IRPass {
                   case m: Export.Module
                       if m.name.name == resolution.qualifiedName.toString =>
                     m.addDiagnostic(
-                      warnings.Shadowed.TypeInModuleNameConflicts(
+                      new warnings.Shadowed.TypeInModuleNameConflicts(
                         exportedModule.getName.toString,
                         tpeName,
                         allStarting.head.getName.toString,
