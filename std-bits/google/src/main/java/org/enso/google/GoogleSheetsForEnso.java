@@ -127,7 +127,7 @@ public class GoogleSheetsForEnso {
       if (value % 1 == 0) {
         return value.intValue();
       } else {
-        return value.doubleValue();
+        return value;
       }
     }
 
