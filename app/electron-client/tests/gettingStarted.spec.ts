@@ -1,19 +1,21 @@
 /** @file A series of tests designed for testing 'Getting Started with Enso Analytics'. */
 
 import path from 'path'
-import { expect } from 'playwright/test'
+import { test as base, expect } from 'playwright/test'
 import {
   addFirstElementToWidgetVector,
   closeWelcome,
   createNewProject,
+  electronFixtures,
   fillWidgetText,
   loginAsTestUser,
   openComponentBrowser,
   openDropdownInWidget,
-  test,
   visualizeData,
   waitForDownload,
 } from './electronTest'
+
+const test = base.extend(electronFixtures)
 
 // First excercise in Enso Analytics 101
 test('Exercise 1', async ({ page, projectsDir }) => {
