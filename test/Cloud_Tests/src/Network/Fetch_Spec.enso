@@ -114,12 +114,16 @@ add_specs suite_builder =
             r4.should_equal (Table.from_rows ["Column 1"] [["A,B"], ["1,x"], ["3,y"]])
 
         group_builder.specify "should detect plain text from content type" <| Test.with_retries <|
-            cases = [["example.css", Text], ["example.txt", Text], ["example.js", Text], ["example.html", Text], ["example.xml", XML_Document], ["example.xhtml", XML_Document]]
+            cases = [["example.css", Text], ["example.txt", Text], ["example.js", Text], ["example.html", Text], ["example.xml", XML_Document]]
             cases.each c->
                 fn = c.at 0
                 ty = c.at 1
-                url = base_url_with_slash+"testfiles/"+fn
-                Data.fetch url . should_be_a ty
+                Test.with_clue fn+": " <|
+                    url = base_url_with_slash+"testfiles/"+fn
+                    Data.fetch url . should_be_a ty
+            
+            xhtml_url = base_url_with_slash+"content_type?content-type=application%2fxhtml%2bxml"
+            Data.fetch xhtml_url . should_be_a XML_Document
 
     suite_builder.group "Response caching" pending=pending_has_url group_builder->
         with_temp_file file ~action =

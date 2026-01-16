@@ -1,6 +1,7 @@
 package org.enso.shttp;
 
 import com.sun.net.httpserver.SimpleFileServer;
+
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
@@ -9,11 +10,13 @@ import java.util.Arrays;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Semaphore;
 import java.util.stream.Stream;
+
 import org.enso.shttp.auth.BasicAuthTestHandler;
 import org.enso.shttp.auth.TokenAuthTestHandler;
 import org.enso.shttp.cloud_mock.CloudAuthRenew;
 import org.enso.shttp.cloud_mock.CloudMockSetup;
 import org.enso.shttp.cloud_mock.CloudRoot;
+import org.enso.shttp.cloud_mock.ContentTypeHandler;
 import org.enso.shttp.cloud_mock.ExpiredTokensCounter;
 import org.enso.shttp.test_helpers.CrashingTestHandler;
 import org.enso.shttp.test_helpers.DownloadTestHandler;
@@ -98,6 +101,7 @@ public class HTTPTestHelperServer {
     server.addHandler("/crash", new CrashingTestHandler());
     server.addHandler("/test_redirect", new RedirectTestHandler("/testfiles/js.txt"));
     server.addHandler("/test_download", new DownloadTestHandler());
+    server.addHandler("/content_type", new ContentTypeHandler());
 
     // Cloud mock
     if (cloudMockSetup != null) {
