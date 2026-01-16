@@ -9,8 +9,6 @@ import java.util.Objects;
 import java.util.Random;
 import java.util.stream.IntStream;
 import org.enso.table.data.column.builder.Builder;
-import org.enso.table.problems.BlackholeProblemAggregator;
-import org.enso.table.problems.ProblemAggregator;
 import org.enso.test.utils.ContextUtils;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
@@ -59,7 +57,6 @@ public class DateStorageTest {
     var size = r.nextInt(256, 4096);
     var stream = r.ints(size, 0, 20000);
     var msg = "with seed " + seed + " size " + size;
-    System.err.println(msg);
     generateAndCompare(msg, size, stream);
   }
 
@@ -84,9 +81,5 @@ public class DateStorageTest {
       }
     }
     assertEquals(info + "\n" + sb.toString(), 0, sb.length());
-  }
-
-  private static ProblemAggregator problemAggregator() {
-    return BlackholeProblemAggregator.INSTANCE;
   }
 }
