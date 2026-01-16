@@ -8,19 +8,30 @@ from Standard.Test import all
 
 add_specs suite_builder =
     # Test provider for Amazon SES
-    test_provider = 
+    test_provider = (..Amazon_SES (..Region 'ADD REGION') credentials=(..Key "ADD KEY" "ADD SECRET"))
+    
+    # Test email addresses - replace with valid addresses for real tests
+    plain_from_address = 'from@enso.org'
+    from_address = ..Address 'from@enso.org' 'From User'
+    to_address_base = 'to.address'
+    to_address_1 = to_address_base + '@gmail.com'
+    to_address_2 = Email_Address.Address (to_address_base + '+user2@gmail.com') 'Test User 2'
+    cc_address = Email_Address.Address (to_address_base + '+ccuser@gmail.com') 'CC User'
+    cc_address2 = Email_Address.Address (to_address_base + '+ccuser2@gmail.com') 'CC User 2'
+    bcc_address = Email_Address.Address (to_address_base + '+bccuser@gmail.com') 'BCC User'
+    bcc_address2 = Email_Address.Address (to_address_base + '+bccuser2@gmail.com') 'BCC User 2'
     
     suite_builder.group "Email Sending - Basic" group_builder->
         group_builder.specify "should send a simple plain text email to one recipient" <|
             response = Email.send from_address [to_address_1] subject="Simple Test" body=(..Plain_Text 'This is a plain text email.') provider=test_provider
-            response.email.from_address.address . should_equal 'adam.riley@enso.org'
+            response.email.from_address.address . should_equal from_address.address
             response.email.to.length . should_equal 1
             response.email.subject . should_equal "Simple Test"
         
         group_builder.specify "should send an email with named sender and recipient" <|
             response = Email.send from_address [to_address_2] subject="Named Test" body=(..Plain_Text 'Email with names') provider=test_provider
-            response.email.from_address.name . should_equal 'Adam Riley'
-            response.email.to.first.name . should_equal 'Test User 2'
+            response.email.from_address.name . should_equal from_address.name
+            response.email.to.first.name . should_equal to_address_2.name
         
         group_builder.specify "should send an email to multiple recipients" <|
             response = Email.send from_address [to_address_1, to_address_2] subject="Multiple Recipients" body=(..Plain_Text 'Email to multiple people') provider=test_provider
