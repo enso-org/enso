@@ -66,7 +66,11 @@ case object OverloadsResolution extends IRPass {
     val newBindings = ir.bindings.map {
       case tp: Definition.Type =>
         if (seenTypes.contains(tp.name.name)) {
-          errors.Redefined.Type(tp.name, tp.identifiedLocation)
+          errors.Redefined.Type
+            .builder()
+            .typeName(tp.name)
+            .location(tp.identifiedLocation())
+            .build()
         } else {
           seenTypes += tp.name.name
           tp
@@ -77,19 +81,21 @@ case object OverloadsResolution extends IRPass {
           seenMethods(method.typeName.map(_.name))
             .contains((method.methodName.name, method.isStatic))
         ) {
-          errors.Redefined.Method(
-            method.typeName,
-            method.methodName,
-            method.identifiedLocation
-          )
+          errors.Redefined.Method
+            .builder()
+            .typeName(method.typeName)
+            .methodName(method.methodName)
+            .location(method.identifiedLocation())
+            .build()
         } else {
           types.find(_.name.name.equals(method.methodName.name)) match {
             case Some(clashedAtom) if method.typeName.isEmpty =>
-              errors.Redefined.MethodClashWithAtom(
-                clashedAtom.name,
-                method.methodName,
-                method.identifiedLocation
-              )
+              errors.Redefined.MethodClashWithAtom
+                .builder()
+                .atomName(clashedAtom.name)
+                .methodName(method.methodName)
+                .location(method.identifiedLocation())
+                .build()
             case _ =>
               val currentMethods: Set[(String, Boolean)] =
                 seenMethods(method.typeName.map(_.name))
@@ -104,11 +110,12 @@ case object OverloadsResolution extends IRPass {
         conversionsForType.get(m.typeName.map(_.name)) match {
           case Some(elems) =>
             if (elems.contains(fromName.name)) {
-              errors.Redefined.Conversion(
-                m.typeName,
-                fromName,
-                m.identifiedLocation
-              )
+              errors.Redefined.Conversion
+                .builder()
+                .targetType(m.typeName)
+                .sourceType(fromName)
+                .location(m.identifiedLocation())
+                .build()
             } else {
               conversionsForType.update(
                 m.typeName.map(_.name),
@@ -145,7 +152,7 @@ case object OverloadsResolution extends IRPass {
         )
     }
 
-    ir.copyWithBindings(bindings = newBindings)
+    ir.copyWithBindings(newBindings)
   }
 
   /** This pass does nothing for the expression flow.

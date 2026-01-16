@@ -46,7 +46,11 @@ type Google_Sheets_Workbook
           key.
     new workbook_id:Text credentials:Enso_Secret =
         service = GoogleSheetsForEnso.create (_wrap_credentials credentials)
-        Google_Sheets_Workbook.Value workbook_id service
+        result = Google_Sheets_Workbook.Value workbook_id service
+
+        ## Test the number of sheets to verify that the credentials and workbook ID are valid.
+        sheet_count = result.sheet_count
+        sheet_count.if_not_error result
 
     ## ---
        aliases: [get, import, load, open, range, sheet, worksheet]
@@ -120,7 +124,7 @@ type Google_Sheets_Workbook
        suggested: 3
        ---
        Gets the names of all the sheets.
-    sheet_names self -> Vector Text = _handle_exceptions <|
+    sheet_names self -> Vector Text = _handle_exceptions self.workbook_id <|
         Vector.from_polyglot_array (self.java_service.getSheetNames self.workbook_id)
 
     ## ---
@@ -129,7 +133,7 @@ type Google_Sheets_Workbook
        suggested: 4
        ---
        Gets the names of all the named ranges.
-    named_ranges self -> Vector Text = _handle_exceptions <|
+    named_ranges self -> Vector Text = _handle_exceptions self.workbook_id <|
         Vector.from_polyglot_array (self.java_service.getRangeNames self.workbook_id) . sort
 
     ## ---
@@ -138,7 +142,7 @@ type Google_Sheets_Workbook
        suggested: 5
        ---
        Gets the number of sheets.
-    sheet_count self -> Integer = _handle_exceptions <|
+    sheet_count self -> Integer = _handle_exceptions self.workbook_id <|
         self.java_service.getNumberOfSheets self.workbook_id
 
     ## ---
@@ -147,7 +151,7 @@ type Google_Sheets_Workbook
        suggested: 6
        ---
        Gets the number of named ranges.
-    named_ranges_count self -> Integer = _handle_exceptions <|
+    named_ranges_count self -> Integer = _handle_exceptions self.workbook_id <|
         self.java_service.getNumberOfNames self.workbook_id
 
 ## ---
@@ -161,19 +165,42 @@ type Google_API_Error
     ## ---
        private: true
        ---
-    Error details
+    Access_Denied message
+
+    ## ---
+       private: true
+       ---
+    Not_Found message
+
+    ## ---
+       private: true
+       ---
+    Invalid_Format message
+
+    ## ---
+       private: true
+       ---
+    Error message details
 
     ## ---
        private: true
        ---
        Render the error to text.
     to_display_text self =
-        self.details.at 'message'
+        self.message
 
-private _handle_exceptions ~action =
+private _handle_exceptions workbook_id ~action =
     Panic.catch EmptySheetException handler=(_ -> Error.throw Empty_Sheet.Error)
         Panic.catch GoogleJsonResponseException action caught_panic->
-            Error.throw (Google_API_Error.Error caught_panic.payload.getContent.parse_json)
+            statusCode = caught_panic.payload.getStatusCode
+            case statusCode of
+                403 -> Error.throw (Google_API_Error.Access_Denied "Access to the Google Sheets document was denied. Please check your permissions.")
+                404 -> Error.throw (Google_API_Error.Not_Found "https://docs.google.com/spreadsheets/d/"+workbook_id+" was not found.")
+                _ ->
+                    parsed_json = caught_panic.payload.getContent.parse_json
+                    if (parsed_json.get "message") == "This operation is not supported for this document" then
+                        Error.throw (Google_API_Error.Invalid_Format ("Invalid format https://docs.google.com/spreadsheets/d/"+workbook_id + " is not a valid Google Sheets document."))
+                    Error.throw (Google_API_Error.Error (parsed_json.get "message") parsed_json)
 
 private _wrap_credentials credential:(File|Enso_Secret|Nothing)=Nothing =
     case credential of

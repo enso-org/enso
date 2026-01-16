@@ -216,7 +216,7 @@ class FunctionBindingTest extends CompilerTest {
 
       ir.bindings.head shouldBe an[errors.Conversion]
       val err = ir.bindings.head.asInstanceOf[errors.Conversion]
-      err.reason shouldBe an[errors.Conversion.MissingArgs.type]
+      err.reason shouldBe an[errors.Conversion.MissingArgs]
     }
 
     "return an error if the conversion does not have a source type" in {

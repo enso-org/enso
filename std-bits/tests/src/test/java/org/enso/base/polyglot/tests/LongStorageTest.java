@@ -81,7 +81,6 @@ public class LongStorageTest {
     var size = r.nextInt(256, 4096);
     var stream = r.longs(size);
     var msg = "with seed " + seed + " size " + size;
-    System.err.println(msg);
     generateAndCompare(msg, size, stream);
   }
 

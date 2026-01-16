@@ -124,11 +124,11 @@ class TypeSignaturesTest extends CompilerTest {
           |""".stripMargin.preprocessModule.resolve
 
       ir.bindings.length shouldEqual 5
-      ir.bindings.head shouldBe an[errors.Unexpected.TypeSignature]
-      ir.bindings()(1) shouldBe an[errors.Unexpected.TypeSignature]
+      ir.bindings.head shouldBe an[errors.UnexpectedTypeSignature]
+      ir.bindings()(1) shouldBe an[errors.UnexpectedTypeSignature]
       ir.bindings()(2) shouldBe an[definition.Method]
       ir.bindings()(3) shouldBe an[definition.Method]
-      ir.bindings()(4) shouldBe an[errors.Unexpected.TypeSignature]
+      ir.bindings()(4) shouldBe an[errors.UnexpectedTypeSignature]
     }
 
     "reattach documentation to method definitions" in {
@@ -175,7 +175,7 @@ class TypeSignaturesTest extends CompilerTest {
       ir.bindings()(1) shouldBe an[definition.Method]
       ir.bindings()(1).getMetadata(TypeSignatures) shouldBe defined
       ir.bindings()(1).getMetadata(DocumentationComments) shouldBe defined
-      ir.bindings()(2) shouldBe an[errors.Unexpected.TypeSignature]
+      ir.bindings()(2) shouldBe an[errors.UnexpectedTypeSignature]
     }
 
     "recurse into bodies" in {
