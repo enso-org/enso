@@ -1,20 +1,25 @@
 package org.enso.shttp.cloud_mock;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.sun.net.httpserver.HttpExchange;
+import com.sun.net.httpserver.HttpHandler;
+import java.io.FileInputStream;
+import java.io.File;
+import java.io.OutputStream;
 import java.io.IOException;
 import java.net.URI;
-import java.util.Objects;
+import java.nio.file.Path;
 import org.apache.http.client.utils.URIBuilder;
-import org.enso.shttp.SimpleHttpHandler;
 
 /** An endpoint for returning a dummy body with a particular content type */
-public class ContentTypeHandler extends SimpleHttpHandler {
+public class ContentTypeHandler implements HttpHandler {
+  private final Path rootDir;
+
+  public ContentTypeHandler(Path rootDir) {
+    this.rootDir = rootDir;
+  }
+
   @Override
-  protected void doHandle(HttpExchange exchange) throws IOException {
-    System.out.println("HI " + exchange.getRequestURI());
+  public void handle(HttpExchange exchange) throws IOException {
     URI uri = exchange.getRequestURI();
     URIBuilder builder = new URIBuilder(uri);
     String contentType = "text/plain";
@@ -24,6 +29,17 @@ public class ContentTypeHandler extends SimpleHttpHandler {
         default -> {}
       }
     }
-    sendResponse(200, "hello", exchange, contentType);
+
+    File file = rootDir.resolve(builder.getPath().replaceFirst("/content_type/", "")).toFile();
+
+    exchange.getResponseHeaders().add("Content-Type", contentType);
+    exchange.sendResponseHeaders(200, file.length());
+
+    try (FileInputStream fis = new FileInputStream(file);
+        OutputStream os = exchange.getResponseBody()) {
+        fis.transferTo(os);
+    } finally {
+        exchange.close();
+    }
   }
 }

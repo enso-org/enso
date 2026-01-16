@@ -122,7 +122,7 @@ add_specs suite_builder =
                     url = base_url_with_slash+"testfiles/"+fn
                     Data.fetch url . should_be_a ty
             
-            xhtml_url = base_url_with_slash+"content_type?content-type=application%2fxhtml%2bxml"
+            xhtml_url = base_url_with_slash+"content_type/example.xhtml?content-type=application%2fxhtml%2bxml"
             Data.fetch xhtml_url . should_be_a XML_Document
 
     suite_builder.group "Response caching" pending=pending_has_url group_builder->

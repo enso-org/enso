@@ -95,13 +95,13 @@ public class HTTPTestHelperServer {
 
     // HTTP helpers
     setupFileServer(server, projectRoot);
+    setupContentTypeFileServer(server, projectRoot);
     server.addHandler("/test_headers", new HeaderTestHandler());
     server.addHandler("/test_token_auth", new TokenAuthTestHandler());
     server.addHandler("/test_basic_auth", new BasicAuthTestHandler());
     server.addHandler("/crash", new CrashingTestHandler());
     server.addHandler("/test_redirect", new RedirectTestHandler("/testfiles/js.txt"));
     server.addHandler("/test_download", new DownloadTestHandler());
-    server.addHandler("/content_type", new ContentTypeHandler());
 
     // Cloud mock
     if (cloudMockSetup != null) {
@@ -124,6 +124,12 @@ public class HTTPTestHelperServer {
     Path testFilesRoot = projectRoot.resolve(pathToWWW);
     System.out.println("Serving files from directory " + testFilesRoot);
     server.addHandler("/testfiles", SimpleFileServer.createFileHandler(testFilesRoot));
+  }
+
+  private static void setupContentTypeFileServer(HybridHTTPServer server, Path projectRoot) {
+    Path testFilesRoot = projectRoot.resolve(pathToWWW);
+    System.out.println("Serving files with specified content type from directory " + testFilesRoot);
+    server.addHandler("/content_type", new ContentTypeHandler(testFilesRoot));
   }
 
   private static Path findProjectRoot(Path startingPoint) {
