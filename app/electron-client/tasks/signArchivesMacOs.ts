@@ -297,7 +297,9 @@ class BinaryToSign implements Signable {
         console.error(err.code)
       } else {
         const { stdout, stderr } = err
-        const keyProfile = 'Enso NotaryProfile'
+        const user = env.process.APPLEID
+        const pass = env.process.APPLEIDPASS
+        const teamId = env.process.APPLETEAMID
 
         if (stderr.includes('Error: Failed to staple your application with code: 65')) {
           console.error({ stdout, stderr })
@@ -305,7 +307,12 @@ class BinaryToSign implements Signable {
             const out = run('xcrun', [
               'notarytool',
               'history',
-              `--keychain-profile="${keyProfile}"`,
+              '--apple-id',
+              user,
+              '--team-id',
+              teamId,
+              '--password',
+              pass,
             ])
             const matched = out.match('/id: ([\w-]+)/')
             if (matched && matched.length >= 2) {
@@ -313,7 +320,12 @@ class BinaryToSign implements Signable {
               const log = run('xcrun', [
                 'notarytool',
                 'log',
-                `--keychain-profile="${keyProfile}"`,
+                '--apple-id',
+                user,
+                '--team-id',
+                teamId,
+                '--password',
+                pass,
                 submissionId,
               ])
               console.error(`Notary log for submission ${submissionId}:\n${log}`)
