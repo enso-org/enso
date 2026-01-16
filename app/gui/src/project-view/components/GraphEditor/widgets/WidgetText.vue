@@ -10,7 +10,7 @@ import {
 import CodeMirrorWidgetBase from '@/components/GraphEditor/CodeMirrorWidgetBase.vue'
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import { Ast } from '@/util/ast'
-import { useLanguageSupport } from '@/util/codemirror/language/index'
+import { useLanguageSupport } from '@/util/codemirror/language'
 import { Ok } from 'enso-common/src/utilities/data/result'
 import { computed, ref, useTemplateRef } from 'vue'
 
