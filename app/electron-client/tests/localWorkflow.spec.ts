@@ -1,14 +1,16 @@
 /** @file A series of tests designed for testing GUI behavior in Local workflow. */
 import fs from 'node:fs/promises'
 import pathModule from 'node:path'
-import { expect, type Page } from 'playwright/test'
+import { test as base, expect, type Page } from 'playwright/test'
 import {
   closeWelcome,
   createNewProject,
+  electronFixtures,
   getNewestProject,
   loginAsTestUser,
-  test,
 } from './electronTest'
+
+const test = base.extend(electronFixtures)
 
 const startTimestamp = Date.now()
 let screenshotIndex = 0

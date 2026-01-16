@@ -1,13 +1,15 @@
 /** @file A series of tests designed for testing GUI behavior in Cloud. */
 
-import { expect } from 'playwright/test'
+import { test as base, expect } from 'playwright/test'
 import {
   closeWelcome,
   createNewProject,
+  electronFixtures,
   getNewestProject,
   loginAsTestUser,
-  test,
 } from './electronTest'
+
+const test = base.extend(electronFixtures)
 
 // A test controlling if project session logs aren't empty. Currently skipped due to unconsistency of session logs
 test.skip('Session logs', async ({ page }) => {

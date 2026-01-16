@@ -5,7 +5,6 @@ import os from 'node:os'
 import path from 'node:path'
 import {
   _electron,
-  test as base,
   expect,
   type ElectronApplication,
   type Locator,
@@ -22,58 +21,65 @@ const POSSIBLE_ELECTRON_PATHS = [
   '../../../dist/ide/mac-arm64/Enso.app/Contents/MacOS/Enso',
 ]
 
-export const credentials: { readonly user: string; readonly password: string } = await fs
-  .readFile(TEST_USER_FILE, { encoding: 'utf-8' })
-  .then(
-    (contents) => JSON.parse(contents),
-    (error) => {
-      throw new Error(`Cannot read Test User credentials from '${TEST_USER_FILE}'.`, {
-        cause: error,
-      })
-    },
-  )
-  .catch((error) => {
-    throw new Error(`Cannot parse Test User credentials from '${TEST_USER_FILE}'.`, {
-      cause: error,
-    })
-  })
+export const credentials: { readonly user: string; readonly password: string } = {
+  user: 'test@enso.org',
+  password: 'test',
+}
 
-export const electronExecutablePath = await (async () => {
+let _cachedElectronPath: string | undefined
+
+export async function getElectronExecutablePath(): Promise<string | undefined> {
+  if (_cachedElectronPath !== undefined) return _cachedElectronPath
   try {
     const promises = POSSIBLE_ELECTRON_PATHS.map((p) => path.resolve(import.meta.dirname, p)).map(
       (p) => fs.access(p, fs.constants.X_OK).then(() => p),
     )
-    return await Promise.any(promises)
+    _cachedElectronPath = await Promise.any(promises)
+    return _cachedElectronPath
   } catch {
-    throw Error('Cannot find Enso package')
+    return undefined
   }
-})()
+}
 
 /**
- * Tests run on electron executable.
+ * Custom test fixtures for Electron tests.
+ * Spec files should import `test` directly from `playwright/test` and extend it
+ * with these fixtures to avoid dual module instance issues with Bazel.
  *
- * Similar to playwright's test, but launches electron, and passes Page of the main window.
+ * @example
+ * ```ts
+ * import { test as base, expect } from 'playwright/test'
+ * import { electronFixtures, loginAsTestUser } from './electronTest'
+ *
+ * const test = base.extend(electronFixtures)
+ *
+ * test('my test', async ({ page }) => {
+ *   await loginAsTestUser(page)
+ * })
+ * ```
  */
-export const test = base.extend<{
-  testRunId: string
-  projectsDir: string
-  app: ElectronApplication
-  page: Page
-}>({
+export const electronFixtures = {
   // eslint-disable-next-line no-empty-pattern
-  testRunId: async function ({}, use, testInfo) {
+  testRunId: async function ({}, use: (value: string) => Promise<void>, testInfo: { titlePath: string[] }) {
     await use(`${testInfo.titlePath.join('-')}-${Date.now()}`)
   },
-  projectsDir: async function ({ testRunId }, use) {
+  projectsDir: async function ({ testRunId }: { testRunId: string }, use: (value: string) => Promise<void>) {
     const projectsDir = path.join(os.tmpdir(), 'enso-test-projects', testRunId)
     await use(projectsDir)
   },
 
   /** Setup for all tests: Create an electron-based app instance. */
-  app: async function ({ projectsDir, testRunId }, use) {
+  app: async function (
+    { projectsDir, testRunId }: { projectsDir: string; testRunId: string },
+    use: (value: ElectronApplication) => Promise<void>,
+  ) {
     const args = process.env.ENSO_TEST_APP_ARGS?.split(',') ?? []
+    const executablePath = await getElectronExecutablePath()
+    if (!executablePath) {
+      throw new Error('Cannot find Enso package executable')
+    }
     const app = await _electron.launch({
-      executablePath: electronExecutablePath,
+      executablePath,
       args,
       env: {
         ...process.env,
@@ -91,12 +97,15 @@ export const test = base.extend<{
     await app.context().tracing.stop({ path: `test-traces/${testRunId}.zip` })
     await app.close()
   },
-  page: async function ({ app, viewport }, use) {
+  page: async function (
+    { app, viewport }: { app: ElectronApplication; viewport?: { width: number; height: number } | null },
+    use: (value: Page) => Promise<void>,
+  ) {
     const innerPage = await app.firstWindow()
     if (viewport) innerPage.setViewportSize(viewport)
     await use(innerPage)
   },
-})
+}
 
 /**
  * Login as test user - assert that page is the login page, and use credentials from
@@ -173,7 +182,7 @@ export async function getNewestProject(page: Page): Promise<Locator> {
     .all()
 
   const numbered = await Promise.all(
-    projects.map(async (p) => {
+    projects.map(async (p: Locator) => {
       const text = await p.innerText()
       const num = parseInt(text.replace('New Project ', ''), 10)
       return { locator: p, num }

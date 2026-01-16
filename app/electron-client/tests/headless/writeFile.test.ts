@@ -6,17 +6,18 @@ import { arrayBuffer } from 'node:stream/consumers'
 import { expect, test } from 'vitest'
 import { tarGzWriteStream } from '../../src/archive'
 import { createRemoteBackend } from '../../src/backend'
-import { electronExecutablePath } from '../electronTest'
+import { getElectronExecutablePath } from '../electronTest'
 
 const remoteBackend = await createRemoteBackend()
 
-function runAppExecutable(args: readonly string[]): Promise<{
+async function runAppExecutable(args: readonly string[]): Promise<{
   readonly stdout: string
   readonly stderr: string
   readonly code: number
 }> {
   // `spawnSync` is fine, use async here in case blocking will be slower in the future.
-  const appProcess: ChildProcessWithoutNullStreams = spawn(electronExecutablePath, args, {
+  const executablePath = await getElectronExecutablePath()
+  const appProcess: ChildProcessWithoutNullStreams = spawn(executablePath!, args, {
     env: { ...process.env, NODE_ENV: 'development' } as NodeJS.ProcessEnv,
   })
   return new Promise<{
