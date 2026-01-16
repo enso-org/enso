@@ -22,13 +22,7 @@ public class ContentTypeHandler implements HttpHandler {
   public void handle(HttpExchange exchange) throws IOException {
     URI uri = exchange.getRequestURI();
     URIBuilder builder = new URIBuilder(uri);
-    String contentType = "text/plain";
-    for (var queryPair : builder.getQueryParams()) {
-      switch (queryPair.getName()) {
-        case "content-type" -> contentType = queryPair.getValue();
-        default -> {}
-      }
-    }
+    String contentType = getContentType(builder);
 
     File file = rootDir.resolve(builder.getPath().replaceFirst("/content_type/", "")).toFile();
 
@@ -41,5 +35,16 @@ public class ContentTypeHandler implements HttpHandler {
     } finally {
         exchange.close();
     }
+  }
+
+  private String getContentType(URIBuilder builder) {
+    String contentType = "text/plain";
+    for (var queryPair : builder.getQueryParams()) {
+      switch (queryPair.getName()) {
+        case "content-type" -> contentType = queryPair.getValue();
+        default -> {}
+      }
+    }
+    return contentType;
   }
 }
