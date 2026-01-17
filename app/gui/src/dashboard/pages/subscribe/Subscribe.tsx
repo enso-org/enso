@@ -1,5 +1,6 @@
 /** @file A page in which the currently active payment plan can be changed. */
 import { Button } from '#/components/Button'
+import Page from '#/components/Page'
 import { Suspense } from '#/components/Suspense'
 import { Text } from '#/components/Text'
 import { PlanSelector } from '#/modules/payments'
@@ -31,33 +32,39 @@ export function Subscribe() {
   const chosenPlan = isPlan(maybePlan) ? maybePlan : null
 
   return (
-    <div className="flex h-full w-full flex-col overflow-y-auto bg-hover-bg">
-      <div className="mx-auto mt-16 flex w-full min-w-96 max-w-[1400px] flex-col items-start justify-center p-12">
-        <div className="flex flex-col items-start">
-          <Button
-            variant="icon"
-            size="medium"
-            icon="arrow_circle_left"
-            href={DASHBOARD_PATH}
-            className="-ml-2"
-          >
-            {getText('returnToDashboard')}
-          </Button>
+    <Page>
+      <div className="flex h-full w-full flex-col overflow-y-auto bg-hover-bg">
+        <div className="mx-auto mt-16 flex w-full min-w-96 max-w-[1400px] flex-col items-start justify-center p-12">
+          <div className="flex flex-col items-start">
+            <Button
+              variant="icon"
+              size="medium"
+              icon="arrow_circle_left"
+              href={DASHBOARD_PATH}
+              className="-ml-2"
+            >
+              {getText('returnToDashboard')}
+            </Button>
 
-          <Text.Heading level={1} variant="custom" className="mb-5 self-start text-start text-4xl">
-            {getText('subscribeTitle')}
-          </Text.Heading>
+            <Text.Heading
+              level={1}
+              variant="custom"
+              className="mb-5 self-start text-start text-4xl"
+            >
+              {getText('subscribeTitle')}
+            </Text.Heading>
+          </div>
+
+          <Suspense>
+            <PlanSelector
+              plan={chosenPlan}
+              showFreePlan={false}
+              userPlan={user.plan}
+              isOrganizationAdmin={user.isOrganizationAdmin}
+            />
+          </Suspense>
         </div>
-
-        <Suspense>
-          <PlanSelector
-            plan={chosenPlan}
-            showFreePlan={false}
-            userPlan={user.plan}
-            isOrganizationAdmin={user.isOrganizationAdmin}
-          />
-        </Suspense>
       </div>
-    </div>
+    </Page>
   )
 }

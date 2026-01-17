@@ -30,11 +30,12 @@ import { RemoteBackend } from 'enso-common/src/services/RemoteBackend'
 import * as eventModule from '#/utilities/event'
 import LocalStorage from '#/utilities/LocalStorage'
 
+import { ErrorBoundary } from '#/components/ErrorBoundary'
 import { useOffline } from '#/hooks/offlineHooks'
 import type { ModalApi } from '#/utilities/modal'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { unsafeWriteValue } from '#/utilities/write'
-import { useRouter, useText } from '$/providers/react'
+import { useRouter, useSession, useText } from '$/providers/react'
 import { useFeatureFlag } from '$/providers/react/featureFlags'
 
 declare module '#/utilities/LocalStorage' {
@@ -65,6 +66,13 @@ export default function App(props: React.PropsWithChildren) {
   const { isOffline } = useOffline()
   const { getText } = useText()
   const queryClient = reactQuery.useQueryClient()
+  const { router } = useRouter()
+  const navigate = router.push.bind(router)
+
+  if (detect.IS_DEV_MODE) {
+    // @ts-expect-error This is used exclusively for debugging.
+    unsafeWriteValue(window, 'navigate', navigate)
+  }
 
   const executeBackgroundUpdate = useMutationCallback({
     mutationKey: ['refetch-queries', { isOffline }],
@@ -88,20 +96,11 @@ export default function App(props: React.PropsWithChildren) {
   // Note that the `Router` must be the parent of the `AuthProvider`, because the `AuthProvider`
   // will redirect the user between the login/register pages and the dashboard.
   return (
-    <>
-      <toastify.ToastContainer
-        position="top-center"
-        theme="light"
-        closeOnClick={false}
-        draggable={false}
-        toastClassName="text-sm leading-cozy bg-selected-frame rounded-lg backdrop-blur-default"
-        transition={toastify.Slide}
-        limit={3}
-      />
-      <ModalProvider>
+    <ModalProvider>
+      <RouterProvider navigate={navigate}>
         <AppRouter {...props} />
-      </ModalProvider>
-    </>
+      </RouterProvider>
+    </ModalProvider>
   )
 }
 
@@ -114,15 +113,8 @@ export default function App(props: React.PropsWithChildren) {
  */
 function AppRouter(props: React.PropsWithChildren) {
   const { children } = props
-  const { router } = useRouter()
-  const navigate = router.push.bind(router)
-
-  if (detect.IS_DEV_MODE) {
-    // @ts-expect-error This is used exclusively for debugging.
-    unsafeWriteValue(window, 'navigate', navigate)
-  }
-
   const aboutModalRef = React.useRef<ModalApi>(null)
+  const { signOut } = useSession()
 
   React.useEffect(() => {
     let isClick = false
@@ -165,14 +157,22 @@ function AppRouter(props: React.PropsWithChildren) {
   }, [])
 
   return (
-    <RouterProvider navigate={navigate}>
+    <ErrorBoundary
+      onReset={async () => {
+        // All React pages should be wrapped in <Page>, which has its own error boundary.
+        // Therefore, reaching this point indicates a serious error that cannot be recovered from
+        // without a full application reload.
+        await signOut()
+        location.reload()
+      }}
+    >
       <InputBindingsProvider>
         <VersionChecker />
         <ThemeSynchronizer />
         <AboutModal ref={aboutModalRef} />
         {children}
       </InputBindingsProvider>
-    </RouterProvider>
+    </ErrorBoundary>
   )
 }
 

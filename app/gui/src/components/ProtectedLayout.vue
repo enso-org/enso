@@ -171,7 +171,7 @@ const shouldDisplayAgreementsModal = computed(
     <!-- This div is used as a flag to indicate that the user is not logged in. -->
   </div>
   <div v-else data-testid="after-auth-layout" aria-hidden>
-    <!--This div is used as a flag to indicate that the dashboard has been loaded and the user is
+    <!-- This div is used as a flag to indicate that the dashboard has been loaded and the user is
     authenticated. -->
   </div>
 

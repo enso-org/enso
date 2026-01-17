@@ -78,26 +78,24 @@ export function UserMenu(props: UserMenuProps) {
   ])
 
   return (
-    <>
-      <Popover data-testid="user-menu" size="xxsmall">
-        <div className="mb-2 flex select-none items-center gap-icons overflow-hidden px-menu-entry transition-all duration-user-menu">
-          <ProfilePicture picture={user.profilePicture} name={user.name} />
-          <div className="flex min-w-0 flex-col">
-            <Text disableLineHeightCompensation variant="body" truncate="1" weight="semibold">
-              {user.name}
-            </Text>
-            <Text disableLineHeightCompensation>{getText(user.plan)}</Text>
-          </div>
+    <Popover data-testid="user-menu" size="xxsmall">
+      <div className="mb-2 flex select-none items-center gap-icons overflow-hidden px-menu-entry transition-all duration-user-menu">
+        <ProfilePicture picture={user.profilePicture} name={user.name} />
+        <div className="flex min-w-0 flex-col">
+          <Text disableLineHeightCompensation variant="body" truncate="1" weight="semibold">
+            {user.name}
+          </Text>
+          <Text disableLineHeightCompensation>{getText(user.plan)}</Text>
         </div>
-        <div className="flex flex-col overflow-hidden">
-          {entries.flatMap((entry) => {
-            if (entry == null || entry === false) {
-              return []
-            }
-            return [<MenuEntry key={entry.action} {...entry} />]
-          })}
-        </div>
-      </Popover>
-    </>
+      </div>
+      <div className="flex flex-col overflow-hidden">
+        {entries.flatMap((entry) => {
+          if (entry == null || entry === false) {
+            return []
+          }
+          return [<MenuEntry key={entry.action} {...entry} />]
+        })}
+      </div>
+    </Popover>
   )
 }

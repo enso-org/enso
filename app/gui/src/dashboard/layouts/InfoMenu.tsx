@@ -16,27 +16,28 @@ export function InfoMenu() {
   const { getText } = useText()
 
   return (
-    <>
-      <Popover data-testid="info-menu" size="xxsmall">
-        <div className="mb-2 flex items-center gap-icons overflow-hidden px-menu-entry transition-all duration-user-menu">
-          <Icon icon="enso_logo" className="pointer-events-none h-7 w-7 text-primary" />
-          <Text>{PRODUCT_NAME}</Text>
-        </div>
-        <div aria-label={getText('infoMenuLabel')} className="flex flex-col overflow-hidden">
+    <Popover data-testid="info-menu" size="xxsmall">
+      <div className="mb-2 flex items-center gap-icons overflow-hidden px-menu-entry transition-all duration-user-menu">
+        <Icon icon="enso_logo" className="pointer-events-none h-7 w-7 text-primary" />
+        <Text>{PRODUCT_NAME}</Text>
+      </div>
+      <div aria-label={getText('infoMenuLabel')} className="flex flex-col overflow-hidden">
+        <MenuEntry
+          action="aboutThisApp"
+          doAction={() => {
+            AboutModal.open()
+          }}
+        />
+        {session && (
           <MenuEntry
-            action="aboutThisApp"
-            doAction={() => {
-              AboutModal.open()
+            action="signOut"
+            doAction={async () => {
+              await signOut()
+              await router.push(LOGIN_PATH)
             }}
           />
-          {session && (
-            <MenuEntry
-              action="signOut"
-              doAction={() => signOut().then(() => router.push(LOGIN_PATH))}
-            />
-          )}
-        </div>
-      </Popover>
-    </>
+        )}
+      </div>
+    </Popover>
   )
 }
