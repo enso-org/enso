@@ -218,60 +218,45 @@ class BinaryToSign implements Signable {
         this.path,
       ])
     } catch (err) {
-      if (err.code) {
-        console.error(err.code)
-      } else {
-        const { stdout, stderr } = err
-        const user = env.process.APPLEID
-        const pass = env.process.APPLEIDPASS
-        const teamId = env.process.APPLETEAMID
+      const user = env.process.APPLEID
+      const pass = env.process.APPLEIDPASS
+      const teamId = env.process.APPLETEAMID
 
-        if (stderr.includes('Error: Failed to staple your application with code: 65')) {
-          console.error({ stdout, stderr })
-          try {
-            const out = run('xcrun', [
-              'notarytool',
-              'history',
-              '--apple-id',
-              user,
-              '--team-id',
-              teamId,
-              '--password',
-              pass,
-            ])
-            const matched = out.match('/id: ([\w-]+)/')
-            if (matched && matched.length >= 2) {
-              const submissionId = matched[1]
-              const log = run('xcrun', [
-                'notarytool',
-                'log',
-                '--apple-id',
-                user,
-                '--team-id',
-                teamId,
-                '--password',
-                pass,
-                submissionId,
-              ])
-              console.error(`Notary log for submission ${submissionId}:\n${log}`)
-            } else {
-              console.error(
-                'Unable to find submission in notarytool history. Needs manual inspection',
-              )
-            }
-          } catch (err) {
-            console.error(
-              'Unable to find failed submission status in notarytool. Needs manual inspection: ' +
-                err,
-            )
-          }
+      try {
+        const out = run('xcrun', [
+          'notarytool',
+          'history',
+          '--apple-id',
+          user,
+          '--team-id',
+          teamId,
+          '--password',
+          pass,
+        ])
+        const matched = out.match('/id: ([\w-]+)/')
+        if (matched && matched.length >= 2) {
+          const submissionId = matched[1]
+          const log = run('xcrun', [
+            'notarytool',
+            'log',
+            '--apple-id',
+            user,
+            '--team-id',
+            teamId,
+            '--password',
+            pass,
+            submissionId,
+          ])
+          console.error(`Notary log for submission ${submissionId}:\n${log}`)
         } else {
-          console.error(
-            'Unable to find failed submission status in notarytool. Needs manual inspection',
-          )
+          console.error('Unable to find submission in notarytool history. Needs manual inspection')
         }
-        throw err
+      } catch (err) {
+        console.error(
+          'Unable to find failed submission status in notarytool. Needs manual inspection: ' + err,
+        )
       }
+      throw new Error('Failed to notarize artifacts', { cause: err })
     }
     // Async functions should contain await.
     await Promise.resolve()
