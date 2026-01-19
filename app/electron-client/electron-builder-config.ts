@@ -363,9 +363,9 @@ export function createElectronBuilderConfig(passedArgs: Arguments): electronBuil
             teamId: process.env.APPLETEAMID!,
           })
           .catch(function (err) {
-            const user = env.process.APPLEID
-            const pass = env.process.APPLEIDPASS
-            const teamId = env.process.APPLETEAMID
+            const user = process.env.APPLEID
+            const pass = process.env.APPLEIDPASS
+            const teamId = process.env.APPLETEAMID
 
             try {
               const out = run('xcrun', [
