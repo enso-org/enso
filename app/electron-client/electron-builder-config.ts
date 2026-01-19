@@ -378,6 +378,13 @@ export function createElectronBuilderConfig(passedArgs: Arguments): electronBuil
                 '--password',
                 pass,
               ])
+              const lines = out.split(/\r?\n/)
+              if (lines && lines.length > 10) {
+                console.log('DEBUG: ' + lines.slice(0, 10).join('\n'))
+              } else {
+                console.log('DEBUG: ' + out)
+              }
+
               const matched = out.match('/id: ([\w-]+)/')
               if (matched && matched.length >= 2) {
                 const submissionId = matched[1]
