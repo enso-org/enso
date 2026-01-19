@@ -47,8 +47,6 @@ public final class Builtins {
   private final Number number;
   private final Boolean bool;
 
-  private final System system;
-
   // Builtin types
   private final Builtin any;
   private final Builtin nothing;
@@ -117,7 +115,6 @@ public final class Builtins {
     instrumentor = getBuiltinType(org.enso.interpreter.node.expression.builtin.Instrumentor.class);
 
     error = new Error(this, ctx);
-    system = new System(this);
     number = new Number(this);
   }
 
@@ -359,13 +356,6 @@ public final class Builtins {
   public Type debug() {
     var m = loadModule(context, toFqn(0, "Runtime", "Debug"));
     return m.getAssociatedType();
-  }
-
-  /**
-   * @return the {@code System} atom constructor.
-   */
-  public System system() {
-    return system;
   }
 
   /**
