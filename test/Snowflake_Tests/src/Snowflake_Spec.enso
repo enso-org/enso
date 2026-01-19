@@ -437,7 +437,7 @@ snowflake_specific_spec suite_builder default_connection db_name setup =
                     table.update_rows source_table update_action=Update_Action.Insert
                 w.requested_type . should_equal (source_table.at "A" . value_type)
                 w.actual_type . should_equal (table.at "A" . value_type)
-                w.to_display_text . should_equal "The type Date_Time (with timezone) has been coerced to Date_Time (without timezone). Some information may be lost."
+                w.to_display_text . should_equal "The type Date_Time (with timezone) has been coerced to Date_Time (without timezone). Some information may be lost. Consider using .at_time_zone or .set_time_zone to explicitly convert Date_Time values before upload."
 
                 # When uploading we want to just strip the timezone information and treat every timestamp as LocalDateTime.
                 # This is verified by checking the text representation in the DB: it should show the same local time in all 4 cases, regardless of original timezone.
