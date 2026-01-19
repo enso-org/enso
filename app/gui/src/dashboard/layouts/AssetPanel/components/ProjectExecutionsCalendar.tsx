@@ -29,13 +29,14 @@ import {
   useRightPanelFocusedAsset,
 } from '$/providers/react/container'
 import {
+  CalendarDate,
   getLocalTimeZone,
   now,
   startOfMonth,
   toCalendarDate,
   today,
   toZoned,
-  ZonedDateTime,
+  type ZonedDateTime,
 } from '@internationalized/date'
 import { useSuspenseQuery } from '@tanstack/react-query'
 import type { Backend } from 'enso-common/src/services/Backend'
@@ -101,16 +102,16 @@ function ProjectExecutionsCalendarInternal(props: ProjectExecutionsCalendarInter
   const [preferredTimeZone] = useLocalStorageState('preferredTimeZone')
 
   const form = Form.useForm({
-    schema: (z) => z.object({ dateTime: z.instanceof(ZonedDateTime) }),
+    schema: (z) => z.object({ date: z.instanceof(CalendarDate) }),
     onSubmit: () => {},
   })
   const timeZone = preferredTimeZone ?? getLocalTimeZone()
   const [focusedMonth, setFocusedMonth] = useState(() => startOfMonth(today(timeZone)))
-  const nowDateTime = now(timeZone)
-  const selectedDateTime = Form.useWatch({
+  const todayDate = today(timeZone)
+  const selectedDate = Form.useWatch({
     control: form.control,
-    name: 'dateTime',
-    defaultValue: nowDateTime,
+    name: 'date',
+    defaultValue: todayDate,
   })
 
   const projectExecutionsQuery = useSuspenseQuery(
@@ -145,8 +146,8 @@ function ProjectExecutionsCalendarInternal(props: ProjectExecutionsCalendarInter
     .flatMap((projectExecution) =>
       getProjectExecutionRepetitionsForDateRange(
         projectExecution,
-        toZoned(selectedDateTime, projectExecution.timeZone),
-        toZoned(selectedDateTime.add({ days: 1 }), projectExecution.timeZone),
+        toZoned(selectedDate, projectExecution.timeZone),
+        toZoned(selectedDate.add({ days: 1 }), projectExecution.timeZone),
       ).flatMap((date) => ({ date, projectExecution })),
     )
     .sort((a, b) => Number(a.date) - Number(b.date))
@@ -160,7 +161,7 @@ function ProjectExecutionsCalendarInternal(props: ProjectExecutionsCalendarInter
     >
       <Form.Controller
         control={form.control}
-        name="dateTime"
+        name="date"
         render={(renderProps) => (
           <Calendar
             focusedValue={focusedMonth}
@@ -179,7 +180,7 @@ function ProjectExecutionsCalendarInternal(props: ProjectExecutionsCalendarInter
               </CalendarGridHeader>
               <CalendarGridBody className={styles.calendarGridBody()}>
                 {(date) => {
-                  const isToday = date.compare(nowDateTime) === 0
+                  const isToday = date.compare(todayDate) === 0
                   const todaysExecutions = projectExecutionsByDate[date.toString()]
                   return (
                     <CalendarCell
@@ -225,10 +226,10 @@ function ProjectExecutionsCalendarInternal(props: ProjectExecutionsCalendarInter
         <NewProjectExecutionModal
           backend={backend}
           item={item}
-          defaultDateTime={toZoned(selectedDateTime, timeZone)}
+          defaultDate={toZoned(selectedDate, timeZone).set({ hour: now(timeZone).hour })}
         />
       </Dialog.Trigger>
-      <Text>{getText('projectSessionsOnX', toCalendarDate(selectedDateTime).toString())}</Text>
+      <Text>{getText('projectSessionsOnX', selectedDate.toString())}</Text>
       {projectExecutionsForToday.length === 0 ?
         <Text color="disabled">{getText('noProjectExecutions')}</Text>
       : projectExecutionsForToday.map(({ projectExecution, date }) => (

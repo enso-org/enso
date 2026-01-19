@@ -87,7 +87,7 @@ const UPSERT_EXECUTION_SCHEMA = z
       .min(1)
       .transform((arr) => arr.sort((a, b) => a - b))
       .readonly(),
-    startDateTime: z.instanceof(ZonedDateTime).or(z.null()).optional(),
+    startDate: z.instanceof(ZonedDateTime).or(z.null()).optional(),
     timeZone: z.string(),
     maxDurationMinutes: z
       .number()
@@ -99,7 +99,7 @@ const UPSERT_EXECUTION_SCHEMA = z
   .transform(
     ({
       projectId,
-      startDateTime: startDate = null,
+      startDate = null,
       repeatType,
       maxDurationMinutes,
       parallelMode,
@@ -169,7 +169,7 @@ export interface NewProjectExecutionModalProps {
   readonly backend: Backend
   readonly item: ProjectAsset
   readonly defaultOpen?: boolean
-  readonly defaultDateTime?: ZonedDateTime
+  readonly defaultDate?: ZonedDateTime
 }
 
 /** A modal for confirming the deletion of an asset. */
@@ -192,7 +192,7 @@ export interface NewProjectExecutionFormProps extends NewProjectExecutionModalPr
 
 /** A modal for confirming the deletion of an asset. */
 export function NewProjectExecutionForm(props: NewProjectExecutionFormProps) {
-  const { backend, item, defaultDateTime, onChange, onCancel } = props
+  const { backend, item, defaultDate, onChange, onCancel } = props
   const { getText } = useText()
   const [preferredTimeZone] = useLocalStorageState('preferredTimeZone')
   const getOrdinal = useGetOrdinal()
@@ -208,7 +208,7 @@ export function NewProjectExecutionForm(props: NewProjectExecutionFormProps) {
   const [minFirstOccurrence] = useState(() =>
     now(timeZone).set({ hour: 0, minute: 0, second: 0, millisecond: 0 }),
   )
-  const defaultStartDateTime = defaultDateTime ?? minFirstOccurrence
+  const defaultStartDate = defaultDate ?? minFirstOccurrence
   const form = Form.useForm({
     method: 'dialog',
     schema: UPSERT_EXECUTION_SCHEMA,
@@ -216,7 +216,7 @@ export function NewProjectExecutionForm(props: NewProjectExecutionFormProps) {
       projectId: item.id,
       repeatType: 'daily',
       parallelMode: 'restart',
-      startDateTime: defaultStartDateTime,
+      startDate: defaultStartDate,
       maxDurationMinutes: MAX_DURATION_DEFAULT_MINUTES,
       days: DAYS,
       months: MONTHS,
@@ -228,7 +228,7 @@ export function NewProjectExecutionForm(props: NewProjectExecutionFormProps) {
   })
   const repeatType = form.watch('repeatType', 'daily')
   const parallelMode = form.watch('parallelMode', 'restart')
-  const date = form.watch('startDateTime', defaultStartDateTime) ?? defaultStartDateTime
+  const date = form.watch('startDate', defaultStartDate) ?? defaultStartDate
   // `timeZone` may be `null`.
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   const formTimeZoneDescription = form.watch('timeZone', timeZoneDescription) ?? timeZoneDescription
@@ -245,7 +245,7 @@ export function NewProjectExecutionForm(props: NewProjectExecutionFormProps) {
   const changeTimezoneDeps = useSyncRef({ date, form })
   useEffect(() => {
     const deps = changeTimezoneDeps.current
-    deps.form.setValue('startDateTime', toZoned(deps.date, formTimeZone))
+    deps.form.setValue('startDate', toZoned(deps.date, formTimeZone))
   }, [formTimeZone, changeTimezoneDeps])
 
   useEffect(() => {
@@ -334,7 +334,7 @@ export function NewProjectExecutionForm(props: NewProjectExecutionFormProps) {
         form={form}
         isRequired
         noCalendarHeader
-        name="startDateTime"
+        name="startDate"
         hideTimeZone
         label={getText('firstOccurrenceLabel')}
         minValue={minFirstOccurrence}

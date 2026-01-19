@@ -35,7 +35,6 @@ const BINDINGS_AND_CATEGORIES = inputBindings.defineBindings(
     settings: { bindings: ['Mod+,'], icon: 'settings', category: 'navigation' },
     open: { bindings: ['Enter'], icon: 'open', category: 'other' },
     run: { bindings: ['Shift+Enter'], icon: 'workflow_play', category: 'other' },
-    runAsTask: { bindings: ['Mod+Shift+Enter'], icon: 'workflow_play', category: 'fileManagement' },
     close: { bindings: [], icon: 'close', category: 'other' },
     uploadToCloud: { bindings: [], icon: 'cloud_to', category: 'fileManagement' },
     downloadToLocal: { bindings: [], icon: 'cloud_from', category: 'fileManagement' },
