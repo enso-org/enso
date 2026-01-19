@@ -115,7 +115,8 @@ final class DateBuilder extends ValidityBuilder
   @Override
   protected void resize(int desiredCapacity) {
     var newData = allocBuffer(desiredCapacity, 0);
-    newData.put(0, this.data, 0, currentSize);
+    int toCopy = Math.min(currentSize, data.capacity());
+    newData.put(0, this.data, 0, toCopy);
     this.data = newData;
   }
 
