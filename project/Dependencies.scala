@@ -229,7 +229,7 @@ object Dependencies {
   // Has to match Truffle's ANTLR dependency version to avoid spurious warnings in Native Image
   val antlrVersion            = "4.12.0"
   val awsJavaSdkV1Version     = "1.12.480"
-  val awsJavaSdkV2Version     = "2.25.36"
+  val awsJavaSdkV2Version     = "2.25.40"
   val icuVersion              = "73.1"
   val poiOoxmlVersion         = "5.2.3"
   val redshiftVersion         = "2.1.0.15"

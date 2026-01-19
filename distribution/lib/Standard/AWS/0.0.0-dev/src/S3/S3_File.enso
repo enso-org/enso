@@ -607,7 +607,7 @@ type S3_File
         if self.is_directory then Error.throw (S3_Error.Error "`last_modified_time` can only be called on files." self.uri) else
             instant = _translate_file_errors self <| S3.raw_head self.s3_path.bucket self.s3_path.key self.credentials . lastModified
             if instant.is_nothing then Error.throw (S3_Error.Error "Missing information for: lastModified" self.uri) else
-                instant.at_zone Time_Zone.system
+                instant.at_time_zone Time_Zone.system
 
     ## ---
        group: Standard.Base.Metadata

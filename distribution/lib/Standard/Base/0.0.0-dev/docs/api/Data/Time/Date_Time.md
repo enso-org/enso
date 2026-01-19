@@ -8,7 +8,7 @@
     - > self that:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - >= self that:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - add_work_days self days:Standard.Base.Any.Any= holidays:Standard.Base.Any.Any= -> Standard.Base.Any.Any
-    - at_zone self zone:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - at_time_zone self zone:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - century self -> Standard.Base.Any.Any
     - date self -> Standard.Base.Any.Any
     - date_add self amount:Standard.Base.Data.Numbers.Integer period:(Standard.Base.Data.Time.Date_Period.Date_Period|Standard.Base.Data.Time.Time_Period.Time_Period) -> Standard.Base.Any.Any
@@ -39,6 +39,7 @@
     - pretty self -> Standard.Base.Any.Any
     - quarter self -> Standard.Base.Any.Any
     - second self -> Standard.Base.Any.Any
+    - set_time_zone self zone:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - start_of self period:Standard.Base.Any.Any= -> Standard.Base.Any.Any
     - time_of_day self -> Standard.Base.Any.Any
     - to_display_text self -> Standard.Base.Any.Any

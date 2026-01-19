@@ -37,6 +37,7 @@ export function useTableExpressionExtension(
             ...suggestionDb.value.methods(NUMERIC_COLUMN_METHODS),
             ...suggestionDb.value.methods(TEXT_COLUMN_METHODS),
             ...suggestionDb.value.methods(DATE_COLUMN_METHODS),
+            ...suggestionDb.value.methods(DATE_TIME_COLUMN_METHODS),
             ...suggestionDb.value.methods(SPATIAL_COLUMN_METHODS),
             ...suggestionDb.value.methods(SPATIAL_INPUT_COLUMN_METHODS),
           ].map((entry) => [entry.name, entry]),
@@ -78,6 +79,11 @@ const DATE_COLUMN_TYPE = ProjectPath.create(
   'Refined_Types.Date_Column.Date_Column' as QualifiedName,
 )
 
+const DATE_TIME_COLUMN_TYPE = ProjectPath.create(
+  'Standard.Table' as QualifiedName,
+  'Refined_Types.Date_Time_Column.Date_Time_Column' as QualifiedName,
+)
+
 const SPATIAL_COLUMN_TYPE = ProjectPath.create(
   'Standard.Table' as QualifiedName,
   'Refined_Types.Spatial_Column.Spatial_Column' as QualifiedName,
@@ -107,6 +113,10 @@ const TEXT_COLUMN_METHODS = {
 }
 const DATE_COLUMN_METHODS = {
   selfType: DATE_COLUMN_TYPE,
+  name: (name: string) => !EXCLUDED_COLUMN_METHODS.has(name),
+}
+const DATE_TIME_COLUMN_METHODS = {
+  selfType: DATE_TIME_COLUMN_TYPE,
   name: (name: string) => !EXCLUDED_COLUMN_METHODS.has(name),
 }
 const SPATIAL_COLUMN_METHODS = {

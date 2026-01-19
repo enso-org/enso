@@ -5818,6 +5818,7 @@ lazy val `std-aws` = project
       "software.amazon.awssdk" % "auth"                  % awsJavaSdkV2Version,
       "software.amazon.awssdk" % "bom"                   % awsJavaSdkV2Version,
       "software.amazon.awssdk" % "s3"                    % awsJavaSdkV2Version,
+      "software.amazon.awssdk" % "ses"                   % awsJavaSdkV2Version,
       "software.amazon.awssdk" % "sso"                   % awsJavaSdkV2Version,
       "software.amazon.awssdk" % "ssooidc"               % awsJavaSdkV2Version
     ),
