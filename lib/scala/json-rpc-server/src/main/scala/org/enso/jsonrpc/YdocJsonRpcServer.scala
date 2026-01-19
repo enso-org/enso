@@ -67,7 +67,7 @@ object YdocJsonRpcServer {
       with LazyLogging {
 
     override def onConnect(channel: YjsChannel): Unit = {
-      logger.info("ServerCallbacks.onConnect")
+      logger.info(s"ServerCallbacks.onConnect ${channel.getClass()}")
 
       val incomingMessageHandler =
         system.actorOf(
@@ -79,7 +79,12 @@ object YdocJsonRpcServer {
           ),
           s"message-handler-supervisor-${UUID.randomUUID()}"
         )
-      channel.subscribe(this.onMessage(incomingMessageHandler, _))
+      try {
+        channel.subscribe(this.onMessage(incomingMessageHandler, _))
+      } catch {
+        case e: Exception =>
+          logger.error("ServerCallbacks.onConnect err", e)
+      }
 
       val outgoingMessageHandler =
         system.actorOf(

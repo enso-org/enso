@@ -10,9 +10,14 @@ export class YjsBinaryChannel<T = unknown> extends YjsChannel<T> {
 
   constructor(doc: Y.Doc, channelName: string, callbacks: YjsChannelCallbacks<T>, byteBuffer: any) {
     super(doc, channelName)
+    console.log('new YjsBinaryChannel()')
     this.callbacks = callbacks
     this.ByteBuffer = byteBuffer
-    this.callbacks.onConnect(this)
+    try {
+      this.callbacks.onConnect(this)
+    } catch (e) {
+      console.log('new YjsBinaryChannel onConnect err', e)
+    }
   }
 
   /** Get a {@link YjsBinaryChannel}. */

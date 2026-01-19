@@ -16,6 +16,34 @@
           "parameterTypes": ["org.enso.ydoc.api.YjsChannel"]
         }
       ]      
+    },
+    {
+      "type": "org.enso.jsonrpc.YdocJsonRpcServer$ServerCallbacks",
+      "methods": [
+        {
+          "name": "onConnect",
+          "parameterTypes": ["org.enso.ydoc.api.YjsChannel"]
+        }
+      ]
+    },
+    {
+      "type": "org.enso.ydoc.server.YjsChannelSynchronized",
+      "allDeclaredMethods": true,
+      "allPublicMethods": true
+    },
+    {
+      "type": {
+        "proxy": [
+          "org.enso.ydoc.api.YjsChannelCallbacks"
+        ]
+      }
+    },
+    {
+      "type": {
+        "proxy": [
+          "org.enso.ydoc.api.YjsChannel"
+        ]
+      }
     }
   ]
 }
