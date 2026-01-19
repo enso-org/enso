@@ -1,5 +1,6 @@
 import { createOpenedProjectsStore } from '$/providers/openedProjects'
-import { waitFor, withSetup } from '@/util/testing'
+import { waitFor } from '@/util/reactivity'
+import { withSetup } from '@/util/testing'
 import { assert, describe, expect, test } from 'vitest'
 import { provideAsyncResources, type AsyncResourceStore } from '../asyncResources'
 

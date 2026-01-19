@@ -11,7 +11,7 @@ import {
 } from 'enso-common/src/services/Backend'
 import { Err, Ok, type Result, type ResultError } from 'enso-common/src/utilities/data/result'
 import { isOnElectron } from 'enso-common/src/utilities/detect'
-import { computed, ref, shallowReactive, watchEffect } from 'vue'
+import { computed, reactive, ref, shallowReactive, watchEffect } from 'vue'
 import * as z from 'zod'
 import { useAuth } from './auth'
 import { useBackends } from './backends'
@@ -30,6 +30,9 @@ import {
 
 /** A reason given to AbortController when opening, restoring or closing process is being aborted. */
 const PROCESS_ABORTED = 'aborted'
+
+/** The timeout for waiting for project processing to complete. */
+// const WAIT_FOR_PROJECT_PROCESSING_TIMEOUT_MS = 300_000 // 5 minutes
 
 /** A type of process */
 export type Process = 'opening' | 'closing' | 'restoring'
@@ -96,10 +99,7 @@ export function createOpenedProjectsStore() {
     const project =
       projects.get(info.id) ??
       shallowReactive({
-        state: {
-          status: 'not-opened' as const,
-          info,
-        },
+        state: { status: 'not-opened' as const, info },
         nextTask: undefined,
         error: undefined,
       })
@@ -197,7 +197,9 @@ export function createOpenedProjectsStore() {
     return Ok()
   }
 
-  /** Perform a process across mulitple project states until finished or errored. */
+  const projectsBeingProcessed = reactive(new Set())
+
+  /** Perform a process across multiple project states until finished or errored. */
   async function performProcess(project: Project, process: Process) {
     const abort = new AbortController()
     if (project.nextTask != null) {
@@ -209,6 +211,7 @@ export function createOpenedProjectsStore() {
       }
     }
     DEV: assert(project.nextTask == null)
+    projectsBeingProcessed.add(project.state.info.id)
     try {
       do {
         if (project.nextTask != null) {
@@ -239,6 +242,7 @@ export function createOpenedProjectsStore() {
         project.error = Error(`${process} process interrupted by error.`, { cause: err })
       }
     }
+    projectsBeingProcessed.delete(project.state.info.id)
   }
 
   const PROCESS_STEPS: {
@@ -258,6 +262,7 @@ export function createOpenedProjectsStore() {
         case 'opened':
           return projectStates.initializeProject(state)
         case 'initialized':
+          // Goal status for `opening` process.
           break
         case 'hybrid-closed':
         case 'hybrid-uploaded':
@@ -271,6 +276,7 @@ export function createOpenedProjectsStore() {
     closing: (state: ProjectState) => {
       switch (state.status) {
         case 'not-opened':
+          // Goal status for `closing` process.
           break
         case 'hybrid-opened':
           return projectStates.closeHybridProject(state)
@@ -350,7 +356,10 @@ export function createOpenedProjectsStore() {
    * Read and restore projects from local storage, and then keep the storage up-to-date about
    * currently opened projects.
    */
-  function syncWithLocalStorage() {
+  async function syncWithLocalStorage() {
+    // On paper: Should work. In practice: `assert(project.value != null)` in WithCurrentProject.vue
+    // crashes the entire app on logout when trying to close all projects.
+    // await waitFor(() => projectsBeingProcessed.size === 0, WAIT_FOR_PROJECT_PROCESSING_TIMEOUT_MS)
     for (const project of localStorage.get('openedTabs') ?? []) {
       restoreProject(project)
     }

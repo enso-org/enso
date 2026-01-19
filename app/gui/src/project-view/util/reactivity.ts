@@ -414,3 +414,38 @@ type SafeShallowUnwrapRef<T> = Readonly<ShallowUnwrapRef<T>> &
  */
 export const proxyRefs: <T extends object>(objectWithRefs: T) => SafeShallowUnwrapRef<T> =
   unsafeProxyRefs
+
+/** Wait for reactive expression to return true. */
+export function waitFor(watchSource: WatchSource<boolean>, timeout = 100): Promise<void> {
+  const timeoutError = new Error('waitFor timed out')
+  Error.captureStackTrace(timeoutError, waitFor)
+
+  return new Promise<void>((resolve, reject) => {
+    const timeoutTimer = setTimeout(() => {
+      effect.stop()
+      reject(timeoutError)
+    }, timeout)
+
+    let isImmediateExecution = true
+    let stopped = false
+    const effect = watch(
+      watchSource,
+      (value) => {
+        if (value) {
+          if (isImmediateExecution) {
+            stopped = true
+          } else {
+            effect.stop()
+          }
+          clearTimeout(timeoutTimer)
+          resolve()
+        }
+        isImmediateExecution = false
+      },
+      { immediate: true },
+    )
+    if (stopped) {
+      effect.stop()
+    }
+  })
+}

@@ -1,6 +1,6 @@
 import { VueQueryPlugin } from '@tanstack/vue-query'
 import { assert } from 'vitest'
-import { createApp, watch, type App, type WatchSource } from 'vue'
+import { createApp, type App } from 'vue'
 
 /**
  * An utility for testing composables that actually depend on vue's `setup` environment.
@@ -28,29 +28,4 @@ export function appWithSetup<T>(composable: () => T): [T, App] {
 /** A version of {@link appWithSetup} that only returns a result. */
 export function withSetup<T>(composable: () => T): T {
   return appWithSetup(composable)[0]
-}
-
-/** Wait for reactive expression to return true. */
-export function waitFor(watchSource: WatchSource<boolean>, timeout = 100): Promise<void> {
-  const timeoutError = new Error('waitFor timed out')
-  Error.captureStackTrace(timeoutError, waitFor)
-
-  return new Promise<void>((resolve, reject) => {
-    const timeoutTimer = setTimeout(() => {
-      effect.stop()
-      reject(timeoutError)
-    }, timeout)
-
-    const effect = watch(
-      watchSource,
-      (value) => {
-        if (value) {
-          effect.stop()
-          clearTimeout(timeoutTimer)
-          resolve()
-        }
-      },
-      { immediate: true },
-    )
-  })
 }
