@@ -113,7 +113,7 @@ add_specs suite_builder =
             r4 = (uri.add_query_argument "Content-Type" "text/tab-separated-values").fetch
             r4.should_equal (Table.from_rows ["Column 1"] [["A,B"], ["1,x"], ["3,y"]])
 
-        group_builder.specify "should detect plain text from content type" <| Test.with_retries <|
+        group_builder.specify "should detect plain text or XML from content type" <| Test.with_retries <|
             cases = [["example.css", Text], ["example.txt", Text], ["example.js", Text], ["example.html", Text], ["example.xml", XML_Document]]
             cases.each c->
                 fn = c.at 0
