@@ -1,6 +1,7 @@
 package org.enso.interpreter.runtime.builtin;
 
 import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.nodes.Node;
 import java.io.IOException;
 import java.util.Optional;
@@ -406,6 +407,7 @@ public final class Builtins {
     return loadType(context, "Data", "Ordering", "Comparable");
   }
 
+  @TruffleBoundary
   public AtomConstructor comparableBy() {
     return comparableType().getConstructors().values().iterator().next();
   }
