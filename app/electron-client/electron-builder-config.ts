@@ -378,14 +378,10 @@ export function createElectronBuilderConfig(passedArgs: Arguments): electronBuil
                 '--password',
                 pass,
               ])
-              const lines = out.split(/\r?\n/)
-              if (lines && lines.length > 10) {
-                console.log('DEBUG: ' + lines.slice(0, 10).join('\n'))
-              } else {
-                console.log('DEBUG: ' + out)
-              }
+              const lines = out.split(/\n/)
+              const head = lines && lines.length > 10 ? lines.slice(0, 10).join('\n') : out
 
-              const matched = out.match(/id: ([\w-]+)/)
+              const matched = head.match(/id: ([\w-]+)/)
               if (matched && matched.length >= 2) {
                 const submissionId = matched[1]
                 const log = run('xcrun', [
@@ -401,6 +397,7 @@ export function createElectronBuilderConfig(passedArgs: Arguments): electronBuil
                 ])
                 console.error(`Notary log for submission ${submissionId}:\n${log}`)
               } else {
+                console.log(`Failed to match on "${head}": ${matched}`)
                 console.error(
                   'Unable to find submission in notarytool history. Needs manual inspection',
                 )
