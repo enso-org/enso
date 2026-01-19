@@ -29,6 +29,7 @@ import {
   useRightPanelFocusedAsset,
 } from '$/providers/react/container'
 import {
+  CalendarDate,
   getLocalTimeZone,
   now,
   startOfMonth,
@@ -100,18 +101,32 @@ function ProjectExecutionsCalendarInternal(props: ProjectExecutionsCalendarInter
 
   const [preferredTimeZone] = useLocalStorageState('preferredTimeZone')
 
-  const form = Form.useForm({
-    schema: (z) => z.object({ dateTime: z.instanceof(ZonedDateTime) }),
-    onSubmit: () => {},
-  })
   const timeZone = preferredTimeZone ?? getLocalTimeZone()
   const [focusedMonth, setFocusedMonth] = useState(() => startOfMonth(today(timeZone)))
-  const nowDateTime = now(timeZone)
-  const selectedDateTime = Form.useWatch({
-    control: form.control,
-    name: 'dateTime',
-    defaultValue: nowDateTime,
+  const todayDate = today(timeZone)
+  const form = Form.useForm({
+    schema: (z) =>
+      z.object({
+        date: z.instanceof(CalendarDate),
+        dateTimeOverride: z.instanceof(ZonedDateTime).optional(),
+      }),
+    defaultValues: { date: todayDate, dateTimeOverride: now(timeZone) },
+    onSubmit: () => {},
+    onChange: (field, value, theForm) => {
+      if (
+        field === 'dateTimeOverride' &&
+        value != null &&
+        // This type assertion is SAFE as the field is 'dateTimeOverride'.
+        // eslint-disable-next-line no-restricted-syntax
+        toCalendarDate(value as unknown as ZonedDateTime).compare(theForm.getValues().date) !== 0
+      ) {
+        // Unset the override away from *now* if the date part is changed.
+        theForm.setValue('dateTimeOverride', undefined)
+      }
+    },
   })
+  const selectedDate = Form.useWatch({ control: form.control, name: 'date' })
+  const originalDateTime = Form.useWatch({ control: form.control, name: 'dateTimeOverride' })
 
   const projectExecutionsQuery = useSuspenseQuery(
     listProjectExecutionsQueryOptions(backend, item.id, item.title),
@@ -145,8 +160,8 @@ function ProjectExecutionsCalendarInternal(props: ProjectExecutionsCalendarInter
     .flatMap((projectExecution) =>
       getProjectExecutionRepetitionsForDateRange(
         projectExecution,
-        toZoned(selectedDateTime, projectExecution.timeZone),
-        toZoned(selectedDateTime.add({ days: 1 }), projectExecution.timeZone),
+        toZoned(selectedDate, projectExecution.timeZone),
+        toZoned(selectedDate.add({ days: 1 }), projectExecution.timeZone),
       ).flatMap((date) => ({ date, projectExecution })),
     )
     .sort((a, b) => Number(a.date) - Number(b.date))
@@ -160,7 +175,7 @@ function ProjectExecutionsCalendarInternal(props: ProjectExecutionsCalendarInter
     >
       <Form.Controller
         control={form.control}
-        name="dateTime"
+        name="date"
         render={(renderProps) => (
           <Calendar
             focusedValue={focusedMonth}
@@ -179,7 +194,7 @@ function ProjectExecutionsCalendarInternal(props: ProjectExecutionsCalendarInter
               </CalendarGridHeader>
               <CalendarGridBody className={styles.calendarGridBody()}>
                 {(date) => {
-                  const isToday = date.compare(nowDateTime) === 0
+                  const isToday = date.compare(todayDate) === 0
                   const todaysExecutions = projectExecutionsByDate[date.toString()]
                   return (
                     <CalendarCell
@@ -225,10 +240,10 @@ function ProjectExecutionsCalendarInternal(props: ProjectExecutionsCalendarInter
         <NewProjectExecutionModal
           backend={backend}
           item={item}
-          defaultDateTime={toZoned(selectedDateTime, timeZone)}
+          defaultDateTime={toZoned(originalDateTime ?? selectedDate, timeZone)}
         />
       </Dialog.Trigger>
-      <Text>{getText('projectSessionsOnX', toCalendarDate(selectedDateTime).toString())}</Text>
+      <Text>{getText('projectSessionsOnX', toCalendarDate(selectedDate).toString())}</Text>
       {projectExecutionsForToday.length === 0 ?
         <Text color="disabled">{getText('noProjectExecutions')}</Text>
       : projectExecutionsForToday.map(({ projectExecution, date }) => (
