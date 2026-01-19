@@ -113,11 +113,13 @@ export function setupGatewayClient(
     ws.close()
     return
   }
+  console.log('setupGatewayClient lsSession: ', lsSession)
 
   let dataSocket: YjsBinaryChannel | undefined
   if (dataUrl) {
     dataSocket = YjsBinaryChannel.get(wsDoc.doc, dataUrl, binaryChannelCallbacks, byteBuffer)
   }
+  console.log('setupGatewayClient dataSocket: ', dataSocket)
 
   const connection = new YjsConnection(ws, wsDoc)
   connection.once('close', async () => {
@@ -128,6 +130,7 @@ export function setupGatewayClient(
       console.error('Session release failed.\n', error)
     }
   })
+  console.log('setupGatewayClientClient OK')
 }
 
 function getSessionForUrl(

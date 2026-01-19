@@ -90,6 +90,7 @@ export class YjsChannel<T = unknown> extends ObservableV2<WebSocketEventHandlers
    * @returns A function to unsubscribe the handler
    */
   subscribe(handler: MessageHandler<T>): () => void {
+    console.log('YjsChannel.subscribe', handler)
     this.handlers.add(handler)
     return () => {
       this.handlers.delete(handler)

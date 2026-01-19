@@ -16,6 +16,7 @@ public final class YjsCallbacksSynchronized implements YjsChannelCallbacks {
 
   @Override
   public void onConnect(YjsChannel channel) {
+    System.out.println("YjsCallbacksSynchronized.onConnect " + channel.getClass());
     var synchronizedChannel = new YjsChannelSynchronized(channel, this.executor);
     this.callbacks.onConnect(synchronizedChannel);
   }
