@@ -1,28 +1,33 @@
 package org.enso.interpreter.runtime.builtin;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.atom.AtomConstructor;
 
-public abstract class RuntimeContext {
-  private RuntimeContext() {}
+public final class RuntimeContext {
 
-  public abstract Type getType();
+  private final Type type;
 
+  RuntimeContext(Type type) {
+    this.type = type;
+  }
+
+  public Type getType() {
+    return type;
+  }
+
+  @CompilerDirectives.TruffleBoundary
   public AtomConstructor getOutput() {
-    throw new UnsupportedOperationException(
-        "Not supported yet."); // Generated from
-                               // nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+    return type.getConstructors().get("Output");
   }
 
+  @CompilerDirectives.TruffleBoundary
   public AtomConstructor getInput() {
-    throw new UnsupportedOperationException(
-        "Not supported yet."); // Generated from
-                               // nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+    return type.getConstructors().get("Input");
   }
 
+  @CompilerDirectives.TruffleBoundary
   public AtomConstructor getDataflowStackTrace() {
-    throw new UnsupportedOperationException(
-        "Not supported yet."); // Generated from
-                               // nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+    return type.getConstructors().get("Dataflow_Stack_Trace");
   }
 }

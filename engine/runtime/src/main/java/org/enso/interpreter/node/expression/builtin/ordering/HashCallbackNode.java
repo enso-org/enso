@@ -51,7 +51,7 @@ public abstract class HashCallbackNode extends Node {
           InvokeFunctionNode hashCallbackInvokeNode,
       @CachedLibrary(limit = "5") InteropLibrary interop) {
     var ctx = EnsoContext.get(this);
-    var comparableType = ctx.getBuiltins().comparable().getType();
+    var comparableType = ctx.getBuiltins().comparableType();
     var defCompType = ctx.getBuiltins().defaultComparatorType();
     Object res =
         hashCallbackInvokeNode.execute(

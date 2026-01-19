@@ -1,45 +1,38 @@
 package org.enso.interpreter.runtime.builtin;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.atom.Atom;
 import org.enso.interpreter.runtime.data.atom.AtomConstructor;
+import org.enso.interpreter.runtime.data.atom.AtomNewInstanceNode;
 
-public abstract class Ordering {
-  Ordering() {}
+public final class Ordering {
+  private final Type type;
+
+  Ordering(Type type) {
+    this.type = type;
+  }
 
   public Type getType() {
-    throw new UnsupportedOperationException(
-        "Not supported yet."); // Generated from
-                               // nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+    return type;
   }
 
+  @CompilerDirectives.TruffleBoundary
   public Atom newEqual() {
-    throw new UnsupportedOperationException(
-        "Not supported yet."); // Generated from
-                               // nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+    return toAtom(type.getConstructors().get("Equal"));
   }
 
+  @CompilerDirectives.TruffleBoundary
   public Atom newLess() {
-    throw new UnsupportedOperationException(
-        "Not supported yet."); // Generated from
-                               // nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+    return toAtom(type.getConstructors().get("Less"));
   }
 
+  @CompilerDirectives.TruffleBoundary
   public Atom newGreater() {
-    throw new UnsupportedOperationException(
-        "Not supported yet."); // Generated from
-                               // nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+    return toAtom(type.getConstructors().get("Greater"));
   }
 
-  public abstract static class Comparable {
-    Comparable() {}
-
-    public abstract Type getType();
-
-    public AtomConstructor getBy() {
-      throw new UnsupportedOperationException(
-          "Not supported yet."); // Generated from
-                                 // nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
-    }
+  private Atom toAtom(AtomConstructor c) {
+    return AtomNewInstanceNode.getUncached().newInstance(c);
   }
 }

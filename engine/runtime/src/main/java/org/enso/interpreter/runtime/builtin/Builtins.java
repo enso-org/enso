@@ -14,7 +14,7 @@ import org.enso.interpreter.EnsoLanguage;
 import org.enso.interpreter.node.expression.builtin.Any;
 import org.enso.interpreter.node.expression.builtin.Boolean;
 import org.enso.interpreter.node.expression.builtin.Builtin;
-import org.enso.interpreter.node.expression.builtin.UniquelyConstructibleBuiltin;
+import org.enso.interpreter.node.expression.builtin.Nothing;
 import org.enso.interpreter.node.expression.builtin.error.ProblemBehavior;
 import org.enso.interpreter.node.expression.builtin.error.Warning;
 import org.enso.interpreter.node.expression.builtin.immutable.Vector;
@@ -27,6 +27,7 @@ import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.ModuleScopeBuilder;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.atom.AtomConstructor;
+import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.pkg.QualifiedName;
 
 /** Container class for static predefined atoms, methods, and their containing scope. */
@@ -50,6 +51,7 @@ public final class Builtins {
 
   // Builtin types
   private final Builtin any;
+  private final Builtin nothing;
   private final Builtin function;
   private final Builtin text;
   private final Builtin array;
@@ -96,6 +98,7 @@ public final class Builtins {
     bool = getBuiltinType(Boolean.class);
 
     any = getBuiltinType(Any.class);
+    nothing = getBuiltinType(Nothing.class);
     function = getBuiltinType(org.enso.interpreter.node.expression.builtin.function.Function.class);
     text = getBuiltinType(Text.class);
     array = getBuiltinType(Array.class);
@@ -210,9 +213,7 @@ public final class Builtins {
    * @return the {@code Nothing} atom constructor
    */
   public Type nothing() {
-    var type = loadType(context, "Standard.Base.Nothing", "Nothing");
-    return type;
-    // return nothing.getType();
+    return nothing.getType();
   }
 
   /**
@@ -243,10 +244,11 @@ public final class Builtins {
   }
 
   /**
-   * @return the builtin RuntimeContext type
+   * @return the builtin Context type
    */
   public RuntimeContext context() {
-    throw new UnsupportedOperationException();
+    var type = loadType(context, "Runtime", "Context");
+    return new RuntimeContext(type);
   }
 
   /**
@@ -355,14 +357,8 @@ public final class Builtins {
    * @return the {@code Debug} atom constructor
    */
   public Type debug() {
-    throw new UnsupportedOperationException();
-  }
-
-  /**
-   * @return the {@code Project_Description} atom constructor
-   */
-  public UniquelyConstructibleBuiltin getProjectDescription() {
-    throw new UnsupportedOperationException();
+    var m = loadModule(context, toFqn(0, "Runtime", "Debug"));
+    return m.getAssociatedType();
   }
 
   /**
@@ -398,7 +394,7 @@ public final class Builtins {
    * @return the container for polyglot-related builtins.
    */
   public Type polyglot() {
-    throw new UnsupportedOperationException();
+    return loadType(context, "Polyglot", "Polyglot");
   }
 
   /**
@@ -412,15 +408,20 @@ public final class Builtins {
    * @return the container for ordering-related builtins
    */
   public Ordering ordering() {
-    throw new UnsupportedOperationException();
+    var type = loadType(context, "Data", "Ordering", "Ordering");
+    return new Ordering(type);
   }
 
-  public Ordering.Comparable comparable() {
-    throw new UnsupportedOperationException();
+  public Type comparableType() {
+    return loadType(context, "Data", "Ordering", "Comparable");
   }
 
-  public UniquelyConstructibleBuiltin defaultComparator() {
-    throw new UnsupportedOperationException();
+  public AtomConstructor comparableBy() {
+    return comparableType().getConstructors().values().iterator().next();
+  }
+
+  public Type defaultComparatorType() {
+    return loadType(context, "Internal", "Ordering_Helpers", "Default_Comparator");
   }
 
   /**
@@ -445,7 +446,7 @@ public final class Builtins {
     return context.getLanguage();
   }
 
-  private static Module loadModule(EnsoContext context, String moduleName) {
+  private static ModuleScope loadModule(EnsoContext context, String moduleName) {
     var moduleOpt = context.getTopScope().getModule(moduleName);
     if (moduleOpt.isEmpty()) {
       var stdBase = LibraryName.apply("Standard", "Base");
@@ -454,14 +455,28 @@ public final class Builtins {
     }
     assert moduleOpt.isPresent() : moduleName;
     var module = moduleOpt.get();
-    return module;
+    var scope = module.compileScope(context);
+    return scope;
   }
 
-  static Type loadType(EnsoContext context, String moduleName, String typeName) {
-    var module = loadModule(context, moduleName);
-    var scope = module.compileScope(context);
+  @CompilerDirectives.TruffleBoundary
+  static Type loadType(EnsoContext context, String... shortFqn) {
+    var last = shortFqn.length - 1;
+    var moduleName = toFqn(1, shortFqn);
+    var typeName = shortFqn[last];
+    var scope = loadModule(context, moduleName);
     var type = scope.getType(typeName, true);
     assert type != null : typeName + " in " + moduleName;
     return type;
+  }
+
+  private static String toFqn(int skip, String... elems) {
+    var sb = new StringBuilder();
+    sb.append("Standard.Base");
+    for (var i = 0; i < elems.length - skip; i++) {
+      var segment = elems[i];
+      sb.append(".").append(segment);
+    }
+    return sb.toString();
   }
 }

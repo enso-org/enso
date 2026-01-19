@@ -5,6 +5,7 @@ from project.Metadata import Widget
 ## Any is the universal top-type, with all other types being subsumed by it.
    If a value of type Any is expected in a given location, _any value_ can be
    used in that position.
+@Builtin_Type
 type Any
     ## ---
        group: Conversions

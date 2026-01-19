@@ -255,7 +255,6 @@ type Comparable
 Comparable.from (that:Any) = Comparable.new that Default_Comparator
 
 ## Types representing the ordering of values.
-@Builtin_Type
 type Ordering
     ## A representation that the first value orders as less than the second.
     Less
