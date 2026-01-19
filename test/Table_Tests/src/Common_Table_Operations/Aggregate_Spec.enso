@@ -1516,7 +1516,7 @@ add_aggregate_specs suite_builder setup =
                 ## The DB may change the timezone of the values, so we need to convert them back to be able to check for equality.
                    All that we require is that the instant in time represented by the values is preserved.
                 at_system_tz dt =
-                    dt.at_zone Time_Zone.system
+                    dt.at_time_zone Time_Zone.system
                 m3.at "DateTime" . to_vector . map at_system_tz . should_equal [Date_Time.new 1998, Date_Time.new 1999, Date_Time.new 2022 8 29 17 28 5]
                 m3.at "Sum Int" . to_vector . should_equal [24, 5, 2]
 

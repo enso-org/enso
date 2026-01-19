@@ -18,7 +18,7 @@ import * as github from '#/utilities/github'
 import * as appUtils from '$/appUtils'
 import * as authProvider from '$/providers/react'
 import { useBackends, useText } from '$/providers/react'
-import { BackendType, DirectoryDoesNotExistError } from 'enso-common/src/services/Backend'
+import { BackendType, DirectoryDoesNotExistError, Plan } from 'enso-common/src/services/Backend'
 import { OfflineError } from 'enso-common/src/utilities/errors'
 import * as React from 'react'
 import { toast } from 'react-toastify'
@@ -51,7 +51,7 @@ function DriveInner() {
 
   const status =
     isCloud && isOffline ? 'offline'
-    : isCloud && !user.isEnabled ? 'not-enabled'
+    : isCloud && user.plan === Plan.free ? 'not-enabled'
     : 'ok'
 
   switch (status) {

@@ -6,6 +6,8 @@ import Standard.Base.Errors.Unimplemented.Unimplemented
 import Standard.Table.Column.Rest_Of_String
 from Standard.Table import Column, Value_Type
 
+from Standard.Database.Errors import Unsupported_Database_Operation
+
 import project.DB_Column.DB_Column
 import project.Internal.Helpers
 from project.Internal.DB_Column_Implementation import make_binary_op, make_op, make_text_case_op, make_unary_op, naming_helper
@@ -165,3 +167,12 @@ type DB_Date_Column_Implementation
         Value_Type.expect_date column <|
             new_name = (naming_helper column).function_name "end_of_month" [column]
             make_unary_op column "end_of_month" new_name
+
+type DB_Date_Time_Column_Implementation
+    at_time_zone column time_zone =
+        _ = [column, time_zone]
+        Error.throw (Unsupported_Database_Operation.Error "at_time_zone is not supported by database backends.")
+
+    set_time_zone column time_zone =
+        _ = [column, time_zone]
+        Error.throw (Unsupported_Database_Operation.Error "set_time_zone is not supported by database backends.")

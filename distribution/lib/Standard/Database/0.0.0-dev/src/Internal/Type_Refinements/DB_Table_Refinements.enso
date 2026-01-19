@@ -3,6 +3,7 @@ private
 from Standard.Base import all
 
 import Standard.Table.Refined_Types.Date_Column.Date_Column
+import Standard.Table.Refined_Types.Date_Time_Column.Date_Time_Column
 import Standard.Table.Refined_Types.Numeric_Column.Numeric_Column
 import Standard.Table.Refined_Types.Text_Column.Text_Column
 import Standard.Table.Spatial_Table.Spatial_Table
@@ -29,6 +30,7 @@ private _refine_single_column_table table =
         Value_Type.Decimal _ _ -> (table : Table & DB_Table & Column & DB_Column & Numeric_Column)
         Value_Type.Char _ _ -> (table : Table & DB_Table & Column & DB_Column & Text_Column)
         Value_Type.Date -> (table : Table & DB_Table & Column & DB_Column & Date_Column)
+        Value_Type.Date_Time _ -> (table : Table & DB_Table & Column & DB_Column & Date_Time_Column)
         _ -> (table : Table & DB_Table & Column & DB_Column)
 
 private refine_spatial_table (table : Table & DB_Table & Spatial_Table) =
@@ -45,4 +47,5 @@ private _refine_single_column_spatial_table table =
         Value_Type.Decimal _ _ -> (table : Table & DB_Table & Spatial_Table & Column & DB_Column & Numeric_Column)
         Value_Type.Char _ _ -> (table : Table & DB_Table & Spatial_Table & Column & DB_Column & Text_Column)
         Value_Type.Date -> (table : Table & DB_Table & Spatial_Table & Column & DB_Column & Date_Column)
+        Value_Type.Date_Time _ -> (table : Table & DB_Table & Spatial_Table & Column & DB_Column & Date_Time_Column)
         _ -> (table : Table & DB_Table & Spatial_Table & Column & DB_Column)

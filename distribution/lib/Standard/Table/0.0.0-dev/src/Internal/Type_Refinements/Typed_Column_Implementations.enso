@@ -211,3 +211,21 @@ type In_Memory_Date_Column_Implementation
         Value_Type.expect_date column <|
             new_name = naming_helper.function_name "end_of_month" [column]
             apply_unary_map column new_name .end_of_month Value_Type.Date
+
+type In_Memory_Date_Time_Column_Implementation
+    at_time_zone (column : Column & In_Memory_Column) (time_zone : Time_Zone|Text) =
+        time_zone_resolved = _resolve_time_zone time_zone
+        Value_Type.expect_date_time column <|
+            new_name = naming_helper.function_name "at_time_zone" [column, time_zone_resolved.zone_id]
+            apply_unary_map column new_name (d -> d.at_time_zone time_zone_resolved) Value_Type.Date_Time
+
+    set_time_zone (column : Column & In_Memory_Column) (time_zone : Time_Zone|Text) =
+        time_zone_resolved = _resolve_time_zone time_zone
+        Value_Type.expect_date_time column <|
+            new_name = naming_helper.function_name "set_time_zone" [column, time_zone_resolved.zone_id]
+            apply_unary_map column new_name (d -> d.set_time_zone time_zone_resolved) Value_Type.Date_Time
+
+private _resolve_time_zone (time_zone : Time_Zone|Text) =
+    case time_zone of
+        _ : Time_Zone -> time_zone
+        tz_name : Text -> Time_Zone.parse tz_name

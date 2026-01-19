@@ -23,7 +23,7 @@ import { tv } from '#/utilities/tailwindVariants'
 import { SEARCH_PARAMS_PREFIX } from '$/appUtils'
 import * as authProvider from '$/providers/react'
 import { useBackends, useRouter, useText } from '$/providers/react'
-import { Path } from 'enso-common/src/services/Backend'
+import { Path, Plan } from 'enso-common/src/services/Backend'
 import * as React from 'react'
 import { twJoin } from 'tailwind-merge'
 
@@ -221,7 +221,7 @@ function CategorySwitcher(props: CategorySwitcherProps) {
   const cloudDisabledReason = React.useMemo(() => {
     if (isOffline) {
       return getText('unavailableOffline')
-    } else if (!user.isEnabled) {
+    } else if (user.plan === Plan.free) {
       return getText('notEnabledSubtitle')
     } else {
       return null
