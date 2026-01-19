@@ -1,13 +1,9 @@
 package org.enso.ydoc.server;
 
 import java.io.IOException;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-import org.enso.ydoc.api.YjsChannelCallbacks;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.enso.ydoc.api.YjsChannel;
+import org.enso.ydoc.api.YjsChannelCallbacks;
 import org.enso.ydoc.polyfill.ParserPolyfill;
 import org.enso.ydoc.polyfill.web.WebEnvironment;
 import org.graalvm.polyglot.Context;
@@ -20,18 +16,19 @@ public final class Ydoc implements AutoCloseable {
   private static final String YDOC_EXECUTOR_THREAD_NAME = "Ydoc executor thread";
   private static final String YDOC_PATH = "ydoc.cjs";
 
-  private final ScheduledExecutorService executor;
+  private final YdocScheduledExecutorService executor;
   private final ParserPolyfill parser;
   private final Context.Builder contextBuilder;
   private final String hostname;
   private final int port;
   private final YjsChannelCallbacks jsonChannelCallbacks;
   private final YjsChannelCallbacks binaryChannelCallbacks;
+  private final AtomicBoolean running = new AtomicBoolean(false);
 
   private Context context;
 
   private Ydoc(
-      ScheduledExecutorService executor,
+      YdocScheduledExecutorService executor,
       ParserPolyfill parser,
       Context.Builder contextBuilder,
       String hostname,
@@ -52,7 +49,7 @@ public final class Ydoc implements AutoCloseable {
     private static final String DEFAULT_HOSTNAME = "localhost";
     private static final int DEFAULT_PORT = 5976;
 
-    private ScheduledExecutorService executor;
+    private YdocScheduledExecutorService executor;
     private ParserPolyfill parser;
     private Context.Builder contextBuilder;
     private HostAccess.Builder hostAccessBuilder;
@@ -72,7 +69,7 @@ public final class Ydoc implements AutoCloseable {
       public void onConnect(YjsChannel channel) {}
     }
 
-    public Builder executor(ScheduledExecutorService executor) {
+    public Builder executor(YdocScheduledExecutorService executor) {
       this.executor = executor;
       return this;
     }
@@ -114,13 +111,7 @@ public final class Ydoc implements AutoCloseable {
 
     public Ydoc build() {
       if (executor == null) {
-        executor =
-            Executors.newSingleThreadScheduledExecutor(
-                r -> {
-                  var t = new Thread(r);
-                  t.setName(YDOC_EXECUTOR_THREAD_NAME);
-                  return t;
-                });
+        executor = new YdocScheduledExecutorService();
       }
 
       if (parser == null) {
@@ -179,7 +170,7 @@ public final class Ydoc implements AutoCloseable {
     return new YjsCallbacksSynchronized(binaryChannelCallbacks, executor);
   }
 
-  public void start() throws ExecutionException, InterruptedException, IOException {
+  public void start() throws IOException {
     var ydoc = Main.class.getResource(YDOC_PATH);
     if (ydoc == null) {
       throw new AssertionError(
@@ -189,34 +180,70 @@ public final class Ydoc implements AutoCloseable {
     }
     var ydocJs = Source.newBuilder("js", ydoc).build();
 
-    context =
-        CompletableFuture.supplyAsync(
-                () -> {
-                  var ctx = contextBuilder.build();
-                  WebEnvironment.initialize(ctx, executor);
-                  parser.initialize(ctx);
+    running.set(true);
 
-                  var bindings = ctx.getBindings("js");
-                  bindings.putMember("YDOC_HOST", hostname);
-                  bindings.putMember("YDOC_PORT", port);
-                  bindings.putMember(
-                      "YDOC_JSON_CHANNEL_CALLBACKS", getJsonChannelCallbacksSynchronized());
-                  bindings.putMember(
-                      "YDOC_BINARY_CHANNEL_CALLBACKS", getBinaryChannelCallbacksSynchronized());
-                  bindings.putMember("YDOC_LS_DEBUG", "false");
+    // Submit initialization task
+    var initFuture =
+        executor.submit(
+            () -> {
+              var ctx = contextBuilder.build();
+              WebEnvironment.initialize(ctx, executor);
+              parser.initialize(ctx);
 
-                  ctx.eval(ydocJs);
+              var bindings = ctx.getBindings("js");
+              bindings.putMember("YDOC_HOST", hostname);
+              bindings.putMember("YDOC_PORT", port);
+              bindings.putMember(
+                  "YDOC_JSON_CHANNEL_CALLBACKS", getJsonChannelCallbacksSynchronized());
+              bindings.putMember(
+                  "YDOC_BINARY_CHANNEL_CALLBACKS", getBinaryChannelCallbacksSynchronized());
+              bindings.putMember("YDOC_LS_DEBUG", "false");
 
-                  return ctx;
-                },
-                executor)
-            .get();
+              ctx.eval(ydocJs);
+
+              return ctx;
+            });
+
+    while (!initFuture.isDone()) {
+      executor.processPendingTasks();
+      try {
+        Thread.sleep(10);
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+        throw new RuntimeException("Interrupted while waiting for Ydoc initialization", e);
+      }
+    }
+
+    try {
+      context = initFuture.get();
+    } catch (Exception e) {
+      throw new RuntimeException("Failed to initialize Ydoc", e);
+    }
+
+    runEventLoopBlocking();
+  }
+
+  /**
+   * Runs the event loop continuously until {@link #close()} is called. This method blocks and
+   * should typically be run in a dedicated thread.
+   */
+  public void runEventLoopBlocking() {
+    while (running.get()) {
+      executor.processPendingTasks();
+      try {
+        long delay = executor.getNextTaskDelayNanos();
+        executor.waitForTasks(delay);
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+        break;
+      }
+    }
   }
 
   @Override
   public void close() throws Exception {
-    executor.shutdownNow();
-    executor.awaitTermination(3, TimeUnit.SECONDS);
+    running.set(false);
+    executor.shutdown();
     if (context != null) {
       context.close(true);
     }

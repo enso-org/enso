@@ -7,6 +7,15 @@
       "allPublicConstructors": true,
       "allDeclaredFields": true,
       "allDeclaredMethods": true
+    },
+    {
+      "type": "org.enso.languageserver.http.server.BinaryYdocServer$BinaryServerCallbacks",
+      "methods": [
+        {
+          "name": "onConnect",
+          "parameterTypes": ["org.enso.ydoc.api.YjsChannel"]
+        }
+      ]      
     }
   ]
 }

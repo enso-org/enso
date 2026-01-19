@@ -951,9 +951,6 @@ importers:
       ydoc-server:
         specifier: workspace:*
         version: link:../ydoc-server
-      ydoc-shared:
-        specifier: workspace:*
-        version: link:../ydoc-shared
     devDependencies:
       '@fal-works/esbuild-plugin-global-externals':
         specifier: ^2.1.2
