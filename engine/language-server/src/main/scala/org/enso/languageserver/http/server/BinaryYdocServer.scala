@@ -4,7 +4,7 @@ import akka.actor.{Actor, ActorRef, ActorSystem, Props}
 import com.typesafe.scalalogging.LazyLogging
 import org.enso.languageserver.http.server.BinaryWebSocketControlProtocol.OutboundStreamEstablished
 import org.enso.languageserver.util.binary.{BinaryDecoder, BinaryEncoder}
-import org.enso.ydoc.api.{YjsChannelCallbacks, YjsChannel}
+import org.enso.ydoc.api.{YjsChannel, YjsChannelCallbacks}
 import org.graalvm.polyglot.Context
 
 import java.lang.foreign.MemorySegment
@@ -54,10 +54,11 @@ object BinaryYdocServer {
     ): Unit = {
       logger.info(s"BinaryServerCallbacks.onMessage ${message.getClass}")
       try {
-        val value = context.asValue(message)
+        val value   = context.asValue(message)
         val address = value.asNativePointer()
-        val segment = MemorySegment.ofAddress(address).reinterpret(value.getBufferSize());
-        val buffer = segment.asByteBuffer()
+        val segment =
+          MemorySegment.ofAddress(address).reinterpret(value.getBufferSize());
+        val buffer  = segment.asByteBuffer()
         val decoded = decoder.decode(buffer)
         logger.info(s"Received binary message $decoded")
         incomingMessageHandler ! decoded

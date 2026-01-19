@@ -540,6 +540,15 @@
       ]
     },
     {
+      "type": "org.enso.languageserver.http.server.BinaryYdocServer$BinaryServerCallbacks",
+      "methods": [
+        {
+          "name": "onConnect",
+          "parameterTypes": ["org.enso.ydoc.api.YjsChannel"]
+        }
+      ]      
+    },
+    {
       "type": "org.enso.ydoc.polyfill.web.URL",
       "fields": [
         {
@@ -548,7 +557,13 @@
         {
           "name": "searchParams"
         }
-      ]
+      ],
+      "methods": [
+        {
+          "name": "toString",
+          "parameterTypes": []
+        }
+      ]      
     },
     {
       "type": "org.enso.ydoc.polyfill.web.URL$URLSearchParams",
@@ -856,6 +871,13 @@
       "type": {
         "proxy": [
           "org.enso.ydoc.api.YjsChannelCallbacks"
+        ]
+      }
+    },
+    {
+      "type": {
+        "proxy": [
+          "org.enso.ydoc.api.YjsChannel"
         ]
       }
     }

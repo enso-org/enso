@@ -1,15 +1,15 @@
 package org.enso.ydoc.server;
 
-import java.util.concurrent.ExecutorService;
-import org.enso.ydoc.api.YjsChannelCallbacks;
 import org.enso.ydoc.api.YjsChannel;
+import org.enso.ydoc.api.YjsChannelCallbacks;
 
 public final class YjsCallbacksSynchronized implements YjsChannelCallbacks {
 
   private final YjsChannelCallbacks callbacks;
-  private final ExecutorService executor;
+  private final YdocScheduledExecutorService executor;
 
-  public YjsCallbacksSynchronized(YjsChannelCallbacks callbacks, ExecutorService executor) {
+  public YjsCallbacksSynchronized(
+      YjsChannelCallbacks callbacks, YdocScheduledExecutorService executor) {
     this.callbacks = callbacks;
     this.executor = executor;
   }

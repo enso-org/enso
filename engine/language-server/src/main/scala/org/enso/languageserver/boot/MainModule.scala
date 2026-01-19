@@ -75,6 +75,7 @@ import java.lang.management.ManagementFactory
 import java.net.URI
 import java.nio.charset.StandardCharsets
 import java.time.Clock
+import java.util.concurrent.Executors
 
 import scala.concurrent.duration.DurationInt
 
@@ -543,13 +544,21 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
 
   private val ydoc = {
     val c = org.enso.languageserver.boot.config.ApplicationConfig.load().ydoc
-    org.enso.runner.common.YdocServerApi
-      .launchYdocServer(
-        c.hostname,
-        c.port,
-        jsonRpcServer.yjsChannelCallbacks,
-        binaryChannelCallbacks
-      )
+    val ydocExecutor = Executors.newSingleThreadScheduledExecutor(r => {
+      val t = new Thread(r)
+      t.setName("Ydoc main thread")
+      t
+    })
+    ydocExecutor.execute(() =>
+      org.enso.runner.common.YdocServerApi
+        .launchYdocServer(
+          c.hostname,
+          c.port,
+          jsonRpcServer.yjsChannelCallbacks,
+          binaryChannelCallbacks
+        )
+    )
+    ydocExecutor
   }
 
   log.debug(
