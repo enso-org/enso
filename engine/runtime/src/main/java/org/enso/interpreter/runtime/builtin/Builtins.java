@@ -9,24 +9,18 @@ import org.enso.compiler.Passes;
 import org.enso.compiler.context.CompilerContext;
 import org.enso.compiler.context.FreshNameSupply;
 import org.enso.compiler.phase.BuiltinsIrBuilder;
+import org.enso.editions.LibraryName;
 import org.enso.interpreter.EnsoLanguage;
 import org.enso.interpreter.node.expression.builtin.Any;
 import org.enso.interpreter.node.expression.builtin.Boolean;
 import org.enso.interpreter.node.expression.builtin.Builtin;
-import org.enso.interpreter.node.expression.builtin.Nothing;
-import org.enso.interpreter.node.expression.builtin.Polyglot;
-import org.enso.interpreter.node.expression.builtin.debug.Debug;
+import org.enso.interpreter.node.expression.builtin.UniquelyConstructibleBuiltin;
 import org.enso.interpreter.node.expression.builtin.error.ProblemBehavior;
 import org.enso.interpreter.node.expression.builtin.error.Warning;
 import org.enso.interpreter.node.expression.builtin.immutable.Vector;
-import org.enso.interpreter.node.expression.builtin.meta.ProjectDescription;
 import org.enso.interpreter.node.expression.builtin.mutable.Array;
 import org.enso.interpreter.node.expression.builtin.mutable.Ref;
-import org.enso.interpreter.node.expression.builtin.ordering.Comparable;
-import org.enso.interpreter.node.expression.builtin.ordering.DefaultComparator;
-import org.enso.interpreter.node.expression.builtin.ordering.Ordering;
 import org.enso.interpreter.node.expression.builtin.resource.ManagedResource;
-import org.enso.interpreter.node.expression.builtin.runtime.Context;
 import org.enso.interpreter.node.expression.builtin.text.Text;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.Module;
@@ -52,17 +46,11 @@ public final class Builtins {
   private final Number number;
   private final Boolean bool;
 
-  private final Context contexts;
-  private final Ordering ordering;
-  private final Comparable comparable;
-  private final DefaultComparator defaultComparator;
   private final System system;
 
   // Builtin types
   private final Builtin any;
-  private final Builtin nothing;
   private final Builtin function;
-  private final Builtin polyglot;
   private final Builtin text;
   private final Builtin array;
   private final Builtin vector;
@@ -70,8 +58,6 @@ public final class Builtins {
   private final Builtin dataflowError;
   private final Builtin ref;
   private final Builtin managedResource;
-  private final Builtin debug;
-  private final ProjectDescription projectDescription;
   private final Builtin date;
   private final Builtin dateTime;
   private final Builtin duration;
@@ -107,16 +93,10 @@ public final class Builtins {
     context = ctx;
     builtins = new BuiltinsRegistry(ctx.getLanguage(), sb);
 
-    ordering = getBuiltinType(Ordering.class);
-    comparable = getBuiltinType(Comparable.class);
-    defaultComparator = getBuiltinType(DefaultComparator.class);
     bool = getBuiltinType(Boolean.class);
-    contexts = getBuiltinType(Context.class);
 
     any = getBuiltinType(Any.class);
-    nothing = getBuiltinType(Nothing.class);
     function = getBuiltinType(org.enso.interpreter.node.expression.builtin.function.Function.class);
-    polyglot = getBuiltinType(Polyglot.class);
     text = getBuiltinType(Text.class);
     array = getBuiltinType(Array.class);
     vector = getBuiltinType(Vector.class);
@@ -124,8 +104,6 @@ public final class Builtins {
     dataflowError = getBuiltinType(org.enso.interpreter.node.expression.builtin.Error.class);
     ref = getBuiltinType(Ref.class);
     managedResource = getBuiltinType(ManagedResource.class);
-    debug = getBuiltinType(Debug.class);
-    projectDescription = getBuiltinType(ProjectDescription.class);
     date = getBuiltinType(org.enso.interpreter.node.expression.builtin.date.Date.class);
     dateTime = getBuiltinType(org.enso.interpreter.node.expression.builtin.date.DateTime.class);
     duration = getBuiltinType(org.enso.interpreter.node.expression.builtin.date.Duration.class);
@@ -232,7 +210,9 @@ public final class Builtins {
    * @return the {@code Nothing} atom constructor
    */
   public Type nothing() {
-    return nothing.getType();
+    var type = loadType(context, "Standard.Base.Nothing", "Nothing");
+    return type;
+    // return nothing.getType();
   }
 
   /**
@@ -263,10 +243,10 @@ public final class Builtins {
   }
 
   /**
-   * @return the builtin Context type
+   * @return the builtin RuntimeContext type
    */
-  public Context context() {
-    return contexts;
+  public RuntimeContext context() {
+    throw new UnsupportedOperationException();
   }
 
   /**
@@ -375,14 +355,14 @@ public final class Builtins {
    * @return the {@code Debug} atom constructor
    */
   public Type debug() {
-    return debug.getType();
+    throw new UnsupportedOperationException();
   }
 
   /**
    * @return the {@code Project_Description} atom constructor
    */
-  public ProjectDescription getProjectDescription() {
-    return projectDescription;
+  public UniquelyConstructibleBuiltin getProjectDescription() {
+    throw new UnsupportedOperationException();
   }
 
   /**
@@ -418,7 +398,7 @@ public final class Builtins {
    * @return the container for polyglot-related builtins.
    */
   public Type polyglot() {
-    return polyglot.getType();
+    throw new UnsupportedOperationException();
   }
 
   /**
@@ -432,15 +412,15 @@ public final class Builtins {
    * @return the container for ordering-related builtins
    */
   public Ordering ordering() {
-    return ordering;
+    throw new UnsupportedOperationException();
   }
 
-  public Comparable comparable() {
-    return comparable;
+  public Ordering.Comparable comparable() {
+    throw new UnsupportedOperationException();
   }
 
-  public DefaultComparator defaultComparator() {
-    return defaultComparator;
+  public UniquelyConstructibleBuiltin defaultComparator() {
+    throw new UnsupportedOperationException();
   }
 
   /**
@@ -463,5 +443,25 @@ public final class Builtins {
 
   public EnsoLanguage getLanguage() {
     return context.getLanguage();
+  }
+
+  private static Module loadModule(EnsoContext context, String moduleName) {
+    var moduleOpt = context.getTopScope().getModule(moduleName);
+    if (moduleOpt.isEmpty()) {
+      var stdBase = LibraryName.apply("Standard", "Base");
+      context.getPackageRepository().ensurePackageIsLoaded(stdBase);
+      moduleOpt = context.getTopScope().getModule(moduleName);
+    }
+    assert moduleOpt.isPresent() : moduleName;
+    var module = moduleOpt.get();
+    return module;
+  }
+
+  static Type loadType(EnsoContext context, String moduleName, String typeName) {
+    var module = loadModule(context, moduleName);
+    var scope = module.compileScope(context);
+    var type = scope.getType(typeName, true);
+    assert type != null : typeName + " in " + moduleName;
+    return type;
   }
 }

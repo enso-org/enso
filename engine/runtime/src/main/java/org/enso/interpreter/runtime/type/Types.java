@@ -189,7 +189,6 @@ public class Types {
     graph.insert(ConstantsGen.FUNCTION, ConstantsGen.ANY);
     graph.insert(ConstantsGen.INTEGER, ConstantsGen.NUMBER);
     graph.insert(ConstantsGen.MANAGED_RESOURCE, ConstantsGen.ANY);
-    graph.insert(ConstantsGen.NOTHING, ConstantsGen.ANY);
     graph.insert(ConstantsGen.PANIC, ConstantsGen.ANY);
     graph.insert(ConstantsGen.REF, ConstantsGen.ANY);
     graph.insert(ConstantsGen.TEXT, ConstantsGen.ANY);

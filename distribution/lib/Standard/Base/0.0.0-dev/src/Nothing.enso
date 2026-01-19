@@ -8,7 +8,6 @@ from project.Function import const
    universal value to indicate the lack of presence of a value.
    It is often used alongside a value of type a to provide a Maybe or Option
    abstraction.
-@Builtin_Type
 type Nothing
     ## ---
        group: Logical

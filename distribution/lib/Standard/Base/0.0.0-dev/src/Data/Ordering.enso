@@ -91,7 +91,6 @@ from project.Internal.Ordering_Helpers import all
        By defining the `Rational_Ordering` and making it available via
        `Comparable.from (that:Rational)` method, all parts of the Enso system will use
        the custom comparator whenever equality or hash code is needed.
-@Builtin_Type
 type Comparable
     ## ---
        private: true
