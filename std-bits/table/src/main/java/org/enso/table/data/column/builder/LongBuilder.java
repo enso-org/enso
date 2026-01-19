@@ -19,7 +19,7 @@ import org.enso.table.error.ValueTypeMismatchException;
 import org.enso.table.problems.ProblemAggregator;
 
 /** A builder for integer columns. */
-sealed class LongBuilder extends NumericBuilder implements BuilderForLong, BuilderWithRetyping
+sealed class LongBuilder extends ValidityBuilder implements BuilderForLong, BuilderWithRetyping
     permits BoundCheckedIntegerBuilder {
   protected final ProblemAggregator problemAggregator;
   private LongBuffer data;
