@@ -208,10 +208,11 @@ type Google_API_Error
        ---
        Render the error to a JS Object.
     to_js_object self = case self of
-        Google_API_Error.Access_Denied message -> JS_Object.from_pairs [["type", "Google_API_Error"], ["error_type", "Access_Denied"], ["message", message]]
-        Google_API_Error.Not_Found message -> JS_Object.from_pairs [["type", "Google_API_Error"], ["error_type", "Not_Found"], ["message", message]]
-        Google_API_Error.Invalid_Format message -> JS_Object.from_pairs [["type", "Google_API_Error"], ["error_type", "Invalid_Format"], ["message", message]]
         Google_API_Error.Error message details -> JS_Object.from_pairs [["type", "Google_API_Error"], ["error_type", "Error"], ["message", message], ["details", details]]
+        _ ->
+            self_meta = Meta.meta self
+            ctor_name = self_meta.constructor.name
+            JS_Object.from_pairs [["type", "Google_API_Error"], ["error_type", ctor_name], ["message", self.message]]
 
     ## ---
        private: true
