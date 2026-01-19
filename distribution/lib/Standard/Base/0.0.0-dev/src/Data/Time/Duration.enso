@@ -202,7 +202,7 @@ type Duration
 
              example_subtract = (Duration.new hours=6) - (Duration.new minutes=30)
        ```
-    - self that:Duration -> Time_Error =
+    - self that:Duration -> Duration ! Time_Error =
         ensure_duration that <|
             Panic.catch ArithmeticException (self.minus_builtin that) err->
                 Error.throw (Time_Error.Error err.payload.getMessage)
