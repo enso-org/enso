@@ -2817,6 +2817,10 @@ lazy val `runtime-integration-tests` =
         "-Dtck.language=enso",
         "-Dtck.inlineVerifierInstrument=false",
         "-Dpolyglot.engine.AllowExperimentalOptions=true",
+        "-Dpolyglot.enso.languageHomeOverride=" + new File(
+          engineDistributionRoot.value,
+          "component"
+        ).getCanonicalPath,
         "-XX:+HeapDumpOnOutOfMemoryError",
         "-XX:HeapDumpPath=" + (Compile / packageBin).value.getParentFile
       ),
