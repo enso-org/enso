@@ -54,7 +54,7 @@ public abstract class CustomComparatorNode extends Node {
     if (rawRes instanceof Atom res
         && res.getConstructor() == ctx.getBuiltins().comparable().getBy()) {
       if (structs.getField(res, 1) instanceof Type result) {
-        if (result != ctx.getBuiltins().defaultComparator().getType()) {
+        if (result != ctx.getBuiltins().defaultComparatorType()) {
           return result;
         }
       }

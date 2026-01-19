@@ -416,14 +416,7 @@ public final class Error {
     final AtomConstructor getUniqueConstructor() {
       if (uniqueAtomConstructor == null) {
         CompilerDirectives.transferToInterpreterAndInvalidate();
-        var sb = new StringBuilder();
-        sb.append("Standard.Base");
-        var last = shortFqn.length - 1;
-        for (var i = 0; i < last; i++) {
-          var segment = shortFqn[i];
-          sb.append(".").append(segment);
-        }
-        var type = Builtins.loadType(context, sb.toString(), shortFqn[last]);
+        var type = Builtins.loadType(context, shortFqn);
         assert type.getConstructors().size() == 1
             : "Only one constructor available: " + type.getConstructors();
         uniqueAtomConstructor = type.getConstructors().values().iterator().next();
