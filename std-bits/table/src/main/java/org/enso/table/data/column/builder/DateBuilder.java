@@ -87,11 +87,7 @@ final class DateBuilder extends ValidityBuilder
 
   @Override
   public boolean canRetypeTo(StorageType<?> type) {
-    if (allowDateToDateTimeConversion && Objects.equals(type, DateTimeType.INSTANCE)) {
-      return true;
-    } else {
-      return false;
-    }
+    return allowDateToDateTimeConversion && Objects.equals(type, DateTimeType.INSTANCE);
   }
 
   @Override
