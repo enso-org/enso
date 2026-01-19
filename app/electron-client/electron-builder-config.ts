@@ -18,7 +18,7 @@ import yargs from 'yargs'
 import * as common from 'enso-common/src/constants'
 
 import computeHashes from './tasks/computeHashes'
-import signArchivesMacOs from './tasks/signArchivesMacOs'
+import { run, signArchives } from './tasks/signArchivesMacOs'
 
 import * as fileAssociations from './fileAssociations'
 
@@ -343,7 +343,7 @@ export function createElectronBuilderConfig(passedArgs: Arguments): electronBuil
 
         // We need to manually re-sign our build artifacts before notarization.
         console.log('  • Performing additional signing of dependencies.')
-        await signArchivesMacOs({
+        await signArchives({
           appOutDir: appOutDir,
           productFilename: appName,
           // This will always be defined since we have an `entitlements.mac.plist`.
