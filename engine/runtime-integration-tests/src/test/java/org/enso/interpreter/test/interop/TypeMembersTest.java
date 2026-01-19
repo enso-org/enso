@@ -86,6 +86,8 @@ public class TypeMembersTest {
         Source.newBuilder(
                 "enso",
                 """
+                from Standard.Base import all
+
                 type Compile_Error
                     Error message
 
@@ -105,7 +107,9 @@ public class TypeMembersTest {
             ConstantsNames.TO_DISPLAY_TEXT,
             "message",
             ConstantsNames.TO_TEXT,
+            "to",
             "==",
+            "!=",
             "catch_primitive",
             "pretty"),
         compileError.getMemberKeys());
