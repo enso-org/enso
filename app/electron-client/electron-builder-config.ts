@@ -385,7 +385,7 @@ export function createElectronBuilderConfig(passedArgs: Arguments): electronBuil
                 console.log('DEBUG: ' + out)
               }
 
-              const matched = out.match('/id: ([\w-]+)/')
+              const matched = out.match(/id: ([\w-]+)/)
               if (matched && matched.length >= 2) {
                 const submissionId = matched[1]
                 const log = run('xcrun', [
