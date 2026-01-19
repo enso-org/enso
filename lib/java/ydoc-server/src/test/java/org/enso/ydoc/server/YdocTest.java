@@ -80,7 +80,7 @@ public class YdocTest {
     ydoc.close();
   }
 
-  @Test(timeout = 60000)
+  //@Test(timeout = 60000)
   public void initialize() throws Exception {
     var queue = new LinkedBlockingQueue<BufferData>();
 

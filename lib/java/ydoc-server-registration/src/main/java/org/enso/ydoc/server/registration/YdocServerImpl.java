@@ -3,6 +3,7 @@ package org.enso.ydoc.server.registration;
 import java.io.File;
 import java.io.IOException;
 import java.net.URISyntaxException;
+import java.util.concurrent.ScheduledExecutorService;
 import org.enso.jvm.interop.api.OtherJvmClassLoader;
 import org.enso.runner.common.WrongOption;
 import org.enso.runner.common.YdocServerApi;
@@ -44,7 +45,12 @@ public final class YdocServerImpl extends YdocServerApi {
     var fqn = "org.enso.ydoc.server.Main";
     var impl = loader.loadClass(fqn);
     assert impl != null;
-    impl.invokeMember("launch", hostname, port + "", jsonChannelCallbacks, binaryChannelCallbacks);
+    impl.invokeMember(
+        "launch",
+        hostname,
+        port + "",
+        jsonChannelCallbacks,
+        binaryChannelCallbacks);
     return loader;
   }
 }
