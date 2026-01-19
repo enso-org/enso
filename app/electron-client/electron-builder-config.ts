@@ -353,14 +353,59 @@ export function createElectronBuilderConfig(passedArgs: Arguments): electronBuil
 
         console.log('  • Notarizing.')
 
-        await electronNotarize.notarize({
-          tool: 'notarytool',
-          appPath: `${appOutDir}/${appName}.app`,
-          // It is a mistake for either of these to be undefined.
-          appleId: process.env.APPLEID!,
-          appleIdPassword: process.env.APPLEIDPASS!,
-          teamId: process.env.APPLETEAMID!,
-        })
+        await electronNotarize
+          .notarize({
+            tool: 'notarytool',
+            appPath: `${appOutDir}/${appName}.app`,
+            // It is a mistake for either of these to be undefined.
+            appleId: process.env.APPLEID!,
+            appleIdPassword: process.env.APPLEIDPASS!,
+            teamId: process.env.APPLETEAMID!,
+          })
+          .catch(function (err) {
+            const user = env.process.APPLEID
+            const pass = env.process.APPLEIDPASS
+            const teamId = env.process.APPLETEAMID
+
+            try {
+              const out = run('xcrun', [
+                'notarytool',
+                'history',
+                '--apple-id',
+                user,
+                '--team-id',
+                teamId,
+                '--password',
+                pass,
+              ])
+              const matched = out.match('/id: ([\w-]+)/')
+              if (matched && matched.length >= 2) {
+                const submissionId = matched[1]
+                const log = run('xcrun', [
+                  'notarytool',
+                  'log',
+                  '--apple-id',
+                  user,
+                  '--team-id',
+                  teamId,
+                  '--password',
+                  pass,
+                  submissionId,
+                ])
+                console.error(`Notary log for submission ${submissionId}:\n${log}`)
+              } else {
+                console.error(
+                  'Unable to find submission in notarytool history. Needs manual inspection',
+                )
+              }
+            } catch (err) {
+              console.error(
+                'Unable to find failed submission status in notarytool. Needs manual inspection: ' +
+                  err,
+              )
+            }
+            throw new Error('Failed to notarize artifacts', { cause: err })
+          })
       }
     },
 
