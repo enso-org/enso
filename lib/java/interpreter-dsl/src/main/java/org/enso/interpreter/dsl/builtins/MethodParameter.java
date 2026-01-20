@@ -133,7 +133,8 @@ public record MethodParameter(int index, String name, String tpe, List<String> a
 
   public boolean isTruffleCachedParam() {
     return tpe.startsWith(CachedLibraryMethodParameter.INTEROP_LIBRARY)
-        || tpe.startsWith(CachedLibraryMethodParameter.WARNINGS_LIBRARY);
+        || tpe.startsWith(CachedLibraryMethodParameter.WARNINGS_LIBRARY)
+        || tpe.startsWith(CachedLibraryMethodParameter.TYPES_LIBRARY);
   }
 
   public boolean needsToInjectValueOfType() {

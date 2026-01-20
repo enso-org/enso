@@ -123,6 +123,7 @@ class CachedLibraryMethodParameter extends SpecializedMethodParameter {
   public static final String INTEROP_LIBRARY = "com.oracle.truffle.api.interop.InteropLibrary";
   public static final String WARNINGS_LIBRARY =
       "org.enso.interpreter.runtime.warning.WarningsLibrary";
+  public static final String TYPES_LIBRARY = "org.enso.interpreter.runtime.library.dispatch.TypesLibrary";
 }
 
 class InjectedMethodParameter extends SpecializedMethodParameter {
