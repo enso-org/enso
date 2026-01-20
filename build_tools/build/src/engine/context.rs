@@ -633,7 +633,7 @@ impl RunContext {
         }
     }
 
-    /// Uploads all the librariesS that should be uploaded.
+    /// Uploads all the libraries that should be uploaded.
     /// See [edition::libs_to_upload].
     /// Note that the library asset is platform independent, so it should run only
     /// in once job, hence the check for the current os.
