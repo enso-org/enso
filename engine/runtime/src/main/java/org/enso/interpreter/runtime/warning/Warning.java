@@ -3,6 +3,7 @@ package org.enso.interpreter.runtime.warning;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.dsl.Cached;
+import com.oracle.truffle.api.dsl.Cached.Shared;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.StopIterationException;
@@ -14,11 +15,16 @@ import org.enso.interpreter.dsl.AcceptsWarning;
 import org.enso.interpreter.dsl.Builtin;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.builtin.BuiltinObject;
+import org.enso.interpreter.runtime.data.Type;
+import org.enso.interpreter.runtime.data.atom.StructsLibrary;
 import org.enso.interpreter.runtime.data.hash.EnsoHashMap;
 import org.enso.interpreter.runtime.data.hash.HashMapInsertNode;
+import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 
 @Builtin(pkg = "error", stdlibName = "Standard.Base.Warning.Warning")
 @ExportLibrary(value = InteropLibrary.class, delegateTo = "value")
+@ExportLibrary(value = StructsLibrary.class)
+@ExportLibrary(value = TypesLibrary.class)
 public final class Warning extends BuiltinObject {
   final Object value;
   private final Object origin;
@@ -72,6 +78,30 @@ public final class Warning extends BuiltinObject {
       @Cached AppendWarningNode appendWarningNode) {
     var warn = new Warning(warning, origin, ctx.nextSequenceId());
     return appendWarningNode.executeAppend(frame, value, warn);
+  }
+
+  @ExportMessage
+  boolean hasSpecialDispatch() {
+    return true;
+  }
+
+  @ExportMessage
+  Object getField(int index,
+      @Shared @CachedLibrary(limit = "3") StructsLibrary structsLib) {
+    return structsLib.getField(value, index);
+  }
+
+  @ExportMessage
+  void setField(
+      int index, Object value,
+      @Shared @CachedLibrary(limit = "3") StructsLibrary structsLib) {
+    structsLib.setField(this.value, index, value);
+  }
+
+  @ExportMessage
+  boolean isFieldEvaluated(int index,
+      @Shared @CachedLibrary(limit = "3") StructsLibrary structsLib) {
+    return structsLib.isFieldEvaluated(value, index);
   }
 
   /** Slow version of {@link #fromMapToArray(EnsoHashMap, InteropLibrary)}. */

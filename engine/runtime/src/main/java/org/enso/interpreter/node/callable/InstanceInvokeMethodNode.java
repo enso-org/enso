@@ -52,6 +52,7 @@ import org.enso.interpreter.runtime.error.PanicSentinel;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.interpreter.runtime.state.State;
 import org.enso.interpreter.runtime.warning.AppendWarningNode;
+import org.enso.interpreter.runtime.warning.Warning;
 import org.enso.interpreter.runtime.warning.WarningsLibrary;
 
 /**
@@ -311,13 +312,41 @@ abstract class InstanceInvokeMethodNode extends InvokeMethodNode {
         invokeFunctionNode.getArgumentsExecutionMode());
   }
 
+  @Specialization
+  Object doWarning(
+      VirtualFrame frame,
+      State state,
+      UnresolvedSymbol symbol,
+      Warning self,
+      Object[] arguments,
+      @Shared("methodResolverNode") @Cached MethodResolverNode methodResolverNode,
+      @Shared("types") @CachedLibrary(limit = "10") TypesLibrary typesLib
+  ) {
+    var warningBuiltinType = EnsoContext.get(this).getBuiltins().warning();
+    var builtinFunc = resolveFunction(symbol, self, warningBuiltinType, methodResolverNode);
+    var valueType = typesLib.getType(self.getValue());
+    var valueFunc = resolveFunction(symbol, self.getValue(), valueType, methodResolverNode);
+    if (builtinFunc != null && valueFunc != null) {
+      // value type overrides the method - dispatch on the value
+      arguments[thisArgumentPosition] = self.getValue();
+      return invokeFunctionNode.execute(valueFunc, frame, state, arguments);
+    } else if (builtinFunc != null) {
+      return invokeFunctionNode.execute(builtinFunc, frame, state, arguments);
+    } else if (valueFunc != null) {
+      arguments[thisArgumentPosition] = self.getValue();
+      return invokeFunctionNode.execute(valueFunc, frame, state, arguments);
+    } else {
+      throw methodNotFound(this, onBoundary, symbol, self);
+    }
+  }
+
   @Specialization(
       guards = {
         "warnings.hasWarnings(self)",
         "resolvedFunction != null",
         "resolvedFunction.getSchema() == cachedSchema"
       })
-  Object doWarningsCustom(
+  Object doWithWarningsCustom(
       VirtualFrame frame,
       State state,
       UnresolvedSymbol symbol,
@@ -339,7 +368,7 @@ abstract class InstanceInvokeMethodNode extends InvokeMethodNode {
   }
 
   @Specialization(guards = "warnings.hasWarnings(self)")
-  Object doWarning(
+  Object doWithWarning(
       VirtualFrame frame,
       State state,
       UnresolvedSymbol symbol,
