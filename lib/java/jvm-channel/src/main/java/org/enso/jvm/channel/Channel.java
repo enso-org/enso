@@ -289,15 +289,9 @@ public final class Channel<Data extends Channel.Config> implements AutoCloseable
 
     var channel = ID_TO_CHANNEL.get(id);
     assert channel != null : "There must be a channel " + id + " but " + ID_TO_CHANNEL;
-    try {
-      var buf = asNativeByteBuffer(data, size);
-      var len = handleWithChannel(channel, buf);
-      return len;
-    } catch (Throwable ex) {
-      var buf = asNativeByteBuffer(data, size);
-      ChannelExceptions.exceptionSerialize(buf, ex);
-      return RET_CODE_EXCEPTION;
-    }
+    var buf = asNativeByteBuffer(data, size);
+    var len = handleWithChannel(channel, buf);
+    return len;
   }
 
   private static long handleWithChannel(Channel channel, ByteBuffer buf) {
@@ -305,7 +299,8 @@ public final class Channel<Data extends Channel.Config> implements AutoCloseable
       return handleWithChannelThrow(channel, buf);
     } catch (Throwable ex) {
       buf.position(0);
-      ChannelExceptions.exceptionSerialize(buf, ex);
+      ChannelExceptions.exceptionSerialize(
+          buf, ex, Channel.class.getName(), "handleWithChannelThrow");
       return RET_CODE_EXCEPTION;
     }
   }

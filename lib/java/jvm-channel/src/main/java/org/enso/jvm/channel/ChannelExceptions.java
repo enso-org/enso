@@ -27,7 +27,6 @@ final class ChannelExceptions {
     byte[] bytes = txt == null ? null : txt.getBytes(StandardCharsets.UTF_8);
     int wholeLen = bytes == null ? Integer.BYTES : bytes.length + Integer.BYTES;
     if (wholeLen > buf.remaining()) {
-      buf.putInt(EOS);
       return false;
     } else {
       if (bytes == null) {
@@ -40,18 +39,26 @@ final class ChannelExceptions {
     }
   }
 
-  static void exceptionSerialize(ByteBuffer buf, Throwable ex) {
+  static void exceptionSerialize(
+      ByteBuffer buf, Throwable ex, String stopClass, String stopMethod) {
     boolean okClass = putUTF(buf, ex.getClass().getName());
     boolean okMsg = putUTF(buf, ex.getMessage());
     assert okClass && okMsg;
+    int lastGood = 0;
     for (StackTraceElement elem : ex.getStackTrace()) {
-      int lastGood = buf.position();
+      lastGood = buf.position();
+      if (stopMethod.equals(elem.getMethodName()) && stopClass.equals(elem.getClassName())) {
+        break;
+      }
       boolean ok =
           putUTF(buf, elem.getClassName())
               && putUTF(buf, elem.getMethodName())
               && putUTF(buf, elem.getFileName());
       if (ok && buf.remaining() >= Integer.BYTES) {
         buf.putInt(elem.getLineNumber());
+        if (buf.remaining() < Integer.BYTES) {
+          break;
+        }
       } else {
         buf.putInt(lastGood, EOS);
         return;

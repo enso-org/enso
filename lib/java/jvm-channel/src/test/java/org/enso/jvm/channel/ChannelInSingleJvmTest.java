@@ -2,6 +2,7 @@ package org.enso.jvm.channel;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -93,6 +94,57 @@ public class ChannelInSingleJvmTest {
     }
   }
 
+  @Test
+  public void throwFactorialOne() throws Exception {
+    assertException("1", new CountDownAndThrow(1, 1));
+  }
+
+  @Test
+  public void throwFactorialTwo() throws Exception {
+    assertException("2", new CountDownAndThrow(2, 1));
+  }
+
+  @Test
+  public void throwFactorialThree() throws Exception {
+    assertException("6", new CountDownAndThrow(3, 1));
+  }
+
+  @Test
+  public void throwFactorialFour() throws Exception {
+    assertException("24", new CountDownAndThrow(4, 1));
+  }
+
+  @Test
+  public void throwFactorialFive() throws Exception {
+    assertException("120", new CountDownAndThrow(5, 1));
+  }
+
+  private void assertException(String msg, CountDownAndThrow action) {
+    var channel = Channel.create(null, PrivateData.class);
+    try {
+      channel.execute(Void.class, action);
+      fail("Expecting an exception to be thrown for " + msg);
+    } catch (IllegalStateException ex) {
+      assertEquals(msg, ex.getMessage());
+      var countDecrementAndSendMessage = 0;
+      for (var elem : ex.getStackTrace()) {
+        if ("decrementAndSendMessage".equals(elem.getMethodName())) {
+          assertEquals("ChannelInSingleJvmTest.java", elem.getFileName());
+          assertNotEquals(-1, elem.getLineNumber());
+          assertEquals(action.getClass().getName(), elem.getClassName());
+          countDecrementAndSendMessage++;
+        }
+      }
+      if (action.value() != countDecrementAndSendMessage) {
+        ex.printStackTrace();
+        assertEquals(
+            "There is exactly right amount of invocations",
+            action.value(),
+            countDecrementAndSendMessage);
+      }
+    }
+  }
+
   @Persistable(id = 8341)
   static final class Increment implements Function<Channel<?>, Increment> {
     int valueToIncrement;
@@ -143,6 +195,23 @@ public class ChannelInSingleJvmTest {
   static record LongString(String text) {
     private LongString(int len) {
       this("Hello".repeat(len / 5) + "!!!!!".substring(5 - len % 5));
+    }
+  }
+
+  @Persistable(id = 8345)
+  record CountDownAndThrow(long value, long acc) implements Function<Channel<?>, Void> {
+    @Override
+    public Void apply(Channel<?> otherVM) {
+      decrementAndSendMessage(value, acc, otherVM);
+      return null;
+    }
+
+    private static void decrementAndSendMessage(long n, long sum, Channel<?> otherVM) {
+      if (n <= 1) {
+        throw new IllegalStateException("" + sum);
+      } else {
+        otherVM.execute(Void.class, new CountDownAndThrow(n - 1, sum * n));
+      }
     }
   }
 }
