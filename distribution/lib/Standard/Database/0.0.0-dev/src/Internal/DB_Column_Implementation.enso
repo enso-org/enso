@@ -662,8 +662,6 @@ round_decimal this_column decimal_places rounding_mode =
     new_name = (naming_helper this_column).function_name "round" [this_column]
 
     scale = dec (10 ^ decimal_places)
-    mid_point = dec 0.5 / scale
-
     scaled = if scale == 1 then this_column else this_column * scale
 
     half_goes_up = if rounding_mode != Rounding_Mode.Bankers then this_column >= 0 else
@@ -672,9 +670,9 @@ round_decimal this_column decimal_places rounding_mode =
 
     round_base = scaled.floor
     (round_base:DB_Column).let "round_base" round_base->
-        round_midpoint = round_base + mid_point
+        round_midpoint = round_base + dec 0.5
         (round_midpoint:DB_Column).let "round_midpoint" round_midpoint->
-            do_round_up = (this_column > round_midpoint) || (half_goes_up && this_column == round_midpoint)
+            do_round_up = (scaled > round_midpoint) || (half_goes_up && scaled == round_midpoint)
             scaled_result = round_base + (do_round_up.iif (dec 1) (dec 0))
             result = if scale == 1 then scaled_result else decimal_div scaled_result scale
             result.rename new_name
