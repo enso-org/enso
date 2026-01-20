@@ -9,7 +9,10 @@ from Standard.Test import all
 import enso_dev.Table_Tests.Util
 
 import project.Common_Table_Operations.Util as Common_Table_Operations_Util
-from project.Common_Table_Operations.Util import run_default_backend
+from project.Common_Table_Operations.Util import check_column_refinements, run_default_backend
+
+type Lazy_Ref
+    Value ~get
 
 main filter=Nothing = run_default_backend add_specs filter
 
@@ -19,6 +22,16 @@ add_specs suite_builder setup =
 add_date_time_columns_specs suite_builder setup =
     prefix = setup.prefix
     build_sorted_table = Common_Table_Operations_Util.build_sorted_table setup
+
+    date_time_table = Lazy_Ref.Value <| build_sorted_table [["X", [Date_Time.new 1987 1 1, Date_Time.new 2000 2 29, Date_Time.new 2005 4 30]]]
+    date_time_column = Lazy_Ref.Value <| date_time_table . get . at "X"
+
+    suite_builder.group prefix+"Date_Time_Column" group_builder->
+        group_builder.specify "a datetime column can be cast to Date_Time_Column" <|
+            column = date_time_column.get
+            column.value_type.is_date_time . should_be_true
+            check_column_refinements column x->
+                (x:Date_Time_Column)
 
     if setup.is_database.not then
         suite_builder.group prefix+"Date_Time_Column (time zones)" group_builder->
@@ -89,3 +102,14 @@ add_date_time_columns_specs suite_builder setup =
                 lon_a = t . at "A" . set_time_zone "Europe/London"
                 lon_a . name . should_equal "set_time_zone([A], 'Europe/London')"
                 lon_a . to_vector . should_equal [dt1 . set_time_zone lon, dt2 . set_time_zone lon]
+
+            group_builder.specify "Can convert to UTC" <|
+                offset_zone = Time_Zone.new hours=(-11) minutes=(-30)
+                dt1 = Date_Time.new 2021 11 23 1 2 3 zone=offset_zone
+                named_zone = Time_Zone.parse "US/Hawaii"
+                dt2 = Date_Time.new 2019 11 23 4 5 6 zone=named_zone
+
+                t = build_sorted_table [["A", [dt1, dt2]]]
+                utc_a = t . at "A" . to_utc
+                utc_a . name . should_equal "to_utc([A])"
+                utc_a . to_vector . should_equal [dt1 . to_utc, dt2 . to_utc]

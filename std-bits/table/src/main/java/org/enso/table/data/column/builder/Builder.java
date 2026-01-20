@@ -121,7 +121,7 @@ public interface Builder {
                 DoubleBuilder.fromAddress(size, data, validity, type).seal(storage, type);
             case TextType type ->
                 StringBuilder.fromAddress(size, data, validity, type).seal(storage, type);
-            case DateType type -> DateBuilder.fromAddress(size, data, validity).seal(storage, type);
+            case DateType _ -> DateBuilder.fromAddress(size, data, validity).seal(storage);
             case TimeOfDayType type ->
                 TimeOfDayBuilder.fromAddress(size, data, validity).seal(storage, type);
             default -> storage;

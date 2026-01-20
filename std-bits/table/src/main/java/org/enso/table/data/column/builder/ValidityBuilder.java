@@ -5,7 +5,8 @@ import java.util.BitSet;
 import org.enso.table.util.ImmutableBitSet;
 
 /** A common base for builders with lazily initialized validity bitmap. */
-abstract sealed class NumericBuilder implements Builder permits DoubleBuilder, LongBuilder {
+abstract sealed class ValidityBuilder implements Builder
+    permits DoubleBuilder, LongBuilder, DateBuilder {
   private BitSet validityMap;
   int currentSize;
 
@@ -15,7 +16,7 @@ abstract sealed class NumericBuilder implements Builder permits DoubleBuilder, L
    * @param size the size of buffer to allocate
    * @param validity address of validity bitmap to read or {@code 0} to assume all data are valid
    */
-  protected NumericBuilder(int size, long validity) {
+  protected ValidityBuilder(int size, long validity) {
     if (validity != 0L) {
       var seg = MemorySegment.ofAddress(validity).reinterpret((size + 7) / 8);
       var valid = seg.asByteBuffer();

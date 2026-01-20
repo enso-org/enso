@@ -35,6 +35,27 @@ type Google_Sheets_Workbook
     Value workbook_id:Text java_service
 
     ## ---
+       private: true
+       ---
+       Render the error to a JS Object.
+    to_js_object self =
+        JS_Object.from_pairs [["type", "Google_Sheets_Workbook"], ["workbook_id", self.workbook_id], ["sheets", self.sheet_names]]
+
+    ## ---
+       private: true
+       ---
+       Render the error to text.
+    to_text self =
+        "Google Sheets Workbook: "+self.workbook_id
+
+    ## ---
+       private: true
+       ---
+       Render the error to text.
+    to_display_text self =
+        "Google Sheets Workbook: "+self.workbook_id
+
+    ## ---
        icon: cloud
        ---
        Initializes the Google Sheets instance using the given credentials file.
@@ -72,7 +93,7 @@ type Google_Sheets_Workbook
     read self query:(Text|Integer) headers:Headers=..Detect_Headers limit:Rows_To_Read=..All_Rows skip_rows:Integer=0 on_problems:Problem_Behavior=..Report_Warning -> Table =
         java_headers = _make_java_headers headers
         java_limit = limit.rows_to_read
-        java_table = Java_Problems.with_problem_aggregator on_problems problem_aggregator=ProblemAggregator java_problem_aggregator-> _handle_exceptions <|
+        java_table = Java_Problems.with_problem_aggregator on_problems problem_aggregator=ProblemAggregator java_problem_aggregator-> _handle_exceptions self.workbook_id <|
             case query of
                 _ : Text -> self.java_service.getSheetRange self.workbook_id query java_headers java_limit skip_rows java_problem_aggregator
                 _ : Integer ->
@@ -181,6 +202,27 @@ type Google_API_Error
        private: true
        ---
     Error message details
+
+    ## ---
+       private: true
+       ---
+       Render the error to a JS Object.
+    to_js_object self = case self of
+        Google_API_Error.Error message details -> JS_Object.from_pairs [["type", "Google_API_Error"], ["error_type", "Error"], ["message", message], ["details", details]]
+        _ ->
+            self_meta = Meta.meta self
+            ctor_name = self_meta.constructor.name
+            JS_Object.from_pairs [["type", "Google_API_Error"], ["error_type", ctor_name], ["message", self.message]]
+
+    ## ---
+       private: true
+       ---
+       Render the error to text.
+    to_text self = case self of
+        Google_API_Error.Access_Denied message -> "Access Denied: "+message
+        Google_API_Error.Not_Found message -> "Not Found: "+message
+        Google_API_Error.Invalid_Format message -> "Invalid Format: "+message
+        Google_API_Error.Error message _ -> "Google API Error: "+message
 
     ## ---
        private: true
