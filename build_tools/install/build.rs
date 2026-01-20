@@ -24,12 +24,10 @@ fn main() {
     {
         // Icon path can be provided via environment variable (for Bazel builds) or falls back to
         // the default relative path (for Cargo builds).
-        let icon_path = std::env::var("ENSO_ICON_PATH")
-            .map(PathBuf::from)
-            .unwrap_or_else(|_| {
-                Path::new(env!("CARGO_MANIFEST_DIR"))
-                    .join("../../app/electron-client/assets/icons/icon.ico")
-            });
+        let icon_path = std::env::var("ENSO_ICON_PATH").map(PathBuf::from).unwrap_or_else(|_| {
+            Path::new(env!("CARGO_MANIFEST_DIR"))
+                .join("../../app/electron-client/assets/icons/icon.ico")
+        });
         if let Err(err) = embed_resource_from_file(ENSO_ICON_ID, ResourceType::Icon, &icon_path) {
             // We do not use `cargo:warning` here, as we do not want to pollute the output if the
             // icon is not available. Still, to enable debugging, we print to stderr, which is

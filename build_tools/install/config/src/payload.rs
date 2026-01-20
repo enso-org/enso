@@ -2,8 +2,8 @@
 
 use crate::prelude::*;
 
-use flate2::write::GzEncoder;
 use flate2::Compression;
+use flate2::write::GzEncoder;
 use std::fs::File;
 use std::io::BufWriter;
 
