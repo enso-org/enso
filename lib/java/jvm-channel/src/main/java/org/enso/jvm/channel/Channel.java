@@ -493,7 +493,7 @@ public final class Channel<Data extends Channel.Config> implements AutoCloseable
    * @return {@code true} if the exception was printed and further details should be printed
    */
   private boolean printStackTrace(Throwable ex, boolean userCode) {
-    if (!userCode) {
+    if (!userCode || true) {
       if (ex != null) {
         ex.printStackTrace();
       }
