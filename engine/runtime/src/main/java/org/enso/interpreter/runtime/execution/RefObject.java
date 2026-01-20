@@ -8,16 +8,11 @@ import java.util.stream.Stream;
 import org.enso.polyglot.RuntimeID;
 
 public final class RefObject extends Ref implements TruffleObject {
-  private Object value;
   private final Set<Ref> deps;
 
   public RefObject(RuntimeID runtimeID) {
     super(runtimeID);
     deps = new LinkedHashSet<>();
-  }
-
-  public Object get() {
-    return value;
   }
 
   @Override
@@ -33,13 +28,7 @@ public final class RefObject extends Ref implements TruffleObject {
 
   @Override
   public Stream<Ref> reset() {
-    value = null;
     return deps.stream();
-  }
-
-  @Override
-  public void update(Object value) {
-    this.value = value;
   }
 
   @Override
@@ -52,8 +41,6 @@ public final class RefObject extends Ref implements TruffleObject {
   public String toString() {
     return "Ref[runtimeID="
         + getRuntimeID()
-        + ", hasValue="
-        + (value != null)
         + ", deps="
         + deps.stream().map(Ref::getRuntimeID).collect(Collectors.toSet())
         + "]";

@@ -14,7 +14,7 @@ import org.enso.polyglot.RuntimeID;
  * That's contrary to {@link AssignmentNode} which always returns {@code Nothing}.
  */
 final class AssignLocalVariableNode extends ExpressionNode {
-    private @CompilerDirectives.CompilationFinal RuntimeID id = null;
+  private @CompilerDirectives.CompilationFinal RuntimeID id = null;
   private final String name;
   @Child private ExpressionNode rhs;
 
@@ -43,14 +43,14 @@ final class AssignLocalVariableNode extends ExpressionNode {
     }
   }
 
-    @Override
-    public RuntimeID getId() {
-        return this.id;
-    }
+  @Override
+  public RuntimeID getId() {
+    return this.id;
+  }
 
-    @Override
-    public void setId(RuntimeID id) {
-        CompilerDirectives.transferToInterpreterAndInvalidate();
-        this.id = id;
-    }
+  @Override
+  public void setId(RuntimeID id) {
+    CompilerDirectives.transferToInterpreterAndInvalidate();
+    this.id = id;
+  }
 }

@@ -62,7 +62,7 @@ public final class RuntimeCache implements Function<String, Object> {
   @CompilerDirectives.TruffleBoundary
   public CachedResult offer(RuntimeID key, Object value) {
     expressions.put(key.uuid(), new WeakReference<>(value));
-    if (key.isCached()) {
+    if (key.canBeCached()) {
       if (cache.containsKey(key)) {
         return new CachedResult(true, true);
       }

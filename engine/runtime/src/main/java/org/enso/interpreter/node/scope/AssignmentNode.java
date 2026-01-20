@@ -24,7 +24,6 @@ import org.enso.polyglot.RuntimeID;
 @NodeChild(value = "rhsNode", type = ExpressionNode.class)
 public abstract class AssignmentNode extends ExpressionNode {
 
-
   private @CompilerDirectives.CompilationFinal RuntimeID id = null;
   private final int frameSlotIdx;
 

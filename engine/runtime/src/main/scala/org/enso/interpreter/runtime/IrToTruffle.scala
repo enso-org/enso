@@ -1966,12 +1966,12 @@ private[runtime] class IrToTruffle(
         binding.expression.getId,
         canBeCached = true
       )
-      val assignment =  AssignmentNode.build(
-          binding.name.name,
-          null,
-          rhs,
-          slotIdx
-        )
+      val assignment = AssignmentNode.build(
+        binding.name.name,
+        null,
+        rhs,
+        slotIdx
+      )
       setLocation(
         assignment,
         binding.location(),

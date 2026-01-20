@@ -282,7 +282,7 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
       if (currentAssingmentRef != null) {
         r.registerDependency(currentAssingmentRef);
       }
-      return r.get();
+      return cache.get(r.getRuntimeID());
     } else {
       return result;
     }
@@ -292,7 +292,6 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
   public Object wrapAsReference(Object value) {
     var currentAssingmentRef = runtimeAnalysis.currentRhs("wrap as a ref");
     if (currentAssingmentRef != null) {
-      currentAssingmentRef.update(value);
       return currentAssingmentRef;
     } else {
       return value;

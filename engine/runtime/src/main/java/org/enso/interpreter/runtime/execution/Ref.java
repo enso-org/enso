@@ -24,17 +24,8 @@ public abstract sealed class Ref permits RefObject {
    */
   public abstract Stream<Ref> reset();
 
-  /** Updates the value associated with this identifier. */
-  public abstract void update(Object value);
-
   /** Register a downstream dependency with this reference. */
   public abstract void registerDependency(Ref dep);
-
-  /**
-   * Returns current value associated with this reference. Note: could potentially be replaced by a
-   * simple cache lookup.
-   */
-  public abstract Object get();
 
   public abstract Set<Ref> dependencies();
 

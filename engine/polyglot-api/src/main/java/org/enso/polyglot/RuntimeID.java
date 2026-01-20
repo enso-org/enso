@@ -11,5 +11,5 @@ public sealed interface RuntimeID permits InternalUUID, ExternalUUID {
   boolean isExternal();
 
   /** Indicates if the value of the given UUID will be cached internally. */
-  boolean isCached();
+  boolean canBeCached();
 }

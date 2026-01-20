@@ -17,7 +17,7 @@ public record InternalUUID(UUID uuid, boolean cached) implements RuntimeID {
   }
 
   @Override
-  public boolean isCached() {
+  public boolean canBeCached() {
     return cached;
   }
 
