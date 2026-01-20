@@ -148,7 +148,7 @@ public class System {
 
     var system = ctx.getTopScope().getModule("Standard.Base.System").get().getScope();
     var type = system.getType("System_Process_Result", true);
-    var cons = type.getConstructors().get("Result");
+    var cons = type.getSingleConstructor();
     var result =
         AtomNewInstanceNode.getUncached().newInstance(cons, exitCode, returnOut, returnErr);
     return result;

@@ -419,7 +419,7 @@ public final class Error {
         var type = Builtins.loadType(context, shortFqn);
         assert type.getConstructors().size() == 1
             : "Only one constructor available: " + type.getConstructors();
-        uniqueAtomConstructor = type.getConstructors().values().iterator().next();
+        uniqueAtomConstructor = type.getSingleConstructor();
       }
       return uniqueAtomConstructor;
     }

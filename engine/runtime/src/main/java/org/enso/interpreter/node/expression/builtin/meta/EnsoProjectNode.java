@@ -102,7 +102,7 @@ public abstract class EnsoProjectNode extends Node {
     var name = pkg.getConfig().name();
     var ensoProject = ctx.getTopScope().getModule("Standard.Base.Meta.Enso_Project").get();
     var projectDescription = ensoProject.getScope().getType("Project_Description", true);
-    var cons = projectDescription.getConstructors().values().iterator().next();
+    var cons = projectDescription.getSingleConstructor();
     return AtomNewInstanceNode.getUncached().newInstance(cons, rootPath, namespace, name);
   }
 

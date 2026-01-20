@@ -514,6 +514,22 @@ public final class Type extends EnsoObject {
     return constructors;
   }
 
+  /**
+   * Helper getter for the single constructor associated with this type. Verifies size of {@link
+   * #getConstructors()} is <b>one</b>. This can be optimized in the future to be usable on <em>fast
+   * path</em>.
+   *
+   * @return the single constructor associated with this type
+   * @throws AssertionError if there is none or more of constructors
+   */
+  public AtomConstructor getSingleConstructor() {
+    var it = getConstructors().values().iterator();
+    assert it.hasNext();
+    var cons = it.next();
+    assert !it.hasNext();
+    return cons;
+  }
+
   private boolean isNothing(Node lib) {
     var b = EnsoContext.get(lib).getBuiltins();
     return this == b.nothing();

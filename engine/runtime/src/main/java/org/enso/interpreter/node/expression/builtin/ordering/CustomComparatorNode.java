@@ -51,7 +51,8 @@ public abstract class CustomComparatorNode extends Node {
     Object rawRes =
         convertNode.execute(
             null, state, conversion, comparableType, atom, new Object[] {comparableType, atom});
-    if (rawRes instanceof Atom res && res.getConstructor() == ctx.getBuiltins().comparableBy()) {
+    if (rawRes instanceof Atom res
+        && res.getConstructor() == ctx.getBuiltins().comparableType().getSingleConstructor()) {
       if (structs.getField(res, 1) instanceof Type result) {
         if (result != ctx.getBuiltins().defaultComparatorType()) {
           return result;

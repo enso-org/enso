@@ -127,7 +127,8 @@ public final class EqualsNode extends Node {
       var by =
           node.execute(
               convFn, null, state, new Object[] {ctx.getBuiltins().comparableType(), value});
-      if (by instanceof Atom atom && atom.getConstructor() == ctx.getBuiltins().comparableBy()) {
+      if (by instanceof Atom atom
+          && atom.getConstructor() == ctx.getBuiltins().comparableType().getSingleConstructor()) {
         var structs = StructsLibrary.getUncached();
         return structs.getField(atom, 1);
       } else {
