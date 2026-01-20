@@ -28,7 +28,7 @@ OAuth integration requires an application registered in the Azure portal.
 
 ## Create A Client Secret
 
-- Log in to the [Azure Portal](https://portal.azure.com/) through an Azure account in the sylwiabrodackaensoanalytics.onmicrosoft.com domain.
+- Log in to the [Azure Portal](https://portal.azure.com/) through an Azure account in the `<company>.onmicrosoft.com` domain.
 - Select the "App Registrations" service
 - Click "All applications"
 - Select "Enso Analytics Integration" for prod, or "Enso Analytics Integration (Staging)" for staging
