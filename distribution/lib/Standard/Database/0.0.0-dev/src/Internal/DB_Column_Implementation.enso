@@ -661,7 +661,7 @@ round_decimal : Column & DB_Column -> Integer -> Boolean -> Column
 round_decimal this_column decimal_places rounding_mode =
     new_name = (naming_helper this_column).function_name "round" [this_column]
 
-    scale = 10 ^ decimal_places
+    scale = dec (10 ^ decimal_places)
     mid_point = dec 0.5 / scale
 
     scaled = if scale == 1 then this_column else this_column * scale
