@@ -72,8 +72,8 @@ type Warning
     throw_on_warning : Any -> Any -> Any
     throw_on_warning value warning_type=Any =
         warnings = Warning.get_all value
-        first = warnings.find (w-> w.value.is_a warning_type) if_missing=Nothing
-        if first.is_nothing then value else Error.throw first.value
+        first = warnings.find (w-> w.value.is_a warning_type) if_missing=Placeholder
+        if first == Placeholder then value else Error.throw first.value
 
     ## ---
        private: true
@@ -400,3 +400,6 @@ Any.remove_warnings self warning_type=Any =
 Any.throw_on_warning self warning_type=Any =
     _ = warning_type
     self
+
+
+type Placeholder
