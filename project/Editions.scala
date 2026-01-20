@@ -1,5 +1,5 @@
 import org.yaml.snakeyaml.Yaml
-import sbt.*
+import sbt._
 
 object Editions {
 
