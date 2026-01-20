@@ -659,8 +659,6 @@ round_float this_column decimal_places rounding_mode =
 
 round_decimal : Column & DB_Column -> Integer -> Boolean -> Column
 round_decimal this_column decimal_places rounding_mode =
-    # Construct a constant Decimal column.
-    make_const x = this_column.const (dec x)
     new_name = (naming_helper this_column).function_name "round" [this_column]
 
     scale = 10 ^ decimal_places
