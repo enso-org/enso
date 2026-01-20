@@ -25,13 +25,13 @@ GitHub release asset.
 
 Such _published_ libraries are:
 
-- Not part of the standard Enso release.
+- Not part of the standard Enso release (`.dmg`, `.AppImage`, and `.exe` bits).
   - That is, if user downloads the Enso binary from a release, it will not
     contain the published libraries.
 - Downloaded on demand when imported by an Enso workflow.
 - Uploaded as assets on corresponding GitHub release.
 
-To mark a library as for _publishing_, apply the following changes in
+To mark a library for _publishing_, apply the following changes in
 [edition.template.yaml](https://github.com/enso-org/enso/blob/19f3348d09cf5002e6b67705d4a1d1498190bae0/distribution/edition.template.yaml):
 
 - Create new repository with `jar` URL scheme and a name with `.zip` suffix.
