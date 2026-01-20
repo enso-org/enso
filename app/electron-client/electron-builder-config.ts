@@ -363,9 +363,9 @@ export function createElectronBuilderConfig(passedArgs: Arguments): electronBuil
             teamId: process.env.APPLETEAMID!,
           })
           .catch(function (err) {
-            const user = process.env.APPLEID
-            const pass = process.env.APPLEIDPASS
-            const teamId = process.env.APPLETEAMID
+            const user = process.env.APPLEID!
+            const pass = process.env.APPLEIDPASS!
+            const teamId = process.env.APPLETEAMID!
 
             try {
               const out = run('xcrun', [
@@ -382,7 +382,7 @@ export function createElectronBuilderConfig(passedArgs: Arguments): electronBuil
               const head = lines && lines.length > 10 ? lines.slice(0, 10).join('\n') : out
 
               const matched = head.match(/id: ([\w-]+)/)
-              if (matched && matched.length >= 2) {
+              if (matched && matched.length >= 2 && matched[1]) {
                 const submissionId = matched[1]
                 const log = run('xcrun', [
                   'notarytool',
