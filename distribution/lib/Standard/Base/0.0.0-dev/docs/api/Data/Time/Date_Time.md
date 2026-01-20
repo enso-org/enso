@@ -48,6 +48,7 @@
     - to_js_object self -> Standard.Base.Any.Any
     - to_unix_epoch_milliseconds self -> Standard.Base.Any.Any
     - to_unix_epoch_seconds self -> Standard.Base.Any.Any
+    - to_utc self -> Standard.Base.Any.Any
     - week_of_year self locale:Standard.Base.Any.Any= -> Standard.Base.Any.Any
     - year self -> Standard.Base.Any.Any
     - zone self -> Standard.Base.Any.Any

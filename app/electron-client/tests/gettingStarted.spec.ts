@@ -67,6 +67,10 @@ test('Exercise 1', async ({ page, projectsDir }) => {
     await page
       .getByText('readquery‘Sheet1’')
       .evaluate((element) => element.dispatchEvent(new PointerEvent('pointerleave')))
+    // and wait until it is actually hidden
+    await expect(
+      page.getByText('readquery`Sheet1`').getByLabel('Show visualization (Space)'),
+    ).toHaveCount(0)
 
     // Set parameters
     await openDropdownInWidget(page, 'value')

@@ -5,12 +5,14 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.Arrays;
 import java.util.BitSet;
 import java.util.Iterator;
 import org.enso.table.data.column.storage.type.DateType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.column.storage.type.TextType;
+import org.enso.table.data.column.storage.type.TimeOfDayType;
 import org.enso.table.util.ImmutableBitSet;
 
 public class TypedStorage<T> extends Storage<T> {
@@ -83,6 +85,28 @@ public class TypedStorage<T> extends Storage<T> {
           validity.set(at, true);
         } else {
           buf.putInt(0);
+          validity.set(at, false);
+        }
+        at++;
+      }
+      assert buf.limit() == buf.position();
+      buf.flip();
+      assert buf.position() == 0;
+      assert buf.limit() == fullSize;
+      offheapBuffer = buf;
+      validitySet = new ImmutableBitSet(validity, data.length);
+    }
+    if (offheapBuffer == null && getType() instanceof TimeOfDayType) {
+      var fullSize = data.length * Long.BYTES;
+      var buf = ByteBuffer.allocateDirect(fullSize).order(ByteOrder.LITTLE_ENDIAN);
+      var validity = new BitSet();
+      var at = 0;
+      for (var value : data) {
+        if (value instanceof LocalTime s) {
+          buf.putLong(s.toNanoOfDay());
+          validity.set(at, true);
+        } else {
+          buf.putLong(0);
           validity.set(at, false);
         }
         at++;

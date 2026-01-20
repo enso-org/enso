@@ -1,6 +1,7 @@
 from Standard.Base import all
 
 import project.Column.Column
+import project.Internal.Column_Naming_Helper.Column_Naming_Helper
 
 ## A column that contains Date values.
 type Date_Time_Column
@@ -26,3 +27,12 @@ type Date_Time_Column
     @time_zone Time_Zone.default_widget
     set_time_zone self (time_zone:Time_Zone|Text) -> Column & Date_Time_Column =
         self.operations_implementation.set_time_zone self.column time_zone
+
+    ## ---
+       group: DateTime
+       icon: metadata
+       ---
+       Convert the time instant to the same instant in UTC.
+    to_utc self -> Column & Date_Time_Column =
+        new_name = Column_Naming_Helper.in_memory.function_name "to_utc" [self]
+        self.at_time_zone Time_Zone.utc . rename new_name

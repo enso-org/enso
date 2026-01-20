@@ -22,6 +22,7 @@ import project.Runtime
 import project.Runtime.Ref.Ref
 import project.System.File.File
 import project.System.File.Generic.Writable_File.Writable_File
+import project.System.File_Format_Metadata.Content_Type_Metadata
 import project.System.File_Format_Metadata.File_Format_Metadata
 import project.System.Input_Stream.Input_Stream
 import project.Warning.Warning
@@ -222,11 +223,10 @@ type Plain_Text_Format
     for_read file:File_Format_Metadata =
         content_type = file.interpret_content_type
         from_content_type = content_type.if_not_nothing <|
-            case content_type.base_type of
-                "text/plain" ->
-                    effective_encoding = content_type.encoding.if_nothing Encoding.default
-                    Plain_Text_Format.Plain_Text effective_encoding
-                _ -> Nothing
+            if _is_plain_text_format content_type then
+                effective_encoding = content_type.encoding.if_nothing Encoding.default
+                Plain_Text_Format.Plain_Text effective_encoding
+            else Nothing
         from_content_type.if_nothing <| case file.guess_extension of
             ".txt" -> Plain_Text_Format.Plain_Text Encoding.default
             ".log" -> Plain_Text_Format.Plain_Text Encoding.default
@@ -604,3 +604,10 @@ type File_Format_SPI
             Error.throw <|
                 Illegal_State.Error "Unknown format "+sub_type
 
+private _is_plain_text_format content_type:Content_Type_Metadata -> Boolean =
+    case content_type.base_type of
+        "text/plain" -> True
+        "text/html" -> True
+        "text/css" -> True
+        "text/javascript" -> True
+        _ -> False

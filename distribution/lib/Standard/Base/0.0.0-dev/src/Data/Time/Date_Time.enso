@@ -814,6 +814,25 @@ type Date_Time
         Time_Utils.with_zone_same_local self zone
 
     ## ---
+       aliases: [change time zone]
+       group: DateTime
+       icon: time
+       ---
+       Convert the time instant to the same instant in UTC.
+
+       ## Examples
+       ### Convert time instance to UTC.
+
+       ```
+             from Standard.Base import Date_Time, Time_Zone
+
+             example_at_time_zone = Date_Time.new 2020 zone=(Time_Zone.parse "Europe/Moscow") . to_utc
+       ```
+    to_utc : Date_Time
+    to_utc self =
+        self.at_time_zone Time_Zone.utc
+
+    ## ---
        group: DateTime
        icon: time
        ---
