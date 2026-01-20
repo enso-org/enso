@@ -5314,21 +5314,15 @@ lazy val `opencv-wrapper` = project
     ),
     inputJar := "org.openpnp" % "opencv" % opencvVersion,
     jarExtractor := JarExtractor(
-      "nu/pattern/opencv/linux/x86_64/*.so" -> PolyglotLib(
-        LinuxAMD64,
-        matchArch = false
-      ),
-      "nu/pattern/opencv/osx/ARMv8/*.dylib" -> PolyglotLib(
-        MacOSArm64,
-        matchArch = false
-      ),
-      "nu/pattern/opencv/windows/x86_64/*.dll" -> PolyglotLib(
-        WindowsAMD64,
-        matchArch = false
-      ),
-      "nu/pattern/*.class" -> CopyToOutputJar,
-      "META-INF/**"        -> CopyToOutputJar,
-      "org/**"             -> CopyToOutputJar
+      nativeLibCopyBehavior = JarExtractor.AllArch,
+      mapping = Map(
+        "nu/pattern/opencv/linux/x86_64/*.so"    -> PolyglotLib(LinuxAMD64),
+        "nu/pattern/opencv/osx/ARMv8/*.dylib"    -> PolyglotLib(MacOSArm64),
+        "nu/pattern/opencv/windows/x86_64/*.dll" -> PolyglotLib(WindowsAMD64),
+        "nu/pattern/*.class"                     -> CopyToOutputJar,
+        "META-INF/**"                            -> CopyToOutputJar,
+        "org/**"                                 -> CopyToOutputJar
+      )
     )
   )
 
@@ -5340,17 +5334,19 @@ lazy val `jna-wrapper-extracted` = project
       (`jna-wrapper` / Compile / exportedModuleBin).value
     },
     jarExtractor := JarExtractor(
-      "com/sun/jna/linux-x86-64/libjnidispatch.so" -> PolyglotLib(LinuxAMD64),
-      "com/sun/jna/win32-x86-64/jnidispatch.dll"   -> PolyglotLib(WindowsAMD64),
-      "com/sun/jna/darwin-aarch64/libjnidispatch.jnilib" -> PolyglotLib(
-        MacOSArm64
-      ),
-      "com/**/*.class"       -> CopyToOutputJar,
-      "module-info.class"    -> CopyToOutputJar,
-      "META-INF/MANIFEST.MF" -> CopyToOutputJar,
-      "META-INF/LICENSE"     -> CopyToOutputJar,
-      "META-INF/LGPL2.1"     -> CopyToOutputJar,
-      "META-INF/AL2.0"       -> CopyToOutputJar
+      Map(
+        "com/sun/jna/linux-x86-64/libjnidispatch.so" -> PolyglotLib(LinuxAMD64),
+        "com/sun/jna/win32-x86-64/jnidispatch.dll"   -> PolyglotLib(WindowsAMD64),
+        "com/sun/jna/darwin-aarch64/libjnidispatch.jnilib" -> PolyglotLib(
+          MacOSArm64
+        ),
+        "com/**/*.class"       -> CopyToOutputJar,
+        "module-info.class"    -> CopyToOutputJar,
+        "META-INF/MANIFEST.MF" -> CopyToOutputJar,
+        "META-INF/LICENSE"     -> CopyToOutputJar,
+        "META-INF/LGPL2.1"     -> CopyToOutputJar,
+        "META-INF/AL2.0"       -> CopyToOutputJar
+      )
     )
   )
   .dependsOn(`jna-wrapper`)
@@ -5393,18 +5389,20 @@ lazy val `netty-tc-native-wrapper` = project
       tcNativeJar.head
     },
     jarExtractor := JarExtractor(
-      "META-INF/native/libnetty_tcnative_osx_aarch_64.jnilib" -> PolyglotLib(
-        MacOSArm64
-      ),
-      "META-INF/native/netty_tcnative_windows_x86_64.dll" -> PolyglotLib(
-        WindowsAMD64
-      ),
-      "META-INF/native/libnetty_tcnative_linux_x86_64.so" -> PolyglotLib(
-        LinuxAMD64
-      ),
-      "META-INF/license/*"   -> CopyToOutputJar,
-      "META-INF/maven/**"    -> CopyToOutputJar,
-      "META-INF/versions/**" -> CopyToOutputJar
+      Map(
+        "META-INF/native/libnetty_tcnative_osx_aarch_64.jnilib" -> PolyglotLib(
+          MacOSArm64
+        ),
+        "META-INF/native/netty_tcnative_windows_x86_64.dll" -> PolyglotLib(
+          WindowsAMD64
+        ),
+        "META-INF/native/libnetty_tcnative_linux_x86_64.so" -> PolyglotLib(
+          LinuxAMD64
+        ),
+        "META-INF/license/*"   -> CopyToOutputJar,
+        "META-INF/maven/**"    -> CopyToOutputJar,
+        "META-INF/versions/**" -> CopyToOutputJar
+      )
     )
   )
 
@@ -5419,7 +5417,11 @@ lazy val `netty-epoll-native-wrapper` = project
     ),
     inputJar := "io.netty" % "netty-transport-native-epoll" % "4.1.118.Final",
     jarExtractor := JarExtractor(
-      "**/libnetty_transport_native_epoll_x86_64.so" -> PolyglotLib(LinuxAMD64)
+      Map(
+        "**/libnetty_transport_native_epoll_x86_64.so" -> PolyglotLib(
+          LinuxAMD64
+        )
+      )
     )
   )
 
@@ -5460,8 +5462,10 @@ lazy val `netty-resolver-dns-native-macos-wrapper` = project
       nativeJar.head
     },
     jarExtractor := JarExtractor(
-      "META-INF/native/libnetty_resolver_dns_native_macos_aarch_64.jnilib" -> PolyglotLib(
-        MacOSArm64
+      Map(
+        "META-INF/native/libnetty_resolver_dns_native_macos_aarch_64.jnilib" -> PolyglotLib(
+          MacOSArm64
+        )
       )
     )
   )
@@ -5478,9 +5482,11 @@ lazy val `tableau-wrapper` = project
       tableauJars.filter(f => f.getName.contains(tableauSuffixInJar)).head
     },
     jarExtractor := JarExtractor(
-      "darwin-aarch64/libtableauhyperapi.dylib" -> PolyglotLib(MacOSArm64),
-      "linux-x86-64/libtableauhyperapi.so"      -> PolyglotLib(LinuxAMD64),
-      "win32-x86-64/tableauhyperapi.dll"        -> PolyglotLib(WindowsAMD64)
+      Map(
+        "darwin-aarch64/libtableauhyperapi.dylib" -> PolyglotLib(MacOSArm64),
+        "linux-x86-64/libtableauhyperapi.so"      -> PolyglotLib(LinuxAMD64),
+        "win32-x86-64/tableauhyperapi.dll"        -> PolyglotLib(WindowsAMD64)
+      )
     )
   )
 
@@ -5493,25 +5499,27 @@ lazy val `grpc-wrapper` = project
     ),
     inputJar := "io.grpc" % "grpc-netty-shaded" % grpcVersion,
     jarExtractor := JarExtractor(
-      "META-INF/native/libio_grpc_netty_shaded_netty_tcnative_linux_x86_64.so" -> PolyglotLib(
-        LinuxAMD64
-      ),
-      "META-INF/native/libio_grpc_netty_shaded_netty_transport_native_epoll_x86_64.so" -> PolyglotLib(
-        LinuxAMD64
-      ),
-      "META-INF/native/libio_grpc_netty_shaded_netty_tcnative_osx_aarch_64.jnilib" -> PolyglotLib(
-        MacOSArm64
-      ),
-      "META-INF/native/io_grpc_netty_shaded_netty_tcnative_windows_x86_64.dll" -> PolyglotLib(
-        WindowsAMD64
-      ),
-      "META-INF/MANIFEST.MF"                  -> CopyToOutputJar,
-      "META-INF/LICENSE.txt"                  -> CopyToOutputJar,
-      "META-INF/NOTICE.txt"                   -> CopyToOutputJar,
-      "META-INF/io.netty.versions.properties" -> CopyToOutputJar,
-      "META-INF/services/**"                  -> CopyToOutputJar,
-      "META-INF/license/**"                   -> CopyToOutputJar,
-      "io/**/*.class"                         -> CopyToOutputJar
+      Map(
+        "META-INF/native/libio_grpc_netty_shaded_netty_tcnative_linux_x86_64.so" -> PolyglotLib(
+          LinuxAMD64
+        ),
+        "META-INF/native/libio_grpc_netty_shaded_netty_transport_native_epoll_x86_64.so" -> PolyglotLib(
+          LinuxAMD64
+        ),
+        "META-INF/native/libio_grpc_netty_shaded_netty_tcnative_osx_aarch_64.jnilib" -> PolyglotLib(
+          MacOSArm64
+        ),
+        "META-INF/native/io_grpc_netty_shaded_netty_tcnative_windows_x86_64.dll" -> PolyglotLib(
+          WindowsAMD64
+        ),
+        "META-INF/MANIFEST.MF"                  -> CopyToOutputJar,
+        "META-INF/LICENSE.txt"                  -> CopyToOutputJar,
+        "META-INF/NOTICE.txt"                   -> CopyToOutputJar,
+        "META-INF/io.netty.versions.properties" -> CopyToOutputJar,
+        "META-INF/services/**"                  -> CopyToOutputJar,
+        "META-INF/license/**"                   -> CopyToOutputJar,
+        "io/**/*.class"                         -> CopyToOutputJar
+      )
     )
   )
 
@@ -5537,19 +5545,21 @@ lazy val `jline-wrapper` = project
     ),
     inputJar := "org.jline" % "jline-native" % jlineVersion,
     jarExtractor := JarExtractor(
-      "org/jline/nativ/Linux/x86_64/libjlinenative.so" -> PolyglotLib(
-        LinuxAMD64
-      ),
-      "org/jline/nativ/Mac/arm64/libjlinenative.jnilib" -> PolyglotLib(
-        MacOSArm64
-      ),
-      "org/jline/nativ/Windows/x86_64/jlinenative.dll" -> PolyglotLib(
-        WindowsAMD64
-      ),
-      "org/jline/nativ/*.class"  -> CopyToOutputJar,
-      "META-INF/MANIFEST.MF"     -> CopyToOutputJar,
-      "META-INF/maven/**"        -> CopyToOutputJar,
-      "META-INF/native-image/**" -> CopyToOutputJar
+      Map(
+        "org/jline/nativ/Linux/x86_64/libjlinenative.so" -> PolyglotLib(
+          LinuxAMD64
+        ),
+        "org/jline/nativ/Mac/arm64/libjlinenative.jnilib" -> PolyglotLib(
+          MacOSArm64
+        ),
+        "org/jline/nativ/Windows/x86_64/jlinenative.dll" -> PolyglotLib(
+          WindowsAMD64
+        ),
+        "org/jline/nativ/*.class"  -> CopyToOutputJar,
+        "META-INF/MANIFEST.MF"     -> CopyToOutputJar,
+        "META-INF/maven/**"        -> CopyToOutputJar,
+        "META-INF/native-image/**" -> CopyToOutputJar
+      )
     )
   )
 
@@ -5562,15 +5572,17 @@ lazy val `conscrypt-wrapper` = project
     ),
     inputJar := "org.conscrypt" % "conscrypt-openjdk-uber" % "2.5.2",
     jarExtractor := JarExtractor(
-      "META-INF/native/libconscrypt_openjdk_jni-linux-x86_64.so" -> PolyglotLib(
-        LinuxAMD64
-      ),
-      "META-INF/native/conscrypt_openjdk_jni-windows-x86_64.dll" -> PolyglotLib(
-        WindowsAMD64
-      ),
-      "META-INF/MANIFEST.MF"               -> CopyToOutputJar,
-      "org/conscrypt/conscrypt.properties" -> CopyToOutputJar,
-      "org/**/*.class"                     -> CopyToOutputJar
+      Map(
+        "META-INF/native/libconscrypt_openjdk_jni-linux-x86_64.so" -> PolyglotLib(
+          LinuxAMD64
+        ),
+        "META-INF/native/conscrypt_openjdk_jni-windows-x86_64.dll" -> PolyglotLib(
+          WindowsAMD64
+        ),
+        "META-INF/MANIFEST.MF"               -> CopyToOutputJar,
+        "org/conscrypt/conscrypt.properties" -> CopyToOutputJar,
+        "org/**/*.class"                     -> CopyToOutputJar
+      )
     )
   )
 
@@ -5583,22 +5595,24 @@ lazy val `sqlite-wrapper` = project
     ),
     inputJar := "org.xerial" % "sqlite-jdbc" % sqliteVersion,
     jarExtractor := JarExtractor(
-      "org/sqlite/native/Linux/x86_64/libsqlitejdbc.so" -> PolyglotLib(
-        LinuxAMD64
-      ),
-      "org/sqlite/native/Mac/aarch64/libsqlitejdbc.dylib" -> PolyglotLib(
-        MacOSArm64
-      ),
-      "org/sqlite/native/Windows/x86_64/sqlitejdbc.dll" -> PolyglotLib(
-        WindowsAMD64
-      ),
-      "META-INF/MANIFEST.MF"                  -> CopyToOutputJar,
-      "META-INF/maven/**"                     -> CopyToOutputJar,
-      "META-INF/services/**"                  -> CopyToOutputJar,
-      "META-INF/versions/9/module-info.class" -> CopyToOutputJar,
-      "9/module-info.class"                   -> CopyToOutputJar,
-      "org/**/*.class"                        -> CopyToOutputJar,
-      "sqlite-jdbc.properties"                -> CopyToOutputJar
+      Map(
+        "org/sqlite/native/Linux/x86_64/libsqlitejdbc.so" -> PolyglotLib(
+          LinuxAMD64
+        ),
+        "org/sqlite/native/Mac/aarch64/libsqlitejdbc.dylib" -> PolyglotLib(
+          MacOSArm64
+        ),
+        "org/sqlite/native/Windows/x86_64/sqlitejdbc.dll" -> PolyglotLib(
+          WindowsAMD64
+        ),
+        "META-INF/MANIFEST.MF"                  -> CopyToOutputJar,
+        "META-INF/maven/**"                     -> CopyToOutputJar,
+        "META-INF/services/**"                  -> CopyToOutputJar,
+        "META-INF/versions/9/module-info.class" -> CopyToOutputJar,
+        "9/module-info.class"                   -> CopyToOutputJar,
+        "org/**/*.class"                        -> CopyToOutputJar,
+        "sqlite-jdbc.properties"                -> CopyToOutputJar
+      )
     )
   )
 
@@ -5613,11 +5627,13 @@ lazy val `duckdb-wrapper` = project
     ),
     version := "0.1",
     jarExtractor := JarExtractor(
-      "libduckdb_java.so_linux_amd64"   -> PolyglotLib(LinuxAMD64),
-      "libduckdb_java.so_osx_universal" -> PolyglotLib(MacOSArm64),
-      "libduckdb_java.so_windows_amd64" -> PolyglotLib(WindowsAMD64),
-      "META-INF/**"                     -> CopyToOutputJar,
-      "org/**/*.class"                  -> CopyToOutputJar
+      Map(
+        "libduckdb_java.so_linux_amd64"   -> PolyglotLib(LinuxAMD64),
+        "libduckdb_java.so_osx_universal" -> PolyglotLib(MacOSArm64),
+        "libduckdb_java.so_windows_amd64" -> PolyglotLib(WindowsAMD64),
+        "META-INF/**"                     -> CopyToOutputJar,
+        "org/**/*.class"                  -> CopyToOutputJar
+      )
     ),
     inputJarResolved := assembly.value,
     assemblyMergeStrategy := { case _ =>

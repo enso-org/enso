@@ -12,12 +12,28 @@ import scala.util.Using
   *
   * If a jar entry does not match any of the globs, it is skipped.
   * @param mapping Mapping of globs to commands for extracting files from a JAR.
+  * @param nativeLibCopyBehavior Behavior for copying native libraries when
+  *                              [[JarExtractor.PolyglotLib]] command is encountered.
   */
 case class JarExtractor(
-  mapping: (String, JarExtractor.Command)*
+  mapping: Map[String, JarExtractor.Command],
+  nativeLibCopyBehavior: JarExtractor.PolyglotLibInclude =
+    JarExtractor.CurrentArch
 )
 
 object JarExtractor {
+
+  /** Specifies the architecture specific behavior of [[PolyglotLib]] command.
+    */
+  sealed trait PolyglotLibInclude
+
+  /** [[PolyglotLib]] ignores native libraries from different architectures.
+    */
+  case object CurrentArch extends PolyglotLibInclude
+
+  /** [[PolyglotLib]] copies all native libraries into the `polyglot/lib` directory.
+    */
+  case object AllArch extends PolyglotLibInclude
 
   /** All supported native library architectures.
     */
@@ -62,15 +78,11 @@ object JarExtractor {
     * For example, if the entry is `foo.so` and the `arch` parameter is
     * [[LinuxAMD64]], the entry will be copied to `amd64/linux/foo.so`.
     *
-    * If `matchArch` is true, the entry will be copied only if the architecture matches the current
-    * platform's architecture, otherwise it will be copied unconditionally.
-    *
     * @param arch If specified, will be copied only iff the architecture is
     *        the same as the current platform.
     */
   case class PolyglotLib(
-    arch: NativeLibArch,
-    matchArch: Boolean = true
+    arch: NativeLibArch
   ) extends Command
 
   /** Traverses all the entries in the input JAR file and extracts files
@@ -112,7 +124,7 @@ object JarExtractor {
                 command match {
                   case CopyToOutputJar =>
                     copyEntry(outputJar, inputJar, entry, logger)
-                  case PolyglotLib(arch, matchArch) =>
+                  case PolyglotLib(arch) =>
                     // Silently rename the old `*.jnilib` files to `*.dylib`.
                     val fullPath = entryPath.getFileName.toString
                     val idx      = fullPath.lastIndexOf('.')
@@ -138,8 +150,10 @@ object JarExtractor {
                       val destPath = polyglotLibDir
                         .resolve(arch.path)
                         .resolve(fullPath2)
-                      val shouldCopy =
-                        if (matchArch) archMatchesCurPlatform(arch) else true
+                      val shouldCopy = extractor.nativeLibCopyBehavior match {
+                        case CurrentArch => archMatchesCurPlatform(arch)
+                        case AllArch     => true
+                      }
                       if (shouldCopy) {
                         copyEntry(destPath, inputJar, entry, logger)
                       }
