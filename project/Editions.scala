@@ -43,10 +43,11 @@ object Editions {
       val replaced = templateContent
         .replaceAll("\\{\\{ENGINE_VERSION}}", ensoVersion)
         .replaceAll("\\{\\{LIBS_VERSION}}", libraryVersion)
-      val allVarsReplaced = !replaced.contains("{{")
-      if (!allVarsReplaced) {
+      val hasUnreplacedVars = replaced.contains("{{")
+      if (hasUnreplacedVars) {
         log.error(
-          s"Not all template variables were replaced in edition template " +
+          s"Not all template variables were replaced in edition template. " +
+          "i.e., there is still some unreplaced template variable in " +
           s"[${editionTemplate.getAbsolutePath}]."
         )
       }
