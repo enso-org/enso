@@ -2,13 +2,15 @@ package org.enso.table.data.column.builder;
 
 import java.lang.foreign.MemorySegment;
 import java.util.BitSet;
+import org.enso.table.data.column.storage.ColumnStorage;
+import org.enso.table.error.ValueTypeMismatchException;
 import org.enso.table.util.ImmutableBitSet;
 
 /** A common base for builders with lazily initialized validity bitmap. */
-abstract sealed class ValidityBuilder implements Builder
+abstract sealed class ValidityBuilder<B extends ValidityBuilder> implements Builder
     permits DoubleBuilder, LongBuilder, DateBuilder {
   private BitSet validityMap;
-  int currentSize;
+  private int currentSize;
 
   /**
    * Initializes a validityMap builder.
@@ -44,7 +46,7 @@ abstract sealed class ValidityBuilder implements Builder
    *
    * @param count number of nulls to append
    */
-  protected final void doAppendNulls(int count) {
+  private final void doAppendNulls(int count) {
     getValidityMap().set(currentSize, currentSize + count, false);
     currentSize += count;
   }
@@ -86,8 +88,8 @@ abstract sealed class ValidityBuilder implements Builder
   }
 
   /**
-   * Appends provided validity map at {@link #currentSize}. Doesn't modify {@link #currentSize}
-   * however.
+   * Appends provided validity map at {@link #currentSize}. It does modify {@link #currentSize} by
+   * adding {@code n} to it.
    *
    * @param validity the map to append
    * @param n the number of elements to apply
@@ -96,11 +98,46 @@ abstract sealed class ValidityBuilder implements Builder
     if (validity.cardinality() < n || validityMap != null) {
       validity.copyTo(getValidityMap(), currentSize, n);
     }
+    currentSize += n;
   }
 
   @Override
   public long getCurrentSize() {
     return currentSize;
+  }
+
+  @Override
+  @SuppressWarnings("unchecked")
+  public final B append(Object o) {
+    ensureSpaceToAppend();
+    if (o == null) {
+      appendNulls(1);
+    } else {
+      try {
+        appendAt(currentSize, o);
+        this.setValid(currentSize);
+        currentSize++;
+      } catch (ClassCastException e) {
+        throw new ValueTypeMismatchException(getType(), o);
+      }
+    }
+    return (B) this;
+  }
+
+  @Override
+  @SuppressWarnings("unchecked")
+  public final B appendNulls(int count) {
+    doAppendNulls(count);
+    return (B) this;
+  }
+
+  @Override
+  public void appendBulkStorage(ColumnStorage<?> storage) {
+    var size = storage.getSize();
+    for (var i = 0L; i < size; i++) {
+      var item = storage.getItemBoxed(i);
+      append(item);
+    }
   }
 
   protected final void ensureFreeSpaceFor(int additionalSize) {
@@ -127,6 +164,8 @@ abstract sealed class ValidityBuilder implements Builder
     int desiredCapacity = Math.max(currentSize + 1, dataLength > 1 ? dataLength * 3 / 2 : 3);
     resize(desiredCapacity);
   }
+
+  protected abstract void appendAt(int index, Object value);
 
   protected abstract int getDataSize();
 

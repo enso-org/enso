@@ -4,9 +4,9 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.BitSet;
 import org.enso.base.polyglot.NumericConverter;
-import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.type.BigDecimalType;
 import org.enso.table.data.column.storage.type.StorageType;
+import org.enso.table.data.table.Column;
 import org.enso.table.error.ValueTypeMismatchException;
 import org.enso.table.problems.ProblemAggregator;
 import org.graalvm.polyglot.Context;
@@ -65,7 +65,7 @@ final class InferredDoubleBuilder extends DoubleBuilder implements BuilderWithRe
   @Override
   public void copyDataTo(Object[] items) {
     int rawN = rawData == null ? 0 : rawData.length;
-    for (int i = 0; i < currentSize; i++) {
+    for (int i = 0; i < currentSize(); i++) {
       if (!isValid(i)) {
         items[i] = null;
       } else {
@@ -85,7 +85,7 @@ final class InferredDoubleBuilder extends DoubleBuilder implements BuilderWithRe
   }
 
   @Override
-  public void appendBulkStorage(ColumnStorage<?> storage) {
+  public void appendBulkStorage(Column column) {
     throw new UnsupportedOperationException(
         "appendBulkStorage is not supported on InferredDoubleBuilder. A DoubleBuilder or"
             + " MixedBuilder should be used instead. This is a bug in the Table library.");
@@ -96,38 +96,27 @@ final class InferredDoubleBuilder extends DoubleBuilder implements BuilderWithRe
     double convertedFloatValue = (double) integer;
     boolean isLossy = integer != (long) convertedFloatValue;
     if (isLossy) {
-      setRaw(currentSize, integer);
+      setRaw(currentSize(), integer);
       precisionLossAggregator.reportIntegerPrecisionLoss(integer, convertedFloatValue);
     } else {
-      isLongCompactedAsDouble.set(currentSize, true);
+      isLongCompactedAsDouble.set(currentSize(), true);
     }
     appendDouble(convertedFloatValue);
     return this;
   }
 
   @Override
-  public InferredDoubleBuilder append(Object o) {
-    if (o == null) {
-      return appendNulls(1);
-    }
-
+  protected void appendAt(int at, Object o) {
     if (NumericConverter.isFloatLike(o)) {
       appendDouble(NumericConverter.coerceToDouble(o));
     } else if (NumericConverter.isCoercibleToLong(o)) {
       appendLong(NumericConverter.coerceToLong(o));
     } else if (o instanceof BigInteger bigInteger) {
-      setRaw(currentSize, bigInteger);
+      setRaw(at, bigInteger);
       appendDouble(convertBigIntegerToDouble(bigInteger));
     } else {
       throw new ValueTypeMismatchException(getType(), o);
     }
-    return this;
-  }
-
-  @Override
-  public InferredDoubleBuilder appendNulls(int count) {
-    super.appendNulls(count);
-    return this;
   }
 
   private void setRaw(int ix, Number o) {
@@ -159,7 +148,7 @@ final class InferredDoubleBuilder extends DoubleBuilder implements BuilderWithRe
   public Builder retypeTo(StorageType<?> type) {
     if (type instanceof BigDecimalType) {
       Builder res = Builder.getForBigDecimal(getDataSize());
-      for (int i = 0; i < currentSize; i++) {
+      for (int i = 0; i < currentSize(); i++) {
         if (!isValid(i)) {
           res.appendNulls(1);
         } else {
@@ -171,5 +160,9 @@ final class InferredDoubleBuilder extends DoubleBuilder implements BuilderWithRe
     } else {
       throw new UnsupportedOperationException();
     }
+  }
+
+  private int currentSize() {
+    return Math.toIntExact(getCurrentSize());
   }
 }

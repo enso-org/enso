@@ -12,10 +12,9 @@ import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.DateTimeType;
 import org.enso.table.data.column.storage.type.DateType;
 import org.enso.table.data.column.storage.type.StorageType;
-import org.enso.table.error.ValueTypeMismatchException;
 
 /** A builder for LocalDate columns. */
-final class DateBuilder extends ValidityBuilder
+final class DateBuilder extends ValidityBuilder<DateBuilder>
     implements BuilderForType<LocalDate>, BuilderWithRetyping {
   private final boolean allowDateToDateTimeConversion;
   private IntBuffer data;
@@ -54,26 +53,9 @@ final class DateBuilder extends ValidityBuilder
   }
 
   @Override
-  public DateBuilder append(Object o) {
-    ensureSpaceToAppend();
-    if (o == null) {
-      appendNulls(1);
-    } else {
-      try {
-        var local = (LocalDate) o;
-        this.setValid(currentSize);
-        data.put(currentSize++, Math.toIntExact(local.toEpochDay()));
-      } catch (ClassCastException e) {
-        throw new ValueTypeMismatchException(getType(), o);
-      }
-    }
-    return this;
-  }
-
-  @Override
-  public DateBuilder appendNulls(int count) {
-    doAppendNulls(count);
-    return this;
+  protected final void appendAt(int at, Object o) throws ClassCastException {
+    var local = (LocalDate) o;
+    data.put(at, Math.toIntExact(local.toEpochDay()));
   }
 
   @Override
@@ -86,15 +68,15 @@ final class DateBuilder extends ValidityBuilder
   }
 
   @Override
-  public boolean canRetypeTo(StorageType<?> type) {
+  public final boolean canRetypeTo(StorageType<?> type) {
     return allowDateToDateTimeConversion && Objects.equals(type, DateTimeType.INSTANCE);
   }
 
   @Override
-  public Builder retypeTo(StorageType<?> type) {
-    if (allowDateToDateTimeConversion && Objects.equals(type, DateTimeType.INSTANCE)) {
+  public final Builder retypeTo(StorageType<?> type) {
+    if (canRetypeTo(type)) {
       var res = new DateTimeBuilder(data.capacity(), true);
-      for (int i = 0; i < currentSize; i++) {
+      for (int i = 0; i < getCurrentSize(); i++) {
         res.append(getData(i));
       }
       return res;
@@ -111,7 +93,7 @@ final class DateBuilder extends ValidityBuilder
   @Override
   protected void resize(int desiredCapacity) {
     var newData = allocBuffer(desiredCapacity, 0);
-    int toCopy = Math.min(currentSize, data.capacity());
+    int toCopy = Math.min(currentSize(), data.capacity());
     newData.put(0, this.data, 0, toCopy);
     this.data = newData;
   }
@@ -123,7 +105,7 @@ final class DateBuilder extends ValidityBuilder
 
   final Storage<LocalDate> seal(ColumnStorage<?> otherStorage) {
     ensureFreeSpaceFor(0);
-    var buf = data.asReadOnlyBuffer().position(0).limit(currentSize);
+    var buf = data.asReadOnlyBuffer().position(0).limit(currentSize());
     var validity = this.validityMap();
 
     return new DateStorage(buf, validity, otherStorage);
@@ -136,12 +118,16 @@ final class DateBuilder extends ValidityBuilder
 
   @Override
   public void copyDataTo(Object[] items) {
-    for (var i = 0; i < items.length && i < currentSize; i++) {
+    for (var i = 0; i < items.length && i < currentSize(); i++) {
       items[i] = getData(i);
     }
   }
 
   private final LocalDate getData(int i) {
     return LocalDate.ofEpochDay(data.get(i));
+  }
+
+  private final int currentSize() {
+    return Math.toIntExact(getCurrentSize());
   }
 }

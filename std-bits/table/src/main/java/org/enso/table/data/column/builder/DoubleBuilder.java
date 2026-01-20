@@ -19,7 +19,7 @@ import org.enso.table.error.ValueTypeMismatchException;
 import org.enso.table.problems.ProblemAggregator;
 
 /** A builder for floating point columns. */
-sealed class DoubleBuilder extends ValidityBuilder implements BuilderForDouble
+sealed class DoubleBuilder extends ValidityBuilder<DoubleBuilder> implements BuilderForDouble
     permits InferredDoubleBuilder {
   protected final PrecisionLossAggregator precisionLossAggregator;
   private DoubleBuffer data;
@@ -79,7 +79,7 @@ sealed class DoubleBuilder extends ValidityBuilder implements BuilderForDouble
   @Override
   protected void resize(int desiredCapacity) {
     var newData = allocBuffer(desiredCapacity, 0);
-    int toCopy = Math.min(currentSize, data.capacity());
+    int toCopy = Math.min(currentSize(), data.capacity());
     newData.put(0, data, 0, toCopy);
     data = newData;
   }
@@ -99,17 +99,7 @@ sealed class DoubleBuilder extends ValidityBuilder implements BuilderForDouble
   }
 
   @Override
-  public DoubleBuilder appendNulls(int count) {
-    doAppendNulls(count);
-    return this;
-  }
-
-  @Override
-  public DoubleBuilder append(Object o) {
-    if (o == null) {
-      return appendNulls(1);
-    }
-
+  protected void appendAt(int at, Object o) {
     double value;
     if (NumericConverter.isFloatLike(o)) {
       value = NumericConverter.coerceToDouble(o);
@@ -124,10 +114,7 @@ sealed class DoubleBuilder extends ValidityBuilder implements BuilderForDouble
       throw new ValueTypeMismatchException(getType(), o);
     }
 
-    ensureSpaceToAppend();
-    setValid(currentSize);
-    data.put(currentSize++, value);
-    return this;
+    data.put(at, value);
   }
 
   @Override
@@ -136,9 +123,8 @@ sealed class DoubleBuilder extends ValidityBuilder implements BuilderForDouble
       if (storage instanceof DoubleStorage doubleStorage) {
         int n = (int) doubleStorage.getSize();
         ensureFreeSpaceFor(n);
-        data.put(currentSize, doubleStorage.getData(), 0, n);
+        data.put(currentSize(), doubleStorage.getData(), 0, n);
         appendValidityMap(doubleStorage.getValidityMap(), n);
-        currentSize += n;
       } else {
         var doubleStorage = floatType.asTypedStorage(storage);
         long n = doubleStorage.getSize();
@@ -195,9 +181,7 @@ sealed class DoubleBuilder extends ValidityBuilder implements BuilderForDouble
    */
   @Override
   public DoubleBuilder appendDouble(double value) {
-    ensureSpaceToAppend();
-    setValid(currentSize);
-    data.put(currentSize++, value);
+    append(value);
     return this;
   }
 
@@ -226,7 +210,7 @@ sealed class DoubleBuilder extends ValidityBuilder implements BuilderForDouble
    */
   final DoubleStorage seal(ColumnStorage<?> otherStorage, StorageType<Double> type) {
     ensureFreeSpaceFor(0);
-    var buf = data.asReadOnlyBuffer().position(0).limit(currentSize);
+    var buf = data.asReadOnlyBuffer().position(0).limit(currentSize());
     var validity = this.validityMap();
     return new DoubleStorage(buf, validity, otherStorage);
   }
@@ -305,5 +289,9 @@ sealed class DoubleBuilder extends ValidityBuilder implements BuilderForDouble
         bigDecimalInstance.incrementAffectedRows();
       }
     }
+  }
+
+  private int currentSize() {
+    return Math.toIntExact(getCurrentSize());
   }
 }

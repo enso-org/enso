@@ -19,8 +19,8 @@ import org.enso.table.error.ValueTypeMismatchException;
 import org.enso.table.problems.ProblemAggregator;
 
 /** A builder for integer columns. */
-sealed class LongBuilder extends ValidityBuilder implements BuilderForLong, BuilderWithRetyping
-    permits BoundCheckedIntegerBuilder {
+sealed class LongBuilder extends ValidityBuilder<LongBuilder>
+    implements BuilderForLong, BuilderWithRetyping permits BoundCheckedIntegerBuilder {
   protected final ProblemAggregator problemAggregator;
   private LongBuffer data;
 
@@ -81,14 +81,14 @@ sealed class LongBuilder extends ValidityBuilder implements BuilderForLong, Buil
   @Override
   protected void resize(int desiredCapacity) {
     var newData = allocBuffer(desiredCapacity, 0);
-    int toCopy = Math.min(currentSize, data.capacity());
+    int toCopy = Math.min(currentSize(), data.capacity());
     newData.put(0, data, 0, toCopy);
     data = newData;
   }
 
   @Override
   public void copyDataTo(Object[] items) {
-    for (int i = 0; i < currentSize; i++) {
+    for (int i = 0; i < currentSize(); i++) {
       if (!isValid(i)) {
         items[i] = null;
       } else {
@@ -135,9 +135,8 @@ sealed class LongBuilder extends ValidityBuilder implements BuilderForLong, Buil
           // A fast path for the same type (or compatible) - no conversions/checks needed.
           int n = (int) longStorage.getSize();
           ensureFreeSpaceFor(n);
-          data.put(currentSize, longStorage.getData(), 0, n);
+          data.put(currentSize(), longStorage.getData(), 0, n);
           appendValidityMap(longStorage.getValidityMap(), n);
-          currentSize += n;
         } else {
           // No conversions needed, but we need to iterate over the items.
           var longStorage = otherType.asTypedStorage(storage);
@@ -174,15 +173,12 @@ sealed class LongBuilder extends ValidityBuilder implements BuilderForLong, Buil
    */
   @Override
   public LongBuilder appendLong(long value) {
-    ensureSpaceToAppend();
-    this.setValid(currentSize);
-    this.data.put(currentSize++, value);
-    return this;
+    return append(value);
   }
 
   @Override
   public boolean isNothing(long index) {
-    if (index >= currentSize) {
+    if (index >= currentSize()) {
       throw new IndexOutOfBoundsException();
     } else {
       return !isValid((int) index);
@@ -191,7 +187,7 @@ sealed class LongBuilder extends ValidityBuilder implements BuilderForLong, Buil
 
   @Override
   public long getLong(long index) {
-    if (index >= currentSize) {
+    if (index >= currentSize()) {
       throw new IndexOutOfBoundsException();
     } else {
       return data.get((int) index);
@@ -204,26 +200,13 @@ sealed class LongBuilder extends ValidityBuilder implements BuilderForLong, Buil
   }
 
   @Override
-  public LongBuilder appendNulls(int count) {
-    doAppendNulls(count);
-    return this;
-  }
-
-  @Override
-  public LongBuilder append(Object o) {
-    if (o == null) {
-      doAppendNulls(1);
-      return this;
-    }
-
+  protected void appendAt(int at, Object o) {
     Long x = NumericConverter.tryConvertingToLong(o);
     if (x != null) {
-      appendLong(x);
+      data.put(at, x);
     } else {
       throw new ValueTypeMismatchException(getType(), o);
     }
-
-    return this;
   }
 
   @Override
@@ -240,8 +223,12 @@ sealed class LongBuilder extends ValidityBuilder implements BuilderForLong, Buil
    */
   final LongStorage seal(ColumnStorage<?> otherStorage, IntegerType type) {
     ensureFreeSpaceFor(0);
-    var buf = data.asReadOnlyBuffer().position(0).limit(currentSize);
+    var buf = data.asReadOnlyBuffer().position(0).limit(currentSize());
     var validity = this.validityMap();
     return new LongStorage(buf, validity, type, otherStorage);
+  }
+
+  private int currentSize() {
+    return Math.toIntExact(getCurrentSize());
   }
 }
