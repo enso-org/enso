@@ -9,7 +9,6 @@ import { Popover } from '#/components/Dialog'
 import { Menu } from '#/components/Menu'
 import { Scroller } from '#/components/Scroller/Scroller'
 import { moveAssetsMutationOptions } from '#/hooks/backendBatchedHooks'
-import { SHORT_CACHE_TIME_MS } from '#/hooks/backendHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useSyncRef } from '#/hooks/syncRefHooks'
 import CategorySwitcher from '#/layouts/CategorySwitcher'
@@ -17,13 +16,18 @@ import { useCategories, useCategoriesAPI } from '#/layouts/Drive/Categories/cate
 import { useDirectoryIds } from '#/layouts/Drive/directoryIdsHooks'
 import { useLocalRootDirectory } from '#/layouts/Drive/persistentState'
 import { setDriveLocation, useDriveStore } from '#/providers/DriveProvider'
-import { AssetDoesNotExistError, BackendType, isDirectoryId } from '#/services/Backend'
-import type { PathItem } from '#/services/utilities'
-import { parseDirectoriesPath } from '#/services/utilities'
-import { NetworkError } from '#/utilities/error'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
-import { useRightPanelData, useText } from '$/providers/react'
+import { useText } from '$/providers/react'
+import { useRightPanelData } from '$/providers/react/container'
 import { useSuspenseQuery } from '@tanstack/react-query'
+import {
+  AssetDoesNotExistError,
+  BackendType,
+  isDirectoryId,
+  NetworkError as OtherNetworkError,
+} from 'enso-common/src/services/Backend'
+import { parseDirectoriesPath, type PathItem } from 'enso-common/src/services/Backend/utilities'
+import { NetworkError } from 'enso-common/src/utilities/errors'
 import { useEffect, useTransition } from 'react'
 import { toast } from 'react-toastify'
 
@@ -68,9 +72,12 @@ export function DriveBarNavigation() {
         : undefined,
       ),
     meta: { persist: false },
-    staleTime: SHORT_CACHE_TIME_MS,
     retry: (count, error) => {
-      if (error instanceof AssetDoesNotExistError || error instanceof NetworkError) {
+      if (
+        error instanceof AssetDoesNotExistError ||
+        error instanceof NetworkError ||
+        error instanceof OtherNetworkError
+      ) {
         if (currentDirectoryId === currentDirectoryIdRef.current) {
           setDriveLocation(null, null)
         }
@@ -99,7 +106,7 @@ export function DriveBarNavigation() {
   useEffect(() => {
     if (directoryData?.asset != null) {
       rightPanel.updateContext('drive', (ctx) => {
-        ctx.defaultItem = { ...directoryData.asset, ensoPath: undefined }
+        ctx.defaultItem = directoryData.asset
         return ctx
       })
     }

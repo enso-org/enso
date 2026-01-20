@@ -3,9 +3,9 @@
   "devDependencies": {
     "@bazel/ibazel": "^0.25.0",
     "@eslint/js": "^9.17.0",
-    "@typescript-eslint/eslint-plugin": "^8.19.0",
-    "@typescript-eslint/parser": "^8.19.0",
-    "@vue/eslint-config-typescript": "^14.2.0",
+    "@typescript-eslint/eslint-plugin": "^8.52.0",
+    "@typescript-eslint/parser": "^8.52.0",
+    "@vue/eslint-config-typescript": "^14.6.0",
     "eslint": "^9.17.0",
     "eslint-plugin-jsdoc": "^50.6.1",
     "eslint-plugin-prettier": "^5.2.1",
@@ -21,12 +21,13 @@
   },
   "dependencies": {
     "@bazel/bazelisk": "^1.22.1",
+    "playwright": "catalog:",
     "tslib": "^2.8.1",
     "typescript": "catalog:"
   },
   "name": "root",
   "scripts": {
-    "dev:gui": "corepack pnpm run --parallel -r --filter enso-gui --filter ydoc-server-nodejs --aggregate-output /^^^^dev:/",
+    "dev:gui": "corepack pnpm run --parallel -r --filter enso-gui --aggregate-output /^^^^dev:/",
     "compile": "corepack pnpm run -r compile",
     "build:gui": "corepack pnpm run -r compile && corepack pnpm run -r --filter enso-gui build",
     "build:ide": "corepack pnpm run -r compile && corepack pnpm run -r --filter enso build",
@@ -40,7 +41,7 @@
     "ci:lint": "corepack pnpm run -r --parallel lint --output-file eslint_report.json --format json --cache-strategy content",
     "ci:unit-test": "corepack pnpm run -r --parallel test:unit",
     "ci:typecheck": "corepack pnpm run -r --parallel typecheck",
-    "git-clean": "git clean -xfd --exclude='.env*'",
+    "git-clean": "node git-clean.mjs",
     "bazel-clean": "bazel clean --expunge_async",
     "postinstall": "bazel run //:write_all --verbose_failures"
   },

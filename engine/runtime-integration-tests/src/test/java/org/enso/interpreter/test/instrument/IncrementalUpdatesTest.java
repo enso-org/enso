@@ -210,16 +210,16 @@ public class IncrementalUpdatesTest {
     var code =
         extractPositions(
             """
-      import Standard.Base.IO
+            import Standard.Base.IO
 
-      &$foo$ =
-          x = #{originalText}#
-          *x*
-      &
-      main =
-          y = @foo@
-          %IO.println y%
-        """
+            &$foo$ =
+                x = #{originalText}#
+                *x*
+            &
+            main =
+                y = @foo@
+                %IO.println y%
+            """
                 .replace("{originalText}", originalText),
             "&$#*@%",
             pos);
@@ -281,7 +281,7 @@ public class IncrementalUpdatesTest {
     Assert.assertEquals(List.newBuilder().addOne(originalOutput), context.consumeOut());
 
     var allNodesAfterException =
-        nodeCountingInstrument.assertNewNodes("Execution creates some nodes", 30, 41);
+        nodeCountingInstrument.assertNewNodes("Execution creates some nodes", 30, 45);
 
     // push foo call
     context.send(

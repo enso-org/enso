@@ -1,9 +1,8 @@
 package org.enso.base.polyglot;
 
-import org.graalvm.polyglot.Value;
-
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import org.graalvm.polyglot.Value;
 
 /**
  * The numeric converter deals with conversions of Java numeric types to the two main types
@@ -46,16 +45,24 @@ public class NumericConverter {
       case Integer x -> x.longValue();
       case Short x -> x.longValue();
       case Byte x -> x.longValue();
-      default -> throw new UnsupportedOperationException("Cannot coerce " + o + " to a numeric type.");
+      default ->
+          throw new UnsupportedOperationException("Cannot coerce " + o + " to a numeric type.");
     };
   }
 
   public static BigInteger coerceToBigInteger(Object o) {
-    if (o instanceof BigInteger bigInteger) {
-      return bigInteger;
-    } else {
-      long longValue = coerceToLong(o);
-      return BigInteger.valueOf(longValue);
+    try {
+      return switch (o) {
+        case BigInteger big -> big;
+        case Double d -> new BigDecimal(d).toBigIntegerExact();
+        case Float f -> new BigDecimal(f).toBigIntegerExact();
+        default -> {
+          var longValue = coerceToLong(o);
+          yield BigInteger.valueOf(longValue);
+        }
+      };
+    } catch (ArithmeticException ex) {
+      throw new UnsupportedOperationException("Cannot coerce " + o + " to a big integer.");
     }
   }
 
@@ -74,18 +81,18 @@ public class NumericConverter {
       case Integer x -> BigDecimal.valueOf(x);
       case Short x -> BigDecimal.valueOf(x);
       case Byte x -> BigDecimal.valueOf(x);
-      default -> throw new UnsupportedOperationException("Cannot coerce " + o + " to a BigDecimal.");
+      default ->
+          throw new UnsupportedOperationException("Cannot coerce " + o + " to a BigDecimal.");
     };
   }
 
   /** Returns true if the object is any supported number. */
   public static boolean isCoercibleToDouble(Object o) {
-    return isFloatLike(o)|| isCoercibleToLong(o) || o instanceof BigInteger;
+    return isFloatLike(o) || isCoercibleToLong(o) || o instanceof BigInteger;
   }
 
   public static boolean isFloatLike(Object o) {
-    return o instanceof Double
-        || o instanceof Float;
+    return o instanceof Double || o instanceof Float;
   }
 
   /**

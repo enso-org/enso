@@ -1,9 +1,9 @@
 /** @file A hook to return the default download directory. */
 import { useStore } from '#/hooks/storeHooks'
 import { localRootDirectoryStore } from '#/layouts/Drive/persistentState'
-import { Path } from '#/services/Backend'
 import { useBackends } from '$/providers/react'
 import { useSuspenseQuery } from '@tanstack/react-query'
+import { Path } from 'enso-common/src/services/Backend'
 
 /** The default download directory. */
 export function useDefaultDownloadDirectory() {

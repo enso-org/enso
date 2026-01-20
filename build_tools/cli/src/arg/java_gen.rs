@@ -3,8 +3,6 @@ use crate::prelude::*;
 use clap::Args;
 use clap::Subcommand;
 
-
-
 #[derive(Subcommand, Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Command {
     /// Generate Java.

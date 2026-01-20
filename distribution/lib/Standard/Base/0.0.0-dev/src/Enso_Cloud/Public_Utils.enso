@@ -3,10 +3,10 @@ import project.Data.Json.JS_Object
 import project.Data.Text.Text
 import project.Enso_Cloud.Errors.Enso_Cloud_Error
 import project.Enso_Cloud.Internal.Utils
-import project.Error.Error
 import project.Meta
 import project.Nothing.Nothing
 from project.Data.Boolean import Boolean, True
+from project.Error import all
 
 ## ---
    private: true

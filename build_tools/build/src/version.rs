@@ -18,15 +18,12 @@ use strum::EnumString;
 use strum::IntoEnumIterator;
 use tracing::instrument;
 
-
 // ==============
 // === Export ===
 // ==============
 
 pub mod nightly;
 pub mod promote;
-
-
 
 // Variable that stores Enso Engine version.
 // They are also used by the SBT part of the build.
@@ -42,7 +39,6 @@ define_env_var! {
     /// Whether the development-specific Engine features should be disabled.
     ENSO_RELEASE_MODE, bool;
 }
-
 
 pub const LOCAL_BUILD_PREFIX: &str = "dev";
 pub const NIGHTLY_BUILD_PREFIX: &str = "nightly";
@@ -257,7 +253,8 @@ pub fn versions_from_env() -> Result<Option<Versions>> {
 pub async fn deduce_or_generate<P, F>(release_provider: P) -> Result<Versions>
 where
     P: FnOnce() -> F,
-    F: Future<Output = Result<Vec<Version>>>, {
+    F: Future<Output = Result<Vec<Version>>>,
+{
     debug!("Deciding on version to target.");
     if let Some(versions) = versions_from_env()? {
         Ok(versions)

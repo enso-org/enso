@@ -99,15 +99,16 @@ public abstract class TypeCheckAlgorithm<R, E extends Exception> {
       }
       case Application.Prefix p -> extractAscribedType(p.function());
       case Type.Function fn ->
-      // find a function type
-      forFunction(fn);
+          // find a function type
+          forFunction(fn);
       case Type.Error typeWithError ->
-      // When checking a `a ! b` type, we ignore the error part as it is only used for documentation
-      // purposes and is not checked.
-      extractAscribedType(typeWithError.typed());
+          // When checking a `a ! b` type, we ignore the error part as it is only used for
+          // documentation
+          // purposes and is not checked.
+          extractAscribedType(typeWithError.typed());
       case Type.Context typeInContext ->
-      // Type contexts aren't currently really used. But we should still check the base type.
-      extractAscribedType(typeInContext.typed());
+          // Type contexts aren't currently really used. But we should still check the base type.
+          extractAscribedType(typeInContext.typed());
       case Resolution err -> forError(err);
       default -> {
         var res =

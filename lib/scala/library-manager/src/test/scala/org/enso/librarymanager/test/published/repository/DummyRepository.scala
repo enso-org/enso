@@ -97,7 +97,7 @@ abstract class DummyRepository(toolsRootDirectory: Path) {
       namespace = lib.libraryName.namespace,
       version   = lib.version.toString()
     )
-    pkg.save()
+    pkg.save(true)
     pkg
   }
 
@@ -125,10 +125,15 @@ abstract class DummyRepository(toolsRootDirectory: Path) {
     * @param repoUrl the URL where the repository is going to be accessible; the
     *                URL should include the `libraries` prefix
     */
-  def createEdition(repoUrl: String): RawEdition = {
+  def createEdition(
+    repoUrl: String,
+    parent: Option[String]        = Some(BuildVersion.currentEdition()),
+    engineVersion: Option[SemVer] = None
+  ): RawEdition = {
     Editions.Raw.Edition(
-      parent       = Some(BuildVersion.currentEdition),
-      repositories = Map(repoName -> Editions.Repository(repoName, repoUrl)),
+      parent        = parent,
+      engineVersion = engineVersion,
+      repositories  = Map(repoName -> Editions.Repository(repoName, repoUrl)),
       libraries = Map.from(libraries.map { lib =>
         lib.libraryName -> Editions.Raw
           .PublishedLibrary(lib.libraryName, lib.version, repoName)
@@ -139,7 +144,7 @@ abstract class DummyRepository(toolsRootDirectory: Path) {
   private def commandPrefix: Seq[String] =
     if (OS.isWindows) Seq("cmd.exe", "/c") else Seq.empty
 
-  private def npmCommand: String  = if (OS.isWindows) "npm.cmd" else "npm"
+  private def pnpmCommand: String = if (OS.isWindows) "pnpm.cmd" else "pnpm"
   private def nodeCommand: String = if (OS.isWindows) "node.exe" else "node"
 
   case class Server(process: WrappedProcess) extends AutoCloseable {
@@ -183,10 +188,10 @@ abstract class DummyRepository(toolsRootDirectory: Path) {
         .normalize
 
     // We can omit installation step on CI because there is a separate step
-    // executing `npm install` command before the tests.
+    // executing `pnpm install` command before the tests.
     if (!DummyRepository.isCI) {
       val preinstallCommand =
-        commandPrefix ++ Seq(npmCommand, "install")
+        commandPrefix ++ Seq(pnpmCommand, "install", "--frozen-lockfile")
       val preinstallExitCode = new ProcessBuilder()
         .command(preinstallCommand: _*)
         .directory(serverDirectory.toFile)

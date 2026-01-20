@@ -4,8 +4,8 @@ import { Popover } from '#/components/Dialog'
 import { TEXT_WITH_ICON } from '#/components/patterns'
 import { ProfilePicture } from '#/components/ProfilePicture'
 import { Text } from '#/components/Text'
-import type { OtherUser } from '#/services/Backend'
 import { useText } from '$/providers/react'
+import type { OtherUser } from 'enso-common/src/services/Backend'
 import { twMerge } from 'tailwind-merge'
 
 /** Props for a {@link UserWithPopover}. */

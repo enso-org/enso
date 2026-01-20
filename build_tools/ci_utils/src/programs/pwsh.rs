@@ -4,8 +4,6 @@ use crate::prelude::*;
 use crate::env::Action;
 use crate::env::Modification;
 
-
-
 /// [PowerShell](https://github.com/PowerShell/PowerShell) program.
 ///
 /// If Power Shell Core is installed, it will be used. Otherwise, Windows PowerShell will be used
@@ -64,7 +62,6 @@ impl Shell for PwSh {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     #[allow(unused_imports)]
@@ -75,13 +72,12 @@ mod tests {
     fn modify_env_commands() {
         let set_foobar = Modification {
             variable_name: "FOOBAR".into(),
-            action:        Action::Set("foobar_value".into()),
+            action: Action::Set("foobar_value".into()),
         };
-        let unset_foobar =
-            Modification { variable_name: "FOOBAR".into(), action: Action::Remove };
+        let unset_foobar = Modification { variable_name: "FOOBAR".into(), action: Action::Remove };
         let prepend_path = Modification {
             variable_name: "PATH".into(),
-            action:        Action::PrependPaths(vec!["C:\\foo".into(), "C:\\bar".into()]),
+            action: Action::PrependPaths(vec!["C:\\foo".into(), "C:\\bar".into()]),
         };
         assert_eq!(PwSh.modify_env(&set_foobar).unwrap(), r#"$env:FOOBAR = "foobar_value""#);
         assert_eq!(PwSh.modify_env(&unset_foobar).unwrap(), r"Remove-Item Env:\FOOBAR");

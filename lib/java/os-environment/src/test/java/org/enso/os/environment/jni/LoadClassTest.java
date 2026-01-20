@@ -1,24 +1,29 @@
 package org.enso.os.environment.jni;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.File;
 import java.math.BigInteger;
 import java.nio.file.Files;
+import java.util.ArrayList;
 import java.util.Random;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import org.enso.jvm.channel.Channel;
 import org.enso.jvm.channel.JVM;
+import org.enso.os.environment.lib.HelloTitle;
 import org.junit.Before;
 import org.junit.Test;
 
 public class LoadClassTest {
-  // TBD: Make the number bigger again
-  //   - which currently exceeds the maximum size of a message
-  //   - so fix it
-  private static final int MAX = 5; // 5000;
-  private static final int MIN = 1; // 1000;
+  private static final int MAX = 3000;
+  private static final int MIN = 300;
   private static final String PATH = System.getProperty("java.home");
   // set from TestCollectorFeature
   public static String MODULE_PATH;
@@ -117,6 +122,45 @@ public class LoadClassTest {
   }
 
   @Test
+  public void factorialInSecondThread() throws Exception {
+    var pool = Executors.newSingleThreadExecutor();
+    var v =
+        pool.submit(
+            () -> {
+              var fac = channel.execute(Long.class, new TestMain.CountDownAndReturn(5, 1));
+              return fac;
+            });
+    assertEquals(120, v.get().longValue());
+    pool.shutdown();
+    pool.awaitTermination(10, TimeUnit.SECONDS);
+  }
+
+  @Test
+  public void factorialInManyThreads() throws Exception {
+    var pool = Executors.newFixedThreadPool(30);
+    executeInParallel(1000, pool);
+  }
+
+  private void executeInParallel(int count, ExecutorService pool)
+      throws ExecutionException, InterruptedException {
+    var futures = new ArrayList<Future<Long>>();
+    for (int i = 0; i < count; i++) {
+      var v =
+          pool.submit(
+              () -> {
+                var fac = channel.execute(Long.class, new TestMain.CountDownAndReturn(5, 1));
+                return fac;
+              });
+      futures.add(v);
+    }
+    for (var v : futures) {
+      assertEquals(120, v.get().longValue());
+    }
+    pool.shutdown();
+    pool.awaitTermination(10, TimeUnit.SECONDS);
+  }
+
+  @Test
   public void backAndForthFactorialFive() throws Exception {
     var fac = channel.execute(Long.class, new TestMain.CountDownAndReturn(5, 1));
     assertEquals(120, fac.longValue());
@@ -145,6 +189,32 @@ public class LoadClassTest {
   @Test
   public void throwFactorialFive() throws Exception {
     assertException("120", new TestMain.CountDownAndThrow(5, 1));
+  }
+
+  @Test
+  public void loadFromDynamicLibrary() throws Exception {
+    var libPath = System.getenv("OS_ENVIRONMENT_LIB");
+    var libFile = new File(libPath);
+    assert libFile.isFile() : "Library file must exists at " + libPath;
+    var nativeJvm = JVM.create(libFile);
+    var tmp = File.createTempFile("nativelib", ".msg");
+    var hello = "Hello from native lib!";
+    nativeJvm.executeMain("org/enso/os/environment/lib/HelloTitle", tmp.getAbsolutePath(), hello);
+    var content = Files.readString(tmp.toPath());
+    tmp.delete();
+    assertEquals("Proper message has been written into " + tmp, hello, content);
+  }
+
+  @Test
+  public void loadChannelFromDynamicLibrary() throws Exception {
+    var libPath = System.getenv("OS_ENVIRONMENT_LIB");
+    assertNotNull("Set OS_ENVIRONMENT_LIB env variable!", libPath);
+    var libFile = new File(libPath);
+    assert libFile.isFile() : "Library file must exists at " + libPath;
+    var nativeJvm = JVM.create(libFile);
+    var ch = Channel.create(nativeJvm, HelloTitle.class);
+    var fac = ch.execute(HelloTitle.Text.class, new HelloTitle.Hello("Native"));
+    assertEquals("Hello Mr. Native!", fac.msg());
   }
 
   private void assertException(String msg, TestMain.CountDownAndThrow action) {

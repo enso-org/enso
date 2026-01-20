@@ -26,10 +26,10 @@ public record TypeWithKind(String baseType, TypeKind kind) {
     var typeMirror =
         switch (baseType) {
           case "long" -> env.getTypeUtils().getPrimitiveType(javax.lang.model.type.TypeKind.LONG);
-          case "double" -> env.getTypeUtils()
-              .getPrimitiveType(javax.lang.model.type.TypeKind.DOUBLE);
-          case "boolean" -> env.getTypeUtils()
-              .getPrimitiveType(javax.lang.model.type.TypeKind.BOOLEAN);
+          case "double" ->
+              env.getTypeUtils().getPrimitiveType(javax.lang.model.type.TypeKind.DOUBLE);
+          case "boolean" ->
+              env.getTypeUtils().getPrimitiveType(javax.lang.model.type.TypeKind.BOOLEAN);
           default -> {
             var less = baseType.indexOf('<');
             var erased = less == -1 ? baseType : baseType.substring(0, less);

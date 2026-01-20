@@ -7,6 +7,7 @@ import org.enso.compiler.core.ir.{
   CallArgument,
   DefinitionArgument,
   Function,
+  MetadataStorage,
   Module,
   Name
 }
@@ -17,36 +18,43 @@ import org.enso.compiler.core.ir.expression.Application
 import org.enso.compiler.pass.PassManager
 import org.enso.compiler.pass.analyse.GatherDiagnostics
 import org.enso.compiler.test.CompilerTest
+import org.enso.persist.Persistance.Reference
 
 class GatherDiagnosticsTest extends CompilerTest {
 
   "Error Gathering" should {
-    val error1 = errors.Syntax(null, errors.Syntax.UnrecognizedToken)
+    val error1 =
+      errors.Syntax.create(null, errors.Syntax.UnrecognizedToken.INSTANCE)
     val plusOp = Name.Literal("+", isMethod = true, identifiedLocation = null)
-    val plusApp = new Application.Prefix(
-      plusOp,
-      List(
-        new CallArgument.Specified(
-          None,
-          error1,
-          false,
-          identifiedLocation = null
+    val plusApp = Application.Prefix
+      .builder()
+      .function(plusOp)
+      .arguments(
+        List(
+          CallArgument.Specified
+            .builder()
+            .name(None)
+            .value(error1)
+            .isSynthetic(false)
+            .build()
         )
       )
-    )
-    val lam = new Function.Lambda(
-      List(
-        new DefinitionArgument.Specified(
-          Name.Literal("bar", isMethod = false, identifiedLocation = null),
-          None,
-          None,
-          suspended          = false,
-          identifiedLocation = null
+      .build()
+    val lam = Function.Lambda
+      .builder()
+      .arguments(
+        List(
+          DefinitionArgument.Specified
+            .builder()
+            .name(
+              Name.Literal("bar", isMethod = false, identifiedLocation = null)
+            )
+            .suspended(false)
+            .build()
         )
-      ),
-      plusApp,
-      identifiedLocation = null
-    )
+      )
+      .bodyReference(Reference.of(plusApp))
+      .build()
 
     "work with expression flow" in {
       val result = GatherDiagnostics.runExpression(lam, buildInlineContext())
@@ -58,8 +66,10 @@ class GatherDiagnosticsTest extends CompilerTest {
     }
 
     "work with module flow" in {
-      val error2 = errors.Syntax(null, errors.Syntax.UnexpectedExpression)
-      val error3 = errors.Syntax(null, errors.Syntax.AmbiguousExpression)
+      val error2 =
+        errors.Syntax.create(null, errors.Syntax.UnexpectedExpression.INSTANCE)
+      val error3 =
+        errors.Syntax.create(null, errors.Syntax.AmbiguousExpression.INSTANCE)
 
       val typeName =
         Name.Literal("Foo", isMethod = false, identifiedLocation = null)
@@ -83,42 +93,52 @@ class GatherDiagnosticsTest extends CompilerTest {
           identifiedLocation = null
         )
 
-      val module = Module(
+      val module = new Module(
         List(),
         List(),
         List(
-          Definition.Type(
-            typeName,
-            List(
-              new DefinitionArgument.Specified(
-                fooName,
-                None,
-                Some(error2),
-                suspended          = false,
-                identifiedLocation = null
+          Definition.Type
+            .builder()
+            .name(typeName)
+            .params(
+              List(
+                DefinitionArgument.Specified
+                  .builder()
+                  .name(fooName)
+                  .defaultValue(Some(error2))
+                  .suspended(false)
+                  .build()
               )
-            ),
-            List(),
-            identifiedLocation = null
-          ),
-          new definition.Method.Explicit(
-            definition.Method
-              .Binding(method1Ref, Nil, false, lam, identifiedLocation = null),
+            )
+            .build(),
+          definition.Method.Explicit.fromMethodBinding(
+            definition.Method.Binding
+              .builder()
+              .methodReference(method1Ref)
+              .arguments(Nil)
+              .isPrivate(false)
+              .body(lam)
+              .build(),
             lam
           ),
-          new definition.Method.Explicit(
-            definition.Method.Binding(
-              method2Ref,
-              Nil,
-              false,
-              error3,
-              identifiedLocation = null
-            ),
-            lam.copy(body = error3)
+          definition.Method.Explicit.fromMethodBinding(
+            definition.Method.Binding
+              .builder()
+              .methodReference(method2Ref)
+              .arguments(Nil)
+              .isPrivate(false)
+              .body(error3)
+              .build(),
+            Function.Lambda
+              .builder(lam)
+              .bodyReference(Reference.of(error3))
+              .build()
           )
         ),
         false,
-        identifiedLocation = null
+        null,
+        new MetadataStorage(),
+        null
       )
 
       val result = GatherDiagnostics.runModule(module, buildModuleContext())

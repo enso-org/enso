@@ -1,4 +1,5 @@
 import project.Any.Any
+import project.Data.Numbers.Integer
 import project.Data.Text.Case.Case
 import project.Data.Text.Text
 import project.Data.Vector.Vector
@@ -14,9 +15,16 @@ import project.Nothing.Nothing
 import project.Panic.Panic
 import project.Polyglot.Polyglot
 import project.Runtime.Source_Location.Source_Location
-from project.Data.Boolean import Boolean, True
+from project.Data.Boolean import Boolean, True, False
 from project.Data.Text.Extensions import all
 from project.Runtime.Context import Dataflow_Stack_Trace, Input, Output
+
+## ---
+   advanced: true
+   ---
+   Pauses the current thread for the specified duration in milliseconds.
+sleep milliseconds:Integer ~result:Any=Nothing -> Any =
+    @Tail_Call Runtime_Helpers.sleep milliseconds (result...)
 
 ## ---
    private: true
@@ -38,14 +46,16 @@ get_stack_trace -> Vector Stack_Trace_Element =
    It is not _guaranteed_ to perform garbage collection, but in practice will
    _usually_ begin a garbage collection cycle.
 
+   ## Arguments
+    - `flush_caches`: specify `True` to flush internal caches before GC
+
    ## Examples
-   ### Ask for the runtime to collect garbage.
+   ### Ask for the runtime to collect garbage and clean all internal caches.
 
    ```
-         Runtime.gc
+         Runtime.gc flush_caches=True
    ```
-gc : Nothing
-gc = Runtime_Helpers.gc
+gc flush_caches:Boolean=False -> Nothing = Runtime_Helpers.gc flush_caches
 
 ## ---
    private: true

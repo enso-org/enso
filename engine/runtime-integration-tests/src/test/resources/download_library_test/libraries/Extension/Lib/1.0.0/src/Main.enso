@@ -1,0 +1,6 @@
+from Standard.Base import all
+
+foo i:Integer =
+    vec = [1,2,3]
+    vec.length + i
+

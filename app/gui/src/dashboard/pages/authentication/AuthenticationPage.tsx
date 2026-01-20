@@ -52,7 +52,7 @@ export default function AuthenticationPage<Schema extends TSchema>(
 
   return (
     <Page>
-      <div className="flex h-full w-full flex-col overflow-y-auto p-12">
+      <div className="flex h-full w-full flex-col overflow-y-auto">
         <div
           className="relative m-auto grid h-auto w-full max-w-md flex-none grid-cols-1 grid-rows-[1fr_auto_1fr] flex-col items-center justify-center gap-auth text-sm text-primary"
           data-testid={props['data-testid']}

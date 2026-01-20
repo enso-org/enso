@@ -161,7 +161,7 @@ public final class UnusedImports implements IRPass {
         var isTypeUsed = usedSymbolsForImp.contains(typeName);
         yield isTypeUsed;
       }
-        // If any of the Type's constructor is used, the whole type is used.
+      // If any of the Type's constructor is used, the whole type is used.
       case ResolvedType type -> {
         var constructors = asJava(type.tp().members());
         var typeName = type.qualifiedName();

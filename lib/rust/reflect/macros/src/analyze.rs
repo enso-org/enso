@@ -6,8 +6,6 @@ use syn::DeriveInput;
 use syn::GenericParam;
 use syn::Token;
 
-
-
 // ===============
 // === Analyze ===
 // ===============
@@ -30,14 +28,13 @@ pub(crate) fn analyze(input: TokenStream) -> Type {
     generics.extend(generic_params.clone());
     let data = match input.data {
         syn::Data::Struct(struct_) => Data::Struct(parse_fields(struct_.fields)),
-        syn::Data::Enum(enum_) =>
-            Data::Enum(enum_.variants.into_iter().map(Variant::from).collect()),
+        syn::Data::Enum(enum_) => {
+            Data::Enum(enum_.variants.into_iter().map(Variant::from).collect())
+        }
         syn::Data::Union(_) => unimplemented!("Reflect for `union`s."),
     };
     Type { ident, generics, lifetimes, generic_params, data, attrs }
 }
-
-
 
 // ===============
 // === Parsing ===
@@ -71,8 +68,9 @@ fn parse_fields(fields: syn::Fields) -> Fields {
             }
             Fields::Named { fields }
         }
-        syn::Fields::Unnamed(fields) =>
-            Fields::Unnamed(fields.unnamed.into_iter().map(UnnamedField::from).collect()),
+        syn::Fields::Unnamed(fields) => {
+            Fields::Unnamed(fields.unnamed.into_iter().map(UnnamedField::from).collect())
+        }
         syn::Fields::Unit => Fields::Unit,
     }
 }
@@ -105,8 +103,6 @@ impl From<syn::Variant> for Variant {
     }
 }
 
-
-
 // =========================
 // === Helper attributes ===
 // =========================
@@ -116,7 +112,6 @@ impl From<syn::Variant> for Variant {
 const HELPER_ATTRIBUTE_PATH: &str = "reflect";
 const INVALID_HELPER_SYNTAX: &str = "Unknown helper attribute syntax";
 const UNKNOWN_HELPER: &str = "Unknown helper attribute";
-
 
 // === Field Attributes ===
 
@@ -142,8 +137,9 @@ fn parse_field_attrs(attr: &syn::Attribute, out: &mut Vec<FieldAttr>) {
             })
         }
         .expect(INVALID_HELPER_SYNTAX),
-        syn::Meta::Path(_) | syn::Meta::NameValue(_) =>
-            panic!("{}: {}.", INVALID_HELPER_SYNTAX, attr.meta.to_token_stream()),
+        syn::Meta::Path(_) | syn::Meta::NameValue(_) => {
+            panic!("{}: {}.", INVALID_HELPER_SYNTAX, attr.meta.to_token_stream())
+        }
     }
 }
 
@@ -159,7 +155,6 @@ fn parse_field_annotation(meta: &syn::meta::ParseNestedMeta) -> syn::Result<Fiel
         _ => panic!("{}: {}.", UNKNOWN_HELPER, meta.path.clone().into_token_stream()),
     })
 }
-
 
 // === Variant Attributes ===
 
@@ -185,11 +180,11 @@ fn parse_variant_attrs(attr: &syn::Attribute, out: &mut Vec<VariantAttr>) {
                 })
                 .expect(INVALID_HELPER_SYNTAX);
         }
-        syn::Meta::Path(_) | syn::Meta::NameValue(_) =>
-            panic!("{}: {}.", INVALID_HELPER_SYNTAX, attr.meta.clone().into_token_stream()),
+        syn::Meta::Path(_) | syn::Meta::NameValue(_) => {
+            panic!("{}: {}.", INVALID_HELPER_SYNTAX, attr.meta.clone().into_token_stream())
+        }
     }
 }
-
 
 // === Container Attributes ===
 
@@ -218,8 +213,9 @@ fn parse_container_attrs(attr: &syn::Attribute, out: &mut Vec<ContainerAttr>) {
                 })
                 .expect(INVALID_HELPER_SYNTAX);
         }
-        syn::Meta::Path(_) | syn::Meta::NameValue(_) =>
-            panic!("{}: {}.", INVALID_HELPER_SYNTAX, attr.into_token_stream()),
+        syn::Meta::Path(_) | syn::Meta::NameValue(_) => {
+            panic!("{}: {}.", INVALID_HELPER_SYNTAX, attr.into_token_stream())
+        }
     }
 }
 
@@ -238,8 +234,6 @@ impl<'a> FromIterator<&'a syn::Attribute> for ContainerAttrs {
         ContainerAttrs { transparent }
     }
 }
-
-
 
 // =============
 // === Tests ===

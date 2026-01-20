@@ -7,8 +7,6 @@ use ide_ci::github::Repo;
 use octocrab::models::AssetId;
 use octocrab::models::RunId;
 
-
-
 /// Denotes an external source from which a target artifact can be obtained.
 #[derive(Clone, Debug)]
 pub enum ExternalSource {
@@ -47,22 +45,22 @@ pub struct OngoingCiRunSource {
 
 #[derive(Clone, Debug)]
 pub struct CiRunSource {
-    pub repository:    Repo,
-    pub run_id:        RunId,
+    pub repository: Repo,
+    pub run_id: RunId,
     pub artifact_name: String,
 }
 
 #[derive(Clone, Debug)]
 pub struct ReleaseSource {
     pub repository: Repo,
-    pub asset_id:   AssetId,
+    pub asset_id: AssetId,
 }
 
 #[derive(Clone, Debug, derive_more::Deref, derive_more::DerefMut)]
 pub struct WithDestination<T> {
     #[deref]
     #[deref_mut]
-    pub inner:       T,
+    pub inner: T,
     pub destination: PathBuf,
 }
 
@@ -71,7 +69,7 @@ impl<T: IsTarget> WithDestination<Source<T>> {
         match &self.inner {
             Source::BuildLocally(_) => None,
             Source::External(external) => Some(WithDestination {
-                inner:       external.clone(),
+                inner: external.clone(),
                 destination: self.destination.clone(),
             }),
         }
@@ -94,7 +92,7 @@ pub type BuildTargetJob<Target> = WithDestination<BuildSource<Target>>;
 
 #[derive(Debug)]
 pub struct WatchTargetJob<Target: IsWatchable> {
-    pub build:       BuildTargetJob<Target>,
+    pub build: BuildTargetJob<Target>,
     pub watch_input: Target::WatchInput,
 }
 

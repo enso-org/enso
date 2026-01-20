@@ -13,3 +13,5 @@ import project.Error.Error
     - `handler`: The function to call on this if it is an error value.
 Error.catch_primitive : (Error -> Any) -> Any
 Error.catch_primitive self handler = @Builtin_Method "Error.catch_primitive"
+
+panic_rethrow err = @Builtin_Method "Panic.rethrow"

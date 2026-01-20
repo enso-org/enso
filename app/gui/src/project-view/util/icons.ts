@@ -1,7 +1,7 @@
 import missingIconUri from '@/assets/icon-missing.svg?no-inline'
 import iconsUri from '@/assets/icons.svg?no-inline'
 import { isUrlString, type URLString } from '@/util/data/urlString'
-import { type Icon, isIconName } from '@/util/iconMetadata/iconName'
+import { isIconName, type Icon } from '@/util/iconMetadata/iconName'
 
 export type AnyIcon = Icon | URLString
 

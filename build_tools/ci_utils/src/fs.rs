@@ -5,10 +5,10 @@ use crate::prelude::*;
 
 use crate::env;
 use crate::programs::git;
+
 use fs_extra::dir::CopyOptions;
 use fs_extra::error::ErrorKind;
 use walkdir::WalkDir;
-
 
 // ==============
 // === Export ===
@@ -18,8 +18,6 @@ pub mod tokio;
 pub mod wrappers;
 
 pub use enso_build_base::fs::*;
-
-
 
 /// Copy source item (file or a directory) to a destination directory, preserving the filename.
 #[tracing::instrument(skip_all, fields(

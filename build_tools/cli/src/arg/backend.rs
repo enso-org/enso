@@ -10,8 +10,6 @@ use enso_build::engine::BenchmarkType;
 use enso_build::project;
 use enso_build::project::backend::Backend;
 
-
-
 #[derive(Args, Clone, Debug, PartialEq)]
 #[group(skip)]
 pub struct BuildInput {
@@ -41,9 +39,9 @@ pub enum Command {
         /// the benchmarks can execute without issues.
         #[clap(long, enso_env())]
         minimal_run: bool,
-        bench_type:  BenchmarkType,
+        bench_type: BenchmarkType,
         #[clap(enso_env())]
-        bench_name:  Option<String>,
+        bench_name: Option<String>,
     },
     /// Run the tests.
     Test {

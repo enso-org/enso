@@ -69,7 +69,7 @@ case object GenericAnnotations extends IRPass {
         lastAnnotations = Seq()
         res
     }
-    ir.copy(bindings = newBindings.flatten)
+    ir.copyWithBindings(bindings = newBindings.flatten)
   }
 
   /** Execute the pass on an expression.

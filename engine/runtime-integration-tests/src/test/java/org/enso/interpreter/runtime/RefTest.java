@@ -24,9 +24,9 @@ public class RefTest {
     refType =
         ctxRule.evalModule(
             """
-        import Standard.Base.Runtime.Ref.Ref
-        main = Ref
-        """);
+            import Standard.Base.Runtime.Ref.Ref
+            main = Ref
+            """);
   }
 
   @AfterClass
@@ -35,11 +35,11 @@ public class RefTest {
   }
 
   private static Value getRef(Value ref) {
-    return refType.invokeMember("get", refType, ref);
+    return refType.invokeMember("get", ref);
   }
 
   private static Value newRef(Object object) {
-    return refType.invokeMember("new", refType, object);
+    return refType.invokeMember("new", refType, object, false);
   }
 
   @Test

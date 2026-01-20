@@ -6,13 +6,32 @@ tags: [types, hierarchy, typeset, atom]
 order: 2
 ---
 
-# The Enso Type Hierarchy
+# Type Hierarchy of Enso
 
-Enso is a dynamic language, yet _every value_ in the running system _has a
+Enso is a **dynamic language**, yet _every value_ in the running system _has a
 type_. Type defines the set of operations that can be performed on a value. The
 most generic type is `Any`. If a value has no better (more specific) type, it
 has the type `Any`. All operations defined on type `Any` can be performed on any
 value in the system.
+
+Enso, at it roots, is a **conversion oriented language**. Enso supports
+[flexible definitions of conversions](../syntax/conversions.md) of values of a
+type to another. To stress the importance of conversions in usage of the Enso
+language, there is `Any.to target_type` method available on any value in the
+Enso system that allows to _morph and view any object as a different type_
+easily when such a conversion is available.
+
+In addition to that Enso is **structured equality oriented language**. There is
+`Any.==` operator that allows any two values to be compared for equality. The
+comparison is based on structure - e.g. two instances of the same atom with
+equal fields are the same. Enso provides such a _structured equality_
+implementation to every user defined type automatically, yet it also offers more
+complex [custom equality](../syntax/functions.md#custom_equality) handling when
+needed.
+
+Enso is **conversion and** (structured) **equality oriented language**. That
+fact is stressed by the shape of its root type `Any`. It exposes just `.to`,
+`==` and `!=` operations.
 
 > [!WARNING] _Typeset theory is far from current state of affairs_:
 >

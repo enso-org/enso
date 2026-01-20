@@ -6,7 +6,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.ss.util.CellReference;
-import org.graalvm.polyglot.Context;
 
 public class ExcelRange {
   private static final Pattern FULL_ADDRESS = Pattern.compile("^('.+'|[^'!]+)!(.+)$");
@@ -178,10 +177,10 @@ public class ExcelRange {
    * cells.
    *
    * @param excelRange Range referring to top left cell.
-   * @param sheet ExcelSheet containing the range refers to.
+   * @param sheet ExcelSheetReader containing the range refers to.
    * @return Expanded range covering the connected table of cells.
    */
-  public static ExcelRange expandSingleCell(ExcelRange excelRange, ExcelSheet sheet)
+  public static ExcelRange expandSingleCell(ExcelRange excelRange, ExcelSheetReader sheet)
       throws InterruptedException {
     ExcelRow currentRow = sheet.get(excelRange.getTopRow());
     if (currentRow == null || currentRow.isEmpty(excelRange.getLeftColumn())) {
@@ -196,13 +195,12 @@ public class ExcelRange {
     int bottomRow = excelRange.getTopRow();
     int rightColumn = excelRange.getLeftColumn();
 
-    Context context = Context.getCurrent();
     while (currentRow != null && !currentRow.isEmpty(excelRange.getLeftColumn(), rightColumn)) {
       rightColumn = findEndRight(currentRow, rightColumn);
       bottomRow++;
       currentRow = sheet.get(bottomRow);
 
-      context.safepoint();
+      ExcelUtils.safepoint();
     }
 
     return new ExcelRange(
@@ -214,11 +212,10 @@ public class ExcelRange {
   }
 
   private static int findEndRight(ExcelRow row, int start) {
-    Context context = Context.getCurrent();
     int column = start;
     while (!row.isEmpty(column + 1)) {
       column++;
-      context.safepoint();
+      ExcelUtils.safepoint();
     }
     return column;
   }
@@ -338,15 +335,14 @@ public class ExcelRange {
     return isWholeColumn() ? Integer.MAX_VALUE : bottomRow - topRow + 1;
   }
 
-  public int getLastNonEmptyRow(ExcelSheet sheet) throws InterruptedException {
+  public int getLastNonEmptyRow(ExcelSheetReader sheet) throws InterruptedException {
     int lastRow =
         Math.min(sheet.getLastRow(), isWholeColumn() ? sheet.getLastRow() : bottomRow) + 1;
 
-    Context context = Context.getCurrent();
     while (lastRow > topRow
         && sheet.get(lastRow - 1).isEmpty(leftColumn, isWholeRow() ? -1 : rightColumn)) {
       lastRow--;
-      context.safepoint();
+      ExcelUtils.safepoint();
     }
 
     return lastRow - 1;

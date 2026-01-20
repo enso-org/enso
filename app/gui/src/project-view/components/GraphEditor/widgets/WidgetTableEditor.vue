@@ -1,19 +1,19 @@
 <script setup lang="ts">
-import { useGraphStore, useSuggestionDbStore } from '$/components/WithCurrentProject.vue'
+import { useCurrentProject } from '$/components/WithCurrentProject.vue'
+import { defineWidget, Score, widgetProps } from '$/providers/openedProjects/widgetRegistry'
+import { WidgetEditHandler } from '$/providers/openedProjects/widgetRegistry/editHandler'
+import { proxyRefs } from '$/utils/reactivity'
 import { WidgetInputIsSpecificMethodCall } from '@/components/GraphEditor/widgets/WidgetFunction.vue'
 import {
   CELLS_LIMIT,
+  type RowData,
   tableInputCallMayBeHandled,
   useTableInputArgument,
-  type RowData,
 } from '@/components/GraphEditor/widgets/WidgetTableEditor/tableInputArgument'
 import AgGridTableView from '@/components/shared/AgGridTableView.vue'
-import { defineWidget, Score, widgetProps } from '@/providers/widgetRegistry'
-import { WidgetEditHandler } from '@/providers/widgetRegistry/editHandler'
 import { targetIsOutside } from '@/util/autoBlur'
 import { ProjectPath } from '@/util/projectPath'
-import { Identifier, type QualifiedName } from '@/util/qualifiedName'
-import { proxyRefs } from '@/util/reactivity'
+import type { Identifier, QualifiedName } from '@/util/qualifiedName'
 import { useToast } from '@/util/toast'
 import '@ag-grid-community/styles/ag-grid.css'
 import '@ag-grid-community/styles/ag-theme-alpine.css'
@@ -23,16 +23,16 @@ import type {
   ProcessDataFromClipboardParams,
   RowDragEndEvent,
 } from 'ag-grid-enterprise'
-import { ComponentInstance, computed, ComputedRef, ref, watch } from 'vue'
+import type { Result } from 'enso-common/src/utilities/data/result'
+import { type ComponentInstance, computed, type ComputedRef, ref, watch } from 'vue'
 import type { ComponentExposed } from 'vue-component-type-helpers'
 import { z } from 'zod'
 import ResizableWidget from '../ResizableWidget.vue'
-import TableHeader, { HeaderParams } from './WidgetTableEditor/TableHeader.vue'
+import TableHeader, { type HeaderParams } from './WidgetTableEditor/TableHeader.vue'
 import { useTableEditHandler } from './WidgetTableEditor/editHandler'
 
 const props = defineProps(widgetProps(widgetDefinition))
-const graph = useGraphStore()
-const suggestionDb = useSuggestionDbStore()
+const { suggestionDb, module } = useCurrentProject()
 const grid = ref<
   ComponentInstance<typeof AgGridTableView<RowData, any>> &
     ComponentExposed<typeof AgGridTableView<RowData, any>>
@@ -59,8 +59,8 @@ const config = computed(() => {
 
 const { rowData, columnDefs, moveColumn, moveRow, pasteFromClipboard } = useTableInputArgument(
   () => props.input,
-  graph,
-  suggestionDb.entries,
+  module,
+  () => suggestionDb.value.entries,
   props.updateCallback,
 )
 
@@ -117,13 +117,20 @@ function processDataFromClipboard({ data, api }: ProcessDataFromClipboardParams<
   const focusedCell = api.getFocusedCell()
   if (focusedCell === null) console.warn('Pasting while no cell is focused!')
   else {
+    const checkAndWarn = (pasted: Result<{ rows: number; columns: number }>) => {
+      if (
+        pasted.ok &&
+        (pasted.value.rows < data.length || pasted.value.columns < (data[0]?.length ?? 0))
+      ) {
+        pasteWarning.show(`Truncated pasted data to keep table within ${CELLS_LIMIT} limit`)
+      }
+    }
     const pasted = pasteFromClipboard(data, {
       rowIndex: focusedCell.rowIndex,
       colId: focusedCell.column.getColId(),
     })
-    if (pasted.rows < data.length || pasted.columns < (data[0]?.length ?? 0)) {
-      pasteWarning.show(`Truncated pasted data to keep table within ${CELLS_LIMIT} limit`)
-    }
+    if (pasted instanceof Promise) pasted.then(checkAndWarn)
+    else checkAndWarn(pasted)
   }
   return []
 }
@@ -173,7 +180,7 @@ export const widgetDefinition = defineWidget(
 </script>
 
 <template>
-  <div class="WidgetTableEditor">
+  <div class="WidgetTableEditor widgetExpanded">
     <ResizableWidget
       :input="input"
       metadataKey="WidgetTableEditor"
@@ -214,9 +221,6 @@ export const widgetDefinition = defineWidget(
 
 <style scoped>
 .WidgetTableEditor {
-  display: flex;
-  align-items: center;
-  justify-content: center;
   border-radius: var(--node-port-border-radius);
   position: relative;
 }

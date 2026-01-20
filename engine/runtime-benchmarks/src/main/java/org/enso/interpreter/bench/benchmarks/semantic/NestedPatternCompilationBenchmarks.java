@@ -37,25 +37,25 @@ public class NestedPatternCompilationBenchmarks {
     benchmarkName = SrcUtil.findName(params);
     code =
         """
-            import Standard.Base.Data.Numbers
+        import Standard.Base.Data.Numbers
 
-            type List
-                Cons a b
-                Nil
+        type List
+            Cons a b
+            Nil
 
-            test x =
-                case x of
-                    List.Nil -> 0
-                    List.Cons a List.Nil -> a
-                    List.Cons a (List.Cons b List.Nil) -> a+b
-                    List.Cons a (List.Cons b (List.Cons c List.Nil)) -> a+b+c
-                    List.Cons a (List.Cons b (List.Cons c (List.Cons d List.Nil))) -> a+b+c+d
-                    List.Cons a (List.Cons b (List.Cons c (List.Cons d (List.Cons e List.Nil)))) -> a+b+c+d+e
-                    List.Cons a (List.Cons b (List.Cons c (List.Cons d (List.Cons e (List.Cons f List.Nil))))) -> a+b+c+d+e+f
+        test x =
+            case x of
+                List.Nil -> 0
+                List.Cons a List.Nil -> a
+                List.Cons a (List.Cons b List.Nil) -> a+b
+                List.Cons a (List.Cons b (List.Cons c List.Nil)) -> a+b+c
+                List.Cons a (List.Cons b (List.Cons c (List.Cons d List.Nil))) -> a+b+c+d
+                List.Cons a (List.Cons b (List.Cons c (List.Cons d (List.Cons e List.Nil)))) -> a+b+c+d+e
+                List.Cons a (List.Cons b (List.Cons c (List.Cons d (List.Cons e (List.Cons f List.Nil))))) -> a+b+c+d+e+f
 
-            list_of_6 =
-                List.Cons 1 (List.Cons 2 (List.Cons 3 (List.Cons 4 (List.Cons 5 (List.Cons 6 List.Nil)))))
-            """;
+        list_of_6 =
+            List.Cons 1 (List.Cons 2 (List.Cons 3 (List.Cons 4 (List.Cons 5 (List.Cons 6 List.Nil)))))
+        """;
   }
 
   @Benchmark

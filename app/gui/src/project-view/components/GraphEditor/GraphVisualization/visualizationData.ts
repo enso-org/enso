@@ -1,10 +1,11 @@
 import { useGraphStore, useProjectStore } from '$/components/WithCurrentProject.vue'
+import { type NodeId } from '$/providers/openedProjects/graph/graphDatabase'
+import { TypeInfo } from '$/providers/openedProjects/project/computedValueRegistry'
+import type { NodeVisualizationConfiguration } from '$/providers/openedProjects/project/executionContext'
+import type { ToValue } from '$/utils/reactivity'
 import LoadingErrorVisualization from '@/components/visualizations/LoadingErrorVisualization.vue'
 import LoadingVisualization from '@/components/visualizations/LoadingVisualization.vue'
 import type { ToolbarItem } from '@/components/visualizations/toolbar'
-import { NodeId } from '@/stores/graph/graphDatabase'
-import { TypeInfo } from '@/stores/project/computedValueRegistry'
-import type { NodeVisualizationConfiguration } from '@/stores/project/executionContext'
 import {
   DEFAULT_VISUALIZATION_CONFIGURATION,
   DEFAULT_VISUALIZATION_IDENTIFIER,
@@ -15,21 +16,20 @@ import type { Visualization } from '@/stores/visualization/runtimeTypes'
 import { Ast } from '@/util/ast'
 import { toError } from '@/util/data/error'
 import { ProjectPath } from '@/util/projectPath'
-import type { ToValue } from '@/util/reactivity'
 import { computedAsync } from '@vueuse/core'
+import type { Opt } from 'enso-common/src/utilities/data/opt'
+import type { Result } from 'enso-common/src/utilities/data/result'
 import {
   computed,
   onErrorCaptured,
   ref,
   shallowRef,
-  type ShallowRef,
   toValue,
   watch,
   watchEffect,
+  type ShallowRef,
 } from 'vue'
 import { isIdentifier } from 'ydoc-shared/ast'
-import type { Opt } from 'ydoc-shared/util/data/opt'
-import { type Result } from 'ydoc-shared/util/data/result'
 import type { VisualizationIdentifier } from 'ydoc-shared/yjsModel'
 
 /** Used for testing. */

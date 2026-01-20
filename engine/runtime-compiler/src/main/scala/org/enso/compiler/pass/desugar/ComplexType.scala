@@ -84,8 +84,8 @@ case object ComplexType extends IRPass {
     ir: Module,
     moduleContext: ModuleContext
   ): Module =
-    ir.copy(
-      bindings = ir.bindings.flatMap {
+    ir.copyWithBindings(
+      ir.bindings.flatMap {
         case typ: Definition.SugaredType => desugarComplexType(typ)
         case b                           => List(b)
       }
@@ -123,7 +123,8 @@ case object ComplexType extends IRPass {
           lastAnnotations :+= ann
           None
         case d: Definition.Data =>
-          val res = Some(d.copy(annotations = d.annotations ++ lastAnnotations))
+          val res =
+            Some(d.copyWithAnnotations(d.annotations ++ lastAnnotations))
           seenAnnotations ++= lastAnnotations
           lastAnnotations = Seq()
           res
@@ -170,8 +171,8 @@ case object ComplexType extends IRPass {
     ): List[Definition] = {
       var unusedSig: Option[Type.Ascription] = None
       val sig = lastSignature match {
-        case Some(Type.Ascription(typed, _, _, _, _)) =>
-          typed match {
+        case Some(asc: Type.Ascription) =>
+          asc.typed() match {
             case literal: Name.Literal =>
               if (name.name == literal.name) {
                 lastSignature
@@ -211,12 +212,13 @@ case object ComplexType extends IRPass {
     }
     val allEntities = entityResults ::: lastSignature.toList
 
-    val sumType = Definition.Type(
-      typ.name,
-      typ.arguments,
-      atomDefs,
-      typ.identifiedLocation
-    )
+    val sumType = Definition.Type
+      .builder()
+      .name(typ.name())
+      .params(typ.arguments())
+      .members(atomDefs)
+      .location(typ.identifiedLocation())
+      .build()
 
     val withAnnotations = annotations
       .map(ann =>
@@ -321,17 +323,18 @@ case object ComplexType extends IRPass {
     )
 
     val newSig =
-      signature.map(sig => sig.copy(typed = methodRef.duplicate()).duplicate())
+      signature.map(sig => sig.copyWithTyped(methodRef.duplicate()).duplicate())
 
-    val binding = new definition.Method.Binding(
-      methodRef.duplicate(),
-      args.map(_.duplicate(true, true, true, false)),
-      isPrivate,
-      body.duplicate(),
-      identifiedLocation,
-      passData.duplicate,
-      diagnostics
-    )
+    val binding = definition.Method.Binding
+      .builder()
+      .methodReference(methodRef.duplicate())
+      .arguments(args.map(_.duplicate(true, true, true, false)))
+      .isPrivate(isPrivate)
+      .body(body.duplicate())
+      .location(identifiedLocation)
+      .passData(passData.duplicate)
+      .diagnostics(diagnostics)
+      .build()
 
     newSig.toList :+ binding
   }

@@ -5,8 +5,6 @@ import Standard.Table.Internal.Naming_Properties.Naming_Properties
 import Standard.Table.Internal.Unique_Name_Strategy.Unique_Name_Strategy
 from Standard.Table.Errors import Name_Too_Long
 
-polyglot java import org.enso.base.Text_Utils
-
 ## ---
    private: true
    ---

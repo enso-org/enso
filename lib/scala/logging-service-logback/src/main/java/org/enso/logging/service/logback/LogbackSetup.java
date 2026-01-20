@@ -26,7 +26,6 @@ import org.enso.logging.config.*;
 import org.slf4j.LoggerFactory;
 import org.slf4j.event.Level;
 
-@org.openide.util.lookup.ServiceProvider(service = LoggerSetup.class)
 public final class LogbackSetup extends LoggerSetup {
 
   private static final String CONSOLE_APPENDER_NAME = "enso-console";

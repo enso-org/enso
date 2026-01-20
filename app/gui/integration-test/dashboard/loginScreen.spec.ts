@@ -1,13 +1,13 @@
 /** @file Test the login flow. */
-import { expect, test } from 'playwright/test'
+import { expect, test } from 'integration-test/base'
 
-import { INVALID_PASSWORD, mockAll, TEXT, VALID_EMAIL, VALID_PASSWORD } from './actions'
+import { INVALID_PASSWORD, TEXT, VALID_EMAIL, VALID_PASSWORD } from '../actions'
 
 // Reset storage state for this file to avoid being authenticated
 test.use({ storageState: { cookies: [], origins: [] } })
 
-test('login screen', ({ page }) =>
-  mockAll({ page })
+test('login screen', async ({ loginPage }) => {
+  await loginPage
     .loginThatShouldFail('invalid email', VALID_PASSWORD, {
       assert: {
         emailError: TEXT.invalidEmailValidationError,
@@ -19,4 +19,5 @@ test('login screen', ({ page }) =>
     .login(VALID_EMAIL, INVALID_PASSWORD)
     .withDriveView(async (driveView) => {
       await expect(driveView).toBeVisible()
-    }))
+    })
+})

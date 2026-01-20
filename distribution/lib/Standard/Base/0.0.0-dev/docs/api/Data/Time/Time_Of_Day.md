@@ -3,6 +3,10 @@
 - type Time_Of_Day
     - + self amount:(Standard.Base.Data.Time.Duration.Duration|Standard.Base.Data.Time.Time_Period.Time_Period) -> Standard.Base.Any.Any
     - - self amount:(Standard.Base.Data.Time.Duration.Duration|Standard.Base.Data.Time.Time_Period.Time_Period) -> Standard.Base.Any.Any
+    - < self that:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - <= self that:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - > self that:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - >= self that:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - date_add self amount:Standard.Base.Data.Numbers.Integer period:Standard.Base.Data.Time.Time_Period.Time_Period -> Standard.Base.Any.Any
     - date_diff self end:Standard.Base.Data.Time.Time_Of_Day.Time_Of_Day period:Standard.Base.Data.Time.Time_Period.Time_Period -> Standard.Base.Any.Any
     - date_part self period:Standard.Base.Data.Time.Time_Period.Time_Period -> Standard.Base.Any.Any

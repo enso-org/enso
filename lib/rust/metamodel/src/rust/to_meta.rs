@@ -8,8 +8,6 @@ use std::collections::BTreeMap;
 use std::collections::BTreeSet;
 use std::mem::take;
 
-
-
 // ====================
 // === Rust to Meta ===
 // ====================
@@ -27,12 +25,12 @@ pub fn to_meta(ty: TypeData) -> (meta::TypeGraph, BTreeMap<TypeId, meta::TypeId>
 struct ToMeta {
     // Outputs
     rust_to_meta: BTreeMap<TypeId, meta::TypeId>,
-    graph:        meta::TypeGraph,
+    graph: meta::TypeGraph,
     // Intermediate state
-    interfaces:   Vec<(meta::TypeId, meta::TypeId)>,
+    interfaces: Vec<(meta::TypeId, meta::TypeId)>,
     parent_types: BTreeMap<GenericTypeId, (meta::TypeName, meta::Data, usize)>,
-    subtypings:   Vec<(GenericTypeId, TypeId, meta::UnboundTypeId)>,
-    flatten:      BTreeSet<meta::FieldId>,
+    subtypings: Vec<(GenericTypeId, TypeId, meta::UnboundTypeId)>,
+    flatten: BTreeSet<meta::FieldId>,
 }
 
 impl ToMeta {
@@ -147,8 +145,9 @@ impl ToMeta {
             Primitive::String => meta::Primitive::String,
             Primitive::Vec(t0) => meta::Primitive::Sequence(self.rust_to_meta[&t0.id]),
             Primitive::Option(t0) => meta::Primitive::Option(self.rust_to_meta[&t0.id]),
-            Primitive::Result(t0, t1) =>
-                meta::Primitive::Result(self.rust_to_meta[&t0.id], self.rust_to_meta[&t1.id]),
+            Primitive::Result(t0, t1) => {
+                meta::Primitive::Result(self.rust_to_meta[&t0.id], self.rust_to_meta[&t1.id])
+            }
         };
         let data = meta::Data::Primitive(primitive);
         let name = type_name(name);
@@ -167,8 +166,9 @@ impl ToMeta {
             let sole_field =
                 "`#[reflect(transparent)]` can only be applied to types with exactly one field.";
             let target = match data {
-                Data::Struct(Struct { fields, transparent }) if *transparent =>
-                    fields.as_wrapped_type().expect(sole_field).id,
+                Data::Struct(Struct { fields, transparent }) if *transparent => {
+                    fields.as_wrapped_type().expect(sole_field).id
+                }
                 _ => return true,
             };
             alias.insert(*id, target);
@@ -202,8 +202,9 @@ impl ToMeta {
             let id_ = meta_promises.remove(&id).unwrap();
             let erased = Some(rust.subtype_erased);
             match &rust.data {
-                Data::Struct(Struct { fields, transparent: _ }) =>
-                    self.struct_(id_, name, fields, erased),
+                Data::Struct(Struct { fields, transparent: _ }) => {
+                    self.struct_(id_, name, fields, erased)
+                }
                 Data::Enum(Enum { variants }) => self.enum_(id_, name, variants),
                 Data::Primitive(primitive) => self.primitive(id_, name, primitive),
             };

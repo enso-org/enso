@@ -1,6 +1,6 @@
 <script setup lang="ts">
+import { WidgetInput, defineWidget, widgetProps } from '$/providers/openedProjects/widgetRegistry'
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
-import { WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
 import { Ast } from '@/util/ast'
 import { computed } from 'vue'
 import { isToken } from 'ydoc-shared/ast'
@@ -45,7 +45,7 @@ export const widgetDefinition = defineWidget(
 </script>
 
 <template>
-  <div class="WidgetHierarchy" :class="spanClass">
+  <div class="WidgetHierarchy widgetParent" :class="spanClass">
     <NodeWidget
       v-for="child in expressionChildren(props.input.value)"
       :key="child.id"
@@ -56,9 +56,6 @@ export const widgetDefinition = defineWidget(
 
 <style scoped>
 .WidgetHierarchy {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
   transition: background 0.2s ease;
 
   &.Literal {

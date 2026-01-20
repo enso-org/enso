@@ -5,6 +5,10 @@
     - Bits_16
     - Bits_32
     - Bits_64
+    - < self that:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - <= self that:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - > self that:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - >= self that:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - from_integer bits:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - to_integer self -> Standard.Base.Any.Any
     - to_text self -> Standard.Base.Any.Any
@@ -31,6 +35,8 @@
     - can_be_widened_to self target_type:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - expect_boolean argument:Standard.Base.Any.Any ~action:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - expect_comparable arg1:Standard.Base.Any.Any arg2:Standard.Base.Any.Any ~action:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - expect_date argument:Standard.Base.Any.Any ~action:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - expect_date_time argument:Standard.Base.Any.Any ~action:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - expect_floating_point argument:Standard.Base.Any.Any ~action:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - expect_has_date argument:Standard.Base.Any.Any ~action:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - expect_has_time argument:Standard.Base.Any.Any ~action:Standard.Base.Any.Any -> Standard.Base.Any.Any

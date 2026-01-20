@@ -6,10 +6,12 @@ import { useMeasureCallback } from '#/hooks/measureHooks'
 import { mergeRefs } from '#/utilities/mergeRefs'
 import { tv, type VariantProps } from '#/utilities/tailwindVariants'
 import {
+  forwardRef,
   startTransition,
   useCallback,
   useRef,
   useState,
+  type ForwardedRef,
   type HTMLAttributes,
   type PropsWithChildren,
 } from 'react'
@@ -39,45 +41,29 @@ export const SCROLLER_STYLES = tv({
     },
     orientation: {
       horizontal: {
-        content: '',
+        content: 'overflow-x-auto min-w-0 max-w-full',
+        shadowStart: 'top-0 bottom-0 left-0 w-10 bg-gradient-to-r',
+        shadowEnd: 'top-0 bottom-0 right-0 w-10 bg-gradient-to-l',
       },
       vertical: {
-        content: '',
+        content: 'overflow-y-auto min-h-0 max-h-full',
+        shadowStart: '-top-[0.5px] left-0 right-0 min-h-1 h-[25%] max-h-10 bg-gradient-to-b',
+        shadowEnd: '-bottom-[0.5px] left-0 right-0 min-h-1 h-[25%] max-h-10 bg-gradient-to-t',
       },
     },
-    snap: {
-      true: {
-        content: '',
-      },
-      false: {
-        content: '',
-      },
-    },
+    fullSize: { true: '' },
+    snap: { true: { content: 'snap-proximity' } },
     startHidden: {
-      true: {
-        shadowStart: 'opacity-0',
-      },
-      false: {
-        shadowStart: 'opacity-100',
-      },
+      true: { shadowStart: 'opacity-0' },
+      false: { shadowStart: 'opacity-100' },
     },
     endHidden: {
-      true: {
-        shadowEnd: 'opacity-0',
-      },
-      false: {
-        shadowEnd: 'opacity-100',
-      },
+      true: { shadowEnd: 'opacity-0' },
+      false: { shadowEnd: 'opacity-100' },
     },
     showShadows: {
-      true: {
-        shadowStart: '',
-        shadowEnd: '',
-      },
-      false: {
-        shadowStart: 'hidden',
-        shadowEnd: 'hidden',
-      },
+      true: '',
+      false: { shadowStart: 'hidden', shadowEnd: 'hidden' },
     },
   },
 
@@ -91,40 +77,22 @@ export const SCROLLER_STYLES = tv({
     {
       orientation: 'horizontal',
       snap: true,
-      class: {
-        content: 'snap-x snap-proximity',
-      },
-    },
-    {
-      orientation: 'horizontal',
-      class: {
-        content: 'overflow-x-auto min-w-0 max-w-full',
-        shadowStart: 'top-0 bottom-0 left-0 w-10',
-        shadowEnd: 'top-0 bottom-0 right-0 w-10',
-      },
-    },
-    {
-      orientation: 'horizontal',
-      class: {
-        content: 'overflow-x-auto min-w-0 max-w-full',
-        shadowStart: 'top-0 bottom-0 left-0 w-10 bg-gradient-to-r',
-        shadowEnd: 'top-0 bottom-0 right-0 w-10 bg-gradient-to-l',
-      },
+      class: { content: 'snap-x' },
     },
     {
       orientation: 'vertical',
       snap: true,
-      class: {
-        content: 'snap-y snap-proximity',
-      },
+      class: { content: 'snap-y' },
+    },
+    {
+      orientation: 'horizontal',
+      fullSize: true,
+      class: { content: 'min-w-full' },
     },
     {
       orientation: 'vertical',
-      class: {
-        content: 'overflow-y-auto min-h-0 max-h-full',
-        shadowStart: '-top-[0.5px] left-0 right-0 min-h-1 h-[25%] max-h-10 bg-gradient-to-b',
-        shadowEnd: '-bottom-[0.5px] left-0 right-0 min-h-1 h-[25%] max-h-10 bg-gradient-to-t',
-      },
+      fullSize: true,
+      class: { content: 'min-h-full' },
     },
   ],
 
@@ -136,6 +104,7 @@ export const SCROLLER_STYLES = tv({
     startHidden: true,
     endHidden: true,
     background: 'primary',
+    fullSize: false,
   },
 })
 
@@ -149,7 +118,10 @@ export interface ScrollerProps
 }
 
 /** A component that adds scroll shadows to a container. */
-export function Scroller(props: ScrollerProps) {
+export const Scroller = forwardRef(function Scroller(
+  props: ScrollerProps,
+  ref: ForwardedRef<HTMLDivElement>,
+) {
   const {
     className,
     shadowStartClassName,
@@ -161,6 +133,7 @@ export function Scroller(props: ScrollerProps) {
     testId,
     onScroll,
     background = 'primary',
+    fullSize,
     ...rest
   } = props
 
@@ -176,38 +149,6 @@ export function Scroller(props: ScrollerProps) {
     })
   })
 
-  const [measureRef] = useMeasureCallback({
-    isDisabled: !showShadows,
-    onResize: () => {
-      const container = containerRef.current
-
-      if (!container) {
-        return
-      }
-
-      const { isAtStart, isAtEnd } = calculateShadows(container)
-
-      setHidden(isAtStart, isAtEnd)
-    },
-  })
-
-  useEventListener(
-    'scroll',
-    () => {
-      const container = containerRef.current
-
-      if (!container) {
-        return
-      }
-
-      const { isAtStart, isAtEnd } = calculateShadows(container)
-
-      setHidden(isAtStart, isAtEnd)
-    },
-    containerRef,
-    { passive: true, isDisabled: !showShadows },
-  )
-
   const calculateShadows = useEventCallback((element: HTMLDivElement) => {
     const { scrollLeft, clientWidth, scrollTop, clientHeight, scrollWidth, scrollHeight } = element
 
@@ -221,17 +162,29 @@ export function Scroller(props: ScrollerProps) {
     return { isAtStart, isAtEnd }
   })
 
-  const refCallback = useCallback(
+  const updateShadows = useCallback(
     (el: HTMLDivElement | null) => {
-      if (!el) {
-        return
-      }
-
+      if (!el) return
       const { isAtStart, isAtEnd } = calculateShadows(el)
-
       setHidden(isAtStart, isAtEnd)
     },
     [calculateShadows, setHidden],
+  )
+
+  const [measureRef] = useMeasureCallback({
+    isDisabled: !showShadows,
+    onResize: () => {
+      updateShadows(containerRef.current)
+    },
+  })
+
+  useEventListener(
+    'scroll',
+    () => {
+      updateShadows(containerRef.current)
+    },
+    containerRef,
+    { passive: true, isDisabled: !showShadows },
   )
 
   const styles = variants({
@@ -242,13 +195,14 @@ export function Scroller(props: ScrollerProps) {
     endHidden,
     showShadows,
     background,
+    fullSize,
   })
 
   return (
     <div className={styles.base({ className })} data-testid={testId} {...rest}>
       <div
         ref={(el) => {
-          mergeRefs(refCallback, measureRef, containerRef)(el)
+          mergeRefs(ref, updateShadows, measureRef, containerRef)(el)
         }}
         onScroll={onScroll}
         className={styles.content()}
@@ -260,4 +214,4 @@ export function Scroller(props: ScrollerProps) {
       <div aria-hidden className={styles.shadowEnd()} />
     </div>
   )
-}
+})

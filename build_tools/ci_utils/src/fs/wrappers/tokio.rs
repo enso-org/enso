@@ -4,13 +4,10 @@ use tokio::fs::File;
 use tokio::io::AsyncReadExt;
 use tokio_util::io::ReaderStream;
 
-
-
 pub fn metadata<P: AsRef<Path>>(path: P) -> BoxFuture<'static, Result<std::fs::Metadata>> {
     let path = path.as_ref().to_owned();
     async { Ok(tokio::fs::metadata(path).await?) }.boxed()
 }
-
 
 /// Like [tokio::fs::rename] but with a better error message and static lifetime.
 pub fn rename<P: AsRef<Path>, Q: AsRef<Path>>(from: P, to: Q) -> BoxFuture<'static, Result<()>> {
@@ -22,7 +19,6 @@ pub fn rename<P: AsRef<Path>, Q: AsRef<Path>>(from: P, to: Q) -> BoxFuture<'stat
         })
         .boxed()
 }
-
 
 /// See [tokio::fs::symlink_metadata].
 pub fn symlink_metadata<P: AsRef<Path>>(path: P) -> BoxFuture<'static, Result<std::fs::Metadata>> {

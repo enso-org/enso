@@ -11,16 +11,16 @@ import {
   analyzeSplits,
   visitContainedDelimiters,
 } from '@/components/MarkdownEditor/markdown/trees'
-import {
-  type FormatNode,
-  type FormatStates,
-  type NormalizedRange,
+import type {
+  FormatNode,
+  FormatStates,
+  NormalizedRange,
 } from '@/components/MarkdownEditor/markdown/types'
 import { syntaxTree } from '@codemirror/language'
-import { type EditorState, type SelectionRange, type TransactionSpec } from '@codemirror/state'
+import type { EditorState, SelectionRange, TransactionSpec } from '@codemirror/state'
 import * as iter from 'enso-common/src/utilities/data/iter'
 import { Range } from 'ydoc-shared/util/data/range'
-export { type FormatNode as InlineFormattingNode } from '@/components/MarkdownEditor/markdown/types'
+export type { FormatNode as InlineFormattingNode } from '@/components/MarkdownEditor/markdown/types'
 
 /**
  * @returns `undefined` if it is not possible to apply formatting to the given range. Otherwise, for

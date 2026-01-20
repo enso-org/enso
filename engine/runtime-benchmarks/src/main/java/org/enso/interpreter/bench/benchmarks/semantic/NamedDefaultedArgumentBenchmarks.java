@@ -25,7 +25,7 @@ import org.openjdk.jmh.infra.Blackhole;
 public class NamedDefaultedArgumentBenchmarks {
   private static long HUNDRED_MILLION = 100_000_000L;
   private static final String SUM_TCO_WITH_NAMED_ARGUMENTS_CODE =
-      """
+"""
 import Standard.Base.Data.Numbers
 main = sumTo ->
     summator = acc -> current ->
@@ -36,7 +36,7 @@ main = sumTo ->
 """;
 
   private static final String SUM_TCO_WITH_DEFAULTED_ARGUMENTS_CODE =
-      """
+"""
 import Standard.Base.Data.Numbers
 main = sumTo ->
     summator = (acc = 0) -> current ->

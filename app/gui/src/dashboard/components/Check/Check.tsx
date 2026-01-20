@@ -1,42 +1,5 @@
-/**
- * @file
- *
- * A checkmark icon
- * Can be used to indicate that an item is selected. Has an indeterminate state.
- */
+/** @file A checkmark icon. */
 import { tv, type VariantProps } from '#/utilities/tailwindVariants'
-import { motion, type Variants } from 'framer-motion'
-
-/**
- * Variants for the {@link Check} component.
- */
-/* eslint-disable @typescript-eslint/no-magic-numbers */
-// eslint-disable-next-line react-refresh/only-export-components
-export const CHECK_VARIANTS: Variants = {
-  checked: {
-    pathLength: 1,
-    opacity: 1,
-    transition: { type: 'tween', duration: 0.2, easings: 'circIn' },
-  },
-  // eslint-disable-next-line @typescript-eslint/naming-convention
-  'pressed-checked': {
-    pathLength: 0.8,
-    opacity: 1,
-    transition: { type: 'tween', duration: 0.2, easings: 'circIn' },
-  },
-  // eslint-disable-next-line @typescript-eslint/naming-convention
-  'pressed-unchecked': {
-    pathLength: 0.2,
-    opacity: 0.5,
-    transition: { type: 'tween', duration: 0.2, easings: 'circIn' },
-  },
-  unchecked: {
-    pathLength: 0,
-    opacity: 0,
-    transition: { type: 'tween', duration: 0.2, easings: 'circOut' },
-  },
-}
-/* eslint-enable @typescript-eslint/no-magic-numbers */
 
 // eslint-disable-next-line react-refresh/only-export-components
 export const CHECK_CLASSES = tv({
@@ -44,9 +7,7 @@ export const CHECK_CLASSES = tv({
   variants: {
     isSelected: {
       true: { base: 'border-transparent' },
-    },
-    isPressed: {
-      true: { base: '' },
+      false: '',
     },
     // Defined in compoundVariants
     color: {
@@ -105,9 +66,7 @@ export const CHECK_CLASSES = tv({
   ],
 })
 
-/**
- * Props for the {@link Check} component.
- */
+/** Props for a {@link Check}. */
 export interface CheckProps extends VariantProps<typeof CHECK_CLASSES> {
   readonly className?: string | undefined
   readonly isIndeterminate?: boolean | undefined
@@ -120,7 +79,6 @@ export interface CheckProps extends VariantProps<typeof CHECK_CLASSES> {
 export function Check(props: CheckProps) {
   const {
     isSelected = false,
-    isPressed = false,
     isIndeterminate = false,
     variants = CHECK_CLASSES,
     className,
@@ -129,40 +87,30 @@ export function Check(props: CheckProps) {
     size,
   } = props
 
-  const styles = variants({ isSelected, className, color, rounded, size, isPressed })
-
-  const animate = () => {
-    if (isPressed) {
-      return isSelected ? 'pressed-checked' : 'pressed-unchecked'
-    }
-
-    if (isSelected) {
-      return 'checked'
-    }
-
-    return 'unchecked'
-  }
+  const styles = variants({ isSelected, className, color, rounded, size })
 
   return (
-    <motion.svg
+    <svg
       xmlns="http://www.w3.org/2000/svg"
       viewBox="0 0 16 16"
       className={styles.base()}
-      initial={false}
-      animate={animate()}
       role="presentation"
       pointerEvents="none"
     >
-      <motion.path
+      <path
         className={styles.path()}
         strokeLinecap="round"
         strokeLinejoin="round"
         strokeWidth="2"
         stroke="currentColor"
         fill="none"
-        d={isIndeterminate ? 'M5 8H11' : 'M4 8.4L6.5 10.9L9.25 8.15L12 5.4'}
-        variants={CHECK_VARIANTS}
+        d={
+          isIndeterminate ? 'M5 8H11'
+          : isSelected ?
+            'M4 8.4L6.5 10.9L9.25 8.15L12 5.4'
+          : ''
+        }
       />
-    </motion.svg>
+    </svg>
   )
 }

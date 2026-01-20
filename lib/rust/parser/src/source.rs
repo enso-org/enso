@@ -3,7 +3,6 @@
 //! [`Token`] (tokens remember the location only, in order to get their representation, the source
 //! code needs to be sampled).
 
-
 // ==============
 // === Export ===
 // ==============
@@ -15,8 +14,6 @@ pub use code::Code;
 pub use span::Offset;
 pub use span::Span;
 pub use span::VisibleOffset;
-
-
 
 /// Popular traits.
 pub mod traits {

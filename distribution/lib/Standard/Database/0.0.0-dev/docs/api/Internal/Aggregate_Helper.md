@@ -7,6 +7,6 @@
 - default_build_aggregate build_aggregate:Standard.Base.Any.Any dialect:Standard.Base.Any.Any base_table:Standard.Base.Any.Any key_columns:Standard.Base.Any.Any resolved_aggregates:Standard.Base.Any.Any problem_builder:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - is_non_empty_selector v:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - make_aggregate_column table:Standard.Base.Any.Any aggregate:Standard.Base.Any.Any as:Standard.Base.Any.Any dialect:Standard.Base.Any.Any infer_return_type:Standard.Base.Any.Any problem_builder:Standard.Base.Any.Any -> Standard.Database.Internal.IR.Internal_Column.Internal_Column
-- make_infer_return_type dialect:Standard.Base.Any.Any connection:Standard.Base.Any.Any context:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- make_infer_return_type connection:Standard.Base.Any.Any context:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - map_column_inputs f:Standard.Base.Function.Function aggregate_column:Standard.Table.Aggregate_Column.Aggregate_Column -> Standard.Table.Aggregate_Column.Aggregate_Column
 - throw_ordering_required op_name:Standard.Base.Any.Any -> Standard.Base.Any.Any

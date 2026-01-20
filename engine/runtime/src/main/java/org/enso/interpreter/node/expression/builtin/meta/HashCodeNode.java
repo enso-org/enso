@@ -39,7 +39,6 @@ import org.enso.interpreter.runtime.callable.UnresolvedConversion;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
-import org.enso.interpreter.runtime.data.EnsoFile;
 import org.enso.interpreter.runtime.data.EnsoMultiValue;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.atom.Atom;
@@ -154,12 +153,6 @@ public abstract class HashCodeNode extends Node {
   long hashCodeForModule(
       Module module, @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop) {
     return hashCodeForString(module.toString(), interop);
-  }
-
-  @Specialization
-  long hashCodeForFile(
-      EnsoFile file, @Shared("interop") @CachedLibrary(limit = "10") InteropLibrary interop) {
-    return hashCodeForString(file.getPath(), interop);
   }
 
   /**

@@ -53,6 +53,9 @@ object GraalVM {
           native                = true
           disableLanguageServer = true
         }
+        case "-ms" => {
+          native = true
+        }
         case v =>
           throw new IllegalStateException(s"Unexpected value of $VAR_NAME: $v")
       }
@@ -61,15 +64,22 @@ object GraalVM {
           s"Cannot specify `shell` and other properties in $VAR_NAME env variable"
         )
       }
-      (shell, native, test, debug, fast, disableLanguageServer)
+      (
+        shell,
+        native,
+        test,
+        debug,
+        fast,
+        disableLanguageServer
+      )
     }
-    def shell                 = parsed._1
     def native                = parsed._2
     def test                  = parsed._3
     def debug                 = parsed._4
     def fast                  = parsed._5
     def disableLanguageServer = parsed._6
-    def release               = native && !test && !debug && !fast && !disableLanguageServer
+    def release =
+      native && !test && !debug && !fast && !disableLanguageServer
   }
 
   case class NativeImageSize(
@@ -84,12 +94,12 @@ object GraalVM {
           windowsX64Release
         } else if (Platform.isLinux) {
           linuxX64Release
-        } else if (Platform.isMacOS && Platform.isAmd64) {
-          macX64Release
         } else if (Platform.isMacOS && Platform.isArm64) {
           macARM64Release
         } else {
-          throw new IllegalArgumentException("Unexpected platform")
+          throw new IllegalArgumentException(
+            s"Unexpected platform: ${Platform.arch()} ${Platform.osName()}"
+          )
         }
       } else {
         testNISize
@@ -97,13 +107,12 @@ object GraalVM {
     }
 
     // Expected production NI sizes deduced from sizes on latest
-    // nightly builds: https://github.com/enso-org/enso/pull/12843#issuecomment-2869897463
+    // nightly builds: https://github.com/enso-org/enso/pull/14565#issue-3781936779
     // With maximal size relaxed by 30 MB.
-    private val windowsX64Release = NativeImageSize(200, 470)
-    private val linuxX64Release   = NativeImageSize(200, 490)
-    private val macX64Release     = NativeImageSize(200, 457)
-    private val macARM64Release   = NativeImageSize(200, 473)
-    private val testNISize        = NativeImageSize(100, 592)
+    private val windowsX64Release = NativeImageSize(100, 273)
+    private val linuxX64Release   = NativeImageSize(100, 300)
+    private val macARM64Release   = NativeImageSize(100, 273)
+    private val testNISize        = NativeImageSize(100, 350)
   }
 
   /** Has the user requested to use Espresso for Java interop? */
@@ -162,6 +171,7 @@ object GraalVM {
       "org.bouncycastle"     % "bcprov-jdk18on"     % "1.78.1",
       "org.graalvm.llvm"     % "llvm-api"           % version,
       "org.graalvm.truffle"  % "truffle-nfi"        % version,
+      "org.graalvm.truffle"  % "truffle-nfi-panama" % version,
       "org.graalvm.truffle"  % "truffle-nfi-libffi" % version,
       "org.graalvm.regex"    % "regex"              % version,
       "org.graalvm.tools"    % "profiler-tool"      % version,
@@ -215,6 +225,9 @@ object GraalVM {
     "Oracle Corporation"
   )
 
+  private val downloadLink =
+    s"https://github.com/graalvm/graalvm-ce-builds/releases/tag/jdk-${Dependencies.graalVersion}"
+
   /** Augments a state transition to do GraalVM version check.
     *
     * @param graalVersion  the GraalVM version that should be used for
@@ -243,7 +256,8 @@ object GraalVM {
     if (!allowedJavaVendors.contains(javaVendor)) {
       log.warn(
         s"Running on non-GraalVM JVM (The actual java.vendor is $javaVendor). " +
-        s"Expected Java vendors: ${allowedJavaVendors.mkString(", ")}."
+        s"Expected Java vendors: ${allowedJavaVendors.mkString(", ")}. " +
+        s"Download link: $downloadLink"
       )
     }
 
@@ -251,7 +265,8 @@ object GraalVM {
     if (javaSpecVersion != javaVersion) {
       log.error(
         s"Running on Java version $javaSpecVersion. " +
-        s"Expected Java version $javaVersion."
+        s"Expected Java version $javaVersion. " +
+        s"Download link: $downloadLink"
       )
       return oldState.fail
     }
@@ -259,10 +274,11 @@ object GraalVM {
     val vmVersion = System.getProperty("java.vm.version")
     tryParseJavaVMVersion(vmVersion) match {
       case Some(version) =>
-        if (version != graalVersion) {
+        if (!isSameVersion(version, graalVersion)) {
           log.error(
             s"Running on GraalVM version $version. " +
-            s"Expected GraalVM version $graalVersion."
+            s"Expected GraalVM version $graalVersion. " +
+            s"Download link: $downloadLink"
           )
           oldState.fail
         } else {
@@ -285,4 +301,40 @@ object GraalVM {
       None
     }
   }
+
+  private def isSameVersion(s1: String, s2: String): Boolean = {
+    if (s1 == s2) {
+      true
+    } else {
+      val semVer1 = toSemVer(s1)
+      val semVer2 = toSemVer(s2)
+      semVer1 == semVer2
+    }
+  }
+
+  private def toSemVer(ver: String): SemVer = {
+    try {
+      if (ver.contains(".")) {
+        val items = ver.split('.')
+        if (items.length == 2) {
+          SemVer(Integer.parseInt(items(0)), Integer.parseInt(items(1)), 0)
+        } else if (items.length == 3) {
+          SemVer(
+            Integer.parseInt(items(0)),
+            Integer.parseInt(items(1)),
+            Integer.parseInt(items(2))
+          )
+        } else {
+          throw new IllegalArgumentException(s"Cannot parse version: $ver")
+        }
+      } else {
+        SemVer(Integer.parseInt(ver), 0, 0)
+      }
+    } catch {
+      case e: NumberFormatException =>
+        throw new IllegalArgumentException(s"Cannot parse version: $ver", e)
+    }
+  }
+
+  private case class SemVer(major: Int, minor: Int, patch: Int)
 }

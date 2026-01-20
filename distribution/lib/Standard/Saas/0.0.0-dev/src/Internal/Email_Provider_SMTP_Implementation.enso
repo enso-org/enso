@@ -1,0 +1,67 @@
+private
+
+from Standard.Base import all
+import Standard.Base.Network.Email.Email_Body.Email_Body
+import Standard.Base.Network.Email.Email_Send_Response.Send_Response
+import Standard.Base.Network.Email.Send_Error.Send_Error
+from Standard.Base.Enso_Cloud.Enso_Secret import as_hideable_value
+
+import project.Email_Provider_SMTP.Email_Provider_SMTP
+
+polyglot java import org.apache.commons.mail.EmailAttachment
+polyglot java import org.apache.commons.mail.EmailException
+polyglot java import org.apache.commons.mail.HtmlEmail
+polyglot java import org.enso.base.enso_cloud.HideableValue
+polyglot java import org.enso.saas.CredentialSetter
+
+## The SMTP implementation of the Email Provider SPI.
+type Email_Provider_SMTP_Implementation
+    private Value config:Email_Provider_SMTP
+
+    send self email:Email =
+        java_email = HtmlEmail.new
+        java_email.setHostName self.config.server
+        java_email.setSmtpPort self.config.port
+        CredentialSetter.setAuthenticator java_email self.config.username (as_hideable_value self.config.password factory=HideableValue)
+        java_email.setSSLOnConnect self.config.use_tls
+
+        from_address = email.from_address
+        if from_address.name.is_empty then java_email.setFrom from_address.address else
+            java_email.setFrom from_address.address from_address.name
+
+        java_email.setSubject email.subject
+        
+        case email.body of
+            Email_Body.HTML html body ->
+                java_email.setHtmlMsg html
+                if body.is_empty.not then
+                    java_email.setTextMsg body
+            Email_Body.Plain_Text body ->
+                java_email.setMsg body
+
+        email.to.each e->
+            if e.name.is_empty then java_email.addTo e.address else
+                java_email.addTo e.address e.name
+        
+        email.cc.each e->
+            if e.name.is_empty then java_email.addCc e.address else
+                java_email.addCc e.address e.name
+
+        email.bcc.each e->
+            if e.name.is_empty then java_email.addBcc e.address else
+                java_email.addBcc e.address e.name
+
+        email.attachments.each attachment->
+            java_attachment = EmailAttachment.new
+            java_attachment.setPath attachment.file.path
+            if attachment.name.is_empty.not then
+                java_attachment.setName attachment.name
+            java_email.attach java_attachment
+
+        _handle_java_exception <|       
+            java_email.send
+            Send_Response.Sent email
+
+_handle_java_exception ~action =
+    Panic.catch EmailException action caught_panic->
+        Error.throw (Send_Error.Error caught_panic.payload.getMessage)

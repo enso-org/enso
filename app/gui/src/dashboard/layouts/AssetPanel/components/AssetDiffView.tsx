@@ -3,8 +3,8 @@ import { DiffEditor } from '@monaco-editor/react'
 import { useSuspenseQueries } from '@tanstack/react-query'
 
 import { StatelessSpinner } from '#/components/StatelessSpinner'
-import type * as backendService from '#/services/Backend'
-import type Backend from '#/services/Backend'
+import type * as backendService from 'enso-common/src/services/Backend'
+import type { Backend } from 'enso-common/src/services/Backend'
 import { versionContentQueryOptions } from './queries'
 
 /** Props for an {@link AssetDiffView}. */

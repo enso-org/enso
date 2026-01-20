@@ -1,21 +1,13 @@
-/**
- * @file
- *
- * This file contains the useMeasure hook, which is used to measure the size and position of an element.
- */
-import { frame, useMotionValue } from 'framer-motion'
-
+/** @file A hook used to measure the size and position of an element. */
+import { findScrollContainers, type HTMLOrSVGElement } from '#/utilities/scrollContainers'
+import { unsafeMutable } from 'enso-common/src/utilities/data/object'
 import { useEffect, useRef, useState } from 'react'
-import { unsafeMutable } from '../utilities/object'
-import { findScrollContainers, type HTMLOrSVGElement } from '../utilities/scrollContainers'
 import { useDebouncedCallback, type DebouncedFunction } from './debounceCallbackHooks'
 import { useEventCallback } from './eventCallbackHooks'
 import { useEventListener } from './eventListenerHooks'
 import { useUnmount } from './unmountHooks'
 
-/**
- * A read-only version of the DOMRect object.
- */
+/** A read-only version of the DOMRect object. */
 export interface RectReadOnly {
   readonly x: number
   readonly y: number
@@ -27,28 +19,20 @@ export interface RectReadOnly {
   readonly left: number
 }
 
-/**
- * A type that represents the result of the useMeasure hook.
- */
+/** Result of the useMeasure hook. */
 type Result = [(element: HTMLOrSVGElement | null) => void, RectReadOnly | null, () => void]
 
-/**
- * A type that represents the state of the useMeasure hook.
- */
+/** State of the useMeasure hook. */
 interface State {
   readonly element: HTMLOrSVGElement | null
   readonly scrollContainers: HTMLOrSVGElement[] | null
   readonly lastBounds: RectReadOnly | null
 }
 
-/**
- * A type that represents a callback that is called when the element is resized.
- */
+/** Callback that is called when the element is resized. */
 export type OnResizeCallback = (bounds: RectReadOnly) => void
 
-/**
- * A type that represents the options for the useMeasure hook.
- */
+/** Options for the useMeasure hook. */
 export interface Options {
   readonly debounce?:
     | number
@@ -59,16 +43,10 @@ export interface Options {
   readonly onResize?: OnResizeCallback
   readonly onInitialMeasure?: OnResizeCallback
   readonly maxWait?: number | { readonly scroll: number; readonly resize: number }
-  /**
-   * Whether to use RAF to measure the element.
-   */
-  readonly useRAF?: boolean
   readonly isDisabled?: boolean
 }
 
-/**
- * Custom hook to measure the size and position of an element
- */
+/** Custom hook to measure the size and position of an element. */
 export function useMeasure(options: Options = {}): Result {
   const { onResize, onInitialMeasure } = options
 
@@ -82,35 +60,6 @@ export function useMeasure(options: Options = {}): Result {
 
   const onInitialMeasureStableCallback = useEventCallback<OnResizeCallback>((nextBounds) => {
     set(nextBounds)
-
-    onInitialMeasure?.(nextBounds)
-  })
-
-  const [ref, forceRefresh] = useMeasureCallback({
-    ...options,
-    onResize: onResizeStableCallback,
-    onInitialMeasure: onInitialMeasureStableCallback,
-  })
-
-  return [ref, bounds, forceRefresh] as const
-}
-
-/**
- * Helper hook that uses motion primitive to optimize renders, works best with motion components
- */
-export function useMeasureSignal(options: Options = {}) {
-  const { onResize, onInitialMeasure } = options
-
-  const bounds = useMotionValue<RectReadOnly | null>(null)
-
-  const onResizeStableCallback = useEventCallback<OnResizeCallback>((nextBounds) => {
-    bounds.set(nextBounds)
-
-    onResize?.(nextBounds)
-  })
-
-  const onInitialMeasureStableCallback = useEventCallback<OnResizeCallback>((nextBounds) => {
-    bounds.set(nextBounds)
 
     onInitialMeasure?.(nextBounds)
   })
@@ -143,7 +92,6 @@ export function useMeasureCallback(
     offsetSize = false,
     onResize,
     maxWait = DEFAULT_MAX_WAIT,
-    useRAF = true,
     isDisabled = false,
     onInitialMeasure,
   } = options
@@ -234,12 +182,6 @@ export function useMeasureCallback(
       attributeFilter: ['style', 'class'],
     })
 
-    if (useRAF) {
-      frame.read(() => {
-        measureCallback()
-      }, true)
-    }
-
     if (scroll && state.current.scrollContainers) {
       state.current.scrollContainers.forEach((scrollContainer) => {
         scrollContainer.addEventListener('scroll', scrollDebounceCallback, {
@@ -266,21 +208,17 @@ export function useMeasureCallback(
     addListeners()
   })
 
-  // add general event listeners
   useEventListener('scroll', scrollDebounceCallback, window, {
     passive: true,
     capture: true,
     isDisabled: !scroll,
   })
-
   useEventListener('resize', resizeDebounceCallback, window, { passive: true })
 
-  // respond to changes that are relevant for the listeners
-  // respond to changes that are relevant for the listeners
   useEffect(() => {
     removeListeners()
     addListeners()
-  }, [useRAF, scroll, removeListeners, addListeners])
+  }, [scroll, removeListeners, addListeners])
 
   useUnmount(removeListeners)
 

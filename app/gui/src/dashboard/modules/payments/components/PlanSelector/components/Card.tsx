@@ -8,7 +8,6 @@ import { Text } from '#/components/Text'
 import type { PaywallLevel } from '#/hooks/billing'
 import type { SubscribeButtonProps } from '#/modules/payments/components/PlanSelector/components/SubscribeButton'
 import { SubscribeButton } from '#/modules/payments/components/PlanSelector/components/SubscribeButton'
-import { Plan, type PlanBillingPeriod } from '#/services/Backend'
 import { tv } from '#/utilities/tailwindVariants'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import * as appUtils from '$/appUtils'
@@ -16,6 +15,7 @@ import { getContactPage } from '$/appUtils'
 import { useBackends } from '$/providers/backends'
 import { useRouter, useText } from '$/providers/react'
 import * as analytics from '$/utils/analytics'
+import { Plan, type PlanBillingPeriod } from 'enso-common/src/services/Backend'
 import * as React from 'react'
 
 /** The mutation data for the `createCheckoutSession` mutation. */
@@ -49,15 +49,7 @@ const PROPS_FOR_PLAN: { readonly [PlanVariant in Plan]: PropsForPlan } = {
       const { getText } = useText()
 
       return (
-        <Button
-          fullWidth
-          variant="outline"
-          size="medium"
-          rounded="full"
-          onPress={() => {
-            window.open(getContactPage(), '_blank')?.focus()
-          }}
-        >
+        <Button fullWidth variant="outline" size="medium" rounded="full" href={getContactPage()}>
           {getText('contactUs')}
         </Button>
       )
@@ -221,7 +213,7 @@ export function Card(props: CardProps) {
         <div className="mt-4">
           <Button
             variant="link"
-            href="https://ensoanalytics.com/pricing"
+            href={`${$config.ENSO_HOST}/pricing`}
             target="_blank"
             icon={OpenInNewTabIcon}
             iconPosition="end"

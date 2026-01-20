@@ -121,6 +121,7 @@ export const TimeField = forwardRef(function TimeField<
 
   return (
     <Form.Field
+      preventLabelFocus
       form={formInstance}
       name={name}
       fullWidth

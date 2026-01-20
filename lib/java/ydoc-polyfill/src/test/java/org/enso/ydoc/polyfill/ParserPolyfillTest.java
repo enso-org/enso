@@ -41,7 +41,8 @@ public class ParserPolyfillTest extends ExecutorSetup {
 
   @Test
   public void parseModule() throws Exception {
-    var code = """
+    var code =
+        """
         const arr = parse_module(`main = 1 + 2`)
         arr.buffer
         """;
@@ -53,7 +54,8 @@ public class ParserPolyfillTest extends ExecutorSetup {
 
   @Test
   public void parseBlock() throws Exception {
-    var code = """
+    var code =
+        """
         const arr = parse_block(`value = 1 + 2`)
         arr.buffer
         """;
@@ -65,7 +67,8 @@ public class ParserPolyfillTest extends ExecutorSetup {
 
   @Test
   public void xxHash128() throws Exception {
-    var code = """
+    var code =
+        """
         xxHash128(`main = 1 + 2`)
         """;
 
@@ -76,7 +79,8 @@ public class ParserPolyfillTest extends ExecutorSetup {
 
   @Test
   public void isIdentOrOperator() throws Exception {
-    var code = """
+    var code =
+        """
         is_ident_or_operator(`ident`)
         """;
 

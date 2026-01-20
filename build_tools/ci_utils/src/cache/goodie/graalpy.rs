@@ -1,23 +1,21 @@
 use crate::prelude::*;
 
-use crate::cache::goodie;
 use crate::cache::Cache;
+use crate::cache::goodie;
 use crate::env::known::PATH;
 use crate::github::RepoRef;
 use crate::programs::graalpy::GraalPy as GraalPyProgram;
 
 use regex::Regex;
 
-
-
 pub const CE_BUILDS_REPOSITORY: RepoRef = RepoRef { owner: "oracle", name: "graalpython" };
 
 #[derive(Clone, Debug)]
 pub struct GraalPy {
-    pub client:  Octocrab,
+    pub client: Octocrab,
     pub version: Version,
-    pub os:      OS,
-    pub arch:    Arch,
+    pub os: OS,
+    pub arch: Arch,
 }
 
 fn graalpy_version_from_str(version_string: &str) -> Result<Version> {
@@ -94,10 +92,10 @@ impl GraalPy {
 
 #[cfg(test)]
 mod tests {
-    use crate::cache::goodie::graalpy::graalpy_version_from_str;
-    use crate::cache::goodie::graalpy::GraalPy;
     use crate::Arch;
     use crate::OS;
+    use crate::cache::goodie::graalpy::GraalPy;
+    use crate::cache::goodie::graalpy::graalpy_version_from_str;
     use octocrab::Octocrab;
     use semver::Version;
 

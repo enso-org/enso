@@ -96,9 +96,9 @@ trait TypeMatchers {
         } else {
           items.lazyZip(t.operands).flatMap(findInequalityWitness).headOption
         }
-      case (In(typed, context), Type.Context(irTyped, irContext, _, _)) =>
-        findInequalityWitness(typed, irTyped).orElse(
-          findInequalityWitness(context, irContext)
+      case (In(typed, context), ctx: Type.Context) =>
+        findInequalityWitness(typed, ctx.typed()).orElse(
+          findInequalityWitness(context, ctx.context())
         )
 
       case _ => Some((sig, expr, "constructors are incompatible"))

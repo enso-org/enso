@@ -7,28 +7,7 @@ essential ones are ready as quickly as possible. In short - to **start fast**.
 This document describes how to measure, record and analyze the startup of the
 Enso engine.
 
-## Collecting the data
-
-### Via the Project Manager
-
-Start `project-manager` with following options to record first 20s of the Enso
-engine startup sequence:
-
-```
-$ project-manager --profiling-path=start.npss --profiling-time=20
-```
-
-Let the IDE connect to just launched `project-manager` - e.g. start the IDE with
-`--no-backed` option. Once the `start.log` and `start.npss` files are generated
-(next to each other), open them in GraalVM's VisualVM:
-
-```
-$ graalvm/bin/jvisualvm --openfile start.npss
-```
-
-Use VisualVM to analyze to recorded data.
-
-### Via the runner
+## Collecting the data via the runner
 
 Runner executable also supports the profiling with the `--profiling-path`
 option. For example, you can run the Enso project with the profiling enabled:

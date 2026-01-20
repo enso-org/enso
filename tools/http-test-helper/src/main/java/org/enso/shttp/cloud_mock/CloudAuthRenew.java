@@ -1,6 +1,5 @@
 package org.enso.shttp.cloud_mock;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
@@ -41,7 +40,8 @@ public class CloudAuthRenew extends SimpleHttpHandler {
   }
 
   private void sendMalformedResponse(HttpExchange exchange) throws IOException {
-    var response = new MalformedRenewResponse(new MalformedAuthenticationResult("foobar", 123, 3600));
+    var response =
+        new MalformedRenewResponse(new MalformedAuthenticationResult("foobar", 123, 3600));
     sendResponse(200, jsonMapper.writeValueAsString(response), exchange);
   }
 

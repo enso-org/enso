@@ -7,8 +7,6 @@ use crate::graphviz::Graph;
 use crate::graphviz::Node;
 use crate::graphviz::NodeType;
 
-
-
 // =============
 // === Graph ===
 // =============
@@ -33,11 +31,12 @@ pub fn graph(typegraph: &TypeGraph) -> Graph {
             graph.edges.push((sparent.clone(), sname.clone(), EdgeType::Subtype));
         }
         match &ty.data {
-            Data::Struct(fields) =>
+            Data::Struct(fields) => {
                 for Field { type_, name: _, hide: _, id: _ } in fields {
                     let sname2 = format!("{}{}", types[type_].name, type_);
                     graph.edges.push((sname.clone(), sname2, EdgeType::Field));
-                },
+                }
+            }
             Data::Primitive(Primitive::U32)
             | Data::Primitive(Primitive::U64)
             | Data::Primitive(Primitive::I32)

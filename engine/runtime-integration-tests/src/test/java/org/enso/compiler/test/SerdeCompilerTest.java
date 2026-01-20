@@ -65,11 +65,11 @@ public class SerdeCompilerTest {
           .filter((m) -> !m.isSynthetic())
           .foreach(
               (m) -> {
-                var future = compiler.context().serializeModule(compiler, m, true, true);
+                var future = compiler.context().serializeModule(compiler, m, true);
                 futures.add(future);
                 return null;
               });
-      futures.add(compiler.compile(false, true, true, scala.Option.empty()));
+      futures.add(compiler.compile(false, true, scala.Option.empty()));
       for (var f : futures) {
         var persisted = f.get(10, TimeUnit.SECONDS);
         assertEquals("Fib_Test library has been fully persisted", true, persisted);
@@ -122,6 +122,7 @@ public class SerdeCompilerTest {
                 RuntimeOptions.LANGUAGE_HOME_OVERRIDE,
                 Paths.get("../../distribution/component").toFile().getAbsolutePath())
             .option(RuntimeOptions.LOG_LEVEL, Level.WARNING.getName())
+            .option(RuntimeOptions.CHECK_CWD, "false")
             .logHandler(mockHandler)
             .option("log.enso.org.enso.compiler.Compiler.level", "FINE")
             .allowAllAccess(true)

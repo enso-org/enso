@@ -19,8 +19,10 @@ import type {
   NodeChild,
   Owned,
   OwnedRefs,
+  ReturnSpecification,
   TextElement,
   TextToken,
+  TypeSignature,
 } from './tree'
 import {
   App,
@@ -36,7 +38,6 @@ import {
   Import,
   Invalid,
   MutableExpressionStatement,
-  MutableIdent,
   MutableInvalid,
   NegationApp,
   NumericLiteral,
@@ -47,6 +48,7 @@ import {
   TypeAnnotated,
   UnaryOprApp,
   Vector,
+  visitRecursive,
   Wildcard,
 } from './tree'
 
@@ -172,6 +174,10 @@ class Abstractor {
         node = Assignment.concrete(this.module, docLine, pattern, equals, value)
         break
       }
+      case RawAst.Tree.Type.Call: {
+        node = this.abstractTree(tree.value).node
+        break
+      }
       case RawAst.Tree.Type.App: {
         const func = this.abstractExpression(tree.func)
         const arg = this.abstractExpression(tree.arg)
@@ -213,14 +219,14 @@ class Abstractor {
             [this.abstractToken(tree.opr.value)]
           : Array.from(tree.opr.error.payload.operators, this.abstractToken.bind(this))
         const rhs = tree.rhs ? this.abstractExpression(tree.rhs) : undefined
-        const soleOpr = iter.tryGetSoleValue(opr)
-        if (soleOpr?.node.code() === '.' && rhs?.node instanceof MutableIdent) {
-          // Propagate type.
-          const rhs_ = { ...rhs, node: rhs.node }
-          node = PropertyAccess.concrete(this.module, lhs, soleOpr, rhs_)
-        } else {
-          node = OprApp.concrete(this.module, lhs, opr, rhs)
-        }
+        node = OprApp.concrete(this.module, lhs, opr, rhs)
+        break
+      }
+      case RawAst.Tree.Type.PropertyAccess: {
+        const lhs = tree.lhs ? this.abstractExpression(tree.lhs) : undefined
+        const opr = this.abstractToken(tree.opr)
+        const rhs = this.abstractToken(tree.rhs)
+        node = PropertyAccess.concrete(this.module, lhs, opr, rhs)
         break
       }
       case RawAst.Tree.Type.Number: {
@@ -239,10 +245,9 @@ class Abstractor {
         node = Wildcard.concrete(this.module, token)
         break
       }
-      // These expression types are (or will be) used for backend analysis.
-      // The frontend can ignore them, avoiding some problems with expressions sharing spans
-      // (which makes it impossible to give them unique IDs in the current IdMap format).
-      case RawAst.Tree.Type.OprSectionBoundary:
+      // This expression type is not yet consistent with the backend's semantics.
+      // The frontend can ignore it, avoiding some problems with expressions sharing spans
+      // (which makes it impossible to give assign unique IDs in the current IdMap format).
       case RawAst.Tree.Type.TemplateFunction:
         return { whitespace, node: this.abstractExpression(tree.ast).node }
       case RawAst.Tree.Type.Invalid: {
@@ -355,6 +360,7 @@ class Abstractor {
       },
       close: arg.close && this.abstractToken(arg.close),
     }))
+    const returns = tree.returns && this.abstractReturnSpecification(tree.returns)
     const equals = this.abstractToken(tree.equals)
     const body = tree.body !== undefined ? this.abstractExpression(tree.body) : undefined
     return FunctionDef.concrete(this.module, {
@@ -366,6 +372,7 @@ class Abstractor {
       private_,
       name,
       argumentDefinitions,
+      returns,
       equals,
       body,
     } satisfies FunctionDefFields<OwnedRefs>)
@@ -436,11 +443,20 @@ class Abstractor {
     }
   }
 
-  private abstractTypeSignature(signature: RawAst.TypeSignature) {
+  private abstractTypeSignature(signature: RawAst.TypeSignature): TypeSignature<OwnedRefs> {
     return {
       name: this.abstractExpression(signature.name),
       operator: this.abstractToken(signature.operator),
       type: this.abstractExpression(signature.typeNode),
+    }
+  }
+
+  private abstractReturnSpecification(
+    spec: RawAst.ReturnSpecification,
+  ): ReturnSpecification<OwnedRefs> {
+    return {
+      arrow: this.abstractToken(spec.arrow),
+      type: this.abstractExpression(spec.typeNode),
     }
   }
 
@@ -467,15 +483,33 @@ export function parseBlock(code: string, module?: MutableModule): Owned<MutableB
 }
 
 /**
- * Parse the input as a statement. If it cannot be parsed as a statement (e.g. it is invalid or a block), returns
- * `undefined`.
+ * Parse the input as a block statement. If it cannot be parsed as a statement (e.g. it is invalid
+ * or a block), returns `undefined`.
  */
-export function parseStatement(
+export function parseBlockStatement(
   code: string,
   module?: MutableModule,
 ): Owned<MutableStatement> | undefined {
   const module_ = module ?? MutableModule.Transient()
   const ast = parseBlock(code, module)
+  const soleStatement = iter.tryGetSoleValue(ast.statements())
+  if (!soleStatement) return
+  const parent = parentId(soleStatement)
+  if (parent) module_.delete(parent)
+  soleStatement.fields.set('parent', undefined)
+  return asOwned(soleStatement)
+}
+
+/**
+ * Parse the input as a module statement. If it cannot be parsed as a statement (e.g. it is invalid
+ * or a block), returns `undefined`.
+ */
+export function parseModuleStatement(
+  code: string,
+  module?: MutableModule,
+): Owned<MutableStatement> | undefined {
+  const module_ = module ?? MutableModule.Transient()
+  const ast = parseModule(code, module)
   const soleStatement = iter.tryGetSoleValue(ast.statements())
   if (!soleStatement) return
   const parent = parentId(soleStatement)
@@ -516,7 +550,7 @@ export function parseModuleWithSpans(
 /** Return the number of `Ast`s in the tree, including the provided root. */
 export function astCount(ast: Ast): number {
   let count = 0
-  ast.visitRecursive((_subtree) => {
+  visitRecursive(ast, (_subtree) => {
     count += 1
   })
   return count

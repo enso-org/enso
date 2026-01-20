@@ -51,10 +51,10 @@ public class WarningsTest {
         ctxRule.eval(
             "enso",
             """
-    from Standard.Base import Warning
+            from Standard.Base import Warning
 
-    wrap msg value = Warning.attach msg value
-    """);
+            wrap msg value = Warning.attach msg value
+            """);
     wrap = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "wrap");
   }
 
@@ -155,17 +155,17 @@ public class WarningsTest {
   public void toDisplayText() throws Exception {
     var code =
         """
-    from Standard.Base import Integer, Warning, Error, Text
+        from Standard.Base import Integer, Warning, Error, Text
 
-    type My_Warning
-        private Value msg
+        type My_Warning
+            private Value msg
 
-        to_display_text self -> Text = Error.throw "Don't call me!"
-        to_text self -> Text = "My_Warning to_text: "+self.msg
+            to_display_text self -> Text = Error.throw "Don't call me!"
+            to_text self -> Text = "My_Warning to_text: "+self.msg
 
-    fn =
-        Warning.attach (My_Warning.Value "ONE") 1
-    """;
+        fn =
+            Warning.attach (My_Warning.Value "ONE") 1
+        """;
 
     var module = ctxRule.eval(LanguageInfo.ID, code);
     var ownWarning = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "fn");
@@ -217,15 +217,15 @@ public class WarningsTest {
   public void warningOnAnError() throws Exception {
     var code =
         """
-    from Standard.Base import Integer, Warning, Error
-    import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
-    from Standard.Base.Errors.Common import Out_Of_Range
+        from Standard.Base import Integer, Warning, Error
+        import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+        from Standard.Base.Errors.Common import Out_Of_Range
 
-    err_warn -> Integer ! Illegal_Argument =
-        v = Warning.attach (Out_Of_Range.Error "qewr") 12
-        case v of
-            _ : Integer -> Error.throw (Illegal_Argument.Error "asdf")
-    """;
+        err_warn -> Integer ! Illegal_Argument =
+            v = Warning.attach (Out_Of_Range.Error "qewr") 12
+            case v of
+                _ : Integer -> Error.throw (Illegal_Argument.Error "asdf")
+        """;
 
     var module = ctxRule.eval(LanguageInfo.ID, code);
     var errorWithWarning = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "err_warn");

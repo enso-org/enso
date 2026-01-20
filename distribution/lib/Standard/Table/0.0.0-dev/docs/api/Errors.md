@@ -65,7 +65,7 @@
     - Error
     - to_display_text self -> Standard.Base.Any.Any
 - type Inexact_Type_Coercion
-    - Warning requested_type:Standard.Table.Value_Type.Value_Type actual_type:Standard.Table.Value_Type.Value_Type unavailable:Standard.Base.Data.Boolean.Boolean=
+    - Warning requested_type:Standard.Table.Value_Type.Value_Type actual_type:Standard.Table.Value_Type.Value_Type unavailable:Standard.Base.Data.Boolean.Boolean= extra_message:Standard.Base.Data.Text.Text=
     - to_display_text self -> Standard.Base.Any.Any
     - to_text self -> Standard.Base.Any.Any
 - type Invalid_Aggregate_Column
@@ -154,6 +154,9 @@
     - to_display_text self -> Standard.Base.Any.Any
 - type Not_All_Rows_Downloaded
     - Warning max_rows:Standard.Base.Data.Numbers.Integer
+    - to_display_text self -> Standard.Base.Any.Any
+- type Not_Enough_Groups
+    - Error expected_count:Standard.Base.Data.Numbers.Integer actual_count:Standard.Base.Data.Numbers.Integer
     - to_display_text self -> Standard.Base.Any.Any
 - type Nothing_Value_In_Filter_Condition
     - Error filter_condition:Standard.Base.Data.Filter_Condition.Filter_Condition

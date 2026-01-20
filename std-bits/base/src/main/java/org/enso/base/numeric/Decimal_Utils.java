@@ -17,7 +17,7 @@ public class Decimal_Utils {
     try {
       return new BigDecimal(s);
     } catch (NumberFormatException e) {
-      var df = (DecimalFormat)DecimalFormat.getInstance(Locale.ROOT);
+      var df = (DecimalFormat) DecimalFormat.getInstance(Locale.ROOT);
       df.setParseBigDecimal(true);
       return df.parse(s);
     }

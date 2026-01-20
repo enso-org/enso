@@ -1,0 +1,27 @@
+from Standard.Base import all
+from Standard.Table import all
+from Standard.Database import all
+from Standard.DuckDB import all
+
+from Standard.Test import all
+
+add_specs suite_builder =
+    suite_builder.group "DuckDB_Parquet" group_builder->
+        data_file = enso_project.data / 'house-price.parquet'
+
+        group_builder.specify "Read a parquet file into Enso as an In-Memory Table" <|
+            connect = Database.connect DuckDB.In_Memory
+            raw_query = "SELECT * FROM '" + (data_file.path.replace "'" "''") + "'"
+            table = connect.execute_query raw_query ..All_Rows
+            table.row_count.should_equal 545
+
+        group_builder.specify "Read a parquet file into Enso as an In-Database Table" <|
+            connect = Database.connect DuckDB.In_Memory
+            raw_query = "SELECT * FROM '" + (data_file.path.replace "'" "''") + "'"
+            table = connect.query (..Raw_SQL raw_query)
+            table.row_count.should_equal 545
+
+main filter=Nothing =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter filter

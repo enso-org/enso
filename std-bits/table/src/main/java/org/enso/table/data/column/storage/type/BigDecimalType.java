@@ -7,22 +7,37 @@ import org.enso.table.data.column.builder.BuilderForType;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.problems.ProblemAggregator;
 
-public record BigDecimalType() implements StorageType<BigDecimal>, NumericType {
+public final class BigDecimalType implements StorageType<BigDecimal>, NumericType {
   public static final BigDecimalType INSTANCE = new BigDecimalType();
+
+  private final int scale;
+
+  private BigDecimalType() {
+    this.scale = -1;
+  }
+
+  /**
+   * Creates a BigDecimalType with a specified scale. Used for going to databases - In-Memory Enso
+   * always uses scale -1.
+   *
+   * @param scale the scale to be used for BigDecimal values
+   */
+  public BigDecimalType(int scale) {
+    this.scale = scale;
+  }
+
+  public int getScale() {
+    return scale;
+  }
+
+  @Override
+  public char typeChar() {
+    return 'D';
+  }
 
   @Override
   public boolean isNumeric() {
     return true;
-  }
-
-  @Override
-  public boolean hasDate() {
-    return false;
-  }
-
-  @Override
-  public boolean hasTime() {
-    return false;
   }
 
   @Override

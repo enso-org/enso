@@ -103,10 +103,10 @@ class DocumentationCommentsTest extends CompilerTest with Inside {
     "be associated with atoms and methods" in {
       ir.bindings.length shouldEqual 2
       ir.bindings.head shouldBe an[Definition.SugaredType]
-      ir.bindings(1) shouldBe an[definition.Method]
+      ir.bindings()(1) shouldBe an[definition.Method]
 
       getDoc(ir.bindings.head) shouldEqual " This is doc for My_Atom"
-      getDoc(ir.bindings(1)) shouldEqual " This is doc for my_method"
+      getDoc(ir.bindings()(1)) shouldEqual " This is doc for my_method"
     }
 
     "be associated with modules" in {
@@ -291,9 +291,9 @@ class DocumentationCommentsTest extends CompilerTest with Inside {
       getDoc(tp) shouldEqual " the type Foo"
       val t1 = tp.body.head
       getDoc(t1) shouldEqual " the constructor Bar"
-      val t2 = tp.body(1)
+      val t2 = tp.body().apply(1)
       getDoc(t2) shouldEqual " the included Unit"
-      val method = tp.body(2).asInstanceOf[Function.Binding]
+      val method = tp.body().apply(2).asInstanceOf[Function.Binding]
       getDoc(method) shouldEqual " a method"
       val block = method.body.asInstanceOf[Expression.Block]
       getDoc(block.expressions.head) shouldEqual " a statement"
@@ -350,7 +350,7 @@ class DocumentationCommentsTest extends CompilerTest with Inside {
 
       val t1 = ir.bindings.head
       getDoc(t1) shouldEqual " the type Foo"
-      inside(ir.bindings(1)) { case method: definition.Method.Explicit =>
+      inside(ir.bindings()(1)) { case method: definition.Method.Explicit =>
         getDoc(method) shouldEqual " a method"
         inside(method.body) { case lambda: Function.Lambda =>
           inside(lambda.body) { case block: Expression.Block =>
@@ -360,7 +360,7 @@ class DocumentationCommentsTest extends CompilerTest with Inside {
         }
       }
 
-      inside(ir.bindings(2)) { case method: definition.Method.Explicit =>
+      inside(ir.bindings()(2)) { case method: definition.Method.Explicit =>
         inside(method.body) { case lambda: Function.Lambda =>
           inside(lambda.body) { case block: Expression.Block =>
             inside(block.returnValue) { case caseExpr: Case.Expr =>

@@ -1,4 +1,3 @@
-import { Err, Ok, Result, unwrap } from '@/util/data/result'
 import {
   qnJoin,
   qnSplit,
@@ -6,6 +5,8 @@ import {
   type IdentifierOrOperatorIdentifier,
   type QualifiedName,
 } from '@/util/qualifiedName'
+import type { Opt } from 'enso-common/src/utilities/data/opt'
+import { Err, Ok, unwrap, type Result } from 'enso-common/src/utilities/data/result'
 import { assert, assertDefined } from 'ydoc-shared/util/assert'
 
 export type ProjectName = QualifiedName
@@ -61,8 +62,8 @@ export class ProjectPath {
   }
 
   /** Checks for equality */
-  equals(b: ProjectPath): boolean {
-    return this.path === b.path && this.project === b.project
+  equals(b: Opt<ProjectPath>): boolean {
+    return b != null && this.path === b.path && this.project === b.project
   }
 
   /** Returns the path with the given qualified name appended */

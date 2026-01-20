@@ -8,7 +8,7 @@ import {
   type Text,
 } from '@codemirror/state'
 import { Decoration, type DecorationSet, EditorView } from '@codemirror/view'
-import { type Tree } from '@lezer/common'
+import type { Tree } from '@lezer/common'
 import { Range } from 'ydoc-shared/util/data/range'
 
 /** Extension applying a CSS class to identify the cursor's location in the document, for edit-mode rendering. */

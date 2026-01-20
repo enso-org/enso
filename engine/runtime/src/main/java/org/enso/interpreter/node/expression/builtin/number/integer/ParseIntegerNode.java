@@ -14,8 +14,10 @@ import org.enso.interpreter.runtime.number.EnsoBigInteger;
 @BuiltinMethod(
     type = "Integer",
     name = "parse",
-    description = """
-Parse integer number""",
+    description =
+"""
+Parse integer number\
+""",
     autoRegister = false)
 public final class ParseIntegerNode extends Node {
   @Child ToJavaStringNode toJavaString = ToJavaStringNode.build();

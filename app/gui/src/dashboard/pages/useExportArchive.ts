@@ -3,11 +3,11 @@ import { backendMutationOptions } from '#/hooks/backendHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useDownloadDirectory } from '#/layouts/Drive/useDownloadDirectory'
 import { useDriveStore } from '#/providers/DriveProvider'
-import type Backend from '#/services/Backend'
-import { Path } from '#/services/Backend'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { useText } from '$/providers/react'
-import { PRODUCT_NAME } from 'enso-common'
+import { PRODUCT_NAME } from 'enso-common/src/constants'
+import type { Backend } from 'enso-common/src/services/Backend'
+import { Path } from 'enso-common/src/services/Backend'
 import { toReadableIsoString } from 'enso-common/src/utilities/data/dateTime'
 import { toast } from 'react-toastify'
 
@@ -30,11 +30,11 @@ export function useExportArchive(options: ExportArchiveOptions) {
     const secondsString = new Date().getSeconds().toString().padStart(2, '0')
     const dateString = `${toReadableIsoString(new Date()).replace(/[:]/g, ' ')} ${secondsString}`
     const [filePathRaw] =
-      (await window.fileBrowserApi?.openFileBrowser(
+      (await window.api?.fileBrowser.openFileBrowser(
         'filePath',
         `${downloadDirectory}/${PRODUCT_NAME} ${dateString}.zip`,
       )) ?? []
-    if (window.fileBrowserApi && filePathRaw == null) {
+    if (window.api && filePathRaw == null) {
       // Assume that the user cancelled the action.
       return
     }

@@ -21,16 +21,16 @@ public class AnyToTest {
         new Type[] {ensoCtx.getBuiltins().number().getInteger(), ensoCtx.getBuiltins().text()};
     var code =
         """
-    from Standard.Base import all
+        from Standard.Base import all
 
-    private eq a b = a == b
+        private eq a b = a == b
 
-    conv style v = case style of
-        0 -> v.to Integer
-        1 -> v:Integer
-        99 -> eq
+        conv style v = case style of
+            0 -> v.to Integer
+            1 -> v:Integer
+            99 -> eq
 
-    """;
+        """;
     var conv = ctxRule.evalModule(Source.newBuilder("enso", code, "conv.enso").build(), "conv");
     var both =
         EnsoMultiValue.NewNode.getUncached()
@@ -61,16 +61,16 @@ public class AnyToTest {
         new Type[] {ensoCtx.getBuiltins().number().getInteger(), ensoCtx.getBuiltins().text()};
     var code =
         """
-    from Standard.Base import all
+        from Standard.Base import all
 
-    private eq a b = a == b
+        private eq a b = a == b
 
-    conv style:Integer v = case style of
-        2 -> v.to Text
-        3 -> v:Text
-        99 -> eq
+        conv style:Integer v = case style of
+            2 -> v.to Text
+            3 -> v:Text
+            99 -> eq
 
-    """;
+        """;
     var conv = ctxRule.evalModule(Source.newBuilder("enso", code, "conv.enso").build(), "conv");
     var both =
         EnsoMultiValue.NewNode.getUncached()

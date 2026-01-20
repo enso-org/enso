@@ -1,27 +1,41 @@
 package org.enso.table.data.column.storage;
 
-import java.util.BitSet;
+import java.lang.foreign.MemorySegment;
+import java.nio.DoubleBuffer;
 import java.util.NoSuchElementException;
 import org.enso.table.data.column.storage.iterators.ColumnDoubleStorageIterator;
 import org.enso.table.data.column.storage.type.FloatType;
+import org.enso.table.util.ImmutableBitSet;
 
 /** A column containing floating point numbers. */
 public final class DoubleStorage extends Storage<Double>
-    implements ColumnDoubleStorage, ColumnStorageWithNothingMap {
-  final double[] data;
-  final BitSet isNothing;
+    implements ColumnDoubleStorage, ColumnStorageWithValidityMap {
+  private final DoubleBuffer data;
+  private final ImmutableBitSet validityMap;
   private final int size;
+
+  /** original proxy storage to keep from being garbage collected */
+  private final ColumnStorage<?> proxy;
 
   /**
    * @param data the underlying data
-   * @param size the number of items stored
-   * @param isNothing a bit set denoting at index {@code i} whether the value at index {@code i} is
-   *     Nothing.
+   * @param validityMap a bit set denoting at index {@code i} whether there is a real value at that
+   *     index.
+   * @param otherStorage reference to proxy storage to prevent it from being GCed while this storage
+   *     is used
    */
-  public DoubleStorage(double[] data, int size, BitSet isNothing) {
+  public DoubleStorage(
+      DoubleBuffer data, ImmutableBitSet validityMap, ColumnStorage<?> otherStorage) {
+    super(FloatType.FLOAT_64);
     this.data = data;
-    this.isNothing = isNothing;
-    this.size = size;
+    this.validityMap = validityMap;
+    this.size = data.limit();
+    this.proxy = otherStorage;
+  }
+
+  @Override
+  public FloatType getType() {
+    return (FloatType) super.getType();
   }
 
   @Override
@@ -30,13 +44,23 @@ public final class DoubleStorage extends Storage<Double>
   }
 
   @Override
-  public Double getItemBoxed(long idx) {
-    return isNothing(idx) ? null : data[Math.toIntExact(idx)];
+  public long addressOfData() {
+    return MemorySegment.ofBuffer(data).address();
   }
 
   @Override
-  public BitSet getIsNothingMap() {
-    return isNothing;
+  public long addressOfValidity() {
+    return MemorySegment.ofBuffer(validityMap.rawData()).address();
+  }
+
+  @Override
+  public Double getItemBoxed(long idx) {
+    return isNothing(idx) ? null : data.get(Math.toIntExact(idx));
+  }
+
+  @Override
+  public ImmutableBitSet getValidityMap() {
+    return validityMap;
   }
 
   @Override
@@ -44,12 +68,7 @@ public final class DoubleStorage extends Storage<Double>
     if (isNothing(index)) {
       throw new ValueIsNothingException(index);
     }
-    return data[Math.toIntExact(index)];
-  }
-
-  @Override
-  public FloatType getType() {
-    return FloatType.FLOAT_64;
+    return data.get(Math.toIntExact(index));
   }
 
   @Override
@@ -57,44 +76,44 @@ public final class DoubleStorage extends Storage<Double>
     if (idx < 0 || idx >= getSize()) {
       throw new IndexOutOfBoundsException(idx);
     }
-    return isNothing.get((int) idx);
+    return !validityMap.get((int) idx);
   }
 
   /** Allow access to the underlying data array for copying. */
-  public double[] getData() {
-    return data;
+  public DoubleBuffer getData() {
+    return data.asReadOnlyBuffer();
   }
 
   @Override
   public ColumnDoubleStorageIterator iteratorWithIndex() {
-    return new DoubleStorageIterator(data, isNothing, (int) getSize());
+    return new DoubleStorageIterator(data, validityMap, (int) getSize());
   }
 
   private static class DoubleStorageIterator implements ColumnDoubleStorageIterator {
-    private final double[] data;
-    private final BitSet isNothing;
+    private final DoubleBuffer data;
+    private final ImmutableBitSet validityMap;
     private final int size;
     private int index = -1;
 
-    public DoubleStorageIterator(double[] data, BitSet isNothing, int size) {
+    public DoubleStorageIterator(DoubleBuffer data, ImmutableBitSet validityMap, int size) {
       this.data = data;
-      this.isNothing = isNothing;
+      this.validityMap = validityMap;
       this.size = size;
     }
 
     @Override
     public Double getItemBoxed() {
-      return isNothing.get(index) ? null : data[index];
+      return !validityMap.get(index) ? null : data.get(index);
     }
 
     @Override
     public double getItemAsDouble() {
-      return data[index];
+      return data.get(index);
     }
 
     @Override
     public boolean isNothing() {
-      return isNothing.get(index);
+      return !validityMap.get(index);
     }
 
     @Override

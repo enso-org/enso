@@ -17,5 +17,7 @@ public final class ExternalLibrarySecretHelper extends SecretValueResolver {
       List.of(
           new RestrictedAccess.AccessLocation("org.enso.aws.ClientBuilder", "unsafeResolveSecrets"),
           new RestrictedAccess.AccessLocation(
-              "org.enso.microsoft.azure.CredentialHelper", "unsafeResolveSecrets"));
+              "org.enso.microsoft.azure.CredentialHelper", "unsafeResolveSecrets"),
+          new RestrictedAccess.AccessLocation(
+              "org.enso.saas.CredentialSetter", "unsafeResolveSecrets"));
 }

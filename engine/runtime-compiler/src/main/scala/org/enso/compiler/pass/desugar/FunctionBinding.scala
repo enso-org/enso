@@ -26,6 +26,7 @@ import org.enso.compiler.pass.analyse.{
 }
 import org.enso.compiler.pass.optimise.LambdaConsolidate
 import org.enso.compiler.pass.resolve.IgnoredBindings
+import org.enso.persist.Persistance
 
 /** This pass handles the desugaring of long-form function and method
   * definitions into standard bindings using lambdas.
@@ -72,7 +73,8 @@ case object FunctionBinding extends IRPass {
   override def runModule(
     ir: Module,
     moduleContext: ModuleContext
-  ): Module = ir.copy(bindings = ir.bindings.map(desugarModuleSymbol))
+  ): Module =
+    ir.copyWithBindings(ir.bindings.map(desugarModuleSymbol))
 
   /** Runs desugaring of function bindings on an arbitrary expression.
     *
@@ -100,16 +102,22 @@ case object FunctionBinding extends IRPass {
         throw new CompilerError("The arguments list should not be empty.")
       }
 
-      val lambda = functionBinding.arguments
+      val lambdaBeforeCopy = functionBinding.arguments
         .map(_.mapExpressions(desugarExpression))
         .foldRight(desugarExpression(functionBinding.body))((arg, body) =>
-          new Function.Lambda(List(arg), body, null)
+          Function.Lambda
+            .builder()
+            .arguments(List(arg))
+            .bodyReference(Persistance.Reference.of(body, true))
+            .build()
         )
         .asInstanceOf[Function.Lambda]
-        .copy(
-          canBeTCO = functionBinding.canBeTCO,
-          location = functionBinding.location()
-        )
+
+      val lambda = Function.Lambda
+        .builder(lambdaBeforeCopy)
+        .canBeTCO(functionBinding.canBeTCO)
+        .location(functionBinding.identifiedLocation())
+        .build()
 
       Expression.Binding(
         name               = functionBinding.name,
@@ -143,41 +151,45 @@ case object FunctionBinding extends IRPass {
         )
 
       // Conversion methods cannot be specified as private
-      case meth @ definition.Method.Binding(
-            methRef,
-            _,
-            isPrivate,
-            _,
-            _,
-            _
-          ) if isPrivate && methRef.methodName.name == conversionMethodName =>
-        errors.Conversion(meth, errors.Conversion.DeclaredAsPrivate)
+      case meth: definition.Method.Binding
+          if meth.isPrivate && meth
+            .methodReference()
+            .methodName
+            .name == conversionMethodName =>
+        errors.Conversion.create(
+          meth,
+          errors.Conversion.DeclaredAsPrivate.INSTANCE
+        )
 
-      case methodBinding @ definition.Method.Binding(
-            methRef,
-            args,
-            isPrivate,
-            body,
-            _,
-            _
-          ) =>
+      case methodBinding: definition.Method.Binding =>
+        val methRef    = methodBinding.methodReference()
+        val args       = methodBinding.arguments
+        val body       = methodBinding.body
+        val isPrivate  = methodBinding.isPrivate
         val methodName = methRef.methodName.name
 
         if (methodName != conversionMethodName) {
           val newBody = args
             .map(_.mapExpressions(desugarExpression))
             .foldRight(desugarExpression(body))((arg, body) =>
-              new Function.Lambda(List(arg), body, null)
+              Function.Lambda
+                .builder()
+                .arguments(List(arg))
+                .bodyReference(Persistance.Reference.of(body, true))
+                .build()
             )
 
-          new definition.Method.Explicit(methodBinding, newBody)
+          definition.Method.Explicit.fromMethodBinding(methodBinding, newBody)
         } else {
           if (args.isEmpty)
-            errors.Conversion(methodBinding, errors.Conversion.MissingArgs)
+            errors.Conversion.create(
+              methodBinding,
+              errors.Conversion.MissingArgs.INSTANCE
+            )
           else if (args.head.ascribedType.isEmpty) {
-            errors.Conversion(
+            errors.Conversion.create(
               args.head,
-              errors.Conversion.MissingSourceType(args.head.name.name)
+              new errors.Conversion.MissingSourceType(args.head.name.name)
             )
           } else {
             org.enso.common.Asserts
@@ -249,9 +261,9 @@ case object FunctionBinding extends IRPass {
                 .find(_.defaultValue.isEmpty) match {
                 case Some(nonDefaultedArg) =>
                   Left(
-                    errors.Conversion(
+                    errors.Conversion.create(
                       nonDefaultedArg,
-                      errors.Conversion.NonDefaultedArgument(
+                      new errors.Conversion.NonDefaultedArgument(
                         nonDefaultedArg.name.name
                       )
                     )
@@ -260,10 +272,14 @@ case object FunctionBinding extends IRPass {
                   val newBody = (requiredArgs ::: remainingArgs)
                     .map(_.mapExpressions(desugarExpression))
                     .foldRight(desugarExpression(body))((arg, body) =>
-                      new Function.Lambda(List(arg), body, null)
+                      Function.Lambda
+                        .builder()
+                        .arguments(List(arg))
+                        .bodyReference(Persistance.Reference.of(body, true))
+                        .build()
                     )
                   Right(
-                    new definition.Method.Conversion(
+                    definition.Method.Conversion.fromMethodBinding(
                       methodBinding,
                       firstArgumentType,
                       newBody
@@ -278,9 +294,9 @@ case object FunctionBinding extends IRPass {
                 ) {
                   if (newSndArgument.name.name != ConstantsNames.THAT_ARGUMENT)
                     Left(
-                      errors.Conversion(
+                      errors.Conversion.create(
                         newSndArgument,
-                        errors.Conversion.InvalidSourceArgumentName(
+                        new errors.Conversion.InvalidSourceArgumentName(
                           newSndArgument.name.name
                         )
                       )
@@ -290,9 +306,9 @@ case object FunctionBinding extends IRPass {
                   newFirstArgument.name.name != ConstantsNames.THAT_ARGUMENT
                 ) {
                   Left(
-                    errors.Conversion(
+                    errors.Conversion.create(
                       newFirstArgument,
-                      errors.Conversion.InvalidSourceArgumentName(
+                      new errors.Conversion.InvalidSourceArgumentName(
                         newFirstArgument.name.name
                       )
                     )
@@ -303,9 +319,9 @@ case object FunctionBinding extends IRPass {
                   newFirstArgument.name.name != ConstantsNames.THAT_ARGUMENT
                 ) {
                   Left(
-                    errors.Conversion(
+                    errors.Conversion.create(
                       newFirstArgument,
-                      errors.Conversion.InvalidSourceArgumentName(
+                      new errors.Conversion.InvalidSourceArgumentName(
                         newFirstArgument.name.name
                       )
                     )

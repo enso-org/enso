@@ -1,6 +1,5 @@
 package org.enso.os.environment.chdir;
 
-import java.io.File;
 import java.util.List;
 import org.enso.common.Platform;
 import org.graalvm.nativeimage.c.CContext;
@@ -34,6 +33,8 @@ final class WindowsWorkingDirectory extends WorkingDirectory {
 
   @Override
   public boolean changeWorkingDir(String path) {
+    path = normalizeSlashes(path);
+
     try (var cPath = CTypeConversion.toCString(path)) {
       var res = SetCurrentDirectoryA(cPath.get());
       if (res == 0) {
@@ -49,18 +50,24 @@ final class WindowsWorkingDirectory extends WorkingDirectory {
 
   @Override
   public boolean exists(String dir, String file) {
-    String full;
-    if (dir.endsWith(File.separator)) {
-      full = dir + file;
-    } else {
-      full = dir + File.separator + file;
-    }
+    dir = normalizeSlashes(dir);
+    file = normalizeSlashes(file);
+    var full = dir + Platform.separatorChar() + file;
     try (var cPath = CTypeConversion.toCString(full)) {
       var res = PathFileExistsA(cPath.get());
       return res != 0;
     } catch (Throwable t) {
       LOGGER.error("Cannot check if {} exists on Windows", full, t);
       return false;
+    }
+  }
+
+  private static String normalizeSlashes(String path) {
+    var newPath = path.replace('/', Platform.separatorChar());
+    if (newPath.endsWith("" + Platform.separatorChar())) {
+      return newPath.substring(0, newPath.length() - 1);
+    } else {
+      return newPath;
     }
   }
 

@@ -1,6 +1,6 @@
 import { assert } from '@/util/assert'
 import * as react from 'react'
-import { Ref, toValue, watch, WatchSource } from 'vue'
+import { toValue, watch, type Ref, type WatchSource } from 'vue'
 
 /**
  * A helper for getting contexts where they are asserted to be provided with non-nullish
@@ -29,7 +29,7 @@ export function useVueValue<T>(selector: WatchSource<T>, deep = false): T {
         setState(newValue)
       },
       // We need to set state synchronously to make react transitions working properly.
-      { flush: 'sync', deep },
+      { flush: 'sync', deep, immediate: true },
     )
   }, [selector, deep])
   return state

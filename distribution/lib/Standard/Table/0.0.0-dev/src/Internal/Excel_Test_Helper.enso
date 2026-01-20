@@ -1,0 +1,18 @@
+from Standard.Base import all
+
+polyglot java import org.enso.base.cache.ReloadDetector
+polyglot java import org.enso.table.excel.internal.ExcelConnectionPool
+
+## ---
+   private: true
+   ---
+   A test only helper that handles simulates a reload on the ExcelConnectionPool
+simulate_reload_test_only =
+    ReloadDetector.simulateReloadTestOnly ExcelConnectionPool.INSTANCE
+
+## ---
+   private: true
+   ---
+   A test only helper that gets the number of cached workbooks in the ExcelConnectionPool
+get_workbooks_cache_size =
+    ExcelConnectionPool.INSTANCE.getWorkbooksCacheSize

@@ -1,0 +1,14 @@
+from Standard.Base import all
+
+## Represents a SQL function call allowing for custom SQL expressions in table operations.
+type SQL_Function
+    ## ---
+       icon: column_add
+       ---
+       Create a custom SQL function call expression.
+       The function will be called with the provided arguments.
+
+       ## Arguments
+        - `function_name`: the name of the SQL function to call.
+        - `arguments`: the arguments to pass to the SQL function.
+    SQL function_name:Text=(Missing_Argument.throw "function_name") arguments:Vector=[]

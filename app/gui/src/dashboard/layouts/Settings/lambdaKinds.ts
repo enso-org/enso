@@ -1,6 +1,6 @@
 /** @file Kinds of lambda. */
 import type { SvgUseIcon } from '#/components/types'
-import { includesPredicate } from '#/utilities/array'
+import { includesPredicate } from '$/utils/data/array'
 import type { TextId } from 'enso-common/src/text'
 
 /** Possible kinds of audit log entry, excluding the "get secret" endpoint. */

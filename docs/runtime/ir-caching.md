@@ -10,15 +10,17 @@ order: 10
 
 One of the largest pain points for users of Enso at the moment is the fact that
 it has to precompile the entire standard library on every project load. This is,
-in essence, due to the fact that the current parser is abysmally slow, and
-incredibly demanding. The obvious solution to improve this is to take the parser
-out of the equation in its entirety, by serializing the parser's output.
+in essence, due to the fact that while the current parser (rewritten to Rust) is
+fast, the compiler passes that follow continue to be abysmally slow, and
+incredibly demanding. The obvious solution to improve this is to take the
+compiler passes out of the equation in its entirety, by serializing their IR
+output.
 
 To that end, we want to serialize the Enso IR to a format that can later be read
-back in, bypassing the parser entirely. Furthermore, we can move the boundary at
-which this serialization takes place to the end of the compiler pipeline,
-thereby bypassing doing most of the compilation work, and further improving
-startup performance.
+back in, bypassing parser and many compiler passes entirely. Furthermore, by
+moving the boundary at which this serialization takes place to the end of the
+compiler pipeline, thereby bypassing doing most of the compilation work, and
+further improving startup performance.
 
 <!-- MarkdownTOC levels="2,3" autolink="true" -->
 
@@ -40,7 +42,7 @@ startup performance.
 
 Using classical Java Serialization turned out to be unsuitably slow. Rather than
 switching to other serialization framework that does the same, but faster we
-desided in [PR-8207](https://github.com/enso-org/enso/pull/8207) to create _own
+decided in [PR-8207](https://github.com/enso-org/enso/pull/8207) to create _own
 persistance framework_ that radically changes the way we can read the caches.
 Rather than loading all the megabytes of stored data, it reads them _lazily on
 demand_.
@@ -49,7 +51,7 @@ Use following command to generate the Javadoc for the `org.enso.persist`
 package:
 
 ```bash
-enso$ find lib/java/persistance/src/main/java/ | grep java$ | xargs ~/bin/graalvm-21/bin/javadoc -d target/javadoc/ --snippet-path lib/java/persistance/src/test/java/
+enso$ find lib/java/persistance/src/main/java/ | grep java$ | xargs /graalvm-24/bin/javadoc -d target/javadoc/ --snippet-path lib/java/persistance/src/test/java/
 enso$ links target/javadoc/index.html
 ```
 
@@ -70,8 +72,9 @@ the `ModuleScope`. The `ModuleScope` may then reference other `runtime.Module`s
 which all contain `IR.Module`s. Therefore, done in a silly fashion, we end up
 serializing the entire reachable module graph. This is not what we want.
 
-The `Persistance.write` method contains additional `writeReplace` function which
-our cache system uses to perform following modification just before
+The `Persistance.Pool` with its `write` method allows an additional
+`writeReplace` function to be associated with it. The IR caches system uses such
+a function to perform following modification just before
 `ProcessingPass.Metadata` are stored down:
 
 - modify `BindingsMap` and its child types to be able to contain an unlinked
@@ -96,32 +99,33 @@ that it serializes. Despite this, we _also_ want to be able to ship cached IR
 with libraries. This leads to a two pronged solution where we check two
 locations for the cache.
 
-1. **With the Library:** As libraries can have a hidden `.enso` directory, we
-   can use a path within that for caching. This should be
+1. **With the Library** distribution: As libraries can have a hidden `.enso`
+   directory, we can use a path within that for caching. This should be
    `$package/.enso/cache/ir/enso-$version/`, and can be accessed by extending
-   the `pkg` library to be aware of the cache directories.
-2. **Globally:** As some library locations may not be writeable, we need to have
-   a global out-of-line cache that is used if the first one is not writeable.
-   This is located under `$ENSO_DATA` (whose location can be obtained from the
-   `RuntimeDistributionManager`), and is located under the path
-   `$ENSO_DATA/cache/ir/$hash/enso-$version/`, where `$hash` is the `SHA3-224`
+   the `pkg` library to be aware of the cache directories. This location is used
+   for `.bindings` and suggestion caches
+2. **Per user:** System shared library locations may not be writeable, we need
+   to have a fallback out-of-line cache that is used if the first one is not
+   writeable. This is located under `$ENSO_DATA` (whose location can be obtained
+   from the `RuntimeDistributionManager`), and is located under the path
+   `$ENSO_DATA/cache/ir/$namespace/$libraryName/$version/enso-$version/`
+
+   <!-- we don't use hash...
+   where `$hash` is the `SHA3-224`
    hash of the tuple `(namespace, library_name, version)`, where
    `version = SemVer | "local"`. This hash is computed by concatenating the
    string representations of these fields.
+   -->
 
-In each location, the IR is stored with the following assumptions:
+   This _per user_ location is used for storing `.ir` cache files for individual
+   Enso modules. The IR file is located in a directory modelled after its module
+   path, followed by a file named after the module itself with the extension
+   `.ir` (e.g. the IR for `Standard.Base.Data.Vector` is stored in
+   `Standard/Base/Data/Vector.ir`).
 
-- The IR file is located in a directory modelled after its module path, followed
-  by a file named after the module itself with the extension `.ir` (e.g. the IR
-  for `Standard.Base.Data.Vector` is stored in `Standard/Base/Data/Vector.ir`).
-- The [metadata](#metadata-format) file is located in a directory modelled after
-  its module path, followed by a file named after the module itself with the
-  extension `.meta` (e.g. the metadata for `Standard.Base.Data.Vector.enso` is
-  stored in `Standard/Base/Data/Vector.meta`). This is right next to the
-  corresponding `.ir` file.
-
-Storage of the IR only takes place iff the intended location for that IR is
-_empty_.
+There is an associated [metadata](#metadata-format) file is located right next
+to the corresponding cache file. Storage of the IR only takes place iff the
+intended location for that IR is _empty_.
 
 ### Metadata Format
 
@@ -180,19 +184,19 @@ stamp calculated from all `Persistance` classes. Increasing the
 Loading the IR is a multi-stage process that involves performing integrity
 checking on the loaded cache. It works as follows.
 
-1. **Find the Cache:** Look in the global cache directory under `$ENSO_DATA`. If
-   there is no cached IR here that is valid for the current configuration, check
-   the ibrary's `.enso/cache` folder. This should be hooked into in
-   `Compiler::parseModule`.
+1. **Find the Cache:** Check library's `.enso/cache` folder. If there is a
+   `.bindings` file, assume it is up to date and use it. If there is no such
+   file in the _library distribution_ look in the _per user directory_ under
+   `$ENSO_DATA` for module appropriate `.ir` file.
 2. **Check Integrity:** Check the module's [metadata](#metadata-format) for
    validity according to the [integrity rules](#integrity-checking).
 3. **Load:** If the cache passes the integrity check, load the `.ir` file. If
    deserialization fails in any way, immediately fall back to parsing the source
    file.
-4. **Re-Link:** Relinking is part of **Load**. When using `Persistance.read`
-   provide own `readResolve` function. Such a function gets a chance to change
-   and replace each object read-in with appropriate variant respecting the whole
-   compiler environment.
+4. **Re-Link:** Relinking is part of **Load**. When using
+   `Persistance.Pool.read` provide own `readResolve` function. Such a function
+   gets a chance to change and replace each object read-in with appropriate
+   variant respecting the whole compiler environment.
 
 The main subtlety here is handling the dependencies between modules. We need to
 ensure that, when loading multiple cached libraries, we properly handle them
@@ -201,7 +205,7 @@ setting `AFTER_STATIC_PASSES` as the compilation state after loading the module.
 This will tie into the current `ImportsResolver` and `ExportsResolver` which are
 run in an un-gated fashion in `Compiler::run`.
 
-Unlike classical Java deserialization nly registered `Persistance` subclasses
+Unlike classical Java deserialization only registered `Persistance` subclasses
 may participate in deserialization making it much safer and less vulnerable.
 
 ### Integrity Checking
@@ -283,8 +287,8 @@ them more:
 - have a single _blob_ with all `IR`s per a library and read only the parts that
   are needed
 
-- experiement with GC - being able to release parts of unused `IR` once they
-  were used (for code generation or co.)
+- experiment with GC - being able to release parts of unused `IR` once they were
+  used (for code generation or co.)
 
 - make the `.ir` files smaller where possible
 

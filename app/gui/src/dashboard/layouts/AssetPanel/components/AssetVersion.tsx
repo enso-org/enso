@@ -9,9 +9,9 @@ import { Text } from '#/components/Text'
 import { UserWithPopover } from '#/components/UserWithPopover'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { setModal } from '#/providers/ModalProvider'
-import type Backend from '#/services/Backend'
-import * as backendService from '#/services/Backend'
 import { useText } from '$/providers/react'
+import type { Backend } from 'enso-common/src/services/Backend'
+import * as backendService from 'enso-common/src/services/Backend'
 import { toReadableIsoString } from 'enso-common/src/utilities/data/dateTime'
 import { AssetDiffView } from './AssetDiffView'
 
@@ -24,6 +24,7 @@ export interface Version extends backendService.S3ObjectVersion {
 /** Options for duplicating an asset. */
 export interface DuplicateOptions {
   readonly start?: boolean
+  readonly versionId?: backendService.S3ObjectVersionId
 }
 
 /** Props for a {@link AssetVersion}. */
@@ -116,12 +117,18 @@ export function AssetVersion(props: AssetVersionProps) {
               </Menu.Item>
             )}
 
-            <Menu.Item onAction={doDuplicate} icon="duplicate">
+            <Menu.Item
+              onAction={() => doDuplicate({ versionId: version.versionId })}
+              icon="duplicate"
+            >
               {getText('duplicateThisVersion')}
             </Menu.Item>
 
             {isProject && (
-              <Menu.Item onAction={() => doDuplicate({ start: true })} icon="copy">
+              <Menu.Item
+                onAction={() => doDuplicate({ start: true, versionId: version.versionId })}
+                icon="copy"
+              >
                 {getText('duplicateAndOpen')}
               </Menu.Item>
             )}
@@ -166,7 +173,7 @@ interface VersionDialogProps {
   readonly backend: Backend
   readonly item: backendService.ProjectAsset
   readonly doRestore?: (() => Promise<void> | void) | undefined
-  readonly doDuplicate?: (() => Promise<void> | void) | undefined
+  readonly doDuplicate?: ((options?: DuplicateOptions) => Promise<void> | void) | undefined
 }
 
 /** Displays a dialog that allows the user to compare two versions of an asset. */
@@ -207,7 +214,7 @@ function VersionDialog(props: VersionDialogProps) {
               loaderPosition="icon"
               icon="duplicate"
               onPress={async () => {
-                await doDuplicate()
+                await doDuplicate({ versionId: version.versionId })
               }}
             >
               {getText('duplicateThisVersion')}

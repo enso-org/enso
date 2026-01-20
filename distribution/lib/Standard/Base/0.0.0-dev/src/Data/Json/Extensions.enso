@@ -16,6 +16,7 @@ import project.Error.Error
 import project.Errors.Deprecated.Deprecated
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Meta
+import project.Meta.Type
 import project.Nothing.Nothing
 import project.Runtime.Source_Location.Source_Location
 import project.Warning.Warning
@@ -75,9 +76,10 @@ Number.to_js_object self = case self of
    ---
    Converts a JS_Object to an Integer.
 Integer.from (that:JS_Object) =
-    case that.get "type" == "Integer" && ["value"].all that.contains_key of
-        True -> Integer.parse (that.at "value")
-        False -> Error.throw (Illegal_Argument.Error "Invalid JS_Object for Integer.")
+    if that.get "type" == "Integer" && ["value"].all that.contains_key then
+        Integer.parse (that.at "value")
+    else
+        Error.throw (Illegal_Argument.Error "Invalid JS_Object for Integer.")
 
 ## ---
    private: true
@@ -92,12 +94,12 @@ Decimal.to_js_object self =
    ---
    Converts a JS_Object to a Decimal.
 Decimal.from (that:JS_Object) =
-    case that.get "type" == "Decimal" && ["value", "scale", "precision"].all that.contains_key of
-        True ->
-            math_context = Math_Context.new (that.at "precision")
-            raw_value = Decimal.parse (that.at "value") mc=math_context
-            raw_value.set_scale (that.at "scale")
-        False -> Error.throw (Illegal_Argument.Error "Invalid JS_Object for Decimal.")
+    if that.get "type" == "Decimal" && ["value", "scale", "precision"].all that.contains_key then
+        math_context = Math_Context.new (that.at "precision")
+        raw_value = Decimal.parse (that.at "value") mc=math_context
+        raw_value.set_scale (that.at "scale")
+    else
+        Error.throw (Illegal_Argument.Error "Invalid JS_Object for Decimal.")
 
 ## ---
    private: true
@@ -174,6 +176,8 @@ Any.to_js_object self =
         _ : Meta.Constructor ->
             type_name = self.to Meta.Type . qualified_name . split '.' . at -2
             JS_Object.from_pairs [["type", type_name], ["constructor", m.name]]
+        _ : Type ->
+            JS_Object.from_pairs [["type", Meta.type_of self . to_text]]
         _ -> Error.throw ("Cannot convert " + self.to_text + " to JSON")
 
 ## ---

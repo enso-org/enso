@@ -151,34 +151,6 @@ class SugaredTypeFunctionsTest extends CompilerTest {
       ir shouldBe an[Type.Error]
     }
 
-    "resolve subsumption" in {
-      val ir =
-        """
-          |T <: P
-          |""".stripMargin.preprocessExpression.get.resolve
-
-      ir shouldBe an[`type`.Set.Subsumption]
-    }
-
-    "resolve equality" ignore {
-      // FIXME: Not supported by new parser--needs triage (#6165).
-      val ir =
-        """
-          |T ~ P
-          |""".stripMargin.preprocessExpression.get.resolve
-
-      ir shouldBe an[`type`.Set.Equality]
-    }
-
-    "resolve concatenation" in {
-      val ir =
-        """
-          |T ; P
-          |""".stripMargin.preprocessExpression.get.resolve
-
-      ir shouldBe an[`type`.Set.Concat]
-    }
-
     "resolve union" in {
       val ir =
         """

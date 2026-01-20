@@ -99,8 +99,9 @@ public class UnaryRoundOperation implements UnaryOperation {
       case Float f -> applyDouble(builder, f, problemAggregator);
       case BigDecimal bd -> builder.append(bigDecimalFunction.apply(bd));
       case Number n -> applyDouble(builder, n.doubleValue(), problemAggregator);
-      default -> throw new IllegalArgumentException(
-          "Unsupported type: " + value.getClass() + " (expected numeric type).");
+      default ->
+          throw new IllegalArgumentException(
+              "Unsupported type: " + value.getClass() + " (expected numeric type).");
     }
   }
 }

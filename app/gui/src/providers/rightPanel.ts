@@ -1,16 +1,18 @@
-import { type PaywallFeatureName } from '#/hooks/billing/FeaturesConfiguration'
-import { type Category, isCloudCategory } from '#/layouts/CategorySwitcher/Category'
-import { type AnyAsset, AssetType, type ProjectId } from '#/services/Backend'
+import type { PaywallFeatureName } from '#/hooks/billing/FeaturesConfiguration'
+import { isCloudCategory, type Category } from '#/layouts/CategorySwitcher/Category'
+import { useBackends } from '$/providers/backends'
+import { proxyRefs, type ToValue } from '$/utils/reactivity'
 import { useSyncLocalStorage } from '@/composables/syncLocalStorage'
 import { createContextStore } from '@/providers'
-import { Err, Ok, type Result } from '@/util/data/result'
 import type { Icon } from '@/util/iconMetadata/iconName'
-import { proxyRefs, type ToValue } from '@/util/reactivity'
+import { useQuery } from '@tanstack/vue-query'
+import { AssetType, type AnyAsset, type ProjectId } from 'enso-common/src/services/Backend'
+import { Err, Ok, type Result } from 'enso-common/src/utilities/data/result'
 import { encoding } from 'lib0'
-import { computed, reactive, readonly, type Ref, ref, toValue } from 'vue'
+import { computed, reactive, readonly, ref, toValue, type Ref } from 'vue'
 import type { SuggestionId } from 'ydoc-shared/languageServerTypes/suggestions'
 import { isProjectTab, type TabId } from './container'
-import { type TextStore, useText } from './text'
+import { useText, type TextStore } from './text'
 
 /** Information about content of "Help" panel. */
 export interface DisplayedHelp {
@@ -67,9 +69,18 @@ function useRightPanelTabs(
     [
       'description',
       {
-        icon: 'text',
+        icon: 'info',
         enabled: enabledInCloudOnly,
         title: 'Description',
+      },
+    ],
+    [
+      'contents',
+      {
+        icon: 'docs',
+        enabled: Ok(),
+        hidden: true,
+        title: 'Contents',
       },
     ],
     [
@@ -83,7 +94,7 @@ function useRightPanelTabs(
     [
       'versions',
       {
-        icon: 'versions',
+        icon: 'history',
         enabled: enabledInCloudOnly,
         title: textRef('versions'),
       },
@@ -91,7 +102,7 @@ function useRightPanelTabs(
     [
       'sessions',
       {
-        icon: 'sessions',
+        icon: 'activity',
         enabled: enabledInCloudOnly,
         title: textRef('projectSessions'),
       },
@@ -140,6 +151,7 @@ function useRightPanel(
   isFeatureUnderPaywall: (feature: PaywallFeatureName) => boolean,
   textStore: TextStore = useText(),
 ) {
+  const { backendForType } = useBackends()
   const contextPerTab = reactive(new Map<TabId, RightPanelContext>())
   const context = computed(() => contextPerTab.get(toValue(containerTab)))
   const allTabs = useRightPanelTabs(containerTab, context, isFeatureUnderPaywall, textStore)
@@ -170,7 +182,9 @@ function useRightPanel(
   const displayedTab = computed(() => {
     const markedTab = temporaryTab.value ?? tab.value
     if (markedTab == null) return undefined
-    if (!toValue(allTabs.get(markedTab)?.enabled)?.ok) return undefined
+    const tabInfo = allTabs.get(markedTab)
+    if (!tabInfo || toValue(tabInfo.hidden)) return undefined
+    if (!toValue(tabInfo.enabled)?.ok) return undefined
     return markedTab
   })
 
@@ -210,6 +224,20 @@ function useRightPanel(
     const currentItem = context.value?.item ?? context.value?.defaultItem
     return typeof currentItem === 'object' ? currentItem : undefined
   })
+
+  const backendType = computed(() => context.value?.category?.backend)
+
+  const focusedAssetDetailsQuery = useQuery({
+    queryKey: [backendType, 'getAssetDetails', focusedAsset] as const,
+    queryFn: async (query) => {
+      const [backendType, , currentItem] = query.queryKey
+      if (!backendType || !currentItem) return null
+      return await backendForType(backendType).getAssetDetails(currentItem.id, undefined)
+    },
+    enabled: () => backendType.value != null && focusedAsset.value != null,
+    meta: { persist: false },
+  })
+  const focusedAssetDetails = focusedAssetDetailsQuery.data
 
   function setTab(newTab: RightPanelTabId | undefined) {
     tab.value = newTab
@@ -253,6 +281,8 @@ function useRightPanel(
      * The asset being a focus of the right panel, e.g. the currently selected asset in Drive View.
      */
     focusedAsset,
+    /** The details for `focusedAsset`. */
+    focusedAssetDetails,
   })
 }
 

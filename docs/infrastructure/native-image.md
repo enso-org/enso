@@ -11,8 +11,8 @@ order: 3
 [`NativeImage`](../../project/NativeImage.scala) defines a task that is used for
 compiling a project into a native binary using Graal's Native Image. It compiles
 the project and runs the Native Image tool which builds the image. Currently,
-Native Image is used for building the `ensoup` launcher, `project-manager` and
-also `enso` executable once one **opts-in** to it via `ENSO_LAUNCHER` option.
+Native Image is used for building the `ensoup` launcher and `enso` executable
+once one **opts-in** to it via `ENSO_LAUNCHER` option.
 
 <!-- MarkdownTOC levels="2,3" autolink="true" -->
 
@@ -177,29 +177,6 @@ using Akka, so it is enough to just add it as a dependency. It does not handle
 other reflective accesses that are related to Akka, because the ones that are
 needed are gathered automatically using the tool described above.
 
-### Project Manager Configuration
-
-Configuring the Native Image for the Project Manager goes similarly as with the
-launcher. You need to build the JAR with `project-manager/assembly` and execute
-the test scenarios by starting it with:
-
-```
-java -agentlib:native-image-agent=config-merge-dir=lib/scala/project-manager/src/main/resources/META-INF/native-image/org/enso/projectmanager -jar project-manager.jar
-```
-
-To trace relevant reflection paths, the primary scenario is to start the Project
-Manager and connect an IDE to it. Since the Project Manager is able to install
-engine versions, similar steps should be taken to force it to extract a zip
-archive, as described in [Launcher Configuration](#launcher-configuration)
-above. If necessary, other scenarios, like project renaming may be covered.
-
-Remember to run the cleanup script as described above, as tracing the Project
-Manager seems to find recursive accesses of some ephemeral-like classes named
-`Foo/0x00001234...`. This classes are not accessible when building the Native
-Image and they lead to warnings. For now no clues have been found that ignoring
-these classes would impact the native build, it seems that they can be ignored
-safely.
-
 ### Engine runner Configuration
 
 The Native Image generation for the Engine Runner is on by default for releases.
@@ -331,7 +308,10 @@ once can generate a
 that allows to inspect classes, fields, methods, and other contents of the
 generated binary.
 
-### Helpful cmdline options
+### Helpful cmdline build options
+
+This subsection talks about some command line options that may be useful when
+building the native image via the `native-image` tool.
 
 - Since
   [GraalVM JDK 24](https://github.com/graalvm/graalvm-ce-builds/releases/tag/jdk-24.0.0),
@@ -340,3 +320,29 @@ generated binary.
   `env NATIVE_IMAGE_OPTIONS=--verbose sbt engine-runner/buildNativeImage`.
 - `--diagnostics` - generates a report with information about the generated
   image - classes initialized at runtime and buildtime, cmdline options, etc.
+
+### Runtime VM options
+
+When NI is build, there will be a special cmdline option handling procedure
+executed before the `main` method, which ensures that, e.g., `-XX:...` options
+are correctly passed to the Substrate VM. To see available options, run:
+
+```
+$ ./built-distribution/enso-engine-*/enso-*/bin/enso -XX:PrintFlags=[User|Debug|Expert]
+```
+
+Note that this is a **different behavior** than when running on a regular
+HotSpot VM, where `-XX:...` options need to be passed via `JAVA_TOOL_OPTIONS`
+env var. In other words, in the aforementioned example, if `enso` is not a
+binary produced by native image, that command will fail with
+`Unrecognized option: -XX:PrintFlags=User`.
+
+Also note that the output of the aforementioned command will be different based
+on how the native image was built. For example, if it was built with
+`--enable-monitoring=heapdump`, the `Debug` section will contain help for
+`HeapDumpOnOutOfMemoryError` flag.
+
+In context of [Dual JVM mode](dual_jvm.md):
+
+- `JAVA_TOOL_OPTIONS` env var is only handled by HotSpot VM.
+  - Substrate VM ignores this env var.

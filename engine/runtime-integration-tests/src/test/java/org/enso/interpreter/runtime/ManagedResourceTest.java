@@ -32,17 +32,17 @@ public class ManagedResourceTest {
     var ctx = ctxRule.context();
     var code =
         """
-              import Standard.Base.Runtime.Managed_Resource.Managed_Resource
+        import Standard.Base.Runtime.Managed_Resource.Managed_Resource
 
-              make_new obj =
-                Managed_Resource.register obj (_->0)
+        make_new obj =
+          Managed_Resource.register obj (_->0)
 
-              create_new obj system_resource =
-                Managed_Resource.register obj (_->0) system_resource
+        create_new obj system_resource =
+          Managed_Resource.register obj (_->0) system_resource
 
-              get_res ref = ref.with it->
-                it
-              """;
+        get_res ref = ref.with it->
+          it
+        """;
     Source src;
     try {
       src = Source.newBuilder("enso", code, "gc.enso").build();

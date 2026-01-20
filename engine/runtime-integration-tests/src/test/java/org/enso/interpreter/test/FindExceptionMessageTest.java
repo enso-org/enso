@@ -22,13 +22,13 @@ public class FindExceptionMessageTest {
   public void testThrowNPE() {
     String src =
         """
-    from Standard.Base import Panic
-    polyglot java import java.lang.NullPointerException
+        from Standard.Base import Panic
+        polyglot java import java.lang.NullPointerException
 
-    main =
-        x = NullPointerException.new
-        Panic.throw x
-    """;
+        main =
+            x = NullPointerException.new
+            Panic.throw x
+        """;
 
     try {
       Value res = ctxRule.evalModule(src);
@@ -42,13 +42,13 @@ public class FindExceptionMessageTest {
   public void testThrowNPEWithName() {
     String src =
         """
-    from Standard.Base import Panic
-    polyglot java import java.lang.NullPointerException
+        from Standard.Base import Panic
+        polyglot java import java.lang.NullPointerException
 
-    main =
-        x = NullPointerException.new "Hello World!"
-        Panic.throw x
-    """;
+        main =
+            x = NullPointerException.new "Hello World!"
+            Panic.throw x
+        """;
 
     try {
       Value res = ctxRule.evalModule(src);
@@ -62,15 +62,15 @@ public class FindExceptionMessageTest {
   public void errorThrowDeep() {
     var src =
         """
-    from Standard.Base import all
-    import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+        from Standard.Base import all
+        import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
-    deep n = if n <= 0 then Error.throw (Illegal_Argument.Error "Problem"+n.to_text) else deep n-1
+        deep n = if n <= 0 then Error.throw (Illegal_Argument.Error "Problem"+n.to_text) else deep n-1
 
-    main =
-        d = deep 10
-        d
-    """;
+        main =
+            d = deep 10
+            d
+        """;
 
     var res = ctxRule.evalModule(src);
     assertTrue("Expecting error: " + res, res.isException());
@@ -90,17 +90,17 @@ public class FindExceptionMessageTest {
   public void panicThrowDeepRecoverError() {
     var src =
         """
-    from Standard.Base import all
-    import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+        from Standard.Base import all
+        import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
-    deep_panic n = if n <= 0 then Panic.throw (Illegal_Argument.Error "Problem") else
-        deep_panic n-1
+        deep_panic n = if n <= 0 then Panic.throw (Illegal_Argument.Error "Problem") else
+            deep_panic n-1
 
-    main =
-        d = Panic.recover Any
-            deep_panic 10
-        d
-    """;
+        main =
+            d = Panic.recover Any
+                deep_panic 10
+            d
+        """;
 
     var res = ctxRule.evalModule(src);
     assertTrue("Expecting recovered error: " + res, res.isException());
@@ -128,23 +128,23 @@ public class FindExceptionMessageTest {
   public void panicThrowDeepMixingJava() {
     var src =
         """
-    from Standard.Base import all
-    import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
-    polyglot java import org.enso.example.TestClass
+        from Standard.Base import all
+        import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+        polyglot java import org.enso.example.TestClass
 
-    exec e ~r =
-        e.execute r...
+        exec e ~r =
+            e.execute r...
 
-    deep_panic e n = if n <= 0 then Panic.throw (Illegal_Argument.Error "Problem") else
-        exec e
-            deep_panic e n-1
+        deep_panic e n = if n <= 0 then Panic.throw (Illegal_Argument.Error "Problem") else
+            exec e
+                deep_panic e n-1
 
-    main =
-        e = TestClass.newDirectExecutor
-        d = Panic.recover Any
-            deep_panic e 10
-        d
-    """;
+        main =
+            e = TestClass.newDirectExecutor
+            d = Panic.recover Any
+                deep_panic e 10
+            d
+        """;
 
     var res = ctxRule.evalModule(src);
     assertTrue("Expecting recovered error: " + res, res.isException());
@@ -177,12 +177,12 @@ public class FindExceptionMessageTest {
   public void testPanic() {
     String src =
         """
-    from Standard.Base import Panic
-    import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+        from Standard.Base import Panic
+        import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
-    main = Panic.throw (Illegal_Argument.Error 'Jejda!')
+        main = Panic.throw (Illegal_Argument.Error 'Jejda!')
 
-    """;
+        """;
 
     try {
       Value res = ctxRule.evalModule(src);

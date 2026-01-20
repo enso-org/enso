@@ -1,6 +1,6 @@
+import type { WidgetComponent, WidgetInput } from '$/providers/openedProjects/widgetRegistry'
+import { type UpdateHandler } from '$/providers/openedProjects/widgetRegistry'
 import { createContextStore } from '@/providers'
-import type { WidgetComponent, WidgetInput } from '@/providers/widgetRegistry'
-import { UpdateHandler } from '@/providers/widgetRegistry'
 import { identity } from '@vueuse/core'
 
 export const [provideWidgetUsageInfo, injectWidgetUsageInfo] = createContextStore(

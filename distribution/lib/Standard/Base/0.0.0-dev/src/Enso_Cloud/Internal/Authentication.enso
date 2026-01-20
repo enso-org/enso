@@ -20,7 +20,6 @@ import project.Network.HTTP.HTTP
 import project.Network.HTTP.HTTP_Error.HTTP_Error
 import project.Network.HTTP.Request_Body.Request_Body
 import project.Network.HTTP.Request_Error
-import project.Nothing.Nothing
 import project.Panic.Panic
 import project.Runtime.Context
 import project.Runtime.Ref.Ref
@@ -29,7 +28,9 @@ import project.System.File.File
 from project.Data.Boolean import Boolean, False
 from project.Data.Text.Extensions import all
 from project.Enso_Cloud.Public_Utils import get_required_field
+from project.Error import all
 from project.Logging import all
+from project.Nothing import all
 
 polyglot java import org.enso.base.enso_cloud.AuthenticationProvider
 
@@ -57,9 +58,10 @@ refresh_access_token = Panic.recover Enso_Cloud_Error <|
    private: true
    ---
 credentials_file : File
-credentials_file = case Environment.get "ENSO_CLOUD_CREDENTIALS_FILE" of
-    Nothing -> File.home / ".enso" / "credentials"
-    path -> File.new path
+credentials_file =
+    case Environment.get "ENSO_CLOUD_CREDENTIALS_FILE" of
+        Nothing -> File.home / ".enso" / "credentials"
+        path -> File.new path
 
 ## ---
    private: true
@@ -197,7 +199,7 @@ type Refresh_Token_Data
         token_lifetime = Duration.new seconds=expires_in
         if token_lifetime < token_early_refresh_period then
             Panic.throw (Enso_Cloud_Error.Invalid_Response_Payload "Token lifetime is too short: "+token_lifetime.to_display_text+", smaller than our minimum lifetime of "+token_early_refresh_period.to_display_text+".")
-        expire_at = (response_received_time + token_lifetime) . at_zone Time_Zone.utc
+        expire_at = (response_received_time + token_lifetime) . at_time_zone Time_Zone.utc
 
         if token_type != "Bearer" then
             Panic.throw (Enso_Cloud_Error.Invalid_Response_Payload "Invalid `TokenType` field in response: expected `Bearer`, got `"+token_type+"`.")

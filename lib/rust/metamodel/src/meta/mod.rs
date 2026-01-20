@@ -6,8 +6,6 @@
 //!
 //! It is also used for language-independent analysis of data models.
 
-
-
 #[cfg(feature = "graphviz")]
 mod graphviz;
 pub mod serialization;
@@ -18,8 +16,6 @@ use derive_more::Index;
 use derive_more::IndexMut;
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
-
-
 
 // ==============================
 // === Type Parameterizations ===
@@ -33,8 +29,6 @@ pub type TypeId = crate::data_structures::vecmap::Key<Type>;
 /// Identfies an unbound type within a `TypeGraph`.
 pub type UnboundTypeId = crate::data_structures::vecmap::UnboundKey<Type>;
 
-
-
 // ======================
 // === Datatype Types ===
 // ======================
@@ -43,18 +37,18 @@ pub type UnboundTypeId = crate::data_structures::vecmap::UnboundKey<Type>;
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub struct Type {
     /// The type's name.
-    pub name:          TypeName,
+    pub name: TypeName,
     /// The type's data content.
-    pub data:          Data,
+    pub data: Data,
     /// The parent type, if any.
-    pub parent:        Option<TypeId>,
+    pub parent: Option<TypeId>,
     /// If true, this type cannot be instantiated.
-    pub abstract_:     bool,
+    pub abstract_: bool,
     /// If true, this type is not open to extension by children outside those defined with it.
-    pub closed:        bool,
+    pub closed: bool,
     /// When serializing/deserializing, indicates the index of the field in a `Type` before which a
     /// child object's data will be placed/expected.
-    pub child_field:   Option<usize>,
+    pub child_field: Option<usize>,
     /// When serializing/deserializing, indicates the available concrete types and the values used
     /// to identify them.
     pub discriminants: BTreeMap<usize, TypeId>,
@@ -122,10 +116,10 @@ pub struct Field {
     /// The field's `Type`.
     pub type_: TypeId,
     /// The field's name.
-    pub name:  FieldName,
+    pub name: FieldName,
     /// Whether the field should be private in generated code.
-    pub hide:  bool,
-    id:        FieldId,
+    pub hide: bool,
+    id: FieldId,
 }
 
 impl Field {
@@ -149,8 +143,6 @@ impl Field {
         self.id
     }
 }
-
-
 
 // ===================
 // === Identifiers ===
@@ -246,7 +238,6 @@ impl Identifier {
     }
 }
 
-
 // === Type Names ===
 
 /// The name of a type, e.g. a `struct` in Rust or a `class` in Java.
@@ -277,7 +268,6 @@ impl TypeName {
         self.0.append(other.0)
     }
 }
-
 
 // === Field Names ===
 
@@ -324,8 +314,6 @@ impl FieldName {
     }
 }
 
-
-
 // ===========================
 // === System of Datatypes ===
 // ===========================
@@ -364,10 +352,11 @@ impl TypeGraph {
                 rewrite(parent);
             }
             match &mut ty.data {
-                Data::Struct(fields) =>
+                Data::Struct(fields) => {
                     for field in fields {
                         rewrite(&mut field.type_);
-                    },
+                    }
+                }
                 Data::Primitive(Primitive::Sequence(t0))
                 | Data::Primitive(Primitive::Option(t0)) => rewrite(t0),
                 Data::Primitive(Primitive::Result(t0, t1)) => {
@@ -451,7 +440,6 @@ impl TypeGraph {
         hierarchy
     }
 }
-
 
 // === GraphViz support ===
 

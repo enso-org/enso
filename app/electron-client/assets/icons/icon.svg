@@ -1,0 +1,56 @@
+
+<svg version="1.1" baseProfile="full" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" height="1024" width="1024" viewBox="0 0 1024 1024">
+    <defs>
+        <circle id="innerCircle" cx="32" cy="32" r="20"/>
+        <circle id="leftAtom"    cx="18" cy="32" r="14"/>
+        <circle id="rightAtom"   cx="42" cy="32" r="10"/>
+        <mask id="innerCircleMask">
+            <use xlink:href="#innerCircle" fill="white"/>
+        </mask>
+
+        <rect id="bg" width="64" height="64" fill="white"/>
+            <mask id="bgmask">
+            <use xlink:href="#bg"/>
+            <circle cx="32" cy="32" r="25" fill="black"/>
+        </mask>
+
+        <mask id="mainShapeMask">
+            <use xlink:href="#bg"/>
+            <use xlink:href="#leftAtom" fill="black"/>
+            <rect cy="32" width="64" height="32" fill="black"/>
+        </mask>
+
+        <g id="border">
+            <circle cx="32" cy="32" r="32" mask="url(#bgmask)"/>
+        </g>
+
+        <g id="front">
+            <use xlink:href="#innerCircle" mask="url(#mainShapeMask)"/>
+            <use xlink:href="#rightAtom"/>
+        </g>
+
+        <g id="logo">
+            <use xlink:href="#border"/>
+            <use xlink:href="#front" transform="rotate(35 32 32)"/>
+        </g>
+
+        <g id="logo-scaled">
+            <g transform="translate(4 4) scale(0.875)">
+                <use xlink:href="#logo" fill="#fafafa"/>
+            </g>
+        </g>
+
+        <g id="background">
+            <circle id="innerCircle" cx="32" cy="32" r="31" fill="#24292f"/>
+        </g>
+
+        <g id="final">
+            <g> <use xlink:href="#background"/> </g>
+            <g> <use xlink:href="#logo-scaled"/> </g>
+        </g>
+
+        
+
+    </defs>
+    <g transform="scale(16)"> <use xlink:href="#final"/> </g>
+</svg>

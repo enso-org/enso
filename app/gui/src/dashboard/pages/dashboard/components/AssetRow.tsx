@@ -9,13 +9,11 @@ import { useBackendMutationState } from '#/hooks/backendHooks'
 import * as dragAndDropHooks from '#/hooks/dragAndDropHooks'
 import { useDragDelayAction } from '#/hooks/dragDelayHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import { BUSY_PROJECT_STATES } from '#/hooks/projectHooks'
 import { useSyncRef } from '#/hooks/syncRefHooks'
-import { AssetContextMenu } from '#/layouts/AssetContextMenu'
 import type * as assetsTable from '#/layouts/AssetsTable'
 import { isLocalCategory } from '#/layouts/CategorySwitcher/Category'
 import { useGetAsset } from '#/layouts/Drive/assetsTableItemsHooks'
-import * as assetRowUtils from '#/pages/dashboard/components/AssetRow/assetRowUtils'
+import { useCategoriesAPI } from '#/layouts/Drive/Categories'
 import * as columnModule from '#/pages/dashboard/components/column'
 import * as columnUtils from '#/pages/dashboard/components/column/columnUtils'
 import {
@@ -25,21 +23,20 @@ import {
   useSetSelectedAssets,
 } from '#/providers/DriveProvider'
 import { unsetModal } from '#/providers/ModalProvider'
-import type { Label } from '#/services/Backend'
-import * as backendModule from '#/services/Backend'
 import * as drag from '#/utilities/drag'
 import * as eventModule from '#/utilities/event'
-import * as object from '#/utilities/object'
+import * as tailwindMerge from '#/utilities/tailwindMerge'
+import Visibility from '#/utilities/Visibility'
+import { useStore } from '#/utilities/zustand'
+import { useFullUserSession } from '$/providers/react'
+import { useIsProjectClosing } from '$/providers/react/openedProjects'
+import type { Label } from 'enso-common/src/services/Backend'
+import * as backendModule from 'enso-common/src/services/Backend'
 import {
   canPermissionModifyDirectoryContents,
   isTeamPath,
   tryFindSelfPermission,
-} from '#/utilities/permissions'
-import * as tailwindMerge from '#/utilities/tailwindMerge'
-import Visibility from '#/utilities/Visibility'
-import { useStore } from '#/utilities/zustand'
-import type { LaunchedProject } from '$/providers/container'
-import { useFullUserSession, useRightPanelData } from '$/providers/react'
+} from 'enso-common/src/utilities/permissions'
 import * as React from 'react'
 import { useTransition } from 'react'
 import invariant from 'tiny-invariant'
@@ -48,20 +45,18 @@ import invariant from 'tiny-invariant'
 export interface AssetRowInnerProps {
   readonly asset: backendModule.AnyAsset
   readonly state: assetsTable.AssetsTableState
-  readonly rowState: assetsTable.AssetRowState
-  readonly setRowState: React.Dispatch<React.SetStateAction<assetsTable.AssetRowState>>
 }
 
 /** Props for an {@link AssetRow}. */
 export interface AssetRowProps {
   readonly item: backendModule.AnyAsset
-  readonly isOpened: boolean
   readonly isPlaceholder: boolean
   readonly id: backendModule.AssetId
   readonly parentId: backendModule.DirectoryId
+  readonly contextMenuRef: React.RefObject<ContextMenuApi>
   readonly type: backendModule.AssetType
   readonly state: assetsTable.AssetsTableState
-  readonly columns: columnUtils.Column[]
+  readonly columns: readonly columnUtils.Column[]
   readonly isKeyboardSelected: boolean
   readonly labels: readonly Label[]
   readonly grabKeyboardFocus: (item: backendModule.AnyAsset) => void
@@ -79,70 +74,15 @@ export interface AssetRowProps {
     event: React.DragEvent<HTMLTableRowElement>,
     item: backendModule.AnyAsset,
   ) => void
-  readonly renameAsset: (assetId: backendModule.AssetId, newTitle: string) => Promise<void>
-  readonly closeProject: (project: LaunchedProject) => Promise<void>
-  readonly openProject: (projectId: backendModule.ProjectId) => Promise<void>
 }
-
-/** A row containing an {@link backendModule.AnyAsset}. */
-
-export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
-  const { type, columns, id, item } = props
-
-  switch (type) {
-    case backendModule.AssetType.specialUp: {
-      return <AssetSpecialRow columnsLength={columns.length} type={type} />
-    }
-    case backendModule.AssetType.project:
-    case backendModule.AssetType.file:
-    case backendModule.AssetType.secret:
-    case backendModule.AssetType.datalink:
-    case backendModule.AssetType.directory:
-    default: {
-      // This is safe because we filter out special asset types in the switch statement above.
-      // eslint-disable-next-line no-restricted-syntax
-      return <RealAssetRow {...props} id={id as backendModule.RealAssetId} item={item} />
-    }
-  }
-})
-
-/** Props for a {@link AssetSpecialRow}. */
-export interface AssetSpecialRowProps {
-  readonly type: backendModule.AssetType
-  readonly columnsLength: number
-}
-
-/** Renders a special asset row. */
-const AssetSpecialRow = React.memo(function AssetSpecialRow(props: AssetSpecialRowProps) {
-  const { type } = props
-
-  switch (type) {
-    case backendModule.AssetType.specialUp: {
-      // TODO: Implement this.
-      // @MrFlashAccount [Cloud v2 #1810](https://github.com/enso-org/cloud-v2/issues/1810)
-      return null
-    }
-    case backendModule.AssetType.project:
-    case backendModule.AssetType.file:
-    case backendModule.AssetType.secret:
-    case backendModule.AssetType.datalink:
-    case backendModule.AssetType.directory:
-    default: {
-      invariant(false, 'Unsupported special asset type: ' + type)
-    }
-  }
-})
-
-/** Props for a {@link RealAssetRow}. */
-type RealAssetRowProps = AssetRowProps
 
 /** Render a real asset row. */
-export function RealAssetRow(props: RealAssetRowProps) {
+export const AssetRow = React.memo(function AssetRow(props: AssetRowProps) {
   const {
     id,
     parentId,
+    contextMenuRef,
     isKeyboardSelected,
-    isOpened,
     select,
     state,
     columns,
@@ -152,62 +92,35 @@ export function RealAssetRow(props: RealAssetRowProps) {
     item,
     labels,
     grabKeyboardFocus,
-    renameAsset,
-    closeProject,
-    openProject,
   } = props
-  const { category, backend, currentDirectoryId, doCopy, doCut, doPaste } = state
 
-  const contextMenuRef = React.useRef<ContextMenuApi>(null)
+  const { category, associatedBackend: backend } = useCategoriesAPI()
   const [isNavigating, startNavigation] = useTransition()
 
-  const [initialContextMenuPosition, setInitialContextMenuPosition] = React.useState<Pick<
-    MouseEvent,
-    'pageX' | 'pageY'
-  > | null>(null)
   const driveStore = useDriveStore()
-  const rightPanel = useRightPanelData()
   const { user } = useFullUserSession()
   const setSelectedAssets = useSetSelectedAssets()
   const getAsset = useGetAsset()
-  const { isSelected, isSoleSelected, isMultiSelected } = useStore(
+  const { isSelected, isMultiSelected } = useStore(
     driveStore,
     ({ visuallySelectedKeys, selectedIds }) => {
       const selection = visuallySelectedKeys ?? selectedIds
-      const selected = selection.has(id)
 
       return {
-        isSelected: selected,
-        isSoleSelected: selected && selection.size === 1,
+        isSelected: selection.has(id),
         isMultiSelected: selection.size > 1,
       }
     },
     { areEqual: 'shallow', unsafeEnableTransition: true },
   )
 
-  React.useEffect(() => {
-    // If `initialContextMenuPosition` is not null, that means the context menu is being opened
-    // during this render. Set the position to `null` since it the position is no longer needed.
-    // If it is not set to `null`, then the next time the row is focused, the context menu will be
-    // open by default.
-    if (initialContextMenuPosition != null) {
-      setInitialContextMenuPosition(null)
-    }
-  }, [initialContextMenuPosition])
-
   const draggableProps = dragAndDropHooks.useDraggable({ isDisabled: !isSelected })
   const [isDraggedOver, setIsDraggedOver] = React.useState(false)
   const setDragTargetAssetId = useSetDragTargetAssetId()
   const rootRef = React.useRef<HTMLElement | null>(null)
   const grabKeyboardFocusRef = useSyncRef(grabKeyboardFocus)
-  const [innerRowState, setRowState] = React.useState<assetsTable.AssetRowState>(
-    assetRowUtils.INITIAL_ROW_STATE,
-  )
 
-  const isNewlyCreated = useStore(driveStore, ({ newestFolderId }) => newestFolderId === item.id)
-  const isEditingName = innerRowState.isEditingName || isNewlyCreated
-
-  const rowState = object.merge(innerRowState, { isEditingName })
+  const isEditingName = useStore(driveStore, ({ assetToRename }) => assetToRename === item.id)
 
   const isDeletingSingleAsset =
     useBackendMutationState(backend, 'deleteAsset', {
@@ -244,6 +157,9 @@ export function RealAssetRow(props: RealAssetRowProps) {
     }).length !== 0
 
   const isUpdating = isUpdatingSingleAsset || isMovingMultipleAssets
+  const isClosing = useIsProjectClosing(
+    item.type === backendModule.AssetType.project ? item.id : null,
+  )
 
   const insertionVisibility = useStore(driveStore, (driveState) => {
     return (
@@ -306,7 +222,7 @@ export function RealAssetRow(props: RealAssetRowProps) {
           // Assume the parent is the root directory.
           return true
         }
-        if (parent.ensoPath != null && isTeamPath(parent.ensoPath)) {
+        if (isTeamPath(parent.ensoPath)) {
           return true
         }
         // Assume user path; check permissions
@@ -329,12 +245,7 @@ export function RealAssetRow(props: RealAssetRowProps) {
     case backendModule.AssetType.file:
     case backendModule.AssetType.datalink:
     case backendModule.AssetType.secret: {
-      const innerProps: AssetRowInnerProps = {
-        asset: item,
-        state,
-        rowState,
-        setRowState,
-      }
+      const innerProps: AssetRowInnerProps = { asset: item, state }
 
       return (
         <>
@@ -370,7 +281,7 @@ export function RealAssetRow(props: RealAssetRowProps) {
               if (
                 item.type === backendModule.AssetType.directory &&
                 eventModule.isDoubleClick(event) &&
-                !rowState.isEditingName
+                !isEditingName
               ) {
                 // This must be processed on the next tick, otherwise it will be overridden
                 // by the default click handler.
@@ -392,19 +303,24 @@ export function RealAssetRow(props: RealAssetRowProps) {
 
               if (!isSelected) {
                 select(item)
-                setInitialContextMenuPosition(event)
-              } else {
-                contextMenuRef.current?.open(event)
               }
+
+              driveStore.setState({
+                contextMenuData: {
+                  triggerRef: rootRef,
+                  initialContextMenuPosition: event,
+                },
+              })
+              contextMenuRef.current?.open(event)
             }}
             onDragStart={(event) => {
-              if (rowState.isEditingName) {
+              if (isEditingName) {
                 event.preventDefault()
               }
 
               if (
                 item.type === backendModule.AssetType.project &&
-                BUSY_PROJECT_STATES.has(item.projectState.type)
+                (backendModule.IS_OPENING_OR_OPENED[item.projectState.type] || isClosing)
               ) {
                 event.preventDefault()
               }
@@ -453,46 +369,21 @@ export function RealAssetRow(props: RealAssetRowProps) {
                     isNavigating={isNavigating}
                     labels={labels}
                     isPlaceholder={isPlaceholder}
-                    isOpened={isOpened}
                     backendType={backend.type}
                     item={item}
                     setSelected={setSelected}
                     state={state}
-                    rowState={rowState}
-                    setRowState={setRowState}
                     isEditable={state.category.type !== 'trash'}
-                    renameAsset={renameAsset}
-                    closeProject={closeProject}
-                    openProject={openProject}
                   />
                 </td>
               )
             })}
           </tr>
-
-          {isSoleSelected && (
-            <AssetContextMenu
-              ref={contextMenuRef}
-              innerProps={innerProps}
-              currentDirectoryId={currentDirectoryId}
-              triggerRef={rootRef}
-              doCopy={doCopy}
-              doCut={doCut}
-              doPaste={doPaste}
-              rightPanel={rightPanel}
-              initialPosition={initialContextMenuPosition}
-            />
-          )}
         </>
       )
     }
-    case backendModule.AssetType.specialUp:
     default: {
-      invariant(
-        false,
-        'Unsupported asset type, expected one of: directory, project, file, datalink, secret, but got: ' +
-          type,
-      )
+      invariant(false, `Unsupported asset type '${String(type)}'`)
     }
   }
-}
+})

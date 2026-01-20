@@ -22,7 +22,7 @@ export function testCase<T extends StringsWithTypeValues>(spec: T): TestCase<T> 
   const parsed = Ast.parseBlock(code)
   parsed.module.setRoot(parsed)
   const statements = new Array<Ast.Ast>()
-  parsed.visitRecursive((ast) => {
+  Ast.visitRecursive(parsed, (ast) => {
     if (ast instanceof Ast.BodyBlock) statements.push(...ast.statements())
   })
   for (const statement of statements) {
@@ -54,7 +54,7 @@ export function tryFindExpressions<T extends StringsWithTypeValues>(
 ): Partial<WithValuesInstantiated<T>> {
   const result: Partial<WithValuesInstantiated<T>> = {}
   const expressionsSought = new Set(Object.keys(expressions))
-  root.visitRecursive((ast) => {
+  Ast.visitRecursive(root, (ast) => {
     const code = ast.code()
     const trimmedFirstLine = code.split('\n', 1)[0]!.trim()
     if (!expressionsSought.has(trimmedFirstLine)) return

@@ -7,22 +7,19 @@ import org.enso.table.data.column.builder.BuilderForType;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.problems.ProblemAggregator;
 
-public record BigIntegerType() implements StorageType<BigInteger>, NumericType {
+public final class BigIntegerType implements StorageType<BigInteger>, NumericType {
   public static final BigIntegerType INSTANCE = new BigIntegerType();
+
+  private BigIntegerType() {}
+
+  @Override
+  public char typeChar() {
+    return 'E';
+  }
 
   @Override
   public boolean isNumeric() {
     return true;
-  }
-
-  @Override
-  public boolean hasDate() {
-    return false;
-  }
-
-  @Override
-  public boolean hasTime() {
-    return false;
   }
 
   @Override

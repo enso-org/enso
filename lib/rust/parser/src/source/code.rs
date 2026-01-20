@@ -2,8 +2,6 @@
 
 use crate::prelude::*;
 
-
-
 // ============
 // === Code ===
 // ============
@@ -30,13 +28,13 @@ pub struct StrRef<'s>(pub &'s str);
 pub struct Location {
     /// Offset from the beginning, in UTF-8 code units (bytes).
     #[reflect(hide)]
-    pub utf8:  u32,
+    pub utf8: u32,
     /// Offset from the beginning, in UTF-16 code units (two-byte words).
     #[reflect(hide)]
     pub utf16: u32,
     /// Line number, starting from 0. The recognized line terminators are CR, LF, or CRLF.
     #[reflect(hide)]
-    pub line:  u32,
+    pub line: u32,
     /// Offset from start of line, in UTF-16 code units.
     #[reflect(hide)]
     pub col16: u32,
@@ -56,9 +54,9 @@ impl Add<Length> for Location {
 
     fn add(self, rhs: Length) -> Self::Output {
         Self {
-            utf8:  self.utf8 + rhs.utf8,
+            utf8: self.utf8 + rhs.utf8,
             utf16: self.utf16 + rhs.utf16,
-            line:  self.line + rhs.newlines,
+            line: self.line + rhs.newlines,
             col16: if rhs.newlines == 0 { self.col16 } else { 0 } + rhs.line_chars16,
         }
     }
@@ -73,12 +71,12 @@ pub struct Code<'s> {
     #[serde(deserialize_with = "crate::serialization::deserialize_cow")]
     #[reflect(as = crate::serialization::Code, flatten, hide)]
     #[deref]
-    pub repr:  StrRef<'s>,
+    pub repr: StrRef<'s>,
     #[reflect(flatten)]
     pub start: Location,
     /// The length of the source code.
     #[reflect(flatten)]
-    pub len:   Length,
+    pub len: Length,
 }
 
 impl<'s> Code<'s> {
@@ -103,9 +101,9 @@ impl<'s> Code<'s> {
     pub fn take_as_prefix(&mut self) -> Self {
         let end = self.start + self.len;
         Self {
-            repr:  mem::take(&mut self.repr),
+            repr: mem::take(&mut self.repr),
             start: mem::replace(&mut self.start, end),
-            len:   mem::take(&mut self.len),
+            len: mem::take(&mut self.len),
         }
     }
 
@@ -128,17 +126,16 @@ impl<'s> Code<'s> {
     pub fn split_at(&self, split: Length) -> (Self, Self) {
         let (left, right) = self.repr.split_at(usize::try_from(split.utf8).unwrap());
         let right_len = Length {
-            utf8:         self.len.utf8 - split.utf8,
-            utf16:        self.len.utf16 - split.utf16,
-            newlines:     self.len.newlines - split.newlines,
+            utf8: self.len.utf8 - split.utf8,
+            utf16: self.len.utf16 - split.utf16,
+            newlines: self.len.newlines - split.newlines,
             line_chars16: self.len.line_chars16
                 - if split.newlines == 0 { split.line_chars16 } else { 0 },
         };
-        (Self { repr: StrRef(left), start: self.start, len: split }, Self {
-            repr:  StrRef(right),
-            start: self.start + split,
-            len:   right_len,
-        })
+        (
+            Self { repr: StrRef(left), start: self.start, len: split },
+            Self { repr: StrRef(right), start: self.start + split, len: right_len },
+        )
     }
 
     /// Return a reference to an empty string, not associated with any location in the document.
@@ -243,7 +240,6 @@ impl<'s> AddAssign<&Code<'s>> for Code<'s> {
     }
 }
 
-
 // === Code length ===
 
 /// The length of a [`Code`] object.
@@ -252,12 +248,12 @@ pub struct Length {
     /// An offset, in UTF-8 code units (bytes).
     #[reflect(skip)]
     #[serde(skip)]
-    pub utf8:         u32,
+    pub utf8: u32,
     /// An offset, in UTF-16 code units (two-byte words).
-    pub utf16:        u32,
+    pub utf16: u32,
     /// A difference in line numbers.
     #[reflect(hide)]
-    pub newlines:     u32,
+    pub newlines: u32,
     /// If `newlines` is 0, this is the difference in UTF-16 code-unit positions within a line; if
     /// `newlines` is nonzero, this is the position within the line ending the range.
     pub line_chars16: u32,
@@ -312,9 +308,9 @@ impl Add for Length {
     fn add(self, rhs: Self) -> Self::Output {
         let Self { utf8, utf16, newlines, line_chars16 } = self;
         Self {
-            utf8:         utf8 + rhs.utf8,
-            utf16:        utf16 + rhs.utf16,
-            newlines:     newlines + rhs.newlines,
+            utf8: utf8 + rhs.utf8,
+            utf16: utf16 + rhs.utf16,
+            newlines: newlines + rhs.newlines,
             line_chars16: if rhs.newlines == 0 { line_chars16 } else { 0 } + rhs.line_chars16,
         }
     }
@@ -332,8 +328,6 @@ impl Display for Length {
         write!(f, "{}", self.utf8)
     }
 }
-
-
 
 // ====================
 // === Test support ===

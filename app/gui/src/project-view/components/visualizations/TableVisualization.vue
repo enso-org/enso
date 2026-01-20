@@ -7,6 +7,7 @@ import {
 import { Ast } from '@/util/ast'
 import { Pattern } from '@/util/ast/match'
 import { svgUseHref } from '@/util/icons'
+import { ProjectPath } from '@/util/projectPath'
 import { useVisualizationConfig } from '@/util/visualizationBuiltins'
 import type {
   CellClassParams,
@@ -25,43 +26,43 @@ import type {
   SortChangedEvent,
 } from 'ag-grid-enterprise'
 import {
-  ComponentInstance,
   computed,
   onMounted,
   ref,
   shallowRef,
   watch,
   watchEffect,
+  type ComponentInstance,
   type Ref,
 } from 'vue'
-import { ComponentExposed } from 'vue-component-type-helpers'
+import type { ComponentExposed } from 'vue-component-type-helpers'
 import { TableVisualisationTooltip } from './TableVisualization/TableVisualisationTooltip'
 import {
-  Error,
-  GenericGrid,
   isError,
   isGenericGrid,
+  type Error,
+  type GenericGrid,
 } from './TableVisualization/TableVisualisationTypes'
 import {
   convertFilterModel,
   convertSortModel,
   createDistinctExpressionTemplate,
   createExpressionRowTemplate,
-  ValueTypeArgumentChild,
-  ValueTypes,
+  type ValueTypeArgumentChild,
+  type ValueTypes,
 } from './TableVisualization/TableVizDataSourceUtils'
 import {
   getCellDataType,
   getFilterParams,
   getFilterType,
 } from './TableVisualization/tableVizFilterSetUpUtils'
-import { GridFilterModel, makeFilterModelList } from './TableVisualization/tableVizFilterUtils'
+import { makeFilterModelList, type GridFilterModel } from './TableVisualization/tableVizFilterUtils'
 import { TableVizStatusBar } from './TableVisualization/TableVizStatusBar'
 import {
   formatText,
   getCellValueType,
   isNumericType,
-  ValueType,
+  type ValueType,
 } from './TableVisualization/tableVizUtils'
 
 export const name = 'Table'
@@ -177,7 +178,7 @@ const defaultColDef: Ref<ColDef> = ref({
 } satisfies ColDef)
 const rowData = ref<Record<string, any>[]>([])
 const columnDefs: Ref<ColDef[]> = ref([])
-const nodeType = ref<string | undefined>(undefined)
+const nodeType = ref<ProjectPath | undefined>(undefined)
 const grid = ref<
   ComponentInstance<typeof AgGridTableView> & ComponentExposed<typeof AgGridTableView>
 >()
@@ -331,7 +332,10 @@ watch(tableVersionHash, () => {
 
 watchEffect(() => {
   // if the column definitions remain the same but there has been updates upstream ag grid doesn't know to change its row model or to fetch new data
-  if (nodeType.value != config.nodeType) {
+  if (
+    (nodeType.value != null || config.nodeType != null) &&
+    !nodeType.value?.equals(config.nodeType)
+  ) {
     grid.value?.forceGridRefresh()
     nodeType.value = config.nodeType
   }
@@ -713,6 +717,7 @@ function toField(
     },
     cellDataType: cellValueType,
     autoHeight: cellValueType === 'text' && isSSRM.value,
+    sortable: valueType?.constructor !== 'Mixed',
   }
   if (valueType && ['Date', 'Date_Time', 'Time'].includes(valueType.constructor)) {
     return {
@@ -827,17 +832,11 @@ function toLinkField(fieldName: string, options: LinkFieldOptions): ColDef {
       params.value !== null && params.value !== undefined ?
         `<div class='link'> ${params.value} </div>`
       : null,
+    cellStyle: { 'padding-left': '13px', 'border-right': '1px solid #C0C0C0' },
+    headerClass: 'indexColumnHeader',
     filter: fieldName != INDEX_FIELD_NAME,
   }
 }
-
-watchEffect(() => {
-  try {
-    refresh()
-  } catch (error) {
-    console.warn('Error refreshing table.', error)
-  }
-})
 
 const DEFAULT_DATA = {
   type: typeof props.data,
@@ -864,6 +863,14 @@ const DEFAULT_DATA = {
   // eslint-disable-next-line camelcase
   requires_number_format: undefined,
 }
+
+watchEffect(() => {
+  try {
+    refresh()
+  } catch (error) {
+    console.warn('Error refreshing table.', error)
+  }
+})
 
 // Update state computed from the input `data`.
 function refresh() {
@@ -1274,5 +1281,9 @@ config.setToolbar(
   flex-direction: row;
   justify-content: space-between;
   width: inherit;
+}
+
+:deep(.indexColumnHeader) {
+  padding-left: 13px;
 }
 </style>

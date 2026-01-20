@@ -14,8 +14,10 @@ import project.Range
 import project.Runtime.Managed_Resources
 import project.Runtime.Panics_And_Errors
 import project.Sieve
+import project.Jvms.Execute_Generic_JDBC_Tests
 import project.Startup.Startup
 import project.Statistics.Count_Min_Max
+import project.Statistics.Generic_JDBC_Mean
 import project.Sum
 import project.Table.Add_Row_Number
 import project.Table.Aggregate
@@ -65,6 +67,7 @@ all_benchmarks =
 
         # Statistics
         builder.append Count_Min_Max.collect_benches
+        builder.append Generic_JDBC_Mean.collect_benches
 
         # Table
         builder.append Aggregate.collect_benches
@@ -112,6 +115,7 @@ all_benchmarks =
         builder.append Compile.collect_benches
         builder.append Startup.collect_benches
         builder.append Sieve.Main.collect_benches
+        builder.append Execute_Generic_JDBC_Tests.collect_benches
 
 main filter=Nothing =
     benchmarks = if filter.is_nothing then all_benchmarks else

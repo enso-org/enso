@@ -11,6 +11,7 @@
     - fragment self -> Standard.Base.Any.Any
     - host self -> Standard.Base.Any.Any
     - parse uri:Standard.Base.Data.Text.Text -> Standard.Base.Any.Any
+    - parse_if_http uri:Standard.Base.Data.Text.Text -> Standard.Base.Any.Any
     - path self -> Standard.Base.Any.Any
     - port self -> Standard.Base.Any.Any
     - pretty self -> Standard.Base.Any.Any

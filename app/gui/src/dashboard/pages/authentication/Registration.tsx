@@ -174,11 +174,7 @@ export default function Registration(props: RegistrationProps) {
                       form={form}
                       name="agreedToTos"
                       description={
-                        <Button
-                          variant="link"
-                          target="_blank"
-                          href="https://ensoanalytics.com/eula"
-                        >
+                        <Button variant="link" target="_blank" href={`${$config.ENSO_HOST}/eula`}>
                           {getText('viewLicenseAgreement')}
                         </Button>
                       }
@@ -192,7 +188,7 @@ export default function Registration(props: RegistrationProps) {
                         <Button
                           variant="link"
                           target="_blank"
-                          href="https://ensoanalytics.com/privacy"
+                          href={`${$config.ENSO_HOST}/privacy`}
                         >
                           {getText('viewPrivacyPolicy')}
                         </Button>

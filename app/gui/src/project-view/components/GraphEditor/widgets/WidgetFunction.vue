@@ -1,21 +1,21 @@
 <script setup lang="ts">
+import { useCurrentProject } from '$/components/WithCurrentProject.vue'
+import type { MethodCallInfo } from '$/providers/openedProjects/graph/graphDatabase'
 import {
-  useGraphStore,
-  useProjectNames,
-  useProjectStore,
-} from '$/components/WithCurrentProject.vue'
-import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
-import { useWidgetFunctionCallInfo } from '@/components/GraphEditor/widgets/WidgetFunction/widgetFunctionCallInfo'
-import { injectFunctionInfo, provideFunctionInfo } from '@/providers/functionInfo'
-import {
-  HandledUpdate,
   Score,
   WidgetInput,
   defineWidget,
   widgetProps,
+  type HandledUpdate,
   type WidgetUpdate,
-} from '@/providers/widgetRegistry'
-import type { MethodCallInfo } from '@/stores/graph/graphDatabase'
+} from '$/providers/openedProjects/widgetRegistry'
+import { proxyRefs } from '$/utils/reactivity'
+import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
+import {
+  getPotentialModuleFunctionPointer,
+  useWidgetFunctionCallInfo,
+} from '@/components/GraphEditor/widgets/WidgetFunction/widgetFunctionCallInfo'
+import { injectFunctionInfo, provideFunctionInfo } from '@/providers/functionInfo'
 import { assert, assertUnreachable } from '@/util/assert'
 import { Ast } from '@/util/ast'
 import type { AstId } from '@/util/ast/abstract'
@@ -29,22 +29,28 @@ import {
 import { partitionPoint } from '@/util/data/array'
 import { methodPointerEquals, type MethodPointer } from '@/util/methodPointer'
 import { isIdentifier } from '@/util/qualifiedName'
-import { proxyRefs } from '@/util/reactivity'
+import { Err, Ok } from 'enso-common/src/utilities/data/result'
 import { computed } from 'vue'
-import { Ok } from 'ydoc-shared/util/data/result'
+import { FunctionName } from './WidgetFunctionName.vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
-const graph = useGraphStore()
-const project = useProjectStore()
+const {
+  store: project,
+  projectNames: projectNames,
+  module,
+  graph,
+  suggestionDb,
+} = useCurrentProject()
 
-const exprInfo = computed(() => graph.db.getExpressionInfo(props.input.value.externalId))
+const exprInfo = computed(() => graph.value.db.getExpressionInfo(props.input.value.externalId))
 const outputType = computed(() => exprInfo.value?.typeInfo?.primaryType)
 
-const { methodCallInfo, application, subjectInfo } = useWidgetFunctionCallInfo(
+const { methodCallInfo, application, subject, subjectInfo } = useWidgetFunctionCallInfo(
   () => props.input,
-  graph.db,
+  () => graph.value.db,
   project,
-  useProjectNames(),
+  projectNames,
+  () => suggestionDb.value.groups,
 )
 
 provideFunctionInfo(
@@ -60,6 +66,7 @@ provideFunctionInfo(
     }),
     callInfo: methodCallInfo,
     outputType,
+    subject,
     subjectInfo,
   }),
 )
@@ -72,7 +79,23 @@ const innerInput = computed(() => {
     input = { ...props.input }
   }
   const callInfo = methodCallInfo.value
-  if (callInfo) input[CallInfo] = callInfo
+  if (callInfo) {
+    input[CallInfo] = callInfo
+    if (
+      !(ArgumentApplicationKey in input) &&
+      (input.value instanceof Ast.PropertyAccess || input.value instanceof Ast.Ident)
+    ) {
+      const methodPointer = callInfo.methodCall.methodPointer
+      const definition = module.value.getMethodAst(methodPointer)
+      if (definition.ok) {
+        input[FunctionName] = {
+          editableNameExpression: definition.value.name.externalId,
+          methodPointer,
+          requireUserAction: true,
+        }
+      }
+    }
+  }
   return input
 })
 
@@ -93,133 +116,139 @@ function handleArgUpdate(update: WidgetUpdate): HandledUpdate {
       directInteraction,
     } = update
 
-    const edit = update.edit ?? graph.startEdit()
-    // Find the updated argument by matching origin port/expression with the appropriate argument.
-    // We are interested only in updates at the top level of the argument AST. Updates from nested
-    // widgets do not need to be processed at the function application level.
-    const applications = [...app.iterApplications()]
-    const argAppIndex = applications.findIndex(
-      (app) => 'portId' in app.argument && app.argument.portId === origin,
-    )
-    const argApp = applications[argAppIndex]
+    const applyInEdit = (edit: Ast.MutableModule) => {
+      // Find the updated argument by matching origin port/expression with the appropriate argument.
+      // We are interested only in updates at the top level of the argument AST. Updates from nested
+      // widgets do not need to be processed at the function application level.
+      const applications = [...app.iterApplications()]
+      const argAppIndex = applications.findIndex(
+        (app) => 'portId' in app.argument && app.argument.portId === origin,
+      )
+      const argApp = applications[argAppIndex]
 
-    // Perform appropriate AST update, either insertion or deletion.
-    if (value != null && argApp?.argument instanceof ArgumentPlaceholder) {
-      /* Case: Inserting value to a placeholder. */
-      const newArg = value instanceof Ast.Ast ? value : Ast.parseExpression(value, edit)!
-      if (argApp.appTree instanceof Ast.OprApp) {
-        edit.getVersion(argApp.appTree)[argApp.argument.index === 0 ? 'setLhs' : 'setRhs'](newArg)
-      } else {
-        const name =
-          argApp.argument.insertAsNamed && isIdentifier(argApp.argument.argInfo.name) ?
-            argApp.argument.argInfo.name
-          : undefined
-        edit
-          .getVersion(argApp.appTree)
-          .updateValue((oldAppTree) => Ast.App.new(edit, oldAppTree, name, newArg))
-      }
-      return props.updateCallback({ edit, directInteraction })
-    } else if (value == null && argApp?.argument instanceof ArgumentAst) {
-      /* Case: Removing existing argument. */
+      // Perform appropriate AST update, either insertion or deletion.
+      if (value != null && argApp?.argument instanceof ArgumentPlaceholder) {
+        /* Case: Inserting value to a placeholder. */
+        const newArg = value instanceof Ast.Ast ? value : Ast.parseExpression(value, edit)!
+        if (argApp.appTree instanceof Ast.OprApp) {
+          edit.getVersion(argApp.appTree)[argApp.argument.index === 0 ? 'setLhs' : 'setRhs'](newArg)
+        } else {
+          const name =
+            argApp.argument.insertAsNamed && isIdentifier(argApp.argument.argInfo.name) ?
+              argApp.argument.argInfo.name
+            : undefined
+          edit
+            .getVersion(argApp.appTree)
+            .updateValue((oldAppTree) => Ast.App.new(edit, oldAppTree, name, newArg))
+        }
+        return props.updateCallback({ edit, directInteraction })
+      } else if (value == null && argApp?.argument instanceof ArgumentAst) {
+        /* Case: Removing existing argument. */
 
-      // HACK: Temporarily modify expression info to include the deleted argument on a list, so it
-      // immediately appears back as a placeholder after deletion, before the engine respones.
-      // The engine will soon send another expression update, overwriting this change anyway.
-      //
-      // This update is unfortunately not saved in the undo stack. Undoing and redoing the edit will
-      // still cause the placeholder to glitch out temporarily, but this is good enough for now.
-      // Proper fix would involve adding a proper "optimistic response" mechanism that can also be
-      // saved in the undo transaction.
-      const deletedArgIdx = argApp.argument.index
-      if (deletedArgIdx != null && methodCallInfo.value) {
-        // Grab original expression info data straight from DB, so we modify the original state.
-        const notAppliedArguments = graph.db.getExpressionInfo(
-          methodCallInfo.value.methodCallSource,
-        )?.methodCall?.notAppliedArguments
-        if (notAppliedArguments != null) {
-          const insertAt = partitionPoint(notAppliedArguments, (i) => i < deletedArgIdx)
-          if (notAppliedArguments[insertAt] != deletedArgIdx) {
-            // Insert the deleted argument back to the method info. This directly modifies observable
-            // data in `ComputedValueRegistry`. That's on purpose.
-            notAppliedArguments.splice(insertAt, 0, deletedArgIdx)
+        // HACK: Temporarily modify expression info to include the deleted argument on a list, so it
+        // immediately appears back as a placeholder after deletion, before the engine respones.
+        // The engine will soon send another expression update, overwriting this change anyway.
+        //
+        // This update is unfortunately not saved in the undo stack. Undoing and redoing the edit will
+        // still cause the placeholder to glitch out temporarily, but this is good enough for now.
+        // Proper fix would involve adding a proper "optimistic response" mechanism that can also be
+        // saved in the undo transaction.
+        const deletedArgIdx = argApp.argument.index
+        if (deletedArgIdx != null && methodCallInfo.value) {
+          // Grab original expression info data straight from DB, so we modify the original state.
+          const notAppliedArguments = graph.value.db.getExpressionInfo(
+            methodCallInfo.value.methodCallSource,
+          )?.methodCall?.notAppliedArguments
+          if (notAppliedArguments != null) {
+            const insertAt = partitionPoint(notAppliedArguments, (i) => i < deletedArgIdx)
+            if (notAppliedArguments[insertAt] != deletedArgIdx) {
+              // Insert the deleted argument back to the method info. This directly modifies observable
+              // data in `ComputedValueRegistry`. That's on purpose.
+              notAppliedArguments.splice(insertAt, 0, deletedArgIdx)
+            }
           }
         }
-      }
 
-      if (argApp.appTree instanceof Ast.App && argApp.appTree.argumentName != null) {
-        /* Case: Removing named prefix argument. */
+        if (argApp.appTree instanceof Ast.App && argApp.appTree.argumentName != null) {
+          /* Case: Removing named prefix argument. */
 
-        // Named argument can always be removed immediately. Replace the whole application with its
-        // target, effectively removing the argument from the call.
-        const func = edit.getVersion(argApp.appTree.function).take()
-        return props.updateCallback({
-          edit,
-          portUpdate: {
-            value: func,
-            origin: argApp.appTree.id,
-          },
-          directInteraction,
-        })
-      } else if (argApp.appTree instanceof Ast.OprApp) {
-        /* Case: Removing infix application. */
-
-        // Infix application is removed as a whole. Only the target is kept.
-        if (argApp.appTree.lhs) {
-          const lhs = edit.getVersion(argApp.appTree.lhs).take()
+          // Named argument can always be removed immediately. Replace the whole application with its
+          // target, effectively removing the argument from the call.
+          const func = edit.getVersion(argApp.appTree.function).take()
           return props.updateCallback({
             edit,
             portUpdate: {
-              value: lhs,
+              value: func,
               origin: argApp.appTree.id,
             },
             directInteraction,
           })
-        }
-      } else if (argApp.appTree instanceof Ast.App && argApp.appTree.argumentName == null) {
-        /* Case: Removing positional prefix argument. */
+        } else if (argApp.appTree instanceof Ast.OprApp) {
+          /* Case: Removing infix application. */
 
-        // Since the update of this kind can affect following arguments, it may be necessary to
-        // replace the AST for multiple levels of application.
-
-        // Traverse the application chain, starting from the outermost application and going
-        // towards the innermost target.
-        for (const innerApp of applications) {
-          if (innerApp.appTree.id === argApp.appTree.id) {
-            // Found the application with the argument to remove. Skip the argument and use the
-            // application target's code. This is the final iteration of the loop.
-            const appTree = edit.getVersion(argApp.appTree)
-            if (graph.db.isNodeId(appTree.externalId)) {
-              // If the modified application is a node root, preserve its identity and metadata.
-              appTree.updateValue((appTree) => appTree.function.take())
-            } else {
-              appTree.update((appTree) => appTree.function.take())
-            }
-            return props.updateCallback({ edit, directInteraction })
+          // Infix application is removed as a whole. Only the target is kept.
+          if (argApp.appTree.lhs) {
+            const lhs = edit.getVersion(argApp.appTree.lhs).take()
+            return props.updateCallback({
+              edit,
+              portUpdate: {
+                value: lhs,
+                origin: argApp.appTree.id,
+              },
+              directInteraction,
+            })
           } else {
-            // Process an argument to the right of the removed argument.
-            assert(innerApp.appTree instanceof Ast.App)
-            const infoName = innerApp.argument.argInfo?.name
-            // Positional arguments following the deleted argument must all be rewritten to named.
-            if (infoName && isIdentifier(infoName) && !innerApp.appTree.argumentName) {
-              edit.getVersion(innerApp.appTree).setArgumentName(infoName)
+            return Err('Cannot remove operand of infix without target')
+          }
+        } else if (argApp.appTree instanceof Ast.App && argApp.appTree.argumentName == null) {
+          /* Case: Removing positional prefix argument. */
+
+          // Since the update of this kind can affect following arguments, it may be necessary to
+          // replace the AST for multiple levels of application.
+
+          // Traverse the application chain, starting from the outermost application and going
+          // towards the innermost target.
+          for (const innerApp of applications) {
+            if (innerApp.appTree.id === argApp.appTree.id) {
+              // Found the application with the argument to remove. Skip the argument and use the
+              // application target's code. This is the final iteration of the loop.
+              const appTree = edit.getVersion(argApp.appTree)
+              if (graph.value.db.isNodeId(appTree.externalId)) {
+                // If the modified application is a node root, preserve its identity and metadata.
+                appTree.updateValue((appTree) => appTree.function.take())
+              } else {
+                appTree.update((appTree) => appTree.function.take())
+              }
+              return props.updateCallback({ edit, directInteraction })
+            } else {
+              // Process an argument to the right of the removed argument.
+              assert(innerApp.appTree instanceof Ast.App)
+              const infoName = innerApp.argument.argInfo?.name
+              // Positional arguments following the deleted argument must all be rewritten to named.
+              if (infoName && isIdentifier(infoName) && !innerApp.appTree.argumentName) {
+                edit.getVersion(innerApp.appTree).setArgumentName(infoName)
+              }
             }
           }
+          assertUnreachable()
+        } else if (value == null && argApp.argument instanceof ArgumentPlaceholder) {
+          /* Case: Removing placeholder value. */
+          // Do nothing. The argument already doesn't exist, so there is nothing to update.
+          return Ok()
         }
-        assertUnreachable()
-      } else if (value == null && argApp.argument instanceof ArgumentPlaceholder) {
-        /* Case: Removing placeholder value. */
-        // Do nothing. The argument already doesn't exist, so there is nothing to update.
-        return Ok()
       }
+      // Any other case is handled by the default handler.
+      return props.updateCallback({ ...update, edit })
     }
+    if (update.edit) return applyInEdit(update.edit)
+    else return module.value.edit(applyInEdit)
   }
-  // Any other case is handled by the default handler.
   return props.updateCallback(update)
 }
 </script>
 <script lang="ts">
 export const CallInfo: unique symbol = Symbol.for('WidgetInput:CallInfo')
-declare module '@/providers/widgetRegistry' {
+declare module '$/providers/openedProjects/widgetRegistry' {
   export interface WidgetInput {
     [CallInfo]?: MethodCallInfo
   }
@@ -254,9 +283,29 @@ export const widgetDefinition = defineWidget(
       if (prevFunctionState?.prefixCalls.has(ast.id)) return Score.Mismatch
 
       if (ast instanceof Ast.App || ast instanceof Ast.OprApp) return Score.Perfect
+      if (getMethodCallInfoRecursively(ast, db)) return Score.Perfect
+      if (
+        ast instanceof Ast.PropertyAccess ||
+        (ast instanceof Ast.Ident && !(ast.parent() instanceof Ast.PropertyAccess))
+      ) {
+        // Apply WidgetFunction to simple non-application expressions that represent an existing module-local function,
+        // even if it wasn't evaluated yet (i.e. we don't have up-to-date expression data yet).
+        const currentProject = useCurrentProject(true)
+        const projectPath = currentProject?.store.value.moduleProjectPath
+        if (currentProject && projectPath?.ok) {
+          const names = currentProject.projectNames
+          const potentialMethod = getPotentialModuleFunctionPointer(
+            ast,
+            projectPath.value,
+            names,
+            db,
+          )
+          if (potentialMethod && currentProject.module.value.hasMethod(potentialMethod.name))
+            return Score.Perfect
+        }
+      }
 
-      const info = getMethodCallInfoRecursively(ast, db)
-      return info != null ? Score.Perfect : Score.Mismatch
+      return Score.Mismatch
     },
   },
   import.meta.hot,

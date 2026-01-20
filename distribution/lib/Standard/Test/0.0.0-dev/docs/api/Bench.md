@@ -20,7 +20,8 @@
     - Impl builder:Standard.Base.Any.Any
     - group self name:Standard.Base.Data.Text.Text configuration:Standard.Test.Bench.Bench_Options fn:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - type Bench_Options
-    - Impl warmup:Standard.Test.Bench.Phase_Conf measure:Standard.Test.Bench.Phase_Conf
+    - Impl warmup:Standard.Test.Bench.Phase_Conf measure:Standard.Test.Bench.Phase_Conf jvm_args:(Standard.Base.Data.Text.Text|Standard.Base.Nothing.Nothing)=
+    - set_jvm_args self args:Standard.Base.Data.Text.Text -> Standard.Base.Any.Any
     - set_measure self meas:Standard.Test.Bench.Phase_Conf -> Standard.Base.Any.Any
     - set_warmup self warm:Standard.Test.Bench.Phase_Conf -> Standard.Base.Any.Any
     - to_text self -> Standard.Base.Any.Any

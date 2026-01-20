@@ -1,29 +1,30 @@
 import { useBackends } from '$/providers/backends'
-import { OpenedProjectsStore } from '$/providers/openedProjects'
+import type { OpenedProjectsStore } from '$/providers/openedProjects'
+import type { ToValue } from '$/utils/reactivity'
 import { createContextStore } from '@/providers'
-import { andThen, mapOk, Ok, Result } from '@/util/data/result'
-import { ToValue } from '@/util/reactivity'
-import { computed, ComputedRef, onScopeDispose, toValue } from 'vue'
+import { useQueryClient } from '@tanstack/vue-query'
+import { andThen, mapOk, Ok, type Result } from 'enso-common/src/utilities/data/result'
+import { computed, onScopeDispose, toValue, type ComputedRef } from 'vue'
 import {
   AsyncResource,
-  ResourceDefinition,
-  ResourceKey,
   useResourceCache,
+  type ResourceDefinition,
+  type ResourceKey,
 } from './asyncResources/AsyncResource'
 import {
   captureResourceContext,
-  ResourceContext,
-  ResourceContextSnapshot,
   useCurrentProjectResourceContext,
+  type ResourceContext,
+  type ResourceContextSnapshot,
 } from './asyncResources/context'
 import { useAsyncResourceResolver } from './asyncResources/resolve'
 import {
-  AnyUploadSource,
   normalizeUploadSources,
   uploadAsFetchProgress,
-  UploadDefinition,
-  UploadProgress,
   useResourceUpload,
+  type AnyUploadSource,
+  type UploadDefinition,
+  type UploadProgress,
 } from './asyncResources/upload'
 
 export type AsyncResourceStore = ReturnType<typeof useAsyncResources>
@@ -38,9 +39,10 @@ export const [provideAsyncResources, useAsyncResources] = createContextStore(
   'asyncResourceStore',
   (openedProjects: OpenedProjectsStore) => {
     const backends = useBackends()
+    const queryClient = useQueryClient()
     const { retainResource, releaseResource } = useResourceCache()
     const resolveResourceInContext = useAsyncResourceResolver(backends, openedProjects)
-    const uploadResource = useResourceUpload(openedProjects)
+    const uploadResource = useResourceUpload(openedProjects, backends.remoteBackend, queryClient)
 
     function finishResourceUpload(
       progress: UploadProgress,

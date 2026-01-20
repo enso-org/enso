@@ -1,7 +1,5 @@
 use crate::prelude::*;
 
-
-
 /// A trie data structure, where each node represents a single fs path component.
 ///
 /// As such, a trie defines a set of fs paths (each being defined by a path within the trie).
@@ -9,7 +7,7 @@ use crate::prelude::*;
 pub struct Trie<'a> {
     pub children: HashMap<std::path::Component<'a>, Trie<'a>>,
     /// Number of paths that end in this node.
-    pub count:    usize,
+    pub count: usize,
 }
 
 impl<'a> Trie<'a> {

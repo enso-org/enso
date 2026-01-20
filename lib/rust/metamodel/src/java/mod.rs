@@ -1,7 +1,5 @@
 //! Representation of datatype definitions in the Java typesystem.
 
-
-
 mod from_meta;
 #[cfg(feature = "graphviz")]
 mod graphviz;
@@ -11,8 +9,6 @@ use crate::data_structures::VecMap;
 use derive_more::Index;
 use derive_more::IndexMut;
 use std::collections::BTreeMap;
-
-
 
 // ==============
 // === Export ===
@@ -25,8 +21,6 @@ pub mod transform;
 pub use from_meta::from_meta;
 pub use implementation::implement as to_syntax;
 
-
-
 // =====================
 // === Java Builtins ===
 // =====================
@@ -38,8 +32,6 @@ pub const LIST: &str = "java.util.List";
 /// Fully-qualified name of Java's `String` type.
 pub const STRING: &str = "String";
 
-
-
 // ==============================
 // === Type Parameterizations ===
 // ==============================
@@ -49,8 +41,6 @@ pub type FieldId = crate::data_structures::Id<Field>;
 /// Identifies a Java class within a `TypeGraph`.
 pub type ClassId = crate::data_structures::vecmap::Key<Class>;
 
-
-
 // ======================
 // === Datatype Types ===
 // ======================
@@ -59,24 +49,24 @@ pub type ClassId = crate::data_structures::vecmap::Key<Class>;
 #[derive(Debug, Default, PartialEq, Eq)]
 pub struct Class {
     /// The name of the class, not including package.
-    pub name:                   String,
+    pub name: String,
     /// Parameters of a generic class.
-    pub params:                 Vec<ClassId>,
+    pub params: Vec<ClassId>,
     /// The parent class, if any.
-    pub parent:                 Option<ClassId>,
+    pub parent: Option<ClassId>,
     /// Whether this class is `abstract`.
-    pub abstract_:              bool,
+    pub abstract_: bool,
     /// Whether this class is `sealed`.
-    pub sealed:                 bool,
+    pub sealed: bool,
     /// The data fields.
-    pub fields:                 Vec<Field>,
+    pub fields: Vec<Field>,
     /// The class's methods.
-    pub methods:                Vec<Method>,
-    builtin:                    bool,
+    pub methods: Vec<Method>,
+    builtin: bool,
     // Attributes
-    discriminants:              BTreeMap<usize, ClassId>,
+    discriminants: BTreeMap<usize, ClassId>,
     /// The field before which a child type's fields will be inserted in the serialized format.
-    pub child_field:            Option<usize>,
+    pub child_field: Option<usize>,
     /// Virtual fields to insert at the beginning of the `toString` representation.
     ///
     /// Each value is an expression, which should evaluate to a string. It may refer to any of the
@@ -171,10 +161,10 @@ fn standard_methods() -> Vec<Method> {
 #[derive(Debug, PartialEq, Eq)]
 pub struct Field {
     #[allow(missing_docs)]
-    pub name:         String,
+    pub name: String,
     #[allow(missing_docs)]
-    pub data:         FieldData,
-    id:               FieldId,
+    pub data: FieldData,
+    id: FieldId,
     hide_in_tostring: bool,
 }
 
@@ -214,7 +204,7 @@ pub enum FieldData {
     /// A reference to an object.
     Object {
         #[allow(missing_docs)]
-        type_:    ClassId,
+        type_: ClassId,
         /// If `true`, this field should be subject to null-checking in constructors, and can be
         /// assumed always to be present.
         non_null: bool,
@@ -249,8 +239,6 @@ pub enum Primitive {
     },
 }
 
-
-
 // ============================
 // === Systems of Datatypes ===
 // ============================
@@ -261,7 +249,6 @@ pub struct TypeGraph {
     #[allow(missing_docs)]
     pub classes: VecMap<Class>,
 }
-
 
 // === GraphViz support ===
 

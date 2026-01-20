@@ -1,8 +1,6 @@
 //! Run the parser from the command line, and output the a JSON serialization of the AST for
 //! debugging.
 
-
-
 // === Non-Standard Linter Configuration ===
 
 fn main() {

@@ -40,7 +40,7 @@ jobs:
           node-version-file: .node-version
           cache: "pnpm"
 
-      - uses: bazel-contrib/setup-bazel@0.13.0
+      - uses: bazel-contrib/setup-bazel@0.15.0
         with:
           bazelisk-cache: true
           bazelrc: build --remote_cache=grpcs://${{ vars.ENSO_BAZEL_CACHE_URI }} --remote_cache_header="authorization=Basic ${{ secrets.ENSO_BAZEL_CACHE_TOKEN }}"
@@ -49,6 +49,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - uses: actions/cache/restore@v4
+        if: "${{ !(contains(github.event.pull_request.labels.*.name, 'CI: Clean build required')) }}"
         name: Download cache
         id: cache
         with:
@@ -88,6 +89,13 @@ jobs:
           only-pr-files: false
           fail-on-error: false
           fail-on-warning: false
+
+      - name: 📥 Download Enso Engine
+        continue-on-error: true
+        working-directory: app/project-manager-shim
+        run: pnpm run download-engine
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: 🧪 Unit Tests
         id: unit-tests
@@ -140,7 +148,7 @@ jobs:
           node-version-file: .node-version
           cache: "pnpm"
 
-      - uses: bazel-contrib/setup-bazel@0.13.0
+      - uses: bazel-contrib/setup-bazel@0.15.0
         with:
           bazelrc: build --remote_cache=grpcs://${{ vars.ENSO_BAZEL_CACHE_URI }} --remote_cache_header="authorization=Basic ${{ secrets.ENSO_BAZEL_CACHE_TOKEN }}"
 

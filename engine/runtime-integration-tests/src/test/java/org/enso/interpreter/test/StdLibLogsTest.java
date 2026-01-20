@@ -27,16 +27,16 @@ public class StdLibLogsTest {
         ctxRule.eval(
             "enso",
             """
-    from Standard.Base import IO
-    from Standard.Base.Logging import all
+            from Standard.Base import IO
+            from Standard.Base.Logging import all
 
-    type Foo
+            type Foo
 
-    test =
-        Foo.log_message level=..Warning "I should warn you about something..."
-        Foo.log_message level=..Info "Should be seen? By default we only show up-to warnings level"
-        Foo.log_message level=..Severe "Something went really bad!"
-    """);
+            test =
+                Foo.log_message level=..Warning "I should warn you about something..."
+                Foo.log_message level=..Info "Should be seen? By default we only show up-to warnings level"
+                Foo.log_message level=..Severe "Something went really bad!"
+            """);
   }
 
   @AfterClass

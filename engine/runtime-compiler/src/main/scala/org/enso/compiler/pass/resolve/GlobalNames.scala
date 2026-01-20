@@ -7,7 +7,6 @@ import org.enso.compiler.core.ir.{
   CallArgument,
   DefinitionArgument,
   Expression,
-  MetadataStorage,
   Module,
   Name,
   Type
@@ -80,7 +79,7 @@ case object GlobalNames extends IRPass {
     )
     val new_bindings =
       ir.bindings.map(processModuleDefinition(_, scopeMap, freshNameSupply))
-    ir.copy(bindings = new_bindings)
+    ir.copyWithBindings(new_bindings)
   }
 
   /** Executes the pass on the provided `ir`, and returns a possibly transformed
@@ -125,7 +124,7 @@ case object GlobalNames extends IRPass {
           processExpression(_, bindings, List(), freshNameSupply, resolution)
         )
       case tp: Definition.Type =>
-        tp.copy(members =
+        tp.copyWithMembers(
           tp.members.map(
             _.mapExpressions { expr =>
               val selfTypeResolution =
@@ -165,9 +164,9 @@ case object GlobalNames extends IRPass {
         selfTypeResolution
           .map(res => selfTp.updateMetadata(new MetadataPair(this, res)))
           .getOrElse(
-            errors.Resolution(
+            errors.Resolution.create(
               selfTp,
-              errors.Resolution.ResolverError(ResolutionNotFound)
+              new errors.Resolution.ResolverError(ResolutionNotFound)
             )
           )
       case lit: Name.Literal =>
@@ -184,13 +183,13 @@ case object GlobalNames extends IRPass {
                 new MetadataPair(this, Resolution(ResolvedModule(modRef)))
               )
             case _ =>
-              if (!lit.isMethod && !isLocalVar(lit)) {
+              if (hasAliasMeta(lit) && !lit.isMethod && !isLocalVar(lit)) {
                 val resolution = bindings.resolveName(lit.name)
                 resolution match {
                   case Left(error) =>
-                    errors.Resolution(
+                    errors.Resolution.create(
                       lit,
-                      errors.Resolution.ResolverError(error)
+                      new errors.Resolution.ResolverError(error)
                     )
                   case Right(values)
                       if values.exists(_.isInstanceOf[ResolvedModuleMethod]) =>
@@ -222,20 +221,22 @@ case object GlobalNames extends IRPass {
                         name     = resolvedModuleMethod.method.name,
                         location = None
                       )
-                      val app = new Application.Prefix(
-                        fun,
-                        List(
-                          new CallArgument.Specified(
-                            None,
-                            self,
-                            true,
-                            identifiedLocation = null
+                      val app = Application.Prefix
+                        .builder()
+                        .function(fun)
+                        .arguments(
+                          List(
+                            CallArgument.Specified
+                              .builder()
+                              .name(None)
+                              .value(self)
+                              .isSynthetic(true)
+                              .build()
                           )
-                        ),
-                        hasDefaultsSuspended = false,
-                        lit.identifiedLocation,
-                        new MetadataStorage()
-                      )
+                        )
+                        .hasDefaultsSuspended(false)
+                        .location(lit.identifiedLocation)
+                        .build()
                       fun
                         .getMetadata(ExpressionAnnotations)
                         .foreach(annotationsMeta =>
@@ -260,9 +261,9 @@ case object GlobalNames extends IRPass {
                       case _ => false
                     }
                     if (containsErrors) {
-                      errors.Resolution(
+                      errors.Resolution.create(
                         lit,
-                        errors.Resolution.ResolverError(ResolutionNotFound)
+                        new errors.Resolution.ResolverError(ResolutionNotFound)
                       )
                     } else {
                       values.foldLeft(lit)((lit, value) =>
@@ -364,21 +365,20 @@ case object GlobalNames extends IRPass {
                 )
               )
             )
-          val selfArg =
-            new CallArgument.Specified(
-              None,
-              self,
-              true,
-              identifiedLocation = null
-            )
+          val selfArg = CallArgument.Specified
+            .builder()
+            .value(self)
+            .isSynthetic(true)
+            .name(None)
+            .build()
           processedFun.passData.remove(this) // Necessary for IrToTruffle
           app.copy(
-            function  = processedFun,
-            arguments = selfArg :: processedArgs
+            processedFun,
+            selfArg :: processedArgs
           )
         }
       case _ =>
-        app.copy(function = processedFun, arguments = processedArgs)
+        app.copy(processedFun, processedArgs)
     }
   }
 
@@ -431,7 +431,7 @@ case object GlobalNames extends IRPass {
       case _ => None
     }
     newApp.getOrElse(
-      app.copy(function = processedFun, arguments = processedArgs)
+      app.copy(processedFun, processedArgs)
     )
   }
 
@@ -446,7 +446,7 @@ case object GlobalNames extends IRPass {
     ) {
       newFun
     } else {
-      originalApp.copy(function = newFun, arguments = newArgs)
+      originalApp.copy(newFun, newArgs)
     }
   }
 
@@ -492,18 +492,21 @@ case object GlobalNames extends IRPass {
   private def asGlobalVar(ir: IR): Option[Name.Literal] =
     ir match {
       case name: Name.Literal =>
-        if (isLocalVar(name)) None else Some(name)
+        if (!hasAliasMeta(name) || isLocalVar(name)) None else Some(name)
       case _ => None
     }
 
   private def isLocalVar(name: Name.Literal): Boolean = {
-    val aliasInfo = name
-      .unsafeGetMetadata(
-        AliasAnalysis,
-        "no alias analysis info on a name"
-      )
-      .unsafeAs[AliasInfo.Occurrence]
-    val defLink = aliasInfo.graph.defLinkFor(aliasInfo.id)
-    defLink.isDefined
+    name.getMetadata(AliasAnalysis) match {
+      case None => false
+      case Some(aliasMeta) =>
+        val aliasInfo = aliasMeta.unsafeAs[AliasInfo.Occurrence]
+        val defLink   = aliasInfo.graph.defLinkFor(aliasInfo.id)
+        defLink.isDefined
+    }
+  }
+
+  private def hasAliasMeta(ir: IR): Boolean = {
+    ir.getMetadata(AliasAnalysis).isDefined
   }
 }

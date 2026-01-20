@@ -1,5 +1,7 @@
 /** @file A Vue composable for panning and zooming a DOM element. */
 
+import { clamp } from '$/utils/data/math'
+import { proxyRefs } from '$/utils/reactivity'
 import { useApproach, useApproachVec } from '@/composables/animation'
 import {
   PointerButtonMask,
@@ -11,10 +13,8 @@ import {
 import type { KeyboardComposable } from '@/composables/keyboard'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
-import { proxyRefs } from '@/util/reactivity'
 import { useEventListener, type VueInstance } from '@vueuse/core'
 import { useGesture, type Handler } from '@vueuse/gesture'
-import { clamp } from 'enso-common/src/utilities/data/math'
 import { computed, onScopeDispose, readonly, ref, shallowRef, toRef, watch, type Ref } from 'vue'
 
 type ScaleRange = readonly [number, number]

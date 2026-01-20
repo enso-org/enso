@@ -51,8 +51,13 @@ import project.Row.Row
 import project.Row_Limit.Row_Limit
 import project.Rows_To_Read.Rows_To_Read
 import project.Set_Mode.Set_Mode
+import project.Set_Mode.Set_Mode_Many
 import project.Simple_Expression.Simple_Expression
 import project.Sort_Column.Sort_Column
+import project.Spatial_Table.Spatial_Join_Condition
+import project.Spatial_Table.Spatial_Table
+import project.SQL_Function.SQL_Function
+import project.Table_Selector.Table_Selector
 import project.Value_Type.Auto
 import project.Value_Type.By_Type
 import project.Value_Type.Value_Type
@@ -525,7 +530,7 @@ type Table
        suggested: 1
        ---
        Creates a new table with a chosen subset of columns.
-       
+
        The subset of columns is specified by the `columns` parameter
        and taken from the input table. Any unmatched columns in the 
        input will be dropped from the output.
@@ -1211,26 +1216,28 @@ type Table
         self.implementation.use_first_row_as_names self.underlying on_problems
 
     ## ---
-       aliases:
-        - average
-        - first
-        - group by
-        - last
-        - longest
-        - maximum
-        - mean
-        - median
-        - minimum
-        - mode
-        - percentile
-        - shortest
-        - standard deviation
-        - summarize
-        - variance
+       aliases: [group by, summarize, variance]
        macros:
-        - sum: columns=[..Sum]
         - count: columns=[..Count]
+        - sum: columns=[..Sum]
+        - average: columns=[..Average]
+        - mean: columns=[..Mean]
+        - maximum: columns=[..Maximum]
+        - minimum: columns=[..Minimum]
         - count_distinct: columns=[..Count_Distinct]
+        - first: columns=[..First]
+        - last: columns=[..Last]
+        - count not nothing: columns=[..Count_Not_Nothing]
+        - count nothing: columns=[..Count_Nothing]
+        - count not empty: columns=[..Count_Not_Empty]
+        - count empty: columns=[..Count_Empty]
+        - concatenate: columns=[..Concatenate]
+        - shortest: columns=[..Shortest]
+        - longest: columns=[..Longest]
+        - median: columns=[..Median]
+        - percentile: columns=[..Percentile]
+        - mode: columns=[..Mode]
+        - standard deviation: columns=[..Standard_Deviation]
        group: Standard.Base.Calculations
        icon: transform4
        suggested: 7
@@ -1324,7 +1331,7 @@ type Table
        suggested: 8
        ---
        Sorts the rows of the table by specified columns.
-       
+
        Optionally, the method of ordering text values can be specified allowing
        for case-insensitively or dictionary ordering.
 
@@ -1558,9 +1565,9 @@ type Table
           `Nothing` is provided, the default formatting settings of the backend
           will be used. `Nothing` is currently the only setting accepted by the
           Database backends.
-        - `error_on_missing_columns`: Specifies if a missing input column should
-          result in an error regardless of the `on_problems` settings. Defaults
-          to `True`.
+        - `error_on_missing_columns`: If `True`, an error is raised if a
+          specified column is not found. If `False`, the missing column is
+          ignored.
         - `on_problems`: Specifies how to handle if a problem occurs, raising as
           a warning by default.
 
@@ -1636,7 +1643,7 @@ type Table
        to work out the type of the column.
        The default parser only parse values where the process is reversible
        (e.g., 0123 would not be converted to an integer as there is a leading 0).
-       However, this can be overriden by providing a `Data_Formatter`.
+       However, this can be overridden by providing a `Data_Formatter`.
 
        ### In Database Support
        In the Database backends, the default formatting settings of the
@@ -1662,11 +1669,12 @@ type Table
     @columns (Widget_Helpers.make_column_name_multi_selector add_regex=True)
     @type Widget_Helpers.parse_type_selector
     @format Widget_Helpers.make_format_chooser_for_parse
-    parse self (columns : Vector (Text | Integer | Regex) | Text | Integer | Regex = self.columns . filter (c-> c.value_type.is_text) . map .name) (type : Value_Type | Auto = Auto) (format : Text | Data_Formatter = '') error_on_missing_columns:Boolean=True on_problems:Problem_Behavior=..Report_Warning -> Table & Any =
-        self.implementation.parse self.underlying columns type format error_on_missing_columns on_problems
+    parse self (columns : Table_Selector = self.columns . filter (c-> c.value_type.is_text) . map .name) (type : Value_Type | Auto = Auto) (format : Text | Data_Formatter = '') error_on_missing_columns:Boolean=True on_problems:Problem_Behavior=..Report_Warning -> Table & Any =
+        columns.act_if_any self error_on_missing_columns selected->
+            self.implementation.parse self.underlying selected type format error_on_missing_columns=True on_problems
 
     ## ---
-       aliases: [to_text, to_string, to_char]
+       aliases: [to_char, to_string, to_text]
        group: Standard.Base.Conversions
        icon: convert
        ---
@@ -1684,9 +1692,9 @@ type Table
         - `locale`: The locale in which the format should be interpreted. If a
           `Date_Time_Formatter` is provided for `format`, then this locale will
           override the locale in the formatter (unless it is `default`).
-        - `error_on_missing_columns`: Specifies if a missing input column should
-          result in an error regardless of the `on_problems` settings. Defaults
-          to `True`.
+        - `error_on_missing_columns`: If `True`, an error is raised if a
+          specified column is not found. If `False`, the missing column is
+          ignored.
         - `on_problems`: Specifies how to handle if a problem occurs, raising as
           a warning by default.
 
@@ -1765,8 +1773,9 @@ type Table
     @columns (Widget_Helpers.make_column_name_multi_selector add_regex=True add_by_type=True)
     @locale Locale.default_widget
     @format Widget_Helpers.make_format_chooser_for_selection
-    format self (columns : Vector (Text | Integer | Regex | By_Type) | Text | Integer | Regex | By_Type = Missing_Argument.throw "columns") (format : Text | Date_Time_Formatter | Column = "") locale:Locale=Locale.default error_on_missing_columns:Boolean=True on_problems:Problem_Behavior=..Report_Warning -> Table & Any ! Date_Time_Format_Parse_Error | Illegal_Argument =
-        self.implementation.format self.underlying columns format locale error_on_missing_columns on_problems
+    format self (columns : Table_Selector = Missing_Argument.throw "columns") (format : Text | Date_Time_Formatter | Column = "") locale:Locale=Locale.default error_on_missing_columns:Boolean=True on_problems:Problem_Behavior=..Report_Warning -> Table & Any ! Date_Time_Format_Parse_Error | Illegal_Argument =
+        columns.act_if_any self error_on_missing_columns selected->
+            self.implementation.format self.underlying selected format locale error_on_missing_columns=True on_problems
 
     ## ---
        group: Standard.Base.Conversions
@@ -1778,9 +1787,9 @@ type Table
        ## Arguments
         - `columns`: The selection of columns to cast.
         - `value_type`: The `Value_Type` to cast the column to.
-        - `error_on_missing_columns`: Specifies if a missing input column should
-          result in an error regardless of the `on_problems` settings. Defaults
-          to `True`.
+        - `error_on_missing_columns`: If `True`, an error is raised if a
+          specified column is not found. If `False`, the missing column is
+          ignored.
         - `on_problems`: Specifies how to handle problems if they occur,
           reporting them as warnings by default.
 
@@ -1829,8 +1838,9 @@ type Table
        Due to this, a Mixed column containing values `[2, "3"]` will actually be
        converted into `[2, Nothing]` when casting to Integer type.
     @columns (Widget_Helpers.make_column_name_multi_selector add_regex=True add_by_type=True)
-    cast self (columns : Vector (Text | Integer | Regex | By_Type) | Text | Integer | Regex | By_Type = Missing_Argument.throw "columns") (value_type:Value_Type = Missing_Argument.throw "value_type") error_on_missing_columns:Boolean=True on_problems:Problem_Behavior=..Report_Warning -> Table & Any ! Illegal_Argument | Inexact_Type_Coercion | Conversion_Failure =
-        self.implementation.cast self.underlying columns value_type error_on_missing_columns on_problems
+    cast self (columns : Table_Selector = Missing_Argument.throw "columns") (value_type:Value_Type = Missing_Argument.throw "value_type") error_on_missing_columns:Boolean=True on_problems:Problem_Behavior=..Report_Warning -> Table & Any ! Illegal_Argument | Inexact_Type_Coercion | Conversion_Failure =
+        columns.act_if_any self error_on_missing_columns selected->
+            self.implementation.cast self.underlying selected value_type error_on_missing_columns=True on_problems
 
     ## ---
        aliases: [auto_value_types]
@@ -1852,9 +1862,9 @@ type Table
         - `shrink_types`: If set `True`, smaller types will be chosen if
           possible, according to the rules below. Defaults to `False`. For
           example, from a 64-bit integer to a 32-bit integer if all fit.
-        - `error_on_missing_columns`: Specifies if a missing input column should
-          result in an error regardless of the `on_problems` settings. Defaults
-          to `True`.
+        - `error_on_missing_columns`: If `True`, an error is raised if a
+          specified column is not found. If `False`, the missing column is
+          ignored.
         - `on_problems`: Specifies how to handle problems if they occur,
           reporting them as warnings by default.
 
@@ -1880,8 +1890,9 @@ type Table
        are no longer than 255 characters, the column will get a max length of
        255. Otherwise, the column size limit will stay unchanged.
     @columns (Widget_Helpers.make_column_name_multi_selector add_regex=True add_by_type=True)
-    auto_cast self (columns : Vector (Text | Integer | Regex | By_Type) | Text | Integer | Regex | By_Type = self.column_names) shrink_types:Boolean=False error_on_missing_columns:Boolean=True on_problems:Problem_Behavior=..Report_Warning -> Table & Any =
-        self.implementation.auto_cast self.underlying columns shrink_types error_on_missing_columns on_problems
+    auto_cast self (columns : Table_Selector = self.column_names) shrink_types:Boolean=False error_on_missing_columns:Boolean=True on_problems:Problem_Behavior=..Report_Warning -> Table & Any =
+        columns.act_if_any self error_on_missing_columns selected->
+            self.implementation.auto_cast self.underlying selected shrink_types error_on_missing_columns=True on_problems
 
     ## ---
        private: true
@@ -1898,9 +1909,9 @@ type Table
         - `columns`: The selection of columns to convert.
         - `shrink_types`: If set `True`, smaller types will be chosen if
           possible, according to the rules below. Defaults to `False`.
-        - `error_on_missing_columns`: Specifies if a missing input column should
-          result in an error regardless of the `on_problems` settings. Defaults
-          to `True`.
+        - `error_on_missing_columns`: If `True`, an error is raised if a
+          specified column is not found. If `False`, the missing column is
+          ignored.
         - `on_problems`: Specifies how to handle problems if they occur,
           reporting them as warnings by default.
 
@@ -1928,7 +1939,8 @@ type Table
     @columns (Widget_Helpers.make_column_name_multi_selector add_regex=True add_by_type=True)
     auto_value_types : Vector (Text | Integer | Regex | By_Type) | Text | Integer | Regex | By_Type -> Boolean -> Boolean -> Problem_Behavior -> Table
     auto_value_types self columns:(Vector (Text | Integer | Regex | By_Type) | Text | Integer | Regex | By_Type)=self.column_names shrink_types:Boolean=False error_on_missing_columns:Boolean=True on_problems:Problem_Behavior=..Report_Warning =
-        self.implementation.auto_value_types self.underlying columns shrink_types error_on_missing_columns on_problems
+        columns.act_if_any self error_on_missing_columns selected->
+            self.implementation.auto_value_types self.underlying selected shrink_types error_on_missing_columns=True on_problems
 
     ## ---
        aliases: [parse, tokenize]
@@ -1945,21 +1957,26 @@ type Table
        - Returns a Table with the newly split columns and the original removed.
 
        ## Arguments
-        - `column`: The name or index of the column to split the text of.
+        - `columns`: The name or index of the column(s) to split the text of.
         - `delimiter`: The term or terms used to split the text.
         - `column_count`: The number of columns to split to. If `All_Columns`
           then columns will be added to fit all data.
-        - `on_problems`: Specifies the behavior when a problem occurs, reporting
-          them as warnings by default.
+        - `on_problems`: Specifies the behavior when a problem occurs,
+          reporting them as warnings by default.
+        - `error_on_missing_columns`: If `True`, an error is raised if a
+          specified column is not found. If `False`, the missing column is
+          ignored.
 
        ## Errors
         - If the data exceeds the `column_count`, a `Column_Count_Exceeded` will
           be reported according to the `on_problems` behavior.
-    @column Widget_Helpers.make_column_name_selector
+    @columns (Widget_Helpers.make_column_name_multi_selector add_regex=True add_by_type=True)
     @delimiter make_delimiter_selector
     @column_count Columns_To_Add.default_widget
-    split_to_columns self (column : Text | Integer = Missing_Argument.throw "column") (delimiter : Text | Vector = Missing_Argument.throw "delimiter") column_count:Columns_To_Add=..All_Columns on_problems:Problem_Behavior=..Report_Warning -> Table & Any =
-        self.implementation.split_to_columns self.underlying column delimiter column_count on_problems
+    split_to_columns self (columns : Table_Selector = Missing_Argument.throw "columns") (delimiter : Text | Vector = Missing_Argument.throw "delimiter") column_count:Columns_To_Add=..All_Columns on_problems:Problem_Behavior=..Report_Warning error_on_missing_columns:Boolean=True -> Table & Any =
+        columns.act_if_any self error_on_missing_columns selected->
+            selected.fold self current->column_name->
+                current.implementation.split_to_columns current.underlying column_name delimiter column_count on_problems
 
     ## ---
        aliases: [parse, tokenize]
@@ -1997,20 +2014,25 @@ type Table
        - Returns a Table with the newly split columns.
 
        ## Arguments
-        - `column`: The name or index of the column to tokenize the text of.
+        - `columns`: The name or index of the column(s) to tokenize the text of.
         - `pattern`: The pattern used to find within the text.
         - `case_sensitivity`: Specifies if the text values should be compared
           case sensitively.
         - `column_count`: The number of columns to split to. If `Nothing` then
           columns will be added to fit all data.
         - `on_problems`: Specifies the behavior when a problem occurs.
+        - `error_on_missing_columns`: If `True`, an error is raised if a
+          specified column is not found. If `False`, the missing column is
+          ignored.
 
        ## Errors
         - If the data exceeds the `column_count`, a `Column_Count_Exceeded` will
           be reported according to the `on_problems` behavior.
-    @column Widget_Helpers.make_column_name_selector
-    tokenize_to_columns self (column : Text | Integer = Missing_Argument.throw "column") (pattern : Text = Missing_Argument.throw "pattern") case_sensitivity:Case_Sensitivity=..Sensitive column_count:Columns_To_Add=..All_Columns on_problems:Problem_Behavior=..Report_Warning -> Table & Any =
-        self.implementation.tokenize_to_columns self.underlying column pattern case_sensitivity column_count on_problems
+    @columns (Widget_Helpers.make_column_name_multi_selector add_regex=True add_by_type=True)
+    tokenize_to_columns self (columns : Table_Selector = Missing_Argument.throw "columns") (pattern : Text = Missing_Argument.throw "pattern") case_sensitivity:Case_Sensitivity=..Sensitive column_count:Columns_To_Add=..All_Columns on_problems:Problem_Behavior=..Report_Warning error_on_missing_columns:Boolean=True -> Table & Any =
+        columns.act_if_any self error_on_missing_columns selected->
+            selected.fold self current->column_name->
+                current.implementation.tokenize_to_columns current.underlying column_name pattern case_sensitivity column_count on_problems
 
     ## ---
        aliases: [parse, regex, split]
@@ -2082,15 +2104,20 @@ type Table
        Expand a column of objects to a new set of columns.
 
        ## Arguments
-        - `column`: The column to expand.
+        - `columns`: The column(s) to expand.
         - `fields`: The set fields to expand. If `Nothing` then all fields are
           added.
-        - `prefix`: Prefix to add to the column names. By default the column name
-          is used.
-    @column Widget_Helpers.make_column_name_selector
+        - `prefix`: Prefix to add to the column names. By default the column
+          name is used.
+        - `error_on_missing_columns`: If `True`, an error is raised if a
+          specified column is not found. If `False`, the missing column is
+          ignored.
+    @columns (Widget_Helpers.make_column_name_multi_selector add_regex=True add_by_type=True)
     @fields (Widget.Vector_Editor item_editor=Widget.Text_Input item_default='""')
-    expand_column self (column : Text | Integer = Missing_Argument.throw "column") (fields : (Vector Text) | Nothing = Nothing) prefix:Prefix_Name=..Column_Name -> Table & Any ! Type_Error | No_Such_Column | Index_Out_Of_Bounds =
-        self.implementation.expand_column self.underlying column fields prefix
+    expand_column self (columns : Table_Selector = Missing_Argument.throw "columns") (fields : (Vector Text) | Nothing = Nothing) prefix:Prefix_Name=..Column_Name error_on_missing_columns:Boolean=True -> Table & Any ! Type_Error | No_Such_Column | Index_Out_Of_Bounds =
+        columns.act_if_any self error_on_missing_columns selected->
+            selected.fold self current->column_name->
+                current.implementation.expand_column current.underlying column_name fields prefix
 
     ## ---
        group: Standard.Base.Calculations
@@ -2151,7 +2178,7 @@ type Table
        suggested: 2
        ---
        Creates a new table with a filtered subset of rows.
-       
+
        The rows are selected from the input table using a condition. The rows
        that meet the condition will remain after the filter. Filters can compare
        columns, compare against static values, or compare against an argument
@@ -2378,7 +2405,9 @@ type Table
         self.implementation.remove_all_rows self.underlying
 
     ## ---
-       aliases: [add index column, rank, record id]
+       aliases: [add index column, record id]
+       macros:
+        - rank: '"Rank" 1'
        group: Standard.Base.Values
        icon: column_add
        suggested: 6
@@ -2474,7 +2503,7 @@ type Table
                 4 | 2
                 5 | 1
             table = table_builder [['x', [1, 2, 3, 4, 5]], ['y', [5, 4, 3, 2, 1]]]
-            table2 = tabble.add_group_number (..Equal_Count 3) "g"
+            table2 = table.add_group_number (..Equal_Count 3) "g"
             table2.at 'g' . to_vector
             # => [0, 0, 1, 1, 2]
             ## table2:
@@ -2500,9 +2529,19 @@ type Table
 
        ### Grouping Methods
        The following grouping methods are supported:
+
        - `Unique`: Group rows by the specified columns.
-       - Equal_Count: Create the specified number of groups with the same number
-       of rows in each group (except possibly the last one).
+       - `Equal_Count`: Create the specified number of groups with the same
+          number of rows in each group.
+       - `Equal_Sum`: Create the specified number of groups with the same
+          sum of values in the specified column in each group.
+       - `Standard_Deviation`: Group rows based on values deviation from
+          the mean of the specified column
+            - `Very Low` (less than -1.5σ)
+            - `Low` (-1.5σ to -0.5σ)
+            - `Average` (-0.5σ to 0.5σ)
+            - `High` (0.5σ to 1.5σ)
+            - `Very High` (greater than 1.5σ)
 
        ### Ordering of rows
        In the in-memory database, the ordering of rows from the original table is
@@ -2592,8 +2631,47 @@ type Table
         - If more than 10 rows encounter computation issues, an
           `Additional_Warnings`.
     @value Simple_Expression.default_widget
-    set self (value : Text | Expression | Column | Constant_Column | Simple_Expression = Missing_Argument.throw "value") as:Text="" set_mode:Set_Mode=..Add_Or_Update on_problems:Problem_Behavior=..Report_Warning -> Table & Any ! Existing_Column | Missing_Column | No_Such_Column | Expression_Error =
+    set self (value : Text | Expression | Column | Constant_Column | Simple_Expression | SQL_Function = Missing_Argument.throw "value") as:Text="" set_mode:Set_Mode=..Add_Or_Update on_problems:Problem_Behavior=..Report_Warning -> Table & Any ! Existing_Column | Missing_Column | No_Such_Column | Expression_Error =
         self.implementation.set self.underlying value as set_mode on_problems
+
+    ## ---
+       private: true
+       ---
+       Adds or updates multiple columns on the table.
+
+       All calculation are performed based on the original table, so that the
+       order of setting columns does not matter.
+
+       ## Arguments
+        - `columns`: The columns to set.
+        - `value`: The expression to create columns. Use `{{Column}}` as a
+          placeholder for the current column.
+        - `set_mode`: Specifies the expected behaviour in regards to existing
+          columns with the same name.
+          - `as`: If not in `Update` mode, the naming pattern for the new
+             columns. Use `{{Column}}` as a placeholder for the current column
+             name.
+        - `error_on_missing_columns`: If `True`, an error is raised if a
+          specified column is not found. If `False`, the missing column is
+          ignored.
+        - `on_problems`: Specifies how to handle problems with expression
+          evaluation.
+
+        ## Returns
+        - Returns the updated Table along with the newly created or updated
+          columns.
+    @columns (Widget_Helpers.make_column_name_multi_selector add_regex=True add_by_type=True)
+    set_many self (columns : Table_Selector = Missing_Argument.throw "columns") (value : Text = Missing_Argument.throw "value") set_mode:Set_Mode_Many=..Update error_on_missing_columns:Boolean=True on_problems:Problem_Behavior=..Report_Warning -> Table & Any ! Existing_Column | Missing_Column | No_Such_Column | Expression_Error =
+        col_name = self.make_temp_column_name
+        as = set_mode.as_value
+        value_expr = Expression.Value (value.replace "{{Column}}" "["+col_name+"]")
+        columns.act_if_any self error_on_missing_columns selected->
+            new_columns = selected.map column_name->
+                as_name = as.replace "{{Column}}" column_name
+                column = self.at column_name
+                result = self.set column col_name . set value_expr as_name on_problems=on_problems
+                result.at as_name
+            new_columns.fold self current->new-> current.set new new.name set_mode
 
     ## ---
        private: true
@@ -2860,7 +2938,13 @@ type Table
     @on Widget_Helpers.make_join_condition_selector
     @join_kind Join_Kind.default_widget
     join self (right : Table = Missing_Argument.throw "right") join_kind:Join_Kind=..Left_Outer (on : Vector (Join_Condition | Text) | Text | Join_Condition = [Join_Condition.Equals self.column_names.first]) (right_prefix : Text = "Right ") on_problems:Problem_Behavior=..Report_Warning -> Table & Any =
-        self.implementation.join self.underlying right join_kind on right_prefix on_problems
+        ## Resolve Spatial Join Conditions
+        resolved = Spatial_Join_Condition.resolve on
+        resolved_on = if resolved.first.not then on else
+            if self.is_a Spatial_Table && right.is_a Spatial_Table then resolved.second else
+                Error.throw (Illegal_Argument.Error "Joining with a spatial table requires both tables to be spatial.")
+
+        self.implementation.join self.underlying right join_kind resolved_on right_prefix on_problems
 
     ## ---
        aliases: [append, cartesian]
@@ -3229,7 +3313,6 @@ type Table
         self.implementation.row_count self.underlying
 
     ## ---
-       private: true
        icon: data_input
        ---
        Returns a materialized dataframe containing rows of this table.
@@ -3271,7 +3354,7 @@ type Table
        suggested: 10
        ---
        Pivots a subset of the table's columns to rows.
-       
+
        Returns a new table with a chosen subset of columns left unchanged and the
        other columns pivoted to rows with a single name field and a single value
        field.
@@ -3321,8 +3404,8 @@ type Table
         - If any column names in the new table are clashing, a
           `Duplicate_Output_Column_Names` is reported according to the
           `on_problems` setting.
-    @key_columns Widget_Helpers.make_column_name_multi_selector
-    transpose self (key_columns : Vector (Integer | Text | Regex) | Text | Integer | Regex = []) attribute_column_name:Text="Name" value_column_name:Text="Value" error_on_missing_columns:Boolean=True on_problems:Problem_Behavior=..Report_Warning -> Table & Any ! No_Output_Columns | Missing_Input_Columns | Duplicate_Output_Column_Names =
+    @key_columns (Widget_Helpers.make_column_name_multi_selector add_regex=True add_by_type=True)
+    transpose self (key_columns : (Vector (Text | Integer | Regex | By_Type) | Text | Integer | Regex | By_Type) = []) attribute_column_name:Text="Name" value_column_name:Text="Value" error_on_missing_columns:Boolean=True on_problems:Problem_Behavior=..Report_Warning -> Table & Any ! No_Output_Columns | Missing_Input_Columns | Duplicate_Output_Column_Names =
         self.implementation.transpose self.underlying key_columns attribute_column_name value_column_name error_on_missing_columns on_problems
 
     ## ---
@@ -3385,10 +3468,10 @@ type Table
           `Unquoted_Delimiter`
         - If there are more than 10 issues with a single column, an
           `Additional_Warnings`.
-    @group_by Widget_Helpers.make_column_name_multi_selector
+    @group_by (Widget_Helpers.make_column_name_multi_selector add_regex=True add_by_type=True)
     @names Widget_Helpers.make_column_name_selector
     @values Widget_Helpers.make_aggregate_column_selector
-    cross_tab self (group_by : Vector (Integer | Text | Regex | Aggregate_Column) | Text | Integer | Regex = []) (names : Text | Integer  = Missing_Argument.throw "names") (values : Aggregate_Column | Vector Aggregate_Column = ..Count) on_problems:Problem_Behavior=..Report_Warning -> Table & Any ! Missing_Input_Columns | Invalid_Aggregate_Column | Floating_Point_Equality | Invalid_Aggregation | Unquoted_Delimiter | Additional_Warnings | Invalid_Column_Names =
+    cross_tab self (group_by : Vector (Integer | Text | Regex | By_Type | Aggregate_Column) | Text | Integer | Regex | By_Type = []) (names : Text | Integer  = Missing_Argument.throw "names") (values : Aggregate_Column | Vector Aggregate_Column = ..Count) on_problems:Problem_Behavior=..Report_Warning -> Table & Any ! Missing_Input_Columns | Invalid_Aggregate_Column | Floating_Point_Equality | Invalid_Aggregation | Unquoted_Delimiter | Additional_Warnings | Invalid_Column_Names =
         self.implementation.cross_tab self.underlying group_by names values on_problems
 
     ## ---
@@ -3548,7 +3631,7 @@ type Table
         - If a column in `element_columns`, `attribute_columns` or `value_column`
           is not in the input table, a `Missing_Input_Columns` is raised as an
           error.
-        - If any incomming columns aree not specified in one of
+        - If any incoming columns are not specified in one of
           `element_columns`, `attribute_columns` or `value_column`, a
           `Unexpected_Extra_Columns` is reported according to the `on_problems`
           setting.
@@ -3582,6 +3665,9 @@ type Table
           will be replaced with the previous value in the column. Note that the
           first rows may stay `Nothing` if they do not have a previous value to
           use.
+        - `error_on_missing_columns`: If `True`, an error is raised if any of the
+          specified columns are not found in the table. If `False`, missing
+          columns are ignored.
 
        ## Examples
        ### Fill missing values in two columns with the value 20.5.
@@ -3591,9 +3677,9 @@ type Table
        ```
     @columns (Widget_Helpers.make_column_name_multi_selector add_regex=True add_by_type=True)
     @default make_fill_nothing_default_widget
-    fill_nothing self (columns : Vector (Integer | Text | Regex | By_Type) | Text | Integer | Regex | By_Type = Missing_Argument.throw "columns") (default : Column | Column_Ref | Expression | Previous_Value | Any = Missing_Argument.throw "default") -> Table & Any =
-        columns.if_not_error <|
-            self.implementation.fill_nothing self.underlying columns default
+    fill_nothing self (columns : Table_Selector = Missing_Argument.throw "columns") (default : Column | Column_Ref | Expression | Previous_Value | Any = Missing_Argument.throw "default") error_on_missing_columns:Boolean=True -> Table & Any =
+        columns.act_if_any self error_on_missing_columns selected->
+            self.implementation.fill_nothing self.underlying selected default
 
     ## ---
        aliases: [fill empty, if_empty]
@@ -3611,6 +3697,9 @@ type Table
           be used. If this argument is `Previous_Value`, the empty values will be
           replaced with the previous value in the column. Note that the first
           rows may stay empty if they do not have a previous value to use.
+        - `error_on_missing_columns`: If `True`, an error is raised if any of the
+          specified columns are not found in the table. If `False`, missing
+          columns are ignored.
 
        ## Examples
        ### Fill empty values in two columns with the value "hello".
@@ -3620,9 +3709,9 @@ type Table
        ```
     @columns (Widget_Helpers.make_column_name_multi_selector add_regex=True add_by_type=True)
     @default (self-> Widget_Helpers.make_fill_default_value_selector (self.select_columns (..By_Type ..Char)) value_types=Value_Type.Char add_nothing=True)
-    fill_empty self (columns : Vector (Integer | Text | Regex | By_Type) | Text | Integer | Regex | By_Type = Missing_Argument.throw "columns") (default : Column | Column_Ref | Expression | Previous_Value | Any = Missing_Argument.throw "default") -> Table & Any =
-        columns.if_not_error <|
-            self.implementation.fill_empty self.underlying columns default
+    fill_empty self (columns : Table_Selector = Missing_Argument.throw "columns") (default : Column | Column_Ref | Expression | Previous_Value | Any = Missing_Argument.throw "default") error_on_missing_columns:Boolean=True -> Table & Any =
+        columns.act_if_any self error_on_missing_columns selected->
+            self.implementation.fill_empty self.underlying selected default
 
     ## ---
        aliases: [regex, substitute]
@@ -3649,6 +3738,9 @@ type Table
         - `case_sensitivity`: Specifies if the text values should be compared
           case sensitively.
         - `only_first`: If True, only replace the first match.
+        - `error_on_missing_columns`: If `True`, an error is raised if any of
+          the specified columns are not found in the table. If `False`, missing
+          columns are ignored.
 
        ## Examples
        ### Replace dashes with underscores.
@@ -3671,9 +3763,9 @@ type Table
     @columns (Widget_Helpers.make_column_name_multi_selector add_regex=True add_by_type=True)
     @term (Widget_Helpers.make_column_ref_by_name_selector add_regex=True add_text=True add_named_pattern=True)
     @new_text (Widget_Helpers.make_column_ref_by_name_selector add_text=True)
-    text_replace self (columns : Vector (Integer | Text | Regex | By_Type) | Text | Integer | Regex | By_Type = Missing_Argument.throw "columns") (term : Text | Column | Column_Ref | Expression | Regex = "") (new_text : Text | Column | Column_Ref | Expression = "") case_sensitivity:Case_Sensitivity=..Sensitive only_first:Boolean=False -> Table & Any =
-        columns.if_not_error <|
-            self.implementation.text_replace self.underlying columns term new_text case_sensitivity only_first
+    text_replace self (columns : Table_Selector = Missing_Argument.throw "columns") (term : Text | Column | Column_Ref | Expression | Regex = "") (new_text : Text | Column | Column_Ref | Expression = "") case_sensitivity:Case_Sensitivity=..Sensitive only_first:Boolean=False error_on_missing_columns:Boolean=True -> Table & Any =
+        columns.act_if_any self error_on_missing_columns selected->
+            self.implementation.text_replace self.underlying selected term new_text case_sensitivity only_first
 
     ## ---
        group: Standard.Base.Text
@@ -3686,20 +3778,26 @@ type Table
         - `columns`: The column(s) to cleanse.
         - `remove`: The list of operations being performed - which elements to
           remove. These are performed in the order specified. The same operation
-          can be performed multiple times. The operations are: -
-          ..Leading_Whitespace: Removes all whitespace from the start. -
-          ..Trailing_Whitespace: Removes all whitespace from the end. -
-          ..Duplicate_Whitespace: Removes all duplicate whitespace replacing it
-          with the first whitespace character of the duplicated block. -
-          ..All_Whitespace: Removes all whitespace. - ..Newlines: Removes all
-          newline characters. Line Feed and Carriage Return characters are
-          considered newlines. - ..Leading_Numbers: Removes all numbers from the
-          start. - ..Trailing_Numbers: Removes all numbers from the end. -
-          ..Non_ASCII: Removes all non-ascii characters. - ..Tabs: Removes all
-          tab characters. - ..Letters: Removes all letters. - ..Numbers: Removes
-          all numbers. - ..Punctuation: Removes all characters in the set
-          ``,.!?():;'"`. - ..Symbols: Removes anything that isn't letters,
-          numbers or whitespace from the string.
+          can be performed multiple times. The operations are:
+           - ..Leading_Whitespace: Removes all whitespace from the start.
+           - ..Trailing_Whitespace: Removes all whitespace from the end.
+           - ..Duplicate_Whitespace: Removes all duplicate whitespace replacing
+             it with the first whitespace character of the duplicated block.
+           - ..All_Whitespace: Removes all whitespace. - ..Newlines: Removes all
+             newline characters. Line Feed and Carriage Return characters are
+             considered newlines.
+           - ..Leading_Numbers: Removes all numbers from the start.
+           - ..Trailing_Numbers: Removes all numbers from the end.
+           - ..Non_ASCII: Removes all non-ascii characters.
+           - ..Tabs: Removes all tab characters.
+           - ..Letters: Removes all letters.
+           - ..Numbers: Removes all numbers.
+           - ..Punctuation: Removes all characters in the set ``,.!?():;'"`.
+           - ..Symbols: Removes anything that isn't letters, numbers or
+             whitespace from the string.
+        - `error_on_missing_columns`: If `True`, an error is raised if any of
+          the specified columns are not found in the table. If `False`, missing
+          columns are ignored.
 
        ## Returns
        - A Table of all records, with the cleansing operations performed on the
@@ -3721,23 +3819,28 @@ type Table
                | World |
     @columns (Widget_Helpers.make_column_name_multi_selector add_regex=True add_by_type=True)
     @remove make_data_cleanse_vector_selector
-    text_cleanse self (columns : Vector (Integer | Text | Regex | By_Type) = (Missing_Argument.throw "columns")) (remove : Vector Named_Pattern = []) -> Table & Any =
-        columns.if_not_error <|
-            self.implementation.text_cleanse self.underlying columns remove
+    text_cleanse self (columns : Table_Selector = (Missing_Argument.throw "columns")) (remove : Vector Named_Pattern = []) error_on_missing_columns:Boolean=True -> Table & Any =
+        columns.act_if_any self error_on_missing_columns selected->
+            self.implementation.text_cleanse self.underlying selected remove
 
     ## ---
-       aliases:
-        - count
-        - cumulative
-        - maximum
-        - mean
-        - minimum
-        - product
-        - standard deviation
-        - sum
-        - sum
-        - total
-        - variance
+       aliases: [cumulative]
+       macros:
+        - count: ..Count
+        - minimum: ..Minimum
+        - maximum: ..Maximum
+        - sum: ..Sum
+        - total: ..Sum
+        - product: ..Product
+        - mean: ..Mean
+        - variance: ..Variance
+        - standard deviation: ..Standard_Deviation
+        - skew: ..Skew
+        - kurtosis: ..Kurtosis
+        - covariance: ..Covariance
+        - pearson: ..Pearson
+        - spearman: ..Spearman
+        - r squared: ..R_Squared
        group: Standard.Base.Values
        icon: column_add
        ---
@@ -3811,10 +3914,13 @@ type Table
         - `on_problems`: Missing columns are always an error. Other warnings like
           grouping on floating point numbers can be ignored or made an error with
           this argument.
+        - `error_on_missing_columns`: If `True`, an error is raised if any of
+          the specified columns are not found in the table. If `False`, missing
+          columns are ignored.
 
        ## Returns
        - A Table of all records, with the selected columns offset by the number
-         specifed by n.
+         specified by n.
 
        ## Errors
         - If the columns specified in `group_by` or `order_by` are not present in
@@ -3829,13 +3935,14 @@ type Table
        cases. The grouping and ordering settings affect how the values move as
        they are offset, but the order of the rows itself is not changed by this
        operation.
-    @columns Widget_Helpers.make_column_name_multi_selector
+    @columns (Widget_Helpers.make_column_name_multi_selector add_regex=True add_by_type=True)
     @n (Widget.Numeric_Input display=..Always)
-    @default (self-> Widget_Helpers.make_fill_default_value_selector2)
-    @group_by Widget_Helpers.make_column_name_multi_selector
+    @default (self-> Widget_Helpers.make_fill_default_value_selector)
+    @group_by (Widget_Helpers.make_column_name_multi_selector add_regex=True)
     @order_by Widget_Helpers.make_order_by_selector
-    offset self (columns : Vector (Integer | Text | Regex | By_Type) = Missing_Argument.throw "columns") n:Integer=-1 fill_with:Fill_With=..Nothing (group_by : Vector | Text | Integer | Regex = []) (order_by : Vector | Text = []) set_mode:Set_Mode=..Add on_problems:Problem_Behavior=..Report_Warning -> Table & Any =
-        self.implementation.offset self.underlying columns n fill_with group_by order_by set_mode on_problems
+    offset self (columns : Table_Selector = Missing_Argument.throw "columns") n:Integer=-1 fill_with:Fill_With=..Nothing (group_by : Vector | Text | Integer | Regex = []) (order_by : Vector | Text = []) set_mode:Set_Mode=..Add on_problems:Problem_Behavior=..Report_Warning error_on_missing_columns:Boolean=True -> Table & Any =
+        columns.act_if_any self error_on_missing_columns selected->
+            self.implementation.offset self.underlying selected n fill_with group_by order_by set_mode on_problems
 
     ## ---
        aliases: [duplicate, expand, repeat, replicate]

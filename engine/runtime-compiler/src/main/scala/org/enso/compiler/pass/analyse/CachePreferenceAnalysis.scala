@@ -20,6 +20,7 @@ import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.IRProcessingPass
 import org.enso.compiler.pass.desugar._
+import org.enso.persist.Persistance
 
 import java.util.UUID
 
@@ -56,8 +57,9 @@ case object CachePreferenceAnalysis extends IRPass {
     moduleContext: ModuleContext
   ): Module = {
     val weights = WeightInfo()
-    ir.copy(bindings = ir.bindings.map(analyseModuleDefinition(_, weights)))
-      .updateMetadata(new MetadataPair(this, weights))
+    ir.copyWithBindings(bindings =
+      ir.bindings.map(analyseModuleDefinition(_, weights))
+    ).updateMetadata(new MetadataPair(this, weights))
   }
 
   /** Performs the cache preference analysis on an inline expression.
@@ -89,12 +91,19 @@ case object CachePreferenceAnalysis extends IRPass {
       case _: Definition.Type => binding
       case method: definition.Method.Conversion =>
         method
-          .copy(body = analyseExpression(method.body, weights))
+          .copyBuilder()
+          .body(analyseExpression(method.body, weights))
+          .build()
           .updateMetadata(new MetadataPair(this, weights))
-      case method @ definition.Method
-            .Explicit(_, body, _, _, _) =>
+      case method: definition.Method.Explicit =>
         method
-          .copy(body = analyseExpression(body, weights))
+          .copyBuilder()
+          .bodyReference(
+            Persistance.Reference.of(
+              analyseExpression(method.body, weights)
+            )
+          )
+          .build()
           .updateMetadata(new MetadataPair(this, weights))
       case _: definition.Method.Binding =>
         throw new CompilerError(

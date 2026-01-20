@@ -5,7 +5,15 @@ const MENU_CLOSE_TIMEOUT_MS = 300
 </script>
 
 <script setup lang="ts">
-import { useGraphStore, useProjectStore } from '$/components/WithCurrentProject.vue'
+import {
+  useCurrentProject,
+  useGraphStore,
+  useProjectStore,
+} from '$/components/WithCurrentProject.vue'
+import { type Node } from '$/providers/openedProjects/graph'
+import { asNodeId } from '$/providers/openedProjects/graph/graphDatabase'
+import { evaluationProgress } from '$/providers/openedProjects/project/computedValueRegistry'
+import { useNodeExecution } from '$/providers/openedProjects/project/nodeExecution'
 import { nodeEditBindings } from '@/bindings'
 import ComponentMenu from '@/components/ComponentMenu.vue'
 import ContextMenuTrigger from '@/components/ContextMenuTrigger.vue'
@@ -25,24 +33,22 @@ import { useComponentColors } from '@/composables/componentColors'
 import { useClickableDraggable } from '@/composables/dragging'
 import { useResizeObserver } from '@/composables/events'
 import { useProgressBackground } from '@/composables/progressBar'
-import type { ActionHandler } from '@/providers/action'
+import type { ActionHandler, DisplayableActionName } from '@/providers/action'
 import { registerHandlers, toggledAction } from '@/providers/action'
 import { injectGraphNavigator } from '@/providers/graphNavigator'
 import { injectNodeColors } from '@/providers/graphNodeColors'
-import { injectGraphSelection } from '@/providers/graphSelection'
+import { useGraphSelection } from '@/providers/graphSelection'
 import { providePopoverRoot } from '@/providers/popoverRoot'
 import { provideResizableWidgetRegistry } from '@/providers/resizableWidgetRegistry'
-import { type Node } from '@/stores/graph'
-import { asNodeId } from '@/stores/graph/graphDatabase'
-import { evaluationProgress } from '@/stores/project/computedValueRegistry'
-import { useNodeExecution } from '@/stores/project/nodeExecution'
+import { provideWidgetControlledActions } from '@/providers/widgetActions'
 import { Ast } from '@/util/ast'
 import { prefixes } from '@/util/ast/node'
 import { onWindowBlur } from '@/util/autoBlur'
 import type { Opt } from '@/util/data/opt'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
-import { ComponentInstance, computed, onUnmounted, ref, toRef, watch, watchEffect } from 'vue'
+import { Ok } from 'enso-common/src/utilities/data/result'
+import { computed, onUnmounted, ref, toRef, watch, watchEffect, type ComponentInstance } from 'vue'
 import type { VisualizationIdentifier } from 'ydoc-shared/yjsModel'
 
 const contentNodeStyle = {
@@ -72,9 +78,10 @@ const emit = defineEmits<{
   'update:visualizationHeight': [height: number]
 }>()
 
-const nodeSelection = injectGraphSelection(true)
+const nodeSelection = useGraphSelection(true)
 const projectStore = useProjectStore()
 const graph = useGraphStore()
+const { module } = useCurrentProject()
 const navigator = injectGraphNavigator(true)
 const nodeExecution = useNodeExecution()
 
@@ -100,7 +107,6 @@ providePopoverRoot(rootNode)
 const { visibleMessage, hiddenMessage } = useNodeMessage({
   projectStore,
   graphDb: graph.db,
-  passEvents: () => outputVisible.value,
   expand: () => nodeHovered.value || selected.value,
   nodeId,
 })
@@ -168,7 +174,6 @@ function ensureSelected() {
   }
 }
 
-const outputVisible = computed(() => graph.nodeOutputVisible.get(nodeId.value))
 const outputHovered = computed(() => graph.nodeOutputHovered.get(nodeId.value))
 
 const scale = computed(() => navigator?.scale ?? 1)
@@ -231,13 +236,14 @@ const isRecordingOverridden = computed({
     return props.node.prefixes.enableRecording != null
   },
   set(shouldOverride) {
-    const edit = props.node.rootExpr.module.edit()
-    const replacement =
-      shouldOverride && !projectStore.isRecordingEnabled ?
-        [Ast.TextLiteral.new(projectStore.executionMode, edit)]
-      : undefined
-    prefixes.value.modify(edit.getVersion(props.node.rootExpr), { enableRecording: replacement })
-    graph.commitEdit(edit)
+    module.value.edit((edit) => {
+      const replacement =
+        shouldOverride && !projectStore.isRecordingEnabled ?
+          [Ast.TextLiteral.new(projectStore.executionMode, edit)]
+        : undefined
+      prefixes.value.modify(edit.getVersion(props.node.rootExpr), { enableRecording: replacement })
+      return Ok()
+    })
   },
 })
 
@@ -382,8 +388,24 @@ const actionHandlers = registerHandlers(
       enabled: computed(() => !isBeingRecomputed.value),
       action: recomputeOnce,
     },
+    ...provideWidgetControlledActions(['component.widget.editMethodName']),
   }),
 )
+
+const nodeMenuActions: DisplayableActionName[] = [
+  'component.toggleDocPanel',
+  'component.toggleVisualization',
+  'component.createNewNode',
+  'component.editingComment',
+  'component.recompute',
+  'component.pickColor',
+  'component.enterNode',
+  'component.widget.editMethodName',
+  'component.startEditing',
+  'components.copy',
+  'components.deleteSelected',
+  'components.deleteAndConnectAround',
+]
 
 onWindowBlur(() => {
   graph.nodeHovered.delete(nodeId.value)
@@ -416,6 +438,7 @@ const nodeName = computed(() => props.node.pattern?.code())
       :colorPickerOpened="colorPickerOpened"
       :currentNodeColor="nodeColor"
       :matchableColors="matchableColors"
+      :actions="nodeMenuActions"
       @setNodeColor="emit('setNodeColor', $event)"
       @closeColorPicker="colorPickerOpened = false"
       @update:hovered="menuHovered = $event"
@@ -433,21 +456,7 @@ const nodeName = computed(() => props.node.pattern?.code())
       class="beforeNode"
       @click.capture="setSoleSelected"
     />
-    <ContextMenuTrigger
-      :actions="[
-        'component.toggleDocPanel',
-        'component.toggleVisualization',
-        'component.createNewNode',
-        'component.editingComment',
-        'component.recompute',
-        'component.pickColor',
-        'component.enterNode',
-        'component.startEditing',
-        'components.copy',
-        'components.deleteSelected',
-      ]"
-      @contextmenu="ensureSelected"
-    >
+    <ContextMenuTrigger :actions="nodeMenuActions" @contextmenu="ensureSelected">
       <div
         ref="contentNode"
         :class="{ content: true, dragged: isDragged }"
@@ -487,8 +496,9 @@ const nodeName = computed(() => props.node.pattern?.code())
   border-radius: var(--node-border-radius);
   transition: box-shadow 0.2s ease-in-out;
   box-sizing: border-box;
+  --z-index-component: 24;
   --z-index-component-menu: 20;
-  --z-index-selection-submenu: calc(var(--z-index-component-menu) + 1);
+  --z-index-selection-submenu: 25;
 }
 
 .nodeBackground {
@@ -512,7 +522,7 @@ const nodeName = computed(() => props.node.pattern?.code())
   flex-direction: row;
   align-items: center;
   white-space: nowrap;
-  z-index: 24;
+  z-index: var(--z-index-component);
 }
 
 .binding {

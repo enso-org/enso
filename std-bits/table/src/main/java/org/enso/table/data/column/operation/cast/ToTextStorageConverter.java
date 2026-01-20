@@ -8,11 +8,7 @@ import java.util.function.Function;
 import org.enso.polyglot.common_utils.Core_Date_Utils;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.operation.StorageIterators;
-import org.enso.table.data.column.storage.ColumnBooleanStorage;
-import org.enso.table.data.column.storage.ColumnDoubleStorage;
-import org.enso.table.data.column.storage.ColumnLongStorage;
-import org.enso.table.data.column.storage.ColumnStorage;
-import org.enso.table.data.column.storage.StringStorage;
+import org.enso.table.data.column.storage.*;
 import org.enso.table.data.column.storage.type.DateTimeType;
 import org.enso.table.data.column.storage.type.DateType;
 import org.enso.table.data.column.storage.type.StorageType;
@@ -35,7 +31,9 @@ public class ToTextStorageConverter implements StorageConverter<String> {
   public ColumnStorage<String> cast(
       ColumnStorage<?> storage, CastProblemAggregator problemAggregator) {
     var storageType = storage.getType();
-    if (storage instanceof StringStorage stringStorage) {
+    if (storageType instanceof TextType && storage instanceof TypedStorage<?> typedStorage) {
+      @SuppressWarnings("unchecked")
+      var stringStorage = (TypedStorage<String>) typedStorage;
       if (canAvoidCopying(stringStorage)) {
         return retypeStringStorage(stringStorage);
       } else {
@@ -194,7 +192,7 @@ public class ToTextStorageConverter implements StorageConverter<String> {
    * <p>This can only be done if the values do not need any adaptations, checked by {@code
    * canAvoidCopying}.
    */
-  private ColumnStorage<String> retypeStringStorage(StringStorage stringStorage) {
-    return new StringStorage(stringStorage.getData(), targetType);
+  private ColumnStorage<String> retypeStringStorage(TypedStorage<String> stringStorage) {
+    return new TypedStorage<>(targetType, stringStorage.getData());
   }
 }

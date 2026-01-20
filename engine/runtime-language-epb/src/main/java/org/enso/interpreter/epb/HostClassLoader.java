@@ -25,9 +25,8 @@ import org.graalvm.polyglot.Context;
 
 /**
  * Host class loader that serves as a replacement for {@link
- * com.oracle.truffle.host.HostClassLoader}. Add URLs to Jar archives with {@link #add(URL)}. All
- * the classes that are loaded via this class loader are first searched inside those archives. If
- * not found, delegates to parent class loaders.
+ * com.oracle.truffle.host.HostClassLoader}. All the classes that are loaded via this class loader
+ * are first searched inside those archives. If not found, delegates to parent class loaders.
  */
 @ExportLibrary(InteropLibrary.class)
 final class HostClassLoader extends URLClassLoader implements AutoCloseable, TruffleObject {
@@ -56,11 +55,6 @@ final class HostClassLoader extends URLClassLoader implements AutoCloseable, Tru
     var hasRuntimeMod =
         bootModules.stream().anyMatch(module -> module.getName().equals("org.enso.runtime"));
     isRuntimeModInBootLayer = hasRuntimeMod;
-  }
-
-  void add(URL u) {
-    logger.log(Logger.Level.DEBUG, "Adding URL '{0}' to class path", u);
-    addURL(u);
   }
 
   @Override
@@ -137,9 +131,10 @@ final class HostClassLoader extends URLClassLoader implements AutoCloseable, Tru
   protected String findLibrary(String libname) {
     if (findLibraries != null) {
       try {
-        var res = InteropLibrary.getUncached().execute(findLibraries, libname);
-        if (res instanceof String s) {
-          return s;
+        var iop = InteropLibrary.getUncached();
+        var res = iop.execute(findLibraries, libname);
+        if (iop.isString(res)) {
+          return iop.asString(res);
         }
       } catch (InteropException ex) {
         logger.log(Logger.Level.WARNING, "Cannot find " + libname, ex);
@@ -215,7 +210,7 @@ final class HostClassLoader extends URLClassLoader implements AutoCloseable, Tru
       var ctx = EpbContext.get(null);
       return ctx.getEnv().asHostSymbol(clazz);
     } catch (ClassNotFoundException ex) {
-      logger.log(Level.ERROR, "Cannot find class {0} in host class loader", member);
+      logger.log(Level.DEBUG, "Cannot find class {0} in host class loader", member);
       throw UnknownIdentifierException.create(member);
     }
   }

@@ -1,7 +1,7 @@
 <script setup lang="ts">
+import { type Node } from '$/providers/openedProjects/graph'
 import PlainTextEditor from '@/components/PlainTextEditor.vue'
 import { useFocusDelayed } from '@/composables/focus'
-import { type Node } from '@/stores/graph'
 import { nodeMutableDocumentation } from '@/util/ast/node'
 import { useYTextSync } from '@/util/codemirror'
 import { syncRef } from '@vueuse/core'
@@ -15,7 +15,7 @@ const textEditorContent = computed(() => textEditor.value?.contentElement)
 
 const documentation = computed(() => nodeMutableDocumentation(props.node))
 
-const { syncExt, connectSync } = useYTextSync(documentation)
+const { syncExt, connectSync } = useYTextSync(documentation, 'local:userAction:CommentEditor')
 
 syncRef(editing, useFocusDelayed(textEditorContent).focused)
 </script>

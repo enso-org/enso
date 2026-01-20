@@ -17,6 +17,7 @@ import scala.concurrent.{ExecutionContext, ExecutionContextExecutor}
   * @param projectId an id of project
   * @param profilingConfig an application profiling configuration
   * @param startupConfig a startup configuration
+  * @param logMasking a flag indicating if the log masking is enabled
   */
 case class LanguageServerConfig(
   interface: String,
@@ -29,6 +30,7 @@ case class LanguageServerConfig(
   projectId: UUID,
   profilingConfig: ProfilingConfig,
   startupConfig: StartupConfig,
+  logMasking: Boolean,
   name: String                                      = "language-server",
   computeExecutionContext: ExecutionContextExecutor = ExecutionContext.global
 )

@@ -57,22 +57,26 @@ public final class MaskOperation {
   public static ColumnStorage<?> getSlicedStorage(
       ColumnStorage<?> storage, IndexMapper indexMapper) {
     return switch (storage) {
-      case MaskedStorageLong sliceStorageLong -> new MaskedStorageLong(
-          sliceStorageLong.parent(), sliceStorageLong.indexMapper().merge(indexMapper));
+      case MaskedStorageLong sliceStorageLong ->
+          new MaskedStorageLong(
+              sliceStorageLong.parent(), sliceStorageLong.indexMapper().merge(indexMapper));
       case ColumnLongStorage longStorage -> new MaskedStorageLong(longStorage, indexMapper);
-      case MaskedStorageDouble sliceStorageDouble -> new MaskedStorageDouble(
-          sliceStorageDouble.parent(), sliceStorageDouble.indexMapper().merge(indexMapper));
+      case MaskedStorageDouble sliceStorageDouble ->
+          new MaskedStorageDouble(
+              sliceStorageDouble.parent(), sliceStorageDouble.indexMapper().merge(indexMapper));
       case ColumnDoubleStorage doubleStorage -> new MaskedStorageDouble(doubleStorage, indexMapper);
-      case MaskedStorageBoolean sliceStorageBoolean -> new MaskedStorageBoolean(
-          sliceStorageBoolean.parent(), sliceStorageBoolean.indexMapper().merge(indexMapper));
-      case ColumnBooleanStorage booleanStorage -> new MaskedStorageBoolean(
-          booleanStorage, indexMapper);
-      case MaskedStorageInferred<?> sliceStorageInferred -> new MaskedStorageInferred<>(
-          sliceStorageInferred.parent(), sliceStorageInferred.indexMapper().merge(indexMapper));
-      case ColumnStorageWithInferredStorage inferredStorage -> new MaskedStorageInferred<>(
-          storage, indexMapper);
-      case MaskedStorage<?> sliceStorage -> new MaskedStorage<>(
-          sliceStorage.parent(), sliceStorage.indexMapper().merge(indexMapper));
+      case MaskedStorageBoolean sliceStorageBoolean ->
+          new MaskedStorageBoolean(
+              sliceStorageBoolean.parent(), sliceStorageBoolean.indexMapper().merge(indexMapper));
+      case ColumnBooleanStorage booleanStorage ->
+          new MaskedStorageBoolean(booleanStorage, indexMapper);
+      case MaskedStorageInferred<?> sliceStorageInferred ->
+          new MaskedStorageInferred<>(
+              sliceStorageInferred.parent(), sliceStorageInferred.indexMapper().merge(indexMapper));
+      case ColumnStorageWithInferredStorage inferredStorage ->
+          new MaskedStorageInferred<>(storage, indexMapper);
+      case MaskedStorage<?> sliceStorage ->
+          new MaskedStorage<>(sliceStorage.parent(), sliceStorage.indexMapper().merge(indexMapper));
       default -> new MaskedStorage<>(storage, indexMapper);
     };
   }

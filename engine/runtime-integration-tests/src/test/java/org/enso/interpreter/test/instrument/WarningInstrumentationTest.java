@@ -60,16 +60,16 @@ public class WarningInstrumentationTest {
     var idOp3 = metadata.addItem(239, 13, null);
     var rawCode =
         """
-                from Standard.Base import all
-                from Standard.Base.Warning import Warning
-                from Standard.Table import Table
+        from Standard.Base import all
+        from Standard.Base.Warning import Warning
+        from Standard.Table import Table
 
-                run column_name =
-                    operator1 = Table.new [[column_name, [1,2,3]]]
-                    operator2 = Warning.attach "Text" operator1
-                    operator3 = operator2.get
-                    operator3
-                """;
+        run column_name =
+            operator1 = Table.new [[column_name, [1,2,3]]]
+            operator2 = Warning.attach "Text" operator1
+            operator3 = operator2.get
+            operator3
+        """;
     var code = metadata.appendToCode(rawCode);
     var src = Source.newBuilder("enso", code, "TestWarning.enso").build();
     var module = ctxRule.eval(src);

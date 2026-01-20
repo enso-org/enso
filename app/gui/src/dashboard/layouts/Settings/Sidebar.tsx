@@ -54,18 +54,11 @@ function SettingsSidebar(props: SettingsSidebarProps) {
                     icon={tabData.icon}
                     label={getText(tabData.nameId)}
                     isActive={tabData.settingsTab === tab}
-                    onPress={() =>
-                      tabData.onPress ?
-                        tabData.onPress(context)
-                        // even though this function returns void, we don't want to
-                        // complicate things by returning only in case of custom onPress
-                        // eslint-disable-next-line @typescript-eslint/no-confusing-void-expression
-                      : (() => {
-                          if (tab !== tabData.settingsTab) {
-                            setTab(tabData.settingsTab)
-                          }
-                        })()
-                    }
+                    onPress={() => {
+                      if (tab !== tabData.settingsTab) {
+                        setTab(tabData.settingsTab)
+                      }
+                    }}
                   />
                 ))}
               </Button.Group>

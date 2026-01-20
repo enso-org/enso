@@ -14,9 +14,9 @@ public class GoogleCredentialsProvider {
       WrappedGoogleCredentials googleCredentials) {
     return switch (googleCredentials) {
       case WrappedGoogleCredentials.SecretCredentials ref -> null;
-      case WrappedGoogleCredentials.LocalFileCredentials
-      localCredentials -> new GoogleCredentialsProvider(
-          FixedCredentialsProvider.create(localCredentials.credential()));
+      case WrappedGoogleCredentials.LocalFileCredentials localCredentials ->
+          new GoogleCredentialsProvider(
+              FixedCredentialsProvider.create(localCredentials.credential()));
     };
   }
 

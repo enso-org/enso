@@ -2,6 +2,7 @@ import project.Any.Any
 import project.Data.Json.JS_Object
 import project.Data.Locale.Locale
 import project.Data.Numbers.Integer
+import project.Data.Ordering.Comparable
 import project.Data.Text.Text
 import project.Data.Time.Date.Date
 import project.Data.Time.Date_Period.Date_Period
@@ -19,13 +20,13 @@ import project.Errors.Common.Type_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.Time_Error.Time_Error
 import project.Meta
-import project.Nothing.Nothing
 import project.Panic.Panic
 import project.Warning.Warning
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Text.Extensions import all
 from project.Data.Time.Date import make_day_picker
 from project.Metadata import Display, Widget
+from project.Nothing import all
 from project.Widget_Helpers import make_date_time_format_selector
 
 polyglot java import java.lang.ArithmeticException
@@ -683,6 +684,26 @@ type Date_Time
     length_of_month self = ensure_in_epoch self <| self.date.length_of_month
 
     ## ---
+       group: DateTime
+       icon: metadata
+       ---
+       Returns the date that is the first day of the month containing the
+       specified date.
+    first_of_month : Integer
+    first_of_month self =
+        Time_Utils.first_of_month self
+
+    ## ---
+       group: DateTime
+       icon: metadata
+       ---
+       Returns the date that is the last day of the month containing the
+       specified date.
+    end_of_month : Integer
+    end_of_month self =
+        Time_Utils.end_of_month self
+
+    ## ---
        icon: metadata
        ---
        Returns the day of the year.
@@ -760,11 +781,56 @@ type Date_Time
        ```
              from Standard.Base import Date_Time, Time_Zone
 
-             example_at_zone = Date_Time.new 2020 . at_zone (Time_Zone.new -4)
+             example_at_time_zone = Date_Time.new 2020 . at_time_zone (Time_Zone.new -4)
        ```
-    at_zone : Time_Zone -> Date_Time
-    at_zone self zone =
+    @zone Time_Zone.default_widget
+    at_time_zone : Time_Zone -> Date_Time
+    at_time_zone self zone =
         Time_Utils.with_zone_same_instant self zone
+
+    ## ---
+       aliases: [change time zone]
+       group: DateTime
+       icon: time
+       ---
+       Constructs a new time instant by changing the time zone but not altering
+       the local date-time, which results in a value representing a different
+       instant.
+
+       ## Arguments
+        - `zone`: The timezone to change the time instant's zone to.
+
+       ## Examples
+       ### Convert time instance to -04:00 timezone.
+
+       ```
+             from Standard.Base import Date_Time, Time_Zone
+
+             example_at_time_zone = Date_Time.new 2020 . set_time_zone (Time_Zone.new -4)
+       ```
+    @zone Time_Zone.default_widget
+    set_time_zone : Time_Zone -> Date_Time
+    set_time_zone self zone =
+        Time_Utils.with_zone_same_local self zone
+
+    ## ---
+       aliases: [change time zone]
+       group: DateTime
+       icon: time
+       ---
+       Convert the time instant to the same instant in UTC.
+
+       ## Examples
+       ### Convert time instance to UTC.
+
+       ```
+             from Standard.Base import Date_Time, Time_Zone
+
+             example_at_time_zone = Date_Time.new 2020 zone=(Time_Zone.parse "Europe/Moscow") . to_utc
+       ```
+    to_utc : Date_Time
+    to_utc self =
+        self.at_time_zone Time_Zone.utc
 
     ## ---
        group: DateTime
@@ -1106,6 +1172,38 @@ type Date_Time
     format : Date_Time_Formatter -> Text
     format self format:Date_Time_Formatter =
         format.format_date_time self
+
+    ## ---
+       aliases: [greater than]
+       group: Operators
+       icon: operators
+       ---
+       Checks if `self` is greater than `that`.
+    > self that = Comparable.> self=self that
+
+    ## ---
+       aliases: [greater than or equal]
+       group: Operators
+       icon: operators
+       ---
+       Checks if `self` is greater than or equal to `that`.
+    >= self that = Comparable.>= self=self that
+
+    ## ---
+       aliases: [less than]
+       group: Operators
+       icon: operators
+       ---
+       Checks if `self` is less than `that`.
+    < self that = Comparable.< self=self that
+
+    ## ---
+       aliases: [less than or equal]
+       group: Operators
+       icon: operators
+       ---
+       Checks if `self` is less than or equal to `that`.
+    <= self that = Comparable.<= self=self that
 
 ## ---
    private: true

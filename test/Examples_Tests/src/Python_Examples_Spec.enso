@@ -2,7 +2,7 @@ from Standard.Base import all
 
 from Standard.Test import all
 
-from project.Enso_Bin_Utils import all
+from enso_dev.Base_Tests.Enso_Bin_Utils import enso_bin, create_new_project, create_tmp_dir
 
 polyglot java import java.lang.System as Java_System
 polyglot java import java.io.File as Java_File
@@ -28,16 +28,6 @@ should_run_test =
 pending = if should_run_test then Nothing else """
     Won't run Python numpy example test - Python not installed.
 
-create_new_enso_project =
-    bin = enso_bin
-    tmp_file = File.create_temporary_file "enso_prj" ""
-    dir = tmp_file/".."/(tmp_file.name+".dir") . normalize
-    res = Process.run bin.path [ "--new", dir.path ]
-    IO.println res.stdout
-    IO.println res.stderr
-    res.exit_code . should_equal Exit_Code.Success
-    dir
-
 
 setup_venv dir =
     res = Process.run graalpy_bin [ "-m", "venv", dir.path ]
@@ -53,42 +43,34 @@ install_num_py dir =
     res.exit_code . should_equal Exit_Code.Success
 
 
-rewrite_main_file dir =
-    main = dir/"src"/"Main.enso"
-    main.exists . should_be_true
-    code = """
-        from Standard.Base import all
-
-        foreign python random_array s = """
-            import numpy
-            return numpy.random.normal(size=s)
-
-        main =
-            arr = random_array 10
-            vec = arr.to_vector.sort
-            [ arr, vec ]
-
-    code . write main on_existing_file=Existing_File_Behavior.Overwrite
-
-
 add_specs suite_builder = suite_builder.group "Python Examples" group_builder->
     group_builder.specify "Create Enso Project with numpy" pending=pending <|
-        IO.println "==== Generating Enso Project ===="
-        prj = create_new_enso_project
-        IO.println "Project ready at "+prj.path
+        tmp_dir = create_tmp_dir
 
-        IO.println "==== Changing Main.enso ===="
-        rewrite_main_file prj
+        IO.println "==== Generating Enso Project ===="
+        code = """
+            from Standard.Base import all
+
+            foreign python random_array s = """
+                import numpy
+                return numpy.random.normal(size=s)
+
+            main =
+                arr = random_array 10
+                vec = arr.to_vector.sort
+                [ arr, vec ]
+        proj_dir = create_new_project tmp_dir "Py_Proj" code
+        IO.println "Project ready at "+proj_dir.path
 
         IO.println "==== Preparing Python Virtual Environment ===="
-        setup_venv prj/"polyglot"/"python"
+        setup_venv proj_dir/"polyglot"/"python"
 
         IO.println "==== Installing numpy ===="
-        install_num_py prj/"polyglot"/"python"
+        install_num_py proj_dir/"polyglot"/"python"
 
         IO.println "==== Executing project ===="
 
-        res = Process.run enso_bin.path [ "--run", prj.path ]
+        res = Process.run enso_bin ["--jvm", "--run", proj_dir.path ]
         IO.println res.stdout
         IO.println res.stderr
         res.exit_code . should_equal Exit_Code.Success

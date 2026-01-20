@@ -12,6 +12,7 @@ import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.{AliasAnalysis, BindingAnalysis}
 import org.enso.compiler.pass.desugar.{GenerateMethodBodies, NestedPatternMatch}
+import org.enso.persist.Persistance
 
 /** Resolves constructors in pattern matches and validates their arity.
   */
@@ -41,7 +42,7 @@ object Patterns extends IRPass {
       BindingAnalysis,
       "Binding resolution was not run before pattern resolution"
     )
-    ir.copy(bindings = ir.bindings.map(doDefinition(_, bindings)))
+    ir.copyWithBindings(ir.bindings.map(doDefinition(_, bindings)))
   }
 
   /** Executes the pass on the provided `ir`, and returns a possibly transformed
@@ -76,7 +77,10 @@ object Patterns extends IRPass {
           )
           .map(_.target)
         val newBody = doExpression(method.body, bindings, resolution)
-        method.copy(body = newBody)
+        method
+          .copyBuilder()
+          .bodyReference(Persistance.Reference.of(newBody))
+          .build()
       case _ => ir.mapExpressions(doExpression(_, bindings, None))
     }
   }
@@ -166,9 +170,9 @@ object Patterns extends IRPass {
             val resolvedName: Name = resolution
               .map {
                 case Left(err) =>
-                  val r = errors.Resolution(
+                  val r = errors.Resolution.create(
                     consPat.constructor,
-                    errors.Resolution.ResolverError(err)
+                    new errors.Resolution.ResolverError(err)
                   )
                   r.setLocation(consPat.location)
                 case Right(value: BindingsMap.ResolvedConstructor) =>
@@ -193,25 +197,25 @@ object Patterns extends IRPass {
                   )
 
                 case Right(_: BindingsMap.ResolvedModuleMethod) =>
-                  val r = errors.Resolution(
+                  val r = errors.Resolution.create(
                     consName,
-                    errors.Resolution.UnexpectedMethod(
+                    new errors.Resolution.UnexpectedMethod(
                       "method inside pattern match"
                     )
                   )
                   r.setLocation(consName.location)
                 case Right(_: BindingsMap.ResolvedExtensionMethod) =>
-                  val r = errors.Resolution(
+                  val r = errors.Resolution.create(
                     consName,
-                    errors.Resolution.UnexpectedMethod(
+                    new errors.Resolution.UnexpectedMethod(
                       "static method inside pattern match"
                     )
                   )
                   r.setLocation(consName.location)
                 case Right(_: BindingsMap.ResolvedConversionMethod) =>
-                  val r = errors.Resolution(
+                  val r = errors.Resolution.create(
                     consName,
-                    errors.Resolution.UnexpectedMethod(
+                    new errors.Resolution.UnexpectedMethod(
                       "conversion method inside pattern match"
                     )
                   )
@@ -248,20 +252,21 @@ object Patterns extends IRPass {
             expectedArity match {
               case Some(arity) =>
                 if (consPat.fields.length != arity) {
-                  errors.Pattern(
+                  errors.Pattern.create(
                     consPat,
-                    errors.Pattern.WrongArity(
+                    new errors.Pattern.WrongArity(
                       consPat.constructor.name,
                       arity,
                       consPat.fields.length
                     )
                   )
                 } else {
-                  consPat.copy(constructor = resolvedName)
+                  consPat.copyWithName(resolvedName)
                 }
-              case None => consPat.copy(constructor = resolvedName)
+              case None => consPat.copyWithName(resolvedName)
             }
-          case tpePattern @ Pattern.Type(_, tpeName, _, _) =>
+          case tpePattern: Pattern.Type =>
+            val tpeName = tpePattern.tpe()
             val resolution = tpeName match {
               case qual: Name.Qualified =>
                 val parts = qual.parts.map(_.name)
@@ -277,19 +282,20 @@ object Patterns extends IRPass {
             val resolvedTpeName = resolution
               .map {
                 case Left(err) =>
-                  errors.Resolution(
+                  errors.Resolution.create(
                     tpePattern.tpe,
-                    errors.Resolution.ResolverError(err)
+                    new errors.Resolution.ResolverError(err)
                   )
                 case Right(value: BindingsMap.ResolvedType) =>
                   tpeName.updateMetadata(
                     new MetadataPair(this, BindingsMap.Resolution(value))
                   )
                 case Right(_: BindingsMap.ResolvedConstructor) =>
-                  errors.Resolution(
+                  errors.Resolution.create(
                     tpeName,
-                    errors.Resolution
-                      .UnexpectedConstructor(s"type pattern case")
+                    new errors.Resolution.UnexpectedConstructor(
+                      s"type pattern case"
+                    )
                   )
                 case Right(value: BindingsMap.ResolvedPolyglotSymbol) =>
                   tpeName.updateMetadata(
@@ -304,35 +310,37 @@ object Patterns extends IRPass {
                     errors.Resolution.UnexpectedPolyglot(s"type pattern case")
                   )*/
                 case Right(_: BindingsMap.ResolvedModuleMethod) =>
-                  errors.Resolution(
+                  errors.Resolution.create(
                     tpeName,
-                    errors.Resolution
-                      .UnexpectedMethod(s"method type pattern case")
+                    new errors.Resolution.UnexpectedMethod(
+                      s"method type pattern case"
+                    )
                   )
                 case Right(_: BindingsMap.ResolvedExtensionMethod) =>
-                  errors.Resolution(
+                  errors.Resolution.create(
                     tpeName,
-                    errors.Resolution.UnexpectedMethod(
+                    new errors.Resolution.UnexpectedMethod(
                       s"static method inside type pattern case"
                     )
                   )
                 case Right(_: BindingsMap.ResolvedConversionMethod) =>
-                  errors.Resolution(
+                  errors.Resolution.create(
                     tpeName,
-                    errors.Resolution.UnexpectedMethod(
+                    new errors.Resolution.UnexpectedMethod(
                       s"conversion method inside type pattern case"
                     )
                   )
                 case Right(_: BindingsMap.ResolvedModule) =>
-                  errors.Resolution(
+                  errors.Resolution.create(
                     tpeName,
-                    errors.Resolution
-                      .UnexpectedModule(s"module inside type pattern case")
+                    new errors.Resolution.UnexpectedModule(
+                      s"module inside type pattern case"
+                    )
                   )
               }
               .getOrElse(tpeName)
 
-            tpePattern.copy(tpe = resolvedTpeName)
+            tpePattern.copyBuilder().tpe(resolvedTpeName).build()
           case other => other
         }
         branch.copy(

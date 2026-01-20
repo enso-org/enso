@@ -28,7 +28,7 @@ export interface Path {
   /**  Path's root id. */
   rootId: Uuid
   /** Path's segments. */
-  segments: string[]
+  segments: readonly string[]
 }
 
 export interface FileEdit {

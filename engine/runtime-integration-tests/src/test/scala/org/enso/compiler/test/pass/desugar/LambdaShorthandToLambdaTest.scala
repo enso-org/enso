@@ -11,7 +11,7 @@ import org.enso.compiler.core.ir.{
   Literal,
   Name
 }
-import org.enso.compiler.core.ir.expression.{Application, Case}
+import org.enso.compiler.core.ir.expression.{Application, Case, IfThenElse}
 import org.enso.compiler.pass.desugar.LambdaShorthandToLambda
 import org.enso.compiler.pass.{
   MiniIRPass,
@@ -193,18 +193,15 @@ class LambdaShorthandToLambdaTest extends CompilerTest {
           |if _ then a
           |""".stripMargin.preprocessExpression.get.desugar
 
-      ir shouldBe an[Function.Lambda]
+      ir shouldBe an[IfThenElse]
       ir.location shouldBe defined
-      val irFn = ir.asInstanceOf[Function.Lambda]
+      val ite = ir.asInstanceOf[IfThenElse]
+
+      val irFn = ite.condition.asInstanceOf[Function.Lambda]
       val irFnArgName =
         irFn.arguments.head.asInstanceOf[DefinitionArgument.Specified].name
 
-      irFn.body shouldBe an[Application.Prefix]
-      val app = irFn.body.asInstanceOf[Application.Prefix]
-      val arg1Name = app.arguments.head
-        .asInstanceOf[CallArgument.Specified]
-        .value
-        .asInstanceOf[Name.Literal]
+      val arg1Name = irFn.body.asInstanceOf[Name.Literal]
 
       irFnArgName.name shouldEqual arg1Name.name
     }
@@ -352,8 +349,8 @@ class LambdaShorthandToLambdaTest extends CompilerTest {
       val fun2 = fun1.body.asInstanceOf[Function.Lambda]
       val vec  = fun2.body.asInstanceOf[Application.Sequence]
 
-      fun1.arguments(0).name shouldEqual vec.items.apply(1)
-      fun2.arguments(0).name shouldEqual vec.items.apply(3)
+      fun1.arguments().apply(0).name shouldEqual vec.items.apply(1)
+      fun2.arguments().apply(0).name shouldEqual vec.items.apply(3)
       vec.items.apply(0) shouldBe an[Literal.Number]
       vec.items.apply(2) shouldBe an[Application.Prefix]
     }

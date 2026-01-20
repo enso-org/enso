@@ -9,10 +9,11 @@ import UpsertDatalinkModal from '#/modals/UpsertDatalinkModal'
 import UpsertSecretModal from '#/modals/UpsertSecretModal'
 import { useDriveStore } from '#/providers/DriveProvider'
 import { setModal } from '#/providers/ModalProvider'
-import type Backend from '#/services/Backend'
-import { BackendType, type DirectoryId } from '#/services/Backend'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { useStore } from '#/utilities/zustand'
+import { useRouter } from '$/providers/react'
+import type { Backend } from 'enso-common/src/services/Backend'
+import { BackendType, type DirectoryId } from 'enso-common/src/services/Backend'
 import { readUserSelectedFile } from 'enso-common/src/utilities/file'
 
 /** Props for a {@link GlobalContextMenuEntries}. */
@@ -21,7 +22,7 @@ export interface GlobalContextMenuEntriesOptions {
   readonly category: Category
   readonly currentDirectoryId: DirectoryId
   readonly directoryId: DirectoryId | null
-  readonly doPaste: (newParentKey: DirectoryId, newParentId: DirectoryId) => void
+  readonly doPaste: (newParentId: DirectoryId) => void
 }
 
 /** Context menu entries available everywhere in the directory. */
@@ -30,6 +31,7 @@ export function useGlobalContextMenuEntries(options: GlobalContextMenuEntriesOpt
 
   const isCloud = backend.type === BackendType.remote
 
+  const { router } = useRouter()
   const driveStore = useDriveStore()
   const hasPasteData = useStore(
     driveStore,
@@ -50,28 +52,39 @@ export function useGlobalContextMenuEntries(options: GlobalContextMenuEntriesOpt
     uploadFilesRaw(files, directoryId ?? currentDirectoryId),
   )
 
+  const goToDrive = async () => {
+    if (router.currentRoute.value.path === '/drive') return
+    await router.push({ ...router.currentRoute.value, path: '/drive' })
+  }
+
   return defineMenuEntries([
     {
       action: 'uploadFiles',
       doAction: () => {
-        void readUserSelectedFile().then((files) => uploadFiles(Array.from(files)))
+        void goToDrive()
+        void readUserSelectedFile({ multiple: true }).then((files) =>
+          uploadFiles(Array.from(files)),
+        )
       },
     },
     {
       action: 'newProject',
       doAction: () => {
+        void goToDrive()
         void newProject()
       },
     },
     {
       action: 'newFolder',
       doAction: () => {
+        void goToDrive()
         void newFolder()
       },
     },
     isCloud && {
       action: 'newSecret',
       doAction: () => {
+        void goToDrive()
         setModal(
           <UpsertSecretModal
             doCreate={async (name, value) => {
@@ -86,6 +99,7 @@ export function useGlobalContextMenuEntries(options: GlobalContextMenuEntriesOpt
     isCloud && {
       action: 'newCredential',
       doAction: () => {
+        void goToDrive()
         setModal(
           <CreateCredentialModal
             doCreate={async (name, value) =>
@@ -100,6 +114,7 @@ export function useGlobalContextMenuEntries(options: GlobalContextMenuEntriesOpt
     isCloud && {
       action: 'newDatalink',
       doAction: () => {
+        void goToDrive()
         setModal(
           <UpsertDatalinkModal
             doCreate={async (name, value) => {
@@ -120,7 +135,8 @@ export function useGlobalContextMenuEntries(options: GlobalContextMenuEntriesOpt
       directoryId == null && {
         action: 'paste',
         doAction: () => {
-          doPaste(currentDirectoryId, currentDirectoryId)
+          void goToDrive()
+          doPaste(currentDirectoryId)
         },
       },
   ])

@@ -1,18 +1,18 @@
 /** @file A page. */
 import { ErrorBoundary } from '#/components/ErrorBoundary'
-import Portal from '#/components/Portal'
+import { ModalWrapper } from '#/components/ModalWrapper'
 import InfoBar from '#/layouts/InfoBar'
-import TheModal from '#/pages/dashboard/components/TheModal'
 import * as React from 'react'
 
 /** Props for a {@link Page}. */
 export interface PageProps extends Readonly<React.PropsWithChildren> {
   readonly hideInfoBar?: true
+  readonly hideModalWrapper?: true
 }
 
 /** A page. */
 export default function Page(props: PageProps) {
-  const { hideInfoBar = false, children } = props
+  const { hideInfoBar = false, hideModalWrapper = false, children } = props
 
   return (
     <>
@@ -22,13 +22,7 @@ export default function Page(props: PageProps) {
           <InfoBar />
         </div>
       )}
-      <ErrorBoundary>
-        <Portal>
-          <div className="select-none text-xs text-primary">
-            <TheModal />
-          </div>
-        </Portal>
-      </ErrorBoundary>
+      {!hideModalWrapper && <ModalWrapper />}
     </>
   )
 }

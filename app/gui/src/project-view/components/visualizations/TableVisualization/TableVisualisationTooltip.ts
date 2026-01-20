@@ -1,5 +1,5 @@
-import { ITooltipComp, ITooltipParams } from '@ag-grid-community/core'
-import { DataQualityMetricValue } from '../TableVisualization.vue'
+import type { ITooltipComp, ITooltipParams } from '@ag-grid-community/core'
+import type { DataQualityMetricValue } from '../TableVisualization.vue'
 
 /**
  * Custom tooltip for table visualization.

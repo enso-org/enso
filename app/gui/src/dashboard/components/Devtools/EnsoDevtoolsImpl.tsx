@@ -1,8 +1,16 @@
 /** @file A list of toggles for paywall features. */
 import CrossIcon from '#/assets/cross.svg'
 import { Button, CopyButton, type ButtonProps } from '#/components/Button'
+import {
+  useEnableVersionChecker,
+  usePaywallDevtools,
+  useSetEnableVersionChecker,
+  useShowEnsoDevtools,
+  useToggleEnsoDevtools,
+} from '#/components/Devtools/EnsoDevtoolsProvider'
 import { Dialog, Popover, POPOVER_STYLES } from '#/components/Dialog'
 import { Form } from '#/components/Form'
+import { Icon } from '#/components/Icon'
 import { Input } from '#/components/Inputs/Input'
 import { Radio } from '#/components/Radio'
 import { Separator } from '#/components/Separator'
@@ -12,33 +20,25 @@ import { Tooltip } from '#/components/Tooltip'
 import { Underlay } from '#/components/Underlay'
 import { VisualTooltip } from '#/components/VisualTooltip'
 import { usePaywall, usePaywallFeatures } from '#/hooks/billing'
-import * as backend from '#/services/Backend'
 import LocalStorage, { useLocalStorageValues } from '#/utilities/LocalStorage'
-import { unsafeKeys } from '#/utilities/object'
 import { safeJsonParse } from '#/utilities/safeJsonParse'
 import {
   DEFAULT_ASSETS_TABLE_REFRESH_INTERVAL_MS,
   DEFAULT_FILE_CHUNK_UPLOAD_POOL_SIZE,
+  DEFAULT_GET_LOG_EVENTS_PAGE_SIZE,
+  DEFAULT_LIST_DIRECTORY_PAGE_SIZE,
   FEATURE_FLAGS_SCHEMA,
 } from '$/providers/featureFlags'
 import { useLocalStorage, useText } from '$/providers/react'
 import { useUserSession } from '$/providers/react/auth'
-import { useFeatureFlag, useFeatureFlags, useSetFeatureFlag } from '$/providers/react/featureFlags'
+import { useFeatureFlags, useSetFeatureFlag } from '$/providers/react/featureFlags'
 import { useQueryClient } from '@tanstack/react-query'
-import { IS_DEV_MODE } from 'enso-common/src/detect'
-import { motion } from 'framer-motion'
+import * as backend from 'enso-common/src/services/Backend'
+import { unsafeKeys } from 'enso-common/src/utilities/data/object'
+import { IS_DEV_MODE } from 'enso-common/src/utilities/detect'
 import { toast } from 'react-toastify'
 import { twJoin } from 'tailwind-merge'
 import invariant from 'tiny-invariant'
-import { Icon } from '../Icon'
-import {
-  useEnableVersionChecker,
-  usePaywallDevtools,
-  useSetAnimationsDisabled,
-  useSetEnableVersionChecker,
-  useShowEnsoDevtools,
-  useToggleEnsoDevtools,
-} from './EnsoDevtoolsProvider'
 
 /** Props for a {@link DeveloperOverrideEntry}. */
 interface DeveloperOverrideEntryProps {
@@ -68,10 +68,8 @@ function DeveloperOverrideEntry(props: DeveloperOverrideEntryProps) {
 
 /** A display of current developer overrides. */
 export function EnsoDevStatus() {
-  const queryClient = useQueryClient()
   const { getText } = useText()
   const showEnsoDevtools = useShowEnsoDevtools()
-  const setAnimationsDisabled = useSetAnimationsDisabled()
   const versionCheckerEnabled = useEnableVersionChecker() ?? false
   const setVersionCheckerEnabled = useSetEnableVersionChecker()
   const {
@@ -82,9 +80,8 @@ export function EnsoDevStatus() {
     assetsTableBackgroundRefreshInterval,
     enableCloudExecution,
     enableAdvancedProjectExecutionOptions,
-    overrideProfilePicture,
-    multiplyUserList,
-    disableAnimations,
+    listDirectoryPageSize,
+    getLogEventsPageSize,
     fileChunkUploadPoolSize,
     unsafeDarkTheme,
   } = useFeatureFlags()
@@ -111,23 +108,18 @@ export function EnsoDevStatus() {
     assetsTableBackgroundRefreshInterval !== DEFAULT_ASSETS_TABLE_REFRESH_INTERVAL_MS ||
     !enableCloudExecution ||
     showDeveloperIds ||
-    overrideProfilePicture ||
-    multiplyUserList ||
-    disableAnimations ||
     enableMultitabs ||
     enableAdvancedProjectExecutionOptions ||
+    listDirectoryPageSize !== DEFAULT_LIST_DIRECTORY_PAGE_SIZE ||
+    getLogEventsPageSize !== DEFAULT_GET_LOG_EVENTS_PAGE_SIZE ||
     fileChunkUploadPoolSize !== DEFAULT_FILE_CHUNK_UPLOAD_POOL_SIZE ||
     unsafeDarkTheme
+  if (!isOverridden) return null
 
   const styles = POPOVER_STYLES({ size: 'auto-xxsmall' })
 
-  if (!isOverridden) {
-    return null
-  }
-
   return (
-    <motion.div
-      layout
+    <div
       className={styles.base({
         className: twJoin('absolute left-3', showEnsoDevtools ? 'bottom-[4.25rem]' : 'bottom-3'),
       })}
@@ -140,15 +132,6 @@ export function EnsoDevStatus() {
             }}
           >
             {getText('planOverriddenToX', planName)}
-          </DeveloperOverrideEntry>
-        )}
-        {disableAnimations && (
-          <DeveloperOverrideEntry
-            reset={() => {
-              setAnimationsDisabled(false)
-            }}
-          >
-            {getText('animationsDisabled')}
           </DeveloperOverrideEntry>
         )}
         {versionCheckerEnabled && (
@@ -202,25 +185,6 @@ export function EnsoDevStatus() {
             {getText('showingDeveloperIds')}
           </DeveloperOverrideEntry>
         )}
-        {overrideProfilePicture && (
-          <DeveloperOverrideEntry
-            reset={() => {
-              setFeatureFlag('overrideProfilePicture', false)
-            }}
-          >
-            {getText('overridingProfilePicture')}
-          </DeveloperOverrideEntry>
-        )}
-        {multiplyUserList && (
-          <DeveloperOverrideEntry
-            reset={async () => {
-              setFeatureFlag('multiplyUserList', false)
-              await queryClient.invalidateQueries({ queryKey: ['remote', 'listUsers'] })
-            }}
-          >
-            {getText('multiplyingUserList')}
-          </DeveloperOverrideEntry>
-        )}
         {enableMultitabs && (
           <DeveloperOverrideEntry
             reset={() => {
@@ -237,6 +201,24 @@ export function EnsoDevStatus() {
             }}
           >
             {getText('advancedProjectExecutionOptionsEnabled')}
+          </DeveloperOverrideEntry>
+        )}
+        {listDirectoryPageSize !== DEFAULT_LIST_DIRECTORY_PAGE_SIZE && (
+          <DeveloperOverrideEntry
+            reset={() => {
+              setFeatureFlag('listDirectoryPageSize', DEFAULT_LIST_DIRECTORY_PAGE_SIZE)
+            }}
+          >
+            {getText('willFetchUpToXAssetsPerPage', listDirectoryPageSize)}
+          </DeveloperOverrideEntry>
+        )}
+        {getLogEventsPageSize !== DEFAULT_GET_LOG_EVENTS_PAGE_SIZE && (
+          <DeveloperOverrideEntry
+            reset={() => {
+              setFeatureFlag('getLogEventsPageSize', DEFAULT_GET_LOG_EVENTS_PAGE_SIZE)
+            }}
+          >
+            {getText('willFetchUpToXLogEntriesPerPage', getLogEventsPageSize)}
           </DeveloperOverrideEntry>
         )}
         {fileChunkUploadPoolSize !== DEFAULT_FILE_CHUNK_UPLOAD_POOL_SIZE && (
@@ -258,7 +240,7 @@ export function EnsoDevStatus() {
           </DeveloperOverrideEntry>
         )}
       </div>
-    </motion.div>
+    </div>
   )
 }
 
@@ -279,9 +261,6 @@ export function EnsoDevtools() {
 
   const enableVersionChecker = useEnableVersionChecker()
   const setEnableVersionChecker = useSetEnableVersionChecker()
-
-  const animationsDisabled = useFeatureFlag('disableAnimations')
-  const setAnimationsDisabled = useSetAnimationsDisabled()
 
   const localStorage = useLocalStorage()
   const localStorageState = useLocalStorageValues(localStorage)
@@ -374,39 +353,19 @@ export function EnsoDevtools() {
         </Text>
 
         <Form
-          schema={(schema) =>
-            schema.object({
-              enableVersionChecker: schema.boolean(),
-              disableAnimations: schema.boolean(),
-            })
-          }
-          defaultValues={{
-            enableVersionChecker: enableVersionChecker ?? !IS_DEV_MODE,
-            disableAnimations: animationsDisabled,
-          }}
+          schema={(schema) => schema.object({ enableVersionChecker: schema.boolean() })}
+          defaultValues={{ enableVersionChecker: enableVersionChecker ?? !IS_DEV_MODE }}
         >
           {({ form }) => (
-            <>
-              <Switch
-                form={form}
-                name="disableAnimations"
-                label={getText('disableAnimations')}
-                description={getText('disableAnimationsDescription')}
-                onChange={(value) => {
-                  setAnimationsDisabled(value)
-                }}
-              />
-
-              <Switch
-                form={form}
-                name="enableVersionChecker"
-                label={getText('enableVersionChecker')}
-                description={getText('enableVersionCheckerDescription')}
-                onChange={(value) => {
-                  setEnableVersionChecker(value)
-                }}
-              />
-            </>
+            <Switch
+              form={form}
+              name="enableVersionChecker"
+              label={getText('enableVersionChecker')}
+              description={getText('enableVersionCheckerDescription')}
+              onChange={(value) => {
+                setEnableVersionChecker(value)
+              }}
+            />
           )}
         </Form>
 
@@ -428,32 +387,20 @@ export function EnsoDevtools() {
               <>
                 <Switch
                   form={form}
+                  name="debugHoverAreas"
+                  label={'Debug hover areas'}
+                  description={'Make all mouse hoverable areas visible on the graph.'}
+                  onChange={(value) => {
+                    setFeatureFlag('debugHoverAreas', value)
+                  }}
+                />
+                <Switch
+                  form={form}
                   name="showDeveloperIds"
                   label={getText('ensoDevtoolsFeatureFlags.showDeveloperIds')}
                   description={getText('ensoDevtoolsFeatureFlags.showDeveloperIdsDescription')}
                   onChange={(value) => {
                     setFeatureFlag('showDeveloperIds', value)
-                  }}
-                />
-                <Switch
-                  form={form}
-                  name="overrideProfilePicture"
-                  label={getText('ensoDevtoolsFeatureFlags.overrideProfilePicture')}
-                  description={getText(
-                    'ensoDevtoolsFeatureFlags.overrideProfilePictureDescription',
-                  )}
-                  onChange={(value) => {
-                    setFeatureFlag('overrideProfilePicture', value)
-                  }}
-                />
-                <Switch
-                  form={form}
-                  name="multiplyUserList"
-                  label={getText('ensoDevtoolsFeatureFlags.multiplyUserList')}
-                  description={getText('ensoDevtoolsFeatureFlags.multiplyUserListDescription')}
-                  onChange={async (value) => {
-                    setFeatureFlag('multiplyUserList', value)
-                    await queryClient.invalidateQueries({ queryKey: ['remote', 'listUsers'] })
                   }}
                 />
                 <Switch
@@ -519,6 +466,28 @@ export function EnsoDevtools() {
                   description="Enable Advanced Project Excecution Options"
                   onChange={(value) => {
                     setFeatureFlag('enableAdvancedProjectExecutionOptions', value)
+                  }}
+                />
+                <Input
+                  form={form}
+                  type="number"
+                  inputMode="numeric"
+                  name="listDirectoryPageSize"
+                  label={getText('ensoDevtoolsFeatureFlags.listDirectoryPageSize')}
+                  description={getText('ensoDevtoolsFeatureFlags.listDirectoryPageSizeDescription')}
+                  onChange={(event) => {
+                    setFeatureFlag('listDirectoryPageSize', event.target.valueAsNumber)
+                  }}
+                />
+                <Input
+                  form={form}
+                  type="number"
+                  inputMode="numeric"
+                  name="getLogEventsPageSize"
+                  label={getText('ensoDevtoolsFeatureFlags.getLogEventsPageSize')}
+                  description={getText('ensoDevtoolsFeatureFlags.getLogEventsPageSizeDescription')}
+                  onChange={(event) => {
+                    setFeatureFlag('getLogEventsPageSize', event.target.valueAsNumber)
                   }}
                 />
                 <Input
@@ -594,7 +563,7 @@ export function EnsoDevtools() {
               size="small"
               icon="paste"
               onPress={async () => {
-                const text = await navigator.clipboard.readText()
+                const text = await window.navigator.clipboard.readText()
                 localStorage.setManyFromUntrustedSource(safeJsonParse(text, null))
                 toast.success('State pasted')
               }}

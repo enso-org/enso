@@ -1,12 +1,15 @@
-<script lang="ts" setup>
+<script setup lang="ts">
 import JsonArrayWidget from '@/components/visualizations/JSONVisualization/JsonArrayWidget.vue'
 import JsonErrorWidget from '@/components/visualizations/JSONVisualization/JsonErrorWidget.vue'
 import JsonObjectWidget from '@/components/visualizations/JSONVisualization/JsonObjectWidget.vue'
 import JsonPrimitiveWidget from '@/components/visualizations/JSONVisualization/JsonPrimitiveWidget.vue'
+import type { Opt } from '@/util/data/opt'
+import type { CreateProjection } from './types'
 
-const props = defineProps<{ data: unknown }>()
-const emit = defineEmits<{
-  createProjection: [path: (string | number)[][]]
+const props = defineProps<{
+  data: unknown
+  indent: string
+  createProjectionCb?: Opt<CreateProjection>
 }>()
 </script>
 
@@ -18,7 +21,8 @@ const emit = defineEmits<{
   <JsonArrayWidget
     v-else-if="Array.isArray(props.data)"
     :data="props.data"
-    @createProjection="emit('createProjection', $event)"
+    :indent="indent"
+    :createProjectionCb="createProjectionCb"
   />
   <JsonPrimitiveWidget
     v-else-if="
@@ -29,7 +33,8 @@ const emit = defineEmits<{
   <JsonObjectWidget
     v-else-if="props.data && typeof props.data === 'object'"
     :data="props.data"
-    @createProjection="emit('createProjection', $event)"
+    :indent="indent"
+    :createProjectionCb="createProjectionCb"
   />
   <JsonPrimitiveWidget v-else :data="props.data" />
 </template>

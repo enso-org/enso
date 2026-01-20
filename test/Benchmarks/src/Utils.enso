@@ -1,0 +1,31 @@
+private
+
+from Standard.Base import all
+
+## Find enso binary inside `built-distribution` directory.
+find_enso_bin =
+    find_prefix dir prefix =
+        vec = dir.list name_filter=prefix+"*"
+        if vec.length == 1 then vec.at 0 else
+            msg = "Cannot find " + prefix + "* in " + dir.to_text + '\n'
+            err = dir.list.fold msg t-> f->
+                t + f.to_text + '\n'
+            Panic.throw err
+
+    project_root = File.new enso_project.root.to_text
+    repository_root = project_root . parent . parent
+    built_distribution = find_prefix repository_root "built-distribution"
+    enso_engine = find_prefix built_distribution "enso-engine-"
+    enso = find_prefix enso_engine "enso-"
+    bin = find_prefix enso "bin"
+
+    exe = case Platform.os == Platform.OS.Windows of
+        False -> File.new (bin / "enso")
+        True ->
+            e = File.new (bin / "enso.exe")
+            if e.is_regular_file then e else
+                File.new (bin / "enso.bat")
+
+    if exe.is_regular_file.not then Panic.throw "Cannot find "+exe.to_text
+
+    exe

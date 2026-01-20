@@ -1,15 +1,18 @@
-import { type NodeId } from '@/stores/graph'
-import { type GraphDb } from '@/stores/graph/graphDatabase'
-import { evaluationProgress } from '@/stores/project/computedValueRegistry'
-import { SuggestionKind, type SuggestionEntry } from '@/stores/suggestionDatabase/entry'
+import { type NodeId } from '$/providers/openedProjects/graph'
+import { type GraphDb } from '$/providers/openedProjects/graph/graphDatabase'
+import { evaluationProgress } from '$/providers/openedProjects/project/computedValueRegistry'
+import {
+  SuggestionKind,
+  type SuggestionEntry,
+} from '$/providers/openedProjects/suggestionDatabase/entry'
+import { type ToValue } from '$/utils/reactivity'
 import { type Icon } from '@/util/iconMetadata/iconName'
 import { type MethodPointer } from '@/util/methodPointer'
 import { type ProjectPath } from '@/util/projectPath'
-import { QualifiedName } from '@/util/qualifiedName'
-import { type ToValue } from '@/util/reactivity'
+import { type QualifiedName } from '@/util/qualifiedName'
 import { computed, toValue, type ComputedRef } from 'vue'
-import { type ExternalId } from 'ydoc-shared/yjsModel'
-import { AnyIcon, AnyWidgetIcon } from './icons'
+import type { ExternalId } from 'ydoc-shared/yjsModel'
+import type { AnyIcon, AnyWidgetIcon } from './icons'
 
 const typeNameToIconLookup: Record<string, Icon> = {
   'Data.Text.Text': 'text_input',
@@ -81,15 +84,15 @@ export function iconOfNode(node: NodeId, graphDb: GraphDb) {
  * representing its current status.
  */
 export function useDisplayedIcon(
-  graphDb: GraphDb,
-  externalId: ToValue<ExternalId>,
+  graphDb: ToValue<GraphDb>,
+  externalId: ToValue<ExternalId | undefined>,
   baseIcon: ToValue<AnyIcon>,
 ): {
   displayedIcon: ComputedRef<AnyWidgetIcon>
 } {
   return {
     displayedIcon: computed(() =>
-      evaluationProgress(graphDb.getExpressionInfo(toValue(externalId))) == null ?
+      evaluationProgress(toValue(graphDb).getExpressionInfo(toValue(externalId))) == null ?
         toValue(baseIcon)
       : '$evaluating',
     ),

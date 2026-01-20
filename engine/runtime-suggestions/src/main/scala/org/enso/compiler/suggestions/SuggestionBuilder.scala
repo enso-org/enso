@@ -66,41 +66,28 @@ final class SuggestionBuilder[A: IndexedSource](
         val ir  = scope.queue.dequeue()
         val doc = ir.getMetadata(DocumentationComments).map(_.documentation)
         ir match {
-          case Definition.Type(
-                tpName,
-                params,
-                List(),
-                _,
-                _
-              ) =>
+          case tp: Definition.Type if tp.members().isEmpty =>
+            val tpName = tp.name()
+            val params = tp.params()
             val tpe =
               buildAtomType(module, tpName.name, tpName.name, params, doc)
             go(tree ++= Vector(Tree.Node(tpe, Vector())), scope)
 
-          case Definition.Type(
-                tpName,
-                params,
-                members,
-                _,
-                _
-              ) =>
+          case tp: Definition.Type =>
+            val tpName  = tp.name()
+            val params  = tp.params()
+            val members = tp.members()
+
             val tpe =
               buildAtomType(module, tpName.name, tpName.name, params, doc)
             val conses = members.collect {
-              case data @ Definition.Data(
-                    name,
-                    arguments,
-                    annotations,
-                    isPrivate,
-                    _,
-                    _
-                  ) if !isPrivate =>
+              case data: Definition.Data if !data.isPrivate =>
                 buildAtomConstructor(
                   module,
                   tpName.name,
-                  name.name,
-                  arguments,
-                  annotations,
+                  data.name().name,
+                  data.arguments,
+                  data.annotations,
                   data.getMetadata(DocumentationComments).map(_.documentation)
                 )
             }
@@ -118,14 +105,14 @@ final class SuggestionBuilder[A: IndexedSource](
 
             go(tree ++= tpSuggestions.map(Tree.Node(_, Vector())), scope)
 
-          case m @ definition.Method
-                .Explicit(
-                  Name.MethodReference(typePtr, methodName, _, _),
-                  Function.Lambda(args, body, _, _, _, _),
-                  _,
-                  _,
-                  _
-                ) if !m.isStaticWrapperForInstanceMethod && !m.isPrivate =>
+          case m: definition.Method.Explicit
+              if m.body().isInstanceOf[Function.Lambda] &&
+              !m.isPrivate =>
+            val typePtr       = m.methodReference().typePointer
+            val methodName    = m.methodReference().methodName
+            val lambda        = m.body()
+            val args          = lambda.asInstanceOf[Function.Lambda].arguments()
+            val body          = lambda.asInstanceOf[Function.Lambda].body()
             val typeSignature = ir.getMetadata(TypeSignatures)
             val annotations   = ir.getMetadata(GenericAnnotations)
             val (selfTypeOpt, isStatic) = typePtr match {
@@ -160,14 +147,14 @@ final class SuggestionBuilder[A: IndexedSource](
             )
             go(tree ++= methodOpt.map(Tree.Node(_, subforest)), scope)
 
-          case conversionMeth @ definition.Method
-                .Conversion(
-                  Name.MethodReference(typePtr, _, _, _),
-                  _,
-                  Function.Lambda(args, body, _, _, _, _),
-                  _,
-                  _
-                ) if !conversionMeth.isPrivate =>
+          case conversionMeth: definition.Method.Conversion
+              if conversionMeth
+                .body()
+                .isInstanceOf[Function.Lambda] && !conversionMeth.isPrivate =>
+            val lambda  = conversionMeth.body()
+            val typePtr = conversionMeth.methodReference().typePointer
+            val body    = lambda.asInstanceOf[Function.Lambda].body()
+            val args    = lambda.asInstanceOf[Function.Lambda].arguments()
             val selfType = typePtr.flatMap { typePointer =>
               typePointer
                 .getMetadata(
@@ -187,10 +174,16 @@ final class SuggestionBuilder[A: IndexedSource](
 
           case Expression.Binding(
                 name,
-                Function.Lambda(args, body, _, _, _, _),
+                lambda,
                 _,
                 _
-              ) if name.location.isDefined =>
+              )
+              if lambda
+                .isInstanceOf[Function.Lambda] && name.location.isDefined =>
+            val body = lambda.asInstanceOf[Function.Lambda].body()
+            val args = lambda
+              .asInstanceOf[Function.Lambda]
+              .arguments()
             val typeSignature = ir.getMetadata(TypeSignatures)
             val function = buildFunction(
               body.getExternalId,
@@ -426,13 +419,11 @@ final class SuggestionBuilder[A: IndexedSource](
     argument: DefinitionArgument
   ): Suggestion = {
     val getterName = argument.name.name
-    val thisArg = new DefinitionArgument.Specified(
-      name               = Name.Self(identifiedLocation = null),
-      ascribedType       = None,
-      defaultValue       = None,
-      suspended          = false,
-      identifiedLocation = null
-    )
+    val thisArg = DefinitionArgument.Specified
+      .builder()
+      .name(Name.Self(identifiedLocation = null))
+      .suspended(false)
+      .build()
     buildMethod(
       externalId         = None,
       module             = module,

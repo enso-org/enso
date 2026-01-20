@@ -1,0 +1,235 @@
+from Standard.Base import all
+import Standard.Base.Errors.Common.No_Such_Method
+import Standard.Base.Errors.Unimplemented.Unimplemented
+
+from Standard.Table import all
+from Standard.Table.Errors import all
+import Standard.Table.Expression.Expression_Error
+
+from Standard.Database.Errors import Unsupported_Database_Operation
+import Standard.Database.Dialects.Feature.Feature
+
+from Standard.Test import all
+import enso_dev.Table_Tests.Util
+
+import project.Common_Table_Operations.Util as Common_Table_Operations_Util
+from project.Common_Table_Operations.Util import check_column_refinements, run_default_backend
+
+type Lazy_Ref
+    Value ~get
+
+main filter=Nothing = run_default_backend add_specs filter
+
+add_specs suite_builder setup =
+    if setup.is_feature_supported Feature.Column_Operations then (add_text_columns_specs suite_builder setup)
+
+add_text_columns_specs suite_builder setup =
+    prefix = setup.prefix
+    build_sorted_table = Common_Table_Operations_Util.build_sorted_table setup
+
+    to_case_locale_db_pending = if setup.is_database then "Not implemented for database backends" else Nothing
+    text_column = Lazy_Ref.Value <| build_sorted_table [["X", ["asdf", "ZXcv fFFf", "qwER gGgG", "XOMT"]]] . at "X"
+
+    suite_builder.group prefix+"Text_Column" group_builder->
+        group_builder.specify "a text column can be cast to Text_Column" <|
+            column = text_column.get
+            column.value_type.is_text . should_be_true
+            check_column_refinements column x->
+                (x:Text_Column)
+
+    suite_builder.group prefix+"Text_Column (to_case)" group_builder->
+        group_builder.specify "to_case works" <|
+            column = text_column.get
+            column.to_case ..Upper . to_vector . should_equal ["ASDF", "ZXCV FFFF", "QWER GGGG", "XOMT"]
+            column.to_case ..Lower . to_vector . should_equal ["asdf", "zxcv ffff", "qwer gggg", "xomt"]
+            proper = column.to_case ..Proper . to_vector
+            case setup.flagged ..Supports_Proper_Casing of
+                True  -> proper.should_equal ["Asdf", "Zxcv Ffff", "Qwer Gggg", "Xomt"]
+                False -> proper.should_fail_with Unsupported_Database_Operation
+
+        group_builder.specify "to_case respects locale" pending=to_case_locale_db_pending <|
+            c = build_sorted_table [['x', ['i', 'a', 'b']]] . at 'x'
+            c.to_case Case.Upper (Locale.new "tr") . to_vector . should_equal ["İ", 'A', 'B']
+
+        group_builder.specify "to_case column names are correct" <|
+            column = text_column.get
+            column.to_case ..Upper . name . should_equal "to_case([X], 'Uppercase')"
+            column.to_case ..Lower . name . should_equal "to_case([X], 'Lowercase')"
+            if setup.flagged ..Supports_Proper_Casing then
+                column.to_case ..Proper . name . should_equal "to_case([X], 'Proper Case')"
+
+        if setup.is_database then
+            group_builder.specify "locale-specific to_case not implemented for database backend" <|
+                column = text_column.get
+                Test.expect_panic Unimplemented <|
+                    column.to_case ..Upper (Locale.new "tr")
+
+    suite_builder.group prefix+"Text_Column (length)" group_builder->
+        group_builder.specify "length works" <|
+            column = build_sorted_table [["X", ["Tiny", "words", "stretch", "into", "silence"]]] . at 0
+            expected_column = build_sorted_table [["length([X])", [4, 5, 7, 4, 7]]] . at 0
+            result = column.length . cast (..Integer ..Bits_64)
+            result.should_equal expected_column
+
+        group_builder.specify "length works with whitespace and nothing" <|
+            column = build_sorted_table [["X", ["Whitespace whispers", "", Nothing, " stays. "]]] . at 0
+            expected_column = build_sorted_table [["length([X])", [19, 0, Nothing, 8]]] . at 0
+            result = column.length . cast (..Integer ..Bits_64)
+            result.should_equal expected_column
+
+        group_builder.specify "length returns graphene length, char_length returns UTF-16 code unit length" <|
+            column = build_sorted_table [["X", ["𝓣𝒆𝓍𝓽", "❤️", "breaks", "in", "hidden", "ways."]]] . at 0
+            
+            expected_column = case setup.is_database of
+                False -> build_sorted_table [["length([X])", [4, 1, 6, 2, 6, 5]]] . at 0
+                True  -> build_sorted_table [["length([X])", [4, 2, 6, 2, 6, 5]]] . at 0
+            result = column.length . cast (..Integer ..Bits_64)
+            result.should_equal expected_column
+
+            expected_column2 = case setup.is_database of
+                False -> build_sorted_table [["char_length([X])", [8, 2, 6, 2, 6, 5]]] . at 0
+                True  -> build_sorted_table [["char_length([X])", [4, 2, 6, 2, 6, 5]]] . at 0
+            result2 = column.char_length . cast (..Integer ..Bits_64)
+            result2.should_equal expected_column2
+
+        group_builder.specify "can be used inside a set component expression" <|     
+            table = build_sorted_table [["X", ["Tiny", "words", "stretch", "into", "silence"]]]
+            expected = build_sorted_table [["X", ["Tiny", "words", "stretch", "into", "silence"]], ["length([X])", [4, 5, 7, 4, 7]], ["char_length([X])", [4, 5, 7, 4, 7]]]
+
+            table_with_length = table.set (expr "length([X])")
+            result = table_with_length.set (expr "char_length([X])") . cast [1, 2] (..Integer ..Bits_64)
+            result.should_equal expected
+
+        group_builder.specify "can be used inside a set component expression with constant arguments" <|     
+            table = build_sorted_table [["X", ["Tiny", "words", "stretch", "into", "silence"]]]
+            expected = case setup.is_database of
+                False -> build_sorted_table [["X", ["Tiny", "words", "stretch", "into", "silence"]], ["length('❤️')", [1, 1, 1, 1, 1]], ["char_length('❤️')", [2, 2, 2, 2, 2]]]
+                True  -> build_sorted_table [["X", ["Tiny", "words", "stretch", "into", "silence"]], ["length('❤️')", [2, 2, 2, 2, 2]], ["char_length('❤️')", [2, 2, 2, 2, 2]]]
+
+            table_with_length = table.set (expr "length('❤️')")
+            result = table_with_length.set (expr "char_length('❤️')") . cast [1, 2] (..Integer ..Bits_64)
+            result.should_equal expected
+
+        group_builder.specify "length and char_length error on non-text columns" <|
+            non_text_column = build_sorted_table [["X", [1, 2, 3, 4]]] . at 0
+            Test.expect_panic_with non_text_column.length No_Such_Method
+            Test.expect_panic_with non_text_column.char_length No_Such_Method
+
+            table = build_sorted_table [["X", [1, 2, 3, 4]]]
+            result = table.set (expr "length([X])") 
+            result.should_fail_with Expression_Error
+            result.catch.should_equal (Expression_Error.Type_Error "method 'length' expected first argument to be Text_Column, but got Column.")
+
+            result2 = table.set (expr "char_length([X])") 
+            result2.should_fail_with Expression_Error
+            result2.catch.should_equal (Expression_Error.Type_Error "method 'char_length' expected first argument to be Text_Column, but got Column.")
+
+            result3 = table.set (expr "char_length(42)") 
+            result3.should_fail_with Expression_Error
+            result3.catch.should_equal (Expression_Error.Type_Error "method 'char_length' expected first argument to be Text_Column, but got Column.")
+
+    suite_builder.group prefix+"Text_Column (upper, lower, proper)" group_builder->
+        group_builder.specify "upper and lower work" <|
+            column = build_sorted_table [["X", ["street", "Main", "rOaD", "3rd floor flat"]]] . at 0
+            expected_upper_column = build_sorted_table [["upper([X])", ["STREET", "MAIN", "ROAD", "3RD FLOOR FLAT"]]] . at 0
+            expected_lower_column = build_sorted_table [["lower([X])", ["street", "main", "road", "3rd floor flat"]]] . at 0
+            column.upper . should_equal expected_upper_column
+            column.lower . should_equal expected_lower_column
+        group_builder.specify "upper and lower work with unicode case folding" <|
+            column = build_sorted_table [["X", ["Straße", "München", "Köln", "3. Bezirk"]]] . at 0
+            expected_upper_column = build_sorted_table [["upper([X])", ["STRASSE", "MÜNCHEN", "KÖLN", "3. BEZIRK"]]] . at 0
+            expected_lower_column = build_sorted_table [["lower([X])", ["straße", "münchen", "köln", "3. bezirk"]]] . at 0
+            if setup.flagged ..Supports_Unicode_Casing then
+                column.upper . should_equal expected_upper_column
+            column.lower . should_equal expected_lower_column
+        group_builder.specify "proper works" <|
+            column = build_sorted_table [["X", ["street", "Main", "rOaD", "3rd floor flat"]]] . at 0
+            expected_proper_column = build_sorted_table [["proper([X])", ["Street", "Main", "Road", "3rd Floor Flat"]]] . at 0
+            result = column.proper 
+            case setup.flagged ..Supports_Proper_Casing of
+                True  -> result.should_equal expected_proper_column
+                False -> result.should_fail_with Unsupported_Database_Operation
+
+    suite_builder.group prefix+"Text_Column (left, right, mid)" group_builder->
+        group_builder.specify "work with scalar arguments" <|
+            column = build_sorted_table [["X", ["street", "Main", "rOaD", "3rd floor flat"]]] . at 0
+            column.left 2 . to_vector . should_equal ["st", "Ma", "rO", "3r"]
+            column.right 3 . to_vector . should_equal ["eet", "ain", "OaD", "lat"]
+            column.mid 2 2 . to_vector . should_equal ["re", "in", "aD", "d "]
+
+        group_builder.specify "work with column arguments" <|
+            t = build_sorted_table [["starts", [0, 2, 2, 0, 1, 8]], ["lengths", [1, 3, 2, 2, 2, 7]], ["strings", ["a", "foobar", "", Nothing, "café", "It was the best of times"]]]
+            column = t.at "strings"
+            starts = t.at "starts"
+            lengths = t.at "lengths"
+            column.left lengths . to_vector . should_equal ["a", "foo", "", Nothing, "ca", "It was "]
+            column.right lengths . to_vector . should_equal ["a", "bar", "", Nothing, "fé", "f times"]
+            column.mid 0 lengths . to_vector . should_equal ["a", "foo", "", Nothing, "ca", "It was "]
+            column.mid starts 1 . to_vector . should_equal ["a", "o", "", Nothing, "a", "h"]
+            column.mid starts lengths . to_vector . should_equal ["a", "oba", "", Nothing, "af", "he best"]
+
+        group_builder.specify "work with default arguments" <|
+            column = build_sorted_table [["X", ["street", "Main", "rOaD", "3rd floor flat"]]] . at 0
+            column.left . to_vector . should_equal ["s", "M", "r", "3"]
+            column.right . to_vector . should_equal ["t", "n", "D", "t"]
+            column.mid 2 . to_vector . should_equal ["reet", "in", "aD", "d floor flat"]
+
+    suite_builder.group prefix+"Text_Column index_of" group_builder->
+        group_builder.specify "index_of should return index of first match" <|
+            column = build_sorted_table [["strings", ["a","foobar","",Nothing,"👩‍🔬👩‍🔬V👩‍🔬👩‍🔬","café","It was the best of times, it was the worst of times, it was the age of wisdom, it was the age of foolishness, it was the epoch of belief, it was the epoch of incredulity, it was the season of light, it was the season of darkness, it was the spring of hope, it was the winter of despair."]]] . at 0
+
+            resA   = column.index_of "a"
+            resFoo = column.index_of "foo"
+            resTimes = column.index_of "times"
+
+            resA.name . should_equal "index_of([strings], 'a')"
+            resFoo.name . should_equal "index_of([strings], 'foo')"
+            resTimes.name . should_equal "index_of([strings], 'times')"
+
+            # 0-based indices, -1 when not found, Nothing when input is Nothing
+            resA . to_vector . should_equal [0,4,-1,Nothing,-1,1,4]
+            resFoo . to_vector . should_equal [-1,0,-1,Nothing,-1,-1,97]
+            resTimes . to_vector . should_equal [-1,-1,-1,Nothing,-1,-1,19]
+
+        group_builder.specify "index_of should handle grapheme and non-grapheme strings and propagate Nothing" <|
+            column = build_sorted_table [["strings", ["a","foobar","",Nothing,"👩‍🔬👩‍🔬V👩‍🔬👩‍🔬","café"]]] . at 0
+            resV = column.index_of "V"
+            resE = column.index_of "é"
+
+            resV.name . should_equal "index_of([strings], 'V')"
+            resE.name . should_equal "index_of([strings], 'é')"
+
+            # only the emoji string has 'V' in the middle
+            case setup.is_database of
+                False -> resV . to_vector . should_equal [-1, -1, -1, Nothing, 2, -1]
+                True  -> resV . to_vector . should_equal [-1, -1, -1, Nothing, 6, -1]
+
+            # only "café" has "é"
+            case setup.is_database of
+                False -> resE . to_vector . should_equal [-1, -1, -1, Nothing, -1, 3]
+                True  -> resE . to_vector . should_equal [-1, -1, -1, Nothing, -1, 3]
+
+        group_builder.specify "index_of should handle case sensitivity for In-Memory only" <|
+            column = build_sorted_table [["strings", ["a", "aA", "A", Nothing]]] . at 0
+            res_little_a = column.index_of "a"
+            res_big_A    = column.index_of "A" 
+            res_little_a_cs = column.index_of "a" ..Sensitive
+            res_big_A_cs    = column.index_of "A" ..Sensitive
+            res_little_a_cis = column.index_of "a" ..Insensitive
+            res_big_A_cis    = column.index_of "A" ..Insensitive
+            
+            if setup.is_database.not then
+                res_little_a . to_vector . should_equal [0,0,-1,Nothing]
+                res_big_A    . to_vector . should_equal [-1,1,0,Nothing]
+                res_little_a_cs . to_vector . should_equal [0,0,-1,Nothing]
+                res_big_A_cs    . to_vector . should_equal [-1,1,0,Nothing]
+                res_little_a_cis . to_vector . should_equal [0,0,0,Nothing]
+                res_big_A_cis    . to_vector . should_equal [0,0,0,Nothing]
+
+            if setup.is_database then
+                res_little_a . to_vector . should_equal [0,0,-1,Nothing]
+                res_big_A    . to_vector . should_equal [-1,1,0,Nothing]
+                res_little_a_cs . to_vector . should_equal [0,0,-1,Nothing]
+                res_big_A_cs    . to_vector . should_equal [-1,1,0,Nothing]
+                res_little_a_cis . to_vector . should_equal [0,0,0,Nothing]
+                res_big_A_cis    . to_vector . should_equal [0,0,0,Nothing]

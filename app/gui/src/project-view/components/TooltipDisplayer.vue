@@ -1,7 +1,14 @@
 <script setup lang="ts">
-import { HoveredElement, type TooltipRegistry } from '@/providers/tooltipRegistry'
-import { Opt } from '@/util/data/opt'
-import { autoUpdate, flip, FloatingElement, offset, shift, useFloating } from '@floating-ui/vue'
+import type { HoveredElement, TooltipRegistry } from '@/providers/tooltipRegistry'
+import type { Opt } from '@/util/data/opt'
+import {
+  autoUpdate,
+  flip,
+  offset,
+  shift,
+  useFloating,
+  type FloatingElement,
+} from '@floating-ui/vue'
 import { computed, ref, shallowRef, toValue, watch } from 'vue'
 
 const props = defineProps<{ registry: TooltipRegistry }>()

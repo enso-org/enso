@@ -16,6 +16,7 @@ export interface ResponseWithTypedJson<U> extends Response {
 /** Options for {@link HttpClient['post']} method. */
 export interface HttpClientPostOptions {
   readonly keepalive?: boolean
+  readonly abort?: AbortSignal | undefined
 }
 
 /** Options for {@link HttpClient.request} private method. */
@@ -54,16 +55,31 @@ export class HttpClient {
       payload: JSON.stringify(payload),
       mimetype: 'application/json',
       keepalive: options?.keepalive ?? false,
+      abort: options?.abort,
+    })
+  }
+
+  /** Send a multipart/form-data HTTP POST request to the specified URL. */
+  async postFormData<T = void>(url: string, payload: FormData, options?: HttpClientPostOptions) {
+    return this.request<'POST', T>({
+      method: 'POST',
+      url,
+      payload,
+      mimetype: 'multipart/form-data',
+      keepalive: options?.keepalive ?? false,
+      abort: options?.abort,
     })
   }
 
   /** Send a base64-encoded binary HTTP POST request to the specified URL. */
-  async postBinary<T = void>(url: string, payload: Blob) {
+  async postBinary<T = void>(url: string, payload: Blob, options?: HttpClientPostOptions) {
     return await this.request<'POST', T>({
       method: 'POST',
       url,
       payload,
       mimetype: 'application/octet-stream',
+      keepalive: options?.keepalive ?? false,
+      abort: options?.abort,
     })
   }
 
@@ -125,10 +141,15 @@ export class HttpClient {
     const payload = options.payload
     if (payload != null) {
       const contentType = options.mimetype ?? 'application/json'
-      headers.set('Content-Type', contentType)
+      // multipart/form-data should have no content-type set.
+      // See https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest_API/Using_FormData_Objects#sending_files_using_a_formdata_object
+      if (contentType !== 'multipart/form-data') {
+        headers.set('Content-Type', contentType)
+      }
     }
 
-    if (!navigator.onLine) {
+    // On node.js, `navigator` seems to be defined, but `navigator.onLine` is always `undefined`.
+    if (navigator.onLine !== undefined && !navigator.onLine) {
       return Promise.reject(new OfflineError('User is offline'))
     }
 
@@ -144,19 +165,25 @@ export class HttpClient {
       })) as ResponseWithTypedJson<T> & {
         readonly body: Method extends 'GET' | 'HEAD' ? null : NonNullable<Response['body']>
       }
-      document.dispatchEvent(new Event(FETCH_SUCCESS_EVENT_NAME))
+      if (typeof document !== 'undefined') {
+        document.dispatchEvent(new Event(FETCH_SUCCESS_EVENT_NAME))
+      }
       return response
     } catch (error) {
       // Even though the condition might seem always falsy,
       // offline mode might happen during the request
       // and this case need to be handled
-      if (!navigator.onLine) {
-        document.dispatchEvent(new Event(OFFLINE_EVENT_NAME))
+      if (navigator.onLine !== undefined && !navigator.onLine) {
+        if (typeof document !== 'undefined') {
+          document.dispatchEvent(new Event(OFFLINE_EVENT_NAME))
+        }
         throw new OfflineError('User is offline', { cause: error })
       }
 
       if (isNetworkError(error)) {
-        document.dispatchEvent(new Event(FETCH_ERROR_EVENT_NAME))
+        if (typeof document !== 'undefined') {
+          document.dispatchEvent(new Event(FETCH_ERROR_EVENT_NAME))
+        }
         throw new NetworkError(error.message, { cause: error })
       }
       throw error

@@ -66,7 +66,7 @@ public class ImportStandardLibrariesBenchmark {
           "Connection_Options.Connection_Options");
 
   private static final String IMPORTS =
-      """
+"""
 from Standard.Base import all
 from Standard.Table import all
 from Standard.Database import all

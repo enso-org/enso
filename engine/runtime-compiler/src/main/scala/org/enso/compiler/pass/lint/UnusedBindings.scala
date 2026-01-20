@@ -136,9 +136,12 @@ case object UnusedBindings extends IRPass {
     context: InlineContext
   ): Function = {
     function match {
-      case Function.Lambda(_, _: Foreign.Definition, _, _, _, _) =>
+      case lam: Function.Lambda
+          if lam.body().isInstanceOf[Foreign.Definition] =>
         function
-      case lam @ Function.Lambda(args, body, _, _, _, _) =>
+      case lam: Function.Lambda =>
+        val args      = lam.arguments()
+        val body      = lam.body()
         val isBuiltin = isBuiltinMethod(body)
         val lintedArgs =
           if (isBuiltin) args
@@ -156,9 +159,9 @@ case object UnusedBindings extends IRPass {
             }
           else body1
 
-        lam.copy(
-          arguments = lintedArgs,
-          body      = lintedBody
+        lam.copyWithArgumentsAndBody(
+          lintedArgs,
+          lintedBody
         )
       case _: Function.Binding =>
         throw new CompilerError(
@@ -206,7 +209,7 @@ case object UnusedBindings extends IRPass {
             case _ => name
           }
           s.copyWithDefaultValue(
-            defaultValue = default.map(runExpression(_, context))
+            default.map(runExpression(_, context))
           ).addDiagnostic(warnings.Unused.FunctionArgument(nameToReport))
         } else s
     }
@@ -253,7 +256,8 @@ case object UnusedBindings extends IRPass {
     */
   def lintPattern(pattern: Pattern): Pattern = {
     pattern match {
-      case n @ Pattern.Name(name, _, _) =>
+      case n: Pattern.Name =>
+        val name = n.name()
         val isIgnored = name
           .unsafeGetMetadata(
             IgnoredBindings,
@@ -273,17 +277,16 @@ case object UnusedBindings extends IRPass {
         if (!isIgnored && !isUsed) {
           n.addDiagnostic(warnings.Unused.PatternBinding(name))
         } else pattern
-      case cons @ Pattern.Constructor(_, fields, _, _) =>
+      case cons: Pattern.Constructor =>
         if (!cons.isDesugared) {
           throw new CompilerError(
             "Nested patterns should not be present during linting."
           )
         }
 
-        cons.copy(
-          fields = fields.map(lintPattern)
-        )
-      case typed @ Pattern.Type(name, _, _, _) =>
+        cons.copyWithFields(cons.fields.map(lintPattern))
+      case typed: Pattern.Type =>
+        val name = typed.name()
         val isIgnored = name
           .unsafeGetMetadata(
             IgnoredBindings,
@@ -305,6 +308,7 @@ case object UnusedBindings extends IRPass {
         } else pattern
       case literal: Pattern.Literal =>
         literal
+      case bool: Pattern.Bool  => bool
       case err: errors.Pattern => err
 
       case _: Pattern.Documentation =>

@@ -9,24 +9,24 @@ import {
   moveAssetsMutationOptions,
   restoreAssetsMutationOptions,
 } from '#/hooks/backendBatchedHooks'
-import { useUploadFileToCloudMutation } from '#/hooks/backendUploadFilesHooks'
+import { useUploadFileToCloud } from '#/hooks/backendUploadFilesHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import { AssetType, type AssetId, type DirectoryId } from '#/services/Backend'
-import { parseDirectoriesPath } from '#/services/utilities'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { useBackends, useText, useUser } from '$/providers/react'
 import type { GetText } from '$/providers/text'
 import type { DropOperation } from '@react-types/shared'
-import { toast } from 'react-toastify'
-import invariant from 'tiny-invariant'
-import { z } from 'zod'
+import { AssetType, type AssetId, type DirectoryId } from 'enso-common/src/services/Backend'
 import {
   CATEGORY_SCHEMA,
   dropOperationBetweenCategories,
   isCloudCategory,
   isLocalCategory,
   type Category,
-} from './Category'
+} from 'enso-common/src/services/Backend/Category'
+import { parseDirectoriesPath } from 'enso-common/src/services/Backend/utilities'
+import { toast } from 'react-toastify'
+import invariant from 'tiny-invariant'
+import { z } from 'zod'
 import { useCategories } from './categoriesHooks'
 
 /** A transferrable asset. */
@@ -62,19 +62,17 @@ export function useTransferBetweenCategories(currentCategory: Category) {
   const { getCategoryByDirectoryId } = useCategories()
   const { getText } = useText()
 
-  const uploadFileToCloudMutation = useUploadFileToCloudMutation()
-  const downloadAssetsMutation = useMutationCallback(downloadAssetsMutationOptions(remoteBackend))
-  const deleteAssetsMutation = useMutationCallback(deleteAssetsMutationOptions(backend))
-  const copyAssetsMutation = useMutationCallback(copyAssetsMutationOptions(backend))
-  const restoreAssetsMutation = useMutationCallback(restoreAssetsMutationOptions(backend))
-  const moveAssetsMutation = useMutationCallback(moveAssetsMutationOptions(backend))
+  const uploadFileToCloud = useUploadFileToCloud()
+  const downloadAssets = useMutationCallback(downloadAssetsMutationOptions(remoteBackend))
+  const deleteAssets = useMutationCallback(deleteAssetsMutationOptions(backend))
+  const copyAssets = useMutationCallback(copyAssetsMutationOptions(backend))
+  const restoreAssets = useMutationCallback(restoreAssetsMutationOptions(backend))
+  const moveAssets = useMutationCallback(moveAssetsMutationOptions(backend))
 
   const mutationByOperation = {
     cancel: () => Promise.resolve(),
-    move: (keys: Array<AssetId>, newParentId: DirectoryId) =>
-      moveAssetsMutation([keys, newParentId]),
-    copy: (keys: Array<AssetId>, newParentId: DirectoryId) =>
-      copyAssetsMutation([keys, newParentId]),
+    move: (keys: Array<AssetId>, newParentId: DirectoryId) => moveAssets([keys, newParentId]),
+    copy: (keys: Array<AssetId>, newParentId: DirectoryId) => copyAssets([keys, newParentId]),
     link: () => Promise.resolve(),
   } as const
 
@@ -98,7 +96,7 @@ export function useTransferBetweenCategories(currentCategory: Category) {
         case 'cloud':
         case 'user': {
           if (to.type === 'trash') {
-            await deleteAssetsMutation([keysArray, false])
+            await deleteAssets([keysArray, false])
             return
           }
 
@@ -109,7 +107,7 @@ export function useTransferBetweenCategories(currentCategory: Category) {
             }
 
             await toast.promise(
-              downloadAssetsMutation({
+              downloadAssets({
                 ids: assetsArray,
                 targetDirectoryId,
               }),
@@ -133,7 +131,7 @@ export function useTransferBetweenCategories(currentCategory: Category) {
             }
 
             if (resolution === 'confirm') {
-              await copyAssetsMutation([keysArray, targetDirectoryId])
+              await copyAssets([keysArray, targetDirectoryId])
               return
             }
           }
@@ -162,17 +160,17 @@ export function useTransferBetweenCategories(currentCategory: Category) {
               .map(([_, assetsByCategory]) => {
                 const assetsIds = assetsByCategory.map((asset) => asset.id)
 
-                return restoreAssetsMutation({
+                return restoreAssets({
                   ids: assetsIds,
                   parentId: targetDirectoryId,
                 })
               }),
             ...entries
               .filter(([category]) => category.type === 'team')
-              .map(([category, assetsByCategory]) => {
+              .map(async ([category, assetsByCategory]) => {
                 const assetsIds = assetsByCategory.map((asset) => asset.id)
 
-                return ask(AlertDialog, {
+                const resolution = await ask(AlertDialog, {
                   title: getText('actionUnavailable'),
                   confirm: getText('copyInstead'),
                   children: (
@@ -186,11 +184,11 @@ export function useTransferBetweenCategories(currentCategory: Category) {
                       </Alert>
                     </>
                   ),
-                }).then((resolution) => {
-                  if (resolution === 'confirm') {
-                    return copyAssetsMutation([assetsIds, targetDirectoryId])
-                  }
                 })
+
+                if (resolution === 'confirm') {
+                  return copyAssets([assetsIds, targetDirectoryId])
+                }
               }),
           ])
         }
@@ -201,7 +199,7 @@ export function useTransferBetweenCategories(currentCategory: Category) {
             'The Local backend must be present to transfer assets from or to the local category.',
           )
           if (isCloudCategory(to)) {
-            return uploadFileToCloudMutation(localBackend, {
+            return uploadFileToCloud(localBackend, {
               assets: assetsArray,
               targetDirectoryId,
             })

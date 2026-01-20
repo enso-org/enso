@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useSuggestionDbStore } from '$/components/WithCurrentProject.vue'
+import { defineWidget, Score, widgetProps } from '$/providers/openedProjects/widgetRegistry'
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
-import { defineWidget, Score, widgetProps } from '@/providers/widgetRegistry'
 import { computed } from 'vue'
 import { EnsoExpression } from './WidgetEnsoExpression.vue'
 import { withDropdownItems } from './WidgetSelection.vue'
@@ -18,7 +18,7 @@ const input = computed(() => ({
 
 <script lang="ts">
 export const EnsoTypeExpression: unique symbol = Symbol.for('WidgetInput:EnsoTypeExpression')
-declare module '@/providers/widgetRegistry' {
+declare module '$/providers/openedProjects/widgetRegistry' {
   export interface WidgetInput {
     [EnsoTypeExpression]?: object
   }

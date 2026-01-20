@@ -10,6 +10,7 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.enso.compiler.common.MethodResolutionAlgorithm;
 import org.enso.interpreter.runtime.Module;
+import org.enso.interpreter.runtime.ModuleScopeAccessor;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.EnsoObject;
 import org.enso.interpreter.runtime.data.Type;
@@ -18,6 +19,33 @@ import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 /** A representation of Enso's per-file top-level scope. */
 @ExportLibrary(TypesLibrary.class)
 public final class ModuleScope extends EnsoObject {
+  private static final ModuleScopeAccessor IMPL =
+      new ModuleScopeAccessor() {
+        @Override
+        protected Function findMethodForType(
+            Type tpe, Map<Type, Map<String, Supplier<Function>>> m, String name) {
+          return ModuleScopeUtils.findMethodForType(tpe, m, name);
+        }
+
+        @Override
+        protected Supplier<TruffleObject> findPolyglotSymbolSupplier(
+            Map<String, Supplier<TruffleObject>> ps, String symbolName) {
+          return ModuleScopeUtils.findPolyglotSymbolSupplier(ps, symbolName);
+        }
+
+        @Override
+        protected ModuleScope newModuleScope(
+            Module module,
+            Type associatedType,
+            Map<String, Supplier<TruffleObject>> m1,
+            Map<String, Type> m2,
+            Map<Type, Map<String, Supplier<Function>>> m3,
+            Map<Type, Map<Type, Supplier<Function>>> m4,
+            Set<ImportExportScope> s1,
+            Set<ImportExportScope> s2) {
+          return new ModuleScope(module, associatedType, m1, m2, m3, m4, s1, s2);
+        }
+      };
   private final Type associatedType;
   private final Module module;
   private final Map<String, Supplier<TruffleObject>> polyglotSymbols;

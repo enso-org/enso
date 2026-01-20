@@ -33,6 +33,8 @@ import org.enso.compiler.Compiler;
 import org.enso.compiler.Passes;
 import org.enso.compiler.context.CompilerContext;
 import org.enso.compiler.context.FreshNameSupply;
+import org.enso.compiler.core.CompilerError;
+import org.enso.compiler.core.IR;
 import org.enso.compiler.core.ir.Diagnostic;
 import org.enso.compiler.core.ir.IdentifiedLocation;
 import org.enso.compiler.data.BindingsMap;
@@ -49,13 +51,20 @@ import org.enso.interpreter.caches.ImportExportCache;
 import org.enso.interpreter.caches.ImportExportCache.MapToBindings;
 import org.enso.interpreter.caches.ModuleCache;
 import org.enso.interpreter.caches.SuggestionsCache;
+import org.enso.interpreter.node.expression.builtin.Builtin;
+import org.enso.interpreter.runtime.builtin.Builtins;
+import org.enso.interpreter.runtime.data.Type;
+import org.enso.interpreter.runtime.data.atom.AtomConstructor;
 import org.enso.interpreter.runtime.type.Types;
+import org.enso.interpreter.runtime.util.CachingSupplier;
 import org.enso.interpreter.runtime.util.DiagnosticFormatter;
 import org.enso.pkg.Package;
 import org.enso.pkg.QualifiedName;
 import org.enso.polyglot.Suggestion;
 import org.enso.polyglot.data.TypeGraph;
+import org.enso.scala.wrapper.ScalaConversions;
 import scala.collection.immutable.ListSet;
+import scala.collection.immutable.Set;
 import scala.collection.immutable.SetOps;
 
 final class TruffleCompilerContext implements CompilerContext {
@@ -64,7 +73,6 @@ final class TruffleCompilerContext implements CompilerContext {
   private final EnsoContext context;
   private final TruffleLogger loggerCompiler;
   private final TruffleLogger loggerSerializationManager;
-  private final RuntimeStubsGenerator stubsGenerator;
   private final SerializationPool serializationPool;
 
   TruffleCompilerContext(EnsoContext context) {
@@ -72,7 +80,6 @@ final class TruffleCompilerContext implements CompilerContext {
     this.loggerCompiler = context.getLogger(Compiler.class);
     this.loggerSerializationManager = context.getLogger(SerializationPool.class);
     this.serializationPool = new SerializationPool(this);
-    this.stubsGenerator = new RuntimeStubsGenerator(context.getBuiltins());
   }
 
   @Override
@@ -83,11 +90,6 @@ final class TruffleCompilerContext implements CompilerContext {
   @Override
   public boolean isPrivateCheckDisabled() {
     return context.isPrivateCheckDisabled();
-  }
-
-  @Override
-  public boolean isUseGlobalCacheLocations() {
-    return context.isUseGlobalCache();
   }
 
   @Override
@@ -160,7 +162,8 @@ final class TruffleCompilerContext implements CompilerContext {
       throws IOException {
     var m = org.enso.interpreter.runtime.Module.fromCompilerModule(module);
     var sb = TruffleCompilerModuleScopeBuilder.fromCompilerModuleScopeBuilder(scopeBuilder);
-    new IrToTruffle(context, m.getSource(), sb, config).run(module.getIr());
+    var ss = CachingSupplier.from(m::getSource);
+    new IrToTruffle(context, m.getPackage(), ss, sb, config).run(module.getIr());
   }
 
   // module related
@@ -202,9 +205,8 @@ final class TruffleCompilerContext implements CompilerContext {
     return cache.load(context);
   }
 
-  final <T> TruffleFile saveCache(Cache<T, ?> cache, T entry, boolean useGlobalCacheLocations)
-      throws IOException {
-    return cache.save(entry, context, useGlobalCacheLocations);
+  final <T> TruffleFile saveCache(Cache<T, ?> cache, T entry) throws IOException {
+    return cache.save(entry, context);
   }
 
   @Override
@@ -236,17 +238,90 @@ final class TruffleCompilerContext implements CompilerContext {
       }
 
       if (irCachingEnabled && !wasLoadedFromCache(builtinsModule)) {
-        serializeModule(compiler, builtinsModule, true, true);
+        serializeModule(compiler, builtinsModule, true);
       }
     }
+  }
+
+  /**
+   * Generates atom constructors into the scope.
+   *
+   * @param builtins instances of builtins
+   * @param ir the module to generate stubs in.
+   * @param scope module scope builder
+   */
+  private static void generateStubs(
+      Builtins builtins, IR ir, TruffleCompilerModuleScopeBuilder scope) {
+    BindingsMap localBindings = (BindingsMap) ir.passData().get(BindingAnalysis$.MODULE$).get();
+    scala.collection.immutable.List<BindingsMap.Type> types =
+        localBindings
+            .definedEntities()
+            .filter(t -> t instanceof BindingsMap.Type)
+            .map(t -> (BindingsMap.Type) t);
+    TruffleCompilerModuleScopeBuilder compilerScope = scope.toCompilerBuilder();
+    types.foreach(
+        tp -> {
+          Type registerConstructorsTo = null;
+          if (tp.builtinType()) {
+            Builtin builtinType = builtins.getBuiltinType(tp.name());
+            if (builtinType == null) {
+              throw new CompilerError("Unknown @Builtin_Type " + tp.name());
+            }
+            var rtp = builtinType.getType();
+            if (tp.toString().contains("Missing_Argument")) {
+              registerConstructorsTo = rtp;
+            }
+            Set tpNames = tp.members().map(c -> c.name()).toSet();
+            Set exNames =
+                ScalaConversions.set(builtinType.getConstructors())
+                    .map(AtomConstructor::getName)
+                    .toSet();
+            if (!tpNames.equals(exNames)) {
+              throw new CompilerError(
+                  "Wrong constructors declared in the builtin " + tp.name() + ".");
+            }
+            scope.registerType(rtp);
+            rtp.setShadowDefinitions(builtins.getLanguage(), compilerScope, true);
+          } else {
+            boolean hasAllConstructorsPrivate =
+                tp.isPrivate()
+                    || tp.members().nonEmpty() && tp.members().forall(c -> c.isProjectPrivate());
+            Type createdType =
+                (tp.members().nonEmpty() || tp.builtinType())
+                    ? Type.create(
+                        builtins.getLanguage(),
+                        tp.name(),
+                        compilerScope,
+                        builtins.any(),
+                        builtins.any(),
+                        false,
+                        hasAllConstructorsPrivate)
+                    : Type.createSingleton(
+                        tp.name(), compilerScope, builtins.any(), false, hasAllConstructorsPrivate);
+            registerConstructorsTo = scope.registerType(createdType);
+          }
+          if (registerConstructorsTo != null) {
+            var rtp = registerConstructorsTo;
+            tp.members()
+                .foreach(
+                    cons -> {
+                      var constructor =
+                          new AtomConstructor(cons.name(), scope.getModule(), rtp, false);
+                      rtp.registerConstructor(constructor);
+                      return null;
+                    });
+          }
+          return null;
+        });
   }
 
   @Override
   public void runStubsGenerator(
       CompilerContext.Module module, CompilerContext.ModuleScopeBuilder scopeBuilder) {
+    var b = context.getBuiltins();
     var m = ((Module) module).unsafeModule();
-    var s = ((TruffleCompilerModuleScopeBuilder) scopeBuilder).unsafeScopeBuilder();
-    stubsGenerator.run(m.getIr(), s);
+    generateStubs(b, m.getIr(), (TruffleCompilerModuleScopeBuilder) scopeBuilder);
+    m.unsafeSetCompilationStage(CompilationStage.AFTER_RUNTIME_STUBS);
   }
 
   @Override
@@ -293,20 +368,25 @@ final class TruffleCompilerContext implements CompilerContext {
             diagnosticFormatter.format(), diagnosticFormatter.where());
       }
     }
-    var emptySource = Source.newBuilder(LanguageInfo.ID, "", null).build();
+    Source fallbackSource;
+    try {
+      fallbackSource = m.getSource();
+    } catch (IOException ex) {
+      fallbackSource = Source.newBuilder(LanguageInfo.ID, "", null).build();
+    }
     diagnosticFormatter =
         DiagnosticFormatter.create(
-            diagnostic, emptySource, isOutputRedirected, context.isColorTerminalOutput());
-    return new CompilationAbortedException(diagnosticFormatter.format(), null);
+            diagnostic, fallbackSource, isOutputRedirected, context.isColorTerminalOutput());
+    var ss = fallbackSource.createUnavailableSection();
+    return new CompilationAbortedException(diagnosticFormatter.format(), ss);
   }
 
   @SuppressWarnings("unchecked")
   @Override
-  public Future<Boolean> serializeLibrary(
-      Compiler compiler, LibraryName libraryName, boolean useGlobalCacheLocations) {
+  public Future<Boolean> serializeLibrary(Compiler compiler, LibraryName libraryName) {
     logSerializationManager(Level.INFO, "Requesting serialization for library [{0}].", libraryName);
 
-    var task = doSerializeLibrary(compiler, libraryName, useGlobalCacheLocations);
+    var task = doSerializeLibrary(compiler, libraryName);
 
     return serializationPool.submitTask(
         task, isCreateThreadAllowed(), toQualifiedName(libraryName));
@@ -327,7 +407,6 @@ final class TruffleCompilerContext implements CompilerContext {
    * thread and the module may be mutated beneath it.
    *
    * @param module the module to serialize
-   * @param useGlobalCacheLocations if true, will use global caches location, local one otherwise
    * @param useThreadPool if true, will perform serialization asynchronously
    * @return Future referencing the serialization task. On completion Future will return `true` if
    *     `module` has been successfully serialized, `false` otherwise
@@ -335,10 +414,7 @@ final class TruffleCompilerContext implements CompilerContext {
   @SuppressWarnings("unchecked")
   @Override
   public Future<Boolean> serializeModule(
-      Compiler compiler,
-      CompilerContext.Module module,
-      boolean useGlobalCacheLocations,
-      boolean useThreadPool) {
+      Compiler compiler, CompilerContext.Module module, boolean useThreadPool) {
     if (module.isSynthetic()) {
       throw new IllegalStateException(
           "Cannot serialize synthetic module [" + module.getName() + "]");
@@ -346,16 +422,18 @@ final class TruffleCompilerContext implements CompilerContext {
     logSerializationManager(
         Level.FINE, "Requesting serialization for module [{0}].", module.getName());
     var ir = module.getIr();
-    var dupl =
-        ir.duplicate(
-            ir.duplicate$default$1(), ir.duplicate$default$2(), ir.duplicate$default$3(), true);
-    var duplicatedIr = compiler.updateMetadata(ir, dupl);
+    org.enso.compiler.core.ir.Module duplicatedIr;
     Source src;
     try {
+      var dupl = ir.duplicate(true, true, true, true);
+      duplicatedIr = compiler.updateMetadata(ir, dupl);
       var m = org.enso.interpreter.runtime.Module.fromCompilerModule(module);
       src = m.getSource();
     } catch (IOException ex) {
-      logSerializationManager(Level.WARNING, "Cannot get source for " + module.getName(), ex);
+      logSerializationManager(
+          Level.WARNING,
+          "Cannot get source for " + module.getName() + " at stage " + module.getCompilationStage(),
+          ex);
       return CompletableFuture.failedFuture(ex);
     }
     var task =
@@ -364,8 +442,7 @@ final class TruffleCompilerContext implements CompilerContext {
             duplicatedIr,
             module.getCompilationStage(),
             module.getName(),
-            src,
-            useGlobalCacheLocations);
+            src);
     return serializationPool.submitTask(task, useThreadPool, module.getName());
   }
 
@@ -377,7 +454,6 @@ final class TruffleCompilerContext implements CompilerContext {
    * @param stage the compilation stage of the module
    * @param name the name of the module being serialized
    * @param source the source of the module being serialized
-   * @param useGlobalCacheLocations if true, will use global caches location, local one otherwise
    * @return the task that serialies the provided `ir`
    */
   private Callable<Boolean> doSerializeModule(
@@ -385,8 +461,7 @@ final class TruffleCompilerContext implements CompilerContext {
       org.enso.compiler.core.ir.Module ir,
       CompilationStage stage,
       QualifiedName name,
-      Source source,
-      boolean useGlobalCacheLocations) {
+      Source source) {
     return () -> {
       var pool = serializationPool;
       pool.waitWhileSerializing(name);
@@ -398,11 +473,7 @@ final class TruffleCompilerContext implements CompilerContext {
             stage.isAtLeast(CompilationStage.AFTER_STATIC_PASSES)
                 ? CompilationStage.AFTER_STATIC_PASSES
                 : stage;
-        var saved =
-            saveCache(
-                cache,
-                new ModuleCache.CachedModule(ir, fixedStage, source),
-                useGlobalCacheLocations);
+        var saved = saveCache(cache, new ModuleCache.CachedModule(ir, fixedStage, source));
         return saved != null;
       } catch (Throwable e) {
         logSerializationManager(
@@ -514,8 +585,7 @@ final class TruffleCompilerContext implements CompilerContext {
   }
 
   @SuppressWarnings("unchecked")
-  Callable<Boolean> doSerializeLibrary(
-      Compiler compiler, LibraryName libraryName, boolean useGlobalCacheLocations) {
+  Callable<Boolean> doSerializeLibrary(Compiler compiler, LibraryName libraryName) {
     return () -> {
       var pool = serializationPool;
       pool.waitWhileSerializing(toQualifiedName(libraryName));
@@ -531,21 +601,15 @@ final class TruffleCompilerContext implements CompilerContext {
             (scala.collection.immutable.List<org.enso.compiler.context.CompilerContext.Module>)
                 it.tail();
       }
-      var snd =
-          context
-              .getPackageRepository()
-              .getPackageForLibraryJava(libraryName)
-              .map(x -> x.listSourcesJava());
 
       var bindingsCache =
           new ImportExportCache.CachedBindings(
-              libraryName, new ImportExportCache.MapToBindings(map), snd);
+              libraryName, new ImportExportCache.MapToBindings(map));
       try {
-        boolean result =
-            doSerializeLibrarySuggestions(compiler, libraryName, useGlobalCacheLocations);
+        boolean result = doSerializeLibrarySuggestions(compiler, libraryName);
         try {
           var cache = ImportExportCache.create(libraryName);
-          var file = saveCache(cache, bindingsCache, useGlobalCacheLocations);
+          var file = saveCache(cache, bindingsCache);
           result &= file != null;
         } catch (Throwable e) {
           logSerializationManager(
@@ -561,8 +625,7 @@ final class TruffleCompilerContext implements CompilerContext {
     };
   }
 
-  private boolean doSerializeLibrarySuggestions(
-      Compiler compiler, LibraryName libraryName, boolean useGlobalCacheLocations)
+  private boolean doSerializeLibrarySuggestions(Compiler compiler, LibraryName libraryName)
       throws IOException {
     var exportsBuilder = new ExportsBuilder();
     var exportsMap = new ExportsMap();
@@ -595,7 +658,7 @@ final class TruffleCompilerContext implements CompilerContext {
 
       var cachedSuggestions = new SuggestionsCache.CachedSuggestions(libraryName, suggestions);
       var cache = SuggestionsCache.create(libraryName);
-      var file = saveCache(cache, cachedSuggestions, useGlobalCacheLocations);
+      var file = saveCache(cache, cachedSuggestions);
       return file != null;
     } catch (Throwable e) {
       logSerializationManager(
@@ -870,9 +933,7 @@ final class TruffleCompilerContext implements CompilerContext {
      */
     final TruffleCompilerModuleScopeBuilder getScopeBuilder(boolean reset) {
       if (reset || sb == null) {
-        var scopeBuilder =
-            ModuleScopeAccessor.getInstance().newScopeBuilder(module, module::updateModuleScope);
-        sb = new TruffleCompilerModuleScopeBuilder(scopeBuilder);
+        sb = new TruffleCompilerModuleScopeBuilder(module, module::updateModuleScope);
       }
       return sb;
     }

@@ -25,7 +25,7 @@ public final class Ydoc implements AutoCloseable {
 
   private Context context;
 
-  public Ydoc(
+  private Ydoc(
       ScheduledExecutorService executor,
       ParserPolyfill parser,
       Context.Builder contextBuilder,
@@ -38,10 +38,10 @@ public final class Ydoc implements AutoCloseable {
     this.port = port;
   }
 
-  public static class Builder {
+  public static final class Builder {
 
     private static final String DEFAULT_HOSTNAME = "localhost";
-    private static final int DEFAULT_PORT = 1234;
+    private static final int DEFAULT_PORT = 5976;
 
     private ScheduledExecutorService executor;
     private ParserPolyfill parser;

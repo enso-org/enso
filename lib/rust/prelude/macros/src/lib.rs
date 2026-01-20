@@ -5,8 +5,6 @@
 #![warn(trivial_casts)]
 #![warn(unused_qualifications)]
 
-
-
 extern crate proc_macro;
 
 mod tagged_enum;

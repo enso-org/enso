@@ -6,8 +6,6 @@ use crate::programs::vs;
 use dependency_runner::executable::Executables;
 use unicase::UniCase;
 
-
-
 /// List of dynamically loaded dependencies.
 ///
 /// While the code in itself is portable, it supports only Windows binaries (PE files).

@@ -29,24 +29,25 @@ public class ExportConversionMethodTest {
         new SourceModule(
             QualifiedName.fromString("A_Module"),
             """
-        type A_Type
-            Value
-        type B_Type
-        """);
+            type A_Type
+                Value
+            type B_Type
+            """);
     var bMod =
         new SourceModule(
             QualifiedName.fromString("B_Module"),
             """
-        import project.A_Module.A_Type
-        import project.A_Module.B_Type
+            import project.A_Module.A_Type
+            import project.A_Module.B_Type
 
-        B_Type.from (_:A_Type) = 42
-        """);
+            B_Type.from (_:A_Type) = 42
+            """);
     var mainMod =
         new SourceModule(
-            QualifiedName.fromString("Main"), """
-        import project.B_Module.from
-        """);
+            QualifiedName.fromString("Main"),
+            """
+            import project.B_Module.from
+            """);
     var projDir = tempFolder.newFolder().toPath();
     ProjectUtils.createProject("Proj", Set.of(aMod, bMod, mainMod), projDir);
     try (var ctx = ContextUtils.newBuilder().withProjectRoot(projDir).build()) {
@@ -67,15 +68,16 @@ public class ExportConversionMethodTest {
         new SourceModule(
             QualifiedName.fromString("A_Module"),
             """
-        type A_Type
-        type B_Type
-        B_Type.from (_:A_Type) = 42
-        """);
+            type A_Type
+            type B_Type
+            B_Type.from (_:A_Type) = 42
+            """);
     var mainMod =
         new SourceModule(
-            QualifiedName.fromString("Main"), """
-        export project.A_Module.from
-        """);
+            QualifiedName.fromString("Main"),
+            """
+            export project.A_Module.from
+            """);
     var projDir = tempFolder.newFolder().toPath();
     ProjectUtils.createProject("Proj", Set.of(aMod, mainMod), projDir);
 
@@ -105,16 +107,17 @@ public class ExportConversionMethodTest {
         new SourceModule(
             QualifiedName.fromString("A_Module"),
             """
-        type A_Type
-        type B_Type
-        B_Type.from (_:A_Type) = 1
-        A_Type.from (_:B_Type) = 2
-        """);
+            type A_Type
+            type B_Type
+            B_Type.from (_:A_Type) = 1
+            A_Type.from (_:B_Type) = 2
+            """);
     var mainMod =
         new SourceModule(
-            QualifiedName.fromString("Main"), """
-        export project.A_Module.from
-        """);
+            QualifiedName.fromString("Main"),
+            """
+            export project.A_Module.from
+            """);
     var projDir = tempFolder.newFolder().toPath();
     ProjectUtils.createProject("Proj", Set.of(aMod, mainMod), projDir);
 

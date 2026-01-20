@@ -1,11 +1,9 @@
 use crate::prelude::*;
 
-use crate::cache::goodie;
 use crate::cache::Cache;
+use crate::cache::goodie;
 use crate::env::known::PATH;
 use crate::programs;
-
-
 
 const DOWNLOAD_URL_TEXT: &str = "https://github.com/sbt/sbt/releases/download/v1.5.5/sbt-1.5.5.tgz";
 

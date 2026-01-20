@@ -1,0 +1,205 @@
+from Standard.Base import all
+
+import project.Column.Column
+import project.Column.Rest_Of_String
+import project.Refined_Types.Numeric_Column.Numeric_Column
+
+## A column that contains text values.
+type Text_Column
+    private Value column operations_implementation
+
+    ## ---
+       group: Standard.Base.Text
+       icon: text
+       ---
+       Converts each character of each element to the specified case.
+
+       ## Examples
+       ### Convert the values in a column to uppercase.
+
+       ```
+             import Standard.Examples
+
+             example_to_case = Examples.text_column_1.to_case ..Upper
+       ```
+    @case_option Case.default_widget
+    @locale Locale.default_widget
+    to_case self case_option:Case=..Lower locale:Locale=Locale.default -> Column & Text_Column =
+        self.operations_implementation.to_case self.column case_option locale
+
+    ## ---
+       group: Standard.Base.Text
+       icon: text
+       ---
+       Calculates the text length for each element of the column.
+
+       In the Database backends, the default text length method of the particular
+       database is used.
+
+       In the in-memory backend, this will give you the grapheme length of the
+       string.
+
+       ## Examples
+       ### Gets the text length of each element in a column 
+
+       ```
+             import Standard.Examples
+
+             example_length = Examples.text_column_1.length
+       ```
+    length self -> Column & Numeric_Column =
+        self.operations_implementation.length self.column
+
+    ## ---
+       group: Standard.Base.Text
+       icon: text
+       ---
+       Calculates the text character length for each element of the column.
+
+       In the Database backends, the default text length method of the particular
+       database is used.
+
+       In the in-memory backend, this will give you the UTF-16 code unit length of the
+       string.
+
+       ## Examples
+       ### Gets the text character length of each element in a column 
+
+       ```
+             import Standard.Examples
+
+             example_char_length = Examples.text_column_1.char_length
+       ```
+    char_length self -> Column & Numeric_Column =
+        self.operations_implementation.char_length self.column
+
+    ## ---
+       group: Standard.Base.Text
+       icon: text
+       ---
+       Converts each element of the column to uppercase.
+
+        ## Examples
+        ### Convert the values in a column to uppercase.
+
+        ```
+            import Standard.Examples
+
+            example_upper = Examples.text_column_1.upper
+        ```   
+    upper self -> Column & Text_Column =
+        self.operations_implementation.upper self.column
+
+    ## ---
+       group: Standard.Base.Text
+       icon: text
+       ---
+       Converts each element of the column to lowercase.    
+
+        ## Examples
+        ### Convert the values in a column to lowercase.
+
+        ```
+            import Standard.Examples
+
+            example_lower = Examples.text_column_1.lower
+        ```  
+    lower self -> Column & Text_Column =    
+        self.operations_implementation.lower self.column
+
+    ## ---
+       group: Standard.Base.Text
+       icon: text
+       ---
+       Converts each element of the column to proper(title) case.
+       i.e. capitalizing the first letter of each word. 
+
+        ## Examples
+        ### Convert the values in a column to proper case.
+
+        ```
+            import Standard.Examples
+
+            example_proper = Examples.text_column_1.proper
+        ```  
+    proper self -> Column & Text_Column =    
+        self.operations_implementation.proper self.column
+
+    ## ---
+       group: Standard.Base.Text
+       icon: preparation
+       ---
+       Gets the left n characters for each element of the column.
+       In the Database backends, the default text left method of the particular
+       database is used.
+       In the in-memory backend, this will give you the left n graphemes of the
+       string.
+
+       ## Examples
+       ### import Standard.Examples
+
+       ```
+             example_text_length =
+                Examples.text_column_1.text_eft 5
+       ```
+    left self (n : Column | Integer | Nothing = 1) -> Column & Text_Column =
+        self.operations_implementation.left self.column n
+
+    ## ---
+       group: Standard.Base.Text
+       icon: preparation
+       ---
+       Gets the right n characters for each element of the column.
+       In the Database backends, the default text right method of the particular
+       database is used.
+       In the in-memory backend, this will give you the right n graphemes of the
+       string.
+
+       ## Examples
+       ### import Standard.Examples
+
+       ```
+             example_text_length =
+                Examples.text_column_1.right 5
+       ```
+    right self (n : Column | Integer | Nothing = 1) -> Column & Text_Column =
+        self.operations_implementation.right self.column n
+
+    ## ---
+       group: Standard.Base.Text
+       icon: preparation
+       ---
+       Gets the characters starting at `start` and continuing for `length`
+       characters, for each element of the column.
+       In the Database backends, the default text mid method of the particular
+       database is used.
+       In the in-memory backend, this will give you the `length` graphemes of
+       the string, starting at `start`.
+
+       ## Examples
+       ### import Standard.Examples
+
+       ```
+             example_text_length =
+                Examples.text_column_1.mid 5
+       ```
+    mid (self : Column & Text_Column) (start : Column | Any) (length : Column | Any | Rest_Of_String = Rest_Of_String) -> Column & Text_Column =
+        self.operations_implementation.mid self.column start length
+
+    ## ---
+       group: Standard.Base.Text
+       icon: text
+       ---
+       Returns the index of the first occurrence of `other` in each element of the column.
+       The index is zero-based. If `other` is not found, -1 is returned
+
+        ## Examples
+        ### Find the index of a substring in each element of a column.
+
+        ```
+            import Standard.Examples
+
+            example_index_of = Examples.text_column_1.index_of "e"
+        ```  
+    index_of self (other : Column | Text | Any) case_sensitivity:Case_Sensitivity=..Default -> Column & Numeric_Column =
+        self.operations_implementation.index_of self.column other case_sensitivity

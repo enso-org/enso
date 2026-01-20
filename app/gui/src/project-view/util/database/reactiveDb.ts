@@ -10,8 +10,8 @@
  * 3. `ReactiveMapping`: Similar to `ReactiveIndex`, but each key is correlated to one value (`M`) or zero (`undefined`).
  */
 
+import { LazySyncEffectSet, type NonReactiveView } from '$/utils/reactivity'
 import { assert } from '@/util/assert'
-import { LazySyncEffectSet, type NonReactiveView } from '@/util/reactivity'
 import * as map from 'lib0/map'
 import { ObservableV2 } from 'lib0/observable'
 import * as set from 'lib0/set'
@@ -307,13 +307,15 @@ export class ReactiveIndex<K, V, IK, IV> {
     return this.reverse.get(value) ?? set.create()
   }
 
-  /** TODO: Add docs */
+  /** Check if the index has the given key. */
   hasKey(key: IK): boolean {
+    this.effects.flush()
     return this.forward.has(key)
   }
 
-  /** TODO: Add docs */
+  /** Check if the index has the given value. */
   hasValue(value: IV): boolean {
+    this.effects.flush()
     return this.reverse.has(value)
   }
 }

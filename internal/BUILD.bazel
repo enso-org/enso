@@ -1,0 +1,7 @@
+load("@aspect_rules_js//js:defs.bzl", "js_binary")
+
+js_binary(
+    name = "script_env_replacer",
+    entry_point = "envReplacer.mjs",
+    visibility = ["//visibility:public"],
+)

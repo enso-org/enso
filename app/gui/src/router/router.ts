@@ -12,7 +12,7 @@ import {
 } from '$/appUtils'
 import { flagsStore } from '$/providers/featureFlags'
 import { withDataLoader } from '$/router/dataLoader'
-import { maybeRedirectToInitialProject } from '$/router/initialProject'
+import { maybeRedirectToProject, openProjectFromPath } from '$/router/initialProject'
 import { reactComponent } from '@/util/react'
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 
@@ -47,8 +47,11 @@ const routes = [
           {
             name: 'dashboard',
             path: '/:path(.*)*',
-            beforeEnter: maybeRedirectToInitialProject,
-            component: withDataLoader(() => import('$/components/AppContainer.vue')),
+            beforeEnter: maybeRedirectToProject,
+            component: () =>
+              import('#/pages/dashboard/Dashboard.tsx').then((mod) =>
+                reactComponent(mod.Dashboard),
+              ),
           },
           {
             path: SUBSCRIBE_PATH,
@@ -113,6 +116,7 @@ const router = createRouter({
   routes,
 })
 
+router.beforeEach(openProjectFromPath)
 router.onError((error) => console.error('Router error', error))
 
 export default router

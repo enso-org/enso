@@ -46,7 +46,7 @@ class EnsoSecretReader implements ReloadDetector.HasClearableCache {
   }
 
   private String fetchSecretValue(String secretId, int retryCount) {
-    var apiUri = CloudAPI.getAPIRootURI() + "s3cr3tz/" + secretId;
+    var apiUri = CloudAPI.getInstance().getAPIRootURI() + "s3cr3tz/" + secretId;
     var client = HttpClient.newBuilder().followRedirects(HttpClient.Redirect.ALWAYS).build();
     var request =
         HttpRequest.newBuilder()

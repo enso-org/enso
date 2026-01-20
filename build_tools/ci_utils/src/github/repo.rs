@@ -4,24 +4,22 @@ use crate::prelude::*;
 
 use crate::cache::download::DownloadFile;
 use crate::github;
-use crate::github::model;
 use crate::github::MAX_PER_PAGE;
+use crate::github::model;
 
 use headers::HeaderMap;
 use headers::HeaderValue;
-use octocrab::models::repos::Asset;
-use octocrab::models::repos::Ref;
-use octocrab::models::repos::Release;
-use octocrab::models::workflows::WorkflowListArtifact;
 use octocrab::models::ArtifactId;
 use octocrab::models::AssetId;
 use octocrab::models::ReleaseId;
 use octocrab::models::RunId;
+use octocrab::models::repos::Asset;
+use octocrab::models::repos::Ref;
+use octocrab::models::repos::Release;
+use octocrab::models::workflows::WorkflowListArtifact;
 use octocrab::params::actions::ArchiveFormat;
 use octocrab::params::repos::Reference;
 use reqwest::Response;
-
-
 
 /// Owned data denoting a specific GitHub repository.
 ///
@@ -32,7 +30,7 @@ pub struct Repo {
     /// Owner - an organization's or user's name.
     pub owner: String,
     /// Repository name.
-    pub name:  String,
+    pub name: String,
 }
 
 impl IsRepo for Repo {
@@ -73,7 +71,6 @@ impl Repo {
     }
 }
 
-
 /// Non-owning equivalent of `Repo`.
 ///
 /// Particularly useful for defining `const` repositories.
@@ -83,7 +80,7 @@ pub struct RepoRef<'a> {
     /// Owner - an organization's or user's name.
     pub owner: &'a str,
     /// Repository name.
-    pub name:  &'a str,
+    pub name: &'a str,
 }
 
 impl<'a> IsRepo for RepoRef<'a> {
@@ -101,7 +98,8 @@ impl<'a> RepoRef<'a> {
     pub fn new<T1, T2>(owner: &'a T1, name: &'a T2) -> Self
     where
         T1: AsRef<str> + ?Sized,
-        T2: AsRef<str> + ?Sized, {
+        T2: AsRef<str> + ?Sized,
+    {
         Self { owner: owner.as_ref(), name: name.as_ref() }
     }
 }
@@ -115,7 +113,11 @@ impl<'a> TryFrom<&'a str> for RepoRef<'a> {
     fn try_from(value: &'a str) -> std::result::Result<Self, Self::Error> {
         match value.split('/').collect_vec().as_slice() {
             [owner, name] => Ok(Self { owner, name }),
-            slice => bail!("Failed to parse string '{}': Splitting by '/' should yield exactly 2 pieces, found: {}", value, slice.len()),
+            slice => bail!(
+                "Failed to parse string '{}': Splitting by '/' should yield exactly 2 pieces, found: {}",
+                value,
+                slice.len()
+            ),
         }
     }
 }
@@ -147,13 +149,17 @@ pub trait IsRepo: Display {
 
     /// Add GitHub API client to obtain the [`Handle`] to this repository.
     fn handle(&self, octocrab: &Octocrab) -> Handle<Self>
-    where Self: Clone + Sized {
+    where
+        Self: Clone + Sized,
+    {
         Handle { repo: self.clone(), octocrab: octocrab.clone() }
     }
 
     /// Add GitHub API client to obtain the [`Handle`] to this repository.
     fn into_handle(self, octocrab: &Octocrab) -> Handle<Self>
-    where Self: Sized {
+    where
+        Self: Sized,
+    {
         Handle { octocrab: octocrab.clone(), repo: self }
     }
 }
@@ -168,7 +174,7 @@ pub struct Handle<Repo> {
     #[derive_where(skip)]
     pub octocrab: Octocrab,
     /// Repository designation.
-    pub repo:     Repo,
+    pub repo: Repo,
 }
 
 impl<R: Display> Display for Handle<R> {
@@ -205,7 +211,7 @@ impl<R: IsRepo> Handle<R> {
 
     /// Get the [RepoHandler](octocrab::repos::RepoHandler), which is octocrab's entry point for
     /// most of the repository-related operations.
-    pub fn repos(&self) -> octocrab::repos::RepoHandler {
+    pub fn repos(&self) -> octocrab::repos::RepoHandler<'_> {
         self.octocrab.repos(self.owner(), self.name())
     }
 
@@ -343,7 +349,7 @@ impl<R: IsRepo> Handle<R> {
         let url = self.octocrab.absolute_url(path).unwrap();
         DownloadFile {
             client: self.octocrab.client.clone(),
-            key:    crate::cache::download::Key {
+            key: crate::cache::download::Key {
                 url,
                 additional_headers: HeaderMap::from_iter([(
                     reqwest::header::ACCEPT,

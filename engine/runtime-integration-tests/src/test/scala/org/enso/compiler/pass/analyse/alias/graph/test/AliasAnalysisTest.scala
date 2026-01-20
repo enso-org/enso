@@ -465,7 +465,8 @@ class AliasAnalysisTest extends CompilerTest {
         .unsafeAs[AliasMetadata.Occurrence]
         .id
       val aUseId = goodAtom
-        .arguments(2)
+        .arguments()
+        .apply(2)
         .defaultValue
         .get
         .getMetadata(AliasAnalysis)
@@ -888,7 +889,7 @@ class AliasAnalysisTest extends CompilerTest {
         |    type Foo a b
         |    add x = self.a + x
         |""".stripMargin.preprocessModule.analyse
-        .bindings(2)
+        .bindings()(2)
         .asInstanceOf[definition.Method.Explicit]
 
     val graph = addMethod
@@ -907,7 +908,7 @@ class AliasAnalysisTest extends CompilerTest {
 
     "not add self to the scope" in {
       lambda.arguments.length shouldEqual 2
-      lambda.arguments(0).name shouldBe a[Name.Self]
+      lambda.arguments().apply(0).name shouldBe a[Name.Self]
       val topScope = graph.rootScope
       val lambdaScope = lambda
         .getMetadata(AliasAnalysis)
@@ -920,14 +921,16 @@ class AliasAnalysisTest extends CompilerTest {
       graphLinks.size shouldEqual 1
 
       val valueDefId = lambda
-        .arguments(1)
+        .arguments()
+        .apply(1)
         .getMetadata(AliasAnalysis)
         .get
         .unsafeAs[AliasMetadata.Occurrence]
         .id
       lambda.body shouldBe an[Application.Prefix]
       val app = lambda.body.asInstanceOf[Application.Prefix]
-      val valueUseId = app.arguments
+      val valueUseId = app
+        .arguments()
         .apply(1)
         .value
         .getMetadata(AliasAnalysis)
@@ -940,7 +943,7 @@ class AliasAnalysisTest extends CompilerTest {
 
     "add self as a definition" in {
       lambda.arguments.length shouldEqual 2
-      lambda.arguments(0).name shouldBe a[Name.Self]
+      lambda.arguments().apply(0).name shouldBe a[Name.Self]
       val lambdaScope = lambda
         .getMetadata(AliasAnalysis)
         .get
@@ -1046,7 +1049,8 @@ class AliasAnalysisTest extends CompilerTest {
 
     "create the correct usage links for resolvable entities" in {
       val valueDefId = lambda
-        .arguments(1)
+        .arguments()
+        .apply(1)
         .getMetadata(AliasAnalysis)
         .get
         .unsafeAs[AliasMetadata.Occurrence]
@@ -1129,7 +1133,8 @@ class AliasAnalysisTest extends CompilerTest {
       graph.rootScope.getOccurrence(scrutBindingExprId) shouldBe defined
 
       val aDefId = lambda
-        .arguments(1)
+        .arguments()
+        .apply(1)
         .getMetadata(AliasAnalysis)
         .get
         .as[AliasMetadata.Occurrence]
@@ -1204,7 +1209,8 @@ class AliasAnalysisTest extends CompilerTest {
           .unsafeAs[AliasMetadata.Occurrence]
           .id
 
-      val consBranchBDef = pattern.fields(1).asInstanceOf[Pattern.Name].name
+      val consBranchBDef =
+        pattern.fields.apply(1).asInstanceOf[Pattern.Name].name
       val consBranchBDefId = consBranchBDef
         .getMetadata(AliasAnalysis)
         .get

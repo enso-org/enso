@@ -16,9 +16,9 @@ public class EnsoParserMultiThreadedTest {
       var number = i % testCases;
       var code =
           """
-            from Standard.Base import all
-            main = %n
-            """
+          from Standard.Base import all
+          main = %n
+          """
               .replace("%n", "" + number);
       cases.add(
           () -> {

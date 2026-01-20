@@ -7,8 +7,6 @@ use crate::define_env_var;
 use base64::Engine;
 use std::io::Write;
 
-
-
 define_env_var! {
     /// The HTTPS link (or base64-encoded data, or file:// link, or local path) to certificate
     /// (*.p12 or *.pfx file). Shorthand ~/ is supported (home directory).
@@ -153,7 +151,7 @@ pub struct WindowsSigningCredentials {
     /// Code signing certificate file.
     pub certificate: CodeSigningCertificate,
     /// Password to the certificate.
-    pub password:    String,
+    pub password: String,
 }
 
 impl WindowsSigningCredentials {

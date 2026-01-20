@@ -1,0 +1,15 @@
+[
+  {
+    "name": "org.enso.jvm.channel.Channel",
+    "methods": [
+      {
+        "name": "createJvmPeerChannel",
+        "parameterTypes": ["long", "long", "long", "java.lang.String"]
+      },
+      {
+        "name": "handleJvmMessage",
+        "parameterTypes": ["long", "long", "long", "long"]
+      }
+    ]
+  }
+]

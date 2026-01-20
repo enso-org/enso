@@ -71,6 +71,7 @@ export const Field = React.forwardRef(function Field<Schema extends types.TSchem
     isHidden,
     isInvalid = false,
     isRequired = false,
+    preventLabelFocus = false,
     contextualHelp,
     variants = FIELD_STYLES,
   } = props
@@ -102,7 +103,15 @@ export const Field = React.forwardRef(function Field<Schema extends types.TSchem
       aria-errormessage={hasError ? errorId : ''}
       aria-required={isRequired}
     >
-      <aria.Label id={labelId} className={classes.fieldContent()}>
+      <aria.Label
+        id={labelId}
+        className={classes.fieldContent()}
+        onClickCapture={(event) => {
+          if (preventLabelFocus) {
+            event.preventDefault()
+          }
+        }}
+      >
         <div className={classes.labelContainer()}>
           {label != null && (
             <span id={labelId} className={classes.label()}>

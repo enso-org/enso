@@ -1,12 +1,18 @@
 <script setup lang="ts">
 import {
+  useCurrentProject,
   useGraphStore,
   useProjectNames,
   useProjectStore,
   useSuggestionDbStore,
   useWidgetRegistry,
 } from '$/components/WithCurrentProject.vue'
-import { useContainerData } from '$/providers/container'
+import type { Node, NodeId } from '$/providers/openedProjects/graph'
+import { isInputNode, nodeId } from '$/providers/openedProjects/graph/graphDatabase'
+import type { RequiredImport } from '$/providers/openedProjects/module/imports'
+import { provideNodeExecution } from '$/providers/openedProjects/project/nodeExecution'
+import type { SuggestionId, Typename } from '$/providers/openedProjects/suggestionDatabase/entry'
+import { suggestionDocumentationUrl } from '$/providers/openedProjects/suggestionDatabase/entry'
 import { useRightPanelData } from '$/providers/rightPanel'
 import { graphBindings } from '@/bindings'
 import BottomPanel from '@/components/BottomPanel.vue'
@@ -17,21 +23,24 @@ import { usePlacement } from '@/components/ComponentBrowser/placement'
 import ContextMenuTrigger from '@/components/ContextMenuTrigger.vue'
 import GraphEdges from '@/components/GraphEditor/GraphEdges.vue'
 import GraphNodes from '@/components/GraphEditor/GraphNodes.vue'
-import { useGraphEditorClipboard } from '@/components/GraphEditor/clipboard'
 import { performCollapse, prepareCollapsedInfo } from '@/components/GraphEditor/collapsing'
+import { useGraphEditorClipboard } from '@/components/GraphEditor/graphClipboard'
 import type { NodeCreationOptions } from '@/components/GraphEditor/nodeCreation'
 import { selectionActionHandlers } from '@/components/GraphEditor/selectionActions'
+import { createSelectionAlignmentHandlers } from '@/components/GraphEditor/selectionAlignment'
 import { useGraphEditorToasts } from '@/components/GraphEditor/toasts'
 import { uploadedExpression, Uploader } from '@/components/GraphEditor/upload'
 import GraphMissingView from '@/components/GraphMissingView.vue'
 import GraphMouse from '@/components/GraphMouse.vue'
+import PopoverRootProvider from '@/components/PopoverRootProvider.vue'
 import SceneScroller from '@/components/SceneScroller.vue'
 import TopBar from '@/components/TopBar.vue'
 import { builtinWidgets } from '@/components/widgets'
 import { useDoubleClick } from '@/composables/doubleClick'
 import { unrefElement, useEventConditional } from '@/composables/events'
 import type { PlacementStrategy } from '@/composables/nodeCreation'
-import { type DisplayableActionName, registerHandlers, toggledAction } from '@/providers/action'
+import { registerHandlers, toggledAction, type DisplayableActionName } from '@/providers/action'
+import { useGlobalEventRegistry } from '@/providers/globalEventRegistry'
 import { provideGraphEditorState } from '@/providers/graphEditorState'
 import type { GraphNavigator } from '@/providers/graphNavigator'
 import { provideGraphNavigator } from '@/providers/graphNavigator'
@@ -40,24 +49,18 @@ import { provideNodeCreation } from '@/providers/graphNodeCreation'
 import { provideGraphSelection } from '@/providers/graphSelection'
 import { provideStackNavigator } from '@/providers/graphStackNavigator'
 import { injectKeyboard } from '@/providers/keyboard'
-import { providePopoverRoot } from '@/providers/popoverRoot'
-import type { Node, NodeId } from '@/stores/graph'
-import { isInputNode, nodeId } from '@/stores/graph/graphDatabase'
-import type { RequiredImport } from '@/stores/graph/imports'
+import { provideLanguageSupportExtensions } from '@/providers/languageSupportExtensions'
 import { providePersisted } from '@/stores/persisted'
-import { provideNodeExecution } from '@/stores/project/nodeExecution'
-import type { SuggestionId, Typename } from '@/stores/suggestionDatabase/entry'
-import { suggestionDocumentationUrl } from '@/stores/suggestionDatabase/entry'
 import { provideVisualizationStore } from '@/stores/visualization'
 import { assert, bail } from '@/util/assert'
 import { Ast } from '@/util/ast'
 import { partition } from '@/util/data/array'
 import { Rect } from '@/util/data/rect'
-import { Err, Ok, unwrapOr } from '@/util/data/result'
 import { Vec2 } from '@/util/data/vec2'
-import { isDef, VueInstance } from '@vueuse/core'
+import { isDef, type VueInstance } from '@vueuse/core'
 import * as iter from 'enso-common/src/utilities/data/iter'
 import * as objects from 'enso-common/src/utilities/data/object'
+import { Err, Ok, unwrapOr } from 'enso-common/src/utilities/data/result'
 import { set } from 'lib0'
 import {
   computed,
@@ -72,16 +75,23 @@ import {
   watch,
   watchEffect,
 } from 'vue'
+import { analyzeConnectAround } from './GraphEditor/detaching'
+import { provideRenameSchedule } from './GraphEditor/widgets/WidgetFunctionName.vue'
 
 const keyboard = injectKeyboard()
 const rightPanel = useRightPanelData()
-const containerData = useContainerData()
 const projectStore = useProjectStore()
 const projectNames = useProjectNames()
 const graphStore = useGraphStore()
+const { id: assetId, module, ensoPath } = useCurrentProject()
 const widgetRegistry = useWidgetRegistry()
 const suggestionDb = useSuggestionDbStore()
 provideVisualizationStore(projectStore)
+provideLanguageSupportExtensions({
+  project: projectStore,
+  projectNames,
+  suggestionDb: suggestionDb.entries,
+})
 
 const nodeExecution = provideNodeExecution(projectStore)
 ;(window as any)._mockSuggestion = suggestionDb.mockSuggestion
@@ -101,8 +111,6 @@ onMounted(() => viewportElem.value?.focus())
 const graphNavigator: GraphNavigator = provideGraphNavigator(viewportNode, keyboard, {
   predicate: (e) => (e instanceof KeyboardEvent ? nodeSelection.selected.size === 0 : true),
 })
-
-providePopoverRoot(viewportElem)
 
 // === Client saved state ===
 
@@ -146,9 +154,7 @@ function panToSelected() {
 
 const projectNameEdited = ref(false)
 const stackNavigator = provideStackNavigator(projectStore, graphStore, projectNames)
-const graphMissing = computed(
-  () => graphStore.moduleRoot != null && !graphStore.currentMethod.ast.ok,
-)
+const graphMissing = computed(() => module.value.root != null && !graphStore.currentMethod.ast.ok)
 
 // === Toasts ===
 
@@ -187,6 +193,8 @@ watch(
   () => nodeSelection.deselectAll(),
 )
 
+const detachInfo = computed(() => analyzeConnectAround(nodeSelection.selected, graphStore))
+
 // === Node creation ===
 
 const { place: nodePlacement, collapse: collapsedNodePlacement } = usePlacement(
@@ -195,6 +203,7 @@ const { place: nodePlacement, collapse: collapsedNodePlacement } = usePlacement(
 )
 
 const { scheduleCreateNode, createNodes, placeNode } = provideNodeCreation(
+  module,
   graphStore,
   toRef(graphNavigator, 'viewport'),
   toRef(graphNavigator, 'sceneMousePos'),
@@ -244,12 +253,12 @@ const actionHandlers = registerHandlers({
     action: () => nodeExecution.recomputeAll('Live'),
   },
   'graph.undo': {
-    enabled: () => graphStore.undoManager.canUndo,
-    action: () => graphStore.undoManager.undo(),
+    enabled: () => module.value.undoManager.canUndo,
+    action: () => module.value.undoManager.undo(),
   },
   'graph.redo': {
-    enabled: () => graphStore.undoManager.canRedo,
-    action: () => graphStore.undoManager.redo(),
+    enabled: () => module.value.undoManager.canRedo,
+    action: () => module.value.undoManager.redo(),
   },
   'graph.fitAll': {
     action: zoomToSelected,
@@ -277,18 +286,15 @@ const actionHandlers = registerHandlers({
   'graph.startProfiling': { action: () => void projectStore.lsRpcConnection.profilingStart(true) },
   'graph.stopProfiling': { action: () => void projectStore.lsRpcConnection.profilingStop() },
   'graph.openComponentBrowser': {
-    action: () => {
-      if (graphNavigator.sceneMousePos != null && !componentBrowserOpened.value) {
-        createWithComponentBrowser(fromSelection() ?? { placement: { type: 'mouse' } })
-      }
-    },
+    enabled: () => graphNavigator.sceneMousePos != null && !componentBrowserOpened.value,
+    action: () => createWithComponentBrowser(fromSelection() ?? { placement: { type: 'mouse' } }),
   },
   'graph.selectAll': { action: () => nodeSelection.selectAll() },
   'graph.deselectAll': {
     action: () => {
       nodeSelection.deselectAll()
       clearFocus()
-      graphStore.undoManager.undoStackBoundary()
+      module.value.undoManager.undoStackBoundary()
     },
   },
   'graph.toggleVisualization': {
@@ -299,14 +305,14 @@ const actionHandlers = registerHandlers({
         selected,
         (id) => graphStore.db.nodeIdToNode.get(id)?.vis?.visible === true,
       )
-      graphStore.batchEdits(() => {
+      module.value.batchEdits(() => {
         for (const nodeId of selected) {
           graphStore.setNodeVisualization(nodeId, { visible: !allVisible })
         }
       })
     },
   },
-  'graph.pasteNode': { action: () => createNodesFromClipboard() },
+  'graph.pasteNode': { action: createNodesFromClipboard },
   'graph.openDocumentation': {
     action: () => {
       const result = tryGetSelectionDocUrl()
@@ -317,6 +323,15 @@ const actionHandlers = registerHandlers({
       window.open(result.value, '_blank')
     },
   },
+  'graph.deleteSelectedEdge': {
+    enabled: () =>
+      nodeSelection.selectedEdge != null &&
+      graphStore.db.connectionExists(nodeSelection.selectedEdge),
+    action: () => {
+      if (!nodeSelection.selectedEdge) return
+      graphStore.updatePortValue(nodeSelection.selectedEdge.target, undefined)
+    },
+  },
   ...selectionActionHandlers(
     () =>
       iter.filterDefined(
@@ -325,10 +340,42 @@ const actionHandlers = registerHandlers({
           graphStore.db.nodeIdToNode.get.bind(graphStore.db.nodeIdToNode),
         ),
       ),
+    () => detachInfo.value.ok && detachInfo.value.value.length > 0,
     {
       collapseNodes,
       copyNodesToClipboard,
+      ...createSelectionAlignmentHandlers(graphStore, module),
       deleteNodes: (nodes) => graphStore.deleteNodes(nodes.map(nodeId)),
+      deleteAndConnectAround: (nodes) => {
+        return module.value.edit(async (edit) => {
+          if (!detachInfo.value.ok) return detachInfo.value
+          const reconnectResults = await Promise.all(
+            detachInfo.value.value.map(async ({ port, ident }) => {
+              const result = await graphStore.updatePortValue(
+                port,
+                Ast.Ident.new(edit, ident),
+                edit,
+              )
+              if (!result.ok) {
+                result.error.log('Failed to connect around')
+              }
+              return result
+            }),
+          )
+          if (reconnectResults.some((result) => !result.ok)) {
+            toasts.userActionFailed.show(
+              'Errors occurred while connecting around removed components.',
+            )
+          }
+          for (const node of nodes) {
+            // We cannot call graphStore.deleteNodes, because it bases on the graphDb
+            // which is not updated with reconnections above.
+            const outerAst = edit.getVersion(node.outerAst)
+            if (outerAst.isStatement()) Ast.deleteFromParentBlock(outerAst)
+          }
+          return Ok()
+        })
+      },
     },
   ),
 })
@@ -337,12 +384,10 @@ const isActive = ref(true)
 onActivated(() => (isActive.value = true))
 onDeactivated(() => (isActive.value = false))
 
-useEventConditional(
-  window,
-  'keydown',
-  isActive,
-  (e) => graphBindingsHandler(e) || graphNavigator.keyboardEvents.keydown(e),
-)
+const { globalEventRegistry } = useGlobalEventRegistry()
+useEventConditional(globalEventRegistry, 'keydown', isActive, (e) => {
+  return graphBindingsHandler(e) || graphNavigator.keyboardEvents.keydown(e)
+})
 
 function tryGetSelectionDocUrl() {
   const selected = nodeSelection.tryGetSingleSelectedNode()
@@ -357,6 +402,7 @@ const { handleClick } = useDoubleClick(
   (e: MouseEvent) => {
     if (e.target !== e.currentTarget) return false
     clearFocus()
+    nodeSelection.selectedEdge = undefined
   },
   (e: MouseEvent) => {
     if (e.target !== e.currentTarget) return false
@@ -392,9 +438,8 @@ const displayedDocs = computed(() =>
 )
 
 watchEffect(() => {
-  const projectId = projectStore.id
-  rightPanel.setContext(containerData.tab, {
-    item: projectId,
+  rightPanel.setContext(ensoPath.value, {
+    item: assetId.value,
     help: { item: displayedDocs.value, aiMode: aiMode.value },
   })
 })
@@ -500,8 +545,8 @@ function clearFocus() {
 function createNodesFromSource(sourceNode: NodeId, options: NodeCreationOptions[]) {
   const sourcePort = graphStore.db.getNodeFirstOutputPort(sourceNode)
   if (sourcePort == null) return
-  const sourcePortAst = graphStore.viewModule.get(sourcePort)
-  assert(sourcePortAst.isExpression())
+  const sourcePortAst = module.value.ast?.get(sourcePort)
+  assert(sourcePortAst?.isExpression() === true)
   const [toCommit, toEdit] = partition(options, (opts) => opts.commit)
   createNodes(
     toCommit.map((options: NodeCreationOptions) => ({
@@ -521,7 +566,7 @@ function createNodesFromSource(sourceNode: NodeId, options: NodeCreationOptions[
   }
 }
 
-function handleNodeOutputPortDoubleClick(id: Ast.AstId) {
+function createNodeFromPort(id: Ast.AstId) {
   const srcNode = graphStore.db.getPatternExpressionNodeId(id)
   if (srcNode == null) {
     console.error('Impossible happened: Double click on port not belonging to any node: ', id)
@@ -535,6 +580,7 @@ function handleEdgeDrop(source: Ast.AstId, position: Vec2) {
 }
 
 // === Node Collapsing ===
+const renameSchedule = provideRenameSchedule()
 
 function collapseNodes(nodes: Node[]) {
   const selected = new Set(
@@ -556,13 +602,13 @@ function collapseNodes(nodes: Node[]) {
     if (currentMethodName == null) {
       bail(`Cannot get the method name for the current execution stack item.`)
     }
-    const topLevel = graphStore.moduleRoot
+    const topLevel = module.value.root
     if (!topLevel) {
       bail('BUG: no top level, creating User Defined Component not possible.')
     }
     const selectedNodeRects = iter.filterDefined(iter.map(selected, graphStore.visibleArea))
-    graphStore.edit((edit) => {
-      const { collapsedCallRoot, collapsedNodeIds, outputAstId } = performCollapse(
+    module.value.edit((edit) => {
+      const { collapsedCallRoot, collapsedNodeIds, outputAstId, collapsedName } = performCollapse(
         info.value,
         edit.getVersion(topLevel),
         graphStore.db,
@@ -570,14 +616,20 @@ function collapseNodes(nodes: Node[]) {
       )
       const position = collapsedNodePlacement(selectedNodeRects)
       edit.get(collapsedCallRoot).mutableNodeMetadata().set('position', position.xy())
-      if (outputAstId != null) {
-        const collapsedNodeRects = iter.filterDefined(
-          iter.map(collapsedNodeIds, graphStore.visibleArea),
-        )
-        const { place } = usePlacement(collapsedNodeRects, graphNavigator.viewport)
-        const position = place(collapsedNodeRects)
-        edit.get(outputAstId).mutableNodeMetadata().set('position', position.xy())
+
+      const collapsedNodeRects = iter.filterDefined(
+        iter.map(collapsedNodeIds, graphStore.visibleArea),
+      )
+      const { place } = usePlacement(collapsedNodeRects, graphNavigator.viewport)
+      const outputPosition = place(collapsedNodeRects)
+      edit.get(outputAstId).mutableNodeMetadata().set('position', outputPosition.xy())
+
+      if (graphStore.currentMethod.pointer.ok) {
+        const currentPointer = graphStore.currentMethod.pointer.value
+        renameSchedule?.scheduleFunctionRename({ ...currentPointer, name: collapsedName })
       }
+
+      return Ok()
     })
   } catch (err) {
     console.error('Error while creating User Defined Component, this is not normal.', err)
@@ -635,6 +687,7 @@ const contextMenuActions: DisplayableActionName[] = [
   'graph.redo',
   'graph.addComponent',
   'graph.fitAll',
+  'graph.pasteNode',
   'graph.toggleCodeEditor',
   'graph.toggleDocumentationEditor',
 ]
@@ -643,12 +696,12 @@ const contextMenuActions: DisplayableActionName[] = [
 <template>
   <div
     ref="root"
-    class="GraphEditor"
+    class="GraphEditor vertical"
     :class="{ draggingEdge: graphStore.mouseEditedEdge != null }"
     @dragover.prevent
     @drop.prevent="handleFileDrop($event)"
   >
-    <div class="vertical">
+    <PopoverRootProvider class="viewportPanel">
       <ContextMenuTrigger
         ref="viewportNode"
         class="viewport"
@@ -658,7 +711,6 @@ const contextMenuActions: DisplayableActionName[] = [
         <GraphMissingView v-if="graphMissing" />
         <template v-else>
           <GraphNodes
-            @nodeOutputPortDoubleClick="handleNodeOutputPortDoubleClick"
             @enterNode="(id) => stackNavigator.enterNode(id)"
             @createNodes="createNodesFromSource"
             @toggleDocPanel="toggleRightDockHelpPanel"
@@ -667,8 +719,7 @@ const contextMenuActions: DisplayableActionName[] = [
           <GraphEdges
             :navigator="graphNavigator"
             @createNodeFromEdge="handleEdgeDrop"
-            @createNodeFromPort="createNodesFromSource"
-            @outputPortDoubleClick="handleNodeOutputPortDoubleClick"
+            @createNodeFromPort="createNodeFromPort"
           />
           <ComponentBrowser
             v-if="componentBrowserOpened"
@@ -692,10 +743,12 @@ const contextMenuActions: DisplayableActionName[] = [
         <SceneScroller :navigator="graphNavigator" :scrollableArea="scrollBounds" />
         <GraphMouse />
       </ContextMenuTrigger>
-      <BottomPanel v-model:show="showCodeEditor">
+    </PopoverRootProvider>
+    <PopoverRootProvider>
+      <BottomPanel v-model:show="showCodeEditor" class="bottomPanel">
         <CodeEditor />
       </BottomPanel>
-    </div>
+    </PopoverRootProvider>
   </div>
 </template>
 
@@ -707,25 +760,15 @@ const contextMenuActions: DisplayableActionName[] = [
   user-select: none;
   /* Prevent touchpad back gesture, which can be triggered while panning. */
   overscroll-behavior-x: none;
-
-  display: flex;
-  flex-direction: row;
-  & .DockPanel {
-    flex: none;
-  }
-  & .vertical {
-    flex: auto;
-    overflow-x: hidden;
-  }
 }
 
 .vertical {
   display: flex;
   flex-direction: column;
-  & .BottomPanel {
+  & :deep(.bottomPanel) {
     flex: none;
   }
-  & .viewport {
+  & .viewportPanel {
     flex: auto;
     min-height: 0;
   }
@@ -737,6 +780,8 @@ const contextMenuActions: DisplayableActionName[] = [
   contain: layout;
   overflow: clip;
   touch-action: none;
+  width: 100%;
+  height: 100%;
   --node-color-no-type: #596b81;
   --output-node-color: #006b8a;
 }

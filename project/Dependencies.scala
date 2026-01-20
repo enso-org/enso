@@ -54,15 +54,20 @@ object Dependencies {
   // === project-wide versions =====================================================
   val scalacVersion = "2.13.15"
   // source version of the Java language
-  val javaVersion = "24"
+  val javaVersion = "25"
   // version of the GraalVM JDK
-  val graalVersion = "24.0.1"
+  val graalVersion = "25.0.1"
   // Version used for the Graal/Truffle related Maven packages
   // Keep in sync with GraalVM.version. Do not change the name of this variable,
   // it is used by the Rust build script via regex matching.
-  val graalMavenPackagesVersion = "24.2.0"
-  val targetJavaVersion         = "17"
-  val defaultDevEnsoVersion     = "0.0.0-dev"
+  val graalMavenPackagesVersion = "25.0.1"
+
+  def runningInAnIde: Boolean = {
+    val idea = System.getProperty("idea.managed")
+    idea != null && idea.nonEmpty
+  }
+  val targetJavaVersion     = if (runningInAnIde) "21" else "17"
+  val defaultDevEnsoVersion = "0.0.0-dev"
   val ensoVersion = sys.env.getOrElse(
     "ENSO_VERSION",
     defaultDevEnsoVersion
@@ -127,6 +132,7 @@ object Dependencies {
   val commonsTextVersion        = "1.10.0"
   val commonsMathVersion        = "3.6.1"
   val commonsCompressVersion    = "1.23.0"
+  val commonsEmailVersion       = "1.5"
   val commonsCliVersion         = "1.5.0"
   val commons = Seq(
     "org.apache.commons" % "commons-collections4" % commonsCollectionsVersion,
@@ -161,6 +167,7 @@ object Dependencies {
       "io.helidon.http.encoding" % "helidon-http-encoding"       % helidonVersion,
       "io.helidon.http.media"    % "helidon-http-media"          % helidonVersion,
       "io.helidon.logging"       % "helidon-logging-common"      % helidonVersion,
+      "io.helidon.logging"       % "helidon-logging-slf4j"       % helidonVersion,
       "io.helidon.metadata"      % "helidon-metadata-hson"       % helidonVersion,
       "io.helidon.service"       % "helidon-service-metadata"    % helidonVersion,
       "io.helidon.service"       % "helidon-service-registry"    % helidonVersion,
@@ -179,6 +186,7 @@ object Dependencies {
       "io.helidon.common.features"    % "helidon-common-features"           % helidonVersion,
       "io.helidon.common.features"    % "helidon-common-features-api"       % helidonVersion,
       "io.helidon.common"             % "helidon-common-task"               % helidonVersion,
+      "io.helidon.logging"            % "helidon-logging-slf4j"             % helidonVersion,
       "io.helidon.metrics"            % "helidon-metrics-api"               % helidonVersion
     )
     clientAndSharedDeps ++ serverDeps
@@ -221,7 +229,7 @@ object Dependencies {
   // Has to match Truffle's ANTLR dependency version to avoid spurious warnings in Native Image
   val antlrVersion            = "4.12.0"
   val awsJavaSdkV1Version     = "1.12.480"
-  val awsJavaSdkV2Version     = "2.25.36"
+  val awsJavaSdkV2Version     = "2.25.40"
   val icuVersion              = "73.1"
   val poiOoxmlVersion         = "5.2.3"
   val redshiftVersion         = "2.1.0.15"
@@ -284,7 +292,7 @@ object Dependencies {
   val jgitVersion             = "6.7.0.202309050840-r"
   val kindProjectorVersion    = "0.13.3"
   val mockitoScalaVersion     = "1.17.14"
-  val mockitoJavaVersion      = "5.15.2"
+  val mockitoJavaVersion      = "5.20.0"
   val newtypeVersion          = "0.4.4"
   val pprintVersion           = "0.8.1"
   val pureconfigVersion       = "0.17.4"
@@ -314,6 +322,7 @@ object Dependencies {
   val googleProtobufVersion   = "3.25.1"
   val shapelessVersion        = "2.3.10"
   val postgresVersion         = "42.4.0"
+  val duckdbVersion           = "1.4.0.0"
   val h2Version               = "2.3.232"
   val jimFsVersion            = "1.3.0"
 }

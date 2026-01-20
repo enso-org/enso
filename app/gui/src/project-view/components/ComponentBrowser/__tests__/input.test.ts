@@ -1,8 +1,11 @@
+import { GraphDb, type NodeId } from '$/providers/openedProjects/graph/graphDatabase'
+import {
+  ComputedValueRegistry,
+  TypeInfo,
+} from '$/providers/openedProjects/project/computedValueRegistry'
+import { SuggestionDb } from '$/providers/openedProjects/suggestionDatabase'
+import { makeMethod, makeType } from '$/providers/openedProjects/suggestionDatabase/mockSuggestion'
 import { useComponentBrowserInput } from '@/components/ComponentBrowser/input'
-import { GraphDb, NodeId } from '@/stores/graph/graphDatabase'
-import { ComputedValueRegistry, TypeInfo } from '@/stores/project/computedValueRegistry'
-import { SuggestionDb } from '@/stores/suggestionDatabase'
-import { makeMethod, makeType } from '@/stores/suggestionDatabase/mockSuggestion'
 import { stdPath } from '@/util/projectPath'
 import { expect, test } from 'vitest'
 import { assert, assertUnreachable } from 'ydoc-shared/util/assert'

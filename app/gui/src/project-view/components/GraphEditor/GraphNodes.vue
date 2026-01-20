@@ -1,28 +1,27 @@
 <script setup lang="ts">
 import { useGraphStore, useProjectStore } from '$/components/WithCurrentProject.vue'
+import { type NodeId } from '$/providers/openedProjects/graph'
 import GraphNode from '@/components/GraphEditor/GraphNode.vue'
 import UploadingFile from '@/components/GraphEditor/UploadingFile.vue'
 import type { NodeCreationOptions } from '@/components/GraphEditor/nodeCreation'
 import { useNodesDragging } from '@/components/GraphEditor/nodesDragging'
 import { useArrows, useEvent } from '@/composables/events'
+import { useGlobalEventRegistry } from '@/providers/globalEventRegistry'
 import { injectGraphNavigator } from '@/providers/graphNavigator'
-import { injectGraphSelection } from '@/providers/graphSelection'
+import { useGraphSelection } from '@/providers/graphSelection'
 import type { UploadingFile as File, FileName } from '@/stores/awareness'
-import { type NodeId } from '@/stores/graph'
-import type { AstId } from '@/util/ast/abstract'
-import { type Vec2 } from '@/util/data/vec2'
+import type { Vec2 } from '@/util/data/vec2'
 import { set } from 'lib0'
 import { computed } from 'vue'
 
 const emit = defineEmits<{
-  nodeOutputPortDoubleClick: [portId: AstId]
   enterNode: [nodeId: NodeId]
   createNodes: [source: NodeId, options: NodeCreationOptions[]]
   toggleDocPanel: []
 }>()
 
 const projectStore = useProjectStore()
-const selection = injectGraphSelection()
+const selection = useGraphSelection()
 const graphStore = useGraphStore()
 const dragging = useNodesDragging()
 const navigator = injectGraphNavigator()
@@ -43,7 +42,8 @@ const displacingWithArrows = useArrows(
   { predicate: (_) => selection.selected.size > 0 },
 )
 
-useEvent(window, 'keydown', displacingWithArrows.events.keydown)
+const { globalEventRegistry } = useGlobalEventRegistry()
+useEvent(globalEventRegistry, 'keydown', displacingWithArrows.events.keydown)
 
 const uploadingFiles = computed<[FileName, File][]>(() => {
   const uploads = [...projectStore.awareness.allUploads()]

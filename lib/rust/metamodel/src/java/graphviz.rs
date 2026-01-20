@@ -7,8 +7,6 @@ use crate::graphviz::Graph;
 use crate::graphviz::Node;
 use crate::graphviz::NodeType;
 
-
-
 // =========================
 // === Graphviz Graphing ===
 // =========================

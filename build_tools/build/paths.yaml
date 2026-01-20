@@ -8,10 +8,8 @@
       changelog.yml:
       engine-benchmark.yml:
       engine-checks-nightly.yml:
-      engine-checks-optional.yml:
       engine-checks.yml:
       extra-nightly-tests.yml:
-      ide-packaging-optional.yml:
       ide-packaging.yml:
       nightly.yml:
       promote.yml:
@@ -37,7 +35,6 @@
       client/:
       common/:
       icons/:
-    ydoc-server-nodejs/:
   build/:
     prettier/:
   built-distribution/:
@@ -45,22 +42,18 @@
       ? path: enso-<version>/
         type: engine_package
         var: engine_package
-    enso-project-manager-<triple>/:
-      ? path: enso/
-        type: project_manager_package
-        var: project_manager_package
     enso-launcher-<triple>/:
       ? path: enso/
         type: launcher_package
         var: launcher_package
+    engine-bundle-<triple>/:
+      ? path: enso/
+        type: engine_bundle
+        var: engine_bundle
     enso-bundle-<triple>/:
       ? path: enso/
         type: launcher_bundle
         var: launcher_bundle
-    "project-manager-bundle-<triple>":
-      ? path: enso/
-        type: project_manager_bundle
-        var: project_manager_bundle
   dist/:
     gui/:
       assets/:
@@ -94,10 +87,6 @@
       parser/:
         generate-java/:
           java/:
-    scala/:
-      project-manager/:
-        target/:
-          native-image-args.txt:
   target/:
     enso-pack/:
       dist/: # Here ensogl-pack outputs its artifacts
@@ -113,11 +102,6 @@
         engine/:
           docker-entrypoint.sh:
           Dockerfile:
-        ydoc-server-nodejs/:
-          Dockerfile:
-          ydoc-server-entrypoint.sh:
-        ydoc-server-polyglot/:
-          Dockerfile:
     simple-library-server/:
   std-bits/:
     benchmarks/:
@@ -132,21 +116,6 @@
 { path: enso/, var: launcher_package }:
   bin/:
     enso<exe>:
-
-# Project Manager Package
-{ path: enso/, var: project_manager_package }:
-  bin/:
-    project-manager<exe>:
-
-# Project Manager Bundle
-# https://enso.org/docs/developer/enso/distribution/bundles.html#project-manager-bundle
-{ path: project-manager/, var: project_manager_bundle }:
-  bin/:
-    project-manager<exe>:
-  dist/:
-    <version>/:
-  runtime/:
-  .enso.bundle:
 
 # Engine Package aka Enso Version Package
 # https://enso.org/docs/developer/enso/distribution/distribution.html#layout-of-an-enso-version-package
@@ -166,4 +135,12 @@
   edition/:
     <edition>.yaml:
   runtime/:
-  .enso.portable:
+  .enso.bundle:
+
+# Engine Bundle
+# https://enso.org/docs/developer/enso/distribution/distribution.html#portable-enso-distribution-layout
+{ path: enso/, var: engine_bundle }:
+  dist/:
+    <version>/:
+  runtime/:
+  .enso.bundle:

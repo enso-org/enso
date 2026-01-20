@@ -2,9 +2,8 @@
   "rust-analyzer.linkedProjects": [
     "./app/rust-ffi/Cargo.toml"
   ],
-  "vue.complete.casing.status": false,
-  "vue.complete.casing.props": "camel",
-  "vue.complete.casing.tags": "pascal",
+  "vue.suggest.componentNameCasing": "preferPascalCase",
+  "vue.suggest.propNameCasing": "preferCamelCase",
   "auto-snippets.snippets": [
     {
       "language": "vue",
@@ -27,4 +26,9 @@
   "vitest.workspaceConfig": "vitest.workspace.ts",
   "metals.inlayHints.implicitArguments.enable": true,
   "metals.inlayHints.implicitConversions.enable": true,
+  "[toml]": {
+    "editor.defaultFormatter": "tamasfe.even-better-toml",
+  },
+  "evenBetterToml.formatter.indentEntries": false,
+  "evenBetterToml.formatter.indentTables": false
 }

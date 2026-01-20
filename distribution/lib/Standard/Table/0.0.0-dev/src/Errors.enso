@@ -715,7 +715,7 @@ type Cross_Join_Row_Limit_Exceeded
        Create a human-readable version of the error.
     to_display_text : Text
     to_display_text self =
-        "The cross join operation exceeded the maximum number of rows allowed. The limit is "+self.limit.to_text+" and the number of rows in the right table was "+self.existing_rows.to_text+". The limit may be turned off by setting the `right_row_limit` option to `Nothing`."
+        "The cross join operation exceeded the maximum number of rows allowed. The limit is "+self.limit.to_text+" and the number of rows in the right table was "+self.existing_rows.to_text+". The limit may be turned off by setting the `right_row_limit` option to `..No_Limit`."
 
 type Row_Count_Mismatch
     ## ---
@@ -754,7 +754,7 @@ type Inexact_Type_Coercion
        ---
        Indicates that the requested `Value_Type` is not available in the given
        backend, so it was replaced by its closest available type.
-    Warning (requested_type : Value_Type) (actual_type : Value_Type) (unavailable:Boolean = True)
+    Warning (requested_type : Value_Type) (actual_type : Value_Type) (unavailable:Boolean = True) (extra_message:Text = "")
 
     ## ---
        private: true
@@ -764,9 +764,9 @@ type Inexact_Type_Coercion
     to_display_text self =
         case self.unavailable of
             True ->
-                "The requested type "+self.requested_type.to_display_text+" is not available in the given backend, so it was replaced by its closest available type "+self.actual_type.to_display_text+"."
+                "The requested type "+self.requested_type.to_display_text+" is not available in the given backend, so it was replaced by its closest available type "+self.actual_type.to_display_text+"."+self.extra_message
             False ->
-                "The type "+self.requested_type.to_display_text+" has been coerced to "+self.actual_type.to_display_text+". Some information may be lost."
+                "The type "+self.requested_type.to_display_text+" has been coerced to "+self.actual_type.to_display_text+". Some information may be lost."+self.extra_message
 
     ## ---
        private: true
@@ -1194,3 +1194,22 @@ type Fixed_Width_Line_Too_Long
     to_js_object : JS_Object
     to_js_object self =
         JS_Object.from_pairs [["type", "Fixed_Width_Line_Too_Long"], ["sourceLineNumber", self.sourceLineNumber], ["maxLineLength", self.maxLineLength]]
+
+## Fewer groups were generated than requested.
+type Not_Enough_Groups
+    ## ---
+       private: true
+       ---
+
+       ## Arguments
+        - `expected_count`: The number of groups requested.
+        - `actual_count`: The actual number of groups.
+    Error (expected_count : Integer) (actual_count : Integer)
+
+    ## ---
+       private: true
+       ---
+       Pretty prints the duplicate output column names error.
+    to_display_text : Text
+    to_display_text self =
+        "Expected " + self.expected_count.to_text + " groups, but only " + self.actual_count.to_text + " were generated."

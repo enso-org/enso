@@ -446,7 +446,7 @@ class ChangesetBuilderTest
 
       val ir = code.preprocessModule
       val main =
-        ir.bindings(0).asInstanceOf[definition.Method.Explicit]
+        ir.bindings()(0).asInstanceOf[definition.Method.Explicit]
       val mainBody = main.body
         .asInstanceOf[Function.Lambda]
         .body

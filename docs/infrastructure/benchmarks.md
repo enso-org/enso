@@ -48,15 +48,13 @@ sbt:runtime-benchmarks> run -w 3 -i 2 <bench-name>
 
 ### Debugging the benchmarks
 
-Currently, the best way to debug the benchmark is to set the `@Fork` annotation
-to 0, and to run `withDebug` command like this:
+The most straighforward way to debug the benchmark is to run `withDebug` command
+while listening for a JPDA connection on port 5005:
 
-```
-withDebug --debugger benchOnly -- <fully qualified benchmark name>
-```
+<img width="1137" height="594" alt="Debug" src="https://github.com/user-attachments/assets/384d5de4-19a8-45ae-81cd-cb466433e0b2" />
 
-Another option that does not require changing the source code is to run
-something like
+Should one need more control over the parameters, one can use the `run` command
+directly
 
 ```
 sbt:runtime-benchmarks> run -w 1 -i 1 -f 1 -jvmArgs -agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=localhost:8000 org.enso.compiler.benchmarks.module.ImportStandardLibrariesBenchmark.importStandardLibraries

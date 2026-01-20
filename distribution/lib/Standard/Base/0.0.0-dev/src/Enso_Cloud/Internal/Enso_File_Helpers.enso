@@ -14,16 +14,15 @@ import project.Enso_Cloud.Enso_File.Enso_File
 import project.Enso_Cloud.Internal.Existing_Enso_Asset.Asset_Cache
 import project.Enso_Cloud.Internal.Existing_Enso_Asset.Existing_Enso_Asset
 import project.Enso_Cloud.Internal.Utils
-import project.Error.Error
 import project.Errors.File_Error.File_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Errors.Illegal_State.Illegal_State
+import project.Meta
 import project.Network.HTTP.HTTP
 import project.Network.HTTP.HTTP_Method.HTTP_Method
 import project.Network.HTTP.Request_Body.Request_Body
 import project.Network.HTTP.Request_Error
 import project.Network.URI.URI
-import project.Nothing.Nothing
 import project.Random.Random
 import project.Runtime
 import project.System.File.File
@@ -33,6 +32,8 @@ from project.Data.Boolean import Boolean
 from project.Data.Text.Extensions import all
 from project.Enso_Cloud.Data_Link_Helpers import data_link_encoding, data_link_extension
 from project.Enso_Cloud.Public_Utils import get_required_field
+from project.Error import all
+from project.Nothing import all
 
 polyglot java import java.lang.Thread
 
@@ -215,7 +216,8 @@ create_tag (name : Text) (color : Color) =
    Returns a list of known tags.
 list_tags -> Vector Tag =
     response = Utils.http_request_as_json HTTP_Method.Get Utils.tags_api
-    tags = get_required_field "tags" response expected_type=Vector
+    tags = if response.is_a Vector then response else
+        get_required_field "tags" response expected_type=Vector
     tags.map tag_json->
         id = get_required_field "id" tag_json expected_type=Text
         value = get_required_field "value" tag_json expected_type=Text

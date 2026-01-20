@@ -20,6 +20,23 @@ My_Type.my_method self = self.a + self.b + self.c
 type Wrap
     Value foo
 
+    materialize v -> Wrap = v
+
+type Numb
+    Value x
+
+    mul self (other: Numb) repeat=1 =
+        if repeat <= 0 then self else
+            next = Numb.Value self.x*other.x
+            @Tail_Call next.mul other repeat-1
+
+    neg self =
+        Numb.Value -self.x
+
+    double n =
+        n.mul n ...
+
+
 f x _ = Warning.attach "Baz!" x
 
 type My_Fancy_Collection
@@ -143,6 +160,14 @@ add_specs suite_builder = suite_builder.group "Dataflow Warnings" group_builder-
         r.should_equal 6
         Warning.get_all r . map .value . should_equal [My_Warning.Value "warn!", My_Warning.Value "warn!!", My_Warning.Value "warn!!!"]
 
+    group_builder.specify "constructor pattern match does not preserve warning on a field" <|
+        field_with_warn = Warning.attach "warn" 42
+        obj = Wrap.Value field_with_warn
+        case obj of
+            Wrap.Value x ->
+                Warning.has_warnings x . should_be_false
+            _ -> Test.fail "Should match on Wrap.Value ctor"
+
     group_builder.specify "should thread warnings through conversions" <|
         z = Wrap.Value (Warning.attach 'warn!' 1)
         i = Integer.from z
@@ -237,25 +262,25 @@ add_specs suite_builder = suite_builder.group "Dataflow Warnings" group_builder-
     group_builder.specify "should allow to remove warnings, by type" <|
         warned = Warning.attach 1 <| Warning.attach "Alpha" <| Warning.attach Nothing <| Warning.attach (Unimplemented.Error "An Error Here") "foo"
 
-        no_int = warned.remove_warnings warning_type=Integer . first
+        no_int = Warning.remove_warnings warned warning_type=Integer . first
         Warning.get_all no_int . map .value . should_equal ["Alpha", Nothing, (Unimplemented.Error "An Error Here")]
 
-        no_text = warned.remove_warnings Text
+        no_text = Warning.remove_warnings warned Text
         Warning.get_all no_text . map .value . should_equal [1, Nothing, (Unimplemented.Error "An Error Here")]
 
-        no_nothing = warned.remove_warnings Nothing
+        no_nothing = Warning.remove_warnings warned Nothing
         Warning.get_all no_nothing . map .value . should_equal [1, "Alpha", (Unimplemented.Error "An Error Here")]
 
-        no_error = warned.remove_warnings Unimplemented
+        no_error = Warning.remove_warnings warned Unimplemented
         Warning.get_all no_error . map .value . should_equal [1, "Alpha", Nothing]
 
-    group_builder.specify "should allow raising warnings as errors, by type" <|
+    group_builder.specify "XX should allow raising warnings as errors, by type" <|
         warned = Warning.attach 1 <| Warning.attach "Alpha" <| Warning.attach Nothing <| Warning.attach (Unimplemented.Error "An Error Here") "foo"
 
-        warned.throw_on_warning . should_fail_with Integer
-        warned.throw_on_warning warning_type=Text . should_fail_with Text
-        warned.throw_on_warning warning_type=Nothing . should_fail_with Nothing
-        warned.throw_on_warning warning_type=Unimplemented . should_fail_with Unimplemented
+        Warning.throw_on_warning warned . should_fail_with Integer
+        Warning.throw_on_warning warned warning_type=Text . should_fail_with Text
+        Warning.throw_on_warning warned warning_type=Nothing . should_fail_with Nothing
+        Warning.throw_on_warning warned warning_type=Unimplemented . should_fail_with Unimplemented
 
     group_builder.specify "should allow to map the warnings, selectively" <|
         x = Warning.attach "foo" 1
@@ -351,26 +376,34 @@ add_specs suite_builder = suite_builder.group "Dataflow Warnings" group_builder-
     group_builder.specify "should be better preserved around polyglot calls expecting a Value" <|
         x = Warning.attach "x" 1
 
-        f x = Warning.attach "f("+x.to_text+")" <| Pair.new "A" x+10
-        g x = Warning.attach "g("+x.to_text+")" x+10
-        h x = Warning.attach "h("+x.to_text+")" "{x="+x.to_text+"}"
-        i x = Warning.attach "i("+x.to_text+")" Nothing
+        f x =
+            Warning.attach "f("+x.to_text+")" <| Pair.new "A" x+10
+        g x =
+            Warning.attach "g("+x.to_text+")" x+10
+        h x =
+            Warning.attach "h("+x.to_text+")" "{x="+x.to_text+"}"
+        i x =
+            Warning.attach "i("+x.to_text+")" Nothing
 
         r1 = CallbackHelper.runCallbackInt f x
         r1.should_equal (Pair.new "A" 11)
-        Warning.get_all r1 . map .value . should_equal_ignoring_order ["f(1)", "x"]
+        w1 = Warning.get_all r1
+        w1 . map .value . should_equal_ignoring_order ["f(1)", "x"]
 
         r2 = CallbackHelper.runCallbackInt g x
         r2.should_equal 11
-        Warning.get_all r2 . map .value . should_equal_ignoring_order ["g(1)", "x"]
+        w2 = Warning.get_all r2
+        w2 . map .value . should_equal_ignoring_order ["g(1)", "x"]
 
         r3 = CallbackHelper.runCallbackInt h x
         r3.should_equal "{x=1}"
-        Warning.get_all r3 . map .value . should_equal_ignoring_order ["h(1)", "x"]
+        w3 = Warning.get_all r3
+        w3 . map .value . should_equal_ignoring_order ["h(1)", "x"]
 
         r4 = CallbackHelper.runCallbackInt i x
         r4.should_equal Nothing
-        Warning.get_all r4 . map .value . should_equal_ignoring_order ["i(1)", "x"]
+        w4 = Warning.get_all r4
+        w4 . map .value . should_equal_ignoring_order ["i(1)", "x"]
 
     group_builder.specify "should not affect method dispatch" <|
         a = My_Fancy_Collection.Value 42
@@ -460,6 +493,31 @@ add_specs suite_builder = suite_builder.group "Dataflow Warnings" group_builder-
         panic_text = Panic.catch Standard.Base.Errors.Common.Type_Error (Warning.set 1 2) caught_panic->
             caught_panic.payload.to_text
         panic_text . should_equal "Type error: expected `warnings` to be Vector, but got Integer."
+
+    group_builder.specify "warning & auto constructor" <|
+        three = Warning.attach "warn!!!" 3
+        wrap = Wrap.materialize (..Value three)
+
+        Warning.get_all wrap . should_equal [ "warn!!!" ]
+
+        wrap.foo . should_equal 3
+        Warning.get_all wrap.foo . should_equal [ "warn!!!" ]
+
+    group_builder.specify "no warning & suspended return" <|
+        tw = Numb.Value 2
+        mid = Numb.double tw
+        res = mid . neg
+
+        Warning.get_all res . should_equal []
+        res.x . should_equal -4
+
+    group_builder.specify "warning & suspended return" <|
+        tw = Warning.attach "pozor!" (Numb.Value 2)
+        mid = Numb.double tw
+        res = mid . neg
+
+        Warning.get_all res . should_equal [ "pozor!" ]
+        res.x . should_equal -4
 
 main filter=Nothing =
     suite = Test.build suite_builder->

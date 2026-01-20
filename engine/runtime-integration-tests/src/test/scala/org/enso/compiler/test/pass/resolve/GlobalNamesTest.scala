@@ -93,7 +93,7 @@ class GlobalNamesTest extends CompilerTest {
     val ir            = allPrecursors.analyse
 
     val bodyExprs = ir
-      .bindings(0)
+      .bindings()(0)
       .asInstanceOf[definition.Method.Explicit]
       .body
       .asInstanceOf[Function.Lambda]
@@ -168,7 +168,7 @@ class GlobalNamesTest extends CompilerTest {
           |    0
           |""".stripMargin.preprocessModule.analyse
       val mainMethodExprs = ir
-        .bindings(3)
+        .bindings()(3)
         .asInstanceOf[definition.Method.Explicit]
         .body
         .asInstanceOf[Function.Lambda]
@@ -232,12 +232,9 @@ class GlobalNamesTest extends CompilerTest {
           |    x + z
           |""".stripMargin.preprocessModule.analyse
       val unresolved = ir.preorder.collect {
-        case errors.Resolution(
-              name,
-              _: errors.Resolution.ResolverError,
-              _
-            ) =>
-          name
+        case err: errors.Resolution
+            if (err.reason().isInstanceOf[errors.Resolution.ResolverError]) =>
+          err.originalName()
       }
       unresolved.map(_.name) shouldEqual List("foobar", "y", "z")
     }
@@ -253,12 +250,9 @@ class GlobalNamesTest extends CompilerTest {
           |    here.my_func 1
           |""".stripMargin.preprocessModule.analyse
       val unresolved = ir.preorder.collect {
-        case errors.Resolution(
-              name,
-              _: errors.Resolution.ResolverError,
-              _
-            ) =>
-          name
+        case err: errors.Resolution
+            if (err.reason().isInstanceOf[errors.Resolution.ResolverError]) =>
+          err.originalName()
       }
       unresolved.map(_.name) shouldEqual List("here")
     }
@@ -275,12 +269,9 @@ class GlobalNamesTest extends CompilerTest {
           |""".stripMargin.preprocessModule.analyse
 
       val unresolved = ir.preorder.collect {
-        case errors.Resolution(
-              name,
-              _: errors.Resolution.ResolverError,
-              _
-            ) =>
-          name
+        case err: errors.Resolution
+            if (err.reason().isInstanceOf[errors.Resolution.ResolverError]) =>
+          err.originalName()
       }
       unresolved.map(_.name) shouldEqual List("static_method")
     }

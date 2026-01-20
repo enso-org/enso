@@ -36,8 +36,8 @@ public class ContextInsightSetupTest {
     try (java.io.FileWriter w = new FileWriter(insight)) {
       w.write(
           """
-            print("Insight started. Properties: " + Object.getOwnPropertyNames(insight).sort());
-            """);
+          print("Insight started. Properties: " + Object.getOwnPropertyNames(insight).sort());
+          """);
     }
 
     System.setProperty("enso.dev.insight", insight.getPath());
@@ -47,9 +47,12 @@ public class ContextInsightSetupTest {
     // triggered.
     try (var ctx = ContextFactory.create().out(out).build()) {
 
-      var fourtyTwo = evalModule(ctx, """
-        main = 42
-        """);
+      var fourtyTwo =
+          evalModule(
+              ctx,
+              """
+              main = 42
+              """);
 
       assertEquals("42", fourtyTwo.toString());
 

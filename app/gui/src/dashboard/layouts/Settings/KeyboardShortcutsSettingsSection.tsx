@@ -6,7 +6,7 @@ import ReloadIcon from '#/assets/reload.svg'
 import { Button } from '#/components/Button'
 import { Dialog } from '#/components/Dialog'
 import { Icon } from '#/components/Icon'
-import { ACTION_TO_TEXT_ID } from '#/components/MenuEntry'
+import { actionToTextId } from '#/components/MenuEntry'
 import { Scroller } from '#/components/Scroller'
 import type { DashboardBindingKey } from '#/configurations/inputBindings'
 import { useRefresh } from '#/hooks/refreshHooks'
@@ -14,8 +14,8 @@ import CaptureKeyboardShortcutModal from '#/modals/CaptureKeyboardShortcutModal'
 import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import KeyboardShortcut from '#/pages/dashboard/components/KeyboardShortcut'
 import { useInputBindings } from '#/providers/InputBindingsProvider'
-import { unsafeEntries } from '#/utilities/object'
 import { useText } from '$/providers/react'
+import { unsafeEntries } from 'enso-common/src/utilities/data/object'
 import * as React from 'react'
 
 /** Settings tab for viewing and editing keyboard shortcuts. */
@@ -73,7 +73,7 @@ export default function KeyboardShortcutsSettingsSection() {
           <tbody>
             {visibleBindings.map((kv) => {
               const [action, info] = kv
-              const name = getText(ACTION_TO_TEXT_ID[action])
+              const name = getText(actionToTextId(action))
 
               return (
                 <tr key={action} className="rounded-rows-child">

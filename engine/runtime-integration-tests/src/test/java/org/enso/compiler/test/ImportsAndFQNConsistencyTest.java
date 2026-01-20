@@ -56,7 +56,8 @@ public class ImportsAndFQNConsistencyTest {
   @Parameters(name = "exported symbol '{0}'")
   public static List<Symbol> symbolsToTest() {
     var ensoCtx = ctxRule.ensoContext();
-    var src = """
+    var src =
+"""
 from Standard.Base import all
 from Standard.Table import all
 main = 42
@@ -233,10 +234,8 @@ main = 42
             switch (binding) {
               case Definition.Type tp -> tp.name().name().equals(symbol);
               case Method.Binding methodBind -> methodBind.methodName().name().equals(symbol);
-              case Method.Explicit methodExplicit -> methodExplicit
-                  .methodName()
-                  .name()
-                  .equals(symbol);
+              case Method.Explicit methodExplicit ->
+                  methodExplicit.methodName().name().equals(symbol);
               default -> false;
             });
   }

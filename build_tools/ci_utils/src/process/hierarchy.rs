@@ -5,15 +5,13 @@ use sysinfo::Process;
 use sysinfo::ProcessRefreshKind;
 use sysinfo::System;
 
-
-
 /// A wrapper over [`System`] that represents information about the process hierarchy.
 #[derive(Debug, Clone)]
 pub struct Hierarchy<'a> {
     /// Data about all known processes.
     pub processes: &'a HashMap<Pid, Process>,
     /// Children processes of each process.
-    pub children:  HashMap<Pid, HashSet<Pid>>,
+    pub children: HashMap<Pid, HashSet<Pid>>,
 }
 
 impl<'a> Hierarchy<'a> {

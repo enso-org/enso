@@ -2,11 +2,11 @@
 import SelectionBrush from '@/components/SelectionBrush.vue'
 import { useEvent } from '@/composables/events'
 import { injectGraphNavigator } from '@/providers/graphNavigator'
-import { injectGraphSelection } from '@/providers/graphSelection'
+import { useGraphSelection } from '@/providers/graphSelection'
 import { computed, ref } from 'vue'
 
 const navigator = injectGraphNavigator(true)
-const nodeSelection = injectGraphSelection(true)
+const nodeSelection = useGraphSelection(true)
 const scaledSelectionAnchor = computed(() => nodeSelection?.anchor?.scale(navigator?.scale ?? 1))
 const scaledSelectionFocus = computed(() => nodeSelection?.focus?.scale(navigator?.scale ?? 1))
 const isNativeDragging = ref(0)

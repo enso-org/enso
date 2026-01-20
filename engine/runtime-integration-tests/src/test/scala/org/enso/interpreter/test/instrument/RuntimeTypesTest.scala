@@ -45,6 +45,7 @@ class RuntimeTypesTest
           RuntimeOptions.LOG_LEVEL,
           java.util.logging.Level.WARNING.getName
         )
+        .option(RuntimeOptions.CHECK_CWD, "false")
         .option(RuntimeOptions.INTERPRETER_SEQUENTIAL_COMMAND_EXECUTION, "true")
         .option(RuntimeOptions.ENABLE_PROJECT_SUGGESTIONS, "false")
         .option(RuntimeOptions.ENABLE_PROGRESS_REPORT, "false")
@@ -364,13 +365,15 @@ class RuntimeTypesTest
       TestMessages.panic(
         contextId,
         id_x,
-        Api.ExpressionUpdate.Payload.Panic("Compile_Error.Error", List(id_x)),
+        Api.ExpressionUpdate.Payload
+          .Panic("Compile error: The name `T` could not be found.", List(id_x)),
         builtin = true
       ),
       TestMessages.panic(
         contextId,
         id_y,
-        Api.ExpressionUpdate.Payload.Panic("Compile_Error.Error", List(id_x)),
+        Api.ExpressionUpdate.Payload
+          .Panic("Compile error: The name `T` could not be found.", List(id_x)),
         builtin = true
       ),
       context.executionComplete(contextId)
@@ -499,7 +502,8 @@ class RuntimeTypesTest
       TestMessages.panic(
         contextId,
         id_x,
-        Api.ExpressionUpdate.Payload.Panic("Compile_Error.Error", List(id_x)),
+        Api.ExpressionUpdate.Payload
+          .Panic("Compile error: The name `T` could not be found.", List(id_x)),
         builtin = true
       ),
       context.executionComplete(contextId)

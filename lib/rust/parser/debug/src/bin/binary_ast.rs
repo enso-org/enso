@@ -3,8 +3,6 @@
 
 use std::io::Write;
 
-
-
 fn main() {
     use std::io::Read;
     let mut input = String::new();

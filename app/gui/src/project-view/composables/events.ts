@@ -1,12 +1,12 @@
 /** @file Vue composables for listening to DOM events. */
 
+import type { ToValue } from '$/utils/reactivity'
+import { proxyRefs } from '$/utils/reactivity'
 import { useRaf } from '@/composables/animation'
 import type { KeyboardComposable } from '@/composables/keyboard'
 import { useGlobalEventRegistry } from '@/providers/globalEventRegistry'
 import type { Opt } from '@/util/data/opt'
 import { Vec2 } from '@/util/data/vec2'
-import type { ToValue } from '@/util/reactivity'
-import { proxyRefs } from '@/util/reactivity'
 import type { VueInstance } from '@vueuse/core'
 import {
   computed,
@@ -139,9 +139,12 @@ const hasWindow = typeof window !== 'undefined'
 const platform = hasWindow ? (window.navigator?.platform ?? '') : ''
 export const isMacLike = /(Mac|iPhone|iPod|iPad)/i.test(platform)
 
+/** Platform-dependant property name for Mod modifier key. */
+export const modKeyProp = isMacLike ? 'metaKey' : 'ctrlKey'
+
 /** Check if `mod` key (ctrl or cmd) appropriate for current platform is used */
 export function modKey(e: KeyboardEvent | MouseEvent): boolean {
-  return isMacLike ? e.metaKey : e.ctrlKey
+  return e[modKeyProp]
 }
 
 /**
@@ -651,9 +654,14 @@ export function useStateBeforePointerdown<T>(
   const stateBeforeClick = ref<T>()
 
   const { globalEventRegistryPre } = useGlobalEventRegistry()
-  useEvent(globalEventRegistryPre, 'pointerdown', (e) => {
-    if (unrefElement(element)?.contains(e.target as Node)) stateBeforeClick.value = getState()
-  })
+  useEvent(
+    globalEventRegistryPre,
+    'pointerdown',
+    (e) => {
+      if (unrefElement(element)?.contains(e.target as Node)) stateBeforeClick.value = getState()
+    },
+    { capture: true },
+  )
 
   return {
     /**

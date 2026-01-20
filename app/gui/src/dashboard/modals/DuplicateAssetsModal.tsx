@@ -13,12 +13,12 @@ import type { Category } from '#/layouts/CategorySwitcher/Category'
 import { useCategory } from '#/layouts/Drive/Categories'
 import AssetSummary from '#/pages/dashboard/components/AssetSummary'
 import { setModal, unsetModal } from '#/providers/ModalProvider'
-import type Backend from '#/services/Backend'
-import * as backendModule from '#/services/Backend'
-import { FilterBy } from '#/services/Backend'
 import { regexEscape } from '#/utilities/string'
 import { useText } from '$/providers/react'
 import { useQueryClient, useSuspenseQueries } from '@tanstack/react-query'
+import type { Backend } from 'enso-common/src/services/Backend'
+import * as backendModule from 'enso-common/src/services/Backend'
+import { FilterBy } from 'enso-common/src/services/Backend'
 import { Fragment } from 'react'
 import invariant from 'tiny-invariant'
 
@@ -142,6 +142,9 @@ function ResolveDuplicationsModalInner(props: ResolveDuplicationsProps) {
         category,
         backend,
         parentId: targetId,
+        labels: null,
+        sortExpression: null,
+        sortDirection: null,
         refetchInterval: null,
       }),
       listDirectoryQueryOptions({
@@ -149,6 +152,9 @@ function ResolveDuplicationsModalInner(props: ResolveDuplicationsProps) {
         backend,
         parentId: targetId,
         filterBy: FilterBy.trashed,
+        labels: null,
+        sortExpression: null,
+        sortDirection: null,
         refetchInterval: null,
       }),
     ],
@@ -156,7 +162,7 @@ function ResolveDuplicationsModalInner(props: ResolveDuplicationsProps) {
       const map = new Map<string, backendModule.AnyAsset>()
       const siblings = []
       for (const query of queries) {
-        for (const asset of query.data) {
+        for (const asset of query.data.assets) {
           map.set(asset.title, asset)
           siblings.push(asset)
         }
@@ -196,7 +202,7 @@ function ResolveDuplicationsModalInner(props: ResolveDuplicationsProps) {
           {
             assetId: asset.id,
             type: asset.type,
-            conclusion: 'rename' as const,
+            conclusion: 'default' as const,
             newName: getUniqueName(asset.title, siblingTitles),
           },
         ]),
@@ -213,7 +219,9 @@ function ResolveDuplicationsModalInner(props: ResolveDuplicationsProps) {
                   assetId: schema.custom<backendModule.AssetId>(),
                   type: schema.nativeEnum(backendModule.AssetType),
                   newName: schema.string().trim(),
-                  conclusion: schema.literal('rename', { message: getText('invalidConclusion') }),
+                  conclusion: schema.enum(['default', 'rename'], {
+                    message: getText('invalidConclusion'),
+                  }),
                 })
                 .or(
                   schema.object({
@@ -237,7 +245,20 @@ function ResolveDuplicationsModalInner(props: ResolveDuplicationsProps) {
           ),
         )
       }
-      onSubmit={(data) => props.onSubmit(Object.values(data))}
+      onSubmit={(data) =>
+        props.onSubmit(
+          Object.values(data).map((entry): ResolvedDuplication => {
+            switch (entry.conclusion) {
+              case 'default':
+              case 'rename':
+                return { ...entry, conclusion: 'rename' }
+              case 'replace':
+              case 'skip':
+                return entry
+            }
+          }),
+        )
+      }
     >
       {({ form }) => (
         <>
@@ -266,8 +287,8 @@ function ResolveDuplicationsModalInner(props: ResolveDuplicationsProps) {
                     <Form.Controller
                       control={form.control}
                       name={asset.id}
-                      render={({ field, fieldState }) => {
-                        if (fieldState.isDirty) {
+                      render={({ field }) => {
+                        if (field.value.conclusion !== 'default') {
                           return (
                             <div className="flex items-center gap-2">
                               {field.value.conclusion === 'skip' && (

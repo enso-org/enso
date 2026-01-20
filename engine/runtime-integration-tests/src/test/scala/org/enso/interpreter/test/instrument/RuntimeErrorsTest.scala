@@ -66,6 +66,7 @@ class RuntimeErrorsTest
         .option(RuntimeOptions.EDITION_OVERRIDE, "0.0.0-dev")
         .logHandler(logHandler)
         .option(RuntimeOptions.LOG_LEVEL, defaultLogLevel.getName)
+        .option(RuntimeOptions.CHECK_CWD, "false")
         .out(out)
         .serverTransport(runtimeServerEmulator.makeServerTransport)
         .build()
@@ -172,7 +173,7 @@ class RuntimeErrorsTest
         contextId,
         xId,
         Api.ExpressionUpdate.Payload.Panic(
-          "Compile_Error.Error",
+          "Compile error: The name `undefined` could not be found.",
           Seq(xId)
         ),
         builtin = true
@@ -181,7 +182,7 @@ class RuntimeErrorsTest
         contextId,
         yId,
         Api.ExpressionUpdate.Payload.Panic(
-          "Compile_Error.Error",
+          "Compile error: The name `undefined` could not be found.",
           Seq(xId)
         ),
         builtin = true
@@ -190,7 +191,7 @@ class RuntimeErrorsTest
         contextId,
         mainResId,
         Api.ExpressionUpdate.Payload.Panic(
-          "Compile_Error.Error",
+          "Compile error: The name `undefined` could not be found.",
           Seq(xId)
         ),
         builtin = true
@@ -366,7 +367,7 @@ class RuntimeErrorsTest
           Api.MethodPointer("Enso_Test.Test.Main", "Enso_Test.Test.Main", "foo")
         ),
         Api.ExpressionUpdate.Payload.Panic(
-          "Compile_Error.Error",
+          "Compile error: The name `x` could not be found.",
           Seq(mainBodyId)
         ),
         builtin = true
@@ -2492,7 +2493,7 @@ class RuntimeErrorsTest
         contextId,
         xId,
         Api.ExpressionUpdate.Payload.Panic(
-          "Compile_Error.Error",
+          "Compile error: The name `IO` could not be found.",
           Seq(xId)
         ),
         builtin = true
@@ -2501,7 +2502,7 @@ class RuntimeErrorsTest
         contextId,
         mainResId,
         Api.ExpressionUpdate.Payload.Panic(
-          "Compile_Error.Error",
+          "Compile error: The name `IO` could not be found.",
           Seq(xId)
         ),
         builtin = true
@@ -2532,7 +2533,7 @@ class RuntimeErrorsTest
       TestMessages.update(
         contextId,
         x1Id,
-        ConstantsGen.NOTHING_BUILTIN,
+        ConstantsGen.NOTHING,
         Api.MethodCall(
           Api.MethodPointer(
             "Standard.Base.IO",
@@ -2541,7 +2542,7 @@ class RuntimeErrorsTest
           )
         )
       ),
-      TestMessages.update(contextId, mainRes1Id, ConstantsGen.NOTHING_BUILTIN),
+      TestMessages.update(contextId, mainRes1Id, ConstantsGen.NOTHING),
       context.executionComplete(contextId)
     )
     context.consumeOut shouldEqual List("MyError")

@@ -10,7 +10,6 @@ import org.enso.compiler.core.ir.{
   Function,
   IdentifiedLocation,
   Literal,
-  MetadataStorage,
   Module,
   Name,
   Type
@@ -64,7 +63,7 @@ case object DemandAnalysis extends IRPass {
     ir: Module,
     moduleContext: ModuleContext
   ): Module = {
-    ir.copy(bindings =
+    ir.copyWithBindings(
       ir.bindings.map(t =>
         t.mapExpressions(
           runExpression(
@@ -153,10 +152,12 @@ case object DemandAnalysis extends IRPass {
     function: Function
   ): Function =
     function match {
-      case lam @ Function.Lambda(args, body, _, _, _, _) =>
-        lam.copy(
-          arguments = args.map(analyseDefinitionArgument),
-          body = analyseExpression(
+      case lam: Function.Lambda =>
+        val args = lam.arguments()
+        val body = lam.body()
+        lam.copyWithArgumentsAndBody(
+          args.map(analyseDefinitionArgument),
+          analyseExpression(
             body,
             isInsideCallArgument = false
           )
@@ -190,11 +191,11 @@ case object DemandAnalysis extends IRPass {
           val newNameLocation =
             name.location.map(l => new IdentifiedLocation(l.location()))
           val newName = lit.copy(location = newNameLocation)
-          new Application.Force(
-            newName,
-            name.identifiedLocation(),
-            new MetadataStorage()
-          )
+          Application.Force
+            .builder()
+            .target(newName)
+            .location(name.identifiedLocation())
+            .build()
         case _ => name
       }
     }
@@ -229,8 +230,8 @@ case object DemandAnalysis extends IRPass {
           case e       => analyseExpression(e, isInsideCallArgument = false)
         }
         pref.copy(
-          function  = newFun,
-          arguments = pref.arguments.map(analyseCallArgument)
+          newFun,
+          pref.arguments.map(analyseCallArgument)
         )
       case force: Application.Force =>
         force.copyWithTarget(

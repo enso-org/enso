@@ -11,8 +11,6 @@ use regex::Regex;
 use std::iter::zip;
 use syn::Ident;
 
-
-
 /// Sanitize string to be a valid Rust identifier.
 fn normalize_ident(ident: impl AsRef<str>, case: Case) -> Ident {
     let base = ident.as_ref();
@@ -50,7 +48,7 @@ impl ParameterRegex {
         Self(Regex::new(r"<([^>]+)>").unwrap())
     }
 
-    pub fn find_all<'a>(&'a self, text: &'a str) -> impl IntoIterator<Item = &str> {
+    pub fn find_all<'a>(&'a self, text: &'a str) -> impl IntoIterator<Item = &'a str> {
         // The unwrap below is safe, if we have at least one explicit capture group in the regex.
         // We do have.
         self.0.captures_iter(text).map(|captures| captures.get(1).unwrap().as_str())
@@ -71,11 +69,7 @@ pub enum Shape {
 
 impl Shape {
     pub fn new(text: impl AsRef<str>) -> Self {
-        if text.as_ref().ends_with('/') {
-            Shape::Directory(default())
-        } else {
-            Shape::File
-        }
+        if text.as_ref().ends_with('/') { Shape::Directory(default()) } else { Shape::File }
     }
 }
 
@@ -107,7 +101,7 @@ pub fn get_string(
 #[derive(Debug)]
 pub struct Generator<'a> {
     all_nodes: &'a [&'a Node],
-    stack:     Vec<&'a Node>,
+    stack: Vec<&'a Node>,
 }
 
 impl<'a> Generator<'a> {
@@ -299,12 +293,12 @@ impl<'a> Generator<'a> {
 #[derive(Clone, Debug, PartialEq, Deref)]
 pub struct Node {
     #[deref]
-    value:    String,
+    value: String,
     /// The name that replaces value in variable-like contexts.
     /// Basically, we might not want use filepath name as name in the code.
     var_name: Option<String>,
-    shape:    Shape,
-    r#type:   Option<String>,
+    shape: Shape,
+    r#type: Option<String>,
 }
 
 impl Node {

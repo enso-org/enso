@@ -7,7 +7,7 @@ type Test_Result
     ## ---
        private: true
        ---
-    Impl (group_name : Text) (spec_name : Text) (spec_result : Spec_Result) (time_taken : Duration)
+    private Impl (group_name : Text) (spec_name : Text) (spec_result : Spec_Result) (time_taken : Duration)
 
     ## ---
        private: true

@@ -1,0 +1,76 @@
+from Standard.Base import all
+
+from Standard.Test import Bench
+
+from project.Utils import find_enso_bin
+
+polyglot java import java.lang.System as Java_System
+polyglot java import java.io.File as Java_File
+
+type Data
+    private Value ~enso_bin:File ~prj:File
+
+    bench_tests self expected_test_count:Integer extra_params=[] jvm=False =
+        jvm_args = if jvm then [ "--jvm" ] else []
+
+        out = self.startup jvm_args+["--run", self.prj.to_text]+extra_params
+
+        msg = expected_test_count.to_text+" tests succeeded"
+        Runtime.assert (out.contains msg) 'Expecting '+msg+' in:\n'+out
+        Runtime.assert (out.contains "0 tests failed.") 'Expecting no test failures in:\n'+out
+
+    startup self  args -> Text =
+        exe = self.enso_bin
+        result = Process.run exe.path args
+        case result.exit_code of
+            Exit_Code.Failure code ->
+                IO.println "Process: "+exe.to_text+" with "+(args.join " ")
+                IO.println "Exit code: "+code.to_text
+                IO.println result.stdout
+                IO.println result.stderr
+                Panic.throw "Exit code: "+code.to_text
+            Exit_Code.Success ->
+                result.stdout
+
+collect_benches = Bench.build builder->
+    options = Bench.options . set_warmup (Bench.phase_conf 1 10) . set_measure (Bench.phase_conf 2 10)
+
+    exe = find_enso_bin
+    data = Data.Value exe (find_test_prj exe "Generic_JDBC_Tests")
+
+    no_test_filter = "NoTestFilter"
+    single_test_filter = "should.be.able.to.insert..update"
+    real_test_filter = "should.be.able.to.get.tables"
+
+    builder.group "Compare_JVM_Modes" options group_builder->
+        group_builder.specify "Empty_Tests" <|
+            data.bench_tests 0 jvm=True [ no_test_filter ]
+        group_builder.specify "Empty_Dual_Tests" <|
+            data.bench_tests 0 [ "--vm.D=polyglot.enso.classLoading=guest", no_test_filter ]
+        group_builder.specify "Empty_Dual_JVM_Tests" <|
+            data.bench_tests 0 jvm=True [ "--vm.D=polyglot.enso.classLoading=guest", no_test_filter ]
+        group_builder.specify "Single_JVM_Tests" <|
+            data.bench_tests 1 jvm=True [ single_test_filter ]
+        group_builder.specify "Single_Dual_Tests" <|
+            data.bench_tests 1 [ "--vm.D=polyglot.enso.classLoading=guest", single_test_filter ]
+        group_builder.specify "Single_Dual_JVM_Tests" <|
+            data.bench_tests 1 jvm=True [ "--vm.D=polyglot.enso.classLoading=guest", single_test_filter ]
+        group_builder.specify "Real_JVM_Tests" <|
+            data.bench_tests 3 jvm=True [ real_test_filter ]
+        group_builder.specify "Real_Dual_Tests" <|
+            data.bench_tests 3 [ "--vm.D=polyglot.enso.classLoading=guest", real_test_filter ]
+        group_builder.specify "Real_Dual_JVM_Tests" <|
+            data.bench_tests 3 jvm=True [ "--vm.D=polyglot.enso.classLoading=guest", real_test_filter ]
+
+private find_test_prj bin:File name:Text -> File =
+    repo_root e =
+        if e/".git" . exists then e else
+            @Tail_Call repo_root e.parent
+
+    install_dir = repo_root bin
+    prj = install_dir / "test" / name
+    Runtime.assert prj.is_directory "Found directory "+prj.to_text
+
+    prj
+
+main = collect_benches . run_main

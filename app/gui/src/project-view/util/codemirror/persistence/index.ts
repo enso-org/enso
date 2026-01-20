@@ -1,3 +1,4 @@
+import type { ToValue } from '$/utils/reactivity'
 import { useSyncLocalStorage } from '@/composables/syncLocalStorage'
 import {
   scrollStatePlugin,
@@ -5,8 +6,7 @@ import {
   type ScrollStatePluginOptions,
 } from '@/util/codemirror/persistence/scroll'
 import type { Opt } from '@/util/data/opt'
-import type { ToValue } from '@/util/reactivity'
-import { type Extension } from '@codemirror/state'
+import type { Extension } from '@codemirror/state'
 import { EditorView, ViewPlugin, type PluginValue } from '@codemirror/view'
 import { encoding } from 'lib0'
 import { nextTick, readonly, shallowRef, toValue, type ShallowRef } from 'vue'

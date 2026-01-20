@@ -122,9 +122,11 @@ public class BinaryOpIntegerTest {
 
   @Test
   public void verifyOperationOnForeignObject() {
-    var code = """
-  fn a b = a{op} b
-  """.replace("{op}", operation);
+    var code =
+        """
+        fn a b = a{op} b
+        """
+            .replace("{op}", operation);
     var fn = ctxRule.eval("enso", code).invokeMember(MethodNames.Module.EVAL_EXPRESSION, "fn");
 
     var r1 = fn.execute(n1, n2);
@@ -137,9 +139,11 @@ public class BinaryOpIntegerTest {
 
   @Test
   public void verifyOperationWithConvertibleObject() {
-    var code = """
-  fn a b = a{op} b
-  """.replace("{op}", operation);
+    var code =
+        """
+        fn a b = a{op} b
+        """
+            .replace("{op}", operation);
     var fn = ctxRule.eval("enso", code).invokeMember(MethodNames.Module.EVAL_EXPRESSION, "fn");
 
     var r1 = fn.execute(n1, n2);
@@ -159,9 +163,11 @@ public class BinaryOpIntegerTest {
 
   @Test
   public void verifyOperationOnConvertibleObject() {
-    var code = """
-  fn a b = a{op} b
-  """.replace("{op}", operation);
+    var code =
+        """
+        fn a b = a{op} b
+        """
+            .replace("{op}", operation);
     var fn = ctxRule.eval("enso", code).invokeMember(MethodNames.Module.EVAL_EXPRESSION, "fn");
 
     var r1 = fn.execute(n1, n2);

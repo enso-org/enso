@@ -6,12 +6,16 @@ import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.nodes.RootNode;
 import com.oracle.truffle.api.source.Source;
+import com.oracle.truffle.api.source.SourceSection;
 import java.io.File;
+import java.util.LinkedList;
 import org.enso.interpreter.EnsoLanguage;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.Module;
 import org.enso.pkg.Package;
 import org.enso.pkg.QualifiedName;
+import org.enso.scala.wrapper.ScalaConversions;
+import org.slf4j.LoggerFactory;
 
 /**
  * This node handles static transformation of the input AST before execution and represents the root
@@ -29,6 +33,23 @@ public class ProgramRootNode extends RootNode {
   ProgramRootNode(EnsoLanguage language, Source sourceCode) {
     super(language);
     this.sourceCode = sourceCode;
+  }
+
+  @Override
+  @CompilerDirectives.TruffleBoundary
+  public String getName() {
+    var segs = sourceCode.getName().split("\\.");
+    if (segs.length == 0) {
+      return "Unnamed";
+    } else {
+      return segs[0];
+    }
+  }
+
+  @Override
+  @CompilerDirectives.TruffleBoundary
+  public SourceSection getSourceSection() {
+    return sourceCode.createSection(0, sourceCode.getLength());
   }
 
   /**
@@ -52,20 +73,14 @@ public class ProgramRootNode extends RootNode {
   public Object execute(VirtualFrame frame) {
     if (module == null) {
       CompilerDirectives.transferToInterpreterAndInvalidate();
-      QualifiedName simpleName = QualifiedName.simpleName(canonicalizeName(sourceCode.getName()));
-      EnsoContext ctx = EnsoContext.get(this);
+      var ctx = EnsoContext.get(this);
       if (sourceCode.getPath() != null) {
-        TruffleFile src = ctx.getTruffleFile(new File(sourceCode.getPath()));
-        Package<TruffleFile> pkg = ctx.getPackageOf(src).orElse(null);
-        QualifiedName qualifiedName;
-        if (pkg != null) {
-          qualifiedName =
-              QualifiedName.fromString(pkg.libraryName().toString() + "." + simpleName.item());
-        } else {
-          qualifiedName = simpleName;
-        }
+        var src = ctx.getTruffleFile(new File(sourceCode.getPath()));
+        var pkg = ctx.getPackageOf(src).orElse(null);
+        var qualifiedName = findQualifiedNameInPackage(pkg, src, getName());
         module = new Module(qualifiedName, pkg, src);
       } else {
+        var simpleName = QualifiedName.simpleName(getName());
         module = new Module(simpleName, null, sourceCode.getCharacters().toString());
       }
       ctx.getPackageRepository().registerModuleCreatedInRuntime(module.asCompilerModule());
@@ -77,13 +92,27 @@ public class ProgramRootNode extends RootNode {
     return module;
   }
 
-  private String canonicalizeName(String name) {
-    String[] segs = name.split("\\.");
-    if (segs.length == 0) {
-      return "Unnamed";
-    } else {
-      return segs[0];
+  private static QualifiedName findQualifiedNameInPackage(
+      Package<TruffleFile> pkg, TruffleFile src, String srcName) {
+    if (pkg != null) {
+      try {
+        var rel = pkg.sourceDir().relativize(src.getParent());
+        var names = new LinkedList<String>();
+        while (rel != null) {
+          if (!rel.getName().isEmpty()) {
+            names.add(0, rel.getName());
+          }
+          rel = rel.getParent();
+        }
+        names.add(0, pkg.name());
+        names.add(0, pkg.namespace());
+        return QualifiedName.apply(ScalaConversions.asScala(names), srcName);
+      } catch (IllegalStateException ex) {
+        LoggerFactory.getLogger(ProgramRootNode.class)
+            .warn("Cannot find package name for " + src, ex);
+      }
     }
+    return QualifiedName.simpleName(srcName);
   }
 
   /* Note [Static Passes]

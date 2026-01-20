@@ -5,4 +5,3 @@
     - connect self options:Standard.Base.Any.Any allow_data_links:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Any.Any
     - jdbc_url self -> Standard.Base.Any.Any
     - resolve constructor:Standard.Base.Any.Any -> Standard.Base.Any.Any
-- Standard.Database.Connection.Database.Database_Connection_Details_SPI.from that:Standard.Snowflake.Connection.Snowflake_Details.Snowflake_Details -> Standard.Database.Connection.Database.Database_Connection_Details_SPI

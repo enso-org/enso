@@ -1,18 +1,20 @@
 <script setup lang="ts">
 import { useGraphStore } from '$/components/WithCurrentProject.vue'
+import type { Edge } from '$/providers/openedProjects/graph'
+import { isConnected } from '$/providers/openedProjects/graph'
+import { connectedEdgeEquals } from '$/providers/openedProjects/graph/graph'
 import { junctionPoints, pathElements, toSvgPath } from '@/components/GraphEditor/GraphEdge/layout'
 import { useComponentColors } from '@/composables/componentColors'
 import { injectGraphNavigator } from '@/providers/graphNavigator'
-import { injectGraphSelection } from '@/providers/graphSelection'
-import type { Edge } from '@/stores/graph'
-import { isConnected } from '@/stores/graph'
+import { useGraphSelection } from '@/providers/graphSelection'
 import { assert } from '@/util/assert'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import theme from '@/util/theme'
-import { computed, type CSSProperties, ref } from 'vue'
+import { computed, type CSSProperties, ref, useAttrs } from 'vue'
+import { EDGE_ARROW_MARKER_ID } from './GraphEdges.vue'
 
-const selection = injectGraphSelection(true)
+const selection = useGraphSelection(true)
 const navigator = injectGraphNavigator(true)
 const graph = useGraphStore()
 
@@ -35,8 +37,11 @@ defineOptions({
 // is animated together with node's port opening. Required to correctly not draw the edge in space
 // between the port path and node.
 const VISIBLE_PORT_MASK_PADDING = 6
+// A distance from edge's end target below which click will disconnect it instead of selecting.
+const TARGET_DISCONNECT_THRESHOLD = 10
 
 const base = ref<SVGPathElement>()
+const hovered = ref(false)
 
 const mouseAnchor = computed(() => 'anchor' in edge && edge.anchor.type === 'mouse')
 const mouseAnchorPos = computed(() => (mouseAnchor.value ? navigator?.sceneMousePos : undefined))
@@ -77,13 +82,18 @@ const targetNode = computed(
 )
 const targetNodeRect = computed(() => targetNode.value && graph.nodeRects.get(targetNode.value))
 
+/**
+ * Offset between edge path end the and the target node rect. Needs to be big enough to leave space
+ * for displaying the end marker (down arrow). Determined expermimentally to make it look good.
+ */
+const PATH_END_Y_OFFSET = -9
+
 const targetPos = computed<Vec2 | undefined>(() => {
   const expr = targetExpr.value
   if (expr != null && targetNode.value != null && targetNodeRect.value != null) {
     const targetRectRelative = graph.getPortRelativeRect(expr)
     if (targetRectRelative == null) return
-    const yAdjustment = -(arrowHeight + arrowYOffset)
-    return targetNodeRect.value.pos.add(new Vec2(targetRectRelative.center().x, yAdjustment))
+    return targetNodeRect.value.pos.add(new Vec2(targetRectRelative.center().x, PATH_END_Y_OFFSET))
   } else if (mouseAnchorPos.value != null) {
     return mouseAnchorPos.value
   } else if ('anchor' in edge && edge.anchor.type === 'fixed') {
@@ -124,7 +134,6 @@ const edgeIsBroken = computed(
 )
 
 type NodeMask = {
-  id: string
   rect: Rect
   radius: number
 }
@@ -142,11 +151,21 @@ const sourceMask = computed<NodeMask | undefined>(() => {
   if (!maskSource && padding === 0) return
   const rect = nodeRect.expand(padding)
   const radius = 16 + padding
-  const id = `mask_for_edge_to-${edge.target ?? 'unconnected'}`
-  return { id, rect, radius }
+  return { rect, radius }
 })
 
-const { baseColor, selected, pending } = useComponentColors(graph.db, selection, sourceNode)
+const {
+  baseColor,
+  selected: nodeSelected,
+  pending,
+} = useComponentColors(graph.db, selection, sourceNode)
+const edgeSelected = computed(
+  () =>
+    selection?.selectedEdge != null &&
+    isConnected(edge) &&
+    connectedEdgeEquals(selection.selectedEdge, edge),
+)
+const selected = computed(() => nodeSelected.value || edgeSelected.value)
 
 const sourceOriginPoint = computed(() => {
   const source = sourceRect.value
@@ -173,6 +192,11 @@ const currentJunctionPoints = computed(() => {
   })
 })
 
+const pathBoundingBox = computed(() => {
+  const points = currentJunctionPoints.value?.points
+  return points && Rect.FromPoints(...points)
+})
+
 const basePathElements = computed(() => {
   const jp = currentJunctionPoints.value
   if (jp == null) return undefined
@@ -184,11 +208,13 @@ const basePath = computed(() => {
   if (!pathElements) return
   const { start, elements } = pathElements
   const origin = sourceOriginPoint.value
-  if (origin == null) return undefined
+  if (origin == null || !origin.isFinite() || !start.isFinite()) return undefined
   return toSvgPath(origin.add(start), elements)
 })
 
-const activePath = computed(() => hovered.value && edge.source != null && edge.target != null)
+const activePath = computed(
+  () => hovered.value && clickWillDisconnect.value && edge.source != null && edge.target != null,
+)
 
 function lengthTo(path: SVGPathElement, pos: Vec2): number {
   const totalLength = path.getTotalLength()
@@ -223,78 +249,34 @@ const mouseLocationOnEdge = computed(() => {
   return { sourceToMouse, sourceToTarget, mouseToTarget }
 })
 
-const hovered = ref(false)
+const clickWillDisconnect = computed(
+  () =>
+    mouseLocationOnEdge.value != null &&
+    mouseLocationOnEdge.value.mouseToTarget <= TARGET_DISCONNECT_THRESHOLD,
+)
+
 const activeStyle = computed(() => {
   if (!hovered.value) return {}
   if (edge.source == null || edge.target == null) return {}
   const distances = mouseLocationOnEdge.value
   if (distances == null) return {}
-  const offset =
-    distances.sourceToMouse < distances.mouseToTarget ?
-      distances.mouseToTarget
-    : -distances.sourceToMouse
   return {
     strokeDasharray: distances.sourceToTarget,
-    strokeDashoffset: offset,
+    strokeDashoffset: distances.mouseToTarget,
   }
-})
-
-const targetEndIsDimmed = computed(() => {
-  if (isSuggestion.value) return true
-  if (!hovered.value) return false
-  const distances = mouseLocationOnEdge.value
-  if (!distances) return false
-  return distances.sourceToMouse < distances.mouseToTarget
 })
 
 const baseStyle = computed(() => (baseColor.value ? { '--node-group-color': baseColor.value } : {}))
 
 function click(event: PointerEvent) {
-  const distances = mouseLocationOnEdge.value
-  if (distances == null) return
   if (!isConnected(edge)) return
-  if (distances.sourceToMouse < distances.mouseToTarget) graph.disconnectTarget(edge, event)
-  else graph.disconnectSource(edge, event)
+  if (clickWillDisconnect.value) {
+    graph.disconnectTarget(edge, event)
+  } else if (selection) {
+    selection.deselectAll()
+    selection.selectedEdge = { ...edge }
+  }
 }
-
-function svgTranslate(offset: Vec2): string {
-  return `translate(${offset.x},${offset.y})`
-}
-
-const backwardEdgeArrowTransform = computed<string | undefined>(() => {
-  if (edge.source == null || edge.target == null) return
-  const points = currentJunctionPoints.value?.points
-  if (points == null || points.length < 3) return
-  const target = targetPos.value
-  const origin = sourceOriginPoint.value
-  if (target == null || origin == null) return
-  if (target.y > origin.y - theme.edge.three_corner.backward_edge_arrow_threshold) return
-  if (points[1] == null) return
-  return svgTranslate(origin.add(points[1]))
-})
-
-const arrowHeight = 9
-const arrowYOffset = 0
-const arrowTransform = computed<string | undefined>(() => {
-  if (!arrow) return
-  const arrowTopOffset = 1
-  const arrowWidth = 12
-  const target = targetPos.value
-  if (target == null) return
-  const pos = target.sub(new Vec2(arrowWidth / 2, arrowTopOffset))
-  return svgTranslate(pos)
-})
-
-const arrowPath = [
-  'M10.9635 1.5547',
-  'L6.83205 7.75193',
-  'C6.43623 8.34566 5.56377 8.34566 5.16795 7.75192',
-  'L1.03647 1.5547',
-  'C0.593431 0.890146 1.06982 0 1.86852 0',
-  'L10.1315 0',
-  'C10.9302 0 11.4066 0.890147 10.9635 1.5547',
-  'Z',
-].join('')
 
 const VISIBILITY_HIDDEN = {
   visibility: 'hidden',
@@ -316,57 +298,60 @@ const sourceHoverAnimationStyle = computed((): CSSProperties => {
 })
 
 const baseClass = computed(() => {
-  return { dimmed: activePath.value || isSuggestion.value }
+  return { dimmed: activePath.value || isSuggestion.value, hovered: hovered.value }
 })
 const colorClasses = computed(() => {
   return { selected: selected.value, pending: pending.value }
 })
+
+const clipPath = computed(() => {
+  const mask = sourceMask.value
+  if (!mask) return
+  const bounds = pathBoundingBox.value
+  const origin = sourceOriginPoint.value
+  if (!bounds || !origin) return
+
+  // Expand bounding box enough to account for path width and all attached markers.
+  const boundsPath = bounds.offsetBy(origin).expand(10).asSvgPath()
+  const maskPath = mask.rect.asSvgPath(mask.radius)
+  // Draw two paths on top of each other using `evenodd` clip rule, so in effect we
+  // end up creating a `maskPath`-shaped hole within the path's bounds.
+  return `path(evenodd, "${boundsPath} ${maskPath}") view-box`
+})
+
+const $attrs = useAttrs()
+const groupAttrs = computed(() => {
+  const clip = clipPath.value
+  if (clip) {
+    return { ...$attrs, 'clip-path': clip }
+  } else {
+    return $attrs
+  }
+})
+
+const markerEnd = computed(() => (arrow ? `url(#${EDGE_ARROW_MARKER_ID})` : ''))
 </script>
 
 <template>
   <template v-if="basePath">
-    <mask
-      v-if="sourceMask && navigator"
-      :id="sourceMask.id"
-      :x="navigator.viewport.left"
-      :y="navigator.viewport.top"
-      width="100%"
-      height="100%"
-      maskUnits="userSpaceOnUse"
+    <g
+      v-bind="groupAttrs"
+      class="GraphEdge"
+      :data-source-node-id="sourceNode"
+      :data-target-node-id="targetNode"
     >
-      <rect
-        :x="navigator.viewport.left"
-        :y="navigator.viewport.top"
-        width="100%"
-        height="100%"
-        fill="white"
-      />
-      <rect
-        :x="sourceMask.rect.left"
-        :y="sourceMask.rect.top"
-        :width="sourceMask.rect.width"
-        :height="sourceMask.rect.height"
-        :rx="sourceMask.radius"
-        :ry="sourceMask.radius"
-        fill="black"
-      />
-    </mask>
-    <g v-bind="{ ...$attrs, ...(sourceMask ? { mask: `url('#${sourceMask.id}')` } : {}) }">
       <path
         ref="base"
         :d="basePath"
+        :marker-end="markerEnd"
         class="edge define-node-colors visible"
         :class="{ ...baseClass, ...colorClasses }"
         :style="{ ...baseStyle, ...sourceHoverAnimationStyle }"
-        :data-source-node-id="sourceNode"
-        :data-target-node-id="targetNode"
       />
       <path
         v-if="isConnected(edge)"
         :d="basePath"
         class="edge io clickable"
-        :data-source-node-id="sourceNode"
-        :data-target-node-id="targetNode"
         :data-testid="edgeIsBroken ? 'broken-edge' : null"
         @pointerdown.stop="click"
         @pointerenter="hovered = true"
@@ -378,26 +363,6 @@ const colorClasses = computed(() => {
         class="edge define-node-colors visible"
         :class="colorClasses"
         :style="{ ...baseStyle, ...activeStyle }"
-        :data-source-node-id="sourceNode"
-        :data-target-node-id="targetNode"
-      />
-      <path
-        v-if="arrowTransform"
-        :transform="arrowTransform"
-        :d="arrowPath"
-        class="arrow define-node-colors visible"
-        :class="{ ...colorClasses, dimmed: targetEndIsDimmed }"
-        :style="baseStyle"
-      />
-      <polygon
-        v-if="backwardEdgeArrowTransform"
-        :transform="backwardEdgeArrowTransform"
-        points="0,-9.375 -9.375,9.375 9.375,9.375"
-        class="arrow define-node-colors visible"
-        :class="colorClasses"
-        :style="baseStyle"
-        :data-source-node-id="sourceNode"
-        :data-target-node-id="targetNode"
       />
     </g>
   </template>
@@ -414,6 +379,10 @@ const colorClasses = computed(() => {
   stroke: var(--color-edge-from-node);
   transition: stroke 0.2s ease;
   contain: strict;
+
+  &.hovered {
+    stroke: color-mix(in oklab, var(--color-edge-from-node), white 30%);
+  }
 }
 
 .arrow {
@@ -424,6 +393,7 @@ const colorClasses = computed(() => {
 .edge.io {
   stroke-width: 14;
   stroke: transparent;
+  stroke-linecap: square;
   pointer-events: stroke;
 }
 .edge.visible {

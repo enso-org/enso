@@ -169,17 +169,24 @@ public final class TailCall implements MiniPassFactory {
       switch (moduleDefinition) {
         case Method.Conversion method -> markAsTail(method);
         case Method.Explicit method -> markAsTail(method);
-        case Method.Binding b -> throw new CompilerError(
-            "Sugared method definitions should not occur during tail call " + "analysis.");
+        case Method.Binding b ->
+            throw new CompilerError(
+                "Sugared method definitions should not occur during tail call " + "analysis.");
         case Definition.Type t -> markAsTail(t);
-        case Definition.SugaredType st -> throw new CompilerError(
-            "Complex type definitions should not be present during " + "tail call analysis.");
-        case Comment.Documentation cd -> throw new CompilerError(
-            "Documentation should not exist as an entity during tail call analysis.");
-        case Type.Ascription ta -> throw new CompilerError(
-            "Type signatures should not exist at the top level during " + "tail call analysis.");
-        case Name.BuiltinAnnotation ba -> throw new CompilerError(
-            "Annotations should already be associated by the point of " + "tail call analysis.");
+        case Definition.SugaredType st ->
+            throw new CompilerError(
+                "Complex type definitions should not be present during " + "tail call analysis.");
+        case Comment.Documentation cd ->
+            throw new CompilerError(
+                "Documentation should not exist as an entity during tail call analysis.");
+        case Type.Ascription ta ->
+            throw new CompilerError(
+                "Type signatures should not exist at the top level during "
+                    + "tail call analysis.");
+        case Name.BuiltinAnnotation ba ->
+            throw new CompilerError(
+                "Annotations should already be associated by the point of "
+                    + "tail call analysis.");
         case Name.GenericAnnotation ann -> markAsTail(ann);
         default -> {}
       }
@@ -249,8 +256,8 @@ public final class TailCall implements MiniPassFactory {
         case Case caseExpr -> collectTailCandidatesCase(caseExpr, tailCandidates);
         case Application app -> collectTailCandidatesApplication(app, tailCandidates);
         case Name name -> collectTailCandidatesName(name, tailCandidates);
-        case Comment c -> throw new CompilerError(
-            "Comments should not be present during tail call analysis.");
+        case Comment c ->
+            throw new CompilerError("Comments should not be present during tail call analysis.");
         case Expression.Block b -> {
           if (isInTailPos) {
             tailCandidates.put(b.returnValue(), true);
@@ -281,8 +288,8 @@ public final class TailCall implements MiniPassFactory {
     private void collectTailCandidatesApplication(
         Application application, java.util.Map<IR, Boolean> tailCandidates) {
       switch (application) {
-        case Application.Prefix p -> p.arguments()
-            .foreach(a -> collectTailCandidatesCallArg(a, tailCandidates));
+        case Application.Prefix p ->
+            p.arguments().foreach(a -> collectTailCandidatesCallArg(a, tailCandidates));
         case Application.Force f -> {
           if (isInTailPos) {
             tailCandidates.put(f.target(), true);
@@ -304,8 +311,8 @@ public final class TailCall implements MiniPassFactory {
         CallArgument argument, java.util.Map<IR, Boolean> tailCandidates) {
       switch (argument) {
         case CallArgument.Specified ca ->
-        // Note [Call Argument Tail Position]
-        tailCandidates.put(ca.value(), true);
+            // Note [Call Argument Tail Position]
+            tailCandidates.put(ca.value(), true);
         default -> {}
       }
       return null;
@@ -349,12 +356,18 @@ public final class TailCall implements MiniPassFactory {
             expr.branches()
                 .foreach(
                     b -> {
+                      tailCandidates.put(b, true);
                       tailCandidates.put(b.expression(), true);
                       return null;
                     });
           }
         }
-        default -> throw new CompilerError("Unexpected case branch.");
+        case Case.Branch branch -> {
+          if (isInTailPos) {
+            tailCandidates.put(branch.expression(), true);
+          }
+        }
+        default -> throw new CompilerError("Unexpected value: " + caseExpr);
       }
     }
 
@@ -378,15 +391,16 @@ public final class TailCall implements MiniPassFactory {
     private void collectTailCandicateFunction(
         Function function, java.util.Map<IR, Boolean> tailCandidates) {
       var canBeTCO = function.canBeTCO();
-      var markAsTail = (!canBeTCO && isInTailPos) || canBeTCO;
+      var markAsTail = canBeTCO || isInTailPos;
       switch (function) {
         case Function.Lambda l -> {
           if (markAsTail) {
             tailCandidates.put(l.body(), true);
           }
         }
-        default -> throw new CompilerError(
-            "Function sugar should not be present during tail call analysis.");
+        default ->
+            throw new CompilerError(
+                "Function sugar should not be present during tail call analysis.");
       }
     }
   }

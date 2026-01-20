@@ -13,8 +13,6 @@ use crate::java::*;
 
 use crate::meta;
 
-
-
 // ======================
 // === Java from Meta ===
 // ======================
@@ -64,14 +62,15 @@ pub fn from_meta(
 
 #[derive(Debug)]
 struct FromMeta {
-    java:         TypeGraph,
+    java: TypeGraph,
     meta_to_java: BTreeMap<meta::TypeId, ClassId>,
-    primitives:   BTreeMap<meta::TypeId, Primitive>,
-    either_type:  String,
+    primitives: BTreeMap<meta::TypeId, Primitive>,
+    either_type: String,
 }
 
 impl FromMeta {
     /// Translate a primitive in the [`meta`] model to either a Java primitive, or a Java class.
+    #[allow(clippy::result_large_err)]
     fn primitive(&self, ty: &meta::Primitive) -> Result<Primitive, Class> {
         match ty {
             meta::Primitive::Bool => Ok(Primitive::Bool),
@@ -172,10 +171,10 @@ mod test {
         let inner_ = meta_to_java[&inner];
         assert_eq!(java[outer_].name, "Outer");
         assert_eq!(java[inner_].name, "Inner");
-        assert_eq!(java[outer_].fields[0].data, FieldData::Object {
-            type_:    inner_,
-            non_null: true,
-        });
+        assert_eq!(
+            java[outer_].fields[0].data,
+            FieldData::Object { type_: inner_, non_null: true }
+        );
         assert_eq!(
             java[inner_].fields[0].data,
             FieldData::Primitive(Primitive::Int { unsigned: true })

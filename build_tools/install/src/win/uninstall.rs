@@ -6,8 +6,6 @@
 use crate::prelude::*;
 use winreg::enums::*;
 
-
-
 /// The path to the Uninstall subkey of the registry.
 const UNINSTALL_KEY_PATH: &str = "Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall";
 
@@ -52,16 +50,16 @@ pub struct UninstallInfo {
 impl UninstallInfo {
     pub fn new(display_name: impl Into<String>, uninstall_string: impl Into<String>) -> Self {
         Self {
-            display_name:       display_name.into(),
-            uninstall_string:   uninstall_string.into(),
-            display_icon:       None,
-            display_version:    None,
-            publisher:          None,
-            url_info_about:     None,
-            url_update_info:    None,
-            help_link:          None,
-            install_location:   None,
-            install_date:       None,
+            display_name: display_name.into(),
+            uninstall_string: uninstall_string.into(),
+            display_icon: None,
+            display_version: None,
+            publisher: None,
+            url_info_about: None,
+            url_update_info: None,
+            help_link: None,
+            install_location: None,
+            install_date: None,
             estimated_size_kib: None,
         }
     }

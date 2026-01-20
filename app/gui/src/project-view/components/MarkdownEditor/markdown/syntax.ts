@@ -1,6 +1,6 @@
 import { markdown } from '@codemirror/lang-markdown'
 import { foldNodeProp } from '@codemirror/language'
-import { type Extension } from '@codemirror/state'
+import type { Extension } from '@codemirror/state'
 import { ensoMarkdownExtension } from 'ydoc-shared/ast/ensoMarkdown'
 
 const tableCodemirrorLanguageExtension = {

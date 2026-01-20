@@ -80,7 +80,7 @@ final class DocsUtils {
     if (a.suspended()) {
       sb.append("~");
     }
-    var name = a.name().name();
+    var name = argName(a);
     sb.append(name);
     if (!ConstantsNames.SELF_ARGUMENT.equals(name)) {
       var type = extractTypeOrAny(a);
@@ -90,6 +90,26 @@ final class DocsUtils {
       sb.append("=");
     }
     return sb.toString();
+  }
+
+  private static String argName(DefinitionArgument arg) {
+    if (isBlankArg(arg)) {
+      return "_";
+    } else {
+      return arg.name().name();
+    }
+  }
+
+  /** Returns true if the argument represents an underscore (blank) argument. */
+  private static boolean isBlankArg(DefinitionArgument arg) {
+    if (arg.name() instanceof Name.Literal lit) {
+      var loc = lit.identifiedLocation();
+      if (loc != null) {
+        // This checks if the argument used to be an underscore.
+        return loc.length() == 1 && lit.name().length() > 1;
+      }
+    }
+    return false;
   }
 
   private static String extractTypeOrAny(IR ir) {

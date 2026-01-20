@@ -68,7 +68,6 @@ class Compiler(
   private val passManager: PassManager         = passes.passManager
   private val importResolver: ImportResolver   = new ImportResolver(this)
   private val irCachingEnabled                 = !context.isIrCachingDisabled
-  private val useGlobalCacheLocations          = context.isUseGlobalCacheLocations
   private val isInteractiveMode                = context.isInteractiveMode
   private val output: PrintStream =
     if (config.outputRedirect.isDefined)
@@ -136,15 +135,12 @@ class Compiler(
     *                         to the cache; if set to False, a 'lint' compilation
     *                         will be performed, reporting any problems,
     *                         but no results will be written
-    * @param useGlobalCacheLocations whether or not the compilation result should
-    *                                  be written to the global cache
     * @param generateDocs should a documenation be generied
     * @return future to track subsequent serialization of the library
     */
   def compile(
     shouldCompileDependencies: Boolean,
     shouldWriteCache: Boolean,
-    useGlobalCacheLocations: Boolean,
     generateDocs: Option[String]
   ): Future[java.lang.Boolean] = {
     getPackageRepository.getMainProjectPackage match {
@@ -209,8 +205,7 @@ class Compiler(
             if (shouldWriteCache) {
               context.serializeLibrary(
                 this,
-                pkg.libraryName,
-                useGlobalCacheLocations
+                pkg.libraryName
               )
             } else {
               CompletableFuture.completedFuture(true)
@@ -480,6 +475,7 @@ class Compiler(
       runErrorHandling(requiredModules)
 
       val requiredModulesWithScope = requiredModules.map { module =>
+        val moduleScopeBuilder = module.getScopeBuilder()
         if (
           !module
             .getCompilationStage()
@@ -487,18 +483,9 @@ class Compiler(
               CompilationStage.AFTER_RUNTIME_STUBS
             )
         ) {
-          val moduleScopeBuilder = module.getScopeBuilder()
           context.runStubsGenerator(module, moduleScopeBuilder)
-          context.updateModule(
-            module,
-            { u =>
-              u.compilationStage(CompilationStage.AFTER_RUNTIME_STUBS)
-            }
-          )
-          (module, moduleScopeBuilder)
-        } else {
-          (module, module.getScopeBuilder)
         }
+        (module, moduleScopeBuilder)
       }
 
       requiredModulesWithScope.foreach { case (module, moduleScopeBuilder) =>
@@ -544,7 +531,6 @@ class Compiler(
                 context.serializeModule(
                   this,
                   module,
-                  useGlobalCacheLocations,
                   true
                 )
               }
@@ -882,17 +868,14 @@ class Compiler(
       }
       Name.Qualified(name, identifiedLocation = null)
     }.toList
-    ir.copy(
-      imports =
-        ir.imports ::: moduleNames.map(m => Import.Module.createSynthetic(m)),
-      exports = ir.exports ::: moduleNames.map(m =>
-        Export.Module(
-          m,
-          rename             = None,
-          onlyNames          = None,
-          identifiedLocation = null,
-          isSynthetic        = true
-        )
+    ir.copyWithImportsAndExports(
+      ir.imports ::: moduleNames.map(m => Import.Module.createSynthetic(m)),
+      ir.exports ::: moduleNames.map(m =>
+        Export.Module
+          .builder()
+          .name(m)
+          .isSynthetic(true)
+          .build()
       )
     )
   }

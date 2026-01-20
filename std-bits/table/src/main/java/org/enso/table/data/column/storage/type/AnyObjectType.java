@@ -6,22 +6,14 @@ import org.enso.table.data.column.builder.BuilderForType;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.problems.ProblemAggregator;
 
-public record AnyObjectType() implements StorageType<Object> {
+public final class AnyObjectType implements StorageType<Object> {
   public static final AnyObjectType INSTANCE = new AnyObjectType();
 
-  @Override
-  public boolean isNumeric() {
-    return false;
-  }
+  private AnyObjectType() {}
 
   @Override
-  public boolean hasDate() {
-    return false;
-  }
-
-  @Override
-  public boolean hasTime() {
-    return false;
+  public char typeChar() {
+    return 'A';
   }
 
   @Override

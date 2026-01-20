@@ -5,6 +5,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
+import java.util.stream.Stream;
 import org.openjdk.jmh.infra.BenchmarkParams;
 import org.openjdk.jmh.infra.IterationParams;
 import org.openjdk.jmh.results.BenchmarkResult;
@@ -29,6 +30,9 @@ public class BenchmarksRunner {
     if (args.length == 0) {
       args = new String[] {"--jvmArgsPrepend=-Dbench.all=true"};
     }
+    var old = Stream.of(args);
+    var add = Stream.of("--foe=true");
+    args = Stream.concat(old, add).toArray(String[]::new);
     CommandLineOptions cmdOpts = null;
     try {
       cmdOpts = new CommandLineOptions(args);

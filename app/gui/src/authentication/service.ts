@@ -3,17 +3,17 @@
  * wrapper, along with some convenience callbacks to make URL redirects for the authentication flows
  * work with Electron.
  */
-import { type Logger } from '#/providers/LoggerProvider'
+import type { Logger } from '#/providers/LoggerProvider'
 import * as appUtils from '$/appUtils'
-import * as cognitoModule from '$/authentication/cognito'
+import { Cognito } from '$/authentication/cognito'
 import * as listen from '$/authentication/listen'
 import { useFeatureFlag } from '$/providers/featureFlags'
 import { useText } from '$/providers/text'
 import { parseEnsoDeeplink } from '@/util/url'
 import * as amplify from '@aws-amplify/auth'
-import * as common from 'enso-common'
 import type * as saveAccessTokenModule from 'enso-common/src/accessToken'
-import * as detect from 'enso-common/src/detect'
+import * as common from 'enso-common/src/constants'
+import * as detect from 'enso-common/src/utilities/detect'
 import * as toastify from 'react-toastify'
 import { useRouter } from 'vue-router'
 
@@ -98,8 +98,8 @@ export interface AuthConfig {
 
 /** API for the authentication service. */
 export interface AuthService {
-  /** @see {@link cognitoModule.Cognito}. */
-  readonly cognito: cognitoModule.Cognito
+  /** @see {@link Cognito}. */
+  readonly cognito: Cognito
   /** @see {@link listen.ListenFunction}. */
   readonly registerAuthEventListener: listen.ListenFunction
 }
@@ -121,7 +121,7 @@ export function useInitAuthService(): AuthService {
     enableDeepLinks.value,
     (url) => void router.push(url),
   )
-  const cognito = new cognitoModule.Cognito(console, enableDeepLinks.value, amplifyConfig)
+  const cognito = new Cognito(console, enableDeepLinks.value, amplifyConfig)
 
   return { cognito, registerAuthEventListener: listen.registerAuthEventListener }
 }
@@ -135,17 +135,19 @@ function loadAmplifyConfig(
   let urlOpener: ((url: string) => void) | null = null
   let saveAccessToken: ((accessToken: saveAccessTokenModule.AccessToken | null) => void) | null =
     null
-  if ('authenticationApi' in window) {
+  if (window.api != null) {
+    const { authentication } = window.api
     // When running on desktop we want to have option to save access token to a file,
     // so it can be reused later when issuing requests to the Cloud API.
     //
     // Note: Wrapping this function in an arrow function ensures that the current Authentication API
     // is always used.
     saveAccessToken = (accessToken: saveAccessTokenModule.AccessToken | null) => {
-      window.authenticationApi.saveAccessToken(accessToken)
+      authentication.saveAccessToken(accessToken)
     }
   }
-  if (supportsDeepLinks) {
+  if (supportsDeepLinks && window.api != null) {
+    const { authentication } = window.api
     // The default URL opener opens the URL in the desktop app, but the user should be sent to
     // their system browser instead, because:
     // - users trust their system browser with their credentials more than they trust the app;
@@ -155,7 +157,7 @@ function loadAmplifyConfig(
     // Note: Wrapping this function in an arrow function ensures that the current Authentication API
     // is always used.
     urlOpener = (url: string) => {
-      window.authenticationApi.openUrlInSystemBrowser(url)
+      authentication.openUrlInSystemBrowser(url)
     }
   }
   if (detect.isOnElectron()) {
@@ -202,7 +204,7 @@ function loadAmplifyConfig(
  * ignored by this handler.
  */
 function setDeepLinkHandler(logger: Logger, navigate: (url: string) => void) {
-  window.authenticationApi.setDeepLinkHandler((urlString: string) => {
+  window.api?.authentication.setDeepLinkHandler((urlString: string) => {
     const result = parseEnsoDeeplink(urlString)
     if (!result.ok) {
       logger.log(result.error.message())

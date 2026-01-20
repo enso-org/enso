@@ -1,24 +1,26 @@
 /** @file A list of previous versions of an asset. */
-
-import { useMutation, useSuspenseQuery } from '@tanstack/react-query'
-
-import { uniqueString } from 'enso-common/src/utilities/uniqueString'
-
 import { ErrorBoundary } from '#/components/ErrorBoundary'
 import { Result } from '#/components/Result'
-import { copyAssetsMutationOptions } from '#/hooks/backendBatchedHooks'
+import { backendMutationOptions } from '#/hooks/backendHooks'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import { useOpenProjectLocally } from '#/hooks/projectHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
-import type { AnyAsset, DatalinkAsset, FileAsset, ProjectAsset } from '#/services/Backend'
-import { AssetType, BackendType, S3ObjectVersionId } from '#/services/Backend'
-import type RemoteBackend from '#/services/RemoteBackend'
 import { useBackends, useText } from '$/providers/react'
 import {
   useRightPanelContextCategory,
   useRightPanelFocusedAsset,
 } from '$/providers/react/container'
-import { includes } from 'enso-common/src/utilities/data/array'
+import { useOpenedProjects } from '$/providers/react/openedProjects'
+import { includes } from '$/utils/data/array'
+import { useMutation, useSuspenseQuery } from '@tanstack/react-query'
+import type {
+  AnyAsset,
+  DatalinkAsset,
+  FileAsset,
+  ProjectAsset,
+} from 'enso-common/src/services/Backend'
+import { AssetType, BackendType, S3ObjectVersionId } from 'enso-common/src/services/Backend'
+import type { RemoteBackend } from 'enso-common/src/services/RemoteBackend'
+import { uniqueString } from 'enso-common/src/utilities/uniqueString'
 import { AssetVersion, type DuplicateOptions, type Version } from './AssetVersion'
 import { assetVersionsQueryOptions } from './queries'
 
@@ -89,7 +91,7 @@ function AssetVersionsInternal(props: AssetVersionsInternalProps) {
   const versions = versionsQuery.data
   const latestVersion = versions.find((version) => version.isLatest)
 
-  const openProjectLocally = useOpenProjectLocally()
+  const { openProjectLocally } = useOpenedProjects()
 
   const restoreMutation = useMutation({
     mutationFn: (variables: AddNewVersionVariables) =>
@@ -100,17 +102,18 @@ function AssetVersionsInternal(props: AssetVersionsInternalProps) {
     meta: { invalidates: [queryOptions.queryKey], awaitInvalidates: true },
   })
 
-  const duplicateProjectMutation = useMutation(copyAssetsMutationOptions(backend))
+  const duplicateProjectMutation = useMutation(backendMutationOptions(backend, 'copyAsset'))
 
   const doDuplicate = useEventCallback(async (options?: DuplicateOptions) => {
-    const newItem = await duplicateProjectMutation.mutateAsync([[item.id], item.parentId])
-    const newAsset = newItem[0]?.asset
+    const newItem = await duplicateProjectMutation.mutateAsync([
+      item.id,
+      item.parentId,
+      options?.versionId,
+    ])
+    const newAsset = newItem.asset
 
-    if (options?.start === true && newAsset != null && item.type === AssetType.project) {
-      // This is SAFE because we know that the the new asset is a Project,
-      // because we can't create a duplicate with a different type.
-      /* eslint-disable-next-line no-restricted-syntax */
-      await openProjectLocally(newAsset as ProjectAsset, backend.type)
+    if (options?.start === true && newAsset.type === AssetType.project) {
+      openProjectLocally(newAsset, backend.type)
     }
   })
 
@@ -130,7 +133,7 @@ function AssetVersionsInternal(props: AssetVersionsInternalProps) {
   }
 
   return (
-    <div className="flex w-full flex-col ">
+    <div className="flex h-full w-full flex-col overflow-auto">
       {versions.map((version, index) => (
         <div key={version.versionId}>
           <AssetVersion
@@ -150,9 +153,7 @@ function AssetVersionsInternal(props: AssetVersionsInternalProps) {
   )
 }
 
-/**
- * Check if the asset is allowed to have versions.
- */
+/** Check if the asset is allowed to have versions. */
 function isAllowedAssetType(asset: AnyAsset): asset is DatalinkAsset | FileAsset | ProjectAsset {
   return includes([AssetType.project, AssetType.datalink, AssetType.file], asset.type)
 }

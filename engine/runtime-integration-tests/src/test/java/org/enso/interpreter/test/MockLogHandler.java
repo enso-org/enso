@@ -29,6 +29,13 @@ public final class MockLogHandler extends Handler {
     logs.clear();
   }
 
+  List<String> getRawLogMessages(String loggerName) {
+    return logs.stream()
+        .filter(r -> r.getLoggerName().equals(loggerName))
+        .map(LogRecord::getMessage)
+        .toList();
+  }
+
   public void reset() {
     logs.clear();
   }

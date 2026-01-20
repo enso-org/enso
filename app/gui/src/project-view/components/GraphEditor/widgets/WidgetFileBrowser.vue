@@ -1,5 +1,12 @@
 <script setup lang="ts">
-import { useGraphStore, useSuggestionDbStore } from '$/components/WithCurrentProject.vue'
+import { useCurrentProject } from '$/components/WithCurrentProject.vue'
+import { requiredImportsByProjectPath } from '$/providers/openedProjects/module/imports'
+import {
+  Score,
+  WidgetInput,
+  defineWidget,
+  widgetProps,
+} from '$/providers/openedProjects/widgetRegistry'
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import {
   SUPPORTED_DYNAMIC_CONFIG_KINDS,
@@ -16,14 +23,11 @@ import {
   type CustomDropdownItem,
   ExpressionTag,
 } from '@/components/GraphEditor/widgets/WidgetSelection/tags'
-import { Score, WidgetInput, defineWidget, widgetProps } from '@/providers/widgetRegistry'
-import { requiredImportsByProjectPath } from '@/stores/graph/imports'
 import { ArgumentInfoKey } from '@/util/callTree'
 import { computed } from 'vue'
 
 const props = defineProps(widgetProps(widgetDefinition))
-const graph = useGraphStore()
-const suggestionDb = useSuggestionDbStore()
+const { suggestionDb, module, graph } = useCurrentProject()
 
 const reprType = computed(() => props.input[ArgumentInfoKey]?.info?.reprType)
 
@@ -35,7 +39,7 @@ const typeInfo = useBrowserTypeInfo({
 const currentPathAst = useCurrentPath({
   typeInfo,
   input: () => props.input.value,
-  getMethodPointer: (id) => graph.db.getMethodCallInfo(id)?.methodCall.methodPointer,
+  getMethodPointer: (id) => graph.value.db.getMethodCallInfo(id)?.methodCall.methodPointer,
 })
 
 const dialogKind = computed(() => {
@@ -59,14 +63,15 @@ const makeSetPathUpdate = useSetPath({
   currentPath: currentPathAst,
   preferRawPath: () => !!typeInfo.value.rawPath?.prefer,
   portId: () => props.input.portId,
-  edit: () => graph.startEdit(),
   addMissingConstructorImports: (edit, type) =>
-    graph.addMissingImports(edit, requiredImportsByProjectPath(suggestionDb.entries, type, true)) ==
-    null,
+    module.value.addMissingImports(
+      edit,
+      requiredImportsByProjectPath(suggestionDb.value.entries, type, true),
+    ) == null,
 })
 
 function setPath(type: 'file' | 'secret', path: string) {
-  props.updateCallback(makeSetPathUpdate(type, path))
+  module.value.edit((edit) => props.updateCallback(makeSetPathUpdate(type, path, edit)))
 }
 
 const write = computed(() => typeInfo.value.write)

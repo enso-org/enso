@@ -54,32 +54,12 @@ public interface CallArgument extends IR {
       super(name, value, isSynthetic, identifiedLocation, passData, diagnostics);
     }
 
-    public Specified(
-        Option<Name> name,
-        Expression value,
-        boolean isSynthetic,
-        IdentifiedLocation identifiedLocation,
-        MetadataStorage passData) {
-      this(name, value, isSynthetic, identifiedLocation, passData, null);
-    }
-
-    public Specified(
-        Option<Name> name,
-        Expression value,
-        boolean isSynthetic,
-        IdentifiedLocation identifiedLocation) {
-      this(name, value, isSynthetic, identifiedLocation, new MetadataStorage(), null);
+    public static Builder builder() {
+      return new Builder();
     }
 
     public Specified copy(Expression value) {
-      return copy(
-          this.diagnostics,
-          this.passData,
-          this.location,
-          this.id,
-          this.name(),
-          value,
-          this.isSynthetic());
+      return new Builder(this).value(value).build();
     }
 
     @Override

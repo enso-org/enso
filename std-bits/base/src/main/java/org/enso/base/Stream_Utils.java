@@ -17,7 +17,7 @@ public final class Stream_Utils {
    * @see #asInputStream
    */
   public static interface InputStreamLike {
-    public int read(byte[] arr, int off, int len) throws IOException;
+    public byte[] readNBytes(int len) throws IOException;
 
     public default int available() {
       return 0;
@@ -110,7 +110,13 @@ public final class Stream_Utils {
 
     @Override
     public int read(byte[] b, int off, int len) throws IOException {
-      return inputStreamLike.read(b, off, len);
+      var arr = inputStreamLike.readNBytes(len);
+      if (arr.length == 0 && len > 0) {
+        // signals end of stream
+        return -1;
+      }
+      System.arraycopy(arr, 0, b, off, arr.length);
+      return arr.length;
     }
 
     @Override

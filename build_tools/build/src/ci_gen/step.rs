@@ -4,13 +4,11 @@ use crate::ci_gen::not_a_fork;
 use crate::engine;
 use crate::paths;
 
-use ide_ci::actions::workflow::definition::env_expression;
 use ide_ci::actions::workflow::definition::Shell;
 use ide_ci::actions::workflow::definition::Step;
 use ide_ci::actions::workflow::definition::Target;
+use ide_ci::actions::workflow::definition::env_expression;
 use ide_ci::cache::goodie::graalvm;
-
-
 
 pub fn test_reporter(
     step_name: impl Into<String>,
@@ -50,6 +48,22 @@ pub fn extra_stdlib_test_reporter((os, arch): Target, graal_edition: graalvm::Ed
     let report_name = format!("Extra Library Tests Report ({graal_edition}, {os}, {arch})");
     let path = format!("{}/*/*.xml", env_expression(&paths::ENSO_TEST_JUNIT_DIR));
     test_reporter(step_name, report_name, path)
+}
+
+/// Upload heap dump of a crashed JVM on OutOfMemoryError.
+/// Note that there may be multiple `*.hprof` files if multiple processes crashed.
+/// `artifact_name` should be unique for each job in the whole workflow.
+pub fn heapdump_upload(artifact_name: impl Into<String>) -> Step {
+    let path = "test/**/*.hprof\nengine/**/*.hprof";
+
+    let mut step = upload_artifact("Upload Heap Dumps")
+        .with_custom_argument("name", artifact_name.into())
+        .with_custom_argument("path", path)
+        .with_custom_argument("retention-days", 3)
+        .with_custom_argument("if-no-files-found", "ignore");
+    // This step should be run every time, but not on forks.
+    step.r#if = Some(format!("(success() || failure()) && {}", not_a_fork()));
+    step
 }
 
 pub fn upload_engine_distribution(
@@ -123,11 +137,14 @@ pub fn cleanup_engine_distribution(engine_launcher: engine::EngineLauncher) -> S
 }
 
 fn built_distribution_directories(engine_launcher: engine::EngineLauncher) -> String {
-    format!("built-distribution{}", match engine_launcher {
-        engine::EngineLauncher::TestNative => " test",
-        engine::EngineLauncher::TestDebugNative => " test",
-        _ => "",
-    })
+    format!(
+        "built-distribution{}",
+        match engine_launcher {
+            engine::EngineLauncher::TestNative => " test",
+            engine::EngineLauncher::TestDebugNative => " test",
+            _ => "",
+        }
+    )
 }
 
 pub fn upload_artifact(step_name: impl Into<String>) -> Step {

@@ -37,8 +37,8 @@ import org.slf4j.LoggerFactory;
 public class YdocTest {
 
   private static final int WEB_SERVER_PORT = 44556;
-  private static final String YDOC_URL = "ws://localhost:1234/project/";
-  private static final String HEALTHCHECK_URL = "http://localhost:1234/_health";
+  private static final String YDOC_URL = "ws://localhost:5976/project/";
+  private static final String HEALTHCHECK_URL = "http://localhost:5976/_health";
   private static final String WEB_SERVER_URL = "ws://127.0.0.1:" + WEB_SERVER_PORT;
 
   private static final Logger log = LoggerFactory.getLogger(YdocTest.class);

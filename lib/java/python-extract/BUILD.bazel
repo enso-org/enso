@@ -1,0 +1,20 @@
+load("@rules_java//java:java_binary.bzl", "java_binary")
+load("//:bazel_scripts/python_extract.bzl", "extract_python_resources")
+
+java_binary(
+    name = "python_extract",
+    srcs = glob(["src/main/java/**/*.java"]),
+    main_class = "org.enso.pyextract.PythonExtract",
+    visibility = ["//visibility:private"],
+    deps = [
+        "@maven//:org_graalvm_polyglot_polyglot",
+        "@maven//:org_graalvm_python_python_language",
+        "@maven//:org_graalvm_python_python_resources",
+    ],
+)
+
+extract_python_resources(
+    name = "extract_python_resources",
+    out_dir = "python_resources",
+    visibility = ["//visibility:public"],
+)

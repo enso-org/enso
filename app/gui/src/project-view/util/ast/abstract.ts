@@ -1,4 +1,5 @@
 import { qnFromSegments } from '@/util/qualifiedName'
+import type { Opt } from 'enso-common/src/utilities/data/opt'
 import type {
   Expression,
   Identifier,
@@ -36,7 +37,6 @@ import {
   setExternalIds,
 } from 'ydoc-shared/ast'
 import { spanMapToIdMap, spanMapToSpanGetter } from 'ydoc-shared/ast/idMap'
-import { Opt } from 'ydoc-shared/util/data/opt'
 import { IdMap } from 'ydoc-shared/yjsModel'
 
 export * from 'ydoc-shared/ast'
@@ -179,8 +179,7 @@ export function astToQualifiedName(ast: Ast): QualifiedName | null {
 }
 
 /**
- * Substitute `pattern` inside `expression` with `to`.
- * Will only replace the first item in the property acccess chain.
+ * Substitute `pattern` in any `Ident` nodes inside `expression` with `to`.
  */
 export function substituteIdentifier(
   expr: MutableAst,
@@ -189,9 +188,6 @@ export function substituteIdentifier(
 ) {
   if (expr instanceof MutableIdent && expr.code() === pattern) {
     expr.setToken(to)
-  } else if (expr instanceof MutablePropertyAccess) {
-    // Substitute only the first item in the property access chain.
-    if (expr.lhs != null) substituteIdentifier(expr.lhs, pattern, to)
   } else {
     for (const child of expr.children()) {
       if (child instanceof Token) {

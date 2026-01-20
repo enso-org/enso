@@ -1,12 +1,10 @@
 use crate::prelude::*;
 
-use crate::cache::goodie;
 use crate::cache::Cache;
-use crate::env::known::PATH;
+use crate::cache::goodie;
 use crate::env::Modification;
+use crate::env::known::PATH;
 use crate::github::RepoRef;
-
-
 
 /// The repository of the FlatBuffers project.
 pub const REPO: RepoRef = RepoRef { owner: "google", name: "flatbuffers" };
@@ -14,7 +12,7 @@ pub const REPO: RepoRef = RepoRef { owner: "google", name: "flatbuffers" };
 #[derive(Clone, Debug)]
 pub struct Flatc {
     /// The version of the `flatc` binary.
-    pub version:  Version,
+    pub version: Version,
     /// Operating system for which the binary is built.
     pub platform: OS,
 }
@@ -37,16 +35,20 @@ impl Flatc {
     /// # }
     pub fn url(&self) -> Result<Url> {
         let filename = match (&self.version, self.platform) {
-            (version, OS::Windows) if version >= &Version::new(2, 0, 0) =>
-                "Windows.flatc.binary.zip",
+            (version, OS::Windows) if version >= &Version::new(2, 0, 0) => {
+                "Windows.flatc.binary.zip"
+            }
             (_, OS::Windows) => "flatc_windows.zip",
             (_, OS::MacOS) => "Mac.flatc.binary.zip",
-            (version, OS::Linux) if version >= &Version::new(24, 3, 6) =>
-                "Linux.flatc.binary.clang++-15.zip",
-            (version, OS::Linux) if version >= &Version::new(2, 0, 7) =>
-                "Linux.flatc.binary.clang++-12.zip",
-            (version, OS::Linux) if version >= &Version::new(2, 0, 0) =>
-                "Linux.flatc.binary.clang++-9.zip",
+            (version, OS::Linux) if version >= &Version::new(24, 3, 6) => {
+                "Linux.flatc.binary.clang++-15.zip"
+            }
+            (version, OS::Linux) if version >= &Version::new(2, 0, 7) => {
+                "Linux.flatc.binary.clang++-12.zip"
+            }
+            (version, OS::Linux) if version >= &Version::new(2, 0, 0) => {
+                "Linux.flatc.binary.clang++-9.zip"
+            }
             (version, os) => bail!("Unsupported version {version} for {os}."),
         };
         let tag = release_tag(&self.version);

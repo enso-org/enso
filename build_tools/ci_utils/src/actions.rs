@@ -1,6 +1,5 @@
 //! General utilities for working within the GitHub Actions environment.
 
-
 // ==============
 // === Export ===
 // ==============

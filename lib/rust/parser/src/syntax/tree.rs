@@ -10,15 +10,11 @@ use crate::syntax::expression::Spacing;
 #[cfg(feature = "debug")]
 use enso_parser_syntax_tree_visitor::Visitor;
 
-
-
 // ==============
 // === Export ===
 // ==============
 
 pub mod block;
-
-
 
 // ============
 // === Tree ===
@@ -29,12 +25,12 @@ pub mod block;
 #[allow(missing_docs)]
 pub struct Tree<'s> {
     #[reflect(flatten, hide)]
-    pub span:     Span<'s>,
+    pub span: Span<'s>,
     pub warnings: Warnings,
     #[deref]
     #[deref_mut]
     #[reflect(subtype)]
-    pub variant:  Variant<'s>,
+    pub variant: Variant<'s>,
 }
 
 /// Constructor.
@@ -53,8 +49,8 @@ impl<'s> AsRef<Span<'s>> for Tree<'s> {
 impl<'s> Default for Tree<'s> {
     fn default() -> Self {
         Self {
-            variant:  Variant::Ident(Box::new(Ident { token: Default::default() })),
-            span:     Span::empty_without_offset(),
+            variant: Variant::Ident(Box::new(Ident { token: Default::default() })),
+            span: Span::empty_without_offset(),
             warnings: default(),
         }
     }
@@ -118,10 +114,6 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
         /// The wildcard marker, `_`.
         Wildcard {
             pub token: token::Wildcard<'s>,
-            #[serde(serialize_with = "crate::serialization::serialize_optional_int")]
-            #[serde(deserialize_with = "crate::serialization::deserialize_optional_int")]
-            #[reflect(as = i32)]
-            pub de_bruijn_index: Option<u32>,
         },
         /// The suspended-default-arguments marker, `...`.
         SuspendedDefaultArguments {
@@ -150,36 +142,33 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
             pub arg:    Tree<'s>,
             pub close:  Option<token::CloseSymbol<'s>>,
         },
+        Call {
+            pub value: Tree<'s>,
+        },
         /// Application of an operator, like `a + b`. The left or right operands might be missing,
-        /// thus creating an operator section like `a +`, `+ b`, or simply `+`. See the
-        /// [`OprSectionBoundary`] variant to learn more about operator section scope.
+        /// thus creating an operator section like `a +`, `+ b`, or simply `+`.
         OprApp {
             pub lhs: Option<Tree<'s>>,
             pub opr: OperatorOrError<'s>,
             pub rhs: Option<Tree<'s>>,
         },
-        /// Application of a unary operator, like `-a` or `~handler`. It is a syntax error for `rhs`
-        /// to be `None`.
+        /// Application of the `.` operator.
+        PropertyAccess {
+            pub lhs: Option<Tree<'s>>,
+            pub opr: token::DotOperator<'s>,
+            pub rhs: token::Ident<'s>,
+        },
+        /// Application of a unary operator, like `-a` or `~handler`, to an operand.
         UnaryOprApp {
             pub opr: token::UnaryOperator<'s>,
-            pub rhs: Option<Tree<'s>>,
+            pub rhs: Tree<'s>,
         },
         /// Application of the autoscope operator to an identifier, e.g. `..True`.
         AutoscopedIdentifier {
             pub opr: token::AutoscopeOperator<'s>,
             pub ident: token::Ident<'s>,
         },
-        /// Defines the point where operator sections should be expanded to lambdas. Let's consider
-        /// the expression `map (.sum 1)`. It should be desugared to `map (x -> x.sum 1)`, not to
-        /// `map ((x -> x.sum) 1)`. The expression `.sum` will be parsed as operator section
-        /// ([`OprApp`] with left operand missing), and the [`OprSectionBoundary`] will be placed
-        /// around the whole `.sum 1` expression.
-        OprSectionBoundary {
-            pub arguments: u32,
-            pub ast:       Tree<'s>,
-        },
         TemplateFunction {
-            pub arguments: u32,
             pub ast:       Tree<'s>,
         },
         /// An application of a multi-segment function, such as `if ... then ... else ...`. Each
@@ -358,7 +347,6 @@ macro_rules! with_ast_definition { ($f:ident ($($args:tt)*)) => { $f! { $($args)
     }
 }};}
 
-
 macro_rules! generate_variant_constructors {
     (
         $(#$enum_meta:tt)*
@@ -391,7 +379,6 @@ macro_rules! generate_ast_definition {
 
 with_ast_definition!(generate_ast_definition());
 
-
 // === Invalid ===
 
 /// Error of parsing attached to an [`Tree`] node.
@@ -415,7 +402,7 @@ impl Error {
 
 impl<'s> Tree<'s> {
     /// Constructor.
-    pub fn with_error(self, message: impl Into<Cow<'static, str>>) -> Self {
+    pub fn with_error(self, message: SyntaxError) -> Self {
         Tree::invalid(Error::new(message), self)
     }
 }
@@ -426,7 +413,6 @@ impl<'s> span::Builder<'s> for Error {
     }
 }
 
-
 // === Argument blocks ===
 
 /// An argument specification on its own line.
@@ -434,7 +420,7 @@ impl<'s> span::Builder<'s> for Error {
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Reflect, Deserialize)]
 pub struct ArgumentDefinitionLine<'s> {
     /// The token beginning the line.
-    pub newline:  token::Newline<'s>,
+    pub newline: token::Newline<'s>,
     /// The argument definition, unless this is an empty line.
     pub argument: Option<ArgumentDefinition<'s>>,
 }
@@ -444,7 +430,6 @@ impl<'s> span::Builder<'s> for ArgumentDefinitionLine<'s> {
         span.add(&mut self.newline).add(&mut self.argument)
     }
 }
-
 
 // === Text literals ===
 
@@ -472,11 +457,11 @@ pub enum TextElement<'s> {
     /// An interpolated section within a text literal.
     Splice {
         /// The opening ` character.
-        open:       token::OpenSymbol<'s>,
+        open: token::OpenSymbol<'s>,
         /// The interpolated expression.
         expression: Option<Tree<'s>>,
         /// The closing ` character.
-        close:      token::CloseSymbol<'s>,
+        close: token::CloseSymbol<'s>,
     },
 }
 
@@ -485,13 +470,13 @@ impl<'s> span::Builder<'s> for TextElement<'s> {
         match self {
             TextElement::Section { text } => text.add_to_span(span),
             TextElement::Escape { token } => span.add(token),
-            TextElement::Splice { open, expression, close } =>
-                span.add(open).add(expression).add(close),
+            TextElement::Splice { open, expression, close } => {
+                span.add(open).add(expression).add(close)
+            }
             TextElement::Newline { newline } => span.add(newline),
         }
     }
 }
-
 
 // === Documentation ===
 
@@ -500,7 +485,7 @@ impl<'s> span::Builder<'s> for TextElement<'s> {
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Reflect, Deserialize)]
 pub struct DocLine<'s> {
     /// The documentation.
-    pub docs:     DocComment<'s>,
+    pub docs: DocComment<'s>,
     /// Empty lines between the comment and the item.
     pub newlines: Vec<token::Newline<'s>>,
 }
@@ -516,7 +501,7 @@ impl<'s> span::Builder<'s> for DocLine<'s> {
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Reflect, Deserialize)]
 pub struct DocComment<'s> {
     /// The comment-initiating token.
-    pub open:     token::TextStart<'s>,
+    pub open: token::TextStart<'s>,
     /// The documentation text.
     pub elements: Vec<TextElement<'s>>,
 }
@@ -527,7 +512,6 @@ impl<'s> span::Builder<'s> for DocComment<'s> {
     }
 }
 
-
 // === Number literals ===
 
 #[cfg_attr(feature = "debug", derive(Visitor))]
@@ -535,7 +519,7 @@ impl<'s> span::Builder<'s> for DocComment<'s> {
 #[allow(missing_docs)]
 pub struct FractionalDigits<'s> {
     /// The dot operator.
-    pub dot:    token::DotOperator<'s>,
+    pub dot: token::DotOperator<'s>,
     /// The decimal digits after the dot.
     pub digits: token::Digits<'s>,
 }
@@ -545,7 +529,6 @@ impl<'s> span::Builder<'s> for FractionalDigits<'s> {
         span.add(&mut self.dot).add(&mut self.digits)
     }
 }
-
 
 // === Functions ===
 
@@ -562,7 +545,7 @@ pub struct AnnotationLine<'s> {
     /// The annotation.
     pub annotation: FunctionAnnotation<'s>,
     /// The end of the line.
-    pub newlines:   NonEmptyVec<token::Newline<'s>>,
+    pub newlines: NonEmptyVec<token::Newline<'s>>,
 }
 
 impl<'s> span::Builder<'s> for AnnotationLine<'s> {
@@ -581,11 +564,11 @@ impl<'s> span::Builder<'s> for AnnotationLine<'s> {
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Reflect, Deserialize)]
 pub struct FunctionAnnotation<'s> {
     /// The `@` token.
-    pub operator:   token::AnnotationOperator<'s>,
+    pub operator: token::AnnotationOperator<'s>,
     /// The annotation.
     pub annotation: token::Ident<'s>,
     /// An argument to the annotation.
-    pub argument:   Option<Tree<'s>>,
+    pub argument: Option<Tree<'s>>,
 }
 
 impl<'s> span::Builder<'s> for FunctionAnnotation<'s> {
@@ -601,7 +584,7 @@ pub struct TypeSignatureLine<'s> {
     /// The type signature.
     pub signature: TypeSignature<'s>,
     /// The end of the type signature line.
-    pub newlines:  NonEmptyVec<token::Newline<'s>>,
+    pub newlines: NonEmptyVec<token::Newline<'s>>,
 }
 
 impl<'s> span::Builder<'s> for TypeSignatureLine<'s> {
@@ -615,12 +598,12 @@ impl<'s> span::Builder<'s> for TypeSignatureLine<'s> {
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Reflect, Deserialize)]
 pub struct TypeSignature<'s> {
     /// (Qualified) name of the item whose type is being declared.
-    pub name:     Tree<'s>,
+    pub name: Tree<'s>,
     /// The `:` token.
     pub operator: token::TypeAnnotationOperator<'s>,
     /// The declared type.
     #[reflect(rename = "type")]
-    pub type_:    Tree<'s>,
+    pub type_: Tree<'s>,
 }
 
 impl<'s> span::Builder<'s> for TypeSignature<'s> {
@@ -634,22 +617,22 @@ impl<'s> span::Builder<'s> for TypeSignature<'s> {
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Reflect, Deserialize)]
 pub struct ArgumentDefinition<'s> {
     /// Opening parenthesis (outer).
-    pub open:       Option<token::OpenSymbol<'s>>,
+    pub open: Option<token::OpenSymbol<'s>>,
     /// Opening parenthesis (inner).
-    pub open2:      Option<token::OpenSymbol<'s>>,
+    pub open2: Option<token::OpenSymbol<'s>>,
     /// An optional execution-suspension unary operator (~).
     pub suspension: Option<token::SuspensionOperator<'s>>,
     /// The pattern being bound to an argument.
-    pub pattern:    Tree<'s>,
+    pub pattern: Tree<'s>,
     /// An optional type ascribed to an argument.
     #[reflect(rename = "type")]
-    pub type_:      Option<ArgumentType<'s>>,
+    pub type_: Option<ArgumentType<'s>>,
     /// Closing parenthesis (inner).
-    pub close2:     Option<token::CloseSymbol<'s>>,
+    pub close2: Option<token::CloseSymbol<'s>>,
     /// An optional default value for an argument.
-    pub default:    Option<ArgumentDefault<'s>>,
+    pub default: Option<ArgumentDefault<'s>>,
     /// Closing parenthesis (outer).
-    pub close:      Option<token::CloseSymbol<'s>>,
+    pub close: Option<token::CloseSymbol<'s>>,
 }
 
 impl<'s> span::Builder<'s> for ArgumentDefinition<'s> {
@@ -670,7 +653,7 @@ impl<'s> span::Builder<'s> for ArgumentDefinition<'s> {
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Reflect, Deserialize)]
 pub struct ArgumentDefault<'s> {
     /// The `=` token.
-    pub equals:     token::AssignmentOperator<'s>,
+    pub equals: token::AssignmentOperator<'s>,
     /// The default value.
     pub expression: Tree<'s>,
 }
@@ -689,7 +672,7 @@ pub struct ArgumentType<'s> {
     pub operator: token::TypeAnnotationOperator<'s>,
     /// The type.
     #[reflect(rename = "type")]
-    pub type_:    Tree<'s>,
+    pub type_: Tree<'s>,
 }
 
 impl<'s> span::Builder<'s> for ArgumentType<'s> {
@@ -703,7 +686,7 @@ impl<'s> span::Builder<'s> for ArgumentType<'s> {
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Reflect, Deserialize)]
 pub struct ReturnSpecification<'s> {
     /// The `->` operator.
-    pub arrow:  token::ArrowOperator<'s>,
+    pub arrow: token::ArrowOperator<'s>,
     /// The function's return type.
     #[reflect(rename = "type")]
     pub r#type: Tree<'s>,
@@ -715,7 +698,6 @@ impl<'s> span::Builder<'s> for ReturnSpecification<'s> {
     }
 }
 
-
 // === CaseOf ===
 
 /// A line that may contain a case-expression in a case-of expression.
@@ -726,7 +708,7 @@ pub struct CaseLine<'s> {
     /// is on the same line as the initial case-of.
     pub newline: Option<token::Newline<'s>>,
     /// The case-expression, if present.
-    pub case:    Option<Case<'s>>,
+    pub case: Option<Case<'s>>,
 }
 
 impl<'s> CaseLine<'s> {
@@ -751,11 +733,11 @@ impl<'s> span::Builder<'s> for CaseLine<'s> {
 #[derive(Clone, Debug, Default, Eq, PartialEq, Serialize, Reflect, Deserialize)]
 pub struct Case<'s> {
     /// Documentation, if present.
-    pub doc_line:   Option<DocLine<'s>>,
+    pub doc_line: Option<DocLine<'s>>,
     /// The pattern being matched. It is an error for this to be absent.
-    pub pattern:    Option<Tree<'s>>,
+    pub pattern: Option<Tree<'s>>,
     /// Token.
-    pub arrow:      Option<token::ArrowOperator<'s>>,
+    pub arrow: Option<token::ArrowOperator<'s>>,
     /// The expression associated with the pattern. It is an error for this to be empty.
     pub expression: Option<Tree<'s>>,
 }
@@ -780,7 +762,6 @@ impl<'s> span::Builder<'s> for Case<'s> {
     }
 }
 
-
 // === OprApp ===
 
 /// Operator or [`MultipleOperatorError`].
@@ -791,7 +772,7 @@ pub type OperatorOrError<'s> = Result<token::Operator<'s>, MultipleOperatorError
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Reflect, Deserialize)]
 #[allow(missing_docs)]
 pub struct MultipleOperatorError<'s> {
-    pub operators: Box<NonEmptyVec<token::Operator<'s>>>,
+    pub operators: NonEmptyVec<token::Operator<'s>>,
 }
 
 impl<'s> span::Builder<'s> for MultipleOperatorError<'s> {
@@ -823,7 +804,6 @@ impl<'s> NonEmptyOperatorSequence<'s> for OperatorOrError<'s> {
     }
 }
 
-
 // === MultiSegmentApp ===
 
 /// A segment of [`MultiSegmentApp`], like `if cond` in the `if cond then ok else fail` expression.
@@ -832,7 +812,7 @@ impl<'s> NonEmptyOperatorSequence<'s> for OperatorOrError<'s> {
 #[allow(missing_docs)]
 pub struct MultiSegmentAppSegment<'s> {
     pub header: Token<'s>,
-    pub body:   Option<Tree<'s>>,
+    pub body: Option<Tree<'s>>,
 }
 
 impl<'s> span::Builder<'s> for MultiSegmentAppSegment<'s> {
@@ -840,7 +820,6 @@ impl<'s> span::Builder<'s> for MultiSegmentAppSegment<'s> {
         span.add(&mut self.header).add(&mut self.body)
     }
 }
-
 
 // === Array and Tuple ===
 
@@ -851,7 +830,7 @@ pub struct OperatorDelimitedTree<'s> {
     /// The delimiting operator.
     pub operator: token::Operator<'s>,
     /// The expression. It is an error for this to be absent.
-    pub body:     Option<Tree<'s>>,
+    pub body: Option<Tree<'s>>,
 }
 
 impl<'s> span::Builder<'s> for OperatorDelimitedTree<'s> {
@@ -860,15 +839,12 @@ impl<'s> span::Builder<'s> for OperatorDelimitedTree<'s> {
     }
 }
 
-
-
 // ================
 // === Warnings ===
 // ================
 
 /// Warnings applicable to a [`Tree`].
 pub type Warnings = ColdVec<Warning>;
-
 
 // === Warning ===
 
@@ -908,6 +884,7 @@ pub const WARNINGS: [&str; WarningId::NUM_WARNINGS as usize] =
 #[derive(Debug, Clone)]
 #[allow(missing_docs)] // See associated messages defined below.
 pub enum SyntaxError {
+    ArgDefUnexpectedOp,
     ArgDefUnexpectedOpInParenClause,
     ArgDefSpuriousParens,
     ArgDefExpectedPattern,
@@ -923,6 +900,8 @@ pub enum SyntaxError {
     StmtUnexpectedAssignmentInModuleBody,
     StmtUnexpectedPrivateSubject,
     StmtUnexpectedPrivateContext,
+    StmtUnexpectedFunctionExpression,
+    StmtUnexpectedFunctionExpressionOprSection,
     TypeBodyUnexpectedPrivateUsage,
     TypeDefExpectedTypeName,
     ExprUnexpectedAssignment,
@@ -938,6 +917,23 @@ pub enum SyntaxError {
     DocumentationUnexpectedNonInitial,
     AnnotationUnexpectedInExpression,
     AnnotationExpectedDefinition,
+    Internal,
+    UnexpectedUnspacedTerm,
+    UnexpectedAnnotation,
+    UnexpectedUnspacedOperand,
+    SyntacticOperatorMissingOperand,
+    SyntacticOperatorMissingOperandUnary,
+    ExprUnexpectedSyntacticOperator,
+    StmtIncompleteImport,
+    ExpectedTokens,
+    MacroUnexpectedTokens,
+    InvalidMacroInvocation,
+    UnmatchedDelimiter,
+    MalformedCommaDelimitedSequence,
+    UnexpectedToken,
+    ExpectedIdent,
+    AutoscopeUnexpectedUncapitalizedIdentifier,
+    AutoscopeExpectedIdent,
 }
 
 impl From<SyntaxError> for Cow<'static, str> {
@@ -945,12 +941,13 @@ impl From<SyntaxError> for Cow<'static, str> {
         use SyntaxError::*;
         (match error {
             AnnotationOpMustBeAppliedToIdent => "The annotation operator must be applied to an identifier",
+            ArgDefUnexpectedOp => "Unexpected operator in argument definition clause",
             ArgDefUnexpectedOpInParenClause => "Unexpected operator in parenthesized argument definition clause",
             ArgDefSpuriousParens => "Invalid parentheses in argument definition",
             ArgDefExpectedPattern => "Expected identifier or wildcard in argument binding",
             ExpectedExpression => "Expected expression",
             ExpectedPattern => "Expected pattern",
-            ExpectedQualifiedName => "Expected qualified name.",
+            ExpectedQualifiedName => "Expected qualified name",
             ExpectedType => "Expected type",
             ForeignFnExpectedLanguage => "Expected language name in foreign function definition",
             ForeignFnExpectedName => "Expected function name in foreign function definition",
@@ -960,31 +957,48 @@ impl From<SyntaxError> for Cow<'static, str> {
                 "Each operator on the left side of an assignment operator must be applied to two operands, with the same spacing on each side",
             StmtUnexpectedAssignmentInModuleBody => "Unexpected variable assignment in module statement",
             StmtUnexpectedPrivateSubject =>
-                "The `private` keyword cannot be applied to this type of symbol",
-            StmtUnexpectedPrivateContext => "The `private` keyword is not expected in this context",
+                "The \"private\" keyword cannot be applied to this type of symbol",
+            StmtUnexpectedPrivateContext => "The \"private\" keyword is not expected in this context",
+            StmtUnexpectedFunctionExpression => "This expression would define an unused function",
+            StmtUnexpectedFunctionExpressionOprSection => "This expression would define an unused function; if you would like to create an operator block, each indented line must begin with an operator followed by a space",
             TypeBodyUnexpectedPrivateUsage =>
-                "In a type definition, the `private` keyword can only be applied to a constructor or function definition",
+                "In a type definition, the \"private\" keyword can only be applied to a constructor or function definition",
             TypeDefExpectedTypeName => "Expected type identifier in type declaration",
             ExprUnexpectedAssignment => "Unexpected use of assignment operator in expression",
             ExprUnclosedParen => "Unclosed parenthesis in expression",
             UnexpectedExpressionInTypeBody => "Expression unexpected in type definition",
-            ImportsExpectedNameInExport => "Expected name following `export` keyword",
-            ImportsNoAllInExport => "`all` not allowed in `export` statement",
-            ImportsNoHidingInExport => "`hiding` not allowed in `export` statement",
+            ImportsExpectedNameInExport => "Expected name following \"export\" keyword",
+            ImportsNoAllInExport => "\"all\" not allowed in export statement",
+            ImportsNoHidingInExport => "\"hiding\" not allowed in export statement",
             PatternUnexpectedExpression => "Expression invalid in a pattern",
             PatternUnexpectedDot => "In a pattern, the dot operator can only be used in a qualified name",
-            CaseOfInvalidCase => "Invalid case expression.",
+            CaseOfInvalidCase => "Invalid case expression",
             DocumentationUnexpectedNonInitial => "Unexpected documentation at end of line",
             AnnotationUnexpectedInExpression =>
                 "A function annotation is only allowed in statement context, not in an expression",
             AnnotationExpectedDefinition =>
                 "A function annotation must be followed by a function definition or constructor definition",
+            Internal => "BUG: An internal error occurred parsing this expression",
+            UnexpectedUnspacedTerm => "Space required between terms",
+            UnexpectedAnnotation => "Unexpected expression annotation",
+            UnexpectedUnspacedOperand => "Space required between term and operator",
+            SyntacticOperatorMissingOperand => "Operator must be applied to two operands",
+            SyntacticOperatorMissingOperandUnary => "Operator must be applied to an operand",
+            ExprUnexpectedSyntacticOperator => "Invalid use of syntactic operator in expression",
+            StmtIncompleteImport => "Expected name or \"all\" keyword following \"import\" keyword",
+            ExpectedTokens => "Expected tokens",
+            MacroUnexpectedTokens => "Unexpected tokens in macro invocation",
+            InvalidMacroInvocation => "Invalid macro invocation",
+            UnmatchedDelimiter => "Unmatched delimiter",
+            MalformedCommaDelimitedSequence => "Malformed comma-delimited sequence",
+            UnexpectedToken => "Unexpected token",
+            ExpectedIdent => "Expected identifier",
+            AutoscopeUnexpectedUncapitalizedIdentifier => "The auto-scope operator may only be applied to a capitalized identifier",
+            AutoscopeExpectedIdent => "The autoscope operator must be applied to an identifier",
         })
         .into()
     }
 }
-
-
 
 // ====================================
 // === Tree-construction operations ===
@@ -1024,10 +1038,10 @@ pub fn apply<'s>(mut func: Tree<'s>, mut arg: Tree<'s>) -> Tree<'s> {
     }
     let error = match Spacing::of_tree(&arg) {
         Spacing::Spaced => None,
-        Spacing::Unspaced => Some("Space required between terms."),
+        Spacing::Unspaced => Some(SyntaxError::UnexpectedUnspacedTerm),
     }
     .or(match &arg.variant {
-        Variant::AnnotatedBuiltin(_) => Some("Unexpected expression annotation."),
+        Variant::AnnotatedBuiltin(_) => Some(SyntaxError::UnexpectedAnnotation),
         _ => None,
     });
     maybe_with_error(Tree::app(func, arg), error)
@@ -1040,69 +1054,16 @@ fn maybe_apply<'s>(f: Option<Tree<'s>>, x: Tree<'s>) -> Tree<'s> {
     }
 }
 
-/// Join two nodes with an operator, in a way appropriate for their types.
-///
-/// For most operands this will simply construct an `OprApp`; however, a non-operator block (i.e. an
-/// `ArgumentBlock`) is reinterpreted as a `BodyBlock` when it appears in the RHS of an operator
-/// expression.
-pub fn apply_operator<'s>(
-    lhs: Option<Tree<'s>>,
-    opr: Vec<Token<'s>>,
-    rhs: Option<Tree<'s>>,
-) -> Tree<'s> {
-    let opr = match opr.len() {
-        0 => unreachable!(),
-        1 => Ok(opr.into_iter().next().unwrap()),
-        _ => Err(MultipleOperatorError {
-            operators: Box::new(
-                NonEmptyVec::try_from(
-                    opr.into_iter()
-                        .map(|opr| opr.with_variant(token::variant::Operator()))
-                        .collect::<Vec<_>>(),
-                )
-                .unwrap(),
-            ),
-        }),
-    };
-    match opr {
-        Ok(opr) => {
-            let error = match (&opr.variant, lhs.as_ref().map(|tree| &tree.variant), &rhs) {
-                (_, Some(Variant::AutoscopedIdentifier(_)), _) if !opr.is_spaced() =>
-                    Some("Space required between term and operator."),
-                (_, _, None) | (_, None, _) if opr.is_syntactic_binary_operator() =>
-                    Some("Operator must be applied to two operands."),
-                (
-                    token::Variant::Operator(_)
-                    | token::Variant::DotOperator(_)
-                    | token::Variant::ArrowOperator(_)
-                    | token::Variant::TypeAnnotationOperator(_),
-                    _,
-                    _,
-                ) => None,
-                _ => Some("Invalid use of syntactic operator in expression"),
-            };
-            let tree = match (opr.variant, lhs, rhs) {
-                (token::Variant::TypeAnnotationOperator(annotation), Some(lhs), Some(rhs)) =>
-                    Tree::type_annotated(lhs, opr.with_variant(annotation), rhs),
-                (_, lhs, rhs) =>
-                    Tree::opr_app(lhs, Ok(opr.with_variant(token::variant::Operator())), rhs),
-            };
-            maybe_with_error(tree, error)
-        }
-        _ => Tree::opr_app(lhs, opr.map(|opr| opr.with_variant(token::variant::Operator())), rhs),
-    }
-}
-
 /// Create an AST node for a token.
 pub fn to_ast(token: Token) -> Tree {
     match token.variant {
         token::Variant::Ident(ident) => token.with_variant(ident).into(),
-        token::Variant::Wildcard(wildcard) => Tree::wildcard(token.with_variant(wildcard), default()),
+        token::Variant::Wildcard(wildcard) => Tree::wildcard(token.with_variant(wildcard)),
         token::Variant::SuspendedDefaultArguments(t) => Tree::suspended_default_arguments(token.with_variant(t)),
         token::Variant::OpenSymbol(s) =>
-            Tree::group(Some(token.with_variant(s)), default(), default()).with_error("Unmatched delimiter"),
+            Tree::group(Some(token.with_variant(s)), default(), default()).with_error(SyntaxError::UnmatchedDelimiter),
         token::Variant::CloseSymbol(s) =>
-            Tree::group(default(), default(), Some(token.with_variant(s))).with_error("Unmatched delimiter"),
+            Tree::group(default(), default(), Some(token.with_variant(s))).with_error(SyntaxError::UnmatchedDelimiter),
         // These should be unreachable: They are handled when assembling items into blocks,
         // before parsing proper.
         token::Variant::Newline(_)
@@ -1139,10 +1100,8 @@ pub fn to_ast(token: Token) -> Tree {
         | token::Variant::NumberBase(_)
         // Map an error case in the lexer to an error in the AST.
         | token::Variant::Invalid(_) => {
-            let message = format!("Unexpected token: {token:?}");
             let ident = token::variant::Ident(false, 0, false, false, false);
-            let value = Tree::ident(token.with_variant(ident));
-            Tree::with_error(value, message)
+            Tree::ident(token.with_variant(ident)).with_error(SyntaxError::UnexpectedToken)
         }
     }
 }
@@ -1152,8 +1111,6 @@ impl<'s> From<token::Ident<'s>> for Tree<'s> {
         Tree::ident(token)
     }
 }
-
-
 
 // ================
 // === Visitors ===
@@ -1250,7 +1207,6 @@ macro_rules! define_visitor {
 
 define_visitor!(Item, visit_item, ItemVisitor, ItemVisitable);
 
-
 // === Trait Implementations for Simple Leaf Types ===
 
 macro_rules! spanless_leaf_impls {
@@ -1270,10 +1226,7 @@ spanless_leaf_impls!(bool);
 spanless_leaf_impls!(VisibleOffset);
 spanless_leaf_impls!(Cow<'static, str>);
 
-
-
 // === ItemVisitable special cases ===
-
 
 #[cfg(feature = "debug")]
 impl<'s, 'a> ItemVisitable<'s, 'a> for Tree<'s> {
@@ -1286,7 +1239,8 @@ impl<'s, 'a> ItemVisitable<'s, 'a> for Tree<'s> {
 
 #[cfg(feature = "debug")]
 impl<'s: 'a, 'a, T: 'a> ItemVisitable<'s, 'a> for Token<'s, T>
-where &'a Token<'s, T>: Into<token::Ref<'s, 'a>>
+where
+    &'a Token<'s, T>: Into<token::Ref<'s, 'a>>,
 {
     fn visit_item<V: ItemVisitor<'s, 'a>>(&'a self, visitor: &mut V) {
         visitor.visit_item(item::Ref::Token(self.into()));
@@ -1299,8 +1253,6 @@ impl<'s, 'a, T: ItemVisitable<'s, 'a>> ItemVisitable<'s, 'a> for Box<T> {
         Box::as_ref(self).visit_item(visitor)
     }
 }
-
-
 
 // ==========================
 // === CodePrinterVisitor ===
@@ -1347,8 +1299,6 @@ impl<'s> Tree<'s> {
     }
 }
 
-
-
 // =====================
 // === ItemFnVisitor ===
 // =====================
@@ -1357,13 +1307,16 @@ impl<'s> Tree<'s> {
 impl<'s> Tree<'s> {
     /// Apply the provided function to each [`Token`] or [`Tree`] that is a child of the node.
     pub fn visit_items<F>(&self, f: F)
-    where F: for<'a> FnMut(item::Ref<'s, 'a>) {
+    where
+        F: for<'a> FnMut(item::Ref<'s, 'a>),
+    {
         struct ItemFnVisitor<F> {
             f: F,
         }
         impl<F> Visitor for ItemFnVisitor<F> {}
         impl<'a, 's: 'a, F> ItemVisitor<'s, 'a> for ItemFnVisitor<F>
-        where F: FnMut(item::Ref<'s, 'a>)
+        where
+            F: FnMut(item::Ref<'s, 'a>),
         {
             fn visit_item(&mut self, item: item::Ref<'s, 'a>) -> bool {
                 (self.f)(item);
@@ -1375,13 +1328,16 @@ impl<'s> Tree<'s> {
 
     /// Apply the provided function recursively to each [`Tree`] that is a descendant of the node.
     pub fn visit_trees<F>(&self, f: F)
-    where F: for<'a> FnMut(&'a Tree<'s>) {
+    where
+        F: for<'a> FnMut(&'a Tree<'s>),
+    {
         struct ItemFnVisitor<F> {
             f: F,
         }
         impl<F> Visitor for ItemFnVisitor<F> {}
         impl<'a, 's: 'a, F> ItemVisitor<'s, 'a> for ItemFnVisitor<F>
-        where F: FnMut(&'a Tree<'s>)
+        where
+            F: FnMut(&'a Tree<'s>),
         {
             fn visit_item(&mut self, item: item::Ref<'s, 'a>) -> bool {
                 if let item::Ref::Tree(tree) = item {
@@ -1394,13 +1350,12 @@ impl<'s> Tree<'s> {
     }
 }
 
-
 // === Helper ===
 
 /// Return the input, or an `Invalid` node with the given error.
-pub fn maybe_with_error(tree: Tree, error: Option<impl Into<Cow<'static, str>>>) -> Tree {
+pub fn maybe_with_error(tree: Tree, error: Option<SyntaxError>) -> Tree {
     match error {
         None => tree,
-        Some(error) => tree.with_error(error.into()),
+        Some(error) => tree.with_error(error),
     }
 }

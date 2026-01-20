@@ -6,6 +6,7 @@ import org.enso.compiler.pass.PassConfiguration
 import org.enso.pkg.Package
 import org.enso.pkg.QualifiedName
 import org.enso.compiler.data.BindingsMap.ModuleReference
+import org.enso.compiler.core.ir.Name
 
 /** A type containing the information about the execution context for a module.
   *
@@ -31,4 +32,14 @@ case class ModuleContext(
   def getCharacters(): CharSequence   = module.getCharacters()
   def moduleReference(): ModuleReference.Concrete =
     ModuleReference.Concrete(module)
+  val anyIr = Name.Qualified(
+    List(
+      Name.Literal("Standard", isMethod = false, identifiedLocation = null),
+      Name.Literal("Base", isMethod     = false, identifiedLocation = null),
+      Name.Literal("Any", isMethod      = false, identifiedLocation = null),
+      Name.Literal("Any", isMethod      = false, identifiedLocation = null)
+    ),
+    identifiedLocation = null
+  )
+
 }

@@ -65,6 +65,7 @@ case object TypeSignatures extends IRPass {
   ): Module = {
     val scopeMap = moduleContext.bindingsAnalysis()
     resolveModule(
+      moduleContext,
       ir,
       scopeMap
         .resolveQualifiedName(List("Standard", "Base", "Any", "Any"))
@@ -94,12 +95,16 @@ case object TypeSignatures extends IRPass {
     * @param mod the module to resolve signatures in
     * @return `mod`, with type signatures resolved
     */
-  private def resolveModule(mod: Module, canResolveAny: Boolean): Module = {
+  private def resolveModule(
+    moduleContext: ModuleContext,
+    mod: Module,
+    canResolveAny: Boolean
+  ): Module = {
     var lastSignature: Option[Type.Ascription] = None
 
     val newBindings: List[Definition] = mod.bindings.flatMap {
       case sig: Type.Ascription =>
-        val res = lastSignature.map(errors.Unexpected.TypeSignature(_))
+        val res = lastSignature.map(errors.UnexpectedTypeSignature.create(_))
         lastSignature = Some(sig)
         res
       case meth: definition.Method =>
@@ -113,7 +118,7 @@ case object TypeSignatures extends IRPass {
         )
 
         val res = lastSignature match {
-          case Some(asc @ Type.Ascription(typed, sig, comment, _, _)) =>
+          case Some(asc: Type.Ascription) =>
             val methodRef = meth.methodReference
             val newMethodWithDoc = asc
               .getMetadata(DocumentationComments)
@@ -132,37 +137,44 @@ case object TypeSignatures extends IRPass {
               )
               .getOrElse(newMethodWithDoc)
 
-            typed match {
+            asc.typed() match {
               case ref: Name.MethodReference =>
                 if (ref isSameReferenceAs methodRef) {
                   Some(
                     newMethodWithAnnotations.updateMetadata(
-                      new MetadataPair(this, Signature(sig, comment))
+                      new MetadataPair(
+                        this,
+                        Signature(asc.signature(), asc.reason())
+                      )
                     )
                   )
                 } else {
                   List(
-                    errors.Unexpected.TypeSignature(asc),
+                    errors.UnexpectedTypeSignature.create(asc),
                     newMethodWithAnnotations
                   )
                 }
               case _ =>
                 List(
-                  errors.Unexpected.TypeSignature(asc),
+                  errors.UnexpectedTypeSignature.create(asc),
                   newMethodWithAnnotations
                 )
             }
           case None =>
             // No explicit type signature *before* the method was provided.
             // Reconstruct type signature from inlined types in arguments/return type, if present.
-            rebuildSignatureFromInlinedTypes(meth.body, canResolveAny)
+            rebuildSignatureFromInlinedTypes(
+              moduleContext,
+              meth.body,
+              canResolveAny
+            )
               .filter(_.nonEmpty)
               .foreach { inferred =>
-                val typeFun = Type.Function(
-                  inferred.init,
-                  inferred.last,
-                  identifiedLocation = null
-                )
+                val typeFun = Type.Function
+                  .builder()
+                  .args(inferred.init)
+                  .result(inferred.last)
+                  .build()
                 newMethod.updateMetadata(
                   new MetadataPair(this, Signature(typeFun))
                 )
@@ -174,11 +186,10 @@ case object TypeSignatures extends IRPass {
       case ut: Definition.Type =>
         ut.members.foreach(d => verifyAscribedArguments(d.arguments))
         Some(
-          ut
-            .copy(
-              params  = ut.params.map(resolveArgument),
-              members = ut.members.map(resolveDefinitionData)
-            )
+          ut.copyBuilder()
+            .params(ut.params().map(resolveArgument))
+            .members(ut.members().map(resolveDefinitionData))
+            .build()
             .mapExpressions(resolveExpression)
         )
       case err: Error                  => Some(err)
@@ -199,15 +210,16 @@ case object TypeSignatures extends IRPass {
           "signature resolution."
         )
     } ::: lastSignature
-      .map(asc => errors.Unexpected.TypeSignature(asc))
+      .map(asc => errors.UnexpectedTypeSignature.create(asc))
       .toList
 
-    mod.copy(
-      bindings = newBindings
+    mod.copyWithBindings(
+      newBindings
     )
   }
 
   private def rebuildSignatureFromInlinedTypes(
+    moduleContext: ModuleContext,
     expr: Expression,
     canResolveAny: Boolean
   ): Option[List[Expression]] = {
@@ -217,12 +229,18 @@ case object TypeSignatures extends IRPass {
           case (defArg: DefinitionArgument.Specified) :: args
               if defArg.name().isInstanceOf[Name.Self] =>
             val bodyTypeArgs =
-              rebuildSignatureFromInlinedTypes(lambda.body, canResolveAny)
+              rebuildSignatureFromInlinedTypes(
+                moduleContext,
+                lambda.body,
+                canResolveAny
+              )
             val argTypes =
               args.flatMap(
                 _.getMetadata(this)
                   .map(_.signature)
-                  .orElse(if (canResolveAny) Some(anyIr) else None)
+                  .orElse(
+                    if (canResolveAny) Some(moduleContext.anyIr) else None
+                  )
               )
             if (argTypes.length == args.length)
               bodyTypeArgs.map(b => argTypes ::: b)
@@ -230,12 +248,18 @@ case object TypeSignatures extends IRPass {
               None
           case args =>
             val bodyTypeArgs =
-              rebuildSignatureFromInlinedTypes(lambda.body, canResolveAny)
+              rebuildSignatureFromInlinedTypes(
+                moduleContext,
+                lambda.body,
+                canResolveAny
+              )
             val argTypes =
               args.flatMap(
                 _.getMetadata(this)
                   .map(_.signature)
-                  .orElse(if (canResolveAny) Some(anyIr) else None)
+                  .orElse(
+                    if (canResolveAny) Some(moduleContext.anyIr) else None
+                  )
               )
             if (argTypes.length == args.length)
               bodyTypeArgs.map(b => argTypes ::: b)
@@ -251,16 +275,6 @@ case object TypeSignatures extends IRPass {
         }
     }
   }
-
-  val anyIr = Name.Qualified(
-    List(
-      Name.Literal("Standard", isMethod = false, identifiedLocation = null),
-      Name.Literal("Base", isMethod     = false, identifiedLocation = null),
-      Name.Literal("Any", isMethod      = false, identifiedLocation = null),
-      Name.Literal("Any", isMethod      = false, identifiedLocation = null)
-    ),
-    identifiedLocation = null
-  )
 
   /** Attaches {@link Signature} to each arguments of a function
     * with ascribed type for correct resolution by {@link TypesNames}
@@ -293,8 +307,8 @@ case object TypeSignatures extends IRPass {
   private def resolveDefinitionData(
     data: Definition.Data
   ): Definition.Data = {
-    data.copy(
-      arguments = data.arguments.map(resolveArgument)
+    data.copyWithArguments(
+      data.arguments.map(resolveArgument)
     )
   }
 
@@ -345,8 +359,9 @@ case object TypeSignatures extends IRPass {
     val newExpressions = allBlockExpressions.flatMap {
       case sig: Type.Ascription =>
         val res = lastSignature match {
-          case Some(oldSig) => Some(errors.Unexpected.TypeSignature(oldSig))
-          case None         => None
+          case Some(oldSig) =>
+            Some(errors.UnexpectedTypeSignature.create(oldSig))
+          case None => None
         }
 
         lastSignature = Some(sig)
@@ -354,7 +369,7 @@ case object TypeSignatures extends IRPass {
       case binding: Expression.Binding =>
         val newBinding = binding.mapExpressions(resolveExpression)
         val res = lastSignature match {
-          case Some(asc @ Type.Ascription(typed, sig, comment, _, _)) =>
+          case Some(asc: Type.Ascription) =>
             val name = binding.name
             val newBindingWithDoc = asc
               .getMetadata(DocumentationComments)
@@ -365,23 +380,26 @@ case object TypeSignatures extends IRPass {
               )
               .getOrElse(newBinding)
 
-            typed match {
+            asc.typed() match {
               case typedName: Name =>
                 if (typedName.name == name.name) {
                   Some(
                     newBindingWithDoc.updateMetadata(
-                      new MetadataPair(this, Signature(sig, comment))
+                      new MetadataPair(
+                        this,
+                        Signature(asc.signature(), asc.reason())
+                      )
                     )
                   )
                 } else {
                   List(
-                    errors.Unexpected.TypeSignature(asc),
+                    errors.UnexpectedTypeSignature.create(asc),
                     newBindingWithDoc
                   )
                 }
               case _ =>
                 List(
-                  errors.Unexpected.TypeSignature(asc),
+                  errors.UnexpectedTypeSignature.create(asc),
                   newBindingWithDoc
                 )
             }
@@ -393,11 +411,11 @@ case object TypeSignatures extends IRPass {
       case a => Some(resolveExpression(a))
     } ::: lastSignature
       .map({
-        case asc @ Type.Ascription(_, sig, comment, _, _) =>
+        case asc: Type.Ascription =>
           asc.updateMetadata(
-            new MetadataPair(this, Signature(sig, comment))
+            new MetadataPair(this, Signature(asc.signature(), asc.reason()))
           )
-        case any => errors.Unexpected.TypeSignature(any)
+        case any => errors.UnexpectedTypeSignature.create(any)
       })
       .toList
 

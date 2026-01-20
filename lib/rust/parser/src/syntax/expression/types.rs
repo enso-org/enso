@@ -1,25 +1,23 @@
 use crate::prelude::*;
 
-use crate::syntax::expression::annotations::Annotation;
-use crate::syntax::expression::blocks::ApplicableBlock;
-use crate::syntax::expression::named_app::NamedApp;
-use crate::syntax::expression::section::MaybeSection;
-use crate::syntax::expression::whitespace::Spacing;
-use crate::syntax::token;
-use crate::syntax::tree;
 use crate::syntax::Inspect;
 use crate::syntax::Token;
 use crate::syntax::Tree;
 use crate::syntax::TreeConsumer;
+use crate::syntax::expression::annotations::Annotation;
+use crate::syntax::expression::blocks::ApplicableBlock;
+use crate::syntax::expression::named_app::NamedApp;
+use crate::syntax::expression::whitespace::Spacing;
+use crate::syntax::token;
+use crate::syntax::tree;
+
 use std::fmt::Debug;
 
+// ==============
+// === Export ===
+// ==============
 
-// ===============
-// === Operand ===
-// ===============
-
-pub type Operand<'s> = MaybeSection<Tree<'s>>;
-
+pub use crate::syntax::expression::operand::Operand;
 
 // ================
 // === Operator ===
@@ -28,10 +26,10 @@ pub type Operand<'s> = MaybeSection<Tree<'s>>;
 /// An operator, whose arity and precedence have been determined.
 #[derive(Debug)]
 pub struct Operator<'s> {
-    pub left_precedence:  Option<ModifiedPrecedence>,
+    pub left_precedence: Option<ModifiedPrecedence>,
     pub right_precedence: Option<ModifiedPrecedence>,
-    pub associativity:    token::Associativity,
-    pub arity:            Arity<'s>,
+    pub associativity: token::Associativity,
+    pub arity: Arity<'s>,
 }
 
 impl<'s> Operator<'s> {
@@ -47,24 +45,18 @@ impl<'s> Operator<'s> {
     }
 }
 
-
 // === Arity ===
 
 /// Classifies the role of an operator.
 #[derive(Debug)]
 pub enum Arity<'s> {
     Unary(token::UnaryOperator<'s>),
-    Binary {
-        tokens:            Vec<Token<'s>>,
-        missing:           Option<BinaryOperand>,
-        reify_rhs_section: bool,
-    },
+    Binary { tokens: Vec<Token<'s>>, missing: Option<BinaryOperand> },
     App,
     NamedApp(Box<NamedApp<'s>>),
     Annotation(Annotation<'s>),
     UnappliedBlock(ApplicableBlock<'s>),
 }
-
 
 // === Binary operand ===
 
@@ -74,17 +66,16 @@ pub enum BinaryOperand {
     Right,
 }
 
-
 // === Modified precedence ===
 
 #[derive(Debug, Copy, Clone)]
 pub struct ModifiedPrecedence {
     value: u8,
-    mask:  u8,
+    mask: u8,
 }
 
 pub struct ModifiedPrecedenceComparisonResult {
-    pub is_greater:           bool,
+    pub is_greater: bool,
     pub inconsistent_spacing: bool,
 }
 
@@ -113,7 +104,6 @@ impl ModifiedPrecedence {
     }
 }
 
-
 // ================
 // === Warnings ===
 // ================
@@ -140,13 +130,12 @@ impl Warnings {
     }
 }
 
-
 // ======================================
 // === Operator and Operand Consumers ===
 // ======================================
 
 pub trait OperandConsumer<'s> {
-    fn push_operand(&mut self, operand: MaybeSection<Tree<'s>>);
+    fn push_operand(&mut self, operand: Operand<'s>);
 }
 
 pub trait OperatorConsumer<'s> {
@@ -156,7 +145,6 @@ pub trait OperatorConsumer<'s> {
 pub trait NamedOperandConsumer<'s> {
     fn push_maybe_named_operand(&mut self, operand: OperandMaybeNamed<'s>);
 }
-
 
 // === Debugging ===
 
@@ -174,25 +162,25 @@ impl<'s, Inner: OperatorConsumer<'s>> OperatorConsumer<'s> for Inspect<Inner> {
     }
 }
 
-
 // === Conversions ===
 
 impl<'s, T> OperandConsumer<'s> for T
-where T: NamedOperandConsumer<'s>
+where
+    T: NamedOperandConsumer<'s>,
 {
-    fn push_operand(&mut self, operand: MaybeSection<Tree<'s>>) {
+    fn push_operand(&mut self, operand: Operand<'s>) {
         self.push_maybe_named_operand(OperandMaybeNamed::Unnamed(operand));
     }
 }
 
 impl<'s, T> TreeConsumer<'s> for T
-where T: OperandConsumer<'s>
+where
+    T: OperandConsumer<'s>,
 {
     fn push_tree(&mut self, tree: Tree<'s>) {
         self.push_operand(tree.into());
     }
 }
-
 
 // ======================
 // === Named Operands ===
@@ -201,23 +189,6 @@ where T: OperandConsumer<'s>
 #[derive(Debug, From)]
 #[allow(clippy::large_enum_variant)] // Clippy considers the `Unnamed` is "at least 0 bytes".
 pub enum OperandMaybeNamed<'s> {
-    Unnamed(MaybeSection<Tree<'s>>),
+    Unnamed(Operand<'s>),
     Named(NamedApp<'s>),
-}
-
-
-// ==========================
-// === SectionTermination ===
-// ==========================
-
-/// Operator-section/template-function termination behavior of an operator with regard to an
-/// operand.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Default)]
-pub enum SectionTermination {
-    /// If the operand is an operator-section/template-function, indicate it by wrapping it in a
-    /// suitable node.
-    #[default]
-    Reify,
-    /// Discard any operator-section/template-function properties associated with the operand.
-    Unwrap,
 }

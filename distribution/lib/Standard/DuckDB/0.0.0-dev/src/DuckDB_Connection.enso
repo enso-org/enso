@@ -1,0 +1,931 @@
+from Standard.Base import all
+import Standard.Base.Data.Vector.No_Wrap
+import Standard.Base.Enso_Cloud.Data_Link_Helpers
+import Standard.Base.Errors.File_Error.File_Error
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+import Standard.Base.Runtime.Context
+import Standard.Base.System.File.Generic.Writable_File.Writable_File
+import Standard.Base.Visualization.Table_Viz_Data.Table_Viz_Data
+import Standard.Base.Visualization.Table_Viz_Data.Table_Viz_Header
+from Standard.Base.Metadata.Choice import Option
+from Standard.Base.Metadata.Widget import Multiple_Choice, Single_Choice, Text_Input, Vector_Editor
+
+import Standard.Table.In_Memory_Table.In_Memory_Table
+import Standard.Table.Rows_To_Read.Rows_To_Read
+from Standard.Table import Table, Value_Type
+from Standard.Table.In_Memory_Table import to_java_table
+from Standard.Table.Internal.Storage import from_value_type
+
+import Standard.Database.Bulk_Load_Exists.Bulk_Load_Exists
+import Standard.Database.Connection.Connection.Connection
+import Standard.Database.DB_Table as DB_Table_Module
+import Standard.Database.Dialects.Dialect.Dialect
+import Standard.Database.Internal.JDBC_Connection
+import Standard.Database.SQL.SQL_Statement
+from Standard.Database import Column_Description, DB_Table, SQL_Query, SQL_Query_With_Schema
+from Standard.Database.Connection.Connection import make_database_selector, make_schema_selector, make_structure_creator, make_table_name_selector, make_table_name_with_schema_selector, make_table_types_selector
+from Standard.Database.Errors import SQL_Error, Table_Already_Exists, Table_Not_Found
+from Standard.Database.Internal.Upload.Helpers.Default_Arguments import first_column_name_in_structure
+from Standard.Database.Internal.Upload.Operations.Create import create_table_implementation
+
+import project.DuckDB.DuckDB
+import project.DuckDB_Format.DuckDB_Format
+import project.DuckDB_GeoFormat.DuckDB_GeoFormat
+import project.Internal.DuckDB_Dialect
+import project.Internal.DuckDB_Entity_Naming_Properties
+import project.Internal.DuckDB_Type_Mapping.DuckDB_Type_Mapping
+
+polyglot java import java.lang.ArithmeticException
+polyglot java import org.enso.database.JDBCDriverTypes
+polyglot java import org.enso.database.JDBCProxy
+polyglot java import org.enso.duckdb.DuckDBUtils
+polyglot java import org.enso.table.data.column.storage.type.BigDecimalType
+
+type DuckDB_Connection
+    ## ---
+       private: true
+       ---
+    get_dialect : Dialect
+    get_dialect = DuckDB_Dialect.duckdb
+
+    ## ---
+       private: true
+       ---
+       Creates a DuckDB connection based on a URL and properties.
+
+       ## Arguments
+        - `url`: The URL to connect to.
+        - `properties`: A vector of properties for the connection.
+        - `make_new`: A function that returns a new connection (Schema->DuckDB).
+        - `schema`: The initial schema to connect to.
+    create : Text -> Vector -> (Text -> Text -> DuckDB_Connection) -> Text -> DuckDB_Connection
+    create url properties make_new schema =
+        types_record = JDBCDriverTypes.createWithInitScript "DuckDB" 'INSTALL spatial;\nLOAD spatial;'
+        jdbc_connection = JDBC_Connection.create types_record url properties schema=schema
+
+        ## For initial work using DuckDB, we will use the Postgres dialect.
+        DuckDB_Connection.Value (Connection.new jdbc_connection DuckDB_Connection.get_dialect DuckDB_Type_Mapping DuckDB_Entity_Naming_Properties.new) make_new (url=="jdbc:duckdb::memory:")
+
+    ## ---
+       private: true
+       ---
+       A DuckDB database connection.
+
+       ## Arguments
+        - `connection`: the underlying connection.
+        - `make_new`: a function that returns a new connection.
+        - `is_in_memory`: whether the connection is in-memory.
+    private Value (connection:Connection) (make_new : Text -> Text -> DuckDB_Connection) is_in_memory:Boolean
+
+    ## Gets the DuckDB Version string.
+    version self -> Text =
+        self.jdbc_connection.with_connection connection->
+            DuckDBUtils.getVersion connection
+
+    ## ---
+       icon: close
+       ---
+       Closes the connection releasing the underlying database resources
+       immediately instead of waiting for them to be automatically released.
+       The connection is not usable afterwards.
+    close : Nothing
+    close self = self.connection.close
+
+    ## ---
+       icon: metadata
+       ---
+       Returns the list of databases (or catalogs) for the connection.
+    databases : Vector Text
+    databases self = self.connection.databases
+
+    ## ---
+       icon: metadata
+       ---
+       Returns the name of the current database (or catalog).
+    database : Text
+    database self = self.connection.database
+
+    ## ---
+       icon: data_input
+       ---
+       Returns a new Connection with the specified database set as default.
+
+       ## Arguments
+        - database: The name of the database to connect to.
+    @database (self-> Single_Choice display=..Always values=(self.databases . map d-> Option d d.pretty))
+    set_database : Text -> Connection ! SQL_Error
+    set_database self database =
+        if database . equals_ignore_case self.database then self else
+            SQL_Error.throw_sql_error "Changing the database is not supported for DuckDB."
+
+    ## ---
+       icon: metadata
+       ---
+       Returns the list of schemas for the connection within the current database
+       (or catalog).
+    schemas : Vector Text
+    schemas self = self.connection.schemas.distinct
+
+    ## ---
+       icon: metadata
+       ---
+       Returns the name of the current schema.
+    schema : Text
+    schema self = self.connection.schema
+
+    ## ---
+       icon: data_input
+       ---
+       Returns a new Connection with the specified schema set as default.
+
+       ## Arguments
+        - schema: The name of the schema to connect to.
+    @schema make_schema_selector
+    set_schema : Text -> Connection ! SQL_Error
+    set_schema self schema =
+        if schema . equals_ignore_case self.schema then self else
+            self.make_new schema
+
+    ## ---
+       group: Standard.Base.Metadata
+       icon: metadata
+       ---
+       Gets a list of the table types.
+    table_types : Vector Text
+    table_types self = self.connection.table_types
+
+    ## ---
+       group: Standard.Base.Metadata
+       icon: metadata
+       ---
+       Returns a materialized Table of all the matching views and tables.
+
+       ## Arguments
+        - `name_like`: The table name pattern to search for. Supports SQL
+          wildcards (`%`, `_`). Defaults to `""` which means all tables are
+          selected.
+        - `database`: The database name to search in (default is current).
+        - `schema`: The schema name to search in (defaults to current). If "*" is
+          provided, all schemas are searched.
+        - `types`: The table types to search for. The list of possible values can
+          be obtained using the `table_types` method. Defaults to a set of most
+          commonly used table types, ignoring internal system tables or indices.
+        - `all_fields`: Return all the fields in the metadata table.
+
+       ## Remarks
+
+       ### Temporary Tables
+       Note that the temporary tables may be created in a different schema than
+       the current one, so take this into account when filtering by schema.
+    @types make_table_types_selector
+    @database (make_database_selector include_any=True)
+    @schema (make_schema_selector include_any=True)
+    tables : Text -> Text -> Text -> Vector -> Boolean -> Table
+    tables self name_like:Text="" database:Text=self.database schema:Text=self.schema types=["BASE TABLE", "VIEW"] all_fields=False =
+        parsed_database = if database == "*" then Nothing else (if database == "" then self.database else database)
+        parsed_schema = if schema == "*" then Nothing else (if schema == "" then self.schema else schema)
+        self.connection.tables (if name_like == "" then Nothing else name_like) parsed_database parsed_schema types all_fields
+
+    ## ---
+       aliases: [import, load, open, read, sql]
+       group: Standard.Base.Input
+       icon: data_input
+       ---
+       Set up a query returning a Table object, which can be used to work with
+       data within the database or load it into memory.
+
+       ## Arguments
+        - `query`: name of the table or sql statement to query.
+          If supplied as `Text` it is treated as a table name.
+        - `alias`: optionally specify a friendly alias for the query.
+
+       ## Errors
+        - If provided with a `Raw_SQL` query or `Text` that looks like a query,
+          if any SQL error occurs when executing the query, a `SQL_Error` error
+          is raised.
+        - If provided with a `Table_Name` or a text short-hand and the table is
+          not found, a `Table_Not_Found` error is raised.
+    @query make_table_name_with_schema_selector schema_black_list=schema_black_list
+    query : (SQL_Query_With_Schema | SQL_Query) -> Text -> Table & DB_Table ! Table_Not_Found
+    query self query:(SQL_Query_With_Schema | SQL_Query) alias="" =
+        used_query = case query of
+            SQL_Query.Table_Name name -> SQL_Query_With_Schema.Table_Name name ""
+            SQL_Query.Raw_SQL sql -> SQL_Query_With_Schema.Raw_SQL sql
+            _ : SQL_Query_With_Schema -> query
+        used_query.to_db_table self alias
+
+    ## ---
+       aliases: [import, load, open, query, sql]
+       group: Standard.Base.Input
+       icon: data_input
+       ---
+       Execute the query and load the results into memory as a Table.
+
+       ## Arguments
+        - `query`: name of the table or sql statement to query. If supplied as
+          `Text` it is treated as a table name.
+        - `limit`: the maximum number of rows to read.
+
+       ## Remarks
+
+       ### Side Effects
+       Note that the `read` method is running without restrictions when the
+       output context is disabled, but it can technically cause side effects, if
+       it is provided with a DML query. Usually it is preferred to use
+       `execute_update` for DML queries, or if they are supposed to return
+       results, the `read` should be wrapped in an execution context check.
+    @query make_table_name_with_schema_selector schema_black_list=schema_black_list
+    @limit Rows_To_Read.default_widget
+    read : (SQL_Query_With_Schema | SQL_Query) -> Rows_To_Read -> Table ! Table_Not_Found
+    read self query:(SQL_Query_With_Schema | SQL_Query) (limit : Rows_To_Read = ..First_With_Warning 1000) =
+        self.query query . read limit
+
+    ## ---
+       aliases: [import, load, open, read, sql]
+       group: Standard.Base.Input
+       icon: data_input
+       ---
+       Reads a file into a new table in the database and returns a query
+       referencing the new table.
+
+       This will create a new table inside DuckDB.
+
+       ## Arguments
+        - `path`: the path to the file to read. Can be a `Text`, `URI` or
+          `File` object.
+        - `as`: the name of the table to create. Defaults to "NewTable".
+        - `format`: the format of the file to read. If not provided, it
+          will be inferred from the file extension.
+        - `key_columns`: the names of the columns to use as the primary key. If
+          not provided, no primary key will be created.
+        - `replace_if_present`: if set to `True`, will replace the table if it
+          already exists.
+
+       ## Returns
+       A `DB_Table` referencing the newly created table.
+    @path Text_Input display=..Always
+    @as Text_Input display=..Always
+    @key_columns Vector_Editor display=..Always item_editor=Text_Input item_default='"Column"'
+    read_file : Text | URI | File -> Text -> DuckDB_Format -> Vector Text -> Boolean -> DB_Table
+    read_file self path=(Missing_Argument.throw "path") as:Text="NewTable" (format:DuckDB_Format=..Auto) key_columns:Vector=[] replace_if_present:Boolean=False =
+        if self.is_in_memory.not then Context.Output.if_enabled disabled_message="As writing is disabled, cannot create a new table. Press the Write button ▶ to perform the operation." panic=False <|
+            Nothing
+        escaped_as = as.replace '"' '""'
+        Data_Link_Helpers.as_file path file->
+            read_function = format.as_sql_function file
+            query = 'CREATE' + (if replace_if_present then ' OR REPLACE' else "") + ' TABLE "' + escaped_as + '" AS SELECT * FROM ' + read_function + ';'
+            Context.Output.with_enabled <|
+                create_table = self.execute_update query
+                create_table.if_not_error <|
+                    self.create_index as key_columns (as + '_INDEX') replace_if_present
+
+    ## ---
+       aliases: [import, load, open, read, sql]
+       group: Standard.Base.Input
+       icon: spatial
+       ---
+       Reads a spatial file into a new table in the database and returns a
+       query referencing the new table. An RTree index will be created on
+       the spatial columns automatically.
+
+       This will create a new table inside DuckDB.
+
+       ## Arguments
+        - `path`: the path to the file to read. Can be a `Text`, `URI` or
+          `File` object.
+        - `as`: the name of the table to create. Defaults to "NewTable".
+        - `key_columns`: the names of the columns to use as the primary key. If
+          not provided, no primary key will be created.
+        - `replace_if_present`: if set to `True`, will replace the table if it
+          already exists.
+
+       ## Returns
+       A `DB_Table` referencing the newly created table.
+    @path Text_Input display=..Always
+    @as Text_Input display=..Always
+    @key_columns Vector_Editor display=..Always item_editor=Text_Input item_default='"Column"'
+    read_spatial_file : Text | URI | File -> Text -> Vector Text -> Boolean -> DB_Table
+    read_spatial_file self path=(Missing_Argument.throw "path") as:Text="NewSpatialTable" key_columns:Vector=[] replace_if_present:Boolean=False =
+        if self.is_in_memory.not then Context.Output.if_enabled disabled_message="As writing is disabled, cannot create a new table. Press the Write button ▶ to perform the operation." panic=False <|
+            Nothing
+
+        resolved_file = Data_Link_Helpers.resolve_path path
+        Error.return_if_error resolved_file
+
+        escaped_as = as.replace '"' '""'
+        _with_additional_files resolved_file file->
+            escaped_path = file.path.replace "'" "''"
+            query = 'CREATE' + (if replace_if_present then ' OR REPLACE' else "") + ' TABLE "' + escaped_as + '" AS SELECT * FROM ST_Read(\'' + escaped_path + '\');'
+            Context.Output.with_enabled <|
+                created_table = self.execute_update query
+                Error.return_if_error created_table
+
+                ## Get the spatial columns and add RTree indexes on them
+                describe = self.execute_query ('DESCRIBE "' + escaped_as + '";')
+                spatial_columns = describe.filter "column_type" (..Equal "GEOMETRY") . at "column_name" . to_vector
+
+                ## Create spatial indices
+                with_spatial_indexes = spatial_columns.fold as table->column->
+                    Error.return_if_error table
+                    self.create_spatial_index table column (as+"_"+column+"_RTREE_INDEX") replace_if_present
+                Error.return_if_error with_spatial_indexes
+
+                ## Create any other user requested index.
+                self.create_index as key_columns (escaped_as + '_INDEX') replace_if_present
+
+    ## ---
+       group: Standard.Base.Database
+       icon: drive
+       ---
+       Creates an index on an existing table.
+
+       ## Arguments
+        - `table`: the table name or a `DB_Table` to create the index on.
+        - `key_columns`: the names of the columns to use as the index.
+        - `as`: the name of the index to create. Defaults to `<table>_INDEX`.
+        - `replace_if_present`: if set to `True`, will replace the index if it
+          already exists.
+
+       ## Returns
+       A `DB_Table` referencing the newly created table.
+    @table make_table_name_selector
+    @key_columns _column_names_widget
+    @as Text_Input display=..Always
+    create_index : Text -> Vector Text -> Text -> Boolean -> DB_Table
+    create_index self (table=Missing_Argument.throw "table") (key_columns:Vector=Missing_Argument.throw "key_columns") as:Text="" replace_if_present:Boolean=False =
+        if self.is_in_memory.not then Context.Output.if_enabled disabled_message="As writing is disabled, cannot create a new index. Press the Write button ▶ to perform the operation." panic=False <|
+            Nothing
+
+        table_name = _resolve_table self table
+        if table_name.is_error then table_name
+
+        escaped_table = table_name.replace '"' '""'
+        index = if key_columns.length==0 then "" else
+            used_as = if as=="" then table_name + "_INDEX" else as
+            escaped_index = used_as.replace '"' '""'
+            drop = if replace_if_present then 'DROP INDEX IF EXISTS "'+ escaped_index + '"; ' else ""
+            base = 'CREATE INDEX "'+ escaped_index + '" ON "' + escaped_table + '" ('
+            cols = key_columns.map c-> '"'+(c.replace '"' '""')+'"'
+            drop + base + (cols.join ", ") + ");"
+        Context.Output.with_enabled <|
+            with_index = if index=="" then Nothing else self.execute_update index
+            with_index.if_not_error <|
+                if table.is_a DB_Table then table else
+                    self.query (SQL_Query.Table_Name table_name)
+
+    ## ---
+       group: Standard.Base.Database
+       icon: spatial
+       ---
+       Creates a RTree index on a single column in an existing table.
+
+       ## Arguments
+        - `table`: the table name or a `DB_Table` to create the index on.
+        - `column`: the name of the column to use as the index.
+        - `as`: the name of the index to create. Defaults to `<table>_<column>_INDEX`.
+        - `replace_if_present`: if set to `True`, will replace the index if it
+          already exists.
+
+       ## Returns
+       A `DB_Table` referencing the newly created table.
+    @table make_table_name_selector
+    @column _column_names_widget single_choice=True
+    @as Text_Input display=..Always
+    create_spatial_index : Text -> Text -> Text -> Boolean -> DB_Table
+    create_spatial_index self (table=Missing_Argument.throw "table") (column:Text=Missing_Argument.throw "column") as:Text="" replace_if_present:Boolean=False =
+        if self.is_in_memory.not then Context.Output.if_enabled disabled_message="As writing is disabled, cannot create a new index. Press the Write button ▶ to perform the operation." panic=False <|
+            Nothing
+
+        table_name = _resolve_table self table
+        if table_name.is_error then table_name
+
+        escaped_table = table_name.replace '"' '""'
+
+        used_as = if as=="" then table_name + column + "_INDEX" else as
+        escaped_index = used_as.replace '"' '""'
+        escaped_column = column.replace '"' '""'
+        drop = if replace_if_present then 'DROP INDEX IF EXISTS "'+ escaped_index + '"; ' else ""
+        base = 'CREATE INDEX "'+ escaped_index + '" ON "' + escaped_table + '" USING RTREE("' + escaped_column + '");'
+
+        Context.Output.with_enabled <|
+            with_index = self.execute_update (drop + base)
+            with_index.if_not_error <|
+                if table.is_a DB_Table then table else
+                    self.query (SQL_Query.Table_Name table_name)
+
+    ## ---
+       group: Standard.Base.Output
+       icon: data_output
+       ---
+       Creates a new empty table in the database and returns a query referencing
+       the new table.
+
+       ## Arguments
+        - `table_name`: the name of the table to create.
+        - `structure`: the structure of the table, provided as either an existing
+          `Table` (no data will be copied) or a `Vector` of `Column_Description`.
+        - `primary_key`: the names of the columns to use as the primary key. The
+          first column from the table is used by default. If it is set to
+          `Nothing` or an empty vector, no primary key will be created.
+        - `temporary`: if set to `True`, the table will be temporary, meaning
+          that it will be dropped once the `connection` is closed. Defaults to
+          `False`.
+        - `allow_existing`: Defaults to `False`, meaning that if the table with
+          the provided name already exists, an error will be raised. If set to
+          `True`, the existing table will be returned instead. Note that the
+          existing table is not guaranteed to have the same structure as the one
+          provided.
+        - `on_problems`: the behavior to use when encountering non-fatal
+          problems. Defaults to reporting them as warning.
+
+       ## Errors
+        - If a table with the given name already exists, then a
+          `Table_Already_Exists` error is raised.
+        - If a column type is not supported and is coerced to a similar supported
+          type, an `Inexact_Type_Coercion` problem is reported according to the
+          `on_problems` setting.
+        - If a column type is not supported and there is no replacement (e.g.
+          native Enso types), an `Unsupported_Type` error is raised.
+        - If the provided primary key columns are not present in table structure
+          provided, `Missing_Input_Columns` error is raised.
+        - An `SQL_Error` may be reported if there is a failure on the database
+          side.
+
+       ## Remarks
+
+       ### Dry Run if Output disabled
+       If performing output actions is disabled, only a dry run is performed and
+       no permanent changes occur. The operation will test for errors (like
+       missing columns) and if successful, return a temporary table with a
+       `Dry_Run_Operation` warning attached.
+    @structure make_structure_creator
+    create_table : Text  -> Vector Column_Description | Table -> Vector Text | Nothing -> Boolean -> Boolean -> Problem_Behavior -> Table & DB_Table ! Table_Already_Exists
+    create_table self (table_name : Text) (structure : Vector Column_Description | Table) (primary_key : (Vector Text | Nothing) = [first_column_name_in_structure structure]) (temporary : Boolean = False) (allow_existing : Boolean = False) (on_problems:Problem_Behavior = ..Report_Warning) =
+        create_table_implementation self table_name structure primary_key temporary allow_existing on_problems
+
+    ## ---
+       private: true
+       advanced: true
+       ---
+       Creates a `DB_Table` that is not backed by an existing table in the
+       Database, but is created in a query by constructing a `VALUES` expression.
+       We limit these tables to at most 256 cells to avoid creating too large
+       queries. If you need a larger table, create a temporary table instead.
+       Note that the types of columns in the created table will depend on how the
+       Database interprets the provided values and may not reflect the types of
+       the source table. If you need more sophisticated type mapping mechanism,
+       use `create_table` instead.
+    create_literal_table self (source : Table) (alias : Text) -> Table & DB_Table & Any =
+        DB_Table_Module.make_literal_table self (source.columns.map .to_vector) source.column_names alias
+
+    ## ---
+       advanced: true
+       aliases: [sql]
+       icon: data_input
+       ---
+       Executes a raw query returning a Table object, which can be used to get
+       the results of the query. This is meant for advanced users who need to
+       call direct SQL queries that are not supported by the `query` method.
+
+       ## Arguments
+        - `query`: either raw SQL code as Text or an instance of SQL_Statement
+          representing the query to execute.
+        - `write_operation`: if set to `True`, the query is expected to be a
+          write operation and will only run if the output context is enabled. If
+          set to `False`, the query is expected to be a read operation and will
+          run regardless of the output context. Defaults to `True`.
+    @query Text_Input display=..Always
+    @limit Rows_To_Read.default_widget
+    execute_query : Text | SQL_Statement -> Rows_To_Read -> Boolean -> Table
+    execute_query self query (limit : Rows_To_Read = ..First_With_Warning 1000) write_operation:Boolean=True =
+        self.connection.execute_query query limit write_operation
+
+    ## ---
+       advanced: true
+       aliases: [sql]
+       group: Standard.Base.Output
+       icon: data_output
+       ---
+       Executes a raw update query. If the query was inserting, updating or
+       deleting rows, the number of affected rows is returned; otherwise it
+       returns 0 for other types of queries (like creating or altering tables).
+
+       ## Arguments
+        - `query`: either raw SQL code as Text or an instance of SQL_Statement
+          representing the query to execute.
+    execute_update : Text | SQL_Statement -> Integer
+    execute_update self query =
+        self.connection.execute_update query
+
+    ## ---
+       private: true
+       advanced: true
+       group: Standard.Base.Output
+       icon: data_output
+       ---
+       Executes a raw query. If the query was inserting, updating or deleting
+       rows, the number of affected rows is returned; otherwise it returns 0 for
+       other types of queries (like creating or altering tables).
+
+       ## Arguments
+        - `query`: either raw SQL code as Text or an instance of SQL_Statement
+          representing the query to execute.
+    execute : Text | SQL_Statement -> Integer
+    execute self query =
+        self.connection.execute query
+
+    ## ---
+       icon: data_upload
+       ---
+       Upload a Table to a new table in the database in the current schema.
+
+       ## Arguments:
+       - `table`: The input table to upload.
+       - `table_name`: The name of the table to create.
+       - `if_exists`: What action to take if the table already exists. Defaults to
+          raising a `Table_Already_Exists` error.
+           - `Raise_Error` - a `Table_Already_Exists` error will be raised.
+           - `Drop_Table` - the existing table will be dropped before creating the new one.
+           - `Truncate_Table` - the existing table will be truncated before loading data into it.
+           - `Append_To_Table` - data will be appended to the existing table.
+       - `temporary`: If set to `True`, the created table will be temporary.
+          Defaults to `False`.
+
+       ## Returns
+       A `DB_Table` representing the created table.
+    bulk_load : Table -> Text -> Bulk_Load_Exists -> Boolean -> Table & DB_Table ! Table_Already_Exists
+    bulk_load self table:Table=(Missing_Argument.throw "table") table_name:Text=(Missing_Argument.throw "table_name") if_exists:Bulk_Load_Exists=..Raise_Error temporary:Boolean=False = case table of
+        _ : DB_Table ->
+            Error.throw (Illegal_Argument.Error "Cannot bulk load from a DB_Table, use `read` to materialize or use `select_into_database_table` if on same server.")
+        in_memory : In_Memory_Table ->
+            ## Check for illegal column types
+            removed = table.remove_columns [(..By_Type ..Null), (..By_Type ..Mixed), (..By_Type ..Unsupported_Data_Type), (..By_Type ..Binary)]
+            if removed.column_count != table.column_count then Error.throw (Illegal_Argument.Error "The table contains columns with unsupported types (Null, Mixed, Binary, or Unsupported_Data_Type) that cannot be uploaded to DuckDB. Please remove or convert these columns before uploading.")
+
+            ## Check if table exists
+            exists = self.query (..Table_Name table_name) . is_error . not
+            if exists && if_exists==Bulk_Load_Exists.Raise_Error then Error.throw (Table_Already_Exists.Error table_name)
+
+            ## Check Execution Context
+            if self.is_in_memory.not then Context.Output.if_enabled disabled_message="As writing is disabled, cannot create a new index. Press the Write button ▶ to perform the operation." panic=False <|
+                Nothing
+
+            Context.Output.with_enabled <|
+                ## Drop existing table if needed and then create new table
+                created_table = if exists.not then self.create_table table_name table primary_key=[] temporary=temporary else case if_exists of
+                    Bulk_Load_Exists.Drop_Table ->
+                        self.drop_table table_name if_exists=True
+                        self.create_table table_name table primary_key=[] temporary=temporary
+                    Bulk_Load_Exists.Truncate_Table ->
+                        self.truncate_table table_name
+                        self.query (..Table_Name table_name)
+                    Bulk_Load_Exists.Append_To_Table ->
+                        self.query (..Table_Name table_name)
+
+                ## Assuming we managed to create the table, proceed with upload
+                created_table.if_not_error <|
+                    java_column_types = created_table.columns.map c-> case c.value_type of
+                        Value_Type.Decimal _ s ->
+                            if s>0 then BigDecimalType.new s else from_value_type c.value_type ..Ignore
+                        _ -> from_value_type c.value_type ..Ignore
+                    java_table = to_java_table in_memory
+                    self.jdbc_connection.with_handled_connection connection->
+                        Illegal_Argument.handle_java_exception <| Panic.catch ArithmeticException handler=(err-> Error.throw (Illegal_Argument.Error err.getMessage)) <|
+                            DuckDBUtils.append connection java_table table_name java_column_types
+                            created_table
+
+    ## ---
+       private: true
+       ---
+       Access the dialect.
+    dialect self = self.connection.dialect
+
+    ## ---
+       private: true
+       ---
+       Access the Type Mapping.
+    type_mapping self = self.connection.type_mapping
+
+    ## ---
+       private: true
+       ---
+       Access the underlying JDBC connection.
+    jdbc_connection self = self.connection.jdbc_connection
+
+    ## ---
+       private: true
+       ---
+       Drops a table.
+
+       ## Arguments
+        - `table_name`: the name of the table to drop.
+        - `if_exists`: if set to `True`, the operation will not fail if the table
+          does not exist. Defaults to `False`.
+    drop_table : Text -> Boolean -> Nothing
+    drop_table self table_name if_exists=False =
+        self.connection.drop_table table_name if_exists
+
+    ## ---
+       private: true
+       ---
+       Removes all rows from a table.
+
+       ## Arguments
+        - `table_name`: the name of the table to truncate.
+    truncate_table : Text -> Nothing ! Table_Not_Found
+    truncate_table self table_name =
+        self.connection.truncate_table table_name
+
+    ## ---
+       private: true
+       ---
+       Returns the base `Connection` instance.
+       Used, so that all internal helper functions do not need to be replicated
+       on the 'subclasses'.
+    base_connection : Connection
+    base_connection self = self.connection
+
+    ## ---
+       icon: metadata
+       ---
+       Get the Primary Key for a given table.
+       Returns `Nothing` if the key is not defined.
+
+       ## Arguments
+       - `table_name`: the name of the table to get the primary key for.
+       - `schema_name`: optionally, the schema name where the table is located.
+    @table_name make_table_name_selector add_custom=False
+    fetch_primary_key : Text -> Text -> Vector Text ! Nothing
+    fetch_primary_key self table_name:Text schema_name:Text="" =
+        self.base_connection.fetch_primary_key table_name schema_name
+
+    ## ---
+       private: true
+       ---
+       Converts this value to a JSON serializable object.
+    to_js_object : JS_Object
+    to_js_object self =
+        JS_Object.from_pairs <| [["type", "DuckDB_Connection"], ["links", self.connection.tables.at "Name" . to_vector]]
+
+    ## ---
+       icon: data_output
+       ---
+       Writes the current database to a new database file to the specified path
+       and then returns a new connection to the written database.
+
+       ## Arguments
+        - `path`: The path to write the database to.
+        - `schema_only`: If set to `True`, only the schema will be written,
+          without any data. Defaults to `False`.
+        - `on_existing_file`: The behavior to use if the file already exists.
+           Defaults to `Backup`, which will create a backup of the existing file.
+
+       ## Returns
+       A new DuckDB_Connection connected to the written database.
+    @path Text_Input display=..Always
+    write_database : Writable_File -> Boolean -> Existing_File_Behavior -> DuckDB_Connection
+    write_database self (path:Writable_File=Missing_Argument.throw "path") schema_only:Boolean=False on_existing_file:Existing_File_Behavior=..Backup =
+        ## Check a local file (to do add support for non-local files later)
+        if path.is_local.not then Error.throw (Illegal_Argument.Error "Only local files are currently supported for writing DuckDB databases. Write to a local file and then copy it to the desired location.")
+        path_as_file = path.file
+
+        ## Check if it exists and then follow on_existing_file behavior
+        write_action = _handle_existing_file path_as_file on_existing_file allow_append=True
+        Error.return_if_error write_action
+
+        ## Check Execution Context
+        Context.Output.if_enabled disabled_message="As writing is disabled, cannot write the database. Press the Write button ▶ to perform the operation." panic=False <|
+            Nothing
+
+        ## Copy the database
+        write_action file->
+            ## Write the database
+            escaped_path = file.path.replace "'" "''"
+            query = "ATTACH '" + escaped_path + "' AS copy_to_database; COPY FROM DATABASE " + self.database + " TO copy_to_database" + (if schema_only then " (SCHEMA);" else ";") + " DETACH copy_to_database;"
+
+            result = self.execute_update query
+            if result.is_error then
+                _ = self.execute_update "DETACH copy_to_database;"
+                Error.return_if_error result
+
+            ## Return a new connection
+            DuckDB.From_File file schema=self.schema . connect
+
+    ## ---
+       icon: data_output
+       ---
+       Writes a table to a file using DuckDB's writing capabilities.
+
+       ## Arguments
+        - `table`: The input table name or `DB_Table` to write.
+        - `path`: The path to write the database to.
+        - `on_existing_file`: The behavior to use if the file already exists.
+           Defaults to `Backup`, which will create a backup of the existing file.
+
+       ## Returns
+       A file pointing at the written file.
+    @query make_table_name_with_schema_selector schema_black_list=schema_black_list
+    @on_existing_file Existing_File_Behavior.widget include_append=False
+    write_file : (SQL_Query_With_Schema | SQL_Query | Table) -> Writable_File -> DuckDB_Format -> Existing_File_Behavior -> Writable_File
+    write_file self (query:(SQL_Query_With_Schema | SQL_Query | Table)=Missing_Argument.throw "query") (path:Writable_File=Missing_Argument.throw "path") (format:DuckDB_Format=..Auto) on_existing_file:Existing_File_Behavior=..Backup =
+        Error.return_if_error query
+
+        ## Check a local file (to do add support for non-local files later)
+        if path.is_local.not then Error.throw (Illegal_Argument.Error "Only local files are currently supported for writing via DuckDB. Write to a local file and then copy it to the desired location.")
+        path_as_file = path.file
+
+        ## Check if it exists and then follow on_existing_file behavior
+        write_action = _handle_existing_file path_as_file on_existing_file
+        Error.return_if_error write_action
+
+        ## Check Execution Context
+        Context.Output.if_enabled disabled_message="As writing is disabled, cannot write the file. Press the Write button ▶ to perform the operation." panic=False <|
+            Nothing
+
+        ## Rationalise the query to a DB_Table
+        table = case query of
+            _ : In_Memory_Table -> Error.throw (Illegal_Argument.Error "Load the table into DuckDB first using `bulk_load`.")
+            db_table : DB_Table -> if Connection.check_on_connection self db_table then db_table else
+                Error.throw (Illegal_Argument.Error "Cannot write a DB_Table from a different connection. Load the table into this connection first.")
+            _ -> query.to_db_table
+
+        ## Write the file
+        write_action file->
+            escaped_path = file.path.replace "'" "''"
+            sql_query = table.to_sql.surround "COPY (" (") TO '" + escaped_path + "'" + format.to_sql + ";")
+            result = self.execute_update sql_query
+            result.if_not_error <|
+                path_as_file
+
+    ## ---
+       icon: data_output
+       ---
+       Writes a table to a file using DuckDB's writing capabilities.
+
+       ## Arguments
+        - `table`: The input table name or `DB_Table` to write.
+        - `path`: The path to write the database to.
+        - `format`: The spatial format to use when writing the file.
+        - `on_existing_file`: The behavior to use if the file already exists.
+           Defaults to `Backup`, which will create a backup of the existing file.
+
+       ## Returns
+       A file pointing at the written file.
+    @query make_table_name_with_schema_selector schema_black_list=schema_black_list
+    @on_existing_file Existing_File_Behavior.widget include_append=False
+    @format DuckDB_GeoFormat.default_widget
+    write_spatial_file : (SQL_Query_With_Schema | SQL_Query | Table) -> Writable_File -> DuckDB_GeoFormat -> Existing_File_Behavior -> Writable_File
+    write_spatial_file self (query:(SQL_Query_With_Schema | SQL_Query | Table)=Missing_Argument.throw "query") (path:Writable_File=Missing_Argument.throw "path") (format:DuckDB_GeoFormat=Missing_Argument.throw "format") on_existing_file:Existing_File_Behavior=..Backup =
+        Error.return_if_error query
+
+        ## Check a local file (to do add support for non-local files later)
+        if path.is_local.not then Error.throw (Illegal_Argument.Error "Only local files are currently supported for writing via DuckDB. Write to a local file and then copy it to the desired location.")
+        path_as_file = path.file
+
+        ## Check if it exists and then follow on_existing_file behavior
+        write_action = _handle_existing_file path_as_file on_existing_file
+        Error.return_if_error write_action
+
+        ## Check Execution Context
+        Context.Output.if_enabled disabled_message="As writing is disabled, cannot write the file. Press the Write button ▶ to perform the operation." panic=False <|
+            Nothing
+
+        ## Rationalise the query to a DB_Table
+        table = case query of
+            _ : In_Memory_Table -> Error.throw (Illegal_Argument.Error "Load the table into DuckDB first using `bulk_load`.")
+            db_table : DB_Table -> if Connection.check_on_connection self db_table then db_table else
+                Error.throw (Illegal_Argument.Error "Cannot write a DB_Table from a different connection. Load the table into this connection first.")
+            _ -> query.to_db_table
+
+        ## Write the file
+        write_action file->
+            escaped_path = file.path.replace "'" "''"
+            sql_query = table.to_sql.surround "COPY (" (") TO '" + escaped_path + "' WITH (FORMAT gdal" + format.to_sql + ");")
+            result = self.execute_update sql_query
+            result.if_not_error <|
+                path_as_file
+
+    ## ---
+       group: Standard.Base.Metadata
+       icon: spatial
+       ---
+       Gets a list of the available drivers for writing spatial data.
+    spatial_drivers : Table
+    spatial_drivers self =
+        self.connection.execute_query "SELECT short_name, long_name, help_url FROM ST_Drivers() WHERE can_create=True" limit=..All_Rows write_operation=False
+
+## ---
+   private: true
+   ---
+schema_black_list =
+    ["temp", "system"]
+
+## ---
+   private: true
+   ---
+Table_Viz_Data.from (that:DuckDB_Connection) =
+    tables = that.tables schema="*" . filter "Schema" (..Is_In schema_black_list ..Remove)
+    multi_schema = tables.at "Schema" . to_vector . any s-> s != that.schema
+    case multi_schema of
+        True  ->
+            Table_Viz_Data.GenericGrid [Table_Viz_Header.Link "Table" "table" "query (..Table_Name {{@Table}} {{@Schema}})", Table_Viz_Header.Label "Schema"] [tables.at "Name" . to_vector, tables.at "Schema" . to_vector]
+        False ->
+            Table_Viz_Data.GenericGrid [Table_Viz_Header.Link "Table" "table" "query (..Table_Name {{@Table}})"] [tables.at "Name" . to_vector]
+
+private _resolve_table connection table = case table of
+    _ : Text -> table
+    _ : DB_Table ->
+        names = table.table_name_schema
+        if names.is_nothing then Error.throw (Illegal_Argument.Error "Cannot use a non-trivial DB_Table to select table.")
+        if names.length == 2 && names.first != connection.schema then Error.throw (Illegal_Argument.Error "Cannot use a DB_Table from a different schema to select table.")
+        names.last
+    _ -> Error.throw (Illegal_Argument.Error "Expect table name or a DB_Table.")
+
+private _column_names_widget connection single_choice:Boolean=False cache=Nothing =
+    table = cache.if_not_nothing <| cache "table"
+    if table.is_nothing then Vector_Editor display=..Always item_editor=Text_Input item_default='"Column"' else
+        db_table = if table.is_a Table then table else connection.query (SQL_Query.Table_Name table)
+        col_names = db_table.column_names.map n-> Option n n.pretty
+        if single_choice then Single_Choice [Option "<Custom>" '"Column"']+col_names display=..Always else
+            Multiple_Choice col_names display=..Always
+
+private _spatial_driver_widget connection =
+    names = connection.spatial_drivers.at "short_name" . to_vector
+    options = names.map n-> Option n n.pretty
+    Single_Choice options+[Option "<Custom>" '"DriverName"'] display=..Always
+
+private _handle_existing_file path on_existing_file allow_append:Boolean=False =
+    if path.exists then case on_existing_file of
+        Existing_File_Behavior.Append -> if allow_append then Nothing else
+            Error.throw (Illegal_Argument.Error "DuckDB does not support appending to existing files.")
+        Existing_File_Behavior.Error -> Error.throw (File_Error.Already_Exists path)
+        _ -> Nothing
+
+    if path.exists.not || on_existing_file==Existing_File_Behavior.Append then action-> action path else
+        action ->
+            tmp_file = File.create_temporary_file prefix="duckdb_write_" suffix=".tmp"
+            path.move_to tmp_file replace_existing=True
+
+            ## Convert any Panic to an Error allowing us to restore the original file on failure
+            result = Panic.catch Any (action path) caught_panic-> Error.throw caught_panic.payload
+
+            case result.is_error of
+                True -> tmp_file.move_to path replace_existing=True
+                False ->
+                    if on_existing_file==Existing_File_Behavior.Overwrite then tmp_file.delete else
+                        tmp_file.move_to (path.parent / (path.name+".bak")) replace_existing=True
+
+            result
+
+private _additional_files extension = case extension.to_case ..Lower of
+    ".tab" ->
+        ## Map Info - 2 files needed .tab, .dat and optionally .id, .shp
+        [".dat", "*.id", "*.shp"]
+    ".shp" ->
+        ## Shapefile - 3 files needed .shp, .shx, .dbf and optionally .prj
+        [".shx", ".dbf", "*.prj"]
+    _ -> []
+
+private _with_additional_files resolved_file action =
+    extras = case resolved_file of
+        _ : File -> []
+        _ : URI ->
+            possible_extension = resolved_file.path.drop (..Before_Last ".")
+            extras = _additional_files possible_extension
+            if extras==[] then Data_Link_Helpers.as_file resolved_file action else
+                Error.throw (Illegal_Argument.Error "Cannot use a URI with a file type that requires additional files. Please download all related files first.")
+        _ -> _additional_files resolved_file.extension
+
+    if extras==[] then Data_Link_Helpers.as_file resolved_file action else
+        file = Data_Link_Helpers.as_file resolved_file f->f delete_on_return=False
+        Error.return_if_error file
+
+        parent_source = resolved_file.parent
+        base_name = resolved_file.name.drop (..After_Last ".") . drop (..Last 1)
+        parent_dest = file.parent
+        parent_name = file.name.drop (..After_Last ".") . drop (..Last 1)
+
+        ## Check if all required files exist as then can fail fast
+        check_required = extras.map on_problems=No_Wrap.Value extra->
+            required = extra.starts_with "*" . not
+            if required.not then Nothing else
+                extra_name = base_name + extra
+                source_file = parent_source / extra_name
+                if source_file.exists.not then
+                    Error.throw (File_Error.Not_Found source_file)
+        Error.return_if_error check_required
+
+        ## Copy files locally
+        added = extras.map on_problems=No_Wrap.Value extra->
+            required = extra.starts_with "*" . not
+            extension = if required then extra else extra.drop (..First 1)
+            extra_name = base_name + extension
+            source_file = parent_source / extra_name
+            if source_file.exists.not then Nothing else
+                dest_file = parent_dest / (parent_name + extension)
+                Context.Output.with_enabled <| source_file.copy_to dest_file replace_existing=True
+
+        Panic.with_finalizer action=(action file) <|
+            Context.Output.with_enabled <|
+                file.delete_if_exists
+                added.map f-> if f.is_nothing.not then f.delete_if_exists

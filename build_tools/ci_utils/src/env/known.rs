@@ -6,15 +6,12 @@ use crate::define_env_var;
 use crate::env::accessor::PathBufVariable;
 use crate::env::accessor::PathLike;
 
-
 // ==============
 // === Export ===
 // ==============
 
 pub mod cargo;
 pub mod electron_builder;
-
-
 
 /// PATH environment variable.
 ///
@@ -48,8 +45,6 @@ pub mod win {
 
     /// Directory where 32-bit programs are installed.
     pub const PROGRAMFILES_X86: PathBufVariable = PathBufVariable("ProgramFiles(x86)");
-
-
 
     /// Directory containing user's Start menu programs shortcuts.
     pub fn start_menu_programs() -> Result<PathBuf> {

@@ -22,3 +22,6 @@
 - get_all_vector value:Standard.Base.Any.Any should_wrap:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - map_attached_warnings_helper mapper:Standard.Base.Any.Any value:Standard.Base.Any.Any frames_to_drop:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - set_array value:Standard.Base.Any.Any warnings:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- Standard.Base.Any.Any.has_warnings self warning_type:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+- Standard.Base.Any.Any.remove_warnings self warning_type:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+- Standard.Base.Any.Any.throw_on_warning self warning_type:Standard.Base.Any.Any= -> Standard.Base.Any.Any

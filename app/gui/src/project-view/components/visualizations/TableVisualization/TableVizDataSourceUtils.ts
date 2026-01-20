@@ -1,10 +1,24 @@
 import { Ast } from '@/util/ast'
 import { Pattern } from '@/util/ast/match'
 import type { IServerSideGetRowsRequest } from 'ag-grid-enterprise'
-import { actionMap, FilterAction, getFilterValue, GridFilterModel } from './tableVizFilterUtils'
+import {
+  actionMap,
+  type FilterAction,
+  getFilterValue,
+  type GridFilterModel,
+} from './tableVizFilterUtils'
 import { getCellValueType } from './tableVizUtils'
 
-export type ValueTypes = 'Date' | 'Time' | 'Date_Time' | 'Integer' | 'Char' | 'Boolean'
+export type ValueTypes =
+  | 'Date'
+  | 'Time'
+  | 'Date_Time'
+  | 'Integer'
+  | 'Char'
+  | 'Boolean'
+  | 'Float'
+  | 'Decimal'
+  | 'Byte'
 export type ValueTypeArgumentChild = { valueType: ValueTypes; value: string }
 type ValueTypeArgumentParent =
   | { valueType: ValueTypes; value: string }
@@ -39,6 +53,9 @@ const parseFilterValues = (
       return pattern.instantiateCopied([Ast.TextLiteral.new(value.value, tempModule)])
     }
     case 'Integer':
+    case 'Float':
+    case 'Decimal':
+    case 'Byte':
       return Ast.parseExpression(value.value, tempModule)!
     case 'Char':
       return Ast.TextLiteral.new(value.value)

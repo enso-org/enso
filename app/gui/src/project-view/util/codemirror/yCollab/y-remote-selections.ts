@@ -6,7 +6,7 @@ import * as pair from 'lib0/pair'
 import { Awareness } from 'y-protocols/awareness.js'
 import { assert } from 'ydoc-shared/util/assert'
 import * as Y from 'yjs'
-import { type YSyncConfig, ySyncFacet } from './y-sync'
+import { ySyncFacet, type YSyncConfig } from './y-sync'
 
 export const yRemoteSelectionsTheme = cmView.EditorView.baseTheme({
   '.cm-ySelection': {},

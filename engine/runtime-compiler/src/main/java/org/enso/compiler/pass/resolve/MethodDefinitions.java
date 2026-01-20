@@ -13,8 +13,7 @@ import org.enso.compiler.core.ir.MetadataStorage;
 import org.enso.compiler.core.ir.Module;
 import org.enso.compiler.core.ir.Name;
 import org.enso.compiler.core.ir.expression.errors.Conversion;
-import org.enso.compiler.core.ir.expression.errors.Conversion.UnsupportedSourceType$;
-import org.enso.compiler.core.ir.module.scope.Definition;
+import org.enso.compiler.core.ir.expression.errors.Conversion.UnsupportedSourceType;
 import org.enso.compiler.core.ir.module.scope.definition.Method;
 import org.enso.compiler.data.BindingsMap;
 import org.enso.compiler.data.BindingsMap.Resolution;
@@ -34,6 +33,7 @@ import org.enso.compiler.pass.analyse.BindingAnalysis$;
 import org.enso.compiler.pass.desugar.ComplexType$;
 import org.enso.compiler.pass.desugar.FunctionBinding$;
 import org.enso.compiler.pass.desugar.GenerateMethodBodies$;
+import org.enso.persist.Persistance;
 import scala.Option;
 import scala.collection.immutable.List;
 import scala.collection.immutable.Seq;
@@ -85,7 +85,7 @@ public final class MethodDefinitions implements MiniPassFactory {
   }
 
   private static boolean computeIsStatic(IR body) {
-    return Method.Explicit$.MODULE$.computeIsStatic(body);
+    return Function.computeIsStatic(body);
   }
 
   private static final class Mini extends MiniIRPass {
@@ -122,17 +122,14 @@ public final class MethodDefinitions implements MiniPassFactory {
                       return switch (method) {
                         case Method.Explicit explicitMethod -> {
                           var isStatic = computeIsStatic(explicitMethod.body());
+                          var methodWithAscribedSelf =
+                              addTypeAscriptionToSelfParameter(explicitMethod);
                           var resolvedMethod =
-                              explicitMethod.copy(
-                                  resolvedMethodRef,
-                                  explicitMethod.body(),
-                                  isStatic,
-                                  explicitMethod.isPrivate(),
-                                  explicitMethod.isStaticWrapperForInstanceMethod(),
-                                  explicitMethod.location(),
-                                  explicitMethod.passData(),
-                                  explicitMethod.diagnostics(),
-                                  explicitMethod.id());
+                              methodWithAscribedSelf
+                                  .copyBuilder()
+                                  .methodReference(resolvedMethodRef)
+                                  .isStatic(isStatic)
+                                  .build();
                           yield resolvedMethod;
                         }
                         case Method.Conversion conversionMethod -> {
@@ -140,129 +137,72 @@ public final class MethodDefinitions implements MiniPassFactory {
                           Name resolvedName =
                               switch (sourceTypeExpr) {
                                 case Name name -> resolveType(name, bindingsMap);
-                                default -> new Conversion(
-                                    sourceTypeExpr,
-                                    UnsupportedSourceType$.MODULE$,
-                                    new MetadataStorage());
+                                default ->
+                                    Conversion.create(
+                                        sourceTypeExpr, UnsupportedSourceType.INSTANCE);
                               };
                           var resolvedMethod =
-                              conversionMethod.copy(
-                                  resolvedMethodRef,
-                                  resolvedName,
-                                  conversionMethod.body(),
-                                  conversionMethod.location(),
-                                  conversionMethod.passData(),
-                                  conversionMethod.diagnostics(),
-                                  conversionMethod.id());
+                              conversionMethod
+                                  .copyBuilder()
+                                  .methodReference(resolvedMethodRef)
+                                  .sourceTypeName(resolvedName)
+                                  .build();
                           yield resolvedMethod;
                         }
-                        default -> throw new CompilerError(
-                            "Unexpected method type in MethodDefinitions pass.");
+                        default ->
+                            throw new CompilerError(
+                                "Unexpected method type in MethodDefinitions pass.");
                       };
                     } else {
                       return def;
                     }
                   });
 
-      java.util.List<Definition> withStaticAliases = new ArrayList<>();
-      for (var def : CollectionConverters.asJava(newDefs)) {
-        withStaticAliases.add(def);
-        if (def instanceof Method.Explicit method && !method.isStatic()) {
-          var staticAlias = generateStaticAliasMethod(method);
-          if (staticAlias != null) {
-            withStaticAliases.add(staticAlias);
-          }
-        }
-      }
-
-      return moduleIr.copyWithBindings(CollectionConverters.asScala(withStaticAliases).toList());
+      return moduleIr.copyWithBindings(newDefs);
     }
 
-    /**
-     * Returns null if there is no suitable static alias method that can be generated for the given
-     * {@code method}.
-     *
-     * @param method Non-static method from which a static alias method is generated.
-     * @return Static alias method for the given {@code method} or null.
-     */
-    private Method.Explicit generateStaticAliasMethod(Method.Explicit method) {
-      assert !method.isStatic();
+    private Method.Explicit addTypeAscriptionToSelfParameter(Method.Explicit method) {
       var typePointer = method.methodReference().typePointer();
       if (typePointer.isEmpty()) {
-        return null;
+        return method;
       }
       var resolution =
           MetadataInteropHelpers.getMetadataOrNull(typePointer.get(), INSTANCE, Resolution.class);
       if (resolution == null) {
-        return null;
+        return method;
       }
       if (resolution.target() instanceof ResolvedType resType
-          && canGenerateStaticWrappers(resType.tp())) {
-        assert method.body() instanceof Function.Lambda;
-        var dup = method.duplicate(true, true, true, false);
-        // This is the self argument that will receive the `SelfType.type` value upon dispatch, it
-        // is
-        // added to avoid modifying the dispatch mechanism.
-        var syntheticModuleSelfArg =
-            new DefinitionArgument.Specified(
-                new Name.Self(null, true, new MetadataStorage()),
-                Option.empty(),
-                Option.empty(),
-                false,
-                null,
-                new MetadataStorage());
-        var newBody =
-            new Function.Lambda(
-                // This is the synthetic Self argument that gets the static module
-                list(syntheticModuleSelfArg),
-                // Here we add the type ascription ensuring that the 'proper' self argument only
-                // accepts _instances_ of the type (or triggers conversions)
-                addTypeAscriptionToSelfArgument(dup.body()),
-                null,
-                true,
-                new MetadataStorage());
-        // The actual `self` argument that is referenced inside of method body is the second one in
-        // the lambda.
-        // This is the argument that will hold the actual instance of the object we are calling on,
-        // e.g. `My_Type.method instance`.
-        // We add a type check to it to ensure only `instance` of `My_Type` can be passed to it.
-        var staticMethod =
-            dup.copy(
-                dup.methodReference(),
-                newBody,
-                true,
-                dup.isPrivate(),
-                true,
-                dup.location(),
-                dup.passData(),
-                dup.diagnostics(),
-                dup.id());
-        return staticMethod;
+          && method.body() instanceof Function.Lambda body
+          && canAddSelfParameterTypeAscription(resType.tp())) {
+        var bodyDup = body.duplicate(true, true, true, false);
+        // Here we add the type ascription ensuring that the 'proper' self argument only
+        // accepts _instances_ of the type (or triggers conversions)
+        var newBodyRef = Persistance.Reference.of(addTypeAscriptionToSelfParameter(bodyDup), true);
+        return method.copyBuilder().bodyReference(newBodyRef).build();
       }
-      return null;
+      return method;
     }
 
-    private static Expression addTypeAscriptionToSelfArgument(Expression methodBody) {
-      if (methodBody instanceof Function.Lambda lambda) {
-        if (lambda.arguments().isEmpty()) {
-          throw new CompilerError(
-              "MethodDefinitions pass: expected at least one argument (self) in the method, but got"
-                  + " none.");
-        }
-        var firstArg = lambda.arguments().head();
-        if (firstArg instanceof DefinitionArgument.Specified selfArg
-            && selfArg.name() instanceof Name.Self) {
-          var selfType = new Name.SelfType(selfArg.identifiedLocation(), new MetadataStorage());
-          var newSelfArg = selfArg.copyWithAscribedType(Option.apply(selfType));
-          return lambdaWithNewSelfArg(lambda, newSelfArg);
-        } else {
-          throw new CompilerError(
-              "MethodDefinitions pass: expected the first argument to be `self`, but got "
-                  + firstArg);
-        }
+    private static boolean canAddSelfParameterTypeAscription(Type tp) {
+      return tp.members().nonEmpty() || (tp.builtinType() && !"Nothing".equals(tp.name()));
+    }
+
+    private static Expression addTypeAscriptionToSelfParameter(Function.Lambda lambda) {
+      if (lambda.arguments().isEmpty()) {
+        throw new CompilerError(
+            "MethodDefinitions pass: expected at least one argument (self) in the method, but got"
+                + " none.");
+      }
+      var firstArg = lambda.arguments().head();
+      if (firstArg instanceof DefinitionArgument.Specified selfArg
+          && selfArg.name() instanceof Name.Self) {
+        var selfType = new Name.SelfType(selfArg.identifiedLocation(), new MetadataStorage());
+        var newSelfArg = selfArg.copyWithAscribedType(Option.apply(selfType));
+        return lambdaWithNewSelfArg(lambda, newSelfArg);
       } else {
         throw new CompilerError(
-            "Unexpected body type " + methodBody + " in MethodDefinitions pass.");
+            "MethodDefinitions pass: expected the first argument to be `self`, but got "
+                + firstArg);
       }
     }
 
@@ -273,15 +213,6 @@ public final class MethodDefinitions implements MiniPassFactory {
       args.set(0, newSelfArg);
       var newArgs = CollectionConverters.asScala(args).toList();
       return lambda.copyWithArguments(newArgs);
-    }
-
-    // Generate static wrappers for
-    // 1. Types having at least one type constructor
-    // 2. All builtin types except for Nothing. Nothing's eigentype is Nothing and not Nothing.type,
-    //    would lead to overriding conflicts.
-    //    TODO: Remove the hardcoded type once Enso's annotations can define parameters.
-    private static boolean canGenerateStaticWrappers(Type tp) {
-      return tp.members().nonEmpty() || (tp.builtinType() && !"Nothing".equals(tp.name()));
     }
 
     private Name resolveType(Name typePointer, BindingsMap availableSymbolsMap) {
@@ -296,20 +227,18 @@ public final class MethodDefinitions implements MiniPassFactory {
         var resolvedItemsOpt = availableSymbolsMap.resolveQualifiedName(items);
         if (resolvedItemsOpt.isLeft()) {
           var err = resolvedItemsOpt.swap().toOption().get();
-          return new org.enso.compiler.core.ir.expression.errors.Resolution(
+          return org.enso.compiler.core.ir.expression.errors.Resolution.create(
               typePointer,
-              new org.enso.compiler.core.ir.expression.errors.Resolution.ResolverError(err),
-              new MetadataStorage());
+              new org.enso.compiler.core.ir.expression.errors.Resolution.ResolverError(err));
         }
         var resolvedItems = resolvedItemsOpt.toOption().get();
         assert resolvedItems.size() == 1 : "Expected a single resolution";
         switch (resolvedItems.head()) {
           case ResolvedConstructor ignored -> {
-            return new org.enso.compiler.core.ir.expression.errors.Resolution(
+            return org.enso.compiler.core.ir.expression.errors.Resolution.create(
                 typePointer,
                 new org.enso.compiler.core.ir.expression.errors.Resolution.UnexpectedConstructor(
-                    "a method definition target"),
-                new MetadataStorage());
+                    "a method definition target"));
           }
           case ResolvedModule resMod -> {
             MetadataInteropHelpers.updateMetadata(typePointer, INSTANCE, new Resolution(resMod));
@@ -320,39 +249,34 @@ public final class MethodDefinitions implements MiniPassFactory {
             return typePointer;
           }
           case ResolvedPolyglotSymbol ignored -> {
-            return new org.enso.compiler.core.ir.expression.errors.Resolution(
+            return org.enso.compiler.core.ir.expression.errors.Resolution.create(
                 typePointer,
                 new org.enso.compiler.core.ir.expression.errors.Resolution.UnexpectedPolyglot(
-                    "a method definition target"),
-                new MetadataStorage());
+                    "a method definition target"));
           }
           case ResolvedPolyglotField ignored -> {
-            return new org.enso.compiler.core.ir.expression.errors.Resolution(
+            return org.enso.compiler.core.ir.expression.errors.Resolution.create(
                 typePointer,
                 new org.enso.compiler.core.ir.expression.errors.Resolution.UnexpectedPolyglot(
-                    "a method definition target"),
-                new MetadataStorage());
+                    "a method definition target"));
           }
           case ResolvedModuleMethod ignored -> {
-            return new org.enso.compiler.core.ir.expression.errors.Resolution(
+            return org.enso.compiler.core.ir.expression.errors.Resolution.create(
                 typePointer,
                 new org.enso.compiler.core.ir.expression.errors.Resolution.UnexpectedMethod(
-                    "a method definition target"),
-                new MetadataStorage());
+                    "a method definition target"));
           }
           case ResolvedExtensionMethod ignored -> {
-            return new org.enso.compiler.core.ir.expression.errors.Resolution(
+            return org.enso.compiler.core.ir.expression.errors.Resolution.create(
                 typePointer,
                 new org.enso.compiler.core.ir.expression.errors.Resolution.UnexpectedMethod(
-                    "a static method definition target"),
-                new MetadataStorage());
+                    "a static method definition target"));
           }
           case ResolvedConversionMethod ignored -> {
-            return new org.enso.compiler.core.ir.expression.errors.Resolution(
+            return org.enso.compiler.core.ir.expression.errors.Resolution.create(
                 typePointer,
                 new org.enso.compiler.core.ir.expression.errors.Resolution.UnexpectedMethod(
-                    "a conversion method definition target"),
-                new MetadataStorage());
+                    "a conversion method definition target"));
           }
           default -> throw new IllegalStateException("Unexpected value: " + resolvedItems.head());
         }

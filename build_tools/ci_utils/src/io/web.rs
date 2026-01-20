@@ -11,14 +11,11 @@ use reqwest::RequestBuilder;
 use reqwest::Response;
 use tokio::io::AsyncBufRead;
 
-
 // ==============
 // === Export ===
 // ==============
 
 pub mod client;
-
-
 
 pub async fn get(url: impl IntoUrl) -> Result<Response> {
     client::get(&Client::default(), url).await
@@ -29,8 +26,9 @@ pub async fn handle_error_response(response: Response) -> Result<Response> {
         let e = Err(e);
         match response.text().await {
             Ok(body) => e.context(format!("Error message body: {body}")),
-            Err(body_error) =>
-                e.context(format!("Failed to get error response body: {body_error}")),
+            Err(body_error) => {
+                e.context(format!("Failed to get error response body: {body_error}"))
+            }
         }
     } else {
         Ok(response)
@@ -60,7 +58,6 @@ pub async fn download_reader(url: impl IntoUrl) -> Result<impl AsyncBufRead + Un
 pub async fn download_file(url: impl IntoUrl, output: impl AsRef<Path>) -> Result {
     stream_response_to_file(reqwest::get(url).await?, output).await
 }
-
 
 #[tracing::instrument(name="Streaming http response to a file.", skip(output, response), fields(
     dest = %output.as_ref().display(),

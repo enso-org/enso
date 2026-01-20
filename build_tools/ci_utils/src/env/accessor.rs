@@ -4,8 +4,6 @@ use crate::env::expect_var;
 use crate::env::expect_var_os;
 use crate::program::command::FallibleManipulator;
 
-
-
 /// An environment variable of known name.
 ///
 /// "raw" means that we do not know its "real" type and deal only with strings. When more type
@@ -40,7 +38,11 @@ pub trait RawVariable {
 
     /// Remove (i.e. unset) this variable.
     fn remove(&self) {
-        std::env::remove_var(self.name());
+        // See API docs, this is safe on Windows but inherently unsafe on other operating systems.
+        #[allow(unsafe_code)]
+        unsafe {
+            std::env::remove_var(self.name());
+        }
     }
 }
 
@@ -133,8 +135,8 @@ impl TypedVariable for PathBufVariable {
 #[derive(Clone, Copy, Debug, Ord, PartialOrd, Eq, PartialEq, derive_more::Deref)]
 pub struct SimpleVariable<Value, Borrowed: ?Sized = Value> {
     #[deref]
-    pub name:          &'static str,
-    pub phantom_data:  PhantomData<Value>,
+    pub name: &'static str,
+    pub phantom_data: PhantomData<Value>,
     pub phantom_data2: PhantomData<Borrowed>,
 }
 
@@ -181,7 +183,8 @@ impl<Value, Borrowed: ?Sized> RawVariable for SimpleVariable<Value, Borrowed> {
 }
 
 impl<Value: FromStr, Borrowed: ToString + ?Sized> TypedVariable for SimpleVariable<Value, Borrowed>
-where Value::Err: Into<anyhow::Error>
+where
+    Value::Err: Into<anyhow::Error>,
 {
     type Value = Value;
     type Borrowed = Borrowed;
@@ -236,7 +239,7 @@ impl PathLike {
 /// Environment variable consisting of string separated by a given separator.
 #[derive(Clone, Copy, Debug, Ord, PartialOrd, Eq, PartialEq)]
 pub struct Separated {
-    pub name:      &'static str,
+    pub name: &'static str,
     pub separator: &'static str,
 }
 

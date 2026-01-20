@@ -107,7 +107,7 @@ type SQL_Type_Recipe
        private: true
        ---
        A recipe for computing the SQL type.
-    Value connection:Connection context:SQL_IR_Source expression:SQL_IR_Expression
+    Value connection context:SQL_IR_Source expression:SQL_IR_Expression
 
 ## ---
    private: true
@@ -121,8 +121,7 @@ get_or_compute (ref : Ref (SQL_Type_Recipe | SQL_Type)) -> SQL_Type =
         computed : SQL_Type -> computed
         SQL_Type_Recipe.Value connection context expression ->
             statement = connection.dialect.prepare_fetch_types_query expression context
-            statement_setter = connection.dialect.get_statement_setter
-            columns = connection.fetch_columns statement statement_setter
+            columns = connection.base_connection.fetch_columns statement
             only_column = columns.first
             computed_type = only_column.second
             ref.put computed_type

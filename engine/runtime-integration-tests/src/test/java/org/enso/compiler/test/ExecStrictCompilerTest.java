@@ -36,10 +36,13 @@ public class ExecStrictCompilerTest {
   @Test
   public void redefinedArgument() {
     try {
-      var module = ctxRule.eval("enso", """
-      type My_Type
-          Value a b c a
-      """);
+      var module =
+          ctxRule.eval(
+              "enso",
+              """
+              type My_Type
+                  Value a b c a
+              """);
       fail("Expecting no returned value: " + module);
     } catch (PolyglotException ex) {
       assertTrue("Syntax error", ex.isSyntaxError());
@@ -92,11 +95,12 @@ public class ExecStrictCompilerTest {
 
   @Test
   public void testUnknownTypeExtensionMethod() throws Exception {
-    var code = """
-    Unknown_Type.foo = 42
+    var code =
+        """
+        Unknown_Type.foo = 42
 
-    main = 42
-    """;
+        main = 42
+        """;
     var src = Source.newBuilder("enso", code, "extension.enso").build();
     try {
       var module = ctxRule.eval(src);
@@ -166,6 +170,113 @@ public class ExecStrictCompilerTest {
       assertThat(
           ex.getMessage(),
           AllOf.allOf(containsString("Unknown"), containsString("could not be found")));
+    }
+  }
+
+  @Test
+  public void blockAppliedToUnknownSymbol() throws Exception {
+    var code =
+        """
+        from Standard.Base import all
+        fn =
+            f
+                10
+        """;
+    try {
+      var module = ctxRule.eval(LanguageInfo.ID, code);
+      var fn = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "fn");
+      var r = fn.execute();
+      fail("We don't expect any result, but exception: " + r);
+    } catch (PolyglotException ex) {
+      assertThat(
+          ex.getMessage(),
+          AllOf.allOf(containsString("The name `f`"), containsString("could not be found")));
+    }
+  }
+
+  @Test
+  public void suspendedDefaultedUnionArgument() throws Exception {
+    var code =
+        """
+        from Standard.Base import all
+        def a:Integer ~b:Text|Nothing=Nothing -> Text|Nothing =
+            if a < 0 then "Minus" else
+                b
+        call_def_with_thunk a:Integer =
+            def a 6*7
+        """;
+    var module = ctxRule.eval(LanguageInfo.ID, code);
+    var def = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "def");
+    var hi = def.execute(1, "Hi");
+    assertEquals("Hi", hi.asString());
+    try {
+      var noResult = def.execute(-2, 20);
+      fail("Invoking def with second argument being Integer yields an exception: " + noResult);
+    } catch (PolyglotException ex) {
+      assertThat(
+          ex.getMessage(),
+          AllOf.allOf(
+              containsString("expected `b` to be Text"), containsString("but got Integer")));
+    }
+    assertTrue("Default value is Nothing. Returns Nothing.", def.execute(3).isNull());
+    assertTrue("Passing null is OK.", def.execute(4, null).isNull());
+    var thunkArg = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "call_def_with_thunk");
+    var m = thunkArg.execute(-1);
+    assertEquals(
+        "Invoking def with second argument being a Thunk passes the type check",
+        "Minus",
+        m.asString());
+    try {
+      var fail = thunkArg.execute(1);
+      fail(
+          "Non-negative first argument requires evaluation of the second and that fails on type"
+              + " check.");
+    } catch (PolyglotException ex) {
+      assertThat(
+          ex.getMessage(),
+          AllOf.allOf(
+              containsString("expected `b` to be Text"), containsString("but got Integer")));
+    }
+  }
+
+  @Test
+  public void onlyElse() throws Exception {
+    var code =
+        """
+        from Standard.Base import all
+        def a:Integer =
+            else a
+        """;
+    var module = ctxRule.eval(LanguageInfo.ID, code);
+    var def = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "def");
+    try {
+      var noResult = def.execute(20);
+      fail("Yields an error: " + noResult);
+    } catch (PolyglotException ex) {
+      assertThat(ex.getMessage(), containsString("no branch matches"));
+    }
+  }
+
+  @Test
+  public void missingElseBranch() throws Exception {
+    var code =
+        """
+        from Standard.Base import all
+        def a:Boolean ~b c =
+            if a then
+                b
+            else
+            node = c
+            node
+        """;
+    try {
+      var module = ctxRule.eval(LanguageInfo.ID, code);
+      fail("Compilation produces an error, not a module: " + module);
+    } catch (PolyglotException ex) {
+      assertThat(
+          "In strict mode the error happens when compiling the module. No execution is needed.",
+          ex.getMessage(),
+          containsString("error: Missing else branch."));
     }
   }
 }

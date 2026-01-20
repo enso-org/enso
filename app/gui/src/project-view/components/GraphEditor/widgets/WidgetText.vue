@@ -1,22 +1,22 @@
 <script setup lang="ts">
 import { useCurrentProject } from '$/components/WithCurrentProject.vue'
-import CodeMirrorWidgetBase from '@/components/GraphEditor/CodeMirrorWidgetBase.vue'
-import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import {
   defineWidget,
   type HandledUpdate,
   Score,
   WidgetInput,
   widgetProps,
-} from '@/providers/widgetRegistry'
+} from '$/providers/openedProjects/widgetRegistry'
+import CodeMirrorWidgetBase from '@/components/GraphEditor/CodeMirrorWidgetBase.vue'
+import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import { Ast } from '@/util/ast'
-import { languageExtension } from '@/util/codemirror/language'
+import { useLanguageSupport } from '@/util/codemirror/language'
+import { Ok } from 'enso-common/src/utilities/data/result'
 import { computed, ref, useTemplateRef } from 'vue'
-import { Ok } from 'ydoc-shared/util/data/result'
 
 const baseEditor = useTemplateRef('baseEditor')
 const props = defineProps(widgetProps(widgetDefinition))
-const currentProject = useCurrentProject().ref
+const { module } = useCurrentProject()
 
 function focusAndSelect() {
   baseEditor.value?.focusAndSelect()
@@ -26,36 +26,30 @@ const textContents = computed(() =>
   props.input.value instanceof Ast.TextLiteral ? props.input.value.rawTextContent : '',
 )
 function acceptValue(text: string): HandledUpdate {
-  if (!currentProject.value) return Ok()
-  const graph = currentProject.value.graph
-
-  if (props.input.value instanceof Ast.TextLiteral) {
-    const edit = graph.startEdit()
-    const value = edit.getVersion(props.input.value)
-    if (value.rawTextContent === text) return Ok()
-    value.setRawTextContent(text)
-    return props.updateCallback({ edit, directInteraction: true })
-  } else {
-    let value: Ast.Owned<Ast.MutableTextLiteral>
-    if (inputTextLiteral.value) {
-      value = Ast.copyIntoNewModule(inputTextLiteral.value)
+  return module.value.edit((edit) => {
+    if (props.input.value instanceof Ast.TextLiteral) {
+      const value = edit.getVersion(props.input.value)
+      if (value.rawTextContent === text) return Ok()
       value.setRawTextContent(text)
+      return props.updateCallback({ edit, directInteraction: true })
     } else {
-      value = Ast.TextLiteral.new(text)
+      let value: Ast.Owned<Ast.MutableTextLiteral>
+      if (inputTextLiteral.value) {
+        value = Ast.copyIntoNewModule(inputTextLiteral.value)
+        value.setRawTextContent(text)
+      } else {
+        value = Ast.TextLiteral.new(text)
+      }
+      return props.updateCallback({
+        portUpdate: {
+          value,
+          origin: props.input.portId,
+        },
+        directInteraction: true,
+      })
     }
-    return props.updateCallback({
-      portUpdate: {
-        value,
-        origin: props.input.portId,
-      },
-      directInteraction: true,
-    })
-  }
+  })
 }
-
-const syntaxLanguage = computed(() =>
-  props.input.dynamicConfig?.kind === 'Text_Input' ? props.input.dynamicConfig.syntax : undefined,
-)
 
 /** Widget Input as Text Literal; undefined if there's no value, or the value is not a Text literal. */
 const inputTextLiteral = computed((): Ast.TextLiteral | undefined => {
@@ -76,13 +70,11 @@ const placeholder = computed(() =>
   WidgetInput.isPlaceholder(props.input) ? (inputTextLiteral.value?.rawTextContent ?? '') : '',
 )
 
-/** Language support for a known syntax. */
-const languageExt = computed(() => languageExtension(syntaxLanguage.value))
-/** Extensions added when any language support is available, e.g. autocomplete (TODO: #12305). */
-const anyLanguageExt = computed(() => [])
-const extensions = computed(() =>
-  languageExt.value ? [languageExt.value, ...anyLanguageExt.value] : [],
+const textInputConfig = computed(() =>
+  props.input.dynamicConfig?.kind === 'Text_Input' ? props.input.dynamicConfig : undefined,
 )
+const syntax = computed(() => textInputConfig.value?.syntax)
+const extensions = useLanguageSupport(syntax)
 
 function isTextMultiline(text: string) {
   return !!text.match(/[\r\n]/)
@@ -126,7 +118,8 @@ export const widgetDefinition = defineWidget(
 <template>
   <label
     class="WidgetText widgetRounded widgetPill"
-    :class="{ singleLine: !isMultiline }"
+    :class="{ widgetSingleLine: !isMultiline }"
+    :data-text-syntax="syntax"
     @pointerdown.stop.prevent="focusAndSelect"
     @click.stop
   >
@@ -157,9 +150,10 @@ export const widgetDefinition = defineWidget(
   display: inline-flex;
   justify-content: center;
   align-items: center;
+  align-self: start;
 }
 
-.singleLine :deep(.cm-scroller) {
+.widgetSingleLine :deep(.cm-scroller) {
   font-weight: 800;
 }
 
@@ -167,7 +161,7 @@ export const widgetDefinition = defineWidget(
  * In multiline mode the widget is still sized to content (unless max-height is exceeded), but the
  * content is padded to be slightly larger than its scroller so that the scrollbar shows.
  */
-.WidgetText:not(.singleLine) {
+.WidgetText:not(.widgetSingleLine) {
   & :deep(.cm-scroller) {
     min-height: 2.5em;
     max-height: 20em;

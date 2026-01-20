@@ -1,21 +1,12 @@
 /** @file Functions to initiate a download. */
-
-import type { DownloadUrlOptions, SystemApi } from '../../../env'
-
-/** Options for `download` function. */
-export interface DownloadOptions {
-  readonly url: string
-  readonly name?: string | null | undefined
-  readonly electronOptions?: Omit<DownloadUrlOptions, 'name' | 'url'>
-}
+import type { SystemApi } from '$/electronApi'
+import type { DownloadOptions, DownloadUrlOptions } from 'enso-common/src/download'
 
 /** Initiate a download for the specified url. */
 export async function download(options: DownloadOptions) {
-  let { url } = options
-  const { name, electronOptions } = options
-
-  url = new URL(url, location.toString()).toString()
-  const systemApi = window.systemApi
+  const { url: urlRaw, name, electronOptions } = options
+  const url = new URL(urlRaw, location.toString()).toString()
+  const systemApi = window.api?.system
 
   if (systemApi != null) {
     await downloadUsingElectron({

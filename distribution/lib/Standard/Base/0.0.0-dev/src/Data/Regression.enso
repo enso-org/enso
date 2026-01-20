@@ -5,8 +5,8 @@ import project.Data.Text.Text
 import project.Data.Vector.Vector
 import project.Error.Error
 import project.Errors.Illegal_Argument.Illegal_Argument
-import project.Nothing.Nothing
 import project.Panic.Panic
+from project.Nothing import all
 
 polyglot java import org.enso.base.statistics.FitError
 polyglot java import org.enso.base.statistics.LinearModel
@@ -63,7 +63,7 @@ type Model
    ---
    Use Least Squares to fit a line to the data.
 fit_least_squares : Vector -> Vector -> Model -> Fitted_Model ! Illegal_Argument | Fit_Error
-fit_least_squares known_xs known_ys model=Model.Linear =
+fit_least_squares known_xs:Vector known_ys:Vector model=Model.Linear =
     Illegal_Argument.handle_java_exception <| Fit_Error.handle_java_exception <| case model of
         Model.Linear intercept ->
             fitted = if intercept.is_nothing then Regression.fit_linear known_xs known_ys else

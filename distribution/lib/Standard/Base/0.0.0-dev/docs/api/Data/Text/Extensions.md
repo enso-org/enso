@@ -1,5 +1,8 @@
 ## Enso Signatures 1.0
 ## module Standard.Base.Data.Text.Extensions
+- Standard.Base.Any.Any.pretty self -> Standard.Base.Any.Any
+- Standard.Base.Any.Any.to_display_text self -> Standard.Base.Any.Any
+- Standard.Base.Any.Any.to_text self -> Standard.Base.Any.Any
 - Standard.Base.Data.Text.Text.* self count:Standard.Base.Data.Numbers.Integer -> Standard.Base.Any.Any
 - Standard.Base.Data.Text.Text.at self index:Standard.Base.Data.Numbers.Integer= -> Standard.Base.Any.Any
 - Standard.Base.Data.Text.Text.bytes self encoding:Standard.Base.Data.Text.Encoding.Encoding= on_problems:Standard.Base.Errors.Problem_Behavior.Problem_Behavior= -> Standard.Base.Any.Any
@@ -40,7 +43,7 @@
 - Standard.Base.Data.Text.Text.parse_time_zone self -> Standard.Base.Any.Any
 - Standard.Base.Data.Text.Text.repeat self count:Standard.Base.Data.Numbers.Integer= -> Standard.Base.Any.Any
 - Standard.Base.Data.Text.Text.replace self term:(Standard.Base.Data.Text.Text|Standard.Base.Data.Text.Regex.Regex) replacement:Standard.Base.Data.Text.Text case_sensitivity:Standard.Base.Data.Text.Case_Sensitivity.Case_Sensitivity= only_first:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Any.Any
-- Standard.Base.Data.Text.Text.reverse self -> Standard.Base.Any.Any
+- Standard.Base.Data.Text.Text.reverse self -> Standard.Base.Data.Text.Text
 - Standard.Base.Data.Text.Text.second self -> Standard.Base.Any.Any
 - Standard.Base.Data.Text.Text.split self delimiter:Standard.Base.Any.Any= case_sensitivity:Standard.Base.Data.Text.Case_Sensitivity.Case_Sensitivity= use_regex:Standard.Base.Any.Any= -> Standard.Base.Any.Any
 - Standard.Base.Data.Text.Text.starts_with self prefix:Standard.Base.Data.Text.Text case_sensitivity:Standard.Base.Data.Text.Case_Sensitivity.Case_Sensitivity= -> Standard.Base.Any.Any

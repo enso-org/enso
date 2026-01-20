@@ -58,7 +58,7 @@ public class ForeignMethodInvokeTest {
       var lines = text.split("\n");
       assertThat(
           "Expecting message at first line: " + lines[0],
-          lines[0].matches("Cannot parse.*foreign python.*method.*languages are .+"));
+          lines[0].matches(".*Cannot parse.*foreign python.*method.*languages are .+"));
       assertThat(
           "First error line comes from TryPython file: " + lines[1],
           lines[1].matches(".*at <enso> TryPython\\.py_array\\(TryPython:3.*\\)"));

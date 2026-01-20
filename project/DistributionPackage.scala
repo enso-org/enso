@@ -9,7 +9,10 @@ import sbt.util.{CacheStore, CacheStoreFactory, FileInfo, Tracked}
 import scala.sys.process._
 import org.enso.build.WithDebugCommand
 
+import java.io.File
 import java.nio.file.Paths
+import scala.collection.mutable.ArrayBuffer
+import scala.jdk.javaapi.CollectionConverters.asJava
 import scala.util.Try
 
 object DistributionPackage {
@@ -109,23 +112,6 @@ object DistributionPackage {
       baseName
     }
 
-  def createProjectManagerPackage(
-    distributionRoot: File,
-    cacheFactory: CacheStoreFactory
-  ): Unit = {
-    copyDirectoryIncremental(
-      file("distribution/project-manager/THIRD-PARTY"),
-      distributionRoot / "THIRD-PARTY",
-      cacheFactory.make("project-manager-third-party")
-    )
-
-    copyFilesIncremental(
-      Seq(file(executableName("project-manager"))),
-      distributionRoot / "bin",
-      cacheFactory.make("project-manager-exe")
-    )
-  }
-
   /** @param distributionRoot Root directory for the engine build distribution. Will be populated.
     * @param jarModulesToCopy Modular Jar archives that will be copied into the `component` directory.
     * @param pythonResources Directories with extracted resources from GraalPy
@@ -198,11 +184,14 @@ object DistributionPackage {
       log             = log
     )
 
-    if (!GraalVM.EnsoLauncher.shell) {
+    if (GraalVM.EnsoLauncher.native) {
       log.info(
-        s"Not using shell launchers as ${GraalVM.EnsoLauncher.VAR_NAME} env variable is ${GraalVM.EnsoLauncher.toString}"
+        s"Using native launchers as ${GraalVM.EnsoLauncher.VAR_NAME} env variable is ${GraalVM.EnsoLauncher.toString}"
       )
     } else {
+      log.info(
+        s"Using shell launchers as ${GraalVM.EnsoLauncher.VAR_NAME} env variable is ${GraalVM.EnsoLauncher.toString}"
+      )
       copyDirectoryIncremental(
         file("distribution/bin"),
         distributionRoot / "bin",
@@ -218,134 +207,171 @@ object DistributionPackage {
     )
   }
 
+  /** Generates indexes (compiles) all the standard libraries.
+    * Will do that only for libraries which have modified source files since last
+    * compilation.
+    * Compilation is done by invoking a single subprocess.
+    * @param libRoot Root dir for all the libraries.
+    */
   def indexStdLibs(
     stdLibVersion: String,
     ensoVersion: String,
-    stdLibRoot: File,
-    ensoExecutable: File,
+    libRoot: File,
+    javaOpts: Seq[String],
     cacheFactory: CacheStoreFactory,
-    log: Logger
+    log: Logger,
+    env: Map[String, String] = Map.empty
   ): Unit = {
-    for {
-      libMajor <- stdLibRoot.listFiles()
-      libName  <- (stdLibRoot / libMajor.getName).listFiles()
-    } yield {
-      indexStdLib(
-        libName,
-        stdLibVersion,
-        ensoVersion,
-        ensoExecutable,
-        cacheFactory,
-        log
+    val modifiedLibs: ArrayBuffer[File] = ArrayBuffer()
+    for (libNamespace <- libRoot.listFiles()) {
+      for (libName <- libNamespace.listFiles()) {
+        val libRootDir = libName / stdLibVersion
+        val cache      = cacheFactory.make(s"${libName.getName}.$ensoVersion")
+        val trackedFiles = libRootDir
+          .globRecursive("*.enso" && FileOnlyFilter)
+          .get()
+          .toSet
+        Tracked.diffInputs(cache, FileInfo.lastModified)(trackedFiles) { diff =>
+          if (diff.modified.nonEmpty) {
+            modifiedLibs.append(libRootDir)
+          }
+        }
+      }
+    }
+
+    if (modifiedLibs.nonEmpty) {
+      invokeIndexStdLibs(
+        libRootDirs = modifiedLibs,
+        javaOpts    = javaOpts,
+        log         = log,
+        env         = env
       )
     }
   }
 
-  def indexStdLib(
-    libName: File,
-    stdLibVersion: String,
-    ensoVersion: String,
-    ensoExecutable: File,
-    cacheFactory: CacheStoreFactory,
-    log: Logger
+  private object FileOnlyFilter extends sbt.io.FileFilter {
+    def accept(arg: File): Boolean = arg.isFile
+  }
+
+  private def invokeIndexStdLibs(
+    libRootDirs: Seq[File],
+    javaOpts: Seq[String],
+    log: Logger,
+    env: Map[String, String] = Map.empty
   ): Unit = {
-    object FileOnlyFilter extends sbt.io.FileFilter {
-      def accept(arg: File): Boolean = arg.isFile
+    val libNames = libRootDirs
+      .map { libRoot =>
+        libRoot.getParentFile.getName
+      }
+      .sorted
+      .mkString(", ")
+    val libPaths = libRootDirs.map { libRoot =>
+      libRoot.getAbsolutePath
     }
-    val cache = cacheFactory.make(s"$libName.$ensoVersion")
-    val path  = libName / ensoVersion
-    Tracked.diffInputs(cache, FileInfo.lastModified)(
-      path.globRecursive("*.enso" && FileOnlyFilter).get().toSet
-    ) { diff =>
-      if (diff.modified.nonEmpty) {
-        log.info(s"Generating index for $libName ")
-        val fileToExecute = new File(
-          ensoExecutable.getParentFile,
-          batOrExeName(ensoExecutable.getName)
-        )
+    log.info(s"Generating indexes for libraries [$libNames]")
+    val javaCommand = javaExecutable()
 
-        def assertExecutable(when: String) = {
-          if (!fileToExecute.canExecute()) {
-            log.warn(s"Not an executable file ${fileToExecute} $when")
-            var dir = fileToExecute
-            while (dir != null && !dir.exists()) {
-              dir = dir.getParentFile
-            }
-            var count = 0
-            if (dir != null) {
-              log.warn(s"Content of ${dir}")
-              Option(dir.listFiles).map(_.map { file =>
-                log.warn(s"  ${file}")
-                count += 1
-              })
-            }
-            log.warn(s"Found ${count} files.")
-          }
-        }
-        assertExecutable("before launching")
-        val command = Seq(
-          fileToExecute.getAbsolutePath,
-          "--no-compile-dependencies",
-          "--no-global-cache",
-          "--compile",
-          path.getAbsolutePath
-        )
-        log.debug(command.mkString(" "))
+    val command = Seq(
+      javaCommand
+    ) ++ javaOpts ++ Seq(
+      "--no-compile-dependencies",
+      "--compile"
+    ) ++ libPaths
+    log.debug(command.mkString(" "))
+    val allEnv1 = mapAppend(
+      env,
+      "NO_COLOR" -> "true"
+    )
+    // Don't create source archives for standard libraries.
+    val noSrcArchivesSysProp =
+      "-Dorg.enso.compiler.noSourceArchives=" +
+      libPaths.mkString(",")
+    val allEnv = mapAppend(
+      allEnv1,
+      "JAVA_TOOL_OPTIONS" -> noSrcArchivesSysProp
+    )
+    val procBldr = new java.lang.ProcessBuilder(asJava(command))
+    val cwd      = libRootDirs.head.getAbsoluteFile.getParentFile
+    procBldr.directory(cwd)
+    allEnv.foreach { case (k, v) =>
+      procBldr.environment().put(k, v)
+    }
+
+    val runningProcess = Process(procBldr).run()
+    // Poor man's solution to stuck index generation
+    val GENERATING_INDEX_TIMEOUT = 60 * 4 // 2 minutes
+    var current                  = 0
+    var timeout                  = false
+    while (runningProcess.isAlive() && !timeout) {
+      if (current > GENERATING_INDEX_TIMEOUT) {
+        java.lang.System.err
+          .println(
+            "Reached timeout when generating index. Terminating..."
+          )
         try {
-          val runningProcess = Process(
-            command,
-            Some(path.getAbsoluteFile.getParentFile),
-            "NO_COLOR" -> "true"
-          ).run
-          // Poor man's solution to stuck index generation
-          val GENERATING_INDEX_TIMEOUT = 60 * 4 // 2 minutes
-          var current                  = 0
-          var timeout                  = false
-          while (runningProcess.isAlive() && !timeout) {
-            if (current > GENERATING_INDEX_TIMEOUT) {
-              java.lang.System.err
-                .println(
-                  "Reached timeout when generating index. Terminating..."
-                )
-              try {
-                val pidOfProcess = pid(runningProcess)
-                val javaHome     = System.getProperty("java.home")
-                val jstack =
-                  if (javaHome == null) "jstack"
-                  else
-                    Paths.get(javaHome, "bin", "jstack").toAbsolutePath.toString
-                val in = java.lang.Runtime.getRuntime
-                  .exec(Array(jstack, pidOfProcess.toString))
-                  .getInputStream
+          val pidOfProcess = pid(runningProcess)
+          val javaHome     = System.getProperty("java.home")
+          val jstack =
+            if (javaHome == null) "jstack"
+            else
+              Paths.get(javaHome, "bin", "jstack").toAbsolutePath.toString
+          val in = java.lang.Runtime.getRuntime
+            .exec(Array(jstack, pidOfProcess.toString))
+            .getInputStream
 
-                System.err.println(IOUtils.toString(in, "UTF-8"))
-              } catch {
-                case e: Throwable =>
-                  java.lang.System.err
-                    .println("Failed to get threaddump of a stuck process", e);
-              } finally {
-                timeout = true
-                runningProcess.destroy()
-              }
-            } else {
-              Thread.sleep(1000)
-              current += 1
-            }
-          }
-          if (timeout) {
-            throw new RuntimeException(
-              s"TIMEOUT: Failed to compile $libName in $GENERATING_INDEX_TIMEOUT seconds"
-            )
-          }
-          if (runningProcess.exitValue() != 0) {
-            throw new RuntimeException(s"Cannot compile $libName.")
-          }
+          System.err.println(IOUtils.toString(in, "UTF-8"))
+        } catch {
+          case e: Throwable =>
+            java.lang.System.err
+              .println("Failed to get threaddump of a stuck process", e);
         } finally {
-          assertExecutable("after execution")
+          timeout = true
+          runningProcess.destroy()
         }
       } else {
-        log.debug(s"No modified files. Not generating index for $libName.")
+        Thread.sleep(1000)
+        current += 1
       }
+    }
+    if (timeout) {
+      throw new RuntimeException(
+        s"TIMEOUT: Failed to compile [$libNames] in $GENERATING_INDEX_TIMEOUT seconds"
+      )
+    }
+    if (runningProcess.exitValue() != 0) {
+      throw new RuntimeException(s"Cannot compile [$libNames].")
+    } else {
+      log.info(
+        s"Successfully generated indexes for libraries [$libNames] in $current seconds."
+      )
+    }
+  }
+
+  private def mapAppend(
+    dest: Map[String, String],
+    entry: (String, String)
+  ): Map[String, String] = {
+    val newKey = entry._1
+    val newVal = entry._2
+    if (dest.contains(newKey)) {
+      val oldVal      = dest(newKey)
+      val appendedVal = oldVal + " " + newVal
+      dest + (newKey -> appendedVal)
+    } else {
+      dest + entry
+    }
+  }
+
+  private def javaExecutable(): String = {
+    val jHome = System.getProperty("java.home")
+    if (jHome != null) {
+      if (Platform.isWindows) {
+        jHome + File.separator + "bin" + File.separator + "java.exe"
+      } else {
+        jHome + File.separator + "bin" + File.separator + "java"
+      }
+    } else {
+      ProcessHandle.current().info().command().asScala.getOrElse("java")
     }
   }
 
@@ -356,7 +382,9 @@ object DistributionPackage {
     args: java.util.List[String],
     jvmOptName: String,
     pb: java.lang.ProcessBuilder,
-    appendJvmOpts: String = "-ea"
+    appendJvmOpts: String     = "-ea",
+    cwd: Option[java.io.File] = None,
+    env: Map[String, String]  = Map.empty
   ): java.lang.Process = {
     val envToFill: java.util.Map[String, String] = pb.environment()
     var atEnv                                    = args.indexOf("--env")
@@ -388,7 +416,20 @@ object DistributionPackage {
       envToFill.put(jvmOptName, prevValue)
     }
 
+    for ((k, v) <- env) {
+      val prev = envToFill.get(k)
+      val newValue = if (prev != null) {
+        prev + " " + v
+      } else {
+        v
+      }
+      envToFill.put(k, newValue)
+    }
+
     pb.command(args)
+    cwd.map { d =>
+      pb.directory(d)
+    }
     pb.inheritIO()
     log.info(
       s"Executing ${args.stream.collect(java.util.stream.Collectors.joining(" "))}"
@@ -408,20 +449,30 @@ object DistributionPackage {
   def runEnginePackage(
     distributionRoot: File,
     args: Seq[String],
-    log: Logger
+    log: Logger,
+    cwd: Option[java.io.File] = None,
+    env: Map[String, String]  = Map.empty
   ): Boolean = {
     import scala.collection.JavaConverters._
 
-    val enso        = distributionRoot / "bin" / batOrExeName("enso")
-    val pb          = new java.lang.ProcessBuilder()
-    val all         = new java.util.ArrayList[String]()
-    val projectPath = findProjectPath(args)
-    val disablePrivateCheck = projectPath match {
-      case Some(whatToRun) =>
-        val pathToRun   = file(whatToRun).toPath
-        val projectName = pathToRun.getFileName.toString
-        EnsoProjects.Project(None, projectName, pathToRun).usesPrivateAccess
-      case None => false
+    val enso = distributionRoot / "bin" / batOrExeName("enso")
+    val pb   = new java.lang.ProcessBuilder()
+    val all  = new java.util.ArrayList[String]()
+    val (atIndex, fileToRun, projectPath) =
+      findProjectPath(distributionRoot, args)
+
+    log.debug("fileToRun Index: " + atIndex)
+    log.debug("fileToRun: " + fileToRun)
+    log.debug("projectPath: " + projectPath)
+
+    val disablePrivateCheck = Option(fileToRun)
+      .map { toRun =>
+        val prj = EnsoProjects.Project(None, projectPath, toRun.toPath)
+        prj.usesPrivateAccess
+      }
+      .getOrElse(false)
+    val adjustedCwd = cwd.orElse {
+      Option(projectPath).map(new File(_).getParentFile)
     }
 
     all.add(enso.getAbsolutePath)
@@ -429,7 +480,18 @@ object DistributionPackage {
     if (disablePrivateCheck) {
       all.add("--disable-private-check")
     }
-    val p        = adjustArgsAndStart(log, all, "JAVA_TOOL_OPTIONS", pb)
+    if (fileToRun != null) {
+      all.set(atIndex + 1, fileToRun.getPath)
+    }
+    val p =
+      adjustArgsAndStart(
+        log,
+        all,
+        "JAVA_TOOL_OPTIONS",
+        pb,
+        cwd = adjustedCwd,
+        env = env
+      )
     val exitCode = p.waitFor()
     if (exitCode != 0) {
       log.warn(enso + " finished with exit code " + exitCode)
@@ -472,60 +534,66 @@ object DistributionPackage {
   /** Returns the argument specifying the path of the project to run.
     *
     * It will be the argument following `--in-project`, `--run` or `--compile`.
+    *
+    * @param root the root of the engine distribution
+    * @return index of the replace argument (or -1)
     */
-  private def findProjectPath(args: Seq[String]): Option[String] = {
-    def findArg(name: String): Option[String] = {
+  private def findProjectPath(
+    root: File,
+    args: Seq[String]
+  ): (Int, java.io.File, String) = {
+    def findArg(name: String): Option[(Int, String)] = {
       val location = args.indexOf(name)
       if (location >= 0 && location + 1 < args.size) {
-        Some(args(location + 1))
+        Some((location + 1, args(location + 1)))
       } else {
         None
       }
     }
 
-    findArg("--in-project")
+    val indexPath = findArg("--in-project")
       .orElse(findArg("--run"))
       .orElse(findArg("--compile"))
-  }
+    if (indexPath.isEmpty) {
+      return (-1, null, null)
+    }
 
-  def runProjectManagerPackage(
-    engineRoot: File,
-    distributionRoot: File,
-    projectManagerJar: File,
-    args: Seq[String],
-    log: Logger
-  ): Boolean = {
-    import scala.collection.JavaConverters._
+    val index = indexPath.orNull._1
+    val path  = indexPath.orNull._2
 
-    val pb   = new java.lang.ProcessBuilder()
-    val all  = new java.util.ArrayList[String]()
-    val enso = distributionRoot / "bin" / "project-manager"
-    if (enso.canExecute()) {
-      log.info(s"Executing $enso ${args.mkString(" ")}")
-      all.add(enso.getAbsolutePath())
-    } else {
-      val java =
-        new File(System.getProperty("java.home")) / "bin" / executableName(
-          "java"
-        )
-      log.info(
-        s"Cannot find $enso, trying to execute $java -jar $projectManagerJar with ${args.mkString(" ")}"
+    val runnerJar = root / "component" / "engine-runner.jar"
+    if (!runnerJar.exists()) {
+      throw new IllegalStateException("Cannot find " + runnerJar)
+    }
+    val slf4jJar = root / "component" / "slf4j-api-2.0.16.jar"
+    if (!slf4jJar.exists()) {
+      throw new IllegalStateException("Cannot find " + slf4jJar)
+    }
+    val l = new java.net.URLClassLoader(
+      Array(
+        runnerJar.toURI().toURL(),
+        slf4jJar.toURI().toURL()
+      ),
+      Class.forName("scala.Tuple2").getClassLoader()
+    )
+    try {
+      val utils = l.loadClass("org.enso.runner.Utils")
+      val find = utils.getDeclaredMethod(
+        "findFileAndProject",
+        classOf[String],
+        classOf[String],
+        classOf[String]
       )
-      all.add(java.getPath())
-      all.add("-jar")
-      all.add(projectManagerJar.getPath())
+      find.setAccessible(true)
+      val res = find
+        .invoke(null, null, path, null)
+        .asInstanceOf[(Boolean, java.io.File, String)]
+      return (index, res._2, res._3);
+    } catch {
+      case ex: ReflectiveOperationException =>
+        ex.printStackTrace()
+        throw ex
     }
-    all.addAll(args.asJava)
-    pb.environment().put("ENSO_ENGINE_PATH", engineRoot.toString())
-    pb.environment().put("ENSO_JVM_PATH", System.getProperty("java.home"))
-    pb.environment().put("ENSO_OPENSEARCH_APPENDER_ENABLED", "false")
-    val p =
-      adjustArgsAndStart(log, all, "ENSO_JVM_OPTS", pb, appendJvmOpts = "")
-    val exitCode = p.waitFor()
-    if (exitCode != 0) {
-      log.warn(enso + " finished with exit code " + exitCode)
-    }
-    exitCode == 0
   }
 
   def fixLibraryManifest(
@@ -572,11 +640,19 @@ object DistributionPackage {
       for (libName <- (sourceRoot / prefix).list()) {
         val targetPackageRoot =
           destinationRoot / prefix / libName / targetVersion
-        copyDirectoryIncremental(
-          source      = sourceRoot / prefix / libName / sourceVersion,
+        val libSourceDir = sourceRoot / prefix / libName / sourceVersion
+        val copied = copyDirectoryIncremental(
+          source      = libSourceDir,
           destination = targetPackageRoot,
           cache       = cacheFactory.make(s"$prefix.$libName")
         )
+        val bindingsDir = targetPackageRoot / ".enso" / "cache" / "bindings"
+        if (copied && bindingsDir.exists()) {
+          log.info(
+            s"Clearing cached bindings for $prefix.$libName, because library sources were changed."
+          )
+          IO.delete(bindingsDir)
+        }
         fixLibraryManifest(targetPackageRoot, targetVersion, log)
         existingLibraries.append((prefix, libName))
       }
@@ -631,7 +707,7 @@ object DistributionPackage {
 
     copyFilesIncremental(
       Seq(
-        file("distribution/launcher/.enso.portable"),
+        file("distribution/launcher/.enso.bundle"),
         file("distribution/launcher/README.md")
       ),
       distributionRoot,
@@ -929,7 +1005,7 @@ object DistributionPackage {
       state
     }
 
-    /** Creates launcher and project-manager bundles that include the component
+    /** Creates launcher bundle that includes the component
       * itself, the engine and a Graal runtime.
       *
       * It will download the GraalVM runtime and cache it in `artifactRoot` so
@@ -966,32 +1042,6 @@ object DistributionPackage {
           log.info(s"Created $archive")
         }
 
-        val pm = builtArtifact("project-manager", os, arch)
-        if (pm.exists()) {
-          if (os.isUNIX) {
-            makeExecutable(pm / "enso" / "bin" / "project-manager")
-          }
-
-          copyEngine(os, arch, pm / "enso" / "dist")
-          copyGraal(
-            os,
-            arch,
-            pm / "enso" / "runtime" / s"graalvm-ce-java$graalJavaVersion-$graalVersion/"
-          )
-
-          IO.copyFile(
-            file("distribution/enso.bundle.template"),
-            pm / "enso" / ".enso.bundle"
-          )
-
-          val archive = builtArchive("project-manager", os, arch)
-          makeArchive(pm, "enso", archive)
-
-          cleanDirectory(pm / "enso" / "dist")
-          cleanDirectory(pm / "enso" / "runtime")
-
-          log.info(s"Created $archive")
-        }
       }
       state
     }

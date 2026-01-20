@@ -1,6 +1,5 @@
 package org.enso.logging.service;
 
-import java.net.URI;
 import java.nio.file.Path;
 import java.util.UUID;
 import org.enso.logging.config.LoggingServer;
@@ -16,7 +15,7 @@ public class LoggingServiceManager {
     return currentLevel;
   }
 
-  public static Future<URI> setupServer(
+  public static Future<LoggingServerConfig> setupServer(
       Level logLevel,
       int port,
       Path logPath,
@@ -42,7 +41,8 @@ public class LoggingServiceManager {
             () -> {
               var server = LoggingServiceFactory.get().localServerFor(port);
               loggingService = server;
-              return server.start(logLevel, logPath, logFileSuffix, config);
+              return new LoggingServerConfig(
+                  currentLevel, server.start(logLevel, logPath, logFileSuffix, config));
             },
             ec);
       } else {

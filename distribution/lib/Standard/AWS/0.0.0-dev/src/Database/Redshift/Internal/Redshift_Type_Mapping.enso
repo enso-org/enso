@@ -1,0 +1,113 @@
+from Standard.Base import all
+
+from Standard.Table import Value_Type
+
+import Standard.Database.Internal.IR.SQL_IR_Expression.SQL_IR_Expression
+import Standard.Database.Internal.Postgres.Postgres_Type_Mapping.Postgres_Type_Mapping
+import Standard.Database.Internal.SQL_Type_Mapping
+import Standard.Database.Internal.SQL_Type_Reference.SQL_Type_Reference
+import Standard.Database.Internal.Statement_Setter.Statement_Setter
+import Standard.Database.SQL.SQL_Type
+
+import project.Database.Redshift.Internal.Redshift_Error_Mapper.Redshift_Error_Mapper
+
+polyglot java import java.sql.Types
+polyglot java import org.enso.database.fetchers.ColumnFetcherFactory
+polyglot java import org.enso.database.JDBCValueSetter
+
+## ---
+   private: true
+   ---
+type Redshift_Type_Mapping
+    ## ---
+       private: true
+       ---
+    value_type_to_sql : Value_Type -> Problem_Behavior -> SQL_Type
+    value_type_to_sql value_type on_problems:Problem_Behavior =
+        Postgres_Type_Mapping.value_type_to_sql value_type on_problems
+
+    ## ---
+       private: true
+       ---
+    sql_type_to_value_type : SQL_Type -> Value_Type
+    sql_type_to_value_type sql_type =
+        Postgres_Type_Mapping.sql_type_to_value_type sql_type
+
+    ## ---
+       private: true
+       advanced: true
+       ---
+       Gets the ColumnFetcherFactory to be used for Redshift.
+    column_fetcher_factory : Any
+    column_fetcher_factory =
+        ColumnFetcherFactory.DEFAULT
+
+    ## ---
+       private: true
+       ---
+    sql_type_to_text : SQL_Type -> Text
+    sql_type_to_text sql_type =
+        Postgres_Type_Mapping.sql_type_to_text sql_type
+
+    ## ---
+       private: true
+       ---
+       The Postgres type mapping always relies on the return type determined by
+       the database backend.
+    infer_return_type : (SQL_IR_Expression -> SQL_Type_Reference) -> Text -> Vector -> SQL_IR_Expression -> SQL_Type_Reference
+    infer_return_type infer_from_database_callback op_name arguments expression =
+        _ = [op_name, arguments]
+        infer_from_database_callback expression
+
+    ## ---
+       private: true
+       ---
+       We want to respect any overriding references, but references that rely on
+       computing the type by the database are resolved to Nothing to just rely on
+       the `ResultSet` metadata and decrease overhead.
+    prepare_type_overrides : Nothing | Vector SQL_Type_Reference -> Nothing | Vector (Nothing | SQL_Type)
+    prepare_type_overrides column_type_suggestions = case column_type_suggestions of
+        Nothing -> Nothing
+        _ : Vector -> column_type_suggestions.map .to_type_override
+
+    ## ---
+       private: true
+       ---
+    is_implicit_conversion (source_type : Value_Type) (target_type : Value_Type) -> Boolean =
+        # Currently, we do not have any implicit conversions.
+        _ = [source_type, target_type]
+        False
+
+    ## ---
+       private: true
+       ---
+    should_warn_on_materialize (db_type : Value_Type) (in_memory_type : Value_Type) -> Boolean =
+        SQL_Type_Mapping.default_should_warn_on_materialize db_type in_memory_type
+
+    ## ---
+       private: true
+       ---
+    is_integer_type (value_type : Value_Type) -> Boolean = value_type.is_integer
+
+    ## ---
+       private: true
+       ---
+    is_same_type (value_type1 : Value_Type) (value_type2 : Value_Type) -> Boolean =
+        value_type1.is_same_type value_type2
+
+    ## ---
+       private: true
+       ---
+       Creates a Statement_Setter for Redshift.
+    statement_setter =
+        jdbc_value_setter = JDBCValueSetter.create "Redshift"
+        fill_home = Statement_Setter.create_fill_hole jdbc_value_setter
+        Statement_Setter.for_fill_hole fill_home
+
+    ## ---
+       private: true
+       ---
+       Returns a helper for mapping database-specific SQL errors into our common
+       error types.
+    error_mapper : Redshift_Error_Mapper
+    error_mapper self = Redshift_Error_Mapper

@@ -2,17 +2,15 @@ use crate::prelude::*;
 use crate::syntax::expression::apply::*;
 use crate::syntax::expression::types::*;
 
+use crate::syntax::Flush;
+use crate::syntax::GroupHierarchyConsumer;
+use crate::syntax::Token;
 use crate::syntax::expression::whitespace::Spacing;
 use crate::syntax::expression::whitespace::SpacingLookaheadTokenConsumer;
 use crate::syntax::token;
 use crate::syntax::token::OperatorProperties;
 use crate::syntax::token::TokenOperatorProperties;
 use crate::syntax::tree;
-use crate::syntax::Flush;
-use crate::syntax::GroupHierarchyConsumer;
-use crate::syntax::Token;
-
-
 
 // ======================
 // === Classify Arity ===
@@ -25,11 +23,12 @@ pub struct ClassifyArity<'s, Inner> {
     /// Next item that will be emitted. If it is an operator, it may still be extended with
     /// additional operators to become a multiple-operator error.
     lhs_item: Option<MaybeOperator<'s>>,
-    inner:    Inner,
+    inner: Inner,
 }
 
 impl<'s, Inner> SpacingLookaheadTokenConsumer<'s> for ClassifyArity<'s, Inner>
-where Inner: NamedOperandConsumer<'s> + OperatorConsumer<'s>
+where
+    Inner: NamedOperandConsumer<'s> + OperatorConsumer<'s>,
 {
     fn push_token(&mut self, token: Token<'s>, rhs: Option<Spacing>) {
         let properties = token.operator_properties();
@@ -41,7 +40,8 @@ where Inner: NamedOperandConsumer<'s> + OperatorConsumer<'s>
 }
 
 impl<'s, Inner> NamedOperandConsumer<'s> for ClassifyArity<'s, Inner>
-where Inner: NamedOperandConsumer<'s> + OperatorConsumer<'s>
+where
+    Inner: NamedOperandConsumer<'s> + OperatorConsumer<'s>,
 {
     fn push_maybe_named_operand(&mut self, operand: OperandMaybeNamed<'s>) {
         self.emit(MaybeOperator::Operand);
@@ -50,7 +50,8 @@ where Inner: NamedOperandConsumer<'s> + OperatorConsumer<'s>
 }
 
 impl<'s, Inner> ClassifyArity<'s, Inner>
-where Inner: NamedOperandConsumer<'s> + OperatorConsumer<'s>
+where
+    Inner: NamedOperandConsumer<'s> + OperatorConsumer<'s>,
 {
     fn emit<T: Into<MaybeOperator<'s>>>(&mut self, item: T) {
         self.step(Some(item.into()));
@@ -72,8 +73,9 @@ where Inner: NamedOperandConsumer<'s> + OperatorConsumer<'s>
         // Exception: If an operator cannot form sections, and its LHS is unspaced, a spaced RHS is
         // accepted.
         let (lhs, rhs) = match (properties.can_form_section(), lhs, rhs) {
-            (true, Some(Spacing::Unspaced), Some(Spacing::Spaced)) =>
-                (Some(Spacing::Unspaced), None),
+            (true, Some(Spacing::Unspaced), Some(Spacing::Spaced)) => {
+                (Some(Spacing::Unspaced), None)
+            }
             (_, Some(Spacing::Spaced), Some(Spacing::Unspaced)) => (None, Some(Spacing::Unspaced)),
             (_, lhs, rhs) => (lhs, rhs),
         };
@@ -81,8 +83,9 @@ where Inner: NamedOperandConsumer<'s> + OperatorConsumer<'s>
         let binary = properties.binary_infix_precedence();
         let unary = properties.unary_prefix_precedence();
         match (binary, unary, lhs, rhs) {
-            (_, Some(unary), None, Some(Spacing::Unspaced)) =>
-                self.unary_operator_applied(unary, assoc, token),
+            (_, Some(unary), None, Some(Spacing::Unspaced)) => {
+                self.unary_operator_applied(unary, assoc, token)
+            }
             (Some(binary), _, _, _) => self.binary_operator(binary, assoc, token, lhs, rhs),
             (_, Some(_), _, _) => self.unary_operator_section(token),
             (None, None, _, _) => unreachable!(),
@@ -143,8 +146,6 @@ where Inner: NamedOperandConsumer<'s> + OperatorConsumer<'s>
             (Some(_), Some(_)) => None,
         };
         let properties = token.operator_properties().unwrap();
-        let reify_rhs_section = properties.can_form_section()
-            && (lhs == Some(Spacing::Spaced) || rhs == Some(Spacing::Spaced));
         let is_value_operation = missing.is_none() && properties.is_value_operation();
         self.emit(Operator {
             left_precedence: lhs
@@ -152,7 +153,7 @@ where Inner: NamedOperandConsumer<'s> + OperatorConsumer<'s>
             right_precedence: rhs
                 .map(|spacing| ModifiedPrecedence::new(spacing, precedence, is_value_operation)),
             associativity,
-            arity: Arity::Binary { tokens: vec![token], missing, reify_rhs_section },
+            arity: Arity::Binary { tokens: vec![token], missing },
         });
     }
 
@@ -167,9 +168,11 @@ where Inner: NamedOperandConsumer<'s> + OperatorConsumer<'s>
                     match missing {
                         None => *missing = Some(BinaryOperand::Right),
                         Some(BinaryOperand::Left) => {
-                            let operand = OperandMaybeNamed::Unnamed(
-                                ApplyOperator::tokens(mem::take(tokens)).finish(),
-                            );
+                            let operand = OperandMaybeNamed::Unnamed(apply_binary_operator(
+                                mem::take(tokens),
+                                None,
+                                None,
+                            ));
                             self.inner.push_maybe_named_operand(operand);
                             self.lhs_item = Some(MaybeOperator::Operand);
                         }
@@ -183,7 +186,8 @@ where Inner: NamedOperandConsumer<'s> + OperatorConsumer<'s>
 }
 
 impl<'s, Inner> Flush for ClassifyArity<'s, Inner>
-where Inner: NamedOperandConsumer<'s> + OperatorConsumer<'s>
+where
+    Inner: NamedOperandConsumer<'s> + OperatorConsumer<'s>,
 {
     fn flush(&mut self) {
         self.step(None);
@@ -191,7 +195,8 @@ where Inner: NamedOperandConsumer<'s> + OperatorConsumer<'s>
 }
 
 impl<'s, Inner> GroupHierarchyConsumer<'s> for ClassifyArity<'s, Inner>
-where Inner: NamedOperandConsumer<'s> + OperatorConsumer<'s> + GroupHierarchyConsumer<'s>
+where
+    Inner: NamedOperandConsumer<'s> + OperatorConsumer<'s> + GroupHierarchyConsumer<'s>,
 {
     fn start_group(&mut self, open: token::OpenSymbol<'s>) {
         self.flush();
@@ -205,17 +210,18 @@ where Inner: NamedOperandConsumer<'s> + OperatorConsumer<'s> + GroupHierarchyCon
 }
 
 impl<'s, Inner> OperatorConsumer<'s> for ClassifyArity<'s, Inner>
-where Inner: NamedOperandConsumer<'s> + OperatorConsumer<'s>
+where
+    Inner: NamedOperandConsumer<'s> + OperatorConsumer<'s>,
 {
     fn push_operator(&mut self, operator: Operator<'s>) {
         self.emit(operator);
     }
 }
 
-
 // === Operator or Operand
 
 #[derive(Debug)]
+#[allow(clippy::large_enum_variant)]
 enum MaybeOperator<'s> {
     Operand,
     Operator(Operator<'s>),

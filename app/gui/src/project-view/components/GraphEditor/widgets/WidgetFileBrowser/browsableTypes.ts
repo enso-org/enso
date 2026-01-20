@@ -1,13 +1,13 @@
+import { type WidgetUpdate } from '$/providers/openedProjects/widgetRegistry'
+import type { ToValue } from '$/utils/reactivity'
 import { ExpressionTag } from '@/components/GraphEditor/widgets/WidgetSelection/tags'
 import { type PortId } from '@/providers/portInfo'
-import { type WidgetUpdate } from '@/providers/widgetRegistry'
 import { Ast } from '@/util/ast'
 import { Pattern } from '@/util/ast/match'
-import { type DynamicConfig } from '@/util/callTree'
+import type { DynamicConfig } from '@/util/callTree'
 import { methodPointerEquals, type MethodPointer } from '@/util/methodPointer'
 import { ProjectPath, printAbsoluteProjectPath, type AbsoluteProjectPath } from '@/util/projectPath'
 import { qnJoin, type Identifier, type QualifiedName } from '@/util/qualifiedName'
-import { type ToValue } from '@/util/reactivity'
 import { computed, toValue, type ComputedRef } from 'vue'
 
 export type BrowserItem = 'file' | 'directory' | 'secret'
@@ -217,13 +217,11 @@ export function useSetPath({
   currentPath,
   preferRawPath,
   portId,
-  edit,
   addMissingConstructorImports,
 }: {
   currentPath: ToValue<CurrentPath | undefined>
   preferRawPath: ToValue<boolean>
   portId: ToValue<PortId>
-  edit: ToValue<Ast.MutableModule>
   addMissingConstructorImports: (module: Ast.MutableModule, type: ProjectPath) => boolean
 }) {
   const FILE_CONSTRUCTOR_PATTERN = {
@@ -264,6 +262,7 @@ export function useSetPath({
       makeValue,
       preferRawPath,
     }: { type: AbsoluteProjectPath; makeValue: MakeValue; preferRawPath: boolean },
+    edit: Ast.MutableModule,
   ): WidgetUpdate {
     if (currentPath || preferRawPath) {
       return {
@@ -274,22 +273,21 @@ export function useSetPath({
         directInteraction: true,
       }
     } else {
-      const module = toValue(edit)
-      const importsOk = addMissingConstructorImports(module, type)
-      const pathText = Ast.TextLiteral.new(path, module)
+      const importsOk = addMissingConstructorImports(edit, type)
+      const pathText = Ast.TextLiteral.new(path, edit)
       const pathStyle = importsOk ? 'default' : 'full'
       return {
         portUpdate: {
-          value: makeValue(module, pathText, pathStyle),
+          value: makeValue(edit, pathText, pathStyle),
           origin: toValue(portId),
         },
-        edit: module,
+        edit,
         directInteraction: true,
       }
     }
   }
 
-  function setPath(type: 'file' | 'secret', path: string) {
+  function setPath(type: 'file' | 'secret', path: string, edit: Ast.MutableModule) {
     const oldPathInfo = toValue(currentPath)
     const oldPath = oldPathInfo?.type === type ? oldPathInfo.path : undefined
     return widgetUpdate(
@@ -306,6 +304,7 @@ export function useSetPath({
           makeValue: makeFile,
           preferRawPath: toValue(preferRawPath),
         },
+      edit,
     )
   }
 

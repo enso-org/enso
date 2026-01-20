@@ -3,6 +3,7 @@
 - type Derived_Secret_Value
     - Base_64_Encode value:Standard.Base.Enso_Cloud.Enso_Secret.Derived_Secret_Value
     - Concat left:Standard.Base.Enso_Cloud.Enso_Secret.Derived_Secret_Value right:Standard.Base.Enso_Cloud.Enso_Secret.Derived_Secret_Value
+    - Interpret_As_Private_Key secret:Standard.Base.Enso_Cloud.Enso_Secret.Enso_Secret
     - Plain_Text text:Standard.Base.Data.Text.Text
     - Secret_Value secret:Standard.Base.Enso_Cloud.Enso_Secret.Enso_Secret
     - + self other:Standard.Base.Enso_Cloud.Enso_Secret.Derived_Secret_Value -> Standard.Base.Any.Any
@@ -21,17 +22,18 @@
     - name self -> Standard.Base.Any.Any
     - path self -> Standard.Base.Any.Any
     - pretty self -> Standard.Base.Any.Any
-    - resolve_path path:Standard.Base.Data.Text.Text -> Standard.Base.Enso_Cloud.Enso_Secret.Enso_Secret!Standard.Base.Errors.Common.Not_Found
+    - resolve_path path:Standard.Base.Data.Text.Text -> Standard.Base.Enso_Cloud.Enso_Secret.Enso_Secret!Standard.Base.Enso_Cloud.Enso_Secret.Enso_Secret_Error
     - to_display_text self -> Standard.Base.Any.Any
     - to_js_object self -> Standard.Base.Any.Any
     - to_text self -> Standard.Base.Any.Any
     - update_value self new_value:Standard.Base.Data.Text.Text -> Standard.Base.Any.Any
-- as_credential_reference secret:Standard.Base.Enso_Cloud.Enso_Secret.Enso_Secret -> Standard.Base.Enso_Cloud.Enso_Secret.CredentialReference
-- as_hideable_value value:(Standard.Base.Data.Text.Text|Standard.Base.Enso_Cloud.Enso_Secret.Enso_Secret|Standard.Base.Enso_Cloud.Enso_Secret.Derived_Secret_Value) -> Standard.Base.Any.Any
 - secret_asset_uri secret:Standard.Base.Any.Any -> Standard.Base.Any.Any
-- secret_resource_uri secret:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - Standard.Base.Enso_Cloud.Enso_Secret.Derived_Secret_Value.from that:Standard.Base.Enso_Cloud.Enso_Secret.Enso_Secret -> Standard.Base.Enso_Cloud.Enso_Secret.Derived_Secret_Value
 - type Enso_Secret_Error
     - Access_Denied
+    - Not_Found resolved_path:Standard.Base.Any.Any
     - to_display_text self -> Standard.Base.Any.Any
+- as_credential_reference secret:Standard.Base.Enso_Cloud.Enso_Secret.Enso_Secret credential_reference:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- as_hideable_value value:(Standard.Base.Data.Text.Text|Standard.Base.Enso_Cloud.Enso_Secret.Enso_Secret|Standard.Base.Enso_Cloud.Enso_Secret.Derived_Secret_Value) factory:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- secret_resource_uri secret:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - Standard.Base.Enso_Cloud.Enso_Secret.Derived_Secret_Value.from that:Standard.Base.Data.Text.Text -> Standard.Base.Enso_Cloud.Enso_Secret.Derived_Secret_Value

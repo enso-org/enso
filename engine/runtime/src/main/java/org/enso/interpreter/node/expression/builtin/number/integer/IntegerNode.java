@@ -12,11 +12,13 @@ import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 
-/** A base class for nodes that operate on Enso Integers (e.g. either {@code long} or {@link EnsoBigInteger}). Contains helper
- * methods that can be used from subclasses of either {@link Unary} or {@link Binary}
- * variant of this class.
+/**
+ * A base class for nodes that operate on Enso Integers (e.g. either {@code long} or {@link
+ * EnsoBigInteger}). Contains helper methods that can be used from subclasses of either {@link
+ * Unary} or {@link Binary} variant of this class.
  */
-public sealed abstract class IntegerNode extends Node permits IntegerNode.Unary, IntegerNode.Binary {
+public abstract sealed class IntegerNode extends Node
+    permits IntegerNode.Unary, IntegerNode.Binary {
   @Child private ToEnsoNumberNode toEnsoNumberNode;
   @Child private InteropLibrary iop;
 
@@ -86,13 +88,14 @@ public sealed abstract class IntegerNode extends Node permits IntegerNode.Unary,
   }
 
   /**
-   * Node operating on a single Enso Integer (e.g. either {@code long} or {@link EnsoBigInteger}) argument.
+   * Node operating on a single Enso Integer (e.g. either {@code long} or {@link EnsoBigInteger})
+   * argument.
    */
-  public non-sealed abstract static class Unary extends IntegerNode {
+  public abstract static non-sealed class Unary extends IntegerNode {
     public final Object execute(Object own) {
       var ensoSelf = toEnsoNumberOrNull(own, false);
       if (ensoSelf == null) {
-          throw throwTypeErrorIfNotInt(own);
+        throw throwTypeErrorIfNotInt(own);
       }
       return executeUnary(ensoSelf);
     }
@@ -101,14 +104,15 @@ public sealed abstract class IntegerNode extends Node permits IntegerNode.Unary,
   }
 
   /**
-   * Node operating on a tow Enso Integers (e.g. either {@code long} or {@link EnsoBigInteger}) arguments.
+   * Node operating on a tow Enso Integers (e.g. either {@code long} or {@link EnsoBigInteger})
+   * arguments.
    */
-  public non-sealed abstract static class Binary extends IntegerNode {
+  public abstract static non-sealed class Binary extends IntegerNode {
     public final Object execute(Object own, Object that) {
       var ensoSelf = toEnsoNumberOrNull(own, false);
       var ensoThat = toEnsoNumberOrNull(that);
       if (ensoSelf == null || ensoThat == null) {
-          throw throwTypeErrorIfNotInt(own, that);
+        throw throwTypeErrorIfNotInt(own, that);
       }
       return executeBinary(ensoSelf, ensoThat);
     }

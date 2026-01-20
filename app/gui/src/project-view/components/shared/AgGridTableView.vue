@@ -63,12 +63,19 @@ export const commonContextMenuActions = {
  * Component adding some useful logic to AGGrid table component (like keeping track of colum sizes),
  * and using common style for tables in our application.
  */
+import { LINE_BOUNDARIES } from '$/utils/data/string'
 import { gridBindings } from '@/bindings'
+import { clipboardNodeData, writeClipboard } from '@/components/GraphEditor/graphClipboard'
+import {
+  parseTsvData,
+  rowsToTsv,
+  tableToEnsoExpression,
+} from '@/components/GraphEditor/widgets/WidgetTableEditor/tableParsing'
 import type { TextFormatOptions } from '@/components/visualizations/TableVisualization.vue'
 import {
-  type VueComponentHandle,
   default as VueComponentHost,
   VueHostInstance,
+  type VueComponentHandle,
 } from '@/components/VueHostRender.vue'
 import { modKey } from '@/composables/events'
 import { useAutoBlur } from '@/util/autoBlur'
@@ -100,23 +107,16 @@ import type {
 } from 'ag-grid-enterprise'
 import * as iter from 'enso-common/src/utilities/data/iter'
 import * as objects from 'enso-common/src/utilities/data/object'
-import { LINE_BOUNDARIES } from 'enso-common/src/utilities/data/string'
 import {
-  Component,
-  type ComponentInstance,
   computed,
   h,
   reactive,
   ref,
   shallowRef,
   watch,
+  type Component,
+  type ComponentInstance,
 } from 'vue'
-import { clipboardNodeData, writeClipboard } from '../GraphEditor/clipboard'
-import {
-  parseTsvData,
-  rowsToTsv,
-  tableToEnsoExpression,
-} from '../GraphEditor/widgets/WidgetTableEditor/tableParsing'
 
 const props = defineProps<{
   rowData: TData[]
@@ -368,7 +368,12 @@ const { AgGridVue } = await import('./AgGridTableView/AgGridVue')
 </script>
 
 <template>
-  <div ref="wrapper" @keydown="handler" @keydown.capture="suppressCopy" @keydown.space.stop>
+  <div
+    ref="wrapper"
+    @keydown="handler($event) || stopIfPrevented($event)"
+    @keydown.capture="suppressCopy"
+    @keydown.space.stop
+  >
     <AgGridVue
       v-bind="$attrs"
       ref="grid"

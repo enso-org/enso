@@ -1,9 +1,6 @@
 use crate::syntax::token::*;
 
 use crate::lexer::analyze_non_syntactic_operator;
-use crate::syntax::expression::SectionTermination;
-
-
 
 /// Properties of an operator that are identified when lexing.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Default)]
@@ -11,20 +8,20 @@ pub struct OperatorProperties {
     // Precedence / associativity
     binary_infix_precedence: Option<Precedence>,
     unary_prefix_precedence: Option<Precedence>,
-    is_value_operation:      bool,
-    is_right_associative:    bool,
+    is_value_operation: bool,
+    is_right_associative: bool,
     // Special properties
-    lhs_section_termination: Option<SectionTermination>,
-    is_modifier:             bool,
-    is_compile_time:         bool,
-    rhs_is_non_expression:   bool,
+    is_modifier: bool,
+    is_compile_time: bool,
+    rhs_is_non_expression: bool,
 }
 
 pub fn is_syntactic_binary_operator(variant: &Variant) -> bool {
     use Variant::*;
     match variant {
-        AssignmentOperator(_) | TypeAnnotationOperator(_) | ArrowOperator(_) | CommaOperator(_) =>
-            true,
+        AssignmentOperator(_) | TypeAnnotationOperator(_) | ArrowOperator(_) | CommaOperator(_) => {
+            true
+        }
         Operator(_)
         | DotOperator(_)
         | UnaryOperator(_)
@@ -120,11 +117,6 @@ impl OperatorProperties {
         !self.is_compile_time
     }
 
-    /// Return the LHS operator-section/template-function behavior of this operator.
-    pub fn lhs_section_termination(&self) -> Option<SectionTermination> {
-        self.lhs_section_termination
-    }
-
     /// Return whether this operator is a modified-assignment operator.
     pub fn is_modifier(&self) -> bool {
         self.is_modifier
@@ -186,7 +178,6 @@ impl HasOperatorProperties for variant::AssignmentOperator {
     fn operator_properties(&self) -> OperatorProperties {
         OperatorProperties {
             binary_infix_precedence: Some(Precedence::Assignment),
-            lhs_section_termination: Some(SectionTermination::Unwrap),
             is_right_associative: true,
             is_compile_time: true,
             ..default()
@@ -198,7 +189,6 @@ impl HasOperatorProperties for variant::TypeAnnotationOperator {
     fn operator_properties(&self) -> OperatorProperties {
         OperatorProperties {
             binary_infix_precedence: Some(Precedence::TypeAnnotation),
-            lhs_section_termination: Some(SectionTermination::Reify),
             is_compile_time: true,
             rhs_is_non_expression: true,
             ..default()
@@ -210,7 +200,6 @@ impl HasOperatorProperties for variant::ArrowOperator {
     fn operator_properties(&self) -> OperatorProperties {
         OperatorProperties {
             binary_infix_precedence: Some(Precedence::Arrow),
-            lhs_section_termination: Some(SectionTermination::Unwrap),
             is_right_associative: true,
             is_compile_time: true,
             ..default()

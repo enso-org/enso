@@ -62,8 +62,8 @@ type In_Memory_Column
        private: true
        ---
        Specialised implementation of to_json for a Column.
-    to_json_data self start:Integer=0 (length:Integer=(self:Column).length) fallback=(v->v.to_json) -> Text =
-        JsonOperation.apply self.java_column start length fallback
+    to_json_data self start:Integer=0 (row_count:Integer=(self:Column).row_count) fallback=(v->v.to_json) -> Text =
+        JsonOperation.apply self.java_column start row_count fallback
 
     ## ---
        private: true
@@ -78,7 +78,16 @@ type In_Memory_Column
        private: true
        ---
        Creates a new column given a Java Column object.
-    private from_java_column java_column:Java_Column =
+    private from_java_column raw_column =
+        java_column = case raw_column of
+            j : Java_Column -> j
+            _ ->
+                name = raw_column.getName
+                storage = raw_column.getStorage
+                # ColumnStorage is an interface and will get proxied
+                # to the other JVM automatically
+                Java_Column.new name storage
+
         ## Trigger data quality metrics computation (conditionally on Output context).
         if Context.Output.is_enabled.not then DataQualityMetrics.triggerColumn java_column
 
@@ -88,7 +97,7 @@ type In_Memory_Column
     ## ---
        private: true
        ---
-       Implementation fro `Column.from_vector`.
+       Implementation for `Column.from_vector`.
     private from_vector name:Text items:Vector (value_type : Auto | Value_Type = Auto) =
         ## If the type does not accept date-time-like values, we can skip the
            additional logic for polyglot conversions that would normally be used,

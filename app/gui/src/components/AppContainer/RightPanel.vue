@@ -6,28 +6,30 @@ import {
   ProjectSessions,
 } from '$/components/AppContainer/reactTabs'
 import SelectableTab from '$/components/AppContainer/SelectableTab.vue'
-import WithCurrentProject from '$/components/WithCurrentProject.vue'
 import { useRightPanelData, type RightPanelTabId } from '$/providers/rightPanel'
+import type { ToValue } from '$/utils/reactivity'
+import AssetContentsEditor from '@/components/AssetContentsEditor.vue'
 import ComponentHelpPanel from '@/components/ComponentHelpPanel.vue'
 import DescriptionEditor from '@/components/DescriptionEditor.vue'
-import DocumentationEditor from '@/components/DocumentationEditor.vue'
+import DocumentationEditor from '@/components/DocumentationEditor'
 import ResizeHandles from '@/components/ResizeHandles.vue'
 import SizeTransition from '@/components/SizeTransition.vue'
 import WithFullscreenMode from '@/components/WithFullscreenMode.vue'
 import { useResizeObserver } from '@/composables/events'
 import { Rect } from '@/util/data/rect'
-import type { Result } from '@/util/data/result'
 import { Vec2 } from '@/util/data/vec2'
-import type { ToValue } from '@/util/reactivity'
+import type { Result } from 'enso-common/src/utilities/data/result'
 import { computed, toValue, useTemplateRef } from 'vue'
 
 const data = useRightPanelData()
 
-// Not a  part of RightPanelTabInfo, because it would create cyclic imports.
+// Not a part of RightPanelTabInfo, because it would create cyclic imports.
 const component = computed(() => {
   switch (data.displayedTab) {
     case 'description':
       return DescriptionEditor
+    case 'contents':
+      return AssetContentsEditor
     case 'settings':
       return AssetProperties
     case 'versions':
@@ -45,7 +47,9 @@ const component = computed(() => {
   }
 })
 
-const visibleTabs = computed(() => [...data.allTabs.entries()])
+const visibleTabs = computed(() =>
+  [...data.allTabs.entries()].filter(([, tabInfo]) => !toValue(tabInfo.hidden)),
+)
 
 function tabTooltip(title: ToValue<string>, enabled: ToValue<Result<void>>) {
   const enabledVal = toValue(enabled)
@@ -59,29 +63,23 @@ function tabEnabled(id: RightPanelTabId, enabled: ToValue<Result<void>>) {
 }
 
 const contentElement = useTemplateRef('contentElement')
-const style = computed(() =>
-  data.width != null ?
-    {
-      width: `${data.width}px`,
-    }
-  : undefined,
-)
 const size = useResizeObserver(contentElement)
 const bounds = computed(() => new Rect(Vec2.Zero, size.value))
+const style = computed(() => (data.width == null ? {} : { '--panel-width': `${data.width}px` }))
 </script>
 
 <template>
-  <div class="RightPanel bg-dashboard" data-testid="right-panel">
+  <div class="RightPanel withBackgroundColor bg-dashboard" data-testid="right-panel" :style="style">
     <SizeTransition width :duration="250">
-      <div v-if="component != null" ref="contentElement" class="content" :style="style">
-        <WithFullscreenMode v-model="data.fullscreen">
-          <WithCurrentProject :id="data.focusedProject">
-            <div class="contentInner">
+      <div v-if="component != null" class="sizeWrapper">
+        <div ref="contentElement" class="content">
+          <WithFullscreenMode v-model="data.fullscreen">
+            <div class="contentInner withBackgroundColor">
               <component :is="component" />
             </div>
-          </WithCurrentProject>
-        </WithFullscreenMode>
-        <ResizeHandles left :modelValue="bounds" @update:modelValue="data.width = $event.width" />
+          </WithFullscreenMode>
+          <ResizeHandles left :modelValue="bounds" @update:modelValue="data.width = $event.width" />
+        </div>
       </div>
     </SizeTransition>
     <div class="rightBar">
@@ -98,25 +96,45 @@ const bounds = computed(() => new Rect(Vec2.Zero, size.value))
           @update:selected="data.setTab($event ? id : undefined)"
         />
       </div>
-      <div class="filler" />
     </div>
   </div>
 </template>
 
 <style lang="css" scoped>
+.withBackgroundColor {
+  --panel-background: white;
+}
+
 .RightPanel {
-  --tab-highlight: rgb(254, 253, 252);
+  --tab-highlight: white;
+  --min-panel-width: 312px;
+  /* 64px is the width of the SelectableTab component + 16px padding to avoid filling the whole screen. */
+  --max-panel-width: calc(100vw - 64px);
+  --default-panel-width: 400px;
   display: flex;
   position: relative;
   flex-direction: row;
+  height: 100%;
 }
 
 .content {
   display: flex;
   justify-content: stretch;
-  min-width: 312px;
-  width: 400px;
-  overflow: auto;
+  min-width: var(--min-panel-width);
+  /*noinspection CssUnresolvedCustomProperty*/
+  width: var(--panel-width, var(--default-panel-width));
+  max-width: var(--max-panel-width);
+  height: 100%;
+}
+
+/* This element's visible width will be overwritten by the size transition, but the inner content's
+ * will not, preventing content reflow. Content reflow is disruptive to the appearance of the transition, and can affect
+ * the framerate drastically.
+ */
+.sizeWrapper {
+  height: 100%;
+  width: 100%;
+  background-color: var(--panel-background);
 }
 
 /* React panels rely on being inside columned flex. */
@@ -125,7 +143,7 @@ const bounds = computed(() => new Rect(Vec2.Zero, size.value))
   height: 100%;
   display: flex;
   flex-direction: column;
-  background-color: rgb(254, 253, 252);
+  background-color: var(--panel-background);
   padding: 1.25rem 1rem;
 }
 
@@ -142,7 +160,7 @@ const bounds = computed(() => new Rect(Vec2.Zero, size.value))
 }
 
 .SelectableTab {
-  --selection-color: var(--color-background-hex);
+  --selection-color: var(--panel-background);
   --border-radius: 1rem;
 }
 

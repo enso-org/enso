@@ -1,13 +1,11 @@
 /** @file Test the user settings tab. */
-import { test } from 'playwright/test'
-
-import { mockAllAndLogin } from './actions'
+import { test } from 'integration-test/base'
 
 const DATA_LINK_NAME = 'a data link'
 
-test('data link editor', ({ page }) =>
-  mockAllAndLogin({ page })
+test('data link editor', async ({ drivePage }) => {
+  await drivePage.goToCategory
+    .cloud()
     .openDataLinkModal()
-    .withNameInput(async (input) => {
-      await input.fill(DATA_LINK_NAME)
-    }))
+    .withNameInput((input) => input.fill(DATA_LINK_NAME))
+})

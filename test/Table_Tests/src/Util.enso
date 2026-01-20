@@ -1,7 +1,7 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
-from Standard.Table import Column, Table
+from Standard.Table import Column, Table, Numeric_Column
 
 from Standard.Test import all
 
@@ -24,6 +24,30 @@ Column.should_equal self expected = Frame_Hider.hide <|
     expected_materialized = expected.read ..All_Rows
     Panic.catch Test_Failure_Error (column_should_equal_impl self_materialized expected_materialized) error->
         Test.fail error.payload.message
+
+Numeric_Column.should_equal : Vector -> Float -> Any
+Numeric_Column.should_equal self expected:Vector epsilon:Number=0 = Frame_Hider.hide <|
+    rhs_error_check expected
+    self_materialized = (self:Column).to_vector
+    Panic.catch Test_Failure_Error handler=(error-> Test.fail error.payload.message) <|
+        pairs = self_materialized.zip expected
+        pairs.map_with_index i-> p->
+            a = p.first
+            e = p.second
+            if values_not_equal_with_epsilon a e epsilon then
+                Panic.throw (Test_Failure_Error.Error "Numeric column differs at row "+i.to_text+' Actual: '+a.to_text+' ('+(Meta.type_of a . to_text)+') Expected: '+e.to_text+' ('+(Meta.type_of e . to_text)+') at '+(display_loc True)+'.')
+
+## PRIVATE
+values_not_equal_with_epsilon a e epsilon =
+    case a.is_a Number && e.is_a Number of
+        False -> if e.is_a Number && e.is_finite.not && a==Nothing then False else a != e
+        True ->
+            ## If both numbers are different check if they are within one unit of least precision
+            handler _ = (a.is_a Float && e.is_a Float && a.compare_ulp e).not
+            Panic.catch Any handler=handler <|
+                _ = a.should_equal e epsilon
+                False
+
 type Test_Failure_Error
     ## PRIVATE
        The runtime representation of a test failure.
@@ -56,8 +80,8 @@ column_should_equal_impl actual expected should_display:Boolean=True = Frame_Hid
         _ : Column ->
             if actual.name != expected.name then
                 Panic.throw (Test_Failure_Error.Error "Expected column name "+expected.name+", but got "+actual.name+(display_loc should_display)+'.')
-            if actual.length != expected.length then
-                Panic.throw (Test_Failure_Error.Error "Expected column length "+expected.length.to_text+", but got "+actual.length.to_text+(display_loc should_display)+'.')
+            if actual.row_count != expected.row_count then
+                Panic.throw (Test_Failure_Error.Error "Expected column row_count "+expected.row_count.to_text+", but got "+actual.row_count.to_text+(display_loc should_display)+'.')
             if actual.value_type != expected.value_type then
                 Panic.throw (Test_Failure_Error.Error "Expected column type "+expected.value_type.to_text+", but got "+actual.value_type.to_text+(display_loc should_display)+'.')
             actual.to Vector . zip (expected.to Vector) skip_nothing=False a-> e->
@@ -71,7 +95,7 @@ values_not_equal a e =
 
 ## PRIVATE
 report_fail actual expected should_display = Frame_Hider.hide <|
-    indexed = actual.to Vector . zip (0.up_to actual.length) skip_nothing=False a-> i-> Pair.new a i
+    indexed = actual.to Vector . zip (0.up_to actual.row_count) skip_nothing=False a-> i-> Pair.new a i
     indexed.zip expected skip_nothing=False a-> e->
         if values_not_equal a.first e then
             Panic.throw (Test_Failure_Error.Error "Column: "+actual.name+" differs at row "+a.second.to_text+'.\n\t  Actual  : '+a.first.to_text+'\n\t  Expected: '+e.to_text+'\n\t'+(display_loc should_display)+'.')

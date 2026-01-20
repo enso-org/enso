@@ -1,9 +1,5 @@
 /** @file Types for IPC events sent between Electron's main process and its renderer process. */
 
-// ===================
-// === AccessToken ===
-// ===================
-
 /** Credentials to be saved to a credentials file. */
 export interface AccessToken {
   /** The user's JWT token. */
@@ -19,4 +15,12 @@ export interface AccessToken {
    * This is a string representation of a date in ISO 8601 format (e.g. "2021-01-01T00:00:00Z").
    */
   readonly expireAt: string
+}
+
+export interface RawAccessToken {
+  readonly access_token: string
+  readonly client_id: string
+  readonly refresh_token: string
+  readonly refresh_url: string
+  readonly expire_at: string
 }

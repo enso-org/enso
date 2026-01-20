@@ -51,6 +51,7 @@ class ImportExportTest
         .allowAllAccess(true)
         .allowCreateThread(false)
         .option(RuntimeOptions.LOG_LEVEL, Level.WARNING.getName())
+        .option(RuntimeOptions.CHECK_CWD, "false")
         .option(RuntimeOptions.DISABLE_IR_CACHES, "true")
         .option(RuntimeOptions.STRICT_ERRORS, "false")
         .option(
@@ -80,10 +81,10 @@ class ImportExportTest
   }
 
   after {
-    ctx.close()
-    ctx = null
     ProjectUtils.deleteRecursively(tmpDir)
     pkg = null
+    ctx.close()
+    ctx = null
   }
 
   implicit private class CreateModule(moduleCode: String) {
@@ -239,8 +240,10 @@ class ImportExportTest
         .reason
         .asInstanceOf[
           errors.ImportExport.NoSuchConstructor
-        ] shouldEqual errors.ImportExport
-        .NoSuchConstructor("Other_Type", "method")
+        ] shouldEqual new errors.ImportExport.NoSuchConstructor(
+        "Other_Type",
+        "method"
+      )
     }
 
     "result in multiple errors when importing more methods from type" in {
@@ -258,8 +261,8 @@ class ImportExportTest
       mainIr.imports
         .take(2)
         .map(_.asInstanceOf[errors.ImportExport].reason) shouldEqual List(
-        errors.ImportExport.NoSuchConstructor("Other_Type", "method"),
-        errors.ImportExport.NoSuchConstructor("Other_Type", "other_method")
+        new errors.ImportExport.NoSuchConstructor("Other_Type", "method"),
+        new errors.ImportExport.NoSuchConstructor("Other_Type", "other_method")
       )
     }
 
@@ -406,9 +409,14 @@ class ImportExportTest
       mainIr.imports
         .take(2)
         .map(_.asInstanceOf[errors.ImportExport].reason) shouldEqual List(
-        errors.ImportExport.NoSuchConstructor("Other_Module_Type", "method"),
-        errors.ImportExport
-          .NoSuchConstructor("Other_Module_Type", "non_existing_method")
+        new errors.ImportExport.NoSuchConstructor(
+          "Other_Module_Type",
+          "method"
+        ),
+        new errors.ImportExport.NoSuchConstructor(
+          "Other_Module_Type",
+          "non_existing_method"
+        )
       )
     }
 
@@ -747,9 +755,9 @@ class ImportExportTest
           .createModule(packageQualifiedName.createChild("Main_Module"))
           .getIr
       mainIr.imports.size shouldEqual 2
-      val origImport = mainIr.imports(0)
+      val origImport = mainIr.imports()(0)
       val warn = mainIr
-        .imports(1)
+        .imports()(1)
         .getDiagnostics
         .toList
         .collect({ case w: Warning.DuplicatedImport => w })
@@ -772,9 +780,9 @@ class ImportExportTest
           .createModule(packageQualifiedName.createChild("Main_Module"))
           .getIr
       mainIr.imports.size shouldEqual 2
-      val origImport = mainIr.imports(0)
+      val origImport = mainIr.imports()(0)
       val warn = mainIr
-        .imports(1)
+        .imports()(1)
         .getDiagnostics
         .toList
         .collect({ case w: Warning.DuplicatedImport => w })
@@ -797,9 +805,9 @@ class ImportExportTest
           .createModule(packageQualifiedName.createChild("Main_Module"))
           .getIr
       mainIr.imports.size shouldEqual 2
-      val origImport = mainIr.imports(0)
+      val origImport = mainIr.imports()(0)
       val warn = mainIr
-        .imports(1)
+        .imports()(1)
         .getDiagnostics
         .toList
         .collect({ case w: Warning.DuplicatedImport => w })
@@ -823,9 +831,9 @@ class ImportExportTest
           .createModule(packageQualifiedName.createChild("Main_Module"))
           .getIr
       mainIr.imports.size shouldEqual 2
-      val origImport = mainIr.imports(0)
+      val origImport = mainIr.imports()(0)
       val warn = mainIr
-        .imports(1)
+        .imports()(1)
         .getDiagnostics
         .toList
         .collect({ case w: Warning.DuplicatedImport => w })
@@ -874,9 +882,9 @@ class ImportExportTest
           .createModule(packageQualifiedName.createChild("Main_Module"))
           .getIr
       mainIr.imports.size shouldEqual 2
-      val origImport = mainIr.imports(0)
+      val origImport = mainIr.imports()(0)
       val ambiguousImport = mainIr
-        .imports(1)
+        .imports()(1)
         .asInstanceOf[errors.ImportExport]
         .reason
         .asInstanceOf[errors.ImportExport.AmbiguousImport]
@@ -897,7 +905,7 @@ class ImportExportTest
           .createModule(packageQualifiedName.createChild("Main_Module"))
           .getIr
       val warns = mainIr
-        .imports(0)
+        .imports()(0)
         .getDiagnostics
         .toList
         .collect({ case w: Warning.DuplicatedImport => w })
@@ -918,9 +926,9 @@ class ImportExportTest
           .createModule(packageQualifiedName.createChild("Main_Module"))
           .getIr
       mainIr.imports.size shouldEqual 2
-      val origImport = mainIr.imports(0)
+      val origImport = mainIr.imports()(0)
       val ambiguousImport = mainIr
-        .imports(1)
+        .imports()(1)
         .asInstanceOf[errors.ImportExport]
         .reason
         .asInstanceOf[errors.ImportExport.AmbiguousImport]
@@ -941,9 +949,9 @@ class ImportExportTest
           .createModule(packageQualifiedName.createChild("Main_Module"))
           .getIr
       mainIr.imports.size shouldEqual 2
-      val origImport = mainIr.imports(0)
+      val origImport = mainIr.imports()(0)
       val warns = mainIr
-        .imports(1)
+        .imports()(1)
         .getDiagnostics
         .toList
         .collect({ case w: Warning.DuplicatedImport => w })
@@ -961,9 +969,9 @@ class ImportExportTest
           .createModule(packageQualifiedName.createChild("Main_Module"))
           .getIr
       mainIr.imports.size shouldEqual 2
-      val origImport = mainIr.imports(0)
+      val origImport = mainIr.imports()(0)
       val ambiguousImport = mainIr
-        .imports(1)
+        .imports()(1)
         .asInstanceOf[errors.ImportExport]
         .reason
         .asInstanceOf[errors.ImportExport.AmbiguousImport]
@@ -985,7 +993,7 @@ class ImportExportTest
           .createModule(packageQualifiedName.createChild("Main_Module"))
           .getIr
       mainIr.imports.size shouldEqual 3
-      val origImport = mainIr.imports(0)
+      val origImport = mainIr.imports()(0)
       val allWarns =
         mainIr.imports.flatMap(_.getDiagnostics.toList.collect({
           case w: Warning.DuplicatedImport => w
@@ -1009,7 +1017,7 @@ class ImportExportTest
           .createModule(packageQualifiedName.createChild("Main_Module"))
           .getIr
       mainIr.imports.size shouldEqual 3
-      val origImport = mainIr.imports(0)
+      val origImport = mainIr.imports()(0)
       val allWarns =
         mainIr.imports.flatMap(_.getDiagnostics.toList.collect({
           case w: Warning.DuplicatedImport => w
@@ -1033,7 +1041,7 @@ class ImportExportTest
           .getIr
       mainIr.imports.size shouldEqual 2
       val warn = mainIr
-        .imports(1)
+        .imports()(1)
         .getDiagnostics
         .toList
         .collect({ case w: Warning.DuplicatedImport => w })
@@ -1074,7 +1082,7 @@ class ImportExportTest
           .getIr
       mainIr.imports.size shouldEqual 2
       val ambiguousImport = mainIr
-        .imports(1)
+        .imports()(1)
         .asInstanceOf[errors.ImportExport]
         .reason
         .asInstanceOf[errors.ImportExport.AmbiguousImport]

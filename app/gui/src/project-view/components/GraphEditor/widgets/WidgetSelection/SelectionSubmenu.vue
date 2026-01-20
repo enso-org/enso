@@ -1,26 +1,20 @@
 <script setup lang="ts" generic="T extends DropdownEntry | SubmenuEntry<T>">
 import ConditionalTeleport from '@/components/ConditionalTeleport.vue'
 import SizeTransition from '@/components/SizeTransition.vue'
-import DropdownWidget, { DropdownEntry } from '@/components/widgets/DropdownWidget.vue'
+import DropdownWidget, { type DropdownEntry } from '@/components/widgets/DropdownWidget.vue'
 import { unrefElement } from '@/composables/events'
 import { usePopoverRoot } from '@/providers/popoverRoot'
 import { targetIsOutside } from '@/util/autoBlur'
-import { Opt } from '@/util/data/opt'
-import { computed, ComputedRef, ref, toRef, useTemplateRef, watch } from 'vue'
+import type { Opt } from '@/util/data/opt'
+import { computed, nextTick, ref, toRef, useTemplateRef, watch, type ComputedRef } from 'vue'
 import { submenuDropdownStyles } from './styles'
 import { isSubmenuEntry, type SubmenuEntry } from './submenuEntry'
 
-const {
-  extendUpwards = true,
-  backgroundColor = 'var(--color-node-background)',
-  color = 'var(--color-node-text)',
-  ...props
-} = defineProps<{
+const props = defineProps<{
   floatReference: Opt<HTMLElement>
   show: boolean
   entries: T[]
   topLevel?: boolean
-  extendUpwards?: boolean
   color?: string | undefined
   backgroundColor?: string | undefined
 }>()
@@ -76,7 +70,9 @@ function nestedEntryToSubmenu(entry: SubmenuEntry<T>, target: HTMLElement): Subm
 
 function onClick(entry: T, keepOpen: boolean, htmlElement: HTMLElement) {
   if (isSubmenuEntry(entry) && entry.isNested) {
-    submenu.value = nestedEntryToSubmenu(entry, htmlElement)
+    // Change submenu in two steps to trigger the size transition.
+    submenu.value = null
+    nextTick(() => (submenu.value = nestedEntryToSubmenu(entry, htmlElement)))
   } else {
     emit('clickedEntry', entry as T, keepOpen)
   }
@@ -87,7 +83,7 @@ function onScroll() {
 }
 
 /** Check if the event target is outside the current submenu and any of its descendants. */
-function isTargetOutside(event: Event) {
+function isTargetOutside(event: Event): boolean {
   const isOutsideCurrent = targetIsOutside(event, unrefElement(dropdownElement))
   const isOutsideSubmenu =
     isSubmenuComponent(submenuRef.value) ? submenuRef.value.isTargetOutside(event) : true
@@ -121,9 +117,7 @@ export interface SubmenuComponent {
       <SizeTransition height :duration="100">
         <DropdownWidget
           v-if="props.show"
-          :class="{ ExtendUpwards: props.topLevel && extendUpwards }"
-          :color="color"
-          :backgroundColor="backgroundColor"
+          class="outlined"
           :entries="entries"
           @clickEntry="onClick"
           @scroll="onScroll"
@@ -137,8 +131,6 @@ export interface SubmenuComponent {
     :floatReference="submenu?.relativeTo"
     :show="props.show && submenu != null"
     :entries="submenuEntries"
-    :color="color"
-    :backgroundColor="backgroundColor"
     @clickedEntry="(entry, keepOpen) => emit('clickedEntry', entry, keepOpen)"
   />
 </template>
@@ -146,5 +138,9 @@ export interface SubmenuComponent {
 <style scoped>
 .SelectionSubmenu {
   z-index: var(--z-index-selection-submenu);
+}
+
+.outlined {
+  border: 1px solid color-mix(in oklab, var(--dropdown-bg), black 5%);
 }
 </style>

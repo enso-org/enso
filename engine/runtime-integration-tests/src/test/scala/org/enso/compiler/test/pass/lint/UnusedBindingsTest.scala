@@ -115,7 +115,7 @@ class UnusedBindingsTest extends CompilerTest with Inside {
 
       inside(ir.bindings.head) { case definition: definition.Method.Explicit =>
         inside(definition.body) { case f: Function.Lambda =>
-          val lintMeta = f.arguments(1).diagnosticsList.collect {
+          val lintMeta = f.arguments().apply(1).diagnosticsList.collect {
             case u: warnings.Unused.FunctionArgument => u
           }
 
@@ -190,7 +190,7 @@ class UnusedBindingsTest extends CompilerTest with Inside {
 
       val pattern = ir.branches.head.pattern.asInstanceOf[Pattern.Constructor]
       val field1  = pattern.fields.head.asInstanceOf[Pattern.Name]
-      val field2  = pattern.fields(1).asInstanceOf[Pattern.Name]
+      val field2  = pattern.fields.apply(1).asInstanceOf[Pattern.Name]
 
       val lintMeta1 = field1.diagnosticsList.collect {
         case u: warnings.Unused =>
@@ -220,7 +220,7 @@ class UnusedBindingsTest extends CompilerTest with Inside {
 
       inside(ir.bindings.head) { case definition: definition.Method.Explicit =>
         inside(definition.body) { case f: Function.Lambda =>
-          val lintMeta = f.arguments(1).diagnosticsList.collect {
+          val lintMeta = f.arguments().apply(1).diagnosticsList.collect {
             case u: warnings.Unused.FunctionArgument => u
           }
 
@@ -245,7 +245,7 @@ class UnusedBindingsTest extends CompilerTest with Inside {
 
       val pattern = ir.branches.head.pattern.asInstanceOf[Pattern.Constructor]
       val field1  = pattern.fields.head.asInstanceOf[Pattern.Name]
-      val field2  = pattern.fields(1).asInstanceOf[Pattern.Name]
+      val field2  = pattern.fields.apply(1).asInstanceOf[Pattern.Name]
 
       val lintMeta1 = field1.diagnosticsList.collect {
         case u: warnings.Unused =>

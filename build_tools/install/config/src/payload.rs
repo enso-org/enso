@@ -2,8 +2,6 @@
 
 use crate::prelude::*;
 
-
-
 /// Information about the archive payload of the installer.
 ///
 /// This information is used to display progress information to the user. While it could be

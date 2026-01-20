@@ -1,14 +1,15 @@
+import type { ToValue } from '$/utils/reactivity'
 import type { NodeCreationOptions } from '@/components/GraphEditor/nodeCreation'
 import type { ToolbarItem } from '@/components/visualizations/toolbar'
 import { createContextStore } from '@/providers'
 import { Ast } from '@/util/ast'
 import type { Vec2 } from '@/util/data/vec2'
-import type { ToValue } from '@/util/reactivity'
+import { ProjectPath } from '@/util/projectPath'
 import { reactive } from 'vue'
 
 export interface VisualizationConfig {
   /** The Enso type of the data being visualized. */
-  readonly nodeType: string | undefined
+  readonly nodeType: ProjectPath | undefined
   /** The size of the area available for the visualization to draw its content. */
   readonly size: Vec2
   /** Create graph nodes. */

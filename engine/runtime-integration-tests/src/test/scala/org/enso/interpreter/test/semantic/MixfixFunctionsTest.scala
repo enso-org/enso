@@ -12,13 +12,14 @@ class MixfixFunctionsTest extends InterpreterTest {
     "be able to be defined as a method" in {
       val code =
         """
+          |from Standard.Base import all
           |type Foo
           |    Mk_Foo a
           |
           |Foo.if_then self = x -> case self of
           |    Foo.Mk_Foo a -> a + x
           |
-          |main = if Foo.Mk_Foo 2 then 8
+          |main = (Foo.Mk_Foo 2).if_then 8
           |""".stripMargin
 
       eval(code) shouldEqual 10
@@ -33,7 +34,7 @@ class MixfixFunctionsTest extends InterpreterTest {
           |Foo.if_then_else self = a -> b -> case self of
           |    Foo.Mk_Foo x y -> x + y + a + b
           |
-          |main = if (Foo.Mk_Foo 1 2) then 3 else 4
+          |main = (Foo.Mk_Foo 1 2).if_then_else 3 4
           |""".stripMargin
 
       eval(code) shouldEqual 10

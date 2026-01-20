@@ -168,21 +168,23 @@ case class Config(
   jvm: Option[Boolean]
 ) {
 
-  /** Converts the configuration into a YAML representation. */
-  def toYaml: String = {
-    val config: Config = this
-    val noDevEdition: Config =
+  /** Converts the configuration into a YAML representation.
+    *
+    * @param keepDevVersion true if default dev versions should be stored
+    */
+  def toYaml(keepDevVersions: Boolean = false): String = {
+    val config: Config =
       if (
-        config.edition.exists(
+        !keepDevVersions && edition.exists(
           _.parent
-            .exists(p => p.toString == BuildVersion.defaultDevEnsoVersion())
+            .exists(p => p == BuildVersion.defaultDevEnsoVersion())
         )
       ) {
-        config.copy(edition = None)
+        copy(edition = None)
       } else {
-        config
+        this
       }
-    val node          = implicitly[YamlEncoder[Config]].encode(noDevEdition)
+    val node          = implicitly[YamlEncoder[Config]].encode(config)
     val dumperOptions = new DumperOptions()
     dumperOptions.setIndent(2)
     dumperOptions.setPrettyFlow(true)
@@ -350,7 +352,6 @@ object Config {
             (JsonFields.Maintainer, contactsEncoder.encode(value.maintainers))
           )
         }
-
         value.edition.foreach { edition =>
           if (edition.isDerivingWithoutOverrides)
             elements.add((JsonFields.Edition, edition.parent.get))

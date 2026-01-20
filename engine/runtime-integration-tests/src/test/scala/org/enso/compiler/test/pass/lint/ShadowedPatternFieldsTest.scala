@@ -73,8 +73,8 @@ class ShadowedPatternFieldsTest extends CompilerTest {
       pattern.fields.head
         .asInstanceOf[Pattern.Name]
         .name shouldBe an[Name.Blank]
-      pattern
-        .fields(1)
+      pattern.fields
+        .apply(1)
         .asInstanceOf[Pattern.Name]
         .name shouldBe an[Name.Literal]
     }
@@ -89,7 +89,7 @@ class ShadowedPatternFieldsTest extends CompilerTest {
       }.head
 
       warning.shadowedName shouldEqual "a"
-      warning.shadower shouldEqual pattern.fields(2)
+      warning.shadower shouldEqual pattern.fields.apply(2)
       warning.message(
         null
       ) shouldBe "The pattern field 'a' is shadowed by another one with the same name."

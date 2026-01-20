@@ -1,0 +1,133 @@
+load("@aspect_rules_esbuild//esbuild:defs.bzl", "esbuild")
+load("@aspect_rules_js//npm:defs.bzl", "npm_package")
+load("@aspect_rules_ts//ts:defs.bzl", "ts_config", "ts_project")
+load("@npm//:defs.bzl", "npm_link_all_packages", "npm_link_targets")
+load("@npm//app/electron-client:electron-builder/package_json.bzl", electron_builder_bin = "bin")
+load("//internal:stampFiles.bzl", "stamp_files")
+
+npm_link_all_packages(name = "node_modules")
+
+ts_config(
+    name = "tsconfig",
+    src = "tsconfig.json",
+    visibility = [":__subpackages__"],
+    deps = ["//:tsconfig"],
+)
+
+ts_project(
+    name = "tsc",
+    srcs = glob(["src/*.ts"]),
+    composite = True,
+    declaration = True,
+    resolve_json_module = True,
+    source_map = True,
+    tsconfig = "//app/project-manager-shim:tsconfig",
+    validate = select({
+        "@platforms//os:windows": False,
+        "//conditions:default": True,
+    }),
+    visibility = ["//visibility:public"],
+    deps = ["//:tsconfig"] + npm_link_targets(),
+)
+
+npm_package(
+    name = "package",
+    srcs = [":tsc"],
+    include_runfiles = False,
+    visibility = ["//visibility:public"],
+)
+
+STAMPING_ENV = {
+    "process.env.ELECTRON_DEV_MODE": "false",
+    "process.env.ENSO_IDE_VERSION": "'((%__ENSO_IDE_VERSION__%))'",
+    "process.env.ENSO_IDE_COMMIT_HASH": "'((%__ENSO_IDE_COMMIT_HASH__%))'",
+}
+
+NON_STAMPING_ENV = {
+    "process.env.ELECTRON_DEV_MODE": "false",
+}
+
+esbuild(
+    name = "bundle",
+    srcs = glob(["src/**/*.ts"]) + [
+        "buildInfo.ts",
+        "fileAssociations.ts",
+        "paths.ts",
+    ],
+    bundle = True,
+    # Some configuration options (like plugins) cannot be defined in Bazel rule, so we use a config file.
+    config = ":esbuild.config.mjs",
+    define = select({
+        "//:stamping": STAMPING_ENV,
+        "//conditions:default": NON_STAMPING_ENV,
+    }),
+    entry_points = [
+        "src/index.ts",
+        "src/preload.ts",
+    ],
+    external = [
+        "electron",
+        "vite",
+        "lightningcss",
+        "bufferutil",
+        "utf-8-validate",
+        "encoding",
+        "supports-color",
+        "original-fs",
+    ],
+    format = "esm",
+    output_dir = True,
+    platform = "node",
+    sourcemap = "linked",
+    target = ["node20"],
+    visibility = ["//visibility:public"],
+    deps = npm_link_targets(),
+)
+
+stamp_files(
+    name = "bundle_stamped",
+    srcs = [":bundle"],
+    out = "bundle_stamped",
+    files_regex = ".*\\.mjs$",
+    input_dir = "$(location :bundle)",
+    visibility = ["//visibility:public"],
+)
+
+alias(
+    name = "selected_bundle",
+    actual = select({
+        "//:stamping": ":bundle_stamped",
+        "//conditions:default": ":bundle",
+    }),
+)
+
+alias(
+    name = "selected_gui_dist",
+    actual = select({
+        "//:stamping": "//app/gui:dist_stamped",
+        "//conditions:default": "//app/gui:dist",
+    }),
+)
+
+electron_builder_bin.electron_builder(
+    name = "dist",
+    srcs = npm_link_targets() + [
+        "package.json",
+        ":electron-builder-config.cjs",
+        ":selected_bundle",
+        ":selected_gui_dist",
+        "//:sbt_build_engine_distribution",
+        "//:sbt_build_small_jdk",
+    ],
+    args = [
+        "build",
+        "--config electron-builder-config.cjs",
+    ],
+    chdir = package_name(),
+    env = {
+        # Disable Node fs patching for this target to avoid readlink issues on Bazel bin symlinks.
+        "JS_BINARY__PATCH_NODE_FS": "0",
+    },
+    out_dirs = ["ide-dist"],
+    visibility = ["//visibility:public"],
+)

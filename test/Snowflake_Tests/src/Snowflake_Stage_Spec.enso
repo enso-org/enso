@@ -1,0 +1,101 @@
+from Standard.Base import all
+
+from Standard.Table import Table
+
+from Standard.Database import all
+from Standard.Database.Errors import all
+
+from Standard.Snowflake import all
+import Standard.Snowflake.Errors.File_Format_Not_Found
+import Standard.Snowflake.Errors.Snowflake_Error
+import Standard.Snowflake.Errors.Stage_Not_Found
+
+from Standard.Test import all
+import Standard.Test.Test_Environment
+
+from project.Snowflake_Spec import get_configured_connection_details, Lazy_Ref
+
+add_specs suite_builder = case get_configured_connection_details of
+    Nothing ->
+        message = "Snowflake test connection is not configured. See README.md for instructions."
+        suite_builder.group "[Snowflake] Stage tests" pending=message (_-> Nothing)
+    connection_details ->
+        connection_builder = _ -> Database.connect connection_details
+
+        default_connection = Lazy_Ref.Value (connection_builder Nothing)
+
+        file = (Project_Description.new enso_dev.Table_Tests).data / "data.csv"
+
+        suite_builder.group "[Snowflake] Stage tests" group_builder->
+            group_builder.specify "can list stages" <|
+                connection = default_connection.get.set_database "FROSTBYTE_TASTY_BYTES"
+                stages_table = connection.stages
+                stages_table.at "name" . to_vector . should_equal ["S3LOAD"]
+                stages_table.at "schema_name" . to_vector . should_equal ["PUBLIC"]
+
+            group_builder.specify "can get stage details" <|
+                connection = default_connection.get.set_database "FROSTBYTE_TASTY_BYTES"
+                stage_details = connection.stage_properties (..Name_And_Schema "S3LOAD" "PUBLIC")
+                stage_details.filter "property" (..Equal "URL") . get_value "property_value" . should_equal '["s3://sfquickstarts/frostbyte_tastybytes/"]'
+
+                no_stage = connection.stage_properties (..Name_And_Schema "NO_SUCH_STAGE" "PUBLIC")
+                no_stage.should_fail_with Stage_Not_Found
+
+                connection_2 = connection.set_schema "PUBLIC"
+                stage_details_2 = connection_2.stage_properties "S3LOAD"
+                stage_details_2.filter "property" (..Equal "URL") . get_value "property_value" . should_equal '["s3://sfquickstarts/frostbyte_tastybytes/"]'
+
+            group_builder.specify "can list files in stage" <|
+                connection = default_connection.get.set_database "FROSTBYTE_TASTY_BYTES" . set_schema "PUBLIC"
+                files_table = connection.list_stage_objects "S3LOAD"
+                file_names = files_table.at "name" . to_vector
+                file_names.should_contain "s3://sfquickstarts/frostbyte_tastybytes/analytics/menu_item_cogs_and_price_v.csv"
+
+            group_builder.specify "can load a file to a stage" <|
+                connection = default_connection.get
+                upload = connection.put_to_stage file (..Name "~") overwrite=True
+                upload.should_be_a Text
+                upload.should_equal "data.csv.gz"
+
+                upload_2 = connection.put_to_stage file (..Name "~") overwrite=False
+                upload_2.should_fail_with Snowflake_Error
+
+                no_stage = connection.put_to_stage file (..Name_And_Schema "NO_SUCH_STAGE" "PUBLIC")
+                no_stage.should_fail_with Stage_Not_Found
+
+            group_builder.specify "can remove a file from a stage" <|
+                connection = default_connection.get
+
+                uploaded_name = connection.put_to_stage file (..Name "~") overwrite=True
+
+                removed = connection.remove_from_stage (..Name "~") uploaded_name
+                removed.should_be_a Table
+                removed.row_count . should_equal 1
+                removed.get_value "name" 0 . should_equal uploaded_name
+                removed.get_value "result" 0 . should_equal "removed"
+
+                removed_2 = connection.remove_from_stage (..Name "~") uploaded_name
+                removed_2.should_be_a Table
+                removed_2.row_count . should_equal 0
+
+                no_stage = connection.remove_from_stage (..Name_And_Schema "NO_SUCH_STAGE" "PUBLIC") uploaded_name
+                no_stage.should_fail_with Stage_Not_Found
+
+            group_builder.specify "can list file formats" <|
+                connection = default_connection.get.set_database "FROSTBYTE_TASTY_BYTES"
+                formats_table = connection.file_formats
+                formats_table.at "name" . to_vector . should_equal ["CSV_FF"]
+                formats_table.at "schema_name" . to_vector . should_equal ["PUBLIC"]
+
+            group_builder.specify "can get file formats details" <|
+                connection = default_connection.get.set_database "FROSTBYTE_TASTY_BYTES"
+                format_details = connection.file_format_properties (..Name_And_Schema "CSV_FF" "PUBLIC")
+                format_details.filter "property" (..Equal "TYPE") . get_value "property_value" . should_equal 'csv'
+
+                no_format = connection.file_format_properties (..Name_And_Schema "NO_SUCH_FORMAT" "PUBLIC")
+                no_format.should_fail_with File_Format_Not_Found
+
+main filter=Nothing =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter filter

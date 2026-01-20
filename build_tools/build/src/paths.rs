@@ -2,10 +2,7 @@ use crate::prelude::*;
 
 use crate::version::Versions;
 
-use std::env::consts::EXE_EXTENSION;
 use std::env::consts::EXE_SUFFIX;
-
-
 
 #[allow(clippy::all)] // [mwu] Little reason to bother in the generated code.
 pub mod generated {
@@ -64,8 +61,8 @@ pub fn new_repo_root(repo_root: impl Into<PathBuf>, triple: &TargetTriple) -> ge
 
 #[derive(Clone, Debug, Serialize, PartialEq, Eq)]
 pub struct TargetTriple {
-    pub os:       OS,
-    pub arch:     Arch,
+    pub os: OS,
+    pub arch: Arch,
     pub versions: Versions,
 }
 
@@ -96,7 +93,7 @@ pub struct Paths {
     // pub launcher:        ComponentPaths,
     // pub engine:          ComponentPaths,
     // pub project_manager: ComponentPaths,
-    pub triple:    TargetTriple,
+    pub triple: TargetTriple,
 }
 
 impl Paths {
@@ -205,13 +202,6 @@ pub fn data_directory() -> PathBuf {
 /// Get the place where global IR caches are stored.
 pub fn cache_directory() -> PathBuf {
     data_directory().join("cache")
-}
-
-pub fn project_manager(base_path: impl AsRef<Path>) -> PathBuf {
-    base_path
-        .as_ref()
-        .join_iter(["enso", "bin", "project-manager"])
-        .with_appended_extension(EXE_EXTENSION)
 }
 
 /// The path to the first `Cargo.toml` above the given path.

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { type AnyIcon } from '@/util/icons'
+import type { AnyIcon } from '@/util/icons'
 import SvgButton from './SvgButton.vue'
 
 const props = defineProps<{
@@ -7,6 +7,7 @@ const props = defineProps<{
   label?: string | undefined
   disabled?: boolean
   title?: string | undefined
+  variant?: 'submit' | undefined
 }>()
 const emit = defineEmits<{ activate: [] }>()
 </script>

@@ -1,5 +1,9 @@
-import { isOnWindows } from '../detect.js'
 import { newtypeConstructor, type Newtype } from './data/newtype.js'
+import { isOnWindows } from './detect.js'
+
+/** A filesystem path. */
+export type Path = Newtype<string, 'Path'>
+export const Path = newtypeConstructor<Path>()
 
 /** @file Functions related to files. */
 export type FileExtension = `.${string}`
@@ -10,9 +14,7 @@ export interface InputFilesOptions {
   readonly multiple?: boolean
 }
 
-/**
- * Open a file-selection dialog and read the file selected by the user.
- */
+/** Open a file-selection dialog and read the file selected by the user. */
 export function readUserSelectedFile(options: InputFilesOptions = {}) {
   return new Promise<FileList>((resolve, reject) => {
     const input = document.createElement('input')
@@ -76,10 +78,6 @@ export function basenameAndExtension(name: string) {
   return { basename: basename ?? name, extension: extension ?? '' }
 }
 
-/** A filesystem path. */
-export type Path = Newtype<string, 'Path'>
-export const Path = newtypeConstructor<Path>()
-
 /** Construct a {@link Path} from an existing {@link Path} of the parent directory. */
 export function joinPath(directoryPath: Path, fileName: string) {
   return Path(`${directoryPath}/${fileName}`)
@@ -94,8 +92,9 @@ export function normalizeSlashes(path: string): Path {
   }
 }
 
-/** Split a {@link Path} inito the path of its parent directory, and its file name. */
+/** Split a {@link Path} into the path of its parent directory, and its file name. */
 export function getDirectoryAndName(path: Path) {
-  const [, directoryPath = '', fileName = ''] = path.match(/^(.+)[/]([^/]+)$/) ?? []
+  const regex = isOnWindows() ? /^(.+)[\\/]([^\\/]+)$/ : /^(.+)[/]([^/]+)$/
+  const [, directoryPath = '', fileName = ''] = path.match(regex) ?? []
   return { directoryPath: Path(directoryPath), fileName }
 }

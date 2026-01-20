@@ -3,12 +3,12 @@ import project.Data.Text.Text
 import project.Error.Error
 import project.Errors.Common.No_Such_Conversion
 import project.Meta
-import project.Nothing.Nothing
 import project.Panic.Panic
 import project.System.File.File
 import project.System.File.Generic.File_Like.File_Like
 import project.System.File_Format.File_Format
 import project.System.File_Format_Metadata.File_Format_Metadata
+from project.Nothing import all
 
 polyglot java import java.io.FileNotFoundException
 polyglot java import java.io.IOException

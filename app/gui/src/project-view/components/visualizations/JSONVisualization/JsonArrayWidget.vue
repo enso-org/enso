@@ -1,15 +1,19 @@
 <script lang="ts" setup>
 import JsonValueWidget from '@/components/visualizations/JSONVisualization/JsonValueWidget.vue'
+import type { Opt } from '@/util/data/opt'
 import { computed } from 'vue'
+import type { CreateProjection } from './types'
 
-const props = defineProps<{ data: unknown[] }>()
-const emit = defineEmits<{
-  createProjection: [path: (string | number)[][]]
+const props = defineProps<{
+  data: unknown[]
+  indent: string
+  createProjectionCb?: Opt<CreateProjection>
 }>()
 
 const MAX_INLINE_LENGTH = 40
 
 const block = computed(() => JSON.stringify(props.data).length > MAX_INLINE_LENGTH)
+const nextIndent = computed(() => (block.value ? props.indent + '  ' : ''))
 
 function entryTitle(index: number) {
   const singleEntry = `Click to create a node selecting element ${index} of the array.`
@@ -17,45 +21,49 @@ function entryTitle(index: number) {
       `${singleEntry} Shift-click to create nodes selecting all ${props.data.length} elements.`
     : singleEntry
 }
+
+function onClick(index: number, event: MouseEvent) {
+  if (props.createProjectionCb) {
+    props.createProjectionCb([event.shiftKey ? [...props.data.keys()] : [index]])
+    event.stopPropagation()
+  }
+}
 </script>
 
 <template>
   <span class="JsonArrayWidget" :class="{ block }">
+    [
     <span
-      v-for="(child, index) in props.data"
+      v-for="(child, index) in data"
       :key="index"
-      :title="entryTitle(index)"
-      class="element clickable"
-      @click.stop="emit('createProjection', [$event.shiftKey ? [...props.data.keys()] : [index]])"
+      :title="createProjectionCb != null ? entryTitle(index) : ''"
+      class="element"
+      :class="{ clickable: createProjectionCb != null }"
+      @click="onClick(index, $event)"
     >
+      <pre class="indent" v-text="nextIndent" />
       <JsonValueWidget
         :data="child"
-        @createProjection="emit('createProjection', [[index], ...$event])"
-      />
+        :indent="nextIndent"
+        :createProjectionCb="
+          createProjectionCb && ((path) => createProjectionCb?.([[index], ...path]))
+        "
+      />{{
+        // This newline is needed for copying text.
+        index === data.length - 1 ? '\n'
+        : block ? ','
+        : ', '
+      }}
     </span>
+    <span><pre class="indent" v-text="indent" />]</span>
   </span>
 </template>
 
 <style scoped>
-.JsonArrayWidget {
-  &::before {
-    display: inline;
-    content: '[';
-  }
-  &::after {
-    display: inline;
-    content: ']';
-  }
-}
 .block > .element {
   display: block;
-  margin-left: 1em;
 }
-.element:not(:last-child)::after {
+.indent {
   display: inline;
-  content: ', ';
-}
-.block > .element:not(:last-child)::after {
-  content: ',';
 }
 </style>

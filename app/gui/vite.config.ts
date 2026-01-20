@@ -3,6 +3,7 @@ import react from '@vitejs/plugin-react'
 import vue from '@vitejs/plugin-vue'
 import { fileURLToPath } from 'node:url'
 import postcssNesting from 'postcss-nesting'
+import { downloadEnsoEngine, findEnsoExecutable } from 'project-manager-shim'
 import tailwindcss from 'tailwindcss'
 import tailwindcssNesting from 'tailwindcss/nesting'
 import { defaultClientConditions, defineConfig, type Plugin } from 'vite'
@@ -11,10 +12,7 @@ import wasm from 'vite-plugin-wasm'
 import tailwindConfig from './tailwind.config'
 
 const isDevMode = process.env.NODE_ENV === 'development'
-const isE2E = process.env.INTEGRATION_TEST === 'true'
 const IS_ELECTRON_DEV_MODE = process.env.ELECTRON_DEV_MODE === 'true'
-
-const entrypoint = isE2E ? './src/project-view/test-entrypoint.ts' : './src/entrypoint.ts'
 
 if (isDevMode) {
   process.env.ENSO_IDE_YDOC_SERVER_URL ||= 'ws://__HOSTNAME__:5976'
@@ -25,6 +23,7 @@ process.env.LAUNCH_EDITOR ??= 'code'
 
 // https://vitejs.dev/config/
 export default defineConfig({
+  ...(process.env.MODE ? { mode: process.env.MODE } : {}),
   ...(IS_ELECTRON_DEV_MODE ? { root: fileURLToPath(new URL('.', import.meta.url)) } : {}),
   cacheDir: fileURLToPath(new URL('../../node_modules/.cache/vite', import.meta.url)),
   plugins: [
@@ -94,8 +93,6 @@ export default defineConfig({
   resolve: {
     conditions: isDevMode ? ['source', ...defaultClientConditions] : [...defaultClientConditions],
     alias: {
-      '/src/entrypoint.ts': fileURLToPath(new URL(entrypoint, import.meta.url)),
-      shared: fileURLToPath(new URL('./shared', import.meta.url)),
       '@': fileURLToPath(new URL('./src/project-view', import.meta.url)),
       '#': fileURLToPath(new URL('./src/dashboard', import.meta.url)),
       $: fileURLToPath(new URL('./src', import.meta.url)),
@@ -125,6 +122,12 @@ export default defineConfig({
     sourcemap: true,
     rollupOptions: {
       output: {
+        chunkFileNames: (chunkInfo) => {
+          if (chunkInfo.name === 'config') {
+            return 'assets/config.js'
+          }
+          return 'assets/[name]-[hash].js'
+        },
         manualChunks: {
           config: ['./src/config'],
           entrypoint: ['./src/entrypoint'],
@@ -139,13 +142,36 @@ export default defineConfig({
 
 async function projectManagerShim(): Promise<Plugin> {
   const module = await import('./project-manager-shim-middleware')
+  const projectManagerShimMiddleware = new module.ProjectManagerShimMiddleware(setupEnsoRunnerPath)
+
+  if (isDevMode) {
+    await setupEnsoRunnerPath()
+  }
+
   return {
     name: 'project-manager-shim',
     configureServer(server) {
-      server.middlewares.use(module.default)
+      server.middlewares.use(
+        projectManagerShimMiddleware.handler.bind(projectManagerShimMiddleware),
+      )
     },
     configurePreviewServer(server) {
-      server.middlewares.use(module.default)
+      server.middlewares.use(
+        projectManagerShimMiddleware.handler.bind(projectManagerShimMiddleware),
+      )
     },
+  }
+}
+
+async function setupEnsoRunnerPath(): Promise<void> {
+  const projectRoot = fileURLToPath(new URL('../..', import.meta.url))
+  let ensoExecutable = findEnsoExecutable(projectRoot)
+  if (!ensoExecutable) {
+    await downloadEnsoEngine(projectRoot)
+    ensoExecutable = findEnsoExecutable(projectRoot)
+  }
+  if (ensoExecutable) {
+    console.log('Found enso executable:', ensoExecutable)
+    process.env.ENSO_ENGINE_PATH = ensoExecutable
   }
 }

@@ -2,6 +2,10 @@
 ## module Standard.Base.Data.Text
 - type Text
     - + self that:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - < self that:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - <= self that:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - > self that:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - >= self that:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - compare_to_ignore_case self that:Standard.Base.Any.Any locale:Standard.Base.Any.Any= -> Standard.Base.Any.Any
     - equals_ignore_case self that:Standard.Base.Data.Text.Text locale:Standard.Base.Data.Locale.Locale= -> Standard.Base.Any.Any
     - is_empty self -> Standard.Base.Any.Any

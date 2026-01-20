@@ -1,9 +1,12 @@
 import LocalStorage from '#/utilities/LocalStorage'
-import { AuthStore, useAuth } from '$/providers/auth'
-import { BackendsStore, useBackends } from '$/providers/backends'
+import { useActionsStore, type ActionsStore } from '$/providers/actions'
+import { useAuth, type AuthStore } from '$/providers/auth'
+import { useBackends, type BackendsStore } from '$/providers/backends'
 import { useHttpClient } from '$/providers/httpClient'
-import { QueryParams, useQueryParams } from '$/providers/queryParams'
+import { useOpenedProjects, type OpenedProjectsStore } from '$/providers/openedProjects'
+import { useQueryParams, type QueryParams } from '$/providers/queryParams'
 import {
+  ActionsContext,
   ConfigContext,
   HTTPClientContext,
   LocalStorageContext,
@@ -12,13 +15,16 @@ import {
 } from '$/providers/react'
 import { AuthContext } from '$/providers/react/auth'
 import { BackendsContext } from '$/providers/react/backends'
+import { OpenedProjectsContext } from '$/providers/react/openedProjects'
 import { QueryParamsContext } from '$/providers/react/queryParams'
-import { RouterContext, RouterForReact } from '$/providers/react/router'
-import { SessionStore, useSession } from '$/providers/session'
-import { TextStore, useText } from '$/providers/text'
-import { GuiConfig, injectGuiConfig } from '@/providers/guiConfig'
+import { RouterContext, type RouterForReact } from '$/providers/react/router'
+import { UploadsToCloudStoreContext } from '$/providers/react/upload'
+import { useSession, type SessionStore } from '$/providers/session'
+import { useText, type TextStore } from '$/providers/text'
+import { useUploadsToCloudStore, type UploadsToCloudStore } from '$/providers/upload'
+import { proxyRefs } from '$/utils/reactivity'
+import { injectGuiConfig, type GuiConfig } from '@/providers/guiConfig'
 import { reactComponent } from '@/util/react'
-import { proxyRefs } from '@/util/reactivity'
 import type { HttpClient } from 'enso-common/src/services/HttpClient'
 import * as react from 'react'
 import { useRoute, useRouter } from 'vue-router'
@@ -33,6 +39,9 @@ interface ContextsForReactProviderProps {
   session: SessionStore
   auth: AuthStore
   queryParams: QueryParams
+  actionsStore: ActionsStore
+  uploadsToCloudStore: UploadsToCloudStore
+  openedProjects: OpenedProjectsStore
 }
 
 /**
@@ -54,6 +63,9 @@ export const ContextsForReactProvider = reactComponent(
       session,
       auth,
       queryParams,
+      actionsStore,
+      uploadsToCloudStore,
+      openedProjects,
     } = props
     return (
       <RouterContext.Provider value={router}>
@@ -65,7 +77,13 @@ export const ContextsForReactProvider = reactComponent(
                   <AuthContext.Provider value={auth}>
                     <QueryParamsContext.Provider value={queryParams}>
                       <BackendsContext.Provider value={backends}>
-                        {children}
+                        <ActionsContext.Provider value={actionsStore}>
+                          <UploadsToCloudStoreContext.Provider value={uploadsToCloudStore}>
+                            <OpenedProjectsContext.Provider value={openedProjects}>
+                              {children}
+                            </OpenedProjectsContext.Provider>
+                          </UploadsToCloudStoreContext.Provider>
+                        </ActionsContext.Provider>
                       </BackendsContext.Provider>
                     </QueryParamsContext.Provider>
                   </AuthContext.Provider>
@@ -94,6 +112,9 @@ export const ContextsForReactProvider = reactComponent(
         session: useSession(),
         auth: useAuth(),
         queryParams: useQueryParams(),
+        actionsStore: useActionsStore(),
+        uploadsToCloudStore: useUploadsToCloudStore(),
+        openedProjects: useOpenedProjects(),
       })
       // Avoid annoying warning about __veauryInjectedProps__ property. Returning a function here
       // avoids the code path that assigns that property to overwrite a computed value with constant.

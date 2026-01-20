@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { FileType } from '$/providers/openedProjects/widgetRegistry/configuration'
 import SelectionSubmenu, {
   type SubmenuComponent,
 } from '@/components/GraphEditor/widgets/WidgetSelection/SelectionSubmenu.vue'
@@ -7,7 +8,6 @@ import SvgIcon from '@/components/SvgIcon.vue'
 import AutoSizedInput from '@/components/widgets/AutoSizedInput.vue'
 import type { Filter } from '@/components/widgets/FileBrowserWidget/fileExtensionFilter'
 import { useFileExtensions } from '@/components/widgets/FileBrowserWidget/fileExtensions'
-import type { FileType } from '@/providers/widgetRegistry/configuration'
 import type { Opt } from '@/util/data/opt'
 import { toRef, useTemplateRef } from 'vue'
 

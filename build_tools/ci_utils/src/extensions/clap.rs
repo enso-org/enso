@@ -4,8 +4,6 @@ use clap::Arg;
 use convert_case::Case;
 use convert_case::Casing;
 
-
-
 /// Extensions to the `clap::Arg`, intended to be used as argument attributes.
 pub trait ArgExt: Sized {
     /// If the given value is `Some`, set it as a default.
@@ -13,7 +11,6 @@ pub trait ArgExt: Sized {
     /// Useful primarily when presence of default value on a CLI argument depends on runtime
     /// conditions.
     fn maybe_default_os<S: Into<OsString>>(self, f: Option<S>) -> Self;
-
 
     /// Like `env` but prefixes the generated environment variable name with
     /// `ENVIRONMENT_VARIABLE_NAME_PREFIX`.

@@ -19,8 +19,8 @@ type X
 
     x_method self = "X method"
 
-make_a_and_b -> A & B =
-    a = A.A_Ctor 1
+make_a_and_b field=1 -> A & B =
+    a = A.A_Ctor field
     # Relies on the hidden conversion
     (a : A & B)
 

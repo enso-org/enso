@@ -17,12 +17,16 @@ public abstract class LanguageServerApi {
   public static final String SECURE_RPC_PORT_OPTION = "secure-rpc-port";
   public static final String SECURE_DATA_PORT_OPTION = "secure-data-port";
   public static final String SKIP_GRAALVM_UPDATER = "skip-graalvm-updater";
+  public static final String NO_LOG_MASKING_OPTION = "no-log-masking";
+
+  public static final String ENSO_CLOUD_PROJECT_ID_ENV_NAME = "ENSO_CLOUD_PROJECT_ID";
+  public static final String ENSO_CLOUD_PROJECT_SESSION_ID_ENV_NAME =
+      "ENSO_CLOUD_PROJECT_SESSION_ID";
 
   public static void launchLanguageServer(CommandLine line, ProfilingConfig config, Level logLevel)
       throws WrongOption {
-    var it =
-        ServiceLoader.load(LanguageServerApi.class, LanguageServerApi.class.getClassLoader())
-            .iterator();
+    var loader = LanguageServerApi.class.getClassLoader();
+    var it = ServiceLoader.load(LanguageServerApi.class, loader).iterator();
     if (!it.hasNext()) {
       throw new WrongOption("No language server implementation found");
     }

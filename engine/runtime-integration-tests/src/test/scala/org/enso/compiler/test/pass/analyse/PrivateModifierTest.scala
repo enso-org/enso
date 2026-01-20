@@ -74,7 +74,7 @@ class PrivateModifierTest extends CompilerTest {
           |""".stripMargin.preprocessModule.analyse
       val errors = ir.preorder().collect { case err: Syntax => err }
       errors.size shouldBe 1
-      errors.head.reason shouldBe (Syntax.InconsistentConstructorVisibility)
+      errors.head.reason shouldBe (Syntax.IncosistentConstructorVisibility.INSTANCE)
     }
 
     "should accept more private constructors in a type" in {

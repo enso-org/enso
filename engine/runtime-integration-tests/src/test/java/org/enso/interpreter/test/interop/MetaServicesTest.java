@@ -30,11 +30,11 @@ public class MetaServicesTest {
         Source.newBuilder(
                 "enso",
                 """
-    import Standard.Base.System.File.File_System_SPI
-    import Standard.Base.Meta
-    spis =
-        Meta.lookup_services File_System_SPI
-    """,
+                import Standard.Base.System.File.File_System_SPI
+                import Standard.Base.Meta
+                spis =
+                    Meta.lookup_services File_System_SPI
+                """,
                 "services.enso")
             .uri(uri)
             .buildLiteral();
@@ -61,11 +61,11 @@ public class MetaServicesTest {
     var arr =
         ctx.evalModule(
             """
-    import Standard.Base.System.File.File_System_SPI
-    type Broken_Impl
+            import Standard.Base.System.File.File_System_SPI
+            type Broken_Impl
 
-    main = [File_System_SPI, Broken_Impl]
-    """);
+            main = [File_System_SPI, Broken_Impl]
+            """);
     var node = new MockLookupServicesNode();
     assertTrue("It is an array", arr.hasArrayElements());
     assertEquals("Two elements", 2, arr.getArraySize());
@@ -93,14 +93,14 @@ public class MetaServicesTest {
     var arr =
         ctx.evalModule(
             """
-    import Standard.Base.System.File.File_System_SPI
-    polyglot java import java.util.Observable
-    type Broken_Impl
+            import Standard.Base.System.File.File_System_SPI
+            polyglot java import java.util.Observable
+            type Broken_Impl
 
-    File_System_SPI.from (_:Broken_Impl) = Observable.new
+            File_System_SPI.from (_:Broken_Impl) = Observable.new
 
-    main = [File_System_SPI, Broken_Impl]
-    """);
+            main = [File_System_SPI, Broken_Impl]
+            """);
     var node = new MockLookupServicesNode();
     assertTrue("It is an array", arr.hasArrayElements());
     assertEquals("Two elements", 2, arr.getArraySize());
@@ -128,11 +128,11 @@ public class MetaServicesTest {
     var arr =
         ctx.evalModule(
             """
-    import Standard.Base.System.File.File_System_SPI
-    type Broken_Impl
+            import Standard.Base.System.File.File_System_SPI
+            type Broken_Impl
 
-    main = [File_System_SPI, Broken_Impl]
-    """);
+            main = [File_System_SPI, Broken_Impl]
+            """);
     var node = new MockLookupServicesNode();
     assertTrue("It is an array", arr.hasArrayElements());
     assertEquals("Two elements", 2, arr.getArraySize());

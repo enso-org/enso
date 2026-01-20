@@ -1,9 +1,13 @@
+import {
+  isExtensions,
+  isFileTypes,
+  type FileType,
+} from '$/providers/openedProjects/widgetRegistry/configuration'
+import type { ToValue } from '$/utils/reactivity'
 import { type BrowserItem } from '@/components/GraphEditor/widgets/WidgetFileBrowser/browsableTypes'
 import { type CustomDropdownItem } from '@/components/GraphEditor/widgets/WidgetSelection/tags'
-import { FileType, isExtensions, isFileTypes } from '@/providers/widgetRegistry/configuration'
 import { assert } from '@/util/assert'
-import { FileFilter } from '@/util/fileFilter'
-import { type ToValue } from '@/util/reactivity'
+import type { FileFilter } from '@/util/fileFilter'
 import { computed, toValue, type ComputedRef } from 'vue'
 
 const LABELS = new Map<BrowserItem, string>([
@@ -40,7 +44,7 @@ export function useLocalBrowser({
   fileTypes: ToValue<FileType[] | undefined>
 }): ComputedRef<CustomDropdownItem[]> {
   async function openFileBrowser() {
-    if (!window.fileBrowserApi) {
+    if (!window.api) {
       console.error('File browser not supported!')
       return
     }
@@ -50,7 +54,7 @@ export function useLocalBrowser({
     const kind = rawKind === 'file' && toValue(write) ? 'filePath' : rawKind
     const fileTypes_ = toValue(fileTypes)
     const filters = fileTypes_ != null ? fileTypesToFileFilters(fileTypes_) : undefined
-    const selected = await window.fileBrowserApi.openFileBrowser(
+    const selected = await window.api.fileBrowser.openFileBrowser(
       kind,
       toValue(currentPath),
       filters,

@@ -20,6 +20,7 @@ import org.enso.compiler.pass.analyse.DataflowAnalysis$;
 import org.enso.compiler.pass.analyse.DemandAnalysis$;
 import org.enso.compiler.pass.analyse.TailCall;
 import org.enso.compiler.pass.lint.UnusedBindings$;
+import org.enso.persist.Persistance;
 import scala.Option;
 import scala.collection.immutable.Seq;
 import scala.jdk.javaapi.CollectionConverters;
@@ -78,44 +79,61 @@ public final class SectionsToBinOp implements MiniPassFactory {
           var passData = sectionLeft.passData();
           var rightArgName = freshNameSupply.newName(false, Option.empty());
           var rightCallArg =
-              new CallArgument.Specified(Option.empty(), rightArgName, true, null, meta());
+              CallArgument.Specified.builder()
+                  .name(Option.empty())
+                  .value(rightArgName)
+                  .isSynthetic(true)
+                  .build();
           var rightDefArg =
-              new DefinitionArgument.Specified(
-                  rightArgName.duplicate(true, true, true, false),
-                  Option.empty(),
-                  Option.empty(),
-                  false,
-                  null,
-                  meta());
+              DefinitionArgument.Specified.builder()
+                  .name(rightArgName.duplicate(true, true, true, false))
+                  .suspended(false)
+                  .build();
 
           if (arg.value() instanceof Name.Blank) {
             var leftArgName = freshNameSupply.newName(false, Option.empty());
             var leftCallArg =
-                new CallArgument.Specified(Option.empty(), leftArgName, true, null, meta());
+                CallArgument.Specified.builder()
+                    .name(Option.empty())
+                    .value(leftArgName)
+                    .isSynthetic(true)
+                    .build();
             var leftDefArg =
-                new DefinitionArgument.Specified(
-                    leftArgName.duplicate(true, true, true, false),
-                    Option.empty(),
-                    Option.empty(),
-                    false,
-                    null,
-                    meta());
+                DefinitionArgument.Specified.builder()
+                    .name(leftArgName.duplicate(true, true, true, false))
+                    .suspended(false)
+                    .build();
             var opCall =
-                new Application.Prefix(
-                    op,
-                    cons(leftCallArg, cons(rightCallArg, nil())),
-                    false,
-                    null,
-                    passData,
-                    sectionLeft.diagnostics());
+                Application.Prefix.builder()
+                    .function(op)
+                    .arguments(cons(leftCallArg, cons(rightCallArg, nil())))
+                    .hasDefaultsSuspended(false)
+                    .passData(passData)
+                    .diagnostics(sectionLeft.diagnostics())
+                    .build();
 
             var rightLam =
-                new Function.Lambda(cons(rightDefArg, nil()), opCall, null, true, meta());
+                Function.Lambda.builder()
+                    .arguments(cons(rightDefArg, nil()))
+                    .bodyReference(Persistance.Reference.of(opCall))
+                    .canBeTCO(true)
+                    .build();
 
-            yield new Function.Lambda(cons(leftDefArg, nil()), rightLam, loc, true, meta());
+            yield Function.Lambda.builder()
+                .arguments(cons(leftDefArg, nil()))
+                .bodyReference(Persistance.Reference.of(rightLam))
+                .canBeTCO(true)
+                .location(loc)
+                .build();
           } else {
-            yield new Application.Prefix(
-                op, cons(arg, nil()), false, loc, passData, sectionLeft.diagnostics());
+            yield Application.Prefix.builder()
+                .function(op)
+                .arguments(cons(arg, nil()))
+                .hasDefaultsSuspended(false)
+                .location(loc)
+                .passData(passData)
+                .diagnostics(sectionLeft.diagnostics())
+                .build();
           }
         }
 
@@ -125,61 +143,72 @@ public final class SectionsToBinOp implements MiniPassFactory {
           var passData = sectionSides.passData();
           var leftArgName = freshNameSupply.newName(false, Option.empty());
           var leftCallArg =
-              new CallArgument.Specified(Option.empty(), leftArgName, true, null, meta());
+              CallArgument.Specified.builder()
+                  .name(Option.empty())
+                  .value(leftArgName)
+                  .isSynthetic(true)
+                  .build();
           var leftDefArg =
-              new DefinitionArgument.Specified(
-                  leftArgName.duplicate(true, true, true, false),
-                  Option.empty(),
-                  Option.empty(),
-                  false,
-                  null,
-                  meta());
+              DefinitionArgument.Specified.builder()
+                  .name(leftArgName.duplicate(true, true, true, false))
+                  .suspended(false)
+                  .build();
 
           var rightArgName = freshNameSupply.newName(false, Option.empty());
           var rightCallArg =
-              new CallArgument.Specified(Option.empty(), rightArgName, true, null, meta());
+              CallArgument.Specified.builder()
+                  .name(Option.empty())
+                  .value(rightArgName)
+                  .isSynthetic(true)
+                  .build();
           var rightDefArg =
-              new DefinitionArgument.Specified(
-                  rightArgName.duplicate(true, true, true, false),
-                  Option.empty(),
-                  Option.empty(),
-                  false,
-                  null,
-                  meta());
+              DefinitionArgument.Specified.builder()
+                  .name(rightArgName.duplicate(true, true, true, false))
+                  .suspended(false)
+                  .build();
 
           var opCall =
-              new Application.Prefix(
-                  op,
-                  cons(leftCallArg, cons(rightCallArg, nil())),
-                  false,
-                  null,
-                  passData,
-                  sectionSides.diagnostics());
+              Application.Prefix.builder()
+                  .function(op)
+                  .arguments(cons(leftCallArg, cons(rightCallArg, nil())))
+                  .hasDefaultsSuspended(false)
+                  .passData(passData)
+                  .diagnostics(sectionSides.diagnostics())
+                  .build();
 
           var rightLambda =
-              new Function.Lambda(cons(rightDefArg, nil()), opCall, null, true, meta());
+              Function.Lambda.builder()
+                  .arguments(cons(rightDefArg, nil()))
+                  .bodyReference(Persistance.Reference.of(opCall))
+                  .canBeTCO(true)
+                  .build();
 
-          yield new Function.Lambda(cons(leftDefArg, nil()), rightLambda, loc, true, meta());
+          yield Function.Lambda.builder()
+              .arguments(cons(leftDefArg, nil()))
+              .bodyReference(Persistance.Reference.of(rightLambda))
+              .canBeTCO(true)
+              .location(loc)
+              .build();
         }
 
-          /* Note [Blanks in Sections]
-           * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-           * While the naiive compositional translation of `(- _)` first translates
-           * the section into a function applying `-` to two arguments, one of which
-           * is a blank, the compositional nature of the blanks translation actually
-           * works against us here.
-           *
-           * As the `LambdaShorthandToLambda` pass can only operate on the
-           * application with the blanks, it can't know to push the blank outside
-           * that application chain. To that end, we have to handle this case
-           * specially here instead. What we want it to translate to is as follows:
-           *
-           * `(- _)` == `x -> (- x)` == `x -> y -> y - x`
-           *
-           * We implement this special case here.
-           *
-           * The same is true of left sections.
-           */
+        /* Note [Blanks in Sections]
+         * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+         * While the naiive compositional translation of `(- _)` first translates
+         * the section into a function applying `-` to two arguments, one of which
+         * is a blank, the compositional nature of the blanks translation actually
+         * works against us here.
+         *
+         * As the `LambdaShorthandToLambda` pass can only operate on the
+         * application with the blanks, it can't know to push the blank outside
+         * that application chain. To that end, we have to handle this case
+         * specially here instead. What we want it to translate to is as follows:
+         *
+         * `(- _)` == `x -> (- x)` == `x -> y -> y - x`
+         *
+         * We implement this special case here.
+         *
+         * The same is true of left sections.
+         */
 
         case Section.Right sectionRight -> {
           var arg = sectionRight.arg();
@@ -188,53 +217,70 @@ public final class SectionsToBinOp implements MiniPassFactory {
           var passData = sectionRight.passData();
           var leftArgName = freshNameSupply.newName(false, Option.empty());
           var leftCallArg =
-              new CallArgument.Specified(Option.empty(), leftArgName, true, null, meta());
+              CallArgument.Specified.builder()
+                  .name(Option.empty())
+                  .value(leftArgName)
+                  .isSynthetic(true)
+                  .build();
           var leftDefArg =
-              new DefinitionArgument.Specified(
-                  leftArgName.duplicate(true, true, true, false),
-                  Option.empty(),
-                  Option.empty(),
-                  false,
-                  null,
-                  meta());
+              DefinitionArgument.Specified.builder()
+                  .name(leftArgName.duplicate(true, true, true, false))
+                  .suspended(false)
+                  .build();
 
           if (arg.value() instanceof Name.Blank) {
             // Note [Blanks in Sections]
             var rightArgName = freshNameSupply.newName(false, Option.empty());
             var rightCallArg =
-                new CallArgument.Specified(Option.empty(), rightArgName, true, null, meta());
+                CallArgument.Specified.builder()
+                    .name(Option.empty())
+                    .value(rightArgName)
+                    .isSynthetic(true)
+                    .build();
             var rightDefArg =
-                new DefinitionArgument.Specified(
-                    rightArgName.duplicate(true, true, true, false),
-                    Option.empty(),
-                    Option.empty(),
-                    false,
-                    null,
-                    meta());
+                DefinitionArgument.Specified.builder()
+                    .name(rightArgName.duplicate(true, true, true, false))
+                    .suspended(false)
+                    .build();
 
             var opCall =
-                new Application.Prefix(
-                    op,
-                    cons(leftCallArg, cons(rightCallArg, nil())),
-                    false,
-                    null,
-                    passData,
-                    sectionRight.diagnostics());
+                Application.Prefix.builder()
+                    .function(op)
+                    .arguments(cons(leftCallArg, cons(rightCallArg, nil())))
+                    .hasDefaultsSuspended(false)
+                    .passData(passData)
+                    .diagnostics(sectionRight.diagnostics())
+                    .build();
 
-            var leftLam = new Function.Lambda(cons(leftDefArg, nil()), opCall, null, true, meta());
+            var leftLam =
+                Function.Lambda.builder()
+                    .arguments(cons(leftDefArg, nil()))
+                    .bodyReference(Persistance.Reference.of(opCall))
+                    .canBeTCO(true)
+                    .build();
 
-            yield new Function.Lambda(cons(rightDefArg, nil()), leftLam, loc, true, meta());
+            yield Function.Lambda.builder()
+                .arguments(cons(rightDefArg, nil()))
+                .bodyReference(Persistance.Reference.of(leftLam))
+                .canBeTCO(true)
+                .location(loc)
+                .build();
           } else {
             var opCall =
-                new Application.Prefix(
-                    op,
-                    cons(leftCallArg, cons(arg, nil())),
-                    false,
-                    null,
-                    passData,
-                    sectionRight.diagnostics());
+                Application.Prefix.builder()
+                    .function(op)
+                    .arguments(cons(leftCallArg, cons(arg, nil())))
+                    .hasDefaultsSuspended(false)
+                    .passData(passData)
+                    .diagnostics(sectionRight.diagnostics())
+                    .build();
 
-            yield new Function.Lambda(cons(leftDefArg, nil()), opCall, loc, true, meta());
+            yield Function.Lambda.builder()
+                .arguments(cons(leftDefArg, nil()))
+                .bodyReference(Persistance.Reference.of(opCall))
+                .canBeTCO(true)
+                .location(loc)
+                .build();
           }
         }
         default -> ir;

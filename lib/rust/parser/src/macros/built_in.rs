@@ -3,19 +3,18 @@
 use crate::macros::pattern::*;
 use crate::macros::*;
 
-use crate::empty_tree;
 use crate::expect_qualified_name;
 use crate::expression_to_pattern;
 use crate::source::Code;
+use crate::syntax::Item;
+use crate::syntax::Token;
 use crate::syntax::expression::ExpressionParser;
 use crate::syntax::maybe_with_error;
 use crate::syntax::statement::try_parse_doc_comment;
 use crate::syntax::token;
 use crate::syntax::tree::SyntaxError;
-use crate::syntax::Item;
-use crate::syntax::Token;
 
-
+use crate::{empty_tree, qn_deep_unwrap_calls, unwrap_call};
 
 // =======================
 // === Built-in macros ===
@@ -31,6 +30,7 @@ fn expression() -> resolver::SegmentMap<'static> {
     let mut macro_map = resolver::SegmentMap::default();
     macro_map.register(if_then());
     macro_map.register(if_then_else());
+    macro_map.register(just_else());
     macro_map.register(lambda());
     macro_map.register(case());
     macro_map.register(array());
@@ -108,7 +108,13 @@ fn import_body<'s>(
                     Some(_) => expect_ident,
                     None => expect_qualified_name,
                 };
-                body = sequence_tree(expression_parser, &mut tokens, expect);
+                let mut raw_body = sequence_tree(expression_parser, &mut tokens, expect);
+                if polyglot.is_some()
+                    && let Some(raw_body) = &mut raw_body
+                {
+                    qn_deep_unwrap_calls(raw_body);
+                }
+                body = raw_body;
                 incomplete_import = body.is_none();
                 &mut import
             }
@@ -140,7 +146,7 @@ fn import_body<'s>(
     }
     let import = syntax::Tree::import(polyglot, from, import.unwrap(), all, as_, hiding);
     if incomplete_import {
-        return import.with_error("Expected name or `all` keyword following `import` keyword.");
+        return import.with_error(SyntaxError::StmtIncompleteImport);
     }
     import
 }
@@ -250,12 +256,24 @@ pub fn if_then_else<'s>() -> Definition<'s> {
     ("if", everything(), "then", everything(), "else", or(block(), many(not_block()))) if_body}
 }
 
+pub fn just_else<'s>() -> Definition<'s> {
+    crate::macro_definition! {
+    ("else", or(block(), many(not_block()))) else_body}
+}
+
 /// If-then macro definition.
 pub fn if_then<'s>() -> Definition<'s> {
     crate::macro_definition! {("if", everything(), "then", everything()) if_body}
 }
 
 fn if_body<'s>(
+    segments: NonEmptyVec<MatchedSegment<'s>>,
+    expression_parser: &mut ExpressionParser<'s>,
+) -> syntax::Tree<'s> {
+    capture_expressions(segments, expression_parser)
+}
+
+fn else_body<'s>(
     segments: NonEmptyVec<MatchedSegment<'s>>,
     expression_parser: &mut ExpressionParser<'s>,
 ) -> syntax::Tree<'s> {
@@ -340,7 +358,7 @@ fn parse_case_line<'s>(
         return (
             syntax::tree::CaseLine {
                 newline: newline.into(),
-                case:    Some(syntax::tree::Case { doc_line, ..default() }),
+                case: Some(syntax::tree::Case { doc_line, ..default() }),
             },
             default(),
         );
@@ -362,7 +380,7 @@ fn parse_case<'s>(
         } else {
             None
         };
-        let op = items.pop().unwrap().into_token().unwrap();
+        let op = items.pop().unwrap().try_into_token().unwrap();
         arrow = Some(op.with_variant(token::variant::ArrowOperator()));
         pattern = expression_parser.parse(items).map(expression_to_pattern);
     } else {
@@ -430,9 +448,9 @@ fn tuple_body<'s>(
 }
 
 struct GroupedSequence<'s> {
-    left:  token::OpenSymbol<'s>,
+    left: token::OpenSymbol<'s>,
     first: Option<syntax::Tree<'s>>,
-    rest:  Vec<syntax::tree::OperatorDelimitedTree<'s>>,
+    rest: Vec<syntax::tree::OperatorDelimitedTree<'s>>,
     right: token::CloseSymbol<'s>,
 }
 
@@ -468,7 +486,7 @@ fn sequence<'s>(
                 let operator = tokens
                     .pop()
                     .unwrap()
-                    .into_token()
+                    .try_into_token()
                     .unwrap()
                     .with_variant(token::variant::Operator());
                 rest.push(OperatorDelimitedTree { operator, body });
@@ -498,7 +516,7 @@ fn sequence_tree<'s>(
         tree = Tree::opr_app(tree, Ok(operator), body.map(&mut f)).into();
     }
     if invalid {
-        tree = tree.map(|tree| tree.with_error("Malformed comma-delimited sequence."));
+        tree = tree.map(|tree| tree.with_error(SyntaxError::MalformedCommaDelimitedSequence));
     }
     tree
 }
@@ -545,14 +563,15 @@ fn capture_expressions<'s>(
 
 // === Validators ===
 
-fn expect_ident(tree: syntax::Tree) -> syntax::Tree {
-    let error = match &tree.variant {
+fn expect_ident(mut tree: syntax::Tree) -> syntax::Tree {
+    let error = match &mut tree.variant {
+        syntax::tree::Variant::Call(_) => return expect_ident(unwrap_call(tree)),
         syntax::tree::Variant::Ident(_) => None,
-        _ => Some("Expected identifier."),
+        _ => Some(SyntaxError::ExpectedIdent),
     };
     maybe_with_error(tree, error)
 }
 
 fn expected_nonempty(location: Code) -> syntax::Tree {
-    empty_tree(location).with_error("Expected tokens.")
+    empty_tree(location).with_error(SyntaxError::ExpectedTokens)
 }

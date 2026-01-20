@@ -176,15 +176,16 @@ case object IgnoredBindings extends IRPass {
     supply: FreshNameSupply
   ): Function = {
     function match {
-      case lam @ Function.Lambda(args, body, _, _, _, _) =>
+      case lam: Function.Lambda =>
+        val args        = lam.arguments()
         val argIsIgnore = args.map(isIgnoreArg)
         val newArgs = args.zip(argIsIgnore).map { case (arg, isIgnore) =>
           genNewArg(arg, isIgnore, supply)
         }
 
-        lam.copy(
-          arguments = newArgs,
-          body      = resolveExpression(body, supply)
+        lam.copyWithArgumentsAndBody(
+          newArgs,
+          resolveExpression(lam.body(), supply)
         )
       case _: Function.Binding =>
         throw new CompilerError(
@@ -230,9 +231,8 @@ case object IgnoredBindings extends IRPass {
 
           spec
             .copy(
-              name = newName,
-              defaultValue =
-                spec.defaultValue.map(resolveExpression(_, freshNameSupply))
+              newName,
+              spec.defaultValue.map(resolveExpression(_, freshNameSupply))
             )
             .updateMetadata(new MetadataPair(this, State.Ignored))
         } else {
@@ -281,8 +281,8 @@ case object IgnoredBindings extends IRPass {
     cse match {
       case expr: Case.Expr =>
         expr.copy(
-          scrutinee = resolveExpression(expr.scrutinee, supply),
-          branches  = expr.branches.map(resolveCaseBranch(_, supply))
+          resolveExpression(expr.scrutinee, supply),
+          expr.branches.map(resolveCaseBranch(_, supply))
         )
       case _: Case.Branch =>
         throw new CompilerError(
@@ -319,7 +319,8 @@ case object IgnoredBindings extends IRPass {
     supply: FreshNameSupply
   ): Pattern = {
     pattern match {
-      case named @ Pattern.Name(name, _, _) =>
+      case named: Pattern.Name =>
+        val name = named.name()
         if (isIgnore(name)) {
           val newName = supply
             .newName(from = Some(name))
@@ -330,37 +331,35 @@ case object IgnoredBindings extends IRPass {
             )
             .updateMetadata(new MetadataPair(this, State.Ignored))
 
-          named.copy(
-            name = newName
-          )
+          named.copyWithName(newName)
         } else {
-          named.copy(
-            name = setNotIgnored(name)
-          )
+          named.copyWithName(setNotIgnored(name))
         }
-      case cons @ Pattern.Constructor(_, fields, _, _) =>
-        cons.copy(
-          fields = fields.map(resolvePattern(_, supply))
+      case cons: Pattern.Constructor =>
+        cons.copyWithFields(
+          cons.fields().map(resolvePattern(_, supply))
         )
       case literal: Pattern.Literal => literal
-      case typed @ Pattern.Type(name, _, _, _) =>
-        if (isIgnore(name)) {
+      case bool: Pattern.Bool       => bool
+      case typed: Pattern.Type =>
+        if (isIgnore(typed.name())) {
           val newName = supply
-            .newName(from = Some(name))
+            .newName(from = Some(typed.name))
             .copy(
-              location    = name.location,
-              passData    = name.passData,
-              diagnostics = name.diagnostics
+              location    = typed.name.location,
+              passData    = typed.name.passData,
+              diagnostics = typed.name.diagnostics
             )
             .updateMetadata(new MetadataPair(this, State.Ignored))
 
-          typed.copy(
-            name = newName
-          )
+          typed.copyBuilder().name(newName).build()
         } else {
-          typed.copy(
-            name = setNotIgnored(name)
-          )
+          typed
+            .copyBuilder()
+            .name(
+              setNotIgnored(typed.name())
+            )
+            .build()
         }
       case err: errors.Pattern => err
       case _: Pattern.Documentation =>

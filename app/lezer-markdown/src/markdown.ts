@@ -1,5 +1,5 @@
-import {Tree, TreeBuffer, NodeType, NodeProp, NodePropSource, TreeFragment, NodeSet, TreeCursor,
-        Input, Parser, PartialParse, SyntaxNode, ParseWrapper} from "@lezer/common"
+import {Tree, TreeBuffer, NodeType, NodeProp, type NodePropSource, TreeFragment, NodeSet, TreeCursor,
+        type Input, Parser, type PartialParse, type SyntaxNode, type ParseWrapper} from "@lezer/common"
 import {styleTags, tags as t, Tag} from "@lezer/highlight"
 
 const includeSpaceInDelimiterNode = true

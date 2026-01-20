@@ -1,7 +1,7 @@
 /** @file Persistent state for the Drive. */
 import { useStore } from '#/hooks/storeHooks'
-import { Path } from '#/services/Backend'
 import LocalStorage from '#/utilities/LocalStorage'
+import { Path } from 'enso-common/src/services/Backend'
 import { z } from 'zod'
 import { createStore } from 'zustand'
 import { persist } from 'zustand/middleware'

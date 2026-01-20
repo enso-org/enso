@@ -1,0 +1,25 @@
+private
+
+import Standard.Base.System.File_Format.File_Format_SPI
+
+import Standard.Database.Connection.Database.Database_Connection_Details_SPI
+
+import project.DuckDB.DuckDB
+import project.File_Formats.DuckDB_File_Format.DuckDB_File_Format
+import project.File_Formats.DuckDB_Table_Format.DuckDB_Table_Format
+import project.File_Formats.Parquet_Format.Parquet_Format
+
+type Impl
+
+File_Format_SPI.from (that:Impl) =
+    _ = that
+    duckdb = File_Format_SPI.new DuckDB_File_Format "duckdb"
+    duckdb_table = File_Format_SPI.new DuckDB_Table_Format "duckdb_table"
+    parquet = File_Format_SPI.new Parquet_Format "parquet"
+    duckdb+duckdb_table+parquet
+
+Database_Connection_Details_SPI.from (that:Impl) =
+    _ = that
+    file = Database_Connection_Details_SPI.new DuckDB "DuckDB" "DuckDB.From_File"
+    memory = Database_Connection_Details_SPI.new DuckDB "DuckDB (In-Memory)" "DuckDB.In_Memory"
+    file+memory

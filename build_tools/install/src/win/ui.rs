@@ -2,8 +2,6 @@
 
 use crate::prelude::*;
 
-
-
 /// [Sets up logging](crate::setup_logging). Handles any errors by showing a fatal message box.
 ///
 /// # Panics

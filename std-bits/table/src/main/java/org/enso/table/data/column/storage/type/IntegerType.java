@@ -8,34 +8,41 @@ import org.enso.table.data.column.storage.ColumnLongStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.problems.ProblemAggregator;
 
-public record IntegerType(Bits bits) implements StorageType<Long>, NumericType {
+public final class IntegerType implements StorageType<Long>, NumericType {
   public static final IntegerType INT_64 = new IntegerType(Bits.BITS_64);
   public static final IntegerType INT_32 = new IntegerType(Bits.BITS_32);
   public static final IntegerType INT_16 = new IntegerType(Bits.BITS_16);
   public static final IntegerType INT_8 = new IntegerType(Bits.BITS_8);
 
-  public static IntegerType create(Bits bits) {
+  private final Bits bits;
+
+  private IntegerType(Bits bits) {
+    this.bits = bits;
+  }
+
+  @Override
+  public char typeChar() {
+    return 'I';
+  }
+
+  @Override
+  public long size() {
     return switch (bits) {
-      case BITS_8 -> INT_8;
-      case BITS_16 -> INT_16;
-      case BITS_32 -> INT_32;
-      case BITS_64 -> INT_64;
+      case BITS_64 -> 64;
+      case BITS_32 -> 32;
+      case BITS_16 -> 16;
+      case BITS_8 -> 8;
     };
+  }
+
+  /** Returns the number of bits of this integer type. */
+  public Bits bits() {
+    return bits;
   }
 
   @Override
   public boolean isNumeric() {
     return true;
-  }
-
-  @Override
-  public boolean hasDate() {
-    return false;
-  }
-
-  @Override
-  public boolean hasTime() {
-    return false;
   }
 
   public long getMaxValue() {
@@ -80,7 +87,7 @@ public record IntegerType(Bits bits) implements StorageType<Long>, NumericType {
    * number of bits.
    */
   public boolean fits(IntegerType otherType) {
-    return bits.toInteger() >= otherType.bits.toInteger();
+    return size() >= otherType.size();
   }
 
   public static IntegerType smallestFitting(long value, boolean allow8bit) {
@@ -95,7 +102,7 @@ public record IntegerType(Bits bits) implements StorageType<Long>, NumericType {
    * two).
    */
   public static IntegerType commonType(IntegerType type1, IntegerType type2) {
-    return type1.bits.toInteger() >= type2.bits.toInteger() ? type1 : type2;
+    return type1.size() >= type2.size() ? type1 : type2;
   }
 
   @Override

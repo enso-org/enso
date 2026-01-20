@@ -27,12 +27,13 @@
   "license": "MIT",
   "dependencies": {
     "@codemirror/autocomplete": "catalog:",
-    "@codemirror/lang-html": "^6.0.0",
+    "@codemirror/lang-html": "^6.4.10",
     "@codemirror/language": "catalog:",
     "@codemirror/state": "catalog:",
     "@codemirror/view": "catalog:",
     "@lezer/markdown": "workspace:*",
-    "@lezer/common": "^1.2.1"
+    "@lezer/common": "catalog:",
+    "@lezer/highlight": "catalog:"
   },
   "devDependencies": {
     "@codemirror/buildhelper": "^1.0.0"

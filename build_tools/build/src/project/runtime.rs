@@ -2,17 +2,15 @@
 
 use crate::prelude::*;
 
-use crate::engine::package::IsPackage;
 use crate::engine::BuildConfigurationFlags;
-use crate::paths::generated::EnginePackage;
+use crate::engine::package::IsPackage;
 use crate::paths::TargetTriple;
+use crate::paths::generated::EnginePackage;
 use crate::project::Context;
 use crate::project::IsArtifact;
 use crate::project::IsTarget;
 use crate::source::WithDestination;
 use crate::version::Versions;
-
-
 
 const ARTIFACT_NAME: &str = "runtime";
 
@@ -85,7 +83,5 @@ impl AsRef<Path> for Artifact {
 }
 
 impl IsArtifact for Artifact {}
-
-
 
 ////////////////////////////////////////////////////////////////////////////////////////////

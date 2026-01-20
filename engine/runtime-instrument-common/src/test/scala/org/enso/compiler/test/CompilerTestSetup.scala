@@ -4,6 +4,7 @@ import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.EnsoParser
 import org.enso.compiler.core.Implicits.AsMetadata
 import org.enso.compiler.core.ir.{Expression, Module}
+import org.enso.compiler.core.ir.MetadataStorage
 import org.enso.compiler.core.ir.MetadataStorage.MetadataPair
 import org.enso.compiler.data.BindingsMap.ModuleReference
 import org.enso.compiler.data.{BindingsMap, CompilerConfig}
@@ -175,7 +176,15 @@ trait CompilerTestSetup {
       runtime.Module.empty(QualifiedName.simpleName("Test_Module"), null)
     ModuleTestUtils.unsafeSetIr(
       mod,
-      Module(List(), List(), List(), false, null)
+      new Module(
+        List(),
+        List(),
+        List(),
+        false,
+        null,
+        new MetadataStorage(),
+        null
+      )
         .updateMetadata(
           new MetadataPair(
             BindingAnalysis,

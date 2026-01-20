@@ -1,0 +1,45 @@
+diff --git a/internal/graalvm_bindist.bzl b/internal/graalvm_bindist.bzl
+index d8c29cdf3d..04e61eecaf 100644
+--- a/internal/graalvm_bindist.bzl
++++ b/internal/graalvm_bindist.bzl
+@@ -509,6 +509,11 @@
+     actual = "@{repo}//:toolchain",
+     visibility = ["//visibility:public"],
+ )
++alias(
++    name = "tool_toolchain",
++    actual = "@{repo}//:tool_toolchain",
++    visibility = ["//visibility:public"],
++)
+ {bootstrap_toolchain_alias}
+ 
+ load(
+@@ -823,6 +828,28 @@
+ 
+     if toolchain:
+         toolchain_config_build_file += """
++load("@rules_java//toolchains:default_java_toolchain.bzl", "default_java_toolchain", "DEFAULT_TOOLCHAIN_CONFIGURATION")
++config_setting(
++    name = "tool_prefix_version_setting",
++    values = {{"tool_java_runtime_version": "{prefix}_{version}"}},
++    visibility = ["//visibility:private"],
++)
++default_java_toolchain(
++    name = "java_toolchain",
++    configuration = DEFAULT_TOOLCHAIN_CONFIGURATION,
++    java_runtime = "{toolchain}",
++    source_version = "{version}",
++    target_version = "{version}",
++)
++toolchain(
++    name = "tool_toolchain",
++    target_compatible_with = {target_compatible_with},
++    target_settings = [":tool_prefix_version_setting"],
++    toolchain_type = "@bazel_tools//tools/jdk:toolchain_type",
++    toolchain = ":java_toolchain",
++    visibility = ["//visibility:public"],
++)
++
+ config_setting(
+     name = "prefix_version_setting",
+     values = {{"java_runtime_version": "{prefix}_{version}"}},

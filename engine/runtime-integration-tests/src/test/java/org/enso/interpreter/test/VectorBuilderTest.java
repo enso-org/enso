@@ -15,6 +15,7 @@ import org.enso.interpreter.runtime.warning.WithWarnings;
 import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.Source;
 import org.graalvm.polyglot.Value;
+import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -30,22 +31,27 @@ public class VectorBuilderTest {
         Source.newBuilder(
                 "enso",
                 """
-    import Standard.Base.Data.Vector.Builder
-    from Standard.Base.Data.Vector import Vector
+                import Standard.Base.Data.Vector.Builder
+                from Standard.Base.Data.Vector import Vector
 
-    create pw x y z =
-        b = Builder.new propagate_warnings=pw
-        b.append x
-        b.append y
-        b.append z
-        b.to_vector
-    """,
+                create pw x y z =
+                    b = Builder.new propagate_warnings=pw
+                    b.append x
+                    b.append y
+                    b.append z
+                    b.to_vector
+                """,
                 "choose.enso")
             .uri(srcUri)
             .buildLiteral();
 
     var module = ctx.eval(src);
     create = module.invokeMember("eval_expression", "create");
+  }
+
+  @AfterClass
+  public static void releaseCreate() {
+    create = null;
   }
 
   @Test

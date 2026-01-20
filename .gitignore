@@ -79,6 +79,7 @@ eslint_report.json
 .enso-sources*
 .metals
 tools/performance/engine-benchmarks/generated_site
+.venv
 *.tsbuildinfo
 vite.config.ts.timestamp-*.mjs
 vitest.config.ts.timestamp-*.mjs
@@ -106,8 +107,6 @@ bench-report*.xml
 /enso
 /ensoup
 /project-manager
-/enso.exp
-/enso.lib
 
 *.dll
 *.dylib
@@ -115,6 +114,9 @@ bench-report*.xml
 *.pdb
 *.so
 *.jar
+*.so_linux_amd64
+*.so_osx_universal
+*.so_windows_amd64
 
 
 #########
@@ -160,7 +162,6 @@ distribution/lib/Standard/Database/*/polyglot/
 distribution/lib/Standard/Microsoft/*/polyglot/
 distribution/lib/Standard/Examples/*/data/spreadsheet.xls
 distribution/lib/Standard/Examples/*/data/spreadsheet.xlsx
-distribution/lib/*/*/*/manifest.yaml
 
 # Resources that are downloaded during the build.
 /lib/scala/pkg/src/main/resources/*
@@ -187,6 +188,12 @@ test-results
 
 .direnv
 
+########################
+## Nix-specific shims ##
+########################
+
+nix/shims/
+
 ##########################
 ## Playwright artifacts ##
 ##########################
@@ -195,6 +202,7 @@ test-results/
 test-traces/
 playwright-report/
 playwright/.cache/
+playwright/.auth/
 
 #########
 ## Git ##

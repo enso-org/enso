@@ -43,7 +43,7 @@ perform print=IO.println =
         if interesting_uuids.contains uuid then print "result "+uuid+" result: "+result.to_text+" type: "+(Meta.type_of result).to_text
         Nothing
 
-    call_fn uuid:Text fn:Function (args : Vector Any) =
+    call_fn uuid:Text fn (args : Vector Any) =
         if interesting_uuids.contains uuid then print "callfn "+uuid+" fn: "+fn.to_text+" args: "+args.to_text
         Nothing
 

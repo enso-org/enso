@@ -1,9 +1,9 @@
 <script setup lang="ts">
+import { WidgetEditHandlerRoot } from '$/providers/openedProjects/widgetRegistry/editHandler'
 import ActionMenu from '@/components/ActionMenu.vue'
 import { unrefElement, useEvent, useResizeObserver } from '@/composables/events'
-import { type DisplayableActionName } from '@/providers/action'
+import type { DisplayableActionName } from '@/providers/action'
 import { injectInteractionHandler } from '@/providers/interactionHandler'
-import { WidgetEditHandlerRoot } from '@/providers/widgetRegistry/editHandler'
 import { endOnClickOutside, targetIsOutside } from '@/util/autoBlur'
 import { autoUpdate, flip, shift, useFloating } from '@floating-ui/vue'
 import { computed, onMounted, ref, watch } from 'vue'
@@ -79,6 +79,7 @@ onMounted(() => {
       ref="menu"
       :actions="actions"
       :style="floatingStyles"
+      data-testid="contextMenu"
       @contextmenu.stop.prevent="emit('close')"
       @close="emit('close')"
     >

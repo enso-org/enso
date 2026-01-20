@@ -128,7 +128,7 @@ case object FullyQualifiedNames extends IRPass {
         }
       }
     }
-    ir.copy(bindings = new_bindings)
+    ir.copyWithBindings(new_bindings)
   }
 
   private def isMainModule(module: ModuleContext): Boolean = {
@@ -193,7 +193,7 @@ case object FullyQualifiedNames extends IRPass {
           )
         )
       case tp: Definition.Type =>
-        tp.copy(members =
+        tp.copyWithMembers(
           tp.members.map(
             _.mapExpressions(expr => {
               val selfTypeResolution =
@@ -343,7 +343,7 @@ case object FullyQualifiedNames extends IRPass {
     }
 
     processedApp.getOrElse(
-      app.copy(function = processedFun, arguments = processedArgs)
+      app.copy(processedFun, processedArgs)
     )
   }
 
@@ -367,10 +367,11 @@ case object FullyQualifiedNames extends IRPass {
                 // IR for it. Triggering a full compilation at this stage may have
                 // undesired consequences and is therefore prohibited on purpose.
                 Left(
-                  errors.Resolution(
+                  errors.Resolution.create(
                     consName,
-                    errors.Resolution
-                      .MissingLibraryImportInFQNError(thisResolution.namespace)
+                    new errors.Resolution.MissingLibraryImportInFQNError(
+                      thisResolution.namespace
+                    )
                   )
                 )
               } else {
@@ -388,10 +389,11 @@ case object FullyQualifiedNames extends IRPass {
         } else {
           Some(
             Left(
-              errors.Resolution(
+              errors.Resolution.create(
                 consName,
-                errors.Resolution
-                  .MissingLibraryImportInFQNError(thisResolution.namespace)
+                new errors.Resolution.MissingLibraryImportInFQNError(
+                  thisResolution.namespace
+                )
               )
             )
           )
@@ -401,14 +403,13 @@ case object FullyQualifiedNames extends IRPass {
   }
 
   private def isLocalVar(name: Name.Literal): Boolean = {
-    val aliasInfo = name
-      .unsafeGetMetadata(
-        AliasAnalysis,
-        "no alias analysis info on a name"
-      )
-      .unsafeAs[AliasInfo.Occurrence]
-    val defLink = aliasInfo.graph.defLinkFor(aliasInfo.id)
-    defLink.isDefined
+    name.getMetadata(AliasAnalysis) match {
+      case None => false
+      case Some(aliasMeta) =>
+        val aliasInfo = aliasMeta.unsafeAs[AliasInfo.Occurrence]
+        val defLink   = aliasInfo.graph.defLinkFor(aliasInfo.id)
+        defLink.isDefined
+    }
   }
 
   /** The FQN resolution metadata for a node.

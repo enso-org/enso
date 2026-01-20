@@ -117,7 +117,7 @@ private class DefaultPackageRepository(
     collection.mutable.LinkedHashMap(builtinsName -> ComponentGroups.empty)
   }
 
-  /** The mapping between the library and its cached bindings, if already laoded. */
+  /** The mapping between the library and its cached bindings, if already loaded. */
   private val loadedLibraryBindings: collection.mutable.Map[
     LibraryName,
     Option[ImportExportCache.CachedBindings]
@@ -185,12 +185,14 @@ private class DefaultPackageRepository(
     pkg: Package[TruffleFile]
   ): Unit = {
     projectPackage = Some(pkg)
-    registerPackageInternal(
-      libraryName    = libraryName,
-      pkg            = pkg,
-      libraryVersion = LibraryVersion.Local,
-      isLibrary      = false
-    )
+    if (!loadedPackages.contains(libraryName)) {
+      registerPackageInternal(
+        libraryName    = libraryName,
+        pkg            = pkg,
+        libraryVersion = LibraryVersion.Local,
+        isLibrary      = false
+      )
+    }
   }
 
   /** @inheritdoc */
@@ -212,7 +214,7 @@ private class DefaultPackageRepository(
     isLibrary: Boolean
   ): Unit = {
     val extensions = pkg.listPolyglotExtensions("java")
-    extensions.foreach(context.addToClassPath)
+    extensions.foreach(context.addToClassPath(pkg, _, false))
 
     val (regularModules, syntheticModulesMetadata) = pkg
       .listSources()

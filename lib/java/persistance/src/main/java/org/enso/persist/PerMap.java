@@ -6,7 +6,7 @@ import java.util.Map;
 import java.util.Objects;
 
 final class PerMap {
-  private static final int serialVersionUID = 13201; // Use PR number
+  private static final int serialVersionUID = 14573; // Use PR number
   private final Map<Integer, Persistance<?>> ids = new HashMap<>();
   private final Map<Class<?>, Persistance<?>> types = new HashMap<>();
   final int versionStamp;
@@ -19,8 +19,7 @@ final class PerMap {
     versionStamp = hash;
   }
 
-  private int registerPersistance(Persistance<?> orig, int hash) throws IllegalStateException {
-    var p = orig.newClone();
+  private int registerPersistance(Persistance<?> p, int hash) throws IllegalStateException {
     var prevId = ids.put(p.id, p);
     if (prevId != null) {
       throw new IllegalStateException(

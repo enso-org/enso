@@ -2,24 +2,26 @@ import * as random from 'lib0/random'
 import * as Y from 'yjs'
 import { subtreeRoots } from '.'
 import { assert, assertDefined } from '../util/assert'
-import { type SourceRangeEdit } from '../util/data/text'
-import { type Origin, defaultLocalOrigin, tryAsOrigin } from '../yjsModel'
+import type { SourceRangeEdit } from '../util/data/text'
+import { defaultLocalOrigin, tryAsOrigin, type Origin } from '../yjsModel'
 import { newExternalId } from './idMap'
 import { parseModule } from './parse'
-import { type SyncTokenId, Token, isTokenId } from './token'
+import { Token, isTokenId, type SyncTokenId } from './token'
+import type {
+  AstFields,
+  AstId,
+  AstType,
+  BodyBlock,
+  FixedMap,
+  Mutable,
+  MutableAst,
+  MutableBodyBlock,
+  MutableInvalid,
+  NodeChild,
+  Owned,
+  RawNodeChild,
+} from './tree'
 import {
-  type AstFields,
-  type AstId,
-  type AstType,
-  type BodyBlock,
-  type FixedMap,
-  type Mutable,
-  type MutableAst,
-  type MutableBodyBlock,
-  type MutableInvalid,
-  type NodeChild,
-  type Owned,
-  type RawNodeChild,
   Ast,
   Wildcard,
   asOwned,
@@ -27,6 +29,7 @@ import {
   invalidFields,
   materializeMutable,
   setAll,
+  visitRecursive,
 } from './tree'
 
 export interface Module {
@@ -171,7 +174,9 @@ export class MutableModule implements Module {
   /** @internal */
   importCopy<T extends Ast>(ast: T): Owned<Mutable<T>> {
     assert(ast.module !== this)
-    ast.visitRecursive((ast) => this.nodes.set(ast.id, ast.fields.clone() as any))
+    visitRecursive(ast, (ast) => {
+      this.nodes.set(ast.id, ast.fields.clone() as any)
+    })
     const fields = this.nodes.get(ast.id)
     assertDefined(fields)
     fields.set('parent', undefined)

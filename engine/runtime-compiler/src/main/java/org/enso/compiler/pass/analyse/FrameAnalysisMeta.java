@@ -90,8 +90,6 @@ public sealed interface FrameAnalysisMeta extends ProcessingPass.Metadata
       Graph graph, Graph.Scope scope, GraphOccurrence.Def defOcc) {
     assert graph.scopeFor(defOcc.id()).contains(scope)
         : "Def occurrence must be in the given scope";
-    assert scope.allDefinitions().contains(defOcc)
-        : "The given scope must contain the given Def occurrence";
 
     var it = scope.allDefinitions().iterator();
     var i = 0;

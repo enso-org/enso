@@ -2,8 +2,6 @@
 
 use ide_ci::define_env_var;
 
-
-
 pub mod ci_config {
     use super::*;
 

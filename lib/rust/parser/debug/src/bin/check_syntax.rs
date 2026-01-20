@@ -15,16 +15,11 @@
 use enso_parser::prelude::*;
 
 use clap::Parser;
-
-
-
 use std::path::Path;
 use std::path::PathBuf;
 
-
-
 struct WithSourcePath<T> {
-    path:  PathBuf,
+    path: PathBuf,
     value: T,
 }
 
@@ -152,12 +147,13 @@ fn collect_messages(ast: &enso_parser::syntax::Tree, path: impl AsRef<Path>) -> 
                 let error = format!("{}: {}", err.error.message, tree.code());
                 errors.borrow_mut().push((error, tree.span.clone()));
             }
-            enso_parser::syntax::tree::Variant::OprApp(app) =>
+            enso_parser::syntax::tree::Variant::OprApp(app) => {
                 if let enso_parser::syntax::tree::OprApp { opr: Err(e), .. } = &**app {
                     let error = format!("Consecutive operators: {:?}", e.operators);
                     errors.borrow_mut().push((error, tree.span.clone()));
-                },
-            enso_parser::syntax::tree::Variant::TextLiteral(text) =>
+                }
+            }
+            enso_parser::syntax::tree::Variant::TextLiteral(text) => {
                 for element in &text.elements {
                     if let enso_parser::syntax::tree::TextElement::Escape { token } = element {
                         if token.variant.value.is_none() {
@@ -166,7 +162,8 @@ fn collect_messages(ast: &enso_parser::syntax::Tree, path: impl AsRef<Path>) -> 
                             errors.borrow_mut().push((error, tree.span.clone()));
                         }
                     }
-                },
+                }
+            }
             _ => {}
         }
         for warning in tree.warnings.iter() {

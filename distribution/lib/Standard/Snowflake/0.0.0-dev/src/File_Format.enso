@@ -1,0 +1,158 @@
+from Standard.Base import all
+from Standard.Base.Metadata.Choice import Option
+from Standard.Base.Metadata.Widget import Single_Choice
+
+import project.Identifier.Identifier
+import project.Snowflake_Connection.Snowflake_Connection
+
+## Specifies a Snowflake file format.
+type Snowflake_File_Format
+    ## Do not specify a file format; use the default.
+    None
+
+    ## Use a saved file format specified by name and optional schema.
+    Saved name:Identifier=(Missing_Argument.throw "name")
+
+    ## Comma-separated values (CSV) file format.
+
+       ## Arguments:
+        - `delimiter`: The character that separates fields in the file. Default is a comma (",").
+        - `parse_header`: Whether to parse the first line of the file as a header row. Default is TRUE.
+        - `date_format`: The format for date values.
+        - `time_format`: The format for time values.
+        - `timestamp_format`: The format for timestamp values.
+        - `compression`: The compression type for the file format. Default is Auto.
+    CSV delimiter:Text="," parse_header:Auto_Boolean=..TRUE date_format:Text="" time_format:Text="" timestamp_format:Text="" compression:Compression=..Auto
+
+    ## JavaScript Object Notation (JSON) file format.
+
+       ## Arguments:
+        - `date_format`: The format for date values.
+        - `time_format`: The format for time values.
+        - `timestamp_format`: The format for timestamp values.
+        - `compression`: The compression type for the file format. Default is Auto.
+    JSON date_format:Text="" time_format:Text="" timestamp_format:Text="" compression:Compression=..Auto
+
+    ## Avro file format.
+    Avro
+
+    ## Optimized Row Columnar (ORC) file format.
+    ORC
+
+    ## Parquet file format.
+    Parquet
+
+    ## XML file format.
+    XML
+
+    ## Create a file format directly from a SQL string.
+    Custom sql:Text=(Missing_Argument.throw "sql")
+
+    ## ---
+       private: true
+       ---
+    private to_sql self = case self of
+        Snowflake_File_Format.None -> ''
+        Snowflake_File_Format.Saved identifier -> 'FILE_FORMAT = ' + identifier.to_identifier
+        Snowflake_File_Format.CSV delimiter parse_header dt tm ts compression ->
+            output = 'TYPE = CSV'
+                + " FIELD_DELIMITER = '" + (delimiter.replace "'" "''") + "'"
+                + (if parse_header == Auto_Boolean.FALSE then "" else " PARSE_HEADER = "+parse_header.to_sql)
+                + (if dt != "" then " DATE_FORMAT = '" + (dt.replace "'" "''") + "'"  else ' DATE_FORMAT = AUTO')
+                + (if tm != "" then " TIME_FORMAT = '" + (tm.replace "'" "''") + "'"  else ' TIME_FORMAT = AUTO')
+                + (if ts != "" then " TIMESTAMP_FORMAT = '" + (ts.replace "'" "''") + "'"  else ' TIMESTAMP_FORMAT = AUTO')
+                + (if compression != Auto_Boolean.AUTO then ' COMPRESSION = ' + compression.to_sql else '')
+            output
+        Snowflake_File_Format.JSON dt tm ts compression ->
+            output = 'TYPE = JSON'
+                + (if dt != "" then " DATE_FORMAT = '" + (dt.replace "'" "''") + "'"  else ' DATE_FORMAT = AUTO')
+                + (if tm != "" then " TIME_FORMAT = '" + (tm.replace "'" "''") + "'"  else ' TIME_FORMAT = AUTO')
+                + (if ts != "" then " TIMESTAMP_FORMAT = '" + (ts.replace "'" "''") + "'"  else ' TIMESTAMP_FORMAT = AUTO')
+                + (if compression != Auto_Boolean.AUTO then ' COMPRESSION = ' + compression.to_sql else '')
+            output
+        Snowflake_File_Format.Avro -> 'TYPE = AVRO'
+        Snowflake_File_Format.ORC -> 'TYPE = ORC'
+        Snowflake_File_Format.Parquet -> 'TYPE = PARQUET'
+        Snowflake_File_Format.XML -> 'TYPE = XML'
+        Snowflake_File_Format.Custom sql -> sql
+
+    ## ---
+       private: true
+       ---
+       Make a selector for a file format
+    private make_format_chooser connection:Snowflake_Connection =
+        map_ident identifier =
+            opt = identifier.to_option
+            Option opt.label ("(..Saved " + opt.value + ")")
+        identifiers = [Option "<Default>" "..None"]
+            + connection.file_format_names.map map_ident
+            + [Option "<CSV>" "..CSV", Option "<JSON>" "..JSON", Option "<Avro>" "..Avro", Option "<ORC>" "..ORC", Option "<Parquet>" "..Parquet", Option "<XML>" "..XML"]
+        Single_Choice display=..Always values=identifiers
+
+Snowflake_File_Format.from (that:Identifier) =
+    Snowflake_File_Format.Saved that
+
+## Three-state boolean type for Snowflake options. (avoiding clash with True/False by being all caps)
+type Auto_Boolean
+    ## Attempt to use automatic detection.
+    Auto
+
+    ## True value.
+    TRUE
+
+    ## False value.
+    FALSE
+
+    ## ---
+       private: true
+       ---
+    private to_sql self = case self of
+        Auto_Boolean.Auto -> 'AUTO'
+        Auto_Boolean.TRUE -> 'TRUE'
+        Auto_Boolean.FALSE -> 'FALSE'
+
+Auto_Boolean.from (that:Boolean) =
+    if that then Auto_Boolean.TRUE else Auto_Boolean.FALSE
+
+Auto_Boolean.from (that:Nothing) =
+    _ = that
+    Auto_Boolean.Auto
+
+## Specified the compression type for the file format.
+type Compression
+    ## Use Snowflake default compression (usually GZIP).
+    Auto
+
+    ## Compress using GZIP.
+    GZip
+
+    ## Compress using BZ2
+    BZ2
+
+    ## Must be specified if the input file is in Brotli-compressed format.
+    Brotli
+
+    ## Zstandard compression algorithm (v0.8 and higher).
+    Zstandard
+
+    ## DEFLATE compression algorithm with zlib header, RFC1950.
+    Deflate
+
+    ## DEFLATE compression algorithm without zlib header, RFC1951.
+    Raw_Deflate
+
+    ## No compression.
+    None
+
+    ## ---
+       private: true
+       ---
+    private to_sql self = case self of
+        Compression.Auto -> 'Auto'
+        Compression.GZip -> 'GZIP'
+        Compression.BZ2 -> 'BZ2'
+        Compression.Brotli -> 'BROTLI'
+        Compression.Zstandard -> 'ZSTD'
+        Compression.Deflate -> 'DEFLATE'
+        Compression.Raw_Deflate -> 'RAW_DEFLATE'
+        Compression.None -> 'NONE'

@@ -1,0 +1,26 @@
+import project.Errors.Common.Type_Error
+import project.Function.Function
+import project.Network.Email.Email_Provider.Email_Provider
+import project.Network.Email.Internal.Email_Test_Only.Email_Test_Only_Implementation
+import project.Nothing.Nothing
+import project.Panic.Panic
+from project.Metadata.Choice import Option
+from project.Network.Email.Email_Provider import make_email_provider
+
+## An email provider that sends emails using the SendGrid REST API.
+type Email_Test_Only_Provider
+    ## An email provider that does not send an email.
+    Test_Only
+
+    ## Gets the options for displaying in a dropdown.
+       As in same module can be private.
+    private get_dropdown_options = [Option "..Test_Only" "..Test_Only"]
+
+    ## Resolves a constructor into an Email_Provider instance.
+       As in same module can be private.
+    private resolve that:Function -> Email_Test_Only_Provider | Nothing =
+        Panic.catch Type_Error (that:Email_Test_Only_Provider) _->Nothing
+
+Email_Provider.from (that:Email_Test_Only_Provider) =
+    _ = that
+    make_email_provider "Test_Only" Email_Test_Only_Implementation

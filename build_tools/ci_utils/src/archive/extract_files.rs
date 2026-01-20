@@ -1,7 +1,5 @@
 use crate::prelude::*;
 
-
-
 pub trait ExtractFiles {
     /// The given function will be called with the path of each file within the archive. For each
     /// input path, if it returns a path the file will be extracted to the returned path.

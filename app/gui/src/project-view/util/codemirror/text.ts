@@ -1,4 +1,4 @@
-import { type ChangeDesc, type ChangeSet } from '@codemirror/state'
+import type { ChangeDesc, ChangeSet } from '@codemirror/state'
 import { SourceRange, SourceRangeEdit, SourceRangeEditDesc } from 'ydoc-shared/util/data/text'
 
 /** Collect the changes in a {@link ChangeSet} as {@link SourceRangeEdit}s. */

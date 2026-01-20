@@ -1,5 +1,9 @@
 private
 
+from Standard.Base import all
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+
+import Standard.Table.Spatial_Table.Spatial_Table
 from Standard.Table import Table
 from Standard.Table.Internal.Table_Type_Helpers import table_from_implementation
 
@@ -13,3 +17,8 @@ import project.Internal.DB_Table_Implementation.DB_Table_Implementation
    End users should rely on the _public_ variant of the conversion.
 Table.from (that:DB_Table) =
     table_from_implementation that DB_Table_Implementation
+
+Spatial_Table.from (that:DB_Table) =
+    case that.connection.dialect.is_feature_supported ..Spatial of
+        True -> table_from_implementation that DB_Table_Implementation
+        False -> Error.throw (Illegal_Argument.Error "The provided DB_Table cannot be converted to a Spatial_Table because the underlying database does not support spatial features.")

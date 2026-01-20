@@ -1,17 +1,24 @@
 <script setup lang="ts">
-import { useGraphStore } from '$/components/WithCurrentProject.vue'
+import { useCurrentProject } from '$/components/WithCurrentProject.vue'
+import { type NodeId } from '$/providers/openedProjects/graph'
+import {
+  type NodeType,
+  type PrimaryApplication,
+} from '$/providers/openedProjects/graph/graphDatabase'
+import {
+  applyWidgetUpdates,
+  WidgetInput,
+  type WidgetUpdate,
+} from '$/providers/openedProjects/widgetRegistry'
+import { WidgetEditHandlerParent } from '$/providers/openedProjects/widgetRegistry/editHandler'
 import { DisplayIcon } from '@/components/GraphEditor/widgets/WidgetIcon.vue'
 import WidgetTreeRoot from '@/components/GraphEditor/WidgetTreeRoot.vue'
-import { injectGraphSelection } from '@/providers/graphSelection'
-import { applyWidgetUpdates, WidgetInput, type WidgetUpdate } from '@/providers/widgetRegistry'
-import { WidgetEditHandlerParent } from '@/providers/widgetRegistry/editHandler'
-import { type NodeId } from '@/stores/graph'
-import { type NodeType, type PrimaryApplication } from '@/stores/graph/graphDatabase'
+import { useGraphSelection } from '@/providers/graphSelection'
 import { Ast } from '@/util/ast'
-import { Opt } from '@/util/data/opt'
+import type { Opt } from '@/util/data/opt'
 import { iconOfNode, useDisplayedIcon } from '@/util/getIconName'
+import { Ok } from 'enso-common/src/utilities/data/result'
 import { computed, toRef } from 'vue'
-import { Ok } from 'ydoc-shared/util/data/result'
 
 const props = defineProps<{
   ast: Ast.Expression
@@ -24,17 +31,18 @@ const props = defineProps<{
   extended: boolean
 }>()
 
-const graph = useGraphStore()
-const selection = injectGraphSelection()
+const { module, graph } = useCurrentProject()
+const selection = useGraphSelection()
 
-const baseIcon = computed(() => iconOfNode(props.nodeId, graph.db))
-const { displayedIcon } = useDisplayedIcon(graph.db, toRef(props, 'nodeId'), baseIcon)
+const baseIcon = computed(() => iconOfNode(props.nodeId, graph.value.db))
+const { displayedIcon } = useDisplayedIcon(graph.value.db, toRef(props, 'nodeId'), baseIcon)
 
 const rootPort = computed(() => {
   const input = WidgetInput.FromAst(props.ast)
   if (
     props.ast instanceof Ast.Ident &&
-    (!graph.db.isKnownFunctionCall(props.ast.id) || graph.db.connections.hasValue(props.ast.id))
+    (!graph.value.db.isKnownFunctionCall(props.ast.id) ||
+      graph.value.db.connections.hasValue(props.ast.id))
   ) {
     input.forcePort = true
   }
@@ -56,7 +64,7 @@ function handleWidgetUpdates(update: WidgetUpdate) {
   if (update.directInteraction) {
     selectNode()
   }
-  applyWidgetUpdates(update, graph)
+  applyWidgetUpdates(update, module.value)
   return Ok()
 }
 

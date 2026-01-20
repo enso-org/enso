@@ -23,10 +23,11 @@ final class Repl implements SessionManager {
           switch (content) {
             case ":list", ":l" -> {
               var bindings = executor.listBindings();
-              bindings.foreachEntry((name, value) -> {
-                replIO.println(name + " = " + value);
-                return null;
-              });
+              bindings.foreachEntry(
+                  (name, value) -> {
+                    replIO.println(name + " = " + value);
+                    return null;
+                  });
             }
             case ":quit", "q" -> {
               continueRunning = false;

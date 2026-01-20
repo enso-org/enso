@@ -3,14 +3,11 @@ use crate::prelude::*;
 use crate::actions::env;
 use crate::actions::env_file;
 
-
 // ==============
 // === Export ===
 // ==============
 
 pub mod definition;
-
-
 
 /// Check if we are running in an environment that looks like being spawned by GitHub Actions
 /// workflow.
@@ -27,7 +24,9 @@ pub async fn set_output(name: &str, value: &(impl ToString + ?Sized)) -> Result 
         debug!("Setting GitHub Actions step output {name} to {value}.");
         env_file::GITHUB_OUTPUT.append_key_value(name, &value).await?;
     } else {
-        debug!("Not setting GitHub Actions step output {name} to {value} because we are not in GitHub Actions environment.");
+        debug!(
+            "Not setting GitHub Actions step output {name} to {value} because we are not in GitHub Actions environment."
+        );
     }
     Ok(())
 }
@@ -91,7 +90,7 @@ pub enum MessageLevel {
 #[derive(Clone, Debug)]
 pub struct Message {
     pub level: MessageLevel,
-    pub text:  String,
+    pub text: String,
     // TODO title, line, column
 }
 

@@ -15,6 +15,8 @@ up as follows:
 - [**sbt:**](sbt.md) The build tools that are used for building the project.
 - [**Native Image:**](native-image.md) Description of the Native Image build
   used for building the `ensoup` native binary.
+- [**Dual JVM mode:**](dual_jvm.md) Description of the Dual JVM mode that allows
+  running both native-compiled code and JVM bytecode in the same process.
 - [**Rust:**](rust.md) Description of integration of the Scala project with the
   Rust components.
 - [**Upgrading GraalVM:**](upgrading-graalvm.md) Description of steps that have

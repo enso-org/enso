@@ -1,6 +1,6 @@
 import { fc, test } from '@fast-check/vitest'
 import { describe, expect } from 'vitest'
-import { Position, TextEdit } from 'ydoc-shared/languageServerTypes'
+import type { Position, TextEdit } from 'ydoc-shared/languageServerTypes'
 import { applyDiffAsTextEdits, stupidFastDiff } from '../edits'
 
 // ======================

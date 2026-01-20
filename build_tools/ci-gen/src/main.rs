@@ -1,14 +1,8 @@
-use crate::prelude::*;
+use enso_build::prelude::*;
 
 use enso_build::paths::generated::RepoRootGithub;
 use enso_build::repo::deduce_repository_path;
 use ide_ci::actions::workflow::definition::WorkflowToWrite;
-
-
-
-pub mod prelude {
-    pub use enso_build::prelude::*;
-}
 
 /// Generate the comment that is at the top of each generated workflow file.
 fn preamble(source: &str) -> String {

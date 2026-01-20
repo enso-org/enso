@@ -1,4 +1,4 @@
-import type { Page } from 'playwright/test'
+import type { Page } from 'integration-test/base'
 import type { ExpressionUpdate, MethodCall } from 'ydoc-shared/languageServerTypes'
 
 export type ExpressionLocator = string | { binding: string; expr: string }

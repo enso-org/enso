@@ -3,8 +3,6 @@ use crate::prelude::*;
 use regex::Regex;
 use std::sync::LazyLock;
 
-
-
 // Taken from the official semver description:
 // https://semver.org/#is-there-a-suggested-regular-expression-regex-to-check-a-semver-string
 const SEMVER_REGEX_CODE: &str = r"(?P<major>0|[1-9]\d*)\.(?P<minor>0|[1-9]\d*)\.(?P<patch>0|[1-9]\d*)(?:-(?P<prerelease>(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+(?P<buildmetadata>[0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?";
@@ -18,7 +16,9 @@ pub trait IsVersion: Debug + Display + PartialEq + Eq + Clone + Send + Sync + 's
     fn find_in_text_internal(text: &str) -> Result<Self>;
 
     fn find_in_text(text: &str) -> Result<Self>
-    where Self: Sized {
+    where
+        Self: Sized,
+    {
         Self::find_in_text_internal(text).context(r#"Failed to find semver in the text: "{text}"."#)
     }
 }

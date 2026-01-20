@@ -6,19 +6,10 @@ package org.enso.table.data.column.storage.type;
  * <p>This corresponds to the Enso type {@code Bits}.
  */
 public enum Bits {
-  BITS_8(8),
-  BITS_16(16),
-  BITS_32(32),
-  BITS_64(64);
-  private final int size;
-
-  Bits(int size) {
-    this.size = size;
-  }
-
-  public int toInteger() {
-    return this.size;
-  }
+  BITS_8,
+  BITS_16,
+  BITS_32,
+  BITS_64;
 
   public static Bits fromInteger(int size) {
     return switch (size) {

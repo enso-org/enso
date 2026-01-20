@@ -20,3 +20,7 @@ type With_Y
     y self = "With_Y:" + self.to_text
 
     to_text self = "With_Y("+self.b.to_text+")"
+
+type Singleton_Type
+    x self = "Singleton_Type:" + self.to_text
+    y self = "Singleton_Type:" + self.to_text

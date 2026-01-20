@@ -1,11 +1,11 @@
 package org.enso.base.cache;
 
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import org.enso.base.Environment_Utils;
+import org.enso.base.polyglot.EnsoMeta;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class LRUCacheSettings {
-  private static final Logger logger = Logger.getLogger(LRUCacheSettings.class.getName());
+  private static final Logger LOGGER = LoggerFactory.getLogger(LRUCacheSettings.class);
 
   private static final String MAX_FILE_SIZE_ENV_VAR = "ENSO_LIB_HTTP_CACHE_MAX_FILE_SIZE_MB";
   private static final String TOTAL_CACHE_SIZE_ENV_VAR =
@@ -62,16 +62,17 @@ public class LRUCacheSettings {
   // Uses the environment variable if set and correctly formatted, otherwise
   // uses a default.
   private static long parseMaxFileSizeEnvVar() {
-    String maxFileSizeSpec = Environment_Utils.get_environment_variable(MAX_FILE_SIZE_ENV_VAR);
-    if (maxFileSizeSpec == null) {
+    var maxFileSizeSpec =
+        EnsoMeta.callStaticModuleMethod(
+            "Standard.Base.System.Environment", "get", MAX_FILE_SIZE_ENV_VAR);
+    if (maxFileSizeSpec.isNull()) {
       return DEFAULT_MAX_FILE_SIZE;
     }
     try {
-      double maxFileSizeMegs = Double.parseDouble(maxFileSizeSpec);
+      double maxFileSizeMegs = Double.parseDouble(maxFileSizeSpec.asString());
       return (long) (maxFileSizeMegs * 1024 * 1024);
     } catch (NumberFormatException e) {
-      logger.log(
-          Level.WARNING,
+      LOGGER.warn(
           "Unable to parse environment variable "
               + MAX_FILE_SIZE_ENV_VAR
               + ": {}, falling back to default",
@@ -83,16 +84,16 @@ public class LRUCacheSettings {
   // Uses the environment variable if set and correctly formatted, otherwise
   // uses a default.
   private static TotalCacheLimit.Limit parseTotalCacheLimitEnvVar() {
-    String totalCacheLimitSpec =
-        Environment_Utils.get_environment_variable(TOTAL_CACHE_SIZE_ENV_VAR);
-    if (totalCacheLimitSpec == null) {
+    var totalCacheLimitSpec =
+        EnsoMeta.callStaticModuleMethod(
+            "Standard.Base.System.Environment", "get", TOTAL_CACHE_SIZE_ENV_VAR);
+    if (totalCacheLimitSpec.isNull()) {
       return new TotalCacheLimit.Percentage(DEFAULT_TOTAL_CACHE_SIZE_FREE_SPACE_PERCENTAGE);
     }
     try {
-      return TotalCacheLimit.parse(totalCacheLimitSpec);
+      return TotalCacheLimit.parse(totalCacheLimitSpec.asString());
     } catch (IllegalArgumentException e) {
-      logger.log(
-          Level.WARNING,
+      LOGGER.warn(
           "Unable to parse environment variable "
               + TOTAL_CACHE_SIZE_ENV_VAR
               + ": {}, falling back to default",

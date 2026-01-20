@@ -2,8 +2,6 @@
 
 use crate::prelude::*;
 
-
-
 /// The RFC3161-compliant timestamp server used for signing.
 pub const TIMESTAMP_SERVER: &str = "http://timestamp.digicert.com";
 
@@ -64,11 +62,7 @@ pub fn locate_windows_sdk() -> Result<PathBuf> {
     // TODO: If we ever want anything more fancy, we should use the `InstallationFolder` key at
     //       `HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Microsoft SDKs\Windows\v10.0`
     //       For now we don't need it, and using `winreg` crate is too much trouble cross-platform.
-    if sdk_dir.exists() {
-        Ok(sdk_dir)
-    } else {
-        bail!("Windows SDK not found!")
-    }
+    if sdk_dir.exists() { Ok(sdk_dir) } else { bail!("Windows SDK not found!") }
 }
 
 /// Sign the given executable with the given certificate.

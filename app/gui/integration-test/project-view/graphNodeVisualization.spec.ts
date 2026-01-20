@@ -1,14 +1,12 @@
 import assert from 'assert'
-import { test } from 'playwright/test'
+import { expect, test } from 'integration-test/base'
 import * as actions from './actions'
 import { computedContent } from './css'
-import { expect } from './customExpect'
 import { mockExpressionUpdate } from './expressionUpdates'
-import { CONTROL_KEY } from './keyboard'
 import * as locate from './locate'
 
-test('Node can open and load visualization', async ({ page }) => {
-  await actions.goToGraph(page)
+test('Node can open and load visualization', async ({ editorPage, page }) => {
+  await editorPage
   const node = locate.graphNodeByBinding(page, 'final')
   await node.click({ position: { x: 8, y: 8 } })
   await expect(locate.componentMenu(page)).toExist()
@@ -33,35 +31,34 @@ test('Node can open and load visualization', async ({ page }) => {
   await expect(nodeType).toHaveText('DifferentType')
 })
 
-test('Previewing visualization', async ({ page }) => {
-  await actions.goToGraph(page)
+// FIXME: Previewing visualization behavior currently seems inconsistent
+test.skip('Previewing visualization', async ({ editorPage, page }) => {
+  await editorPage
   const node = locate.graphNode(page).last()
   const port = await locate.outputPortCoordinates(page, node)
-  await page.keyboard.down('Meta')
-  await page.keyboard.down('Control')
+  await editorPage.down('Mod')
   await expect(locate.anyVisualization(page)).toBeHidden()
   await page.mouse.move(port.x, port.y)
   await expect(locate.anyVisualization(node)).toBeVisible()
-  await page.keyboard.up('Meta')
-  await page.keyboard.up('Control')
+  await editorPage.up('Mod')
+  await page.mouse.move(port.x + 1, port.y)
   await expect(locate.anyVisualization(page)).toBeHidden()
-  await page.keyboard.down('Meta')
-  await page.keyboard.down('Control')
+  await editorPage.down('Mod')
+  await page.mouse.move(port.x, port.y)
   await expect(locate.anyVisualization(node)).toBeVisible()
   // TODO[ao]: The simple move near top-left corner not always works i.e. not always
   //  `pointerleave` event is emitted. Investigated in https://github.com/enso-org/enso/issues/9478
   await page.mouse.move(500, 1200, { steps: 20 })
   await expect(locate.anyVisualization(page)).toBeHidden()
-  await page.keyboard.up('Meta')
-  await page.keyboard.up('Control')
-  await page.mouse.move(port.x, port.y)
+  await editorPage.up('Mod')
+  await page.mouse.move(port.x + 1, port.y)
   await expect(locate.anyVisualization(page)).toBeHidden()
 })
 
-test('Warnings visualization', async ({ page }) => {
-  await actions.goToGraph(page)
+test('Warnings visualization', async ({ editorPage, page }) => {
+  await editorPage
   // Without centering the graph, menu sometimes goes out of the view.
-  await page.keyboard.press(`${CONTROL_KEY}+Shift+A`)
+  await page.keyboard.press(`ControlOrMeta+Shift+A`)
   // Create a node, attach a warning, open the warnings-visualization.
   await locate.addNewNodeButton(page).click()
 

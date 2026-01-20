@@ -5,7 +5,7 @@ import { Text } from '#/components/Text'
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import type { AssetColumnHeadingProps } from '#/pages/dashboard/components/column'
 import { Column } from '#/pages/dashboard/components/column/columnUtils'
-import { iconIdFor, nextSortDirection, SortDirection } from '#/utilities/sorting'
+import { iconIdFor, nextSortDirection } from '#/utilities/sorting'
 import { twJoin } from '#/utilities/tailwindMerge'
 import { useText } from '$/providers/react'
 
@@ -23,7 +23,7 @@ export function AccessedByProjectsColumnHeading(props: AssetColumnHeadingProps) 
       <Button
         variant="icon"
         icon="accessed_by_projects"
-        aria-label={getText('accessedByProjectsColumnHide')}
+        aria-label={getText('accessedByProjectsColumnName')}
         tooltip={false}
         onPress={hideThisColumn}
       />
@@ -48,7 +48,7 @@ export function AccessedDataColumnHeading(props: AssetColumnHeadingProps) {
       <Button
         variant="icon"
         icon="accessed_data"
-        aria-label={getText('accessedDataColumnHide')}
+        aria-label={getText('accessedDataColumnName')}
         tooltip={false}
         onPress={hideThisColumn}
       />
@@ -74,7 +74,7 @@ export function LabelsColumnHeading(props: AssetColumnHeadingProps) {
       <Button
         variant="icon"
         icon="tag"
-        aria-label={getText('labelsColumnHide')}
+        aria-label={getText('labelsColumnName')}
         tooltip={false}
         onPress={hideThisColumn}
       />
@@ -91,8 +91,8 @@ export function ModifiedColumnHeading(props: AssetColumnHeadingProps) {
 
   const { getText } = useText()
 
-  const isSortActive = sortInfo?.field === Column.modified
-  const isDescending = sortInfo?.direction === SortDirection.descending
+  const isSortActive = sortInfo?.field === 'modified_at'
+  const isDescending = sortInfo?.direction === 'descending'
 
   const hideThisColumn = useEventCallback(() => {
     hideColumn(Column.modified)
@@ -100,17 +100,14 @@ export function ModifiedColumnHeading(props: AssetColumnHeadingProps) {
 
   const cycleSortDirection = useEventCallback(() => {
     if (!sortInfo) {
-      setSortInfo({ field: Column.modified, direction: SortDirection.ascending })
+      setSortInfo({ field: 'modified_at', direction: 'ascending' })
       return
     }
-
-    const nextDirection =
-      isSortActive ? nextSortDirection(sortInfo.direction) : SortDirection.ascending
-
+    const nextDirection = isSortActive ? nextSortDirection(sortInfo.direction) : 'ascending'
     if (nextDirection == null) {
       setSortInfo(null)
     } else {
-      setSortInfo({ field: Column.modified, direction: nextDirection })
+      setSortInfo({ field: 'modified_at', direction: nextDirection })
     }
   })
 
@@ -158,21 +155,19 @@ export function NameColumnHeading(props: AssetColumnHeadingProps) {
   const { sortInfo, setSortInfo } = props
 
   const { getText } = useText()
-  const isSortActive = sortInfo?.field === Column.name
-  const isDescending = sortInfo?.direction === SortDirection.descending
+  const isSortActive = sortInfo?.field === 'title'
+  const isDescending = sortInfo?.direction === 'descending'
 
   const cycleSortDirection = useEventCallback(() => {
     if (!sortInfo) {
-      setSortInfo({ field: Column.name, direction: SortDirection.ascending })
+      setSortInfo({ field: 'title', direction: 'ascending' })
       return
     }
-
-    const nextDirection =
-      isSortActive ? nextSortDirection(sortInfo.direction) : SortDirection.ascending
+    const nextDirection = isSortActive ? nextSortDirection(sortInfo.direction) : 'ascending'
     if (nextDirection == null) {
       setSortInfo(null)
     } else {
-      setSortInfo({ field: Column.name, direction: nextDirection })
+      setSortInfo({ field: 'title', direction: nextDirection })
     }
   })
 
@@ -222,7 +217,7 @@ export function PathColumnHeading(props: AssetColumnHeadingProps) {
       <Button
         variant="icon"
         icon="folder"
-        aria-label={getText('pathColumnHide')}
+        aria-label={getText('pathColumnName')}
         tooltip={false}
         onPress={hideThisColumn}
       />
@@ -248,7 +243,7 @@ export function SharedWithColumnHeading(props: AssetColumnHeadingProps) {
       <Button
         variant="icon"
         icon="people"
-        aria-label={getText('sharedWithColumnHide')}
+        aria-label={getText('sharedWithColumnName')}
         tooltip={false}
         onPress={hideThisColumn}
       />

@@ -8,7 +8,7 @@ import { partition } from '@/util/data/array'
 import { getTextWidthBySizeAndFamily } from '@/util/measurement'
 import { defineKeybinds } from '@/util/visualizationBuiltins'
 import { computed, ref, watch, watchEffect, watchPostEffect } from 'vue'
-import { ToolbarItem } from './toolbar'
+import type { ToolbarItem } from './toolbar'
 
 export const name = 'Scatter Plot'
 export const icon = 'points'

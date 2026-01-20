@@ -5,20 +5,18 @@ use crate::env::expect_var;
 use crate::extensions::reqwest::ClientBuilderExt;
 
 use mime::Mime;
-use reqwest::header::HeaderMap;
-use reqwest::header::HeaderValue;
-use reqwest::header::ACCEPT_ENCODING;
 use reqwest::Client;
 use reqwest::ClientBuilder;
-
-
+use reqwest::header::ACCEPT_ENCODING;
+use reqwest::header::HeaderMap;
+use reqwest::header::HeaderValue;
 
 #[derive(Clone, Debug)]
 pub struct Context {
-    pub runtime_url:   Url,
+    pub runtime_url: Url,
     pub runtime_token: String,
-    pub run_id:        String,
-    pub api_version:   String,
+    pub run_id: String,
+    pub api_version: String,
 }
 
 impl Context {

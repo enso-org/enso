@@ -2,8 +2,6 @@ use crate::prelude::*;
 
 use semver::Prerelease;
 
-
-
 /// Extension methods for [`Version`].
 pub trait VersionExt {
     /// Get the version numbers, excluding the prerelease or build metadata.
@@ -65,14 +63,9 @@ pub trait PrereleaseExt {
 
 impl PrereleaseExt for Prerelease {
     fn identifiers(&self) -> Vec<&str> {
-        if self.is_empty() {
-            default()
-        } else {
-            self.split('.').collect()
-        }
+        if self.is_empty() { default() } else { self.split('.').collect() }
     }
 }
-
 
 #[cfg(test)]
 mod tests {

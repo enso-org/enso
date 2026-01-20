@@ -4,8 +4,6 @@ use ide_ci::program;
 use ide_ci::programs;
 use semver::VersionReq;
 
-
-
 /// Load the build configuration, based on the `build-config.yaml` and `.node-version` files in
 /// the repo root.
 pub fn load() -> Result<Config> {
@@ -139,7 +137,6 @@ required-versions:
         let config = serde_yaml::from_str::<ConfigRaw>(config)?;
         dbg!(&config);
         dbg!(Config::try_from(config))?.check_programs().await?;
-
 
         Ok(())
     }

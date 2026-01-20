@@ -37,8 +37,8 @@ public class Sum extends Aggregator {
       case BigIntegerType bigIntegerType -> Builder.getForBigInteger(size, problemAggregator);
       case FloatType floatType -> Builder.getForDouble(floatType, size, problemAggregator);
       case NullType nullType -> Builder.getForType(nullType, size, problemAggregator);
-      default -> throw new IllegalStateException(
-          "Unexpected input type for Sum aggregate: " + inputType);
+      default ->
+          throw new IllegalStateException("Unexpected input type for Sum aggregate: " + inputType);
     };
   }
 
@@ -57,8 +57,8 @@ public class Sum extends Aggregator {
       case BigIntegerType bigIntegerType -> new IntegerSumAccumulator();
       case FloatType floatType -> new FloatSumAccumulator();
       case NullType nullType -> new NullAccumulator();
-      default -> throw new IllegalStateException(
-          "Unexpected input type for Sum aggregate: " + inputType);
+      default ->
+          throw new IllegalStateException("Unexpected input type for Sum aggregate: " + inputType);
     };
   }
 
@@ -128,20 +128,22 @@ public class Sum extends Aggregator {
         case null -> {
           accumulator = value;
         }
-        default -> throw new IllegalStateException(
-            "Unexpected accumulator type: " + accumulator.getClass());
+        default ->
+            throw new IllegalStateException(
+                "Unexpected accumulator type: " + accumulator.getClass());
       }
     }
 
     private void addBigInteger(BigInteger value) {
       assert value != null;
       switch (accumulator) {
-        case Long accumulatorAsLong -> accumulator =
-            BigInteger.valueOf(accumulatorAsLong).add(value);
+        case Long accumulatorAsLong ->
+            accumulator = BigInteger.valueOf(accumulatorAsLong).add(value);
         case BigInteger accumulatorAsBigInteger -> accumulator = accumulatorAsBigInteger.add(value);
         case null -> accumulator = value;
-        default -> throw new IllegalStateException(
-            "Unexpected accumulator type: " + accumulator.getClass());
+        default ->
+            throw new IllegalStateException(
+                "Unexpected accumulator type: " + accumulator.getClass());
       }
     }
 

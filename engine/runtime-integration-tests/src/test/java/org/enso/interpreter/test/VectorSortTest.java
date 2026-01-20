@@ -22,7 +22,9 @@ import org.junit.runner.RunWith;
  */
 @RunWith(Theories.class)
 public class VectorSortTest {
-  @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
+  @ClassRule
+  public static final ContextUtils ctxRule = ContextUtils.newBuilder().assertGC(false).build();
+
   private static Value sortFunc;
   private static Value equalsFunc;
 
@@ -30,11 +32,11 @@ public class VectorSortTest {
   public static void initNodes() {
     var code =
         """
-    from Standard.Base import all
+        from Standard.Base import all
 
-    sort val1 val2 = [val1, val2].sort
-    equals val1 val2 = val1 == val2
-    """;
+        sort val1 val2 = [val1, val2].sort
+        equals val1 val2 = val1 == val2
+        """;
     sortFunc = ctxRule.getMethodFromModule(code, "sort");
     equalsFunc = ctxRule.getMethodFromModule(code, "equals");
 

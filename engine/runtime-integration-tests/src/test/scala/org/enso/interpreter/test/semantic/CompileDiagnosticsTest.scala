@@ -34,7 +34,7 @@ class CompileDiagnosticsTest extends InterpreterTest {
           |    x = Panic.catch_primitive ` caught_panic-> caught_panic.payload
           |    x.to_text
           |""".stripMargin
-      eval(code) shouldEqual "(Syntax_Error.Error 'Unexpected expression')"
+      eval(code) shouldEqual "(Syntax_Error.Error 'Unexpected token')"
     }
 
     "surface redefinition errors in the language" in {

@@ -125,6 +125,12 @@ type Feature
     ## ---
        private: true
        ---
+       spatial operations
+    Spatial
+
+    ## ---
+       private: true
+       ---
        Check if a feature is supported by a dialect, and throw an error if it is
        not.
     if_supported_else_throw self dialect:Any error_name:Text ~action = 

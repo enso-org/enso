@@ -54,4 +54,4 @@ Decimal.from that:In_Memory_Column -> Decimal =
     (that:Column).at 0
 
 private is_single_value that:Column =
-    that.length == 1
+    that.row_count == 1

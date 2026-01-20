@@ -1,3 +1,4 @@
+import { modKeyProp } from '@/composables/events'
 import {
   decomposeKeybindString,
   defineKeybinds,
@@ -31,8 +32,8 @@ test.each([
   },
   // Capitalization
   {
-    keybind: 'meta+shift+alt+mod+pointermain',
-    expected: { modifiers: ['Meta', 'Shift', 'Alt', 'Mod'], key: 'PointerMain' },
+    keybind: 'shift+alt+mod+pointermain',
+    expected: { modifiers: ['Shift', 'Alt', 'Mod'], key: 'PointerMain' },
   },
   // Repeated keys
   {
@@ -58,7 +59,7 @@ test.each([
 const testBindings = defineKeybinds('testBindings', {
   mouse: ['PointerMain'],
   mouseWithModifier: ['Mod+PointerMain'],
-  mouseWithAllModifiers: ['Shift+Alt+Mod+Meta+PointerMain'],
+  mouseWithAllModifiers: ['Shift+Alt+Mod+PointerMain'],
   a: ['A'],
   b: ['B'],
   anotherA: ['A'],
@@ -78,7 +79,7 @@ test.each([
     expectPropagation: true,
   },
   {
-    event: new MouseEvent('click', { ctrlKey: true }),
+    event: new MouseEvent('click', { [modKeyProp]: true }),
     handlers: ['mouse', 'mouseWithModifier', 'mouseWithAllModifiers'],
     expected: ['mouseWithModifier'],
   },
@@ -89,7 +90,7 @@ test.each([
     expectPropagation: true,
   },
   {
-    event: new MouseEvent('click', { altKey: true, ctrlKey: true, metaKey: true, shiftKey: true }),
+    event: new MouseEvent('click', { altKey: true, [modKeyProp]: true, shiftKey: true }),
     handlers: ['mouse', 'mouseWithModifier', 'mouseWithAllModifiers'],
     expected: ['mouseWithAllModifiers'],
   },

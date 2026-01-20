@@ -1,9 +1,8 @@
-import { getFolderPath, isFolderPath } from 'enso-common/src/utilities/file'
 import gunzipMaybe from 'gunzip-maybe'
 import { createReadStream, createWriteStream } from 'node:fs'
 import { mkdir } from 'node:fs/promises'
 import { platform } from 'node:os'
-import { join } from 'node:path'
+import { dirname, join } from 'node:path'
 import type { Readable, Stream, Writable } from 'node:stream'
 import { createGzip } from 'node:zlib'
 import { extract as tarFsExtract } from 'tar-fs'
@@ -159,8 +158,8 @@ export async function unzipEntries(path: string) {
           archive.on('end', end)
           archive.on('entry', onEntry)
           function onEntry(entry: Entry) {
-            const entryIsDirectory = isFolderPath(entry.fileName)
-            if (skipped[getFolderPath(entry.fileName)] == true) {
+            const entryIsDirectory = /[/\\]$/.test(entry.fileName)
+            if (skipped[dirname(entry.fileName)] == true) {
               if (entryIsDirectory) {
                 skipped[entry.fileName] = true
               }
@@ -179,7 +178,7 @@ export async function unzipEntries(path: string) {
                 }
                 // According to `yauzl` documentation:
                 // Entries for directories themselves are optional in `.zip` archives.
-                await mkdir(getFolderPath(destinationPath), { recursive: true })
+                await mkdir(dirname(destinationPath), { recursive: true })
                 const readStreamRaw = await new Promise<Readable>((resolve, reject) =>
                   archive.openReadStream(entry, (error, readStream) =>
                     error ? reject(error) : resolve(readStream),

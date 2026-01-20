@@ -2,10 +2,14 @@ from Standard.Base import all
 
 from Standard.Test import Test
 
+import project.Generic_JDBC_SQLite_Spec
+import project.Generic_JDBC_Postgres_Spec
 import project.H2_Spec
 
 main filter=Nothing =
     suite = Test.build suite_builder->
         H2_Spec.add_specs suite_builder
+        Generic_JDBC_SQLite_Spec.add_specs suite_builder
+        Generic_JDBC_Postgres_Spec.add_specs suite_builder
 
     suite.run_with_filter filter

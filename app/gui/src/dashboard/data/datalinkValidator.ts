@@ -4,7 +4,7 @@ import Ajv from 'ajv/dist/2020'
 
 import SCHEMA from '#/data/datalinkSchema.json' with { type: 'json' }
 
-import * as error from '#/utilities/error'
+import * as error from 'enso-common/src/utilities/errors'
 
 export const AJV = new Ajv({
   formats: {

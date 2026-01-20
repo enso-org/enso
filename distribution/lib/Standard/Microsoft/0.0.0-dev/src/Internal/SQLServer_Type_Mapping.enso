@@ -8,15 +8,18 @@ import Standard.Table.Internal.Java_Exports
 from Standard.Table import Bits, Value_Type
 from Standard.Table.Errors import Inexact_Type_Coercion
 
-import Standard.Database.Internal.Column_Fetcher as Column_Fetcher_Module
-import Standard.Database.Internal.Column_Fetcher.Column_Fetcher
 import Standard.Database.Internal.IR.SQL_IR_Expression.SQL_IR_Expression
 import Standard.Database.Internal.SQL_Type_Mapping
 import Standard.Database.Internal.SQL_Type_Reference.SQL_Type_Reference
+import Standard.Database.Internal.Statement_Setter.Statement_Setter
 import Standard.Database.SQL.SQL_Type
 from Standard.Database.Errors import Unsupported_Database_Type
 
+import project.Internal.SQLServer_Error_Mapper.SQLServer_Error_Mapper
+
 polyglot java import java.sql.Types
+polyglot java import org.enso.database.fetchers.ColumnFetcherFactory
+polyglot java import org.enso.database.JDBCValueSetter
 
 ## ---
    private: true
@@ -108,10 +111,21 @@ type SQLServer_Type_Mapping
                 "varbinary" -> Value_Type.Binary size=sql_type.precision variable_length=True
                 "binary" -> Value_Type.Binary size=sql_type.precision variable_length=False
                 _ -> on_unknown_type sql_type
+            Types.DECIMAL -> Value_Type.Decimal sql_type.precision sql_type.scale
+            Types.NUMERIC -> Value_Type.Decimal sql_type.precision sql_type.scale
             Types.NULL -> Value_Type.Null
             _ -> case sql_type.name of
                 "datetimeoffset" -> Value_Type.Date_Time with_timezone=True
                 _ -> on_unknown_type sql_type
+
+    ## ---
+       private: true
+       advanced: true
+       ---
+       Gets the ColumnFetcherFactory to be used for SQL Server.
+    column_fetcher_factory : Any
+    column_fetcher_factory =
+        ColumnFetcherFactory.DEFAULT
 
     ## ---
        private: true
@@ -147,16 +161,6 @@ type SQLServer_Type_Mapping
     ## ---
        private: true
        ---
-       Creates a `Column_Fetcher` used to fetch data from a result set and build
-       an in-memory column from it, based on the given column type.
-    make_column_fetcher : SQL_Type -> Column_Fetcher
-    make_column_fetcher self sql_type =
-        value_type = self.sql_type_to_value_type sql_type
-        Column_Fetcher_Module.default_fetcher_for_value_type value_type
-
-    ## ---
-       private: true
-       ---
     is_implicit_conversion (source_type : Value_Type) (target_type : Value_Type) -> Boolean =
         # Currently, we do not have any implicit conversions.
         _ = [source_type, target_type]
@@ -178,6 +182,38 @@ type SQLServer_Type_Mapping
        ---
     is_same_type (value_type1 : Value_Type) (value_type2 : Value_Type) -> Boolean =
         value_type1.is_same_type value_type2
+
+    ## ---
+       private: true
+       ---
+       Creates a Statement_Setter for SQL Server.
+    statement_setter =
+        jdbc_value_setter = JDBCValueSetter.create "SQLServer"
+        fallback = Statement_Setter.create_fill_hole jdbc_value_setter
+
+        custom_fill_hole stmt i type_hint value = case value of
+            Nothing ->
+                java_type = case type_hint of
+                    Nothing -> Types.NULL
+                    _ ->
+                        ## SQLServer needs its NULLS to be typed at least for TIME.
+                        sql_type = SQLServer_Type_Mapping.value_type_to_sql type_hint Problem_Behavior.Ignore
+                        sql_type.typeid
+                stmt.setNull i java_type
+            _ : Float ->
+                if value.is_nan || value.is_infinite then stmt.setNull i Types.REAL else
+                    stmt.setDouble i value
+            # Fallback to default logic for everything else
+            _ -> fallback stmt i type_hint value
+        Statement_Setter.for_fill_hole custom_fill_hole
+
+    ## ---
+       private: true
+       ---
+       Creates an Error_Mapper for SQLServer.
+    error_mapper : SQLServer_Error_Mapper
+    error_mapper self = SQLServer_Error_Mapper
+
 
 ## ---
    private: true

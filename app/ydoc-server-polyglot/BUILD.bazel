@@ -1,0 +1,28 @@
+load("@aspect_rules_js//js:defs.bzl", "js_binary", "js_run_binary")
+load("@npm//:defs.bzl", "npm_link_all_packages", "npm_link_targets")
+
+npm_link_all_packages(name = "node_modules")
+
+SRCS = [
+    "package.json",
+    "tsconfig.json",
+    "build.mjs",
+] + glob(["src/*.ts"]) + npm_link_targets()
+
+js_binary(
+    name = "build_bin",
+    data = SRCS,
+    entry_point = "build.mjs",
+)
+
+js_run_binary(
+    name = "dist",
+    srcs = SRCS,
+    outs = [
+        "dist/main.cjs",
+    ],
+    args = ["build"],
+    chdir = package_name(),
+    tool = ":build_bin",
+    visibility = ["//visibility:public"],
+)

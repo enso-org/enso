@@ -14,9 +14,11 @@ from Standard.Database.Internal.Postgres.Helpers import get_encoding_name, parse
 
 import project.AWS_Credential.AWS_Credential
 import project.Database.Redshift.Internal.Redshift_Dialect
+import project.Database.Redshift.Internal.Redshift_Type_Mapping.Redshift_Type_Mapping
 
 polyglot java import com.amazon.redshift.jdbc.Driver
-polyglot java import java.util.Properties
+polyglot java import org.enso.database.JDBCDriverTypes
+polyglot java import org.enso.database.JDBCProxy
 
 type Redshift_Details
     ## Connect to a AWS Redshift database.
@@ -63,13 +65,15 @@ type Redshift_Details
         if Driver.isRegistered.not then Driver.register
 
         properties = options.merge self.jdbc_properties
-        jdbc_connection = JDBC_Connection.create self.jdbc_url properties
+
+        types_record = JDBCDriverTypes.create "Redshift"
+        jdbc_connection = JDBC_Connection.create types_record self.jdbc_url properties
 
         # TODO [RW] can we inherit these from postgres?
         encoding = parse_postgres_encoding (get_encoding_name jdbc_connection)
         entity_naming_properties = Entity_Naming_Properties.from_jdbc_connection jdbc_connection encoding is_case_sensitive=True
 
-        Connection.new jdbc_connection Redshift_Dialect.redshift entity_naming_properties
+        Connection.new jdbc_connection Redshift_Dialect.redshift Redshift_Type_Mapping entity_naming_properties
 
     ## ---
        private: true

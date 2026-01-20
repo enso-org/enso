@@ -64,7 +64,7 @@ Vector.should_equal_tz_agnostic self other = Frame_Hider.hide <|
         _ : Vector ->
             utc = Time_Zone.utc
             normalize_date_time dt = case dt of
-                _ : Date_Time -> dt.at_zone utc
+                _ : Date_Time -> dt.at_time_zone utc
                 _ -> Test.fail "The vector should contain Date_Time objects but it contained "+dt.to_display_text+" (at "+Frame_Hider.get_top_stack_frame+")"
             self_normalized = self.map normalize_date_time
             other_normalized = other.map normalize_date_time
@@ -82,7 +82,7 @@ build_sorted_table setup table_structure =
     if setup.is_database . not then setup.table_builder table_structure else
         row_count = case table_structure.first of
             def : Vector -> def.second.length
-            col : Column -> col.length
+            col : Column -> col.row_count
         if row_count == 0 then setup.table_builder table_structure else
             new_structure = table_structure+[["row_id", (0.up_to row_count) . to_vector]]
             setup.table_builder new_structure . sort "row_id" . remove_columns ["row_id"]
@@ -92,3 +92,13 @@ is_float_or_decimal ~column = case column.value_type of
     Value_Type.Float _ -> Nothing
     Value_Type.Decimal _ _ -> Nothing
     other -> Test.fail "Expected "+column.name+" to be a float or decimal, but got "+other.to_display_text
+
+## ---
+   private: true
+   ---
+check_column_refinements column check =
+    Test.with_clue "(regular column) " <| check column
+    # Sort is needed in DB for take to work
+    Test.with_clue "(1-value column) " <| check (column.sort.take 1)
+    Test.with_clue "(1-column table as column) " <| check (column.to_table)
+    Test.with_clue "(1-value 1-column table as column) " <| check (column.sort.to_table.take 1)

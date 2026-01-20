@@ -1,4 +1,4 @@
-import { DropdownEntry } from '@/components/widgets/DropdownWidget.vue'
+import type { DropdownEntry } from '@/components/widgets/DropdownWidget.vue'
 
 export interface SubmenuEntry<T extends DropdownEntry> extends DropdownEntry {
   isNested: boolean

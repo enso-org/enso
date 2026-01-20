@@ -3,33 +3,31 @@ package org.enso.compiler.docs;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-
 import org.enso.compiler.core.ir.Module;
 import org.enso.compiler.core.ir.module.scope.Definition;
 import org.enso.compiler.core.ir.module.scope.Definition.Data;
 import org.enso.compiler.core.ir.module.scope.Definition.Type;
 import org.enso.compiler.core.ir.module.scope.definition.Method;
-
 import scala.jdk.javaapi.CollectionConverters;
 
 /**
- * Bindings are sorted to categories. Every category is sorted alphabetically.
- * Categories are roughly:
+ * Bindings are sorted to categories. Every category is sorted alphabetically. Categories are
+ * roughly:
+ *
  * <ul>
- *   <li>Types</li>
- *   <li>Instance and static methods on types</li>
- *   <li>Module methods</li>
- *   <li>Extension and conversion methods</li>
+ *   <li>Types
+ *   <li>Instance and static methods on types
+ *   <li>Module methods
+ *   <li>Extension and conversion methods
  * </ul>
  */
 public final class BindingSorter {
   private BindingSorter() {}
 
-  /**
-   * Returns sorted list of bindings defined on the given {@code moduleIr}.
-   */
+  /** Returns sorted list of bindings defined on the given {@code moduleIr}. */
   public static List<Definition> sortedBindings(Module moduleIr) {
-    var visibleBindings =     moduleIr.bindings().filter(b -> b instanceof Method m ? !m.isPrivate() : true);
+    var visibleBindings =
+        moduleIr.bindings().filter(b -> b instanceof Method m ? !m.isPrivate() : true);
     var bindings = CollectionConverters.asJava(visibleBindings);
     var comparator = new BindingComparator(moduleIr);
     return bindings.stream().sorted(comparator).toList();
@@ -40,11 +38,9 @@ public final class BindingSorter {
     return constructors.stream().sorted(comparator).toList();
   }
 
-
   private static int compareTypes(Type type1, Type type2) {
     return type1.name().name().compareTo(type2.name().name());
   }
-
 
   private static final class BindingComparator implements java.util.Comparator<Definition> {
     private final Module moduleIr;
@@ -57,10 +53,8 @@ public final class BindingSorter {
     @Override
     public int compare(Definition def1, Definition def2) {
       return switch (def1) {
-        case Method method1 when def2 instanceof Method methods ->
-          compareMethods(method1, methods);
-        case Type type1 when def2 instanceof Type type2 ->
-          compareTypes(type1, type2);
+        case Method method1 when def2 instanceof Method methods -> compareMethods(method1, methods);
+        case Type type1 when def2 instanceof Type type2 -> compareTypes(type1, type2);
         case Type type1 when def2 instanceof Method method2 -> compareTypeAndMethod(type1, method2);
         case Method method1 when def2 instanceof Type type2 ->
             -compareTypeAndMethod(type2, method1);
@@ -84,11 +78,10 @@ public final class BindingSorter {
       return -1;
     }
 
-
     private int compareMethods(Method method1, Method method2) {
       return switch (method1) {
-        case
-            Method.Explicit explicitMethod1 when method2 instanceof Method.Explicit explicitMethod2 -> {
+        case Method.Explicit explicitMethod1
+            when method2 instanceof Method.Explicit explicitMethod2 -> {
           if (explicitMethod1.isPrivate() != explicitMethod2.isPrivate()) {
             if (explicitMethod1.isPrivate()) {
               yield 1;
@@ -111,7 +104,9 @@ public final class BindingSorter {
             var typeName2 = type2.get().name();
             if (typeName1.equals(typeName2)) {
               // Methods are defined on the same type
-              yield explicitMethod1.methodName().name()
+              yield explicitMethod1
+                  .methodName()
+                  .name()
                   .compareTo(explicitMethod2.methodName().name());
             } else {
               yield type1.get().name().compareTo(type2.get().name());
@@ -123,23 +118,23 @@ public final class BindingSorter {
             yield 1;
           }
           assert !type1.isDefined() && !type2.isDefined();
-          yield explicitMethod1.methodName().name()
-              .compareTo(explicitMethod2.methodName().name());
+          yield explicitMethod1.methodName().name().compareTo(explicitMethod2.methodName().name());
         }
         // Comparison of conversion methods is not supported.
         case Method.Conversion conversion1 when method2 instanceof Method.Conversion conversion2 ->
             0;
         case Method.Explicit explicit when method2 instanceof Method.Conversion -> -1;
         case Method.Conversion conversion when method2 instanceof Method.Explicit -> 1;
-        default -> throw new AssertionError(
-            "Unexpected type: method1=%s, method2=%s".formatted(method1.getClass(),
-                method2.getClass()));
+        default ->
+            throw new AssertionError(
+                "Unexpected type: method1=%s, method2=%s"
+                    .formatted(method1.getClass(), method2.getClass()));
       };
     }
 
     /**
-     * An extension method is a method that is defined on a type that is defined outside the
-     * current module.
+     * An extension method is a method that is defined on a type that is defined outside the current
+     * module.
      */
     private boolean isExtensionMethod(Method method) {
       if (method.typeName().isDefined()) {
@@ -152,18 +147,22 @@ public final class BindingSorter {
     private Set<String> typeNamesInModule() {
       if (typeNames == null) {
         typeNames = new HashSet<>();
-        moduleIr.bindings().foreach(binding -> {
-          if (binding instanceof Definition.Type type) {
-            typeNames.add(type.name().name());
-          }
-          return null;
-        });
+        moduleIr
+            .bindings()
+            .foreach(
+                binding -> {
+                  if (binding instanceof Definition.Type type) {
+                    typeNames.add(type.name().name());
+                  }
+                  return null;
+                });
       }
       return typeNames;
     }
   }
 
-  private static final class ConstructorComparator implements java.util.Comparator<Definition.Data> {
+  private static final class ConstructorComparator
+      implements java.util.Comparator<Definition.Data> {
 
     @Override
     public int compare(Data cons1, Data cons2) {

@@ -1,0 +1,36 @@
+load("@crates//:defs.bzl", "aliases", "all_crate_deps")
+load("@rules_rust//cargo:defs.bzl", "cargo_build_script")
+load("@rules_rust//rust:defs.bzl", "rust_library")
+
+cargo_build_script(
+    name = "build_script",
+    srcs = ["build.rs"],
+    aliases = aliases(build = True),
+    compile_data = ["paths.yaml"],
+    data = ["paths.yaml"],
+    edition = "2021",
+    deps = all_crate_deps(build = True) + [
+        "//build_tools/ci_utils:ide_ci",
+        "//build_tools/macros/lib:enso_build_macros_lib",
+    ],
+)
+
+rust_library(
+    name = "enso_build",
+    srcs = glob(["src/**/*.rs"]),
+    aliases = aliases(),
+    compile_data = [
+        "//:build-config.yaml",
+        "//:.node-version",
+        "release-body.md",
+    ],
+    edition = "2021",
+    proc_macro_deps = all_crate_deps(proc_macro = True),
+    visibility = ["//visibility:public"],
+    deps = all_crate_deps(normal = True) + [
+        ":build_script",
+        "//build_tools/base:enso_build_base",
+        "//build_tools/ci_utils:ide_ci",
+        "//build_tools/install/config:enso_install_config",
+    ],
+)

@@ -7,13 +7,13 @@ import {
   analyzeLinkOrImage,
   nodeRange,
 } from '@/components/MarkdownEditor/markdown/trees'
-import { type VueHost } from '@/components/VueHostRender.vue'
+import type { VueHost } from '@/components/VueHostRender.vue'
 import { linkEditPopup } from '@/util/codemirror/linkEditPopup'
 import { linkAttributesFactory, linkAttributesFactoryChanged } from '@/util/codemirror/links'
 import { vueHostChanged } from '@/util/codemirror/vueHostExt'
-import { type EditorState, Extension, Prec, type Text } from '@codemirror/state'
+import { Prec, type EditorState, type Extension, type Text } from '@codemirror/state'
 import { Decoration, ViewPlugin, WidgetType } from '@codemirror/view'
-import { type SyntaxNodeRef } from '@lezer/common'
+import type { SyntaxNodeRef } from '@lezer/common'
 import { Range } from 'ydoc-shared/util/data/range'
 
 // === Links ===

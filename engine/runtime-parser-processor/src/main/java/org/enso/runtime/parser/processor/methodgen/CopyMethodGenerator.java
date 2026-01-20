@@ -64,12 +64,12 @@ public final class CopyMethodGenerator {
   }
 
   private String copyMethodRetType() {
-    return ctx.getProcessedClass().getClazz().getSimpleName().toString();
+    return ctx.getProcessedClassName();
   }
 
   private List<String> parameters() {
     return ctx.getAllFields().stream()
-        .map(field -> field.getSimpleTypeName() + " " + field.name())
+        .map(field -> field.getTypeName() + " " + field.name())
         .toList();
   }
 

@@ -3,8 +3,6 @@ use crate::prelude::*;
 use crate::models::config::Runner;
 use crate::models::config::RunnerLocation;
 
-
-
 /// Name of the directory with a runner that is placed in runner's container image build context.
 ///
 /// Must be in sync with relevant entries in `Dockerfile`s (the `ADD` commands).
@@ -16,14 +14,14 @@ pub const DIRECTORY_WITH_CI_CRATE: &str = "ci";
 #[derive(Clone, Debug)]
 pub struct Config {
     /// Repository where this runner is registered.
-    pub location:    RunnerLocation,
+    pub location: RunnerLocation,
     /// Runner's name.
-    pub runner:      Runner,
+    pub runner: Runner,
     /// Operating system of the runner's image. It is possible to have Linux on Windows or macOS,
     /// so we don't assume this to be always equal to `TARGET_OS`.
-    pub os:          OS,
+    pub os: OS,
     pub server_name: String,
-    pub index:       usize,
+    pub index: usize,
 }
 
 impl Config {
@@ -111,9 +109,5 @@ impl Config {
 
 /// The extension used by the scripts that are part of GitHub Actions Runner distribution.
 pub fn script_extension(os: OS) -> &'static str {
-    if os == OS::Windows {
-        "cmd"
-    } else {
-        "sh"
-    }
+    if os == OS::Windows { "cmd" } else { "sh" }
 }

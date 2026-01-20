@@ -25,7 +25,7 @@ import org.openjdk.jmh.infra.Blackhole;
 public class CallableBenchmarks {
   private static final long HUNDRED_MILLION = 100_000_000L;
   private static final String SUM_TCO_FROM_CALL_CODE =
-      """
+"""
 from Standard.Base.Data.Numbers import all
 
 type Foo
@@ -40,7 +40,7 @@ main = sumTo ->
 """;
 
   private static final String SUM_TCO_METHOD_CALL_CODE =
-      """
+"""
 summator = acc -> current ->
     if current == 0 then acc else @Tail_Call summator (acc + current) (current - 1)
 
@@ -50,7 +50,7 @@ main = sumTo ->
 """;
 
   private static final String SUM_TCO_METHOD_CALL_WITH_NAMED_ARGUMENTS_CODE =
-      """
+"""
 summator = acc -> current ->
     if current == 0 then acc else @Tail_Call summator (current = current - 1) (acc = acc + current)
 
@@ -60,7 +60,7 @@ main = sumTo ->
 """;
 
   private static final String SUM_TCO_METHOD_CALL_WITH_DEFAULTED_ARGUMENTS_CODE =
-      """
+"""
 summator = (acc = 0) -> current ->
     if current == 0 then acc else @Tail_Call summator (current = current - 1) (acc = acc + current)
 

@@ -6,8 +6,6 @@
 //! javac -d generated-java/ GeneratedFormatTests.java && java GeneratedFormatTests
 //! ```
 
-
-
 // ============================
 // === Java Test Generation ===
 // ============================

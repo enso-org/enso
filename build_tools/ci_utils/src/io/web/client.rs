@@ -9,8 +9,6 @@ use reqwest::IntoUrl;
 use reqwest::Response;
 use std::time::Duration;
 
-
-
 pub async fn get(client: &Client, url: impl IntoUrl) -> Result<Response> {
     let url = url.into_url()?;
     web::execute(client.get(url.clone())).await.with_context(|| format!("Failed to get {url}"))

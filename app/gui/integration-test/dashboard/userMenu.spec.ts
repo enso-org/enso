@@ -1,25 +1,20 @@
 /** @file Test the user menu. */
-import { expect, test } from 'playwright/test'
+import { expect, test } from 'integration-test/base'
 
-import { mockAllAndLogin, TEXT } from './actions'
+import { TEXT } from '../actions'
 
-test('user menu', ({ page }) =>
-  mockAllAndLogin({ page, goToCloudFirst: false })
-    .openUserMenu()
-    .do(async (thePage) => {
-      await expect(thePage.getByLabel(TEXT.userMenuLabel).locator('visible=true')).toBeVisible()
-    }))
-
-test('download app', ({ page }) =>
-  mockAllAndLogin({
-    page,
-    goToCloudFirst: false,
-    setupAPI: (api) => {
-      api.setFeatureFlags({ enableLocalBackend: false })
-    },
+test('user menu', async ({ drivePage }) => {
+  await drivePage.openUserMenu().do(async (thePage) => {
+    await expect(thePage.getByLabel(TEXT.userMenuLabel).locator('visible=true')).toBeVisible()
   })
-    .openUserMenu()
-    .userMenu.downloadApp(async (download) => {
+})
+
+test.describe(() => {
+  test.use({ featureFlags: { enableLocalBackend: false } })
+  test('download app', async ({ drivePage }) => {
+    await drivePage.openUserMenu().userMenu.downloadApp(async (download) => {
       await download.cancel()
       expect(download.url()).toMatch(/^https:[/][/]objects.githubusercontent.com/)
-    }))
+    })
+  })
+})

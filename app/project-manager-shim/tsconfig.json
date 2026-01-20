@@ -7,5 +7,5 @@
     "isolatedModules": true,
     "composite": true
   },
-  "include": ["src/**/*"]
+  "include": ["src/**/*", "scripts/**/*"]
 }

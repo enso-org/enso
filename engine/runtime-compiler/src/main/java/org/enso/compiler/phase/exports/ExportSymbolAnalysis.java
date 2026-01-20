@@ -141,15 +141,8 @@ public final class ExportSymbolAnalysis {
     if (exportErrors.isEmpty()) {
       return moduleIr;
     } else {
-      return moduleIr.copy(
-          moduleIr.imports(),
-          CollectionConverters.asScala(exportErrors).toList(),
-          moduleIr.bindings(),
-          moduleIr.isPrivate(),
-          moduleIr.location(),
-          moduleIr.passData(),
-          moduleIr.diagnostics(),
-          moduleIr.id());
+      return moduleIr.copyWithImportsAndExports(
+          moduleIr.imports(), CollectionConverters.asScala(exportErrors).toList());
     }
   }
 
@@ -221,7 +214,7 @@ public final class ExportSymbolAnalysis {
 
   private static ImportExport createModuleDoesNotExistError(Export.Module exportIr, String modFQN) {
     assert modFQN.contains(".");
-    return new ImportExport(exportIr, new ImportExport.ModuleDoesNotExist(modFQN), emptyPassData());
+    return ImportExport.create(exportIr, new ImportExport.ModuleDoesNotExist(modFQN));
   }
 
   private static ImportExport createSymbolDoesNotExistError(

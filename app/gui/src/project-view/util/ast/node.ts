@@ -1,5 +1,8 @@
-import type { NodeDataFromAst } from '@/stores/graph'
-import { emptyPrimaryApplication, type PrimaryApplication } from '@/stores/graph/graphDatabase'
+import type { NodeDataFromAst } from '$/providers/openedProjects/graph'
+import {
+  emptyPrimaryApplication,
+  type PrimaryApplication,
+} from '$/providers/openedProjects/graph/graphDatabase'
 import { Ast } from '@/util/ast'
 import { Prefixes } from '@/util/ast/prefixes'
 import { computed } from 'vue'

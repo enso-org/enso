@@ -2,8 +2,6 @@ use crate::prelude::*;
 
 use futures::future::OptionFuture;
 
-
-
 #[derive(Copy, Clone, Debug)]
 pub enum AsyncPolicy {
     Sequential,
@@ -15,7 +13,8 @@ where
     I: IntoIterator<Item = F>,
     F: Future<Output = std::result::Result<T, E>> + Send + 'static,
     T: Send + 'static,
-    E: Into<anyhow::Error> + Send + 'static, {
+    E: Into<anyhow::Error> + Send + 'static,
+{
     match parallel {
         AsyncPolicy::Sequential => {
             let mut ret = Vec::new();

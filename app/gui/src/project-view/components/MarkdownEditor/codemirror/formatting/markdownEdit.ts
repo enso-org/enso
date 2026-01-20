@@ -1,6 +1,6 @@
 import { MarkdownDocument } from '@/components/MarkdownEditor/markdown/markdownDocument'
-import { type ChangeSpec, type Text } from '@codemirror/state'
-import { type Tree } from '@lezer/common'
+import type { ChangeSpec, Text } from '@codemirror/state'
+import type { Tree } from '@lezer/common'
 import { assert } from 'ydoc-shared/util/assert'
 import { Range } from 'ydoc-shared/util/data/range'
 

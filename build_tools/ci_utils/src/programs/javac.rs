@@ -2,14 +2,11 @@ use crate::prelude::*;
 
 use crate::program::command::Manipulator;
 
-
 // ==============
 // === Export ===
 // ==============
 
 pub use crate::programs::java::Classpath;
-
-
 
 #[derive(Clone, Debug)]
 pub enum Options {

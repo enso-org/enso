@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { proxyRefs } from '$/utils/reactivity'
 import { visualizationBindings } from '@/bindings'
 import type { RawDataSource } from '@/components/GraphEditor/GraphVisualization/visualizationData'
 import { useVisualizationData } from '@/components/GraphEditor/GraphVisualization/visualizationData'
@@ -11,10 +12,9 @@ import { registerHandlers } from '@/providers/action'
 import { injectResizableWidgetRegistry } from '@/providers/resizableWidgetRegistry'
 import type { VisualizationDataSource } from '@/stores/visualization'
 import type { Opt } from '@/util/data/opt'
-import { type BoundsSet, Rect } from '@/util/data/rect'
+import { Rect, type BoundsSet } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import type { ProjectPath } from '@/util/projectPath'
-import { proxyRefs } from '@/util/reactivity'
 import { computed, nextTick, onUnmounted, ref, toRef, watch, watchEffect } from 'vue'
 import { visIdentifierEquals, type VisualizationIdentifier } from 'ydoc-shared/yjsModel'
 
@@ -134,10 +134,11 @@ const keydownHandler = visualizationBindings.handler({
   },
 })
 
-// TODO[ao]: we use `document` to make sure it takes precedence before GraphEditor handlers
+// TODO[ao]: we use `globalEventRegistryPre` to make sure it takes precedence before GraphEditor handlers
 //  (deselectAllNodes in particular). But this is quick workaround, the proper solution
 //  should be soon delivered as part of https://github.com/enso-org/enso/issues/13695
-useEvent(document, 'keydown', keydownHandler)
+const { globalEventRegistryPre } = useGlobalEventRegistry()
+useEvent(globalEventRegistryPre, 'keydown', keydownHandler)
 
 // =============================
 // === Sizing and Fullscreen ===
@@ -201,7 +202,7 @@ watch(
 )
 
 // Use proxy object instead of computed to keep granular reactive updates across the `params` prop fields.
-const visParams = proxyRefs({
+const visParams: VisualizationHostParams = proxyRefs({
   visualization: effectiveVisualization,
   data: effectiveVisualizationData,
   size: contentElementSize,
@@ -213,8 +214,11 @@ const resizableWidgets = injectResizableWidgetRegistry(true)
 </script>
 
 <script lang="ts">
-import VisualizationHost from '@/components/visualizations/VisualizationHost.vue'
-import { TypeInfo } from '@/stores/project/computedValueRegistry'
+import { TypeInfo } from '$/providers/openedProjects/project/computedValueRegistry'
+import VisualizationHost, {
+  type VisualizationHostParams,
+} from '@/components/visualizations/VisualizationHost.vue'
+import { useGlobalEventRegistry } from '@/providers/globalEventRegistry'
 import { defineCustomElement } from 'vue'
 
 // ==========================
@@ -331,5 +335,6 @@ customElements.define(ensoVisualizationHost, defineCustomElement(VisualizationHo
 
 .overlay {
   position: absolute;
+  z-index: 1;
 }
 </style>

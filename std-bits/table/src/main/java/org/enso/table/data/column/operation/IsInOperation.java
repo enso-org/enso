@@ -1,15 +1,20 @@
 package org.enso.table.data.column.operation;
 
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.util.BitSet;
+import java.util.HashSet;
+import java.util.List;
+import java.util.function.BiPredicate;
+import java.util.function.Function;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.builder.Builder;
+import org.enso.table.data.column.operation.unary.NotOperation;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.ColumnBooleanStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.ColumnStorageWithInferredStorage;
-import org.enso.table.data.column.storage.ColumnStorageWithNothingMap;
-import org.enso.table.data.table.problems.MapOperationProblemAggregator;
-import org.enso.table.data.column.operation.unary.NotOperation;
-
+import org.enso.table.data.column.storage.ColumnStorageWithValidityMap;
 import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.enso.table.data.column.storage.type.BigDecimalType;
 import org.enso.table.data.column.storage.type.BigIntegerType;
@@ -22,18 +27,12 @@ import org.enso.table.data.column.storage.type.NullType;
 import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.data.column.storage.type.TimeOfDayType;
 import org.enso.table.data.table.Column;
-
-import java.math.BigDecimal;
-import java.math.BigInteger;
-import java.util.BitSet;
-import java.util.HashSet;
-import java.util.List;
-import java.util.function.BiPredicate;
-import java.util.function.Function;
+import org.enso.table.data.table.problems.MapOperationProblemAggregator;
+import org.enso.table.util.ImmutableBitSet;
 
 /**
- * The IsInOperation class provides a way to check if a value is in a set of values.
- * It checks if the condition is valid.
+ * The IsInOperation class provides a way to check if a value is in a set of values. It checks if
+ * the condition is valid.
  */
 public final class IsInOperation {
   /**
@@ -58,10 +57,7 @@ public final class IsInOperation {
    * @return a new column with the results of the operation
    */
   public static Column apply(
-      Column left,
-      String new_name,
-      Object arg,
-      MapOperationProblemAggregator problemAggregator) {
+      Column left, String new_name, Object arg, MapOperationProblemAggregator problemAggregator) {
     if (arg instanceof Column argColumn) {
       return apply(left, new_name, argColumn.asList(), problemAggregator);
     }
@@ -75,26 +71,55 @@ public final class IsInOperation {
     }
 
     var leftStorage = ColumnStorageWithInferredStorage.resolveStorage(left);
-    var result = switch (leftStorage.getType()) {
-      case NullType nt -> Builder.makeEmpty(BooleanType.INSTANCE, leftStorage.getSize());
-      case BooleanType bt -> applyBooleanIsIn(bt.asTypedStorage(leftStorage), list, problemAggregator);
-      case DateType dt -> applySpecialized(dt.asTypedStorage(leftStorage), list, dt::valueAsType, problemAggregator);
-      case DateTimeType dtt -> applySpecialized(dtt.asTypedStorage(leftStorage), list, dtt::valueAsType, problemAggregator);
-      case TimeOfDayType todt -> applySpecialized(todt.asTypedStorage(leftStorage), list, todt::valueAsType, problemAggregator);
-      case TextType tt -> applySpecialized(tt.asTypedStorage(leftStorage), list, tt::valueAsType, problemAggregator);
-      case IntegerType it -> applySpecialized(it.asTypedStorage(leftStorage), list, NumericConverter::tryConvertingToLong, problemAggregator);
-      case FloatType ft -> applySpecialized(ft.asTypedStorage(leftStorage), list, NumericConverter::tryConvertingToDouble, problemAggregator);
-      case BigIntegerType bit -> applySpecialized(bit.asTypedStorage(leftStorage), list, bit::valueAsType, problemAggregator);
-      case BigDecimalType bdt -> applySpecialized(bdt.asTypedStorage(leftStorage), list, o -> tryConvertingToBigDecimal(o, problemAggregator), problemAggregator, IsInOperation::containsBigDecimal);
-      default ->
-          throw new IllegalArgumentException(
-              "Unsupported StorageType for `is_in`: " + leftStorage.getType());
-    };
+    var result =
+        switch (leftStorage.getType()) {
+          case NullType nt -> Builder.makeEmpty(BooleanType.INSTANCE, leftStorage.getSize());
+          case BooleanType bt ->
+              applyBooleanIsIn(bt.asTypedStorage(leftStorage), list, problemAggregator);
+          case DateType dt ->
+              applySpecialized(
+                  dt.asTypedStorage(leftStorage), list, dt::valueAsType, problemAggregator);
+          case DateTimeType dtt ->
+              applySpecialized(
+                  dtt.asTypedStorage(leftStorage), list, dtt::valueAsType, problemAggregator);
+          case TimeOfDayType todt ->
+              applySpecialized(
+                  todt.asTypedStorage(leftStorage), list, todt::valueAsType, problemAggregator);
+          case TextType tt ->
+              applySpecialized(
+                  tt.asTypedStorage(leftStorage), list, tt::valueAsType, problemAggregator);
+          case IntegerType it ->
+              applySpecialized(
+                  it.asTypedStorage(leftStorage),
+                  list,
+                  NumericConverter::tryConvertingToLong,
+                  problemAggregator);
+          case FloatType ft ->
+              applySpecialized(
+                  ft.asTypedStorage(leftStorage),
+                  list,
+                  NumericConverter::tryConvertingToDouble,
+                  problemAggregator);
+          case BigIntegerType bit ->
+              applySpecialized(
+                  bit.asTypedStorage(leftStorage), list, bit::valueAsType, problemAggregator);
+          case BigDecimalType bdt ->
+              applySpecialized(
+                  bdt.asTypedStorage(leftStorage),
+                  list,
+                  o -> tryConvertingToBigDecimal(o, problemAggregator),
+                  problemAggregator,
+                  IsInOperation::containsBigDecimal);
+          default ->
+              throw new IllegalArgumentException(
+                  "Unsupported StorageType for `is_in`: " + leftStorage.getType());
+        };
 
     return new Column(new_name, result);
   }
 
-  private static BigDecimal tryConvertingToBigDecimal(Object o, MapOperationProblemAggregator problemAggregator) {
+  private static BigDecimal tryConvertingToBigDecimal(
+      Object o, MapOperationProblemAggregator problemAggregator) {
     return switch (o) {
       case BigDecimal x -> x;
       case BigInteger x -> new BigDecimal(x);
@@ -125,7 +150,10 @@ public final class IsInOperation {
    * elements for faster contains checks.
    */
   private record CompactRepresentation<T>(HashSet<T> uniqueValues, boolean hadNull) {
-    public static <T> CompactRepresentation<T> create(List<?> arg, Function<Object, T> converter, MapOperationProblemAggregator problemAggregator) {
+    public static <T> CompactRepresentation<T> create(
+        List<?> arg,
+        Function<Object, T> converter,
+        MapOperationProblemAggregator problemAggregator) {
       boolean hadNull = false;
       boolean hadFloat = false;
       var uniqueValues = new HashSet<T>();
@@ -157,12 +185,12 @@ public final class IsInOperation {
     return applySpecialized(storage, arg, converter, problemAggregator, HashSet::contains);
   }
 
-    private static <T> ColumnStorage<?> applySpecialized(
-        ColumnStorage<T> storage,
-        List<?> arg,
-        Function<Object, T> converter,
-        MapOperationProblemAggregator problemAggregator,
-        BiPredicate<HashSet<T>, T> contains) {
+  private static <T> ColumnStorage<?> applySpecialized(
+      ColumnStorage<T> storage,
+      List<?> arg,
+      Function<Object, T> converter,
+      MapOperationProblemAggregator problemAggregator,
+      BiPredicate<HashSet<T>, T> contains) {
     // Convert the List to a Set<T>
     var result = CompactRepresentation.create(arg, converter, problemAggregator);
 
@@ -219,7 +247,10 @@ public final class IsInOperation {
     }
   }
 
-  private static ColumnStorage<?> applyBooleanIsIn(ColumnBooleanStorage boolStorage, List<?> arg, MapOperationProblemAggregator problemAggregator) {
+  private static ColumnStorage<?> applyBooleanIsIn(
+      ColumnBooleanStorage boolStorage,
+      List<?> arg,
+      MapOperationProblemAggregator problemAggregator) {
     // Process arg into flags for true, false, and null
     var flags = BooleanFlags.of(arg);
 
@@ -235,8 +266,9 @@ public final class IsInOperation {
 
     // If had both true and false, then return all true when not nothing
     if (flags.hadTrue && flags.hadFalse) {
-      var isNothing = makeIsNothingMap(boolStorage, checkedSize);
-      return new BoolStorage(new BitSet(), isNothing, checkedSize, true);
+      var validityMap = makeValidityMap(boolStorage, checkedSize);
+      return new BoolStorage(
+          ImmutableBitSet.allFalse(checkedSize), validityMap, checkedSize, true, null);
     }
 
     // Only have one of true or false
@@ -263,35 +295,45 @@ public final class IsInOperation {
         });
   }
 
-  private static ColumnStorage<?> applyBoolStorage(boolean keepValue, BoolStorage boolStorage, int checkedSize) {
-    BitSet values = boolStorage.getValues();
-    BitSet isNothing = boolStorage.getIsNothingMap();
+  private static ColumnStorage<?> applyBoolStorage(
+      boolean keepValue, BoolStorage boolStorage, int checkedSize) {
+    BitSet values = boolStorage.getValues().cloneBitSet();
+    BitSet isNothing = boolStorage.getValidityMap().cloneBitSet();
+    isNothing.flip(0, Math.toIntExact(boolStorage.getSize()));
 
     if (keepValue) {
-      var newIsNothing = boolStorage.isNegated() ? or(isNothing, values) : orNot(isNothing, values, checkedSize);
+      var newIsNothing =
+          boolStorage.isNegated()
+              ? or(isNothing, values, checkedSize)
+              : orNot(isNothing, values, checkedSize);
+      newIsNothing.flip(0, checkedSize);
       return new BoolStorage(values, newIsNothing, checkedSize, boolStorage.isNegated());
     } else {
-      var newIsNothing = boolStorage.isNegated() ? orNot(isNothing, values, checkedSize) : or(isNothing, values);
+      var newIsNothing =
+          boolStorage.isNegated()
+              ? orNot(isNothing, values, checkedSize)
+              : or(isNothing, values, checkedSize);
+      newIsNothing.flip(0, checkedSize);
       return new BoolStorage(values, newIsNothing, checkedSize, !boolStorage.isNegated());
     }
   }
 
-  private static BitSet makeIsNothingMap(ColumnStorage<?> storage, int size) {
-    if (storage instanceof ColumnStorageWithNothingMap withNothingMap) {
-      return withNothingMap.getIsNothingMap();
+  private static ImmutableBitSet makeValidityMap(ColumnStorage<?> storage, int size) {
+    if (storage instanceof ColumnStorageWithValidityMap withNothingMap) {
+      return withNothingMap.getValidityMap();
     }
 
-    BitSet isNothingMap = new BitSet(size);
+    BitSet validityMap = new BitSet(size);
     for (int i = 0; i < size; i++) {
-      if (storage.isNothing(i)) {
-        isNothingMap.set(i);
+      if (!storage.isNothing(i)) {
+        validityMap.set(i);
       }
     }
-    return isNothingMap;
+    return new ImmutableBitSet(validityMap, size);
   }
 
-  private static BitSet or(BitSet left, BitSet right) {
-    BitSet result = (BitSet)left.clone();
+  private static BitSet or(BitSet left, BitSet right, int sizeIsIgnored) {
+    BitSet result = (BitSet) left.clone();
     result.or(right);
     return result;
   }

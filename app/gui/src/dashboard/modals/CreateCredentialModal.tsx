@@ -4,8 +4,8 @@ import { Dropdown } from '#/components/Inputs/Dropdown'
 import { Text } from '#/components/Text'
 import { CREDENTIAL_INFOS } from '#/data/serviceCredentials'
 import { makeCredentialCreationHandler } from '#/data/serviceCredentials/logic'
-import type { CredentialConfig, SecretId } from '#/services/Backend'
 import { useText } from '$/providers/react'
+import type { CredentialConfig, SecretId } from 'enso-common/src/services/Backend'
 import { useState } from 'react'
 
 /** Props for a {@link CreateCredentialForm}. */
@@ -48,7 +48,7 @@ export function CreateCredentialModal(props: CreateCredentialModalProps) {
   const { getText } = useText()
 
   return (
-    <Dialog title={getText('newCredential')} isDismissable={false}>
+    <Dialog title={getText('newCredential')} isDismissable={false} size="xlarge">
       <CreateCredentialForm {...props} />
     </Dialog>
   )

@@ -1,0 +1,20 @@
+from Standard.Base import all
+
+## What action to take if a table already exists when performing a bulk load.
+type Bulk_Load_Exists
+    ## Raise a `Table_Already_Exists` error if the table already exists.
+    Raise_Error
+
+    ## Drop the existing table and create a new one.
+    Drop_Table
+
+    ## Truncate the existing table before loading new data into it.
+       Note that the existing column types must be compatible.
+    Truncate_Table
+
+    ## Append the new data to the existing table.
+       Note that the existing column types must be compatible.
+    Append_To_Table
+
+Bulk_Load_Exists.from (that:Boolean) =
+    if that then Bulk_Load_Exists.Drop_Table else Bulk_Load_Exists.Raise_Error

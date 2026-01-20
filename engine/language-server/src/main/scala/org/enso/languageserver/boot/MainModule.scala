@@ -24,7 +24,8 @@ import org.enso.languageserver.libraries._
 import org.enso.languageserver.monitoring.{
   HealthCheckEndpoint,
   IdlenessEndpoint,
-  IdlenessMonitor
+  IdlenessMonitor,
+  RenameProjectEndpoint
 }
 import org.enso.languageserver.profiling.{EventsMonitorActor, ProfilingManager}
 import org.enso.languageserver.protocol.binary.{
@@ -321,7 +322,6 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
     RuntimeOptions.LOG_MASKING,
     Masking.isMaskingEnabled.toString
   )
-  extraOptions.put(RuntimeOptions.EDITION_OVERRIDE, BuildVersion.currentEdition)
   extraOptions.put(
     RuntimeOptions.JOB_PARALLELISM,
     Runtime.getRuntime.availableProcessors().toString
@@ -333,10 +333,10 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
     log.info("Running Language Server in JVM mode")
   }
 
-  private val pythonHome = if (PythonHomeFinder.findPythonHome() != null) {
-    PythonHomeFinder.findPythonHome().toString
-  } else {
-    null
+  private val pythonHome = PythonHomeFinder.findPythonHome() match {
+    case path if path != null =>
+      path.getParent.toFile.getCanonicalPath
+    case _ => null
   }
 
   private val builder = ContextFactory
@@ -349,7 +349,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
     .err(stdErr)
     .in(stdIn)
     .options(extraOptions)
-    .pythonHome(pythonHome)
+    .pythonResourceDir(pythonHome)
     .disableLinting(true)
     .enableRuntimeServerInfoKey(RuntimeServerInfo.ENABLE_OPTION)
     .messageTransport((uri: URI, peerEndpoint: MessageEndpoint) => {
@@ -448,6 +448,13 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
   private val idlenessEndpoint =
     new IdlenessEndpoint(idlenessMonitor)
 
+  private val renameProjectEndpoint =
+    RenameProjectEndpoint(
+      timeout          = 10.seconds,
+      runtimeConnector = runtimeConnector,
+      actorFactory     = system
+    )(serverConfig.computeExecutionContext)
+
   private val jsonRpcProtocolFactory = new JsonRpcProtocolFactory
 
   private val initializationComponent =
@@ -503,7 +510,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
           lazyMessageTimeout = 10.seconds,
           secureConfig       = secureConfig
         ),
-      List(healthCheckEndpoint, idlenessEndpoint),
+      List(healthCheckEndpoint, idlenessEndpoint, renameProjectEndpoint),
       messagesCallback
     )(system, materializer)
   log.trace("Created JSON RPC Server [{}]", jsonRpcServer)
@@ -522,6 +529,11 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
     )(system, materializer)
   log.trace("Created Binary WebSocket Server [{}]", binaryServer)
 
+  private val ydoc = {
+    val c = org.enso.languageserver.boot.config.ApplicationConfig.load().ydoc
+    org.enso.runner.common.YdocServerApi.launchYdocServer(c.hostname, c.port)
+  }
+
   log.debug(
     "Main module of the Language Server initialized with config [{}]",
     languageServerConfig
@@ -531,6 +543,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
   def close(): Unit = {
     suggestionsRepo.close()
     contextSupervisor.close()
+    ydoc.close()
     runtimeEventsMonitor.close()
     log.info("Stopped Language Server")
     MDC.remove("projectLocalId")

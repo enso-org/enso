@@ -2,8 +2,7 @@ from Standard.Base import all
 
 from Standard.Test import Bench
 
-options = Bench.options . set_warmup (Bench.phase_conf 1 4) . set_measure (Bench.phase_conf 1 4)
-
+private options = Bench.options . set_warmup (Bench.phase_conf 4 4) . set_measure (Bench.phase_conf 1 4)
 
 type Data
     Value ~dates ~holidays ~shifted_dates

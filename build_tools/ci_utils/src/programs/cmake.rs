@@ -4,8 +4,6 @@ use crate::prelude::*;
 
 use crate::program::command::Manipulator;
 
-
-
 // =====================
 // === Configuration ===
 // =====================
@@ -27,7 +25,6 @@ pub enum Configuration {
     /// possibly on the expense of program speed.
     MinSizeRel,
 }
-
 
 // ===================
 // === CLI Options ===
@@ -101,7 +98,7 @@ pub struct SetVariable {
     /// Variable name.
     pub variable: String,
     /// Variable value.
-    value:        String,
+    value: String,
 }
 
 impl SetVariable {
