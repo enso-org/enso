@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.util.function.Function;
 import org.enso.persist.Persistable;
@@ -76,6 +77,22 @@ public class ChannelInSingleJvmTest {
     assertEquals(newMsg.text(), 32632, newMsg.text().length());
   }
 
+  @Test
+  public void exceptionIsThrows() {
+    var ch = Channel.create(null, PrivateData.class);
+
+    var msg = new GenerateString(-73);
+    try {
+      var newMsg = ch.execute(LongString.class, msg);
+      fail("Not expecting a return value: " + newMsg);
+    } catch (IllegalArgumentException ex) {
+      assertEquals("Length must be positive. Was: -73", ex.getMessage());
+      var stackTop = ex.getStackTrace()[0];
+      assertEquals(GenerateString.class.getName(), stackTop.getClassName());
+      assertEquals("handleGenerationOfStrings", stackTop.getMethodName());
+    }
+  }
+
   @Persistable(id = 8341)
   static final class Increment implements Function<Channel<?>, Increment> {
     int valueToIncrement;
@@ -111,7 +128,14 @@ public class ChannelInSingleJvmTest {
       implements Function<Channel<PrivateData>, LongString> {
     @Override
     public LongString apply(Channel<PrivateData> t) {
-      return new LongString(lengthToGenerate);
+      return handleGenerationOfStrings(lengthToGenerate);
+    }
+
+    private static LongString handleGenerationOfStrings(int len) {
+      if (len < 0) {
+        throw new IllegalArgumentException("Length must be positive. Was: " + len);
+      }
+      return new LongString(len);
     }
   }
 

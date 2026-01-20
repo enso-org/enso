@@ -294,16 +294,23 @@ public final class Channel<Data extends Channel.Config> implements AutoCloseable
       var len = handleWithChannel(channel, buf);
       return len;
     } catch (Throwable ex) {
-      channel.printStackTrace(ex, true);
-      var bytes = ex.getMessage() == null ? new byte[0] : ex.getMessage().getBytes();
       var buf = asNativeByteBuffer(data, size);
-      buf.putInt(bytes.length);
-      buf.put(bytes);
+      ChannelExceptions.exceptionSerialize(buf, ex);
       return RET_CODE_EXCEPTION;
     }
   }
 
-  private static long handleWithChannel(Channel channel, ByteBuffer buf) throws IOException {
+  private static long handleWithChannel(Channel channel, ByteBuffer buf) {
+    try {
+      return handleWithChannelThrow(channel, buf);
+    } catch (Throwable ex) {
+      buf.position(0);
+      ChannelExceptions.exceptionSerialize(buf, ex);
+      return RET_CODE_EXCEPTION;
+    }
+  }
+
+  private static long handleWithChannelThrow(Channel channel, ByteBuffer buf) throws Throwable {
     // clean any previous overflow buffer
     keepLastOverflowBuffer.set(null);
 
@@ -430,11 +437,7 @@ public final class Channel<Data extends Channel.Config> implements AutoCloseable
       if (len == RET_CODE_EXCEPTION) {
         // signals exception
         buffer.position(0);
-        var msgLen = buffer.getInt();
-        var msgBytes = new byte[msgLen];
-        buffer.get(msgBytes);
-        var exceptionMessage = new String(msgBytes);
-        throw new IllegalStateException(exceptionMessage);
+        throw ChannelExceptions.exceptionDeserialize(RuntimeException.class, buffer);
       }
       if (len == RET_CODE_OVERFLOW) {
         buffer.position(0);
