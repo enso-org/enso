@@ -1,6 +1,7 @@
 package org.enso.interpreter.epb;
 
 import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.TruffleOptions;
 import com.oracle.truffle.api.interop.ArityException;
 import com.oracle.truffle.api.interop.InteropException;
 import com.oracle.truffle.api.interop.InteropLibrary;
@@ -19,7 +20,6 @@ import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import org.graalvm.nativeimage.ImageInfo;
 import org.graalvm.polyglot.Context;
 
 /**
@@ -121,7 +121,8 @@ final class HostClassLoader extends URLClassLoader implements AutoCloseable, Tru
    * it that way.
    */
   private static boolean isAttemptToLoadBytecodeInNI(Throwable t) {
-    if (ImageInfo.inImageRuntimeCode()) {
+    var isAot = TruffleOptions.AOT;
+    if (isAot) {
       return t instanceof Error err
           && err.getMessage().contains("Classes cannot be defined at runtime");
     } else {
