@@ -124,6 +124,7 @@ final class HostClassLoader extends URLClassLoader implements AutoCloseable, Tru
     var isAot = TruffleOptions.AOT;
     if (isAot) {
       return t instanceof Error err
+          && err.getMessage() != null
           && err.getMessage().contains("Classes cannot be defined at runtime");
     } else {
       return false;
