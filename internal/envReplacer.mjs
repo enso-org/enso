@@ -84,7 +84,6 @@ function assertNoErrors() {
 /** @type {Record<string, string>} */
 const envs = {}
 
-
 // When stamping, the status file contains environment variables to replace.
 // We only consider variables starting with `ENSO_` prefix, and we only consider `stable-status.txt` file,
 // so each variable is expected to start with `STABLE_ENSO_` prefix.

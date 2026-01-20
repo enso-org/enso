@@ -8,6 +8,8 @@ import org.enso.compiler.core.ir.Empty;
 import org.enso.compiler.core.ir.Expression;
 import org.enso.compiler.core.ir.Location;
 import org.enso.compiler.core.ir.expression.errors.Syntax;
+import org.enso.compiler.core.ir.expression.errors.Syntax.UnexpectedDeclarationInType;
+import org.enso.compiler.core.ir.expression.errors.Syntax.UnrecognizedToken;
 import org.enso.compiler.core.ir.module.scope.definition.Method;
 import org.junit.Test;
 import scala.collection.immutable.List;
@@ -23,7 +25,7 @@ public class ErrorCompilerTest extends CompilerTests {
             """);
 
     assertSingleSyntaxError(
-        ir, Syntax.UnclosedTextLiteral$.MODULE$, "Unclosed text literal", 6, 28);
+        ir, Syntax.UnclosedTextLiteral.INSTANCE, "Unclosed text literal", 6, 28);
   }
 
   @Test
@@ -36,7 +38,7 @@ public class ErrorCompilerTest extends CompilerTests {
             """);
 
     assertSingleSyntaxError(
-        ir, Syntax.UnexpectedExpression$.MODULE$, "Unexpected expression", 0, 5);
+        ir, Syntax.UnexpectedExpression.INSTANCE, "Unexpected expression", 0, 5);
   }
 
   @Test
@@ -98,7 +100,7 @@ public class ErrorCompilerTest extends CompilerTests {
             foo = 'unfinished literal...
             """);
     assertSingleSyntaxError(
-        ir, Syntax.UnclosedTextLiteral$.MODULE$, "Unclosed text literal", 6, 28);
+        ir, Syntax.UnclosedTextLiteral.INSTANCE, "Unclosed text literal", 6, 28);
   }
 
   @Test
@@ -109,7 +111,7 @@ public class ErrorCompilerTest extends CompilerTests {
             foo = "unpaired literal'
             """);
     assertSingleSyntaxError(
-        ir, Syntax.UnclosedTextLiteral$.MODULE$, "Unclosed text literal", 6, 24);
+        ir, Syntax.UnclosedTextLiteral.INSTANCE, "Unclosed text literal", 6, 24);
   }
 
   @Test
@@ -120,7 +122,7 @@ public class ErrorCompilerTest extends CompilerTests {
             foo = 'unpaired literal"
             """);
     assertSingleSyntaxError(
-        ir, Syntax.UnclosedTextLiteral$.MODULE$, "Unclosed text literal", 6, 24);
+        ir, Syntax.UnclosedTextLiteral.INSTANCE, "Unclosed text literal", 6, 24);
   }
 
   @Test
@@ -150,7 +152,7 @@ public class ErrorCompilerTest extends CompilerTests {
                %& self = 0
             """);
     assertSingleSyntaxError(
-        ir, Syntax.InvalidOperator$.MODULE$, "Operator must have two arguments", 10, 21);
+        ir, Syntax.InvalidOperator.INSTANCE, "Operator must have two arguments", 10, 21);
   }
 
   @Test
@@ -162,7 +164,7 @@ public class ErrorCompilerTest extends CompilerTests {
                &% self one two = one+two
             """);
     assertSingleSyntaxError(
-        ir, Syntax.InvalidOperator$.MODULE$, "Operator must have two arguments", 10, 35);
+        ir, Syntax.InvalidOperator.INSTANCE, "Operator must have two arguments", 10, 35);
   }
 
   @Test
@@ -218,7 +220,7 @@ public class ErrorCompilerTest extends CompilerTests {
   public void malformedSequence1() throws Exception {
     var ir = parse("(1, )");
     assertSingleSyntaxError(
-        ir, Syntax.UnexpectedExpression$.MODULE$, "Unexpected expression", 0, 5);
+        ir, Syntax.UnexpectedExpression.INSTANCE, "Unexpected expression", 0, 5);
   }
 
   @Test
@@ -363,7 +365,7 @@ public class ErrorCompilerTest extends CompilerTests {
   @Test
   public void malformedImport9() throws Exception {
     var ir = parse("polyglot import Foo");
-    assertSingleSyntaxError(ir, Syntax.UnrecognizedToken$.MODULE$, "Unrecognized token", 0, 19);
+    assertSingleSyntaxError(ir, UnrecognizedToken.INSTANCE, "Unrecognized token", 0, 19);
   }
 
   @Test
@@ -387,7 +389,7 @@ public class ErrorCompilerTest extends CompilerTests {
             fan_out_to_columns table text_or_integer any_to_vector_any wat problem_behavior = Nothing
             """);
     assertSingleSyntaxError(
-        ir, Syntax.UnexpectedExpression$.MODULE$, "Unexpected expression", 48, 119);
+        ir, Syntax.UnexpectedExpression.INSTANCE, "Unexpected expression", 48, 119);
   }
 
   @Test
@@ -505,14 +507,14 @@ public class ErrorCompilerTest extends CompilerTests {
   public void illegalForeignBody1() throws Exception {
     var ir = parse("foreign 4");
     assertSingleSyntaxError(
-        ir, Syntax.UnexpectedExpression$.MODULE$, "Unexpected expression", 0, 9);
+        ir, Syntax.UnexpectedExpression.INSTANCE, "Unexpected expression", 0, 9);
   }
 
   @Test
   public void illegalForeignBody2() throws Exception {
     var ir = parse("foreign 4 * 4");
     assertSingleSyntaxError(
-        ir, Syntax.UnexpectedExpression$.MODULE$, "Unexpected expression", 0, 13);
+        ir, Syntax.UnexpectedExpression.INSTANCE, "Unexpected expression", 0, 13);
   }
 
   @Test
@@ -554,7 +556,7 @@ public class ErrorCompilerTest extends CompilerTests {
             """);
     assertSingleSyntaxError(
         ir,
-        Syntax.UnexpectedDeclarationInType$.MODULE$,
+        UnexpectedDeclarationInType.INSTANCE,
         "Unexpected declaration in the body of a type",
         11,
         18);
@@ -569,7 +571,7 @@ public class ErrorCompilerTest extends CompilerTests {
             private
             """);
     assertSingleSyntaxError(
-        ir, Syntax.UnexpectedExpression$.MODULE$, "Unexpected expression", 8, 15);
+        ir, Syntax.UnexpectedExpression.INSTANCE, "Unexpected expression", 8, 15);
   }
 
   @Test
@@ -596,7 +598,7 @@ public class ErrorCompilerTest extends CompilerTests {
             private type T
             """);
     assertSingleSyntaxError(
-        ir, Syntax.UnexpectedExpression$.MODULE$, "Unexpected expression", 0, 14);
+        ir, Syntax.UnexpectedExpression.INSTANCE, "Unexpected expression", 0, 14);
   }
 
   @Test
@@ -645,7 +647,7 @@ public class ErrorCompilerTest extends CompilerTests {
             """);
     var errors = ir.preorder().filter(Syntax.class::isInstance).map(Syntax.class::cast);
     assertEquals("One error", 1, errors.size());
-    assertEquals(Syntax.UnexpectedExpression$.MODULE$, errors.head().reason());
+    assertEquals(Syntax.UnexpectedExpression.INSTANCE, errors.head().reason());
     assertEquals(7, errors.head().location().get().start());
     assertEquals(16, errors.head().location().get().length());
   }
@@ -661,7 +663,7 @@ public class ErrorCompilerTest extends CompilerTests {
             """);
     assertSingleSyntaxError(
         ir,
-        Syntax.UnexpectedDeclarationInType$.MODULE$,
+        UnexpectedDeclarationInType.INSTANCE,
         "Unexpected declaration in the body of a type",
         9,
         27);
@@ -687,7 +689,7 @@ public class ErrorCompilerTest extends CompilerTests {
             id x = x
             """);
     assertSingleSyntaxError(
-        ir, Syntax.UnexpectedExpression$.MODULE$, "Unexpected expression", 0, 6);
+        ir, Syntax.UnexpectedExpression.INSTANCE, "Unexpected expression", 0, 6);
   }
 
   @Test

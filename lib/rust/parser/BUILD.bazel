@@ -6,7 +6,7 @@ rust_library(
     name = "enso_parser",
     srcs = glob(["src/**/*.rs"]),
     aliases = aliases(),
-    edition = "2021",
+    edition = "2024",
     proc_macro_deps = all_crate_deps(proc_macro = True) + [
         "//lib/rust/parser/src/syntax/tree/visitor:enso_parser_syntax_tree_visitor",
         "//lib/rust/parser/macros:enso_parser_macros",

@@ -85,7 +85,7 @@ public class InstrumentorBuiltin extends Node {
         var service = ctx.getIdValueExtractor();
         if (service != null) {
           return new Instrumentor(
-              symbol.getScope().getModule(), service, fnAndType.getLeft().getCallTarget());
+              symbol.getScope().getModule(), service, fnAndType.function().getCallTarget());
         }
       }
     }

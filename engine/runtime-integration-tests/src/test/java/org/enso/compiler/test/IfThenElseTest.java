@@ -165,13 +165,13 @@ public class IfThenElseTest {
       var res = check.execute("Yes").asString();
       fail("Expecting error, not: " + res);
     } catch (PolyglotException ex) {
-      assertThat(ex.getMessage(), Matchers.containsString(".Error"));
+      assertThat(ex.getMessage(), Matchers.containsString("no branch matches Yes"));
     }
     try {
       var res = check.execute((Object) null).asString();
       fail("Expecting error, not: " + res);
     } catch (PolyglotException ex) {
-      assertThat(ex.getMessage(), Matchers.containsString(".Error"));
+      assertThat(ex.getMessage(), Matchers.containsString("no branch matches Nothing"));
     }
   }
 

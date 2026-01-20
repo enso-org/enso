@@ -9,7 +9,10 @@ import org.enso.downloader.archive.TarGzWriter
 import org.enso.downloader.http.{HTTPDownload, HTTPRequestBuilder, URIBuilder}
 import org.enso.editions.LibraryName
 import org.enso.librarymanager.published.repository.LibraryManifest
-import org.enso.libraryupload.LibraryUploader.UploadFailedError
+import org.enso.libraryupload.LibraryUploader.{
+  mainArchiveName,
+  UploadFailedError
+}
 import org.enso.pkg.{Package, PackageManager}
 import org.enso.yaml.YamlHelper
 
@@ -86,21 +89,31 @@ class LibraryUploader(dependencyExtractor: DependencyExtractor[File]) {
   /** Updates the project's manifest by computing its dependencies.
     *
     * @param pkg package of the project that is to be updated
+    * @param archives names of the archives that are about to be created in
+    *                 the project dir
     */
-  def updateManifest(pkg: Package[File]): Try[Unit] = Try {
+  def updateManifest(
+    pkg: Package[File],
+    archives: Seq[String] = Seq(mainArchiveName)
+  ): Try[Unit] = Try {
     val directDependencies = dependencyExtractor.findDependencies(pkg)
 
     val manifestPath = pkg.root.toPath / LibraryManifest.filename
     val loadedManifest =
       loadSavedManifest(manifestPath).getOrElse(LibraryManifest.empty)
     val updatedManifest = loadedManifest.copy(
-      archives     = Seq(mainArchiveName),
+      archives     = archives,
       dependencies = directDependencies.toSeq
     )
     FileSystem.writeTextFile(manifestPath, YamlHelper.toYaml(updatedManifest))
   }
 
-  private val mainArchiveName = "main.tgz"
+  def updateManifest(
+    pkg: Package[File],
+    archives: java.util.List[String]
+  ): Try[Unit] = {
+    updateManifest(pkg, archives.asScala.toSeq)
+  }
 
   /** Creates an URL for the upload, including information identifying the
     * library version.
@@ -116,6 +129,24 @@ class LibraryUploader(dependencyExtractor: DependencyExtractor[File]) {
       .addQuery("name", libraryName.name)
       .addQuery("version", version.toString)
       .build()
+  }
+
+  def createMainArchive(
+    projectRoot: Path,
+    progressReporter: ProgressReporter
+  ): Unit = {
+    val filesToIgnoreInArchive = Seq(
+      Package.configFileName,
+      LibraryManifest.filename
+    )
+    val archivePath = projectRoot / mainArchiveName
+    val compressing =
+      createMainArchive(projectRoot, filesToIgnoreInArchive, archivePath)
+    progressReporter.trackProgress(
+      s"Creating the [$mainArchiveName] archive.",
+      compressing
+    )
+    compressing.force()
   }
 
   /** Gathers project files to create the main archive.
@@ -213,4 +244,5 @@ object LibraryUploader {
   case class UploadFailedError(message: String)
       extends RuntimeException(message)
 
+  val mainArchiveName: String = "main.tgz"
 }

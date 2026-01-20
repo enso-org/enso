@@ -53,11 +53,7 @@ where
     let text_escape_token = rust_to_meta[&TextEscape::reflect().id];
     let token_to_str = move |token: Value| {
         let range = token_code_range(&token, base);
-        if range.is_empty() {
-            "".into()
-        } else {
-            code[range].to_owned().into_boxed_str()
-        }
+        if range.is_empty() { "".into() } else { code[range].to_owned().into_boxed_str() }
     };
     for token in identish_tokens {
         let token_to_str_ = token_to_str.clone();

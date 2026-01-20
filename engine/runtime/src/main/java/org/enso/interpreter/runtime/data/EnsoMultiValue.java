@@ -33,13 +33,12 @@ import java.util.stream.Stream;
 import org.enso.interpreter.node.callable.resolver.MethodResolverNode;
 import org.enso.interpreter.node.expression.builtin.text.AnyToTextNode;
 import org.enso.interpreter.runtime.EnsoContext;
+import org.enso.interpreter.runtime.callable.FunctionAndType;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
-import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.EnsoMultiType.AllTypesWith;
 import org.enso.interpreter.runtime.data.atom.StructsLibrary;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
-import org.graalvm.collections.Pair;
 
 /**
  * This class represents a value that can have multiple types at the same time - an intersection
@@ -733,8 +732,7 @@ public final class EnsoMultiValue extends EnsoObject {
    * @param symbol symbol to resolve
    * @return {@code null} when no resolution was found or pair of function and type solved
    */
-  public final Pair<Function, Type> resolveSymbol(
-      MethodResolverNode node, UnresolvedSymbol symbol) {
+  public final FunctionAndType resolveSymbol(MethodResolverNode node, UnresolvedSymbol symbol) {
     for (var t : EnsoMultiType.AllTypesWith.getUncached().executeAllTypes(dispatch, null, 0)) {
       var fnAndType = node.execute(t, symbol);
       if (fnAndType != null) {

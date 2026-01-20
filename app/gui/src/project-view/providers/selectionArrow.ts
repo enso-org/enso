@@ -1,7 +1,7 @@
+import { proxyRefs, type ToValue } from '$/utils/reactivity'
 import type SelectionArrow from '@/components/GraphEditor/widgets/WidgetSelection/SelectionArrow.vue'
 import { createContextStore } from '@/providers'
 import { Ast } from '@/util/ast'
-import { proxyRefs, type ToValue } from '@/util/reactivity'
 import { computed, ref, toValue, watch, type ComputedRef, type Ref, type RendererNode } from 'vue'
 import type { ComponentProps } from 'vue-component-type-helpers'
 

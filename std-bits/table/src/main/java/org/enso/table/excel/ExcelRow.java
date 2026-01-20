@@ -9,7 +9,6 @@ import org.apache.poi.ss.usermodel.ExcelNumberFormat;
 import org.apache.poi.ss.usermodel.FormulaError;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
-import org.graalvm.polyglot.Context;
 
 /** Wrapper class to handle Excel rows. */
 public interface ExcelRow {
@@ -47,7 +46,6 @@ public interface ExcelRow {
   }
 
   static boolean isEmptyHelper(ExcelRow row, int start, int end) {
-    Context context = Context.getCurrent();
     int currentEnd = end == -1 ? row.getLastColumn() : end;
     for (int column = Math.max(row.getFirstColumn(), start);
         column <= Math.min(row.getLastColumn(), currentEnd);
@@ -56,7 +54,7 @@ public interface ExcelRow {
         return false;
       }
 
-      context.safepoint();
+      ExcelUtils.safepoint();
     }
     return true;
   }
@@ -134,7 +132,6 @@ public interface ExcelRow {
     }
 
     public String[] getCellsAsText(int startCol, int endCol) {
-      Context context = Context.getCurrent();
       int currentEndCol = endCol == -1 ? getLastColumn() : endCol;
 
       String[] output = new String[currentEndCol - startCol + 1];
@@ -146,7 +143,7 @@ public interface ExcelRow {
         }
         output[col - startCol] =
             type == CellType.STRING && cell != null ? cell.getStringCellValue() : "";
-        context.safepoint();
+        ExcelUtils.safepoint();
       }
 
       return output;

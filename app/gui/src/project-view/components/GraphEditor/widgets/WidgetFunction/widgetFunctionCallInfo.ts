@@ -11,6 +11,7 @@ import {
   pending,
   type FunctionCall,
 } from '$/providers/openedProjects/widgetRegistry/configuration'
+import type { ToValue } from '$/utils/reactivity'
 import { Ast } from '@/util/ast'
 import {
   ArgumentApplication,
@@ -21,7 +22,6 @@ import {
 } from '@/util/callTree'
 import { type MethodPointer } from '@/util/methodPointer'
 import { ProjectPath } from '@/util/projectPath'
-import type { ToValue } from '@/util/reactivity'
 import type { Opt } from 'enso-common/src/utilities/data/opt'
 import { computed, toValue, type DeepReadonly } from 'vue'
 import type { IdentifierOrOperatorIdentifier } from 'ydoc-shared/ast'

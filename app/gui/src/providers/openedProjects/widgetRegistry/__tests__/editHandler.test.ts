@@ -1,7 +1,7 @@
+import { proxyRefs } from '$/utils/reactivity'
 import { InteractionHandler } from '@/providers/interactionHandler'
 import type { PortId } from '@/providers/portInfo'
 import { useCurrentEdit, type CurrentEdit } from '@/providers/widgetTree'
-import { proxyRefs } from '@/util/reactivity'
 import { expect, test, vi, type Mock } from 'vitest'
 import { assert } from 'ydoc-shared/util/assert'
 import { WidgetEditHandler, type WidgetEditHooks, type WidgetInstanceId } from '../editHandler'

@@ -180,7 +180,7 @@ interface Signable {
 const TEMPORARY_ARCHIVE_PATH = 'temporary_archive.zip'
 
 /** Helper to execute a program in a given directory and return the output. */
-function run(cmd: string, args: string[], cwd?: string) {
+export function run(cmd: string, args: string[], cwd?: string) {
   console.log('Running', cmd, args, cwd)
   return childProcess.execFileSync(cmd, args, { cwd }).toString()
 }
@@ -377,7 +377,7 @@ interface Input extends SigningContext {
 }
 
 /** Entry point, meant to be used from an afterSign Electron Builder's hook. */
-export default async function (context: Input) {
+export async function signArchives(context: Input) {
   console.log('Environment: ', process.env)
   const { appOutDir, productFilename } = context
   const appDir = pathModule.join(appOutDir, `${productFilename}.app`)

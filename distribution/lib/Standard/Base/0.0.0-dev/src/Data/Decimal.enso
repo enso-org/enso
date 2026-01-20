@@ -5,6 +5,7 @@ import project.Data.Numeric.Math_Context.Math_Context
 import project.Data.Numeric.Rounding_Mode.Rounding_Mode
 import project.Data.Text.Text
 import project.Data.Vector.Vector
+import project.Data.Pair.Pair
 import project.Error.Error
 import project.Errors.Deprecated.Deprecated
 import project.Errors.Illegal_Argument.Illegal_Argument
@@ -88,6 +89,28 @@ type Decimal
        private: true
        ---
     private From_Float (big_decimal : BigDecimal) (original_value : Float)
+
+    ### ---
+       private: true
+       group: convert
+       icon: enso_logo
+       ---
+       Convert the value to a corresponding Enso code representation.
+
+       ## Examples
+       ### Getting the Enso code of the Decimal with value 12.345
+
+       ```
+           (Decimal.new "12.345").pretty
+       ```
+
+       Returns a Text
+
+           Decimal.parse '12.345'
+    pretty : Text
+    pretty self = case self of
+        Decimal.Value _ -> "Decimal.parse "+self.big_decimal.toString.pretty
+        Decimal.From_Float _ _ -> "Decimal.from_float "+self.original_value.pretty + " explicit=False"
 
     ## ---
        icon: input_number
@@ -240,10 +263,12 @@ type Decimal
                 decimal_format.setParseBigDecimal True
                 Panic.catch ParseException (Decimal.Value (decimal_format.parse txt)) _->
                     Error.throw (Number_Parse_Error.Error text)
-            decimal = case format == "" && locale == Locale.default of
-                True -> Panic.catch ParseException (Decimal.Value (Decimal_Utils.fromString text)) _->
+            decimal =
+                if format == "" && locale == Locale.default then
+                    Panic.catch ParseException (Decimal.Value (Decimal_Utils.fromString text)) _->
+                        number_format_parse text
+                else
                     number_format_parse text
-                False -> number_format_parse text
             if mc == Nothing then decimal else
                 Decimal.Value <| handle_precision_loss text <| Decimal_Utils.applyMathContext decimal.big_decimal mc.math_context
 
@@ -1467,8 +1492,10 @@ Float.from (that : Decimal) =
 ## ---
    private: true
    ---
-   Helper method allowing access to the backing field.
-get_big_decimal (that : Decimal) = that.big_decimal
+   Returns two numbers: the actual value and the scale associated to it
+
+value_with_scale (that : Decimal) -> Pair Integer Integer =
+    Pair.new that.big_decimal.unscaledValue that.big_decimal.scale
 
 ## ---
    private: true

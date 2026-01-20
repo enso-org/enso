@@ -109,13 +109,11 @@ export default defineConfig({
       'top-level-await': true,
     },
   },
-  assetsInclude: ['**/*.svg'],
   css: {
     postcss: {
       plugins: [tailwindcssNesting(postcssNesting()), tailwindcss(tailwindConfig)],
     },
   },
-  logLevel: 'info',
   build: {
     // dashboard chunk size is larger than the default warning limit
     chunkSizeWarningLimit: 700,

@@ -3,8 +3,8 @@ use crate::prelude::*;
 use crate::paths::TargetTriple;
 
 use ide_ci::github;
-use octocrab::models::repos::Release;
 use octocrab::models::ReleaseId;
+use octocrab::models::repos::Release;
 
 /// The basic, common information available in this application.
 #[derive(Clone, Debug, derive_more::Deref)]

@@ -188,7 +188,9 @@ mod tests {
     #[ignore]
     async fn cache_test() -> Result {
         setup_logging().ok();
-        let download_task = DownloadFile::new("https://store.akamai.steamstatic.com/public/shared/images/header/logo_steam.svg?t=962016")?;
+        let download_task = DownloadFile::new(
+            "https://store.akamai.steamstatic.com/public/shared/images/header/logo_steam.svg?t=962016",
+        )?;
 
         let cache = Cache::new("C:/temp/enso-cache").await?;
         cache.get(download_task).await?;

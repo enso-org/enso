@@ -1,8 +1,8 @@
 import * as json from 'lib0/json'
 import { z } from 'zod'
 
-export type Vector = z.infer<typeof vector>
-export const vector = z.tuple([z.number(), z.number()])
+type Vector = z.infer<typeof vector>
+const vector = z.tuple([z.number(), z.number()])
 
 const visualizationProject = z.discriminatedUnion('project', [
   z.object({ project: z.literal('Builtin') }),
@@ -22,8 +22,7 @@ const visualizationMetadata = z
   })
   .passthrough()
 
-export type NodeMetadata = z.infer<typeof nodeMetadata>
-export const nodeMetadata = z
+const nodeMetadata = z
   .object({
     position: z.object({ vector }).catch((ctx) => {
       printError(ctx)
@@ -35,7 +34,7 @@ export const nodeMetadata = z
   .passthrough()
 
 export type IdeMetadata = z.infer<typeof ideMetadata>
-export const ideMetadata = z
+const ideMetadata = z
   .object({
     node: z.record(z.string().uuid(), nodeMetadata),
     widget: z.optional(z.record(z.string().uuid(), z.record(z.string(), z.unknown()))),
@@ -61,13 +60,11 @@ export const metadata = z
     return defaultMetadata()
   })
 
-export type IdMapValue = z.infer<typeof idMapValue>
-export const idMapValue = z.object({
+const idMapValue = z.object({
   value: z.number(),
 })
 
-export type IdMapRange = z.infer<typeof idMapRange>
-export const idMapRange = z.object({
+const idMapRange = z.object({
   index: idMapValue,
   size: idMapValue,
 })

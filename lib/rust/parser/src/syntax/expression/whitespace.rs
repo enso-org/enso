@@ -101,7 +101,8 @@ fn tree_starts_new_no_space_group(tree: &Tree) -> bool {
             | AnnotatedBuiltin(_)
             | Documentation(_)
             | ExpressionStatement(_)
-            | ConstructorDefinition(_) => false,
+            | ConstructorDefinition(_)
+            | Call(_) => false,
         }
 }
 

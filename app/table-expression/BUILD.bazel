@@ -3,8 +3,14 @@ load("@aspect_rules_js//npm:defs.bzl", "npm_package")
 load("@aspect_rules_ts//ts:defs.bzl", "ts_config", "ts_project")
 load("@npm//:defs.bzl", "npm_link_all_packages", "npm_link_targets")
 load("@npm//app/table-expression:@lezer/generator/package_json.bzl", lezer_generator_bin = "bin")
+load("//:bazel_scripts/ts_config.bzl", "write_tsconfig")
 
 npm_link_all_packages(name = "node_modules")
+
+GENERATE_PARSER_OUTS = [
+    "src/generated/parser.ts",
+    "src/generated/parser.terms.ts",
+]
 
 ts_config(
     name = "tsconfig",
@@ -12,16 +18,11 @@ ts_config(
     deps = ["//:tsconfig"],
 )
 
-IGNORED_GENERATED_FILES = [
-    "src/generated/parser.ts",
-    "src/generated/parser.terms.ts",
-]
-
 ts_project(
     name = "tsc",
     srcs = glob(
         ["src/**/*.ts"],
-        IGNORED_GENERATED_FILES,
+        GENERATE_PARSER_OUTS,
     ) + [":generate_parser"],
     composite = True,
     out_dir = "dist",
@@ -48,7 +49,7 @@ npm_package(
 lezer_generator_bin.lezer_generator(
     name = "generate_parser",
     srcs = ["src/expression.grammar"],
-    outs = IGNORED_GENERATED_FILES,
+    outs = GENERATE_PARSER_OUTS,
     args = [
         "src/expression.grammar",
         "--typeScript",
@@ -65,7 +66,7 @@ lezer_generator_bin.lezer_generator(
 
 # Convenience rule to output built artifacts to the filesystem, so JS tooling can see them.
 # Important! Make sure the output of this rule is NOT used during the build process, which
-# is currently ensured by IGNORED_GENERATED_FILES being used as an glob exclusion
+# is currently ensured by GENERATE_PARSER_OUTS being used as an glob exclusion
 # in `SRC` definition.
 write_source_files(
     name = "write_parser_codegen",
@@ -73,6 +74,32 @@ write_source_files(
         "src/generated/parser.terms.ts": "src/generated/parser.terms.ts",
         "src/generated/parser.ts": "src/generated/parser.ts",
     },
+    suggested_update_target = "//:write_all",
+    visibility = ["//visibility:public"],
+)
+
+write_tsconfig(
+    name = "tsconfig_generated",
+    out = "tsconfig.json",
+    config = {
+        "compilerOptions": {
+            "composite": True,
+            "isolatedModules": True,
+            "noEmit": False,
+            "outDir": "dist",
+            "rootDir": "src",
+        },
+    },
+    extends = "//:tsconfig",
+    files = glob(
+        ["src/**/*.ts"],
+        GENERATE_PARSER_OUTS,
+    ) + GENERATE_PARSER_OUTS,
+)
+
+write_source_files(
+    name = "write_tsconfigs",
+    files = {"tsconfig.json": ":tsconfig_generated"},
     suggested_update_target = "//:write_all",
     visibility = ["//visibility:public"],
 )

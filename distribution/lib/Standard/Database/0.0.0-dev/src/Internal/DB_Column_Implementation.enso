@@ -195,14 +195,31 @@ type DB_Column_Implementation
     round (this_column : Column & DB_Column) decimal_places:Integer (rounding_mode : Rounding_Mode) =
         Rounding_Helpers.check_decimal_places decimal_places <| Value_Type.expect_numeric this_column <|
             if should_use_builtin_round this_column decimal_places rounding_mode then round_builtin this_column decimal_places rounding_mode else
-                short_circuit_special_floating_point this_column <|
-                    case this_column.value_type of
-                        Value_Type.Integer _ -> round_integer this_column decimal_places rounding_mode
-                        Value_Type.Float _ -> round_float this_column decimal_places rounding_mode
-                        Value_Type.Decimal _ _ -> round_decimal this_column decimal_places rounding_mode
-                        _ ->
-                            expected = "Decimal, Float, or Integer"
-                            Error.throw (Invalid_Value_Type.Column expected this_column.value_type this_column.name)
+                DB_Column_Implementation.round_pure_column_ops this_column decimal_places rounding_mode
+
+    ## ---
+       private: true
+       ---
+       Implements rounding using only Enso column operations, and bypasses using
+       database-specific builtin rounding functions. This is only called from
+       .round in this class, or from tests.
+
+       Outside of testing, database-specific builtin rounding functions are
+       always used where available. However, it is important to ensure that the
+       pure versions work for all cases, since different database backends
+       provide different builtins.
+
+       Calling this method requires importing the Column extension in
+       Round_Pure_Column_Ops.
+    round_pure_column_ops (this_column : Column & DB_Column) decimal_places:Integer (rounding_mode : Rounding_Mode) =
+        short_circuit_special_floating_point this_column <|
+            case this_column.value_type of
+                Value_Type.Integer _ -> round_integer this_column decimal_places rounding_mode
+                Value_Type.Float _ -> round_float this_column decimal_places rounding_mode
+                Value_Type.Decimal _ _ -> round_decimal this_column decimal_places rounding_mode
+                _ ->
+                    expected = "Decimal, Float, or Integer"
+                    Error.throw (Invalid_Value_Type.Column expected this_column.value_type this_column.name)
 
     truncate (this_column : Column & DB_Column) =
         new_name = (naming_helper this_column).function_name "truncate" [this_column]

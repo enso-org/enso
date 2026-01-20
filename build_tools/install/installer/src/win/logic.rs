@@ -2,8 +2,8 @@
 
 use crate::prelude::*;
 
-use crate::win::config::Config;
 use crate::Payload;
+use crate::win::config::Config;
 
 use enso_install_config::UNINSTALLER_NAME;
 use flate2::read::GzDecoder;
@@ -144,7 +144,9 @@ pub fn install_with_updates(
         let bytes_ratio = (bytes_extracted as f64 / total_bytes as f64).min(1.0);
         let extraction_progresss = (files_ratio + bytes_ratio) / 2.0;
         let progress = extraction_progress_start + extraction_progress_step * extraction_progresss;
-        trace!("files_extracted: {files_extracted}/{total_files}, bytes_extracted: {bytes_extracted}/{total_bytes}, extraction_progresss: {extraction_progresss}, progress: {progress}");
+        trace!(
+            "files_extracted: {files_extracted}/{total_files}, bytes_extracted: {bytes_extracted}/{total_bytes}, extraction_progresss: {extraction_progresss}, progress: {progress}"
+        );
         report_progress(progress);
         Some(install_location.join(entry.path().ok()?))
     };

@@ -278,9 +278,17 @@ object DistributionPackage {
       "--compile"
     ) ++ libPaths
     log.debug(command.mkString(" "))
-    val allEnv = mapAppend(
+    val allEnv1 = mapAppend(
       env,
       "NO_COLOR" -> "true"
+    )
+    // Don't create source archives for standard libraries.
+    val noSrcArchivesSysProp =
+      "-Dorg.enso.compiler.noSourceArchives=" +
+      libPaths.mkString(",")
+    val allEnv = mapAppend(
+      allEnv1,
+      "JAVA_TOOL_OPTIONS" -> noSrcArchivesSysProp
     )
     val procBldr = new java.lang.ProcessBuilder(asJava(command))
     val cwd      = libRootDirs.head.getAbsoluteFile.getParentFile
@@ -375,7 +383,8 @@ object DistributionPackage {
     jvmOptName: String,
     pb: java.lang.ProcessBuilder,
     appendJvmOpts: String     = "-ea",
-    cwd: Option[java.io.File] = None
+    cwd: Option[java.io.File] = None,
+    env: Map[String, String]  = Map.empty
   ): java.lang.Process = {
     val envToFill: java.util.Map[String, String] = pb.environment()
     var atEnv                                    = args.indexOf("--env")
@@ -407,6 +416,16 @@ object DistributionPackage {
       envToFill.put(jvmOptName, prevValue)
     }
 
+    for ((k, v) <- env) {
+      val prev = envToFill.get(k)
+      val newValue = if (prev != null) {
+        prev + " " + v
+      } else {
+        v
+      }
+      envToFill.put(k, newValue)
+    }
+
     pb.command(args)
     cwd.map { d =>
       pb.directory(d)
@@ -431,7 +450,8 @@ object DistributionPackage {
     distributionRoot: File,
     args: Seq[String],
     log: Logger,
-    cwd: Option[java.io.File] = None
+    cwd: Option[java.io.File] = None,
+    env: Map[String, String]  = Map.empty
   ): Boolean = {
     import scala.collection.JavaConverters._
 
@@ -464,7 +484,14 @@ object DistributionPackage {
       all.set(atIndex + 1, fileToRun.getPath)
     }
     val p =
-      adjustArgsAndStart(log, all, "JAVA_TOOL_OPTIONS", pb, cwd = adjustedCwd)
+      adjustArgsAndStart(
+        log,
+        all,
+        "JAVA_TOOL_OPTIONS",
+        pb,
+        cwd = adjustedCwd,
+        env = env
+      )
     val exitCode = p.waitFor()
     if (exitCode != 0) {
       log.warn(enso + " finished with exit code " + exitCode)

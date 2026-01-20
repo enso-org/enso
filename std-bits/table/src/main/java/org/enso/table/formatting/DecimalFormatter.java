@@ -31,6 +31,7 @@ public class DecimalFormatter implements DataFormatter {
     }
 
     symbols.setInfinity(INFINITY);
+    symbols.setNaN("NaN");
     decimalFormat.setDecimalFormatSymbols(symbols);
     decimalFormat.setDecimalSeparatorAlwaysShown(true);
     decimalFormat.setMaximumFractionDigits(Integer.MAX_VALUE);

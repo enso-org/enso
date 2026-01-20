@@ -7,6 +7,7 @@ import project.In_Memory_Column.In_Memory_Column
 import project.In_Memory_Table.In_Memory_Table
 import project.Internal.Value_Type_Helpers
 import project.Refined_Types.Date_Column.Date_Column
+import project.Refined_Types.Date_Time_Column.Date_Time_Column
 import project.Refined_Types.Numeric_Column.Numeric_Column
 import project.Refined_Types.Text_Column.Text_Column
 import project.Table.Table
@@ -25,6 +26,7 @@ refine_table (table : Table & In_Memory_Table) =
             Value_Type.Decimal _ _ -> _refine_numeric_column table column
             Value_Type.Char _ _ -> _refine_text_column table column
             Value_Type.Date -> _refine_date_column table column
+            Value_Type.Date_Time _ -> _refine_date_time_column table column
             _ -> _refine_other_column table column
 
 private _refine_numeric_column (table : In_Memory_Table) (column : Column & In_Memory_Column) -> Table & In_Memory_Table & Column & In_Memory_Column & Numeric_Column = case column.row_count of
@@ -46,6 +48,12 @@ private _refine_date_column (table : In_Memory_Table) (column : Column & In_Memo
         _ : Date -> table : Table & In_Memory_Table & Column & In_Memory_Column & Date_Column & Date
         _ -> table : Table & In_Memory_Table & Column & In_Memory_Column & Date_Column
     _ -> table : Table & In_Memory_Table & Column & In_Memory_Column & Date_Column
+
+private _refine_date_time_column (table : In_Memory_Table) (column : Column & In_Memory_Column) -> Table & In_Memory_Table & Column & In_Memory_Column & Date_Time_Column = case column.row_count of
+    1 -> case column.at 0 of
+        _ : Date_Time -> table : Table & In_Memory_Table & Column & In_Memory_Column & Date_Time_Column & Date_Time
+        _ -> table : Table & In_Memory_Table & Column & In_Memory_Column & Date_Time_Column
+    _ -> table : Table & In_Memory_Table & Column & In_Memory_Column & Date_Time_Column
 
 private _refine_other_column (table : In_Memory_Table) (column : Column & In_Memory_Column) -> Table & In_Memory_Table & Column & In_Memory_Column =
     ## We treat a column as single value if it contains a single not-nothing value.

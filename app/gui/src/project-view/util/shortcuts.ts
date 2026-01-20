@@ -1,6 +1,6 @@
-import { assert } from '@/util/assert'
 import { unsafeKeys } from 'enso-common/src/utilities/data/object'
 import { isOnMacOS } from 'enso-common/src/utilities/detect'
+import { assert } from 'ydoc-shared/util/assert'
 
 /** All possible modifier keys. */
 export type ModifierKey = keyof typeof RAW_MODIFIER_FLAG

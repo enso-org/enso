@@ -1,7 +1,7 @@
 use crate::prelude::*;
 
-use crate::cache::goodie;
 use crate::cache::Cache;
+use crate::cache::goodie;
 use crate::env::known::PATH;
 use crate::github::RepoRef;
 use crate::programs::graalpy::GraalPy as GraalPyProgram;
@@ -92,10 +92,10 @@ impl GraalPy {
 
 #[cfg(test)]
 mod tests {
-    use crate::cache::goodie::graalpy::graalpy_version_from_str;
-    use crate::cache::goodie::graalpy::GraalPy;
     use crate::Arch;
     use crate::OS;
+    use crate::cache::goodie::graalpy::GraalPy;
+    use crate::cache::goodie::graalpy::graalpy_version_from_str;
     use octocrab::Octocrab;
     use semver::Version;
 

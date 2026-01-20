@@ -1,7 +1,7 @@
 use crate::prelude::*;
 
-use crate::cache::goodie;
 use crate::cache::Cache;
+use crate::cache::goodie;
 use crate::env::known::PATH;
 use crate::programs;
 

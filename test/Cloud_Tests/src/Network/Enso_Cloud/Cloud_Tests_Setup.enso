@@ -3,12 +3,12 @@ import Standard.Base.Enso_Cloud.Data_Link.Data_Link
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Runtime.Context
 import Standard.Base.Runtime.Ref.Ref
+from Standard.Base.Logging import all
 
-from Standard.Test import Problems
+from Standard.Test import Problems, Test
 import Standard.Test.Test_Environment
 
 
-polyglot java import java.lang.System as JSystem
 polyglot java import java.security.KeyStore
 polyglot java import javax.net.ssl.SSLContext
 polyglot java import javax.net.ssl.TrustManagerFactory
@@ -24,8 +24,11 @@ type Cloud_Tests_Setup
             Panic.with_finalizer Cloud_Tests_Setup.reset <|
                 Test_Environment.unsafe_with_environment_override "ENSO_CLOUD_API_URL" self.api_url.to_text <|
                     Test_Environment.unsafe_with_environment_override "ENSO_CLOUD_CREDENTIALS_FILE" self.credentials_location.absolute.normalize.path <|
+                        Cloud_Tests_Setup.log_message level=..Finest "Start running with ENSO_CLOUD_API_URL and ENSO_CLOUD_CREDENTIALS_FILE override"
                         Cloud_Tests_Setup.reset
-                        action
+                        r = action
+                        Cloud_Tests_Setup.log_message level=..Finest "End of running with ENSO_CLOUD_API_URL and ENSO_CLOUD_CREDENTIALS_FILE override"
+                        r
         _ -> action
 
     pending self = case self of
@@ -75,7 +78,10 @@ type Cloud_Tests_Setup
         _ -> False
 
     ## Flushes all cloud caches in order to allow switch between real and mock cloud environments.
-    reset = CloudAPI.flushCloudCaches
+    reset =
+        Cloud_Tests_Setup.log_message level=..Finest "Cloud_Tests_Setup.reset called"
+        Runtime.gc flush_caches=True
+        Cloud_Tests_Setup.log_message level=..Finest "Cloud_Tests_Setup.reset done"
 
     ## Detects the setup based on environment settings.
        If `ENSO_RUN_REAL_CLOUD_TEST` is defined, the tests will try running
@@ -147,7 +153,7 @@ type Mock_Credentials
     to_json self -> Text =
         fields = []
             + [["access_token", self.access_token]]
-            + [["expire_at", self.expire_at.at_zone Time_Zone.utc . format Date_Time_Formatter.iso_offset_date_time]]
+            + [["expire_at", self.expire_at.at_time_zone Time_Zone.utc . format Date_Time_Formatter.iso_offset_date_time]]
             + [["refresh_token", self.refresh_token]]
             + [["refresh_url", self.refresh_url]]
             + [["client_id", self.client_id]]
@@ -207,3 +213,17 @@ create_local_datalink_to enso_file:Enso_File =
     config = JS_Object.from_pairs [["type", "Enso_File"], ["libraryName", "Standard.Base"], ["path", enso_file.path]]
     local_tmp_file = File.create_temporary_file prefix="test-datalink" suffix=".datalink"
     Data_Link.write_config local_tmp_file config replace_existing=True
+
+
+## ---
+   private: true
+   ---
+   Runs the action twice, once with the Output context enabled and once with it
+   disabled, to check that the behaviour is the same regardless of context.
+run_with_and_without_output ~action =
+    Context.Output.with_enabled <|
+        Test.with_clue "(normal mode - Output context enabled) " <|
+            action
+    Context.Output.with_disabled <|
+        Test.with_clue "(dry run - Output context disabled) " <|
+            action

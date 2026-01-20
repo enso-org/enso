@@ -1,0 +1,31 @@
+from Standard.Base import all
+import Standard.Base.Errors.Common.Type_Error
+import Standard.Base.Metadata.Display
+from Standard.Base.Metadata.Choice import Option
+import Standard.Base.Network.Email.Email_Provider.Email_Provider
+from Standard.Base.Network.Email.Email_Provider import make_email_provider
+
+import project.AWS_Credential.AWS_Credential
+import project.AWS_Region.AWS_Region
+import project.SES.Internal.Email_Provider_SES_Implementation.Email_Provider_SES_Implementation
+
+## Sends emails using Amazon SES.
+type Email_Provider_SES
+    ## Amazon Simple Email Service provider.
+
+       ## Arguments
+        - `region`: AWS region where SES is enabled.
+        - `credentials`: AWS credentials used to authorize the request.
+    @region (AWS_Region.default_widget display=Display.Always)
+    @credentials (AWS_Credential.default_widget display=Display.Always)
+    Amazon_SES region:AWS_Region=AWS_Region.Default credentials:AWS_Credential=AWS_Credential.Default
+
+    ## Options displayed in the provider selector.
+    get_dropdown_options = [Option "..Amazon_SES" "..Amazon_SES"]
+
+    ## Resolve a constructor into an Email_Provider instance.
+    resolve that:Function -> Email_Provider_SES | Nothing =
+        Panic.catch Type_Error (that:Email_Provider_SES) _->Nothing
+
+Email_Provider.from (that:Email_Provider_SES) =
+    make_email_provider "Amazon SES" (Email_Provider_SES_Implementation.Value that)

@@ -15,8 +15,6 @@ import project.Database.Postgres_Spec.Temporary_Data_Link_File
 from project.Database.Postgres_Spec import get_configured_connection_details
 from project.Util import all
 
-polyglot java import java.lang.Thread
-
 ## Tests the audit capabilities of the connection.
    It takes a data link to the connection. This data link is expected to be a local data link (from the filesystem), not a Cloud one.
 add_specs suite_builder prefix ~datalink_to_connection database_pending =
@@ -28,7 +26,10 @@ add_specs suite_builder prefix ~datalink_to_connection database_pending =
        TODO Once https://github.com/enso-org/enso/issues/10919 is implemented, we can remove this flag.
     always_run_on_mock = True
     cloud_setup = if always_run_on_mock then Cloud_Tests_Setup.prepare_mock_setup else Cloud_Tests_Setup.prepare
-    suite_builder.group prefix+"Audit Logs" pending=(cloud_setup.pending.if_nothing database_pending) group_builder->
+    check_pending =
+        cloud_setup.pending.if_nothing database_pending
+
+    suite_builder.group prefix+"Audit Logs" pending=check_pending group_builder->
         group_builder.specify "should see Database operations performed on a table through the standard workflow" <| cloud_setup.with_prepared_environment <|
             audited_connection = datalink_to_connection.read
             table_name = "audited-table-"+Random.uuid

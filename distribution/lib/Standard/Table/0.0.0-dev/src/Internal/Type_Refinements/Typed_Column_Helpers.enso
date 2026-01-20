@@ -1,4 +1,5 @@
 import project.Refined_Types.Date_Column.Date_Column
+import project.Refined_Types.Date_Time_Column.Date_Time_Column
 import project.Refined_Types.Numeric_Column.Numeric_Column
 import project.Refined_Types.Text_Column.Text_Column
 
@@ -28,3 +29,12 @@ make_text_column base_column text_operations_implementation =
    refinement.
 make_date_column base_column date_operations_implementation =
     Date_Column.Value base_column date_operations_implementation
+
+## ---
+   private: true
+   ---
+   For internal use only, this function should be used by implementations to
+   provide a hidden conversion to `Date_Time_Column` that allows the type
+   refinement.
+make_date_time_column base_column date_time_operations_implementation =
+    Date_Time_Column.Value base_column date_time_operations_implementation
