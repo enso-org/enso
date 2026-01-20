@@ -16,6 +16,7 @@ import { qnLastSegment } from '@/util/qualifiedName'
 import { fc, test } from '@fast-check/vitest'
 import { expect } from 'vitest'
 import { BodyBlock } from 'ydoc-shared/ast'
+import { unqualifyQualifiedNames } from '../abstract'
 import { findExpressions, testCase } from './testCase'
 
 function functionBlock(topLevel: BodyBlock, name: string) {
@@ -280,17 +281,25 @@ test.each([
     substitution: 'ShouldNotWork',
     expected: 'Data.Table.new',
   },
+  {
+    original: 'Should.Not.MatchPrefixOfName',
+    pattern: 'Should.Not.Match',
+    substitution: 'Unexpected',
+    expected: 'Should.Not.MatchPrefixOfName',
+  },
 ])(
   'Substitute qualified name $pattern inside $original',
   ({ original, pattern, substitution, expected }) => {
     const expression = Ast.parseExpression(original) ?? Ast.parseBlockStatement(original)
     assertDefined(expression)
-    const result = substituteQualifiedNameByPattern(
+    const mod = expression.module
+    mod.setRoot(expression as any)
+    substituteQualifiedNameByPattern(
       expression,
       pattern as Ast.Identifier,
       substitution as Ast.Identifier,
     )
-    expect(result.code()).toEqual(expected)
+    expect(mod.root()?.code()).toEqual(expected)
   },
 )
 
@@ -308,8 +317,10 @@ test.each([
   ({ original, expected }) => {
     const expression = Ast.parseExpression(original)
     assertDefined(expression)
-    const result = substituteQualifiedName(expression, (qn) => qnLastSegment(qn))
-    expect(result.code()).toEqual(expected)
+    const mod = expression.module
+    mod.setRoot(expression as any)
+    unqualifyQualifiedNames(expression)
+    expect(mod.root()?.code()).toEqual(expected)
   },
 )
 

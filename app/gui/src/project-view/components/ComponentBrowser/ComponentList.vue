@@ -11,9 +11,8 @@ import SvgIcon from '@/components/SvgIcon.vue'
 import VirtualizedList from '@/components/VirtualizedList.vue'
 import { groupColorStyle } from '@/composables/nodeColors'
 import { Ast } from '@/util/ast'
-import { substituteQualifiedName } from '@/util/ast/abstract'
+import { unqualifyQualifiedNames } from '@/util/ast/abstract'
 import { tryGetIndex } from '@/util/data/array'
-import { qnLastSegment } from '@/util/qualifiedName'
 import * as map from 'lib0/map'
 import { computed, ref, watch } from 'vue'
 import type { ComponentExposed } from 'vue-component-type-helpers'
@@ -117,8 +116,8 @@ const selectedSuggestionReturnType = computed(() => {
 
   const parsedType = parseExpression(typename)
   if (parsedType == null) return typename
-  const substituted = substituteQualifiedName(parsedType, (qn) => qnLastSegment(qn))
-  return substituted.code()
+  unqualifyQualifiedNames(parsedType)
+  return parsedType.code()
 })
 
 watch(selectedComponent, (component) => emit('update:selectedComponent', component), {
