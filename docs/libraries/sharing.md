@@ -72,14 +72,14 @@ you are hosting the repository locally it will be `http://localhost:8080/upload`
 If the repository requires authentication, it is best to set it up by setting
 the `ENSO_AUTH_TOKEN` environment variable to the value of your secret token.
 
-Then you can use the Enso CLI to upload the project:
+Then you can use the `ensoup` launcher to upload the project:
 
 ```bash
-enso publish-library --upload-url <URL> <path to project root>
+ensoup publish-library --upload-url <URL> <path to project root>
 ```
 
 The `--upload-url` is optional, if not provided, the library will be uploaded to
-the main Enso library repository. See `enso publish-library --help` for more
+the main Enso library repository. See `ensoup publish-library --help` for more
 information.
 
 ## Sharing Privately
