@@ -283,12 +283,12 @@ type No_Such_Field
        private: true
        ---
        The error thrown when the specified symbol does not exist as a field on
-       the value.
+       the target.
 
        ## Arguments
         - `target`: The target on which the field was accessed.
         - `field_name`: The name of the field that was being accessed.
-    Error value field_name
+    Error target field_name
 
     ## ---
        private: true
@@ -296,8 +296,8 @@ type No_Such_Field
        Convert the No_Such_Method error to a human-readable format.
     to_display_text : Text
     to_display_text self =
-        value_type_name = if Meta.is_polyglot self.value then self.value.to_display_text else (Meta.type_of self.value).to_display_text
-        "Field `"+self.field_name+"` of "+value_type_name+" could not be found."
+        target_type_name = if Meta.is_polyglot self.target then self.target.to_display_text else (Meta.type_of self.target).to_display_text
+        "Field `"+self.field_name+"` of "+target_type_name+" could not be found."
 
 @Builtin_Type
 type Module_Not_In_Package_Error
@@ -722,7 +722,7 @@ type Out_Of_Range
     ## ---
        private: true
        ---
-    Error value message=Nothing
+    Error original_value message=Nothing
 
     ## ---
        private: true
@@ -731,7 +731,7 @@ type Out_Of_Range
     to_display_text : Text
     to_display_text self =
         extra = if self.message.is_nothing then "" else ": "+self.message.to_text
-        "Value out of range: "+self.value.to_text+extra
+        "Value out of range: "+self.original_value.to_text+extra
 
     ## ---
        private: true
@@ -739,7 +739,7 @@ type Out_Of_Range
     to_text : Text
     to_text self =
         extra = if self.message.is_nothing then "" else " (message = "+self.message.to_text+")"
-        "(Out_Of_Range (value = "+self.value.to_text+")" + extra + ")"
+        "(Out_Of_Range (original_value = "+self.original_value.to_text+")" + extra + ")"
 
 ## Indicates that the response from a remote endpoint is over the size limit.
 type Response_Too_Large
@@ -786,7 +786,7 @@ type Floating_Point_Equality
        private: true
        ---
        Represents the use of a floating-point value as a `Dictionary` key.
-    Used_As_Dictionary_Key value:Float
+    Used_As_Dictionary_Key original_value:Float
 
     ## ---
        private: true
@@ -796,8 +796,8 @@ type Floating_Point_Equality
     to_display_text self = case self of
         Floating_Point_Equality.Error location ->
             "Relying on equality of floating-point numbers is not recommended (within "+location+")."
-        Floating_Point_Equality.Used_As_Dictionary_Key value ->
-            "Float used as dictionary key: "+value.to_text
+        Floating_Point_Equality.Used_As_Dictionary_Key original_value ->
+            "Float used as dictionary key: "+original_value.to_text
 
     ## ---
        private: true
@@ -806,8 +806,8 @@ type Floating_Point_Equality
     to_text self = case self of
         Floating_Point_Equality.Error location ->
             "(Error  (location = "+location+"))"
-        Floating_Point_Equality.Used_As_Dictionary_Key value ->
-            "(Used_As_Dictionary_Key (value = "+value.to_text+"))"
+        Floating_Point_Equality.Used_As_Dictionary_Key original_value ->
+            "(Used_As_Dictionary_Key (original_value = "+original_value.to_text+"))"
 
 ## A warning indicating that a file failed to be loaded.
 type Failed_To_Load
