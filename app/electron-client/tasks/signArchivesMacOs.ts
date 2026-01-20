@@ -150,7 +150,7 @@ async function ensoPackageSignables(resourcesDir: string): Promise<Signable[]> {
   ]
   const binariesPattern = 'lib/Standard/Image/*/polyglot/lib/*.dylib'
 
-  const binaries = await BinaryToSign.lookupMany(engineDir, [])
+  const binaries = await BinaryToSign.lookupMany(engineDir, [binariesPattern])
   const archives = await ArchiveToSign.lookupMany(engineDir, archivePatterns)
   return [...archives, ...binaries]
 }
