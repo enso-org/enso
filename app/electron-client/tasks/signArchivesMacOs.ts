@@ -72,7 +72,72 @@ async function ensoPackageSignables(resourcesDir: string): Promise<Signable[]> {
   // here, it will show up as a failure to notarise the IDE. The offending archive will be named
   // in the error message provided by Apple and can then be added here.
   const engineDir = `${resourcesDir}/enso/dist/*`
-  const archivePatterns: ArchivePattern[] = []
+  const archivePatterns: ArchivePattern[] = [
+    [
+      'component/python-resources-*.jar',
+      [
+        'META-INF/resources/darwin/*/lib/graalpy*/*.dylib',
+        'META-INF/resources/darwin/*/lib/graalpy*/modules/*.so',
+      ],
+    ],
+    [
+      'component/truffle-api-*.jar',
+      [
+        'META-INF/resources/engine/libtruffleattach/darwin/amd64/bin/libtruffleattach.dylib',
+        'META-INF/resources/engine/libtruffleattach/darwin/aarch64/bin/libtruffleattach.dylib',
+      ],
+    ],
+    [
+      'component/truffle-nfi-libffi-*.jar',
+      ['META-INF/resources/nfi-native/libnfi/darwin/*/bin/libtrufflenfi.dylib'],
+    ],
+    [
+      'component/truffle-runtime-*.jar',
+      [
+        'META-INF/resources/engine/libtruffleattach/darwin/amd64/bin/libtruffleattach.dylib',
+        'META-INF/resources/engine/libtruffleattach/darwin/aarch64/bin/libtruffleattach.dylib',
+      ],
+    ],
+    [
+      'lib/Standard/Database/*/polyglot/java/sqlite-jdbc-*.jar',
+      [
+        'org/sqlite/native/Mac/aarch64/libsqlitejdbc.jnilib',
+        'org/sqlite/native/Mac/x86_64/libsqlitejdbc.jnilib',
+        'org/sqlite/native/Mac/aarch64/libsqlitejdbc.dylib',
+        'org/sqlite/native/Mac/x86_64/libsqlitejdbc.dylib',
+      ],
+    ],
+    [
+      'lib/Standard/Snowflake/*/polyglot/java/conscrypt-openjdk-uber-*.jar',
+      ['META-INF/native/libconscrypt_openjdk_jni-osx-*.dylib'],
+    ],
+    [
+      'lib/Standard/Snowflake/*/polyglot/java/grpc-netty-shaded-*.jar',
+      ['META-INF/native/libio_grpc_netty_shaded_netty_tcnative_osx_*.jnilib'],
+    ],
+    [
+      'lib/Standard/Google/*/polyglot/java/grpc-netty-shaded-*.jar',
+      ['META-INF/native/libio_grpc_netty_shaded_netty_tcnative_osx_*.jnilib'],
+    ],
+    [
+      'lib/Standard/Google/*/polyglot/java/conscrypt-openjdk-uber-*.jar',
+      ['META-INF/native/libconscrypt_openjdk_jni-osx-*.dylib'],
+    ],
+    ['lib/Standard/Microsoft/*/polyglot/java/jna-*.jar', ['com/sun/jna/*/libjnidispatch.jnilib']],
+    [
+      'lib/Standard/Microsoft/*/polyglot/java/netty-resolver-dns-native-macos-*.jar',
+      ['META-INF/native/libnetty_resolver_dns_native_macos_*.jnilib'],
+    ],
+    [
+      'lib/Standard/Microsoft/*/polyglot/java/netty-tcnative-boringssl-static-*.jar',
+      ['META-INF/native/libnetty_tcnative_osx_*.jnilib'],
+    ],
+    [
+      'lib/Standard/Microsoft/*/polyglot/java/netty-transport-native-kqueue-*.jar',
+      ['META-INF/native/libnetty_transport_native_kqueue_*.jnilib'],
+    ],
+    ['lib/Standard/Tableau/*/polyglot/java/jna-*.jar', ['com/sun/jna/*/libjnidispatch.jnilib']],
+  ]
   const binariesPattern = 'lib/Standard/Image/*/polyglot/lib/*.dylib'
 
   const binaries = await BinaryToSign.lookupMany(engineDir, [])
