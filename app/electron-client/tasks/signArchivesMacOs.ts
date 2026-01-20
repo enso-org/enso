@@ -98,6 +98,16 @@ async function ensoPackageSignables(resourcesDir: string): Promise<Signable[]> {
         'META-INF/resources/engine/libtruffleattach/darwin/aarch64/bin/libtruffleattach.dylib',
       ],
     ],
+
+    ['component/jna-*.jar', ['com/sun/jna/*/libjnidispatch.jnilib']],
+    [
+      'component/jline-native-*.jar',
+      [
+        'org/jline/nativ/Mac/arm64/libjlinenative.jnilib',
+        'org/jline/nativ/Mac/x86_64/libjlinenative.jnilib',
+        'org/jline/nativ/Mac/x86/libjlinenative.jnilib',
+      ],
+    ],
     [
       'lib/Standard/Database/*/polyglot/java/sqlite-jdbc-*.jar',
       [
