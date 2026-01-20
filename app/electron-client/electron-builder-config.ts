@@ -397,7 +397,6 @@ export function createElectronBuilderConfig(passedArgs: Arguments): electronBuil
                 ])
                 console.error(`Notary log for submission ${submissionId}:\n${log}`)
               } else {
-                console.log(`Failed to match on "${head}": ${matched}`)
                 console.error(
                   'Unable to find submission in notarytool history. Needs manual inspection',
                 )
