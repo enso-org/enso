@@ -64,4 +64,12 @@ final class PerBufferReference<T> extends Persistance.Reference<T> {
   static <V> Reference<V> cached(Persistance<V> p, InputCache buffer, int offset) {
     return new PerBufferReference<>(p, buffer, offset, true);
   }
+
+  @Override
+  public boolean equals(Object o) {
+    return o instanceof PerBufferReference<?> other
+        && this.p.equals(other.p)
+        && this.cache.equals(other.cache)
+        && this.offset == other.offset;
+  }
 }
