@@ -24,7 +24,7 @@
     - to_display_text self -> Standard.Base.Any.Any
 - type Floating_Point_Equality
     - Error location:Standard.Base.Data.Text.Text
-    - Used_As_Dictionary_Key value:Standard.Base.Data.Numbers.Float
+    - Used_As_Dictionary_Key original_value:Standard.Base.Data.Numbers.Float
     - to_display_text self -> Standard.Base.Any.Any
     - to_text self -> Standard.Base.Any.Any
 - type Forbidden_Operation
@@ -75,7 +75,7 @@
     - Error target:Standard.Base.Any.Any that:Standard.Base.Any.Any conversion:Standard.Base.Any.Any
     - to_display_text self -> Standard.Base.Any.Any
 - type No_Such_Field
-    - Error value:Standard.Base.Any.Any field_name:Standard.Base.Any.Any
+    - Error target:Standard.Base.Any.Any field_name:Standard.Base.Any.Any
     - to_display_text self -> Standard.Base.Any.Any
 - type No_Such_Method
     - Error target:Standard.Base.Any.Any symbol:Standard.Base.Any.Any
@@ -91,7 +91,7 @@
     - handle_java_exception operation:Standard.Base.Any.Any ~function:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - to_display_text self -> Standard.Base.Any.Any
 - type Out_Of_Range
-    - Error value:Standard.Base.Any.Any message:Standard.Base.Any.Any=
+    - Error original_value:Standard.Base.Any.Any message:Standard.Base.Any.Any=
     - to_display_text self -> Standard.Base.Any.Any
     - to_text self -> Standard.Base.Any.Any
 - type Private_Access
