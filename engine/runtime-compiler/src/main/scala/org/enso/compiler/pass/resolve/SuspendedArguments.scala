@@ -285,8 +285,8 @@ case object SuspendedArguments extends IRPass {
     */
   def representsSuspended(value: Expression): Boolean = {
     value match {
-      case Name.Literal("Suspended", _, _, _, _) => true
-      case _                                     => false
+      case nm: Name.Literal if nm.name == "Suspended" => true
+      case _                                          => false
     }
   }
 

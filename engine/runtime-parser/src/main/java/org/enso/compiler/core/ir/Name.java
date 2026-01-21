@@ -49,10 +49,15 @@ public interface Name extends Expression, IRKind.Primitive {
     }
 
     public static Builder builder() {
-      return new Builder();
+      return new Builder().typePointer(Option.empty());
     }
 
-    /** Generates a location for the reference from the segments.
+    public MethodReference copyWithTypePointer(Option<Name> typePointer) {
+      return new Builder(this).typePointer(typePointer).build();
+    }
+
+    /**
+     * Generates a location for the reference from the segments.
      *
      * @param segments the reference segments
      * @return a location for the method reference
@@ -124,6 +129,10 @@ public interface Name extends Expression, IRKind.Primitive {
       return new Builder();
     }
 
+    public Builder copyBuilder() {
+      return new Builder(this);
+    }
+
     @Override
     public String name() {
       return parts().map(Name::name).mkString(".");
@@ -150,6 +159,10 @@ public interface Name extends Expression, IRKind.Primitive {
       return new Builder();
     }
 
+    public static Blank create() {
+      return new Builder().build();
+    }
+
     @Override
     public String name() {
       return "_";
@@ -163,7 +176,7 @@ public interface Name extends Expression, IRKind.Primitive {
 
   @GenerateIR(interfaces = {Name.class, IRKind.Sugar.class})
   final class Special extends NameSpecialGen {
-    enum Ident {
+    public enum Ident {
       NewRef,
       ReadRef,
       WriteRef,
@@ -177,6 +190,10 @@ public interface Name extends Expression, IRKind.Primitive {
         IdentifiedLocation identifiedLocation,
         MetadataStorage passData) {
       super(specialName, identifiedLocation, passData);
+    }
+
+    public static Special create(Ident specialName) {
+      return new Builder().specialName(specialName).build();
     }
 
     @Override
@@ -196,11 +213,23 @@ public interface Name extends Expression, IRKind.Primitive {
     public Literal(
         @IRField String name,
         @IRField boolean isMethod,
-        @IRField Name origName,
+        @IRField(required = false) Name origName,
         IdentifiedLocation identifiedLocation,
         MetadataStorage passData,
-        DiagnosticStorage diagnosticStorage) {
-      super(name, isMethod, origName, identifiedLocation, passData, diagnosticStorage);
+        DiagnosticStorage diagnostics) {
+      super(name, isMethod, origName, identifiedLocation, passData, diagnostics);
+    }
+
+    public static Builder builder() {
+      return new Builder();
+    }
+
+    public Builder copyBuilder() {
+      return new Builder(this);
+    }
+
+    public Option<Name> originalName() {
+      return Option.apply(origName());
     }
 
     @Override
@@ -278,6 +307,10 @@ public interface Name extends Expression, IRKind.Primitive {
       super(name, expression, identifiedLocation, passData);
     }
 
+    public Builder copyBuilder() {
+      return new Builder(this);
+    }
+
     @Override
     public String showCode(int indent) {
       return "@" + name() + " " + expression().showCode(indent);
@@ -292,6 +325,10 @@ public interface Name extends Expression, IRKind.Primitive {
         IdentifiedLocation identifiedLocation,
         MetadataStorage passData) {
       super(synthetic, identifiedLocation, passData);
+    }
+
+    public static Builder builder() {
+      return new Builder();
     }
 
     @Override
@@ -311,6 +348,10 @@ public interface Name extends Expression, IRKind.Primitive {
     @GenerateFields
     public SelfType(IdentifiedLocation identifiedLocation, MetadataStorage passData) {
       super(identifiedLocation, passData);
+    }
+
+    public static Builder builder() {
+      return new Builder();
     }
 
     @Override

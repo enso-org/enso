@@ -205,7 +205,7 @@ case object UnusedBindings extends IRPass {
         if (!isIgnored && !isUsed) {
           val nameToReport = name match {
             case literal: Name.Literal =>
-              literal.originalName.getOrElse(literal)
+              literal.originalName().getOrElse(literal)
             case _ => name
           }
           s.copyWithDefaultValue(

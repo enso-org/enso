@@ -69,9 +69,10 @@ case object BindingAnalysis extends IRPass {
       case method: definition.Method.Explicit =>
         val ref = method.methodReference
         ref.typePointer match {
-          case Some(Name.Qualified(List(), _, _)) =>
+          case Some(qual: Name.Qualified) if qual.parts().isEmpty =>
             Some(ModuleMethod(ref.methodName.name))
-          case Some(Name.Qualified(List(n), _, _)) =>
+          case Some(qual: Name.Qualified) if qual.parts().size == 1 =>
+            val n        = qual.parts().head
             val shadowed = definedSumTypes.exists(_.name == n.name)
             if (!shadowed && n.name == moduleContext.getName().item)
               Some(ModuleMethod(ref.methodName.name))
