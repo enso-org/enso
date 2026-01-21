@@ -165,9 +165,7 @@ public final class YdocScheduledExecutorService implements ScheduledExecutorServ
     return scheduleAtFixedRate(task, initialDelay, delay, unit);
   }
 
-  /**
-   * A task that reschedules itself after execution.
-   */
+  /** A task that reschedules itself after execution. */
   private final class RepeatingTask implements Runnable {
     private final Runnable task;
     private final long periodNanos;
@@ -261,9 +259,7 @@ public final class YdocScheduledExecutorService implements ScheduledExecutorServ
     }
   }
 
-  /**
-   * A ScheduledFuture for Callable tasks that holds the result.
-   */
+  /** A ScheduledFuture for Callable tasks that holds the result. */
   private static final class CallableScheduledFuture<V> implements ScheduledFuture<V> {
     private final long executeAtNanos;
     private volatile V result;
@@ -407,8 +403,8 @@ public final class YdocScheduledExecutorService implements ScheduledExecutorServ
   /**
    * Processes all pending tasks that are ready to execute.
    *
-   * <p>This method must be called from the owner thread (the thread that created this service).
-   * It will execute all immediate tasks and any scheduled tasks whose delay has elapsed.
+   * <p>This method must be called from the owner thread (the thread that created this service). It
+   * will execute all immediate tasks and any scheduled tasks whose delay has elapsed.
    *
    * @return the number of tasks executed
    * @throws IllegalStateException if called from a thread other than the owner thread
@@ -471,8 +467,8 @@ public final class YdocScheduledExecutorService implements ScheduledExecutorServ
   }
 
   /**
-   * Returns the number of nanoseconds until the next scheduled task is ready, or -1 if there are
-   * no scheduled tasks.
+   * Returns the number of nanoseconds until the next scheduled task is ready, or -1 if there are no
+   * scheduled tasks.
    *
    * @return nanoseconds until next task, or -1 if none
    */
@@ -494,10 +490,11 @@ public final class YdocScheduledExecutorService implements ScheduledExecutorServ
    * Waits until tasks are available or the timeout expires.
    *
    * <p>This method blocks until either:
+   *
    * <ul>
-   *   <li>A new task is submitted (immediate or scheduled)</li>
-   *   <li>The specified timeout expires</li>
-   *   <li>The thread is interrupted</li>
+   *   <li>A new task is submitted (immediate or scheduled)
+   *   <li>The specified timeout expires
+   *   <li>The thread is interrupted
    * </ul>
    *
    * @param timeoutNanos maximum time to wait in nanoseconds, or -1 to wait with a default timeout

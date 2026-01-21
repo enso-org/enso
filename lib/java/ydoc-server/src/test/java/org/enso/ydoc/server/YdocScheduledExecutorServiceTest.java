@@ -6,7 +6,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
 import org.junit.Test;
 
 public class YdocScheduledExecutorServiceTest {
@@ -193,15 +192,23 @@ public class YdocScheduledExecutorServiceTest {
     // Submit immediate tasks from different threads
     service.submit(() -> immediateTaskThreadIds.add(Thread.currentThread().threadId()));
 
-    Thread submitterThread = new Thread(() -> {
-      service.submit(() -> immediateTaskThreadIds.add(Thread.currentThread().threadId()));
-      service.schedule(() -> scheduledTaskThreadIds.add(Thread.currentThread().threadId()), 30, TimeUnit.MILLISECONDS);
-    });
+    Thread submitterThread =
+        new Thread(
+            () -> {
+              service.submit(() -> immediateTaskThreadIds.add(Thread.currentThread().threadId()));
+              service.schedule(
+                  () -> scheduledTaskThreadIds.add(Thread.currentThread().threadId()),
+                  30,
+                  TimeUnit.MILLISECONDS);
+            });
     submitterThread.start();
     submitterThread.join();
 
     // Schedule a task from the owner thread
-    service.schedule(() -> scheduledTaskThreadIds.add(Thread.currentThread().threadId()), 50, TimeUnit.MILLISECONDS);
+    service.schedule(
+        () -> scheduledTaskThreadIds.add(Thread.currentThread().threadId()),
+        50,
+        TimeUnit.MILLISECONDS);
 
     // Process immediate tasks on owner thread
     service.processPendingTasks();

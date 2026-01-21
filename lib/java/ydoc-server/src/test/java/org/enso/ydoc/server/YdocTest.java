@@ -30,7 +30,6 @@ import org.enso.ydoc.server.jsonrpc.model.result.TextOpenFileResult;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -80,7 +79,7 @@ public class YdocTest {
     ydoc.close();
   }
 
-  //@Test(timeout = 60000)
+  // @Test(timeout = 60000)
   public void initialize() throws Exception {
     var queue = new LinkedBlockingQueue<BufferData>();
 

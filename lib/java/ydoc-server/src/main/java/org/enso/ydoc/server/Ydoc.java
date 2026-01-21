@@ -60,13 +60,24 @@ public final class Ydoc implements AutoCloseable {
 
     private Builder() {}
 
-    private static final class NoOpYjsChannelCallbacks implements YjsChannelCallbacks {
-      public static final NoOpYjsChannelCallbacks INSTANCE = new NoOpYjsChannelCallbacks();
+    public static final class DelegateYjsChannelCallbacks implements YjsChannelCallbacks {
+      private final String name;
+      private final YjsChannelCallbacks delegate;
 
-      private NoOpYjsChannelCallbacks() {}
+      DelegateYjsChannelCallbacks(String name, YjsChannelCallbacks delegate) {
+        this.name = name;
+        this.delegate = delegate;
+      }
 
+      @HostAccess.Export
       @Override
-      public void onConnect(YjsChannel channel) {}
+      public void onConnect(YjsChannel channel) {
+        System.err.println("Enter onConnect[" + name + "] with " + channel + " for " + delegate);
+        if (delegate != null) {
+          delegate.onConnect(channel);
+        }
+        System.err.println("Exit onConnect[" + name + "] with " + channel);
+      }
     }
 
     public Builder executor(YdocScheduledExecutorService executor) {
@@ -135,22 +146,14 @@ public final class Ydoc implements AutoCloseable {
         port = DEFAULT_PORT;
       }
 
-      if (jsonChannelCallbacks == null) {
-        jsonChannelCallbacks = NoOpYjsChannelCallbacks.INSTANCE;
-      }
-
-      if (binaryChannelCallbacks == null) {
-        binaryChannelCallbacks = NoOpYjsChannelCallbacks.INSTANCE;
-      }
-
       return new Ydoc(
           executor,
           parser,
           contextBuilder,
           hostname,
           port,
-          jsonChannelCallbacks,
-          binaryChannelCallbacks);
+          new DelegateYjsChannelCallbacks("JSON", jsonChannelCallbacks),
+          new DelegateYjsChannelCallbacks("binary", binaryChannelCallbacks));
     }
   }
 

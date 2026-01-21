@@ -3,7 +3,6 @@ package org.enso.runner.common;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.util.ServiceLoader;
-
 import org.enso.ydoc.api.YjsChannelCallbacks;
 
 public abstract class YdocServerApi {

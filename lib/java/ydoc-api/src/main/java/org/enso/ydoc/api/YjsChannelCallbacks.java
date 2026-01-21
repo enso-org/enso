@@ -4,7 +4,7 @@ public interface YjsChannelCallbacks {
 
   public void onConnect(YjsChannel channel);
 
-  default public void test(YjsChannel channel) {
+  public default void test(YjsChannel channel) {
     System.out.println("TEST CALLBACK " + channel.getClass());
   }
 }
