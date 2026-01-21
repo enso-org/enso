@@ -79,7 +79,11 @@ final class HostClassLoader extends URLClassLoader implements AutoCloseable, Tru
               return f;
             });
     if (placeholder[0] != null) {
-      placeholder[0].complete(loadClassUnsafe(name, resolve));
+      try {
+        placeholder[0].complete(loadClassUnsafe(name, resolve));
+      } catch (ClassNotFoundException e) {
+        placeholder[0].completeExceptionally(e);
+      }
     }
     try {
       return pendingClass.get();
