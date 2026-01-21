@@ -183,8 +183,9 @@ public interface Builder {
    */
   static Builder getForType(
       StorageType<?> storageType, long size, ProblemAggregator problemAggregator) {
+    var localType = StorageType.makeLocal(storageType);
     Builder builder =
-        switch (StorageType.makeLocal(storageType)) {
+        switch (StorageType.makeLocal(localType)) {
           case AnyObjectType _ -> getForAnyObject(size);
           case BooleanType _ -> getForBoolean(size);
           case DateType _ -> getForDate(size);
@@ -202,7 +203,7 @@ public interface Builder {
                   "Unsupported type: " + storageType + " - this is a bug in the Table library.");
         };
 
-    assert Objects.equals(builder.getType(), storageType);
+    assert Objects.equals(builder.getType(), localType);
     return builder;
   }
 
