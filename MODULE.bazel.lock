@@ -308,7 +308,7 @@
     },
     "@@aspect_rules_esbuild+//esbuild:extensions.bzl%esbuild": {
       "general": {
-        "bzlTransitiveDigest": "f+CwTh+cH/i1/OwSPif7rEDXVK+TH40g7t0aRUsKsbQ=",
+        "bzlTransitiveDigest": "LdJhOnbLal8a0pC/XfTzwYJyBR0BjuJCJghbRCDEeY4=",
         "usagesDigest": "kwkn3FPW+KCy6WWa5RCeba1tFWKuJCFPE5M68azHGzs=",
         "recordedFileInputs": {},
         "recordedDirentsInputs": {},
@@ -11308,7 +11308,7 @@
     },
     "@@rules_rust+//crate_universe/private:internal_extensions.bzl%cu_nr": {
       "general": {
-        "bzlTransitiveDigest": "dzOemhl6nH3SkF1s+6t3CJkZ6n/DD9osUcA+tnul2QE=",
+        "bzlTransitiveDigest": "nl//qexCBnhCpM5lCYZqSdYyWDY5hHmDvEFq5K3bGR0=",
         "usagesDigest": "h9wqdPgSnpDxdRNP6kO+DMoTuAWtxtek2SnJOOL321c=",
         "recordedFileInputs": {},
         "recordedDirentsInputs": {},
@@ -11407,6 +11407,16 @@
           ],
           [
             "rules_cc+",
+            "cc_compatibility_proxy",
+            "rules_cc++compatibility_proxy+cc_compatibility_proxy"
+          ],
+          [
+            "rules_cc+",
+            "rules_cc",
+            "rules_cc+"
+          ],
+          [
+            "rules_cc++compatibility_proxy+cc_compatibility_proxy",
             "rules_cc",
             "rules_cc+"
           ],
