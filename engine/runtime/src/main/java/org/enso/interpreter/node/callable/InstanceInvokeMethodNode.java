@@ -312,6 +312,10 @@ abstract class InstanceInvokeMethodNode extends InvokeMethodNode {
         invokeFunctionNode.getArgumentsExecutionMode());
   }
 
+  Type warningBuiltinType() {
+    return EnsoContext.get(this).getBuiltins().warning();
+  }
+
   @Specialization
   Object doWarning(
       VirtualFrame frame,
@@ -319,22 +323,21 @@ abstract class InstanceInvokeMethodNode extends InvokeMethodNode {
       UnresolvedSymbol symbol,
       Warning self,
       Object[] arguments,
+      @Cached("symbol") UnresolvedSymbol cachedSymbol,
       @Shared("methodResolverNode") @Cached MethodResolverNode methodResolverNode,
-      @Shared("types") @CachedLibrary(limit = "10") TypesLibrary typesLib
-  ) {
-    var warningBuiltinType = EnsoContext.get(this).getBuiltins().warning();
-    var builtinFunc = resolveFunction(symbol, self, warningBuiltinType, methodResolverNode);
-    var valueType = typesLib.getType(self.getValue());
-    var valueFunc = resolveFunction(symbol, self.getValue(), valueType, methodResolverNode);
-    if (builtinFunc != null && valueFunc != null) {
-      // value type overrides the method - dispatch on the value
+      @Cached("warningBuiltinType()") Type warningBuiltinType,
+      @Cached("resolveFunction(cachedSymbol, self, warningBuiltinType, methodResolverNode)")
+          Function builtinFunc,
+      @Shared("types") @CachedLibrary(limit = "10") TypesLibrary typesLib,
+      @Cached("typesLib.getType(self.getValue())") Type valueType,
+      @Cached("resolveFunction(cachedSymbol, self.getValue(), valueType, methodResolverNode)")
+          Function valueFunc) {
+    if (valueFunc != null) {
+      // value type overrides the method - dispatch on the value function
       arguments[thisArgumentPosition] = self.getValue();
       return invokeFunctionNode.execute(valueFunc, frame, state, arguments);
     } else if (builtinFunc != null) {
       return invokeFunctionNode.execute(builtinFunc, frame, state, arguments);
-    } else if (valueFunc != null) {
-      arguments[thisArgumentPosition] = self.getValue();
-      return invokeFunctionNode.execute(valueFunc, frame, state, arguments);
     } else {
       throw methodNotFound(this, onBoundary, symbol, self);
     }
