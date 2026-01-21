@@ -20,9 +20,6 @@ import org.enso.table.error.EmptySheetException;
 import org.enso.table.problems.ProblemAggregator;
 
 public class GoogleSheetsForEnso {
-  private static final org.slf4j.Logger LOGGER =
-      org.slf4j.LoggerFactory.getLogger(GoogleSheetsForEnso.class);
-
   private final Sheets service;
 
   private GoogleSheetsForEnso(Sheets service) {
