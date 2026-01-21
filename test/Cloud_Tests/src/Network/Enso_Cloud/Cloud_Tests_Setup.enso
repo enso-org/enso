@@ -5,7 +5,7 @@ import Standard.Base.Runtime.Context
 import Standard.Base.Runtime.Ref.Ref
 from Standard.Base.Logging import all
 
-from Standard.Test import Problems
+from Standard.Test import Problems, Test
 import Standard.Test.Test_Environment
 
 
@@ -213,3 +213,17 @@ create_local_datalink_to enso_file:Enso_File =
     config = JS_Object.from_pairs [["type", "Enso_File"], ["libraryName", "Standard.Base"], ["path", enso_file.path]]
     local_tmp_file = File.create_temporary_file prefix="test-datalink" suffix=".datalink"
     Data_Link.write_config local_tmp_file config replace_existing=True
+
+
+## ---
+   private: true
+   ---
+   Runs the action twice, once with the Output context enabled and once with it
+   disabled, to check that the behaviour is the same regardless of context.
+run_with_and_without_output ~action =
+    Context.Output.with_enabled <|
+        Test.with_clue "(normal mode - Output context enabled) " <|
+            action
+    Context.Output.with_disabled <|
+        Test.with_clue "(dry run - Output context disabled) " <|
+            action

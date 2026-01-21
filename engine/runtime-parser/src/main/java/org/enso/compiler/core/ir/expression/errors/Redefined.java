@@ -1,14 +1,13 @@
 package org.enso.compiler.core.ir.expression.errors;
 
 import java.util.function.Function;
-import org.enso.compiler.core.ir.Diagnostic$Kind$Interactive;
+import org.enso.compiler.core.ir.Diagnostic;
 import org.enso.compiler.core.ir.Expression;
 import org.enso.compiler.core.ir.IRKind;
 import org.enso.compiler.core.ir.IdentifiedLocation;
 import org.enso.compiler.core.ir.MetadataStorage;
 import org.enso.compiler.core.ir.Name;
 import org.enso.compiler.core.ir.expression.Error;
-import org.enso.compiler.core.ir.expression.errors.ErrorImportExportGen.Builder;
 import org.enso.compiler.core.ir.module.scope.Definition;
 import org.enso.runtime.parser.dsl.GenerateFields;
 import org.enso.runtime.parser.dsl.GenerateIR;
@@ -38,7 +37,7 @@ public interface Redefined extends Error {
       boolean keepIdentifiers);
 
   @GenerateIR(
-      interfaces = {Redefined.class, IRKind.Primitive.class, Diagnostic$Kind$Interactive.class})
+      interfaces = {Redefined.class, IRKind.Primitive.class, Diagnostic.Kind.Interactive.class})
   final class SelfArg extends RedefinedSelfArgErrorGen {
     @GenerateFields
     public SelfArg(IdentifiedLocation identifiedLocation, MetadataStorage passData) {
@@ -77,7 +76,7 @@ public interface Redefined extends Error {
         Redefined.class,
         IRKind.Primitive.class,
         Definition.class,
-        Diagnostic$Kind$Interactive.class
+        Diagnostic.Kind.Interactive.class
       })
   final class Conversion extends RedefinedConversionErrorGen {
 
@@ -136,7 +135,7 @@ public interface Redefined extends Error {
         Redefined.class,
         IRKind.Primitive.class,
         Definition.class,
-        Diagnostic$Kind$Interactive.class
+        Diagnostic.Kind.Interactive.class
       })
   final class Method extends RedefinedMethodErrorGen {
     @GenerateFields
@@ -191,7 +190,7 @@ public interface Redefined extends Error {
         Redefined.class,
         IRKind.Primitive.class,
         Definition.class,
-        Diagnostic$Kind$Interactive.class
+        Diagnostic.Kind.Interactive.class
       })
   final class MethodClashWithAtom extends RedefinedMethodClashWithAtomErrorGen {
     /**
@@ -243,7 +242,7 @@ public interface Redefined extends Error {
         Redefined.class,
         IRKind.Primitive.class,
         Definition.class,
-        Diagnostic$Kind$Interactive.class
+        Diagnostic.Kind.Interactive.class
       })
   final class Type extends RedefinedTypeErrorGen {
     @GenerateFields
@@ -286,7 +285,7 @@ public interface Redefined extends Error {
         Redefined.class,
         IRKind.Primitive.class,
         Definition.class,
-        Diagnostic$Kind$Interactive.class
+        Diagnostic.Kind.Interactive.class
       })
   final class Arg extends RedefinedArgErrorGen {
     @GenerateFields
@@ -325,7 +324,7 @@ public interface Redefined extends Error {
 
   /** An error representing the redefinition of an atom in a given module. */
   @GenerateIR(
-      interfaces = {Redefined.class, IRKind.Primitive.class, Diagnostic$Kind$Interactive.class})
+      interfaces = {Redefined.class, IRKind.Primitive.class, Diagnostic.Kind.Interactive.class})
   final class Binding extends RedefinedBindingErrorGen {
     @GenerateFields
     public Binding(@IRChild Expression.Binding invalidBinding, MetadataStorage passData) {
