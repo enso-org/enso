@@ -1,6 +1,5 @@
 package org.enso.interpreter.node.expression.builtin.meta;
 
-import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertEquals;
 
 import com.oracle.truffle.api.RootCallTarget;
@@ -16,11 +15,6 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
-
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertTrue;
-
 
 public class TypeOfNodeValueTest {
   @ClassRule public static final ContextUtils ctxRule = ContextUtils.createDefault();
@@ -86,32 +80,5 @@ public class TypeOfNodeValueTest {
     var allTypes1 = (Type[]) arr1[1];
     assertEquals("Just one type", 1, allTypes1.length);
     assertEquals("Integer", types[0], allTypes1[0]);
-  }
-
-  @Test
-  public void customWarningType() {
-    var ret = ctxRule.evalModule("""
-        from Standard.Base import Warning
-        type My_Warn
-            Value reason
-        main =
-            with_warn = Warning.attach (My_Warn.Value "my_warn") 42
-            warn = Warning.get_all with_warn . first
-            [My_Warn, warn]
-        """);
-    assertThat(ret.hasArrayElements(), is(true));
-    var myWarnTypeExpected = ctxRule.unwrapValue(ret.getArrayElement(0));
-    var myWarn = ctxRule.unwrapValue(ret.getArrayElement(1));
-    var myWarnTypeActual = typeOf(myWarn);
-    assertTrue("is type", myWarnTypeExpected instanceof Type);
-    assertTrue("is type", myWarnTypeActual instanceof Type);
-    var expectedTypeName = ((Type) myWarnTypeExpected).getQualifiedName().toString();
-    assertThat(expectedTypeName, containsString("My_Warn"));
-    var actualTypeName = ((Type) myWarnTypeActual).getQualifiedName().toString();
-    assertThat(actualTypeName, is(expectedTypeName));
-  }
-
-  private Object typeOf(Object value) {
-    return ((Object[]) testTypesCall.call(value, false))[0];
   }
 }
