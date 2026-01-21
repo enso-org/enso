@@ -15,7 +15,6 @@ import org.enso.interpreter.dsl.AcceptsWarning;
 import org.enso.interpreter.dsl.Builtin;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.builtin.BuiltinObject;
-import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.atom.StructsLibrary;
 import org.enso.interpreter.runtime.data.hash.EnsoHashMap;
 import org.enso.interpreter.runtime.data.hash.HashMapInsertNode;
@@ -86,21 +85,19 @@ public final class Warning extends BuiltinObject {
   }
 
   @ExportMessage
-  Object getField(int index,
-      @Shared @CachedLibrary(limit = "3") StructsLibrary structsLib) {
+  Object getField(int index, @Shared @CachedLibrary(limit = "3") StructsLibrary structsLib) {
     return structsLib.getField(value, index);
   }
 
   @ExportMessage
   void setField(
-      int index, Object value,
-      @Shared @CachedLibrary(limit = "3") StructsLibrary structsLib) {
+      int index, Object value, @Shared @CachedLibrary(limit = "3") StructsLibrary structsLib) {
     structsLib.setField(this.value, index, value);
   }
 
   @ExportMessage
-  boolean isFieldEvaluated(int index,
-      @Shared @CachedLibrary(limit = "3") StructsLibrary structsLib) {
+  boolean isFieldEvaluated(
+      int index, @Shared @CachedLibrary(limit = "3") StructsLibrary structsLib) {
     return structsLib.isFieldEvaluated(value, index);
   }
 
