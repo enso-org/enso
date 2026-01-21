@@ -877,6 +877,13 @@
     {
       "type": {
         "proxy": [
+          "java.util.function.Consumer"
+        ]
+      }
+    },
+    {
+      "type": {
+        "proxy": [
           "org.enso.ydoc.api.YjsChannel"
         ]
       }
