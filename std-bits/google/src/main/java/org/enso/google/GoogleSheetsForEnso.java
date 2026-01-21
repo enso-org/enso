@@ -113,6 +113,12 @@ public class GoogleSheetsForEnso {
 
     var doubleValue = effectiveValue.getNumberValue();
     if (doubleValue == null) {
+      // See if it's a boolean.
+      var boolValue = effectiveValue.getBoolValue();
+      if (boolValue != null) {
+        return boolValue;
+      }
+
       // Just have a text value so return it.
       return effectiveValue.getStringValue();
     }
