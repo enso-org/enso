@@ -20,6 +20,10 @@ import org.enso.table.problems.ProblemAggregator;
 public interface StorageType<T> {
   @SuppressWarnings("unchecked")
   static <T> StorageType<T> makeLocal(StorageType<T> type) {
+    if (type == null) {
+      return null;
+    }
+
     if (Proxy.isProxyClass(type.getClass())) {
       var local = StorageType.fromTypeCharAndSize(type.typeChar(), type.size());
       return (StorageType<T>) local;

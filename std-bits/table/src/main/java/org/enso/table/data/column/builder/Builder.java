@@ -134,7 +134,7 @@ public interface Builder {
       var b = Builder.getForBigInteger(size, null);
       b.appendBulkStorage(storage);
       var localStorage = b.seal();
-      return (ColumnStorage<T>) localStorage;
+      return localType.asTypedStorage(localStorage);
     }
 
     if (BuilderUtil.LOGGER.isTraceEnabled()) {
