@@ -19,7 +19,7 @@ import org.enso.table.error.ValueTypeMismatchException;
 import org.enso.table.problems.ProblemAggregator;
 
 /** A builder for floating point columns. */
-sealed class DoubleBuilder extends NumericBuilder implements BuilderForDouble
+sealed class DoubleBuilder extends ValidityBuilder implements BuilderForDouble
     permits InferredDoubleBuilder {
   protected final PrecisionLossAggregator precisionLossAggregator;
   private DoubleBuffer data;

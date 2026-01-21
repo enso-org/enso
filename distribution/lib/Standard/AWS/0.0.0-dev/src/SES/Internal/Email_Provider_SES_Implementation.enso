@@ -1,0 +1,60 @@
+private
+
+from Standard.Base import all
+
+import Standard.Base.Network.Email.Email_Body.Email_Body
+import Standard.Base.Network.Email.Email_Send_Response.Send_Response
+import project.SES.Email_Provider_SES.Email_Provider_SES
+import Standard.Base.Network.Email.Send_Error.Send_Error
+
+polyglot java import org.enso.aws.regions.AWSRegion
+polyglot java import org.enso.aws.ClientBuilder
+polyglot java import software.amazon.awssdk.regions.Region
+polyglot java import software.amazon.awssdk.services.ses.SesClient
+polyglot java import software.amazon.awssdk.services.ses.model.Body
+polyglot java import software.amazon.awssdk.services.ses.model.Content
+polyglot java import software.amazon.awssdk.services.ses.model.Destination
+polyglot java import software.amazon.awssdk.services.ses.model.Message
+polyglot java import software.amazon.awssdk.services.ses.model.SendEmailRequest
+polyglot java import java.util.Base64
+
+type Email_Provider_SES_Implementation
+    private Value config:Email_Provider_SES
+
+    send self email:Email =
+        _send_email_with_ses_provider email self.config.region self.config.credentials
+
+_send_email_with_ses_provider email:Email region credentials =
+    ses_client = _make_client credentials region
+    if email.attachments.length > 0 then
+        Error.throw (Send_Error.Error "SES provider does not support attachments yet.")
+    
+    subject = _build_content email.subject    
+    body = case email.body of
+        Email_Body.No_Body -> Body.builder.text (_build_content "") . build
+        Email_Body.Plain_Text text -> Body.builder.text (_build_content text) . build
+        Email_Body.HTML html text -> Body.builder.html (_build_content html) 
+            . text (_build_content text) 
+            . build
+    message = Message.builder.subject subject . body body . build
+    destination = Destination.builder
+        . toAddresses (email.to.map .to_text) 
+        . ccAddresses (email.cc.map .to_text)
+        . bccAddresses (email.bcc.map .to_text)
+        . build
+    send_email_request = SendEmailRequest.builder
+        . source email.from_address.to_text
+        . destination destination
+        . message message
+        . build
+    response = ses_client.sendEmail send_email_request
+    http_response = response.sdkHttpResponse
+    if http_response.isSuccessful then Send_Response.Sent email else
+        Error.throw (Send_Error.Error ("SES send failed with status " + http_response.statusCode.to_text))
+
+_make_client credentials region =
+    builder = ClientBuilder.new credentials.as_java region.as_java
+    builder.buildSESClient
+
+_build_content text:Text =
+    Content.builder.data text . build

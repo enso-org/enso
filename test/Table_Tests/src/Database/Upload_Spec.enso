@@ -18,7 +18,7 @@ from Standard.Database.Internal.Upload.Helpers.Default_Arguments import default_
 
 from Standard.Test import all
 import Standard.Test.Test_Environment
-from Standard.Test.Execution_Context_Helpers import run_with_and_without_output
+from enso_dev.Cloud_Tests.Network.Enso_Cloud.Cloud_Tests_Setup import run_with_and_without_output
 
 import project.Database.Helpers.Name_Generator
 

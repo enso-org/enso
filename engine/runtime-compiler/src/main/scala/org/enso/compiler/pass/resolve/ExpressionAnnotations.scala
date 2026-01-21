@@ -73,9 +73,9 @@ case object ExpressionAnnotations extends IRPass {
         if (isKnownAnnotation(ann.name)) {
           app.arguments match {
             case List() =>
-              errors.Resolution(
+              errors.Resolution.create(
                 ann,
-                errors.Resolution.UnexpectedAnnotation
+                errors.Resolution.UnexpectedAnnotation.INSTANCE
               )
             case List(arg) =>
               doExpression(arg.value)
@@ -94,17 +94,23 @@ case object ExpressionAnnotations extends IRPass {
           }
         } else {
           val err =
-            errors.Resolution(ann, errors.Resolution.UnknownAnnotation)
+            errors.Resolution.create(
+              ann,
+              errors.Resolution.UnknownAnnotation.INSTANCE
+            )
           app.copyWithFunction(err)
         }
       case ann: Name.BuiltinAnnotation =>
         if (isKnownAnnotation(ann.name)) {
-          errors.Resolution(
+          errors.Resolution.create(
             ann,
-            errors.Resolution.UnexpectedAnnotation
+            errors.Resolution.UnexpectedAnnotation.INSTANCE
           )
         } else {
-          errors.Resolution(ann, errors.Resolution.UnknownAnnotation)
+          errors.Resolution.create(
+            ann,
+            errors.Resolution.UnknownAnnotation.INSTANCE
+          )
         }
     }
 

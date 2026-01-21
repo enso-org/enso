@@ -571,7 +571,8 @@ public final class ContextUtils implements TestRule, AutoCloseable {
 
   private static final class FailureWithOutput extends RuntimeException {
     private FailureWithOutput(String out, Throwable cause) {
-      super(out, cause);
+      super(cause.getMessage() + "\n" + out);
+      setStackTrace(cause.getStackTrace());
     }
   }
 

@@ -5,65 +5,156 @@ load("@aspect_rules_ts//ts:defs.bzl", "ts_config")
 load("@env//:defs.bzl", "getenv")
 load("@npm//:defs.bzl", "npm_link_all_packages", "npm_link_targets")
 load("@npm//app/gui:vite/package_json.bzl", vite_bin = "bin")
+load("//:bazel_scripts/ts_config.bzl", "write_tsconfig")
 load("//internal:stampFiles.bzl", "stamp_files")
 
 npm_link_all_packages(name = "node_modules")
 
+ICON_GENERATED_DIR = "src/project-view/util/iconMetadata"
+
+ICON_NAME_FILE = ICON_GENERATED_DIR + "/iconName.ts"
+
+TESTS_PATTERN_BASE = "src/**/__tests__/*"
+
+VITEST_TEST_FILES = glob([TESTS_PATTERN_BASE + ".ts"])
+
+PUBLIC_FILES = glob(["public/**"])
+
+APP_TSCONFIG_FILES = glob(
+    [
+        "src/**",
+        "project-manager-shim-middleware/**",
+    ] + [
+        "env.d.ts",
+        "lib0-ext.d.ts",
+    ],
+    [
+        TESTS_PATTERN_BASE,
+    ],
+) + [":icon_metadata"]
+
+PACKAGE_SRCS = [
+    "//:tsconfig",
+    ":tsconfig",
+    ":tsconfig_app",
+    ":tsconfig_node",
+    ":tsconfig_app_vitest",
+    "vite.config.ts",
+    "tailwind.config.ts",
+    "package.json",
+    "index.html",
+] + APP_TSCONFIG_FILES + PUBLIC_FILES + npm_link_targets()
+
+# This can use `ts_config` rule because the file list is empty.
 ts_config(
     name = "tsconfig",
     src = "tsconfig.json",
     deps = ["//:tsconfig"],
 )
 
-ts_config(
+write_tsconfig(
     name = "tsconfig_node",
-    src = "tsconfig.node.json",
-    deps = [":tsconfig"],
-)
+    out = "tsconfig.node.json",
+    config = {
+        "compilerOptions": {
+            "baseUrl": ".",
+            "module": "ESNext",
+            "verbatimModuleSyntax": True,
+            "types": [
+                "node",
+                "vitest/importMeta",
+            ],
+        },
+    },
+    extends = ":tsconfig",
+    files = glob([
+        "integration-test/**/*",
+        "project-manager-shim-middleware/*.ts",
+    ]) + [
+        "env.d.ts",
+        "eslint.config.js",
+        "playwright.config.ts",
+        "tailwind.config.ts",
+        "vite.config.ts",
+        "vite.test.config.ts",
+        "vitest.config.ts",
 
-ts_config(
-    name = "tsconfig_app",
-    src = "tsconfig.app.json",
-    deps = [":tsconfig"],
-)
+        # Extra app project files that are directly imported by integration tests
+        "src/dashboard/utilities/string.ts",
+        "src/project-view/util/shortcuts.ts",
+        "src/project-view/components/GraphEditor/widgets/WidgetFunction/consts.ts",
+        "src/project-view/util/ast/abstract.ts",
+        "src/project-view/util/ast/match.ts",
+        "src/providers/featureFlags.ts",
 
-ts_config(
-    name = "tsconfig_scripts",
-    src = "tsconfig.scripts.json",
-)
-
-ts_config(
-    name = "tsconfig_app_vitest",
-    src = "tsconfig.app.vitest.json",
-    deps = [":tsconfig_app"],
-)
-
-ICON_GENERATED_DIR = "src/project-view/util/iconMetadata"
-
-SRCS = [
-    "//:tsconfig",
-    ":tsconfig",
-    ":tsconfig_app",
-    ":tsconfig_node",
-    ":tsconfig_app_vitest",
-    ":tsconfig_scripts",
-    ":icon_metadata",
-    "vite.config.ts",
-    "tailwind.config.ts",
-    "package.json",
-    "index.html",
-] + glob(
-    [
-        "src/**",
-        "public/**",
-        "project-manager-shim-middleware/**",
+        # Transitive dependencies of above files
+        "src/project-view/util/projectPath.ts",  # WidgetFunction/consts.ts
+        "src/project-view/util/qualifiedName.ts",  # abstract.ts, projectPath.ts
+        "src/dashboard/utilities/write.ts",  # featureFlags.ts
+        "src/utils/zustand.ts",  # featureFlags.ts
     ],
-    [ICON_GENERATED_DIR + "/**"],
-) + npm_link_targets()
+)
+
+write_tsconfig(
+    name = "tsconfig_app",
+    out = "tsconfig.app.json",
+    config = {
+        "compilerOptions": {
+            "composite": True,
+            "allowImportingTsExtensions": True,
+            "types": ["vitest/importMeta"],
+        },
+    },
+    extends = ":tsconfig",
+    files = APP_TSCONFIG_FILES,
+)
+
+write_tsconfig(
+    name = "tsconfig_app_vitest",
+    out = "tsconfig.app.vitest.json",
+    config = {
+        "compilerOptions": {
+            "types": [
+                "node",
+                "vitest/importMeta",
+                "@testing-library/jest-dom",
+            ],
+        },
+    },
+    extends = ":tsconfig_app",
+    files = VITEST_TEST_FILES,
+)
+
+write_tsconfig(
+    name = "tsconfig_scripts",
+    out = "tsconfig.scripts.json",
+    allow_js = True,
+    config = {
+        "compilerOptions": {
+            "module": "Node16",
+            "target": "ES2017",
+            "strict": True,
+            "noEmit": True,
+            "allowJs": True,
+            "checkJs": True,
+            "exactOptionalPropertyTypes": True,
+            "noUncheckedIndexedAccess": True,
+            "types": ["node"],
+        },
+    },
+    files = glob(
+        [
+            "scripts/**/*.ts",
+            "scripts/**/*.mjs",
+            "scripts/**/*.js",
+        ],
+        allow_empty = True,
+    ),
+)
 
 npm_package(
     name = "pkg",
-    srcs = SRCS,
+    srcs = PACKAGE_SRCS,
     visibility = ["//visibility:public"],
 )
 
@@ -96,7 +187,7 @@ _vite_env = select({
 
 vite_bin.vite(
     name = "dist",
-    srcs = SRCS + ENV_FILES,
+    srcs = PACKAGE_SRCS + ENV_FILES,
     args = _vite_args,
     chdir = package_name(),
     env = _vite_env,
@@ -121,7 +212,7 @@ vite_bin.vite_binary(
 vite_bin.vite_binary(
     name = "dev_server",
     chdir = package_name(),
-    data = SRCS,
+    data = PACKAGE_SRCS,
     # Under ibazel, let vite hot-reload changed files rather than restart it
     tags = ["ibazel_notify_changes"],
 )
@@ -134,8 +225,8 @@ js_binary(
 js_run_binary(
     name = "icon_metadata",
     srcs = ["src/project-view/assets/icons.svg"],
+    outs = [ICON_NAME_FILE],
     chdir = package_name(),
-    out_dirs = [ICON_GENERATED_DIR],
     tool = ":script_generate_icon_metadata",
     visibility = ["//visibility:public"],
 )
@@ -158,7 +249,19 @@ stamp_files(
 write_source_files(
     name = "write_icon_metadata",
     files = {
-        ICON_GENERATED_DIR: ":icon_metadata",
+        ICON_NAME_FILE: ":icon_metadata",
+    },
+    suggested_update_target = "//:write_all",
+    visibility = ["//visibility:public"],
+)
+
+write_source_files(
+    name = "write_tsconfigs",
+    files = {
+        "tsconfig.app.json": ":tsconfig_app",
+        "tsconfig.app.vitest.json": ":tsconfig_app_vitest",
+        "tsconfig.node.json": ":tsconfig_node",
+        "tsconfig.scripts.json": ":tsconfig_scripts",
     },
     suggested_update_target = "//:write_all",
     visibility = ["//visibility:public"],

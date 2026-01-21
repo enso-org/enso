@@ -35,11 +35,6 @@ abstract class GetFieldBaseNode extends EnsoRootNode {
   protected PanicException noSuchFieldPanic(Atom atom) {
     var nameText = Text.create(fieldName);
     return new PanicException(
-        EnsoContext.get(this)
-            .getBuiltins()
-            .error()
-            .getNoSuchFieldError()
-            .newInstance(atom, nameText),
-        this);
+        EnsoContext.get(this).getBuiltins().error().makeNoSuchFieldError(atom, nameText), this);
   }
 }

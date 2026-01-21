@@ -754,7 +754,7 @@ type Inexact_Type_Coercion
        ---
        Indicates that the requested `Value_Type` is not available in the given
        backend, so it was replaced by its closest available type.
-    Warning (requested_type : Value_Type) (actual_type : Value_Type) (unavailable:Boolean = True)
+    Warning (requested_type : Value_Type) (actual_type : Value_Type) (unavailable:Boolean = True) (extra_message:Text = "")
 
     ## ---
        private: true
@@ -764,9 +764,9 @@ type Inexact_Type_Coercion
     to_display_text self =
         case self.unavailable of
             True ->
-                "The requested type "+self.requested_type.to_display_text+" is not available in the given backend, so it was replaced by its closest available type "+self.actual_type.to_display_text+"."
+                "The requested type "+self.requested_type.to_display_text+" is not available in the given backend, so it was replaced by its closest available type "+self.actual_type.to_display_text+"."+self.extra_message
             False ->
-                "The type "+self.requested_type.to_display_text+" has been coerced to "+self.actual_type.to_display_text+". Some information may be lost."
+                "The type "+self.requested_type.to_display_text+" has been coerced to "+self.actual_type.to_display_text+". Some information may be lost."+self.extra_message
 
     ## ---
        private: true
