@@ -544,9 +544,11 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
 
   private val ydoc = {
     val c = org.enso.languageserver.boot.config.ApplicationConfig.load().ydoc
-    val ydocExecutor = Executors.newSingleThreadScheduledExecutor(r => {
+    val ydocExecutor = Executors.newSingleThreadExecutor(r => {
       val t = new Thread(r)
       t.setName("Ydoc main thread")
+      // Ydoc should not prevent JVM from exiting
+      t.setDaemon(true)
       t
     })
     ydocExecutor.execute(() =>
