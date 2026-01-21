@@ -92,7 +92,7 @@ export class LanguageServerSession {
   static get(url: string, callbacks: YjsChannelCallbacks): LanguageServerSession {
     const session = map.setIfUndefined(LanguageServerSession.sessions, url, () => {
       const indexDoc = new WSSharedDoc()
-      let transport = new YjsServerTransport(indexDoc.doc, url, callbacks)
+      const transport = new YjsServerTransport(indexDoc.doc, url, callbacks)
       const ls = new LanguageServer(crypto.randomUUID(), transport)
       console.log('DEBUG LanguageServerSession.get transport created', url)
       return new LanguageServerSession(ls, indexDoc, () =>
