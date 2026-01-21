@@ -43,7 +43,7 @@
     "chokidar": "^4.0.3",
     "enso-common": "workspace:*",
     "portfinder": "^1.0.32",
-    "tar": "^6.2.1",
+    "tar": "^7.5.4",
     "trash": "^9.0.0",
     "yaml": "^2.7.0"
   }
