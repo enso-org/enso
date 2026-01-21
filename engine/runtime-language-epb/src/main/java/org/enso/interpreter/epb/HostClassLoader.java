@@ -116,14 +116,14 @@ final class HostClassLoader extends URLClassLoader implements AutoCloseable, Tru
       return super.loadClass(name, resolve);
     } catch (Throwable e) {
       if (isAttemptToLoadBytecodeInNI(e)) {
-          logger.log(
-              Logger.Level.TRACE,
-              "Attempt to load bytecode for class {0}, delegating to super" + name);
-          return super.loadClass(name, resolve);
-        } else {
-          logger.log(Logger.Level.TRACE, "Failure while loading a class: " + e.getMessage(), e);
-          throw e;
-        }
+        logger.log(
+            Logger.Level.TRACE,
+            "Attempt to load bytecode for class {0}, delegating to super" + name);
+        return super.loadClass(name, resolve);
+      } else {
+        logger.log(Logger.Level.TRACE, "Failure while loading a class: " + e.getMessage(), e);
+        throw e;
+      }
     }
   }
 
