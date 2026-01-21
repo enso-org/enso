@@ -8,8 +8,7 @@ public final class YjsCallbacksSynchronized implements YjsChannelCallbacks {
   private final YjsChannelCallbacks callbacks;
   private final YdocScheduledExecutorService executor;
 
-  public YjsCallbacksSynchronized(
-      YjsChannelCallbacks callbacks, YdocScheduledExecutorService executor) {
+  YjsCallbacksSynchronized(YjsChannelCallbacks callbacks, YdocScheduledExecutorService executor) {
     this.callbacks = callbacks;
     this.executor = executor;
   }
