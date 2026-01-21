@@ -12,6 +12,7 @@ import project.Runtime.Stack_Trace_Element
 from project.Data.Boolean import Boolean, False
 from project.Error import all
 from project.Function import flip
+from project.Internal.Warning_Helpers import Placeholder
 from project.Nothing import all
 
 ## A representation of a dataflow warning attached to a value.
@@ -400,6 +401,3 @@ Any.remove_warnings self warning_type=Any =
 Any.throw_on_warning self warning_type=Any =
     _ = warning_type
     self
-
-
-type Placeholder
