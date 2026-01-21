@@ -150,7 +150,7 @@ describe('YjsChannel', () => {
     expect(Array.from(receivedView)).toEqual([1, 2, 3, 4, 5, 6, 7, 8])
   })
 
-    it('should send and receive Uint8Array messages', () => {
+  it('should send and receive Uint8Array messages', () => {
     const doc = new Y.Doc()
     const channel1 = new YjsChannel<Uint8Array>(doc, 'test-channel')
     const channel2 = new YjsChannel<Uint8Array>(doc, 'test-channel')

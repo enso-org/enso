@@ -1,6 +1,6 @@
 import * as map from 'lib0/map'
+import { YjsChannel, type MessageHandler, type YjsChannelCallbacks } from 'ydoc-channel'
 import * as Y from 'yjs'
-import { YjsChannel, type YjsChannelCallbacks, type MessageHandler } from 'ydoc-channel'
 
 export class YjsBinaryChannel<T = unknown> extends YjsChannel<T> {
   private static channels = new Map<string, YjsBinaryChannel>()
@@ -21,7 +21,12 @@ export class YjsBinaryChannel<T = unknown> extends YjsChannel<T> {
   }
 
   /** Get a {@link YjsBinaryChannel}. */
-  static get(doc: Y.Doc, channelName: string, callbacks: YjsChannelCallbacks, byteBuffer: any): YjsBinaryChannel {
+  static get(
+    doc: Y.Doc,
+    channelName: string,
+    callbacks: YjsChannelCallbacks,
+    byteBuffer: any,
+  ): YjsBinaryChannel {
     return map.setIfUndefined(YjsBinaryChannel.channels, channelName, () => {
       return new YjsBinaryChannel(doc, channelName, callbacks, byteBuffer)
     })
