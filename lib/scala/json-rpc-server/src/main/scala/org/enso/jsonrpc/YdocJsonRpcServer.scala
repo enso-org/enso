@@ -68,6 +68,8 @@ object YdocJsonRpcServer {
 
     override def onConnect(channel: YjsChannel): Unit = {
       logger.info(s"ServerCallbacks.onConnect ${channel.getClass()}")
+      System.err.println(s"  is proxy ${java.lang.reflect.Proxy.isProxyClass(channel.getClass())})")
+      System.err.println(s"  invocation ${java.lang.reflect.Proxy.getInvocationHandler(channel)})")
 
       val incomingMessageHandler =
         system.actorOf(
@@ -80,7 +82,8 @@ object YdocJsonRpcServer {
           s"message-handler-supervisor-${UUID.randomUUID()}"
         )
       try {
-        channel.subscribe(this.onMessage(incomingMessageHandler, _))
+        val toSubscribe = new OnMessageHandler(messageCallbacks, incomingMessageHandler)
+        channel.subscribe(toSubscribe)
       } catch {
         case e: Exception =>
           logger.error("ServerCallbacks.onConnect err", e)
@@ -94,11 +97,10 @@ object YdocJsonRpcServer {
         )
       incomingMessageHandler ! MessageHandler.Connected(outgoingMessageHandler)
     }
+  }
 
-    private def onMessage(
-      incomingMessageHandler: ActorRef,
-      message: Object
-    ): Unit = {
+  final class OnMessageHandler(messageCallbacks: List[MessageHandler.WebMessage => Unit], incomingMessageHandler: ActorRef) extends java.util.function.Consumer[Object] with LazyLogging {
+    def accept(message: Object): Unit = {
       message match {
         case m: String =>
           logger.info(s"Received message $m")
