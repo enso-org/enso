@@ -1,6 +1,7 @@
 import { type NodeId } from '$/providers/openedProjects/graph'
 import { type GraphDb } from '$/providers/openedProjects/graph/graphDatabase'
 import { type ProjectStore } from '$/providers/openedProjects/project'
+import { type ToValue } from '$/utils/reactivity'
 import type GraphNodeMessage from '@/components/GraphEditor/GraphNodeMessage.vue'
 import {
   colorForMessageType,
@@ -9,7 +10,6 @@ import {
 } from '@/components/GraphEditor/GraphNodeMessage.vue'
 import type SvgIcon from '@/components/SvgIcon.vue'
 import { type Opt } from '@/util/data/opt'
-import { type ToValue } from '@/util/reactivity'
 import { computed, toValue } from 'vue'
 import type { ComponentProps } from 'vue-component-type-helpers'
 import type { ExternalId } from 'ydoc-shared/yjsModel'

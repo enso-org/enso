@@ -486,10 +486,19 @@ private[runtime] class IrToTruffle(
               idx,
               arg.getDefaultValue.orElse(null)
             )
-          val readArg       = TypeCheckValueNode.wrap(readArgNoCheck, checkNode)
-          val assignmentArg = AssignmentNode.build(readArg, slotIdx)
+          val readArg = TypeCheckValueNode.wrap(readArgNoCheck, checkNode)
+          val assignmentArg =
+            AssignmentNode.build(
+              arg.getName,
+              readArgNoCheck.getSourceSectionBounds,
+              readArg,
+              slotIdx
+            )
           val argRead =
-            ReadLocalVariableNode.build(new FramePointer(0, slotIdx))
+            ReadLocalVariableNode.build(
+              arg.getName,
+              new FramePointer(0, slotIdx)
+            )
           argumentExpressions.append((assignmentArg, argRead))
         }
 
@@ -1822,13 +1831,21 @@ private[runtime] class IrToTruffle(
           throw new CompilerError(
             "Branch documentation should be desugared at an earlier stage."
           )
-        case errors.Pattern(
-              _,
-              errors.Pattern.WrongArity(name, expected, actual),
-              _
-            ) =>
-          Left(BadPatternMatch.WrongArgCount(name, expected, actual))
-
+        case patErr: errors.Pattern =>
+          patErr.reason() match {
+            case wrongArity: errors.Pattern.WrongArity =>
+              Left(
+                BadPatternMatch.WrongArgCount(
+                  wrongArity.consName(),
+                  wrongArity.expected(),
+                  wrongArity.actual()
+                )
+              )
+            case _ =>
+              throw new CompilerError(
+                s"Unexpected pattern error: ${patErr.reason()}."
+              )
+          }
       }
     }
 
@@ -1931,7 +1948,12 @@ private[runtime] class IrToTruffle(
       currentVarName = binding.name.name
       val slotIdx = fp.frameSlotIdx()
       setLocation(
-        AssignmentNode.build(this.run(binding.expression, true, true), slotIdx),
+        AssignmentNode.build(
+          binding.name.name,
+          null,
+          this.run(binding.expression, true, true),
+          slotIdx
+        ),
         binding.location
       )
     }
@@ -2060,9 +2082,10 @@ private[runtime] class IrToTruffle(
       }
 
       override protected def resolveLocalName(
+        name: String,
         localLink: FramePointer
       ): RuntimeExpression =
-        ReadLocalVariableNode.build(localLink)
+        ReadLocalVariableNode.build(name, localLink)
 
       override protected def resolveGlobalName(
         resolvedName: BindingsMap.ResolvedName,
@@ -2177,7 +2200,7 @@ private[runtime] class IrToTruffle(
       */
     private def processError(error: Error): RuntimeExpression = {
       val payload: Atom = error match {
-        case Error.InvalidIR(_, _) =>
+        case _: Error.InvalidIR =>
           throw new CompilerError("Unexpected Invalid IR during codegen.")
         case err: errors.Syntax =>
           getBuiltins
@@ -2211,7 +2234,7 @@ private[runtime] class IrToTruffle(
           getBuiltins
             .error()
             .makeCompileError(err.message(fileLocationFromSection))
-        case err: errors.Unexpected.TypeSignature =>
+        case err: errors.UnexpectedTypeSignature =>
           getBuiltins
             .error()
             .makeCompileError(err.message(fileLocationFromSection))
@@ -2335,10 +2358,16 @@ private[runtime] class IrToTruffle(
               )
             val readArgNoCheck =
               setLocation(readArgNoCheck0, unprocessedArg.name().location())
-            val readArg   = TypeCheckValueNode.wrap(readArgNoCheck, checkNode)
-            val assignArg = AssignmentNode.build(readArg, slotIdx)
+            val readArg = TypeCheckValueNode.wrap(readArgNoCheck, checkNode)
+            val assignArgNoLock =
+              AssignmentNode.build(
+                arg.getName,
+                readArgNoCheck.getSourceSectionBounds,
+                readArg,
+                slotIdx
+              )
 
-            argExpressions.append(assignArg)
+            argExpressions.append(assignArgNoLock)
 
             val argName = arg.getName
 
@@ -2371,10 +2400,11 @@ private[runtime] class IrToTruffle(
       val b    = Source.newBuilder("epb", language + ":" + line + "#" + code, name)
       b.uri(source.getURI())
       val src = b.build()
-      val argumentReaders = argumentSlotIdxs
-        .map(slotIdx =>
-          ReadLocalVariableNode.build(new FramePointer(0, slotIdx))
-        )
+      val argumentReaders = argumentSlotIdxs.zipWithIndex
+        .map { case (slotIdx, i) =>
+          ReadLocalVariableNode
+            .build(argumentNames(i), new FramePointer(0, slotIdx))
+        }
         .toArray[RuntimeExpression]
       ForeignMethodCallNode.buildDeferred(
         src,

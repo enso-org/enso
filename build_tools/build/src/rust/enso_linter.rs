@@ -2,8 +2,8 @@ use super::*;
 
 use crate::paths::generated::RepoRoot;
 
-use ide_ci::programs::cargo;
 use ide_ci::programs::Cargo;
+use ide_ci::programs::cargo;
 
 const LINTER_CRATE_NAME: &str = "enso-parser-debug";
 const LINTER_BIN_NAME: &str = "check_syntax";

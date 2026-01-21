@@ -6,7 +6,7 @@ rust_library(
     name = "enso_parser_schema",
     srcs = glob(["src/**/*.rs"]),
     aliases = aliases(),
-    edition = "2021",
+    edition = "2024",
     proc_macro_deps = all_crate_deps(proc_macro = True),
     visibility = ["//visibility:public"],
     deps = all_crate_deps(normal = True) + [

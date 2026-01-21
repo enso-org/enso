@@ -106,6 +106,40 @@ add_specs suite_builder = suite_builder.group "Engine runner" group_builder->
             manifest_lines.at dep_idx . should_contain "Standard.Base"
             manifest_lines.at (dep_idx + 1) . should_contain "Standard.Image"
 
+    group_builder.specify "--compile creates source archive by default" <|
+        tmp_dir = create_tmp_dir
+
+        cleanup =
+            tmp_dir.delete recursive=True
+
+        Panic.with_finalizer cleanup <|
+            proj_dir = create_new_project tmp_dir "Proj" "main = 42"
+            enso_run args=["--vm.D=polyglot.enso.checkCurrentDirectory=false", "--compile", proj_dir.path]
+            manifest = proj_dir / "manifest.yaml"
+            manifest_lines = manifest.read_text.lines . map (_.trim)
+            manifest_lines . should_contain "archives:"
+            srcs_idx = manifest_lines.index_of (_ == "archives:") + 1
+            archive_name = manifest_lines.at srcs_idx . replace (regex "^\s*-") "" . trim
+            archive_name . ends_with "tgz" . should_be_true
+            archive = proj_dir / archive_name
+            archive . exists . should_be_true
+
+    group_builder.specify "--compile does not create any archives when sys prop is set" <|
+        tmp_dir = create_tmp_dir
+
+        cleanup =
+            tmp_dir.delete recursive=True
+
+        Panic.with_finalizer cleanup <|
+            proj_dir = create_new_project tmp_dir "Proj" "main = 42"
+            enso_run args=["--vm.D=polyglot.enso.checkCurrentDirectory=false", "--vm.D=org.enso.compiler.noSourceArchives="+proj_dir.path, "--compile", proj_dir.path]
+            manifest = proj_dir / "manifest.yaml"
+            manifest_lines = manifest.read_text.lines . map (_.trim)
+            manifest_lines . should_not_contain "archives:"
+            file_names = proj_dir.list.map (_.name)
+            Test.with_clue ("No .tgz files in " + file_names.to_text) <|
+                file_names.filter (_.ends_with "tgz") . is_empty . should_be_true
+
 
 main filter=Nothing =
     suite = Test.build suite_builder->

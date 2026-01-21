@@ -498,7 +498,7 @@ base_dialect_operations =
     nulls = [["IS_NULL", make_right_unary_op "IS NULL"], ["FILL_NULL", make_function "COALESCE"]]
     contains = [["IS_IN", make_is_in], ["IS_IN_COLUMN", make_is_in_column]]
     types = [simple_cast]
-    windows = [["ROW_NUMBER", make_row_number], ["ROW_NUMBER_IN_GROUP", make_row_number_in_group], ["GROUP_NUMBER", make_group_number], ["GROUP_NUMBER_EQUAL_COUNT", make_group_number_equal_count], ["GROUP_NUMBER_EQUAL_SUM", make_group_number_equal_sum]]
+    windows = [["ROW_NUMBER", make_row_number], ["ROW_NUMBER_IN_GROUP", make_row_number_in_group], ["GROUP_NUMBER", make_group_number], ["GROUP_NUMBER_EQUAL_COUNT", make_group_number_equal_count], ["GROUP_NUMBER_EQUAL_SUM", make_group_number_equal_sum], ["GROUP_NUMBER_STANDARD_DEVIATION_POPULATION", make_group_number_standard_deviation "STDDEV_POP"], ["GROUP_NUMBER_STANDARD_DEVIATION_SAMPLE", make_group_number_standard_deviation "STDDEV_SAMP"]]
     leadlag = [["LEAD", _make_lead_lag "LEAD"], ["LAG", _make_lead_lag "LAG"], ["LEAD_CLOSEST", _make_lead_lag_closest_value "LEAD"], ["LAG_CLOSEST", _make_lead_lag_closest_value "LAG"]]
     trig = [["SIN", make_function "SIN"], ["ASIN", make_function "ASIN"], ["COS", make_function "COS"], ["ACOS", make_function "ACOS"], ["TAN", make_function "TAN"], ["ATAN", make_function "ATAN"], ["SINH", make_function "SINH"], ["COSH", make_function "COSH"], ["TANH", make_function "TANH"]]
     base_dict = Dictionary.from_vector (arith + logic + compare + functions + agg + counts + text + nulls + contains + types + windows + leadlag + trig)
@@ -660,7 +660,9 @@ make_group_number_equal_count (arguments : Vector) = if arguments.length < 3 the
    private: true
    ---
 make_group_number_equal_sum : Vector SQL_Builder -> SQL_Builder
-make_group_number_equal_sum (arguments : Vector) = if arguments.length < 4 then Error.throw (Illegal_State.Error "Wrong amount of parameters in GROUP_NUMBER_EQUAL_COUNT IR. This is a bug in the Database library.") else
+make_group_number_equal_sum (arguments : Vector) =
+    if arguments.length < 4 then
+        Error.throw (Illegal_State.Error "Wrong amount of parameters in GROUP_NUMBER_EQUAL_COUNT IR. This is a bug in the Database library.")
     offset = arguments.at 0
     step = arguments.at 1
     sum_column = arguments.at 2
@@ -679,6 +681,34 @@ make_group_number_equal_sum (arguments : Vector) = if arguments.length < 4 then 
     fractional_group_number = SQL_Builder.code "(" ++ running_sum.paren ++ " / " ++ ideal_group_size.paren ++ ")"
     base_value = SQL_Builder.code "(cast(floor(" ++ fractional_group_number.paren ++ ") as integer))"
     SQL_Builder.code "((" ++ base_value.paren ++ " * " ++ step.paren ++ ") + " ++ offset.paren ++ ")"
+
+## ---
+   private: true
+   ---
+make_group_number_standard_deviation : Text -> Vector SQL_Builder -> SQL_Builder
+make_group_number_standard_deviation (stddev_variant : Text) (arguments : Vector) =
+    if arguments.length < 1 then
+        Error.throw (Illegal_State.Error "Wrong amount of parameters in GROUP_NUMBER_STANDARD_DEVIATION IR. This is a bug in the Database library.")
+
+    stddev_column = arguments.at 0
+
+    stddev = SQL_Builder.code stddev_variant ++ "(" ++ stddev_column ++ ") over ()"
+    ## If standard deviation is 0, using 1 instead to avoid division by zero,
+       resulting in all z-scores being zero and thus "Average" group.
+       If stanard deviation is NULL, using 1 instead for the same reason.
+       (STDDEV_SAMP will return NULL for a single value input.)
+    stddev_safe = SQL_Builder.code "(case when " ++ stddev.paren ++ " = 0 or " ++ stddev.paren ++ " is null then 1 else " ++ stddev.paren ++ " end)"
+    mean = SQL_Builder.code "(avg(" ++ stddev_column ++ ") over ())"
+    zscore = SQL_Builder.code "((" ++ stddev_column.paren ++ " - " ++ mean.paren ++ ") / " ++ stddev_safe.paren ++ ")"
+    group_index = SQL_Builder.code "(floor(" ++ zscore.paren ++ " + 0.5))"
+    whener gi op name = SQL_Builder.code "when " ++ group_index.paren ++ " " ++ op ++ gi.to_text ++ " then '" ++ name ++ "'"
+    whens = Vector.build builder->
+        builder.append (whener -2 "<=" "Very Low")
+        builder.append (whener -1 "=" "Low")
+        builder.append (whener 0 "=" "Average")
+        builder.append (whener 1 "=" "High")
+        builder.append (whener 2 ">=" "Very High")
+    SQL_Builder.code "(case " ++ SQL_Builder.join " " whens ++ " end)"
 
 ## ---
    private: true

@@ -6,4 +6,3 @@
     - run_with_filter self filter:(Standard.Base.Data.Text.Text|Standard.Base.Nothing.Nothing)= should_exit:Standard.Base.Data.Boolean.Boolean= -> (Standard.Base.Data.Boolean.Boolean|Standard.Base.Nothing.Nothing)
 - type Suite_Builder
     - group self name:Standard.Base.Data.Text.Text fn:Standard.Base.Any.Any ~pending:(Standard.Base.Data.Text.Text|Standard.Base.Nothing.Nothing)= -> Standard.Base.Any.Any
-- name_matches name:Standard.Base.Data.Text.Text filter:(Standard.Base.Data.Text.Text|Standard.Base.Nothing.Nothing) -> Standard.Base.Data.Boolean.Boolean

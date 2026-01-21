@@ -19,10 +19,11 @@ config_setting(
     visibility = ["//visibility:public"],
 )
 
+# This can use `ts_config` rule because the file list is empty.
 ts_config(
     name = "tsconfig",
     src = "tsconfig.json",
-    visibility = [":__subpackages__"],
+    visibility = ["//visibility:public"],
 )
 
 write_source_files(
@@ -31,7 +32,17 @@ write_source_files(
         "//app/rust-ffi:write_wasm_dist",
         "//app/ydoc-shared:write_ast_codegen",
         "//app/gui:write_icon_metadata",
+        "//app/gui:write_tsconfigs",
         "//app/table-expression:write_parser_codegen",
+        # Generated tsconfig files
+        "//app/common:write_tsconfigs",
+        "//app/electron-client:write_tsconfigs",
+        "//app/lang-markdown:write_tsconfigs",
+        "//app/lezer-markdown:write_tsconfigs",
+        "//app/project-manager-shim:write_tsconfigs",
+        "//app/table-expression:write_tsconfigs",
+        "//app/ydoc-server:write_tsconfigs",
+        "//app/ydoc-shared:write_tsconfigs",
     ],
 )
 
@@ -79,6 +90,7 @@ SBT_PROJECT_FILES = [
 # TODO: some dependencies might be unnecessary here, but checking everything is time-consuming.
 ENGINE_DIST_SOURCES = STDLIB_SOURCES + SBT_PROJECT_FILES + [
     "distribution/manifest.template.yaml",
+    "distribution/edition.template.yaml",
     "distribution/launcher-manifest.yaml",
     "distribution/enso.bundle.template",
     "distribution/bin/enso",

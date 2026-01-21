@@ -238,7 +238,7 @@ where
 }
 
 macro_rules! reflect_primitive {
-    ($ty: ty, $primitive: expr) => {
+    ($ty: ty, $primitive: expr_2021) => {
         impl Reflect for $ty {
             type Static = Self;
             type SubtypeErased = Self::Static;

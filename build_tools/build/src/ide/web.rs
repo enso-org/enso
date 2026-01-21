@@ -9,8 +9,8 @@ use crate::version::ENSO_VERSION;
 use ide_ci::env::known::electron_builder::WindowsSigningCredentials;
 use ide_ci::program::command::FallibleManipulator;
 use ide_ci::program::command::Manipulator;
-use ide_ci::programs::node::PnpmCommand;
 use ide_ci::programs::Pnpm;
+use ide_ci::programs::node::PnpmCommand;
 use sha2::Digest;
 use std::process::Stdio;
 
@@ -95,6 +95,9 @@ pub mod env {
 
         /// The client ID for the MS365 OAuth integration used for MS365 Credentials.
         ENSO_IDE_MS365_OAUTH_CLIENT_ID, String;
+
+        /// The client ID for the Salesforce OAuth integration used for Salesforce Credentials.
+        ENSO_IDE_SALESFORCE_OAUTH_CLIENT_ID, String;
 
         ENSO_IDE_COMMIT_HASH, String;
         ENSO_IDE_VERSION, String;

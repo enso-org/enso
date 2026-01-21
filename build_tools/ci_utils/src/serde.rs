@@ -2,9 +2,9 @@
 
 use crate::prelude::*;
 
-use serde::de::Error;
 use serde::Deserializer;
 use serde::Serializer;
+use serde::de::Error;
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Eq)]
 #[serde(untagged)]
@@ -138,11 +138,7 @@ pub mod via_string_opt {
         S: Serializer,
         T: Display,
     {
-        if let Some(value) = value {
-            ser.collect_str(value)
-        } else {
-            ser.serialize_none()
-        }
+        if let Some(value) = value { ser.collect_str(value) } else { ser.serialize_none() }
     }
 
     /// Deserializer, that uses [`FromStr`] trait.

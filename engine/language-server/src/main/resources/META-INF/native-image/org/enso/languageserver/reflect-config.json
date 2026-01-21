@@ -2880,9 +2880,6 @@
   "methods":[{"name":"main","parameterTypes":["java.lang.String[]"] }]
 },
 {
-  "name":"org.graalvm.collections.Pair"
-},
-{
   "name":"org.graalvm.polyglot.io.IOHelper",
   "fields":[{"name":"ACCESS"}]
 },

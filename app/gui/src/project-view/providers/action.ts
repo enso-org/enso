@@ -1,3 +1,4 @@
+import type { ToValue } from '$/utils/reactivity'
 import {
   appBindings,
   appContainerBindings,
@@ -12,7 +13,6 @@ import { createContextStore } from '@/providers'
 import { injectActionContext, type ActionContext } from '@/providers/actionContext'
 import { assert } from '@/util/assert'
 import type { Icon } from '@/util/iconMetadata/iconName'
-import type { ToValue } from '@/util/reactivity'
 import type { BindingInfo } from '@/util/shortcuts'
 import { identity } from '@vueuse/core'
 import { ref, toValue, type Ref } from 'vue'
@@ -75,6 +75,26 @@ const displayableActions = {
     icon: 'paint_palette',
     description: 'Color Selected Components',
     shortcut: graphBindings.bindings['components.pickColorMulti'],
+  },
+  'components.alignLeft': {
+    icon: 'align_left',
+    description: 'Align Selected Components Left',
+  },
+  'components.alignRight': {
+    icon: 'align_right',
+    description: 'Align Selected Components Right',
+  },
+  'components.alignTop': {
+    icon: 'align_top',
+    description: 'Align Selected Components Top',
+  },
+  'components.alignBottom': {
+    icon: 'align_bottom',
+    description: 'Align Selected Components Bottom',
+  },
+  'components.alignCenter': {
+    icon: 'align_center',
+    description: 'Center Selected Components Horizontally',
   },
   'components.deleteAndConnectAround': {
     icon: 'graph',

@@ -48,7 +48,6 @@
     - with_output_stream self open_options:Standard.Base.Data.Vector.Vector action:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - type File_System_SPI
     - new protocol:Standard.Base.Data.Text.Text typ:Standard.Base.Any.Any -> Standard.Base.Any.Any
-- file_as_java file:Standard.Base.System.File.File -> Standard.Base.Any.Any
 - find_extension_from_name name:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - get_child_widget file:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - list_descendants file:Standard.Base.Any.Any -> Standard.Base.Any.Any

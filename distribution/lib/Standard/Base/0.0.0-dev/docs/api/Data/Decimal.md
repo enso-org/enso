@@ -30,6 +30,7 @@
     - parse text:Standard.Base.Data.Text.Text locale:Standard.Base.Data.Locale.Locale= format:Standard.Base.Data.Text.Text= mc:(Standard.Base.Data.Numeric.Math_Context.Math_Context|Standard.Base.Nothing.Nothing)= -> Standard.Base.Data.Decimal.Decimal!(Standard.Base.Data.Numbers.Number_Parse_Error|Standard.Base.Errors.Illegal_Argument.Illegal_Argument)
     - pow self exp:Standard.Base.Data.Numbers.Integer -> Standard.Base.Data.Decimal.Decimal
     - precision self -> Standard.Base.Data.Numbers.Integer
+    - pretty self -> Standard.Base.Any.Any
     - remainder self that:Standard.Base.Data.Decimal.Decimal -> Standard.Base.Data.Decimal.Decimal
     - round self decimal_places:Standard.Base.Data.Numbers.Integer= rounding_mode:Standard.Base.Data.Numeric.Rounding_Mode.Rounding_Mode= -> Standard.Base.Data.Decimal.Decimal
     - scale self -> Standard.Base.Data.Numbers.Integer

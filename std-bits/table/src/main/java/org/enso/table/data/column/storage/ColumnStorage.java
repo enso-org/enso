@@ -16,7 +16,7 @@ public interface ColumnStorage<T> extends Iterable<T> {
    * Address of the off-heap storage of data.
    *
    * @return {@code 0} if there are no data to share, otherwise the address of the data in a format
-   *     appropraite for this storage {@link #getType()}.
+   *     appropriate for this storage {@link #getType()}.
    * @see #addressOfValidity
    */
   default long addressOfData() {

@@ -2,6 +2,7 @@
 import { useCurrentProject } from '$/components/WithCurrentProject.vue'
 import { defineWidget, Score, widgetProps } from '$/providers/openedProjects/widgetRegistry'
 import { WidgetEditHandler } from '$/providers/openedProjects/widgetRegistry/editHandler'
+import { proxyRefs } from '$/utils/reactivity'
 import { WidgetInputIsSpecificMethodCall } from '@/components/GraphEditor/widgets/WidgetFunction.vue'
 import {
   CELLS_LIMIT,
@@ -13,7 +14,6 @@ import AgGridTableView from '@/components/shared/AgGridTableView.vue'
 import { targetIsOutside } from '@/util/autoBlur'
 import { ProjectPath } from '@/util/projectPath'
 import type { Identifier, QualifiedName } from '@/util/qualifiedName'
-import { proxyRefs } from '@/util/reactivity'
 import { useToast } from '@/util/toast'
 import '@ag-grid-community/styles/ag-grid.css'
 import '@ag-grid-community/styles/ag-theme-alpine.css'

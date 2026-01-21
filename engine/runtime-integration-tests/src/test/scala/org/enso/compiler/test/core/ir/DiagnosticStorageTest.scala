@@ -14,10 +14,10 @@ class DiagnosticStorageTest extends CompilerTest {
     * @return a new diagnostic
     */
   def mkDiagnostic(name: String): Diagnostic = {
-    warnings.Shadowed.FunctionParam(
+    new warnings.Shadowed.FunctionParam(
       name,
       new Empty(null),
-      identifiedLocation = null
+      null
     )
   }
 
@@ -28,7 +28,7 @@ class DiagnosticStorageTest extends CompilerTest {
       val diagnostics = new DiagnosticStorage
 
       diagnostics.add(mkDiagnostic("a"))
-      diagnostics.toList should contain(mkDiagnostic("a"))
+      shouldContain(diagnostics.toList, mkDiagnostic("a"))
     }
 
     "allow adding lists of diagnostic results" in {
@@ -41,9 +41,16 @@ class DiagnosticStorageTest extends CompilerTest {
           mkDiagnostic("c")
         )
       )
-      diagnostics.toList should contain(mkDiagnostic("a"))
-      diagnostics.toList should contain(mkDiagnostic("b"))
-      diagnostics.toList should contain(mkDiagnostic("c"))
+      shouldContain(diagnostics.toList, mkDiagnostic("a"))
+      shouldContain(diagnostics.toList, mkDiagnostic("b"))
+      shouldContain(diagnostics.toList, mkDiagnostic("c"))
     }
+  }
+
+  private def shouldContain(
+    diagnostics: List[Diagnostic],
+    diagnostic: Diagnostic
+  ): Unit = {
+    diagnostics.contains(diagnostic) shouldBe true
   }
 }

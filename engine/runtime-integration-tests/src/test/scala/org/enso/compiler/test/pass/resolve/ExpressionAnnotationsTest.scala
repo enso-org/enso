@@ -90,7 +90,7 @@ class ExpressionAnnotationsTest extends CompilerTest {
       unknown shouldBe an[errors.Resolution]
       unknown
         .asInstanceOf[errors.Resolution]
-        .reason shouldEqual errors.Resolution.UnknownAnnotation
+        .reason shouldEqual errors.Resolution.UnknownAnnotation.INSTANCE
     }
 
     "associate the annotation with the annotated definition" in {
@@ -158,7 +158,7 @@ class ExpressionAnnotationsTest extends CompilerTest {
       val err = items.returnValue.asInstanceOf[errors.Resolution]
       err
         .asInstanceOf[errors.Resolution]
-        .reason shouldEqual errors.Resolution.UnexpectedAnnotation
+        .reason shouldEqual errors.Resolution.UnexpectedAnnotation.INSTANCE
     }
   }
 }

@@ -68,9 +68,9 @@ pub fn try_parse_type_def<'s>(
 
     let params = parse_args(items, start + 2, expression_parser, args_buffer);
 
-    let name = items.pop().unwrap().into_token().unwrap().try_into().unwrap();
+    let name = items.pop().unwrap().try_into_token().unwrap().try_into().unwrap();
 
-    let keyword = items.pop().unwrap().into_token().unwrap();
+    let keyword = items.pop().unwrap().try_into_token().unwrap();
     let keyword = keyword.with_variant(token::variant::TypeKeyword());
 
     debug_assert_eq!(items.len(), start);

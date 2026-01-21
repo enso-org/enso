@@ -447,7 +447,7 @@ case object AliasAnalysis extends IRPass {
               )
             )
         } else {
-          errors.Redefined.Binding(binding)
+          errors.Redefined.Binding.create(binding)
         }
       case app: Application =>
         analyseApplication(app, builder)
@@ -597,7 +597,13 @@ case object AliasAnalysis extends IRPass {
         } else {
           val ac = arg
             .copyWithAscribedType(
-              Some(Redefined.Arg(name, arg.identifiedLocation))
+              Some(
+                Redefined.Arg
+                  .builder()
+                  .name(name)
+                  .location(arg.identifiedLocation)
+                  .build()
+              )
             )
           alias.AliasMetadata
             .updateMetadata(

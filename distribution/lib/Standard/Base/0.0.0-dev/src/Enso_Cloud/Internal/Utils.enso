@@ -23,6 +23,7 @@ import project.Network.HTTP.Request_Body.Request_Body
 import project.Network.HTTP.Request_Error
 import project.Network.HTTP.Response.Response
 import project.Network.URI.URI
+import project.Runtime
 from project.Data.Boolean import False, True
 from project.Data.Text.Extensions import all
 from project.Error import all
@@ -93,7 +94,7 @@ tags_api = cloud_root_uri + "tags"
    Flushes all cloud caches, including the authentication data (so the next
    request will re-read the credentials file).
 flush_caches : Nothing
-flush_caches = CloudAPI.flushCloudCaches
+flush_caches = Runtime.gc flush_caches=True
 
 ## ---
    private: true

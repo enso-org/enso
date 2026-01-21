@@ -45,6 +45,7 @@
     - to_display_text self -> Standard.Base.Any.Any
 - type Invalid_Conversion_Target
     - Error target:Standard.Base.Any.Any
+    - to_display_text self -> Standard.Base.Data.Text.Text
 - type Length_Mismatch
     - to_display_text self -> Standard.Base.Any.Any
     - to_js_object self -> Standard.Base.Any.Any

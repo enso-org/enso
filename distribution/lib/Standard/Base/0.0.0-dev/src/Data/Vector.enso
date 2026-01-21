@@ -1798,7 +1798,6 @@ type Builder
    the sub-`Vector` within the outermost `Vector`, and so on.
    An error that is wrapped as a `Map_Error` can be caught as a `Map_Error`, or
    as itself. In the latter case, the `Map_Error` wrapper is stripped off.
-@Builtin_Type
 type Map_Error
     ## ---
        private: true
@@ -1816,7 +1815,6 @@ type Map_Error
    private: true
    ---
    Indicates that a method should not wrap thrown errors in `Map_Error`.
-@Builtin_Type
 type No_Wrap
     ## ---
        private: true

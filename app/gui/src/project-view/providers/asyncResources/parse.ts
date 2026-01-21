@@ -1,4 +1,4 @@
-import type { ToValue } from '@/util/reactivity'
+import type { ToValue } from '$/utils/reactivity'
 import { urlParse } from '@/util/url'
 import { EnsoPath } from 'enso-common/src/services/Backend'
 import { Err, Ok, type Result } from 'enso-common/src/utilities/data/result'

@@ -65,7 +65,7 @@
     - Error
     - to_display_text self -> Standard.Base.Any.Any
 - type Inexact_Type_Coercion
-    - Warning requested_type:Standard.Table.Value_Type.Value_Type actual_type:Standard.Table.Value_Type.Value_Type unavailable:Standard.Base.Data.Boolean.Boolean=
+    - Warning requested_type:Standard.Table.Value_Type.Value_Type actual_type:Standard.Table.Value_Type.Value_Type unavailable:Standard.Base.Data.Boolean.Boolean= extra_message:Standard.Base.Data.Text.Text=
     - to_display_text self -> Standard.Base.Any.Any
     - to_text self -> Standard.Base.Any.Any
 - type Invalid_Aggregate_Column

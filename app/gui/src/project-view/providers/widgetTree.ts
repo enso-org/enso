@@ -1,9 +1,9 @@
 import { type PrimaryApplication } from '$/providers/openedProjects/graph/graphDatabase'
 import { type WidgetEditHandlerRoot } from '$/providers/openedProjects/widgetRegistry/editHandler'
+import { proxyRefs } from '$/utils/reactivity'
 import { createContextStore } from '@/providers'
 import { Ast } from '@/util/ast'
 import type { Opt } from '@/util/data/opt'
-import { proxyRefs } from '@/util/reactivity'
 import { computed, shallowRef, type Ref, type ShallowUnwrapRef } from 'vue'
 import type { ExternalId } from 'ydoc-shared/yjsModel'
 

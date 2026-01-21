@@ -1,8 +1,8 @@
 ## Enso Signatures 1.0
 ## module Standard.Base.Panic
 - type Caught_Panic
-    - Panic payload:Standard.Base.Any.Any internal_original_exception:Standard.Base.Any.Any
     - convert_to_dataflow_error self -> Standard.Base.Any.Any
+    - payload self -> Standard.Base.Any.Any
     - stack_trace self -> Standard.Base.Any.Any
 - type Panic
     - catch panic_type:Standard.Base.Any.Any ~action:Standard.Base.Any.Any handler:Standard.Base.Any.Any -> Standard.Base.Any.Any

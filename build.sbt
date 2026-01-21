@@ -17,7 +17,6 @@ import Dependencies.*
 import JarExtractor.{
   CopyToOutputJar,
   LinuxAMD64,
-  MacOSAMD64,
   MacOSArm64,
   PolyglotLib,
   WindowsAMD64
@@ -185,6 +184,28 @@ packageBuilder := {
     graalJavaVersion = graalVersion,
     artifactRoot     = artifactRoot
   )
+}
+
+lazy val writeEditionConfig = taskKey[Editions.EditionTemplate](
+  "Writes the edition configuration yaml file."
+)
+writeEditionConfig := {
+  Editions.writeEditionConfig(
+    editionsRoot    = file("distribution") / "editions",
+    editionTemplate = file("distribution") / "edition.template.yaml",
+    ensoVersion     = ensoVersion,
+    editionName     = currentEdition,
+    libraryVersion  = stdLibVersion,
+    log             = streams.value.log
+  )
+}
+
+lazy val librariesToUpload = taskKey[Seq[String]](
+  "List of libraries that will be uploaded as release assets"
+)
+librariesToUpload := {
+  val editionTemplate = writeEditionConfig.value
+  editionTemplate.libsToUpload()
 }
 
 lazy val checkIRCacheSizes = taskKey[Unit](
@@ -1798,7 +1819,6 @@ lazy val `ydoc-server` = project
       "org.graalvm.sdk"            % "nativeimage"                 % graalMavenPackagesVersion % "provided",
       "org.graalvm.polyglot"       % "inspect-community"           % graalMavenPackagesVersion % "runtime",
       "org.graalvm.polyglot"       % "js-community"                % graalMavenPackagesVersion % "runtime",
-      "io.helidon.common"          % "helidon-common"              % helidonVersion,
       "io.helidon.webclient"       % "helidon-webclient-websocket" % helidonVersion            % Test,
       "io.helidon.webserver"       % "helidon-webserver-websocket" % helidonVersion            % Test,
       "junit"                      % "junit"                       % junitVersion              % Test,
@@ -2104,7 +2124,6 @@ lazy val `polyglot-api` = project
       "com.google.flatbuffers" % "flatbuffers-java" % flatbuffersVersion,
       "org.graalvm.sdk"        % "word"             % graalMavenPackagesVersion,
       "org.graalvm.polyglot"   % "polyglot"         % graalMavenPackagesVersion,
-      "org.graalvm.sdk"        % "collections"      % graalMavenPackagesVersion,
       "org.graalvm.sdk"        % "nativeimage"      % graalMavenPackagesVersion,
       "org.graalvm.truffle"    % "truffle-api"      % graalMavenPackagesVersion
     ),
@@ -2576,7 +2595,6 @@ lazy val `runtime-language-epb` =
       Compile / moduleDependencies ++= Seq(
         "org.graalvm.truffle"  % "truffle-api" % graalMavenPackagesVersion,
         "org.graalvm.polyglot" % "polyglot"    % graalMavenPackagesVersion,
-        "org.graalvm.sdk"      % "collections" % graalMavenPackagesVersion,
         "org.graalvm.sdk"      % "word"        % graalMavenPackagesVersion,
         "org.graalvm.sdk"      % "nativeimage" % graalMavenPackagesVersion
       ),
@@ -2700,7 +2718,6 @@ lazy val runtime = (project in file("engine/runtime"))
       "org.apache.tika"      % "tika-core"               % tikaVersion,
       "org.graalvm.truffle"  % "truffle-api"             % graalMavenPackagesVersion,
       "org.graalvm.polyglot" % "polyglot"                % graalMavenPackagesVersion,
-      "org.graalvm.sdk"      % "collections"             % graalMavenPackagesVersion,
       "org.graalvm.sdk"      % "word"                    % graalMavenPackagesVersion,
       "org.graalvm.sdk"      % "nativeimage"             % graalMavenPackagesVersion,
       "com.ibm.icu"          % "icu4j"                   % icuVersion,
@@ -3473,7 +3490,6 @@ lazy val `runtime-instrument-common` =
       Compile / moduleDependencies ++= slf4jApi ++ Seq(
         "org.graalvm.truffle"  % "truffle-api" % graalMavenPackagesVersion,
         "org.graalvm.polyglot" % "polyglot"    % graalMavenPackagesVersion,
-        "org.graalvm.sdk"      % "collections" % graalMavenPackagesVersion,
         "org.graalvm.sdk"      % "nativeimage" % graalMavenPackagesVersion,
         "org.graalvm.sdk"      % "word"        % graalMavenPackagesVersion
       ),
@@ -3512,7 +3528,6 @@ lazy val `runtime-instrument-id-execution` =
       Compile / moduleDependencies ++= Seq(
         "org.graalvm.truffle"  % "truffle-api" % graalMavenPackagesVersion,
         "org.graalvm.polyglot" % "polyglot"    % graalMavenPackagesVersion,
-        "org.graalvm.sdk"      % "collections" % graalMavenPackagesVersion,
         "org.graalvm.sdk"      % "word"        % graalMavenPackagesVersion,
         "org.graalvm.sdk"      % "nativeimage" % graalMavenPackagesVersion
       ),
@@ -3537,7 +3552,6 @@ lazy val `runtime-instrument-repl-debugger` =
       Compile / moduleDependencies ++= Seq(
         "org.graalvm.truffle"  % "truffle-api" % graalMavenPackagesVersion,
         "org.graalvm.polyglot" % "polyglot"    % graalMavenPackagesVersion,
-        "org.graalvm.sdk"      % "collections" % graalMavenPackagesVersion,
         "org.graalvm.sdk"      % "word"        % graalMavenPackagesVersion,
         "org.graalvm.sdk"      % "nativeimage" % graalMavenPackagesVersion
       ),
@@ -3563,7 +3577,6 @@ lazy val `runtime-instrument-runtime-server` =
       Compile / moduleDependencies ++= Seq(
         "org.graalvm.truffle"  % "truffle-api" % graalMavenPackagesVersion,
         "org.graalvm.polyglot" % "polyglot"    % graalMavenPackagesVersion,
-        "org.graalvm.sdk"      % "collections" % graalMavenPackagesVersion,
         "org.graalvm.sdk"      % "word"        % graalMavenPackagesVersion,
         "org.graalvm.sdk"      % "nativeimage" % graalMavenPackagesVersion
       ),
@@ -3831,13 +3844,8 @@ lazy val `engine-runner` = project
         } else {
           base ++
           databaseCp ++
-          `image-polyglot-root`.listFiles("*.jar").map(_.getAbsolutePath()) ++
           `table-polyglot-root`.listFiles("*.jar").map(_.getAbsolutePath()) ++
           `database-polyglot-root`
-            .listFiles("*.jar")
-            .map(_.getAbsolutePath()) ++
-          `std-aws-polyglot-root`.listFiles("*.jar").map(_.getAbsolutePath()) ++
-          `std-tableau-polyglot-root`
             .listFiles("*.jar")
             .map(_.getAbsolutePath()) ++
           `std-duckdb-polyglot-root`
@@ -3943,7 +3951,8 @@ lazy val `engine-runner` = project
               // Snowflake uses Apache Arrow (equivalent of #9664 in native-image setup)
               "--add-opens=java.base/java.nio=ALL-UNNAMED",
               // Needed for grpc-gax
-              "--add-opens=java.base/java.time=ALL-UNNAMED"
+              "--add-opens=java.base/java.time=ALL-UNNAMED",
+              "--enable-url-protocols=jar,https"
             ) ++ enableHeapDumpOpts ++ debugOpts ++ linkOpts ++ cLibraryOpts,
             mainModule = Some("org.enso.runner"),
             mainClass  = Some("org.enso.runner.Main"),
@@ -3964,14 +3973,12 @@ lazy val `engine-runner` = project
               "com.azure",
               "akka.http",
               "org.enso.base",
-              "org.enso.image",
               "org.enso.logging",
               "org.enso.common.ContextLoggingConfigurator",
               "org.enso.table",
               "org.enso.database",
               "org.enso.tableau",
               "org.eclipse.jgit",
-              "com.amazonaws",
               "com.google",
               "io.grpc",
               "io.netty.util.concurrent.AbstractScheduledEventExecutor",
@@ -4698,16 +4705,17 @@ lazy val editions = project
       .dependsOn(
         Def.task {
           Editions.writeEditionConfig(
-            editionsRoot   = file("distribution") / "editions",
-            ensoVersion    = ensoVersion,
-            editionName    = currentEdition,
-            libraryVersion = stdLibVersion,
-            log            = streams.value.log
+            editionsRoot    = file("distribution") / "editions",
+            editionTemplate = file("distribution") / "edition.template.yaml",
+            ensoVersion     = ensoVersion,
+            editionName     = currentEdition,
+            libraryVersion  = stdLibVersion,
+            log             = streams.value.log
           )
         }
       )
       .value,
-    cleanFiles += baseDirectory.value / ".." / ".." / "distribution" / "editions"
+    cleanFiles += (ThisBuild / baseDirectory).value / "distribution" / "editions"
   )
   .dependsOn(semver)
   .dependsOn(testkit % Test)
@@ -4737,22 +4745,6 @@ lazy val semver = project
       (`scala-libs-wrapper` / Compile / exportedModule).value,
       (`scala-yaml` / Compile / exportedModule).value
     )
-  )
-  .settings(
-    (Compile / compile) := (Compile / compile)
-      .dependsOn(
-        Def.task {
-          Editions.writeEditionConfig(
-            editionsRoot   = file("distribution") / "editions",
-            ensoVersion    = ensoVersion,
-            editionName    = currentEdition,
-            libraryVersion = stdLibVersion,
-            log            = streams.value.log
-          )
-        }
-      )
-      .value,
-    cleanFiles += baseDirectory.value / ".." / ".." / "distribution" / "editions"
   )
   .dependsOn(`scala-yaml`)
   .dependsOn(testkit % Test)
@@ -5018,6 +5010,7 @@ lazy val `locking-test-helper` = project
   )
 
 val `std-lib-root` = file("distribution/lib/Standard/")
+
 def stdLibComponentRoot(name: String): File =
   `std-lib-root` / name / stdLibVersion
 val `base-polyglot-root`  = stdLibComponentRoot("Base") / "polyglot" / "java"
@@ -5068,7 +5061,7 @@ lazy val `std-base` = project
     Compile / packageBin / artifactPath :=
       `base-polyglot-root` / "std-base.jar",
     libraryDependencies ++= Seq(
-      "org.graalvm.polyglot"       % "polyglot"         % graalMavenPackagesVersion,
+      "org.graalvm.polyglot"       % "polyglot"         % graalMavenPackagesVersion exclude ("org.graalvm.sdk", "collections"),
       "com.fasterxml.jackson.core" % "jackson-databind" % jacksonVersion,
       "org.slf4j"                  % "slf4j-api"        % slf4jVersion
     ),
@@ -5238,14 +5231,15 @@ lazy val `std-table` = project
       (Antlr4 / sourceManaged).value / "main" / "antlr4"
     },
     libraryDependencies ++= Seq(
-      "org.graalvm.polyglot"     % "polyglot"              % graalMavenPackagesVersion % "provided",
-      "org.graalvm.truffle"      % "truffle-api"           % graalMavenPackagesVersion % "provided",
+      "org.graalvm.polyglot"     % "polyglot"              % graalMavenPackagesVersion % "provided" exclude ("org.graalvm.sdk", "collections"),
       "com.univocity"            % "univocity-parsers"     % univocityParsersVersion,
       "org.apache.poi"           % "poi-ooxml"             % poiOoxmlVersion,
       "org.apache.xmlbeans"      % "xmlbeans"              % xmlbeansVersion,
       "org.antlr"                % "antlr4-runtime"        % antlrVersion,
       "org.apache.logging.log4j" % "log4j"                 % "2.24.3",
       "org.apache.logging.log4j" % "log4j-to-slf4j"        % "2.24.3", // org.apache.poi uses log4j
+      "uk.co.jdunkerley"         % "yxdb-java"             % "0.1.4",
+      "org.graalvm.truffle"      % "truffle-api"           % graalMavenPackagesVersion % Test,
       "junit"                    % "junit"                 % junitVersion              % Test,
       "com.github.sbt"           % "junit-interface"       % junitIfVersion            % Test,
       "org.mockito"              % "mockito-core"          % mockitoJavaVersion        % Test,
@@ -5319,13 +5313,15 @@ lazy val `opencv-wrapper` = project
     ),
     inputJar := "org.openpnp" % "opencv" % opencvVersion,
     jarExtractor := JarExtractor(
-      "nu/pattern/opencv/linux/x86_64/*.so"    -> PolyglotLib(LinuxAMD64),
-      "nu/pattern/opencv/osx/ARMv8/*.dylib"    -> PolyglotLib(MacOSArm64),
-      "nu/pattern/opencv/osx/x86_64/*.dylib"   -> PolyglotLib(MacOSAMD64),
-      "nu/pattern/opencv/windows/x86_64/*.dll" -> PolyglotLib(WindowsAMD64),
-      "nu/pattern/*.class"                     -> CopyToOutputJar,
-      "META-INF/**"                            -> CopyToOutputJar,
-      "org/**"                                 -> CopyToOutputJar
+      nativeLibCopyBehavior = JarExtractor.AllArch,
+      mapping = Map(
+        "nu/pattern/opencv/linux/x86_64/*.so"    -> PolyglotLib(LinuxAMD64),
+        "nu/pattern/opencv/osx/ARMv8/*.dylib"    -> PolyglotLib(MacOSArm64),
+        "nu/pattern/opencv/windows/x86_64/*.dll" -> PolyglotLib(WindowsAMD64),
+        "nu/pattern/*.class"                     -> CopyToOutputJar,
+        "META-INF/**"                            -> CopyToOutputJar,
+        "org/**"                                 -> CopyToOutputJar
+      )
     )
   )
 
@@ -5337,20 +5333,19 @@ lazy val `jna-wrapper-extracted` = project
       (`jna-wrapper` / Compile / exportedModuleBin).value
     },
     jarExtractor := JarExtractor(
-      "com/sun/jna/linux-x86-64/libjnidispatch.so" -> PolyglotLib(LinuxAMD64),
-      "com/sun/jna/win32-x86-64/jnidispatch.dll"   -> PolyglotLib(WindowsAMD64),
-      "com/sun/jna/darwin-x86-64/libjnidispatch.jnilib" -> PolyglotLib(
-        MacOSAMD64
-      ),
-      "com/sun/jna/darwin-aarch64/libjnidispatch.jnilib" -> PolyglotLib(
-        MacOSArm64
-      ),
-      "com/**/*.class"       -> CopyToOutputJar,
-      "module-info.class"    -> CopyToOutputJar,
-      "META-INF/MANIFEST.MF" -> CopyToOutputJar,
-      "META-INF/LICENSE"     -> CopyToOutputJar,
-      "META-INF/LGPL2.1"     -> CopyToOutputJar,
-      "META-INF/AL2.0"       -> CopyToOutputJar
+      Map(
+        "com/sun/jna/linux-x86-64/libjnidispatch.so" -> PolyglotLib(LinuxAMD64),
+        "com/sun/jna/win32-x86-64/jnidispatch.dll"   -> PolyglotLib(WindowsAMD64),
+        "com/sun/jna/darwin-aarch64/libjnidispatch.jnilib" -> PolyglotLib(
+          MacOSArm64
+        ),
+        "com/**/*.class"       -> CopyToOutputJar,
+        "module-info.class"    -> CopyToOutputJar,
+        "META-INF/MANIFEST.MF" -> CopyToOutputJar,
+        "META-INF/LICENSE"     -> CopyToOutputJar,
+        "META-INF/LGPL2.1"     -> CopyToOutputJar,
+        "META-INF/AL2.0"       -> CopyToOutputJar
+      )
     )
   )
   .dependsOn(`jna-wrapper`)
@@ -5393,21 +5388,20 @@ lazy val `netty-tc-native-wrapper` = project
       tcNativeJar.head
     },
     jarExtractor := JarExtractor(
-      "META-INF/native/libnetty_tcnative_osx_aarch_64.jnilib" -> PolyglotLib(
-        MacOSArm64
-      ),
-      "META-INF/native/libnetty_tcnative_osx_x86_64.jnilib" -> PolyglotLib(
-        MacOSAMD64
-      ),
-      "META-INF/native/netty_tcnative_windows_x86_64.dll" -> PolyglotLib(
-        WindowsAMD64
-      ),
-      "META-INF/native/libnetty_tcnative_linux_x86_64.so" -> PolyglotLib(
-        LinuxAMD64
-      ),
-      "META-INF/license/*"   -> CopyToOutputJar,
-      "META-INF/maven/**"    -> CopyToOutputJar,
-      "META-INF/versions/**" -> CopyToOutputJar
+      Map(
+        "META-INF/native/libnetty_tcnative_osx_aarch_64.jnilib" -> PolyglotLib(
+          MacOSArm64
+        ),
+        "META-INF/native/netty_tcnative_windows_x86_64.dll" -> PolyglotLib(
+          WindowsAMD64
+        ),
+        "META-INF/native/libnetty_tcnative_linux_x86_64.so" -> PolyglotLib(
+          LinuxAMD64
+        ),
+        "META-INF/license/*"   -> CopyToOutputJar,
+        "META-INF/maven/**"    -> CopyToOutputJar,
+        "META-INF/versions/**" -> CopyToOutputJar
+      )
     )
   )
 
@@ -5422,7 +5416,11 @@ lazy val `netty-epoll-native-wrapper` = project
     ),
     inputJar := "io.netty" % "netty-transport-native-epoll" % "4.1.118.Final",
     jarExtractor := JarExtractor(
-      "**/libnetty_transport_native_epoll_x86_64.so" -> PolyglotLib(LinuxAMD64)
+      Map(
+        "**/libnetty_transport_native_epoll_x86_64.so" -> PolyglotLib(
+          LinuxAMD64
+        )
+      )
     )
   )
 
@@ -5463,8 +5461,10 @@ lazy val `netty-resolver-dns-native-macos-wrapper` = project
       nativeJar.head
     },
     jarExtractor := JarExtractor(
-      "META-INF/native/libnetty_resolver_dns_native_macos_aarch_64.jnilib" -> PolyglotLib(
-        MacOSArm64
+      Map(
+        "META-INF/native/libnetty_resolver_dns_native_macos_aarch_64.jnilib" -> PolyglotLib(
+          MacOSArm64
+        )
       )
     )
   )
@@ -5481,10 +5481,11 @@ lazy val `tableau-wrapper` = project
       tableauJars.filter(f => f.getName.contains(tableauSuffixInJar)).head
     },
     jarExtractor := JarExtractor(
-      "darwin-aarch64/libtableauhyperapi.dylib" -> PolyglotLib(MacOSArm64),
-      "darwin-x86-64/libtableauhyperapi.dylib"  -> PolyglotLib(MacOSAMD64),
-      "linux-x86-64/libtableauhyperapi.so"      -> PolyglotLib(LinuxAMD64),
-      "win32-x86-64/tableauhyperapi.dll"        -> PolyglotLib(WindowsAMD64)
+      Map(
+        "darwin-aarch64/libtableauhyperapi.dylib" -> PolyglotLib(MacOSArm64),
+        "linux-x86-64/libtableauhyperapi.so"      -> PolyglotLib(LinuxAMD64),
+        "win32-x86-64/tableauhyperapi.dll"        -> PolyglotLib(WindowsAMD64)
+      )
     )
   )
 
@@ -5497,28 +5498,27 @@ lazy val `grpc-wrapper` = project
     ),
     inputJar := "io.grpc" % "grpc-netty-shaded" % grpcVersion,
     jarExtractor := JarExtractor(
-      "META-INF/native/libio_grpc_netty_shaded_netty_tcnative_linux_x86_64.so" -> PolyglotLib(
-        LinuxAMD64
-      ),
-      "META-INF/native/libio_grpc_netty_shaded_netty_transport_native_epoll_x86_64.so" -> PolyglotLib(
-        LinuxAMD64
-      ),
-      "META-INF/native/libio_grpc_netty_shaded_netty_tcnative_osx_aarch_64.jnilib" -> PolyglotLib(
-        MacOSArm64
-      ),
-      "META-INF/native/libio_grpc_netty_shaded_netty_tcnative_osx_x86_64.jnilib" -> PolyglotLib(
-        MacOSAMD64
-      ),
-      "META-INF/native/io_grpc_netty_shaded_netty_tcnative_windows_x86_64.dll" -> PolyglotLib(
-        WindowsAMD64
-      ),
-      "META-INF/MANIFEST.MF"                  -> CopyToOutputJar,
-      "META-INF/LICENSE.txt"                  -> CopyToOutputJar,
-      "META-INF/NOTICE.txt"                   -> CopyToOutputJar,
-      "META-INF/io.netty.versions.properties" -> CopyToOutputJar,
-      "META-INF/services/**"                  -> CopyToOutputJar,
-      "META-INF/license/**"                   -> CopyToOutputJar,
-      "io/**/*.class"                         -> CopyToOutputJar
+      Map(
+        "META-INF/native/libio_grpc_netty_shaded_netty_tcnative_linux_x86_64.so" -> PolyglotLib(
+          LinuxAMD64
+        ),
+        "META-INF/native/libio_grpc_netty_shaded_netty_transport_native_epoll_x86_64.so" -> PolyglotLib(
+          LinuxAMD64
+        ),
+        "META-INF/native/libio_grpc_netty_shaded_netty_tcnative_osx_aarch_64.jnilib" -> PolyglotLib(
+          MacOSArm64
+        ),
+        "META-INF/native/io_grpc_netty_shaded_netty_tcnative_windows_x86_64.dll" -> PolyglotLib(
+          WindowsAMD64
+        ),
+        "META-INF/MANIFEST.MF"                  -> CopyToOutputJar,
+        "META-INF/LICENSE.txt"                  -> CopyToOutputJar,
+        "META-INF/NOTICE.txt"                   -> CopyToOutputJar,
+        "META-INF/io.netty.versions.properties" -> CopyToOutputJar,
+        "META-INF/services/**"                  -> CopyToOutputJar,
+        "META-INF/license/**"                   -> CopyToOutputJar,
+        "io/**/*.class"                         -> CopyToOutputJar
+      )
     )
   )
 
@@ -5544,22 +5544,21 @@ lazy val `jline-wrapper` = project
     ),
     inputJar := "org.jline" % "jline-native" % jlineVersion,
     jarExtractor := JarExtractor(
-      "org/jline/nativ/Linux/x86_64/libjlinenative.so" -> PolyglotLib(
-        LinuxAMD64
-      ),
-      "org/jline/nativ/Mac/arm64/libjlinenative.jnilib" -> PolyglotLib(
-        MacOSArm64
-      ),
-      "org/jline/nativ/Mac/x86_64/libjlinenative.jnilib" -> PolyglotLib(
-        MacOSAMD64
-      ),
-      "org/jline/nativ/Windows/x86_64/jlinenative.dll" -> PolyglotLib(
-        WindowsAMD64
-      ),
-      "org/jline/nativ/*.class"  -> CopyToOutputJar,
-      "META-INF/MANIFEST.MF"     -> CopyToOutputJar,
-      "META-INF/maven/**"        -> CopyToOutputJar,
-      "META-INF/native-image/**" -> CopyToOutputJar
+      Map(
+        "org/jline/nativ/Linux/x86_64/libjlinenative.so" -> PolyglotLib(
+          LinuxAMD64
+        ),
+        "org/jline/nativ/Mac/arm64/libjlinenative.jnilib" -> PolyglotLib(
+          MacOSArm64
+        ),
+        "org/jline/nativ/Windows/x86_64/jlinenative.dll" -> PolyglotLib(
+          WindowsAMD64
+        ),
+        "org/jline/nativ/*.class"  -> CopyToOutputJar,
+        "META-INF/MANIFEST.MF"     -> CopyToOutputJar,
+        "META-INF/maven/**"        -> CopyToOutputJar,
+        "META-INF/native-image/**" -> CopyToOutputJar
+      )
     )
   )
 
@@ -5572,18 +5571,17 @@ lazy val `conscrypt-wrapper` = project
     ),
     inputJar := "org.conscrypt" % "conscrypt-openjdk-uber" % "2.5.2",
     jarExtractor := JarExtractor(
-      "META-INF/native/libconscrypt_openjdk_jni-linux-x86_64.so" -> PolyglotLib(
-        LinuxAMD64
-      ),
-      "META-INF/native/libconscrypt_openjdk_jni-osx-x86_64.dylib" -> PolyglotLib(
-        MacOSAMD64
-      ),
-      "META-INF/native/conscrypt_openjdk_jni-windows-x86_64.dll" -> PolyglotLib(
-        WindowsAMD64
-      ),
-      "META-INF/MANIFEST.MF"               -> CopyToOutputJar,
-      "org/conscrypt/conscrypt.properties" -> CopyToOutputJar,
-      "org/**/*.class"                     -> CopyToOutputJar
+      Map(
+        "META-INF/native/libconscrypt_openjdk_jni-linux-x86_64.so" -> PolyglotLib(
+          LinuxAMD64
+        ),
+        "META-INF/native/conscrypt_openjdk_jni-windows-x86_64.dll" -> PolyglotLib(
+          WindowsAMD64
+        ),
+        "META-INF/MANIFEST.MF"               -> CopyToOutputJar,
+        "org/conscrypt/conscrypt.properties" -> CopyToOutputJar,
+        "org/**/*.class"                     -> CopyToOutputJar
+      )
     )
   )
 
@@ -5596,25 +5594,24 @@ lazy val `sqlite-wrapper` = project
     ),
     inputJar := "org.xerial" % "sqlite-jdbc" % sqliteVersion,
     jarExtractor := JarExtractor(
-      "org/sqlite/native/Linux/x86_64/libsqlitejdbc.so" -> PolyglotLib(
-        LinuxAMD64
-      ),
-      "org/sqlite/native/Mac/aarch64/libsqlitejdbc.dylib" -> PolyglotLib(
-        MacOSArm64
-      ),
-      "org/sqlite/native/Mac/x86_64/libsqlitejdbc.dylib" -> PolyglotLib(
-        MacOSAMD64
-      ),
-      "org/sqlite/native/Windows/x86_64/sqlitejdbc.dll" -> PolyglotLib(
-        WindowsAMD64
-      ),
-      "META-INF/MANIFEST.MF"                  -> CopyToOutputJar,
-      "META-INF/maven/**"                     -> CopyToOutputJar,
-      "META-INF/services/**"                  -> CopyToOutputJar,
-      "META-INF/versions/9/module-info.class" -> CopyToOutputJar,
-      "9/module-info.class"                   -> CopyToOutputJar,
-      "org/**/*.class"                        -> CopyToOutputJar,
-      "sqlite-jdbc.properties"                -> CopyToOutputJar
+      Map(
+        "org/sqlite/native/Linux/x86_64/libsqlitejdbc.so" -> PolyglotLib(
+          LinuxAMD64
+        ),
+        "org/sqlite/native/Mac/aarch64/libsqlitejdbc.dylib" -> PolyglotLib(
+          MacOSArm64
+        ),
+        "org/sqlite/native/Windows/x86_64/sqlitejdbc.dll" -> PolyglotLib(
+          WindowsAMD64
+        ),
+        "META-INF/MANIFEST.MF"                  -> CopyToOutputJar,
+        "META-INF/maven/**"                     -> CopyToOutputJar,
+        "META-INF/services/**"                  -> CopyToOutputJar,
+        "META-INF/versions/9/module-info.class" -> CopyToOutputJar,
+        "9/module-info.class"                   -> CopyToOutputJar,
+        "org/**/*.class"                        -> CopyToOutputJar,
+        "sqlite-jdbc.properties"                -> CopyToOutputJar
+      )
     )
   )
 
@@ -5629,12 +5626,13 @@ lazy val `duckdb-wrapper` = project
     ),
     version := "0.1",
     jarExtractor := JarExtractor(
-      "libduckdb_java.so_linux_amd64"   -> PolyglotLib(LinuxAMD64),
-      "libduckdb_java.so_osx_universal" -> PolyglotLib(MacOSArm64),
-      "libduckdb_java.so_osx_universal" -> PolyglotLib(MacOSAMD64),
-      "libduckdb_java.so_windows_amd64" -> PolyglotLib(WindowsAMD64),
-      "META-INF/**"                     -> CopyToOutputJar,
-      "org/**/*.class"                  -> CopyToOutputJar
+      Map(
+        "libduckdb_java.so_linux_amd64"   -> PolyglotLib(LinuxAMD64),
+        "libduckdb_java.so_osx_universal" -> PolyglotLib(MacOSArm64),
+        "libduckdb_java.so_windows_amd64" -> PolyglotLib(WindowsAMD64),
+        "META-INF/**"                     -> CopyToOutputJar,
+        "org/**/*.class"                  -> CopyToOutputJar
+      )
     ),
     inputJarResolved := assembly.value,
     assemblyMergeStrategy := { case _ =>
@@ -5854,6 +5852,7 @@ lazy val `std-aws` = project
       "software.amazon.awssdk" % "auth"                  % awsJavaSdkV2Version,
       "software.amazon.awssdk" % "bom"                   % awsJavaSdkV2Version,
       "software.amazon.awssdk" % "s3"                    % awsJavaSdkV2Version,
+      "software.amazon.awssdk" % "ses"                   % awsJavaSdkV2Version,
       "software.amazon.awssdk" % "sso"                   % awsJavaSdkV2Version,
       "software.amazon.awssdk" % "ssooidc"               % awsJavaSdkV2Version
     ),
@@ -6276,6 +6275,7 @@ createStdLibsIndexes := {
     ensoVersion   = ensoVersion,
     libRoot       = distributionRoot / "lib",
     javaOpts      = javaOpts,
+    libsToUpload  = librariesToUpload.value,
     env           = extraBazelEnvForStdLibIndexes.value,
     cacheFactory  = cacheFactory.sub("stdlib"),
     log           = log

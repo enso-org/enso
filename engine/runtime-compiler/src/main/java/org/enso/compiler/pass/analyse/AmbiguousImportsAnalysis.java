@@ -9,7 +9,6 @@ import org.enso.compiler.context.ModuleContext;
 import org.enso.compiler.core.CompilerError;
 import org.enso.compiler.core.IR;
 import org.enso.compiler.core.ir.Expression;
-import org.enso.compiler.core.ir.MetadataStorage;
 import org.enso.compiler.core.ir.Module;
 import org.enso.compiler.core.ir.Name.Literal;
 import org.enso.compiler.core.ir.Warning;
@@ -275,11 +274,10 @@ public final class AmbiguousImportsAnalysis implements MiniPassFactory {
         Import duplicatingImport,
         String ambiguousSymbol,
         String ambiguousSymbolPath) {
-      return ImportExport.apply(
+      return ImportExport.create(
           duplicatingImport,
           new ImportExport.AmbiguousImport(
-              originalImport, originalSymbolPath, ambiguousSymbol, ambiguousSymbolPath),
-          new MetadataStorage());
+              originalImport, originalSymbolPath, ambiguousSymbol, ambiguousSymbolPath));
     }
 
     /**

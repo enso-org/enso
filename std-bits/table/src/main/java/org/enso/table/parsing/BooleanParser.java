@@ -1,18 +1,19 @@
 package org.enso.table.parsing;
 
+import java.util.HashSet;
+import java.util.Set;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.parsing.problems.ParseProblemAggregator;
 import org.enso.table.problems.ProblemAggregator;
-import org.graalvm.collections.EconomicSet;
 
 public class BooleanParser extends IncrementalDatatypeParser {
 
-  private final EconomicSet<String> trueValues;
-  private final EconomicSet<String> falseValues;
+  private final Set<String> trueValues;
+  private final Set<String> falseValues;
 
   public BooleanParser(String[] trueValues, String[] falseValues) {
-    this.trueValues = EconomicSet.create(trueValues.length);
-    this.falseValues = EconomicSet.create(falseValues.length);
+    this.trueValues = new HashSet<>(trueValues.length);
+    this.falseValues = new HashSet<>(falseValues.length);
     for (String v : trueValues) {
       this.trueValues.add(v);
     }

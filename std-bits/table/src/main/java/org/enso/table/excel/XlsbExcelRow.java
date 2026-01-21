@@ -3,7 +3,6 @@ package org.enso.table.excel;
 import java.util.List;
 import org.apache.poi.ss.usermodel.Cell;
 import org.enso.table.excel.XlsbExcelWorkbookReader.XlsbSheetContentsHandler.RowData;
-import org.graalvm.polyglot.Context;
 
 /** Simple row wrapper backed by the parsed XLSB cell values. */
 public final class XlsbExcelRow implements ExcelRow {
@@ -69,9 +68,8 @@ public final class XlsbExcelRow implements ExcelRow {
     }
 
     String[] output = new String[effectiveLastColumn - startCol + 1];
-    var context = Context.getCurrent();
     for (int column = startCol; column <= effectiveLastColumn; column++) {
-      context.safepoint();
+      ExcelUtils.safepoint();
 
       if (!isWithinBounds(column)) {
         output[column - startCol] = "";

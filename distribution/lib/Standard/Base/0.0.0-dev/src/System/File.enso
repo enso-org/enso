@@ -1185,12 +1185,6 @@ File.from (that:Text) = File.new that
 ## ---
    private: true
    ---
-file_as_java : File -> Java_File
-file_as_java (file : File) = Java_File.new file.absolute.normalize.path
-
-## ---
-   private: true
-   ---
 File_Like.from (that : File) = File_Like.Value that
 
 ## ---

@@ -6,7 +6,7 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 
 import Standard.Table.In_Memory_Table.In_Memory_Table
-from Standard.Table import Table
+from Standard.Table import Table, Value_Type
 from Standard.Table.Errors import Column_Type_Mismatch, Inexact_Type_Coercion, Missing_Input_Columns, Unmatched_Columns
 
 import project.DB_Table.DB_Table
@@ -73,7 +73,7 @@ check_update_arguments_structure_match source_table:Table (target_table : Table 
         target_type = target_column.value_type
         if source_type == target_type then [] else
             if target_table.connection.type_mapping.is_implicit_conversion source_type target_type then [] else
-                if source_type.can_be_widened_to target_type then [Inexact_Type_Coercion.Warning source_type target_type unavailable=False] else
+                if source_type.can_be_widened_to target_type then [_warning_for_widening source_type target_type] else
                     Error.throw (Column_Type_Mismatch.Error source_column.name target_type source_type)
 
     source_columns = Hashset.from_vector source_table.column_names
@@ -102,3 +102,8 @@ check_update_arguments_structure_match source_table:Table (target_table : Table 
     problems = source_table.columns.flat_map on_problems=No_Wrap.Value check_source_column
     problems.if_not_error <|
         on_problems.attach_problems_before problems action
+
+## Special case(s) for certain widenings
+private _warning_for_widening source_type target_type =
+    extra_message = if source_type == Value_Type.Date_Time True && target_type == Value_Type.Date_Time False then " Consider using .at_time_zone or .set_time_zone to explicitly convert Date_Time values before upload." else ""
+    Inexact_Type_Coercion.Warning source_type target_type unavailable=False extra_message=extra_message

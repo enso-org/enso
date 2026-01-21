@@ -72,7 +72,7 @@
 //! multiple identifiers placed next to each other, and also takes spacing into consideration in
 //! order to implement spacing-aware precedence rules. After all segments are resolved, the macro
 //! is being treated as a single token in one of the segments of the parent macro, and is being
-//! processed by the operator precedence resolver as well. In the end, a single [`syntax::Tree`] is
+//! processed by the operator precedence resolver as well. In the end, a single [`Tree`] is
 //! produced, containing the parsed expression.
 
 #![cfg_attr(feature = "nightly", feature(test))]
@@ -90,9 +90,11 @@ use crate::prelude::*;
 use crate::lexer::Lexer;
 use crate::macros::resolver::RootContext;
 use crate::source::Code;
-use crate::syntax::Finish;
-use crate::syntax::token;
-use crate::syntax::tree::SyntaxError;
+
+use crate::syntax::{maybe_with_error, token};
+
+use crate::syntax::tree::{SyntaxError, Variant};
+use crate::syntax::{Finish, Tree};
 
 mod im_list;
 
@@ -164,16 +166,16 @@ impl Parser {
     }
 
     /// Main entry point. Interprets the input as a module, and returns the resulting [`BodyBlock`].
-    pub fn parse_module<'s>(&self, code: &'s str) -> syntax::Tree<'s> {
+    pub fn parse_module<'s>(&self, code: &'s str) -> Tree<'s> {
         self.run(code, RootContext::Module)
     }
 
     /// Parses the input as a block.
-    pub fn parse_block<'s>(&self, code: &'s str) -> syntax::Tree<'s> {
+    pub fn parse_block<'s>(&self, code: &'s str) -> Tree<'s> {
         self.run(code, RootContext::Block)
     }
 
-    fn run<'s>(&self, code: &'s str, root_context: RootContext) -> syntax::Tree<'s> {
+    fn run<'s>(&self, code: &'s str, root_context: RootContext) -> Tree<'s> {
         let resolver = macros::resolver::Resolver::new(&self.macros, root_context);
         let ParseResult { value, internal_error } = Lexer::new(code, resolver).finish();
         if internal_error.is_some() {
@@ -191,29 +193,68 @@ impl Default for Parser {
 
 // == Parsing helpers ==
 
-fn is_qualified_name(tree: &syntax::Tree) -> bool {
-    use syntax::tree::*;
-    matches!(&tree.variant, Variant::Ident(_) | Variant::PropertyAccess(_))
-}
-
-fn expect_qualified_name(tree: syntax::Tree) -> syntax::Tree {
-    if is_qualified_name(&tree) {
-        tree
+fn unwrap_call(tree: Tree) -> Tree {
+    if let Tree { variant: Variant::Call(mut call), span, .. } = tree {
+        call.value.span.left_offset = span.left_offset;
+        call.value
     } else {
-        tree.with_error(SyntaxError::ExpectedQualifiedName)
+        tree
     }
 }
 
-fn empty_tree(location: Code) -> syntax::Tree {
-    syntax::Tree::ident(token::ident(location.clone(), location, false, 0, false, false, false))
+fn is_qualified_name(tree: &Tree) -> bool {
+    match &tree.variant {
+        Variant::Call(call) => is_qualified_name(&call.value),
+        Variant::PropertyAccess(access) => match &access.lhs {
+            Some(lhs) => is_qualified_name(&lhs),
+            None => false,
+        },
+        Variant::Ident(_) => true,
+        _ => false,
+    }
 }
 
-fn expression_to_pattern(mut input: syntax::Tree<'_>) -> syntax::Tree<'_> {
+/// If the input is a qualified name, return it as Ok after discarding any Call nodes;
+/// otherwise, return the input unchanged as Err.
+fn to_qualified_name(mut tree: Tree) -> Result<Tree, Tree> {
+    if !is_qualified_name(&tree) {
+        return Err(tree);
+    }
+    qn_deep_unwrap_calls(&mut tree);
+    Ok(tree)
+}
+
+fn qn_deep_unwrap_calls(tree: &mut Tree) -> bool {
+    match &mut tree.variant {
+        Variant::Call(call) => {
+            let mut inner = mem::take(&mut call.value);
+            let result = qn_deep_unwrap_calls(&mut inner);
+            tree.variant = inner.variant;
+            result
+        }
+        Variant::PropertyAccess(access) => {
+            if let Some(lhs) = &mut access.lhs {
+                qn_deep_unwrap_calls(lhs)
+            } else {
+                false
+            }
+        }
+        Variant::Ident(_) => true,
+        _ => false,
+    }
+}
+
+fn expect_qualified_name(mut tree: Tree) -> Tree {
+    let error = (!qn_deep_unwrap_calls(&mut tree)).then_some(SyntaxError::ExpectedQualifiedName);
+    maybe_with_error(tree, error)
+}
+
+fn empty_tree(location: Code) -> Tree {
+    Tree::ident(token::ident(location.clone(), location, false, 0, false, false, false))
+}
+
+fn expression_to_pattern(mut input: Tree<'_>) -> Tree<'_> {
     use syntax::tree::*;
-    if let Variant::Wildcard(wildcard) = &mut input.variant {
-        wildcard.de_bruijn_index = None;
-        return input;
-    }
     let mut error = None;
     match input.variant {
         // === Recursions ===
@@ -222,9 +263,14 @@ fn expression_to_pattern(mut input: syntax::Tree<'_>) -> syntax::Tree<'_> {
                 transform_tree(body, expression_to_pattern)
             }
         }
+        Variant::PropertyAccess(ref mut access) => {
+            if let Some(value) = &mut access.lhs {
+                transform_tree(value, expression_to_pattern)
+            }
+        }
         Variant::App(ref mut app) => match &mut **app {
             // === Special-case error ===
-            &mut App { func: Tree { variant: Variant::Ident(ref ident), .. }, .. }
+            App { func: Tree { variant: Variant::Ident(ident), .. }, .. }
                 if !ident.token.is_type =>
             {
                 error = Some(SyntaxError::PatternUnexpectedExpression)
@@ -244,6 +290,11 @@ fn expression_to_pattern(mut input: syntax::Tree<'_>) -> syntax::Tree<'_> {
             out.span.left_offset += input.span.left_offset;
             return out;
         }
+        Variant::Call(value) => {
+            let mut out = expression_to_pattern(value.value);
+            out.span.left_offset += input.span.left_offset;
+            return out;
+        }
 
         // === Unconditional and fallthrough errors ===
         Variant::AutoscopedIdentifier(_) => error = Some(SyntaxError::PatternUnexpectedExpression),
@@ -255,12 +306,63 @@ fn expression_to_pattern(mut input: syntax::Tree<'_>) -> syntax::Tree<'_> {
     maybe_with_error(input, error)
 }
 
-thread_local! {
-    static DEFAULT_TREE: RefCell<Option<syntax::Tree<'static>>> = default();
+fn expression_to_type(mut input: Tree<'_>) -> Tree<'_> {
+    use syntax::tree::*;
+    match input.variant {
+        // === Recursions ===
+        Variant::Group(ref mut group) => {
+            if let Group { body: Some(body), .. } = &mut **group {
+                transform_tree(body, expression_to_type)
+            }
+        }
+        Variant::App(ref mut app) => match &mut **app {
+            App { func, arg } => {
+                transform_tree(func, expression_to_type);
+                transform_tree(arg, expression_to_type);
+            }
+        },
+        Variant::OprApp(ref mut opr_app) => match &mut **opr_app {
+            OprApp { lhs, rhs, .. } => {
+                if let Some(lhs) = lhs.as_mut() {
+                    transform_tree(lhs, expression_to_type);
+                }
+                if let Some(rhs) = rhs.as_mut() {
+                    transform_tree(rhs, expression_to_type);
+                }
+            }
+        },
+        Variant::Array(ref mut array) => match &mut **array {
+            Array { first, .. } => {
+                if let Some(first) = first.as_mut() {
+                    transform_tree(first, expression_to_type);
+                }
+            }
+        },
+        Variant::PropertyAccess(ref mut access) => {
+            if let Some(value) = &mut access.lhs {
+                transform_tree(value, expression_to_type)
+            }
+        }
+
+        // === Transformations ===
+        Variant::Call(value) => {
+            let mut out = expression_to_type(value.value);
+            out.span.left_offset += input.span.left_offset;
+            return out;
+        }
+
+        // === Unhandled ===
+        _ => {}
+    };
+    input
 }
 
-fn transform_tree(tree: &mut syntax::Tree, f: impl FnOnce(syntax::Tree) -> syntax::Tree) {
-    let default: syntax::Tree<'static> =
+thread_local! {
+    static DEFAULT_TREE: RefCell<Option<Tree<'static>>> = default();
+}
+
+fn transform_tree(tree: &mut Tree, f: impl FnOnce(Tree) -> Tree) {
+    let default: Tree<'static> =
         DEFAULT_TREE.with(|default| default.borrow_mut().take()).unwrap_or_default();
     let original = mem::replace(tree, default);
     let transformed = f(original);
@@ -268,8 +370,7 @@ fn transform_tree(tree: &mut syntax::Tree, f: impl FnOnce(syntax::Tree) -> synta
     // This lifetime cast is sound because this is the same value as `default` above; its lifetime
     // was narrowed by the type system when it was stored in the `tree` reference.
     #[allow(unsafe_code)]
-    let default_returned =
-        unsafe { mem::transmute::<syntax::Tree<'_>, syntax::Tree<'static>>(default_returned) };
+    let default_returned = unsafe { mem::transmute::<Tree<'_>, Tree<'static>>(default_returned) };
     DEFAULT_TREE.with(|default| *default.borrow_mut() = Some(default_returned));
 }
 

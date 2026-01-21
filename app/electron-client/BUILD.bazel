@@ -1,8 +1,10 @@
+load("@aspect_bazel_lib//lib:write_source_files.bzl", "write_source_files")
 load("@aspect_rules_esbuild//esbuild:defs.bzl", "esbuild")
 load("@aspect_rules_js//npm:defs.bzl", "npm_package")
 load("@aspect_rules_ts//ts:defs.bzl", "ts_config", "ts_project")
 load("@npm//:defs.bzl", "npm_link_all_packages", "npm_link_targets")
 load("@npm//app/electron-client:electron-builder/package_json.bzl", electron_builder_bin = "bin")
+load("//:bazel_scripts/ts_config.bzl", "write_tsconfig")
 load("//internal:stampFiles.bzl", "stamp_files")
 
 npm_link_all_packages(name = "node_modules")
@@ -10,24 +12,27 @@ npm_link_all_packages(name = "node_modules")
 ts_config(
     name = "tsconfig",
     src = "tsconfig.json",
-    visibility = [":__subpackages__"],
     deps = ["//:tsconfig"],
 )
 
 ts_project(
     name = "tsc",
-    srcs = glob(["src/*.ts"]),
+    srcs = glob([
+        "src/*.ts",
+        "tasks/*.ts",
+        "tests/**/*.ts",
+        "*.ts",
+    ]),
     composite = True,
-    declaration = True,
     resolve_json_module = True,
     source_map = True,
-    tsconfig = "//app/project-manager-shim:tsconfig",
+    tsconfig = ":tsconfig",
     validate = select({
         "@platforms//os:windows": False,
         "//conditions:default": True,
     }),
     visibility = ["//visibility:public"],
-    deps = ["//:tsconfig"] + npm_link_targets(),
+    deps = npm_link_targets(),
 )
 
 npm_package(
@@ -129,5 +134,35 @@ electron_builder_bin.electron_builder(
         "JS_BINARY__PATCH_NODE_FS": "0",
     },
     out_dirs = ["ide-dist"],
+    visibility = ["//visibility:public"],
+)
+
+write_tsconfig(
+    name = "tsconfig_generated",
+    out = "tsconfig.json",
+    config = {
+        "compilerOptions": {
+            "composite": True,
+            "noEmit": False,
+            "resolveJsonModule": True,
+            "sourceMap": True,
+            "esModuleInterop": True,
+            "types": ["node"],
+            "paths": {"@/*": ["./src/*"]},
+        },
+    },
+    extends = "//:tsconfig",
+    files = glob([
+        "src/*.ts",
+        "tasks/*.ts",
+        "tests/**/*.ts",
+        "*.ts",
+    ]),
+)
+
+write_source_files(
+    name = "write_tsconfigs",
+    files = {"tsconfig.json": ":tsconfig_generated"},
+    suggested_update_target = "//:write_all",
     visibility = ["//visibility:public"],
 )

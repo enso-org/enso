@@ -234,8 +234,11 @@ case object LambdaConsolidate extends IRPass {
               mShadower.getOrElse(new Empty(spec.identifiedLocation))
 
             spec.getDiagnostics.add(
-              warnings.Shadowed
-                .FunctionParam(argName.name, shadower, spec.identifiedLocation)
+              new warnings.Shadowed.FunctionParam(
+                argName.name,
+                shadower,
+                spec.identifiedLocation
+              )
             )
 
             (spec, isShadowed)

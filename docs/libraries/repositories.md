@@ -21,6 +21,8 @@ libraries and Editions.
 - [Editions Repository](#editions-repository)
   - [Naming the Editions](#naming-the-editions)
   - [Example Edition Provider Repository](#example-edition-provider-repository)
+- [The Simple Library Server](#the-simple-library-server)
+- [Try it out locally](#try-it-out-locally)
 
 <!-- /MarkdownTOC -->
 
@@ -37,6 +39,9 @@ but this is optional and sending them without compression is also acceptable.
 Nonetheless, Enso tools will send `Accept-Encoding: gzip` to indicate that they
 support compressed transmission.
 
+Note that since [#14486](https://github.com/enso-org/enso/pull/14486), the
+library repository can be a single zip archive with `jar` URL scheme.
+
 ## Libraries Repository
 
 The library repository should contain separate 'directories' for each prefix and
@@ -45,7 +50,8 @@ inside of them each library has its own directory named after the library name.
 Inside that directory are the following files:
 
 - `manifest.yaml` - the helper file that tells the tool what it should download,
-  it is explained in more detail below;
+  it is explained in more detail below. This file is created when the library is
+  compiled;
 - `package.yaml` -
   [the package file](../distribution/packaging.md#the-packageyaml-file) of the
   library;
@@ -55,7 +61,8 @@ Inside that directory are the following files:
   this, however if the file is not present a warning will be emitted during
   installation;
 - `*.tgz` packages containing sources and other data files of the library, split
-  into components as explained below.
+  into components as explained below. This file is created when the library is
+  compiled.
 
 The directory structure is as below:
 
@@ -236,6 +243,9 @@ them), it will result in the following merged directory structure:
 
 ### Publishing
 
+Before a library can be uploaded, it must first be compiled. See help for the
+`--compile` command.
+
 To be able to publish libraries to a repository, the repository must provide an
 upload endpoint which satisfies the following requirements.
 
@@ -326,3 +336,109 @@ Currently it relies on Node.js, but that may change with future updates.
 See
 [`tools/simple-library-server/README.md`](../../tools/simple-library-server/README.md)
 for more details.
+
+## Try it out locally
+
+This section demonstrates how to host a library server locally.
+
+### (1) Create custom library
+
+- Create custom library `Foo.Bar` in `$LIBS` directory (may be arbitrary
+  location).
+  - Tip: Use the `enso --new` command.
+- Contents of the `$LIBS` directory will be:
+
+```
+$LIBS
+└── Foo
+    └── Bar
+        └── 1.0.0
+            ├── package.yaml
+            └── src
+                └── Main.enso
+
+5 directories, 2 files
+```
+
+with `src/Main.enso`:
+
+```
+from Standard.Base import all
+
+foo =
+    vec = [1, 2, 3, 4, 5]
+    vec.length
+```
+
+and `package.yaml`:
+
+```yaml
+namespace: Foo
+name: Bar
+version: 1.0.0
+```
+
+### (2) Compile the library
+
+Compile the library with `enso --compile $LIBS/Foo/Bar/1.0.0`. This will create
+`manifest.yaml` and `main.tgz` files in the library directory.
+
+### (3) Define edition repository
+
+- Create custom edition definition in the `$EDITIONS` directory
+- See [Editions Repository](#editions-repository) for details.
+- This directory contains yaml files. Each yaml file represents a separate
+  definition of an edition.
+- Name of the yaml file corresponds to the name of the edition.
+- In our case, there will be only a single yaml:
+
+`testlocal.yaml`:
+
+```yaml
+# This declares the "0.0.0-dev" edition as a parent edition.
+# Without it, we would not be able to import Standard.Base from the Foo.Bar library
+extends: 0.0.0-dev
+engine-version: 0.0.0-dev
+repositories:
+  - name: main_repo
+    url: http://localhost:8093/
+libraries:
+  - name: Foo.Bar
+    version: 1.0.0
+    repository: main_repo
+```
+
+### (4) Create project that uses the library
+
+Create a dummy project with arbitrary name in the `$PROJ` directory. It's
+`Main.enso`:
+
+```
+from Foo.Bar import all
+main = foo
+```
+
+It's `package.yaml`:
+
+```yaml
+name: Proj
+namespace: local
+edition: "testlocal"
+```
+
+### (5) Start simple-library-server
+
+Start [simple-library-server](#the-simple-library-server) with:
+
+```sh
+cd tools/simple-library-server && npm install && ./main.js --port 8093 --root $LIBRARIES
+```
+
+This is just a simple ExpressJS server that serves the `$LIBRARIES` directory
+via HTTP.
+
+### (6) Run the project
+
+```
+env ENSO_EDITION_PATH=$EDITIONS enso --run $PROJ
+```

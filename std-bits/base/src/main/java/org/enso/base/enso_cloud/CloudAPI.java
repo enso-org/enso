@@ -1,12 +1,12 @@
 package org.enso.base.enso_cloud;
 
 import java.util.Objects;
-import org.enso.base.enso_cloud.audit.AuditLog;
+import org.enso.base.cache.ReloadDetector;
 import org.enso.base.polyglot.EnsoMeta;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public final class CloudAPI {
+public final class CloudAPI implements ReloadDetector.HasClearableCache {
   private static final Logger LOGGER = LoggerFactory.getLogger(CloudAPI.class);
   private static CloudAPI cached;
 
@@ -18,6 +18,7 @@ public final class CloudAPI {
     this.apiRootUri = apiRootUri;
     this.cloudProjectId = cloudProjectId;
     this.cloudSessionId = cloudSessionId;
+    ReloadDetector.register(this);
   }
 
   /**
@@ -33,11 +34,12 @@ public final class CloudAPI {
           if (cached.equals(fresh)) {
             return cached;
           }
+          cached = null;
           LOGGER.warn(
               "CloudAPI settings change detected. Dropping {}. Installing {}.", cached, fresh);
         }
       }
-      flushCloudCaches();
+      EnsoMeta.callStaticModuleMethod("Standard.Base.Runtime", "gc", true);
       synchronized (CloudAPI.class) {
         if (cached == null) {
           cached = fresh;
@@ -93,14 +95,6 @@ public final class CloudAPI {
     return new CloudAPI(apiRootUri, cloudProjectId, cloudSessionId);
   }
 
-  public static void flushCloudCaches() {
-    cached = null;
-    CloudRequestCache.INSTANCE.clear();
-    AuthenticationProvider.INSTANCE.reset();
-    EnsoSecretReader.INSTANCE.flushCache();
-    AuditLog.resetCache();
-  }
-
   @Override
   public int hashCode() {
     int hash = 3;
@@ -141,5 +135,10 @@ public final class CloudAPI {
         + ", cloudSessionId="
         + cloudSessionId
         + '}';
+  }
+
+  @Override
+  public void clearCache() {
+    cached = null;
   }
 }
