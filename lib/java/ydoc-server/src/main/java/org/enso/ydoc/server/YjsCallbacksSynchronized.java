@@ -2,6 +2,7 @@ package org.enso.ydoc.server;
 
 import org.enso.ydoc.api.YjsChannel;
 import org.enso.ydoc.api.YjsChannelCallbacks;
+import org.graalvm.polyglot.HostAccess;
 
 public final class YjsCallbacksSynchronized implements YjsChannelCallbacks {
 
@@ -14,8 +15,8 @@ public final class YjsCallbacksSynchronized implements YjsChannelCallbacks {
   }
 
   @Override
+  @HostAccess.Export
   public void onConnect(YjsChannel channel) {
-    System.out.println("YjsCallbacksSynchronized.onConnect " + channel.getClass());
     var synchronizedChannel = new YjsChannelSynchronized(channel, this.executor);
     this.callbacks.onConnect(synchronizedChannel);
   }

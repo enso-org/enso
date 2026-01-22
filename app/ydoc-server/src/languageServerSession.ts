@@ -94,13 +94,11 @@ export class LanguageServerSession {
       const indexDoc = new WSSharedDoc()
       const transport = new YjsServerTransport(indexDoc.doc, url, callbacks)
       const ls = new LanguageServer(crypto.randomUUID(), transport)
-      console.log('DEBUG LanguageServerSession.get transport created', url)
       return new LanguageServerSession(ls, indexDoc, () =>
         LanguageServerSession.sessions.delete(url),
       )
     })
     session.retain()
-    console.log('DEBUG LanguageServerSession.get session returned', url)
     return session
   }
 
