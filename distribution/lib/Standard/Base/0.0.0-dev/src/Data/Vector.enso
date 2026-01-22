@@ -25,6 +25,7 @@ import project.Warning.Warning
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Ordering import all
 from project.Data.Range.Extensions import all
+from project.Data.Text.Extensions import all
 from project.Error import all
 from project.Metadata import Display, Widget
 from project.Nothing import all
