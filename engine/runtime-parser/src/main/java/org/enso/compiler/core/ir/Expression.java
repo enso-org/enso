@@ -114,6 +114,13 @@ public interface Expression extends IR {
     }
 
     @Override
+    public Binding mapExpressions(Function<Expression, Expression> fn) {
+      var newName = name().mapExpressions(fn);
+      var newExpr = fn.apply(expression());
+      return new Builder(this).name(newName).expression(newExpr).build();
+    }
+
+    @Override
     public String showCode(int indent) {
       return name().showCode(indent) + " = " + expression().showCode(indent);
     }
