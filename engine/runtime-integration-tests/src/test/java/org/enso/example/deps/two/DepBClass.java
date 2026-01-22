@@ -4,18 +4,21 @@ import org.enso.example.deps.AwaitLoading;
 import org.enso.example.deps.one.DepAClass;
 
 public class DepBClass {
+  private static final DepAClass OTHER;
+
   static {
     System.err.println("Started DepBClass");
     AwaitLoading.waitForTwo();
     System.err.println("Loading DepBClass");
+    OTHER = new DepAClass();
     System.err.println("Finished DepBClass");
   }
 
-  public static double sigmoid(double x) {
-    return 1 / (1 + DepAClass.expToNeg(x));
+  public double sigmoid(double x) {
+    return 1 / (1 + OTHER.expToNeg(x));
   }
 
-  public static double expPow(double x) {
+  public double expPow(double x) {
     return Math.exp(x);
   }
 }
