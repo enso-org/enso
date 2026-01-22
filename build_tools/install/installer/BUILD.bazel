@@ -47,6 +47,7 @@ rust_binary(
     aliases = aliases(),
     edition = "2021",
     proc_macro_deps = all_crate_deps(proc_macro = True),
+    rustc_flags = ["-Clink-arg=/SUBSYSTEM:WINDOWS"],
     visibility = ["//visibility:public"],
     deps = all_crate_deps(normal = True) + [
         ":enso_installer_lib",
