@@ -8,7 +8,7 @@ type Salesforce
     ## ---
        private: true
        ---
-    private Service (salesforce_service:SalesforceService)
+    Service (salesforce_service:SalesforceService)
 
     ## ---
        icon: cloud
@@ -30,6 +30,15 @@ type Salesforce
         raw_result = _salesforce_get self "https://login.salesforce.com/services/oauth2/userinfo"
         result = raw_result.decode_as_json
         result
+
+    report self report_id =
+        url = "https://orgfarm-763eef3a55-dev-ed.develop.my.salesforce.com/services/data/v60.0/analytics/reports/00Ofj000006tiszEAA"
+        raw_result = _salesforce_get self url
+        result = raw_result.decode_as_json
+        result
+
+    getInstanceUrl self =
+        self.salesforce_service.getInstanceUrl
 
     ## ---
        private: true
