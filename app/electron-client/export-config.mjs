@@ -2,6 +2,9 @@
  * Exports the electron-builder configuration as JSON for use by the Rust installer build.
  * Output is written to stdout and captured by Bazel's js_run_binary stdout parameter.
  *
+ * NOTE: This is likely a temporary solution while we have a Rust-based installer that expects
+ * certain format of the electron-builder config.
+ *
  * Usage: node export-config.mjs <path-to-config.cjs>
  */
 

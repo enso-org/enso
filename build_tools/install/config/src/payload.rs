@@ -36,7 +36,10 @@ impl Metadata {
     }
 }
 
-/// Create a tar.gz archive from a directory using pure Rust (no external tools).
+/// Create a tar.gz archive from a directory.
+///
+/// This is like `ide_ci::archive::compress_directory_contents`, but without calling for an
+/// external `tar` executable.
 pub fn compress_directory_to_tar_gz(source_dir: &Path, output_archive: &Path) -> Result {
     let file = File::create(output_archive)
         .with_context(|| format!("Failed to create archive file: {}", output_archive.display()))?;

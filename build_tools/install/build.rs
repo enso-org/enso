@@ -17,17 +17,17 @@ use ide_ci::programs::cargo::build_env::OUT_DIR;
 fn main() {
     setup_logging().ok();
 
-    // Ignore error, not compiling the icon is not a big deal, especially if we compile to check,
-    // to not generate final package. (Obtaining icon is a bit of a hassle, as it is generated
-    // temporarily by the enso-build.)
+    // Icon path can be provided via environment variable (for Bazel builds) or falls back to
+    // the default relative path (for Cargo builds).
     #[cfg(windows)]
     {
-        // Icon path can be provided via environment variable (for Bazel builds) or falls back to
-        // the default relative path (for Cargo builds).
         let icon_path = std::env::var("ENSO_ICON_PATH").map(PathBuf::from).unwrap_or_else(|_| {
             Path::new(env!("CARGO_MANIFEST_DIR"))
                 .join("../../app/electron-client/assets/icons/icon.ico")
         });
+        // Ignore error, not compiling the icon is not a big deal, especially if we compile to check,
+        // to not generate final package. (Obtaining icon is a bit of a hassle, as it is generated
+        // temporarily by the enso-build.)
         if let Err(err) = embed_resource_from_file(ENSO_ICON_ID, ResourceType::Icon, &icon_path) {
             // We do not use `cargo:warning` here, as we do not want to pollute the output if the
             // icon is not available. Still, to enable debugging, we print to stderr, which is
