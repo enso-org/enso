@@ -185,7 +185,7 @@ public interface Builder {
       StorageType<?> storageType, long size, ProblemAggregator problemAggregator) {
     var localType = StorageType.makeLocal(storageType);
     Builder builder =
-        switch (StorageType.makeLocal(localType)) {
+        switch (localType) {
           case AnyObjectType _ -> getForAnyObject(size);
           case BooleanType _ -> getForBoolean(size);
           case DateType _ -> getForDate(size);
@@ -194,9 +194,9 @@ public interface Builder {
           case FloatType floatType -> getForDouble(floatType, size, problemAggregator);
           case IntegerType integerType -> getForLong(integerType, size, problemAggregator);
           case TextType textType -> getForText(textType, size);
-          case BigDecimalType t -> getForBigDecimal(size);
-          case BigIntegerType t -> getForBigInteger(size, problemAggregator);
-          case NullType t -> new NullBuilder();
+          case BigDecimalType _ -> getForBigDecimal(size);
+          case BigIntegerType _ -> getForBigInteger(size, problemAggregator);
+          case NullType _ -> new NullBuilder();
           case null -> getInferredBuilder(size, problemAggregator);
           default ->
               throw new IllegalStateException(
