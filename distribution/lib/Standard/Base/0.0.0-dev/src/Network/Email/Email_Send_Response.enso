@@ -1,0 +1,33 @@
+import project.Data.Text.Text
+import project.Network.Email.Email
+from project.Visualization.Table_Viz_Data import Table_Viz_Data, Table_Viz_Header
+
+## Response from sending an email.
+type Send_Response
+    ## No email was sent, this was just a test. Used only by the Test_Only Email_Provider.
+    Test email:Email
+
+    ## No email was sent, workflow was run in dry-run mode.
+    Dry_Run email:Email
+
+    ## Email was sent successfully.
+    Sent email:Email
+
+    ## Email sending failed.
+    Failed email:Email
+
+    ## ---
+       private: true
+       ---
+    to_text self -> Text =
+        case self of
+            Send_Response.Test _ -> "Test Only"
+            Send_Response.Dry_Run _ -> "Dry Run"
+            Send_Response.Sent _ -> "Sent"
+            Send_Response.Failed _ -> "Failed"
+
+## ---
+   private: true
+   ---
+Table_Viz_Data.from (that:Send_Response) = 
+    Table_Viz_Data.GenericGrid [Table_Viz_Header.Label "Status", Table_Viz_Header.Label "Email"] [[that.to_text], [that.email.to_text]]

@@ -1,0 +1,459 @@
+from Standard.Base import all
+import Standard.Base.Enso_Cloud.Data_Link.Data_Link
+import Standard.Base.Enso_Cloud.Data_Link.Data_Link_From_File
+import Standard.Base.Enso_Cloud.Data_Link_Helpers
+import Standard.Base.Errors.File_Error.File_Error
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+import Standard.Base.Errors.Illegal_State.Illegal_State
+import Standard.Base.Errors.Unimplemented.Unimplemented
+import Standard.Base.Internal.Path_Helpers
+import Standard.Base.Runtime.Context
+import Standard.Base.System.File.Data_Link_Access.Data_Link_Access
+import Standard.Base.System.File.Generic.File_Like.File_Like
+import Standard.Base.System.File.Generic.Writable_File.Writable_File
+import Standard.Base.System.File_Format_Metadata.File_Format_Metadata
+import Standard.Base.System.Input_Stream.Input_Stream
+from Standard.Base.Metadata.Widget import Secret_Browse, Text_Input
+from Standard.Base.System.File import find_extension_from_name
+from Standard.Base.System.File.Generic.File_Write_Strategy import generic_copy
+
+import project.Internal.Graph.Graph
+import project.Internal.OneDrive_Path.OneDrive_Path
+import project.Microsoft365_Credential.Microsoft365_Credential
+
+## API for interacting with OneDrive files and folders.
+type OneDrive
+    ## ---
+       icon: cloud
+       ---
+       Returns the root directory of the user's OneDrive.
+
+       ## Arguments
+       - `credential`: A Cloud secret or a file containing Microsoft365 credentials.
+    @credential Secret_Browse
+    root : File | Enso_Secret | Microsoft365_Credential -> OneDrive_File
+    root (credential : File | Enso_Secret | Microsoft365_Credential = _default_credential) -> OneDrive_File =
+        ms_cred = Microsoft365_Credential.initialize credential
+        OneDrive_File.root ms_cred
+
+    ## ---
+       icon: cloud
+       ---
+       Return a list of a directory of the user's OneDrive.
+
+       ## Arguments
+       - `path`: A path to a file or folder in OneDrive.
+       - `credential`: A Cloud secret or a file containing Microsoft365 credentials.
+    @credential Secret_Browse
+    new : Text -> File | Enso_Secret | Microsoft365_Credential -> OneDrive_File
+    new path:Text="" (credential : File | Enso_Secret | Microsoft365_Credential = _default_credential) -> OneDrive_File =
+        used_path = (if (path.starts_with "onedrive://" ..Insensitive) then path.drop (..First 11) else path) . trim ..Left '/'
+        parts = if used_path == "" then [] else used_path.replace "\" "/" . split "/"
+        ms_cred = Microsoft365_Credential.initialize credential
+        OneDrive_File.Value ms_cred (OneDrive_Path.Value parts)
+
+    ## ---
+       icon: cloud
+       ---
+       Writes a file to the user's OneDrive.
+    @path Text_Input display=..Always
+    @destination Text_Input display=..Always
+    @credential Secret_Browse
+    write : Text | URI | File -> Text | OneDrive_File -> File | Enso_Secret | Microsoft365_Credential -> OneDrive_File
+    write source=(Missing_Argument.throw "source") (destination:(Text | OneDrive_File)=Missing_Argument.throw "destination") (credential : File | Enso_Secret | Microsoft365_Credential = _default_credential destination) -> OneDrive_File =
+        parsed_destination = case destination of
+            _ : Text -> OneDrive.new destination credential
+            _ : OneDrive_File -> OneDrive_File.Value credential destination.onedrive_path
+
+        is_folder = parsed_destination.exists && parsed_destination.is_directory
+        parent = if is_folder then parsed_destination else parsed_destination.parent
+        parent_exists = parent.exists
+        if parent_exists.not then Error.throw (File_Error.Not_Found parent)
+
+        resolved_file = Data_Link_Helpers.resolve_path source
+        Error.return_if_error resolved_file
+        if resolved_file.is_a URI then Error.throw (Illegal_Argument.Error "Writing from URI to OneDrive is not currently supported: "+resolved_file.to_text)
+
+        target_file = if is_folder then parsed_destination / resolved_file.name else parsed_destination
+        if target_file.exists then Error.throw (File_Error.Already_Exists target_file)
+        upload_target = if is_folder then parsed_destination else parsed_destination.parent
+
+        ## Check Execution Context
+        Context.Output.if_enabled disabled_message="As writing is disabled, cannot write the file. Press the Write button ▶ to perform the operation." panic=False <|
+            Nothing
+
+        Data_Link_Helpers.as_file resolved_file file->
+            if file.size > 4000000 then Error.throw (Unimplemented.Error "Writing files larger than 4 MB to OneDrive is not currently implemented.")
+
+            parent_id = upload_target.id
+            frag = "/me/drive/items/" + parent_id + ":/" + resolved_file.name + ":/content"
+            response = Graph.post_file parsed_destination.credential Graph.base_url+frag file method=..Put
+            if response.code.is_success then target_file else
+                Error.throw (File_Error.Write_Error target_file "Failed to write file to OneDrive. HTTP response code: "+response.code.to_text)
+
+## Represents a file or folder in OneDrive.
+type OneDrive_File
+    private Value (credential : Microsoft365_Credential) (onedrive_path : OneDrive_Path)
+
+    ## ---
+       private: true
+       ---
+       File_System entry point
+    new path = OneDrive.new path
+
+    ## ---
+       private: true
+       icon: cloud
+       ---
+
+       Returns the root directory of the user's OneDrive.
+    root (credential : Microsoft365_Credential) =
+        OneDrive_File.Value credential (OneDrive_Path.Value [])
+
+    ## ---
+       group: Standard.Base.Input
+       icon: data_input
+       ---
+       Lists files contained in the directory denoted by this file.
+
+       ## Arguments
+        - `name_filter`: A glob pattern that can be used to filter the returned
+          files. If it is not specified, all files are returned.
+        - `recursive`: Specifies whether the returned list of files should
+          include also files from the subdirectories. If set to `False` (the
+          default), only the immediate children of the listed directory are
+          considered.
+
+       ## Returns
+       - A vector of `OneDrive_File` objects representing the files in the directory.
+
+       ## Errors
+        - Throws `Illegal_Argument` if called on a no-folder.
+    list : Text -> Boolean -> Vector OneDrive_File
+    list self name_filter:Text="" recursive:Boolean=False -> Vector OneDrive_File =
+        if name_filter != "" then Unimplemented.throw "OneDrive listing with name filter is not currently implemented."
+        if recursive then Unimplemented.throw "OneDrive listing with recursion is not currently implemented."
+        _check_directory self <|
+            frag = self.onedrive_path.to_human_readable_fragment_dir
+            children = Graph.fetch_json self.credential Graph.base_url+frag
+            names = children.at "value" . map (x-> x.at "name")
+            paths = names.map name-> self.onedrive_path.extend name
+            paths.map path-> OneDrive_File.Value self.credential path
+
+    ## ---
+       private: true
+       advanced: true
+       ---
+       Creates a new input stream for this file and runs the specified action on
+       it.
+       The created stream is automatically closed when `action` returns (even if
+       it returns exceptionally).
+
+       ## Arguments
+       - `open_options`: A vector of `File_Access` objects determining how to
+         open the stream. These options set the access properties of the stream.
+       - `action`: A function that operates on the input stream and returns some
+         value. The value is returned from this method.
+    with_input_stream : Vector File_Access -> (Input_Stream -> Any ! File_Error) -> Any ! Illegal_Argument
+    with_input_stream self (open_options : Vector) action =
+        _check_not_directory self <|
+            File_Access.ensure_only_allowed_options "with_input_stream" [File_Access.Read, Data_Link_Access.No_Follow] open_options <|
+                frag = self.onedrive_path.to_human_readable_fragment_file
+                response = Graph.fetch self.credential Graph.base_url+frag
+                response.body.with_stream action
+
+    ## ---
+       aliases: [import, load, open]
+       group: Standard.Base.Input
+       icon: data_input
+       ---
+       Read a file using the specified file format.
+
+       ## Arguments
+        - `format`: A `File_Format` object used to read file into memory. If
+          `Auto_Detect` is specified; the provided file determines the specific
+          type and configures it appropriately.
+        - `on_problems`: Specifies the behavior when a problem occurs during the
+          function. By default, a warning is issued, but the operation proceeds.
+          If set to `Report_Error`, the operation fails with a dataflow error. If
+          set to `Ignore`, the operation proceeds without errors or warnings.
+
+       ## Returns
+        - The contents of the file read using the specified `File_Format`.
+
+       ## Errors
+        - Throws `Illegal_Argument` if called on a folder.
+    @format File_Format.default_widget
+    read : File_Format -> Problem_Behavior -> Any ! Illegal_Argument
+    read self format=Auto_Detect (on_problems : Problem_Behavior = ..Report_Warning) -> Any ! Illegal_Argument =
+        _ = [on_problems]
+        _check_not_directory self <|
+            case format of
+                Auto_Detect ->
+                    frag = self.onedrive_path.to_human_readable_fragment_file
+                    response = Graph.fetch self.credential Graph.base_url+frag
+                    response.decode Auto_Detect
+                _ ->
+                    metadata = File_Format_Metadata.Value path=self.path name=self.name
+                    resolved_format = File_Format.resolve format
+                    self.with_input_stream [File_Access.Read] (stream-> resolved_format.read_stream stream metadata)
+
+    ## ---
+       group: Standard.Base.Metadata
+       icon: metadata
+       ---
+       Returns the path of this file.
+    path self -> Text =
+        self.onedrive_path.to_text
+
+    ## ---
+       group: Standard.Base.Metadata
+       icon: metadata
+       ---
+       Returns the path of this file.
+    parent self -> OneDrive_File =
+        parent_path = self.onedrive_path.parent
+        if parent_path.is_nothing then Nothing else
+            OneDrive_File.Value self.credential parent_path
+
+    ## ---
+       group: Standard.Base.Metadata
+       icon: metadata
+       ---
+       Returns the name of this file.
+    name self -> Text =
+        self.onedrive_path.file_name
+
+    ## ---
+       group: Standard.Base.Metadata
+       icon: metadata
+       ---
+       Returns the extension of the file.
+    extension : Text
+    extension self =
+        if self.is_directory then Error.throw (Illegal_Argument.Error "Copying OneDrive folders do not have extensions." self.uri)
+        find_extension_from_name self.name
+
+    ## ---
+       group: Standard.Base.Metadata
+       icon: metadata
+       ---
+       Does the file exist.
+    exists self -> Boolean =
+        self.metadata.is_error.not
+
+    ## ---
+       icon: data_output
+       ---
+       Copies the OneDrive file to the specified destination.
+
+       ## Arguments
+        - `destination`: the destination to copy the file to.
+        - `replace_existing`: specifies if the operation should proceed if the
+          destination file already exists. Defaults to `False`.
+
+       ## Returns
+       - The destination file if the operation was successful.
+
+       ## Errors
+        - Unless `replace_existing` is set to `True`, if the destination file
+          already exists, a `File_Error` is thrown.
+        - If the source is a directory, an `Illegal_Argument` will occur as this is not
+          currently supported.
+        - If the Output operations are disabled, a `Forbidden_Operation` panic
+          will occur.
+    copy_to : File_Like -> Boolean -> Any ! Illegal_Argument | File_Error
+    copy_to self (destination : File_Like) (replace_existing : Boolean = False) = Data_Link_Helpers.disallow_links_in_copy self destination <|
+        if self.is_directory then Error.throw (Illegal_Argument.Error "Copying OneDrive folders is currently not implemented." self.uri)
+        Context.Output.if_enabled disabled_message="As writing is disabled, cannot copy to a file. Press the Write button ▶ to perform the operation." panic=False <|
+            destination_writable = Writable_File.from destination
+            generic_copy self destination_writable replace_existing
+
+    ## ---
+       private: true
+       ---
+       Returns the metadata for the OneDrive object
+    metadata self =
+        frag = self.onedrive_path.to_human_readable_fragment
+        Graph.fetch_json self.credential Graph.base_url+frag
+
+    ## ---
+       private: true
+       ---
+       Returns the id for the OneDrive object
+    id self =
+        metadata = self.metadata
+        if metadata.is_error then Error.throw (File_Error.Not_Found self)
+        metadata.get "id"
+
+    ## ---
+       group: Standard.Base.Metadata
+       icon: metadata
+       ---
+       Checks if this is a folder.
+
+       ## Returns
+       - `True` if the OneDrive path represents a folder, `False` otherwise.
+    is_directory self -> Boolean =
+        metadata = self.metadata
+        if metadata.is_error then Error.throw (File_Error.Not_Found self)
+        metadata.contains_key "folder"
+
+    ## ---
+       private: true
+       ---
+    is_data_link self -> Boolean =
+        self.is_directory.not && Data_Link.is_data_link_name self.name
+
+    ## ---
+       group: Standard.Base.Metadata
+       icon: metadata
+       ---
+       Returns the size of a file in bytes.
+
+       ## Errors
+        - If the `OneDrive_File` represents a directory, an `Illegal_Argument`
+          error is thrown.
+        - If the bucket or object does not exist, a `File_Error.Not_Found` is
+          thrown.
+
+       ## Remarks
+
+       ### Data Links
+       If the file is a data link that points to a file, the size of the target
+       file will be returned.
+    size : Integer
+    size self = _check_not_directory self <|
+        metadata = self.metadata
+        if metadata.is_error then Error.throw (File_Error.Not_Found self)
+        if self.is_data_link.not then metadata.get "size" else
+            Data_Link_Helpers.interpret_data_link_target_as_file self . size
+
+    ## ---
+       group: Standard.Base.Metadata
+       icon: metadata
+       ---
+       Gets the creation time of a file.
+
+       ## Errors
+        - If the `OneDrive_File` represents a directory, an `Illegal_Argument`
+          error is thrown.
+        - If the bucket or object does not exist, a `File_Error.Not_Found` is
+          thrown.
+
+       ## Remarks
+
+       ### Data Links
+       If the file is a data link, this returns the creation time of the data
+       link.
+    creation_time : Date_Time ! File_Error
+    creation_time self =
+        metadata = self.metadata
+        if metadata.is_error then Error.throw (File_Error.Not_Found self)
+        if self.is_data_link then Data_Link_Helpers.interpret_data_link_target_as_file self . creation_time else
+            date_time = metadata.get "createdDateTime"
+            if date_time.is_nothing then Error.throw (Illegal_State.Error "Missing information for: createdDateTime") else
+                date_time.parse_date_time
+
+    ## ---
+       group: Standard.Base.Metadata
+       icon: metadata
+       ---
+       Returns the last modified time of a file.
+
+       ## Errors
+        - If the `S3_File` represents a directory, an `S3_Error` error is thrown.
+        - If the bucket or object does not exist, a `File_Error.Not_Found` is
+          thrown.
+        - If the object is not accessible, an `S3_Error` is thrown.
+
+       ## Remarks
+
+       ### Data Links
+       If the file is a data link, this returns the modification time of the
+       data link.
+    last_modified_time : Date_Time ! File_Error
+    last_modified_time self =
+        metadata = self.metadata
+        if metadata.is_error then Error.throw (File_Error.Not_Found self)
+        if self.is_data_link then Data_Link_Helpers.interpret_data_link_target_as_file self . last_modified_time else
+            date_time = metadata.get "lastModifiedDateTime"
+            if date_time.is_nothing then Error.throw (Illegal_State.Error "Missing information for: lastModifiedDateTime") else
+                date_time.parse_date_time
+
+    ## ---
+       group: Standard.Base.Metadata
+       icon: metadata
+       ---
+       Returns the URI of this file The URI is in the form
+       `onedrive://bucket/path/to/file`.
+    uri : Text
+    uri self = "onedrive:/"+self.onedrive_path.to_text
+
+    ## ---
+       private: true
+       ---
+    can_write_into_parent self -> Boolean = False
+
+    ## ---
+       group: Standard.Base.Operators
+       icon: folder
+       ---
+       Join two path segments together, normalizing the `..` and `.` sub-paths.
+
+       ## Arguments
+        - `subpath`: The path to join to the path of `self`.
+
+       ## Returns
+       - An `OneDrive_Path` representing the joined and normalised path, with
+         the same credentials.
+    / : Text -> OneDrive_File
+    / self subpath =
+        Path_Helpers.resolve_many_parts self subpath
+
+    ## ---
+       private: true
+       ---
+       An internal helper method that resolves a single part (subpath) of a path.
+    resolve_single_part self part:Text -> Any =
+        if self.is_data_link then Error.throw (Illegal_Argument.Error "Cannot resolve path parts on a OneDrive data link: "+self.uri)
+        OneDrive_File.Value self.credential (self.onedrive_path.resolve part)
+
+    ## ---
+       private: true
+       ---
+       Return the absolute path of this OneDrive_File.
+    to_text : Text
+    to_text self = self.uri
+
+    ## ---
+       private: true
+       ---
+       Convert to a display representation of this OneDrive_File.
+    to_display_text : Text
+    to_display_text self = "OneDrive_File {" + self.to_text + "}"
+
+## ---
+   private: true
+   ---
+File_Like.from (that : OneDrive_File) = File_Like.Value that
+
+## ---
+   private: true
+   ---
+Data_Link_From_File.from (that : OneDrive_File) = Data_Link_From_File.Value that
+
+private _check_directory file:OneDrive_File ~action =
+    if file.is_directory then action else
+        Error.throw <| Illegal_Argument.Error "The OneDrive_File must represent a folder: "+file.onedrive_path.path.to_text
+
+private _check_not_directory file:OneDrive_File ~action =
+    if file.is_directory.not then action else
+        Error.throw <| Illegal_Argument.Error "The OneDrive_File must represent a file, not a folder: "+file.onedrive_path.path.to_text
+
+private _default_credential existing=Nothing =
+    Error.return_if_error existing
+    if existing.is_a OneDrive_File then existing.credential else
+        test = Enso_Secret.get "Microsoft365" Enso_File.home
+        if test.is_error.not then test else
+            Error.throw (Illegal_Argument.Error "Default credentials not found - log in as new credential in cloud home called Microsoft365.")

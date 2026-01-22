@@ -20,6 +20,7 @@ import org.enso.pkg.QualifiedName;
 import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Source;
+import org.hamcrest.core.AllOf;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -52,7 +53,13 @@ public class ModuleTest {
       var r = b.invokeMember(MethodNames.TopScope.GET_MODULE, "Does.Not.Exist.Module");
       fail("Expecting failure, but got: " + r);
     } catch (PolyglotException ex) {
-      assertThat(ex.getMessage(), containsString("Module_Does_Not_Exist"));
+      assertThat(
+          ex.getMessage(),
+          AllOf.allOf(
+              containsString("Module"),
+              containsString("Does"),
+              containsString("Not"),
+              containsString("Exist")));
     }
   }
 

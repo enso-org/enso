@@ -39,4 +39,7 @@ extract_warnings_into_builder builder jdbc_object =
             enso_warning = SQL_Warning.Warning current_warning
             builder.append enso_warning
             @Tail_Call go current_warning.getNextWarning
-    go jdbc_object.getWarnings
+
+    ## Some JDBC clients do not support warnings so catch the exception.
+    Panic.catch Any handler=_->Nothing <|
+        go jdbc_object.getWarnings

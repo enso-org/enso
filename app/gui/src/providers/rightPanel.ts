@@ -1,13 +1,13 @@
 import type { PaywallFeatureName } from '#/hooks/billing/FeaturesConfiguration'
 import { isCloudCategory, type Category } from '#/layouts/CategorySwitcher/Category'
-import { AssetType, type AnyAsset, type ProjectId } from '#/services/Backend'
 import { useBackends } from '$/providers/backends'
+import { proxyRefs, type ToValue } from '$/utils/reactivity'
 import { useSyncLocalStorage } from '@/composables/syncLocalStorage'
 import { createContextStore } from '@/providers'
-import { Err, Ok, type Result } from '@/util/data/result'
 import type { Icon } from '@/util/iconMetadata/iconName'
-import { proxyRefs, type ToValue } from '@/util/reactivity'
 import { useQuery } from '@tanstack/vue-query'
+import { AssetType, type AnyAsset, type ProjectId } from 'enso-common/src/services/Backend'
+import { Err, Ok, type Result } from 'enso-common/src/utilities/data/result'
 import { encoding } from 'lib0'
 import { computed, reactive, readonly, ref, toValue, type Ref } from 'vue'
 import type { SuggestionId } from 'ydoc-shared/languageServerTypes/suggestions'
@@ -69,9 +69,18 @@ function useRightPanelTabs(
     [
       'description',
       {
-        icon: 'text',
+        icon: 'info',
         enabled: enabledInCloudOnly,
         title: 'Description',
+      },
+    ],
+    [
+      'contents',
+      {
+        icon: 'docs',
+        enabled: Ok(),
+        hidden: true,
+        title: 'Contents',
       },
     ],
     [
@@ -85,7 +94,7 @@ function useRightPanelTabs(
     [
       'versions',
       {
-        icon: 'versions',
+        icon: 'history',
         enabled: enabledInCloudOnly,
         title: textRef('versions'),
       },
@@ -93,7 +102,7 @@ function useRightPanelTabs(
     [
       'sessions',
       {
-        icon: 'sessions',
+        icon: 'activity',
         enabled: enabledInCloudOnly,
         title: textRef('projectSessions'),
       },
@@ -173,7 +182,9 @@ function useRightPanel(
   const displayedTab = computed(() => {
     const markedTab = temporaryTab.value ?? tab.value
     if (markedTab == null) return undefined
-    if (!toValue(allTabs.get(markedTab)?.enabled)?.ok) return undefined
+    const tabInfo = allTabs.get(markedTab)
+    if (!tabInfo || toValue(tabInfo.hidden)) return undefined
+    if (!toValue(tabInfo.enabled)?.ok) return undefined
     return markedTab
   })
 
@@ -224,6 +235,7 @@ function useRightPanel(
       return await backendForType(backendType).getAssetDetails(currentItem.id, undefined)
     },
     enabled: () => backendType.value != null && focusedAsset.value != null,
+    meta: { persist: false },
   })
   const focusedAssetDetails = focusedAssetDetailsQuery.data
 

@@ -1,6 +1,5 @@
 package org.enso.compiler.test;
 
-import static org.enso.compiler.test.ExecStrictCompilerTest.ctxRule;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertEquals;
@@ -13,7 +12,7 @@ import org.enso.common.LanguageInfo;
 import org.enso.common.MethodNames;
 import org.enso.common.MethodNames.Module;
 import org.enso.common.RuntimeOptions;
-import org.enso.compiler.core.ir.expression.errors.Conversion.DeclaredAsPrivate$;
+import org.enso.compiler.core.ir.expression.errors.Conversion.DeclaredAsPrivate;
 import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.PolyglotException;
 import org.graalvm.polyglot.Source;
@@ -232,8 +231,8 @@ public class ExecCompilerTest {
     } catch (PolyglotException e) {
       assertTrue("It is exception", e.getGuestObject().isException());
       assertEquals("Panic", e.getGuestObject().getMetaObject().getMetaSimpleName());
-      if (!e.getMessage().contains("Invalid use of _")) {
-        fail("Expecting Invalid use of _, but was: " + e.getMessage());
+      if (!e.getMessage().contains("Invalid use of")) {
+        fail("Expecting Invalid use of syntactic operator, but was: " + e.getMessage());
       }
     }
   }
@@ -271,6 +270,37 @@ public class ExecCompilerTest {
     var run = module.invokeMember("eval_expression", "nums");
     var result = run.execute(5);
     assertEquals("10 % 3 is one", 1, result.asInt());
+  }
+
+  @Test
+  public void directArgumentToASymbol() {
+    var module =
+        ctxRule.eval(
+            LanguageInfo.ID,
+            """
+            nums n =
+                f x = x * 2
+                f n
+            """);
+    var run = module.invokeMember("eval_expression", "nums");
+    var result = run.execute(5);
+    assertEquals("Twice five", 10, result.asInt());
+  }
+
+  @Test
+  public void blockArgumentToASymbol() {
+    var module =
+        ctxRule.eval(
+            LanguageInfo.ID,
+            """
+            nums n =
+                f x = x * 2
+                f
+                    n
+            """);
+    var run = module.invokeMember("eval_expression", "nums");
+    var result = run.execute(5);
+    assertEquals("Twice five", 10, result.asInt());
   }
 
   @Test
@@ -544,7 +574,7 @@ public class ExecCompilerTest {
             run value =
                 42
             """);
-    var expectedErrMsg = DeclaredAsPrivate$.MODULE$.explain();
+    var expectedErrMsg = DeclaredAsPrivate.INSTANCE.explain();
     var runMethod = module.invokeMember(Module.EVAL_EXPRESSION, "run");
     runMethod.execute(0);
     assertThat(ctxRule.getOut(), containsString(expectedErrMsg));
@@ -594,5 +624,89 @@ public class ExecCompilerTest {
               containsString("expected unresolved symbol Unknown"),
               containsString("to be resolved to a type")));
     }
+  }
+
+  @Test
+  public void blockAppliedToUnknownSymbol() throws Exception {
+    var code =
+        """
+        from Standard.Base import all
+        fn =
+            f
+                10
+        """;
+    try {
+      var module = ctxRule.eval(LanguageInfo.ID, code);
+      var fn = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "fn");
+      var r = fn.execute();
+      fail("We don't expect any result, but exception: " + r);
+    } catch (PolyglotException ex) {
+      assertThat(
+          ex.getMessage(),
+          AllOf.allOf(containsString("The name `f`"), containsString("could not be found")));
+    }
+  }
+
+  @Test
+  public void onlyElse() throws Exception {
+    var code =
+        """
+        from Standard.Base import all
+        def a:Integer =
+            else a
+        """;
+    var module = ctxRule.eval(LanguageInfo.ID, code);
+    var def = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "def");
+    try {
+      var noResult = def.execute(20);
+      fail("Yields an error: " + noResult);
+    } catch (PolyglotException ex) {
+      assertThat(ex.getMessage(), containsString("no branch matches"));
+    }
+  }
+
+  @Test
+  public void missingElseBranch() throws Exception {
+    var code =
+        """
+        from Standard.Base import all
+        def a:Boolean ~b c =
+            if a then
+                b
+            else
+            node = c
+            node
+        """;
+    var module = ctxRule.eval(LanguageInfo.ID, code);
+    var def = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "def");
+    try {
+      var noResult = def.execute(true, 6, 7);
+      fail("Yields an error: " + noResult);
+    } catch (PolyglotException ex) {
+      assertThat(
+          "In non-strict mode the error happens when executing the def function.",
+          ex.getMessage(),
+          containsString("error: Missing else branch."));
+    }
+  }
+
+  @Test
+  public void ifThenElseInABlockApplication() throws Exception {
+    var code =
+        """
+        act n a b =
+          fn = (* 2)
+          fn
+              if n<5 then
+                  a+b
+              else
+                  a*b
+        """;
+
+    var module = ctxRule.eval(LanguageInfo.ID, code);
+    var act = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "act");
+
+    assertEquals(26, act.execute(3, 6, 7).asInt());
+    assertEquals(84, act.execute(7, 6, 7).asInt());
   }
 }

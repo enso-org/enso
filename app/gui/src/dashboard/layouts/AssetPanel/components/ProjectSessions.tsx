@@ -3,14 +3,14 @@ import { ErrorBoundary } from '#/components/ErrorBoundary'
 import { Result } from '#/components/Result'
 import { Scroller } from '#/components/Scroller'
 import { AssetPanelPlaceholder } from '#/layouts/AssetPanel/components/AssetPanelPlaceholder'
-import type Backend from '#/services/Backend'
-import { AssetType, BackendType, type ProjectAsset } from '#/services/Backend'
 import { useBackends, useText } from '$/providers/react'
 import {
   useRightPanelContextCategory,
   useRightPanelFocusedAsset,
 } from '$/providers/react/container'
 import { useSuspenseQuery } from '@tanstack/react-query'
+import type { Backend } from 'enso-common/src/services/Backend'
+import { AssetType, BackendType, type ProjectAsset } from 'enso-common/src/services/Backend'
 import { ProjectSession } from './ProjectSession'
 
 /** A list of previous versions of an asset. */

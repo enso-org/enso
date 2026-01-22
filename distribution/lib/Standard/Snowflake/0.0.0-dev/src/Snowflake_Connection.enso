@@ -1,4 +1,5 @@
 from Standard.Base import all
+import Standard.Base.Enso_Cloud.Data_Link_Helpers
 import Standard.Base.Enso_Cloud.Enso_Secret.Derived_Secret_Value
 import Standard.Base.Errors.Common.Not_Found
 import Standard.Base.Errors.File_Error.File_Error
@@ -10,15 +11,17 @@ from Standard.Base.Metadata.Choice import Option
 from Standard.Base.Metadata.Widget import File_Browse, Folder_Browse, Single_Choice, Text_Input
 from Standard.Base.Visualization.Table_Viz_Data import Table_Viz_Data, Table_Viz_Header
 
-import Standard.Table.Rows_To_Read.Rows_To_Read
 import Standard.Table.In_Memory_Table.In_Memory_Table
-from Standard.Table import Table, Data_Formatter
+import Standard.Table.Rows_To_Read.Rows_To_Read
+from Standard.Table import Data_Formatter, Table
 
+import Standard.Database.Bulk_Load_Exists.Bulk_Load_Exists
 import Standard.Database.Column_Description.Column_Description
 import Standard.Database.Connection.Connection.Connection
 import Standard.Database.Connection.Credentials.Credentials
 import Standard.Database.DB_Table as DB_Table_Module
 import Standard.Database.DB_Table.DB_Table
+import Standard.Database.Dialects.Dialect.Dialect
 import Standard.Database.Internal.Common.Connections_Helpers
 import Standard.Database.Internal.Connection.Entity_Naming_Properties.Entity_Naming_Properties
 import Standard.Database.Internal.Data_Link_Setup.Data_Link_Setup
@@ -39,9 +42,18 @@ import project.Identifier.Identifier
 import project.Internal.Snowflake_Dialect
 import project.Internal.Snowflake_Type_Mapping.Snowflake_Type_Mapping
 
+polyglot java import org.enso.database.JDBCDriverTypes
+polyglot java import org.enso.database.JDBCProxy
 polyglot java import org.enso.snowflake.SnowflakeCloudCredentials
+polyglot java import org.enso.base.enso_cloud.ExternalLibraryCredentialHelper.CredentialReference
 
 type Snowflake_Connection
+    ## ---
+       private: true
+       ---
+    get_dialect : Dialect
+    get_dialect = Snowflake_Dialect.snowflake
+
     ## ---
        private: true
        ---
@@ -54,24 +66,24 @@ type Snowflake_Connection
         - `make_new`: A function that returns a new connection.
         - `data_link_setup`: the setup for saving the connection as a data link.
     private create url:Text properties:Vector credentials:Credentials|Key_Pair_Credentials|Enso_Secret make_new:(Text -> Text -> Snowflake_Connection) data_link_setup:Data_Link_Setup -> Snowflake_Connection =
-        jdbc_connection = case credentials of
-            # Special handling for OAuth credentials stored in the cloud
+        auth_properties = case credentials of
             cloud_credentials : Enso_Secret ->
-                base_properties = JDBC_Connection.properties_as_java_props properties
-                raw_java_connection = SnowflakeCloudCredentials.makeConnection url base_properties (as_credential_reference cloud_credentials)
-                JDBC_Connection.from_java raw_java_connection
-            _ ->
-                auth_properties = auth_jdbc_properties credentials
-                clashing = (Hashset.from_vector (properties.map .first)) . intersection (Hashset.from_vector (auth_properties.map .first))
-                if clashing.not_empty then
-                    Panic.throw (Illegal_Argument.Error "The properties cannot contain "+(clashing.to_vector .join ", ")+" as they are already provided in the credentials.")
-                JDBC_Connection.create url (properties + auth_properties)
+                # Special handling for OAuth credentials stored in the cloud
+                SnowflakeCloudCredentials.makePairs (as_credential_reference cloud_credentials CredentialReference)
+            _ -> auth_jdbc_properties credentials
+
+        clashing = (Hashset.from_vector (properties.map .first)) . intersection (Hashset.from_vector (auth_properties.map .first))
+        if clashing.not_empty then
+            Panic.throw (Illegal_Argument.Error "The properties cannot contain "+(clashing.to_vector .join ", ")+" as they are already provided in the credentials.")
+
+        types_record = JDBCDriverTypes.create "Snowflake"
+        jdbc_connection = JDBC_Connection.create types_record url (properties + auth_properties)
 
         ## As long as names are quoted, the Snowflake SQL dialect is case sensitive.
            Our generator always quotes identifiers, so we can rely on the case sensitivity.
            This is the same as in Postgres.
         entity_naming_properties = Entity_Naming_Properties.from_jdbc_connection jdbc_connection is_case_sensitive=True
-        Snowflake_Connection.Value (Connection.new jdbc_connection Snowflake_Dialect.snowflake Snowflake_Type_Mapping entity_naming_properties data_link_setup statement_setter=Snowflake_Type_Mapping.statement_setter) make_new
+        Snowflake_Connection.Value (Connection.new jdbc_connection Snowflake_Connection.get_dialect Snowflake_Type_Mapping entity_naming_properties data_link_setup) make_new
 
     ## ---
        private: true
@@ -330,7 +342,7 @@ type Snowflake_Connection
        Database interprets the provided values and may not reflect the types of
        the source table. If you need more sophisticated type mapping mechanism,
        use `create_table` instead.
-    create_literal_table self (source : Table) (alias : Text) -> Table & DB_Table =
+    create_literal_table self (source : Table) (alias : Text) -> Table & DB_Table & Any =
         DB_Table_Module.make_literal_table self (source.columns.map .to_vector) source.column_names alias
 
     ## ---
@@ -400,12 +412,6 @@ type Snowflake_Connection
        ---
        Access the Type Mapping.
     type_mapping self = self.connection.type_mapping
-
-    ## ---
-       private: true
-       ---
-       Access the Statement Setter.
-    statement_setter self = self.connection.statement_setter
 
     ## ---
        private: true
@@ -604,38 +610,27 @@ type Snowflake_Connection
 
        ## Returns
        The name of the uploaded file in the stage.
+    @file (Text_Input display=..Always)
     @stage make_stage_selector
-    put_to_stage : File -> Identifier -> Text -> Boolean -> Text ! Stage_Not_Found | Snowflake_Error
+    put_to_stage : Text | URI | File -> Identifier -> Text -> Boolean -> Text ! Stage_Not_Found | Snowflake_Error
     put_to_stage self file stage:Identifier=(Missing_Argument.throw "stage") path:Text="" overwrite:Boolean=False =
         Execution_Context.Output.if_enabled disabled_message="As writing is disabled, cannot upload to stage. Press the Write button ▶ to perform the operation." panic=False <|
-            if file.exists == False then Error.throw (File_Error.Not_Found file)
-            if file.is_directory then Error.throw (Illegal_Argument.Error "Uploading directories is not supported. Please provide a file.")
-
-            ## Need to copy the file locally first if cloud-based.
-            used_file = case file of
-                _ : File -> file
-                _ ->
-                    file_extension = file.extension
-                    file_name = file.name.drop (..Last file_extension.length)
-                    temp_file = File.create_temporary_file file_name file_extension
-                    file.copy_to temp_file replace_existing=True
-
-            identifier = stage.to_identifier
-            Stage_Not_Found.rethrow identifier <|
-                stage_and_path = identifier + if path == "" then "" else '/' + path
-                file_uri = "'file://" + (used_file.path.replace "\" "/" . replace "'" "''") + "'"
-                query = "PUT " + file_uri + " '@" + (stage_and_path.replace "'" "''") + "'" + (if overwrite then " OVERWRITE=TRUE" else " OVERWRITE=FALSE")
-                result = self.execute_query query write_operation=True
-                if used_file != file then used_file.delete_if_exists
-                result.if_not_error <|
-                    case result.row_count of
-                        0 -> Error.throw (Snowflake_Error.Unexpected_Result "Uploading to stage did not report any uploaded files.")
-                        1 ->
-                            status = result.get_value "status" . if_nothing "<UNKNOWN>"
-                            if status=="UPLOADED" then result.get_value "target" else
-                                message = result.get_value "message" . if_nothing ""
-                                Error.throw (Snowflake_Error.Unexpected_Result status+": "+message result)
-                        _ -> Error.throw (Snowflake_Error.Unexpected_Result "Uploading to stage reported multiple uploaded files." result)
+            Data_Link_Helpers.as_file file used_file->
+                identifier = stage.to_identifier
+                Stage_Not_Found.rethrow identifier <|
+                    stage_and_path = identifier + if path == "" then "" else '/' + path
+                    file_uri = "'file://" + (used_file.path.replace "\" "/" . replace "'" "''") + "'"
+                    query = "PUT " + file_uri + " '@" + (stage_and_path.replace "'" "''") + "'" + (if overwrite then " OVERWRITE=TRUE" else " OVERWRITE=FALSE")
+                    result = self.execute_query query write_operation=True
+                    result.if_not_error <|
+                        case result.row_count of
+                            0 -> Error.throw (Snowflake_Error.Unexpected_Result "Uploading to stage did not report any uploaded files.")
+                            1 ->
+                                status = result.get_value "status" . if_nothing "<UNKNOWN>"
+                                if status=="UPLOADED" then result.get_value "target" else
+                                    message = result.get_value "message" . if_nothing ""
+                                    Error.throw (Snowflake_Error.Unexpected_Result status+": "+message result)
+                            _ -> Error.throw (Snowflake_Error.Unexpected_Result "Uploading to stage reported multiple uploaded files." result)
 
     ## ---
        icon: trash
@@ -648,7 +643,7 @@ type Snowflake_Connection
        - `path`: The path (or prefix) to the files to remove.
        - `pattern`: Optional regex pattern to match names against.
     @stage make_stage_selector
-    remove_from_stage : Identifier -> Text -> Text -> Boolean -> Table ! Stage_Not_Found
+    remove_from_stage : Identifier -> Text -> Text -> Table ! Stage_Not_Found
     remove_from_stage self stage:Identifier=(Missing_Argument.throw "stage") path:Text=(Missing_Argument.throw "path") pattern:Text=""  =
         Execution_Context.Output.if_enabled disabled_message="As writing is disabled, cannot remove the target. Press the Write button ▶ to perform the operation." panic=False <|
             identifier = stage.to_identifier
@@ -778,16 +773,19 @@ type Snowflake_Connection
        ## Arguments:
        - `table`: The input table to upload.
        - `table_name`: The name of the table to create.
-       - `drop_if_exists`: If set to `True`, will drop the existing table if it
-          exists. Defaults to `False` - in which case an error is raised if the table
-          already exists.
+       - `if_exists`: What action to take if the table already exists. Defaults to
+          raising a `Table_Already_Exists` error.
+           - `Raise_Error` - a `Table_Already_Exists` error will be raised.
+           - `Drop_Table` - the existing table will be dropped before creating the new one.
+           - `Truncate_Table` - the existing table will be truncated before loading data into it.
+           - `Append_To_Table` - data will be appended to the existing table.
        - `temporary`: If set to `True`, the created table will be temporary.
           Defaults to `False`.
 
        ## Returns
        A `DB_Table` representing the created table.
-    bulk_load : Table -> Text -> Boolean -> Boolean -> Table & DB_Table ! Table_Already_Exists
-    bulk_load self table:Table=(Missing_Argument.throw "table") table_name:Text=(Missing_Argument.throw "table_name") drop_if_exists:Boolean=False temporary:Boolean=False = case table of
+    bulk_load : Table -> Text -> Bulk_Load_Exists -> Boolean -> Table & DB_Table ! Table_Already_Exists
+    bulk_load self table:Table=(Missing_Argument.throw "table") table_name:Text=(Missing_Argument.throw "table_name") if_exists:Bulk_Load_Exists=..Raise_Error temporary:Boolean=False = case table of
         _ : DB_Table ->
             Error.throw (Illegal_Argument.Error "Cannot bulk load from a DB_Table, use `read` to materialize or use `select_into_database_table` if on same server.")
         _ : In_Memory_Table ->
@@ -800,30 +798,40 @@ type Snowflake_Connection
 
             ## Check if table exists
             exists = self.query (..Table_Name table_name) . is_error . not
-            if exists && drop_if_exists.not then Error.throw (Table_Already_Exists.Error table_name)
+            if exists && if_exists==Bulk_Load_Exists.Raise_Error then Error.throw (Table_Already_Exists.Error table_name)
 
+            ## Check Execution Context
             Execution_Context.Output.if_enabled disabled_message="As writing is disabled, cannot load data. Press the Write button ▶ to perform the operation." panic=False <|
-                ## Create temporary file
-                temp_file = File.create_temporary_file "snowflake_bulk_load" ".csv"
-                table.write temp_file (..Delimited value_formatter=self.default_formatter)
+                Nothing
 
-                ## Drop existing table if needed and then create new table
-                if exists then self.drop_table table_name if_exists=True
-                created_table = self.create_table table_name table temporary=temporary
+            ## Create temporary file
+            temp_file = File.create_temporary_file "snowflake_bulk_load" ".csv"
+            table.write temp_file (..Delimited value_formatter=self.default_formatter)
 
-                ## Assuming we managed to create the table, proceed with upload
-                created_table.if_not_error <|
-                    ## Upload to the stage
-                    put_result = self.put_to_stage temp_file (..Name "~") overwrite=True
-                    put_result.if_not_error <|
-                        ## Copy into the table
-                        copy_result = self.copy_into_table table_name (..Name "~") put_result ..CSV
+            ## Drop existing table if needed and then create new table
+            created_table = if exists.not then self.create_table table_name table temporary=temporary else case if_exists of
+                Bulk_Load_Exists.Drop_Table ->
+                    self.drop_table table_name if_exists=True
+                    self.create_table table_name table temporary=temporary
+                Bulk_Load_Exists.Truncate_Table ->
+                    self.truncate_table table_name
+                    self.query (..Table_Name table_name)
+                Bulk_Load_Exists.Append_To_Table ->
+                    self.query (..Table_Name table_name)
 
-                        ## Remove file regardless of copy_result
-                        self.remove_from_stage (..Name "~") put_result
+            ## Assuming we managed to create the table, proceed with upload
+            created_table.if_not_error <|
+                ## Upload to the stage
+                put_result = self.put_to_stage temp_file (..Name "~") overwrite=True
+                put_result.if_not_error <|
+                    ## Copy into the table
+                    copy_result = self.copy_into_table table_name (..Name "~") put_result ..CSV
 
-                        ## Return the copy result if an error or the created table
-                        copy_result.if_not_error created_table
+                    ## Remove file regardless of copy_result
+                    self.remove_from_stage (..Name "~") put_result
+
+                    ## Return the copy result if an error or the created table
+                    copy_result.if_not_error created_table
 
 private make_stage_selector connection include_home:Boolean=True =
     stages = (if include_home then [Option "~" "..Name '~'"] else [])

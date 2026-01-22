@@ -8,7 +8,7 @@
       },
       {
         "name": "handleJvmMessage",
-        "parameterTypes": ["long", "long", "long"]
+        "parameterTypes": ["long", "long", "long", "long"]
       }
     ]
   }

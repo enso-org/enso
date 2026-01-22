@@ -1,5 +1,6 @@
 package org.enso.table.data.column.builder;
 
+import java.lang.reflect.Proxy;
 import java.util.Arrays;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.TypedStorage;
@@ -51,8 +52,12 @@ abstract class TypedBuilder<T> implements BuilderWithRetyping, BuilderForType<T>
       int newSizeInt = Builder.checkSize(newSize);
       resize(newSizeInt);
     }
+    var type = storage.getType();
+    if (Proxy.isProxyClass(type.getClass())) {
+      type = StorageType.fromTypeCharAndSize(type.typeChar(), type.size());
+    }
 
-    if (storage.getType().equals(getType())) {
+    if (type.equals(getType())) {
       if (storage instanceof TypedStorage<?>) {
         // This cast is safe, because storage.getType() == this.getType() iff storage.T == this.T
         @SuppressWarnings("unchecked")
@@ -67,10 +72,10 @@ abstract class TypedBuilder<T> implements BuilderWithRetyping, BuilderForType<T>
           append(storage.getItemBoxed(i));
         }
       }
-    } else if (storage.getType() instanceof NullType) {
+    } else if (type instanceof NullType) {
       appendNulls(Math.toIntExact(storage.getSize()));
     } else {
-      throw new StorageTypeMismatchException(getType(), storage.getType());
+      throw new StorageTypeMismatchException(getType(), type);
     }
   }
 

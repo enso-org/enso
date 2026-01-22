@@ -33,7 +33,7 @@ public record OtherJvmMessage(long id, Message message, List<Object> args)
   @Override
   public OtherJvmResult<? extends Object, ? extends Exception> apply(Channel<OtherJvmPool> t) {
     var lib = ReflectionLibrary.getUncached();
-    var prev = t.getConfig().enter(t.isMaster(), lib);
+    var prev = t.getConfig().enter(t, lib);
     try {
       var receiver = t.getConfig().findObject(id());
       if (receiver == null) {
@@ -58,7 +58,7 @@ public record OtherJvmMessage(long id, Message message, List<Object> args)
     } catch (Exception ex) {
       return ThrowException.create(ex);
     } finally {
-      t.getConfig().leave(t.isMaster(), lib, prev);
+      t.getConfig().leave(t, lib, prev);
     }
   }
 
@@ -152,7 +152,7 @@ public record OtherJvmMessage(long id, Message message, List<Object> args)
     public OtherJvmResult<TruffleObject, ClassNotFoundException> apply(Channel<OtherJvmPool> t) {
       assert !t.isMaster() : "Class loading only works on the slave side!";
       try {
-        var clazzRaw = t.getConfig().loadClassObject(t.isMaster(), name);
+        var clazzRaw = t.getConfig().loadClassObject(t, name);
         return ReturnValue.create(clazzRaw);
       } catch (ClassNotFoundException ex) {
         return ThrowException.create(ex);
@@ -164,7 +164,7 @@ public record OtherJvmMessage(long id, Message message, List<Object> args)
   public record AddToClassPath(String path) implements Function<Channel<OtherJvmPool>, Void> {
     @Override
     public Void apply(Channel<OtherJvmPool> t) {
-      t.getConfig().addToClassPath(t.isMaster(), path);
+      t.getConfig().addToClassPath(t, path);
       return null;
     }
   }
@@ -174,7 +174,7 @@ public record OtherJvmMessage(long id, Message message, List<Object> args)
       implements Function<Channel<OtherJvmPool>, Void> {
     @Override
     public Void apply(Channel<OtherJvmPool> t) {
-      t.getConfig().findLibraries(t.isMaster(), callback);
+      t.getConfig().findLibraries(t, callback);
       return null;
     }
   }
@@ -189,6 +189,16 @@ public record OtherJvmMessage(long id, Message message, List<Object> args)
     public Void apply(Channel<OtherJvmPool> t) {
       t.getConfig().gc(id);
       return null;
+    }
+  }
+
+  /** Requests polyglot bindings from the other side. */
+  @Persistable(id = 81912)
+  public static record PolyglotBindings(String name)
+      implements Function<Channel<OtherJvmPool>, Object> {
+    @Override
+    public Object apply(Channel<OtherJvmPool> t) {
+      return t.getConfig().getBindings(name);
     }
   }
 }

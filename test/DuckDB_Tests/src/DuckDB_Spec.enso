@@ -1,0 +1,74 @@
+from Standard.Base import all
+import Standard.Base.Runtime.Ref.Ref
+
+from Standard.Table import Table
+
+from Standard.Database import all
+import Standard.Database.Dialects.Feature.Feature
+
+from Standard.Test import all
+import Standard.Test.Test_Environment
+
+import Standard.DuckDB.DuckDB.DuckDB
+import Standard.DuckDB.DuckDB_Connection.DuckDB_Connection
+
+import enso_dev.Table_Tests
+import enso_dev.Table_Tests.Database.Common.Common_Spec
+import enso_dev.Table_Tests.Database.Helpers.Name_Generator
+import enso_dev.Table_Tests.Common_Table_Operations
+from enso_dev.Table_Tests.Common_Table_Operations.Util import all
+
+type Lazy_Ref
+   Value ~get
+
+duckdb_spec suite_builder prefix create_connection_func =
+    name_counter = Ref.new 0
+
+    # We keep a default connection to avoid creating connections each time.
+    default_connection = Lazy_Ref.Value (create_connection_func Nothing)
+
+    # The default `connection` parameter always create a new connection.
+    # In some tests, for example, where we are joining tables, we have to specify
+    # exactly the same connection.
+    table_builder columns connection=Nothing =
+        ix = name_counter.get
+        name_counter . put ix+1
+        name = Name_Generator.random_name "table_"+ix.to_text
+
+        in_mem_table = Table.new columns
+        in_mem_table.select_into_database_table (connection.if_nothing default_connection.get) name primary_key=Nothing
+
+    light_table_builder columns =
+        default_connection.get.create_literal_table (Table.new columns) "literal_table"
+
+    materialize = .read
+
+    common_selection = Common_Table_Operations.Main.Test_Selection.Config supported_replace_params=DuckDB_Connection.get_dialect.get_supported_replace_params run_advanced_edge_case_tests_by_default=True
+    aggregate_selection = Common_Table_Operations.Aggregate_Spec.Test_Selection.Config first_last_row_order=False aggregation_problems=False
+    agg_in_memory_table = ((Project_Description.new enso_dev.Table_Tests).data / "data.csv") . read
+
+    agg_table_fn = _->
+        agg_in_memory_table.select_into_database_table default_connection.get (Name_Generator.random_name "Agg1") primary_key=Nothing temporary=True
+
+    empty_agg_table_fn = _->
+        (agg_in_memory_table.take (..First 0)).select_into_database_table default_connection.get (Name_Generator.random_name "Agg_Empty") primary_key=Nothing temporary=True
+
+    is_feature_supported_fn feature:Feature = default_connection.get.dialect.is_feature_supported feature
+    is_operation_supported_fn operation:Text = default_connection.get.dialect.is_operation_supported operation
+    flagged_fn = default_connection.get.dialect.flagged
+
+    setup = Common_Table_Operations.Main.Test_Setup.Config prefix agg_table_fn empty_agg_table_fn table_builder materialize is_database=True test_selection=common_selection aggregate_test_selection=aggregate_selection create_connection_func=create_connection_func light_table_builder=light_table_builder is_feature_supported=is_feature_supported_fn flagged=flagged_fn is_operation_supported=is_operation_supported_fn
+    Common_Spec.add_specs suite_builder prefix create_connection_func default_connection setup
+    Common_Table_Operations.Main.add_specs suite_builder setup
+
+create_inmem_connection =
+    Database.connect (DuckDB.In_Memory)
+
+add_specs suite_builder =
+    in_memory_prefix = "[DuckDB In-Memory] "
+    duckdb_spec suite_builder in_memory_prefix (_ -> create_inmem_connection)
+
+main filter=Nothing =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter filter

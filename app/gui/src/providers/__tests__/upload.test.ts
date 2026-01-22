@@ -1,3 +1,5 @@
+import { withSetup } from '@/util/testing'
+import { flushPromises } from '@vue/test-utils'
 import {
   DirectoryId,
   HttpsUrl,
@@ -7,10 +9,7 @@ import {
   type UploadFileEndRequestBody,
   type UploadFileRequestParams,
   type UploadLargeFileMetadata,
-} from '#/services/Backend'
-import {} from '@/util/assert'
-import { withSetup } from '@/util/testing'
-import { flushPromises } from '@vue/test-utils'
+} from 'enso-common/src/services/Backend'
 import { assert, expect, test, vi } from 'vitest'
 import { setFeatureFlag } from '../featureFlags'
 import { createUploadsStore } from '../upload'

@@ -19,6 +19,9 @@ bazel_dep(name = "aspect_rules_ts", version = "3.7.0")
 bazel_dep(name = "rules_nodejs", version = "6.3.2")
 bazel_dep(name = "aspect_bazel_lib", version = "2.14.0")
 bazel_dep(name = "bazel_skylib", version = "1.8.1")
+bazel_dep(name = "rules_cc", version = "0.2.12")
+bazel_dep(name = "zlib", version = "1.3.1.bcr.7")
+bazel_dep(name = "aspect_rules_esbuild", version = "0.22.1")
 
 ## Node.js
 node = use_extension("@rules_nodejs//nodejs:extensions.bzl", "node")
@@ -51,14 +54,7 @@ bazel_dep(name = "rules_rust", version = "0.66.0")
 
 rust = use_extension("@rules_rust//rust:extensions.bzl", "rust")
 rust.toolchain(
-    edition = "2021",
-    # Add the custom directory for libiconv to the library search path.
-    # The exact path comes from `nixpkgs2` in `flake.lock` and must be kept in sync.
-    # NOTE [NP]: Required to be able to build under macOS + Bazel + Nix.
-    extra_exec_rustc_flags = [
-        "-L",
-        "/nix/store/pff8c9a4l487r0jaipibq21mkww5f1yw-libiconv-109/lib",
-    ],
+    edition = "2024",
     extra_target_triples = ["wasm32-unknown-unknown"],
     versions = ["1.90.0"],
 )

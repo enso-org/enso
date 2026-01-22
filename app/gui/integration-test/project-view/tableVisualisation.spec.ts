@@ -537,6 +537,6 @@ export function getCellLocator(page: Page, colId: string, rowIndex: number) {
 // Helper function to check cell values in a column
 async function expectCellDataToBe(page: Page, colId: string, ...expectedValues: string[]) {
   for (let i = 0; i < expectedValues.length; i++) {
-    expect(await getCellLocator(page, colId, i).textContent()).toBe(expectedValues[i])
+    expect(getCellLocator(page, colId, i)).toContainText(expectedValues[i] ?? '')
   }
 }

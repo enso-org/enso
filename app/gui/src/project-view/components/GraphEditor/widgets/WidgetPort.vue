@@ -7,12 +7,13 @@ import {
   defineWidget,
   widgetProps,
 } from '$/providers/openedProjects/widgetRegistry'
+import { cachedGetter, proxyRefs } from '$/utils/reactivity'
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import { useRaf } from '@/composables/animation'
 import { useResizeObserver } from '@/composables/events'
 import type { NavigatorComposable } from '@/composables/navigator'
 import { injectGraphNavigator } from '@/providers/graphNavigator'
-import { injectGraphSelection } from '@/providers/graphSelection'
+import { useGraphSelection } from '@/providers/graphSelection'
 import { injectKeyboard } from '@/providers/keyboard'
 import { injectPortInfo, providePortInfo, type PortId } from '@/providers/portInfo'
 import { injectWidgetTree } from '@/providers/widgetTree'
@@ -20,7 +21,6 @@ import { assert } from '@/util/assert'
 import { Ast } from '@/util/ast'
 import { ArgumentInfoKey } from '@/util/callTree'
 import { Rect } from '@/util/data/rect'
-import { cachedGetter, proxyRefs } from '@/util/reactivity'
 import {
   computed,
   nextTick,
@@ -39,25 +39,23 @@ const graph = useGraphStore()
 
 const navigator = injectGraphNavigator(true)
 const tree = injectWidgetTree()
-const selection = injectGraphSelection(true)
+const selection = useGraphSelection(true)
 
-const hasConnection = computed(() => graph.isConnectedTarget(portId.value))
-const isCurrentEdgeHoverTarget = computed(
-  () =>
+const hasPersistedConnection = computed(() => graph.isConnectedTarget(portId.value))
+const isBeingDraggedAwayFrom = computed(() => graph.isTargetBeingDraggedAwayFrom(portId.value))
+const isCurrentEdgeHoverTarget = computed(() => {
+  const edgeSourceAtThisNode =
     graph.mouseEditedEdge?.source != null &&
-    selection?.hoveredPort === portId.value &&
-    (tree.externalId == null ||
-      graph.db.getPatternExpressionNodeId(graph.mouseEditedEdge.source) !== tree.externalId),
+    tree.externalId != null &&
+    graph.db.getPatternExpressionNodeId(graph.mouseEditedEdge.source) === tree.externalId
+  return selection?.hoveredPort === portId.value && !edgeSourceAtThisNode
+})
+const showConnectedStyle = computed(
+  () => hasPersistedConnection.value || isCurrentEdgeHoverTarget.value,
 )
-const isCurrentDisconnectedEdgeTarget = computed(
+const isVisualTarget = computed(
   () =>
-    graph.mouseEditedEdge?.disconnectedEdgeTarget === portId.value &&
-    graph.mouseEditedEdge?.target !== portId.value,
-)
-const connected = computed(() => hasConnection.value || isCurrentEdgeHoverTarget.value)
-const isTarget = computed(
-  () =>
-    (hasConnection.value && !isCurrentDisconnectedEdgeTarget.value) ||
+    (hasPersistedConnection.value && !isBeingDraggedAwayFrom.value) ||
     isCurrentEdgeHoverTarget.value,
 )
 
@@ -87,7 +85,7 @@ const innerWidget = computed(() => {
   return { ...props.input, forcePort: false }
 })
 
-providePortInfo(proxyRefs({ portId, connected: hasConnection }))
+providePortInfo(proxyRefs({ portId, hasPersistedConnection, isVisualTarget }))
 
 watchEffect(
   (onCleanup) => {
@@ -195,14 +193,14 @@ export const widgetDefinition = defineWidget(
 <template>
   <div
     ref="portRoot"
-    class="WidgetPort"
+    class="WidgetPort widgetParent"
     :data-port="props.input.portId"
     :class="{
       enabled,
-      connected,
-      isTarget,
-      widgetRounded: connected,
-      newToConnect: !hasConnection && isCurrentEdgeHoverTarget,
+      connected: showConnectedStyle,
+      isVisualTarget,
+      widgetRounded: showConnectedStyle,
+      newToConnect: !hasPersistedConnection && isCurrentEdgeHoverTarget,
       primary: props.nesting < 2,
     }"
   >
@@ -212,14 +210,8 @@ export const widgetDefinition = defineWidget(
 
 <style scoped>
 .WidgetPort {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  justify-content: center;
   position: relative;
-  text-align: center;
   border-radius: var(--node-port-border-radius);
-  min-height: var(--node-port-height);
   min-width: var(--node-port-height);
   transition: background-color 0.2s ease;
 }

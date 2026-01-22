@@ -5,7 +5,6 @@ import { useAuth } from '$/providers/auth'
 import { ContextsForReactProvider } from '$/providers/react/globalProvider'
 import ReactRoot from '$/ReactRoot'
 import { appOpenCloseCallback } from '$/utils/analytics'
-import { Platform, platform } from '$/utils/detect'
 import '@/assets/base.css'
 import { appBindings } from '@/bindings'
 import TooltipDisplayer from '@/components/TooltipDisplayer.vue'
@@ -20,6 +19,7 @@ import { registerAutoBlurHandler, registerGlobalBlurHandler } from '@/util/autoB
 import { reactComponent } from '@/util/react'
 import { useQueryClient } from '@tanstack/vue-query'
 import * as objects from 'enso-common/src/utilities/data/object'
+import { Platform, platform } from 'enso-common/src/utilities/detect'
 import { computed } from 'vue'
 
 const LoadingScreen = reactComponent(LoadingScreenReact)
@@ -136,5 +136,13 @@ See https://github.com/gloriasoft/veaury/issues/158
 [__use_react_component_wrap],
 [data-use-vue-component-wrap] {
   display: contents !important;
+}
+
+.mousePointer {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  pointer-events: none;
+  background-color: red;
 }
 </style>

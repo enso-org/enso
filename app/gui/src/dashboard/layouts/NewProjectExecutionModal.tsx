@@ -14,16 +14,16 @@ import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useLocalStorageState } from '#/hooks/localStoreState'
 import { useGetOrdinal } from '#/hooks/ordinalHooks'
 import { useSyncRef } from '#/hooks/syncRefHooks'
-import type Backend from '#/services/Backend'
-import type {
-  ProjectExecutionInfo,
-  ProjectExecutionRepeatInfo,
-  ProjectId,
-} from '#/services/Backend'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { useText } from '$/providers/react'
 import { useFeatureFlag } from '$/providers/react/featureFlags'
 import { endOfMonth, getLocalTimeZone, now, toZoned, ZonedDateTime } from '@internationalized/date'
+import type {
+  Backend,
+  ProjectExecutionInfo,
+  ProjectExecutionRepeatInfo,
+  ProjectId,
+} from 'enso-common/src/services/Backend'
 import {
   PARALLEL_MODE_TO_DESCRIPTION_ID,
   PARALLEL_MODE_TO_TEXT_ID,

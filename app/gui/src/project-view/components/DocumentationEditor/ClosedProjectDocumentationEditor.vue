@@ -7,9 +7,9 @@ import { Ast } from '@/util/ast'
 import { parseModule } from '@/util/ast/abstract'
 import { useYTextSync } from '@/util/codemirror'
 import { editorPersistence } from '@/util/codemirror/persistence'
-import { Err, mapOk, Ok, type Result, unwrapOr } from '@/util/data/result'
 import { ResultComponent } from '@/util/react'
 import { useQuery } from '@tanstack/vue-query'
+import { Err, mapOk, Ok, type Result, unwrapOr } from 'enso-common/src/utilities/data/result'
 import { computed } from 'vue'
 
 const rightPanel = useRightPanelData()

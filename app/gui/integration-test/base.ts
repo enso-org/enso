@@ -1,5 +1,5 @@
-import { UUID } from '#/services/Backend'
 import type { FeatureFlags } from '$/providers/featureFlags'
+import { UUID } from 'enso-common/src/services/Backend'
 import { toRfc3339 } from 'enso-common/src/utilities/data/dateTime'
 import { test as base, expect as baseExpect, type Locator } from 'playwright/test'
 import type DrivePageActions from './actions/DrivePageActions'

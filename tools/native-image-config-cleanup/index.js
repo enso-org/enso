@@ -5,7 +5,6 @@ const process = require('child_process')
 /// List of configs to clean.
 const configPaths = [
   '../../engine/launcher/src/main/resources/META-INF/native-image/org/enso/launcher',
-  '../../lib/scala/project-manager/src/main/resources/META-INF/native-image/org/enso/projectmanager',
 ]
 
 /// Checks if the entry is ephemeral (contains a pointer in its name).

@@ -423,6 +423,9 @@ public class ExcelReader {
       expandBuilders(builders, size, currentEndCol - startCol + 1, size, problemAggregator);
     }
 
+    // Special case when more headers than data
+    expandBuilders(builders, size, excelHeaders.count() - 1, size, problemAggregator);
+
     // Create Table
     Column[] columns =
         IntStream.range(0, builders.size())

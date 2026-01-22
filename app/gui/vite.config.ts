@@ -23,6 +23,7 @@ process.env.LAUNCH_EDITOR ??= 'code'
 
 // https://vitejs.dev/config/
 export default defineConfig({
+  ...(process.env.MODE ? { mode: process.env.MODE } : {}),
   ...(IS_ELECTRON_DEV_MODE ? { root: fileURLToPath(new URL('.', import.meta.url)) } : {}),
   cacheDir: fileURLToPath(new URL('../../node_modules/.cache/vite', import.meta.url)),
   plugins: [
@@ -108,19 +109,23 @@ export default defineConfig({
       'top-level-await': true,
     },
   },
-  assetsInclude: ['**/*.svg'],
   css: {
     postcss: {
       plugins: [tailwindcssNesting(postcssNesting()), tailwindcss(tailwindConfig)],
     },
   },
-  logLevel: 'info',
   build: {
     // dashboard chunk size is larger than the default warning limit
     chunkSizeWarningLimit: 700,
     sourcemap: true,
     rollupOptions: {
       output: {
+        chunkFileNames: (chunkInfo) => {
+          if (chunkInfo.name === 'config') {
+            return 'assets/config.js'
+          }
+          return 'assets/[name]-[hash].js'
+        },
         manualChunks: {
           config: ['./src/config'],
           entrypoint: ['./src/entrypoint'],
@@ -165,6 +170,6 @@ async function setupEnsoRunnerPath(): Promise<void> {
   }
   if (ensoExecutable) {
     console.log('Found enso executable:', ensoExecutable)
-    process.env.ENSO_RUNNER_PATH = ensoExecutable
+    process.env.ENSO_ENGINE_PATH = ensoExecutable
   }
 }

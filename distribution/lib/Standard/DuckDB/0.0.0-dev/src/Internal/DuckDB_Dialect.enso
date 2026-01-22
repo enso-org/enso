@@ -1,0 +1,715 @@
+private
+
+from Standard.Base import all
+import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+import Standard.Base.Errors.Illegal_State.Illegal_State
+
+import Standard.Table.In_Memory_Column.In_Memory_Column
+import Standard.Table.Internal.Problem_Builder.Problem_Builder
+from Standard.Table import Aggregate_Column, Column, Table, Value_Type
+from Standard.Table.Errors import Inexact_Type_Coercion
+
+import Standard.Database.Connection.Postgres_Connection.Postgres_Connection
+import Standard.Database.DB_Column.DB_Column
+import Standard.Database.DB_Table.DB_Table
+import Standard.Database.Dialects.Dialect
+import Standard.Database.Dialects.Dialect.Temp_Table_Style
+import Standard.Database.Dialects.Dialect_Flag.Dialect_Flag
+import Standard.Database.Dialects.Feature.Feature
+import Standard.Database.Errors.Unsupported_Database_Operation
+import Standard.Database.Internal.Base_Generator
+import Standard.Database.Internal.IR.Internal_Column.Internal_Column
+import Standard.Database.Internal.IR.Nulls_Order.Nulls_Order
+import Standard.Database.Internal.IR.Operation_Metadata.Date_Period_Metadata
+import Standard.Database.Internal.IR.Order_Descriptor.Order_Descriptor
+import Standard.Database.Internal.IR.SQL_IR_Expression.SQL_IR_Expression
+import Standard.Database.Internal.IR.SQL_IR_Source.SQL_IR_Source
+import Standard.Database.Internal.IR.SQL_IR_Statement.SQL_IR_Statement
+import Standard.Database.Internal.JDBC_Connection.JDBC_Connection
+import Standard.Database.Internal.Replace_Params.Replace_Params
+import Standard.Database.Internal.SQL_Part.SQL_Part
+import Standard.Database.Internal.SQL_Type_Mapping.SQL_Type_Mapping
+import Standard.Database.Internal.SQL_Type_Reference.SQL_Type_Reference
+import Standard.Database.SQL.SQL_Builder
+import Standard.Database.SQL.SQL_Statement
+import Standard.Database.SQL.SQL_Type
+
+## ---
+   private: true
+   ---
+   The dialect of DuckDB built on top of PostgreSQL dialect.
+duckdb : DuckDB_Dialect
+duckdb =
+    parent = Postgres_Connection.get_dialect
+    with_overrides = parent.get_dialect_operations.extend_with duckdb_overrides
+    DuckDB_Dialect.Value parent with_overrides
+
+## A Dialect for DuckDB
+type DuckDB_Dialect
+    ## ---
+       private: true
+       ---
+       The dialect of DuckDB Databases
+
+       ## Arguments
+        - `parent`: The parent dialect operations to use for operations not
+          overridden by this dialect.
+        - `internal_dialect_operations`: The operations specific to this dialect.
+    private Value parent internal_dialect_operations
+
+    ## ---
+       private: true
+       ---
+       The dialect operations for this dialect.
+    dialect_operations self = self.internal_dialect_operations
+
+    ## ---
+       private: true
+       ---
+       Name of the dialect.
+    name : Text
+    name self = duckdb_dialect_name
+
+    ## ---
+       private: true
+       ---
+    to_text : Text
+    to_text self = "DuckDB_Dialect"
+
+    ## ---
+       private: true
+       ---
+       A function which generates SQL code from the internal representation
+       according to the specific dialect.
+    generate_sql : SQL_IR_Statement -> SQL_Statement
+    generate_sql self query =
+        Base_Generator.generate_query self query . build
+
+    ## ---
+       private: true
+       ---
+       Generates SQL to truncate a table.
+    generate_truncate_table_sql : Text -> SQL_Builder
+    generate_truncate_table_sql self table_name =
+        Base_Generator.truncate_table_truncate_table_style self table_name
+
+    ## ---
+       private: true
+       ---
+       Generates SQL modifier for limiting the number of rows and its position in
+       the query
+    get_limit_sql_modifier : Integer -> Any
+    get_limit_sql_modifier self limit =
+        self.parent.get_limit_sql_modifier limit
+
+    ## ---
+       private: true
+       ---
+       Returns an ordering of SQL_Part's that determine what order each part gets
+       written in for the final SQL output If you add extensions using
+       SQL_IR_Source_Extension you have to provide an order for them here
+    get_part_order self part:SQL_Part -> Integer =
+        self.parent.get_part_order part
+
+    ## ---
+       private: true
+       ---
+       Wraps and possibly escapes the identifier so that it can be used in a
+       generated query regardless of what characters it contains.
+       The quotes used will depend on the dialect.
+    wrap_identifier : Text -> SQL_Builder
+    wrap_identifier self identifier =
+        Base_Generator.wrap_in_quotes identifier
+
+    ## ---
+       private: true
+       ---
+       Generates a SQL expression for a table literal.
+    make_table_literal : Vector (Vector Text) -> Vector Text -> Text -> SQL_Builder
+    make_table_literal self vecs column_names as_name =
+        Base_Generator.default_make_table_literal self.wrap_identifier vecs column_names as_name
+
+    ## ---
+       private: true
+       ---
+       Prepares an ordering descriptor.
+       One of the purposes of this method is to verify if the expected ordering
+       settings are supported by the given database backend.
+
+       ## Arguments
+        - `internal_column`: the column to order by.
+        - `sort_direction`: the direction of the ordering.
+        - `text_ordering`: If provided, specifies that the column should be
+          treated as text values according to the provided ordering. For non-text
+          types, it should be set to `Nothing`.
+    prepare_order_descriptor : Internal_Column -> Sort_Direction -> Nothing | Text_Ordering -> Order_Descriptor
+    prepare_order_descriptor self internal_column sort_direction text_ordering =
+        make_order_descriptor internal_column sort_direction text_ordering
+
+    ## ---
+       private: true
+       ---
+       Prepares a distinct operation.
+    prepare_distinct : DB_Table -> Vector -> Case_Sensitivity -> Problem_Builder -> Table & DB_Table
+    prepare_distinct self table key_columns case_sensitivity problem_builder =
+        self.parent.prepare_distinct table key_columns case_sensitivity problem_builder
+
+    ## ---
+       private: true
+       ---
+    make_cast : Internal_Column -> SQL_Type_Mapping -> SQL_Type -> (SQL_IR_Expression -> SQL_Type_Reference) -> Internal_Column
+    make_cast self (column : Internal_Column) mapping (target_type : SQL_Type) (infer_result_type_from_database_callback : SQL_IR_Expression -> SQL_Type_Reference) =
+        ## Special handling for Date_Time to Time
+        source_type = mapping.sql_type_to_value_type column.sql_type_reference.get
+        target_value_type = mapping.sql_type_to_value_type target_type
+        case source_type==(Value_Type.Date_Time True) && target_value_type == Value_Type.Time of
+            True ->
+                ## Need to cast to no timezone first then to time
+                inner_cast = SQL_IR_Expression.Operation "CAST" [column.expression, SQL_IR_Expression.Literal "TIMESTAMP"]
+                target_type_sql_text = mapping.sql_type_to_text target_type
+                final_cast = SQL_IR_Expression.Operation "CAST" [inner_cast, SQL_IR_Expression.Literal target_type_sql_text]
+                new_sql_type_reference = infer_result_type_from_database_callback final_cast
+                Internal_Column.Value column.name new_sql_type_reference final_cast
+            False -> self.parent.make_cast column mapping target_type infer_result_type_from_database_callback
+
+    ## ---
+       private: true
+       ---
+    needs_execute_query_for_type_inference : Text | SQL_Statement -> Boolean
+    needs_execute_query_for_type_inference self statement =
+        query_text = case statement of
+            text : Text -> text
+            _ : SQL_Statement -> statement.prepare.first
+        ## Looks like if a parameter is present in the query then getMetadata has a bug
+        query_text.contains "?"
+    ## ---
+       private: true
+       ---
+       Specifies how the database creates temp tables.
+    temp_table_style : Temp_Table_Style
+    temp_table_style self = Temp_Table_Style.Temporary_Table
+
+    ## ---
+       private: true
+       ---
+       As DuckDB doesn't have fixed-length char column, no need for the Postgres override.
+    adapt_unified_column : Internal_Column -> Value_Type -> (SQL_IR_Expression -> SQL_Type_Reference) -> SQL_Type_Mapping -> Internal_Column
+    adapt_unified_column self column approximate_result_type infer_result_type_from_database_callback mapping =
+        _ = [column, approximate_result_type, infer_result_type_from_database_callback, mapping]
+        column
+
+    ## ---
+       private: true
+       ---
+       Add an extra cast to adjust the output type of certain operations with
+       certain arguments.
+       It is used when the normal type inference provided by the database engine
+       needs to be adjusted.
+       In most cases this method will just return the expression unchanged, it is
+       used only to override the type in cases where the default one that the
+       database uses is not what we want.
+    cast_op_type self (op_kind:Text) (args:(Vector Internal_Column)) (expression:SQL_IR_Expression) =
+        self.parent.cast_op_type op_kind args expression
+
+    ## ---
+       private: true
+       ---
+       Add an extra cast to adjust the output type of aggregate operations.
+       Some DBs do CAST(SUM(x) AS FLOAT) others do SUM(CAST(x AS FLOAT)).
+    cast_aggregate_columns self op_kind:Text columns:(Vector Internal_Column) =
+        self.parent.cast_aggregate_columns op_kind columns
+
+    ## ---
+       private: true
+       ---
+    prepare_fetch_types_query : SQL_IR_Expression -> SQL_IR_Source -> SQL_Statement
+    prepare_fetch_types_query self expression context =
+        Base_Generator.default_fetch_types_query self expression context
+
+    ## ---
+       private: true
+       ---
+    generate_collate self collation_name:Text -> Text =
+        Base_Generator.default_generate_collate collation_name
+
+    ## ---
+       private: true
+       ---
+    check_aggregate_support : Aggregate_Column -> Boolean ! Unsupported_Database_Operation
+    check_aggregate_support self aggregate =
+        _ = aggregate
+        True
+
+    ## ---
+       private: true
+       ---
+       Checks if an operation is supported by the dialect.
+    is_operation_supported self operation:Text -> Boolean =
+        self.dialect_operations.is_operation_supported operation
+
+    ## ---
+       private: true
+       ---
+       Checks if a feature is supported by the dialect.
+    is_feature_supported self feature:Feature -> Boolean =
+        case feature of
+            Feature.Generate_Rows -> False
+            _ -> True
+
+    ## ---
+       private: true
+       ---
+       Checks a dialect flag
+    flagged self flag:Dialect_Flag -> Boolean =
+        case flag of
+            Dialect_Flag.Supports_Case_Sensitive_Columns -> False
+            Dialect_Flag.Supports_Nested_With_Clause -> True
+            Dialect_Flag.Different_Size_Integer_Types -> True
+            Dialect_Flag.Supports_8bit_Integer -> True
+            Dialect_Flag.Supports_Separate_NaN -> True
+            Dialect_Flag.Supports_Infinity -> True
+            Dialect_Flag.NaN_Non_Comparable -> False
+            Dialect_Flag.Supports_Decimal_Type -> True
+
+            Dialect_Flag.Length_Restricted_Text_Columns -> False
+            Dialect_Flag.Fixed_Length_Text_Columns -> False
+            Dialect_Flag.Removes_Trailing_Whitespace_Casting_From_Char_To_Varchar -> False
+            Dialect_Flag.Text_Length_Limited_Columns -> False
+            Dialect_Flag.Char_Max_Size_After_Substring_Kept -> False
+            Dialect_Flag.Case_Sensitive_Text_Comparison -> True
+            Dialect_Flag.Supports_Case_Insensitive_Ordering -> True
+            Dialect_Flag.Case_Insensitive_Ordering_By_Default -> False
+            Dialect_Flag.Supports_Unicode_Normalization -> False
+            Dialect_Flag.Supports_Unicode_Casing -> False
+            Dialect_Flag.Order_By_Unicode_Normalization_By_Default -> False
+            Dialect_Flag.Order_By_Unicode_Normalization_When_Case_Insensitive -> False
+            Dialect_Flag.Supports_Proper_Casing -> False
+
+            Dialect_Flag.Date_Time -> True
+            Dialect_Flag.Supports_Date_Time_Without_Timezone -> True
+            Dialect_Flag.Supports_Nanoseconds_In_Time -> False
+
+            Dialect_Flag.Supports_Negative_Decimal_Places -> True
+            Dialect_Flag.Supports_Float_Decimal_Places -> False
+            Dialect_Flag.Use_Builtin_Bankers -> True
+            Dialect_Flag.Primary_Key_Allows_Nulls -> False
+            Dialect_Flag.Distinct_Returns_First_Row_From_Group_If_Ordered -> True
+
+            Dialect_Flag.Supports_Sort_Digits_As_Numbers -> False
+            Dialect_Flag.Allows_Mixed_Type_Comparisons -> False
+            Dialect_Flag.Supports_Time_Duration -> False
+            Dialect_Flag.Supports_Mixed_Columns -> False
+            Dialect_Flag.Supports_Regex_Match -> True
+
+    ## ---
+       private: true
+       ---
+       The default table types to use when listing tables.
+    default_table_types : Vector Text
+    default_table_types self =
+        ["TABLE", "BASE TABLE", "VIEW", "LOCAL TEMPORARY", "TEMPORARY TABLE", "TEMPORARY VIEW"]
+
+    ## ---
+       private: true
+       ---
+       Prepares metadata for an operation taking a date/time period and checks if
+       the given period is supported.
+    prepare_metadata_for_period : Date_Period | Time_Period -> Value_Type -> Any
+    prepare_metadata_for_period self period operation_input_type =
+        self.parent.prepare_metadata_for_period period operation_input_type
+
+    ## ---
+       private: true
+       ---
+       Returns the set of all supported Replace_Params
+    get_supported_replace_params : Hashset Replace_Params
+    get_supported_replace_params self =
+        _ = self
+        supported_replace_params
+
+    ## ---
+       private: true
+       ---
+       Returns true if the `replace` parameters are supported by this backend.
+    if_replace_params_supports : Replace_Params -> Any -> Any
+    if_replace_params_supports self replace_params ~action =
+        if supported_replace_params.contains replace_params then action else replace_params.throw_unsupported duckdb_dialect_name
+
+    ## ---
+       private: true
+       ---
+    value_type_for_upload_of_existing_column : DB_Column -> Value_Type
+    value_type_for_upload_of_existing_column self column = case column of
+        # Return the type as-is for database columns.
+        _ : DB_Column -> column.value_type
+        _ : Column ->
+            base_type = column.value_type
+            case base_type of
+                Value_Type.Decimal precision scale ->
+                    # We cannot have a specified scale and no precision, so special handling is needed for this:
+                    case precision.is_nothing && scale.is_nothing.not of
+                        True ->
+                            needed_precision = (column:In_Memory_Column).max_precision
+                            new_type = case needed_precision <= 1000 of
+                                # If the precision is small enough that our number will fit, we create a column with maximum supported precision.
+                                True -> Value_Type.Decimal 1000 scale
+                                # If the needed precision is too big, we cannot set it, so we set the precision to unlimited. This loses scale.
+                                False -> Value_Type.Decimal Nothing Nothing
+                            Warning.attach (Inexact_Type_Coercion.Warning base_type new_type unavailable=False) new_type
+                        False -> base_type
+                _ -> base_type
+
+    ## ---
+       private: true
+       ---
+    needs_literal_table_cast : Value_Type -> Boolean
+    needs_literal_table_cast self value_type =
+        _ = value_type
+        False
+
+    ## ---
+       private: true
+       ---
+    generate_expression self base_gen expr:(SQL_IR_Expression | Order_Descriptor | SQL_IR_Statement) for_select:Boolean -> SQL_Builder =
+        _ = for_select
+        base_gen.generate_expression self expr
+
+    ## ---
+       private: true
+       ---
+    ensure_query_has_no_holes : JDBC_Connection -> Text -> Nothing ! Illegal_Argument
+    ensure_query_has_no_holes self jdbc:JDBC_Connection raw_sql:Text =
+        jdbc.ensure_query_has_no_holes raw_sql
+
+    ## ---
+       private: true
+       ---
+    spatial_types : Hashset Text
+    spatial_types self =
+        _ = self
+        Hashset.from_vector ["GEOMETRY", "POINT_2D", "LINESTRING_2D", "BOX_2D", "POLYGON_2D"]
+## ---
+   private: true
+   ---
+make_order_descriptor internal_column:Internal_Column sort_direction text_ordering =
+    nulls = case sort_direction of
+        Sort_Direction.Ascending -> Nulls_Order.First
+        Sort_Direction.Descending -> Nulls_Order.Last
+    case text_ordering of
+        Nothing -> Order_Descriptor.Value internal_column.expression sort_direction nulls_order=nulls collation=Nothing
+        _ ->
+            ## In the future we can modify this error to suggest using a custom defined collation.
+            if text_ordering.sort_digits_as_numbers then Error.throw (Unsupported_Database_Operation.Error "sort_digits_as_numbers") else
+                case text_ordering.case_sensitivity of
+                    Case_Sensitivity.Default ->
+                        Order_Descriptor.Value internal_column.expression sort_direction nulls_order=nulls collation=Nothing
+                    Case_Sensitivity.Sensitive ->
+                        Order_Descriptor.Value internal_column.expression sort_direction nulls_order=nulls collation="binary"
+                    Case_Sensitivity.Insensitive locale -> case locale == Locale.default of
+                        False ->
+                            Error.throw (Unsupported_Database_Operation.Error "Case insensitive ordering with custom locale")
+                        True ->
+                            upper = SQL_IR_Expression.Operation "UPPER" [internal_column.expression]
+                            folded_expression = SQL_IR_Expression.Operation "LOWER" [upper]
+                            Order_Descriptor.Value folded_expression sort_direction nulls_order=nulls collation=Nothing
+
+## ---
+   private: true
+   ---
+duckdb_dialect_name = "DuckDB"
+
+## ---
+   private: true
+   ---
+   Dialect operation overrides for DuckDB.
+private duckdb_overrides =
+    text_ops = [make_case_sensitive, make_add_text, ["REPLACE", replace], ends_with, contains, index_of, ["PROPER", Nothing]]
+    scalars = [["ROUND_BANKERS", Base_Generator.make_function "ROUND_EVEN"], ["GROUP_NUMBER_EQUAL_COUNT", make_group_number_equal_count]]
+    date_ops = [["quarter", make_quarter],["date_diff", make_date_diff], ["date_add", make_date_add]]
+    aggs = [make_first_aggr, make_first_aggr not_null=True, make_last_aggr, make_last_aggr not_null=True, agg_shortest, agg_longest, agg_median, agg_stddev, agg_stddev_pop, agg_mode]
+    other = [["RUNTIME_ERROR", make_runtime_error_op], make_st_to_geojson]
+    text_ops + scalars + date_ops + aggs + other
+
+## ---
+   private: true
+   ---
+make_case_sensitive = Base_Generator.lift_unary_op "MAKE_CASE_SENSITIVE" arg->
+    SQL_Builder.code "((" ++ arg ++ ') COLLATE "binary")'
+
+## ---
+   private: true
+   ---
+make_add_text =
+    func arguments =
+        if arguments.length != 2 then Error.throw (Illegal_State.Error "add_text expects exactly 2 sub expressions. This is a bug in Database library.")
+        left = arguments.at 0
+        right = arguments.at 1
+        SQL_Builder.code "(" ++ left ++ " || " ++ right ++ ")::varchar"
+    ["ADD_TEXT", func]
+
+## ---
+   private: true
+   ---
+make_quarter =
+    func arguments =
+        if arguments.length != 1 then Error.throw (Illegal_State.Error "quarter expects exactly 1 sub expression. This is a bug in Database library.")
+        date = arguments.first
+        SQL_Builder.code "DATE_PART('quarter', " ++ date ++ ")"
+    func
+
+## ---
+   private: true
+   ---
+make_date_add arguments (metadata : Date_Period_Metadata) =
+    if arguments.length != 2 then Error.throw (Illegal_State.Error "date_add expects exactly 2 sub expressions. This is a bug in Database library.")
+    expr = arguments.at 0
+    amount = arguments.at 1
+    interval_arg = case metadata.period of
+        Date_Period.Year -> ") YEARS"
+        Date_Period.Quarter -> " * 3) MONTHS"
+        Date_Period.Month -> ") MONTHS"
+        Date_Period.Week _ -> " * 7) DAYS"
+        Date_Period.Day -> ") DAYS"
+        Time_Period.Hour -> ") HOURS"
+        Time_Period.Minute -> ") MINUTES"
+        Time_Period.Second -> ") SECONDS"
+        Time_Period.Millisecond -> ") MILLISECONDS"
+        Time_Period.Microsecond -> ") MICROSECONDS"
+        Time_Period.Nanosecond ->
+            Panic.throw (Illegal_State.Error "Nanosecond precision is not supported by DuckDB.")
+    interval_expression = SQL_Builder.code "INTERVAL (" ++ amount ++ interval_arg
+    shifted = SQL_Builder.code "(" ++ expr ++ " + " ++ interval_expression ++ ")"
+    case metadata.input_value_type of
+        Value_Type.Date -> SQL_Builder.code "(" ++ shifted ++ "::date)"
+        _ -> shifted
+
+## ---
+   private: true
+   ---
+make_date_diff arguments (metadata : Date_Period_Metadata) =
+    if arguments.length != 2 then Error.throw (Illegal_State.Error "date_diff expects exactly 2 sub expressions. This is a bug in Database library.")
+    start = arguments.at 0
+    end = arguments.at 1
+
+    case metadata.period of
+        Date_Period.Year    -> SQL_Builder.code "DATE_SUB('year', " ++ start ++ ", " ++ end ++ ")"
+        Date_Period.Month   -> SQL_Builder.code "DATE_SUB('month', " ++ start ++ ", " ++ end ++ ")"
+        Date_Period.Quarter -> SQL_Builder.code "(DATE_SUB('month', " ++ start ++ ", " ++ end ++ ") / 3) :: INTEGER"
+        Date_Period.Week _  -> SQL_Builder.code "(DATE_SUB('day', " ++ start ++ ", " ++ end ++ ") / 7) :: INTEGER"
+        Date_Period.Day     -> SQL_Builder.code "DATE_SUB('day', " ++ start ++ ", " ++ end ++ ")"
+        Time_Period.Hour    -> SQL_Builder.code "DATE_SUB('hour', " ++ start ++ ", " ++ end ++ ")"
+        Time_Period.Minute  -> SQL_Builder.code "DATE_SUB('minute', " ++ start ++ ", " ++ end ++ ")"
+        Time_Period.Second  -> SQL_Builder.code "DATE_SUB('second', " ++ start ++ ", " ++ end ++ ")"
+        Time_Period.Millisecond -> SQL_Builder.code "DATE_SUB('millisecond', " ++ start ++ ", " ++ end ++ ")"
+        Time_Period.Microsecond -> SQL_Builder.code "DATE_SUB('microsecond', " ++ start ++ ", " ++ end ++ ")"
+
+## ---
+   private: true
+   ---
+make_group_number_equal_count : Vector SQL_Builder -> SQL_Builder
+make_group_number_equal_count (arguments : Vector) = if arguments.length < 3 then Error.throw (Illegal_State.Error "Wrong amount of parameters in GROUP_NUMBER_EQUAL_COUNT IR. This is a bug in the Database library.") else
+    offset = arguments.at 0
+    step = arguments.at 1
+    group_count = arguments.at 2
+
+    ordering = arguments.drop 3
+
+    ordering_part = if ordering.length == 0 then "" else
+        SQL_Builder.code "ORDER BY " ++ SQL_Builder.join ", " ordering
+    count = SQL_Builder.code "(count(*) over ())"
+    row_number_minus_1 = SQL_Builder.code "((row_number() over (" ++ ordering_part ++ ")) - 1)"
+    small_group_size = SQL_Builder.code "(floor(" ++ count ++ " / " ++ group_count.paren ++ "))"
+    extra = SQL_Builder.code "(" ++ count ++ " % " ++ group_count.paren ++ ")"
+    is_in_large_groups = SQL_Builder.code "(" ++ row_number_minus_1 ++ " < (" ++ extra.paren ++ " * (" ++ small_group_size.paren ++ " + 1)))"
+    gn_large_groups = SQL_Builder.code "(floor(" ++ row_number_minus_1 ++ " / (" ++ small_group_size.paren ++ " + 1)))"
+    gn_small_groups = SQL_Builder.code "(floor(((" ++ row_number_minus_1 ++ " - (" ++ extra.paren ++ " * (" ++ small_group_size.paren ++ " + 1))) / " ++ small_group_size.paren ++ ") + " ++ extra.paren ++ "))"
+    base_group_number = SQL_Builder.code "(case when " ++ is_in_large_groups.paren ++ " then " ++ gn_large_groups.paren ++ " else " ++ gn_small_groups.paren ++ " end)"
+
+    SQL_Builder.code "((" ++ base_group_number.paren ++ " * " ++ step.paren ++ ") + " ++ offset.paren ++ ")"
+
+## ---
+   private: true
+   ---
+make_first_aggr not_null:Boolean=False =
+    func args =
+        if args.length < 2 then Error.throw (Illegal_State.Error "Insufficient number of arguments for the operation.")
+        order_clause = SQL_Builder.code " ORDER BY " ++ SQL_Builder.join "," (args.drop 1)
+        filter_clause = if not_null then SQL_Builder.code " FILTER (" ++ args.first ++ " IS NOT NULL)" else ""
+        SQL_Builder.code "FIRST(" ++ args.first ++ order_clause ++ ")" ++ filter_clause
+    [(if not_null then "FIRST_NOT_NULL" else "FIRST"), func]
+
+## ---
+   private: true
+   ---
+make_last_aggr not_null:Boolean=False =
+    ## Note - using array_agg[-1] for LAST as the built in LAST aggregate doesn't work as well with ORDER BY clauses.
+    func args =
+        if args.length < 2 then Error.throw (Illegal_State.Error "Insufficient number of arguments for the operation.")
+        order_clause = SQL_Builder.code " ORDER BY " ++ SQL_Builder.join "," (args.drop 1)
+        filter_clause = if not_null then SQL_Builder.code " FILTER (" ++ args.first ++ " IS NOT NULL)" else ""
+        SQL_Builder.code "(array_agg(" ++ args.first.paren ++ order_clause ++ ")" ++ filter_clause ++ ")[-1]"
+    [(if not_null then "LAST_NOT_NULL" else "LAST"), func]
+
+## ---
+   private: true
+   ---
+make_st_to_geojson = Base_Generator.lift_unary_op "ST_ASGEOJSON" arg->
+    SQL_Builder.code "CAST(ST_AsGeoJSON(" ++ arg ++ ') AS VARCHAR)'
+
+## ---
+   private: true
+   ---
+agg_shortest = Base_Generator.lift_unary_op "SHORTEST" arg->
+     order_clause =
+         SQL_Builder.code " ORDER BY char_length(" ++ arg ++ ") ASC NULLS LAST"
+     SQL_Builder.code "FIRST(" ++ arg ++ order_clause ++ ")"
+
+## ---
+   private: true
+   ---
+agg_longest = Base_Generator.lift_unary_op "LONGEST" arg->
+     order_clause =
+         SQL_Builder.code " ORDER BY char_length(" ++ arg ++ ") DESC NULLS LAST"
+     SQL_Builder.code "FIRST(" ++ arg ++ order_clause ++ ")"
+
+## ---
+   private: true
+   ---
+   Compute the median for a column
+agg_median = Base_Generator.lift_unary_op "MEDIAN" arg->
+    median = SQL_Builder.code "MEDIAN(" ++ arg ++ ")"
+    has_nan = SQL_Builder.code "bool_or(" ++ arg ++ " = double precision 'NaN')"
+    SQL_Builder.code "CASE WHEN " ++ has_nan ++ " THEN 'NaN' ELSE " ++ median ++ " END"
+
+## ---
+   private: true
+   ---
+   Compute the stddev for a column
+agg_stddev = Base_Generator.lift_unary_op "STDDEV_SAMP" arg->
+    stddev = SQL_Builder.code "STDDEV_SAMP(CASE WHEN " ++ arg ++ " IN (double precision 'Infinity', double precision 'NaN', double precision '-Infinity') THEN NULL ELSE " ++ arg ++ " END)"
+    has_nan = SQL_Builder.code "bool_or(" ++ arg ++ " in (double precision 'Infinity', double precision 'NaN', double precision '-Infinity'))"
+    SQL_Builder.code "CASE WHEN " ++ has_nan ++ " THEN 'NaN' ELSE " ++ stddev ++ " END"
+
+## ---
+   private: true
+   ---
+   Compute the population stddev for a column
+agg_stddev_pop = Base_Generator.lift_unary_op "STDDEV_POP" arg->
+    stddev = SQL_Builder.code "STDDEV_POP (CASE WHEN " ++ arg ++ " IN (double precision 'Infinity', double precision 'NaN', double precision '-Infinity') THEN NULL ELSE " ++ arg ++ " END)"
+    has_nan = SQL_Builder.code "bool_or(" ++ arg ++ " in (double precision 'Infinity', double precision 'NaN', double precision '-Infinity'))"
+    SQL_Builder.code "CASE WHEN " ++ has_nan ++ " THEN 'NaN' ELSE " ++ stddev ++ " END"
+
+## ---
+   private: true
+   ---
+   Compute the mode for a column
+agg_mode = Base_Generator.lift_unary_op "MODE" arg->
+    SQL_Builder.code "MODE(" ++ arg ++ ")"
+
+## ---
+   private: true
+   ---
+ends_with = Base_Generator.lift_binary_sql_function "ENDS_WITH" "ends_with"
+
+## ---
+   private: true
+   ---
+contains = Base_Generator.lift_binary_sql_function "CONTAINS" "contains"
+
+## ---
+   private: true
+   ---
+index_of = Base_Generator.lift_binary_op "INDEX_OF" str-> substr->
+    SQL_Builder.code "instr(" ++ str ++ ", " ++ substr ++ ") - 1"
+
+## ---
+   private: true
+   ---
+supported_replace_params : Hashset Replace_Params
+supported_replace_params =
+    e0 = [Replace_Params.Value Text Case_Sensitivity.Default False, Replace_Params.Value Text Case_Sensitivity.Default True, Replace_Params.Value Text Case_Sensitivity.Sensitive False]
+    e1 = [Replace_Params.Value Text Case_Sensitivity.Sensitive True, Replace_Params.Value Text Case_Sensitivity.Insensitive False, Replace_Params.Value Text Case_Sensitivity.Insensitive True]
+    e2 = [Replace_Params.Value Regex Case_Sensitivity.Default False, Replace_Params.Value Regex Case_Sensitivity.Default True, Replace_Params.Value Regex Case_Sensitivity.Sensitive False]
+    e3 = [Replace_Params.Value Regex Case_Sensitivity.Sensitive True, Replace_Params.Value Regex Case_Sensitivity.Insensitive False, Replace_Params.Value Regex Case_Sensitivity.Insensitive True]
+    e4 = [Replace_Params.Value Column Case_Sensitivity.Default False, Replace_Params.Value Column Case_Sensitivity.Default True, Replace_Params.Value Column Case_Sensitivity.Sensitive False]
+    e5 = [Replace_Params.Value Column Case_Sensitivity.Sensitive True, Replace_Params.Value Column Case_Sensitivity.Insensitive False, Replace_Params.Value Column Case_Sensitivity.Insensitive True]
+    Hashset.from_vector <| e0 + e1 + e2 + e3 + e4 + e5
+
+## ---
+   private: true
+   ---
+replace : Vector SQL_Builder -> Any -> SQL_Builder
+replace args metadata =
+    input = args.at 0
+    pattern = args.at 1
+    replacement = args.at 2
+
+    ## `raw_pattern` is a `Text` or `Regex`; it's the same value as `input`, but not
+       embedded in IR.
+    raw_pattern = metadata.at 0
+    replace_params = metadata.at 1
+
+    expression = case replace_params.input_type of
+        Text ->
+            ## To use REGEXP_REPLACE on a non-regex, we have to escape it.
+            escaped_pattern = SQL_Builder.interpolation (Regex.escape raw_pattern)
+            case replace_params.only_first of
+                False -> case replace_params.case_sensitivity of
+                    Case_Sensitivity.Insensitive _ ->
+                        SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ escaped_pattern ++ ", " ++ replacement ++ ", 'ig')"
+                    _ ->
+                        SQL_Builder.code "REPLACE(" ++ input ++ ", " ++ pattern ++ ", " ++ replacement ++ ")"
+                True -> case replace_params.case_sensitivity of
+                    Case_Sensitivity.Insensitive _ ->
+                        SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ escaped_pattern ++ ", " ++ replacement ++ ", 'i')"
+                    _ ->
+                        SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ escaped_pattern ++ ", " ++ replacement ++ ")"
+        Regex ->
+            pattern_text = SQL_Builder.interpolation raw_pattern.pattern
+            case replace_params.only_first of
+                False -> case replace_params.case_sensitivity of
+                    Case_Sensitivity.Insensitive _ ->
+                        SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ pattern_text ++ ", " ++ replacement ++ ", 'ig')"
+                    _ ->
+                        SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ pattern_text ++ ", " ++ replacement ++ ", 'g')"
+                True -> case replace_params.case_sensitivity of
+                    Case_Sensitivity.Insensitive _ ->
+                        SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ pattern_text ++ ", " ++ replacement ++ ", 'i')"
+                    _ ->
+                        SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", " ++ pattern_text ++ ", " ++ replacement ++ ")"
+        Column ->
+            case replace_params.only_first of
+                False -> case replace_params.case_sensitivity of
+                    Case_Sensitivity.Insensitive _ ->
+                        SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", REGEXP_ESCAPE(" ++ pattern ++ "), REGEXP_ESCAPE(" ++ replacement ++ "), 'ig')"
+                    _ ->
+                        SQL_Builder.code "REPLACE(" ++ input ++ ", " ++ pattern ++ ", " ++ replacement ++ ")"
+                True -> case replace_params.case_sensitivity of
+                    Case_Sensitivity.Insensitive _ ->
+                        SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", REGEXP_ESCAPE(" ++ pattern ++ "), REGEXP_ESCAPE(" ++ replacement ++ "), 'i')"
+                    _ ->
+                        SQL_Builder.code "REGEXP_REPLACE(" ++ input ++ ", REGEXP_ESCAPE(" ++ pattern ++ "), REGEXP_ESCAPE(" ++ replacement ++ "))"
+    expression.if_nothing (replace_params.throw_unsupported duckdb_dialect_name)
+
+## ---
+   private: true
+   ---
+   The RUNTIME_ERROR operation should allow the query to compile fine and it will
+   not prevent it from running if the branch including this operation is not
+   taken. But if the branch is computed, it should ensure the query fails.
+   This query never returns a value, so its type should be polymorphic. However,
+   that is not possible - so currently it just 'pretends' that it would return a
+   Boolean - because that is the type we expect in the use-case. This can be
+   altered if needed.
+   It takes a variable as the second argument. It can be any value that is not
+   statically known - this ensure that the optimizer will not be able to
+   pre-compute the expression too early (which could make the query fail
+   spuriously). See `make_invariant_check` in `Lookup_Query_Helper` for an
+   example.
+make_runtime_error_op arguments =
+    if arguments.length != 2 then
+        Panic.throw (Illegal_Argument.Error "RUNTIME_ERROR takes exactly 2 arguments (error message and a variable to ensure deferred execution).")
+    error_message = arguments.at 0
+    variable_to_defer = arguments.at 1
+
+    SQL_Builder.code "ERROR('[ENSO INVARIANT VIOLATED: '||" ++ error_message ++ "||'] '||COALESCE(" ++ variable_to_defer ++ "::TEXT,'NULL'))"

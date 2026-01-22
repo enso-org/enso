@@ -77,7 +77,7 @@ case object DataflowAnalysis extends IRPass {
   ): Module = {
     val dependencyInfo = new DependencyInfo
     ir.copyWithBindings(
-      bindings = ir.bindings.map(analyseModuleDefinition(_, dependencyInfo))
+      ir.bindings.map(analyseModuleDefinition(_, dependencyInfo))
     ).updateMetadata(new MetadataPair(this, dependencyInfo))
   }
 
@@ -173,8 +173,10 @@ case object DataflowAnalysis extends IRPass {
           )
           .build()
           .updateMetadata(new MetadataPair(this, info))
-      case tp @ Definition.Type(_, params, members, _, _) =>
-        val tpDep = asStatic(tp)
+      case tp: Definition.Type =>
+        val params  = tp.params()
+        val members = tp.members()
+        val tpDep   = asStatic(tp)
         val newParams = params.map { param =>
           val paramDep = asStatic(param)
           info.dependents.updateAt(paramDep, Set(tpDep))
@@ -192,12 +194,17 @@ case object DataflowAnalysis extends IRPass {
           })
 
           data
-            .copy(
-              arguments = data.arguments.map(analyseDefinitionArgument(_, info))
+            .copyBuilder()
+            .arguments(
+              data.arguments.map(analyseDefinitionArgument(_, info))
             )
+            .build()
             .updateMetadata(new MetadataPair(this, info))
         }
-        tp.copy(params = newParams, members = newMembers)
+        tp.copyBuilder()
+          .params(newParams)
+          .members(newMembers)
+          .build()
           .updateMetadata(new MetadataPair(this, info))
       case _: definition.Method.Binding =>
         throw new CompilerError(
@@ -344,6 +351,16 @@ case object DataflowAnalysis extends IRPass {
         val fnDep     = asStatic(prefix.function)
         val prefixDep = asStatic(prefix)
         info.dependents.updateAt(fnDep, Set(prefixDep))
+        prefix.arguments().headOption.map(_.value()).foreach {
+          case literalSelfArg: Name.Literal =>
+            // Self arguments are cached, so whenever the type (or method in it)
+            // changes, then it should be invalidated as well.
+            // Tracking a dependency between the application
+            // and the self argument ensures correct invalidation.
+            val selfArgDep = asStatic(literalSelfArg)
+            info.dependents.updateAt(prefixDep, Set(selfArgDep))
+          case _ =>
+        }
         info.dependencies.updateAt(prefixDep, Set(fnDep))
         prefix.arguments.foreach(arg => {
           val argDep = asStatic(arg)
@@ -403,22 +420,26 @@ case object DataflowAnalysis extends IRPass {
     */
   def analyseType(typ: Type, info: DependencyInfo): Type = {
     typ match {
-      case asc @ Type.Ascription(typed, signature, _, _, _) =>
-        val ascrDep  = asStatic(asc)
-        val typedDep = asStatic(typed)
-        val sigDep   = asStatic(signature)
+      case asc: Type.Ascription =>
+        val typed     = asc.typed()
+        val signature = asc.signature()
+        val ascrDep   = asStatic(asc)
+        val typedDep  = asStatic(typed)
+        val sigDep    = asStatic(signature)
         info.dependents.updateAt(typedDep, Set(ascrDep))
         info.dependents.updateAt(sigDep, Set(ascrDep))
         info.dependencies.updateAt(ascrDep, Set(typedDep, sigDep))
 
         asc
-          .copy(
-            typed     = analyseExpression(typed, info),
-            signature = analyseExpression(signature, info)
-          )
+          .copyBuilder()
+          .typed(analyseExpression(typed, info))
+          .signature(analyseExpression(signature, info))
+          .build()
           .updateMetadata(new MetadataPair(this, info))
 
-      case fun @ Type.Function(args, result, _, _) =>
+      case fun: Type.Function =>
+        val args    = fun.args()
+        val result  = fun.result()
         val funDep  = asStatic(fun)
         val argDeps = args.map(asStatic)
         val resDep  = asStatic(result)
@@ -427,12 +448,15 @@ case object DataflowAnalysis extends IRPass {
         info.dependencies.updateAt(funDep, Set(resDep :: argDeps: _*))
 
         fun
-          .copy(
-            args   = args.map(analyseExpression(_, info)),
-            result = analyseExpression(result, info)
-          )
+          .copyBuilder()
+          .args(args.map(analyseExpression(_, info)))
+          .result(analyseExpression(result, info))
+          .build()
           .updateMetadata(new MetadataPair(this, info))
-      case ctx @ Type.Context(typed, context, _, _) =>
+
+      case ctx: Type.Context =>
+        val typed      = ctx.typed()
+        val context    = ctx.context()
         val ctxDep     = asStatic(ctx)
         val typedDep   = asStatic(typed)
         val contextDep = asStatic(context)
@@ -441,12 +465,15 @@ case object DataflowAnalysis extends IRPass {
         info.dependencies.updateAt(ctxDep, Set(typedDep, contextDep))
 
         ctx
-          .copy(
-            typed   = analyseExpression(typed, info),
-            context = analyseExpression(context, info)
-          )
+          .copyBuilder()
+          .typed(analyseExpression(typed, info))
+          .context(analyseExpression(context, info))
+          .build()
           .updateMetadata(new MetadataPair(this, info))
-      case err @ Type.Error(typed, error, _, _) =>
+
+      case err: Type.Error =>
+        val typed    = err.typed()
+        val error    = err.error()
         val errDep   = asStatic(err)
         val typedDep = asStatic(typed)
         val errorDep = asStatic(error)
@@ -455,12 +482,15 @@ case object DataflowAnalysis extends IRPass {
         info.dependencies.updateAt(errDep, Set(typedDep, errorDep))
 
         err
-          .copy(
-            typed = analyseExpression(typed, info),
-            error = analyseExpression(error, info)
-          )
+          .copyBuilder()
+          .typed(analyseExpression(typed, info))
+          .error(analyseExpression(error, info))
+          .build()
           .updateMetadata(new MetadataPair(this, info))
-      case member @ `type`.Set.Member(_, memberType, value, _, _) =>
+
+      case member: `type`.Set.Member =>
+        val memberType    = member.memberType()
+        val value         = member.value()
         val memberDep     = asStatic(member)
         val memberTypeDep = asStatic(memberType)
         val valueDep      = asStatic(value)
@@ -469,72 +499,33 @@ case object DataflowAnalysis extends IRPass {
         info.dependencies.updateAt(memberDep, Set(memberTypeDep, valueDep))
 
         member
-          .copy(
-            memberType = analyseExpression(memberType, info),
-            value      = analyseExpression(value, info)
-          )
+          .copyBuilder()
+          .memberType(analyseExpression(memberType, info))
+          .value(analyseExpression(value, info))
+          .build()
           .updateMetadata(new MetadataPair(this, info))
-      case concat @ `type`.Set.Concat(left, right, _, _) =>
-        val concatDep = asStatic(concat)
-        val leftDep   = asStatic(left)
-        val rightDep  = asStatic(right)
-        info.dependents.updateAt(leftDep, Set(concatDep))
-        info.dependents.updateAt(rightDep, Set(concatDep))
-        info.dependencies.updateAt(concatDep, Set(rightDep, leftDep))
-
-        concat
-          .copy(
-            left  = analyseExpression(left, info),
-            right = analyseExpression(right, info)
-          )
-          .updateMetadata(new MetadataPair(this, info))
-      case eq @ `type`.Set.Equality(left, right, _, _) =>
-        val eqDep    = asStatic(eq)
-        val leftDep  = asStatic(left)
-        val rightDep = asStatic(right)
-        info.dependents.updateAt(leftDep, Set(eqDep))
-        info.dependents.updateAt(rightDep, Set(eqDep))
-        info.dependencies.updateAt(eqDep, Set(leftDep, rightDep))
-
-        eq.copy(
-          left  = analyseExpression(left, info),
-          right = analyseExpression(right, info)
-        ).updateMetadata(new MetadataPair(this, info))
-      case intersect @ `type`.Set.Intersection(left, right, _, _) =>
+      case intersect: `type`.Set.Intersection =>
         val intersectDep = asStatic(intersect)
-        val leftDep      = asStatic(left)
-        val rightDep     = asStatic(right)
+        val leftDep      = asStatic(intersect.left)
+        val rightDep     = asStatic(intersect.right)
         info.dependents.updateAt(leftDep, Set(intersectDep))
         info.dependents.updateAt(rightDep, Set(intersectDep))
         info.dependencies.updateAt(intersectDep, Set(leftDep, rightDep))
 
         intersect
-          .copy(
-            left  = analyseExpression(left, info),
-            right = analyseExpression(right, info)
-          )
+          .copyBuilder()
+          .left(analyseExpression(intersect.left, info))
+          .right(analyseExpression(intersect.right, info))
+          .build()
           .updateMetadata(new MetadataPair(this, info))
-      case union @ `type`.Set.Union(operands, _, _) =>
+      case union: `type`.Set.Union =>
+        val operands = union.operands()
         val unionDep = asStatic(union)
         val opDeps   = operands.map(asStatic)
         opDeps.foreach(info.dependents.updateAt(_, Set(unionDep)))
         info.dependencies.updateAt(unionDep, opDeps.toSet)
         union
-          .copy(operands = operands.map(analyseExpression(_, info)))
-          .updateMetadata(new MetadataPair(this, info))
-      case subsumption @ `type`.Set.Subsumption(left, right, _, _) =>
-        val subDep   = asStatic(subsumption)
-        val leftDep  = asStatic(left)
-        val rightDep = asStatic(right)
-        info.dependents.updateAt(leftDep, Set(subDep))
-        info.dependents.updateAt(rightDep, Set(subDep))
-        info.dependencies.updateAt(subDep, Set(leftDep, rightDep))
-
-        subsumption
-          .copy(
-            left  = analyseExpression(left, info),
-            right = analyseExpression(right, info)
-          )
+          .copyWithOperands(operands.map(analyseExpression(_, info)))
           .updateMetadata(new MetadataPair(this, info))
     }
   }
@@ -668,14 +659,16 @@ case object DataflowAnalysis extends IRPass {
   ): Pattern = {
     val patternDep = asStatic(pattern)
     pattern match {
-      case named @ Pattern.Name(name, _, _) =>
-        val nameDep = asStatic(name)
+      case named: Pattern.Name =>
+        val nameDep = asStatic(named.name)
         info.dependents.updateAt(nameDep, Set(patternDep))
         info.dependencies.updateAt(patternDep, Set(nameDep))
 
         named.updateMetadata(new MetadataPair(this, info))
-      case cons @ Pattern.Constructor(constructor, fields, _, _) =>
-        val consDep = asStatic(constructor)
+      case cons: Pattern.Constructor =>
+        val constructor = cons.constructor()
+        val fields      = cons.fields()
+        val consDep     = asStatic(constructor)
         info.dependents.updateAt(consDep, Set(patternDep))
         info.dependencies.updateAt(patternDep, Set(consDep))
         fields.foreach(field => {
@@ -685,18 +678,20 @@ case object DataflowAnalysis extends IRPass {
         })
 
         cons
-          .copy(
-            constructor = analyseName(constructor, info),
-            fields      = fields.map(analysePattern(_, info))
-          )
+          .copyBuilder()
+          .constructor(analyseName(constructor, info))
+          .fields(fields.map(analysePattern(_, info)))
+          .build()
           .updateMetadata(new MetadataPair(this, info))
       case literal: Pattern.Literal =>
         literal.updateMetadata(new MetadataPair(this, info))
-      case Pattern.Type(name, tpe, _, _) =>
-        val nameDep = asStatic(name)
+      case bool: Pattern.Bool =>
+        bool.updateMetadata(new MetadataPair(this, info))
+      case tp: Pattern.Type =>
+        val nameDep = asStatic(tp.name)
         info.dependents.updateAt(nameDep, Set(patternDep))
         info.dependencies.updateAt(patternDep, Set(nameDep))
-        val tpeDep = asStatic(tpe)
+        val tpeDep = asStatic(tp.tpe)
         info.dependents.updateAt(tpeDep, Set(patternDep))
         info.dependencies.updateAt(patternDep, Set(tpeDep))
 

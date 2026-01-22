@@ -232,6 +232,30 @@ public final class FunctionSchema {
     return isFullyApplied;
   }
 
+  /**
+   * Returns true if synthetic Self argument should be prepended to the arguments passed to the
+   * function. The {@code this} represents schema of the function resolved to be invoked.
+   *
+   * <p>Static method calls on Any are resolved to `Any.type.method`. Such methods take one
+   * additional self argument (with Any.type) as opposed to static method calls resolved on any
+   * other types.
+   *
+   * @param argumentCount Count of the arguments passed to the function.
+   * @return True if synthetic self argument should be prepended to the arguments.
+   */
+  public boolean shouldPrependSyntheticSelfArg(int argumentCount) {
+    var resolvedFuncArgCount = getArgumentsCount();
+    long argsWithDefaultValCount = 0;
+    for (var argDef : getArgumentInfos()) {
+      if (argDef.hasDefaultValue()) {
+        argsWithDefaultValCount++;
+      }
+    }
+    boolean shouldPrependSyntheticSelfArg =
+        resolvedFuncArgCount - argsWithDefaultValCount == argumentCount + 1;
+    return shouldPrependSyntheticSelfArg;
+  }
+
   public static final class Builder {
     private boolean isProjectPrivate = false;
     private Annotation[] annotations = new Annotation[0];

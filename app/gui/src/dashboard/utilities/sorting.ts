@@ -1,6 +1,6 @@
 /** @file Utilities related to sorting. */
 import type { SvgUseIcon } from '#/components/types'
-import type { AssetSortDirection } from '#/services/Backend'
+import type { AssetSortDirection } from 'enso-common/src/services/Backend'
 
 /** Sort direction for assets. */
 export type SortDirection = AssetSortDirection

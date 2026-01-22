@@ -46,6 +46,6 @@ public class SetLocationMethodGenerator {
   }
 
   private String retType() {
-    return ctx.getProcessedClass().getClazz().getSimpleName().toString();
+    return ctx.getProcessedClassName();
   }
 }

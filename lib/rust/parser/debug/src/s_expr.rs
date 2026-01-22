@@ -28,7 +28,6 @@ where
         AutoscopeOperator::reflect(),
         UnaryOperator::reflect(),
         LambdaOperator::reflect(),
-        DotOperator::reflect(),
         SuspensionOperator::reflect(),
     ];
     let stringish_tokens = stringish_tokens.into_iter().map(|t| rust_to_meta[&t.id]);
@@ -46,6 +45,7 @@ where
         OfKeyword::reflect(),
         AnnotationOperator::reflect(),
         AssignmentOperator::reflect(),
+        DotOperator::reflect(),
     ];
     skip_tokens.into_iter().for_each(|token| to_s_expr.skip(rust_to_meta[&token.id]));
     let identish_tokens = vec![Ident::reflect(), AllKeyword::reflect(), PrivateKeyword::reflect()];
@@ -53,11 +53,7 @@ where
     let text_escape_token = rust_to_meta[&TextEscape::reflect().id];
     let token_to_str = move |token: Value| {
         let range = token_code_range(&token, base);
-        if range.is_empty() {
-            "".into()
-        } else {
-            code[range].to_owned().into_boxed_str()
-        }
+        if range.is_empty() { "".into() } else { code[range].to_owned().into_boxed_str() }
     };
     for token in identish_tokens {
         let token_to_str_ = token_to_str.clone();

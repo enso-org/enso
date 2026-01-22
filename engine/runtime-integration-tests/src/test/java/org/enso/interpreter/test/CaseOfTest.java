@@ -1,5 +1,7 @@
 package org.enso.interpreter.test;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertEquals;
 
 import org.enso.interpreter.runtime.data.EnsoMultiValue;
@@ -54,5 +56,41 @@ public class CaseOfTest {
     assertEquals("With " + t + " we should get 1", 1, one.asInt());
     var two = choose.execute(f);
     assertEquals("With " + f + " we should get 2", 2, two.asInt());
+  }
+
+  /** See <a href="https://github.com/enso-org/enso/issues/14426">#14426</a>. */
+  @Test
+  public void caseOfJavaFinalFields_SmallInteger() {
+    var code =
+        """
+        polyglot java import org.enso.example.TestConstants
+
+        main =
+            x = 1
+            case x of
+                TestConstants.A -> "A"
+                _ -> "Unknown"
+        """;
+    var res = ctxRule.evalModule(code);
+    assertThat(res.isString(), is(true));
+    assertThat(res.asString(), is("A"));
+  }
+
+  /** See <a href="https://github.com/enso-org/enso/issues/14426">#14426</a>. */
+  @Test
+  public void caseOfJavaFinalFields_BiggerInteger() {
+    var code =
+        """
+        polyglot java import org.enso.example.TestConstants
+
+        main =
+            x = 2020
+            case x of
+                TestConstants.B -> "B"
+                _ -> "Unknown"
+        """;
+    var res = ctxRule.evalModule(code);
+    assertThat(res.isString(), is(true));
+    assertThat(res.asString(), is("B"));
   }
 }

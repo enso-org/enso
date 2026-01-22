@@ -1,6 +1,6 @@
-import { isOnMacOS } from '$/utils/detect'
-import { assert } from '@/util/assert'
 import { unsafeKeys } from 'enso-common/src/utilities/data/object'
+import { isOnMacOS } from 'enso-common/src/utilities/detect'
+import { assert } from 'ydoc-shared/util/assert'
 
 /** All possible modifier keys. */
 export type ModifierKey = keyof typeof RAW_MODIFIER_FLAG
@@ -17,7 +17,7 @@ const RAW_MODIFIER_FLAG = {
   Meta: 1 << 3,
 }
 
-const MODIFIER_FLAG: Record<Modifier, number> = {
+export const MODIFIER_FLAG: Record<Modifier, number> = {
   Mod: isOnMacOS() ? RAW_MODIFIER_FLAG.Meta : RAW_MODIFIER_FLAG.Ctrl,
   Alt: RAW_MODIFIER_FLAG.Alt,
   Shift: RAW_MODIFIER_FLAG.Shift,
@@ -345,9 +345,12 @@ export function defineKeybinds<
     return (event) => {
       const eventModifierFlags = modifierFlagsForEvent(event)
       const keybinds =
-        event instanceof KeyboardEvent ?
-          keyboardShortcuts[eventKey(event)]?.[eventModifierFlags]
-        : mouseShortcuts[buttonFlagsForEvent(event)]?.[eventModifierFlags]
+        event instanceof KeyboardEvent ? keyboardShortcuts[eventKey(event)]?.[eventModifierFlags]
+          // Chrome sometimes sends `keydown` which is not of type `KeyboardEvent`. For now, we
+          // ignore them, as these are unusual (like picking a cached form value).
+        : event instanceof MouseEvent || event instanceof PointerEvent ?
+          mouseShortcuts[buttonFlagsForEvent(event)]?.[eventModifierFlags]
+        : undefined
 
       const isRepeat = event instanceof KeyboardEvent && event.repeat
       let handled = false
@@ -507,3 +510,10 @@ interface Mousebind {
 }
 
 export type AnyHandlerEvent = KeyboardEvent | MouseEvent | PointerEvent | TouchEvent
+
+/** A handler stopping event if it's browser's "copy" shortcut. */
+export function stopCopy(event: KeyboardEvent) {
+  if (modifierFlagsForEvent(event) === MODIFIER_FLAG.Mod && event.key.toLowerCase() === 'c') {
+    event.stopPropagation()
+  }
+}

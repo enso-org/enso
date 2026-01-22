@@ -4,10 +4,10 @@ import { Vec2 } from '@/util/data/vec2'
 import type { DataServer } from '@/util/net/dataServer'
 import { Keccak, sha3_224 as SHA3 } from '@noble/hashes/sha3'
 import type { Hash } from '@noble/hashes/utils'
+import { Err, Ok, type Result } from 'enso-common/src/utilities/data/result'
 import { escapeTextLiteral } from 'ydoc-shared/ast/text'
 import type { LanguageServer } from 'ydoc-shared/languageServer'
 import type { Path, Uuid } from 'ydoc-shared/languageServerTypes'
-import { Err, Ok, type Result } from 'ydoc-shared/util/data/result'
 import type { ExternalId } from 'ydoc-shared/yjsModel'
 
 // === Constants ===

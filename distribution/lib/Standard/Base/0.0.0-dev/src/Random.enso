@@ -7,10 +7,10 @@ import project.Data.Time.Time_Period.Time_Period
 import project.Data.Vector.Vector
 import project.Error.Error
 import project.Errors.Illegal_Argument.Illegal_Argument
-from project.Nothing import all
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Numbers import Float, Integer
 from project.Data.Range.Extensions import all
+from project.Nothing import all
 
 polyglot java import java.lang.Integer as Java_Integer
 polyglot java import java.util.Random as Java_Random

@@ -12,3 +12,6 @@ maintainers:
 services:
   - provides: Standard.Database.Connection.Database.Database_Connection_Details_SPI
     with: Standard.DuckDB.Internal.DuckDB_Services.Impl
+
+  - provides: Standard.Base.System.File_Format.File_Format_SPI
+    with: Standard.DuckDB.Internal.DuckDB_Services.Impl

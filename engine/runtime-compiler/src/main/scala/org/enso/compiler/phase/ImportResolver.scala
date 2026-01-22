@@ -94,7 +94,7 @@ final class ImportResolver(compiler: Compiler) extends ImportResolverForIR {
         )
 
         val newIr =
-          ir.copyWithImportsAndExports(imports = newImportIRs, ir.exports)
+          ir.copyWithImportsAndExports(newImportIRs, ir.exports)
         context.updateModule(
           current,
           { u =>
@@ -190,22 +190,16 @@ final class ImportResolver(compiler: Compiler) extends ImportResolverForIR {
     val resolvedImportNames = resolvedImports.map(_.importDef.name.name)
     val curModName          = module.getName.toString
     module.getIr.exports.flatMap {
-      case Export.Module(
-            expName,
-            rename,
-            onlyNames,
-            _,
-            isSynthetic,
-            _
-          ) if !isSynthetic =>
+      case mod: Export.Module if !mod.isSynthetic =>
+        val expName       = mod.name()
         val exportsItself = curModName.equals(expName.name)
         // Skip the exports that already have associated resolved import.
         if (!exportsItself && !resolvedImportNames.contains(expName.name)) {
           val syntheticImport = new Import.Module(
             expName,
-            rename,
+            mod.rename(),
             false,
-            onlyNames,
+            mod.onlyNames(),
             None,
             true,
             null,

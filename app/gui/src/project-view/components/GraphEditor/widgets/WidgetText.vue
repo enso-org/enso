@@ -11,8 +11,8 @@ import CodeMirrorWidgetBase from '@/components/GraphEditor/CodeMirrorWidgetBase.
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
 import { Ast } from '@/util/ast'
 import { useLanguageSupport } from '@/util/codemirror/language'
+import { Ok } from 'enso-common/src/utilities/data/result'
 import { computed, ref, useTemplateRef } from 'vue'
-import { Ok } from 'ydoc-shared/util/data/result'
 
 const baseEditor = useTemplateRef('baseEditor')
 const props = defineProps(widgetProps(widgetDefinition))
@@ -118,7 +118,7 @@ export const widgetDefinition = defineWidget(
 <template>
   <label
     class="WidgetText widgetRounded widgetPill"
-    :class="{ singleLine: !isMultiline }"
+    :class="{ widgetSingleLine: !isMultiline }"
     :data-text-syntax="syntax"
     @pointerdown.stop.prevent="focusAndSelect"
     @click.stop
@@ -150,9 +150,10 @@ export const widgetDefinition = defineWidget(
   display: inline-flex;
   justify-content: center;
   align-items: center;
+  align-self: start;
 }
 
-.singleLine :deep(.cm-scroller) {
+.widgetSingleLine :deep(.cm-scroller) {
   font-weight: 800;
 }
 
@@ -160,7 +161,7 @@ export const widgetDefinition = defineWidget(
  * In multiline mode the widget is still sized to content (unless max-height is exceeded), but the
  * content is padded to be slightly larger than its scroller so that the scrollbar shows.
  */
-.WidgetText:not(.singleLine) {
+.WidgetText:not(.widgetSingleLine) {
   & :deep(.cm-scroller) {
     min-height: 2.5em;
     max-height: 20em;

@@ -364,12 +364,7 @@ class EnsureCompiledJob(
     IR.preorder(
       ir,
       {
-        case err @ expression.errors.Resolution(
-              _,
-              expression.errors.Resolution
-                .ResolverError(BindingsMap.ResolutionNotFound),
-              _
-            ) =>
+        case err: expression.errors.Resolution if isResolutionNotFound(err) =>
           val key = DataflowAnalysis.DependencyInfo.Type.Static(
             err.getId(),
             err.getExternalId
@@ -380,6 +375,16 @@ class EnsureCompiledJob(
     )
 
     builder.result()
+  }
+
+  private def isResolutionNotFound(
+    err: expression.errors.Resolution
+  ): Boolean = {
+    err.reason match {
+      case resolverErr: expression.errors.Resolution.ResolverError =>
+        resolverErr.explain().isInstanceOf[BindingsMap.ResolutionNotFound.type]
+      case _ => false
+    }
   }
 
   /** Run the invalidation commands.

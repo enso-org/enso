@@ -1,5 +1,6 @@
 package org.enso.table.data.column.builder;
 
+import java.lang.reflect.Proxy;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.time.LocalDate;
@@ -12,6 +13,7 @@ import org.enso.table.data.column.operation.masks.MaskOperation;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.PreciseTypeOptions;
+import org.enso.table.data.column.storage.TypedStorage;
 import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.enso.table.data.column.storage.type.BigDecimalType;
 import org.enso.table.data.column.storage.type.BigIntegerType;
@@ -54,8 +56,12 @@ public interface Builder {
     // Create a single storage item based on the type of the item.
     return switch (item) {
       case null -> new NullBuilder().appendNulls(checkSize(size)).seal();
-      case Boolean booleanValue ->
-          new BoolStorage(new BitSet(), new BitSet(), checkSize(size), booleanValue);
+      case Boolean booleanValue -> {
+        var s = checkSize(size);
+        var validity = new BitSet();
+        validity.set(0, s, true);
+        yield new BoolStorage(new BitSet(), validity, s, booleanValue);
+      }
       default -> {
         var storageType = StorageType.forBoxedItem(item, PreciseTypeOptions.DEFAULT);
         var builder = Builder.getForType(storageType, size, BlackholeProblemAggregator.INSTANCE);
@@ -83,6 +89,95 @@ public interface Builder {
             ? builder.seal()
             : MaskOperation.getSlicedStorage(builder.seal(), new IndexMapper.Constant(size));
     return storageType.asTypedStorage(unTyped);
+  }
+
+  /**
+   * Converts a proxy storage to local storage.
+   *
+   * @param <T> type of storage
+   * @param storage the storage instance, possibly a {@link Proxy#isProxyClass proxy}
+   * @return either {@code storage} itself, or optimized storage of the same {@link
+   *     ColumnStorage#getType() type} over the same {@link ColumnStorage#addressOfData() data}
+   */
+  @SuppressWarnings("unchecked")
+  static <T> ColumnStorage<T> makeLocal(ColumnStorage<T> storage) {
+    if (storage.getSize() == 0) {
+      var proxyType = storage.getType();
+      var localType = StorageType.fromTypeCharAndSize(proxyType.typeChar(), proxyType.size());
+      return (ColumnStorage<T>) new TypedStorage(localType, new Object[0]);
+    }
+    var data = storage.addressOfData();
+    var size = Math.toIntExact(storage.getSize());
+    var proxyType = storage.getType();
+    var localType = StorageType.fromTypeCharAndSize(proxyType.typeChar(), proxyType.size());
+    if (data != 0) {
+      var validity = storage.addressOfValidity();
+      var localStorage =
+          switch (localType) {
+            case BooleanType _ -> BoolBuilder.fromAddress(size, data, validity).seal(storage);
+            case IntegerType type ->
+                LongBuilder.fromAddress(size, data, validity, type).seal(storage, type);
+            case FloatType type ->
+                DoubleBuilder.fromAddress(size, data, validity, type).seal(storage, type);
+            case TextType type ->
+                StringBuilder.fromAddress(size, data, validity, type).seal(storage, type);
+            case DateType _ -> DateBuilder.fromAddress(size, data, validity).seal(storage);
+            case TimeOfDayType type ->
+                TimeOfDayBuilder.fromAddress(size, data, validity).seal(storage, type);
+            default -> storage;
+          };
+      assert assertSameStorages(storage, localStorage);
+      return (ColumnStorage<T>) localStorage;
+    } else {
+      switch (localType) {
+        case BigIntegerType _ -> {
+          var b = Builder.getForBigInteger(size, null);
+          b.appendBulkStorage(storage);
+          var localStorage = b.seal();
+          return (ColumnStorage<T>) localStorage;
+        }
+        default -> {
+          if (BuilderUtil.LOGGER.isTraceEnabled()) {
+            var t = storage.getType();
+            BuilderUtil.LOGGER.trace(
+                "makeLocal unsuccessful for {}:{} size {}",
+                t.typeChar(),
+                t.size(),
+                storage.getSize());
+          }
+        }
+      }
+    }
+    return storage;
+  }
+
+  private static boolean assertSameStorages(ColumnStorage<?> s1, ColumnStorage<?> s2) {
+    var sb = new java.lang.StringBuilder();
+    if (s1.getSize() != s2.getSize()) {
+      sb.append("Unexpected size %d != %d\n".formatted(s1.getSize(), s2.getSize()));
+    }
+    var t1 = s1.getType();
+    var t2 = s2.getType();
+    if (t1.typeChar() != t2.typeChar()) {
+      sb.append("Unexpected type %s != %s\n".formatted(t1.typeChar(), t2.typeChar()));
+    }
+    if (t1.size() != t2.size()) {
+      sb.append("Unexpected type %d != %d\n".formatted(t1.size(), t2.size()));
+    }
+    /*
+    for (var i = 0L; i < s1.getSize(); i++) {
+      var elem1 = s1.getItemBoxed(i);
+      var elem2 = s2.getItemBoxed(i);
+      if (!Objects.equals(elem1, elem2)) {
+          sb.append("  at %d, but %s != %s\n".formatted(i, elem1, elem2));
+      }
+      if (sb.length() > 1024) {
+          break;
+      }
+    }
+    */
+    assert sb.isEmpty() : sb;
+    return sb.isEmpty();
   }
 
   /**

@@ -1,6 +1,6 @@
 import type { ExecutionContext } from '$/providers/openedProjects/project/executionContext'
-import { Err, Ok, type Result } from '@/util/data/result'
 import type { DataServer } from '@/util/net/dataServer'
+import { Err, Ok, type Result } from 'enso-common/src/utilities/data/result'
 import { reactive } from 'vue'
 import { OutboundPayload, VisualizationUpdate } from 'ydoc-shared/binaryProtocol'
 import type {

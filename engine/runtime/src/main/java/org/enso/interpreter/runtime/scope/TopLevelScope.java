@@ -6,6 +6,7 @@ import com.oracle.truffle.api.dsl.Bind;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.interop.ArityException;
 import com.oracle.truffle.api.interop.InteropLibrary;
+import com.oracle.truffle.api.interop.InvalidArrayIndexException;
 import com.oracle.truffle.api.interop.UnknownIdentifierException;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.interop.UnsupportedTypeException;
@@ -13,7 +14,9 @@ import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.Node;
 import java.io.File;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import org.enso.common.MethodNames;
@@ -27,8 +30,10 @@ import org.enso.interpreter.runtime.data.vector.ArrayLikeHelpers;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.type.Types;
 import org.enso.interpreter.runtime.util.TruffleFileSystem;
+import org.enso.librarymanager.ProjectLoadingFailure;
 import org.enso.pkg.NativeLibraryFinder;
 import org.enso.pkg.Package;
+import org.enso.pkg.PackageManager;
 import org.enso.pkg.QualifiedName;
 import org.enso.scala.wrapper.ScalaConversions;
 import scala.Option;
@@ -204,6 +209,9 @@ public final class TopLevelScope extends EnsoObject {
       boolean shouldCompileDependencies;
       scala.Option<String> generateDocs;
       switch (arguments.length) {
+        case 3 -> {
+          return compileMultipleProjects(arguments, context);
+        }
         case 2 -> {
           shouldCompileDependencies = Boolean.TRUE.equals(arguments[0]);
           generateDocs =
@@ -231,6 +239,83 @@ public final class TopLevelScope extends EnsoObject {
         re.setStackTrace(e.getStackTrace());
         throw re;
       }
+    }
+
+    private static boolean compileMultipleProjects(Object[] args, EnsoContext ctx) {
+      assert args.length == 3;
+      var shouldCompileDependencies = Boolean.TRUE.equals(args[0]);
+      Option<String> generateDocs =
+          switch (args[1]) {
+            case Boolean b when !b -> Option.empty();
+            case String s -> Option.apply(s);
+            default -> Option.empty();
+          };
+      var projectPaths = fromInteropStringList(args[2]);
+      return compileMultipleProjects(projectPaths, ctx, generateDocs, shouldCompileDependencies);
+    }
+
+    /**
+     * Compiles multiple projects one by one. Every project is registered as the main project via
+     * {@link PackageRepository#registerMainProjectPackage} and then it is compiled.
+     *
+     * <p>Note that it is currently not possible to run the compilation in parallel.
+     *
+     * @param projPaths Paths to the project directories.
+     * @return False if one of the compilations failed, true if all succeeded.
+     */
+    private static boolean compileMultipleProjects(
+        List<String> projPaths,
+        EnsoContext ctx,
+        Option<String> generateDocs,
+        boolean shouldCompileDependencies) {
+      var fs = TruffleFileSystem.INSTANCE;
+      var pkgManager = new PackageManager<>(fs);
+      var shouldWriteCache = !ctx.isIrCachingDisabled();
+      for (var projPath : projPaths) {
+        var dir = ctx.getPublicTruffleFile(projPath);
+        var loadedPkg =
+            pkgManager
+                .loadPackage(dir)
+                .fold(
+                    err -> {
+                      throw new ProjectLoadingFailure(dir.getName(), err);
+                    },
+                    res -> res);
+        ctx.getPackageRepository().registerMainProjectPackage(loadedPkg.libraryName(), loadedPkg);
+        var fut =
+            ctx.getCompiler().compile(shouldCompileDependencies, shouldWriteCache, generateDocs);
+        boolean compilationSucceeded;
+        try {
+          compilationSucceeded = fut.get();
+        } catch (InterruptedException e) {
+          throw new RuntimeException(e);
+        } catch (ExecutionException e) {
+          var re = new RuntimeException(e);
+          re.setStackTrace(e.getStackTrace());
+          throw re;
+        }
+        if (!compilationSucceeded) {
+          return false;
+        }
+      }
+      return true;
+    }
+
+    private static List<String> fromInteropStringList(Object obj) {
+      var interop = InteropLibrary.getUncached();
+      if (interop.hasArrayElements(obj)) {
+        var ret = new ArrayList<String>();
+        try {
+          for (var i = 0; i < interop.getArraySize(obj); i++) {
+            var elem = interop.readArrayElement(obj, i);
+            ret.add(interop.asString(elem));
+          }
+        } catch (UnsupportedMessageException | InvalidArrayIndexException e) {
+          throw new IllegalStateException(e);
+        }
+        return ret;
+      }
+      throw new IllegalArgumentException("Expected an array of strings, instead got: " + obj);
     }
 
     @Specialization

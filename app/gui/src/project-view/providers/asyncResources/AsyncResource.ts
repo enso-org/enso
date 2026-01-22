@@ -1,5 +1,5 @@
 import { LRUCache } from '#/utilities/LruCache'
-import { Err, Ok, type Result } from '@/util/data/result'
+import { Err, Ok, type Result } from 'enso-common/src/utilities/data/result'
 import {
   EffectScope,
   effectScope,
@@ -199,7 +199,7 @@ export class AsyncResource {
 const MAX_CACHED_UNUSED_RESOURCES = 64
 
 /**
- * Create a cache that maintains reference counded resources.
+ * Create a cache that maintains reference counted resources.
  *
  * Part of 'asyncResources' store.
  * @internal

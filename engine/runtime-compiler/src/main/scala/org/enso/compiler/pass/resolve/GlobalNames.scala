@@ -79,7 +79,7 @@ case object GlobalNames extends IRPass {
     )
     val new_bindings =
       ir.bindings.map(processModuleDefinition(_, scopeMap, freshNameSupply))
-    ir.copyWithBindings(bindings = new_bindings)
+    ir.copyWithBindings(new_bindings)
   }
 
   /** Executes the pass on the provided `ir`, and returns a possibly transformed
@@ -124,7 +124,7 @@ case object GlobalNames extends IRPass {
           processExpression(_, bindings, List(), freshNameSupply, resolution)
         )
       case tp: Definition.Type =>
-        tp.copy(members =
+        tp.copyWithMembers(
           tp.members.map(
             _.mapExpressions { expr =>
               val selfTypeResolution =
@@ -164,9 +164,9 @@ case object GlobalNames extends IRPass {
         selfTypeResolution
           .map(res => selfTp.updateMetadata(new MetadataPair(this, res)))
           .getOrElse(
-            errors.Resolution(
+            errors.Resolution.create(
               selfTp,
-              errors.Resolution.ResolverError(ResolutionNotFound)
+              new errors.Resolution.ResolverError(ResolutionNotFound)
             )
           )
       case lit: Name.Literal =>
@@ -187,9 +187,9 @@ case object GlobalNames extends IRPass {
                 val resolution = bindings.resolveName(lit.name)
                 resolution match {
                   case Left(error) =>
-                    errors.Resolution(
+                    errors.Resolution.create(
                       lit,
-                      errors.Resolution.ResolverError(error)
+                      new errors.Resolution.ResolverError(error)
                     )
                   case Right(values)
                       if values.exists(_.isInstanceOf[ResolvedModuleMethod]) =>
@@ -261,9 +261,9 @@ case object GlobalNames extends IRPass {
                       case _ => false
                     }
                     if (containsErrors) {
-                      errors.Resolution(
+                      errors.Resolution.create(
                         lit,
-                        errors.Resolution.ResolverError(ResolutionNotFound)
+                        new errors.Resolution.ResolverError(ResolutionNotFound)
                       )
                     } else {
                       values.foldLeft(lit)((lit, value) =>

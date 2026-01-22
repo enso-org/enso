@@ -186,74 +186,10 @@ export async function handleFilesystemCommand(
           for (const entryName of entryNames) {
             const entryPath = path.join(currentDirectoryPath, entryName)
             if (isFileHidden(entryPath)) continue
-            const stat = await fs.stat(entryPath)
-            const attributes: Attributes = {
-              byteSize: stat.size,
-              creationTime: new Date(stat.ctimeMs).toISOString(),
-              lastAccessTime: new Date(stat.atimeMs).toISOString(),
-              lastModifiedTime: new Date(stat.mtimeMs).toISOString(),
-            }
-            if (stat.isFile()) {
-              entries.push({
-                type: FileSystemEntryType.FileEntry,
-                path: entryPath,
-                attributes,
-              } satisfies FileEntry)
-            } else {
-              if (isRecursive) {
-                directoryPathQueue.push(entryPath)
-              }
-              try {
-                const packageMetadataPath = path.join(entryPath, 'package.yaml')
-                const projectMetadataPath = path.join(
-                  entryPath,
-                  projectManagement.PROJECT_METADATA_RELATIVE_PATH,
-                )
-                const packageMetadataContents = await fs.readFile(packageMetadataPath)
-                const packageMetadataYaml = yaml.parse(packageMetadataContents.toString())
-                let projectMetadataJson
-                try {
-                  const projectMetadataContents = await fs.readFile(projectMetadataPath)
-                  projectMetadataJson = JSON.parse(projectMetadataContents.toString())
-                } catch (e) {
-                  if (
-                    'name' in packageMetadataYaml &&
-                    typeof packageMetadataYaml.name === 'string'
-                  ) {
-                    projectMetadataJson = {
-                      id: crypto.randomUUID(),
-                      kind: 'UserProject',
-                      created: new Date().toISOString(),
-                      lastOpened: null,
-                    }
-                    await fs.mkdir(path.dirname(projectMetadataPath), { recursive: true })
-                    await fs.writeFile(projectMetadataPath, JSON.stringify(projectMetadataJson))
-                  } else {
-                    throw e
-                  }
-                }
-                const metadata = extractProjectMetadata(packageMetadataYaml, projectMetadataJson)
-                if (metadata != null) {
-                  // This is a project.
-                  entries.push({
-                    type: FileSystemEntryType.ProjectEntry,
-                    path: entryPath,
-                    attributes,
-                    metadata,
-                  } satisfies ProjectEntry)
-                } else {
-                  // This error moves control flow to the
-                  // `catch` clause directly below.
-                  throw new Error('Invalid project metadata.')
-                }
-              } catch {
-                // This is a regular directory, not a project.
-                entries.push({
-                  type: FileSystemEntryType.DirectoryEntry,
-                  path: entryPath,
-                  attributes,
-                } satisfies DirectoryEntry)
-              }
+            const entry = await getFileSystemEntry(entryPath)
+            entries.push(entry)
+            if (isRecursive && entry.type === FileSystemEntryType.DirectoryEntry) {
+              directoryPathQueue.push(entryPath)
             }
           }
         }
@@ -319,4 +255,71 @@ export async function handleFilesystemCommand(
   }
 
   return result
+}
+
+/** Get a file system entry for a given path. */
+export async function getFileSystemEntry(entryPath: string): Promise<FileSystemEntry> {
+  const stat = await fs.stat(entryPath)
+  const attributes: Attributes = {
+    byteSize: stat.size,
+    creationTime: new Date(stat.ctimeMs).toISOString(),
+    lastAccessTime: new Date(stat.atimeMs).toISOString(),
+    lastModifiedTime: new Date(stat.mtimeMs).toISOString(),
+  }
+  if (stat.isFile()) {
+    return {
+      type: FileSystemEntryType.FileEntry,
+      path: entryPath,
+      attributes,
+    }
+  } else {
+    try {
+      const packageMetadataPath = path.join(entryPath, 'package.yaml')
+      const projectMetadataPath = path.join(
+        entryPath,
+        projectManagement.PROJECT_METADATA_RELATIVE_PATH,
+      )
+      const packageMetadataContents = await fs.readFile(packageMetadataPath)
+      const packageMetadataYaml = yaml.parse(packageMetadataContents.toString())
+      let projectMetadataJson
+      try {
+        const projectMetadataContents = await fs.readFile(projectMetadataPath)
+        projectMetadataJson = JSON.parse(projectMetadataContents.toString())
+      } catch (e) {
+        if ('name' in packageMetadataYaml && typeof packageMetadataYaml.name === 'string') {
+          projectMetadataJson = {
+            id: crypto.randomUUID(),
+            kind: 'UserProject',
+            created: new Date().toISOString(),
+            lastOpened: null,
+          }
+          await fs.mkdir(path.dirname(projectMetadataPath), { recursive: true })
+          await fs.writeFile(projectMetadataPath, JSON.stringify(projectMetadataJson))
+        } else {
+          throw e
+        }
+      }
+      const metadata = extractProjectMetadata(packageMetadataYaml, projectMetadataJson)
+      if (metadata != null) {
+        // This is a project.
+        return {
+          type: FileSystemEntryType.ProjectEntry,
+          path: entryPath,
+          attributes,
+          metadata,
+        }
+      } else {
+        // This error moves control flow to the
+        // `catch` clause directly below.
+        throw new Error('Invalid project metadata.')
+      }
+    } catch {
+      // This is a regular directory, not a project.
+      return {
+        type: FileSystemEntryType.DirectoryEntry,
+        path: entryPath,
+        attributes,
+      }
+    }
+  }
 }

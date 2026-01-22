@@ -1,0 +1,18 @@
+import project.Data.Text.Text
+import project.Errors.Common.Missing_Argument
+
+## The body of an email.
+type Email_Body
+    ## An email with no body.
+    No_Body
+
+    ## A plain text email body.
+    Plain_Text body:Text=(Missing_Argument.throw "body")
+
+    ## An HTML email body. With an optional plain text fallback.
+    HTML html:Text=(Missing_Argument.throw "html") body:Text=""
+
+## ---
+   private: true
+   ---
+Email_Body.from (that:Text) = Email_Body.Plain_Text that

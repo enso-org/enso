@@ -8,6 +8,7 @@ import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.nodes.Node;
+import org.enso.interpreter.Constants;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.EnsoMultiValue;
@@ -18,7 +19,7 @@ import org.enso.interpreter.runtime.data.text.Text;
 
 @BuiltinMethod(
     type = "Any_Helpers",
-    name = "to_text",
+    name = Constants.Names.TO_TEXT,
     description = "Generic text conversion.",
     autoRegister = false)
 @GenerateUncached

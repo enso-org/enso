@@ -9,6 +9,7 @@ import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
+import org.enso.interpreter.Constants;
 import org.enso.interpreter.dsl.BuiltinMethod;
 import org.enso.interpreter.node.expression.builtin.text.util.TypeToDisplayTextNode;
 import org.enso.interpreter.runtime.EnsoContext;
@@ -19,7 +20,7 @@ import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.number.EnsoBigInteger;
 import org.enso.polyglot.common_utils.Core_Text_Utils;
 
-@BuiltinMethod(type = "Any_Helpers", name = "to_display_text", autoRegister = false)
+@BuiltinMethod(type = "Any_Helpers", name = Constants.Names.TO_DISPLAY_TEXT, autoRegister = false)
 public abstract class AnyToDisplayTextNode extends Node {
   static AnyToDisplayTextNode build() {
     return AnyToDisplayTextNodeGen.create();

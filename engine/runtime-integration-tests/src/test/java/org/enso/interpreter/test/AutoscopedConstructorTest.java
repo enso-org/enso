@@ -257,7 +257,7 @@ public class AutoscopedConstructorTest {
     } catch (PolyglotException e) {
       assertTrue(
           "Expecting type error, but got: " + e.getMessage(),
-          e.getMessage().contains("Type_Error"));
+          e.getMessage().contains("Cannot find constructor ..True among N"));
     }
   }
 

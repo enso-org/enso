@@ -87,13 +87,7 @@ export const Button = Object.assign(
         ...(isLink ?
           {
             rel: 'noopener noreferrer',
-            ...(isExternalLink(ariaProps.href) ?
-              {
-                onPress: () => {
-                  window.open(ariaProps.href, '_blank')?.focus()
-                },
-              }
-            : {}),
+            ...(isExternalLink(ariaProps.href) ? { target: '_blank' } : {}),
           }
         : { type: 'button' as const }),
         'data-testid': testId,

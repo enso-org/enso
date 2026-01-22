@@ -43,6 +43,14 @@ public final class RuntimeOptions {
           .category(OptionCategory.INTERNAL)
           .build();
 
+  public static final String EDITIONS_DIRECTORY = optionName("editionsDirectory");
+  public static final OptionKey<String> EDITIONS_DIRECTORY_KEY = new OptionKey<>("");
+  private static final OptionDescriptor EDITIONS_DIRECTORY_DESCRIPTOR =
+      OptionDescriptor.newBuilder(EDITIONS_DIRECTORY_KEY, EDITIONS_DIRECTORY)
+          .help("Directory with custom editions")
+          .category(OptionCategory.INTERNAL)
+          .build();
+
   public static final String HOST_CLASS_LOADING = optionName("classLoading");
   public static final String HOST_CLASS_LOADING_HOSTED = "hosted";
   public static final String HOST_CLASS_LOADING_GUEST = "guest";
@@ -189,6 +197,7 @@ public final class RuntimeOptions {
               ENABLE_STATIC_ANALYSIS_DESCRIPTOR,
               HOST_CLASS_LOADING_DESCRIPTOR,
               CHECK_CWD_DESCRIPTOR,
+              EDITIONS_DIRECTORY_DESCRIPTOR,
               TREAT_WARNINGS_AS_ERRORS_DESCRIPTOR,
               ENABLE_AUTO_PARALLELISM_DESCRIPTOR,
               ENABLE_PROJECT_SUGGESTIONS_DESCRIPTOR,

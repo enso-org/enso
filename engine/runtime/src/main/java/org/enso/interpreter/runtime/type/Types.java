@@ -8,7 +8,6 @@ import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.EnsoDate;
 import org.enso.interpreter.runtime.data.EnsoDateTime;
 import org.enso.interpreter.runtime.data.EnsoDuration;
-import org.enso.interpreter.runtime.data.EnsoFile;
 import org.enso.interpreter.runtime.data.EnsoTimeOfDay;
 import org.enso.interpreter.runtime.data.EnsoTimeZone;
 import org.enso.interpreter.runtime.data.ManagedResource;
@@ -58,7 +57,6 @@ import org.enso.polyglot.data.TypeGraph;
   Warning.class,
   WithWarnings.class,
   WarningsLibrary.class,
-  EnsoFile.class,
   EnsoDate.class,
   EnsoDateTime.class,
   EnsoTimeOfDay.class,

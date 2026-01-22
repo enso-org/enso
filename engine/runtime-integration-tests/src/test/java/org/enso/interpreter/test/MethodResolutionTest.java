@@ -5,6 +5,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 
+import org.enso.compiler.core.ConstantsNames;
 import org.enso.interpreter.Constants.Names;
 import org.enso.interpreter.node.callable.resolver.MethodResolverNode;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
@@ -44,7 +45,8 @@ public final class MethodResolutionTest {
             main = My_Type
             """);
     var myType = unwrapType(myTypeVal);
-    var symbol = UnresolvedSymbol.build("to_display_text", myType.getDefinitionScope());
+    var symbol =
+        UnresolvedSymbol.build(ConstantsNames.TO_DISPLAY_TEXT, myType.getDefinitionScope());
     var func = methodResolverNode.executeResolution(myType, symbol);
     assertThat("to_display_text method is found", func, is(notNullValue()));
     assertSingleSelfArgument(func);

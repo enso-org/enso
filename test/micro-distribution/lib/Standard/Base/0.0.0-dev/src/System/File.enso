@@ -1,4 +1,0 @@
-@Builtin_Type
-type File
-
-home = @Builtin_Method "File.home"

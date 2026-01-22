@@ -52,8 +52,6 @@ const expressionTags = useExpressionTags({
   projectNames,
 })
 
-const allowExtendingUpwards = computed(() => ArgumentInfoKey in props.input)
-
 const entries = useTagEntries(expressionTags, (expression) =>
   selectedExpressions.value.has(expression),
 )
@@ -178,7 +176,7 @@ export const widgetDefinition = defineWidget(
 <template>
   <div
     ref="widgetRoot"
-    class="WidgetMultiSelection clickable"
+    class="WidgetMultiSelection widgetParent clickable"
     @click.stop="toggleDropdownWidget"
     @pointerover="isHovered = true"
     @pointerout="isHovered = false"
@@ -191,7 +189,6 @@ export const widgetDefinition = defineWidget(
       :show="dropDownInteraction.isActive()"
       :entries="entries"
       :topLevel="true"
-      :extendUpwards="allowExtendingUpwards"
       @clickedEntry="onClick"
     />
   </div>
@@ -199,10 +196,6 @@ export const widgetDefinition = defineWidget(
 
 <style scoped>
 .WidgetMultiSelection {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
   position: relative;
-  min-height: var(--node-port-height);
 }
 </style>

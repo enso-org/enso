@@ -1390,6 +1390,13 @@ add_specs suite_builder =
 
         group_builder.specify "should remove blank rows from the end of a worksheet" <|
             ## This worksheet has a header row, a data row and a third blank row. We should not read the blank row from the end.
+            table = (enso_project.data / "empty_last_column.xlsx") . read ..Sheet
+            table.row_count . should_equal 2
+            table.column_names . should_equal ["Name", "Address", "Purchase", "Notes"]
+            table.at "Notes" . to_vector . should_equal [Nothing, Nothing]
+
+        group_builder.specify "should not remove empty column if header in a worksheet" <|
+            ## This worksheet has a header row, a data row and a third blank row. We should not read the blank row from the end.
             table = (enso_project.data / "WorkbookWithEmptyLastRow.xlsx") . read ..Sheet
             table.row_count . should_equal 1
             table.column_names . should_equal ["A"]
@@ -1517,7 +1524,7 @@ add_specs suite_builder =
             t1.write oneMInts (..Sheet "AllTypes") . should_succeed
 
         
-        group_builder.specify 'wXrite integers 1 to 1M to xlsx to multiple sheets' pending="TODO" <|
+        group_builder.specify 'write integers 1 to 1M to xlsx to multiple sheets' pending="TODO" <|
             oneMInts = enso_project.data / "transient" / ("oneMInts.xlsx")
             oneMInts.delete_if_exists . should_succeed
             range1 = 0.up_to 1000000

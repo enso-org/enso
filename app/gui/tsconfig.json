@@ -4,8 +4,7 @@
   "references": [
     { "path": "./tsconfig.node.json" },
     { "path": "./tsconfig.app.json" },
-    { "path": "./tsconfig.app.vitest.json" },
-    { "path": "./tsconfig.scripts.json" }
+    { "path": "./tsconfig.app.vitest.json" }
   ],
   "compilerOptions": {
     "module": "Preserve",
@@ -15,6 +14,12 @@
     "strictNullChecks": true,
     "noUncheckedIndexedAccess": true,
     "exactOptionalPropertyTypes": true,
-    "jsx": "react-jsx"
+    "jsx": "react-jsx",
+    "paths": {
+      "@/*": ["./src/project-view/*"],
+      "#/*": ["./src/dashboard/*"],
+      "$/*": ["./src/*"],
+      "integration-test/*": ["./integration-test/*"]
+    }
   }
 }

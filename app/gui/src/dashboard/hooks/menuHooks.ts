@@ -4,10 +4,10 @@ import type { DashboardBindingKey } from '#/configurations/inputBindings'
 import { useBindingFocusScope } from '#/providers/BindingFocusScopeProvider'
 import { useInputBindings } from '#/providers/InputBindingsProvider'
 import { DEFAULT_HANDLER } from '#/utilities/inputBindings'
-import { unsafeEntries } from '#/utilities/object'
 import type { Action } from '$/providers/actions'
 import { useActionsStore, useText } from '$/providers/react'
 import type { Icon } from '@/util/iconMetadata/iconName'
+import { unsafeEntries } from 'enso-common/src/utilities/data/object'
 import { useEffect, useRef, useState } from 'react'
 import { ref } from 'vue'
 
@@ -45,13 +45,14 @@ export function useMenuEntries(entries: readonly (MenuEntryProps | false | null 
   const { getText } = useText()
   const { bindGlobalActions } = useActionsStore()
 
-  const entriesByActionRef = useRef<Partial<Record<DashboardBindingKey, MenuEntryProps>>>({})
+  const entriesByActionRef = useRef<Map<DashboardBindingKey, MenuEntryProps>>(new Map())
   const [actionsRef] = useState(() => ref<Action[]>([]))
 
   useEffect(() => {
+    entriesByActionRef.current.clear()
     for (const entry of entries) {
       if (entry == null || entry === false) continue
-      entriesByActionRef.current[entry.action] = entry
+      entriesByActionRef.current.set(entry.action, entry)
     }
   })
 
@@ -79,7 +80,7 @@ export function useMenuEntries(entries: readonly (MenuEntryProps | false | null 
       inputBindings.attach(bindingFocusScope.current ?? document.body, 'keydown', {
         [DEFAULT_HANDLER]: (_event, matchingBindings) => {
           for (const binding of matchingBindings) {
-            const entry = entriesByActionRef.current[binding]
+            const entry = entriesByActionRef.current.get(binding)
             if (!entry || entry.isDisabled === true) {
               continue
             }
@@ -90,7 +91,7 @@ export function useMenuEntries(entries: readonly (MenuEntryProps | false | null 
           return false
         },
       }),
-    [bindingFocusScope, inputBindings],
+    [bindingFocusScope, inputBindings, entries],
   )
 
   return entries

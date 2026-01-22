@@ -22,10 +22,15 @@ from project.Helpers import time_visualization
 prepare_visualization : DB_Table -> Text
 prepare_visualization table = time_visualization Visualization ("prepare_visualization: " + table.to_display_text) <|
     prepared = (table:DB_Table|DB_Column).to_sql.prepare
-    code = prepared.first
+    code = prepared.first.replace (regex "::variant, \{'enso-null-replacement-marker'.*?\}::variant") ", NULL"
     interpolations = prepared.second
     mapped = interpolations.map value->
         enso_type = value.to Meta.Type . qualified_name
-        JS_Object.from_pairs [["value", value], ["enso_type", enso_type]]
+        used_value = case value of
+            _ : Date -> value.to_text
+            _ : Time_Of_Day -> value.to_text
+            _ : Date_Time -> value.to_text
+            _ -> value
+        JS_Object.from_pairs [["value", used_value], ["enso_type", enso_type]]
     dialect = (table:DB_Table|DB_Column).dialect_name
     JS_Object.from_pairs [["dialect", dialect], ["code", code], ["interpolations", mapped]] . to_text

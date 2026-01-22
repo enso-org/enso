@@ -1,12 +1,12 @@
 import type { ProjectStore } from '$/providers/openedProjects/project'
 import type { ProjectNameStore } from '$/providers/openedProjects/projectNames'
 import type { SuggestionDb } from '$/providers/openedProjects/suggestionDatabase'
+import type { ToValue } from '$/utils/reactivity'
 import { createContextStore } from '@/providers'
 import { useTableExpressionExtension } from '@/util/codemirror/language/tableExpression'
-import type { ToValue } from '@/util/reactivity'
 import type { Extension } from '@codemirror/state'
 import { record } from 'enso-common/src/utilities/data/object'
-import type { Opt } from 'ydoc-shared/util/data/opt'
+import type { Opt } from 'enso-common/src/utilities/data/opt'
 
 export interface LanguageSupportOptions {
   project: ToValue<Opt<ProjectStore>>

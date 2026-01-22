@@ -103,7 +103,11 @@ case object SectionsToBinOpMegaPass extends IRPass {
     inlineContext: InlineContext
   ): Expression = {
     section match {
-      case sectionLeft @ Section.Left(arg, op, loc, passData) =>
+      case sectionLeft: Section.Left =>
+        val arg          = sectionLeft.arg()
+        val op           = sectionLeft.operator()
+        val passData     = sectionLeft.passData()
+        val loc          = sectionLeft.identifiedLocation()
         val rightArgName = freshNameSupply.newName()
         val rightCallArg = CallArgument.Specified
           .builder()
@@ -165,7 +169,7 @@ case object SectionsToBinOpMegaPass extends IRPass {
             .build()
         }
 
-      case sectionSides @ Section.Sides(op, loc, passData) =>
+      case sectionSides: Section.Sides =>
         val leftArgName = freshNameSupply.newName()
         val leftCallArg = CallArgument.Specified
           .builder()
@@ -194,10 +198,10 @@ case object SectionsToBinOpMegaPass extends IRPass {
 
         val opCall = Application.Prefix
           .builder()
-          .function(op)
+          .function(sectionSides.operator())
           .arguments(List(leftCallArg, rightCallArg))
           .hasDefaultsSuspended(false)
-          .passData(passData)
+          .passData(sectionSides.passData())
           .diagnostics(sectionSides.diagnostics)
           .build()
 
@@ -212,7 +216,7 @@ case object SectionsToBinOpMegaPass extends IRPass {
           .builder()
           .arguments(List(leftDefArg))
           .bodyReference(Reference.of(rightLambda))
-          .location(loc)
+          .location(sectionSides.identifiedLocation())
           .canBeTCO(true)
           .build()
 
@@ -235,7 +239,11 @@ case object SectionsToBinOpMegaPass extends IRPass {
        * The same is true of left sections.
        */
 
-      case sectionRight @ Section.Right(op, arg, loc, passData) =>
+      case sectionRight: Section.Right =>
+        val arg         = sectionRight.arg()
+        val op          = sectionRight.operator()
+        val passData    = sectionRight.passData()
+        val loc         = sectionRight.identifiedLocation()
         val leftArgName = freshNameSupply.newName()
         val leftCallArg = CallArgument.Specified
           .builder()

@@ -6,7 +6,13 @@ import org.graalvm.polyglot.Value;
 /** A helper class that makes calling Enso methods from Java libraries easier. */
 public final class EnsoMeta {
   private static Value getBindings() {
-    return Context.getCurrent().getBindings("enso");
+    var ctx = Context.getCurrent();
+    var bindings = ctx.getPolyglotBindings().getMember("ensoBindings");
+    if (bindings != null) {
+      return bindings.execute("enso");
+    } else {
+      return ctx.getBindings("enso");
+    }
   }
 
   /** Returns a type object from the Enso runtime. */

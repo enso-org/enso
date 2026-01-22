@@ -24,6 +24,7 @@ use package::IsPackage;
 pub mod artifact;
 pub mod bundle;
 pub mod context;
+pub mod edition;
 pub mod env;
 pub mod package;
 pub mod sbt;
@@ -191,9 +192,7 @@ pub struct BuildConfigurationFlags {
     /// Build the Ydoc Native Image
     pub build_native_ydoc: bool,
     pub build_launcher_package: bool,
-    pub build_project_manager_package: bool,
     pub build_launcher_bundle: bool,
-    pub build_project_manager_bundle: bool,
     pub generate_java_from_rust: bool,
     pub test_java_generated_from_rust: bool,
     /// Verify License Packages in Distributions.
@@ -222,10 +221,10 @@ where
 
     pub fn allow(&mut self, item: T) {
         match self {
-            Self::Whitelist(ref mut set) => {
+            Self::Whitelist(set) => {
                 set.insert(item);
             }
-            Self::Blacklist(ref mut set) => {
+            Self::Blacklist(set) => {
                 set.remove(&item);
             }
         }
@@ -233,10 +232,10 @@ where
 
     pub fn deny(&mut self, item: T) {
         match self {
-            Self::Whitelist(ref mut set) => {
+            Self::Whitelist(set) => {
                 set.remove(&item);
             }
-            Self::Blacklist(ref mut set) => {
+            Self::Blacklist(set) => {
                 set.insert(item);
             }
         }
@@ -269,11 +268,6 @@ impl BuildConfigurationResolved {
         }
 
         if config.build_engine_bundle {
-            config.build_engine_package = true;
-        }
-
-        if config.build_project_manager_bundle {
-            config.build_project_manager_package = true;
             config.build_engine_package = true;
         }
 
@@ -311,10 +305,6 @@ impl BuildConfigurationResolved {
 impl BuildConfigurationFlags {
     pub fn has_native_runner(&self) -> bool {
         self.build_native_runner || self.use_native_runner
-    }
-
-    pub fn build_project_manager_package(&self) -> bool {
-        self.build_project_manager_package || self.build_project_manager_bundle
     }
 
     pub fn build_launcher_package(&self) -> bool {
@@ -357,9 +347,7 @@ impl Default for BuildConfigurationFlags {
             use_native_runner: false,
             build_native_runner: false,
             build_native_ydoc: false,
-            build_project_manager_package: false,
             build_launcher_bundle: false,
-            build_project_manager_bundle: false,
             generate_java_from_rust: false,
             test_java_generated_from_rust: false,
             verify_packages: false,
@@ -399,10 +387,8 @@ pub enum Operation {
 pub struct BuiltArtifacts {
     pub engine_package: Option<generated::EnginePackage>,
     pub launcher_package: Option<generated::LauncherPackage>,
-    pub project_manager_package: Option<generated::ProjectManagerPackage>,
     pub engine_bundle: Option<generated::EngineBundle>,
     pub launcher_bundle: Option<generated::LauncherBundle>,
-    pub project_manager_bundle: Option<generated::ProjectManagerBundle>,
 }
 
 impl BuiltArtifacts {
@@ -414,9 +400,6 @@ impl BuiltArtifacts {
         if let Some(launcher) = &self.launcher_package {
             packages.push(launcher);
         }
-        if let Some(project_manager) = &self.project_manager_package {
-            packages.push(project_manager);
-        }
         packages
     }
 
@@ -427,9 +410,6 @@ impl BuiltArtifacts {
         }
         if let Some(launcher) = &self.launcher_bundle {
             bundles.push(launcher);
-        }
-        if let Some(project_manager) = &self.project_manager_bundle {
-            bundles.push(project_manager);
         }
         bundles
     }

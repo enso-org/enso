@@ -395,7 +395,7 @@ type Enso_File
     ## ---
        private: true
        ---
-       Convert to a display representation of this S3_File.
+       Convert to a display representation of this Enso_File.
     to_display_text : Text
     to_display_text self = "Enso_File {" + self.path + "}"
 

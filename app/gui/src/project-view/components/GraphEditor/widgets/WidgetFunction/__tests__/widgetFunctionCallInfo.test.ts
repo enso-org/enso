@@ -19,9 +19,9 @@ import {
 import { useWidgetFunctionCallInfo } from '@/components/GraphEditor/widgets/WidgetFunction/widgetFunctionCallInfo'
 import { assert } from '@/util/assert'
 import { Ast } from '@/util/ast'
+import type { Opt } from 'enso-common/src/utilities/data/opt'
 import { expect, test } from 'vitest'
 import { ref, toValue, type WatchSource } from 'vue'
-import type { Opt } from 'ydoc-shared/util/data/opt'
 import { SourceRange } from 'ydoc-shared/util/data/text'
 
 const projectNames = mockProjectNameStore('local', 'Project')
@@ -110,9 +110,10 @@ test.each`
           visConfig = config
           return ref(null)
         },
-        moduleProjectPath: undefined,
+        moduleProjectPath: projectNames.parseProjectPathRaw('local.Project.Main'),
       },
       projectNames,
+      [],
     )
     assert(visConfig != null)
     const visConfigValue = toValue<Opt<NodeVisualizationConfiguration>>(visConfig)

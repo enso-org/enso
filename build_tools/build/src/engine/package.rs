@@ -33,12 +33,6 @@ impl IsPackage for crate::paths::generated::EnginePackage {
     }
 }
 
-impl IsPackage for crate::paths::generated::ProjectManagerPackage {
-    fn sbt_package_name(&self) -> &str {
-        "project-manager"
-    }
-}
-
 impl IsPackage for crate::paths::generated::LauncherPackage {
     fn sbt_package_name(&self) -> &str {
         "launcher"

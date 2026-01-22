@@ -465,7 +465,8 @@ class AliasAnalysisTest extends CompilerTest {
         .unsafeAs[AliasMetadata.Occurrence]
         .id
       val aUseId = goodAtom
-        .arguments(2)
+        .arguments()
+        .apply(2)
         .defaultValue
         .get
         .getMetadata(AliasAnalysis)
@@ -1208,7 +1209,8 @@ class AliasAnalysisTest extends CompilerTest {
           .unsafeAs[AliasMetadata.Occurrence]
           .id
 
-      val consBranchBDef = pattern.fields(1).asInstanceOf[Pattern.Name].name
+      val consBranchBDef =
+        pattern.fields.apply(1).asInstanceOf[Pattern.Name].name
       val consBranchBDefId = consBranchBDef
         .getMetadata(AliasAnalysis)
         .get

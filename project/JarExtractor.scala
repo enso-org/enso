@@ -12,12 +12,28 @@ import scala.util.Using
   *
   * If a jar entry does not match any of the globs, it is skipped.
   * @param mapping Mapping of globs to commands for extracting files from a JAR.
+  * @param nativeLibCopyBehavior Behavior for copying native libraries when
+  *                              [[JarExtractor.PolyglotLib]] command is encountered.
   */
 case class JarExtractor(
-  mapping: (String, JarExtractor.Command)*
+  mapping: Map[String, JarExtractor.Command],
+  nativeLibCopyBehavior: JarExtractor.PolyglotLibInclude =
+    JarExtractor.CurrentArch
 )
 
 object JarExtractor {
+
+  /** Specifies the architecture specific behavior of [[PolyglotLib]] command.
+    */
+  sealed trait PolyglotLibInclude
+
+  /** [[PolyglotLib]] ignores native libraries from different architectures.
+    */
+  case object CurrentArch extends PolyglotLibInclude
+
+  /** [[PolyglotLib]] copies all native libraries into the `polyglot/lib` directory.
+    */
+  case object AllArch extends PolyglotLibInclude
 
   /** All supported native library architectures.
     */
@@ -44,11 +60,6 @@ object JarExtractor {
     override val extension: String                      = "dll"
     override val prefix: Option[Either[String, String]] = Some(Left("lib"))
   }
-  case object MacOSAMD64 extends NativeLibArch {
-    override val path: String                           = "amd64/macos"
-    override val extension: String                      = "dylib"
-    override val prefix: Option[Either[String, String]] = Some(Right("lib"))
-  }
   case object MacOSArm64 extends NativeLibArch {
     override val path: String                           = "aarch64/macos"
     override val extension: String                      = "dylib"
@@ -66,9 +77,6 @@ object JarExtractor {
     *
     * For example, if the entry is `foo.so` and the `arch` parameter is
     * [[LinuxAMD64]], the entry will be copied to `amd64/linux/foo.so`.
-    *
-    * The entry will be copied only if the architecture matches the current
-    * platform's architecture.
     *
     * @param arch If specified, will be copied only iff the architecture is
     *        the same as the current platform.
@@ -142,7 +150,11 @@ object JarExtractor {
                       val destPath = polyglotLibDir
                         .resolve(arch.path)
                         .resolve(fullPath2)
-                      if (archMatchesCurPlatform(arch)) {
+                      val shouldCopy = extractor.nativeLibCopyBehavior match {
+                        case CurrentArch => archMatchesCurPlatform(arch)
+                        case AllArch     => true
+                      }
+                      if (shouldCopy) {
                         copyEntry(destPath, inputJar, entry, logger)
                       }
                     }
@@ -169,7 +181,6 @@ object JarExtractor {
     (arch, Platform.osName(), Platform.arch()) match {
       case (LinuxAMD64, "linux", "x86_64")     => true
       case (WindowsAMD64, "windows", "x86_64") => true
-      case (MacOSAMD64, "osx", "x86_64")       => true
       case (MacOSArm64, "osx", "aarch64")      => true
       case _                                   => false
     }

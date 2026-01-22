@@ -236,13 +236,18 @@ class TailCallTest extends MiniPassTest {
             .body
             .asInstanceOf[Function.Lambda]
             .body
-          fnBody
+          val inBlock = fnBody
             .asInstanceOf[Expression.Block]
             .returnValue
-            .asInstanceOf[Application.Prefix]
-            .arguments
-            .apply(2)
-            .value
+          val caseExpr = inBlock
+            .asInstanceOf[Expression.Block]
+            .returnValue
+          val elseBranch = caseExpr
+            .asInstanceOf[Case.Expr]
+            .branches
+            .apply(1)
+            .expression
+          elseBranch
             .asInstanceOf[Expression.Block]
             .returnValue
             .asInstanceOf[Application.Prefix]

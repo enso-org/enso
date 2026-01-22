@@ -3,16 +3,15 @@ import { useCurrentProject } from '$/components/WithCurrentProject.vue'
 import type { QualifiedImport } from '$/providers/openedProjects/module/imports'
 import SvgButton from '@/components/SvgButton.vue'
 import SvgIcon from '@/components/SvgIcon.vue'
-import { Ok } from '@/util/data/result'
 import type { Icon } from '@/util/iconMetadata/iconName'
 import { ProjectPath } from '@/util/projectPath'
+import { Ok } from 'enso-common/src/utilities/data/result'
 
 const { projectNames: names, module } = useCurrentProject()
 
 const props = defineProps<{
   message: string
   type: MessageType
-  passEvents?: boolean
 }>()
 
 function containsLibraryName(): ProjectPath | null {
@@ -65,11 +64,7 @@ export const colorForMessageType: Record<MessageType, string> = {
 </script>
 
 <template>
-  <div
-    class="GraphNodeMessage"
-    :class="{ passEvents }"
-    :style="{ '--background-color': colorForMessageType[props.type] }"
-  >
+  <div class="GraphNodeMessage" :style="{ '--background-color': colorForMessageType[props.type] }">
     <SvgIcon class="icon" :name="iconForMessageType[props.type]" />
     <div class="message" v-text="props.message"></div>
     <div class="toolbar">
@@ -109,10 +104,6 @@ export const colorForMessageType: Record<MessageType, string> = {
   pointer-events: none;
   opacity: 1;
   transition: opacity 0.2s ease;
-
-  &.passEvents {
-    opacity: 0.5;
-  }
 }
 
 .icon {

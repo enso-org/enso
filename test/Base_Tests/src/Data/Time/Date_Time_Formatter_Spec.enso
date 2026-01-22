@@ -154,6 +154,7 @@ add_specs suite_builder =
         group_builder.specify "should parse time UTC" <|
             time = Date_Time.parse "1582-10-15T00:00:01Z[UTC]"
             time . to_enso_epoch_seconds . should_equal 1
+            time . zone . should_equal Time_Zone.utc
             time . zone . zone_id . should_equal "UTC"
 
         group_builder.specify "should parse time with nanoseconds" <|

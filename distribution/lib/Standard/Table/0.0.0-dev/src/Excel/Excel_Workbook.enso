@@ -284,7 +284,7 @@ type Excel_Workbook
                 _ : Integer -> ExcelReader.readSheetByIndex self.java_file query java_headers skip_rows java_limit self.internal_xl_format.to_java java_problem_aggregator
         result = limit.attach_warning (from_java_table java_table)
         result.if_not_error <|
-            Telemetry.log "Excel_Workbook.read" "Read sheet: format={}, output={}, row_count={}, column_count={}, xls_format={}" ["Excel_Format", "Table", result.row_count, result.column_count, self.internal_xl_format.to_text]
+            Telemetry.log "Excel_Workbook.read" "Read sheet: format={}, output={}, row_count={}, column_count={}, xls_format={}, file_format={}" ["Excel_Format", "Table", result.row_count, result.column_count, self.internal_xl_format==Excel_File_Format.XLS, self.internal_xl_format.to_text]
             result
 
     ## ---

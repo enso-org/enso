@@ -283,8 +283,7 @@ public final class UnusedImports implements IRPass {
   private static UnusedSymbolsFromImport createWarning(
       Import impIr, Set<QualifiedName> unusedSymbols) {
     var list = unusedSymbols.stream().map(QualifiedName::toString).sorted().toList();
-    return new UnusedSymbolsFromImport(
-        impIr.identifiedLocation(), CollectionConverters.asScala(list).toList());
+    return new UnusedSymbolsFromImport(impIr.identifiedLocation(), list);
   }
 
   private static UnusedImport createWarning(Import impIr) {

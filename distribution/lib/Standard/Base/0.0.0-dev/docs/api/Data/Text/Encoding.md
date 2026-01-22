@@ -10,8 +10,8 @@
     - from_java_charset charset:Standard.Base.Data.Text.Encoding.Charset -> Standard.Base.Data.Text.Encoding.Encoding
     - from_name name:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - to_display_text self -> Standard.Base.Any.Any
-    - to_java_charset self -> Standard.Base.Any.Any
-    - to_java_charset_or_null self -> Standard.Base.Any.Any
+    - to_java_charset self -> Standard.Base.Data.Text.Encoding.Charset!Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+    - to_java_charset_or_null self -> (Standard.Base.Data.Text.Encoding.Charset|Standard.Base.Nothing.Nothing)!Standard.Base.Errors.Illegal_Argument.Illegal_Argument
     - to_js_object self -> Standard.Base.Any.Any
     - utf_16_be -> Standard.Base.Any.Any
     - utf_16_le -> Standard.Base.Any.Any

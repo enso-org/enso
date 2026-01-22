@@ -146,14 +146,7 @@ public final class ShadowedPatternFields implements MiniPassFactory {
             var warning = new PatternBinding(name, lastSeen.get(name), typed.identifiedLocation());
             lastSeen.put(name, typed);
             var blank = new Name.Blank(typed.identifiedLocation(), new MetadataStorage());
-            var typedCopy =
-                typed.copy(
-                    blank,
-                    typed.tpe(),
-                    typed.location(),
-                    typed.passData(),
-                    typed.diagnostics(),
-                    typed.id());
+            var typedCopy = typed.copyBuilder().name(blank).build();
             typedCopy.getDiagnostics().add(warning);
             yield typedCopy;
           } else if (!(typed.name() instanceof Name.Blank)) {

@@ -66,41 +66,28 @@ final class SuggestionBuilder[A: IndexedSource](
         val ir  = scope.queue.dequeue()
         val doc = ir.getMetadata(DocumentationComments).map(_.documentation)
         ir match {
-          case Definition.Type(
-                tpName,
-                params,
-                List(),
-                _,
-                _
-              ) =>
+          case tp: Definition.Type if tp.members().isEmpty =>
+            val tpName = tp.name()
+            val params = tp.params()
             val tpe =
               buildAtomType(module, tpName.name, tpName.name, params, doc)
             go(tree ++= Vector(Tree.Node(tpe, Vector())), scope)
 
-          case Definition.Type(
-                tpName,
-                params,
-                members,
-                _,
-                _
-              ) =>
+          case tp: Definition.Type =>
+            val tpName  = tp.name()
+            val params  = tp.params()
+            val members = tp.members()
+
             val tpe =
               buildAtomType(module, tpName.name, tpName.name, params, doc)
             val conses = members.collect {
-              case data @ Definition.Data(
-                    name,
-                    arguments,
-                    annotations,
-                    isPrivate,
-                    _,
-                    _
-                  ) if !isPrivate =>
+              case data: Definition.Data if !data.isPrivate =>
                 buildAtomConstructor(
                   module,
                   tpName.name,
-                  name.name,
-                  arguments,
-                  annotations,
+                  data.name().name,
+                  data.arguments,
+                  data.annotations,
                   data.getMetadata(DocumentationComments).map(_.documentation)
                 )
             }

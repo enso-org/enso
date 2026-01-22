@@ -81,7 +81,7 @@ public class AvoidIdInstrumentationTagTest {
         from Standard.Base import all
 
         operator13 = [ 1973, 1975, 2005, 2006 ]
-        operator15 = operator13.map year-> if year < 2000 then [255, 100] else if year < 2010 then [0, 255] else [0, 100]
+        operator15 = operator13.map year-> (year < 2000).if_then_else [255, 100] ((year < 2010).if_then_else [0, 255] [0, 100])
         """;
     var src = Source.newBuilder("enso", code, "YearLambda.enso").build();
     var module = ctxRule.eval(src);

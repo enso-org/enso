@@ -456,9 +456,9 @@ add_commmon_specs (suite_builder : Suite_Builder) (prefix : Text) (create_connec
             r2.should_fail_with SQL_Error
 
             # The error should be identified as Table Already Exists
-            connection.dialect.get_error_mapper.is_table_already_exists_error r2.catch . should_be_true
+            connection.type_mapping.error_mapper.is_table_already_exists_error r2.catch . should_be_true
 
             # But other kinds of errors should not:
             other_error = connection.execute_update "invalid; )))) syntax;;;;"
             other_error.should_fail_with SQL_Error
-            connection.dialect.get_error_mapper.is_table_already_exists_error other_error.catch . should_be_false
+            connection.type_mapping.error_mapper.is_table_already_exists_error other_error.catch . should_be_false

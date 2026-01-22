@@ -76,7 +76,7 @@ test('Local Workflow', async ({ page, app, projectsDir }) => {
     .getByRole('button', { name: 'Create User Defined Component from Selected Components' })
     .click()
   await expect(page.locator('.GraphNode')).toHaveCount(1)
-  await expect(page.locator('.GraphNode')).toHaveText(/Main.user_defined_component/)
+  await expect(page.locator('.GraphNode')).toHaveText(/user_defined_component/)
   await page.locator('.GraphNode').click()
   await page.getByRole('button', { name: 'Visualization' }).click()
   await expect(page.locator('.TableVisualization')).toBeVisible()
@@ -102,9 +102,9 @@ test('Local Workflow', async ({ page, app, projectsDir }) => {
   await expect(page.locator('.NavBreadcrumb')).toHaveText(['New Project 1', 'new_name'])
 
   // Leave function
-  await page.getByTestId('editor').getByText('New Project').dblclick()
+  await page.locator('.ProjectView').getByText('New Project').dblclick()
   await expect(page.locator('.GraphNode')).toHaveCount(1)
-  await expect(page.locator('.GraphNode')).toHaveText(/Main.new_name/)
+  await expect(page.locator('.GraphNode')).toHaveText(/new_name/)
 
   // Create new text literal node.
   await page.keyboard.press('Escape') // deselect.
@@ -168,6 +168,20 @@ test('Local Workflow', async ({ page, app, projectsDir }) => {
   expect(projectFiles).toContain('images')
   const images = await fs.readdir(pathModule.join(PROJECT_PATH, 'images'))
   expect(images).toContain('image.png')
+
+  // Rename the project
+  await page.getByRole('button', { name: 'Additional Options' }).click()
+  await page.getByRole('button', { name: 'Rename Project' }).click()
+  await expect(page.getByTitle('Project Name').locator('.cm-content')).toBeFocused()
+  await page.keyboard.insertText('Test Project')
+  await page.keyboard.press('Enter')
+  await expect(page.getByTestId('project-view-tab-button')).toHaveText('Test Project')
+  await expect(page.getByTitle('Project Name')).toHaveText('Test Project')
+
+  // Check that the name is changed also in drive
+  await page.getByRole('tab', { name: 'Data Catalog' }).click()
+  await expect(page.getByTestId('asset-row-name')).toHaveCount(2)
+  await expect(page.getByTestId('asset-row-name')).toHaveText(['Samples', 'Test Project'])
 })
 
 async function readFile(projectDir: string, fileName: string): Promise<string> {

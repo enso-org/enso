@@ -28,7 +28,7 @@ pub fn flatten(graph: &mut TypeGraph, ids: &mut BTreeSet<FieldId>) {
 /// For design notes, see [`flatten`].
 fn flatten_(graph: &mut TypeGraph, to_flatten: &mut BTreeSet<FieldId>, outer: TypeId) {
     let outer_fields = match &mut graph[outer].data {
-        Data::Struct(ref mut fields) => std::mem::take(fields),
+        Data::Struct(fields) => std::mem::take(fields),
         _ => return,
     };
     let child_field = graph[outer].child_field;

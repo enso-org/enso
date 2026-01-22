@@ -1,5 +1,5 @@
 /** @file Constants for the subscribe page. */
-import { Plan } from '#/services/Backend'
+import { Plan } from 'enso-common/src/services/Backend'
 
 /* eslint-disable @typescript-eslint/no-magic-numbers */
 

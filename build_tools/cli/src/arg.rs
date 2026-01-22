@@ -2,14 +2,14 @@
 
 use enso_build::prelude::*;
 
-use clap::builder::ArgPredicate;
-use clap::builder::PossibleValuesParser;
-use clap::builder::TypedValueParser;
 use clap::Arg;
 use clap::Args;
 use clap::Parser;
 use clap::Subcommand;
 use clap::ValueEnum;
+use clap::builder::ArgPredicate;
+use clap::builder::PossibleValuesParser;
+use clap::builder::TypedValueParser;
 use derive_where::derive_where;
 use ide_ci::cache;
 use ide_ci::github::Repo;
@@ -27,7 +27,6 @@ pub mod java_gen;
 pub mod libraries;
 pub mod release;
 pub mod runtime;
-pub mod wasm;
 
 /// The prefix that will be used when reading the build script arguments from environment.
 pub const ENVIRONMENT_VARIABLE_NAME_PREFIX: &str = "ENSO_BUILD";
@@ -110,8 +109,6 @@ macro_rules! source_args_hlp {
 #[allow(clippy::large_enum_variant)]
 #[derive(Subcommand, Clone, Debug)]
 pub enum Target {
-    /// Build/Test the Rust part of the GUI.
-    Wasm(wasm::Target),
     /// Build/Run the Vue-based GUI.
     Gui(gui::Target),
     /// Enso Engine Runtime.
@@ -120,9 +117,6 @@ pub enum Target {
     Backend(backend::Target),
     /// Build/Run/Test IDE bundle (includes Vue-based GUI and Project Manager).
     Ide(ide::Target),
-    /// Clean the repository. Keeps the IntelliJ's .idea directory intact. WARNING: This removes
-    /// files that are not under version control in the repository subtree.
-    GitClean(git_clean::Options),
     /// Apply automatic formatters on the repository.
     #[clap(alias = "format")]
     Fmt,
@@ -292,6 +286,6 @@ pub struct WatchJob<Target: IsWatchableSource> {
 }
 
 /// Clap parser supporting a given set of [`OS`] values.
-pub fn possible_os_parser(possible_os: &[OS]) -> impl TypedValueParser<Value = OS> {
+pub fn possible_os_parser(possible_os: &[OS]) -> impl TypedValueParser<Value = OS> + use<> {
     PossibleValuesParser::new(possible_os.iter().map(|os| os.as_str())).map(|s| OS::from_str(&s))
 }

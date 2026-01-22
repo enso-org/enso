@@ -15,8 +15,9 @@ type Any
 
 @Builtin_Type
 type Default_Comparator
-
-    ## PRIVATE
+    ## ---
+       private: true
+       ---
     less_than_builtin left right = @Builtin_Method "Default_Comparator.less_than_builtin"
 
 any_to_text obj = @Builtin_Method "Any_Helpers.to_text"

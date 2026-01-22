@@ -17,6 +17,7 @@ import project.Sieve
 import project.Jvms.Execute_Generic_JDBC_Tests
 import project.Startup.Startup
 import project.Statistics.Count_Min_Max
+import project.Statistics.Generic_JDBC_Mean
 import project.Sum
 import project.Table.Add_Row_Number
 import project.Table.Aggregate
@@ -66,6 +67,7 @@ all_benchmarks =
 
         # Statistics
         builder.append Count_Min_Max.collect_benches
+        builder.append Generic_JDBC_Mean.collect_benches
 
         # Table
         builder.append Aggregate.collect_benches

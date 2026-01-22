@@ -9,7 +9,16 @@ import {
 } from './tableVizFilterUtils'
 import { getCellValueType } from './tableVizUtils'
 
-export type ValueTypes = 'Date' | 'Time' | 'Date_Time' | 'Integer' | 'Char' | 'Boolean'
+export type ValueTypes =
+  | 'Date'
+  | 'Time'
+  | 'Date_Time'
+  | 'Integer'
+  | 'Char'
+  | 'Boolean'
+  | 'Float'
+  | 'Decimal'
+  | 'Byte'
 export type ValueTypeArgumentChild = { valueType: ValueTypes; value: string }
 type ValueTypeArgumentParent =
   | { valueType: ValueTypes; value: string }
@@ -44,6 +53,9 @@ const parseFilterValues = (
       return pattern.instantiateCopied([Ast.TextLiteral.new(value.value, tempModule)])
     }
     case 'Integer':
+    case 'Float':
+    case 'Decimal':
+    case 'Byte':
       return Ast.parseExpression(value.value, tempModule)!
     case 'Char':
       return Ast.TextLiteral.new(value.value)

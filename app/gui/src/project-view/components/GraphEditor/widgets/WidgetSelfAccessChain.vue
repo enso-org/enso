@@ -86,7 +86,7 @@ export const widgetDefinition = defineWidget(
 </script>
 
 <template>
-  <div class="WidgetSelfAccessChain" v-bind="rootProps">
+  <div class="WidgetSelfAccessChain widgetParent" v-bind="rootProps">
     <NodeWidget v-if="iconInput" :input="iconInput" />
     <NodeWidget v-if="props.input.value.rhs" :input="WidgetInput.FromAst(props.input.value.rhs)" />
   </div>
@@ -94,9 +94,6 @@ export const widgetDefinition = defineWidget(
 
 <style scoped>
 .WidgetSelfAccessChain {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
   gap: var(--widget-token-pad-unit);
   position: relative;
 }

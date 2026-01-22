@@ -14,6 +14,14 @@ declare global {
     readonly api: ElectronApi
   }
 
+  interface ImportMetaEnv {
+    readonly [key: string]: string | undefined
+  }
+
+  interface ImportMeta {
+    readonly env: ImportMetaEnv
+  }
+
   namespace NodeJS {
     /** Environment variables. */
     interface ProcessEnv {
@@ -40,8 +48,6 @@ declare global {
       readonly ENSO_BUILD_ELECTRON_BUILDER_CONFIG?: string
       // @ts-expect-error The index signature is intentional to disallow unknown env vars.
       readonly npm_package_name?: string
-      // @ts-expect-error The index signature is intentional to disallow unknown env vars.
-      readonly PROJECT_MANAGER_IN_BUNDLE_PATH: string
 
       // === Integration test variables ===
 
@@ -56,7 +62,7 @@ declare global {
       // @ts-expect-error The index signature is intentional to disallow unknown env vars.
       readonly ELECTRON_DEV_MODE?: string
       // @ts-expect-error The index signature is intentional to disallow unknown env vars.
-      readonly GUI_CONFIG_PATH?: string
+      readonly NODE_ENV?: string
     }
   }
 }

@@ -3,12 +3,41 @@ package org.enso.database.fetchers;
 import java.lang.reflect.Proxy;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import org.enso.database.JDBCUtils;
-import org.enso.table.data.column.storage.type.*;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.OffsetDateTime;
+import java.util.ArrayList;
+import org.enso.polyglot.common_utils.Core_Date_Utils;
+import org.enso.table.data.column.storage.type.BigDecimalType;
+import org.enso.table.data.column.storage.type.BigIntegerType;
+import org.enso.table.data.column.storage.type.BooleanType;
+import org.enso.table.data.column.storage.type.DateTimeType;
+import org.enso.table.data.column.storage.type.DateType;
+import org.enso.table.data.column.storage.type.FloatType;
+import org.enso.table.data.column.storage.type.IntegerType;
+import org.enso.table.data.column.storage.type.StorageType;
+import org.enso.table.data.column.storage.type.TextType;
+import org.enso.table.data.column.storage.type.TimeOfDayType;
 import org.enso.table.problems.ProblemAggregator;
 
 public interface ColumnFetcherFactory {
   ColumnFetcherFactory DEFAULT = new DefaultColumnFetcherFactory();
+
+  /** Reads all values from a column in a ResultSet into a String array. */
+  default String[] readTextColumn(ResultSet rs, String name) throws SQLException {
+    if (rs.isClosed()) {
+      return new String[0];
+    }
+
+    int index = rs.findColumn(name);
+
+    var results = new ArrayList<String>();
+    while (rs.next()) {
+      var value = rs.getString(index);
+      results.add(value);
+    }
+    return results.toArray(new String[0]);
+  }
 
   default Class<? extends ColumnFetcher> getColumnFetcherClass() {
     return ColumnFetcher.class;
@@ -48,7 +77,20 @@ public interface ColumnFetcherFactory {
             new GenericColumnFetcher<>(colIndex, columnName, bd, problemAggregator) {
               @Override
               public Object getValue(ResultSet resultSet) throws SQLException {
-                return JDBCUtils.getBigDecimalHandleSpecialFloats(resultSet, index());
+                try {
+                  return resultSet.getBigDecimal(index());
+                } catch (SQLException e) {
+                  try {
+                    double d = resultSet.getDouble(index());
+                    if (Double.isNaN(d) || Double.isInfinite(d)) {
+                      return null;
+                    } else {
+                      throw e;
+                    }
+                  } catch (SQLException eIgnore) {
+                    throw e;
+                  }
+                }
               }
             };
         case TextType tt ->
@@ -62,14 +104,15 @@ public interface ColumnFetcherFactory {
             new GenericColumnFetcher<>(colIndex, columnName, todt, problemAggregator) {
               @Override
               public Object getValue(ResultSet resultSet) throws SQLException {
-                return JDBCUtils.getLocalTime(resultSet, index());
+                return resultSet.getObject(index(), LocalTime.class);
               }
             };
         case DateType dt ->
             new GenericColumnFetcher<>(colIndex, columnName, dt, problemAggregator) {
               @Override
               public Object getValue(ResultSet resultSet) throws SQLException {
-                return JDBCUtils.getLocalDate(resultSet, index());
+                var sqlDate = resultSet.getDate(index());
+                return sqlDate == null ? null : sqlDate.toLocalDate();
               }
             };
         case DateTimeType dtt ->
@@ -78,14 +121,18 @@ public interface ColumnFetcherFactory {
                     colIndex, columnName, DateTimeType.INSTANCE, problemAggregator) {
                   @Override
                   public Object getValue(ResultSet resultSet) throws SQLException {
-                    return JDBCUtils.getLocalDateTimeAsZoned(resultSet, index());
+                    var localDateTime = resultSet.getObject(index(), LocalDateTime.class);
+                    return localDateTime == null
+                        ? null
+                        : localDateTime.atZone(Core_Date_Utils.defaultSystemZone());
                   }
                 }
                 : new GenericColumnFetcher<>(
                     colIndex, columnName, DateTimeType.INSTANCE, problemAggregator) {
                   @Override
                   public Object getValue(ResultSet resultSet) throws SQLException {
-                    return JDBCUtils.getZonedDateTime(resultSet, index());
+                    var offsetDateTime = resultSet.getObject(index(), OffsetDateTime.class);
+                    return offsetDateTime == null ? null : offsetDateTime.toZonedDateTime();
                   }
                 };
         default -> {

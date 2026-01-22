@@ -1,6 +1,6 @@
-from project.Data.Boolean import Boolean
 import project.Errors.Common.No_Such_Conversion
 import project.Internal.Any_Helpers
+from project.Data.Boolean import Boolean
 from project.Metadata import Widget
 
 ## Any is the universal top-type, with all other types being subsumed by it.

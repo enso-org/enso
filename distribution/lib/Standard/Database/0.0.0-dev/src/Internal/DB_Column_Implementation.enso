@@ -17,6 +17,7 @@ import Standard.Table.Internal.Java_Problems
 import Standard.Table.Internal.Problem_Builder.Problem_Builder
 import Standard.Table.Internal.Value_Type_Helpers
 import Standard.Table.Internal.Widget_Helpers
+import Standard.Table.Refined_Types.Text_Column.Text_Column
 import Standard.Table.Rows_To_Read.Rows_To_Read
 from Standard.Table import Auto, Column, Data_Formatter, Previous_Value, Table, Value_Type
 from Standard.Table.Errors import Inexact_Type_Coercion, Invalid_Value_Type
@@ -194,14 +195,31 @@ type DB_Column_Implementation
     round (this_column : Column & DB_Column) decimal_places:Integer (rounding_mode : Rounding_Mode) =
         Rounding_Helpers.check_decimal_places decimal_places <| Value_Type.expect_numeric this_column <|
             if should_use_builtin_round this_column decimal_places rounding_mode then round_builtin this_column decimal_places rounding_mode else
-                short_circuit_special_floating_point this_column <|
-                    case this_column.value_type of
-                        Value_Type.Integer _ -> round_integer this_column decimal_places rounding_mode
-                        Value_Type.Float _ -> round_float this_column decimal_places rounding_mode
-                        Value_Type.Decimal _ _ -> round_decimal this_column decimal_places rounding_mode
-                        _ ->
-                            expected = "Decimal, Float, or Integer"
-                            Error.throw (Invalid_Value_Type.Column expected this_column.value_type this_column.name)
+                DB_Column_Implementation.round_pure_column_ops this_column decimal_places rounding_mode
+
+    ## ---
+       private: true
+       ---
+       Implements rounding using only Enso column operations, and bypasses using
+       database-specific builtin rounding functions. This is only called from
+       .round in this class, or from tests.
+
+       Outside of testing, database-specific builtin rounding functions are
+       always used where available. However, it is important to ensure that the
+       pure versions work for all cases, since different database backends
+       provide different builtins.
+
+       Calling this method requires importing the Column extension in
+       Round_Pure_Column_Ops.
+    round_pure_column_ops (this_column : Column & DB_Column) decimal_places:Integer (rounding_mode : Rounding_Mode) =
+        short_circuit_special_floating_point this_column <|
+            case this_column.value_type of
+                Value_Type.Integer _ -> round_integer this_column decimal_places rounding_mode
+                Value_Type.Float _ -> round_float this_column decimal_places rounding_mode
+                Value_Type.Decimal _ _ -> round_decimal this_column decimal_places rounding_mode
+                _ ->
+                    expected = "Decimal, Float, or Integer"
+                    Error.throw (Invalid_Value_Type.Column expected this_column.value_type this_column.name)
 
     truncate (this_column : Column & DB_Column) =
         new_name = (naming_helper this_column).function_name "truncate" [this_column]
@@ -330,17 +348,20 @@ type DB_Column_Implementation
             new_name = (naming_helper this_column).function_name "text_length" [this_column]
             make_unary_op this_column "LENGTH" new_name
 
-    text_left (this_column : Column & DB_Column) n:Column|Integer =
-        Value_Type.expect_text this_column <| Helpers.expect_specific_integer_type this_column n <|
-            n2 = n.max 0
+    text_left this_column  n:Column|Integer =
+        Value_Type.expect_text this_column <|
             new_name = (naming_helper this_column).function_name "text_left" [this_column, n]
-            make_binary_op this_column "LEFT" n2 new_name
+            (this_column : Text_Column) . left n . rename new_name
 
-    text_right (this_column : Column & DB_Column) n:Column|Integer =
-        Value_Type.expect_text this_column <| Helpers.expect_specific_integer_type this_column n <|
-            n2 = n.max 0
+    text_right this_column n:Column|Integer =
+        Value_Type.expect_text this_column <|
             new_name = (naming_helper this_column).function_name "text_right" [this_column, n]
-            make_binary_op this_column "RIGHT" n2 new_name
+            (this_column : Text_Column) . right n . rename new_name
+
+    text_mid this_column (start : Column | Any) (length : Column | Any) =
+        Value_Type.expect_text this_column <|
+            new_name = (naming_helper this_column).function_name "text_mid" [this_column, start, length]
+            (this_column : Text_Column) . mid start length . rename new_name
 
     contains (this_column : Column & DB_Column) (other : Column | Text | Any) case_sensitivity:Case_Sensitivity =
         new_name = (naming_helper this_column).function_name "contains" [this_column, other]
@@ -551,29 +572,25 @@ adapt_unified_column (column : Column & DB_Column) expected_type =
     adapted = dialect.adapt_unified_column (Internal_Column.from column) expected_type infer_return_type mapping
     DB_Column.new column.name column.connection adapted.sql_type_reference adapted.expression column.context
 
-
 make_op : Column & DB_Column -> Text -> Vector Text -> (Text | Nothing) -> (Any | Nothing) -> Column
 make_op this_column op_kind operands new_name metadata=Nothing =
-    checked_support = if this_column.connection.dialect.is_operation_supported op_kind then True else
-        Error.throw (Unsupported_Database_Operation.Error op_kind)
-    checked_support.if_not_error <|
-        mapping = this_column.connection.type_mapping
-        prepare_operand operand = case operand of
-            other_column : Column ->
-                if Helpers.check_integrity this_column other_column then (other_column:DB_Column).expression else
-                    Error.throw (Integrity_Error.Error "Column "+other_column.name)
-            sql_expression : SQL_IR_Expression ->
-                sql_expression
-            constant ->
-                SQL_IR_Expression.Constant constant
+    if this_column.connection.dialect.is_operation_supported op_kind . not then Error.throw (Unsupported_Database_Operation.Error op_kind)
 
-        expressions = operands.map prepare_operand
-        new_expr = SQL_IR_Expression.Operation op_kind ([this_column.expression] + expressions) metadata
+    prepare_operand operand = case operand of
+        other_column : Column ->
+            if Helpers.check_integrity this_column other_column then (other_column:DB_Column).expression else
+                Error.throw (Integrity_Error.Error "Column "+other_column.name)
+        sql_expression : SQL_IR_Expression -> sql_expression
+        constant -> SQL_IR_Expression.Constant constant
 
-        infer_from_database_callback expression =
-            SQL_Type_Reference.new this_column.connection this_column.context expression
-        new_type_ref = mapping.infer_return_type infer_from_database_callback op_kind [this_column]+operands new_expr
-        DB_Column.new new_name this_column.connection new_type_ref new_expr this_column.context
+    expressions = operands.map prepare_operand
+    new_expr = SQL_IR_Expression.Operation op_kind ([this_column.expression] + expressions) metadata
+
+    mapping = this_column.connection.type_mapping
+    infer_from_database_callback expression =
+        SQL_Type_Reference.new this_column.connection this_column.context expression
+    new_type_ref = mapping.infer_return_type infer_from_database_callback op_kind [this_column]+operands new_expr
+    DB_Column.new new_name this_column.connection new_type_ref new_expr this_column.context
 
 make_binary_op : Column & DB_Column -> Text -> Text -> (Text | Nothing) -> Column
 make_binary_op this_column op_kind operand new_name=Nothing =
@@ -623,41 +640,42 @@ round_builtin this_column decimal_places rounding_mode =
 round_float : Column & DB_Column -> Integer -> Boolean -> Column
 round_float this_column decimal_places rounding_mode =
     new_name = (naming_helper this_column).function_name "round" [this_column]
-    scale = 10 ^ decimal_places
-    scaled = this_column * scale
 
-    (scaled:DB_Column).let "scaled" scaled->
-        round_base = scaled.floor
-        (round_base:DB_Column).let "round_base" round_base->
-            round_midpoint = (round_base + 0.5) / scale
-            (round_midpoint:DB_Column).let "round_midpoint" round_midpoint->
-                # The intermediate variable `scaled_truncate_mod_2_equals_0` is a workaround for bug #13282
-                scaled_truncate_mod_2_equals_0 = (((scaled.truncate % 2) == 0) : DB_Column)
-                scaled_truncate_mod_2_equals_0.let "scaled_truncate_mod_2_equals_0" scaled_truncate_mod_2_equals_0->
-                    even_is_up = (this_column >= 0).iif scaled_truncate_mod_2_equals_0.not scaled_truncate_mod_2_equals_0
-                    half_goes_up = if rounding_mode == Rounding_Mode.Bankers then even_is_up else this_column >= 0
-                    do_round_up = (half_goes_up:DB_Column).let "half_goes_up" x-> x.iif (this_column >= round_midpoint) (this_column > round_midpoint)
-                    result = (do_round_up:DB_Column).let "do_round_up" x-> x.iif ((round_base + 1.0) / scale) (round_base / scale)
-                    result.rename new_name
+    scale = 10 ^ decimal_places
+    scaled = if decimal_places == 0 then this_column else this_column * scale
+
+    half_goes_up = if rounding_mode != Rounding_Mode.Bankers then this_column >= 0 else
+        mod_2 = scaled.truncate % 2
+        (mod_2:DB_Column).let "mod_2" mod_2-> (this_column >= 0).iif (mod_2 != 0) (mod_2 == 0)
+
+    round_base = scaled.floor
+    (round_base:DB_Column).let "round_base" round_base->
+        round_midpoint = round_base + 0.5
+        (round_midpoint:DB_Column).let "round_midpoint" round_midpoint->
+            do_round_up = (scaled > round_midpoint) || (half_goes_up && scaled == round_midpoint)
+            scaled_result = round_base + (do_round_up.iif 1 0)
+            result = if decimal_places == 0 then scaled_result else scaled_result / scale
+            result.rename new_name
 
 round_decimal : Column & DB_Column -> Integer -> Boolean -> Column
 round_decimal this_column decimal_places rounding_mode =
-    # Construct a constant Decimal column.
-    k x = this_column.const x . cast Value_Type.Decimal
     new_name = (naming_helper this_column).function_name "round" [this_column]
-    scale = 10 ^ decimal_places
-    scaled = this_column * scale
-    (scaled:DB_Column).let "scaled" scaled->
-        round_base = scaled.floor
-        (round_base:DB_Column).let "round_base" round_base->
-            round_midpoint = decimal_div (round_base + k 0.5) scale
-            (round_midpoint:DB_Column).let "round_midpoint" round_midpoint->
-                (((decimal_mod scaled.truncate (k 2)) != k 0) : DB_Column).let "scaled_truncate_mod_2_equals_0" scaled_truncate_mod_2_equals_0->
-                    even_is_up = (this_column >= k 0).iif scaled_truncate_mod_2_equals_0.not scaled_truncate_mod_2_equals_0
-                    half_goes_up = if rounding_mode == Rounding_Mode.Bankers then even_is_up else this_column >= k 0
-                    do_round_up = (half_goes_up:DB_Column).let "half_goes_up" x-> x.iif (this_column >= round_midpoint) (this_column > round_midpoint)
-                    result = (do_round_up:DB_Column).let "do_round_up" x-> x.iif (decimal_div (round_base + k 1) scale) (decimal_div round_base scale)
-                    result.rename new_name
+
+    scale = dec (10 ^ decimal_places)
+    scaled = if decimal_places == 0 then this_column else this_column * scale
+
+    half_goes_up = if rounding_mode != Rounding_Mode.Bankers then this_column >= 0 else
+        mod_2 = decimal_mod (scaled.truncate) 2
+        (mod_2:DB_Column).let "mod_2" mod_2-> (this_column >= 0).iif (mod_2 != 0) (mod_2 == 0)
+
+    round_base = scaled.floor
+    (round_base:DB_Column).let "round_base" round_base->
+        round_midpoint = round_base + dec 0.5
+        (round_midpoint:DB_Column).let "round_midpoint" round_midpoint->
+            do_round_up = (scaled > round_midpoint) || (half_goes_up && scaled == round_midpoint)
+            scaled_result = round_base + (do_round_up.iif (dec 1) (dec 0))
+            result = if decimal_places == 0 then scaled_result else decimal_div scaled_result scale
+            result.rename new_name
 
 decimal_div (this_column : Column & DB_Column) other =
     Value_Type.expect_numeric this_column <| Value_Type.expect_numeric other <|

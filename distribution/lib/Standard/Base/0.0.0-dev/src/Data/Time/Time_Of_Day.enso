@@ -1,5 +1,6 @@
 import project.Data.Json.JS_Object
 import project.Data.Numbers.Integer
+import project.Data.Ordering.Comparable
 import project.Data.Text.Text
 import project.Data.Time.Date.Date
 import project.Data.Time.Date_Time.Date_Time
@@ -8,7 +9,6 @@ import project.Data.Time.Duration.Duration
 import project.Data.Time.Time_Period.Time_Period
 import project.Data.Time.Time_Zone.Time_Zone
 import project.Data.Vector.Vector
-import project.Data.Ordering.Comparable
 import project.Error.Error
 import project.Errors.Common.Type_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
@@ -609,11 +609,11 @@ type Time_Of_Day
         Widget.Single_Choice values=options display=display
 
     ## ---
-      aliases: [greater than]
-      group: Operators
-      icon: operators
-      ---
-      Checks if `self` is greater than `that`.
+       aliases: [greater than]
+       group: Operators
+       icon: operators
+       ---
+       Checks if `self` is greater than `that`.
     > self that = Comparable.> self=self that
 
     ## ---

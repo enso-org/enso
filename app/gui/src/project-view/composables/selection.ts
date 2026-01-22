@@ -9,9 +9,9 @@ import { Vec2 } from '@/util/data/vec2'
 import { dataAttribute, selectorHierarchy } from '@/util/dom'
 import { identity } from '@vueuse/core'
 import * as iter from 'enso-common/src/utilities/data/iter'
+import { Err, Ok, type Result } from 'enso-common/src/utilities/data/result'
 import * as set from 'lib0/set'
 import { computed, ref, shallowReactive, shallowRef } from 'vue'
-import { Err, Ok, type Result } from 'ydoc-shared/util/data/result'
 import type { NavigatorComposable } from './navigator'
 
 interface BaseSelectionOptions<T> {
@@ -268,9 +268,7 @@ function useSelectionImpl<T, PackedT>(
   }
 }
 
-// === Hover tracking for nodes and ports ===
-
-/** TODO: Add docs */
+/** Hover tracking for nodes and ports */
 export function useGraphHover(isPortEnabled: (port: PortId) => boolean) {
   const hoveredElement = shallowRef<Element>()
 
@@ -282,7 +280,9 @@ export function useGraphHover(isPortEnabled: (port: PortId) => boolean) {
     if (!hoveredElement.value) return undefined
     for (const element of selectorHierarchy(hoveredElement.value, '[data-port]')) {
       const portId = dataAttribute<PortId>(element, 'port')
-      if (portId && isPortEnabled(portId)) return portId
+      if (portId && isPortEnabled(portId)) {
+        return portId
+      }
     }
     return undefined
   })

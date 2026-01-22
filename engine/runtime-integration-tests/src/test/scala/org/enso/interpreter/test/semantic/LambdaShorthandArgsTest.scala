@@ -12,6 +12,7 @@ class LambdaShorthandArgsTest extends InterpreterTest {
     "work for simple applications" in {
       val code =
         """
+          |from Standard.Base import all
           |main =
           |    f = a -> b -> c -> a + b - c
           |    g = f _ 5 5
@@ -56,7 +57,7 @@ class LambdaShorthandArgsTest extends InterpreterTest {
           |Number.if_then_else self = ~t -> ~f -> if self == 0 then t else f
           |
           |main =
-          |    f = if _ then 10 else 5
+          |    f = _.if_then_else 10 5
           |    res1 = f 0
           |    res2 = f 1
           |    res1 - res2

@@ -1,0 +1,15 @@
+load("@crates//:defs.bzl", "aliases", "all_crate_deps")
+load("@rules_rust//rust:defs.bzl", "rust_library")
+
+rust_library(
+    name = "enso_install_config",
+    srcs = glob(["src/**/*.rs"]),
+    aliases = aliases(),
+    edition = "2021",
+    proc_macro_deps = all_crate_deps(proc_macro = True),
+    visibility = ["//visibility:public"],
+    deps = all_crate_deps(normal = True) + [
+        "//build_tools/base:enso_build_base",
+        "//build_tools/ci_utils:ide_ci",
+    ],
+)

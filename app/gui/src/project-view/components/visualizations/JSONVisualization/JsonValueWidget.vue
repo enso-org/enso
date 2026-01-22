@@ -6,7 +6,11 @@ import JsonPrimitiveWidget from '@/components/visualizations/JSONVisualization/J
 import type { Opt } from '@/util/data/opt'
 import type { CreateProjection } from './types'
 
-const props = defineProps<{ data: unknown; createProjectionCb?: Opt<CreateProjection> }>()
+const props = defineProps<{
+  data: unknown
+  indent: string
+  createProjectionCb?: Opt<CreateProjection>
+}>()
 </script>
 
 <template>
@@ -17,6 +21,7 @@ const props = defineProps<{ data: unknown; createProjectionCb?: Opt<CreateProjec
   <JsonArrayWidget
     v-else-if="Array.isArray(props.data)"
     :data="props.data"
+    :indent="indent"
     :createProjectionCb="createProjectionCb"
   />
   <JsonPrimitiveWidget
@@ -28,6 +33,7 @@ const props = defineProps<{ data: unknown; createProjectionCb?: Opt<CreateProjec
   <JsonObjectWidget
     v-else-if="props.data && typeof props.data === 'object'"
     :data="props.data"
+    :indent="indent"
     :createProjectionCb="createProjectionCb"
   />
   <JsonPrimitiveWidget v-else :data="props.data" />

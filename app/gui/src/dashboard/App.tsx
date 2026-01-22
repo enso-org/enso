@@ -15,7 +15,7 @@ import * as reactQuery from '@tanstack/react-query'
 import * as toastify from 'react-toastify'
 import * as z from 'zod'
 
-import * as detect from '$/utils/detect'
+import * as detect from 'enso-common/src/utilities/detect'
 
 import InputBindingsProvider from '#/providers/InputBindingsProvider'
 import ModalProvider from '#/providers/ModalProvider'
@@ -25,7 +25,7 @@ import { RouterProvider } from 'react-aria-components'
 
 import { AboutModal } from '#/modals/AboutModal'
 
-import RemoteBackend from '#/services/RemoteBackend'
+import { RemoteBackend } from 'enso-common/src/services/RemoteBackend'
 
 import * as eventModule from '#/utilities/event'
 import LocalStorage from '#/utilities/LocalStorage'

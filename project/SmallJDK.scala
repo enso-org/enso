@@ -159,6 +159,7 @@ object SmallJDK {
       "lib/svm/bin/../builder/espresso-svm.jar",
       "lib/svm/bin/../builder/objectfile.jar",
       "lib/svm/bin/../builder/pointsto.jar",
+      "lib/svm/bin/../builder/reporter.jar",
       "lib/svm/bin/../builder/svm-enterprise.jar",
       "lib/svm/bin/../builder/svm.jar",
       "lib/svm/bin/../builder/svm-configure.jar",

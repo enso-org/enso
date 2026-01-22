@@ -34,5 +34,8 @@ def stdlib_source_patterns():
         glob_patterns += [
             "distribution/lib/Standard/{}/0.0.0-dev/src/**".format(lib_name),
             "distribution/lib/Standard/{}/0.0.0-dev/package.yaml".format(lib_name),
+            "distribution/lib/Standard/{}/0.0.0-dev/data/**".format(lib_name),
+            "distribution/lib/Standard/{}/0.0.0-dev/docs/**".format(lib_name),
+            "distribution/lib/Standard/{}/0.0.0-dev/THIRD-PARTY/**".format(lib_name),
         ]
     return glob_patterns

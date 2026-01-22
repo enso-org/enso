@@ -7,7 +7,7 @@ import * as loggerProvider from '#/providers/LoggerProvider'
 import { useText } from '$/providers/react'
 
 import { useEventCallback } from '#/hooks/eventCallbackHooks'
-import * as errorModule from '#/utilities/error'
+import * as errorModule from 'enso-common/src/utilities/errors'
 
 /** The type of the `toastAndLog` function returned by {@link useToastAndLog}. */
 export type ToastAndLogCallback = ReturnType<typeof useToastAndLog>

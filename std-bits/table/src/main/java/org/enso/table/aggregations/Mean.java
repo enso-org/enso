@@ -1,5 +1,6 @@
 package org.enso.table.aggregations;
 
+import java.lang.reflect.Proxy;
 import java.math.BigDecimal;
 import java.math.MathContext;
 import java.util.List;
@@ -34,14 +35,24 @@ public class Mean extends KnownTypeAggregator {
   private static StorageType<?> resultTypeFromInput(ColumnStorage<?> inputStorage) {
     var resolvedStorage = ColumnStorageWithInferredStorage.resolveStorage(inputStorage);
     var inputType = resolvedStorage.getType();
+    return resultTypeFromInputType(inputType);
+  }
+
+  private static StorageType<?> resultTypeFromInputType(StorageType<?> inputType)
+      throws IllegalStateException {
     return switch (inputType) {
       case FloatType floatType -> FloatType.FLOAT_64;
       case IntegerType integerType -> FloatType.FLOAT_64;
       case BigIntegerType bigIntegerType -> BigDecimalType.INSTANCE;
       case BigDecimalType bigDecimalType -> BigDecimalType.INSTANCE;
       case NullType nullType -> nullType;
-      default ->
-          throw new IllegalStateException("Unexpected input type for Mean aggregate: " + inputType);
+      default -> {
+        if (Proxy.isProxyClass(inputType.getClass())) {
+          var fresh = StorageType.fromTypeCharAndSize(inputType.typeChar(), inputType.size());
+          yield resultTypeFromInputType(fresh);
+        }
+        throw new IllegalStateException("Unexpected input type for Mean aggregate: " + inputType);
+      }
     };
   }
 

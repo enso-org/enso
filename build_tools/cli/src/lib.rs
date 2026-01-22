@@ -14,28 +14,31 @@ pub mod prelude {
 
 use crate::prelude::*;
 
-use crate::arg::java_gen;
-use crate::arg::libraries;
-use crate::arg::release::Action;
 use crate::arg::BuildJob;
 use crate::arg::Cli;
 use crate::arg::IsTargetSource;
 use crate::arg::IsWatchableSource;
 use crate::arg::Target;
 use crate::arg::WatchJob;
+use crate::arg::java_gen;
+use crate::arg::libraries;
+use crate::arg::release::Action;
 use anyhow::Context;
 use arg::BuildDescription;
 use clap::Parser;
 use enso_build::cloud_tests;
 use enso_build::config::Config;
 use enso_build::context::BuildContext;
-use enso_build::engine::context::EnginePackageProvider;
 use enso_build::engine::BenchmarkType;
 use enso_build::engine::Benchmarks;
 use enso_build::engine::StandardLibraryTestsSelection;
 use enso_build::engine::Tests;
+use enso_build::engine::context::EnginePackageProvider;
 use enso_build::paths::TargetTriple;
 use enso_build::project;
+use enso_build::project::IsTarget;
+use enso_build::project::IsWatchable;
+use enso_build::project::IsWatcher;
 use enso_build::project::backend;
 use enso_build::project::backend::Backend;
 use enso_build::project::gui::Gui;
@@ -43,9 +46,6 @@ use enso_build::project::ide;
 use enso_build::project::ide::Ide;
 use enso_build::project::runtime;
 use enso_build::project::runtime::Runtime;
-use enso_build::project::IsTarget;
-use enso_build::project::IsWatchable;
-use enso_build::project::IsWatcher;
 use enso_build::source::BuildSource;
 use enso_build::source::BuildTargetJob;
 use enso_build::source::CiRunSource;
@@ -57,21 +57,17 @@ use enso_build::source::Source;
 use enso_build::source::WatchTargetJob;
 use enso_build::source::WithDestination;
 use enso_build::version;
-use futures_util::future::try_join_all;
 use ide_ci::actions::workflow::is_in_env;
 use ide_ci::cache::Cache;
+use ide_ci::cache::goodie::graalvm;
 use ide_ci::fs::remove_if_exists;
 use ide_ci::github::release;
 use ide_ci::github::setup_octocrab;
 use ide_ci::global;
 use ide_ci::ok_ready_boxed;
-use ide_ci::programs::cargo;
 use ide_ci::programs::git;
-use ide_ci::programs::git::clean;
-use ide_ci::programs::Cargo;
 use octocrab::models::ReleaseId;
 use std::time::Duration;
-use tokio::process::Child;
 
 pub fn void<T>(_t: T) {}
 
@@ -267,41 +263,6 @@ impl Processor {
         .boxed()
     }
 
-    pub fn handle_wasm(&self, wasm: arg::wasm::Target) -> BoxFuture<'static, Result> {
-        match wasm.command {
-            arg::wasm::Command::Test => {
-                let repo_root = self.repo_root.clone();
-                async move {
-                    Cargo
-                        .cmd()?
-                        .current_dir(&repo_root)
-                        .apply(&cargo::Command::Test)
-                        .apply(&cargo::Options::Workspace)
-                        // Color needs to be passed to tests themselves separately.
-                        // See: https://github.com/rust-lang/cargo/issues/1983
-                        .arg("--")
-                        .apply(&cargo::Color::Always)
-                        .run_ok()
-                        .await
-                }
-                .boxed()
-            }
-            arg::wasm::Command::Lint => {
-                let repo_root = self.repo_root.clone();
-                async move {
-                    Cargo
-                        .cmd()?
-                        .current_dir(&repo_root)
-                        .arg("fmt")
-                        .args(["--", "--check"])
-                        .run_ok()
-                        .await
-                }
-                .boxed()
-            }
-        }
-    }
-
     pub fn handle_gui(&self, gui: arg::gui::Target) -> BoxFuture<'static, Result> {
         match gui.command {
             arg::gui::Command::Build(job) => self.build(job),
@@ -410,18 +371,25 @@ impl Processor {
                             config.check_enso_benchmarks = TARGET_OS == OS::Linux;
                         }
                         Tests::StandardLibrary => {
-                            config.build_small_jdk = true;
-                            let small_jdk_dir =
-                                self.context.repo_root.target.small_jdk.path.clone();
-                            config.small_jdk_dir = Some(small_jdk_dir.clone());
+                            config.build_small_jdk = enso_build::engine::env::GRAAL_EDITION
+                                .get()
+                                .map_or(true, |e| e != graalvm::Edition::Enterprise);
+                            if config.build_small_jdk {
+                                let small_jdk_dir =
+                                    self.context.repo_root.target.small_jdk.path.clone();
+                                config.small_jdk_dir = Some(small_jdk_dir.clone());
+                                config.add_engine_runner_arg("--jvm");
+                                config.add_engine_runner_arg(
+                                    small_jdk_dir.to_string_lossy().to_string().as_str(),
+                                );
+                            } else {
+                                config.small_jdk_dir = None
+                            }
+
                             config.test_standard_library =
                                 Some(StandardLibraryTestsSelection::blacklist(vec![
                                     "Microsoft_Tests".to_string(),
                                 ]));
-                            config.add_engine_runner_arg("--jvm");
-                            config.add_engine_runner_arg(
-                                small_jdk_dir.to_string_lossy().to_string().as_str(),
-                            );
                             config.use_native_runner = true;
                         }
                         Tests::StandardLibraryInNative => {
@@ -460,6 +428,8 @@ impl Processor {
                                     // Image tests check interaction between Image read/write and
                                     // datalinks
                                     "Image_Tests".to_string(),
+                                    // Microsoft tests check interaction with OneDrive
+                                    "Microsoft_Tests".to_string(),
                                 ]));
                             config.use_native_runner = true;
                         }
@@ -581,11 +551,7 @@ impl Processor {
     ) -> BoxFuture<'static, Result> {
         let release = self.release(release_id);
         let add_prefix = move |name: String| {
-            if let Some(prefix) = name_prefix.clone() {
-                format!("{prefix}-{name}")
-            } else {
-                name
-            }
+            if let Some(prefix) = name_prefix.clone() { format!("{prefix}-{name}") } else { name }
         };
         async move {
             let artifacts = build_job.await?;
@@ -610,41 +576,16 @@ impl Processor {
         }
     }
 
-    /// Spawns a Project Manager.
-    pub fn spawn_project_manager(
-        &self,
-        source: arg::Source<Backend>,
-        custom_root: Option<PathBuf>,
-    ) -> BoxFuture<'static, Result<Child>> {
-        let get_task = self.get(source);
-        async move {
-            let project_manager = get_task.await?;
-            let mut command =
-                enso_build::programs::project_manager::spawn_from(&project_manager.path);
-            if let Some(custom_root) = custom_root {
-                command
-                    .set_env(enso_build::programs::project_manager::PROJECTS_ROOT, &custom_root)?;
-            }
-            command.spawn_intercepting()
-        }
-        .boxed()
-    }
-
     pub fn build_ide(
         &self,
         params: arg::ide::BuildInput,
     ) -> BoxFuture<'static, Result<ide::Artifact>> {
-        let arg::ide::BuildInput {
-            gui,
-            project_manager,
-            output_path,
-            electron_target,
-            sign_artifacts,
-        } = params;
+        let arg::ide::BuildInput { gui, backend, output_path, electron_target, sign_artifacts } =
+            params;
 
         let input = ide::BuildInput {
             gui: self.get(gui),
-            project_manager: self.get(project_manager),
+            backend: self.get(backend),
             version: self.triple.versions.version.clone(),
             commit_hash: self.commit(),
             electron_target,
@@ -774,72 +715,10 @@ pub async fn main_internal(config: Option<Config>) -> Result {
 
     let ctx: Processor = Processor::new(&cli).instrument(info_span!("Building context.")).await?;
     match cli.target {
-        Target::Wasm(wasm) => ctx.handle_wasm(wasm).await?,
         Target::Gui(gui) => ctx.handle_gui(gui).await?,
         Target::Runtime(runtime) => ctx.handle_runtime(runtime).await?,
         Target::Backend(backend) => ctx.handle_backend(backend).await?,
         Target::Ide(ide) => ctx.handle_ide(ide).await?,
-        Target::GitClean(options) => {
-            let arg::git_clean::Options { dry_run, cache, build_script } = options;
-            let mut exclusions: Vec<&str> = vec![".idea"];
-            if !build_script {
-                // Do not attempt to delete the very executable that runs the command.
-                // It will fail on windows due to file being locked.
-                exclusions.push("target/rust/debug/enso-build-cli.exe");
-                exclusions.push("target/rust/debug/enso_build_cli.pdb");
-                exclusions.push("target/rust/debug/deps/enso_build_cli.exe");
-                exclusions.push("target/rust/debug/deps/enso_build_cli.pdb");
-            }
-
-            if !dry_run {
-                enso_build::web::install(&ctx.repo_root).await?;
-                enso_build::web::run_script(&ctx.repo_root, enso_build::web::Script::BazelClean)
-                    .await?;
-            }
-
-            if !dry_run {
-                // On Windows, `pnpm` uses junctions as symbolic links for in-workspace dependencies.
-                // Unfortunately, Git for Windows treats those as hard links. That then leads to
-                // `git clean` recursing into those linked directories, happily deleting sources of
-                // whole linked packages or failing on files that were already deleted. Manually
-                // deleting junction directories before running clean prevents this from happening.
-                let junctions = [
-                    "bazel-enso",
-                    "bazel-out",
-                    "bazel-bin",
-                    "node_modules",
-                    "app/common/node_modules",
-                    "app/gui/node_modules",
-                    "app/electron-client/node_modules",
-                    "app/lang-markdown/node_modules",
-                    "app/lezer-markdown/node_modules",
-                    "app/project-manager-shim/node_modules",
-                    "app/rust-ffi/node_modules",
-                    "app/table-expression/node_modules",
-                    "app/ydoc-server/node_modules",
-                    "app/ydoc-server-nodejs/node_modules",
-                    "app/ydoc-server-polyglot/node_modules",
-                    "app/ydoc-shared/node_modules",
-                    "lib/js/runner/node_modules",
-                    "tools/simple-library-server/node_modules",
-                ];
-
-                try_join_all(junctions.map(|rel_path| {
-                    ide_ci::fs::tokio::remove_dir_if_exists(ctx.repo_root.join(rel_path))
-                }))
-                .await?;
-            }
-
-            let git_clean = clean::clean_except_for(&ctx.repo_root, exclusions, dry_run);
-            let clean_cache = async {
-                if cache && !dry_run {
-                    ide_ci::fs::tokio::remove_dir_if_exists(ctx.cache.path()).await?;
-                }
-                Result::Ok(())
-            };
-
-            try_join!(git_clean, clean_cache)?;
-        }
         Target::Fmt => {
             enso_build::web::install(&ctx.repo_root).await?;
             let prettier =
@@ -857,7 +736,7 @@ pub async fn main_internal(config: Option<Config>) -> Result {
                 enso_build::release::deploy_runtime_to_ecr(&ctx, args.ecr_repository).await?;
             }
             Action::DispatchBuildImage => {
-                if !(&ctx.triple.versions.version.pre.to_string().starts_with("nightly")) {
+                if ctx.triple.versions.version.pre.is_empty() {
                     enso_build::repo::cloud::build_image_workflow_dispatch_input(
                         &ctx.octocrab,
                         &ctx.triple.versions.version,

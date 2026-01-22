@@ -1,6 +1,6 @@
 /** @file Parsing and representation of the search query. */
-import { unsafeKeyValuePair } from '#/utilities/object'
 import { shallowEqual } from '$/utils/data/array'
+import { unsafeKeyValuePair } from 'enso-common/src/utilities/data/object'
 
 // Control characters must be handled, in order to follow the JSON spec.
 // eslint-disable-next-line no-control-regex

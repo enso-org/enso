@@ -58,6 +58,7 @@ class Passes(config: CompilerConfig) {
             )
           } else List())
     ++ List(
+      IfThenElseToCaseOf.INSTANCE,
       ShadowedPatternFields.INSTANCE,
       UnreachableMatchBranches.INSTANCE,
       NestedPatternMatch,

@@ -13,7 +13,7 @@ test('graph can open and render nodes', async ({ editorPage, page }) => {
 
   // check documented node's content
   const finalNode = locate.graphNodeByBinding(page, 'final')
-  await expect(finalNode.locator('.WidgetToken')).toHaveText(['Main', '.', 'func1', 'prod'])
+  await expect(finalNode.locator('.WidgetToken')).toHaveText(['func1'])
 })
 
 test('Component icon indicates evaluation in progress', async ({ editorPage, page }) => {

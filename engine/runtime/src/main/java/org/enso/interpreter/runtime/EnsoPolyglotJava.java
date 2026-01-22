@@ -1,48 +1,74 @@
 package org.enso.interpreter.runtime;
 
 import com.oracle.truffle.api.CompilerDirectives;
-import com.oracle.truffle.api.TruffleSafepoint;
 import com.oracle.truffle.api.interop.ArityException;
 import com.oracle.truffle.api.interop.InteropException;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
+import com.oracle.truffle.api.interop.UnknownIdentifierException;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.interop.UnsupportedTypeException;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.source.Source;
 import java.io.File;
-import java.lang.System.Logger.Level;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.Semaphore;
+import java.util.concurrent.CopyOnWriteArrayList;
 import org.enso.common.HostEnsoUtils;
 import org.enso.common.RuntimeOptions;
 import org.enso.interpreter.runtime.util.TruffleFileSystem;
 import org.enso.pkg.NativeLibraryFinder;
 import org.enso.pkg.Package;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Handles a polyglot Java system for loading classes from a single source. <em>Single source</em>
  * is a collection of Java modules/libraries/JARs that belong together.
  */
 final class EnsoPolyglotJava {
-  private static final System.Logger logger = System.getLogger(EnsoPolyglotJava.class.getName());
+  private static final Logger logger = LoggerFactory.getLogger(EnsoPolyglotJava.class);
   private static final EnsoContext.Extra<CtxData> KEY =
       new EnsoContext.Extra<>(CtxData.class, CtxData::new);
 
   private final EnsoContext ctx;
   private final boolean isHostClassLoading;
-  private final List<File> pendingPath = new ArrayList<>();
-  private Object polyglotJava = this;
-  private Semaphore lock = new Semaphore(1, true);
+  private final List<File> classPath;
 
-  private EnsoPolyglotJava(EnsoContext ctx, boolean isHostClassLoading) {
+  /**
+   * the amount of elements from {@link #classPath} already added to {@link
+   * #polyglotJava}. @GuardedBy("classPath")
+   */
+  private int classPathSize;
+
+  /**
+   * Few state object encapsulating communication with the Java {@link TruffleObject} to communicate
+   * with.
+   *
+   * <ul>
+   *   <li>{@code this} - not yet initialized
+   *   <li>some {@code Throwable} - there was an error initializing
+   *   <li>non-{@code null} value - the actual object to talk with
+   *   <li>{@code null} - the runtime is (being) closed
+   * </ul>
+   *
+   * @GuardedBy("this")
+   */
+  private Object polyglotJava = this;
+
+  /**
+   * @param ctx associated conext
+   * @param isHostClassLoading do host classloading
+   * @param growingPath classpath that may receive new entries incrementally - just make sure the
+   *     list is find with multi threaded access
+   */
+  private EnsoPolyglotJava(EnsoContext ctx, boolean isHostClassLoading, List<File> growingPath) {
     this.ctx = ctx;
     this.isHostClassLoading = isHostClassLoading;
+    this.classPath = growingPath;
   }
 
   /**
@@ -53,12 +79,12 @@ final class EnsoPolyglotJava {
    * @return {@code null} on failure or an object representing the {@code className}
    */
   final TruffleObject lookupJavaClass(
-      String className, Collection<? super Exception> collectExceptions) {
+      Package<?> requestedBy, String className, Collection<? super Exception> collectExceptions) {
     var binaryName = new StringBuilder(className);
     for (; ; ) {
       var fqn = binaryName.toString();
       try {
-        var hostSymbol = loadClass(fqn);
+        var hostSymbol = loadClass(fqn, requestedBy);
 
         if (hostSymbol != null) {
           return hostSymbol;
@@ -110,9 +136,8 @@ final class EnsoPolyglotJava {
         if (pkgOrNull != null) {
           pkgOrNull.checkAotReady(
               () -> {
-                logger.log(
-                    Level.WARNING,
-                    "Package {0} forced to guest classloading. Use --jvm when encountering"
+                logger.warn(
+                    "Package {} forced to guest classloading. Use --jvm when encountering"
                         + " problems.",
                     logNameForPkg(pkgOrNull));
               });
@@ -156,25 +181,60 @@ final class EnsoPolyglotJava {
 
   @CompilerDirectives.TruffleBoundary
   private Object findPolyglotJava() throws InteropException {
-    TruffleSafepoint.setBlockedThreadInterruptible(null, Semaphore::acquire, lock);
-    try {
-      if (polyglotJava != this) {
-        return polyglotJava;
+    while (true) {
+      Object pj;
+      synchronized (this) {
+        pj = polyglotJava;
       }
-      polyglotJava = createPolyglotJava(ctx);
-      while (!pendingPath.isEmpty()) {
-        InteropLibrary.getUncached()
-            .invokeMember(polyglotJava, "addPath", pendingPath.remove(0).toString());
+      if (pj instanceof Throwable t) {
+        throw ctx.raiseAssertionPanic(null, t.getMessage(), t);
       }
+      if (pj != this) {
+        adjustClassPath(pj);
+        return pj;
+      }
+      pj = createPolyglotJava(ctx);
+      assert pj != null;
       try {
-        InteropLibrary.getUncached()
-            .invokeMember(polyglotJava, "findLibraries", new LibraryResolver());
+        InteropLibrary.getUncached().invokeMember(pj, "findLibraries", new LibraryResolver());
       } catch (InteropException ex) {
-        logger.log(Level.WARNING, "Cannot register findLibraries", ex);
+        logger.warn("Cannot register findLibraries", ex);
       }
-      return polyglotJava;
-    } finally {
-      lock.release();
+      synchronized (this) {
+        if (polyglotJava == this) {
+          polyglotJava = pj;
+        }
+      }
+    }
+  }
+
+  private void adjustClassPath(Object pj)
+      throws UnknownIdentifierException,
+          ArityException,
+          UnsupportedMessageException,
+          UnsupportedTypeException {
+    var iop = InteropLibrary.getUncached();
+    while (true) {
+      int indexToAdd;
+      synchronized (classPath) {
+        indexToAdd = classPathSize;
+        if (indexToAdd >= classPath.size()) {
+          break;
+        }
+      }
+
+      File elem = classPath.get(indexToAdd);
+      // multiple concurrent threads can add the same classpath element
+      // that's OK, classpath elements can be duplicated
+      iop.invokeMember(pj, "addPath", elem.toString());
+
+      synchronized (classPath) {
+        // only after an indexToAdd element is added
+        // we make sure the classPathSize is at least one higher than the index
+        if (classPathSize <= indexToAdd) {
+          classPathSize = indexToAdd + 1;
+        }
+      }
     }
   }
 
@@ -186,55 +246,28 @@ final class EnsoPolyglotJava {
       EnsoContext ctx, Object whoIsIgnored, File path, boolean polyglotContextEntered)
       throws InteropException {
     var data = KEY.get(ctx);
-    data.hosted.addToClassPath(path, polyglotContextEntered);
-    data.guest.addToClassPath(path, polyglotContextEntered);
+    data.classPath.add(path);
   }
 
-  /**
-   * Modifies the classpath to use to lookup {@code polyglot java} imports.
-   *
-   * @param file the file to register
-   * @param polyglotContextEntered if true, any lock acquisition will be interruptable for Truffle's
-   *     Safepoints purposes
-   */
   @CompilerDirectives.TruffleBoundary
-  private final void addToClassPath(File file, boolean polyglotContextEntered)
-      throws InteropException {
-    if (polyglotContextEntered) {
-      TruffleSafepoint.setBlockedThreadInterruptible(null, Semaphore::acquire, lock);
-    } else {
-      try {
-        lock.acquire();
-      } catch (InterruptedException e) {
-        throw new RuntimeException(e);
-      }
-    }
-    try {
-      if (polyglotJava == this) {
-        pendingPath.add(file);
-      } else {
-        InteropLibrary.getUncached().invokeMember(polyglotJava, "addPath", file.toString());
-      }
-    } finally {
-      lock.release();
-    }
-  }
-
   private final void close() {
-    TruffleSafepoint.setBlockedThreadInterruptible(null, Semaphore::acquire, lock);
-    try {
-      if (polyglotJava instanceof TruffleObject closeJava) {
-        polyglotJava = null;
-        try {
-          InteropLibrary.getUncached().invokeMember(closeJava, "close");
-        } catch (InteropException ex) {
-          logger.log(Level.WARNING, "Cannot close " + closeJava, ex);
-        }
-      } else {
-        polyglotJava = null;
+    TruffleObject toClose = null;
+    synchronized (this) {
+      if (polyglotJava == null) {
+        return;
       }
-    } finally {
-      lock.release();
+      if (polyglotJava instanceof TruffleObject closeJava) {
+        toClose = closeJava;
+      }
+      polyglotJava = null;
+    }
+    // one thread is selected {@code toClose}
+    if (toClose != null) {
+      try {
+        InteropLibrary.getUncached().invokeMember(toClose, "close");
+      } catch (InteropException ex) {
+        logger.warn("Cannot close " + toClose, ex);
+      }
     }
   }
 
@@ -246,25 +279,22 @@ final class EnsoPolyglotJava {
     } else {
       var envJava = System.getenv("ENSO_JAVA");
       if (envJava == null) {
-        logger.log(Level.ERROR, "Using experimental OtherJvm support!");
-        var src = Source.newBuilder("epb", "java:0#guest", "<Bindings>").build();
-        var target = ctx.parseInternal(src);
-        return target.call();
+        return initOtherJvm(ctx);
       }
       if ("espresso".equals(envJava)) {
         var src = Source.newBuilder("java", "<Bindings>", "getbindings.java").build();
         try {
           var java = ctx.parseInternal(src).call();
-          logger.log(Level.ERROR, "Using experimental Espresso support!");
+          logger.error("Using experimental Espresso support!");
           return java;
         } catch (Exception ex) {
           if (ex.getMessage().contains("No language for id java found.")) {
-            logger.log(
-                Level.ERROR,
-                "Environment variable ENSO_JAVA={0}, but {1}",
+            logger.error(
+                "Environment variable ENSO_JAVA={}, but {}",
                 new Object[] {envJava, ex.getMessage()});
-            logger.log(Level.ERROR, "Copy missing libraries to components directory");
-            logger.log(Level.ERROR, "Continuing in regular Java mode");
+            logger.error("Copy missing libraries to components directory");
+            logger.error("Continuing in regular Java mode");
+            return initOtherJvm(ctx);
           } else {
             var ise = new IllegalStateException(ex.getMessage());
             ise.setStackTrace(ex.getStackTrace());
@@ -276,11 +306,23 @@ final class EnsoPolyglotJava {
             "Specify ENSO_JAVA=espresso to use Espresso. Was: " + envJava);
       }
     }
-    return null;
   }
 
-  final TruffleObject loadClass(String fqn) throws InteropException {
+  private Object initOtherJvm(EnsoContext ctx1) {
+    logger.info("Initializing OtherJvm support!");
+    var src = Source.newBuilder("epb", "java:0#guest", "<Bindings>").build();
+    com.oracle.truffle.api.CallTarget target = ctx1.parseInternal(src);
+    return target.call();
+  }
+
+  private final TruffleObject loadClass(String fqn, Package<?> requestedBy)
+      throws InteropException {
     var raw = InteropLibrary.getUncached().readMember(findPolyglotJava(), fqn);
+    logger.debug(
+        "Classloading of {} as {} requested by {}",
+        fqn,
+        raw,
+        requestedBy == null ? "null" : requestedBy.libraryName());
     return (TruffleObject) raw;
   }
 
@@ -313,13 +355,15 @@ final class EnsoPolyglotJava {
   }
 
   private static final class CtxData {
+    private final List<File> classPath;
     private final EnsoPolyglotJava hosted;
     private final EnsoPolyglotJava guest;
     private final Map<String, String> hostClassLoading;
 
     CtxData(EnsoContext ctx) {
-      this.hosted = new EnsoPolyglotJava(ctx, true);
-      this.guest = new EnsoPolyglotJava(ctx, false);
+      this.classPath = new CopyOnWriteArrayList<>();
+      this.hosted = new EnsoPolyglotJava(ctx, true, classPath);
+      this.guest = new EnsoPolyglotJava(ctx, false, classPath);
       this.hostClassLoading = new LinkedHashMap<>();
       for (var entry : ctx.getHostClassLoading().split(",")) {
         var libState = entry.split(":");

@@ -115,9 +115,9 @@ add_specs suite_builder =
         group_builder.specify "will also allow to call methods of the single value (if casted)" <|
             c1 = Column.from_vector "c1" [1000]
             # Assuming Column has no log function
-            Test.expect_panic No_Such_Method (c1.log 10)
-            r1 = (c1:Number).log 10
-            r1 . should_equal 3 epsilon=0.001
+            Test.expect_panic No_Such_Method (c1.bit_not)
+            r1 = (c1:Number).bit_not
+            r1 . should_equal -1001
 
             c2 = Column.from_vector "c2" [Date.new 2025 1 1]
             Test.expect_panic No_Such_Method (c2.add_work_days 100)

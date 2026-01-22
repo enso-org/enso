@@ -1,10 +1,8 @@
 <script setup lang="ts">
 import { useCurrentProject } from '$/components/WithCurrentProject.vue'
 import type { NodeId } from '$/providers/openedProjects/graph'
-import { usePointer } from '@/composables/events'
-import { injectGraphNavigator } from '@/providers/graphNavigator'
 import { Vec2 } from '@/util/data/vec2'
-import { computed, shallowRef } from 'vue'
+import { computed, ref } from 'vue'
 import type { AstId } from 'ydoc-shared/ast'
 
 const hovered = defineModel<boolean>('hovered', { default: false })
@@ -12,11 +10,11 @@ const hovered = defineModel<boolean>('hovered', { default: false })
 const { portId, nodeId } = defineProps<{ portId: AstId; nodeId: NodeId }>()
 
 const emit = defineEmits<{
-  newNodeClick: [portId: AstId, position: Vec2]
+  newNodeClick: [portId: AstId]
+  newNodeDrag: [portId: AstId]
 }>()
 
 const { graph } = useCurrentProject()
-const graphNavigator = injectGraphNavigator()
 
 const nodeRect = computed(() => graph.value?.nodeRects.get(nodeId))
 
@@ -35,33 +33,43 @@ const referencePoint = computed(
   () => new Vec2(nodeRect.value?.left ?? 0, nodeRect.value?.bottom ?? 0),
 )
 const restingPosition = computed(() => referencePoint.value.add(RESTING_OFFSET))
-const basePosition = computed(() =>
+const position = computed(() =>
   referencePoint.value.add(Vec2.ElementwiseProduct(RESTING_OFFSET, new Vec2(1, progress.value))),
 )
-const dragOffset = shallowRef(Vec2.Zero)
-
-const position = computed(() => basePosition.value.add(dragOffset.value))
-
-const { events } = usePointer((pos, _event, type) => {
-  const sceneOffset = pos.relative.scale(1 / graphNavigator.scale)
-  // We don't distinguish clicks from drags, but snap drags that end near the starting position.
-  dragOffset.value = sceneOffset.lengthSquared() > RADIUS * RADIUS ? sceneOffset : Vec2.Zero
-  if (type === 'stop') {
-    emit('newNodeClick', portId, position.value)
-    dragOffset.value = Vec2.Zero
-  }
-})
 
 graph.value?.showCreateNodeButtonEdge(portId, {
   // Here we use the position at animation completion, rather than the currently-displayed position;
   // when displaying on hover, the edge length will be animated by the GraphEdge
   // `animateFromSourceHover`, which is more efficient since animates by length without recomputing
   // layout.
-  position: computed(() =>
-    restingPosition.value.add(dragOffset.value).add(new Vec2(NODE_RADIUS, NODE_RADIUS - RADIUS)),
-  ),
+  position: computed(() => restingPosition.value.add(new Vec2(NODE_RADIUS, NODE_RADIUS - RADIUS))),
   hovered,
 })
+
+const clicked = ref(false)
+
+function handlePointerDown() {
+  clicked.value = true
+}
+
+function handlePointerUp() {
+  clicked.value = false
+  if (hovered.value) {
+    emit('newNodeClick', portId)
+  }
+}
+
+function handlePointerEnter() {
+  hovered.value = true
+}
+
+function handlePointerLeave() {
+  hovered.value = false
+  if (clicked.value) {
+    emit('newNodeDrag', portId)
+  }
+  clicked.value = false
+}
 
 function translate(offset: Vec2) {
   return `translate(${offset.x}px, ${offset.y}px)`
@@ -75,9 +83,10 @@ function translate(offset: Vec2) {
       transform: translate(position.add(DISPLAY_OFFSET)),
     }"
     :class="{ hovered }"
-    v-on="events"
-    @pointerenter="hovered = true"
-    @pointerleave="hovered = false"
+    @pointerdown.stop="handlePointerDown"
+    @pointerup.stop="handlePointerUp"
+    @pointerenter="handlePointerEnter"
+    @pointerleave="handlePointerLeave"
   >
     <mask :id="`${portId}_add_node_clip_path`">
       <rect class="maskBackground"></rect>

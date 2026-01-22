@@ -57,6 +57,5 @@ export const VisualizationModule = z.object({
     .readonly()
     .optional(),
   scripts: z.string().array().optional(),
-  styles: z.string().array().optional(),
 })
 export type VisualizationModule = z.infer<typeof VisualizationModule>

@@ -1,0 +1,38 @@
+from Standard.Base import all
+import Standard.Base.Metadata.Display
+import Standard.Base.Metadata.Widget
+from Standard.Base.Metadata.Choice import Option
+from Standard.Base.Metadata.Widget import Single_Choice, Text_Input, Vector_Editor
+
+import project.DuckDB_Connection.DuckDB_Connection
+
+## Represents a spatial data format supported by DuckDB.
+type DuckDB_GeoFormat
+    ## ESRI Shapefile (https://gdal.org/en/stable/drivers/vector/shapefile.html)
+    Shapefile
+
+    ## MapInfo format (https://gdal.org/en/stable/drivers/vector/mitab.html).
+    MapInfo
+
+    ## If using a feature_collection then written as a single Geo JSON object.
+       GeoJSON format (https://gdal.org/en/stable/drivers/vector/geojson.html).
+       GeoJSON Sequence format (https://gdal.org/en/stable/drivers/vector/geojsonseq.html).
+    GeoJSON feature_collection:Boolean=False
+
+    ## KML format (https://gdal.org/en/stable/drivers/vector/kml.html).
+    KML
+
+    ## Custom driver by name with manual options.
+    Custom_Driver driver_name:Text=(Missing_Argument.throw "driver_name") layer_creation_options:Text=""
+
+    private to_sql self = case self of
+        DuckDB_GeoFormat.Shapefile -> ", DRIVER 'ESRI Shapefile'"
+        DuckDB_GeoFormat.MapInfo -> ", DRIVER 'MapInfo File'"
+        DuckDB_GeoFormat.GeoJSON fc -> if fc then ", DRIVER 'GeoJSONSeq'" else ", DRIVER 'GeoJSON'"
+        DuckDB_GeoFormat.KML -> ", DRIVER 'KML'"
+        DuckDB_GeoFormat.Custom_Driver name opts -> ", DRIVER '" + (name.replace "'" "''") + "'" + (if opts != "" then " LAYER_CREATION_OPTIONS '" + (opts.replace "'" "''") + "'" else "")
+
+    private default_widget connection:DuckDB_Connection display:Display=..When_Modified -> Widget =
+        drivers = connection.spatial_drivers.at "short_name" . to_vector . map n-> Option n n.pretty
+        values = [Option "..Shapefile" "..Shapefile", Option "..MapInfo" "..MapInfo", Option "..GeoJSON" "..GeoJSON", Option "..KML" "..KML", Option "<Custom>" "..Custom_Driver" parameters=[["driver_name", Single_Choice values=drivers display=..Always]]]
+        Single_Choice values=values display=display

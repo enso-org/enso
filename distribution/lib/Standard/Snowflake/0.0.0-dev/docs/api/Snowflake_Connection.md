@@ -2,10 +2,10 @@
 ## module Standard.Snowflake.Snowflake_Connection
 - type Snowflake_Connection
     - base_connection self -> Standard.Base.Any.Any
-    - bulk_load self table:Standard.Table.Table.Table= table_name:Standard.Base.Data.Text.Text= drop_if_exists:Standard.Base.Data.Boolean.Boolean= temporary:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Any.Any
+    - bulk_load self table:Standard.Table.Table.Table= table_name:Standard.Base.Data.Text.Text= if_exists:Standard.Database.Bulk_Load_Exists.Bulk_Load_Exists= temporary:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Any.Any
     - close self -> Standard.Base.Any.Any
     - copy_into_table self table_name:Standard.Base.Data.Text.Text= stage:Standard.Snowflake.Identifier.Identifier= file_name:Standard.Base.Data.Text.Text= format:Standard.Snowflake.File_Format.Snowflake_File_Format= match_names_insensitively:Standard.Base.Data.Boolean.Boolean= truncate_first:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Any.Any
-    - create_literal_table self source:Standard.Table.Table.Table alias:Standard.Base.Data.Text.Text -> (Standard.Table.Table.Table&Standard.Database.DB_Table.DB_Table)
+    - create_literal_table self source:Standard.Table.Table.Table alias:Standard.Base.Data.Text.Text -> (Standard.Table.Table.Table&Standard.Database.DB_Table.DB_Table&Standard.Base.Any.Any)
     - create_table self table_name:Standard.Base.Data.Text.Text structure:(Standard.Base.Any.Any|Standard.Table.Table.Table) primary_key:(Standard.Base.Any.Any|Standard.Base.Nothing.Nothing)= temporary:Standard.Base.Data.Boolean.Boolean= allow_existing:Standard.Base.Data.Boolean.Boolean= on_problems:Standard.Base.Errors.Problem_Behavior.Problem_Behavior= -> Standard.Base.Any.Any
     - database self -> Standard.Base.Any.Any
     - databases self -> Standard.Base.Any.Any
@@ -19,6 +19,7 @@
     - file_format_names self -> Standard.Base.Any.Any
     - file_format_properties self file_format:Standard.Snowflake.Identifier.Identifier= -> Standard.Base.Any.Any
     - file_formats self schema:Standard.Base.Data.Text.Text= pattern:Standard.Base.Data.Text.Text= -> Standard.Base.Any.Any
+    - get_dialect -> Standard.Base.Any.Any
     - get_from_stage self stage:Standard.Snowflake.Identifier.Identifier= path:Standard.Base.Data.Text.Text= directory:Standard.Base.Any.Any= pattern:Standard.Base.Data.Text.Text= ~if_not_found:Standard.Base.Any.Any= -> Standard.Base.Any.Any
     - jdbc_connection self -> Standard.Base.Any.Any
     - list_stage_objects self stage:Standard.Snowflake.Identifier.Identifier= path:Standard.Base.Data.Text.Text= limit:Standard.Table.Rows_To_Read.Rows_To_Read= -> Standard.Base.Any.Any
@@ -35,7 +36,6 @@
     - stage_names self -> Standard.Base.Any.Any
     - stage_properties self stage:Standard.Snowflake.Identifier.Identifier= -> Standard.Base.Any.Any
     - stages self schema:Standard.Base.Data.Text.Text= pattern:Standard.Base.Data.Text.Text= -> Standard.Base.Any.Any
-    - statement_setter self -> Standard.Base.Any.Any
     - table_types self -> Standard.Base.Any.Any
     - tables self name_like:Standard.Base.Data.Text.Text= database:Standard.Base.Data.Text.Text= schema:Standard.Base.Data.Text.Text= types:Standard.Base.Any.Any= all_fields:Standard.Base.Any.Any= -> Standard.Base.Any.Any
     - to_js_object self -> Standard.Base.Any.Any

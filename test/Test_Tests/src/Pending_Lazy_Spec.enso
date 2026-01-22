@@ -1,0 +1,54 @@
+from Standard.Base import all
+from Standard.Test import all
+
+import Standard.Base.Runtime.Ref.Ref
+
+add_specs suite_builder =
+    group_pending_counter = Ref.new 0
+    spec_pending_counter = Ref.new 0
+    # created here, checked inside of the test specifications
+    # filled after the specifications are defined
+    group_pending_snapshot = Ref.new -1
+    spec_pending_snapshot = Ref.new -1
+    
+    group_pending_msg =
+        group_pending_counter.modify (+1)
+        Nothing
+
+    group_pending_yes =
+        group_pending_counter.modify (+1)
+        "Never executed"
+
+    spec_pending_msg =
+        spec_pending_counter.modify (+1)
+        Nothing
+
+    spec_pending_yes =
+        spec_pending_counter.modify (+1)
+        "Never executed"
+
+    suite_builder.group "pending is lazy" pending=group_pending_msg group_builder->
+        group_builder.specify "group pending is lazy" <|
+            group_pending_counter.get>0 . should_be_true
+            group_pending_snapshot.get . should_equal 0
+            
+        group_builder.specify "spec pending is lazy" pending=spec_pending_msg <|
+            spec_pending_counter.get>0 . should_be_true
+            spec_pending_snapshot.get . should_equal 0
+
+        group_builder.specify "never executed test" pending=spec_pending_yes <|
+            Test.fail "This test is always pending"
+
+    suite_builder.group "group with pending is ignored" pending=group_pending_yes group_builder->
+        group_builder.specify "never executed test" <|
+            Test.fail "Group of this test is always pending"
+            
+    # these two "snapshots" are recorded _before_ the specifications
+    # are executed but after the group definition has been processed
+    group_pending_snapshot.put group_pending_counter.get
+    spec_pending_snapshot.put spec_pending_counter.get
+
+main filter=Nothing =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter filter

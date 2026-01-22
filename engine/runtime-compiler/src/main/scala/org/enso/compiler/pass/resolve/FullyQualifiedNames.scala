@@ -112,7 +112,7 @@ case object FullyQualifiedNames extends IRPass {
                   case m: Export.Module
                       if m.name.name == resolution.qualifiedName.toString =>
                     m.addDiagnostic(
-                      warnings.Shadowed.TypeInModuleNameConflicts(
+                      new warnings.Shadowed.TypeInModuleNameConflicts(
                         exportedModule.getName.toString,
                         tpeName,
                         allStarting.head.getName.toString,
@@ -128,7 +128,7 @@ case object FullyQualifiedNames extends IRPass {
         }
       }
     }
-    ir.copyWithBindings(bindings = new_bindings)
+    ir.copyWithBindings(new_bindings)
   }
 
   private def isMainModule(module: ModuleContext): Boolean = {
@@ -193,7 +193,7 @@ case object FullyQualifiedNames extends IRPass {
           )
         )
       case tp: Definition.Type =>
-        tp.copy(members =
+        tp.copyWithMembers(
           tp.members.map(
             _.mapExpressions(expr => {
               val selfTypeResolution =
@@ -367,10 +367,11 @@ case object FullyQualifiedNames extends IRPass {
                 // IR for it. Triggering a full compilation at this stage may have
                 // undesired consequences and is therefore prohibited on purpose.
                 Left(
-                  errors.Resolution(
+                  errors.Resolution.create(
                     consName,
-                    errors.Resolution
-                      .MissingLibraryImportInFQNError(thisResolution.namespace)
+                    new errors.Resolution.MissingLibraryImportInFQNError(
+                      thisResolution.namespace
+                    )
                   )
                 )
               } else {
@@ -388,10 +389,11 @@ case object FullyQualifiedNames extends IRPass {
         } else {
           Some(
             Left(
-              errors.Resolution(
+              errors.Resolution.create(
                 consName,
-                errors.Resolution
-                  .MissingLibraryImportInFQNError(thisResolution.namespace)
+                new errors.Resolution.MissingLibraryImportInFQNError(
+                  thisResolution.namespace
+                )
               )
             )
           )

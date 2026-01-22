@@ -16,8 +16,8 @@ with_test_file f ~action =
    "if_not_exist"
      =>
    (enso_project.data / "transient" / "if_not_exist.txt")
-add_specs prefix suite_builder file_maker =
-    suite_builder.group prefix+"Download Mode" pending=pending_has_url group_builder->
+add_specs prefix suite_builder file_maker ~pending=pending_has_url =
+    suite_builder.group prefix+"Download Mode" pending=pending group_builder->
         url_n_bytes n = base_url_with_slash+'test_download?length='+n.to_text
 
         group_builder.specify prefix+"Will always download a file for mode Always" <|
@@ -41,7 +41,7 @@ add_specs prefix suite_builder file_maker =
         # With retries because it relies on a short `sleep`
         group_builder.specify prefix+"Will download a file if it is older than a specified duration for mode If_Older_Than" <| Test.with_retries <|
             with_test_file (file_maker "if_older_than") file->
-                sleep_duration_secs = 3
+                sleep_duration_secs = 6
 
                 file.exists . should_be_false
 

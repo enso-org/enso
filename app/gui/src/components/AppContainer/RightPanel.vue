@@ -7,6 +7,8 @@ import {
 } from '$/components/AppContainer/reactTabs'
 import SelectableTab from '$/components/AppContainer/SelectableTab.vue'
 import { useRightPanelData, type RightPanelTabId } from '$/providers/rightPanel'
+import type { ToValue } from '$/utils/reactivity'
+import AssetContentsEditor from '@/components/AssetContentsEditor.vue'
 import ComponentHelpPanel from '@/components/ComponentHelpPanel.vue'
 import DescriptionEditor from '@/components/DescriptionEditor.vue'
 import DocumentationEditor from '@/components/DocumentationEditor'
@@ -15,18 +17,19 @@ import SizeTransition from '@/components/SizeTransition.vue'
 import WithFullscreenMode from '@/components/WithFullscreenMode.vue'
 import { useResizeObserver } from '@/composables/events'
 import { Rect } from '@/util/data/rect'
-import type { Result } from '@/util/data/result'
 import { Vec2 } from '@/util/data/vec2'
-import type { ToValue } from '@/util/reactivity'
+import type { Result } from 'enso-common/src/utilities/data/result'
 import { computed, toValue, useTemplateRef } from 'vue'
 
 const data = useRightPanelData()
 
-// Not a  part of RightPanelTabInfo, because it would create cyclic imports.
+// Not a part of RightPanelTabInfo, because it would create cyclic imports.
 const component = computed(() => {
   switch (data.displayedTab) {
     case 'description':
       return DescriptionEditor
+    case 'contents':
+      return AssetContentsEditor
     case 'settings':
       return AssetProperties
     case 'versions':
@@ -44,7 +47,9 @@ const component = computed(() => {
   }
 })
 
-const visibleTabs = computed(() => [...data.allTabs.entries()])
+const visibleTabs = computed(() =>
+  [...data.allTabs.entries()].filter(([, tabInfo]) => !toValue(tabInfo.hidden)),
+)
 
 function tabTooltip(title: ToValue<string>, enabled: ToValue<Result<void>>) {
   const enabledVal = toValue(enabled)

@@ -1,6 +1,6 @@
+import { Err, Ok, type Result } from 'enso-common/src/utilities/data/result'
 import type { LanguageServer } from '../languageServer'
 import type { FileSystemObject, Path } from '../languageServerTypes'
-import { Err, Ok, type Result } from '../util/data/result'
 
 /**
  * Recursively walk through the file system using the Language Server,

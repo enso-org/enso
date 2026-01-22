@@ -150,9 +150,9 @@ class ModuleAnnotationsTest extends CompilerTest {
       ir.bindings.length shouldEqual 1
       ir.bindings.head shouldBe a[Definition.SugaredType]
       val typ = ir.bindings.head.asInstanceOf[Definition.SugaredType]
-      typ.body.length shouldEqual 2
-      typ.body(0) shouldBe an[Name.GenericAnnotation]
-      typ.body(1) shouldBe a[Definition.Data]
+      typ.body().length shouldEqual 2
+      typ.body().apply(0) shouldBe an[Name.GenericAnnotation]
+      typ.body().apply(1) shouldBe a[Definition.Data]
     }
 
     "not associate generic annotations with method definitions" in {
@@ -167,9 +167,9 @@ class ModuleAnnotationsTest extends CompilerTest {
       ir.bindings.length shouldEqual 1
       ir.bindings.head shouldBe a[Definition.SugaredType]
       val typ = ir.bindings.head.asInstanceOf[Definition.SugaredType]
-      typ.body.length shouldEqual 3
-      typ.body(1) shouldBe an[Name.GenericAnnotation]
-      typ.body(2) shouldBe an[Function.Binding]
+      typ.body().length shouldEqual 3
+      typ.body().apply(1) shouldBe an[Name.GenericAnnotation]
+      typ.body().apply(2) shouldBe an[Function.Binding]
     }
 
     "not associate annotations with comments" in {
@@ -184,10 +184,10 @@ class ModuleAnnotationsTest extends CompilerTest {
       ir.bindings.length shouldEqual 1
       ir.bindings.head shouldBe a[Definition.SugaredType]
       val typ = ir.bindings.head.asInstanceOf[Definition.SugaredType]
-      typ.body.length shouldEqual 3
-      typ.body(0) shouldBe an[errors.Syntax]
-      typ.body(1) shouldBe an[Comment]
-      typ.body(2) shouldBe a[Definition.Data]
+      typ.body().length shouldEqual 3
+      typ.body().apply(0) shouldBe an[errors.Syntax]
+      typ.body().apply(1) shouldBe an[Comment]
+      typ.body().apply(2) shouldBe a[Definition.Data]
     }
   }
 }

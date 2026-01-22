@@ -1,0 +1,110 @@
+import project.Data.Text.Text
+import project.Data.Vector.No_Wrap
+import project.Data.Vector.Vector
+import project.Enso_Cloud.Data_Link_Helpers
+import project.Errors.Common.Dry_Run_Operation
+import project.Errors.Common.Missing_Argument
+import project.Errors.Illegal_Argument.Illegal_Argument
+import project.Metadata.Display
+import project.Metadata.Widget
+import project.Network.Email.Email
+import project.Network.Email.Email_Address.Email_Address
+import project.Network.Email.Email_Attachment.Email_Attachment
+import project.Network.Email.Email_Body.Email_Body
+import project.Network.Email.Email_Provider.Email_Provider
+import project.Network.Email.Email_Send_Response.Send_Response
+import project.Runtime.Context
+import project.Warning.Warning
+from project.Data.Boolean import False
+from project.Error import all
+from project.Metadata.Widget import Single_Choice, Text_Input, Vector_Editor
+from project.Nothing import all
+
+## An email object representing all parts of an email.
+type Email
+    ## An email object with all standard fields.
+    Message from_address:Email_Address to:(Vector Email_Address)=[] cc:(Vector Email_Address)=[] bcc:(Vector Email_Address)=[] subject:Text="" body:Email_Body="" attachments:(Vector Email_Attachment)=[]
+
+    ## ---
+       aliases: [mail]
+       group: Web
+       icon: email
+       ---
+       Creates an email object.
+    @from Email_Address.default_widget
+    @to _email_vector_widget
+    @cc _email_vector_widget
+    @bcc _email_vector_widget
+    @attachments Vector_Editor Email_Attachment.default_widget item_default="..File" display=..Always
+    new from:Email_Address=(Missing_Argument.throw "from") to:(Vector Email_Address)=[] cc:(Vector Email_Address)=[] bcc:(Vector Email_Address)=[] subject:Text="" body:Email_Body="" attachments:(Vector Email_Attachment)=[] -> Email =
+        resolved_to = to.map a->(a:Email_Address) on_problems=No_Wrap.Value
+        resolved_cc = cc.map a->(a:Email_Address) on_problems=No_Wrap.Value
+        resolved_bcc = bcc.map a->(a:Email_Address) on_problems=No_Wrap.Value
+        resolved_attachments = attachments.map a->(a:Email_Attachment) on_problems=No_Wrap.Value
+        
+        Email.Message from resolved_to resolved_cc resolved_bcc subject body resolved_attachments
+
+    ## ---
+       aliases: [mail]
+       group: Web
+       icon: email
+       ---
+       Sends an email.
+
+       Sends an email using the specified email provider. Only sends an email in write mode.
+       The Test_Only email provider can be used to simulate sending an email without actually sending it.
+    @from Email_Address.default_widget
+    @to _email_vector_widget
+    @cc _email_vector_widget
+    @bcc _email_vector_widget
+    @attachments Vector_Editor Email_Attachment.default_widget item_default="..File" display=..Always
+    @provider Email_Provider.default_widget
+    send from:Email_Address=(Missing_Argument.throw "from") to:(Vector Email_Address)=[] cc:(Vector Email_Address)=[] bcc:(Vector Email_Address)=[] subject:Text="" body:Email_Body="" attachments:(Vector Email_Attachment)=[] provider=(Missing_Argument.throw "provider") -> Send_Response =
+        if from.is_error then from
+        resolved_to = to.map a->(a:Email_Address) on_problems=No_Wrap.Value
+        resolved_cc = cc.map a->(a:Email_Address) on_problems=No_Wrap.Value
+        resolved_bcc = bcc.map a->(a:Email_Address) on_problems=No_Wrap.Value
+        resolved_attachments = attachments.map a->(a:Email_Attachment) on_problems=No_Wrap.Value
+        resolved_provider = Email_Provider.resolve provider
+        if resolved_provider.is_nothing then Error.throw (Illegal_Argument.Error "Could not resolve email provider.")
+
+        resolved_attachements_to_local_files = resolved_attachments.map a->
+            Email_Attachment.File (Data_Link_Helpers.as_file a.file f->f delete_on_return=False) a.name
+
+        email = Email.Message from resolved_to resolved_cc resolved_bcc subject body resolved_attachements_to_local_files
+        _send_email_with_provider email resolved_provider
+
+    ## ---
+       aliases: [mail]
+       group: Web
+       icon: email
+       ---
+       Sends an email.
+
+       Sends an email using the specified email provider. Only sends an email in write mode.
+       The Test_Only email provider can be used to simulate sending an email without actually sending it.
+    @provider Email_Provider.default_widget
+    send_message self provider=(Missing_Argument.throw "provider") -> Send_Response =
+        resolved_provider = Email_Provider.resolve provider
+        if resolved_provider.is_nothing then Error.throw (Illegal_Argument.Error "Could not resolve email provider.")
+        _send_email_with_provider self resolved_provider
+
+    ## ---
+       private: true
+       ---
+    to_text self -> Text = 
+        'From: ' + self.from_address.to_text 
+            + '\nTo: ' + (self.to.map .to_text).join '; '
+            + '\nCc: ' + (self.cc.map .to_text).join '; '
+            + '\nBcc: ' + (self.bcc.map .to_text).join '; '
+            + '\nSubject: ' + self.subject
+            + '\nAttachments: ' + (if self.attachments.length == 0 then "None" else (self.attachments.map (f->f.file.name)).join '; ')
+            + '\nBody: ' + self.body.body
+
+private _send_email_with_provider email provider = 
+    if Context.Output.is_enabled then provider.send email else
+        warning = Dry_Run_Operation.Warning "As writing is disabled, email not sent. Press the Write button ▶ to send it."
+        Warning.attach warning (Send_Response.Dry_Run email)
+
+private _email_vector_widget (display : Display = ..Always) -> Widget =
+    Vector_Editor Email_Address.default_widget item_default="'receiver@domain.com'" display=display

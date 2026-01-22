@@ -9,6 +9,7 @@ import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.UnknownIdentifierException;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.interop.UnsupportedTypeException;
+import org.enso.interpreter.Constants;
 import org.enso.test.utils.ContextUtils;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -52,24 +53,6 @@ public class InvokeBuiltinMethodViaInteropTest {
   }
 
   @Test
-  public void invokePathMethodOnFile() {
-    var code =
-        """
-        from Standard.Base import File
-
-        main =
-            File.current_directory
-        """;
-    var file = ctxRule.evalModule(code);
-    var fileType = file.getMetaObject();
-    assertThat(fileType, is(notNullValue()));
-    assertThat(fileType.hasMember("path"), is(true));
-    var res = fileType.invokeMember("path", new Object[] {file});
-    assertThat("path method can be invoked", res, is(notNullValue()));
-    assertThat("path method returns correct result", res.isString(), is(true));
-  }
-
-  @Test
   public void invokeToTextOnVector() {
     var code =
         """
@@ -78,8 +61,8 @@ public class InvokeBuiltinMethodViaInteropTest {
     var vec = ctxRule.evalModule(code);
     var vecType = vec.getMetaObject();
     assertThat(vecType, is(notNullValue()));
-    assertThat(vecType.hasMember("to_text"), is(true));
-    var res = vecType.invokeMember("to_text", new Object[] {vec});
+    assertThat(vecType.hasMember(Constants.Names.TO_TEXT), is(true));
+    var res = vecType.invokeMember(Constants.Names.TO_TEXT, new Object[] {vec});
     assertThat("to_text method can be invoked", res, is(notNullValue()));
     assertThat("to_text method returns correct result", res.isString(), is(true));
   }

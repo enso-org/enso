@@ -54,6 +54,9 @@ import project.Set_Mode.Set_Mode
 import project.Set_Mode.Set_Mode_Many
 import project.Simple_Expression.Simple_Expression
 import project.Sort_Column.Sort_Column
+import project.Spatial_Table.Spatial_Join_Condition
+import project.Spatial_Table.Spatial_Table
+import project.SQL_Function.SQL_Function
 import project.Table_Selector.Table_Selector
 import project.Value_Type.Auto
 import project.Value_Type.By_Type
@@ -527,7 +530,7 @@ type Table
        suggested: 1
        ---
        Creates a new table with a chosen subset of columns.
-       
+
        The subset of columns is specified by the `columns` parameter
        and taken from the input table. Any unmatched columns in the 
        input will be dropped from the output.
@@ -1213,10 +1216,7 @@ type Table
         self.implementation.use_first_row_as_names self.underlying on_problems
 
     ## ---
-       aliases:
-        - group by
-        - summarize
-        - variance
+       aliases: [group by, summarize, variance]
        macros:
         - count: columns=[..Count]
         - sum: columns=[..Sum]
@@ -1331,7 +1331,7 @@ type Table
        suggested: 8
        ---
        Sorts the rows of the table by specified columns.
-       
+
        Optionally, the method of ordering text values can be specified allowing
        for case-insensitively or dictionary ordering.
 
@@ -1674,7 +1674,7 @@ type Table
             self.implementation.parse self.underlying selected type format error_on_missing_columns=True on_problems
 
     ## ---
-       aliases: [to_text, to_string, to_char]
+       aliases: [to_char, to_string, to_text]
        group: Standard.Base.Conversions
        icon: convert
        ---
@@ -2178,7 +2178,7 @@ type Table
        suggested: 2
        ---
        Creates a new table with a filtered subset of rows.
-       
+
        The rows are selected from the input table using a condition. The rows
        that meet the condition will remain after the filter. Filters can compare
        columns, compare against static values, or compare against an argument
@@ -2503,7 +2503,7 @@ type Table
                 4 | 2
                 5 | 1
             table = table_builder [['x', [1, 2, 3, 4, 5]], ['y', [5, 4, 3, 2, 1]]]
-            table2 = tabble.add_group_number (..Equal_Count 3) "g"
+            table2 = table.add_group_number (..Equal_Count 3) "g"
             table2.at 'g' . to_vector
             # => [0, 0, 1, 1, 2]
             ## table2:
@@ -2529,9 +2529,19 @@ type Table
 
        ### Grouping Methods
        The following grouping methods are supported:
+
        - `Unique`: Group rows by the specified columns.
-       - Equal_Count: Create the specified number of groups with the same number
-       of rows in each group (except possibly the last one).
+       - `Equal_Count`: Create the specified number of groups with the same
+          number of rows in each group.
+       - `Equal_Sum`: Create the specified number of groups with the same
+          sum of values in the specified column in each group.
+       - `Standard_Deviation`: Group rows based on values deviation from
+          the mean of the specified column
+            - `Very Low` (less than -1.5σ)
+            - `Low` (-1.5σ to -0.5σ)
+            - `Average` (-0.5σ to 0.5σ)
+            - `High` (0.5σ to 1.5σ)
+            - `Very High` (greater than 1.5σ)
 
        ### Ordering of rows
        In the in-memory database, the ordering of rows from the original table is
@@ -2621,9 +2631,8 @@ type Table
         - If more than 10 rows encounter computation issues, an
           `Additional_Warnings`.
     @value Simple_Expression.default_widget
-    set self (value : Text | Expression | Column | Constant_Column | Simple_Expression = Missing_Argument.throw "value") as:Text="" set_mode:Set_Mode=..Add_Or_Update on_problems:Problem_Behavior=..Report_Warning -> Table & Any ! Existing_Column | Missing_Column | No_Such_Column | Expression_Error =
+    set self (value : Text | Expression | Column | Constant_Column | Simple_Expression | SQL_Function = Missing_Argument.throw "value") as:Text="" set_mode:Set_Mode=..Add_Or_Update on_problems:Problem_Behavior=..Report_Warning -> Table & Any ! Existing_Column | Missing_Column | No_Such_Column | Expression_Error =
         self.implementation.set self.underlying value as set_mode on_problems
-
 
     ## ---
        private: true
@@ -2929,7 +2938,13 @@ type Table
     @on Widget_Helpers.make_join_condition_selector
     @join_kind Join_Kind.default_widget
     join self (right : Table = Missing_Argument.throw "right") join_kind:Join_Kind=..Left_Outer (on : Vector (Join_Condition | Text) | Text | Join_Condition = [Join_Condition.Equals self.column_names.first]) (right_prefix : Text = "Right ") on_problems:Problem_Behavior=..Report_Warning -> Table & Any =
-        self.implementation.join self.underlying right join_kind on right_prefix on_problems
+        ## Resolve Spatial Join Conditions
+        resolved = Spatial_Join_Condition.resolve on
+        resolved_on = if resolved.first.not then on else
+            if self.is_a Spatial_Table && right.is_a Spatial_Table then resolved.second else
+                Error.throw (Illegal_Argument.Error "Joining with a spatial table requires both tables to be spatial.")
+
+        self.implementation.join self.underlying right join_kind resolved_on right_prefix on_problems
 
     ## ---
        aliases: [append, cartesian]
@@ -3339,7 +3354,7 @@ type Table
        suggested: 10
        ---
        Pivots a subset of the table's columns to rows.
-       
+
        Returns a new table with a chosen subset of columns left unchanged and the
        other columns pivoted to rows with a single name field and a single value
        field.
@@ -3616,7 +3631,7 @@ type Table
         - If a column in `element_columns`, `attribute_columns` or `value_column`
           is not in the input table, a `Missing_Input_Columns` is raised as an
           error.
-        - If any incomming columns aree not specified in one of
+        - If any incoming columns are not specified in one of
           `element_columns`, `attribute_columns` or `value_column`, a
           `Unexpected_Extra_Columns` is reported according to the `on_problems`
           setting.
@@ -3809,6 +3824,7 @@ type Table
             self.implementation.text_cleanse self.underlying selected remove
 
     ## ---
+       aliases: [cumulative]
        macros:
         - count: ..Count
         - minimum: ..Minimum
@@ -3825,8 +3841,6 @@ type Table
         - pearson: ..Pearson
         - spearman: ..Spearman
         - r squared: ..R_Squared
-       aliases:
-        - cumulative
        group: Standard.Base.Values
        icon: column_add
        ---

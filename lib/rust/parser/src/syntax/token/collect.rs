@@ -2,12 +2,12 @@ use enso_prelude::*;
 
 use crate::lexer::GroupDelimiterConsumer;
 use crate::source;
-use crate::syntax::token;
 use crate::syntax::BlockHierarchyConsumer;
 use crate::syntax::Finish;
 use crate::syntax::NewlineConsumer;
 use crate::syntax::Token;
 use crate::syntax::TokenConsumer;
+use crate::syntax::token;
 
 // =========================
 // === Collecting Tokens ===

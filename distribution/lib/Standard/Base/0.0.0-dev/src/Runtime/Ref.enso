@@ -1,4 +1,7 @@
 import project.Any.Any
+import project.Data.Boolean.Boolean
+from project.Data.Boolean.Boolean import False
+import project.Internal.Runtime_Helpers
 
 ## ---
    private: true
@@ -15,6 +18,7 @@ type Ref
 
        ## Arguments
         - `value`: The value to be contained in the ref.
+        - `lazy`: should the evaluation of `value` be deferred until used by `Ref.get`
 
        ## Examples
        ### Creating a new reference containing the value 7.
@@ -22,8 +26,20 @@ type Ref
        ```
              Ref.new 7
        ```
-    new : Any -> Ref
-    new value = @Builtin_Method "Ref.new"
+
+       ### Defer initialization of local values until needed
+
+       ```
+             value_ref = Ref.new lazy=True (long_computation_yielding 7)
+             value =
+                 value_ref.get
+       ```
+    new ~value lazy:Boolean=False -> Ref = 
+        ref = Runtime_Helpers.ref_new value
+        if lazy.not then
+            # initialize immediatelly
+            ref.get
+        ref
 
     ## ---
        group: Metadata
@@ -38,7 +54,7 @@ type Ref
              (Ref.new 0) . get
        ```
     get : Any
-    get self = @Builtin_Method "Ref.get"
+    get self = Runtime_Helpers.ref_get self
 
     ## ---
        icon: edit
@@ -55,7 +71,7 @@ type Ref
              (Ref.new 0) . put 10
        ```
     put : Any -> Any
-    put self new_value = @Builtin_Method "Ref.put"
+    put self new_value = Runtime_Helpers.ref_put self new_value
 
     ## ---
        group: Calculations

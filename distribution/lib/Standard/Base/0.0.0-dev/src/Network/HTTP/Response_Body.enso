@@ -23,11 +23,11 @@ import project.System.File_Format.File_Format
 import project.System.File_Format.Infer
 import project.System.File_Format_Metadata.File_Format_Metadata
 import project.System.Input_Stream.Input_Stream
-from project.Nothing import all
 from project.Data.Boolean import Boolean
 from project.Data.Text.Extensions import all
 from project.Error import all
 from project.Metadata.Widget import Single_Choice
+from project.Nothing import all
 from project.System.File_Format import File_Format_SPI
 
 ## ---
@@ -206,7 +206,7 @@ type Response_Body
        ```
     @file (Widget.Text_Input display=Display.Always)
     write : Writable_File -> Existing_File_Behavior -> File
-    write self file:Writable_File on_existing_file=Existing_File_Behavior.Backup =
+    write self file:Writable_File on_existing_file:Existing_File_Behavior=..Backup =
         self.with_stream body_stream->
             file.write on_existing_file output_stream->
                 r = output_stream.write_stream body_stream

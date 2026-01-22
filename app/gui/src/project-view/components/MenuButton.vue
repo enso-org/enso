@@ -77,6 +77,14 @@ function onActivate() {
   justify-content: center;
   align-items: center;
 
+  ::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: var(--radius-full);
+    pointer-events: none;
+  }
+
   &.toggledOn {
     background-color: var(--color-menu-entry-selected-bg);
   }
@@ -84,7 +92,9 @@ function onActivate() {
   &:hover,
   &:focus,
   &:active {
-    background-color: var(--color-menu-entry-hover-bg);
+    ::after {
+      background-color: var(--color-menu-entry-hover-bg);
+    }
   }
   &.disabled {
     cursor: default;

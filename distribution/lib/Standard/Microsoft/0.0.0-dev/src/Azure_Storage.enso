@@ -10,6 +10,7 @@ import project.Azure_Environment.Azure_Environment
 from project.Azure_Credential import make_subscription_selector
 from project.Internal.Azure_Helpers import handle_azure_exceptions
 
+polyglot java import org.enso.base.enso_cloud.HideableValue
 polyglot java import org.enso.microsoft.azure.AzureBlobStorage
 polyglot java import org.enso.microsoft.azure.AzureCredential
 polyglot java import org.enso.microsoft.azure.AzureResourceManager
@@ -57,7 +58,7 @@ type Azure_Blob_Storage
        ---
        Converts the Azure_Credential into the Java SDK object
     private to_java self =
-        AzureCredential.BlobStorageSASToken.new (as_hideable_value self.token)
+        AzureCredential.BlobStorageSASToken.new (as_hideable_value self.token factory=HideableValue)
 
     ## ---
        private: true

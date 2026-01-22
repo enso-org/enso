@@ -161,7 +161,7 @@ final class InvokeMethodImportResolver
   }
 
   @Override
-  protected EnsoObject createErrorPackageCoundNotBeLoaded(
+  protected EnsoObject createErrorPackageCouldNotBeLoaded(
       UnresolvedSymbol imp, String impName, String loadingError) {
     return null;
   }

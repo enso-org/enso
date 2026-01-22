@@ -1,12 +1,12 @@
 import project.Data.Locale.Locale
 import project.Data.Numbers.Integer
-import project.Data.Ordering.Ordering
 import project.Data.Ordering.Comparable
+import project.Data.Ordering.Ordering
 import project.Data.Text.Normalization.Normalization
 import project.Errors.Common.Type_Error
 import project.Panic.Panic
-from project.Nothing import all
 from project.Data.Boolean import Boolean
+from project.Nothing import all
 
 polyglot java import org.enso.base.Text_Utils
 
@@ -216,11 +216,11 @@ type Text
         Text_Utils.normalizeWithMode self name mode
 
     ## ---
-      aliases: [greater than]
-      group: Operators
-      icon: operators
-      ---
-      Checks if `self` is greater than `that`.
+       aliases: [greater than]
+       group: Operators
+       icon: operators
+       ---
+       Checks if `self` is greater than `that`.
     > self that = Comparable.> self=self that
 
     ## ---

@@ -1,11 +1,11 @@
 use crate::prelude::*;
 
-use crate::cache::goodie;
 use crate::cache::Cache;
+use crate::cache::goodie;
 use crate::env::known::PATH;
 use crate::github::RepoRef;
-use crate::programs::java::JAVA_HOME;
 use crate::programs::Java;
+use crate::programs::java::JAVA_HOME;
 
 const PACKAGE_PREFIX_URL: &str = "graalvm-community";
 
@@ -278,7 +278,10 @@ Java HotSpot(TM) 64-Bit Server VM Oracle GraalVM 21.0.2+13.1 (build 21.0.2+13-LT
             arch: Arch::X86_64,
         };
         let url = graalvm.url().await.unwrap();
-        assert_eq!(url.to_string(), "https://download.oracle.com/graalvm/21/archive/graalvm-jdk-21.0.2_linux-x64_bin.tar.gz");
+        assert_eq!(
+            url.to_string(),
+            "https://download.oracle.com/graalvm/21/archive/graalvm-jdk-21.0.2_linux-x64_bin.tar.gz"
+        );
     }
 
     #[tokio::test]
@@ -291,7 +294,10 @@ Java HotSpot(TM) 64-Bit Server VM Oracle GraalVM 21.0.2+13.1 (build 21.0.2+13-LT
             arch: Arch::X86_64,
         };
         let url = graalvm.url().await.unwrap();
-        assert_eq!(url.to_string(), "https://download.oracle.com/graalvm/17/archive/graalvm-jdk-17.0.7_linux-x64_bin.tar.gz");
+        assert_eq!(
+            url.to_string(),
+            "https://download.oracle.com/graalvm/17/archive/graalvm-jdk-17.0.7_linux-x64_bin.tar.gz"
+        );
     }
 
     #[tokio::test]
@@ -304,6 +310,9 @@ Java HotSpot(TM) 64-Bit Server VM Oracle GraalVM 21.0.2+13.1 (build 21.0.2+13-LT
             arch: Arch::X86_64,
         };
         let url = graalvm.url().await.unwrap();
-        assert_eq!(url.to_string(), "https://github.com/graalvm/graalvm-ce-builds/releases/download/jdk-21.0.2/graalvm-community-jdk-21.0.2_linux-x64_bin.tar.gz");
+        assert_eq!(
+            url.to_string(),
+            "https://github.com/graalvm/graalvm-ce-builds/releases/download/jdk-21.0.2/graalvm-community-jdk-21.0.2_linux-x64_bin.tar.gz"
+        );
     }
 }

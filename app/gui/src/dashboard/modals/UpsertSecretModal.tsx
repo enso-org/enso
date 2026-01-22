@@ -3,8 +3,8 @@ import { Button } from '#/components/Button'
 import { Dialog } from '#/components/Dialog'
 import { Form } from '#/components/Form'
 import { Input } from '#/components/Inputs/Input'
-import type { SecretId } from '#/services/Backend'
 import { useText } from '$/providers/react'
+import type { SecretId } from 'enso-common/src/services/Backend'
 
 /** Props for a {@link UpsertSecretForm}. */
 export interface UpsertSecretFormProps {

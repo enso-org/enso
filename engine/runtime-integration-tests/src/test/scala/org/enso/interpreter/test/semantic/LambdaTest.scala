@@ -12,6 +12,7 @@ class LambdaTest extends InterpreterTest {
     "take arguments and use them in their bodies" in {
       val code =
         """
+          |from Standard.Base import all
           |main = x -> x * x
           |""".stripMargin
 
@@ -143,7 +144,7 @@ class LambdaTest extends InterpreterTest {
           |
           |main =
           |    lam = (x = 10) -> x
-          |    fn = a -> if a then lam else fn (a-1)
+          |    fn = a -> a.if_then_else lam (fn (a-1))
           |
           |    fn 10
           |""".stripMargin

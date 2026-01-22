@@ -18,13 +18,15 @@ add_specs suite_builder =
         content_utf = '["x", "Hello! 😊👍 ąę"]'
         content_windows_1250 = '["y", "Hello! ąę"]'
 
-        url_utf8 = (URI.from base_url_with_slash / "test_headers")
-            . add_query_argument "Content-Type" "text/plain; charset=utf-8"
-            . add_query_argument "base64_response_data" (Base_64.encode_text content_utf)
+        url_utf8 =
+            (URI.from base_url_with_slash / "test_headers")
+                . add_query_argument "Content-Type" "text/plain; charset=utf-8"
+                . add_query_argument "base64_response_data" (Base_64.encode_text content_utf)
 
-        url_windows_1250 = (URI.from base_url_with_slash / "test_headers")
-            . add_query_argument "Content-Type" "text/plain; charset=windows-1250"
-            . add_query_argument "base64_response_data" (Base_64.encode_text content_windows_1250 Encoding.windows_1250)
+        url_windows_1250 =
+            (URI.from base_url_with_slash / "test_headers")
+                . add_query_argument "Content-Type" "text/plain; charset=windows-1250"
+                . add_query_argument "base64_response_data" (Base_64.encode_text content_windows_1250 Encoding.windows_1250)
 
         group_builder.specify "should detect the encoding from Content-Type in fetch" <| Test.with_retries <|
             url_utf8.fetch . should_equal content_utf

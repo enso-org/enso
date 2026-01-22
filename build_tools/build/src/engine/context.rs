@@ -1,30 +1,31 @@
 use crate::prelude::*;
 
 use crate::engine;
-use crate::engine::env;
-use crate::engine::sbt::SbtCommandProvider;
 use crate::engine::BenchmarkType;
 use crate::engine::BuildConfigurationResolved;
 use crate::engine::BuiltArtifacts;
 use crate::engine::Operation;
+use crate::engine::PARALLEL_ENSO_TESTS;
 use crate::engine::ReleaseCommand;
 use crate::engine::ReleaseOperation;
-use crate::engine::PARALLEL_ENSO_TESTS;
+use crate::engine::sbt::SbtCommandProvider;
+use crate::engine::{edition, env};
 use crate::enso::BenchmarkOptions;
 use crate::enso::BuiltEnso;
 use crate::enso::IrCaches;
-use crate::paths::cache_directory;
+use crate::paths::ENSO_TEST_JUNIT_DIR;
 use crate::paths::Paths;
 use crate::paths::TargetTriple;
-use crate::paths::ENSO_TEST_JUNIT_DIR;
+use crate::paths::cache_directory;
 use crate::project::ProcessWrapper;
 
+use crate::engine::edition::PublishedLibrary;
 use ide_ci::actions::workflow::is_in_env;
 use ide_ci::cache;
-use ide_ci::github::release::IsReleaseExt;
+use ide_ci::github::release::{Handle, IsReleaseExt};
 use ide_ci::platform::DEFAULT_SHELL;
-use ide_ci::programs::sbt;
 use ide_ci::programs::Sbt;
+use ide_ci::programs::sbt;
 use std::env::consts::DLL_EXTENSION;
 use std::env::consts::EXE_EXTENSION;
 
@@ -77,25 +78,11 @@ impl RunContext {
             launcher_package: self.config.build_launcher_package.then(|| {
                 self.repo_root.built_distribution.enso_launcher_triple.launcher_package.clone()
             }),
-            project_manager_package: self.config.build_project_manager_package.then(|| {
-                self.repo_root
-                    .built_distribution
-                    .enso_project_manager_triple
-                    .project_manager_package
-                    .clone()
-            }),
             engine_bundle: self.config.build_engine_bundle.then(|| {
                 self.repo_root.built_distribution.engine_bundle_triple.engine_bundle.clone()
             }),
             launcher_bundle: self.config.build_launcher_bundle.then(|| {
                 self.repo_root.built_distribution.enso_bundle_triple.launcher_bundle.clone()
-            }),
-            project_manager_bundle: self.config.build_project_manager_bundle.then(|| {
-                self.repo_root
-                    .built_distribution
-                    .project_manager_bundle_triple
-                    .project_manager_bundle
-                    .clone()
             }),
         }
     }
@@ -123,12 +110,6 @@ impl RunContext {
         let prepare_simple_library_server = {
             if self.config.test_jvm {
                 let simple_server_path = &self.paths.repo_root.tools.simple_library_server;
-                ide_ci::programs::git::new(simple_server_path)
-                    .await?
-                    .cmd()?
-                    .clean()
-                    .run_ok()
-                    .await?;
                 ide_ci::programs::Pnpm
                     .cmd()?
                     .current_dir(simple_server_path)
@@ -284,7 +265,7 @@ impl RunContext {
         // of SBT invocations significantly helps build time. However, it is more memory heavy, so
         // we don't want to call this in environments like GH-hosted runners.
 
-        // === Build project-manager distribution and native image ===
+        // === Build distributions and native images ===
         let mut tasks = vec![];
         let mut run_sbt_clean = false;
         if self.config.build_engine_package {
@@ -294,9 +275,7 @@ impl RunContext {
         if self.config.build_native_ydoc {
             tasks.push("ydoc-server/buildNativeImage");
         }
-        if self.config.build_project_manager_package() {
-            tasks.push("buildProjectManagerDistribution");
-        }
+
         if self.config.build_launcher_package() {
             tasks.push("buildLauncherDistribution");
         }
@@ -331,7 +310,7 @@ impl RunContext {
             sbt.call_arg(sbt_cmd).await?;
         }
 
-        // === End of Build project-manager distribution and native image ===
+        // === End of Build distributions and native images ===
 
         if self.config.build_engine_package {
             debug!("Checking IR cache sizes of std libs.");
@@ -496,17 +475,17 @@ impl RunContext {
                 ReleaseCommand::Upload => {
                     let artifacts = self.build().await?;
                     let release_id = crate::env::ENSO_RELEASE_ID.get()?;
-                    let release = ide_ci::github::release::Handle::new(
-                        &self.inner.octocrab,
-                        repo,
-                        release_id,
-                    );
+                    let release = Handle::new(&self.inner.octocrab, repo, release_id);
+                    self.upload_libs(&release).await?;
+                    self.remove_uploaded_libs().await?;
                     for package in artifacts.packages() {
                         package.upload_as_asset(release.clone()).await?;
                     }
                     for bundle in artifacts.bundles() {
                         bundle.upload_as_asset(release.clone()).await?;
                     }
+                    // This condition ensures that the following assets are only uploaded from a single job.
+                    // Which is desirable because they are platform independent.
                     if TARGET_OS == OS::Linux {
                         release.upload_asset_file(self.paths.manifest_file()).await?;
                         release.upload_asset_file(self.paths.launcher_manifest_file()).await?;
@@ -615,7 +594,8 @@ impl RunContext {
         assert!(old_api_dir.exists());
         debug!(
             "Checking API for library Standard.{}, its API dir is in {:?}",
-            lib.name, old_api_dir
+            lib.name,
+            self.short_path(&old_api_dir)
         );
         // `lib_path_in_built_distribution` points to the lib in the `built-distribution`
         // directory, which is not under VCS. We will regenerate the API in this directory
@@ -640,22 +620,97 @@ impl RunContext {
         match diff {
             Ok(_) => Ok(()),
             Err(err) => {
-                let suggested_cmd = built_enso
-                    .cmd()?
-                    .with_arg("--docs")
-                    .with_arg("api")
-                    .with_arg("--in-project")
-                    .with_arg(lib.path.clone());
                 error!("API check failed for library Standard.{}", lib.name);
                 error!("Current API vs Old API: {}", err);
-                error!("If you wish to overwrite the current API in the directory {}, run the following command {},
+                error!("If you wish to overwrite the current API in the directory {}, run the following command
+                       sbt \"runEngineDistribution --no-ir-caches --docs=api --in-project {}\"
                        and commit the modified files",
-                  old_api_dir.display(),
-                  suggested_cmd.describe()
+                  self.short_path(&old_api_dir).display(),
+                  self.short_path(&lib.path).display()
                 );
                 bail!("API check failed for library Standard.{}", lib.name);
             }
         }
+    }
+
+    /// Uploads all the libraries that should be uploaded.
+    /// See [edition::libs_to_upload].
+    /// Note that the library asset is platform independent, so it should run only
+    /// in once job, hence the check for the current os.
+    async fn upload_libs(&self, release_handle: &Handle) -> Result {
+        if TARGET_OS == OS::Linux {
+            let edition = edition::Edition::parse_from_generated_manifest(&self.repo_root)?;
+            let libs_to_upload = edition.libs_to_upload();
+            debug!("Uploading libraries: {:?}", libs_to_upload);
+            for lib in libs_to_upload {
+                let lib_path = lib.find_in_repo_root(&self.repo_root);
+                debug!("Will upload library in {}", lib_path.to_string_lossy());
+                self.upload_as_zip(&lib, release_handle.clone()).await?;
+            }
+        }
+        Ok(())
+    }
+
+    /// Uploads the given library as a zip asset. Name of the asset is
+    /// derived from the library's repository name.
+    async fn upload_as_zip(&self, lib: &PublishedLibrary, release_handle: Handle) -> Result {
+        let lib_path = lib.find_in_repo_root(&self.repo_root);
+        if !Path::is_dir(&lib_path) {
+            return Err(anyhow!("{:?} is not a directory.", lib_path));
+        }
+        debug!("Will upload library in {:?}", lib_path);
+        let asset_name = &lib.repository.name;
+        assert!(asset_name.ends_with(".zip"));
+        let tmp_dir = tempfile::tempdir()?;
+        let zip_file_path = tmp_dir.path().join(asset_name);
+        lib.create_zip(&self.repo_root, &zip_file_path).await?;
+        debug!("Will upload {:?} as asset", zip_file_path);
+        release_handle.upload_asset_file(zip_file_path).await?;
+        Ok(())
+    }
+
+    /// Remove the libraries that were just uploaded from the release. That is,
+    /// remove them from the `built-distribution` directory.
+    /// This is needed to ensure that the libraries that are uploaded as separate
+    /// assets are not part of any other uploaded asset.
+    ///
+    /// Note that there are multiple _distributions_ (e.g. subdirectories) under
+    /// `built-distribution`, and we have to remove the library from all of those
+    /// subdirectories.
+    async fn remove_uploaded_libs(&self) -> Result {
+        let lib_root_dirs = self.std_lib_root_dirs();
+        let edition = edition::Edition::parse_from_generated_manifest(&self.repo_root)?;
+        for lib in edition.libs_to_upload() {
+            debug!("Removing all copies of library {:?} from built-distribution", lib);
+            let (namespace, name) = lib.split_name();
+            for lib_root_dir in &lib_root_dirs {
+                let lib_dir = lib_root_dir.join(namespace).join(name);
+                ide_ci::fs::remove_dir_if_exists(&lib_dir)?;
+            }
+        }
+        Ok(())
+    }
+
+    /// Returns list of all library root directories that should be present after building.
+    /// All of these root directories are located in some subdirectory of `built-distribution`.
+    fn std_lib_root_dirs(&self) -> Vec<PathBuf> {
+        let artifacts = self.expected_artifacts();
+        let mut lib_root_dirs: Vec<PathBuf> = Vec::new();
+        if let Some(engine_package) = artifacts.engine_package {
+            lib_root_dirs.push(engine_package.lib.path);
+        }
+        if let Some(engine_bundle) = artifacts.engine_bundle {
+            lib_root_dirs.push(engine_bundle.dist.version.path.join("lib"));
+        }
+        if let Some(launcher_bundle) = artifacts.launcher_bundle {
+            lib_root_dirs.push(launcher_bundle.dist.version.path.join("lib"));
+        }
+        lib_root_dirs
+    }
+
+    fn short_path(&self, full: &Path) -> PathBuf {
+        let strip = full.strip_prefix(self.repo_root.path.clone());
+        if let Ok(relative) = strip { relative.to_path_buf() } else { full.to_path_buf() }
     }
 }
 

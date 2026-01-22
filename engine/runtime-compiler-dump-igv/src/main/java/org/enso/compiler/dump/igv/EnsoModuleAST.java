@@ -414,6 +414,10 @@ final class EnsoModuleAST {
         createEdge(node, litNode, "literal");
         yield node;
       }
+      case Pattern.Bool boolPat -> {
+        Map<String, Object> props = Map.of("condition", boolPat.condition());
+        yield newNode(boolPat, props);
+      }
       case Pattern.Name name -> {
         Map<String, Object> props = Map.of("patternName", name.name().name());
         yield newNode(name, props);

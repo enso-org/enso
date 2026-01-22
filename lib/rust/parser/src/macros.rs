@@ -83,7 +83,7 @@ macro_rules! macro_definition {
     ($def:tt) => {
         $crate::macro_definition!{$def $crate::macros::matched_segments_into_multi_segment_app}
     };
-    (($($section:literal, $pattern:expr),* $(,)?) $body:expr) => {
+    (($($section:literal, $pattern:expr_2021),* $(,)?) $body:expr_2021) => {
         $crate::macros::Definition {
             segments: im_list::NonEmpty::try_from(vec![
                 $($crate::macros::SegmentDefinition::new($section, $pattern)),*]).unwrap(),

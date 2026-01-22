@@ -16,13 +16,9 @@ import org.enso.interpreter.node.expression.builtin.Builtin;
 import org.enso.interpreter.node.expression.builtin.Nothing;
 import org.enso.interpreter.node.expression.builtin.Polyglot;
 import org.enso.interpreter.node.expression.builtin.debug.Debug;
-import org.enso.interpreter.node.expression.builtin.error.AdditionalWarnings;
-import org.enso.interpreter.node.expression.builtin.error.CaughtPanic;
-import org.enso.interpreter.node.expression.builtin.error.NoWrap;
 import org.enso.interpreter.node.expression.builtin.error.ProblemBehavior;
 import org.enso.interpreter.node.expression.builtin.error.Warning;
 import org.enso.interpreter.node.expression.builtin.immutable.Vector;
-import org.enso.interpreter.node.expression.builtin.io.File;
 import org.enso.interpreter.node.expression.builtin.meta.ProjectDescription;
 import org.enso.interpreter.node.expression.builtin.mutable.Array;
 import org.enso.interpreter.node.expression.builtin.mutable.Ref;
@@ -36,6 +32,7 @@ import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.ModuleScopeBuilder;
 import org.enso.interpreter.runtime.data.Type;
+import org.enso.interpreter.runtime.data.atom.AtomConstructor;
 import org.enso.pkg.QualifiedName;
 
 /** Container class for static predefined atoms, methods, and their containing scope. */
@@ -75,16 +72,13 @@ public final class Builtins {
   private final Builtin managedResource;
   private final Builtin debug;
   private final ProjectDescription projectDescription;
-  private final Builtin file;
   private final Builtin date;
   private final Builtin dateTime;
   private final Builtin duration;
   private final Builtin timeOfDay;
   private final Builtin timeZone;
   private final Builtin warning;
-  private final NoWrap noWrap;
   private final ProblemBehavior problemBehavior;
-  private final AdditionalWarnings additionalWarnings;
   private final Builtin instrumentor;
 
   /** Factory method to create the builtins. */
@@ -132,16 +126,13 @@ public final class Builtins {
     managedResource = getBuiltinType(ManagedResource.class);
     debug = getBuiltinType(Debug.class);
     projectDescription = getBuiltinType(ProjectDescription.class);
-    file = getBuiltinType(File.class);
     date = getBuiltinType(org.enso.interpreter.node.expression.builtin.date.Date.class);
     dateTime = getBuiltinType(org.enso.interpreter.node.expression.builtin.date.DateTime.class);
     duration = getBuiltinType(org.enso.interpreter.node.expression.builtin.date.Duration.class);
     timeOfDay = getBuiltinType(org.enso.interpreter.node.expression.builtin.date.TimeOfDay.class);
     timeZone = getBuiltinType(org.enso.interpreter.node.expression.builtin.date.TimeZone.class);
     warning = getBuiltinType(Warning.class);
-    noWrap = getBuiltinType(NoWrap.class);
     problemBehavior = getBuiltinType(ProblemBehavior.class);
-    additionalWarnings = getBuiltinType(AdditionalWarnings.class);
     instrumentor = getBuiltinType(org.enso.interpreter.node.expression.builtin.Instrumentor.class);
 
     error = new Error(this, ctx);
@@ -322,23 +313,14 @@ public final class Builtins {
     return problemBehavior;
   }
 
-  /** Returns the {@code No_Wrap} atom constructor. */
-  public NoWrap noWrap() {
-    return noWrap;
-  }
-
-  /** Returns the {@code Additional_Warnings} atom constructor. */
-  public AdditionalWarnings additionalWarnings() {
-    return additionalWarnings;
-  }
-
   /**
-   * Returns the {@code File} atom constructor.
+   * Checks whether given atom represents {@code Vector.No_Wrap}.
    *
-   * @return the {@code File} atom constructor
+   * @param c constructor
+   * @return true if it is an constructor of that type, false otherwise
    */
-  public Type file() {
-    return file.getType();
+  public boolean isNoWrapBuiltin(AtomConstructor c) {
+    return error().isNoWrapBuiltin(c);
   }
 
   /**
@@ -437,13 +419,6 @@ public final class Builtins {
    */
   public Type polyglot() {
     return polyglot.getType();
-  }
-
-  /**
-   * @return the {@code Caught_Panic} atom constructor
-   */
-  public CaughtPanic caughtPanic() {
-    return this.error.caughtPanic();
   }
 
   /**

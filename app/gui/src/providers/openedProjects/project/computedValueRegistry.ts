@@ -4,11 +4,12 @@ import {
   type ProjectNameStore,
 } from '$/providers/openedProjects/projectNames'
 import { clamp } from '$/utils/data/math'
-import { Ok, type Result } from '@/util/data/result'
 import { ReactiveDb, ReactiveIndex } from '@/util/database/reactiveDb'
 import { arrayEquals } from '@/util/equals'
 import { parseMethodPointer, type MethodCall } from '@/util/methodPointer'
 import type { ProjectPath } from '@/util/projectPath'
+import { isSome } from 'enso-common/src/utilities/data/opt'
+import { Ok, type Result } from 'enso-common/src/utilities/data/result'
 import { markRaw } from 'vue'
 import type {
   ExpressionId,
@@ -17,7 +18,6 @@ import type {
   MethodCall as LSMethodCall,
   ProfilingInfo,
 } from 'ydoc-shared/languageServerTypes'
-import { isSome } from 'ydoc-shared/util/data/opt'
 import { SuggestionDb } from '../suggestionDatabase'
 
 /**

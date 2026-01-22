@@ -1,1 +1,1 @@
-export * from 'ydoc-shared/util/data/opt'
+export * from 'enso-common/src/utilities/data/opt'

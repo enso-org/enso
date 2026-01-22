@@ -17,7 +17,7 @@ import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
  * those arguments into the correct positional order for the callable being called.
  */
 @NodeInfo(shortName = "App", description = "Executes function")
-public class ApplicationNode extends ExpressionNode {
+public final class ApplicationNode extends ExpressionNode {
   private @Children ExpressionNode[] argExpressions;
 
   @Child private InvokeCallableNode invokeCallableNode;

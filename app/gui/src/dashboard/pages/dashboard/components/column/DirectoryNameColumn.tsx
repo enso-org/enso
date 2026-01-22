@@ -7,9 +7,9 @@ import { useGetAssetChildren } from '#/layouts/Drive/assetsTableItemsHooks'
 import { useCategoriesAPI } from '#/layouts/Drive/Categories'
 import type { AssetNameColumnProps } from '#/pages/dashboard/components/column'
 import { setDriveLocation, useDriveStore } from '#/providers/DriveProvider'
-import { titleSchema, type DirectoryAsset } from '#/services/Backend'
 import { twMerge } from '#/utilities/tailwindMerge'
 import { useText } from '$/providers/react'
+import { titleSchema, type DirectoryAsset } from 'enso-common/src/services/Backend'
 import { useTransition } from 'react'
 
 /** Props for a {@link DirectoryNameColumn}. */

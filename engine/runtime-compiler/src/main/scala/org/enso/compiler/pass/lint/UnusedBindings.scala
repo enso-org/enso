@@ -117,7 +117,7 @@ case object UnusedBindings extends IRPass {
     if (!isIgnored && !isUsed) {
       binding
         .copy(expression = runExpression(binding.expression, context))
-        .addDiagnostic(warnings.Unused.Binding(binding.name))
+        .addDiagnostic(new warnings.Unused.Binding(binding.name))
     } else {
       binding.copy(
         expression = runExpression(binding.expression, context)
@@ -154,7 +154,7 @@ case object UnusedBindings extends IRPass {
                 body1
               case _ =>
                 body1.addDiagnostic(
-                  Warning.WrongBuiltinMethod(body.identifiedLocation())
+                  new Warning.WrongBuiltinMethod(body.identifiedLocation())
                 )
             }
           else body1
@@ -210,7 +210,7 @@ case object UnusedBindings extends IRPass {
           }
           s.copyWithDefaultValue(
             default.map(runExpression(_, context))
-          ).addDiagnostic(warnings.Unused.FunctionArgument(nameToReport))
+          ).addDiagnostic(new warnings.Unused.FunctionArgument(nameToReport))
         } else s
     }
   }
@@ -256,7 +256,8 @@ case object UnusedBindings extends IRPass {
     */
   def lintPattern(pattern: Pattern): Pattern = {
     pattern match {
-      case n @ Pattern.Name(name, _, _) =>
+      case n: Pattern.Name =>
+        val name = n.name()
         val isIgnored = name
           .unsafeGetMetadata(
             IgnoredBindings,
@@ -274,19 +275,18 @@ case object UnusedBindings extends IRPass {
         val isUsed = !aliasInfo.graph.linksFor(aliasInfo.id).isEmpty
 
         if (!isIgnored && !isUsed) {
-          n.addDiagnostic(warnings.Unused.PatternBinding(name))
+          n.addDiagnostic(new warnings.Unused.PatternBinding(name))
         } else pattern
-      case cons @ Pattern.Constructor(_, fields, _, _) =>
+      case cons: Pattern.Constructor =>
         if (!cons.isDesugared) {
           throw new CompilerError(
             "Nested patterns should not be present during linting."
           )
         }
 
-        cons.copy(
-          fields = fields.map(lintPattern)
-        )
-      case typed @ Pattern.Type(name, _, _, _) =>
+        cons.copyWithFields(cons.fields.map(lintPattern))
+      case typed: Pattern.Type =>
+        val name = typed.name()
         val isIgnored = name
           .unsafeGetMetadata(
             IgnoredBindings,
@@ -304,10 +304,11 @@ case object UnusedBindings extends IRPass {
         val isUsed = !aliasInfo.graph.linksFor(aliasInfo.id).isEmpty
 
         if (!isIgnored && !isUsed) {
-          typed.addDiagnostic(warnings.Unused.PatternBinding(name))
+          typed.addDiagnostic(new warnings.Unused.PatternBinding(name))
         } else pattern
       case literal: Pattern.Literal =>
         literal
+      case bool: Pattern.Bool  => bool
       case err: errors.Pattern => err
 
       case _: Pattern.Documentation =>

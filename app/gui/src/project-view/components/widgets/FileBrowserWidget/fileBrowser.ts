@@ -1,4 +1,5 @@
 /** @file Low-level logic for the File Browser Widget. */
+import type { ToValue } from '$/utils/reactivity'
 import {
   type EnsoPath,
   ensoPathEqual,
@@ -6,11 +7,10 @@ import {
 } from '@/components/widgets/FileBrowserWidget/ensoPath'
 import type { Directory } from '@/components/widgets/FileBrowserWidget/pathBrowsing'
 import type { Mutation } from '@/composables/backend'
-import type { ToValue } from '@/util/reactivity'
 import { useToast } from '@/util/toast'
-import Backend, { type CreatedDirectory } from 'enso-common/src/services/Backend'
+import { Backend, type CreatedDirectory } from 'enso-common/src/services/Backend'
+import type { Result } from 'enso-common/src/utilities/data/result'
 import { computed, ref, toValue } from 'vue'
-import type { Result } from 'ydoc-shared/util/data/result'
 
 /** @returns Reactive query parameters to list the given directory's contents. */
 export function listDirectoryArgs(params: ToValue<Directory | undefined>) {

@@ -20,11 +20,11 @@ import ConfirmDeleteModal from '#/modals/ConfirmDeleteModal'
 import { useExportArchive } from '#/pages/useExportArchive'
 import { useDriveStore, useSelectedAssets, useSetSelectedAssets } from '#/providers/DriveProvider'
 import { setModal } from '#/providers/ModalProvider'
-import * as backendModule from '#/services/Backend'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { useStore } from '#/utilities/zustand'
 import { useBackends, useRouter, useText, useUser } from '$/providers/react'
 import { useFeatureFlag } from '$/providers/react/featureFlags'
+import * as backendModule from 'enso-common/src/services/Backend'
 import * as React from 'react'
 import invariant from 'tiny-invariant'
 
@@ -33,10 +33,7 @@ export interface AssetsTableContextMenuProps {
   readonly currentDirectoryId: backendModule.DirectoryId
   readonly doCopy: () => void
   readonly doCut: () => void
-  readonly doPaste: (
-    newParentKey: backendModule.DirectoryId,
-    newParentId: backendModule.DirectoryId,
-  ) => void
+  readonly doPaste: (newParentId: backendModule.DirectoryId) => void
 }
 
 /**
@@ -174,11 +171,9 @@ export const AssetsTableContextMenu = React.forwardRef(function AssetsTableConte
       doAction: () => {
         void goToDrive()
         const selected = selectedAssets[0]
-        if (selected?.type === backendModule.AssetType.directory) {
-          doPaste(selected.id, selected.id)
-        } else {
-          doPaste(currentDirectoryId, currentDirectoryId)
-        }
+        const id =
+          selected?.type === backendModule.AssetType.directory ? selected.id : currentDirectoryId
+        doPaste(id)
       },
     },
   )

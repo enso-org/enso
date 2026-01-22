@@ -97,7 +97,7 @@ case object AliasAnalysis extends IRPass {
     ir: Module,
     moduleContext: ModuleContext
   ): Module = {
-    ir.copyWithBindings(bindings = ir.bindings.map(analyseModuleDefinition))
+    ir.copyWithBindings(ir.bindings.map(analyseModuleDefinition))
   }
 
   /** Performs alias analysis on an inline expression, starting from the
@@ -285,38 +285,48 @@ case object AliasAnalysis extends IRPass {
           "Method definition sugar should not occur during alias analysis."
         )
       case t: Definition.Type =>
-        val ct = t.copy(
-          params = analyseArgumentDefs(
-            t.params,
-            builder
-          ),
-          members = t.members.map(d => {
-            val graph = GraphBuilder.create()
-            val cd = d.copy(
-              arguments = analyseArgumentDefs(
-                d.arguments,
-                graph
-              ),
-              annotations = d.annotations.map { ann =>
-                val c = ann
-                  .copy(
-                    expression = analyseExpression(
-                      ann.expression,
-                      builder
-                    )
+        val ct = t
+          .copyBuilder()
+          .params(
+            analyseArgumentDefs(
+              t.params,
+              builder
+            )
+          )
+          .members(
+            t.members.map(d => {
+              val graph = GraphBuilder.create()
+              val cd = d
+                .copyBuilder()
+                .arguments(
+                  analyseArgumentDefs(
+                    d.arguments,
+                    graph
                   )
-                alias.AliasMetadata.updateMetadata(
-                  c,
-                  new alias.AliasMetadata.RootScope(builder.toGraph())
                 )
-              }
-            )
-            alias.AliasMetadata.updateMetadata(
-              cd,
-              new alias.AliasMetadata.RootScope(graph.toGraph())
-            )
-          })
-        )
+                .annotations(
+                  d.annotations.map { ann =>
+                    val c = ann
+                      .copy(
+                        expression = analyseExpression(
+                          ann.expression,
+                          builder
+                        )
+                      )
+                    alias.AliasMetadata.updateMetadata(
+                      c,
+                      new alias.AliasMetadata.RootScope(builder.toGraph())
+                    )
+                  }
+                )
+                .build()
+              alias.AliasMetadata.updateMetadata(
+                cd,
+                new alias.AliasMetadata.RootScope(graph.toGraph())
+              )
+            })
+          )
+          .build()
         alias.AliasMetadata.updateMetadata(
           ct,
           new alias.AliasMetadata.RootScope(builder.toGraph())
@@ -437,7 +447,7 @@ case object AliasAnalysis extends IRPass {
               )
             )
         } else {
-          errors.Redefined.Binding(binding)
+          errors.Redefined.Binding.create(binding)
         }
       case app: Application =>
         analyseApplication(app, builder)
@@ -463,7 +473,11 @@ case object AliasAnalysis extends IRPass {
     builder: GraphBuilder
   ): Type = {
     value match {
-      case member @ `type`.Set.Member(label, memberType, value, _, _) =>
+      case member: `type`.Set.Member =>
+        val label      = member.label()
+        val memberType = member.memberType()
+        val value      = member.value()
+
         val memberTypeScope = memberType match {
           case _: Literal => builder
           case _          => builder.addChild()
@@ -481,10 +495,10 @@ case object AliasAnalysis extends IRPass {
         )
 
         val mc = member
-          .copy(
-            memberType = analyseExpression(memberType, memberTypeScope),
-            value      = analyseExpression(value, valueScope)
-          )
+          .copyBuilder()
+          .memberType(analyseExpression(memberType, memberTypeScope))
+          .value(analyseExpression(value, valueScope))
+          .build()
         alias.AliasMetadata
           .updateMetadata(
             mc,
@@ -583,7 +597,13 @@ case object AliasAnalysis extends IRPass {
         } else {
           val ac = arg
             .copyWithAscribedType(
-              Some(Redefined.Arg(name, arg.identifiedLocation))
+              Some(
+                Redefined.Arg
+                  .builder()
+                  .name(name)
+                  .location(arg.identifiedLocation)
+                  .build()
+              )
             )
           alias.AliasMetadata
             .updateMetadata(
@@ -795,8 +815,8 @@ case object AliasAnalysis extends IRPass {
   ): Pattern = {
     pattern match {
       case named: Pattern.Name =>
-        named.copy(
-          name = analyseName(
+        named.copyWithName(
+          analyseName(
             named.name,
             isInPatternContext                = true,
             isConstructorNameInPatternContext = false,
@@ -811,32 +831,40 @@ case object AliasAnalysis extends IRPass {
           )
         }
 
-        cons.copy(
-          constructor = analyseName(
-            cons.constructor,
-            isInPatternContext                = true,
-            isConstructorNameInPatternContext = true,
-            builder
-          ),
-          fields = cons.fields.map(analysePattern(_, builder))
-        )
-      case literalPattern: Pattern.Literal =>
-        literalPattern
-      case typePattern: Pattern.Type =>
-        typePattern.copy(
-          name = analyseName(
-            typePattern.name,
-            isInPatternContext                = true,
-            isConstructorNameInPatternContext = false,
-            builder
-          ),
-          tpe = analyseName(
-            typePattern.tpe,
-            isInPatternContext                = false,
-            isConstructorNameInPatternContext = false,
-            builder
+        cons
+          .copyBuilder()
+          .constructor(
+            analyseName(
+              cons.constructor,
+              isInPatternContext                = true,
+              isConstructorNameInPatternContext = true,
+              builder
+            )
           )
-        )
+          .fields(cons.fields.map(analysePattern(_, builder)))
+          .build()
+      case literalPattern: Pattern.Literal => literalPattern
+      case boolPattern: Pattern.Bool       => boolPattern
+      case typePattern: Pattern.Type =>
+        typePattern
+          .copyBuilder()
+          .name(
+            analyseName(
+              typePattern.name,
+              isInPatternContext                = true,
+              isConstructorNameInPatternContext = false,
+              builder
+            )
+          )
+          .tpe(
+            analyseName(
+              typePattern.tpe,
+              isInPatternContext                = false,
+              isConstructorNameInPatternContext = false,
+              builder
+            )
+          )
+          .build()
       case _: Pattern.Documentation =>
         throw new CompilerError(
           "Branch documentation should be desugared at an earlier stage."

@@ -284,6 +284,7 @@ private[runtime] class IrToTruffle(
             case fn: Function =>
               val bodyBuilder =
                 new expressionProcessor.BuildFunctionBody(
+                  true,
                   conversion.methodName.name,
                   fn.arguments,
                   fn.body,
@@ -469,7 +470,7 @@ private[runtime] class IrToTruffle(
           new ArrayBuffer[(RuntimeExpression, RuntimeExpression)]
 
         for (idx <- atomDefn.arguments.indices) {
-          val unprocessedArg = atomDefn.arguments(idx)
+          val unprocessedArg = atomDefn.arguments.apply(idx)
           val checkNode      = checkAsTypes(unprocessedArg)
           val arg            = argFactory.run(unprocessedArg, idx, checkNode)
           val fp = unprocessedArg
@@ -485,10 +486,19 @@ private[runtime] class IrToTruffle(
               idx,
               arg.getDefaultValue.orElse(null)
             )
-          val readArg       = TypeCheckValueNode.wrap(readArgNoCheck, checkNode)
-          val assignmentArg = AssignmentNode.build(readArg, slotIdx)
+          val readArg = TypeCheckValueNode.wrap(readArgNoCheck, checkNode)
+          val assignmentArg =
+            AssignmentNode.build(
+              arg.getName,
+              readArgNoCheck.getSourceSectionBounds,
+              readArg,
+              slotIdx
+            )
           val argRead =
-            ReadLocalVariableNode.build(new FramePointer(0, slotIdx))
+            ReadLocalVariableNode.build(
+              arg.getName,
+              new FramePointer(0, slotIdx)
+            )
           argumentExpressions.append((assignmentArg, argRead))
         }
 
@@ -605,6 +615,7 @@ private[runtime] class IrToTruffle(
   ): RuntimeFunction = {
     val bodyBuilder =
       new expressionProcessor.BuildFunctionBody(
+        true,
         fullMethodDefName,
         fn.arguments,
         fn.body,
@@ -791,6 +802,7 @@ private[runtime] class IrToTruffle(
             }
             val bodyBuilder =
               new expressionProcessor.BuildFunctionBody(
+                true,
                 m.getFunction.getName,
                 fn.arguments,
                 fn.body,
@@ -1339,7 +1351,7 @@ private[runtime] class IrToTruffle(
         val statementExprs = block.expressions.map(this.run(_, true)).toArray
         val retExpr        = this.run(block.returnValue, true)
 
-        val blockNode = BlockNode.buildSilent(statementExprs, retExpr)
+        val blockNode = BlockNode.buildStatements(statementExprs, retExpr)
         setLocation(blockNode, block.location)
       }
     }
@@ -1367,7 +1379,7 @@ private[runtime] class IrToTruffle(
       * @param caseExpr the case expression to generate code for
       * @return the truffle nodes corresponding to `caseExpr`
       */
-    def processCase(
+    private def processCase(
       caseExpr: Case,
       subjectToInstrumentation: Boolean
     ): RuntimeExpression =
@@ -1376,7 +1388,9 @@ private[runtime] class IrToTruffle(
           val scrutineeNode =
             this.run(caseExpr.scrutinee, subjectToInstrumentation)
 
-          val maybeCases    = caseExpr.branches.map(processCaseBranch)
+          val maybeCases = caseExpr.branches.map(b =>
+            processCaseBranch(b, subjectToInstrumentation)
+          )
           val allCasesValid = maybeCases.forall(_.isRight)
 
           if (allCasesValid) {
@@ -1416,8 +1430,9 @@ private[runtime] class IrToTruffle(
       * @return the truffle nodes correspondingg to `caseBranch` or an error if
       *         the match is invalid
       */
-    def processCaseBranch(
-      branch: Case.Branch
+    private def processCaseBranch(
+      branch: Case.Branch,
+      subjectToInstrumentation: Boolean
     ): Either[BadPatternMatch, BranchNode] = {
       val scopeInfo = childScopeInfo("case branch", branch)
       def frameInfo() = branch
@@ -1428,7 +1443,10 @@ private[runtime] class IrToTruffle(
         .asInstanceOf[FrameVariableNames]
       val childProcessor =
         this.createChild(
-          "case_branch",
+          branch.pattern match {
+            case _: Pattern.Bool => "if_then_else"
+            case _               => "case_branch"
+          },
           () => scopeInfo().scope,
           "case " + currentVarName,
           frameInfo
@@ -1441,14 +1459,31 @@ private[runtime] class IrToTruffle(
           val branchCodeNode = childProcessor.processFunctionBody(
             arg,
             branch.expression,
-            branch.location
+            branch.location,
+            defineRoot               = false,
+            subjectToInstrumentation = subjectToInstrumentation
           )
 
           val branchNode =
             CatchAllBranchNode.build(branchCodeNode.getCallTarget, true)
 
           Right(branchNode)
-        case cons @ Pattern.Constructor(constructor, _, _, _) =>
+        case b: Pattern.Bool =>
+          val condition = b.condition()
+          val branchCodeNode = childProcessor.processFunctionBody(
+            Nil,
+            branch.expression,
+            branch.location,
+            defineRoot               = false,
+            subjectToInstrumentation = subjectToInstrumentation
+          )
+          val node = BooleanBranchNode.build(
+            condition,
+            branchCodeNode.getCallTarget,
+            branch.terminalBranch
+          )
+          Right(node)
+        case cons: Pattern.Constructor =>
           if (!cons.isDesugared) {
             throw new CompilerError(
               "Nested patterns desugaring must have taken place by the " +
@@ -1456,15 +1491,7 @@ private[runtime] class IrToTruffle(
             )
           }
 
-          val fieldNames   = cons.unsafeFieldsAsNamed
-          val fieldsAsArgs = fieldNames.map(genArgFromMatchField)
-
-          val branchCodeNode = childProcessor.processFunctionBody(
-            fieldsAsArgs,
-            branch.expression,
-            branch.location
-          )
-
+          val constructor = cons.constructor()
           constructor match {
             case err: errors.Resolution =>
               Left(BadPatternMatch.NonVisibleConstructor(err.name))
@@ -1475,6 +1502,14 @@ private[runtime] class IrToTruffle(
                 case Some(
                       BindingsMap.Resolution(BindingsMap.ResolvedModule(mod))
                     ) =>
+                  val branchCodeNode =
+                    createBranchCodeNodeForConstructorPattern(
+                      branch,
+                      cons,
+                      None,
+                      childProcessor,
+                      subjectToInstrumentation
+                    )
                   Right(
                     ObjectEqualityBranchNode.build(
                       branchCodeNode.getCallTarget,
@@ -1484,11 +1519,19 @@ private[runtime] class IrToTruffle(
                   )
                 case Some(
                       BindingsMap.Resolution(
-                        BindingsMap.ResolvedConstructor(tp, cons)
+                        BindingsMap.ResolvedConstructor(tp, resolvedCons)
                       )
                     ) =>
                   val atomCons =
-                    asType(tp).getConstructors.get(cons.name)
+                    asType(tp).getConstructors.get(resolvedCons.name)
+                  val branchCodeNode =
+                    createBranchCodeNodeForConstructorPattern(
+                      branch,
+                      cons,
+                      Some(atomCons),
+                      childProcessor,
+                      subjectToInstrumentation
+                    )
                   val r = if (atomCons == getBuiltins.bool().getTrue) {
                     BooleanBranchNode.build(
                       true,
@@ -1516,6 +1559,14 @@ private[runtime] class IrToTruffle(
                     ) =>
                   val tpe =
                     asType(binding)
+                  val branchCodeNode =
+                    createBranchCodeNodeForConstructorPattern(
+                      branch,
+                      cons,
+                      None,
+                      childProcessor,
+                      subjectToInstrumentation
+                    )
                   val polyglot = getBuiltins.polyglot
                   val branchNode = if (tpe == polyglot) {
                     PolyglotBranchNode.build(
@@ -1536,6 +1587,14 @@ private[runtime] class IrToTruffle(
                         BindingsMap.ResolvedPolyglotSymbol(mod, symbol)
                       )
                     ) =>
+                  val branchCodeNode =
+                    createBranchCodeNodeForConstructorPattern(
+                      branch,
+                      cons,
+                      None,
+                      childProcessor,
+                      subjectToInstrumentation
+                    )
                   val polyglotSymbol =
                     asScope(mod.unsafeAsModule())
                       .getPolyglotSymbolSupplier(symbol.name)
@@ -1554,6 +1613,14 @@ private[runtime] class IrToTruffle(
                         BindingsMap.ResolvedPolyglotField(typ, symbol)
                       )
                     ) =>
+                  val branchCodeNode =
+                    createBranchCodeNodeForConstructorPattern(
+                      branch,
+                      cons,
+                      None,
+                      childProcessor,
+                      subjectToInstrumentation
+                    )
                   val mod = typ.module
                   val polyClass = asScope(mod.unsafeAsModule())
                     .getPolyglotSymbolSupplier(typ.symbol.name)
@@ -1625,7 +1692,9 @@ private[runtime] class IrToTruffle(
           val branchCodeNode = childProcessor.processFunctionBody(
             Nil,
             branch.expression,
-            branch.location
+            branch.location,
+            subjectToInstrumentation = subjectToInstrumentation,
+            defineRoot               = false
           )
 
           literalPattern.literal match {
@@ -1695,7 +1764,9 @@ private[runtime] class IrToTruffle(
                   val branchCodeNode = childProcessor.processFunctionBody(
                     argOfType,
                     branch.expression,
-                    branch.location
+                    branch.location,
+                    subjectToInstrumentation = subjectToInstrumentation,
+                    defineRoot               = false
                   )
                   Right(
                     CatchTypeBranchNode.build(
@@ -1733,7 +1804,9 @@ private[runtime] class IrToTruffle(
                 val branchCodeNode = childProcessor.processFunctionBody(
                   argOfType,
                   branch.expression,
-                  branch.location
+                  branch.location,
+                  subjectToInstrumentation = subjectToInstrumentation,
+                  defineRoot               = false
                 )
                 Right(
                   PolyglotSymbolTypeBranchNode.build(
@@ -1758,13 +1831,77 @@ private[runtime] class IrToTruffle(
           throw new CompilerError(
             "Branch documentation should be desugared at an earlier stage."
           )
-        case errors.Pattern(
-              _,
-              errors.Pattern.WrongArity(name, expected, actual),
-              _
-            ) =>
-          Left(BadPatternMatch.WrongArgCount(name, expected, actual))
+        case patErr: errors.Pattern =>
+          patErr.reason() match {
+            case wrongArity: errors.Pattern.WrongArity =>
+              Left(
+                BadPatternMatch.WrongArgCount(
+                  wrongArity.consName(),
+                  wrongArity.expected(),
+                  wrongArity.actual()
+                )
+              )
+            case _ =>
+              throw new CompilerError(
+                s"Unexpected pattern error: ${patErr.reason()}."
+              )
+          }
+      }
+    }
 
+    /** Case branch of a [[Pattern.Constructor]] is represented as a function with parameters matching the
+      * fields of the constructor. This method converts those fields into function arguments.
+      * If a field is suspended, the corresponding argument is marked as suspended too.
+      * @param cons Constructor pattern.
+      * @param resolvedCons The actual constructor resolved at runtime.
+      * @return
+      */
+    private def atomFieldsAsArguments(
+      cons: Pattern.Constructor,
+      resolvedCons: AtomConstructor
+    ): List[DefinitionArgument] = {
+      val resolvedFields = resolvedCons.getFields.toList
+      val fieldNames     = cons.unsafeFieldsAsNamed
+      fieldNames.zip(resolvedFields).map { case (fieldName, resolvedField) =>
+        DefinitionArgument.Specified
+          .builder()
+          .name(fieldName.name)
+          .suspended(resolvedField.isSuspended)
+          .location(fieldName.identifiedLocation)
+          .passData(fieldName.name.passData())
+          .diagnostics(fieldName.name.diagnostics())
+          .build()
+      }
+    }
+
+    private def createBranchCodeNodeForConstructorPattern(
+      branch: Case.Branch,
+      cons: Pattern.Constructor,
+      resolvedConsOpt: Option[AtomConstructor],
+      childProcessor: ExpressionProcessor,
+      subjectToInstrumentation: Boolean
+    ): CreateFunctionNode = {
+      val fieldNames = cons.unsafeFieldsAsNamed
+      resolvedConsOpt match {
+        case None =>
+          val fieldsAsArgs = fieldNames.map(genArgFromMatchField)
+          childProcessor.processFunctionBody(
+            fieldsAsArgs,
+            branch.expression,
+            branch.location,
+            subjectToInstrumentation = subjectToInstrumentation,
+            defineRoot               = false
+          )
+        case Some(resolvedOpt) =>
+          val fieldsAsSuspendedArgs =
+            atomFieldsAsArguments(cons, resolvedOpt)
+          childProcessor.processFunctionBody(
+            fieldsAsSuspendedArgs,
+            branch.expression,
+            branch.location,
+            subjectToInstrumentation = subjectToInstrumentation,
+            defineRoot               = false
+          )
       }
     }
 
@@ -1811,7 +1948,12 @@ private[runtime] class IrToTruffle(
       currentVarName = binding.name.name
       val slotIdx = fp.frameSlotIdx()
       setLocation(
-        AssignmentNode.build(this.run(binding.expression, true, true), slotIdx),
+        AssignmentNode.build(
+          binding.name.name,
+          null,
+          this.run(binding.expression, true, true),
+          slotIdx
+        ),
         binding.location
       )
     }
@@ -1940,9 +2082,10 @@ private[runtime] class IrToTruffle(
       }
 
       override protected def resolveLocalName(
+        name: String,
         localLink: FramePointer
       ): RuntimeExpression =
-        ReadLocalVariableNode.build(localLink)
+        ReadLocalVariableNode.build(name, localLink)
 
       override protected def resolveGlobalName(
         resolvedName: BindingsMap.ResolvedName,
@@ -2057,7 +2200,7 @@ private[runtime] class IrToTruffle(
       */
     private def processError(error: Error): RuntimeExpression = {
       val payload: Atom = error match {
-        case Error.InvalidIR(_, _) =>
+        case _: Error.InvalidIR =>
           throw new CompilerError("Unexpected Invalid IR during codegen.")
         case err: errors.Syntax =>
           getBuiltins
@@ -2091,7 +2234,7 @@ private[runtime] class IrToTruffle(
           getBuiltins
             .error()
             .makeCompileError(err.message(fileLocationFromSection))
-        case err: errors.Unexpected.TypeSignature =>
+        case err: errors.UnexpectedTypeSignature =>
           getBuiltins
             .error()
             .makeCompileError(err.message(fileLocationFromSection))
@@ -2133,6 +2276,7 @@ private[runtime] class IrToTruffle(
       *         argument definitions.
       */
     class BuildFunctionBody(
+      val defineRoot: Boolean,
       val initialName: String,
       val arguments: List[DefinitionArgument],
       val body: Expression,
@@ -2147,9 +2291,17 @@ private[runtime] class IrToTruffle(
 
       def args(): Array[ArgumentDefinition] = slots._2
       def bodyNode(): RuntimeExpression = {
-        val body = BlockNode.buildRoot(Array(), argsExpr._2)
-        val initVariablesAndThenBody =
-          BlockNode.buildSilent(argsExpr._1.toArray, body)
+        var operation = argsExpr._2
+        if (!operation.isInstanceOf[BlockNode]) {
+          operation = BlockNode.buildStatements(Array(), operation)
+        }
+        val initVariablesAndThenBody = if (defineRoot) {
+          val body =
+            BlockNode.buildRootBody(Array(), operation)
+          BlockNode.buildRoot(argsExpr._1, body)
+        } else {
+          BlockNode.buildInvisible(argsExpr._1, operation)
+        }
         initVariablesAndThenBody
       }
 
@@ -2206,10 +2358,16 @@ private[runtime] class IrToTruffle(
               )
             val readArgNoCheck =
               setLocation(readArgNoCheck0, unprocessedArg.name().location())
-            val readArg   = TypeCheckValueNode.wrap(readArgNoCheck, checkNode)
-            val assignArg = AssignmentNode.build(readArg, slotIdx)
+            val readArg = TypeCheckValueNode.wrap(readArgNoCheck, checkNode)
+            val assignArgNoLock =
+              AssignmentNode.build(
+                arg.getName,
+                readArgNoCheck.getSourceSectionBounds,
+                readArg,
+                slotIdx
+              )
 
-            argExpressions.append(assignArg)
+            argExpressions.append(assignArgNoLock)
 
             val argName = arg.getName
 
@@ -2242,10 +2400,11 @@ private[runtime] class IrToTruffle(
       val b    = Source.newBuilder("epb", language + ":" + line + "#" + code, name)
       b.uri(source.getURI())
       val src = b.build()
-      val argumentReaders = argumentSlotIdxs
-        .map(slotIdx =>
-          ReadLocalVariableNode.build(new FramePointer(0, slotIdx))
-        )
+      val argumentReaders = argumentSlotIdxs.zipWithIndex
+        .map { case (slotIdx, i) =>
+          ReadLocalVariableNode
+            .build(argumentNames(i), new FramePointer(0, slotIdx))
+        }
         .toArray[RuntimeExpression]
       ForeignMethodCallNode.buildDeferred(
         src,
@@ -2266,10 +2425,20 @@ private[runtime] class IrToTruffle(
       arguments: List[DefinitionArgument],
       body: Expression,
       location: Option[IdentifiedLocation],
-      binding: Boolean = false
+      binding: Boolean                  = false,
+      subjectToInstrumentation: Boolean = false,
+      defineRoot: Boolean               = true
     ): CreateFunctionNode = {
       val bodyBuilder =
-        new BuildFunctionBody(scopeName, arguments, body, null, None, false)
+        new BuildFunctionBody(
+          defineRoot,
+          scopeName,
+          arguments,
+          body,
+          null,
+          None,
+          subjectToInstrumentation
+        )
       val fnRootNode = ClosureRootNode.build(
         language,
         scope,
@@ -2278,7 +2447,7 @@ private[runtime] class IrToTruffle(
         makeSource(scopeBuilder.getModule),
         makeLocation(location),
         scopeName,
-        false,
+        subjectToInstrumentation,
         binding
       )
       val callTarget = fnRootNode.getCallTarget

@@ -21,7 +21,7 @@ type Instrumentor
        private: true
        advanced: true
        ---
-       Registers callback to be executed at the begining of node/expression
+       Registers callback to be executed at the beginning of node/expression
        execution. The callback `fn` gets UUID of the node/expression that is
        being executed and can return `Nothing` to continue regular execution or
        anything else to skip the execution and just return given value.

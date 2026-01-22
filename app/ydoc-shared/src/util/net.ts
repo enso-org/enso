@@ -1,6 +1,6 @@
+import type { Result, ResultError } from 'enso-common/src/utilities/data/result'
 import type { ObservableV2 } from 'lib0/observable'
 import { wait } from 'lib0/promise'
-import type { Result, ResultError } from './data/result'
 
 interface Disposable {
   dispose(): void

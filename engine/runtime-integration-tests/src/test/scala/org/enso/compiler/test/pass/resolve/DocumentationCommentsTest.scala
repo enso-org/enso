@@ -291,9 +291,9 @@ class DocumentationCommentsTest extends CompilerTest with Inside {
       getDoc(tp) shouldEqual " the type Foo"
       val t1 = tp.body.head
       getDoc(t1) shouldEqual " the constructor Bar"
-      val t2 = tp.body(1)
+      val t2 = tp.body().apply(1)
       getDoc(t2) shouldEqual " the included Unit"
-      val method = tp.body(2).asInstanceOf[Function.Binding]
+      val method = tp.body().apply(2).asInstanceOf[Function.Binding]
       getDoc(method) shouldEqual " a method"
       val block = method.body.asInstanceOf[Expression.Block]
       getDoc(block.expressions.head) shouldEqual " a statement"

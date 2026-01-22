@@ -66,7 +66,7 @@ test('Different ways of opening Component Browser', async ({ editorPage, page })
   await locate.graphNodeByBinding(page, 'selected').click()
   await locate.graphEditor(page).press('Enter')
   await expectAndCancelBrowser(page, '', 'Table', 'selected')
-  // Dragging out an edge
+  // Click-drag the edge (click, move mouse, click again)
   let outputPort = await locate.outputPortCoordinates(
     page,
     locate.graphNodeByBinding(page, 'selected'),
@@ -74,6 +74,7 @@ test('Different ways of opening Component Browser', async ({ editorPage, page })
   await page.mouse.click(outputPort.x, outputPort.y)
   await locate.graphEditor(page).click({ position: { x: 100, y: 500 } })
   await expectAndCancelBrowser(page, '', 'Table', 'selected')
+
   // Double-clicking port
   // TODO[ao] Without timeout, even the first click would be treated as double due to previous
   // event. Probably we need a better way to simulate double clicks.
@@ -81,6 +82,14 @@ test('Different ways of opening Component Browser', async ({ editorPage, page })
   outputPort = await locate.outputPortCoordinates(page, locate.graphNodeByBinding(page, 'selected'))
   await page.mouse.click(outputPort.x, outputPort.y)
   await page.mouse.click(outputPort.x, outputPort.y)
+  await expectAndCancelBrowser(page, '', 'Table', 'selected')
+
+  // Dragging out an edge (click and hold, move mouse, release)
+  await page.mouse.move(outputPort.x, outputPort.y)
+  await page.waitForTimeout(600) // Avoid double clicks, see TODO above.
+  await page.mouse.down({ button: 'left' })
+  await page.mouse.move(outputPort.x + 300, outputPort.y + 400)
+  await page.mouse.up({ button: 'left' })
   await expectAndCancelBrowser(page, '', 'Table', 'selected')
 })
 
@@ -106,6 +115,15 @@ test('Opening Component Browser from output port buttons', async ({ editorPage, 
   await node.click()
   await expect(createNodeFromPortButton).toBeVisible()
   await createNodeFromPortButton.click({ force: true })
+  await expectAndCancelBrowser(page, '', null, 'table')
+
+  // Small (+) button can be dragged
+  const bbox = await createNodeFromPortButton.boundingBox()
+  if (!bbox) throw new Error('Bounding box not found')
+  await page.mouse.move(bbox.x, bbox.y)
+  await page.mouse.down({ button: 'left' })
+  await page.mouse.move(bbox.x + 300, bbox.y + 400)
+  await page.mouse.up({ button: 'left' })
   await expectAndCancelBrowser(page, '', null, 'table')
 })
 

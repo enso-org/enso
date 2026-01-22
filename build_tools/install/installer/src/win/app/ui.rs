@@ -12,10 +12,10 @@ extern crate native_windows_gui as nwg;
 use crate::win::app::InstallerApp;
 use crate::win::app::PROGRESS_BAR_TICKS;
 use enso_install_config::ENSO_ICON_ID;
+use nwg::NativeUi;
 use nwg::stretch::geometry::Size;
 use nwg::stretch::style::Dimension;
 use nwg::stretch::style::FlexDirection;
-use nwg::NativeUi;
 
 /// Size for the Enso icon displayed in the window next to the text label.
 pub const ICON_SIZE: u32 = 32;

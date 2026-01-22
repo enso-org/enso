@@ -28,10 +28,10 @@ import type { MethodCall } from '@/util/methodPointer'
 import { parseAbsoluteProjectPath } from '@/util/projectPath'
 import { tryQualifiedName, type Identifier } from '@/util/qualifiedName'
 import { fail } from 'assert'
+import { unwrap } from 'enso-common/src/utilities/data/result'
 import { assert, expect, test } from 'vitest'
 import type { ExpressionUpdatePayload } from 'ydoc-shared/languageServerTypes'
 import { assertDefined, assertEqual, assertNotEqual } from 'ydoc-shared/util/assert'
-import { unwrap } from 'ydoc-shared/util/data/result'
 
 const prefixFixture = {
   mockSuggestion: makeModuleMethod('local.Foo.Bar.func', {

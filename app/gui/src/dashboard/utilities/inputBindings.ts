@@ -3,9 +3,7 @@
  * shortcuts.
  */
 import { isElementTextInput, isTextInputEvent } from '#/utilities/event'
-import { unsafeMutable } from '#/utilities/object'
 import { camelCaseToTitleCase } from '#/utilities/string'
-import { isOnMacOS } from '$/utils/detect'
 import type { Icon } from '@/util/iconMetadata/iconName'
 import {
   modifierFlagsForEvent,
@@ -17,6 +15,8 @@ import {
   type ModifierKey,
   type PointerButtonFlags,
 } from '@/util/shortcuts'
+import { unsafeMutable } from 'enso-common/src/utilities/data/object'
+import { isOnMacOS } from 'enso-common/src/utilities/detect'
 
 /** The target of a {@link KeyboardEvent}, {@link MouseEvent}, or {@link PointerEvent}. */
 export interface InputEventTarget<

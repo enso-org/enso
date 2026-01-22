@@ -86,10 +86,11 @@
     - starts_with self other:(Standard.Table.Column.Column|Standard.Base.Data.Text.Text|Standard.Base.Any.Any) case_sensitivity:Standard.Base.Data.Text.Case_Sensitivity.Case_Sensitivity= -> (Standard.Table.Column.Column&Standard.Base.Any.Any)
     - take self range:(Standard.Base.Data.Index_Sub_Range.Index_Sub_Range|Standard.Base.Data.Range.Range|Standard.Base.Data.Numbers.Integer)= -> (Standard.Table.Column.Column&Standard.Base.Any.Any)
     - text_cleanse self remove:(Standard.Base.Data.Vector.Vector Standard.Base.Data.Text.Regex.Named_Pattern.Named_Pattern) -> (Standard.Table.Column.Column&Standard.Base.Any.Any)
-    - text_left self n:(Standard.Table.Column.Column|Standard.Base.Data.Numbers.Integer) -> (Standard.Table.Column.Column&Standard.Base.Any.Any)
+    - text_left self n:(Standard.Table.Column.Column|Standard.Base.Data.Numbers.Integer|Standard.Base.Nothing.Nothing)= -> (Standard.Table.Column.Column&Standard.Base.Any.Any)
     - text_length self -> (Standard.Table.Column.Column&Standard.Base.Any.Any)
+    - text_mid self start:(Standard.Table.Column.Column|Standard.Base.Data.Numbers.Integer|Standard.Base.Nothing.Nothing) length:(Standard.Table.Column.Column|Standard.Base.Data.Numbers.Integer|Standard.Base.Nothing.Nothing|Standard.Table.Column.Rest_Of_String)= -> (Standard.Table.Column.Column&Standard.Base.Any.Any)
     - text_replace self term:(Standard.Base.Data.Text.Text|Standard.Base.Data.Text.Regex.Regex|Standard.Table.Column.Column)= new_text:(Standard.Base.Data.Text.Text|Standard.Table.Column.Column)= case_sensitivity:Standard.Base.Data.Text.Case_Sensitivity.Case_Sensitivity= only_first:Standard.Base.Data.Boolean.Boolean= -> (Standard.Table.Column.Column&Standard.Base.Any.Any)
-    - text_right self n:(Standard.Table.Column.Column|Standard.Base.Data.Numbers.Integer) -> (Standard.Table.Column.Column&Standard.Base.Any.Any)
+    - text_right self n:(Standard.Table.Column.Column|Standard.Base.Data.Numbers.Integer|Standard.Base.Nothing.Nothing)= -> (Standard.Table.Column.Column&Standard.Base.Any.Any)
     - to_js_object self -> Standard.Base.Data.Json.JS_Object
     - to_table self -> (Standard.Table.Table.Table|Standard.Base.Any.Any)
     - to_text self -> Standard.Base.Data.Text.Text
@@ -101,8 +102,9 @@
     - zip self right:(Standard.Table.Column.Column|Standard.Table.Table.Table)= keep_unmatched:(Standard.Base.Data.Boolean.Boolean|Standard.Base.Data.Vector.Report_Unmatched)= right_prefix:Standard.Base.Data.Text.Text= on_problems:Standard.Base.Errors.Problem_Behavior.Problem_Behavior= -> Standard.Table.Table.Table
     - || self other:(Standard.Table.Column.Column|Standard.Base.Any.Any) -> (Standard.Table.Column.Column&Standard.Base.Any.Any)
 - default_date_period column:Standard.Base.Any.Any -> Standard.Base.Any.Any
-- default_row_limit_for_read column:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - Standard.Table.Column.Column.from that:Standard.Base.Data.Vector.Vector name:Standard.Base.Data.Text.Text= -> Standard.Table.Column.Column
+- type Rest_Of_String
+- default_row_limit_for_read column:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - Standard.Base.Data.Vector.Vector.from that:Standard.Table.Column.Column -> Standard.Base.Data.Vector.Vector
 - Standard.Base.Data.Vector.Vector.from that:Standard.Table.Table.Table -> Standard.Base.Data.Vector.Vector
 - Standard.Table.Column.Column.from that:Standard.Base.Data.Range.Range name:Standard.Base.Data.Text.Text= -> Standard.Table.Column.Column

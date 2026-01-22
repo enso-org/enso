@@ -8,7 +8,10 @@ from Standard.Base.System.File_Format import File_Format_SPI
 from Standard.Base.Widget_Helpers import make_any_selector, make_format_chooser, make_separator_selector
 
 import project.Expression.Expression
+import project.In_Memory_Table.In_Memory_Table
 import project.Internal.Parse_Values_Helper
+import project.Spatial_Table.Spatial_Join_Condition
+import project.Spatial_Table.Spatial_Table
 import project.Table.Table
 import project.Value_Type.Auto
 import project.Value_Type.Value_Type
@@ -56,7 +59,11 @@ make_aggregate_column_selector table display:Display=..Always =
     maximum = Option "..Maximum" "..Maximum" [column_widget]
     minimum = Option "..Minimum" "..Minimum" [column_widget]
 
-    Single_Choice display=display values=[count, sum, average, maximum, minimum, count_distinct, first, last, count_not_nothing, count_nothing, count_not_empty, count_empty, concatenate, shortest, longest, median, percentile, mode, standard_deviation]
+    ## SQL Aggregation Function
+    sql_function = if table.underlying.is_a In_Memory_Table then [] else
+        [Option "<SQL Function>" "..SQL" [["arguments", col_list_selector]]]
+
+    Single_Choice display=display values=[count, sum, average, maximum, minimum, count_distinct, first, last, count_not_nothing, count_nothing, count_not_empty, count_empty, concatenate, shortest, longest, median, percentile, mode, standard_deviation]+sql_function
 
 ## ---
    private: true
@@ -96,7 +103,7 @@ make_column_name_vector_selector table display:Display=..Always =
 make_column_name_multi_selector : Table -> Display -> Boolean -> Boolean -> Widget
 make_column_name_multi_selector table display:Display=..Always add_regex:Boolean=False add_by_type:Boolean=False =
     names = table.column_names.map n-> Option n n.pretty
-    regex = if add_regex then [Option "<Regular Expression>" "(regex '')"] else []
+    regex = if add_regex then [Option "<Regular Expression>" "regex"] else []
     by_type = if add_by_type then [Option "<By Type>" "(..By_Type ..Integer)"] else []
     Multiple_Choice values=regex+by_type+names display=display
 
@@ -221,7 +228,9 @@ make_join_condition_selector table display:Display=..Always cache=Nothing =
     between = Option "Between" "..Between" [["left", self_selector], ["right_lower", right_selector], ["right_upper", right_selector]]
     names=[equals, equals_ci, between]
 
-    item_editor = Single_Choice display=display values=names
+    spatial = if table.is_a Spatial_Table then [Spatial_Join_Condition.default_widget self_selector right_selector] else []
+
+    item_editor = Single_Choice display=display values=names+spatial
     Vector_Editor item_editor=item_editor item_default="(..Equals "+table.column_names.first.pretty+")" display=display
 
 ## ---
@@ -305,7 +314,7 @@ parse_type_selector include_auto=True =
    Selector for writing a table to a file.
 write_table_selector : Widget
 write_table_selector =
-    can_write type = if type == JSON_Format then True else
+    can_write type = if type==JSON_Format || type==JSON_Lines_Format then True else
         Meta.meta type . methods . contains "write_table"
     all_types = [Auto_Detect] + (File_Format_SPI.get_types.filter can_write)
     Single_Choice display=Display.Always values=(all_types.flat_map .get_dropdown_options)

@@ -21,6 +21,7 @@ overrides:
       arrowParens: "always"
       experimentalTernaries: true
       tailwindConfig: ./app/gui/tailwind.config.ts
+      htmlWhitespaceSensitivity: "strict"
 
   - files: "*.md"
     options:

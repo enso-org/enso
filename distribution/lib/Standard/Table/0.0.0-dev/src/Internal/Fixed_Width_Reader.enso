@@ -99,7 +99,7 @@ private prepare_reader format:Fixed_Width_Format effective_encoding:Encoding on_
         layout : Fixed_Width_Layout ->
             FixedWidthReader.new (format_to_java layout) Nothing effective_encoding.to_java_charset skip_rows row_limit on_invalid_rows_java line_endings empty_to_null value_parser warnings_as_errors decoding_problem_aggregator java_problem_aggregator
 
-_resolve_layout layout = case layout of
+private _resolve_layout layout = case layout of
     _ : Infer_Layout -> layout
     _ : Fixed_Width_Layout -> layout
     _ : Vector -> Fixed_Width_Layout.from layout
@@ -116,7 +116,9 @@ private format_to_java layout =
 private handle_io_exception related_file ~action = Panic.catch IOException action cause->
     File_Error.wrap_io_exception related_file cause.payload
 
-## PRIVATE
+## ---
+   private: true
+   ---
 private handle_non_ascii_line_endings line_endings ~action =
     case line_endings of
         _ : Custom_Line_Ending ->
