@@ -81,7 +81,7 @@ collect_benches = Bench.build builder->
 
         run_java table =
             column_storages = In_Memory_Helpers.get_java_column_storages table
-            directions = Vector.fill java_columns.length 1
+            directions = Vector.fill column_storages.length 1
             make_key row_ix = OrderedMultiValueKey.new column_storages row_ix directions
             compare_keys key1 key2 = key1.compareTo key2 < 0
             compare_ordered_keys make_key table compare_keys
@@ -104,7 +104,7 @@ collect_benches = Bench.build builder->
 
         run_java table =
             column_storages = In_Memory_Helpers.get_java_column_storages table
-            text_folding_strategies = Vector.fill java_columns.length TextFoldingStrategy.unicodeNormalizedFold
+            text_folding_strategies = Vector.fill column_storages.length TextFoldingStrategy.unicodeNormalizedFold
             make_key row_ix = UnorderedMultiValueKey.new column_storages row_ix text_folding_strategies
             get_hash key = key.hashCode
             compute_hashcodes make_key table get_hash
