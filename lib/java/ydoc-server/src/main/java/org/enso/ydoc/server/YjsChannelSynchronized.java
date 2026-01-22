@@ -20,15 +20,6 @@ public final class YjsChannelSynchronized implements YjsChannel {
 
   @Override
   public void subscribe(Consumer<Object> messageHandler) {
-    System.out.println("YjsChannelSynchronized.subscribe " + messageHandler.getClass());
-    executor.submit(
-        () -> {
-          try {
-            channel.subscribe(messageHandler);
-          } catch (Exception e) {
-            e.printStackTrace();
-            System.out.println("YjsChannelSynchronized.subscribe ERR " + e);
-          }
-        });
+    executor.submit(() -> channel.subscribe(messageHandler));
   }
 }

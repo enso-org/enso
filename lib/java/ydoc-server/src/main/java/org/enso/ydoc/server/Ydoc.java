@@ -210,10 +210,11 @@ public final class Ydoc implements AutoCloseable {
     while (!initFuture.isDone()) {
       executor.processPendingTasks();
       try {
-        Thread.sleep(10);
+        long delay = executor.getNextTaskDelayNanos();
+        executor.waitForTasks(delay);
       } catch (InterruptedException e) {
         Thread.currentThread().interrupt();
-        throw new RuntimeException("Interrupted while waiting for Ydoc initialization", e);
+        break;
       }
     }
 

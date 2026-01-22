@@ -460,7 +460,6 @@ function createLsRpcConnection(
 }
 
 function initializeDataConnection(clientId: Uuid, doc: Y.Doc, url: string, abort: AbortScope) {
-  console.log('initializeDataConnection', clientId, url)
   const client = createDataSocket(doc, url)
   const connection = new DataServer(clientId, client, abort)
   onScopeDispose(() => connection.dispose())
