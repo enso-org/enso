@@ -151,7 +151,7 @@ export class YjsTransport extends Transport {
 
 /** A JSON-RPC transport that uses YjsChannel for communication. */
 export class YjsServerTransport extends YjsTransport {
-  private readonly proxyChannel: YjsChannel<string>
+  private readonly proxyChannel: YjsChannel
   private readonly callbacks: YjsChannelCallbacks
 
   /**
@@ -162,7 +162,7 @@ export class YjsServerTransport extends YjsTransport {
   constructor(doc: Y.Doc, channelName: string, callbacks: YjsChannelCallbacks) {
     super(doc, `backend-${channelName}`)
     this.callbacks = callbacks
-    this.proxyChannel = new YjsChannel<string>(doc, channelName)
+    this.proxyChannel = new YjsChannel(doc, channelName)
   }
 
   /**
