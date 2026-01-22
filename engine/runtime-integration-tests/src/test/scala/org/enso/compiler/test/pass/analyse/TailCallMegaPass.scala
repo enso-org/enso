@@ -183,7 +183,7 @@ case object TailCallMegaPass extends IRPass {
     val expressionWithWarning =
       if (isTailAnnotated(expression) && !isInTailPosition)
         expression.addDiagnostic(
-          Warning.WrongTco(expression.identifiedLocation())
+          new Warning.WrongTco(expression.identifiedLocation())
         )
       else expression
     expressionWithWarning match {

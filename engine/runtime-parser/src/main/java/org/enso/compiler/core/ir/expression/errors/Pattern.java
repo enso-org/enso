@@ -1,6 +1,6 @@
 package org.enso.compiler.core.ir.expression.errors;
 
-import org.enso.compiler.core.ir.Diagnostic$Kind$Interactive;
+import org.enso.compiler.core.ir.Diagnostic;
 import org.enso.compiler.core.ir.DiagnosticStorage;
 import org.enso.compiler.core.ir.IRKind;
 import org.enso.compiler.core.ir.IdentifiedLocation;
@@ -17,7 +17,7 @@ import scala.Option;
 @GenerateIR(
     interfaces = {
       Error.class,
-      Diagnostic$Kind$Interactive.class,
+      Diagnostic.Kind.Interactive.class,
       IRKind.Primitive.class,
       org.enso.compiler.core.ir.Pattern.class
     })

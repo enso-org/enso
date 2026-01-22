@@ -91,6 +91,7 @@ SBT_PROJECT_FILES = [
 # TODO: some dependencies might be unnecessary here, but checking everything is time-consuming.
 ENGINE_DIST_SOURCES = STDLIB_SOURCES + SBT_PROJECT_FILES + [
     "distribution/manifest.template.yaml",
+    "distribution/edition.template.yaml",
     "distribution/launcher-manifest.yaml",
     "distribution/enso.bundle.template",
     "distribution/bin/enso",
