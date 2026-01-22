@@ -506,7 +506,7 @@ public abstract class JavaInteropTest {
     assertEquals(result.asInt(), -1);
   }
 
-  @Test
+  @Test(timeout = 10000)
   public void multiThreadedAccess() throws Exception {
     var code1 =
         """
