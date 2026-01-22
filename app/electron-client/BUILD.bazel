@@ -147,7 +147,8 @@ genrule(
         "installer_metadata.json",
     ],
     cmd = """
-        export TAR_BIN="$$(realpath $(BSDTAR_BIN))"
+        export PATHEXT=".COM;.EXE;.BAT;.CMD"
+        export PATH="$$PATH;$$(dirname $$(realpath $(BSDTAR_BIN)))"
         DIST_DIR=$(location :dist)
         $(execpath //build_tools/install/config:prepare_payload) \
             "$$DIST_DIR/win-unpacked" \
