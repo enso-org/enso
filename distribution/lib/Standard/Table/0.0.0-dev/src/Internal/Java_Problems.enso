@@ -57,7 +57,7 @@ translate_problem p = case p.problemType of
     "LossOfBigDecimalPrecision" ->
         Loss_Of_Decimal_Precision.Warning p.getAffectedRowsCount (java_to_enso p.getExampleValue) p.getExampleValueConverted
     "ArithmeticOverflow" ->
-        storage_type = CastOperation.makeLocalType p.target_type
+        storage_type = CastOperation.makeLocalType p.targetType
         target_type = Storage.to_value_type storage_type
         example_operands = case p.exampleOperands of
             Nothing -> Nothing
@@ -65,7 +65,7 @@ translate_problem p = case p.problemType of
         Arithmetic_Overflow.Warning target_type p.affectedRowCount example_operands
     "ConversionFailure" ->
         examples = Vector.from_polyglot_array p.examples
-        storage_type = CastOperation.makeLocalType p.target_type
+        storage_type = CastOperation.makeLocalType p.targetType
         target_type = Storage.to_value_type storage_type
         related_column = p.relatedColumn
         affected_rows_count = p.affectedRowCount
