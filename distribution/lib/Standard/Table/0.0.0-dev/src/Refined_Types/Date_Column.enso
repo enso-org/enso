@@ -31,5 +31,4 @@ type Date_Column
        For each date in the column, returns the date that is the first day of
        the week containing that date.
     first_of_week self (first_day:Day_Of_Week=Day_Of_Week.Sunday) -> Column & Date_Column =
-        offset = first_day.to_integer start_at_zero=True
-        self.date_add (self.const offset - self.day_of_week) Date_Period.Day
+        self.operations_implementation.first_of_week self.column first_day
