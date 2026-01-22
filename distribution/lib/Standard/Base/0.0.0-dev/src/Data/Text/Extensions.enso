@@ -70,7 +70,7 @@ polyglot java import org.enso.base.WithProblems
     ```
             7.to_text
     ```
-Any.to_text self -> Text = Any_Helpers.to_text self
+Any.to_text self -> Text = Any_Helpers.any_to_text self
 
 ## ---
    group: convert
@@ -98,7 +98,7 @@ Any.to_text self -> Text = Any_Helpers.to_text self
    Returns a Text
 
             'Hello World!'
-Any.pretty self -> Text = Any_Helpers.pretty self
+Any.pretty self -> Text = Any_Helpers.any_pretty self
 
 ## ---
    private: true
@@ -112,7 +112,7 @@ Any.pretty self -> Text = Any_Helpers.pretty self
     ```
             7.to_display_text
     ```
-Any.to_display_text self -> Text = Any_Helpers.to_display_text self
+Any.to_display_text self -> Text = Any_Helpers.any_to_display_text self
 
 ## ---
    group: Text
