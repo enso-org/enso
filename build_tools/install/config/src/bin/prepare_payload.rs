@@ -1,14 +1,15 @@
 //! Binary to prepare installer payload for Bazel builds.
 //!
-//! This binary uses pure Rust to create the installer payload archive and metadata files,
-//! without requiring external tools like `tar`.
+//! This binary uses `ide_ci` to create the installer payload archive (via external tar)
+//! and metadata files.
 //!
 //! Usage: prepare_payload <unpacked_dir> <output_archive> <output_metadata>
 
 use enso_install_config::payload;
 use enso_install_config::prelude::*;
 
-fn main() -> Result {
+#[tokio::main]
+async fn main() -> Result {
     let args: Vec<String> = std::env::args().collect();
 
     if args.len() != 4 {
@@ -22,6 +23,5 @@ fn main() -> Result {
     let output_archive = PathBuf::from(&args[2]);
     let output_metadata = PathBuf::from(&args[3]);
 
-    // Use the synchronous, pure-Rust version that doesn't shell out to external tools
-    payload::prepare_payload_sync(&unpacked_dir, &output_archive, &output_metadata)
+    payload::prepare_payload(&unpacked_dir, &output_archive, &output_metadata).await
 }

@@ -2,11 +2,6 @@
 
 use crate::prelude::*;
 
-use flate2::Compression;
-use flate2::write::GzEncoder;
-use std::fs::File;
-use std::io::BufWriter;
-
 /// Information about the archive payload of the installer.
 ///
 /// This information is used to display progress information to the user. While it could be
@@ -34,59 +29,6 @@ impl Metadata {
         }
         Ok(Self { total_files, total_bytes })
     }
-}
-
-/// Create a tar.gz archive from a directory.
-///
-/// This is like `ide_ci::archive::compress_directory_contents`, but without calling for an
-/// external `tar` executable.
-pub fn compress_directory_to_tar_gz(source_dir: &Path, output_archive: &Path) -> Result {
-    let file = File::create(output_archive)
-        .with_context(|| format!("Failed to create archive file: {}", output_archive.display()))?;
-    let encoder = GzEncoder::new(BufWriter::new(file), Compression::default());
-    let mut archive = tar::Builder::new(encoder);
-
-    // Walk the directory and add all files/directories to the archive
-    for entry in walkdir::WalkDir::new(source_dir) {
-        let entry = entry?;
-        let full_path = entry.path();
-        let relative_path = full_path
-            .strip_prefix(source_dir)
-            .with_context(|| format!("Failed to strip prefix from {}", full_path.display()))?;
-
-        // Skip the root directory itself
-        if relative_path.as_os_str().is_empty() {
-            continue;
-        }
-
-        let file_metadata = entry.metadata()?;
-        if file_metadata.is_dir() {
-            archive.append_dir(relative_path, full_path)?;
-        } else {
-            archive.append_path_with_name(full_path, relative_path)?;
-        }
-    }
-
-    // Finish writing the archive
-    let encoder = archive.into_inner()?;
-    encoder.finish()?;
-
-    Ok(())
-}
-
-/// Take the electron-builder output and prepare the payload files for the installer.
-///
-/// It should be used for Bazel builds where `tar` may not be available in the sandbox.
-pub fn prepare_payload_sync(
-    unpacked_directory: &Path,
-    output_archive: &Path,
-    output_metadata: &Path,
-) -> Result {
-    let metadata = Metadata::from_directory(unpacked_directory)?;
-    compress_directory_to_tar_gz(unpacked_directory, output_archive)?;
-    let metadata_json = serde_json::to_string_pretty(&metadata)?;
-    std::fs::write(output_metadata, metadata_json)?;
-    Ok(())
 }
 
 /// Take the electron-builder output and prepare the payload files for the installer.

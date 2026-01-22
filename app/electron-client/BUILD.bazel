@@ -147,6 +147,9 @@ genrule(
         "installer_metadata.json",
     ],
     cmd = """
+        # Add tar toolchain to PATH so ide_ci can find it
+        export PATH="$$(dirname $(BSDTAR_BIN)):$$PATH"
+
         DIST_DIR=$(location :dist)
         $(execpath //build_tools/install/config:prepare_payload) \
             "$$DIST_DIR/win-unpacked" \
@@ -154,6 +157,7 @@ genrule(
             $(location installer_metadata.json)
     """,
     target_compatible_with = ["@platforms//os:windows"],
+    toolchains = ["//toolchains/tar:resolved_toolchain"],
     tools = ["//build_tools/install/config:prepare_payload"],
     visibility = ["//visibility:public"],
 )

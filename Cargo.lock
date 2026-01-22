@@ -1343,11 +1343,9 @@ version = "0.1.0"
 dependencies = [
  "embed-resource",
  "enso-build-base",
- "flate2",
  "ide-ci",
  "serde",
  "serde_json",
- "tar",
  "tempfile",
  "tokio",
  "walkdir",
