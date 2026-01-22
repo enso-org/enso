@@ -145,6 +145,19 @@ public class ChannelInSingleJvmTest {
     }
   }
 
+  @Test
+  public void verifyStopMethodNameReferencesRealMethodName() throws Exception {
+    var stopMethodField = Channel.class.getDeclaredField("STOP_METHOD_NAME");
+    stopMethodField.setAccessible(true);
+    var stopMethodValue = stopMethodField.get(null);
+    for (var m : Channel.class.getDeclaredMethods()) {
+      if (m.getName().equals(stopMethodValue)) {
+        return;
+      }
+    }
+    fail("STOP_METHOD_NAME field value should be consistent with method name");
+  }
+
   @Persistable(id = 8341)
   static final class Increment implements Function<Channel<?>, Increment> {
     int valueToIncrement;

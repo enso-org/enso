@@ -299,11 +299,12 @@ public final class Channel<Data extends Channel.Config> implements AutoCloseable
       return handleWithChannelThrow(channel, buf);
     } catch (Throwable ex) {
       buf.position(0);
-      ChannelExceptions.exceptionSerialize(
-          buf, ex, Channel.class.getName(), "handleWithChannelThrow");
+      ChannelExceptions.exceptionSerialize(buf, ex, Channel.class.getName(), STOP_METHOD_NAME);
       return RET_CODE_EXCEPTION;
     }
   }
+
+  private static final String STOP_METHOD_NAME = "handleWithChannelThrow";
 
   private static long handleWithChannelThrow(Channel channel, ByteBuffer buf) throws Throwable {
     // clean any previous overflow buffer
