@@ -30,5 +30,5 @@ type Date_Column
        ---
        For each date in the column, returns the date that is the first day of
        the week containing that date.
-    first_of_week self (first_day:Day_Of_Week=Day_Of_Week.Sunday) -> Column & Date_Column =
+    first_of_week self (first_day:Day_Of_Week=Day_Of_Week.Monday) -> Column & Date_Column =
         self.operations_implementation.first_of_week self.column first_day
