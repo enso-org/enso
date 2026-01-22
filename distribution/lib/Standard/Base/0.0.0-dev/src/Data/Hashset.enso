@@ -165,7 +165,32 @@ type Hashset
        private: true
        ---
     to_text : Text
-    to_text self = self.to_vector.map .pretty . join ", " "Hashset{" "}"
+    to_text self =
+        inner = self.to_vector.to_text
+        "Hashset {" + inner + "}"
+
+    ## ---
+       private: true
+       ---
+    to_display_text : Text
+    to_display_text self =
+        inner = self.to_vector.short_display_text
+        "Hashset {" + inner + "}"
+
+    ## ---
+       private: true
+       ---
+    pretty : Text
+    pretty =
+        "Hashset.from_vector " + self.to_vector.pretty
+
+## Convert from a Vector to a Hashset
+Hashset.from (that:Vector) (error_on_duplicates:Boolean=False) =
+    Hashset.from_vector that error_on_duplicates
+
+## Convert from a Hashset to a Vector
+Vector.from (that:Hashset) =
+    that.to_vector
 
 ## ---
    private: true
