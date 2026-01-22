@@ -330,7 +330,7 @@ class DataflowAnalysisTest extends CompilerTest {
     val printlnArgBExpr = printlnArgB.value.asInstanceOf[Name.Literal]
 
     // The `c =` expression
-    val cBindExpr  = fnBody.expressions(1).asInstanceOf[Expression.Binding]
+    val cBindExpr  = fnBody.expressions.apply(1).asInstanceOf[Expression.Binding]
     val cBindName  = cBindExpr.name.asInstanceOf[Name.Literal]
     val plusExpr   = cBindExpr.expression.asInstanceOf[Application.Prefix]
     val plusExprFn = plusExpr.function.asInstanceOf[Name.Literal]

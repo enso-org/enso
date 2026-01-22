@@ -205,8 +205,8 @@ class TailCallTest extends MiniPassTest {
         ir => {
           val lambda = ir.asInstanceOf[Function.Lambda]
           val fnBody = lambda.body.asInstanceOf[Expression.Block]
-          fnBody
-            .expressions(0)
+          fnBody.expressions
+            .apply(0)
             .asInstanceOf[Expression.Binding]
             .expression
             .diagnosticsList
@@ -551,8 +551,8 @@ class TailCallTest extends MiniPassTest {
             .asInstanceOf[Expression.Block]
 
           withClue("Mark the arguments as tail") {
-            nonTailCallBody
-              .expressions(0)
+            nonTailCallBody.expressions
+              .apply(0)
               .asInstanceOf[Expression.Binding]
               .expression
               .asInstanceOf[Application.Prefix]
@@ -619,8 +619,8 @@ class TailCallTest extends MiniPassTest {
             .body
             .asInstanceOf[Expression.Block]
 
-          block
-            .expressions(1)
+          block.expressions
+            .apply(1)
             .asInstanceOf[Expression.Binding]
             .expression
             .asInstanceOf[Function.Lambda]

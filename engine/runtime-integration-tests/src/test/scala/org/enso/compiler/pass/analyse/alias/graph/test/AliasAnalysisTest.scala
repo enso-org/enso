@@ -652,8 +652,8 @@ class AliasAnalysisTest extends CompilerTest {
         .scope
         .asInstanceOf[ScopeImpl]
 
-      val gScope = topLambdaBody
-        .expressions(1)
+      val gScope = topLambdaBody.expressions
+        .apply(1)
         .asInstanceOf[Expression.Binding]
         .expression
         .asInstanceOf[Expression.Block]
@@ -794,8 +794,8 @@ class AliasAnalysisTest extends CompilerTest {
     }
 
     "not resolve links for unknown symbols" in {
-      val unknownPlusId = topLambdaBody
-        .expressions(1)
+      val unknownPlusId = topLambdaBody.expressions
+        .apply(1)
         .asInstanceOf[Expression.Binding]
         .expression
         .asInstanceOf[Expression.Block]
@@ -1352,7 +1352,7 @@ class AliasAnalysisTest extends CompilerTest {
           .body
           .asInstanceOf[Expression.Block]
 
-      block.expressions(2) shouldBe an[errors.Redefined.Binding]
+      block.expressions.apply(2) shouldBe an[errors.Redefined.Binding]
       atLeast(1, block.expressions) shouldBe an[errors.Redefined.Binding]
     }
   }

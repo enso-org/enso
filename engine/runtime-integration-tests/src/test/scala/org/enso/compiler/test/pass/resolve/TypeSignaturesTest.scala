@@ -203,8 +203,10 @@ class TypeSignaturesTest extends CompilerTest {
       block.expressions.head.getMetadata(TypeSignatures) shouldBe defined
       block.expressions.head.getMetadata(DocumentationComments) shouldBe defined
 
-      block.expressions(1).getMetadata(TypeSignatures) shouldBe defined
-      block.expressions(1).getMetadata(DocumentationComments) shouldBe defined
+      block.expressions.apply(1).getMetadata(TypeSignatures) shouldBe defined
+      block.expressions
+        .apply(1)
+        .getMetadata(DocumentationComments) shouldBe defined
     }
   }
 
@@ -243,8 +245,8 @@ class TypeSignaturesTest extends CompilerTest {
     }
 
     "work recursively" in {
-      val nested = block
-        .expressions(1)
+      val nested = block.expressions
+        .apply(1)
         .asInstanceOf[Expression.Binding]
         .expression
         .asInstanceOf[Expression.Block]
