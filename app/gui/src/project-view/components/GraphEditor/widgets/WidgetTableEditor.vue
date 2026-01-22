@@ -66,6 +66,10 @@ const { rowData, columnDefs, moveColumn, moveRow, pasteFromClipboard } = useTabl
   props.updateCallback,
 )
 
+const collapsedText = computed(
+  () => `Table (${rowData.value.length} row${rowData.value.length !== 1 ? 's' : ''})`,
+)
+
 // Without this "cast" AgGridTableView gets confused when deducing its generic parameters.
 const columnDefsTyped: ComputedRef<ColDef<RowData>[]> = columnDefs
 
@@ -217,9 +221,9 @@ export const widgetDefinition = defineWidget(
       </Suspense>
     </ResizableWidget>
   </div>
-  <div v-else class="WidgetTableEditor widgetSingleLine widgetRounded widgetPill widgetApplyPadding"
-    >Table</div
-  >
+  <div v-else class="WidgetTableEditor widgetSingleLine">
+    <span class="collapsed widgetApplyPadding" v-text="collapsedText" />
+  </div>
 </template>
 
 <style scoped>
@@ -231,6 +235,10 @@ export const widgetDefinition = defineWidget(
 .WidgetTableEditor.widgetSingleLine .inner {
   width: 100%;
   height: 100%;
+}
+
+.collapsed {
+  opacity: 0.7;
 }
 
 :deep(.newColumnCell) {
