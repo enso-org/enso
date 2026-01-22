@@ -1331,8 +1331,9 @@ private[runtime] class IrToTruffle(
         )
         val childScope = childFactory.scope
 
-        val blockNode = childFactory.processBlock(block.copy(suspended = false))
-
+        val blockNode = childFactory.processBlock(
+          block.copyBuilder().suspended(false).build()
+        )
         val defaultRootNode = ClosureRootNode.build(
           language,
           childScope,

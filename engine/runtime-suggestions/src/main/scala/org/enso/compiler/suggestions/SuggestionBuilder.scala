@@ -172,23 +172,23 @@ final class SuggestionBuilder[A: IndexedSource](
             )
             go(tree += Tree.Node(conversion, Vector()), scope)
 
-          case Expression.Binding(
-                name,
-                lambda,
-                _,
-                _
-              )
-              if lambda
-                .isInstanceOf[Function.Lambda] && name.location.isDefined =>
-            val body = lambda.asInstanceOf[Function.Lambda].body()
-            val args = lambda
+          case bind: Expression.Binding
+              if bind
+                .expression()
+                .isInstanceOf[Function.Lambda] && bind
+                .name()
+                .location
+                .isDefined =>
+            val body = bind.expression().asInstanceOf[Function.Lambda].body()
+            val args = bind
+              .expression()
               .asInstanceOf[Function.Lambda]
               .arguments()
             val typeSignature = ir.getMetadata(TypeSignatures)
             val function = buildFunction(
               body.getExternalId,
               module,
-              name,
+              bind.name(),
               args,
               scope.location.get,
               doc,
@@ -200,20 +200,19 @@ final class SuggestionBuilder[A: IndexedSource](
             )
             go(tree += Tree.Node(function, subforest), scope)
 
-          case Expression.Binding(name, expr, _, _)
-              if name.location.isDefined =>
+          case bind: Expression.Binding if bind.name.location.isDefined =>
             val typeSignature = ir.getMetadata(TypeSignatures)
             val local = buildLocal(
-              expr.getExternalId,
+              bind.expression().getExternalId,
               module,
-              name.name,
+              bind.name.name,
               scope.location.get,
               doc,
               typeSignature
             )
             val subforest = go(
               Vector.newBuilder,
-              Scope(expr.children, expr.location)
+              Scope(bind.expression().children, bind.expression().location)
             )
             go(tree += Tree.Node(local, subforest), scope)
 

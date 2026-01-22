@@ -232,21 +232,21 @@ case object SuspendedArguments extends IRPass {
     */
   private def resolveExpression(expression: Expression): Expression = {
     expression.transformExpressions {
-      case bind @ Expression.Binding(_, expr, _, _) =>
+      case bind: Expression.Binding =>
         val newExpr = bind.getMetadata(TypeSignatures) match {
           case Some(Signature(signature, _)) =>
-            expr match {
+            bind.expression() match {
               case lam: Function.Lambda =>
                 lam.copyWithArgumentsAndBody(
                   computeSuspensions(lam.arguments(), signature),
                   resolveExpression(lam.body())
                 )
-              case _ => expr
+              case _ => bind.expression()
             }
-          case None => expr
+          case None => bind.expression()
         }
 
-        bind.copy(expression = newExpr)
+        bind.copyBuilder().expression(newExpr).build()
       case lam: Function.Lambda =>
         val args = lam.arguments()
         val body = lam.body()

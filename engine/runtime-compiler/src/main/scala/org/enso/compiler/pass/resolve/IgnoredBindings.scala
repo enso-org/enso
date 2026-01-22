@@ -150,17 +150,17 @@ case object IgnoredBindings extends IRPass {
         .build()
 
       binding
-        .copy(
-          name       = newName,
-          expression = resolveExpression(binding.expression, supply)
-        )
+        .copyBuilder()
+        .name(newName)
+        .expression(resolveExpression(binding.expression, supply))
+        .build()
         .updateMetadata(new MetadataPair(this, State.Ignored))
     } else {
       setNotIgnored(
         binding
-          .copy(
-            expression = resolveExpression(binding.expression, supply)
-          )
+          .copyBuilder()
+          .expression(resolveExpression(binding.expression, supply))
+          .build()
       )
     }
   }
