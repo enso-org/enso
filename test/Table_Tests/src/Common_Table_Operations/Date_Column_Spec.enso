@@ -45,7 +45,8 @@ add_date_columns_specs suite_builder setup =
             expected = build_sorted_table [["X", [Date.new 1987 1 1, Date.new 2000 2 29, Date.new 2005 4 30]], ["first_of_month([X])", [Date.new 1987 1 1, Date.new 2000 2 1, Date.new 2005 4 1]], ["end_of_month([X])", [Date.new 1987 1 31, Date.new 2000 2 29, Date.new 2005 4 30]]]
 
             result = table . set (expr "first_of_month([X])") . set (expr "end_of_month([X])")
-            result.should_equal expected
+            result.at "first_of_month([X])" . to_vector . should_equal [Date.new 1987 1 1, Date.new 2000 2 1, Date.new 2005 4 1]
+            result.at "end_of_month([X])" . to_vector . should_equal [Date.new 1987 1 31, Date.new 2000 2 29, Date.new 2005 4 30]
 
         group_builder.specify "first_of_month and end_of_month error on non-date columns" <|
             non_date_column = build_sorted_table [["X", [1, 2, 3, 4]]] . at 0
