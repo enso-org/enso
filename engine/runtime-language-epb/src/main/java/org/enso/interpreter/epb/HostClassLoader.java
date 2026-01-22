@@ -89,6 +89,9 @@ final class HostClassLoader extends URLClassLoader implements AutoCloseable, Tru
     try {
       return pendingClass.get();
     } catch (InterruptedException | ExecutionException e) {
+      if (e.getCause() instanceof ClassCastException cce) {
+        throw cce;
+      }
       throw new ClassNotFoundException("Unable to find class " + name, e);
     }
   }
