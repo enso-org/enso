@@ -53,6 +53,10 @@ public final class FloatType implements StorageType<Double>, NumericType {
 
   @Override
   public Double valueAsType(Object value) {
+    if (value == null) {
+      return null;
+    }
+
     if (NumericConverter.isCoercibleToDouble(value) || value instanceof BigDecimal) {
       return NumericConverter.coerceToDouble(value);
     }

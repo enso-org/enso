@@ -99,6 +99,11 @@ public interface Builder {
    *     ColumnStorage#getType() type} over the same {@link ColumnStorage#addressOfData() data}
    */
   static <T> ColumnStorage<T> makeLocal(ColumnStorage<T> storage) {
+    var isProxy = Proxy.isProxyClass(storage.getClass());
+    if (!isProxy) {
+      return storage;
+    }
+
     var localType = StorageType.makeLocal(storage.getType());
     if (storage.getSize() == 0) {
       return Builder.makeEmpty(localType, 0);

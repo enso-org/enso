@@ -112,6 +112,10 @@ public final class IntegerType implements StorageType<Long>, NumericType {
 
   @Override
   public Long valueAsType(Object value) {
+    if (value == null) {
+      return null;
+    }
+
     if (NumericConverter.isCoercibleToLong(value)) {
       return NumericConverter.coerceToLong(value);
     }

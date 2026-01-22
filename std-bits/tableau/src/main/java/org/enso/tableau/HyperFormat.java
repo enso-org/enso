@@ -31,6 +31,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.IntStream;
+
+import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.type.BigDecimalType;
 import org.enso.table.data.column.storage.type.BigIntegerType;
@@ -353,6 +355,11 @@ public class HyperFormat {
       throws IOException {
     assert names.length == storages.length;
 
+    // Localise storages to avoid issues with foreign memory access.
+    var localisedStorages = Arrays.stream(storages)
+        .map(Builder::makeLocal)
+        .toArray(ColumnStorage<?>[]::new);
+
     List<String> warningUnmatchedColumns = new ArrayList<>();
     getProcess();
     try (var connection =
@@ -361,11 +368,11 @@ public class HyperFormat {
       if (append && tableExists(schemaName, tableName, connection)) {
         tableDef = connection.getCatalog().getTableDefinition(new TableName(schemaName, tableName));
       } else {
-        tableDef = createTable(schemaName, tableName, names, storages, connection);
+        tableDef = createTable(schemaName, tableName, names, localisedStorages, connection);
       }
       insertData(
           names,
-          storages,
+          localisedStorages,
           tableDef,
           connection,
           matchColumnsByName,
