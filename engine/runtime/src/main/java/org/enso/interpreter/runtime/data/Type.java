@@ -522,6 +522,7 @@ public final class Type extends EnsoObject {
    * @return the single constructor associated with this type
    * @throws AssertionError if there is none or more of constructors
    */
+  @TruffleBoundary
   public AtomConstructor getSingleConstructor() {
     var it = getConstructors().values().iterator();
     assert it.hasNext();
