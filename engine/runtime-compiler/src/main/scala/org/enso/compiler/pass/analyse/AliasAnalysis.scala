@@ -518,8 +518,8 @@ case object AliasAnalysis extends IRPass {
 
   private def isSyntheticSelf(name: Name): Boolean = {
     name match {
-      case self: Name.Self if self.synthetic() => true
-      case _                                   => false
+      case self: Name.Self => self.synthetic()
+      case _               => false
     }
   }
 
