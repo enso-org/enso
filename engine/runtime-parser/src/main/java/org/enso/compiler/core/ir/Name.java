@@ -56,6 +56,21 @@ public interface Name extends Expression, IRKind.Primitive {
       return new Builder(this).typePointer(typePointer).build();
     }
 
+    @Override
+    public MethodReference mapExpressions(Function<Expression, Expression> fn) {
+      Option<Name> newTypePointer;
+      if (typePointer().isDefined()) {
+        newTypePointer = Option.apply(typePointer().get().mapExpressions(fn));
+      } else {
+        newTypePointer = Option.empty();
+      }
+      var newMethodName = methodName().mapExpressions(fn);
+      return new Builder(this)
+          .typePointer(newTypePointer)
+          .methodName(newMethodName)
+          .build();
+    }
+
     /**
      * Generates a location for the reference from the segments.
      *
@@ -131,6 +146,11 @@ public interface Name extends Expression, IRKind.Primitive {
 
     public Builder copyBuilder() {
       return new Builder(this);
+    }
+
+    @Override
+    public Qualified mapExpressions(Function<Expression, Expression> fn) {
+      return this;
     }
 
     @Override
