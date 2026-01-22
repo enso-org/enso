@@ -166,6 +166,21 @@ impl Program for Tar {
     fn executable_name(&self) -> &'static str {
         "tar"
     }
+
+    fn lookup(&self) -> Result<crate::program::location::Location<Self>> {
+        // Check for TAR_BIN environment variable that points directly to the tar binary.
+        // This is used by Bazel builds where the tar toolchain provides the binary.
+        if let Ok(tar_bin) = std::env::var("TAR_BIN") {
+            let tar_path = PathBuf::from(&tar_bin);
+            if tar_path.exists() {
+                return Ok(crate::program::location::Location::new(tar_path));
+            }
+        }
+        // Fall back to default lookup via PATH
+        crate::program::Resolver::<Self>::new(self.executable_names(), self.default_locations())?
+            .lookup()
+            .map(crate::program::location::Location::new)
+    }
 }
 
 impl Tar {

@@ -10,7 +10,7 @@
 
 import { createRequire } from 'node:module'
 import path from 'node:path'
-import { process } from 'node:process'
+import process from 'node:process'
 
 const configPath = process.argv[2]
 if (!configPath) {

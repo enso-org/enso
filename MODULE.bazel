@@ -32,7 +32,7 @@ single_version_override(
 node = use_extension("@rules_nodejs//nodejs:extensions.bzl", "node")
 node.toolchain(node_version = "22.11.0")
 
-tar_toolchain = use_extension("//toolchains:tar/extensions.bzl", "tar_toolchain")
+tar_toolchain = use_extension("//toolchains/tar:extensions.bzl", "tar_toolchain")
 use_repo(tar_toolchain, "tar_toolchain")
 
 register_toolchains("//toolchains:windows_builtin_tar_toolchain")
