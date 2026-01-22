@@ -90,7 +90,6 @@ export class YjsChannel<T = unknown> extends ObservableV2<WebSocketEventHandlers
    * @returns A function to unsubscribe the handler
    */
   subscribe(handler: MessageHandler<T>): () => void {
-    console.log('YjsChannel.subscribe', handler)
     this.handlers.add(handler)
     return () => {
       this.handlers.delete(handler)
@@ -120,7 +119,9 @@ export class YjsChannel<T = unknown> extends ObservableV2<WebSocketEventHandlers
       try {
         cb(new Event('open') as WebSocketEventMap[K])
       } catch (e) {
-        console.error('YjsChannel error handling open event', e)
+        const error = new Error(`YjsChannel error handling open event ${e}`)
+        ;(error as any).target = e
+        this.emitError(error)
       }
       // Don't add to listeners if 'once' option is set
       if (options?.once) {
