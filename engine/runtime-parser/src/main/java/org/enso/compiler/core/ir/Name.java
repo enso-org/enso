@@ -112,13 +112,23 @@ public interface Name extends Expression, IRKind.Primitive {
       return showCode();
     }
 
+    /**
+     * Checks whether `this` and `that` reference the same method.
+     *
+     * @param that the other method reference to check against
+     * @return `true`, if `this` and `that` represent the same method, otherwise `false`
+     */
     public boolean isSameReferenceAs(MethodReference that) {
+      boolean sameTypePointer;
       if (typePointer().isDefined() && that.typePointer().isDefined()) {
         var thisTP = typePointer().get();
         var thatTP = that.typePointer().get();
-        return thisTP.name().equals(thatTP.name());
+        sameTypePointer = thisTP.name().equals(thatTP.name());
+      } else {
+        sameTypePointer = typePointer().isEmpty() && that.typePointer().isEmpty();
       }
-      return false;
+      var sameMethodName = methodName().name().equals(that.methodName().name());
+      return sameTypePointer && sameMethodName;
     }
   }
 
