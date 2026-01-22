@@ -244,7 +244,7 @@ public interface Name extends Expression, IRKind.Primitive {
         IdentifiedLocation identifiedLocation,
         MetadataStorage passData,
         DiagnosticStorage diagnostics) {
-      super(name, isMethod, origName, identifiedLocation, passData, diagnostics);
+      super(name.intern(), isMethod, origName, identifiedLocation, passData, diagnostics);
     }
 
     public static Builder builder() {
