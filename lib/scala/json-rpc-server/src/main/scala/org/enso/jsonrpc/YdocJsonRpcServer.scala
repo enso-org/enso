@@ -68,8 +68,12 @@ object YdocJsonRpcServer {
 
     override def onConnect(channel: YjsChannel): Unit = {
       logger.info(s"ServerCallbacks.onConnect ${channel.getClass()}")
-      System.err.println(s"  is proxy ${java.lang.reflect.Proxy.isProxyClass(channel.getClass())})")
-      System.err.println(s"  invocation ${java.lang.reflect.Proxy.getInvocationHandler(channel)})")
+      System.err.println(
+        s"  is proxy ${java.lang.reflect.Proxy.isProxyClass(channel.getClass())})"
+      )
+      System.err.println(
+        s"  invocation ${java.lang.reflect.Proxy.getInvocationHandler(channel)})"
+      )
 
       val incomingMessageHandler =
         system.actorOf(
@@ -82,7 +86,8 @@ object YdocJsonRpcServer {
           s"message-handler-supervisor-${UUID.randomUUID()}"
         )
       try {
-        val toSubscribe = new OnMessageHandler(messageCallbacks, incomingMessageHandler)
+        val toSubscribe =
+          new OnMessageHandler(messageCallbacks, incomingMessageHandler)
         channel.subscribe(toSubscribe)
       } catch {
         case e: Exception =>
@@ -99,7 +104,11 @@ object YdocJsonRpcServer {
     }
   }
 
-  final class OnMessageHandler(messageCallbacks: List[MessageHandler.WebMessage => Unit], incomingMessageHandler: ActorRef) extends java.util.function.Consumer[Object] with LazyLogging {
+  final class OnMessageHandler(
+    messageCallbacks: List[MessageHandler.WebMessage => Unit],
+    incomingMessageHandler: ActorRef
+  ) extends java.util.function.Consumer[Object]
+      with LazyLogging {
     def accept(message: Object): Unit = {
       message match {
         case m: String =>
@@ -113,7 +122,9 @@ object YdocJsonRpcServer {
     }
   }
 
-  final class OutgoingMessageHandler(channel: YjsChannel) extends Actor with LazyLogging {
+  final class OutgoingMessageHandler(channel: YjsChannel)
+      extends Actor
+      with LazyLogging {
 
     override def receive: Receive = {
       case MessageHandler.WebMessage(message) =>
