@@ -65,10 +65,7 @@ public interface Name extends Expression, IRKind.Primitive {
         newTypePointer = Option.empty();
       }
       var newMethodName = methodName().mapExpressions(fn);
-      return new Builder(this)
-          .typePointer(newTypePointer)
-          .methodName(newMethodName)
-          .build();
+      return new Builder(this).typePointer(newTypePointer).methodName(newMethodName).build();
     }
 
     /**

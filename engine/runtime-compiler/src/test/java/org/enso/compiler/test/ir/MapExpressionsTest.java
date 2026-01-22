@@ -169,10 +169,8 @@ public class MapExpressionsTest {
   @Test
   public void methodReference_MethodName_IsNotCollected() {
     var methodName = Name.Literal.builder().name("method").isMethod(false).build();
-    var methodRef = Name.MethodReference.builder()
-        .methodName(methodName)
-        .typePointer(Option.empty())
-        .build();
+    var methodRef =
+        Name.MethodReference.builder().methodName(methodName).typePointer(Option.empty()).build();
     var collected = mapExpressions(methodRef);
     assertThat("No expressions are collected", collected.isEmpty(), is(true));
   }
@@ -181,10 +179,11 @@ public class MapExpressionsTest {
   public void methodReference_TypePointer_IsNotCollected() {
     var methodName = Name.Literal.builder().name("method").isMethod(false).build();
     var type = Name.Literal.builder().name("Type").isMethod(false).build();
-    var methodRef = Name.MethodReference.builder()
-        .methodName(methodName)
-        .typePointer(Option.apply(type))
-        .build();
+    var methodRef =
+        Name.MethodReference.builder()
+            .methodName(methodName)
+            .typePointer(Option.apply(type))
+            .build();
     var collected = mapExpressions(methodRef);
     assertThat("No expressions are collected", collected.isEmpty(), is(true));
   }
