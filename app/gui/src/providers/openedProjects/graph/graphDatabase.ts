@@ -468,6 +468,10 @@ export class GraphDb {
     if (changes.has('colorOverride')) {
       node.colorOverride = changes.get('colorOverride')
     }
+    const newDisplayMode = changes.get('displayMode')
+    if (newDisplayMode) {
+      node.isExpanded = newDisplayMode === 'expanded'
+    }
   }
 
   /** TODO: Add docs */

@@ -30,6 +30,7 @@ const nodeMetadata = z
     }),
     visualization: visualizationMetadata.optional().catch(() => undefined),
     colorOverride: z.string().optional(),
+    displayMode: z.enum(['expanded', 'collapsed']).optional(),
   })
   .passthrough()
 

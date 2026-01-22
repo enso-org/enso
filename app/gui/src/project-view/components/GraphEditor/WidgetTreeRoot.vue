@@ -23,6 +23,7 @@ const props = defineProps<{
   /** Ports that are not targetable by default; see {@link NodeDataFromAst}. */
   conditionalPorts?: Set<Ast.AstId> | undefined
   extended?: boolean
+  expanded?: boolean
   updateCallback: UpdateHandler
 }>()
 const emit = defineEmits<{
@@ -53,12 +54,12 @@ const treeRoot = templateRef('treeRoot')
 const rootElementWithFallback = computed(() => props.rootElement ?? treeRoot.value)
 
 const primaryApplication = computed(() => props.primaryApplication ?? emptyPrimaryApplication())
-const extended = computed(() => props.extended ?? false)
 const tree = provideWidgetTree(
   toRef(props, 'externalId'),
   rootElementWithFallback,
   toRef(props, 'conditionalPorts'),
-  extended,
+  toRef(props, 'extended'),
+  toRef(props, 'expanded'),
   anyLayoutAnimationActive,
   primaryApplication,
 )

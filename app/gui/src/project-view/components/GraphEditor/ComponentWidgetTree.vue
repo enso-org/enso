@@ -29,6 +29,7 @@ const props = defineProps<{
   /** Ports that are not targetable by default; see {@link NodeDataFromAst}. */
   conditionalPorts: Set<Ast.AstId>
   extended: boolean
+  expanded: boolean
 }>()
 
 const { module, graph } = useCurrentProject()
@@ -87,6 +88,7 @@ export const ICON_WIDTH = 16
     :rootElement="rootElement"
     :conditionalPorts="conditionalPorts"
     :extended="extended"
+    :expanded="expanded"
     :updateCallback="handleWidgetUpdates"
     @currentEditChanged="onCurrentEditChange"
   />

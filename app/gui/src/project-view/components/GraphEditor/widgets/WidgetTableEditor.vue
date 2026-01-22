@@ -11,6 +11,7 @@ import {
   useTableInputArgument,
 } from '@/components/GraphEditor/widgets/WidgetTableEditor/tableInputArgument'
 import AgGridTableView from '@/components/shared/AgGridTableView.vue'
+import { injectWidgetTree } from '@/providers/widgetTree'
 import { targetIsOutside } from '@/util/autoBlur'
 import { ProjectPath } from '@/util/projectPath'
 import type { Identifier, QualifiedName } from '@/util/qualifiedName'
@@ -33,6 +34,7 @@ import { useTableEditHandler } from './WidgetTableEditor/editHandler'
 
 const props = defineProps(widgetProps(widgetDefinition))
 const { suggestionDb, module } = useCurrentProject()
+const tree = injectWidgetTree()
 const grid = ref<
   ComponentInstance<typeof AgGridTableView<RowData, any>> &
     ComponentExposed<typeof AgGridTableView<RowData, any>>
@@ -94,8 +96,6 @@ watch(
   () => props.input,
   () => grid.value?.gridApi?.refreshCells(),
 )
-
-// === Resizing ===
 
 // === Column and Row Dragging ===
 
@@ -180,14 +180,14 @@ export const widgetDefinition = defineWidget(
 </script>
 
 <template>
-  <div class="WidgetTableEditor widgetExpanded">
+  <div v-if="tree.expanded" class="WidgetTableEditor widgetExpanded">
     <ResizableWidget
       :input="input"
       metadataKey="WidgetTableEditor"
       :config="config"
       :updateCallback="updateCallback"
     >
-      <Suspense>
+      <Suspense v-if="tree.expanded">
         <AgGridTableView
           ref="grid"
           class="inner"
@@ -217,15 +217,18 @@ export const widgetDefinition = defineWidget(
       </Suspense>
     </ResizableWidget>
   </div>
+  <div v-else class="WidgetTableEditor widgetSingleLine widgetRounded widgetPill widgetApplyPadding"
+    >Table</div
+  >
 </template>
 
 <style scoped>
-.WidgetTableEditor {
+.WidgetTableEditor.widgetExpanded {
   border-radius: var(--node-port-border-radius);
   position: relative;
 }
 
-.inner {
+.WidgetTableEditor.widgetSingleLine .inner {
   width: 100%;
   height: 100%;
 }

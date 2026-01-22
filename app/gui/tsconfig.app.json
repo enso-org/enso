@@ -223,6 +223,7 @@
     "./src/dashboard/data/serviceCredentials/CredentialsFormFooter.tsx",
     "./src/dashboard/data/serviceCredentials/GoogleCredentialsForm.tsx",
     "./src/dashboard/data/serviceCredentials/MS365CredentialsForm.tsx",
+    "./src/dashboard/data/serviceCredentials/SalesforceCredentialsForm.tsx",
     "./src/dashboard/data/serviceCredentials/SnowflakeCredentialsForm.tsx",
     "./src/dashboard/data/serviceCredentials/StravaCredentialsForm.tsx",
     "./src/dashboard/data/serviceCredentials/constants.ts",
@@ -230,6 +231,7 @@
     "./src/dashboard/data/serviceCredentials/index.ts",
     "./src/dashboard/data/serviceCredentials/logic.ts",
     "./src/dashboard/data/serviceCredentials/ms365.ts",
+    "./src/dashboard/data/serviceCredentials/salesforce.ts",
     "./src/dashboard/data/serviceCredentials/snowflake.ts",
     "./src/dashboard/data/serviceCredentials/strava.ts",
     "./src/dashboard/data/serviceCredentials/types.ts",
@@ -852,7 +854,6 @@
     "./src/project-view/util/projectPath.ts",
     "./src/project-view/util/qualifiedName.ts",
     "./src/project-view/util/react.tsx",
-    "./src/project-view/util/reactivity.ts",
     "./src/project-view/util/regexp.ts",
     "./src/project-view/util/router.ts",
     "./src/project-view/util/shortcuts.ts",
@@ -934,6 +935,7 @@
     "./src/utils/dom.ts",
     "./src/utils/load.ts",
     "./src/utils/queryClient.ts",
+    "./src/utils/reactivity.ts",
     "./src/utils/style/tabBar.ts",
     "./src/utils/zustand.ts"
   ]

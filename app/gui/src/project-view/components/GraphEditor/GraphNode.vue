@@ -48,7 +48,16 @@ import type { Opt } from '@/util/data/opt'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import { Ok } from 'enso-common/src/utilities/data/result'
-import { computed, onUnmounted, ref, toRef, watch, watchEffect, type ComponentInstance } from 'vue'
+import {
+  computed,
+  onUnmounted,
+  ref,
+  toRef,
+  watch,
+  watchEffect,
+  watchSyncEffect,
+  type ComponentInstance,
+} from 'vue'
 import type { VisualizationIdentifier } from 'ydoc-shared/yjsModel'
 
 const contentNodeStyle = {
@@ -115,6 +124,8 @@ const extended = computed<boolean>(
   () => nodeSelection != null && nodeSelection.isSoleSelection(nodeId.value),
 )
 watch(extended, (extended) => graph.nodeExtended.set(nodeId.value, extended), { immediate: true })
+
+const expanded = toRef(() => props.node.isExpanded)
 
 const nodeHovered = ref(false)
 watch(nodeHovered, (hovered) => graph.nodeHovered.set(nodeId.value, hovered))
@@ -364,6 +375,7 @@ const isExpanded = computed({
   get: () => props.node.isExpanded,
   set: (value) => graph.setNodeDisplayMode(nodeId.value, value ? 'expanded' : 'collapsed'),
 })
+watchSyncEffect(() => console.debug(isExpanded.value))
 
 const actionHandlers = registerHandlers(
   selectBeforeAction({
@@ -405,6 +417,7 @@ const nodeMenuActions: DisplayableActionName[] = [
   'component.toggleVisualization',
   'component.createNewNode',
   'component.editingComment',
+  'component.toggleExpanded',
   'component.recompute',
   'component.pickColor',
   'component.enterNode',
@@ -483,6 +496,7 @@ const nodeName = computed(() => props.node.pattern?.code())
           :primaryApplication="primaryApplication"
           :conditionalPorts="props.node.conditionalPorts"
           :extended="extended"
+          :expanded="expanded"
         />
       </div>
     </ContextMenuTrigger>

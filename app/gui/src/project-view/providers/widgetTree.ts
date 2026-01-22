@@ -14,6 +14,7 @@ export const [provideWidgetTree, injectWidgetTree] = createContextStore(
     rootElement: Ref<Opt<HTMLElement>>,
     conditionalPorts: Ref<Set<Ast.AstId> | undefined>,
     extended: Ref<boolean>,
+    expanded: Ref<boolean>,
     hasActiveAnimations: Ref<boolean>,
     primaryApplication: Ref<PrimaryApplication>,
   ) => {
@@ -24,6 +25,7 @@ export const [provideWidgetTree, injectWidgetTree] = createContextStore(
       rootElement,
       conditionalPorts,
       extended,
+      expanded,
       hasActiveAnimations,
       primaryApplication,
       setCurrentEditRoot,
