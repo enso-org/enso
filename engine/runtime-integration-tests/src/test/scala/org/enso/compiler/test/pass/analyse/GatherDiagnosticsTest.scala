@@ -25,7 +25,7 @@ class GatherDiagnosticsTest extends CompilerTest {
   "Error Gathering" should {
     val error1 =
       errors.Syntax.create(null, errors.Syntax.UnrecognizedToken.INSTANCE)
-    val plusOp = Name.Literal("+", isMethod = true, identifiedLocation = null)
+    val plusOp = Name.Literal.builder().name("+").isMethod(true).build()
     val plusApp = Application.Prefix
       .builder()
       .function(plusOp)
@@ -47,7 +47,7 @@ class GatherDiagnosticsTest extends CompilerTest {
           DefinitionArgument.Specified
             .builder()
             .name(
-              Name.Literal("bar", isMethod = false, identifiedLocation = null)
+              Name.Literal.builder().name("bar").isMethod(false).build()
             )
             .suspended(false)
             .build()
@@ -71,27 +71,31 @@ class GatherDiagnosticsTest extends CompilerTest {
       val error3 =
         errors.Syntax.create(null, errors.Syntax.AmbiguousExpression.INSTANCE)
 
-      val typeName =
-        Name.Literal("Foo", isMethod = false, identifiedLocation = null)
+      val typeName = Name.Literal.builder().name("Foo").isMethod(false).build()
       val method1Name =
-        Name.Literal("bar", isMethod = false, identifiedLocation = null)
+        Name.Literal.builder().name("bar").isMethod(false).build()
       val method2Name =
-        Name.Literal("baz", isMethod = false, identifiedLocation = null)
-      val fooName =
-        Name.Literal("foo", isMethod = false, identifiedLocation = null)
+        Name.Literal.builder().name("baz").isMethod(false).build()
+      val fooName = Name.Literal.builder().name("foo").isMethod(false).build()
 
-      val method1Ref =
-        Name.MethodReference(
-          Some(Name.Qualified(List(typeName), identifiedLocation = null)),
-          method1Name,
-          identifiedLocation = null
+      val method1Ref = Name.MethodReference
+        .builder()
+        .typePointer(
+          Some(
+            Name.Qualified.builder().parts(List(typeName)).build()
+          )
         )
-      val method2Ref =
-        Name.MethodReference(
-          Some(Name.Qualified(List(typeName), identifiedLocation = null)),
-          method2Name,
-          identifiedLocation = null
+        .methodName(method1Name)
+        .build()
+      val method2Ref = Name.MethodReference
+        .builder()
+        .typePointer(
+          Some(
+            Name.Qualified.builder().parts(List(typeName)).build()
+          )
         )
+        .methodName(method2Name)
+        .build()
 
       val module = new Module(
         List(),

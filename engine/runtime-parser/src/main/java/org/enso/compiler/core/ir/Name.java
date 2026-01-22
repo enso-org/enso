@@ -328,7 +328,7 @@ public interface Name extends Expression, IRKind.Primitive {
     }
 
     public static Builder builder() {
-      return new Builder();
+      return new Builder().synthetic(false);
     }
 
     @Override
