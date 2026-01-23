@@ -32,6 +32,7 @@ public class TypedStorage<T> extends Storage<T> {
 
   @Override
   public long addressOfData() {
+    var storageType = StorageType.ofStorage(this);
     if (offheapBuffer == null && getType() instanceof TextType) {
       var validity = new BitSet();
       offheapBuffer = OffHeapStorages.toArrowTextBuffer(data, validity);
