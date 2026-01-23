@@ -514,7 +514,7 @@ public abstract class JavaInteropTest {
         polyglot java import org.enso.example.deps.one.DepAClass
 
         main =
-          DepAClass.new.expToNeg 2
+          DepAClass.expToNeg 2
         """;
     var code2 =
         """
@@ -522,7 +522,7 @@ public abstract class JavaInteropTest {
         polyglot java import org.enso.example.deps.two.DepBClass
 
         main =
-          DepBClass.new.sigmoid 2
+          DepBClass.sigmoid 2
         """;
     List<Callable<Double>> cases = new ArrayList<>();
     cases.add(() -> ctx().evalModule(code1).asDouble());
