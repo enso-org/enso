@@ -520,19 +520,21 @@ class App {
       const projectToOpen = args.startup.project
       if (projectToOpen.startsWith(`${DEEP_LINK_SCHEME}:`)) {
         try {
-          await runHybridProjectByUrl(
+          const exitCode = await runHybridProjectByUrl(
             EnsoPath(projectToOpen.toString()),
             await createRemoteBackend(),
           )
-          this.exit(0)
+          // Forward exact failure exit code if available (or 0 if no error).
+          this.exit(exitCode)
         } catch (error) {
           console.error(`Error starting hybrid project '${projectToOpen}':`, error)
           return this.exit(1)
         }
       } else if (projectToOpen) {
         try {
-          await runLocalProjectByPath(Path(projectToOpen))
-          this.exit(0)
+          const exitCode = await runLocalProjectByPath(Path(projectToOpen))
+          // Forward exact failure exit code if available (or 0 if no error).
+          this.exit(exitCode)
         } catch (error) {
           console.error(`Error starting local project '${projectToOpen}':`, error)
           return this.exit(1)

@@ -175,11 +175,12 @@ export class ProjectService {
   }
 
   /** Run an existing Enso project at the specified path. */
-  async runProject(projectId: UUID, projectsDirectory: Path, cloud?: CloudParams): Promise<void> {
+  async runProject(projectId: UUID, projectsDirectory: Path, cloud?: CloudParams): Promise<number> {
     const project = await this.getProject(projectId, projectsDirectory, true)
     this.logger.debug(`Running project '${project.path}'`)
-    await this.runner.runProject(project.path, this.projectEnvVars(cloud))
+    const exitCode = await this.runner.runProject(project.path, this.projectEnvVars(cloud))
     this.logger.debug(`Project '${project.path}' finished running`)
+    return exitCode
   }
 
   /** Open a project and starts its language server. */
