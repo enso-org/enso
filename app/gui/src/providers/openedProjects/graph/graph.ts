@@ -368,11 +368,9 @@ export function createGraphStore(
   }
 
   function setNodeDisplayMode(nodeId: NodeId, mode: 'expanded' | 'collapsed') {
-    console.debug('Setting node display mode', nodeId, mode)
     const metadata = module.mutableNodeMetadata(db.idFromExternal(nodeId))
     if (!metadata) return
     const oldMode = metadata.get('displayMode')
-    console.debug(oldMode, '!==', mode, '?')
     if (oldMode !== mode) metadata.set('displayMode', mode)
   }
 

@@ -48,16 +48,7 @@ import type { Opt } from '@/util/data/opt'
 import { Rect } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
 import { Ok } from 'enso-common/src/utilities/data/result'
-import {
-  computed,
-  onUnmounted,
-  ref,
-  toRef,
-  watch,
-  watchEffect,
-  watchSyncEffect,
-  type ComponentInstance,
-} from 'vue'
+import { computed, onUnmounted, ref, toRef, watch, watchEffect, type ComponentInstance } from 'vue'
 import type { VisualizationIdentifier } from 'ydoc-shared/yjsModel'
 
 const contentNodeStyle = {
@@ -375,7 +366,6 @@ const isExpanded = computed({
   get: () => props.node.isExpanded,
   set: (value) => graph.setNodeDisplayMode(nodeId.value, value ? 'expanded' : 'collapsed'),
 })
-watchSyncEffect(() => console.debug(isExpanded.value))
 
 const actionHandlers = registerHandlers(
   selectBeforeAction({

@@ -66,9 +66,11 @@ const { rowData, columnDefs, moveColumn, moveRow, pasteFromClipboard } = useTabl
   props.updateCallback,
 )
 
-const collapsedText = computed(
-  () => `Table (${rowData.value.length} row${rowData.value.length !== 1 ? 's' : ''})`,
-)
+const collapsedText = computed(() => {
+  // One row is added only to allow adding new rows.
+  const rows = rowData.value.length - 1
+  return `Table (${rows} row${rows !== 1 ? 's' : ''})`
+})
 
 // Without this "cast" AgGridTableView gets confused when deducing its generic parameters.
 const columnDefsTyped: ComputedRef<ColDef<RowData>[]> = columnDefs

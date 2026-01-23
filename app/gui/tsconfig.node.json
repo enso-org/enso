@@ -73,6 +73,7 @@
     "./integration-test/project-view/edgeInteractions.spec.ts",
     "./integration-test/project-view/edgeRendering.spec.ts",
     "./integration-test/project-view/editorPanels.spec.ts",
+    "./integration-test/project-view/expandingAndCollapsing.spec.ts",
     "./integration-test/project-view/expressionUpdates.ts",
     "./integration-test/project-view/fullscreenVisualisation.spec.ts",
     "./integration-test/project-view/graphNavigator.spec.ts",
