@@ -9,11 +9,14 @@ import {
   type ElectronApplication,
   type Locator,
   type Page,
+  type TestInfo,
 } from 'playwright/test'
 
 const LOADING_TIMEOUT = 10000
 const TEXT = TEXTS.english
 const TEST_USER_FILE = path.join(import.meta.dirname, '../playwright/.auth/user.json')
+const LOG_DIAGNOSTICS =
+  process.env.ENSO_PW_LOG_CONSOLE === '1' || process.env.ENSO_PW_LOG_CONSOLE === 'true'
 const POSSIBLE_ELECTRON_PATHS = [
   '../ide-dist/linux-unpacked/enso',
   '../ide-dist/win-unpacked/Enso.exe',
@@ -75,11 +78,7 @@ export async function getElectronExecutablePath(): Promise<string | undefined> {
  */
 export const electronFixtures = {
   // eslint-disable-next-line no-empty-pattern
-  testRunId: async function (
-    {},
-    use: (value: string) => Promise<void>,
-    testInfo: { titlePath: string[] },
-  ) {
+  testRunId: async function ({}, use: (value: string) => Promise<void>, testInfo: TestInfo) {
     await use(`${testInfo.titlePath.join('-')}-${Date.now()}`)
   },
   projectsDir: async function (
@@ -92,8 +91,9 @@ export const electronFixtures = {
 
   /** Setup for all tests: Create an electron-based app instance. */
   app: async function (
-    { projectsDir, testRunId }: { projectsDir: string; testRunId: string },
+    { projectsDir }: { projectsDir: string },
     use: (value: ElectronApplication) => Promise<void>,
+    testInfo: TestInfo,
   ) {
     const args = process.env.ENSO_TEST_APP_ARGS?.split(',') ?? []
     const executablePath = await getElectronExecutablePath()
@@ -114,10 +114,21 @@ export const electronFixtures = {
     ;(await app.firstWindow()).evaluate((password) => {
       ;(window as any).passwordOverride = password
     }, credentials.password)
-    await app.context().tracing.start({ screenshots: true, snapshots: true, sources: true })
-    await use(app)
-    await app.context().tracing.stop({ path: `test-traces/${testRunId}.zip` })
-    await app.close()
+    const context = app.context()
+    const tracePath = testInfo.outputPath('trace.zip')
+    await context.tracing.start({ screenshots: true, snapshots: true, sources: true })
+    try {
+      await use(app)
+    } finally {
+      const shouldSaveTrace = testInfo.status !== testInfo.expectedStatus
+      if (shouldSaveTrace) {
+        await context.tracing.stop({ path: tracePath })
+        await testInfo.attach('trace', { path: tracePath, contentType: 'application/zip' })
+      } else {
+        await context.tracing.stop()
+      }
+      await app.close()
+    }
   },
   page: async function (
     {
@@ -127,6 +138,22 @@ export const electronFixtures = {
     use: (value: Page) => Promise<void>,
   ) {
     const innerPage = await app.firstWindow()
+    if (LOG_DIAGNOSTICS) {
+      innerPage.on('console', (message) => {
+        const location = message.location()
+        const locationText =
+          location.url ? ` (${location.url}:${location.lineNumber}:${location.columnNumber})` : ''
+        console.log(`[pw:console:${message.type()}] ${message.text()}${locationText}`)
+      })
+      innerPage.on('pageerror', (error) => {
+        console.log(`[pw:pageerror] ${error.message}`)
+      })
+      innerPage.on('requestfailed', (request) => {
+        const failure = request.failure()
+        const message = failure?.errorText ? ` ${failure.errorText}` : ''
+        console.log(`[pw:requestfailed] ${request.method()} ${request.url()}${message}`)
+      })
+    }
     if (viewport) innerPage.setViewportSize(viewport)
     await use(innerPage)
   },
