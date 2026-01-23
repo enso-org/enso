@@ -404,22 +404,14 @@ case object AliasAnalysis extends IRPass {
         val currentScope =
           if (!block.suspended) builder else builder.addChild()
 
+        val newExprs = block.expressions().map { expr =>
+          analyseExpression(expr, currentScope)
+        }
+        val newRet = analyseExpression(block.returnValue, currentScope)
         val bc = block
           .copyBuilder()
-          .expressions(
-            block.expressions.map((expression: Expression) =>
-              analyseExpression(
-                expression,
-                currentScope
-              )
-            )
-          )
-          .returnValue(
-            analyseExpression(
-              block.returnValue,
-              currentScope
-            )
-          )
+          .expressions(newExprs)
+          .returnValue(newRet)
           .build()
         alias.AliasMetadata.updateMetadata(
           bc,
@@ -427,7 +419,7 @@ case object AliasAnalysis extends IRPass {
         )
       case binding: Expression.Binding =>
         if (builder.findDef(binding.name.name) == null) {
-          val isSuspended = expression match {
+          val isSuspended = binding.expression match {
             case bl: Expression.Block => bl.suspended()
             case _                    => false
           }
@@ -439,14 +431,10 @@ case object AliasAnalysis extends IRPass {
             true
           )
 
+          val newExpr = analyseExpression(binding.expression(), builder)
           val bc = binding
             .copyBuilder()
-            .expression(
-              analyseExpression(
-                expression,
-                builder
-              )
-            )
+            .expression(newExpr)
             .build()
           alias.AliasMetadata
             .updateMetadata(
