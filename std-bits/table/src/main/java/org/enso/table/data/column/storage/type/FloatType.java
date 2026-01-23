@@ -70,7 +70,7 @@ public final class FloatType implements StorageType<Double>, NumericType {
 
   @Override
   public ColumnDoubleStorage asTypedStorage(ColumnStorage<?> storage) {
-    if (storage.getType() instanceof FloatType) {
+    if (StorageType.ofStorage(storage) instanceof FloatType) {
       var output = (ColumnDoubleStorage) storage;
       return output;
     }

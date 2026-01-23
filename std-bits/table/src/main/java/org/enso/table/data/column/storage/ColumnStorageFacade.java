@@ -2,7 +2,6 @@ package org.enso.table.data.column.storage;
 
 import java.util.Iterator;
 import java.util.function.Function;
-import org.enso.table.data.column.storage.type.StorageType;
 
 /** A facade for a column storage that converts the stored type to another type. */
 public final class ColumnStorageFacade<S, T> implements ColumnStorage<T> {
@@ -25,7 +24,12 @@ public final class ColumnStorageFacade<S, T> implements ColumnStorage<T> {
   }
 
   @Override
-  public StorageType<T> getType() {
+  public char typeChar() {
+    throw new UnsupportedOperationException("Not implemented");
+  }
+
+  @Override
+  public int typeSize() {
     throw new UnsupportedOperationException("Not implemented");
   }
 

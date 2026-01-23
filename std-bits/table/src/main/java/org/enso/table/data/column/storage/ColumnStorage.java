@@ -2,7 +2,6 @@ package org.enso.table.data.column.storage;
 
 import java.util.Iterator;
 import java.util.NoSuchElementException;
-import org.enso.table.data.column.storage.type.StorageType;
 
 /** Basic interface of a column storage. */
 public interface ColumnStorage<T> extends Iterable<T> {
@@ -22,7 +21,7 @@ public interface ColumnStorage<T> extends Iterable<T> {
    * Address of the off-heap storage of data.
    *
    * @return {@code 0} if there are no data to share, otherwise the address of the data in a format
-   *     appropriate for this storage {@link #getType()}.
+   *     appropriate for this storage {@link #typeChar()} and {@link #typeSize()}.
    * @see #addressOfValidity
    */
   default long addressOfData() {
@@ -37,9 +36,6 @@ public interface ColumnStorage<T> extends Iterable<T> {
   default long addressOfValidity() {
     return 0;
   }
-
-  /* Gets the value type of the storage. */
-  StorageType<T> getType();
 
   /**
    * Checks whether the value at idx is Nothing.

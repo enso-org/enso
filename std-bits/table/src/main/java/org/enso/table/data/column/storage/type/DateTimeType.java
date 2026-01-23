@@ -60,7 +60,7 @@ public final class DateTimeType implements StorageType<ZonedDateTime> {
 
   @Override
   public ColumnStorage<ZonedDateTime> asTypedStorage(ColumnStorage<?> storage) {
-    if (storage.getType() instanceof DateTimeType) {
+    if (StorageType.ofStorage(storage) instanceof DateTimeType) {
       @SuppressWarnings("unchecked")
       var output = (ColumnStorage<ZonedDateTime>) storage;
       return output;

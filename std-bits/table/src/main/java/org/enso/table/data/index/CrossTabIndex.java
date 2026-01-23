@@ -132,7 +132,8 @@ public class CrossTabIndex {
     Builder[] storage = new Builder[columnCount];
     for (int i = 0; i < yColumns.length; i++) {
       storage[i] =
-          Builder.getForType(StorageType.ofStorage(yColumns[i].getStorage()), yKeysCount(), problemAggregator);
+          Builder.getForType(
+              StorageType.ofStorage(yColumns[i].getStorage()), yKeysCount(), problemAggregator);
       context.safepoint();
     }
 

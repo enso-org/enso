@@ -129,7 +129,7 @@ public final class IntegerType implements StorageType<Long>, NumericType {
 
   @Override
   public ColumnLongStorage asTypedStorage(ColumnStorage<?> storage) {
-    if (storage.getType() instanceof IntegerType) {
+    if (StorageType.ofStorage(storage) instanceof IntegerType) {
       var output = (ColumnLongStorage) storage;
       return output;
     }

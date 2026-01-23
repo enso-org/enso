@@ -4,7 +4,6 @@ import org.enso.table.data.column.storage.ColumnDoubleStorage;
 import org.enso.table.data.column.storage.ValueIsNothingException;
 import org.enso.table.data.column.storage.iterators.ColumnDoubleStorageIterator;
 import org.enso.table.data.column.storage.iterators.DoubleStorageIterator;
-import org.enso.table.data.column.storage.type.FloatType;
 
 final class MaskedStorageDouble extends MaskedStorage<Double> implements ColumnDoubleStorage {
   private final ColumnDoubleStorage parent;
@@ -17,11 +16,6 @@ final class MaskedStorageDouble extends MaskedStorage<Double> implements ColumnD
   @Override
   public ColumnDoubleStorage parent() {
     return parent;
-  }
-
-  @Override
-  public FloatType getType() {
-    return parent.getType();
   }
 
   @Override

@@ -8,6 +8,7 @@ import org.enso.table.data.column.operation.StorageIterators;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.NullType;
+import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.data.table.problems.MapOperationProblemAggregator;
 
@@ -29,7 +30,7 @@ public final class TextPartOperation extends BinaryOperationBase<String, String>
 
   @Override
   public boolean canApplyZip(ColumnStorage<?> left, ColumnStorage<?> right) {
-    var rightStorageType = right.getType();
+    var rightStorageType = StorageType.ofStorage(right);
     return canApplyMap(left, null)
         && (rightStorageType instanceof IntegerType || rightStorageType instanceof NullType);
   }
@@ -45,7 +46,7 @@ public final class TextPartOperation extends BinaryOperationBase<String, String>
       ColumnStorage<String> left,
       Object rightValue,
       MapOperationProblemAggregator problemAggregator) {
-    if (!(left.getType() instanceof TextType textType)) {
+    if (!(StorageType.ofStorage(left) instanceof TextType textType)) {
       throw new IllegalArgumentException("Left type is not a text type");
     }
 
@@ -60,7 +61,7 @@ public final class TextPartOperation extends BinaryOperationBase<String, String>
 
     return StorageIterators.mapOverStorage(
         left,
-        Builder.getForText(textType, left.getSize()),
+        textType.makeBuilder(left.getSize(), problemAggregator),
         (index, value) -> function.apply(value, right));
   }
 
@@ -69,15 +70,15 @@ public final class TextPartOperation extends BinaryOperationBase<String, String>
       ColumnStorage<String> left,
       ColumnStorage<?> right,
       MapOperationProblemAggregator problemAggregator) {
-    if (!(left.getType() instanceof TextType textType)) {
+    if (!(StorageType.ofStorage(left) instanceof TextType textType)) {
       throw new IllegalArgumentException("Left type is not a text type");
     }
 
-    if (right.getType() instanceof IntegerType integerType) {
+    if (StorageType.ofStorage(right) instanceof IntegerType integerType) {
       return StorageIterators.zipOverStorages(
           left,
           integerType.asTypedStorage(right),
-          length -> Builder.getForText(textType, length),
+          length -> textType.makeBuilder(length, problemAggregator),
           true,
           (index, leftValue, rightValue) -> function.apply(leftValue, rightValue));
     }

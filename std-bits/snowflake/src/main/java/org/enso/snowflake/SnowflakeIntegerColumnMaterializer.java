@@ -100,7 +100,7 @@ public class SnowflakeIntegerColumnMaterializer implements Builder {
   }
 
   @Override
-  public StorageType<?> getType() {
+  public StorageType<?> getStorageType() {
     // The type of the builder can change over time, so we do not report any stable type here.
     return null;
   }

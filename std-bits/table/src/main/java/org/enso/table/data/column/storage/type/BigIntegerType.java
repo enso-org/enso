@@ -43,7 +43,7 @@ public final class BigIntegerType implements StorageType<BigInteger>, NumericTyp
 
   @Override
   public ColumnStorage<BigInteger> asTypedStorage(ColumnStorage<?> storage) {
-    if (storage.getType() instanceof BigIntegerType) {
+    if (StorageType.ofStorage(storage) instanceof BigIntegerType) {
       @SuppressWarnings("unchecked")
       var output = (ColumnStorage<BigInteger>) storage;
       return output;

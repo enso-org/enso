@@ -34,7 +34,7 @@ public final class AnyObjectType implements StorageType<Object> {
 
   @Override
   public ColumnStorage<Object> asTypedStorage(ColumnStorage<?> storage) {
-    if (storage.getType() instanceof AnyObjectType) {
+    if (StorageType.ofStorage(storage) instanceof AnyObjectType) {
       @SuppressWarnings("unchecked")
       var output = (ColumnStorage<Object>) storage;
       return output;

@@ -167,7 +167,7 @@ public final class TextType implements StorageType<String> {
 
   @Override
   public ColumnStorage<String> asTypedStorage(ColumnStorage<?> storage) {
-    if (storage.getType() instanceof TextType) {
+    if (StorageType.ofStorage(storage) instanceof TextType) {
       @SuppressWarnings("unchecked")
       var output = (ColumnStorage<String>) storage;
       return output;

@@ -30,8 +30,7 @@ public abstract class DatatypeParser {
     var storage = sourceColumn.getStorage();
     var storageType = StorageType.ofStorage(storage);
     if (!(storageType instanceof TextType textType)) {
-      throw new IllegalArgumentException(
-          "Expected a column of text type, got: " + storageType);
+      throw new IllegalArgumentException("Expected a column of text type, got: " + storageType);
     }
     return parseColumn(textType.asTypedStorage(storage), problemAggregator);
   }

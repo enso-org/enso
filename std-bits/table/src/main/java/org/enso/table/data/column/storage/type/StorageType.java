@@ -34,7 +34,8 @@ public interface StorageType<T> {
 
   static <T> StorageType<T> ofStorage(ColumnStorage<T> storage) {
     @SuppressWarnings("unchecked")
-    var result = (StorageType<T>)StorageType.fromTypeCharAndSize(storage.typeChar(), storage.typeSize());
+    var result =
+        (StorageType<T>) StorageType.fromTypeCharAndSize(storage.typeChar(), storage.typeSize());
     return result;
   }
 

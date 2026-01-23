@@ -539,7 +539,8 @@ public final class Table {
     }
 
     var storage = input.getStorage();
-    var builder = StorageType.ofStorage(storage).makeBuilder(newSize, BlackholeProblemAggregator.INSTANCE);
+    var builder =
+        StorageType.ofStorage(storage).makeBuilder(newSize, BlackholeProblemAggregator.INSTANCE);
     builder.appendBulkStorage(storage);
     builder.appendNulls(newSize - inputSize);
     return new Column(input.getName(), builder.seal());
@@ -579,7 +580,10 @@ public final class Table {
     int new_count = size * to_transpose.length;
 
     // Create Storage
-    var storage = Arrays.stream(id_columns).map(c -> c.getStorageType().makeBuilder(new_count, problemAggregator)).toArray(Builder[]::new);
+    var storage =
+        Arrays.stream(id_columns)
+            .map(c -> c.getStorageType().makeBuilder(new_count, problemAggregator))
+            .toArray(Builder[]::new);
     storage[id_columns.length] = Builder.getForText(TextType.VARIABLE_LENGTH, new_count);
     storage[id_columns.length + 1] = Builder.getInferredBuilder(new_count, problemAggregator);
 

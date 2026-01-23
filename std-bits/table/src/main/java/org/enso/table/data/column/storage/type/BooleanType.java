@@ -33,7 +33,7 @@ public final class BooleanType implements StorageType<Boolean> {
 
   @Override
   public ColumnBooleanStorage asTypedStorage(ColumnStorage<?> storage) {
-    if (storage.getType() instanceof BooleanType) {
+    if (StorageType.ofStorage(storage) instanceof BooleanType) {
       @SuppressWarnings("unchecked")
       var output = (ColumnBooleanStorage) storage;
       return output;

@@ -7,7 +7,18 @@ import org.enso.table.data.column.operation.StorageIterators;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.ColumnStorageWithInferredStorage;
 import org.enso.table.data.column.storage.PreciseTypeOptions;
-import org.enso.table.data.column.storage.type.*;
+import org.enso.table.data.column.storage.type.AnyObjectType;
+import org.enso.table.data.column.storage.type.BigDecimalType;
+import org.enso.table.data.column.storage.type.BigIntegerType;
+import org.enso.table.data.column.storage.type.BooleanType;
+import org.enso.table.data.column.storage.type.DateTimeType;
+import org.enso.table.data.column.storage.type.DateType;
+import org.enso.table.data.column.storage.type.FloatType;
+import org.enso.table.data.column.storage.type.IntegerType;
+import org.enso.table.data.column.storage.type.NullType;
+import org.enso.table.data.column.storage.type.StorageType;
+import org.enso.table.data.column.storage.type.TextType;
+import org.enso.table.data.column.storage.type.TimeOfDayType;
 import org.enso.table.data.table.Column;
 import org.enso.table.problems.ProblemAggregator;
 import org.enso.table.util.LeastRecentlyUsedCache;
@@ -25,7 +36,7 @@ public class CastOperation {
 
   public static Column apply(
       Column source, StorageType<?> targetType, ProblemAggregator problemAggregator) {
-    if (source.getStorage().getType().equals(targetType)) {
+    if (StorageType.ofStorage(source.getStorage()).equals(targetType)) {
       return source;
     }
 
@@ -57,11 +68,6 @@ public class CastOperation {
     };
   }
 
-  /** Helper method until Java Problems code in Enso is re-visited. */
-  public static StorageType<?> makeLocalType(StorageType<?> type) {
-    return StorageType.makeLocal(type);
-  }
-
   public static StorageType<?> inferPreciseType(Column column) {
     return inferPreciseType(column, PreciseTypeOptions.DEFAULT);
   }
@@ -70,7 +76,7 @@ public class CastOperation {
     var columnStorage = column.getStorage();
     var storage = ColumnStorageWithInferredStorage.resolveStorage(columnStorage);
 
-    var storageType = StorageType.makeLocal(storage.getType());
+    var storageType = StorageType.ofStorage(storage);
     return switch (storageType) {
       case TextType textType -> inferTextType(storage, textType, options);
       case IntegerType integerType -> inferIntegerType(storage, integerType, options);
@@ -364,8 +370,9 @@ public class CastOperation {
   }
 
   public static StorageType<?> reconcileObjectStorage(ColumnStorage<?> columnStorage) {
-    if (!(columnStorage.getType() instanceof AnyObjectType)) {
-      return columnStorage.getType();
+    var columnStorageType = StorageType.ofStorage(columnStorage);
+    if (!(columnStorageType instanceof AnyObjectType)) {
+      return columnStorageType;
     }
 
     // Need to scan the column to determine the most appropriate type.
@@ -401,9 +408,10 @@ public class CastOperation {
    */
   public static long maxPrecisionStored(Column column) {
     var storage = column.getStorage();
+    var storageType = StorageType.ofStorage(storage);
 
     var accumulator = new PrecisionAccumulator();
-    switch (storage.getType()) {
+    switch (storageType) {
       case BigDecimalType bigDecimalType ->
           StorageIterators.forEachOverStorage(
               bigDecimalType.asTypedStorage(storage),
@@ -416,7 +424,7 @@ public class CastOperation {
               (index, item) -> accumulator.accumulate(new BigDecimal(item)));
       default ->
           throw new IllegalArgumentException(
-              "Cannot compute max precision for storage type: " + storage.getType());
+              "Cannot compute max precision for storage type: " + storageType);
     }
 
     return accumulator.getMaxPrecision();
