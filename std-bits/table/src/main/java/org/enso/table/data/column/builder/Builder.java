@@ -96,8 +96,8 @@ public interface Builder {
    * @param <T> type of storage
    * @param storage the storage instance, possibly a {@link Proxy#isProxyClass proxy}
    * @return either {@code storage} itself, or optimized storage of the same {@link
-   *     ColumnStorage#typeChar()} and {@link ColumnStorage#typeSize()} over the same
-   *     {@link ColumnStorage#addressOfData() data}
+   *     ColumnStorage#typeChar()} and {@link ColumnStorage#typeSize()} over the same {@link
+   *     ColumnStorage#addressOfData() data}
    */
   static <T> ColumnStorage<T> makeLocal(ColumnStorage<T> storage) {
     var isProxy = Proxy.isProxyClass(storage.getClass());
@@ -145,7 +145,10 @@ public interface Builder {
 
     if (BuilderUtil.LOGGER.isTraceEnabled()) {
       BuilderUtil.LOGGER.trace(
-          "makeLocal unsuccessful for {}:{} size {}", storage.typeChar(), storage.typeSize(), storage.getSize());
+          "makeLocal unsuccessful for {}:{} size {}",
+          storage.typeChar(),
+          storage.typeSize(),
+          storage.getSize());
     }
 
     return storage;
