@@ -3,8 +3,11 @@
 #### Enso IDE
 
 - [Add component alignment options][14590].
+- [Components have Expanded/Collapsed modes][14678]. The effect is visible in
+  Table.input components.
 
 [14590]: https://github.com/enso-org/enso/pull/14590
+[14678]: https://github.com/enso-org/enso/pull/14678
 
 #### Enso Standard Library
 
