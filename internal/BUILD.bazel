@@ -5,3 +5,10 @@ js_binary(
     entry_point = "envReplacer.mjs",
     visibility = ["//visibility:public"],
 )
+
+js_binary(
+    name = "script_prettier_json",
+    data = ["//:node_modules/prettier"],
+    entry_point = "prettierJson.mjs",
+    visibility = ["//visibility:public"],
+)

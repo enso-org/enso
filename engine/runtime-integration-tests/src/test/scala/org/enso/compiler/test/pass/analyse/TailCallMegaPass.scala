@@ -161,9 +161,11 @@ case object TailCallMegaPass extends IRPass {
         )
       case ann: Name.GenericAnnotation =>
         ann
-          .copy(expression =
+          .copyBuilder()
+          .expression(
             analyseExpression(ann.expression, isInTailPosition = true)
           )
+          .build()
           .updateMetadata(TAIL_META)
       case err: Error => err
     }
@@ -183,7 +185,7 @@ case object TailCallMegaPass extends IRPass {
     val expressionWithWarning =
       if (isTailAnnotated(expression) && !isInTailPosition)
         expression.addDiagnostic(
-          Warning.WrongTco(expression.identifiedLocation())
+          new Warning.WrongTco(expression.identifiedLocation())
         )
       else expression
     expressionWithWarning match {

@@ -80,10 +80,15 @@ final class TestMain {
   record CountDownAndThrow(long value, long acc) implements Function<Channel<?>, Void> {
     @Override
     public Void apply(Channel<?> otherVM) {
-      if (value <= 1) {
-        throw new IllegalStateException("" + acc);
+      decrementAndSendMessage(value, acc, otherVM);
+      return null;
+    }
+
+    private static void decrementAndSendMessage(long n, long sum, Channel<?> otherVM) {
+      if (n <= 1) {
+        throw new IllegalStateException("" + sum);
       } else {
-        return otherVM.execute(Void.class, new CountDownAndThrow(value - 1, acc * value));
+        otherVM.execute(Void.class, new CountDownAndThrow(n - 1, sum * n));
       }
     }
   }

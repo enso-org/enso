@@ -1,4 +1,5 @@
 {
+  "files": [],
   "compilerOptions": {
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "composite": true,
@@ -18,16 +19,5 @@
     "skipLibCheck": true,
     "verbatimModuleSyntax": true,
     "target": "ES2022"
-  },
-  "exclude": [
-    "tools",
-    "node_modules",
-    "lib",
-    "engine",
-    "test",
-    "dist",
-    "docs",
-    "bazel-*",
-    "build_tools"
-  ]
+  }
 }

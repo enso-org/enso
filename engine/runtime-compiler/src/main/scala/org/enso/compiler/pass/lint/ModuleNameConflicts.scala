@@ -86,7 +86,7 @@ case object ModuleNameConflicts extends IRPass {
         val atomName = cons.name.name
         val `export` = exports(atomName)
         binding.addDiagnostic(
-          warnings.Shadowed.SyntheticModule(
+          new warnings.Shadowed.SyntheticModule(
             atomName,
             `export`.name,
             `export`,

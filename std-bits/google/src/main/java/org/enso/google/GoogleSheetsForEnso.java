@@ -20,7 +20,6 @@ import org.enso.table.error.EmptySheetException;
 import org.enso.table.problems.ProblemAggregator;
 
 public class GoogleSheetsForEnso {
-
   private final Sheets service;
 
   private GoogleSheetsForEnso(Sheets service) {
@@ -112,52 +111,52 @@ public class GoogleSheetsForEnso {
       return null;
     }
 
+    var doubleValue = effectiveValue.getNumberValue();
+    if (doubleValue == null) {
+      // See if it's a boolean.
+      var boolValue = effectiveValue.getBoolValue();
+      if (boolValue != null) {
+        return boolValue;
+      }
+
+      // Just have a text value so return it.
+      return effectiveValue.getStringValue();
+    }
+
     var format = cell.getUserEnteredFormat();
     if (format == null || format.getNumberFormat() == null) {
       if (effectiveValue.getStringValue() != null) {
         return effectiveValue.getStringValue();
       }
-
-      Double value = effectiveValue.getNumberValue();
-      if (value == null) {
-        // Should not happen, but just in case.
-        return null;
-      }
-
-      if (value % 1 == 0) {
-        return value.intValue();
-      } else {
-        return value;
-      }
+      return doubleValue % 1 == 0 ? doubleValue.longValue() : doubleValue;
     }
 
     String type = format.getNumberFormat().getType();
     switch (type) {
       case "NUMBER", "CURRENCY", "SCIENTIFIC", "PERCENT" -> {
-        return cell.getEffectiveValue().getNumberValue();
+        return effectiveValue.getNumberValue();
       }
       case "DATE" -> {
-        Temporal t = fromExcelDateTime(cell.getEffectiveValue().getNumberValue());
+        Temporal t = fromExcelDateTime(doubleValue);
         return t instanceof java.time.LocalDateTime
             ? ((java.time.LocalDateTime) t).toLocalDate()
-            : java.time.LocalDate.from((Temporal) t);
+            : java.time.LocalDate.from(t);
       }
       case "TIME" -> {
-        Temporal t = fromExcelDateTime(cell.getEffectiveValue().getNumberValue());
+        Temporal t = fromExcelDateTime(doubleValue);
         return t instanceof java.time.LocalDateTime
             ? ((java.time.LocalDateTime) t).toLocalTime()
             : java.time.LocalTime.from(t);
       }
       case "DATE_TIME" -> {
-        Temporal t = fromExcelDateTime(cell.getEffectiveValue().getNumberValue());
+        Temporal t = fromExcelDateTime(doubleValue);
         return t instanceof java.time.ZonedDateTime
             ? t
             : java.time.ZonedDateTime.ofInstant(
                 java.time.Instant.from(t), java.time.ZoneId.systemDefault());
       }
-
       case "TEXT" -> {
-        return cell.getEffectiveValue().getStringValue();
+        return effectiveValue.getStringValue();
       }
       default -> throw new AssertionError("Unhandled format type: " + type);
     }

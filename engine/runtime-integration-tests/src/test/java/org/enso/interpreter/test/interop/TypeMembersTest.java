@@ -110,7 +110,6 @@ public class TypeMembersTest {
             "to",
             "==",
             "!=",
-            "catch_primitive",
             "pretty"),
         compileError.getMemberKeys());
   }

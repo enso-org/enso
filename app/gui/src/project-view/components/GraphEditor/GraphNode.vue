@@ -111,15 +111,19 @@ const { visibleMessage, hiddenMessage } = useNodeMessage({
   nodeId,
 })
 
-const extended = computed<boolean>(
+const detailedView = computed<boolean>(
   () => nodeSelection != null && nodeSelection.isSoleSelection(nodeId.value),
 )
-watch(extended, (extended) => graph.nodeExtended.set(nodeId.value, extended), { immediate: true })
+watch(detailedView, (extended) => graph.nodeDetailedView.set(nodeId.value, extended), {
+  immediate: true,
+})
+
+const expanded = toRef(() => props.node.isExpanded)
 
 const nodeHovered = ref(false)
 watch(nodeHovered, (hovered) => graph.nodeHovered.set(nodeId.value, hovered))
 
-const menuVisible = computed(() => menuEnabledByHover.value || extended.value)
+const menuVisible = computed(() => menuEnabledByHover.value || detailedView.value)
 const menuFull = ref(false)
 const menuHovered = ref(false)
 
@@ -190,7 +194,7 @@ const {
   nodeHovered: () => nodeHovered.value || outputHovered.value,
   nodeRect,
   scale,
-  isFocused: extended,
+  isFocused: detailedView,
   typeinfo: () => expressionInfo.value?.typeInfo,
   dataSource: () => ({ type: 'node', nodeId: props.node.rootExpr.externalId }) as const,
   hidden: toRef(props, 'edited'),
@@ -360,6 +364,10 @@ function selectBeforeAction<Handlers extends { [K in string]?: ActionHandler }>(
 
 const editingComment = ref(false)
 const colorPickerOpened = ref(false)
+const isExpanded = computed({
+  get: () => props.node.isExpanded,
+  set: (value) => graph.setNodeDisplayMode(nodeId.value, value ? 'expanded' : 'collapsed'),
+})
 
 const actionHandlers = registerHandlers(
   selectBeforeAction({
@@ -383,6 +391,10 @@ const actionHandlers = registerHandlers(
         isVisualizationEnabled.value ? 'Hide visualization' : 'Show visualization',
       ),
     },
+    'component.toggleExpanded': {
+      ...toggledAction(isExpanded),
+      description: computed(() => (isExpanded.value ? 'Collapse Component' : 'Expand Component')),
+    },
     'component.pickColor': toggledAction(colorPickerOpened),
     'component.recompute': {
       enabled: computed(() => !isBeingRecomputed.value),
@@ -397,6 +409,7 @@ const nodeMenuActions: DisplayableActionName[] = [
   'component.toggleVisualization',
   'component.createNewNode',
   'component.editingComment',
+  'component.toggleExpanded',
   'component.recompute',
   'component.pickColor',
   'component.enterNode',
@@ -474,7 +487,8 @@ const nodeName = computed(() => props.node.pattern?.code())
           :nodeType="props.node.type"
           :primaryApplication="primaryApplication"
           :conditionalPorts="props.node.conditionalPorts"
-          :extended="extended"
+          :showDetails="detailedView"
+          :expanded="expanded"
         />
       </div>
     </ContextMenuTrigger>

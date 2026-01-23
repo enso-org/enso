@@ -12,12 +12,28 @@ import scala.util.Using
   *
   * If a jar entry does not match any of the globs, it is skipped.
   * @param mapping Mapping of globs to commands for extracting files from a JAR.
+  * @param nativeLibCopyBehavior Behavior for copying native libraries when
+  *                              [[JarExtractor.PolyglotLib]] command is encountered.
   */
 case class JarExtractor(
-  mapping: (String, JarExtractor.Command)*
+  mapping: Map[String, JarExtractor.Command],
+  nativeLibCopyBehavior: JarExtractor.PolyglotLibInclude =
+    JarExtractor.CurrentArch
 )
 
 object JarExtractor {
+
+  /** Specifies the architecture specific behavior of [[PolyglotLib]] command.
+    */
+  sealed trait PolyglotLibInclude
+
+  /** [[PolyglotLib]] ignores native libraries from different architectures.
+    */
+  case object CurrentArch extends PolyglotLibInclude
+
+  /** [[PolyglotLib]] copies all native libraries into the `polyglot/lib` directory.
+    */
+  case object AllArch extends PolyglotLibInclude
 
   /** All supported native library architectures.
     */
@@ -61,9 +77,6 @@ object JarExtractor {
     *
     * For example, if the entry is `foo.so` and the `arch` parameter is
     * [[LinuxAMD64]], the entry will be copied to `amd64/linux/foo.so`.
-    *
-    * The entry will be copied only if the architecture matches the current
-    * platform's architecture.
     *
     * @param arch If specified, will be copied only iff the architecture is
     *        the same as the current platform.
@@ -137,7 +150,11 @@ object JarExtractor {
                       val destPath = polyglotLibDir
                         .resolve(arch.path)
                         .resolve(fullPath2)
-                      if (archMatchesCurPlatform(arch)) {
+                      val shouldCopy = extractor.nativeLibCopyBehavior match {
+                        case CurrentArch => archMatchesCurPlatform(arch)
+                        case AllArch     => true
+                      }
+                      if (shouldCopy) {
                         copyEntry(destPath, inputJar, entry, logger)
                       }
                     }

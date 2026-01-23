@@ -427,7 +427,7 @@ public class IrPersistanceTest {
   @Test
   public void nameLiteral() throws Exception {
     var loc = new IdentifiedLocation(new Location(5, 19), null);
-    var in = new Name.Literal("anyName", true, loc, Option.empty(), new MetadataStorage());
+    var in = Name.Literal.builder().name("anyName").isMethod(true).location(loc).build();
 
     var out = serde(Name.Literal.class, in, -1);
     assertEquals("They are structurally equal", in, out);

@@ -308,7 +308,7 @@ object AutomaticParallelism extends IRPass {
           _,
           Application.Prefix
             .builder()
-            .function(Name.Special(Name.Special.NewRef, null))
+            .function(Name.Special.create(Name.Special.Ident.NewRef))
             .arguments(List())
             .build(),
           null
@@ -324,7 +324,7 @@ object AutomaticParallelism extends IRPass {
           case bind: Expression.Binding =>
             val refWrite = Application.Prefix
               .builder()
-              .function(Name.Special(Name.Special.WriteRef, null))
+              .function(Name.Special.create(Name.Special.Ident.WriteRef))
               .arguments(
                 List(
                   CallArgument.Specified
@@ -336,7 +336,7 @@ object AutomaticParallelism extends IRPass {
                   CallArgument.Specified
                     .builder()
                     .name(None)
-                    .value(bind.name.duplicate())
+                    .value(bind.name.duplicate(true, true, true, false))
                     .isSynthetic(true)
                     .build()
                 )
@@ -347,7 +347,7 @@ object AutomaticParallelism extends IRPass {
         }
       val spawn = Application.Prefix
         .builder()
-        .function(Name.Special(Name.Special.RunThread, null))
+        .function(Name.Special.create(Name.Special.Ident.RunThread))
         .arguments(
           List(
             CallArgument.Specified
@@ -369,13 +369,13 @@ object AutomaticParallelism extends IRPass {
     val threadJoins = threadSpawns.map { bind =>
       Application.Prefix
         .builder()
-        .function(Name.Special(Name.Special.JoinThread, null))
+        .function(Name.Special.create(Name.Special.Ident.JoinThread))
         .arguments(
           List(
             CallArgument.Specified
               .builder()
               .name(None)
-              .value(bind.name.duplicate())
+              .value(bind.name.duplicate(true, true, true, false))
               .isSynthetic(true)
               .build()
           )
@@ -386,10 +386,10 @@ object AutomaticParallelism extends IRPass {
     val varReads = refVars.map { case (name, ref) =>
       Expression
         .Binding(
-          name.duplicate(),
+          name.duplicate(true, true, true, false),
           Application.Prefix
             .builder()
-            .function(Name.Special(Name.Special.ReadRef, null))
+            .function(Name.Special.create(Name.Special.Ident.ReadRef))
             .arguments(
               List(
                 CallArgument.Specified
@@ -454,7 +454,7 @@ object AutomaticParallelism extends IRPass {
           .build()
       case other => other
     }
-    ir.copyWithBindings(bindings = newBindings)
+    ir.copyWithBindings(newBindings)
   }
 
   /** A parallelization status for a given line.
