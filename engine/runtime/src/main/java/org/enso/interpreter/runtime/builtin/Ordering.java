@@ -4,6 +4,7 @@ import java.util.function.Supplier;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.atom.Atom;
 import org.enso.interpreter.runtime.data.atom.AtomNewInstanceNode;
+import org.enso.interpreter.runtime.util.CachingSupplier;
 
 public final class Ordering {
   private final Supplier<Type> type;
@@ -35,9 +36,10 @@ public final class Ordering {
   }
 
   private Supplier<Atom> toAtom(String consName) {
-    return () -> {
-      var cons = getType().getConstructors().get(consName);
-      return AtomNewInstanceNode.getUncached().newInstance(cons);
-    };
+    return CachingSupplier.from(
+        () -> {
+          var cons = getType().getConstructors().get(consName);
+          return AtomNewInstanceNode.getUncached().newInstance(cons);
+        });
   }
 }
