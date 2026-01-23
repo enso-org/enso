@@ -85,9 +85,7 @@ public class GenericComparators<T> implements BinaryOperationTyped<Boolean> {
     var leftType = StorageType.ofStorage(left);
     var rightType = StorageType.ofStorage(right);
     return valueType.isOfType(leftType)
-        && (!throwOnOther
-            || valueType.isOfType(rightType)
-            || rightType instanceof AnyObjectType);
+        && (!throwOnOther || valueType.isOfType(rightType) || rightType instanceof AnyObjectType);
   }
 
   @Override

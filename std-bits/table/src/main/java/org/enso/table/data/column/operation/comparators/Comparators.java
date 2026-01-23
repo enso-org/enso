@@ -41,7 +41,8 @@ public final class Comparators {
       case TextType _ -> StringComparators.EQ;
       case BooleanType _ -> BooleanComparators.EQ;
       case NumericType _ ->
-          NumericComparators.create(leftStorageType, right, NumericComparators.EQUAL_OPERATION, false);
+          NumericComparators.create(
+              leftStorageType, right, NumericComparators.EQUAL_OPERATION, false);
       default -> throw new IllegalArgumentException("Unsupported StorageType");
     };
   }
@@ -90,7 +91,8 @@ public final class Comparators {
       case TextType _ -> StringComparators.LTE;
       case BooleanType _ -> BooleanComparators.LTE;
       case NumericType _ ->
-          NumericComparators.create(leftStorageType, right, NumericComparators.LESS_OR_EQUAL_OPERATION);
+          NumericComparators.create(
+              leftStorageType, right, NumericComparators.LESS_OR_EQUAL_OPERATION);
       default -> throw new IllegalArgumentException("Unsupported StorageType");
     };
   }
@@ -122,7 +124,8 @@ public final class Comparators {
       case TextType _ -> StringComparators.GTE;
       case BooleanType _ -> BooleanComparators.GTE;
       case NumericType _ ->
-          NumericComparators.create(leftStorageType, right, NumericComparators.GREATER_OR_EQUAL_OPERATION);
+          NumericComparators.create(
+              leftStorageType, right, NumericComparators.GREATER_OR_EQUAL_OPERATION);
       default -> throw new IllegalArgumentException("Unsupported StorageType");
     };
   }
