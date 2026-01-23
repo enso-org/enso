@@ -13,6 +13,7 @@ import org.enso.table.data.column.storage.TypedStorage;
 import org.enso.table.data.column.storage.type.DateTimeType;
 import org.enso.table.data.column.storage.type.DateType;
 import org.enso.table.data.column.storage.type.TextType;
+import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.error.ValueTypeMismatchException;
 
 /** A builder for ZonedDateTime columns. */
@@ -88,7 +89,7 @@ final class DateTimeBuilder extends TypedBuilder<ZonedDateTime> {
 
   @Override
   public void appendBulkStorage(ColumnStorage<?> storage) {
-    if (storage.getType() instanceof DateType dateType) {
+    if (StorageType.ofStorage(storage) instanceof DateType dateType) {
       var typedStorage = dateType.asTypedStorage(storage);
       long n = typedStorage.getSize();
       for (long i = 0; i < n; i++) {

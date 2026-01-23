@@ -29,7 +29,7 @@ public final class ColumnStorageFacade<S, T> implements ColumnStorage<T> {
   }
 
   @Override
-  public int typeSize() {
+  public long typeSize() {
     throw new UnsupportedOperationException("Not implemented");
   }
 

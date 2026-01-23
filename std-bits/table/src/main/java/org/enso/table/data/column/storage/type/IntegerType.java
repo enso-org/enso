@@ -26,7 +26,7 @@ public final class IntegerType implements StorageType<Long>, NumericType {
   }
 
   @Override
-  public int size() {
+  public long size() {
     return switch (bits) {
       case BITS_64 -> 64;
       case BITS_32 -> 32;

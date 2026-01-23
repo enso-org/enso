@@ -9,7 +9,7 @@ public abstract class Storage<T> implements ColumnStorage<T> {
 
   private final long uniqueKey = atomicCounter.incrementAndGet();
   private final char typeChar;
-  private final int typeSize;
+  private final long typeSize;
 
   protected Storage(StorageType<T> storageType) {
     this.typeChar = storageType.typeChar();
@@ -27,7 +27,7 @@ public abstract class Storage<T> implements ColumnStorage<T> {
   }
 
   @Override
-  public final int typeSize() {
+  public final long typeSize() {
     return typeSize;
   }
 }

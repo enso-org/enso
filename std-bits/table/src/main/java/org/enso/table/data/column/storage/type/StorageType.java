@@ -146,7 +146,7 @@ public interface StorageType<T> {
    */
   ColumnStorage<T> asTypedStorage(ColumnStorage<?> storage);
 
-  static StorageType<?> fromTypeCharAndSize(char typeChar, int size) {
+  static StorageType<?> fromTypeCharAndSize(char typeChar, long size) {
     return switch (typeChar) {
       case 'A' -> AnyObjectType.INSTANCE;
       case 'B' -> BooleanType.INSTANCE;
@@ -186,7 +186,7 @@ public interface StorageType<T> {
    * @return the maximum length of the type if applicable, or -1 if not applicable (e.g. for
    *     variable-length)
    */
-  default int size() {
+  default long size() {
     return -1;
   }
 }

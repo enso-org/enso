@@ -85,7 +85,7 @@ public final class InferredBuilder implements Builder {
 
   @Override
   public void appendBulkStorage(ColumnStorage<?> storage) {
-    if (storage.getType() instanceof NullType) {
+    if (StorageType.ofStorage(storage) instanceof NullType) {
       appendNulls(Math.toIntExact(storage.getSize()));
     } else {
       for (long i = 0; i < storage.getSize(); i++) {

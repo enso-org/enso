@@ -96,7 +96,8 @@ public interface Builder {
    * @param <T> type of storage
    * @param storage the storage instance, possibly a {@link Proxy#isProxyClass proxy}
    * @return either {@code storage} itself, or optimized storage of the same {@link
-   *     ColumnStorage#getType() type} over the same {@link ColumnStorage#addressOfData() data}
+   *     ColumnStorage#typeChar()} and {@link ColumnStorage#typeSize()} over the same
+   *     {@link ColumnStorage#addressOfData() data}
    */
   static <T> ColumnStorage<T> makeLocal(ColumnStorage<T> storage) {
     var isProxy = Proxy.isProxyClass(storage.getClass());
@@ -104,9 +105,9 @@ public interface Builder {
       return storage;
     }
 
-    var localType = StorageType.makeLocal(storage.getType());
+    var storageType = StorageType.ofStorage(storage);
     if (storage.getSize() == 0) {
-      return Builder.makeEmpty(localType, 0);
+      return Builder.makeEmpty(storageType, 0);
     }
 
     var data = storage.addressOfData();
@@ -116,7 +117,7 @@ public interface Builder {
       var validity = storage.addressOfValidity();
 
       var localStorage =
-          switch (localType) {
+          switch (storageType) {
             case BooleanType _ -> BoolBuilder.fromAddress(size, data, validity).seal(storage);
             case IntegerType type ->
                 LongBuilder.fromAddress(size, data, validity, type).seal(storage, type);
@@ -132,20 +133,19 @@ public interface Builder {
           };
 
       assert assertSameStorages(storage, localStorage);
-      return localType.asTypedStorage(localStorage);
+      return storageType.asTypedStorage(localStorage);
     }
 
-    if (localType instanceof BigIntegerType) {
+    if (storageType instanceof BigIntegerType) {
       var b = Builder.getForBigInteger(size, null);
       b.appendBulkStorage(storage);
       var localStorage = b.seal();
-      return localType.asTypedStorage(localStorage);
+      return storageType.asTypedStorage(localStorage);
     }
 
     if (BuilderUtil.LOGGER.isTraceEnabled()) {
-      var t = storage.getType();
       BuilderUtil.LOGGER.trace(
-          "makeLocal unsuccessful for {}:{} size {}", t.typeChar(), t.size(), storage.getSize());
+          "makeLocal unsuccessful for {}:{} size {}", storage.typeChar(), storage.typeSize(), storage.getSize());
     }
 
     return storage;
@@ -156,26 +156,12 @@ public interface Builder {
     if (s1.getSize() != s2.getSize()) {
       sb.append("Unexpected size %d != %d\n".formatted(s1.getSize(), s2.getSize()));
     }
-    var t1 = s1.getType();
-    var t2 = s2.getType();
-    if (t1.typeChar() != t2.typeChar()) {
-      sb.append("Unexpected type %s != %s\n".formatted(t1.typeChar(), t2.typeChar()));
+    if (s1.typeChar() != s2.typeChar()) {
+      sb.append("Unexpected type %s != %s\n".formatted(s1.typeChar(), s2.typeChar()));
     }
-    if (t1.size() != t2.size()) {
-      sb.append("Unexpected type %d != %d\n".formatted(t1.size(), t2.size()));
+    if (s1.typeSize() != s2.typeSize()) {
+      sb.append("Unexpected type %d != %d\n".formatted(s1.typeSize(), s2.typeSize()));
     }
-    /*
-    for (var i = 0L; i < s1.getSize(); i++) {
-      var elem1 = s1.getItemBoxed(i);
-      var elem2 = s2.getItemBoxed(i);
-      if (!Objects.equals(elem1, elem2)) {
-          sb.append("  at %d, but %s != %s\n".formatted(i, elem1, elem2));
-      }
-      if (sb.length() > 1024) {
-          break;
-      }
-    }
-    */
     assert sb.isEmpty() : sb;
     return sb.isEmpty();
   }

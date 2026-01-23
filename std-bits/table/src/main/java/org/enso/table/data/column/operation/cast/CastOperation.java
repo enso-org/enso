@@ -141,7 +141,7 @@ public class CastOperation {
     // If the strings are of varying lengths, we can return a variable-length type.
     // We will shrink it to a maximum of 255 characters if the original type was unbounded or larger
     // than 255 characters and all the strings fit into that bound.
-    final long SHORT_LENGTH_THRESHOLD = 255;
+    final int SHORT_LENGTH_THRESHOLD = 255;
     if ((accumulator.getMaxLength() <= SHORT_LENGTH_THRESHOLD)
         && (textType.maxLength() < 0 || textType.maxLength() > SHORT_LENGTH_THRESHOLD)) {
       return TextType.variableLengthWithLimit(SHORT_LENGTH_THRESHOLD);
