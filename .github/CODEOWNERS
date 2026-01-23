@@ -17,17 +17,17 @@ Cargo.lock
 Cargo.toml
 /lib/rust/ @farmaazon @kazcw @vitvakatu @AdRiley
 /lib/rust/parser/ @farmaazon @kazcw @vitvakatu @jaroslavtulach @AdRiley
-/tools/build-performance/ @kazcw @Akirathan
+/tools/build-performance/ @kazcw
 
 # Global JS configuration
 esling.config.mjs
 tsconfig.json
 
 # Scala Libraries
-/lib/scala/ @4e6 @jaroslavtulach @hubertp @Akirathan
+/lib/scala/ @4e6 @jaroslavtulach @hubertp
 
 # Java libraries
-/lib/java/ @4e6 @jaroslavtulach @hubertp @Akirathan
+/lib/java/ @4e6 @jaroslavtulach @hubertp
 
 # GUI/Dashboard
 /app @farmaazon @vitvakatu @kazcw @AdRiley @PabloBuchu @indiv0 @somebody1234
@@ -49,11 +49,11 @@ tsconfig.json
 
 # Engine (old)
 # This section should be removed once the engine moves to /app/engine
-/build.sbt @4e6 @jaroslavtulach @hubertp @Akirathan
+/build.sbt @4e6 @jaroslavtulach @hubertp
 /distribution/ @4e6 @jdunkerley @hubertp @GregoryTravis @AdRiley
-/engine/ @4e6 @jaroslavtulach @hubertp @Akirathan
-/project/ @4e6 @jaroslavtulach @hubertp @Akirathan
-/tools/ @4e6 @jaroslavtulach @hubertp @Akirathan
+/engine/ @4e6 @jaroslavtulach @hubertp
+/project/ @4e6 @jaroslavtulach @hubertp
+/tools/ @4e6 @jaroslavtulach @hubertp
 
 # Engine & Core Enso Libraries
 /distribution/lib/Standard/Base/ @jaroslavtulach
