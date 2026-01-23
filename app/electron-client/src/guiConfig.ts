@@ -11,7 +11,9 @@ const GUI_ENV_DIR = fileURLToPath(new URL('../../gui', import.meta.url))
 function envToConfig(env: Record<string, string | undefined>): $Config {
   // Conversion is technically unsafe, but practically is only used in Electron watch mode.
   return Object.fromEntries(
-    Object.entries(env).filter(([key]) => key.startsWith(GUI_ENV_PREFIX)),
+    Object.entries(env).flatMap(([key, value]) =>
+      key.startsWith(GUI_ENV_PREFIX) ? [[key.slice(GUI_ENV_PREFIX.length), value]] : [],
+    ),
   ) as $Config
 }
 
