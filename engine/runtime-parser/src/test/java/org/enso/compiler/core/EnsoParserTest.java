@@ -416,7 +416,7 @@ public class EnsoParserTest {
         """
         type Array
             meaning =
-                catch_primitive handler
+                catch handler
                     42
         """);
   }
@@ -689,7 +689,7 @@ public class EnsoParserTest {
         """
         main =
             x = Panic.catch Any () .convert_to_dataflow_error
-            x.catch_primitive err->
+            x.catch Any err->
                 case err of
                     Syntax_Error_Data msg -> "Oopsie, it's a syntax error: " + msg
         """);

@@ -280,7 +280,7 @@ case object GenerateMethodBodies extends IRPass {
   private def genSyntheticSelf(): DefinitionArgument.Specified = {
     DefinitionArgument.Specified
       .builder()
-      .name(Name.Self(identifiedLocation = null, synthetic = true))
+      .name(Name.Self.builder().synthetic(true).build())
       .suspended(false)
       .build()
   }

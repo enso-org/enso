@@ -232,7 +232,9 @@ case object DataflowAnalysis extends IRPass {
         )
       case ann: Name.GenericAnnotation =>
         ann
-          .copy(expression = analyseExpression(ann.expression, info))
+          .copyBuilder()
+          .expression(analyseExpression(ann.expression, info))
+          .build()
           .updateMetadata(new MetadataPair(this, info))
       case err: Error => err
     }

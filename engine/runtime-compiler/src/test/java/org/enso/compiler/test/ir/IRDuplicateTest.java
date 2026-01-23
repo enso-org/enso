@@ -10,7 +10,6 @@ import static org.mockito.Mockito.when;
 import java.util.List;
 import org.enso.compiler.core.ir.MetadataStorage;
 import org.enso.compiler.core.ir.Name;
-import org.enso.compiler.core.ir.Name.Literal;
 import org.enso.compiler.core.ir.Pattern;
 import org.enso.compiler.core.ir.expression.Case;
 import org.junit.Rule;
@@ -20,7 +19,6 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.quality.Strictness;
-import scala.Option;
 
 @ExtendWith(MockitoExtension.class)
 public class IRDuplicateTest {
@@ -35,7 +33,7 @@ public class IRDuplicateTest {
         .when(passData.copy())
         .thenThrow(new AssertionError("copy() should not be called on passData"));
 
-    var lit = new Name.Literal("x", false, null, Option.empty(), passData);
+    var lit = Name.Literal.builder().name("x").isMethod(false).passData(passData).build();
     var duplicate = lit.duplicate(true, true, true, true);
     assertThat(duplicate.passData(), is(passDataDuplicate));
     assertThat("Old passData stays the same", lit.passData(), is(passData));
@@ -50,8 +48,8 @@ public class IRDuplicateTest {
         .when(passData.copy())
         .thenThrow(new AssertionError("copy() should not be called on passData"));
 
-    var lit = new Literal("x", false, null, Option.empty(), passData);
-    var qualifiedName = new Name.Qualified(asScala(List.of(lit)), null, new MetadataStorage());
+    var lit = Name.Literal.builder().name("x").isMethod(false).passData(passData).build();
+    var qualifiedName = Name.Qualified.builder().parts(asScala(List.of(lit))).build();
 
     var duplicate = qualifiedName.duplicate(true, true, true, true);
     assertThat(

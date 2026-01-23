@@ -316,11 +316,20 @@ case object ComplexType extends IRPass {
     diagnostics: DiagnosticStorage,
     signature: Option[Type.Ascription]
   ): List[Definition] = {
-    val methodRef = Name.MethodReference(
-      Some(Name.Qualified(List(typeName), typeName.identifiedLocation())),
-      name,
-      Name.MethodReference.genLocation(List(typeName, name)).orNull
-    )
+    val tpPointer = Name.Qualified
+      .builder()
+      .parts(List(typeName))
+      .location(typeName.identifiedLocation())
+      .build()
+    val methodRef = Name.MethodReference
+      .builder()
+      .typePointer(Some(tpPointer))
+      .methodName(name)
+      .location(
+        Name.MethodReference
+          .genLocation(List(typeName, name))
+      )
+      .build()
 
     val newSig =
       signature.map(sig => sig.copyWithTyped(methodRef.duplicate()).duplicate())

@@ -189,8 +189,8 @@ case object DemandAnalysis extends IRPass {
       name match {
         case lit: Name.Literal if isDefined(lit) =>
           val newNameLocation =
-            name.location.map(l => new IdentifiedLocation(l.location()))
-          val newName = lit.copy(location = newNameLocation)
+            name.location.map(l => new IdentifiedLocation(l.location())).orNull
+          val newName = lit.copyBuilder().location(newNameLocation).build()
           Application.Force
             .builder()
             .target(newName)

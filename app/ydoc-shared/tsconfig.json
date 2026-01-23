@@ -19,6 +19,7 @@
     "./src/ast/documentation.ts",
     "./src/ast/ensoMarkdown.ts",
     "./src/ast/ffi.ts",
+    "./src/ast/generated/ast.ts",
     "./src/ast/idMap.ts",
     "./src/ast/index.ts",
     "./src/ast/mutableModule.ts",
@@ -51,7 +52,6 @@
     "./src/util/net/ReconnectingWSTransport.ts",
     "./src/util/types.ts",
     "./src/uuid.ts",
-    "./src/yjsModel.ts",
-    "./src/ast/generated/ast.ts"
+    "./src/yjsModel.ts"
   ]
 }

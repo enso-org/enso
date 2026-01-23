@@ -32,6 +32,7 @@
     "./src/services/RemoteBackend/ids.ts",
     "./src/services/__test__/Backend.test.ts",
     "./src/text.ts",
+    "./src/text/english.json",
     "./src/utilities/__test__/nameValidation.test.ts",
     "./src/utilities/async.ts",
     "./src/utilities/data/__tests__/iter.test.ts",
@@ -46,7 +47,6 @@
     "./src/utilities/file.ts",
     "./src/utilities/nameValidation.ts",
     "./src/utilities/permissions.ts",
-    "./src/utilities/uniqueString.ts",
-    "./src/text/english.json"
+    "./src/utilities/uniqueString.ts"
   ]
 }

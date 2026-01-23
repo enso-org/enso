@@ -144,7 +144,7 @@ const innerWidgetInput = computed<WidgetInput>(() => {
 
 const selectionArrow = provideSelectionArrow({
   node: () => props.input.value,
-  show: toRef(tree, 'extended'),
+  show: toRef(tree, 'showDetails'),
   isHovered,
 })
 

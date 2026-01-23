@@ -143,11 +143,11 @@ case object IgnoredBindings extends IRPass {
     if (isIgnore(binding.name)) {
       val newName = supply
         .newName(from = Some(binding.name))
-        .copy(
-          location    = binding.name.location,
-          passData    = binding.name.passData,
-          diagnostics = binding.name.diagnostics
-        )
+        .copyBuilder()
+        .location(binding.name.identifiedLocation())
+        .passData(binding.name.passData())
+        .diagnostics(binding.name.diagnostics())
+        .build()
 
       binding
         .copy(
@@ -223,11 +223,11 @@ case object IgnoredBindings extends IRPass {
         if (isIgnored) {
           val newName = freshNameSupply
             .newName(from = Some(spec.name))
-            .copy(
-              location    = arg.name.location,
-              passData    = arg.name.passData,
-              diagnostics = arg.name.diagnostics
-            )
+            .copyBuilder()
+            .location(arg.name.identifiedLocation())
+            .passData(arg.name.passData)
+            .diagnostics(arg.name.diagnostics)
+            .build()
 
           spec
             .copy(
@@ -324,11 +324,11 @@ case object IgnoredBindings extends IRPass {
         if (isIgnore(name)) {
           val newName = supply
             .newName(from = Some(name))
-            .copy(
-              location    = name.location,
-              passData    = name.passData,
-              diagnostics = name.diagnostics
-            )
+            .copyBuilder()
+            .location(name.identifiedLocation())
+            .passData(name.passData())
+            .diagnostics(name.diagnostics())
+            .build()
             .updateMetadata(new MetadataPair(this, State.Ignored))
 
           named.copyWithName(newName)
@@ -345,11 +345,11 @@ case object IgnoredBindings extends IRPass {
         if (isIgnore(typed.name())) {
           val newName = supply
             .newName(from = Some(typed.name))
-            .copy(
-              location    = typed.name.location,
-              passData    = typed.name.passData,
-              diagnostics = typed.name.diagnostics
-            )
+            .copyBuilder()
+            .location(typed.name.identifiedLocation())
+            .passData(typed.name.passData())
+            .diagnostics(typed.name.diagnostics())
+            .build()
             .updateMetadata(new MetadataPair(this, State.Ignored))
 
           typed.copyBuilder().name(newName).build()

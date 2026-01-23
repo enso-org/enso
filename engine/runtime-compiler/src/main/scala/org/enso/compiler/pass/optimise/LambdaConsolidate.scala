@@ -328,11 +328,12 @@ case object LambdaConsolidate extends IRPass {
     if (toReplaceExpressionIds.contains(name.getId)) {
       name match {
         case spec: Name.Literal =>
-          spec.copy(
-            name = argument match {
+          spec
+            .copyBuilder()
+            .name(argument match {
               case defSpec: DefinitionArgument.Specified => defSpec.name.name
-            }
-          )
+            })
+            .build()
         case self: Name.Self             => self
         case selfType: Name.SelfType     => selfType
         case special: Name.Special       => special
@@ -441,12 +442,12 @@ case object LambdaConsolidate extends IRPass {
           if (isShadowed) {
             freshNameSupply
               .newName(from = Some(oldName))
-              .copy(
-                location    = oldName.location,
-                passData    = oldName.passData,
-                diagnostics = oldName.diagnostics,
-                id          = oldName.getId
-              )
+              .copyBuilder()
+              .location(oldName.identifiedLocation())
+              .passData(oldName.passData)
+              .diagnostics(oldName.diagnostics())
+              .id(oldName.getId)
+              .build()
           } else oldName
 
         spec.withName(newName)

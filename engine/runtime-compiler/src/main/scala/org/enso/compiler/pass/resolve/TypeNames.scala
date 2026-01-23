@@ -105,7 +105,13 @@ case object TypeNames extends IRPass {
                 case typ: BindingsMap.ResolvedType =>
                   val params =
                     typ.tp.params
-                      .map(Name.Literal(_, false, identifiedLocation = null))
+                      .map(paramName =>
+                        Name.Literal
+                          .builder()
+                          .name(paramName)
+                          .isMethod(false)
+                          .build()
+                      )
                       .toList
                   SelfTypeInfo(Some(typ), params)
                 case _: BindingsMap.ResolvedModule =>
