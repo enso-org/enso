@@ -25,9 +25,6 @@ public final class SalesforceCloudCredentials {
       }
 
       var instanceUrlField = metadata.get("instanceUrl");
-      if (instanceUrlField == null || !instanceUrlField.isTextual()) {
-        instanceUrlField = metadata.get("instance_url");
-      }
 
       if (instanceUrlField == null || !instanceUrlField.isTextual()) {
         throw ExternalLibraryCredentialHelper.malformedCredential();
