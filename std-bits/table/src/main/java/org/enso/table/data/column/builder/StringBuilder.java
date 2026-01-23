@@ -7,16 +7,17 @@ import java.util.BitSet;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.TypedStorage;
+import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.error.ValueTypeMismatchException;
 
 /** A builder for string columns. */
 final class StringBuilder extends TypedBuilder<String> {
-  private final TextType type;
+  private final TextType textType;
 
   StringBuilder(int size, TextType type) {
     super(type, new String[size]);
-    this.type = type;
+    this.textType = type;
   }
 
   static StringBuilder fromAddress(int size, long data, long validity, TextType type) {
@@ -25,7 +26,7 @@ final class StringBuilder extends TypedBuilder<String> {
     var bits = BitSet.valueOf(validityBuffer);
     var rawIndexBuffer =
         MemorySegment.ofAddress(data)
-            .reinterpret(Integer.BYTES * size + Integer.BYTES)
+            .reinterpret((long) Integer.BYTES * size + Integer.BYTES)
             .asByteBuffer()
             .order(ByteOrder.LITTLE_ENDIAN);
     var indexBuffer = rawIndexBuffer.asIntBuffer();
@@ -57,13 +58,13 @@ final class StringBuilder extends TypedBuilder<String> {
     } else {
       try {
         String str = (String) o;
-        if (type.fits(str)) {
+        if (textType.fits(str)) {
           data[currentSize++] = str;
         } else {
-          throw new ValueTypeMismatchException(type, str);
+          throw new ValueTypeMismatchException(textType, str);
         }
       } catch (ClassCastException e) {
-        throw new ValueTypeMismatchException(type, o);
+        throw new ValueTypeMismatchException(textType, o);
       }
     }
     return this;
@@ -72,7 +73,7 @@ final class StringBuilder extends TypedBuilder<String> {
   @Override
   public boolean accepts(Object o) {
     if (o instanceof String s) {
-      return type.fits(s);
+      return textType.fits(s);
     } else {
       return false;
     }
@@ -80,8 +81,8 @@ final class StringBuilder extends TypedBuilder<String> {
 
   @Override
   public void appendBulkStorage(ColumnStorage<?> storage) {
-    if (storage.getType() instanceof TextType gotType
-        && type.fitsExactly(gotType)
+    if (StorageType.ofStorage(storage) instanceof TextType gotType
+        && textType.fitsExactly(gotType)
         && storage instanceof TypedStorage<?>) {
       // This cast is safe, because storage.getType() == this.getType() == TextType iff
       // storage.T == String
@@ -98,7 +99,7 @@ final class StringBuilder extends TypedBuilder<String> {
 
   @Override
   protected ColumnStorage<String> doSeal() {
-    return new TypedStorage<>(type, data);
+    return new TypedStorage<>(textType, data);
   }
 
   final Storage<String> seal(ColumnStorage<?> otherStorage, TextType type) {

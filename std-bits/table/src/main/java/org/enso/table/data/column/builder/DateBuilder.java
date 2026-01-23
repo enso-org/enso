@@ -64,7 +64,7 @@ final class DateBuilder extends ValidityBuilder
         this.setValid(currentSize);
         data.put(currentSize++, Math.toIntExact(local.toEpochDay()));
       } catch (ClassCastException e) {
-        throw new ValueTypeMismatchException(getType(), o);
+        throw new ValueTypeMismatchException(DateType.INSTANCE, o);
       }
     }
     return this;
@@ -127,11 +127,6 @@ final class DateBuilder extends ValidityBuilder
     var validity = this.validityMap();
 
     return new DateStorage(buf, validity, otherStorage);
-  }
-
-  @Override
-  public StorageType<LocalDate> getType() {
-    return DateType.INSTANCE;
   }
 
   @Override

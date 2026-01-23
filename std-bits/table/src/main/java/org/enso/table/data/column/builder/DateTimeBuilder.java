@@ -81,7 +81,7 @@ final class DateTimeBuilder extends TypedBuilder<ZonedDateTime> {
           data[currentSize++] = (ZonedDateTime) o;
         }
       } catch (ClassCastException e) {
-        throw new ValueTypeMismatchException(getType(), o);
+        throw new ValueTypeMismatchException(DateTimeType.INSTANCE, o);
       }
     }
     return this;

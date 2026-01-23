@@ -7,7 +7,6 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZonedDateTime;
 import java.util.BitSet;
-import java.util.Objects;
 import org.enso.table.data.column.operation.masks.IndexMapper;
 import org.enso.table.data.column.operation.masks.MaskOperation;
 import org.enso.table.data.column.storage.BoolStorage;
@@ -120,7 +119,7 @@ public interface Builder {
           switch (storageType) {
             case BooleanType _ -> BoolBuilder.fromAddress(size, data, validity).seal(storage);
             case IntegerType type ->
-                LongBuilder.fromAddress(size, data, validity, type).seal(storage, type);
+                LongBuilder.fromAddress(size, data, validity, type).seal(storage);
             case FloatType type ->
                 DoubleBuilder.fromAddress(size, data, validity, type).seal(storage, type);
             case TextType type ->
@@ -177,28 +176,23 @@ public interface Builder {
    */
   static Builder getForType(
       StorageType<?> storageType, long size, ProblemAggregator problemAggregator) {
-    var localType = StorageType.makeLocal(storageType);
-    Builder builder =
-        switch (localType) {
-          case AnyObjectType _ -> getForAnyObject(size);
-          case BooleanType _ -> getForBoolean(size);
-          case DateType _ -> getForDate(size);
-          case DateTimeType _ -> getForDateTime(size);
-          case TimeOfDayType _ -> getForTime(size);
-          case FloatType floatType -> getForDouble(floatType, size, problemAggregator);
-          case IntegerType integerType -> getForLong(integerType, size, problemAggregator);
-          case TextType textType -> getForText(textType, size);
-          case BigDecimalType _ -> getForBigDecimal(size);
-          case BigIntegerType _ -> getForBigInteger(size, problemAggregator);
-          case NullType _ -> new NullBuilder();
-          case null -> getInferredBuilder(size, problemAggregator);
-          default ->
-              throw new IllegalStateException(
-                  "Unsupported type: " + storageType + " - this is a bug in the Table library.");
-        };
-
-    assert Objects.equals(builder.getType(), localType);
-    return builder;
+    return switch (storageType) {
+      case AnyObjectType _ -> getForAnyObject(size);
+      case BooleanType _ -> getForBoolean(size);
+      case DateType _ -> getForDate(size);
+      case DateTimeType _ -> getForDateTime(size);
+      case TimeOfDayType _ -> getForTime(size);
+      case FloatType floatType -> getForDouble(floatType, size, problemAggregator);
+      case IntegerType integerType -> getForLong(integerType, size, problemAggregator);
+      case TextType textType -> getForText(textType, size);
+      case BigDecimalType _ -> getForBigDecimal(size);
+      case BigIntegerType _ -> getForBigInteger(size, problemAggregator);
+      case NullType _ -> new NullBuilder();
+      case null -> getInferredBuilder(size, problemAggregator);
+      default ->
+          throw new IllegalStateException(
+              "Unsupported type: " + storageType + " - this is a bug in the Table library.");
+    };
   }
 
   /**
@@ -350,11 +344,6 @@ public interface Builder {
    * @return a storage containing all the items appended so far
    */
   ColumnStorage<?> seal();
-
-  /**
-   * @return the current storage type of this builder
-   */
-  StorageType<?> getType();
 
   /**
    * Fills the given buffer with the data from this builder.

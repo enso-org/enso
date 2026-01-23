@@ -23,7 +23,7 @@ final class BigDecimalBuilder extends TypedBuilder<BigDecimal> {
       try {
         data[currentSize++] = NumericConverter.coerceToBigDecimal(o);
       } catch (UnsupportedOperationException e) {
-        throw new ValueTypeMismatchException(getType(), o);
+        throw new ValueTypeMismatchException(BigDecimalType.INSTANCE, o);
       }
     }
     return this;

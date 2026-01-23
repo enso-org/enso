@@ -22,7 +22,7 @@ final class TimeOfDayBuilder extends TypedBuilder<LocalTime> {
     var bits = BitSet.valueOf(validityBuffer);
     var buf =
         MemorySegment.ofAddress(data)
-            .reinterpret(Long.BYTES * size)
+            .reinterpret((long) Long.BYTES * size)
             .asByteBuffer()
             .order(ByteOrder.LITTLE_ENDIAN);
 
@@ -47,7 +47,7 @@ final class TimeOfDayBuilder extends TypedBuilder<LocalTime> {
       try {
         data[currentSize++] = (LocalTime) o;
       } catch (ClassCastException e) {
-        throw new ValueTypeMismatchException(getType(), o);
+        throw new ValueTypeMismatchException(TimeOfDayType.INSTANCE, o);
       }
     }
     return this;

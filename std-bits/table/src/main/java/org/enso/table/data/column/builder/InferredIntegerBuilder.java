@@ -93,15 +93,6 @@ public final class InferredIntegerBuilder implements Builder {
     }
   }
 
-  @Override
-  public StorageType<?> getType() {
-    if (bigIntegerBuilder != null) {
-      return BigIntegerType.INSTANCE;
-    } else {
-      return IntegerType.INT_64;
-    }
-  }
-
   // Retype the LongBuilder to a BigIntegerBuilder, if we haven't already
   // done so.
   private void retypeToBigIntegerMaybe() {

@@ -46,7 +46,7 @@ final class BoolBuilder implements BuilderForBoolean, BuilderWithRetyping {
         }
         validityMap.set(size);
       } else {
-        throw new ValueTypeMismatchException(getType(), o);
+        throw new ValueTypeMismatchException(BooleanType.INSTANCE, o);
       }
       size++;
     }
@@ -101,7 +101,7 @@ final class BoolBuilder implements BuilderForBoolean, BuilderWithRetyping {
     } else if (storageType instanceof NullType) {
       appendNulls(Math.toIntExact(storage.getSize()));
     } else {
-      throw new StorageTypeMismatchException(getType(), storageType);
+      throw new StorageTypeMismatchException(BooleanType.INSTANCE, storageType);
     }
   }
 
@@ -140,10 +140,5 @@ final class BoolBuilder implements BuilderForBoolean, BuilderWithRetyping {
   @Override
   public Builder retypeTo(StorageType<?> type) {
     throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public StorageType<Boolean> getType() {
-    return BooleanType.INSTANCE;
   }
 }

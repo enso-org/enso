@@ -45,11 +45,6 @@ final class NullBuilder implements Builder {
   }
 
   @Override
-  public StorageType<?> getType() {
-    return NullType.INSTANCE;
-  }
-
-  @Override
   public void copyDataTo(Object[] items) {
     for (int i = 0; i < length; i++) {
       items[i] = null;

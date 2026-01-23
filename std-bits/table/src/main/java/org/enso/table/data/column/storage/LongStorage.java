@@ -5,6 +5,7 @@ import java.nio.LongBuffer;
 import java.util.NoSuchElementException;
 import org.enso.table.data.column.storage.iterators.ColumnLongStorageIterator;
 import org.enso.table.data.column.storage.type.IntegerType;
+import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.util.ImmutableBitSet;
 
 /** A column storing 64-bit integers. */
@@ -67,7 +68,6 @@ public final class LongStorage extends AbstractLongStorage implements ColumnStor
   /** Widening to a bigger type can be done without copying the data. */
   @Override
   public LongStorage widen(IntegerType widerType) {
-    assert widerType.fits(getType());
     return new LongStorage(data, validityMap, widerType, proxy);
   }
 

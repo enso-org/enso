@@ -201,12 +201,6 @@ public final class InferredBuilder implements Builder {
   }
 
   @Override
-  public StorageType<?> getType() {
-    // The type of InferredBuilder can change over time, so we do not report any stable type here.
-    return null;
-  }
-
-  @Override
   public void copyDataTo(Object[] items) {
     if (currentBuilder != null) {
       currentBuilder.copyDataTo(items);

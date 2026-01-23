@@ -12,13 +12,8 @@ abstract class TypedBuilder<T> implements BuilderWithRetyping, BuilderForType<T>
   protected int currentSize = 0;
 
   protected TypedBuilder(StorageType<T> storageType, T[] data) {
-    this.data = data;
     this.storageType = storageType;
-  }
-
-  @Override
-  public StorageType<T> getType() {
-    return storageType;
+    this.data = data;
   }
 
   @Override
@@ -52,8 +47,8 @@ abstract class TypedBuilder<T> implements BuilderWithRetyping, BuilderForType<T>
       resize(newSizeInt);
     }
 
-    var type = StorageType.makeLocal(storage.getType());
-    if (type.equals(getType())) {
+    var type = StorageType.ofStorage(storage);
+    if (type.equals(storageType)) {
       if (storage instanceof TypedStorage<?>) {
         // This cast is safe, because storage.getType() == this.getType() iff storage.T == this.T
         @SuppressWarnings("unchecked")
@@ -71,7 +66,7 @@ abstract class TypedBuilder<T> implements BuilderWithRetyping, BuilderForType<T>
     } else if (type instanceof NullType) {
       appendNulls(Math.toIntExact(storage.getSize()));
     } else {
-      throw new StorageTypeMismatchException(getType(), type);
+      throw new StorageTypeMismatchException(storageType, type);
     }
   }
 
