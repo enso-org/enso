@@ -4,6 +4,7 @@ import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.nodes.Node;
 import java.io.IOException;
 import java.util.Optional;
+import java.util.function.Supplier;
 import org.enso.common.MethodNames;
 import org.enso.compiler.Passes;
 import org.enso.compiler.context.CompilerContext;
@@ -28,6 +29,7 @@ import org.enso.interpreter.runtime.ModuleScopeBuilder;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.atom.AtomConstructor;
 import org.enso.interpreter.runtime.scope.ModuleScope;
+import org.enso.interpreter.runtime.util.CachingSupplier;
 import org.enso.pkg.QualifiedName;
 
 /** Container class for static predefined atoms, methods, and their containing scope. */
@@ -66,6 +68,10 @@ public final class Builtins {
   private final Builtin warning;
   private final ProblemBehavior problemBehavior;
   private final Builtin instrumentor;
+  private final RuntimeContext runtimeContext;
+  private final Ordering ordering;
+  private final Supplier<Type> comparable;
+  private final Supplier<Type> defaultComparator;
 
   /** Factory method to create the builtins. */
   private static Builtins create(EnsoContext context) {
@@ -116,6 +122,11 @@ public final class Builtins {
 
     error = new Error(this, ctx);
     number = new Number(this);
+
+    runtimeContext = new RuntimeContext(supplyType("Runtime", "Context"));
+    ordering = new Ordering(supplyType("Data", "Ordering", "Ordering"));
+    comparable = supplyType("Data", "Ordering", "Comparable");
+    defaultComparator = supplyType("Internal", "Ordering_Helpers", "Default_Comparator");
   }
 
   /**
@@ -244,8 +255,7 @@ public final class Builtins {
    * @return the builtin Context type
    */
   public RuntimeContext context() {
-    var type = loadType(context, "Runtime", "Context");
-    return new RuntimeContext(type);
+    return runtimeContext;
   }
 
   /**
@@ -398,16 +408,15 @@ public final class Builtins {
    * @return the container for ordering-related builtins
    */
   public Ordering ordering() {
-    var type = loadType(context, "Data", "Ordering", "Ordering");
-    return new Ordering(type);
+    return ordering;
   }
 
   public Type comparableType() {
-    return loadType(context, "Data", "Ordering", "Comparable");
+    return comparable.get();
   }
 
   public Type defaultComparatorType() {
-    return loadType(context, "Internal", "Ordering_Helpers", "Default_Comparator");
+    return defaultComparator.get();
   }
 
   /**
@@ -443,6 +452,13 @@ public final class Builtins {
     var module = moduleOpt.get();
     var scope = module.compileScope(context);
     return scope;
+  }
+
+  private Supplier<Type> supplyType(String... shortFqn) {
+    return CachingSupplier.from(
+        () -> {
+          return loadType(context, shortFqn);
+        });
   }
 
   @CompilerDirectives.TruffleBoundary

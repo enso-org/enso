@@ -1,38 +1,43 @@
 package org.enso.interpreter.runtime.builtin;
 
-import com.oracle.truffle.api.CompilerDirectives;
+import java.util.function.Supplier;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.atom.Atom;
-import org.enso.interpreter.runtime.data.atom.AtomConstructor;
 import org.enso.interpreter.runtime.data.atom.AtomNewInstanceNode;
 
 public final class Ordering {
-  private final Type type;
+  private final Supplier<Type> type;
+  private final Supplier<Atom> equal;
+  private final Supplier<Atom> less;
+  private final Supplier<Atom> greater;
 
-  Ordering(Type type) {
+  Ordering(Supplier<Type> type) {
     this.type = type;
+    this.equal = toAtom("Equal");
+    this.less = toAtom("Less");
+    this.greater = toAtom("Greater");
   }
 
   public Type getType() {
-    return type;
+    return type.get();
   }
 
-  @CompilerDirectives.TruffleBoundary
   public Atom newEqual() {
-    return toAtom(type.getConstructors().get("Equal"));
+    return equal.get();
   }
 
-  @CompilerDirectives.TruffleBoundary
   public Atom newLess() {
-    return toAtom(type.getConstructors().get("Less"));
+    return less.get();
   }
 
-  @CompilerDirectives.TruffleBoundary
   public Atom newGreater() {
-    return toAtom(type.getConstructors().get("Greater"));
+    return greater.get();
   }
 
-  private Atom toAtom(AtomConstructor c) {
-    return AtomNewInstanceNode.getUncached().newInstance(c);
+  private Supplier<Atom> toAtom(String consName) {
+    return () -> {
+      var cons = getType().getConstructors().get(consName);
+      return AtomNewInstanceNode.getUncached().newInstance(cons);
+    };
   }
 }

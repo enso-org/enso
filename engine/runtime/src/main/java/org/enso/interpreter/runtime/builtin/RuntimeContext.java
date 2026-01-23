@@ -1,33 +1,38 @@
 package org.enso.interpreter.runtime.builtin;
 
-import com.oracle.truffle.api.CompilerDirectives;
+import java.util.function.Supplier;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.atom.AtomConstructor;
+import org.enso.interpreter.runtime.util.CachingSupplier;
 
 public final class RuntimeContext {
 
-  private final Type type;
+  private final Supplier<Type> type;
+  private final CachingSupplier<AtomConstructor> output;
+  private final CachingSupplier<AtomConstructor> input;
+  private final CachingSupplier<AtomConstructor> dataflowStackTrace;
 
-  RuntimeContext(Type type) {
+  RuntimeContext(Supplier<Type> type) {
     this.type = type;
+    this.output = CachingSupplier.from(() -> getType().getConstructors().get("Output"));
+    this.input = CachingSupplier.from(() -> getType().getConstructors().get("Input"));
+    this.dataflowStackTrace =
+        CachingSupplier.from(() -> getType().getConstructors().get("Dataflow_Stack_Trace"));
   }
 
   public Type getType() {
-    return type;
+    return type.get();
   }
 
-  @CompilerDirectives.TruffleBoundary
   public AtomConstructor getOutput() {
-    return type.getConstructors().get("Output");
+    return output.get();
   }
 
-  @CompilerDirectives.TruffleBoundary
   public AtomConstructor getInput() {
-    return type.getConstructors().get("Input");
+    return input.get();
   }
 
-  @CompilerDirectives.TruffleBoundary
   public AtomConstructor getDataflowStackTrace() {
-    return type.getConstructors().get("Dataflow_Stack_Trace");
+    return dataflowStackTrace.get();
   }
 }
