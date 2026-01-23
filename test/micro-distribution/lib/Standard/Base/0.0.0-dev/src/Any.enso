@@ -2,9 +2,9 @@ import project.Data.Boolean.Boolean.False
 
 @Builtin_Type
 type Any
-    catch error_type handler = 
+    catch self error_type=Any handler=(x->x) =
         _ = error_type
-        catch_primitive handler
+        handler self
     to_text self = @Builtin_Method "Any.to_text"
     to_display_text self = @Builtin_Method "Any.to_display_text"
     is_error self = False
@@ -22,4 +22,4 @@ type Default_Comparator
        ---
     less_than_builtin left right = @Builtin_Method "Default_Comparator.less_than_builtin"
 
-private catch_primitive handler = @Builtin_Method "Any.catch_primitive"
+catch_primitive handler = @Builtin_Method "Any.catch_primitive"
