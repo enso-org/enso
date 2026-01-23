@@ -1,6 +1,5 @@
 load("@aspect_bazel_lib//lib:write_source_files.bzl", "write_source_files")
 load("@aspect_rules_esbuild//esbuild:defs.bzl", "esbuild")
-load("@aspect_rules_js//js:defs.bzl", "js_test")
 load("@aspect_rules_js//npm:defs.bzl", "npm_package")
 load("@aspect_rules_ts//ts:defs.bzl", "ts_config", "ts_project")
 load("@npm//:defs.bzl", "npm_link_all_packages", "npm_link_targets")
@@ -169,9 +168,8 @@ write_source_files(
     visibility = ["//visibility:public"],
 )
 
-js_test(
+playwright_bin.playwright_test(
     name = "test",
-    entry_point = "playwright-wrapper.mjs",
     data = npm_link_targets() + glob(["tests/*.ts"]) + glob(["playwright/.auth/user.json"], allow_empty = True) + [
         ":dist",
         "playwright.config.ts",
@@ -183,5 +181,6 @@ js_test(
     chdir = package_name(),
     visibility = ["//visibility:public"],
     log_level = "debug",
+    node_options = ["--import=./selective-symlink-loader.mjs"],
     tags = ["local"],
 )
