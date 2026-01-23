@@ -172,8 +172,8 @@ write_source_files(
 js_test(
     name = "test",
     entry_point = "playwright-wrapper.mjs",
-    data = npm_link_targets() + glob(["tests/*.ts"]) + [
-        "package.json",
+    data = npm_link_targets() + glob(["tests/*.ts"]) + glob(["playwright/.auth/user.json"], allow_empty = True) + [
+        ":dist",
         "playwright.config.ts",
         "tests/package.json",
         "selective-symlink-loader.mjs",

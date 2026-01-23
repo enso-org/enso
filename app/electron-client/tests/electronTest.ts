@@ -15,16 +15,31 @@ const LOADING_TIMEOUT = 10000
 const TEXT = TEXTS.english
 const TEST_USER_FILE = path.join(import.meta.dirname, '../playwright/.auth/user.json')
 const POSSIBLE_ELECTRON_PATHS = [
+  '../ide-dist/linux-unpacked/enso',
+  '../ide-dist/win-unpacked/Enso.exe',
+  '../ide-dist/mac/Enso.app/Contents/MacOS/Enso',
+  '../ide-dist/mac-arm64/Enso.app/Contents/MacOS/Enso',
   '../../../dist/ide/linux-unpacked/enso',
   '../../../dist/ide/win-unpacked/Enso.exe',
   '../../../dist/ide/mac/Enso.app/Contents/MacOS/Enso',
   '../../../dist/ide/mac-arm64/Enso.app/Contents/MacOS/Enso',
 ]
 
-export const credentials: { readonly user: string; readonly password: string } = {
-  user: 'test@enso.org',
-  password: 'test',
-}
+export const credentials: { readonly user: string; readonly password: string } = await fs
+  .readFile(TEST_USER_FILE, { encoding: 'utf-8' })
+  .then(
+    (contents) => JSON.parse(contents),
+    (error) => {
+      throw new Error(`Cannot read Test User credentials from '${TEST_USER_FILE}'.`, {
+        cause: error,
+      })
+    },
+  )
+  .catch((error) => {
+    throw new Error(`Cannot parse Test User credentials from '${TEST_USER_FILE}'.`, {
+      cause: error,
+    })
+  })
 
 let _cachedElectronPath: string | undefined
 
@@ -60,10 +75,17 @@ export async function getElectronExecutablePath(): Promise<string | undefined> {
  */
 export const electronFixtures = {
   // eslint-disable-next-line no-empty-pattern
-  testRunId: async function ({}, use: (value: string) => Promise<void>, testInfo: { titlePath: string[] }) {
+  testRunId: async function (
+    {},
+    use: (value: string) => Promise<void>,
+    testInfo: { titlePath: string[] },
+  ) {
     await use(`${testInfo.titlePath.join('-')}-${Date.now()}`)
   },
-  projectsDir: async function ({ testRunId }: { testRunId: string }, use: (value: string) => Promise<void>) {
+  projectsDir: async function (
+    { testRunId }: { testRunId: string },
+    use: (value: string) => Promise<void>,
+  ) {
     const projectsDir = path.join(os.tmpdir(), 'enso-test-projects', testRunId)
     await use(projectsDir)
   },
@@ -98,7 +120,10 @@ export const electronFixtures = {
     await app.close()
   },
   page: async function (
-    { app, viewport }: { app: ElectronApplication; viewport?: { width: number; height: number } | null },
+    {
+      app,
+      viewport,
+    }: { app: ElectronApplication; viewport?: { width: number; height: number } | null },
     use: (value: Page) => Promise<void>,
   ) {
     const innerPage = await app.firstWindow()

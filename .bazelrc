@@ -31,6 +31,8 @@ build --strategy=CopyToDirectory=local
 build --strategy=CopyDirectory=local
 build --strategy=NpmLifecycleHook=local
 
+test --strategy=TestRunner=local,standalone
+
 ## JS
 
 # passes an argument `--skipLibCheck` to *every* spawn of tsc

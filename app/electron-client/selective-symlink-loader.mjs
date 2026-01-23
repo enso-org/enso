@@ -17,7 +17,7 @@
  * uses ESM resolution for ESM projects.
  */
 
-import { register } from 'node:module';
+import { register } from 'node:module'
 
 // Register ESM loader hooks from a separate file
-register('./selective-symlink-loader-hooks.mjs', import.meta.url);
+register('./selective-symlink-loader-hooks.mjs', import.meta.url)
