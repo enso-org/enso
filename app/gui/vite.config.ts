@@ -12,6 +12,7 @@ import wasm from 'vite-plugin-wasm'
 import tailwindConfig from './tailwind.config'
 
 const isDevMode = process.env.NODE_ENV === 'development'
+const isTestMode = process.env.NODE_ENV === 'test'
 const IS_ELECTRON_DEV_MODE = process.env.ELECTRON_DEV_MODE === 'true'
 
 if (isDevMode) {
@@ -91,7 +92,10 @@ export default defineConfig({
     ...(process.env.GUI_HOSTNAME ? { host: process.env.GUI_HOSTNAME } : {}),
   },
   resolve: {
-    conditions: isDevMode ? ['source', ...defaultClientConditions] : [...defaultClientConditions],
+    conditions:
+      isDevMode || isTestMode ?
+        ['source', ...defaultClientConditions]
+      : [...defaultClientConditions],
     alias: {
       '@': fileURLToPath(new URL('./src/project-view', import.meta.url)),
       '#': fileURLToPath(new URL('./src/dashboard', import.meta.url)),

@@ -307,12 +307,14 @@ case object AliasAnalysis extends IRPass {
                 .annotations(
                   d.annotations.map { ann =>
                     val c = ann
-                      .copy(
-                        expression = analyseExpression(
+                      .copyBuilder()
+                      .expression(
+                        analyseExpression(
                           ann.expression,
                           builder
                         )
                       )
+                      .build()
                     alias.AliasMetadata.updateMetadata(
                       c,
                       new alias.AliasMetadata.RootScope(builder.toGraph())
@@ -352,12 +354,14 @@ case object AliasAnalysis extends IRPass {
         )
       case ann: Name.GenericAnnotation =>
         val ac = ann
-          .copy(expression =
+          .copyBuilder()
+          .expression(
             analyseExpression(
               ann.expression,
               builder
             )
           )
+          .build()
         alias.AliasMetadata.updateMetadata(
           ac,
           new alias.AliasMetadata.RootScope(builder.toGraph())
@@ -514,8 +518,8 @@ case object AliasAnalysis extends IRPass {
 
   private def isSyntheticSelf(name: Name): Boolean = {
     name match {
-      case Name.Self(_, true, _) => true
-      case _                     => false
+      case self: Name.Self => self.synthetic()
+      case _               => false
     }
   }
 

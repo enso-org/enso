@@ -140,7 +140,7 @@ def _write_tsconfig_rule(ctx):
             rel_path = "./" + rel_path
         src_files.append(rel_path)
 
-    content = content.replace("\"__files__\"", str(src_files))
+    content = content.replace("\"__files__\"", str(sorted(src_files)))
     ctx.actions.write(
         output = ctx.outputs.out,
         content = content,

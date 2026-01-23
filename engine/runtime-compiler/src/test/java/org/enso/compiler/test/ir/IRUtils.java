@@ -12,11 +12,11 @@ public final class IRUtils {
   private IRUtils() {}
 
   public static Name.Literal literal(String lit) {
-    return new Name.Literal(lit, false, null, Option.empty(), new MetadataStorage());
+    return Name.Literal.builder().name(lit).isMethod(false).build();
   }
 
   public static Name.Literal literal(String lit, MetadataStorage passData) {
-    return new Name.Literal(lit, false, null, Option.empty(), passData);
+    return Name.Literal.builder().name(lit).isMethod(false).passData(passData).build();
   }
 
   public static Empty emptyIr() {

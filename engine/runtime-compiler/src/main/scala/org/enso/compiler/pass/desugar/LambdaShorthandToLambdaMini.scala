@@ -83,11 +83,11 @@ class LambdaShorthandToLambdaMini(
               DefinitionArgument.Specified
                 .builder()
                 .name(
-                  Name.Literal(
-                    newName.name,
-                    isMethod = false,
-                    null
-                  )
+                  Name.Literal
+                    .builder()
+                    .name(newName.name())
+                    .isMethod(false)
+                    .build()
                 )
                 .suspended(false)
                 .build(
@@ -133,11 +133,11 @@ class LambdaShorthandToLambdaMini(
         val (updatedFn, updatedName) = if (functionIsShorthand) {
           val newFn = freshNameSupply
             .newName()
-            .copy(
-              location    = p.function.location,
-              passData    = p.function.passData,
-              diagnostics = p.function.diagnostics
-            )
+            .copyBuilder()
+            .location(p.function.identifiedLocation())
+            .passData(p.function.passData)
+            .diagnostics(p.function.diagnostics)
+            .build()
           val newName = newFn.name
           (newFn, Some(newName))
         } else {
@@ -169,12 +169,12 @@ class LambdaShorthandToLambdaMini(
                 DefinitionArgument.Specified
                   .builder()
                   .name(
-                    Name
-                      .Literal(
-                        updatedName.get,
-                        isMethod = false,
-                        p.function.location.orNull
-                      )
+                    Name.Literal
+                      .builder()
+                      .name(updatedName.get)
+                      .isMethod(false)
+                      .location(p.function().identifiedLocation())
+                      .build()
                   )
                   .build()
               )
@@ -198,11 +198,11 @@ class LambdaShorthandToLambdaMini(
           case blank: Name.Blank =>
             val name = freshNameSupply
               .newName()
-              .copy(
-                location    = blank.location,
-                passData    = blank.passData,
-                diagnostics = blank.diagnostics
-              )
+              .copyBuilder()
+              .location(blank.identifiedLocation())
+              .passData(blank.passData)
+              .diagnostics(blank.diagnostics)
+              .build()
             bindings ::= name
             name
           case it => it
@@ -269,11 +269,11 @@ class LambdaShorthandToLambdaMini(
         if (isShorthand) {
           val newName = freshNameSupply
             .newName()
-            .copy(
-              location    = s.value.location,
-              passData    = s.value.passData,
-              diagnostics = s.value.diagnostics
-            )
+            .copyBuilder()
+            .location(s.value.identifiedLocation())
+            .passData(s.value.passData)
+            .diagnostics(s.value.diagnostics)
+            .build()
 
           s.copy(newName)
         } else s
@@ -297,11 +297,11 @@ class LambdaShorthandToLambdaMini(
         case specified: CallArgument.Specified =>
           // Note [Safe Casting to Name.Literal]
           val defArgName =
-            Name.Literal(
-              specified.value.asInstanceOf[Name.Literal].name,
-              isMethod = false,
-              null
-            )
+            Name.Literal
+              .builder()
+              .name(specified.value.asInstanceOf[Name.Literal].name())
+              .isMethod(false)
+              .build()
 
           Some(
             DefinitionArgument.Specified
@@ -339,15 +339,15 @@ class LambdaShorthandToLambdaMini(
         val scrutineeName =
           freshNameSupply
             .newName()
-            .copy(
-              location    = nameBlank.location,
-              passData    = nameBlank.passData,
-              diagnostics = nameBlank.diagnostics
-            )
+            .copyBuilder()
+            .location(nameBlank.identifiedLocation())
+            .passData(nameBlank.passData)
+            .diagnostics(nameBlank.diagnostics)
+            .build()
 
         val lambdaArg = DefinitionArgument.Specified
           .builder()
-          .name(scrutineeName.copy(id = null))
+          .name(scrutineeName.copyBuilder().id(null).build())
           .suspended(false)
           .build()
 

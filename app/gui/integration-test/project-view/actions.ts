@@ -41,8 +41,9 @@ export async function openVisualization(page: Page, visName: string) {
  * Create a Node with Table Input Widget.
  *
  * This function relies on automatically assigned binding and assome no more table nodes exist.
+ * content is added as an argument to `Table.input` expression.
  */
-export async function createTableNode(page: Page) {
+export async function createTableNode(page: Page, content?: string) {
   // Adding `Table.new` component will display the widget
   await locate.addNewNodeButton(page).click()
   await expect(locate.componentBrowser(page)).toBeVisible()
@@ -50,20 +51,24 @@ export async function createTableNode(page: Page) {
   // Wait for CB entry to appear; this way we're sure about node name (binding).
   await expect(locate.componentBrowserSelectedEntry(page)).toHaveCount(1)
   await expect(locate.componentBrowserSelectedEntry(page)).toHaveText('Table.input')
+  if (content) {
+    await page.keyboard.press('Shift+Enter')
+    await page.keyboard.type(content)
+  }
   await page.keyboard.press('Enter')
   const node = locate.graphNodeByBinding(page, 'any1')
   await expect(node).toHaveCount(1)
   await expect(node).toBeVisible()
   await mockMethodCallInfo(
     page,
-    { binding: 'any1', expr: 'Table.input' },
+    { binding: 'any1', expr: 'Table.input' + (content ? ` ${content}` : '') },
     {
       methodPointer: {
         module: 'Standard.Table.Table',
         definedOnType: 'Standard.Table.Table.Table',
         name: 'input',
       },
-      notAppliedArguments: [0],
+      notAppliedArguments: content ? [] : [0],
     },
   )
   return node

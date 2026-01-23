@@ -113,7 +113,7 @@ case object FramePointerAnalysis extends IRPass {
   ): Unit = {
     args.foreach { arg =>
       arg.name match {
-        case Name.Self(loc, synthetic, _) if loc == null && synthetic =>
+        case self: Name.Self if self.location().isEmpty && self.synthetic() =>
           // synthetic self argument has occurrence attached, but there is no Occurence.Def for it.
           // So we have to handle it specially.
           FrameAnalysisMeta.updateMetadata(arg, new FramePointer(0, 1))

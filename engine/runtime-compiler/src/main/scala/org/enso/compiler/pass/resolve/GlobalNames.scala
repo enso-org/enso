@@ -217,10 +217,12 @@ case object GlobalNames extends IRPass {
                         )
                       // The synthetic applications gets the location so that instrumentation
                       // identifies the node correctly
-                      val fun = lit.copy(
-                        name     = resolvedModuleMethod.method.name,
-                        location = None
-                      )
+                      val fun = lit
+                        .copyBuilder()
+                        .name(resolvedModuleMethod.method.name)
+                        .location(null)
+                        .build()
+
                       val app = Application.Prefix
                         .builder()
                         .function(fun)

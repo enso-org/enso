@@ -2404,7 +2404,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
               contextId,
               Api.VisualizationExpression.Text(
                 moduleName,
-                "x -> x.catch_primitive _.to_text",
+                "x -> x.catch Any _.to_text",
                 Vector()
               ),
               moduleName
@@ -2508,7 +2508,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
               contextId,
               Api.VisualizationExpression.Text(
                 moduleName,
-                "x -> Panic.catch_primitive x caught_panic-> caught_panic.payload.to_text",
+                "x -> Panic.catch Any x caught_panic-> caught_panic.payload.to_text",
                 Vector()
               ),
               moduleName
