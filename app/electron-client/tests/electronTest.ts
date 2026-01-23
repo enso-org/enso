@@ -30,6 +30,9 @@ let _cachedElectronPath: string | undefined
 
 export async function getElectronExecutablePath(): Promise<string | undefined> {
   if (_cachedElectronPath !== undefined) return _cachedElectronPath
+  if (process.env.ENSO_EXEC_PATH) {
+    return process.env.ENSO_EXEC_PATH
+  }
   try {
     const promises = POSSIBLE_ELECTRON_PATHS.map((p) => path.resolve(import.meta.dirname, p)).map(
       (p) => fs.access(p, fs.constants.X_OK).then(() => p),
@@ -60,10 +63,17 @@ export async function getElectronExecutablePath(): Promise<string | undefined> {
  */
 export const electronFixtures = {
   // eslint-disable-next-line no-empty-pattern
-  testRunId: async function ({}, use: (value: string) => Promise<void>, testInfo: { titlePath: string[] }) {
+  testRunId: async function (
+    {},
+    use: (value: string) => Promise<void>,
+    testInfo: { titlePath: string[] },
+  ) {
     await use(`${testInfo.titlePath.join('-')}-${Date.now()}`)
   },
-  projectsDir: async function ({ testRunId }: { testRunId: string }, use: (value: string) => Promise<void>) {
+  projectsDir: async function (
+    { testRunId }: { testRunId: string },
+    use: (value: string) => Promise<void>,
+  ) {
     const projectsDir = path.join(os.tmpdir(), 'enso-test-projects', testRunId)
     await use(projectsDir)
   },
@@ -98,7 +108,10 @@ export const electronFixtures = {
     await app.close()
   },
   page: async function (
-    { app, viewport }: { app: ElectronApplication; viewport?: { width: number; height: number } | null },
+    {
+      app,
+      viewport,
+    }: { app: ElectronApplication; viewport?: { width: number; height: number } | null },
     use: (value: Page) => Promise<void>,
   ) {
     const innerPage = await app.firstWindow()

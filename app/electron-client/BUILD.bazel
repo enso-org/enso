@@ -171,14 +171,18 @@ js_test(
     name = "test",
     entry_point = "playwright-wrapper.mjs",
     data = npm_link_targets() + glob(["tests/*.ts"]) + [
-        "package.json",
+#        "package.json",
         "playwright.config.ts",
         "tests/package.json",
         "selective-symlink-loader.mjs",
         "selective-symlink-loader-hooks.mjs",
+        ":dist",
     ],
     args = ["test"],
-    chdir = package_name(),
+    env = {
+        "ENSO_EXEC_PATH": "../../../../../../../../$(location :dist)/enso-linux-x86_64-0.0.0-dev.AppImage"
+    },
+    # chdir = package_name(),
     visibility = ["//visibility:public"],
     log_level = "debug",
     tags = ["local"],
