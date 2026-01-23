@@ -1,6 +1,7 @@
 package org.enso.runtime.parser.processor.methodgen;
 
 import org.enso.runtime.parser.processor.GeneratedClassContext;
+import org.enso.runtime.parser.processor.utils.Utils;
 
 public final class EqualsMethodGenerator {
   private final GeneratedClassContext ctx;
@@ -21,10 +22,15 @@ public final class EqualsMethodGenerator {
         .append(" other) {")
         .append(System.lineSeparator());
     for (var field : ctx.getAllFields()) {
-      sb.append(
-              "    if (!(Objects.equals(this.$name, other.$name))) {"
-                  .replace("$name", field.name()))
-          .append(System.lineSeparator());
+      if (Utils.isMetadataStorageType(field, ctx.getProcessingEnvironment())) {
+        sb.append("    if (this.$name != other.$name) {".replace("$name", field.name()))
+            .append(System.lineSeparator());
+      } else {
+        sb.append(
+                "    if (!(Objects.equals(this.$name, other.$name))) {"
+                    .replace("$name", field.name()))
+            .append(System.lineSeparator());
+      }
       sb.append("      return false;").append(System.lineSeparator());
       sb.append("    }").append(System.lineSeparator());
     }
