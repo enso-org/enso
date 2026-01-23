@@ -280,7 +280,7 @@ case object DataflowAnalysis extends IRPass {
           .build()
           .updateMetadata(new MetadataPair(this, info))
       case binding: Expression.Binding =>
-        val expressionDep = asStatic(expression)
+        val expressionDep = asStatic(binding.expression)
         val nameDep       = asStatic(binding.name)
         val bindingDep    = asStatic(binding)
         info.dependents.updateAt(expressionDep, Set(bindingDep))
