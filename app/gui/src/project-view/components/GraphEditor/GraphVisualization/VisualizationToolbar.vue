@@ -13,8 +13,6 @@ import {
   isTextSelectionMenu,
   isToggleButton,
 } from '@/components/visualizations/toolbar'
-import { ProjectPath } from '@/util/projectPath'
-import { qnLastSegment } from '@/util/qualifiedName'
 import { toRef, toValue } from 'vue'
 import type { VisualizationIdentifier } from 'ydoc-shared/yjsModel'
 
@@ -27,7 +25,6 @@ const props = defineProps<{
   isFocused: boolean
   allVisualizations: ReadonlyArray<VisualizationIdentifier>
   visualizationDefinedToolbar: ReadonlyArray<Readonly<ToolbarItem>> | undefined
-  typename: ProjectPath | undefined
   typeinfo: TypeInfo | undefined
 }>()
 
@@ -87,14 +84,10 @@ const visualizationSelector = useVisualizationSelector({
     </template>
     <div class="after-toolbars node-type" data-testid="visualisationNodeType">
       <ComponentTypeLabel
-        v-if="props.typeinfo"
         :unknownLabel="UNKNOWN_TYPE"
         :typeInfo="props.typeinfo"
         testId="visualizationNodeTypeLabel"
       />
-      <span v-else>{{
-        props.typename?.path ? qnLastSegment(props.typename.path) : UNKNOWN_TYPE
-      }}</span>
     </div>
   </div>
 </template>
