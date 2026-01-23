@@ -390,9 +390,9 @@ public class HyperFormat {
       String schemaName,
       String tableName,
       String[] columnNames,
-      ColumnStorage<?>[] columns,
+      ColumnStorage<?>[] columnStorages,
       Connection connection) {
-    assert columnNames.length == columns.length;
+    assert columnNames.length == columnStorages.length;
 
     final var sn = new SchemaName(schemaName);
     if (!connection.getCatalog().getSchemaNames().contains(sn)) {
@@ -401,7 +401,7 @@ public class HyperFormat {
 
     var tableDef = new TableDefinition(new TableName(schemaName, tableName));
     for (int i = 0; i < columnNames.length; i++) {
-      var sqlType = mapEnsoTypeToSqlType(columns[i].getType());
+      var sqlType = mapEnsoTypeToSqlType(StorageType.ofStorage(columnStorages[i]));
       tableDef.addColumn(columnNames[i], sqlType);
     }
 
@@ -411,7 +411,7 @@ public class HyperFormat {
   }
 
   private static SqlType mapEnsoTypeToSqlType(StorageType<?> storageType) {
-    return switch (StorageType.makeLocal(storageType)) {
+    return switch (storageType) {
       case TextType t -> SqlType.text();
       case IntegerType t -> SqlType.bigInt();
       case FloatType t -> SqlType.doublePrecision();
@@ -498,7 +498,7 @@ public class HyperFormat {
     if (storage == null || storage.isNothing(row)) {
       inserter.addNull();
     } else {
-      var localType = StorageType.makeLocal(storage.getType());
+      var localType = StorageType.ofStorage(storage);
       switch (localType) {
         case FloatType ft -> inserter.add(ft.asTypedStorage(storage).getItemAsDouble(row));
         case IntegerType it -> inserter.add(it.asTypedStorage(storage).getItemAsLong(row));
@@ -581,12 +581,17 @@ public class HyperFormat {
   private static void validateTypesMatch(ColumnStorage<?>[] storages, TableDefinition tableDef) {
     for (int i = 0; i < storages.length; i++) {
       var storage = storages[i];
-      if (storage == null || storage.getType() instanceof NullType) {
+      if (storage == null) {
+        continue; // Allow NULLs to append to anything
+      }
+
+      var storageType = StorageType.ofStorage(storage);
+      if (storageType instanceof NullType) {
         continue; // Allow NULLs to append to anything
       }
 
       SqlType expectedSqlType = tableDef.getColumns().get(i).getType();
-      SqlType actualSqlType = mapEnsoTypeToSqlType(storage.getType());
+      SqlType actualSqlType = mapEnsoTypeToSqlType(storageType);
 
       if (!expectedSqlType.equals(actualSqlType)) {
         String columnName = tableDef.getColumns().get(i).getName().toString();

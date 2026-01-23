@@ -5,7 +5,6 @@ import java.nio.LongBuffer;
 import java.util.NoSuchElementException;
 import org.enso.table.data.column.storage.iterators.ColumnLongStorageIterator;
 import org.enso.table.data.column.storage.type.IntegerType;
-import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.util.ImmutableBitSet;
 
 /** A column storing 64-bit integers. */

@@ -1,6 +1,5 @@
 package org.enso.table.data.column.storage.type;
 
-import java.lang.reflect.Proxy;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.time.LocalDate;
@@ -17,21 +16,18 @@ import org.enso.table.problems.ProblemAggregator;
  * Represents an underlying internal storage type that can be mapped to the Value Type that is
  * exposed to users.
  */
-public interface StorageType<T> {
-  @SuppressWarnings("unchecked")
-  static <T> StorageType<T> makeLocal(StorageType<T> type) {
-    if (type == null) {
-      return null;
-    }
-
-    if (Proxy.isProxyClass(type.getClass())) {
-      var local = StorageType.fromTypeCharAndSize(type.typeChar(), type.size());
-      return (StorageType<T>) local;
-    } else {
-      return type;
-    }
-  }
-
+public sealed interface StorageType<T>
+    permits AnyObjectType,
+        BigDecimalType,
+        BigIntegerType,
+        BooleanType,
+        DateTimeType,
+        DateType,
+        FloatType,
+        IntegerType,
+        NullType,
+        TextType,
+        TimeOfDayType {
   static <T> StorageType<T> ofStorage(ColumnStorage<T> storage) {
     @SuppressWarnings("unchecked")
     var result =

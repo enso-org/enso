@@ -50,7 +50,7 @@ public class CastOperation {
 
   /** Construct a StorageConverter for the given target type. */
   private static StorageConverter<?> fromStorageType(StorageType<?> storageType) {
-    return switch (StorageType.makeLocal(storageType)) {
+    return switch (storageType) {
       case AnyObjectType _ -> new ToMixedStorageConverter();
       case BooleanType _ -> new ToBooleanStorageConverter();
       case DateType _ -> new ToDateStorageConverter();
@@ -62,9 +62,6 @@ public class CastOperation {
       case BigIntegerType _ -> new ToBigIntegerConverter();
       case BigDecimalType _ -> new ToBigDecimalConverter();
       case NullType _ -> throw new IllegalArgumentException("Cannot cast to Null type.");
-      default ->
-          throw new IllegalStateException(
-              "Unsupported type: " + storageType + " - this is a bug in the Table library.");
     };
   }
 

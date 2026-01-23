@@ -9,12 +9,12 @@ import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.operation.cast.CastProblemAggregator;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.LongStorage;
-import org.enso.table.data.column.storage.NullStorage;
 import org.enso.table.data.column.storage.type.BigDecimalType;
 import org.enso.table.data.column.storage.type.BigIntegerType;
 import org.enso.table.data.column.storage.type.BooleanType;
 import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.column.storage.type.IntegerType;
+import org.enso.table.data.column.storage.type.NullType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.error.ValueTypeMismatchException;
 import org.enso.table.problems.ProblemAggregator;
@@ -161,7 +161,7 @@ final class LongBuilder extends ValidityBuilder implements BuilderForLong, Build
           }
         }
       }
-      case NullStorage _ -> appendNulls(Math.toIntExact(storage.getSize()));
+      case NullType _ -> appendNulls(Math.toIntExact(storage.getSize()));
       default -> throw new StorageTypeMismatchException(this.storageType, storageType);
     }
   }

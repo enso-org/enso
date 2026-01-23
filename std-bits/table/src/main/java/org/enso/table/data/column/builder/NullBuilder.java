@@ -3,8 +3,6 @@ package org.enso.table.data.column.builder;
 import org.enso.table.data.column.operation.unary.CountNothing;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.NullStorage;
-import org.enso.table.data.column.storage.type.NullType;
-import org.enso.table.data.column.storage.type.StorageType;
 
 final class NullBuilder implements Builder {
   private int length = 0;

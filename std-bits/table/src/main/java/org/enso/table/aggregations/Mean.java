@@ -38,7 +38,7 @@ public class Mean extends KnownTypeAggregator {
 
   private static StorageType<?> resultTypeFromInputType(StorageType<?> inputType)
       throws IllegalStateException {
-    return switch ((StorageType.makeLocal(inputType))) {
+    return switch (inputType) {
       case FloatType _, IntegerType _ -> FloatType.FLOAT_64;
       case BigIntegerType _, BigDecimalType _ -> BigDecimalType.INSTANCE;
       case NullType nullType -> nullType;

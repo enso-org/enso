@@ -60,7 +60,7 @@ public interface ColumnFetcherFactory {
         ProblemAggregator problemAggregator) {
       // JDBC column indices are 1-based.
       int colIndex = index + 1;
-      return switch (StorageType.makeLocal(storageType)) {
+      return switch (storageType) {
         case BooleanType bt -> new BooleanColumnFetcher(colIndex, columnName);
         case IntegerType it -> new LongColumnFetcher(colIndex, columnName, it, problemAggregator);
         case FloatType ft -> new DoubleColumnFetcher(colIndex, columnName, ft, problemAggregator);
