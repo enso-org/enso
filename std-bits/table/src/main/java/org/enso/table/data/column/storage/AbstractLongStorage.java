@@ -13,11 +13,6 @@ public abstract class AbstractLongStorage extends Storage<Long> implements Colum
   }
 
   @Override
-  public IntegerType getType() {
-    return (IntegerType) super.getType();
-  }
-
-  @Override
   public final long getSize() {
     return size;
   }

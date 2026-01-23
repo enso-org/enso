@@ -9,11 +9,11 @@ public abstract class Storage<T> implements ColumnStorage<T> {
 
   private final long uniqueKey = atomicCounter.incrementAndGet();
   private final char typeChar;
-  private final long size;
+  private final int typeSize;
 
   protected Storage(StorageType<T> storageType) {
     this.typeChar = storageType.typeChar();
-    this.size = storageType.size();
+    this.typeSize = storageType.size();
   }
 
   @Override
@@ -22,10 +22,12 @@ public abstract class Storage<T> implements ColumnStorage<T> {
   }
 
   @Override
-  public StorageType<T> getType() {
-    // The cast is safe because the typeChar and size are taken from the storageType.
-    @SuppressWarnings("unchecked")
-    var output = (StorageType<T>) StorageType.fromTypeCharAndSize(typeChar, size);
-    return output;
+  public final char typeChar() {
+    return typeChar;
+  }
+
+  @Override
+  public final int typeSize() {
+    return typeSize;
   }
 }

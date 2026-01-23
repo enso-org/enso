@@ -32,12 +32,11 @@ public final class Column {
     ensureNameIsValid(name);
     this.name = name;
     this.storage = Builder.makeLocal(storage);
-    var type = this.storage.getType();
     LOGGER.trace(
         "Column[{}] of {}:{} type with size: {}",
         name,
-        type.typeChar(),
-        type.size(),
+        storage.typeChar(),
+        storage.typeSize(),
         storage.getSize());
   }
 
@@ -81,8 +80,8 @@ public final class Column {
   /**
    * @return the type of the underlying storage
    */
-  public StorageType<?> getType() {
-    return storage.getType();
+  public StorageType<?> getStorageType() {
+    return StorageType.ofStorage(storage);
   }
 
   /**

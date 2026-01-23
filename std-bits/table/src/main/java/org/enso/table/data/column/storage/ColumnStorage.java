@@ -12,6 +12,12 @@ public interface ColumnStorage<T> extends Iterable<T> {
   /* Gets the size of the storage. */
   long getSize();
 
+  /* Gets the type character of the storage. */
+  char typeChar();
+
+  /* Gets the type size of the storage. */
+  int typeSize();
+
   /**
    * Address of the off-heap storage of data.
    *

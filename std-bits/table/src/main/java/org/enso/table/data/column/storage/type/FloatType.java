@@ -27,7 +27,7 @@ public final class FloatType implements StorageType<Double>, NumericType {
   }
 
   @Override
-  public long size() {
+  public int size() {
     return switch (bits) {
       case BITS_64 -> 64;
       case BITS_32 -> 32;

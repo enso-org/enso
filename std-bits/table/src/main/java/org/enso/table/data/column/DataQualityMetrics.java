@@ -22,16 +22,7 @@ import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.operation.JsonOperation;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.ColumnStorageWithInferredStorage;
-import org.enso.table.data.column.storage.type.AnyObjectType;
-import org.enso.table.data.column.storage.type.BigDecimalType;
-import org.enso.table.data.column.storage.type.BigIntegerType;
-import org.enso.table.data.column.storage.type.DateTimeType;
-import org.enso.table.data.column.storage.type.DateType;
-import org.enso.table.data.column.storage.type.FloatType;
-import org.enso.table.data.column.storage.type.IntegerType;
-import org.enso.table.data.column.storage.type.NullType;
-import org.enso.table.data.column.storage.type.TextType;
-import org.enso.table.data.column.storage.type.TimeOfDayType;
+import org.enso.table.data.column.storage.type.*;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.Table;
 import org.enso.table.util.LeastRecentlyUsedCache;
@@ -140,8 +131,9 @@ public abstract class DataQualityMetrics {
 
   private static DataQualityMetrics createMetrics(ColumnStorage<?> columnStorage) {
     var resolvedStorage = ColumnStorageWithInferredStorage.resolveStorage(columnStorage);
-    return switch (resolvedStorage.getType()) {
-      case NullType nullType -> new NullQualityMetrics(resolvedStorage);
+    var resolvedType = StorageType.ofStorage(resolvedStorage);
+    return switch (resolvedType) {
+      case NullType _ -> new NullQualityMetrics(resolvedStorage);
       case TextType textType -> new StringQualityMetrics(textType.asTypedStorage(resolvedStorage));
       case FloatType floatType ->
           NumericQualityMetrics.forDouble(floatType.asTypedStorage(resolvedStorage));
@@ -225,7 +217,7 @@ public abstract class DataQualityMetrics {
     private final CompletableFuture<Result> result;
 
     public BaseQualityMetrics(ColumnStorage<?> storage) {
-      if (storage.getType() instanceof NullType) {
+      if (StorageType.ofStorage(storage) instanceof NullType) {
         result = CompletableFuture.completedFuture(new Result(0, 0, ""));
       } else {
         result =

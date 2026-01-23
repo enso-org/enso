@@ -34,11 +34,6 @@ public final class DoubleStorage extends Storage<Double>
   }
 
   @Override
-  public FloatType getType() {
-    return (FloatType) super.getType();
-  }
-
-  @Override
   public long getSize() {
     return size;
   }

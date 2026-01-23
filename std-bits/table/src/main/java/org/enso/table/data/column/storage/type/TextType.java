@@ -37,7 +37,7 @@ public final class TextType implements StorageType<String> {
   }
 
   @Override
-  public long size() {
+  public int size() {
     return maxLength;
   }
 

@@ -32,6 +32,12 @@ public interface StorageType<T> {
     }
   }
 
+  static <T> StorageType<T> ofStorage(ColumnStorage<T> storage) {
+    @SuppressWarnings("unchecked")
+    var result = (StorageType<T>)StorageType.fromTypeCharAndSize(storage.typeChar(), storage.typeSize());
+    return result;
+  }
+
   /**
    * @param item the item whose type is to be determined.
    * @param options specifies details on how the precise type should be determined
@@ -139,7 +145,7 @@ public interface StorageType<T> {
    */
   ColumnStorage<T> asTypedStorage(ColumnStorage<?> storage);
 
-  static StorageType<?> fromTypeCharAndSize(char typeChar, long size) {
+  static StorageType<?> fromTypeCharAndSize(char typeChar, int size) {
     return switch (typeChar) {
       case 'A' -> AnyObjectType.INSTANCE;
       case 'B' -> BooleanType.INSTANCE;
@@ -179,7 +185,7 @@ public interface StorageType<T> {
    * @return the maximum length of the type if applicable, or -1 if not applicable (e.g. for
    *     variable-length)
    */
-  default long size() {
+  default int size() {
     return -1;
   }
 }
