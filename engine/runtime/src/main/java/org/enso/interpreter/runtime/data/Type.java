@@ -48,6 +48,7 @@ public final class Type extends EnsoObject {
   private final Type supertype;
   private final Type eigentype;
   private final Map<String, AtomConstructor> constructors;
+  private @CompilerDirectives.CompilationFinal AtomConstructor singleConstructor;
   private final boolean hasAllConstructorsPrivate;
 
   private boolean gettersGenerated;
@@ -506,7 +507,9 @@ public final class Type extends EnsoObject {
    * @param constructor The constructor to register in this type.
    */
   public void registerConstructor(AtomConstructor constructor) {
-    constructors.put(constructor.getName(), constructor);
+    var prev = constructors.put(constructor.getName(), constructor);
+    assert prev == null || prev != singleConstructor
+        : "Replacing singleConstructor should invalidate!";
     gettersGenerated = false;
   }
 
@@ -522,13 +525,15 @@ public final class Type extends EnsoObject {
    * @return the single constructor associated with this type
    * @throws AssertionError if there is none or more of constructors
    */
-  @TruffleBoundary
   public AtomConstructor getSingleConstructor() {
-    var it = getConstructors().values().iterator();
-    assert it.hasNext();
-    var cons = it.next();
-    assert !it.hasNext();
-    return cons;
+    if (singleConstructor == null) {
+      CompilerDirectives.transferToInterpreterAndInvalidate();
+      var it = getConstructors().values().iterator();
+      assert it.hasNext();
+      singleConstructor = it.next();
+      assert !it.hasNext();
+    }
+    return singleConstructor;
   }
 
   private boolean isNothing(Node lib) {
