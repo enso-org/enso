@@ -142,7 +142,7 @@ export function createGraphStore(
 
   const nodeState = {
     nodeHovered: useAssociatedFlag({ onCleanup }),
-    nodeExtended: useAssociatedFlag({ onCleanup }),
+    nodeDetailedView: useAssociatedFlag({ onCleanup }),
     nodeOutputVisible: useAssociatedFlag({ onCleanup }),
     nodeOutputHovered: useAssociatedFlag({ onCleanup }),
     nodeRects: useAssociatedValue<NodeId, Rect>({ onCleanup }),

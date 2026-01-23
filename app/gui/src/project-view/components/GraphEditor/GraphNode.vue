@@ -111,17 +111,19 @@ const { visibleMessage, hiddenMessage } = useNodeMessage({
   nodeId,
 })
 
-const extended = computed<boolean>(
+const detailedView = computed<boolean>(
   () => nodeSelection != null && nodeSelection.isSoleSelection(nodeId.value),
 )
-watch(extended, (extended) => graph.nodeExtended.set(nodeId.value, extended), { immediate: true })
+watch(detailedView, (extended) => graph.nodeDetailedView.set(nodeId.value, extended), {
+  immediate: true,
+})
 
 const expanded = toRef(() => props.node.isExpanded)
 
 const nodeHovered = ref(false)
 watch(nodeHovered, (hovered) => graph.nodeHovered.set(nodeId.value, hovered))
 
-const menuVisible = computed(() => menuEnabledByHover.value || extended.value)
+const menuVisible = computed(() => menuEnabledByHover.value || detailedView.value)
 const menuFull = ref(false)
 const menuHovered = ref(false)
 
@@ -192,7 +194,7 @@ const {
   nodeHovered: () => nodeHovered.value || outputHovered.value,
   nodeRect,
   scale,
-  isFocused: extended,
+  isFocused: detailedView,
   typeinfo: () => expressionInfo.value?.typeInfo,
   dataSource: () => ({ type: 'node', nodeId: props.node.rootExpr.externalId }) as const,
   hidden: toRef(props, 'edited'),
@@ -485,7 +487,7 @@ const nodeName = computed(() => props.node.pattern?.code())
           :nodeType="props.node.type"
           :primaryApplication="primaryApplication"
           :conditionalPorts="props.node.conditionalPorts"
-          :extended="extended"
+          :showDetails="detailedView"
           :expanded="expanded"
         />
       </div>

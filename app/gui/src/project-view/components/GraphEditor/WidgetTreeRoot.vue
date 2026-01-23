@@ -22,7 +22,9 @@ const props = defineProps<{
   primaryApplication?: Opt<PrimaryApplication>
   /** Ports that are not targetable by default; see {@link NodeDataFromAst}. */
   conditionalPorts?: Set<Ast.AstId> | undefined
-  extended?: boolean
+  /** Flag read by widgets, making them show e.g. hidden arguments. */
+  showDetails?: boolean
+  /** Flag indicating that node is expanded. Widget should show their multiline view. */
   expanded?: boolean
   updateCallback: UpdateHandler
 }>()
@@ -58,7 +60,7 @@ const tree = provideWidgetTree(
   toRef(props, 'externalId'),
   rootElementWithFallback,
   toRef(props, 'conditionalPorts'),
-  toRef(props, 'extended'),
+  toRef(props, 'showDetails'),
   toRef(props, 'expanded'),
   anyLayoutAnimationActive,
   primaryApplication,

@@ -28,7 +28,7 @@ const props = defineProps<{
   primaryApplication: PrimaryApplication
   /** Ports that are not targetable by default; see {@link NodeDataFromAst}. */
   conditionalPorts: Set<Ast.AstId>
-  extended: boolean
+  showDetails: boolean
   expanded: boolean
 }>()
 
@@ -87,7 +87,7 @@ export const ICON_WIDTH = 16
     :input="rootPort"
     :rootElement="rootElement"
     :conditionalPorts="conditionalPorts"
-    :extended="extended"
+    :showDetails="showDetails"
     :expanded="expanded"
     :updateCallback="handleWidgetUpdates"
     @currentEditChanged="onCurrentEditChange"
