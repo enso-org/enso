@@ -26,7 +26,7 @@ public abstract class KnownTypeAggregator extends Aggregator {
    *
    * @return The type of the new column.
    */
-  public StorageType<?> getStorageType() {
+  protected StorageType<?> getStorageType() {
     return type;
   }
 }
