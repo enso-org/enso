@@ -2,13 +2,13 @@
 CHANGELOG.md
 
 # The repository settings
-/.github/ @jdunkerley  @AdRiley @hubertp
-/.github/CODEOWNERS @jdunkerley @jaroslavtulach @farmaazon @AdRiley @PabloBuchu @wdanilo
+/.github/ @jdunkerley  @AdRiley @hubertp @vitvakatu
+/.github/CODEOWNERS @jdunkerley @jaroslavtulach @farmaazon @AdRiley @PabloBuchu
 
 # Build script & utilities
-/run @jdunkerley  @AdRiley @hubertp
-/run.bat @jdunkerley  @AdRiley @hubertp
-/build @jdunkerley  @AdRiley @hubertp
+/run @jdunkerley @vitvakatu @AdRiley @hubertp
+/run.bat @jdunkerley @vitvakatu @AdRiley @hubertp
+/build @jdunkerley @vitvakatu @AdRiley @hubertp
 
 # Rust Libraries and Related Files
 rust-toolchain.toml @vitvakatu @kazcw @farmaazon @AdRiley
@@ -17,7 +17,6 @@ Cargo.lock
 Cargo.toml
 /lib/rust/ @farmaazon @kazcw @vitvakatu @AdRiley
 /lib/rust/parser/ @farmaazon @kazcw @vitvakatu @jaroslavtulach @AdRiley
-/tools/build-performance/ @kazcw
 
 # Global JS configuration
 esling.config.mjs
@@ -27,44 +26,41 @@ tsconfig.json
 /lib/scala/ @4e6 @jaroslavtulach @hubertp
 
 # Java libraries
-/lib/java/ @4e6 @jaroslavtulach @hubertp
+/lib/java/ @4e6 @jaroslavtulach @hubertp @jdunkerley @AdRiley
 
 # GUI/Dashboard
-/app @farmaazon @vitvakatu @kazcw @AdRiley @PabloBuchu @indiv0 @somebody1234
-/app/gui/integration-test @farmaazon @vitvakatu @kazcw @AdRiley @PabloBuchu @indiv0 @somebody1234
-/app/gui/src/dashboard @farmaazon @vitvakatu @kazcw @AdRiley @PabloBuchu @indiv0 @somebody1234
-/app/gui/src/project-view @farmaazon @vitvakatu @kazcw @AdRiley @PabloBuchu @indiv0 @somebody1234
-/app/ide-desktop/ @farmaazon @vitvakatu @kazcw @AdRiley @PabloBuchu @indiv0 @somebody1234
-/app/ide-desktop/client/tasks/signArchivesMacOs.ts @jdunkerley @hubertp
-/app/ide-desktop/client/tests @farmaazon @vitvakatu @kazcw @AdRiley @PabloBuchu @indiv0 @somebody1234
-/app/ydoc-server/ @farmaazon @vitvakatu @kazcw @AdRiley
-/app/ydoc-server-nodejs/ @farmaazon @vitvakatu @kazcw @AdRiley
-/app/ydoc-server-polyglot/ @farmaazon @vitvakatu @kazcw @AdRiley
-/app/ydoc-shared/ @farmaazon @vitvakatu @kazcw @AdRiley
+/app @farmaazon @vitvakatu @kazcw @jdunkerley @AdRiley @PabloBuchu
+/app/ide-desktop/client/tasks/signArchivesMacOs.ts @vitvakatu @jdunkerley @hubertp
+/app/ydoc-server/ @farmaazon @vitvakatu @kazcw @jdunkerley @AdRiley @4e6
+/app/ydoc-server-nodejs/ @farmaazon @vitvakatu @kazcw @jdunkerley @AdRiley @4e6
+/app/ydoc-server-polyglot/ @farmaazon @vitvakatu @kazcw @jdunkerley @AdRiley @4e6
+/app/ydoc-shared/ @farmaazon @vitvakatu @kazcw @jdunkerley @AdRiley @4e6
 
 # The data-link schema is owned by the libraries team
-/app/gui/src/dashboard/data/datalinkSchema.json @jdunkerley @GregoryTravis @AdRiley
-/app/gui/src/dashboard/data/__tests__ @jdunkerley @GregoryTravis @AdRiley @PabloBuchu @indiv0 @somebody1234
-/app/gui/src/dashboard/data/serviceCredentials @jdunkerley @GregoryTravis @AdRiley @PabloBuchu @indiv0 @somebody1234
+/app/gui/src/dashboard/data/datalinkSchema.json @jdunkerley @AdRiley @hubertp
+/app/gui/src/dashboard/data/__tests__ @jdunkerley @AdRiley @PabloBuchu @hubertp
+/app/gui/src/dashboard/data/serviceCredentials @jdunkerley @AdRiley @PabloBuchu @hubertp
 
 # Engine (old)
 # This section should be removed once the engine moves to /app/engine
 /build.sbt @4e6 @jaroslavtulach @hubertp
-/distribution/ @4e6 @jdunkerley @hubertp @GregoryTravis @AdRiley
+/distribution/ @4e6 @jdunkerley @hubertp @AdRiley
 /engine/ @4e6 @jaroslavtulach @hubertp
 /project/ @4e6 @jaroslavtulach @hubertp
 /tools/ @4e6 @jaroslavtulach @hubertp
+/tools/build-performance/ @kazcw
+/tools/http-test-helper/ @4e6 @jaroslavtulach @hubertp @jdunkerley @AdRiley
+/tools/legal-review-helper/ @4e6 @jaroslavtulach @hubertp @jdunkerley @AdRiley
 
 # Engine & Core Enso Libraries
-/distribution/lib/Standard/Base/ @jaroslavtulach
-/std-bits/base/ @jaroslavtulach
+/distribution/lib/Standard/Base/ @jdunkerley @hubertp @AdRiley @jaroslavtulach
+/std-bits/base/ @jdunkerley @hubertp @AdRiley @jaroslavtulach
 
 # Enso Libraries
 # This section should be amended once the engine moves to /app/engine
-/distribution/lib/ @jdunkerley @hubertp @GregoryTravis @AdRiley
-/std-bits/ @jdunkerley @hubertp @GregoryTravis @AdRiley
-/test/ @jdunkerley @hubertp @GregoryTravis @AdRiley
-/tools/http-test-helper/ @hubertp @jdunkerley @GregoryTravis @AdRiley
+/distribution/lib/ @jdunkerley @hubertp @AdRiley
+/std-bits/ @jdunkerley @hubertp @AdRiley
+/test/ @jdunkerley @hubertp @AdRiley
 
 # Licenses
 /distribution/engine/
@@ -73,4 +69,4 @@ tsconfig.json
 /tools/legal-review/
 
 # The default project template is owned by the libraries team
-/lib/scala/pkg/src/main/resources/default/src/ @hubertp @jdunkerley @GregoryTravis @AdRiley
+/lib/scala/pkg/src/main/resources/default/src/ @hubertp @jdunkerley @AdRiley
