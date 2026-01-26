@@ -4,11 +4,6 @@ import * as locate from './locate'
 
 const ACCEPT_INPUT_SHORTCUT = `ControlOrMeta+Enter`
 
-async function deselectAllNodes(page: Page) {
-  await page.keyboard.press('Escape')
-  await expect(locate.selectedNodes(page)).toHaveCount(0)
-}
-
 async function expectAndCancelBrowser(
   page: Page,
   expectedText: string,
@@ -40,9 +35,7 @@ async function expectAndCancelBrowser(
   })
 }
 
-test('Different ways of opening Component Browser', async ({ editorPage, page }) => {
-  await editorPage
-
+test('Different ways of opening Component Browser', async ({ page }) => {
   // Without source node
 
   // (+) button
@@ -93,9 +86,7 @@ test('Different ways of opening Component Browser', async ({ editorPage, page })
   await expectAndCancelBrowser(page, '', 'Table', 'selected')
 })
 
-test('Opening Component Browser from output port buttons', async ({ editorPage, page }) => {
-  await editorPage
-
+test('Opening Component Browser from output port buttons', async ({ page }) => {
   // Pan the graph up so that every node is guaranteed to be visible.
   await page.mouse.move(100, 100)
   await page.mouse.down({ button: 'middle' })
@@ -127,9 +118,7 @@ test('Opening Component Browser from output port buttons', async ({ editorPage, 
   await expectAndCancelBrowser(page, '', null, 'table')
 })
 
-test('Graph Editor pans to Component Browser', async ({ editorPage, page }) => {
-  await editorPage
-
+test('Graph Editor pans to Component Browser', async ({ page }) => {
   // Select node, pan out of view of it, press Enter; should pan to show node and CB
   await locate.graphNodeByBinding(page, 'final').click()
   await page.mouse.move(100, 180)
@@ -157,53 +146,32 @@ test('Graph Editor pans to Component Browser', async ({ editorPage, page }) => {
   await expectAndCancelBrowser(page, '', null)
 })
 
-test('Accepting suggestion', async ({ editorPage, page }) => {
-  // Clicking entry
-  await editorPage
-  await locate.addNewNodeButton(page).click()
-  let nodeCount = await locate.graphNode(page).count()
-  await locate.componentBrowserEntry(page).nth(1).click()
-  await expect(locate.componentBrowser(page)).toBeHidden()
-  await expect(locate.graphNode(page)).toHaveCount(nodeCount + 1)
-  await expect(locate.graphNode(page).last().locator('.WidgetToken')).toHaveText([
-    'Data',
-    '.',
-    'read_many',
-  ])
-  await expect(locate.graphNode(page).last()).toBeSelected()
-
-  // Clicking at highlighted entry
-  nodeCount = await locate.graphNode(page).count()
-  await deselectAllNodes(page)
-  await locate.addNewNodeButton(page).click()
-  await locate.componentBrowserSelectedEntry(page).first().click()
-  await expect(locate.componentBrowser(page)).toBeHidden()
-  await expect(locate.graphNode(page)).toHaveCount(nodeCount + 1)
-  await expect(locate.graphNode(page).last().locator('.WidgetToken')).toHaveText([
-    'Data',
-    '.',
-    'read',
-  ])
-  await expect(locate.graphNode(page).last()).toBeSelected()
-
-  // Accepting with Enter
-  nodeCount = await locate.graphNode(page).count()
-  await deselectAllNodes(page)
-  await locate.addNewNodeButton(page).click()
-  await expect(locate.componentBrowserInput(page)).toBeFocused()
-  await page.keyboard.press('Enter')
-  await expect(locate.componentBrowser(page)).toBeHidden()
-  await expect(locate.graphNode(page)).toHaveCount(nodeCount + 1)
-  await expect(locate.graphNode(page).last().locator('.WidgetToken')).toHaveText([
-    'Data',
-    '.',
-    'read',
-  ])
-  await expect(locate.graphNode(page).last()).toBeSelected()
+test.describe('Accepting suggestion', () => {
+  async function checkAcceptSuggestion(page: Page, acceptSuggestion: () => Promise<void>) {
+    await locate.addNewNodeButton(page).click()
+    let nodeCount = await locate.graphNode(page).count()
+    await acceptSuggestion()
+    await expect(locate.componentBrowser(page)).toBeHidden()
+    await expect(locate.graphNode(page)).toHaveCount(nodeCount + 1)
+    await expect(locate.graphNode(page).last().locator('.WidgetToken')).toHaveText([
+      'Data',
+      '.',
+      'read_many',
+    ])
+    await expect(locate.graphNode(page).last()).toBeSelected()
+  }
+  test('Accept suggestion by clicking entry', async ({ page }) => {
+    await checkAcceptSuggestion(page, () => locate.componentBrowserEntry(page).nth(1).click())
+  })
+  test('Accept suggestion by clicking highlighted entry', async ({ page }) => {
+    await checkAcceptSuggestion(page, () => locate.componentBrowserSelectedEntry(page).first().click())
+  })
+  test('Accept suggestion with Enter', async ({ page }) => {
+    await checkAcceptSuggestion(page, () => page.keyboard.press('Enter'))
+  })
 })
 
-test('Accepting any written input', async ({ editorPage, page }) => {
-  await editorPage
+test('Accepting any written input', async ({ page }) => {
   await locate.addNewNodeButton(page).click()
   const nodeCount = await locate.graphNode(page).count()
   await locate.componentBrowserInput(page).fill('re')
@@ -213,8 +181,7 @@ test('Accepting any written input', async ({ editorPage, page }) => {
   await expect(locate.graphNode(page).last().locator('.WidgetToken')).toHaveText('re')
 })
 
-test('Filling input with suggestion', async ({ editorPage, page }) => {
-  await editorPage
+test('Filling input with suggestion', async ({ page }) => {
   await locate.addNewNodeButton(page).click()
   await expect(locate.componentBrowser(page)).toExist()
   await expect(locate.componentBrowserEntry(page)).toExist()
@@ -225,8 +192,7 @@ test('Filling input with suggestion', async ({ editorPage, page }) => {
   await expect(locate.componentBrowserInput(page)).toHaveText('Data.read ')
 })
 
-test('Filtering list', async ({ editorPage, page }) => {
-  await editorPage
+test('Filtering list', async ({ page }) => {
   await locate.addNewNodeButton(page).click()
   await locate.componentBrowserInput(page).fill('re_ma')
   const segments = locate.componentBrowserEntry(page).locator('.component-label-segment')
@@ -237,8 +203,7 @@ test('Filtering list', async ({ editorPage, page }) => {
   await expect(page.locator('.groupEntry')).toHaveText(['all (1)', 'File (1)'])
 })
 
-test('Navigating components', async ({ editorPage, page }) => {
-  await editorPage
+test('Navigating components', async ({ page }) => {
   await locate.addNewNodeButton(page).click()
   await expect(locate.componentBrowserSelectedEntry(page)).toExist()
   await expect(locate.componentBrowserSelectedEntry(page)).toHaveText('Data.read')
@@ -256,8 +221,7 @@ test('Navigating components', async ({ editorPage, page }) => {
   await expect(locate.rightDock(page)).toBeVisible()
 })
 
-test('Navigating groups', async ({ editorPage, page }) => {
-  await editorPage
+test('Navigating groups', async ({ page }) => {
   await locate.addNewNodeButton(page).click()
   await expect(locate.componentBrowserSelectedEntry(page)).toExist()
   await expect(page.locator('.groupEntry')).toHaveText([
@@ -297,8 +261,7 @@ test('Navigating groups', async ({ editorPage, page }) => {
   await expect(locate.componentBrowserSelectedEntry(page)).toExist()
 })
 
-test('Editing existing nodes', async ({ editorPage, page }) => {
-  await editorPage
+test('Editing existing nodes', async ({ page }) => {
   const node = locate.graphNodeByBinding(page, 'data')
   const ADDED_PATH = '"/home/enso/Input.txt"'
 
@@ -338,8 +301,7 @@ test('Editing existing nodes', async ({ editorPage, page }) => {
   await expect(node.locator('.WidgetText')).toBeHidden()
 })
 
-test('Visualization preview: type-based visualization selection', async ({ editorPage, page }) => {
-  await editorPage
+test('Visualization preview: type-based visualization selection', async ({ page }) => {
   const nodeCount = await locate.graphNode(page).count()
   await locate.addNewNodeButton(page).click()
   await expect(locate.componentBrowser(page)).toExist()
@@ -354,8 +316,7 @@ test('Visualization preview: type-based visualization selection', async ({ edito
   await expect(locate.graphNode(page)).toHaveCount(nodeCount)
 })
 
-test('Visualization preview: user visualization selection', async ({ editorPage, page }) => {
-  await editorPage
+test('Visualization preview: user visualization selection', async ({ page }) => {
   const nodeCount = await locate.graphNode(page).count()
   await locate.addNewNodeButton(page).click()
   await expect(locate.componentBrowser(page)).toExist()
@@ -377,8 +338,7 @@ test('Visualization preview: user visualization selection', async ({ editorPage,
 })
 
 // TODO[#10949]: the record button on node is disabled.
-test.skip('Component browser handling of overridden record-mode', async ({ editorPage, page }) => {
-  await editorPage
+test.skip('Component browser handling of overridden record-mode', async ({ page }) => {
   const node = locate.graphNodeByBinding(page, 'data')
   const ADDED_PATH = '"/home/enso/Input.txt"'
   const recordModeToggle = node.getByTestId('toggleRecord')
@@ -417,9 +377,7 @@ test.skip('Component browser handling of overridden record-mode', async ({ edito
   await expect(content).toHaveText(`Data.read ${ADDED_PATH}`)
 })
 
-test('AI prompt', async ({ editorPage, page }) => {
-  await editorPage
-
+test('AI prompt', async ({ page }) => {
   const node = locate.graphNodeByBinding(page, 'data')
   await node.click()
   await expect(node).toBeSelected()

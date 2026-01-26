@@ -114,10 +114,12 @@ const selectedSuggestionReturnType = computed(() => {
   if (selectedSuggestion.value == null) return undefined
   const typename = selectedSuggestion.value.returnType(projectNames)
 
-  const parsedType = parseExpression(typename)
-  if (parsedType == null) return typename
-  unqualifyQualifiedNames(parsedType)
-  return parsedType.code()
+  const parsedTypeExpr = parseExpression(typename)
+  if (parsedTypeExpr == null) return typename
+  const parsedType = parsedTypeExpr.module
+  parsedType.setRoot(parsedTypeExpr as any)
+  unqualifyQualifiedNames(parsedTypeExpr)
+  return parsedType.root()!.code()
 })
 
 watch(selectedComponent, (component) => emit('update:selectedComponent', component), {
