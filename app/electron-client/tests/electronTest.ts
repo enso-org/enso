@@ -28,6 +28,8 @@ const POSSIBLE_ELECTRON_PATHS = [
   '../../../dist/ide/mac-arm64/Enso.app/Contents/MacOS/Enso',
 ]
 
+console.debug('PWD', process.env.PWD)
+
 export const credentials: { readonly user: string; readonly password: string } = await fs
   .readFile(TEST_USER_FILE, { encoding: 'utf-8' })
   .then(
