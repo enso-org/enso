@@ -1,5 +1,8 @@
 package org.enso.table.data.column.builder;
 
+import java.lang.foreign.MemorySegment;
+import java.nio.ByteOrder;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -20,6 +23,29 @@ final class DateTimeBuilder extends TypedBuilder<ZonedDateTime> {
     super(DateTimeType.INSTANCE, new ZonedDateTime[size]);
     this.allowDateToDateTimeConversion = allowDateToDateTimeConversion;
     this.wasLocalDate = allowDateToDateTimeConversion ? new BitSet(size) : null;
+  }
+
+  static DateTimeBuilder fromAddress(int size, long data, long validity) {
+    var validityBuffer =
+        MemorySegment.ofAddress(validity).reinterpret((size + 7) / 8).asByteBuffer();
+    var bits = BitSet.valueOf(validityBuffer);
+    var buf =
+        MemorySegment.ofAddress(data)
+            .reinterpret(Long.BYTES * size)
+            .asByteBuffer()
+            .order(ByteOrder.LITTLE_ENDIAN);
+
+    var b = new DateTimeBuilder(size, false);
+    for (var i = 0; i < size; i++) {
+      var stamp = buf.getLong();
+      if (bits.get(i)) {
+        var instant = Instant.ofEpochSecond(stamp);
+        b.append(ZonedDateTime.ofInstant(instant, ZoneId.systemDefault()));
+      } else {
+        b.appendNulls(1);
+      }
+    }
+    return b;
   }
 
   /**
@@ -73,7 +99,11 @@ final class DateTimeBuilder extends TypedBuilder<ZonedDateTime> {
 
   @Override
   protected ColumnStorage<ZonedDateTime> doSeal() {
-    return new TypedStorage<>(DateTimeType.INSTANCE, data);
+    return seal(null);
+  }
+
+  final ColumnStorage<ZonedDateTime> seal(ColumnStorage<?> other) {
+    return new TypedStorage<>(DateTimeType.INSTANCE, data, other);
   }
 
   @Override

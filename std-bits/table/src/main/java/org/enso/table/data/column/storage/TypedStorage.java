@@ -4,12 +4,12 @@ import java.lang.foreign.MemorySegment;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
-import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.ZonedDateTime;
 import java.util.Arrays;
 import java.util.BitSet;
 import java.util.Iterator;
-import org.enso.table.data.column.storage.type.DateType;
+import org.enso.table.data.column.storage.type.DateTimeType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.data.column.storage.type.TimeOfDayType;
@@ -74,17 +74,17 @@ public class TypedStorage<T> extends Storage<T> {
       offheapBuffer = buf;
       validitySet = new ImmutableBitSet(validity, data.length);
     }
-    if (offheapBuffer == null && getType() instanceof DateType) {
-      var fullSize = data.length * Integer.BYTES;
+    if (offheapBuffer == null && getType() instanceof DateTimeType) {
+      var fullSize = data.length * Long.BYTES;
       var buf = ByteBuffer.allocateDirect(fullSize).order(ByteOrder.LITTLE_ENDIAN);
       var validity = new BitSet();
       var at = 0;
       for (var value : data) {
-        if (value instanceof LocalDate s) {
-          buf.putInt(Math.toIntExact(s.toEpochDay()));
+        if (value instanceof ZonedDateTime s) {
+          buf.putLong(s.toEpochSecond());
           validity.set(at, true);
         } else {
-          buf.putInt(0);
+          buf.putLong(0);
           validity.set(at, false);
         }
         at++;
