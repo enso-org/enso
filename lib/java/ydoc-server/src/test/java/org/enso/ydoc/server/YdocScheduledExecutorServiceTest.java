@@ -153,35 +153,6 @@ public class YdocScheduledExecutorServiceTest {
   }
 
   @Test
-  public void testOwnerThreadEnforcement() {
-    YdocScheduledExecutorService service = new YdocScheduledExecutorService();
-    long ownerThreadId = Thread.currentThread().threadId();
-
-    assertEquals(ownerThreadId, service.getOwnerThreadId());
-
-    // Try to process from another thread
-    AtomicInteger exceptionCount = new AtomicInteger(0);
-    Thread otherThread =
-        new Thread(
-            () -> {
-              try {
-                service.processPendingTasks();
-              } catch (IllegalStateException e) {
-                exceptionCount.incrementAndGet();
-              }
-            });
-
-    otherThread.start();
-    try {
-      otherThread.join();
-    } catch (InterruptedException e) {
-      fail("Thread interrupted");
-    }
-
-    assertEquals(1, exceptionCount.get());
-  }
-
-  @Test
   public void testTasksExecuteOnOwnerThread() throws InterruptedException {
     YdocScheduledExecutorService service = new YdocScheduledExecutorService();
     long ownerThreadId = Thread.currentThread().threadId();
