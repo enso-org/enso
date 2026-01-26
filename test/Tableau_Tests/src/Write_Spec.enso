@@ -75,7 +75,7 @@ add_specs suite_builder = suite_builder.group "Write Tables" group_builder->
         can_round_trip (Table.input [['ints', [1, 2, Nothing]]])
 
     group_builder.specify "should be able to write a float column" <|
-        can_round_trip (Table.input [['ints', [1.0, Nothing, 2.0]]])
+        can_round_trip (Table.input [['floats', [1.0, Nothing, 2.0]]])
     
     group_builder.specify "should be able to write a bool column" <|
         can_round_trip (Table.input [['bools', [True, False, Nothing]]])
@@ -91,8 +91,11 @@ add_specs suite_builder = suite_builder.group "Write Tables" group_builder->
         ## hyper doesn't support time zone
         can_round_trip (Table.input [['times', [Date_Time.new 2025 1 1 12 1 2 3 4 zone=(Time_Zone.parse 'UTC'), Date_Time.new 1989 12 18 zone=(Time_Zone.parse 'UTC'), Nothing]]])
 
+    group_builder.specify "should be able to write a big integer column" <|
+        can_round_trip (Table.input [['bigints', [1, 2, 100, 2^64, 2^70 - 4], Value_Type.Decimal scale=0]])
+
     group_builder.specify "should be able to write a decimal column" <|
-        can_round_trip (Table.input [['decimals', [3.14, -10.66, Nothing, 123456789.123456789], Value_Type.Decimal Nothing Nothing]])
+        can_round_trip (Table.input [['decimals', [3.14, -10.66, Nothing, 123456789.123456789], Value_Type.Decimal]])
 
     group_builder.specify "trying to write a mixed column should error" <|
         written_file = get_temp_file

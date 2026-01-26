@@ -109,9 +109,14 @@ public interface Builder {
       return Builder.makeEmpty(storageType, 0);
     }
 
-    var data = storage.addressOfData();
     var size = Math.toIntExact(storage.getSize());
+    if (storageType instanceof NullType) {
+      var b = new NullBuilder();
+      b.appendNulls(size);
+      return storageType.asTypedStorage(b.seal());
+    }
 
+    var data = storage.addressOfData();
     if (data != 0) {
       var validity = storage.addressOfValidity();
 

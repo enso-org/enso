@@ -121,7 +121,7 @@ final class DateBuilder extends ValidityBuilder
     return seal(null);
   }
 
-  final Storage<LocalDate> seal(ColumnStorage<?> otherStorage) {
+  Storage<LocalDate> seal(ColumnStorage<?> otherStorage) {
     ensureFreeSpaceFor(0);
     var buf = data.asReadOnlyBuffer().position(0).limit(currentSize);
     var validity = this.validityMap();
@@ -136,7 +136,7 @@ final class DateBuilder extends ValidityBuilder
     }
   }
 
-  private final LocalDate getData(int i) {
+  private LocalDate getData(int i) {
     return LocalDate.ofEpochDay(data.get(i));
   }
 }

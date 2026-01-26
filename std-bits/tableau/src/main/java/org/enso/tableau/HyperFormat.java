@@ -354,7 +354,7 @@ public class HyperFormat {
       throws IOException {
     assert names.length == storages.length;
 
-    // Localise storages to avoid issues with foreign memory access.
+    // Localize storages to avoid issues with foreign memory access.
     var localisedStorages =
         Arrays.stream(storages).map(Builder::makeLocal).toArray(ColumnStorage<?>[]::new);
 
@@ -426,6 +426,7 @@ public class HyperFormat {
       // precision by default.
       // TODO fix this after https://github.com/enso-org/enso/issues/13022
       case BigDecimalType t -> SqlType.numeric(18, 9);
+      case BigIntegerType t -> SqlType.numeric(18, 0);
       default -> throw new HyperUnsupportedTypeError(storageType.toString());
     };
   }
@@ -441,13 +442,20 @@ public class HyperFormat {
     var columnStorages =
         getOrderedStorages(
             names, storages, tableDef, matchColumnsByName, warningUnmatchedColumns, throwDontWarn);
+    var storageTypes =
+        Arrays.stream(columnStorages)
+            .map(cs -> cs == null ? NullType.INSTANCE : StorageType.ofStorage(cs))
+            .toArray(StorageType<?>[]::new);
 
     validateTypesMatch(columnStorages, tableDef);
 
     try (Inserter inserter = new Inserter(connection, tableDef)) {
       for (int row = 0; row < storages[0].getSize(); ++row) {
-        for (ColumnStorage<?> storage : columnStorages) {
-          addValueToInserter(inserter, storage, row);
+        for (int col = 0; col < storageTypes.length; col++) {
+          var value = columnStorages[col] == null
+              ? null
+              : columnStorages[col].getItemBoxed(row);
+          addValueToInserter(inserter, storageTypes[col], value);
         }
         inserter.endRow();
       }
@@ -494,28 +502,27 @@ public class HyperFormat {
     }
   }
 
-  private static void addValueToInserter(Inserter inserter, ColumnStorage<?> storage, int row) {
-    if (storage == null || storage.isNothing(row)) {
+  private static void addValueToInserter(Inserter inserter, StorageType<?> storageType, Object value) {
+    if (value == null) {
       inserter.addNull();
     } else {
-      var localType = StorageType.ofStorage(storage);
-      switch (localType) {
-        case FloatType ft -> inserter.add(ft.asTypedStorage(storage).getItemAsDouble(row));
-        case IntegerType it -> inserter.add(it.asTypedStorage(storage).getItemAsLong(row));
-        case BooleanType bt -> inserter.add(bt.asTypedStorage(storage).getItemAsBoolean(row));
-        case TextType tt -> inserter.add(tt.asTypedStorage(storage).getItemBoxed(row));
-        case DateType dt -> inserter.add(dt.asTypedStorage(storage).getItemBoxed(row));
-        case TimeOfDayType tot -> inserter.add(tot.asTypedStorage(storage).getItemBoxed(row));
-        case DateTimeType dtt -> inserter.add(dtt.asTypedStorage(storage).getItemBoxed(row));
-        case BigDecimalType bdt -> inserter.add(bdt.asTypedStorage(storage).getItemBoxed(row));
+      switch (storageType) {
+        case FloatType ft -> inserter.add(ft.valueAsType(value));
+        case IntegerType it -> inserter.add(it.valueAsType(value));
+        case BooleanType bt -> inserter.add(bt.valueAsType(value));
+        case TextType tt -> inserter.add(tt.valueAsType(value));
+        case DateType dt -> inserter.add(dt.valueAsType(value));
+        case TimeOfDayType tot -> inserter.add(tot.valueAsType(value));
+        case DateTimeType dtt -> inserter.add(dtt.valueAsType(value));
+        case BigDecimalType bdt -> inserter.add(bdt.valueAsType(value));
         case BigIntegerType bit -> {
-          var bigIntValue = bit.asTypedStorage(storage).getItemBoxed(row);
+          var bigIntValue = bit.valueAsType(value);
           inserter.add(new BigDecimal(bigIntValue.toString()));
         }
         default ->
             throw new IllegalStateException(
                 "Unexpected storage type: "
-                    + localType
+                    + storageType
                     + " - this is a bug in the Tableau library.");
       }
     }
