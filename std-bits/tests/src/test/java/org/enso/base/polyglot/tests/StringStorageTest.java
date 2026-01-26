@@ -24,7 +24,7 @@ public class StringStorageTest {
     var b = Builder.getForText(TextType.VARIABLE_LENGTH, 3);
     b.append("Hello").appendNulls(1).append("World!");
     var storage = b.seal();
-    var localStorage = Builder.makeLocal(storage);
+    var localStorage = Builder.makeLocal(storage, true);
     assertNotSame("local storage is a copy of storage", storage, localStorage);
     assertEquals("They have the same size", storage.getSize(), localStorage.getSize());
     assertEquals("They have the same type char", storage.typeChar(), localStorage.typeChar());

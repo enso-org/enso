@@ -31,7 +31,7 @@ public class LongStorageTest {
     var b = Builder.getForLong(IntegerType.INT_64, 3, problemAggregator());
     b.append(1).appendNulls(1).append(2);
     var storage = b.seal();
-    var localStorage = Builder.makeLocal(storage);
+    var localStorage = Builder.makeLocal(storage, true);
     assertNotSame("local storage is a copy of storage", storage, localStorage);
     assertEquals(
         "They have data at the same address",
@@ -52,7 +52,7 @@ public class LongStorageTest {
     var b = Builder.getForLong(IntegerType.INT_32, 3, problemAggregator());
     b.append(1).appendNulls(1).append(2);
     var storage = b.seal();
-    var localStorage = Builder.makeLocal(storage);
+    var localStorage = Builder.makeLocal(storage, true);
     assertNotSame("local storage is a copy of storage", storage, localStorage);
     assertEquals(
         "They have data at the same address",

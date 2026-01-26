@@ -31,7 +31,7 @@ public class DateStorageTest {
     var two = LocalDate.of(1975, 5, 3);
     b.append(one).appendNulls(1).append(two);
     var storage = b.seal();
-    var localStorage = Builder.makeLocal(storage);
+    var localStorage = Builder.makeLocal(storage, true);
     assertNotSame("local storage is a copy of storage", storage, localStorage);
     assertEquals("They have the same size", storage.getSize(), localStorage.getSize());
     assertEquals("They have the same type char", storage.typeChar(), localStorage.typeChar());

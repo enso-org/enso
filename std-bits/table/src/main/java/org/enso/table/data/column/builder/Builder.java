@@ -99,8 +99,21 @@ public interface Builder {
    *     ColumnStorage#addressOfData() data}
    */
   static <T> ColumnStorage<T> makeLocal(ColumnStorage<T> storage) {
-    var isProxy = Proxy.isProxyClass(storage.getClass());
-    if (!isProxy) {
+    return makeLocal(storage, false);
+  }
+
+  /**
+   * Converts a proxy storage to local storage.
+   *
+   * @param <T> type of storage
+   * @param storage the storage instance, possibly a {@link Proxy#isProxyClass proxy}
+   * @param forceCopy if true, always makes a copy of the data even if the storage is already local
+   * @return either {@code storage} itself, or optimized storage of the same {@link
+   *     ColumnStorage#typeChar()} and {@link ColumnStorage#typeSize()} over the same {@link
+   *     ColumnStorage#addressOfData() data}
+   */
+  static <T> ColumnStorage<T> makeLocal(ColumnStorage<T> storage, boolean forceCopy) {
+    if (!forceCopy && !Proxy.isProxyClass(storage.getClass())) {
       return storage;
     }
 

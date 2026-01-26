@@ -23,7 +23,7 @@ public class BoolStorageTest {
     var b = Builder.getForBoolean(3);
     b.append(false).appendNulls(1).append(true);
     var storage = b.seal();
-    var localStorage = Builder.makeLocal(storage);
+    var localStorage = Builder.makeLocal(storage, true);
     assertNotSame("local storage is a copy of storage", storage, localStorage);
     assertEquals("They have the same size", storage.getSize(), localStorage.getSize());
     assertEquals("They have the same type char", storage.typeChar(), localStorage.typeChar());
