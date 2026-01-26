@@ -6467,7 +6467,7 @@ lazy val lintEnso =
     "Run Enso linter on one or many projects. If no arguments are specified, all projects are linted. Otherwise, the argument should be the full path or just the name of the project to lint."
   )
 lintEnso := {
-  buildEngineDistributionNoIndex.value
+  if (sys.env.get("CI").isEmpty) buildEngineDistributionNoIndex.value
   val fileTree = fileTreeView.value
 
   val args: Seq[String] = spaceDelimited("<arg>").parsed
