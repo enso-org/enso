@@ -222,10 +222,7 @@ final class EnsoPolyglotJava {
     } else {
       var envJava = System.getenv("ENSO_JAVA");
       if (envJava == null) {
-        logger.info("Initializing OtherJvm support!");
-        var src = Source.newBuilder("epb", "java:0#guest", "<Bindings>").build();
-        var target = ctx.parseInternal(src);
-        return target.call();
+        return initOtherJvm(ctx);
       }
       if ("espresso".equals(envJava)) {
         var src = Source.newBuilder("java", "<Bindings>", "getbindings.java").build();
@@ -240,6 +237,7 @@ final class EnsoPolyglotJava {
                 new Object[] {envJava, ex.getMessage()});
             logger.error("Copy missing libraries to components directory");
             logger.error("Continuing in regular Java mode");
+            return initOtherJvm(ctx);
           } else {
             var ise = new IllegalStateException(ex.getMessage());
             ise.setStackTrace(ex.getStackTrace());
@@ -251,11 +249,16 @@ final class EnsoPolyglotJava {
             "Specify ENSO_JAVA=espresso to use Espresso. Was: " + envJava);
       }
     }
-    return null;
   }
 
-  private final TruffleObject loadClass(String fqn, Package<?> requestedBy)
-      throws InteropException {
+  private Object initOtherJvm(EnsoContext ctx1) {
+    logger.info("Initializing OtherJvm support!");
+    var src = Source.newBuilder("epb", "java:0#guest", "<Bindings>").build();
+    com.oracle.truffle.api.CallTarget target = ctx1.parseInternal(src);
+    return target.call();
+  }
+
+  private TruffleObject loadClass(String fqn, Package<?> requestedBy) throws InteropException {
     var raw = InteropLibrary.getUncached().readMember(findPolyglotJava(), fqn);
     logger.debug(
         "Classloading of {} as {} requested by {}",
