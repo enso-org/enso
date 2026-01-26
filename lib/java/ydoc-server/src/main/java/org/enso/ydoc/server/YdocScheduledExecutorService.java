@@ -410,8 +410,6 @@ public final class YdocScheduledExecutorService implements ScheduledExecutorServ
    * @throws IllegalStateException if called from a thread other than the owner thread
    */
   public int processPendingTasks() {
-    assertOwnerThread();
-
     int tasksExecuted = 0;
     long currentTime = System.nanoTime();
 
@@ -540,17 +538,6 @@ public final class YdocScheduledExecutorService implements ScheduledExecutorServ
    */
   public long getOwnerThreadId() {
     return ownerThreadId;
-  }
-
-  private void assertOwnerThread() {
-    long currentThreadId = Thread.currentThread().threadId();
-    if (currentThreadId != ownerThreadId) {
-      throw new IllegalStateException(
-          "processPendingTasks() must be called from owner thread "
-              + ownerThreadId
-              + ", but was called from thread "
-              + currentThreadId);
-    }
   }
 
   private void handleUncaughtException(Throwable t) {
