@@ -163,7 +163,7 @@ export function watch(options: WatchOptions): Watcher {
     .on('unlink', handleEvent('unlink'))
     .on('addDir', handleEvent('addDir'))
     .on('unlinkDir', handleEvent('unlinkDir'))
-    .on('ready', function() {
+    .on('ready', () => {
       isReady = true
     })
     .on('error', (error) => {
