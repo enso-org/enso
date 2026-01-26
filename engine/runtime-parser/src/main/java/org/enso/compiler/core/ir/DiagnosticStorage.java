@@ -1,23 +1,22 @@
 package org.enso.compiler.core.ir;
 
-import scala.collection.immutable.AbstractSeq;
 import scala.collection.immutable.List;
 import scala.collection.immutable.Seq;
 
 /** Storage for diagnostics in IR nodes. */
 public final class DiagnosticStorage {
-  private List<Diagnostic> diagnostics;
+  private Seq<Diagnostic> diagnostics;
 
   @SuppressWarnings("unchecked")
   private DiagnosticStorage() {
-    this((Seq<Diagnostic>) (Object) scala.collection.immutable.Nil$.MODULE$);
+    this(scala.collection.immutable.Seq$.MODULE$.empty());
   }
 
   /**
    * @param initDiagnostics the initial diagnostics
    */
   public DiagnosticStorage(Seq<Diagnostic> initDiagnostics) {
-    diagnostics = initDiagnostics.toList();
+    diagnostics = initDiagnostics;
   }
 
   /**
@@ -27,8 +26,7 @@ public final class DiagnosticStorage {
    */
   @SuppressWarnings("unchecked")
   public void add(Diagnostic diagnostic) {
-    var next = ((AbstractSeq) diagnostics).prepended(diagnostic);
-    diagnostics = (List<org.enso.compiler.core.ir.Diagnostic>) next;
+    diagnostics = diagnostics.prepended(diagnostic).toSeq();
   }
 
   /**
@@ -36,9 +34,9 @@ public final class DiagnosticStorage {
    *
    * @param newDiagnostics the new diagnostics to store
    */
+  @SuppressWarnings("unchecked")
   public void add(Seq<Diagnostic> newDiagnostics) {
-    var next = diagnostics.prependedAll(newDiagnostics);
-    diagnostics = next;
+    diagnostics = diagnostics.prependedAll(newDiagnostics).toSeq();
   }
 
   /**
@@ -66,7 +64,7 @@ public final class DiagnosticStorage {
    * @return a list of the diagnostics in the storage
    */
   public List<Diagnostic> toList() {
-    return diagnostics;
+    return diagnostics.toList();
   }
 
   /**
