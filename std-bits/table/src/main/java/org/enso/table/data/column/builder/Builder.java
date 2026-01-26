@@ -6,11 +6,13 @@ import java.math.BigInteger;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.BitSet;
 import org.enso.table.data.column.operation.masks.IndexMapper;
 import org.enso.table.data.column.operation.masks.MaskOperation;
 import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
+import org.enso.table.data.column.storage.ColumnStorageProxy;
 import org.enso.table.data.column.storage.PreciseTypeOptions;
 import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.enso.table.data.column.storage.type.BigDecimalType;
@@ -146,11 +148,20 @@ public interface Builder {
             case DateTimeType _ -> DateTimeBuilder.fromAddress(size, data, validity).seal(storage);
             case TimeOfDayType type ->
                 TimeOfDayBuilder.fromAddress(size, data, validity).seal(storage, type);
-            default -> storage;
+            default -> {
+              BuilderUtil.LOGGER.warn(
+                  "Unable to make local buffer based storage for {}:{} size {}",
+                  storage.typeChar(),
+                  storage.typeSize(),
+                  storage.getSize());
+              yield null;
+            }
           };
 
-      assert assertSameStorages(storage, localStorage);
-      return storageType.asTypedStorage(localStorage);
+      if (localStorage != null) {
+        assert assertSameStorages(storage, localStorage);
+        return storageType.asTypedStorage(localStorage);
+      }
     }
 
     if (storageType instanceof BigIntegerType) {
@@ -160,15 +171,63 @@ public interface Builder {
       return storageType.asTypedStorage(localStorage);
     }
 
-    if (BuilderUtil.LOGGER.isTraceEnabled()) {
-      BuilderUtil.LOGGER.trace(
-          "makeLocal unsuccessful for {}:{} size {}",
-          storage.typeChar(),
-          storage.typeSize(),
-          storage.getSize());
-    }
-
-    return storage;
+    // Fallback and use a ColumnStorageProxy
+    var proxiedStorage =
+        switch (storageType) {
+          case BigDecimalType bdt ->
+              new ColumnStorageProxy<>(
+                  bdt,
+                  storage,
+                  idx -> {
+                    var txt = storage.getItemAsString(idx);
+                    if (txt == null) {
+                      return null;
+                    }
+                    var parts = txt.split("E");
+                    var bigInt = new BigInteger(parts[0]);
+                    var scale = parts.length > 1 ? -Integer.parseInt(parts[1]) : 0;
+                    return new BigDecimal(bigInt, scale);
+                  });
+          case DateTimeType dtt ->
+              new ColumnStorageProxy<>(
+                  dtt,
+                  storage,
+                  idx -> {
+                    var txt = storage.getItemAsString(idx);
+                    return txt == null
+                        ? null
+                        : ZonedDateTime.parse(txt, DateTimeFormatter.ISO_ZONED_DATE_TIME);
+                  });
+          case DateType dt ->
+              new ColumnStorageProxy<>(
+                  dt,
+                  storage,
+                  idx -> {
+                    var txt = storage.getItemAsString(idx);
+                    return txt == null
+                        ? null
+                        : LocalDate.parse(storage.getItemAsString(idx), DateTimeFormatter.ISO_DATE);
+                  });
+          case TimeOfDayType tot ->
+              new ColumnStorageProxy<>(
+                  tot,
+                  storage,
+                  idx -> {
+                    var txt = storage.getItemAsString(idx);
+                    return txt == null
+                        ? null
+                        : LocalTime.parse(storage.getItemAsString(idx), DateTimeFormatter.ISO_TIME);
+                  });
+          default -> {
+            BuilderUtil.LOGGER.info(
+                "makeLocal unsuccessful for {}:{} size {}",
+                storage.typeChar(),
+                storage.typeSize(),
+                storage.getSize());
+            yield storage;
+          }
+        };
+    return storageType.asTypedStorage(proxiedStorage);
   }
 
   private static boolean assertSameStorages(ColumnStorage<?> s1, ColumnStorage<?> s2) {

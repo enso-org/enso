@@ -426,7 +426,7 @@ public class HyperFormat {
       // precision by default.
       // TODO fix this after https://github.com/enso-org/enso/issues/13022
       case BigDecimalType t -> SqlType.numeric(18, 9);
-      case BigIntegerType t -> SqlType.numeric(18, 0);
+      case BigIntegerType t -> SqlType.numeric(38, 0);
       default -> throw new HyperUnsupportedTypeError(storageType.toString());
     };
   }
@@ -452,9 +452,7 @@ public class HyperFormat {
     try (Inserter inserter = new Inserter(connection, tableDef)) {
       for (int row = 0; row < storages[0].getSize(); ++row) {
         for (int col = 0; col < storageTypes.length; col++) {
-          var value = columnStorages[col] == null
-              ? null
-              : columnStorages[col].getItemBoxed(row);
+          var value = columnStorages[col] == null ? null : columnStorages[col].getItemBoxed(row);
           addValueToInserter(inserter, storageTypes[col], value);
         }
         inserter.endRow();
@@ -502,7 +500,8 @@ public class HyperFormat {
     }
   }
 
-  private static void addValueToInserter(Inserter inserter, StorageType<?> storageType, Object value) {
+  private static void addValueToInserter(
+      Inserter inserter, StorageType<?> storageType, Object value) {
     if (value == null) {
       inserter.addNull();
     } else {
@@ -517,7 +516,7 @@ public class HyperFormat {
         case BigDecimalType bdt -> inserter.add(bdt.valueAsType(value));
         case BigIntegerType bit -> {
           var bigIntValue = bit.valueAsType(value);
-          inserter.add(new BigDecimal(bigIntValue.toString()));
+          inserter.add(new BigDecimal(bigIntValue));
         }
         default ->
             throw new IllegalStateException(
