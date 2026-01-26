@@ -132,6 +132,8 @@ export function watch(options: WatchOptions): Watcher {
 
   // Derive a normalized file state per event to suppress duplicates and only
   // trigger callbacks for meaningful state changes after the initial scan.
+  //
+  // This is required on Mac to prevent duplicated events emitted for some file operations.
   const handleEvent = (event: string) => {
     return function handleEventEntry(filePath: string, stats?: Stats) {
       const exists = event !== 'unlink' && event !== 'unlinkDir'
@@ -161,7 +163,7 @@ export function watch(options: WatchOptions): Watcher {
     .on('unlink', handleEvent('unlink'))
     .on('addDir', handleEvent('addDir'))
     .on('unlinkDir', handleEvent('unlinkDir'))
-    .on('ready', function () {
+    .on('ready', function() {
       isReady = true
     })
     .on('error', (error) => {
