@@ -6,10 +6,18 @@ import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.DoubleBuffer;
+import java.time.ZonedDateTime;
+
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.DoubleStorage;
-import org.enso.table.data.column.storage.type.*;
+import org.enso.table.data.column.storage.type.BigDecimalType;
+import org.enso.table.data.column.storage.type.BigIntegerType;
+import org.enso.table.data.column.storage.type.BooleanType;
+import org.enso.table.data.column.storage.type.FloatType;
+import org.enso.table.data.column.storage.type.IntegerType;
+import org.enso.table.data.column.storage.type.NullType;
+import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.error.ValueTypeMismatchException;
 import org.enso.table.problems.ProblemAggregator;
 
@@ -26,6 +34,10 @@ sealed class DoubleBuilder extends ValidityBuilder implements BuilderForDouble
   private DoubleBuilder(
       DoubleBuffer buf, int initialSize, long validity, ProblemAggregator problemAggregator) {
     super(initialSize, validity);
+
+    var zonedDT = ZonedDateTime.now();
+
+
     assert ByteOrder.LITTLE_ENDIAN == buf.order();
     this.data = buf;
     precisionLossAggregator =
