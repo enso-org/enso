@@ -582,7 +582,10 @@ public final class Table {
     // Create Storage
     var storage = new Builder[id_columns.length + 2];
     IntStream.range(0, id_columns.length)
-        .forEach(i -> id_columns[i].getStorageType().makeBuilder(new_count, problemAggregator));
+        .forEach(
+            i ->
+                storage[i] =
+                    id_columns[i].getStorageType().makeBuilder(new_count, problemAggregator));
     storage[id_columns.length] = Builder.getForText(TextType.VARIABLE_LENGTH, new_count);
     storage[id_columns.length + 1] = Builder.getInferredBuilder(new_count, problemAggregator);
 
