@@ -1,7 +1,6 @@
 package org.enso.interpreter.runtime;
 
 import com.oracle.truffle.api.CompilerDirectives;
-import com.oracle.truffle.api.TruffleSafepoint;
 import com.oracle.truffle.api.interop.ArityException;
 import com.oracle.truffle.api.interop.InteropException;
 import com.oracle.truffle.api.interop.InteropLibrary;
@@ -17,7 +16,6 @@ import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.Semaphore;
 import org.enso.common.HostEnsoUtils;
 import org.enso.common.RuntimeOptions;
 import org.enso.interpreter.runtime.util.TruffleFileSystem;
@@ -39,7 +37,6 @@ final class EnsoPolyglotJava {
   private final boolean isHostClassLoading;
   private final List<File> pendingPath = new ArrayList<>();
   private Object polyglotJava = this;
-  private Semaphore lock = new Semaphore(1, true);
 
   /**
    * @param ctx associated conext
@@ -159,89 +156,61 @@ final class EnsoPolyglotJava {
   }
 
   @CompilerDirectives.TruffleBoundary
-  private Object findPolyglotJava() throws InteropException {
-    TruffleSafepoint.setBlockedThreadInterruptible(null, Semaphore::acquire, lock);
-    try {
-      if (polyglotJava instanceof Throwable t) {
-        throw ctx.raiseAssertionPanic(null, t.getMessage(), t);
-      }
-      if (polyglotJava != this) {
-        return polyglotJava;
-      }
-      polyglotJava = createPolyglotJava(ctx);
-      while (!pendingPath.isEmpty()) {
-        InteropLibrary.getUncached()
-            .invokeMember(polyglotJava, "addPath", pendingPath.remove(0).toString());
-      }
-      try {
-        InteropLibrary.getUncached()
-            .invokeMember(polyglotJava, "findLibraries", new LibraryResolver());
-      } catch (InteropException ex) {
-        logger.log(Level.WARNING, "Cannot register findLibraries", ex);
-      }
-      return polyglotJava;
-    } finally {
-      lock.release();
+  private synchronized Object findPolyglotJava() throws InteropException {
+    if (polyglotJava instanceof Throwable t) {
+      throw ctx.raiseAssertionPanic(null, t.getMessage(), t);
     }
+    if (polyglotJava != this) {
+      return polyglotJava;
+    }
+    polyglotJava = createPolyglotJava(ctx);
+    while (!pendingPath.isEmpty()) {
+      addToClassPath(pendingPath.remove(0));
+    }
+    try {
+      InteropLibrary.getUncached()
+          .invokeMember(polyglotJava, "findLibraries", new LibraryResolver());
+    } catch (InteropException ex) {
+      logger.warn("Cannot register findLibraries", ex);
+    }
+    return polyglotJava;
   }
 
   /**
    * This method ensure that hosted as well as guest classpath is the same. This is necessary until
    * real isolation between libraries is implemented.
    */
-  static void addToClassPath(
-      EnsoContext ctx, Object whoIsIgnored, File path, boolean polyglotContextEntered)
+  static void addToClassPath(EnsoContext ctx, Object whoIsIgnored, File path)
       throws InteropException {
     var data = KEY.get(ctx);
-    data.hosted.addToClassPath(path, polyglotContextEntered);
-    data.guest.addToClassPath(path, polyglotContextEntered);
+    data.hosted.addToClassPath(path);
+    data.guest.addToClassPath(path);
   }
 
   /**
    * Modifies the classpath to use to lookup {@code polyglot java} imports.
    *
    * @param file the file to register
-   * @param polyglotContextEntered if true, any lock acquisition will be interruptable for Truffle's
-   *     Safepoints purposes
    */
   @CompilerDirectives.TruffleBoundary
-  private final void addToClassPath(File file, boolean polyglotContextEntered)
-      throws InteropException {
-    if (polyglotContextEntered) {
-      TruffleSafepoint.setBlockedThreadInterruptible(null, Semaphore::acquire, lock);
+  private final synchronized void addToClassPath(File file) throws InteropException {
+    if (polyglotJava == this) {
+      pendingPath.add(file);
     } else {
-      try {
-        lock.acquire();
-      } catch (InterruptedException e) {
-        throw new RuntimeException(e);
-      }
-    }
-    try {
-      if (polyglotJava == this) {
-        pendingPath.add(file);
-      } else {
-        InteropLibrary.getUncached().invokeMember(polyglotJava, "addPath", file.toString());
-      }
-    } finally {
-      lock.release();
+      InteropLibrary.getUncached().invokeMember(polyglotJava, "addPath", file.toString());
     }
   }
 
-  private final void close() {
-    TruffleSafepoint.setBlockedThreadInterruptible(null, Semaphore::acquire, lock);
-    try {
-      if (polyglotJava instanceof TruffleObject closeJava) {
-        polyglotJava = null;
-        try {
-          InteropLibrary.getUncached().invokeMember(closeJava, "close");
-        } catch (InteropException ex) {
-          logger.warn("Cannot close " + closeJava, ex);
-        }
-      } else {
-        polyglotJava = null;
+  private final synchronized void close() {
+    if (polyglotJava instanceof TruffleObject closeJava) {
+      polyglotJava = null;
+      try {
+        InteropLibrary.getUncached().invokeMember(closeJava, "close");
+      } catch (InteropException ex) {
+        logger.warn("Cannot close " + closeJava, ex);
       }
-    } finally {
-      lock.release();
+    } else {
+      polyglotJava = null;
     }
   }
 
