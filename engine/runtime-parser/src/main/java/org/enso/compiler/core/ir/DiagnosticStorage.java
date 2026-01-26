@@ -48,7 +48,7 @@ public final class DiagnosticStorage {
    * @return `true` if `this == obj`, otherwise `false`
    */
   public boolean equals(Object obj) {
-    return obj instanceof DiagnosticStorage other ? diagnostics.equals(other.diagnostics) : false;
+    return obj instanceof DiagnosticStorage other && diagnostics.equals(other.diagnostics);
   }
 
   /**
