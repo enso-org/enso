@@ -81,7 +81,7 @@ public class TypedStorage<T> extends Storage<T> {
       var at = 0;
       for (var value : data) {
         if (value instanceof ZonedDateTime s) {
-          buf.putLong(s.toEpochSecond());
+          buf.putLong(s.toInstant().toEpochMilli());
           validity.set(at, true);
         } else {
           buf.putLong(0);

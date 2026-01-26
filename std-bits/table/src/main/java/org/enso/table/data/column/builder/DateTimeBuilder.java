@@ -39,7 +39,7 @@ final class DateTimeBuilder extends TypedBuilder<ZonedDateTime> {
     for (var i = 0; i < size; i++) {
       var stamp = buf.getLong();
       if (bits.get(i)) {
-        var instant = Instant.ofEpochSecond(stamp);
+        var instant = Instant.ofEpochMilli(stamp);
         b.append(ZonedDateTime.ofInstant(instant, ZoneId.systemDefault()));
       } else {
         b.appendNulls(1);
