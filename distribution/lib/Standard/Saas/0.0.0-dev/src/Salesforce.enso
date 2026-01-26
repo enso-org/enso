@@ -32,12 +32,12 @@ type Salesforce
         result
 
     report self report_id =
-        url = "https://orgfarm-763eef3a55-dev-ed.develop.my.salesforce.com/services/data/v60.0/analytics/reports/00Ofj000006tiszEAA"
+        url = self.get_instance_url + "/services/data/v60.0/analytics/reports/" + report_id
         raw_result = _salesforce_get self url
         result = raw_result.decode_as_json
         result
 
-    getInstanceUrl self =
+    get_instance_url self =
         self.salesforce_service.getInstanceUrl
 
     ## ---
