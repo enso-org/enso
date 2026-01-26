@@ -47,6 +47,9 @@ export const credentials: { readonly user: string; readonly password: string } =
 let _cachedElectronPath: string | undefined
 
 export async function getElectronExecutablePath(): Promise<string | undefined> {
+  if (process.env.ENSO_EXEC_PATH) {
+    return process.env.ENSO_EXEC_PATH
+  }
   if (_cachedElectronPath !== undefined) return _cachedElectronPath
   try {
     const promises = POSSIBLE_ELECTRON_PATHS.map((p) => path.resolve(import.meta.dirname, p)).map(

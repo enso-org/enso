@@ -177,6 +177,9 @@ playwright_bin.playwright_test(
         "selective-symlink-loader.mjs",
         "selective-symlink-loader-hooks.mjs",
     ],
+    env = {
+        "ENSO_EXEC_PATH": "../../../../../../../../../../$(location :dist)/enso-linux-x86_64-0.0.0-dev.AppImage"
+    },
     args = ["test"],
     chdir = package_name(),
     visibility = ["//visibility:public"],
