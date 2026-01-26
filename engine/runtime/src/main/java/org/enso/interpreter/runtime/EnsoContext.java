@@ -998,10 +998,12 @@ public final class EnsoContext {
     return singleStateProfile.profile(language.currentState());
   }
 
-  private Object extraValues(int index, Function<EnsoContext, ?> init) {
+  private synchronized Object extraValues(int index, Function<EnsoContext, ?> init) {
     if (index >= extraValues.length || extraValues[index] == null) {
       CompilerDirectives.transferToInterpreterAndInvalidate();
-      extraValues = Arrays.copyOf(extraValues, Extra.COUNTER.get());
+      if (index >= extraValues.length) {
+        extraValues = Arrays.copyOf(extraValues, index + 1);
+      }
       extraValues[index] = init.apply(this);
       assert extraValues[index] != null;
     }
