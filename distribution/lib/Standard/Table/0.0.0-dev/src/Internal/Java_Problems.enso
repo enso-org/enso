@@ -11,9 +11,9 @@ from project.Internal.Storage import java_to_enso
 
 polyglot java import org.enso.table.data.column.builder.LossOfBigDecimalPrecision
 polyglot java import org.enso.table.data.column.builder.LossOfIntegerPrecision
-polyglot java import org.enso.table.data.column.operation.cast.CastOperation
 polyglot java import org.enso.table.data.column.operation.cast.ConversionFailure
 polyglot java import org.enso.table.data.column.operation.cast.ConversionFailureType
+polyglot java import org.enso.table.data.column.storage.type.StorageType
 polyglot java import org.enso.table.data.table.problems.ArithmeticError
 polyglot java import org.enso.table.data.table.problems.ArithmeticOverflow
 polyglot java import org.enso.table.data.table.problems.FloatingPointGrouping
@@ -57,7 +57,7 @@ translate_problem p = case p.problemType of
     "LossOfBigDecimalPrecision" ->
         Loss_Of_Decimal_Precision.Warning p.getAffectedRowsCount (java_to_enso p.getExampleValue) p.getExampleValueConverted
     "ArithmeticOverflow" ->
-        storage_type = CastOperation.makeLocalType p.targetType
+        storage_type = StorageType.fromTypeCharAndSize p.targetTypeChar p.targetTypeSize
         target_type = Storage.to_value_type storage_type
         example_operands = case p.exampleOperands of
             Nothing -> Nothing
@@ -65,7 +65,7 @@ translate_problem p = case p.problemType of
         Arithmetic_Overflow.Warning target_type p.affectedRowCount example_operands
     "ConversionFailure" ->
         examples = Vector.from_polyglot_array p.examples
-        storage_type = CastOperation.makeLocalType p.targetType
+        storage_type = StorageType.fromTypeCharAndSize p.targetTypeChar p.targetTypeSize
         target_type = Storage.to_value_type storage_type
         related_column = p.relatedColumn
         affected_rows_count = p.affectedRowCount

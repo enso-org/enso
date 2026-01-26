@@ -580,10 +580,9 @@ public final class Table {
     int new_count = size * to_transpose.length;
 
     // Create Storage
-    var storage =
-        Arrays.stream(id_columns)
-            .map(c -> c.getStorageType().makeBuilder(new_count, problemAggregator))
-            .toArray(Builder[]::new);
+    var storage = new Builder[id_columns.length + 2];
+    IntStream.range(0, id_columns.length)
+        .forEach(i -> id_columns[i].getStorageType().makeBuilder(new_count, problemAggregator));
     storage[id_columns.length] = Builder.getForText(TextType.VARIABLE_LENGTH, new_count);
     storage[id_columns.length + 1] = Builder.getInferredBuilder(new_count, problemAggregator);
 
