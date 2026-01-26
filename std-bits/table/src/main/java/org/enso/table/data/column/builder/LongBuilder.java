@@ -27,19 +27,24 @@ final class LongBuilder extends ValidityBuilder implements BuilderForLong, Build
 
   private LongBuilder(
       int initialSize, ProblemAggregator problemAggregator, IntegerType storageType) {
-    this(allocBuffer(initialSize, 0), initialSize, 0, problemAggregator, storageType);
+    this(
+        allocBuffer(initialSize, 0),
+        initialSize,
+        0,
+        new CastProblemAggregator(problemAggregator, null, storageType),
+        storageType);
   }
 
   private LongBuilder(
       LongBuffer data,
       int initialSize,
       long validity,
-      ProblemAggregator problemAggregator,
+      CastProblemAggregator problemAggregator,
       IntegerType storageType) {
     super(initialSize, validity);
     this.data = data;
     this.storageType = storageType;
-    this.problemAggregator = new CastProblemAggregator(problemAggregator, null, storageType);
+    this.problemAggregator = problemAggregator;
   }
 
   static LongBuilder make(int initialSize, IntegerType type, ProblemAggregator problemAggregator) {
