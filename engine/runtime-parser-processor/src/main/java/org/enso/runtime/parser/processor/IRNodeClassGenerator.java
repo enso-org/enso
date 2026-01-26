@@ -3,8 +3,10 @@ package org.enso.runtime.parser.processor;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
+
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.TypeElement;
+
 import org.enso.runtime.parser.processor.field.Field;
 import org.enso.runtime.parser.processor.field.FieldCollector;
 import org.enso.runtime.parser.processor.methodgen.BuilderMethodGenerator;
@@ -49,7 +51,6 @@ final class IRNodeClassGenerator {
           "org.enso.compiler.core.Identifier",
           "org.enso.compiler.core.IR",
           "org.enso.compiler.core.ir.DiagnosticStorage",
-          "org.enso.compiler.core.ir.DiagnosticStorage$",
           "org.enso.compiler.core.ir.IdentifiedLocation",
           "org.enso.compiler.core.ir.MetadataStorage",
           "scala.Option");
@@ -384,7 +385,7 @@ final class IRNodeClassGenerator {
         @Override
         public DiagnosticStorage getDiagnostics() {
           if (diagnostics == null) {
-            diagnostics = DiagnosticStorage$.MODULE$.createEmpty();
+            diagnostics = DiagnosticStorage.createEmpty();
           }
           return diagnostics;
         }
