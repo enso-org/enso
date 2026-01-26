@@ -246,6 +246,11 @@ The license information can be found along with the copyright notices.
 Copyright notices related to this dependency can be found in the directory `software.amazon.awssdk.protocol-core-2.25.40`.
 
 
+'redshift', licensed under the Apache License, Version 2.0, is distributed with the AWS.
+The license information can be found along with the copyright notices.
+Copyright notices related to this dependency can be found in the directory `software.amazon.awssdk.redshift-2.25.40`.
+
+
 'regions', licensed under the Apache License, Version 2.0, is distributed with the AWS.
 The license information can be found along with the copyright notices.
 Copyright notices related to this dependency can be found in the directory `software.amazon.awssdk.regions-2.25.40`.
