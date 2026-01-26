@@ -197,8 +197,8 @@ watch(
   (f) => f && nextTick(() => panelElement.value?.focus()),
 )
 
-// Use proxy object instead of computed to keep granular reactive updates across the `params` prop fields.
 const nodeType = computed(() => props.typeinfo?.primaryType ?? undefined)
+// Use proxy object instead of computed to keep granular reactive updates across the `params` prop fields.
 const visParams: VisualizationHostParams = proxyRefs({
   visualization: effectiveVisualization,
   data: effectiveVisualizationData,
