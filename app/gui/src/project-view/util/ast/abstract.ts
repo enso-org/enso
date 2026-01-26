@@ -12,8 +12,6 @@ import type {
   Statement,
 } from 'ydoc-shared/ast'
 import {
-  visitRecursive,
-  asOwned,
   App,
   Ast,
   BodyBlock,
@@ -30,13 +28,13 @@ import {
   NumericLiteral,
   OprApp,
   PropertyAccess,
-  Token,
   Wildcard,
   abstract,
   isTokenId,
   parseExpression,
   rawParseModule,
   setExternalIds,
+  visitRecursive,
 } from 'ydoc-shared/ast'
 import { spanMapToIdMap, spanMapToSpanGetter } from 'ydoc-shared/ast/idMap'
 import { IdMap } from 'ydoc-shared/yjsModel'

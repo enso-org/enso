@@ -4,7 +4,6 @@ import {
   escapeTextLiteral,
   findModuleMethod,
   substituteIdentifier,
-  substituteQualifiedName,
   substituteQualifiedNameByPattern,
   subtrees,
   tryEnsoToNumber,
@@ -12,7 +11,6 @@ import {
   unescapeTextLiteral,
   type Identifier,
 } from '@/util/ast/abstract'
-import { qnLastSegment } from '@/util/qualifiedName'
 import { fc, test } from '@fast-check/vitest'
 import { expect } from 'vitest'
 import { BodyBlock } from 'ydoc-shared/ast'
