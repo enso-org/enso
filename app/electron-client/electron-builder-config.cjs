@@ -89,7 +89,7 @@ module.exports = {
     version: '0.0.0-dev', // FIXME: Replace with the actual version
     installer: {}, // FIXME: installer config
   },
-  copyright: 'Copyright © 2025 New Byte Order sp. z o.o.',
+  copyright: 'Copyright © 2025 Enso International, Inc.',
   artifactName: artifactName('0.0.0-dev'), // FIXME: Replace with the actual artifact name
   protocols: [
     {

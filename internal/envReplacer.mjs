@@ -40,13 +40,25 @@ const outputDirectory = process.argv[3]
 const statusFilePath = process.argv[4]
 
 /**
- * Regex pattern to match files that should have environment variable replacements applied.
- * This pattern covers:
+ * Match files that should have environment variable replacements applied.
+ * Covers:
  * - config.js or config-<hash>.js (GUI config files)
  * - index.html (GUI entry point)
  * - index.mjs or preload.mjs (Electron client entry points)
+ *
+ * @param {string} projectPath
  */
-const filesRegex = /config(-[0-9a-zA-Z]+)?\.js$|index\.html$|(index|preload)\.mjs$/
+function isEnvReplacementFile(projectPath) {
+  // Matches config.js and config-<hash>.js.
+  const configFileRegex = /^config(?:-[0-9A-Za-z]+)?\.js$/
+
+  const base = path.basename(projectPath)
+  if (base === 'index.html') return true
+  if (base === 'index.mjs') return true
+  if (base === 'preload.mjs') return true
+  if (configFileRegex.test(base)) return true
+  return false
+}
 
 /**
  * Map of calls mkdir performed so far, to avoid calling it twice on the same path.
@@ -241,7 +253,7 @@ async function initialPassWriteToOutput() {
     inputFiles.map(async (projectPath) => {
       const buf = await readOriginalFile(projectPath)
       const isText = Buffer.isUtf8(buf)
-      if (statusFilePath != null && isText && filesRegex.test(projectPath)) {
+      if (statusFilePath != null && isText && isEnvReplacementFile(projectPath)) {
         const newContent = applyReplacements(buf.toString(), projectPath)
         const newPath = await updateHashInFilename(projectPath, newContent)
         await writeProjectFile(newPath, newContent)
@@ -285,7 +297,7 @@ async function finalValidationSweep() {
     outFiles.map(async (projectPath) => {
       const buf = await readOutputFile(projectPath)
       if (!Buffer.isUtf8(buf)) return
-      if (!filesRegex.test(projectPath)) {
+      if (!isEnvReplacementFile(projectPath)) {
         await reportUnexpectedPatterns(buf, projectPath)
       }
     }),

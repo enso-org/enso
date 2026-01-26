@@ -38,7 +38,7 @@ function toExtendedFileAssociation(fa) {
 
 // Build the installer-specific config that the Rust code expects
 const installerSpecificConfig = {
-  publisher: 'New Byte Order sp. z o.o.',
+  publisher: 'Enso International, Inc.',
   fileAssociations: (config.fileAssociations || []).map(toExtendedFileAssociation),
 }
 
