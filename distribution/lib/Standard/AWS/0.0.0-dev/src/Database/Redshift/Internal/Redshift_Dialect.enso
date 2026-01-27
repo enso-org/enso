@@ -30,7 +30,7 @@ from Standard.Database.Internal.JDBC_Connection import JDBC_Connection
    The dialect for Redshift connections.
 redshift : Redshift_Dialect
 redshift =
-    Redshift_Dialect.Value Postgres_Connection.get_dialect.get_dialect_operations
+    Redshift_Dialect.Value make_dialect_operations
 
 ## ---
    private: true
@@ -301,3 +301,49 @@ type Redshift_Dialect
     ensure_query_has_no_holes : JDBC_Connection -> Text -> Nothing ! Illegal_Argument
     ensure_query_has_no_holes self jdbc:JDBC_Connection raw_sql:Text =
         jdbc.ensure_query_has_no_holes raw_sql
+
+## ---
+   private: true
+   ---
+make_dialect_operations =
+    postgres_ops = Postgres_Connection.get_dialect.get_dialect_operations
+    overrides = [["COUNT_DISTINCT", agg_count_distinct], ["COUNT_DISTINCT_INCLUDE_NULL", agg_count_distinct_include_null]]
+    postgres_ops.extend_with overrides
+
+## ---
+   private: true
+   ---
+agg_count_distinct args =
+    if args.is_empty then (Error.throw (Illegal_Argument.Error "COUNT_DISTINCT requires at least one argument.")) else
+        case args.length == 1 of
+            True -> SQL_Builder.code "COUNT(DISTINCT " ++ args.first ++ ")"
+            False ->
+                key = make_distinct_key args include_all_nulls=False
+                SQL_Builder.code "COUNT(DISTINCT " ++ key ++ ")"
+
+## ---
+   private: true
+   ---
+agg_count_distinct_include_null args =
+    if args.is_empty then (Error.throw (Illegal_Argument.Error "COUNT_DISTINCT_INCLUDE_NULL requires at least one argument.")) else
+        key = make_distinct_key args include_all_nulls=True
+        SQL_Builder.code "COUNT(DISTINCT " ++ key ++ ")"
+
+## ---
+   private: true
+   ---
+make_distinct_key args include_all_nulls =
+    encode_part arg =
+        value = SQL_Builder.code "CAST(" ++ arg.paren ++ " AS VARCHAR)"
+        length = SQL_Builder.code "LENGTH(" ++ value.paren ++ ")"
+        SQL_Builder.code "CASE WHEN " ++ arg.paren ++ " IS NULL THEN 'N' ELSE 'S' || " ++ length.paren ++ " || ':' || " ++ value.paren ++ " END"
+
+    parts = args.map encode_part
+    combined = SQL_Builder.join " || '|' || " parts
+
+    case include_all_nulls of
+        True -> combined
+        False ->
+            are_nulls = args.map arg-> arg.paren ++ " IS NULL"
+            all_nulls = SQL_Builder.join " AND " are_nulls
+            SQL_Builder.code "CASE WHEN " ++ all_nulls ++ " THEN NULL ELSE " ++ combined ++ " END"
