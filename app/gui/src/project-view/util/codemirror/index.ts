@@ -269,7 +269,7 @@ export function useStringSync({ onTextEdited, onUserAction }: StringSyncOptions 
       if (userAction) {
         const text = update.state.doc.toString()
         if (onUserAction) onUserAction(text, update.state.selection.main)
-        if (onTextEdited) onTextEdited(text)
+        if (onTextEdited && textEdit) onTextEdited(text)
       }
     }),
     getText: (view: EditorView): string => {
