@@ -12,6 +12,7 @@ import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.TypedStorage;
 import org.enso.table.data.column.storage.type.DateTimeType;
 import org.enso.table.data.column.storage.type.DateType;
+import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.error.ValueTypeMismatchException;
 
 /** A builder for ZonedDateTime columns. */
@@ -35,12 +36,17 @@ final class DateTimeBuilder extends TypedBuilder<ZonedDateTime> {
             .asByteBuffer()
             .order(ByteOrder.LITTLE_ENDIAN);
 
+    var zonesBuf =
+        StringBuilder.fromAddress(size, data + buf.limit(), validity, TextType.VARIABLE_LENGTH);
+    var zonesStorage = zonesBuf.seal(null, TextType.VARIABLE_LENGTH);
+
     var b = new DateTimeBuilder(size, false);
     for (var i = 0; i < size; i++) {
       var stamp = buf.getLong();
       if (bits.get(i)) {
         var instant = Instant.ofEpochMilli(stamp);
-        b.append(ZonedDateTime.ofInstant(instant, ZoneId.systemDefault()));
+        var zone = ZoneId.of(zonesStorage.getItemBoxed(i));
+        b.append(ZonedDateTime.ofInstant(instant, zone));
       } else {
         b.appendNulls(1);
       }
