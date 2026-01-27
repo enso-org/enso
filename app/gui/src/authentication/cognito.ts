@@ -64,21 +64,30 @@ const MICROSOFT_PROVIDER = 'Microsoft'
 const SEC_MS = 1_000
 
 // The names come from a third-party API and cannot be changed.
-/** Attributes returned from {@link amplify.Auth.currentUserInfo}. */
-interface UserAttributes {
+/** Typed attributes returned from {@link amplify.Auth.fetchUserAttributes}. */
+interface UserAttributes extends Partial<Record<amplify.UserAttributeKey, string>> {
   readonly email: string
-  readonly email_verified: boolean
+  readonly email_verified: 'true' | 'false'
   readonly sub: string
   readonly 'custom:fromDesktop'?: string
   readonly 'custom:organizationId'?: string
 }
 
+function assertValidAttributes(
+  attrs: Partial<Record<amplify.UserAttributeKey, string>>,
+): asserts attrs is UserAttributes {
+  if (attrs.email == null) throw new Error('No email in User Attributes')
+  if (attrs.sub == null) throw new Error('No sub in User Attributes')
+  if (attrs.email_verified !== 'true' && attrs.email_verified !== 'false')
+    throw new Error('Invalid email_verified field in User Attributes')
+}
+
 /** The type of multi-factor authentication (MFA) including non-specified MFA */
-export type MfaType = MfaProtectionTypes | 'NOMFA' | 'TOTP'
+export type MfaType = MfaProtectionTypes | 'NOMFA'
 /**
  * MFA protection types that the user can set up.
  */
-export type MfaProtectionTypes = 'SMS_MFA' | 'SOFTWARE_TOKEN_MFA'
+export type MfaProtectionTypes = 'SMS_MFA' | 'TOTP'
 
 /**
  * The type of challenge that the user is currently facing after signing in.
@@ -261,7 +270,6 @@ export class Cognito implements ISessionProvider {
      * methods are called.
      */
     const nestedAmplifyConfig = service.toNestedAmplifyConfig(amplifyConfig)
-    console.debug('CONFIGURING AMPLIFY', nestedAmplifyConfig)
     Amplify.configure(nestedAmplifyConfig)
   }
 
@@ -296,7 +304,7 @@ export class Cognito implements ISessionProvider {
   async email() {
     // This `any` comes from a third-party API and cannot be avoided.
     const attributes = await amplify.fetchUserAttributes()
-    if (attributes.email == null) throw new Error('No email in user attributes.')
+    assertValidAttributes(attributes)
     return attributes.email
   }
 
@@ -398,6 +406,7 @@ export class Cognito implements ISessionProvider {
     const result = await results.Result.wrapAsync(() =>
       amplify.signIn({ username: username.toLowerCase(), password }),
     )
+    void this.email()
 
     return result.mapErr(intoAmplifyErrorOrThrow).mapErr(intoSignInWithPasswordErrorOrThrow)
   }
@@ -506,16 +515,13 @@ export class Cognito implements ISessionProvider {
   /** Set the user's preferred MFA method. */
   async updateMFAPreference(mfaMethod: MfaType) {
     const result = await results.Result.wrapAsync(() => {
-      console.debug('TODO: refactor MFA')
       switch (mfaMethod) {
         case 'SMS_MFA':
-          return amplify.updateMFAPreference({ sms: 'PREFERRED' })
-        case 'SOFTWARE_TOKEN_MFA':
-          return amplify.updateMFAPreference({})
-        case 'NOMFA':
-          return amplify.updateMFAPreference({ sms: 'NOT_PREFERRED', totp: 'NOT_PREFERRED' })
+          return amplify.updateMFAPreference({ sms: 'PREFERRED', totp: 'DISABLED' })
         case 'TOTP':
-          return amplify.updateMFAPreference({ totp: 'PREFERRED' })
+          return amplify.updateMFAPreference({ totp: 'PREFERRED', sms: 'DISABLED' })
+        case 'NOMFA':
+          return amplify.updateMFAPreference({ sms: 'DISABLED', totp: 'DISABLED' })
       }
     })
     return result.mapErr(intoAmplifyErrorOrThrow)
@@ -524,7 +530,7 @@ export class Cognito implements ISessionProvider {
   /** Get the user's preferred MFA method. */
   async getMFAPreference() {
     const result = await results.Result.wrapAsync(async () => {
-      return (await amplify.fetchMFAPreference()).preferred as MfaType
+      return ((await amplify.fetchMFAPreference()).preferred as MfaType | undefined) ?? 'NOMFA'
     })
     return result.mapErr(intoAmplifyErrorOrThrow)
   }
@@ -616,22 +622,26 @@ async function parseUserSession(
   } else {
     const expirationTimestamp = session.tokens.accessToken.payload.exp ?? 0
     const expireAt = dateTime.toRfc3339(new Date(expirationTimestamp * SEC_MS))
-    // Official Amplify Auth API does not support retrieving refresh tokens. Using solution from
-    // https://github.com/aws-amplify/amplify-js/issues/14324#issuecomment-2884906161
-    const authTokens = await cognitoUserPoolsTokenProvider.tokenOrchestrator
-      .getTokenStore()
-      .loadTokens()
-    console.debug('TODO: Remove !s')
-    const refreshToken = authTokens!.refreshToken!
     return {
       email,
       clientId,
       expireAt,
       refreshUrl,
       accessToken: session.tokens.accessToken.toString(),
-      refreshToken,
+      refreshToken: await fetchRefreshToken(),
     }
   }
+}
+
+async function fetchRefreshToken() {
+  // Official Amplify Auth API does not support retrieving refresh tokens. Using solution from
+  // https://github.com/aws-amplify/amplify-js/issues/14324#issuecomment-2884906161
+  const authTokens = await cognitoUserPoolsTokenProvider.tokenOrchestrator
+    .getTokenStore()
+    .loadTokens()
+  if (authTokens == null) throw new Error('Cannot read refreshToken: no authTokens loaded')
+  if (authTokens.refreshToken == null) throw new Error('Missing refresh Token.')
+  return authTokens.refreshToken
 }
 
 /**

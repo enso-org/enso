@@ -129,13 +129,17 @@ export function createSessionStore(
     analytics.cloudSignUp.confirm.after()
   }
 
+  /**
+   * Return an identifier of required challenge step, if any.
+   *
+   * This function is used for analytics log, so it returns "old" SOFTWARE_TOKEN_MFA identifier.
+   */
   function challengeStepRequired(user: SignInOutput): 'SMS_MFA' | 'SOFTWARE_TOKEN_MFA' | null {
-    console.debug('TODO: SOFTWARE TOKEN')
     switch (user.nextStep.signInStep) {
-      case 'CONFIRM_SIGN_IN_WITH_SMS_CODE': {
-        // case 'SOFTWARE_TOKEN_MFA': {
+      case 'CONFIRM_SIGN_IN_WITH_SMS_CODE':
         return 'SMS_MFA'
-      }
+      case 'CONFIRM_SIGN_IN_WITH_TOTP_CODE':
+        return 'SOFTWARE_TOKEN_MFA'
       default: {
         return null
       }
