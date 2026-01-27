@@ -121,7 +121,10 @@ case object TypeSignatures extends IRPass {
           case Some(asc: Type.Ascription) =>
             val methodRef = meth.methodReference
             val newMethodWithDoc = asc
-              .getMetadata(DocumentationComments)
+              .getMetadata(
+                DocumentationComments,
+                classOf[DocumentationComments.Metadata]
+              )
               .map(doc =>
                 newMethod.updateMetadata(
                   new MetadataPair(DocumentationComments, doc)
@@ -129,7 +132,10 @@ case object TypeSignatures extends IRPass {
               )
               .getOrElse(newMethod)
             val newMethodWithAnnotations = asc
-              .getMetadata(ModuleAnnotations)
+              .getMetadata(
+                ModuleAnnotations,
+                classOf[ModuleAnnotations.Metadata]
+              )
               .map(annotations =>
                 newMethodWithDoc.updateMetadata(
                   new MetadataPair(ModuleAnnotations, annotations)
@@ -236,7 +242,7 @@ case object TypeSignatures extends IRPass {
               )
             val argTypes =
               args.flatMap(
-                _.getMetadata(this)
+                _.getMetadata(this, classOf[TypeSignatures.Metadata])
                   .map(_.signature)
                   .orElse(
                     if (canResolveAny) Some(moduleContext.anyIr) else None
@@ -255,7 +261,7 @@ case object TypeSignatures extends IRPass {
               )
             val argTypes =
               args.flatMap(
-                _.getMetadata(this)
+                _.getMetadata(this, classOf[TypeSignatures.Metadata])
                   .map(_.signature)
                   .orElse(
                     if (canResolveAny) Some(moduleContext.anyIr) else None
@@ -269,7 +275,9 @@ case object TypeSignatures extends IRPass {
       case _ =>
         expr match {
           case tpe: Type.Ascription =>
-            tpe.typed.getMetadata(this).map(_.signature :: Nil)
+            tpe.typed
+              .getMetadata(this, classOf[TypeSignatures.Metadata])
+              .map(_.signature :: Nil)
           case _ =>
             None
         }
@@ -372,7 +380,10 @@ case object TypeSignatures extends IRPass {
           case Some(asc: Type.Ascription) =>
             val name = binding.name
             val newBindingWithDoc = asc
-              .getMetadata(DocumentationComments)
+              .getMetadata(
+                DocumentationComments,
+                classOf[DocumentationComments.Metadata]
+              )
               .map(doc =>
                 newBinding.updateMetadata(
                   new MetadataPair(DocumentationComments, doc)

@@ -112,12 +112,11 @@ object Implicits {
       *
       * @param pass the pass to get metadata for
       * @param msg  the message to throw with if the unsafe get fails
-      * @tparam K the concrete type of `pass`
       * @throws CompilerError if no metadata exists for `pass`
       * @return the metadata for `pass`, if it exists
       */
     @throws[CompilerError]
-    def unsafeGetMetadata[K <: ProcessingPass, M <: ProcessingPass.Metadata](
+    def unsafeGetMetadata[M <: ProcessingPass.Metadata](
       pass: ProcessingPass,
       msg: => String
     ): M = {

@@ -131,11 +131,13 @@ case object ModuleAnnotations extends IRPass {
       this.copy(annotations = this.annotations :+ annotation)
 
     /** @inheritdoc */
+    @scala.annotation.unused
     override def prepareForSerialization(compiler: Compiler): Annotations = {
       this
     }
 
     /** @inheritdoc */
+    @scala.annotation.unused
     override def restoreFromSerialization(
       compiler: Compiler
     ): Option[IRPass.IRMetadata] = {

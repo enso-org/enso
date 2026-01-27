@@ -169,9 +169,11 @@ object IRPass {
       override val metadataName: String = "Empty"
 
       /** @inheritdoc */
+      @scala.annotation.unused
       override def prepareForSerialization(compiler: Compiler): Empty = this
 
       /** @inheritdoc */
+      @scala.annotation.unused
       override def restoreFromSerialization(compiler: Compiler): Option[Empty] =
         Some(this)
 

@@ -45,6 +45,7 @@ final class BindingsMap private (initial: BindingsMapBase.State)
   }
 
   /** @inheritdoc */
+  @scala.annotation.unused
   override def prepareForSerialization(
     compiler: Compiler
   ): BindingsMap = {
@@ -52,6 +53,7 @@ final class BindingsMap private (initial: BindingsMapBase.State)
   }
 
   /** @inheritdoc */
+  @scala.annotation.unused
   override def restoreFromSerialization(
     compiler: Compiler
   ): Option[BindingsMap] = {
@@ -101,6 +103,7 @@ final class BindingsMap private (initial: BindingsMapBase.State)
     new BindingsMap(state)
   }
 
+  @scala.annotation.unused
   private def toConcrete(
     state: BindingsMapBase.State,
     r: PackageRepository,
@@ -952,7 +955,7 @@ object BindingsMap {
       module
         .unsafeAsModule("must be a module to run resolution")
         .getIr
-        .unsafeGetMetadata(
+        .unsafeGetMetadata[BindingAnalysis.Metadata](
           BindingAnalysis,
           "Wrong pass ordering. Running resolution on an unparsed module."
         )
@@ -1160,10 +1163,12 @@ object BindingsMap {
     override val metadataName: String = "Resolution"
 
     /** @inheritdoc */
+    @scala.annotation.unused
     override def prepareForSerialization(compiler: Compiler): Resolution =
       this.copy(target = this.target.toAbstract)
 
     /** @inheritdoc */
+    @scala.annotation.unused
     override def restoreFromSerialization(
       compiler: Compiler
     ): Option[Resolution] = {

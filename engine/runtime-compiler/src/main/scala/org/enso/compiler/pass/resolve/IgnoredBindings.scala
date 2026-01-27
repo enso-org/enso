@@ -383,10 +383,12 @@ case object IgnoredBindings extends IRPass {
       override val isIgnored: Boolean   = true
 
       /** @inheritdoc */
+      @scala.annotation.unused
       override def prepareForSerialization(compiler: Compiler): Ignored.type =
         this
 
       /** @inheritdoc */
+      @scala.annotation.unused
       override def restoreFromSerialization(
         compiler: Compiler
       ): Option[Ignored.type] = Some(this)
@@ -401,11 +403,13 @@ case object IgnoredBindings extends IRPass {
       override val isIgnored: Boolean   = false
 
       /** @inheritdoc */
+      @scala.annotation.unused
       override def prepareForSerialization(
         compiler: Compiler
       ): NotIgnored.type = this
 
       /** @inheritdoc */
+      @scala.annotation.unused
       override def restoreFromSerialization(
         compiler: Compiler
       ): Option[NotIgnored.type] = Some(this)

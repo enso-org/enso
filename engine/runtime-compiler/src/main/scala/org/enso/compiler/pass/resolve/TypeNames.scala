@@ -44,7 +44,10 @@ case object TypeNames extends IRPass {
     moduleContext: ModuleContext
   ): Module = {
     val bindingsMap =
-      ir.unsafeGetMetadata(BindingAnalysis, "bindings analysis did not run")
+      ir.unsafeGetMetadata[BindingAnalysis.Metadata](
+        BindingAnalysis,
+        "bindings analysis did not run"
+      )
     ir.copyWithBindings(ir.bindings.map { d =>
       val selfTypeInfo: SelfTypeInfo = d match {
         case t: Definition.Type => SelfTypeInfo.fromTypeDefinition(t)
@@ -162,7 +165,7 @@ case object TypeNames extends IRPass {
     bindingsMap: BindingsMap,
     ir: T
   ): T = {
-    ir.getMetadata(TypeSignatures)
+    ir.getMetadata(TypeSignatures, classOf[TypeSignatures.Metadata])
       .map { s =>
         ir.updateMetadata(
           new MetadataPair(
@@ -225,7 +228,7 @@ case object TypeNames extends IRPass {
           errors.Resolution
             .create(name, new errors.Resolution.ResolverError(error)),
         n =>
-          n.getMetadata(this).get.target match {
+          n.getMetadata(this, classOf[TypeNames.Metadata]).get.target match {
             case _: ResolvedModule =>
               errors.Resolution.create(
                 n,

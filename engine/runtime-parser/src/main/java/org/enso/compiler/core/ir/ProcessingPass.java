@@ -34,7 +34,8 @@ public interface ProcessingPass {
      * @return `this`, but restored from serialization, or None if restoration could not be
      *     performed
      */
-    <Compiler extends CompilerStub> Option<Metadata> restoreFromSerialization(Compiler compiler);
+    <Compiler extends CompilerStub> Option<? extends Metadata> restoreFromSerialization(
+        Compiler compiler);
 
     /**
      * Creates a duplicate of this metadata if applicable.
@@ -44,6 +45,6 @@ public interface ProcessingPass {
      *
      * @return Some duplicate of this metadata or None if this metadata should not be preserved
      */
-    Option<Metadata> duplicate();
+    Option<? extends Metadata> duplicate();
   }
 }

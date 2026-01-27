@@ -221,9 +221,11 @@ case object CachePreferenceAnalysis extends IRPass {
     override val metadataName: String = "CachePreferenceAnalysis.Weights"
 
     /** @inheritdoc */
+    @scala.annotation.unused
     override def prepareForSerialization(compiler: Compiler): WeightInfo = this
 
     /** @inheritdoc */
+    @scala.annotation.unused
     override def restoreFromSerialization(
       compiler: Compiler
     ): Option[WeightInfo] = Some(this)

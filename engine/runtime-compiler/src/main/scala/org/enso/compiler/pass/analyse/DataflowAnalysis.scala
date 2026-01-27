@@ -108,7 +108,10 @@ case object DataflowAnalysis extends IRPass {
     (sourceIr, copyOfIr) match {
       case (sourceIr: Module, copyOfIr: Module) =>
         val sourceMeta =
-          sourceIr.unsafeGetMetadata(this, "Dataflow Analysis must have run.")
+          sourceIr.unsafeGetMetadata[DataflowAnalysis.Metadata](
+            this,
+            "Dataflow Analysis must have run."
+          )
         val copyMeta = DependencyInfo(
           dependents   = sourceMeta.dependents.deepCopy,
           dependencies = sourceMeta.dependencies.deepCopy
@@ -998,10 +1001,12 @@ case object DataflowAnalysis extends IRPass {
     override def duplicate(): Option[IRPass.IRMetadata] = None
 
     /** @inheritdoc */
+    @scala.annotation.unused
     override def prepareForSerialization(compiler: Compiler): DependencyInfo =
       this
 
     /** @inheritdoc */
+    @scala.annotation.unused
     override def restoreFromSerialization(
       compiler: Compiler
     ): Option[DependencyInfo] = Some(this)

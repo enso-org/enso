@@ -258,9 +258,11 @@ case object DocumentationComments extends IRPass {
       "DocumentationComments.Doc(\"" + documentation + "\")"
 
     /** @inheritdoc */
+    @scala.annotation.unused
     override def prepareForSerialization(compiler: Compiler): Doc = this
 
     /** @inheritdoc */
+    @scala.annotation.unused
     override def restoreFromSerialization(compiler: Compiler): Option[Doc] =
       Some(this)
 
