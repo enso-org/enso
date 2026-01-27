@@ -69,6 +69,11 @@ type Redshift_Details
         types_record = JDBCDriverTypes.create "Redshift"
         jdbc_connection = JDBC_Connection.create types_record self.jdbc_url properties
 
+        set_result = jdbc_connection.execute "SET enable_case_sensitive_identifier TO true"
+        set_result.if_not_error <|
+            stmt = set_result.at 1
+            stmt.close
+
         # TODO [RW] can we inherit these from postgres?
         encoding = parse_postgres_encoding (get_encoding_name jdbc_connection)
         entity_naming_properties = Entity_Naming_Properties.from_jdbc_connection jdbc_connection encoding is_case_sensitive=True
