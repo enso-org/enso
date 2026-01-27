@@ -12,6 +12,7 @@ import { useToast } from '@/util/toast'
 import * as sentry from '@sentry/vue'
 import * as vueQuery from '@tanstack/vue-query'
 import { createGlobalState } from '@vueuse/core'
+import type { SignInOutput } from 'aws-amplify/auth'
 import { NotAuthorizedError } from 'enso-common/src/services/Backend'
 import type { HttpClient } from 'enso-common/src/services/HttpClient'
 import { Err } from 'enso-common/src/utilities/data/result'
@@ -128,19 +129,13 @@ export function createSessionStore(
     analytics.cloudSignUp.confirm.after()
   }
 
-  function challengeStepRequired(
-    user: cognito.CognitoUser,
-  ): 'SMS_MFA' | 'SOFTWARE_TOKEN_MFA' | null {
-    switch (user.challengeName) {
-      case 'SMS_MFA':
-      case 'SOFTWARE_TOKEN_MFA': {
-        return user.challengeName
+  function challengeStepRequired(user: SignInOutput): 'SMS_MFA' | 'SOFTWARE_TOKEN_MFA' | null {
+    console.debug('TODO: SOFTWARE TOKEN')
+    switch (user.nextStep.signInStep) {
+      case 'CONFIRM_SIGN_IN_WITH_SMS_CODE': {
+        // case 'SOFTWARE_TOKEN_MFA': {
+        return 'SMS_MFA'
       }
-      case undefined:
-      case 'CUSTOM_CHALLENGE':
-      case 'MFA_SETUP':
-      case 'NEW_PASSWORD_REQUIRED':
-      case 'SELECT_MFA_TYPE':
       default: {
         return null
       }
@@ -150,7 +145,7 @@ export function createSessionStore(
   const signInWithPassword = async (
     email: string,
     password: string,
-  ): Promise<{ user: cognito.CognitoUser; challenge: boolean }> => {
+  ): Promise<{ challenge: boolean }> => {
     analytics.signIn.before('Email')
     const result = await authService.signInWithPassword(email, password)
     if (!result.ok) {
@@ -164,7 +159,7 @@ export function createSessionStore(
     } else {
       await queryClient.invalidateQueries({ queryKey: sessionQueryOptions.queryKey })
     }
-    return { user, challenge: challengeType != null }
+    return { challenge: challengeType != null }
   }
 
   function useSignIn(
@@ -185,12 +180,9 @@ export function createSessionStore(
   const signInWithGitHub = useSignIn(() => authService.signInWithGitHub(), 'GitHub')
   const signInWithMicrosoft = useSignIn(() => authService.signInWithMicrosoft(), 'Microsoft')
 
-  const confirmSignIn = async (
-    user: cognito.CognitoUser,
-    otp: string,
-  ): cognito.ConfirmSignInReturn => {
+  const confirmSignIn = async (challengeResponse: string): cognito.ConfirmSignInReturn => {
     analytics.signIn.confirm.before()
-    return authService.confirmSignIn(user, otp, 'SOFTWARE_TOKEN_MFA')
+    return authService.confirmSignIn(challengeResponse)
   }
 
   const forgotPassword = async (email: string) => {

@@ -10,7 +10,8 @@ import * as listen from '$/authentication/listen'
 import { useFeatureFlag } from '$/providers/featureFlags'
 import { useText } from '$/providers/text'
 import { parseEnsoDeeplink } from '@/util/url'
-import * as amplify from '@aws-amplify/auth'
+import { Amplify } from 'aws-amplify'
+import * as amplify from 'aws-amplify/auth'
 import type * as saveAccessTokenModule from 'enso-common/src/accessToken'
 import * as common from 'enso-common/src/constants'
 import * as detect from 'enso-common/src/utilities/detect'
@@ -35,7 +36,7 @@ export interface AmplifyConfig {
   readonly scope: string[]
   readonly redirectSignIn: string
   readonly redirectSignOut: string
-  readonly responseType: string
+  readonly responseType: 'code' | 'token'
 }
 
 /** Configuration options for a {@link OauthAmplifyConfig}. */
@@ -58,7 +59,7 @@ export interface NestedAmplifyConfig {
   readonly region: string
   readonly endpoint: string | undefined
   readonly userPoolId: string
-  readonly userPoolWebClientId: string
+  readonly userPoolClientId: string
   readonly oauth: OauthAmplifyConfig
 }
 
@@ -68,21 +69,30 @@ export interface NestedAmplifyConfig {
  * We use a flattened form of the config for easier object manipulation, but the AWS Amplify library
  * expects a nested form.
  */
-export function toNestedAmplifyConfig(config: AmplifyConfig): NestedAmplifyConfig {
+export function toNestedAmplifyConfig(
+  config: AmplifyConfig,
+): Parameters<typeof Amplify.configure>[0] {
   return {
-    region: config.region,
-    // endpoint: config.endpoint,
-    // TODO: Use the endpoint when it is working.
-    endpoint: undefined,
-    userPoolId: config.userPoolId,
-    userPoolWebClientId: config.userPoolWebClientId,
-    oauth: {
-      options: config.urlOpener ? { urlOpener: config.urlOpener } : {},
-      domain: config.domain,
-      scope: config.scope,
-      redirectSignIn: config.redirectSignIn,
-      redirectSignOut: config.redirectSignOut,
-      responseType: config.responseType,
+    Auth: {
+      Cognito: {
+        // region: config.region,
+        // userPoolEndpointndpoint: config.endpoint,
+        // TODO: Use the endpoint when it is working.
+        // userPoolEndpointndpoint: undefined,
+        userPoolId: config.userPoolId,
+        userPoolClientId: config.userPoolWebClientId,
+        loginWith: {
+          username: true,
+          oauth: {
+            ...(config.urlOpener ? { urlOpener: config.urlOpener } : {}),
+            domain: config.domain,
+            scopes: config.scope,
+            redirectSignIn: [config.redirectSignIn],
+            redirectSignOut: [config.redirectSignOut],
+            responseType: config.responseType,
+          },
+        },
+      },
     },
   }
 }
@@ -262,7 +272,15 @@ function setDeepLinkHandler(logger: Logger, navigate: (url: string) => void) {
               history.replaceState = () => false
               try {
                 // `_handleAuthResponse` is a private method without typings.
-                await amplify.Auth['_handleAuthResponse'](urlString)
+                // amplify.handleAuthResponse
+                const config = Amplify.getConfig().Auth?.Cognito
+                await (amplify as any)['completeOAuthFlow']({
+                  currentUrl: urlString,
+                  clientId: config?.userPoolClientId,
+                  domain: config?.loginWith?.oauth?.domain,
+                  redirectUri: config?.loginWith?.oauth?.redirectSignIn,
+                  responseType: config?.loginWith?.oauth?.responseType,
+                })
 
                 navigate(appUtils.DASHBOARD_PATH)
               } finally {

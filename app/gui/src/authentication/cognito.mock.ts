@@ -31,7 +31,6 @@
  * `kind` field provides a unique string that can be used to brand the error in place of the
  * `internalCode`, when rethrowing the error.
  */
-import type * as amplify from '@aws-amplify/auth'
 import type * as cognito from 'amazon-cognito-identity-js'
 import * as results from 'ts-results'
 
@@ -301,18 +300,13 @@ export class Cognito {
    * component.
    */
   async changePassword(oldPassword: string, newPassword: string) {
-    const cognitoUserResult = await currentAuthenticatedUser()
-    if (cognitoUserResult.ok) {
-      const result = await results.Result.wrapAsync(() =>
-        fetch('https://mock-cognito.com/change-password', {
-          method: 'POST',
-          body: JSON.stringify({ oldPassword, newPassword }),
-        }),
-      )
-      return result.mapErr(original.intoAmplifyErrorOrThrow)
-    } else {
-      return results.Err(cognitoUserResult.val)
-    }
+    const result = await results.Result.wrapAsync(() =>
+      fetch('https://mock-cognito.com/change-password', {
+        method: 'POST',
+        body: JSON.stringify({ oldPassword, newPassword }),
+      }),
+    )
+    return result.mapErr(original.intoAmplifyErrorOrThrow)
   }
 
   /** Refresh the current user's session. */
@@ -386,16 +380,4 @@ async function confirmSignUp(_email: string, _code: string) {
   }).then((result) =>
     result.mapErr(original.intoAmplifyErrorOrThrow).mapErr(original.intoConfirmSignUpErrorOrThrow),
   )
-}
-
-/**
- * A wrapper around the Amplify "current authenticated user" endpoint that converts known errors
- * to `AmplifyError`s.
- */
-async function currentAuthenticatedUser() {
-  const result = await results.Result.wrapAsync(
-    // The methods are not needed.
-    async () => await Promise.resolve<amplify.CognitoUser>({} as unknown as amplify.CognitoUser),
-  )
-  return result.mapErr(original.intoAmplifyErrorOrThrow)
 }
