@@ -164,7 +164,9 @@ test.describe('Accepting suggestion', () => {
     await checkAcceptSuggestion(page, () => locate.componentBrowserEntry(page).nth(1).click())
   })
   test('Accept suggestion by clicking highlighted entry', async ({ page }) => {
-    await checkAcceptSuggestion(page, () => locate.componentBrowserSelectedEntry(page).first().click())
+    await checkAcceptSuggestion(page, () =>
+      locate.componentBrowserSelectedEntry(page).first().click(),
+    )
   })
   test('Accept suggestion with Enter', async ({ page }) => {
     await checkAcceptSuggestion(page, () => page.keyboard.press('Enter'))
