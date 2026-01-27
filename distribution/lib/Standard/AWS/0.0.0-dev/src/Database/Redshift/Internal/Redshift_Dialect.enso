@@ -315,35 +315,14 @@ make_dialect_operations =
    ---
 agg_count_distinct args =
     if args.is_empty then (Error.throw (Illegal_Argument.Error "COUNT_DISTINCT requires at least one argument.")) else
-        case args.length == 1 of
-            True -> SQL_Builder.code "COUNT(DISTINCT " ++ args.first ++ ")"
-            False ->
-                key = make_distinct_key args include_all_nulls=False
-                SQL_Builder.code "COUNT(DISTINCT " ++ key ++ ")"
+      count = SQL_Builder.code "COUNT(DISTINCT " ++ SQL_Builder.join ", " args ++ ")"
+      are_nulls = args.map arg-> arg.paren ++ " IS NULL"
+      all_nulls_filter = SQL_Builder.code " FILTER (WHERE NOT (" ++ SQL_Builder.join " AND " are_nulls ++ "))"
+      (count ++ all_nulls_filter).paren
 
 ## ---
    private: true
    ---
 agg_count_distinct_include_null args =
     if args.is_empty then (Error.throw (Illegal_Argument.Error "COUNT_DISTINCT_INCLUDE_NULL requires at least one argument.")) else
-        key = make_distinct_key args include_all_nulls=True
-        SQL_Builder.code "COUNT(DISTINCT " ++ key ++ ")"
-
-## ---
-   private: true
-   ---
-make_distinct_key args include_all_nulls =
-    encode_part arg =
-        value = SQL_Builder.code "CAST(" ++ arg.paren ++ " AS VARCHAR)"
-        length = SQL_Builder.code "LENGTH(" ++ value.paren ++ ")"
-        SQL_Builder.code "CASE WHEN " ++ arg.paren ++ " IS NULL THEN 'N' ELSE 'S' || " ++ length.paren ++ " || ':' || " ++ value.paren ++ " END"
-
-    parts = args.map encode_part
-    combined = SQL_Builder.join " || '|' || " parts
-
-    case include_all_nulls of
-        True -> combined
-        False ->
-            are_nulls = args.map arg-> arg.paren ++ " IS NULL"
-            all_nulls = SQL_Builder.join " AND " are_nulls
-            SQL_Builder.code "CASE WHEN " ++ all_nulls ++ " THEN NULL ELSE " ++ combined ++ " END"
+        SQL_Builder.code "COUNT(DISTINCT " ++ SQL_Builder.join ", " args ++ ")"
