@@ -203,7 +203,7 @@ type Connection
             _ : Vector -> types
             _ -> [types]
         tm = self.type_mapping
-        result = get_tables_advanced self.jdbc_connection name_like database schema types_vector tm.column_fetcher_factory tm.sql_type_to_value_type all_fields
+        result = _get_tables_advanced self.jdbc_connection name_like database schema types_vector tm.column_fetcher_factory tm.sql_type_to_value_type all_fields
         case include_hidden of
             True -> result
             False ->
@@ -672,11 +672,11 @@ private _check_statement_is_allowed connection stmt =
    private: true
    ---
    Get a metadata table for tables.
-get_tables_advanced jdbc_connection name_like:Text|Nothing database:Text|Nothing schema:Text|Nothing types:Nothing|Vector  column_fetcher_factory sql_type_to_value_type=(_->Nothing) all_fields:Boolean=False =
+_get_tables_advanced jdbc_connection name_like:Text|Nothing database:Text|Nothing schema:Text|Nothing types:Nothing|Vector  column_fetcher_factory sql_type_to_value_type=(_->Nothing) all_fields:Boolean=False =
     name_dict = Dictionary.from_vector [["TABLE_CAT", "Database"], ["TABLE_SCHEM", "Schema"], ["TABLE_NAME", "Name"], ["TABLE_TYPE", "Type"], ["REMARKS", "Description"], ["TYPE_CAT", "Type Database"], ["TYPE_SCHEM", "Type Schema"], ["TYPE_NAME", "Type Name"]]
     jdbc_connection.with_metadata metadata->
         table = Managed_Resource.bracket (metadata.getTables database schema name_like types) .close result_set->
             result_set_to_table result_set column_fetcher_factory sql_type_to_value_type
-        renamed = table.rename_columns name_dict error_on_missing_columns=False on_problems=..Ignore
+        renamed = table.rename_columns name_dict case_sensitivity=..Insensitive error_on_missing_columns=False on_problems=..Ignore
         if all_fields then renamed else
             renamed.select_columns ["Database", "Schema", "Name", "Type", "Description"]
