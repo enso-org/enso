@@ -149,7 +149,7 @@ test('Graph Editor pans to Component Browser', async ({ page }) => {
 test.describe('Accepting suggestion', () => {
   async function checkAcceptSuggestion(page: Page, acceptSuggestion: () => Promise<void>) {
     await locate.addNewNodeButton(page).click()
-    let nodeCount = await locate.graphNode(page).count()
+    const nodeCount = await locate.graphNode(page).count()
     await acceptSuggestion()
     await expect(locate.componentBrowser(page)).toBeHidden()
     await expect(locate.graphNode(page)).toHaveCount(nodeCount + 1)
