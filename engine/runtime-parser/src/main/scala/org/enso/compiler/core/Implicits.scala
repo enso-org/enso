@@ -89,8 +89,10 @@ object Implicits {
       * @tparam K the concrete type of `pass`
       * @return the metadata for `pass`, if it exists
       */
-    def getMetadata[K <: ProcessingPass](pass: K): Option[pass.Metadata] = {
-      ir.passData.get(pass).asInstanceOf[Option[pass.Metadata]]
+    def getMetadata[K <: ProcessingPass, M <: ProcessingPass.Metadata](
+      pass: K
+    ): Option[M] = {
+      ir.passData.get(pass).asInstanceOf[Option[M]]
     }
 
     /** Getting metadata from passes that are implemented in Java and thus have no
@@ -115,14 +117,14 @@ object Implicits {
       * @return the metadata for `pass`, if it exists
       */
     @throws[CompilerError]
-    def unsafeGetMetadata[K <: ProcessingPass](
+    def unsafeGetMetadata[K <: ProcessingPass, M <: ProcessingPass.Metadata](
       pass: ProcessingPass,
       msg: => String
-    ): pass.Metadata = {
+    ): M = {
       ir.passData
         .get(pass)
         .getOrElse(throw new CompilerError(msg))
-        .asInstanceOf[pass.Metadata]
+        .asInstanceOf[M]
     }
   }
 
