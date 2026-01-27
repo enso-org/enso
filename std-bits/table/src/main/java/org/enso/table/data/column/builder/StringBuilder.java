@@ -20,36 +20,6 @@ final class StringBuilder extends TypedBuilder<String> {
     this.textType = type;
   }
 
-  static StringBuilder fromAddress(int size, long data, long validity, TextType type) {
-    var validityBuffer =
-        MemorySegment.ofAddress(validity).reinterpret((size + 7) / 8).asByteBuffer();
-    var bits = BitSet.valueOf(validityBuffer);
-    var rawIndexBuffer =
-        MemorySegment.ofAddress(data)
-            .reinterpret((long) Integer.BYTES * size + Integer.BYTES)
-            .asByteBuffer()
-            .order(ByteOrder.LITTLE_ENDIAN);
-    var indexBuffer = rawIndexBuffer.asIntBuffer();
-    var textSize = indexBuffer.get(size);
-    var textBuffer =
-        MemorySegment.ofAddress(data + rawIndexBuffer.limit()).reinterpret(textSize).asByteBuffer();
-
-    var b = new StringBuilder(size, type);
-    for (var i = 0; i < size; i++) {
-      if (bits.get(i)) {
-        var from = indexBuffer.get(i);
-        var to = indexBuffer.get(i + 1);
-        var arr = new byte[to - from];
-        textBuffer.get(from, arr);
-        var s = new String(arr, StandardCharsets.UTF_8);
-        b.append(s);
-      } else {
-        b.appendNulls(1);
-      }
-    }
-    return b;
-  }
-
   @Override
   public StringBuilder append(Object o) {
     ensureSpaceToAppend();
@@ -97,9 +67,34 @@ final class StringBuilder extends TypedBuilder<String> {
     super.appendBulkStorage(storage);
   }
 
-  @Override
-  protected ColumnStorage<String> doSeal() {
-    return new TypedStorage<>(textType, data);
+  static StringBuilder fromAddress(int size, long data, long validity, TextType type) {
+    var validityBuffer =
+        MemorySegment.ofAddress(validity).reinterpret((size + 7) / 8).asByteBuffer();
+    var bits = BitSet.valueOf(validityBuffer);
+    var rawIndexBuffer =
+        MemorySegment.ofAddress(data)
+            .reinterpret((long) Integer.BYTES * size + Integer.BYTES)
+            .asByteBuffer()
+            .order(ByteOrder.LITTLE_ENDIAN);
+    var indexBuffer = rawIndexBuffer.asIntBuffer();
+    var textSize = indexBuffer.get(size);
+    var textBuffer =
+        MemorySegment.ofAddress(data + rawIndexBuffer.limit()).reinterpret(textSize).asByteBuffer();
+
+    var b = new StringBuilder(size, type);
+    for (var i = 0; i < size; i++) {
+      if (bits.get(i)) {
+        var from = indexBuffer.get(i);
+        var to = indexBuffer.get(i + 1);
+        var arr = new byte[to - from];
+        textBuffer.get(from, arr);
+        var s = new String(arr, StandardCharsets.UTF_8);
+        b.append(s);
+      } else {
+        b.appendNulls(1);
+      }
+    }
+    return b;
   }
 
   final Storage<String> seal(ColumnStorage<?> otherStorage, TextType type) {

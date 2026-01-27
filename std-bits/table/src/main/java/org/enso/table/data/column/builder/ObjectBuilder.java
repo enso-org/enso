@@ -46,9 +46,4 @@ class ObjectBuilder extends TypedBuilder<Object> {
       }
     }
   }
-
-  @Override
-  public ColumnStorage<Object> doSeal() {
-    return new TypedStorage<>(AnyObjectType.INSTANCE, data);
-  }
 }

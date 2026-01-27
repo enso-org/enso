@@ -58,11 +58,6 @@ final class TimeOfDayBuilder extends TypedBuilder<LocalTime> {
     return o instanceof LocalTime;
   }
 
-  @Override
-  protected ColumnStorage<LocalTime> doSeal() {
-    return seal(null, TimeOfDayType.INSTANCE);
-  }
-
   final Storage<LocalTime> seal(ColumnStorage<?> otherStorage, TimeOfDayType type) {
     return new TypedStorage<>(type, data, otherStorage);
   }

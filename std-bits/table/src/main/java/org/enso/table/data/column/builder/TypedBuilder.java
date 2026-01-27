@@ -16,6 +16,10 @@ abstract class TypedBuilder<T> implements BuilderWithRetyping, BuilderForType<T>
     this.data = data;
   }
 
+  protected final StorageType<T> getStorageType() {
+    return this.storageType;
+  }
+
   @Override
   public void copyDataTo(Object[] items) {
     if (currentSize >= 0) {
@@ -99,7 +103,9 @@ abstract class TypedBuilder<T> implements BuilderWithRetyping, BuilderForType<T>
     this.data = Arrays.copyOf(data, desiredCapacity);
   }
 
-  protected abstract ColumnStorage<T> doSeal();
+  protected ColumnStorage<T> doSeal() {
+    return new TypedStorage<>(getStorageType(), data);
+  }
 
   @Override
   public ColumnStorage<T> seal() {
