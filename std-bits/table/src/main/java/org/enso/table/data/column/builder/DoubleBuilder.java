@@ -6,7 +6,6 @@ import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.DoubleBuffer;
-import java.time.ZonedDateTime;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.DoubleStorage;
@@ -33,8 +32,6 @@ sealed class DoubleBuilder extends ValidityBuilder implements BuilderForDouble
   private DoubleBuilder(
       DoubleBuffer buf, int initialSize, long validity, ProblemAggregator problemAggregator) {
     super(initialSize, validity);
-
-    var zonedDT = ZonedDateTime.now();
 
     assert ByteOrder.LITTLE_ENDIAN == buf.order();
     this.data = buf;

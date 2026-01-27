@@ -52,7 +52,7 @@ abstract class TypedBuilder<T> implements BuilderWithRetyping, BuilderForType<T>
     }
 
     var type = StorageType.ofStorage(storage);
-    if (type.equals(storageType)) {
+    if (type.equals(getStorageType())) {
       if (storage instanceof TypedStorage<?>) {
         // This cast is safe, because storage.getType() == this.getType() iff storage.T == this.T
         @SuppressWarnings("unchecked")
@@ -70,7 +70,7 @@ abstract class TypedBuilder<T> implements BuilderWithRetyping, BuilderForType<T>
     } else if (type instanceof NullType) {
       appendNulls(Math.toIntExact(storage.getSize()));
     } else {
-      throw new StorageTypeMismatchException(storageType, type);
+      throw new StorageTypeMismatchException(getStorageType(), type);
     }
   }
 

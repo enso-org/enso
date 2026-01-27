@@ -58,7 +58,7 @@ final class TimeOfDayBuilder extends TypedBuilder<LocalTime> {
     return o instanceof LocalTime;
   }
 
-  final Storage<LocalTime> seal(ColumnStorage<?> otherStorage, TimeOfDayType type) {
+  Storage<LocalTime> seal(ColumnStorage<?> otherStorage, TimeOfDayType type) {
     return new TypedStorage<>(type, data, otherStorage);
   }
 }
