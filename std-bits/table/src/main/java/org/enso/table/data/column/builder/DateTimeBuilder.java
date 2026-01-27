@@ -44,7 +44,9 @@ final class DateTimeBuilder extends TypedBuilder<ZonedDateTime> {
     for (var i = 0; i < size; i++) {
       var stamp = buf.getLong();
       if (bits.get(i)) {
-        var instant = Instant.ofEpochMilli(stamp);
+        var nanos = stamp % 1_000_000;
+        var epochSeconds = stamp / 1_000_000;
+        var instant = Instant.ofEpochSecond(epochSeconds, nanos);
         var zone = ZoneId.of(zonesStorage.getItemBoxed(i));
         b.append(ZonedDateTime.ofInstant(instant, zone));
       } else {

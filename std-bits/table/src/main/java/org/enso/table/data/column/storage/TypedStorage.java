@@ -42,7 +42,9 @@ public class TypedStorage<T> extends Storage<T> {
     if (offheapBuffer == null && getType() instanceof DateTimeType) {
       var validity = new BitSet();
       offheapBuffer = OffHeapStorages.toDateTimeBuffer(data, validity);
-      validitySet = new ImmutableBitSet(validity, data.length);
+      if (offheapBuffer != null) {
+        validitySet = new ImmutableBitSet(validity, data.length);
+      }
     }
     if (offheapBuffer == null && getType() instanceof TimeOfDayType) {
       var validity = new BitSet();

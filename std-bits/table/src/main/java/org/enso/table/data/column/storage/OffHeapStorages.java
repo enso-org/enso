@@ -6,8 +6,12 @@ import java.nio.charset.StandardCharsets;
 import java.time.LocalTime;
 import java.time.ZonedDateTime;
 import java.util.BitSet;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 final class OffHeapStorages {
+  private static final Logger LOGGER = LoggerFactory.getLogger(OffHeapStorages.class);
+
   private OffHeapStorages() {}
 
   static ByteBuffer toArrowTimeOfDayBuffer(Object[] data, BitSet validity) {
@@ -48,7 +52,16 @@ final class OffHeapStorages {
     int at = 0;
     for (Object value : data) {
       if (value instanceof ZonedDateTime s) {
-        buf.putLong(s.toInstant().toEpochMilli());
+        var instant = s.toInstant();
+        var epochSeconds = instant.toEpochMilli() / 1000;
+        try {
+          var epochNanoRaw = Math.multiplyExact(epochSeconds, 1_000_000);
+          var epochNano = Math.addExact(epochNanoRaw, instant.getNano());
+          buf.putLong(epochNano);
+        } catch (ArithmeticException ex) {
+          LOGGER.warn("Cannot convert " + s + " to nanoseconds since the epoch");
+          return null;
+        }
         validity.set(at, true);
       } else {
         buf.putLong(0);
@@ -60,6 +73,7 @@ final class OffHeapStorages {
 
     var zonesBuf = buf.slice(dataSize, buf.limit() - dataSize).order(ByteOrder.LITTLE_ENDIAN);
     var zonesFilled = textFillBuffer(zonesBuf, zones, indexSize, validity);
+    assert zonesBuf == zonesFilled;
 
     buf.flip();
     buf.limit(fullSize);
