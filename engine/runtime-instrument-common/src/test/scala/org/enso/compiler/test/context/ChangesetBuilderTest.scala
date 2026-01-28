@@ -451,7 +451,7 @@ class ChangesetBuilderTest
         .asInstanceOf[Function.Lambda]
         .body
         .asInstanceOf[Expression.Block]
-      val x     = mainBody.expressions(0).asInstanceOf[Expression.Binding]
+      val x     = mainBody.expressions.apply(0).asInstanceOf[Expression.Binding]
       val xExpr = x.expression.asInstanceOf[Application.Prefix]
       val undefinedName = xExpr.arguments
         .apply(1)

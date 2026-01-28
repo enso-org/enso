@@ -365,13 +365,15 @@ class RuntimeTypesTest
       TestMessages.panic(
         contextId,
         id_x,
-        Api.ExpressionUpdate.Payload.Panic("Compile_Error.Error", List(id_x)),
+        Api.ExpressionUpdate.Payload
+          .Panic("Compile error: The name `T` could not be found.", List(id_x)),
         builtin = true
       ),
       TestMessages.panic(
         contextId,
         id_y,
-        Api.ExpressionUpdate.Payload.Panic("Compile_Error.Error", List(id_x)),
+        Api.ExpressionUpdate.Payload
+          .Panic("Compile error: The name `T` could not be found.", List(id_x)),
         builtin = true
       ),
       context.executionComplete(contextId)
@@ -500,7 +502,8 @@ class RuntimeTypesTest
       TestMessages.panic(
         contextId,
         id_x,
-        Api.ExpressionUpdate.Payload.Panic("Compile_Error.Error", List(id_x)),
+        Api.ExpressionUpdate.Payload
+          .Panic("Compile error: The name `T` could not be found.", List(id_x)),
         builtin = true
       ),
       context.executionComplete(contextId)

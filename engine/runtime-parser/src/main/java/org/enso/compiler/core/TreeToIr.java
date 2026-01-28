@@ -19,6 +19,7 @@ import org.enso.compiler.core.ir.Location;
 import org.enso.compiler.core.ir.MetadataStorage;
 import org.enso.compiler.core.ir.Module;
 import org.enso.compiler.core.ir.Name;
+import org.enso.compiler.core.ir.Name.Blank;
 import org.enso.compiler.core.ir.Pattern;
 import org.enso.compiler.core.ir.Type;
 import org.enso.compiler.core.ir.Warning;
@@ -30,6 +31,11 @@ import org.enso.compiler.core.ir.expression.IfThenElse;
 import org.enso.compiler.core.ir.expression.Operator;
 import org.enso.compiler.core.ir.expression.Section;
 import org.enso.compiler.core.ir.expression.errors.Syntax;
+import org.enso.compiler.core.ir.expression.errors.Syntax.EmptyParentheses;
+import org.enso.compiler.core.ir.expression.errors.Syntax.InvalidOperator;
+import org.enso.compiler.core.ir.expression.errors.Syntax.UnclosedTextLiteral;
+import org.enso.compiler.core.ir.expression.errors.Syntax.UnexpectedDeclarationInType;
+import org.enso.compiler.core.ir.expression.errors.Syntax.UnexpectedExpression;
 import org.enso.compiler.core.ir.module.scope.Definition;
 import org.enso.compiler.core.ir.module.scope.Export;
 import org.enso.compiler.core.ir.module.scope.Import;
@@ -145,12 +151,12 @@ final class TreeToIr {
           expressions.remove(expressions.size() - 1);
         }
         yield Option.apply(
-            new Expression.Block(
-                CollectionConverters.asScala(expressions.iterator()).toList(),
-                returnValue,
-                combinedLocation,
-                false,
-                meta()));
+            Expression.Block.builder()
+                .expressions(CollectionConverters.asScala(expressions.iterator()).toList())
+                .returnValue(returnValue)
+                .location(combinedLocation)
+                .suspended(false)
+                .build());
       }
     };
   }
@@ -183,7 +189,7 @@ final class TreeToIr {
         }
         case Tree.Private priv -> {
           if (isPrivate) {
-            var error = translateSyntaxError(priv, Syntax.UnexpectedExpression$.MODULE$);
+            var error = translateSyntaxError(priv, Syntax.UnexpectedExpression.INSTANCE);
             diag = join(error, diag);
           }
           isPrivate = true;
@@ -250,7 +256,12 @@ final class TreeToIr {
       case Tree.ForeignFunction fn -> {
         var name = fn.getName();
         var nameLoc = getIdentifiedLocation(name);
-        var methodRef = new Name.MethodReference(Option.empty(), buildName(name), nameLoc, meta());
+        var methodRef =
+            Name.MethodReference.builder()
+                .typePointer(Option.empty())
+                .methodName(buildName(name))
+                .location(nameLoc)
+                .build();
         var args = translateArgumentsDefinition(fn.getArgs());
         var def = translateForeignFunction(fn);
         var binding =
@@ -285,7 +296,7 @@ final class TreeToIr {
       }
 
       default -> {
-        var error = translateSyntaxError(inputAst, Syntax.UnexpectedExpression$.MODULE$);
+        var error = translateSyntaxError(inputAst, Syntax.UnexpectedExpression.INSTANCE);
         yield join(error, appendTo);
       }
     };
@@ -378,12 +389,12 @@ final class TreeToIr {
       case Tree.ConstructorDefinition cons -> translateConstructorDefinition(cons, appendTo);
 
       case Tree.TypeDef def -> {
-        var ir = translateSyntaxError(def, Syntax.UnexpectedDeclarationInType$.MODULE$);
+        var ir = translateSyntaxError(def, UnexpectedDeclarationInType.INSTANCE);
         yield join(ir, appendTo);
       }
 
       case Tree.ArgumentBlockApplication app -> {
-        var ir = translateSyntaxError(app, Syntax.UnexpectedDeclarationInType$.MODULE$);
+        var ir = translateSyntaxError(app, UnexpectedDeclarationInType.INSTANCE);
         yield join(ir, appendTo);
       }
 
@@ -425,7 +436,7 @@ final class TreeToIr {
       }
 
       default -> {
-        var ir = translateSyntaxError(inputAst, Syntax.UnexpectedDeclarationInType$.MODULE$);
+        var ir = translateSyntaxError(inputAst, UnexpectedDeclarationInType.INSTANCE);
         yield join(ir, appendTo);
       }
     };
@@ -439,15 +450,7 @@ final class TreeToIr {
     while (t instanceof Tree.App tApp) {
       var typeArg = translateTypeCallArgument(tApp.getArg());
       if (typeArg.value() instanceof Name.Literal l && "in".equals(l.name())) {
-        in =
-            l.copy(
-                l.copy$default$1(),
-                true,
-                l.copy$default$3(),
-                l.copy$default$4(),
-                l.copy$default$5(),
-                l.copy$default$6(),
-                l.copy$default$7());
+        in = l.copyBuilder().build();
       } else {
         args = join(typeArg, args);
       }
@@ -461,8 +464,12 @@ final class TreeToIr {
           default -> {
             var name = fullQualifiedNames.head();
             name =
-                new Name.Literal(
-                    name.name(), true, name.identifiedLocation(), Option.empty(), name.passData());
+                Name.Literal.builder()
+                    .name(name.name())
+                    .isMethod(true)
+                    .location(name.identifiedLocation())
+                    .passData(name.passData())
+                    .build();
             List<Name> tail = (List<Name>) fullQualifiedNames.tail();
             tail = tail.reverse();
             final IdentifiedLocation loc = getIdentifiedLocation(app);
@@ -470,7 +477,7 @@ final class TreeToIr {
             if (segments == 2) {
               arg = tail.head();
             } else {
-              arg = new Name.Qualified(tail, loc, meta());
+              arg = Name.Qualified.builder().parts(tail).location(loc).build();
             }
             var ca =
                 CallArgument.Specified.builder()
@@ -505,7 +512,7 @@ final class TreeToIr {
   private Definition translateAnnotation(FunctionAnnotation anno) {
     if (anno.getArgument() == null) {
       return translateSyntaxError(
-          getIdentifiedLocation(anno), Syntax.UnexpectedExpression$.MODULE$);
+          getIdentifiedLocation(anno), Syntax.UnexpectedExpression.INSTANCE);
     } else {
       var annotationArgument = translateExpression(anno.getArgument());
       return new Name.GenericAnnotation(
@@ -608,19 +615,19 @@ final class TreeToIr {
         body = translateExpression(fun.getBody());
       }
       if (body == null) {
-        body = translateSyntaxError(fun, Syntax.UnexpectedExpression$.MODULE$);
+        body = translateSyntaxError(fun, Syntax.UnexpectedExpression.INSTANCE);
       }
       final var ascribedBody = addTypeAscription(name.name(), body, returnType, loc);
       return new Expression.Binding(name, ascribedBody, loc, meta());
     } else {
       final var body = translateExpression(fun.getBody());
       if (body == null) {
-        return translateSyntaxError(fun, Syntax.UnexpectedDeclarationInType$.MODULE$);
+        return translateSyntaxError(fun, UnexpectedDeclarationInType.INSTANCE);
       }
       final boolean isOperator =
           fun.getName() instanceof Tree.Ident ident && ident.getToken().isOperatorLexically();
       if (isOperator && args.size() != 2) {
-        return translateSyntaxError(fun, Syntax.InvalidOperator$.MODULE$);
+        return translateSyntaxError(fun, InvalidOperator.INSTANCE);
       }
       final var ascribedBody = addTypeAscription(name.name(), body, returnType, loc);
       final var isPrivate = fun.getPrivate() != null;
@@ -690,7 +697,11 @@ final class TreeToIr {
       }
       default -> throw translateEntity(sig, "translateMethodReference");
     }
-    return new Name.MethodReference(type, method, loc, meta());
+    return Name.MethodReference.builder()
+        .typePointer(type)
+        .methodName(method)
+        .location(loc)
+        .build();
   }
 
   private Expression translateCall(Tree ast, boolean isMethod) throws SyntaxException {
@@ -832,7 +843,8 @@ final class TreeToIr {
           translateOldStyleLambdaArgumentName(e.getValue(), suspended, defaultValue);
       case Tree.Group g ->
           translateOldStyleLambdaArgumentName(g.getBody(), suspended, defaultValue);
-      case Tree.Wildcard wild -> new Name.Blank(getIdentifiedLocation(wild.getToken()), meta());
+      case Tree.Wildcard wild ->
+          Name.Blank.builder().location(getIdentifiedLocation(wild.getToken())).build();
       case Tree.OprApp app when "=".equals(app.getOpr().getRight().codeRepr()) -> {
         if (defaultValue != null) {
           defaultValue[0] = translateExpression(app.getRhs(), false);
@@ -918,11 +930,11 @@ final class TreeToIr {
           var arr = app.getOpr().getLeft().getOperators();
           if (arr.size() > 0 && arr.get(0).codeRepr().equals("=")) {
             var errLoc = arr.size() > 1 ? getIdentifiedLocation(arr.get(1)) : at;
-            var err = translateSyntaxError(errLoc, Syntax.UnrecognizedToken$.MODULE$);
+            var err = translateSyntaxError(errLoc, Syntax.UnrecognizedToken.INSTANCE);
             var name = buildName(app.getLhs());
             yield new Expression.Binding(name, err, at, meta());
           } else {
-            yield translateSyntaxError(at, Syntax.UnrecognizedToken$.MODULE$);
+            yield translateSyntaxError(at, Syntax.UnrecognizedToken.INSTANCE);
           }
         }
         yield switch (op.codeRepr()) {
@@ -931,7 +943,7 @@ final class TreeToIr {
             // complete.
             var arg = app.getLhs();
             if (arg == null) {
-              yield translateSyntaxError(app, Syntax.UnexpectedExpression$.MODULE$);
+              yield translateSyntaxError(app, Syntax.UnexpectedExpression.INSTANCE);
             }
             var isSuspended = new boolean[1];
             if (arg instanceof Tree.UnaryOprApp susApp && "~".equals(susApp.getOpr().codeRepr())) {
@@ -951,7 +963,12 @@ final class TreeToIr {
             List<DefinitionArgument> args = join(arg_, nil());
             var body = translateExpression(app.getRhs(), false);
             if (body == null) {
-              body = new Expression.Block(nil(), new Name.Blank(null, meta()), null, true, meta());
+              body =
+                  Expression.Block.builder()
+                      .expressions(nil())
+                      .returnValue(Name.Blank.create())
+                      .suspended(true)
+                      .build();
             }
             var at =
                 expandToContain(
@@ -984,7 +1001,7 @@ final class TreeToIr {
           var op = l.getExpression().getOperator().getRight();
           if (op == null || isDotOperator(op)) {
             yield translateSyntaxError(
-                l.getExpression().getExpression(), Syntax.UnexpectedExpression$.MODULE$);
+                l.getExpression().getExpression(), Syntax.UnexpectedExpression.INSTANCE);
           }
           var rhs = unnamedCallArgument(l.getExpression().getExpression());
           var loc = getIdentifiedLocation(app);
@@ -1008,7 +1025,7 @@ final class TreeToIr {
           for (var next : arr.getRest()) {
             exp = translateExpression(next.getBody(), false);
             if (exp == null) {
-              yield translateSyntaxError(arr, Syntax.UnexpectedExpression$.MODULE$);
+              yield translateSyntaxError(arr, Syntax.UnexpectedExpression.INSTANCE);
             }
             items = join(exp, items);
           }
@@ -1070,9 +1087,9 @@ final class TreeToIr {
           var subexpression = useOrElse(applySkip(body), body);
           yield translateExpression(subexpression, false);
         }
-        var fn = new Name.Literal(fullName, true, null, Option.empty(), meta());
+        var fn = Name.Literal.builder().name(fullName).isMethod(true).build();
         if (!checkArgs(args)) {
-          yield translateSyntaxError(app, Syntax.UnexpectedExpression$.MODULE$);
+          yield translateSyntaxError(app, Syntax.UnexpectedExpression.INSTANCE);
         }
         yield Application.Prefix.builder()
             .function(fn)
@@ -1102,11 +1119,15 @@ final class TreeToIr {
           last = next;
         }
         if (last == null) {
-          last = new Name.Blank(null, meta());
+          last = Name.Blank.create();
         }
         var block =
-            new Expression.Block(
-                expressions.reverse(), last, getIdentifiedLocation(body), false, meta());
+            Expression.Block.builder()
+                .expressions(expressions.reverse())
+                .returnValue(last)
+                .location(getIdentifiedLocation(body))
+                .suspended(false)
+                .build();
         if (body.getLhs() != null) {
           var fn = translateExpression(body.getLhs(), isMethod);
           List<CallArgument> args = nil();
@@ -1128,7 +1149,7 @@ final class TreeToIr {
       case Tree.TypeAnnotated anno -> translateTypeAnnotated(anno);
       case Tree.Group group -> {
         yield switch (translateExpression(group.getBody(), false)) {
-          case null -> translateSyntaxError(group, Syntax.EmptyParentheses$.MODULE$);
+          case null -> translateSyntaxError(group, EmptyParentheses.INSTANCE);
           case Application.Prefix pref -> {
             final IdentifiedLocation groupWithoutParenthesis =
                 getIdentifiedLocation(group, 1, -1, pref.getExternalId());
@@ -1192,7 +1213,7 @@ final class TreeToIr {
             case Literal.Number n ->
                 n.copyBuilder().value("-" + n.value()).location(getIdentifiedLocation(un)).build();
             case Expression expr -> {
-              var negate = new Name.Literal("negate", true, null, Option.empty(), meta());
+              var negate = Name.Literal.builder().name("negate").isMethod(true).build();
               var arg =
                   CallArgument.Specified.builder()
                       .name(Option.empty())
@@ -1209,7 +1230,7 @@ final class TreeToIr {
             }
           };
       case Tree.TemplateFunction templ -> translateExpression(templ.getAst(), false);
-      case Tree.Wildcard wild -> new Name.Blank(getIdentifiedLocation(wild), meta());
+      case Tree.Wildcard wild -> Name.Blank.builder().location(getIdentifiedLocation(wild)).build();
       case Tree.AnnotatedBuiltin anno -> {
         var ir =
             new Name.BuiltinAnnotation(
@@ -1233,10 +1254,12 @@ final class TreeToIr {
       }
       case Tree.AutoscopedIdentifier autoscopedIdentifier -> {
         var methodName = buildName(autoscopedIdentifier.getIdent());
-        yield new Name.MethodReference(
-            Option.empty(), methodName, getIdentifiedLocation(autoscopedIdentifier), meta());
+        yield Name.MethodReference.builder()
+            .methodName(methodName)
+            .location(getIdentifiedLocation(autoscopedIdentifier))
+            .build();
       }
-      case Tree.Invalid __ -> translateSyntaxError(tree, Syntax.UnexpectedExpression$.MODULE$);
+      case Tree.Invalid __ -> translateSyntaxError(tree, Syntax.UnexpectedExpression.INSTANCE);
       default -> translateSyntaxError(tree, new Syntax.UnsupportedSyntax("translateExpression"));
     };
   }
@@ -1286,7 +1309,12 @@ final class TreeToIr {
       var id = new IdentifiedLocation(start, end, last.location().get().uuid());
       last = last.setLocation(Option.apply(id));
     }
-    return new Expression.Block(list, last, locationWithANewLine, suspended, meta());
+    return Expression.Block.builder()
+        .expressions(list)
+        .returnValue(last)
+        .location(locationWithANewLine)
+        .suspended(suspended)
+        .build();
   }
 
   /** Translate a statement in the body of function. */
@@ -1387,7 +1415,7 @@ final class TreeToIr {
       var name = buildNameOrQualifiedName(assign.getPattern());
       var expr = translateExpression(assign.getExpr(), false);
       if (expr == null) {
-        expr = translateSyntaxError(assign, Syntax.UnexpectedExpression$.MODULE$);
+        expr = translateSyntaxError(assign, Syntax.UnexpectedExpression.INSTANCE);
       }
       return new Expression.Binding(name, expr, getIdentifiedLocation(assign), meta());
     } catch (SyntaxException ex) {
@@ -1406,7 +1434,11 @@ final class TreeToIr {
   private Operator applyOperator(
       Token.Operator op, CallArgument lhs, CallArgument rhs, IdentifiedLocation loc) {
     var name =
-        new Name.Literal(op.codeRepr(), true, getIdentifiedLocation(op), Option.empty(), meta());
+        Name.Literal.builder()
+            .name(op.codeRepr())
+            .isMethod(true)
+            .location(getIdentifiedLocation(op))
+            .build();
     if (lhs == null && rhs == null) {
       return new Section.Sides(name, loc, meta());
     } else if (lhs == null) {
@@ -1505,15 +1537,14 @@ final class TreeToIr {
       case Tree.OprApp app -> {
         var op = app.getOpr().getRight();
         if (op == null) {
-          yield translateSyntaxError(app, Syntax.UnexpectedExpression$.MODULE$);
+          yield translateSyntaxError(app, UnexpectedExpression.INSTANCE);
         }
         yield switch (op.codeRepr()) {
           case "->" -> {
             var literal = translateType(app.getLhs());
             var body = translateType(app.getRhs());
             if (body == null) {
-              yield new Syntax(
-                  getIdentifiedLocation(app), Syntax.UnexpectedExpression$.MODULE$, meta());
+              yield Syntax.create(getIdentifiedLocation(app), UnexpectedExpression.INSTANCE);
             }
             var args =
                 switch (body) {
@@ -1529,8 +1560,11 @@ final class TreeToIr {
             var lhs = translateTypeCallArgument(app.getLhs());
             var rhs = translateTypeCallArgument(app.getRhs());
             var name =
-                new Name.Literal(
-                    op.codeRepr(), true, getIdentifiedLocation(app), Option.empty(), meta());
+                Name.Literal.builder()
+                    .name(op.codeRepr())
+                    .isMethod(true)
+                    .location(getIdentifiedLocation(op))
+                    .build();
             var loc = getIdentifiedLocation(app);
             yield new Operator.Binary(lhs, name, rhs, loc, meta());
           }
@@ -1555,7 +1589,8 @@ final class TreeToIr {
       case Tree.Call call -> translateType(call.getValue());
       case Tree.Group group -> translateType(group.getBody());
       case Tree.UnaryOprApp un -> translateType(un.getRhs());
-      case Tree.Wildcard wild -> new Name.Blank(getIdentifiedLocation(wild), meta());
+      case Tree.Wildcard wild ->
+          Name.Blank.builder().location(getIdentifiedLocation(wild.getToken())).build();
       case Tree.TypeAnnotated anno -> translateTypeAnnotatedToOperator(anno);
       default -> translateSyntaxError(tree, new Syntax.UnsupportedSyntax("translateType"));
     };
@@ -1575,8 +1610,7 @@ final class TreeToIr {
   Expression translateTypeAnnotatedToOperator(Tree.TypeAnnotated anno) {
     var type = translateTypeCallArgument(anno.getType());
     var expr = translateCallArgument(anno.getExpression());
-    var opName =
-        new Name.Literal(anno.getOperator().codeRepr(), true, null, Option.empty(), meta());
+    var opName = Name.Literal.builder().name(anno.getOperator().codeRepr()).isMethod(true).build();
     return new Operator.Binary(expr, opName, type, getIdentifiedLocation(anno), meta());
   }
 
@@ -1610,7 +1644,7 @@ final class TreeToIr {
             .build();
     List<CallArgument> withBlockArgs = (List<CallArgument>) allArgs.appended(blockArg);
     if (!checkArgs(withBlockArgs)) {
-      return translateSyntaxError(expr.location().get(), Syntax.UnexpectedExpression$.MODULE$);
+      return translateSyntaxError(expr.location().get(), UnexpectedExpression.INSTANCE);
     }
     return Application.Prefix.builder()
         .function(fn)
@@ -1679,7 +1713,7 @@ final class TreeToIr {
             case "\"\"\"" -> false;
             default -> true;
           }) {
-        throw new SyntaxException(txt, Syntax.UnclosedTextLiteral$.MODULE$);
+        throw new SyntaxException(txt, UnclosedTextLiteral.INSTANCE);
       }
     }
     // Splices are not yet supported in the IR.
@@ -1721,7 +1755,8 @@ final class TreeToIr {
     Tree pattern = def.getPattern();
     Name name =
         switch (pattern) {
-          case Tree.Wildcard wild -> new Name.Blank(getIdentifiedLocation(wild.getToken()), meta());
+          case Tree.Wildcard wild ->
+              Name.Blank.builder().location(getIdentifiedLocation(wild.getToken())).build();
           case Tree.Ident id -> {
             Expression identifier = translateIdent(id, false);
             yield switch (identifier) {
@@ -1872,7 +1907,7 @@ final class TreeToIr {
 
   private Pattern.Name translateWildcardPattern(Tree.Wildcard wild) {
     var at = getIdentifiedLocation(wild);
-    var blank = new Name.Blank(at, meta());
+    var blank = Name.Blank.builder().location(at).build();
     return new Pattern.Name(blank, at, meta());
   }
 
@@ -1882,7 +1917,10 @@ final class TreeToIr {
 
   private Name.Qualified buildQualifiedName(Tree t, IdentifiedLocation loc, boolean generateId)
       throws SyntaxException {
-    return new Name.Qualified(qualifiedNameSegments(t, generateId), loc, meta());
+    return Name.Qualified.builder()
+        .parts(qualifiedNameSegments(t, generateId))
+        .location(loc)
+        .build();
   }
 
   private Name buildNameOrQualifiedName(Tree t) throws SyntaxException {
@@ -1894,7 +1932,7 @@ final class TreeToIr {
     if (segments.length() == 1) {
       return segments.head();
     } else {
-      return new Name.Qualified(segments, loc, meta());
+      return Name.Qualified.builder().parts(segments).location(loc).build();
     }
   }
 
@@ -1908,12 +1946,12 @@ final class TreeToIr {
       if (app.getRhs() != null) {
         segments.add(app.getRhs());
       } else {
-        throw translateEntity(app, Syntax.UnexpectedExpression$.MODULE$);
+        throw translateEntity(app, Syntax.UnexpectedExpression.INSTANCE);
       }
       if (app.getLhs() != null) {
         list = app.getLhs();
       } else {
-        throw translateEntity(app, Syntax.UnexpectedExpression$.MODULE$);
+        throw translateEntity(app, Syntax.UnexpectedExpression.INSTANCE);
       }
     }
     segments.add(list);
@@ -1934,8 +1972,8 @@ final class TreeToIr {
 
   private List<Name> qualifiedNameSegments(Tree t, boolean generateId) throws SyntaxException {
     if (t instanceof Tree.Wildcard wild) {
-      return join(
-          new Name.Blank(getIdentifiedLocation(wild.getToken(), generateId), meta()), nil());
+      var blankName = Blank.builder().location(getIdentifiedLocation(wild.getToken())).build();
+      return join(blankName, nil());
     }
     if (t instanceof Tree.Call call) {
       t = call.getValue();
@@ -1982,7 +2020,7 @@ final class TreeToIr {
       }
       if (imp.getPolyglot() != null) {
         if (!imp.getPolyglot().getBody().codeRepr().equals("java")) {
-          return translateSyntaxError(imp, Syntax.UnrecognizedToken$.MODULE$);
+          return translateSyntaxError(imp, Syntax.UnrecognizedToken.INSTANCE);
         }
         List<Name> qualifiedName = qualifiedNameSegments(imp.getImport().getBody(), true);
         StringBuilder pkg = new StringBuilder();
@@ -2103,15 +2141,15 @@ final class TreeToIr {
   }
 
   Syntax translateSyntaxError(Tree where, Syntax.Reason reason) {
-    if (reason == Syntax.UnexpectedExpression$.MODULE$ && where instanceof Tree.Invalid invalid) {
+    if (reason == UnexpectedExpression.INSTANCE && where instanceof Tree.Invalid invalid) {
       reason = new Syntax.UnsupportedSyntax(invalid.getError());
     }
     var at = getIdentifiedLocation(where);
-    return new Syntax(at, reason, meta());
+    return Syntax.create(at, reason);
   }
 
   Syntax translateSyntaxError(IdentifiedLocation where, Syntax.Reason reason) {
-    return new Syntax(where, reason, meta());
+    return Syntax.create(where, reason);
   }
 
   SyntaxException translateEntity(Tree where, String msg) throws SyntaxException {
@@ -2149,13 +2187,24 @@ final class TreeToIr {
 
   private Name.Literal buildName(IdentifiedLocation loc, Token id, boolean isMethod) {
     final String name = id.codeRepr();
-    return new Name.Literal(name, isMethod, loc, Option.empty(), meta());
+    return Name.Literal.builder().name(name).isMethod(isMethod).location(loc).build();
   }
 
   private Name sanitizeName(Name.Literal id) {
     return switch (id.name()) {
-      case "self" -> new Name.Self(id.location(), false, id.passData(), id.diagnostics());
-      case "Self" -> new Name.SelfType(id.location(), id.passData(), id.diagnostics());
+      case "self" ->
+          Name.Self.builder()
+              .synthetic(false)
+              .location(id.identifiedLocation())
+              .passData(id.passData())
+              .diagnostics(id.diagnostics())
+              .build();
+      case "Self" ->
+          Name.SelfType.builder()
+              .location(id.identifiedLocation())
+              .passData(id.passData())
+              .diagnostics(id.diagnostics())
+              .build();
       default -> id;
     };
   }

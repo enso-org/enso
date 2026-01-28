@@ -122,9 +122,9 @@ case object SuspendedArguments extends IRPass {
               case Some(Signature(signature, _)) =>
                 val newArgs = computeSuspensions(args.drop(1), signature)
                 if (newArgs.head.suspended) {
-                  errors.Conversion(
+                  errors.Conversion.create(
                     method,
-                    errors.Conversion.SuspendedSourceArgument(
+                    new errors.Conversion.SuspendedSourceArgument(
                       newArgs.head.name.name
                     )
                   )
@@ -142,16 +142,16 @@ case object SuspendedArguments extends IRPass {
               case None =>
                 args match {
                   case _ :: Nil =>
-                    errors.Conversion(
+                    errors.Conversion.create(
                       method,
-                      errors.Conversion.SuspendedSourceArgument(
+                      new errors.Conversion.SuspendedSourceArgument(
                         "unknown"
                       )
                     )
                   case _ :: sourceArg :: _ if sourceArg.suspended =>
-                    errors.Conversion(
+                    errors.Conversion.create(
                       method,
-                      errors.Conversion.SuspendedSourceArgument(
+                      new errors.Conversion.SuspendedSourceArgument(
                         sourceArg.name.name
                       )
                     )
@@ -232,21 +232,21 @@ case object SuspendedArguments extends IRPass {
     */
   private def resolveExpression(expression: Expression): Expression = {
     expression.transformExpressions {
-      case bind @ Expression.Binding(_, expr, _, _) =>
+      case bind: Expression.Binding =>
         val newExpr = bind.getMetadata(TypeSignatures) match {
           case Some(Signature(signature, _)) =>
-            expr match {
+            bind.expression() match {
               case lam: Function.Lambda =>
                 lam.copyWithArgumentsAndBody(
                   computeSuspensions(lam.arguments(), signature),
                   resolveExpression(lam.body())
                 )
-              case _ => expr
+              case _ => bind.expression()
             }
-          case None => expr
+          case None => bind.expression()
         }
 
-        bind.copy(expression = newExpr)
+        bind.copyBuilder().expression(newExpr).build()
       case lam: Function.Lambda =>
         val args = lam.arguments()
         val body = lam.body()
@@ -285,8 +285,8 @@ case object SuspendedArguments extends IRPass {
     */
   def representsSuspended(value: Expression): Boolean = {
     value match {
-      case Name.Literal("Suspended", _, _, _, _) => true
-      case _                                     => false
+      case nm: Name.Literal => nm.name == "Suspended"
+      case _                => false
     }
   }
 

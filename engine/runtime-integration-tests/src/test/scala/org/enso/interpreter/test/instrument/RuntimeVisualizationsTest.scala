@@ -2432,7 +2432,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
               contextId,
               Api.VisualizationExpression.Text(
                 moduleName,
-                "x -> x.catch_primitive _.to_text",
+                "x -> x.catch Any _.to_text",
                 Vector()
               ),
               moduleName
@@ -2536,7 +2536,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
               contextId,
               Api.VisualizationExpression.Text(
                 moduleName,
-                "x -> Panic.catch_primitive x caught_panic-> caught_panic.payload.to_text",
+                "x -> Panic.catch Any x caught_panic-> caught_panic.payload.to_text",
                 Vector()
               ),
               moduleName
@@ -5928,10 +5928,10 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
       val visualizationId = UUID.randomUUID()
       val moduleName      = "Enso_Test.Test.Main"
 
-      val metadata       = new Metadata
-      val idInt1 = metadata.addItem(53, 1, "aa")
-      val idInt3 = metadata.addItem(70, 1, "ab")
-      val idInt2 = metadata.addItem(87, 10, "ac")
+      val metadata = new Metadata
+      val idInt1   = metadata.addItem(53, 1, "aa")
+      val idInt3   = metadata.addItem(70, 1, "ab")
+      val idInt2   = metadata.addItem(87, 10, "ac")
       //@unused val idMainRes = metadata.addItem(102, 8, "ad")
 
       val code =

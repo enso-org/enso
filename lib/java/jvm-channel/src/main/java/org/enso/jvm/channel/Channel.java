@@ -194,7 +194,7 @@ public final class Channel<Data extends Channel.Config> implements AutoCloseable
       arg.addressOf(2).setLong(CALLBACK_FN.getFunctionPointer().rawValue());
       arg.addressOf(3).setJObject(poolClassInHotSpot);
       var replyOk = fn.getCallStaticBooleanMethodA().call(e, channelClass, createMethod, arg);
-      channel.checkForException(e, false);
+      channel.checkUnexpectedException(e);
       assert replyOk : "Failed to create peer in HotSpot JVM";
 
       ID_TO_CHANNEL.put(id, channel);
@@ -289,21 +289,24 @@ public final class Channel<Data extends Channel.Config> implements AutoCloseable
 
     var channel = ID_TO_CHANNEL.get(id);
     assert channel != null : "There must be a channel " + id + " but " + ID_TO_CHANNEL;
+    var buf = asNativeByteBuffer(data, size);
+    var len = handleWithChannel(channel, buf);
+    return len;
+  }
+
+  private static long handleWithChannel(Channel channel, ByteBuffer buf) {
     try {
-      var buf = asNativeByteBuffer(data, size);
-      var len = handleWithChannel(channel, buf);
-      return len;
+      return handleWithChannelThrow(channel, buf);
     } catch (Throwable ex) {
-      channel.printStackTrace(ex, true);
-      var bytes = ex.getMessage() == null ? new byte[0] : ex.getMessage().getBytes();
-      var buf = asNativeByteBuffer(data, size);
-      buf.putInt(bytes.length);
-      buf.put(bytes);
+      buf.position(0);
+      ChannelExceptions.exceptionSerialize(buf, ex, Channel.class.getName(), STOP_METHOD_NAME);
       return RET_CODE_EXCEPTION;
     }
   }
 
-  private static long handleWithChannel(Channel channel, ByteBuffer buf) throws IOException {
+  private static final String STOP_METHOD_NAME = "handleWithChannelThrow";
+
+  private static long handleWithChannelThrow(Channel channel, ByteBuffer buf) throws Throwable {
     // clean any previous overflow buffer
     keepLastOverflowBuffer.set(null);
 
@@ -338,7 +341,7 @@ public final class Channel<Data extends Channel.Config> implements AutoCloseable
     arg.addressOf(2).setLong(address);
     arg.addressOf(3).setLong(size);
     var replySize = fn.getCallStaticLongMethodA().call(env, channelClass, channelHandle, arg);
-    checkForException(env, true);
+    checkUnexpectedException(env);
     return replySize;
   }
 
@@ -363,7 +366,8 @@ public final class Channel<Data extends Channel.Config> implements AutoCloseable
         return res;
       }
     } catch (Throwable ex) {
-      printStackTrace(ex, false);
+      // unexpected exception
+      ex.printStackTrace();
       return -1L;
     }
   }
@@ -376,15 +380,13 @@ public final class Channel<Data extends Channel.Config> implements AutoCloseable
     return len;
   }
 
-  private void checkForException(JNI.JNIEnv e, boolean userCode) {
+  private void checkUnexpectedException(JNI.JNIEnv e) {
     var fn = e.getFunctions();
     var hasException = fn.getExceptionCheck().call(e);
     if (hasException) {
       var throwable = fn.getExceptionOccurred().call(e);
       assert throwable.isNonNull() : "There must be a throwable";
-      if (printStackTrace(null, userCode)) {
-        fn.getExceptionDescribe().call(e);
-      }
+      fn.getExceptionDescribe().call(e);
       fn.getExceptionClear().call(e);
       try (var throwableInC = CTypeConversion.toCString("java/lang/Throwable");
           var messageInC = CTypeConversion.toCString("getMessage");
@@ -430,11 +432,7 @@ public final class Channel<Data extends Channel.Config> implements AutoCloseable
       if (len == RET_CODE_EXCEPTION) {
         // signals exception
         buffer.position(0);
-        var msgLen = buffer.getInt();
-        var msgBytes = new byte[msgLen];
-        buffer.get(msgBytes);
-        var exceptionMessage = new String(msgBytes);
-        throw new IllegalStateException(exceptionMessage);
+        throw ChannelExceptions.exceptionDeserialize(RuntimeException.class, buffer);
       }
       if (len == RET_CODE_OVERFLOW) {
         buffer.position(0);
@@ -485,21 +483,6 @@ public final class Channel<Data extends Channel.Config> implements AutoCloseable
   public void close() throws Exception {
     ID_TO_CHANNEL.remove(id, this);
     // TBD remove on the peer as well
-  }
-
-  /**
-   * @param ex exception to print stack trace for or {@code null}
-   * @param userCode is the exception from user code or is it unexpected
-   * @return {@code true} if the exception was printed and further details should be printed
-   */
-  private boolean printStackTrace(Throwable ex, boolean userCode) {
-    if (!userCode) {
-      if (ex != null) {
-        ex.printStackTrace();
-      }
-      return true;
-    }
-    return false;
   }
 
   /**

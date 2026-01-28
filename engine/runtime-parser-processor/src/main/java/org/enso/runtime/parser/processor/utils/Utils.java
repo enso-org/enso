@@ -13,6 +13,7 @@ import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 import org.enso.runtime.parser.dsl.GenerateIR;
+import org.enso.runtime.parser.processor.ClassField;
 import org.enso.runtime.parser.processor.GenerateIRAnnotationVisitor;
 import org.enso.runtime.parser.processor.IRProcessingException;
 
@@ -108,6 +109,12 @@ public final class Utils {
         ret != null,
         "Cannot resolve " + METADATA_STORAGE_FQN + " from proc environment. Maybe missing import?");
     return ret;
+  }
+
+  public static boolean isMetadataStorageType(ClassField field, ProcessingEnvironment procEnv) {
+    var metaStorageType = metadataStorageTypeElement(procEnv);
+    var typeUtils = procEnv.getTypeUtils();
+    return typeUtils.isSameType(metaStorageType.asType(), field.getType());
   }
 
   public static TypeElement uuidTypeElement(ProcessingEnvironment procEnv) {

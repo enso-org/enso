@@ -18,3 +18,6 @@ services:
 
   - provides: Standard.Database.Connection.Database.Database_Connection_Details_SPI
     with: Standard.AWS.Internal.Services.Impl
+
+  - provides: Standard.Base.Network.Email.Email_Provider.Email_Provider_SPI
+    with: Standard.AWS.Internal.Services.Impl

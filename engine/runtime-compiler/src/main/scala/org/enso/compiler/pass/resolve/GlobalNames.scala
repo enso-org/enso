@@ -164,9 +164,9 @@ case object GlobalNames extends IRPass {
         selfTypeResolution
           .map(res => selfTp.updateMetadata(new MetadataPair(this, res)))
           .getOrElse(
-            errors.Resolution(
+            errors.Resolution.create(
               selfTp,
-              errors.Resolution.ResolverError(ResolutionNotFound)
+              new errors.Resolution.ResolverError(ResolutionNotFound)
             )
           )
       case lit: Name.Literal =>
@@ -187,9 +187,9 @@ case object GlobalNames extends IRPass {
                 val resolution = bindings.resolveName(lit.name)
                 resolution match {
                   case Left(error) =>
-                    errors.Resolution(
+                    errors.Resolution.create(
                       lit,
-                      errors.Resolution.ResolverError(error)
+                      new errors.Resolution.ResolverError(error)
                     )
                   case Right(values)
                       if values.exists(_.isInstanceOf[ResolvedModuleMethod]) =>
@@ -217,10 +217,12 @@ case object GlobalNames extends IRPass {
                         )
                       // The synthetic applications gets the location so that instrumentation
                       // identifies the node correctly
-                      val fun = lit.copy(
-                        name     = resolvedModuleMethod.method.name,
-                        location = None
-                      )
+                      val fun = lit
+                        .copyBuilder()
+                        .name(resolvedModuleMethod.method.name)
+                        .location(null)
+                        .build()
+
                       val app = Application.Prefix
                         .builder()
                         .function(fun)
@@ -261,9 +263,9 @@ case object GlobalNames extends IRPass {
                       case _ => false
                     }
                     if (containsErrors) {
-                      errors.Resolution(
+                      errors.Resolution.create(
                         lit,
-                        errors.Resolution.ResolverError(ResolutionNotFound)
+                        new errors.Resolution.ResolverError(ResolutionNotFound)
                       )
                     } else {
                       values.foldLeft(lit)((lit, value) =>

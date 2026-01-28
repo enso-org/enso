@@ -1,15 +1,19 @@
 import wasm from 'vite-plugin-wasm'
-import { defineConfig } from 'vitest/config'
+import { defineConfig, mergeConfig } from 'vitest/config'
+import nodeVitestConfig from '../vitest.node.base'
 
-export default defineConfig({
-  plugins: [wasm()],
-  build: {
-    lib: {
-      entry: 'src/index.ts',
-      formats: ['es'],
+export default mergeConfig(
+  nodeVitestConfig,
+  defineConfig({
+    plugins: [wasm()],
+    build: {
+      lib: {
+        entry: 'src/index.ts',
+        formats: ['es'],
+      },
     },
-  },
-  resolve: {
-    conditions: ['source'],
-  },
-})
+    resolve: {
+      conditions: ['source'],
+    },
+  }),
+)

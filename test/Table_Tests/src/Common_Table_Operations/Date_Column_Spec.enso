@@ -25,28 +25,27 @@ add_date_columns_specs suite_builder setup =
     prefix = setup.prefix
     build_sorted_table = Common_Table_Operations_Util.build_sorted_table setup
 
-    date_table = Lazy_Ref.Value <| build_sorted_table [["X", [Date.new 1987 1 1, Date.new 2000 2 29, Date.new 2005 4 30]]]
-    date_column = Lazy_Ref.Value <| date_table . get . at "X"
+    date_table = Lazy_Ref.Value <| build_sorted_table [["X", [Date.new 1987 1 1, Date.new 2000 2 29, Date.new 2005 4 30]], ["Y", [Date.new 1987 1 4, Date.new 2000 2 28, Date.new 2005 4 30]]]
 
     suite_builder.group prefix+"Date_Column" group_builder->
         group_builder.specify "a date column can be cast to Date_Column" <|
-            column = date_column.get
+            column = date_table . get . at "X"
             column.value_type.is_date . should_be_true
             check_column_refinements column x->
                 (x:Date_Column)
 
     suite_builder.group prefix+"Date_Column (first/end_of_month)" group_builder->
         group_builder.specify "first_of_month and end_of_month work" <|
-            column = date_column.get
+            column = date_table . get . at "X"
             column.first_of_month . to_vector . should_equal [Date.new 1987 1 1, Date.new 2000 2 1, Date.new 2005 4 1]
             column.end_of_month . to_vector . should_equal [Date.new 1987 1 31, Date.new 2000 2 29, Date.new 2005 4 30]
 
         group_builder.specify "can be used inside a set component expression" <|     
             table = date_table.get
-            expected = build_sorted_table [["X", [Date.new 1987 1 1, Date.new 2000 2 29, Date.new 2005 4 30]], ["first_of_month([X])", [Date.new 1987 1 1, Date.new 2000 2 1, Date.new 2005 4 1]], ["end_of_month([X])", [Date.new 1987 1 31, Date.new 2000 2 29, Date.new 2005 4 30]]]
 
             result = table . set (expr "first_of_month([X])") . set (expr "end_of_month([X])")
-            result.should_equal expected
+            result.at "first_of_month([X])" . to_vector . should_equal [Date.new 1987 1 1, Date.new 2000 2 1, Date.new 2005 4 1]
+            result.at "end_of_month([X])" . to_vector . should_equal [Date.new 1987 1 31, Date.new 2000 2 29, Date.new 2005 4 30]
 
         group_builder.specify "first_of_month and end_of_month error on non-date columns" <|
             non_date_column = build_sorted_table [["X", [1, 2, 3, 4]]] . at 0
@@ -62,3 +61,10 @@ add_date_columns_specs suite_builder setup =
             result2 = table.set (expr "end_of_month([X])")
             result2.should_fail_with Expression_Error
             result2.catch.should_equal (Expression_Error.Type_Error "method 'end_of_month' expected first argument to be Date_Column, but got Column.")
+
+    suite_builder.group prefix+"Date_Column (first_of_week)" group_builder->
+        group_builder.specify "first_of_week works" <|
+            column = date_table . get . at "Y"
+            column.first_of_week first_day=Day_Of_Week.Sunday . to_vector . should_equal [Date.new 1986 12 28, Date.new 2000 2 27, Date.new 2005 4 24]
+            column.first_of_week first_day=Day_Of_Week.Monday . to_vector . should_equal [Date.new 1986 12 29, Date.new 2000 2 28, Date.new 2005 4 25]
+            column.first_of_week . to_vector . should_equal [Date.new 1986 12 29, Date.new 2000 2 28, Date.new 2005 4 25]

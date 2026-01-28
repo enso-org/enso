@@ -25,7 +25,6 @@ test('Load Table Visualisation', async ({ editorPage, page }) => {
   const aggregatedNode = graphNodeByBinding(page, 'aggregated')
   await aggregatedNode.click()
   await editorPage.press('Space')
-  await page.waitForTimeout(1000)
   const tableVisualization = locate.tableVisualization(page)
   await expect(tableVisualization).toExist()
   await expect(tableVisualization).toContainText('10 rows.')
@@ -41,7 +40,6 @@ test('Column size can be set and is retained', async ({ editorPage, page, localA
   const aggregatedNode = graphNodeByBinding(page, 'aggregated')
   await aggregatedNode.click()
   await editorPage.press('Space')
-  await page.waitForTimeout(1000)
   const tableVisualization = locate.tableVisualization(page)
   await expect(tableVisualization).toExist()
   await expect(tableVisualization).toContainText('10 rows.')
@@ -175,7 +173,6 @@ test('Single Column Of Actions Table Visualisation Test', async ({
   const aggregatedNode = graphNodeByBinding(page, 'aggregated')
   await aggregatedNode.click()
   await editorPage.press('Space')
-  await page.waitForTimeout(1000)
   const tableVisualization = locate.tableVisualization(page)
   await expect(tableVisualization).toExist()
 
@@ -208,7 +205,6 @@ test('Error Visualisation Test', async ({ editorPage, page, localApi }) => {
   const aggregatedNode = graphNodeByBinding(page, 'aggregated')
   await aggregatedNode.click()
   await editorPage.press('Space')
-  await page.waitForTimeout(1000)
   const tableVisualization = locate.tableVisualization(page)
   await expect(tableVisualization).toExist()
 
@@ -228,7 +224,6 @@ test('get_child_node_action temmplate Test as number', async ({ editorPage, page
   const aggregatedNode = graphNodeByBinding(page, 'aggregated')
   await aggregatedNode.click()
   await editorPage.press('Space')
-  await page.waitForTimeout(1000)
   const tableVisualization = locate.tableVisualization(page)
   await expect(tableVisualization).toExist()
 
@@ -267,7 +262,6 @@ test('get_child_node_action temmplate Test as text', async ({ editorPage, page, 
   const aggregatedNode = graphNodeByBinding(page, 'aggregated')
   await aggregatedNode.click()
   await editorPage.press('Space')
-  await page.waitForTimeout(1000)
   const tableVisualization = locate.tableVisualization(page)
   await expect(tableVisualization).toExist()
 
@@ -309,7 +303,6 @@ test('GenericGrid Table Visualisation Test - single column - no links', async ({
   const aggregatedNode = graphNodeByBinding(page, 'aggregated')
   await aggregatedNode.click()
   await editorPage.press('Space')
-  await page.waitForTimeout(1000)
   const tableVisualization = locate.tableVisualization(page)
   await expect(tableVisualization).toExist()
 
@@ -339,7 +332,6 @@ test('GenericGrid Table Visualisation Test - two column - link on second', async
   const aggregatedNode = graphNodeByBinding(page, 'aggregated')
   await aggregatedNode.click()
   await editorPage.press('Space')
-  await page.waitForTimeout(1000)
   const tableVisualization = locate.tableVisualization(page)
   await expect(tableVisualization).toExist()
 
@@ -391,42 +383,33 @@ test('GenericGrid Table Visualisation Test - two column - link on second', async
    Then run the js prettier
    Remember to comment the write back out
 */
-
 test.describe('Table_Visualisation_Integration_Spec and clipboard', () => {
   test('Datetime test - sorting and copying', async ({ editorPage, localApi, page, context }) => {
     await loadData(editorPage, localApi, singleColumnDatetimes)
-    await expectCellDataToBe(
-      page,
-      'Value',
+    await expectCellDataToBe(page, 'Value', [
       '2025-01-02 12:13:14.123[MET]',
       '2025-01-01 12:13:14.123[MET]',
       '2025-01-03 12:13:14.123[MET]',
-    )
+    ])
     const value = getHeaderLocator(page, { colHeaderName: 'Value' })
     await value.click() // Sort ascending
-    await expectCellDataToBe(
-      page,
-      'Value',
+    await expectCellDataToBe(page, 'Value', [
       '2025-01-01 12:13:14.123[MET]',
       '2025-01-02 12:13:14.123[MET]',
       '2025-01-03 12:13:14.123[MET]',
-    )
+    ])
     await value.click() // Sort descending
-    await expectCellDataToBe(
-      page,
-      'Value',
+    await expectCellDataToBe(page, 'Value', [
       '2025-01-03 12:13:14.123[MET]',
       '2025-01-02 12:13:14.123[MET]',
       '2025-01-01 12:13:14.123[MET]',
-    )
+    ])
     await value.click() // remove sort
-    await expectCellDataToBe(
-      page,
-      'Value',
+    await expectCellDataToBe(page, 'Value', [
       '2025-01-02 12:13:14.123[MET]',
       '2025-01-01 12:13:14.123[MET]',
       '2025-01-03 12:13:14.123[MET]',
-    )
+    ])
     await expectCopyingColumnClipboardToBe(
       editorPage,
       context,
@@ -439,14 +422,14 @@ test.describe('Table_Visualisation_Integration_Spec and clipboard', () => {
 
   test('Date test - sorting and copying', async ({ editorPage, localApi, page, context }) => {
     await loadData(editorPage, localApi, singleColumnDates)
-    await expectCellDataToBe(page, 'Value', '2025-01-02', '2025-01-01', '2025-01-03')
+    await expectCellDataToBe(page, 'Value', ['2025-01-02', '2025-01-01', '2025-01-03'])
     const value = getHeaderLocator(page, { colHeaderName: 'Value' })
     await value.click({ position: { x: 10, y: 10 } }) // Sort ascending
-    await expectCellDataToBe(page, 'Value', '2025-01-01', '2025-01-02', '2025-01-03')
+    await expectCellDataToBe(page, 'Value', ['2025-01-01', '2025-01-02', '2025-01-03'])
     await value.click({ position: { x: 10, y: 10 } }) // Sort descending
-    await expectCellDataToBe(page, 'Value', '2025-01-03', '2025-01-02', '2025-01-01')
+    await expectCellDataToBe(page, 'Value', ['2025-01-03', '2025-01-02', '2025-01-01'])
     await value.click({ position: { x: 10, y: 10 } }) // remove sort
-    await expectCellDataToBe(page, 'Value', '2025-01-02', '2025-01-01', '2025-01-03')
+    await expectCellDataToBe(page, 'Value', ['2025-01-02', '2025-01-01', '2025-01-03'])
     await expectCopyingColumnClipboardToBe(
       editorPage,
       context,
@@ -459,14 +442,30 @@ test.describe('Table_Visualisation_Integration_Spec and clipboard', () => {
 
   test('Time test - sorting and copying', async ({ editorPage, localApi, page, context }) => {
     await loadData(editorPage, localApi, singleColumnTimes)
-    await expectCellDataToBe(page, 'Value', '12:14:14.123004', '12:13:14.123004', '12:15:14.123004')
+    await expectCellDataToBe(page, 'Value', [
+      '12:14:14.123004',
+      '12:13:14.123004',
+      '12:15:14.123004',
+    ])
     const value = getHeaderLocator(page, { colHeaderName: 'Value' })
     await value.click({ position: { x: 10, y: 10 } }) // Sort ascending
-    await expectCellDataToBe(page, 'Value', '12:13:14.123004', '12:14:14.123004', '12:15:14.123004')
+    await expectCellDataToBe(page, 'Value', [
+      '12:13:14.123004',
+      '12:14:14.123004',
+      '12:15:14.123004',
+    ])
     await value.click({ position: { x: 10, y: 10 } }) // Sort descending
-    await expectCellDataToBe(page, 'Value', '12:15:14.123004', '12:14:14.123004', '12:13:14.123004')
+    await expectCellDataToBe(page, 'Value', [
+      '12:15:14.123004',
+      '12:14:14.123004',
+      '12:13:14.123004',
+    ])
     await value.click({ position: { x: 10, y: 10 } }) // remove sort
-    await expectCellDataToBe(page, 'Value', '12:14:14.123004', '12:13:14.123004', '12:15:14.123004')
+    await expectCellDataToBe(page, 'Value', [
+      '12:14:14.123004',
+      '12:13:14.123004',
+      '12:15:14.123004',
+    ])
     await expectCopyingColumnClipboardToBe(
       editorPage,
       context,
@@ -511,7 +510,7 @@ async function loadData(editorPage: EditorPageActions, localApi: MockLocalApi, d
   )
 }
 
-export type ColumnLocatorOptions = {
+type ColumnLocatorOptions = {
   colId?: string
   colHeaderName?: string
 }
@@ -519,7 +518,7 @@ export type ColumnLocatorOptions = {
 /**
  * Returns a locator for the header cell
  */
-export function getHeaderLocator(page: Page, options: ColumnLocatorOptions) {
+function getHeaderLocator(page: Page, options: ColumnLocatorOptions) {
   if (options.colHeaderName) {
     return page.getByRole('columnheader', { name: options.colHeaderName })
   }
@@ -529,13 +528,13 @@ export function getHeaderLocator(page: Page, options: ColumnLocatorOptions) {
 /**
  * Returns a locator for the cell based off colId and rowIndex
  */
-export function getCellLocator(page: Page, colId: string, rowIndex: number) {
+function getCellLocator(page: Page, colId: string, rowIndex: number) {
   const locatorString = `[row-index="${rowIndex}"] [col-id="${colId}"]`
   return page.locator(locatorString)
 }
 
 // Helper function to check cell values in a column
-async function expectCellDataToBe(page: Page, colId: string, ...expectedValues: string[]) {
+async function expectCellDataToBe(page: Page, colId: string, expectedValues: string[]) {
   for (let i = 0; i < expectedValues.length; i++) {
     expect(getCellLocator(page, colId, i)).toContainText(expectedValues[i] ?? '')
   }

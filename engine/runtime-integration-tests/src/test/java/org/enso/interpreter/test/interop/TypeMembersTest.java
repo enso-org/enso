@@ -86,7 +86,6 @@ public class TypeMembersTest {
         Source.newBuilder(
                 "enso",
                 """
-                @Builtin_Type
                 type Compile_Error
                     Error message
 
@@ -102,13 +101,7 @@ public class TypeMembersTest {
     var compileError = module.invokeMember("eval_expression", "v");
     assertEquals(
         "all members",
-        Set.of(
-            ConstantsNames.TO_DISPLAY_TEXT,
-            "message",
-            ConstantsNames.TO_TEXT,
-            "==",
-            "catch_primitive",
-            "pretty"),
+        Set.of(ConstantsNames.TO_DISPLAY_TEXT, "message", ConstantsNames.TO_TEXT, "==", "pretty"),
         compileError.getMemberKeys());
   }
 

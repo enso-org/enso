@@ -240,8 +240,10 @@ class ImportExportTest
         .reason
         .asInstanceOf[
           errors.ImportExport.NoSuchConstructor
-        ] shouldEqual errors.ImportExport
-        .NoSuchConstructor("Other_Type", "method")
+        ] shouldEqual new errors.ImportExport.NoSuchConstructor(
+        "Other_Type",
+        "method"
+      )
     }
 
     "result in multiple errors when importing more methods from type" in {
@@ -259,8 +261,8 @@ class ImportExportTest
       mainIr.imports
         .take(2)
         .map(_.asInstanceOf[errors.ImportExport].reason) shouldEqual List(
-        errors.ImportExport.NoSuchConstructor("Other_Type", "method"),
-        errors.ImportExport.NoSuchConstructor("Other_Type", "other_method")
+        new errors.ImportExport.NoSuchConstructor("Other_Type", "method"),
+        new errors.ImportExport.NoSuchConstructor("Other_Type", "other_method")
       )
     }
 
@@ -407,9 +409,14 @@ class ImportExportTest
       mainIr.imports
         .take(2)
         .map(_.asInstanceOf[errors.ImportExport].reason) shouldEqual List(
-        errors.ImportExport.NoSuchConstructor("Other_Module_Type", "method"),
-        errors.ImportExport
-          .NoSuchConstructor("Other_Module_Type", "non_existing_method")
+        new errors.ImportExport.NoSuchConstructor(
+          "Other_Module_Type",
+          "method"
+        ),
+        new errors.ImportExport.NoSuchConstructor(
+          "Other_Module_Type",
+          "non_existing_method"
+        )
       )
     }
 

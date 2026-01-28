@@ -14,6 +14,7 @@ import org.enso.shttp.auth.TokenAuthTestHandler;
 import org.enso.shttp.cloud_mock.CloudAuthRenew;
 import org.enso.shttp.cloud_mock.CloudMockSetup;
 import org.enso.shttp.cloud_mock.CloudRoot;
+import org.enso.shttp.cloud_mock.ContentTypeHandler;
 import org.enso.shttp.cloud_mock.ExpiredTokensCounter;
 import org.enso.shttp.test_helpers.CrashingTestHandler;
 import org.enso.shttp.test_helpers.DownloadTestHandler;
@@ -92,6 +93,7 @@ public class HTTPTestHelperServer {
 
     // HTTP helpers
     setupFileServer(server, projectRoot);
+    setupContentTypeFileServer(server, projectRoot);
     server.addHandler("/test_headers", new HeaderTestHandler());
     server.addHandler("/test_token_auth", new TokenAuthTestHandler());
     server.addHandler("/test_basic_auth", new BasicAuthTestHandler());
@@ -120,6 +122,12 @@ public class HTTPTestHelperServer {
     Path testFilesRoot = projectRoot.resolve(pathToWWW);
     System.out.println("Serving files from directory " + testFilesRoot);
     server.addHandler("/testfiles", SimpleFileServer.createFileHandler(testFilesRoot));
+  }
+
+  private static void setupContentTypeFileServer(HybridHTTPServer server, Path projectRoot) {
+    Path testFilesRoot = projectRoot.resolve(pathToWWW);
+    System.out.println("Serving files with specified content type from directory " + testFilesRoot);
+    server.addHandler("/content_type", new ContentTypeHandler(testFilesRoot));
   }
 
   private static Path findProjectRoot(Path startingPoint) {

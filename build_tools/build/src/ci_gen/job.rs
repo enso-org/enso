@@ -186,6 +186,10 @@ pub fn expose_gui_vars(step: Step) -> Step {
             secret::ENSO_IDE_MS365_OAUTH_CLIENT_ID,
             ide::web::env::ENSO_IDE_MS365_OAUTH_CLIENT_ID,
         )
+        .with_secret_exposed_as(
+            secret::ENSO_IDE_SALESFORCE_OAUTH_CLIENT_ID,
+            ide::web::env::ENSO_IDE_SALESFORCE_OAUTH_CLIENT_ID,
+        )
 }
 
 /// Expose variables for debugging purposes.

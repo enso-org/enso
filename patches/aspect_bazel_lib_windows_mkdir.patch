@@ -1,0 +1,10 @@
+--- lib/private/write_source_file.bzl
++++ lib/private/write_source_file.bzl
+@@ -326,6 +326,7 @@ if exist "%in%\\*" (
+     mkdir "%out%" >NUL 2>NUL
+     robocopy "%in%" "%out%" /E >NUL
+ ) else (
++    for %%i in ("%out%") do if not exist "%%~dpi" mkdir "%%~dpi" >NUL 2>NUL
+     copy %in% %out% >NUL
+ )
+ """.format(in_path = in_path.replace("/", "\\"), out_path = out_path.replace("/", "\\")))

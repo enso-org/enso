@@ -37,8 +37,8 @@ const nodeRect = computed(() => graph.value?.nodeRects.get(props.nodeId))
 const nodeHovered = computed(
   (): boolean => graph.value != null && graph.value.nodeHovered.get(props.nodeId),
 )
-const nodeExtended = computed(
-  (): boolean => graph.value != null && graph.value.nodeExtended.get(props.nodeId),
+const nodeDetailedView = computed(
+  (): boolean => graph.value != null && graph.value.nodeDetailedView.get(props.nodeId),
 )
 const otherNodeHovered = computed(
   (): boolean => graph.value != null && !nodeHovered.value && graph.value.nodeHovered.exists.value,
@@ -111,7 +111,7 @@ const handlePortClick = useDoubleClick(
 
 const portsVisible = computed(
   () =>
-    (nodeExtended.value && !otherNodeHovered.value) ||
+    (nodeDetailedView.value && !otherNodeHovered.value) ||
     nodeHovered.value ||
     (outputHovered.value && outputPortsSet.value.has(outputHovered.value)) ||
     anyPortDisconnected.value ||

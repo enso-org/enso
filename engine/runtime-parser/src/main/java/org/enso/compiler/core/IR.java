@@ -8,7 +8,6 @@ import org.enso.compiler.core.ir.Expression;
 import org.enso.compiler.core.ir.IdentifiedLocation;
 import org.enso.compiler.core.ir.MetadataStorage;
 import org.enso.compiler.core.ir.ProcessingPass.Metadata;
-import org.enso.compiler.debug.Debug;
 import scala.Option;
 import scala.collection.immutable.List;
 import scala.jdk.javaapi.CollectionConverters$;
@@ -181,15 +180,6 @@ public interface IR {
     IR.preorder(this, builder::addOne);
 
     return builder.result();
-  }
-
-  /**
-   * Pretty prints the IR.
-   *
-   * @return a pretty-printed representation of the IR
-   */
-  default String pretty() {
-    return Debug.pretty(this.toString());
   }
 
   /**

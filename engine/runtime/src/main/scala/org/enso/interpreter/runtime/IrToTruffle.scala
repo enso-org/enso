@@ -1350,8 +1350,9 @@ private[runtime] class IrToTruffle(
         )
         val childScope = childFactory.scope
 
-        val blockNode = childFactory.processBlock(block.copy(suspended = false))
-
+        val blockNode = childFactory.processBlock(
+          block.copyBuilder().suspended(false).build()
+        )
         val defaultRootNode = ClosureRootNode.build(
           language,
           childScope,
@@ -1850,13 +1851,21 @@ private[runtime] class IrToTruffle(
           throw new CompilerError(
             "Branch documentation should be desugared at an earlier stage."
           )
-        case errors.Pattern(
-              _,
-              errors.Pattern.WrongArity(name, expected, actual),
-              _
-            ) =>
-          Left(BadPatternMatch.WrongArgCount(name, expected, actual))
-
+        case patErr: errors.Pattern =>
+          patErr.reason() match {
+            case wrongArity: errors.Pattern.WrongArity =>
+              Left(
+                BadPatternMatch.WrongArgCount(
+                  wrongArity.consName(),
+                  wrongArity.expected(),
+                  wrongArity.actual()
+                )
+              )
+            case _ =>
+              throw new CompilerError(
+                s"Unexpected pattern error: ${patErr.reason()}."
+              )
+          }
       }
     }
 
@@ -2048,26 +2057,23 @@ private[runtime] class IrToTruffle(
             name.location,
             name.getId
           )
-        case Name.MethodReference(
-              None,
-              Name.Literal(nameStr, _, _, _, _),
-              _,
-              _
-            ) =>
+        case methodRef: Name.MethodReference
+            if methodRef.methodName().isInstanceOf[Name.Literal] =>
+          val nameStr = methodRef.methodName().asInstanceOf[Name.Literal].name
           setLocation(
             DynamicSymbolNode.buildUnresolvedConstructor(nameStr),
             name.location
           )
-        case Name.Self(location, _, passData) =>
+        case self: Name.Self =>
           setLocation(
             processName(
-              Name.Literal(
-                ConstantsNames.SELF_ARGUMENT,
-                isMethod = false,
-                location,
-                None,
-                passData
-              )
+              Name.Literal
+                .builder()
+                .name(ConstantsNames.SELF_ARGUMENT)
+                .isMethod(false)
+                .location(self.identifiedLocation())
+                .passData(self.passData())
+                .build()
             ),
             name.location
           )
@@ -2237,7 +2243,7 @@ private[runtime] class IrToTruffle(
       */
     private def processError(error: Error): RuntimeExpression = {
       val payload: Atom = error match {
-        case Error.InvalidIR(_, _) =>
+        case _: Error.InvalidIR =>
           throw new CompilerError("Unexpected Invalid IR during codegen.")
         case err: errors.Syntax =>
           getBuiltins
@@ -2271,7 +2277,7 @@ private[runtime] class IrToTruffle(
           getBuiltins
             .error()
             .makeCompileError(err.message(fileLocationFromSection))
-        case err: errors.Unexpected.TypeSignature =>
+        case err: errors.UnexpectedTypeSignature =>
           getBuiltins
             .error()
             .makeCompileError(err.message(fileLocationFromSection))

@@ -214,7 +214,7 @@ public final class ExportSymbolAnalysis {
 
   private static ImportExport createModuleDoesNotExistError(Export.Module exportIr, String modFQN) {
     assert modFQN.contains(".");
-    return new ImportExport(exportIr, new ImportExport.ModuleDoesNotExist(modFQN), emptyPassData());
+    return ImportExport.create(exportIr, new ImportExport.ModuleDoesNotExist(modFQN));
   }
 
   private static ImportExport createSymbolDoesNotExistError(
@@ -253,8 +253,7 @@ public final class ExportSymbolAnalysis {
     return new MetadataStorage();
   }
 
-  @SuppressWarnings("unchecked")
   private static DiagnosticStorage emptyDiagnostics() {
-    return new DiagnosticStorage(DiagnosticStorage.$lessinit$greater$default$1());
+    return DiagnosticStorage.createEmpty();
   }
 }

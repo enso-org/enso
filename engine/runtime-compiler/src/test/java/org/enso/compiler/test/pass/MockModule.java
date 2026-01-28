@@ -16,8 +16,10 @@ final class MockModule {
   static Module createWithSingleMethod(Expression methodBody) {
     var methodName = "test";
     var methodRef =
-        new Name.MethodReference(
-            Option.empty(), IRUtils.literal(methodName), null, new MetadataStorage());
+        Name.MethodReference.builder()
+            .typePointer(Option.empty())
+            .methodName(IRUtils.literal(methodName))
+            .build();
     var methodIr =
         Method.Explicit.builder()
             .methodReference(methodRef)

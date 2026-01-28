@@ -167,7 +167,7 @@ const DEFAULT_ITEM = computed(() => Ast.Wildcard.new())
     <DraggableList
       :items="value"
       axis="x"
-      :showHandles="tree.extended"
+      :showHandles="tree.showDetails"
       :getKey="(ast) => ast.id"
       dragMimeType="application/x-enso-ast-node"
       :toPlainText="Ast.serializeExpression"

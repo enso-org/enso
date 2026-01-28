@@ -45,7 +45,7 @@ case object TypeNames extends IRPass {
   ): Module = {
     val bindingsMap =
       ir.unsafeGetMetadata(BindingAnalysis, "bindings analysis did not run")
-    ir.copyWithBindings(bindings = ir.bindings.map { d =>
+    ir.copyWithBindings(ir.bindings.map { d =>
       val selfTypeInfo: SelfTypeInfo = d match {
         case t: Definition.Type => SelfTypeInfo.fromTypeDefinition(t)
         case m: Method.Explicit =>
@@ -105,7 +105,13 @@ case object TypeNames extends IRPass {
                 case typ: BindingsMap.ResolvedType =>
                   val params =
                     typ.tp.params
-                      .map(Name.Literal(_, false, identifiedLocation = null))
+                      .map(paramName =>
+                        Name.Literal
+                          .builder()
+                          .name(paramName)
+                          .isMethod(false)
+                          .build()
+                      )
                       .toList
                   SelfTypeInfo(Some(typ), params)
                 case _: BindingsMap.ResolvedModule =>
@@ -216,13 +222,14 @@ case object TypeNames extends IRPass {
       })
       .fold(
         error =>
-          errors.Resolution(name, errors.Resolution.ResolverError(error)),
+          errors.Resolution
+            .create(name, new errors.Resolution.ResolverError(error)),
         n =>
           n.getMetadata(this).get.target match {
             case _: ResolvedModule =>
-              errors.Resolution(
+              errors.Resolution.create(
                 n,
-                errors.Resolution.UnexpectedModule("type signature")
+                new errors.Resolution.UnexpectedModule("type signature")
               )
             case _ => n
           }

@@ -32,14 +32,20 @@ case class ModuleContext(
   def getCharacters(): CharSequence   = module.getCharacters()
   def moduleReference(): ModuleReference.Concrete =
     ModuleReference.Concrete(module)
-  val anyIr = Name.Qualified(
-    List(
-      Name.Literal("Standard", isMethod = false, identifiedLocation = null),
-      Name.Literal("Base", isMethod     = false, identifiedLocation = null),
-      Name.Literal("Any", isMethod      = false, identifiedLocation = null),
-      Name.Literal("Any", isMethod      = false, identifiedLocation = null)
-    ),
-    identifiedLocation = null
-  )
+  val anyIr = Name.Qualified
+    .builder()
+    .parts(
+      List(
+        lit("Standard"),
+        lit("Base"),
+        lit("Any"),
+        lit("Any")
+      )
+    )
+    .build()
+
+  private def lit(name: String): Name.Literal = {
+    Name.Literal.builder().name(name).isMethod(false).build()
+  }
 
 }
