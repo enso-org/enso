@@ -55,7 +55,7 @@ final class OffHeapStorages {
         var instant = s.toInstant();
         var epochSeconds = instant.toEpochMilli() / 1000;
         try {
-          var epochNanoRaw = Math.multiplyExact(epochSeconds, 1_000_000);
+          var epochNanoRaw = Math.multiplyExact(epochSeconds, 1_000_000_000);
           var epochNano = Math.addExact(epochNanoRaw, instant.getNano());
           buf.putLong(epochNano);
         } catch (ArithmeticException ex) {
