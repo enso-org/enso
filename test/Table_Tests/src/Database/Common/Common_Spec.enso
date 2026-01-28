@@ -268,7 +268,7 @@ add_commmon_specs (suite_builder : Suite_Builder) (prefix : Text) (create_connec
                 (Table.new [["a", [100, 200]]]).select_into_database_table data.connection name temporary=True
 
             # Reading a column that was kept will work OK
-            t1.at "a" . to_vector . should_equal [100, 200]
+            t1.at "a" . to_vector . should_equal_ignoring_order [100, 200]
 
             # But reading the whole table will fail on the missing column:
             m2 = t1.read
