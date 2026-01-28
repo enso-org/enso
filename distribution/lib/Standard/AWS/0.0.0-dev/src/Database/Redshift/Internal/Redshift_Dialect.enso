@@ -108,7 +108,31 @@ type Redshift_Dialect
        Generates a SQL expression for a table literal.
     make_table_literal : Vector (Vector Text) -> Vector Text -> Text -> SQL_Builder
     make_table_literal self vecs column_names as_name =
-        Base_Generator.default_make_table_literal self.wrap_identifier vecs column_names as_name
+       # Amazon Redshift does not support using VALUES(...) as a table expression
+       # in the FROM clause. To represent inline literal tables, we therefore
+       # generate a SELECT ... UNION ALL SELECT ... construct instead, which
+       # Redshift accepts and which preserves the same semantics.
+       rows = vecs.transpose
+       if rows.is_empty then
+           Error.throw (Illegal_Argument.Error "Cannot build a table literal with zero rows.")
+       first_row = rows.at 0
+
+       wrapped_name = self.wrap_identifier as_name
+       column_list = SQL_Builder.join ", " (column_names.map self.wrap_identifier) . paren
+ 
+       cols = (first_row.zip column_names).map pair->
+           SQL_Builder.interpolation pair.first ++ SQL_Builder.code " AS " ++ self.wrap_identifier pair.second
+
+       # SELECT <v1> AS col1, <v2> AS col2, ...
+       first_select = SQL_Builder.code "SELECT " ++ (SQL_Builder.join ", " cols)
+ 
+       # UNION ALL SELECT <v1>, <v2>, ...
+       rest_selects = rows.drop 1 . map row->
+           SQL_Builder.code "SELECT " ++ (SQL_Builder.join ", " (row.map SQL_Builder.interpolation))
+ 
+       union_body = SQL_Builder.join " UNION ALL " ([first_select] + rest_selects)
+ 
+       SQL_Builder.code "(" ++ union_body ++ ") AS " ++ wrapped_name ++ column_list
 
     ## ---
        private: true
