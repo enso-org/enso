@@ -3,7 +3,8 @@ from Standard.Base.Runtime import assert
 
 import Standard.Base.Data.Text.Regex.Internal.Replacer.Replacer
 
-from Standard.Test import Bench, Faker
+from Standard.Test import Bench
+import project.Faker.Faker
 
 
 type Data

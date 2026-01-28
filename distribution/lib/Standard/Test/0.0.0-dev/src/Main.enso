@@ -1,6 +1,5 @@
 import project.Bench.Bench
 import project.Bench.Phase_Conf
-import project.Faker.Faker
 import project.Problems
 import project.Suite.Suite
 import project.Test.Test
@@ -24,8 +23,6 @@ export project.Extensions.should_not_equal_type
 export project.Extensions.should_only_contain_elements_in
 export project.Extensions.should_start_with
 export project.Extensions.should_succeed
-
-export project.Faker.Faker
 
 export project.Frame_Hider
 

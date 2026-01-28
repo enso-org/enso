@@ -1,8 +1,9 @@
 from Standard.Base import all
 import Standard.Base.Runtime.Ref.Ref
 
-from Standard.Test import Bench, Faker
+from Standard.Test import Bench
 from Standard.Base.Runtime import assert
+import project.Faker.Faker
 
 
 options = Bench.options . set_warmup (Bench.phase_conf 1 3) . set_measure (Bench.phase_conf 1 3)

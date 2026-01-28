@@ -2,7 +2,8 @@ from Standard.Base import all
 
 from Standard.Table import Table, Aggregate_Column
 
-from Standard.Test import Bench, Faker
+from Standard.Test import Bench
+import project.Faker.Faker
 
 
 options = Bench.options . set_warmup (Bench.phase_conf 1 2) . set_measure (Bench.phase_conf 1 2)
