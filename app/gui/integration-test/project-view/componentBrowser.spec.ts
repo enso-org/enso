@@ -35,7 +35,9 @@ async function expectAndCancelBrowser(
   })
 }
 
-test('Different ways of opening Component Browser', async ({ page }) => {
+test('Different ways of opening Component Browser', async ({ editorPage, page }) => {
+  await editorPage
+
   // Without source node
 
   // (+) button
@@ -86,7 +88,9 @@ test('Different ways of opening Component Browser', async ({ page }) => {
   await expectAndCancelBrowser(page, '', 'Table', 'selected')
 })
 
-test('Opening Component Browser from output port buttons', async ({ page }) => {
+test('Opening Component Browser from output port buttons', async ({ editorPage, page }) => {
+  await editorPage
+
   // Pan the graph up so that every node is guaranteed to be visible.
   await page.mouse.move(100, 100)
   await page.mouse.down({ button: 'middle' })
@@ -118,7 +122,9 @@ test('Opening Component Browser from output port buttons', async ({ page }) => {
   await expectAndCancelBrowser(page, '', null, 'table')
 })
 
-test('Graph Editor pans to Component Browser', async ({ page }) => {
+test('Graph Editor pans to Component Browser', async ({ editorPage, page }) => {
+  await editorPage
+
   // Select node, pan out of view of it, press Enter; should pan to show node and CB
   await locate.graphNodeByBinding(page, 'final').click()
   await page.mouse.move(100, 180)
@@ -160,20 +166,24 @@ test.describe('Accepting suggestion', () => {
     ])
     await expect(locate.graphNode(page).last()).toBeSelected()
   }
-  test('Accept suggestion by clicking entry', async ({ page }) => {
+  test('Accept suggestion by clicking entry', async ({ editorPage, page }) => {
+    await editorPage
     await checkAcceptSuggestion(page, () => locate.componentBrowserEntry(page).nth(1).click())
   })
-  test('Accept suggestion by clicking highlighted entry', async ({ page }) => {
+  test('Accept suggestion by clicking highlighted entry', async ({ editorPage, page }) => {
+    await editorPage
     await checkAcceptSuggestion(page, () =>
       locate.componentBrowserSelectedEntry(page).first().click(),
     )
   })
-  test('Accept suggestion with Enter', async ({ page }) => {
+  test('Accept suggestion with Enter', async ({ editorPage, page }) => {
+    await editorPage
     await checkAcceptSuggestion(page, () => page.keyboard.press('Enter'))
   })
 })
 
-test('Accepting any written input', async ({ page }) => {
+test('Accepting any written input', async ({ editorPage, page }) => {
+  await editorPage
   await locate.addNewNodeButton(page).click()
   const nodeCount = await locate.graphNode(page).count()
   await locate.componentBrowserInput(page).fill('re')
@@ -183,7 +193,8 @@ test('Accepting any written input', async ({ page }) => {
   await expect(locate.graphNode(page).last().locator('.WidgetToken')).toHaveText('re')
 })
 
-test('Filling input with suggestion', async ({ page }) => {
+test('Filling input with suggestion', async ({ editorPage, page }) => {
+  await editorPage
   await locate.addNewNodeButton(page).click()
   await expect(locate.componentBrowser(page)).toExist()
   await expect(locate.componentBrowserEntry(page)).toExist()
@@ -194,7 +205,8 @@ test('Filling input with suggestion', async ({ page }) => {
   await expect(locate.componentBrowserInput(page)).toHaveText('Data.read ')
 })
 
-test('Filtering list', async ({ page }) => {
+test('Filtering list', async ({ editorPage, page }) => {
+  await editorPage
   await locate.addNewNodeButton(page).click()
   await locate.componentBrowserInput(page).fill('re_ma')
   const segments = locate.componentBrowserEntry(page).locator('.component-label-segment')
@@ -205,7 +217,8 @@ test('Filtering list', async ({ page }) => {
   await expect(page.locator('.groupEntry')).toHaveText(['all (1)', 'File (1)'])
 })
 
-test('Navigating components', async ({ page }) => {
+test('Navigating components', async ({ editorPage, page }) => {
+  await editorPage
   await locate.addNewNodeButton(page).click()
   await expect(locate.componentBrowserSelectedEntry(page)).toExist()
   await expect(locate.componentBrowserSelectedEntry(page)).toHaveText('Data.read')
@@ -223,7 +236,8 @@ test('Navigating components', async ({ page }) => {
   await expect(locate.rightDock(page)).toBeVisible()
 })
 
-test('Navigating groups', async ({ page }) => {
+test('Navigating groups', async ({ editorPage, page }) => {
+  await editorPage
   await locate.addNewNodeButton(page).click()
   await expect(locate.componentBrowserSelectedEntry(page)).toExist()
   await expect(page.locator('.groupEntry')).toHaveText([
@@ -263,7 +277,8 @@ test('Navigating groups', async ({ page }) => {
   await expect(locate.componentBrowserSelectedEntry(page)).toExist()
 })
 
-test('Editing existing nodes', async ({ page }) => {
+test('Editing existing nodes', async ({ editorPage, page }) => {
+  await editorPage
   const node = locate.graphNodeByBinding(page, 'data')
   const ADDED_PATH = '"/home/enso/Input.txt"'
 
@@ -303,7 +318,8 @@ test('Editing existing nodes', async ({ page }) => {
   await expect(node.locator('.WidgetText')).toBeHidden()
 })
 
-test('Visualization preview: type-based visualization selection', async ({ page }) => {
+test('Visualization preview: type-based visualization selection', async ({ editorPage, page }) => {
+  await editorPage
   const nodeCount = await locate.graphNode(page).count()
   await locate.addNewNodeButton(page).click()
   await expect(locate.componentBrowser(page)).toExist()
@@ -318,7 +334,8 @@ test('Visualization preview: type-based visualization selection', async ({ page 
   await expect(locate.graphNode(page)).toHaveCount(nodeCount)
 })
 
-test('Visualization preview: user visualization selection', async ({ page }) => {
+test('Visualization preview: user visualization selection', async ({ editorPage, page }) => {
+  await editorPage
   const nodeCount = await locate.graphNode(page).count()
   await locate.addNewNodeButton(page).click()
   await expect(locate.componentBrowser(page)).toExist()
@@ -340,7 +357,8 @@ test('Visualization preview: user visualization selection', async ({ page }) => 
 })
 
 // TODO[#10949]: the record button on node is disabled.
-test.skip('Component browser handling of overridden record-mode', async ({ page }) => {
+test.skip('Component browser handling of overridden record-mode', async ({ editorPage, page }) => {
+  await editorPage
   const node = locate.graphNodeByBinding(page, 'data')
   const ADDED_PATH = '"/home/enso/Input.txt"'
   const recordModeToggle = node.getByTestId('toggleRecord')
@@ -379,7 +397,9 @@ test.skip('Component browser handling of overridden record-mode', async ({ page 
   await expect(content).toHaveText(`Data.read ${ADDED_PATH}`)
 })
 
-test('AI prompt', async ({ page }) => {
+test('AI prompt', async ({ editorPage, page }) => {
+  await editorPage
+
   const node = locate.graphNodeByBinding(page, 'data')
   await node.click()
   await expect(node).toBeSelected()
