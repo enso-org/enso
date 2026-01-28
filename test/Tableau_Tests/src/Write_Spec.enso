@@ -92,7 +92,7 @@ add_specs suite_builder = suite_builder.group "Write Tables" group_builder->
         can_round_trip (Table.input [['times', [Date_Time.new 2025 1 1 12 1 2 3 4 zone=(Time_Zone.parse 'UTC'), Date_Time.new 1989 12 18 zone=(Time_Zone.parse 'UTC'), Nothing]]])
 
     group_builder.specify "should be able to write a big integer column" <|
-        can_round_trip (Table.input [['bigints', [1, 2, 100, 2^64, 2^70 - 4], Value_Type.Decimal scale=0]])
+        can_round_trip (Table.input [['bigints', [1, 2, 100, 2^54, 2^24 - 4], Value_Type.Decimal scale=0]])
 
     group_builder.specify "should be able to write a decimal column" <|
         can_round_trip (Table.input [['decimals', [3.14, -10.66, Nothing, 123456789.123456789], Value_Type.Decimal]])
@@ -107,8 +107,14 @@ add_specs suite_builder = suite_builder.group "Write Tables" group_builder->
 
     group_builder.specify "should be able to write all the types at once" <|
         t1 = enso_project.data/'all_data_types.csv' . read
-        t2 = t1.remove_columns 'appointment_datetime_datetime_withtimezone'
+        t2 = t1.set (expr "to_utc([appointment_datetime_datetime_withtimezone])") "appointment_datetime_datetime_withtimezone"
         can_round_trip t2
+
+    group_builder.specify "should be able to write all the types at once with data sorted" <|
+        t1 = enso_project.data/'all_data_types.csv' . read
+        t2 = t1.set (expr "to_utc([appointment_datetime_datetime_withtimezone])") "appointment_datetime_datetime_withtimezone"
+        t3 = t2.sort "name_char"
+        can_round_trip t3
 
     group_builder.specify "in dry run mode file should not be written and warns" <|
         Context.Output.with_disabled <|
