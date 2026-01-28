@@ -18,6 +18,7 @@ object BazelSupport extends AutoPlugin {
   val ENABLED_PROP                    = "enso.BazelSupport.enabled"
   val HOME_DIR_PROP                   = "enso.BazelSupport.home"
   val OUT_DIR_PROP                    = "enso.BazelSupport.outDir"
+  val VERSION_INFO_PROP               = "enso.BazelSupport.versionInfo"
   val RUST_PARSER_JAVA_SRC_DIR_PROP   = "enso.BazelSupport.parser.javaSrcDir"
   val RUST_PARSER_LIB_PROP            = "enso.BazelSupport.parser.lib"
   val EXTRACTED_PYTHON_RESOURCES_PROP = "enso.BazelSupport.python.resourceDir"

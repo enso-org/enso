@@ -17,6 +17,13 @@ _SBT_PATH_PROPS = select({
     "//conditions:default": _sbt_path_props("$$TMPDIR", "/"),
 })
 
+_VERSION_INFO_PROPS = select({
+    "//:stamping": [
+        "-Denso.BazelSupport.versionInfo=$(location //internal:generated_version_info)",
+    ],
+    "//conditions:default": [],
+})
+
 _COMMON_JVM_OPTS = [
     "-Xss16M",
     "-Xmx4G",
@@ -32,7 +39,7 @@ _COMMON_JVM_OPTS = [
     "--sun-misc-unsafe-memory-access=allow",
 ]
 
-SBT_SYSTEM_PROPS = _SBT_PATH_PROPS + _COMMON_JVM_OPTS
+SBT_SYSTEM_PROPS = _SBT_PATH_PROPS + _COMMON_JVM_OPTS + _VERSION_INFO_PROPS
 
 _COMMON_ENV = {
     "JAVA_HOME": "$(JAVABASE)",
@@ -84,5 +91,6 @@ def engine_distribution(name, out_dir, srcs, extra_system_props = [], native_ima
         env = get_enso_env(native_image),
         out_dir = out_dir,
         system_props = SBT_SYSTEM_PROPS + extra_system_props,
+        stamp = -1,
         **kwargs
     )
