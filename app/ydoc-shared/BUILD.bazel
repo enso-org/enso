@@ -134,9 +134,10 @@ write_tsconfig(
         },
     },
     extends = "//:tsconfig",
-    files = glob(["src/**/*.ts"]) + [
+    files = glob(["src/**/*.ts"], [GENERATED_TYPEDEF_FILE]) + [
         "vitest.config.ts",
         "//app:vitest.node.base.ts",
+        GENERATED_TYPEDEF_FILE,
     ],
 )
 
