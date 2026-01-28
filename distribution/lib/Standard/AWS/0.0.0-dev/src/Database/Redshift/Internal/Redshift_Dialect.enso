@@ -1,5 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+import Standard.Base.Errors.Illegal_State.Illegal_State
 
 from Standard.Table import Aggregate_Column, Value_Type
 
@@ -331,7 +332,7 @@ type Redshift_Dialect
    ---
 make_dialect_operations =
     postgres_ops = Postgres_Connection.get_dialect.get_dialect_operations
-    overrides = [["COUNT_DISTINCT", agg_count_distinct], ["COUNT_DISTINCT_INCLUDE_NULL", agg_count_distinct_include_null]]
+    overrides = [["COUNT_DISTINCT", agg_count_distinct], ["COUNT_DISTINCT_INCLUDE_NULL", agg_count_distinct_include_null], ["GROUP_NUMBER_STANDARD_DEVIATION_POPULATION", make_group_number_standard_deviation "STDDEV_POP"], ["GROUP_NUMBER_STANDARD_DEVIATION_SAMPLE", make_group_number_standard_deviation "STDDEV_SAMP"]]
     postgres_ops.extend_with overrides
 
 ## ---
@@ -350,3 +351,32 @@ agg_count_distinct args =
 agg_count_distinct_include_null args =
     if args.is_empty then (Error.throw (Illegal_Argument.Error "COUNT_DISTINCT_INCLUDE_NULL requires at least one argument.")) else
         SQL_Builder.code "COUNT(DISTINCT " ++ SQL_Builder.join ", " args ++ ")"
+
+## ---
+   private: true
+   ---
+make_group_number_standard_deviation : Text -> Vector SQL_Builder -> SQL_Builder
+make_group_number_standard_deviation (stddev_variant : Text) (arguments : Vector) =
+    if arguments.length < 1 then
+        Error.throw (Illegal_State.Error "Wrong amount of parameters in GROUP_NUMBER_STANDARD_DEVIATION IR. This is a bug in the Database library.")
+
+    stddev_column = arguments.at 0
+
+    stddev = SQL_Builder.code stddev_variant ++ "(" ++ stddev_column ++ ") over ()"
+    ## If standard deviation is 0, using 1 instead to avoid division by zero,
+       resulting in all z-scores being zero and thus "Average" group.
+       If stanard deviation is NULL, using 1 instead for the same reason.
+       (STDDEV_SAMP will return NULL for a single value input.)
+    stddev_safe = SQL_Builder.code "(case when " ++ stddev.paren ++ " = 0 or " ++ stddev.paren ++ " is null then 1 else " ++ stddev.paren ++ " end)"
+    ## Redshift AVG on integer inputs returns BIGINT, so force floating point.
+    mean = SQL_Builder.code "(avg(" ++ stddev_column.paren ++ " * 1.0) over ())"
+    zscore = SQL_Builder.code "((" ++ stddev_column.paren ++ " - " ++ mean.paren ++ ") / " ++ stddev_safe.paren ++ ")"
+    group_index = SQL_Builder.code "(floor(" ++ zscore.paren ++ " + 0.5))"
+    whener gi op name = SQL_Builder.code "when " ++ group_index.paren ++ " " ++ op ++ gi.to_text ++ " then '" ++ name ++ "'"
+    whens = Vector.build builder->
+        builder.append (whener -2 "<=" "Very Low")
+        builder.append (whener -1 "=" "Low")
+        builder.append (whener 0 "=" "Average")
+        builder.append (whener 1 "=" "High")
+        builder.append (whener 2 ">=" "Very High")
+    SQL_Builder.code "(case " ++ SQL_Builder.join " " whens ++ " end)"
