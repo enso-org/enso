@@ -6,7 +6,6 @@ import java.math.BigInteger;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.BitSet;
 import org.enso.table.data.column.operation.masks.IndexMapper;
 import org.enso.table.data.column.operation.masks.MaskOperation;
@@ -120,11 +119,12 @@ public interface Builder {
     }
 
     var storageType = StorageType.ofStorage(storage);
-    if (storage.getSize() == 0) {
+    var size = Math.toIntExact(storage.getSize());
+
+    if (size == 0) {
       return Builder.makeEmpty(storageType, 0);
     }
 
-    var size = Math.toIntExact(storage.getSize());
     if (storageType instanceof NullType) {
       var b = new NullBuilder();
       b.appendNulls(size);
@@ -140,20 +140,17 @@ public interface Builder {
             case BooleanType _ -> BoolBuilder.fromAddress(size, data, validity).seal(storage);
             case IntegerType type ->
                 LongBuilder.fromAddress(size, data, validity, type).seal(storage);
-            case FloatType type ->
-                DoubleBuilder.fromAddress(size, data, validity, type).seal(storage, type);
+            case FloatType _ -> DoubleBuilder.fromAddress(size, data, validity).seal(storage);
             case TextType type ->
-                StringBuilder.fromAddress(size, data, validity, type).seal(storage, type);
+                StringBuilder.fromAddress(size, data, validity, type).seal(storage);
             case DateType _ -> DateBuilder.fromAddress(size, data, validity).seal(storage);
             case DateTimeType _ -> DateTimeBuilder.fromAddress(size, data, validity).seal(storage);
-            case TimeOfDayType type ->
-                TimeOfDayBuilder.fromAddress(size, data, validity).seal(storage, type);
+            case TimeOfDayType _ ->
+                TimeOfDayBuilder.fromAddress(size, data, validity).seal(storage);
             default -> {
+              // Currently: BigInteger, BigDecimal, AnyObject
               BuilderUtil.LOGGER.warn(
-                  "Unable to make local buffer based storage for {}:{} size {}",
-                  storage.typeChar(),
-                  storage.typeSize(),
-                  storage.getSize());
+                  "Unable to make local buffer based storage for {} size {}", storageType, size);
               yield null;
             }
           };
@@ -164,6 +161,7 @@ public interface Builder {
       }
     }
 
+    // Handle BigInteger specially
     if (storageType instanceof BigIntegerType) {
       var b = Builder.getForBigInteger(size, null);
       b.appendBulkStorage(storage);
@@ -172,61 +170,7 @@ public interface Builder {
     }
 
     // Fallback and use a ColumnStorageProxy
-    var proxiedStorage =
-        switch (storageType) {
-          case BigDecimalType bdt ->
-              new ColumnStorageProxy<>(
-                  bdt,
-                  storage,
-                  idx -> {
-                    var txt = storage.getItemAsString(idx);
-                    if (txt == null) {
-                      return null;
-                    }
-                    var parts = txt.split("E");
-                    var bigInt = new BigInteger(parts[0]);
-                    var scale = parts.length > 1 ? -Integer.parseInt(parts[1]) : 0;
-                    return new BigDecimal(bigInt, scale);
-                  });
-          case DateTimeType dtt ->
-              new ColumnStorageProxy<>(
-                  dtt,
-                  storage,
-                  idx -> {
-                    var txt = storage.getItemAsString(idx);
-                    return txt == null
-                        ? null
-                        : ZonedDateTime.parse(txt, DateTimeFormatter.ISO_ZONED_DATE_TIME);
-                  });
-          case DateType dt ->
-              new ColumnStorageProxy<>(
-                  dt,
-                  storage,
-                  idx -> {
-                    var txt = storage.getItemAsString(idx);
-                    return txt == null
-                        ? null
-                        : LocalDate.parse(storage.getItemAsString(idx), DateTimeFormatter.ISO_DATE);
-                  });
-          case TimeOfDayType tot ->
-              new ColumnStorageProxy<>(
-                  tot,
-                  storage,
-                  idx -> {
-                    var txt = storage.getItemAsString(idx);
-                    return txt == null
-                        ? null
-                        : LocalTime.parse(storage.getItemAsString(idx), DateTimeFormatter.ISO_TIME);
-                  });
-          default -> {
-            BuilderUtil.LOGGER.info(
-                "makeLocal unsuccessful for {}:{} size {}",
-                storage.typeChar(),
-                storage.typeSize(),
-                storage.getSize());
-            yield storage;
-          }
-        };
+    var proxiedStorage = ColumnStorageProxy.create(storageType, size, storage);
     return storageType.asTypedStorage(proxiedStorage);
   }
 
@@ -266,9 +210,6 @@ public interface Builder {
       case BigIntegerType _ -> getForBigInteger(size, problemAggregator);
       case NullType _ -> new NullBuilder();
       case null -> getInferredBuilder(size, problemAggregator);
-      default ->
-          throw new IllegalStateException(
-              "Unsupported type: " + storageType + " - this is a bug in the Table library.");
     };
   }
 

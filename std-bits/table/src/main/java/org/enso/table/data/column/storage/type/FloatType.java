@@ -7,6 +7,7 @@ import org.enso.table.data.column.builder.BuilderForDouble;
 import org.enso.table.data.column.storage.ColumnDoubleStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.problems.ProblemAggregator;
+import org.graalvm.polyglot.Value;
 
 public final class FloatType implements StorageType<Double>, NumericType {
   public static final FloatType FLOAT_64 = new FloatType(Bits.BITS_64);
@@ -60,6 +61,11 @@ public final class FloatType implements StorageType<Double>, NumericType {
     if (NumericConverter.isCoercibleToDouble(value) || value instanceof BigDecimal) {
       return NumericConverter.coerceToDouble(value);
     }
+
+    if (value instanceof Value polyValue && polyValue.isNumber() && polyValue.fitsInDouble()) {
+      return polyValue.asDouble();
+    }
+
     return null;
   }
 

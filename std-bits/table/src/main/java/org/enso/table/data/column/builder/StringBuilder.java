@@ -97,7 +97,7 @@ final class StringBuilder extends TypedBuilder<String> {
     return b;
   }
 
-  final Storage<String> seal(ColumnStorage<?> otherStorage, TextType type) {
-    return new TypedStorage<>(type, data, otherStorage);
+  Storage<String> seal(ColumnStorage<?> otherStorage) {
+    return new TypedStorage<>(getStorageType(), data, otherStorage);
   }
 }

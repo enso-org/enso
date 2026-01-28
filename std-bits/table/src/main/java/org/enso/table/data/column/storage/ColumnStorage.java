@@ -1,10 +1,5 @@
 package org.enso.table.data.column.storage;
 
-import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.time.LocalTime;
-import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 
@@ -61,14 +56,7 @@ public interface ColumnStorage<T> extends Iterable<T> {
       return null;
     }
 
-    T item = getItemBoxed(index);
-    return switch (item) {
-      case LocalTime time -> time.format(DateTimeFormatter.ISO_TIME);
-      case LocalDate date -> date.format(DateTimeFormatter.ISO_DATE);
-      case ZonedDateTime dateTime -> dateTime.format(DateTimeFormatter.ISO_ZONED_DATE_TIME);
-      case BigDecimal bigDecimal -> bigDecimal.unscaledValue() + "E" + (-bigDecimal.scale());
-      default -> item.toString();
-    };
+    return getItemBoxed(index).toString();
   }
 
   @Override

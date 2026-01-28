@@ -412,21 +412,21 @@ public class HyperFormat {
 
   private static SqlType mapEnsoTypeToSqlType(StorageType<?> storageType) {
     return switch (storageType) {
-      case TextType t -> SqlType.text();
-      case IntegerType t -> SqlType.bigInt();
-      case FloatType t -> SqlType.doublePrecision();
-      case BooleanType t -> SqlType.bool();
-      case DateType t -> SqlType.date();
-      case TimeOfDayType t -> SqlType.time();
-      case DateTimeType t -> SqlType.timestampTz();
+      case TextType _ -> SqlType.text();
+      case IntegerType _ -> SqlType.bigInt();
+      case FloatType _ -> SqlType.doublePrecision();
+      case BooleanType _ -> SqlType.bool();
+      case DateType _ -> SqlType.date();
+      case TimeOfDayType _ -> SqlType.time();
+      case DateTimeType _ -> SqlType.timestampTz();
       // https://tableau.github.io/hyper-db/docs/sql/datatype/numeric
       // Precisions over 18 require 128-bit for internal storage. Processing 128-bit numeric
       // values is often slower than processing 64-bit values, so it is advisable to use
       // a sensible precision for the use case at hand instead of always using the maximum
       // precision by default.
       // TODO fix this after https://github.com/enso-org/enso/issues/13022
-      case BigDecimalType t -> SqlType.numeric(18, 9);
-      case BigIntegerType t -> SqlType.numeric(38, 0);
+      case BigDecimalType _ -> SqlType.numeric(18, 9);
+      case BigIntegerType _ -> SqlType.numeric(18, 0);
       default -> throw new HyperUnsupportedTypeError(storageType.toString());
     };
   }

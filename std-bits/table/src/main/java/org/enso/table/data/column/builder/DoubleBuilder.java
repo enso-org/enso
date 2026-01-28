@@ -62,11 +62,10 @@ sealed class DoubleBuilder extends ValidityBuilder implements BuilderForDouble
     return doubles;
   }
 
-  static DoubleBuilder fromAddress(int size, long address, long validity, FloatType type) {
+  static DoubleBuilder fromAddress(int size, long address, long validity) {
     assert address != 0;
     var buf = allocBuffer(size, address);
-    var builder = new DoubleBuilder(buf, size, validity, null);
-    return builder;
+    return new DoubleBuilder(buf, size, validity, null);
   }
 
   @Override
@@ -228,17 +227,16 @@ sealed class DoubleBuilder extends ValidityBuilder implements BuilderForDouble
 
   @Override
   public ColumnStorage<Double> seal() {
-    return seal(null, FloatType.FLOAT_64);
+    return seal(null);
   }
 
   /**
    * Seals this buffer as copy of provided storage.
    *
    * @param otherStorage storage to copy size from if non-{@code null}
-   * @param type the type to assign to the created storage
    * @return locally copied storage
    */
-  final DoubleStorage seal(ColumnStorage<?> otherStorage, StorageType<Double> type) {
+  final DoubleStorage seal(ColumnStorage<?> otherStorage) {
     ensureFreeSpaceFor(0);
     var buf = data.asReadOnlyBuffer().position(0).limit(currentSize);
     var validity = this.validityMap();

@@ -36,12 +36,13 @@ public class TypedStorage<T> extends Storage<T> {
       var validity = new BitSet();
 
       var storageType = StorageType.ofStorage(this);
-      offheapBuffer = switch (storageType) {
-        case TextType _ -> OffHeapStorages.toArrowTextBuffer(data, validity);
-        case DateTimeType _ -> OffHeapStorages.toDateTimeBuffer(data, validity);
-        case TimeOfDayType _ -> OffHeapStorages.toArrowTimeOfDayBuffer(data, validity);
-        default -> null;
-      };
+      offheapBuffer =
+          switch (storageType) {
+            case TextType _ -> OffHeapStorages.toArrowTextBuffer(data, validity);
+            case DateTimeType _ -> OffHeapStorages.toDateTimeBuffer(data, validity);
+            case TimeOfDayType _ -> OffHeapStorages.toArrowTimeOfDayBuffer(data, validity);
+            default -> null;
+          };
 
       if (offheapBuffer != null) {
         validitySet = new ImmutableBitSet(validity, data.length);

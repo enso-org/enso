@@ -60,6 +60,15 @@ public final class BigDecimalType implements StorageType<BigDecimal>, NumericTyp
       return BigDecimal.valueOf(doubleValue);
     }
 
+    // Special case: String to BigDecimal conversion
+    if (value instanceof String str) {
+      try {
+        return new BigDecimal(str);
+      } catch (NumberFormatException e) {
+        return null;
+      }
+    }
+
     return null;
   }
 
