@@ -133,7 +133,6 @@ sealed class DoubleBuilder extends ValidityBuilder implements BuilderForDouble
     switch (storageType) {
       case NullType _ -> appendNulls(Math.toIntExact(storage.getSize()));
       case FloatType floatType -> {
-        var columnDoubleStorage = floatType.asTypedStorage(storage);
         if (storage instanceof DoubleStorage doubleStorage) {
           int n = (int) doubleStorage.getSize();
           ensureFreeSpaceFor(n);
@@ -141,6 +140,7 @@ sealed class DoubleBuilder extends ValidityBuilder implements BuilderForDouble
           appendValidityMap(doubleStorage.getValidityMap(), n);
           currentSize += n;
         } else {
+          var columnDoubleStorage = floatType.asTypedStorage(storage);
           long n = columnDoubleStorage.getSize();
           for (long i = 0; i < n; i++) {
             if (storage.isNothing(i)) {
