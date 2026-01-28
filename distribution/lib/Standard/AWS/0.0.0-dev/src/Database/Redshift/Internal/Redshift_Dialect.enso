@@ -259,8 +259,7 @@ type Redshift_Dialect
             Dialect_Flag.Primary_Key_Allows_Nulls -> False
             ## TODO: Check if Redshift supports NaN
             Dialect_Flag.Supports_Separate_NaN -> False
-            ## TODO: Check if Redshift supports WITH clauses in nested queries
-            Dialect_Flag.Supports_Nested_With_Clause -> True
+            Dialect_Flag.Supports_Nested_With_Clause -> False
             Dialect_Flag.Supports_Case_Sensitive_Columns -> False
             Dialect_Flag.Supports_Infinity -> True
             Dialect_Flag.Case_Sensitive_Text_Comparison -> True
