@@ -153,32 +153,44 @@ test('Graph Editor pans to Component Browser', async ({ editorPage, page }) => {
 })
 
 test.describe('Accepting suggestion', () => {
-  async function checkAcceptSuggestion(page: Page, acceptSuggestion: () => Promise<void>) {
+  async function checkAcceptSuggestion(page: Page, acceptSuggestion: () => Promise<void>, expected: string[]) {
     await locate.addNewNodeButton(page).click()
     const nodeCount = await locate.graphNode(page).count()
     await acceptSuggestion()
     await expect(locate.componentBrowser(page)).toBeHidden()
     await expect(locate.graphNode(page)).toHaveCount(nodeCount + 1)
-    await expect(locate.graphNode(page).last().locator('.WidgetToken')).toHaveText([
-      'Data',
-      '.',
-      'read_many',
-    ])
+    await expect(locate.graphNode(page).last().locator('.WidgetToken')).toHaveText(expected)
     await expect(locate.graphNode(page).last()).toBeSelected()
   }
   test('Accept suggestion by clicking entry', async ({ editorPage, page }) => {
     await editorPage
-    await checkAcceptSuggestion(page, () => locate.componentBrowserEntry(page).nth(1).click())
+    await checkAcceptSuggestion(page, () => locate.componentBrowserEntry(page).nth(1).click(),
+      [
+        'Data',
+        '.',
+        'read_many',
+      ]
+    )
   })
   test('Accept suggestion by clicking highlighted entry', async ({ editorPage, page }) => {
     await editorPage
-    await checkAcceptSuggestion(page, () =>
-      locate.componentBrowserSelectedEntry(page).first().click(),
+    await checkAcceptSuggestion(page, () => locate.componentBrowserSelectedEntry(page).first().click(),
+      [
+        'Data',
+        '.',
+        'read',
+      ]
     )
   })
   test('Accept suggestion with Enter', async ({ editorPage, page }) => {
     await editorPage
-    await checkAcceptSuggestion(page, () => page.keyboard.press('Enter'))
+    await checkAcceptSuggestion(page, () => page.keyboard.press('Enter'),
+      [
+        'Data',
+        '.',
+        'read',
+      ]
+    )
   })
 })
 
