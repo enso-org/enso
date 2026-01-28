@@ -161,6 +161,11 @@ object IRPass {
       *         not be preserved
       */
     def duplicate(): Option[Metadata]
+
+    override def prepareForSerialization(compiler: Compiler): IRMetadata
+    override def restoreFromSerialization(
+      compiler: Compiler
+    ): Option[IRMetadata]
   }
   object Metadata {
 
