@@ -224,8 +224,10 @@ type Redshift_Dialect
        ---
     check_aggregate_support : Aggregate_Column -> Boolean ! Unsupported_Database_Operation
     check_aggregate_support self aggregate =
-        _ = aggregate
-        True
+        _ = self
+        case aggregate of
+            Aggregate_Column.Mode _ _ -> Error.throw (Unsupported_Database_Operation.Error "Mode")
+            _ -> True
 
     ## ---
        private: true
@@ -333,7 +335,9 @@ type Redshift_Dialect
 make_dialect_operations =
     postgres_ops = Postgres_Connection.get_dialect.get_dialect_operations
     overrides = [["COUNT_DISTINCT", agg_count_distinct], ["COUNT_DISTINCT_INCLUDE_NULL", agg_count_distinct_include_null], ["GROUP_NUMBER_STANDARD_DEVIATION_POPULATION", make_group_number_standard_deviation "STDDEV_POP"], ["GROUP_NUMBER_STANDARD_DEVIATION_SAMPLE", make_group_number_standard_deviation "STDDEV_SAMP"]]
-    postgres_ops.extend_with overrides
+    stats = [agg_median, agg_percentile]
+    my_mappings = overrides + stats
+    postgres_ops.extend_with my_mappings
 
 ## ---
    private: true
@@ -380,3 +384,15 @@ make_group_number_standard_deviation (stddev_variant : Text) (arguments : Vector
         builder.append (whener 1 "=" "High")
         builder.append (whener 2 ">=" "Very High")
     SQL_Builder.code "(case " ++ SQL_Builder.join " " whens ++ " end)"
+
+## ---
+   private: true
+   ---
+agg_median = Base_Generator.lift_unary_op "MEDIAN" arg->
+    SQL_Builder.code "percentile_cont(0.5) WITHIN GROUP (ORDER BY " ++ arg ++ ")"
+
+## ---
+   private: true
+   ---
+agg_percentile = Base_Generator.lift_binary_op "PERCENTILE" p-> expr->
+    SQL_Builder.code "percentile_cont(" ++ p ++ ") WITHIN GROUP (ORDER BY " ++ expr ++ ")"
