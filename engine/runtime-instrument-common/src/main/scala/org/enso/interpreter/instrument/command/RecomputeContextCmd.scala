@@ -167,7 +167,7 @@ object RecomputeContextCmd {
       .findModuleByExpressionId(expressionId)
       .ifPresent { module =>
         module.getIr
-          .getMetadata(DataflowAnalysis)
+          .getMetadata(DataflowAnalysis, classOf[DataflowAnalysis.Metadata])
           .foreach { metadata =>
             val dependents =
               IRUtils

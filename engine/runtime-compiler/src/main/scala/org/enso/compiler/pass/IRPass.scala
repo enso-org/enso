@@ -1,7 +1,9 @@
 package org.enso.compiler.pass
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
-import org.enso.compiler.core.{CompilerError, IR, Identifier}
+import org.enso.compiler.core.CompilerError
+import org.enso.compiler.core.IR
+import org.enso.compiler.core.Identifier
 import org.enso.compiler.core.ir.ProcessingPass
 import org.enso.compiler.core.ir.Module
 import org.enso.compiler.core.ir.Expression
@@ -162,10 +164,33 @@ object IRPass {
       */
     def duplicate(): Option[Metadata]
 
-    override def prepareForSerialization(compiler: Compiler): IRMetadata
-    override def restoreFromSerialization(
+    /** Prepares the metadata for serialization.
+      *
+      * <p>Metadata prepared for serialization should not contain any links that span more than one
+      * module, or any other properties that are problematic when serialized.
+      *
+      * <p>Due to the type safety properties of [[org.enso.compiler.core.ir.MetadataStorage]], to
+      * allow this conversion to work it must be type-refined to return `typeof this`. To that end,
+      * there is no default definition for this method.
+      *
+      * @param compiler the Enso compiler
+      * @return `this`, but prepared for serialization
+      */
+    def prepareForSerialization(compiler: Compiler): Metadata
+
+    /** Restores metadata after it has been deserialized.
+      *
+      * <p>Due to the type safety properties of [[org.enso.compiler.core.ir.MetadataStorage]], to
+      * allow this conversion to work it must be type-refined to return `typeof this`. To that end,
+      * there is no default definition for this method.
+      *
+      * @param compiler the Enso compiler
+      * @return `this`, but restored from serialization, or None if restoration could not be
+      *     performed
+      */
+    def restoreFromSerialization(
       compiler: Compiler
-    ): Option[IRMetadata]
+    ): Option[Metadata]
   }
   object Metadata {
 

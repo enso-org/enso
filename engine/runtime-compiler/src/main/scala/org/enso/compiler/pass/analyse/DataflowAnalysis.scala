@@ -122,7 +122,7 @@ case object DataflowAnalysis extends IRPass {
 
         sourceNodes.lazyZip(copyNodes).foreach { case (src, copy) =>
           src
-            .getMetadata(this)
+            .getMetadata(this, classOf[DataflowAnalysis.Metadata])
             .foreach(_ => copy.updateMetadata(new MetadataPair(this, copyMeta)))
         }
 

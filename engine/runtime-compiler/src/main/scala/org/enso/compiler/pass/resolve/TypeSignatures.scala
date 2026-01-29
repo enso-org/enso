@@ -452,7 +452,14 @@ case object TypeSignatures extends IRPass {
 
     /** @inheritdoc */
     override def prepareForSerialization(compiler: Compiler): Signature = {
-      IR.preorder(signature, _.passData.prepareForSerialization(compiler))
+      IR.preorder(
+        signature,
+        _.passData.prepareForSerialization({
+          case irMeta: IRPass.IRMetadata =>
+            irMeta.prepareForSerialization(compiler)
+          case ir => ir
+        })
+      )
       this
     }
 
@@ -463,7 +470,13 @@ case object TypeSignatures extends IRPass {
       IR.preorder(
         signature,
         { node =>
-          if (!node.passData.restoreFromSerialization(compiler)) {
+          if (
+            !node.passData.restoreFromSerialization({
+              case irMeta: IRPass.IRMetadata =>
+                irMeta.restoreFromSerialization(compiler)
+              case _ => None
+            })
+          ) {
             return None
           }
         }
