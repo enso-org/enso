@@ -21,7 +21,7 @@ import scala.Option;
 public record DependencyInfo(DependencyMapping dependents, DependencyMapping dependencies)
     implements IRPass.IRMetadata {
   public DependencyInfo() {
-    this(null, null);
+    this(DependencyMapping.create(), DependencyMapping.create());
   }
 
   public String metadataName() {

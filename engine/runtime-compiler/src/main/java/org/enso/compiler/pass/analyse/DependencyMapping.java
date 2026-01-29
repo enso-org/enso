@@ -19,8 +19,13 @@ import scala.collection.mutable.Queue;
 public final class DependencyMapping {
   private scala.collection.mutable.Map<DependencyInfo.Type, Set<DependencyInfo.Type>> mapping;
 
+  @SuppressWarnings("unchecked")
   private DependencyMapping() {
-    this(null);
+    this(scala.collection.mutable.Map$.MODULE$.empty());
+  }
+
+  public static DependencyMapping create() {
+    return new DependencyMapping();
   }
 
   /**
