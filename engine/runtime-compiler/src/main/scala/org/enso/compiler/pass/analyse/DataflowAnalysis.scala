@@ -2,7 +2,8 @@ package org.enso.compiler.pass.analyse
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.Implicits.AsMetadata
-import org.enso.compiler.core.{CompilerError, ExternalID, IR, Identifier}
+import org.enso.compiler.core.CompilerError
+import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.ir.module.scope.definition
 import org.enso.compiler.core.ir.expression.{
@@ -30,13 +31,10 @@ import org.enso.compiler.core.ir.{
 import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.IRProcessingPass
-import org.enso.compiler.pass.analyse.DataflowAnalysis.DependencyInfo.Type.asStatic
+import org.enso.compiler.pass.analyse.DependencyInfo.Type.asStatic
 import org.enso.compiler.pass.analyse.alias.graph.GraphOccurrence
 import org.enso.persist.Persistance
-
-import java.util.UUID
-import scala.collection.immutable.ListSet
-import scala.collection.mutable
+import org.enso.compiler.pass.analyse.DependencyInfo
 
 /** This pass implements dataflow analysis for Enso.
   *
@@ -109,9 +107,9 @@ case object DataflowAnalysis extends IRPass {
       case (sourceIr: Module, copyOfIr: Module) =>
         val sourceMeta =
           sourceIr.unsafeGetMetadata(this, "Dataflow Analysis must have run.")
-        val copyMeta = DependencyInfo(
-          dependents   = sourceMeta.dependents.deepCopy,
-          dependencies = sourceMeta.dependencies.deepCopy
+        val copyMeta = new DependencyInfo(
+          sourceMeta.dependents.deepCopy,
+          sourceMeta.dependencies.deepCopy
         )
 
         val sourceNodes = sourceIr.preorder
@@ -566,13 +564,13 @@ case object DataflowAnalysis extends IRPass {
           case Some(defLink) =>
             aliasInfo.graph.getOccurrence(defLink.target) match {
               case Some(GraphOccurrence.Def(_, _, id, ext, _)) =>
-                DependencyInfo.Type.Static(id, ext)
+                new DependencyInfo.Type.Static(id, ext)
               case _ =>
-                DependencyInfo.Type.Dynamic(name.name, None)
+                new DependencyInfo.Type.Dynamic(name.name, None)
             }
 
           case None =>
-            DependencyInfo.Type.Dynamic(name.name, None)
+            new DependencyInfo.Type.Dynamic(name.name, None)
         }
 
         val nameDep = asStatic(name)
@@ -770,294 +768,6 @@ case object DataflowAnalysis extends IRPass {
             analyseExpression(spec.value, info)
           )
           .updateMetadata(new MetadataPair(this, info))
-    }
-  }
-
-  // === Pass Metadata ========================================================
-
-  /** Storage for dependency information.
-    *
-    * It maps from an expression to other expressions based on some relationship
-    * between them.
-    *
-    * @param mapping storage for the direct mapping between program components
-    */
-  sealed case class DependencyMapping(
-    mapping: mutable.Map[DependencyInfo.Type, Set[DependencyInfo.Type]] =
-      mutable.Map()
-  ) {
-
-    /** Returns the set of all program component associated with the provided
-      * key.
-      *
-      * Please note that the result set contains not just the _direct_
-      * associations with the key, but also the _indirect_ associations with the
-      * key.
-      *
-      * @param key the key to get the associated components of
-      * @return the set of all components associated with `key`
-      * @throws NoSuchElementException when `key` does not exist in the
-      *                                dependencies mapping
-      */
-    @throws[NoSuchElementException]
-    def apply(key: DependencyInfo.Type): Set[DependencyInfo.Type] = {
-      if (mapping.contains(key)) {
-        get(key) match {
-          case Some(deps) => deps
-          case None       => throw new NoSuchElementException
-        }
-      } else {
-        throw new NoSuchElementException
-      }
-    }
-
-    /** Obtains the program components _directly_ associated with a given node
-      * in the IR.
-      *
-      * Please note that this does _not_ return the transitive closure of all
-      * associations with the node.
-      *
-      * @param key the key to get the associated components of
-      * @return the set of the components directly associated with `key`, if it
-      *         exists
-      */
-    def getDirect(
-      key: DependencyInfo.Type
-    ): Option[Set[DependencyInfo.Type]] = {
-      mapping.get(key)
-    }
-
-    /** Obtains the external identifiers of the _direct_ dependents of a given
-      * node in the IR.
-      *
-      * @param key the key to get the dependents of
-      * @return the set of external identifiers for the direct dependencies of
-      *         `key`, if they exist
-      */
-    def getExternalDirect(
-      key: DependencyInfo.Type
-    ): Option[Set[UUID @ExternalID]] = {
-      getDirect(key).map(_.flatMap(_.externalId))
-    }
-
-    /** Safely gets the set of all program components associated with the
-      * provided key.
-      *
-      * Please note that the result set contains not just the components that
-      * are directly associated with the key, but all components associated with
-      * the key
-      *
-      * @param key the key to get the associations of
-      * @return the set of all associations with `key`, if key exists
-      */
-    def get(key: DependencyInfo.Type): Option[Set[DependencyInfo.Type]] = {
-
-      @scala.annotation.tailrec
-      def go(
-        queue: mutable.Queue[DependencyInfo.Type],
-        visited: mutable.Set[DependencyInfo.Type],
-        result: mutable.Set[DependencyInfo.Type]
-      ): Set[DependencyInfo.Type] =
-        if (queue.isEmpty) result.to(ListSet)
-        else {
-          val elem = queue.dequeue()
-          if (visited.contains(elem)) go(queue, visited, result)
-          else {
-            mapping.get(elem) match {
-              case Some(deps) =>
-                go(
-                  queue.enqueueAll(deps),
-                  visited.addOne(elem),
-                  result.addAll(deps)
-                )
-              case None =>
-                go(queue, visited.addOne(elem), result)
-            }
-          }
-        }
-
-      if (mapping.contains(key)) {
-        Some(
-          go(
-            mutable.Queue(key),
-            mutable.HashSet(),
-            mutable.LinkedHashSet()
-          )
-        )
-      } else {
-        None
-      }
-    }
-
-    /** Safely gets the external identifiers for all program component
-      * associated with the provided key.
-      *
-      * Please note that the result set contains not just the components that
-      * are directly associated with the key, but all associations with the key.
-      *
-      * @param key the key from which to get the external identifiers of its
-      *            associated program components
-      * @return the set of all external identifiers of program components
-      *         associated with `key`, if it exists
-      */
-    def getExternal(key: DependencyInfo.Type): Option[Set[UUID @ExternalID]] = {
-      get(key).map(_.flatMap(_.externalId))
-    }
-
-    /** Executes an update on the association information.
-      *
-      * @param key the key to update the associations for
-      * @param newDependents the updated associations for `key`
-      */
-    def update(
-      key: DependencyInfo.Type,
-      newDependents: Set[DependencyInfo.Type]
-    ): Unit =
-      mapping(key) = newDependents
-
-    /** Updates the associations for the provided key, or creates them if they
-      * do not already exist.
-      *
-      * @param key the key to add or update associations for
-      * @param newDependents the new associations information for `key`
-      */
-    def updateAt(
-      key: DependencyInfo.Type,
-      newDependents: Set[DependencyInfo.Type]
-    ): Unit = {
-      if (mapping.contains(key)) {
-        mapping(key) ++= newDependents
-      } else {
-        mapping(key) = newDependents
-      }
-    }
-
-    /** Updates the associations for the provided keys, or creates them if they
-      * do not already exist.
-      *
-      * @param keys the keys to add or update assocuations for
-      * @param dependents the new associations information for each `key` in
-      *                   `keys`
-      */
-    def updateAt(
-      keys: List[DependencyInfo.Type],
-      dependents: Set[DependencyInfo.Type]
-    ): Unit = keys.foreach(key => updateAt(key, dependents))
-
-    /** Combines two dependency information containers.
-      *
-      * @param that the other container to combine with `this`
-      * @return the result of combining `this` and `that`
-      */
-    def ++(that: DependencyMapping): DependencyMapping = {
-      val combinedModule = new DependencyMapping(this.mapping)
-
-      for ((key, value) <- that.mapping) {
-        combinedModule.mapping.get(key) match {
-          case Some(xs) => combinedModule(key) = value ++ xs
-          case None     => combinedModule(key) = value
-        }
-      }
-
-      combinedModule
-    }
-
-    /** @return A deep copy of this dependency mapping */
-    def deepCopy: DependencyMapping = {
-      DependencyMapping(mutable.Map.from(this.mapping.toMap))
-    }
-  }
-
-  /** A representation of dependency information for dataflow analysis.
-    *
-    * @param dependents information on the dependents of program components,
-    *                   mapping from a component to the components that depend
-    *                   on it
-    * @param dependencies information on the dependencies of program components,
-    *                     mapping from a component to the components that it
-    *                     depends on
-    */
-  sealed case class DependencyInfo(
-    dependents: DependencyMapping   = DependencyMapping(),
-    dependencies: DependencyMapping = DependencyMapping()
-  ) extends IRPass.IRMetadata {
-    override val metadataName: String = "DataflowAnalysis.DependencyInfo"
-
-    /** Combines two dependency information containers.
-      *
-      * @param that the other container to combine with `this`
-      * @return the result of combining `this` and `that`
-      */
-    def ++(that: DependencyInfo): DependencyInfo = {
-      DependencyInfo(
-        dependents   = this.dependents ++ that.dependents,
-        dependencies = that.dependencies ++ that.dependencies
-      )
-    }
-
-    override def duplicate(): Option[IRPass.IRMetadata] = None
-
-    /** @inheritdoc */
-    override def prepareForSerialization(compiler: Compiler): DependencyInfo =
-      this
-
-    /** @inheritdoc */
-    override def restoreFromSerialization(
-      compiler: Compiler
-    ): Option[DependencyInfo] = Some(this)
-  }
-  object DependencyInfo {
-
-    /** The type of symbols in this analysis. */
-    type Symbol = String
-
-    /** The type of identification for a program component. */
-    sealed trait Type {
-      val externalId: Option[UUID @ExternalID]
-    }
-    object Type {
-
-      /** Program components identified by their unique identifier.
-        *
-        * @param id the unique identifier of the program component
-        * @param externalId the external identifier corresponding to the program
-        *                   component
-        */
-      sealed case class Static(
-        id: UUID @Identifier,
-        override val externalId: Option[UUID @ExternalID]
-      ) extends Type
-
-      /** Program components identified by their symbol.
-        *
-        * @param name the name of the symbol
-        * @param externalId the external identifier corresponding to the program
-        *                   component
-        */
-      sealed case class Dynamic(
-        name: DependencyInfo.Symbol,
-        override val externalId: Option[UUID @ExternalID]
-      ) extends Type
-
-      // === Utility Functions ================================================
-
-      /** Creates a static dependency on an IR node.
-        *
-        * @param ir the IR node to create a dependency on
-        * @return a static dependency on `ir`
-        */
-      def asStatic(ir: IR): Static = {
-        Static(ir.getId, ir.getExternalId)
-      }
-
-      /** Creates a dynamic dependency on an IR node.
-        *
-        * @param ir the IR node to create a dependency on
-        * @return a dynamic dependency on `ir`
-        */
-      def asDynamic(ir: Name): Dynamic = {
-        Dynamic(ir.name, ir.getExternalId)
-      }
     }
   }
 }

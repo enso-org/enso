@@ -30,14 +30,14 @@ import org.enso.persist.Persistable;
 import org.enso.persist.Persistance;
 
 @Persistable(clazz = CachePreferenceAnalysis.WeightInfo.class, id = 1111)
-@Persistable(clazz = DataflowAnalysis.DependencyInfo.class, id = 1112)
-@Persistable(clazz = DataflowAnalysis.DependencyMapping.class, id = 1113)
+@Persistable(clazz = DependencyInfo.class, id = 1112)
+@Persistable(clazz = DependencyMapping.class, id = 1113)
 @Persistable(clazz = GatherDiagnostics.DiagnosticsMeta.class, id = 1114)
 @Persistable(clazz = DocumentationComments.Doc.class, id = 1115)
 @Persistable(clazz = TypeSignatures.Signature.class, id = 2117)
 @Persistable(clazz = ModuleAnnotations.Annotations.class, id = 1118)
-@Persistable(clazz = DataflowAnalysis$DependencyInfo$Type$Static.class, id = 1121)
-@Persistable(clazz = DataflowAnalysis$DependencyInfo$Type$Dynamic.class, id = 1122)
+@Persistable(clazz = DependencyInfo.Type.Static.class, id = 1121)
+@Persistable(clazz = DependencyInfo.Type.Dynamic.class, id = 1122)
 @Persistable(clazz = FullyQualifiedNames.FQNResolution.class, id = 1128)
 @Persistable(clazz = FullyQualifiedNames.ResolvedLibrary.class, id = 1129)
 @Persistable(clazz = FullyQualifiedNames.ResolvedModule.class, id = 1130)

@@ -7,6 +7,7 @@ import org.enso.compiler.core.ir.expression.Application
 import org.enso.compiler.core.ir.module.scope.definition.Method
 import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.pass.analyse.DataflowAnalysis
+import org.enso.compiler.pass.analyse.DependencyInfo
 import org.enso.compiler.pass.resolve.MethodCalls
 import org.enso.pkg.QualifiedName
 
@@ -166,15 +167,18 @@ trait IRUtils {
   ): Option[Set[IR]] = {
     for {
       metadata <- ir.getMetadata(DataflowAnalysis)
-      key = DataflowAnalysis.DependencyInfo.Type
-        .Static(literal.getId(), literal.getExternalId)
+      key = new DependencyInfo.Type.Static(
+        literal.getId(),
+        literal.getExternalId
+      )
       dependents <- metadata.dependents.get(key)
     } yield {
       dependents
         .flatMap {
-          case _: DataflowAnalysis.DependencyInfo.Type.Dynamic =>
+          case _: DependencyInfo.Type.Dynamic =>
             None
-          case DataflowAnalysis.DependencyInfo.Type.Static(id, _) =>
+          case s: DependencyInfo.Type.Static =>
+            val id = s.externalId.get
             findById(ir, id)
         }
     }
@@ -192,14 +196,15 @@ trait IRUtils {
   ): Option[Set[IR]] = {
     for {
       metadata <- ir.getMetadata(DataflowAnalysis)
-      key = DataflowAnalysis.DependencyInfo.Type.Dynamic(name, None)
+      key = new DependencyInfo.Type.Dynamic(name, None)
       dependents <- metadata.dependents.get(key)
     } yield {
       dependents
         .flatMap {
-          case _: DataflowAnalysis.DependencyInfo.Type.Dynamic =>
+          case _: DependencyInfo.Type.Dynamic =>
             None
-          case DataflowAnalysis.DependencyInfo.Type.Static(id, _) =>
+          case s: DependencyInfo.Type.Static =>
+            val id = s.externalId.get
             findById(ir, id)
         }
     }

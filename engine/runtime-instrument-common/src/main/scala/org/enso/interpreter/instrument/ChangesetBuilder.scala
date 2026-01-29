@@ -13,6 +13,7 @@ import org.enso.compiler.core.ir.module.scope.definition
 import org.enso.compiler.core._
 import org.enso.compiler.core.ir.expression.Application
 import org.enso.compiler.pass.analyse.DataflowAnalysis
+import org.enso.compiler.pass.analyse.DependencyInfo
 import org.enso.compiler.suggestions.SimpleUpdate
 import org.enso.interpreter.instrument.execution.model.PendingEdit
 import org.enso.text.editing.model.{IdMap, TextEdit}
@@ -141,8 +142,8 @@ final class ChangesetBuilder[A: TextEditor: IndexedSource](
 
     @scala.annotation.tailrec
     def go(
-      queue: mutable.Queue[DataflowAnalysis.DependencyInfo.Type],
-      visited: mutable.Set[DataflowAnalysis.DependencyInfo.Type]
+      queue: mutable.Queue[DependencyInfo.Type],
+      visited: mutable.Set[DependencyInfo.Type]
     ): Set[UUID @ExternalID] =
       if (queue.isEmpty) visited.flatMap(_.externalId).toSet
       else {
@@ -150,18 +151,26 @@ final class ChangesetBuilder[A: TextEditor: IndexedSource](
         val transitive = metadata.dependents.get(elem).getOrElse(Set())
         val dynamic = transitive
           .flatMap {
-            case DataflowAnalysis.DependencyInfo.Type.Static(int, _) =>
+            case s: DependencyInfo.Type.Static =>
               ChangesetBuilder
-                .getExpressionName(ir, int)
-                .map(DataflowAnalysis.DependencyInfo.Type.Dynamic(_, None))
-            case dyn: DataflowAnalysis.DependencyInfo.Type.Dynamic =>
+                .getExpressionName(ir, s.id)
+                .map(new DependencyInfo.Type.Dynamic(_, None))
+            case dyn: DependencyInfo.Type.Dynamic =>
               Some(dyn)
             case _ =>
               None
           }
-          .flatMap(metadata.dependents.get)
+          .flatMap(metadata.dependents.get(_))
           .flatten
-        val combined = transitive.union(dynamic)
+        val combined = transitive
+          .asInstanceOf[scala.collection.Set[
+            org.enso.compiler.pass.analyse.DependencyInfo.Type
+          ]]
+          .union(
+            dynamic.asInstanceOf[scala.collection.Set[
+              org.enso.compiler.pass.analyse.DependencyInfo.Type
+            ]]
+          )
 
         go(
           queue ++= combined.diff(visited),
@@ -662,11 +671,11 @@ object ChangesetBuilder {
     */
   private def toDataflowDependencyTypes(
     node: NodeId
-  ): Seq[DataflowAnalysis.DependencyInfo.Type] = {
-    val static = DataflowAnalysis.DependencyInfo.Type
-      .Static(node.internalId, node.externalId)
+  ): Seq[DependencyInfo.Type] = {
+    val static =
+      new DependencyInfo.Type.Static(node.internalId, node.externalId)
     val dynamic = node.name.map { name =>
-      DataflowAnalysis.DependencyInfo.Type.Dynamic(name, node.externalId)
+      new DependencyInfo.Type.Dynamic(name, node.externalId)
     }
     static +: dynamic.toSeq
   }

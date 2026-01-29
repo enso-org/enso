@@ -10,6 +10,7 @@ import org.enso.compiler.pass.analyse.{
   CachePreferenceAnalysis,
   DataflowAnalysis
 }
+import org.enso.compiler.pass.analyse.DependencyInfo
 import org.enso.interpreter.instrument.execution.{Executable, RuntimeContext}
 import org.enso.interpreter.instrument.job.UpsertVisualizationJob.{
   EvaluationFailed,
@@ -744,8 +745,7 @@ object UpsertVisualizationJob {
             IRUtils
               .findByExternalId(module.getIr, externalId)
               .map { ir =>
-                DataflowAnalysis.DependencyInfo.Type
-                  .Static(ir.getId, ir.getExternalId)
+                new DependencyInfo.Type.Static(ir.getId, ir.getExternalId)
               }
               .flatMap { expressionKey =>
                 metadata.dependents.getExternal(expressionKey)

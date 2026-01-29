@@ -16,6 +16,7 @@ import org.enso.compiler.pass.analyse.{
   DataflowAnalysis,
   GatherDiagnostics
 }
+import org.enso.compiler.pass.analyse.DependencyInfo
 import org.enso.interpreter.instrument.execution.{
   LocationResolver,
   RuntimeContext
@@ -365,7 +366,7 @@ class EnsureCompiledJob(
       ir,
       {
         case err: expression.errors.Resolution if isResolutionNotFound(err) =>
-          val key = DataflowAnalysis.DependencyInfo.Type.Static(
+          val key = new DependencyInfo.Type.Static(
             err.getId(),
             err.getExternalId
           )

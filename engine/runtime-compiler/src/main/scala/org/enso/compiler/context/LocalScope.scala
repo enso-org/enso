@@ -5,6 +5,7 @@ import org.enso.compiler.pass.analyse.FrameAnalysisMeta
 import org.enso.compiler.pass.analyse.FramePointer
 import org.enso.compiler.pass.analyse.FrameVariableNames
 import org.enso.compiler.pass.analyse.DataflowAnalysis
+import org.enso.compiler.pass.analyse.DependencyInfo
 import org.enso.compiler.pass.analyse.alias.graph.{
   GraphBuilder,
   Graph => AliasGraph
@@ -181,7 +182,7 @@ object LocalScope {
     */
   val empty: LocalScope = {
     val graph              = GraphBuilder.create().freeze().toGraph
-    val info               = DataflowAnalysis.DependencyInfo()
+    val info               = new DependencyInfo()
     val emptyVariableNames = FrameVariableNames.create(java.util.List.of())
     new LocalScope(
       None,
@@ -198,7 +199,7 @@ object LocalScope {
     */
   def createEmpty: LocalScope = {
     val graph = GraphBuilder.create().toGraph
-    val info  = DataflowAnalysis.DependencyInfo()
+    val info  = new DependencyInfo()
     new LocalScope(
       None,
       () => graph,
