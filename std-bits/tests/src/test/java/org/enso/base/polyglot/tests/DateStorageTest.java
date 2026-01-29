@@ -4,7 +4,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotSame;
 
-import java.lang.reflect.Proxy;
 import java.time.LocalDate;
 import java.util.Objects;
 import java.util.Random;
@@ -36,11 +35,7 @@ public class DateStorageTest {
 
     @SuppressWarnings("unchecked")
     var proxyStorage =
-        (ColumnStorage<LocalDate>)
-            Proxy.newProxyInstance(
-                ColumnStorage.class.getClassLoader(),
-                new Class[] {ColumnStorage.class},
-                Proxy.getInvocationHandler(storage));
+        (ColumnStorage<LocalDate>) BoolStorageTest.makeProxy(storage, ColumnStorage.class);
     var localStorage = Builder.makeLocal(proxyStorage);
 
     assertNotSame("local storage is a copy of storage", storage, localStorage);

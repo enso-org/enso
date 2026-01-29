@@ -3,7 +3,6 @@ package org.enso.base.polyglot.tests;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotSame;
 
-import java.lang.reflect.Proxy;
 import java.time.LocalTime;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.storage.ColumnStorage;
@@ -31,11 +30,7 @@ public class TimeOfDayStorageTest {
 
     @SuppressWarnings("unchecked")
     var proxyStorage =
-        (ColumnStorage<LocalTime>)
-            Proxy.newProxyInstance(
-                ColumnStorage.class.getClassLoader(),
-                new Class[] {ColumnStorage.class},
-                Proxy.getInvocationHandler(storage));
+        (ColumnStorage<LocalTime>) BoolStorageTest.makeProxy(storage, ColumnStorage.class);
     var localStorage = Builder.makeLocal(proxyStorage);
 
     assertNotSame("local storage is a copy of storage", storage, localStorage);

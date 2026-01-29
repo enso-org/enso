@@ -3,6 +3,7 @@ package org.enso.base.polyglot.tests;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotSame;
 
+import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Proxy;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.storage.ColumnBooleanStorage;
@@ -21,18 +22,23 @@ public class BoolStorageTest {
     ctx.eval("enso", "from Standard.Base import all");
   }
 
+  static Object makeProxy(ColumnStorage<?> storage, Class<?> interfaceClass) {
+    InvocationHandler handler =
+        (proxy, method, args) -> {
+          var proxyMethod = interfaceClass.getMethod(method.getName(), method.getParameterTypes());
+          return proxyMethod.invoke(storage, args);
+        };
+    return Proxy.newProxyInstance(
+        interfaceClass.getClassLoader(), new Class[] {interfaceClass}, handler);
+  }
+
   @Test
   public void makeLocalFromLongStorage() {
     var b = Builder.getForBoolean(3);
     b.append(false).appendNulls(1).append(true);
     var storage = b.seal();
 
-    var proxyStorage =
-        (ColumnBooleanStorage)
-            Proxy.newProxyInstance(
-                ColumnStorage.class.getClassLoader(),
-                new Class[] {ColumnBooleanStorage.class},
-                Proxy.getInvocationHandler(storage));
+    var proxyStorage = (ColumnBooleanStorage) makeProxy(storage, ColumnBooleanStorage.class);
     var localStorage = Builder.makeLocal(proxyStorage);
 
     assertNotSame("local storage is a copy of storage", storage, localStorage);

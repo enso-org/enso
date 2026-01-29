@@ -3,8 +3,10 @@ package org.enso.base.polyglot.tests;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotSame;
 
-import java.lang.reflect.Proxy;
-import java.time.*;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.test.utils.ContextUtils;
@@ -31,11 +33,7 @@ public class DateTimeStorageTest {
 
     @SuppressWarnings("unchecked")
     var proxyStorage =
-        (ColumnStorage<ZonedDateTime>)
-            Proxy.newProxyInstance(
-                ColumnStorage.class.getClassLoader(),
-                new Class[] {ColumnStorage.class},
-                Proxy.getInvocationHandler(storage));
+        (ColumnStorage<ZonedDateTime>) BoolStorageTest.makeProxy(storage, ColumnStorage.class);
     var localStorage = Builder.makeLocal(proxyStorage);
 
     assertNotSame("local storage is a copy of storage", storage, localStorage);
@@ -59,11 +57,7 @@ public class DateTimeStorageTest {
 
     @SuppressWarnings("unchecked")
     var proxyStorage =
-        (ColumnStorage<ZonedDateTime>)
-            Proxy.newProxyInstance(
-                ColumnStorage.class.getClassLoader(),
-                new Class[] {ColumnStorage.class},
-                Proxy.getInvocationHandler(storage));
+        (ColumnStorage<ZonedDateTime>) BoolStorageTest.makeProxy(storage, ColumnStorage.class);
     var localStorage = Builder.makeLocal(proxyStorage);
 
     assertNotSame("local storage is a copy of storage", storage, localStorage);
@@ -91,11 +85,7 @@ public class DateTimeStorageTest {
 
     @SuppressWarnings("unchecked")
     var proxyStorage =
-        (ColumnStorage<ZonedDateTime>)
-            Proxy.newProxyInstance(
-                ColumnStorage.class.getClassLoader(),
-                new Class[] {ColumnStorage.class},
-                Proxy.getInvocationHandler(storage));
+        (ColumnStorage<ZonedDateTime>) BoolStorageTest.makeProxy(storage, ColumnStorage.class);
     var localStorage = Builder.makeLocal(proxyStorage);
 
     assertNotSame("local storage is a copy of storage", storage, localStorage);

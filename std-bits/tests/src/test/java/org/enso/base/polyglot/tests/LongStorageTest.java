@@ -4,13 +4,11 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotSame;
 
-import java.lang.reflect.Proxy;
 import java.util.Objects;
 import java.util.Random;
 import java.util.stream.LongStream;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.storage.ColumnLongStorage;
-import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.problems.BlackholeProblemAggregator;
 import org.enso.table.problems.ProblemAggregator;
@@ -36,11 +34,7 @@ public class LongStorageTest {
     var storage = b.seal();
 
     var proxyStorage =
-        (ColumnLongStorage)
-            Proxy.newProxyInstance(
-                ColumnStorage.class.getClassLoader(),
-                new Class[] {ColumnLongStorage.class},
-                Proxy.getInvocationHandler(storage));
+        (ColumnLongStorage) BoolStorageTest.makeProxy(storage, ColumnLongStorage.class);
     var localStorage = Builder.makeLocal(proxyStorage);
 
     assertNotSame("local storage is a copy of storage", storage, localStorage);
@@ -65,11 +59,7 @@ public class LongStorageTest {
     var storage = b.seal();
 
     var proxyStorage =
-        (ColumnLongStorage)
-            Proxy.newProxyInstance(
-                ColumnStorage.class.getClassLoader(),
-                new Class[] {ColumnLongStorage.class},
-                Proxy.getInvocationHandler(storage));
+        (ColumnLongStorage) BoolStorageTest.makeProxy(storage, ColumnLongStorage.class);
     var localStorage = Builder.makeLocal(proxyStorage);
 
     assertNotSame("local storage is a copy of storage", storage, localStorage);
@@ -107,11 +97,11 @@ public class LongStorageTest {
 
   private void generateAndCompare(String info, int size, LongStream r) {
     var sb = new StringBuilder();
-    var b = Builder.getForLong(IntegerType.INT_64, size, null);
+    var b = Builder.getForLong(IntegerType.INT_64, size, problemAggregator());
     r.forEach(b::append);
     var storage = b.seal();
     assertEquals("Storage has the right size: " + storage, size, storage.getSize());
-    assertNotEquals("Storage provides acccess to raw data", 0L, storage.addressOfData());
+    assertNotEquals("Storage provides access to raw data", 0L, storage.addressOfData());
     assertNotEquals("Storage provides access to validity bitmap", 0L, storage.addressOfValidity());
 
     var arr =

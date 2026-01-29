@@ -3,7 +3,6 @@ package org.enso.base.polyglot.tests;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotSame;
 
-import java.lang.reflect.Proxy;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.type.TextType;
@@ -29,11 +28,7 @@ public class StringStorageTest {
 
     @SuppressWarnings("unchecked")
     var proxyStorage =
-        (ColumnStorage<String>)
-            Proxy.newProxyInstance(
-                ColumnStorage.class.getClassLoader(),
-                new Class[] {ColumnStorage.class},
-                Proxy.getInvocationHandler(storage));
+        (ColumnStorage<String>) BoolStorageTest.makeProxy(storage, ColumnStorage.class);
     var localStorage = Builder.makeLocal(proxyStorage);
 
     assertNotSame("local storage is a copy of storage", storage, localStorage);

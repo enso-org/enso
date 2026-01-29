@@ -1,9 +1,21 @@
 package org.enso.table.data.column.storage;
 
-import java.time.ZonedDateTime;
 import java.util.function.LongFunction;
-import org.enso.table.data.column.storage.iterators.*;
-import org.enso.table.data.column.storage.type.*;
+import org.enso.table.data.column.storage.iterators.BooleanStorageIterator;
+import org.enso.table.data.column.storage.iterators.ColumnBooleanStorageIterator;
+import org.enso.table.data.column.storage.iterators.ColumnDoubleStorageIterator;
+import org.enso.table.data.column.storage.iterators.ColumnLongStorageIterator;
+import org.enso.table.data.column.storage.iterators.DoubleStorageIterator;
+import org.enso.table.data.column.storage.iterators.LongStorageIterator;
+import org.enso.table.data.column.storage.type.BigDecimalType;
+import org.enso.table.data.column.storage.type.BooleanType;
+import org.enso.table.data.column.storage.type.DateTimeType;
+import org.enso.table.data.column.storage.type.DateType;
+import org.enso.table.data.column.storage.type.FloatType;
+import org.enso.table.data.column.storage.type.IntegerType;
+import org.enso.table.data.column.storage.type.NullType;
+import org.enso.table.data.column.storage.type.StorageType;
+import org.enso.table.data.column.storage.type.TimeOfDayType;
 import org.graalvm.polyglot.Value;
 
 public class ColumnStorageProxy<T> extends AbstractBaseStorage<T> {
@@ -25,12 +37,13 @@ public class ColumnStorageProxy<T> extends AbstractBaseStorage<T> {
         LongFunction<T> getter =
             switch (storageType) {
               case NullType _ -> index -> null;
-              case DateType _, TimeOfDayType _, DateTimeType _ -> index -> {
-                Value polyglotValue = Value.asValue(originalStorage.getItemBoxed(index));
-                return polyglotValue == null || polyglotValue.isNull()
-                    ? null
-                    : storageType.valueAsType(polyglotValue);
-              };
+              case DateType _, TimeOfDayType _, DateTimeType _ ->
+                  index -> {
+                    Value polyglotValue = Value.asValue(originalStorage.getItemBoxed(index));
+                    return polyglotValue == null || polyglotValue.isNull()
+                        ? null
+                        : storageType.valueAsType(polyglotValue);
+                  };
               case BigDecimalType _ ->
                   index -> {
                     var asString = originalStorage.getItemAsString(index);
