@@ -185,4 +185,8 @@ public sealed interface StorageType<T>
   default long size() {
     return -1;
   }
+
+  default String typeString() {
+    return typeChar() + (size() != -1 ? Long.toString(size()) : "");
+  }
 }
