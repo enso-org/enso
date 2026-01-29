@@ -4,7 +4,6 @@ import java.util.NoSuchElementException;
 import java.util.UUID;
 import org.enso.compiler.core.ExternalID;
 import scala.Option;
-import scala.collection.Seq;
 import scala.collection.immutable.Set;
 import scala.collection.mutable.HashSet;
 import scala.collection.mutable.LinkedHashSet;
@@ -180,20 +179,6 @@ public final class DependencyMapping {
     } else {
       mapping.put(key, newDependents);
     }
-  }
-
-  /**
-   * Updates the associations for the provided keys, or creates them if they do not already exist.
-   *
-   * @param keys the keys to add or update assocuations for
-   * @param dependents the new associations information for each `key` in `keys`
-   */
-  void updateAt(Seq<DependencyInfo.Type> keys, Set<DependencyInfo.Type> dependents) {
-    keys.foreach(
-        key -> {
-          updateAt(key, dependents);
-          return null;
-        });
   }
 
   /**
