@@ -20,6 +20,7 @@
   "devDependencies": {
     "@types/node": "catalog:",
     "typescript": "catalog:",
+    "vite-plugin-wasm": "^3.5.0",
     "vitest": "catalog:"
   },
   "dependencies": {
