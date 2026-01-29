@@ -108,7 +108,7 @@ abstract class TypedBuilder<T> implements BuilderWithRetyping, BuilderForType<T>
   }
 
   @Override
-  public ColumnStorage<T> seal() {
+  public final ColumnStorage<T> seal() {
     // We set the array to the exact size, because we want to avoid index out of bounds errors.
     // Most of the time, the builder was initialized with the right size anyway - the only
     // exceptions are e.g. reading results from a database, where the count is unknown.
