@@ -1,8 +1,10 @@
 package org.enso.table.data.column.storage;
 
+import java.time.ZonedDateTime;
 import java.util.function.LongFunction;
 import org.enso.table.data.column.storage.iterators.*;
 import org.enso.table.data.column.storage.type.*;
+import org.graalvm.polyglot.Value;
 
 public class ColumnStorageProxy<T> extends AbstractBaseStorage<T> {
   private final long size;
@@ -23,6 +25,12 @@ public class ColumnStorageProxy<T> extends AbstractBaseStorage<T> {
         LongFunction<T> getter =
             switch (storageType) {
               case NullType _ -> index -> null;
+              case DateType _, TimeOfDayType _, DateTimeType _ -> index -> {
+                Value polyglotValue = Value.asValue(originalStorage.getItemBoxed(index));
+                return polyglotValue == null || polyglotValue.isNull()
+                    ? null
+                    : storageType.valueAsType(polyglotValue);
+              };
               case BigDecimalType _ ->
                   index -> {
                     var asString = originalStorage.getItemAsString(index);

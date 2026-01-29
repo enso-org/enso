@@ -21,6 +21,14 @@ add_specs suite_builder = suite_builder.group "Write Tables" group_builder->
 
     get_temp_file -> File =
         transient / (Random.uuid + ".hyper")
+
+    can_round_trip table:Table =
+        written_file = get_temp_file
+        table.write written_file
+        written_table_in_hyper = Hyper_File.new written_file . tables . first
+        written_table = written_table_in_hyper.read
+        written_table.should_equal table
+        written_file.delete
     
     group_builder.specify "default schema and table name is Extract" <|
         written_file = get_temp_file
@@ -58,14 +66,6 @@ add_specs suite_builder = suite_builder.group "Write Tables" group_builder->
         written_table.should_equal t
         (r.read.read "MyTableName" "MySchemaName").should_equal t
         Data.read r (..Hyper_Table "MySchemaName" "MyTableName") . should_equal t
-        written_file.delete
-
-    can_round_trip table:Table =
-        written_file = get_temp_file
-        table.write written_file
-        written_table_in_hyper = Hyper_File.new written_file . tables . first
-        written_table = written_table_in_hyper.read
-        written_table.should_equal table
         written_file.delete
 
     group_builder.specify "should be able to write a text columns" <|
