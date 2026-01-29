@@ -4,35 +4,32 @@ import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.nodes.Node;
 import java.io.IOException;
 import java.util.Optional;
+import java.util.function.Supplier;
 import org.enso.common.MethodNames;
 import org.enso.compiler.Passes;
 import org.enso.compiler.context.CompilerContext;
 import org.enso.compiler.context.FreshNameSupply;
 import org.enso.compiler.phase.BuiltinsIrBuilder;
+import org.enso.editions.LibraryName;
 import org.enso.interpreter.EnsoLanguage;
 import org.enso.interpreter.node.expression.builtin.Any;
 import org.enso.interpreter.node.expression.builtin.Boolean;
 import org.enso.interpreter.node.expression.builtin.Builtin;
 import org.enso.interpreter.node.expression.builtin.Nothing;
-import org.enso.interpreter.node.expression.builtin.Polyglot;
-import org.enso.interpreter.node.expression.builtin.debug.Debug;
 import org.enso.interpreter.node.expression.builtin.error.ProblemBehavior;
 import org.enso.interpreter.node.expression.builtin.error.Warning;
 import org.enso.interpreter.node.expression.builtin.immutable.Vector;
-import org.enso.interpreter.node.expression.builtin.meta.ProjectDescription;
 import org.enso.interpreter.node.expression.builtin.mutable.Array;
 import org.enso.interpreter.node.expression.builtin.mutable.Ref;
-import org.enso.interpreter.node.expression.builtin.ordering.Comparable;
-import org.enso.interpreter.node.expression.builtin.ordering.DefaultComparator;
-import org.enso.interpreter.node.expression.builtin.ordering.Ordering;
 import org.enso.interpreter.node.expression.builtin.resource.ManagedResource;
-import org.enso.interpreter.node.expression.builtin.runtime.Context;
 import org.enso.interpreter.node.expression.builtin.text.Text;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.ModuleScopeBuilder;
 import org.enso.interpreter.runtime.data.Type;
 import org.enso.interpreter.runtime.data.atom.AtomConstructor;
+import org.enso.interpreter.runtime.scope.ModuleScope;
+import org.enso.interpreter.runtime.util.CachingSupplier;
 import org.enso.pkg.QualifiedName;
 
 /** Container class for static predefined atoms, methods, and their containing scope. */
@@ -52,17 +49,10 @@ public final class Builtins {
   private final Number number;
   private final Boolean bool;
 
-  private final Context contexts;
-  private final Ordering ordering;
-  private final Comparable comparable;
-  private final DefaultComparator defaultComparator;
-  private final System system;
-
   // Builtin types
   private final Builtin any;
   private final Builtin nothing;
   private final Builtin function;
-  private final Builtin polyglot;
   private final Builtin text;
   private final Builtin array;
   private final Builtin vector;
@@ -70,8 +60,6 @@ public final class Builtins {
   private final Builtin dataflowError;
   private final Builtin ref;
   private final Builtin managedResource;
-  private final Builtin debug;
-  private final ProjectDescription projectDescription;
   private final Builtin date;
   private final Builtin dateTime;
   private final Builtin duration;
@@ -80,6 +68,10 @@ public final class Builtins {
   private final Builtin warning;
   private final ProblemBehavior problemBehavior;
   private final Builtin instrumentor;
+  private final RuntimeContext runtimeContext;
+  private final Ordering ordering;
+  private final Supplier<Type> comparable;
+  private final Supplier<Type> defaultComparator;
 
   /** Factory method to create the builtins. */
   private static Builtins create(EnsoContext context) {
@@ -107,16 +99,11 @@ public final class Builtins {
     context = ctx;
     builtins = new BuiltinsRegistry(ctx.getLanguage(), sb);
 
-    ordering = getBuiltinType(Ordering.class);
-    comparable = getBuiltinType(Comparable.class);
-    defaultComparator = getBuiltinType(DefaultComparator.class);
     bool = getBuiltinType(Boolean.class);
-    contexts = getBuiltinType(Context.class);
 
     any = getBuiltinType(Any.class);
     nothing = getBuiltinType(Nothing.class);
     function = getBuiltinType(org.enso.interpreter.node.expression.builtin.function.Function.class);
-    polyglot = getBuiltinType(Polyglot.class);
     text = getBuiltinType(Text.class);
     array = getBuiltinType(Array.class);
     vector = getBuiltinType(Vector.class);
@@ -124,8 +111,6 @@ public final class Builtins {
     dataflowError = getBuiltinType(org.enso.interpreter.node.expression.builtin.Error.class);
     ref = getBuiltinType(Ref.class);
     managedResource = getBuiltinType(ManagedResource.class);
-    debug = getBuiltinType(Debug.class);
-    projectDescription = getBuiltinType(ProjectDescription.class);
     date = getBuiltinType(org.enso.interpreter.node.expression.builtin.date.Date.class);
     dateTime = getBuiltinType(org.enso.interpreter.node.expression.builtin.date.DateTime.class);
     duration = getBuiltinType(org.enso.interpreter.node.expression.builtin.date.Duration.class);
@@ -136,8 +121,12 @@ public final class Builtins {
     instrumentor = getBuiltinType(org.enso.interpreter.node.expression.builtin.Instrumentor.class);
 
     error = new Error(this, ctx);
-    system = new System(this);
     number = new Number(this);
+
+    runtimeContext = new RuntimeContext(supplyType("Runtime", "Context"));
+    ordering = new Ordering(supplyType("Data", "Ordering", "Ordering"));
+    comparable = supplyType("Data", "Ordering", "Comparable");
+    defaultComparator = supplyType("Internal", "Ordering_Helpers", "Default_Comparator");
   }
 
   /**
@@ -265,8 +254,8 @@ public final class Builtins {
   /**
    * @return the builtin Context type
    */
-  public Context context() {
-    return contexts;
+  public RuntimeContext context() {
+    return runtimeContext;
   }
 
   /**
@@ -375,21 +364,8 @@ public final class Builtins {
    * @return the {@code Debug} atom constructor
    */
   public Type debug() {
-    return debug.getType();
-  }
-
-  /**
-   * @return the {@code Project_Description} atom constructor
-   */
-  public ProjectDescription getProjectDescription() {
-    return projectDescription;
-  }
-
-  /**
-   * @return the {@code System} atom constructor.
-   */
-  public System system() {
-    return system;
+    var m = loadModule(context, toFqn(0, "Runtime", "Debug"));
+    return m.getAssociatedType();
   }
 
   /**
@@ -418,7 +394,7 @@ public final class Builtins {
    * @return the container for polyglot-related builtins.
    */
   public Type polyglot() {
-    return polyglot.getType();
+    return loadType(context, "Polyglot", "Polyglot");
   }
 
   /**
@@ -435,12 +411,12 @@ public final class Builtins {
     return ordering;
   }
 
-  public Comparable comparable() {
-    return comparable;
+  public Type comparableType() {
+    return comparable.get();
   }
 
-  public DefaultComparator defaultComparator() {
-    return defaultComparator;
+  public Type defaultComparatorType() {
+    return defaultComparator.get();
   }
 
   /**
@@ -463,5 +439,46 @@ public final class Builtins {
 
   public EnsoLanguage getLanguage() {
     return context.getLanguage();
+  }
+
+  private static ModuleScope loadModule(EnsoContext context, String moduleName) {
+    var moduleOpt = context.getTopScope().getModule(moduleName);
+    if (moduleOpt.isEmpty()) {
+      var stdBase = LibraryName.apply("Standard", "Base");
+      context.getPackageRepository().ensurePackageIsLoaded(stdBase);
+      moduleOpt = context.getTopScope().getModule(moduleName);
+    }
+    assert moduleOpt.isPresent() : moduleName;
+    var module = moduleOpt.get();
+    var scope = module.compileScope(context);
+    return scope;
+  }
+
+  private Supplier<Type> supplyType(String... shortFqn) {
+    return CachingSupplier.from(
+        () -> {
+          return loadType(context, shortFqn);
+        });
+  }
+
+  @CompilerDirectives.TruffleBoundary
+  static Type loadType(EnsoContext context, String... shortFqn) {
+    var last = shortFqn.length - 1;
+    var moduleName = toFqn(1, shortFqn);
+    var typeName = shortFqn[last];
+    var scope = loadModule(context, moduleName);
+    var type = scope.getType(typeName, true);
+    assert type != null : typeName + " in " + moduleName;
+    return type;
+  }
+
+  private static String toFqn(int skip, String... elems) {
+    var sb = new StringBuilder();
+    sb.append("Standard.Base");
+    for (var i = 0; i < elems.length - skip; i++) {
+      var segment = elems[i];
+      sb.append(".").append(segment);
+    }
+    return sb.toString();
   }
 }

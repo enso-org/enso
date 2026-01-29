@@ -1,5 +1,6 @@
 load("@aspect_bazel_lib//lib:write_source_files.bzl", "write_source_files")
 load("@aspect_rules_esbuild//esbuild:defs.bzl", "esbuild")
+load("@aspect_rules_js//js:defs.bzl", "js_binary", "js_run_binary")
 load("@aspect_rules_js//npm:defs.bzl", "npm_package")
 load("@aspect_rules_ts//ts:defs.bzl", "ts_config", "ts_project")
 load("@npm//:defs.bzl", "npm_link_all_packages", "npm_link_targets")
@@ -93,7 +94,6 @@ stamp_files(
     name = "bundle_stamped",
     srcs = [":bundle"],
     out = "bundle_stamped",
-    files_regex = ".*\\.mjs$",
     input_dir = "$(location :bundle)",
     visibility = ["//visibility:public"],
 )
@@ -137,6 +137,51 @@ electron_builder_bin.electron_builder(
     visibility = ["//visibility:public"],
 )
 
+exports_files(["assets/icons/icon.ico"])
+
+genrule(
+    name = "installer_artifacts",
+    srcs = [":dist"],
+    outs = [
+        "installer_payload.tar.gz",
+        "installer_metadata.json",
+    ],
+    cmd = """
+        export PATHEXT=".COM;.EXE;.BAT;.CMD"
+        export PATH="$$PATH;$$(dirname $$(realpath $(BSDTAR_BIN)))"
+        DIST_DIR=$(location :dist)
+        $(execpath //build_tools/install/config:prepare_payload) \
+            "$$DIST_DIR/win-unpacked" \
+            $(location installer_payload.tar.gz) \
+            $(location installer_metadata.json)
+    """,
+    target_compatible_with = ["@platforms//os:windows"],
+    toolchains = ["//toolchains/tar:resolved_toolchain"],
+    tools = ["//build_tools/install/config:prepare_payload"],
+    visibility = ["//visibility:public"],
+)
+
+js_binary(
+    name = "export_config_script",
+    data = ["electron-builder-config.cjs"],
+    entry_point = "export-config.mjs",
+)
+
+js_run_binary(
+    name = "electron_builder_config",
+    srcs = ["electron-builder-config.cjs"],
+    args = ["$(location electron-builder-config.cjs)"],
+    stdout = "electron-builder-config.json",
+    tool = ":export_config_script",
+    visibility = ["//visibility:public"],
+)
+
+alias(
+    name = "win_installer",
+    actual = "//build_tools/install/installer:enso_installer",
+    visibility = ["//visibility:public"],
+)
+
 write_tsconfig(
     name = "tsconfig_generated",
     out = "tsconfig.json",
@@ -157,7 +202,7 @@ write_tsconfig(
         "tasks/*.ts",
         "tests/**/*.ts",
         "*.ts",
-    ]),
+    ]) + ["//app:vitest.node.base.ts"],
 )
 
 write_source_files(

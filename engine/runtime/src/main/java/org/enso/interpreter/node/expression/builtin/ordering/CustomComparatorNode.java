@@ -46,15 +46,15 @@ public abstract class CustomComparatorNode extends Node {
           InvokeConversionNode convertNode,
       @Cached(value = "createConversion()", allowUncached = true) UnresolvedConversion conversion) {
     var ctx = EnsoContext.get(this);
-    var comparableType = ctx.getBuiltins().comparable().getType();
+    var comparableType = ctx.getBuiltins().comparableType();
     var state = ctx.currentState();
     Object rawRes =
         convertNode.execute(
             null, state, conversion, comparableType, atom, new Object[] {comparableType, atom});
     if (rawRes instanceof Atom res
-        && res.getConstructor() == ctx.getBuiltins().comparable().getBy()) {
+        && res.getConstructor() == ctx.getBuiltins().comparableType().getSingleConstructor()) {
       if (structs.getField(res, 1) instanceof Type result) {
-        if (result != ctx.getBuiltins().defaultComparator().getType()) {
+        if (result != ctx.getBuiltins().defaultComparatorType()) {
           return result;
         }
       }
@@ -65,7 +65,7 @@ public abstract class CustomComparatorNode extends Node {
   @NeverDefault
   UnresolvedConversion createConversion() {
     var ctx = EnsoContext.get(this);
-    var comparableType = ctx.getBuiltins().comparable().getType();
+    var comparableType = ctx.getBuiltins().comparableType();
     return UnresolvedConversion.build(comparableType.getDefinitionScope());
   }
 

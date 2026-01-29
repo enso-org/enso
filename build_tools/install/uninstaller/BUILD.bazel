@@ -1,0 +1,17 @@
+load("@crates//:defs.bzl", "aliases", "all_crate_deps")
+load("@rules_rust//rust:defs.bzl", "rust_binary")
+
+rust_binary(
+    name = "enso_uninstaller",
+    srcs = glob(["src/**/*.rs"]),
+    aliases = aliases(),
+    edition = "2021",
+    proc_macro_deps = all_crate_deps(proc_macro = True),
+    rustc_flags = ["-Clink-arg=/SUBSYSTEM:WINDOWS"],
+    visibility = ["//visibility:public"],
+    deps = all_crate_deps(normal = True) + [
+        "//build_tools/ci_utils:ide_ci",
+        "//build_tools/install:enso_install",
+        "//build_tools/install/config:enso_install_config",
+    ],
+)

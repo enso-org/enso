@@ -18,7 +18,6 @@ from project.Error import all
    private: true
    ---
    Default implementation of a _comparator_.
-@Builtin_Type
 type Default_Comparator
     ## ---
        private: true

@@ -14,6 +14,7 @@ import org.enso.interpreter.dsl.Builtin;
 import org.enso.interpreter.node.expression.builtin.text.util.ExpectStringNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.atom.Atom;
+import org.enso.interpreter.runtime.data.atom.AtomNewInstanceNode;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeCoerceToArrayNode;
 
@@ -141,10 +142,15 @@ public class System {
     }
 
     p.waitFor();
-    long exitCode = p.exitValue();
-    Text returnOut = Text.create(out.toString());
-    Text returnErr = Text.create(err.toString());
+    var exitCode = p.exitValue();
+    var returnOut = Text.create(out.toString());
+    var returnErr = Text.create(err.toString());
 
-    return ctx.getBuiltins().system().makeSystemResult(exitCode, returnOut, returnErr);
+    var system = ctx.getTopScope().getModule("Standard.Base.System").get().getScope();
+    var type = system.getType("System_Process_Result", true);
+    var cons = type.getSingleConstructor();
+    var result =
+        AtomNewInstanceNode.getUncached().newInstance(cons, exitCode, returnOut, returnErr);
+    return result;
   }
 }

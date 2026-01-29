@@ -1016,11 +1016,10 @@ private[runtime] class IrToTruffle(
               val runtimeCons =
                 tpe.getConstructors
                   .get(cons.name)
-              val fun = mkConsGetter(runtimeCons)
               scopeBuilder.registerMethod(
                 scopeAssociatedType,
                 name,
-                fun
+                () => mkConsGetter(runtimeCons)
               )
             case BindingsMap.ResolvedModule(module) =>
               val runtimeCons =

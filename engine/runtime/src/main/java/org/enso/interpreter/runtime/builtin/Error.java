@@ -4,7 +4,6 @@ import static com.oracle.truffle.api.CompilerDirectives.transferToInterpreterAnd
 
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.exception.AbstractTruffleException;
-import org.enso.editions.LibraryName;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.UnresolvedConversion;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
@@ -417,27 +416,10 @@ public final class Error {
     final AtomConstructor getUniqueConstructor() {
       if (uniqueAtomConstructor == null) {
         CompilerDirectives.transferToInterpreterAndInvalidate();
-        var sb = new StringBuilder();
-        sb.append("Standard.Base");
-        var last = shortFqn.length - 1;
-        for (var i = 0; i < last; i++) {
-          var segment = shortFqn[i];
-          sb.append(".").append(segment);
-        }
-        var moduleOpt = context.getTopScope().getModule(sb.toString());
-        if (moduleOpt.isEmpty()) {
-          var stdBase = LibraryName.apply("Standard", "Base");
-          context.getPackageRepository().ensurePackageIsLoaded(stdBase);
-          moduleOpt = context.getTopScope().getModule(sb.toString());
-        }
-        assert moduleOpt.isPresent() : sb.toString();
-        var module = moduleOpt.get();
-        var scope = module.compileScope(context);
-        var type = scope.getType(shortFqn[last], true);
-        assert type != null : shortFqn[last] + " in " + sb;
+        var type = Builtins.loadType(context, shortFqn);
         assert type.getConstructors().size() == 1
             : "Only one constructor available: " + type.getConstructors();
-        uniqueAtomConstructor = type.getConstructors().values().iterator().next();
+        uniqueAtomConstructor = type.getSingleConstructor();
       }
       return uniqueAtomConstructor;
     }

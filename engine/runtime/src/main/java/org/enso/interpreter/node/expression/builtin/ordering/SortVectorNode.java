@@ -381,8 +381,7 @@ public abstract class SortVectorNode extends Node {
   private String getDefaultComparatorQualifiedName() {
     return EnsoContext.get(this)
         .getBuiltins()
-        .defaultComparator()
-        .getType()
+        .defaultComparatorType()
         .getQualifiedName()
         .toString();
   }
@@ -493,7 +492,7 @@ public abstract class SortVectorNode extends Node {
   }
 
   boolean isDefaultComparator(Object object, EnsoContext ctx) {
-    return ctx.getBuiltins().defaultComparator().getType() == object;
+    return ctx.getBuiltins().defaultComparatorType() == object;
   }
 
   private boolean isNan(Object object) {

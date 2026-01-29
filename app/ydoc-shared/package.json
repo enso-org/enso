@@ -11,7 +11,8 @@
     "test:unit": "vitest run",
     "test:watch": "vitest",
     "format": "prettier --version && prettier --write src/ && eslint . --fix",
-    "compile": "tsc"
+    "typecheck": "tsc -b tsconfig.json --noEmit",
+    "compile": "tsc -p tsconfig.build.json"
   },
   "exports": {
     "./ast": {
