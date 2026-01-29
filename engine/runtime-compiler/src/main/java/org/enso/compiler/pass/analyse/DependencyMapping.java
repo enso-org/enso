@@ -175,7 +175,8 @@ public final class DependencyMapping {
       DependencyInfo.Type key, Set<DependencyInfo.Type> newDependents) {
     if (mapping.contains(key)) {
       var set = mapping.apply(key);
-      set.$plus$plus(newDependents);
+      var both = set.$plus$plus(newDependents);
+      mapping.put(key, both.toSet());
     } else {
       mapping.put(key, newDependents);
     }
