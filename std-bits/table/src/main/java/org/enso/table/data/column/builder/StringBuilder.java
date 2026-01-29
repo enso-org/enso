@@ -72,7 +72,7 @@ final class StringBuilder extends TypedBuilder<String> {
     var bits = BitSet.valueOf(validityBuffer);
     var rawIndexBuffer =
         MemorySegment.ofAddress(data)
-            .reinterpret((long) Integer.BYTES * size + Integer.BYTES)
+            .reinterpret(Integer.BYTES * size + Integer.BYTES)
             .asByteBuffer()
             .order(ByteOrder.LITTLE_ENDIAN);
     var indexBuffer = rawIndexBuffer.asIntBuffer();

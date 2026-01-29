@@ -33,7 +33,7 @@ final class DateTimeBuilder extends TypedBuilder<ZonedDateTime> {
     var bits = BitSet.valueOf(validityBuffer);
     var buf =
         MemorySegment.ofAddress(data)
-            .reinterpret((long) Long.BYTES * size)
+            .reinterpret(Long.BYTES * size)
             .asByteBuffer()
             .order(ByteOrder.LITTLE_ENDIAN);
 
