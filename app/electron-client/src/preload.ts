@@ -90,7 +90,6 @@ const authentication: ElectronApi['authentication'] = {
    * not privileged to do so unless we explicitly expose this functionality.
    */
   openUrlInSystemBrowser: (url: string) => {
-    console.debug('>>', url)
     electron.ipcRenderer.send(ipc.Channel.openUrlInSystemBrowser, url)
   },
   /**

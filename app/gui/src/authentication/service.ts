@@ -162,7 +162,8 @@ function loadAmplifyConfig(supportsDeepLinks: boolean): AmplifyConfig {
     }
   }
 
-  /** Load the platform-specific Amplify configuration. */
+  // Even when using deeplinks, we register a current location as origin to handle sign-outs.
+  // (See Cognito.signInWithRedirectOptions method).
   const signInOutRedirect = [
     ...(supportsDeepLinks ? [`${common.DEEP_LINK_SCHEME}://auth`] : []),
     window.location.origin,

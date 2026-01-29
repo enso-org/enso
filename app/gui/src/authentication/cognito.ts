@@ -257,7 +257,13 @@ export interface ISessionProvider {
  * The caller can then handle them via pattern matching on the {@link results.Result} type.
  */
 export class Cognito implements ISessionProvider {
-  public resolveOngoingLogin: (result: Awaited<ReturnType<NonNullable<NonNullable<amplify.SignInWithRedirectInput['options']>['authSessionOpener']>>>) => void = () => {}
+  public resolveOngoingLogin: (
+    result: Awaited<
+      ReturnType<
+        NonNullable<NonNullable<amplify.SignInWithRedirectInput['options']>['authSessionOpener']>
+      >
+    >,
+  ) => void = () => {}
 
   /** Create a new Cognito wrapper. */
   constructor(
@@ -373,13 +379,13 @@ export class Cognito implements ISessionProvider {
     await amplify.signInWithRedirect({
       provider: 'Google',
       ...(customState != null ? { customState } : {}),
-      options
+      options,
     })
   }
 
   /**
    * Sign in via the GitHub federated identity provider.
-   * 
+   *
    * This function will open the GitHub authentication page in the user's browser. The user will
    * be asked to log in to their GitHub account, and then to grant access to the application.
    * After the user has granted access, the browser will be redirected to the application.
@@ -388,7 +394,7 @@ export class Cognito implements ISessionProvider {
     const options = this.signInWithRedirectOptions()
     await amplify.signInWithRedirect({
       provider: { custom: GITHUB_PROVIDER },
-      options
+      options,
     })
   }
 
@@ -403,7 +409,7 @@ export class Cognito implements ISessionProvider {
     const options = this.signInWithRedirectOptions()
     await amplify.signInWithRedirect({
       provider: { custom: MICROSOFT_PROVIDER },
-      options
+      options,
     })
   }
 
@@ -415,14 +421,14 @@ export class Cognito implements ISessionProvider {
         try {
           urlOpener(urlString)
           // return Promise.resolve({ type: 'success'})
-          return new Promise((resolve) => this.resolveOngoingLogin = resolve)
+          return new Promise((resolve) => (this.resolveOngoingLogin = resolve))
         } catch (error) {
           return Promise.resolve({
             error,
-            type: 'error'
+            type: 'error',
           })
         }
-      }
+      },
     }
   }
 
@@ -452,22 +458,7 @@ export class Cognito implements ISessionProvider {
 
   /** Sign out the current user. */
   async signOut() {
-    // FIXME [NP]: https://github.com/enso-org/cloud-v2/issues/341
-    // For some reason, the redirect back to the IDE from the browser doesn't work correctly so this
-    // `await` throws a timeout error. As a workaround, we catch this error and force a refresh of
-    // the session manually by running the `signOut` again. This works because Amplify will see that
-    // we've already signed out and clear the cache accordingly. Ideally we should figure out how
-    // to fix the redirect and remove this `catch`. This has the unintended consequence of catching
-    // any other errors that might occur during sign out, that we really shouldn't be catching. This
-    // also has the unintended consequence of delaying the sign out process by a few seconds (until
-    // the timeout occurs).
-    // try {
-      await amplify.signOut({ global: false, oauth: { redirectUrl: window.location.origin }})
-    // } catch (error) {
-    //   this.logger.error('Sign out failed', error)
-    // } finally {
-    //   await amplify.signOut()
-    // }
+    await amplify.signOut({ global: false, oauth: { redirectUrl: window.location.origin } })
   }
 
   /**
