@@ -26,6 +26,7 @@ import { test } from 'integration-test/base'
 import { uuidv4 } from 'lib0/random.js'
 import { join } from 'node:path'
 import type { Page, WebSocketRoute } from 'playwright'
+import { YjsChannel } from 'ydoc-channel'
 import { WSSharedDoc, YjsConnection, type YjsSocket } from 'ydoc-server'
 import { makeVisUpdates, mockDataHandler, mockLSHandler, mockYdocProvider } from './lsHandler'
 
@@ -37,6 +38,8 @@ const ROOT_PARENT_PATH = Path('/home/user/enso')
 const ROOT_PATH = Path('/home/user/enso/enso-projects')
 const DOWNLOAD_PATH = Path('/home/user/enso/Downloads')
 
+// These addresses are kept for backward compatibility in OpenProject response
+// but the actual communication now flows through YjsChannels
 const languageServerJsonAddress = { host: '127.0.0.1', port: 1235 }
 const languageServerBinaryAddress = { host: '127.0.0.1', port: 1234 }
 const languageServerYdocAddress = { host: '127.0.0.1', port: 1233 }
@@ -241,7 +244,8 @@ export async function mockLocalApi(page: Page) {
   addDirectory({ path: ROOT_PATH })
   addDirectory({ path: DOWNLOAD_PATH })
 
-  let languageServerBinaryWs: WebSocketRoute | null = null
+  // Data channel for visualization updates, set up when client connects
+  let dataChannel: YjsChannel<Uint8Array> | null = null
 
   await test.step('Mock Local API', async () => {
     const toJSONRPCResult = (result: unknown): JSONRPCResponse<unknown> => ({
@@ -306,6 +310,7 @@ export async function mockLocalApi(page: Page) {
       }
       unsafeMutable(project.entry.metadata).lastOpened = toRfc3339(new Date())
       const result: OpenProject = {
+        projectId: params.projectId,
         languageServerBinaryAddress,
         languageServerJsonAddress,
         languageServerYdocAddress,
@@ -339,40 +344,6 @@ export async function mockLocalApi(page: Page) {
       })
     })
 
-    await page.routeWebSocket(
-      `ws://${languageServerBinaryAddress.host}:${languageServerBinaryAddress.port}/`,
-      (ws) => {
-        languageServerBinaryWs = ws
-        ws.onMessage(async (messageRaw) => {
-          const response = await mockDataHandler(new Uint8Array(Buffer.from(messageRaw)).buffer)
-          if (response) {
-            ws.send(Buffer.from(response))
-          }
-        })
-      },
-    )
-    await page.routeWebSocket(
-      `ws://${languageServerJsonAddress.host}:${languageServerJsonAddress.port}/`,
-      (ws) => {
-        ws.onMessage(async (messageRaw) => {
-          const { method, params, jsonrpc, id } = JSON.parse(messageRaw.toString())
-          try {
-            const result =
-              (await mockLSHandler(
-                method,
-                params,
-                (message) => ws.send(JSON.stringify({ jsonrpc, ...message })),
-                (binaryData?: ArrayBuffer) => {
-                  if (binaryData) languageServerBinaryWs?.send(Buffer.from(binaryData))
-                },
-              )) ?? null
-            ws.send(JSON.stringify({ jsonrpc, id, result }))
-          } catch (error) {
-            ws.send(JSON.stringify({ jsonrpc, id, error }))
-          }
-        })
-      },
-    )
     const ydocAddressBase = `ws://${languageServerYdocAddress.host}:${languageServerYdocAddress.port}`
 
     class MockWs implements YjsSocket {
@@ -412,14 +383,63 @@ export async function mockLocalApi(page: Page) {
       }
     }
 
+    /** Set up the mock JSON-RPC channel handler */
+    function setupMockLsChannel(channel: YjsChannel<string>) {
+      channel.subscribe(async (messageRaw) => {
+        const { method, params, jsonrpc, id } = JSON.parse(messageRaw)
+        try {
+          const result =
+            (await mockLSHandler(
+              method,
+              params,
+              (message) => channel.send(JSON.stringify({ jsonrpc, ...message })),
+              (binaryData?: ArrayBuffer) => {
+                if (binaryData && dataChannel) {
+                  dataChannel.send(new Uint8Array(binaryData))
+                }
+              },
+            )) ?? null
+          channel.send(JSON.stringify({ jsonrpc, id, result }))
+        } catch (error) {
+          channel.send(JSON.stringify({ jsonrpc, id, error }))
+        }
+      })
+    }
+
+    /** Set up the mock binary data channel handler */
+    function setupMockDataChannel(channel: YjsChannel<Uint8Array>) {
+      dataChannel = channel
+      channel.subscribe(async (messageRaw) => {
+        const data =
+          typeof messageRaw === 'string' ? new TextEncoder().encode(messageRaw).buffer
+          : messageRaw instanceof ArrayBuffer ? messageRaw
+          : (messageRaw.buffer as ArrayBuffer)
+        const response = await mockDataHandler(data)
+        if (response) {
+          channel.send(new Uint8Array(response))
+        }
+      })
+    }
+
     await page.routeWebSocket(`${ydocAddressBase}/**`, (wsRoute) => {
       const parsedUrl = new URL(wsRoute.url())
       const room = parsedUrl.pathname.substring('/project/'.length)
+      const lsUrl = parsedUrl.searchParams.get('ls')
+      const dataUrl = parsedUrl.searchParams.get('data')
 
       const mockWs = new MockWs(wsRoute)
       const wsDoc = new WSSharedDoc()
       const _connection = new YjsConnection(mockWs, wsDoc)
       mockYdocProvider(room, wsDoc.doc)
+
+      if (lsUrl) {
+        const lsChannel = new YjsChannel<string>(wsDoc.doc, lsUrl)
+        setupMockLsChannel(lsChannel)
+      }
+      if (dataUrl) {
+        const binaryChannel = new YjsChannel<Uint8Array>(wsDoc.doc, dataUrl)
+        setupMockDataChannel(binaryChannel)
+      }
     })
 
     await page.route('/api/root-directory-path', async (route, request) => {
@@ -637,7 +657,7 @@ export async function mockLocalApi(page: Page) {
 
   async function updateVisualization(preprocessor: string, data: unknown) {
     for (const update of makeVisUpdates(preprocessor, data)) {
-      languageServerBinaryWs?.send(Buffer.from(update))
+      dataChannel?.send(new Uint8Array(update))
     }
   }
 
