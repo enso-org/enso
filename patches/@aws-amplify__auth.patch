@@ -1,0 +1,21 @@
+diff --git a/dist/esm/providers/cognito/utils/oauth/getRedirectUrl.mjs b/dist/esm/providers/cognito/utils/oauth/getRedirectUrl.mjs
+index 90bfdb5dff2146a4072993af4b94ec0f642407ba..34a5750ff3d6ce197c4b732b973789ca20e4f57b 100644
+--- a/dist/esm/providers/cognito/utils/oauth/getRedirectUrl.mjs
++++ b/dist/esm/providers/cognito/utils/oauth/getRedirectUrl.mjs
+@@ -15,9 +15,14 @@ function getRedirectUrl(redirects, preferredRedirectUrl) {
+         const redirectUrlFromTheSameOrigin = redirects?.find(isSameOriginAndPathName) ??
+             redirects?.find(isTheSameDomain);
+         const redirectUrlFromDifferentOrigin = redirects?.find(isHttps) ?? redirects?.find(isHttp);
+-        if (redirectUrlFromTheSameOrigin) {
+-            return redirectUrlFromTheSameOrigin;
++        // Patch for app/gui: we handle deep links as well.
++        const deeplinkRedirectUrl = redirects?.find((url) => url.startsWith('enso://'));
++        if (deeplinkRedirectUrl) {
++            return deeplinkRedirectUrl;
+         }
++        else if (redirectUrlFromTheSameOrigin) {
++            return redirectUrlFromTheSameOrigin;
++        } 
+         else if (redirectUrlFromDifferentOrigin) {
+             throw invalidOriginException;
+         }

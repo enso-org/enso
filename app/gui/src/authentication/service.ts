@@ -30,12 +30,12 @@ export interface AmplifyConfig {
   readonly endpoint: string | undefined
   readonly userPoolId: string
   readonly userPoolWebClientId: string
-  readonly urlOpener: ((url: string, redirectUrl: string) => void) | null
+  readonly urlOpener: ((url: string) => void) | null
   readonly saveAccessToken: ((accessToken: saveAccessTokenModule.AccessToken | null) => void) | null
   readonly domain: string
   readonly scope: string[]
-  readonly redirectSignIn: string
-  readonly redirectSignOut: string
+  readonly redirectsSignIn: string[]
+  readonly redirectsSignOut: string[]
   readonly responseType: 'code' | 'token'
 }
 
@@ -75,20 +75,17 @@ export function toNestedAmplifyConfig(
   return {
     Auth: {
       Cognito: {
-        // region: config.region,
-        // userPoolEndpointndpoint: config.endpoint,
         // TODO: Use the endpoint when it is working.
-        // userPoolEndpointndpoint: undefined,
+        // userPoolEndpointndpoint: config.endpoint,
         userPoolId: config.userPoolId,
         userPoolClientId: config.userPoolWebClientId,
         loginWith: {
           username: true,
           oauth: {
-            ...(config.urlOpener ? { urlOpener: config.urlOpener } : {}),
             domain: config.domain,
             scopes: config.scope,
-            redirectSignIn: [config.redirectSignIn],
-            redirectSignOut: [config.redirectSignOut],
+            redirectSignIn: config.redirectsSignIn,
+            redirectSignOut: config.redirectsSignOut,
             responseType: config.responseType,
           },
         },
@@ -126,21 +123,21 @@ export function useInitAuthService(): AuthService {
   const enableDeepLinks = useFeatureFlag('enableDeepLinks')
   const router = useRouter()
 
-  const amplifyConfig = loadAmplifyConfig(
-    console,
-    enableDeepLinks.value,
-    (url) => void router.push(url),
-  )
+  const amplifyConfig = loadAmplifyConfig(enableDeepLinks.value)
   const cognito = new Cognito(console, enableDeepLinks.value, amplifyConfig)
+
+  if (detect.isOnElectron()) {
+    // To handle redirects back to the application from the system browser, a custom URL handler
+    // needs to be registered.
+    setDeepLinkHandler((url) => void router.push(url), cognito)
+  }
 
   return { cognito, registerAuthEventListener: listen.registerAuthEventListener }
 }
 
 /** Return the appropriate Amplify configuration for the current platform. */
 function loadAmplifyConfig(
-  logger: Logger,
   supportsDeepLinks: boolean,
-  navigate: (url: string) => void,
 ): AmplifyConfig {
   let urlOpener: ((url: string) => void) | null = null
   let saveAccessToken: ((accessToken: saveAccessTokenModule.AccessToken | null) => void) | null =
@@ -156,6 +153,7 @@ function loadAmplifyConfig(
       authentication.saveAccessToken(accessToken)
     }
   }
+  console.debug('Just checking', supportsDeepLinks, window.api)
   if (supportsDeepLinks && window.api != null) {
     const { authentication } = window.api
     // The default URL opener opens the URL in the desktop app, but the user should be sent to
@@ -167,26 +165,22 @@ function loadAmplifyConfig(
     // Note: Wrapping this function in an arrow function ensures that the current Authentication API
     // is always used.
     urlOpener = (url: string) => {
+      console.debug('Opening URL in System Browser', url)
       authentication.openUrlInSystemBrowser(url)
     }
   }
-  if (detect.isOnElectron()) {
-    // To handle redirects back to the application from the system browser, a custom URL handler
-    // needs to be registered.
-    setDeepLinkHandler(logger, navigate)
-  }
+  console.debug('urlOpener', urlOpener)
 
   /** Load the platform-specific Amplify configuration. */
-  const signInOutRedirect =
-    supportsDeepLinks ? `${common.DEEP_LINK_SCHEME}://auth` : window.location.origin
+  const signInOutRedirect = [...(supportsDeepLinks ? [`${common.DEEP_LINK_SCHEME}://auth`] : []), window.location.origin]
   return {
     endpoint: $config.AUTH_ENDPOINT,
     userPoolId: $config.COGNITO_USER_POOL_ID ?? '',
     userPoolWebClientId: $config.COGNITO_USER_POOL_WEB_CLIENT_ID ?? '',
     domain: $config.COGNITO_DOMAIN ?? '',
     region: $config.COGNITO_REGION ?? '',
-    redirectSignIn: signInOutRedirect,
-    redirectSignOut: signInOutRedirect,
+    redirectsSignIn: signInOutRedirect,
+    redirectsSignOut: signInOutRedirect,
     scope: ['email', 'openid', 'aws.cognito.signin.user.admin'],
     responseType: 'code',
     urlOpener,
@@ -213,11 +207,11 @@ function loadAmplifyConfig(
  * All URLs that don't have a pathname that starts with `AUTHENTICATION_PATHNAME_BASE` will be
  * ignored by this handler.
  */
-function setDeepLinkHandler(logger: Logger, navigate: (url: string) => void) {
+function setDeepLinkHandler(navigate: (url: string) => void, cognito: Cognito) {
   window.api?.authentication.setDeepLinkHandler((urlString: string) => {
     const result = parseEnsoDeeplink(urlString)
     if (!result.ok) {
-      logger.log(result.error.message())
+      console.log(result.error.message())
       return
     }
     const deeplink = result.value
@@ -248,47 +242,22 @@ function setDeepLinkHandler(logger: Logger, navigate: (url: string) => void) {
           navigate(appUtils.LOGIN_PATH)
         } else {
           // Signing in.
-          void (async () => {
-            // Try to find `error_description` and `error` in search params. This means something went wrong e.g
-            // missing user email address while using microsoft account.
-            const queryParams = new URLSearchParams(deeplink.search)
-            const error = queryParams.get('error')
-            const errorDescription = queryParams.get('error_description')
-            const text = useText()
-            if (error && errorDescription) {
-              if (errorDescription?.includes('Missing required user email value')) {
-                toastify.toast.error(text.getText('missingEmailError'))
-              } else {
-                toastify.toast.error(text.getText('registrationError'))
-              }
-            } else {
-              // Temporarily override the `history` object so that Amplify doesn't try to call
-              // `history.replaceState` (which doesn't work in the renderer process because of
-              // Electron's `webSecurity`). This is a hack, but it is the only way to get Amplify to
-              // work with a custom URL protocol in Electron.
-              // `history.replaceState` is only being saved here to be restored later.
-              // It will never be called without a bound `this`.
-              const replaceState = history.replaceState
-              history.replaceState = () => false
-              try {
-                // `_handleAuthResponse` is a private method without typings.
-                // amplify.handleAuthResponse
-                const config = Amplify.getConfig().Auth?.Cognito
-                await (amplify as any)['completeOAuthFlow']({
-                  currentUrl: urlString,
-                  clientId: config?.userPoolClientId,
-                  domain: config?.loginWith?.oauth?.domain,
-                  redirectUri: config?.loginWith?.oauth?.redirectSignIn,
-                  responseType: config?.loginWith?.oauth?.responseType,
-                })
 
-                navigate(appUtils.DASHBOARD_PATH)
-              } finally {
-                // Restore the original `history.replaceState` function.
-                history.replaceState = replaceState
-              }
-            }
-          })()
+          // Temporarily override the `history` object so that Amplify doesn't try to call
+          // `history.replaceState` (which doesn't work in the renderer process because of
+          // Electron's `webSecurity`). This is a hack, but it is the only way to get Amplify to
+          // work with a custom URL protocol in Electron.
+          // `history.replaceState` is only being saved here to be restored later.
+          // It will never be called without a bound `this`.
+          const replaceState = history.replaceState
+          history.replaceState = () => false
+          try {
+            cognito.resolveOngoingLogin({ type: 'success', url: urlString })
+          } finally {
+            // Restore the original `history.replaceState` function.
+            history.replaceState = replaceState
+          }
+          break
         }
         break
       }

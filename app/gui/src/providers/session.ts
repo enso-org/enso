@@ -175,7 +175,10 @@ export function createSessionStore(
     return () =>
       signIn().then(
         () => true,
-        () => false,
+        (error) => {
+          console.warn('Failed to sign in', error)
+          return false
+        },
       )
   }
 

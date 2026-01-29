@@ -257,6 +257,8 @@ export interface ISessionProvider {
  * The caller can then handle them via pattern matching on the {@link results.Result} type.
  */
 export class Cognito implements ISessionProvider {
+  public resolveOngoingLogin: (result: Awaited<ReturnType<NonNullable<NonNullable<amplify.SignInWithRedirectInput['options']>['authSessionOpener']>>>) => void = () => {}
+
   /** Create a new Cognito wrapper. */
   constructor(
     private readonly logger: loggerProvider.Logger,
@@ -350,9 +352,11 @@ export class Cognito implements ISessionProvider {
    */
   async signInWithApple() {
     const customState = this.customState()
+    const options = this.signInWithRedirectOptions()
     await amplify.signInWithRedirect({
       provider: 'Apple',
       ...(customState != null ? { customState } : {}),
+      options,
     })
   }
 
@@ -365,22 +369,26 @@ export class Cognito implements ISessionProvider {
    */
   async signInWithGoogle() {
     const customState = this.customState()
+    const options = this.signInWithRedirectOptions()
     await amplify.signInWithRedirect({
       provider: 'Google',
       ...(customState != null ? { customState } : {}),
+      options
     })
   }
 
   /**
    * Sign in via the GitHub federated identity provider.
-   *
+   * 
    * This function will open the GitHub authentication page in the user's browser. The user will
    * be asked to log in to their GitHub account, and then to grant access to the application.
    * After the user has granted access, the browser will be redirected to the application.
    */
   async signInWithGitHub() {
+    const options = this.signInWithRedirectOptions()
     await amplify.signInWithRedirect({
       provider: { custom: GITHUB_PROVIDER },
+      options
     })
   }
 
@@ -392,9 +400,30 @@ export class Cognito implements ISessionProvider {
    * After the user has granted access, the browser will be redirected to the application.
    */
   async signInWithMicrosoft() {
+    const options = this.signInWithRedirectOptions()
     await amplify.signInWithRedirect({
       provider: { custom: MICROSOFT_PROVIDER },
+      options
     })
+  }
+
+  private signInWithRedirectOptions(): NonNullable<amplify.SignInWithRedirectInput['options']> {
+    const urlOpener = this.amplifyConfig.urlOpener
+    if (!urlOpener) return {}
+    return {
+      authSessionOpener: (urlString) => {
+        try {
+          urlOpener(urlString)
+          // return Promise.resolve({ type: 'success'})
+          return new Promise((resolve) => this.resolveOngoingLogin = resolve)
+        } catch (error) {
+          return Promise.resolve({
+            error,
+            type: 'error'
+          })
+        }
+      }
+    }
   }
 
   /**
@@ -406,7 +435,6 @@ export class Cognito implements ISessionProvider {
     const result = await results.Result.wrapAsync(() =>
       amplify.signIn({ username: username.toLowerCase(), password }),
     )
-    void this.email()
 
     return result.mapErr(intoAmplifyErrorOrThrow).mapErr(intoSignInWithPasswordErrorOrThrow)
   }
@@ -433,13 +461,13 @@ export class Cognito implements ISessionProvider {
     // any other errors that might occur during sign out, that we really shouldn't be catching. This
     // also has the unintended consequence of delaying the sign out process by a few seconds (until
     // the timeout occurs).
-    try {
-      await amplify.signOut()
-    } catch (error) {
-      this.logger.error('Sign out failed', error)
-    } finally {
-      await amplify.signOut()
-    }
+    // try {
+      await amplify.signOut({ global: false, oauth: { redirectUrl: window.location.origin }})
+    // } catch (error) {
+    //   this.logger.error('Sign out failed', error)
+    // } finally {
+    //   await amplify.signOut()
+    // }
   }
 
   /**
@@ -493,9 +521,9 @@ export class Cognito implements ISessionProvider {
   async setupTOTP() {
     const email = await this.email()
     const result = (await results.Result.wrapAsync(() => amplify.setUpTOTP())).map((data) => {
-      const str = 'otpauth://totp/AWSCognito:' + email + '?secret=' + data + '&issuer=' + 'Enso'
+      const str = data.getSetupUri('Enso', email)
 
-      return { secret: data.sharedSecret, url: str } as const
+      return { secret: data.sharedSecret, url: str.toString() } as const
     })
 
     return result.mapErr(intoAmplifyErrorOrThrow)

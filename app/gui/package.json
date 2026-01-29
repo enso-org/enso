@@ -203,7 +203,6 @@
     "zip-stream": "^7.0.2"
   },
   "overrides": {
-    "@aws-amplify/auth": "../_IGNORED_",
     "react-native-url-polyfill": "../_IGNORED_"
   }
 }
