@@ -111,7 +111,7 @@ final class DateTimeBuilder extends TypedBuilder<ZonedDateTime> {
     return seal(null);
   }
 
-  ColumnStorage<ZonedDateTime> seal(ColumnStorage<?> other) {
+  final ColumnStorage<ZonedDateTime> seal(ColumnStorage<?> other) {
     return new TypedStorage<>(getStorageType(), data, other);
   }
 

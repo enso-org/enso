@@ -46,7 +46,7 @@ final class TimeOfDayBuilder extends TypedBuilder<LocalTime> {
       try {
         data[currentSize++] = (LocalTime) o;
       } catch (ClassCastException e) {
-        throw new ValueTypeMismatchException(TimeOfDayType.INSTANCE, o);
+        throw new ValueTypeMismatchException(getStorageType(), o);
       }
     }
     return this;
@@ -57,7 +57,7 @@ final class TimeOfDayBuilder extends TypedBuilder<LocalTime> {
     return o instanceof LocalTime;
   }
 
-  ColumnStorage<LocalTime> seal(ColumnStorage<?> otherStorage) {
+  final ColumnStorage<LocalTime> seal(ColumnStorage<?> otherStorage) {
     return new TypedStorage<>(getStorageType(), data, otherStorage);
   }
 }

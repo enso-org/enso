@@ -247,7 +247,7 @@ final class LongBuilder extends ValidityBuilder implements BuilderForLong, Build
    * @param otherStorage storage to copy size from if non-{@code null}
    * @return locally copied storage
    */
-  LongStorage seal(ColumnStorage<?> otherStorage) {
+  final LongStorage seal(ColumnStorage<?> otherStorage) {
     ensureFreeSpaceFor(0);
     var buf = data.asReadOnlyBuffer().position(0).limit(currentSize);
     var validity = this.validityMap();
