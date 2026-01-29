@@ -5,7 +5,6 @@ import java.nio.ByteOrder;
 import java.time.LocalTime;
 import java.util.BitSet;
 import org.enso.table.data.column.storage.ColumnStorage;
-import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.TypedStorage;
 import org.enso.table.data.column.storage.type.TimeOfDayType;
 import org.enso.table.error.ValueTypeMismatchException;
@@ -58,7 +57,7 @@ final class TimeOfDayBuilder extends TypedBuilder<LocalTime> {
     return o instanceof LocalTime;
   }
 
-  Storage<LocalTime> seal(ColumnStorage<?> otherStorage) {
+  ColumnStorage<LocalTime> seal(ColumnStorage<?> otherStorage) {
     return new TypedStorage<>(getStorageType(), data, otherStorage);
   }
 }

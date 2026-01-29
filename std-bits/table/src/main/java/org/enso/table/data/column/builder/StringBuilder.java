@@ -5,7 +5,6 @@ import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
 import java.util.BitSet;
 import org.enso.table.data.column.storage.ColumnStorage;
-import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.TypedStorage;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.column.storage.type.TextType;
@@ -97,7 +96,7 @@ final class StringBuilder extends TypedBuilder<String> {
     return b;
   }
 
-  Storage<String> seal(ColumnStorage<?> otherStorage) {
+  ColumnStorage<String> seal(ColumnStorage<?> otherStorage) {
     return new TypedStorage<>(getStorageType(), data, otherStorage);
   }
 }

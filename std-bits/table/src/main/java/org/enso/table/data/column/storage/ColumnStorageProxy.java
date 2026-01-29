@@ -4,7 +4,7 @@ import java.util.function.LongFunction;
 import org.enso.table.data.column.storage.iterators.*;
 import org.enso.table.data.column.storage.type.*;
 
-public class ColumnStorageProxy<T> extends Storage<T> {
+public class ColumnStorageProxy<T> extends AbstractBaseStorage<T> {
   private final long size;
   protected final ColumnStorage<?> originalStorage;
   private final LongFunction<T> getter;

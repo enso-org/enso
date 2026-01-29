@@ -1,11 +1,10 @@
-package org.enso.table.data.column.operation.masks;
+package org.enso.table.data.column.storage;
 
-import org.enso.table.data.column.storage.ColumnLongStorage;
-import org.enso.table.data.column.storage.ValueIsNothingException;
+import org.enso.table.data.column.operation.masks.IndexMapper;
 import org.enso.table.data.column.storage.iterators.ColumnLongStorageIterator;
 import org.enso.table.data.column.storage.iterators.LongStorageIterator;
 
-final class MaskedStorageLong extends MaskedStorage<Long> implements ColumnLongStorage {
+public final class MaskedStorageLong extends MaskedStorage<Long> implements ColumnLongStorage {
   private final ColumnLongStorage parent;
 
   public MaskedStorageLong(ColumnLongStorage parent, IndexMapper indexMapper) {

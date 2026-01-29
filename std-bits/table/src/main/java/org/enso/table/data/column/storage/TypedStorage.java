@@ -11,7 +11,7 @@ import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.data.column.storage.type.TimeOfDayType;
 import org.enso.table.util.ImmutableBitSet;
 
-public class TypedStorage<T> extends Storage<T> {
+public class TypedStorage<T> extends AbstractBaseStorage<T> {
   private final T[] data;
   private final ColumnStorage<?> proxy;
   private ByteBuffer offheapBuffer;

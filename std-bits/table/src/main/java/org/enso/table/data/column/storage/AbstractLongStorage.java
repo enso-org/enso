@@ -4,7 +4,8 @@ import org.enso.table.data.column.storage.iterators.ColumnLongStorageIterator;
 import org.enso.table.data.column.storage.iterators.LongStorageIterator;
 import org.enso.table.data.column.storage.type.IntegerType;
 
-public abstract class AbstractLongStorage extends Storage<Long> implements ColumnLongStorage {
+public abstract class AbstractLongStorage extends AbstractBaseStorage<Long>
+    implements ColumnLongStorage {
   private final long size;
 
   protected AbstractLongStorage(long size, IntegerType type) {

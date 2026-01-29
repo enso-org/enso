@@ -5,6 +5,11 @@ import java.util.NoSuchElementException;
 
 /** Basic interface of a column storage. */
 public interface ColumnStorage<T> extends Iterable<T> {
+  /* Allow getting the next unique key for a ColumnStorage without using the AbstractBaseStorage. */
+  static long getNextUniqueKey() {
+    return AbstractBaseStorage.atomicCounter.incrementAndGet();
+  }
+
   /* Gets a unique key for the storage. This is used for internal caching. */
   long uniqueKey();
 
