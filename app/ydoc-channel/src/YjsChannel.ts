@@ -43,6 +43,7 @@ export class YjsChannel<T = unknown> extends ObservableV2<WebSocketEventHandlers
   private readonly array: Y.Array<T>
   private readonly handlers: Set<MessageHandler<T>> = new Set()
   private readonly observeHandler: (event: Y.YArrayEvent<T>, tr: Y.Transaction) => void
+  private hasMessageListeners = false
 
   /**
    * Creates a new YjsChannel.
@@ -58,6 +59,11 @@ export class YjsChannel<T = unknown> extends ObservableV2<WebSocketEventHandlers
     this.observeHandler = (event: Y.YArrayEvent<T>, transaction: Y.Transaction) => {
       // Only notify handlers if the message is from another sender
       if (transaction.origin !== this.senderId) {
+        // If no handlers are subscribed, leave items in the array for later processing.
+        // This handles the race condition where messages arrive before handlers are attached.
+        if (this.handlers.size === 0 && !this.hasMessageListeners) {
+          return
+        }
         doc.transact(() => {
           // Process all added items
           for (const delta of event.changes.delta) {
@@ -91,6 +97,25 @@ export class YjsChannel<T = unknown> extends ObservableV2<WebSocketEventHandlers
    */
   subscribe(handler: MessageHandler<T>): () => void {
     this.handlers.add(handler)
+
+    // Process any existing items in the array that arrived before subscription
+    // This handles the race condition where messages arrive before observers are attached
+    if (this.array.length > 0) {
+      this.doc.transact(() => {
+        while (this.array.length > 0) {
+          const item = this.array.get(0)
+          try {
+            handler(item)
+          } catch (e) {
+            const error = new Error(`Failed to handle existing message: ${e}`)
+            ;(error as any).target = e
+            this.emitError(error)
+          }
+          this.array.delete(0)
+        }
+      }, this.senderId)
+    }
+
     return () => {
       this.handlers.delete(handler)
     }
@@ -126,6 +151,30 @@ export class YjsChannel<T = unknown> extends ObservableV2<WebSocketEventHandlers
       // Don't add to listeners if 'once' option is set
       if (options?.once) {
         return cb
+      }
+    }
+
+    // If subscribing to 'message' event, mark that we have listeners and process existing items.
+    if (type === 'message') {
+      this.hasMessageListeners = true
+
+      // Process any existing items in the array that arrived before subscription.
+      // This handles the race condition where messages arrive before observers are attached.
+      if (this.array.length > 0) {
+        this.doc.transact(() => {
+          while (this.array.length > 0) {
+            const item = this.array.get(0)
+            const messageEvent = { data: item } as MessageEvent
+            try {
+              cb(messageEvent as WebSocketEventMap[K])
+            } catch (e) {
+              const error = new Error(`Failed to handle existing message: ${e}`)
+              ;(error as any).target = e
+              this.emitError(error)
+            }
+            this.array.delete(0)
+          }
+        }, this.senderId)
       }
     }
 

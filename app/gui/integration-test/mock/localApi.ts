@@ -383,8 +383,11 @@ export async function mockLocalApi(page: Page) {
       }
     }
 
-    /** Set up the mock JSON-RPC channel handler */
-    function setupMockLsChannel(channel: YjsChannel<string>) {
+    /** Set up the mock JSON-RPC channel handler with its associated data channel */
+    function setupMockLsChannel(
+      channel: YjsChannel<string>,
+      associatedDataChannel: YjsChannel<Uint8Array> | null,
+    ) {
       channel.subscribe(async (messageRaw) => {
         const { method, params, jsonrpc, id } = JSON.parse(messageRaw)
         try {
@@ -394,8 +397,9 @@ export async function mockLocalApi(page: Page) {
               params,
               (message) => channel.send(JSON.stringify({ jsonrpc, ...message })),
               (binaryData?: ArrayBuffer) => {
-                if (binaryData && dataChannel) {
-                  dataChannel.send(new Uint8Array(binaryData))
+                // Use the associated data channel for this connection
+                if (binaryData && associatedDataChannel) {
+                  associatedDataChannel.send(new Uint8Array(binaryData))
                 }
               },
             )) ?? null
@@ -408,12 +412,24 @@ export async function mockLocalApi(page: Page) {
 
     /** Set up the mock binary data channel handler */
     function setupMockDataChannel(channel: YjsChannel<Uint8Array>) {
+      // Also set the global dataChannel for updateVisualization API
       dataChannel = channel
       channel.subscribe(async (messageRaw) => {
-        const data =
-          typeof messageRaw === 'string' ? new TextEncoder().encode(messageRaw).buffer
-          : messageRaw instanceof ArrayBuffer ? messageRaw
-          : (messageRaw.buffer as ArrayBuffer)
+        let data: ArrayBuffer
+        if (typeof messageRaw === 'string') {
+          data = new TextEncoder().encode(messageRaw).buffer as ArrayBuffer
+        } else if (messageRaw instanceof ArrayBuffer) {
+          data = messageRaw
+        } else if (messageRaw instanceof Uint8Array) {
+          // Important: Use slice to get a copy of just the relevant portion
+          // because messageRaw.buffer may include data beyond the Uint8Array's view
+          data = messageRaw.buffer.slice(
+            messageRaw.byteOffset,
+            messageRaw.byteOffset + messageRaw.byteLength,
+          ) as ArrayBuffer
+        } else {
+          data = (messageRaw as any).buffer as ArrayBuffer
+        }
         const response = await mockDataHandler(data)
         if (response) {
           channel.send(new Uint8Array(response))
@@ -432,13 +448,15 @@ export async function mockLocalApi(page: Page) {
       const _connection = new YjsConnection(mockWs, wsDoc)
       mockYdocProvider(room, wsDoc.doc)
 
+      // Create the data channel first so it can be associated with the LS channel
+      let binaryChannel: YjsChannel<Uint8Array> | null = null
+      if (dataUrl) {
+        binaryChannel = new YjsChannel<Uint8Array>(wsDoc.doc, dataUrl)
+        setupMockDataChannel(binaryChannel)
+      }
       if (lsUrl) {
         const lsChannel = new YjsChannel<string>(wsDoc.doc, lsUrl)
-        setupMockLsChannel(lsChannel)
-      }
-      if (dataUrl) {
-        const binaryChannel = new YjsChannel<Uint8Array>(wsDoc.doc, dataUrl)
-        setupMockDataChannel(binaryChannel)
+        setupMockLsChannel(lsChannel, binaryChannel)
       }
     })
 
