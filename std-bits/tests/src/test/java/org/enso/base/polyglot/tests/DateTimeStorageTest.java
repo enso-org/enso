@@ -3,11 +3,10 @@ package org.enso.base.polyglot.tests;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotSame;
 
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.time.ZoneOffset;
-import java.time.ZonedDateTime;
+import java.lang.reflect.Proxy;
+import java.time.*;
 import org.enso.table.data.column.builder.Builder;
+import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.test.utils.ContextUtils;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
@@ -29,10 +28,20 @@ public class DateTimeStorageTest {
     var two = LocalDateTime.of(2006, 8, 23, 6, 13);
     b.append(one).appendNulls(1).append(two);
     var storage = b.seal();
-    var localStorage = Builder.makeLocal(storage);
+
+    @SuppressWarnings("unchecked")
+    var proxyStorage =
+        (ColumnStorage<ZonedDateTime>)
+            Proxy.newProxyInstance(
+                ColumnStorage.class.getClassLoader(),
+                new Class[] {ColumnStorage.class},
+                Proxy.getInvocationHandler(storage));
+    var localStorage = Builder.makeLocal(proxyStorage);
+
     assertNotSame("local storage is a copy of storage", storage, localStorage);
     assertEquals("They have the same size", storage.getSize(), localStorage.getSize());
-    assertEquals("They have the same type", storage.getType(), localStorage.getType());
+    assertEquals("They have the same type char", storage.typeChar(), localStorage.typeChar());
+    assertEquals("They have the same type size", storage.typeSize(), localStorage.typeSize());
     for (var i = 0L; i < storage.getSize(); i++) {
       var elem = storage.getItemBoxed(i);
       var localElem = localStorage.getItemBoxed(i);
@@ -47,10 +56,20 @@ public class DateTimeStorageTest {
     var two = ZonedDateTime.of(LocalDateTime.of(2006, 8, 23, 6, 13), ZoneOffset.of("+02:00"));
     b.append(one).appendNulls(1).append(two);
     var storage = b.seal();
-    var localStorage = Builder.makeLocal(storage);
+
+    @SuppressWarnings("unchecked")
+    var proxyStorage =
+        (ColumnStorage<ZonedDateTime>)
+            Proxy.newProxyInstance(
+                ColumnStorage.class.getClassLoader(),
+                new Class[] {ColumnStorage.class},
+                Proxy.getInvocationHandler(storage));
+    var localStorage = Builder.makeLocal(proxyStorage);
+
     assertNotSame("local storage is a copy of storage", storage, localStorage);
     assertEquals("They have the same size", storage.getSize(), localStorage.getSize());
-    assertEquals("They have the same type", storage.getType(), localStorage.getType());
+    assertEquals("They have the same type char", storage.typeChar(), localStorage.typeChar());
+    assertEquals("They have the same type size", storage.typeSize(), localStorage.typeSize());
     for (var i = 0L; i < storage.getSize(); i++) {
       var elem = storage.getItemBoxed(i);
       var localElem = localStorage.getItemBoxed(i);
@@ -69,10 +88,20 @@ public class DateTimeStorageTest {
     var three = ZonedDateTime.of(LocalDateTime.of(2020, 10, 23, 23, 2, 3, 4005), ZoneId.of("UTC"));
     b.append(one).appendNulls(1).append(two).append(three);
     var storage = b.seal();
-    var localStorage = Builder.makeLocal(storage);
+
+    @SuppressWarnings("unchecked")
+    var proxyStorage =
+        (ColumnStorage<ZonedDateTime>)
+            Proxy.newProxyInstance(
+                ColumnStorage.class.getClassLoader(),
+                new Class[] {ColumnStorage.class},
+                Proxy.getInvocationHandler(storage));
+    var localStorage = Builder.makeLocal(proxyStorage);
+
     assertNotSame("local storage is a copy of storage", storage, localStorage);
     assertEquals("They have the same size", storage.getSize(), localStorage.getSize());
-    assertEquals("They have the same type", storage.getType(), localStorage.getType());
+    assertEquals("They have the same type char", storage.typeChar(), localStorage.typeChar());
+    assertEquals("They have the same type size", storage.typeSize(), localStorage.typeSize());
     for (var i = 0L; i < storage.getSize(); i++) {
       var elem = storage.getItemBoxed(i);
       var localElem = localStorage.getItemBoxed(i);

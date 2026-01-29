@@ -4,10 +4,13 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotSame;
 
+import java.lang.reflect.Proxy;
 import java.util.Objects;
 import java.util.Random;
 import java.util.stream.LongStream;
 import org.enso.table.data.column.builder.Builder;
+import org.enso.table.data.column.storage.ColumnLongStorage;
+import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.problems.BlackholeProblemAggregator;
 import org.enso.table.problems.ProblemAggregator;
@@ -31,7 +34,15 @@ public class LongStorageTest {
     var b = Builder.getForLong(IntegerType.INT_64, 3, problemAggregator());
     b.append(1).appendNulls(1).append(2);
     var storage = b.seal();
-    var localStorage = Builder.makeLocal(storage, true);
+
+    var proxyStorage =
+        (ColumnLongStorage)
+            Proxy.newProxyInstance(
+                ColumnStorage.class.getClassLoader(),
+                new Class[] {ColumnLongStorage.class},
+                Proxy.getInvocationHandler(storage));
+    var localStorage = Builder.makeLocal(proxyStorage);
+
     assertNotSame("local storage is a copy of storage", storage, localStorage);
     assertEquals(
         "They have data at the same address",
@@ -52,7 +63,15 @@ public class LongStorageTest {
     var b = Builder.getForLong(IntegerType.INT_32, 3, problemAggregator());
     b.append(1).appendNulls(1).append(2);
     var storage = b.seal();
-    var localStorage = Builder.makeLocal(storage, true);
+
+    var proxyStorage =
+        (ColumnLongStorage)
+            Proxy.newProxyInstance(
+                ColumnStorage.class.getClassLoader(),
+                new Class[] {ColumnLongStorage.class},
+                Proxy.getInvocationHandler(storage));
+    var localStorage = Builder.makeLocal(proxyStorage);
+
     assertNotSame("local storage is a copy of storage", storage, localStorage);
     assertEquals(
         "They have data at the same address",

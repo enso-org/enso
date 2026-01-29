@@ -4,11 +4,13 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotSame;
 
+import java.lang.reflect.Proxy;
 import java.time.LocalDate;
 import java.util.Objects;
 import java.util.Random;
 import java.util.stream.IntStream;
 import org.enso.table.data.column.builder.Builder;
+import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.test.utils.ContextUtils;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
@@ -31,7 +33,16 @@ public class DateStorageTest {
     var two = LocalDate.of(1975, 5, 3);
     b.append(one).appendNulls(1).append(two);
     var storage = b.seal();
-    var localStorage = Builder.makeLocal(storage, true);
+
+    @SuppressWarnings("unchecked")
+    var proxyStorage =
+        (ColumnStorage<LocalDate>)
+            Proxy.newProxyInstance(
+                ColumnStorage.class.getClassLoader(),
+                new Class[] {ColumnStorage.class},
+                Proxy.getInvocationHandler(storage));
+    var localStorage = Builder.makeLocal(proxyStorage);
+
     assertNotSame("local storage is a copy of storage", storage, localStorage);
     assertEquals("They have the same size", storage.getSize(), localStorage.getSize());
     assertEquals("They have the same type char", storage.typeChar(), localStorage.typeChar());
@@ -67,7 +78,7 @@ public class DateStorageTest {
     r.mapToObj(LocalDate::ofEpochDay).forEach(b::append);
     var storage = b.seal();
     assertEquals("Storage has the right size: " + storage, size, storage.getSize());
-    assertNotEquals("Storage provides acccess to raw data", 0L, storage.addressOfData());
+    assertNotEquals("Storage provides access to raw data", 0L, storage.addressOfData());
     assertNotEquals("Storage provides access to validity bitmap", 0L, storage.addressOfValidity());
 
     var arr =
