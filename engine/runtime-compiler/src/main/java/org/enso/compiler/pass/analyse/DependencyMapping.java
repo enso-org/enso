@@ -51,7 +51,8 @@ public final class DependencyMapping {
    * @return the set of all components associated with `key`
    * @throws NoSuchElementException when `key` does not exist in the dependencies mapping
    */
-  Set<DependencyInfo.Type> apply(DependencyInfo.Type key) throws NoSuchElementException {
+  public /* only used from tests */ Set<DependencyInfo.Type> apply(DependencyInfo.Type key)
+      throws NoSuchElementException {
     if (mapping.contains(key)) {
       var opt = get(key);
       if (opt.isDefined()) {
@@ -73,7 +74,8 @@ public final class DependencyMapping {
    * @param key the key to get the associated components of
    * @return the set of the components directly associated with `key`, if it exists
    */
-  Option<Set<DependencyInfo.Type>> getDirect(DependencyInfo.Type key) {
+  public /* used by tests only */ Option<Set<DependencyInfo.Type>> getDirect(
+      DependencyInfo.Type key) {
     return mapping.get(key);
   }
 
@@ -84,7 +86,8 @@ public final class DependencyMapping {
    * @return the set of external identifiers for the direct dependencies of `key`, if they exist
    */
   @SuppressWarnings("unchecked")
-  Option<Set<@ExternalID UUID>> getExternalDirect(DependencyInfo.Type key) {
+  public /* used by tests only */ Option<Set<@ExternalID UUID>> getExternalDirect(
+      DependencyInfo.Type key) {
     var res = getDirect(key).map(m -> m.flatMap(id -> id.externalId()));
     return (Option<Set<@ExternalID UUID>>) (Object) res;
   }
@@ -147,11 +150,17 @@ public final class DependencyMapping {
   }
 
   /**
-   * Executes an update on the association information.
+   * Executes an update on the association information. Used from scala as
+   *
+   * <pre>
+   * dependencies(ids.head) = Set(ids(1), ids(2))
+   * </pre>
    *
    * @param key the key to update the associations for
    * @param newDependents the updated associations for `key`
    */
+  public
+  /** only needed from tests */
   void update(DependencyInfo.Type key, Set<DependencyInfo.Type> newDependents) {
     mapping.put(key, newDependents);
   }
@@ -162,7 +171,8 @@ public final class DependencyMapping {
    * @param key the key to add or update associations for
    * @param newDependents the new associations information for `key`
    */
-  void updateAt(DependencyInfo.Type key, Set<DependencyInfo.Type> newDependents) {
+  public /* used by tests only */ void updateAt(
+      DependencyInfo.Type key, Set<DependencyInfo.Type> newDependents) {
     if (mapping.contains(key)) {
       var set = mapping.apply(key);
       set.$plus$plus(newDependents);
@@ -192,7 +202,7 @@ public final class DependencyMapping {
    * @return the result of combining `this` and `that`
    */
   @SuppressWarnings("unchecked")
-  final DependencyMapping combine(DependencyMapping that) {
+  public /* used by tests only */ final DependencyMapping combine(DependencyMapping that) {
     var combinedModule = new DependencyMapping(this.mapping);
 
     that.mapping.foreach(
