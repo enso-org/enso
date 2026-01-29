@@ -201,7 +201,6 @@ public final class DependencyMapping {
    * @param that the other container to combine with `this`
    * @return the result of combining `this` and `that`
    */
-  @SuppressWarnings("unchecked")
   public /* used by tests only */ final DependencyMapping combine(DependencyMapping that) {
     var combinedModule = new DependencyMapping(this.mapping);
 
@@ -211,8 +210,8 @@ public final class DependencyMapping {
           var value = tupple._2();
           if (combinedModule.mapping.contains(key)) {
             var xs = combinedModule.mapping.get(key);
-            var both = (Set<DependencyInfo.Type>) value.$plus$plus(xs);
-            combinedModule.mapping.put(key, both);
+            var both = value.$plus$plus(xs.get());
+            combinedModule.mapping.put(key, both.toSet());
           } else {
             combinedModule.mapping.put(key, value);
           }
