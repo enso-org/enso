@@ -3,19 +3,15 @@
  * wrapper, along with some convenience callbacks to make URL redirects for the authentication flows
  * work with Electron.
  */
-import type { Logger } from '#/providers/LoggerProvider'
 import * as appUtils from '$/appUtils'
 import { Cognito } from '$/authentication/cognito'
 import * as listen from '$/authentication/listen'
 import { useFeatureFlag } from '$/providers/featureFlags'
-import { useText } from '$/providers/text'
 import { parseEnsoDeeplink } from '@/util/url'
 import { Amplify } from 'aws-amplify'
-import * as amplify from 'aws-amplify/auth'
 import type * as saveAccessTokenModule from 'enso-common/src/accessToken'
 import * as common from 'enso-common/src/constants'
 import * as detect from 'enso-common/src/utilities/detect'
-import * as toastify from 'react-toastify'
 import { useRouter } from 'vue-router'
 
 /**
@@ -136,9 +132,7 @@ export function useInitAuthService(): AuthService {
 }
 
 /** Return the appropriate Amplify configuration for the current platform. */
-function loadAmplifyConfig(
-  supportsDeepLinks: boolean,
-): AmplifyConfig {
+function loadAmplifyConfig(supportsDeepLinks: boolean): AmplifyConfig {
   let urlOpener: ((url: string) => void) | null = null
   let saveAccessToken: ((accessToken: saveAccessTokenModule.AccessToken | null) => void) | null =
     null
@@ -153,7 +147,6 @@ function loadAmplifyConfig(
       authentication.saveAccessToken(accessToken)
     }
   }
-  console.debug('Just checking', supportsDeepLinks, window.api)
   if (supportsDeepLinks && window.api != null) {
     const { authentication } = window.api
     // The default URL opener opens the URL in the desktop app, but the user should be sent to
@@ -165,14 +158,15 @@ function loadAmplifyConfig(
     // Note: Wrapping this function in an arrow function ensures that the current Authentication API
     // is always used.
     urlOpener = (url: string) => {
-      console.debug('Opening URL in System Browser', url)
       authentication.openUrlInSystemBrowser(url)
     }
   }
-  console.debug('urlOpener', urlOpener)
 
   /** Load the platform-specific Amplify configuration. */
-  const signInOutRedirect = [...(supportsDeepLinks ? [`${common.DEEP_LINK_SCHEME}://auth`] : []), window.location.origin]
+  const signInOutRedirect = [
+    ...(supportsDeepLinks ? [`${common.DEEP_LINK_SCHEME}://auth`] : []),
+    window.location.origin,
+  ]
   return {
     endpoint: $config.AUTH_ENDPOINT,
     userPoolId: $config.COGNITO_USER_POOL_ID ?? '',
