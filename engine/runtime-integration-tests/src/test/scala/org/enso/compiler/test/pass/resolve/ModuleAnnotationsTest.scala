@@ -68,7 +68,9 @@ class ModuleAnnotationsTest extends CompilerTest {
       ir.bindings.length shouldEqual 1
       ir.bindings.head shouldBe a[Definition.SugaredType]
       val anns =
-        ir.bindings.head.unsafeGetMetadata(ModuleAnnotations, "").annotations
+        ir.bindings.head
+          .unsafeGetMetadata[ModuleAnnotations.Metadata](ModuleAnnotations, "")
+          .annotations
       anns.length shouldEqual 2
       anns.head.asInstanceOf[Name].name shouldEqual "@My_Annotation_1"
       anns(1).asInstanceOf[Name].name shouldEqual "@My_Annotation_2"
@@ -85,7 +87,9 @@ class ModuleAnnotationsTest extends CompilerTest {
       ir.bindings.length shouldEqual 1
       ir.bindings.head shouldBe a[Definition.SugaredType]
       val anns =
-        ir.bindings.head.unsafeGetMetadata(ModuleAnnotations, "").annotations
+        ir.bindings.head
+          .unsafeGetMetadata[ModuleAnnotations.Metadata](ModuleAnnotations, "")
+          .annotations
       anns.length shouldEqual 2
       anns.head.asInstanceOf[Name].name shouldEqual "@My_Annotation_1"
       anns(1).asInstanceOf[Name].name shouldEqual "@My_Annotation_2"
@@ -101,7 +105,9 @@ class ModuleAnnotationsTest extends CompilerTest {
       ir.bindings.length shouldEqual 1
       ir.bindings.head shouldBe a[definition.Method.Binding]
       val anns =
-        ir.bindings.head.unsafeGetMetadata(ModuleAnnotations, "").annotations
+        ir.bindings.head
+          .unsafeGetMetadata[ModuleAnnotations.Metadata](ModuleAnnotations, "")
+          .annotations
       anns.length shouldEqual 2
       anns.head.asInstanceOf[Name].name shouldEqual "@My_Annotation_1"
       anns(1).asInstanceOf[Name].name shouldEqual "@My_Annotation_2"
@@ -117,7 +123,9 @@ class ModuleAnnotationsTest extends CompilerTest {
       ir.bindings.length shouldEqual 2
       ir.bindings()(1) shouldBe a[Definition.SugaredType]
       val anns =
-        ir.bindings()(1).unsafeGetMetadata(ModuleAnnotations, "").annotations
+        ir.bindings()(1)
+          .unsafeGetMetadata[ModuleAnnotations.Metadata](ModuleAnnotations, "")
+          .annotations
       anns.length shouldEqual 1
       anns.head.asInstanceOf[Name].name shouldEqual "@My_Annotation"
     }
