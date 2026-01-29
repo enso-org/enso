@@ -1016,11 +1016,10 @@ private[runtime] class IrToTruffle(
               val runtimeCons =
                 tpe.getConstructors
                   .get(cons.name)
-              val fun = mkConsGetter(runtimeCons)
               scopeBuilder.registerMethod(
                 scopeAssociatedType,
                 name,
-                fun
+                () => mkConsGetter(runtimeCons)
               )
             case BindingsMap.ResolvedModule(module) =>
               val runtimeCons =
@@ -1331,8 +1330,9 @@ private[runtime] class IrToTruffle(
         )
         val childScope = childFactory.scope
 
-        val blockNode = childFactory.processBlock(block.copy(suspended = false))
-
+        val blockNode = childFactory.processBlock(
+          block.copyBuilder().suspended(false).build()
+        )
         val defaultRootNode = ClosureRootNode.build(
           language,
           childScope,

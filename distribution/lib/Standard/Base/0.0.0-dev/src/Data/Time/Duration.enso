@@ -179,8 +179,7 @@ type Duration
 
              example_add = (Duration.new minutes=30) + (Duration.new hours=12)
        ```
-    + : Duration -> Duration ! Time_Error
-    + self that =
+    + self that:Duration -> Duration ! Time_Error =
         ensure_duration that <|
             Panic.catch ArithmeticException (self.plus_builtin that) err->
                 Error.throw (Time_Error.Error err.payload.getMessage)
@@ -203,8 +202,7 @@ type Duration
 
              example_subtract = (Duration.new hours=6) - (Duration.new minutes=30)
        ```
-    - : Duration -> Duration ! Time_Error
-    - self that =
+    - self that:Duration -> Duration ! Time_Error =
         ensure_duration that <|
             Panic.catch ArithmeticException (self.minus_builtin that) err->
                 Error.throw (Time_Error.Error err.payload.getMessage)

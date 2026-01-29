@@ -265,31 +265,33 @@ case object DataflowAnalysis extends IRPass {
       case foreign: Foreign =>
         foreign.updateMetadata(new MetadataPair(this, info))
 
-      case block @ Expression.Block(expressions, returnValue, _, _, _) =>
-        val retValDep = asStatic(returnValue)
+      case block: Expression.Block =>
+        val retValDep = asStatic(block.returnValue)
         val blockDep  = asStatic(block)
         info.dependents.updateAt(retValDep, Set(blockDep))
         info.dependencies.updateAt(blockDep, Set(retValDep))
 
+        val newExprs  = block.expressions().map(analyseExpression(_, info))
+        val newRetVal = analyseExpression(block.returnValue, info)
         block
-          .copy(
-            expressions = expressions.map(analyseExpression(_, info)),
-            returnValue = analyseExpression(returnValue, info)
-          )
+          .copyBuilder()
+          .expressions(newExprs)
+          .returnValue(newRetVal)
+          .build()
           .updateMetadata(new MetadataPair(this, info))
-      case binding @ Expression.Binding(name, expression, _, _) =>
-        val expressionDep = asStatic(expression)
-        val nameDep       = asStatic(name)
+      case binding: Expression.Binding =>
+        val expressionDep = asStatic(binding.expression)
+        val nameDep       = asStatic(binding.name)
         val bindingDep    = asStatic(binding)
         info.dependents.updateAt(expressionDep, Set(bindingDep))
         info.dependents.updateAt(nameDep, Set(bindingDep))
         info.dependencies.updateAt(bindingDep, Set(expressionDep, nameDep))
 
         binding
-          .copy(
-            name       = name.updateMetadata(new MetadataPair(this, info)),
-            expression = analyseExpression(expression, info)
-          )
+          .copyBuilder()
+          .name(binding.name().updateMetadata(new MetadataPair(this, info)))
+          .expression(analyseExpression(binding.expression(), info))
+          .build()
           .updateMetadata(new MetadataPair(this, info))
 
       case error: Error => error

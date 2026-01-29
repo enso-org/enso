@@ -200,25 +200,32 @@ case object TailCallMegaPass extends IRPass {
         throw new CompilerError(
           "Comments should not be present during tail call analysis."
         )
-      case block @ Expression.Block(expressions, returnValue, _, _, _) =>
+      case block: Expression.Block =>
         updateMetaIfInTailPosition(
           isInTailPosition,
           block
-            .copy(
-              expressions = expressions.map(
-                analyseExpression(_, isInTailPosition = false)
-              ),
-              returnValue = analyseExpression(returnValue, isInTailPosition)
+            .copyBuilder()
+            .expressions(
+              block
+                .expressions()
+                .map(
+                  analyseExpression(_, isInTailPosition = false)
+                )
             )
+            .returnValue(
+              analyseExpression(block.returnValue(), isInTailPosition)
+            )
+            .build()
         )
-      case binding @ Expression.Binding(_, expression, _, _) =>
+      case binding: Expression.Binding =>
         updateMetaIfInTailPosition(
           isInTailPosition,
           binding
-            .copy(
-              expression =
-                analyseExpression(expression, isInTailPosition = false)
+            .copyBuilder()
+            .expression(
+              analyseExpression(binding.expression, isInTailPosition = false)
             )
+            .build()
         )
       case err: Diagnostic => updateMetaIfInTailPosition(isInTailPosition, err)
       case _               => expressionWithWarning

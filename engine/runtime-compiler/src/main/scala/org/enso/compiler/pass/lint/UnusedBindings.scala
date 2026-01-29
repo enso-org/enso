@@ -116,12 +116,15 @@ case object UnusedBindings extends IRPass {
 
     if (!isIgnored && !isUsed) {
       binding
-        .copy(expression = runExpression(binding.expression, context))
+        .copyBuilder()
+        .expression(runExpression(binding.expression, context))
+        .build()
         .addDiagnostic(new warnings.Unused.Binding(binding.name))
     } else {
-      binding.copy(
-        expression = runExpression(binding.expression, context)
-      )
+      binding
+        .copyBuilder()
+        .expression(runExpression(binding.expression, context))
+        .build()
     }
   }
 

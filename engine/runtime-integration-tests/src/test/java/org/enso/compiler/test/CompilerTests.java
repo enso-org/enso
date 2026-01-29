@@ -95,7 +95,7 @@ public abstract class CompilerTests {
    * @return string representation of the IR
    */
   private static String simplifyIR(IR ir, boolean noIds, boolean noLocations, boolean lessDocs) {
-    String txt = ir.duplicate(!noLocations, true, true, !noIds).pretty();
+    String txt = ir.duplicate(!noLocations, true, true, !noIds).showCode();
     if (noIds) {
       txt =
           txt.replaceAll(

@@ -169,6 +169,7 @@
 - [Default `Data.fetch` auto-detect to plain text or XML in certain
   cases][14648]
 - [Add `Date_Time_Column.to_utc`.][14649]
+- [Add `Date_Column.first_of_week`.][14674]
 
 [13769]: https://github.com/enso-org/enso/pull/13769
 [14026]: https://github.com/enso-org/enso/pull/14026
@@ -209,6 +210,7 @@
 [14546]: https://github.com/enso-org/enso/pull/14528
 [14648]: https://github.com/enso-org/enso/pull/14648
 [14649]: https://github.com/enso-org/enso/pull/14649
+[14674]: https://github.com/enso-org/enso/pull/14674
 
 #### Enso Language & Runtime
 

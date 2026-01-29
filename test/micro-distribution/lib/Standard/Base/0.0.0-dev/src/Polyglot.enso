@@ -1,4 +1,3 @@
-@Builtin_Type
 type Polyglot
     get_array_size array = @Builtin_Method "Polyglot.get_array_size"
     execute callable arguments = @Builtin_Method "Polyglot.execute"

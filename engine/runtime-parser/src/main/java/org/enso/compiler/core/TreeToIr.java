@@ -151,12 +151,12 @@ final class TreeToIr {
           expressions.remove(expressions.size() - 1);
         }
         yield Option.apply(
-            new Expression.Block(
-                CollectionConverters.asScala(expressions.iterator()).toList(),
-                returnValue,
-                combinedLocation,
-                false,
-                meta()));
+            Expression.Block.builder()
+                .expressions(CollectionConverters.asScala(expressions.iterator()).toList())
+                .returnValue(returnValue)
+                .location(combinedLocation)
+                .suspended(false)
+                .build());
       }
     };
   }
@@ -963,7 +963,12 @@ final class TreeToIr {
             List<DefinitionArgument> args = join(arg_, nil());
             var body = translateExpression(app.getRhs(), false);
             if (body == null) {
-              body = new Expression.Block(nil(), Name.Blank.create(), null, true, meta());
+              body =
+                  Expression.Block.builder()
+                      .expressions(nil())
+                      .returnValue(Name.Blank.create())
+                      .suspended(true)
+                      .build();
             }
             var at =
                 expandToContain(
@@ -1117,8 +1122,12 @@ final class TreeToIr {
           last = Name.Blank.create();
         }
         var block =
-            new Expression.Block(
-                expressions.reverse(), last, getIdentifiedLocation(body), false, meta());
+            Expression.Block.builder()
+                .expressions(expressions.reverse())
+                .returnValue(last)
+                .location(getIdentifiedLocation(body))
+                .suspended(false)
+                .build();
         if (body.getLhs() != null) {
           var fn = translateExpression(body.getLhs(), isMethod);
           List<CallArgument> args = nil();
@@ -1300,7 +1309,12 @@ final class TreeToIr {
       var id = new IdentifiedLocation(start, end, last.location().get().uuid());
       last = last.setLocation(Option.apply(id));
     }
-    return new Expression.Block(list, last, locationWithANewLine, suspended, meta());
+    return Expression.Block.builder()
+        .expressions(list)
+        .returnValue(last)
+        .location(locationWithANewLine)
+        .suspended(suspended)
+        .build();
   }
 
   /** Translate a statement in the body of function. */

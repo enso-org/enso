@@ -404,44 +404,38 @@ case object AliasAnalysis extends IRPass {
         val currentScope =
           if (!block.suspended) builder else builder.addChild()
 
+        val newExprs = block.expressions().map { expr =>
+          analyseExpression(expr, currentScope)
+        }
+        val newRet = analyseExpression(block.returnValue, currentScope)
         val bc = block
-          .copy(
-            expressions = block.expressions.map((expression: Expression) =>
-              analyseExpression(
-                expression,
-                currentScope
-              )
-            ),
-            returnValue = analyseExpression(
-              block.returnValue,
-              currentScope
-            )
-          )
+          .copyBuilder()
+          .expressions(newExprs)
+          .returnValue(newRet)
+          .build()
         alias.AliasMetadata.updateMetadata(
           bc,
           alias.AliasMetadata.ChildScope.from(currentScope)
         )
-      case binding @ Expression.Binding(name, expression, _, _) =>
-        if (builder.findDef(name.name) == null) {
-          val isSuspended = expression match {
-            case Expression.Block(_, _, _, isSuspended, _) => isSuspended
-            case _                                         => false
+      case binding: Expression.Binding =>
+        if (builder.findDef(binding.name.name) == null) {
+          val isSuspended = binding.expression match {
+            case bl: Expression.Block => bl.suspended()
+            case _                    => false
           }
           val occurrence = builder.newDef(
-            name.name,
+            binding.name.name,
             binding.getId(),
             binding.getExternalId,
             isSuspended,
             true
           )
 
+          val newExpr = analyseExpression(binding.expression(), builder)
           val bc = binding
-            .copy(
-              expression = analyseExpression(
-                expression,
-                builder
-              )
-            )
+            .copyBuilder()
+            .expression(newExpr)
+            .build()
           alias.AliasMetadata
             .updateMetadata(
               bc,

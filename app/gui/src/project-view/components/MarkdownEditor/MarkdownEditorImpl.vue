@@ -118,6 +118,8 @@ const { editorView, setExtraExtensions } = useCodeMirror(editorRoot, {
   lineMode: 'multi',
   contentTestId,
   scrollerTestId,
+  // Using `useEditorFocus` instead.
+  disableDeselectOnBlur: true,
 })
 
 useLinkTitles(editorView, { readonly: () => readonly })

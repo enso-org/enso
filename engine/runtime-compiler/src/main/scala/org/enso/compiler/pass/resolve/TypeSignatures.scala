@@ -419,10 +419,11 @@ case object TypeSignatures extends IRPass {
       })
       .toList
 
-    block.copy(
-      expressions = newExpressions.init,
-      returnValue = newExpressions.last
-    )
+    block
+      .copyBuilder()
+      .expressions(newExpressions.init)
+      .returnValue(newExpressions.last)
+      .build()
   }
 
   // === Metadata =============================================================

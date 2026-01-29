@@ -95,12 +95,14 @@ public abstract class EnsoProjectNode extends Node {
     return null;
   }
 
+  @TruffleBoundary
   private static Atom createProjectDescriptionAtom(EnsoContext ctx, Package<TruffleFile> pkg) {
     var rootPath = pkg.root().normalize().getAbsoluteFile().getPath();
     var namespace = pkg.getConfig().namespace();
     var name = pkg.getConfig().name();
-    var cons = ctx.getBuiltins().getProjectDescription().getUniqueConstructor();
-
+    var ensoProject = ctx.getTopScope().getModule("Standard.Base.Meta.Enso_Project").get();
+    var projectDescription = ensoProject.getScope().getType("Project_Description", true);
+    var cons = projectDescription.getSingleConstructor();
     return AtomNewInstanceNode.getUncached().newInstance(cons, rootPath, namespace, name);
   }
 

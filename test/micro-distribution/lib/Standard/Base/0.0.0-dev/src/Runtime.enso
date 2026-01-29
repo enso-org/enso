@@ -10,7 +10,6 @@ import project.Data.Boolean.Boolean.True
 import project.Runtime.Context.Input
 import project.Runtime.Context.Output
 
-@Builtin_Type
 type Context
     Input
     Output

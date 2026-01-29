@@ -201,8 +201,8 @@ case object ComplexType extends IRPass {
         val res = lastSignature
         lastSignature = Some(sig)
         res
-      case binding @ Expression.Binding(name, _, _, _) =>
-        matchSignaturesAndGenerate(name, binding)
+      case binding: Expression.Binding =>
+        matchSignaturesAndGenerate(binding.name(), binding)
       case funSugar: Function.Binding =>
         matchSignaturesAndGenerate(funSugar.name, funSugar)
       case err: Error                  => Seq(err)
@@ -253,15 +253,12 @@ case object ComplexType extends IRPass {
     signature: Option[Type.Ascription]
   ): List[Definition] = {
     ir match {
-      case expressionBinding @ Expression.Binding(
-            name,
-            expr,
-            location,
-            passData
-          ) =>
+      case expressionBinding: Expression.Binding =>
+        val expr = expressionBinding.expression()
+        val name = expressionBinding.name()
         val realExpr = expr match {
-          case b @ Expression.Block(_, _, _, suspended, _) if suspended =>
-            b.copy(suspended = false)
+          case b: Expression.Block if b.suspended =>
+            b.copyBuilder().suspended(false).build()
           case _ => expr
         }
 
@@ -271,8 +268,8 @@ case object ComplexType extends IRPass {
           List(),
           realExpr,
           false,
-          location,
-          passData,
+          expressionBinding.identifiedLocation(),
+          expressionBinding.passData(),
           expressionBinding.diagnosticsCopy,
           signature
         )

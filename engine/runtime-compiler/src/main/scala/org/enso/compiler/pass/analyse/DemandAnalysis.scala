@@ -116,20 +116,23 @@ case object DemandAnalysis extends IRPass {
         analyseType(typ, isInsideCallArgument)
       case cse: Case =>
         analyseCase(cse, isInsideCallArgument)
-      case block @ Expression.Block(expressions, retVal, _, _, _) =>
-        block.copy(
-          expressions = expressions.map(x =>
-            analyseExpression(x, isInsideCallArgument = false)
-          ),
-          returnValue = analyseExpression(retVal, isInsideCallArgument = false)
+      case block: Expression.Block =>
+        val newExprs = block.expressions.map(x =>
+          analyseExpression(x, isInsideCallArgument = false)
         )
-      case binding @ Expression.Binding(_, expression, _, _) =>
-        binding.copy(expression =
-          analyseExpression(
-            expression,
-            isInsideCallArgument = false
+        block
+          .copyBuilder()
+          .expressions(newExprs)
+          .returnValue(
+            analyseExpression(block.returnValue, isInsideCallArgument = false)
           )
+          .build()
+      case binding: Expression.Binding =>
+        val newExpr = analyseExpression(
+          binding.expression(),
+          isInsideCallArgument = false
         )
+        binding.copyBuilder().expression(newExpr).build()
       case lit: Literal     => lit
       case err: Error       => err
       case foreign: Foreign => foreign

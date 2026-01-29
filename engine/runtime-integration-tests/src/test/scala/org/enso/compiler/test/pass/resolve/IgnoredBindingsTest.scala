@@ -121,7 +121,7 @@ class IgnoredBindingsTest extends CompilerTest {
 
     "mark the binding as not ignored if it wasn't" in {
       val nonIgnored =
-        bindingBody.expressions(1).asInstanceOf[Expression.Binding]
+        bindingBody.expressions.apply(1).asInstanceOf[Expression.Binding]
 
       nonIgnored.getMetadata(IgnoredBindings) shouldEqual Some(
         State.NotIgnored

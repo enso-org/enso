@@ -86,7 +86,7 @@ class ExpressionAnnotationsTest extends CompilerTest {
 
     "create an error when discovering an unknown annotation" in {
       val unknown =
-        items.expressions(1).asInstanceOf[Application.Prefix].function
+        items.expressions.apply(1).asInstanceOf[Application.Prefix].function
       unknown shouldBe an[errors.Resolution]
       unknown
         .asInstanceOf[errors.Resolution]
@@ -94,7 +94,7 @@ class ExpressionAnnotationsTest extends CompilerTest {
     }
 
     "associate the annotation with the annotated definition" in {
-      val builtinDef = items.expressions(2).asInstanceOf[Literal.Text]
+      val builtinDef = items.expressions.apply(2).asInstanceOf[Literal.Text]
       builtinDef.text shouldEqual "myBuiltin"
       builtinDef
         .unsafeGetMetadata(ExpressionAnnotations, "")
@@ -102,7 +102,8 @@ class ExpressionAnnotationsTest extends CompilerTest {
         .head
         .name shouldEqual ExpressionAnnotations.builtinMethodName
 
-      val parallelDef = items.expressions(3).asInstanceOf[Application.Prefix]
+      val parallelDef =
+        items.expressions.apply(3).asInstanceOf[Application.Prefix]
       parallelDef.function shouldBe a[Name.Literal]
       val fn = parallelDef.function.asInstanceOf[Name.Literal]
       fn.name shouldEqual "f"
@@ -130,8 +131,7 @@ class ExpressionAnnotationsTest extends CompilerTest {
     }
 
     "create an error on a misplaced annotation" in {
-      val misplaced = items
-        .expressions(4)
+      val misplaced = items.expressions.apply(4)
       misplaced shouldBe an[errors.Syntax]
     }
   }

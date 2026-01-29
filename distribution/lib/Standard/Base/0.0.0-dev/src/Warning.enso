@@ -296,6 +296,10 @@ type Warning
     origin : Vector Stack_Trace_Element
     origin self = @Builtin_Method "Warning.origin"
 
+    to_text self = self.value.to_text
+
+    to_display_text self = self.value.to_display_text
+
 
 ## ---
    private: true

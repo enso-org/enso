@@ -11,6 +11,7 @@
   },
   "extends": "../../tsconfig.json",
   "files": [
+    "../vitest.node.base.ts",
     "./buildInfo.ts",
     "./bundle.ts",
     "./dist.ts",

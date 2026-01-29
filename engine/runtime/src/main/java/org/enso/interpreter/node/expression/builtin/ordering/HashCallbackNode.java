@@ -51,8 +51,8 @@ public abstract class HashCallbackNode extends Node {
           InvokeFunctionNode hashCallbackInvokeNode,
       @CachedLibrary(limit = "5") InteropLibrary interop) {
     var ctx = EnsoContext.get(this);
-    var comparableType = ctx.getBuiltins().comparable().getType();
-    var defCompType = ctx.getBuiltins().defaultComparator().getType();
+    var comparableType = ctx.getBuiltins().comparableType();
+    var defCompType = ctx.getBuiltins().defaultComparatorType();
     Object res =
         hashCallbackInvokeNode.execute(
             hashCallbackFunc,
@@ -80,7 +80,7 @@ public abstract class HashCallbackNode extends Node {
   @NeverDefault
   @TruffleBoundary
   Function getHashCallbackFunction() {
-    var defCompType = EnsoContext.get(this).getBuiltins().defaultComparator().getType();
+    var defCompType = EnsoContext.get(this).getBuiltins().defaultComparatorType();
     var fn = defCompType.getDefinitionScope().getMethodForType(defCompType, "hash_callback");
     assert fn != null : "Default_Comparator.hash_callback function must exist";
     return fn;

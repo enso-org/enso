@@ -165,12 +165,11 @@ case object NestedPatternMatch extends IRPass {
         val scrutineeBindingName = freshNameSupply.newName()
         val scrutineeExpression =
           desugarExpression(expr.scrutinee, freshNameSupply)
-        val scrutineeBinding =
-          Expression.Binding(
-            scrutineeBindingName,
-            scrutineeExpression,
-            identifiedLocation = null
-          )
+        val scrutineeBinding = Expression.Binding
+          .builder()
+          .name(scrutineeBindingName)
+          .expression(scrutineeExpression)
+          .build()
 
         val caseExprScrutinee = scrutineeBindingName.duplicate()
 
@@ -188,11 +187,11 @@ case object NestedPatternMatch extends IRPass {
           processedBranches
         )
 
-        Expression.Block(
-          List(scrutineeBinding),
-          desugaredCaseExpr,
-          identifiedLocation = null
-        )
+        Expression.Block
+          .builder()
+          .expressions(List(scrutineeBinding))
+          .returnValue(desugaredCaseExpr)
+          .build()
       case _: Case.Branch =>
         throw new CompilerError(
           "Unexpected case branch during case desugaring."

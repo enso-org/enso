@@ -15,6 +15,8 @@
     - remove_warnings value:Standard.Base.Any.Any warning_type:Standard.Base.Any.Any= -> Standard.Base.Any.Any
     - set value:Standard.Base.Any.Any warnings:(Standard.Base.Data.Vector.Vector Standard.Base.Warning.Warning) -> Standard.Base.Any.Any
     - throw_on_warning value:Standard.Base.Any.Any warning_type:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+    - to_display_text self -> Standard.Base.Any.Any
+    - to_text self -> Standard.Base.Any.Any
     - value self -> Standard.Base.Any.Any
     - with_suspended arg:Standard.Base.Any.Any function:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - attach_with_stacktrace value:Standard.Base.Any.Any warning:Standard.Base.Any.Any origin:Standard.Base.Any.Any -> Standard.Base.Any.Any
