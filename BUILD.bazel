@@ -42,6 +42,7 @@ write_source_files(
         "//app/lezer-markdown:write_tsconfigs",
         "//app/project-manager-shim:write_tsconfigs",
         "//app/table-expression:write_tsconfigs",
+        "//app/ydoc-channel:write_tsconfigs",
         "//app/ydoc-server:write_tsconfigs",
         "//app/ydoc-shared:write_tsconfigs",
     ],

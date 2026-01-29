@@ -13,7 +13,8 @@
   "main": "src/index.ts",
   "scripts": {
     "test:unit": "vitest run",
-    "compile": "tsc",
+    "typecheck": "tsc -b tsconfig.json --noEmit",
+    "compile": "tsc -p tsconfig.build.json",
     "lint": "eslint . --cache --max-warnings=0"
   },
   "devDependencies": {
