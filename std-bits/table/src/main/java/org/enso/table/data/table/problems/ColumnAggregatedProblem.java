@@ -3,7 +3,10 @@ package org.enso.table.data.table.problems;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
+
+import org.enso.base.polyglot.EnsoMeta;
 import org.enso.table.problems.Problem;
+import org.graalvm.polyglot.Value;
 
 public abstract class ColumnAggregatedProblem implements Problem {
   private final String locationName;
@@ -23,6 +26,11 @@ public abstract class ColumnAggregatedProblem implements Problem {
     return rows;
   }
 
+  protected Value getRowsVector() {
+    var vectorType = EnsoMeta.getType("Standard.Base.Data.Vector", "Vector");
+    return vectorType.invokeMember("from_polyglot_array",  getRows());
+  }
+
   public int count() {
     return rows.size();
   }
@@ -36,7 +44,7 @@ public abstract class ColumnAggregatedProblem implements Problem {
     String inner =
         rows.stream().limit(limit).map(Object::toString).collect(Collectors.joining(", "));
     if (rows.size() > limit) {
-      inner += ", ...";
+      inner += ", ... (" + (rows.size() - limit) + " more)";
     }
 
     return "[" + inner + "]";
