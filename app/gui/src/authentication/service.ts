@@ -237,21 +237,7 @@ function setDeepLinkHandler(navigate: (url: string) => void, cognito: Cognito) {
           navigate(appUtils.LOGIN_PATH)
         } else {
           // Signing in.
-
-          // Temporarily override the `history` object so that Amplify doesn't try to call
-          // `history.replaceState` (which doesn't work in the renderer process because of
-          // Electron's `webSecurity`). This is a hack, but it is the only way to get Amplify to
-          // work with a custom URL protocol in Electron.
-          // `history.replaceState` is only being saved here to be restored later.
-          // It will never be called without a bound `this`.
-          const replaceState = history.replaceState
-          history.replaceState = () => false
-          try {
-            cognito.resolveOngoingLogin({ type: 'success', url: urlString })
-          } finally {
-            // Restore the original `history.replaceState` function.
-            history.replaceState = replaceState
-          }
+          cognito.resolveOngoingLogin({ type: 'success', url: urlString })
           break
         }
         break

@@ -61,7 +61,7 @@ pnpmfileChecksum: sha256-UtO9fqHFiHrcyVfxRK3T27+ItLb0V49gpeqgN3Zj4zw=
 
 patchedDependencies:
   '@aws-amplify/auth':
-    hash: 712430222338cb9fc4e2dba55135706f0d71fc0b5160a265283ed9f2df288e2c
+    hash: ee700ddad588504ca446bda41b375cee97be5584448234e000072c2294b4b08f
     path: patches/@aws-amplify__auth.patch
 
 importers:
@@ -8039,7 +8039,7 @@ snapshots:
       rxjs: 7.8.2
       tslib: 2.8.1
 
-  '@aws-amplify/auth@6.18.0(patch_hash=712430222338cb9fc4e2dba55135706f0d71fc0b5160a265283ed9f2df288e2c)(@aws-amplify/core@6.16.0)':
+  '@aws-amplify/auth@6.18.0(patch_hash=ee700ddad588504ca446bda41b375cee97be5584448234e000072c2294b4b08f)(@aws-amplify/core@6.16.0)':
     dependencies:
       '@aws-amplify/core': 6.16.0
       '@aws-crypto/sha256-js': 5.2.0
@@ -12296,7 +12296,7 @@ snapshots:
     dependencies:
       '@aws-amplify/analytics': 7.0.92(@aws-amplify/core@6.16.0)
       '@aws-amplify/api': 6.3.23(@aws-amplify/core@6.16.0)
-      '@aws-amplify/auth': 6.18.0(patch_hash=712430222338cb9fc4e2dba55135706f0d71fc0b5160a265283ed9f2df288e2c)(@aws-amplify/core@6.16.0)
+      '@aws-amplify/auth': 6.18.0(patch_hash=ee700ddad588504ca446bda41b375cee97be5584448234e000072c2294b4b08f)(@aws-amplify/core@6.16.0)
       '@aws-amplify/core': 6.16.0
       '@aws-amplify/datastore': 5.1.4(@aws-amplify/core@6.16.0)
       '@aws-amplify/notifications': 2.0.92(@aws-amplify/core@6.16.0)
