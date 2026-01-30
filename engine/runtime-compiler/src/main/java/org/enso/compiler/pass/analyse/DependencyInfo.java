@@ -21,7 +21,7 @@ import scala.Option;
 public record DependencyInfo(DependencyMapping dependents, DependencyMapping dependencies)
     implements IRPass.IRMetadata {
   public DependencyInfo() {
-    this(DependencyMapping.create(), DependencyMapping.create());
+    this(DependencyMapping.newBuilder().build(), DependencyMapping.newBuilder().build());
   }
 
   public String metadataName() {
@@ -35,8 +35,11 @@ public record DependencyInfo(DependencyMapping dependents, DependencyMapping dep
    * @return the result of combining `this` and `that`
    */
   DependencyInfo combine(DependencyInfo that) {
-    return new DependencyInfo(
-        this.dependents.combine(that.dependents), this.dependencies.combine(that.dependencies));
+    var dependents = DependencyMapping.newBuilder(this.dependents());
+    var dependencies = DependencyMapping.newBuilder(this.dependencies());
+    dependents.combine(that.dependents());
+    dependencies.combine(that.dependencies());
+    return new DependencyInfo(dependents.build(), dependencies.build());
   }
 
   @Override

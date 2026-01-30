@@ -23,8 +23,12 @@ public final class DependencyMapping {
     this(scala.collection.mutable.Map$.MODULE$.empty());
   }
 
-  public static DependencyMapping create() {
-    return new DependencyMapping();
+  public static DependencyMapping.Builder newBuilder() {
+    return new DependencyMapping.Builder(null);
+  }
+
+  public static DependencyMapping.Builder newBuilder(DependencyMapping mapping) {
+    return new DependencyMapping.Builder(mapping);
   }
 
   /**
@@ -38,30 +42,6 @@ public final class DependencyMapping {
 
   final Map<DependencyInfo.Type, Set<DependencyInfo.Type>> mapping() {
     return mapping;
-  }
-
-  /**
-   * Returns the set of all program component associated with the provided key.
-   *
-   * <p>Please note that the result set contains not just the _direct_ associations with the key,
-   * but also the _indirect_ associations with the key.
-   *
-   * @param key the key to get the associated components of
-   * @return the set of all components associated with `key`
-   * @throws NoSuchElementException when `key` does not exist in the dependencies mapping
-   */
-  public /* only used from tests */ Set<DependencyInfo.Type> apply(DependencyInfo.Type key)
-      throws NoSuchElementException {
-    if (mapping.contains(key)) {
-      var opt = get(key);
-      if (opt.isDefined()) {
-        return opt.get();
-      } else {
-        throw new NoSuchElementException();
-      }
-    } else {
-      throw new NoSuchElementException();
-    }
   }
 
   /**
@@ -148,72 +128,112 @@ public final class DependencyMapping {
     return (Option<Set<UUID>>) (Object) res;
   }
 
-  /**
-   * Executes an update on the association information. Used from scala as
-   *
-   * <pre>
-   * dependencies(ids.head) = Set(ids(1), ids(2))
-   * </pre>
-   *
-   * @param key the key to update the associations for
-   * @param newDependents the updated associations for `key`
-   */
-  public
-  /** only needed from tests */
-  void update(DependencyInfo.Type key, Set<DependencyInfo.Type> newDependents) {
-    mapping.put(key, newDependents);
-  }
+  /** Mutable builder to construct {@link DependencyMapping}. */
+  public static final class Builder {
+    private scala.collection.mutable.Map<DependencyInfo.Type, Set<DependencyInfo.Type>> mapping;
 
-  /**
-   * Updates the associations for the provided key, or creates them if they do not already exist.
-   *
-   * @param key the key to add or update associations for
-   * @param newDependents the new associations information for `key`
-   */
-  public /* used by tests only */ void updateAt(
-      DependencyInfo.Type key, Set<DependencyInfo.Type> newDependents) {
-    if (mapping.contains(key)) {
-      var set = mapping.apply(key);
-      var both = set.$plus$plus(newDependents);
-      mapping.put(key, both.toSet());
-    } else {
+    private Builder(Object ignore) {}
+
+    public DependencyMapping build() {
+      return new DependencyMapping(mapping);
+    }
+
+    /**
+     * Executes an update on the association information. Used from scala as
+     *
+     * <pre>
+     * dependencies(ids.head) = Set(ids(1), ids(2))
+     * </pre>
+     *
+     * @param key the key to update the associations for
+     * @param newDependents the updated associations for `key`
+     */
+    public
+    /** only needed from tests */
+    void update(DependencyInfo.Type key, Set<DependencyInfo.Type> newDependents) {
       mapping.put(key, newDependents);
     }
-  }
 
-  /**
-   * Combines two dependency information containers.
-   *
-   * @param that the other container to combine with `this`
-   * @return the result of combining `this` and `that`
-   */
-  public /* used by tests only */ final DependencyMapping combine(DependencyMapping that) {
-    var combinedModule = new DependencyMapping(this.mapping);
+    /**
+     * Updates the associations for the provided key, or creates them if they do not already exist.
+     *
+     * @param key the key to add or update associations for
+     * @param newDependents the new associations information for `key`
+     */
+    public /* used by tests only */ void updateAt(
+        DependencyInfo.Type key, Set<DependencyInfo.Type> newDependents) {
+      if (mapping.contains(key)) {
+        var set = mapping.apply(key);
+        var both = set.$plus$plus(newDependents);
+        mapping.put(key, both.toSet());
+      } else {
+        mapping.put(key, newDependents);
+      }
+    }
 
-    that.mapping.foreach(
-        tupple -> {
-          var key = tupple._1();
-          var value = tupple._2();
-          if (combinedModule.mapping.contains(key)) {
-            var xs = combinedModule.mapping.get(key);
-            var both = value.$plus$plus(xs.get());
-            combinedModule.mapping.put(key, both.toSet());
-          } else {
-            combinedModule.mapping.put(key, value);
-          }
-          return null;
-        });
+    /**
+     * @return A deep copy of this dependency mapping
+     */
+    @SuppressWarnings("unchecked")
+    DependencyMapping deepCopy() {
+      var copy = this.mapping.toMap(null);
+      var map = Map.from(copy);
+      return new DependencyMapping((Map<DependencyInfo.Type, Set<DependencyInfo.Type>>) map);
+    }
 
-    return combinedModule;
-  }
+    public Option<? extends Set<DependencyInfo.Type>> get(DependencyInfo.Type key) {
+      return build().get(key);
+    }
 
-  /**
-   * @return A deep copy of this dependency mapping
-   */
-  @SuppressWarnings("unchecked")
-  DependencyMapping deepCopy() {
-    var copy = this.mapping.toMap(null);
-    var map = Map.from(copy);
-    return new DependencyMapping((Map<DependencyInfo.Type, Set<DependencyInfo.Type>>) map);
+    /**
+     * Returns the set of all program component associated with the provided key.
+     *
+     * <p>Please note that the result set contains not just the _direct_ associations with the key,
+     * but also the _indirect_ associations with the key.
+     *
+     * @param key the key to get the associated components of
+     * @return the set of all components associated with `key`
+     * @throws NoSuchElementException when `key` does not exist in the dependencies mapping
+     */
+    public /* only used from tests */ Set<DependencyInfo.Type> apply(DependencyInfo.Type key)
+        throws NoSuchElementException {
+      if (mapping.contains(key)) {
+        var opt = get(key);
+        if (opt.isDefined()) {
+          return opt.get();
+        } else {
+          throw new NoSuchElementException();
+        }
+      } else {
+        throw new NoSuchElementException();
+      }
+    }
+
+    /**
+     * Combines two dependency information containers.
+     *
+     * @param that the other container to combine with `this`
+     * @return the result of combining `this` and `that`
+     */
+    public /* used by tests only */ final DependencyMapping.Builder combine(
+        DependencyMapping that) {
+      var combinedModule = new DependencyMapping.Builder(this.mapping);
+
+      that.mapping.foreach(
+          tupple -> {
+            var key = tupple._1();
+            var value = tupple._2();
+            if (combinedModule.mapping.contains(key)) {
+              var xs = combinedModule.mapping.get(key);
+              var both = value.$plus$plus(xs.get());
+              combinedModule.mapping.put(key, both.toSet());
+            } else {
+              combinedModule.mapping.put(key, value);
+            }
+            return null;
+          });
+
+      return combinedModule;
+    }
   }
 }
