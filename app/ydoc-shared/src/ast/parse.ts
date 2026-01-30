@@ -588,12 +588,12 @@ export function parseInSameContext(
   return abstract(module ?? MutableModule.Transient(), rawParsed, code)
 }
 
-type ParseContext = 'module' | 'block' | 'expression' | 'statement'
+type ParseContext = 'module' | 'block' | 'expression' | 'blockStatement'
 
 function getParseContext(ast: Ast): ParseContext {
   const astModuleRoot = ast.module.root()
   if (ast instanceof BodyBlock) return astModuleRoot && ast.is(astModuleRoot) ? 'module' : 'block'
-  return ast.isExpression() ? 'expression' : 'statement'
+  return ast.isExpression() ? 'expression' : 'blockStatement'
 }
 
 function rawParseInContext(code: string, context: ParseContext): RawAst.Tree {
@@ -602,7 +602,7 @@ function rawParseInContext(code: string, context: ParseContext): RawAst.Tree {
   if (context === 'block') return block
   const statement = iter.tryGetSoleValue(block.statements)?.expression
   if (!statement) return block
-  if (context === 'statement') return statement
+  if (context === 'blockStatement') return statement
   if (context === 'expression')
     return statement.type === RawAst.Tree.Type.ExpressionStatement ?
         statement.expression
