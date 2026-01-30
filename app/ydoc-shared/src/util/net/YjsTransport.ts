@@ -3,8 +3,7 @@
  * This allows JSON-RPC to work over Y.js CRDT synchronization.
  */
 
-import { JSONRPCError } from '@open-rpc/client-js'
-import { ERR_UNKNOWN } from '@open-rpc/client-js/build/Error.js'
+import { ERR_UNKNOWN, JSONRPCError } from '@open-rpc/client-js/build/Error.js'
 import {
   getBatchRequests,
   getNotifications,
