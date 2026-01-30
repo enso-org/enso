@@ -31,9 +31,6 @@ public class ArithmeticError extends ColumnAggregatedProblem {
   @Override
   public Value asEnsoValue() {
     return EnsoMeta.makeInstance(
-        "Standard.Base.Errors.Common",
-        "Arithmetic_Error",
-        "Error",
-        getMessage());
+        "Standard.Base.Errors.Common", "Arithmetic_Error", "Error", getMessage());
   }
 }
