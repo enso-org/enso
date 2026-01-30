@@ -242,46 +242,47 @@ public class HyperFormat {
     }
   }
 
-  public static String[] readSchemas(String path) {
+  public static Value readSchemas(String path) {
     try (var connection = getConnection(path)) {
       var catalog = connection.getCatalog();
-      return catalog.getSchemaNames().stream()
-          .map(s -> s.getName().getUnescaped())
-          .toArray(String[]::new);
+      return Value.asValue(
+          catalog.getSchemaNames().stream()
+              .map(s -> s.getName().getUnescaped())
+              .toArray(String[]::new));
     } catch (Exception e) {
-      throw handleHyperErrors(path, e);
+      return handleHyperErrors(path, e);
     }
   }
 
-  public static HyperTable[] listTablesAllSchemas(String path) {
+  public static Value listTablesAllSchemas(String path) {
     try (var connection = getConnection(path)) {
       var catalog = connection.getCatalog();
-      return listTablesImpl(catalog, catalog.getSchemaNames());
+      return Value.asValue(listTablesImpl(catalog, catalog.getSchemaNames()));
     } catch (Exception e) {
-      throw handleHyperErrors(path, e);
+      return handleHyperErrors(path, e);
     }
   }
 
-  public static HyperTable[] listTables(String path, String schemaName) {
+  public static Value listTables(String path, String schemaName) {
     var schemaNames = List.of(new SchemaName(schemaName));
     try (var connection = getConnection(path)) {
       var catalog = connection.getCatalog();
-      return listTablesImpl(catalog, schemaNames);
+      return Value.asValue(listTablesImpl(catalog, schemaNames));
     } catch (Exception e) {
-      throw handleHyperErrors(path, e);
+      return handleHyperErrors(path, e);
     }
   }
 
-  public static HyperTableColumn[] readStructure(String path, String schemaName, String tableName) {
+  public static Value readStructure(String path, String schemaName, String tableName) {
     var tableNameObject = new TableName(new SchemaName(schemaName), tableName);
     try (var connection = getConnection(path)) {
-      return readStructureInternal(connection, tableNameObject);
+      return Value.asValue(readStructureInternal(connection, tableNameObject));
     } catch (Exception e) {
-      throw handleHyperErrors(path, e);
+      return handleHyperErrors(path, e);
     }
   }
 
-  public static Column[] readTable(
+  public static Value readTable(
       String path,
       String schemaName,
       String tableName,
@@ -290,14 +291,15 @@ public class HyperFormat {
     var tableNameObject = new TableName(new SchemaName(schemaName), tableName);
     var query = "SELECT * FROM " + tableNameObject + (rowLimit == null ? "" : " LIMIT " + rowLimit);
     try {
-      return readTableInternal(
-          path, schemaName, tableName, rowLimit, problemAggregator, tableNameObject, query);
+      return Value.asValue(
+          readTableInternal(
+              path, schemaName, tableName, rowLimit, problemAggregator, tableNameObject, query));
     } catch (Exception e) {
-      throw handleHyperErrors(path, e);
+      return handleHyperErrors(path, e);
     }
   }
 
-  public static String[] writeTable(
+  public static Value writeTable(
       String path,
       String schemaName,
       String tableName,
@@ -333,9 +335,9 @@ public class HyperFormat {
             warningUnmatchedColumns,
             throwDontWarn);
       }
-      return warningUnmatchedColumns.toArray(String[]::new);
+      return Value.asValue(warningUnmatchedColumns.toArray(String[]::new));
     } catch (Exception e) {
-      throw handleHyperErrors(path, e);
+      return handleHyperErrors(path, e);
     }
   }
 
@@ -650,7 +652,7 @@ public class HyperFormat {
     }
   }
 
-  private static RuntimeException handleHyperErrors(String path, Exception exception) {
+  private static Value handleHyperErrors(String path, Exception exception) {
     var ensoAtom =
         Optional.ofNullable(
                 switch (exception) {
@@ -663,8 +665,9 @@ public class HyperFormat {
                 })
             .or(() -> EnsoExceptionWrapper.wrapFileExceptions(path, exception))
             .or(() -> EnsoExceptionWrapper.wrapCommonExceptions(exception));
-    return ensoAtom.isEmpty()
-        ? new RuntimeException(exception)
-        : EnsoMeta.asDataflowError(ensoAtom.get());
+    if (ensoAtom.isEmpty()) {
+      throw new RuntimeException(exception);
+    }
+    return EnsoMeta.asDataflowError(ensoAtom.get());
   }
 }

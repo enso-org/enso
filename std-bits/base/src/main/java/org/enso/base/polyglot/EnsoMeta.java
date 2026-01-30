@@ -70,13 +70,13 @@ public final class EnsoMeta {
   }
 
   /** Converts an Enso error atom into a Java exception. */
-  public static RuntimeException asDataflowError(Value ensoAtom) {
+  public static Value asDataflowError(Value ensoAtom) {
     var ensoError =
         EnsoMeta.getType("Standard.Base.Error", "Error").invokeMember("throw", ensoAtom);
     if (!ensoError.isException()) {
       throw new IllegalStateException(
           "Expected Enso error to be an exception, but got: " + ensoError);
     }
-    return ensoError.throwException();
+    return ensoError;
   }
 }

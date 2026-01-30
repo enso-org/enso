@@ -41,7 +41,7 @@ type Hyper_File
        Returns the list of schemas for the connection within the current database
        (or catalog).
     schemas : Vector Text
-    schemas self = Hyper_Errors.handle_java_exceptions <|
+    schemas self =
         array = HyperFormat.readSchemas self.file.path
         Vector.from_polyglot_array array
 
@@ -76,11 +76,10 @@ type Hyper_File
     @schema (hyper -> make_schema_selector hyper True)
     tables : Text -> Vector Hyper_Table
     tables self schema:Text=self.schema = if schema == "" then self.tables self.schema else
-        Hyper_Errors.handle_java_exceptions <|
-            array = case schema of
-                "*" -> HyperFormat.listTablesAllSchemas self.file.path
-                _ -> HyperFormat.listTables self.file.path schema
-            array.map t-> Hyper_Table.Value self t.schema t.name
+        array = case schema of
+            "*" -> HyperFormat.listTablesAllSchemas self.file.path
+            _ -> HyperFormat.listTables self.file.path schema
+        array.map t-> Hyper_Table.Value self t.schema t.name
 
     ## ---
        aliases: [get, import, load, open, sheet]

@@ -29,11 +29,3 @@ type Hyper_Unsupported_Type
        ---
     to_display_text : Text
     to_display_text self = "Tableau Hyper files do not support columns of type " + self.type_name
-
-## ---
-   private: true
-   ---
-   Exceptions are handled in Java and converted to Enso errors before being rethrown.
-private handle_java_exceptions ~action =
-    Panic.recover [Hyper_Table_Not_Found, Query_Failed, Column_Type_Mismatch, Hyper_Unsupported_Type, Unmatched_Columns, File_Error, Illegal_State] <|
-        action
