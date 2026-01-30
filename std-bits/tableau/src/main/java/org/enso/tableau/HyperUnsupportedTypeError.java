@@ -17,9 +17,6 @@ class HyperUnsupportedTypeError extends RuntimeException {
 
   public Value asEnsoAtom() {
     return EnsoMeta.makeInstance(
-        "Standard.Tableau.Hyper_Errors",
-        "Hyper_Unsupported_Type",
-        "Error",
-        getTypeName());
+        "Standard.Tableau.Hyper_Errors", "Hyper_Unsupported_Type", "Error", getTypeName());
   }
 }
