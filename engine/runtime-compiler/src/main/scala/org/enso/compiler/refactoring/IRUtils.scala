@@ -178,8 +178,7 @@ trait IRUtils {
           case _: DependencyInfo.Type.Dynamic =>
             None
           case s: DependencyInfo.Type.Static =>
-            val id = s.externalId.get
-            findById(ir, id)
+            findById(ir, s.id)
         }
     }
   }
@@ -204,8 +203,7 @@ trait IRUtils {
           case _: DependencyInfo.Type.Dynamic =>
             None
           case s: DependencyInfo.Type.Static =>
-            val id = s.externalId.get
-            findById(ir, id)
+            findById(ir, s.id)
         }
     }
   }
