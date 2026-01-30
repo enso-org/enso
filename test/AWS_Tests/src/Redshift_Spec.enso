@@ -15,6 +15,7 @@ import enso_dev.Table_Tests.Database.Common.Common_Spec
 import enso_dev.Table_Tests.Database.Common.IR_Spec
 import enso_dev.Table_Tests.Database.Helpers.Name_Generator
 import enso_dev.Table_Tests.Common_Table_Operations
+import enso_dev.Table_Tests.Util
 
 type Data
     Value ~data
@@ -55,6 +56,13 @@ add_redshift_specific_specs suite_builder create_connection_fn setup =
             setup.expect_integer_type <| data.t.at "ints"
             data.t.at "bools" . value_type . is_boolean . should_be_true
             data.t.at "reals" . value_type . is_floating_point . should_be_true
+
+        group_builder.specify "should be able to write all the types at once" <|
+            t1 = enso_project.data/'all_data_types.csv' . read
+            t2 = t1.select_into_database_table data.connection 'all_types' temporary=True
+            i1 = t1.read.column_info . remove_columns ["Minimum", "Maximum"]
+            i2 = t2.read.column_info . remove_columns ["Minimum", "Maximum"]
+            i1.should_equal i2
 
 type Lazy_Ref
    Value ~get
