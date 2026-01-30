@@ -448,11 +448,15 @@ export async function mockLocalApi(page: Page) {
       const _connection = new YjsConnection(mockWs, wsDoc)
       mockYdocProvider(room, wsDoc.doc)
 
-      // Create the data channel first so it can be associated with the LS channel
       let binaryChannel: YjsChannel<Uint8Array> | null = null
       if (dataUrl) {
         binaryChannel = new YjsChannel<Uint8Array>(wsDoc.doc, dataUrl)
-        setupMockDataChannel(binaryChannel)
+        // Only set the global dataChannel for the main 'index' room connection.
+        // Subdoc connections should not overwrite it, as the client's DataServer 
+        // only listens on the main document's channel.
+        if (room === 'index') {
+          setupMockDataChannel(binaryChannel)
+        }
       }
       if (lsUrl) {
         const lsChannel = new YjsChannel<string>(wsDoc.doc, lsUrl)
