@@ -1,8 +1,5 @@
 /** @file Playwright browser testing configuration. */
-import path from 'node:path'
 import { defineConfig } from 'playwright/test'
-
-const outputDir = process.env.TEST_UNDECLARED_OUTPUTS_DIR ?? 'test-results'
 
 export default defineConfig({
   testDir: './tests',
@@ -12,12 +9,11 @@ export default defineConfig({
   workers: 1,
   timeout: 180000,
   reportSlowTests: { max: 5, threshold: 60000 },
-  outputDir,
   reporter: [
     ['list'],
-    ['html', { outputFolder: path.join(outputDir, 'html-report'), open: 'never' }],
-    ['junit', { outputFile: path.join(outputDir, 'junit.xml') }],
-    ['json', { outputFile: path.join(outputDir, 'report.json') }],
+    ['html', { outputFolder: 'html-report', open: 'never' }],
+    ['junit', { outputFile: 'junit.xml' }],
+    ['json', { outputFile: 'report.json' }],
   ],
   expect: {
     timeout: 30000,

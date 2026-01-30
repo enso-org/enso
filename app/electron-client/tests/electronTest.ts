@@ -17,18 +17,18 @@ const TEXT = TEXTS.english
 const TEST_USER_FILE = path.join(import.meta.dirname, '../playwright/.auth/user.json')
 const LOG_DIAGNOSTICS =
   process.env.ENSO_PW_LOG_CONSOLE === '1' || process.env.ENSO_PW_LOG_CONSOLE === 'true'
-const POSSIBLE_ELECTRON_PATHS = [
-  '../ide-dist/linux-unpacked/enso',
-  '../ide-dist/win-unpacked/Enso.exe',
-  '../ide-dist/mac/Enso.app/Contents/MacOS/Enso',
-  '../ide-dist/mac-arm64/Enso.app/Contents/MacOS/Enso',
-  '../../../dist/ide/linux-unpacked/enso',
-  '../../../dist/ide/win-unpacked/Enso.exe',
-  '../../../dist/ide/mac/Enso.app/Contents/MacOS/Enso',
-  '../../../dist/ide/mac-arm64/Enso.app/Contents/MacOS/Enso',
+const POSSIBLE_ELECTRON_DIRS = [
+  ...(process.env.ENSO_EXEC_PATH ? [process.env.ENSO_EXEC_PATH] : []),
+  '../ide-dist/',
+  '../../../dist/ide/',
 ]
 
-console.debug('PWD', process.env.PWD)
+const POSSIBLE_ELECTRON_PATHS = POSSIBLE_ELECTRON_DIRS.flatMap((dir) => [
+  path.join(dir, 'linux-unpacked/enso'),
+  path.join(dir, 'win-unpacked/Enso.exe'),
+  path.join(dir, 'mac/Enso.app/Contents/MacOS/Enso'),
+  path.join(dir, 'mac-arm64/Enso.app/Contents/MacOS/Enso'),
+])
 
 export const credentials: { readonly user: string; readonly password: string } = await fs
   .readFile(TEST_USER_FILE, { encoding: 'utf-8' })
@@ -46,19 +46,16 @@ export const credentials: { readonly user: string; readonly password: string } =
     })
   })
 
-let _cachedElectronPath: string | undefined
+let cachedElectronPath: string | undefined
 
 export async function getElectronExecutablePath(): Promise<string | undefined> {
-  if (process.env.ENSO_EXEC_PATH) {
-    return process.env.ENSO_EXEC_PATH
-  }
-  if (_cachedElectronPath !== undefined) return _cachedElectronPath
+  if (cachedElectronPath !== undefined) return cachedElectronPath
   try {
     const promises = POSSIBLE_ELECTRON_PATHS.map((p) => path.resolve(import.meta.dirname, p)).map(
       (p) => fs.access(p, fs.constants.X_OK).then(() => p),
     )
-    _cachedElectronPath = await Promise.any(promises)
-    return _cachedElectronPath
+    cachedElectronPath = await Promise.any(promises)
+    return cachedElectronPath
   } catch {
     return undefined
   }
@@ -68,7 +65,6 @@ export async function getElectronExecutablePath(): Promise<string | undefined> {
  * Custom test fixtures for Electron tests.
  * Spec files should import `test` directly from `playwright/test` and extend it
  * with these fixtures to avoid dual module instance issues with Bazel.
- *
  * @example
  * ```ts
  * import { test as base, expect } from 'playwright/test'
