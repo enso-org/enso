@@ -185,7 +185,7 @@
     - Warning columns:(Standard.Base.Data.Vector.Vector Standard.Base.Data.Text.Text)
     - to_display_text self -> Standard.Base.Any.Any
 - type Unmatched_Columns
-    - Error column_names:(Standard.Base.Data.Vector.Vector Standard.Base.Data.Text.Text)
+    - Error column_names:(Standard.Base.Any.Any|Standard.Base.Any.Any)
     - to_display_text self -> Standard.Base.Any.Any
 - type Unmatched_Rows_In_Lookup
     - Error example_key_values:Standard.Base.Data.Vector.Vector
