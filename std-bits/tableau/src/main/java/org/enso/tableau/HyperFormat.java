@@ -264,6 +264,76 @@ public class HyperFormat {
     }
   }
 
+  public static HyperTableColumn[] readStructure(String path, String schemaName, String tableName)
+      throws IOException {
+    var tableNameObject = new TableName(new SchemaName(schemaName), tableName);
+    try (var connection = getConnection(path)) {
+      return readStructureInternal(connection, tableNameObject);
+    } catch (HyperTableNotFound | HyperQueryError | IllegalStateException e) {
+      throw handleHyperErrors(e);
+    }
+  }
+
+  public static Column[] readTable(
+      String path,
+      String schemaName,
+      String tableName,
+      Integer rowLimit,
+      ProblemAggregator problemAggregator)
+      throws IOException {
+    var tableNameObject = new TableName(new SchemaName(schemaName), tableName);
+    var query = "SELECT * FROM " + tableNameObject + (rowLimit == null ? "" : " LIMIT " + rowLimit);
+    try {
+      return readTableInternal(
+          path, schemaName, tableName, rowLimit, problemAggregator, tableNameObject, query);
+    } catch (HyperQueryError | HyperTableNotFound | IllegalStateException e) {
+      throw handleHyperErrors(e);
+    }
+  }
+
+  public static String[] writeTable(
+      String path,
+      String schemaName,
+      String tableName,
+      String[] names,
+      ColumnStorage<?>[] storages,
+      boolean append,
+      boolean matchColumnsByName,
+      boolean throwDontWarn)
+      throws IOException {
+    assert names.length == storages.length;
+
+    // Localize storages to avoid issues with foreign memory access.
+    var localisedStorages =
+        Arrays.stream(storages).map(Builder::makeLocal).toArray(ColumnStorage<?>[]::new);
+
+    try {
+      List<String> warningUnmatchedColumns = new ArrayList<>();
+      getProcess();
+      try (var connection =
+          new Connection(process.getEndpoint(), path, CreateMode.CREATE_IF_NOT_EXISTS)) {
+        TableDefinition tableDef;
+        if (append && tableExists(schemaName, tableName, connection)) {
+          tableDef =
+              connection.getCatalog().getTableDefinition(new TableName(schemaName, tableName));
+        } else {
+          tableDef = createTable(schemaName, tableName, names, localisedStorages, connection);
+        }
+        insertData(
+            names,
+            localisedStorages,
+            tableDef,
+            connection,
+            matchColumnsByName,
+            warningUnmatchedColumns,
+            throwDontWarn);
+      }
+      return warningUnmatchedColumns.toArray(String[]::new);
+    } catch (HyperTypeMismatch e) {
+      throw handleHyperErrors(e);
+    }
+  }
+
   private static HyperTable[] listTablesImpl(Catalog catalog, List<SchemaName> schemaNames) {
     var output = new ArrayList<HyperTable>();
     for (var schemaName : schemaNames) {
@@ -274,16 +344,6 @@ public class HyperFormat {
       }
     }
     return output.toArray(HyperTable[]::new);
-  }
-
-  public static HyperTableColumn[] readStructure(String path, String schemaName, String tableName)
-      throws IOException {
-    var tableNameObject = new TableName(new SchemaName(schemaName), tableName);
-    try (var connection = getConnection(path)) {
-      return readStructureInternal(connection, tableNameObject);
-    } catch (HyperTableNotFound | HyperQueryError e) {
-      throw handleHyperErrors(e);
-    }
   }
 
   private static HyperTableColumn[] readStructureInternal(
@@ -307,84 +367,42 @@ public class HyperFormat {
     }
   }
 
-  public static Column[] readTable(
+  private static Column[] readTableInternal(
       String path,
       String schemaName,
       String tableName,
       Integer rowLimit,
-      ProblemAggregator problemAggregator)
-      throws IOException {
-    var tableNameObject = new TableName(new SchemaName(schemaName), tableName);
-    var query = "SELECT * FROM " + tableNameObject + (rowLimit == null ? "" : " LIMIT " + rowLimit);
-    try {
-      try (var connection = getConnection(path)) {
-        var columns = readStructureInternal(connection, tableNameObject);
+      ProblemAggregator problemAggregator,
+      TableName tableNameObject,
+      String query)
+      throws IOException, HyperQueryError, HyperTableNotFound {
+    try (var connection = getConnection(path)) {
+      var columns = readStructureInternal(connection, tableNameObject);
 
-        var builders =
-            Arrays.stream(columns)
-                .map(
-                    c ->
-                        TableColumnBuilder.create(
-                            c, rowLimit == null ? 1000 : rowLimit, problemAggregator))
-                .toList();
+      var builders =
+          Arrays.stream(columns)
+              .map(
+                  c ->
+                      TableColumnBuilder.create(
+                          c, rowLimit == null ? 1000 : rowLimit, problemAggregator))
+              .toList();
 
-        var result = connection.executeQuery(query);
-        while (result.nextRow()) {
-          builders.forEach(b -> b.append(result));
-        }
-
-        var storages = builders.stream().map(TableColumnBuilder::seal).toList();
-        return IntStream.range(0, columns.length)
-            .mapToObj(i -> new Column(columns[i].name(), storages.get(i)))
-            .toArray(Column[]::new);
-      } catch (HyperException e) {
-        if (e.getMessage().contains(" does not exist: ")) {
-          throw new HyperTableNotFound(schemaName, tableName, e);
-        } else {
-          throw new HyperQueryError(e.getMessage(), query, e);
-        }
+      var result = connection.executeQuery(query);
+      while (result.nextRow()) {
+        builders.forEach(b -> b.append(result));
       }
-    } catch (HyperQueryError | HyperTableNotFound e) {
-      throw handleHyperErrors(e);
-    }
-  }
 
-  public static String[] writeTable(
-      String path,
-      String schemaName,
-      String tableName,
-      String[] names,
-      ColumnStorage<?>[] storages,
-      boolean append,
-      boolean matchColumnsByName,
-      boolean throwDontWarn)
-      throws IOException {
-    assert names.length == storages.length;
-
-    // Localize storages to avoid issues with foreign memory access.
-    var localisedStorages =
-        Arrays.stream(storages).map(Builder::makeLocal).toArray(ColumnStorage<?>[]::new);
-
-    List<String> warningUnmatchedColumns = new ArrayList<>();
-    getProcess();
-    try (var connection =
-        new Connection(process.getEndpoint(), path, CreateMode.CREATE_IF_NOT_EXISTS)) {
-      TableDefinition tableDef;
-      if (append && tableExists(schemaName, tableName, connection)) {
-        tableDef = connection.getCatalog().getTableDefinition(new TableName(schemaName, tableName));
+      var storages = builders.stream().map(TableColumnBuilder::seal).toList();
+      return IntStream.range(0, columns.length)
+          .mapToObj(i -> new Column(columns[i].name(), storages.get(i)))
+          .toArray(Column[]::new);
+    } catch (HyperException e) {
+      if (e.getMessage().contains(" does not exist: ")) {
+        throw new HyperTableNotFound(schemaName, tableName, e);
       } else {
-        tableDef = createTable(schemaName, tableName, names, localisedStorages, connection);
+        throw new HyperQueryError(e.getMessage(), query, e);
       }
-      insertData(
-          names,
-          localisedStorages,
-          tableDef,
-          connection,
-          matchColumnsByName,
-          warningUnmatchedColumns,
-          throwDontWarn);
     }
-    return warningUnmatchedColumns.toArray(String[]::new);
   }
 
   private static boolean tableExists(String schemaName, String tableName, Connection connection) {
@@ -445,7 +463,8 @@ public class HyperFormat {
       Connection connection,
       boolean matchColumnsByName,
       List<String> warningUnmatchedColumns,
-      boolean throwDontWarn) {
+      boolean throwDontWarn)
+      throws HyperTypeMismatch {
     var columnStorages =
         getOrderedStorages(
             names, storages, tableDef, matchColumnsByName, warningUnmatchedColumns, throwDontWarn);
@@ -591,7 +610,8 @@ public class HyperFormat {
     }
   }
 
-  private static void validateTypesMatch(ColumnStorage<?>[] storages, TableDefinition tableDef) {
+  private static void validateTypesMatch(ColumnStorage<?>[] storages, TableDefinition tableDef)
+      throws HyperTypeMismatch {
     for (int i = 0; i < storages.length; i++) {
       var storage = storages[i];
       if (storage == null) {
@@ -629,6 +649,14 @@ public class HyperFormat {
         switch (exception) {
           case HyperTableNotFound tableNotFound -> tableNotFound.asEnsoAtom();
           case HyperQueryError queryError -> queryError.asEnsoAtom();
+          case HyperTypeMismatch typeMismatch -> typeMismatch.asEnsoAtom();
+          case IllegalStateException stateException ->
+              EnsoMeta.makeInstance(
+                  "Standard.Base.Errors.Illegal_State",
+                  "Illegal_State",
+                  "Error",
+                  stateException.getMessage(),
+                  stateException);
           default -> null;
         };
     return ensoAtom == null ? exception : EnsoMeta.asDataflowError(ensoAtom);

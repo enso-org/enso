@@ -1,6 +1,9 @@
 package org.enso.tableau;
 
-public class HyperTypeMismatch extends RuntimeException {
+import org.enso.base.polyglot.EnsoMeta;
+import org.graalvm.polyglot.Value;
+
+class HyperTypeMismatch extends RuntimeException {
   private final String columnName;
   private final String expectedType;
   private final String actualType;
@@ -29,5 +32,15 @@ public class HyperTypeMismatch extends RuntimeException {
 
   public String getActualType() {
     return actualType;
+  }
+
+  public Value asEnsoAtom() {
+    return EnsoMeta.makeInstance(
+        "Standard.Table.Errors",
+        "Column_Type_Mismatch",
+        "Error",
+        getColumnName(),
+        getExpectedType(),
+        getActualType());
   }
 }
