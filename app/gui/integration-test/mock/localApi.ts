@@ -452,7 +452,7 @@ export async function mockLocalApi(page: Page) {
       if (dataUrl) {
         binaryChannel = new YjsChannel<Uint8Array>(wsDoc.doc, dataUrl)
         // Only set the global dataChannel for the main 'index' room connection.
-        // Subdoc connections should not overwrite it, as the client's DataServer 
+        // Subdoc connections should not overwrite it, as the client's DataServer
         // only listens on the main document's channel.
         if (room === 'index') {
           setupMockDataChannel(binaryChannel)
