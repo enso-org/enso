@@ -1,9 +1,9 @@
 from Standard.Base import all
+import Standard.Base.Errors.Illegal_State.Illegal_State
 
 from Standard.Table.Errors import Column_Type_Mismatch, Unmatched_Columns
 
 polyglot java import org.enso.tableau.HyperUnmatchedColumns
-polyglot java import org.enso.tableau.HyperUnsupportedTypeError
 
 ## Error when a Table is not found in a Hyper File.
 type Hyper_Table_Not_Found
@@ -34,8 +34,7 @@ type Hyper_Unsupported_Type
 ## ---
    private: true
    ---
+   Exceptions are handled in Java and converted to Enso errors before being rethrown.
 private handle_java_exceptions ~action =
-    Panic.recover [Hyper_Table_Not_Found, Query_Failed, Column_Type_Mismatch] <|
-        Panic.catch HyperUnsupportedTypeError handler=(c-> Error.throw (Hyper_Unsupported_Type.Error c.payload.getTypeName)) <|
-            Panic.catch HyperUnmatchedColumns handler=(c-> Error.throw (Unmatched_Columns.Error c.payload.getUnmatchedColumns.to_vector)) <|
-                action
+    Panic.recover [Hyper_Table_Not_Found, Query_Failed, Column_Type_Mismatch, Hyper_Unsupported_Type, Unmatched_Columns, Illegal_State] <|
+        action

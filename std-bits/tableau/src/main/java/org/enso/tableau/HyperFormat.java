@@ -31,6 +31,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.IntStream;
+import org.enso.base.polyglot.EnsoExceptionWrapper;
 import org.enso.base.polyglot.EnsoMeta;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.storage.ColumnStorage;
@@ -269,7 +270,7 @@ public class HyperFormat {
     var tableNameObject = new TableName(new SchemaName(schemaName), tableName);
     try (var connection = getConnection(path)) {
       return readStructureInternal(connection, tableNameObject);
-    } catch (HyperTableNotFound | HyperQueryError | IllegalStateException e) {
+    } catch (Exception e) {
       throw handleHyperErrors(e);
     }
   }
@@ -286,7 +287,7 @@ public class HyperFormat {
     try {
       return readTableInternal(
           path, schemaName, tableName, rowLimit, problemAggregator, tableNameObject, query);
-    } catch (HyperQueryError | HyperTableNotFound | IllegalStateException e) {
+    } catch (Exception e) {
       throw handleHyperErrors(e);
     }
   }
@@ -329,7 +330,7 @@ public class HyperFormat {
             throwDontWarn);
       }
       return warningUnmatchedColumns.toArray(String[]::new);
-    } catch (HyperTypeMismatch e) {
+    } catch (Exception e) {
       throw handleHyperErrors(e);
     }
   }
@@ -435,7 +436,8 @@ public class HyperFormat {
     return tableDef;
   }
 
-  private static SqlType mapEnsoTypeToSqlType(StorageType<?> storageType) {
+  private static SqlType mapEnsoTypeToSqlType(StorageType<?> storageType)
+      throws HyperUnsupportedTypeError {
     return switch (storageType) {
       case TextType _ -> SqlType.text();
       case IntegerType _ -> SqlType.bigInt();
@@ -644,21 +646,15 @@ public class HyperFormat {
     }
   }
 
-  private static RuntimeException handleHyperErrors(RuntimeException exception) {
+  private static RuntimeException handleHyperErrors(Exception exception) {
     var ensoAtom =
         switch (exception) {
           case HyperTableNotFound tableNotFound -> tableNotFound.asEnsoAtom();
           case HyperQueryError queryError -> queryError.asEnsoAtom();
           case HyperTypeMismatch typeMismatch -> typeMismatch.asEnsoAtom();
-          case IllegalStateException stateException ->
-              EnsoMeta.makeInstance(
-                  "Standard.Base.Errors.Illegal_State",
-                  "Illegal_State",
-                  "Error",
-                  stateException.getMessage(),
-                  stateException);
-          default -> null;
+          case HyperUnsupportedTypeError unsupportedType -> unsupportedType.asEnsoAtom();
+          default -> EnsoExceptionWrapper.wrapCommonExceptions(exception);
         };
-    return ensoAtom == null ? exception : EnsoMeta.asDataflowError(ensoAtom);
+    return ensoAtom != null ? new RuntimeException(exception) : EnsoMeta.asDataflowError(ensoAtom);
   }
 }

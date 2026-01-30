@@ -1,6 +1,9 @@
 package org.enso.tableau;
 
-public class HyperUnmatchedColumns extends RuntimeException {
+import org.enso.base.polyglot.EnsoMeta;
+import org.graalvm.polyglot.Value;
+
+class HyperUnmatchedColumns extends RuntimeException {
   private final String[] unmatchedColumns;
 
   public HyperUnmatchedColumns(String[] unmatchedColumns) {
@@ -10,5 +13,13 @@ public class HyperUnmatchedColumns extends RuntimeException {
 
   public String[] getUnmatchedColumns() {
     return unmatchedColumns;
+  }
+
+  public Value asEnsoAtom() {
+    return EnsoMeta.makeInstance(
+        "Standard.Table.Errors",
+        "Column_Type_Mismatch",
+        "Error",
+        (Object) getUnmatchedColumns());
   }
 }
