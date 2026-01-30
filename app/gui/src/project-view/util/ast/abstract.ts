@@ -30,6 +30,7 @@ import {
   PropertyAccess,
   Wildcard,
   abstract,
+  asOwned,
   isTokenId,
   parseExpression,
   rawParseModule,
@@ -274,7 +275,7 @@ export function tryEnsoToNumber(ast: Ast) {
 export function copyIntoNewModule<T extends Ast>(ast: T): Owned<Mutable<T>> {
   const module = MutableModule.Transient()
   module.importCopy(ast)
-  return module.getVersion(ast) as Owned<Mutable<T>>
+  return asOwned(module.getVersion(ast) as Mutable<T>)
 }
 
 /** Safely cast a mutable or owned value to its base type. */
