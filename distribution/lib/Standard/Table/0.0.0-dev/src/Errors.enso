@@ -691,7 +691,7 @@ type Unmatched_Columns
        ---
        An error indicating that some columns were not present in all of the
        merged tables.
-    Error (column_names : Vector Text | Array Text)
+    Error (column_names : Vector Text)
 
     ## ---
        private: true
