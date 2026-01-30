@@ -202,15 +202,20 @@ type In_Memory_Text_Column_Implementation
             apply_case_sensitive_text_operation column other case_sensitivity TextIndexOf.INSTANCE (a -> b -> a.index_of b 0 case_sensitivity) new_name Value_Type.Integer
 
 type In_Memory_Date_Column_Implementation
-    first_of_month (column : Column & In_Memory_Column)  =
+    first_of_month (column : Column & In_Memory_Column) =
         Value_Type.expect_date column <|
             new_name = naming_helper.function_name "first_of_month" [column]
             apply_unary_map column new_name .first_of_month Value_Type.Date
 
-    end_of_month (column : Column & In_Memory_Column)  =
+    end_of_month (column : Column & In_Memory_Column) =
         Value_Type.expect_date column <|
             new_name = naming_helper.function_name "end_of_month" [column]
             apply_unary_map column new_name .end_of_month Value_Type.Date
+
+    first_of_week (column : Column & In_Memory_Column) (first_day:Day_Of_Week) =
+        Value_Type.expect_date column <|
+            offset = first_day.to_integer start_at_zero=True
+            column.date_add (column.const offset - column.day_of_week) Date_Period.Day
 
 type In_Memory_Date_Time_Column_Implementation
     at_time_zone (column : Column & In_Memory_Column) (time_zone : Time_Zone|Text) =

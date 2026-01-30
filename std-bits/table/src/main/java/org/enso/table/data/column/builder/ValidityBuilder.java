@@ -3,7 +3,6 @@ package org.enso.table.data.column.builder;
 import java.lang.foreign.MemorySegment;
 import java.util.BitSet;
 import org.enso.table.data.column.storage.ColumnStorage;
-import org.enso.table.error.ValueTypeMismatchException;
 import org.enso.table.util.ImmutableBitSet;
 
 /** A common base for builders with lazily initialized validity bitmap. */
@@ -89,16 +88,20 @@ abstract sealed class ValidityBuilder<B extends ValidityBuilder> implements Buil
 
   /**
    * Appends provided validity map at {@link #currentSize}. It does modify {@link #currentSize} by
-   * adding {@code n} to it.
+   * adding {@code n} to it. Call this method first, obtain its result and fill next {@code n}
+   * elements from the returned value with data from the other storage.
    *
    * @param validity the map to append
    * @param n the number of elements to apply
+   * @return the previous size of currentSize
    */
-  protected final void appendValidityMap(ImmutableBitSet validity, int n) {
+  protected final int appendValidityMap(ImmutableBitSet validity, int n) {
+    var prevSize = currentSize;
     if (validity.cardinality() < n || validityMap != null) {
       validity.copyTo(getValidityMap(), currentSize, n);
     }
     currentSize += n;
+    return prevSize;
   }
 
   @Override
@@ -113,13 +116,9 @@ abstract sealed class ValidityBuilder<B extends ValidityBuilder> implements Buil
     if (o == null) {
       appendNulls(1);
     } else {
-      try {
-        appendAt(currentSize, o);
-        this.setValid(currentSize);
-        currentSize++;
-      } catch (ClassCastException e) {
-        throw new ValueTypeMismatchException(getType(), o);
-      }
+      appendAt(currentSize, o);
+      this.setValid(currentSize);
+      currentSize++;
     }
     return (B) this;
   }

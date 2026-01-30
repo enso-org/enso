@@ -157,7 +157,7 @@ case object GenerateMethodBodies extends IRPass {
             lam
           case lam: Function.Lambda =>
             fun.addDiagnostic(
-              Warning.WrongSelfParameterPos(funName, fun, parameterPosition)
+              new Warning.WrongSelfParameterPos(funName, fun, parameterPosition)
             )
             lam
           case _: Function.Binding =>
@@ -211,7 +211,7 @@ case object GenerateMethodBodies extends IRPass {
       if (arg.name.name == THIS_ARGUMENT) {
         if (i + argsIdx != 0) {
           lam.addDiagnostic(
-            Warning.WrongSelfParameterPos(funName, lam, argsIdx + i)
+            new Warning.WrongSelfParameterPos(funName, lam, argsIdx + i)
           )
         }
         (genSyntheticSelf() :: acc, true)
@@ -280,7 +280,7 @@ case object GenerateMethodBodies extends IRPass {
   private def genSyntheticSelf(): DefinitionArgument.Specified = {
     DefinitionArgument.Specified
       .builder()
-      .name(Name.Self(identifiedLocation = null, synthetic = true))
+      .name(Name.Self.builder().synthetic(true).build())
       .suspended(false)
       .build()
   }

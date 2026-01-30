@@ -10,6 +10,7 @@ import org.enso.base.Text_Utils;
 import org.enso.table.data.column.operation.comparators.GenericComparators;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.type.NullType;
+import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.error.UnexpectedTypeException;
 
@@ -32,7 +33,7 @@ public final class TextPredicates extends GenericComparators<String> {
 
   @Override
   public boolean canApplyMap(ColumnStorage<?> left, Object rightValue) {
-    var storageType = left.getType();
+    var storageType = StorageType.ofStorage(left);
     return storageType instanceof TextType || storageType instanceof NullType;
   }
 

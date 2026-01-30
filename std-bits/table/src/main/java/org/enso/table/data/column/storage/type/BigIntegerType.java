@@ -6,6 +6,7 @@ import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.BuilderForType;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.problems.ProblemAggregator;
+import org.graalvm.polyglot.Value;
 
 public final class BigIntegerType implements StorageType<BigInteger>, NumericType {
   public static final BigIntegerType INSTANCE = new BigIntegerType();
@@ -32,6 +33,13 @@ public final class BigIntegerType implements StorageType<BigInteger>, NumericTyp
     if (NumericConverter.isCoercibleToBigInteger(value)) {
       return NumericConverter.coerceToBigInteger(value);
     }
+
+    if (value instanceof Value polyglotValue
+        && polyglotValue.isNumber()
+        && polyglotValue.fitsInBigInteger()) {
+      return polyglotValue.asBigInteger();
+    }
+
     return null;
   }
 
@@ -43,7 +51,7 @@ public final class BigIntegerType implements StorageType<BigInteger>, NumericTyp
 
   @Override
   public ColumnStorage<BigInteger> asTypedStorage(ColumnStorage<?> storage) {
-    if (storage.getType() instanceof BigIntegerType) {
+    if (StorageType.ofStorage(storage) instanceof BigIntegerType) {
       @SuppressWarnings("unchecked")
       var output = (ColumnStorage<BigInteger>) storage;
       return output;

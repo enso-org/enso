@@ -298,21 +298,23 @@ add_group_number_specs suite_builder setup =
         label_p2 = "Very High"
 
         group_builder.specify "should add group number by standard deviation" <|
-            t = table_builder [['x', [3, 4, 5, 4, 3, 5, 10, 4, 3]], ['y', [1, 2, 2, 1, 2, 1, 1, 1, 1]]]
+            row_id = 0.up_to 9 . to_vector
+            t = table_builder [['x', [3, 4, 5, 4, 3, 5, 10, 4, 3]], ['y', [1, 2, 2, 1, 2, 1, 1, 1, 1]], ['row_id', row_id]]
 
-            g1 = t.add_group_number (..Standard_Deviation "x") "g"
+            g1 = t.add_group_number (..Standard_Deviation "x") "g" . sort 'row_id'
             g1.at 'g' . to_vector . should_equal [label_n1, label_0, label_0, label_0, label_n1, label_0, label_p2, label_0, label_n1]
 
-            g3 = t.add_group_number (..Standard_Deviation "y") "g"
+            g3 = t.add_group_number (..Standard_Deviation "y") "g" . sort 'row_id'
             g3.at 'g' . to_vector . should_equal [label_n1, label_p1, label_p1, label_n1, label_p1, label_n1, label_n1, label_n1, label_n1]
 
         group_builder.specify "should respect standard deviation 'population' parameter" <|
-            t = table_builder [['x', [3, 4, 5, 4, 3, 5, 10, 4, 3, 5.67]]]
+            row_id = 0.up_to 10 . to_vector
+            t = table_builder [['x', [3, 4, 5, 4, 3, 5, 10, 4, 3, 5.67]], ['row_id', row_id]]
 
-            g0 = t.add_group_number (..Standard_Deviation "x" population=True) "g"
+            g0 = t.add_group_number (..Standard_Deviation "x" population=True) "g" . sort 'row_id'
             g0.at 'g' . to_vector . should_equal [label_n1, label_0, label_0, label_0, label_n1, label_0, label_p2, label_0, label_n1, label_p1]
 
-            g1 = t.add_group_number (..Standard_Deviation "x" population=False) "g"
+            g1 = t.add_group_number (..Standard_Deviation "x" population=False) "g" . sort 'row_id'
             g1.at 'g' . to_vector . should_equal [label_n1, label_0, label_0, label_0, label_n1, label_0, label_p2, label_0, label_n1, label_0]
 
         if setup.is_database.not then

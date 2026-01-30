@@ -640,41 +640,42 @@ round_builtin this_column decimal_places rounding_mode =
 round_float : Column & DB_Column -> Integer -> Boolean -> Column
 round_float this_column decimal_places rounding_mode =
     new_name = (naming_helper this_column).function_name "round" [this_column]
-    scale = 10 ^ decimal_places
-    scaled = this_column * scale
 
-    (scaled:DB_Column).let "scaled" scaled->
-        round_base = scaled.floor
-        (round_base:DB_Column).let "round_base" round_base->
-            round_midpoint = (round_base + 0.5) / scale
-            (round_midpoint:DB_Column).let "round_midpoint" round_midpoint->
-                # The intermediate variable `scaled_truncate_mod_2_equals_0` is a workaround for bug #13282
-                scaled_truncate_mod_2_equals_0 = (((scaled.truncate % 2) == 0) : DB_Column)
-                scaled_truncate_mod_2_equals_0.let "scaled_truncate_mod_2_equals_0" scaled_truncate_mod_2_equals_0->
-                    even_is_up = (this_column >= 0).iif scaled_truncate_mod_2_equals_0.not scaled_truncate_mod_2_equals_0
-                    half_goes_up = if rounding_mode == Rounding_Mode.Bankers then even_is_up else this_column >= 0
-                    do_round_up = (half_goes_up:DB_Column).let "half_goes_up" x-> x.iif (this_column >= round_midpoint) (this_column > round_midpoint)
-                    result = (do_round_up:DB_Column).let "do_round_up" x-> x.iif ((round_base + 1.0) / scale) (round_base / scale)
-                    result.rename new_name
+    scale = 10 ^ decimal_places
+    scaled = if decimal_places == 0 then this_column else this_column * scale
+
+    half_goes_up = if rounding_mode != Rounding_Mode.Bankers then this_column >= 0 else
+        mod_2 = scaled.truncate % 2
+        (mod_2:DB_Column).let "mod_2" mod_2-> (this_column >= 0).iif (mod_2 != 0) (mod_2 == 0)
+
+    round_base = scaled.floor
+    (round_base:DB_Column).let "round_base" round_base->
+        round_midpoint = round_base + 0.5
+        (round_midpoint:DB_Column).let "round_midpoint" round_midpoint->
+            do_round_up = (scaled > round_midpoint) || (half_goes_up && scaled == round_midpoint)
+            scaled_result = round_base + (do_round_up.iif 1 0)
+            result = if decimal_places == 0 then scaled_result else scaled_result / scale
+            result.rename new_name
 
 round_decimal : Column & DB_Column -> Integer -> Boolean -> Column
 round_decimal this_column decimal_places rounding_mode =
-    # Construct a constant Decimal column.
-    k x = this_column.const x . cast Value_Type.Decimal
     new_name = (naming_helper this_column).function_name "round" [this_column]
-    scale = 10 ^ decimal_places
-    scaled = this_column * scale
-    (scaled:DB_Column).let "scaled" scaled->
-        round_base = scaled.floor
-        (round_base:DB_Column).let "round_base" round_base->
-            round_midpoint = decimal_div (round_base + k 0.5) scale
-            (round_midpoint:DB_Column).let "round_midpoint" round_midpoint->
-                (((decimal_mod scaled.truncate (k 2)) != k 0) : DB_Column).let "scaled_truncate_mod_2_equals_0" scaled_truncate_mod_2_equals_0->
-                    even_is_up = (this_column >= k 0).iif scaled_truncate_mod_2_equals_0.not scaled_truncate_mod_2_equals_0
-                    half_goes_up = if rounding_mode == Rounding_Mode.Bankers then even_is_up else this_column >= k 0
-                    do_round_up = (half_goes_up:DB_Column).let "half_goes_up" x-> x.iif (this_column >= round_midpoint) (this_column > round_midpoint)
-                    result = (do_round_up:DB_Column).let "do_round_up" x-> x.iif (decimal_div (round_base + k 1) scale) (decimal_div round_base scale)
-                    result.rename new_name
+
+    scale = dec (10 ^ decimal_places)
+    scaled = if decimal_places == 0 then this_column else this_column * scale
+
+    half_goes_up = if rounding_mode != Rounding_Mode.Bankers then this_column >= 0 else
+        mod_2 = decimal_mod (scaled.truncate) 2
+        (mod_2:DB_Column).let "mod_2" mod_2-> (this_column >= 0).iif (mod_2 != 0) (mod_2 == 0)
+
+    round_base = scaled.floor
+    (round_base:DB_Column).let "round_base" round_base->
+        round_midpoint = round_base + dec 0.5
+        (round_midpoint:DB_Column).let "round_midpoint" round_midpoint->
+            do_round_up = (scaled > round_midpoint) || (half_goes_up && scaled == round_midpoint)
+            scaled_result = round_base + (do_round_up.iif (dec 1) (dec 0))
+            result = if decimal_places == 0 then scaled_result else decimal_div scaled_result scale
+            result.rename new_name
 
 decimal_div (this_column : Column & DB_Column) other =
     Value_Type.expect_numeric this_column <| Value_Type.expect_numeric other <|

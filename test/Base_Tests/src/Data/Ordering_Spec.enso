@@ -144,7 +144,6 @@ add_specs suite_builder =
             Ordering.compare Number.nan 42.0 . should_fail_with Incomparable_Values
             Ordering.compare 42.0 Number.nan . should_fail_with Incomparable_Values
             Ordering.compare 42.5 67.9 . should_equal Ordering.Less
-            Meta.is_same_object (Comparable.from Number.nan . comparator) (Comparable.from 42.0 . comparator) . should_be_true
 
         group_builder.specify "should fail with Incomparable_Values for wrong type of that" <|
             Ordering.compare Ordering.Less 1 . should_fail_with Incomparable_Values

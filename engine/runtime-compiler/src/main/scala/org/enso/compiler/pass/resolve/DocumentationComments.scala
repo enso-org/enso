@@ -86,7 +86,11 @@ case object DocumentationComments extends IRPass {
         val newLines       = resolveList(block.expressions :+ block.returnValue)
         val newExpressions = newLines.init.map(resolveExpression)
         val newReturn      = resolveExpression(newLines.last)
-        block.copy(expressions = newExpressions, returnValue = newReturn)
+        block
+          .copyBuilder()
+          .expressions(newExpressions)
+          .returnValue(newReturn)
+          .build()
       case caseExpr: Case.Expr =>
         val newScrutinee = resolveExpression(caseExpr.scrutinee)
         val newBranches  = resolveBranches(caseExpr.branches)

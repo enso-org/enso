@@ -28,12 +28,18 @@ OAuth integration requires an application registered in the Azure portal.
 
 ## Create A Client Secret
 
-- Go to the application in the [Azure Portal](https://portal.azure.com/)
-- Select "Overview" on the left
+- Log in to the [Azure Portal](https://portal.azure.com/) through an Azure
+  account in the `<company>.onmicrosoft.com` domain.
+- Select the "App Registrations" service
+- Click "All applications"
+- Select "Enso Analytics Integration" for prod, or "Enso Analytics Integration
+  (Staging)" for staging
+- On the app details page, select "Overview" on the left
 - Copy the "Application (client) ID" value
 - Click on the link next to "Client Credentials"
 - Select "New Client Secret"
-- Enter name and expiration and create the secret
+- Enter name and expiration and create the secret.
+- Copy the secret value, under "Value" in the secrets table
 - Add the secrets to the
   [staging](https://github.com/enso-org/cloud-v2/blob/main/terraform/secrets.enc.staging.yaml)
   and

@@ -8,7 +8,7 @@ import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.util.ImmutableBitSet;
 
 /** A column containing floating point numbers. */
-public final class DoubleStorage extends Storage<Double>
+public final class DoubleStorage extends AbstractBaseStorage<Double>
     implements ColumnDoubleStorage, ColumnStorageWithValidityMap {
   private final DoubleBuffer data;
   private final ImmutableBitSet validityMap;
@@ -31,11 +31,6 @@ public final class DoubleStorage extends Storage<Double>
     this.validityMap = validityMap;
     this.size = data.limit();
     this.proxy = otherStorage;
-  }
-
-  @Override
-  public FloatType getType() {
-    return (FloatType) super.getType();
   }
 
   @Override

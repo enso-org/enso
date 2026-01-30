@@ -5,6 +5,7 @@ import java.math.BigInteger;
 import java.util.BitSet;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.storage.type.BigDecimalType;
+import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.table.Column;
 import org.enso.table.error.ValueTypeMismatchException;
@@ -115,7 +116,7 @@ final class InferredDoubleBuilder extends DoubleBuilder implements BuilderWithRe
       setRaw(at, bigInteger);
       appendDouble(convertBigIntegerToDouble(bigInteger));
     } else {
-      throw new ValueTypeMismatchException(getType(), o);
+      throw new ValueTypeMismatchException(FloatType.FLOAT_64, o);
     }
   }
 

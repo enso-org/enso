@@ -31,19 +31,34 @@ if (process.env.JS_BINARY__EXECROOT) {
   process.chdir(process.env.JS_BINARY__EXECROOT)
 }
 
-if (
-  process.argv.length < 5 ||
-  process.argv[2] == null ||
-  process.argv[3] == null ||
-  process.argv[4] == null
-)
+if (process.argv.length < 4 || process.argv[2] == null || process.argv[3] == null)
   throw new Error(
-    `Invalid arguments.\nusage:\n  ${process.argv[0]} ${process.argv[1]} <inputDirectory> <outputDirectory> <filesRegex> [statusFilePath]`,
+    `Invalid arguments.\nusage:\n  ${process.argv[0]} ${process.argv[1]} <inputDirectory> <outputDirectory> [statusFilePath]`,
   )
 const inputDirectory = process.argv[2]
 const outputDirectory = process.argv[3]
-const filesRegex = process.argv[4]
-const statusFilePath = process.argv[5]
+const statusFilePath = process.argv[4]
+
+/**
+ * Match files that should have environment variable replacements applied.
+ * Covers:
+ * - config.js or config-<hash>.js (GUI config files)
+ * - index.html (GUI entry point)
+ * - index.mjs or preload.mjs (Electron client entry points)
+ *
+ * @param {string} projectPath
+ */
+function isEnvReplacementFile(projectPath) {
+  // Matches config.js and config-<hash>.js.
+  const configFileRegex = /^config(?:-[0-9A-Za-z]+)?\.js$/
+
+  const base = path.basename(projectPath)
+  if (base === 'index.html') return true
+  if (base === 'index.mjs') return true
+  if (base === 'preload.mjs') return true
+  if (configFileRegex.test(base)) return true
+  return false
+}
 
 /**
  * Map of calls mkdir performed so far, to avoid calling it twice on the same path.
@@ -80,14 +95,6 @@ function assertNoErrors() {
 
 /** @type {Record<string, string>} */
 const envs = {}
-
-/** @type {RegExp} */
-let compiledFilesRegex
-try {
-  compiledFilesRegex = new RegExp(filesRegex)
-} catch (e) {
-  throw new Error(`Invalid filesRegex "${filesRegex}": ${e.message}`)
-}
 
 // When stamping, the status file contains environment variables to replace.
 // We only consider variables starting with `ENSO_` prefix, and we only consider `stable-status.txt` file,
@@ -246,7 +253,7 @@ async function initialPassWriteToOutput() {
     inputFiles.map(async (projectPath) => {
       const buf = await readOriginalFile(projectPath)
       const isText = Buffer.isUtf8(buf)
-      if (statusFilePath != null && isText && compiledFilesRegex.test(projectPath)) {
+      if (statusFilePath != null && isText && isEnvReplacementFile(projectPath)) {
         const newContent = applyReplacements(buf.toString(), projectPath)
         const newPath = await updateHashInFilename(projectPath, newContent)
         await writeProjectFile(newPath, newContent)
@@ -290,7 +297,7 @@ async function finalValidationSweep() {
     outFiles.map(async (projectPath) => {
       const buf = await readOutputFile(projectPath)
       if (!Buffer.isUtf8(buf)) return
-      if (!compiledFilesRegex.test(projectPath)) {
+      if (!isEnvReplacementFile(projectPath)) {
         await reportUnexpectedPatterns(buf, projectPath)
       }
     }),

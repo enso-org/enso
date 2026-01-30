@@ -1,6 +1,7 @@
 package org.enso.table.data.column.storage;
 
 import org.enso.table.data.column.storage.type.IntegerType;
+import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.util.ImmutableBitSet;
 
 /**
@@ -42,7 +43,7 @@ public abstract class ComputedLongStorage extends AbstractLongStorage
   public AbstractLongStorage widen(IntegerType widerType) {
     // Currently the implementation only reports 64-bit type so there is no widening to do - we can
     // just return self.
-    assert getType().equals(IntegerType.INT_64);
+    assert StorageType.ofStorage(this).equals(IntegerType.INT_64);
     return this;
   }
 }

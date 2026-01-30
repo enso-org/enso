@@ -68,7 +68,7 @@
     "vite is required for the watch script"
   ],
   "scripts": {
-    "typecheck": "tsc --build",
+    "typecheck": "tsc --noEmit",
     "build": "vite-node bundle.ts",
     "dist": "vite-node dist.ts",
     "lint": "eslint . --cache --max-warnings=0",

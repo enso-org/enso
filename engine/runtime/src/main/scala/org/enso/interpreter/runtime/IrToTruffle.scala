@@ -1016,11 +1016,10 @@ private[runtime] class IrToTruffle(
               val runtimeCons =
                 tpe.getConstructors
                   .get(cons.name)
-              val fun = mkConsGetter(runtimeCons)
               scopeBuilder.registerMethod(
                 scopeAssociatedType,
                 name,
-                fun
+                () => mkConsGetter(runtimeCons)
               )
             case BindingsMap.ResolvedModule(module) =>
               val runtimeCons =
@@ -1331,8 +1330,9 @@ private[runtime] class IrToTruffle(
         )
         val childScope = childFactory.scope
 
-        val blockNode = childFactory.processBlock(block.copy(suspended = false))
-
+        val blockNode = childFactory.processBlock(
+          block.copyBuilder().suspended(false).build()
+        )
         val defaultRootNode = ClosureRootNode.build(
           language,
           childScope,
@@ -2020,22 +2020,19 @@ private[runtime] class IrToTruffle(
             case _                        => null
           }
           resolver.resolveName(literalName, fpMeta)
-        case Name.MethodReference(
-              None,
-              Name.Literal(nameStr, _, _, _, _),
-              _,
-              _
-            ) =>
+        case methodRef: Name.MethodReference
+            if methodRef.methodName().isInstanceOf[Name.Literal] =>
+          val nameStr = methodRef.methodName().asInstanceOf[Name.Literal].name
           DynamicSymbolNode.buildUnresolvedConstructor(nameStr)
-        case Name.Self(location, _, passData) =>
+        case self: Name.Self =>
           processName(
-            Name.Literal(
-              ConstantsNames.SELF_ARGUMENT,
-              isMethod = false,
-              location,
-              None,
-              passData
-            )
+            Name.Literal
+              .builder()
+              .name(ConstantsNames.SELF_ARGUMENT)
+              .isMethod(false)
+              .location(self.identifiedLocation())
+              .passData(self.passData())
+              .build()
           )
         case n: Name.SelfType =>
           nodeForResolution(

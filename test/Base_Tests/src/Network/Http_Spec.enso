@@ -13,9 +13,7 @@ import Standard.Base.Runtime.Context
 from Standard.Base.Network.HTTP import _resolve_headers, _get_follow_redirects, _get_proxy, _get_timeout, _get_version
 
 from Standard.Test import all
-from Standard.Test.Execution_Context_Helpers import run_with_and_without_output
-
-from project.Network.Http.Http_Test_Setup import base_url_with_slash, pending_has_url
+from project.Network.Http.Http_Test_Setup import base_url_with_slash, pending_has_url, run_with_and_without_output
 
 type Test_Type
     Aaa (s:Text)

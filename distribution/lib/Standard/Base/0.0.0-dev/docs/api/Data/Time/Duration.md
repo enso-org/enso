@@ -1,8 +1,8 @@
 ## Enso Signatures 1.0
 ## module Standard.Base.Data.Time.Duration
 - type Duration
-    - + self that:Standard.Base.Any.Any -> Standard.Base.Any.Any
-    - - self that:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - + self that:Standard.Base.Data.Time.Duration.Duration -> Standard.Base.Data.Time.Duration.Duration!Standard.Base.Errors.Time_Error.Time_Error
+    - - self that:Standard.Base.Data.Time.Duration.Duration -> Standard.Base.Data.Time.Duration.Duration!Standard.Base.Errors.Time_Error.Time_Error
     - < self that:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - <= self that:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - > self that:Standard.Base.Any.Any -> Standard.Base.Any.Any

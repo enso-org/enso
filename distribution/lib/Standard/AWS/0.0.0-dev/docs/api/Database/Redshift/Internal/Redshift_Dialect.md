@@ -28,4 +28,10 @@
     - to_text self -> Standard.Base.Any.Any
     - value_type_for_upload_of_existing_column self column:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - wrap_identifier self identifier:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- agg_count_distinct args:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- agg_count_distinct_include_null args:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- agg_median -> Standard.Base.Any.Any
+- agg_percentile -> Standard.Base.Any.Any
+- make_dialect_operations -> Standard.Base.Any.Any
+- make_group_number_standard_deviation stddev_variant:Standard.Base.Data.Text.Text arguments:Standard.Base.Data.Vector.Vector -> Standard.Base.Any.Any
 - redshift -> Standard.Base.Any.Any

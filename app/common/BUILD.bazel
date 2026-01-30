@@ -1,6 +1,8 @@
+load("@aspect_bazel_lib//lib:write_source_files.bzl", "write_source_files")
 load("@aspect_rules_js//npm:defs.bzl", "npm_package")
 load("@aspect_rules_ts//ts:defs.bzl", "ts_config", "ts_project")
 load("@npm//:defs.bzl", "npm_link_all_packages", "npm_link_targets")
+load("//:bazel_scripts/ts_config.bzl", "write_tsconfig")
 
 npm_link_all_packages(name = "node_modules")
 
@@ -17,6 +19,7 @@ ts_project(
     ]) + ["src/text/english.json"],
     allow_js = True,
     composite = True,
+    no_emit = False,
     out_dir = "dist",
     resolve_json_module = True,
     root_dir = "src",
@@ -34,5 +37,36 @@ npm_package(
         "package.json",
         ":tsc",
     ],
+    visibility = ["//visibility:public"],
+)
+
+write_tsconfig(
+    name = "tsconfig_generated",
+    out = "tsconfig.json",
+    allow_js = True,
+    config = {
+        "compilerOptions": {
+            "lib": [
+                "DOM",
+                "es2023",
+            ],
+            "allowJs": True,
+            "checkJs": True,
+            "skipLibCheck": False,
+            "noEmit": False,
+            "resolveJsonModule": True,
+            "outDir": "dist",
+            "rootDir": "src",
+        },
+    },
+    extends = "//:tsconfig",
+    files = glob(["src/**/*.ts"]) + ["src/text/english.json"],
+    resolve_json_module = True,
+)
+
+write_source_files(
+    name = "write_tsconfigs",
+    files = {"tsconfig.json": ":tsconfig_generated"},
+    suggested_update_target = "//:write_all",
     visibility = ["//visibility:public"],
 )

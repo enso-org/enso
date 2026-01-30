@@ -9,7 +9,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import org.enso.compiler.core.ir.MetadataStorage;
 import org.enso.compiler.core.ir.Name;
 import org.enso.compiler.dump.service.IRDumpFactoryService;
 import org.enso.test.utils.ContextUtils;
@@ -24,7 +23,6 @@ import org.junit.Test;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 import org.junit.runners.model.Statement;
-import scala.Option;
 
 /**
  * If run locally, make sure that no IGV instance is running. Otherwise, the IRDumper will try to
@@ -91,7 +89,7 @@ public class IRDumpTest {
   public void dumpExpression() throws Exception {
     var irDumpsDir = Path.of(IRDumpFactoryService.DEFAULT_DUMP_DIR);
     try (var irDumper = new IRDumperTestWrapper()) {
-      var lit = new Name.Literal("method", true, null, Option.empty(), new MetadataStorage());
+      var lit = Name.Literal.builder().name("method").isMethod(false).build();
       irDumper.dump(lit, "MyModule", "AfterPass");
     }
     assertTrue("ir-dumps directory was created", irDumpsDir.toFile().exists());

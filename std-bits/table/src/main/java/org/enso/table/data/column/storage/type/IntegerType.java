@@ -7,6 +7,7 @@ import org.enso.table.data.column.builder.BuilderForLong;
 import org.enso.table.data.column.storage.ColumnLongStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.problems.ProblemAggregator;
+import org.graalvm.polyglot.Value;
 
 public final class IntegerType implements StorageType<Long>, NumericType {
   public static final IntegerType INT_64 = new IntegerType(Bits.BITS_64);
@@ -112,9 +113,18 @@ public final class IntegerType implements StorageType<Long>, NumericType {
 
   @Override
   public Long valueAsType(Object value) {
+    if (value == null) {
+      return null;
+    }
+
     if (NumericConverter.isCoercibleToLong(value)) {
       return NumericConverter.coerceToLong(value);
     }
+
+    if (value instanceof Value polyValue && polyValue.isNumber() && polyValue.fitsInLong()) {
+      return polyValue.asLong();
+    }
+
     return null;
   }
 
@@ -125,7 +135,7 @@ public final class IntegerType implements StorageType<Long>, NumericType {
 
   @Override
   public ColumnLongStorage asTypedStorage(ColumnStorage<?> storage) {
-    if (storage.getType() instanceof IntegerType) {
+    if (StorageType.ofStorage(storage) instanceof IntegerType) {
       var output = (ColumnLongStorage) storage;
       return output;
     }

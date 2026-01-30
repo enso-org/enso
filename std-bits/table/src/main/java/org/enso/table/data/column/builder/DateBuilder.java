@@ -8,10 +8,9 @@ import java.time.LocalDate;
 import java.util.Objects;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.DateStorage;
-import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.DateTimeType;
-import org.enso.table.data.column.storage.type.DateType;
 import org.enso.table.data.column.storage.type.StorageType;
+import org.enso.table.error.ValueTypeMismatchException;
 
 /** A builder for LocalDate columns. */
 final class DateBuilder extends ValidityBuilder<DateBuilder>
@@ -54,8 +53,12 @@ final class DateBuilder extends ValidityBuilder<DateBuilder>
 
   @Override
   protected final void appendAt(int at, Object o) throws ClassCastException {
-    var local = (LocalDate) o;
-    data.put(at, Math.toIntExact(local.toEpochDay()));
+    if (o instanceof LocalDate local) {
+      data.put(at, Math.toIntExact(local.toEpochDay()));
+
+    } else {
+      throw new ValueTypeMismatchException(DateTimeType.INSTANCE, o);
+    }
   }
 
   @Override
@@ -103,17 +106,12 @@ final class DateBuilder extends ValidityBuilder<DateBuilder>
     return seal(null);
   }
 
-  final Storage<LocalDate> seal(ColumnStorage<?> otherStorage) {
+  final ColumnStorage<LocalDate> seal(ColumnStorage<?> otherStorage) {
     ensureFreeSpaceFor(0);
     var buf = data.asReadOnlyBuffer().position(0).limit(currentSize());
     var validity = this.validityMap();
 
     return new DateStorage(buf, validity, otherStorage);
-  }
-
-  @Override
-  public StorageType<LocalDate> getType() {
-    return DateType.INSTANCE;
   }
 
   @Override

@@ -2,7 +2,7 @@ package org.enso.compiler.core.ir.expression.errors;
 
 import java.util.function.Function;
 import org.enso.compiler.core.IR;
-import org.enso.compiler.core.ir.Diagnostic$Kind$Interactive;
+import org.enso.compiler.core.ir.Diagnostic;
 import org.enso.compiler.core.ir.DiagnosticStorage;
 import org.enso.compiler.core.ir.Expression;
 import org.enso.compiler.core.ir.IRKind;
@@ -22,7 +22,7 @@ import scala.Option;
 @GenerateIR(
     interfaces = {
       Error.class,
-      Diagnostic$Kind$Interactive.class,
+      Diagnostic.Kind.Interactive.class,
       IRKind.Primitive.class,
       Import.class,
       Export.class

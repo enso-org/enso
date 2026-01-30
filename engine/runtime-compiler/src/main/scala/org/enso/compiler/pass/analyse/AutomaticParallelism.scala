@@ -303,16 +303,17 @@ object AutomaticParallelism extends IRPass {
       .toMap
 
     val refAllocations = refVars.values.map(
-      Expression
-        .Binding(
-          _,
+      Expression.Binding
+        .builder()
+        .name(_)
+        .expression(
           Application.Prefix
             .builder()
-            .function(Name.Special(Name.Special.NewRef, null))
+            .function(Name.Special.create(Name.Special.Ident.NewRef))
             .arguments(List())
-            .build(),
-          null
+            .build()
         )
+        .build()
         .updateMetadata(
           new MetadataPair(IgnoredBindings, IgnoredBindings.State.Ignored)
         )
@@ -324,7 +325,7 @@ object AutomaticParallelism extends IRPass {
           case bind: Expression.Binding =>
             val refWrite = Application.Prefix
               .builder()
-              .function(Name.Special(Name.Special.WriteRef, null))
+              .function(Name.Special.create(Name.Special.Ident.WriteRef))
               .arguments(
                 List(
                   CallArgument.Specified
@@ -336,7 +337,7 @@ object AutomaticParallelism extends IRPass {
                   CallArgument.Specified
                     .builder()
                     .name(None)
-                    .value(bind.name.duplicate())
+                    .value(bind.name.duplicate(true, true, true, false))
                     .isSynthetic(true)
                     .build()
                 )
@@ -347,20 +348,29 @@ object AutomaticParallelism extends IRPass {
         }
       val spawn = Application.Prefix
         .builder()
-        .function(Name.Special(Name.Special.RunThread, null))
+        .function(Name.Special.create(Name.Special.Ident.RunThread))
         .arguments(
           List(
             CallArgument.Specified
               .builder()
               .name(None)
-              .value(Expression.Block(blockBody.init, blockBody.last, null))
+              .value(
+                Expression.Block
+                  .builder()
+                  .expressions(blockBody.init)
+                  .returnValue(blockBody.last)
+                  .build()
+              )
               .isSynthetic(true)
               .build()
           )
         )
         .build()
-      Expression
-        .Binding(freshNameSupply.newName(), spawn, null)
+      Expression.Binding
+        .builder()
+        .name(freshNameSupply.newName())
+        .expression(spawn)
+        .build()
         .updateMetadata(
           new MetadataPair(IgnoredBindings, IgnoredBindings.State.Ignored)
         )
@@ -369,13 +379,13 @@ object AutomaticParallelism extends IRPass {
     val threadJoins = threadSpawns.map { bind =>
       Application.Prefix
         .builder()
-        .function(Name.Special(Name.Special.JoinThread, null))
+        .function(Name.Special.create(Name.Special.Ident.JoinThread))
         .arguments(
           List(
             CallArgument.Specified
               .builder()
               .name(None)
-              .value(bind.name.duplicate())
+              .value(bind.name.duplicate(true, true, true, false))
               .isSynthetic(true)
               .build()
           )
@@ -384,12 +394,13 @@ object AutomaticParallelism extends IRPass {
     }
 
     val varReads = refVars.map { case (name, ref) =>
-      Expression
-        .Binding(
-          name.duplicate(),
+      Expression.Binding
+        .builder()
+        .name(name.duplicate(true, true, true, false))
+        .expression(
           Application.Prefix
             .builder()
-            .function(Name.Special(Name.Special.ReadRef, null))
+            .function(Name.Special.create(Name.Special.Ident.ReadRef))
             .arguments(
               List(
                 CallArgument.Specified
@@ -400,9 +411,9 @@ object AutomaticParallelism extends IRPass {
                   .build()
               )
             )
-            .build(),
-          null
+            .build()
         )
+        .build()
         .updateMetadata(
           new MetadataPair(IgnoredBindings, IgnoredBindings.State.Ignored)
         )
@@ -444,8 +455,11 @@ object AutomaticParallelism extends IRPass {
           val withBlocks = withDeps.map(assignBlocks)
           val newExprs =
             withBlocks.flatMap(codeGen(_, moduleContext.freshNameSupply.get))
-          val r =
-            block.copy(expressions = newExprs.init, returnValue = newExprs.last)
+          val r = block
+            .copyBuilder()
+            .expressions(newExprs.init)
+            .returnValue(newExprs.last)
+            .build()
           r
         }
         method
@@ -454,7 +468,7 @@ object AutomaticParallelism extends IRPass {
           .build()
       case other => other
     }
-    ir.copyWithBindings(bindings = newBindings)
+    ir.copyWithBindings(newBindings)
   }
 
   /** A parallelization status for a given line.

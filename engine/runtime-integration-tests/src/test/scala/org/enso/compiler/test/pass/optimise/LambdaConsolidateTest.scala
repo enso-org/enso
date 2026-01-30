@@ -238,17 +238,13 @@ class LambdaConsolidateTest extends CompilerTest {
             DefinitionArgument.Specified
               .builder()
               .name(
-                Name
-                  .Literal("a", isMethod = false, identifiedLocation = null)
+                Name.Literal.builder().name("a").isMethod(false).build()
               )
               .suspended(false)
               .build(),
             DefinitionArgument.Specified
               .builder()
-              .name(
-                Name
-                  .Literal("b", isMethod = false, identifiedLocation = null)
-              )
+              .name(Name.Literal.builder().name("b").isMethod(false).build())
               .suspended(false)
               .build()
           )
@@ -262,12 +258,7 @@ class LambdaConsolidateTest extends CompilerTest {
                   DefinitionArgument.Specified
                     .builder()
                     .name(
-                      Name
-                        .Literal(
-                          "c",
-                          isMethod           = false,
-                          identifiedLocation = null
-                        )
+                      Name.Literal.builder().name("c").isMethod(false).build()
                     )
                     .suspended(false)
                     .build()
@@ -275,7 +266,7 @@ class LambdaConsolidateTest extends CompilerTest {
               )
               .bodyReference(
                 Persistance.Reference.of(
-                  Name.Literal("c", isMethod = false, identifiedLocation = null)
+                  Name.Literal.builder().name("c").isMethod(false).build()
                 )
               )
               .build()

@@ -21,7 +21,7 @@ public class ToDateStorageConverter implements StorageConverter<LocalDate> {
   @Override
   public ColumnStorage<LocalDate> cast(
       ColumnStorage<?> storage, CastProblemAggregator problemAggregator) {
-    var storageType = storage.getType();
+    var storageType = StorageType.ofStorage(storage);
     if (storageType instanceof DateTimeType datetimeType) {
       return convertDateTimeStorage(datetimeType.asTypedStorage(storage));
     } else if (canApply(storageType)) {

@@ -1,13 +1,14 @@
+load("@aspect_bazel_lib//lib:write_source_files.bzl", "write_source_files")
 load("@aspect_rules_js//npm:defs.bzl", "npm_package")
 load("@aspect_rules_ts//ts:defs.bzl", "ts_config", "ts_project")
 load("@npm//:defs.bzl", "npm_link_all_packages", "npm_link_targets")
+load("//:bazel_scripts/ts_config.bzl", "write_tsconfig")
 
 npm_link_all_packages(name = "node_modules")
 
 ts_config(
     name = "tsconfig",
     src = "tsconfig.json",
-    deps = ["//:tsconfig"],
 )
 
 ts_project(
@@ -30,5 +31,34 @@ npm_package(
         "package.json",
         ":tsc",
     ],
+    visibility = ["//visibility:public"],
+)
+
+write_tsconfig(
+    name = "tsconfig_generated",
+    out = "tsconfig.json",
+    config = {
+        "compilerOptions": {
+            "composite": True,
+            "lib": ["es2017"],
+            "module": "es2015",
+            "moduleResolution": "node",
+            "noImplicitReturns": True,
+            "noUnusedLocals": True,
+            "strict": True,
+            "stripInternal": True,
+            "target": "es6",
+            "newLine": "lf",
+            "outDir": "dist",
+            "rootDir": "src",
+        },
+    },
+    files = glob(["src/*.ts"]),
+)
+
+write_source_files(
+    name = "write_tsconfigs",
+    files = {"tsconfig.json": ":tsconfig_generated"},
+    suggested_update_target = "//:write_all",
     visibility = ["//visibility:public"],
 )

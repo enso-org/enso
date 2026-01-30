@@ -119,12 +119,13 @@ case object FunctionBinding extends IRPass {
         .location(functionBinding.identifiedLocation())
         .build()
 
-      Expression.Binding(
-        name               = functionBinding.name,
-        expression         = lambda,
-        identifiedLocation = functionBinding.identifiedLocation,
-        passData           = functionBinding.passData
-      )
+      Expression.Binding
+        .builder()
+        .name(functionBinding.name)
+        .expression(lambda)
+        .location(functionBinding.identifiedLocation)
+        .passData(functionBinding.passData)
+        .build()
     }
   }
 
@@ -201,16 +202,18 @@ case object FunctionBinding extends IRPass {
               if (firstArgumentName.isInstanceOf[Name.Blank]) {
                 val newName =
                   if (restArgs.nonEmpty)
-                    Name.Self(
-                      firstArgumentName.identifiedLocation(),
-                      synthetic = true
-                    )
+                    Name.Self
+                      .builder()
+                      .location(firstArgumentName.identifiedLocation())
+                      .synthetic(true)
+                      .build()
                   else
-                    Name.Literal(
-                      ConstantsNames.THAT_ARGUMENT,
-                      firstArgumentName.isMethod,
-                      firstArgumentName.identifiedLocation()
-                    )
+                    Name.Literal
+                      .builder()
+                      .name(ConstantsNames.THAT_ARGUMENT)
+                      .isMethod(firstArgumentName.isMethod)
+                      .location(firstArgumentName.identifiedLocation())
+                      .build()
                 firstArg
                   .withName(newName)
                   .updateMetadata(
@@ -226,11 +229,12 @@ case object FunctionBinding extends IRPass {
               case snd :: rest =>
                 val sndArgName = snd.name
                 if (sndArgName.isInstanceOf[Name.Blank]) {
-                  val newName = Name.Literal(
-                    ConstantsNames.THAT_ARGUMENT,
-                    sndArgName.isMethod,
-                    sndArgName.identifiedLocation()
-                  )
+                  val newName = Name.Literal
+                    .builder()
+                    .name(ConstantsNames.THAT_ARGUMENT)
+                    .isMethod(sndArgName.isMethod)
+                    .location(sndArgName.identifiedLocation())
+                    .build()
                   (
                     Some(
                       snd
