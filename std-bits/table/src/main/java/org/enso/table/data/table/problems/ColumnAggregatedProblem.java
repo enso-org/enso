@@ -3,7 +3,6 @@ package org.enso.table.data.table.problems;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
-
 import org.enso.base.polyglot.EnsoMeta;
 import org.enso.table.problems.Problem;
 import org.graalvm.polyglot.Value;
@@ -28,7 +27,7 @@ public abstract class ColumnAggregatedProblem implements Problem {
 
   protected Value getRowsVector() {
     var vectorType = EnsoMeta.getType("Standard.Base.Data.Vector", "Vector");
-    return vectorType.invokeMember("from_polyglot_array",  getRows());
+    return vectorType.invokeMember("from_polyglot_array", getRows());
   }
 
   public int count() {

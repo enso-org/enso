@@ -23,9 +23,6 @@ public class FloatingPointGrouping extends ColumnAggregatedProblem {
   @Override
   public Value asEnsoValue() {
     return EnsoMeta.makeInstance(
-        "Standard.Base.Errors.Common",
-        "Floating_Point_Equality",
-        "Warning",
-        getLocationName());
+        "Standard.Base.Errors.Common", "Floating_Point_Equality", "Warning", getLocationName());
   }
 }
