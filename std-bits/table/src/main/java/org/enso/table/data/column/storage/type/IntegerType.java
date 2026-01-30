@@ -1,6 +1,7 @@
 package org.enso.table.data.column.storage.type;
 
 import java.math.BigInteger;
+import org.enso.base.polyglot.EnsoMeta;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.BuilderForLong;
@@ -24,6 +25,17 @@ public final class IntegerType implements StorageType<Long>, NumericType {
   @Override
   public char typeChar() {
     return 'I';
+  }
+
+  @Override
+  public Value asEnsoValueType() {
+    if (bits.equals(Bits.BITS_8)) {
+      return EnsoMeta.makeInstance("Standard.Table.Value_Type", "Value_Type", "Byte");
+    }
+
+    var ensoBits =
+        EnsoMeta.getType("Standard.Table.Value_Type", "Bits").invokeMember("from_int", size());
+    return EnsoMeta.makeInstance("Standard.Table.Value_Type", "Value_Type", "Integer", ensoBits);
   }
 
   @Override

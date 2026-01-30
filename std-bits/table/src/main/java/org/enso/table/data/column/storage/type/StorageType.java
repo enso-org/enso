@@ -11,6 +11,7 @@ import org.enso.table.data.column.builder.BuilderForType;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.PreciseTypeOptions;
 import org.enso.table.problems.ProblemAggregator;
+import org.graalvm.polyglot.Value;
 
 /**
  * Represents an underlying internal storage type that can be mapped to the Value Type that is
@@ -124,6 +125,9 @@ public sealed interface StorageType<T>
 
   /** Convert the value to the type if possible or return null if not. */
   T valueAsType(Object value);
+
+  /** Creates an Enso Value Type representation of the storage type. */
+  Value asEnsoValueType();
 
   /**
    * Creates a builder for the StorageType.

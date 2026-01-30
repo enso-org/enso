@@ -1,5 +1,6 @@
 package org.enso.table.data.column.storage.type;
 
+import org.enso.base.polyglot.EnsoMeta;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.BuilderForBoolean;
 import org.enso.table.data.column.storage.ColumnBooleanStorage;
@@ -15,6 +16,11 @@ public final class BooleanType implements StorageType<Boolean> {
   @Override
   public char typeChar() {
     return 'B';
+  }
+
+  @Override
+  public Value asEnsoValueType() {
+    return EnsoMeta.makeInstance("Standard.Table.Value_Type", "Value_Type", "Boolean");
   }
 
   @Override

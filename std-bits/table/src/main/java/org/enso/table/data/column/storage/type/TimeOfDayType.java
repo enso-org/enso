@@ -1,11 +1,14 @@
 package org.enso.table.data.column.storage.type;
 
 import java.time.LocalTime;
+
+import org.enso.base.polyglot.EnsoMeta;
 import org.enso.base.polyglot.Polyglot_Utils;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.BuilderForType;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.problems.ProblemAggregator;
+import org.graalvm.polyglot.Value;
 
 public final class TimeOfDayType implements StorageType<LocalTime> {
   public static final TimeOfDayType INSTANCE = new TimeOfDayType();
@@ -15,6 +18,11 @@ public final class TimeOfDayType implements StorageType<LocalTime> {
   @Override
   public char typeChar() {
     return 'W';
+  }
+
+  @Override
+  public Value asEnsoValueType() {
+    return EnsoMeta.makeInstance("Standard.Table.Value_Type", "Value_Type", "Time");
   }
 
   @Override

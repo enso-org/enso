@@ -1,7 +1,6 @@
 package org.enso.table.data.column.builder;
 
 import java.math.BigDecimal;
-
 import org.enso.base.polyglot.EnsoMeta;
 import org.enso.table.problems.Problem;
 import org.graalvm.polyglot.Value;
@@ -37,8 +36,9 @@ public class LossOfBigDecimalPrecision implements Problem {
   @Override
   public Value asEnsoValue() {
     var textExampleValue = getExampleValue().toPlainString();
-    var ensoDecimal = EnsoMeta.getType("Standard.Base.Data.Decimal", "Decimal")
-        .invokeMember("new", textExampleValue, null);
+    var ensoDecimal =
+        EnsoMeta.getType("Standard.Base.Data.Decimal", "Decimal")
+            .invokeMember("new", textExampleValue, null);
 
     return EnsoMeta.makeInstance(
         "Standard.Table.Errors",

@@ -1,11 +1,13 @@
 package org.enso.table.data.column.storage.type;
 
 import java.math.BigDecimal;
+import org.enso.base.polyglot.EnsoMeta;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.BuilderForType;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.problems.ProblemAggregator;
+import org.graalvm.polyglot.Value;
 
 public final class BigDecimalType implements StorageType<BigDecimal>, NumericType {
   public static final BigDecimalType INSTANCE = new BigDecimalType();
@@ -33,6 +35,11 @@ public final class BigDecimalType implements StorageType<BigDecimal>, NumericTyp
   @Override
   public char typeChar() {
     return 'D';
+  }
+
+  @Override
+  public Value asEnsoValueType() {
+    return EnsoMeta.makeInstance("Standard.Table.Value_Type", "Value_Type", "Decimal", null, null);
   }
 
   @Override
