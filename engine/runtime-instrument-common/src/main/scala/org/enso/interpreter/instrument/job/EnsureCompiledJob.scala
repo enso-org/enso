@@ -497,7 +497,7 @@ class EnsureCompiledJob(
         ctx.executionService.getContext.findModule(ptr.module).toScala.map {
           module =>
             module.getIr
-              .unsafeGetMetadata(
+              .unsafeGetMetadata[CachePreferenceAnalysis.Metadata](
                 CachePreferenceAnalysis,
                 s"Empty cache preference metadata ${module.getName}"
               )
