@@ -160,12 +160,10 @@ case object GatherDiagnostics extends IRPass {
       Some(this)
 
     /** @inheritdoc */
-    @scala.annotation.unused
     override def prepareForSerialization(compiler: Compiler): DiagnosticsMeta =
       this
 
     /** @inheritdoc */
-    @scala.annotation.unused
     override def restoreFromSerialization(
       compiler: Compiler
     ): Option[DiagnosticsMeta] = Some(this)

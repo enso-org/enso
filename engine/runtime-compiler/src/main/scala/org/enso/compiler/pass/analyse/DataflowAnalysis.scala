@@ -1001,12 +1001,10 @@ case object DataflowAnalysis extends IRPass {
     override def duplicate(): Option[IRPass.IRMetadata] = None
 
     /** @inheritdoc */
-    @scala.annotation.unused
     override def prepareForSerialization(compiler: Compiler): DependencyInfo =
       this
 
     /** @inheritdoc */
-    @scala.annotation.unused
     override def restoreFromSerialization(
       compiler: Compiler
     ): Option[DependencyInfo] = Some(this)
