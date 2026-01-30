@@ -12,13 +12,18 @@ import java.util.UUID
 
 import scala.concurrent.ExecutionContext
 
-/** Exposes a multi-client JSON RPC Server instance over WebSocket connections.
+/** JSON-RPC server that communicates with the Ydoc server via [[YjsChannel]].
   *
-  * @param protocolFactory a protocol factory
-  * @param clientControllerFactory a factory used to create a client controller
-  * @param config a server config
-  * @param optionalEndpoints a list of optional endpoints
-  * @param system an actor system
+  * This server receives JSON-RPC messages from the Ydoc server (which handles WebSocket
+  * connections from IDE clients) and processes them using the standard JSON-RPC protocol
+  * infrastructure. The [[yjsChannelCallbacks]] is passed to the Ydoc server during startup.
+  *
+  * @param protocolFactory creates protocol instances for message parsing
+  * @param clientControllerFactory creates controllers for handling client sessions
+  * @param config server configuration
+  * @param optionalEndpoints additional HTTP endpoints (health check, idleness, etc.)
+  * @param messageCallbacks hooks invoked for each message (used for profiling)
+  * @param system the Akka actor system
   */
 class YdocJsonRpcServer(
   protocolFactory: ProtocolFactory,
@@ -58,6 +63,14 @@ class YdocJsonRpcServer(
 
 object YdocJsonRpcServer {
 
+  /** Callbacks for JSON-RPC channels from the Ydoc server.
+    *
+    * When a WebSocket client connects to the Ydoc server requesting JSON-RPC communication,
+    * this callback sets up the message handling pipeline:
+    * - Creates a [[MessageHandlerSupervisor]] actor to process incoming messages
+    * - Subscribes [[OnMessageHandler]] to the channel for inbound messages
+    * - Creates [[OutgoingMessageHandler]] actor for sending responses via the channel
+    */
   final class ServerCallbacks(
     protocolFactory: ProtocolFactory,
     clientControllerFactory: ClientControllerFactory,
@@ -104,6 +117,11 @@ object YdocJsonRpcServer {
     }
   }
 
+  /** Handles incoming JSON-RPC messages from the [[YjsChannel]].
+    *
+    * Converts raw String messages to [[MessageHandler.WebMessage]] and forwards them
+    * to the message handler actor. Also invokes any registered message callbacks.
+    */
   final class OnMessageHandler(
     messageCallbacks: List[MessageHandler.WebMessage => Unit],
     incomingMessageHandler: ActorRef
@@ -122,6 +140,7 @@ object YdocJsonRpcServer {
     }
   }
 
+  /** Actor that sends outgoing JSON-RPC messages through the [[YjsChannel]]. */
   final class OutgoingMessageHandler(channel: YjsChannel)
       extends Actor
       with LazyLogging {

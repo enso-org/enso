@@ -14,16 +14,24 @@ import scala.util.control.NonFatal
 
 object BinaryYdocServer {
 
-  /** A web socket server using a binary protocol.
+  /** Callbacks for binary protocol channels from the Ydoc server.
     *
-    * @param decoder a decoder for inbound packets
-    * @param encoder an encoder for outbound packets
-    * @param factory creates front controller per a single connection that is responsible for handling all incoming requests
-    * @param messageCallbacks a list of message callbacks
-    * @param system an actor system that hosts the server
-    * @param context a runtime context
-    * @tparam A a type of messages sent to a connection controller
-    * @tparam B a type of messages received from a connection controller
+    * When a WebSocket client connects to the Ydoc server requesting binary communication
+    * (via the `data` query parameter), this callback sets up the message handling pipeline:
+    * - Creates a connection controller to process incoming binary messages
+    * - Subscribes to the channel with [[onMessage]] for inbound message decoding
+    * - Creates [[OutgoingMessageHandler]] actor for encoding and sending responses
+    *
+    * Binary messages use direct ByteBuffer for efficient cross-runtime data transfer.
+    *
+    * @param decoder decodes inbound binary packets to typed messages
+    * @param encoder encodes outbound typed messages to binary packets
+    * @param factory creates connection controllers for each client session
+    * @param messageCallbacks hooks invoked for each message (used for profiling)
+    * @param context GraalVM polyglot context for converting JavaScript values
+    * @param system the Akka actor system
+    * @tparam A type of decoded inbound messages
+    * @tparam B type of outbound messages to encode
     */
   final class BinaryServerCallbacks[A, B](
     decoder: BinaryDecoder[A],
@@ -48,6 +56,7 @@ object BinaryYdocServer {
       incomingMessageHandler ! OutboundStreamEstablished(outgoingMessageHandler)
     }
 
+    /** Decodes an incoming binary message and forwards to the controller. */
     private def onMessage(
       incomingMessageHandler: ActorRef,
       message: Object
@@ -73,6 +82,7 @@ object BinaryYdocServer {
     }
   }
 
+  /** Actor that encodes and sends outgoing binary messages through the [[YjsChannel]]. */
   final class OutgoingMessageHandler[B](
     channel: YjsChannel,
     encoder: BinaryEncoder[B]

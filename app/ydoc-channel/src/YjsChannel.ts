@@ -14,12 +14,14 @@ interface AddEventListenerOptions {
 export type MessageHandler<T = unknown> = (message: T) => void
 
 /**
- * Callbacks for YjsChannel lifecycle events.
+ * Callback interface for receiving newly established {@link YjsChannel} connections.
+ *
+ * Invoked when a WebSocket client connects, providing a channel for bidirectional communication.
  */
 export interface YjsChannelCallbacks<T = unknown> {
   /**
-   * Called when the message channel is connected and ready to use.
-   * @param channel - The connected YjsChannel instance
+   * Called when a new channel is established.
+   * @param channel - The newly connected channel
    */
   onConnect(channel: YjsChannel<T>): void
 }
@@ -32,10 +34,11 @@ type WebSocketEventHandlers = {
 }
 
 /**
- * A bidirectional communication channel backed by Y.Array.
+ * A bidirectional communication channel backed by Y.Array CRDT.
  *
- * This class allows multiple parties to send and receive messages through a shared
- * Y.Array CRDT. Implements WebSocket-like event API for compatibility.
+ * Messages are stored in a shared Y.Array, enabling reliable cross-runtime communication.
+ * Each sender has a unique ID used as transaction origin to filter out self-sent messages.
+ * Implements WebSocket-like event API for compatibility with existing code.
  */
 export class YjsChannel<T = unknown> extends ObservableV2<WebSocketEventHandlers> {
   private readonly senderId: string

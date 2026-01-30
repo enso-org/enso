@@ -3,8 +3,11 @@ import { YjsChannel, type MessageHandler, type YjsChannelCallbacks } from 'ydoc-
 import * as Y from 'yjs'
 
 /**
- * A Yjs channel that handles binary data communication using ByteBuffer.
- * Extends YjsChannel to provide binary message encoding/decoding capabilities.
+ * A {@link YjsChannel} for binary protocol communication with the Language Server.
+ *
+ * Extends YjsChannel to handle binary data by converting between JavaScript Uint8Array
+ * and Java direct ByteBuffer. This enables efficient binary message transfer between
+ * the Ydoc server (JavaScript) and the Language Server (Java/Scala).
  */
 export class YjsBinaryChannel<T = unknown> extends YjsChannel<T> {
   private static channels = new Map<string, YjsBinaryChannel>()
@@ -13,11 +16,10 @@ export class YjsBinaryChannel<T = unknown> extends YjsChannel<T> {
   private readonly ByteBuffer: any
 
   /**
-   * Creates a new YjsBinaryChannel instance.
-   * @param doc - The Yjs document to synchronize
-   * @param channelName - The name of the channel
-   * @param callbacks - Callbacks for channel lifecycle events
-   * @param byteBuffer - Java ByteBuffer class
+   * @param doc - The Yjs document for CRDT-based message synchronization
+   * @param channelName - Unique identifier for this channel
+   * @param callbacks - Language Server callbacks to notify on connection
+   * @param byteBuffer - Java ByteBuffer class for allocating direct buffers
    */
   constructor(doc: Y.Doc, channelName: string, callbacks: YjsChannelCallbacks<T>, byteBuffer: any) {
     super(doc, channelName)
@@ -26,7 +28,7 @@ export class YjsBinaryChannel<T = unknown> extends YjsChannel<T> {
     this.callbacks.onConnect(this)
   }
 
-  /** Get a {@link YjsBinaryChannel}. */
+  /** Gets or creates a channel for the given name. Channels are cached and reused. */
   static get(
     doc: Y.Doc,
     channelName: string,
@@ -38,22 +40,13 @@ export class YjsBinaryChannel<T = unknown> extends YjsChannel<T> {
     })
   }
 
-  /**
-   * Sends a message through the channel.
-   * Converts the message to a Uint8Array before sending.
-   * @param message - The message to send
-   */
+  /** Converts the message to Uint8Array and sends through the channel. */
   override send(message: any): void {
     const arr = new Uint8Array(new ArrayBuffer(message))
     super.send(arr as T)
   }
 
-  /**
-   * Subscribes to incoming messages on the channel.
-   * Converts incoming Uint8Array messages to Java ByteBuffer before passing to the handler.
-   * @param handler - The message handler function
-   * @returns A function to unsubscribe from the channel
-   */
+  /** Wraps the handler to convert incoming Uint8Array to Java direct ByteBuffer. */
   override subscribe(handler: MessageHandler<T>): () => void {
     const f = (contents: Uint8Array) => {
       const bb = this.ByteBuffer.allocateDirect(contents.byteLength)
