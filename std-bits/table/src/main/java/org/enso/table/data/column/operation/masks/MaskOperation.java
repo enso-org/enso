@@ -5,6 +5,11 @@ import org.enso.table.data.column.storage.ColumnDoubleStorage;
 import org.enso.table.data.column.storage.ColumnLongStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.ColumnStorageWithInferredStorage;
+import org.enso.table.data.column.storage.MaskedStorage;
+import org.enso.table.data.column.storage.MaskedStorageBoolean;
+import org.enso.table.data.column.storage.MaskedStorageDouble;
+import org.enso.table.data.column.storage.MaskedStorageInferred;
+import org.enso.table.data.column.storage.MaskedStorageLong;
 import org.enso.table.data.table.Column;
 
 /**

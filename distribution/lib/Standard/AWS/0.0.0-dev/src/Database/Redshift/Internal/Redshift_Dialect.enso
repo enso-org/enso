@@ -1,5 +1,6 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
+import Standard.Base.Errors.Illegal_State.Illegal_State
 
 from Standard.Table import Aggregate_Column, Value_Type
 
@@ -30,7 +31,7 @@ from Standard.Database.Internal.JDBC_Connection import JDBC_Connection
    The dialect for Redshift connections.
 redshift : Redshift_Dialect
 redshift =
-    Redshift_Dialect.Value Postgres_Connection.get_dialect.get_dialect_operations
+    Redshift_Dialect.Value make_dialect_operations
 
 ## ---
    private: true
@@ -108,7 +109,31 @@ type Redshift_Dialect
        Generates a SQL expression for a table literal.
     make_table_literal : Vector (Vector Text) -> Vector Text -> Text -> SQL_Builder
     make_table_literal self vecs column_names as_name =
-        Base_Generator.default_make_table_literal self.wrap_identifier vecs column_names as_name
+       # Amazon Redshift does not support using VALUES(...) as a table expression
+       # in the FROM clause. To represent inline literal tables, we therefore
+       # generate a SELECT ... UNION ALL SELECT ... construct instead, which
+       # Redshift accepts and which preserves the same semantics.
+       rows = vecs.transpose
+       if rows.is_empty then
+           Error.throw (Illegal_Argument.Error "Cannot build a table literal with zero rows.")
+       first_row = rows.at 0
+
+       wrapped_name = self.wrap_identifier as_name
+       column_list = SQL_Builder.join ", " (column_names.map self.wrap_identifier) . paren
+ 
+       cols = (first_row.zip column_names).map pair->
+           SQL_Builder.interpolation pair.first ++ SQL_Builder.code " AS " ++ self.wrap_identifier pair.second
+
+       # SELECT <v1> AS col1, <v2> AS col2, ...
+       first_select = SQL_Builder.code "SELECT " ++ (SQL_Builder.join ", " cols)
+ 
+       # UNION ALL SELECT <v1>, <v2>, ...
+       rest_selects = rows.drop 1 . map row->
+           SQL_Builder.code "SELECT " ++ (SQL_Builder.join ", " (row.map SQL_Builder.interpolation))
+ 
+       union_body = SQL_Builder.join " UNION ALL " ([first_select] + rest_selects)
+ 
+       SQL_Builder.code "(" ++ union_body ++ ") AS " ++ wrapped_name ++ column_list
 
     ## ---
        private: true
@@ -180,7 +205,7 @@ type Redshift_Dialect
        Add an extra cast to adjust the output type of aggregate operations. Some
        DBs do CAST(SUM(x) AS FLOAT) others do SUM(CAST(x AS FLOAT)).
     cast_aggregate_columns self op_kind:Text columns:(Vector Internal_Column) =
-        self.cast_op_type op_kind columns (SQL_IR_Expression.Operation op_kind (columns.map c->c.expression))
+        self.cast_op_type op_kind columns (SQL_IR_Expression.Operation op_kind (columns.map c->(c:Internal_Column).expression))
 
     ## ---
        private: true
@@ -199,8 +224,10 @@ type Redshift_Dialect
        ---
     check_aggregate_support : Aggregate_Column -> Boolean ! Unsupported_Database_Operation
     check_aggregate_support self aggregate =
-        _ = aggregate
-        True
+        _ = self
+        case aggregate of
+            Aggregate_Column.Mode _ _ -> Error.throw (Unsupported_Database_Operation.Error "Mode")
+            _ -> True
 
     ## ---
        private: true
@@ -232,9 +259,8 @@ type Redshift_Dialect
             Dialect_Flag.Primary_Key_Allows_Nulls -> False
             ## TODO: Check if Redshift supports NaN
             Dialect_Flag.Supports_Separate_NaN -> False
-            ## TODO: Check if Redshift supports WITH clauses in nested queries
-            Dialect_Flag.Supports_Nested_With_Clause -> True
-            Dialect_Flag.Supports_Case_Sensitive_Columns -> True
+            Dialect_Flag.Supports_Nested_With_Clause -> False
+            Dialect_Flag.Supports_Case_Sensitive_Columns -> False
             Dialect_Flag.Supports_Infinity -> True
             Dialect_Flag.Case_Sensitive_Text_Comparison -> True
             Dialect_Flag.Supports_Sort_Digits_As_Numbers -> False
@@ -301,3 +327,71 @@ type Redshift_Dialect
     ensure_query_has_no_holes : JDBC_Connection -> Text -> Nothing ! Illegal_Argument
     ensure_query_has_no_holes self jdbc:JDBC_Connection raw_sql:Text =
         jdbc.ensure_query_has_no_holes raw_sql
+
+## ---
+   private: true
+   ---
+make_dialect_operations =
+    postgres_ops = Postgres_Connection.get_dialect.get_dialect_operations
+    overrides = [["COUNT_DISTINCT", agg_count_distinct], ["COUNT_DISTINCT_INCLUDE_NULL", agg_count_distinct_include_null], ["GROUP_NUMBER_STANDARD_DEVIATION_POPULATION", make_group_number_standard_deviation "STDDEV_POP"], ["GROUP_NUMBER_STANDARD_DEVIATION_SAMPLE", make_group_number_standard_deviation "STDDEV_SAMP"]]
+    stats = [agg_median, agg_percentile]
+    my_mappings = overrides + stats
+    postgres_ops.extend_with my_mappings
+
+## ---
+   private: true
+   ---
+agg_count_distinct args =
+    if args.is_empty then (Error.throw (Illegal_Argument.Error "COUNT_DISTINCT requires at least one argument.")) else
+      count = SQL_Builder.code "COUNT(DISTINCT " ++ SQL_Builder.join ", " args ++ ")"
+      are_nulls = args.map arg-> arg.paren ++ " IS NULL"
+      all_nulls_filter = SQL_Builder.code " FILTER (WHERE NOT (" ++ SQL_Builder.join " AND " are_nulls ++ "))"
+      (count ++ all_nulls_filter).paren
+
+## ---
+   private: true
+   ---
+agg_count_distinct_include_null args =
+    if args.is_empty then (Error.throw (Illegal_Argument.Error "COUNT_DISTINCT_INCLUDE_NULL requires at least one argument.")) else
+        SQL_Builder.code "COUNT(DISTINCT " ++ SQL_Builder.join ", " args ++ ")"
+
+## ---
+   private: true
+   ---
+make_group_number_standard_deviation : Text -> Vector SQL_Builder -> SQL_Builder
+make_group_number_standard_deviation (stddev_variant : Text) (arguments : Vector) =
+    if arguments.length < 1 then
+        Error.throw (Illegal_State.Error "Wrong amount of parameters in GROUP_NUMBER_STANDARD_DEVIATION IR. This is a bug in the Database library.")
+
+    stddev_column = arguments.at 0
+
+    stddev = SQL_Builder.code stddev_variant ++ "(" ++ stddev_column ++ ") over ()"
+    ## If standard deviation is 0, using 1 instead to avoid division by zero,
+       resulting in all z-scores being zero and thus "Average" group.
+       If stanard deviation is NULL, using 1 instead for the same reason.
+       (STDDEV_SAMP will return NULL for a single value input.)
+    stddev_safe = SQL_Builder.code "(case when " ++ stddev.paren ++ " = 0 or " ++ stddev.paren ++ " is null then 1 else " ++ stddev.paren ++ " end)"
+    ## Redshift AVG on integer inputs returns BIGINT, so force floating point.
+    mean = SQL_Builder.code "(avg(" ++ stddev_column.paren ++ " * 1.0) over ())"
+    zscore = SQL_Builder.code "((" ++ stddev_column.paren ++ " - " ++ mean.paren ++ ") / " ++ stddev_safe.paren ++ ")"
+    group_index = SQL_Builder.code "(floor(" ++ zscore.paren ++ " + 0.5))"
+    whener gi op name = SQL_Builder.code "when " ++ group_index.paren ++ " " ++ op ++ gi.to_text ++ " then '" ++ name ++ "'"
+    whens = Vector.build builder->
+        builder.append (whener -2 "<=" "Very Low")
+        builder.append (whener -1 "=" "Low")
+        builder.append (whener 0 "=" "Average")
+        builder.append (whener 1 "=" "High")
+        builder.append (whener 2 ">=" "Very High")
+    SQL_Builder.code "(case " ++ SQL_Builder.join " " whens ++ " end)"
+
+## ---
+   private: true
+   ---
+agg_median = Base_Generator.lift_unary_op "MEDIAN" arg->
+    SQL_Builder.code "percentile_cont(0.5) WITHIN GROUP (ORDER BY " ++ arg ++ ")"
+
+## ---
+   private: true
+   ---
+agg_percentile = Base_Generator.lift_binary_op "PERCENTILE" p-> expr->
+    SQL_Builder.code "percentile_cont(" ++ p ++ ") WITHIN GROUP (ORDER BY " ++ expr ++ ")"

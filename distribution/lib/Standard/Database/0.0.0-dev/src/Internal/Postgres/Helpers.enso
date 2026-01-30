@@ -3,7 +3,7 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 
 import project.Internal.JDBC_Connection.JDBC_Connection
-from project.Errors import Unsupported_Database_Encoding
+from project.Errors import SQL_Error, Unsupported_Database_Encoding
 
 polyglot java import org.enso.database.fetchers.ColumnFetcherFactory
 
@@ -12,7 +12,7 @@ polyglot java import org.enso.database.fetchers.ColumnFetcherFactory
    ---
 get_encoding_name : JDBC_Connection -> Text
 get_encoding_name jdbc_connection =
-    server_encoding = get_pragma_value jdbc_connection "SHOW server_encoding"
+    server_encoding = get_pragma_value jdbc_connection "SHOW server_encoding" . catch SQL_Error _-> "SQL_ASCII"
     if server_encoding != "SQL_ASCII" then server_encoding else
         get_pragma_value jdbc_connection "SHOW client_encoding"
 

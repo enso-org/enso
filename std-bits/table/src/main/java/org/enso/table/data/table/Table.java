@@ -21,6 +21,7 @@ import org.enso.table.data.column.operation.StorageIterators;
 import org.enso.table.data.column.operation.masks.IndexMapper;
 import org.enso.table.data.column.storage.ColumnBooleanStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
+import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.data.index.CrossTabIndex;
 import org.enso.table.data.index.MultiValueIndex;
@@ -538,7 +539,8 @@ public final class Table {
     }
 
     var storage = input.getStorage();
-    var builder = storage.getType().makeBuilder(newSize, BlackholeProblemAggregator.INSTANCE);
+    var builder =
+        StorageType.ofStorage(storage).makeBuilder(newSize, BlackholeProblemAggregator.INSTANCE);
     builder.appendBulkStorage(storage);
     builder.appendNulls(newSize - inputSize);
     return new Column(input.getName(), builder.seal());
@@ -578,13 +580,12 @@ public final class Table {
     int new_count = size * to_transpose.length;
 
     // Create Storage
-    Builder[] storage = new Builder[id_columns.length + 2];
+    var storage = new Builder[id_columns.length + 2];
     IntStream.range(0, id_columns.length)
         .forEach(
             i ->
                 storage[i] =
-                    Builder.getForType(
-                        id_columns[i].getStorage().getType(), new_count, problemAggregator));
+                    id_columns[i].getStorageType().makeBuilder(new_count, problemAggregator));
     storage[id_columns.length] = Builder.getForText(TextType.VARIABLE_LENGTH, new_count);
     storage[id_columns.length + 1] = Builder.getInferredBuilder(new_count, problemAggregator);
 

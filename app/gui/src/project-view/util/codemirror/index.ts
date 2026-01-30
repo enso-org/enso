@@ -78,6 +78,13 @@ interface CodeMirrorOptions {
   scrollerTestId?: string | undefined
   readonly?: ToValue<boolean>
   lineMode: ToValue<LineMode>
+  /**
+   * If not set to `true`, an extension will be used which causes the selection range to be
+   * collapsed to a cursor when the editor is defocused, so that the selection isn't rendered.
+   * This behavior is probably desirable for all text controls but can be disabled in case an
+   * editor uses a more specialized extension.
+   */
+  disableDeselectOnBlur?: boolean
 }
 
 /**
@@ -97,6 +104,7 @@ export function useCodeMirror(
     scrollerTestId,
     readonly,
     lineMode,
+    disableDeselectOnBlur,
   }: CodeMirrorOptions,
 ) {
   const dispatch = { dispatch: (...specs: TransactionSpec[]) => view.dispatch(...specs) }
@@ -151,6 +159,7 @@ export function useCodeMirror(
           reactiveExtensions,
           tooltipsConfigExt,
           vueHost ? vueHostExt : NULL_EXTENSION,
+          disableDeselectOnBlur ? NULL_EXTENSION : deselectOnBlur,
         ],
       }),
     }),
@@ -260,7 +269,7 @@ export function useStringSync({ onTextEdited, onUserAction }: StringSyncOptions 
       if (userAction) {
         const text = update.state.doc.toString()
         if (onUserAction) onUserAction(text, update.state.selection.main)
-        if (onTextEdited) onTextEdited(text)
+        if (onTextEdited && textEdit) onTextEdited(text)
       }
     }),
     getText: (view: EditorView): string => {
@@ -376,11 +385,18 @@ function theme({ singleLine }: { singleLine?: boolean | undefined } = {}): Exten
   return [baseTheme, singleLine ? inlineTheme : multilineTheme]
 }
 
-export const selectOnMouseFocus = [
+export const selectAllOnMouseFocus = [
   contentFocusedExt(),
   EditorState.transactionFilter.of((tr) => {
     if (tr.isUserEvent('select.pointer') && tr.startState.field(contentFocused) === false)
-      return { selection: { anchor: 0, head: tr.startState.doc.length } }
+      return [tr, { selection: { anchor: 0, head: tr.startState.doc.length } }]
+    return tr
+  }),
+]
+
+const deselectOnBlur = [
+  contentFocusedExt(),
+  EditorState.transactionFilter.of((tr) => {
     if (lastEffect(tr.effects, setContentFocused) === false)
       return [tr, { selection: { anchor: 0 } }]
     return tr
@@ -419,6 +435,8 @@ export function putTextAtCoords(view: EditorView, text: string, coords: Vec2) {
  * exhibits some hysteresis: When the scrollbar is clicked, the computed focus state doesn't change.
  * Thus, this should be used in lieu of the element's focus when the rendering of the editor's
  * content is focus-dependent in a way that may affect its size.
+ * TODO (someday): This behavior could included in {@link useCodeMirror} and used for all editors,
+ * but it should be refactored to fit the {@link Extension} API.
  */
 export function useEditorFocus(view: EditorView) {
   const focused = ref(false)

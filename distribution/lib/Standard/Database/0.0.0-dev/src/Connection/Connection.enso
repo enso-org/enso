@@ -677,6 +677,6 @@ get_tables_advanced jdbc_connection name_like:Text|Nothing database:Text|Nothing
     jdbc_connection.with_metadata metadata->
         table = Managed_Resource.bracket (metadata.getTables database schema name_like types) .close result_set->
             result_set_to_table result_set column_fetcher_factory sql_type_to_value_type
-        renamed = table.rename_columns name_dict error_on_missing_columns=False on_problems=..Ignore
+        renamed = table.rename_columns name_dict case_sensitivity=..Insensitive error_on_missing_columns=False on_problems=..Ignore
         if all_fields then renamed else
             renamed.select_columns ["Database", "Schema", "Name", "Type", "Description"]

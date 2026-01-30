@@ -2,21 +2,31 @@ package org.enso.table.data.column.storage;
 
 import java.util.Iterator;
 import java.util.NoSuchElementException;
-import org.enso.table.data.column.storage.type.StorageType;
 
 /** Basic interface of a column storage. */
 public interface ColumnStorage<T> extends Iterable<T> {
+  /* Allow getting the next unique key for a ColumnStorage without using the AbstractBaseStorage. */
+  static long getNextUniqueKey() {
+    return AbstractBaseStorage.atomicCounter.incrementAndGet();
+  }
+
   /* Gets a unique key for the storage. This is used for internal caching. */
   long uniqueKey();
 
   /* Gets the size of the storage. */
   long getSize();
 
+  /* Gets the type character of the storage. */
+  char typeChar();
+
+  /* Gets the type size of the storage. */
+  long typeSize();
+
   /**
    * Address of the off-heap storage of data.
    *
    * @return {@code 0} if there are no data to share, otherwise the address of the data in a format
-   *     appropriate for this storage {@link #getType()}.
+   *     appropriate for this storage {@link #typeChar()} and {@link #typeSize()}.
    * @see #addressOfValidity
    */
   default long addressOfData() {
@@ -32,9 +42,6 @@ public interface ColumnStorage<T> extends Iterable<T> {
     return 0;
   }
 
-  /* Gets the value type of the storage. */
-  StorageType<T> getType();
-
   /**
    * Checks whether the value at idx is Nothing.
    *
@@ -47,6 +54,15 @@ public interface ColumnStorage<T> extends Iterable<T> {
 
   /* Gets the value at a given index. */
   T getItemBoxed(long index);
+
+  /* Gets the value at a given index as a String. */
+  default String getItemAsString(long index) {
+    if (isNothing(index)) {
+      return null;
+    }
+
+    return getItemBoxed(index).toString();
+  }
 
   @Override
   default Iterator<T> iterator() {

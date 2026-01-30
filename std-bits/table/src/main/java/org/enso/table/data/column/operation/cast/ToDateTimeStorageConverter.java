@@ -22,7 +22,7 @@ public class ToDateTimeStorageConverter implements StorageConverter<ZonedDateTim
   @Override
   public ColumnStorage<ZonedDateTime> cast(
       ColumnStorage<?> storage, CastProblemAggregator problemAggregator) {
-    var storageType = storage.getType();
+    var storageType = StorageType.ofStorage(storage);
     if (storageType instanceof DateType dateType) {
       return convertDateStorage(dateType.asTypedStorage(storage));
     } else if (canApply(storageType)) {

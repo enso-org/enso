@@ -6,11 +6,12 @@ import java.nio.ByteOrder;
 import java.nio.LongBuffer;
 import java.util.Objects;
 import org.enso.base.polyglot.NumericConverter;
-import org.enso.table.data.column.storage.ColumnBooleanStorage;
+import org.enso.table.data.column.operation.cast.CastProblemAggregator;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.LongStorage;
 import org.enso.table.data.column.storage.type.BigDecimalType;
 import org.enso.table.data.column.storage.type.BigIntegerType;
+import org.enso.table.data.column.storage.type.BooleanType;
 import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.NullType;
@@ -19,35 +20,42 @@ import org.enso.table.error.ValueTypeMismatchException;
 import org.enso.table.problems.ProblemAggregator;
 
 /** A builder for integer columns. */
-sealed class LongBuilder extends ValidityBuilder implements BuilderForLong, BuilderWithRetyping
-    permits BoundCheckedIntegerBuilder {
-  protected final ProblemAggregator problemAggregator;
+final class LongBuilder extends ValidityBuilder implements BuilderForLong, BuilderWithRetyping {
+  private final CastProblemAggregator problemAggregator;
+  private final IntegerType storageType;
   private LongBuffer data;
 
-  protected LongBuilder(int initialSize, ProblemAggregator problemAggregator) {
-    this(allocBuffer(initialSize, 0), initialSize, 0, problemAggregator);
+  private LongBuilder(
+      int initialSize, ProblemAggregator problemAggregator, IntegerType storageType) {
+    this(
+        allocBuffer(initialSize, 0),
+        initialSize,
+        0,
+        new CastProblemAggregator(problemAggregator, null, storageType),
+        storageType);
   }
 
   private LongBuilder(
-      LongBuffer data, int initialSize, long validity, ProblemAggregator problemAggregator) {
+      LongBuffer data,
+      int initialSize,
+      long validity,
+      CastProblemAggregator problemAggregator,
+      IntegerType storageType) {
     super(initialSize, validity);
     this.data = data;
+    this.storageType = storageType;
     this.problemAggregator = problemAggregator;
   }
 
   static LongBuilder make(int initialSize, IntegerType type, ProblemAggregator problemAggregator) {
-    if (type == null || type.equals(IntegerType.INT_64)) {
-      return new LongBuilder(initialSize, problemAggregator);
-    } else {
-      return new BoundCheckedIntegerBuilder(initialSize, type, problemAggregator);
-    }
+    var integerType = type == null ? IntegerType.INT_64 : type;
+    return new LongBuilder(initialSize, problemAggregator, integerType);
   }
 
   static LongBuilder fromAddress(int size, long address, long validity, IntegerType type) {
     assert address != 0;
     var buf = allocBuffer(size, address);
-    var builder = new LongBuilder(buf, size, validity, null);
-    return builder;
+    return new LongBuilder(buf, size, validity, null, type);
   }
 
   /**
@@ -118,19 +126,15 @@ sealed class LongBuilder extends ValidityBuilder implements BuilderForLong, Buil
   }
 
   @Override
-  public IntegerType getType() {
-    return IntegerType.INT_64;
-  }
-
-  @Override
   public boolean accepts(Object o) {
     return NumericConverter.isCoercibleToLong(o);
   }
 
   @Override
   public void appendBulkStorage(ColumnStorage<?> storage) {
-    if (storage.getType() instanceof IntegerType otherType) {
-      if (getType().fits(otherType)) {
+    var storageType = StorageType.ofStorage(storage);
+    switch (storageType) {
+      case IntegerType integerType -> {
         if (storage instanceof LongStorage longStorage) {
           // A fast path for the same type (or compatible) - no conversions/checks needed.
           int n = (int) longStorage.getSize();
@@ -140,7 +144,7 @@ sealed class LongBuilder extends ValidityBuilder implements BuilderForLong, Buil
           currentSize += n;
         } else {
           // No conversions needed, but we need to iterate over the items.
-          var longStorage = otherType.asTypedStorage(storage);
+          var longStorage = integerType.asTypedStorage(storage);
           long n = longStorage.getSize();
           for (long i = 0; i < n; i++) {
             if (longStorage.isNothing(i)) {
@@ -151,19 +155,19 @@ sealed class LongBuilder extends ValidityBuilder implements BuilderForLong, Buil
           }
         }
       }
-    } else if (storage instanceof ColumnBooleanStorage boolStorage) {
-      long n = boolStorage.getSize();
-      for (long i = 0; i < n; i++) {
-        if (boolStorage.isNothing(i)) {
-          appendNulls(1);
-        } else {
-          appendLong(boolStorage.getItemAsBoolean(i) ? 1L : 0L);
+      case BooleanType booleanType -> {
+        var boolStorage = booleanType.asTypedStorage(storage);
+        long n = boolStorage.getSize();
+        for (long i = 0; i < n; i++) {
+          if (boolStorage.isNothing(i)) {
+            appendNulls(1);
+          } else {
+            appendLong(boolStorage.getItemAsBoolean(i) ? 1L : 0L);
+          }
         }
       }
-    } else if (storage.getType() instanceof NullType) {
-      appendNulls(Math.toIntExact(storage.getSize()));
-    } else {
-      throw new StorageTypeMismatchException(getType(), storage.getType());
+      case NullType _ -> appendNulls(Math.toIntExact(storage.getSize()));
+      default -> throw new StorageTypeMismatchException(this.storageType, storageType);
     }
   }
 
@@ -174,6 +178,12 @@ sealed class LongBuilder extends ValidityBuilder implements BuilderForLong, Buil
    */
   @Override
   public LongBuilder appendLong(long value) {
+    if (!storageType.fits(value)) {
+      problemAggregator.reportNumberOutOfRange(value);
+      appendNulls(1);
+      return this;
+    }
+
     ensureSpaceToAppend();
     this.setValid(currentSize);
     this.data.put(currentSize++, value);
@@ -220,7 +230,7 @@ sealed class LongBuilder extends ValidityBuilder implements BuilderForLong, Buil
     if (x != null) {
       appendLong(x);
     } else {
-      throw new ValueTypeMismatchException(getType(), o);
+      throw new ValueTypeMismatchException(storageType, o);
     }
 
     return this;
@@ -228,20 +238,19 @@ sealed class LongBuilder extends ValidityBuilder implements BuilderForLong, Buil
 
   @Override
   public ColumnStorage<Long> seal() {
-    return seal(null, getType());
+    return seal(null);
   }
 
   /**
    * Seals this buffer as copy of provided storage.
    *
    * @param otherStorage storage to copy size from if non-{@code null}
-   * @param type the type to assign to the created storage
    * @return locally copied storage
    */
-  final LongStorage seal(ColumnStorage<?> otherStorage, IntegerType type) {
+  final LongStorage seal(ColumnStorage<?> otherStorage) {
     ensureFreeSpaceFor(0);
     var buf = data.asReadOnlyBuffer().position(0).limit(currentSize);
     var validity = this.validityMap();
-    return new LongStorage(buf, validity, type, otherStorage);
+    return new LongStorage(buf, validity, storageType, otherStorage);
   }
 }

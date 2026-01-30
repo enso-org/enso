@@ -9,6 +9,7 @@ import org.enso.table.data.column.operation.StorageIterators;
 import org.enso.table.data.column.operation.UnaryOperation;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.type.IntegerType;
+import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.table.problems.MapOperationProblemAggregator;
 
 public class DatePartOperation implements UnaryOperation {
@@ -73,7 +74,8 @@ public class DatePartOperation implements UnaryOperation {
 
   @Override
   public boolean canApply(ColumnStorage<?> storage) {
-    return timeField ? storage.getType().hasTime() : storage.getType().hasDate();
+    var storageType = StorageType.ofStorage(storage);
+    return timeField ? storageType.hasTime() : storageType.hasDate();
   }
 
   @Override

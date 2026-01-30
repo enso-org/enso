@@ -17,10 +17,7 @@ import org.enso.table.data.column.storage.ColumnDoubleStorage;
 import org.enso.table.data.column.storage.ColumnLongStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.ColumnStorageWithInferredStorage;
-import org.enso.table.data.column.storage.type.BooleanType;
-import org.enso.table.data.column.storage.type.FloatType;
-import org.enso.table.data.column.storage.type.IntegerType;
-import org.enso.table.data.column.storage.type.NullType;
+import org.enso.table.data.column.storage.type.*;
 import org.enso.table.data.table.Column;
 import org.graalvm.polyglot.Context;
 
@@ -39,8 +36,8 @@ public class JsonOperation {
       length = fullStorage.getSize() - start;
     }
 
-    return switch (fullStorage.getType()) {
-      case NullType nullType -> createNullJson(length);
+    return switch (StorageType.ofStorage(fullStorage)) {
+      case NullType _ -> createNullJson(length);
       case BooleanType booleanType ->
           createBooleanJson(booleanType.asTypedStorage(fullStorage), start, length);
       case IntegerType integerType ->
@@ -70,7 +67,6 @@ public class JsonOperation {
   }
 
   private static String createIntegerJson(ColumnLongStorage longStorage, long start, long length) {
-    long size = longStorage.getSize();
     var context = Context.getCurrent();
     StringBuilder builder = new StringBuilder();
     builder.append("[");
@@ -87,7 +83,6 @@ public class JsonOperation {
 
   private static String createBooleanJson(
       ColumnBooleanStorage booleanStorage, long start, long length) {
-    long size = booleanStorage.getSize();
     var context = Context.getCurrent();
     StringBuilder builder = new StringBuilder();
     builder.append("[");
@@ -108,7 +103,6 @@ public class JsonOperation {
       long start,
       long length,
       Function<Object, String> ensoJsonCallback) {
-    long size = storage.getSize();
     var context = Context.getCurrent();
     StringBuilder builder = new StringBuilder();
     builder.append("[");
@@ -153,17 +147,18 @@ public class JsonOperation {
     return value ? "true" : "false";
   }
 
-  private static long MAX_JSON_LONG = 9007199254740991L;
-  private static BigInteger MAX_JSON_LONG_BIGINT = BigInteger.valueOf(MAX_JSON_LONG);
+  private static final long MAX_JSON_LONG = 9007199254740991L;
+  private static final BigInteger MAX_JSON_LONG_BIGINT = BigInteger.valueOf(MAX_JSON_LONG);
 
-  private static DateTimeFormatter TIME_SHORT_FORMAT = DateTimeFormatter.ofPattern("HH:mm:ss");
-  private static DateTimeFormatter TIME_LONG_FORMAT =
+  private static final DateTimeFormatter TIME_SHORT_FORMAT =
+      DateTimeFormatter.ofPattern("HH:mm:ss");
+  private static final DateTimeFormatter TIME_LONG_FORMAT =
       DateTimeFormatter.ofPattern("HH:mm:ss.SSSSSS");
-  private static DateTimeFormatter DATE_TIME_SHORT_FORMAT =
+  private static final DateTimeFormatter DATE_TIME_SHORT_FORMAT =
       DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-  private static DateTimeFormatter DATE_TIME_LONG_FORMAT =
+  private static final DateTimeFormatter DATE_TIME_LONG_FORMAT =
       DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.ggg");
-  private static DateTimeFormatter ZONE_FORMAT = DateTimeFormatter.ofPattern("'['zz']'");
+  private static final DateTimeFormatter ZONE_FORMAT = DateTimeFormatter.ofPattern("'['zz']'");
 
   private static String toJson(long value) {
     if (value < -MAX_JSON_LONG || value > MAX_JSON_LONG) {

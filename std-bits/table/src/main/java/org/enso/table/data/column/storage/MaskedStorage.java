@@ -1,16 +1,17 @@
-package org.enso.table.data.column.operation.masks;
+package org.enso.table.data.column.storage;
 
 import java.util.Iterator;
 import java.util.NoSuchElementException;
-import org.enso.table.data.column.storage.ColumnStorage;
-import org.enso.table.data.column.storage.Storage;
+import org.enso.table.data.column.operation.masks.IndexMapper;
+import org.enso.table.data.column.storage.type.StorageType;
 
-public class MaskedStorage<T> extends Storage<T> {
+public sealed class MaskedStorage<T> extends AbstractBaseStorage<T>
+    permits MaskedStorageBoolean, MaskedStorageDouble, MaskedStorageInferred, MaskedStorageLong {
   private final ColumnStorage<T> parent;
   private final IndexMapper indexMapper;
 
-  MaskedStorage(ColumnStorage<T> parent, IndexMapper indexMapper) {
-    super(parent.getType());
+  public MaskedStorage(ColumnStorage<T> parent, IndexMapper indexMapper) {
+    super(StorageType.ofStorage(parent));
     this.parent = parent;
     this.indexMapper = indexMapper;
   }

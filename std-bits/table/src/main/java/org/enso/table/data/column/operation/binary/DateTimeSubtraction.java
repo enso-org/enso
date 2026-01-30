@@ -55,7 +55,7 @@ public class DateTimeSubtraction<T extends Temporal> extends BinaryOperationBase
       ColumnStorage<T> left,
       ColumnStorage<?> right,
       MapOperationProblemAggregator problemAggregator) {
-    if (validType.isOfType(right.getType())) {
+    if (validType.isOfType(StorageType.ofStorage(right))) {
       return StorageIterators.zipOverStorages(
           left,
           validType.asTypedStorage(right),

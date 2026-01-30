@@ -18,7 +18,7 @@ public class ToBooleanStorageConverter implements StorageConverter<Boolean> {
   @Override
   public ColumnStorage<Boolean> cast(
       ColumnStorage<?> storage, CastProblemAggregator problemAggregator) {
-    if (canApply(storage.getType())) {
+    if (canApply(StorageType.ofStorage(storage))) {
       return castFromObject(storage, problemAggregator);
     } else {
       throw new IllegalStateException(

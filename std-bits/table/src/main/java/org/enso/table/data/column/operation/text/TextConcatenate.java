@@ -4,6 +4,7 @@ import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.operation.BinaryOperationBase;
 import org.enso.table.data.column.operation.StorageIterators;
 import org.enso.table.data.column.storage.ColumnStorage;
+import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.data.table.problems.MapOperationProblemAggregator;
 import org.enso.table.error.UnexpectedTypeException;
@@ -26,7 +27,7 @@ public class TextConcatenate extends BinaryOperationBase<String, String> {
       ColumnStorage<String> left,
       Object rightValue,
       MapOperationProblemAggregator problemAggregator) {
-    if (!(left.getType() instanceof TextType textType)) {
+    if (!(StorageType.ofStorage(left) instanceof TextType textType)) {
       throw new IllegalArgumentException("Left type is not a text type");
     }
 
@@ -45,7 +46,7 @@ public class TextConcatenate extends BinaryOperationBase<String, String> {
 
     return StorageIterators.mapOverStorage(
         left,
-        Builder.getForText(newType, left.getSize()),
+        newType.makeBuilder(left.getSize(), problemAggregator),
         (index, value) -> value + typedRightValue);
   }
 
@@ -54,16 +55,16 @@ public class TextConcatenate extends BinaryOperationBase<String, String> {
       ColumnStorage<String> left,
       ColumnStorage<?> right,
       MapOperationProblemAggregator problemAggregator) {
-    if (!(left.getType() instanceof TextType textType)) {
+    if (!(StorageType.ofStorage(left) instanceof TextType textType)) {
       throw new IllegalArgumentException("Left type is not a text type");
     }
 
-    if (right.getType() instanceof TextType rightType) {
+    if (StorageType.ofStorage(right) instanceof TextType rightType) {
       TextType newType = TextType.concatTypes(textType, rightType);
       return StorageIterators.zipOverStorages(
           left,
           rightType.asTypedStorage(right),
-          length -> Builder.getForText(newType, length),
+          length -> newType.makeBuilder(length, problemAggregator),
           true,
           (index, leftValue, rightValue) -> leftValue + rightValue);
     }

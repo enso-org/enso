@@ -1478,7 +1478,9 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
           )
         )
       )
-      context.receiveN(2) should contain theSameElementsAs Seq(
+      context.receiveNIgnoreExpressionUpdates(
+        2
+      ) should contain theSameElementsAs Seq(
         Api.Response(requestId, Api.VisualizationAttached()),
         Api.Response(
           Api.ExecutionFailed(
