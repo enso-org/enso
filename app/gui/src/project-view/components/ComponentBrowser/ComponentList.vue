@@ -117,7 +117,6 @@ const selectedSuggestionReturnType = computed(() => {
   const parsedTypeExpr = parseExpression(typename)
   if (parsedTypeExpr == null) return typename
   const parsedType = parsedTypeExpr.module
-  parsedType.setRoot(parsedTypeExpr as any)
   unqualifyQualifiedNames(parsedTypeExpr)
   return parsedType.root()!.code()
 })

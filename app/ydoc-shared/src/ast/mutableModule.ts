@@ -109,7 +109,8 @@ export class MutableModule implements Module {
     if (newRoot) {
       const rootPointer = this.rootPointer()
       if (rootPointer) {
-        rootPointer.expression.replace(newRoot)
+        if (newRoot.module !== this || newRoot.fields.get('parent') !== ROOT_ID)
+          rootPointer.expression.replace(newRoot)
       } else {
         invalidFields(this, this.baseObject('Invalid', ROOT_ID), {
           whitespace: '',

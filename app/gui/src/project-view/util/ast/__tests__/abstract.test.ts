@@ -175,7 +175,6 @@ test('Construct app', () => {
 
 test('Automatic parenthesis', () => {
   const block = Ast.parseModule('main = func arg1 arg2')
-  block.module.setRoot(block)
   let arg1: Ast.MutableAst | undefined
   Ast.visitRecursive(block, (ast) => {
     if (ast instanceof Ast.MutableIdent && ast.code() === 'arg1') {
@@ -291,7 +290,6 @@ test.each([
     const expression = Ast.parseExpression(original) ?? Ast.parseBlockStatement(original)
     assertDefined(expression)
     const mod = expression.module
-    mod.setRoot(expression as any)
     substituteQualifiedNameByPattern(
       expression,
       pattern as Ast.Identifier,
@@ -316,7 +314,6 @@ test.each([
     const expression = Ast.parseExpression(original)
     assertDefined(expression)
     const mod = expression.module
-    mod.setRoot(expression as any)
     unqualifyQualifiedNames(expression)
     expect(mod.root()?.code()).toEqual(expected)
   },
@@ -371,7 +368,6 @@ test.each([
     const expression = Ast.parseExpression(original) ?? Ast.parseBlockStatement(original)
     assertDefined(expression)
     const module = expression.module
-    module.setRoot(expression)
     const edit = expression.module.edit()
     substituteIdentifier(expression, pattern as Ast.Identifier, substitution as Ast.Identifier)
     module.applyEdit(edit)

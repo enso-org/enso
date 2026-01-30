@@ -383,7 +383,6 @@ test.each([
 
   // Get an AST.
   const root = parseModule(code)
-  root.module.setRoot(root)
   // Print AST back to source.
   const printed = printWithSpans(root)
   expect(printed.code).toEqual(expectedCode)

@@ -1,16 +1,5 @@
 import { qnFromSegments } from '@/util/qualifiedName'
 import type { Opt } from 'enso-common/src/utilities/data/opt'
-import type {
-  Expression,
-  Identifier,
-  IdentifierOrOperatorIdentifier,
-  Mutable,
-  MutableExpression,
-  MutableStatement,
-  Owned,
-  QualifiedName,
-  Statement,
-} from 'ydoc-shared/ast'
 import {
   App,
   Ast,
@@ -29,13 +18,21 @@ import {
   OprApp,
   PropertyAccess,
   Wildcard,
-  abstract,
   asOwned,
   isTokenId,
   parseExpression,
-  rawParseModule,
+  parseModuleWithSpans,
   setExternalIds,
   visitRecursive,
+  type Expression,
+  type Identifier,
+  type IdentifierOrOperatorIdentifier,
+  type Mutable,
+  type MutableExpression,
+  type MutableStatement,
+  type Owned,
+  type QualifiedName,
+  type Statement,
 } from 'ydoc-shared/ast'
 import { spanMapToIdMap, spanMapToSpanGetter } from 'ydoc-shared/ast/idMap'
 import { IdMap } from 'ydoc-shared/yjsModel'
@@ -275,7 +272,9 @@ export function tryEnsoToNumber(ast: Ast) {
 export function copyIntoNewModule<T extends Ast>(ast: T): Owned<Mutable<T>> {
   const module = MutableModule.Transient()
   module.importCopy(ast)
-  return asOwned(module.getVersion(ast) as Mutable<T>)
+  const copied = asOwned(module.getVersion(ast) as Mutable<T>)
+  module.setRoot(copied)
+  return copied
 }
 
 /** Safely cast a mutable or owned value to its base type. */
@@ -346,14 +345,13 @@ export function parseUpdatingIdMap(
   idMap?: IdMap | undefined,
   inModule?: MutableModule,
 ) {
-  const rawRoot = rawParseModule(code)
-  const module = inModule ?? MutableModule.Transient()
-  const { root, spans } = module.transact(() => {
-    const { root, spans } = abstract(module, rawRoot, code)
-    root.module.setRoot(root)
+  const doParseAndSetIds = () => {
+    const { root, spans } = parseModuleWithSpans(code, inModule)
+    if (inModule) inModule.setRoot(root)
     if (idMap) setExternalIds(root.module, spans, idMap)
     return { root, spans }
-  })
+  }
+  const { root, spans } = inModule ? inModule.transact(doParseAndSetIds) : doParseAndSetIds()
   const getSpan = spanMapToSpanGetter(spans.nodes)
   const idMapOut = spanMapToIdMap(spans)
   return { root, idMap: idMapOut, getSpan }
