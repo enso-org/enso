@@ -41,7 +41,7 @@ public final class DateType implements StorageType<LocalDate> {
 
   @Override
   public ColumnStorage<LocalDate> asTypedStorage(ColumnStorage<?> storage) {
-    if (storage.getType() instanceof DateType) {
+    if (StorageType.ofStorage(storage) instanceof DateType) {
       @SuppressWarnings("unchecked")
       var output = (ColumnStorage<LocalDate>) storage;
       return output;

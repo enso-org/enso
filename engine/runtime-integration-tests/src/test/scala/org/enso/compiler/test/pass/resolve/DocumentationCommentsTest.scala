@@ -79,7 +79,10 @@ class DocumentationCommentsTest extends CompilerTest with Inside {
     * @return the doc assigned to `ir`.
     */
   def getDoc(ir: IR): String = {
-    val meta = ir.getMetadata(DocumentationComments)
+    val meta = ir.getMetadata(
+      DocumentationComments,
+      classOf[DocumentationComments.Metadata]
+    )
 //    meta.shouldBe(defined)
     meta.get.documentation
   }

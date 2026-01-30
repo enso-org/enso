@@ -2,6 +2,7 @@ load("@aspect_bazel_lib//lib:write_source_files.bzl", "write_source_files")
 load("@aspect_rules_ts//ts:defs.bzl", "ts_config")
 load("@buildifier_prebuilt//:rules.bzl", "buildifier")
 load("@npm//:defs.bzl", "npm_link_all_packages")
+load("//:bazel_scripts/distribution_config.bzl", "SBT_SYSTEM_PROPS", "engine_distribution", "get_enso_env")
 load("//:bazel_scripts/run_engine_distribution.bzl", "ensure_native_enso", "run_enso")
 load("//:bazel_scripts/stdlibs.bzl", "stdlib_source_patterns")
 load("//toolchains/sbt:run_sbt.bzl", "run_sbt")
@@ -186,38 +187,6 @@ ENGINE_DIST_SOURCES = STDLIB_SOURCES + SBT_PROJECT_FILES + [
     "std-bits/tableau/src/**",
 ])
 
-SBT_BOOT_DIR = "$$TMPDIR/.sbt/boot"
-
-SBT_IVY_HOME = "$$TMPDIR/.ivy2"
-
-SBT_COURSIER_HOME = "$$TMPDIR/.coursier"
-
-SBT_GLOBAL_BASE = "$$TMPDIR"
-
-SBT_LOCAL_REPOS = "$$TMPDIR/.sbt/repositories"
-
-SBT_SYSTEM_PROPS = [
-    "-Dsbt.repositories.local=" + SBT_LOCAL_REPOS,
-    "-Dsbt.global.base=" + SBT_GLOBAL_BASE,
-    "-Dsbt.boot.directory=" + SBT_BOOT_DIR,
-    "-Dsbt.ivy.home=" + SBT_IVY_HOME,
-    "-Dsbt.coursier.home=" + SBT_COURSIER_HOME,
-    # Copied from .jvmopts
-    # TODO: Create a rule that reads that file?
-    "-Xss16M",
-    "-Xmx4G",
-    "-XX:+UseCompressedOops",
-    "--add-exports=jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED",
-    "--add-exports=jdk.compiler/com.sun.tools.javac.code=ALL-UNNAMED",
-    "--add-exports=jdk.compiler/com.sun.tools.javac.file=ALL-UNNAMED",
-    "--add-exports=jdk.compiler/com.sun.tools.javac.parser=ALL-UNNAMED",
-    "--add-exports=jdk.compiler/com.sun.tools.javac.tree=ALL-UNNAMED",
-    "--add-exports=jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED",
-    "--add-exports=jdk.graal.compiler/jdk.graal.compiler.graphio=ALL-UNNAMED",
-    "--enable-native-access=ALL-UNNAMED",
-    "--sun-misc-unsafe-memory-access=allow",
-]
-
 # These system properties are needed so that sbt will known that it runs as a subprocess of Bazel.
 # In such case, it will avoid running `cargo` or `pnpm` commands on its own,
 # instead, it will expect that all the necessary artifacts are already provided
@@ -236,39 +205,21 @@ SMALL_JDK_SYSTEM_PROPS = [
     "-Denso.BazelSupport.home=$(BINDIR)/home",
 ]
 
-ENV = {
-    "JAVA_HOME": "$(JAVABASE)",
-    "PATH": "$(FLATC_PATH):$(JAVABASE)/bin:$$PATH",
-    "LC_ALL": "C.UTF-8",
-    "SBT_SERVER_FORCESTART": "1",
-}
-
-NATIVE_IMAGE_ENV = dict(
-    ENV,
-    ENSO_LAUNCHER = "native",
-)
-
-run_sbt(
+engine_distribution(
     name = "sbt_build_engine_distribution",
     srcs = ENGINE_DIST_SOURCES,
-    args = [
-        "buildEngineDistribution",
-    ],
-    env = ENV,
+    extra_system_props = EXTRA_SYSTEM_PROPS,
+    native_image = False,
     out_dir = "built-distribution",
-    system_props = SBT_SYSTEM_PROPS + EXTRA_SYSTEM_PROPS,
     visibility = ["//visibility:public"],
 )
 
-run_sbt(
+engine_distribution(
     name = "sbt_build_native_engine_distribution",
     srcs = ENGINE_DIST_SOURCES,
-    args = [
-        "buildEngineDistribution",
-    ],
-    env = NATIVE_IMAGE_ENV,
+    extra_system_props = EXTRA_SYSTEM_PROPS,
+    native_image = True,
     out_dir = "built-distribution-native",
-    system_props = SBT_SYSTEM_PROPS + EXTRA_SYSTEM_PROPS,
     visibility = ["//visibility:public"],
 )
 
@@ -278,7 +229,7 @@ run_sbt(
     args = [
         "buildSmallJdkForRelease",
     ],
-    env = ENV,
+    env = get_enso_env(native_image = False),
     out_dir = "built-small-jdk",
     system_props = SBT_SYSTEM_PROPS + SMALL_JDK_SYSTEM_PROPS,
     visibility = ["//visibility:public"],

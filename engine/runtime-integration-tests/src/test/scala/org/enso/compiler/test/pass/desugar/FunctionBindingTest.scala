@@ -198,11 +198,14 @@ class FunctionBindingTest extends CompilerTest {
         .asInstanceOf[definition.Method.Conversion]
 
       val annotations =
-        conversion.unsafeGetMetadata(ModuleAnnotations, "Should be present.")
+        conversion.unsafeGetMetadata[ModuleAnnotations.Metadata](
+          ModuleAnnotations,
+          "Should be present."
+        )
       annotations.annotations.length shouldEqual 1
       annotations.annotations.head.name shouldEqual "@My_Annotation"
 
-      val doc = conversion.unsafeGetMetadata(
+      val doc = conversion.unsafeGetMetadata[DocumentationComments.Metadata](
         DocumentationComments,
         "Should be present."
       )

@@ -1690,7 +1690,7 @@ public class EnsoParserTest {
         .foreach(
             ir -> {
               if (ir instanceof Error err) {
-                fail("Encountered an unexpected error in IR: " + err.pretty());
+                fail("Encountered an unexpected error in IR: " + err.showCode());
               }
               return null;
             });
@@ -1747,7 +1747,7 @@ public class EnsoParserTest {
     if (noLocations) {
       ir = ir.duplicate(false, true, true, true);
     }
-    String txt = ir.pretty();
+    String txt = ir.showCode();
     if (noIds) {
       txt =
           txt.replaceAll(

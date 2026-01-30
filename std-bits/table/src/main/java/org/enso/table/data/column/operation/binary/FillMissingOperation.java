@@ -21,12 +21,11 @@ import org.enso.table.util.ImmutableBitSet;
 
 public class FillMissingOperation implements BinaryOperation {
   public static FillMissingOperation create(Column column, StorageType<?> resultType) {
-    var storage = column.getStorage();
-    return switch (storage.getType()) {
-      case IntegerType longType -> new LongFillMissingOperation(resultType);
-      case FloatType floatType -> new DoubleFillMissingOperation(resultType);
-      case BooleanType booleanType -> new BooleanFillMissingOperation(resultType);
-      case NullType nullType -> new NullFillMissingOperation(resultType);
+    return switch (StorageType.ofStorage(column.getStorage())) {
+      case IntegerType _ -> new LongFillMissingOperation(resultType);
+      case FloatType _ -> new DoubleFillMissingOperation(resultType);
+      case BooleanType _ -> new BooleanFillMissingOperation(resultType);
+      case NullType _ -> new NullFillMissingOperation(resultType);
       default -> new FillMissingOperation(resultType);
     };
   }

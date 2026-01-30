@@ -15,7 +15,6 @@ type Any
     > self other = Default_Comparator.less_than_builtin other self
     >= self other = Default_Comparator.less_than_builtin other self || Any.== other self
 
-@Builtin_Type
 type Default_Comparator
     ## ---
        private: true

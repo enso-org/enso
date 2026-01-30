@@ -14,7 +14,7 @@ public class ToMixedStorageConverter implements StorageConverter<Object> {
   @Override
   public ColumnStorage<Object> cast(
       ColumnStorage<?> storage, CastProblemAggregator problemAggregator) {
-    if (storage.getType() instanceof AnyObjectType) {
+    if (StorageType.ofStorage(storage) instanceof AnyObjectType) {
       // Already the correct type.
       return AnyObjectType.INSTANCE.asTypedStorage(storage);
     }

@@ -100,14 +100,14 @@ case object UnusedBindings extends IRPass {
     context: InlineContext
   ): Expression.Binding = {
     val isIgnored = binding
-      .unsafeGetMetadata(
+      .unsafeGetMetadata[IgnoredBindings.Metadata](
         IgnoredBindings,
         "Binding ignore information is required for linting."
       )
       .isIgnored
 
     val aliasInfo = binding
-      .unsafeGetMetadata(
+      .unsafeGetMetadata[AliasAnalysis.Metadata](
         AliasAnalysis,
         "Aliasing information is required for linting."
       )
@@ -184,14 +184,14 @@ case object UnusedBindings extends IRPass {
     context: InlineContext
   ): DefinitionArgument = {
     val isIgnored = argument
-      .unsafeGetMetadata(
+      .unsafeGetMetadata[IgnoredBindings.Metadata](
         IgnoredBindings,
         "Argument ignore information is required for linting."
       )
       .isIgnored
 
     val aliasInfo = argument
-      .unsafeGetMetadata(
+      .unsafeGetMetadata[AliasAnalysis.Metadata](
         AliasAnalysis,
         "Aliasing information missing from function argument but is " +
         "required for linting."
@@ -262,14 +262,14 @@ case object UnusedBindings extends IRPass {
       case n: Pattern.Name =>
         val name = n.name()
         val isIgnored = name
-          .unsafeGetMetadata(
+          .unsafeGetMetadata[IgnoredBindings.Metadata](
             IgnoredBindings,
             "Free variable ignore information is required for linting."
           )
           .isIgnored
 
         val aliasInfo = name
-          .unsafeGetMetadata(
+          .unsafeGetMetadata[AliasAnalysis.Metadata](
             AliasAnalysis,
             "Aliasing information missing from pattern but is " +
             "required for linting."
@@ -291,14 +291,14 @@ case object UnusedBindings extends IRPass {
       case typed: Pattern.Type =>
         val name = typed.name()
         val isIgnored = name
-          .unsafeGetMetadata(
+          .unsafeGetMetadata[IgnoredBindings.Metadata](
             IgnoredBindings,
             "Free variable ignore information is required for linting."
           )
           .isIgnored
 
         val aliasInfo = name
-          .unsafeGetMetadata(
+          .unsafeGetMetadata[AliasAnalysis.Metadata](
             AliasAnalysis,
             "Aliasing information missing from pattern but is " +
             "required for linting."
@@ -328,7 +328,10 @@ case object UnusedBindings extends IRPass {
     */
   private def isBuiltinMethod(expression: Expression): Boolean = {
     expression
-      .getMetadata(ExpressionAnnotations)
+      .getMetadata(
+        ExpressionAnnotations,
+        classOf[ExpressionAnnotations.Metadata]
+      )
       .exists(
         _.annotations.exists(_.name == ExpressionAnnotations.builtinMethodName)
       )

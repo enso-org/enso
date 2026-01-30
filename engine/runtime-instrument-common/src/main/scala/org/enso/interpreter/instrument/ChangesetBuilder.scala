@@ -134,7 +134,7 @@ final class ChangesetBuilder[A: TextEditor: IndexedSource](
   @throws[CompilerError]
   def compute(edits: Seq[TextEdit]): Set[UUID @ExternalID] = {
     val metadata = ir
-      .unsafeGetMetadata(
+      .unsafeGetMetadata[DataflowAnalysis.Metadata](
         DataflowAnalysis,
         "Empty dataflow analysis metadata during changeset calculation."
       )

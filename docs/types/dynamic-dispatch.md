@@ -201,9 +201,9 @@ primarily as a _container for module (static) methods_.
 - **associated type** of a module `My_Module` is a type for the module
   - It is basically an eigen type for a module.
 - **builtin type** is a type annotated with `@Builtin_Type`.
-  - Builtin type cannot be defined outside standard libraries.
+  - Builtin type cannot be defined outside `Standard.Base` library.
   - Builtin types are usually implemented in the engine, and not with pure Enso
-    code.
+    Atom mechanism.
 - **parent type** of a type `My_Type` is a type that `My_Type` "extends", i.e.
   `My_Type` inherits all the methods defined on its parent type.
   - Every type has exactly one parent type, except for `Any` type.

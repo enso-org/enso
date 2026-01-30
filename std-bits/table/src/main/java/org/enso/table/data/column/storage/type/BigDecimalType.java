@@ -60,6 +60,15 @@ public final class BigDecimalType implements StorageType<BigDecimal>, NumericTyp
       return BigDecimal.valueOf(doubleValue);
     }
 
+    // Special case: String to BigDecimal conversion
+    if (value instanceof String str) {
+      try {
+        return new BigDecimal(str);
+      } catch (NumberFormatException e) {
+        return null;
+      }
+    }
+
     return null;
   }
 
@@ -71,7 +80,7 @@ public final class BigDecimalType implements StorageType<BigDecimal>, NumericTyp
 
   @Override
   public ColumnStorage<BigDecimal> asTypedStorage(ColumnStorage<?> storage) {
-    if (storage.getType() instanceof BigDecimalType) {
+    if (StorageType.ofStorage(storage) instanceof BigDecimalType) {
       @SuppressWarnings("unchecked")
       var output = (ColumnStorage<BigDecimal>) storage;
       return output;

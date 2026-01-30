@@ -15,7 +15,6 @@ import {
 import type { Visualization } from '@/stores/visualization/runtimeTypes'
 import { Ast } from '@/util/ast'
 import { toError } from '@/util/data/error'
-import { ProjectPath } from '@/util/projectPath'
 import { computedAsync } from '@vueuse/core'
 import type { Opt } from 'enso-common/src/utilities/data/opt'
 import type { Result } from 'enso-common/src/utilities/data/result'
@@ -37,8 +36,6 @@ export type RawDataSource = { type: 'raw'; data: any }
 
 export interface UseVisualizationDataOptions {
   selectedVis: ToValue<Opt<VisualizationIdentifier>>
-  /** @deprecated use typeInfo instead */
-  typename: ToValue<ProjectPath | undefined>
   typeinfo: ToValue<TypeInfo | undefined>
   dataSource: ToValue<VisualizationDataSource | RawDataSource | undefined>
 }
@@ -54,7 +51,6 @@ export interface UseVisualizationDataOptions {
 export function useVisualizationData({
   selectedVis,
   dataSource,
-  typename,
   typeinfo,
 }: UseVisualizationDataOptions) {
   const visPreprocessor = ref(DEFAULT_VISUALIZATION_CONFIGURATION)
@@ -127,7 +123,7 @@ export function useVisualizationData({
     if (selectedTypeValue) return selectedTypeValue
     if (defaultVisualizationForCurrentNodeSource.value)
       return defaultVisualizationForCurrentNodeSource.value
-    const [id] = visualizationStore.byType(toValue(typeinfo), toValue(typename))
+    const [id] = visualizationStore.byType(toValue(typeinfo))
     return id ?? DEFAULT_VISUALIZATION_IDENTIFIER
   })
 
@@ -256,9 +252,7 @@ export function useVisualizationData({
     preprocessorLoading.value = false
   })
 
-  const allVisualizations = computed(() =>
-    Array.from(visualizationStore.byType(toValue(typeinfo), toValue(typename))),
-  )
+  const allVisualizations = computed(() => Array.from(visualizationStore.byType(toValue(typeinfo))))
 
   const effectiveVisualization = computed(() => {
     if (

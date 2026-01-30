@@ -153,7 +153,7 @@ case object LambdaConsolidate extends IRPass {
         val argIsShadowed = chainedArgList.map {
           case spec: DefinitionArgument.Specified =>
             val aliasInfo = spec
-              .unsafeGetMetadata(
+              .unsafeGetMetadata[AliasAnalysis.Metadata](
                 AliasAnalysis,
                 "Missing aliasing information for an argument definition"
               )
@@ -365,7 +365,7 @@ case object LambdaConsolidate extends IRPass {
       .map { case spec: DefinitionArgument.Specified =>
         val aliasInfo =
           spec
-            .unsafeGetMetadata(
+            .unsafeGetMetadata[AliasAnalysis.Metadata](
               AliasAnalysis,
               "Missing aliasing information for an argument definition."
             )
@@ -393,7 +393,7 @@ case object LambdaConsolidate extends IRPass {
       case (spec: DefinitionArgument.Specified, isShadowed) =>
         val aliasInfo =
           spec
-            .unsafeGetMetadata(
+            .unsafeGetMetadata[AliasAnalysis.Metadata](
               AliasAnalysis,
               "Missing aliasing information for an argument definition."
             )

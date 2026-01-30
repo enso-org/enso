@@ -157,7 +157,7 @@ case object AliasAnalysis extends IRPass {
   ): T = {
     def doCopy(sourceBinding: IR, copyBinding: IR): Unit = {
       val sourceRootScopeGraphOpt = sourceBinding
-        .getMetadata(this)
+        .getMetadata(this, classOf[AliasAnalysis.Metadata])
 
       sourceRootScopeGraphOpt.foreach { sourceRootScopeGraphScope =>
         val sourceRootScopeGraph =
@@ -175,7 +175,7 @@ case object AliasAnalysis extends IRPass {
         val matchedNodes = sourceNodes.lazyZip(copyNodes)
 
         matchedNodes.foreach { case (sourceNode, copyNode) =>
-          sourceNode.getMetadata(this) match {
+          sourceNode.getMetadata(this, classOf[AliasAnalysis.Metadata]) match {
             case Some(meta) =>
               val newMeta = meta match {
                 case root: alias.AliasMetadata.RootScope =>
