@@ -26,6 +26,9 @@ polyglot java import java.nio.file.NotDirectoryException
 
 ## Represents a Tableau Hyper Extract file.
 type Hyper_File
+    test_an_error =
+        HyperFormat.getDataflowError
+
     ## ---
        icon: data_input
        ---

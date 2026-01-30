@@ -31,6 +31,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.IntStream;
+import org.enso.base.polyglot.EnsoMeta;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.type.BigDecimalType;
@@ -280,11 +281,13 @@ public class HyperFormat {
     var tableNameObject = new TableName(new SchemaName(schemaName), tableName);
     try (var connection = getConnection(path)) {
       return readStructureInternal(connection, tableNameObject);
+    } catch (HyperTableNotFound | HyperQueryError e) {
+      throw handleHyperErrors(e);
     }
   }
 
   private static HyperTableColumn[] readStructureInternal(
-      Connection connection, TableName tableNameObject) {
+      Connection connection, TableName tableNameObject) throws HyperTableNotFound, HyperQueryError {
     try {
       var catalog = connection.getCatalog();
       var definition = catalog.getTableDefinition(tableNameObject);
@@ -313,32 +316,36 @@ public class HyperFormat {
       throws IOException {
     var tableNameObject = new TableName(new SchemaName(schemaName), tableName);
     var query = "SELECT * FROM " + tableNameObject + (rowLimit == null ? "" : " LIMIT " + rowLimit);
-    try (var connection = getConnection(path)) {
-      var columns = readStructureInternal(connection, tableNameObject);
+    try {
+      try (var connection = getConnection(path)) {
+        var columns = readStructureInternal(connection, tableNameObject);
 
-      var builders =
-          Arrays.stream(columns)
-              .map(
-                  c ->
-                      TableColumnBuilder.create(
-                          c, rowLimit == null ? 1000 : rowLimit, problemAggregator))
-              .toList();
+        var builders =
+            Arrays.stream(columns)
+                .map(
+                    c ->
+                        TableColumnBuilder.create(
+                            c, rowLimit == null ? 1000 : rowLimit, problemAggregator))
+                .toList();
 
-      var result = connection.executeQuery(query);
-      while (result.nextRow()) {
-        builders.forEach(b -> b.append(result));
+        var result = connection.executeQuery(query);
+        while (result.nextRow()) {
+          builders.forEach(b -> b.append(result));
+        }
+
+        var storages = builders.stream().map(TableColumnBuilder::seal).toList();
+        return IntStream.range(0, columns.length)
+            .mapToObj(i -> new Column(columns[i].name(), storages.get(i)))
+            .toArray(Column[]::new);
+      } catch (HyperException e) {
+        if (e.getMessage().contains(" does not exist: ")) {
+          throw new HyperTableNotFound(schemaName, tableName, e);
+        } else {
+          throw new HyperQueryError(e.getMessage(), query, e);
+        }
       }
-
-      var storages = builders.stream().map(TableColumnBuilder::seal).toList();
-      return IntStream.range(0, columns.length)
-          .mapToObj(i -> new Column(columns[i].name(), storages.get(i)))
-          .toArray(Column[]::new);
-    } catch (HyperException e) {
-      if (e.getMessage().contains(" does not exist: ")) {
-        throw new HyperTableNotFound(schemaName, tableName, e);
-      } else {
-        throw new HyperQueryError(e.getMessage(), query, e);
-      }
+    } catch (HyperQueryError | HyperTableNotFound e) {
+      throw handleHyperErrors(e);
     }
   }
 
@@ -615,5 +622,15 @@ public class HyperFormat {
     } else {
       return ctx.getBindings("enso");
     }
+  }
+
+  private static RuntimeException handleHyperErrors(RuntimeException exception) {
+    var ensoAtom =
+        switch (exception) {
+          case HyperTableNotFound tableNotFound -> tableNotFound.asEnsoAtom();
+          case HyperQueryError queryError -> queryError.asEnsoAtom();
+          default -> null;
+        };
+    return ensoAtom == null ? exception : EnsoMeta.asDataflowError(ensoAtom);
   }
 }

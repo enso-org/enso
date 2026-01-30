@@ -1,6 +1,9 @@
 package org.enso.tableau;
 
-public class HyperTableNotFound extends RuntimeException {
+import org.enso.base.polyglot.EnsoMeta;
+import org.graalvm.polyglot.Value;
+
+class HyperTableNotFound extends RuntimeException {
   private final String schema;
   private final String name;
 
@@ -16,5 +19,10 @@ public class HyperTableNotFound extends RuntimeException {
 
   public String getName() {
     return name;
+  }
+
+  public Value asEnsoAtom() {
+    return EnsoMeta.makeInstance(
+        "Standard.Tableau.Hyper_Errors", "Hyper_Table_Not_Found", "Error", getSchema(), getName());
   }
 }

@@ -29,6 +29,19 @@ public final class EnsoMeta {
     }
   }
 
+  /** Calls a static method defined on a type. */
+  public static Value callStaticTypeMethod(
+      String moduleName, String typeName, String methodName, Object... args) {
+    var type = getType(moduleName, typeName);
+
+    var factory = type.invokeMember("get_method", type, methodName);
+    // The static method takes the type as the synthetic 'self' argument, so we need to prepend it:
+    Object[] argsWithSelf = new Object[args.length + 1];
+    argsWithSelf[0] = type;
+    System.arraycopy(args, 0, argsWithSelf, 1, args.length);
+    return factory.execute(argsWithSelf);
+  }
+
   /** Calls a static method defined directly on a module (not inside of a type). */
   public static Value callStaticModuleMethod(String moduleName, String methodName, Object... args) {
     var module = getBindings().invokeMember("get_module", moduleName);
@@ -40,5 +53,43 @@ public final class EnsoMeta {
     argsWithSelf[0] = moduleType;
     System.arraycopy(args, 0, argsWithSelf, 1, args.length);
     return factory.execute(argsWithSelf);
+  }
+
+  /** Creates an instance of an Enso type by calling the specified constructor. */
+  public static Value makeInstance(
+      String moduleName, String typeName, String constructorName, Object... args) {
+    var type = getType(moduleName, typeName);
+
+    Value constructor;
+    try {
+      constructor = type.getMember(constructorName);
+    } catch (NullPointerException e) {
+      var ex =
+          new NullPointerException(
+              "Cannot find constructor "
+                  + constructorName
+                  + " for "
+                  + moduleName
+                  + " type: "
+                  + typeName);
+      ex.initCause(e);
+      throw ex;
+    }
+
+    if (!constructor.canInstantiate()) {
+      throw new IllegalStateException("Constructor " + constructorName + " is not instantiable.");
+    }
+    return constructor.newInstance(args);
+  }
+
+  /** Converts an Enso error atom into a Java exception. */
+  public static RuntimeException asDataflowError(Value ensoAtom) {
+    var ensoError =
+        EnsoMeta.getType("Standard.Base.Error", "Error").invokeMember("throw", ensoAtom);
+    if (!ensoError.isException()) {
+      throw new IllegalStateException(
+          "Expected Enso error to be an exception, but got: " + ensoError);
+    }
+    return ensoError.throwException();
   }
 }

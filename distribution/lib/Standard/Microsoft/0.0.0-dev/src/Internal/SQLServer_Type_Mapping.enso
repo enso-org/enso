@@ -114,9 +114,7 @@ type SQLServer_Type_Mapping
             Types.DECIMAL -> Value_Type.Decimal sql_type.precision sql_type.scale
             Types.NUMERIC -> Value_Type.Decimal sql_type.precision sql_type.scale
             Types.NULL -> Value_Type.Null
-            _ -> case sql_type.name of
-                "datetimeoffset" -> Value_Type.Date_Time with_timezone=True
-                _ -> on_unknown_type sql_type
+            _ -> on_unknown_type sql_type
 
     ## ---
        private: true
