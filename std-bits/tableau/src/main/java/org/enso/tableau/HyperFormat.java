@@ -26,10 +26,7 @@ import java.nio.channels.Channels;
 import java.nio.file.Files;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.IntStream;
 import org.enso.base.polyglot.EnsoExceptionWrapper;
 import org.enso.base.polyglot.EnsoMeta;
@@ -241,37 +238,42 @@ public class HyperFormat {
     }
   }
 
-  public static String[] readSchemas(String path) throws IOException {
+  public static String[] readSchemas(String path) {
     try (var connection = getConnection(path)) {
       var catalog = connection.getCatalog();
       return catalog.getSchemaNames().stream()
           .map(s -> s.getName().getUnescaped())
           .toArray(String[]::new);
+    } catch (Exception e) {
+      throw handleHyperErrors(path, e);
     }
   }
 
-  public static HyperTable[] listTablesAllSchemas(String path) throws IOException {
+  public static HyperTable[] listTablesAllSchemas(String path) {
     try (var connection = getConnection(path)) {
       var catalog = connection.getCatalog();
       return listTablesImpl(catalog, catalog.getSchemaNames());
+    } catch (Exception e) {
+      throw handleHyperErrors(path, e);
     }
   }
 
-  public static HyperTable[] listTables(String path, String schemaName) throws IOException {
+  public static HyperTable[] listTables(String path, String schemaName) {
     var schemaNames = List.of(new SchemaName(schemaName));
     try (var connection = getConnection(path)) {
       var catalog = connection.getCatalog();
       return listTablesImpl(catalog, schemaNames);
+    } catch (Exception e) {
+      throw handleHyperErrors(path, e);
     }
   }
 
-  public static HyperTableColumn[] readStructure(String path, String schemaName, String tableName)
-      throws IOException {
+  public static HyperTableColumn[] readStructure(String path, String schemaName, String tableName) {
     var tableNameObject = new TableName(new SchemaName(schemaName), tableName);
     try (var connection = getConnection(path)) {
       return readStructureInternal(connection, tableNameObject);
     } catch (Exception e) {
-      throw handleHyperErrors(e);
+      throw handleHyperErrors(path, e);
     }
   }
 
@@ -280,15 +282,14 @@ public class HyperFormat {
       String schemaName,
       String tableName,
       Integer rowLimit,
-      ProblemAggregator problemAggregator)
-      throws IOException {
+      ProblemAggregator problemAggregator) {
     var tableNameObject = new TableName(new SchemaName(schemaName), tableName);
     var query = "SELECT * FROM " + tableNameObject + (rowLimit == null ? "" : " LIMIT " + rowLimit);
     try {
       return readTableInternal(
           path, schemaName, tableName, rowLimit, problemAggregator, tableNameObject, query);
     } catch (Exception e) {
-      throw handleHyperErrors(e);
+      throw handleHyperErrors(path, e);
     }
   }
 
@@ -300,8 +301,7 @@ public class HyperFormat {
       ColumnStorage<?>[] storages,
       boolean append,
       boolean matchColumnsByName,
-      boolean throwDontWarn)
-      throws IOException {
+      boolean throwDontWarn) {
     assert names.length == storages.length;
 
     // Localize storages to avoid issues with foreign memory access.
@@ -331,7 +331,7 @@ public class HyperFormat {
       }
       return warningUnmatchedColumns.toArray(String[]::new);
     } catch (Exception e) {
-      throw handleHyperErrors(e);
+      throw handleHyperErrors(path, e);
     }
   }
 
@@ -646,15 +646,21 @@ public class HyperFormat {
     }
   }
 
-  private static RuntimeException handleHyperErrors(Exception exception) {
+  private static RuntimeException handleHyperErrors(String path, Exception exception) {
     var ensoAtom =
-        switch (exception) {
-          case HyperTableNotFound tableNotFound -> tableNotFound.asEnsoAtom();
-          case HyperQueryError queryError -> queryError.asEnsoAtom();
-          case HyperTypeMismatch typeMismatch -> typeMismatch.asEnsoAtom();
-          case HyperUnsupportedTypeError unsupportedType -> unsupportedType.asEnsoAtom();
-          default -> EnsoExceptionWrapper.wrapCommonExceptions(exception);
-        };
-    return ensoAtom != null ? new RuntimeException(exception) : EnsoMeta.asDataflowError(ensoAtom);
+        Optional.ofNullable(
+                switch (exception) {
+                  case HyperTableNotFound tableNotFound -> tableNotFound.asEnsoAtom();
+                  case HyperQueryError queryError -> queryError.asEnsoAtom();
+                  case HyperTypeMismatch typeMismatch -> typeMismatch.asEnsoAtom();
+                  case HyperUnsupportedTypeError unsupportedType -> unsupportedType.asEnsoAtom();
+                  case HyperUnmatchedColumns unmatchedColumns -> unmatchedColumns.asEnsoAtom();
+                  default -> null;
+                })
+            .or(() -> EnsoExceptionWrapper.wrapFileExceptions(path, exception))
+            .or(() -> EnsoExceptionWrapper.wrapCommonExceptions(exception));
+    return ensoAtom.isEmpty()
+        ? new RuntimeException(exception)
+        : EnsoMeta.asDataflowError(ensoAtom.get());
   }
 }

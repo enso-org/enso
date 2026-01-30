@@ -17,9 +17,6 @@ class HyperUnmatchedColumns extends RuntimeException {
 
   public Value asEnsoAtom() {
     return EnsoMeta.makeInstance(
-        "Standard.Table.Errors",
-        "Column_Type_Mismatch",
-        "Error",
-        (Object) getUnmatchedColumns());
+        "Standard.Table.Errors", "Column_Type_Mismatch", "Error", (Object) getUnmatchedColumns());
   }
 }
