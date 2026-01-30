@@ -61,7 +61,7 @@ if (!statusFilePath) {
 }
 if (!statusFilePath) {
   throw new Error(
-    'Missing required status-file.txt path. Provide --status-file or build with stamping enabled.'
+    'Missing required status-file.txt path. Provide --status-file or build with stamping enabled.',
   )
 }
 

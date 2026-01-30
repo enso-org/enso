@@ -8,7 +8,7 @@ if (process.env.JS_BINARY__EXECROOT) {
 
 function usage() {
   throw new Error(
-    `Invalid arguments.\nusage:\n  ${process.argv[0]} ${process.argv[1]} [--status-file <stable-status.txt>] <executable> <args...>`
+    `Invalid arguments.\nusage:\n  ${process.argv[0]} ${process.argv[1]} [--status-file <stable-status.txt>] <executable> <args...>`,
   )
 }
 
