@@ -20,7 +20,6 @@ class HyperUnsupportedTypeError extends RuntimeException {
         "Standard.Tableau.Hyper_Errors",
         "Hyper_Unsupported_Type",
         "Error",
-        getMessage(),
         getTypeName());
   }
 }
