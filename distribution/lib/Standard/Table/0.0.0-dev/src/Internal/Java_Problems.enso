@@ -1,28 +1,10 @@
 from Standard.Base import all
 import Standard.Base.Data.Vector.No_Wrap
 import Standard.Base.Errors.Common.Additional_Warnings
-import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
-import project.Internal.Storage
-from project.Errors import all
-
-polyglot java import org.enso.table.data.column.operation.cast.ConversionFailure
-polyglot java import org.enso.table.data.column.operation.cast.ConversionFailureType
-polyglot java import org.enso.table.data.column.storage.type.StorageType
-polyglot java import org.enso.table.data.table.problems.ArithmeticOverflow
-polyglot java import org.enso.table.data.table.problems.FloatingPointGrouping
 polyglot java import org.enso.table.data.table.problems.MapOperationProblemAggregator
-polyglot java import org.enso.table.data.table.problems.UnquotedCharactersInOutput
-polyglot java import org.enso.table.data.table.problems.UnquotedDelimiter
-polyglot java import org.enso.table.parsing.problems.AdditionalInvalidRows
-polyglot java import org.enso.table.parsing.problems.InconsistentFixedWidthLengths
-polyglot java import org.enso.table.parsing.problems.InvalidFixedWidthRow
-polyglot java import org.enso.table.parsing.problems.InvalidFormat
-polyglot java import org.enso.table.parsing.problems.InvalidRow
 polyglot java import org.enso.table.problems.ProblemAggregator
 polyglot java import org.enso.table.problems.ProblemAggregator.ProblemSummary
-polyglot java import org.enso.table.util.problems.DuplicateNames
-polyglot java import org.enso.table.util.problems.InvalidNames
 
 ## ---
    private: true
@@ -32,44 +14,6 @@ translate_problem p =
     enso_value = p.asEnsoValue
     if p.isError then Error.throw enso_value
     enso_value
-
-    "ArithmeticOverflow" ->
-        storage_type = StorageType.fromTypeCharAndSize p.targetTypeChar p.targetTypeSize
-        target_type = Storage.to_value_type storage_type
-        example_operands = case p.exampleOperands of
-            Nothing -> Nothing
-            array -> Vector.from_polyglot_array array
-        Arithmetic_Overflow.Warning target_type p.affectedRowCount example_operands
-    "ConversionFailure" ->
-        examples = Vector.from_polyglot_array p.examples
-        storage_type = StorageType.fromTypeCharAndSize p.targetTypeChar p.targetTypeSize
-        target_type = Storage.to_value_type storage_type
-        related_column = p.relatedColumn
-        affected_rows_count = p.affectedRowCount
-        constructor = if p.errorType == ConversionFailureType.NUMBER_OUT_OF_RANGE then Conversion_Failure.Out_Of_Range else
-            if p.errorType == ConversionFailureType.TEXT_TOO_LONG then Conversion_Failure.Text_Too_Long else
-                Conversion_Failure.Error
-        constructor target_type related_column affected_rows_count examples
-    "UnquotedCharactersInOutput" ->
-        Unquoted_Characters_In_Output.Warning p.getLocationName (Vector.from_polyglot_array p.getRows)
-    "UnquotedDelimiter" ->
-        Unquoted_Delimiter.Error p.getLocationName (Vector.from_polyglot_array p.getRows)
-    "InvalidRow" ->
-        Invalid_Row.Error p.source_row p.table_index (Vector.from_polyglot_array p.row) p.expected_length
-    "InvalidFixedWidthRow" ->
-        Invalid_Fixed_Width_Row.Error p.source_line_number p.table_row_number p.line_length p.minimum_line_length
-    "InconsistentFixedWidthLengths" ->
-        Inconsistent_Fixed_Width_Lengths.Error
-    "AdditionalInvalidRows" ->
-        Additional_Invalid_Rows.Error p.count
-    "DuplicateNames" ->
-        Duplicate_Output_Column_Names.Error (Vector.from_polyglot_array p.duplicatedNames)
-    "InvalidNames" ->
-        Invalid_Column_Names.Error (Vector.from_polyglot_array p.invalidNames)
-    "InvalidFormat" ->
-        Invalid_Format.Error p.column p.expectedEnsoValueType p.count (Vector.from_polyglot_array p.cells)
-    _ ->
-        Panic.throw (Illegal_Argument.Error "Encountered an unknown problem type when converting Java problems into Enso. This is a bug in the Table library. The unexpected problem was: "+p.to_text)
 
 ## ---
    private: true

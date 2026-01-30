@@ -1,7 +1,6 @@
 package org.enso.table.data.column.storage.type;
 
 import java.time.LocalTime;
-
 import org.enso.base.polyglot.EnsoMeta;
 import org.enso.base.polyglot.Polyglot_Utils;
 import org.enso.table.data.column.builder.Builder;

@@ -8,11 +8,10 @@ import org.graalvm.polyglot.Value;
 /** Indicates that an arithmetic operation did not fit in the target type. */
 public record ArithmeticOverflow(
     StorageType<?> targetType, long affectedRowCount, Object[] exampleOperands) implements Problem {
-
   @Override
   public Value asEnsoValue() {
     var exampleOperandsVector =
-        exampleOperands == null
+        exampleOperands() == null
             ? null
             : EnsoMeta.getType("Standard.Base.Data.Vector", "Vector")
                 .invokeMember("from_polyglot_array", exampleOperands());
@@ -20,8 +19,8 @@ public record ArithmeticOverflow(
         "Standard.Table.Errors",
         "Arithmetic_Overflow",
         "Warning",
-        targetType.asEnsoValueType(),
-        affectedRowCount,
+        targetType().asEnsoValueType(),
+        affectedRowCount(),
         exampleOperandsVector);
   }
 }
