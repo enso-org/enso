@@ -108,11 +108,13 @@ case object DataflowAnalysis extends IRPass {
     sourceIr: T,
     copyOfIr: T
   ): T = {
-    /*
     (sourceIr, copyOfIr) match {
       case (sourceIr: Module, copyOfIr: Module) =>
         val sourceMeta =
-          sourceIr.unsafeGetMetadata(this, "Dataflow Analysis must have run.")
+          sourceIr.unsafeGetMetadata[DataflowAnalysis.Metadata](
+            this,
+            "Dataflow Analysis must have run."
+          )
         val copyMeta = new DependencyInfo(
           sourceMeta.dependents.deepCopy,
           sourceMeta.dependencies.deepCopy
@@ -123,14 +125,13 @@ case object DataflowAnalysis extends IRPass {
 
         sourceNodes.lazyZip(copyNodes).foreach { case (src, copy) =>
           src
-            .getMetadata(this)
+            .getMetadata(this, classOf[DataflowAnalysis.Metadata])
             .foreach(_ => copy.updateMetadata(new MetadataPair(this, copyMeta)))
         }
 
         copyOfIr.asInstanceOf[T]
       case _ => copyOfIr
     }
-     */
     copyOfIr
   }
 

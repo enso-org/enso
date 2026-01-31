@@ -1,12 +1,11 @@
 package org.enso.compiler.pass.analyse;
 
 import java.util.UUID;
-import org.enso.compiler.core.CompilerStub;
+import org.enso.compiler.context.CompilerContext;
 import org.enso.compiler.core.ExternalID;
 import org.enso.compiler.core.IR;
 import org.enso.compiler.core.Identifier;
 import org.enso.compiler.core.ir.Name;
-import org.enso.compiler.core.ir.ProcessingPass;
 import org.enso.compiler.pass.IRPass;
 import scala.Option;
 
@@ -43,8 +42,7 @@ public record DependencyInfo(DependencyMapping dependents, DependencyMapping dep
   }
 
   @Override
-  @SuppressWarnings("unchecked")
-  public Option duplicate() {
+  public Option<IRPass.IRMetadata> duplicate() {
     return Option.empty();
   }
 
@@ -52,7 +50,7 @@ public record DependencyInfo(DependencyMapping dependents, DependencyMapping dep
    * @inheritdoc
    */
   @Override
-  public DependencyInfo prepareForSerialization(CompilerStub compiler) {
+  public DependencyInfo prepareForSerialization(CompilerContext compiler) {
     return this;
   }
 
@@ -60,7 +58,7 @@ public record DependencyInfo(DependencyMapping dependents, DependencyMapping dep
    * @inheritdoc
    */
   @Override
-  public Option<ProcessingPass.Metadata> restoreFromSerialization(CompilerStub compiler) {
+  public Option<IRPass.IRMetadata> restoreFromSerialization(CompilerContext compiler) {
     return Option.apply(this);
   }
 

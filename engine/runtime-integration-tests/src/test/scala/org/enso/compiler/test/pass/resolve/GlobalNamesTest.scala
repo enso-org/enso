@@ -214,7 +214,7 @@ class GlobalNamesTest extends CompilerTest {
     moduleIr
       .preorder()
       .collect { case ir: IR =>
-        ir.getMetadata(GlobalNames).map((ir, _))
+        ir.getMetadata(GlobalNames, classOf[GlobalNames.Metadata]).map((ir, _))
       }
       .flatten
   }

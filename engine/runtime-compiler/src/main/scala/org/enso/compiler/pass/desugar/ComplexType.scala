@@ -114,7 +114,8 @@ case object ComplexType extends IRPass {
   private def desugarComplexType(
     typ: Definition.SugaredType
   ): List[Definition] = {
-    val annotations     = typ.getMetadata(ModuleAnnotations)
+    val annotations =
+      typ.getMetadata(ModuleAnnotations, classOf[ModuleAnnotations.Metadata])
     var lastAnnotations = Seq.empty[Name.GenericAnnotation]
     var seenAnnotations = Set.empty[Name.GenericAnnotation]
     val atomDefs = typ.body
@@ -137,7 +138,10 @@ case object ComplexType extends IRPass {
         annotations
           .map(ann => {
             val old = atom
-              .getMetadata(ModuleAnnotations)
+              .getMetadata(
+                ModuleAnnotations,
+                classOf[ModuleAnnotations.Metadata]
+              )
               .map(_.annotations)
               .getOrElse(Nil)
             atom.updateMetadata(
@@ -227,7 +231,10 @@ case object ComplexType extends IRPass {
       .getOrElse(sumType)
 
     val withDoc = typ
-      .getMetadata(DocumentationComments)
+      .getMetadata(
+        DocumentationComments,
+        classOf[DocumentationComments.Metadata]
+      )
       .map(ann =>
         withAnnotations.updateMetadata(
           new MetadataPair(DocumentationComments, ann)

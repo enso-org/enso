@@ -16,19 +16,15 @@ import scala.collection.mutable.Queue;
  * <p>It maps from an expression to other expressions based on some relationship between them.
  */
 public final class DependencyMapping {
-  private scala.collection.mutable.Map<DependencyInfo.Type, Set<DependencyInfo.Type>> mapping;
+  private final scala.collection.mutable.Map<DependencyInfo.Type, Set<DependencyInfo.Type>> mapping;
 
   @SuppressWarnings("unchecked")
-  private DependencyMapping() {
-    this(scala.collection.mutable.Map$.MODULE$.empty());
-  }
-
   public static DependencyMapping.Builder newBuilder() {
-    return new DependencyMapping.Builder(null);
+    return new DependencyMapping.Builder(scala.collection.mutable.Map$.MODULE$.empty());
   }
 
   public static DependencyMapping.Builder newBuilder(DependencyMapping mapping) {
-    return new DependencyMapping.Builder(mapping);
+    return new DependencyMapping.Builder(mapping.mapping());
   }
 
   /**
@@ -128,11 +124,23 @@ public final class DependencyMapping {
     return (Option<Set<UUID>>) (Object) res;
   }
 
+  /**
+   * @return A deep copy of this dependency mapping
+   */
+  @SuppressWarnings("unchecked")
+  final DependencyMapping deepCopy() {
+    var tupples = this.mapping.toSeq();
+    var map = scala.collection.mutable.Map$.MODULE$.apply(tupples);
+    return new DependencyMapping((Map<DependencyInfo.Type, Set<DependencyInfo.Type>>) map);
+  }
+
   /** Mutable builder to construct {@link DependencyMapping}. */
   public static final class Builder {
     private scala.collection.mutable.Map<DependencyInfo.Type, Set<DependencyInfo.Type>> mapping;
 
-    private Builder(Object ignore) {}
+    private Builder(scala.collection.mutable.Map<DependencyInfo.Type, Set<DependencyInfo.Type>> mapping) {
+      this.mapping = mapping;
+    }
 
     public DependencyMapping build() {
       return new DependencyMapping(mapping);

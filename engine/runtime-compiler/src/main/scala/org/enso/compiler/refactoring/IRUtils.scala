@@ -135,7 +135,10 @@ trait IRUtils {
             if app.function.isInstanceOf[Name.Literal] &&
             app.function.asInstanceOf[Name.Literal].name == node.name =>
           val function = app.function.asInstanceOf[Name.Literal]
-          function.getMetadata(MethodCalls) match {
+          function.getMetadata(
+            MethodCalls,
+            classOf[MethodCalls.Metadata]
+          ) match {
             case Some(resolution) =>
               resolution.target match {
                 case BindingsMap.ResolvedModuleMethod(module, _)
@@ -166,7 +169,10 @@ trait IRUtils {
     literal: Name.Literal
   ): Option[Set[IR]] = {
     for {
-      metadata <- ir.getMetadata(DataflowAnalysis)
+      metadata <- ir.getMetadata(
+        DataflowAnalysis,
+        classOf[DataflowAnalysis.Metadata]
+      )
       key = new DependencyInfo.Type.Static(
         literal.getId(),
         literal.getExternalId
@@ -194,7 +200,10 @@ trait IRUtils {
     name: String
   ): Option[Set[IR]] = {
     for {
-      metadata <- ir.getMetadata(DataflowAnalysis)
+      metadata <- ir.getMetadata(
+        DataflowAnalysis,
+        classOf[DataflowAnalysis.Metadata]
+      )
       key = new DependencyInfo.Type.Dynamic(name, None)
       dependents <- metadata.dependents.get(key)
     } yield {

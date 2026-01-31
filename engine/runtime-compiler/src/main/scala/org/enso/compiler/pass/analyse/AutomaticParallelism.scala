@@ -214,7 +214,7 @@ object AutomaticParallelism extends IRPass {
       line.ir match {
         case bind: Expression.Binding =>
           val aaInfo = bind
-            .unsafeGetMetadata(
+            .unsafeGetMetadata[AliasAnalysis.Metadata](
               AliasAnalysis,
               "Alias analysis left a binding behind"
             )
@@ -237,7 +237,9 @@ object AutomaticParallelism extends IRPass {
         {
           case n: Name.Literal =>
             for {
-              raw <- Option(n.getMetadata(AliasAnalysis))
+              raw <- Option(
+                n.getMetadata(AliasAnalysis, classOf[AliasAnalysis.Metadata])
+              )
               occ <- raw
                 .filter(_.isInstanceOf[alias.AliasMetadata.Occurrence])
                 .map(
@@ -541,14 +543,20 @@ object AutomaticParallelism extends IRPass {
         // The base status of an application is computed based on the type of
         // the called function. It is then sequenced with statuses of the
         // arguments.
-        app.function.getMetadata(MethodCalls) match {
+        app.function.getMetadata(
+          MethodCalls,
+          classOf[MethodCalls.Metadata]
+        ) match {
           case Some(Resolution(method: ResolvedModuleMethod)) =>
             val methodIr = method.unsafeGetIr("Invalid method call resolution.")
             val isParallelize = methodIr
-              .getMetadata(ModuleAnnotations)
+              .getMetadata(
+                ModuleAnnotations,
+                classOf[ModuleAnnotations.Metadata]
+              )
               .exists(_.annotations.exists(_.name == "@Parallelize"))
             val monad = methodIr
-              .getMetadata(TypeSignatures)
+              .getMetadata(TypeSignatures, classOf[TypeSignatures.Metadata])
               .flatMap(sig => getMonad(sig.signature))
             val baseStatus: ParallelismStatus =
               if (isParallelize) Parallelize

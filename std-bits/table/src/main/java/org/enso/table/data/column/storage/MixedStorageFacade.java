@@ -8,13 +8,13 @@ import org.enso.table.data.column.storage.type.AnyObjectType;
  * <p>This is used to ensure that we can change a column's type to Mixed without changing its
  * underlying storage unnecessarily.
  */
-public class MixedStorageFacade extends Storage<Object>
+public class MixedStorageFacade extends AbstractBaseStorage<Object>
     implements ColumnStorageWithInferredStorage {
-  private final Storage<?> underlyingStorage;
+  private final ColumnStorage<?> underlyingStorage;
 
   public MixedStorageFacade(ColumnStorage<?> storage) {
     super(AnyObjectType.INSTANCE);
-    underlyingStorage = (Storage<?>) storage;
+    underlyingStorage = storage;
   }
 
   @Override

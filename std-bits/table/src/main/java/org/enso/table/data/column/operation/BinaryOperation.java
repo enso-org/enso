@@ -36,11 +36,12 @@ public interface BinaryOperation {
       MapOperationProblemAggregator problemAggregator) {
     // Special handling for nulls
     if (skipNulls) {
-      if (right instanceof Column rightColumn && rightColumn.getType() instanceof NullType) {
+      if (right instanceof Column rightColumn && rightColumn.getStorageType() instanceof NullType) {
         right = null;
       }
       if (right == null
-          || ColumnStorageWithInferredStorage.resolveStorage(left).getType() instanceof NullType) {
+          || StorageType.ofStorage(ColumnStorageWithInferredStorage.resolveStorage(left))
+              instanceof NullType) {
         var result =
             expectedResultType == null
                 ? Builder.fromRepeatedItem(null, left.getSize())

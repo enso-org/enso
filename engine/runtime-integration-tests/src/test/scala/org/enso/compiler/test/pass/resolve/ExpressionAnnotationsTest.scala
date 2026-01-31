@@ -97,7 +97,10 @@ class ExpressionAnnotationsTest extends CompilerTest {
       val builtinDef = items.expressions.apply(2).asInstanceOf[Literal.Text]
       builtinDef.text shouldEqual "myBuiltin"
       builtinDef
-        .unsafeGetMetadata(ExpressionAnnotations, "")
+        .unsafeGetMetadata[ExpressionAnnotations.Metadata](
+          ExpressionAnnotations,
+          ""
+        )
         .annotations
         .head
         .name shouldEqual ExpressionAnnotations.builtinMethodName
@@ -109,7 +112,10 @@ class ExpressionAnnotationsTest extends CompilerTest {
       fn.name shouldEqual "f"
       fn.isMethod shouldBe true
       parallelDef
-        .unsafeGetMetadata(ExpressionAnnotations, "")
+        .unsafeGetMetadata[ExpressionAnnotations.Metadata](
+          ExpressionAnnotations,
+          ""
+        )
         .annotations
         .head
         .name shouldEqual ExpressionAnnotations.autoParallelName
@@ -123,7 +129,10 @@ class ExpressionAnnotationsTest extends CompilerTest {
       correct.function.asInstanceOf[Name].name shouldEqual "bar"
       correct.arguments.length shouldEqual 1
       correct
-        .getMetadata(ExpressionAnnotations)
+        .getMetadata(
+          ExpressionAnnotations,
+          classOf[ExpressionAnnotations.Metadata]
+        )
         .get
         .annotations
         .head

@@ -1,9 +1,0 @@
-import project.In_Memory_Column.In_Memory_Column
-
-polyglot java import org.enso.table.data.table.Column as Java_Column
-
-## ---
-    private: true
-    ---
-get_java_column (column : In_Memory_Column) -> Java_Column =
-    column.java_column

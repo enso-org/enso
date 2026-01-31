@@ -719,7 +719,10 @@ object UpsertVisualizationJob {
     */
   private def setCacheWeights(visualization: Visualization): Unit = {
     visualization.module.getIr
-      .getMetadata(CachePreferenceAnalysis)
+      .getMetadata(
+        CachePreferenceAnalysis,
+        classOf[CachePreferenceAnalysis.Metadata]
+      )
       .foreach { metadata =>
         CacheInvalidation.runVisualizations(
           Seq(visualization),
@@ -739,7 +742,7 @@ object UpsertVisualizationJob {
       .findModuleByExpressionId(expressionId)
       .ifPresent { module =>
         module.getIr
-          .getMetadata(DataflowAnalysis)
+          .getMetadata(DataflowAnalysis, classOf[DataflowAnalysis.Metadata])
           .foreach { metadata =>
             val externalId = expressionId
             IRUtils

@@ -206,7 +206,7 @@ case object DemandAnalysis extends IRPass {
 
   private def isDefined(name: Name): Boolean = {
     val aliasInfo = name
-      .unsafeGetMetadata(
+      .unsafeGetMetadata[AliasAnalysis.Metadata](
         AliasAnalysis,
         "Missing alias occurrence information for a name usage"
       )

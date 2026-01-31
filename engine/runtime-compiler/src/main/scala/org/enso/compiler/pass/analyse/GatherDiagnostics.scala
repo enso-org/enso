@@ -74,25 +74,27 @@ case object GatherDiagnostics extends IRPass {
           builder.addOne(err)
         case arg: DefinitionArgument =>
           arg
-            .getMetadata(TypeSignatures)
+            .getMetadata(TypeSignatures, classOf[TypeSignatures.Metadata])
             .foreach(meta =>
               IR.preorder(meta.signature, collectDiagnostics(builder))
             )
           diagnosticsList(arg).foreach(builder.addOne)
         case x: definition.Method =>
-          x.getMetadata(TypeSignatures)
+          x.getMetadata(TypeSignatures, classOf[TypeSignatures.Metadata])
             .foreach(meta =>
               IR.preorder(meta.signature, collectDiagnostics(builder))
             )
-          x.getMetadata(GenericAnnotations)
-            .foreach(
-              _.annotations.foreach(annotations =>
-                IR.preorder(annotations, collectDiagnostics(builder))
-              )
+          x.getMetadata(
+            GenericAnnotations,
+            classOf[GenericAnnotations.Metadata]
+          ).foreach(
+            _.annotations.foreach(annotations =>
+              IR.preorder(annotations, collectDiagnostics(builder))
             )
+          )
           diagnosticsList(x).foreach(builder.addOne)
         case x: Expression =>
-          x.getMetadata(TypeSignatures)
+          x.getMetadata(TypeSignatures, classOf[TypeSignatures.Metadata])
             .foreach(meta =>
               IR.preorder(meta.signature, collectDiagnostics(builder))
             )

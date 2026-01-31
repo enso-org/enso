@@ -7,10 +7,11 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.DoubleBuffer;
 import org.enso.base.polyglot.NumericConverter;
-import org.enso.table.data.column.storage.ColumnBooleanStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.DoubleStorage;
+import org.enso.table.data.column.storage.type.BigDecimalType;
 import org.enso.table.data.column.storage.type.BigIntegerType;
+import org.enso.table.data.column.storage.type.BooleanType;
 import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.NullType;
@@ -31,6 +32,7 @@ sealed class DoubleBuilder extends ValidityBuilder implements BuilderForDouble
   private DoubleBuilder(
       DoubleBuffer buf, int initialSize, long validity, ProblemAggregator problemAggregator) {
     super(initialSize, validity);
+
     assert ByteOrder.LITTLE_ENDIAN == buf.order();
     this.data = buf;
     precisionLossAggregator =
@@ -60,11 +62,10 @@ sealed class DoubleBuilder extends ValidityBuilder implements BuilderForDouble
     return doubles;
   }
 
-  static DoubleBuilder fromAddress(int size, long address, long validity, FloatType type) {
+  static DoubleBuilder fromAddress(int size, long address, long validity) {
     assert address != 0;
     var buf = allocBuffer(size, address);
-    var builder = new DoubleBuilder(buf, size, validity, null);
-    return builder;
+    return new DoubleBuilder(buf, size, validity, null);
   }
 
   @Override
@@ -94,11 +95,6 @@ sealed class DoubleBuilder extends ValidityBuilder implements BuilderForDouble
   }
 
   @Override
-  public StorageType<Double> getType() {
-    return FloatType.FLOAT_64;
-  }
-
-  @Override
   public DoubleBuilder appendNulls(int count) {
     doAppendNulls(count);
     return this;
@@ -121,7 +117,7 @@ sealed class DoubleBuilder extends ValidityBuilder implements BuilderForDouble
     } else if (o instanceof BigDecimal bigDecimal) {
       value = convertBigDecimalToDouble(bigDecimal);
     } else {
-      throw new ValueTypeMismatchException(getType(), o);
+      throw new ValueTypeMismatchException(FloatType.FLOAT_64, o);
     }
 
     ensureSpaceToAppend();
@@ -132,59 +128,76 @@ sealed class DoubleBuilder extends ValidityBuilder implements BuilderForDouble
 
   @Override
   public void appendBulkStorage(ColumnStorage<?> storage) {
-    if (storage.getType() instanceof FloatType floatType) {
-      if (storage instanceof DoubleStorage doubleStorage) {
-        int n = (int) doubleStorage.getSize();
-        ensureFreeSpaceFor(n);
-        data.put(currentSize, doubleStorage.getData(), 0, n);
-        appendValidityMap(doubleStorage.getValidityMap(), n);
-        currentSize += n;
-      } else {
-        var doubleStorage = floatType.asTypedStorage(storage);
-        long n = doubleStorage.getSize();
+    var storageType = StorageType.ofStorage(storage);
+    switch (storageType) {
+      case NullType _ -> appendNulls(Math.toIntExact(storage.getSize()));
+      case FloatType floatType -> {
+        if (storage instanceof DoubleStorage doubleStorage) {
+          int n = (int) doubleStorage.getSize();
+          ensureFreeSpaceFor(n);
+          data.put(currentSize, doubleStorage.getData(), 0, n);
+          appendValidityMap(doubleStorage.getValidityMap(), n);
+          currentSize += n;
+        } else {
+          var columnDoubleStorage = floatType.asTypedStorage(storage);
+          long n = columnDoubleStorage.getSize();
+          for (long i = 0; i < n; i++) {
+            if (storage.isNothing(i)) {
+              appendNulls(1);
+            } else {
+              appendDouble(columnDoubleStorage.getItemAsDouble(i));
+            }
+          }
+        }
+      }
+      case IntegerType integerType -> {
+        var longStorage = integerType.asTypedStorage(storage);
+        long n = longStorage.getSize();
         for (long i = 0; i < n; i++) {
           if (storage.isNothing(i)) {
             appendNulls(1);
           } else {
-            appendDouble(doubleStorage.getItemAsDouble(i));
+            long item = longStorage.getItemAsLong(i);
+            appendDouble(convertLongToDouble(item));
           }
         }
       }
-    } else if (storage.getType() instanceof IntegerType integerType) {
-      var longStorage = integerType.asTypedStorage(storage);
-      long n = longStorage.getSize();
-      for (long i = 0; i < n; i++) {
-        if (storage.isNothing(i)) {
-          appendNulls(1);
-        } else {
-          long item = longStorage.getItemAsLong(i);
-          appendDouble(convertLongToDouble(item));
+      case BigIntegerType bigIntegerType -> {
+        var bigIntegerStorage = bigIntegerType.asTypedStorage(storage);
+        long n = bigIntegerStorage.getSize();
+        for (long i = 0; i < n; i++) {
+          BigInteger item = bigIntegerStorage.getItemBoxed(i);
+          if (item == null) {
+            appendNulls(1);
+          } else {
+            appendDouble(convertBigIntegerToDouble(item));
+          }
         }
       }
-    } else if (storage.getType() instanceof BigIntegerType bigIntegerType) {
-      var bigIntegerStorage = bigIntegerType.asTypedStorage(storage);
-      long n = bigIntegerStorage.getSize();
-      for (long i = 0; i < n; i++) {
-        BigInteger item = bigIntegerStorage.getItemBoxed(i);
-        if (item == null) {
-          appendNulls(1);
-        } else {
-          appendDouble(convertBigIntegerToDouble(item));
+      case BigDecimalType bigDecimalType -> {
+        var bigDecimalStorage = bigDecimalType.asTypedStorage(storage);
+        long n = bigDecimalStorage.getSize();
+        for (long i = 0; i < n; i++) {
+          BigDecimal item = bigDecimalStorage.getItemBoxed(i);
+          if (item == null) {
+            appendNulls(1);
+          } else {
+            appendDouble(convertBigDecimalToDouble(item));
+          }
         }
       }
-    } else if (storage instanceof ColumnBooleanStorage boolStorage) {
-      long n = boolStorage.getSize();
-      for (long i = 0; i < n; i++) {
-        if (boolStorage.isNothing(i)) {
-          appendNulls(1);
-        } else {
-          appendDouble(boolStorage.getItemAsBoolean(i) ? 1.0 : 0.0);
+      case BooleanType booleanType -> {
+        var boolStorage = booleanType.asTypedStorage(storage);
+        long n = boolStorage.getSize();
+        for (long i = 0; i < n; i++) {
+          if (boolStorage.isNothing(i)) {
+            appendNulls(1);
+          } else {
+            appendDouble(boolStorage.getItemAsBoolean(i) ? 1.0 : 0.0);
+          }
         }
       }
-    } else if (storage.getType() instanceof NullType) {
-      appendNulls(Math.toIntExact(storage.getSize()));
-    } else {
-      throw new StorageTypeMismatchException(getType(), storage.getType());
+      default -> throw new StorageTypeMismatchException(FloatType.FLOAT_64, storageType);
     }
   }
 
@@ -214,17 +227,16 @@ sealed class DoubleBuilder extends ValidityBuilder implements BuilderForDouble
 
   @Override
   public ColumnStorage<Double> seal() {
-    return seal(null, getType());
+    return seal(null);
   }
 
   /**
    * Seals this buffer as copy of provided storage.
    *
    * @param otherStorage storage to copy size from if non-{@code null}
-   * @param type the type to assign to the created storage
    * @return locally copied storage
    */
-  final DoubleStorage seal(ColumnStorage<?> otherStorage, StorageType<Double> type) {
+  final DoubleStorage seal(ColumnStorage<?> otherStorage) {
     ensureFreeSpaceFor(0);
     var buf = data.asReadOnlyBuffer().position(0).limit(currentSize);
     var validity = this.validityMap();

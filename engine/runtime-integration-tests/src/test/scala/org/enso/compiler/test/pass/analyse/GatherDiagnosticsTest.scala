@@ -59,7 +59,10 @@ class GatherDiagnosticsTest extends CompilerTest {
     "work with expression flow" in {
       val result = GatherDiagnostics.runExpression(lam, buildInlineContext())
       val errors = result
-        .unsafeGetMetadata(GatherDiagnostics, "Impossible")
+        .unsafeGetMetadata[GatherDiagnostics.Metadata](
+          GatherDiagnostics,
+          "Impossible"
+        )
         .diagnostics
 
       errors.toSet shouldEqual Set(error1)
@@ -147,7 +150,10 @@ class GatherDiagnosticsTest extends CompilerTest {
 
       val result = GatherDiagnostics.runModule(module, buildModuleContext())
       val gatheredErros = result
-        .unsafeGetMetadata(GatherDiagnostics, "Impossible")
+        .unsafeGetMetadata[GatherDiagnostics.Metadata](
+          GatherDiagnostics,
+          "Impossible"
+        )
         .diagnostics
 
       gatheredErros.toSet shouldEqual Set(error1, error2, error3)
@@ -166,7 +172,10 @@ class GatherDiagnosticsTest extends CompilerTest {
           |""".stripMargin.preprocessModule
       val result = GatherDiagnostics.runModule(ir, moduleContext)
       val diagnostics = result
-        .unsafeGetMetadata(GatherDiagnostics, "Impossible")
+        .unsafeGetMetadata[GatherDiagnostics.Metadata](
+          GatherDiagnostics,
+          "Impossible"
+        )
         .diagnostics
 
       diagnostics should have size 1
@@ -194,7 +203,10 @@ class GatherDiagnosticsTest extends CompilerTest {
           |""".stripMargin.preprocessModule
       val result = GatherDiagnostics.runModule(ir, moduleContext)
       val diagnostics = result
-        .unsafeGetMetadata(GatherDiagnostics, "Impossible")
+        .unsafeGetMetadata[GatherDiagnostics.Metadata](
+          GatherDiagnostics,
+          "Impossible"
+        )
         .diagnostics
       diagnostics should have size 2
       diagnostics
