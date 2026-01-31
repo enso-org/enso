@@ -11,6 +11,6 @@ public record InvalidNames(String[] invalidNames) implements Problem {
     var namesVector = vectorType.invokeMember("from_polyglot_array", (Object) invalidNames());
 
     return EnsoMeta.makeInstance(
-        "Standard.Table.Errors", "Invalid_Column_Names", "Error", namesVector);
+        "Standard.Table.Errors", "Invalid_Column_Names", "Error", namesVector, null);
   }
 }

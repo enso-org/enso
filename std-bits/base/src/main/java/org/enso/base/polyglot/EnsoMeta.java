@@ -48,6 +48,8 @@ public final class EnsoMeta {
     return factory.execute(argsWithSelf);
   }
 
+  private static Value nothingValue = null;
+
   /** Creates an instance of an Enso type by calling the specified constructor. */
   public static Value makeInstance(
       String moduleName, String typeName, String constructorName, Object... args) {
@@ -77,6 +79,12 @@ public final class EnsoMeta {
     if (!constructor.canInstantiate()) {
       throw new IllegalStateException("Constructor " + constructorName + " is not instantiable.");
     }
+
+    if (nothingValue == null) {
+      nothingValue = eval(moduleName, "Nothing");
+    }
+    args = java.util.Arrays.stream(args).map(arg -> arg == null ? nothingValue : arg).toArray();
+
     return constructor.newInstance(args);
   }
 

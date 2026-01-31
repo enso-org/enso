@@ -14,7 +14,8 @@ public record ArithmeticOverflow(
     Value exampleOperandsVector = null;
     if (exampleOperands() != null) {
       var vectorType = EnsoMeta.getType("Standard.Base.Data.Vector", "Vector");
-      exampleOperandsVector = vectorType.invokeMember("from_polyglot_array", exampleOperands());
+      exampleOperandsVector =
+          vectorType.invokeMember("from_polyglot_array", (Object) exampleOperands());
     }
 
     return EnsoMeta.makeInstance(
