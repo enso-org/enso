@@ -2,6 +2,7 @@ from Standard.Base import all
 
 from Standard.Table import Bits, Value_Type
 import Standard.Table.Internal.Value_Type_Helpers
+import Standard.Table.Internal.Storage
 
 from Standard.Test import all
 
@@ -60,6 +61,96 @@ add_specs suite_builder =
             Value_Type_Helpers.reconcile_types Value_Type.Boolean Value_Type.Byte . should_equal Value_Type.Mixed
             Value_Type_Helpers.reconcile_types (Value_Type.Float Bits.Bits_32) Value_Type.Boolean . should_equal Value_Type.Mixed
 
+        group_builder.specify "should be able to convert Boolean to and from BooleanType" <|
+            boolean = Storage.closest_storage_type Value_Type.Boolean
+            boolean.typeChar . should_equal "B"
+            boolean.size . should_equal -1
+            boolean.asEnsoValueType . should_equal Value_Type.Boolean
+
+        group_builder.specify "should be able to convert Byte to and from IntegerType" <|
+            byte = Storage.closest_storage_type Value_Type.Byte
+            byte.typeChar . should_equal "I"
+            byte.size . should_equal 8
+            byte.asEnsoValueType . should_equal Value_Type.Byte
+
+        group_builder.specify "should be able to convert Integer to and from IntegerType" <|
+            short = Storage.closest_storage_type (Value_Type.Integer Bits.Bits_16)
+            short.typeChar . should_equal "I"
+            short.size . should_equal 16
+            short.asEnsoValueType . should_equal (Value_Type.Integer Bits.Bits_16)
+
+            int = Storage.closest_storage_type (Value_Type.Integer Bits.Bits_32)
+            int.typeChar . should_equal "I"
+            int.size . should_equal 32
+            int.asEnsoValueType . should_equal (Value_Type.Integer Bits.Bits_32)
+
+            long = Storage.closest_storage_type (Value_Type.Integer Bits.Bits_64)
+            long.typeChar . should_equal "I"
+            long.size . should_equal 64
+            long.asEnsoValueType . should_equal (Value_Type.Integer Bits.Bits_64)
+
+        group_builder.specify "should be able to convert Float to and from FloatType" <|
+            double = Storage.closest_storage_type (Value_Type.Float Bits.Bits_64)
+            double.typeChar . should_equal "F"
+            double.size . should_equal 64
+            double.asEnsoValueType . should_equal (Value_Type.Float Bits.Bits_64)
+
+            ## Currently we only have 64-bit float storage, so 32-bit floats get upcasted.
+            single = Storage.closest_storage_type (Value_Type.Float Bits.Bits_32)
+            single.typeChar . should_equal "F"
+            single.size . should_equal 64
+            single.asEnsoValueType . should_equal (Value_Type.Float Bits.Bits_64)
+
+        group_builder.specify "should be able to convert Decimal to and from BigDecimalType and BigIntegerType" <|
+            decimal = Storage.closest_storage_type Value_Type.Decimal
+            decimal.typeChar . should_equal "D"
+            decimal.size . should_equal -1
+            decimal.asEnsoValueType . should_equal Value_Type.Decimal
+
+            bigint = Storage.closest_storage_type (Value_Type.Decimal scale=0)
+            bigint.typeChar . should_equal "E"
+            bigint.size . should_equal -1
+            bigint.asEnsoValueType . should_equal (Value_Type.Decimal scale=0)
+
+        group_builder.specify "should be able to convert Date to and from DateType" <|
+            date = Storage.closest_storage_type Value_Type.Date
+            date.typeChar . should_equal "X"
+            date.size . should_equal -1
+            date.asEnsoValueType . should_equal Value_Type.Date
+
+        group_builder.specify "should be able to convert Time to and from TimeOfDayType" <|
+            time = Storage.closest_storage_type Value_Type.Time
+            time.typeChar . should_equal "W"
+            time.size . should_equal -1
+            time.asEnsoValueType . should_equal Value_Type.Time
+
+        group_builder.specify "should be able to convert Date_Time to and from TimeOfDayType" <|
+            with_tz = Storage.closest_storage_type Value_Type.Date_Time
+            with_tz.typeChar . should_equal "Z"
+            with_tz.size . should_equal -1
+            with_tz.asEnsoValueType . should_equal Value_Type.Date_Time
+
+            ## Currently we only have ZonedDateTime storage, so it gets used for both with and without timezone.
+            no_tz = Storage.closest_storage_type (Value_Type.Date_Time False)
+            no_tz.typeChar . should_equal "Z"
+            no_tz.size . should_equal -1
+            no_tz.asEnsoValueType . should_equal (Value_Type.Date_Time True)
+
+        group_builder.specify "should be able to convert Char to and from TextType" <|
+            variable_text = Storage.closest_storage_type Value_Type.Char
+            variable_text.typeChar . should_equal "S"
+            variable_text.size . should_equal -1
+            variable_text.asEnsoValueType . should_equal Value_Type.Char
+
+            max_length_text = Storage.closest_storage_type (Value_Type.Char 50 True)
+            max_length_text.typeChar . should_equal "S"
+            max_length_text.size . should_equal 50
+            max_length_text.asEnsoValueType . should_equal (Value_Type.Char 50 True)
+
+            fixed = Storage.closest_storage_type (Value_Type.Char 20 False)
+            fixed.typeChar . should_equal "T"
+            fixed.size . should_equal 20
+            fixed.asEnsoValueType . should_equal (Value_Type.Char 20 False)
 
 main filter=Nothing =
     suite = Test.build suite_builder->

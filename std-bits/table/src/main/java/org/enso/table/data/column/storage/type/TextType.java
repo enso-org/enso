@@ -40,12 +40,14 @@ public final class TextType implements StorageType<String> {
 
   @Override
   public Value asEnsoValueType() {
+    Value ensoLength =
+        maxLength == -1
+            ? null
+            : EnsoMeta.makeInstance(
+                "Standard.Base.Data.Numbers", "Positive_Integer", "Value", maxLength);
+
     return EnsoMeta.makeInstance(
-        "Standard.Table.Value_Type",
-        "Value_Type",
-        "Char",
-        maxLength == -1 ? null : maxLength,
-        !fixedLength);
+        "Standard.Table.Value_Type", "Value_Type", "Char", ensoLength, !fixedLength);
   }
 
   @Override

@@ -33,8 +33,7 @@ public final class IntegerType implements StorageType<Long>, NumericType {
       return EnsoMeta.makeInstance("Standard.Table.Value_Type", "Value_Type", "Byte");
     }
 
-    var ensoBits =
-        EnsoMeta.getType("Standard.Table.Value_Type", "Bits").invokeMember("from_integer", size());
+    var ensoBits = Bits.asEnsoValue(bits());
     return EnsoMeta.makeInstance("Standard.Table.Value_Type", "Value_Type", "Integer", ensoBits);
   }
 
