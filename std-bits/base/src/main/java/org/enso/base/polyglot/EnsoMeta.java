@@ -63,6 +63,11 @@ public final class EnsoMeta {
       throw ex;
     }
 
+    if (constructor == null || constructor.isNull()) {
+      throw new IllegalStateException(
+          "Constructor " + constructorName + " not found for " + moduleName + " type: " + typeName);
+    }
+
     if (!constructor.canInstantiate()) {
       throw new IllegalStateException("Constructor " + constructorName + " is not instantiable.");
     }
