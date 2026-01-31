@@ -31,6 +31,6 @@ public class IllegalArgumentError extends ColumnAggregatedProblem {
   @Override
   public Value asEnsoValue() {
     return EnsoMeta.makeInstance(
-        "Standard.Base.Errors.Illegal_Argument", "Illegal_Argument", "Error", getMessage());
+        "Standard.Base.Errors.Illegal_Argument", "Illegal_Argument", "Error", getMessage(), null);
   }
 }

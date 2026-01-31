@@ -22,11 +22,12 @@ public record ConversionFailure(
           case FAILED_CONVERSION -> "Error";
         };
 
-    var examplesVector =
-        examples() == null
-            ? null
-            : EnsoMeta.getType("Standard.Base.Data.Vector", "Vector")
-                .invokeMember("from_polyglot_array", examples());
+    Value examplesVector = null;
+    if (examples() != null) {
+      var vectorType = EnsoMeta.getType("Standard.Base.Data.Vector", "Vector");
+      examplesVector = vectorType.invokeMember("from_polyglot_array", examples());
+    }
+
     return EnsoMeta.makeInstance(
         "Standard.Table.Errors",
         "Conversion_Failure",

@@ -10,9 +10,9 @@ public record InvalidFormat(
     String column, Value expectedEnsoValueType, long count, List<String> cells) implements Problem {
   @Override
   public Value asEnsoValue() {
-    var cellsVector =
-        EnsoMeta.getType("Standard.Base.Data.Vector", "Vector")
-            .invokeMember("from_polyglot_array", (Object) cells());
+    var vectorType = EnsoMeta.getType("Standard.Base.Data.Vector", "Vector");
+    var cellsVector = vectorType.invokeMember("from_polyglot_array", cells());
+
     return EnsoMeta.makeInstance(
         "Standard.Table.Errors",
         "Invalid_Format",
