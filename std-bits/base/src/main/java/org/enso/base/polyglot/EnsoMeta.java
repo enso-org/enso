@@ -15,6 +15,12 @@ public final class EnsoMeta {
     }
   }
 
+  /** Evaluates an Enso expression and returns the result. */
+  public static Value eval(String moduleName, String ensoCode) {
+    var module = getBindings().invokeMember("get_module", moduleName);
+    return module.invokeMember("eval_expression", ensoCode);
+  }
+
   /** Returns a type object from the Enso runtime. */
   public static Value getType(String moduleName, String typeName) {
     var module = getBindings().invokeMember("get_module", moduleName);
