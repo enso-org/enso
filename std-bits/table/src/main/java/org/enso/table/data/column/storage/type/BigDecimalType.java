@@ -39,7 +39,8 @@ public final class BigDecimalType implements StorageType<BigDecimal>, NumericTyp
 
   @Override
   public Value asEnsoValueType() {
-    return EnsoMeta.makeInstance("Standard.Table.Value_Type", "Value_Type", "Decimal", null, null);
+    return EnsoMeta.makeInstance(
+        "Standard.Table.Value_Type", "Value_Type", "Decimal", null, scale == -1 ? null : scale);
   }
 
   @Override
