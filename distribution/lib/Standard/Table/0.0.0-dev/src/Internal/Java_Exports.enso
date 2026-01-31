@@ -2,6 +2,7 @@ from Standard.Base import all
 
 import project.In_Memory_Column.In_Memory_Column
 import project.Internal.Storage
+import project.Table.Table
 import project.Value_Type.Value_Type
 
 polyglot java import org.enso.table.data.column.builder.Builder
@@ -26,3 +27,12 @@ make_inferred_builder initial_size java_problem_aggregator=(Missing_Argument.thr
    private: true
    ---
 make_column_from_storage = In_Memory_Column.from_storage
+
+## ---
+   private: true
+   ---
+make_table_from_storage java_columns =
+    warnings = Warning.get_all java_columns
+    enso_columns = (Warning.set java_columns []) . map c-> In_Memory_Column.from_storage c.getName c.getStorage
+    enso_table = Table.new enso_columns
+    Warning.set enso_table warnings

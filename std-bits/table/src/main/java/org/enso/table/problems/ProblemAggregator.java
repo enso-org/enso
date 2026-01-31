@@ -3,7 +3,9 @@ package org.enso.table.problems;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import org.enso.base.polyglot.EnsoMeta;
 import org.graalvm.polyglot.Context;
+import org.graalvm.polyglot.Value;
 
 /**
  * The ProblemAggregator is the main way for reporting warnings from helper Java code to Enso.
@@ -119,12 +121,7 @@ public class ProblemAggregator {
    *
    * <p>It should only be called by `with_problem_aggregator`. It should never be called directly
    * from Java.
-   *
-   * @deprecated This method is actually not deprecated, it is just marked as such to avoid any
-   *     usages from the Java code (they will generate warnings, whereas the only allowed Enso usage
-   *     will not).
    */
-  @Deprecated(forRemoval = false)
   public static ProblemAggregator makeTopLevelAggregator() {
     return new ProblemAggregator();
   }
@@ -151,5 +148,44 @@ public class ProblemAggregator {
    */
   public ProblemAggregator createSimpleChild() {
     return new ProblemAggregator(this);
+  }
+
+  /**
+   * Attaches the problems summarized by this aggregator to the given value.
+   *
+   * <p>If there are no problems, the original value is returned. Otherwise, a new value with
+   * attached problems is returned.
+   *
+   * @param value the value to attach problems to
+   * @return the value with attached problems, or the original value if there are no problems
+   */
+  public Value attachProblemsToValue(Value value) {
+    ProblemSummary summary = summarize();
+    if (summary.allProblemsCount == 0) {
+      return value;
+    }
+
+    // Check from any errors.
+    var firstError = summary.problems.stream().filter(Problem::isError).findFirst();
+    if (firstError.isPresent()) {
+      return EnsoMeta.asDataflowError(firstError.get().asEnsoValue());
+    }
+
+    // Create a list of problems to attach.
+    var ensoProblems = summary.problems.stream().map(Problem::asEnsoValue).toList();
+    if (ensoProblems.size() != summary.allProblemsCount) {
+      // Add an Additional_Warnings problem if some problems were dropped.
+      var additionalWarnings =
+          EnsoMeta.makeInstance(
+              "Standard.Base.Errors.Common",
+              "Additional_Warnings",
+              "Error",
+              summary.allProblemsCount - ensoProblems.size());
+      ensoProblems = new ArrayList<>(ensoProblems);
+      ensoProblems.add(additionalWarnings);
+    }
+
+    return EnsoMeta.getType("Standard.Base.Warning", "Warning")
+        .invokeMember("set", value, ensoProblems);
   }
 }
