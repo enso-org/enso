@@ -36,7 +36,8 @@ public class LossOfBigDecimalPrecision implements Problem {
   @Override
   public Value asEnsoValue() {
     var textExampleValue = getExampleValue().toPlainString();
-    var ensoDecimal = EnsoMeta.eval("Standard.Base.Data.Decimal", "Decimal.new '" + textExampleValue + "'");
+    var ensoDecimal =
+        EnsoMeta.eval("Standard.Base.Data.Decimal", "Decimal.new '" + textExampleValue + "'");
 
     return EnsoMeta.makeInstance(
         "Standard.Table.Errors",
