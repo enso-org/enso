@@ -9,16 +9,13 @@ public record InvalidRow(long sourceRow, Long tableIndex, String[] row, long exp
     implements Problem {
   @Override
   public Value asEnsoValue() {
-    var vectorType = EnsoMeta.getType("Standard.Base.Data.Vector", "Vector");
-    var rowVector = vectorType.invokeMember("from_polyglot_array", (Object) row());
-
     return EnsoMeta.makeInstance(
         "Standard.Table.Errors",
         "Invalid_Row",
         "Error",
         sourceRow(),
         tableIndex(),
-        rowVector,
+        row(),
         expectedLength());
   }
 }

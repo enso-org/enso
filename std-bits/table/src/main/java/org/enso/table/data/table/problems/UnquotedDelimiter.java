@@ -31,6 +31,6 @@ public class UnquotedDelimiter extends ColumnAggregatedProblem {
   @Override
   public Value asEnsoValue() {
     return EnsoMeta.makeInstance(
-        "Standard.Table.Errors", "Unquoted_Delimiter", "Error", getLocationName(), getRowsVector());
+        "Standard.Table.Errors", "Unquoted_Delimiter", "Error", getLocationName(), getRows());
   }
 }

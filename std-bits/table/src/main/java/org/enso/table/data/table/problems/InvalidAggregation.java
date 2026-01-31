@@ -40,7 +40,7 @@ public class InvalidAggregation extends ColumnAggregatedProblem {
         "Invalid_Aggregation",
         "Error",
         getLocationName(),
-        getRowsVector(),
+        getRows(),
         getMessage());
   }
 }

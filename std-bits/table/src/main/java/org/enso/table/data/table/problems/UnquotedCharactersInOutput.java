@@ -36,6 +36,6 @@ public class UnquotedCharactersInOutput extends ColumnAggregatedProblem {
         "Unquoted_Characters_In_Output",
         "Warning",
         getLocationName(),
-        getRowsVector());
+        getRows());
   }
 }

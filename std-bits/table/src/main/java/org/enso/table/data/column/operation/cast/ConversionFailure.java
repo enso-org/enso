@@ -22,12 +22,6 @@ public record ConversionFailure(
           case FAILED_CONVERSION -> "Error";
         };
 
-    Value examplesVector = null;
-    if (examples() != null) {
-      var vectorType = EnsoMeta.getType("Standard.Base.Data.Vector", "Vector");
-      examplesVector = vectorType.invokeMember("from_polyglot_array", examples());
-    }
-
     return EnsoMeta.makeInstance(
         "Standard.Table.Errors",
         "Conversion_Failure",
@@ -35,6 +29,6 @@ public record ConversionFailure(
         targetType().asEnsoValueType(),
         relatedColumn(),
         affectedRowCount(),
-        examplesVector);
+        examples());
   }
 }

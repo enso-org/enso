@@ -10,20 +10,12 @@ public record ArithmeticOverflow(
     StorageType<?> targetType, long affectedRowCount, Object[] exampleOperands) implements Problem {
   @Override
   public Value asEnsoValue() {
-
-    Value exampleOperandsVector = null;
-    if (exampleOperands() != null) {
-      var vectorType = EnsoMeta.getType("Standard.Base.Data.Vector", "Vector");
-      exampleOperandsVector =
-          vectorType.invokeMember("from_polyglot_array", (Object) exampleOperands());
-    }
-
     return EnsoMeta.makeInstance(
         "Standard.Table.Errors",
         "Arithmetic_Overflow",
         "Warning",
         targetType().asEnsoValueType(),
         affectedRowCount(),
-        exampleOperandsVector);
+        exampleOperands());
   }
 }

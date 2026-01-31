@@ -15,13 +15,8 @@ class HyperUnmatchedColumns extends RuntimeException {
     return unmatchedColumns;
   }
 
-  private Value getUnmatchedColumnsVector() {
-    var vectorType = EnsoMeta.getType("Standard.Base.Data.Vector", "Vector");
-    return vectorType.invokeMember("from_polyglot_array", (Object) getUnmatchedColumns());
-  }
-
   public Value asEnsoAtom() {
     return EnsoMeta.makeInstance(
-        "Standard.Table.Errors", "Unmatched_Columns", "Error", getUnmatchedColumnsVector());
+        "Standard.Table.Errors", "Unmatched_Columns", "Error", (Object) getUnmatchedColumns());
   }
 }

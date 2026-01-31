@@ -31,10 +31,6 @@ public class IgnoredNaN extends ColumnAggregatedProblem {
   @Override
   public Value asEnsoValue() {
     return EnsoMeta.makeInstance(
-        "Standard.Table.Errors",
-        "Ignored_NaN_Values",
-        "Warning",
-        getLocationName(),
-        getRowsVector());
+        "Standard.Table.Errors", "Ignored_NaN_Values", "Warning", getLocationName(), getRows());
   }
 }
