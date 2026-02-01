@@ -138,7 +138,8 @@ public final class DependencyMapping {
   public static final class Builder {
     private scala.collection.mutable.Map<DependencyInfo.Type, Set<DependencyInfo.Type>> mapping;
 
-    private Builder(scala.collection.mutable.Map<DependencyInfo.Type, Set<DependencyInfo.Type>> mapping) {
+    private Builder(
+        scala.collection.mutable.Map<DependencyInfo.Type, Set<DependencyInfo.Type>> mapping) {
       this.mapping = mapping;
     }
 
