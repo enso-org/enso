@@ -335,7 +335,7 @@ make_dialect_operations =
     postgres_ops = Postgres_Connection.get_dialect.get_dialect_operations
     overrides = [["COUNT_DISTINCT", agg_count_distinct], ["COUNT_DISTINCT_INCLUDE_NULL", agg_count_distinct_include_null], ["GROUP_NUMBER_STANDARD_DEVIATION_POPULATION", make_group_number_standard_deviation "STDDEV_POP"], ["GROUP_NUMBER_STANDARD_DEVIATION_SAMPLE", make_group_number_standard_deviation "STDDEV_SAMP"]]
     stats = [agg_median, agg_percentile]
-    my_mappings = overrides + stats
+    my_mappings = overrides + stats + first_last_aggregators
     postgres_ops.extend_with my_mappings
 
 ## ---
@@ -395,3 +395,35 @@ agg_median = Base_Generator.lift_unary_op "MEDIAN" arg->
    ---
 agg_percentile = Base_Generator.lift_binary_op "PERCENTILE" p-> expr->
     SQL_Builder.code "percentile_cont(" ++ p ++ ") WITHIN GROUP (ORDER BY " ++ expr ++ ")"
+
+## ---
+   private: true
+   ---
+   These are written in a not most-efficient way, but a way that makes them
+   compatible with other group-by aggregations out-of-the-box. In the future, we
+   may want to consider some alternative solutions.
+first_last_aggregators =
+    first = make_first_aggregator reverse=False ignore_null=False
+    first_not_null = make_first_aggregator reverse=False ignore_null=True
+    last = make_first_aggregator reverse=True ignore_null=False
+    last_not_null = make_first_aggregator reverse=True ignore_null=True
+    [["FIRST", first], ["FIRST_NOT_NULL", first_not_null], ["LAST", last], ["LAST_NOT_NULL", last_not_null]]
+
+## ---
+   private: true
+   ---
+make_first_aggregator reverse ignore_null args =
+    if args.length < 2 then Error.throw (Illegal_State.Error "Insufficient number of arguments for the operation.") else
+        result_expr = args.first
+        order_bys = args.drop 1
+
+        filter_clause = if ignore_null.not then "" else
+            SQL_Builder.code " FILTER (WHERE " ++ result_expr.paren ++ " IS NOT NULL)"
+        order_clause =
+            SQL_Builder.code " ORDER BY " ++ SQL_Builder.join "," order_bys
+        index_expr = case reverse of
+            True -> if ignore_null.not then "COUNT(*)" else
+                SQL_Builder.code "COUNT(" ++ result_expr ++ ")"
+            False -> "1"
+
+        SQL_Builder.code "(array_agg(" ++ result_expr.paren ++ order_clause ++ ")" ++ filter_clause ++ ")[" ++ index_expr ++ "]"
