@@ -418,10 +418,7 @@ make_dialect_operations =
    ---
 agg_count_distinct args =
     if args.is_empty then (Error.throw (Illegal_Argument.Error "COUNT_DISTINCT requires at least one argument.")) else
-      count = SQL_Builder.code "COUNT(DISTINCT " ++ SQL_Builder.join ", " args ++ ")"
-      are_nulls = args.map arg-> arg.paren ++ " IS NULL"
-      all_nulls_filter = SQL_Builder.code " FILTER (WHERE NOT (" ++ SQL_Builder.join " AND " are_nulls ++ "))"
-      (count ++ all_nulls_filter).paren
+        SQL_Builder.code "COUNT(DISTINCT " ++ SQL_Builder.join ", " args ++ ")"
 
 ## ---
    private: true
