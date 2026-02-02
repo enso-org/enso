@@ -1,7 +1,5 @@
 package org.enso.interpreter.instrument.command
 
-import org.enso.compiler.core.Implicits.AsMetadata
-import org.enso.compiler.pass.analyse.DataflowAnalysis
 import org.enso.compiler.pass.analyse.DependencyInfo
 import org.enso.compiler.refactoring.IRUtils
 import org.enso.interpreter.instrument.command.RecomputeContextCmd.InvalidateExpressions
@@ -167,8 +165,10 @@ object RecomputeContextCmd {
     ctx.executionService.getContext
       .findModuleByExpressionId(expressionId)
       .ifPresent { module =>
-        module.getIr
-          .getMetadata(DataflowAnalysis, classOf[DataflowAnalysis.Metadata])
+        Option(
+          DependencyInfo
+            .find(module.getIr)
+        )
           .foreach { metadata =>
             val dependents =
               IRUtils

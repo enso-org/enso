@@ -6,6 +6,7 @@ import org.enso.compiler.common.{
   BuildScopeFromModuleAlgorithm,
   NameResolutionAlgorithm
 }
+import org.enso.compiler.pass.analyse.DependencyInfo
 import org.enso.compiler.pass.analyse.FramePointer
 import org.enso.compiler.pass.analyse.FrameVariableNames
 import org.enso.compiler.context.{CompilerContext, LocalScope}
@@ -47,7 +48,6 @@ import org.enso.compiler.pass.analyse.alias.graph.Graph.{Scope => AliasScope}
 import org.enso.compiler.pass.analyse.{
   AliasAnalysis,
   BindingAnalysis,
-  DataflowAnalysis,
   FramePointerAnalysis,
   TailCall
 }
@@ -251,11 +251,6 @@ private[runtime] class IrToTruffle(
         s"conversion `${conversion.typeName.map(_.name + ".").getOrElse("")}${conversion.methodName.name}`."
       val scopeInfo = rootScopeInfo(where, conversion)
 
-      def dataflowInfo() =
-        conversion.unsafeGetMetadata[DataflowAnalysis.Metadata](
-          DataflowAnalysis,
-          "Method definition missing dataflow information."
-        )
       def frameInfo() =
         conversion.unsafeGetMetadata[FramePointerAnalysis.Metadata](
           FramePointerAnalysis,
@@ -276,7 +271,7 @@ private[runtime] class IrToTruffle(
           toType.getName ++ Constants.SCOPE_SEPARATOR ++ conversion.methodName.name,
           () => scopeInfo().graph,
           () => scopeInfo().graph.rootScope,
-          dataflowInfo,
+          conversion,
           conversion.methodName.name,
           frameInfo
         )
@@ -333,10 +328,6 @@ private[runtime] class IrToTruffle(
       def where() =
         s"`method ${method.typeName.map(_.name + ".").getOrElse("")}${method.methodName.name}`."
       val scopeInfo = rootScopeInfo(where, method)
-      def dataflowInfo() = method.unsafeGetMetadata[DataflowAnalysis.Metadata](
-        DataflowAnalysis,
-        "Method definition missing dataflow information."
-      )
       def frameInfo() = method.unsafeGetMetadata[FramePointerAnalysis.Metadata](
         FramePointerAnalysis,
         "Method definition missing frame information."
@@ -365,7 +356,7 @@ private[runtime] class IrToTruffle(
           fullMethodDefName,
           () => scopeInfo().graph,
           () => scopeInfo().graph.rootScope,
-          dataflowInfo,
+          method,
           fullMethodDefName,
           frameInfo
         )
@@ -445,11 +436,6 @@ private[runtime] class IrToTruffle(
       () => {
         val scopeInfo = rootScopeInfo(() => "atom definition", atomDefn)
 
-        def dataflowInfo() =
-          atomDefn.unsafeGetMetadata[DataflowAnalysis.Metadata](
-            DataflowAnalysis,
-            "No dataflow information associated with an atom."
-          )
         def frameInfo() =
           atomDefn.unsafeGetMetadata[FramePointerAnalysis.Metadata](
             FramePointerAnalysis,
@@ -459,7 +445,7 @@ private[runtime] class IrToTruffle(
           None,
           () => scopeInfo().graph,
           () => scopeInfo().graph.rootScope,
-          dataflowInfo,
+          () => DependencyInfo.find(atomDefn),
           frameInfo
         )
 
@@ -520,7 +506,7 @@ private[runtime] class IrToTruffle(
             scopeName,
             () => scopeInfo().graph,
             () => scopeInfo().graph.rootScope,
-            dataflowInfo,
+            atomDefn,
             atomDefn.name.name,
             frameInfo
           )
@@ -685,14 +671,6 @@ private[runtime] class IrToTruffle(
                   .mkString(Constants.SCOPE_SEPARATOR)}"
               val scopeInfo = rootScopeInfo(where, annotation)
 
-              def dataflowInfo() =
-                annotation.unsafeGetMetadata[DataflowAnalysis.Metadata](
-                  DataflowAnalysis,
-                  "Missing dataflow information for annotation " +
-                  s"${annotation.name} of method " +
-                  scopeElements.init
-                    .mkString(Constants.SCOPE_SEPARATOR)
-                )
               def frameInfo() =
                 annotation.unsafeGetMetadata[FramePointerAnalysis.Metadata](
                   FramePointerAnalysis,
@@ -702,7 +680,7 @@ private[runtime] class IrToTruffle(
                 scopeName,
                 () => scopeInfo().graph,
                 () => scopeInfo().graph.rootScope,
-                dataflowInfo,
+                annotation,
                 methodDef.methodName.name,
                 frameInfo
               )
@@ -1202,12 +1180,18 @@ private[runtime] class IrToTruffle(
       scopeName: String,
       graph: () => AliasGraph,
       scope: () => AliasScope,
-      dataflowInfo: () => DataflowAnalysis.Metadata,
+      dataflowIR: IR,
       initialName: String,
       frameInfo: () => FramePointerAnalysis.Metadata = null
     ) = {
       this(
-        new LocalScope(None, graph, scope, dataflowInfo, frameInfo),
+        new LocalScope(
+          None,
+          graph,
+          scope,
+          () => DependencyInfo.find(dataflowIR),
+          frameInfo
+        ),
         scopeName,
         initialName
       )

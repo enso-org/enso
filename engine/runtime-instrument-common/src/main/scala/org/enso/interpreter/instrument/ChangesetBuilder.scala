@@ -1,7 +1,6 @@
 package org.enso.interpreter.instrument
 
 import com.oracle.truffle.api.source.Source
-import org.enso.compiler.core.Implicits.AsMetadata
 import org.enso.compiler.core.ir.{
   CallArgument,
   Expression,
@@ -12,7 +11,6 @@ import org.enso.compiler.core.ir.{
 import org.enso.compiler.core.ir.module.scope.definition
 import org.enso.compiler.core._
 import org.enso.compiler.core.ir.expression.Application
-import org.enso.compiler.pass.analyse.DataflowAnalysis
 import org.enso.compiler.pass.analyse.DependencyInfo
 import org.enso.compiler.suggestions.SimpleUpdate
 import org.enso.interpreter.instrument.execution.model.PendingEdit
@@ -126,7 +124,7 @@ final class ChangesetBuilder[A: TextEditor: IndexedSource](
   }
 
   /** Traverses the IR and returns a list of all IR nodes affected by the edit
-    * using the [[DataflowAnalysis]] information.
+    * using the `DataflowAnalysis` information.
     *
     * @param edits the text edits
     * @throws CompilerError if the IR is missing DataflowAnalysis metadata
@@ -134,11 +132,7 @@ final class ChangesetBuilder[A: TextEditor: IndexedSource](
     */
   @throws[CompilerError]
   def compute(edits: Seq[TextEdit]): Set[UUID @ExternalID] = {
-    val metadata = ir
-      .unsafeGetMetadata[DataflowAnalysis.Metadata](
-        DataflowAnalysis,
-        "Empty dataflow analysis metadata during changeset calculation."
-      )
+    val metadata = DependencyInfo.find(ir)
 
     @scala.annotation.tailrec
     def go(

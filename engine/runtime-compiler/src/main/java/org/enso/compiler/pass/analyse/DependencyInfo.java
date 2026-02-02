@@ -28,6 +28,18 @@ public record DependencyInfo(DependencyMapping dependents, DependencyMapping dep
   }
 
   /**
+   * Finds dependency info in the provided IR element.
+   *
+   * @return non-{@code null} dependency info
+   * @throws exception or error when the info isn't attached to the element
+   */
+  public static DependencyInfo find(IR ir) {
+    var raw = ir.passData().get(DataflowAnalysis$.MODULE$).get();
+    assert raw != null;
+    return (DependencyInfo) raw;
+  }
+
+  /**
    * Combines two dependency information containers.
    *
    * @param that the other container to combine with `this`
