@@ -47,7 +47,10 @@ object BinaryYdocServer {
       logger.info("BinaryServerCallbacks.onConnect")
 
       val incomingMessageHandler = factory.createController()
-      channel.subscribe(this.onMessage(incomingMessageHandler, _))
+      channel.subscribe { msg =>
+        logger.info("BinaryServerCallbacks.onMessage " + msg)
+        this.onMessage(incomingMessageHandler, msg)
+      }
 
       val outgoingMessageHandler =
         system.actorOf(

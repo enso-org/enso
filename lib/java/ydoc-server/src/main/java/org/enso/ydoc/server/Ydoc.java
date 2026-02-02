@@ -2,6 +2,7 @@ package org.enso.ydoc.server;
 
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
 import org.enso.ydoc.api.YjsChannel;
 import org.enso.ydoc.api.YjsChannelCallbacks;
 import org.enso.ydoc.polyfill.ParserPolyfill;
@@ -60,6 +61,44 @@ public final class Ydoc implements AutoCloseable {
 
     private Builder() {}
 
+    public static final class DelegateConsumer<T> implements Consumer<T> {
+      private final Consumer<T> delegate;
+
+      DelegateConsumer(Consumer<T> delegate) {
+        this.delegate = delegate;
+      }
+
+      @Override
+      public void accept(T t) {
+        System.err.println("DelegateConsumer.accept[" + t.getClass() + "]: " + t);
+        delegate.accept(t);
+        System.err.println("DelegateConsumer.accept finished");
+      }
+    }
+
+    public static final class DelegateYjsChannel implements YjsChannel {
+      private final YjsChannel delegate;
+
+      DelegateYjsChannel(YjsChannel delegate) {
+        this.delegate = delegate;
+      }
+
+      @Override
+      public void send(Object o) {
+        System.err.println("DelegateYjsChannel.send[" + o.getClass() + "]: " + o);
+        delegate.send(o);
+        System.err.println("DelegateYjsChannel.send finished");
+      }
+
+      @Override
+      public void subscribe(Consumer<Object> cnsmr) {
+        var wrap = new DelegateConsumer<Object>(cnsmr);
+        System.err.println("DelegateConsumer.subscribe[" + cnsmr.getClass() + "]: " + cnsmr);
+        delegate.subscribe(wrap);
+        System.err.println("DelegateConsumer.subscribe finished");
+      }
+    }
+
     public static final class DelegateYjsChannelCallbacks implements YjsChannelCallbacks {
       private final String name;
       private final YjsChannelCallbacks delegate;
@@ -74,7 +113,8 @@ public final class Ydoc implements AutoCloseable {
       public void onConnect(YjsChannel channel) {
         System.err.println("Enter onConnect[" + name + "] with " + channel + " for " + delegate);
         if (delegate != null) {
-          delegate.onConnect(channel);
+          var wrap = new DelegateYjsChannel(channel);
+          delegate.onConnect(wrap);
         }
         System.err.println("Exit onConnect[" + name + "] with " + channel);
       }
