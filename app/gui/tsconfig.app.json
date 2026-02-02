@@ -912,6 +912,7 @@
     "./src/providers/react/queryParams.ts",
     "./src/providers/react/router.ts",
     "./src/providers/react/upload.ts",
+    "./src/providers/remoteConfig.ts",
     "./src/providers/rightPanel.ts",
     "./src/providers/session.ts",
     "./src/providers/session/constants.ts",

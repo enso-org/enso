@@ -7,6 +7,7 @@ import type { Logger } from '#/providers/LoggerProvider'
 import * as appUtils from '$/appUtils'
 import { Cognito } from '$/authentication/cognito'
 import * as listen from '$/authentication/listen'
+import type { RemoteConfig } from '$/entrypoint'
 import { useFeatureFlag } from '$/providers/featureFlags'
 import { useText } from '$/providers/text'
 import { parseEnsoDeeplink } from '@/util/url'
@@ -15,6 +16,7 @@ import type * as saveAccessTokenModule from 'enso-common/src/accessToken'
 import * as common from 'enso-common/src/constants'
 import * as detect from 'enso-common/src/utilities/detect'
 import * as toastify from 'react-toastify'
+import { inject } from 'vue'
 import { useRouter } from 'vue-router'
 
 /**
@@ -115,9 +117,11 @@ export interface AuthService {
 export function useInitAuthService(): AuthService {
   const enableDeepLinks = useFeatureFlag('enableDeepLinks')
   const router = useRouter()
+  const remoteConfig = inject<RemoteConfig>('remoteConfig')
 
   const amplifyConfig = loadAmplifyConfig(
     console,
+    remoteConfig ?? {},
     enableDeepLinks.value,
     (url) => void router.push(url),
   )
@@ -129,6 +133,7 @@ export function useInitAuthService(): AuthService {
 /** Return the appropriate Amplify configuration for the current platform. */
 function loadAmplifyConfig(
   logger: Logger,
+  remoteConfig: RemoteConfig,
   supportsDeepLinks: boolean,
   navigate: (url: string) => void,
 ): AmplifyConfig {
@@ -170,11 +175,11 @@ function loadAmplifyConfig(
   const signInOutRedirect =
     supportsDeepLinks ? `${common.DEEP_LINK_SCHEME}://auth` : window.location.origin
   return {
-    endpoint: $config.AUTH_ENDPOINT,
-    userPoolId: $config.COGNITO_USER_POOL_ID ?? '',
-    userPoolWebClientId: $config.COGNITO_USER_POOL_WEB_CLIENT_ID ?? '',
-    domain: $config.COGNITO_DOMAIN ?? '',
-    region: $config.COGNITO_REGION ?? '',
+    endpoint: remoteConfig.ENSO_IDE_AUTH_ENDPOINT,
+    userPoolId: remoteConfig.ENSO_IDE_COGNITO_USER_POOL_ID ?? '',
+    userPoolWebClientId: remoteConfig.ENSO_IDE_COGNITO_USER_POOL_WEB_CLIENT_ID ?? '',
+    domain: remoteConfig.ENSO_IDE_COGNITO_DOMAIN ?? '',
+    region: remoteConfig.ENSO_IDE_COGNITO_REGION ?? '',
     redirectSignIn: signInOutRedirect,
     redirectSignOut: signInOutRedirect,
     scope: ['email', 'openid', 'aws.cognito.signin.user.admin'],

@@ -9,7 +9,7 @@ import router from '$/router'
 import { createQueryClient } from '$/utils/queryClient'
 import * as sentry from '@sentry/vue'
 import type { Vue } from '@sentry/vue/types/types'
-import { VueQueryPlugin } from '@tanstack/vue-query'
+import { onlineManager, QueryClient, queryOptions, VueQueryPlugin } from '@tanstack/vue-query'
 import { HttpClient } from 'enso-common/src/services/HttpClient'
 import * as detect from 'enso-common/src/utilities/detect'
 import * as idbKeyval from 'idb-keyval'
@@ -27,6 +27,7 @@ async function main() {
   setupLogger()
   const onAuthenticated = imNotSureButPerhapsFixingRefreshingWithAuthentication()
   const queryClient = await createQueryClientOfPersistCache()
+  const remoteConfig = await getRemoteConfiguration(queryClient)
   const rootDirPath = await getRootDirPath()
 
   const app = createApp(App)
@@ -36,6 +37,7 @@ async function main() {
   app.use(widgetDevtools)
   app.provide('rootDirPath', rootDirPath)
   app.provide('onAuthenticated', onAuthenticated)
+  app.provide('remoteConfig', remoteConfig)
   app.mount('#enso-app')
 }
 
@@ -131,6 +133,40 @@ async function getRootDirPath() {
   if (!supportsLocalBackend) return undefined
   const rootDirRequest = await fetch(`/api/root-directory-path`)
   return await rootDirRequest.text()
+}
+
+export interface RemoteConfig {
+  ENSO_IDE_ENVIRONMENT?: string
+  ENSO_IDE_API_URL?: string
+  ENSO_IDE_AUTH_ENDPOINT?: string
+  ENSO_IDE_STRIPE_KEY?: string
+  ENSO_IDE_COGNITO_USER_POOL_ID?: string
+  ENSO_IDE_COGNITO_USER_POOL_WEB_CLIENT_ID?: string
+  ENSO_IDE_COGNITO_DOMAIN?: string
+  ENSO_IDE_COGNITO_REGION?: string
+  ENSO_IDE_GOOGLE_OAUTH_CLIENT_ID?: string
+  ENSO_IDE_STRAVA_OAUTH_CLIENT_ID?: string
+  ENSO_IDE_MS365_OAUTH_CLIENT_ID?: string
+  ENSO_IDE_SALESFORCE_OAUTH_CLIENT_ID?: string
+}
+
+async function getRemoteConfiguration(queryClient: QueryClient) {
+  const url = $config.API_URL ?? 'https://api.cloud.enso.org'
+
+  const queryOpts = queryOptions<RemoteConfig>({
+    queryKey: ['config', url],
+    queryFn: ({ queryKey: [_, url] }) =>
+      fetch(`${url}/utils/config`).then((response) => response.json()),
+    retry: 5,
+  })
+
+  console.debug('About to fetch config')
+  const config = await (onlineManager.isOnline() ?
+    queryClient.fetchQuery(queryOpts)
+  : queryClient.ensureQueryData(queryOpts))
+
+  console.log('Environment:', config.ENSO_IDE_ENVIRONMENT)
+  return config
 }
 
 main()

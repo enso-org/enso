@@ -3,8 +3,10 @@
  */
 import invariant from 'tiny-invariant'
 
+import type { RemoteConfig } from '$/entrypoint'
 import type { GoogleCredentialInput, SecretId } from 'enso-common/src/services/Backend'
 import * as i18n from 'enso-common/src/text'
+import { inject } from 'vue'
 import { z } from 'zod'
 import type { CredentialRecipe } from './types'
 import { getOauthRedirectUri } from './utilities'
@@ -42,8 +44,9 @@ export function submitForm(
   createCredentials: (recipe: CredentialRecipe) => Promise<void>,
   values: z.infer<typeof FORM_SCHEMA>,
 ): Promise<void> {
-  invariant($config.GOOGLE_OAUTH_CLIENT_ID != null, 'Google OAuth client id is missing')
-  const googleOauthClientId = $config.GOOGLE_OAUTH_CLIENT_ID
+  const config = inject<RemoteConfig>('remoteConfig')
+  invariant(config?.ENSO_IDE_GOOGLE_OAUTH_CLIENT_ID != null, 'Google OAuth client id is missing')
+  const googleOauthClientId = config.ENSO_IDE_GOOGLE_OAUTH_CLIENT_ID
 
   const oauthScopesSet = new Set<string>()
   values.scopes.forEach((scope) => {
