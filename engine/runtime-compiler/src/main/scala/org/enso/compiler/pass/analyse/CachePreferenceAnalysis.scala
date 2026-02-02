@@ -2,7 +2,7 @@ package org.enso.compiler.pass.analyse
 
 import org.enso.common.CachePreferences
 import org.enso.compiler.context.{InlineContext, ModuleContext}
-import org.enso.compiler.core.Implicits.AsMetadata
+import org.enso.compiler.Implicits.AsMetadata
 import org.enso.compiler.core.ir.CallArgument.Specified
 import org.enso.compiler.core.{CompilerError, ExternalID}
 import org.enso.compiler.core.ir.{

@@ -1,7 +1,7 @@
 package org.enso.interpreter.instrument
 
 import com.oracle.truffle.api.source.Source
-import org.enso.compiler.core.Implicits.AsMetadata
+import org.enso.compiler.Implicits.AsMetadata
 import org.enso.compiler.core.ir.{
   CallArgument,
   Expression,

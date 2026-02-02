@@ -1,6 +1,6 @@
 package org.enso.compiler.refactoring
 
-import org.enso.compiler.core.Implicits.AsMetadata
+import org.enso.compiler.Implicits.AsMetadata
 import org.enso.compiler.core.{ExternalID, IR, Identifier}
 import org.enso.compiler.core.ir.{Expression, Name}
 import org.enso.compiler.core.ir.expression.Application

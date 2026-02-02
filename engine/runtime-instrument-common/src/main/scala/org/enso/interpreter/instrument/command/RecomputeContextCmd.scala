@@ -1,6 +1,6 @@
 package org.enso.interpreter.instrument.command
 
-import org.enso.compiler.core.Implicits.AsMetadata
+import org.enso.compiler.Implicits.AsMetadata
 import org.enso.compiler.pass.analyse.DataflowAnalysis
 import org.enso.compiler.pass.analyse.DependencyInfo
 import org.enso.compiler.refactoring.IRUtils

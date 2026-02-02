@@ -3183,8 +3183,8 @@ lazy val `runtime-parser` =
   (project in file("engine/runtime-parser"))
     .enablePlugins(JPMSPlugin)
     .settings(
+      autoScalaLibrary := false,
       scalaModuleDependencySetting,
-      mixedJavaScalaProjectSetting,
       javaMethodParametersSetting,
       publishLocalSetting,
       javadocSettings,
