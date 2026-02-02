@@ -18,7 +18,6 @@ import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.IRProcessingPass
 import org.enso.compiler.pass.analyse.{
   AliasAnalysis,
-  DataflowAnalysis,
   TailCall
 }
 import org.enso.compiler.pass.lint.UnusedBindings
@@ -54,7 +53,6 @@ case object GenerateMethodBodies extends IRPass {
     List(ComplexType, FunctionBinding)
   override lazy val invalidatedPasses: Seq[IRProcessingPass] = List(
     AliasAnalysis,
-    DataflowAnalysis,
     LambdaConsolidate,
     NestedPatternMatch,
     TailCall.INSTANCE,

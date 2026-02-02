@@ -4,7 +4,6 @@ import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.pass.{IRProcessingPass, MiniPassFactory}
 import org.enso.compiler.pass.analyse.{
   AliasAnalysis,
-  DataflowAnalysis,
   DemandAnalysis
 }
 
@@ -18,7 +17,6 @@ case object OperatorToFunction extends MiniPassFactory {
   )
   override lazy val invalidatedPasses: Seq[IRProcessingPass] = List(
     AliasAnalysis,
-    DataflowAnalysis,
     DemandAnalysis,
     LambdaShorthandToLambda
   )

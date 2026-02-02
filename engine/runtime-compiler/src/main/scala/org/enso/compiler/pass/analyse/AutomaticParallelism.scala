@@ -50,8 +50,7 @@ object AutomaticParallelism extends IRPass {
     ComplexType
   )
   override lazy val invalidatedPasses: Seq[IRPass] = Seq(
-    AliasAnalysis,
-    DataflowAnalysis
+    AliasAnalysis
   )
 
   /** An assignment of a line to a given thread.

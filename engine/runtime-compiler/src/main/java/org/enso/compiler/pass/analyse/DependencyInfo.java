@@ -5,6 +5,7 @@ import org.enso.compiler.context.CompilerContext;
 import org.enso.compiler.core.ExternalID;
 import org.enso.compiler.core.IR;
 import org.enso.compiler.core.Identifier;
+import org.enso.compiler.core.ir.Expression;
 import org.enso.compiler.core.ir.Name;
 import org.enso.compiler.pass.IRPass;
 import scala.Option;
@@ -34,7 +35,19 @@ public record DependencyInfo(DependencyMapping dependents, DependencyMapping dep
    * @throws exception or error when the info isn't attached to the element
    */
   public static DependencyInfo find(IR ir) {
-    var raw = ir.passData().get(DataflowAnalysis$.MODULE$).get();
+    var pass = DataflowAnalysis$.MODULE$;
+    var opt = ir.passData().get(pass);
+    if (opt.isEmpty()) {
+      var newIr =
+          switch (ir) {
+            case org.enso.compiler.core.ir.Module m -> pass.runModule(m, null);
+            case Expression exp -> pass.runExpression(exp, null);
+            default -> throw new AssertionError();
+          };
+      opt = ir.passData().get(pass);
+      assert opt.nonEmpty();
+    }
+    var raw = opt.get();
     assert raw != null;
     return (DependencyInfo) raw;
   }

@@ -14,7 +14,6 @@ import org.enso.compiler.core.ir.{
 import org.enso.compiler.core.ir.expression.{Application, Operator}
 import org.enso.compiler.pass.analyse.{
   AliasAnalysis,
-  DataflowAnalysis,
   DemandAnalysis
 }
 import org.enso.compiler.pass.{
@@ -262,7 +261,6 @@ case object OperatorToFunctionTestPass extends IRPass {
   )
   override lazy val invalidatedPasses: Seq[IRProcessingPass] = List(
     AliasAnalysis,
-    DataflowAnalysis,
     DemandAnalysis
   )
 

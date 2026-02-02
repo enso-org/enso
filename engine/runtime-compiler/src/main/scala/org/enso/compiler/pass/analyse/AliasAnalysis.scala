@@ -83,7 +83,7 @@ case object AliasAnalysis extends IRPass {
   )
 
   override lazy val invalidatedPasses: Seq[IRProcessingPass] =
-    List(DataflowAnalysis, UnusedBindings)
+    List(UnusedBindings)
 
   /** Performs alias analysis on a module.
     *

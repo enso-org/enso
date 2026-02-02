@@ -23,7 +23,6 @@ import org.enso.compiler.pass.analyse.alias.graph.{
 }
 import org.enso.compiler.pass.analyse.{
   AliasAnalysis,
-  DataflowAnalysis,
   DemandAnalysis,
   TailCall
 }
@@ -78,7 +77,6 @@ case object LambdaConsolidate extends IRPass {
   )
   override lazy val invalidatedPasses: Seq[IRProcessingPass] = List(
     AliasAnalysis,
-    DataflowAnalysis,
     DemandAnalysis,
     TailCall.INSTANCE
   )

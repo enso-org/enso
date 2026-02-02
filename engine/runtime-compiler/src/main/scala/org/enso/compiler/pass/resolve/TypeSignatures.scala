@@ -45,7 +45,6 @@ case object TypeSignatures extends IRPass {
   override lazy val invalidatedPasses: Seq[IRProcessingPass] = List(
     AliasAnalysis,
     CachePreferenceAnalysis,
-    DataflowAnalysis,
     DemandAnalysis,
     org.enso.compiler.pass.analyse.TailCall.INSTANCE,
     UnusedBindings
