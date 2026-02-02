@@ -2,10 +2,7 @@ package org.enso.compiler.pass.desugar
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.pass.{IRProcessingPass, MiniPassFactory}
-import org.enso.compiler.pass.analyse.{
-  AliasAnalysis,
-  DemandAnalysis
-}
+import org.enso.compiler.pass.analyse.{AliasAnalysis, DemandAnalysis}
 
 /** Implementation moved to `OperatorToFunctionTest`
   */

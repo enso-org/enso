@@ -13,11 +13,7 @@ import org.enso.compiler.core.ir.{
 }
 import org.enso.compiler.core.ir.expression.{Application, Case, Operator}
 import org.enso.compiler.pass.{IRPass, IRProcessingPass}
-import org.enso.compiler.pass.analyse.{
-  AliasAnalysis,
-  DemandAnalysis,
-  TailCall
-}
+import org.enso.compiler.pass.analyse.{AliasAnalysis, DemandAnalysis, TailCall}
 import org.enso.compiler.pass.desugar.{
   ComplexType,
   FunctionBinding,

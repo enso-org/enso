@@ -1,5 +1,6 @@
 package org.enso.compiler.pass.analyse;
 
+import java.io.IOException;
 import java.util.UUID;
 import org.enso.compiler.context.CompilerContext;
 import org.enso.compiler.core.ExternalID;
@@ -76,7 +77,7 @@ public record DependencyInfo(DependencyMapping dependents, DependencyMapping dep
    */
   @Override
   public DependencyInfo prepareForSerialization(CompilerContext compiler) {
-    return this;
+    throw raiseNoSerde(RuntimeException.class);
   }
 
   /**
@@ -84,7 +85,12 @@ public record DependencyInfo(DependencyMapping dependents, DependencyMapping dep
    */
   @Override
   public Option<IRPass.IRMetadata> restoreFromSerialization(CompilerContext compiler) {
-    return Option.apply(this);
+    throw raiseNoSerde(RuntimeException.class);
+  }
+
+  @SuppressWarnings("unchecked")
+  private static <T extends Exception> T raiseNoSerde(Class<T> ignore) throws T {
+    throw (T) new IOException("DependencyInfo shall never be subject to serde");
   }
 
   /** The type of identification for a program component. */
