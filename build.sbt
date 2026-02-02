@@ -1261,6 +1261,7 @@ lazy val `scala-libs-wrapper` = project
   .in(file("lib/java/scala-libs-wrapper"))
   .enablePlugins(JPMSPlugin)
   .settings(
+    compileOrder := CompileOrder.ScalaThenJava,
     modularFatJarWrapperSettings,
     scalaModuleDependencySetting,
     javaModuleName := "org.enso.scala.wrapper",
@@ -3218,11 +3219,13 @@ lazy val `runtime-parser` =
         (`persistance` / Compile / exportedModule).value,
         (`runtime-parser-dsl` / Compile / exportedModule).value,
         (`runtime-parser-processor` / Compile / exportedModule).value,
+        (`scala-libs-wrapper` / Compile / exportedModule).value,
         (`syntax-rust-definition` / Compile / exportedModule).value
       )
     )
     .dependsOn(`persistance`)
     .dependsOn(`persistance-dsl` % "provided")
+    .dependsOn(`scala-libs-wrapper`)
     .dependsOn(`runtime-parser-dsl`)
     .dependsOn(`runtime-parser-processor`)
     .dependsOn(`syntax-rust-definition`)

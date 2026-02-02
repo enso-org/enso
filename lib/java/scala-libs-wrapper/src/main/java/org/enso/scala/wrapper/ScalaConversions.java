@@ -37,6 +37,11 @@ public class ScalaConversions {
     return CollectionConverters.asScala(list).toList();
   }
 
+  /** Creates a lazy Scala wrapper around Java map. */
+  public static <K, V> scala.collection.immutable.Map<K, V> asScala(java.util.Map<K, V> map) {
+    return new IrLazyImMap<>(map);
+  }
+
   @SuppressWarnings("unchecked")
   public static <T> scala.collection.immutable.List<T> nil() {
     return (scala.collection.immutable.List<T>) scala.collection.immutable.Nil$.MODULE$;
