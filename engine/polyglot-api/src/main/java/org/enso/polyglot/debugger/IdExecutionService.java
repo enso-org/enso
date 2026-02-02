@@ -94,14 +94,6 @@ public interface IdExecutionService {
      */
     void updateLocalExecutionEnvironment(
         RuntimeID uuid, Predicate<Object> shouldUpdate, Function<Object, Object> onSuccess);
-
-    void startExecutionBlock(RuntimeID toRuntimeId, String explanation);
-
-    void endExecutionBlock(RuntimeID runtimeID, String explanation);
-
-    Object registerRuntimeDependency(Object result);
-
-    Object wrapAsReference(Object value);
   }
 
   /**

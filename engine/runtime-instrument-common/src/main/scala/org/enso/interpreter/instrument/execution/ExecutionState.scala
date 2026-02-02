@@ -1,6 +1,7 @@
 package org.enso.interpreter.instrument.execution
 
 import org.enso.interpreter.instrument.ExpressionExecutionState
+import org.enso.interpreter.runtime.execution.RuntimeAnalysis
 
 /** The state of the runtime */
 final class ExecutionState {
@@ -13,4 +14,6 @@ final class ExecutionState {
   val expressionExecutionState = new ExpressionExecutionState()
 
   val suggestions: ModuleIndexing = ModuleIndexing.createInstance()
+
+  val runtimeAnalysis = RuntimeAnalysis.create()
 }

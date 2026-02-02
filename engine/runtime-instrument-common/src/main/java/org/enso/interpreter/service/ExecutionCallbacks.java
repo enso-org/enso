@@ -112,7 +112,10 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
     // able to continue the stack execution, and unwind later from the `onReturnValue` callback.
     var requiresReExecution = visualizationHolder.hasNestedVisualizationToExecute(nodeId);
     if (result != null && !nodeId.equals(nextExecutionItem)) {
-      callOnCachedCallback(nodeId, result);
+      // Only send updates for externally-identifiable nodes
+      if (runtimeID.isExternal()) {
+        callOnCachedCallback(nodeId, result);
+      }
       return requiresReExecution ? null : result;
     } else {
       if (onProgressCallbackOrNull != null) {
@@ -153,7 +156,10 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
   @Override
   public boolean updateCachedResult(IdExecutionService.Info info) {
     Object result = info.getResult();
-    TypeInfo resultType = typeOf(result);
+    // Id execution needs to be aware of dependency tracking because results are stored in cache
+    // Callbacks must not be aware of any dependency tracking, hence explicit unwrapping here.
+    Object unwrapped = result instanceof Ref r ? r.get() : result;
+    TypeInfo resultType = typeOf(unwrapped);
     RuntimeID runtimeID = info.getId();
     UUID nodeId = runtimeID.uuid();
 
@@ -165,19 +171,6 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
     FunctionCallInfo call = functionCallInfoById(nodeId);
     FunctionCallInfo cachedCall = cache.getCall(nodeId);
     ProfilingInfo[] profilingInfo = new ProfilingInfo[] {new ExecutionTime(info.getElapsedTime())};
-
-    ExpressionValue expressionValue =
-        new ExpressionValue(
-            nodeId,
-            result,
-            resultType,
-            cachedType,
-            call,
-            cachedCall,
-            profilingInfo,
-            false,
-            -1.0,
-            null);
 
     boolean isPanic = info.isPanic();
     // Panics are not cached because a panic can be fixed by changing seemingly unrelated code,
@@ -214,8 +207,20 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
     }
 
     if (runtimeID.isExternal()) {
+      ExpressionValue expressionValue =
+          new ExpressionValue(
+              nodeId,
+              unwrapped,
+              resultType,
+              cachedType,
+              call,
+              cachedCall,
+              profilingInfo,
+              false,
+              -1.0,
+              null);
       callOnComputedCallback(expressionValue);
-      executeOneshotExpressions(nodeId, result, info);
+      executeOneshotExpressions(nodeId, unwrapped, info);
     }
     if (isPanic) {
       // We mark the node as executed so that it is not reported as not executed call after the
@@ -262,39 +267,6 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
       } else {
         savedNodeExecutionEnvironment.put(uuid, replacement);
       }
-    }
-  }
-
-  @Override
-  public void startExecutionBlock(RuntimeID toRuntimeId, String explanation) {
-    runtimeAnalysis.startRhsExecution(toRuntimeId, explanation);
-  }
-
-  @Override
-  public void endExecutionBlock(RuntimeID runtimeID, String explanation) {
-    runtimeAnalysis.endRhsExecution(runtimeID, explanation);
-  }
-
-  @Override
-  public Object registerRuntimeDependency(Object result) {
-    if (result instanceof Ref r) {
-      var currentAssingmentRef = runtimeAnalysis.currentRhs("register runtime dep");
-      if (currentAssingmentRef != null) {
-        r.registerDependency(currentAssingmentRef);
-      }
-      return cache.get(r.getRuntimeID());
-    } else {
-      return result;
-    }
-  }
-
-  @Override
-  public Object wrapAsReference(Object value) {
-    var currentAssingmentRef = runtimeAnalysis.currentRhs("wrap as a ref");
-    if (currentAssingmentRef != null) {
-      return currentAssingmentRef;
-    } else {
-      return value;
     }
   }
 

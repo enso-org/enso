@@ -5,6 +5,7 @@ import java.lang.ref.Reference;
 import java.lang.ref.SoftReference;
 import java.lang.ref.WeakReference;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -13,7 +14,6 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import org.enso.common.CachePreferences;
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode;
-import org.enso.interpreter.runtime.execution.RuntimeAnalysis;
 import org.enso.interpreter.service.ExecutionService;
 import org.enso.polyglot.ExternalUUID;
 import org.enso.polyglot.RuntimeID;
@@ -32,24 +32,8 @@ public final class RuntimeCache implements Function<String, Object> {
   private final Map<UUID, FunctionCallInstrumentationNode.FunctionCall> enterables =
       new HashMap<>();
 
-  private RuntimeAnalysis runtimeAnalysis;
-
   public RuntimeCache() {
     id = ID_COUNTER++;
-  }
-
-  // As there may be many threads attempting to fetch/update RuntimeAnalysis,
-  // the access has to be synchronized
-  public synchronized void mergeAnalysis(RuntimeAnalysis builder) {
-    if (runtimeAnalysis != null) {
-      runtimeAnalysis.merge(builder);
-    } else {
-      runtimeAnalysis = builder;
-    }
-  }
-
-  public synchronized RuntimeAnalysis getAnalysis() {
-    return runtimeAnalysis;
   }
 
   /**
@@ -145,7 +129,9 @@ public final class RuntimeCache implements Function<String, Object> {
 
   /** Clear the cached values. */
   public Set<RuntimeID> clear() {
-    var keys = cache.keySet();
+    // Key Set is a **view** so clearing cache before returning
+    // `keys` would always return an empty Set.
+    var keys = new HashSet<>(cache.keySet());
     cache.clear();
     return keys;
   }

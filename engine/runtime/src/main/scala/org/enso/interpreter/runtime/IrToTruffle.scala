@@ -78,7 +78,11 @@ import org.enso.interpreter.node.expression.builtin.BuiltinRootNode
 import org.enso.interpreter.node.expression.constant._
 import org.enso.interpreter.node.expression.foreign.ForeignMethodCallNode
 import org.enso.interpreter.node.expression.literal.LiteralNode
-import org.enso.interpreter.node.scope.{AssignmentNode, ReadLocalVariableNode}
+import org.enso.interpreter.node.scope.{
+  AssignmentNode,
+  ReadLocalVariableNode,
+  ReadLocalVariableWithoutDepTrackingNode
+}
 import org.enso.interpreter.node.{
   BaseNode,
   ClosureRootNode,
@@ -178,6 +182,7 @@ private[runtime] class IrToTruffle(
     * @param ir         the IR to generate code for
     * @param localScope the scope in which the inline input exists
     * @param scopeName  the name of `localScope`
+    * @param inlined    true, if codegen pass runs on an inlined expression
     * @return an truffle expression representing `ir`
     */
   def runInline(
@@ -188,7 +193,8 @@ private[runtime] class IrToTruffle(
     new ExpressionProcessor(
       localScope,
       scopeName,
-      scopeBuilder.getModule().getName().toString()
+      scopeBuilder.getModule().getName().toString(),
+      inlined = true
     ).runInline(ir)
   }
 
@@ -463,7 +469,8 @@ private[runtime] class IrToTruffle(
         val argFactory =
           new DefinitionArgumentProcessor(
             scope       = localScope,
-            initialName = "Type " + tpDef.name.name
+            initialName = "Type " + tpDef.name.name,
+            inlined     = false
           )
         val argDefs =
           new Array[ArgumentDefinition](atomDefn.arguments.size)
@@ -1187,11 +1194,13 @@ private[runtime] class IrToTruffle(
     * @param scope     the scope in which the code generation is occurring
     * @param scopeName the name of `scope`
     * @param initialName suggested name for a first closure
+    * @param inlined   true if this expression processor runs as part of processing an inlined expression
     */
   sealed private class ExpressionProcessor(
     val scope: LocalScope,
     val scopeName: String,
-    private val initialName: String
+    private val initialName: String,
+    private val inlined: Boolean
   ) {
 
     private var currentVarName = initialName
@@ -1215,7 +1224,8 @@ private[runtime] class IrToTruffle(
       this(
         new LocalScope(None, graph, scope, dataflowInfo, frameInfo),
         scopeName,
-        initialName
+        initialName,
+        false
       )
     }
 
@@ -1234,7 +1244,7 @@ private[runtime] class IrToTruffle(
     ): ExpressionProcessor = {
       val childScope =
         this.scope.createChild(scope, symbolsProvider = symbolsProvider)
-      new ExpressionProcessor(childScope, name, initialName)
+      new ExpressionProcessor(childScope, name, initialName, inlined)
     }
 
     // === Runner =============================================================
@@ -2128,7 +2138,9 @@ private[runtime] class IrToTruffle(
         name: String,
         localLink: FramePointer
       ): RuntimeExpression =
-        ReadLocalVariableNode.build(name, localLink)
+        if (inlined)
+          ReadLocalVariableWithoutDepTrackingNode.build(name, localLink)
+        else ReadLocalVariableNode.build(name, localLink)
 
       override protected def resolveGlobalName(
         resolvedName: BindingsMap.ResolvedName,
@@ -2328,7 +2340,7 @@ private[runtime] class IrToTruffle(
       val subjectToInstrumentation: Boolean
     ) {
       private val argFactory =
-        new DefinitionArgumentProcessor(scopeName, scope, initialName)
+        new DefinitionArgumentProcessor(scopeName, scope, initialName, false)
       private lazy val slots = computeSlots()
       lazy val argsExpr      = computeArgsAndExpression()
 
@@ -2578,7 +2590,7 @@ private[runtime] class IrToTruffle(
       subjectToInstrumentation: Boolean
     ): RuntimeExpression = {
       val callArgFactory =
-        new CallArgumentProcessor(scope, scopeName, currentVarName)
+        new CallArgumentProcessor(scope, scopeName, currentVarName, inlined)
 
       val arguments = application.arguments
       val callArgs  = new ArrayBuffer[callable.argument.CallArgument]()
@@ -2619,7 +2631,8 @@ private[runtime] class IrToTruffle(
   sealed private class CallArgumentProcessor(
     val scope: LocalScope,
     val scopeName: String,
-    private val initialName: String
+    private val initialName: String,
+    private val inlined: Boolean
   ) {
 
     // === Runner =============================================================
@@ -2669,7 +2682,7 @@ private[runtime] class IrToTruffle(
             scope.createChild(() => scopeInfo().scope, flattenToParent = true)
           }
           val argumentExpression =
-            new ExpressionProcessor(childScope, scopeName, initialName)
+            new ExpressionProcessor(childScope, scopeName, initialName, inlined)
               .run(value, subjectToInstrumentation)
 
           val result = if (!shouldCreateClosureRootNode) {
@@ -2731,7 +2744,8 @@ private[runtime] class IrToTruffle(
   sealed private class DefinitionArgumentProcessor(
     val scopeName: String = "<root>",
     val scope: LocalScope,
-    private val initialName: String
+    private val initialName: String,
+    private val inlined: Boolean
   ) {
 
     // === Runner =============================================================
@@ -2763,7 +2777,7 @@ private[runtime] class IrToTruffle(
         case arg: DefinitionArgument.Specified =>
           val defaultExpression = arg.defaultValue
             .map(
-              new ExpressionProcessor(scope, scopeName, initialName)
+              new ExpressionProcessor(scope, scopeName, initialName, inlined)
                 .run(_, false)
             )
             .orNull

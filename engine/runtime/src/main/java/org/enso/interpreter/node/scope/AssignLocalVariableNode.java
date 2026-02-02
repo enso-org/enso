@@ -13,7 +13,7 @@ import org.enso.polyglot.RuntimeID;
  * instrumentation can check the "on return value" that's being assigned to the local variable.
  * That's contrary to {@link AssignmentNode} which always returns {@code Nothing}.
  */
-final class AssignLocalVariableNode extends ExpressionNode {
+public final class AssignLocalVariableNode extends ExpressionNode {
   private @CompilerDirectives.CompilationFinal RuntimeID id = null;
   private final String name;
   @Child private ExpressionNode rhs;

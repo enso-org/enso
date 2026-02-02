@@ -135,38 +135,37 @@ object RecomputeContextCmd {
     override def run(): Unit = {
       val stack = ctx.contextManager.getStack(contextId)
 
-      val invalidationCommands =
-        ctx.locking.withWriteCompilationLock(
-          classOf[RecomputeContextCmd],
-          () => {
-            val expressionsInvalidationCommands = expressions.toSeq
-              .map(CacheInvalidation.Command(_))
-              .map(CacheInvalidation(CacheInvalidation.StackSelector.All, _))
-            val expressionConfigsDependentInvalidationCommands = {
-              val expressionsToInvalidate = expressionConfigs
-                .map(_.expressionId)
-                .toVector
-                .distinct
+      val invalidationCommands = {
+        val expressionsInvalidationCommands = expressions.toSeq
+          .map(CacheInvalidation.Command(_))
+          .map(CacheInvalidation(CacheInvalidation.StackSelector.All, _))
+        val expressionConfigsDependentInvalidationCommands = {
+          val expressionsToInvalidate = expressionConfigs
+            .map(_.expressionId)
+            .toVector
+            .distinct
 
-              if (expressionsToInvalidate.isEmpty) Seq.empty
-              else {
-                val cmd = CacheInvalidation.Command(
-                  Api.InvalidatedExpressions
-                    .Expressions(expressionsToInvalidate, "recompute")
-                )
-                Seq(CacheInvalidation(CacheInvalidation.StackSelector.All, cmd))
-              }
-            }
-            val allInvalidationCommands =
-              expressionsInvalidationCommands ++ expressionConfigsDependentInvalidationCommands
-
-            CacheInvalidation.runAll(stack, allInvalidationCommands)
-
-            allInvalidationCommands
+          if (expressionsToInvalidate.isEmpty) Seq.empty
+          else {
+            val cmd = CacheInvalidation.Command(
+              Api.InvalidatedExpressions
+                .Expressions(expressionsToInvalidate, "recompute")
+            )
+            Seq(CacheInvalidation(CacheInvalidation.StackSelector.All, cmd))
           }
-        )
+        }
+        val allInvalidationCommands =
+          expressionsInvalidationCommands ++ expressionConfigsDependentInvalidationCommands
+        allInvalidationCommands
+      }
 
-      sendPendingUpdates(stack, contextId, invalidationCommands)
+      ctx.locking.withWriteCompilationLock(
+        classOf[RecomputeContextCmd],
+        () => {
+          sendPendingUpdates(stack, contextId, invalidationCommands)
+          CacheInvalidation.runAll(stack, invalidationCommands)
+        }
+      )
     }
   }
 
@@ -215,13 +214,13 @@ object RecomputeContextCmd {
     contextId: Api.ContextId,
     cacheInvalidations: Seq[CacheInvalidation]
   )(implicit ctx: RuntimeContext): Unit = {
-    val builder = Set.newBuilder[Api.ExpressionId]
+    val builder         = Set.newBuilder[Api.ExpressionId]
+    val runtimeAnalysis = ctx.state.runtimeAnalysis
     cacheInvalidations.map(_.command).foreach {
       case CacheInvalidation.Command.InvalidateAll =>
         stack
           .foreach { frame =>
-            val toInvalidate    = frame.cache.clear()
-            val runtimeAnalysis = frame.cache.getAnalysis
+            val toInvalidate = frame.cache.clear()
             toInvalidate.forEach { runtimeID =>
               runtimeAnalysis
                 .get(runtimeID)
@@ -237,7 +236,8 @@ object RecomputeContextCmd {
           .invalidateAffectedIDs(
             expressionIds.asJava,
             stackJ,
-            ctx.contextManager.getVisualizationHolder(contextId)
+            ctx.contextManager.getVisualizationHolder(contextId),
+            ctx.state.runtimeAnalysis
           )
           .stream()
           .forEach { id =>

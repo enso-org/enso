@@ -394,6 +394,7 @@ lazy val enso = (project in file("."))
     `runtime-language-epb`,
     `runtime-instrument-common`,
     `runtime-instrument-id-execution`,
+    `runtime-instrument-dep-tracking`,
     `runtime-instrument-repl-debugger`,
     `runtime-instrument-runtime-server`,
     `runtime-integration-tests`,
@@ -561,6 +562,7 @@ lazy val componentModulesPaths =
     (`runtime-compiler-dump-igv` / Compile / exportedModuleBin).value,
     (`runtime-instrument-common` / Compile / exportedModuleBin).value,
     (`runtime-instrument-id-execution` / Compile / exportedModuleBin).value,
+    (`runtime-instrument-dep-tracking` / Compile / exportedModuleBin).value,
     (`runtime-instrument-repl-debugger` / Compile / exportedModuleBin).value,
     (`runtime-instrument-runtime-server` / Compile / exportedModuleBin).value,
     (`runtime-language-arrow` / Compile / exportedModuleBin).value,
@@ -2332,6 +2334,7 @@ lazy val `language-server` = (project in file("engine/language-server"))
       (`runtime-compiler-dump` / Compile / exportedModule).value,
       (`runtime-instrument-common` / Compile / exportedModule).value,
       (`runtime-instrument-id-execution` / Compile / exportedModule).value,
+      (`runtime-instrument-dep-tracking` / Compile / exportedModule).value,
       (`runtime-instrument-repl-debugger` / Compile / exportedModule).value,
       (`runtime-instrument-runtime-server` / Compile / exportedModule).value,
       (`runtime-language-epb` / Compile / exportedModule).value,
@@ -2892,6 +2895,7 @@ lazy val `runtime-integration-tests` =
         (`runtime-compiler-dump-igv` / Compile / exportedModule).value,
         (`runtime-instrument-common` / Compile / exportedModule).value,
         (`runtime-instrument-id-execution` / Compile / exportedModule).value,
+        (`runtime-instrument-dep-tracking` / Compile / exportedModule).value,
         (`runtime-instrument-repl-debugger` / Compile / exportedModule).value,
         (`runtime-instrument-runtime-server` / Compile / exportedModule).value,
         (`runtime-language-epb` / Compile / exportedModule).value,
@@ -3079,6 +3083,7 @@ lazy val `runtime-benchmarks` =
         (`runtime-compiler-dump` / Compile / exportedModule).value,
         (`runtime-instrument-common` / Compile / exportedModule).value,
         (`runtime-instrument-id-execution` / Compile / exportedModule).value,
+        (`runtime-instrument-dep-tracking` / Compile / exportedModule).value,
         (`runtime-instrument-repl-debugger` / Compile / exportedModule).value,
         (`runtime-instrument-runtime-server` / Compile / exportedModule).value,
         (`runtime-language-arrow` / Compile / exportedModule).value,
@@ -3541,6 +3546,31 @@ lazy val `runtime-instrument-id-execution` =
     .dependsOn(`runtime`)
     .dependsOn(`runtime-instrument-common`)
 
+lazy val `runtime-instrument-dep-tracking` =
+  (project in file("engine/runtime-instrument-dep-tracking"))
+    .enablePlugins(JPMSPlugin)
+    .settings(
+      frgaalJavaCompilerSetting,
+      inConfig(Compile)(truffleRunOptionsSettings),
+      Compile / forceModuleInfoCompilation := true,
+      instrumentationSettings,
+      Compile / moduleDependencies ++= Seq(
+        "org.graalvm.truffle"  % "truffle-api" % graalMavenPackagesVersion,
+        "org.graalvm.polyglot" % "polyglot"    % graalMavenPackagesVersion,
+        "org.graalvm.sdk"      % "word"        % graalMavenPackagesVersion,
+        "org.graalvm.sdk"      % "nativeimage" % graalMavenPackagesVersion
+      ),
+      Compile / internalModuleDependencies := Seq(
+        (`polyglot-api` / Compile / exportedModule).value,
+        (`runtime` / Compile / exportedModule).value,
+        (`runtime-compiler` / Compile / exportedModule).value,
+        (`runtime-compiler-dump` / Compile / exportedModule).value
+      )
+    )
+    .dependsOn(`runtime`)
+    .dependsOn(`runtime-instrument-common`)
+
+
 lazy val `runtime-instrument-repl-debugger` =
   (project in file("engine/runtime-instrument-repl-debugger"))
     .enablePlugins(JPMSPlugin)
@@ -3796,6 +3826,9 @@ lazy val `engine-runner` = project
       val idExecInstr =
         (`runtime-instrument-id-execution` / Compile / fullClasspath).value
           .map(_.data.getAbsolutePath)
+      val depTrackingInstr =
+        (`runtime-instrument-dep-tracking` / Compile / fullClasspath).value
+          .map(_.data.getAbsolutePath)
       val epbLang =
         (`runtime-language-epb` / Compile / fullClasspath).value
           .map(_.data.getAbsolutePath)
@@ -3823,6 +3856,7 @@ lazy val `engine-runner` = project
           replDebugInstr ++
           runtimeServerInstr ++
           idExecInstr ++
+          depTrackingInstr ++
           langServer ++
           epbLang
       ).distinct

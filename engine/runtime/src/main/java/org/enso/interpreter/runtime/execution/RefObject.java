@@ -9,6 +9,7 @@ import org.enso.polyglot.RuntimeID;
 
 public final class RefObject extends Ref implements TruffleObject {
   private final Set<Ref> deps;
+  private volatile Object value;
 
   public RefObject(RuntimeID runtimeID) {
     super(runtimeID);
@@ -21,13 +22,18 @@ public final class RefObject extends Ref implements TruffleObject {
   }
 
   @Override
-  public void merge(Ref ref) {
-    assert ref.getRuntimeID().equals(this.runtimeID);
-    deps.addAll(ref.dependencies());
+  public Object get() {
+    return value;
+  }
+
+  @Override
+  public void update(Object value) {
+    this.value = value;
   }
 
   @Override
   public Stream<Ref> reset() {
+    value = null;
     return deps.stream();
   }
 
@@ -41,6 +47,8 @@ public final class RefObject extends Ref implements TruffleObject {
   public String toString() {
     return "Ref[runtimeID="
         + getRuntimeID()
+        + ", value="
+        + (value != null ? "<non-empty>" : "<empty>")
         + ", deps="
         + deps.stream().map(Ref::getRuntimeID).collect(Collectors.toSet())
         + "]";

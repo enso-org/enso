@@ -28,7 +28,6 @@ import org.enso.interpreter.node.EnsoRootNode;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode;
 import org.enso.interpreter.node.expression.debug.EvalNode;
-import org.enso.interpreter.node.scope.AssignmentNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.callable.CallerInfo;
@@ -37,7 +36,6 @@ import org.enso.interpreter.runtime.control.TailCallException;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.DataflowError;
 import org.enso.interpreter.runtime.error.PanicSentinel;
-import org.enso.interpreter.runtime.execution.Ref;
 import org.enso.interpreter.runtime.instrument.Timer;
 import org.enso.interpreter.runtime.state.ExecutionEnvironment;
 import org.enso.interpreter.runtime.tag.AvoidIdInstrumentationTag;
@@ -219,11 +217,6 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
 
         Node node = context.getInstrumentedNode();
         Info info = new NodeInfo(frame.materialize(), node);
-        if (node instanceof AssignmentNode assignmentNode) {
-          callbacks.startExecutionBlock(assignmentNode.getRhsID(), "enter-" + eventNodeId);
-        }
-        RuntimeID runtimeID = info.getId();
-        assert runtimeID != null;
 
         Object result = callbacks.findCachedResult(info);
         if (result != null) {
@@ -248,9 +241,6 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
           return;
         }
         Node node = context.getInstrumentedNode();
-        if (node instanceof AssignmentNode assignmentNode) {
-          callbacks.endExecutionBlock(assignmentNode.getRhsID(), "end-enter-" + eventNodeId);
-        }
         if (node instanceof FunctionCallInstrumentationNode functionCallInstrumentationNode
             && result instanceof FunctionCallInstrumentationNode.FunctionCall) {
           Info info =
@@ -266,32 +256,17 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
           }
         } else if (node instanceof ExpressionNode expressionNode
             && !(result instanceof UnresolvedConstructor)) {
-          Object resultUnwrapped = callbacks.registerRuntimeDependency(result);
-          assert !(resultUnwrapped instanceof Ref);
           Info info =
               new NodeInfo(
                   expressionNode.getId(),
-                  resultUnwrapped,
+                  result,
                   nanoTimeElapsed,
                   frame == null ? null : frame.materialize(),
                   node);
           var cached = callbacks.updateCachedResult(info);
           resetExecutionEnvironment(info.getId());
-
           if (info.isPanic()) {
-            throw context.createUnwind(resultUnwrapped);
-          } else if (cached) {
-            // This assumes only the RHS is being cached and should be wrapped in a Ref.
-            // If there is any other expression wrapping somehow RHS (due to a bug in IrToTruffle)
-            // then it would likely receive Ref as a result and (maybe) crash due to unexpected type
-            // of the result.
-            // One example where one has to be extra careful is for example TypeCheckExpressionNode,
-            // which is NOT instrumentable.
-            var wrappedRef = callbacks.wrapAsReference(resultUnwrapped);
-            throw context.createUnwind(wrappedRef);
-          } else if (result != resultUnwrapped) {
-            // Any intermediate results that read local variable (so a Ref) should be unwrapped
-            throw context.createUnwind(resultUnwrapped);
+            throw context.createUnwind(result);
           }
         } else if (node instanceof ExpressionNode expressionNode) {
           resetExecutionEnvironment(expressionNode.getId());
@@ -402,6 +377,7 @@ public class IdExecutionInstrument extends TruffleInstrument implements IdExecut
             .tagIs(StandardTags.ExpressionTag.class, StandardTags.CallTag.class)
             .tagIs(IdentifiedTag.class)
             .tagIsNot(AvoidIdInstrumentationTag.class)
+            .tagIsNot(StandardTags.WriteVariableTag.class) // Not useful for id tracking
             .sourceIs(module::isModuleSource);
 
     if (entryCallTarget instanceof RootCallTarget r

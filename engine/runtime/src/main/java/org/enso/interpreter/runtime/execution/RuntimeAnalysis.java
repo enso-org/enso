@@ -14,26 +14,16 @@ public class RuntimeAnalysis {
 
   private static int COUNTER = 0;
   private final int id;
-  private final int parentId;
 
   private final Logger LOGGER = LoggerFactory.getLogger(RuntimeAnalysis.class);
 
-  private RuntimeAnalysis(int parentId) {
+  private RuntimeAnalysis() {
     this.id = COUNTER++;
     this.assignmentsStack = new Stack<>();
-    this.parentId = parentId;
   }
 
   public static RuntimeAnalysis create() {
-    return new RuntimeAnalysis(-1);
-  }
-
-  public static RuntimeAnalysis create(RuntimeAnalysis parent) {
-    if (parent != null) {
-      return new RuntimeAnalysis(parent.getId());
-    } else {
-      return RuntimeAnalysis.create();
-    }
+    return new RuntimeAnalysis();
   }
 
   private Ref getOrCreateReference(RuntimeID runtimeID) {
@@ -45,31 +35,29 @@ public class RuntimeAnalysis {
     return ref;
   }
 
-  public void startRhsExecution(RuntimeID rhsId, String description) {
+  public void startRhsExecution(RuntimeID rhsId) {
     var ref = getOrCreateReference(rhsId);
     assignmentsStack.push(ref);
   }
 
-  public Ref currentRhs(String description) {
+  public Ref currentRhs() {
     if (assignmentsStack.isEmpty()) {
       return null;
     }
     return assignmentsStack.peek();
   }
 
-  public void endRhsExecution(RuntimeID runtimeID, String description) {
+  public void endRhsExecution(RuntimeID runtimeID) {
     if (assignmentsStack.isEmpty()) {
-      LOGGER.warn(
-          "Empty runtime assignments stack encountered in {} @ {}", description, this.getId());
+      LOGGER.warn("Empty runtime assignments stack encountered @ {}", this.getId());
     } else {
 
       var popped = assignmentsStack.pop();
       if (!runtimeID.equals(popped.getRuntimeID())) {
         LOGGER.debug(
-            "Unexpected expression ID popped from the stack. Expected {}, got {} in {} @ {}",
+            "Unexpected expression ID popped from the stack. Expected {}, got {} @ {}",
             runtimeID,
             popped.getRuntimeID(),
-            description,
             this.id);
       }
     }
@@ -79,28 +67,12 @@ public class RuntimeAnalysis {
     return references.get(runtimeID.uuid());
   }
 
-  public void merge(RuntimeAnalysis analysis) {
-    analysis.references.forEach(
-        (key, value) -> {
-          var existing = this.references.get(key);
-          if (existing != null) {
-            existing.merge(value);
-          }
-        });
-  }
-
   public int getId() {
     return id;
   }
 
   @Override
   public String toString() {
-    return "RuntimeAnalysis[id: "
-        + id
-        + ", parent: "
-        + parentId
-        + ", keys: "
-        + references.keySet()
-        + "]";
+    return "RuntimeAnalysis[id: " + id + ", keys: " + references.keySet() + "]";
   }
 }

@@ -67,6 +67,7 @@ import org.enso.interpreter.service.error.TypeNotFoundException;
 import org.enso.lockmanager.client.ConnectedLockManager;
 import org.enso.logger.masking.MaskedString;
 import org.enso.pkg.QualifiedName;
+import org.enso.polyglot.DepTrackingService;
 import org.enso.polyglot.ExternalUUID;
 import org.enso.polyglot.debugger.ExecutedVisualization;
 import org.enso.polyglot.debugger.IdExecutionService;
@@ -86,6 +87,7 @@ public final class ExecutionService implements GuestExecutionService {
   private static final String MAIN_METHOD = "main";
   private final EnsoContext context;
   private final Optional<IdExecutionService> idExecutionInstrument;
+  private final Optional<DepTrackingService> depTrackingInstrument;
   private final NotificationHandler.Forwarder notificationForwarder;
   private final ConnectedLockManager connectedLockManager;
   private final ExecuteRootNode execute = new ExecuteRootNode();
@@ -99,6 +101,7 @@ public final class ExecutionService implements GuestExecutionService {
    * @param context the language context to use.
    * @param idExecutionInstrument optional instance of the {@link IdExecutionService} to use in the
    *     course of executions.
+   * @oaram depTrackingInstrument
    * @param notificationForwarder a forwarder of notifications, used to communicate with the user.
    * @param connectedLockManager a connected lock manager (if it is in use) that should be connected
    *     to the language server, or null.
@@ -107,10 +110,12 @@ public final class ExecutionService implements GuestExecutionService {
   public ExecutionService(
       EnsoContext context,
       Optional<IdExecutionService> idExecutionInstrument,
+      Optional<DepTrackingService> depTrackingInstrument,
       NotificationHandler.Forwarder notificationForwarder,
       ConnectedLockManager connectedLockManager,
       Timer timer) {
     this.idExecutionInstrument = idExecutionInstrument;
+    this.depTrackingInstrument = depTrackingInstrument;
     this.context = context;
     this.notificationForwarder = notificationForwarder;
     this.connectedLockManager = connectedLockManager;
@@ -181,6 +186,7 @@ public final class ExecutionService implements GuestExecutionService {
       UUID expressionId,
       FunctionCallInstrumentationNode.FunctionCall call,
       RuntimeCache cache,
+      RuntimeAnalysis runtimeAnalysis,
       MethodCallsCache methodCallsCache,
       UpdatesSynchronizationState syncState,
       UUID nextExecutionItem,
@@ -191,7 +197,6 @@ public final class ExecutionService implements GuestExecutionService {
       Consumer<ExecutedVisualization> onExecutedVisualizationCallback) {
     return submitExecution(
         () -> {
-          var runtimeAnalysis = RuntimeAnalysis.create(cache.getAnalysis());
           var callbacks =
               new ExecutionCallbacks(
                   visualizationHolder,
@@ -206,6 +211,15 @@ public final class ExecutionService implements GuestExecutionService {
                   funCallCallback,
                   onExecutedVisualizationCallback,
                   this.context.isProgressReportEnabled() ? onComputedCallback : null);
+          var depTrackingCallbacks = new DepTrackingCallbacks(runtimeAnalysis);
+          Optional<EventBinding<ExecutionEventNodeFactory>> depTrackingEventNodeFactory =
+              depTrackingInstrument.map(
+                  service ->
+                      service.bind(
+                          module,
+                          depTrackingCallbacks,
+                          call.getFunction().getCallTarget(),
+                          this.timer));
           Optional<EventBinding<ExecutionEventNodeFactory>> eventNodeFactory =
               idExecutionInstrument.map(
                   service ->
@@ -229,8 +243,7 @@ public final class ExecutionService implements GuestExecutionService {
                       "Executing function "
                           + call.getFunction().getName()
                           + " with instrumentation");
-
-              callbacks.startExecutionBlock(expressionRuntimeID, "execute");
+              depTrackingCallbacks.startVariableAssignment(expressionRuntimeID);
             }
             context
                 .getLogger()
@@ -242,10 +255,10 @@ public final class ExecutionService implements GuestExecutionService {
             return RunStateNode.getUncached().execute(null, cacheKey(), cache, callFn);
           } finally {
             if (expressionRuntimeID != null) {
-              callbacks.endExecutionBlock(expressionRuntimeID, "end-execute");
+              depTrackingCallbacks.endVariableAssignment(expressionRuntimeID);
             }
-            cache.mergeAnalysis(runtimeAnalysis);
             eventNodeFactory.ifPresent(EventBinding::dispose);
+            depTrackingEventNodeFactory.ifPresent(EventBinding::dispose);
           }
         });
   }
@@ -258,6 +271,7 @@ public final class ExecutionService implements GuestExecutionService {
    * @param typeName the name of the type the method is defined on
    * @param methodName the method name
    * @param cache the precomputed expression values
+   * @param runtimeAnalysis
    * @param methodCallsCache the storage tracking the executed method calls
    * @param syncState the synchronization state of runtime updates
    * @param nextExecutionItem the next item scheduled for execution
@@ -274,6 +288,7 @@ public final class ExecutionService implements GuestExecutionService {
       String methodName,
       VisualizationHolder visualizationHolder,
       RuntimeCache cache,
+      RuntimeAnalysis runtimeAnalysis,
       MethodCallsCache methodCallsCache,
       UpdatesSynchronizationState syncState,
       UUID nextExecutionItem,
@@ -300,6 +315,7 @@ public final class ExecutionService implements GuestExecutionService {
                 null,
                 call,
                 cache,
+                runtimeAnalysis,
                 methodCallsCache,
                 syncState,
                 nextExecutionItem,
@@ -389,6 +405,7 @@ public final class ExecutionService implements GuestExecutionService {
    *
    * @param visualizationHolder visualization to compute
    * @param cache the runtime cache
+   * @param runtimeAnalysis
    * @param executionCache cache with values provided by main execution
    * @param module the module providing scope for the function
    * @param function the function object
@@ -399,6 +416,7 @@ public final class ExecutionService implements GuestExecutionService {
       VisualizationHolder visualizationHolder,
       RuntimeCache cache,
       RuntimeCache executionCache,
+      RuntimeAnalysis runtimeAnalysis,
       Module module,
       Object function,
       Object... arguments) {
@@ -421,13 +439,12 @@ public final class ExecutionService implements GuestExecutionService {
           Consumer<ExpressionValue> onProgressCallback =
               (value) -> context.getLogger().finest("_ON_PROGRESS " + value.getExpressionId());
 
-          var runtimeAnalysisBuilder = RuntimeAnalysis.create(cache.getAnalysis());
           var callbacks =
               new ExecutionCallbacks(
                   visualizationHolder,
                   nextExecutionItem,
                   cache,
-                  runtimeAnalysisBuilder,
+                  runtimeAnalysis,
                   methodCallsCache,
                   syncState,
                   expressionExecutionState,
@@ -436,6 +453,11 @@ public final class ExecutionService implements GuestExecutionService {
                   funCallCallback,
                   onExecutedVisualizationCallback,
                   onProgressCallback);
+          var depTrackingCallbacks = new DepTrackingCallbacks(runtimeAnalysis);
+          Optional<EventBinding<ExecutionEventNodeFactory>> depTrackingEventNodeFactory =
+              depTrackingInstrument.map(
+                  service ->
+                      service.bind(module, depTrackingCallbacks, entryCallTarget, this.timer));
           Optional<EventBinding<ExecutionEventNodeFactory>> eventNodeFactory =
               idExecutionInstrument.map(
                   service -> service.bind(module, entryCallTarget, callbacks, this.timer));
@@ -453,8 +475,8 @@ public final class ExecutionService implements GuestExecutionService {
 
             ret[0] = RunStateNode.getUncached().execute(null, cacheKey(), executionCache, callFn);
           } finally {
-            cache.mergeAnalysis(runtimeAnalysisBuilder);
             eventNodeFactory.ifPresent(EventBinding::dispose);
+            depTrackingEventNodeFactory.ifPresent(EventBinding::dispose);
           }
           return ret[0];
         });

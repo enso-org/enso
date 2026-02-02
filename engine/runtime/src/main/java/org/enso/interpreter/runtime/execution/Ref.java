@@ -27,7 +27,12 @@ public abstract sealed class Ref permits RefObject {
   /** Register a downstream dependency with this reference. */
   public abstract void registerDependency(Ref dep);
 
+  /** Returns a list of downstream dependencies dependent on the value of this reference. */
   public abstract Set<Ref> dependencies();
 
-  public abstract void merge(Ref r);
+  /** Returns the current underlying value for this reference. */
+  public abstract Object get();
+
+  /** Updates the underlying value of this reference. */
+  public abstract void update(Object value);
 }

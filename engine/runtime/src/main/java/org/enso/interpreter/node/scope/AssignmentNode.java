@@ -114,6 +114,7 @@ public abstract class AssignmentNode extends ExpressionNode {
         CompilerDirectives.transferToInterpreterAndInvalidate();
         var newRhs = new AssignLocalVariableNode(getName(), rhs);
         newRhs.setSourceLocation(bounds[0], bounds[1]);
+        newRhs.setId(rhs.getId());
         var res = NodeUtil.replaceChild(this, getRhsNode(), newRhs);
         insert(newRhs);
         notifyInserted(newRhs);

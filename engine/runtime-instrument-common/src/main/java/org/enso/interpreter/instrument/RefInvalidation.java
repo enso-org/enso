@@ -8,6 +8,7 @@ import java.util.Stack;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import org.enso.interpreter.runtime.execution.Ref;
+import org.enso.interpreter.runtime.execution.RuntimeAnalysis;
 import org.enso.polyglot.ExternalUUID;
 import org.enso.polyglot.RuntimeID;
 import org.slf4j.Logger;
@@ -23,10 +24,15 @@ public class RefInvalidation {
    * @param initial intiial set of UUIDS affected by the change
    * @param frames stack of frames containing caches, used for tracking changes between function
    *     calls
+   * @param visHolder a reference to all registered visualizations
+   * @param runtimeAnalysis dependency tracking info
    * @return a transitive closure of IDs affected
    */
   public static Set<RuntimeID> invalidateAffectedIDs(
-      Iterable<UUID> initial, Stack<InstrumentFrame> frames, VisualizationHolder visHolder) {
+      Iterable<UUID> initial,
+      Stack<InstrumentFrame> frames,
+      VisualizationHolder visHolder,
+      RuntimeAnalysis runtimeAnalysis) {
     @SuppressWarnings("unchecked")
     var frames1 = (Stack<InstrumentFrame>) frames.clone();
     if (frames1.isEmpty()) {
@@ -34,7 +40,6 @@ public class RefInvalidation {
     } else {
 
       var frame = frames1.pop();
-      var runtimeAnalysis = frame.cache().getAnalysis();
       if (runtimeAnalysis == null) {
         LOGGER.debug("No runtime data. Unable to do any invalidation for " + initial);
         return Set.of();
@@ -49,7 +54,13 @@ public class RefInvalidation {
 
       var transitivelyInvalidated =
           invalidateTransitiveDependencies(
-              directlyInvalidated, Set.of(), frames1.stream().toList(), frame, visHolder, true);
+              directlyInvalidated,
+              Set.of(),
+              frames1.stream().toList(),
+              frame,
+              visHolder,
+              runtimeAnalysis,
+              true);
       var result =
           transitivelyInvalidated.stream()
               .filter(AffectedID::currentFrame)
@@ -72,6 +83,7 @@ public class RefInvalidation {
       List<InstrumentFrame> frames,
       InstrumentFrame currentFrame,
       VisualizationHolder visHolder,
+      RuntimeAnalysis runtimeAnalysis,
       boolean topFrame) {
     var newAcc = new HashSet<>(acc);
     while (!toInvalidate.isEmpty()) {
@@ -96,7 +108,6 @@ public class RefInvalidation {
       Set<AffectedID> unrolledDependencies = Set.of();
       if (!frames.isEmpty()) {
         var frameOneLevelUp = frames.get(0);
-        var runtimeAnalysis = frameOneLevelUp.cache().getAnalysis();
         var refOneLevelUp = frameOneLevelUp.cache().get(head.getRuntimeID());
         if (refOneLevelUp != null) {
           var frames1 = new LinkedList<>(frames);
@@ -104,7 +115,13 @@ public class RefInvalidation {
           toInvalidate1.add(runtimeAnalysis.get(head.getRuntimeID()));
           unrolledDependencies =
               invalidateTransitiveDependencies(
-                  toInvalidate1, Set.of(), frames1, frameOneLevelUp, visHolder, false);
+                  toInvalidate1,
+                  Set.of(),
+                  frames1,
+                  frameOneLevelUp,
+                  visHolder,
+                  runtimeAnalysis,
+                  false);
         }
       }
       var toProcessList = toProcessInCurrentCache.toList();

@@ -37,6 +37,6 @@ final class VariableNodeObject implements TruffleObject {
 
   @ExportMessage
   boolean isMemberReadable(String member) {
-    return true;
+    return member.equals(key);
   }
 }

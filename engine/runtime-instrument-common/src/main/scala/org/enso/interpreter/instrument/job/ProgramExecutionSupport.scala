@@ -156,6 +156,7 @@ object ProgramExecutionSupport {
           function,
           ctx.contextManager.getVisualizationHolder(contextId),
           cache,
+          ctx.state.runtimeAnalysis,
           methodCallsCache,
           syncState,
           callStack.headOption.map(_.expressionId).orNull,
@@ -200,6 +201,7 @@ object ProgramExecutionSupport {
           expressionId,
           callData,
           cache,
+          ctx.state.runtimeAnalysis,
           methodCallsCache,
           syncState,
           callStack.headOption.map(_.expressionId).orNull,
@@ -714,6 +716,7 @@ object ProgramExecutionSupport {
           holder,
           visualization.cache,
           runtimeCache,
+          ctx.state.runtimeAnalysis,
           visualization.module,
           visualization.callback,
           expressionValue +: visualization.arguments: _*

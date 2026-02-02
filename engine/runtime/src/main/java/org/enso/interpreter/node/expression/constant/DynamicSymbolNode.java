@@ -58,4 +58,9 @@ public class DynamicSymbolNode extends ExpressionNode {
     CompilerDirectives.transferToInterpreterAndInvalidate();
     this.id = id;
   }
+
+  @Override
+  public String toString() {
+    return "DynamicSymbolNode(symbol=" + unresolvedSymbol + ")";
+  }
 }

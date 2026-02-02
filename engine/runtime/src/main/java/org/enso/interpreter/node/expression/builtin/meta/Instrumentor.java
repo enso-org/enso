@@ -136,22 +136,6 @@ final class Instrumentor extends EnsoObject implements IdExecutionService.Callba
       RuntimeID uuid, Predicate<Object> shouldUpdate, Function<Object, Object> onSuccess) {}
 
   @Override
-  public void startExecutionBlock(RuntimeID toRuntimeId, String explanation) {}
-
-  @Override
-  public void endExecutionBlock(RuntimeID runtimeID, String explanation) {}
-
-  @Override
-  public Object registerRuntimeDependency(Object result) {
-    return result;
-  }
-
-  @Override
-  public Object wrapAsReference(Object value) {
-    return value;
-  }
-
-  @Override
   @TruffleBoundary
   public Object toDisplayString(boolean allowSideEffects) {
     String rootName;

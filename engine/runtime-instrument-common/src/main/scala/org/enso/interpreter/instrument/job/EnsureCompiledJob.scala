@@ -430,7 +430,8 @@ class EnsureCompiledJob(
               .invalidateAffectedIDs(
                 uuidsJ,
                 stackJ,
-                ctx.contextManager.getVisualizationHolder(ctxId)
+                ctx.contextManager.getVisualizationHolder(ctxId),
+                ctx.state.runtimeAnalysis
               )
               .asScala
           val cachedIDs = affected.filter(_.isExternal)

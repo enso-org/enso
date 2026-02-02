@@ -20,6 +20,7 @@ import org.enso.interpreter.runtime.instrument.NotificationHandler;
 import org.enso.interpreter.runtime.instrument.Timer;
 import org.enso.interpreter.service.ExecutionService;
 import org.enso.lockmanager.client.ConnectedLockManager;
+import org.enso.polyglot.DepTrackingService;
 import org.enso.polyglot.RuntimeServerInfo;
 import org.enso.polyglot.debugger.IdExecutionService;
 import org.graalvm.options.OptionDescriptor;
@@ -76,6 +77,11 @@ public class RuntimeServerInstrument extends TruffleInstrument {
                           instrument.env.lookup(
                               idValueListenerInstrument, IdExecutionService.class));
 
+          var depTrackingInstrument =
+              Optional.ofNullable(
+                      instrument.env.getInstruments().get(DepTrackingService.INSTRUMENT_ID))
+                  .map(listener -> instrument.env.lookup(listener, DepTrackingService.class));
+
           var timer = instrument.env.lookup(language, Timer.class);
           var notificationHandler =
               instrument.env.lookup(language, NotificationHandler.Forwarder.class);
@@ -86,7 +92,12 @@ public class RuntimeServerInstrument extends TruffleInstrument {
                   : null;
           service =
               new ExecutionService(
-                  ctx, idExecutionInstrument, notificationHandler, connectedLockManager, timer);
+                  ctx,
+                  idExecutionInstrument,
+                  depTrackingInstrument,
+                  notificationHandler,
+                  connectedLockManager,
+                  timer);
 
         } finally {
           context.leave(null, token);
