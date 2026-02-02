@@ -3,8 +3,25 @@ package org.enso.base.polyglot;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 
+import java.util.concurrent.atomic.AtomicReference;
+
 /** A helper class that makes calling Enso methods from Java libraries easier. */
 public final class EnsoMeta {
+  private static final AtomicReference<Value> nothingValueRef = new AtomicReference<>();
+
+  /** Returns the Enso `Nothing` value. */
+  public static Value getNothing() {
+    if (nothingValueRef.get() == null) {
+      synchronized (nothingValueRef) {
+        if (nothingValueRef.get() == null) {
+          var nothing = eval("Standard.Base.Nothing", "Nothing");
+          nothingValueRef.set(nothing);
+        }
+      }
+    }
+    return nothingValueRef.get();
+  }
+
   private static Value getBindings() {
     var ctx = Context.getCurrent();
     var bindings = ctx.getPolyglotBindings().getMember("ensoBindings");
@@ -48,8 +65,6 @@ public final class EnsoMeta {
     return factory.execute(argsWithSelf);
   }
 
-  private static Value nothingValue = null;
-
   /** Creates an instance of an Enso type by calling the specified constructor. */
   public static Value makeInstance(
       String moduleName, String typeName, String constructorName, Object... args) {
@@ -80,10 +95,7 @@ public final class EnsoMeta {
       throw new IllegalStateException("Constructor " + constructorName + " is not instantiable.");
     }
 
-    if (nothingValue == null) {
-      nothingValue = eval(moduleName, "Nothing");
-    }
-    args = java.util.Arrays.stream(args).map(arg -> arg == null ? nothingValue : arg).toArray();
+    args = java.util.Arrays.stream(args).map(arg -> arg == null ? getNothing() : arg).toArray();
 
     return constructor.newInstance(args);
   }
