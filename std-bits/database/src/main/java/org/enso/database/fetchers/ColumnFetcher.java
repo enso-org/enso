@@ -62,7 +62,7 @@ public interface ColumnFetcher {
     }
 
     var java_table = getTable(fetchers);
-    return problemAggregator.attachProblemsToValue(Value.asValue(java_table));
+    return problemAggregator.attachProblemsToValue(Value.asValue(java_table), false);
   }
 
   static Value readLastRow(
@@ -93,7 +93,7 @@ public interface ColumnFetcher {
     }
 
     var java_table = getTable(fetchers);
-    return problemAggregator.attachProblemsToValue(Value.asValue(java_table));
+    return problemAggregator.attachProblemsToValue(Value.asValue(java_table), false);
   }
 
   /**

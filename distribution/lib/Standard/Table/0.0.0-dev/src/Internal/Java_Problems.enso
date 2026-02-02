@@ -4,7 +4,6 @@ import Standard.Base.Errors.Common.Additional_Warnings
 
 polyglot java import org.enso.table.data.table.problems.MapOperationProblemAggregator
 polyglot java import org.enso.table.problems.ProblemAggregator
-polyglot java import org.enso.table.problems.ProblemAggregator.ProblemSummary
 
 ## ---
    private: true
@@ -18,27 +17,18 @@ translate_problem p =
 ## ---
    private: true
    ---
-unpack_problem_summary problem_summary =
-    problems_array = problem_summary.problems
-    count = problem_summary.allProblemsCount
-    ## TODO [RW, GT] In the next iterations we will want to remove
-       `translate_problem` in favour of constructing Enso problem instances
-       directly in Java code. To do so, we will need https://github.com/enso-org/enso/issues/7797
-    parsed = problems_array . map on_problems=No_Wrap.Value translate_problem
-    if count == parsed.length then parsed else
-        parsed + [Additional_Warnings.Error (count - parsed.length)]
-
-## ---
-   private: true
-   ---
    This is the new preferred way of running Java methods that may report
    problems.
 with_problem_aggregator : Problem_Behavior -> (ProblemAggregator -> Any) -> ProblemAggregator -> Any
 with_problem_aggregator on_problems:Problem_Behavior f problem_aggregator=ProblemAggregator =
-    ## This should be the only call to the `makeTopLevelAggregator` method in the whole codebase.
     aggregator = problem_aggregator.makeTopLevelAggregator
+
     result = f aggregator
-    on_problems.attach_problems_after result (unpack_problem_summary aggregator.summarize)
+
+    case on_problems of
+        Problem_Behavior.Ignore -> result
+        Problem_Behavior.Report_Warning -> aggregator.attachProblemsToValue result False
+        Problem_Behavior.Report_Error -> aggregator.attachProblemsToValue result True
 
 ## ---
    private: true

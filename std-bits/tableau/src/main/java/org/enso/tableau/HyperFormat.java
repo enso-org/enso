@@ -298,7 +298,7 @@ public class HyperFormat {
                   problemAggregator,
                   tableNameObject,
                   query));
-      return problemAggregator.attachProblemsToValue(tableValue);
+      return problemAggregator.attachProblemsToValue(tableValue, false);
     } catch (Exception e) {
       return handleHyperErrors(path, e);
     }

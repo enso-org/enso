@@ -157,16 +157,17 @@ public class ProblemAggregator {
    * attached problems is returned.
    *
    * @param value the value to attach problems to
+   * @param asErrors whether to attach problems as errors (if true) or warnings (if false)
    * @return the value with attached problems, or the original value if there are no problems
    */
-  public Value attachProblemsToValue(Value value) {
+  public Value attachProblemsToValue(Value value, boolean asErrors) {
     ProblemSummary summary = summarize();
     if (summary.allProblemsCount == 0) {
       return value;
     }
 
-    // Check from any errors.
-    var firstError = summary.problems.stream().filter(Problem::isError).findFirst();
+    // Check for any errors or if asErrors raise the first problem.
+    var firstError = summary.problems.stream().filter(p -> asErrors || p.isError()).findFirst();
     if (firstError.isPresent()) {
       return EnsoMeta.asDataflowError(firstError.get().asEnsoValue());
     }
