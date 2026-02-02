@@ -1,6 +1,7 @@
 import org.apache.commons.io.FileUtils
 import sbt.*
 import sbt.Keys.*
+import sbt.internal.util.ManagedLogger
 import scala.jdk.CollectionConverters.collectionAsScalaIterableConverter
 
 /** Basic support for Bazel, more specifically, being able to run `sbt` from bazel.
@@ -191,5 +192,34 @@ object BazelSupport extends AutoPlugin {
         }
       }
     )
+  }
+
+  def generatedVersion(
+    file: File,
+    log: ManagedLogger
+  )(
+    fallback: => Seq[File]
+  ): Seq[File] = {
+    val bazelEnabled = System.getProperty(ENABLED_PROP) != null
+    val generatedFromBazel =
+      Option(System.getProperty(VERSION_INFO_PROP)).filter(_.nonEmpty)
+
+    (bazelEnabled, generatedFromBazel) match {
+      case (true, Some(srcPath)) =>
+        val src = new File(srcPath)
+        if (!src.exists()) {
+          log.error(
+            s"Provided GeneratedVersion.java file does not exist at $srcPath (system property ${BazelSupport.VERSION_INFO_PROP})."
+          )
+          throw new RuntimeException(
+            s"Missing GeneratedVersion.java at $srcPath"
+          )
+        }
+        IO.createDirectory(file.getParentFile)
+        IO.copyFile(src, file)
+        Seq(file)
+      case _ =>
+        fallback
+    }
   }
 }

@@ -80,6 +80,7 @@ for (const key of Object.keys(variables)) {
 
 // Special handling for version-related variables.
 variables['ENSO_IDE_VERSION'] = process.env.ENSO_IDE_VERSION || buildDefaultIdeVersion()
+variables['ENSO_IDE_EDITION'] = process.env.ENSO_IDE_EDITION || variables['ENSO_IDE_VERSION']
 variables['ENSO_IDE_COMMIT_HASH'] = resolveIdeCommitHash()
 
 // Emit all variables to the `stable-status.txt` file.

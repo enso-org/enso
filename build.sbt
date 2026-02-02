@@ -1644,38 +1644,18 @@ lazy val `version-output` = (project in file("lib/scala/version-output"))
     Compile / sourceGenerators += Def.task {
       val file =
         (Compile / sourceManaged).value / "org" / "enso" / "version" / "GeneratedVersion.java"
-      val bazelEnabled = System.getProperty(BazelSupport.ENABLED_PROP) != null
-      val generatedFromBazel =
-        Option(System.getProperty(BazelSupport.VERSION_INFO_PROP))
-          .filter(_.nonEmpty)
-
-      (bazelEnabled, generatedFromBazel) match {
-        case (true, Some(srcPath)) =>
-          val logger = state.value.log
-          val src    = new File(srcPath)
-          if (!src.exists()) {
-            logger.error(
-              s"Provided GeneratedVersion.java file does not exist at $srcPath (system property ${BazelSupport.VERSION_INFO_PROP})."
-            )
-            throw new RuntimeException(
-              s"Missing GeneratedVersion.java at $srcPath"
-            )
-          }
-          IO.createDirectory(file.getParentFile)
-          IO.copyFile(src, file)
-          Seq(file)
-        case _ =>
-          BuildInfo
-            .writeBuildInfoFile(
-              file                  = file,
-              log                   = state.value.log,
-              defaultDevEnsoVersion = defaultDevEnsoVersion,
-              ensoVersion           = ensoVersion,
-              scalacVersion         = scalacVersion,
-              graalVersion          = graalMavenPackagesVersion,
-              javaVersion           = graalVersion,
-              currentEdition        = currentEdition
-            )
+      BazelSupport.generatedVersion(file, state.value.log) {
+        BuildInfo
+          .writeBuildInfoFile(
+            file                  = file,
+            log                   = state.value.log,
+            defaultDevEnsoVersion = defaultDevEnsoVersion,
+            ensoVersion           = ensoVersion,
+            scalacVersion         = scalacVersion,
+            graalVersion          = graalMavenPackagesVersion,
+            javaVersion           = graalVersion,
+            currentEdition        = currentEdition
+          )
       }
     }.taskValue
   )
