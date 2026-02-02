@@ -9,6 +9,22 @@
       "allDeclaredMethods": true
     },
     {
+      "type": "java.nio.ByteBuffer",
+      "jniAccessibleType": true,
+      "methods": [
+        {
+          "name": "allocateDirect",
+          "parameterTypes": [
+            "int"
+          ]
+        },
+        {
+          "name": "toString",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
       "type": "org.enso.languageserver.http.server.BinaryYdocServer$BinaryServerCallbacks",
       "methods": [
         {

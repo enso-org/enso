@@ -238,6 +238,7 @@ export class YjsChannel<T = unknown> extends ObservableV2<WebSocketEventHandlers
       try {
         handler(message)
       } catch (e) {
+        console.error('Failed to handle message', message, e)
         const error = new Error(`Failed to handle message: ${message}`)
         ;(error as any).target = e
         this.emitError(error)

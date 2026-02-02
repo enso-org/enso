@@ -134,6 +134,22 @@
       ]
     },
     {
+      "type": "java.nio.ByteBuffer",
+      "jniAccessibleType": true,
+      "methods": [
+        {
+          "name": "allocateDirect",
+          "parameterTypes": [
+            "int"
+          ]
+        },
+        {
+          "name": "toString",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
       "type": "com.sun.crypto.provider.AESCipher$General",
       "methods": [
         {
