@@ -34,9 +34,13 @@ the Language Server. It maintains shared document state using Yjs CRDTs and
 synchronizes changes across all connected clients.
 
 ```
-┌─────────────┐    WebSocket    ┌───────────────┐    YjsChannelCallbacks   ┌─────────────────┐
-│  IDE Client │◄─────────────►│  Ydoc Server  │◄──────────────────────►│ Language Server │
-└─────────────┘                 └───────────────┘                          └─────────────────┘
++------------------+                +--------------------------------------------------------------+
+|                  |                |                                                              |
+| +--------------+ |    WebSocket   | +-----------------+ YjsChannelCallbacks  +-----------------+ |
+| |  IDE Client  | |<-------------->| |  Ydoc Server    |<-------------------->| Language Server | |
+| +--------------+ |                | +-----------------+                      +-----------------+ |
+|     Electron     |                |                         GraalVM                              |
++------------------+                +--------------------------------------------------------------+
 ```
 
 The IDE client creates a `YjsChannel` backed by a Yjs `Y.Array` and connects to
@@ -127,7 +131,7 @@ channels and callbacks with synchronized versions:
 - `YjsCallbacksSynchronized` - Wraps channels before passing to delegates
 
 The `YdocScheduledExecutorService` maintains an event queue and executes tasks
-on the owner thread when `processPendingTasks()` is called.
+on the owner thread.
 
 ## Startup Flow
 
