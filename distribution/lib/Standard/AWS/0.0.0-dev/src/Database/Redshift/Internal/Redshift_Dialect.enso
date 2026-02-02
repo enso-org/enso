@@ -10,7 +10,10 @@ import Standard.Database.Dialects.Dialect.Temp_Table_Style
 import Standard.Database.Dialects.Dialect_Flag.Dialect_Flag
 import Standard.Database.Dialects.Feature.Feature
 import Standard.Database.Internal.Base_Generator
+import Standard.Database.Internal.Aggregate_Helper
+import Standard.Database.Internal.Aggregate_Helper.Aggregate_With_Helper_Expressions
 import Standard.Database.Internal.Common.Database_Join_Helper
+import Standard.Database.Internal.Common.Row_Number_Helpers
 import Standard.Database.Internal.IR.Internal_Column.Internal_Column
 import Standard.Database.Internal.IR.Order_Descriptor.Order_Descriptor
 import Standard.Database.Internal.IR.SQL_IR_Expression.SQL_IR_Expression
@@ -232,6 +235,58 @@ type Redshift_Dialect
     ## ---
        private: true
        ---
+       We need custom handling for First and Last, as Redshift does not support
+       array_agg or FIRST/LAST aggregates. We implement them by adding a helper
+       row_number column in a subquery and aggregating via CASE in the outer
+       query.
+    custom_build_aggregate self =
+        create_row_number_for orderings key_columns reverse ignore_null result_expr =
+            order_descriptors = orderings.map o->
+                self.prepare_order_descriptor (o.column:Internal_Column) o.direction text_ordering=Nothing
+            reversed = if reverse then order_descriptors.map .reverse else order_descriptors
+            order_with_nulls =
+                if ignore_null then
+                    is_null = SQL_IR_Expression.Operation "IS_NULL" [result_expr]
+                    null_order = Order_Descriptor.Value is_null Sort_Direction.Ascending Nothing Nothing
+                    [null_order] + reversed
+                else reversed
+            key_expressions_for_orderings = key_columns.map .expression
+            expression = Row_Number_Helpers.make_row_number 1 1 order_with_nulls key_expressions_for_orderings
+            Pair.new "row-number" expression
+
+        create_helper_expressions aggregate_column key_columns =
+            make_helper_for_first_last order_by ignore_null reverse result_expr =
+                if Aggregate_Helper.is_non_empty_selector order_by then
+                    [create_row_number_for order_by key_columns reverse ignore_null result_expr]
+                else []
+            case aggregate_column of
+                Aggregate_Column.First column _ ignore_null order_by -> make_helper_for_first_last order_by ignore_null False column.expression
+                Aggregate_Column.Last column _ ignore_null order_by -> make_helper_for_first_last order_by ignore_null True column.expression
+                _ -> []
+
+        make_aggregate aggregate_column as helper_expressions base_table infer_return_type problem_builder =
+            make_first_last op_kind =
+                if Aggregate_Helper.is_non_empty_selector aggregate_column.order_by . not then
+                    Aggregate_Helper.throw_ordering_required (op_kind.to_case ..Title)
+                else
+                    Runtime.assert (helper_expressions.length == 1)
+                    row_number = helper_expressions.first
+                    op = case aggregate_column.ignore_nothing of
+                        False -> op_kind
+                        True  -> op_kind + "_NOT_NULL"
+                    sql_type_reference = aggregate_column.column.sql_type_reference
+                    Internal_Column.Value as sql_type_reference (SQL_IR_Expression.Operation op [aggregate_column.column.expression, row_number.expression])
+            case aggregate_column of
+                Aggregate_Column.First _ _ _ _ -> make_first_last "FIRST"
+                Aggregate_Column.Last _ _ _ _ -> make_first_last "LAST"
+                _ -> Aggregate_Helper.make_aggregate_column base_table aggregate_column as self infer_return_type problem_builder
+
+        setup = Aggregate_With_Helper_Expressions.Value create_helper_expressions make_aggregate
+        setup.build self
+
+    ## ---
+       private: true
+       ---
        Checks if an operation is supported by the dialect.
     is_operation_supported self operation:Text -> Boolean =
         self.dialect_operations.is_operation_supported operation
@@ -403,27 +458,15 @@ agg_percentile = Base_Generator.lift_binary_op "PERCENTILE" p-> expr->
    compatible with other group-by aggregations out-of-the-box. In the future, we
    may want to consider some alternative solutions.
 first_last_aggregators =
-    first = make_first_aggregator reverse=False ignore_null=False
-    first_not_null = make_first_aggregator reverse=False ignore_null=True
-    last = make_first_aggregator reverse=True ignore_null=False
-    last_not_null = make_first_aggregator reverse=True ignore_null=True
-    [["FIRST", first], ["FIRST_NOT_NULL", first_not_null], ["LAST", last], ["LAST_NOT_NULL", last_not_null]]
+    make_first_last_agg args =
+        if args.length != 2 then
+            Error.throw (Illegal_State.Error "Expected exactly 2 arguments.")
+        column = args.first
+        row_number = args.second
+        ## MAX is used as an aggregating variant of COALESCE - it will select the single non-null value.
+        SQL_Builder.code "MAX(CASE WHEN " ++ row_number ++ " = 1 THEN " ++ column ++ " END)"
+    [["FIRST", make_first_last_agg], ["FIRST_NOT_NULL", make_first_last_agg], ["LAST", make_first_last_agg], ["LAST_NOT_NULL", make_first_last_agg]]
 
 ## ---
    private: true
    ---
-make_first_aggregator reverse ignore_null args =
-    if args.length < 2 then Error.throw (Illegal_State.Error "Insufficient number of arguments for the operation.") else
-        result_expr = args.first
-        order_bys = args.drop 1
-
-        filter_clause = if ignore_null.not then "" else
-            SQL_Builder.code " FILTER (WHERE " ++ result_expr.paren ++ " IS NOT NULL)"
-        order_clause =
-            SQL_Builder.code " ORDER BY " ++ SQL_Builder.join "," order_bys
-        index_expr = case reverse of
-            True -> if ignore_null.not then "COUNT(*)" else
-                SQL_Builder.code "COUNT(" ++ result_expr ++ ")"
-            False -> "1"
-
-        SQL_Builder.code "(array_agg(" ++ result_expr.paren ++ order_clause ++ ")" ++ filter_clause ++ ")[" ++ index_expr ++ "]"
