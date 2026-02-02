@@ -15,6 +15,7 @@ import Standard.Database.Internal.Aggregate_Helper.Aggregate_With_Helper_Express
 import Standard.Database.Internal.Common.Database_Join_Helper
 import Standard.Database.Internal.Common.Row_Number_Helpers
 import Standard.Database.Internal.IR.Internal_Column.Internal_Column
+import Standard.Database.Internal.IR.Nulls_Order.Nulls_Order
 import Standard.Database.Internal.IR.Order_Descriptor.Order_Descriptor
 import Standard.Database.Internal.IR.SQL_IR_Expression.SQL_IR_Expression
 import Standard.Database.Internal.IR.SQL_IR_Source.SQL_IR_Source
@@ -254,6 +255,14 @@ type Redshift_Dialect
             expression = Row_Number_Helpers.make_row_number 1 1 order_with_nulls key_expressions_for_orderings
             Pair.new "row-number" expression
 
+        create_row_number_for_shortest_longest key_columns result_expr reverse =
+            length_expr = SQL_IR_Expression.Operation "LENGTH" [result_expr]
+            direction = if reverse then Sort_Direction.Descending else Sort_Direction.Ascending
+            order_descriptor = Order_Descriptor.Value length_expr direction (Nulls_Order.Last) Nothing
+            key_expressions_for_orderings = key_columns.map .expression
+            expression = Row_Number_Helpers.make_row_number 1 1 [order_descriptor] key_expressions_for_orderings
+            Pair.new "row-number" expression
+
         create_helper_expressions aggregate_column key_columns =
             make_helper_for_first_last order_by ignore_null reverse result_expr =
                 if Aggregate_Helper.is_non_empty_selector order_by then
@@ -262,6 +271,8 @@ type Redshift_Dialect
             case aggregate_column of
                 Aggregate_Column.First column _ ignore_null order_by -> make_helper_for_first_last order_by ignore_null False column.expression
                 Aggregate_Column.Last column _ ignore_null order_by -> make_helper_for_first_last order_by ignore_null True column.expression
+                Aggregate_Column.Shortest column _ -> [create_row_number_for_shortest_longest key_columns column.expression False]
+                Aggregate_Column.Longest column _ -> [create_row_number_for_shortest_longest key_columns column.expression True]
                 _ -> []
 
         make_aggregate aggregate_column as helper_expressions base_table infer_return_type problem_builder =
@@ -276,9 +287,18 @@ type Redshift_Dialect
                         True  -> op_kind + "_NOT_NULL"
                     sql_type_reference = aggregate_column.column.sql_type_reference
                     Internal_Column.Value as sql_type_reference (SQL_IR_Expression.Operation op [aggregate_column.column.expression, row_number.expression])
+
+            make_shortest_longest op_kind column =
+                Runtime.assert (helper_expressions.length == 1)
+                row_number = helper_expressions.first
+                sql_type_reference = column.sql_type_reference
+                Internal_Column.Value as sql_type_reference (SQL_IR_Expression.Operation op_kind [column.expression, row_number.expression])
+
             case aggregate_column of
                 Aggregate_Column.First _ _ _ _ -> make_first_last "FIRST"
                 Aggregate_Column.Last _ _ _ _ -> make_first_last "LAST"
+                Aggregate_Column.Shortest column _ -> make_shortest_longest "FIRST" column
+                Aggregate_Column.Longest column _ -> make_shortest_longest "LAST" column
                 _ -> Aggregate_Helper.make_aggregate_column base_table aggregate_column as self infer_return_type problem_builder
 
         setup = Aggregate_With_Helper_Expressions.Value create_helper_expressions make_aggregate
