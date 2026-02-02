@@ -122,8 +122,8 @@ electron_builder_bin.electron_builder(
         ":electron-builder-config.cjs",
         ":selected_bundle",
         ":selected_gui_dist",
-        "//:sbt_build_engine_distribution",
-        "//:sbt_build_small_jdk",
+        "//:sbt_build_native_engine_distribution",
+        # "//:sbt_build_small_jdk",
     ],
     args = [
         "build",

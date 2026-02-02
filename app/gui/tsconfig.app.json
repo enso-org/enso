@@ -841,6 +841,7 @@
     "./src/project-view/util/fetchTimeout.ts",
     "./src/project-view/util/fileFilter.ts",
     "./src/project-view/util/getIconName.ts",
+    "./src/project-view/util/iconMetadata/iconName.ts",
     "./src/project-view/util/icons.ts",
     "./src/project-view/util/link.ts",
     "./src/project-view/util/measurement.ts",
@@ -936,7 +937,6 @@
     "./src/utils/queryClient.ts",
     "./src/utils/reactivity.ts",
     "./src/utils/style/tabBar.ts",
-    "./src/utils/zustand.ts",
-    "./src/project-view/util/iconMetadata/iconName.ts"
+    "./src/utils/zustand.ts"
   ]
 }
