@@ -109,4 +109,4 @@ type Hyper_Table
     read self (max_rows : Rows_To_Read = ..All_Rows) =
         row_count = if max_rows == Rows_To_Read.All_Rows then Nothing else max_rows.rows
         java_columns = HyperFormat.readTable self.file.file.path self.schema self.table row_count
-        Java_Exports.make_table_from_storage java_columns
+        Java_Exports.make_table_from_java_columns java_columns

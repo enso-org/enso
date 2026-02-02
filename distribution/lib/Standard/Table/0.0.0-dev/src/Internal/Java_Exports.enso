@@ -31,7 +31,7 @@ make_column_from_storage = In_Memory_Column.from_storage
 ## ---
    private: true
    ---
-make_table_from_storage java_columns =
+make_table_from_java_columns java_columns =
     warnings = Warning.get_all java_columns
     enso_columns = (Warning.set java_columns []) . map c-> In_Memory_Column.from_storage c.getName c.getStorage
     enso_table = Table.new enso_columns
