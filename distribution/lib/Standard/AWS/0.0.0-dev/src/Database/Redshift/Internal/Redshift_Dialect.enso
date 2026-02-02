@@ -410,7 +410,7 @@ make_dialect_operations =
     postgres_ops = Postgres_Connection.get_dialect.get_dialect_operations
     overrides = [["COUNT_DISTINCT", agg_count_distinct], ["COUNT_DISTINCT_INCLUDE_NULL", agg_count_distinct_include_null], ["GROUP_NUMBER_STANDARD_DEVIATION_POPULATION", make_group_number_standard_deviation "STDDEV_POP"], ["GROUP_NUMBER_STANDARD_DEVIATION_SAMPLE", make_group_number_standard_deviation "STDDEV_SAMP"]]
     stats = [agg_median, agg_percentile]
-    my_mappings = overrides + stats + first_last_aggregators
+    my_mappings = overrides + stats + first_last_aggregators + concat_ops
     postgres_ops.extend_with my_mappings
 
 ## ---
@@ -470,6 +470,24 @@ agg_median = Base_Generator.lift_unary_op "MEDIAN" arg->
    ---
 agg_percentile = Base_Generator.lift_binary_op "PERCENTILE" p-> expr->
     SQL_Builder.code "percentile_cont(" ++ p ++ ") WITHIN GROUP (ORDER BY " ++ expr ++ ")"
+
+## ---
+   private: true
+   ---
+concat_ops =
+    make_raw_concat_expr expr separator =
+        sep = SQL_Builder.code "CAST(" ++ separator ++ " AS VARCHAR)"
+        agg_with_sep = SQL_Builder.code "listagg(" ++ expr ++ " || " ++ sep ++ ", '')"
+        agg_no_sep = SQL_Builder.code "listagg(" ++ expr ++ ", '')"
+        SQL_Builder.code "CASE WHEN " ++ agg_with_sep.paren ++ " IS NULL THEN NULL WHEN " ++ sep ++ " = '' THEN " ++ agg_no_sep ++ " ELSE left(" ++ agg_with_sep.paren ++ ", length(" ++ agg_with_sep.paren ++ ") - length(" ++ sep ++ ")) END"
+    concat = Base_Generator.make_concat make_raw_concat_expr make_contains_expr
+    [["CONCAT", concat (has_quote=False)], ["CONCAT_QUOTE_IF_NEEDED", concat (has_quote=True)]]
+
+## ---
+   private: true
+   ---
+make_contains_expr expr substring =
+    SQL_Builder.code "position(" ++ substring ++ " in " ++ expr ++ ") > 0"
 
 ## ---
    private: true
