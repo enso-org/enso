@@ -56,6 +56,7 @@ public final class Ydoc implements AutoCloseable {
     private HostAccess.Builder hostAccessBuilder;
     private String hostname;
     private int port = -1;
+    private boolean debug = false;
     private YjsChannelCallbacks jsonChannelCallbacks;
     private YjsChannelCallbacks binaryChannelCallbacks;
 
@@ -150,6 +151,11 @@ public final class Ydoc implements AutoCloseable {
       return this;
     }
 
+    public Builder debug(boolean value) {
+      this.debug = value;
+      return this;
+    }
+
     public Builder jsonChannelCallbacks(YjsChannelCallbacks callbacks) {
       this.jsonChannelCallbacks = callbacks;
       return this;
@@ -192,8 +198,12 @@ public final class Ydoc implements AutoCloseable {
           contextBuilder,
           hostname,
           port,
-          new DelegateYjsChannelCallbacks("JSON", jsonChannelCallbacks),
-          new DelegateYjsChannelCallbacks("binary", binaryChannelCallbacks));
+          debug
+              ? new DelegateYjsChannelCallbacks("JSON", jsonChannelCallbacks)
+              : jsonChannelCallbacks,
+          debug
+              ? new DelegateYjsChannelCallbacks("binary", binaryChannelCallbacks)
+              : binaryChannelCallbacks);
     }
   }
 
