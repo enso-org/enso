@@ -3,17 +3,35 @@ import { YjsChannel, type MessageHandler, type YjsChannelCallbacks } from 'ydoc-
 import * as Y from 'yjs'
 
 /**
+ * Represents a Java ByteBuffer instance accessed via GraalVM polyglot.
+ *
+ * This is a branded type alias for `number` that can be used directly with
+ * ArrayBuffer constructor. The brand ensures type safety by preventing
+ * accidental use of plain numbers where ByteBuffer is expected.
+ */
+type JavaByteBuffer = number & { readonly __brand: 'JavaByteBuffer' }
+
+/**
+ * Represents the Java ByteBuffer class accessed via GraalVM polyglot.
+ * Provides factory methods to create ByteBuffer instances.
+ */
+interface JavaByteBufferClass {
+  /** Allocates a new direct byte buffer with the given capacity */
+  allocateDirect(capacity: number): JavaByteBuffer
+}
+
+/**
  * A {@link YjsChannel} for binary protocol communication with the Language Server.
  *
  * Extends YjsChannel to handle binary data by converting between JavaScript Uint8Array
  * and Java direct ByteBuffer. This enables efficient binary message transfer between
  * the Ydoc server (JavaScript) and the Language Server (Java/Scala).
  */
-export class YjsBinaryChannel<T = unknown> extends YjsChannel<T> {
+export class YjsBinaryChannel extends YjsChannel<any> {
   private static channels = new Map<string, YjsBinaryChannel>()
 
-  private readonly callbacks: YjsChannelCallbacks<T>
-  private readonly ByteBuffer: any
+  private readonly callbacks: YjsChannelCallbacks<JavaByteBuffer>
+  private readonly ByteBuffer: JavaByteBufferClass
 
   /**
    * @param doc - The Yjs document for CRDT-based message synchronization
@@ -21,7 +39,12 @@ export class YjsBinaryChannel<T = unknown> extends YjsChannel<T> {
    * @param callbacks - Language Server callbacks to notify on connection
    * @param byteBuffer - Java ByteBuffer class for allocating direct buffers
    */
-  constructor(doc: Y.Doc, channelName: string, callbacks: YjsChannelCallbacks<T>, byteBuffer: any) {
+  constructor(
+    doc: Y.Doc,
+    channelName: string,
+    callbacks: YjsChannelCallbacks<JavaByteBuffer>,
+    byteBuffer: JavaByteBufferClass,
+  ) {
     super(doc, channelName)
     this.callbacks = callbacks
     this.ByteBuffer = byteBuffer
@@ -32,28 +55,28 @@ export class YjsBinaryChannel<T = unknown> extends YjsChannel<T> {
   static get(
     doc: Y.Doc,
     channelName: string,
-    callbacks: YjsChannelCallbacks,
-    byteBuffer: any,
+    callbacks: YjsChannelCallbacks<JavaByteBuffer>,
+    byteBuffer: JavaByteBufferClass,
   ): YjsBinaryChannel {
     return map.setIfUndefined(YjsBinaryChannel.channels, channelName, () => {
       return new YjsBinaryChannel(doc, channelName, callbacks, byteBuffer)
     })
   }
 
-  /** Converts the message to Uint8Array and sends through the channel. */
-  override send(message: any): void {
+  /** Converts the Java ByteBuffer message to Uint8Array and sends through the channel. */
+  override send(message: JavaByteBuffer): void {
     const arr = new Uint8Array(new ArrayBuffer(message))
-    super.send(arr as T)
+    super.send(arr)
   }
 
   /** Wraps the handler to convert incoming Uint8Array to Java direct ByteBuffer. */
-  override subscribe(handler: MessageHandler<T>): () => void {
+  override subscribe(handler: MessageHandler<JavaByteBuffer>): () => void {
     const f = (contents: Uint8Array) => {
       const bb = this.ByteBuffer.allocateDirect(contents.byteLength)
       const arr = new Uint8Array(new ArrayBuffer(bb))
       arr.set(contents)
       return handler(bb)
     }
-    return super.subscribe(f as MessageHandler<T>)
+    return super.subscribe(f)
   }
 }
