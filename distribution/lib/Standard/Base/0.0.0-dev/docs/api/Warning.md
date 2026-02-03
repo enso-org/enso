@@ -13,7 +13,7 @@
     - merge_matched_warnings value:Standard.Base.Any.Any matcher:Standard.Base.Any.Any merger:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - origin self -> Standard.Base.Any.Any
     - remove_warnings value:Standard.Base.Any.Any warning_type:Standard.Base.Any.Any= -> Standard.Base.Any.Any
-    - set value:Standard.Base.Any.Any warnings:(Standard.Base.Any.Any|Standard.Base.Any.Any) -> Standard.Base.Any.Any
+    - set value:Standard.Base.Any.Any warnings:(Standard.Base.Data.Vector.Vector Standard.Base.Warning.Warning) -> Standard.Base.Any.Any
     - throw_on_warning value:Standard.Base.Any.Any warning_type:Standard.Base.Any.Any= -> Standard.Base.Any.Any
     - to_display_text self -> Standard.Base.Any.Any
     - to_text self -> Standard.Base.Any.Any
