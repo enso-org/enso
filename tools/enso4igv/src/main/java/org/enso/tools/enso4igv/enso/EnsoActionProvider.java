@@ -105,6 +105,9 @@ public final class EnsoActionProvider implements ActionProvider {
 
         var io = IOProvider.getDefault().getIO(script.getName(), false);
         var  dd = DialogDisplayer.getDefault();
+        var testManager = Manager.getInstance();
+        var session = new TestSession("Demo: " + fo, prj, TestSession.SessionType.TEST);
+        testManager.testStarted(session);
 
         var prefs = NbPreferences.forModule(EnsoActionProvider.class);
         var exeKey = "enso.executable";
@@ -213,8 +216,6 @@ public final class EnsoActionProvider implements ActionProvider {
                 new DebugAndLaunch(fo, builder, params) : builder;
 
             if (prj != null) {
-                var m = Manager.getInstance();
-                var session = new TestSession("Demo: " + fo, prj, TestSession.SessionType.TEST);
                 var ts = new TestSuite("Chunk of tests");
                 var tc = new Testcase("Dummy test", "Simple type", session);
                 var fail = new Testcase("Fail test", "Simple type", session);
@@ -225,18 +226,17 @@ public final class EnsoActionProvider implements ActionProvider {
 
                 var rp = new RequestProcessor("Mocked test");
                 //rp.create(() -> {
-                    m.testStarted(session);
-                    m.displaySuiteRunning(session, ts.getName());
+                    testManager.displaySuiteRunning(session, ts);
                 //}).schedule(1000);
 
                 //rp.create(() -> {
                     var tr = session.getReport(3000);
-                    m.displayReport(session, tr);
+                    testManager.displayReport(session, tr);
                     session.finishSuite(ts);
                 //}).schedule(3000);
 
                 rp.create(() -> {
-                    m.sessionFinished(session);
+                    testManager.sessionFinished(session);
                 }).schedule(5000);
             }
 
