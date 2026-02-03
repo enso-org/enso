@@ -63,7 +63,7 @@ case object FullyQualifiedNames extends IRPass {
     ir: Module,
     moduleContext: ModuleContext
   ): Module = {
-    val scopeMap = ir.unsafeGetMetadata(
+    val scopeMap = ir.unsafeGetMetadata[BindingAnalysis.Metadata](
       BindingAnalysis,
       "No binding analysis on the module"
     )
@@ -324,7 +324,10 @@ case object FullyQualifiedNames extends IRPass {
 
     val processedApp = processedArgs match {
       case List(thisArg) =>
-        (thisArg.value.getMetadata(this).map(_.target), processedFun) match {
+        (
+          thisArg.value.getMetadata(this, classOf[Metadata]).map(_.target),
+          processedFun
+        ) match {
           case (Some(resolved @ ResolvedLibrary(_)), name: Name.Literal) =>
             resolveQualName(resolved, name, pkgRepo).fold(
               err => Some(err),
@@ -403,7 +406,7 @@ case object FullyQualifiedNames extends IRPass {
   }
 
   private def isLocalVar(name: Name.Literal): Boolean = {
-    name.getMetadata(AliasAnalysis) match {
+    name.getMetadata(AliasAnalysis, classOf[AliasAnalysis.Metadata]) match {
       case None => false
       case Some(aliasMeta) =>
         val aliasInfo = aliasMeta.unsafeAs[AliasInfo.Occurrence]

@@ -7,7 +7,6 @@ import org.enso.table.data.column.builder.BuilderWithRetyping;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.type.BigIntegerType;
 import org.enso.table.data.column.storage.type.IntegerType;
-import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.error.ValueTypeMismatchException;
 import org.enso.table.problems.BlackholeProblemAggregator;
 
@@ -97,12 +96,6 @@ public class SnowflakeIntegerColumnMaterializer implements Builder {
       case LONG -> longBuilder.seal();
       case BIG_INTEGER -> bigIntegerBuilder.seal();
     };
-  }
-
-  @Override
-  public StorageType<?> getType() {
-    // The type of the builder can change over time, so we do not report any stable type here.
-    return null;
   }
 
   @Override

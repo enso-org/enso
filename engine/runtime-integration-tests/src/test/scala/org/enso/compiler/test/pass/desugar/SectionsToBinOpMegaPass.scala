@@ -35,7 +35,6 @@ case object SectionsToBinOpMegaPass extends IRPass {
   override lazy val invalidatedPasses: Seq[IRProcessingPass] = List(
     AliasAnalysis,
     CachePreferenceAnalysis,
-    DataflowAnalysis,
     DemandAnalysis,
     TailCall.INSTANCE,
     UnusedBindings

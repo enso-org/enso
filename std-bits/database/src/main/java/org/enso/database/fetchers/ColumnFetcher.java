@@ -13,7 +13,7 @@ public interface ColumnFetcher {
   private static ColumnFetcher[] forResultSet(
       ResultSet rs,
       ProblemAggregator problemAggregator,
-      BiFunction<ResultSetMetaData, Integer, StorageType<?>> storageTypeMapper,
+      BiFunction<ResultSetMetaData, Integer, String> storageTypeMapper,
       ColumnFetcherFactory factory)
       throws SQLException {
     var meta = rs.getMetaData();
@@ -22,7 +22,13 @@ public interface ColumnFetcher {
     for (int i = 0; i < columnCount; i++) {
       String columnName = meta.getColumnName(i + 1);
 
-      var storageType = storageTypeMapper.apply(meta, i);
+      var storageTypeString = storageTypeMapper.apply(meta, i);
+      var storageType =
+          StorageType.fromTypeCharAndSize(
+              storageTypeString.charAt(0),
+              storageTypeString.length() > 1
+                  ? Integer.parseInt(storageTypeString.substring(1))
+                  : -1);
       fetchers[i] = factory.forStorageType(storageType, i, columnName, problemAggregator);
     }
     return fetchers;
@@ -40,7 +46,7 @@ public interface ColumnFetcher {
       ResultSet rs,
       int rowLimit,
       ProblemAggregator problemAggregator,
-      BiFunction<ResultSetMetaData, Integer, StorageType<?>> storageTypeMapper,
+      BiFunction<ResultSetMetaData, Integer, String> storageTypeMapper,
       ColumnFetcherFactory factory)
       throws SQLException {
     // Create the fetchers
@@ -60,7 +66,7 @@ public interface ColumnFetcher {
   static Table readLastRow(
       ResultSet rs,
       ProblemAggregator problemAggregator,
-      BiFunction<ResultSetMetaData, Integer, StorageType<?>> storageTypeMapper,
+      BiFunction<ResultSetMetaData, Integer, String> storageTypeMapper,
       ColumnFetcherFactory factory)
       throws SQLException {
     // Create the fetchers

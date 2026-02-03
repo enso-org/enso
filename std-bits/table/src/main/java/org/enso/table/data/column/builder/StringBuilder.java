@@ -5,18 +5,65 @@ import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
 import java.util.BitSet;
 import org.enso.table.data.column.storage.ColumnStorage;
-import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.TypedStorage;
+import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.error.ValueTypeMismatchException;
 
 /** A builder for string columns. */
 final class StringBuilder extends TypedBuilder<String> {
-  private final TextType type;
+  private final TextType textType;
 
   StringBuilder(int size, TextType type) {
     super(type, new String[size]);
-    this.type = type;
+    this.textType = type;
+  }
+
+  @Override
+  public StringBuilder append(Object o) {
+    ensureSpaceToAppend();
+    if (o == null) {
+      appendNulls(1);
+    } else {
+      try {
+        String str = (String) o;
+        if (textType.fits(str)) {
+          data[currentSize++] = str;
+        } else {
+          throw new ValueTypeMismatchException(textType, str);
+        }
+      } catch (ClassCastException e) {
+        throw new ValueTypeMismatchException(textType, o);
+      }
+    }
+    return this;
+  }
+
+  @Override
+  public boolean accepts(Object o) {
+    if (o instanceof String s) {
+      return textType.fits(s);
+    } else {
+      return false;
+    }
+  }
+
+  @Override
+  public void appendBulkStorage(ColumnStorage<?> storage) {
+    if (StorageType.ofStorage(storage) instanceof TextType gotType
+        && textType.fitsExactly(gotType)
+        && storage instanceof TypedStorage<?>) {
+      // This cast is safe, because storage.getType() == this.getType() == TextType iff
+      // storage.T == String
+      @SuppressWarnings("unchecked")
+      TypedStorage<String> specializedStorage = (TypedStorage<String>) storage;
+      int toCopy = (int) storage.getSize();
+      System.arraycopy(specializedStorage.getData(), 0, data, currentSize, toCopy);
+      currentSize += toCopy;
+      return;
+    }
+
+    super.appendBulkStorage(storage);
   }
 
   static StringBuilder fromAddress(int size, long data, long validity, TextType type) {
@@ -49,59 +96,7 @@ final class StringBuilder extends TypedBuilder<String> {
     return b;
   }
 
-  @Override
-  public StringBuilder append(Object o) {
-    ensureSpaceToAppend();
-    if (o == null) {
-      appendNulls(1);
-    } else {
-      try {
-        String str = (String) o;
-        if (type.fits(str)) {
-          data[currentSize++] = str;
-        } else {
-          throw new ValueTypeMismatchException(type, str);
-        }
-      } catch (ClassCastException e) {
-        throw new ValueTypeMismatchException(type, o);
-      }
-    }
-    return this;
-  }
-
-  @Override
-  public boolean accepts(Object o) {
-    if (o instanceof String s) {
-      return type.fits(s);
-    } else {
-      return false;
-    }
-  }
-
-  @Override
-  public void appendBulkStorage(ColumnStorage<?> storage) {
-    if (storage.getType() instanceof TextType gotType
-        && type.fitsExactly(gotType)
-        && storage instanceof TypedStorage<?>) {
-      // This cast is safe, because storage.getType() == this.getType() == TextType iff
-      // storage.T == String
-      @SuppressWarnings("unchecked")
-      TypedStorage<String> specializedStorage = (TypedStorage<String>) storage;
-      int toCopy = (int) storage.getSize();
-      System.arraycopy(specializedStorage.getData(), 0, data, currentSize, toCopy);
-      currentSize += toCopy;
-      return;
-    }
-
-    super.appendBulkStorage(storage);
-  }
-
-  @Override
-  protected ColumnStorage<String> doSeal() {
-    return new TypedStorage<>(type, data);
-  }
-
-  final Storage<String> seal(ColumnStorage<?> otherStorage, TextType type) {
-    return new TypedStorage<>(type, data, otherStorage);
+  final ColumnStorage<String> seal(ColumnStorage<?> otherStorage) {
+    return new TypedStorage<>(getStorageType(), data, otherStorage);
   }
 }

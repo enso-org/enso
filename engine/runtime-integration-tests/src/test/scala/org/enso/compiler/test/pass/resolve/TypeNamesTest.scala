@@ -90,7 +90,8 @@ class TypeNamesTest extends CompilerTest {
           |""".stripMargin.preprocessModule.resolve
 
       ir.bindings.length shouldEqual 4
-      val meta = ir.bindings.last.getMetadata(TypeSignatures)
+      val meta = ir.bindings.last
+        .getMetadata(TypeSignatures, classOf[TypeSignatures.Metadata])
       meta shouldBe defined
       val diagnostics = meta.get.signature.preorder
         .collect({ case err: Diagnostic =>
@@ -111,7 +112,8 @@ class TypeNamesTest extends CompilerTest {
           |""".stripMargin.preprocessModule.resolve
 
       ir.bindings.length shouldEqual 3
-      val meta = ir.bindings.last.getMetadata(TypeSignatures)
+      val meta = ir.bindings.last
+        .getMetadata(TypeSignatures, classOf[TypeSignatures.Metadata])
       meta shouldBe defined
       val diagnostics = meta.get.signature.preorder
         .collect({ case err: Diagnostic =>
@@ -139,7 +141,8 @@ class TypeNamesTest extends CompilerTest {
           |""".stripMargin.preprocessModule.resolve
 
       ir.bindings.length shouldEqual 1
-      val meta = ir.bindings.last.getMetadata(TypeSignatures)
+      val meta = ir.bindings.last
+        .getMetadata(TypeSignatures, classOf[TypeSignatures.Metadata])
       meta shouldBe defined
       val diagnostics = meta.get.signature.preorder
         .collect({ case err: Diagnostic =>
@@ -170,7 +173,8 @@ class TypeNamesTest extends CompilerTest {
           |""".stripMargin.preprocessModule.resolve
 
       ir.bindings.length shouldEqual 2
-      val meta = ir.bindings.last.getMetadata(TypeSignatures)
+      val meta = ir.bindings.last
+        .getMetadata(TypeSignatures, classOf[TypeSignatures.Metadata])
       meta shouldBe defined
       val diagnostics = meta.get.signature.preorder
         .collect({ case err: Diagnostic =>

@@ -11,7 +11,7 @@ import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.data.column.storage.type.TimeOfDayType;
 import org.enso.table.util.ImmutableBitSet;
 
-public class TypedStorage<T> extends Storage<T> {
+public class TypedStorage<T> extends AbstractBaseStorage<T> {
   private final T[] data;
   private final ColumnStorage<?> proxy;
   private ByteBuffer offheapBuffer;
@@ -32,29 +32,24 @@ public class TypedStorage<T> extends Storage<T> {
 
   @Override
   public long addressOfData() {
-    if (offheapBuffer == null && getType() instanceof TextType) {
+    if (offheapBuffer == null) {
       var validity = new BitSet();
-      offheapBuffer = OffHeapStorages.toArrowTextBuffer(data, validity);
+
+      var storageType = StorageType.ofStorage(this);
+      offheapBuffer =
+          switch (storageType) {
+            case TextType _ -> OffHeapStorages.toArrowTextBuffer(data, validity);
+            case DateTimeType _ -> OffHeapStorages.toDateTimeBuffer(data, validity);
+            case TimeOfDayType _ -> OffHeapStorages.toArrowTimeOfDayBuffer(data, validity);
+            default -> null;
+          };
+
       if (offheapBuffer != null) {
         validitySet = new ImmutableBitSet(validity, data.length);
       }
     }
-    if (offheapBuffer == null && getType() instanceof DateTimeType) {
-      var validity = new BitSet();
-      offheapBuffer = OffHeapStorages.toDateTimeBuffer(data, validity);
-      if (offheapBuffer != null) {
-        validitySet = new ImmutableBitSet(validity, data.length);
-      }
-    }
-    if (offheapBuffer == null && getType() instanceof TimeOfDayType) {
-      var validity = new BitSet();
-      offheapBuffer = OffHeapStorages.toArrowTimeOfDayBuffer(data, validity);
-      validitySet = new ImmutableBitSet(validity, data.length);
-    }
-    if (offheapBuffer != null) {
-      return MemorySegment.ofBuffer(offheapBuffer).address();
-    }
-    return 0L;
+
+    return offheapBuffer != null ? MemorySegment.ofBuffer(offheapBuffer).address() : 0L;
   }
 
   @Override

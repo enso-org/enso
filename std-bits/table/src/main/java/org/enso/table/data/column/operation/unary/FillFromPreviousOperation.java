@@ -4,11 +4,12 @@ import java.util.Objects;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.operation.StorageIterators;
 import org.enso.table.data.column.operation.UnaryOperation;
-import org.enso.table.data.column.storage.ColumnBooleanStorage;
-import org.enso.table.data.column.storage.ColumnDoubleStorage;
-import org.enso.table.data.column.storage.ColumnLongStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
+import org.enso.table.data.column.storage.type.BooleanType;
+import org.enso.table.data.column.storage.type.FloatType;
+import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.NullType;
+import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.table.problems.MapOperationProblemAggregator;
 
 public class FillFromPreviousOperation implements UnaryOperation {
@@ -54,11 +55,11 @@ public class FillFromPreviousOperation implements UnaryOperation {
   @Override
   public ColumnStorage<?> apply(
       ColumnStorage<?> storage, MapOperationProblemAggregator problemAggregator) {
-    if (storage.getType() instanceof NullType) {
-      return storage; // Nothing to fill in a column of nulls.
-    }
-    return switch (storage) {
-      case ColumnBooleanStorage boolStorage -> {
+    var storageType = StorageType.ofStorage(storage);
+    return switch (storageType) {
+      case NullType _ -> storage; // Nothing to fill in a column of nulls.
+      case BooleanType bt -> {
+        var boolStorage = bt.asTypedStorage(storage);
         var state = new BooleanState();
         yield StorageIterators.buildOverBooleanStorage(
             boolStorage,
@@ -76,13 +77,13 @@ public class FillFromPreviousOperation implements UnaryOperation {
               }
             });
       }
-      case ColumnDoubleStorage doubleStorage -> {
+      case FloatType ft -> {
+        var doubleStorage = ft.asTypedStorage(storage);
         var state = new DoubleState();
         yield StorageIterators.buildOverDoubleStorage(
             doubleStorage,
             false,
-            Builder.getForDouble(
-                doubleStorage.getType(), doubleStorage.getSize(), problemAggregator),
+            Builder.getForDouble(ft, doubleStorage.getSize(), problemAggregator),
             (builder, idx, value, isNothing) -> {
               if (!isNothing) {
                 state.isNothing = false;
@@ -95,12 +96,13 @@ public class FillFromPreviousOperation implements UnaryOperation {
               }
             });
       }
-      case ColumnLongStorage longStorage -> {
+      case IntegerType it -> {
+        var longStorage = it.asTypedStorage(storage);
         var state = new LongState();
         yield StorageIterators.buildOverLongStorage(
             longStorage,
             false,
-            Builder.getForLong(longStorage.getType(), longStorage.getSize(), problemAggregator),
+            Builder.getForLong(it, longStorage.getSize(), problemAggregator),
             (builder, idx, value, isNothing) -> {
               if (!isNothing) {
                 state.isNothing = false;
@@ -118,7 +120,7 @@ public class FillFromPreviousOperation implements UnaryOperation {
         yield StorageIterators.buildObjectOverStorage(
             storage,
             false,
-            Builder.getForType(storage.getType(), storage.getSize(), problemAggregator),
+            Builder.getForType(storageType, storage.getSize(), problemAggregator),
             (builder, idx, value) -> {
               if (value != null && (!fillEmpty || !Objects.equals("", value))) {
                 state.prevValue = value;

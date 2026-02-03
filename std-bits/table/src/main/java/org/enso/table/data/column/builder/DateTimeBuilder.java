@@ -12,6 +12,7 @@ import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.TypedStorage;
 import org.enso.table.data.column.storage.type.DateTimeType;
 import org.enso.table.data.column.storage.type.DateType;
+import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.error.ValueTypeMismatchException;
 
@@ -38,7 +39,7 @@ final class DateTimeBuilder extends TypedBuilder<ZonedDateTime> {
 
     var zonesBuf =
         StringBuilder.fromAddress(size, data + buf.limit(), validity, TextType.VARIABLE_LENGTH);
-    var zonesStorage = zonesBuf.seal(null, TextType.VARIABLE_LENGTH);
+    var zonesStorage = zonesBuf.seal(null);
 
     var b = new DateTimeBuilder(size, false);
     for (var i = 0; i < size; i++) {
@@ -80,7 +81,7 @@ final class DateTimeBuilder extends TypedBuilder<ZonedDateTime> {
           data[currentSize++] = (ZonedDateTime) o;
         }
       } catch (ClassCastException e) {
-        throw new ValueTypeMismatchException(getType(), o);
+        throw new ValueTypeMismatchException(getStorageType(), o);
       }
     }
     return this;
@@ -88,7 +89,7 @@ final class DateTimeBuilder extends TypedBuilder<ZonedDateTime> {
 
   @Override
   public void appendBulkStorage(ColumnStorage<?> storage) {
-    if (storage.getType() instanceof DateType dateType) {
+    if (StorageType.ofStorage(storage) instanceof DateType dateType) {
       var typedStorage = dateType.asTypedStorage(storage);
       long n = typedStorage.getSize();
       for (long i = 0; i < n; i++) {
@@ -111,7 +112,7 @@ final class DateTimeBuilder extends TypedBuilder<ZonedDateTime> {
   }
 
   final ColumnStorage<ZonedDateTime> seal(ColumnStorage<?> other) {
-    return new TypedStorage<>(DateTimeType.INSTANCE, data, other);
+    return new TypedStorage<>(getStorageType(), data, other);
   }
 
   @Override

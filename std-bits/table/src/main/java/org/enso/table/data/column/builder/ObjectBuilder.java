@@ -4,6 +4,7 @@ import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.TypedStorage;
 import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.enso.table.data.column.storage.type.NullType;
+import org.enso.table.data.column.storage.type.StorageType;
 
 /** A builder for boxed object columns. */
 class ObjectBuilder extends TypedBuilder<Object> {
@@ -36,7 +37,7 @@ class ObjectBuilder extends TypedBuilder<Object> {
       int toCopy = (int) storage.getSize();
       System.arraycopy(specializedStorage.getData(), 0, data, currentSize, toCopy);
       currentSize += toCopy;
-    } else if (storage.getType() instanceof NullType) {
+    } else if (StorageType.ofStorage(storage) instanceof NullType) {
       appendNulls(Math.toIntExact(storage.getSize()));
     } else {
       long n = storage.getSize();
@@ -44,10 +45,5 @@ class ObjectBuilder extends TypedBuilder<Object> {
         append(storage.getItemBoxed(i));
       }
     }
-  }
-
-  @Override
-  public ColumnStorage<Object> doSeal() {
-    return new TypedStorage<>(AnyObjectType.INSTANCE, data);
   }
 }

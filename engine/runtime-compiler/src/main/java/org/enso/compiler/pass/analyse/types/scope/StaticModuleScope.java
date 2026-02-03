@@ -8,9 +8,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.enso.compiler.MetadataInteropHelpers;
-import org.enso.compiler.core.CompilerStub;
+import org.enso.compiler.context.CompilerContext;
 import org.enso.compiler.core.ir.Module;
-import org.enso.compiler.core.ir.ProcessingPass;
+import org.enso.compiler.pass.IRPass;
 import org.enso.compiler.pass.analyse.types.TypeRepresentation;
 import org.enso.pkg.QualifiedName;
 import scala.Option;
@@ -29,7 +29,7 @@ import scala.Option;
  * separate for now as it is easier to create a prototype that way. If later we find out they have
  * enough of similarity, we should merge them.
  */
-public final class StaticModuleScope implements ProcessingPass.Metadata {
+public final class StaticModuleScope implements IRPass.IRMetadata {
   private final QualifiedName moduleName;
   private final TypeScopeReference associatedType;
   private final List<StaticImportExportScope> imports;
@@ -180,17 +180,17 @@ public final class StaticModuleScope implements ProcessingPass.Metadata {
   }
 
   @Override
-  public ProcessingPass.Metadata prepareForSerialization(CompilerStub compiler) {
+  public IRPass.IRMetadata prepareForSerialization(CompilerContext compiler) {
     return this;
   }
 
   @Override
-  public Option<ProcessingPass.Metadata> restoreFromSerialization(CompilerStub compiler) {
+  public Option<IRPass.IRMetadata> restoreFromSerialization(CompilerContext compiler) {
     return Option.apply(this);
   }
 
   @Override
-  public Option<ProcessingPass.Metadata> duplicate() {
+  public Option<IRPass.IRMetadata> duplicate() {
     return Option.empty();
   }
 

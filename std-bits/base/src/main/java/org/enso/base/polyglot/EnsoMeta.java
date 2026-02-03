@@ -41,4 +41,42 @@ public final class EnsoMeta {
     System.arraycopy(args, 0, argsWithSelf, 1, args.length);
     return factory.execute(argsWithSelf);
   }
+
+  /** Creates an instance of an Enso type by calling the specified constructor. */
+  public static Value makeInstance(
+      String moduleName, String typeName, String constructorName, Object... args) {
+    var type = getType(moduleName, typeName);
+
+    Value constructor;
+    try {
+      constructor = type.getMember(constructorName);
+    } catch (NullPointerException e) {
+      var ex =
+          new NullPointerException(
+              "Cannot find constructor "
+                  + constructorName
+                  + " for "
+                  + moduleName
+                  + " type: "
+                  + typeName);
+      ex.initCause(e);
+      throw ex;
+    }
+
+    if (!constructor.canInstantiate()) {
+      throw new IllegalStateException("Constructor " + constructorName + " is not instantiable.");
+    }
+    return constructor.newInstance(args);
+  }
+
+  /** Converts an Enso error atom into a Java exception. */
+  public static Value asDataflowError(Value ensoAtom) {
+    var ensoError =
+        EnsoMeta.getType("Standard.Base.Error", "Error").invokeMember("throw", ensoAtom);
+    if (!ensoError.isException()) {
+      throw new IllegalStateException(
+          "Expected Enso error to be an exception, but got: " + ensoError);
+    }
+    return ensoError;
+  }
 }

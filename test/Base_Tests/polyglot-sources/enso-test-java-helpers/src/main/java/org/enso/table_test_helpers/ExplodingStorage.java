@@ -48,8 +48,13 @@ public class ExplodingStorage implements ColumnLongStorage {
   }
 
   @Override
-  public IntegerType getType() {
-    return IntegerType.INT_64;
+  public char typeChar() {
+    return IntegerType.INT_64.typeChar();
+  }
+
+  @Override
+  public long typeSize() {
+    return IntegerType.INT_64.size();
   }
 
   @Override

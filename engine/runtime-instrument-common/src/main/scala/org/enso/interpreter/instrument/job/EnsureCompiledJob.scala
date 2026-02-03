@@ -13,9 +13,9 @@ import org.enso.compiler.core.ir.{expression, Location}
 import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.pass.analyse.{
   CachePreferenceAnalysis,
-  DataflowAnalysis,
   GatherDiagnostics
 }
+import org.enso.compiler.pass.analyse.DependencyInfo
 import org.enso.interpreter.instrument.execution.{
   LocationResolver,
   RuntimeContext
@@ -158,7 +158,7 @@ class EnsureCompiledJob(
           compilerConfig = ctx.executionService.getContext.getCompilerConfig
         )
       )
-      .unsafeGetMetadata(
+      .unsafeGetMetadata[GatherDiagnostics.Metadata](
         GatherDiagnostics,
         "No diagnostics metadata right after the gathering pass."
       )
@@ -354,18 +354,14 @@ class EnsureCompiledJob(
     * @return the set of node ids affected by a resolution error in the module
     */
   private def findNodesWithResolutionErrors(ir: IR): Set[UUID @ExternalID] = {
-    val metadata = ir
-      .unsafeGetMetadata(
-        DataflowAnalysis,
-        "Empty dataflow analysis metadata during the interactive compilation."
-      )
+    val metadata = DependencyInfo.find(ir)
 
     val builder = Set.newBuilder[UUID @ExternalID]
     IR.preorder(
       ir,
       {
         case err: expression.errors.Resolution if isResolutionNotFound(err) =>
-          val key = DataflowAnalysis.DependencyInfo.Type.Static(
+          val key = new DependencyInfo.Type.Static(
             err.getId(),
             err.getExternalId
           )
@@ -497,7 +493,7 @@ class EnsureCompiledJob(
         ctx.executionService.getContext.findModule(ptr.module).toScala.map {
           module =>
             module.getIr
-              .unsafeGetMetadata(
+              .unsafeGetMetadata[CachePreferenceAnalysis.Metadata](
                 CachePreferenceAnalysis,
                 s"Empty cache preference metadata ${module.getName}"
               )
