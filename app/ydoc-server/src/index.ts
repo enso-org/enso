@@ -19,7 +19,7 @@ export { deserializeIdMap, docName, setupGatewayClient, WSSharedDoc, YjsConnecti
 export function configureAllDebugLogs(
   forceEnable: boolean,
   customLogger?: (...args: any[]) => any,
-) {
+): void {
   for (const debugModule of ['ydoc-server:session', 'ydoc-shared:languageServer']) {
     const instance = debug(debugModule)
     if (forceEnable) instance.enabled = true

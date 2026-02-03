@@ -92,9 +92,9 @@ object BinaryYdocServer {
       case message: B @unchecked =>
         logger.trace(s"Sending binary message $message")
         val bytes = encoder.encode(message)
-        // Java `ByteBuffer` should be always compacted before sending because the
-        // conversion to JS `ArrayBuffer` assumes that it occupies the whole allocated size,
-        // i.e. it does not respect the position and limit attributes of `ByteBuffer`.
+        // Java `ByteBuffer` should be always compacted before sending because it will be
+        // converted to JS `ArrayBuffer` assuming that it occupies the whole allocated size,
+        // i.e. the conversion does not respect the position and limit attributes of `ByteBuffer`.
         channel.send(bytes.compact())
       case unknown =>
         logger.error(s"Sending unsupported message ${unknown.getClass}")
