@@ -32,9 +32,8 @@ type Warning
        ---
        Attaches a new warning to the value.
     attach_multiple : Vector Any -> Any -> Any
-    attach_multiple warnings value = case warnings of
-        _ : Vector -> warnings.fold value (c-> w-> Warning.attach w c)
-        _ : Array -> Warning.attach (Vector.from_polyglot_array warnings) value
+    attach_multiple warnings value =
+        warnings.fold value (c-> w-> Warning.attach w c)
 
     ## ---
        private: true

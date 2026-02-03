@@ -187,6 +187,6 @@ public class ProblemAggregator {
     }
 
     return EnsoMeta.getType("Standard.Base.Warning", "Warning")
-        .invokeMember("attach_multiple", value, ensoProblems);
+        .invokeMember("attach_multiple", ensoProblems, value);
   }
 }
