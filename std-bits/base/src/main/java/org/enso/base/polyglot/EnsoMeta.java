@@ -1,9 +1,8 @@
 package org.enso.base.polyglot;
 
+import java.util.concurrent.atomic.AtomicReference;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
-
-import java.util.concurrent.atomic.AtomicReference;
 
 /** A helper class that makes calling Enso methods from Java libraries easier. */
 public final class EnsoMeta {
