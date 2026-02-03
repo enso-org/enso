@@ -160,7 +160,7 @@ public class ProblemAggregator {
    * @param asErrors whether to attach problems as errors (if true) or warnings (if false)
    * @return the value with attached problems, or the original value if there are no problems
    */
-  public Value attachProblemsToValue(Value value, boolean asErrors) {
+  public final Value attachProblemsToValue(Value value, boolean asErrors) {
     ProblemSummary summary = summarize();
     if (summary.allProblemsCount == 0) {
       return value;
@@ -187,6 +187,6 @@ public class ProblemAggregator {
     }
 
     return EnsoMeta.getType("Standard.Base.Warning", "Warning")
-        .invokeMember("set", value, ensoProblems);
+        .invokeMember("attach_multiple", value, ensoProblems);
   }
 }
