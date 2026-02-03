@@ -448,7 +448,14 @@ agg_count_distinct args =
    ---
 agg_count_distinct_include_null args =
     if args.is_empty then (Error.throw (Illegal_Argument.Error "COUNT_DISTINCT_INCLUDE_NULL requires at least one argument.")) else
-        SQL_Builder.code "COUNT(DISTINCT " ++ SQL_Builder.join ", " args ++ ")"
+        case args.length == 1 of
+            True ->
+                arg = args.first
+                count = SQL_Builder.code "COUNT(DISTINCT " ++ arg ++ ")"
+                all_nulls_case = SQL_Builder.code "CASE WHEN COUNT(CASE WHEN " ++ arg ++ "IS NULL THEN 1 END) > 0 THEN 1 ELSE 0 END"
+                count ++ " + " ++ all_nulls_case
+            False ->
+                SQL_Builder.code "COUNT(DISTINCT " ++ SQL_Builder.join ", " args ++ ")"
 
 ## ---
    private: true
