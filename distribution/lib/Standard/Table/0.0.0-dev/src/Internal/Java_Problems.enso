@@ -6,15 +6,6 @@ polyglot java import org.enso.table.problems.ProblemAggregator
 ## ---
    private: true
    ---
-   Convert a Java problem into its Enso equivalent.
-translate_problem p =
-    enso_value = p.asEnsoValue
-    if p.isError then Error.throw enso_value
-    enso_value
-
-## ---
-   private: true
-   ---
    This is the new preferred way of running Java methods that may report
    problems.
 with_problem_aggregator : Problem_Behavior -> (ProblemAggregator -> Any) -> ProblemAggregator -> Any
