@@ -75,7 +75,7 @@ import java.lang.management.ManagementFactory
 import java.net.URI
 import java.nio.charset.StandardCharsets
 import java.time.Clock
-import java.util.concurrent.Executors
+import java.util.concurrent.{Executors, TimeUnit}
 
 import scala.concurrent.duration.DurationInt
 
@@ -572,12 +572,26 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
   def close(): Unit = {
     suggestionsRepo.close()
     contextSupervisor.close()
-    ydoc.close()
+    shutdownYdocExecutor()
     runtimeEventsMonitor.close()
     log.info("Stopped Language Server")
     MDC.remove("projectLocalId")
     MDC.remove("projectId")
     MDC.remove("projectSessionId")
+  }
+
+  /** Shuts down the Ydoc executor, interrupting any running tasks. */
+  private def shutdownYdocExecutor(): Unit = {
+    ydoc.shutdownNow()
+    try {
+      if (!ydoc.awaitTermination(3, TimeUnit.SECONDS)) {
+        log.warn("Ydoc executor did not terminate within timeout.")
+      }
+    } catch {
+      case _: InterruptedException =>
+        log.warn("Interrupted while waiting for Ydoc executor to terminate.")
+        Thread.currentThread().interrupt()
+    }
   }
 
   private def akkaHttpsConfig(): com.typesafe.config.Config = {
