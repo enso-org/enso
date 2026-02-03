@@ -1,9 +1,8 @@
-package org.enso.runner.common;
+package org.enso.ydoc.api;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.util.ServiceLoader;
-import org.enso.ydoc.api.YjsChannelCallbacks;
 
 public abstract class YdocServerApi {
 
@@ -12,11 +11,11 @@ public abstract class YdocServerApi {
       int port,
       YjsChannelCallbacks jsonChannelCallbacks,
       YjsChannelCallbacks binaryChannelCallbacks)
-      throws WrongOption, IOException, URISyntaxException {
+      throws IOException, URISyntaxException {
     var loader = YdocServerApi.class.getClassLoader();
     var it = ServiceLoader.load(YdocServerApi.class, loader).iterator();
     if (!it.hasNext()) {
-      throw new WrongOption("No Ydoc server implementation found");
+      throw new IllegalStateException("No Ydoc server implementation found");
     }
     var impl = it.next();
     return impl.runYdocServer(hostname, port, jsonChannelCallbacks, binaryChannelCallbacks);
@@ -27,5 +26,5 @@ public abstract class YdocServerApi {
       int port,
       YjsChannelCallbacks jsonChannelCallbacks,
       YjsChannelCallbacks binaryChannelCallbacks)
-      throws WrongOption, IOException, URISyntaxException;
+      throws IOException, URISyntaxException;
 }

@@ -156,7 +156,7 @@ on the owner thread.
   JSON-RPC channel handling
 - [`engine/language-server/.../BinaryYdocServer.scala`](../../engine/language-server/src/main/scala/org/enso/languageserver/http/server/BinaryYdocServer.scala) -
   Binary channel handling
-- [`engine/runner-common/.../YdocServerApi.java`](../../engine/runner-common/src/main/java/org/enso/runner/common/YdocServerApi.java) -
+- [`lib/java/ydoc-api/.../YdocServerApi.java`](../../lib/java/ydoc-api/src/main/java/org/enso/ydoc/api/YdocServerApi.java) -
   Server bootstrap API
 
 **TypeScript (Ydoc server side):**

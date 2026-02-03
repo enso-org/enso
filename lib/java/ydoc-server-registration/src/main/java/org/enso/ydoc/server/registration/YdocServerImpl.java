@@ -4,8 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import org.enso.jvm.interop.api.OtherJvmClassLoader;
-import org.enso.runner.common.WrongOption;
-import org.enso.runner.common.YdocServerApi;
+import org.enso.ydoc.api.YdocServerApi;
 import org.enso.ydoc.api.YjsChannelCallbacks;
 import org.graalvm.nativeimage.ImageInfo;
 
@@ -18,7 +17,7 @@ public final class YdocServerImpl extends YdocServerApi {
       int port,
       YjsChannelCallbacks jsonChannelCallbacks,
       YjsChannelCallbacks binaryChannelCallbacks)
-      throws WrongOption, IOException, URISyntaxException {
+      throws IOException, URISyntaxException {
     // the following shall invoke:
     //   return launch(hostname, port);
     // but in the other JVM

@@ -552,7 +552,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
       thread
     })
     ydocExecutor.execute(() =>
-      org.enso.runner.common.YdocServerApi
+      org.enso.ydoc.api.YdocServerApi
         .launchYdocServer(
           c.hostname,
           c.port,

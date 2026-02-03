@@ -14,5 +14,4 @@ module org.enso.runner.common {
   exports org.enso.runner.common;
 
   uses org.enso.runner.common.LanguageServerApi;
-  uses org.enso.runner.common.YdocServerApi;
 }
