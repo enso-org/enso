@@ -75,7 +75,7 @@ import java.lang.management.ManagementFactory
 import java.net.URI
 import java.nio.charset.StandardCharsets
 import java.time.Clock
-import java.util.concurrent.{Executors, TimeUnit}
+import java.util.concurrent.Executors
 
 import scala.concurrent.duration.DurationInt
 
@@ -545,11 +545,11 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
   private val ydoc = {
     val c = org.enso.languageserver.boot.config.ApplicationConfig.load().ydoc
     val ydocExecutor = Executors.newSingleThreadExecutor(r => {
-      val t = new Thread(r)
-      t.setName("Ydoc main thread")
+      val thread = new Thread(r)
+      thread.setName("Ydoc main thread")
       // Ydoc should not prevent JVM from exiting
-      t.setDaemon(true)
-      t
+      thread.setDaemon(true)
+      thread
     })
     ydocExecutor.execute(() =>
       org.enso.runner.common.YdocServerApi
@@ -572,26 +572,12 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
   def close(): Unit = {
     suggestionsRepo.close()
     contextSupervisor.close()
-    shutdownYdocExecutor()
+    ydoc.shutdownNow()
     runtimeEventsMonitor.close()
     log.info("Stopped Language Server")
     MDC.remove("projectLocalId")
     MDC.remove("projectId")
     MDC.remove("projectSessionId")
-  }
-
-  /** Shuts down the Ydoc executor, interrupting any running tasks. */
-  private def shutdownYdocExecutor(): Unit = {
-    ydoc.shutdownNow()
-    try {
-      if (!ydoc.awaitTermination(3, TimeUnit.SECONDS)) {
-        log.warn("Ydoc executor did not terminate within timeout.")
-      }
-    } catch {
-      case _: InterruptedException =>
-        log.warn("Interrupted while waiting for Ydoc executor to terminate.")
-        Thread.currentThread().interrupt()
-    }
   }
 
   private def akkaHttpsConfig(): com.typesafe.config.Config = {

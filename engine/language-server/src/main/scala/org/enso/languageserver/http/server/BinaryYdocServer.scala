@@ -44,13 +44,10 @@ object BinaryYdocServer {
       with LazyLogging {
 
     override def onConnect(channel: YjsChannel): Unit = {
-      logger.info("BinaryServerCallbacks.onConnect")
+      logger.trace(s"Binary channel connected ${channel.getClass()}")
 
       val incomingMessageHandler = factory.createController()
-      channel.subscribe { msg =>
-        logger.info("BinaryServerCallbacks.onMessage " + msg)
-        this.onMessage(incomingMessageHandler, msg)
-      }
+      channel.subscribe(this.onMessage(incomingMessageHandler, _))
 
       val outgoingMessageHandler =
         system.actorOf(
@@ -64,7 +61,7 @@ object BinaryYdocServer {
       incomingMessageHandler: ActorRef,
       message: Object
     ): Unit = {
-      logger.info(s"BinaryServerCallbacks.onMessage ${message.getClass}")
+      logger.trace(s"Received binary message ${message.getClass}")
       try {
         val value   = context.asValue(message)
         val address = value.asNativePointer()
@@ -72,13 +69,12 @@ object BinaryYdocServer {
           MemorySegment.ofAddress(address).reinterpret(value.getBufferSize());
         val buffer  = segment.asByteBuffer()
         val decoded = decoder.decode(buffer)
-        logger.info(s"Received binary message $decoded")
         incomingMessageHandler ! decoded
         messageCallbacks.foreach(cb => cb(buffer))
       } catch {
         case NonFatal(e) =>
           logger.error(
-            s"Received unsupported message: ${message.getClass}",
+            s"Received unsupported binary message: ${message.getClass}",
             e
           )
       }
@@ -94,14 +90,14 @@ object BinaryYdocServer {
 
     override def receive: Receive = {
       case message: B @unchecked =>
-        logger.info(s"Sending binary message $message")
+        logger.trace(s"Sending binary message $message")
         val bytes = encoder.encode(message)
+        // Java `ByteBuffer` should be always compacted before sending because the
+        // conversion to JS `ArrayBuffer` assumes that it occupies the whole allocated size,
+        // i.e. it does not respect the position and limit attributes of `ByteBuffer`.
         channel.send(bytes.compact())
       case unknown =>
-        logger.error(
-          s"Sending unsupported message ${unknown.getClass}",
-          unknown
-        )
+        logger.error(s"Sending unsupported message ${unknown.getClass}")
     }
   }
 }

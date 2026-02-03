@@ -9,6 +9,7 @@ import org.enso.ydoc.api.YjsChannelCallbacks
 import org.enso.ydoc.api.YjsChannel
 
 import java.util.UUID
+import java.util.function.Consumer
 
 import scala.concurrent.ExecutionContext
 
@@ -80,13 +81,7 @@ object YdocJsonRpcServer {
       with LazyLogging {
 
     override def onConnect(channel: YjsChannel): Unit = {
-      logger.info(s"ServerCallbacks.onConnect ${channel.getClass()}")
-      System.err.println(
-        s"  is proxy ${java.lang.reflect.Proxy.isProxyClass(channel.getClass())})"
-      )
-      System.err.println(
-        s"  invocation ${java.lang.reflect.Proxy.getInvocationHandler(channel)})"
-      )
+      logger.trace(s"JSON-RPC channel connected ${channel.getClass()}")
 
       val incomingMessageHandler =
         system.actorOf(
@@ -104,7 +99,7 @@ object YdocJsonRpcServer {
         channel.subscribe(toSubscribe)
       } catch {
         case e: Exception =>
-          logger.error("ServerCallbacks.onConnect err", e)
+          logger.error("JSON-RPC channel subscribe error", e)
       }
 
       val outgoingMessageHandler =
@@ -125,17 +120,18 @@ object YdocJsonRpcServer {
   final class OnMessageHandler(
     messageCallbacks: List[MessageHandler.WebMessage => Unit],
     incomingMessageHandler: ActorRef
-  ) extends java.util.function.Consumer[Object]
+  ) extends Consumer[Object]
       with LazyLogging {
-    def accept(message: Object): Unit = {
+
+    override def accept(message: Object): Unit = {
       message match {
         case m: String =>
-          logger.info(s"Received message $m")
+          logger.trace(s"Received JSON-RPC message $m")
           val webMessage = MessageHandler.WebMessage(m)
           incomingMessageHandler ! webMessage
           messageCallbacks.foreach(cb => cb(webMessage))
         case _ =>
-          logger.error("Received unsupported message:", message)
+          logger.error("Received unsupported JSON-RPC message:", message)
       }
     }
   }
@@ -147,7 +143,7 @@ object YdocJsonRpcServer {
 
     override def receive: Receive = {
       case MessageHandler.WebMessage(message) =>
-        logger.info(s"Sending message $message")
+        logger.trace(s"Sending message $message")
         channel.send(message)
       case unknown =>
         logger.error("Sending unsupported message:", unknown)
