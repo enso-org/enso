@@ -31,6 +31,12 @@ import org.netbeans.api.java.classpath.ClassPath;
 import org.netbeans.api.java.platform.JavaPlatform;
 import org.netbeans.api.project.ProjectUtils;
 import org.netbeans.api.project.ui.OpenProjects;
+import org.netbeans.modules.gsf.testrunner.api.Report;
+import org.netbeans.modules.gsf.testrunner.api.Status;
+import org.netbeans.modules.gsf.testrunner.api.TestSession;
+import org.netbeans.modules.gsf.testrunner.api.TestSuite;
+import org.netbeans.modules.gsf.testrunner.api.Testcase;
+import org.netbeans.modules.gsf.testrunner.ui.api.Manager;
 import org.netbeans.spi.project.ActionProgress;
 import org.openide.awt.Notification;
 import org.openide.awt.NotificationDisplayer;
@@ -205,6 +211,35 @@ public final class EnsoActionProvider implements ActionProvider {
             }
             var launch = enableDebug ?
                 new DebugAndLaunch(fo, builder, params) : builder;
+
+            if (prj != null) {
+                var m = Manager.getInstance();
+                var session = new TestSession("Demo: " + fo, prj, TestSession.SessionType.TEST);
+                var ts = new TestSuite("Chunk of tests");
+                var tc = new Testcase("Dummy test", "Simple type", session);
+                var fail = new Testcase("Fail test", "Simple type", session);
+                fail.setStatus(Status.FAILED);
+                session.addSuite(ts);
+                session.addTestCase(tc);
+                session.addTestCase(fail);
+
+                var rp = new RequestProcessor("Mocked test");
+                //rp.create(() -> {
+                    m.testStarted(session);
+                    m.displaySuiteRunning(session, ts.getName());
+                //}).schedule(1000);
+
+                //rp.create(() -> {
+                    var tr = session.getReport(3000);
+                    m.displayReport(session, tr);
+                    session.finishSuite(ts);
+                //}).schedule(3000);
+
+                rp.create(() -> {
+                    m.sessionFinished(session);
+                }).schedule(5000);
+            }
+
             var service = ExecutionService.newService(launch, descriptor, script.getName());
             service.run();
             return cf;

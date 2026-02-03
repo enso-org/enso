@@ -29,6 +29,13 @@
                               </includes>
                         </nbmResource>
                     </nbmResources>
+                    <moduleDependencies>
+                        <dependency>
+                            <id>org.netbeans.modules:org-netbeans-modules-gsf-testrunner-ui</id>
+                            <type>impl</type>
+                            <explicitValue>org.netbeans.modules.gsf.testrunner.ui = ${netbeans.impl.version}</explicitValue>
+                        </dependency>
+                    </moduleDependencies>
                 </configuration>
             </plugin>
             <plugin>
@@ -304,10 +311,31 @@
             <version>${netbeans.version}</version>
             <type>jar</type>
         </dependency>
+        <dependency>
+            <groupId>org.netbeans.api</groupId>
+            <artifactId>org-netbeans-modules-parsing-api</artifactId>
+            <version>${netbeans.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.netbeans.api</groupId>
+            <artifactId>org-netbeans-modules-gsf-testrunner</artifactId>
+            <version>${netbeans.version}</version>
+            <type>jar</type>
+        </dependency>
+        <dependency>
+            <groupId>org.netbeans.modules</groupId>
+            <artifactId>org-netbeans-modules-gsf-testrunner-ui</artifactId>
+            <version>${netbeans.version}</version>
+            <type>jar</type>
+        </dependency>
     </dependencies>
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <netbeans.version>RELEASE220</netbeans.version>
+        <netbeans.impl.version>dev-c0059cf2b579b5c6e62fe63479b16624ab9f1dc2</netbeans.impl.version>
+        <!--
+        <netbeans.impl.version>28.0.1-d7a3a379e3df473b9ff89c71c641bb0b02fb3940</netbeans.impl.version>
+        -->
         <netbeans.runtime.version>RELEASE270</netbeans.runtime.version>
         <netbeans.compile.on.save>none</netbeans.compile.on.save>
         <enso.root>${basedir}/../../</enso.root>
@@ -316,6 +344,9 @@
     <profiles>
         <profile>
             <id>vsix</id>
+            <properties>
+                <netbeans.impl.version>dev-360537705314d9f83b1c995b890fba9dc8f99ae0</netbeans.impl.version>
+            </properties>
             <build>
                 <plugins>
                     <plugin>

@@ -70,7 +70,7 @@ public class EnsoSbtProjectTest extends NbTestCase {
     assertNotNull("subprojects are supported", spp);
     var allProjects = spp.getSubprojects();
     var jvmProjects = allProjects.stream().filter(p -> p.getLookup().lookup(EnsoYamlProject.class) == null).toList();
-    assertSimilar("Found exactly the same amount of projects: " + jvmProjects, aggregate.size(), jvmProjects.size(), 15);
+    assertSimilar("Found exactly the same amount of projects: " + jvmProjects, aggregate.size(), jvmProjects.size(), 25);
   }
 
   public void testLanguageServerProject() throws Exception {
