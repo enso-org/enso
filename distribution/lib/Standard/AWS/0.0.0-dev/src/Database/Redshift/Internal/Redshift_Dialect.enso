@@ -30,6 +30,8 @@ import Standard.Database.SQL.SQL_Type
 from Standard.Database.Errors import Unsupported_Database_Operation
 from Standard.Database.Internal.JDBC_Connection import JDBC_Connection
 
+polyglot java import java.sql.Types
+
 ## ---
    private: true
    ---
@@ -201,8 +203,24 @@ type Redshift_Dialect
        used only to override the type in cases where the default one that the
        database uses is not what we want.
     cast_op_type self (op_kind:Text) (args:(Vector Internal_Column)) (expression:SQL_IR_Expression) =
-        _ = [op_kind, args]
-        expression
+        is_int8 ic:Internal_Column = ic.sql_type_reference.get.typeid == Types.BIGINT
+        is_int ic:Internal_Column =
+            typeid = ic.sql_type_reference.get.typeid
+            typeid == Types.SMALLINT || typeid == Types.INTEGER || typeid == Types.BIGINT
+
+        cast_to = case op_kind of
+            "SUM" ->
+                if is_int8 (args.at 0) then "numeric(37,0)" else Nothing
+            "AVG" ->
+                if is_int (args.at 0) then "float8" else Nothing
+            "STDDEV_POP" ->
+                if is_int (args.at 0) then "float8" else Nothing
+            "STDDEV_SAMP" ->
+                if is_int (args.at 0) then "float8" else Nothing
+            _ -> Nothing
+
+        if cast_to.is_nothing then expression else
+            SQL_IR_Expression.Operation "CAST" [expression, SQL_IR_Expression.Literal cast_to]
 
     ## ---
        private: true
@@ -210,7 +228,19 @@ type Redshift_Dialect
        Add an extra cast to adjust the output type of aggregate operations. Some
        DBs do CAST(SUM(x) AS FLOAT) others do SUM(CAST(x AS FLOAT)).
     cast_aggregate_columns self op_kind:Text columns:(Vector Internal_Column) =
-        self.cast_op_type op_kind columns (SQL_IR_Expression.Operation op_kind (columns.map c->(c:Internal_Column).expression))
+        is_int ic:Internal_Column =
+            typeid = ic.sql_type_reference.get.typeid
+            typeid == Types.SMALLINT || typeid == Types.INTEGER || typeid == Types.BIGINT
+
+        expressions = case op_kind of
+            "AVG" ->
+                columns.map c->
+                    case is_int c of
+                        True ->
+                            SQL_IR_Expression.Operation "CAST" [c.expression, SQL_IR_Expression.Literal "float8"]
+                        False -> c.expression
+            _ -> columns.map c->(c:Internal_Column).expression
+        self.cast_op_type op_kind columns (SQL_IR_Expression.Operation op_kind expressions)
 
     ## ---
        private: true
