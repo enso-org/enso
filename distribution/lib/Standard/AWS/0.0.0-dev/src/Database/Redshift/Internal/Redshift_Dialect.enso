@@ -1,6 +1,7 @@
 from Standard.Base import all
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
+import Standard.Base.Runtime.Ref.Ref
 
 from Standard.Table import Aggregate_Column, Value_Type
 
@@ -240,69 +241,91 @@ type Redshift_Dialect
        array_agg or FIRST/LAST aggregates. We implement them by adding a helper
        row_number column in a subquery and aggregating via CASE in the outer
        query.
-    custom_build_aggregate self =
-        create_row_number_for orderings key_columns reverse ignore_null result_expr =
-            order_descriptors = orderings.map o->
-                self.prepare_order_descriptor (o.column:Internal_Column) o.direction text_ordering=Nothing
-            reversed = if reverse then order_descriptors.map .reverse else order_descriptors
-            order_with_nulls =
-                if ignore_null then
-                    is_null = SQL_IR_Expression.Operation "IS_NULL" [result_expr]
-                    null_order = Order_Descriptor.Value is_null Sort_Direction.Ascending Nothing Nothing
-                    [null_order] + reversed
-                else reversed
-            key_expressions_for_orderings = key_columns.map .expression
-            expression = Row_Number_Helpers.make_row_number 1 1 order_with_nulls key_expressions_for_orderings
-            Pair.new "row-number" expression
+    custom_build_aggregate self base_table key_columns resolved_aggregates problem_builder =
+            create_row_number_for orderings key_columns reverse ignore_null result_expr =
+                order_descriptors = orderings.map o->
+                    self.prepare_order_descriptor (o.column:Internal_Column) o.direction text_ordering=Nothing
+                reversed = if reverse then order_descriptors.map .reverse else order_descriptors
+                order_with_nulls =
+                    if ignore_null then
+                        is_null = SQL_IR_Expression.Operation "IS_NULL" [result_expr]
+                        null_order = Order_Descriptor.Value is_null Sort_Direction.Ascending Nothing Nothing
+                        [null_order] + reversed
+                    else reversed
+                key_expressions_for_orderings = key_columns.map .expression
+                expression = Row_Number_Helpers.make_row_number 1 1 order_with_nulls key_expressions_for_orderings
+                Pair.new "row-number" expression
 
-        create_row_number_for_shortest_longest key_columns result_expr reverse =
-            length_expr = SQL_IR_Expression.Operation "LENGTH" [result_expr]
-            direction = if reverse then Sort_Direction.Descending else Sort_Direction.Ascending
-            order_descriptor = Order_Descriptor.Value length_expr direction (Nulls_Order.Last) Nothing
-            key_expressions_for_orderings = key_columns.map .expression
-            expression = Row_Number_Helpers.make_row_number 1 1 [order_descriptor] key_expressions_for_orderings
-            Pair.new "row-number" expression
+            create_row_number_for_shortest_longest key_columns result_expr reverse =
+                length_expr = SQL_IR_Expression.Operation "LENGTH" [result_expr]
+                direction = if reverse then Sort_Direction.Descending else Sort_Direction.Ascending
+                order_descriptor = Order_Descriptor.Value length_expr direction (Nulls_Order.Last) Nothing
+                key_expressions_for_orderings = key_columns.map .expression
+                expression = Row_Number_Helpers.make_row_number 1 1 [order_descriptor] key_expressions_for_orderings
+                Pair.new "row-number" expression
 
-        create_helper_expressions aggregate_column key_columns =
-            make_helper_for_first_last order_by ignore_null reverse result_expr =
-                if Aggregate_Helper.is_non_empty_selector order_by then
-                    [create_row_number_for order_by key_columns reverse ignore_null result_expr]
-                else []
-            case aggregate_column of
-                Aggregate_Column.First column _ ignore_null order_by -> make_helper_for_first_last order_by ignore_null False column.expression
-                Aggregate_Column.Last column _ ignore_null order_by -> make_helper_for_first_last order_by ignore_null True column.expression
-                Aggregate_Column.Shortest column _ -> [create_row_number_for_shortest_longest key_columns column.expression False]
-                Aggregate_Column.Longest column _ -> [create_row_number_for_shortest_longest key_columns column.expression True]
-                _ -> []
+            create_row_number_for_concat key_columns result_expr =
+                order_descriptors = if base_table.default_ordering.is_nothing then [Order_Descriptor.Value result_expr Sort_Direction.Ascending Nothing Nothing] else base_table.default_ordering
+                key_expressions_for_orderings = key_columns.map .expression
+                expression = Row_Number_Helpers.make_row_number 1 1 order_descriptors key_expressions_for_orderings
+                Pair.new "row-number" expression
 
-        make_aggregate aggregate_column as helper_expressions base_table infer_return_type problem_builder =
-            make_first_last op_kind =
-                if Aggregate_Helper.is_non_empty_selector aggregate_column.order_by . not then
-                    Aggregate_Helper.throw_ordering_required (op_kind.to_case ..Title)
-                else
+            create_helper_expressions aggregate_column key_columns =
+                make_helper_for_first_last order_by ignore_null reverse result_expr =
+                    if Aggregate_Helper.is_non_empty_selector order_by then
+                        [create_row_number_for order_by key_columns reverse ignore_null result_expr]
+                    else []
+                case aggregate_column of
+                    Aggregate_Column.First column _ ignore_null order_by -> make_helper_for_first_last order_by ignore_null False column.expression
+                    Aggregate_Column.Last column _ ignore_null order_by -> make_helper_for_first_last order_by ignore_null True column.expression
+                    Aggregate_Column.Shortest column _ -> [create_row_number_for_shortest_longest key_columns column.expression False]
+                    Aggregate_Column.Longest column _ -> [create_row_number_for_shortest_longest key_columns column.expression True]
+                    Aggregate_Column.Concatenate column _ _ _ _ _ -> [create_row_number_for_concat key_columns column.expression]
+                    _ -> []
+
+            make_aggregate aggregate_column as helper_expressions base_table infer_return_type problem_builder =
+                make_first_last op_kind =
+                    if Aggregate_Helper.is_non_empty_selector aggregate_column.order_by . not then
+                        Aggregate_Helper.throw_ordering_required (op_kind.to_case ..Title)
+                    else
+                        Runtime.assert (helper_expressions.length == 1)
+                        row_number = helper_expressions.first
+                        op = case aggregate_column.ignore_nothing of
+                            False -> op_kind
+                            True  -> op_kind + "_NOT_NULL"
+                        sql_type_reference = aggregate_column.column.sql_type_reference
+                        Internal_Column.Value as sql_type_reference (SQL_IR_Expression.Operation op [aggregate_column.column.expression, row_number.expression])
+
+                make_shortest_longest op_kind column =
                     Runtime.assert (helper_expressions.length == 1)
                     row_number = helper_expressions.first
-                    op = case aggregate_column.ignore_nothing of
-                        False -> op_kind
-                        True  -> op_kind + "_NOT_NULL"
-                    sql_type_reference = aggregate_column.column.sql_type_reference
-                    Internal_Column.Value as sql_type_reference (SQL_IR_Expression.Operation op [aggregate_column.column.expression, row_number.expression])
+                    sql_type_reference = column.sql_type_reference
+                    Internal_Column.Value as sql_type_reference (SQL_IR_Expression.Operation op_kind [column.expression, row_number.expression])
 
-            make_shortest_longest op_kind column =
-                Runtime.assert (helper_expressions.length == 1)
-                row_number = helper_expressions.first
-                sql_type_reference = column.sql_type_reference
-                Internal_Column.Value as sql_type_reference (SQL_IR_Expression.Operation op_kind [column.expression, row_number.expression])
+                case aggregate_column of
+                    Aggregate_Column.First _ _ _ _ -> make_first_last "FIRST"
+                    Aggregate_Column.Last _ _ _ _ -> make_first_last "LAST"
+                    Aggregate_Column.Shortest column _ -> make_shortest_longest "FIRST" column
+                    Aggregate_Column.Longest column _ -> make_shortest_longest "LAST" column
+                    Aggregate_Column.Concatenate column _ separator prefix suffix quote_char ->
+                        Runtime.assert (helper_expressions.length == 1)
+                        row_number = helper_expressions.first
+                        base_args = [column.expression, SQL_IR_Expression.Constant separator, SQL_IR_Expression.Constant prefix, SQL_IR_Expression.Constant suffix]
+                        op_kind = case quote_char.is_empty of
+                            True -> "CONCAT_ORDERED"
+                            False -> "CONCAT_QUOTE_IF_NEEDED_ORDERED"
+                        effective_args = case op_kind of
+                            "CONCAT_QUOTE_IF_NEEDED_ORDERED" ->
+                                base_args + [SQL_IR_Expression.Constant quote_char, row_number.expression]
+                            "CONCAT_ORDERED" ->
+                                base_args + [row_number.expression]
+                        expression = SQL_IR_Expression.Operation op_kind effective_args
+                        sql_type_reference = infer_return_type op_kind [column] expression
+                        Internal_Column.Value as sql_type_reference expression
+                    _ -> Aggregate_Helper.make_aggregate_column base_table aggregate_column as self infer_return_type problem_builder
 
-            case aggregate_column of
-                Aggregate_Column.First _ _ _ _ -> make_first_last "FIRST"
-                Aggregate_Column.Last _ _ _ _ -> make_first_last "LAST"
-                Aggregate_Column.Shortest column _ -> make_shortest_longest "FIRST" column
-                Aggregate_Column.Longest column _ -> make_shortest_longest "LAST" column
-                _ -> Aggregate_Helper.make_aggregate_column base_table aggregate_column as self infer_return_type problem_builder
-
-        setup = Aggregate_With_Helper_Expressions.Value create_helper_expressions make_aggregate
-        setup.build self
+            setup = Aggregate_With_Helper_Expressions.Value create_helper_expressions make_aggregate
+            setup.build self base_table key_columns resolved_aggregates problem_builder
 
     ## ---
        private: true
@@ -478,7 +501,39 @@ concat_ops =
         agg_no_sep = SQL_Builder.code "listagg(" ++ expr ++ ", '')"
         SQL_Builder.code "CASE WHEN " ++ agg_with_sep.paren ++ " IS NULL THEN NULL WHEN " ++ sep ++ " = '' THEN " ++ agg_no_sep ++ " ELSE left(" ++ agg_with_sep.paren ++ ", length(" ++ agg_with_sep.paren ++ ") - length(" ++ sep ++ ")) END"
     concat = Base_Generator.make_concat make_raw_concat_expr make_contains_expr
-    [["CONCAT", concat (has_quote=False)], ["CONCAT_QUOTE_IF_NEEDED", concat (has_quote=True)]]
+
+    make_raw_concat_expr_ordered expr separator order_by =
+        sep = SQL_Builder.code "CAST(" ++ separator ++ " AS VARCHAR)"
+        agg_with_sep = SQL_Builder.code "listagg(" ++ expr ++ " || " ++ sep ++ ", '') WITHIN GROUP (ORDER BY " ++ order_by ++ ")"
+        agg_no_sep = SQL_Builder.code "listagg(" ++ expr ++ ", '') WITHIN GROUP (ORDER BY " ++ order_by ++ ")"
+        SQL_Builder.code "CASE WHEN " ++ agg_with_sep.paren ++ " IS NULL THEN NULL WHEN " ++ sep ++ " = '' THEN " ++ agg_no_sep ++ " ELSE left(" ++ agg_with_sep.paren ++ ", length(" ++ agg_with_sep.paren ++ ") - length(" ++ sep ++ ")) END"
+
+    make_concat_ordered has_quote args append_char="||" =
+        expected_args = if has_quote then 6 else 5
+        if args.length != expected_args then Error.throw (Illegal_State.Error "Unexpected number of arguments for the concat operation.") else
+            expr = args.at 0
+            separator = args.at 1
+            prefix = args.at 2
+            suffix = args.at 3
+            order_by = if has_quote then args.at 5 else args.at 4
+            append = " " + append_char + " "
+            possibly_quoted = case has_quote of
+                True ->
+                    quote = args.at 4
+                    includes_separator = separator ++ " != '' AND " ++ make_contains_expr expr separator
+                    ## We use the assumption that `has_quote` is True iff `quote` is not empty.
+                    includes_quote = make_contains_expr expr quote
+                    is_empty = expr ++ " = ''"
+                    needs_quoting = includes_separator.paren ++ " OR " ++ includes_quote.paren ++ " OR " ++ is_empty.paren
+                    escaped = SQL_Builder.code "replace(" ++ expr ++ ", " ++ quote ++ ", " ++ quote ++ append ++ quote ++ ")"
+                    quoted = quote ++ append ++ escaped ++ append ++ quote
+                    SQL_Builder.code "CASE WHEN " ++ needs_quoting ++ " THEN " ++ quoted ++ " ELSE " ++ expr ++ " END"
+                False -> expr
+            transformed_expr = SQL_Builder.code "CASE WHEN " ++ expr ++ " IS NULL THEN '' ELSE " ++ possibly_quoted.paren ++ " END"
+            concatenated = make_raw_concat_expr_ordered transformed_expr separator order_by
+            prefix.paren ++ append ++ concatenated ++ append ++ suffix.paren
+
+    [["CONCAT", concat (has_quote=False)], ["CONCAT_QUOTE_IF_NEEDED", concat (has_quote=True)], ["CONCAT_ORDERED", make_concat_ordered False], ["CONCAT_QUOTE_IF_NEEDED_ORDERED", make_concat_ordered True]]
 
 ## ---
    private: true
