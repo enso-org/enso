@@ -262,6 +262,8 @@ type Redshift_Dialect
         _ = self
         case aggregate of
             Aggregate_Column.Mode _ _ -> Error.throw (Unsupported_Database_Operation.Error "Mode")
+            Aggregate_Column.Median _ _ -> Error.throw (Unsupported_Database_Operation.Error "Median")
+            Aggregate_Column.Percentile _ _ _ -> Error.throw (Unsupported_Database_Operation.Error "Percentile")
             _ -> True
 
     ## ---
