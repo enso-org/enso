@@ -182,7 +182,7 @@ final class DocsUtils {
       } else {
         sb.append(sep);
       }
-      var opType = extractTypeOrAny(op);
+      var opType = extractFromSignature(op);
       sb.append(opType);
     }
     sb.append(")");
