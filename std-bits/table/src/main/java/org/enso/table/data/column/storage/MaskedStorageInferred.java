@@ -1,19 +1,18 @@
-package org.enso.table.data.column.operation.masks;
+package org.enso.table.data.column.storage;
 
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.operation.StorageIterators;
 import org.enso.table.data.column.operation.cast.CastOperation;
-import org.enso.table.data.column.storage.ColumnStorage;
-import org.enso.table.data.column.storage.ColumnStorageWithInferredStorage;
+import org.enso.table.data.column.operation.masks.IndexMapper;
 import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.enso.table.problems.BlackholeProblemAggregator;
 
-final class MaskedStorageInferred<T> extends MaskedStorage<T>
+public final class MaskedStorageInferred<T> extends MaskedStorage<T>
     implements ColumnStorageWithInferredStorage {
   private ColumnStorage<?> cachedInferredStorage = null;
   private boolean hasComputedInferredStorage = false;
 
-  MaskedStorageInferred(ColumnStorage<T> parent, IndexMapper indexMapper) {
+  public MaskedStorageInferred(ColumnStorage<T> parent, IndexMapper indexMapper) {
     super(parent, indexMapper);
   }
 

@@ -36,7 +36,7 @@ public abstract class ColumnAggregatedProblem implements Problem {
     String inner =
         rows.stream().limit(limit).map(Object::toString).collect(Collectors.joining(", "));
     if (rows.size() > limit) {
-      inner += ", ...";
+      inner += ", ... (" + (rows.size() - limit) + " more)";
     }
 
     return "[" + inner + "]";

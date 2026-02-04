@@ -27,7 +27,7 @@ public class Sum extends Aggregator {
   public Sum(String name, Column column) {
     super(name);
     inputStorage = ColumnStorageWithInferredStorage.resolveStorage(column.getStorage());
-    inputType = inputStorage.getType();
+    inputType = StorageType.ofStorage(inputStorage);
   }
 
   @Override
@@ -96,7 +96,7 @@ public class Sum extends Aggregator {
           }
           context.safepoint();
         }
-      } else if (storage.getType() instanceof BigIntegerType bigIntegerType) {
+      } else if (StorageType.ofStorage(storage) instanceof BigIntegerType bigIntegerType) {
         var typedStorage = bigIntegerType.asTypedStorage(storage);
         for (int row : indexes) {
           BigInteger value = typedStorage.getItemBoxed(row);
@@ -202,7 +202,7 @@ public class Sum extends Aggregator {
   private static final class NullAccumulator extends SumAccumulator {
     @Override
     void accumulate(List<Integer> indexes, ColumnStorage<?> storage) {
-      assert storage.getType() instanceof NullType;
+      assert StorageType.ofStorage(storage) instanceof NullType;
     }
 
     @Override

@@ -44,7 +44,7 @@ public class DoubleIsOperation implements UnaryOperation {
 
   @Override
   public boolean canApply(ColumnStorage<?> storage) {
-    return storage.getType().isNumeric();
+    return StorageType.ofStorage(storage).isNumeric();
   }
 
   private static boolean isAllFinite(StorageType<?> storageType) {
@@ -60,7 +60,7 @@ public class DoubleIsOperation implements UnaryOperation {
   public ColumnStorage<?> apply(
       ColumnStorage<?> storage, MapOperationProblemAggregator problemAggregator) {
     // For Finite
-    if (isAllFinite(storage.getType())) {
+    if (isAllFinite(StorageType.ofStorage(storage))) {
       if (storage instanceof ColumnStorageWithValidityMap withNothingMap) {
         var size = (int) storage.getSize();
         return new BoolStorage(

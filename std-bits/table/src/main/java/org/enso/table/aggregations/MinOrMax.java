@@ -4,6 +4,7 @@ import java.util.List;
 import org.enso.base.CompareException;
 import org.enso.base.ObjectComparator;
 import org.enso.table.data.column.storage.ColumnStorage;
+import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.problems.InvalidAggregation;
 import org.enso.table.problems.ColumnAggregatedProblemAggregator;
@@ -28,7 +29,7 @@ public class MinOrMax extends KnownTypeAggregator {
    * @param minOrMax <0 for minimum, >0 for maximum
    */
   public MinOrMax(String name, Column column, int minOrMax) {
-    super(name, column.getStorage().getType());
+    super(name, StorageType.ofStorage(column.getStorage()));
     this.storage = column.getStorage();
     this.minOrMax = Integer.signum(minOrMax);
   }

@@ -1,11 +1,13 @@
 package org.enso.table.data.column.storage.type;
 
 import java.math.BigDecimal;
+import org.enso.base.polyglot.EnsoMeta;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.BuilderForType;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.problems.ProblemAggregator;
+import org.graalvm.polyglot.Value;
 
 public final class BigDecimalType implements StorageType<BigDecimal>, NumericType {
   public static final BigDecimalType INSTANCE = new BigDecimalType();
@@ -36,6 +38,12 @@ public final class BigDecimalType implements StorageType<BigDecimal>, NumericTyp
   }
 
   @Override
+  public Value asEnsoValueType() {
+    return EnsoMeta.makeInstance(
+        "Standard.Table.Value_Type", "Value_Type", "Decimal", null, scale == -1 ? null : scale);
+  }
+
+  @Override
   public boolean isNumeric() {
     return true;
   }
@@ -60,6 +68,15 @@ public final class BigDecimalType implements StorageType<BigDecimal>, NumericTyp
       return BigDecimal.valueOf(doubleValue);
     }
 
+    // Special case: String to BigDecimal conversion
+    if (value instanceof String str) {
+      try {
+        return new BigDecimal(str);
+      } catch (NumberFormatException e) {
+        return null;
+      }
+    }
+
     return null;
   }
 
@@ -71,7 +88,7 @@ public final class BigDecimalType implements StorageType<BigDecimal>, NumericTyp
 
   @Override
   public ColumnStorage<BigDecimal> asTypedStorage(ColumnStorage<?> storage) {
-    if (storage.getType() instanceof BigDecimalType) {
+    if (StorageType.ofStorage(storage) instanceof BigDecimalType) {
       @SuppressWarnings("unchecked")
       var output = (ColumnStorage<BigDecimal>) storage;
       return output;

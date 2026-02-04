@@ -41,7 +41,7 @@ final class ImportResolver(compiler: Compiler) extends ImportResolverForIR {
       val (ir, currentLocal) =
         try {
           val ir = current.getIr()
-          val currentLocal = ir.unsafeGetMetadata(
+          val currentLocal = ir.unsafeGetMetadata[BindingAnalysis.Metadata](
             BindingAnalysis,
             "Non-parsed module used in ImportResolver"
           )

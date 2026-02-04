@@ -1,0 +1,13 @@
+import Standard.Base.Data.Vector.Vector
+
+import project.In_Memory_Table.In_Memory_Table
+
+polyglot java import org.enso.table.data.column.storage.ColumnStorage as Java_ColumnStorage
+
+## ---
+   private: true
+   ---
+   Gets the Java ColumnStorage object from an In_Memory_Table.
+get_java_column_storages (table : In_Memory_Table) -> Vector Java_ColumnStorage =
+    java_columns = table.java_table.getColumns
+    java_columns.map c->c.getStorage

@@ -18,7 +18,6 @@ import org.enso.compiler.pass.IRProcessingPass;
 import org.enso.compiler.pass.MiniIRPass;
 import org.enso.compiler.pass.MiniPassFactory;
 import org.enso.compiler.pass.analyse.AliasAnalysis$;
-import org.enso.compiler.pass.analyse.DataflowAnalysis$;
 import org.enso.compiler.pass.analyse.DemandAnalysis$;
 import org.enso.compiler.pass.analyse.TailCall;
 import org.enso.compiler.pass.desugar.GenerateMethodBodies$;
@@ -56,7 +55,6 @@ public final class ShadowedPatternFields implements MiniPassFactory {
     java.util.List<IRProcessingPass> list =
         java.util.List.of(
             AliasAnalysis$.MODULE$,
-            DataflowAnalysis$.MODULE$,
             DemandAnalysis$.MODULE$,
             IgnoredBindings$.MODULE$,
             NestedPatternMatch$.MODULE$,

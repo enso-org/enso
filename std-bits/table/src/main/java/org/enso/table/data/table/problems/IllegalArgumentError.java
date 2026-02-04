@@ -1,5 +1,8 @@
 package org.enso.table.data.table.problems;
 
+import org.enso.base.polyglot.EnsoMeta;
+import org.graalvm.polyglot.Value;
+
 public class IllegalArgumentError extends ColumnAggregatedProblem {
   private final String message;
 
@@ -23,5 +26,11 @@ public class IllegalArgumentError extends ColumnAggregatedProblem {
   @Override
   public String getMessage() {
     return message + " (at rows " + makeTruncatedRowsString() + ").";
+  }
+
+  @Override
+  public Value asEnsoValue() {
+    return EnsoMeta.makeInstance(
+        "Standard.Base.Errors.Illegal_Argument", "Illegal_Argument", "Error", getMessage(), null);
   }
 }

@@ -256,16 +256,17 @@ public abstract class BinaryOperator<T> extends BinaryOperationNumeric<T, T> {
    */
   public static BinaryOperationTyped<?> add(Column left, Object right) {
     var leftStorage = ColumnStorageWithInferredStorage.resolveStorage(left);
-    return switch (leftStorage.getType()) {
-      case NumericType nt -> createNumeric(leftStorage.getType(), right, ADDITION);
-      case TextType tt -> TextConcatenate.INSTANCE;
-      case NullType nt -> {
+    var leftStorageType = StorageType.ofStorage(leftStorage);
+    return switch (leftStorageType) {
+      case NumericType _ -> createNumeric(leftStorageType, right, ADDITION);
+      case TextType _ -> TextConcatenate.INSTANCE;
+      case NullType _ -> {
         // Work out based on the RHS
         var rightType = storageTypeForObject(right);
         yield switch (rightType) {
-          case NullType rnt -> BinaryOperationNull.INSTANCE;
-          case NumericType rnt -> createNumeric(leftStorage.getType(), right, ADDITION);
-          case TextType rtt -> TextConcatenate.INSTANCE;
+          case NullType _ -> BinaryOperationNull.INSTANCE;
+          case NumericType _ -> createNumeric(leftStorageType, right, ADDITION);
+          case TextType _ -> TextConcatenate.INSTANCE;
           default -> null;
         };
       }
@@ -282,18 +283,19 @@ public abstract class BinaryOperator<T> extends BinaryOperationNumeric<T, T> {
    */
   public static BinaryOperationTyped<?> minus(Column left, Object right) {
     var leftStorage = ColumnStorageWithInferredStorage.resolveStorage(left);
-    return switch (leftStorage.getType()) {
-      case NumericType nt -> createNumeric(leftStorage.getType(), right, SUBTRACTION);
-      case DateTimeType dtt -> DateTimeSubtraction.DATE_TIME;
-      case TimeOfDayType todt -> DateTimeSubtraction.TIME_OF_DAY;
+    var leftStorageType = StorageType.ofStorage(leftStorage);
+    return switch (leftStorageType) {
+      case NumericType _ -> createNumeric(leftStorageType, right, SUBTRACTION);
+      case DateTimeType _ -> DateTimeSubtraction.DATE_TIME;
+      case TimeOfDayType _ -> DateTimeSubtraction.TIME_OF_DAY;
       case NullType nt -> {
         // Work out based on the RHS
         var rightType = storageTypeForObject(right);
         yield switch (rightType) {
-          case NullType rnt -> BinaryOperationNull.INSTANCE;
-          case DateTimeType dtt -> DateTimeSubtraction.DATE_TIME;
-          case TimeOfDayType todt -> DateTimeSubtraction.TIME_OF_DAY;
-          case NumericType rnt -> createNumeric(leftStorage.getType(), right, SUBTRACTION);
+          case NullType _ -> BinaryOperationNull.INSTANCE;
+          case DateTimeType _ -> DateTimeSubtraction.DATE_TIME;
+          case TimeOfDayType _ -> DateTimeSubtraction.TIME_OF_DAY;
+          case NumericType _ -> createNumeric(leftStorageType, right, SUBTRACTION);
           default -> null;
         };
       }
@@ -332,22 +334,22 @@ public abstract class BinaryOperator<T> extends BinaryOperationNumeric<T, T> {
    */
   public static BinaryOperationTyped<?> divide(Column left, Object right) {
     var leftStorage = ColumnStorageWithInferredStorage.resolveStorage(left);
-    return switch (leftStorage.getType()) {
-      case BigDecimalType bdt -> new BinaryOperatorBigDecimal(DIVIDE);
-      case NumericType nt -> {
+    return switch (StorageType.ofStorage(leftStorage)) {
+      case BigDecimalType _ -> new BinaryOperatorBigDecimal(DIVIDE);
+      case NumericType _ -> {
         // Work out based on the RHS
         var rightType = storageTypeForObject(right);
         yield rightType instanceof BigDecimalType bdt
             ? new BinaryOperatorBigDecimal(DIVIDE)
             : new BinaryOperatorDouble(DIVIDE);
       }
-      case NullType nt -> {
+      case NullType _ -> {
         // Work out based on the RHS
         var rightType = storageTypeForObject(right);
         yield switch (rightType) {
-          case NullType rnt -> BinaryOperationNull.INSTANCE;
-          case BigDecimalType bdt -> new BinaryOperatorBigDecimal(DIVIDE);
-          case NumericType rnt -> new BinaryOperatorDouble(DIVIDE);
+          case NullType _ -> BinaryOperationNull.INSTANCE;
+          case BigDecimalType _ -> new BinaryOperatorBigDecimal(DIVIDE);
+          case NumericType _ -> new BinaryOperatorDouble(DIVIDE);
           default -> null;
         };
       }
@@ -364,14 +366,15 @@ public abstract class BinaryOperator<T> extends BinaryOperationNumeric<T, T> {
    */
   public static BinaryOperationTyped<?> power(Column left, Object right) {
     var leftStorage = ColumnStorageWithInferredStorage.resolveStorage(left);
-    return switch (leftStorage.getType()) {
-      case NumericType nt -> new BinaryOperatorDouble(POWER);
-      case NullType nt -> {
+    var leftStorageType = StorageType.ofStorage(leftStorage);
+    return switch (leftStorageType) {
+      case NumericType _ -> new BinaryOperatorDouble(POWER);
+      case NullType _ -> {
         // Work out based on the RHS
         var rightType = storageTypeForObject(right);
         yield switch (rightType) {
-          case NullType rnt -> BinaryOperationNull.INSTANCE;
-          case NumericType rnt -> new BinaryOperatorDouble(POWER);
+          case NullType _ -> BinaryOperationNull.INSTANCE;
+          case NumericType _ -> new BinaryOperatorDouble(POWER);
           default -> null;
         };
       }
@@ -382,14 +385,15 @@ public abstract class BinaryOperator<T> extends BinaryOperationNumeric<T, T> {
   private static BinaryOperationTyped<?> makeNumericBinaryOperation(
       Column left, Object right, NumericOperation operation) {
     var leftStorage = ColumnStorageWithInferredStorage.resolveStorage(left);
-    return switch (leftStorage.getType()) {
-      case NumericType nt -> createNumeric(leftStorage.getType(), right, operation);
-      case NullType nt -> {
+    var leftStorageType = StorageType.ofStorage(leftStorage);
+    return switch (leftStorageType) {
+      case NumericType _ -> createNumeric(leftStorageType, right, operation);
+      case NullType _ -> {
         // Work out based on the RHS
         var rightType = storageTypeForObject(right);
         yield switch (rightType) {
-          case NullType rnt -> BinaryOperationNull.INSTANCE;
-          case NumericType rnt -> createNumeric(leftStorage.getType(), right, operation);
+          case NullType _ -> BinaryOperationNull.INSTANCE;
+          case NumericType _ -> createNumeric(leftStorageType, right, operation);
           default -> null;
         };
       }
@@ -422,7 +426,7 @@ public abstract class BinaryOperator<T> extends BinaryOperationNumeric<T, T> {
 
   @Override
   public boolean canApplyMap(ColumnStorage<?> left, Object right) {
-    if (left.getType() instanceof NullType) {
+    if (StorageType.ofStorage(left) instanceof NullType) {
       return true; // We can apply null map to any right value
     }
     return super.canApplyMap(left, right);
@@ -433,7 +437,7 @@ public abstract class BinaryOperator<T> extends BinaryOperationNumeric<T, T> {
       ColumnStorage<?> left,
       ColumnStorage<?> right,
       MapOperationProblemAggregator problemAggregator) {
-    if (left.getType() instanceof NullType) {
+    if (StorageType.ofStorage(left) instanceof NullType) {
       return applyNullMap(left, problemAggregator);
     }
 

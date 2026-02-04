@@ -118,7 +118,10 @@ case object SuspendedArguments extends IRPass {
           case lam: Function.Lambda =>
             val args = lam.arguments()
             val body = lam.body()
-            method.getMetadata(TypeSignatures) match {
+            method.getMetadata(
+              TypeSignatures,
+              classOf[TypeSignatures.Metadata]
+            ) match {
               case Some(Signature(signature, _)) =>
                 val newArgs = computeSuspensions(args.drop(1), signature)
                 if (newArgs.head.suspended) {
@@ -172,7 +175,10 @@ case object SuspendedArguments extends IRPass {
           case lam: Function.Lambda =>
             val args    = lam.arguments()
             val lamBody = lam.body()
-            explicit.getMetadata(TypeSignatures) match {
+            explicit.getMetadata(
+              TypeSignatures,
+              classOf[TypeSignatures.Metadata]
+            ) match {
               case Some(Signature(signature, _)) =>
                 val newArgs = computeSuspensions(
                   args.drop(1),
@@ -233,7 +239,10 @@ case object SuspendedArguments extends IRPass {
   private def resolveExpression(expression: Expression): Expression = {
     expression.transformExpressions {
       case bind: Expression.Binding =>
-        val newExpr = bind.getMetadata(TypeSignatures) match {
+        val newExpr = bind.getMetadata(
+          TypeSignatures,
+          classOf[TypeSignatures.Metadata]
+        ) match {
           case Some(Signature(signature, _)) =>
             bind.expression() match {
               case lam: Function.Lambda =>
@@ -250,7 +259,10 @@ case object SuspendedArguments extends IRPass {
       case lam: Function.Lambda =>
         val args = lam.arguments()
         val body = lam.body()
-        lam.getMetadata(TypeSignatures) match {
+        lam.getMetadata(
+          TypeSignatures,
+          classOf[TypeSignatures.Metadata]
+        ) match {
           case Some(Signature(signature, _)) =>
             lam.copyWithArgumentsAndBody(
               computeSuspensions(args, signature),

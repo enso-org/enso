@@ -17,7 +17,8 @@ public abstract class BinaryOperationNumeric<T, R> implements BinaryOperationTyp
     }
 
     if (right instanceof Column rightColumn) {
-      return ColumnStorageWithInferredStorage.resolveStorage(rightColumn).getType();
+      var resolvedStorage = ColumnStorageWithInferredStorage.resolveStorage(rightColumn);
+      return StorageType.ofStorage(resolvedStorage);
     }
 
     return StorageType.forBoxedItem(right, PreciseTypeOptions.DEFAULT);
@@ -76,10 +77,9 @@ public abstract class BinaryOperationNumeric<T, R> implements BinaryOperationTyp
       return true;
     }
 
-    var rightType = right.getType();
+    var rightType = StorageType.ofStorage(right);
     return switch (rightType) {
-      case NullType nt -> true;
-      case AnyObjectType at -> true;
+      case NullType _, AnyObjectType _ -> true;
       default -> canApplyMap(right, null);
     };
   }
@@ -112,12 +112,12 @@ public abstract class BinaryOperationNumeric<T, R> implements BinaryOperationTyp
       MapOperationProblemAggregator problemAggregator) {
     assert canApplyZip(left, right);
 
-    if (NullType.INSTANCE.isOfType(right.getType())) {
+    if (NullType.INSTANCE.isOfType(StorageType.ofStorage(right))) {
       return applyNullMap(left, problemAggregator);
     }
 
     // Handle the case where right is Any or another type
-    if (!adapter.getValidType().isOfType(right.getType())) {
+    if (!adapter.getValidType().isOfType(StorageType.ofStorage(right))) {
       // Have a mismatch in types (could be AnyObjectType)
       return StorageIterators.zipOverStorages(
           adapter.asTypedStorage(left),

@@ -1,5 +1,8 @@
 package org.enso.table.data.table.problems;
 
+import org.enso.base.polyglot.EnsoMeta;
+import org.graalvm.polyglot.Value;
+
 public class UnquotedCharactersInOutput extends ColumnAggregatedProblem {
   public UnquotedCharactersInOutput(String columnName, long row) {
     super(columnName, row);
@@ -24,5 +27,15 @@ public class UnquotedCharactersInOutput extends ColumnAggregatedProblem {
     }
 
     return false;
+  }
+
+  @Override
+  public Value asEnsoValue() {
+    return EnsoMeta.makeInstance(
+        "Standard.Table.Errors",
+        "Unquoted_Characters_In_Output",
+        "Warning",
+        getLocationName(),
+        getRows());
   }
 }

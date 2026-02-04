@@ -21,12 +21,7 @@ import org.enso.compiler.pass.analyse.alias.graph.{
   GraphOccurrence,
   Graph => AliasGraph
 }
-import org.enso.compiler.pass.analyse.{
-  AliasAnalysis,
-  DataflowAnalysis,
-  DemandAnalysis,
-  TailCall
-}
+import org.enso.compiler.pass.analyse.{AliasAnalysis, DemandAnalysis, TailCall}
 import org.enso.compiler.pass.analyse.alias.{AliasMetadata => AliasInfo}
 import org.enso.compiler.pass.desugar._
 import org.enso.compiler.pass.resolve.IgnoredBindings
@@ -78,7 +73,6 @@ case object LambdaConsolidate extends IRPass {
   )
   override lazy val invalidatedPasses: Seq[IRProcessingPass] = List(
     AliasAnalysis,
-    DataflowAnalysis,
     DemandAnalysis,
     TailCall.INSTANCE
   )
@@ -153,7 +147,7 @@ case object LambdaConsolidate extends IRPass {
         val argIsShadowed = chainedArgList.map {
           case spec: DefinitionArgument.Specified =>
             val aliasInfo = spec
-              .unsafeGetMetadata(
+              .unsafeGetMetadata[AliasAnalysis.Metadata](
                 AliasAnalysis,
                 "Missing aliasing information for an argument definition"
               )
@@ -365,7 +359,7 @@ case object LambdaConsolidate extends IRPass {
       .map { case spec: DefinitionArgument.Specified =>
         val aliasInfo =
           spec
-            .unsafeGetMetadata(
+            .unsafeGetMetadata[AliasAnalysis.Metadata](
               AliasAnalysis,
               "Missing aliasing information for an argument definition."
             )
@@ -393,7 +387,7 @@ case object LambdaConsolidate extends IRPass {
       case (spec: DefinitionArgument.Specified, isShadowed) =>
         val aliasInfo =
           spec
-            .unsafeGetMetadata(
+            .unsafeGetMetadata[AliasAnalysis.Metadata](
               AliasAnalysis,
               "Missing aliasing information for an argument definition."
             )

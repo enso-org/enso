@@ -4,6 +4,7 @@ import org.enso.table.data.column.operation.StorageIterators;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.ColumnStorageWithValidityMap;
 import org.enso.table.data.column.storage.type.NullType;
+import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.table.Column;
 
 /** An operation for counting the number of Nothing values in a Column. */
@@ -54,7 +55,7 @@ public class CountNothing {
 
   /** Returns true if all values in the storage are Nothing. */
   public static boolean allNothing(ColumnStorage<?> storage) {
-    if (storage.getType() instanceof NullType) {
+    if (StorageType.ofStorage(storage) instanceof NullType) {
       // If the storage is of NullType, it means all values are Nothing.
       return true;
     }

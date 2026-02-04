@@ -16,7 +16,7 @@ function engineDistributionSource(version, platform = process.platform, arch = p
   const normalizedPlatform = platformMap[platform] ?? platform
   const normalizedArch = archMapByPlatform[platform]?.[arch] ?? arch
 
-  return `../../built-distribution/enso-engine-${version}-${normalizedPlatform}-${normalizedArch}/enso-${version}/`
+  return `../../built-distribution-native/enso-engine-${version}-${normalizedPlatform}-${normalizedArch}/enso-${version}/`
 }
 
 function engineDistributionTarget(version) {
@@ -70,7 +70,7 @@ async function patchAppImage(context) {
 
       # TODO[ib]: quick hack to resolve java binary at runtime on Linux
       SCRIPT_DIR="$( cd "$( dirname "\${BASH_SOURCE[0]}" )" && pwd )"
-      export PATH="$PATH:$SCRIPT_DIR/resources/enso/runtime/graalvm-ce-java24.0.1-24.2.0/bin"
+      export PATH="$PATH:$SCRIPT_DIR/resources/enso/runtime/graalvm-ce-java25.0.1-25.0.1/bin"
       exec "$SCRIPT_DIR/${executableName}.bin" --no-sandbox "$@"
       `
   try {
@@ -149,7 +149,12 @@ module.exports = {
     },
     {
       from: '../../built-small-jdk/',
-      to: 'enso/runtime/graalvm-ce-java24.0.1-24.2.0',
+      // TODO: avoid hardcoding the version here
+      to: 'enso/runtime/graalvm-ce-java25.0.1-25.0.1',
+    },
+    {
+      from: '.enso.bundle',
+      to: 'enso/.enso.bundle',
     },
   ],
   fileAssociations: [

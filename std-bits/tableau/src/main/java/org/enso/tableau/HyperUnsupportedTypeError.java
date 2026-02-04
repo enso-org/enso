@@ -1,6 +1,9 @@
 package org.enso.tableau;
 
-public class HyperUnsupportedTypeError extends RuntimeException {
+import org.enso.base.polyglot.EnsoMeta;
+import org.graalvm.polyglot.Value;
+
+class HyperUnsupportedTypeError extends RuntimeException {
   private final String type_name;
 
   public HyperUnsupportedTypeError(String type_name) {
@@ -10,5 +13,10 @@ public class HyperUnsupportedTypeError extends RuntimeException {
 
   public String getTypeName() {
     return type_name;
+  }
+
+  public Value asEnsoAtom() {
+    return EnsoMeta.makeInstance(
+        "Standard.Tableau.Hyper_Errors", "Hyper_Unsupported_Type", "Error", getTypeName());
   }
 }
