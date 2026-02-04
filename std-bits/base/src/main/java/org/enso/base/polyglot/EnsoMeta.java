@@ -11,12 +11,8 @@ public final class EnsoMeta {
   /** Returns the Enso `Nothing` value. */
   public static Value getNothing() {
     if (nothingValueRef.get() == null) {
-      synchronized (nothingValueRef) {
-        if (nothingValueRef.get() == null) {
-          var nothing = eval("Standard.Base.Nothing", "Nothing");
-          nothingValueRef.set(nothing);
-        }
-      }
+      var nothing = eval("Standard.Base.Nothing", "Nothing");
+      nothingValueRef.compareAndSet(null, nothing);
     }
     return nothingValueRef.get();
   }
