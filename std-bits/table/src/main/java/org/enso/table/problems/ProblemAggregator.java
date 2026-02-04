@@ -148,10 +148,8 @@ public class ProblemAggregator {
   }
 
   /**
-   * Summarizes th
-   *
-   * <p>If there are no problems, the original value is returned. Otherwise, a new value with
-   * attached problems is returned.
+   * Summarizes the problems and, if there are any errors, returns the first one as a dataflow
+   * error. Otherwise, the original value is returned.
    *
    * @param value the value to attach problems to
    * @return the value with attached problems, or the original value if there are no problems
@@ -159,7 +157,7 @@ public class ProblemAggregator {
   public final Value throwIfAnyErrors(Value value) {
     ProblemSummary summary = summarize();
     var error = summary.problems.stream().filter(Problem::isError).findFirst();
-    return error.isPresent() ? EnsoMeta.asDataflowError(error.get().asEnsoValue()) : value;
+    return error.map(problem -> EnsoMeta.asDataflowError(problem.asEnsoValue())).orElse(value);
   }
 
   /**
