@@ -36,6 +36,7 @@ import {
   parseClientArguments,
   setOpenFileEventHandler,
 } from './fileAssociations.js'
+import { loadGuiConfig } from './guiConfig.js'
 import { Channel } from './ipc.js'
 import { setupLogger } from './log.js'
 import { filterByRole, inheritMenuItem, makeMenuItem, replaceMenuItems } from './menuItems.js'
@@ -342,10 +343,14 @@ class App {
       return
     }
     console.log('Creating the window.')
+
+    const guiConfig = await loadGuiConfig()
+    const encodedGuiConfig = Buffer.from(JSON.stringify(guiConfig), 'utf8').toString('base64')
     const webPreferences: WebPreferences = {
       preload: joinPath(appPath(this.electron), 'preload.mjs'),
       sandbox: true,
       spellcheck: false,
+      additionalArguments: [`--enso-gui-config=${encodedGuiConfig}`],
       ...(process.env.ENSO_TEST ? { partition: 'test' } : {}),
     }
     const windowPreferences: BrowserWindowConstructorOptions = {

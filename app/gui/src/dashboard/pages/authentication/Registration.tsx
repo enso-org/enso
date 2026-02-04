@@ -174,7 +174,7 @@ export default function Registration(props: RegistrationProps) {
                       form={form}
                       name="agreedToTos"
                       description={
-                        <Button variant="link" target="_blank" href={`${$config.ENSO_HOST}/eula`}>
+                        <Button variant="link" target="_blank" href={`${$config.HOST}/eula`}>
                           {getText('viewLicenseAgreement')}
                         </Button>
                       }
@@ -185,11 +185,7 @@ export default function Registration(props: RegistrationProps) {
                     <Checkbox.Group
                       name="agreedToPrivacyPolicy"
                       description={
-                        <Button
-                          variant="link"
-                          target="_blank"
-                          href={`${$config.ENSO_HOST}/privacy`}
-                        >
+                        <Button variant="link" target="_blank" href={`${$config.HOST}/privacy`}>
                           {getText('viewPrivacyPolicy')}
                         </Button>
                       }

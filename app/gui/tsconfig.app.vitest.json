@@ -68,7 +68,6 @@
     "./src/project-view/util/__tests__/projectPath.test.ts",
     "./src/project-view/util/__tests__/qualifiedName.test.ts",
     "./src/project-view/util/__tests__/range.test.ts",
-    "./src/project-view/util/__tests__/reactivity.test.ts",
     "./src/project-view/util/__tests__/shortcuts.test.ts",
     "./src/project-view/util/__tests__/url.test.ts",
     "./src/project-view/util/ast/__tests__/abstract.test.ts",
@@ -101,6 +100,7 @@
     "./src/providers/openedProjects/widgetRegistry/__tests__/widgetRegistry.test.ts",
     "./src/router/__tests__/dataLoader.test.ts",
     "./src/router/__tests__/initialProject.test.ts",
+    "./src/utils/__tests__/reactivity.test.ts",
     "./src/utils/data/__tests__/array.test.ts",
     "./src/utils/data/__tests__/reactive.test.ts",
     "./src/utils/style/__tests__/tabBar.test.ts"
