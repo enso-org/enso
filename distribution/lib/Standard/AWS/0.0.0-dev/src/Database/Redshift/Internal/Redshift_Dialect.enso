@@ -29,6 +29,7 @@ import Standard.Database.SQL.SQL_Statement
 import Standard.Database.SQL.SQL_Type
 from Standard.Database.Errors import Unsupported_Database_Operation
 from Standard.Database.Internal.JDBC_Connection import JDBC_Connection
+import Standard.Table.Internal.Value_Type_Helpers
 
 polyglot java import java.sql.Types
 
@@ -124,19 +125,32 @@ type Redshift_Dialect
        if rows.is_empty then
            Error.throw (Illegal_Argument.Error "Cannot build a table literal with zero rows.")
        first_row = rows.at 0
+       column_types = vecs.map column_values->
+           Value_Type_Helpers.find_common_type_for_arguments column_values
 
        wrapped_name = self.wrap_identifier as_name
        column_list = SQL_Builder.join ", " (column_names.map self.wrap_identifier) . paren
+
+       format_value value column_type =
+           if column_type.is_boolean then
+               SQL_Builder.code "CAST(" ++ SQL_Builder.interpolation value ++ " AS bool)"
+           else
+               SQL_Builder.interpolation value
  
-       cols = (first_row.zip column_names).map pair->
-           SQL_Builder.interpolation pair.first ++ SQL_Builder.code " AS " ++ self.wrap_identifier pair.second
+       cols = 0.up_to column_names.length . map i->
+           value = first_row.at i
+           column_type = column_types.at i
+           col_name = column_names.at i
+           format_value value column_type ++ SQL_Builder.code " AS " ++ self.wrap_identifier col_name
 
        # SELECT <v1> AS col1, <v2> AS col2, ...
        first_select = SQL_Builder.code "SELECT " ++ (SQL_Builder.join ", " cols)
  
        # UNION ALL SELECT <v1>, <v2>, ...
        rest_selects = rows.drop 1 . map row->
-           SQL_Builder.code "SELECT " ++ (SQL_Builder.join ", " (row.map SQL_Builder.interpolation))
+           values = 0.up_to column_names.length . map i->
+               format_value (row.at i) (column_types.at i)
+           SQL_Builder.code "SELECT " ++ (SQL_Builder.join ", " values)
  
        union_body = SQL_Builder.join " UNION ALL " ([first_select] + rest_selects)
  
@@ -444,8 +458,9 @@ type Redshift_Dialect
        ---
     needs_literal_table_cast : Value_Type -> Boolean
     needs_literal_table_cast self value_type =
-        _ = value_type
-        False
+        # Redshift can fail to infer boolean types for literal tables built from
+        # parameter placeholders, so we force a cast for boolean literals.
+        value_type.is_boolean
 
     ## ---
        private: true
