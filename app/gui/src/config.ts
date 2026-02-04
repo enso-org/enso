@@ -32,14 +32,14 @@ const DEFAULT_CONFIG = {
 // Undefined env variables are typed as `any`, but we want them to be `string | undefined`.
 export type $Config = {
   [K in keyof typeof DEFAULT_CONFIG]: unknown extends (typeof DEFAULT_CONFIG)[K] ?
-  string | undefined
+    string | undefined
   : (typeof DEFAULT_CONFIG)[K]
 }
 
 const injectedConfig: $Config | undefined =
   typeof window !== 'undefined' && Object.prototype.hasOwnProperty.call(window, '$config') ?
     window.$config
-    : undefined
+  : undefined
 
 export const $config: $Config = injectedConfig ?? DEFAULT_CONFIG
 
