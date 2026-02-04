@@ -261,6 +261,9 @@ type Redshift_Dialect
     check_aggregate_support self aggregate =
         _ = self
         case aggregate of
+            Aggregate_Column.Count_Distinct columns _ _ ->
+                if columns.length == 1 then True else
+                    Error.throw (Unsupported_Database_Operation.Error "Count_Distinct on multiple columns")
             Aggregate_Column.Mode _ _ -> Error.throw (Unsupported_Database_Operation.Error "Mode")
             Aggregate_Column.Median _ _ -> Error.throw (Unsupported_Database_Operation.Error "Median")
             Aggregate_Column.Percentile _ _ _ -> Error.throw (Unsupported_Database_Operation.Error "Percentile")
