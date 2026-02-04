@@ -1,7 +1,7 @@
 ## Enso Signatures 1.0
 ## module Standard.Base.Data.Index_Sub_Range
 - type Index_Sub_Range
-    - By_Index indexes:(Standard.Base.Data.Numbers.Integer|Standard.Base.Data.Range.Range|Standard.Base.Any.Any)=
+    - By_Index indexes:(Standard.Base.Data.Numbers.Integer|Standard.Base.Data.Range.Range|(Standard.Base.Data.Vector.Vector Standard.Base.Any.Any))=
     - Every step:Standard.Base.Data.Numbers.Integer= first:Standard.Base.Data.Numbers.Integer=
     - First count:Standard.Base.Data.Numbers.Integer=
     - Last count:Standard.Base.Data.Numbers.Integer=

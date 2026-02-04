@@ -20,7 +20,7 @@
     - between self lower:(Standard.Table.Column.Column|Standard.Base.Any.Any) upper:(Standard.Table.Column.Column|Standard.Base.Any.Any) -> (Standard.Table.Column.Column&Standard.Base.Any.Any)
     - cast self value_type:Standard.Table.Value_Type.Value_Type on_problems:Standard.Base.Errors.Problem_Behavior.Problem_Behavior= -> (Standard.Table.Column.Column&Standard.Base.Any.Any)!(Standard.Base.Errors.Illegal_Argument.Illegal_Argument|Standard.Table.Errors.Inexact_Type_Coercion|Standard.Table.Errors.Conversion_Failure)
     - ceil self -> (Standard.Table.Column.Column&Standard.Base.Any.Any)!Standard.Table.Errors.Invalid_Value_Type
-    - coalesce self values:(Standard.Base.Any.Any|Standard.Base.Any.Any) -> (Standard.Table.Column.Column&Standard.Base.Any.Any)
+    - coalesce self values:(Standard.Base.Any.Any|(Standard.Base.Data.Vector.Vector Standard.Base.Any.Any)) -> (Standard.Table.Column.Column&Standard.Base.Any.Any)
     - compute self statistic:Standard.Base.Data.Statistics.Statistic= -> Standard.Base.Any.Any
     - compute_bulk self statistics:(Standard.Base.Data.Vector.Vector Standard.Base.Data.Statistics.Statistic)= -> (Standard.Table.Table.Table|Standard.Base.Any.Any)
     - const self value:Standard.Base.Any.Any -> (Standard.Table.Column.Column&Standard.Base.Any.Any)
@@ -62,8 +62,8 @@
     - last self -> Standard.Base.Any.Any!Standard.Base.Errors.Common.Index_Out_Of_Bounds
     - like self pattern:(Standard.Table.Column.Column|Standard.Base.Data.Text.Text|Standard.Base.Any.Any) -> (Standard.Table.Column.Column&Standard.Base.Any.Any)
     - map self function:Standard.Base.Any.Any skip_nothing:Standard.Base.Data.Boolean.Boolean= expected_value_type:(Standard.Table.Value_Type.Value_Type|Standard.Table.Value_Type.Auto)= -> (Standard.Table.Column.Column&Standard.Base.Any.Any)!Standard.Table.Errors.Invalid_Value_Type
-    - max self values:(Standard.Base.Any.Any|Standard.Base.Any.Any) -> (Standard.Table.Column.Column&Standard.Base.Any.Any)
-    - min self values:(Standard.Base.Any.Any|Standard.Base.Any.Any) -> (Standard.Table.Column.Column&Standard.Base.Any.Any)
+    - max self values:(Standard.Base.Any.Any|(Standard.Base.Data.Vector.Vector Standard.Base.Any.Any)) -> (Standard.Table.Column.Column&Standard.Base.Any.Any)
+    - min self values:(Standard.Base.Any.Any|(Standard.Base.Data.Vector.Vector Standard.Base.Any.Any)) -> (Standard.Table.Column.Column&Standard.Base.Any.Any)
     - minute self -> (Standard.Table.Column.Column&Standard.Base.Any.Any)!Standard.Table.Errors.Invalid_Value_Type
     - month self -> (Standard.Table.Column.Column&Standard.Base.Any.Any)!Standard.Table.Errors.Invalid_Value_Type
     - name self -> Standard.Base.Data.Text.Text
