@@ -12,7 +12,7 @@ import org.graalvm.polyglot.HostAccess;
  * the raw channel before passing it to the delegate, ensuring the Language Server can safely
  * interact with channels from any thread.
  */
-public final class YjsCallbacksSynchronized implements YjsChannelCallbacks {
+final class YjsCallbacksSynchronized implements YjsChannelCallbacks {
 
   private final YjsChannelCallbacks callbacks;
   private final YdocScheduledExecutorService executor;

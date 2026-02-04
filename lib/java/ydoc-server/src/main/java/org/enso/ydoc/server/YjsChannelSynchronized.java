@@ -10,7 +10,7 @@ import org.enso.ydoc.api.YjsChannel;
  * This wrapper queues channel operations to the {@link YdocScheduledExecutorService} to satisfy
  * this constraint.
  */
-public final class YjsChannelSynchronized implements YjsChannel {
+final class YjsChannelSynchronized implements YjsChannel {
 
   private final YjsChannel channel;
   private final YdocScheduledExecutorService executor;
@@ -19,7 +19,7 @@ public final class YjsChannelSynchronized implements YjsChannel {
    * @param channel the underlying channel to wrap
    * @param executor the Ydoc executor that owns the GraalJS context thread
    */
-  public YjsChannelSynchronized(YjsChannel channel, YdocScheduledExecutorService executor) {
+  YjsChannelSynchronized(YjsChannel channel, YdocScheduledExecutorService executor) {
     this.channel = channel;
     this.executor = executor;
   }

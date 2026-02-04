@@ -23,7 +23,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * <p><b>Thread Safety:</b> This service is thread-safe for submitting tasks, but {@link
  * #processPendingTasks()} must only be called from the owner thread.
  */
-public final class YdocScheduledExecutorService implements ScheduledExecutorService {
+final class YdocScheduledExecutorService implements ScheduledExecutorService {
 
   private final long ownerThreadId;
   private final Object lock = new Object();
