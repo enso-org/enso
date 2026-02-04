@@ -491,6 +491,7 @@ export function parseBlockStatement(
   code: string,
   module?: MutableModule,
 ): Owned<MutableStatement> | undefined {
+  code = code.trim()
   const rawParsed = tryRawParseInContext(code, 'blockStatement')
   if (!rawParsed.ok) return
   const root = abstract(module ?? MutableModule.Transient(), rawParsed.value, code).root
@@ -506,6 +507,7 @@ export function parseModuleStatement(
   code: string,
   module?: MutableModule,
 ): Owned<MutableStatement> | undefined {
+  code = code.trim()
   const rawParsed = tryRawParseInContext(code, 'moduleStatement')
   if (!rawParsed.ok) return
   const root = abstract(module ?? MutableModule.Transient(), rawParsed.value, code).root
@@ -521,6 +523,7 @@ export function parseExpression(
   code: string,
   module?: MutableModule,
 ): Owned<MutableExpression> | undefined {
+  code = code.trim()
   const rawParsed = tryRawParseInContext(code, 'expression')
   if (!rawParsed.ok) return
   const root = abstract(module ?? MutableModule.Transient(), rawParsed.value, code).root
@@ -611,9 +614,9 @@ function tryRawParseInContext(
   const statement = iter.tryGetSoleValue(block.statements)?.expression
   if (!statement) return Err(block)
   if (context === 'blockStatement') return Ok(statement)
-  if (context === 'expression')
-    return statement.type === RawAst.Tree.Type.ExpressionStatement ?
-        Ok(statement.expression)
-      : Err(statement)
+  if (context === 'expression') {
+    if (statement.type !== RawAst.Tree.Type.ExpressionStatement) return Err(statement)
+    return Ok(statement.expression)
+  }
   return context satisfies never
 }
