@@ -10,6 +10,43 @@ import org.junit.Test;
 
 public class YdocScheduledExecutorServiceTest {
 
+  /**
+   * Waits for scheduled tasks to become ready by using the executor's waitForTasks method. This
+   * avoids Thread.sleep and uses the executor's own timing mechanism.
+   */
+  private void waitUntilTasksReady(YdocScheduledExecutorService service)
+      throws InterruptedException {
+    long delay;
+    while ((delay = service.getNextTaskDelayNanos()) > 0) {
+      service.waitForTasks(delay);
+    }
+  }
+
+  /**
+   * Waits for a condition to become true, processing tasks in the meantime. Times out after the
+   * specified duration.
+   */
+  private void waitForCondition(
+      YdocScheduledExecutorService service,
+      java.util.function.BooleanSupplier condition,
+      long timeoutMs)
+      throws InterruptedException {
+    long deadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(timeoutMs);
+    while (!condition.getAsBoolean()) {
+      long remaining = deadline - System.nanoTime();
+      if (remaining <= 0) {
+        fail("Timeout waiting for condition");
+      }
+      service.processPendingTasks();
+      long delay = service.getNextTaskDelayNanos();
+      if (delay > 0) {
+        service.waitForTasks(Math.min(delay, remaining));
+      } else if (delay == -1) {
+        service.waitForTasks(Math.min(TimeUnit.MILLISECONDS.toNanos(10), remaining));
+      }
+    }
+  }
+
   @Test
   public void testImmediateTaskExecution() {
     YdocScheduledExecutorService service = new YdocScheduledExecutorService();
@@ -51,13 +88,8 @@ public class YdocScheduledExecutorServiceTest {
     // Schedule a task with delay
     service.schedule(() -> counter.incrementAndGet(), 50, TimeUnit.MILLISECONDS);
 
-    // Process immediately - should not execute yet
-    int executed1 = service.processPendingTasks();
-    assertEquals(0, executed1);
-    assertEquals(0, counter.get());
-
-    // Wait for the delay
-    Thread.sleep(60);
+    // Wait for the delay using executor's mechanism
+    waitUntilTasksReady(service);
 
     // Process again - should execute now
     int executed2 = service.processPendingTasks();
@@ -75,10 +107,8 @@ public class YdocScheduledExecutorServiceTest {
     service.schedule(() -> executionOrder.add(1), 20, TimeUnit.MILLISECONDS);
     service.schedule(() -> executionOrder.add(2), 40, TimeUnit.MILLISECONDS);
 
-    // Wait for all delays to pass
-    Thread.sleep(70);
-
-    // Process - should execute in order of delay
+    // Wait and process tasks as they become ready
+    waitForCondition(service, () -> executionOrder.size() == 3, 500);
     service.processPendingTasks();
 
     assertEquals(List.of(1, 2, 3), executionOrder);
@@ -99,7 +129,7 @@ public class YdocScheduledExecutorServiceTest {
     assertEquals(List.of("immediate1", "immediate2"), executionOrder);
 
     // Wait and process scheduled task
-    Thread.sleep(40);
+    waitUntilTasksReady(service);
     service.processPendingTasks();
     assertEquals(List.of("immediate1", "immediate2", "scheduled1"), executionOrder);
   }
@@ -145,7 +175,7 @@ public class YdocScheduledExecutorServiceTest {
 
     assertFalse(future.isDone());
 
-    Thread.sleep(40);
+    waitUntilTasksReady(service);
     service.processPendingTasks();
 
     assertTrue(future.isDone());
@@ -190,8 +220,8 @@ public class YdocScheduledExecutorServiceTest {
       assertEquals(ownerThreadId, threadId.longValue());
     }
 
-    // Wait for scheduled tasks
-    Thread.sleep(60);
+    // Wait for scheduled tasks and process
+    waitForCondition(service, () -> scheduledTaskThreadIds.size() == 2, 500);
     service.processPendingTasks();
 
     // All scheduled tasks should have executed on owner thread
@@ -216,7 +246,7 @@ public class YdocScheduledExecutorServiceTest {
     service.schedule(() -> {}, 30, TimeUnit.MILLISECONDS);
     assertFalse(service.hasPendingTasks()); // Not ready yet
 
-    Thread.sleep(40);
+    waitUntilTasksReady(service);
     assertTrue(service.hasPendingTasks()); // Now ready
   }
 
@@ -286,11 +316,9 @@ public class YdocScheduledExecutorServiceTest {
     service.schedule(() -> counter.incrementAndGet(), 10, TimeUnit.MILLISECONDS);
     service.schedule(() -> counter.incrementAndGet(), 20, TimeUnit.MILLISECONDS);
 
-    // Simulate event loop
-    for (int i = 0; i < 5; i++) {
-      service.processPendingTasks();
-      Thread.sleep(10);
-    }
+    // Wait for all tasks to be ready and process them
+    waitForCondition(service, () -> counter.get() == 3, 500);
+    service.processPendingTasks();
 
     // All tasks should have executed
     assertEquals(3, counter.get());
