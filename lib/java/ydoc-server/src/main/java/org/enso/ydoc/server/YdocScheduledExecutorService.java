@@ -5,7 +5,6 @@ import java.util.Collection;
 import java.util.List;
 import java.util.PriorityQueue;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
@@ -27,16 +26,27 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public final class YdocScheduledExecutorService implements ScheduledExecutorService {
 
   private final long ownerThreadId;
-  private final ConcurrentLinkedQueue<Runnable> immediateTasks;
-  private final Object scheduledTasksLock = new Object();
+  private final Object lock = new Object();
+
+  /**
+   * @GuardedBy("lock")
+   */
+  private final java.util.LinkedList<Runnable> immediateTasks;
+
+  /**
+   * @GuardedBy("lock")
+   */
   private final PriorityQueue<ScheduledTask> scheduledTasks;
-  private final AtomicBoolean shutdown = new AtomicBoolean(false);
-  private final Object waitLock = new Object();
+
+  /**
+   * @GuardedBy("lock")
+   */
+  private boolean shutdown = false;
 
   /** Creates a new execution service bound to the current thread. */
   public YdocScheduledExecutorService() {
     this.ownerThreadId = Thread.currentThread().threadId();
-    this.immediateTasks = new ConcurrentLinkedQueue<>();
+    this.immediateTasks = new java.util.LinkedList<>();
     this.scheduledTasks = new PriorityQueue<>();
   }
 
@@ -50,12 +60,12 @@ public final class YdocScheduledExecutorService implements ScheduledExecutorServ
    * @throws IllegalStateException if the service has been shut down
    */
   private void submitInternal(Runnable task) {
-    if (shutdown.get()) {
-      throw new IllegalStateException("Service has been shut down");
-    }
-    immediateTasks.offer(task);
-    synchronized (waitLock) {
-      waitLock.notifyAll();
+    synchronized (lock) {
+      if (shutdown) {
+        throw new IllegalStateException("Service has been shut down");
+      }
+      immediateTasks.offer(task);
+      lock.notifyAll();
     }
   }
 
@@ -87,18 +97,16 @@ public final class YdocScheduledExecutorService implements ScheduledExecutorServ
 
   @Override
   public ScheduledFuture<?> schedule(Runnable task, long delay, TimeUnit unit) {
-    if (shutdown.get()) {
-      throw new IllegalStateException("Service has been shut down");
-    }
-    long executeAtNanos = System.nanoTime() + unit.toNanos(delay);
-    var cancellableTask = new CancellableTask(task, executeAtNanos);
-    synchronized (scheduledTasksLock) {
+    synchronized (lock) {
+      if (shutdown) {
+        throw new IllegalStateException("Service has been shut down");
+      }
+      long executeAtNanos = System.nanoTime() + unit.toNanos(delay);
+      var cancellableTask = new CancellableTask(task, executeAtNanos);
       scheduledTasks.offer(new ScheduledTask(cancellableTask, executeAtNanos));
+      lock.notifyAll();
+      return cancellableTask;
     }
-    synchronized (waitLock) {
-      waitLock.notifyAll();
-    }
-    return cancellableTask;
   }
 
   /**
@@ -114,48 +122,44 @@ public final class YdocScheduledExecutorService implements ScheduledExecutorServ
 
   @Override
   public <V> ScheduledFuture<V> schedule(Callable<V> task, long delay, TimeUnit unit) {
-    if (shutdown.get()) {
-      throw new IllegalStateException("Service has been shut down");
-    }
-    long executeAtNanos = System.nanoTime() + unit.toNanos(delay);
-    var callableTask = new CallableScheduledFuture<>(task, executeAtNanos);
-    var wrapper =
-        new CancellableTask(
-            () -> {
-              try {
-                callableTask.complete(task.call());
-              } catch (Throwable t) {
-                callableTask.completeExceptionally(t);
-              }
-            },
-            executeAtNanos);
-    synchronized (scheduledTasksLock) {
+    synchronized (lock) {
+      if (shutdown) {
+        throw new IllegalStateException("Service has been shut down");
+      }
+      long executeAtNanos = System.nanoTime() + unit.toNanos(delay);
+      var callableTask = new CallableScheduledFuture<>(task, executeAtNanos);
+      var wrapper =
+          new CancellableTask(
+              () -> {
+                try {
+                  callableTask.complete(task.call());
+                } catch (Throwable t) {
+                  callableTask.completeExceptionally(t);
+                }
+              },
+              executeAtNanos);
       scheduledTasks.offer(new ScheduledTask(wrapper, executeAtNanos));
+      lock.notifyAll();
+      return callableTask;
     }
-    synchronized (waitLock) {
-      waitLock.notifyAll();
-    }
-    return callableTask;
   }
 
   @Override
   public ScheduledFuture<?> scheduleAtFixedRate(
       Runnable task, long initialDelay, long period, TimeUnit unit) {
-    if (shutdown.get()) {
-      throw new IllegalStateException("Service has been shut down");
-    }
+    synchronized (lock) {
+      if (shutdown) {
+        throw new IllegalStateException("Service has been shut down");
+      }
 
-    var repeatingTask = new RepeatingTask(task, unit.toNanos(period));
-    long executeAtNanos = System.nanoTime() + unit.toNanos(initialDelay);
+      var repeatingTask = new RepeatingTask(task, unit.toNanos(period));
+      long executeAtNanos = System.nanoTime() + unit.toNanos(initialDelay);
 
-    var cancellableTask = new CancellableTask(repeatingTask, executeAtNanos);
-    synchronized (scheduledTasksLock) {
+      var cancellableTask = new CancellableTask(repeatingTask, executeAtNanos);
       scheduledTasks.offer(new ScheduledTask(cancellableTask, executeAtNanos));
+      lock.notifyAll();
+      return cancellableTask;
     }
-    synchronized (waitLock) {
-      waitLock.notifyAll();
-    }
-    return cancellableTask;
   }
 
   @Override
@@ -184,13 +188,11 @@ public final class YdocScheduledExecutorService implements ScheduledExecutorServ
       }
 
       // Reschedule for next execution
-      if (!shutdown.get()) {
-        long nextExecutionNanos = System.nanoTime() + periodNanos;
-        synchronized (scheduledTasksLock) {
+      synchronized (lock) {
+        if (!shutdown) {
+          long nextExecutionNanos = System.nanoTime() + periodNanos;
           scheduledTasks.offer(new ScheduledTask(this, nextExecutionNanos));
-        }
-        synchronized (waitLock) {
-          waitLock.notifyAll();
+          lock.notifyAll();
         }
       }
     }
@@ -413,32 +415,34 @@ public final class YdocScheduledExecutorService implements ScheduledExecutorServ
     int tasksExecuted = 0;
     long currentTime = System.nanoTime();
 
-    // Process immediate tasks
-    Runnable task;
-    while ((task = immediateTasks.poll()) != null) {
+    // Collect tasks to execute while holding the lock
+    java.util.List<Runnable> tasksToExecute = new java.util.ArrayList<>();
+    synchronized (lock) {
+      // Collect immediate tasks
+      Runnable task;
+      while ((task = immediateTasks.poll()) != null) {
+        tasksToExecute.add(task);
+      }
+
+      // Collect scheduled tasks that are ready
+      while (!scheduledTasks.isEmpty()) {
+        ScheduledTask scheduledTask = scheduledTasks.peek();
+        if (scheduledTask.executeAtNanos <= currentTime) {
+          scheduledTasks.poll();
+          tasksToExecute.add(scheduledTask.task);
+        } else {
+          break; // Tasks are sorted by time, so we can stop here
+        }
+      }
+    }
+
+    // Execute tasks outside the lock to avoid holding it during task execution
+    for (Runnable task : tasksToExecute) {
       try {
         task.run();
         tasksExecuted++;
       } catch (Throwable t) {
         handleUncaughtException(t);
-      }
-    }
-
-    // Process scheduled tasks that are ready
-    synchronized (scheduledTasksLock) {
-      while (!scheduledTasks.isEmpty()) {
-        ScheduledTask scheduledTask = scheduledTasks.peek();
-        if (scheduledTask.executeAtNanos <= currentTime) {
-          scheduledTasks.poll();
-          try {
-            scheduledTask.task.run();
-            tasksExecuted++;
-          } catch (Throwable t) {
-            handleUncaughtException(t);
-          }
-        } else {
-          break; // Tasks are sorted by time, so we can stop here
-        }
       }
     }
 
@@ -451,10 +455,10 @@ public final class YdocScheduledExecutorService implements ScheduledExecutorServ
    * @return true if tasks are pending
    */
   public boolean hasPendingTasks() {
-    if (!immediateTasks.isEmpty()) {
-      return true;
-    }
-    synchronized (scheduledTasksLock) {
+    synchronized (lock) {
+      if (!immediateTasks.isEmpty()) {
+        return true;
+      }
       if (scheduledTasks.isEmpty()) {
         return false;
       }
@@ -471,10 +475,10 @@ public final class YdocScheduledExecutorService implements ScheduledExecutorServ
    * @return nanoseconds until next task, or -1 if none
    */
   public long getNextTaskDelayNanos() {
-    if (!immediateTasks.isEmpty()) {
-      return 0;
-    }
-    synchronized (scheduledTasksLock) {
+    synchronized (lock) {
+      if (!immediateTasks.isEmpty()) {
+        return 0;
+      }
       ScheduledTask next = scheduledTasks.peek();
       if (next == null) {
         return -1;
@@ -499,13 +503,13 @@ public final class YdocScheduledExecutorService implements ScheduledExecutorServ
    * @throws InterruptedException if the thread is interrupted while waiting
    */
   public void waitForTasks(long timeoutNanos) throws InterruptedException {
-    synchronized (waitLock) {
+    synchronized (lock) {
       if (timeoutNanos > 0) {
         long timeoutMillis = timeoutNanos / 1_000_000;
         int timeoutNanosRemainder = (int) (timeoutNanos % 1_000_000);
-        waitLock.wait(timeoutMillis, timeoutNanosRemainder);
+        lock.wait(timeoutMillis, timeoutNanosRemainder);
       } else if (timeoutNanos == -1) {
-        waitLock.wait(10);
+        lock.wait(10);
       }
     }
   }
@@ -516,9 +520,9 @@ public final class YdocScheduledExecutorService implements ScheduledExecutorServ
    * <p>Pending tasks can still be processed with {@link #processPendingTasks()}.
    */
   public void shutdown() {
-    shutdown.set(true);
-    synchronized (waitLock) {
-      waitLock.notifyAll();
+    synchronized (lock) {
+      shutdown = true;
+      lock.notifyAll();
     }
   }
 
@@ -528,7 +532,9 @@ public final class YdocScheduledExecutorService implements ScheduledExecutorServ
    * @return true if shut down
    */
   public boolean isShutdown() {
-    return shutdown.get();
+    synchronized (lock) {
+      return shutdown;
+    }
   }
 
   /**

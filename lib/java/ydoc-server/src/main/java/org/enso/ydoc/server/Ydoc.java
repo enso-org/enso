@@ -1,7 +1,6 @@
 package org.enso.ydoc.server;
 
 import java.io.IOException;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import org.enso.ydoc.api.YjsChannel;
 import org.enso.ydoc.api.YjsChannelCallbacks;
@@ -24,7 +23,6 @@ public final class Ydoc implements AutoCloseable {
   private final int port;
   private final YjsChannelCallbacks jsonChannelCallbacks;
   private final YjsChannelCallbacks binaryChannelCallbacks;
-  private final AtomicBoolean running = new AtomicBoolean(false);
 
   private Context context;
 
@@ -233,8 +231,6 @@ public final class Ydoc implements AutoCloseable {
     }
     var ydocJs = Source.newBuilder("js", ydoc).build();
 
-    running.set(true);
-
     // Submit initialization task
     var initFuture =
         executor.submit(
@@ -257,16 +253,7 @@ public final class Ydoc implements AutoCloseable {
               return ctx;
             });
 
-    while (!initFuture.isDone()) {
-      executor.processPendingTasks();
-      try {
-        long delay = executor.getNextTaskDelayNanos();
-        executor.waitForTasks(delay);
-      } catch (InterruptedException e) {
-        Thread.currentThread().interrupt();
-        break;
-      }
-    }
+    runEventLoopUntil(initFuture::isDone);
 
     try {
       context = initFuture.get();
@@ -278,11 +265,12 @@ public final class Ydoc implements AutoCloseable {
   }
 
   /**
-   * Runs the event loop continuously until {@link #close()} is called. This method blocks and
-   * should typically be run in a dedicated thread.
+   * Runs the event loop until the given condition returns true.
+   *
+   * @param condition the condition to check; loop exits when it returns true
    */
-  public void runEventLoopBlocking() {
-    while (running.get()) {
+  private void runEventLoopUntil(java.util.function.BooleanSupplier condition) {
+    while (!condition.getAsBoolean() && !executor.isShutdown()) {
       executor.processPendingTasks();
       try {
         long delay = executor.getNextTaskDelayNanos();
@@ -294,9 +282,16 @@ public final class Ydoc implements AutoCloseable {
     }
   }
 
+  /**
+   * Runs the event loop continuously until {@link #close()} is called. This method blocks and
+   * should typically be run in a dedicated thread.
+   */
+  public void runEventLoopBlocking() {
+    runEventLoopUntil(() -> false);
+  }
+
   @Override
   public void close() throws Exception {
-    running.set(false);
     executor.shutdown();
     if (context != null) {
       context.close(true);
