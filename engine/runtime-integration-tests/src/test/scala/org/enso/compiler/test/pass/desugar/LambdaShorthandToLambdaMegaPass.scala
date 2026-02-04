@@ -13,12 +13,7 @@ import org.enso.compiler.core.ir.{
 }
 import org.enso.compiler.core.ir.expression.{Application, Case, Operator}
 import org.enso.compiler.pass.{IRPass, IRProcessingPass}
-import org.enso.compiler.pass.analyse.{
-  AliasAnalysis,
-  DataflowAnalysis,
-  DemandAnalysis,
-  TailCall
-}
+import org.enso.compiler.pass.analyse.{AliasAnalysis, DemandAnalysis, TailCall}
 import org.enso.compiler.pass.desugar.{
   ComplexType,
   FunctionBinding,
@@ -60,7 +55,6 @@ case object LambdaShorthandToLambdaMegaPass extends IRPass {
   )
   override lazy val invalidatedPasses: Seq[IRProcessingPass] = List(
     AliasAnalysis,
-    DataflowAnalysis,
     DemandAnalysis,
     IgnoredBindings,
     LambdaConsolidate,

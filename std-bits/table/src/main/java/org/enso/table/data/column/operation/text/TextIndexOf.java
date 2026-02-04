@@ -6,6 +6,7 @@ import org.enso.table.data.column.operation.BinaryOperationBase;
 import org.enso.table.data.column.operation.StorageIterators;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.type.IntegerType;
+import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.data.table.problems.MapOperationProblemAggregator;
 import org.enso.table.error.UnexpectedTypeException;
@@ -28,7 +29,7 @@ public class TextIndexOf extends BinaryOperationBase<String, Long> {
       ColumnStorage<String> left,
       Object rightValue,
       MapOperationProblemAggregator problemAggregator) {
-    if (!(left.getType() instanceof TextType textType)) {
+    if (!(StorageType.ofStorage(left) instanceof TextType textType)) {
       throw new IllegalArgumentException("Left type is not a text type");
     }
 
@@ -43,7 +44,7 @@ public class TextIndexOf extends BinaryOperationBase<String, Long> {
 
     return StorageIterators.mapOverStorage(
         left,
-        Builder.getForLong(IntegerType.INT_64, left.getSize(), problemAggregator),
+        IntegerType.INT_64.makeBuilder(left.getSize(), problemAggregator),
         (index, value) -> calculateIndex(value, typedRightValue));
   }
 
@@ -52,15 +53,15 @@ public class TextIndexOf extends BinaryOperationBase<String, Long> {
       ColumnStorage<String> left,
       ColumnStorage<?> right,
       MapOperationProblemAggregator problemAggregator) {
-    if (!(left.getType() instanceof TextType textType)) {
+    if (!(StorageType.ofStorage(left) instanceof TextType _)) {
       throw new IllegalArgumentException("Left type is not a text type");
     }
 
-    if (right.getType() instanceof TextType rightType) {
+    if (StorageType.ofStorage(right) instanceof TextType rightType) {
       return StorageIterators.zipOverStorages(
           left,
           rightType.asTypedStorage(right),
-          length -> Builder.getForLong(IntegerType.INT_64, length, problemAggregator),
+          length -> IntegerType.INT_64.makeBuilder(length, problemAggregator),
           true,
           (index, leftValue, rightValue) -> calculateIndex(leftValue, rightValue));
     }

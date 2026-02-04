@@ -21,7 +21,7 @@ public class ToTimeOfDayStorageConverter implements StorageConverter<LocalTime> 
   @Override
   public ColumnStorage<LocalTime> cast(
       ColumnStorage<?> storage, CastProblemAggregator problemAggregator) {
-    var storageType = storage.getType();
+    var storageType = StorageType.ofStorage(storage);
     if (storageType instanceof DateTimeType dateTimeType) {
       return convertDateTimeStorage(dateTimeType.asTypedStorage(storage));
     } else if (canApply(storageType)) {

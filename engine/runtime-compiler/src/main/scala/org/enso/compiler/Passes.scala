@@ -99,7 +99,6 @@ class Passes(config: CompilerConfig) {
           } else List()) ++ List(
       AliasAnalysis,
       FramePointerAnalysis,
-      DataflowAnalysis,
       CachePreferenceAnalysis,
       GenericAnnotations
     ) ++ (if (config.isLintingDisabled) {

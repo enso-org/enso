@@ -114,14 +114,23 @@ alias(
     }),
 )
 
+genrule(
+    name = "enso_bundle_marker",
+    outs = [".enso.bundle"],
+    cmd = "touch $@",
+    cmd_bat = "type NUL > $@",
+    visibility = ["//visibility:public"],
+)
+
 electron_builder_bin.electron_builder(
     name = "dist",
     srcs = npm_link_targets() + [
         "package.json",
         ":electron-builder-config.cjs",
+        ":enso_bundle_marker",
         ":selected_bundle",
         ":selected_gui_dist",
-        "//:sbt_build_engine_distribution",
+        "//:sbt_build_native_engine_distribution",
         "//:sbt_build_small_jdk",
     ],
     args = [

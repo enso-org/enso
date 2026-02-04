@@ -2,6 +2,7 @@ package org.enso.table.aggregations;
 
 import java.util.List;
 import org.enso.table.data.column.storage.ColumnStorage;
+import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.table.Column;
 import org.enso.table.problems.ProblemAggregator;
 
@@ -10,7 +11,7 @@ public class GroupBy extends KnownTypeAggregator {
   private final ColumnStorage<?> storage;
 
   public GroupBy(String name, Column column) {
-    super(name, column.getStorage().getType());
+    super(name, StorageType.ofStorage(column.getStorage()));
     storage = column.getStorage();
   }
 

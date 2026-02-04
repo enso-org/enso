@@ -56,8 +56,8 @@ def get_enso_env(native_image = False):
     unix_env = dict(_COMMON_ENV, PATH = path_unix)
 
     if native_image:
-        windows_env["ENSO_LAUNCHER"] = "native,fast,-ls"
-        unix_env["ENSO_LAUNCHER"] = "native,fast,-ls"
+        windows_env["ENSO_LAUNCHER"] = "native"
+        unix_env["ENSO_LAUNCHER"] = "native"
 
     return select({
         "@platforms//os:windows": windows_env,

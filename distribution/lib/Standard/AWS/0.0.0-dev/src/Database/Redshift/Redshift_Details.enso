@@ -26,8 +26,8 @@ type Redshift_Details
        ## Arguments
         - `host`: The hostname of the database server.
         - `port`: The port of the database server (defaults to 5439).
-        - `schema`: The schema to connect to (if not provided or empty, the
-          default schema will be used).
+        - `database`: The database to connect to (if not provided or empty, the
+          default database will be used).
         - `db_user`: The user to connect to the database as.
         - `credentials`: The credentials to use for the connection (defaults
           AWS_Profile).
@@ -39,7 +39,7 @@ type Redshift_Details
     Redshift
         host:Text=(Missing_Argument.throw "host")
         port:Integer=5439
-        schema:Text=''
+        database:Text=''
         db_user:Text=''
         credentials:Credentials|AWS_Credential=..Profile
         use_ssl:SSL_Mode=..Require
@@ -89,7 +89,7 @@ type Redshift_Details
         prefix = case self.credentials of
             _ : AWS_Credential -> 'jdbc:redshift:iam://'
             _ -> 'jdbc:redshift://'
-        prefix + self.host + ':' + self.port.to_text + '/' + self.schema
+        prefix + self.host + ':' + self.port.to_text + '/' + self.database
 
     ## ---
        private: true
@@ -98,8 +98,8 @@ type Redshift_Details
     jdbc_properties : Vector (Pair Text Text)
     jdbc_properties self =
         credentials = case self.credentials of
-            Nothing -> Pgpass.read self.host self.port self.schema
-            AWS_Credential.Default -> Pgpass.read self.host self.port self.schema
+            Nothing -> Pgpass.read self.host self.port self.database
+            AWS_Credential.Default -> Pgpass.read self.host self.port self.database
             AWS_Credential.Profile profile ->
                 [Pair.new 'user' self.db_user] + (if profile == '' then [] else [Pair.new 'profile' profile])
             AWS_Credential.Key access_key_id secret_access_key ->
@@ -114,4 +114,3 @@ type Redshift_Details
             self.client_cert.properties
 
         credentials + ssl_properties + cert_properties
-

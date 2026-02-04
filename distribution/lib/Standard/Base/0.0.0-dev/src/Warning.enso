@@ -11,7 +11,6 @@ import project.Runtime
 import project.Runtime.Stack_Trace_Element
 from project.Data.Boolean import Boolean, False
 from project.Error import all
-from project.Function import flip
 from project.Nothing import all
 
 ## A representation of a dataflow warning attached to a value.
@@ -33,7 +32,8 @@ type Warning
        ---
        Attaches a new warning to the value.
     attach_multiple : Vector Any -> Any -> Any
-    attach_multiple warnings value = warnings.fold value (flip Warning.attach)
+    attach_multiple warnings value =
+        warnings.fold value (c-> w-> Warning.attach w c)
 
     ## ---
        private: true
@@ -108,7 +108,7 @@ type Warning
        ## Arguments
         - `value`: the value to which warnings should be set to.
         - `warnings`: vector of warnings to set to the value.
-    set value (warnings:Vector Warning) = set_array value warnings
+    set value (warnings:(Vector Warning)) = set_array value warnings
 
     ## ---
        private: true

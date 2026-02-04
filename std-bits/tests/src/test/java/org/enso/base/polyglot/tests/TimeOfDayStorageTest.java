@@ -5,6 +5,7 @@ import static org.junit.Assert.assertNotSame;
 
 import java.time.LocalTime;
 import org.enso.table.data.column.builder.Builder;
+import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.test.utils.ContextUtils;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
@@ -26,10 +27,16 @@ public class TimeOfDayStorageTest {
     var two = LocalTime.of(12, 35);
     b.append(one).appendNulls(1).append(two);
     var storage = b.seal();
-    var localStorage = Builder.makeLocal(storage);
+
+    @SuppressWarnings("unchecked")
+    var proxyStorage =
+        (ColumnStorage<LocalTime>) BoolStorageTest.makeProxy(storage, ColumnStorage.class);
+    var localStorage = Builder.makeLocal(proxyStorage);
+
     assertNotSame("local storage is a copy of storage", storage, localStorage);
     assertEquals("They have the same size", storage.getSize(), localStorage.getSize());
-    assertEquals("They have the same type", storage.getType(), localStorage.getType());
+    assertEquals("They have the same type char", storage.typeChar(), localStorage.typeChar());
+    assertEquals("They have the same type size", storage.typeSize(), localStorage.typeSize());
     for (var i = 0L; i < storage.getSize(); i++) {
       var elem = storage.getItemBoxed(i);
       var localElem = localStorage.getItemBoxed(i);

@@ -69,12 +69,18 @@ object MethodCalls extends IRPass {
           app.arguments match {
             case selfArgument :: _ =>
               val targetBindings =
-                selfArgument.value.getMetadata(GlobalNames) match {
+                selfArgument.value.getMetadata(
+                  GlobalNames,
+                  classOf[GlobalNames.Metadata]
+                ) match {
                   case Some(Resolution(ResolvedModule(module))) =>
                     val moduleIr = module.unsafeAsModule().getIr
                     Option
                       .when(moduleIr != null)(
-                        moduleIr.getMetadata(BindingAnalysis)
+                        moduleIr.getMetadata(
+                          BindingAnalysis,
+                          classOf[BindingAnalysis.Metadata]
+                        )
                       )
                       .flatten
                   case _ => None

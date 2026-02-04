@@ -31,7 +31,7 @@ wrap_io_exception (file : File | Nothing) io_exception =
       _ : FileNotFoundException -> Error.throw (File_Error.Not_Found associated_file)
       _ : NoSuchFileException -> Error.throw (File_Error.Not_Found associated_file)
       _ : FileAlreadyExistsException -> Error.throw (File_Error.Already_Exists associated_file)
-      _ : AccessDeniedException -> File_Error.access_denied associated_file
+      _ : AccessDeniedException -> Error.throw (File_Error.Access_Denied associated_file)
       _ : DirectoryNotEmptyException -> Error.throw (File_Error.Directory_Not_Empty associated_file)
       _ : NotDirectoryException -> Error.throw (File_Error.Not_A_Directory associated_file)
       _ -> Error.throw (File_Error.IO_Error associated_file "An IO error has occurred: "+io_exception.to_text)

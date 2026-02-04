@@ -1,14 +1,14 @@
-package org.enso.table.data.column.operation.masks;
+package org.enso.table.data.column.storage;
 
-import org.enso.table.data.column.storage.ColumnBooleanStorage;
-import org.enso.table.data.column.storage.ValueIsNothingException;
+import org.enso.table.data.column.operation.masks.IndexMapper;
 import org.enso.table.data.column.storage.iterators.BooleanStorageIterator;
 import org.enso.table.data.column.storage.iterators.ColumnBooleanStorageIterator;
 
-final class MaskedStorageBoolean extends MaskedStorage<Boolean> implements ColumnBooleanStorage {
+public final class MaskedStorageBoolean extends MaskedStorage<Boolean>
+    implements ColumnBooleanStorage {
   private final ColumnBooleanStorage parent;
 
-  MaskedStorageBoolean(ColumnBooleanStorage parent, IndexMapper indexMapper) {
+  public MaskedStorageBoolean(ColumnBooleanStorage parent, IndexMapper indexMapper) {
     super(parent, indexMapper);
     this.parent = parent;
   }

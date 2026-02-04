@@ -50,13 +50,13 @@ public class GenericComparators<T> implements BinaryOperationTyped<Boolean> {
 
   @Override
   public boolean canApplyMap(ColumnStorage<?> left, Object rightValue) {
-    return valueType.isOfType(left.getType());
+    return valueType.isOfType(StorageType.ofStorage(left));
   }
 
   @Override
   public ColumnStorage<Boolean> applyMap(
       ColumnStorage<?> left, Object rightValue, MapOperationProblemAggregator problemAggregator) {
-    if (left.getType() instanceof NullType || rightValue == null) {
+    if (StorageType.ofStorage(left) instanceof NullType || rightValue == null) {
       return Builder.makeEmpty(BooleanType.INSTANCE, left.getSize());
     }
 
@@ -82,10 +82,10 @@ public class GenericComparators<T> implements BinaryOperationTyped<Boolean> {
 
   @Override
   public boolean canApplyZip(ColumnStorage<?> left, ColumnStorage<?> right) {
-    return valueType.isOfType(left.getType())
-        && (!throwOnOther
-            || valueType.isOfType(right.getType())
-            || right.getType() instanceof AnyObjectType);
+    var leftType = StorageType.ofStorage(left);
+    var rightType = StorageType.ofStorage(right);
+    return valueType.isOfType(leftType)
+        && (!throwOnOther || valueType.isOfType(rightType) || rightType instanceof AnyObjectType);
   }
 
   @Override
@@ -93,7 +93,9 @@ public class GenericComparators<T> implements BinaryOperationTyped<Boolean> {
       ColumnStorage<?> left,
       ColumnStorage<?> right,
       MapOperationProblemAggregator problemAggregator) {
-    if (left.getType() instanceof NullType || right.getType() instanceof NullType) {
+    var leftType = StorageType.ofStorage(left);
+    var rightType = StorageType.ofStorage(right);
+    if (leftType instanceof NullType || rightType instanceof NullType) {
       var size = Math.max(left.getSize(), right.getSize());
       return Builder.makeEmpty(BooleanType.INSTANCE, size);
     }
@@ -101,7 +103,7 @@ public class GenericComparators<T> implements BinaryOperationTyped<Boolean> {
     assert canApplyZip(left, right);
 
     var typedLeft = asTypedStorage(left);
-    if (!valueType.isOfType(right.getType())) {
+    if (!valueType.isOfType(rightType)) {
       // Fall back to iterating over each.
       return StorageIterators.zipOverStorages(
           typedLeft,

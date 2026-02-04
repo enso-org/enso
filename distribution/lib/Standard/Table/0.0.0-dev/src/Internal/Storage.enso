@@ -49,11 +49,6 @@ to_value_type storage_type = case storage_type of
     _ : BigIntegerType -> Value_Type.Decimal scale=0
     _ : NullType -> Value_Type.Null
     _ : AnyObjectType -> Value_Type.Mixed
-    proxy ->
-        type_char = proxy.typeChar
-        type_size = proxy.size
-        java_type = StorageType.fromTypeCharAndSize type_char type_size
-        to_value_type java_type
 
 ## ---
    private: true

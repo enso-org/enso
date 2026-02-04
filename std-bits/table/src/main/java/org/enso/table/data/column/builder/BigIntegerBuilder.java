@@ -2,12 +2,11 @@ package org.enso.table.data.column.builder;
 
 import java.math.BigInteger;
 import org.enso.base.polyglot.NumericConverter;
-import org.enso.table.data.column.storage.ColumnLongStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
-import org.enso.table.data.column.storage.TypedStorage;
 import org.enso.table.data.column.storage.type.BigDecimalType;
 import org.enso.table.data.column.storage.type.BigIntegerType;
 import org.enso.table.data.column.storage.type.FloatType;
+import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.error.ValueTypeMismatchException;
 import org.enso.table.problems.ProblemAggregator;
@@ -58,11 +57,6 @@ final class BigIntegerBuilder extends TypedBuilder<BigInteger> {
   }
 
   @Override
-  protected ColumnStorage<BigInteger> doSeal() {
-    return new TypedStorage<>(BigIntegerType.INSTANCE, data);
-  }
-
-  @Override
   public boolean accepts(Object o) {
     return NumericConverter.isCoercibleToBigInteger(o);
   }
@@ -77,7 +71,7 @@ final class BigIntegerBuilder extends TypedBuilder<BigInteger> {
       try {
         data[currentSize++] = NumericConverter.coerceToBigInteger(o);
       } catch (UnsupportedOperationException e) {
-        throw new ValueTypeMismatchException(BigIntegerType.INSTANCE, o);
+        throw new ValueTypeMismatchException(getStorageType(), o);
       }
     }
 
@@ -98,7 +92,9 @@ final class BigIntegerBuilder extends TypedBuilder<BigInteger> {
 
   @Override
   public void appendBulkStorage(ColumnStorage<?> storage) {
-    if (storage instanceof ColumnLongStorage longStorage) {
+    var storageType = StorageType.ofStorage(storage);
+    if (storageType instanceof IntegerType it) {
+      var longStorage = it.asTypedStorage(storage);
       long n = longStorage.getSize();
       for (long i = 0; i < n; i++) {
         if (storage.isNothing(i)) {

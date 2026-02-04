@@ -7,7 +7,7 @@ import java.security.NoSuchAlgorithmException;
 import java.util.UUID;
 import java.util.function.Function;
 import org.enso.compiler.context.CompilerContext;
-import org.enso.compiler.core.ir.ProcessingPass;
+import org.enso.compiler.pass.IRPass;
 import org.enso.editions.LibraryName;
 import org.enso.persist.Persistance;
 import org.enso.text.Hex;
@@ -24,7 +24,7 @@ final class CacheUtils {
   private static Function<Object, Object> writeReplace(CompilerContext context, boolean keepUUIDs) {
     return (obj) ->
         switch (obj) {
-          case ProcessingPass.Metadata metadata -> metadata.prepareForSerialization(context);
+          case IRPass.IRMetadata metadata -> metadata.prepareForSerialization(context);
           case UUID id -> keepUUIDs ? id : null;
           case null -> null;
           default -> obj;
@@ -34,7 +34,7 @@ final class CacheUtils {
   private static Function<Object, Object> readResolve(CompilerContext context) {
     return (obj) ->
         switch (obj) {
-          case ProcessingPass.Metadata metadata -> {
+          case IRPass.IRMetadata metadata -> {
             var option = metadata.restoreFromSerialization(context);
             if (option.nonEmpty()) {
               yield option.get();

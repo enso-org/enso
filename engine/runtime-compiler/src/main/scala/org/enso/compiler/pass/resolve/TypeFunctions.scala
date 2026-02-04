@@ -49,7 +49,6 @@ case object TypeFunctions extends IRPass {
   override lazy val invalidatedPasses: Seq[IRProcessingPass] = List(
     AliasAnalysis,
     CachePreferenceAnalysis,
-    DataflowAnalysis,
     DemandAnalysis,
     org.enso.compiler.pass.analyse.TailCall.INSTANCE,
     UnusedBindings
@@ -107,7 +106,10 @@ case object TypeFunctions extends IRPass {
     expr.transformExpressions { case app: Application =>
       val result = resolveApplication(app)
       app
-        .getMetadata(DocumentationComments)
+        .getMetadata(
+          DocumentationComments,
+          classOf[DocumentationComments.Metadata]
+        )
         .map(doc =>
           result.updateMetadata(new MetadataPair(DocumentationComments, doc))
         )

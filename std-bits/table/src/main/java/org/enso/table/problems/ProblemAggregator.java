@@ -3,13 +3,12 @@ package org.enso.table.problems;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import org.enso.base.polyglot.EnsoMeta;
 import org.graalvm.polyglot.Context;
+import org.graalvm.polyglot.Value;
 
 /**
  * The ProblemAggregator is the main way for reporting warnings from helper Java code to Enso.
- *
- * <p>The Enso user should always use the `Java_Problems.with_problem_aggregator` helper to get an
- * instance of ProblemAggregator and pass it to any Java code that requires it.
  *
  * <p>Child instances of the aggregator can be constructed via various means. They can be used to
  * detach various warnings in case a branch of the computation fails, or to add specialized logic
@@ -21,13 +20,13 @@ import org.graalvm.polyglot.Context;
  * aggregators that ensures all problems are passed upwards, up to the top-level aggregator created
  * in `with_problem_aggregator`. Thus, no problems are discarded.
  *
- * <p>The only thing the user has to be careful about is the lifetime of the aggregators. Once we
- * exit the `with_problem_aggregator` section, the aggregator is summarized and any reported
- * problems are reported in Enso. After that, no new problems can be reported, because they would be
- * lost. This is verified by the `checkNotFinished` method - if the user ever uses an aggregator
- * after summarizing, such code will throw an exception. In general, the `with_problem_aggregator`
- * section should encompass the whole chunk of operation that is being performed, to ensure that all
- * processing that may report problems to the aggregator is finished before we exit the section.
+ * <p>When using a ProblemAggregator from Enso, the user should use the `with_problem_aggregator`
+ * construct, which creates a top-level ProblemAggregator instance, and then passes it to the
+ * action. It will handle summarizing the problems and raising them or attaching them to values as
+ * needed.
+ *
+ * <p>Once the aggregator has been summarized, it cannot be used anymore - any attempt to report
+ * problems to it will result in an exception. This is to avoid losing problems by accident.
  */
 public class ProblemAggregator {
   protected List<Problem> directlyReportedProblems = new ArrayList<>();
@@ -119,12 +118,7 @@ public class ProblemAggregator {
    *
    * <p>It should only be called by `with_problem_aggregator`. It should never be called directly
    * from Java.
-   *
-   * @deprecated This method is actually not deprecated, it is just marked as such to avoid any
-   *     usages from the Java code (they will generate warnings, whereas the only allowed Enso usage
-   *     will not).
    */
-  @Deprecated(forRemoval = false)
   public static ProblemAggregator makeTopLevelAggregator() {
     return new ProblemAggregator();
   }
@@ -151,5 +145,58 @@ public class ProblemAggregator {
    */
   public ProblemAggregator createSimpleChild() {
     return new ProblemAggregator(this);
+  }
+
+  /**
+   * Summarizes the problems and, if there are any errors, returns the first one as a dataflow
+   * error. Otherwise, the original value is returned.
+   *
+   * @param value the value to attach problems to
+   * @return the value with attached problems, or the original value if there are no problems
+   */
+  public final Value throwIfAnyErrors(Value value) {
+    ProblemSummary summary = summarize();
+    var error = summary.problems.stream().filter(Problem::isError).findFirst();
+    return error.map(problem -> EnsoMeta.asDataflowError(problem.asEnsoValue())).orElse(value);
+  }
+
+  /**
+   * Attaches the problems summarized by this aggregator to the given value.
+   *
+   * <p>If there are no problems, the original value is returned. Otherwise, a new value with
+   * attached problems is returned.
+   *
+   * @param value the value to attach problems to
+   * @param asErrors whether to attach problems as errors (if true) or warnings (if false)
+   * @return the value with attached problems, or the original value if there are no problems
+   */
+  public final Value attachProblemsToValue(Value value, boolean asErrors) {
+    ProblemSummary summary = summarize();
+    if (summary.allProblemsCount == 0) {
+      return value;
+    }
+
+    // Check for any errors or if asErrors raise the first problem.
+    var firstError = summary.problems.stream().filter(p -> asErrors || p.isError()).findFirst();
+    if (firstError.isPresent()) {
+      return EnsoMeta.asDataflowError(firstError.get().asEnsoValue());
+    }
+
+    // Create a list of problems to attach.
+    var ensoProblems = summary.problems.stream().map(Problem::asEnsoValue).toList();
+    if (ensoProblems.size() != summary.allProblemsCount) {
+      // Add an Additional_Warnings problem if some problems were dropped.
+      var additionalWarnings =
+          EnsoMeta.makeInstance(
+              "Standard.Base.Errors.Common",
+              "Additional_Warnings",
+              "Error",
+              summary.allProblemsCount - ensoProblems.size());
+      ensoProblems = new ArrayList<>(ensoProblems);
+      ensoProblems.add(additionalWarnings);
+    }
+
+    return EnsoMeta.getType("Standard.Base.Warning", "Warning")
+        .invokeMember("attach_multiple", ensoProblems, value);
   }
 }

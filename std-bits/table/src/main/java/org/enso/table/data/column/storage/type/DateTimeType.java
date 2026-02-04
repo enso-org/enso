@@ -1,11 +1,13 @@
 package org.enso.table.data.column.storage.type;
 
 import java.time.ZonedDateTime;
+import org.enso.base.polyglot.EnsoMeta;
 import org.enso.base.polyglot.Polyglot_Utils;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.BuilderForType;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.problems.ProblemAggregator;
+import org.graalvm.polyglot.Value;
 
 public final class DateTimeType implements StorageType<ZonedDateTime> {
   public static final DateTimeType INSTANCE = new DateTimeType(true);
@@ -20,6 +22,12 @@ public final class DateTimeType implements StorageType<ZonedDateTime> {
   @Override
   public char typeChar() {
     return hasTimeZone ? 'Z' : 'Y';
+  }
+
+  @Override
+  public Value asEnsoValueType() {
+    return EnsoMeta.makeInstance(
+        "Standard.Table.Value_Type", "Value_Type", "Date_Time", hasTimeZone);
   }
 
   /**
@@ -60,7 +68,7 @@ public final class DateTimeType implements StorageType<ZonedDateTime> {
 
   @Override
   public ColumnStorage<ZonedDateTime> asTypedStorage(ColumnStorage<?> storage) {
-    if (storage.getType() instanceof DateTimeType) {
+    if (StorageType.ofStorage(storage) instanceof DateTimeType) {
       @SuppressWarnings("unchecked")
       var output = (ColumnStorage<ZonedDateTime>) storage;
       return output;
