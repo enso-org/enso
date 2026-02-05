@@ -39,12 +39,12 @@ type In_Memory_Table
        ---
        A getter that allows one to specify the target Java type and handles
        conversions when needed
-    private java_table self table_class=Java_Table column_class=Java_Column =
+    private java_table self =
         raw_table = self.internal_java_table
-        if raw_table.is_a table_class then raw_table else
+        if raw_table.is_a Java_Table then raw_table else
             # coming from the other JVM and deserves conversion
-            new_columns = raw_table.getColumns.map c-> column_class.new c.getName c.getStorage
-            table_class.new new_columns
+            new_columns = raw_table.getColumns.map c-> Java_Column.new c.getName c.getStorage
+            Java_Table.new new_columns
 
     ## ---
        private: true
@@ -104,13 +104,6 @@ from_java_table java_table =
 
     Table_Refinements.refine_table <|
         In_Memory_Table.Value java_table
-
-## ---
-   private: true
-   ---
-   Helper method for internal use to make a Java Table from a Table.
-to_java_table table:In_Memory_Table table_class=Java_Table column_class=Java_Column =
-    table.java_table table_class column_class
 
 ## ---
    private: true

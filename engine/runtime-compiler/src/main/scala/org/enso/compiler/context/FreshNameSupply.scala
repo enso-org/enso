@@ -13,12 +13,12 @@ class FreshNameSupply {
     isMethod: Boolean,
     from: Option[Name]
   ): Name.Literal = {
-    Name.Literal(
-      s"<internal-${numId}>",
-      isMethod,
-      null,
-      from
-    )
+    Name.Literal
+      .builder()
+      .name(s"<internal-$numId>")
+      .isMethod(isMethod)
+      .origName(from.orNull)
+      .build()
   }
 
   /** Generates a name guaranteed not to exist in this program.

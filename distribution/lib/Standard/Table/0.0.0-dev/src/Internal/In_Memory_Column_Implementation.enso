@@ -632,7 +632,7 @@ type In_Memory_Column_Implementation
         Vector.from_polyglot_array column_as_list . map java_to_enso
 
     value_type (this_column : Column & In_Memory_Column) =
-        storage_type = this_column.java_column.getType
+        storage_type = this_column.java_column.getStorageType
         Storage.to_value_type storage_type
 
     inferred_precise_value_type (this_column : Column & In_Memory_Column) =

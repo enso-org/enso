@@ -5,7 +5,7 @@ import java.util.stream.LongStream;
 import org.enso.table.data.column.storage.type.NullType;
 
 /** A specialized storage that can be used by columns that contain only null values. */
-public class NullStorage extends Storage<Void> {
+public class NullStorage extends AbstractBaseStorage<Void> {
   private final long size;
 
   public NullStorage(long size) {

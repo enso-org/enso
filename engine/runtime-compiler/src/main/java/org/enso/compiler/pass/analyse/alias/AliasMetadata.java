@@ -1,8 +1,7 @@
 package org.enso.compiler.pass.analyse.alias;
 
-import org.enso.compiler.core.CompilerStub;
+import org.enso.compiler.context.CompilerContext;
 import org.enso.compiler.core.IR;
-import org.enso.compiler.core.ir.ProcessingPass;
 import org.enso.compiler.pass.IRPass;
 import org.enso.compiler.pass.analyse.AliasAnalysis;
 import org.enso.compiler.pass.analyse.AliasAnalysis$;
@@ -11,7 +10,6 @@ import org.enso.compiler.pass.analyse.alias.graph.GraphBuilder;
 import scala.Option;
 
 /** Metata for {@link AliasAnalysis} pass. */
-@SuppressWarnings("unchecked")
 public abstract sealed class AliasMetadata implements IRPass.IRMetadata
     permits AliasMetadata.Scope, AliasMetadata.Occurrence {
   private final Graph graph;
@@ -30,17 +28,17 @@ public abstract sealed class AliasMetadata implements IRPass.IRMetadata
   }
 
   @Override
-  public final ProcessingPass.Metadata prepareForSerialization(CompilerStub compiler) {
+  public final IRPass.IRMetadata prepareForSerialization(CompilerContext compiler) {
     return this;
   }
 
   @Override
-  public final Option<ProcessingPass.Metadata> restoreFromSerialization(CompilerStub compiler) {
+  public final Option<IRPass.IRMetadata> restoreFromSerialization(CompilerContext compiler) {
     return Option.apply(this);
   }
 
   @Override
-  public final Option duplicate() {
+  public final Option<IRPass.IRMetadata> duplicate() {
     return Option.empty();
   }
 

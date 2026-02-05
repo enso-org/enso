@@ -1,6 +1,5 @@
 package org.enso.database.fetchers;
 
-import java.lang.reflect.Proxy;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
@@ -41,10 +40,6 @@ public interface ColumnFetcherFactory {
 
   default Class<? extends ColumnFetcher> getColumnFetcherClass() {
     return ColumnFetcher.class;
-  }
-
-  default Class<? extends ProblemAggregator> getAggregatorClass() {
-    return ProblemAggregator.class;
   }
 
   ColumnFetcher forStorageType(
@@ -135,15 +130,7 @@ public interface ColumnFetcherFactory {
                     return offsetDateTime == null ? null : offsetDateTime.toZonedDateTime();
                   }
                 };
-        default -> {
-          if (Proxy.isProxyClass(storageType.getClass())) {
-            var fromProxy =
-                StorageType.fromTypeCharAndSize(storageType.typeChar(), storageType.size());
-            yield forStorageType(fromProxy, index, columnName, problemAggregator);
-          } else {
-            yield new InferredColumnFetcher(colIndex, columnName, problemAggregator);
-          }
-        }
+        default -> new InferredColumnFetcher(colIndex, columnName, problemAggregator);
       };
     }
   }

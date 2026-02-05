@@ -118,7 +118,10 @@ case object SuspendedArguments extends IRPass {
           case lam: Function.Lambda =>
             val args = lam.arguments()
             val body = lam.body()
-            method.getMetadata(TypeSignatures) match {
+            method.getMetadata(
+              TypeSignatures,
+              classOf[TypeSignatures.Metadata]
+            ) match {
               case Some(Signature(signature, _)) =>
                 val newArgs = computeSuspensions(args.drop(1), signature)
                 if (newArgs.head.suspended) {
@@ -172,7 +175,10 @@ case object SuspendedArguments extends IRPass {
           case lam: Function.Lambda =>
             val args    = lam.arguments()
             val lamBody = lam.body()
-            explicit.getMetadata(TypeSignatures) match {
+            explicit.getMetadata(
+              TypeSignatures,
+              classOf[TypeSignatures.Metadata]
+            ) match {
               case Some(Signature(signature, _)) =>
                 val newArgs = computeSuspensions(
                   args.drop(1),
@@ -232,25 +238,31 @@ case object SuspendedArguments extends IRPass {
     */
   private def resolveExpression(expression: Expression): Expression = {
     expression.transformExpressions {
-      case bind @ Expression.Binding(_, expr, _, _) =>
-        val newExpr = bind.getMetadata(TypeSignatures) match {
+      case bind: Expression.Binding =>
+        val newExpr = bind.getMetadata(
+          TypeSignatures,
+          classOf[TypeSignatures.Metadata]
+        ) match {
           case Some(Signature(signature, _)) =>
-            expr match {
+            bind.expression() match {
               case lam: Function.Lambda =>
                 lam.copyWithArgumentsAndBody(
                   computeSuspensions(lam.arguments(), signature),
                   resolveExpression(lam.body())
                 )
-              case _ => expr
+              case _ => bind.expression()
             }
-          case None => expr
+          case None => bind.expression()
         }
 
-        bind.copy(expression = newExpr)
+        bind.copyBuilder().expression(newExpr).build()
       case lam: Function.Lambda =>
         val args = lam.arguments()
         val body = lam.body()
-        lam.getMetadata(TypeSignatures) match {
+        lam.getMetadata(
+          TypeSignatures,
+          classOf[TypeSignatures.Metadata]
+        ) match {
           case Some(Signature(signature, _)) =>
             lam.copyWithArgumentsAndBody(
               computeSuspensions(args, signature),
@@ -285,8 +297,8 @@ case object SuspendedArguments extends IRPass {
     */
   def representsSuspended(value: Expression): Boolean = {
     value match {
-      case Name.Literal("Suspended", _, _, _, _) => true
-      case _                                     => false
+      case nm: Name.Literal => nm.name == "Suspended"
+      case _                => false
     }
   }
 

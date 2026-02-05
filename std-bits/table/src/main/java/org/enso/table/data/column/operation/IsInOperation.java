@@ -24,6 +24,7 @@ import org.enso.table.data.column.storage.type.DateType;
 import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.NullType;
+import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.data.column.storage.type.TimeOfDayType;
 import org.enso.table.data.table.Column;
@@ -43,8 +44,7 @@ public final class IsInOperation {
    */
   public static boolean isSupported(Column column) {
     var storage = ColumnStorageWithInferredStorage.resolveStorage(column);
-    var storageType = storage.getType();
-    return !(storageType instanceof AnyObjectType);
+    return !(StorageType.ofStorage(storage) instanceof AnyObjectType);
   }
 
   /**
@@ -71,9 +71,10 @@ public final class IsInOperation {
     }
 
     var leftStorage = ColumnStorageWithInferredStorage.resolveStorage(left);
+    var leftStorageType = StorageType.ofStorage(leftStorage);
     var result =
-        switch (leftStorage.getType()) {
-          case NullType nt -> Builder.makeEmpty(BooleanType.INSTANCE, leftStorage.getSize());
+        switch (leftStorageType) {
+          case NullType _ -> Builder.makeEmpty(BooleanType.INSTANCE, leftStorage.getSize());
           case BooleanType bt ->
               applyBooleanIsIn(bt.asTypedStorage(leftStorage), list, problemAggregator);
           case DateType dt ->
@@ -112,7 +113,7 @@ public final class IsInOperation {
                   IsInOperation::containsBigDecimal);
           default ->
               throw new IllegalArgumentException(
-                  "Unsupported StorageType for `is_in`: " + leftStorage.getType());
+                  "Unsupported StorageType for `is_in`: " + leftStorageType);
         };
 
     return new Column(new_name, result);

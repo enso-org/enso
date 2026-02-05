@@ -1,0 +1,41 @@
+load("@crates//:defs.bzl", "aliases", "all_crate_deps")
+load("@rules_rust//cargo:defs.bzl", "cargo_build_script")
+load("@rules_rust//rust:defs.bzl", "rust_library")
+
+exports_files(["enso-install.manifest"])
+
+cargo_build_script(
+    name = "build_script",
+    srcs = ["build.rs"],
+    aliases = aliases(build = True),
+    build_script_env = {
+        "ENSO_MANIFEST_PATH": "$(execpath enso-install.manifest)",
+        "ENSO_ICON_PATH": "$(execpath //app/electron-client:assets/icons/icon.ico)",
+        "ENSO_BUILD_ELECTRON_BUILDER_CONFIG": "$(execpath //app/electron-client:electron_builder_config)",
+    },
+    data = [
+        "enso-install.manifest",
+        "//app/electron-client:assets/icons/icon.ico",
+        "//app/electron-client:electron_builder_config",
+    ],
+    edition = "2021",
+    deps = all_crate_deps(build = True) + [
+        "//build_tools/ci_utils:ide_ci",
+        "//build_tools/install/config:enso_install_config",
+    ],
+)
+
+rust_library(
+    name = "enso_install",
+    srcs = glob(["src/**/*.rs"]),
+    aliases = aliases(),
+    crate_name = "enso_install",
+    edition = "2021",
+    proc_macro_deps = all_crate_deps(proc_macro = True),
+    visibility = ["//visibility:public"],
+    deps = all_crate_deps(normal = True) + [
+        ":build_script",
+        "//build_tools/ci_utils:ide_ci",
+        "//build_tools/install/config:enso_install_config",
+    ],
+)

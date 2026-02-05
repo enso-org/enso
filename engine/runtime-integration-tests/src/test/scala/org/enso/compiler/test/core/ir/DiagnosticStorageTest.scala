@@ -25,14 +25,14 @@ class DiagnosticStorageTest extends CompilerTest {
 
   "The IR diagnostics storage" should {
     "allow adding diagnostic results" in {
-      val diagnostics = new DiagnosticStorage
+      val diagnostics = DiagnosticStorage.createEmpty
 
       diagnostics.add(mkDiagnostic("a"))
       shouldContain(diagnostics.toList, mkDiagnostic("a"))
     }
 
     "allow adding lists of diagnostic results" in {
-      val diagnostics = new DiagnosticStorage
+      val diagnostics = DiagnosticStorage.createEmpty
 
       diagnostics.add(
         List(

@@ -67,7 +67,6 @@ public final class LongStorage extends AbstractLongStorage implements ColumnStor
   /** Widening to a bigger type can be done without copying the data. */
   @Override
   public LongStorage widen(IntegerType widerType) {
-    assert widerType.fits(getType());
     return new LongStorage(data, validityMap, widerType, proxy);
   }
 

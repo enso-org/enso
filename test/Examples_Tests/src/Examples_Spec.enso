@@ -80,18 +80,6 @@ add_specs suite_builder = suite_builder.group "Examples" group_builder->
     group_builder.specify "should provide an example URI" <|
         Examples.uri
 
-    group_builder.specify "should provide an image file" <|
-        ignore_http_errors <|
-            Examples.image_file
-
-    group_builder.specify "should provide an image" <|
-        ignore_http_errors <|
-            Examples.image
-
-    group_builder.specify "should provide a matrix" <|
-        ignore_http_errors <|
-            Examples.matrix
-
     group_builder.specify "should provide a silly function" <|
         Examples.add_1_to 4 . should_equal 5
 

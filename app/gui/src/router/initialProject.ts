@@ -30,9 +30,15 @@ export const CLOUD_WELCOME_PROJECT_RELATIVE_PATH = `${SAMPLES_DIRECTORY}/Getting
 
 type BackendAPI<B extends Backend> = Pick<B, 'rootPath' | 'listDirectory'>
 
-/** Open a project depending on path param in RounteLocation */
+/** Open a project depending on path param in RouteLocation */
 export async function openProjectFromPath(to: RouteLocation) {
-  if (to.name !== 'dashboard' || to.params.path == null) return
+  if (
+    to.name !== 'dashboard' ||
+    to.params.path == null ||
+    to.params.path == 'drive' ||
+    to.params.path == 'settings'
+  )
+    return
   const auth = useAuth()
   const { localBackend, remoteBackend } = useBackends()
   const queryClient = useQueryClient()

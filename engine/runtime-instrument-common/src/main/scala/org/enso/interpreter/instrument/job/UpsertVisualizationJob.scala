@@ -6,10 +6,8 @@ import org.enso.compiler.core.ir.Function
 import org.enso.compiler.core.ir.Name
 import org.enso.compiler.core.ir.module.scope.{definition, Definition}
 import org.enso.compiler.refactoring.IRUtils
-import org.enso.compiler.pass.analyse.{
-  CachePreferenceAnalysis,
-  DataflowAnalysis
-}
+import org.enso.compiler.pass.analyse.CachePreferenceAnalysis
+import org.enso.compiler.pass.analyse.DependencyInfo
 import org.enso.interpreter.instrument.execution.{Executable, RuntimeContext}
 import org.enso.interpreter.instrument.job.UpsertVisualizationJob.{
   EvaluationFailed,
@@ -718,7 +716,10 @@ object UpsertVisualizationJob {
     */
   private def setCacheWeights(visualization: Visualization): Unit = {
     visualization.module.getIr
-      .getMetadata(CachePreferenceAnalysis)
+      .getMetadata(
+        CachePreferenceAnalysis,
+        classOf[CachePreferenceAnalysis.Metadata]
+      )
       .foreach { metadata =>
         CacheInvalidation.runVisualizations(
           Seq(visualization),
@@ -737,15 +738,16 @@ object UpsertVisualizationJob {
     ctx.executionService.getContext
       .findModuleByExpressionId(expressionId)
       .ifPresent { module =>
-        module.getIr
-          .getMetadata(DataflowAnalysis)
+        Option(
+          DependencyInfo
+            .find(module.getIr)
+        )
           .foreach { metadata =>
             val externalId = expressionId
             IRUtils
               .findByExternalId(module.getIr, externalId)
               .map { ir =>
-                DataflowAnalysis.DependencyInfo.Type
-                  .Static(ir.getId, ir.getExternalId)
+                new DependencyInfo.Type.Static(ir.getId, ir.getExternalId)
               }
               .flatMap { expressionKey =>
                 metadata.dependents.getExternal(expressionKey)

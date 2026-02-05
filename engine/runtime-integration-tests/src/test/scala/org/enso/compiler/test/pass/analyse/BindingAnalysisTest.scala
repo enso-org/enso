@@ -63,7 +63,10 @@ class BindingAnalysisTest extends CompilerTest {
           |type My_Type
           |My_Type.extension_method = 42
           |""".stripMargin.preprocessModule.analyse
-      val metadata = ir.unsafeGetMetadata(BindingAnalysis, "Should exist.")
+      val metadata = ir.unsafeGetMetadata[BindingAnalysis.Metadata](
+        BindingAnalysis,
+        "Should exist."
+      )
 
       metadata.definedEntities should contain theSameElementsAs List(
         Type("My_Type", List(), List(), false, false),
@@ -89,7 +92,10 @@ class BindingAnalysisTest extends CompilerTest {
           |My_Type.extension_method = 42
           |Other_Type.extension_method = 42
           |""".stripMargin.preprocessModule.analyse
-      val metadata = ir.unsafeGetMetadata(BindingAnalysis, "Should exist.")
+      val metadata = ir.unsafeGetMetadata[BindingAnalysis.Metadata](
+        BindingAnalysis,
+        "Should exist."
+      )
 
       metadata.definedEntities should contain theSameElementsAs List(
         Type("My_Type", List(), List(), false, false),
@@ -121,7 +127,10 @@ class BindingAnalysisTest extends CompilerTest {
           |Target.from (that:Source) = 42
           |Source.from (that:Target) = 42
           |""".stripMargin.preprocessModule.analyse
-      val metadata = ir.unsafeGetMetadata(BindingAnalysis, "Should exist.")
+      val metadata = ir.unsafeGetMetadata[BindingAnalysis.Metadata](
+        BindingAnalysis,
+        "Should exist."
+      )
       metadata.definedEntities should contain theSameElementsAs List(
         Type("Source", List(), List(), false, false),
         Type("Target", List(), List(), false, false),
@@ -153,7 +162,10 @@ class BindingAnalysisTest extends CompilerTest {
           |foo = 123
           |""".stripMargin.preprocessModule.analyse
 
-      val metadata = ir.unsafeGetMetadata(BindingAnalysis, "Should exist.")
+      val metadata = ir.unsafeGetMetadata[BindingAnalysis.Metadata](
+        BindingAnalysis,
+        "Should exist."
+      )
 
       metadata.definedEntities should contain theSameElementsAs List(
         PolyglotSymbol("MyClass"),
@@ -207,7 +219,7 @@ class BindingAnalysisTest extends CompilerTest {
            |
            |$moduleName.baz = 65
            |""".stripMargin.preprocessModule.analyse
-      ir.getMetadata(BindingAnalysis)
+      ir.getMetadata(BindingAnalysis, classOf[BindingAnalysis.Metadata])
         .get
         .definedEntities
         .filter(

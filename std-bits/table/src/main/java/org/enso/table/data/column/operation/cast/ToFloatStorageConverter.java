@@ -39,23 +39,19 @@ public class ToFloatStorageConverter implements StorageConverter<Double> {
   @Override
   public ColumnStorage<Double> cast(
       ColumnStorage<?> storage, CastProblemAggregator problemAggregator) {
-    if (storage instanceof ColumnLongStorage longStorage) {
-      return convertLongStorage(longStorage, problemAggregator);
-    } else if (storage instanceof ColumnBooleanStorage boolStorage) {
-      return convertBoolStorage(boolStorage, problemAggregator);
-    } else {
-      var storageType = storage.getType();
-      if (storageType instanceof BigIntegerType bigIntegerType) {
-        return convertBigIntegerStorage(bigIntegerType.asTypedStorage(storage), problemAggregator);
-      } else if (storageType instanceof BigDecimalType bigDecimalType) {
-        return convertBigDecimalStorage(bigDecimalType.asTypedStorage(storage), problemAggregator);
-      } else if (storageType instanceof AnyObjectType || storageType instanceof NullType) {
-        return castFromObject(storage, problemAggregator);
-      } else {
-        throw new IllegalStateException(
-            "No known strategy for casting storage " + storage + " to Float.");
-      }
-    }
+    var storageType = StorageType.ofStorage(storage);
+    return switch (storageType) {
+      case IntegerType it -> convertLongStorage(it.asTypedStorage(storage), problemAggregator);
+      case BooleanType bt -> convertBoolStorage(bt.asTypedStorage(storage), problemAggregator);
+      case BigIntegerType bigIntegerType ->
+          convertBigIntegerStorage(bigIntegerType.asTypedStorage(storage), problemAggregator);
+      case BigDecimalType bigDecimalType ->
+          convertBigDecimalStorage(bigDecimalType.asTypedStorage(storage), problemAggregator);
+      case AnyObjectType _, NullType _ -> castFromObject(storage, problemAggregator);
+      default ->
+          throw new IllegalStateException(
+              "No known strategy for casting storage " + storageType + " to Float.");
+    };
   }
 
   private ColumnStorage<Double> castFromObject(

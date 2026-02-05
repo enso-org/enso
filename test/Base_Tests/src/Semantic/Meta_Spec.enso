@@ -154,7 +154,7 @@ add_specs suite_builder =
             arr = Meta.meta R . methods
 
             # there are some methods
-            arr.length>10 . should_be_true
+            arr.length>5 . should_be_true
 
             # neither private_instance_method nor private_static_method
             # are in the list

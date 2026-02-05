@@ -21,24 +21,25 @@ public abstract class BinaryOperationBase<T, R> implements BinaryOperationTyped<
 
   @Override
   public final boolean canApplyMap(ColumnStorage<?> left, Object rightValue) {
-    var leftType = left.getType();
+    var leftType = StorageType.ofStorage(left);
     return validType.isOfType(leftType) || (allowNullType && NullType.INSTANCE.isOfType(leftType));
   }
 
   @Override
   public boolean canApplyZip(ColumnStorage<?> left, ColumnStorage<?> right) {
     return canApplyMap(left, null)
-        && (NullType.INSTANCE.isOfType(right.getType()) || canApplyMap(right, null));
+        && (NullType.INSTANCE.isOfType(StorageType.ofStorage(right)) || canApplyMap(right, null));
   }
 
   @Override
   public ColumnStorage<R> applyMap(
       ColumnStorage<?> left, Object rightValue, MapOperationProblemAggregator problemAggregator) {
-    if (left.getType() instanceof NullType) {
+    var leftType = StorageType.ofStorage(left);
+    if (leftType instanceof NullType) {
       return applyNullMap(left, rightValue, problemAggregator);
     }
 
-    if (validType.isOfType(left.getType())) {
+    if (validType.isOfType(leftType)) {
       return applyTypedMap(validType.asTypedStorage(left), rightValue, problemAggregator);
     }
 
@@ -66,11 +67,12 @@ public abstract class BinaryOperationBase<T, R> implements BinaryOperationTyped<
       throw new IllegalArgumentException("Columns must be of the same size.");
     }
 
-    if (left.getType() instanceof NullType || right.getType() instanceof NullType) {
+    var leftType = StorageType.ofStorage(left);
+    if (leftType instanceof NullType || StorageType.ofStorage(right) instanceof NullType) {
       return applyNullMap(left, right, problemAggregator);
     }
 
-    if (validType.isOfType(left.getType())) {
+    if (validType.isOfType(leftType)) {
       return applyTypedZip(validType.asTypedStorage(left), right, problemAggregator);
     }
 

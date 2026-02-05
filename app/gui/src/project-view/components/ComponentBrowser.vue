@@ -5,6 +5,7 @@ import {
   useSuggestionDbStore,
 } from '$/components/WithCurrentProject.vue'
 import type { RequiredImport } from '$/providers/openedProjects/module/imports'
+import { TypeInfo } from '$/providers/openedProjects/project/computedValueRegistry'
 import { type Typename } from '$/providers/openedProjects/suggestionDatabase/entry'
 import { debouncedGetter } from '$/utils/reactivity'
 import { componentBrowserBindings, listBindings } from '@/bindings'
@@ -243,7 +244,7 @@ const nodeColor = computed(() => {
 
 const previewedCode = debouncedGetter<string>(() => input.code, 200)
 
-const previewedSuggestionReturnType = computed(() => {
+const previewedSuggestionTypeInfo = computed(() => {
   const appliedEntry = input.mode.mode === 'codeEditing' ? input.mode.appliedSuggestion : undefined
   const entry =
     appliedEntry ? appliedEntry
@@ -252,7 +253,7 @@ const previewedSuggestionReturnType = computed(() => {
   const returnType = entry?.returnType(projectNames)
   if (returnType == null) return undefined
   const parsed = parseAbsoluteProjectPathRaw(returnType)
-  if (parsed.ok) return parsed.value
+  if (parsed.ok) return TypeInfo.fromParsedTypes([parsed.value], [])
   return undefined
 })
 
@@ -406,7 +407,7 @@ const listsHandler = listBindings.handler({
       :width="null"
       :height="null"
       :dataSource="previewDataSource"
-      :typename="previewedSuggestionReturnType"
+      :typeinfo="previewedSuggestionTypeInfo"
       :currentType="visualizationSelection"
       @update:id="visualizationSelection = $event"
       @update:enabled="isVisualizationVisible = $event"

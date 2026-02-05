@@ -15,10 +15,10 @@
     "./src/autocomplete/index.ts",
     "./src/autocomplete/syntax.ts",
     "./src/autocomplete/types.ts",
+    "./src/generated/parser.terms.ts",
+    "./src/generated/parser.ts",
     "./src/highlight.ts",
     "./src/index.ts",
-    "./src/keywords.ts",
-    "./src/generated/parser.ts",
-    "./src/generated/parser.terms.ts"
+    "./src/keywords.ts"
   ]
 }

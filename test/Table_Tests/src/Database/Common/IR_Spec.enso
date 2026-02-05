@@ -72,8 +72,12 @@ add_specs (suite_builder : Suite_Builder) setup (prefix : Text) default_connecti
             count_nodes a . should_be_a Integer
             count_nodes b . should_be_a Integer
             count_nodes c . should_be_a Integer
+        
+        does_not_support_nested_with_clause =
+            if data.connection.dialect.flagged ..Supports_Nested_With_Clause then Nothing else
+                "Does not suport nested with clause"
 
-        group_builder.specify "let bindings should not affect the end result" <|
+        group_builder.specify "let bindings should not affect the end result" pending=does_not_support_nested_with_clause <|
             t = table_builder [["x", [1.3, 2.8]], ["y", [-3.4, 7.2]]]
             x = t.at "x"
             y = t.at "y"
@@ -89,10 +93,6 @@ add_specs (suite_builder : Suite_Builder) setup (prefix : Text) default_connecti
                                 r0 + r1
                 big.to_vector
             results.flatten.flatten.flatten.distinct.length . should_equal 1
-
-        does_not_support_nested_with_clause =
-            if data.connection.dialect.flagged ..Supports_Nested_With_Clause then Nothing else
-                "Does not suport nested with clause"
 
         group_builder.specify "should convert WITH binders to short names that do not conflict with existing table names" pending=does_not_support_nested_with_clause <|
             t = Table.new [["x", [1, 2]], ["y", ['a', 'b']]]

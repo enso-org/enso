@@ -36,12 +36,12 @@ public class BinaryCoalescingOperation<T> extends BinaryOperationBase<T, T> {
         var rightStorage = rightColumn.getStorage();
         if (!operation.canApplyZip(leftStorage, rightStorage)) {
           throw new UnexpectedTypeException(
-              "Unsupported right column type: " + rightStorage.getType());
+              "Unsupported right column type: " + StorageType.ofStorage(rightStorage));
         }
         return operation.apply(left, rightColumn, name, problemBuilder);
       } else {
         // Null on left-hand side so just return the right-hand Column
-        if (leftStorage.getType() instanceof NullType) {
+        if (StorageType.ofStorage(leftStorage) instanceof NullType) {
           return new Column(name, rightColumn.getStorage());
         }
 
@@ -57,7 +57,7 @@ public class BinaryCoalescingOperation<T> extends BinaryOperationBase<T, T> {
       return operation.apply(left, right, name, problemBuilder);
     } else {
       // Null on left-hand side so just return the right-hand Column
-      if (leftStorage.getType() instanceof NullType) {
+      if (StorageType.ofStorage(leftStorage) instanceof NullType) {
         int checkedSize = Builder.checkSize(leftStorage.getSize());
         var constantStorage = Builder.fromRepeatedItem(right, checkedSize);
         return new Column(name, constantStorage);
@@ -95,16 +95,17 @@ public class BinaryCoalescingOperation<T> extends BinaryOperationBase<T, T> {
       String name,
       MapOperationProblemAggregator problemBuilder) {
     var leftStorage = left.getStorage();
+    var leftStorageType = StorageType.ofStorage(leftStorage);
     var operation =
-        switch (leftStorage.getType()) {
-          case DateType d -> DATE_MIN;
-          case DateTimeType dt -> DATE_TIME_MIN;
-          case TimeOfDayType t -> TIME_MIN;
-          case TextType t -> TEXT_MIN;
-          case BooleanType b -> BinaryCoalescingOperationBool.MIN_INSTANCE;
-          case NumericType n ->
+        switch (leftStorageType) {
+          case DateType _ -> DATE_MIN;
+          case DateTimeType _ -> DATE_TIME_MIN;
+          case TimeOfDayType _ -> TIME_MIN;
+          case TextType _ -> TEXT_MIN;
+          case BooleanType _ -> BinaryCoalescingOperationBool.MIN_INSTANCE;
+          case NumericType _ ->
               BinaryCoalescingOperationNumeric.create(
-                  leftStorage.getType(), right, BinaryCoalescingOperationNumeric.MIN_OPERATION);
+                  leftStorageType, right, BinaryCoalescingOperationNumeric.MIN_OPERATION);
           default -> null;
         };
     return applyOperation(
@@ -138,16 +139,17 @@ public class BinaryCoalescingOperation<T> extends BinaryOperationBase<T, T> {
       String name,
       MapOperationProblemAggregator problemBuilder) {
     var leftStorage = left.getStorage();
+    var leftStorageType = StorageType.ofStorage(leftStorage);
     var operation =
-        switch (leftStorage.getType()) {
-          case DateType d -> DATE_MAX;
-          case DateTimeType dt -> DATE_TIME_MAX;
-          case TimeOfDayType t -> TIME_MAX;
-          case TextType t -> TEXT_MAX;
-          case BooleanType b -> BinaryCoalescingOperationBool.MAX_INSTANCE;
-          case NumericType n ->
+        switch (leftStorageType) {
+          case DateType _ -> DATE_MAX;
+          case DateTimeType _ -> DATE_TIME_MAX;
+          case TimeOfDayType _ -> TIME_MAX;
+          case TextType _ -> TEXT_MAX;
+          case BooleanType _ -> BinaryCoalescingOperationBool.MAX_INSTANCE;
+          case NumericType _ ->
               BinaryCoalescingOperationNumeric.create(
-                  leftStorage.getType(), right, BinaryCoalescingOperationNumeric.MAX_OPERATION);
+                  leftStorageType, right, BinaryCoalescingOperationNumeric.MAX_OPERATION);
           default -> null;
         };
     return applyOperation(
@@ -177,7 +179,7 @@ public class BinaryCoalescingOperation<T> extends BinaryOperationBase<T, T> {
     return StorageIterators.mapOverStorage(
         validType.asTypedStorage(left),
         false,
-        makeStorageBuilder(left.getSize(), left.getType(), null, problemAggregator),
+        makeStorageBuilder(left.getSize(), StorageType.ofStorage(left), null, problemAggregator),
         (idx, value) -> zipOperation.apply(value, rightValueTyped));
   }
 
@@ -186,14 +188,16 @@ public class BinaryCoalescingOperation<T> extends BinaryOperationBase<T, T> {
       ColumnStorage<?> left,
       ColumnStorage<?> right,
       MapOperationProblemAggregator problemAggregator) {
-    if (NullType.INSTANCE.isOfType(right.getType())) {
+    var rightType = StorageType.ofStorage(right);
+    if (NullType.INSTANCE.isOfType(rightType)) {
       return validType.asTypedStorage(left);
     }
 
+    var leftType = StorageType.ofStorage(left);
     return StorageIterators.zipOverStorages(
         validType.asTypedStorage(left),
         validType.asTypedStorage(right),
-        size -> makeStorageBuilder(size, left.getType(), right.getType(), problemAggregator),
+        size -> makeStorageBuilder(size, leftType, rightType, problemAggregator),
         false,
         (index, l, r) -> l == null ? r : (r == null ? l : zipOperation.apply(l, r)));
   }

@@ -130,6 +130,10 @@ const displayableActions = {
     description: 'Show/Hide visualization',
     shortcut: graphBindings.bindings['graph.toggleVisualization'],
   },
+  'component.toggleExpanded': {
+    icon: 'expanded_node',
+    description: 'Expand/Collapse Component',
+  },
   'component.recompute': {
     icon: 'workflow_play',
     description: 'Write',

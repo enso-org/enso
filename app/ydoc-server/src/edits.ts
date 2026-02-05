@@ -82,12 +82,14 @@ export function applyDocumentUpdates(
       let pos = ast.nodeMetadata.get('position')
       const vis = ast.nodeMetadata.get('visualization')
       const colorOverride = ast.nodeMetadata.get('colorOverride')
+      const displayMode = ast.nodeMetadata.get('displayMode')
       if (vis && !pos) pos = { x: 0, y: 0 }
       if (pos) {
         newMetadata!.node[ast.externalId] = {
           position: { vector: [Math.round(pos.x), Math.round(-pos.y)] },
           visualization: vis && translateVisualizationToFile(vis),
           colorOverride,
+          displayMode,
         }
       }
       const widgets = ast.widgetsMetadata()

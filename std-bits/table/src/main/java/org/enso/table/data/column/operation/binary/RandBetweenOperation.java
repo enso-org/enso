@@ -7,6 +7,7 @@ import java.math.BigInteger;
 import java.util.Random;
 import org.enso.table.data.column.operation.BinaryOperationTyped;
 import org.enso.table.data.column.storage.ColumnStorageWithInferredStorage;
+import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.problems.MapOperationProblemAggregator;
 
@@ -14,7 +15,7 @@ public class RandBetweenOperation extends BinaryOperator.NumericOperation {
   public static BinaryOperationTyped<?> create(Column left, Object right, long seed) {
     var rng = seed == 0 ? new Random() : new Random(seed);
     var leftStorage = ColumnStorageWithInferredStorage.resolveStorage(left);
-    return createNumeric(leftStorage.getType(), right, new RandBetweenOperation(rng));
+    return createNumeric(StorageType.ofStorage(leftStorage), right, new RandBetweenOperation(rng));
   }
 
   private final Random rng;

@@ -862,11 +862,21 @@ class Compiler(
 
     val moduleNames = modules.asScala.map { q =>
       val name = q.path.foldRight(
-        List(Name.Literal(q.item, isMethod = false, identifiedLocation = null))
+        List(
+          Name.Literal
+            .builder()
+            .name(q.item)
+            .isMethod(false)
+            .build()
+        )
       ) { case (part, acc) =>
-        Name.Literal(part, isMethod = false, identifiedLocation = null) :: acc
+        Name.Literal
+          .builder()
+          .name(part)
+          .isMethod(false)
+          .build() :: acc
       }
-      Name.Qualified(name, identifiedLocation = null)
+      Name.Qualified.builder().parts(name).build()
     }.toList
     ir.copyWithImportsAndExports(
       ir.imports ::: moduleNames.map(m => Import.Module.createSynthetic(m)),
@@ -977,7 +987,7 @@ class Compiler(
   ): Unit = {
     val errors = GatherDiagnostics
       .runExpression(ir, inlineContext)
-      .unsafeGetMetadata(
+      .unsafeGetMetadata[GatherDiagnostics.Metadata](
         GatherDiagnostics,
         "No diagnostics metadata right after the gathering pass."
       )
@@ -1030,7 +1040,7 @@ class Compiler(
         module.getIr(),
         ModuleContext(module, compilerConfig = config)
       )
-      .unsafeGetMetadata(
+      .unsafeGetMetadata[GatherDiagnostics.Metadata](
         GatherDiagnostics,
         "No diagnostics metadata right after the gathering pass."
       )

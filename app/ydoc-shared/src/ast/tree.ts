@@ -118,11 +118,14 @@ export interface NodeMetadataFields {
   position?: { x: number; y: number } | undefined
   visualization?: VisualizationMetadata | undefined
   colorOverride?: string | undefined
+  displayMode?: 'expanded' | 'collapsed' | undefined
 }
+
 const nodeMetadataKeys = allKeys<NodeMetadataFields>({
   position: null,
   visualization: null,
   colorOverride: null,
+  displayMode: null,
 })
 export type NodeMetadata = FixedMapView<NodeMetadataFields & MetadataFields>
 export type MutableNodeMetadata = FixedMap<NodeMetadataFields & MetadataFields>
