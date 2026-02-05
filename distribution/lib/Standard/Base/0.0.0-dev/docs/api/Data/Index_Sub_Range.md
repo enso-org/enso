@@ -6,7 +6,7 @@
     - First count:Standard.Base.Data.Numbers.Integer=
     - Last count:Standard.Base.Data.Numbers.Integer=
     - Sample count:Standard.Base.Data.Numbers.Integer= seed:Standard.Base.Data.Numbers.Integer=
-    - While predicate:Standard.Base.Any.Any=
+    - While predicate:(Standard.Base.Any.Any -> Standard.Base.Data.Boolean.Boolean)=
     - default_options count:(Standard.Base.Data.Numbers.Integer|Standard.Base.Nothing.Nothing)= -> Standard.Base.Any.Any
     - default_widget count:(Standard.Base.Data.Numbers.Integer|Standard.Base.Nothing.Nothing)= display:Standard.Base.Metadata.Display= -> Standard.Base.Metadata.Widget
     - to_display_text self -> Standard.Base.Any.Any

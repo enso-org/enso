@@ -61,7 +61,7 @@
     - is_present self -> (Standard.Table.Column.Column&Standard.Base.Any.Any)
     - last self -> Standard.Base.Any.Any!Standard.Base.Errors.Common.Index_Out_Of_Bounds
     - like self pattern:(Standard.Table.Column.Column|Standard.Base.Data.Text.Text|Standard.Base.Any.Any) -> (Standard.Table.Column.Column&Standard.Base.Any.Any)
-    - map self function:Standard.Base.Any.Any skip_nothing:Standard.Base.Data.Boolean.Boolean= expected_value_type:(Standard.Table.Value_Type.Value_Type|Standard.Table.Value_Type.Auto)= -> (Standard.Table.Column.Column&Standard.Base.Any.Any)!Standard.Table.Errors.Invalid_Value_Type
+    - map self function:(Standard.Base.Any.Any -> Standard.Base.Any.Any) skip_nothing:Standard.Base.Data.Boolean.Boolean= expected_value_type:(Standard.Table.Value_Type.Value_Type|Standard.Table.Value_Type.Auto)= -> (Standard.Table.Column.Column&Standard.Base.Any.Any)!Standard.Table.Errors.Invalid_Value_Type
     - max self values:(Standard.Base.Any.Any|(Standard.Base.Data.Vector.Vector Standard.Base.Any.Any)) -> (Standard.Table.Column.Column&Standard.Base.Any.Any)
     - min self values:(Standard.Base.Any.Any|(Standard.Base.Data.Vector.Vector Standard.Base.Any.Any)) -> (Standard.Table.Column.Column&Standard.Base.Any.Any)
     - minute self -> (Standard.Table.Column.Column&Standard.Base.Any.Any)!Standard.Table.Errors.Invalid_Value_Type
@@ -82,7 +82,7 @@
     - second self -> (Standard.Table.Column.Column&Standard.Base.Any.Any)!Standard.Table.Errors.Invalid_Value_Type
     - should_be_selected_by_type self value_type:Standard.Table.Value_Type.Value_Type -> Standard.Base.Data.Boolean.Boolean
     - slice self start:Standard.Base.Any.Any end:Standard.Base.Any.Any -> Standard.Base.Any.Any
-    - sort self order:Standard.Base.Data.Sort_Direction.Sort_Direction= missing_last:Standard.Base.Data.Boolean.Boolean= by:(Standard.Base.Any.Any|Standard.Base.Nothing.Nothing)= -> (Standard.Table.Column.Column&Standard.Base.Any.Any)
+    - sort self order:Standard.Base.Data.Sort_Direction.Sort_Direction= missing_last:Standard.Base.Data.Boolean.Boolean= by:((Standard.Base.Any.Any -> Standard.Base.Any.Any -> Standard.Base.Data.Ordering.Ordering)|Standard.Base.Nothing.Nothing)= -> (Standard.Table.Column.Column&Standard.Base.Any.Any)
     - starts_with self other:(Standard.Table.Column.Column|Standard.Base.Data.Text.Text|Standard.Base.Any.Any) case_sensitivity:Standard.Base.Data.Text.Case_Sensitivity.Case_Sensitivity= -> (Standard.Table.Column.Column&Standard.Base.Any.Any)
     - take self range:(Standard.Base.Data.Index_Sub_Range.Index_Sub_Range|Standard.Base.Data.Range.Range|Standard.Base.Data.Numbers.Integer)= -> (Standard.Table.Column.Column&Standard.Base.Any.Any)
     - text_cleanse self remove:(Standard.Base.Data.Vector.Vector Standard.Base.Data.Text.Regex.Named_Pattern.Named_Pattern) -> (Standard.Table.Column.Column&Standard.Base.Any.Any)
