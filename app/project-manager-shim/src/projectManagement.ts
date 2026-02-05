@@ -370,8 +370,7 @@ function getCommonPrefix(a: string, b: string): string {
  */
 function generateDirectoryName(name: string, directory = getProjectsDirectory()): string {
   // Use only the last path component (but with the extension as we don't want to remove that).
-  const parsedPath = pathModule.parse(name)
-  let baseName = parsedPath.name + (parsedPath.ext ? parsedPath.ext : '')
+  let baseName = pathModule.basename(name)
   logger.log(`Generating directory name for '${name}' in '${directory}'. Base name: '${baseName}'.`)
 
   // If the name already consists a suffix, reuse it.
