@@ -4,11 +4,11 @@ import com.oracle.truffle.api.RootCallTarget;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.profiles.CountingConditionProfile;
 import org.enso.interpreter.node.ExpressionNode;
-import org.enso.interpreter.node.expression.builtin.meta.IsSameObjectNode;
+import org.enso.interpreter.node.expression.builtin.meta.EqualsNode;
 
 public class ObjectEqualityBranchNode extends BranchNode {
   private @Child ExpressionNode expected;
-  private @Child IsSameObjectNode isSameObject = IsSameObjectNode.build();
+  private @Child EqualsNode matchesNode = EqualsNode.create();
   private final CountingConditionProfile profile = CountingConditionProfile.create();
 
   private ObjectEqualityBranchNode(
@@ -25,7 +25,7 @@ public class ObjectEqualityBranchNode extends BranchNode {
   @Override
   public void execute(VirtualFrame frame, Object state, Object target) {
     var exp = expected.executeGeneric(frame);
-    if (profile.profile(isSameObject.execute(target, exp))) {
+    if (profile.profile(matchesNode.execute(frame, target, exp).isTrue())) {
       accept(frame, state, new Object[0]);
     }
   }
