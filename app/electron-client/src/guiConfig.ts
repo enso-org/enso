@@ -1,4 +1,5 @@
 import { assetsPath } from '@/paths'
+import path from 'node:path'
 import { extractFile } from '@electron/asar'
 import type { $Config } from 'enso-gui/src/config'
 import { createRequire } from 'node:module'
@@ -77,7 +78,8 @@ async function loadGuiConfigUncached(): Promise<$Config> {
   if (assetsDir.includes('.asar')) {
     const archivePath = assetsDir.slice(0, assetsDir.indexOf('.asar') + '.asar'.length)
     // TODO[ib]: This ridiculous duplication of `assets` in path is a bug in legacy build system, Bazel build has a different path.
-    const baseConfig = await importConfigFromAsar(archivePath, 'assets/assets/config.js')
+    const configPath = path.join('assets', 'assets', 'config.js')
+    const baseConfig = await importConfigFromAsar(archivePath, configPath)
     const env = process.env as unknown as GuiEnv
     return configFromBaseAndEnv(baseConfig, env)
   } else {
