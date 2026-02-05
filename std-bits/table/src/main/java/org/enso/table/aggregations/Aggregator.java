@@ -3,6 +3,7 @@ package org.enso.table.aggregations;
 import java.util.List;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.problems.ProblemAggregator;
+import org.graalvm.polyglot.Value;
 
 /** Interface used to define aggregate columns. */
 public abstract class Aggregator {
@@ -28,6 +29,19 @@ public abstract class Aggregator {
    * Compute the value for a set of rows
    *
    * @param indexes - indexes to the rows in the source table to aggregate on
+   * @return aggregated value
+   */
+  public final Value aggregateWithProblems(List<Integer> indexes) {
+    var problemAggregator = ProblemAggregator.makeTopLevelAggregator();
+    var result = aggregate(indexes, problemAggregator);
+    return problemAggregator.attachProblemsToValue(Value.asValue(result), false);
+  }
+
+  /**
+   * Compute the value for a set of rows
+   *
+   * @param indexes - indexes to the rows in the source table to aggregate on
+   * @param problemAggregator - the aggregator to report any problems to
    * @return aggregated value
    */
   public abstract Object aggregate(List<Integer> indexes, ProblemAggregator problemAggregator);

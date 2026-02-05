@@ -49,6 +49,17 @@ public class ProblemAggregator {
   }
 
   /**
+   * Checks if there are any problems reported to this aggregator or any of its children.
+   *
+   * <p>This will summarize the aggregator, so it cannot be used after this call. This is to avoid
+   * losing problems by accident.
+   */
+  public final boolean isEmpty() {
+    var summary = summarize();
+    return summary.allProblemsCount == 0;
+  }
+
+  /**
    * A summary that includes gathered problems and a count.
    *
    * <p>The count may be larger than the list size, meaning that some problems were dropped due to

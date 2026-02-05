@@ -45,8 +45,19 @@ public final class InferredBuilder implements Builder {
   public InferredBuilder(
       int initialSize, ProblemAggregator problemAggregator, boolean allowDateToDateTimeConversion) {
     this.initialSize = initialSize;
-    this.problemAggregator = problemAggregator;
+    this.problemAggregator =
+        problemAggregator == null ? ProblemAggregator.makeTopLevelAggregator() : problemAggregator;
     this.allowDateToDateTimeConversion = allowDateToDateTimeConversion;
+  }
+
+  /**
+   * Checks if the builder has not encountered any problems during appending values. If this returns
+   * false, the resulting column will have a problem attached to it.
+   *
+   * @return true if no problems were encountered, false otherwise.
+   */
+  public boolean hasNoProblems() {
+    return problemAggregator.isEmpty();
   }
 
   @Override
