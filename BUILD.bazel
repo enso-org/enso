@@ -1,3 +1,4 @@
+load("@aspect_bazel_lib//lib:copy_to_bin.bzl", "copy_to_bin")
 load("@aspect_bazel_lib//lib:write_source_files.bzl", "write_source_files")
 load("@aspect_rules_ts//ts:defs.bzl", "ts_config")
 load("@buildifier_prebuilt//:rules.bzl", "buildifier")
@@ -8,9 +9,18 @@ load("//:bazel_scripts/stdlibs.bzl", "stdlib_source_patterns")
 load("//toolchains/sbt:run_sbt.bzl", "run_sbt")
 
 exports_files([
-    ".node-version",
-    "build-config.yaml",
-])
+        ".node-version",
+        "build-config.yaml",
+        "project/Dependencies.scala",
+    ], 
+    visibility = ["//visibility:public"],
+)
+
+copy_to_bin(
+    name = "dependencies_scala_bin",
+    srcs = ["project/Dependencies.scala"],
+    visibility = ["//visibility:public"],
+)
 
 npm_link_all_packages()
 
@@ -86,12 +96,9 @@ SBT_PROJECT_FILES = [
 ] + glob([
     "project/*.scala",
     "project/src/**",
-]) + select({
-    "//:stamping": [
-        "//internal:generated_version_info",
-    ],
-    "//conditions:default": [],
-})
+]) + [
+    "//internal:generated_version_info",
+]
 
 # TODO: some dependencies might be unnecessary here, but checking everything is time-consuming.
 ENGINE_DIST_SOURCES = STDLIB_SOURCES + SBT_PROJECT_FILES + [
