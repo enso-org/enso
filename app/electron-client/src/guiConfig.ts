@@ -1,8 +1,8 @@
 import { assetsPath } from '@/paths'
-import path from 'node:path'
 import { extractFile } from '@electron/asar'
 import type { $Config } from 'enso-gui/src/config'
 import { createRequire } from 'node:module'
+import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { runInNewContext } from 'node:vm'
 
