@@ -209,7 +209,9 @@ object ProgramExecutionSupport {
     callStack match {
       case Nil =>
         val notExecuted =
-          methodCallsCache.getNotExecuted(executionFrame.cache.getCalls)
+          methodCallsCache.getNotExecuted(
+            executionFrame.cache.findUUIDs(true, false)
+          )
         notExecuted.forEach { expressionId =>
           val expressionTypes = executionFrame.cache.getType(expressionId)
           val expressionCall  = executionFrame.cache.getCall(expressionId)

@@ -8,7 +8,6 @@ import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
-import org.enso.common.CachePreferences;
 import org.enso.interpreter.instrument.ExpressionExecutionState;
 import org.enso.interpreter.instrument.MethodCallsCache;
 import org.enso.interpreter.instrument.OneshotExpression;
@@ -113,7 +112,7 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
 
   @CompilerDirectives.TruffleBoundary
   private void reportEvaluationProgress(UUID nodeId) {
-    if (cache.getPreferences().get(nodeId) == CachePreferences.Kind.BINDING_EXPRESSION) {
+    if (cache.isBindingExpression(nodeId)) {
       var newObserver =
           ExecutionProgressObserver.startComputation(
               nodeId,
@@ -178,11 +177,12 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
     // Panics are not cached because a panic can be fixed by changing seemingly unrelated code,
     // like imports, and the invalidation mechanism can not always track those changes and
     // appropriately invalidate all dependent expressions.
+    var mutable = (RuntimeCache.Mutable) cache;
     if (!isPanic) {
-      cache.offer(nodeId, result);
-      cache.putCall(nodeId, call);
+      mutable.offer(nodeId, result);
+      mutable.putCall(nodeId, call);
     }
-    cache.putType(nodeId, resultType);
+    mutable.putType(nodeId, resultType);
 
     callOnComputedCallback(expressionValue);
     executeOneshotExpressions(nodeId, result, info);

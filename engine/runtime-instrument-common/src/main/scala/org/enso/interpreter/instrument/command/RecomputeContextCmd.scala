@@ -203,8 +203,8 @@ object RecomputeContextCmd {
       case CacheInvalidation.Command.InvalidateAll =>
         stack.headOption
           .map { frame =>
-            frame.cache.getPreferences.preferences
-              .keySet()
+            frame.cache
+              .findUUIDs(false, true)
               .forEach(builder.addOne)
           }
       case CacheInvalidation.Command.InvalidateKeys(expressionIds, _) =>
