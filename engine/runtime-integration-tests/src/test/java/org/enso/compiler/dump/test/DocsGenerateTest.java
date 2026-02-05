@@ -347,6 +347,35 @@ public class DocsGenerateTest {
   }
 
   @Test
+  public void functionalUnionTypes() throws Exception {
+    var code =
+        """
+        type A
+        type B
+
+        one a:((A -> B) | B) -> B = B
+        """;
+
+    var v = new MockVisitor();
+    generateDocumentation("UnionFn", code, v);
+
+    assertEquals("One methods", 1, v.visitMethod.size());
+    assertEquals("No constructors", 0, v.visitConstructor.size());
+
+    var p = v.visitMethod.get(0);
+    assertNull("It is a module method", p.t());
+
+    var m = p.ir();
+    assertEquals("one", m.methodName().name());
+    var sig = DocsVisit.toSignature(m);
+    assertEquals(
+        "Generates vector with argument type as return type",
+        "one a:((local.UnionFn.Main.A -> local.UnionFn.Main.B)|local.UnionFn.Main.B)"
+            + " -> local.UnionFn.Main.B",
+        sig);
+  }
+
+  @Test
   public void vectorWithUnionTypes() throws Exception {
     var code =
         """
