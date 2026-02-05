@@ -1,3 +1,5 @@
+private
+
 from Standard.Base import all
 
 polyglot java import org.enso.table.problems.ProblemAggregator
@@ -7,9 +9,9 @@ polyglot java import org.enso.table.problems.ProblemAggregator
    ---
    This is the new preferred way of running Java methods that may report
    problems.
-with_problem_aggregator : Problem_Behavior -> (ProblemAggregator -> Any) -> ProblemAggregator -> Any
-with_problem_aggregator on_problems:Problem_Behavior f problem_aggregator=ProblemAggregator =
-    aggregator = problem_aggregator.makeTopLevelAggregator
+with_problem_aggregator : Problem_Behavior -> (ProblemAggregator -> Any) -> Any
+with_problem_aggregator on_problems:Problem_Behavior f =
+    aggregator = ProblemAggregator.makeTopLevelAggregator
 
     result = f aggregator
 

@@ -15,9 +15,9 @@ import java.time.temporal.Temporal;
 import java.util.List;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.table.Column;
-import org.enso.table.data.table.Table;
 import org.enso.table.error.EmptySheetException;
 import org.enso.table.problems.ProblemAggregator;
+import org.graalvm.polyglot.Value;
 
 public class GoogleSheetsForEnso {
   private final Sheets service;
@@ -40,13 +40,13 @@ public class GoogleSheetsForEnso {
     return new GoogleSheetsForEnso(builder.build());
   }
 
-  public Table getSheetRange(
+  public Value getSheetRange(
       String sheetId,
       String range,
       GoogleSheetsHeaders.HeaderBehavior headerBehavior,
       Integer row_limit,
       int skip_rows,
-      ProblemAggregator problemAggregator)
+      boolean reportAsErrors)
       throws IOException {
     var rowData =
         service
@@ -64,6 +64,8 @@ public class GoogleSheetsForEnso {
     if (rowData == null) {
       throw new EmptySheetException();
     }
+
+    var problemAggregator = ProblemAggregator.makeTopLevelAggregator();
 
     final int firstRowIndex = Math.max(0, skip_rows);
     var firstRow = getDataRow(rowData, firstRowIndex);
@@ -97,7 +99,9 @@ public class GoogleSheetsForEnso {
     for (int colIdx = 0; colIdx < numberOfColumns; colIdx++) {
       columns[colIdx] = new Column(headerBuilder.get(colIdx), builders[colIdx].seal());
     }
-    return new Table(columns);
+
+    // Attach any problems
+    return problemAggregator.attachProblemsToValue(Value.asValue(columns), reportAsErrors);
   }
 
   private static Object fixTypes(CellData cell) {

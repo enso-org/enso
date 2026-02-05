@@ -9,12 +9,11 @@ from Standard.Base.Metadata.Choice import Option
 from Standard.Base.Metadata.Widget import Multiple_Choice, Single_Choice
 from Standard.Base.Visualization.Table_Viz_Data import Table_Viz_Data, Table_Viz_Header
 
-import Standard.Table.Internal.Java_Problems
+import Standard.Table.Internal.Java_Exports
 import Standard.Table.Return_As_Table.Return_As_Table
 import Standard.Table.Rows_To_Read.Rows_To_Read
 from Standard.Table import Column, Headers, Table
 from Standard.Table.Errors import Empty_Sheet, Invalid_Location, No_Rows
-from Standard.Table.In_Memory_Table import from_java_table
 from Standard.Table.Internal.Table_Helpers import duplicate_rows
 
 import project.Internal.Telemetry
@@ -25,7 +24,6 @@ polyglot java import org.enso.google.GoogleSheetsForEnso
 polyglot java import org.enso.google.GoogleSheetsHeaders.HeaderBehavior
 polyglot java import org.enso.google.WrappedGoogleCredentials
 polyglot java import org.enso.table.error.EmptySheetException
-polyglot java import org.enso.table.problems.ProblemAggregator
 
 ## Type representing a Google Sheets workbook.
 type Google_Sheets_Workbook
@@ -93,13 +91,14 @@ type Google_Sheets_Workbook
     read self query:(Text|Integer) headers:Headers=..Detect_Headers limit:Rows_To_Read=..All_Rows skip_rows:Integer=0 on_problems:Problem_Behavior=..Report_Warning -> Table =
         java_headers = _make_java_headers headers
         java_limit = limit.rows_to_read
-        java_table = Java_Problems.with_problem_aggregator on_problems problem_aggregator=ProblemAggregator java_problem_aggregator-> _handle_exceptions self.workbook_id <|
+        java_columns = _handle_exceptions self.workbook_id <|
             case query of
-                _ : Text -> self.java_service.getSheetRange self.workbook_id query java_headers java_limit skip_rows java_problem_aggregator
+                _ : Text -> self.java_service.getSheetRange self.workbook_id query java_headers java_limit skip_rows on_problems==Problem_Behavior.Report_Error
                 _ : Integer ->
                     names = self.sheet_names
                     if (query < 1 || query > names.length) then Error.throw (Invalid_Location.Error "Sheet "+query.to_text+" is out of range (1 to "+names.length.to_text+" inclusive).") else
-                        self.java_service.getSheetRange self.workbook_id (names.at (query - 1)) java_headers java_limit skip_rows java_problem_aggregator
+                        self.java_service.getSheetRange self.workbook_id (names.at (query - 1)) java_headers java_limit skip_rows on_problems==Problem_Behavior.Report_Error
+        table = Java_Exports.make_table_from_java_columns java_columns
         result = limit.attach_warning (from_java_table java_table)
         result.if_not_error <|
             Telemetry.log "Google_Sheets_Workbook.read" "Read sheet: format={}, output={}, row_count={}, column_count={}" ["Google_Sheets_Format", "Table", result.row_count, result.column_count]
