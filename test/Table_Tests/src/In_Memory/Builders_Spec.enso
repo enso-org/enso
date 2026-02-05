@@ -47,5 +47,5 @@ add_specs suite_builder = suite_builder.group "[In-Memory] Storage Builders" gro
         column = Java_Exports.make_column_from_storage "X" storage
         with_problems = column.if_not_error <| java_problem_aggregator.attachProblemsToValue column False
 
-        r= with_problems.to_vector . should_equal mixed_values
+        r = with_problems.to_vector . should_equal mixed_values
         Problems.assume_no_problems r

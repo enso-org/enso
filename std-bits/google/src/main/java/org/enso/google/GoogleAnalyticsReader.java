@@ -27,7 +27,6 @@ import java.util.stream.IntStream;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.data.table.Column;
-import org.enso.table.data.table.Table;
 
 public class GoogleAnalyticsReader {
   private static final Map<String, Metadata> metadataCache = new HashMap<>();
@@ -250,7 +249,7 @@ public class GoogleAnalyticsReader {
    * @param metrics the metrics to include in the report
    * @return a Table with the report data
    */
-  public static Table runReport(
+  public static Column[] runReport(
       GoogleCredentialsProvider credentialsProvider,
       AnalyticsProperty property,
       LocalDate startDate,
@@ -296,17 +295,15 @@ public class GoogleAnalyticsReader {
       }
 
       // Convert to Java Table
-      var columns =
-          IntStream.range(0, builders.length)
-              .mapToObj(
-                  i ->
-                      new Column(
-                          i < dimensions.size()
-                              ? dimensions.get(i)
-                              : metrics.get(i - dimensions.size()),
-                          builders[i].seal()))
-              .toArray(Column[]::new);
-      return new Table(columns);
+      return IntStream.range(0, builders.length)
+          .mapToObj(
+              i ->
+                  new Column(
+                      i < dimensions.size()
+                          ? dimensions.get(i)
+                          : metrics.get(i - dimensions.size()),
+                      builders[i].seal()))
+          .toArray(Column[]::new);
     }
   }
 }

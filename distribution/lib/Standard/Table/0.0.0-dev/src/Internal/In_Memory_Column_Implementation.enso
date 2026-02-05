@@ -745,7 +745,7 @@ private _run_vectorized_many_op column:Column name:Text fallback_fn:(Any -> Any 
     all_operands = [column]+effective_operands
     effective_new_name = new_name.if_nothing (naming_helper.function_name name all_operands)
     common_type = Value_Type_Helpers.find_common_type_for_arguments all_operands
-    Error.return_if_not_error common_type
+    Error.return_if_error common_type
 
     with_map_operation_problem_aggregator effective_new_name Problem_Behavior.Report_Warning problem_builder->
         storage_type = resolve_storage_type common_type

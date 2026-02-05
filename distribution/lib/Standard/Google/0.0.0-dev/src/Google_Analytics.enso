@@ -3,9 +3,9 @@ from Standard.Base.Metadata import Display, make_single_choice, Widget
 from Standard.Base.Metadata.Choice import Option
 from Standard.Base.Metadata.Widget import Single_Choice, Text_Input, Vector_Editor
 
-import Standard.Table.Rows_To_Read.Rows_To_Read
 from Standard.Table import Data_Formatter, Table
-from Standard.Table.In_Memory_Table import from_java_table
+import Standard.Table.Internal.Java_Exports
+import Standard.Table.Rows_To_Read.Rows_To_Read
 
 import project.Google_Analytics_Account.Google_Analytics_Account
 import project.Google_Analytics_Account.Google_Analytics_Account_Filter
@@ -48,10 +48,12 @@ type Google_Analytics
             Google_Credential.Sample -> _read_sample_data dimensions metrics start_date end_date
             _ ->
                 java_credentials = credentials.as_java
-                java_table = _handle_google_error <| GoogleAnalyticsReader.runReport java_credentials property.java_record start_date end_date dimensions metrics
-                java_table.if_not_error <|
-                    formatter = Data_Formatter.Value.with_datetime_formats date_formats=["yyyyMMdd"]
-                    from_java_table java_table . parse format=formatter
+                java_columns = _handle_google_error <| GoogleAnalyticsReader.runReport java_credentials property.java_record start_date end_date dimensions metrics
+                Error.return_if_error java_columns
+
+                table = Java_Exports.make_table_from_java_columns java_columns
+                formatter = Data_Formatter.Value.with_datetime_formats date_formats=["yyyyMMdd"]
+                table . parse format=formatter
 
     ## ---
        icon: data_input

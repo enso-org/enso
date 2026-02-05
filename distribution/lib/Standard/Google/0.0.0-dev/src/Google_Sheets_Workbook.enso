@@ -91,6 +91,7 @@ type Google_Sheets_Workbook
     read self query:(Text|Integer) headers:Headers=..Detect_Headers limit:Rows_To_Read=..All_Rows skip_rows:Integer=0 on_problems:Problem_Behavior=..Report_Warning -> Table =
         java_headers = _make_java_headers headers
         java_limit = limit.rows_to_read
+
         java_columns = _handle_exceptions self.workbook_id <|
             case query of
                 _ : Text -> self.java_service.getSheetRange self.workbook_id query java_headers java_limit skip_rows on_problems==Problem_Behavior.Report_Error
@@ -99,9 +100,11 @@ type Google_Sheets_Workbook
                     if (query < 1 || query > names.length) then Error.throw (Invalid_Location.Error "Sheet "+query.to_text+" is out of range (1 to "+names.length.to_text+" inclusive).") else
                         self.java_service.getSheetRange self.workbook_id (names.at (query - 1)) java_headers java_limit skip_rows on_problems==Problem_Behavior.Report_Error
         table = Java_Exports.make_table_from_java_columns java_columns
-        result = limit.attach_warning (from_java_table java_table)
-        result.if_not_error <|
-            Telemetry.log "Google_Sheets_Workbook.read" "Read sheet: format={}, output={}, row_count={}, column_count={}" ["Google_Sheets_Format", "Table", result.row_count, result.column_count]
+
+        result = limit.attach_warning table
+        Error.return_if_error result
+
+        Telemetry.log "Google_Sheets_Workbook.read" "Read sheet: format={}, output={}, row_count={}, column_count={}" ["Google_Sheets_Format", "Table", result.row_count, result.column_count]
         result
 
     ## ---
