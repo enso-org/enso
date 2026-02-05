@@ -26,6 +26,20 @@ make_inferred_builder initial_size java_problem_aggregator=(Missing_Argument.thr
 ## ---
    private: true
    ---
+with_inferred_builder : Integer -> (Builder -> Any) -> Any
+with_inferred_builder initial_size func =
+    aggregator = ProblemAggregator.makeTopLevelAggregator
+    builder = Builder.getInferredBuilder initial_size aggregator
+
+    result = func builder
+    Error.return_if_error result
+
+    aggregator.attachProblemsToValue result False
+
+
+## ---
+   private: true
+   ---
 make_column_from_storage = In_Memory_Column.from_storage
 
 ## ---
