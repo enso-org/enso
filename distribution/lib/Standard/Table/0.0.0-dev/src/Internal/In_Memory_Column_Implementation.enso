@@ -894,7 +894,7 @@ In_Memory_Column.from (that : Column) = get_underlying_from_column that
    ---
    f should take a `MapOperationProblemAggregator` and return the result of the Java method that may report problems.
 private with_map_operation_problem_aggregator (location : Text | Nothing) on_problems:Problem_Behavior f =
-    with_problem_aggregator on_problems java_aggregator->
+    Java_Problems.with_problem_aggregator on_problems java_aggregator->
         problem_builder = MapOperationProblemAggregator.new java_aggregator location
         f problem_builder
 
