@@ -5,17 +5,20 @@ import java.lang.ref.Reference;
 import java.lang.ref.SoftReference;
 import java.lang.ref.WeakReference;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Consumer;
-import java.util.function.Supplier;
+import java.util.function.Function;
 import org.enso.common.CachePreferences;
 import org.enso.interpreter.service.ExecutionService;
 
 /** A storage for computed values. */
 final class RuntimeCacheImpl extends RuntimeCache
-    implements RuntimeCache.Mutable, java.util.function.Function<String, Object> {
+    implements RuntimeCache.Immutable,
+        RuntimeCache.Mutable,
+        java.util.function.Function<String, Object> {
   private final Map<UUID, Reference<Object>> cache = new HashMap<>();
   private final Map<UUID, Reference<Object>> expressions = new HashMap<>();
   private final Map<UUID, TypeInfo> types = new HashMap<>();
@@ -77,6 +80,18 @@ final class RuntimeCacheImpl extends RuntimeCache
   public Object remove(UUID key) {
     var ref = cache.remove(key);
     return ref == null ? null : ref.get();
+  }
+
+  public final Set<UUID> findUUIDs(boolean calls, boolean preferences) {
+    var impl = (RuntimeCacheImpl) this;
+    var set = new HashSet<UUID>();
+    if (calls) {
+      set.addAll(impl.getCalls());
+    }
+    if (preferences) {
+      set.addAll(impl.getPreferences().preferences().keySet());
+    }
+    return set;
   }
 
   /**
@@ -179,6 +194,16 @@ final class RuntimeCacheImpl extends RuntimeCache
   }
 
   /**
+   * Checks whether this key is associated with a binding expression.
+   *
+   * @param uuid the key to check
+   * @return {@code true} or {@code false}
+   */
+  public final boolean isBindingExpression(UUID uuid) {
+    return getPreferences().get(uuid) == CachePreferences.Kind.BINDING_EXPRESSION;
+  }
+
+  /**
    * @return the preferences of this cache.
    */
   public CachePreferences getPreferences() {
@@ -216,11 +241,12 @@ final class RuntimeCacheImpl extends RuntimeCache
    * @return value computed by the {@code scope}
    * @param <V> type of the returned value
    */
-  public <V> V runQuery(Consumer<UUID> callback, Supplier<V> scope) {
+  @Override
+  public <V> V runQuery(Consumer<UUID> callback, Function<Immutable, V> scope) {
     var previousCallback = this.observer;
     this.observer = callback;
     try {
-      return scope.get();
+      return scope.apply(this);
     } finally {
       this.observer = previousCallback;
     }

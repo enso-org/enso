@@ -1,11 +1,9 @@
 package org.enso.interpreter.instrument;
 
-import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Consumer;
-import java.util.function.Supplier;
-import org.enso.common.CachePreferences;
+import java.util.function.Function;
 import org.enso.interpreter.service.ExecutionService;
 
 /**
@@ -24,79 +22,69 @@ public abstract class RuntimeCache {
   }
 
   /**
-   * Reads a cached value from the cache for given key. Cached values are hold be "soft reference" -
-   * e.g. they are kept until the system runs out of memory or until the value for given key is
-   * replacd
-   *
-   * @param key the UUID of the key
-   * @return cached value associated with the {@code key} or {@code null}
-   */
-  public abstract Object get(UUID key);
-
-  /**
-   * Reads a value that was notified to the cache (which may or may not be subject to caching). A
-   * non-cached values include values of expression which are only available while the computation
-   * is running.
-   *
-   * @param key the UUID of the key
-   * @return available value or {@code null}
-   */
-  public abstract Object getAnyValue(UUID key);
-
-  /**
-   * Obtains info about a type of expression identify by UUID.
-   *
-   * @param key the UUID of the key
-   * @return the cached type of the expression or {@code null}
-   */
-  public abstract TypeInfo getType(UUID key);
-
-  /**
-   * Obtains function call for given UUID.
-   *
-   * @param key the UUID of the key
-   * @return the cached function call associated with the expression or {@code null}
-   */
-  public abstract ExecutionService.FunctionCallInfo getCall(UUID key);
-
-  /**
    * Executes a query while tracking access to the cache by {@code callback} observer.
    *
    * @param callback call with accessed UUIDs
-   * @param scope the code to execute
+   * @param action the code to execute
    * @return value computed by the {@code scope}
    * @param <V> type of the returned value
    */
-  public abstract <V> V runQuery(Consumer<UUID> callback, Supplier<V> scope);
+  public abstract <V> V runQuery(Consumer<UUID> callback, Function<Immutable, V> action);
 
-  /**
-   * Obtains a list of UUIDs known to the cache.
-   *
-   * @param calls collect UUIDs of the calls
-   * @param preferences collect UUIDs of the preferences
-   * @return
-   */
-  public final Set<UUID> findUUIDs(boolean calls, boolean preferences) {
-    var impl = (RuntimeCacheImpl) this;
-    var set = new HashSet<UUID>();
-    if (calls) {
-      set.addAll(impl.getCalls());
-    }
-    if (preferences) {
-      set.addAll(impl.getPreferences().preferences().keySet());
-    }
-    return set;
-  }
+  /** Immutable view of the cache. */
+  public interface Immutable {
+    /**
+     * Reads a cached value from the cache for given key. Cached values are hold be "soft reference"
+     * - e.g. they are kept until the system runs out of memory or until the value for given key is
+     * replacd
+     *
+     * @param key the UUID of the key
+     * @return cached value associated with the {@code key} or {@code null}
+     */
+    public abstract Object get(UUID key);
 
-  /**
-   * Checks whether this key is associated with a binding expression.
-   *
-   * @param uuid the key to check
-   * @return {@code true} or {@code false}
-   */
-  public final boolean isBindingExpression(UUID uuid) {
-    var impl = (RuntimeCacheImpl) this;
-    return impl.getPreferences().get(uuid) == CachePreferences.Kind.BINDING_EXPRESSION;
+    /**
+     * Reads a value that was notified to the cache (which may or may not be subject to caching). A
+     * non-cached values include values of expression which are only available while the computation
+     * is running.
+     *
+     * @param key the UUID of the key
+     * @return available value or {@code null}
+     */
+    public abstract Object getAnyValue(UUID key);
+
+    /**
+     * Obtains info about a type of expression identify by UUID.
+     *
+     * @param key the UUID of the key
+     * @return the cached type of the expression or {@code null}
+     */
+    public abstract TypeInfo getType(UUID key);
+
+    /**
+     * Obtains function call for given UUID.
+     *
+     * @param key the UUID of the key
+     * @return the cached function call associated with the expression or {@code null}
+     */
+    public abstract ExecutionService.FunctionCallInfo getCall(UUID key);
+
+    /**
+     * Obtains a list of UUIDs known to the cache.
+     *
+     * @param calls collect UUIDs of the calls
+     * @param preferences collect UUIDs of the preferences
+     * @return
+     */
+    public abstract Set<UUID> findUUIDs(boolean calls, boolean preferences);
+
+    /**
+     * Checks whether this key is associated with a binding expression.
+     *
+     * @param uuid the key to check
+     * @return {@code true} or {@code false}
+     */
+    public abstract boolean isBindingExpression(UUID uuid);
   }
 
   /** */

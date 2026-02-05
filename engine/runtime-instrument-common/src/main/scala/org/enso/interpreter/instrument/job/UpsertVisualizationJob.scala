@@ -171,7 +171,7 @@ class UpsertVisualizationJob(
     val runtimeCache = stack.headOption
       .flatMap(frame => Option(frame.cache))
     val cachedValue = runtimeCache
-      .flatMap(c => Option(c.get(expressionId)))
+      .flatMap(c => Option(c.runQuery(null, _.get(expressionId))))
     UpsertVisualizationJob.requireVisualizationSynchronization(
       stack,
       visualizationId
@@ -706,7 +706,7 @@ object UpsertVisualizationJob {
     stack: Iterable[InstrumentFrame]
   ): Boolean = {
     stack.headOption.exists { frame =>
-      frame.cache.get(expressionId) ne null
+      frame.cache.runQuery(null, _.get(expressionId) ne null)
     }
   }
 
@@ -757,7 +757,9 @@ object UpsertVisualizationJob {
                 stacks.foreach { stack =>
                   stack.headOption.foreach { frame =>
                     dependents
-                      .find { id => frame.cache.get(id) ne null }
+                      .find { id =>
+                        frame.cache.runQuery(null, _.get(id) ne null)
+                      }
                       .foreach { firstDependent =>
                         CacheInvalidation.run(
                           stack,
