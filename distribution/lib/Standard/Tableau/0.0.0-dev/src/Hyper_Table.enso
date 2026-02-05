@@ -1,7 +1,6 @@
 from Standard.Base import all
 
 import Standard.Table.Internal.Java_Exports
-import Standard.Table.Internal.Java_Problems
 import Standard.Table.Rows_To_Read.Rows_To_Read
 from Standard.Table import Table, Value_Type
 
