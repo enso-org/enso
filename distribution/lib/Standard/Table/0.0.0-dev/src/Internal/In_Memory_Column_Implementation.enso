@@ -36,10 +36,10 @@ from project.Errors import Invalid_Value_Type
 from project.In_Memory_Table import from_java_table
 from project.Internal.Column_Format import all
 from project.Internal.Column_Type_Helpers import get_underlying_from_column
-from project.Internal.Java_Exports import make_string_builder
 from project.Internal.Storage import enso_to_java, java_to_enso
 
 polyglot java import org.enso.base.Time_Utils
+polyglot java import org.enso.table.data.column.builder.Builder
 polyglot java import org.enso.table.data.column.operation.binary.BinaryOperator
 polyglot java import org.enso.table.data.column.operation.binary.FillMissingOperation
 polyglot java import org.enso.table.data.column.operation.binary.LogicalOperations
@@ -67,6 +67,7 @@ polyglot java import org.enso.table.data.column.operation.unary.TruncatedTimePar
 polyglot java import org.enso.table.data.column.operation.unary.UnaryRoundOperation
 polyglot java import org.enso.table.data.column.operation.UnaryOperation
 polyglot java import org.enso.table.data.column.storage.PreciseTypeOptions
+polyglot java import org.enso.table.data.column.storage.type.TextType
 polyglot java import org.enso.table.data.table.Column as Java_Column
 polyglot java import org.enso.table.data.table.Table as Java_Table
 polyglot java import org.enso.table.data.table.problems.MapOperationProblemAggregator
@@ -448,7 +449,7 @@ type In_Memory_Column_Implementation
                     java_term = (parsed_term:In_Memory_Column).java_column
                     java_new = (parsed_new:In_Memory_Column).java_column
 
-                    builder = make_string_builder row_count
+                    builder = Builder.getForText TextType.VARIABLE_LENGTH row_count
                     0.up_to row_count . each i->
                         replaced = fn (java_this.getItem i) (java_term.getItem i) (java_new.getItem i)
                         builder.append replaced

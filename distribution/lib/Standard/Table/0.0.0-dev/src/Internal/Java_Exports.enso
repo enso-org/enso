@@ -1,27 +1,10 @@
 from Standard.Base import all
 
 import project.In_Memory_Column.In_Memory_Column
-import project.Internal.Storage
 import project.Table.Table
-import project.Value_Type.Value_Type
 
 polyglot java import org.enso.table.data.column.builder.Builder
 polyglot java import org.enso.table.problems.ProblemAggregator
-
-## ---
-   private: true
-   ---
-make_string_builder : Integer -> Value_Type -> Builder
-make_string_builder initial_size value_type:Value_Type=..Char =
-    storage_type = Storage.from_value_type_strict value_type
-    Builder.getForText storage_type initial_size
-
-## ---
-   private: true
-   ---
-make_inferred_builder : Integer -> ProblemAggregator -> Builder
-make_inferred_builder initial_size java_problem_aggregator=(Missing_Argument.throw "java_problem_aggregator") =
-    Builder.getInferredBuilder initial_size java_problem_aggregator
 
 ## ---
    private: true
