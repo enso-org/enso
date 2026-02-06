@@ -102,14 +102,6 @@ public abstract class RuntimeCache {
      * @return
      */
     public abstract Set<UUID> findUUIDs(boolean calls, boolean preferences);
-
-    /**
-     * Checks whether this key is associated with a binding expression.
-     *
-     * @param uuid the key to check
-     * @return {@code true} or {@code false}
-     */
-    public abstract boolean isBindingExpression(UUID uuid);
   }
 
   /**
@@ -132,6 +124,24 @@ public abstract class RuntimeCache {
     public abstract void clear();
 
     /**
+     * Checks whether this key is associated with a binding expression.
+     *
+     * @param uuid the key to check
+     * @return {@code true} or {@code false}
+     */
+    public abstract boolean isBindingExpression(UUID uuid);
+
+    /**
+     * Reads a cached value from the cache for given key. Cached values are hold be "soft reference"
+     * - e.g. they are kept until the system runs out of memory or until the value for given key is
+     * replacd
+     *
+     * @param key the UUID of the key
+     * @return cached value associated with the {@code key} or {@code null}
+     */
+    public abstract Object get(UUID key);
+
+    /**
      * Add value to the cache if it is possible.
      *
      * @param key the key of an entry.
@@ -146,6 +156,22 @@ public abstract class RuntimeCache {
      * @return the previously cached type.
      */
     public TypeInfo putType(UUID key, TypeInfo typeInfo);
+
+    /**
+     * Obtains info about a type of expression identify by UUID.
+     *
+     * @param key the UUID of the key
+     * @return the cached type of the expression or {@code null}
+     */
+    public abstract TypeInfo getType(UUID key);
+
+    /**
+     * Obtains function call for given UUID.
+     *
+     * @param key the UUID of the key
+     * @return the cached function call associated with the expression or {@code null}
+     */
+    public abstract ExecutionService.FunctionCallInfo getCall(UUID key);
 
     /**
      * Cache the function call

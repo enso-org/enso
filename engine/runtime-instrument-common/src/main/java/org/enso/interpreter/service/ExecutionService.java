@@ -186,13 +186,14 @@ public final class ExecutionService {
       Consumer<ExecutionService.ExpressionValue> onComputedCallback,
       Consumer<ExecutionService.ExpressionValue> onCachedCallback,
       Consumer<ExecutedVisualization> onExecutedVisualizationCallback) {
-    return submitExecution(
-        () -> {
+    return submitExecutionWithCacheAccess(
+        cache,
+        (cacheMut) -> {
           var callbacks =
               new ExecutionCallbacks(
                   visualizationHolder,
                   nextExecutionItem,
-                  cache,
+                  cacheMut,
                   methodCallsCache,
                   syncState,
                   expressionExecutionState,
@@ -370,8 +371,9 @@ public final class ExecutionService {
       Object function,
       Object... arguments) {
 
-    return submitExecution(
-        () -> {
+    return submitExecutionWithCacheAccess(
+        cache,
+        (cacheMut) -> {
           var fn = function;
           UUID nextExecutionItem = null;
           CallTarget entryCallTarget =
@@ -392,7 +394,7 @@ public final class ExecutionService {
               new ExecutionCallbacks(
                   visualizationHolder,
                   nextExecutionItem,
-                  cache,
+                  cacheMut,
                   methodCallsCache,
                   syncState,
                   expressionExecutionState,
@@ -651,8 +653,15 @@ public final class ExecutionService {
     throw (E) ex;
   }
 
-  private <T> CompletionStage<T> submitExecution(Supplier<T> c) {
-    return context.getThreadManager().submit(c);
+  private <T> CompletionStage<T> submitExecutionWithCacheAccess(
+      RuntimeCache cache, java.util.function.Function<RuntimeCache.Mutable, T> action) {
+    // let's assume the submitException knows how to "upgrade" access to cache to a mutable one
+    var cacheMut = (RuntimeCache.Mutable) cache;
+    return submitExecution(() -> action.apply(cacheMut));
+  }
+
+  private <T> CompletionStage<T> submitExecution(Supplier<T> action) {
+    return context.getThreadManager().submit(action);
   }
 
   private static final class ExecuteRootNode extends RootNode {

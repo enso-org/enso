@@ -32,7 +32,7 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
 
   private final VisualizationHolder visualizationHolder;
   private final UUID nextExecutionItem;
-  private final RuntimeCache cache;
+  private final RuntimeCache.Mutable cache;
   private final MethodCallsCache methodCallsCache;
   private final UpdatesSynchronizationState syncState;
   private final Map<UUID, FunctionCallInfo> calls = new HashMap<>();
@@ -63,7 +63,7 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
   ExecutionCallbacks(
       VisualizationHolder visualizationHolder,
       UUID nextExecutionItem,
-      RuntimeCache cache,
+      RuntimeCache.Mutable cache,
       MethodCallsCache methodCallsCache,
       UpdatesSynchronizationState syncState,
       ExpressionExecutionState expressionExecutionState,
@@ -112,7 +112,7 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
 
   @CompilerDirectives.TruffleBoundary
   private void reportEvaluationProgress(UUID nodeId) {
-    if (cache.runQuery(null, query -> query.isBindingExpression(nodeId))) {
+    if (cache.isBindingExpression(nodeId)) {
       var newObserver =
           ExecutionProgressObserver.startComputation(
               nodeId,
@@ -148,47 +148,39 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
     }
 
     var call = functionCallInfoById(nodeId);
-    var expressionValue =
-        cache.runQuery(
-            null,
-            (query) -> {
-              TypeInfo cachedType = query.getType(nodeId);
-              FunctionCallInfo cachedCall = query.getCall(nodeId);
-              ProfilingInfo[] profilingInfo =
-                  new ProfilingInfo[] {new ExecutionTime(info.getElapsedTime())};
+    TypeInfo cachedType = cache.getType(nodeId);
+    FunctionCallInfo cachedCall = cache.getCall(nodeId);
+    ProfilingInfo[] profilingInfo = new ProfilingInfo[] {new ExecutionTime(info.getElapsedTime())};
 
-              ExpressionValue ev =
-                  new ExpressionValue(
-                      nodeId,
-                      result,
-                      resultType,
-                      cachedType,
-                      call,
-                      cachedCall,
-                      profilingInfo,
-                      false,
-                      -1.0,
-                      null);
-              syncState.setExpressionUnsync(nodeId);
-              visualizationHolder
-                  .find(nodeId)
-                  .foreach(
-                      visualization -> {
-                        syncState.setVisualizationUnsync(visualization.id());
-                        return null;
-                      });
-              return ev;
+    var expressionValue =
+        new ExpressionValue(
+            nodeId,
+            result,
+            resultType,
+            cachedType,
+            call,
+            cachedCall,
+            profilingInfo,
+            false,
+            -1.0,
+            null);
+    syncState.setExpressionUnsync(nodeId);
+    visualizationHolder
+        .find(nodeId)
+        .foreach(
+            visualization -> {
+              syncState.setVisualizationUnsync(visualization.id());
+              return null;
             });
     boolean isPanic = info.isPanic();
     // Panics are not cached because a panic can be fixed by changing seemingly unrelated code,
     // like imports, and the invalidation mechanism can not always track those changes and
     // appropriately invalidate all dependent expressions.
-    var mutable = (RuntimeCache.Mutable) cache;
     if (!isPanic) {
-      mutable.offer(nodeId, result);
-      mutable.putCall(nodeId, call);
+      cache.offer(nodeId, result);
+      cache.putCall(nodeId, call);
     }
-    mutable.putType(nodeId, resultType);
+    cache.putType(nodeId, resultType);
 
     callOnComputedCallback(expressionValue);
     executeOneshotExpressions(nodeId, result, info);
@@ -209,7 +201,7 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
     calls.put(nodeId, FunctionCallInfo.fromFunctionCall(fnCall));
     functionCallCallback.accept(new ExpressionCall(nodeId, fnCall));
     // Return cached value after capturing the enterable function call in `functionCallCallback`
-    Object cachedResult = cache.runQuery(null, query -> query.get(nodeId));
+    Object cachedResult = cache.get(nodeId);
     if (cachedResult != null) {
       return cachedResult;
     }
@@ -246,20 +238,17 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
   @CompilerDirectives.TruffleBoundary
   private void callOnCachedCallback(UUID nodeId, Object result) {
     ExpressionValue expressionValue =
-        cache.runQuery(
-            null,
-            query ->
-                new ExpressionValue(
-                    nodeId,
-                    result,
-                    query.getType(nodeId),
-                    typeOf(result),
-                    calls.get(nodeId),
-                    query.getCall(nodeId),
-                    new ProfilingInfo[] {ExecutionTime.empty()},
-                    true,
-                    -1.0,
-                    null));
+        new ExpressionValue(
+            nodeId,
+            result,
+            cache.getType(nodeId),
+            typeOf(result),
+            calls.get(nodeId),
+            cache.getCall(nodeId),
+            new ProfilingInfo[] {ExecutionTime.empty()},
+            true,
+            -1.0,
+            null);
 
     onCachedCallback.accept(expressionValue);
   }
@@ -290,7 +279,7 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
 
   @CompilerDirectives.TruffleBoundary
   private Object getCachedResult(UUID nodeId) {
-    return cache.runQuery(null, query -> query.get(nodeId));
+    return cache.get(nodeId);
   }
 
   @CompilerDirectives.TruffleBoundary
