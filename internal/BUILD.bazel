@@ -27,8 +27,8 @@ js_binary(
 js_run_binary(
     name = "generated_version_info",
     srcs = [
-        "//:dependencies_scala_bin",
         ":dependencies_versions_bin",
+        "//:dependencies_scala_bin",
     ],
     stamp = -1,
     stdout = "GeneratedVersion.java",

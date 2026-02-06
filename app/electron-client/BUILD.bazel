@@ -120,14 +120,14 @@ electron_builder_bin.electron_builder(
     name = "dist",
     srcs = npm_link_targets() + [
         "package.json",
-        ":enso_bundle_marker",
         ":bundle_stamped",
-        "//app/gui:dist_stamped",
         ":electron_builder_config_stamped",
+        ":enso_bundle_marker",
         "//:dependencies_scala_bin",
-        "//internal:dependencies_versions_bin",
         "//:sbt_build_native_engine_distribution",
         "//:sbt_build_small_jdk",
+        "//app/gui:dist_stamped",
+        "//internal:dependencies_versions_bin",
     ],
     args = [
         "build",
@@ -175,9 +175,9 @@ js_binary(
 js_run_binary(
     name = "electron_builder_config",
     srcs = [
+        ":electron_builder_config_stamped",
         "//:dependencies_scala_bin",
         "//internal:dependencies_versions_bin",
-        ":electron_builder_config_stamped",
     ],
     args = ["$(location :electron_builder_config_stamped)"],
     stdout = "electron-builder-config.json",
