@@ -264,7 +264,7 @@ public class GoogleSheetsForEnso {
                           yield EnsoMeta.makeInstance(
                               "Standard.Google.Google_Sheets_Workbook",
                               "Google_API_Error",
-                              "Unsupported_Operation",
+                              "Invalid_Format",
                               "Invalid format https://docs.google.com/spreadsheets/d/"
                                   + workbookId
                                   + " is not a valid Google Sheets document.");
@@ -275,7 +275,7 @@ public class GoogleSheetsForEnso {
                             "Google_API_Error",
                             "Error",
                             message,
-                            details);
+                            googleJsonResponseException.getContent());
                       }
                     };
                   }
