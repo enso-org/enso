@@ -48,7 +48,7 @@ type Google_Analytics
             Google_Credential.Sample -> _read_sample_data dimensions metrics start_date end_date
             _ ->
                 java_credentials = credentials.as_java
-                java_columns = _handle_google_error <| GoogleAnalyticsReader.runReport java_credentials property.java_record start_date end_date dimensions metrics
+                java_columns = GoogleAnalyticsReader.runReport java_credentials property.java_record start_date end_date dimensions metrics
                 Error.return_if_error java_columns
 
                 table = Java_Exports.make_table_from_java_columns java_columns
@@ -73,10 +73,11 @@ type Google_Analytics
     list_accounts credentials:Google_Credential=..Default (limit : Rows_To_Read = ..First_With_Warning 1000) include_deleted:Boolean=False -> Vector =
         java_credentials = credentials.as_java
         to_read = limit.rows_to_read.if_nothing 0
-        array = _handle_google_error <| GoogleAnalyticsReader.listAccounts java_credentials to_read include_deleted
-        array.if_not_error <|
-            vector = array.map a-> Google_Analytics_Account.Value a
-            limit.attach_warning_vector vector
+        array = GoogleAnalyticsReader.listAccounts java_credentials to_read include_deleted
+        Error.return_if_error array
+
+        vector = array.map a-> Google_Analytics_Account.Value a
+        limit.attach_warning_vector vector
 
     ## ---
        icon: data_input
@@ -100,10 +101,11 @@ type Google_Analytics
         java_credentials = credentials.as_java
         to_read = limit.rows_to_read.if_nothing 0
         filter = account.as_java
-        array = _handle_google_error <| GoogleAnalyticsReader.listProperties java_credentials filter to_read include_deleted
-        array.if_not_error <|
-            vector = array.map a-> Google_Analytics_Property.Value a
-            limit.attach_warning_vector vector
+        array = GoogleAnalyticsReader.listProperties java_credentials filter to_read include_deleted
+        Error.return_if_error array
+
+        vector = array.map a-> Google_Analytics_Property.Value a
+        limit.attach_warning_vector vector
 
     ## ---
        icon: data_input
@@ -120,8 +122,9 @@ type Google_Analytics
     list_metrics : Google_Credential -> Google_Analytics_Property -> Vector
     list_metrics credentials:Google_Credential=(Missing_Argument.throw "credentials") property:Google_Analytics_Property=(Missing_Argument.throw "property") -> Vector =
         java_credentials = credentials.as_java
-        array = _handle_google_error <| GoogleAnalyticsReader.listMetrics java_credentials property.java_record
-        array.if_not_error <| array.map record-> Google_Analytics_Field.Metric record
+        array = GoogleAnalyticsReader.listMetrics java_credentials property.java_record
+        Error.return_if_error array
+        array.map record-> Google_Analytics_Field.Metric record
 
     ## ---
        icon: data_input
@@ -138,8 +141,9 @@ type Google_Analytics
     list_dimensions : Google_Credential -> Google_Analytics_Property -> Vector
     list_dimensions credentials:Google_Credential=(Missing_Argument.throw "credentials") property:Google_Analytics_Property=(Missing_Argument.throw "property") -> Vector =
         java_credentials = credentials.as_java
-        array = _handle_google_error <| GoogleAnalyticsReader.listDimensions java_credentials property.java_record
-        array.if_not_error <| array.map record-> Google_Analytics_Field.Dimension record
+        array = GoogleAnalyticsReader.listDimensions java_credentials property.java_record
+        Error.return_if_error array
+        array.map record-> Google_Analytics_Field.Dimension record
 
 ## ---
    private: true
@@ -180,14 +184,6 @@ private _make_start_date_widget -> Widget =
 private _read_sample_data dimensions:Vector metrics:Vector start_date:Date end_date:Date -> Table =
     _ = [dimensions, metrics, start_date, end_date]
     Data.read ((Project_Description.new Standard.Google . data) / "Google_Analytics_Sample.csv") (..Delimited value_formatter=Standard.Base.Nothing)
-
-## ---
-   private: true
-   ---
-private _handle_google_error ~action =
-    Panic.catch Any action handler=c->
-        payload = c.payload
-        Error.throw (Google_Analytics_Error.Value payload.getMessage payload)
 
 ## ---
    private: true
