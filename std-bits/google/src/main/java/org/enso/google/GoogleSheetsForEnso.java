@@ -9,6 +9,8 @@ import com.google.api.services.sheets.v4.Sheets;
 import com.google.api.services.sheets.v4.SheetsScopes;
 import com.google.api.services.sheets.v4.model.CellData;
 import com.google.api.services.sheets.v4.model.RowData;
+import com.google.api.services.sheets.v4.model.Sheet;
+import com.google.api.services.sheets.v4.model.Spreadsheet;
 import com.google.auth.http.HttpCredentialsAdapter;
 import java.io.IOException;
 import java.time.temporal.Temporal;
@@ -20,13 +22,82 @@ import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.table.Column;
 import org.enso.table.error.EmptySheetException;
 import org.enso.table.problems.ProblemAggregator;
+import org.enso.table.util.LeastRecentlyUsedCache;
 import org.graalvm.polyglot.Value;
 
 public class GoogleSheetsForEnso {
   private final Sheets service;
 
+  private record CacheKey(String sheetId, String range) {}
+
+  private final LeastRecentlyUsedCache<String, Spreadsheet> spreadsheetCache;
+  private final LeastRecentlyUsedCache<CacheKey, Sheet> sheetCache;
+
   private GoogleSheetsForEnso(Sheets service) {
     this.service = service;
+    this.spreadsheetCache = new LeastRecentlyUsedCache<>(10);
+    this.sheetCache = new LeastRecentlyUsedCache<>(50);
+  }
+
+  private Spreadsheet getSpreadsheetWithCache(String sheetId) throws IOException {
+    if (spreadsheetCache.containsKey(sheetId)) {
+      return spreadsheetCache.get(sheetId);
+    }
+
+    var spreadsheet = service.spreadsheets().get(sheetId).execute();
+    spreadsheetCache.put(sheetId, spreadsheet);
+    return spreadsheet;
+  }
+
+  private Sheet getSheetWithCache(String sheetId, String range) throws IOException {
+    var cacheKey = new CacheKey(sheetId, range);
+    if (sheetCache.containsKey(cacheKey)) {
+      return sheetCache.get(cacheKey);
+    }
+
+    var spreadsheet =
+        service
+            .spreadsheets()
+            .get(sheetId)
+            .setRanges(List.of(range))
+            .setIncludeGridData(true)
+            .execute()
+            .getSheets()
+            .get(0);
+    sheetCache.put(cacheKey, spreadsheet);
+    return spreadsheet;
+  }
+
+  /**
+   * Batch fetches the specified ranges for the given sheet ID, utilizing caching to optimize
+   * performance.
+   */
+  public Value batchFetchRanges(String sheetId, List<String> ranges) {
+    try {
+      var cacheKeys =
+          ranges.stream()
+              .map(range -> new CacheKey(sheetId, range))
+              .filter(cacheKey -> !sheetCache.containsKey(cacheKey))
+              .toList();
+
+      if (!cacheKeys.isEmpty()) {
+        var request =
+            service
+                .spreadsheets()
+                .get(sheetId)
+                .setRanges(cacheKeys.stream().map(CacheKey::range).toList())
+                .setIncludeGridData(true);
+        var spreadsheet = request.execute().getSheets();
+
+        for (int i = 0; i < cacheKeys.size(); i++) {
+          sheetCache.put(cacheKeys.get(i), spreadsheet.get(i));
+        }
+      }
+
+      return Value.asValue(cacheKeys.size());
+    } catch (Exception e) {
+      return wrapJavaException(sheetId, e);
+    }
   }
 
   /** Creates a new instance of GoogleSheetsForEnso using the provided credentials. */
@@ -56,18 +127,7 @@ public class GoogleSheetsForEnso {
       int skip_rows,
       boolean reportAsErrors) {
     try {
-      var rowData =
-          service
-              .spreadsheets()
-              .get(sheetId)
-              .setRanges(List.of(range))
-              .setIncludeGridData(true)
-              .execute()
-              .getSheets()
-              .get(0)
-              .getData()
-              .get(0)
-              .getRowData();
+      var rowData = getSheetWithCache(sheetId, range).getData().get(0).getRowData();
 
       if (rowData == null) {
         throw new EmptySheetException();
@@ -177,14 +237,9 @@ public class GoogleSheetsForEnso {
     }
   }
 
-  private com.google.api.services.sheets.v4.model.Spreadsheet getSpreadsheet(String workbookId)
-      throws IOException {
-    return service.spreadsheets().get(workbookId).setIncludeGridData(false).execute();
-  }
-
   public Value getNumberOfSheets(String workbookId) {
     try {
-      return Value.asValue(getSpreadsheet(workbookId).getSheets().size());
+      return Value.asValue(getSpreadsheetWithCache(workbookId).getSheets().size());
     } catch (Exception e) {
       return wrapJavaException(workbookId, e);
     }
@@ -193,7 +248,7 @@ public class GoogleSheetsForEnso {
   public Value getSheetNames(String workbookId) {
     try {
       var output =
-          getSpreadsheet(workbookId).getSheets().stream()
+          getSpreadsheetWithCache(workbookId).getSheets().stream()
               .map(sheet -> sheet.getProperties().getTitle())
               .toList();
       return Value.asValue(output);
@@ -204,7 +259,7 @@ public class GoogleSheetsForEnso {
 
   public Value getNumberOfNames(String workbookId) {
     try {
-      var namedRanges = getSpreadsheet(workbookId).getNamedRanges();
+      var namedRanges = getSpreadsheetWithCache(workbookId).getNamedRanges();
       return Value.asValue(namedRanges == null ? 0 : namedRanges.size());
     } catch (Exception e) {
       return wrapJavaException(workbookId, e);
@@ -213,7 +268,7 @@ public class GoogleSheetsForEnso {
 
   public Value getRangeNames(String workbookId) throws IOException {
     try {
-      var namedRanges = getSpreadsheet(workbookId).getNamedRanges();
+      var namedRanges = getSpreadsheetWithCache(workbookId).getNamedRanges();
       var output =
           namedRanges == null
               ? List.of()
