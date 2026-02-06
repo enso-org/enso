@@ -18,13 +18,9 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.TimeZone;
+import java.util.*;
 import java.util.stream.IntStream;
-import org.checkerframework.checker.nullness.qual.NonNull;
+import org.enso.base.polyglot.EnsoExceptionWrapper;
 import org.enso.base.polyglot.EnsoMeta;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.storage.type.TextType;
@@ -348,14 +344,18 @@ public class GoogleAnalyticsReader {
     }
   }
 
-  private static @NonNull Value wrapJavaException(Exception e) {
+  private static Value wrapJavaException(Exception exception) {
     var ensoAtom =
-        EnsoMeta.makeInstance(
-            "Standard.Google.Google_Analytics",
-            "Google_Analytics_Error",
-            "Value",
-            e.getMessage(),
-            e);
-    return EnsoMeta.asDataflowError(ensoAtom);
+        EnsoExceptionWrapper.wrapCommonExceptions(exception)
+            .or(
+                () ->
+                    Optional.of(
+                        EnsoMeta.makeInstance(
+                            "Standard.Google.Google_Analytics",
+                            "Google_Analytics_Error",
+                            "Value",
+                            exception.getMessage(),
+                            exception)));
+    return EnsoMeta.asDataflowError(ensoAtom.get());
   }
 }
