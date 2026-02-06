@@ -17,6 +17,8 @@ import project.Internal.Java_Problems
 import project.Prefix_Name.Prefix_Name
 import project.Table.Table
 
+polyglot java import org.enso.table.data.column.builder.Builder
+
 ## ---
    private: true
    ---
@@ -95,7 +97,7 @@ expand_to_rows table column:(Text | Integer) at_least_one_row=False sequences_on
             . map name-> if name=="Value" then column else column+" "+name
 
     Java_Problems.with_problem_aggregator Problem_Behavior.Report_Warning java_problem_aggregator->
-        builder size = Java_Exports.make_inferred_builder size java_problem_aggregator
+        builder size = Builder.getInferredBuilder size java_problem_aggregator
         Fan_Out.fan_out_to_rows table column row_expander column_names at_least_one_row column_builder=builder
 
 create_table_from_objects (base_value : Convertible_To_Rows) (fields : Vector | Nothing) (treat_dictionary_as_sequence : Boolean = False) -> Table = if fields.is_nothing.not && fields.is_empty then Error.throw (Illegal_Argument.Error "The fields parameter cannot be empty.") else
@@ -106,7 +108,7 @@ create_table_from_objects (base_value : Convertible_To_Rows) (fields : Vector | 
     Java_Problems.with_problem_aggregator Problem_Behavior.Report_Warning java_problem_aggregator->
         preset_fields = fields.is_nothing.not
         initial_dict = if preset_fields.not then Dictionary.empty else
-            Dictionary.from_vector (fields.map field_name-> [field_name, Java_Exports.make_inferred_builder len java_problem_aggregator]) error_on_duplicates=False
+            Dictionary.from_vector (fields.map field_name-> [field_name, Builder.getInferredBuilder len java_problem_aggregator]) error_on_duplicates=False
 
         # This is used to ensure that field names in the resulting table are in the order they were encountered.
         discovered_field_names = Builder.new
@@ -129,7 +131,7 @@ create_table_from_objects (base_value : Convertible_To_Rows) (fields : Vector | 
                         existing_builder = inner_current_dict.get f Nothing
                         builder = existing_builder.if_nothing <|
                             discovered_field_names.append f
-                            Java_Exports.make_inferred_builder len java_problem_aggregator
+                            Builder.getInferredBuilder len java_problem_aggregator
                         _fill_builder builder idx
                         builder.append (v.getter f)
                         if existing_builder.is_nothing.not then inner_current_dict else
