@@ -19,33 +19,53 @@ import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.ColumnStorageWithInferredStorage;
 import org.enso.table.data.column.storage.type.*;
 import org.enso.table.data.table.Column;
+import org.enso.table.util.LeastRecentlyUsedCache;
 import org.graalvm.polyglot.Context;
 
 public class JsonOperation {
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
-  public static String apply(
-      Column source, long start, long length, Function<Object, String> ensoJsonCallback) {
-    var fullStorage = ColumnStorageWithInferredStorage.resolveStorage(source);
-    if (start >= fullStorage.getSize()) {
-      // If the start is beyond the size of the storage, return an empty array.
-      return "[]";
-    }
-    if (start + length > fullStorage.getSize()) {
-      // If the requested length goes beyond the size of the storage, adjust it.
-      length = fullStorage.getSize() - start;
-    }
+  private record CacheKey(long storageKey, long start, long length) {}
 
-    return switch (StorageType.ofStorage(fullStorage)) {
-      case NullType _ -> createNullJson(length);
-      case BooleanType booleanType ->
-          createBooleanJson(booleanType.asTypedStorage(fullStorage), start, length);
-      case IntegerType integerType ->
-          createIntegerJson(integerType.asTypedStorage(fullStorage), start, length);
-      case FloatType floatType ->
-          createFloatJson(floatType.asTypedStorage(fullStorage), start, length);
-      default -> createObjectJson(fullStorage, start, length, ensoJsonCallback);
-    };
+  private static LeastRecentlyUsedCache<CacheKey, String> _jsonCache;
+
+  private static LeastRecentlyUsedCache<CacheKey, String> jsonCache() {
+    if (_jsonCache == null) {
+      _jsonCache = new LeastRecentlyUsedCache<>(1000);
+    }
+    return _jsonCache;
+  }
+
+  public static String apply(
+      Column source, long start, long maxLength, Function<Object, String> ensoJsonCallback) {
+    var fullStorage = ColumnStorageWithInferredStorage.resolveStorage(source);
+    var cacheKey = new CacheKey(fullStorage.uniqueKey(), start, maxLength);
+    final long finalLength = maxLength;
+    return jsonCache()
+        .computeIfAbsent(
+            cacheKey,
+            _ -> {
+              if (start >= fullStorage.getSize()) {
+                // If the start is beyond the size of the storage, return an empty array.
+                return "[]";
+              }
+              long length = finalLength;
+              if (start + length > fullStorage.getSize()) {
+                // If the requested length goes beyond the size of the storage, adjust it.
+                length = fullStorage.getSize() - start;
+              }
+
+              return switch (StorageType.ofStorage(fullStorage)) {
+                case NullType _ -> createNullJson(length);
+                case BooleanType booleanType ->
+                    createBooleanJson(booleanType.asTypedStorage(fullStorage), start, length);
+                case IntegerType integerType ->
+                    createIntegerJson(integerType.asTypedStorage(fullStorage), start, length);
+                case FloatType floatType ->
+                    createFloatJson(floatType.asTypedStorage(fullStorage), start, length);
+                default -> createObjectJson(fullStorage, start, length, ensoJsonCallback);
+              };
+            });
   }
 
   private static String createFloatJson(
