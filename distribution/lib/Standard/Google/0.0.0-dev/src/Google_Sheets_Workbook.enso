@@ -242,9 +242,7 @@ private _wrap_credentials credential:(File|Enso_Secret|Nothing)=Nothing =
         secret : Enso_Secret ->
             WrappedGoogleCredentials.fromCredentialReference (as_credential_reference secret CredentialReference)
         secret_file : File ->
-            secret_file.with_input_stream [File_Access.Read] stream->
-                stream.with_java_stream java_input_stream->
-                    WrappedGoogleCredentials.fromStream java_input_stream
+            WrappedGoogleCredentials.fromFile secret_file.path
         _ -> Nothing
 
 private _make_java_headers headers:Headers = case headers of
