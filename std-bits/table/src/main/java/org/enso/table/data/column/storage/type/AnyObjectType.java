@@ -19,8 +19,8 @@ public final class AnyObjectType implements StorageType<Object> {
   }
 
   @Override
-  public Value asEnsoValueType() {
-    return EnsoMeta.makeInstance("Standard.Table.Value_Type", "Value_Type", "Mixed");
+  public String ensoConstructorName() {
+    return "Mixed";
   }
 
   @Override

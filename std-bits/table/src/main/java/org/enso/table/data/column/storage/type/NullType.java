@@ -17,8 +17,8 @@ public final class NullType implements StorageType<Void> {
   }
 
   @Override
-  public Value asEnsoValueType() {
-    return EnsoMeta.makeInstance("Standard.Table.Value_Type", "Value_Type", "Null");
+  public String ensoConstructorName() {
+    return "Null";
   }
 
   @Override

@@ -20,8 +20,8 @@ public final class DateType implements StorageType<LocalDate> {
   }
 
   @Override
-  public Value asEnsoValueType() {
-    return EnsoMeta.makeInstance("Standard.Table.Value_Type", "Value_Type", "Date");
+  public String ensoConstructorName() {
+    return "Date";
   }
 
   @Override

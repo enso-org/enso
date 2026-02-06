@@ -20,8 +20,8 @@ public final class TimeOfDayType implements StorageType<LocalTime> {
   }
 
   @Override
-  public Value asEnsoValueType() {
-    return EnsoMeta.makeInstance("Standard.Table.Value_Type", "Value_Type", "Time");
+  public String ensoConstructorName() {
+    return "Time";
   }
 
   @Override

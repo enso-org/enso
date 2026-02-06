@@ -19,8 +19,8 @@ public final class BooleanType implements StorageType<Boolean> {
   }
 
   @Override
-  public Value asEnsoValueType() {
-    return EnsoMeta.makeInstance("Standard.Table.Value_Type", "Value_Type", "Boolean");
+  public String ensoConstructorName() {
+    return "Boolean";
   }
 
   @Override
