@@ -27,6 +27,23 @@ final class RuntimeCacheImpl extends RuntimeCache
   private Consumer<UUID> observer;
 
   /**
+   * To keep compatibility with previous implementations {@code this} object implements all three
+   * interfaces:
+   *
+   * <ul>
+   *   <li>{@link RuntimeCache}
+   *   <li>{@link Immutable}
+   *   <li>{@link Mutable}
+   * </ul>
+   *
+   * Hence it is possible to return just {@code this} in this method.
+   */
+  @Override
+  public RuntimeCache cache() {
+    return this;
+  }
+
+  /**
    * Add value to the cache if it is possible.
    *
    * @param key the key of an entry.

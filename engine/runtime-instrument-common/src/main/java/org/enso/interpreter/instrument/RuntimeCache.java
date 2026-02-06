@@ -10,14 +10,32 @@ import org.enso.interpreter.service.ExecutionService;
  * Immutable API facade for Enso runtime cache. It contains only "query" methods. See {@link
  * Mutable} for operations that can modify the cache.
  *
+ * <h3>Threading</h3>
+ *
+ * The methods provided by the {@code RuntimeCache} object are <em>thread safe</em> - e.g. they can
+ * be called from any thread at any moment. However these methods serve only as
+ * <strong>entrypoints</strong> for accessing the cache:
+ *
+ * <ul>
+ *   <li><em>read only view</em> - there is {@link Immutable} interface providing read only view of
+ *       the cache - it can only be used inside of the {@link #runQuery} method when provided as a
+ *       callback interface
+ *   <li><em>mutable view</em> - there is {@link Mutable} interface allowing to perform
+ *       modifications to the cache. It follows its own threading rules ... TBD
+ * </ul>
+ *
  * <p>Implementation is provided by original implementation in {@link RuntimeCacheImpl}.
  */
 public abstract class RuntimeCache {
   /** the only implementation is in the same package */
   RuntimeCache() {}
 
-  /** Factory method to create new runtime cache. */
-  public static RuntimeCache create() {
+  /**
+   * Factory method to create new runtime cache.
+   *
+   * @return mutable (e.g. priviledged) interface to the cache
+   */
+  public static RuntimeCache.Mutable create() {
     return new RuntimeCacheImpl();
   }
 
@@ -33,6 +51,13 @@ public abstract class RuntimeCache {
 
   /** Immutable view of the cache. */
   public interface Immutable {
+    /**
+     * Accessor to the generic interface of the cache.
+     *
+     * @return associated instance of {@link RuntimeCache}
+     */
+    public abstract RuntimeCache cache();
+
     /**
      * Reads a cached value from the cache for given key. Cached values are hold be "soft reference"
      * - e.g. they are kept until the system runs out of memory or until the value for given key is
@@ -87,8 +112,23 @@ public abstract class RuntimeCache {
     public abstract boolean isBindingExpression(UUID uuid);
   }
 
-  /** */
+  /**
+   * Mutable (e.g. priviledged) view of the {@link RuntimeCache}. Created by {@link
+   * RuntimeCache#create} method and held by those who perform execution and update the state of the
+   * cache.
+   *
+   * <p>All other parties in the system that need just to observe the cache shall hold on {@link
+   * RuntimeCache} only.
+   */
   public interface Mutable {
+    /**
+     * Accessor to the generic interface of the cache.
+     *
+     * @return associated instance of {@link RuntimeCache}
+     */
+    public abstract RuntimeCache cache();
+
+    /** Clears the content of the cache. */
     public abstract void clear();
 
     /**

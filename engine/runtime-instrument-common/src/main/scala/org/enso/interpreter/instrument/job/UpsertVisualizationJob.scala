@@ -180,7 +180,7 @@ class UpsertVisualizationJob(
       case Some(value) =>
         ProgramExecutionSupport.executeAndSendVisualizationUpdate(
           config.executionContextId,
-          runtimeCache.getOrElse(RuntimeCache.create),
+          runtimeCache.getOrElse(RuntimeCache.create.cache),
           stack.headOption.get.syncState,
           visualization,
           expressionId,
@@ -613,7 +613,7 @@ object UpsertVisualizationJob {
       Visualization(
         visualizationId,
         expressionId,
-        RuntimeCache.create(),
+        RuntimeCache.create().cache(),
         module,
         visualizationConfig,
         visualizationExpressionId,

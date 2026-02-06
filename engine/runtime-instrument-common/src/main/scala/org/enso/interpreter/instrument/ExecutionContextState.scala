@@ -49,7 +49,7 @@ case object InstrumentFrame {
   def apply(item: StackItem): InstrumentFrame =
     new InstrumentFrame(
       item,
-      RuntimeCache.create,
+      RuntimeCache.create.cache,
       new UpdatesSynchronizationState
     )
 }
