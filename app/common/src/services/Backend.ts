@@ -137,6 +137,7 @@ export interface UserInfo {
   readonly email: EmailAddress
   readonly newOrganizationName?: string
   readonly newOrganizationInvite?: 'error' | 'pending'
+  readonly maintainerAccount?: boolean
 }
 
 /** A user in the application. These are the primary owners of a project. */
@@ -165,6 +166,8 @@ export interface User extends UserInfo {
   readonly isEnsoTeamMember: boolean
   /** Information about any pending invitation to a different organization / team. */
   readonly invitation?: Invitation
+  /** Array containing all organizations that User belongs to. */
+  readonly organizations: readonly OrganizationInfo[]
 }
 
 /** A user group related to the current user. */
@@ -1120,6 +1123,7 @@ export interface CreateUserRequestBody {
 export interface UpdateUserRequestBody {
   readonly username?: string
   readonly organizationId?: OrganizationId
+  readonly switchOrganization?: boolean
 }
 
 /** HTTP request body for the "change user group" endpoint. */

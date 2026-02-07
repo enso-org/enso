@@ -38,6 +38,7 @@ export function actionToTextId(action: inputBindings.DashboardBindingKey): text.
 /** Props for a {@link MenuEntry}. */
 export interface MenuEntryProps extends tailwindVariants.VariantProps<typeof MENU_ENTRY_VARIANTS> {
   readonly icon?: string | undefined
+  readonly picture?: JSX.Element
   readonly action: inputBindings.DashboardBindingKey
   /** Overrides the text for the menu entry. */
   readonly label?: string | undefined
@@ -48,6 +49,7 @@ export interface MenuEntryProps extends tailwindVariants.VariantProps<typeof MEN
   readonly doAction: () => void
   readonly color?: TextProps['color'] | undefined
   readonly isUnderPaywall?: boolean
+  readonly isSelected?: boolean
   readonly feature?: PaywallFeatureName
 }
 
@@ -60,6 +62,7 @@ export default function MenuEntry(props: MenuEntryProps) {
     title,
     doAction,
     icon: iconRaw,
+    picture,
     tooltip: tooltipValueRaw,
     color,
     isUnderPaywall = false,
@@ -118,10 +121,13 @@ export default function MenuEntry(props: MenuEntryProps) {
               className="flex items-center gap-menu-entry whitespace-nowrap"
               style={{ color: info.color }}
             >
-              <Icon
-                icon={icon ?? info.icon ?? BlankIcon}
-                className={info.color != null ? undefined : 'text-primary'}
-              />
+              {picture === undefined && (
+                <Icon
+                  icon={icon ?? info.icon ?? BlankIcon}
+                  className={info.color != null ? undefined : 'text-primary'}
+                />
+              )}
+              {picture}
               <Text color={color} slot="label">
                 {label ?? getText(labelTextId)}
               </Text>
