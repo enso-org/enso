@@ -289,4 +289,4 @@ invoke_java_aggregator : Text -> Aggregate_Column -> Vector Integer -> Any
 invoke_java_aggregator name aggregate_column indexes = Illegal_Argument.handle_java_exception <|
     aggregator = java_aggregator name aggregate_column
     Java_Problems.with_problem_aggregator Problem_Behavior.Report_Warning java_problem_aggregator->
-        aggregator.aggregate indexes
+        aggregator.aggregate indexes java_problem_aggregator
