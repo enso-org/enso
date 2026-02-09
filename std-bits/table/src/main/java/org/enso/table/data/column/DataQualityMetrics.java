@@ -212,7 +212,7 @@ public abstract class DataQualityMetrics {
           distinctJson =
               "["
                   + distinct.stream()
-                      .map(v -> JsonOperation.objectToJson(v, o -> null))
+                      .map(JsonOperation::objectToJson)
                       .filter(Objects::nonNull)
                       .sorted()
                       .collect(Collectors.joining())

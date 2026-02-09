@@ -11,18 +11,40 @@ import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Collections;
 import java.util.function.Function;
+import org.enso.base.polyglot.EnsoMeta;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.storage.ColumnBooleanStorage;
 import org.enso.table.data.column.storage.ColumnDoubleStorage;
 import org.enso.table.data.column.storage.ColumnLongStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.ColumnStorageWithInferredStorage;
-import org.enso.table.data.column.storage.type.*;
+import org.enso.table.data.column.storage.type.BooleanType;
+import org.enso.table.data.column.storage.type.FloatType;
+import org.enso.table.data.column.storage.type.IntegerType;
+import org.enso.table.data.column.storage.type.NullType;
+import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.table.Column;
 import org.enso.table.util.LeastRecentlyUsedCache;
 import org.graalvm.polyglot.Context;
 
+/**
+ * A utility class for converting column data to JSON format. This is used for visualization
+ * purposes.
+ */
 public class JsonOperation {
+  private static Function<Object, String> _ensoJsonCallback;
+
+  private static Function<Object, String> ensoJsonCallback() {
+    if (_ensoJsonCallback != null) {
+      return _ensoJsonCallback;
+    }
+
+    var jsonType = EnsoMeta.getType("Standard.Visualization.Table.Visualization", "Helper");
+    var method = jsonType.getMember("make_json");
+    _ensoJsonCallback = value -> method.execute(value).asString();
+    return _ensoJsonCallback;
+  }
+
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
   private record CacheKey(long storageKey, long start, long length) {}
@@ -36,21 +58,14 @@ public class JsonOperation {
     return _jsonCache;
   }
 
-  public static String apply(
-      Column source, long start, long maxLength, Function<Object, String> ensoJsonCallback) {
+  public static String apply(Column source, long start, long maxLength) {
     var fullStorage = ColumnStorageWithInferredStorage.resolveStorage(source);
     var cacheKey = new CacheKey(fullStorage.uniqueKey(), start, maxLength);
     final long finalLength = maxLength;
-    return jsonCache()
-        .computeIfAbsent(
-            cacheKey, _ -> applyImpl(start, ensoJsonCallback, fullStorage, finalLength));
+    return jsonCache().computeIfAbsent(cacheKey, _ -> applyImpl(start, fullStorage, finalLength));
   }
 
-  private static String applyImpl(
-      long start,
-      Function<Object, String> ensoJsonCallback,
-      ColumnStorage<?> fullStorage,
-      long finalLength) {
+  private static String applyImpl(long start, ColumnStorage<?> fullStorage, long finalLength) {
     if (start >= fullStorage.getSize()) {
       // If the start is beyond the size of the storage, return an empty array.
       return "[]";
@@ -69,13 +84,12 @@ public class JsonOperation {
           createIntegerJson(integerType.asTypedStorage(fullStorage), start, length);
       case FloatType floatType ->
           createFloatJson(floatType.asTypedStorage(fullStorage), start, length);
-      default -> createObjectJson(fullStorage, start, length, ensoJsonCallback);
+      default -> createObjectJson(fullStorage, start, length);
     };
   }
 
   private static String createFloatJson(
       ColumnDoubleStorage doubleStorage, long start, long length) {
-    long size = doubleStorage.getSize();
     var context = Context.getCurrent();
     StringBuilder builder = new StringBuilder();
     builder.append("[");
@@ -123,11 +137,7 @@ public class JsonOperation {
     return builder.toString();
   }
 
-  private static String createObjectJson(
-      ColumnStorage<?> storage,
-      long start,
-      long length,
-      Function<Object, String> ensoJsonCallback) {
+  private static String createObjectJson(ColumnStorage<?> storage, long start, long length) {
     var context = Context.getCurrent();
     StringBuilder builder = new StringBuilder();
     builder.append("[");
@@ -137,7 +147,7 @@ public class JsonOperation {
       }
 
       Object value = storage.getItemBoxed(i);
-      String jsonValue = objectToJson(value, ensoJsonCallback);
+      String jsonValue = objectToJson(value);
       builder.append(jsonValue);
       context.safepoint();
     }
@@ -152,7 +162,7 @@ public class JsonOperation {
         : "[" + String.join(",", Collections.nCopies(checkedSize, "null")) + "]";
   }
 
-  public static String objectToJson(Object value, Function<Object, String> ensoJsonCallback) {
+  public static String objectToJson(Object value) {
     return switch (value) {
       case null -> "null";
       case Boolean b -> toJson(b);
@@ -164,7 +174,7 @@ public class JsonOperation {
       case LocalDate date -> toJson(date);
       case LocalTime time -> toJson(time);
       case ZonedDateTime zdt -> toJson(zdt);
-      default -> ensoJsonCallback.apply(value);
+      default -> ensoJsonCallback().apply(value);
     };
   }
 

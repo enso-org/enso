@@ -58,9 +58,9 @@ public class Row {
       }
       String name = table.getColumns()[i].getName();
       Object value = get_value(i, null);
-      sb.append(JsonOperation.objectToJson(name, ensoJsonCallback))
+      sb.append(JsonOperation.objectToJson(name))
           .append(":")
-          .append(JsonOperation.objectToJson(value, ensoJsonCallback));
+          .append(JsonOperation.objectToJson(value));
     }
     sb.append("}");
     return sb.toString();
