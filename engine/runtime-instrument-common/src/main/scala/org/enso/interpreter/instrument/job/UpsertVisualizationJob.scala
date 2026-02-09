@@ -61,6 +61,39 @@ class UpsertVisualizationJob(
 
   /** @inheritdoc */
   override def runImpl(implicit ctx: RuntimeContext): Option[Executable] = {
+    val stack =
+      ctx.contextManager.getStack(config.executionContextId)
+    val runtimeCache = stack.headOption
+      .flatMap(frame => Option(frame.cache))
+    runtimeCache.map(c =>
+      c.onModification(
+        expressionId,
+        immutable => {
+          val data = immutable.get(expressionId)
+          System.err.println(
+            "Modified value of " + expressionId + " to " + data
+          );
+          if (data != null) {
+            val contextId = config.executionContextId
+            ctx.endpoint.sendToClient(
+              Api.Response(
+                Api.VisualizationUpdate(
+                  Api.VisualizationContext(
+                    visualizationId,
+                    contextId,
+                    expressionId
+                  ),
+                  VisualizationResult.visualizationResultToBytes(
+                    data.toString()
+                  )
+                )
+              )
+            )
+          }
+        }
+      )
+    )
+    /*
     System.err.println(
       "UpsertVisualizationJob.runImpl before withReadContextLock"
     )
@@ -99,6 +132,8 @@ class UpsertVisualizationJob(
         }
       }
     )
+     */
+    None
   }
 
   /** Attempts to evaluate the visualization expression associated with this job.
@@ -110,7 +145,7 @@ class UpsertVisualizationJob(
     * @param ctx an instance of current `RuntimeContext`
     * @return true if failed due to required compilation and lack of required lock, false if successful
     */
-  private def evaluateAndExecuteVisualization(
+  def evaluateAndExecuteVisualization(
     hasWriteLock: Boolean
   )(implicit ctx: RuntimeContext): (Boolean, Option[Executable]) = {
     UpsertVisualizationJob.logger.trace(
