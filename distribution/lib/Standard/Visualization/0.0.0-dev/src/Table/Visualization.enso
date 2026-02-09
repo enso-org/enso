@@ -2,6 +2,7 @@ from Standard.Base import all
 import Standard.Base.Data.Vector.Builder
 import Standard.Base.Visualization.Table_Viz_Data.Table_Viz_Data
 
+import Standard.Table.In_Memory_Column.In_Memory_Column
 import Standard.Table.In_Memory_Table.In_Memory_Table
 import Standard.Table.Internal.Visualization_Helpers.Visualization_Helpers
 import Standard.Table.Row.Row
@@ -33,14 +34,10 @@ prepare_visualization y max_rows=1000 = time_visualization Visualization ("prepa
             v : Dictionary -> make_json_for_dictionary v max_rows
             v : JS_Object -> make_json_for_js_object v max_rows
             v : Row -> make_json_for_row v
-            _ : In_Memory_Table ->
-                all_rows_count = x.row_count
-                make_json_for_table x max_rows all_rows_count False False
-            c : Column ->
-                case DB_Column.is_database_column c of
-                    False -> make_json_for_table c.to_table max_rows c.row_count False True
-                    True -> _make_json_for_db_table c.to_table max_rows is_column=True
-            _ : DB_Table -> _make_json_for_db_table x max_rows is_column=False
+            t : In_Memory_Table -> make_json_for_table t max_rows t.row_count False False
+            c : In_Memory_Column -> make_json_for_table c.to_table max_rows c.row_count False True
+            t : DB_Table -> _make_json_for_db_table t max_rows is_column=False
+            c : DB_Column -> _make_json_for_db_table c.to_table max_rows is_column=True
             f : Function ->
                 pairs = [['_display_text_', '[Function '+f.to_text+']']]
                 value = JS_Object.from_pairs pairs
