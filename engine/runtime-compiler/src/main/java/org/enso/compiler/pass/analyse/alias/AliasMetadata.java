@@ -75,7 +75,7 @@ public abstract sealed class AliasMetadata implements IRPass.IRMetadata
 
     @Override
     public boolean equals(Object o) {
-      return o instanceof ChildScope other && this.graph().equals(other.graph());
+      return o instanceof RootScope other && this.graph().equals(other.graph());
     }
   }
 
