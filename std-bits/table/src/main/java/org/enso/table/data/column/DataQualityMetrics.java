@@ -50,6 +50,7 @@ public abstract class DataQualityMetrics {
   }
 
   public static final String IS_INCOMPLETE = "_Is Incomplete";
+  public static final String IS_INCOMPLETE_TEXT = "_Is Incomplete Text";
   public static final String NOTHING_COUNT = "# Nothing";
   public static final String DISTINCT_COUNT = "# Distinct";
   public static final String USE_MULTI_FILTER = "_Use Multi-Filter";
@@ -65,7 +66,10 @@ public abstract class DataQualityMetrics {
   public static final String TYPE_RECORD = "Types and Counts";
 
   // Default threshold for checking distinct values count.
-  public static final int DISTINCT_THRESHOLD = 100;
+  private static final int DISTINCT_THRESHOLD = 100;
+
+  // Value for when the computation is incomplete.
+  private static final String IS_INCOMPLETE_TEXT_VALUE = "Still computing indicators...";
 
   // Default seed for random number generation (no specific reason for this value, just stability on
   // results).
@@ -263,6 +267,7 @@ public abstract class DataQualityMetrics {
         }
       } else if (!result.isDone()) {
         current.put(IS_INCOMPLETE, true);
+        current.put(IS_INCOMPLETE_TEXT, IS_INCOMPLETE_TEXT);
       }
 
       return current;

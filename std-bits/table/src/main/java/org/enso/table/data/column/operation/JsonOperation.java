@@ -9,9 +9,14 @@ import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import org.enso.base.polyglot.EnsoMeta;
+import org.enso.table.data.column.DataQualityMetrics;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.storage.ColumnBooleanStorage;
 import org.enso.table.data.column.storage.ColumnDoubleStorage;
@@ -26,12 +31,15 @@ import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.table.Column;
 import org.enso.table.util.LeastRecentlyUsedCache;
 import org.graalvm.polyglot.Context;
+import org.slf4j.Logger;
 
 /**
  * A utility class for converting column data to JSON format. This is used for visualization
  * purposes.
  */
 public class JsonOperation {
+  private static final Logger LOGGER = org.slf4j.LoggerFactory.getLogger(JsonOperation.class);
+
   private static Function<Object, String> _ensoJsonCallback;
 
   private static Function<Object, String> ensoJsonCallback() {
@@ -41,7 +49,12 @@ public class JsonOperation {
 
     var jsonType = EnsoMeta.getType("Standard.Visualization.Table.Visualization", "Helper");
     var method = jsonType.getMember("make_json");
-    _ensoJsonCallback = value -> method.execute(value).asString();
+    LOGGER.info("Resolved Enso JSON callback: {}", method);
+    _ensoJsonCallback = value -> {
+      LOGGER.debug("Calling Enso JSON callback for value: {}", value);
+      var result = method.execute(jsonType, value);
+      return result == null || result.isNull() ? "null" : result.asString();
+    };
     return _ensoJsonCallback;
   }
 
@@ -298,5 +311,198 @@ public class JsonOperation {
         + ",\"zone\":"
         + zone_json
         + "}";
+  }
+
+  private static LeastRecentlyUsedCache<String, String> _tableVizCache;
+
+  private static LeastRecentlyUsedCache<String, String> tableVizCache() {
+    if (_tableVizCache == null) {
+      _tableVizCache = new LeastRecentlyUsedCache<>(1000);
+    }
+    return _tableVizCache;
+  }
+
+  /**
+   * Creates a JSON string representing the table visualization metadata, including column headers,
+   * value types, and various properties related to the table's structure and behavior.
+   */
+  public static String makeTableVizJSON(
+      String versionId,
+      Column[] columns,
+      long allRowsCount,
+      boolean useServerMode,
+      List<String> valueTypeDisplay,
+      String getChildMethod) {
+    if (allRowsCount == -1) {
+      final boolean finalUseServerMode = useServerMode;
+      return tableVizCache()
+          .computeIfAbsent(
+              versionId,
+              _ ->
+                  makeTableVizJSON(
+                      versionId,
+                      columns,
+                      columns[0].getSize(),
+                      finalUseServerMode,
+                      valueTypeDisplay,
+                      getChildMethod));
+    }
+
+    boolean isColumn = !"get_row".equals(getChildMethod);
+    useServerMode = useServerMode && allRowsCount > 1000;
+
+    var jsonBuilder = new StringBuilder();
+    jsonBuilder.append("{");
+
+    var headers = new StringBuilder();
+    var valueTypes = new StringBuilder();
+    var metrics = new ArrayList<Map<String, Object>>(columns.length);
+    for (int i = 0; i < columns.length; i++) {
+      if (!headers.isEmpty()) {
+        headers.append(",");
+        valueTypes.append(",");
+      }
+      headers.append(toJson(columns[i].getName()));
+
+      var columnType = columns[i].getStorageType().ensoConstructorName();
+      valueTypes
+          .append("{\"constructor\":\"")
+          .append(columnType)
+          .append("\",\"display_text\":\"")
+          .append(valueTypeDisplay.get(i))
+          .append("\"}");
+
+      metrics.add(DataQualityMetrics.get(columns[i]));
+    }
+    jsonBuilder.append("\"header\":[").append(headers).append("]");
+    jsonBuilder.append(",\"value_type\":[").append(valueTypes).append("]");
+
+    appendProperty(jsonBuilder, "all_rows_count", allRowsCount);
+    appendProperty(jsonBuilder, "has_index_col", true);
+    appendProperty(jsonBuilder, "get_child_node_action", getChildMethod);
+    appendProperty(jsonBuilder, "use_bottom_status_bar", !useServerMode);
+    appendProperty(jsonBuilder, "enable_create_mode", !isColumn);
+
+    jsonBuilder.append(",\"data_quality_metrics\":[");
+    makeDataQualityMetrics(jsonBuilder, metrics);
+    jsonBuilder.append("]");
+
+    appendProperty(jsonBuilder, "type", "EnsoTableOrColumn");
+    appendProperty(jsonBuilder, "child_label", "row");
+    appendProperty(jsonBuilder, "is_using_server_sort_and_filter", useServerMode);
+    appendMetric(
+        jsonBuilder, "requires_number_format", metrics, DataQualityMetrics.NEEDS_FORMATTING, false);
+    appendProperty(jsonBuilder, "table_version_hash", versionId);
+    appendMetric(
+        jsonBuilder, "is_using_multi_filter", metrics, DataQualityMetrics.USE_MULTI_FILTER, false);
+    jsonBuilder.append(",\"data\":").append(useServerMode ? "null" : dataToJson(columns));
+
+    jsonBuilder.append("}");
+    return jsonBuilder.toString();
+  }
+
+  private static void appendProperty(StringBuilder builder, String name, Object value) {
+    if (builder.length() > 1) {
+      builder.append(",");
+    }
+    builder.append("\"").append(name).append("\":").append(objectToJson(value));
+  }
+
+  private static void makeDataQualityMetrics(StringBuilder json, List<Map<String, Object>> dqs) {
+    boolean f = true;
+    f = addDataQualityMetric(json, dqs, "", DataQualityMetrics.IS_INCOMPLETE_TEXT, "Text", f, "");
+    // ToDo: Range
+    f =
+        addDataQualityMetric(
+            json, dqs, "Number of distinct", DataQualityMetrics.DISTINCT_COUNT, "Count", f, 0);
+    f =
+        addDataQualityMetric(
+            json, dqs, "% nothing", DataQualityMetrics.NOTHING_COUNT, "Percentage", f, null);
+    f = addDataQualityMetric(json, dqs, "", DataQualityMetrics.TYPE_RECORD, "Text", f, null);
+
+    var sampled =
+        dqs.stream().anyMatch(m -> Boolean.TRUE.equals(m.get(DataQualityMetrics.SAMPLED)));
+    var sampledText = sampled ? " (sampled)" : "";
+
+    f =
+        addDataQualityMetric(
+            json,
+            dqs,
+            "% empty" + sampledText,
+            DataQualityMetrics.EMPTY_COUNT,
+            "Percentage",
+            f,
+            null);
+    f =
+        addDataQualityMetric(
+            json,
+            dqs,
+            "% untrimmed" + sampledText,
+            DataQualityMetrics.UNTRIMMED_COUNT,
+            "Percentage",
+            f,
+            null);
+    f =
+        addDataQualityMetric(
+            json,
+            dqs,
+            "% with odd whitespace" + sampledText,
+            DataQualityMetrics.ODD_SPACE_COUNT,
+            "Percentage",
+            f,
+            null);
+  }
+
+  private static boolean addDataQualityMetric(
+      StringBuilder builder,
+      List<Map<String, Object>> metrics,
+      String label,
+      String fieldName,
+      String type,
+      boolean first,
+      Object defaultValue) {
+    if (!hasMetric(metrics, fieldName)) {
+      return first;
+    }
+
+    if (!first) {
+      builder.append(",");
+    }
+
+    builder.append("{\"name\":\"").append(label).append("\"");
+    appendMetric(builder, "values", metrics, fieldName, defaultValue);
+    builder.append(",\"type\":\"").append(type).append("\"}");
+    return false;
+  }
+
+  private static boolean hasMetric(List<Map<String, Object>> metrics, String metric) {
+    return metrics.stream().anyMatch(dqm -> dqm.get(metric) != null);
+  }
+
+  private static void appendMetric(
+      StringBuilder builder,
+      String name,
+      List<Map<String, Object>> metrics,
+      String metric,
+      Object defaultValue) {
+    if (builder.length() > 1) {
+      builder.append(",");
+    }
+    builder.append("\"").append(name).append("\":[");
+    for (int i = 0; i < metrics.size(); i++) {
+      if (i != 0) {
+        builder.append(",");
+      }
+      builder.append(objectToJson(metrics.get(i).getOrDefault(metric, defaultValue)));
+    }
+    builder.append("]");
+  }
+
+  private static String dataToJson(Column[] columns) {
+    var output = new ArrayList<String>();
+    for (Column column : columns) {
+      output.add(apply(column, 0, column.getSize()));
+    }
+    return output.stream().collect(Collectors.joining(",", "[", "]"));
   }
 }

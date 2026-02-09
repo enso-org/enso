@@ -44,7 +44,7 @@ prepare_visualization y max_rows=1000 = time_visualization Visualization ("prepa
             v : Dictionary -> make_json_for_dictionary v max_rows
             v : JS_Object -> make_json_for_js_object v max_rows
             v : Row -> make_json_for_row v
-            t : In_Memory_Table -> make_json_for_table t max_rows t.row_count False False
+            t : In_Memory_Table -> t.to_table_viz_json
             c : In_Memory_Column -> make_json_for_table c.to_table max_rows c.row_count False True
             t : DB_Table -> _make_json_for_db_table t max_rows is_column=False
             c : DB_Column -> _make_json_for_db_table c.to_table max_rows is_column=True
