@@ -162,7 +162,9 @@ class UpsertVisualizationJob(
     val expressionModuleOpt =
       ctx.executionService.getContext.findModuleByExpressionId(expressionId)
     val optParentExpressionId: Option[UUID] = expressionModuleOpt
-      .map(expressionModule => findParentAssignment(expressionModule, expressionId))
+      .map(expressionModule =>
+        findParentAssignment(expressionModule, expressionId)
+      )
       .filter(_.isDefined)
       .map(_.get)
       .filter(parentId => parentId != expressionId)
@@ -238,8 +240,8 @@ class UpsertVisualizationJob(
     module: Module,
     expressionID: Api.ExpressionId
   ): Option[UUID] = {
-    val bindings = module.getIr.bindings()
-    var i = 0
+    val bindings            = module.getIr.bindings()
+    var i                   = 0
     var found: Option[UUID] = None
     while (i < bindings.length && found.isEmpty) {
       bindings(i) match {
@@ -251,11 +253,13 @@ class UpsertVisualizationJob(
                 ir match {
                   case binding: Expression.Binding =>
                     val rhsID =
-                      binding.expression.getExternalId.getOrElse(binding.expression.getId)
+                      binding.expression.getExternalId
+                        .getOrElse(binding.expression.getId)
                     // Check if the target expression is within this binding's RHS
-                    val containsTarget = binding.expression.preorder().exists { child =>
-                      child.getExternalId.exists(_ == expressionID)
-                    }
+                    val containsTarget =
+                      binding.expression.preorder().exists { child =>
+                        child.getExternalId.exists(_ == expressionID)
+                      }
                     if (containsTarget && found.isEmpty) {
                       found = Some(rhsID)
                     }

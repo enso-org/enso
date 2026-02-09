@@ -148,7 +148,7 @@ public abstract class RuntimeCache {
      * @param value the added value.
      * @return {@code true} if the value was added to the cache.
      */
-    public boolean offer(UUID key, Object value);
+    public CacheOfferResult offer(UUID key, Object value);
 
     /**
      * Cache the type of expression.
@@ -183,4 +183,13 @@ public abstract class RuntimeCache {
     public ExecutionService.FunctionCallInfo putCall(
         UUID key, ExecutionService.FunctionCallInfo call);
   }
+
+  /**
+   * Encapsulates the result of calling {@code offer} method on {@code RuntimeCache}.
+   *
+   * @param canCache true if indicates that a value can be cached, false otherwise
+   * @param updated true if a proposed value has been stored in the cache and no previous entry
+   *     existed for the given key, false otherwise
+   */
+  public record CacheOfferResult(boolean canCache, boolean updated) {}
 }

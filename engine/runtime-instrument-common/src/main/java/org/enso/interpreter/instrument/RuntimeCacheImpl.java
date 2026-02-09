@@ -48,17 +48,17 @@ final class RuntimeCacheImpl extends RuntimeCache
    *
    * @param key the key of an entry.
    * @param value the added value.
-   * @return {@code true} if the value was added to the cache.
+   * @return {@code true} if a new value was added to the cache.
    */
   @CompilerDirectives.TruffleBoundary
-  public boolean offer(UUID key, Object value) {
+  public CacheOfferResult offer(UUID key, Object value) {
     expressions.put(key, new WeakReference<>(value));
     if (preferences.contains(key)) {
       var ref = new SoftReference<>(value);
-      cache.put(key, ref);
-      return true;
+      var prev = cache.put(key, ref);
+      return new CacheOfferResult(true, prev == null);
     }
-    return false;
+    return new CacheOfferResult(false, false);
   }
 
   /** Get the value from the cache. */
