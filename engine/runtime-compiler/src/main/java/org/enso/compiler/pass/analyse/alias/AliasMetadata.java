@@ -1,5 +1,6 @@
 package org.enso.compiler.pass.analyse.alias;
 
+import java.util.Objects;
 import org.enso.compiler.context.CompilerContext;
 import org.enso.compiler.core.IR;
 import org.enso.compiler.pass.IRPass;
@@ -77,6 +78,11 @@ public abstract sealed class AliasMetadata implements IRPass.IRMetadata
     public boolean equals(Object o) {
       return o instanceof RootScope other && this.graph().equals(other.graph());
     }
+
+    @Override
+    public int hashCode() {
+      return graph().hashCode();
+    }
   }
 
   /** Aliasing information about a child scope. */
@@ -122,6 +128,11 @@ public abstract sealed class AliasMetadata implements IRPass.IRMetadata
           && this.scope().equals(other.scope())
           && this.graph().equals(other.graph());
     }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(scope(), graph());
+    }
   }
 
   /** Aliasing information for a piece of [[IR]] that is contained within a [[Scope]]. */
@@ -161,6 +172,11 @@ public abstract sealed class AliasMetadata implements IRPass.IRMetadata
       return o instanceof Occurrence other
           && this.id() == other.id()
           && this.graph().equals(other.graph());
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(id(), graph());
     }
   }
 }
