@@ -128,7 +128,7 @@ export function UserMenu(props: UserMenuProps) {
           </div>
         </div>
         <div className="flex flex-col overflow-hidden">
-          {entries.flatMap((entry) => {
+          {entries.map((entry) => {
             if (entry == null || entry === false) {
               return []
             }
@@ -137,7 +137,7 @@ export function UserMenu(props: UserMenuProps) {
         </div>
 
         {user.maintainerAccount &&
-          organizationsSwitcher.flatMap((entry) => {
+          organizationsSwitcher.map((entry) => {
             if (entry == null || entry === false) {
               return []
             }
@@ -154,7 +154,7 @@ export function UserMenu(props: UserMenuProps) {
           })}
 
         <div className="flex flex-col overflow-hidden">
-          {tailEntries.flatMap((entry) => {
+          {tailEntries.map((entry) => {
             if (entry == null || entry === false) {
               return []
             }
