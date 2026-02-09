@@ -242,8 +242,14 @@ public final class EnsoLanguage extends TruffleLanguage<EnsoContext> {
    */
   @Override
   protected CallTarget parse(ParsingRequest request) {
-    var root = ProgramRootNode.build(this, request.getSource());
-    return root.getCallTarget();
+    if (request.getArgumentNames().isEmpty()) {
+      var root = ProgramRootNode.build(this, request.getSource());
+      return root.getCallTarget();
+    } else {
+      var root =
+          ProgramRootNode.buildWithArgs(this, request.getSource(), request.getArgumentNames());
+      return root.getCallTarget();
+    }
   }
 
   /**

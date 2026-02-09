@@ -9,6 +9,7 @@ import com.oracle.truffle.api.source.Source;
 import com.oracle.truffle.api.source.SourceSection;
 import java.io.File;
 import java.util.LinkedList;
+import java.util.List;
 import org.enso.interpreter.EnsoLanguage;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.Module;
@@ -26,7 +27,7 @@ import org.slf4j.LoggerFactory;
  * result, this node handles the transformations and re-writes
  */
 @NodeInfo(shortName = "ProgramRoot", description = "The root of an Enso program's execution")
-public class ProgramRootNode extends RootNode {
+public final class ProgramRootNode extends RootNode {
   private final Source sourceCode;
   private @CompilerDirectives.CompilationFinal Module module;
 
@@ -38,12 +39,7 @@ public class ProgramRootNode extends RootNode {
   @Override
   @CompilerDirectives.TruffleBoundary
   public String getName() {
-    var segs = sourceCode.getName().split("\\.");
-    if (segs.length == 0) {
-      return "Unnamed";
-    } else {
-      return segs[0];
-    }
+    return findName(sourceCode);
   }
 
   @Override
@@ -55,12 +51,27 @@ public class ProgramRootNode extends RootNode {
   /**
    * Constructs the root node.
    *
-   * @param language the language instance in which this will execute
+   * @param language the language instance
    * @param sourceCode the code to compile and execute
    * @return a program root node
    */
-  public static ProgramRootNode build(EnsoLanguage language, Source sourceCode) {
+  public static RootNode build(EnsoLanguage language, Source sourceCode) {
     return new ProgramRootNode(language, sourceCode);
+  }
+
+  /**
+   * Creates root node with arguments.
+   *
+   * @param language the language instance
+   * @param sourceCode the code to compile and execute
+   * @param args additional arguments to expose
+   * @return a root node to use
+   */
+  public static RootNode buildWithArgs(
+      EnsoLanguage language, Source sourceCode, List<String> args) {
+    var name = findName(sourceCode);
+    var argNames = args.stream().skip(1).toList();
+    return new WithArgsRootNode(language, argNames, sourceCode, name);
   }
 
   /**
@@ -74,15 +85,7 @@ public class ProgramRootNode extends RootNode {
     if (module == null) {
       CompilerDirectives.transferToInterpreterAndInvalidate();
       var ctx = EnsoContext.get(this);
-      if (sourceCode.getPath() != null) {
-        var src = ctx.getTruffleFile(new File(sourceCode.getPath()));
-        var pkg = ctx.getPackageOf(src).orElse(null);
-        var qualifiedName = findQualifiedNameInPackage(pkg, src, getName());
-        module = new Module(qualifiedName, pkg, src);
-      } else {
-        var simpleName = QualifiedName.simpleName(getName());
-        module = new Module(simpleName, null, sourceCode.getCharacters().toString());
-      }
+      module = createModule(ctx, getName(), sourceCode);
       ctx.getPackageRepository().registerModuleCreatedInRuntime(module.asCompilerModule());
       if (ctx.isStrictErrors()) {
         module.compileScope(ctx);
@@ -90,6 +93,27 @@ public class ProgramRootNode extends RootNode {
     }
     // Note [Static Passes]
     return module;
+  }
+
+  static Module createModule(EnsoContext ctx, String name, Source code) {
+    if (code.getPath() != null) {
+      var src = ctx.getTruffleFile(new File(code.getPath()));
+      var pkg = ctx.getPackageOf(src).orElse(null);
+      var qualifiedName = findQualifiedNameInPackage(pkg, src, name);
+      return new Module(qualifiedName, pkg, src);
+    } else {
+      var simpleName = QualifiedName.simpleName(name);
+      return new Module(simpleName, null, code.getCharacters().toString());
+    }
+  }
+
+  private static String findName(Source src) {
+    var segs = src.getName().split("\\.");
+    if (segs.length == 0) {
+      return "Unnamed";
+    } else {
+      return segs[0];
+    }
   }
 
   private static QualifiedName findQualifiedNameInPackage(

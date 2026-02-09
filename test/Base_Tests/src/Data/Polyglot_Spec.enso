@@ -39,6 +39,9 @@ add_specs suite_builder = suite_builder.group "Polyglot" group_builder->
     group_builder.specify "Execute JavaScript function" pending=pending_js_missing <|
         js_plus 3 5 . should_equal 8
 
+    group_builder.specify "Execute Enso function" <|
+        enso_plus 3 5 . should_equal 8
+
     group_builder.specify "Execute JavaScript with insufficient number of arguments" pending=pending_js_missing <|
         r = js_plus 3
         r.is_nan . should_be_true
@@ -66,6 +69,9 @@ foreign js js_meaning = """
 
 foreign js js_plus = """
     return (a, b) => a + b;
+
+foreign enso enso_plus a b = """
+    a + b
 
 main filter=Nothing =
     suite = Test.build suite_builder->
