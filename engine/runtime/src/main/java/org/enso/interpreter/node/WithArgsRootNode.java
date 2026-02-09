@@ -38,7 +38,7 @@ final class WithArgsRootNode extends RootNode {
     var ctx = EnsoContext.get(this);
     if (fn == null) {
       CompilerDirectives.transferToInterpreterAndInvalidate();
-      final String lambdaCode =
+      var lambdaCode =
           """
           import Standard.Base.Runtime.Debug
           import Standard.Base
@@ -57,12 +57,13 @@ final class WithArgsRootNode extends RootNode {
       code = Text.create(src.getCharacters().toString());
       invokeNode = InvokeFunctionNode.buildWithArity(argNames.size() + 2);
     }
-    java.lang.Object[] args = new Object[frame.getArguments().length + 1];
+    var realArgs = frame.getArguments();
+    var args = new Object[realArgs.length + 2];
     args[0] = self;
     args[1] = code;
-    System.arraycopy(frame.getArguments(), 1, args, 2, args.length - 2);
-    org.enso.interpreter.runtime.state.State state = ctx.currentState();
-    java.lang.Object res = invokeNode.execute(fn, frame, state, args);
+    System.arraycopy(realArgs, 0, args, 2, realArgs.length);
+    var state = ctx.currentState();
+    var res = invokeNode.execute(fn, frame, state, args);
     return res;
   }
 

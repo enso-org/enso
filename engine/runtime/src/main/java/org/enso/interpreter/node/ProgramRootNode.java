@@ -70,7 +70,8 @@ public final class ProgramRootNode extends RootNode {
   public static RootNode buildWithArgs(
       EnsoLanguage language, Source sourceCode, List<String> args) {
     var name = findName(sourceCode);
-    var argNames = args.stream().skip(1).toList();
+    var counter = new int[] {0};
+    var argNames = args.stream().map(n -> n.equals("self") ? "self" + ++counter[0] : n).toList();
     return new WithArgsRootNode(language, argNames, sourceCode, name);
   }
 
