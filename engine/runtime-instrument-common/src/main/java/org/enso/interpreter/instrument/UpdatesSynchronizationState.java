@@ -133,14 +133,29 @@ public class UpdatesSynchronizationState {
   }
 
   /**
-   * Marks the given visualization update as synchronized.
+   * Marks the given visualization as pending (not yet synchronized).
    *
    * @param key the visualization id.
    */
-  public void runAndSetVisualizationSync(UUID key, Runnable runnable) {
+  @CompilerDirectives.TruffleBoundary
+  public void setVisualizationPending(UUID key) {
+    synchronized (visualizationsState) {
+      visualizationsState.add(key);
+    }
+  }
+
+  /**
+   * Marks the given visualization update as synchronized.
+   *
+   * @param key the visualization id
+   * @param synchronizeState true if visualization should be marked as clean and not sent again,
+   *     unless expression changes
+   * @param runnable action that sends visualization update
+   */
+  public void runAndSetVisualizationSync(UUID key, boolean synchronizeState, Runnable runnable) {
     synchronized (visualizationsState) {
       runnable.run();
-      if (!visualizationsState.contains(key)) {
+      if (synchronizeState && !visualizationsState.contains(key)) {
         visualizationsState.add(key);
       }
     }

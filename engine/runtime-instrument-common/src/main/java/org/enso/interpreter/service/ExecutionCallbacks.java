@@ -95,19 +95,23 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
       executeOneshotExpressions(nodeId, result, info);
     }
 
+    // Check if we need to force re-execution for nested visualization
+    var requiresReExecution = visualizationHolder.hasNestedVisualizationToExecute(nodeId);
+
     // When executing the call stack we need to capture the FunctionCall of the next (top) stack
     // item in the `functionCallCallback`. We allow to execute the cached `stackTop` value to be
     // able to continue the stack execution, and unwind later from the `onReturnValue` callback.
     if (result != null && !nodeId.equals(nextExecutionItem)) {
       callOnCachedCallback(nodeId, result);
-      return result;
+      // Return null to force re-execution if nested visualization is pending
+      return requiresReExecution ? null : result;
     } else {
       if (onProgressCallbackOrNull != null) {
         reportEvaluationProgress(nodeId);
       }
     }
 
-    return null;
+    return requiresReExecution ? null : result;
   }
 
   @CompilerDirectives.TruffleBoundary
