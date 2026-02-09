@@ -6,9 +6,12 @@ import java.lang.ref.SoftReference;
 import java.lang.ref.WeakReference;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import org.enso.common.CachePreferences;
@@ -23,6 +26,7 @@ final class RuntimeCacheImpl extends RuntimeCache
   private final Map<UUID, Reference<Object>> expressions = new HashMap<>();
   private final Map<UUID, TypeInfo> types = new HashMap<>();
   private final Map<UUID, ExecutionService.FunctionCallInfo> calls = new HashMap<>();
+  private final Map<UUID, List<Consumer<Immutable>>> onModification = new ConcurrentHashMap<>();
   private CachePreferences preferences = CachePreferences.empty();
   private Consumer<UUID> observer;
 
@@ -43,6 +47,12 @@ final class RuntimeCacheImpl extends RuntimeCache
     return this;
   }
 
+  @Override
+  public void onModification(UUID id, Consumer<Immutable> callback) {
+    var arr = onModification.computeIfAbsent(id, (_) -> new CopyOnWriteArrayList<>());
+    arr.add(callback);
+  }
+
   /**
    * Add value to the cache if it is possible.
    *
@@ -52,17 +62,25 @@ final class RuntimeCacheImpl extends RuntimeCache
    */
   @CompilerDirectives.TruffleBoundary
   public boolean offer(UUID key, Object value) {
+    var added = false;
     expressions.put(key, new WeakReference<>(value));
     if (preferences.contains(key)) {
       var ref = new SoftReference<>(value);
       cache.put(key, ref);
-      return true;
+      added = true;
     }
-    return false;
+    var toNotify = onModification.get(key);
+    if (toNotify != null) {
+      for (var c : toNotify) {
+        c.accept(this);
+      }
+    }
+    return added;
   }
 
   /** Get the value from the cache. */
   public Object get(UUID key) {
+    System.err.println("  get: " + key);
     var ref = cache.get(key);
     var res = ref != null ? ref.get() : null;
     return res;
@@ -70,6 +88,7 @@ final class RuntimeCacheImpl extends RuntimeCache
 
   /** Get the value from the cache. */
   public Object getAnyValue(UUID key) {
+    System.err.println("  getany: " + key);
     var ref = expressions.get(key);
     var res = ref != null ? ref.get() : null;
     return res;

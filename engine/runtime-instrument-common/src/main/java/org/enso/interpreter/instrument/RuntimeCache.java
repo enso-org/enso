@@ -49,6 +49,14 @@ public abstract class RuntimeCache {
    */
   public abstract <V> V runQuery(Consumer<UUID> callback, Function<Immutable, V> action);
 
+  /**
+   * Observe changes related to this UUID.
+   *
+   * @param id the identifier to observe
+   * @param callback callback to invoke when change of given UUID happens
+   */
+  public abstract void onModification(UUID id, Consumer<Immutable> callback);
+
   /** Immutable view of the cache. */
   public interface Immutable {
     /**

@@ -151,6 +151,28 @@ public class RuntimeCacheTest {
     assertTrue("Two queries to the cache: " + queried, queried.contains(key2));
   }
 
+  @Test
+  public void observeCachedItems() {
+    var cache = new RuntimeCacheImpl();
+    var key = UUID.randomUUID();
+    var obj = 42;
+    var changeCounter = new int[1];
+    cache.onModification(
+        key,
+        (c) -> {
+          changeCounter[0]++;
+        });
+
+    assertFalse(cache.offer(key, obj));
+    assertNull(cache.get(key));
+    assertEquals("One change reported", 1, changeCounter[0]);
+
+    cache.setPreferences(of(key, CachePreferences.Kind.BINDING_EXPRESSION));
+    assertTrue(cache.offer(key, obj));
+    assertEquals(obj, cache.get(key));
+    assertEquals("Second change reported", 2, changeCounter[0]);
+  }
+
   private static void assertGC(String msg, boolean expectGC, Reference<?> ref) {
     for (var i = 1; i < Integer.MAX_VALUE / 2; i *= 2) {
       if (ref.get() == null) {

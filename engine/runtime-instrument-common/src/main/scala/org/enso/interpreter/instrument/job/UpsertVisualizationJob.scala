@@ -60,18 +60,26 @@ class UpsertVisualizationJob(
     }
 
   /** @inheritdoc */
-  override def runImpl(implicit ctx: RuntimeContext): Option[Executable] =
+  override def runImpl(implicit ctx: RuntimeContext): Option[Executable] = {
+    System.err.println(
+      "UpsertVisualizationJob.runImpl before withReadContextLock"
+    )
     ctx.locking.withReadContextLock(
       ctx.locking.getOrCreateContextLock(config.executionContextId),
       classOf[UpsertVisualizationJob],
       () => {
+        System.err.println("UpsertVisualizationJob.runImpl withReadContextLock")
         val (needsRetryWithWriteLock, maybeResult) =
           ctx.locking.withReadCompilationLock(
             classOf[UpsertVisualizationJob],
-            () =>
+            () => {
+              System.err.println(
+                "UpsertVisualizationJob.runImpl withReadCompilationLock"
+              )
               evaluateAndExecuteVisualization(
                 hasWriteLock = false
               )
+            }
           )
         if (needsRetryWithWriteLock) {
           UpsertVisualizationJob.logger.trace(
@@ -91,6 +99,7 @@ class UpsertVisualizationJob(
         }
       }
     )
+  }
 
   /** Attempts to evaluate the visualization expression associated with this job.
     *
@@ -168,10 +177,46 @@ class UpsertVisualizationJob(
       )
     val stack =
       ctx.contextManager.getStack(config.executionContextId)
+
+    // attach callable to runtimeCache
+    // here
+    System.err.println("Attach to value of " + expressionId)
+
     val runtimeCache = stack.headOption
       .flatMap(frame => Option(frame.cache))
     val cachedValue = runtimeCache
-      .flatMap(c => Option(c.runQuery(null, _.get(expressionId))))
+      .flatMap(c => {
+        c.onModification(
+          expressionId,
+          immutable => {
+            val data = immutable.get(expressionId)
+            System.err.println(
+              "Modified value of " + expressionId + " to " + data
+            );
+            if (data != null) {
+              val contextId = config.executionContextId
+              ctx.endpoint.sendToClient(
+                Api.Response(
+                  Api.VisualizationUpdate(
+                    Api.VisualizationContext(
+                      visualizationId,
+                      contextId,
+                      expressionId
+                    ),
+                    VisualizationResult.visualizationResultToBytes(
+                      data.toString()
+                    )
+                  )
+                )
+              )
+            }
+          }
+        )
+        val v = c.runQuery(null, _.get(expressionId))
+        System.err.println("Checked value of " + expressionId + " was: " + v)
+        Option(v)
+      })
+
     UpsertVisualizationJob.requireVisualizationSynchronization(
       stack,
       visualizationId
