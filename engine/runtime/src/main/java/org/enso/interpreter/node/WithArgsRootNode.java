@@ -35,7 +35,7 @@ final class WithArgsRootNode extends RootNode {
 
   @Override
   public Object execute(VirtualFrame frame) {
-    org.enso.interpreter.runtime.EnsoContext ctx = EnsoContext.get(this);
+    var ctx = EnsoContext.get(this);
     if (fn == null) {
       CompilerDirectives.transferToInterpreterAndInvalidate();
       final String lambdaCode =
@@ -48,13 +48,11 @@ final class WithArgsRootNode extends RootNode {
                   Debug.eval code
           """
               .replace("${args}", argNames.stream().collect(Collectors.joining("-> ")));
-      com.oracle.truffle.api.source.Source lambda =
-          Source.newBuilder(src).content(lambdaCode).build();
-      org.enso.interpreter.runtime.Module module = ProgramRootNode.createModule(ctx, name, lambda);
-      org.enso.interpreter.runtime.scope.ModuleScope moduleScope = module.compileScope(ctx);
+      var lambda = Source.newBuilder(src).content(lambdaCode).build();
+      var module = ProgramRootNode.createModule(ctx, name, lambda);
+      var moduleScope = module.compileScope(ctx);
       self = moduleScope.getAssociatedType();
-      org.enso.interpreter.runtime.callable.function.Function lambdaFn =
-          moduleScope.getMethodForType(self, "lambda");
+      var lambdaFn = moduleScope.getMethodForType(self, "lambda");
       fn = lambdaFn;
       code = Text.create(src.getCharacters().toString());
       invokeNode = InvokeFunctionNode.buildWithArity(argNames.size() + 2);
