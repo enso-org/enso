@@ -14,12 +14,14 @@ copy_to_bin(
 
 js_binary(
     name = "script_env_replacer",
+    data = ["stableStatus.mjs"],
     entry_point = "envReplacer.mjs",
     visibility = ["//visibility:public"],
 )
 
 js_binary(
     name = "generate_version_info",
+    data = ["stableStatus.mjs"],
     entry_point = "generateVersionInfo.mjs",
     visibility = ["//visibility:public"],
 )
@@ -38,6 +40,7 @@ js_run_binary(
 
 js_binary(
     name = "run_with_version_info",
+    data = ["stableStatus.mjs"],
     entry_point = "runWithVersionInfo.mjs",
     visibility = ["//visibility:public"],
 )

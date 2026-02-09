@@ -1,36 +1,16 @@
 /**
  * @file Generate `GeneratedVersion.java` which holds build-time versioning information for the Engine.
  */
-import fs from 'node:fs/promises'
 import { createRequire } from 'node:module'
 import path from 'node:path'
 import process from 'node:process'
+import { readStableStatusFile } from './stableStatus.mjs'
 
 if (process.env.JS_BINARY__EXECROOT) {
   process.chdir(process.env.JS_BINARY__EXECROOT)
 }
 
 const require = createRequire(import.meta.url)
-
-/**
- * Parse Bazel stable-status.txt into a key/value map.
- * Keys are returned without the leading 'STABLE_' prefix.
- *
- * @param {string} content
- * @returns {Record<string, string>}
- */
-function parseStableStatus(content) {
-  /** @type {Record<string, string>} */
-  const vars = {}
-  for (const line of content.split(/\r?\n/)) {
-    const [key, value] = line.split(' ', 2)
-    if (key && key.startsWith('STABLE_ENSO')) {
-      const envName = key.slice('STABLE_'.length)
-      vars[envName] = value
-    }
-  }
-  return vars
-}
 
 function requireStatusVar(vars, key, statusFilePath) {
   const v = vars[key]
@@ -83,8 +63,7 @@ const hasStatusFile = Boolean(statusFilePath)
 /** @type {Record<string, string>} */
 let stableVars = {}
 if (hasStatusFile) {
-  const content = await fs.readFile(statusFilePath, 'utf8')
-  stableVars = parseStableStatus(content)
+  stableVars = await readStableStatusFile(statusFilePath)
 }
 
 const { scalacVersion, graalVersion, graalMavenPackagesVersion, defaultDevEnsoVersion } =

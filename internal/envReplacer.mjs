@@ -25,6 +25,7 @@ import { createHash } from 'node:crypto'
 import * as fs from 'node:fs/promises'
 import * as path from 'node:path/posix'
 import * as process from 'node:process'
+import { readStableStatusFile } from './stableStatus.mjs'
 
 if (process.env.JS_BINARY__EXECROOT) {
   process.chdir(process.env.JS_BINARY__EXECROOT)
@@ -112,21 +113,14 @@ function assertNoErrors() {
 }
 
 /** @type {Record<string, string>} */
-const envs = {}
+let envs = {}
 
 // When stamping, the status file contains environment variables to replace.
 // We only consider variables starting with `ENSO_` prefix, and we only consider `stable-status.txt` file,
 // so each variable is expected to start with `STABLE_ENSO_` prefix.
 if (statusFilePath != null) {
   try {
-    const statusFile = await fs.readFile(statusFilePath, 'utf8')
-    for (const line of statusFile.split('\n')) {
-      const [key, value] = line.split(' ', 2)
-      if (key && key.startsWith('STABLE_ENSO_')) {
-        const envName = key.slice('STABLE_'.length)
-        envs[envName] = value
-      }
-    }
+    envs = await readStableStatusFile(statusFilePath)
   } catch (e) {
     errors.push(new Error(`Failed to read status file "${statusFilePath}": ${e.message}`))
   }
