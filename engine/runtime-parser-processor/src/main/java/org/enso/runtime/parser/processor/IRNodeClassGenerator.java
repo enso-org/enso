@@ -49,7 +49,6 @@ final class IRNodeClassGenerator {
           "org.enso.compiler.core.Identifier",
           "org.enso.compiler.core.IR",
           "org.enso.compiler.core.ir.DiagnosticStorage",
-          "org.enso.compiler.core.ir.DiagnosticStorage$",
           "org.enso.compiler.core.ir.IdentifiedLocation",
           "org.enso.compiler.core.ir.MetadataStorage",
           "scala.Option");
@@ -384,7 +383,7 @@ final class IRNodeClassGenerator {
         @Override
         public DiagnosticStorage getDiagnostics() {
           if (diagnostics == null) {
-            diagnostics = DiagnosticStorage$.MODULE$.createEmpty();
+            diagnostics = DiagnosticStorage.createEmpty();
           }
           return diagnostics;
         }

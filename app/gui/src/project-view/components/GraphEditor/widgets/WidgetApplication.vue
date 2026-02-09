@@ -66,7 +66,7 @@ const operatorStyle = computed(() => {
 const infixWidgetInput = computed(() =>
   mapOrUndefined(application.value.infixOperator, WidgetInput.FromAst),
 )
-const showArgument = computed(() => tree.extended || !application.value.argument.hideByDefault)
+const showArgument = computed(() => tree.showDetails || !application.value.argument.hideByDefault)
 const argumentWidgetInput = computed(() => {
   return application.value.argument.toWidgetInput()
 })

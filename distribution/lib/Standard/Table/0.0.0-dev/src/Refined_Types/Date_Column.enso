@@ -23,3 +23,12 @@ type Date_Column
        the month containing the specified date.
     end_of_month self -> Column & Date_Column =
         self.operations_implementation.end_of_month self.column
+
+    ## ---
+       group: DateTime
+       icon: metadata
+       ---
+       For each date in the column, returns the date that is the first day of
+       the week containing that date.
+    first_of_week self (first_day:Day_Of_Week=Day_Of_Week.Monday) -> Column & Date_Column =
+        self.operations_implementation.first_of_week self.column first_day

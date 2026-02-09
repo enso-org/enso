@@ -1,0 +1,56 @@
+load("@crates//:defs.bzl", "aliases", "all_crate_deps")
+load("@rules_rust//cargo:defs.bzl", "cargo_build_script")
+load("@rules_rust//rust:defs.bzl", "rust_binary", "rust_library")
+
+cargo_build_script(
+    name = "build_script",
+    srcs = ["build.rs"],
+    aliases = aliases(build = True),
+    build_script_env = {
+        "ENSO_INSTALL_ARCHIVE_PATH": "$(execpath //app/electron-client:installer_payload.tar.gz)",
+        "ENSO_INSTALL_METADATA_PATH": "$(execpath //app/electron-client:installer_metadata.json)",
+        "ENSO_BUILD_ELECTRON_BUILDER_CONFIG": "$(execpath //app/electron-client:electron_builder_config)",
+    },
+    data = [
+        "//app/electron-client:electron_builder_config",
+        "//app/electron-client:installer_metadata.json",
+        "//app/electron-client:installer_payload.tar.gz",
+    ],
+    edition = "2021",
+    deps = all_crate_deps(build = True) + [
+        "//build_tools/ci_utils:ide_ci",
+        "//build_tools/install/config:enso_install_config",
+    ],
+)
+
+rust_library(
+    name = "enso_installer_lib",
+    srcs = glob(
+        ["src/**/*.rs"],
+        exclude = ["src/main.rs"],
+    ),
+    aliases = aliases(),
+    crate_name = "enso_installer",
+    edition = "2021",
+    proc_macro_deps = all_crate_deps(proc_macro = True),
+    deps = all_crate_deps(normal = True) + [
+        ":build_script",
+        "//build_tools/ci_utils:ide_ci",
+        "//build_tools/install:enso_install",
+        "//build_tools/install/config:enso_install_config",
+    ],
+)
+
+rust_binary(
+    name = "enso_installer",
+    srcs = ["src/main.rs"],
+    aliases = aliases(),
+    edition = "2021",
+    proc_macro_deps = all_crate_deps(proc_macro = True),
+    rustc_flags = ["-Clink-arg=/SUBSYSTEM:WINDOWS"],
+    visibility = ["//visibility:public"],
+    deps = all_crate_deps(normal = True) + [
+        ":enso_installer_lib",
+        "//build_tools/install/config:enso_install_config",
+    ],
+)

@@ -32,8 +32,10 @@
     "dev:vite": "vite",
     "test": "corepack pnpm run /^^^^test:.*/",
     "test:unit": "vitest run",
+    "pretest:integration": "corepack pnpm -r compile",
     "test:integration": "cross-env NODE_OPTIONS='--experimental-wasm-modules' NODE_ENV=production playwright test",
     "test-dev:unit": "vitest",
+    "pretest-dev:integration": "corepack pnpm -r compile",
     "test-dev:integration": "cross-env NODE_OPTIONS='--experimental-wasm-modules' NODE_ENV=production playwright test --ui",
     "playwright:install": "playwright install chromium"
   },

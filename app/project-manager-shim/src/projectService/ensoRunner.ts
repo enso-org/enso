@@ -10,7 +10,7 @@ import { extract } from 'tar'
 import { Path } from './types.js'
 
 export interface Runner {
-  runProject(projectPath: Path, extraEnv?: readonly (readonly [string, string])[]): Promise<void>
+  runProject(projectPath: Path, extraEnv?: readonly (readonly [string, string])[]): Promise<number>
   createProject(path: Path, name: string, projectTemplate?: string): Promise<void>
   openProject(
     projectPath: Path,
@@ -129,11 +129,11 @@ export class EnsoRunner implements Runner {
     })
   }
 
-  /** Run an existing Enso project at the specified path. */
+  /** Run an existing Enso project at the specified path. Returns the exit code of the process. */
   async runProject(
     projectPath: Path,
     extraEnv?: readonly (readonly [string, string])[],
-  ): Promise<void> {
+  ): Promise<number> {
     const args = ['--run', projectPath]
     const env = { ...process.env, ...(extraEnv ? Object.fromEntries(extraEnv) : {}) }
     const cwd = path.dirname(projectPath)
@@ -144,13 +144,7 @@ export class EnsoRunner implements Runner {
       spawnedProcess.on('error', (error) => {
         reject(new Error(`Failed to spawn enso process: ${error.message}`))
       })
-      spawnedProcess.on('exit', (code) => {
-        if (code === 0) {
-          resolve()
-        } else {
-          reject(new Error(`Enso process exited with code ${code}.`))
-        }
-      })
+      spawnedProcess.on('exit', resolve)
     })
   }
 

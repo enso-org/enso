@@ -2,7 +2,7 @@ package org.enso.compiler.core.ir.expression.errors;
 
 import java.util.function.Function;
 import org.enso.compiler.core.IR;
-import org.enso.compiler.core.ir.Diagnostic$Kind$Interactive;
+import org.enso.compiler.core.ir.Diagnostic;
 import org.enso.compiler.core.ir.Expression;
 import org.enso.compiler.core.ir.IRKind;
 import org.enso.compiler.core.ir.IdentifiedLocation;
@@ -21,7 +21,7 @@ import scala.Function1;
       Error.class,
       IRKind.Primitive.class,
       Name.class,
-      Diagnostic$Kind$Interactive.class
+      Diagnostic.Kind.Interactive.class
     })
 public final class Conversion extends ConversionGen {
   @GenerateFields

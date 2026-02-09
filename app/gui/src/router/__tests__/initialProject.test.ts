@@ -24,6 +24,7 @@ const LOCAL_ROOT_PATH = '/home/user/Documents/enso-projects'
 const LOCAL_WELCOME_PROJECT = `/home/user/Documents/enso-projects/${LOCAL_WELCOME_PROJECT_RELATIVE_PATH}`
 const CLOUD_WELCOME_PROJECT = `enso://Users/mock/${CLOUD_WELCOME_PROJECT_RELATIVE_PATH}`
 const USER: User = {
+  isEnabled: true,
   isOrganizationAdmin: false,
   rootDirectoryId: newDirectoryId(Path(CLOUD_ROOT_PATH)),
   userGroups: null,

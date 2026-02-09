@@ -8,7 +8,6 @@ import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
-import org.enso.common.CachePreferences;
 import org.enso.interpreter.instrument.ExpressionExecutionState;
 import org.enso.interpreter.instrument.MethodCallsCache;
 import org.enso.interpreter.instrument.OneshotExpression;
@@ -33,7 +32,7 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
 
   private final VisualizationHolder visualizationHolder;
   private final UUID nextExecutionItem;
-  private final RuntimeCache cache;
+  private final RuntimeCache.Mutable cache;
   private final MethodCallsCache methodCallsCache;
   private final UpdatesSynchronizationState syncState;
   private final Map<UUID, FunctionCallInfo> calls = new HashMap<>();
@@ -64,7 +63,7 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
   ExecutionCallbacks(
       VisualizationHolder visualizationHolder,
       UUID nextExecutionItem,
-      RuntimeCache cache,
+      RuntimeCache.Mutable cache,
       MethodCallsCache methodCallsCache,
       UpdatesSynchronizationState syncState,
       ExpressionExecutionState expressionExecutionState,
@@ -113,7 +112,7 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
 
   @CompilerDirectives.TruffleBoundary
   private void reportEvaluationProgress(UUID nodeId) {
-    if (cache.getPreferences().get(nodeId) == CachePreferences.Kind.BINDING_EXPRESSION) {
+    if (cache.isBindingExpression(nodeId)) {
       var newObserver =
           ExecutionProgressObserver.startComputation(
               nodeId,
@@ -148,12 +147,12 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
       refreshObserver(null);
     }
 
+    var call = functionCallInfoById(nodeId);
     TypeInfo cachedType = cache.getType(nodeId);
-    FunctionCallInfo call = functionCallInfoById(nodeId);
     FunctionCallInfo cachedCall = cache.getCall(nodeId);
     ProfilingInfo[] profilingInfo = new ProfilingInfo[] {new ExecutionTime(info.getElapsedTime())};
 
-    ExpressionValue expressionValue =
+    var expressionValue =
         new ExpressionValue(
             nodeId,
             result,
@@ -173,7 +172,6 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
               syncState.setVisualizationUnsync(visualization.id());
               return null;
             });
-
     boolean isPanic = info.isPanic();
     // Panics are not cached because a panic can be fixed by changing seemingly unrelated code,
     // like imports, and the invalidation mechanism can not always track those changes and

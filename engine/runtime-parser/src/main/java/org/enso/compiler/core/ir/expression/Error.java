@@ -3,7 +3,6 @@ package org.enso.compiler.core.ir.expression;
 import java.util.function.Function;
 import org.enso.compiler.core.IR;
 import org.enso.compiler.core.ir.Diagnostic;
-import org.enso.compiler.core.ir.Diagnostic$Kind$Static;
 import org.enso.compiler.core.ir.Expression;
 import org.enso.compiler.core.ir.IRKind;
 import org.enso.compiler.core.ir.IdentifiedLocation;
@@ -36,7 +35,7 @@ public interface Error extends Expression, Definition, Diagnostic {
   }
 
   @GenerateIR(interfaces = {Error.class, IRKind.Primitive.class})
-  final class InvalidIR extends ErrorInvalidIRGen implements Diagnostic$Kind$Static {
+  final class InvalidIR extends ErrorInvalidIRGen implements Diagnostic.Kind.Interactive {
     @GenerateFields
     public InvalidIR(@IRChild IR ir, MetadataStorage passData) {
       super(ir, passData);

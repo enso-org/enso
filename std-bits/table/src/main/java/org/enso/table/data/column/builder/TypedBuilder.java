@@ -1,6 +1,5 @@
 package org.enso.table.data.column.builder;
 
-import java.lang.reflect.Proxy;
 import java.util.Arrays;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.TypedStorage;
@@ -13,13 +12,12 @@ abstract class TypedBuilder<T> implements BuilderWithRetyping, BuilderForType<T>
   protected int currentSize = 0;
 
   protected TypedBuilder(StorageType<T> storageType, T[] data) {
-    this.data = data;
     this.storageType = storageType;
+    this.data = data;
   }
 
-  @Override
-  public StorageType<T> getType() {
-    return storageType;
+  protected final StorageType<T> getStorageType() {
+    return this.storageType;
   }
 
   @Override
@@ -52,19 +50,16 @@ abstract class TypedBuilder<T> implements BuilderWithRetyping, BuilderForType<T>
       int newSizeInt = Builder.checkSize(newSize);
       resize(newSizeInt);
     }
-    var type = storage.getType();
-    if (Proxy.isProxyClass(type.getClass())) {
-      type = StorageType.fromTypeCharAndSize(type.typeChar(), type.size());
-    }
 
-    if (type.equals(getType())) {
+    var type = StorageType.ofStorage(storage);
+    if (type.equals(getStorageType())) {
       if (storage instanceof TypedStorage<?>) {
         // This cast is safe, because storage.getType() == this.getType() iff storage.T == this.T
         @SuppressWarnings("unchecked")
         TypedStorage<T> specializedStorage = (TypedStorage<T>) storage;
-        System.arraycopy(
-            specializedStorage.getData(), 0, data, currentSize, (int) storage.getSize());
-        currentSize += storage.getSize();
+        int storageSize = (int) storage.getSize();
+        System.arraycopy(specializedStorage.getData(), 0, data, currentSize, storageSize);
+        currentSize += storageSize;
       } else {
         // This is a fallback for non-specialized storages, which are not optimized for bulk
         // appends.
@@ -75,7 +70,7 @@ abstract class TypedBuilder<T> implements BuilderWithRetyping, BuilderForType<T>
     } else if (type instanceof NullType) {
       appendNulls(Math.toIntExact(storage.getSize()));
     } else {
-      throw new StorageTypeMismatchException(getType(), type);
+      throw new StorageTypeMismatchException(getStorageType(), type);
     }
   }
 
@@ -108,10 +103,12 @@ abstract class TypedBuilder<T> implements BuilderWithRetyping, BuilderForType<T>
     this.data = Arrays.copyOf(data, desiredCapacity);
   }
 
-  protected abstract ColumnStorage<T> doSeal();
+  protected ColumnStorage<T> doSeal() {
+    return new TypedStorage<>(getStorageType(), data);
+  }
 
   @Override
-  public ColumnStorage<T> seal() {
+  public final ColumnStorage<T> seal() {
     // We set the array to the exact size, because we want to avoid index out of bounds errors.
     // Most of the time, the builder was initialized with the right size anyway - the only
     // exceptions are e.g. reading results from a database, where the count is unknown.

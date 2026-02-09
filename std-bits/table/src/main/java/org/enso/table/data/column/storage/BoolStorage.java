@@ -8,7 +8,7 @@ import org.enso.table.data.column.storage.type.BooleanType;
 import org.enso.table.util.ImmutableBitSet;
 
 /** A boolean column storage. */
-public final class BoolStorage extends Storage<Boolean>
+public final class BoolStorage extends AbstractBaseStorage<Boolean>
     implements ColumnBooleanStorage, ColumnStorageWithValidityMap {
   private final ImmutableBitSet values;
   private final ImmutableBitSet validityMap;

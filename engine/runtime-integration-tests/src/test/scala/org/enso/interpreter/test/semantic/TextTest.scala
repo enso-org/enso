@@ -121,8 +121,8 @@ class TextTest extends InterpreterTest {
           |    IO.println (Compile_Error.Error "error :(").to_display_text
           |    IO.println (Inexhaustive_Pattern_Match.Error 32).to_display_text
           |    IO.println (Arithmetic_Error.Error "cannot frobnicate quaternions").to_display_text
-          |    IO.println ((Panic.catch Any (1 + "foo") .convert_to_dataflow_error).catch_primitive .to_display_text)
-          |    IO.println ((Panic.catch Any (7 1) .convert_to_dataflow_error).catch_primitive .to_display_text)
+          |    IO.println ((Panic.catch Any (1 + "foo") .convert_to_dataflow_error).catch Any .to_display_text)
+          |    IO.println ((Panic.catch Any (7 1) .convert_to_dataflow_error).catch Any .to_display_text)
           |    IO.println (Arity_Error.Error 10 10 20).to_display_text
           |""".stripMargin
       eval(code)

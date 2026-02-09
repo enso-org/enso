@@ -172,6 +172,7 @@ export async function uploadBundle(
   logger.log(`Uploading project from bundle${name != null ? ` as '${name}'` : ''}.`)
 
   const targetPath = generateDirectoryName(name ?? 'Project', directory)
+  logger.log(`Importing project as '${targetPath}'.`)
   fs.mkdirSync(targetPath, { recursive: true })
   await new Promise<void>((resolve) => {
     bundle.pipe(tar.extract({ cwd: targetPath })).on('finish', resolve)
@@ -368,8 +369,9 @@ function getCommonPrefix(a: string, b: string): string {
  * for the name.
  */
 function generateDirectoryName(name: string, directory = getProjectsDirectory()): string {
-  // Use only the last path component.
-  let baseName = pathModule.parse(name).name
+  // Use only the last path component (but with the extension as we don't want to remove that).
+  let baseName = pathModule.basename(name)
+  logger.log(`Generating directory name for '${name}' in '${directory}'. Base name: '${baseName}'.`)
 
   // If the name already consists a suffix, reuse it.
   const matches = baseName.match(/^(.*)_(\d+)$/)
@@ -378,6 +380,7 @@ function generateDirectoryName(name: string, directory = getProjectsDirectory())
 
   if (typeof matchedName !== 'undefined' && typeof matchedSuffix !== 'undefined') {
     baseName = matchedName
+    logger.log(`Base name after stripping suffix: '${baseName}'.`)
   }
 
   return pathModule.join(directory, baseName)

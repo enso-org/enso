@@ -14,7 +14,6 @@ import type { VisualizationDataSource } from '@/stores/visualization'
 import type { Opt } from '@/util/data/opt'
 import { Rect, type BoundsSet } from '@/util/data/rect'
 import { Vec2 } from '@/util/data/vec2'
-import type { ProjectPath } from '@/util/projectPath'
 import { computed, nextTick, onUnmounted, ref, toRef, watch, watchEffect } from 'vue'
 import { visIdentifierEquals, type VisualizationIdentifier } from 'ydoc-shared/yjsModel'
 
@@ -39,8 +38,6 @@ const props = defineProps<{
   height: Opt<number>
   scale: number
   isFocused: boolean
-  /** @deprecated use typeinfo instead */
-  typename?: ProjectPath | undefined
   typeinfo?: TypeInfo | undefined
   dataSource: VisualizationDataSource | RawDataSource | undefined
 }>()
@@ -72,7 +69,6 @@ const {
 } = useVisualizationData({
   selectedVis: toRef(props, 'currentType'),
   dataSource: toRef(props, 'dataSource'),
-  typename: toRef(props, 'typename'),
   typeinfo: toRef(props, 'typeinfo'),
 })
 
@@ -201,12 +197,13 @@ watch(
   (f) => f && nextTick(() => panelElement.value?.focus()),
 )
 
+const nodeType = computed(() => props.typeinfo?.primaryType ?? undefined)
 // Use proxy object instead of computed to keep granular reactive updates across the `params` prop fields.
 const visParams: VisualizationHostParams = proxyRefs({
   visualization: effectiveVisualization,
   data: effectiveVisualizationData,
   size: contentElementSize,
-  nodeType: toRef(props, 'typename'),
+  nodeType,
   executeExpression,
 })
 
@@ -263,7 +260,6 @@ customElements.define(ensoVisualizationHost, defineCustomElement(VisualizationHo
           :isFocused="isFocused"
           :allVisualizations="allVisualizations"
           :visualizationDefinedToolbar="visualizationDefinedToolbar"
-          :typename="typename"
           :typeinfo="typeinfo"
           :class="{ overlay: toolbarOverlay }"
           @update:currentVis="emit('update:id', $event)"

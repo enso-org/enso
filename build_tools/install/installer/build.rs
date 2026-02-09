@@ -34,15 +34,15 @@ fn main() {
     }
 
     cargo::build::rerun_if_env_changed(ENSO_INSTALL_METADATA_PATH);
-    if !ENSO_INSTALL_METADATA_PATH.is_set() {
-        println!(
-            "cargo:warning={ENSO_INSTALL_METADATA_PATH} is not set, the installer will fail at runtime."
-        );
+    let metadata_path = if let Ok(path) = ENSO_INSTALL_METADATA_PATH.get() {
+        path
+    } else {
+        println!("cargo:warning={ENSO_INSTALL_METADATA_PATH} is not set, using placeholder.");
         let placeholder_path = OUT_DIR.get().unwrap().join("metadata.json");
         ide_ci::fs::write_if_different(&placeholder_path, "{}").unwrap();
-        // Set env for the crate.
-        cargo::build::expose_env_var(ENSO_INSTALL_METADATA_PATH, placeholder_path.as_str());
-    }
+        placeholder_path
+    };
+    cargo::build::expose_env_var(ENSO_INSTALL_METADATA_PATH, metadata_path.as_str());
 
     let _ = sanitize_and_expose_electron_builder_config();
 }

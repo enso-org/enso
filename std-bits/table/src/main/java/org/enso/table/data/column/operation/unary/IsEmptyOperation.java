@@ -5,6 +5,7 @@ import org.enso.table.data.column.operation.StorageIterators;
 import org.enso.table.data.column.operation.UnaryOperation;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.type.AnyObjectType;
+import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.data.table.problems.MapOperationProblemAggregator;
 
@@ -24,7 +25,7 @@ public class IsEmptyOperation implements UnaryOperation {
 
   @Override
   public boolean canApply(ColumnStorage<?> storage) {
-    var type = storage.getType();
+    var type = StorageType.ofStorage(storage);
     // We also allow this operation on Mixed type to facilitate `internal_is_empty` helper.
     return type instanceof TextType || type instanceof AnyObjectType;
   }

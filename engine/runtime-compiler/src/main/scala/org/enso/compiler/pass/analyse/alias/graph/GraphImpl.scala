@@ -2,11 +2,8 @@ package org.enso.compiler
 package pass.analyse
 package alias.graph
 
-import org.enso.compiler.debug.Debug
-
 import scala.collection.mutable
 import scala.reflect.ClassTag
-import scala.annotation.unused
 import scala.jdk.CollectionConverters._
 
 /** A graph containing aliasing information for a given root scope in Enso. */
@@ -161,15 +158,6 @@ sealed private[graph] class GraphImpl(
     */
   override def toString: String =
     s"Graph(links = $links, rootScope = $rootScope)"
-
-  /** Pretty prints the graph.
-    *
-    * @return a pretty-printed string representation of the graph
-    */
-  @unused private def pretty: String = {
-    val original = toString
-    Debug.pretty(original)
-  }
 
   /** Gets all links in which the provided `id` is a participant.
     *

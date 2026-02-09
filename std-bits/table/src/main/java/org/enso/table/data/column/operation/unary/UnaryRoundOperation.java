@@ -15,6 +15,7 @@ import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.type.BigDecimalType;
 import org.enso.table.data.column.storage.type.BigIntegerType;
 import org.enso.table.data.column.storage.type.IntegerType;
+import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.table.problems.MapOperationProblemAggregator;
 
 public class UnaryRoundOperation implements UnaryOperation {
@@ -50,19 +51,20 @@ public class UnaryRoundOperation implements UnaryOperation {
 
   @Override
   public boolean canApply(ColumnStorage<?> storage) {
-    return storage.getType().isNumeric();
+    return StorageType.ofStorage(storage).isNumeric();
   }
 
   @Override
   public ColumnStorage<?> apply(
       ColumnStorage<?> storage, MapOperationProblemAggregator problemAggregator) {
-    if (storage.getType() instanceof IntegerType || storage.getType() instanceof BigIntegerType) {
+    var storageType = StorageType.ofStorage(storage);
+    if (storageType instanceof IntegerType || storageType instanceof BigIntegerType) {
       // For an integral type storage, the operation is an identity operation.
       return storage;
     }
 
     var builder =
-        storage.getType() instanceof BigDecimalType
+        storageType instanceof BigDecimalType
             ? Builder.getForBigInteger(storage.getSize(), problemAggregator)
             : new InferredIntegerBuilder(Builder.checkSize(storage.getSize()), problemAggregator);
 

@@ -7,7 +7,7 @@
     - close self -> Standard.Base.Any.Any
     - column_naming_helper self -> Standard.Base.Any.Any
     - create_literal_table self source:Standard.Table.Table.Table alias:Standard.Base.Data.Text.Text -> (Standard.Table.Table.Table&Standard.Database.DB_Table.DB_Table&Standard.Base.Any.Any)
-    - create_table self table_name:Standard.Base.Data.Text.Text structure:(Standard.Base.Any.Any|Standard.Table.Table.Table) primary_key:(Standard.Base.Any.Any|Standard.Base.Nothing.Nothing)= temporary:Standard.Base.Data.Boolean.Boolean= allow_existing:Standard.Base.Data.Boolean.Boolean= on_problems:Standard.Base.Errors.Problem_Behavior.Problem_Behavior= -> Standard.Base.Any.Any
+    - create_table self table_name:Standard.Base.Data.Text.Text structure:((Standard.Base.Data.Vector.Vector Standard.Database.Column_Description.Column_Description)|Standard.Table.Table.Table) primary_key:((Standard.Base.Data.Vector.Vector Standard.Base.Data.Text.Text)|Standard.Base.Nothing.Nothing)= temporary:Standard.Base.Data.Boolean.Boolean= allow_existing:Standard.Base.Data.Boolean.Boolean= on_problems:Standard.Base.Errors.Problem_Behavior.Problem_Behavior= -> Standard.Base.Any.Any
     - database self -> Standard.Base.Any.Any
     - databases self -> Standard.Base.Any.Any
     - drop_table self table_name:Standard.Base.Any.Any if_exists:Standard.Base.Any.Any= -> Standard.Base.Any.Any
@@ -33,6 +33,7 @@
     - table_naming_helper self -> Standard.Base.Any.Any
     - table_types self -> Standard.Base.Any.Any
     - tables self name_like:Standard.Base.Any.Any= database:Standard.Base.Any.Any= schema:Standard.Base.Any.Any= types:Standard.Base.Any.Any= all_fields:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+    - to_js_object self -> Standard.Base.Any.Any
     - truncate_table self table_name:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - get_tables_advanced jdbc_connection:Standard.Base.Any.Any name_like:(Standard.Base.Data.Text.Text|Standard.Base.Nothing.Nothing) database:(Standard.Base.Data.Text.Text|Standard.Base.Nothing.Nothing) schema:(Standard.Base.Data.Text.Text|Standard.Base.Nothing.Nothing) types:(Standard.Base.Nothing.Nothing|Standard.Base.Data.Vector.Vector) column_fetcher_factory:Standard.Base.Any.Any sql_type_to_value_type:Standard.Base.Any.Any= all_fields:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Any.Any
 - make_database_selector connection:Standard.Base.Any.Any include_any:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Any.Any

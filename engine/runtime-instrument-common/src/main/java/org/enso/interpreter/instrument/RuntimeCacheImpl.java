@@ -1,0 +1,271 @@
+package org.enso.interpreter.instrument;
+
+import com.oracle.truffle.api.CompilerDirectives;
+import java.lang.ref.Reference;
+import java.lang.ref.SoftReference;
+import java.lang.ref.WeakReference;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import org.enso.common.CachePreferences;
+import org.enso.interpreter.service.ExecutionService;
+
+/** A storage for computed values. */
+final class RuntimeCacheImpl extends RuntimeCache
+    implements RuntimeCache.Immutable,
+        RuntimeCache.Mutable,
+        java.util.function.Function<String, Object> {
+  private final Map<UUID, Reference<Object>> cache = new HashMap<>();
+  private final Map<UUID, Reference<Object>> expressions = new HashMap<>();
+  private final Map<UUID, TypeInfo> types = new HashMap<>();
+  private final Map<UUID, ExecutionService.FunctionCallInfo> calls = new HashMap<>();
+  private CachePreferences preferences = CachePreferences.empty();
+  private Consumer<UUID> observer;
+
+  /**
+   * To keep compatibility with previous implementations {@code this} object implements all three
+   * interfaces:
+   *
+   * <ul>
+   *   <li>{@link RuntimeCache}
+   *   <li>{@link Immutable}
+   *   <li>{@link Mutable}
+   * </ul>
+   *
+   * Hence it is possible to return just {@code this} in this method.
+   */
+  @Override
+  public RuntimeCache cache() {
+    return this;
+  }
+
+  /**
+   * Add value to the cache if it is possible.
+   *
+   * @param key the key of an entry.
+   * @param value the added value.
+   * @return {@code true} if the value was added to the cache.
+   */
+  @CompilerDirectives.TruffleBoundary
+  public boolean offer(UUID key, Object value) {
+    expressions.put(key, new WeakReference<>(value));
+    if (preferences.contains(key)) {
+      var ref = new SoftReference<>(value);
+      cache.put(key, ref);
+      return true;
+    }
+    return false;
+  }
+
+  /** Get the value from the cache. */
+  public Object get(UUID key) {
+    var ref = cache.get(key);
+    var res = ref != null ? ref.get() : null;
+    return res;
+  }
+
+  /** Get the value from the cache. */
+  public Object getAnyValue(UUID key) {
+    var ref = expressions.get(key);
+    var res = ref != null ? ref.get() : null;
+    return res;
+  }
+
+  // Accessed in InstrumentorBuiltin
+  @Override
+  public Object apply(String uuid) {
+    Object res;
+    try {
+      var key = UUID.fromString(uuid);
+      var ref = expressions.get(key);
+      res = ref != null ? ref.get() : null;
+      var callback = observer;
+      if (callback != null) {
+        callback.accept(key);
+      }
+    } catch (IllegalArgumentException ex) {
+      res = null;
+    }
+    return res;
+  }
+
+  /** Remove the value from the cache. */
+  public Object remove(UUID key) {
+    var ref = cache.remove(key);
+    return ref == null ? null : ref.get();
+  }
+
+  public final Set<UUID> findUUIDs(boolean calls, boolean preferences) {
+    var impl = (RuntimeCacheImpl) this;
+    var set = new HashSet<UUID>();
+    if (calls) {
+      set.addAll(impl.getCalls());
+    }
+    if (preferences) {
+      set.addAll(impl.getPreferences().preferences().keySet());
+    }
+    return set;
+  }
+
+  /**
+   * @return all cache keys.
+   */
+  public Set<UUID> getKeys() {
+    return cache.keySet();
+  }
+
+  /** Clear the cached values. */
+  public void clear() {
+    cache.clear();
+  }
+
+  /**
+   * Clear cached values of the provided kind.
+   *
+   * @param kind the kind of cached value to clear
+   * @return the set of cleared keys
+   */
+  public Set<UUID> clear(CachePreferences.Kind kind) {
+    var keys = preferences.get(kind);
+    for (var key : keys) {
+      cache.remove(key);
+    }
+    return keys;
+  }
+
+  /**
+   * Cache the type of expression.
+   *
+   * @return the previously cached type.
+   */
+  @CompilerDirectives.TruffleBoundary
+  public TypeInfo putType(UUID key, TypeInfo typeInfo) {
+    return types.put(key, typeInfo);
+  }
+
+  /**
+   * @return the cached type of the expression
+   */
+  @CompilerDirectives.TruffleBoundary
+  public TypeInfo getType(UUID key) {
+    return types.get(key);
+  }
+
+  /**
+   * Cache the function call
+   *
+   * @param key the expression associated with the function call.
+   * @param call the function call.
+   * @return the function call that was previously associated with this expression.
+   */
+  @CompilerDirectives.TruffleBoundary
+  public ExecutionService.FunctionCallInfo putCall(
+      UUID key, ExecutionService.FunctionCallInfo call) {
+    if (call == null) {
+      return calls.remove(key);
+    }
+    return calls.put(key, call);
+  }
+
+  /**
+   * @return the cached function call associated with the expression.
+   */
+  @CompilerDirectives.TruffleBoundary
+  public ExecutionService.FunctionCallInfo getCall(UUID key) {
+    return calls.get(key);
+  }
+
+  /**
+   * @return the cached method calls.
+   */
+  public Set<UUID> getCalls() {
+    return calls.keySet();
+  }
+
+  /**
+   * Remove the function call from the cache.
+   *
+   * @param key the expression associated with the function call.
+   */
+  public void removeCall(UUID key) {
+    calls.remove(key);
+  }
+
+  /** Clear the cached calls. */
+  public void clearCalls() {
+    calls.clear();
+  }
+
+  /** Remove the type associated with the provided key. */
+  public void removeType(UUID key) {
+    types.remove(key);
+  }
+
+  /** Clear the cached types. */
+  public void clearTypes() {
+    types.clear();
+  }
+
+  /**
+   * Checks whether this key is associated with a binding expression.
+   *
+   * @param uuid the key to check
+   * @return {@code true} or {@code false}
+   */
+  public final boolean isBindingExpression(UUID uuid) {
+    return getPreferences().get(uuid) == CachePreferences.Kind.BINDING_EXPRESSION;
+  }
+
+  /**
+   * @return the preferences of this cache.
+   */
+  public CachePreferences getPreferences() {
+    return preferences;
+  }
+
+  /**
+   * Set the new cache preferences.
+   *
+   * @param preferences the new cache preferences
+   */
+  public void setPreferences(CachePreferences preferences) {
+    this.preferences = preferences;
+  }
+
+  /**
+   * Remove the cache preference associated with the provided key.
+   *
+   * @param key the preference to remove
+   */
+  public void removePreference(UUID key) {
+    preferences.remove(key);
+  }
+
+  /** Clear the cache preferences. */
+  public void clearPreferences() {
+    preferences.clear();
+  }
+
+  /**
+   * Executes a query while tracking access to the cache by {@code callback} observer.
+   *
+   * @param callback call with accessed UUIDs
+   * @param scope the code to execute
+   * @return value computed by the {@code scope}
+   * @param <V> type of the returned value
+   */
+  @Override
+  public <V> V runQuery(Consumer<UUID> callback, Function<Immutable, V> scope) {
+    var previousCallback = this.observer;
+    this.observer = callback;
+    try {
+      return scope.apply(this);
+    } finally {
+      this.observer = previousCallback;
+    }
+  }
+}

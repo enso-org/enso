@@ -1,6 +1,7 @@
 package org.enso.table.parsing;
 
 import org.enso.table.data.column.storage.ColumnStorage;
+import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.data.table.Column;
 import org.enso.table.parsing.problems.CommonParseProblemAggregator;
@@ -27,9 +28,9 @@ public abstract class DatatypeParser {
   public final ColumnStorage<?> parseColumn(
       Column sourceColumn, CommonParseProblemAggregator problemAggregator) {
     var storage = sourceColumn.getStorage();
-    if (!(storage.getType() instanceof TextType textType)) {
-      throw new IllegalArgumentException(
-          "Expected a column of text type, got: " + storage.getType());
+    var storageType = StorageType.ofStorage(storage);
+    if (!(storageType instanceof TextType textType)) {
+      throw new IllegalArgumentException("Expected a column of text type, got: " + storageType);
     }
     return parseColumn(textType.asTypedStorage(storage), problemAggregator);
   }

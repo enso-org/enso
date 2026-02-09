@@ -1,6 +1,8 @@
 package org.enso.table.data.column.builder;
 
+import org.enso.base.polyglot.EnsoMeta;
 import org.enso.table.problems.Problem;
+import org.graalvm.polyglot.Value;
 
 /** Indicates that an integer being converted to double cannot be represented precisely. */
 public class LossOfIntegerPrecision implements Problem {
@@ -28,5 +30,16 @@ public class LossOfIntegerPrecision implements Problem {
 
   void incrementAffectedRows() {
     affectedRows++;
+  }
+
+  @Override
+  public Value asEnsoValue() {
+    return EnsoMeta.makeInstance(
+        "Standard.Table.Errors",
+        "Loss_Of_Integer_Precision",
+        "Warning",
+        getAffectedRowsCount(),
+        getExampleValue(),
+        getExampleValueConverted());
   }
 }

@@ -3,8 +3,11 @@
 #### Enso IDE
 
 - [Add component alignment options][14590].
+- [Components have Expanded/Collapsed modes][14678]. The effect is visible in
+  Table.input components.
 
 [14590]: https://github.com/enso-org/enso/pull/14590
+[14678]: https://github.com/enso-org/enso/pull/14678
 
 #### Enso Standard Library
 
@@ -34,11 +37,13 @@
 - [Use `State.get if_missing` to avoid too frequent `Panic.throw`][14490]
 - [Lazily initialized local variables with `Ref.new lazy=True`][14554].
 - [Flush system caches via `Runtime.gc`][14557]
+- [Removing `catch_primitive` from the API][14676]
 
 [14480]: https://github.com/enso-org/enso/pull/14480
 [14490]: https://github.com/enso-org/enso/pull/14490
 [14536]: https://github.com/enso-org/enso/pull/14554
 [14557]: https://github.com/enso-org/enso/pull/14557
+[14676]: https://github.com/enso-org/enso/pull/14676
 
 # Enso 2025.3
 
@@ -161,7 +166,10 @@
 - [Add `OneDrive.write` allowing a first API to write to OneDrive.][14494]
 - [Add `Grouping_Method.Equal_Sum` for database backends.][14528]
 - [Add `Grouping_Method.Standard_Deviation` for database backends.][14546]
+- [Default `Data.fetch` auto-detect to plain text or XML in certain
+  cases][14648]
 - [Add `Date_Time_Column.to_utc`.][14649]
+- [Add `Date_Column.first_of_week`.][14674]
 
 [13769]: https://github.com/enso-org/enso/pull/13769
 [14026]: https://github.com/enso-org/enso/pull/14026
@@ -200,7 +208,9 @@
 [14494]: https://github.com/enso-org/enso/pull/14494
 [14528]: https://github.com/enso-org/enso/pull/14528
 [14546]: https://github.com/enso-org/enso/pull/14528
+[14648]: https://github.com/enso-org/enso/pull/14648
 [14649]: https://github.com/enso-org/enso/pull/14649
+[14674]: https://github.com/enso-org/enso/pull/14674
 
 #### Enso Language & Runtime
 

@@ -9,8 +9,8 @@ public final class CachingSupplier<T> implements Supplier<T> {
   private static final Supplier EMPTY = new CachingSupplier(null);
 
   private final Supplier<T> supply;
-  @CompilerDirectives.CompilationFinal private boolean memoComputed;
-  @CompilerDirectives.CompilationFinal private T memo;
+  @CompilerDirectives.CompilationFinal private volatile boolean memoComputed;
+  @CompilerDirectives.CompilationFinal private volatile T memo;
 
   private CachingSupplier(Supplier<T> supply) {
     this.supply = supply;
@@ -48,20 +48,14 @@ public final class CachingSupplier<T> implements Supplier<T> {
 
   @Override
   public T get() {
-    synchronized (this) {
-      if (memoComputed) {
-        return memo;
-      }
-      CompilerDirectives.transferToInterpreterAndInvalidate();
-      if (supply == null) {
-        memoComputed = true;
-        return memo;
-      }
+    if (memoComputed) {
+      return memo;
     }
-    var v = supply.get();
+    CompilerDirectives.transferToInterpreterAndInvalidate();
+    T newMemo = supply == null ? memo : supply.get();
     synchronized (this) {
       if (!memoComputed) {
-        memo = v;
+        memo = newMemo;
         memoComputed = true;
       }
       return memo;

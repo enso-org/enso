@@ -7,7 +7,6 @@ import { EMPTY_SET } from '#/utilities/set'
 import { createStore, resetStoreOnLogout, useStore, type StoreApi } from '#/utilities/zustand'
 import { useFullUserSession } from '$/providers/react'
 import {
-  Plan,
   type AnyAsset,
   type AssetId,
   type BackendType,
@@ -144,7 +143,7 @@ export default function DriveProvider(props: DriveProviderProps) {
         if (id == null) return null
         const category = findCategoryById(id)
         if (category == null) return null
-        const unavailable = (user.plan === Plan.free || isOffline) && isCloudCategory(category)
+        const unavailable = (!user.isEnabled || isOffline) && isCloudCategory(category)
         if (unavailable) return null
         return id
       },

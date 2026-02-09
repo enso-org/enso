@@ -4,11 +4,6 @@ import * as locate from './locate'
 
 const ACCEPT_INPUT_SHORTCUT = `ControlOrMeta+Enter`
 
-async function deselectAllNodes(page: Page) {
-  await page.keyboard.press('Escape')
-  await expect(locate.selectedNodes(page)).toHaveCount(0)
-}
-
 async function expectAndCancelBrowser(
   page: Page,
   expectedText: string,
@@ -157,49 +152,40 @@ test('Graph Editor pans to Component Browser', async ({ editorPage, page }) => {
   await expectAndCancelBrowser(page, '', null)
 })
 
-test('Accepting suggestion', async ({ editorPage, page }) => {
-  // Clicking entry
-  await editorPage
-  await locate.addNewNodeButton(page).click()
-  let nodeCount = await locate.graphNode(page).count()
-  await locate.componentBrowserEntry(page).nth(1).click()
-  await expect(locate.componentBrowser(page)).toBeHidden()
-  await expect(locate.graphNode(page)).toHaveCount(nodeCount + 1)
-  await expect(locate.graphNode(page).last().locator('.WidgetToken')).toHaveText([
-    'Data',
-    '.',
-    'read_many',
-  ])
-  await expect(locate.graphNode(page).last()).toBeSelected()
-
-  // Clicking at highlighted entry
-  nodeCount = await locate.graphNode(page).count()
-  await deselectAllNodes(page)
-  await locate.addNewNodeButton(page).click()
-  await locate.componentBrowserSelectedEntry(page).first().click()
-  await expect(locate.componentBrowser(page)).toBeHidden()
-  await expect(locate.graphNode(page)).toHaveCount(nodeCount + 1)
-  await expect(locate.graphNode(page).last().locator('.WidgetToken')).toHaveText([
-    'Data',
-    '.',
-    'read',
-  ])
-  await expect(locate.graphNode(page).last()).toBeSelected()
-
-  // Accepting with Enter
-  nodeCount = await locate.graphNode(page).count()
-  await deselectAllNodes(page)
-  await locate.addNewNodeButton(page).click()
-  await expect(locate.componentBrowserInput(page)).toBeFocused()
-  await page.keyboard.press('Enter')
-  await expect(locate.componentBrowser(page)).toBeHidden()
-  await expect(locate.graphNode(page)).toHaveCount(nodeCount + 1)
-  await expect(locate.graphNode(page).last().locator('.WidgetToken')).toHaveText([
-    'Data',
-    '.',
-    'read',
-  ])
-  await expect(locate.graphNode(page).last()).toBeSelected()
+test.describe('Accepting suggestion', () => {
+  async function checkAcceptSuggestion(
+    page: Page,
+    acceptSuggestion: () => Promise<void>,
+    expected: string[],
+  ) {
+    await locate.addNewNodeButton(page).click()
+    const nodeCount = await locate.graphNode(page).count()
+    await acceptSuggestion()
+    await expect(locate.componentBrowser(page)).toBeHidden()
+    await expect(locate.graphNode(page)).toHaveCount(nodeCount + 1)
+    await expect(locate.graphNode(page).last().locator('.WidgetToken')).toHaveText(expected)
+    await expect(locate.graphNode(page).last()).toBeSelected()
+  }
+  test('Accept suggestion by clicking entry', async ({ editorPage, page }) => {
+    await editorPage
+    await checkAcceptSuggestion(page, () => locate.componentBrowserEntry(page).nth(1).click(), [
+      'Data',
+      '.',
+      'read_many',
+    ])
+  })
+  test('Accept suggestion by clicking highlighted entry', async ({ editorPage, page }) => {
+    await editorPage
+    await checkAcceptSuggestion(
+      page,
+      () => locate.componentBrowserSelectedEntry(page).first().click(),
+      ['Data', '.', 'read'],
+    )
+  })
+  test('Accept suggestion with Enter', async ({ editorPage, page }) => {
+    await editorPage
+    await checkAcceptSuggestion(page, () => page.keyboard.press('Enter'), ['Data', '.', 'read'])
+  })
 })
 
 test('Accepting any written input', async ({ editorPage, page }) => {

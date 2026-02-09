@@ -16,11 +16,7 @@ import org.enso.compiler.core.CompilerError
 import org.enso.compiler.core.ir.expression.Foreign
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.IRProcessingPass
-import org.enso.compiler.pass.analyse.{
-  AliasAnalysis,
-  DataflowAnalysis,
-  TailCall
-}
+import org.enso.compiler.pass.analyse.{AliasAnalysis, TailCall}
 import org.enso.compiler.pass.lint.UnusedBindings
 import org.enso.compiler.pass.optimise.LambdaConsolidate
 import org.enso.persist.Persistance
@@ -54,7 +50,6 @@ case object GenerateMethodBodies extends IRPass {
     List(ComplexType, FunctionBinding)
   override lazy val invalidatedPasses: Seq[IRProcessingPass] = List(
     AliasAnalysis,
-    DataflowAnalysis,
     LambdaConsolidate,
     NestedPatternMatch,
     TailCall.INSTANCE,
@@ -157,7 +152,7 @@ case object GenerateMethodBodies extends IRPass {
             lam
           case lam: Function.Lambda =>
             fun.addDiagnostic(
-              Warning.WrongSelfParameterPos(funName, fun, parameterPosition)
+              new Warning.WrongSelfParameterPos(funName, fun, parameterPosition)
             )
             lam
           case _: Function.Binding =>
@@ -211,7 +206,7 @@ case object GenerateMethodBodies extends IRPass {
       if (arg.name.name == THIS_ARGUMENT) {
         if (i + argsIdx != 0) {
           lam.addDiagnostic(
-            Warning.WrongSelfParameterPos(funName, lam, argsIdx + i)
+            new Warning.WrongSelfParameterPos(funName, lam, argsIdx + i)
           )
         }
         (genSyntheticSelf() :: acc, true)
@@ -280,7 +275,7 @@ case object GenerateMethodBodies extends IRPass {
   private def genSyntheticSelf(): DefinitionArgument.Specified = {
     DefinitionArgument.Specified
       .builder()
-      .name(Name.Self(identifiedLocation = null, synthetic = true))
+      .name(Name.Self.builder().synthetic(true).build())
       .suspended(false)
       .build()
   }

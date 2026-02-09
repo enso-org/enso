@@ -8,6 +8,7 @@ import org.enso.table.data.column.operation.StorageIterators;
 import org.enso.table.data.column.storage.AbstractLongStorage;
 import org.enso.table.data.column.storage.ColumnBooleanStorage;
 import org.enso.table.data.column.storage.ColumnDoubleStorage;
+import org.enso.table.data.column.storage.ColumnLongStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.type.AnyObjectType;
 import org.enso.table.data.column.storage.type.BigDecimalType;
@@ -39,31 +40,27 @@ public class ToIntegerStorageConverter implements StorageConverter<Long> {
   @Override
   public ColumnStorage<Long> cast(
       ColumnStorage<?> storage, CastProblemAggregator problemAggregator) {
-    if (storage instanceof AbstractLongStorage longStorage) {
-      if (longStorage.getType().equals(targetType)) {
-        return longStorage;
-      } else {
-        return convertLongStorage(longStorage, problemAggregator);
+    var storageType = StorageType.ofStorage(storage);
+    return switch (storageType) {
+      case NullType _ -> Builder.makeEmpty(targetType, storage.getSize());
+      case IntegerType it ->
+          it.equals(targetType)
+              ? it.asTypedStorage(storage)
+              : convertLongStorage(it.asTypedStorage(storage), it, problemAggregator);
+      case FloatType ft -> convertDoubleStorage(ft.asTypedStorage(storage), problemAggregator);
+      case BooleanType bt -> convertBoolStorage(bt.asTypedStorage(storage), problemAggregator);
+      case BigIntegerType bigIntegerType ->
+          convertBigIntegerStorage(bigIntegerType.asTypedStorage(storage), problemAggregator);
+      case BigDecimalType bigDecimalType ->
+          convertBigDecimalStorage(bigDecimalType.asTypedStorage(storage), problemAggregator);
+      default -> {
+        if (!canApply(storageType)) {
+          throw new IllegalStateException(
+              "No known strategy for casting storage " + storageType + " to Integer.");
+        }
+        yield castFromObject(storage, problemAggregator);
       }
-    }
-
-    if (storage instanceof ColumnDoubleStorage doubleStorage) {
-      return convertDoubleStorage(doubleStorage, problemAggregator);
-    } else if (storage instanceof ColumnBooleanStorage boolStorage) {
-      return convertBoolStorage(boolStorage, problemAggregator);
-    } else {
-      var storageType = storage.getType();
-      if (storageType instanceof BigIntegerType bigIntegerType) {
-        return convertBigIntegerStorage(bigIntegerType.asTypedStorage(storage), problemAggregator);
-      } else if (storageType instanceof BigDecimalType bigDecimalType) {
-        return convertBigDecimalStorage(bigDecimalType.asTypedStorage(storage), problemAggregator);
-      } else if (canApply(storageType)) {
-        return castFromObject(storage, problemAggregator);
-      } else {
-        throw new IllegalStateException(
-            "No known strategy for casting storage " + storage + " to Integer.");
-      }
-    }
+    };
   }
 
   private ColumnStorage<Long> castFromObject(
@@ -133,12 +130,16 @@ public class ToIntegerStorageConverter implements StorageConverter<Long> {
   }
 
   private ColumnStorage<Long> convertLongStorage(
-      AbstractLongStorage longStorage, CastProblemAggregator problemAggregator) {
-    boolean isWidening = targetType.fits(longStorage.getType());
-    if (isWidening) {
-      // If the target type is larger than the source type, we can just widen the storage without
-      // doing any checks.
-      return longStorage.widen(targetType);
+      ColumnLongStorage longStorage,
+      IntegerType currentType,
+      CastProblemAggregator problemAggregator) {
+    if (longStorage instanceof AbstractLongStorage abstractLongStorage) {
+      boolean isWidening = targetType.fits(currentType);
+      if (isWidening) {
+        // If the target type is larger than the source type, we can just widen the storage without
+        // doing any checks.
+        return abstractLongStorage.widen(targetType);
+      }
     }
 
     return StorageIterators.buildOverLongStorage(

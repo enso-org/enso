@@ -240,7 +240,7 @@ function ProjectExecutionsCalendarInternal(props: ProjectExecutionsCalendarInter
         <NewProjectExecutionModal
           backend={backend}
           item={item}
-          defaultDateTime={toZoned(originalDateTime ?? selectedDate, timeZone)}
+          defaultDate={toZoned(originalDateTime ?? selectedDate, timeZone).set({ hour: now(timeZone).hour })}
         />
       </Dialog.Trigger>
       <Text>{getText('projectSessionsOnX', toCalendarDate(selectedDate).toString())}</Text>

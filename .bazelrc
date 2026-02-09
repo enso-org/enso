@@ -17,7 +17,7 @@ coverage --build_runfile_links
 
 ## Stamping for release builds
 # Enable with --config=release
-build:release --stamp --workspace_status_command="node $(pwd)/internal/workspaceStatus.mjs"
+build:release --stamp --workspace_status_command="node internal/workspaceStatus.mjs"
 
 # Use processwrapper-sandbox strategy by default, to align behavior with CI.
 # Note: this is the default strategy inside Docker containers (because of sandboxing restrictions)

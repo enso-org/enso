@@ -1,5 +1,4 @@
 from Standard.Base import all
-import Standard.Base.Errors.File_Error.File_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 from Standard.Base.Metadata.Choice import Option
 from Standard.Base.Metadata.Widget import Single_Choice
@@ -8,21 +7,12 @@ from Standard.Base.Visualization.Table_Viz_Data import Table_Viz_Data, Table_Viz
 import Standard.Table.Rows_To_Read.Rows_To_Read
 from Standard.Table import Table
 
+import project.Hyper_Errors
 import project.Hyper_Errors.Hyper_Table_Not_Found
 import project.Hyper_Table.Hyper_Table
 import project.Internal.Telemetry
 
 polyglot java import org.enso.tableau.HyperFormat
-polyglot java import java.io.File as Java_File
-polyglot java import java.io.FileNotFoundException
-polyglot java import java.io.IOException
-polyglot java import java.io.UncheckedIOException
-polyglot java import java.nio.file.AccessDeniedException
-polyglot java import java.nio.file.DirectoryNotEmptyException
-polyglot java import java.nio.file.FileAlreadyExistsException
-polyglot java import java.nio.file.FileSystemException
-polyglot java import java.nio.file.NoSuchFileException
-polyglot java import java.nio.file.NotDirectoryException
 
 ## Represents a Tableau Hyper Extract file.
 type Hyper_File
@@ -51,7 +41,7 @@ type Hyper_File
        Returns the list of schemas for the connection within the current database
        (or catalog).
     schemas : Vector Text
-    schemas self = handle_java_exceptions self.file <|
+    schemas self =
         array = HyperFormat.readSchemas self.file.path
         Vector.from_polyglot_array array
 
@@ -86,11 +76,10 @@ type Hyper_File
     @schema (hyper -> make_schema_selector hyper True)
     tables : Text -> Vector Hyper_Table
     tables self schema:Text=self.schema = if schema == "" then self.tables self.schema else
-        handle_java_exceptions self.file <|
-            array = case schema of
-                "*" -> HyperFormat.listTablesAllSchemas self.file.path
-                _ -> HyperFormat.listTables self.file.path schema
-            array.map t-> Hyper_Table.Value self t.schema t.name
+        array = case schema of
+            "*" -> HyperFormat.listTablesAllSchemas self.file.path
+            _ -> HyperFormat.listTables self.file.path schema
+        array.map t-> Hyper_Table.Value self t.schema t.name
 
     ## ---
        aliases: [get, import, load, open, sheet]
@@ -144,33 +133,3 @@ Table_Viz_Data.from (that:Hyper_File) =
     tables = that.tables.map t->t.table.to_text
     if schemas.distinct.length <= 1 then (Table_Viz_Data.GenericGrid [Table_Viz_Header.Link "Table" "Table" "read {{@Table}}"] [tables]) else
         (Table_Viz_Data.GenericGrid [Table_Viz_Header.Label "Schema", Table_Viz_Header.Link "Table" "Table" "read {{@Table}} {{@Schema}}"] [schemas, tables])
-
-private wrap_io_exception (file : File | Nothing) io_exception =
-   associated_file = case io_exception of
-      _ : FileSystemException ->
-            path_from_exception = io_exception.getFile
-            if path_from_exception.is_nothing then file else
-               File.new path_from_exception
-      _ -> file
-
-   ## If the file is not known, all we can do is throw a generic IO error.
-      This will only usually matter on stream operations, where there is no relevant file -
-      and so the exceptions like `NoSuchFileException` should not occur in such context.
-      But instead of risking a Type_Error, we just throw the more generic IO_Error.
-   if associated_file.is_nothing then Error.throw (File_Error.IO_Error Nothing "An IO error has occurred: "+io_exception.to_text) else case io_exception of
-      _ : FileNotFoundException -> Error.throw (File_Error.Not_Found associated_file)
-      _ : NoSuchFileException -> Error.throw (File_Error.Not_Found associated_file)
-      _ : FileAlreadyExistsException -> Error.throw (File_Error.Already_Exists associated_file)
-      _ : AccessDeniedException -> File_Error.access_denied associated_file
-      _ : DirectoryNotEmptyException -> Error.throw (File_Error.Directory_Not_Empty associated_file)
-      _ : NotDirectoryException -> Error.throw (File_Error.Not_A_Directory associated_file)
-      _ -> Error.throw (File_Error.IO_Error associated_file "An IO error has occurred: "+io_exception.to_text)
-
-private handle_java_exceptions (file : File | Nothing) ~action =
-   handle_io_exception caught_panic =
-      wrap_io_exception file caught_panic.payload
-   handle_unchecked_io_exception caught_panic =
-      wrap_io_exception file caught_panic.payload.getCause
-   Panic.catch IOException handler=handle_io_exception <|
-      Panic.catch UncheckedIOException handler=handle_unchecked_io_exception <|
-            action

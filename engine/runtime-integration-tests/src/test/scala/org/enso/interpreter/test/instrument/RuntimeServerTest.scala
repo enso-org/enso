@@ -6165,7 +6165,7 @@ class RuntimeServerTest
       """from Standard.Base import all
         |
         |main =
-        |    x = Panic.catch_primitive ` .convert_to_dataflow_error
+        |    x = Panic.catch Any ` .convert_to_dataflow_error
         |    IO.println x
         |    IO.println (x.catch Any .to_text)
         |""".stripMargin.linesIterator.mkString("\n")
@@ -6209,7 +6209,7 @@ class RuntimeServerTest
             Api.ExecutionResult.Diagnostic.error(
               "Unexpected token.",
               Some(mainFile),
-              Some(model.Range(model.Position(3, 30), model.Position(3, 31)))
+              Some(model.Range(model.Position(3, 24), model.Position(3, 25)))
             )
           )
         )
@@ -6234,7 +6234,7 @@ class RuntimeServerTest
         |import Standard.Base.Any.Any
         |
         |main =
-        |    x = Panic.catch_primitive () .convert_to_dataflow_error
+        |    x = Panic.catch Any () .convert_to_dataflow_error
         |    IO.println (x.catch Any .to_text)
         |
         |""".stripMargin.linesIterator.mkString("\n")
@@ -6278,7 +6278,7 @@ class RuntimeServerTest
             Api.ExecutionResult.Diagnostic.error(
               "Parentheses can't be empty.",
               Some(mainFile),
-              Some(model.Range(model.Position(5, 30), model.Position(5, 32)))
+              Some(model.Range(model.Position(5, 24), model.Position(5, 26)))
             )
           )
         )

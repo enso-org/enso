@@ -141,6 +141,11 @@ export interface UserInfo {
 
 /** A user in the application. These are the primary owners of a project. */
 export interface User extends UserInfo {
+  /**
+   * If `false`, this account is awaiting acceptance from an administrator, and endpoints other than
+   * `usersMe` will not work.
+   */
+  readonly isEnabled: boolean
   readonly isOrganizationAdmin: boolean
   readonly rootDirectoryId: DirectoryId
   readonly profilePicture?: HttpsUrl

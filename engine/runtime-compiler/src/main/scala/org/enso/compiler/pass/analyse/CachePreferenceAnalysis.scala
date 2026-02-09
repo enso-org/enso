@@ -57,7 +57,7 @@ case object CachePreferenceAnalysis extends IRPass {
     moduleContext: ModuleContext
   ): Module = {
     val weights = WeightInfo()
-    ir.copyWithBindings(bindings =
+    ir.copyWithBindings(
       ir.bindings.map(analyseModuleDefinition(_, weights))
     ).updateMetadata(new MetadataPair(this, weights))
   }
@@ -149,10 +149,10 @@ case object CachePreferenceAnalysis extends IRPass {
         binding.expression.getExternalId
           .foreach(weights.update(_, CachePreferences.Kind.BINDING_EXPRESSION))
         binding
-          .copy(
-            name       = binding.name.updateMetadata(new MetadataPair(this, weights)),
-            expression = analyseExpression(binding.expression, weights)
-          )
+          .copyBuilder()
+          .name(binding.name.updateMetadata(new MetadataPair(this, weights)))
+          .expression(analyseExpression(binding.expression, weights))
+          .build()
           .updateMetadata(new MetadataPair(this, weights))
       case error: Error =>
         error

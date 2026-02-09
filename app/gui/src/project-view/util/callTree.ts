@@ -561,7 +561,14 @@ export function deriveLocalCallInfoFromCode(
   call: Ast.Expression,
   groups: ToValue<DeepReadonly<GroupInfo[]>>,
 ): MethodCallInfo | undefined {
-  const moduleRoot = call.module.root()
+  let ancestor: Ast.Ast = call
+  for (;;) {
+    const parent = ancestor.parent()
+    if (!parent) break
+    ancestor = parent
+  }
+  if (!(ancestor instanceof Ast.BodyBlock)) return
+  const moduleRoot = ancestor
   if (!moduleRoot) return
   const methodAst = Ast.findModuleMethod(moduleRoot, methodPointer.name)
   if (!methodAst) return

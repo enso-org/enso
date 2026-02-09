@@ -102,7 +102,8 @@ public class RoundOperation<T, R> extends UnaryOperationNumeric<T, R> {
   public static UnaryOperation create(Column left, long decimalPlacesLong, boolean useBankers) {
     int decimalPlaces = Math.toIntExact(decimalPlacesLong);
     var storage = ColumnStorageWithInferredStorage.resolveStorage(left);
-    return switch (storage.getType()) {
+    var storageType = StorageType.ofStorage(storage);
+    return switch (storageType) {
       case NullType nt ->
           decimalPlaces <= 0
               ? new RoundOperation<>(
@@ -144,7 +145,7 @@ public class RoundOperation<T, R> extends UnaryOperationNumeric<T, R> {
               : createForDouble(FloatType.FLOAT_64, roundDouble(decimalPlaces, useBankers));
       default ->
           throw new UnsupportedOperationException(
-              "Unsupported storage type for round operation: " + storage.getType());
+              "Unsupported storage type for round operation: " + storageType);
     };
   }
 

@@ -1,7 +1,7 @@
 ## Enso Signatures 1.0
 ## module Standard.Table.Conversions.Convertible_To_Columns
 - type Convertible_To_Columns
-    - Value field_names:(Standard.Base.Data.Vector.Vector Standard.Base.Data.Text.Text) getter:Standard.Base.Any.Any
+    - Value field_names:(Standard.Base.Data.Vector.Vector Standard.Base.Data.Text.Text) getter:(Standard.Base.Data.Text.Text -> Standard.Base.Any.Any)
 - Standard.Table.Conversions.Convertible_To_Columns.Convertible_To_Columns.from that:Standard.Base.Data.Json.JS_Object -> Standard.Table.Conversions.Convertible_To_Columns.Convertible_To_Columns
 - Standard.Table.Conversions.Convertible_To_Columns.Convertible_To_Columns.from that:Standard.Base.Data.Dictionary.Dictionary -> Standard.Table.Conversions.Convertible_To_Columns.Convertible_To_Columns
 - Standard.Table.Conversions.Convertible_To_Columns.Convertible_To_Columns.from that:Standard.Base.Data.Pair.Pair -> Standard.Table.Conversions.Convertible_To_Columns.Convertible_To_Columns

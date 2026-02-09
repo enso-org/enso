@@ -27,10 +27,12 @@ run_specs_from_group (specs : Vector Spec) (group : Group) progress_reporter =
 
             progress_reporter.report_progress (group.name+": (Teardown)") increment=0
             # Invoke the teardown of the group
-            group.teardown Nothing
+            teardown_pair = Duration.time_execution <|
+                execute_spec_code group.teardown
             progress_reporter.clear
-            test_results
-
+            case teardown_pair.second of
+                Spec_Result.Success -> test_results
+                err -> test_results + [Test_Result.Impl group.name "teardown" err teardown_pair.first]
 
 group_contains_spec (group : Group) (spec : Spec) -> Boolean =
     spec_names = group.specs.map (it-> it.name)

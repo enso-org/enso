@@ -55,14 +55,7 @@ public class IRShallowCopyTest {
             .copyFunc(
                 lit -> {
                   var l = (Literal) lit;
-                  return l.copy(
-                      l.name(),
-                      l.isMethod(),
-                      l.location(),
-                      l.originalName(),
-                      l.passData(),
-                      l.diagnostics(),
-                      l.id());
+                  return l.copyBuilder().build();
                 })
             .build();
 
@@ -95,14 +88,13 @@ public class IRShallowCopyTest {
             .originalIr(
                 () -> {
                   var name = IRUtils.literal("x");
-                  var qualified =
-                      new Qualified(asScala(List.of(name)), null, new MetadataStorage());
+                  var qualified = Qualified.builder().parts(asScala(List.of(name))).build();
                   return qualified;
                 })
             .copyFunc(
                 qualified -> {
                   var q = (Qualified) qualified;
-                  return q.copy(q.parts(), Option.empty(), q.passData(), null, null);
+                  return q.copyBuilder().location(null).id(null).build();
                 })
             .build();
 

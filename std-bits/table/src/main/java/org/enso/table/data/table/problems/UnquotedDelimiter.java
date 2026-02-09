@@ -1,5 +1,8 @@
 package org.enso.table.data.table.problems;
 
+import org.enso.base.polyglot.EnsoMeta;
+import org.graalvm.polyglot.Value;
+
 public class UnquotedDelimiter extends ColumnAggregatedProblem {
   private final String message;
 
@@ -23,5 +26,11 @@ public class UnquotedDelimiter extends ColumnAggregatedProblem {
     }
 
     return false;
+  }
+
+  @Override
+  public Value asEnsoValue() {
+    return EnsoMeta.makeInstance(
+        "Standard.Table.Errors", "Unquoted_Delimiter", "Error", getLocationName(), getRows());
   }
 }

@@ -1,12 +1,14 @@
 package org.enso.table.data.column.storage.type;
 
 import java.math.BigInteger;
+import org.enso.base.polyglot.EnsoMeta;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.BuilderForLong;
 import org.enso.table.data.column.storage.ColumnLongStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.problems.ProblemAggregator;
+import org.graalvm.polyglot.Value;
 
 public final class IntegerType implements StorageType<Long>, NumericType {
   public static final IntegerType INT_64 = new IntegerType(Bits.BITS_64);
@@ -23,6 +25,16 @@ public final class IntegerType implements StorageType<Long>, NumericType {
   @Override
   public char typeChar() {
     return 'I';
+  }
+
+  @Override
+  public Value asEnsoValueType() {
+    if (bits.equals(Bits.BITS_8)) {
+      return EnsoMeta.makeInstance("Standard.Table.Value_Type", "Value_Type", "Byte");
+    }
+
+    var ensoBits = Bits.asEnsoValue(bits());
+    return EnsoMeta.makeInstance("Standard.Table.Value_Type", "Value_Type", "Integer", ensoBits);
   }
 
   @Override
@@ -112,9 +124,18 @@ public final class IntegerType implements StorageType<Long>, NumericType {
 
   @Override
   public Long valueAsType(Object value) {
+    if (value == null) {
+      return null;
+    }
+
     if (NumericConverter.isCoercibleToLong(value)) {
       return NumericConverter.coerceToLong(value);
     }
+
+    if (value instanceof Value polyValue && polyValue.isNumber() && polyValue.fitsInLong()) {
+      return polyValue.asLong();
+    }
+
     return null;
   }
 
@@ -125,7 +146,7 @@ public final class IntegerType implements StorageType<Long>, NumericType {
 
   @Override
   public ColumnLongStorage asTypedStorage(ColumnStorage<?> storage) {
-    if (storage.getType() instanceof IntegerType) {
+    if (StorageType.ofStorage(storage) instanceof IntegerType) {
       var output = (ColumnLongStorage) storage;
       return output;
     }

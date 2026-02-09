@@ -30,20 +30,21 @@ public class ToBigIntegerConverter implements StorageConverter<BigInteger> {
   @Override
   public ColumnStorage<BigInteger> cast(
       ColumnStorage<?> storage, CastProblemAggregator problemAggregator) {
-    if (storage instanceof ColumnLongStorage longStorage) {
-      return convertLongStorage(longStorage, problemAggregator);
-    } else if (storage instanceof ColumnDoubleStorage doubleStorage) {
-      return convertDoubleStorage(doubleStorage, problemAggregator);
-    } else if (storage instanceof ColumnBooleanStorage boolStorage) {
-      return convertBoolStorage(boolStorage, problemAggregator);
-    } else if (storage.getType() instanceof BigDecimalType bigDecimalType) {
-      return convertBigDecimalStorage(bigDecimalType.asTypedStorage(storage), problemAggregator);
-    } else if (canApply(storage.getType())) {
-      return castFromObject(storage, problemAggregator);
-    } else {
-      throw new IllegalStateException(
-          "No known strategy for casting storage " + storage + " to BigInteger.");
-    }
+    var storageType = StorageType.ofStorage(storage);
+    return switch (storageType) {
+      case IntegerType it -> convertLongStorage(it.asTypedStorage(storage), problemAggregator);
+      case FloatType ft -> convertDoubleStorage(ft.asTypedStorage(storage), problemAggregator);
+      case BooleanType bt -> convertBoolStorage(bt.asTypedStorage(storage), problemAggregator);
+      case BigDecimalType bdt ->
+          convertBigDecimalStorage(bdt.asTypedStorage(storage), problemAggregator);
+      default -> {
+        if (!canApply(storageType)) {
+          throw new IllegalStateException(
+              "Cannot convert storage of type " + storageType + " to BigInteger.");
+        }
+        yield castFromObject(storage, problemAggregator);
+      }
+    };
   }
 
   private ColumnStorage<BigInteger> convertDoubleStorage(

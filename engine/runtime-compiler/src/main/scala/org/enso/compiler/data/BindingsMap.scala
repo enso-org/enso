@@ -952,7 +952,7 @@ object BindingsMap {
       module
         .unsafeAsModule("must be a module to run resolution")
         .getIr
-        .unsafeGetMetadata(
+        .unsafeGetMetadata[BindingAnalysis.Metadata](
           BindingAnalysis,
           "Wrong pass ordering. Running resolution on an unparsed module."
         )

@@ -2,8 +2,6 @@ package org.enso.table.data.column.builder;
 
 import java.math.BigDecimal;
 import org.enso.base.polyglot.NumericConverter;
-import org.enso.table.data.column.storage.ColumnStorage;
-import org.enso.table.data.column.storage.TypedStorage;
 import org.enso.table.data.column.storage.type.BigDecimalType;
 import org.enso.table.error.ValueTypeMismatchException;
 import org.graalvm.polyglot.Context;
@@ -23,7 +21,7 @@ final class BigDecimalBuilder extends TypedBuilder<BigDecimal> {
       try {
         data[currentSize++] = NumericConverter.coerceToBigDecimal(o);
       } catch (UnsupportedOperationException e) {
-        throw new ValueTypeMismatchException(getType(), o);
+        throw new ValueTypeMismatchException(getStorageType(), o);
       }
     }
     return this;
@@ -32,11 +30,6 @@ final class BigDecimalBuilder extends TypedBuilder<BigDecimal> {
   @Override
   public boolean accepts(Object o) {
     return o instanceof BigDecimal || NumericConverter.isCoercibleToDouble(o);
-  }
-
-  @Override
-  protected ColumnStorage<BigDecimal> doSeal() {
-    return new TypedStorage<>(BigDecimalType.INSTANCE, data);
   }
 
   static Builder retypeFromLongBuilder(BuilderForLong longBuilder) {

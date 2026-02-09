@@ -9,7 +9,6 @@ import org.enso.compiler.context.ModuleContext;
 import org.enso.compiler.core.CompilerError;
 import org.enso.compiler.core.IR;
 import org.enso.compiler.core.ir.Expression;
-import org.enso.compiler.core.ir.MetadataStorage;
 import org.enso.compiler.core.ir.Name;
 import org.enso.compiler.core.ir.Pattern;
 import org.enso.compiler.core.ir.expression.Case;
@@ -19,7 +18,6 @@ import org.enso.compiler.pass.IRProcessingPass;
 import org.enso.compiler.pass.MiniIRPass;
 import org.enso.compiler.pass.MiniPassFactory;
 import org.enso.compiler.pass.analyse.AliasAnalysis$;
-import org.enso.compiler.pass.analyse.DataflowAnalysis$;
 import org.enso.compiler.pass.analyse.DemandAnalysis$;
 import org.enso.compiler.pass.analyse.TailCall;
 import org.enso.compiler.pass.desugar.GenerateMethodBodies$;
@@ -57,7 +55,6 @@ public final class ShadowedPatternFields implements MiniPassFactory {
     java.util.List<IRProcessingPass> list =
         java.util.List.of(
             AliasAnalysis$.MODULE$,
-            DataflowAnalysis$.MODULE$,
             DemandAnalysis$.MODULE$,
             IgnoredBindings$.MODULE$,
             NestedPatternMatch$.MODULE$,
@@ -122,7 +119,7 @@ public final class ShadowedPatternFields implements MiniPassFactory {
           if (seenNames.contains(name)) {
             var warning = new PatternBinding(name, lastSeen.get(name), named.identifiedLocation());
             lastSeen.put(name, named);
-            var blank = new Name.Blank(named.identifiedLocation(), new MetadataStorage());
+            var blank = Name.Blank.builder().location(named.identifiedLocation()).build();
             var patternCopy = named.copyWithName(blank);
             patternCopy.getDiagnostics().add(warning);
             yield patternCopy;
@@ -145,7 +142,7 @@ public final class ShadowedPatternFields implements MiniPassFactory {
           if (seenNames.contains(name)) {
             var warning = new PatternBinding(name, lastSeen.get(name), typed.identifiedLocation());
             lastSeen.put(name, typed);
-            var blank = new Name.Blank(typed.identifiedLocation(), new MetadataStorage());
+            var blank = Name.Blank.builder().location(typed.identifiedLocation()).build();
             var typedCopy = typed.copyBuilder().name(blank).build();
             typedCopy.getDiagnostics().add(warning);
             yield typedCopy;

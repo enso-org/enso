@@ -3,6 +3,7 @@ package org.enso.table.aggregations;
 import java.util.Arrays;
 import java.util.List;
 import org.enso.table.data.column.storage.ColumnStorage;
+import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.index.OrderedMultiValueKey;
 import org.enso.table.data.table.Column;
 import org.enso.table.problems.ProblemAggregator;
@@ -25,7 +26,7 @@ public class First extends KnownTypeAggregator {
       boolean ignoreNothing,
       Column[] orderByColumns,
       Long[] orderByDirections) {
-    super(name, column.getStorage().getType());
+    super(name, StorageType.ofStorage(column.getStorage()));
     this.storage = column.getStorage();
     this.orderByColumns =
         orderByColumns == null

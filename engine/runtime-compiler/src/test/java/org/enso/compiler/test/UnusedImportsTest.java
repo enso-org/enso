@@ -17,7 +17,6 @@ import org.enso.compiler.test.mock.WithCompilerContext;
 import org.enso.pkg.QualifiedName;
 import org.junit.Rule;
 import org.junit.Test;
-import scala.jdk.javaapi.CollectionConverters;
 
 public class UnusedImportsTest {
   @Rule
@@ -766,7 +765,7 @@ public class UnusedImportsTest {
 
   private static void expectWarning(Import importIr, List<String> expectedUnusedSymbols) {
     var warn = getSingleWarning(importIr, UnusedSymbolsFromImport.class);
-    var actualUnusedSymbols = CollectionConverters.asJava(warn.unusedSymbols());
+    var actualUnusedSymbols = warn.unusedSymbols();
     assertThat("Unused symbols do not match", actualUnusedSymbols, is(expectedUnusedSymbols));
   }
 
