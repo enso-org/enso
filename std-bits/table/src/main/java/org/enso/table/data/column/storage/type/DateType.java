@@ -1,13 +1,11 @@
 package org.enso.table.data.column.storage.type;
 
 import java.time.LocalDate;
-import org.enso.base.polyglot.EnsoMeta;
 import org.enso.base.polyglot.Polyglot_Utils;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.BuilderForType;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.problems.ProblemAggregator;
-import org.graalvm.polyglot.Value;
 
 public final class DateType implements StorageType<LocalDate> {
   public static final DateType INSTANCE = new DateType();

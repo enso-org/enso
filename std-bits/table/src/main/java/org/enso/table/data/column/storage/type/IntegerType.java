@@ -30,8 +30,13 @@ public final class IntegerType implements StorageType<Long>, NumericType {
   @Override
   public Value asEnsoValueType() {
     return bits.equals(Bits.BITS_8)
-            ? EnsoMeta.makeInstance(StorageType.ENSO_MODULE, StorageType.ENSO_TYPE_NAME, ensoConstructorName())
-            : EnsoMeta.makeInstance(StorageType.ENSO_MODULE, StorageType.ENSO_TYPE_NAME, ensoConstructorName(), Bits.asEnsoValue(bits()));
+        ? EnsoMeta.makeInstance(
+            StorageType.ENSO_MODULE, StorageType.ENSO_TYPE_NAME, ensoConstructorName())
+        : EnsoMeta.makeInstance(
+            StorageType.ENSO_MODULE,
+            StorageType.ENSO_TYPE_NAME,
+            ensoConstructorName(),
+            Bits.asEnsoValue(bits()));
   }
 
   @Override

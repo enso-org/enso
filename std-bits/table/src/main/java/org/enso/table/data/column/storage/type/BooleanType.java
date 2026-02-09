@@ -1,6 +1,5 @@
 package org.enso.table.data.column.storage.type;
 
-import org.enso.base.polyglot.EnsoMeta;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.BuilderForBoolean;
 import org.enso.table.data.column.storage.ColumnBooleanStorage;

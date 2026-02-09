@@ -1,12 +1,10 @@
 package org.enso.table.data.column.storage.type;
 
-import org.enso.base.polyglot.EnsoMeta;
 import org.enso.base.polyglot.Polyglot_Utils;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.BuilderForType;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.problems.ProblemAggregator;
-import org.graalvm.polyglot.Value;
 
 public final class AnyObjectType implements StorageType<Object> {
   public static final AnyObjectType INSTANCE = new AnyObjectType();

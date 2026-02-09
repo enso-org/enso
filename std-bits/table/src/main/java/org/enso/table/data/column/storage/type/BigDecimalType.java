@@ -40,7 +40,11 @@ public final class BigDecimalType implements StorageType<BigDecimal>, NumericTyp
   @Override
   public Value asEnsoValueType() {
     return EnsoMeta.makeInstance(
-        StorageType.ENSO_MODULE, StorageType.ENSO_TYPE_NAME, ensoConstructorName(), null, scale == -1 ? null : scale);
+        StorageType.ENSO_MODULE,
+        StorageType.ENSO_TYPE_NAME,
+        ensoConstructorName(),
+        null,
+        scale == -1 ? null : scale);
   }
 
   @Override

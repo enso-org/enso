@@ -47,7 +47,11 @@ public final class TextType implements StorageType<String> {
                 "Standard.Base.Data.Numbers", "Positive_Integer", "Value", maxLength);
 
     return EnsoMeta.makeInstance(
-        StorageType.ENSO_MODULE, StorageType.ENSO_TYPE_NAME, ensoConstructorName(), ensoLength, !fixedLength);
+        StorageType.ENSO_MODULE,
+        StorageType.ENSO_TYPE_NAME,
+        ensoConstructorName(),
+        ensoLength,
+        !fixedLength);
   }
 
   @Override

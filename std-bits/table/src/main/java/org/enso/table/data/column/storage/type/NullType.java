@@ -1,10 +1,8 @@
 package org.enso.table.data.column.storage.type;
 
-import org.enso.base.polyglot.EnsoMeta;
 import org.enso.table.data.column.builder.BuilderForType;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.problems.ProblemAggregator;
-import org.graalvm.polyglot.Value;
 
 public final class NullType implements StorageType<Void> {
   public static final NullType INSTANCE = new NullType();

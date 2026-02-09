@@ -43,29 +43,34 @@ public class JsonOperation {
     final long finalLength = maxLength;
     return jsonCache()
         .computeIfAbsent(
-            cacheKey,
-            _ -> {
-              if (start >= fullStorage.getSize()) {
-                // If the start is beyond the size of the storage, return an empty array.
-                return "[]";
-              }
-              long length = finalLength;
-              if (start + length > fullStorage.getSize()) {
-                // If the requested length goes beyond the size of the storage, adjust it.
-                length = fullStorage.getSize() - start;
-              }
+            cacheKey, _ -> applyImpl(start, ensoJsonCallback, fullStorage, finalLength));
+  }
 
-              return switch (StorageType.ofStorage(fullStorage)) {
-                case NullType _ -> createNullJson(length);
-                case BooleanType booleanType ->
-                    createBooleanJson(booleanType.asTypedStorage(fullStorage), start, length);
-                case IntegerType integerType ->
-                    createIntegerJson(integerType.asTypedStorage(fullStorage), start, length);
-                case FloatType floatType ->
-                    createFloatJson(floatType.asTypedStorage(fullStorage), start, length);
-                default -> createObjectJson(fullStorage, start, length, ensoJsonCallback);
-              };
-            });
+  private static String applyImpl(
+      long start,
+      Function<Object, String> ensoJsonCallback,
+      ColumnStorage<?> fullStorage,
+      long finalLength) {
+    if (start >= fullStorage.getSize()) {
+      // If the start is beyond the size of the storage, return an empty array.
+      return "[]";
+    }
+    long length = finalLength;
+    if (start + length > fullStorage.getSize()) {
+      // If the requested length goes beyond the size of the storage, adjust it.
+      length = fullStorage.getSize() - start;
+    }
+
+    return switch (StorageType.ofStorage(fullStorage)) {
+      case NullType _ -> createNullJson(length);
+      case BooleanType booleanType ->
+          createBooleanJson(booleanType.asTypedStorage(fullStorage), start, length);
+      case IntegerType integerType ->
+          createIntegerJson(integerType.asTypedStorage(fullStorage), start, length);
+      case FloatType floatType ->
+          createFloatJson(floatType.asTypedStorage(fullStorage), start, length);
+      default -> createObjectJson(fullStorage, start, length, ensoJsonCallback);
+    };
   }
 
   private static String createFloatJson(

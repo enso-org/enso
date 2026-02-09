@@ -6,7 +6,6 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZonedDateTime;
-
 import org.enso.base.polyglot.EnsoMeta;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.builder.BuilderForType;
@@ -133,10 +132,13 @@ public sealed interface StorageType<T>
 
   /** Creates an Enso Value Type representation of the storage type. */
   default Value asEnsoValueType() {
-    return EnsoMeta.makeInstance(StorageType.ENSO_MODULE, StorageType.ENSO_TYPE_NAME, ensoConstructorName());
+    return EnsoMeta.makeInstance(
+        StorageType.ENSO_MODULE, StorageType.ENSO_TYPE_NAME, ensoConstructorName());
   }
 
-  /** @return the name of the constructor for this type in Enso. */
+  /**
+   * @return the name of the constructor for this type in Enso.
+   */
   String ensoConstructorName();
 
   /**
