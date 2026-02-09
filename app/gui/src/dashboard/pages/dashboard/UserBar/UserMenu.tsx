@@ -57,6 +57,7 @@ export function UserMenu(props: UserMenuProps) {
             }
           },
           label: `${organization.name} (${user.organizationId === organization.id ? 'current' : 'switch'})`,
+          truncateLabel: true,
           picture: (
             <ProfilePicture
               size="xsmall"
@@ -127,39 +128,32 @@ export function UserMenu(props: UserMenuProps) {
             <Text disableLineHeightCompensation>{getText(user.plan)}</Text>
           </div>
         </div>
+
+        {user.maintainerAccount && (
+          <div className="-mx-1.5 mb-1 flex flex-col overflow-hidden">
+            {organizationsSwitcher.map(
+              (entry, index) =>
+                entry && (
+                  <div
+                    key={`${entry.action}-${index}`}
+                    className={twMerge(
+                      'px-1.5 transition-colors',
+                      entry.isSelected ? 'bg-hover-bg hover:bg-black-a16' : 'hover:bg-hover-bg',
+                    )}
+                  >
+                    <MenuEntry {...entry} hasHoverBackground={false} />
+                  </div>
+                ),
+            )}
+          </div>
+        )}
+
         <div className="flex flex-col overflow-hidden">
-          {entries.map((entry) => {
-            if (entry == null || entry === false) {
-              return []
-            }
-            return [<MenuEntry key={entry.action} {...entry} />]
-          })}
+          {entries.map((entry) => entry && <MenuEntry key={entry.action} {...entry} />)}
         </div>
 
-        {user.maintainerAccount &&
-          organizationsSwitcher.map((entry) => {
-            if (entry == null || entry === false) {
-              return []
-            }
-            return [
-              <div
-                className={twMerge(
-                  'flex flex-col overflow-hidden',
-                  entry.isSelected ? 'bg-hover-bg' : '',
-                )}
-              >
-                <MenuEntry key={entry.action} {...entry} />
-              </div>,
-            ]
-          })}
-
         <div className="flex flex-col overflow-hidden">
-          {tailEntries.map((entry) => {
-            if (entry == null || entry === false) {
-              return []
-            }
-            return [<MenuEntry key={entry.action} {...entry} />]
-          })}
+          {tailEntries.map((entry) => entry && <MenuEntry key={entry.action} {...entry} />)}
         </div>
       </Popover>
     </>
