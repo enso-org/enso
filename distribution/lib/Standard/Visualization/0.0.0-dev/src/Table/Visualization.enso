@@ -17,6 +17,16 @@ from project.Helpers import time_visualization
 ## ---
    private: true
    ---
+   Helper for JsonOperation
+type Helper
+    ## ---
+       private: true
+       ---
+    make_json value = _make_json_for_value value
+
+## ---
+   private: true
+   ---
    Prepares a table or column for visualization.
 
    In case of Database backed data, it materializes a sample of the data.
