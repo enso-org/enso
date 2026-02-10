@@ -61,79 +61,44 @@ class UpsertVisualizationJob(
 
   /** @inheritdoc */
   override def runImpl(implicit ctx: RuntimeContext): Option[Executable] = {
+    System.err.println("runImpl for " + expressionId);
     val stack =
       ctx.contextManager.getStack(config.executionContextId)
     val runtimeCache = stack.headOption
       .flatMap(frame => Option(frame.cache))
-    runtimeCache.map(c =>
+    runtimeCache.flatMap { c =>
       c.onModification(
         expressionId,
         immutable => {
           val data = immutable.get(expressionId)
           System.err.println(
-            "Modified value of " + expressionId + " to " + data
+            "runImpl Modified value of " + expressionId + " to " + data
           );
           if (data != null) {
-            val contextId = config.executionContextId
-            ctx.endpoint.sendToClient(
-              Api.Response(
-                Api.VisualizationUpdate(
-                  Api.VisualizationContext(
-                    visualizationId,
-                    contextId,
-                    expressionId
-                  ),
-                  VisualizationResult.visualizationResultToBytes(
-                    data.toString()
-                  )
-                )
-              )
+            evaluateAndExecuteVisualization2(
+              data,
+              hasWriteLock = true
             )
           }
         }
       )
-    )
-    /*
-    System.err.println(
-      "UpsertVisualizationJob.runImpl before withReadContextLock"
-    )
-    ctx.locking.withReadContextLock(
-      ctx.locking.getOrCreateContextLock(config.executionContextId),
-      classOf[UpsertVisualizationJob],
-      () => {
-        System.err.println("UpsertVisualizationJob.runImpl withReadContextLock")
-        val (needsRetryWithWriteLock, maybeResult) =
-          ctx.locking.withReadCompilationLock(
-            classOf[UpsertVisualizationJob],
-            () => {
-              System.err.println(
-                "UpsertVisualizationJob.runImpl withReadCompilationLock"
-              )
-              evaluateAndExecuteVisualization(
-                hasWriteLock = false
-              )
-            }
-          )
-        if (needsRetryWithWriteLock) {
-          UpsertVisualizationJob.logger.trace(
-            "Retrying visualization {} evaluation with write lock to compile necessary modules",
-            visualizationId
-          )
-          ctx.locking.withWriteCompilationLock(
-            classOf[UpsertVisualizationJob],
-            "visualizationId=" + visualizationId + ",expressionId=" + expressionId,
-            () =>
-              evaluateAndExecuteVisualization(
-                hasWriteLock = true
-              )._2
-          )
-        } else {
-          maybeResult
-        }
+      val previous = c.runQuery(null, immutable => immutable.get(expressionId))
+      if (previous == null) {
+        System.err.println("  no value for " + expressionId)
+        // empty
+        Some(Executable(config.executionContextId, stack))
+      } else {
+        System.err.println(
+          "  some value for " + expressionId + " = " + previous
+        )
+        // value is present
+        evaluateAndExecuteVisualization2(
+          previous,
+          hasWriteLock = false
+        )
+        None
       }
-    )
-     */
-    None
+    }
   }
 
   /** Attempts to evaluate the visualization expression associated with this job.
@@ -188,6 +153,62 @@ class UpsertVisualizationJob(
         (!hasWriteLock, None)
       case Right(evaluatedExpression) =>
         (false, executeVisualization(evaluatedExpression))
+    }
+  }
+
+  /** Attempts to evaluate the visualization expression associated with this job.
+    *
+    * @param value computed value to be visualized
+    * @param runtimeCache an instance of runtime cache associated with this frame
+    * @param stack current stackframe
+    * @param hasWriteLock true if necessary module loading/compilation can be performed, if needed. False otherwise
+    * @param ctx an instance of current `RuntimeContext`
+    * @return true if failed due to required compilation and lack of required lock, false if successful
+    */
+  def evaluateAndExecuteVisualization2(
+    value: Object,
+    hasWriteLock: Boolean
+  )(implicit ctx: RuntimeContext): (Boolean, Option[Executable]) = {
+    UpsertVisualizationJob.logger.trace(
+      "Evaluating expression {} in observer",
+      expressionId
+    )
+    val maybeCallable = UpsertVisualizationJob.evaluateVisualizationExpression(
+      config.visualizationModule,
+      config.expression,
+      hasWriteLock
+    )
+
+    maybeCallable match {
+      case Left(ModuleNotFound(moduleName)) =>
+        UpsertVisualizationJob.logger.trace(
+          "Evaluation of visualization {} in observer for expression {} failed. Module not found",
+          visualizationId,
+          expressionId
+        )
+        ctx.endpoint.sendToClient(
+          Api.Response(Api.ModuleNotFound(moduleName))
+        )
+        (false, None)
+      case Left(EvaluationFailed(message, result)) =>
+        UpsertVisualizationJob.logger.trace(
+          "Evaluation of visualization {} in observer for expression {} failed.",
+          visualizationId,
+          expressionId
+        )
+        replyWithExpressionFailedError(
+          config.executionContextId,
+          visualizationId,
+          expressionId,
+          message,
+          result
+        )
+        (false, None)
+      case Left(RequiresCompilation) =>
+        // todo reply with expr failed
+        (!hasWriteLock, None)
+      case Right(evaluatedExpression) =>
+        (false, executeVisualization2(value, evaluatedExpression))
     }
   }
 
@@ -274,6 +295,51 @@ class UpsertVisualizationJob(
         )
         Some(Executable(config.executionContextId, stack))
     }
+  }
+
+  private def executeVisualization2(
+    value: Object,
+    evaluatedVisualization: EvaluationResult
+  )(implicit ctx: RuntimeContext): Option[Executable] = {
+    val EvaluationResult(module, callable, arguments) = evaluatedVisualization
+    UpsertVisualizationJob.logger.trace(
+      "Executing visualization {} for expression {}",
+      visualizationId,
+      expressionId
+    )
+
+    val visualization =
+      UpsertVisualizationJob.updateAttachedVisualization(
+        visualizationId,
+        expressionId,
+        module,
+        config,
+        callable,
+        arguments
+      )
+    val stack =
+      ctx.contextManager.getStack(config.executionContextId)
+
+    // attach callable to runtimeCache
+    // here
+    System.err.println("Attach to value of " + expressionId)
+
+    val runtimeCache = stack.headOption
+      .flatMap(frame => Option(frame.cache))
+
+    UpsertVisualizationJob.requireVisualizationSynchronization(
+      stack,
+      visualizationId
+    )
+    ProgramExecutionSupport.executeAndSendVisualizationUpdate(
+      config.executionContextId,
+      runtimeCache.getOrElse(RuntimeCache.create.cache),
+      stack.headOption.get.syncState,
+      visualization,
+      expressionId,
+      value
+    )
+    None
   }
 
   private def replyWithExpressionFailedError(
