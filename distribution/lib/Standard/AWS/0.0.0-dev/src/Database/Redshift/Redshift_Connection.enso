@@ -16,6 +16,7 @@ import Standard.Database.Internal.Common.Connections_Helpers
 import Standard.Database.Internal.Connection.Entity_Naming_Properties.Entity_Naming_Properties
 import Standard.Database.Internal.JDBC_Connection
 import Standard.Database.SQL.SQL_Statement
+import Standard.Database.SQL.SQL_Builder
 import Standard.Database.SQL_Query.SQL_Query
 import Standard.Database.SQL_Query.SQL_Query_With_Schema
 from Standard.Database.Connection.Connection import make_schema_selector, make_structure_creator, make_table_name_with_schema_selector, make_table_types_selector
@@ -133,7 +134,10 @@ type Redshift_Connection
     set_schema : Text -> Connection ! SQL_Error
     set_schema self schema =
         if schema . equals_ignore_case self.schema then self else
-            Redshift_Connection.Value (self.connection.set_schema schema) self.make_new
+            wrapped_schema = self.connection.dialect.wrap_identifier schema
+            set_query = SQL_Builder.code "SET search_path TO " ++ wrapped_schema
+            _ = self.connection.execute set_query.build
+            self
 
     ## ---
        group: Standard.Base.Metadata
