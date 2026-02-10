@@ -524,9 +524,11 @@ export function listProjectExecutionsQueryOptions(
   backend: Backend,
   id: backendModule.ProjectId,
   title: string,
+  year: number,
+  month: number,
 ) {
   return queryOptions({
-    ...backendQueryOptions(backend, 'listProjectExecutions', [id, title]),
+    ...backendQueryOptions(backend, 'listProjectExecutions', [id, title, year, month]),
     select: (executions) => [...executions].reverse(),
     staleTime: PROJECT_EXECUTIONS_STALE_TIME,
   })

@@ -129,7 +129,13 @@ function ProjectExecutionsCalendarInternal(props: ProjectExecutionsCalendarInter
   const originalDateTime = Form.useWatch({ control: form.control, name: 'dateTimeOverride' })
 
   const projectExecutionsQuery = useSuspenseQuery(
-    listProjectExecutionsQueryOptions(backend, item.id, item.title),
+    listProjectExecutionsQueryOptions(
+      backend,
+      item.id,
+      item.title,
+      focusedMonth.year,
+      focusedMonth.month,
+    ),
   )
   const projectExecutions = projectExecutionsQuery.data
 
@@ -240,7 +246,9 @@ function ProjectExecutionsCalendarInternal(props: ProjectExecutionsCalendarInter
         <NewProjectExecutionModal
           backend={backend}
           item={item}
-          defaultDate={toZoned(originalDateTime ?? selectedDate, timeZone).set({ hour: now(timeZone).hour })}
+          defaultDate={toZoned(originalDateTime ?? selectedDate, timeZone).set({
+            hour: now(timeZone).hour,
+          })}
         />
       </Dialog.Trigger>
       <Text>{getText('projectSessionsOnX', toCalendarDate(selectedDate).toString())}</Text>
