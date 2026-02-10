@@ -206,10 +206,11 @@ type Redshift_Connection
     query : (SQL_Query_With_Schema | SQL_Query) -> Text -> Table & DB_Table ! Table_Not_Found
     query self query:(SQL_Query_With_Schema | SQL_Query) alias="" =
         used_query = case query of
+            SQL_Query.Table_Name name -> SQL_Query_With_Schema.Table_Name name ""
+            SQL_Query.Raw_SQL sql -> SQL_Query_With_Schema.Raw_SQL sql
             _ : SQL_Query_With_Schema -> query
-            _ : SQL_Query -> SQL_Query_With_Schema.From query
         used_query.to_db_table self alias
-
+        
     ## ---
        aliases: [import, load, open, query, sql]
        group: Standard.Base.Input
