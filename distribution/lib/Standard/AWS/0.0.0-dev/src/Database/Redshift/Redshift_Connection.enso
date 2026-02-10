@@ -171,7 +171,13 @@ type Redshift_Connection
     @schema (make_schema_selector include_any=True)
     tables : Text -> Text -> Text -> Vector -> Boolean -> Table
     tables self name_like=Nothing database=self.database schema=Nothing types=self.dialect.default_table_types all_fields=False =
-        self.connection.tables name_like database schema types all_fields
+        normalized_name_like = case name_like of
+            Nothing -> Nothing
+            _ : Text -> if name_like.contains "*" then name_like.replace "*" "%" else name_like
+        normalized_schema = case schema of
+            Nothing -> Nothing
+            _ : Text -> if schema.contains "*" then schema.replace "*" "%" else schema
+        self.connection.tables normalized_name_like database normalized_schema types all_fields
 
     ## ---
        aliases: [import, load, open, read, sql]
