@@ -112,13 +112,14 @@ function ProjectExecutionsCalendarInternal(props: ProjectExecutionsCalendarInter
       }),
     defaultValues: { date: todayDate, dateTimeOverride: now(timeZone) },
     onSubmit: () => {},
-    onChange: (field, value, theForm) => {
+    onChange: (field, _value, theForm) => {
+      if (field !== 'date') return
+      const { date, dateTimeOverride } = theForm.getValues()
       if (
-        field === 'dateTimeOverride' &&
-        value != null &&
+        dateTimeOverride &&
         // This type assertion is SAFE as the field is 'dateTimeOverride'.
         // eslint-disable-next-line no-restricted-syntax
-        toCalendarDate(value as unknown as ZonedDateTime).compare(theForm.getValues().date) !== 0
+        toCalendarDate(dateTimeOverride as unknown as ZonedDateTime).compare(date) !== 0
       ) {
         // Unset the override away from *now* if the date part is changed.
         theForm.setValue('dateTimeOverride', undefined)
@@ -248,6 +249,7 @@ function ProjectExecutionsCalendarInternal(props: ProjectExecutionsCalendarInter
           item={item}
           defaultDate={toZoned(originalDateTime ?? selectedDate, timeZone).set({
             hour: now(timeZone).hour,
+            minute: now(timeZone).minute,
           })}
         />
       </Dialog.Trigger>

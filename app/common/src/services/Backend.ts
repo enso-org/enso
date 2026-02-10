@@ -1729,7 +1729,7 @@ export abstract class Backend {
     }
 
     const error =
-      response == null || response.headers.get('Content-Type') !== 'application/json' ?
+      response == null || !response.headers.get('Content-Type')?.startsWith('application/json') ?
         { message: 'unknown error' }
       : await ((): Promise<Error> => response.json())()
 
