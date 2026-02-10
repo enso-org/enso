@@ -1012,6 +1012,33 @@ type_spec suite_builder name alter = suite_builder.group name group_builder->
         expected_warnings = expected_warnings_regular + [(Additional_Warnings.Error 2)]
         Warning.get_all result wrap_errors=True . map .value . should_equal expected_warnings
 
+    group_builder.specify "Warnings and length" <|
+        result = alter [Warning.attach "OKeyish" 20]
+        len = result.length
+        len . should_equal 1
+
+        has_warning = Warning.has_warnings len
+        if Java.is_instance result ArrayList then has_warning . should_be_false else
+            has_warning . should_be_true
+
+    group_builder.specify "Warnings and length if check" <|
+        result = alter [Warning.attach "OKeyish" 20]
+        empty = if result.length == 0 then "empty" else "some"
+        empty . should_equal "some"
+
+        has_warning = Warning.has_warnings empty
+        if Java.is_instance result ArrayList then has_warning . should_be_false else
+            has_warning . should_be_true
+
+    group_builder.specify "Warnings and is_empty check" <|
+        result = alter [Warning.attach "OKeyish" 20]
+        empty = if result.is_empty then "empty" else "some"
+        empty . should_equal "some"
+
+        has_warning = Warning.has_warnings empty
+        if Java.is_instance result ArrayList then has_warning . should_be_false else
+            has_warning . should_be_true
+
     group_builder.specify "Warnings and each" <|
         result = alter [Warning.attach "OKeyish" 20]
         has_at = Warning.has_warnings (result.at 0)
