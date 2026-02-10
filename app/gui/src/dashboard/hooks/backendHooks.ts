@@ -529,7 +529,7 @@ export function listProjectExecutionsQueryOptions(
 ) {
   return queryOptions({
     ...backendQueryOptions(backend, 'listProjectExecutions', [id, title, year, month]),
-    select: (executions) => [...executions].reverse(),
+    // select: (executions) => [...executions].reverse(),
     staleTime: PROJECT_EXECUTIONS_STALE_TIME,
   })
 }
