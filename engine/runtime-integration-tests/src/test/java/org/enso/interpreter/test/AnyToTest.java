@@ -8,7 +8,6 @@ import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.Source;
 import org.junit.ClassRule;
-import org.junit.Ignore;
 import org.junit.Test;
 
 public class AnyToTest {
@@ -44,13 +43,11 @@ public class AnyToTest {
   }
 
   @Test
-  @Ignore
   public void multiValueToText() throws Exception {
     multiValueToText(2);
   }
 
   @Test
-  @Ignore
   public void multiValueToTextHidden() throws Exception {
     multiValueToText(1);
   }
