@@ -18,6 +18,7 @@ export function StravaCredentialsForm(props: CredentialFormProps) {
   const { createCredentials } = props
   const { getText } = useText()
   const toastAndLog = useToastAndLog()
+  const apiUrl = useRemoteConfig('ENSO_IDE_API_URL')
   const oauthId = useRemoteConfig('ENSO_IDE_STRAVA_OAUTH_CLIENT_ID')
 
   return (
@@ -30,7 +31,7 @@ export function StravaCredentialsForm(props: CredentialFormProps) {
       className="w-full"
       onSubmit={async (values) => {
         try {
-          await strava.submitForm(oauthId, createCredentials, values)
+          await strava.submitForm(apiUrl, oauthId, createCredentials, values)
         } catch (error) {
           toastAndLog(null, error)
         }

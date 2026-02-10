@@ -40,6 +40,7 @@ function isValidScope(name: string): name is keyof typeof SCOPE_MAPPING {
  * The logic for submitting the Google credential form.
  */
 export function submitForm(
+  apiUrl: Opt<string>,
   googleOauthClientId: Opt<string>,
   createCredentials: (recipe: CredentialRecipe) => Promise<void>,
   values: z.infer<typeof FORM_SCHEMA>,
@@ -67,7 +68,7 @@ export function submitForm(
         response_type: 'code',
         access_type: 'offline',
         prompt: 'consent',
-        redirect_uri: getOauthRedirectUri('Google'),
+        redirect_uri: getOauthRedirectUri(apiUrl, 'Google'),
         client_id: googleOauthClientId,
         state,
         scope,

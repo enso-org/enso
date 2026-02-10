@@ -33,6 +33,7 @@ export const FORM_SCHEMA = z.object({
  * The logic for submitting the MS365 credential form.
  */
 export function submitForm(
+  apiUrl: Opt<string>,
   ms365OauthClientId: Opt<string>,
   createCredentials: (recipe: CredentialRecipe) => Promise<void>,
   values: z.infer<typeof FORM_SCHEMA>,
@@ -56,7 +57,7 @@ export function submitForm(
       const query = new URLSearchParams({
         /* eslint-disable @typescript-eslint/naming-convention, camelcase */
         client_id: ms365OauthClientId,
-        redirect_uri: getOauthRedirectUri('MS365'),
+        redirect_uri: getOauthRedirectUri(apiUrl, 'MS365'),
         response_type: 'code',
         response_mode: 'query',
         state,

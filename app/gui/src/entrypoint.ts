@@ -15,8 +15,6 @@ import * as detect from 'enso-common/src/utilities/detect'
 import * as idbKeyval from 'idb-keyval'
 import { createApp, markRaw } from 'vue'
 
-const HTTP_STATUS_BAD_REQUEST = 400
-const API_HOST = $config.API_URL != null ? new URL($config.API_URL).host : null
 /** The fraction of non-erroring interactions that should be sampled by Sentry. */
 const SENTRY_SAMPLE_RATE = 0.005
 const INITIAL_URL_KEY = `Enso-initial-url`
@@ -40,7 +38,7 @@ async function main() {
 }
 
 function setupSentry(app: Vue) {
-  if (!detect.IS_DEV_MODE && $config.SENTRY_DSN && $config.API_URL != null) {
+  if (!detect.IS_DEV_MODE && $config.SENTRY_DSN) {
     sentry.init({
       dsn: $config.SENTRY_DSN,
       environment: $config.ENVIRONMENT ?? 'dev',
@@ -54,25 +52,8 @@ function setupSentry(app: Vue) {
       app,
       profilesSampleRate: SENTRY_SAMPLE_RATE,
       tracesSampleRate: SENTRY_SAMPLE_RATE,
-      tracePropagationTargets: [$config.API_URL.split('//')[1] ?? ''],
       replaysSessionSampleRate: SENTRY_SAMPLE_RATE,
       replaysOnErrorSampleRate: 1.0,
-      beforeSend: (event) => {
-        if (
-          (event.breadcrumbs ?? []).some(
-            (breadcrumb) =>
-              breadcrumb.type === 'http' &&
-              breadcrumb.category === 'fetch' &&
-              breadcrumb.data &&
-              breadcrumb.data.status_code === HTTP_STATUS_BAD_REQUEST &&
-              typeof breadcrumb.data.url === 'string' &&
-              new URL(breadcrumb.data.url).host === API_HOST,
-          )
-        ) {
-          return null
-        }
-        return event
-      },
     })
   }
 }

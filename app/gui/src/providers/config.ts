@@ -1,9 +1,12 @@
 import { proxyRefs } from '$/utils/reactivity'
 import { waitForData } from '@/util/tanstack'
+import * as sentry from '@sentry/vue'
 import { useQuery } from '@tanstack/vue-query'
 import { createGlobalState } from '@vueuse/core'
 import { parseWebAppOptionsFromSearchParams } from 'enso-common/src/options'
 import { computed, watch } from 'vue'
+
+const HTTP_STATUS_BAD_REQUEST = 400
 
 export interface RemoteConfig {
   ENSO_IDE_ENVIRONMENT?: string
@@ -36,6 +39,35 @@ function createConfigStore() {
     (env) => {
       console.log('Loaded config:', env)
     },
+    { flush: 'sync', immediate: true },
+  )
+
+  watch(
+    () => remoteConfig.data.value?.ENSO_IDE_API_URL,
+    (apiUrl) => {
+      const sentryOptions = sentry.getClient()?.getOptions()
+      if (sentryOptions != null && apiUrl != null) {
+        const host = new URL(apiUrl).host
+        sentryOptions.tracePropagationTargets = [apiUrl.split('//')[1] ?? '']
+        sentryOptions.beforeSend = (event) => {
+          if (
+            (event.breadcrumbs ?? []).some(
+              (breadcrumb) =>
+                breadcrumb.type === 'http' &&
+                breadcrumb.category === 'fetch' &&
+                breadcrumb.data &&
+                breadcrumb.data.status_code === HTTP_STATUS_BAD_REQUEST &&
+                typeof breadcrumb.data.url === 'string' &&
+                new URL(breadcrumb.data.url).host === host,
+            )
+          ) {
+            return null
+          }
+          return event
+        }
+      }
+    },
+    { flush: 'sync', immediate: true },
   )
 
   return proxyRefs({

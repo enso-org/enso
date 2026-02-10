@@ -8,10 +8,12 @@
  */
 const DEFAULT_CONFIG = {
   HOST: import.meta.env.ENSO_IDE_HOST,
+  ENVIRONMENT: import.meta.env.ENSO_IDE_ENVIRONMENT,
+  SENTRY_DSN: import.meta.env.ENSO_IDE_SENTRY_DSN,
   API_URL: import.meta.env.ENSO_IDE_API_URL,
-  AUTH_ENDPOINT: import.meta.env.ENSO_IDE_AUTH_ENDPOINT,
   VERSION: import.meta.env.ENSO_IDE_VERSION,
   COMMIT_HASH: import.meta.env.ENSO_IDE_COMMIT_HASH,
+  GOOGLE_ANALYTICS_TAG: import.meta.env.ENSO_IDE_GOOGLE_ANALYTICS_TAG,
   YDOC_SERVER_URL: import.meta.env.ENSO_IDE_YDOC_SERVER_URL,
   CLOUD_BUILD: import.meta.env.ENSO_IDE_CLOUD_BUILD,
   AG_GRID_LICENSE_KEY: import.meta.env.ENSO_IDE_AG_GRID_LICENSE_KEY,

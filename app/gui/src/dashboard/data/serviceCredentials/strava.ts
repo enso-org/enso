@@ -21,6 +21,7 @@ export const FORM_SCHEMA = z.object({
  * The logic for submitting the Strava credential form.
  */
 export function submitForm(
+  apiUrl: Opt<string>,
   stravaOauthClientId: Opt<string>,
   createCredentials: (recipe: CredentialRecipe) => Promise<void>,
   values: z.infer<typeof FORM_SCHEMA>,
@@ -41,7 +42,7 @@ export function submitForm(
       const query = new URLSearchParams({
         /* eslint-disable @typescript-eslint/naming-convention, camelcase */
         client_id: stravaOauthClientId,
-        redirect_uri: getOauthRedirectUri('Strava'),
+        redirect_uri: getOauthRedirectUri(apiUrl, 'Strava'),
         response_type: 'code',
         approval_prompt: 'auto',
         state,

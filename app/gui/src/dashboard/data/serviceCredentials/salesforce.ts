@@ -27,6 +27,7 @@ export const DEFAULT_FORM_VALUES: z.infer<typeof FORM_SCHEMA> = {
  * The logic for submitting the Salesforce credential form.
  */
 export function submitForm(
+  apiUrl: Opt<string>,
   salesforceOauthClientId: Opt<string>,
   createCredentials: (recipe: CredentialRecipe) => Promise<void>,
   values: z.infer<typeof FORM_SCHEMA>,
@@ -49,7 +50,7 @@ export function submitForm(
       const query = new URLSearchParams({
         /* eslint-disable @typescript-eslint/naming-convention, camelcase */
         client_id: salesforceOauthClientId,
-        redirect_uri: getOauthRedirectUri('Salesforce'),
+        redirect_uri: getOauthRedirectUri(apiUrl, 'Salesforce'),
         response_type: 'code',
         response_mode: 'query',
         state,
