@@ -7,7 +7,7 @@ import type { Logger } from '#/providers/LoggerProvider'
 import * as appUtils from '$/appUtils'
 import { Cognito } from '$/authentication/cognito'
 import * as listen from '$/authentication/listen'
-import type { RemoteConfig } from '$/entrypoint'
+import { useConfig, type RemoteConfig } from '$/providers/config'
 import { useFeatureFlag } from '$/providers/featureFlags'
 import { useText } from '$/providers/text'
 import { parseEnsoDeeplink } from '@/util/url'
@@ -16,7 +16,6 @@ import type * as saveAccessTokenModule from 'enso-common/src/accessToken'
 import * as common from 'enso-common/src/constants'
 import * as detect from 'enso-common/src/utilities/detect'
 import * as toastify from 'react-toastify'
-import { inject } from 'vue'
 import { useRouter } from 'vue-router'
 
 /**
@@ -117,11 +116,11 @@ export interface AuthService {
 export function useInitAuthService(): AuthService {
   const enableDeepLinks = useFeatureFlag('enableDeepLinks')
   const router = useRouter()
-  const remoteConfig = inject<RemoteConfig>('remoteConfig')
+  const remoteConfig = useConfig()
 
   const amplifyConfig = loadAmplifyConfig(
     console,
-    remoteConfig ?? {},
+    remoteConfig.remoteConfig ?? {},
     enableDeepLinks.value,
     (url) => void router.push(url),
   )

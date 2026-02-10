@@ -1,6 +1,5 @@
 /** @file Project states definitions and a composable for transitions between them. */
 import { backendMutationOptions } from '@/composables/backend'
-import { injectGuiConfig } from '@/providers/guiConfig'
 import { assert, assertDefined } from '@/util/assert'
 import * as vueQuery from '@tanstack/vue-query'
 import {
@@ -157,7 +156,6 @@ export function useProjectStates() {
   const backends = useBackends()
   const session = useSession()
   const text = useText()
-  const config = injectGuiConfig()
   const uploads = useUploadsToCloudStore()
   const queryClient = vueQuery.useQueryClient()
   const httpClient = useHttpClient()

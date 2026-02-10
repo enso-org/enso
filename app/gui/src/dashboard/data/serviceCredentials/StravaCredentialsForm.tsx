@@ -8,7 +8,7 @@ import { Checkbox } from '#/components/Checkbox'
 import { Form } from '#/components/Form'
 import { Input } from '#/components/Inputs/Input'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
-import { useText } from '$/providers/react'
+import { useRemoteConfig, useText } from '$/providers/react'
 import { CredentialsFormFooter } from './CredentialsFormFooter'
 import * as strava from './strava'
 import type { CredentialFormProps } from './types'
@@ -18,6 +18,7 @@ export function StravaCredentialsForm(props: CredentialFormProps) {
   const { createCredentials } = props
   const { getText } = useText()
   const toastAndLog = useToastAndLog()
+  const oauthId = useRemoteConfig('ENSO_IDE_STRAVA_OAUTH_CLIENT_ID')
 
   return (
     <Form
@@ -29,7 +30,7 @@ export function StravaCredentialsForm(props: CredentialFormProps) {
       className="w-full"
       onSubmit={async (values) => {
         try {
-          await strava.submitForm(createCredentials, values)
+          await strava.submitForm(oauthId, createCredentials, values)
         } catch (error) {
           toastAndLog(null, error)
         }

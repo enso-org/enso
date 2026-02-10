@@ -1,9 +1,8 @@
 /** @file Definitions for the Salesforce credentials integration. */
-import type { RemoteConfig } from '$/entrypoint'
+import type { Opt } from '@/util/data/opt'
 import type { SalesforceCredentialInput, SecretId } from 'enso-common/src/services/Backend'
 import * as i18n from 'enso-common/src/text'
 import invariant from 'tiny-invariant'
-import { inject } from 'vue'
 import { z } from 'zod'
 import type { CredentialRecipe } from './types'
 import { getOauthRedirectUri } from './utilities'
@@ -28,15 +27,11 @@ export const DEFAULT_FORM_VALUES: z.infer<typeof FORM_SCHEMA> = {
  * The logic for submitting the Salesforce credential form.
  */
 export function submitForm(
+  salesforceOauthClientId: Opt<string>,
   createCredentials: (recipe: CredentialRecipe) => Promise<void>,
   values: z.infer<typeof FORM_SCHEMA>,
 ): Promise<void> {
-  const config = inject<RemoteConfig>('remoteConfig')
-  invariant(
-    config?.ENSO_IDE_SALESFORCE_OAUTH_CLIENT_ID != null,
-    'Salesforce OAuth client id is missing',
-  )
-  const salesforceOauthClientId = config.ENSO_IDE_SALESFORCE_OAUTH_CLIENT_ID
+  invariant(salesforceOauthClientId != null, 'Salesforce OAuth client id is missing')
 
   const valuesWithDefaults = { ...DEFAULT_FORM_VALUES, ...values }
 
