@@ -31,7 +31,7 @@ export interface RegistrationProps {
 /** A form for users to register an account. */
 export default function Registration(props: RegistrationProps) {
   const { userAgreed } = props
-  const { signUp, confirmSignUp, signInWithPassword } = useSession()
+  const { signUp, confirmSignUp, resendSignUp, signInWithPassword } = useSession()
 
   const { router } = useRouter()
   const localStorage = useLocalStorage()
@@ -40,6 +40,7 @@ export default function Registration(props: RegistrationProps) {
   const { refetchSession } = useAuth()
   const supportsOffline = localBackend != null
 
+  const [isUserCreated] = useQueryParam('created')
   const [initialEmail] = useQueryParam('email')
   const [organizationId] = useQueryParam('organization_id')
   const [redirectTo] = useQueryParam('redirect_to')
@@ -79,7 +80,7 @@ export default function Registration(props: RegistrationProps) {
     },
   })
 
-  const { stepperState } = useStepperState({ steps: 2, defaultStep: 0 })
+  const { stepperState } = useStepperState({ steps: 2, defaultStep: isUserCreated ? 1 : 0 })
 
   useEffect(() => {
     if (redirectTo != null) {
@@ -209,13 +210,13 @@ export default function Registration(props: RegistrationProps) {
           {() => (
             <>
               <Text.Heading level={1} balance className="mb-4 text-center">
-                {getText('confirmRegistration')}
+                {getText(isUserCreated ? 'registrationAlreadyConfirmed' : 'confirmRegistration')}
               </Text.Heading>
 
               <div className="flex flex-col gap-4 text-start">
                 <div className="flex flex-col">
                   <Text disableLineHeightCompensation>
-                    {getText('confirmRegistrationInstruction')}
+                    {getText('confirmRegistrationInstruction', signupForm.getValues('email'))}
                   </Text>
                   <ul>
                     <li>
@@ -280,6 +281,14 @@ export default function Registration(props: RegistrationProps) {
                     <Form.FormError />
                   </Form>
                 )}
+                <Button
+                  variant="submit"
+                  onPress={async () => {
+                    await resendSignUp(signupForm.getValues('email'))
+                  }}
+                >
+                  {getText('resendConfirmRegistrationEmail')}
+                </Button>
               </div>
             </>
           )}
