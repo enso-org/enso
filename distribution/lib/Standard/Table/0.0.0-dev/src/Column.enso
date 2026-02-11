@@ -17,7 +17,6 @@ import project.Fill_With.Fill_With
 import project.In_Memory_Column.In_Memory_Column
 import project.Internal.Date_Time_Helpers
 import project.Internal.Read_Many_Helpers
-import project.Internal.Visualization_Helpers.Visualization_Helpers
 import project.Internal.Widget_Helpers
 import project.Rows_To_Read.Rows_To_Read
 import project.Table.Table
@@ -2645,13 +2644,6 @@ Cleansable_Text.from (that:Column) = Cleansable_Text.Value (pattern->replace_wit
 Many_Files_List.from (that : Column) =
     Read_Many_Helpers.ensure_column_type_valid_to_be_files_list that <|
         Many_Files_List.Value that that.to_vector
-
-## ---
-   private: true
-   ---
-   Gets the Visualization helpers for a Column.
-Visualization_Helpers.from (that : Column) =
-    Visualization_Helpers.from that.underlying
 
 ## ---
    private: true

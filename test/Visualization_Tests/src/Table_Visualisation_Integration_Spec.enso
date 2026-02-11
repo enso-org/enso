@@ -1,8 +1,10 @@
 from Standard.Base import all
 
 from Standard.Table import all
+import Standard.Table.In_Memory_Column.In_Memory_Column
+
 from Standard.Test import all
-import Standard.Table.Internal.Visualization_Helpers.Visualization_Helpers
+
 import Standard.Visualization.Table.Visualization
 
 ## These tests pair with the Playwright tests found at app/gui/integration-test/project-view/tableVisualisation.spec.ts
@@ -48,7 +50,7 @@ add_specs suite_builder =
             data.check_equal vis 'singleColumnTimes'
 
 _get_vis_data table =
-    table.columns.each c-> (c:Visualization_Helpers).await_metrics
+    table.columns.each c-> (c:In_Memory_Column).await_metrics
     Visualization.prepare_visualization table . parse_json
 
 main filter=Nothing =

@@ -49,7 +49,7 @@ public class Row {
     return column == null ? ifMissing.apply(name) : column.getItem(rowIndex);
   }
 
-  public String toJsonData(Function<Object, String> ensoJsonCallback) {
+  public String toJsonData() {
     StringBuilder sb = new StringBuilder();
     sb.append("{");
     for (int i = 0; i < column_count(); i++) {

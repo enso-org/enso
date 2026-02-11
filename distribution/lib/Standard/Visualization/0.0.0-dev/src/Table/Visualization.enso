@@ -4,7 +4,6 @@ import Standard.Base.Visualization.Table_Viz_Data.Table_Viz_Data
 
 import Standard.Table.In_Memory_Column.In_Memory_Column
 import Standard.Table.In_Memory_Table.In_Memory_Table
-import Standard.Table.Internal.Visualization_Helpers.Visualization_Helpers
 import Standard.Table.Row.Row
 from Standard.Table import Column, Sort_Column, Table
 
@@ -211,63 +210,10 @@ private _make_json_for_db_table t max_rows is_column =
     case dataframe.is_error of
         False ->
             all_rows_count = t.row_count
-            make_json_for_table dataframe max_rows all_rows_count True is_column
+            in_memory = if is_column then (dataframe.at 0):In_Memory_Column else dataframe:In_Memory_Table
+            in_memory.to_table_viz_json all_rows_count False
         True ->
             JS_Object.from_pairs [["error", 'Error querying the database:\n' + dataframe.catch.to_display_text]] . to_json
-
-## ---
-   private: true
-   ---
-   Creates a JSON representation for the visualizations.
-
-   ## Arguments
-    - `dataframe`: the dataframe containing (possibly just a fragment of) the
-      data to display.
-    - `all_rows_count`: the number of all rows in the underlying data, useful if
-      only a fragment is displayed.
-make_json_for_table : Table -> Integer -> Integer -> Boolean -> Boolean -> Text
-make_json_for_table dataframe max_rows all_rows_count is_db_table is_column =
-    columns = dataframe.columns
-    column_vis_helpers         = columns.map (c -> c:Visualization_Helpers)
-
-    make_data_quality_entry name:Text method displayType:Text =
-        if column_vis_helpers.all v-> (method v . is_nothing) then [] else
-            values = column_vis_helpers.map method
-            [JS_Object.from_pairs [["name", name], ["values", values], ["type", displayType]]]
-
-    ## Only serialize what we need for the visualization.
-    make_value_type column =
-        value_type = column.value_type
-        JS_Object.from_pairs [["constructor",  Meta.meta value_type . constructor . name], ["display_text", value_type.to_display_text]]
-
-    header                     = ["header", dataframe.column_names]
-    value_type                 = ["value_type", columns.map make_value_type]
-    all_rows                   = ["all_rows_count", all_rows_count]
-    has_index_col              = ["has_index_col", True]
-    links                      = ["get_child_node_action", if is_column then "at" else "get_row"]
-    use_bottom_status_bar      = ["use_bottom_status_bar", if is_db_table then False else True]
-    enable_create_node         = ["enable_create_node", if is_column then False else True]
-    child_label                = ["child_label", "row"]
-    is_using_server_model      = if is_db_table then False else all_rows_count > 1000
-    data                       = if is_using_server_model.not then columns.map (c-> c.to_json_data 0 max_rows) . join "," else Nothing
-    requires_number_formatting = ["requires_number_format", column_vis_helpers.map .requires_numeric_formatter_check]
-    is_using_multi_filter      = ["is_using_multi_filter", column_vis_helpers.map .check_distinct_values]
-    table_version_hash_val     = if is_using_server_model then dataframe.table_version_hash else Nothing
-    table_version_hash         = ["table_version_hash", table_version_hash_val]
-    data_quality_metrics       = if is_db_table then [] else
-        incomplete             = make_data_quality_entry "" .is_incomplete "Text"
-        range                  = make_data_quality_entry "Range" .range "Text"
-        distinct_count         = make_data_quality_entry "Number of distinct" .count_distinct_values "Count"
-        number_nothing         = make_data_quality_entry "% nothing" .count_nothing "Percentage"
-        type_record            = make_data_quality_entry "" .type_record "Text"
-        sampled_label          = if column_vis_helpers.any .sampled then " (sampled)" else ""
-        number_empty           = make_data_quality_entry ("% empty" + sampled_label) .count_empty "Percentage"
-        number_untrimmed       = make_data_quality_entry ("% untrimmed" + sampled_label) .count_untrimmed "Percentage"
-        number_non_trivial     = make_data_quality_entry ("% with odd whitespace" + sampled_label) .count_non_trivial_whitespace "Percentage"
-        incomplete + range + distinct_count + number_nothing + type_record + number_empty + number_untrimmed + number_non_trivial
-    pairs                      = [header, value_type, all_rows, has_index_col, links, use_bottom_status_bar, enable_create_node, ["data_quality_metrics", data_quality_metrics] ,["type", "EnsoTableOrColumn"], child_label, ["is_using_server_sort_and_filter", is_using_server_model], requires_number_formatting, table_version_hash, is_using_multi_filter]
-    all_except_data = JS_Object.from_pairs pairs . to_json
-    all_except_data . drop (..Last 1) + (if is_using_server_model then ',"data":null}' else ',"data":[' + data + ']}')
 
 ## ---
    private: true
@@ -319,11 +265,10 @@ get_distinct_values_for_column : Table -> Integer -> Vector | Nothing -> Vector 
 get_distinct_values_for_column table column_index filter_col=Nothing filter_condition=Nothing =
     time_visualization Visualization ("get_distinct_values_for_column: " + table.to_display_text + "[" + column_index.to_text + "]") <|
         filtered_table = if filter_col.is_nothing then table else apply_filter_to_table table 0 filter_col filter_condition False
-        (filtered_table:Visualization_Helpers).distinct_values <|
-            column = filtered_table.at column_index
-            values = column.to_vector.distinct
-            result = JS_Object.from_pairs [["distinct_vals", values]]
-            result.to_json
+        filtered_column = (filtered_table.columns.at column_index):In_Memory_Column
+        filtered_column.await_metrics
+        distinct_json = filtered_column.distinct_values_json . if_nothing "null"
+        '{"distinct_vals":' + filtered_column.distinct_values_json + '}'
 
 ## ---
    private: true

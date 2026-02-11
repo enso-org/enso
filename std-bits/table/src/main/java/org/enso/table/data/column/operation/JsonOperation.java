@@ -48,19 +48,24 @@ public class JsonOperation {
       return _ensoJsonCallback;
     }
 
-    var jsonType = EnsoMeta.getType("Standard.Visualization.Table.Visualization", "Helper");
-    var method = jsonType.getMember("make_json");
-    LOGGER.info("Resolved Enso JSON callback: {}", method);
-    _ensoJsonCallback =
-        value -> {
-          LOGGER.info(
-              "Calling Enso JSON callback for value: {} (class {})",
-              value,
-              value == null ? "null" : value.getClass());
-          var result = method.execute(jsonType, value);
-          return result == null || result.isNull() ? "null" : result.asString();
-        };
-    return _ensoJsonCallback;
+    try {
+      var jsonType = EnsoMeta.getType("Standard.Visualization.Table.Visualization", "Helper");
+      var method = jsonType.getMember("make_json");
+      LOGGER.info("Resolved Enso JSON callback: {}", method);
+      _ensoJsonCallback =
+          value -> {
+            LOGGER.info(
+                "Calling Enso JSON callback for value: {} (class {})",
+                value,
+                value == null ? "null" : value.getClass());
+            var result = method.execute(jsonType, value);
+            return result == null || result.isNull() ? "null" : result.asString();
+          };
+      return _ensoJsonCallback;
+    } catch (Exception ex) {
+      LOGGER.warn("Failed to resolve Enso JSON callback.", ex);
+      return null;
+    }
   }
 
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
@@ -181,6 +186,10 @@ public class JsonOperation {
   }
 
   public static String objectToJson(Object value) {
+    return objectToJson(value, ensoJsonCallback());
+  }
+
+  public static String objectToJson(Object value, Function<Object, String> ensoJsonCallback) {
     return switch (value) {
       case null -> "null";
       case Boolean b -> toJson(b);
@@ -196,7 +205,14 @@ public class JsonOperation {
       case LocalDate date -> toJson(date);
       case LocalTime time -> toJson(time);
       case ZonedDateTime zdt -> toJson(zdt);
-      default -> ensoJsonCallback().apply(value);
+      default -> {
+        if (ensoJsonCallback == null) {
+          LOGGER.debug("Could not serialize value of type {}.", value.getClass());
+          yield "null";
+        } else {
+          yield ensoJsonCallback.apply(value);
+        }
+      }
     };
   }
 
@@ -434,50 +450,42 @@ public class JsonOperation {
 
   private static void makeDataQualityMetrics(StringBuilder json, List<Map<String, Object>> dqs) {
     boolean f = true;
-    f = addDataQualityMetric(json, dqs, "", DataQualityMetrics.IS_INCOMPLETE_TEXT, "Text", f, "");
+    f = addMetric(json, dqs, "", DataQualityMetrics.IS_INCOMPLETE_TEXT, "Text", f, "");
     // ToDo: Range
     f =
-        addDataQualityMetric(
+        addMetric(
             json, dqs, "Number of distinct", DataQualityMetrics.DISTINCT_COUNT, "Count", f, 0);
-    f =
-        addDataQualityMetric(
-            json, dqs, "% nothing", DataQualityMetrics.NOTHING_COUNT, "Percentage", f, null);
-    f = addDataQualityMetric(json, dqs, "", DataQualityMetrics.TYPE_RECORD, "Text", f, null);
+    f = addMetric(json, dqs, "% nothing", DataQualityMetrics.NOTHING_COUNT, "Percentage", f, null);
+    f = addMetric(json, dqs, "", DataQualityMetrics.TYPE_RECORD, "Text", f, null);
 
     var sampled =
         dqs.stream().anyMatch(m -> Boolean.TRUE.equals(m.get(DataQualityMetrics.SAMPLED)));
-    var sampledText = sampled ? " (sampled)" : "";
+    var suffix = sampled ? " (sampled)" : "";
 
     f =
-        addDataQualityMetric(
-            json,
-            dqs,
-            "% empty" + sampledText,
-            DataQualityMetrics.EMPTY_COUNT,
-            "Percentage",
-            f,
-            null);
+        addMetric(
+            json, dqs, "% empty" + suffix, DataQualityMetrics.EMPTY_COUNT, "Percentage", f, null);
     f =
-        addDataQualityMetric(
+        addMetric(
             json,
             dqs,
-            "% untrimmed" + sampledText,
+            "% untrimmed" + suffix,
             DataQualityMetrics.UNTRIMMED_COUNT,
             "Percentage",
             f,
             null);
     f =
-        addDataQualityMetric(
+        addMetric(
             json,
             dqs,
-            "% with odd whitespace" + sampledText,
+            "% with odd whitespace" + suffix,
             DataQualityMetrics.ODD_SPACE_COUNT,
             "Percentage",
             f,
             null);
   }
 
-  private static boolean addDataQualityMetric(
+  private static boolean addMetric(
       StringBuilder builder,
       List<Map<String, Object>> metrics,
       String label,
