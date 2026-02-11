@@ -32,12 +32,11 @@ enso_bin -> Text =
 ## Runs an Enso subprocess.
 enso_run (args : Vector Text) (cwd : Text = File.current_directory.path) -> Text =
     proc_bldr = Process.enso_builder args
-    # proc_bldr.directory (J_File.new cwd)
-    proc = proc_bldr.create redirect_out_err=True
-    out = proc.stdout
-    if proc.exit_code != 0 then
-        Test.fail out
-    out
+        . set_directory (File.new cwd)
+    proc = proc_bldr.create
+    if proc.exit_code != Exit_Code.Success then
+        Test.fail proc.stdout+proc.stderr
+    proc.stdout
 
 create_new_project parent_dir:File proj_name:Text main_src:Text -> File =
     Runtime.assert parent_dir.exists
