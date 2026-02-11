@@ -191,6 +191,8 @@ interface PlaceholderOverrides {
 
   readonly youCanCreateXMoreApiKeys: [apiKeysLeft: number]
   readonly deleteApiKeyConfirmation: [tokenName: string]
+
+  readonly confirmRegistrationInstruction: [userEmail: string]
 }
 
 // This is intentionally unused. This line throws an error if `PlaceholderOverrides` ever becomes
