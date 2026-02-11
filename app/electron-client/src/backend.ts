@@ -1,5 +1,6 @@
 import { downloadCloudProject } from '@/assetManagement'
 import { getUpToDateAccessToken } from '@/authentication'
+import { CONFIGURATION_PATH } from 'enso-common/src/services/Backend/remoteBackendPaths'
 import { HttpClient } from 'enso-common/src/services/HttpClient'
 import { RemoteBackend } from 'enso-common/src/services/RemoteBackend'
 import { extractIdFromDirectoryId } from 'enso-common/src/services/RemoteBackend/ids'
@@ -15,7 +16,7 @@ export async function createRemoteBackend() {
   if (API_URL == null) {
     throw new Error('API_URL is not set in the GUI config.')
   }
-  const config = await (await fetch(`${API_URL}/utils/config`)).json()
+  const config = await (await fetch(`${API_URL}/${CONFIGURATION_PATH}`)).json()
   const accessToken = await getUpToDateAccessToken()
   if (!accessToken) {
     throw new Error('No access token found for remote backend.')

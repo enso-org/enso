@@ -4,6 +4,7 @@ import * as sentry from '@sentry/vue'
 import { useQuery } from '@tanstack/vue-query'
 import { createGlobalState } from '@vueuse/core'
 import { parseWebAppOptionsFromSearchParams } from 'enso-common/src/options'
+import { CONFIGURATION_PATH } from 'enso-common/src/services/Backend/remoteBackendPaths'
 import { computed, watch } from 'vue'
 
 const HTTP_STATUS_BAD_REQUEST = 400
@@ -31,7 +32,7 @@ function createConfigStore() {
   const remoteConfig = useQuery<RemoteConfig>({
     queryKey: ['config', remoteConfigUrl],
     queryFn: ({ queryKey: [_, url] }) =>
-      fetch(`${url}/utils/config`).then((response) => response.json()),
+      fetch(`${url}/${CONFIGURATION_PATH}`).then((response) => response.json()),
   })
 
   watch(
