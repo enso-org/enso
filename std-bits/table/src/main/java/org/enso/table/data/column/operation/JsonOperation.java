@@ -10,6 +10,7 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -50,11 +51,15 @@ public class JsonOperation {
     var jsonType = EnsoMeta.getType("Standard.Visualization.Table.Visualization", "Helper");
     var method = jsonType.getMember("make_json");
     LOGGER.info("Resolved Enso JSON callback: {}", method);
-    _ensoJsonCallback = value -> {
-      LOGGER.debug("Calling Enso JSON callback for value: {}", value);
-      var result = method.execute(jsonType, value);
-      return result == null || result.isNull() ? "null" : result.asString();
-    };
+    _ensoJsonCallback =
+        value -> {
+          LOGGER.info(
+              "Calling Enso JSON callback for value: {} (class {})",
+              value,
+              value == null ? "null" : value.getClass());
+          var result = method.execute(jsonType, value);
+          return result == null || result.isNull() ? "null" : result.asString();
+        };
     return _ensoJsonCallback;
   }
 
@@ -180,7 +185,11 @@ public class JsonOperation {
       case null -> "null";
       case Boolean b -> toJson(b);
       case Long l -> toJson(l);
+      case Integer i -> toJson(i);
+      case Short s -> toJson(s);
+      case Byte b -> toJson(b & 0xFF);
       case Double d -> toJson(d);
+      case Float f -> toJson(f);
       case String s -> toJson(s);
       case BigInteger bi -> toJson(bi);
       case BigDecimal bd -> toJson(bd);
@@ -335,17 +344,32 @@ public class JsonOperation {
       String getChildMethod) {
     if (allRowsCount == -1) {
       final boolean finalUseServerMode = useServerMode;
-      return tableVizCache()
-          .computeIfAbsent(
-              versionId,
-              _ ->
-                  makeTableVizJSON(
-                      versionId,
-                      columns,
-                      columns[0].getSize(),
-                      finalUseServerMode,
-                      valueTypeDisplay,
-                      getChildMethod));
+
+      if (tableVizCache().containsKey(versionId)) {
+        return tableVizCache().get(versionId);
+      }
+
+      var incomplete =
+          Arrays.stream(columns)
+              .anyMatch(
+                  c -> DataQualityMetrics.get(c).get(DataQualityMetrics.IS_INCOMPLETE) != null);
+      if (incomplete) {
+        LOGGER.info("Table version {} is incomplete, skipping cache", versionId);
+        allRowsCount = columns[0].getSize();
+      } else {
+        LOGGER.info("Table version {} generating JSON", versionId);
+        return tableVizCache()
+            .computeIfAbsent(
+                versionId,
+                _ ->
+                    makeTableVizJSON(
+                        versionId,
+                        columns,
+                        columns[0].getSize(),
+                        finalUseServerMode,
+                        valueTypeDisplay,
+                        getChildMethod));
+      }
     }
 
     boolean isColumn = !"get_row".equals(getChildMethod);
