@@ -70,7 +70,7 @@ add_specs suite_builder = suite_builder.group "Python Examples" group_builder->
 
         IO.println "==== Executing project ===="
 
-        res = Process.enso_builder ["--jvm", "--run", proj_dir.path ] . create
+        res = Process.new_builder "enso" ["--jvm", "--run", proj_dir.path ] . create
         IO.println res.stdout
         IO.println res.stderr
         res.exit_code . should_equal Exit_Code.Success

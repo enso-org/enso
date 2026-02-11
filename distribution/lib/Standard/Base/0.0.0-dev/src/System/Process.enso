@@ -56,12 +56,10 @@ run command:Text arguments=[] stdin:Text="" redirect_out_err:Boolean=False =
 
          example_new_builder = Process.new_builder "echo"
    ```
-new_builder command:Text arguments=[]:(Vector Text) stdin="":Text -> Process_Builder = Process_Builder.Value command arguments stdin Nothing
-
-## ---
-   private: true
-   advanced: true
-   ---
-   Create a new Enso process builder.
-
-enso_builder arguments=[] stdin="" = Process_Builder.Value File_Utils.getExecutableLocation arguments stdin Nothing
+new_builder command:Text arguments=[]:(Vector Text) stdin="":Text -> Process_Builder =
+   cmd =
+      if command == "enso" then
+         File_Utils.getExecutableLocation
+      else
+         command
+   Process_Builder.Value cmd arguments stdin Nothing
