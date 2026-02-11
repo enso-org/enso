@@ -587,7 +587,7 @@ type In_Memory_Table_Implementation
 
         raw_table = Table.new [["Column", cols.map .name], ["Items Count", item_count], ["Value Type", cols.map .value_type], ["Metrics", col_data]]
         expanded = raw_table.expand_column "Metrics" prefix=..None
-        tagged = expanded.rename_columns [[regex "@(.*)", "#$1" + (if Nothing == expanded.get "_Sampled" then "" else " (Sampled)")]] error_on_missing_columns=False on_problems=..Ignore
+        tagged = expanded.rename_columns [[regex "@(.*)", "#$1" + (if Nothing == expanded.get DataQualityMetrics.SAMPLED then "" else " (Sampled)")]] error_on_missing_columns=False on_problems=..Ignore
         tidied = tagged.remove_columns [regex "_.*"] error_on_missing_columns=False on_problems=..Ignore
         tidied.reorder_columns ["Column", "Items Count", "Value Type", "# Nothing", "# Distinct", "Minimum", "Maximum", "# Empty", "# Untrimmed"] error_on_missing_columns=False on_problems=..Ignore
 
