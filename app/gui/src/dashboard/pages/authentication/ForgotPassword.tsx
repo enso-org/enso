@@ -4,6 +4,7 @@
  */
 import AtIcon from '#/assets/at.svg'
 import GoBackIcon from '#/assets/go_back.svg'
+import { Button } from '#/components/Button'
 import { Form } from '#/components/Form'
 import { Input } from '#/components/Inputs/Input'
 import Link from '#/components/Link'
@@ -16,7 +17,8 @@ import { toast } from 'react-toastify'
 
 /** A form for users to request for their password to be reset. */
 export default function ForgotPassword() {
-  const { forgotPassword } = useSession()
+  const [resendConfirmationButtonVisible, setResendConfirmationButtonVisible] = useState(false)
+  const { forgotPassword, resendSignUp } = useSession()
   const { getText } = useText()
 
   const { router } = useRouter()
@@ -39,12 +41,23 @@ export default function ForgotPassword() {
         />
       }
       supportsOffline={supportsOffline}
-      onSubmit={({ email }) =>
-        forgotPassword(email).then(() => {
+      onSubmit={async ({ email }) => {
+        try {
+          setResendConfirmationButtonVisible(false)
+          await forgotPassword(email)
           void router.push(LOGIN_PATH)
           toast.success(getText('forgotPasswordSuccess'))
-        })
-      }
+        } catch (error) {
+          // eslint-disable-next-line no-restricted-syntax
+          const safeError = error as Error
+          const isUserNotConfirmed = /verify your email first/.test(safeError.message)
+
+          if (isUserNotConfirmed) {
+            setResendConfirmationButtonVisible(true)
+          }
+          throw error
+        }
+      }}
     >
       <Input
         autoFocus
@@ -67,6 +80,19 @@ export default function ForgotPassword() {
       </Form.Submit>
 
       <Form.FormError />
+
+      {resendConfirmationButtonVisible && (
+        <Button
+          variant="submit"
+          size="large"
+          fullWidth
+          onPress={async () => {
+            await resendSignUp(emailInput)
+          }}
+        >
+          {getText('resendConfirmRegistrationEmail')}
+        </Button>
+      )}
     </AuthenticationPage>
   )
 }

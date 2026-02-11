@@ -82,6 +82,30 @@ class EvalTest extends InterpreterTest {
       eval(code) shouldEqual 4
     }
 
+    "type check in eval" in {
+      val code =
+        """import Standard.Base.Runtime.Debug
+          |import Standard.Base.Data.Numbers
+          |import Standard.Base.Data.Text.Text
+          |
+          |main =
+          |    x = 1
+          |
+          |    res = Debug.eval "x:Text"
+          |    res + 1
+          |""".stripMargin
+
+      try {
+        val noRes = eval(code)
+        noRes shouldEqual "Never returns"
+      } catch {
+        case ex: org.enso.interpreter.test.InterpreterException =>
+          ex.getMessage should include("Type error")
+          ex.getMessage should include("to be Text")
+          ex.getMessage should include("but got Integer")
+      }
+    }
+
     "work in a recursive setting" in {
       val code =
         """import Standard.Base.Runtime.Debug

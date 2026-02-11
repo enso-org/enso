@@ -48,16 +48,32 @@ export default function Login() {
       // This is special case, needed by package testing. See app/electron-client/tests/electronTest.ts.
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, no-restricted-syntax, @typescript-eslint/no-explicit-any
       const passwordOverride: string = (window as any).passwordOverride
-      const { user, challenge } = await signInWithPassword(
-        email,
-        passwordOverride ? passwordOverride : password,
-      )
+      try {
+        const { user, challenge } = await signInWithPassword(
+          email,
+          passwordOverride ? passwordOverride : password,
+        )
 
-      if (challenge) {
-        setUser(user)
-        nextStep()
-      } else {
-        await router.push(DASHBOARD_PATH)
+        if (challenge) {
+          setUser(user)
+          nextStep()
+        } else {
+          await router.push(DASHBOARD_PATH)
+        }
+      } catch (error) {
+        // eslint-disable-next-line no-restricted-syntax
+        const safeError = error as Error
+        const isUserNotConfirmed = /User not confirmed/.test(safeError.message)
+        if (isUserNotConfirmed) {
+          await router.push(
+            `${REGISTRATION_PATH}?${new URLSearchParams({
+              created: String(true),
+              email: form.getValues('email'),
+            }).toString()}`,
+          )
+          return null
+        }
+        throw error
       }
     },
   })
