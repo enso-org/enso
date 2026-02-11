@@ -12,6 +12,7 @@ import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import org.enso.common.CachePreferences;
+import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode;
 import org.enso.interpreter.service.ExecutionService;
 
 /** A storage for computed values. */
@@ -25,6 +26,8 @@ final class RuntimeCacheImpl extends RuntimeCache
   private final Map<UUID, ExecutionService.FunctionCallInfo> calls = new HashMap<>();
   private CachePreferences preferences = CachePreferences.empty();
   private Consumer<UUID> observer;
+  private final Map<UUID, FunctionCallInstrumentationNode.FunctionCall> enterables =
+      new HashMap<>();
 
   /**
    * To keep compatibility with previous implementations {@code this} object implements all three
@@ -267,5 +270,21 @@ final class RuntimeCacheImpl extends RuntimeCache
     } finally {
       this.observer = previousCallback;
     }
+  }
+
+  /**
+   * @inheritDoc
+   */
+  @Override
+  public FunctionCallInstrumentationNode.FunctionCall enterable(UUID key) {
+    return enterables.get(key);
+  }
+
+  /**
+   * @inheritDoc
+   */
+  @Override
+  public void updateEnterable(UUID key, FunctionCallInstrumentationNode.FunctionCall call) {
+    enterables.put(key, call);
   }
 }

@@ -4,6 +4,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode;
 import org.enso.interpreter.service.ExecutionService;
 
 /**
@@ -33,7 +34,7 @@ public abstract class RuntimeCache {
   /**
    * Factory method to create new runtime cache.
    *
-   * @return mutable (e.g. priviledged) interface to the cache
+   * @return mutable (e.g. privileged) interface to the cache
    */
   public static RuntimeCache.Mutable create() {
     return new RuntimeCacheImpl();
@@ -102,6 +103,14 @@ public abstract class RuntimeCache {
      * @return
      */
     public abstract Set<UUID> findUUIDs(boolean calls, boolean preferences);
+
+    /**
+     * Returns a functional metadata that has been previously cached.
+     *
+     * @param key UUID of the expression representing the function call
+     * @return function call metadata
+     */
+    public FunctionCallInstrumentationNode.FunctionCall enterable(UUID key);
   }
 
   /**
@@ -182,6 +191,14 @@ public abstract class RuntimeCache {
      */
     public ExecutionService.FunctionCallInfo putCall(
         UUID key, ExecutionService.FunctionCallInfo call);
+
+    /**
+     * Registers metadata info about a function call encountered during execution.
+     *
+     * @param key UUID of the expression representing the function call
+     * @param call metadata of the cached function call
+     */
+    public void updateEnterable(UUID key, FunctionCallInstrumentationNode.FunctionCall call);
   }
 
   /**
