@@ -61,12 +61,12 @@ class UpsertVisualizationJob(
 
   /** @inheritdoc */
   override def runImpl(implicit ctx: RuntimeContext): Option[Executable] = {
-    System.err.println("runImpl for " + expressionId);
     val stack =
       ctx.contextManager.getStack(config.executionContextId)
     val runtimeCache = stack.headOption
       .flatMap(frame => Option(frame.cache))
     runtimeCache.flatMap { c =>
+      System.err.println("runImpl for " + expressionId + " attaching to " + c);
       c.onModification(
         expressionId,
         immutable => {
@@ -165,12 +165,12 @@ class UpsertVisualizationJob(
     * @param ctx an instance of current `RuntimeContext`
     * @return true if failed due to required compilation and lack of required lock, false if successful
     */
-  def evaluateAndExecuteVisualization2(
+  private def evaluateAndExecuteVisualization2(
     value: Object,
     hasWriteLock: Boolean
   )(implicit ctx: RuntimeContext): (Boolean, Option[Executable]) = {
     UpsertVisualizationJob.logger.trace(
-      "Evaluating expression {} in observer",
+      "Evaluating2 expression {} in observer",
       expressionId
     )
     val maybeCallable = UpsertVisualizationJob.evaluateVisualizationExpression(
@@ -234,40 +234,10 @@ class UpsertVisualizationJob(
     val stack =
       ctx.contextManager.getStack(config.executionContextId)
 
-    // attach callable to runtimeCache
-    // here
-    System.err.println("Attach to value of " + expressionId)
-
     val runtimeCache = stack.headOption
       .flatMap(frame => Option(frame.cache))
     val cachedValue = runtimeCache
       .flatMap(c => {
-        c.onModification(
-          expressionId,
-          immutable => {
-            val data = immutable.get(expressionId)
-            System.err.println(
-              "Modified value of " + expressionId + " to " + data
-            );
-            if (data != null) {
-              val contextId = config.executionContextId
-              ctx.endpoint.sendToClient(
-                Api.Response(
-                  Api.VisualizationUpdate(
-                    Api.VisualizationContext(
-                      visualizationId,
-                      contextId,
-                      expressionId
-                    ),
-                    VisualizationResult.visualizationResultToBytes(
-                      data.toString()
-                    )
-                  )
-                )
-              )
-            }
-          }
-        )
         val v = c.runQuery(null, _.get(expressionId))
         System.err.println("Checked value of " + expressionId + " was: " + v)
         Option(v)
@@ -303,9 +273,10 @@ class UpsertVisualizationJob(
   )(implicit ctx: RuntimeContext): Option[Executable] = {
     val EvaluationResult(module, callable, arguments) = evaluatedVisualization
     UpsertVisualizationJob.logger.trace(
-      "Executing visualization {} for expression {}",
+      "Executing2 visualization {} for expression {} and value {}",
       visualizationId,
-      expressionId
+      expressionId,
+      value
     )
 
     val visualization =
@@ -336,6 +307,12 @@ class UpsertVisualizationJob(
       runtimeCache.getOrElse(RuntimeCache.create.cache),
       stack.headOption.get.syncState,
       visualization,
+      expressionId,
+      value
+    )
+    UpsertVisualizationJob.logger.trace(
+      "Executing2 finished visualization {} for expression {} and value {}",
+      visualizationId,
       expressionId,
       value
     )

@@ -829,6 +829,12 @@ object ProgramExecutionSupport {
                 )
               )
             )
+        logger.trace(
+          "Visualization data sent [{}]: {}",
+          expressionId,
+          data
+        )
+
           }
         )
     }

@@ -45,6 +45,7 @@ class AttachVisualizationCmd(
       case None | null => Future.successful(())
       case Some(executable) =>
         ctx.jobProcessor.run(
+          // this then schedules the execution
           ExecuteJob(
             executable,
             "attach/upsert visualization (id=" + request.visualizationId + ")"
