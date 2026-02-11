@@ -46,7 +46,7 @@ prepare_visualization y max_rows=1000 = time_visualization Visualization ("prepa
             t : In_Memory_Table -> t.to_table_viz_json
             c : In_Memory_Column -> c.to_table_viz_json
             t : DB_Table -> _make_json_for_db_table t max_rows is_column=False
-            c : DB_Column -> _make_json_for_db_table c.to_table max_rows is_column=True
+            _ : DB_Column -> _make_json_for_db_table x.to_table max_rows is_column=True
             f : Function ->
                 pairs = [['_display_text_', '[Function '+f.to_text+']']]
                 value = JS_Object.from_pairs pairs
@@ -268,7 +268,7 @@ get_distinct_values_for_column table column_index filter_col=Nothing filter_cond
         filtered_column = (filtered_table.columns.at column_index):In_Memory_Column
         filtered_column.await_metrics
         distinct_json = filtered_column.distinct_values_json . if_nothing "null"
-        '{"distinct_vals":' + filtered_column.distinct_values_json + '}'
+        '{"distinct_vals":' + distinct_json + '}'
 
 ## ---
    private: true
