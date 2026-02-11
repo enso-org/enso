@@ -108,26 +108,21 @@ function ProjectExecutionsCalendarInternal(props: ProjectExecutionsCalendarInter
     schema: (z) =>
       z.object({
         date: z.instanceof(CalendarDate),
-        dateTimeOverride: z.instanceof(ZonedDateTime).optional(),
+        defaultStartDateTime: z.instanceof(ZonedDateTime).optional(),
       }),
-    defaultValues: { date: todayDate, dateTimeOverride: now(timeZone) },
+    defaultValues: { date: todayDate, defaultStartDateTime: now(timeZone) },
     onSubmit: () => {},
     onChange: (field, _value, theForm) => {
       if (field !== 'date') return
-      const { date, dateTimeOverride } = theForm.getValues()
-      if (
-        dateTimeOverride &&
-        // This type assertion is SAFE as the field is 'dateTimeOverride'.
-        // eslint-disable-next-line no-restricted-syntax
-        toCalendarDate(dateTimeOverride as unknown as ZonedDateTime).compare(date) !== 0
-      ) {
+      const { date, defaultStartDateTime } = theForm.getValues()
+      if (defaultStartDateTime && toCalendarDate(defaultStartDateTime).compare(date) !== 0) {
         // Unset the override away from *now* if the date part is changed.
-        theForm.setValue('dateTimeOverride', undefined)
+        theForm.setValue('defaultStartDateTime', undefined)
       }
     },
   })
   const selectedDate = Form.useWatch({ control: form.control, name: 'date' })
-  const originalDateTime = Form.useWatch({ control: form.control, name: 'dateTimeOverride' })
+  const originalDateTime = Form.useWatch({ control: form.control, name: 'defaultStartDateTime' })
 
   const projectExecutionsQuery = useSuspenseQuery(
     listProjectExecutionsQueryOptions(
