@@ -116,11 +116,11 @@ export interface AuthService {
 export function useInitAuthService(): AuthService {
   const enableDeepLinks = useFeatureFlag('enableDeepLinks')
   const router = useRouter()
-  const remoteConfig = useConfig()
+  const config = useConfig()
 
   const amplifyConfig = loadAmplifyConfig(
     console,
-    remoteConfig.remoteConfig ?? {},
+    config.remoteConfig ?? {},
     enableDeepLinks.value,
     (url) => void router.push(url),
   )
