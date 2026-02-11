@@ -1,5 +1,5 @@
 Enso
-Copyright 2020 - 2025 New Byte Order sp. z o. o.
+Copyright 2020 - 2026 New Byte Order sp. z o. o.
 
 'redshift-jdbc42', licensed under the Apache License, Version 2.0, is distributed with the AWS.
 The license information can be found along with the copyright notices.
@@ -248,7 +248,7 @@ Copyright notices related to this dependency can be found in the directory `soft
 
 'redshift', licensed under the Apache License, Version 2.0, is distributed with the AWS.
 The license information can be found along with the copyright notices.
-Copyright notices related to this dependency can be found in the directory `software.amazon.awssdk.redshift-2.25.40`.
+Copyright notices related to this dependency can be found in the directory `software.amazon.awssdk.redshift-2.25.36`.
 
 
 'regions', licensed under the Apache License, Version 2.0, is distributed with the AWS.

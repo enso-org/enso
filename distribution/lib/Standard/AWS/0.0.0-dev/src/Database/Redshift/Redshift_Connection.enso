@@ -1,0 +1,449 @@
+from Standard.Base import all
+import Standard.Base.Metadata.File_Type
+import Standard.Base.Visualization.Table_Viz_Data.Table_Viz_Data
+from Standard.Base.Metadata.Choice import Option
+from Standard.Base.Metadata.Widget import File_Browse, Single_Choice, Text_Input
+
+import Standard.Table.Rows_To_Read.Rows_To_Read
+from Standard.Table import Table
+
+import Standard.Database.Column_Description.Column_Description
+import Standard.Database.Connection.Connection.Connection
+import Standard.Database.DB_Table as DB_Table_Module
+import Standard.Database.DB_Table.DB_Table
+import Standard.Database.Dialects.Dialect.Dialect
+import Standard.Database.Internal.Common.Connections_Helpers
+import Standard.Database.Internal.Connection.Entity_Naming_Properties.Entity_Naming_Properties
+import Standard.Database.Internal.JDBC_Connection
+import Standard.Database.SQL.SQL_Statement
+import Standard.Database.SQL.SQL_Builder
+import Standard.Database.SQL_Query.SQL_Query
+import Standard.Database.SQL_Query.SQL_Query_With_Schema
+from Standard.Database.Connection.Connection import make_schema_selector, make_structure_creator, make_table_name_with_schema_selector, make_table_types_selector
+from Standard.Database.Errors import SQL_Error, Table_Already_Exists, Table_Not_Found
+from Standard.Database.Internal.Postgres.Helpers import get_encoding_name, parse_postgres_encoding
+from Standard.Database.Internal.Upload.Helpers.Default_Arguments import first_column_name_in_structure
+from Standard.Database.Internal.Upload.Operations.Create import create_table_implementation
+
+import project.Database.Redshift.Internal.Redshift_Dialect
+import project.Database.Redshift.Internal.Redshift_Type_Mapping.Redshift_Type_Mapping
+
+polyglot java import org.enso.database.JDBCDriverTypes
+polyglot java import org.enso.database.JDBCProxy
+
+type Redshift_Connection
+    ## ---
+       private: true
+       ---
+    get_dialect : Dialect
+    get_dialect = Redshift_Dialect.redshift
+
+    ## ---
+       private: true
+       ---
+       Creates a Redshift connection based on a URL and properties.
+
+       ## Arguments
+        - `url`: The URL to connect to.
+        - `properties`: A vector of properties for the connection.
+        - `make_new`: A function that returns a new connection for a new database.
+    create : Text -> Vector -> (Text -> Redshift_Connection) -> Redshift_Connection
+    create url properties make_new =
+        types_record = JDBCDriverTypes.create "Redshift"
+        jdbc_connection = JDBC_Connection.create types_record url properties
+
+        set_result = jdbc_connection.execute "SET enable_case_sensitive_identifier TO true"
+        set_result.if_not_error <|
+            stmt = set_result.at 1
+            stmt.close
+
+        encoding = parse_postgres_encoding (get_encoding_name jdbc_connection)
+        entity_naming_properties = Entity_Naming_Properties.from_jdbc_connection jdbc_connection encoding is_case_sensitive=True
+
+        Redshift_Connection.Value (Connection.new jdbc_connection Redshift_Connection.get_dialect Redshift_Type_Mapping entity_naming_properties) make_new
+
+    ## ---
+       private: true
+       ---
+       A Redshift database connection.
+
+       ## Arguments
+        - `connection`: the underlying connection.
+        - `make_new`: a function that returns a new connection given a database name.
+    private Value (connection:Connection) make_new
+
+    ## ---
+       icon: close
+       ---
+       Closes the connection releasing the underlying database resources
+       immediately instead of waiting for them to be automatically released.
+       The connection is not usable afterwards.
+    close : Nothing
+    close self = self.connection.close
+
+    ## ---
+       icon: metadata
+       ---
+       Returns the list of databases (or catalogs) for the connection.
+    databases : Vector Text
+    databases self = self.connection.databases
+
+    ## ---
+       icon: metadata
+       ---
+       Returns the name of the current database (or catalog).
+    database : Text
+    database self = self.connection.database
+
+    ## ---
+       icon: data_input
+       ---
+       Returns a new Connection with the specified database set as default.
+
+       ## Arguments
+        - database: The name of the database to connect to.
+    @database (self-> Single_Choice display=..Always values=(self.databases . map d-> Option d d.pretty))
+    set_database : Text -> Connection ! SQL_Error
+    set_database self database =
+        if database . equals_ignore_case self.database then self else
+            self.make_new database
+
+    ## ---
+       icon: metadata
+       ---
+       Returns the list of schemas for the connection within the current database
+       (or catalog).
+    schemas : Vector Text
+    schemas self = self.connection.schemas
+
+    ## ---
+       icon: metadata
+       ---
+       Returns the name of the current schema.
+    schema : Text
+    schema self = self.connection.schema
+
+    ## ---
+       icon: data_input
+       ---
+       Returns a new Connection with the specified schema set as default.
+
+       ## Arguments
+        - schema: The name of the schema to connect to.
+    @schema make_schema_selector
+    set_schema : Text -> Connection ! SQL_Error
+    set_schema self schema =
+        if schema . equals_ignore_case self.schema then self else
+            wrapped_schema = self.connection.dialect.wrap_identifier schema
+            set_query = SQL_Builder.code "SET search_path TO " ++ wrapped_schema
+            _ = self.connection.execute set_query.build
+            self
+
+    ## ---
+       group: Standard.Base.Metadata
+       icon: metadata
+       ---
+       Gets a list of the table types.
+    table_types : Vector Text
+    table_types self = self.connection.table_types
+
+    ## ---
+       group: Standard.Base.Metadata
+       icon: metadata
+       ---
+       Returns a materialized Table of all the matching views and tables.
+
+       ## Arguments
+        - `name_like`: The table name pattern to search for. Supports SQL
+          wildcards (`%`, `_`). Defaults to `Nothing` which means all tables are
+          selected.
+        - `database`: The database name to search in (default is current
+          database).
+        - `schema`: The schema name to search in (defaults to `Nothing`, meaning
+          all schemas are searched).
+        - `types`: The table types to search for. The list of possible values can
+          be obtained using the `table_types` method. Defaults to a set of most
+          commonly used table types, ignoring internal system tables or indices.
+        - `all_fields`: Return all the fields in the metadata table.
+
+       ## Remarks
+
+       ### Temporary Tables
+       Note that the temporary tables may be created in a different schema than
+       the current one, so take this into account when filtering by schema.
+    @types make_table_types_selector
+    @schema (make_schema_selector include_any=True)
+    tables : Text -> Text -> Text -> Vector -> Boolean -> Table
+    tables self name_like=Nothing database=self.database schema=Nothing types=self.dialect.default_table_types all_fields=False =
+        normalized_name_like = case name_like of
+            Nothing -> Nothing
+            _ : Text -> if name_like.contains "*" then name_like.replace "*" "%" else name_like
+        normalized_schema = case schema of
+            Nothing -> Nothing
+            _ : Text -> if schema.contains "*" then schema.replace "*" "%" else schema
+        self.connection.tables normalized_name_like database normalized_schema types all_fields
+
+    ## ---
+       aliases: [import, load, open, read, sql]
+       group: Standard.Base.Input
+       icon: data_input
+       ---
+       Set up a query returning a Table object, which can be used to work with
+       data within the database or load it into memory.
+
+       ## Arguments
+        - `query`: name of the table or sql statement to query. If supplied as
+          `Text` it is treated as a table name.
+        - `alias`: optionally specify a friendly alias for the query.
+
+       ## Errors
+        - If provided with a `Raw_SQL` query or `Text` that looks like a query,
+          if any SQL error occurs when executing the query, a `SQL_Error` error
+          is raised.
+        - If provided with a `Table_Name` or a text short-hand and the table is
+          not found, a `Table_Not_Found` error is raised.
+    @query make_table_name_with_schema_selector
+    query : (SQL_Query_With_Schema | SQL_Query) -> Text -> Table & DB_Table ! Table_Not_Found
+    query self query:(SQL_Query_With_Schema | SQL_Query) alias="" =
+        used_query = case query of
+            SQL_Query.Table_Name name -> SQL_Query_With_Schema.Table_Name name ""
+            SQL_Query.Raw_SQL sql -> SQL_Query_With_Schema.Raw_SQL sql
+            _ : SQL_Query_With_Schema -> query
+        used_query.to_db_table self alias
+        
+    ## ---
+       aliases: [import, load, open, query, sql]
+       group: Standard.Base.Input
+       icon: data_input
+       ---
+       Execute the query and load the results into memory as a Table.
+
+       ## Arguments
+        - `query`: name of the table or sql statement to query. If supplied as
+          `Text` it is treated as a table name.
+        - `limit`: the maximum number of rows to read.
+
+       ## Remarks
+
+       ### Side Effects
+       Note that the `read` method is running without restrictions when the
+       output context is disabled, but it can technically cause side effects, if
+       it is provided with a DML query. Usually it is preferred to use
+       `execute_update` for DML queries, or if they are supposed to return
+       results, the `read` should be wrapped in an execution context check.
+    @query make_table_name_with_schema_selector
+    @limit Rows_To_Read.default_widget
+    read : (SQL_Query_With_Schema | SQL_Query) -> Rows_To_Read -> Table ! Table_Not_Found
+    read self query:(SQL_Query_With_Schema | SQL_Query) (limit : Rows_To_Read = ..First_With_Warning 1000) =
+        self.query query . read limit
+
+    ## ---
+       group: Standard.Base.Output
+       icon: data_output
+       ---
+       Creates a new empty table in the database and returns a query referencing
+       the new table.
+
+       ## Arguments
+        - `table_name`: the name of the table to create.
+        - `structure`: the structure of the table, provided as either an existing
+          `Table` (no data will be copied) or a `Vector` of `Column_Description`.
+        - `primary_key`: the names of the columns to use as the primary key. The
+          first column from the table is used by default. If it is set to
+          `Nothing` or an empty vector, no primary key will be created.
+        - `temporary`: if set to `True`, the table will be temporary, meaning
+          that it will be dropped once the `connection` is closed. Defaults to
+          `False`.
+        - `allow_existing`: Defaults to `False`, meaning that if the table with
+          the provided name already exists, an error will be raised. If set to
+          `True`, the existing table will be returned instead. Note that the
+          existing table is not guaranteed to have the same structure as the one
+          provided.
+        - `on_problems`: the behavior to use when encountering non-fatal
+          problems. Defaults to reporting them as warning.
+
+       ## Errors
+        - If a table with the given name already exists, then a
+          `Table_Already_Exists` error is raised.
+        - If a column type is not supported and is coerced to a similar supported
+          type, an `Inexact_Type_Coercion` problem is reported according to the
+          `on_problems` setting.
+        - If a column type is not supported and there is no replacement (e.g.
+          native Enso types), an `Unsupported_Type` error is raised.
+        - If the provided primary key columns are not present in table structure
+          provided, `Missing_Input_Columns` error is raised.
+        - An `SQL_Error` may be reported if there is a failure on the database
+          side.
+
+       ## Remarks
+
+       ### Dry Run if Output disabled
+       If performing output actions is disabled, only a dry run is performed and
+       no permanent changes occur. The operation will test for errors (like
+       missing columns) and if successful, return a temporary table with a
+       `Dry_Run_Operation` warning attached.
+    @structure make_structure_creator
+    create_table : Text  -> Vector Column_Description | Table -> Vector Text | Nothing -> Boolean -> Boolean -> Problem_Behavior -> Table & DB_Table ! Table_Already_Exists
+    create_table self (table_name : Text) (structure : Vector Column_Description | Table) (primary_key : (Vector Text | Nothing) = [first_column_name_in_structure structure]) (temporary : Boolean = False) (allow_existing : Boolean = False) (on_problems:Problem_Behavior = ..Report_Warning) =
+        create_table_implementation self table_name structure primary_key temporary allow_existing on_problems
+
+    ## ---
+       private: true
+       advanced: true
+       ---
+       Creates a `DB_Table` that is not backed by an existing table in the
+       Database, but is created in a query by constructing a `VALUES` expression.
+       We limit these tables to at most 256 cells to avoid creating too large
+       queries. If you need a larger table, create a temporary table instead.
+       Note that the types of columns in the created table will depend on how the
+       Database interprets the provided values and may not reflect the types of
+       the source table. If you need more sophisticated type mapping mechanism,
+       use `create_table` instead.
+    create_literal_table self (source : Table) (alias : Text) -> Table & DB_Table & Any =
+        DB_Table_Module.make_literal_table self (source.columns.map .to_vector) source.column_names alias
+
+    ## ---
+       advanced: true
+       aliases: [sql]
+       icon: data_input
+       ---
+       Executes a raw query returning a Table object, which can be used to get
+       the results of the query. This is meant for advanced users who need to
+       call direct SQL queries that are not supported by the `query` method.
+
+       ## Arguments
+        - `query`: either raw SQL code as Text or an instance of SQL_Statement
+          representing the query to execute.
+        - `write_operation`: if set to `True`, the query is expected to be a
+          write operation and will only run if the output context is enabled. If
+          set to `False`, the query is expected to be a read operation and will
+          run regardless of the output context. Defaults to `True`.
+    @query Text_Input display=..Always
+    @limit Rows_To_Read.default_widget
+    execute_query : Text | SQL_Statement -> Rows_To_Read -> Boolean -> Table
+    execute_query self query (limit : Rows_To_Read = ..First_With_Warning 1000) write_operation:Boolean=True =
+        self.connection.execute_query query limit write_operation
+
+    ## ---
+       advanced: true
+       aliases: [sql]
+       group: Standard.Base.Output
+       icon: data_output
+       ---
+       Executes a raw update query. If the query was inserting, updating or
+       deleting rows, the number of affected rows is returned; otherwise it
+       returns 0 for other types of queries (like creating or altering tables).
+
+       ## Arguments
+        - `query`: either raw SQL code as Text or an instance of SQL_Statement
+          representing the query to execute.
+    execute_update : Text | SQL_Statement -> Integer
+    execute_update self query =
+        self.connection.execute_update query
+
+    ## ---
+       private: true
+       advanced: true
+       group: Standard.Base.Output
+       icon: data_output
+       ---
+       Executes a raw query. If the query was inserting, updating or deleting
+       rows, the number of affected rows is returned; otherwise it returns 0 for
+       other types of queries (like creating or altering tables).
+
+       ## Arguments
+        - `query`: either raw SQL code as Text or an instance of SQL_Statement
+          representing the query to execute.
+    execute : Text | SQL_Statement -> Integer
+    execute self query =
+        self.connection.execute query
+
+    ## ---
+       private: true
+       ---
+       Access the dialect.
+    dialect self = self.connection.dialect
+
+    ## ---
+       private: true
+       ---
+       Access the Type Mapping.
+    type_mapping self = self.connection.type_mapping
+
+    ## ---
+       private: true
+       ---
+       Access the underlying JDBC connection.
+    jdbc_connection self = self.connection.jdbc_connection
+
+    ## ---
+       private: true
+       ---
+       Drops a table.
+
+       ## Arguments
+        - `table_name`: the name of the table to drop.
+        - `if_exists`: if set to `True`, the operation will not fail if the table
+          does not exist. Defaults to `False`.
+    drop_table : Text -> Boolean -> Nothing
+    drop_table self table_name if_exists=False =
+        self.connection.drop_table table_name if_exists
+
+    ## ---
+       private: true
+       ---
+       Removes all rows from a table.
+
+       ## Arguments
+        - `table_name`: the name of the table to truncate.
+    truncate_table : Text -> Nothing ! Table_Not_Found
+    truncate_table self table_name =
+        self.connection.truncate_table table_name
+
+    ## ---
+       private: true
+       ---
+       Returns the base `Connection` instance.
+       Used, so that all internal helper functions do not need to be replicated
+       on the 'subclasses'.
+    base_connection : Connection
+    base_connection self = self.connection
+
+    ## ---
+       icon: data_output
+       ---
+       Creates a Data Link that will open the same connection.
+    @path (File_Browse file_types=[File_Type.Option "DataLink" ["datalink"]] existing_only=False display=..Always)
+    @on_existing_file (Existing_File_Behavior.widget include_backup=False include_append=False)
+    save_as_data_link self path:Enso_File (on_existing_file:Existing_File_Behavior = ..Error) =
+        self.base_connection.save_as_data_link path on_existing_file
+
+    ## ---
+       icon: metadata
+       ---
+       Get the Primary Key for a given table.
+       Returns `Nothing` if the key is not defined.
+
+       ## Arguments
+       - `table_name`: the name of the table to get the primary key for.
+       - `schema_name`: optionally, the schema name where the table is located.
+    @table_name make_table_name_with_schema_selector add_custom=False
+    fetch_primary_key : Text -> Text -> Vector Text ! Nothing
+    fetch_primary_key self table_name:Text schema_name:Text="" =
+        self.base_connection.fetch_primary_key table_name schema_name
+
+    ## ---
+       private: true
+       ---
+       Converts this value to a JSON serializable object.
+    to_js_object : JS_Object
+    to_js_object self =
+        JS_Object.from_pairs <| [["type", "Redshift_Connection"], ["links", self.connection.tables.at "Name" . to_vector]]
+
+## ---
+   private: true
+   ---
+Table_Viz_Data.from (that:Redshift_Connection) =
+    tables = that.tables . read . filter "Schema" (..Equal that.schema)
+    names = tables.at "Name" . to_vector
+    Connections_Helpers.get_table_viz_data (names)
