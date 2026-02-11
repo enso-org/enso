@@ -110,6 +110,10 @@ type Process_Builder
         exit_code = Exit_Code.from_number result.exit_code
         Process_Result.Value exit_code result.stdout result.stderr
 
+    ## ---
+       private: true
+       ---
+    to_js_object self -> JS_Object = JS_Object.from_pairs [["type", "Process_Builder"]]
 type Process_Result
     ## ---
        private: true
