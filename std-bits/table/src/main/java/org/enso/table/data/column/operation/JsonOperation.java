@@ -1,5 +1,8 @@
 package org.enso.table.data.column.operation;
 
+import static java.time.temporal.ChronoField.*;
+import static java.time.temporal.ChronoField.NANO_OF_SECOND;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.math.BigDecimal;
@@ -9,6 +12,7 @@ import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeFormatterBuilder;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -523,8 +527,8 @@ public class JsonOperation {
       hasRange = true;
       String rangeValue =
           Boolean.TRUE.equals(metric.get(DataQualityMetrics.SINGLE_VALUE))
-              ? min.toString()
-              : min + " - " + metric.get(DataQualityMetrics.MAXIMUM);
+              ? toDisplayText(min)
+              : toDisplayText(min) + " - " + toDisplayText(metric.get(DataQualityMetrics.MAXIMUM));
       ranges.add(objectToJson(rangeValue));
     }
 
@@ -540,6 +544,50 @@ public class JsonOperation {
         .append(String.join(",", ranges))
         .append("],\"type\":\"Text\"}");
     return false;
+  }
+
+  private static final DateTimeFormatter DATE_TIME_FORMATTER =
+      new DateTimeFormatterBuilder()
+          .appendValue(YEAR, 4)
+          .appendLiteral('-')
+          .appendValue(MONTH_OF_YEAR, 2)
+          .appendLiteral('-')
+          .appendValue(DAY_OF_MONTH, 2)
+          .appendLiteral(' ')
+          .appendValue(HOUR_OF_DAY, 2)
+          .appendLiteral(':')
+          .appendValue(MINUTE_OF_HOUR, 2)
+          .appendLiteral(':')
+          .appendValue(SECOND_OF_MINUTE, 2)
+          .optionalStart()
+          .appendFraction(NANO_OF_SECOND, 0, 3, true)
+          .optionalStart()
+          .appendLiteral('[')
+          .appendZoneRegionId()
+          .appendLiteral(']')
+          .toFormatter();
+
+  private static final DateTimeFormatter TIME_FORMATTER =
+      new DateTimeFormatterBuilder()
+          .appendValue(HOUR_OF_DAY, 2)
+          .appendLiteral(':')
+          .appendValue(MINUTE_OF_HOUR, 2)
+          .appendLiteral(':')
+          .appendValue(SECOND_OF_MINUTE, 2)
+          .optionalStart()
+          .appendFraction(NANO_OF_SECOND, 0, 6, true)
+          .toFormatter();
+
+  private static String toDisplayText(Object value) {
+    if (value instanceof LocalTime localTime) {
+      return localTime.format(TIME_FORMATTER);
+    } else if (value instanceof ZonedDateTime zonedDateTime) {
+      return zonedDateTime.getZone() == ZoneId.systemDefault()
+          ? zonedDateTime.toLocalDateTime().format(DATE_TIME_FORMATTER)
+          : zonedDateTime.format(DATE_TIME_FORMATTER);
+    } else {
+      return value.toString();
+    }
   }
 
   private static boolean hasMetric(List<Map<String, Object>> metrics, String metric) {
