@@ -24,11 +24,6 @@ create_tmp_dir -> File =
     d.create_directory
     d
 
-## Absolute path to the Enso binary.
-enso_bin -> Text =
-    Error.throw "Cannot get enso_bin path right now"
-
-
 ## Runs an Enso subprocess.
 enso_run (args : Vector Text) (cwd : Text = File.current_directory.path) -> Text =
     proc_bldr = Process.new_builder "enso"
