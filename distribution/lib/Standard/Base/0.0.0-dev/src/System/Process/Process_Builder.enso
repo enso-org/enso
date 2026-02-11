@@ -26,7 +26,7 @@ type Process_Builder
        We recommend that you use this type with its builder interface. Start by
        creating a `Builder "command"` and then call functions on it to set
        arguments and standard output. It results in much clearer code.
-    Value command arguments stdin
+    private Value command arguments stdin
 
     ## ---
        icon: edit
