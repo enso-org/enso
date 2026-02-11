@@ -256,12 +256,19 @@ truncate message max_length=256 suffix='...' =
    ---
    If ENSO_TIME_VIZZES is set, then log the time it took to compute the function
 private time_visualization module ~name ~action =
+    wrapped =
+        result = Panic.catch Any action handler=caught_panic->
+            module.log_message ("Visualization "+name+" failed (panic): " + caught_panic.payload.to_text) ..Severe
+            Panic.throw caught_panic
+        if result.is_error then module.log_message ("Visualization "+name+" failed (error): " + result.catch.to_text) ..Warning
+        result
+
     level = case Environment.get "ENSO_TIME_VIZZES" of
         Nothing -> Nothing
         "warning" -> ..Warning
         "info" -> ..Info
         _ -> ..Trace
-    if level . is_nothing then action else
-        pair = Duration.time_execution action
+    if level . is_nothing then wrapped else
+        pair = Duration.time_execution wrapped
         module.log_message ("Execution time for " + name + ": " + pair.first.to_text) level
         pair.second

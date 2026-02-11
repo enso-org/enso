@@ -1,8 +1,10 @@
 from Standard.Base import all
 
 from Standard.Table import all
+import Standard.Table.In_Memory_Column.In_Memory_Column
+
 from Standard.Test import all
-import Standard.Table.Internal.Visualization_Helpers.Visualization_Helpers
+
 import Standard.Visualization.Table.Visualization
 
 ## These tests pair with the Playwright tests found at app/gui/integration-test/project-view/tableVisualisation.spec.ts
@@ -29,7 +31,17 @@ type TestData
         ## Comment this line in and run the tests to regen the test data if you change the API
         ## But don't commit with the next line commented in
         ## vis.write (json_dir / (filename + '.json')) on_existing_file=..Overwrite
-        vis . should_equal (self.data.at filename)
+        expected = self.data.at filename
+        vis.field_names.should_equal_ignoring_order expected.field_names
+        vis.field_names.should_contain "table_version_hash"
+        names_exc_hash = vis.field_names.filter (..Not_Equal "table_version_hash")
+        names_exc_hash.each name->
+            vis_value = vis.at name
+            exp_value = expected.at name
+            if vis_value!=exp_value then
+                vis_json = name + ": " + vis_value.to_json
+                exp_json = name + ": " + exp_value.to_json
+                vis_json.should_equal exp_json
 
 add_specs suite_builder =
     suite_builder.group "Table Visualization Integration" group_builder->
@@ -48,7 +60,7 @@ add_specs suite_builder =
             data.check_equal vis 'singleColumnTimes'
 
 _get_vis_data table =
-    table.columns.each c-> (c:Visualization_Helpers).await_metrics
+    table.columns.each c-> (c:In_Memory_Column).await_metrics
     Visualization.prepare_visualization table . parse_json
 
 main filter=Nothing =

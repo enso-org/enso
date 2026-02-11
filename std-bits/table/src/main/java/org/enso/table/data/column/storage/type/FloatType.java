@@ -31,7 +31,13 @@ public final class FloatType implements StorageType<Double>, NumericType {
   @Override
   public Value asEnsoValueType() {
     var ensoBits = Bits.asEnsoValue(bits());
-    return EnsoMeta.makeInstance("Standard.Table.Value_Type", "Value_Type", "Float", ensoBits);
+    return EnsoMeta.makeInstance(
+        StorageType.ENSO_MODULE, StorageType.ENSO_TYPE_NAME, ensoConstructorName(), ensoBits);
+  }
+
+  @Override
+  public String ensoConstructorName() {
+    return "Float";
   }
 
   @Override

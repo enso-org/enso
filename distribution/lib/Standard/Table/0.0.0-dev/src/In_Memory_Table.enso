@@ -37,6 +37,16 @@ type In_Memory_Table
     ## ---
        private: true
        ---
+       Gets the Table Visualization for an In_Memory_Table.
+       This method implements caching to allow for quicker rendering of the same table.
+    to_table_viz_json self all_row_count:Integer=-1 use_server_mode:Boolean=True -> Text =
+        as_table = self:Table
+        display_type = as_table.columns.map c->c.value_type.to_display_text
+        self.internal_java_table.tableVizJSON display_type all_row_count use_server_mode
+
+    ## ---
+       private: true
+       ---
        A getter that allows one to specify the target Java type and handles
        conversions when needed
     private java_table self =
