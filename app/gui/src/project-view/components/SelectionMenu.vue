@@ -31,8 +31,8 @@ watch(
     <ActionButton action="components.collapse" />
     <span ref="colorButtonRef">
       <ActionButton
-          action="components.pickColorMulti"
-          :class="{
+        action="components.pickColorMulti"
+        :class="{
           // Any `pointerdown` event outside the color picker will close it. Ignore clicks that occur while the color
           // picker is open, so that it isn't toggled back open.
           disableInput: toValue(pickColorMulti.toggled),
