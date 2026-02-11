@@ -389,7 +389,8 @@ public class JsonOperation {
     }
 
     boolean isColumn = !"get_row".equals(getChildMethod);
-    useServerMode = useServerMode && allRowsCount > 1000;
+    boolean isDBMode = !useServerMode;
+    boolean useServer = useServerMode && allRowsCount > 1000;
 
     var jsonBuilder = new StringBuilder();
     jsonBuilder.append("{");
@@ -412,7 +413,7 @@ public class JsonOperation {
           .append(valueTypeDisplay.get(i))
           .append("\"}");
 
-      metrics.add(DataQualityMetrics.get(columns[i]));
+      metrics.add(isDBMode ? Map.of() : DataQualityMetrics.get(columns[i]));
     }
     jsonBuilder.append("\"header\":[").append(headers).append("]");
     jsonBuilder.append(",\"value_type\":[").append(valueTypes).append("]");
@@ -420,8 +421,8 @@ public class JsonOperation {
     appendProperty(jsonBuilder, "all_rows_count", allRowsCount);
     appendProperty(jsonBuilder, "has_index_col", true);
     appendProperty(jsonBuilder, "get_child_node_action", getChildMethod);
-    appendProperty(jsonBuilder, "use_bottom_status_bar", !useServerMode);
-    appendProperty(jsonBuilder, "enable_create_mode", !isColumn);
+    appendProperty(jsonBuilder, "use_bottom_status_bar", !isDBMode);
+    appendProperty(jsonBuilder, "enable_create_node", !isColumn);
 
     jsonBuilder.append(",\"data_quality_metrics\":[");
     makeDataQualityMetrics(jsonBuilder, metrics);
@@ -429,13 +430,13 @@ public class JsonOperation {
 
     appendProperty(jsonBuilder, "type", "EnsoTableOrColumn");
     appendProperty(jsonBuilder, "child_label", "row");
-    appendProperty(jsonBuilder, "is_using_server_sort_and_filter", useServerMode);
+    appendProperty(jsonBuilder, "is_using_server_sort_and_filter", useServer);
     appendMetric(
         jsonBuilder, "requires_number_format", metrics, DataQualityMetrics.NEEDS_FORMATTING, false);
-    appendProperty(jsonBuilder, "table_version_hash", versionId);
+    appendProperty(jsonBuilder, "table_version_hash", isDBMode ? null : versionId);
     appendMetric(
         jsonBuilder, "is_using_multi_filter", metrics, DataQualityMetrics.USE_MULTI_FILTER, false);
-    jsonBuilder.append(",\"data\":").append(useServerMode ? "null" : dataToJson(columns));
+    jsonBuilder.append(",\"data\":").append(useServer ? "null" : dataToJson(columns));
 
     jsonBuilder.append("}");
     return jsonBuilder.toString();
@@ -451,7 +452,7 @@ public class JsonOperation {
   private static void makeDataQualityMetrics(StringBuilder json, List<Map<String, Object>> dqs) {
     boolean f = true;
     f = addMetric(json, dqs, "", DataQualityMetrics.IS_INCOMPLETE_TEXT, "Text", f, "");
-    // ToDo: Range
+    f = addRange(json, dqs, f);
     f =
         addMetric(
             json, dqs, "Number of distinct", DataQualityMetrics.DISTINCT_COUNT, "Count", f, 0);
@@ -504,6 +505,37 @@ public class JsonOperation {
     builder.append("{\"name\":\"").append(label).append("\"");
     appendMetric(builder, "values", metrics, fieldName, defaultValue);
     builder.append(",\"type\":\"").append(type).append("\"}");
+    return false;
+  }
+
+  public static boolean addRange(
+      StringBuilder builder, List<Map<String, Object>> metrics, boolean first) {
+    boolean hasRange = false;
+    List<String> ranges = new ArrayList<>();
+
+    for (var metric : metrics) {
+      var min = metric.get(DataQualityMetrics.MINIMUM);
+      if (min == null) {
+        ranges.add(null);
+        continue;
+      }
+
+      hasRange = true;
+      String rangeValue =
+          Boolean.TRUE.equals(metric.get(DataQualityMetrics.SINGLE_VALUE))
+              ? min.toString()
+              : min + " - " + metric.get(DataQualityMetrics.MAXIMUM);
+      ranges.add(objectToJson(rangeValue));
+    }
+
+    if (!hasRange) {
+      return first;
+    }
+
+    if (!first) {
+      builder.append(",");
+    }
+    builder.append("{\"range\":[").append(String.join(",", ranges)).append("]}");
     return false;
   }
 

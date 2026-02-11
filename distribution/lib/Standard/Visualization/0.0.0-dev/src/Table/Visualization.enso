@@ -45,7 +45,7 @@ prepare_visualization y max_rows=1000 = time_visualization Visualization ("prepa
             v : Row -> make_json_for_row v
             t : In_Memory_Table -> t.to_table_viz_json
             c : In_Memory_Column -> c.to_table_viz_json
-            t : DB_Table -> _make_json_for_db_table t max_rows is_column=False
+            _ : DB_Table -> _make_json_for_db_table x max_rows is_column=False
             _ : DB_Column -> _make_json_for_db_table x.to_table max_rows is_column=True
             f : Function ->
                 pairs = [['_display_text_', '[Function '+f.to_text+']']]

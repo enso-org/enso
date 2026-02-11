@@ -267,7 +267,7 @@ public abstract class DataQualityMetrics {
         }
       } else if (!result.isDone()) {
         current.put(IS_INCOMPLETE, true);
-        current.put(IS_INCOMPLETE_TEXT, IS_INCOMPLETE_TEXT);
+        current.put(IS_INCOMPLETE_TEXT, IS_INCOMPLETE_TEXT_VALUE);
       }
 
       return current;

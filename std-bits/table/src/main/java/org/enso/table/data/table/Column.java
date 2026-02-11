@@ -235,6 +235,6 @@ public final class Column {
         allRowsCount,
         useServerMode,
         valueTypeDisplay,
-        "get_row");
+        "at");
   }
 }
