@@ -28,6 +28,13 @@ type Column
     private Value underlying implementation
 
     ## ---
+       private: true
+       ---
+       Unique Identifier for the column.
+    table_version_hash self -> Text =
+        self.implementation.table_version_hash self.underlying
+
+    ## ---
        icon: convert
        ---
        Creates a new column given a name and a vector of elements.
