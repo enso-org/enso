@@ -4,7 +4,6 @@ import {
   escapeTextLiteral,
   findModuleMethod,
   substituteIdentifier,
-  substituteQualifiedName,
   substituteQualifiedNameByPattern,
   subtrees,
   tryEnsoToNumber,
@@ -12,10 +11,10 @@ import {
   unescapeTextLiteral,
   type Identifier,
 } from '@/util/ast/abstract'
-import { qnLastSegment } from '@/util/qualifiedName'
 import { fc, test } from '@fast-check/vitest'
 import { expect } from 'vitest'
 import { BodyBlock } from 'ydoc-shared/ast'
+import { unqualifyQualifiedNames } from '../abstract'
 import { findExpressions, testCase } from './testCase'
 
 function functionBlock(topLevel: BodyBlock, name: string) {
@@ -176,7 +175,6 @@ test('Construct app', () => {
 
 test('Automatic parenthesis', () => {
   const block = Ast.parseModule('main = func arg1 arg2')
-  block.module.setRoot(block)
   let arg1: Ast.MutableAst | undefined
   Ast.visitRecursive(block, (ast) => {
     if (ast instanceof Ast.MutableIdent && ast.code() === 'arg1') {
@@ -280,17 +278,24 @@ test.each([
     substitution: 'ShouldNotWork',
     expected: 'Data.Table.new',
   },
+  {
+    original: 'Should.Not.MatchPrefixOfName',
+    pattern: 'Should.Not.Match',
+    substitution: 'Unexpected',
+    expected: 'Should.Not.MatchPrefixOfName',
+  },
 ])(
   'Substitute qualified name $pattern inside $original',
   ({ original, pattern, substitution, expected }) => {
     const expression = Ast.parseExpression(original) ?? Ast.parseBlockStatement(original)
     assertDefined(expression)
-    const result = substituteQualifiedNameByPattern(
+    const mod = expression.module
+    substituteQualifiedNameByPattern(
       expression,
       pattern as Ast.Identifier,
       substitution as Ast.Identifier,
     )
-    expect(result.code()).toEqual(expected)
+    expect(mod.root()?.code()).toEqual(expected)
   },
 )
 
@@ -308,8 +313,9 @@ test.each([
   ({ original, expected }) => {
     const expression = Ast.parseExpression(original)
     assertDefined(expression)
-    const result = substituteQualifiedName(expression, (qn) => qnLastSegment(qn))
-    expect(result.code()).toEqual(expected)
+    const mod = expression.module
+    unqualifyQualifiedNames(expression)
+    expect(mod.root()?.code()).toEqual(expected)
   },
 )
 
@@ -362,7 +368,6 @@ test.each([
     const expression = Ast.parseExpression(original) ?? Ast.parseBlockStatement(original)
     assertDefined(expression)
     const module = expression.module
-    module.setRoot(expression)
     const edit = expression.module.edit()
     substituteIdentifier(expression, pattern as Ast.Identifier, substitution as Ast.Identifier)
     module.applyEdit(edit)

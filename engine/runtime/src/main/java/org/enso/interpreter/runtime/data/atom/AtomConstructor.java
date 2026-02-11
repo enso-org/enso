@@ -420,6 +420,9 @@ public final class AtomConstructor extends EnsoObject {
    * @return the accessor function of this constructor.
    */
   public Function getAccessorFunction() {
+    if (accessor == null) {
+      throw new NullPointerException("No accessor for " + name + " in " + getType());
+    }
     return accessor.get();
   }
 

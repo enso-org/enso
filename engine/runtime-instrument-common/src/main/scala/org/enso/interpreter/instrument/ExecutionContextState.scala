@@ -15,7 +15,7 @@ case class ExecutionContextState(
   visualizations: VisualizationHolder
 ) {
   def close(): Unit = {
-    stack.foreach(_.cache.clear())
+    stack.foreach(_.cache.asInstanceOf[RuntimeCache.Mutable].clear())
   }
 }
 
@@ -47,5 +47,9 @@ case object InstrumentFrame {
     * @return an instance of [[InstrumentFrame]]
     */
   def apply(item: StackItem): InstrumentFrame =
-    new InstrumentFrame(item, new RuntimeCache, new UpdatesSynchronizationState)
+    new InstrumentFrame(
+      item,
+      RuntimeCache.create.cache,
+      new UpdatesSynchronizationState
+    )
 }

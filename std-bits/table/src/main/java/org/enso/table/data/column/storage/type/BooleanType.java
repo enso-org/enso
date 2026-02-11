@@ -1,10 +1,12 @@
 package org.enso.table.data.column.storage.type;
 
+import org.enso.base.polyglot.EnsoMeta;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.BuilderForBoolean;
 import org.enso.table.data.column.storage.ColumnBooleanStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.problems.ProblemAggregator;
+import org.graalvm.polyglot.Value;
 
 public final class BooleanType implements StorageType<Boolean> {
   public static final BooleanType INSTANCE = new BooleanType();
@@ -17,13 +19,26 @@ public final class BooleanType implements StorageType<Boolean> {
   }
 
   @Override
+  public Value asEnsoValueType() {
+    return EnsoMeta.makeInstance("Standard.Table.Value_Type", "Value_Type", "Boolean");
+  }
+
+  @Override
   public boolean isOfType(StorageType<?> other) {
     return other instanceof BooleanType;
   }
 
   @Override
   public Boolean valueAsType(Object value) {
-    return value instanceof Boolean bool ? bool : null;
+    if (value instanceof Boolean boolValue) {
+      return boolValue;
+    }
+
+    if (value instanceof Value polyglotValue && polyglotValue.isBoolean()) {
+      return polyglotValue.asBoolean();
+    }
+
+    return null;
   }
 
   @Override
@@ -33,7 +48,7 @@ public final class BooleanType implements StorageType<Boolean> {
 
   @Override
   public ColumnBooleanStorage asTypedStorage(ColumnStorage<?> storage) {
-    if (storage.getType() instanceof BooleanType) {
+    if (StorageType.ofStorage(storage) instanceof BooleanType) {
       @SuppressWarnings("unchecked")
       var output = (ColumnBooleanStorage) storage;
       return output;

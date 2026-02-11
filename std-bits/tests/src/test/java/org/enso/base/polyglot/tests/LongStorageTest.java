@@ -8,6 +8,7 @@ import java.util.Objects;
 import java.util.Random;
 import java.util.stream.LongStream;
 import org.enso.table.data.column.builder.Builder;
+import org.enso.table.data.column.storage.ColumnLongStorage;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.problems.BlackholeProblemAggregator;
 import org.enso.table.problems.ProblemAggregator;
@@ -31,14 +32,19 @@ public class LongStorageTest {
     var b = Builder.getForLong(IntegerType.INT_64, 3, problemAggregator());
     b.append(1).appendNulls(1).append(2);
     var storage = b.seal();
-    var localStorage = Builder.makeLocal(storage);
+
+    var proxyStorage =
+        (ColumnLongStorage) BoolStorageTest.makeProxy(storage, ColumnLongStorage.class);
+    var localStorage = Builder.makeLocal(proxyStorage);
+
     assertNotSame("local storage is a copy of storage", storage, localStorage);
     assertEquals(
         "They have data at the same address",
         storage.addressOfData(),
         localStorage.addressOfData());
     assertEquals("They have the same size", storage.getSize(), localStorage.getSize());
-    assertEquals("They have the same type", storage.getType(), localStorage.getType());
+    assertEquals("They have the same type char", storage.typeChar(), localStorage.typeChar());
+    assertEquals("They have the same type size", storage.typeSize(), localStorage.typeSize());
     for (var i = 0L; i < storage.getSize(); i++) {
       var elem = storage.getItemBoxed(i);
       var localElem = localStorage.getItemBoxed(i);
@@ -51,14 +57,19 @@ public class LongStorageTest {
     var b = Builder.getForLong(IntegerType.INT_32, 3, problemAggregator());
     b.append(1).appendNulls(1).append(2);
     var storage = b.seal();
-    var localStorage = Builder.makeLocal(storage);
+
+    var proxyStorage =
+        (ColumnLongStorage) BoolStorageTest.makeProxy(storage, ColumnLongStorage.class);
+    var localStorage = Builder.makeLocal(proxyStorage);
+
     assertNotSame("local storage is a copy of storage", storage, localStorage);
     assertEquals(
         "They have data at the same address",
         storage.addressOfData(),
         localStorage.addressOfData());
     assertEquals("They have the same size", storage.getSize(), localStorage.getSize());
-    assertEquals("They have the same type", storage.getType(), localStorage.getType());
+    assertEquals("They have the same type char", storage.typeChar(), localStorage.typeChar());
+    assertEquals("They have the same type size", storage.typeSize(), localStorage.typeSize());
     for (var i = 0L; i < storage.getSize(); i++) {
       var elem = storage.getItemBoxed(i);
       var localElem = localStorage.getItemBoxed(i);
@@ -86,11 +97,11 @@ public class LongStorageTest {
 
   private void generateAndCompare(String info, int size, LongStream r) {
     var sb = new StringBuilder();
-    var b = Builder.getForLong(IntegerType.INT_64, size, null);
+    var b = Builder.getForLong(IntegerType.INT_64, size, problemAggregator());
     r.forEach(b::append);
     var storage = b.seal();
     assertEquals("Storage has the right size: " + storage, size, storage.getSize());
-    assertNotEquals("Storage provides acccess to raw data", 0L, storage.addressOfData());
+    assertNotEquals("Storage provides access to raw data", 0L, storage.addressOfData());
     assertNotEquals("Storage provides access to validity bitmap", 0L, storage.addressOfValidity());
 
     var arr =

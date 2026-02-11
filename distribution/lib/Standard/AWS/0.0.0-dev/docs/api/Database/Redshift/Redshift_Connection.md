@@ -1,0 +1,31 @@
+## Enso Signatures 1.0
+## module Standard.AWS.Database.Redshift.Redshift_Connection
+- type Redshift_Connection
+    - base_connection self -> Standard.Base.Any.Any
+    - close self -> Standard.Base.Any.Any
+    - create url:Standard.Base.Any.Any properties:Standard.Base.Any.Any make_new:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - create_literal_table self source:Standard.Table.Table.Table alias:Standard.Base.Data.Text.Text -> (Standard.Table.Table.Table&Standard.Database.DB_Table.DB_Table&Standard.Base.Any.Any)
+    - create_table self table_name:Standard.Base.Data.Text.Text structure:((Standard.Base.Data.Vector.Vector Standard.Database.Column_Description.Column_Description)|Standard.Table.Table.Table) primary_key:((Standard.Base.Data.Vector.Vector Standard.Base.Data.Text.Text)|Standard.Base.Nothing.Nothing)= temporary:Standard.Base.Data.Boolean.Boolean= allow_existing:Standard.Base.Data.Boolean.Boolean= on_problems:Standard.Base.Errors.Problem_Behavior.Problem_Behavior= -> Standard.Base.Any.Any
+    - database self -> Standard.Base.Any.Any
+    - databases self -> Standard.Base.Any.Any
+    - dialect self -> Standard.Base.Any.Any
+    - drop_table self table_name:Standard.Base.Any.Any if_exists:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+    - execute self query:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - execute_query self query:Standard.Base.Any.Any limit:Standard.Table.Rows_To_Read.Rows_To_Read= write_operation:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Any.Any
+    - execute_update self query:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - fetch_primary_key self table_name:Standard.Base.Data.Text.Text schema_name:Standard.Base.Data.Text.Text= -> Standard.Base.Any.Any
+    - get_dialect -> Standard.Base.Any.Any
+    - jdbc_connection self -> Standard.Base.Any.Any
+    - query self query:(Standard.Database.SQL_Query.SQL_Query_With_Schema|Standard.Database.SQL_Query.SQL_Query) alias:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+    - read self query:(Standard.Database.SQL_Query.SQL_Query_With_Schema|Standard.Database.SQL_Query.SQL_Query) limit:Standard.Table.Rows_To_Read.Rows_To_Read= -> Standard.Base.Any.Any
+    - save_as_data_link self path:Standard.Base.Enso_Cloud.Enso_File.Enso_File on_existing_file:Standard.Base.System.File.Existing_File_Behavior.Existing_File_Behavior= -> Standard.Base.Any.Any
+    - schema self -> Standard.Base.Any.Any
+    - schemas self -> Standard.Base.Any.Any
+    - set_database self database:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - set_schema self schema:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - table_types self -> Standard.Base.Any.Any
+    - tables self name_like:Standard.Base.Any.Any= database:Standard.Base.Any.Any= schema:Standard.Base.Any.Any= types:Standard.Base.Any.Any= all_fields:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+    - to_js_object self -> Standard.Base.Any.Any
+    - truncate_table self table_name:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - type_mapping self -> Standard.Base.Any.Any
+- Standard.Base.Visualization.Table_Viz_Data.Table_Viz_Data.from that:Standard.AWS.Database.Redshift.Redshift_Connection.Redshift_Connection -> Standard.Base.Visualization.Table_Viz_Data.Table_Viz_Data

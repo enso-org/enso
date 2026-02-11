@@ -112,6 +112,11 @@ add_specs suite_builder = suite_builder.group "Object Comparator" group_builder-
             r = v1 == v2
             r
 
+    group_builder.specify "comparator for NaN and 42" <|
+        comp_nan = Comparable.from Number.nan . comparator
+        comp_42 = Comparable.from 42.0 . comparator
+        Meta.is_same_object comp_nan comp_42 . should_be_true
+
 main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder

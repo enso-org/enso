@@ -8,9 +8,17 @@ import java.util.function.Function;
 import org.enso.polyglot.common_utils.Core_Date_Utils;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.operation.StorageIterators;
-import org.enso.table.data.column.storage.*;
+import org.enso.table.data.column.storage.ColumnBooleanStorage;
+import org.enso.table.data.column.storage.ColumnDoubleStorage;
+import org.enso.table.data.column.storage.ColumnLongStorage;
+import org.enso.table.data.column.storage.ColumnStorage;
+import org.enso.table.data.column.storage.TypedStorage;
+import org.enso.table.data.column.storage.type.BooleanType;
 import org.enso.table.data.column.storage.type.DateTimeType;
 import org.enso.table.data.column.storage.type.DateType;
+import org.enso.table.data.column.storage.type.FloatType;
+import org.enso.table.data.column.storage.type.IntegerType;
+import org.enso.table.data.column.storage.type.NullType;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.data.column.storage.type.TimeOfDayType;
@@ -30,34 +38,32 @@ public class ToTextStorageConverter implements StorageConverter<String> {
   @Override
   public ColumnStorage<String> cast(
       ColumnStorage<?> storage, CastProblemAggregator problemAggregator) {
-    var storageType = storage.getType();
-    if (storageType instanceof TextType && storage instanceof TypedStorage<?> typedStorage) {
-      @SuppressWarnings("unchecked")
-      var stringStorage = (TypedStorage<String>) typedStorage;
-      if (canAvoidCopying(stringStorage)) {
-        return retypeStringStorage(stringStorage);
-      } else {
-        return adaptStringStorage(stringStorage);
+    var storageType = StorageType.ofStorage(storage);
+    return switch (storageType) {
+      case NullType _ -> Builder.makeEmpty(targetType, storage.getSize());
+      case TextType textType -> {
+        var textTypedStorage = textType.asTypedStorage(storage);
+        if (storage instanceof TypedStorage<?> typedStorage && canAvoidCopying(textTypedStorage)) {
+          @SuppressWarnings("unchecked")
+          var stringStorage = (TypedStorage<String>) typedStorage;
+          yield retypeStringStorage(stringStorage);
+        }
+        yield adaptStringStorage(textTypedStorage);
       }
-    }
-    if (storage instanceof ColumnLongStorage longStorage) {
-      return castLongStorage(longStorage, problemAggregator);
-    } else if (storage instanceof ColumnDoubleStorage doubleStorage) {
-      return castDoubleStorage(doubleStorage, problemAggregator);
-    } else if (storage instanceof ColumnBooleanStorage boolStorage) {
-      return castBoolStorage(boolStorage, problemAggregator);
-    } else if (storageType instanceof TimeOfDayType timeOfDayType) {
-      return castTemporalStorage(
-          timeOfDayType.asTypedStorage(storage), this::convertTime, problemAggregator);
-    } else if (storageType instanceof DateType dateType) {
-      return castTemporalStorage(
-          dateType.asTypedStorage(storage), this::convertDate, problemAggregator);
-    } else if (storageType instanceof DateTimeType dateTimeType) {
-      return castTemporalStorage(
-          dateTimeType.asTypedStorage(storage), this::convertDateTime, problemAggregator);
-    } else {
-      return castFromObject(storage, problemAggregator);
-    }
+      case IntegerType it -> castLongStorage(it.asTypedStorage(storage), problemAggregator);
+      case FloatType ft -> castDoubleStorage(ft.asTypedStorage(storage), problemAggregator);
+      case BooleanType bt -> castBoolStorage(bt.asTypedStorage(storage), problemAggregator);
+      case TimeOfDayType timeOfDayType ->
+          castTemporalStorage(
+              timeOfDayType.asTypedStorage(storage), this::convertTime, problemAggregator);
+      case DateType dateType ->
+          castTemporalStorage(
+              dateType.asTypedStorage(storage), this::convertDate, problemAggregator);
+      case DateTimeType dateTimeType ->
+          castTemporalStorage(
+              dateTimeType.asTypedStorage(storage), this::convertDateTime, problemAggregator);
+      default -> castFromObject(storage, problemAggregator);
+    };
   }
 
   private ColumnStorage<String> castFromObject(
@@ -156,7 +162,7 @@ public class ToTextStorageConverter implements StorageConverter<String> {
   }
 
   private boolean canAvoidCopying(ColumnStorage<String> stringStorage) {
-    var type = stringStorage.getType();
+    var type = StorageType.ofStorage(stringStorage);
     if (type instanceof TextType textType && targetType.fitsExactly(textType)) {
       return true;
     }

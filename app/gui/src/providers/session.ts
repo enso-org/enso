@@ -110,7 +110,6 @@ export function createSessionStore(
       return
     }
   }
-
   const confirmSignUp = async (email: string, code: string): Promise<void> => {
     analytics.cloudSignUp.confirm.before()
     const result = await authService.confirmSignUp(email, code)
@@ -127,6 +126,10 @@ export function createSessionStore(
       }
     }
     analytics.cloudSignUp.confirm.after()
+  }
+
+  const resendSignUp = async (username: string): Promise<void> => {
+    await authService.resendSignUp(username)
   }
 
   /**
@@ -328,6 +331,7 @@ export function createSessionStore(
     waitForSession: () => waitForData(session),
     isLoggingOut,
     confirmSignUp,
+    resendSignUp,
     signInWithPassword,
     signInWithGitHub,
     signInWithGoogle,

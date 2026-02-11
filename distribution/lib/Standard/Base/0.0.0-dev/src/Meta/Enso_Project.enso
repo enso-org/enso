@@ -6,7 +6,6 @@ from project.Data.Json import JS_Object
 from project.Errors.Common import Module_Not_In_Package_Error
 
 ## Functionality for inspecting the current project.
-@Builtin_Type
 type Project_Description
     ## ---
        private: true

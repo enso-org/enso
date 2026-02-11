@@ -5,6 +5,7 @@ import org.enso.table.data.column.operation.BinaryOperationTyped;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.type.BooleanType;
 import org.enso.table.data.column.storage.type.NullType;
+import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.table.problems.MapOperationProblemAggregator;
 
 final class NullComparators implements BinaryOperationTyped<Boolean> {
@@ -14,7 +15,7 @@ final class NullComparators implements BinaryOperationTyped<Boolean> {
 
   @Override
   public boolean canApplyMap(ColumnStorage<?> left, Object rightValue) {
-    return left.getType() instanceof NullType;
+    return StorageType.ofStorage(left) instanceof NullType;
   }
 
   @Override
@@ -26,7 +27,7 @@ final class NullComparators implements BinaryOperationTyped<Boolean> {
 
   @Override
   public boolean canApplyZip(ColumnStorage<?> left, ColumnStorage<?> right) {
-    return left.getType() instanceof NullType;
+    return StorageType.ofStorage(left) instanceof NullType;
   }
 
   @Override

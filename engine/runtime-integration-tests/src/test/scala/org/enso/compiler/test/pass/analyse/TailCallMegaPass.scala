@@ -513,7 +513,10 @@ case object TailCallMegaPass extends IRPass {
     */
   def isTailAnnotated(expression: Expression): Boolean = {
     expression
-      .getMetadata(ExpressionAnnotations)
+      .getMetadata(
+        ExpressionAnnotations,
+        classOf[ExpressionAnnotations.Metadata]
+      )
       .exists(anns =>
         anns.annotations.exists(a =>
           a.name == ExpressionAnnotations.tailCallName

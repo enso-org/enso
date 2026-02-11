@@ -1,8 +1,10 @@
 package org.enso.table.data.column.storage.type;
 
+import org.enso.base.polyglot.EnsoMeta;
 import org.enso.table.data.column.builder.BuilderForType;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.problems.ProblemAggregator;
+import org.graalvm.polyglot.Value;
 
 public final class NullType implements StorageType<Void> {
   public static final NullType INSTANCE = new NullType();
@@ -12,6 +14,11 @@ public final class NullType implements StorageType<Void> {
   @Override
   public char typeChar() {
     return 'N';
+  }
+
+  @Override
+  public Value asEnsoValueType() {
+    return EnsoMeta.makeInstance("Standard.Table.Value_Type", "Value_Type", "Null");
   }
 
   @Override
@@ -47,7 +54,7 @@ public final class NullType implements StorageType<Void> {
 
   @Override
   public ColumnStorage<Void> asTypedStorage(ColumnStorage<?> storage) {
-    if (storage.getType() instanceof NullType) {
+    if (StorageType.ofStorage(storage) instanceof NullType) {
       @SuppressWarnings("unchecked")
       var output = (ColumnStorage<Void>) storage;
       return output;

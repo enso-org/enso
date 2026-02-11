@@ -2,6 +2,7 @@ package org.enso.table.data.column.operation;
 
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.type.NullType;
+import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.table.problems.MapOperationProblemAggregator;
 
 public class BinaryOperationNull implements BinaryOperationTyped<Void> {
@@ -11,7 +12,7 @@ public class BinaryOperationNull implements BinaryOperationTyped<Void> {
 
   @Override
   public boolean canApplyMap(ColumnStorage<?> left, Object rightValue) {
-    return left.getType() instanceof NullType;
+    return StorageType.ofStorage(left) instanceof NullType;
   }
 
   @Override
@@ -22,7 +23,7 @@ public class BinaryOperationNull implements BinaryOperationTyped<Void> {
   @Override
   public ColumnStorage<Void> applyMap(
       ColumnStorage<?> left, Object rightValue, MapOperationProblemAggregator problemAggregator) {
-    if (left.getType() instanceof NullType) {
+    if (StorageType.ofStorage(left) instanceof NullType) {
       return NullType.INSTANCE.asTypedStorage(left);
     }
     throw new IllegalArgumentException("Unsupported storage type.");

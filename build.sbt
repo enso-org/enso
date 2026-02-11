@@ -1644,17 +1644,19 @@ lazy val `version-output` = (project in file("lib/scala/version-output"))
     Compile / sourceGenerators += Def.task {
       val file =
         (Compile / sourceManaged).value / "org" / "enso" / "version" / "GeneratedVersion.java"
-      BuildInfo
-        .writeBuildInfoFile(
-          file                  = file,
-          log                   = state.value.log,
-          defaultDevEnsoVersion = defaultDevEnsoVersion,
-          ensoVersion           = ensoVersion,
-          scalacVersion         = scalacVersion,
-          graalVersion          = graalMavenPackagesVersion,
-          javaVersion           = graalVersion,
-          currentEdition        = currentEdition
-        )
+      BazelSupport.generatedVersion(file, state.value.log) {
+        BuildInfo
+          .writeBuildInfoFile(
+            file                  = file,
+            log                   = state.value.log,
+            defaultDevEnsoVersion = defaultDevEnsoVersion,
+            ensoVersion           = ensoVersion,
+            scalacVersion         = scalacVersion,
+            graalVersion          = graalMavenPackagesVersion,
+            javaVersion           = graalVersion,
+            currentEdition        = currentEdition
+          )
+      }
     }.taskValue
   )
 
@@ -2839,6 +2841,10 @@ lazy val `runtime-integration-tests` =
         "-Dtck.language=enso",
         "-Dtck.inlineVerifierInstrument=false",
         "-Dpolyglot.engine.AllowExperimentalOptions=true",
+        "-Dpolyglot.enso.languageHomeOverride=" + new File(
+          engineDistributionRoot.value,
+          "component"
+        ).getCanonicalPath,
         "-XX:+HeapDumpOnOutOfMemoryError",
         "-XX:HeapDumpPath=" + (Compile / packageBin).value.getParentFile
       ),
@@ -5851,6 +5857,7 @@ lazy val `std-aws` = project
       "com.amazonaws"          % "aws-java-sdk-sts"      % awsJavaSdkV1Version,
       "software.amazon.awssdk" % "auth"                  % awsJavaSdkV2Version,
       "software.amazon.awssdk" % "bom"                   % awsJavaSdkV2Version,
+      "software.amazon.awssdk" % "redshift"              % awsJavaSdkV2Version,
       "software.amazon.awssdk" % "s3"                    % awsJavaSdkV2Version,
       "software.amazon.awssdk" % "ses"                   % awsJavaSdkV2Version,
       "software.amazon.awssdk" % "sso"                   % awsJavaSdkV2Version,

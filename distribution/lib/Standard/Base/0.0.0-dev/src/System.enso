@@ -79,7 +79,6 @@ default_line_separator = Java_System.lineSeparator
    private: true
    ---
    The type representing the result of a process.
-@Builtin_Type
 type System_Process_Result
     ## ---
        private: true

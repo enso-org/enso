@@ -1,5 +1,8 @@
 package org.enso.table.data.table.problems;
 
+import org.enso.base.polyglot.EnsoMeta;
+import org.graalvm.polyglot.Value;
+
 public class IgnoredNothing extends ColumnAggregatedProblem {
 
   public IgnoredNothing(String locationName, long row) {
@@ -24,5 +27,11 @@ public class IgnoredNothing extends ColumnAggregatedProblem {
         + " contained Nothing values in rows "
         + makeTruncatedRowsString()
         + " which were ignored.";
+  }
+
+  @Override
+  public Value asEnsoValue() {
+    return EnsoMeta.makeInstance(
+        "Standard.Table.Errors", "Ignored_Nothing_Values", "Warning", getLocationName(), getRows());
   }
 }

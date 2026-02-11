@@ -11,12 +11,31 @@ import org.enso.table.data.column.builder.BuilderForType;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.PreciseTypeOptions;
 import org.enso.table.problems.ProblemAggregator;
+import org.graalvm.polyglot.Value;
 
 /**
  * Represents an underlying internal storage type that can be mapped to the Value Type that is
  * exposed to users.
  */
-public interface StorageType<T> {
+public sealed interface StorageType<T>
+    permits AnyObjectType,
+        BigDecimalType,
+        BigIntegerType,
+        BooleanType,
+        DateTimeType,
+        DateType,
+        FloatType,
+        IntegerType,
+        NullType,
+        TextType,
+        TimeOfDayType {
+  static <T> StorageType<T> ofStorage(ColumnStorage<T> storage) {
+    @SuppressWarnings("unchecked")
+    var result =
+        (StorageType<T>) StorageType.fromTypeCharAndSize(storage.typeChar(), storage.typeSize());
+    return result;
+  }
+
   /**
    * @param item the item whose type is to be determined.
    * @param options specifies details on how the precise type should be determined
@@ -107,6 +126,9 @@ public interface StorageType<T> {
   /** Convert the value to the type if possible or return null if not. */
   T valueAsType(Object value);
 
+  /** Creates an Enso Value Type representation of the storage type. */
+  Value asEnsoValueType();
+
   /**
    * Creates a builder for the StorageType.
    *
@@ -166,5 +188,9 @@ public interface StorageType<T> {
    */
   default long size() {
     return -1;
+  }
+
+  default String typeString() {
+    return typeChar() + (size() != -1 ? Long.toString(size()) : "");
   }
 }

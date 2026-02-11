@@ -86,7 +86,12 @@ SBT_PROJECT_FILES = [
 ] + glob([
     "project/*.scala",
     "project/src/**",
-])
+]) + select({
+    "//:stamping": [
+        "//internal:generated_version_info",
+    ],
+    "//conditions:default": [],
+})
 
 # TODO: some dependencies might be unnecessary here, but checking everything is time-consuming.
 ENGINE_DIST_SOURCES = STDLIB_SOURCES + SBT_PROJECT_FILES + [

@@ -3,6 +3,7 @@ Run sbt. Implementation mostly copied from https://github.com/bazel-contrib/baze
 """
 
 load("@aspect_bazel_lib//lib:expand_make_vars.bzl", "expand_variables")
+load("@aspect_bazel_lib//lib:stamping.bzl", "STAMP_ATTRS", "maybe_stamp")
 load("@aspect_bazel_lib//lib:strings.bzl", "split_args")
 load("@bazel_skylib//lib:dicts.bzl", "dicts")
 load("@bazel_skylib//lib:paths.bzl", "paths")
@@ -46,6 +47,10 @@ def _run_sbt_impl(ctx):
 
     direct_inputs = [] + ctx.files.srcs
 
+    stamp = maybe_stamp(ctx)
+    if stamp:
+        direct_inputs.append(stamp.stable_status_file)
+
     # On Linux, we need to add the zlib static library to the linker search path for the native image build.
     if CcInfo in ctx.attr._zlib and ctx.target_platform_has_constraint(ctx.attr._linux_constraint[platform_common.ConstraintValueInfo]):
         linking_context = ctx.attr._zlib[CcInfo].linking_context
@@ -65,13 +70,20 @@ def _run_sbt_impl(ctx):
         system_props = system_props + split_args(expand_variables(ctx, ctx.expand_location(p, targets = ctx.attr.srcs), outs = outputs))
 
     args = " ".join(ctx.attr.args)
+    wrapper_args = []
+    if stamp:
+        wrapper_args = wrapper_args + ["--status-file", stamp.stable_status_file.path]
+    wrapper_args = wrapper_args + [java_executable_path]
     ctx.actions.run(
         outputs = outputs,
         inputs = inputs,
-        executable = java_executable_path,
-        arguments = system_props + ["-jar", sbt_bin] + [args],
+        executable = ctx.executable._run_with_version_info,
+        arguments = wrapper_args + system_props + ["-jar", sbt_bin] + [args],
         use_default_shell_env = ctx.attr.use_default_shell_env,
-        env = dicts.add(ctx.configuration.default_shell_env, envs),
+        env = dicts.add(
+            dicts.add(ctx.configuration.default_shell_env, envs),
+            {"BAZEL_BINDIR": ctx.bin_dir.path},
+        ),
         execution_requirements = {k: "" for k in native_toolchain.execution_requirements},
     )
     return DefaultInfo(
@@ -92,7 +104,7 @@ run_sbt = rule(
         "java",
         "platform",
     ],
-    attrs = {
+    attrs = dict({
         "args": attr.string_list(
             default = [],
             doc = "Arguments for the sbt process",
@@ -114,6 +126,11 @@ run_sbt = rule(
         ),
         "use_default_shell_env": attr.bool(),
         "_java_runtime": attr.label(default = Label("@bazel_tools//tools/jdk:current_java_runtime")),
+        "_run_with_version_info": attr.label(
+            executable = True,
+            default = Label("//internal:run_with_version_info"),
+            cfg = "exec",
+        ),
         "_windows_constraint": attr.label(
             default = Label("@platforms//os:windows"),
         ),
@@ -121,7 +138,7 @@ run_sbt = rule(
             default = Label("@platforms//os:linux"),
         ),
         "_zlib": attr.label(providers = [[CcInfo]], default = Label("@zlib")),
-    },
+    }, **STAMP_ATTRS),
 )
 
 def _resolve_native_toolchain(ctx):

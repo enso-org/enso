@@ -93,7 +93,7 @@ public class SaveAndLoadCacheTest {
   @Test
   public void bindingCachesOfBigProject_AreMmapped() throws IOException {
     var projDir = tmpFolder.newFolder("Proj").toPath();
-    var mainSrc = createBigSource(6_000);
+    var mainSrc = createBigSource(10_000);
     ProjectUtils.createProject("Proj", mainSrc, projDir);
     var libName = LibraryName.apply("local", "Proj");
 
@@ -107,7 +107,7 @@ public class SaveAndLoadCacheTest {
               .orElseThrow(() -> new AssertionError("No save bindings log found"));
       savedBindingsCacheSize = (int) saveBindingsLog.getParameters()[2];
       var savedMb = savedBindingsCacheSize / 1024 / 1024;
-      assertThat("binding cache is at least 10MB", savedMb > 10, is(true));
+      assertThat("binding cache is at least 10MB: " + savedMb, savedMb > 10, is(true));
     }
 
     // Run after compilation. Bindings cache should be mmapped.

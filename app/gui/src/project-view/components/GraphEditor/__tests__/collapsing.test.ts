@@ -236,7 +236,6 @@ test('Perform collapse', () => {
       '    target = extract2',
     ].join('\n'),
   )
-  root.module.setRoot(root)
   const before = findExpressions(root, {
     'keep1 = 1': Ast.Assignment,
     'extract1 = keep1': Ast.Assignment,

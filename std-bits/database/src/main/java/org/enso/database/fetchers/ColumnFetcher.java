@@ -6,14 +6,14 @@ import java.sql.SQLException;
 import java.util.function.BiFunction;
 import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.table.Column;
-import org.enso.table.data.table.Table;
 import org.enso.table.problems.ProblemAggregator;
+import org.graalvm.polyglot.Value;
 
 public interface ColumnFetcher {
   private static ColumnFetcher[] forResultSet(
       ResultSet rs,
       ProblemAggregator problemAggregator,
-      BiFunction<ResultSetMetaData, Integer, StorageType<?>> storageTypeMapper,
+      BiFunction<ResultSetMetaData, Integer, String> storageTypeMapper,
       ColumnFetcherFactory factory)
       throws SQLException {
     var meta = rs.getMetaData();
@@ -22,27 +22,34 @@ public interface ColumnFetcher {
     for (int i = 0; i < columnCount; i++) {
       String columnName = meta.getColumnName(i + 1);
 
-      var storageType = storageTypeMapper.apply(meta, i);
+      var storageTypeString = storageTypeMapper.apply(meta, i);
+      var storageType =
+          StorageType.fromTypeCharAndSize(
+              storageTypeString.charAt(0),
+              storageTypeString.length() > 1
+                  ? Integer.parseInt(storageTypeString.substring(1))
+                  : -1);
       fetchers[i] = factory.forStorageType(storageType, i, columnName, problemAggregator);
     }
     return fetchers;
   }
 
-  private static Table getTable(ColumnFetcher[] fetchers) {
+  private static Column[] getTable(ColumnFetcher[] fetchers) {
     Column[] columns = new Column[fetchers.length];
     for (int i = 0; i < fetchers.length; i++) {
       columns[i] = fetchers[i].seal();
     }
-    return new Table(columns);
+    return columns;
   }
 
-  static Table readResultSet(
+  static Value readResultSet(
       ResultSet rs,
       int rowLimit,
-      ProblemAggregator problemAggregator,
-      BiFunction<ResultSetMetaData, Integer, StorageType<?>> storageTypeMapper,
+      BiFunction<ResultSetMetaData, Integer, String> storageTypeMapper,
       ColumnFetcherFactory factory)
       throws SQLException {
+    var problemAggregator = ProblemAggregator.makeTopLevelAggregator();
+
     // Create the fetchers
     var fetchers = forResultSet(rs, problemAggregator, storageTypeMapper, factory);
 
@@ -54,15 +61,17 @@ public interface ColumnFetcher {
       rowLimit -= 1;
     }
 
-    return getTable(fetchers);
+    var java_table = getTable(fetchers);
+    return problemAggregator.attachProblemsToValue(Value.asValue(java_table), false);
   }
 
-  static Table readLastRow(
+  static Value readLastRow(
       ResultSet rs,
-      ProblemAggregator problemAggregator,
-      BiFunction<ResultSetMetaData, Integer, StorageType<?>> storageTypeMapper,
+      BiFunction<ResultSetMetaData, Integer, String> storageTypeMapper,
       ColumnFetcherFactory factory)
       throws SQLException {
+    var problemAggregator = ProblemAggregator.makeTopLevelAggregator();
+
     // Create the fetchers
     var fetchers = forResultSet(rs, problemAggregator, storageTypeMapper, factory);
 
@@ -83,7 +92,8 @@ public interface ColumnFetcher {
       }
     }
 
-    return getTable(fetchers);
+    var java_table = getTable(fetchers);
+    return problemAggregator.attachProblemsToValue(Value.asValue(java_table), false);
   }
 
   /**

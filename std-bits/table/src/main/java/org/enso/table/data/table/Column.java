@@ -1,6 +1,5 @@
 package org.enso.table.data.table;
 
-import java.lang.reflect.Proxy;
 import java.util.List;
 import org.enso.base.polyglot.Polyglot_Utils;
 import org.enso.table.data.column.builder.Builder;
@@ -32,14 +31,12 @@ public final class Column {
   public Column(String name, ColumnStorage<?> storage) {
     ensureNameIsValid(name);
     this.name = name;
-    var isProxy = Proxy.isProxyClass(storage.getClass());
-    this.storage = isProxy ? Builder.makeLocal(storage) : storage;
-    var type = this.storage.getType();
+    this.storage = Builder.makeLocal(storage);
     LOGGER.trace(
         "Column[{}] of {}:{} type with size: {}",
         name,
-        type.typeChar(),
-        type.size(),
+        storage.typeChar(),
+        storage.typeSize(),
         storage.getSize());
   }
 
@@ -83,8 +80,8 @@ public final class Column {
   /**
    * @return the type of the underlying storage
    */
-  public StorageType<?> getType() {
-    return storage.getType();
+  public StorageType<?> getStorageType() {
+    return StorageType.ofStorage(storage);
   }
 
   /**

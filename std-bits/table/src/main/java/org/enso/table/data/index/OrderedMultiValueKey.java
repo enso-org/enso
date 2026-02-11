@@ -1,10 +1,8 @@
 package org.enso.table.data.index;
 
 import java.util.Comparator;
-import java.util.List;
 import org.enso.base.ObjectComparator;
 import org.enso.table.data.column.storage.ColumnStorage;
-import org.enso.table.data.table.Column;
 
 /**
  * A multi-value key for ordered operations like sorting.
@@ -21,14 +19,6 @@ public class OrderedMultiValueKey extends MultiValueKeyBase
   private final Comparator<Object> objectComparator;
 
   private final int[] directions;
-
-  public OrderedMultiValueKey(List<Column> columns, long rowIndex, int[] directions) {
-    this(
-        columns.stream().map(Column::getStorage).toArray(ColumnStorage[]::new),
-        rowIndex,
-        directions,
-        ObjectComparator.DEFAULT);
-  }
 
   public OrderedMultiValueKey(ColumnStorage<?>[] storages, long rowIndex, int[] directions) {
     this(storages, rowIndex, directions, ObjectComparator.DEFAULT);

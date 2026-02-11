@@ -92,11 +92,15 @@ class FramePointerAnalysisTest extends CompilerTest {
       }
       withClue("Expression.Binding must have FramePointer associated") {
         allOcc.head._1
-          .unsafeGetMetadata(FramePointerAnalysis, "should exist")
-          .asInstanceOf[FramePointer] shouldEqual new FramePointer(0, 1)
+          .unsafeGetMetadata[FramePointer](
+            FramePointerAnalysis,
+            "should exist"
+          ) shouldEqual new FramePointer(0, 1)
         allOcc.last._1
-          .unsafeGetMetadata(FramePointerAnalysis, "should exist")
-          .asInstanceOf[FramePointer] shouldEqual new FramePointer(0, 2)
+          .unsafeGetMetadata[FramePointer](
+            FramePointerAnalysis,
+            "should exist"
+          ) shouldEqual new FramePointer(0, 2)
       }
     }
 
@@ -107,8 +111,10 @@ class FramePointerAnalysisTest extends CompilerTest {
           |main x y = x + y
           |""".stripMargin.preprocessModule.analyse
       val aliasGraph = ir.bindings.head
-        .unsafeGetMetadata(AliasAnalysis, "should exist")
-        .asInstanceOf[AliasMetadata.RootScope]
+        .unsafeGetMetadata[AliasMetadata.RootScope](
+          AliasAnalysis,
+          "should exist"
+        )
         .graph
         .asInstanceOf[GraphImpl]
       val xDefIr = findAssociatedIr(
@@ -153,8 +159,10 @@ class FramePointerAnalysisTest extends CompilerTest {
           |    nested
           |""".stripMargin.preprocessModule.analyse
       val mainScope = ir.bindings.head
-        .unsafeGetMetadata(AliasAnalysis, "should exist")
-        .asInstanceOf[AliasMetadata.RootScope]
+        .unsafeGetMetadata[AliasMetadata.RootScope](
+          AliasAnalysis,
+          "should exist"
+        )
       val mainGraph = mainScope.graph.asInstanceOf[GraphImpl]
       val allFps    = collectAllFramePointers(ir)
       allFps.size shouldBe 4
@@ -524,8 +532,10 @@ class FramePointerAnalysisTest extends CompilerTest {
       ir.passData().get(FramePointerAnalysis) shouldBe defined
     }
     ir
-      .unsafeGetMetadata(FramePointerAnalysis, "should exist")
-      .asInstanceOf[FramePointer] shouldEqual framePointer
+      .unsafeGetMetadata[FramePointer](
+        FramePointerAnalysis,
+        "should exist"
+      ) shouldEqual framePointer
   }
 
   private def findAssociatedIr(
@@ -533,7 +543,8 @@ class FramePointerAnalysisTest extends CompilerTest {
     moduleIr: IR
   ): IR = {
     val irs = moduleIr.preorder().collect { childIr =>
-      childIr.getMetadata(AliasAnalysis) match {
+      childIr
+        .getMetadata(AliasAnalysis, classOf[AliasAnalysis.Metadata]) match {
         case Some(occ: AliasMetadata.Occurrence) if occ.id == id =>
           childIr
       }
@@ -550,7 +561,8 @@ class FramePointerAnalysisTest extends CompilerTest {
     ir: IR
   ): List[(IR, AliasMetadata.Occurrence)] = {
     ir.preorder().flatMap { childIr =>
-      childIr.getMetadata(AliasAnalysis) match {
+      childIr
+        .getMetadata(AliasAnalysis, classOf[AliasAnalysis.Metadata]) match {
         case Some(occMeta: alias.AliasMetadata.Occurrence) =>
           Some((childIr, occMeta))
         case _ => None
@@ -562,7 +574,10 @@ class FramePointerAnalysisTest extends CompilerTest {
     ir: IR
   ): List[(IR, FrameAnalysisMeta)] = {
     ir.preorder().flatMap { childIr =>
-      childIr.getMetadata(FramePointerAnalysis) match {
+      childIr.getMetadata(
+        FramePointerAnalysis,
+        classOf[FramePointerAnalysis.Metadata]
+      ) match {
         case Some(framePointerMeta: FrameAnalysisMeta)
             if (framePointerMeta.isInstanceOf[FramePointer]) =>
           Some((childIr, framePointerMeta))

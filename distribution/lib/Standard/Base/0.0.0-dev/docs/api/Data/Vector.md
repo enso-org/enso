@@ -1,7 +1,7 @@
 ## Enso Signatures 1.0
 ## module Standard.Base.Data.Vector
 - type Builder
-    - any self condition:(Standard.Base.Data.Filter_Condition.Filter_Condition|Standard.Base.Any.Any) -> Standard.Base.Any.Any
+    - any self condition:(Standard.Base.Data.Filter_Condition.Filter_Condition|(Standard.Base.Any.Any -> Standard.Base.Data.Boolean.Boolean)) -> Standard.Base.Any.Any
     - append self item:Standard.Base.Any.Any!Standard.Base.Error.Error -> Standard.Base.Nothing.Nothing!Standard.Base.Error.Error
     - append_vector_range self vector:Standard.Base.Any.Any start:Standard.Base.Data.Numbers.Integer= end:Standard.Base.Any.Any= -> Standard.Base.Nothing.Nothing!Standard.Base.Error.Error
     - at self index:Standard.Base.Data.Numbers.Integer -> Standard.Base.Any.Any
@@ -21,12 +21,12 @@
 - type Report_Unmatched
 - type Vector a:Standard.Base.Any.Any
     - + self that:(Standard.Base.Data.Vector.Vector|Standard.Base.Data.Array.Array) -> Standard.Base.Any.Any
-    - all self condition:(Standard.Base.Data.Filter_Condition.Filter_Condition|Standard.Base.Any.Any) -> Standard.Base.Any.Any
-    - any self condition:(Standard.Base.Data.Filter_Condition.Filter_Condition|Standard.Base.Any.Any) -> Standard.Base.Any.Any
+    - all self condition:(Standard.Base.Data.Filter_Condition.Filter_Condition|(Standard.Base.Any.Any -> Standard.Base.Data.Boolean.Boolean)) -> Standard.Base.Any.Any
+    - any self condition:(Standard.Base.Data.Filter_Condition.Filter_Condition|(Standard.Base.Any.Any -> Standard.Base.Data.Boolean.Boolean)) -> Standard.Base.Any.Any
     - at self index:Standard.Base.Data.Numbers.Integer= -> Standard.Base.Any.Any
-    - build function:Standard.Base.Any.Any initial_capacity:Standard.Base.Data.Numbers.Integer= propagate_warnings:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Data.Vector.Vector
-    - build_multiple count:Standard.Base.Data.Numbers.Integer function:Standard.Base.Any.Any initial_capacity:Standard.Base.Data.Numbers.Integer= propagate_warnings:Standard.Base.Data.Boolean.Boolean= -> (Standard.Base.Data.Vector.Vector Standard.Base.Data.Vector.Vector)
-    - collect seq:Standard.Base.Any.Any element:Standard.Base.Any.Any next:Standard.Base.Any.Any limit:(Standard.Base.Data.Numbers.Integer|Standard.Base.Nothing.Nothing)= stop_at:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+    - build function:(Standard.Base.Data.Vector.Builder -> Standard.Base.Any.Any) initial_capacity:Standard.Base.Data.Numbers.Integer= propagate_warnings:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Data.Vector.Vector
+    - build_multiple count:Standard.Base.Data.Numbers.Integer function:(Standard.Base.Data.Vector.Builder -> Standard.Base.Any.Any) initial_capacity:Standard.Base.Data.Numbers.Integer= propagate_warnings:Standard.Base.Data.Boolean.Boolean= -> (Standard.Base.Data.Vector.Vector Standard.Base.Data.Vector.Vector)
+    - collect seq:Standard.Base.Any.Any element:(Standard.Base.Any.Any -> Standard.Base.Any.Any) next:(Standard.Base.Any.Any -> Standard.Base.Any.Any) limit:(Standard.Base.Data.Numbers.Integer|Standard.Base.Nothing.Nothing)= stop_at:(Standard.Base.Any.Any -> Standard.Base.Data.Boolean.Boolean)= -> Standard.Base.Any.Any
     - contains self elem:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - distinct self on:Standard.Base.Any.Any= -> Standard.Base.Any.Any
     - drop self range:(Standard.Base.Data.Index_Sub_Range.Index_Sub_Range|Standard.Base.Data.Range.Range|Standard.Base.Data.Numbers.Integer)= -> Standard.Base.Any.Any
@@ -34,9 +34,9 @@
     - each self f:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - each_with_index self f:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - fill length:Standard.Base.Any.Any item:Standard.Base.Any.Any -> Standard.Base.Any.Any
-    - filter self filter:(Standard.Base.Data.Filter_Condition.Filter_Condition|Standard.Base.Any.Any) -> Standard.Base.Any.Any
+    - filter self filter:(Standard.Base.Data.Filter_Condition.Filter_Condition|(Standard.Base.Any.Any -> Standard.Base.Data.Boolean.Boolean)) -> Standard.Base.Any.Any
     - filter_with_index self predicate:Standard.Base.Any.Any -> Standard.Base.Any.Any
-    - find self condition:(Standard.Base.Data.Filter_Condition.Filter_Condition|Standard.Base.Any.Any) start:Standard.Base.Data.Numbers.Integer= ~if_missing:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+    - find self condition:(Standard.Base.Data.Filter_Condition.Filter_Condition|(Standard.Base.Any.Any -> Standard.Base.Data.Boolean.Boolean)) start:Standard.Base.Data.Numbers.Integer= ~if_missing:Standard.Base.Any.Any= -> Standard.Base.Any.Any
     - first self -> Standard.Base.Any.Any
     - flat_map self function:Standard.Base.Any.Any on_problems:(Standard.Base.Errors.Problem_Behavior.Problem_Behavior|Standard.Base.Data.Vector.No_Wrap)= -> Standard.Base.Any.Any
     - flatten self -> Standard.Base.Any.Any
@@ -57,7 +57,7 @@
     - new length:Standard.Base.Any.Any constructor:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - not_empty self -> Standard.Base.Any.Any
     - pad self n:Standard.Base.Any.Any elem:Standard.Base.Any.Any -> Standard.Base.Any.Any
-    - partition self condition:(Standard.Base.Data.Filter_Condition.Filter_Condition|Standard.Base.Any.Any) -> Standard.Base.Any.Any
+    - partition self condition:(Standard.Base.Data.Filter_Condition.Filter_Condition|(Standard.Base.Any.Any -> Standard.Base.Data.Boolean.Boolean)) -> Standard.Base.Any.Any
     - partition_with_index self predicate:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - pretty self -> Standard.Base.Any.Any
     - reduce self function:Standard.Base.Any.Any ~if_empty:Standard.Base.Any.Any= -> Standard.Base.Any.Any
@@ -76,5 +76,5 @@
     - to_vector self -> Standard.Base.Any.Any
     - transpose self -> Standard.Base.Any.Any
     - unify_vector_or_element value:Standard.Base.Any.Any -> Standard.Base.Any.Any
-    - zip self that:Standard.Base.Data.Vector.Vector function:Standard.Base.Any.Any= skip_nothing:Standard.Base.Data.Boolean.Boolean= keep_unmatched:(Standard.Base.Data.Boolean.Boolean|Standard.Base.Data.Vector.Report_Unmatched)= on_problems:(Standard.Base.Errors.Problem_Behavior.Problem_Behavior|Standard.Base.Data.Vector.No_Wrap)= -> Standard.Base.Data.Vector.Vector
+    - zip self that:Standard.Base.Data.Vector.Vector function:(Standard.Base.Any.Any -> Standard.Base.Any.Any -> Standard.Base.Any.Any)= skip_nothing:Standard.Base.Data.Boolean.Boolean= keep_unmatched:(Standard.Base.Data.Boolean.Boolean|Standard.Base.Data.Vector.Report_Unmatched)= on_problems:(Standard.Base.Errors.Problem_Behavior.Problem_Behavior|Standard.Base.Data.Vector.No_Wrap)= -> Standard.Base.Data.Vector.Vector
 - Standard.Base.Errors.Wrapped_Error.Wrapped_Error.from that:Standard.Base.Data.Vector.Map_Error -> Standard.Base.Errors.Wrapped_Error.Wrapped_Error

@@ -166,7 +166,6 @@ type Stack_Trace_Element
    advanced: true
    ---
    Type indicating allowed execution context.
-@Builtin_Type
 type Context
     ## ---
        private: true

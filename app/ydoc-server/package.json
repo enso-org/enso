@@ -10,8 +10,8 @@
   "scripts": {
     "test:unit": "vitest run",
     "test:watch": "vitest",
-    "typecheck": "tsc",
-    "compile": "tsc",
+    "typecheck": "tsc -b tsconfig.json --noEmit",
+    "compile": "tsc -p tsconfig.build.json",
     "lint": "eslint . --cache --max-warnings=0"
   },
   "exports": {

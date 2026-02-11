@@ -6,6 +6,7 @@ import org.enso.table.data.column.operation.StorageIterators;
 import org.enso.table.data.column.operation.UnaryOperation;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.type.IntegerType;
+import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.data.table.problems.MapOperationProblemAggregator;
 
@@ -22,13 +23,13 @@ public class TextLengthOperation implements UnaryOperation {
 
   @Override
   public boolean canApply(ColumnStorage<?> storage) {
-    return storage.getType() instanceof TextType;
+    return StorageType.ofStorage(storage) instanceof TextType;
   }
 
   @Override
   public ColumnStorage<?> apply(
       ColumnStorage<?> storage, MapOperationProblemAggregator problemAggregator) {
-    if (storage.getType() instanceof TextType textType && textType.fixedLength()) {
+    if (StorageType.ofStorage(storage) instanceof TextType textType && textType.fixedLength()) {
       // Create a constant.
       return StorageIterators.buildOverStorage(
           storage,

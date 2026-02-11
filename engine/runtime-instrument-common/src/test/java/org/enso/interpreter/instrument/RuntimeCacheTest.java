@@ -18,7 +18,7 @@ public class RuntimeCacheTest {
 
   @Test
   public void cacheItems() {
-    var cache = new RuntimeCache();
+    var cache = new RuntimeCacheImpl();
     var key = UUID.randomUUID();
     var obj = 42;
 
@@ -32,7 +32,7 @@ public class RuntimeCacheTest {
 
   @Test
   public void removeItems() {
-    var cache = new RuntimeCache();
+    var cache = new RuntimeCacheImpl();
     var key = UUID.randomUUID();
     var obj = new Object();
 
@@ -44,7 +44,7 @@ public class RuntimeCacheTest {
 
   @Test
   public void cacheTypes() {
-    var cache = new RuntimeCache();
+    var cache = new RuntimeCacheImpl();
     var key = UUID.randomUUID();
     var obj = TypeInfo.ofType("Number");
 
@@ -57,7 +57,7 @@ public class RuntimeCacheTest {
 
   @Test
   public void cacheAllExpressions() {
-    var cache = new RuntimeCache();
+    var cache = new RuntimeCacheImpl();
     var key = UUID.randomUUID();
     var exprKey = UUID.randomUUID();
     var obj = new Object();
@@ -79,7 +79,7 @@ public class RuntimeCacheTest {
 
   @Test
   public void cleanupOfCachedExpressions() {
-    var cache = new RuntimeCache();
+    var cache = new RuntimeCacheImpl();
     var key = UUID.randomUUID();
     var exprKey = UUID.randomUUID();
     var obj = new Object();
@@ -109,7 +109,7 @@ public class RuntimeCacheTest {
 
   @Test
   public void cleanupOfNotCachedExpressions() {
-    var cache = new RuntimeCache();
+    var cache = new RuntimeCacheImpl();
     var key = UUID.randomUUID();
     var exprKey = UUID.randomUUID();
     var obj = new Object();
@@ -129,7 +129,7 @@ public class RuntimeCacheTest {
   /** */
   @Test
   public void runQueryWithCallback() {
-    var cache = new RuntimeCache();
+    var cache = new RuntimeCacheImpl();
     var key = UUID.randomUUID();
     var key2 = UUID.randomUUID();
     var obj = new Object();
@@ -139,7 +139,7 @@ public class RuntimeCacheTest {
     var result =
         cache.runQuery(
             queried::add,
-            () -> {
+            (query) -> {
               cache.apply(key.toString());
               cache.apply(key2.toString());
               return obj;
