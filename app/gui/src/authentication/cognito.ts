@@ -511,7 +511,7 @@ export class Cognito implements ISessionProvider {
 
   /** Resend the sign up confirmation code to the user's email address. */
   async resendSignUp(username: string) {
-    await amplify.Auth.resendSignUp(username)
+    await amplify.resendSignUpCode({ username })
   }
 
   /** Start the TOTP setup process. Returns the secret and the URL to scan the QR code. */
