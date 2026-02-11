@@ -251,7 +251,9 @@ case object TypeNames extends IRPass {
     ir: Expression,
     inlineContext: InlineContext
   ): Expression = {
-    ir
+    val bindingsMap = inlineContext.bindingsAnalysis()
+    val noType      = SelfTypeInfo.empty
+    resolveExpression(noType, bindingsMap, ir)
   }
 
 }
