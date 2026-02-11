@@ -90,8 +90,7 @@ type Process_Builder
                  with_args = builder.set_arguments ["hello, world!"]
                  with_args.create
        ```
-    create : Boolean -> Process_Result
-    create self redirect_out_err:Boolean=False =
+    create self redirect_out_err:Boolean=False -> Process_Result =
         result = System.create_process self.command self.arguments self.stdin redirect_in=(self.stdin == False) redirect_out=redirect_out_err redirect_err=redirect_out_err
         exit_code = Exit_Code.from_number result.exit_code
         Process_Result.Value exit_code result.stdout result.stderr
