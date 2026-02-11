@@ -172,17 +172,9 @@ export function createSessionStore(
   function useSignIn(
     signIn: () => Promise<void>,
     provider: analytics.AuthProvider,
-  ): () => Promise<boolean> {
+  ) {
     analytics.signIn.before(provider)
-
-    return () =>
-      signIn().then(
-        () => true,
-        (error) => {
-          console.warn('Failed to sign in', error)
-          return false
-        },
-      )
+    return signIn
   }
 
   const signInWithApple = useSignIn(() => authService.signInWithApple(), 'Apple')
