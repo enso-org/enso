@@ -535,7 +535,10 @@ public class JsonOperation {
     if (!first) {
       builder.append(",");
     }
-    builder.append("{\"name\":\"Range\",\"values\":[").append(String.join(",", ranges)).append("],\"type\":\"Text\"}");
+    builder
+        .append("{\"name\":\"Range\",\"values\":[")
+        .append(String.join(",", ranges))
+        .append("],\"type\":\"Text\"}");
     return false;
   }
 
