@@ -169,10 +169,7 @@ export function createSessionStore(
     return { challenge: challengeType != null }
   }
 
-  function useSignIn(
-    signIn: () => Promise<void>,
-    provider: analytics.AuthProvider,
-  ) {
+  function useSignIn(signIn: () => Promise<void>, provider: analytics.AuthProvider) {
     analytics.signIn.before(provider)
     return signIn
   }
