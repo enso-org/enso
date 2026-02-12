@@ -14,7 +14,10 @@ import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.Node;
+import com.oracle.truffle.api.source.Source;
 import com.oracle.truffle.api.source.SourceSection;
+import java.io.PrintStream;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Supplier;
@@ -95,6 +98,60 @@ public final class PanicException extends AbstractTruffleException {
       return computeMessage();
     }
     return cacheMessage;
+  }
+
+  @Override
+  public StackTraceElement[] getStackTrace() {
+    var arr = super.getStackTrace();
+    if (arr.length == 0) {
+      var trace = TruffleStackTrace.getStackTrace(this);
+      var collect = new ArrayList<StackTraceElement>();
+      for (var elem : trace) {
+        var node = elem.getInstrumentableLocation();
+        if (node == null) {
+          continue;
+        }
+        var root = node.getRootNode();
+        if (root == null || root.getName() == null) {
+          continue;
+        }
+        var info = root.getLanguageInfo();
+        var lang = info == null ? "" : "<" + info.getId() + ">";
+        var java = new StackTraceElement(lang, root.getName(), "Unknown", -1);
+
+        var ss = node.getEncapsulatingSourceSection();
+        if (ss != null) {
+          var src = ss.getSource();
+          java =
+              new StackTraceElement(
+                  lang, node.getRootNode().getName(), fileName(src), ss.getStartLine());
+        }
+        collect.add(java);
+      }
+      arr = collect.toArray(StackTraceElement[]::new);
+      setStackTrace(arr);
+    }
+    return arr;
+  }
+
+  private static String fileName(Source src) {
+    if (src.getPath() != null) {
+      return src.getPath();
+    } else {
+      return src.getName();
+    }
+  }
+
+  @Override
+  public void printStackTrace(PrintStream s) {
+    getStackTrace();
+    super.printStackTrace(s);
+  }
+
+  @Override
+  public void printStackTrace(PrintWriter s) {
+    getStackTrace();
+    super.printStackTrace(s);
   }
 
   /**

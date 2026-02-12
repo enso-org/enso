@@ -1,6 +1,7 @@
 package org.enso.interpreter.node.expression.builtin.error;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
@@ -9,6 +10,7 @@ import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.test.utils.ContextUtils;
 import org.enso.test.utils.TestRootNode;
+import org.graalvm.polyglot.PolyglotException;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
@@ -46,5 +48,34 @@ public class PanicExceptionTest {
     assertEquals(text.toString(), ex.getMessage());
     var msg = InteropLibrary.getUncached().getExceptionMessage(ex);
     assertEquals(text, msg);
+  }
+
+  @Test
+  public void panicExceptionGetStackTrace() throws UnsupportedMessageException {
+    var fn =
+        ctxRule.evalModule(
+            """
+            from Standard.Base import all
+
+            throw n =
+                if n == 0 then
+                    Panic.throw "now"
+                else
+                    throw n-1
+            """,
+            "throw.enso",
+            "throw");
+
+    try {
+      var none = fn.execute(10);
+      fail("Not expecting any result: " + none);
+    } catch (PolyglotException ex) {
+      var panic = (PanicException) ctxRule.unwrapValue(ex.getGuestObject());
+      for (var i = 0; i < 10; i++) {
+        var polyElem = ex.getStackTrace()[i];
+        var truffleElem = panic.getStackTrace()[i];
+        assertEquals(polyElem, truffleElem);
+      }
+    }
   }
 }
