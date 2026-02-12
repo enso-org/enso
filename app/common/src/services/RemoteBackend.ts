@@ -48,7 +48,7 @@ export type GetProjectArchiveFunction = (
 export class RemoteBackend extends backend.Backend {
   static readonly type = backend.BackendType.remote
   override readonly type = RemoteBackend.type
-  override readonly baseUrl: URL
+  override baseUrl: URL
   private user: objects.Mutable<backend.User> | null = null
   private readonly downloadCloudProject: DownloadCloudProjectFunction
   readonly getProjectArchive: GetProjectArchiveFunction
@@ -70,10 +70,16 @@ export class RemoteBackend extends backend.Backend {
     getProjectArchive: GetProjectArchiveFunction
   }) {
     super(getText, client, downloader)
-    const baseOrigin = typeof location !== 'undefined' ? location.href : 'https://example.com'
-    this.baseUrl = new URL(apiUrl, baseOrigin)
+    this.baseUrl = this.setApiUrl(apiUrl)
     this.downloadCloudProject = downloadCloudProject
     this.getProjectArchive = getProjectArchive
+  }
+
+  /** Update the remote backend API URL. */
+  setApiUrl(url: string) {
+    const baseOrigin = typeof location !== 'undefined' ? location.href : 'https://example.com'
+    this.baseUrl = new URL(url, baseOrigin)
+    return this.baseUrl
   }
 
   /** The path to the root directory of this {@link Backend}. */
