@@ -1,5 +1,6 @@
 import { localRootDirectoryStore } from '#/layouts/Drive/persistentState'
 import { download } from '#/utilities/download'
+import { useConfig } from '$/providers/config'
 import { proxyRefs, type ToValue } from '$/utils/reactivity'
 import { createGlobalState } from '@vueuse/core'
 import { BackendType, DirectoryId, Path } from 'enso-common/src/services/Backend'
@@ -29,6 +30,7 @@ function initializeBackends(
     const pm = createProjectManager(toValue(rootDirPath))
     projectManager.value = pm
   })
+  const config = useConfig()
   const localBackend = computed(() =>
     projectManager.value ?
       new LocalBackend(
@@ -41,46 +43,49 @@ function initializeBackends(
       )
     : null,
   )
-  const remoteBackend = new RemoteBackend({
-    apiUrl: $config.API_URL ?? '',
-    getText,
-    client: httpClient,
-    downloader: download,
-    downloadCloudProject: async function downloadCloudProject(this: RemoteBackend, params) {
-      const queryString = new URLSearchParams(params)
-      const response = await this.get<{
-        readonly projectRootDirectory: string
-        readonly parentDirectory: string
-      }>(new URL(`/api/cloud/download-project?${queryString}`, location.href).toString())
-      if (!response.ok) {
-        return await this.throw(response, 'resolveProjectAssetPathBackendError')
-      }
-      return await response.json()
-    },
-    getProjectArchive: async function getProjectArchive(
-      this: RemoteBackend,
-      directoryId: DirectoryId,
-      fileName: string,
-    ): Promise<File> {
-      const queryString = new URLSearchParams({
-        directory: extractIdFromDirectoryId(directoryId),
-      }).toString()
-      const response = await this.get(
-        new URL(`/api/cloud/get-project-archive?${queryString}`, location.href).toString(),
-      )
-      if (!response.ok) {
-        return await this.throw(response, 'resolveProjectAssetPathBackendError')
-      }
-      const responseBody = await response.arrayBuffer()
-      return new File([responseBody], fileName)
-    },
-  })
+  const remoteBackend = computed(
+    () =>
+      new RemoteBackend({
+        apiUrl: config.remoteConfig?.ENSO_IDE_API_URL ?? '',
+        getText,
+        client: httpClient,
+        downloader: download,
+        downloadCloudProject: async function downloadCloudProject(this: RemoteBackend, params) {
+          const queryString = new URLSearchParams(params)
+          const response = await this.get<{
+            readonly projectRootDirectory: string
+            readonly parentDirectory: string
+          }>(new URL(`/api/cloud/download-project?${queryString}`, location.href).toString())
+          if (!response.ok) {
+            return await this.throw(response, 'resolveProjectAssetPathBackendError')
+          }
+          return await response.json()
+        },
+        getProjectArchive: async function getProjectArchive(
+          this: RemoteBackend,
+          directoryId: DirectoryId,
+          fileName: string,
+        ): Promise<File> {
+          const queryString = new URLSearchParams({
+            directory: extractIdFromDirectoryId(directoryId),
+          }).toString()
+          const response = await this.get(
+            new URL(`/api/cloud/get-project-archive?${queryString}`, location.href).toString(),
+          )
+          if (!response.ok) {
+            return await this.throw(response, 'resolveProjectAssetPathBackendError')
+          }
+          const responseBody = await response.arrayBuffer()
+          return new File([responseBody], fileName)
+        },
+      }),
+  )
 
   watch(
     () => getText,
     (getText) => {
       localBackend.value?.setGetText(getText)
-      remoteBackend.setGetText(getText)
+      remoteBackend.value.setGetText(getText)
     },
   )
 

@@ -877,12 +877,14 @@ export class LocalBackend extends backend.Backend {
     localProjectId: backend.ProjectId,
     parentDirectoryId: backend.DirectoryId,
     defaultHeaders: Record<string, string>,
+    apiUrl: string,
   ): Promise<void> {
     const localProjectDirectory = backend.extractTypeAndPath(localProjectId).path
     const queryString = new URLSearchParams({
       assetId,
       parentDirectoryId,
       directory: localProjectDirectory,
+      apiUrl,
     }).toString()
     const response = await this.post(
       new URL(`/api/watcher/start?${queryString}`, location.href).toString(),

@@ -320,7 +320,13 @@ export function useProjectStates() {
   ) {
     if (!backends.localBackend) return Err('Cannot open local project: Local Backend missing.')
     await backends.localBackend
-      .startWatchingHybridProject(info.id, info.runningId, info.parentId, httpClient.defaultHeaders)
+      .startWatchingHybridProject(
+        info.id,
+        info.runningId,
+        info.parentId,
+        httpClient.defaultHeaders,
+        backends.remoteBackend.baseUrl.toString(),
+      )
       .catch((err) => {
         console.error(`Failed to start watching hybrid project ${info.id}`, err)
       })
