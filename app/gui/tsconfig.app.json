@@ -363,7 +363,6 @@
     "./src/dashboard/pages/authentication/AuthenticationPage.tsx",
     "./src/dashboard/pages/authentication/ConfirmRegistration.tsx",
     "./src/dashboard/pages/authentication/ForgotPassword.tsx",
-    "./src/dashboard/pages/authentication/LoadingScreen.tsx",
     "./src/dashboard/pages/authentication/Login.tsx",
     "./src/dashboard/pages/authentication/Registration.tsx",
     "./src/dashboard/pages/authentication/ResetPassword.tsx",
