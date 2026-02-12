@@ -2,6 +2,7 @@ package org.enso.interpreter.instrument;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import java.lang.ref.Reference;
+import java.lang.ref.ReferenceQueue;
 import java.lang.ref.SoftReference;
 import java.lang.ref.WeakReference;
 import java.util.HashMap;
@@ -13,12 +14,16 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import org.enso.common.CachePreferences;
 import org.enso.interpreter.service.ExecutionService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /** A storage for computed values. */
 final class RuntimeCacheImpl extends RuntimeCache
     implements RuntimeCache.Immutable,
         RuntimeCache.Mutable,
         java.util.function.Function<String, Object> {
+  private static final Logger LOGGER = LoggerFactory.getLogger(RuntimeCache.class);
+
   private final Map<UUID, Reference<Object>> cache = new HashMap<>();
   private final Map<UUID, Reference<Object>> expressions = new HashMap<>();
   private final Map<UUID, TypeInfo> types = new HashMap<>();
@@ -54,7 +59,7 @@ final class RuntimeCacheImpl extends RuntimeCache
   public boolean offer(UUID key, Object value) {
     expressions.put(key, new WeakReference<>(value));
     if (preferences.contains(key)) {
-      var ref = new SoftReference<>(value);
+      var ref = new CacheReference<>(value, key);
       cache.put(key, ref);
       return true;
     }
@@ -260,12 +265,36 @@ final class RuntimeCacheImpl extends RuntimeCache
    */
   @Override
   public <V> V runQuery(Consumer<UUID> callback, Function<Immutable, V> scope) {
+    CacheReference.flushQueue();
     var previousCallback = this.observer;
     this.observer = callback;
     try {
       return scope.apply(this);
     } finally {
       this.observer = previousCallback;
+    }
+  }
+
+  private static final class CacheReference<T> extends SoftReference<T> {
+    private static final ReferenceQueue<Object> QUEUE = new ReferenceQueue<>();
+
+    private final UUID key;
+
+    CacheReference(T referent, UUID key) {
+      super(referent, QUEUE);
+      this.key = key;
+    }
+
+    static void flushQueue() {
+      while (true) {
+        var obj = QUEUE.poll();
+        if (obj == null) {
+          return;
+        }
+        if (obj instanceof CacheReference ref) {
+          LOGGER.debug("Cached cleared for {}", ref.key);
+        }
+      }
     }
   }
 }
