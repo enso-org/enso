@@ -2,7 +2,7 @@ from Standard.Base import all
 
 from Standard.Test import all
 
-from enso_dev.Base_Tests.Enso_Bin_Utils import enso_bin, create_new_project, create_tmp_dir
+from enso_dev.Base_Tests.Enso_Bin_Utils import create_new_project, create_tmp_dir
 
 polyglot java import java.lang.System as Java_System
 polyglot java import java.io.File as Java_File
