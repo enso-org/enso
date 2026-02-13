@@ -105,6 +105,7 @@ class VisualizationHolder {
     *
     * @param nodeID the expression id to register
     */
+  @CompilerDirectives.TruffleBoundary
   def upsertNestedVisualization(nodeID: ExpressionId): Unit = {
     pendingSubExpressionVisualizations.add(nodeID)
   }
@@ -115,6 +116,7 @@ class VisualizationHolder {
     * @param nodeID the expression id to check
     * @return true if a nested visualization was pending for this expression
     */
+  @CompilerDirectives.TruffleBoundary
   def hasNestedVisualizationToExecute(nodeID: ExpressionId): Boolean = {
     pendingSubExpressionVisualizations.remove(nodeID)
   }
