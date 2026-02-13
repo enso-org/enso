@@ -50,8 +50,10 @@ public abstract class DataQualityMetrics {
   }
 
   public static final String IS_INCOMPLETE = "_Is Incomplete";
+  public static final String IS_INCOMPLETE_TEXT = "_Is Incomplete Text";
   public static final String NOTHING_COUNT = "# Nothing";
   public static final String DISTINCT_COUNT = "# Distinct";
+  public static final String USE_MULTI_FILTER = "_Use Multi-Filter";
   public static final String DISTINCT_JSON = "_Distinct JSON";
   public static final String SINGLE_VALUE = "_Single Value";
   public static final String MINIMUM = "Minimum";
@@ -64,7 +66,10 @@ public abstract class DataQualityMetrics {
   public static final String TYPE_RECORD = "Types and Counts";
 
   // Default threshold for checking distinct values count.
-  public static final int DISTINCT_THRESHOLD = 100;
+  private static final int DISTINCT_THRESHOLD = 100;
+
+  // Value for when the computation is incomplete.
+  private static final String IS_INCOMPLETE_TEXT_VALUE = "Still computing indicators...";
 
   // Default seed for random number generation (no specific reason for this value, just stability on
   // results).
@@ -189,6 +194,7 @@ public abstract class DataQualityMetrics {
       var current = super.getMetrics();
       current.put(NOTHING_COUNT, nothingCount);
       current.put(DISTINCT_COUNT, 0L);
+      current.put(USE_MULTI_FILTER, false);
       return current;
     }
   }
@@ -212,7 +218,7 @@ public abstract class DataQualityMetrics {
           distinctJson =
               "["
                   + distinct.stream()
-                      .map(v -> JsonOperation.objectToJson(v, o -> null))
+                      .map(o -> JsonOperation.objectToJson(o, null))
                       .filter(Objects::nonNull)
                       .sorted()
                       .collect(Collectors.joining())
@@ -255,11 +261,13 @@ public abstract class DataQualityMetrics {
       if (currentResult != null) {
         current.put(NOTHING_COUNT, currentResult.nothingCount);
         current.put(DISTINCT_COUNT, currentResult.distinctCount);
+        current.put(USE_MULTI_FILTER, currentResult.distinctCount <= DISTINCT_THRESHOLD);
         if (currentResult.distinctJson != null) {
           current.put(DISTINCT_JSON, currentResult.distinctJson);
         }
       } else if (!result.isDone()) {
         current.put(IS_INCOMPLETE, true);
+        current.put(IS_INCOMPLETE_TEXT, IS_INCOMPLETE_TEXT_VALUE);
       }
 
       return current;

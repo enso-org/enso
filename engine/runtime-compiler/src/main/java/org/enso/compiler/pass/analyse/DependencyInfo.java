@@ -1,10 +1,12 @@
 package org.enso.compiler.pass.analyse;
 
+import java.io.IOException;
 import java.util.UUID;
 import org.enso.compiler.context.CompilerContext;
 import org.enso.compiler.core.ExternalID;
 import org.enso.compiler.core.IR;
 import org.enso.compiler.core.Identifier;
+import org.enso.compiler.core.ir.Expression;
 import org.enso.compiler.core.ir.Name;
 import org.enso.compiler.pass.IRPass;
 import scala.Option;
@@ -25,6 +27,30 @@ public record DependencyInfo(DependencyMapping dependents, DependencyMapping dep
 
   public String metadataName() {
     return "DataflowAnalysis.DependencyInfo";
+  }
+
+  /**
+   * Finds dependency info in the provided IR element.
+   *
+   * @return non-{@code null} dependency info
+   * @throws exception or error when the info isn't attached to the element
+   */
+  public static DependencyInfo find(IR ir) {
+    var pass = DataflowAnalysis$.MODULE$;
+    var opt = ir.passData().get(pass);
+    if (opt.isEmpty()) {
+      var newIr =
+          switch (ir) {
+            case org.enso.compiler.core.ir.Module m -> pass.runModule(m, null);
+            case Expression exp -> pass.runExpression(exp, null);
+            default -> throw new AssertionError();
+          };
+      opt = ir.passData().get(pass);
+      assert opt.nonEmpty();
+    }
+    var raw = opt.get();
+    assert raw != null;
+    return (DependencyInfo) raw;
   }
 
   /**
@@ -51,7 +77,7 @@ public record DependencyInfo(DependencyMapping dependents, DependencyMapping dep
    */
   @Override
   public DependencyInfo prepareForSerialization(CompilerContext compiler) {
-    return this;
+    throw raiseNoSerde(RuntimeException.class);
   }
 
   /**
@@ -59,7 +85,12 @@ public record DependencyInfo(DependencyMapping dependents, DependencyMapping dep
    */
   @Override
   public Option<IRPass.IRMetadata> restoreFromSerialization(CompilerContext compiler) {
-    return Option.apply(this);
+    throw raiseNoSerde(RuntimeException.class);
+  }
+
+  @SuppressWarnings("unchecked")
+  private static <T extends Exception> T raiseNoSerde(Class<T> ignore) throws T {
+    throw (T) new IOException("DependencyInfo shall never be subject to serde");
   }
 
   /** The type of identification for a program component. */

@@ -6,10 +6,7 @@ import org.enso.compiler.core.ir.Function
 import org.enso.compiler.core.ir.Name
 import org.enso.compiler.core.ir.module.scope.{definition, Definition}
 import org.enso.compiler.refactoring.IRUtils
-import org.enso.compiler.pass.analyse.{
-  CachePreferenceAnalysis,
-  DataflowAnalysis
-}
+import org.enso.compiler.pass.analyse.CachePreferenceAnalysis
 import org.enso.compiler.pass.analyse.DependencyInfo
 import org.enso.interpreter.instrument.execution.{Executable, RuntimeContext}
 import org.enso.interpreter.instrument.job.UpsertVisualizationJob.{
@@ -174,7 +171,7 @@ class UpsertVisualizationJob(
     val runtimeCache = stack.headOption
       .flatMap(frame => Option(frame.cache))
     val cachedValue = runtimeCache
-      .flatMap(c => Option(c.get(expressionId)))
+      .flatMap(c => Option(c.runQuery(null, _.get(expressionId))))
     UpsertVisualizationJob.requireVisualizationSynchronization(
       stack,
       visualizationId
@@ -183,7 +180,7 @@ class UpsertVisualizationJob(
       case Some(value) =>
         ProgramExecutionSupport.executeAndSendVisualizationUpdate(
           config.executionContextId,
-          runtimeCache.getOrElse(new RuntimeCache),
+          runtimeCache.getOrElse(RuntimeCache.create.cache),
           stack.headOption.get.syncState,
           visualization,
           expressionId,
@@ -616,7 +613,7 @@ object UpsertVisualizationJob {
       Visualization(
         visualizationId,
         expressionId,
-        new RuntimeCache(),
+        RuntimeCache.create().cache(),
         module,
         visualizationConfig,
         visualizationExpressionId,
@@ -709,7 +706,7 @@ object UpsertVisualizationJob {
     stack: Iterable[InstrumentFrame]
   ): Boolean = {
     stack.headOption.exists { frame =>
-      frame.cache.get(expressionId) ne null
+      frame.cache.runQuery(null, _.get(expressionId) ne null)
     }
   }
 
@@ -741,8 +738,10 @@ object UpsertVisualizationJob {
     ctx.executionService.getContext
       .findModuleByExpressionId(expressionId)
       .ifPresent { module =>
-        module.getIr
-          .getMetadata(DataflowAnalysis, classOf[DataflowAnalysis.Metadata])
+        Option(
+          DependencyInfo
+            .find(module.getIr)
+        )
           .foreach { metadata =>
             val externalId = expressionId
             IRUtils
@@ -758,7 +757,9 @@ object UpsertVisualizationJob {
                 stacks.foreach { stack =>
                   stack.headOption.foreach { frame =>
                     dependents
-                      .find { id => frame.cache.get(id) ne null }
+                      .find { id =>
+                        frame.cache.runQuery(null, _.get(id) ne null)
+                      }
                       .foreach { firstDependent =>
                         CacheInvalidation.run(
                           stack,

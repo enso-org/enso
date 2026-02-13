@@ -1,6 +1,7 @@
 import { Ast } from '@/util/ast'
 import * as fs from 'fs'
 import { expect, test } from 'vitest'
+import { parseModuleWithSpans } from 'ydoc-shared/ast'
 import { splitFileContents } from 'ydoc-shared/ensoFile'
 
 // FIXME: This test pulls parts of the server code to read a fixture file. Move necessary parts of
@@ -11,11 +12,8 @@ import { deserializeIdMap } from 'ydoc-server'
 function normalize(rootIn: Ast.Ast): Ast.Ast {
   const printed = Ast.printWithSpans(rootIn)
   const idMap = Ast.spanMapToIdMap(printed.info)
-  const module = Ast.MutableModule.Transient()
-  const tree = Ast.rawParseModule(printed.code)
-  const { root: parsed, spans } = Ast.abstract(module, tree, printed.code)
-  module.setRoot(parsed)
-  Ast.setExternalIds(module, spans, idMap)
+  const { root: parsed, spans } = parseModuleWithSpans(printed.code)
+  Ast.setExternalIds(parsed.module, spans, idMap)
   return parsed
 }
 

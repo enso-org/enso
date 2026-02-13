@@ -36,10 +36,10 @@ from project.Errors import Invalid_Value_Type
 from project.In_Memory_Table import from_java_table
 from project.Internal.Column_Format import all
 from project.Internal.Column_Type_Helpers import get_underlying_from_column
-from project.Internal.Java_Exports import make_string_builder
 from project.Internal.Storage import enso_to_java, java_to_enso
 
 polyglot java import org.enso.base.Time_Utils
+polyglot java import org.enso.table.data.column.builder.Builder
 polyglot java import org.enso.table.data.column.operation.binary.BinaryOperator
 polyglot java import org.enso.table.data.column.operation.binary.FillMissingOperation
 polyglot java import org.enso.table.data.column.operation.binary.LogicalOperations
@@ -67,12 +67,16 @@ polyglot java import org.enso.table.data.column.operation.unary.TruncatedTimePar
 polyglot java import org.enso.table.data.column.operation.unary.UnaryRoundOperation
 polyglot java import org.enso.table.data.column.operation.UnaryOperation
 polyglot java import org.enso.table.data.column.storage.PreciseTypeOptions
+polyglot java import org.enso.table.data.column.storage.type.TextType
 polyglot java import org.enso.table.data.table.Column as Java_Column
 polyglot java import org.enso.table.data.table.Table as Java_Table
+polyglot java import org.enso.table.data.table.problems.MapOperationProblemAggregator
 polyglot java import org.enso.table.operations.OrderBuilder
 polyglot java import org.enso.table.parsing.problems.ParseProblemAggregator
 
 type In_Memory_Column_Implementation
+    table_version_hash (this_column : Column & In_Memory_Column) = "Column-" + this_column.java_column.getStorage.uniqueKey.to_text
+
     display (this_column : Column & In_Memory_Column) show_rows:Integer format_terminal:Boolean =
         this_column.to_table.display show_rows format_terminal
 
@@ -447,7 +451,7 @@ type In_Memory_Column_Implementation
                     java_term = (parsed_term:In_Memory_Column).java_column
                     java_new = (parsed_new:In_Memory_Column).java_column
 
-                    builder = make_string_builder row_count
+                    builder = Builder.getForText TextType.VARIABLE_LENGTH row_count
                     0.up_to row_count . each i->
                         replaced = fn (java_this.getItem i) (java_term.getItem i) (java_new.getItem i)
                         builder.append replaced
@@ -542,7 +546,7 @@ type In_Memory_Column_Implementation
             True ->
                 mapped_vector = as_vector.map enso_to_java
                 java_result = Illegal_State.handle_java_exception <|
-                    Java_Problems.with_map_operation_problem_aggregator new_name Problem_Behavior.Report_Warning java_problem_aggregator->
+                    with_map_operation_problem_aggregator new_name Problem_Behavior.Report_Warning java_problem_aggregator->
                         IsInOperation.apply java_column new_name mapped_vector java_problem_aggregator
                 In_Memory_Column.from_java_column java_result
             False ->
@@ -744,15 +748,16 @@ private _run_vectorized_many_op column:Column name:Text fallback_fn:(Any -> Any 
     all_operands = [column]+effective_operands
     effective_new_name = new_name.if_nothing (naming_helper.function_name name all_operands)
     common_type = Value_Type_Helpers.find_common_type_for_arguments all_operands
-    common_type.if_not_error <|
-        Java_Problems.with_map_operation_problem_aggregator effective_new_name Problem_Behavior.Report_Warning problem_builder->
-            storage_type = resolve_storage_type common_type
-            folded = effective_operands.fold (column:In_Memory_Column).java_column current-> operand-> if Nothing == operand then current else
-                java_object = if operand.is_a Column then (operand:In_Memory_Column).java_column else operand
-                Polyglot_Helpers.handle_polyglot_dataflow_errors <| case name of
-                    "min" -> BinaryCoalescingOperation.min current java_object fallback_fn storage_type effective_new_name problem_builder
-                    "max" -> BinaryCoalescingOperation.max current java_object fallback_fn storage_type effective_new_name problem_builder
-            In_Memory_Column.from_java_column folded
+    Error.return_if_error common_type
+
+    with_map_operation_problem_aggregator effective_new_name Problem_Behavior.Report_Warning problem_builder->
+        storage_type = resolve_storage_type common_type
+        folded = effective_operands.fold (column:In_Memory_Column).java_column current-> operand-> if Nothing == operand then current else
+            java_object = if operand.is_a Column then (operand:In_Memory_Column).java_column else operand
+            Polyglot_Helpers.handle_polyglot_dataflow_errors <| case name of
+                "min" -> BinaryCoalescingOperation.min current java_object fallback_fn storage_type effective_new_name problem_builder
+                "max" -> BinaryCoalescingOperation.max current java_object fallback_fn storage_type effective_new_name problem_builder
+        In_Memory_Column.from_java_column folded
 
 ## ---
    private: true
@@ -773,7 +778,7 @@ private _run_vectorized_many_op column:Column name:Text fallback_fn:(Any -> Any 
       to `Nothing`, the result type is inferred from the values.
 private _apply_binary_map column function operand new_name skip_nulls=True expected_result_type=Nothing =
     storage_type = resolve_storage_type expected_result_type
-    Java_Problems.with_map_operation_problem_aggregator column.name Problem_Behavior.Report_Warning problem_builder->
+    with_map_operation_problem_aggregator column.name Problem_Behavior.Report_Warning problem_builder->
         new_column = Polyglot_Helpers.handle_polyglot_dataflow_errors <|
             BinaryOperation.mapFunction (column:In_Memory_Column).java_column (_java_other operand) skip_nulls new_name function storage_type problem_builder
         In_Memory_Column.from_java_column new_column
@@ -815,7 +820,7 @@ naming_helper = Column_Naming_Helper.in_memory
       column.
 apply_unary_operation column:Column operation:UnaryOperation new_name:Text|Nothing=Nothing ~if_unsupported=(Panic.throw (Illegal_State.Error "Unsupported unary operation for column called "+column.name+". This is a bug in the Table library.")) =
     used_name = new_name.if_nothing (naming_helper.function_name operation.getName [column])
-    Java_Problems.with_map_operation_problem_aggregator column.name Problem_Behavior.Report_Warning java_problem_aggregator->
+    with_map_operation_problem_aggregator column.name Problem_Behavior.Report_Warning java_problem_aggregator->
         java_column = UnaryOperation.apply (column:In_Memory_Column).java_column operation used_name java_problem_aggregator
         if java_column.is_nothing then if_unsupported else In_Memory_Column.from_java_column java_column
 
@@ -835,7 +840,7 @@ apply_unary_operation column:Column operation:UnaryOperation new_name:Text|Nothi
       values will be passed to the function.
 private apply_unary_map column:Column new_name:Text function expected_result_type:Value_Type|Nothing=Nothing nothing_unchanged:Boolean=True on_problems:Problem_Behavior=..Report_Warning =
     storage_type = resolve_storage_type expected_result_type
-    Java_Problems.with_map_operation_problem_aggregator column.name on_problems java_problem_aggregator->
+    with_map_operation_problem_aggregator column.name on_problems java_problem_aggregator->
         map_column = Polyglot_Helpers.handle_polyglot_dataflow_errors <|
             UnaryOperation.mapFunction (column:In_Memory_Column).java_column function nothing_unchanged storage_type new_name java_problem_aggregator
         In_Memory_Column.from_java_column map_column
@@ -848,12 +853,12 @@ private _call_comparator left other new_name ~comparator fallback =
     case (Comparators.isSupported (left:In_Memory_Column).java_column) of
         True -> _call_binary_operator left other new_name comparator
         False ->
-            Java_Problems.with_map_operation_problem_aggregator new_name Problem_Behavior.Report_Warning java_problem_aggregator->
+            with_map_operation_problem_aggregator new_name Problem_Behavior.Report_Warning java_problem_aggregator->
                 fallback_fn = fallback java_problem_aggregator
                 _apply_binary_map left fallback_fn other new_name skip_nulls=True expected_result_type=Value_Type.Boolean
 
 private _call_binary_operator left:In_Memory_Column other new_name ~operation =
-    Java_Problems.with_map_operation_problem_aggregator new_name Problem_Behavior.Report_Warning java_problem_aggregator->
+    with_map_operation_problem_aggregator new_name Problem_Behavior.Report_Warning java_problem_aggregator->
         java_column = operation.apply left.java_column (_java_other other) new_name java_problem_aggregator
         In_Memory_Column.from_java_column java_column
 
@@ -868,7 +873,7 @@ private apply_case_sensitive_text_operation left:Column (other : Column | Text |
     case use_fallback of
         True -> _apply_binary_map left fallback_fn other new_name=new_name skip_nulls=True expected_result_type=expected_result_type
         _ ->
-            Java_Problems.with_map_operation_problem_aggregator new_name Problem_Behavior.Report_Warning java_problem_aggregator->
+            with_map_operation_problem_aggregator new_name Problem_Behavior.Report_Warning java_problem_aggregator->
                 java_column = operation.apply (left:In_Memory_Column).java_column java_other new_name java_problem_aggregator
                 In_Memory_Column.from_java_column java_column
 
@@ -885,3 +890,14 @@ private apply_case_sensitive_text_operation left:Column (other : Column | Text |
    `Column`, losing the `& In_Memory_Column` part. This hidden conversion allows
    to 'regain' that part.
 In_Memory_Column.from (that : Column) = get_underlying_from_column that
+
+
+## ---
+   private: true
+   ---
+   f should take a `MapOperationProblemAggregator` and return the result of the Java method that may report problems.
+private with_map_operation_problem_aggregator (location : Text | Nothing) on_problems:Problem_Behavior f =
+    Java_Problems.with_problem_aggregator on_problems java_aggregator->
+        problem_builder = MapOperationProblemAggregator.new java_aggregator location
+        f problem_builder
+

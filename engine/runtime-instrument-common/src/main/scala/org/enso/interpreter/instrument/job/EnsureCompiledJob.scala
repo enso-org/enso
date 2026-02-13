@@ -13,7 +13,6 @@ import org.enso.compiler.core.ir.{expression, Location}
 import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.pass.analyse.{
   CachePreferenceAnalysis,
-  DataflowAnalysis,
   GatherDiagnostics
 }
 import org.enso.compiler.pass.analyse.DependencyInfo
@@ -355,11 +354,7 @@ class EnsureCompiledJob(
     * @return the set of node ids affected by a resolution error in the module
     */
   private def findNodesWithResolutionErrors(ir: IR): Set[UUID @ExternalID] = {
-    val metadata = ir
-      .unsafeGetMetadata[DataflowAnalysis.Metadata](
-        DataflowAnalysis,
-        "Empty dataflow analysis metadata during the interactive compilation."
-      )
+    val metadata = DependencyInfo.find(ir)
 
     val builder = Set.newBuilder[UUID @ExternalID]
     IR.preorder(

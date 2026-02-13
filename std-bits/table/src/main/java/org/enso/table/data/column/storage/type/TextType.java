@@ -2,6 +2,7 @@ package org.enso.table.data.column.storage.type;
 
 import java.util.Objects;
 import org.enso.base.Text_Utils;
+import org.enso.base.polyglot.EnsoMeta;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.BuilderForType;
 import org.enso.table.data.column.storage.ColumnStorage;
@@ -35,6 +36,27 @@ public final class TextType implements StorageType<String> {
   @Override
   public char typeChar() {
     return fixedLength ? 'T' : 'S';
+  }
+
+  @Override
+  public Value asEnsoValueType() {
+    Value ensoLength =
+        maxLength == -1
+            ? null
+            : EnsoMeta.makeInstance(
+                "Standard.Base.Data.Numbers", "Positive_Integer", "Value", maxLength);
+
+    return EnsoMeta.makeInstance(
+        StorageType.ENSO_MODULE,
+        StorageType.ENSO_TYPE_NAME,
+        ensoConstructorName(),
+        ensoLength,
+        !fixedLength);
+  }
+
+  @Override
+  public String ensoConstructorName() {
+    return "Char";
   }
 
   @Override

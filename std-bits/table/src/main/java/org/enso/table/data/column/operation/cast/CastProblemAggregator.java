@@ -54,8 +54,7 @@ public class CastProblemAggregator extends ProblemAggregator {
       problems.add(
           new ConversionFailure(
               ConversionFailureType.FAILED_CONVERSION,
-              targetType.typeChar(),
-              targetType.size(),
+              targetType,
               columnName,
               failedConversionsCount,
               failedConversionExamples));
@@ -65,8 +64,7 @@ public class CastProblemAggregator extends ProblemAggregator {
       problems.add(
           new ConversionFailure(
               ConversionFailureType.NUMBER_OUT_OF_RANGE,
-              targetType.typeChar(),
-              targetType.size(),
+              targetType,
               columnName,
               numberOutOfRangeCount,
               numberOutOfRangeExamples));
@@ -76,8 +74,7 @@ public class CastProblemAggregator extends ProblemAggregator {
       problems.add(
           new ConversionFailure(
               ConversionFailureType.TEXT_TOO_LONG,
-              targetType.typeChar(),
-              targetType.size(),
+              targetType,
               columnName,
               textTooLongCount,
               textTooLongExamples));

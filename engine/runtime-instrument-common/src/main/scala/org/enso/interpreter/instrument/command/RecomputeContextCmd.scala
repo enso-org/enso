@@ -1,7 +1,5 @@
 package org.enso.interpreter.instrument.command
 
-import org.enso.compiler.Implicits.AsMetadata
-import org.enso.compiler.pass.analyse.DataflowAnalysis
 import org.enso.compiler.pass.analyse.DependencyInfo
 import org.enso.compiler.refactoring.IRUtils
 import org.enso.interpreter.instrument.command.RecomputeContextCmd.InvalidateExpressions
@@ -167,8 +165,10 @@ object RecomputeContextCmd {
     ctx.executionService.getContext
       .findModuleByExpressionId(expressionId)
       .ifPresent { module =>
-        module.getIr
-          .getMetadata(DataflowAnalysis, classOf[DataflowAnalysis.Metadata])
+        Option(
+          DependencyInfo
+            .find(module.getIr)
+        )
           .foreach { metadata =>
             val dependents =
               IRUtils
@@ -203,9 +203,11 @@ object RecomputeContextCmd {
       case CacheInvalidation.Command.InvalidateAll =>
         stack.headOption
           .map { frame =>
-            frame.cache.getPreferences.preferences
-              .keySet()
-              .forEach(builder.addOne)
+            frame.cache.runQuery(
+              null,
+              _.findUUIDs(false, true)
+                .forEach(builder.addOne)
+            )
           }
       case CacheInvalidation.Command.InvalidateKeys(expressionIds, _) =>
         builder ++= expressionIds

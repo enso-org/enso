@@ -55,7 +55,6 @@ import project.Internal.Split_Tokenize
 import project.Internal.Table_Helpers
 import project.Internal.Table_Helpers.Table_Column_Helper
 import project.Internal.Table_Ref.Table_Ref
-import project.Internal.Visualization_Helpers.Visualization_Helpers
 import project.Join_Condition.Join_Condition
 import project.Join_Kind.Join_Kind
 import project.Match_Columns.Match_Columns
@@ -83,6 +82,7 @@ from project.Internal.Lookup_Helpers import make_java_lookup_column_description
 from project.Internal.Storage import java_to_enso
 
 polyglot java import org.enso.base.ObjectComparator
+polyglot java import org.enso.table.data.column.DataQualityMetrics
 polyglot java import org.enso.table.data.index.MultiValueIndex
 polyglot java import org.enso.table.data.table.join.conditions.Between as Java_Join_Between
 polyglot java import org.enso.table.data.table.join.conditions.Equals as Java_Join_Equals
@@ -581,10 +581,13 @@ type In_Memory_Table_Implementation
 
     column_info (this_table : Table & In_Memory_Table) =
         cols = this_table.columns
-        col_data = this_table.columns.map c-> (c:Visualization_Helpers).await_metrics
-        raw_table = Table.new [["Column", cols.map .name], ["Items Count", col_data.map c-> (this_table.row_count - (c.get Visualization_Helpers.count_nothing_column 0))], ["Value Type", cols.map .value_type], ["Metrics", col_data]]
+
+        col_data = this_table.columns.map c-> (c:In_Memory_Column).await_metrics
+        item_count = col_data.map dict-> this_table.row_count - (dict.get "# Nothing" 0)
+
+        raw_table = Table.new [["Column", cols.map .name], ["Items Count", item_count], ["Value Type", cols.map .value_type], ["Metrics", col_data]]
         expanded = raw_table.expand_column "Metrics" prefix=..None
-        tagged = expanded.rename_columns [[regex "@(.*)", "#$1" + (if Nothing == expanded.get Visualization_Helpers.sampled_column then "" else " (Sampled)")]] error_on_missing_columns=False on_problems=..Ignore
+        tagged = expanded.rename_columns [[regex "@(.*)", "#$1" + (if Nothing == expanded.get DataQualityMetrics.SAMPLED then "" else " (Sampled)")]] error_on_missing_columns=False on_problems=..Ignore
         tidied = tagged.remove_columns [regex "_.*"] error_on_missing_columns=False on_problems=..Ignore
         tidied.reorder_columns ["Column", "Items Count", "Value Type", "# Nothing", "# Distinct", "Minimum", "Maximum", "# Empty", "# Untrimmed"] error_on_missing_columns=False on_problems=..Ignore
 

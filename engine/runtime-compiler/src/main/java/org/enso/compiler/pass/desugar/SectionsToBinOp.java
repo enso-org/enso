@@ -16,7 +16,6 @@ import org.enso.compiler.pass.MiniIRPass;
 import org.enso.compiler.pass.MiniPassFactory;
 import org.enso.compiler.pass.analyse.AliasAnalysis$;
 import org.enso.compiler.pass.analyse.CachePreferenceAnalysis$;
-import org.enso.compiler.pass.analyse.DataflowAnalysis$;
 import org.enso.compiler.pass.analyse.DemandAnalysis$;
 import org.enso.compiler.pass.analyse.TailCall;
 import org.enso.compiler.pass.lint.UnusedBindings$;
@@ -43,7 +42,6 @@ public final class SectionsToBinOp implements MiniPassFactory {
         List.of(
             AliasAnalysis$.MODULE$,
             CachePreferenceAnalysis$.MODULE$,
-            DataflowAnalysis$.MODULE$,
             DemandAnalysis$.MODULE$,
             TailCall.INSTANCE,
             UnusedBindings$.MODULE$);

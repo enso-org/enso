@@ -6,7 +6,6 @@ import org.enso.compiler.core.ir.{Expression, Name}
 import org.enso.compiler.core.ir.expression.Application
 import org.enso.compiler.core.ir.module.scope.definition.Method
 import org.enso.compiler.data.BindingsMap
-import org.enso.compiler.pass.analyse.DataflowAnalysis
 import org.enso.compiler.pass.analyse.DependencyInfo
 import org.enso.compiler.pass.resolve.MethodCalls
 import org.enso.pkg.QualifiedName
@@ -158,7 +157,7 @@ trait IRUtils {
       }.flatten
     }
 
-  /** Find usages of a static dependency in the [[DataflowAnalysis]] metadata.
+  /** Find usages of a static dependency in the `DataflowAnalysis` metadata.
     *
     * @param ir the syntax tree
     * @param literal the name to look for
@@ -168,15 +167,9 @@ trait IRUtils {
     ir: IR,
     literal: Name.Literal
   ): Option[Set[IR]] = {
+    val metadata = DependencyInfo.find(ir)
+    val key      = DependencyInfo.Type.asStatic(literal)
     for {
-      metadata <- ir.getMetadata(
-        DataflowAnalysis,
-        classOf[DataflowAnalysis.Metadata]
-      )
-      key = new DependencyInfo.Type.Static(
-        literal.getId(),
-        literal.getExternalId
-      )
       dependents <- metadata.dependents.get(key)
     } yield {
       dependents
@@ -189,7 +182,7 @@ trait IRUtils {
     }
   }
 
-  /** Find usages of a dynamic dependency in the [[DataflowAnalysis]] metadata.
+  /** Find usages of a dynamic dependency in the `DataflowAnalysis` metadata.
     *
     * @param ir the syntax tree
     * @param name the name to look for
@@ -199,12 +192,9 @@ trait IRUtils {
     ir: IR,
     name: String
   ): Option[Set[IR]] = {
+    val metadata = DependencyInfo.find(ir)
+    val key      = new DependencyInfo.Type.Dynamic(name, None)
     for {
-      metadata <- ir.getMetadata(
-        DataflowAnalysis,
-        classOf[DataflowAnalysis.Metadata]
-      )
-      key = new DependencyInfo.Type.Dynamic(name, None)
       dependents <- metadata.dependents.get(key)
     } yield {
       dependents

@@ -142,7 +142,6 @@ class EnsoParser extends Parser {
           if (moduleRootAst == null) return Tree.empty
           const root = Ast.copyIntoNewModule(moduleRootAst)
           const tempModule = root.module
-          root.module.setRoot(root)
           root.syncToCode(code)
           const parsedRoot = tempModule.root()
           assertDefined(parsedRoot)

@@ -67,7 +67,7 @@ type Invalid_Column_Names
        ## Arguments
         - `column_names`: The names of the invalid columns.
         - `extra_message`: An optional message to append to the error.
-    Error (column_names : Vector Text) (extra_message : Text | Nothing = Nothing)
+    Error (column_names : Vector Text | Array Text) (extra_message : Text | Nothing = Nothing)
 
     ## ---
        private: true
@@ -102,7 +102,7 @@ type Duplicate_Output_Column_Names
 
        ## Arguments
         - `column_names`: The set of duplicated column names.
-    Error (column_names : Vector Text)
+    Error (column_names : Vector Text | Array Text)
 
     ## ---
        private: true
@@ -162,7 +162,7 @@ type Invalid_Aggregation
     ## ---
        private: true
        ---
-    Error (column:Text) (rows:(Vector Integer)) (message:Text)
+    Error (column:Text) (rows:(Vector Integer | Array Integer)) (message:Text)
 
     ## ---
        private: true
@@ -177,7 +177,7 @@ type Ignored_NaN_Values
     ## ---
        private: true
        ---
-    Warning (column:Text) (rows:(Vector Integer))
+    Warning (column:Text) (rows:(Vector Integer | Array Integer))
 
     ## ---
        private: true
@@ -192,7 +192,7 @@ type Ignored_Nothing_Values
     ## ---
        private: true
        ---
-    Warning (column:Text) (rows:(Vector Integer))
+    Warning (column:Text) (rows:(Vector Integer | Array Integer))
 
     ## ---
        private: true
@@ -208,7 +208,7 @@ type Unquoted_Delimiter
     ## ---
        private: true
        ---
-    Error (column:Text) (rows:(Vector Integer))
+    Error (column:Text) (rows:(Vector Integer | Array Integer))
 
     ## ---
        private: true
@@ -226,7 +226,7 @@ type Invalid_Row
     ## ---
        private: true
        ---
-    Error (source_file_line_number : Integer) (index : Integer | Nothing) (row : Vector Text) (expected_columns : Integer)
+    Error (source_file_line_number : Integer) (index : Integer | Nothing) (row : Vector Text | Array Text) (expected_columns : Integer)
 
     ## ---
        private: true
@@ -327,7 +327,7 @@ type Unquoted_Characters_In_Output
     ## ---
        private: true
        ---
-    Warning (column : Text) (rows : Vector Integer)
+    Warning (column : Text) (rows : Vector Integer | Array Integer)
 
     ## ---
        private: true
@@ -373,7 +373,7 @@ type Invalid_Format
     ## ---
        private: true
        ---
-    Error column:(Text|Nothing) (value_type:Value_Type|Integer|Number|Date|Date_Time|Time_Of_Day|Boolean|Any) (count:Integer) (cells:(Vector Text))
+    Error column:(Text|Nothing) (value_type:Value_Type|Integer|Number|Date|Date_Time|Time_Of_Day|Boolean|Any) (count:Integer) (cells : Vector Text | Array Text)
 
     ## ---
        private: true
@@ -691,7 +691,7 @@ type Unmatched_Columns
        ---
        An error indicating that some columns were not present in all of the
        merged tables.
-    Error (column_names : Vector Text)
+    Error (column_names : Vector Text | Array Text)
 
     ## ---
        private: true
@@ -781,14 +781,14 @@ type Conversion_Failure
        desired type.
        This may occur for example when a number does not fit the range of the
        target type.
-    Error (target_type : Value_Type) (related_column : Text|Nothing) (affected_rows_count : Nothing|Integer) (example_values : Vector Any)
+    Error (target_type : Value_Type) (related_column : Text|Nothing) (affected_rows_count : Nothing|Integer) (example_values : Vector Any | Array Any)
 
     ## Indicates that for some values, their text representation is too long for
        the target text type.
-    Text_Too_Long (target_type : Value_Type) (related_column : Text|Nothing) (affected_rows_count : Nothing|Integer) (example_values : Vector Text)
+    Text_Too_Long (target_type : Value_Type) (related_column : Text|Nothing) (affected_rows_count : Nothing|Integer) (example_values : Vector Text | Array Text)
 
     ## Indicates that some values are out of the range of the target type.
-    Out_Of_Range (target_type : Value_Type) (related_column : Text|Nothing) (affected_rows_count : Nothing|Integer) (example_values : Vector Integer)
+    Out_Of_Range (target_type : Value_Type) (related_column : Text|Nothing) (affected_rows_count : Nothing|Integer) (example_values : Vector Integer | Array Integer)
 
     ## ---
        private: true
@@ -876,7 +876,7 @@ type Arithmetic_Overflow
        ---
        Indicates that the result of an arithmetic operation is too large to fit
        the target type.
-    Warning (target_type : Value_Type) (affected_rows_count : Nothing|Integer) (example_operands : Nothing | Vector Any)
+    Warning (target_type : Value_Type) (affected_rows_count : Nothing|Integer) (example_operands : Nothing | Vector Any | Array Any)
 
     ## ---
        private: true

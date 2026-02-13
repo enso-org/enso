@@ -250,7 +250,7 @@ newline_at_eof file encoding =
    ---
 handle_parsing_failure ~action =
     translate_parsing_failure caught_panic =
-        Error.throw (Java_Problems.translate_problem caught_panic.payload.problem)
+        Error.throw caught_panic.payload.asEnsoValue
     translate_mismatched_quote caught_panic =
         Error.throw (Mismatched_Quote.Error caught_panic.payload.getCellText)
     Panic.catch ParsingFailedException handler=translate_parsing_failure <|

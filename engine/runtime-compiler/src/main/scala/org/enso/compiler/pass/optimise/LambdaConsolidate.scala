@@ -21,12 +21,7 @@ import org.enso.compiler.pass.analyse.alias.graph.{
   GraphOccurrence,
   Graph => AliasGraph
 }
-import org.enso.compiler.pass.analyse.{
-  AliasAnalysis,
-  DataflowAnalysis,
-  DemandAnalysis,
-  TailCall
-}
+import org.enso.compiler.pass.analyse.{AliasAnalysis, DemandAnalysis, TailCall}
 import org.enso.compiler.pass.analyse.alias.{AliasMetadata => AliasInfo}
 import org.enso.compiler.pass.desugar._
 import org.enso.compiler.pass.resolve.IgnoredBindings
@@ -78,7 +73,6 @@ case object LambdaConsolidate extends IRPass {
   )
   override lazy val invalidatedPasses: Seq[IRProcessingPass] = List(
     AliasAnalysis,
-    DataflowAnalysis,
     DemandAnalysis,
     TailCall.INSTANCE
   )

@@ -208,26 +208,33 @@ object ProgramExecutionSupport {
     pendingResult.toCompletableFuture.get()
     callStack match {
       case Nil =>
-        val notExecuted =
-          methodCallsCache.getNotExecuted(executionFrame.cache.getCalls)
-        notExecuted.forEach { expressionId =>
-          val expressionTypes = executionFrame.cache.getType(expressionId)
-          val expressionCall  = executionFrame.cache.getCall(expressionId)
-          onCachedMethodCallCallback.accept(
-            new ExpressionValue(
-              expressionId,
-              null,
-              expressionTypes,
-              expressionTypes,
-              expressionCall,
-              expressionCall,
-              Array(ExecutionTime.empty()),
-              true,
-              -1.0,
-              null
-            )
-          )
-        }
+        executionFrame.cache.runQuery(
+          null,
+          cache => {
+            val notExecuted =
+              methodCallsCache.getNotExecuted(
+                cache.findUUIDs(true, false)
+              )
+            notExecuted.forEach { expressionId =>
+              val expressionTypes = cache.getType(expressionId)
+              val expressionCall  = cache.getCall(expressionId)
+              onCachedMethodCallCallback.accept(
+                new ExpressionValue(
+                  expressionId,
+                  null,
+                  expressionTypes,
+                  expressionTypes,
+                  expressionCall,
+                  expressionCall,
+                  Array(ExecutionTime.empty()),
+                  true,
+                  -1.0,
+                  null
+                )
+              )
+            }
+          }
+        )
       case item :: tail =>
         enterables.get(item.expressionId) match {
           case Some(call) =>
@@ -653,7 +660,7 @@ object ProgramExecutionSupport {
         val v = if (visualization.expressionId == value.getExpressionId) {
           value.getValue
         } else {
-          runtimeCache.getAnyValue(visualization.expressionId)
+          runtimeCache.runQuery(null, _.getAnyValue(visualization.expressionId))
         }
         if (v != null && !VisualizationResult.isInterruptedException(v)) {
           executeAndSendVisualizationUpdate(
@@ -710,7 +717,7 @@ object ProgramExecutionSupport {
             holder.upsert(visualization, id)
           }
         }
-        runtimeCache.runQuery(processUUID, makeCall)
+        runtimeCache.runQuery(processUUID, _ => makeCall.get())
       } else {
         makeCall.get()
       }

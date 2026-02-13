@@ -1,9 +1,8 @@
 from Standard.Base import all
 
-import Standard.Table.Internal.Java_Problems
+import Standard.Table.Internal.Java_Exports
 import Standard.Table.Internal.Storage
 from Standard.Table import Table, Value_Type
-from Standard.Table.In_Memory_Table import from_java_table
 
 import project.SQL.SQL_Type
 
@@ -32,9 +31,7 @@ result_set_to_table result_set column_fetcher_factory sql_type_to_value_type=(_-
             _       -> Storage.closest_storage_type value_type
         storage_type.typeString
 
-    aggregator = column_fetcher_factory.getAggregatorClass . static
-    Java_Problems.with_problem_aggregator problem_aggregator=aggregator Problem_Behavior.Report_Warning java_problem_aggregator->
-        column_fetcher = column_fetcher_factory.getColumnFetcherClass . static
-        java_table = if last_row_only then column_fetcher.readLastRow result_set java_problem_aggregator storageTypeMapper column_fetcher_factory else
-            column_fetcher.readResultSet result_set row_limit java_problem_aggregator storageTypeMapper column_fetcher_factory
-        from_java_table java_table
+    column_fetcher = column_fetcher_factory.getColumnFetcherClass . static
+    java_columns = if last_row_only then column_fetcher.readLastRow result_set storageTypeMapper column_fetcher_factory else
+        column_fetcher.readResultSet result_set row_limit storageTypeMapper column_fetcher_factory
+    Java_Exports.make_table_from_java_columns java_columns
