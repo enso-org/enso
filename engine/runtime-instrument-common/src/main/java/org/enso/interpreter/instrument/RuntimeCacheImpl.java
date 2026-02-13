@@ -53,6 +53,20 @@ final class RuntimeCacheImpl extends RuntimeCache
     arr.add(callback);
   }
 
+  @Override
+  public void processOnModification() {
+    for (var pendingKey : onModification.keySet()) {
+      if (cache.containsKey(pendingKey)) {
+        var toNotifyPending = onModification.get(pendingKey);
+        if (toNotifyPending != null) {
+          for (var c : toNotifyPending) {
+            c.accept(this);
+          }
+        }
+      }
+    }
+  }
+
   /**
    * Add value to the cache if it is possible.
    *
@@ -80,7 +94,6 @@ final class RuntimeCacheImpl extends RuntimeCache
 
   /** Get the value from the cache. */
   public Object get(UUID key) {
-    System.err.println("  get: " + key);
     var ref = cache.get(key);
     var res = ref != null ? ref.get() : null;
     return res;
@@ -88,7 +101,6 @@ final class RuntimeCacheImpl extends RuntimeCache
 
   /** Get the value from the cache. */
   public Object getAnyValue(UUID key) {
-    System.err.println("  getany: " + key);
     var ref = expressions.get(key);
     var res = ref != null ? ref.get() : null;
     return res;

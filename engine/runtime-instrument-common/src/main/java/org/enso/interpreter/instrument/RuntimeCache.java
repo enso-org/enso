@@ -190,5 +190,11 @@ public abstract class RuntimeCache {
      */
     public ExecutionService.FunctionCallInfo putCall(
         UUID key, ExecutionService.FunctionCallInfo call);
+
+    /**
+     * Process pending {@link RuntimeCache#onModification(UUID, Consumer)} callbacks for values that
+     * are currently available in the cache.
+     */
+    public abstract void processOnModification();
   }
 }

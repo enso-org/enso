@@ -95,6 +95,10 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
       executeOneshotExpressions(nodeId, result, info);
     }
 
+    // Processing pending `onModification` callbacks when entering the node gives better UX because
+    // we can display visualizations before waiting for the current node to compute.
+    cache.processOnModification();
+
     // When executing the call stack we need to capture the FunctionCall of the next (top) stack
     // item in the `functionCallCallback`. We allow to execute the cached `stackTop` value to be
     // able to continue the stack execution, and unwind later from the `onReturnValue` callback.
@@ -181,6 +185,7 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
       cache.putCall(nodeId, call);
     }
     cache.putType(nodeId, resultType);
+    cache.processOnModification();
 
     callOnComputedCallback(expressionValue);
     executeOneshotExpressions(nodeId, result, info);

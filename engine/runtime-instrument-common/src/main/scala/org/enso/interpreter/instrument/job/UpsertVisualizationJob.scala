@@ -92,67 +92,8 @@ class UpsertVisualizationJob(
           "  some value for " + expressionId + " = " + previous
         )
         // value is present
-        evaluateAndExecuteVisualization2(
-          previous,
-          hasWriteLock = false
-        )
         None
       }
-    }
-  }
-
-  /** Attempts to evaluate the visualization expression associated with this job.
-    *
-    * @param value computed value to be visualized
-    * @param runtimeCache an instance of runtime cache associated with this frame
-    * @param stack current stackframe
-    * @param hasWriteLock true if necessary module loading/compilation can be performed, if needed. False otherwise
-    * @param ctx an instance of current `RuntimeContext`
-    * @return true if failed due to required compilation and lack of required lock, false if successful
-    */
-  def evaluateAndExecuteVisualization(
-    hasWriteLock: Boolean
-  )(implicit ctx: RuntimeContext): (Boolean, Option[Executable]) = {
-    UpsertVisualizationJob.logger.trace(
-      "Evaluating expression {} in observer",
-      expressionId
-    )
-    val maybeCallable = UpsertVisualizationJob.evaluateVisualizationExpression(
-      config.visualizationModule,
-      config.expression,
-      hasWriteLock
-    )
-
-    maybeCallable match {
-      case Left(ModuleNotFound(moduleName)) =>
-        UpsertVisualizationJob.logger.trace(
-          "Evaluation of visualization {} in observer for expression {} failed. Module not found",
-          visualizationId,
-          expressionId
-        )
-        ctx.endpoint.sendToClient(
-          Api.Response(Api.ModuleNotFound(moduleName))
-        )
-        (false, None)
-      case Left(EvaluationFailed(message, result)) =>
-        UpsertVisualizationJob.logger.trace(
-          "Evaluation of visualization {} in observer for expression {} failed.",
-          visualizationId,
-          expressionId
-        )
-        replyWithExpressionFailedError(
-          config.executionContextId,
-          visualizationId,
-          expressionId,
-          message,
-          result
-        )
-        (false, None)
-      case Left(RequiresCompilation) =>
-        // todo reply with expr failed
-        (!hasWriteLock, None)
-      case Right(evaluatedExpression) =>
-        (false, executeVisualization(evaluatedExpression))
     }
   }
 
@@ -169,8 +110,9 @@ class UpsertVisualizationJob(
     value: Object,
     hasWriteLock: Boolean
   )(implicit ctx: RuntimeContext): (Boolean, Option[Executable]) = {
-    UpsertVisualizationJob.logger.trace(
-      "Evaluating2 expression {} in observer",
+    UpsertVisualizationJob.logger.debug(
+      "Evaluating visualization {} for expression {} in observer",
+      visualizationId,
       expressionId
     )
     val maybeCallable = UpsertVisualizationJob.evaluateVisualizationExpression(
@@ -181,7 +123,7 @@ class UpsertVisualizationJob(
 
     maybeCallable match {
       case Left(ModuleNotFound(moduleName)) =>
-        UpsertVisualizationJob.logger.trace(
+        UpsertVisualizationJob.logger.debug(
           "Evaluation of visualization {} in observer for expression {} failed. Module not found",
           visualizationId,
           expressionId
@@ -191,7 +133,7 @@ class UpsertVisualizationJob(
         )
         (false, None)
       case Left(EvaluationFailed(message, result)) =>
-        UpsertVisualizationJob.logger.trace(
+        UpsertVisualizationJob.logger.debug(
           "Evaluation of visualization {} in observer for expression {} failed.",
           visualizationId,
           expressionId
@@ -212,68 +154,13 @@ class UpsertVisualizationJob(
     }
   }
 
-  private def executeVisualization(
-    evaluatedVisualization: EvaluationResult
-  )(implicit ctx: RuntimeContext): Option[Executable] = {
-    val EvaluationResult(module, callable, arguments) = evaluatedVisualization
-    UpsertVisualizationJob.logger.trace(
-      "Executing visualization {} for expression {}",
-      visualizationId,
-      expressionId
-    )
-
-    val visualization =
-      UpsertVisualizationJob.updateAttachedVisualization(
-        visualizationId,
-        expressionId,
-        module,
-        config,
-        callable,
-        arguments
-      )
-    val stack =
-      ctx.contextManager.getStack(config.executionContextId)
-
-    val runtimeCache = stack.headOption
-      .flatMap(frame => Option(frame.cache))
-    val cachedValue = runtimeCache
-      .flatMap(c => {
-        val v = c.runQuery(null, _.get(expressionId))
-        System.err.println("Checked value of " + expressionId + " was: " + v)
-        Option(v)
-      })
-
-    UpsertVisualizationJob.requireVisualizationSynchronization(
-      stack,
-      visualizationId
-    )
-    cachedValue match {
-      case Some(value) =>
-        ProgramExecutionSupport.executeAndSendVisualizationUpdate(
-          config.executionContextId,
-          runtimeCache.getOrElse(RuntimeCache.create.cache),
-          stack.headOption.get.syncState,
-          visualization,
-          expressionId,
-          value
-        )
-        None
-      case None =>
-        UpsertVisualizationJob.logger.trace(
-          "Cached value for expresion {}: missing",
-          expressionId
-        )
-        Some(Executable(config.executionContextId, stack))
-    }
-  }
-
   private def executeVisualization2(
     value: Object,
     evaluatedVisualization: EvaluationResult
   )(implicit ctx: RuntimeContext): Option[Executable] = {
     val EvaluationResult(module, callable, arguments) = evaluatedVisualization
-    UpsertVisualizationJob.logger.trace(
-      "Executing2 visualization {} for expression {} and value {}",
+    UpsertVisualizationJob.logger.debug(
+      "Executing visualization {} for expression {} and value {}",
       visualizationId,
       expressionId,
       value
@@ -310,8 +197,8 @@ class UpsertVisualizationJob(
       expressionId,
       value
     )
-    UpsertVisualizationJob.logger.trace(
-      "Executing2 finished visualization {} for expression {} and value {}",
+    UpsertVisualizationJob.logger.debug(
+      "Finished executing visualization {} for expression {} and value {}",
       visualizationId,
       expressionId,
       value
