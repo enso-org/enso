@@ -7,6 +7,7 @@ from Standard.Base.Metadata.Widget import Multiple_Choice, Numeric_Input, Single
 from Standard.Base.System.File_Format import File_Format_SPI
 from Standard.Base.Widget_Helpers import make_any_selector, make_format_chooser, make_separator_selector
 
+import project.Column.Column
 import project.Expression.Expression
 import project.In_Memory_Column.In_Memory_Column
 import project.In_Memory_Table.In_Memory_Table
@@ -160,60 +161,61 @@ make_fill_default_value_selector column_source=Nothing display:Display=..Always 
    ---
    Make a filter condition selector.
 make_filter_condition_selector table display:Display=..Always cache=Nothing -> Widget =
-    ## ToDo: Add _with_table_cache but needs to deal with cache
     column_value_type = _get_column_value_type table cache
-    column_chooser = make_column_ref_by_name_selector_for_type table display=display add_nothing=False value_type=column_value_type if_value_type_numeric_include_all_numeric=True
-    regex_chooser = make_column_ref_by_name_selector table display add_regex=True
+    column_value_type_key = if column_value_type == Nothing then "Nothing" else Meta.meta column_value_type . constructor . name
+    _with_table_cache table "make_filter_condition_selector_"+column_value_type_key+"_"+display.to_text <|
+        column_chooser = make_column_ref_by_name_selector_for_type table display=display add_nothing=False value_type=column_value_type if_value_type_numeric_include_all_numeric=True
+        regex_chooser = make_column_ref_by_name_selector table display add_regex=True
 
-    is_all = _include_all column_value_type
-    include_text = is_all || column_value_type.is_text
-    include_boolean = is_all || column_value_type.is_boolean
-    include_floating = is_all || column_value_type.is_floating_point
+        is_all = _include_all column_value_type
+        include_text = is_all || column_value_type.is_text
+        include_boolean = is_all || column_value_type.is_boolean
+        include_floating = is_all || column_value_type.is_floating_point
 
-    options = Vector.build builder->
-        builder.append (Option "..Equal" parameters=[["to", column_chooser]])
-        builder.append (Option "..Not_Equal" parameters=[["to", column_chooser]])
-        builder.append (Option "..Is_Nothing")
-        builder.append (Option "..Not_Nothing")
-        value_editor = Widget.Vector_Editor item_editor=column_chooser display=Display.Always item_default='""'
-        builder.append (Option "..Is_In" parameters=[["values", value_editor]])
+        options = Vector.build builder->
+            builder.append (Option "..Equal" parameters=[["to", column_chooser]])
+            builder.append (Option "..Not_Equal" parameters=[["to", column_chooser]])
+            builder.append (Option "..Is_Nothing")
+            builder.append (Option "..Not_Nothing")
+            value_editor = Widget.Vector_Editor item_editor=column_chooser display=Display.Always item_default='""'
+            builder.append (Option "..Is_In" parameters=[["values", value_editor]])
 
-        if column_value_type.has_ordering && column_value_type!=Value_Type.Boolean then
-            comparison_options = Vector.build comparison_builder->
-                comparison_builder.append (Option "..Less" parameters=[["than", column_chooser]])
-                comparison_builder.append (Option "..Equal_Or_Less" parameters=[["than", column_chooser]])
-                comparison_builder.append (Option "..Greater" parameters=[["than", column_chooser]])
-                comparison_builder.append (Option "..Equal_Or_Greater" parameters=[["than", column_chooser]])
-                comparison_builder.append (Option "..Between" parameters=[["lower", column_chooser], ["upper", column_chooser]])
-            builder.append (Option "Comparisons" comparison_options)
+            if column_value_type.has_ordering && column_value_type!=Value_Type.Boolean then
+                comparison_options = Vector.build comparison_builder->
+                    comparison_builder.append (Option "..Less" parameters=[["than", column_chooser]])
+                    comparison_builder.append (Option "..Equal_Or_Less" parameters=[["than", column_chooser]])
+                    comparison_builder.append (Option "..Greater" parameters=[["than", column_chooser]])
+                    comparison_builder.append (Option "..Equal_Or_Greater" parameters=[["than", column_chooser]])
+                    comparison_builder.append (Option "..Between" parameters=[["lower", column_chooser], ["upper", column_chooser]])
+                builder.append (Option "Comparisons" comparison_options)
 
-        if include_text then
-            text_options = Vector.build text_builder->
-                text_builder.append (Option "..Is_Empty")
-                text_builder.append (Option "..Not_Empty")
-                text_builder.append (Option "..Equal_Ignore_Case" parameters=[["to", column_chooser]])
-                text_builder.append (Option "..Starts_With" parameters=[["prefix", column_chooser]])
-                text_builder.append (Option "..Ends_With" parameters=[["suffix", column_chooser]])
-                text_builder.append (Option "..Contains" parameters=[["substring", column_chooser]])
-                text_builder.append (Option "..Like" parameters=[["pattern", column_chooser]])
-                text_builder.append (Option "..Regex_Match" "..Regex_Match (regex '.*')" parameters=[["pattern", regex_chooser]])
-            builder.append (Option "Text" text_options)
+            if include_text then
+                text_options = Vector.build text_builder->
+                    text_builder.append (Option "..Is_Empty")
+                    text_builder.append (Option "..Not_Empty")
+                    text_builder.append (Option "..Equal_Ignore_Case" parameters=[["to", column_chooser]])
+                    text_builder.append (Option "..Starts_With" parameters=[["prefix", column_chooser]])
+                    text_builder.append (Option "..Ends_With" parameters=[["suffix", column_chooser]])
+                    text_builder.append (Option "..Contains" parameters=[["substring", column_chooser]])
+                    text_builder.append (Option "..Like" parameters=[["pattern", column_chooser]])
+                    text_builder.append (Option "..Regex_Match" "..Regex_Match (regex '.*')" parameters=[["pattern", regex_chooser]])
+                builder.append (Option "Text" text_options)
 
-        if include_boolean then
-            boolean_options = Vector.build boolean_builder->
-                boolean_builder.append (Option "..Is_True")
-                boolean_builder.append (Option "..Is_False")
-            builder.append (Option "Boolean" boolean_options)
+            if include_boolean then
+                boolean_options = Vector.build boolean_builder->
+                    boolean_builder.append (Option "..Is_True")
+                    boolean_builder.append (Option "..Is_False")
+                builder.append (Option "Boolean" boolean_options)
 
-        if include_floating then
-            numeric_options = Vector.build numeric_builder->
-                numeric_builder.append (Option "..Is_Finite")
-                numeric_builder.append (Option "..Is_Infinite")
-                numeric_builder.append (Option "..Is_Nan")
-                numeric_builder.append (Option "..Not_Nan")
-            builder.append (Option "Numeric" numeric_options)
+            if include_floating then
+                numeric_options = Vector.build numeric_builder->
+                    numeric_builder.append (Option "..Is_Finite")
+                    numeric_builder.append (Option "..Is_Infinite")
+                    numeric_builder.append (Option "..Is_Nan")
+                    numeric_builder.append (Option "..Not_Nan")
+                builder.append (Option "Numeric" numeric_options)
 
-    Single_Choice options display=display
+        Single_Choice options display=display
 
 ## ---
    private: true
@@ -461,10 +463,10 @@ private _include_all value_type:Value_Type -> Boolean =
 
 private _with_table_cache table suffix ~action =
     key = case table of
-        t : In_Memory_Table -> t.table_value_cache
-        c : In_Memory_Column -> c.column_value_cache
+        t : In_Memory_Table -> (t:Table).table_version_hash
+        c : In_Memory_Column -> (c:Column).table_version_hash
         _ -> Nothing
     if key.is_nothing then action else
-        TableValueCache.get (key+suffix) k->
+        TableValueCache.getOrCompute (key+suffix) k->
             _ = k
             action
