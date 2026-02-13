@@ -300,11 +300,10 @@ make_rename_name_vector_selector table:Table display:Display=..Always cache=Noth
    private: true
    ---
    Selector for type argument on `Column.parse`.
-parse_type_selector include_auto:Boolean=True -> Widget =
+parse_type_selector -> Widget = _with_table_cache Nothing "parse_type_selector" <|
     valid_parse_targets = Parse_Values_Helper.valid_parse_targets
 
-    prefix = if include_auto then ['Auto'] else []
-    names = prefix + valid_parse_targets
+    names = ['Auto'] + valid_parse_targets
 
     choice = names.map n-> if n=='Auto' then (Auto.to Meta.Type . qualified_name) else n
 
@@ -349,12 +348,15 @@ make_format_chooser_for_parse table cache =
 make_format_chooser_for_type : Value_Type | Vector -> Widget
 make_format_chooser_for_type value_types =
     vector = Vector.unify_vector_or_element value_types
-    include_number    = vector.any value_type-> value_type.is_numeric || value_type==Value_Type.Mixed
-    include_date      = vector.any value_type-> value_type==Value_Type.Date || value_type==Value_Type.Mixed
-    include_date_time = vector.any value_type-> value_type.is_date_time || value_type==Value_Type.Mixed
-    include_time      = vector.any value_type-> value_type==Value_Type.Time || value_type==Value_Type.Mixed
-    include_boolean   = vector.any value_type-> value_type.is_boolean || value_type==Value_Type.Mixed
-    make_format_chooser include_number include_date include_date_time include_time include_boolean
+
+    type_key = vector.map (vt-> Meta.meta vt . constructor . name) . join "_"
+    _with_table_cache Nothing "make_format_chooser_for_type_"+type_key <|
+        include_number    = vector.any value_type-> value_type.is_numeric || value_type==Value_Type.Mixed
+        include_date      = vector.any value_type-> value_type==Value_Type.Date || value_type==Value_Type.Mixed
+        include_date_time = vector.any value_type-> value_type.is_date_time || value_type==Value_Type.Mixed
+        include_time      = vector.any value_type-> value_type==Value_Type.Time || value_type==Value_Type.Mixed
+        include_boolean   = vector.any value_type-> value_type.is_boolean || value_type==Value_Type.Mixed
+        make_format_chooser include_number include_date include_date_time include_time include_boolean
 
 ## ---
    private: true
@@ -465,6 +467,7 @@ private _with_table_cache table suffix ~action =
     key = case table of
         t : In_Memory_Table -> (t:Table).table_version_hash
         c : In_Memory_Column -> (c:Column).table_version_hash
+        Nothing -> ""
         _ -> Nothing
     if key.is_nothing then action else
         TableValueCache.getOrCompute (key+suffix) k->
