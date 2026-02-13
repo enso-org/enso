@@ -268,7 +268,7 @@ export class RemoteBackend extends backend.Backend {
 
   /**
    * Return details for the current organization.
-   * @returns `null` if a non-successful status code (not 200-299) was received.
+   * @returns `null` if a organization was not found or user has no permissions to view it.
    */
   override async getOrganization(): Promise<backend.OrganizationInfo | null> {
     const path = remoteBackendPaths.GET_ORGANIZATION_PATH
@@ -331,7 +331,7 @@ export class RemoteBackend extends backend.Backend {
 
   /**
    * Return details for the current user.
-   * @returns `null` if a non-successful status code (not 200-299) was received.
+   * @returns `null` if the user was not found.
    */
   override async usersMe(): Promise<backend.User | null> {
     const response = await this.get<backend.User>(remoteBackendPaths.USERS_ME_PATH)
@@ -732,7 +732,7 @@ export class RemoteBackend extends backend.Backend {
     const path = remoteBackendPaths.deleteProjectExecutionPath(executionId)
     const response = await this.delete<backend.ProjectExecution>(path)
     if (!response.ok) {
-      return await this.throw(response, 'createProjectExecutionBackendError', projectTitle)
+      return await this.throw(response, 'deleteProjectExecutionBackendError', projectTitle)
     } else {
       return
     }
@@ -1548,6 +1548,9 @@ export class RemoteBackend extends backend.Backend {
     const { assetIds, filePath } = params
     const path = remoteBackendPaths.EXPORT_ARCHIVE_PATH
     const response = await this.post<{ readonly jobId: backend.ZipAssetsJobId }>(path, { assetIds })
+    if (!response.ok) {
+      return await this.throw(response, 'exportArchiveBackendError')
+    }
     const { jobId } = await response.json()
     const statusPath = remoteBackendPaths.getExportArchiveJobStatusPath(jobId)
     while (true) {
