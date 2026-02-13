@@ -30,7 +30,7 @@ const input = ref<HTMLInputElement | null>(null)
 const actionHandlers = registerHandlers({
   'commandPalette.open': {
     action: () => {
-      if (containerData.tab !== 'drive' && containerData.tab !== 'settings') return
+      // if (containerData.currentTab !== 'drive' && containerData.currentTab !== 'settings') return
       open()
     },
   },

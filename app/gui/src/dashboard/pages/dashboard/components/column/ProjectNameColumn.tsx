@@ -9,7 +9,7 @@ import { useDriveStore } from '#/providers/DriveProvider'
 import { isDoubleClick } from '#/utilities/event'
 import { twMerge } from '#/utilities/tailwindMerge'
 import { useFullUserSession } from '$/providers/react'
-import { useOpenedProjects } from '$/providers/react/openedProjects'
+import { useContainerData } from '$/providers/react/container'
 import { BackendType, titleSchema, type ProjectAsset } from 'enso-common/src/services/Backend'
 import { isOnMacOS } from 'enso-common/src/utilities/detect'
 import {
@@ -32,7 +32,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
   const getAssetChildren = useGetAssetChildren()
   const renameAsset = useRenameAsset(backend)
   const driveStore = useDriveStore()
-  const openedProjects = useOpenedProjects()
+  const { openProjectLocally } = useContainerData()
 
   const isEditingName = useStore(driveStore, ({ assetToRename }) => assetToRename === item.id)
   const setIsEditing = (isEditing: boolean) => {
@@ -75,7 +75,7 @@ export default function ProjectNameColumn(props: ProjectNameColumnProps) {
         if (isEditingName || isOtherUserUsingProject) {
           // The project should neither be edited nor opened in these cases.
         } else if (isDoubleClick(event) && canExecute) {
-          openedProjects.openProjectLocally(item, backend.type)
+          openProjectLocally(item, backend.type)
         }
       }}
     >

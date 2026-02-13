@@ -1,26 +1,74 @@
+import LocalStorage from '#/utilities/LocalStorage'
 import { proxyRefs } from '$/utils/reactivity'
-import { createContextStore } from '@/providers'
-import { normalizeRouteParamToString } from '@/util/router'
-import { EnsoPath } from 'enso-common/src/services/Backend'
-import { ensoPathEq } from 'enso-common/src/services/Backend/ensoPath'
-import { filter } from 'enso-common/src/utilities/data/iter'
-import { computed, onScopeDispose, watchEffect } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import type { Opt } from '@/util/data/opt'
+import { createGlobalState } from '@vueuse/core'
+import { BackendType, isProjectId, Plan } from 'enso-common/src/services/Backend'
+import { Err } from 'enso-common/src/utilities/data/result'
+import { computed, onScopeDispose, reactive, ref, watchEffect } from 'vue'
+import { useRoute, useRouter, type RouteLocation } from 'vue-router'
+import * as z from 'zod'
+import { useAuth } from './auth'
+import { useBackends } from './backends'
+import { useFeatureFlag } from './featureFlags'
 import { useOpenedProjects, type Project } from './openedProjects'
+import {
+  PROJECT_ID_SCHEMA,
+  RUNNING_PROJECT_INFO_SCHEMA,
+  type ProjectInfo,
+  type RunningProjectInfo,
+} from './openedProjects/projectInfo'
 
-/** Tab identifier, equal to the path of the view's URL. */
-export type TabId = 'drive' | 'settings' | EnsoPath
+const PROJECT_TAB_SCHEMA = z.object({ type: z.literal('project'), id: PROJECT_ID_SCHEMA })
+const SETTINGS_TAB_SCHEMA = z.object({ type: z.literal('settings') })
+const TAB_SCHEMA = z.discriminatedUnion('type', [PROJECT_TAB_SCHEMA, SETTINGS_TAB_SCHEMA])
+const OPENED_TAB_SCHEMA = z.intersection(
+  TAB_SCHEMA,
+  z.object({ runningProject: z.optional(RUNNING_PROJECT_INFO_SCHEMA) }),
+)
 
-/** Check if given {@link TabId} refers to a project tab. */
-export function isProjectTab(tab: TabId): tab is EnsoPath {
-  switch (tab) {
-    case 'drive':
-    case 'settings':
-      return false
-    default:
-      DEV: tab satisfies EnsoPath
-      return true
+export type ProjectTab = z.infer<typeof PROJECT_TAB_SCHEMA>
+export type Tab = z.infer<typeof TAB_SCHEMA>
+type OpenedTab = z.infer<typeof OPENED_TAB_SCHEMA>
+
+export type Panel = Tab | { type: 'drive' }
+
+declare module '#/utilities/LocalStorage' {
+  interface LocalStorageData {
+    readonly openedTabs: (Tab & { runningProject?: RunningProjectInfo | undefined })[]
   }
+}
+
+LocalStorage.registerKey('openedTabs', { schema: z.array(OPENED_TAB_SCHEMA) })
+
+export function tabFromRoute(route: RouteLocation) {
+  switch (route.name) {
+    case 'project': {
+      if (!isProjectId(route.params.id)) return null
+      // const project = openedProjects.get(route.params.id)
+      // if (!project) return null
+      return { type: 'project' as const, id: route.params.id }
+    }
+    case 'settings':
+      return { type: 'settings' as const }
+    default:
+      return null
+  }
+}
+
+export function panelKey(panel: Opt<Panel>) {
+  switch (panel?.type) {
+    case 'project':
+      return `project/${panel.id}`
+    case 'settings':
+    case 'drive':
+      return panel.type
+    default:
+      return ''
+  }
+}
+
+export function panelEquals(a: Opt<Panel>, b: Opt<Panel>) {
+  return panelKey(a) === panelKey(b)
 }
 
 function isProjectShownAsTab(project: Project) {
@@ -32,57 +80,176 @@ function isProjectShownAsTab(project: Project) {
 }
 
 export type ContainerData = ReturnType<typeof useContainerData>
-export const [provideContainerData, useContainerData] = createContextStore(
-  'gui-container',
-  (fallbackTab: TabId = 'drive') => {
-    const router = useRouter()
-    const route = useRoute()
-    const openedProjects = useOpenedProjects()
+function createContainerStore() {
+  const auth = useAuth()
+  const router = useRouter()
+  const route = useRoute()
+  const openedProjects = useOpenedProjects()
+  const enableCloudExecution = useFeatureFlag('enableCloudExecution')
+  const backends = useBackends()
+  const localStorage = LocalStorage.getInstance()
 
-    const projectTabs = computed(() =>
-      Array.from(filter(openedProjects.listProjects(), isProjectShownAsTab), (project) => ({
-        ...project,
-        shown: computed(
-          () =>
-            tab.value !== 'drive' &&
-            tab.value !== 'settings' &&
-            ensoPathEq(tab.value, project.state.info.ensoPath),
-        ),
-      })),
-    )
+  /** Whether the user can run projects. */
+  const modesForBackend = computed(() => ({
+    locally: {
+      [BackendType.local]: backends.localBackend != null ? ('local' as const) : null,
+      [BackendType.remote]: backends.localBackend != null ? ('hybrid' as const) : null,
+    },
+    // Local projects can be run natively; only Team plans and above have access to Cloud execution.
+    // Local projects: Open normally
+    // Cloud projects: Open in Cloud VM
+    natively: {
+      [BackendType.local]: backends.localBackend != null ? ('local' as const) : null,
+      [BackendType.remote]:
+        (
+          enableCloudExecution.value &&
+          (auth.session?.user.plan === Plan.team || auth.session?.user.plan === Plan.enterprise)
+        ) ?
+          ('cloud' as const)
+        : null,
+    },
+  }))
 
-    const isValidTab = (name: string | undefined): name is TabId =>
-      name === 'drive' ||
-      name === 'settings' ||
-      projectTabs.value.find((p) => name && ensoPathEq(p.state.info.ensoPath, EnsoPath(name))) !=
-        null
+  const tabs: Tab[] = reactive([])
 
-    const tab = computed<TabId>({
-      get: () => {
-        const name = normalizeRouteParamToString(route.params.path)
-        return isValidTab(name) ? name : fallbackTab
-      },
-      set: (page) => {
-        router.push({ params: { path: page.split('/') }, query: route.query })
-      },
-    })
-
-    // When the current tab is no longer valid (e.g. the project was closed), switch to the fallback tab.
-    watchEffect(() => {
-      const name = normalizeRouteParamToString(route.params.path)
-      if (!isValidTab(name)) {
-        tab.value = fallbackTab
+  const currentTab = computed<Tab | null>({
+    get: () => tabFromRoute(route),
+    set: (tab) => {
+      switch (tab?.type) {
+        case 'project':
+          router.push({ name: 'project', params: { id: tab.id }, query: route.query })
+          break
+        case 'settings':
+          router.push({ name: 'settings', query: route.query })
+          break
       }
-    })
+    },
+  })
 
-    const offProjectReady = openedProjects.onProjectReady(
-      (project) => (tab.value = project.state.info.ensoPath),
-    )
-    onScopeDispose(offProjectReady)
+  const focusedPanel = ref<Panel>()
 
-    return proxyRefs({
-      tab,
-      projectTabs,
+  function isTabOpened(tab: Tab) {
+    return tabs.some((openedTab) => panelEquals(openedTab, tab))
+  }
+
+  function isCurrentTab(tab: Tab) {
+    return panelEquals(tab, currentTab.value)
+  }
+
+  function openProjectTab(info: ProjectInfo) {
+    const tab: Tab = { type: 'project', id: info.id }
+    if (isTabOpened(tab)) {
+      if (!isCurrentTab(tab)) {
+        currentTab.value = tab
+      }
+    } else {
+      openedProjects.openProject(info)
+      tabs.push(tab)
+    }
+  }
+
+  /** Checks if project with given backend type may be opened locally. */
+  function canOpenProjectLocally(backend: BackendType) {
+    return modesForBackend.value.locally[backend] != null
+  }
+
+  /** Open project locally, by asset data and backend type. */
+  function openProjectLocally(info: Omit<ProjectInfo, 'mode'>, backend: BackendType) {
+    const mode = modesForBackend.value.locally[backend]
+    if (mode != null) {
+      return openProjectTab({ ...info, mode })
+    }
+  }
+
+  /** Checks if project with given backend type may be opened natively. */
+  function canOpenProjectNatively(backend: BackendType) {
+    return modesForBackend.value.natively[backend] != null
+  }
+
+  /** Open project natively, by asset data and backend type. */
+  function openProjectNatively(info: Omit<ProjectInfo, 'mode'>, backend: BackendType) {
+    const mode = modesForBackend.value.natively[backend]
+    if (mode != null) {
+      return openProjectTab({ ...info, mode })
+    }
+  }
+
+  function openSettingsTab() {
+    const tab: Tab = { type: 'settings' }
+    if (!isTabOpened(tab)) {
+      tabs.push(tab)
+    }
+    currentTab.value = tab
+  }
+
+  function closeTab(tab: Tab) {
+    const index = tabs.findIndex((opened) => panelEquals(opened, tab))
+    if (index < 0) return Err(`Tab to close not found: ${JSON.stringify(tab)}`)
+    tabs.splice(index, 1)
+    if (tab.type === 'project') {
+      openedProjects.closeProject(tab.id)
+    }
+  }
+
+  function closeCurrentTab() {
+    if (currentTab.value != null) closeTab(currentTab.value)
+  }
+
+  /**
+   * Read and restore projects from local storage, and then keep the storage up-to-date about
+   * currently opened projects.
+   */
+  function syncWithLocalStorage() {
+    for (const tab of localStorage.get('openedTabs') ?? []) {
+      if (tab.runningProject != null) openedProjects.restoreProject(tab.runningProject)
+      tabs.push(tab)
+    }
+
+    return watchEffect(() => {
+      const openedTabs: OpenedTab[] = []
+      for (const tab of tabs) {
+        let runningProject: RunningProjectInfo | undefined
+        if (tab.type === 'project') {
+          const project = openedProjects.get(tab.id)
+          switch (project?.state.status) {
+            case 'opened':
+            case 'initialized':
+            case 'hybrid-closed':
+            case 'to-restore':
+            case 'closed-by-backend':
+              runningProject = project.state.info
+              break
+          }
+        }
+        openedTabs.push({ ...tab, runningProject })
+      }
+      localStorage.set('openedTabs', openedTabs)
     })
-  },
-)
+  }
+
+  const stopSyncing = syncWithLocalStorage()
+  onScopeDispose(stopSyncing)
+
+  const offProjectReady = openedProjects.onProjectReady(
+    (project) => (currentTab.value = { type: 'project', id: project.state.info.id }),
+  )
+  onScopeDispose(offProjectReady)
+
+  return proxyRefs({
+    currentTab,
+    tabs,
+    focusedPanel,
+    isTabOpened,
+    isCurrentTab,
+    openProjectTab,
+    canOpenProjectLocally,
+    openProjectLocally,
+    canOpenProjectNatively,
+    openProjectNatively,
+    openSettingsTab,
+    closeTab,
+    closeCurrentTab,
+  })
+}
+
+export const useContainerData = createGlobalState(createContainerStore)

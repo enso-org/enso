@@ -105,7 +105,7 @@ export function DriveBarNavigation() {
 
   useEffect(() => {
     if (directoryData?.asset != null) {
-      rightPanel.updateContext('drive', (ctx) => {
+      rightPanel.updateContext({ type: 'drive' }, (ctx) => {
         ctx.defaultItem = directoryData.asset
         return ctx
       })

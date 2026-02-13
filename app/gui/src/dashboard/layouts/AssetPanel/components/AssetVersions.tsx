@@ -6,10 +6,10 @@ import { useEventCallback } from '#/hooks/eventCallbackHooks'
 import { useToastAndLog } from '#/hooks/toastAndLogHooks'
 import { useBackends, useText } from '$/providers/react'
 import {
+  useContainerData,
   useRightPanelContextCategory,
   useRightPanelFocusedAsset,
 } from '$/providers/react/container'
-import { useOpenedProjects } from '$/providers/react/openedProjects'
 import { includes } from '$/utils/data/array'
 import { useMutation, useSuspenseQuery } from '@tanstack/react-query'
 import type {
@@ -91,7 +91,7 @@ function AssetVersionsInternal(props: AssetVersionsInternalProps) {
   const versions = versionsQuery.data
   const latestVersion = versions.find((version) => version.isLatest)
 
-  const { openProjectLocally } = useOpenedProjects()
+  const { openProjectLocally } = useContainerData()
 
   const restoreMutation = useMutation({
     mutationFn: (variables: AddNewVersionVariables) =>

@@ -21,6 +21,7 @@
     "./src/authentication/service.ts",
     "./src/beforeMain.ts",
     "./src/components/AppContainer/AppContainer.vue",
+    "./src/components/AppContainer/MiddlePanel.vue",
     "./src/components/AppContainer/RightPanel.vue",
     "./src/components/AppContainer/SelectableTab.vue",
     "./src/components/AppContainer/index.ts",

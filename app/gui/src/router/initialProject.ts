@@ -1,9 +1,7 @@
 import { useAuth } from '$/providers/auth'
 import { useBackends } from '$/providers/backends'
 import { useConfig } from '$/providers/config'
-import { useOpenedProjects } from '$/providers/openedProjects'
-import { backendQueryOptions } from '@/composables/backend'
-import { onlineManager, useQueryClient } from '@tanstack/vue-query'
+import { onlineManager } from '@tanstack/vue-query'
 import {
   AssetType,
   Backend,
@@ -12,14 +10,10 @@ import {
   isRemoteAssetPath,
   Path,
   Plan,
-  ProjectId,
-  type AssetDetailsResponse,
   type User,
 } from 'enso-common/src/services/Backend'
-import { ensoPathEq } from 'enso-common/src/services/Backend/ensoPath'
 import { newDirectoryId, type LocalBackend } from 'enso-common/src/services/LocalBackend'
 import type { RemoteBackend } from 'enso-common/src/services/RemoteBackend'
-import { some } from 'enso-common/src/utilities/data/iter'
 import { platform, Platform } from 'enso-common/src/utilities/detect'
 import { getFileName } from 'enso-common/src/utilities/file'
 import type { NavigationGuardReturn, RouteLocation } from 'vue-router'
@@ -30,43 +24,49 @@ export const CLOUD_WELCOME_PROJECT_RELATIVE_PATH = `${SAMPLES_DIRECTORY}/Getting
 
 type BackendAPI<B extends Backend> = Pick<B, 'rootPath' | 'listDirectory'>
 
-/** Open a project depending on path param in RouteLocation */
-export async function openProjectFromPath(to: RouteLocation) {
-  if (
-    to.name !== 'dashboard' ||
-    to.params.path == null ||
-    to.params.path == 'drive' ||
-    to.params.path == 'settings'
-  )
-    return
+export async function redirectFromPath(to: RouteLocation) {
+  if (to.params.path == null) return false
+  const auth = useAuth()
   const { localBackend, remoteBackend } = useBackends()
-  const queryClient = useQueryClient()
-  const openedProjects = useOpenedProjects()
 
   const path = EnsoPath(to.params.path instanceof Array ? to.params.path.join('/') : to.params.path)
-  if (!path) return
-
-  // Check if project is already opened
-  if (
-    some(
-      openedProjects.listProjects(),
-      (project) =>
-        ensoPathEq(project.state.info.ensoPath, path) && project.state.status !== 'not-opened',
-    )
-  )
-    return
+  if (!path) return false
 
   const backend = isRemoteAssetPath(path) ? remoteBackend : localBackend
-  if (backend == null) return
+  if (backend == null) return false
+  await auth.waitForSession()
   const resolvedPath = await backend.resolveEnsoPath(path).catch(() => null)
   const typedAsset = resolvedPath && extractTypeFromId(resolvedPath.id)
-  if (typedAsset?.type !== AssetType.project) return
-  const options = backendQueryOptions('getAssetDetails', [typedAsset.id, undefined], backend)
-  const assetResponse: AssetDetailsResponse<ProjectId> = await queryClient.fetchQuery(options)
-  if (!assetResponse) return
-
-  openedProjects.openProjectLocally(assetResponse, backend.type)
+  switch (typedAsset?.type) {
+    case AssetType.project:
+      return { name: 'project', params: { id: typedAsset.id } }
+    default:
+      return { name: 'dashboard' }
+  }
 }
+
+// /** Open a project depending on path param in RouteLocation */
+// export async function openProjectFromRoute(to: RouteLocation) {
+//   if (!isProjectId(to.params.id)) return
+//   const id = to.params.id
+//   const auth = useAuth()
+//   const { localBackend, remoteBackend } = useBackends()
+//   const queryClient = useQueryClient()
+//   const openedProjects = useOpenedProjects()
+
+//   // Check if project is already opened
+//   const alreadyOpened = openedProjects.get(id)
+//   if (alreadyOpened != null && alreadyOpened.state.status !== 'not-opened') return
+//   const backend = isLocalProjectId(id) ? localBackend : remoteBackend
+//   if (backend == null) return false
+
+//   await auth.waitForSession()
+//   const options = backendQueryOptions('getAssetDetails', [id, undefined], backend)
+//   const assetResponse: AssetDetailsResponse<ProjectId> = await queryClient.fetchQuery(options)
+//   if (!assetResponse) return
+
+//   openedProjects.openProjectLocally(assetResponse, backend.type)
+// }
 
 /** Get path of the project to auto-open on application launch. */
 export async function welcomeProjectPath(
@@ -127,7 +127,7 @@ export async function maybeRedirectToProject(to: RouteLocation): Promise<Navigat
     pathFromOptions ??
     (await welcomeProjectPath(config.params.startup.project, auth.session.user, backends))
 
-  return initialPath ? { name: 'dashboard', params: { path: initialPath.split('/') } } : true
+  return initialPath ? { name: 'ensoPath', params: { path: initialPath.split('/') } } : true
 }
 
 async function shouldOpenWelcomeProject(

@@ -4,14 +4,15 @@ import { useBackends } from '$/providers/backends'
 import { proxyRefs, type ToValue } from '$/utils/reactivity'
 import { useSyncLocalStorage } from '@/composables/syncLocalStorage'
 import { createContextStore } from '@/providers'
+import type { Opt } from '@/util/data/opt'
 import type { Icon } from '@/util/iconMetadata/iconName'
 import { useQuery } from '@tanstack/vue-query'
-import { AssetType, type AnyAsset, type ProjectId } from 'enso-common/src/services/Backend'
+import { AssetType, ProjectId, type AnyAsset } from 'enso-common/src/services/Backend'
 import { Err, Ok, type Result } from 'enso-common/src/utilities/data/result'
 import { encoding } from 'lib0'
 import { computed, reactive, readonly, ref, toValue, type Ref } from 'vue'
 import type { SuggestionId } from 'ydoc-shared/languageServerTypes/suggestions'
-import { isProjectTab, type TabId } from './container'
+import { panelKey, type Panel, type Tab } from './container'
 import { useText, type TextStore } from './text'
 
 /** Information about content of "Help" panel. */
@@ -48,22 +49,18 @@ interface RightPanelTabInfo {
 }
 
 function useRightPanelTabs(
-  currentTab: ToValue<TabId>,
+  currentTab: ToValue<Opt<Tab>>,
   rightPanelContext: Ref<RightPanelContext | undefined>,
   isFeatureUnderPaywall: (feature: PaywallFeatureName) => boolean,
   { textRef, getText }: TextStore,
 ) {
-  const isDriveView = computed(() => toValue(currentTab) === 'drive')
   const isCloudDirectoryView = computed(
     () =>
-      isDriveView.value &&
       rightPanelContext.value?.category != null &&
       isCloudCategory(rightPanelContext.value.category),
   )
   const enabledInCloudOnly = computed(() =>
-    isCloudDirectoryView.value ? Ok()
-    : isDriveView.value ? Err('Exclusive to Cloud')
-    : Err('Exclusive to Cloud category in Drive'),
+    isCloudDirectoryView.value ? Ok() : Err('Exclusive to Cloud'),
   )
   return new Map([
     [
@@ -133,7 +130,7 @@ function useRightPanelTabs(
       {
         icon: 'help',
         enabled: computed(() =>
-          isProjectTab(toValue(currentTab)) ? Ok() : Err('Exclusive to Project view'),
+          toValue(currentTab)?.type === 'project' ? Ok() : Err('Exclusive to Project view'),
         ),
         title: 'Component help',
       },
@@ -147,14 +144,15 @@ export type RightPanelTabId =
 export type RightPanelData = ReturnType<typeof useRightPanel>
 
 function useRightPanel(
-  containerTab: ToValue<TabId>,
+  focusedPanel: ToValue<Opt<Panel>>,
+  currentContainerTab: ToValue<Opt<Tab>>,
   isFeatureUnderPaywall: (feature: PaywallFeatureName) => boolean,
   textStore: TextStore = useText(),
 ) {
   const { backendForType } = useBackends()
-  const contextPerTab = reactive(new Map<TabId, RightPanelContext>())
-  const context = computed(() => contextPerTab.get(toValue(containerTab)))
-  const allTabs = useRightPanelTabs(containerTab, context, isFeatureUnderPaywall, textStore)
+  const contextPerPanel = reactive(new Map<ReturnType<typeof panelKey>, RightPanelContext>())
+  const context = computed(() => contextPerPanel.get(panelKey(toValue(focusedPanel))))
+  const allTabs = useRightPanelTabs(currentContainerTab, context, isFeatureUnderPaywall, textStore)
   const fullscreen = ref(false)
   const temporaryTab = ref<RightPanelTabId>()
   const tab = ref<RightPanelTabId>()
@@ -162,7 +160,7 @@ function useRightPanel(
 
   useSyncLocalStorage({
     storageKey: 'rightPanel',
-    mapKeyEncoder: (enc) => encoding.writeVarString(enc, toValue(containerTab)),
+    mapKeyEncoder: (enc) => encoding.writeVarString(enc, panelKey(toValue(focusedPanel))),
     debounce: 200,
     captureState: () => ({
       tab: tab.value,
@@ -173,7 +171,7 @@ function useRightPanel(
         tab.value = state.tab
         width.value = state.width
       } else {
-        tab.value = isProjectTab(toValue(containerTab)) ? 'documentation' : undefined
+        tab.value = toValue(focusedPanel)?.type === 'project' ? 'documentation' : undefined
         width.value = undefined
       }
     },
@@ -194,8 +192,8 @@ function useRightPanel(
    * Every tab may register and update the context assigned to it, which will be active when the
    * tab is selected.
    */
-  function setContext(tab: TabId, ctx: RightPanelContext) {
-    contextPerTab.set(tab, ctx)
+  function setContext(panel: Panel, ctx: RightPanelContext) {
+    contextPerPanel.set(panelKey(panel), ctx)
   }
 
   /**
@@ -203,11 +201,12 @@ function useRightPanel(
    *
    * If the tab didn't set any context, this method does nothing.
    */
-  function updateContext(tab: TabId, f: (ctx: RightPanelContext) => RightPanelContext) {
-    const ctx = contextPerTab.get(tab)
+  function updateContext(panel: Panel, f: (ctx: RightPanelContext) => RightPanelContext) {
+    const key = panelKey(panel)
+    const ctx = contextPerPanel.get(key)
     if (ctx == null) return
     const newCtx = f(ctx)
-    contextPerTab.set(tab, newCtx)
+    contextPerPanel.set(key, newCtx)
   }
 
   const focusedProject = computed(() => {
