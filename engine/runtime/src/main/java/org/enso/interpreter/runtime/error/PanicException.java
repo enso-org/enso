@@ -14,6 +14,7 @@ import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.Node;
+import com.oracle.truffle.api.nodes.RootNode;
 import com.oracle.truffle.api.source.SourceSection;
 import java.io.PrintStream;
 import java.io.PrintWriter;
@@ -113,11 +114,15 @@ public final class PanicException extends AbstractTruffleException {
    * Extracts Truffle stack from provided exception and converts it into Java stack.
    *
    * @param t throwable to process
-   * @param useFqn
-   * @return
+   * @param useFqn should the method call {@link RootNode#getQualifiedName()} or just {@link
+   *     RootNode#getName()}?
+   * @return non-{@code null} array of Java stack trace elements representing the Truffle stack
    */
   public static StackTraceElement[] toJavaStackTrace(Throwable t, boolean useFqn) {
     var trace = TruffleStackTrace.getStackTrace(t);
+    if (trace == null) {
+      return new StackTraceElement[0];
+    }
     var collect = new ArrayList<StackTraceElement>();
     for (var elem : trace) {
       var node = elem.getInstrumentableLocation();
