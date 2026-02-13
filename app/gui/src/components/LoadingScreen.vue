@@ -10,10 +10,7 @@ const message = computed(() => text.getText('loadingAppMessage'))
 </script>
 
 <template>
-  <div
-    className="grid h-screen w-screen place-items-center text-primary"
-    data-testid="loading-screen"
-  >
+  <div class="grid h-screen w-screen place-items-center text-primary" data-testid="loading-screen">
     <div className="flex flex-col items-center gap-8 text-center">
       <GrowingSpinner phase="loading-fast" :size="SPINNER_SIZE_PX" />
       <h1 class="message" v-text="message" />

@@ -6,23 +6,26 @@ import { createGlobalState } from '@vueuse/core'
 import { parseWebAppOptionsFromSearchParams } from 'enso-common/src/options'
 import { CONFIGURATION_PATH } from 'enso-common/src/services/Backend/remoteBackendPaths'
 import { computed, watch } from 'vue'
+import * as z from 'zod'
 
 const HTTP_STATUS_BAD_REQUEST = 400
 
-export interface RemoteConfig {
-  ENSO_IDE_ENVIRONMENT?: string
-  ENSO_IDE_API_URL?: string
-  ENSO_IDE_AUTH_ENDPOINT?: string
-  ENSO_IDE_STRIPE_KEY?: string
-  ENSO_IDE_COGNITO_USER_POOL_ID?: string
-  ENSO_IDE_COGNITO_USER_POOL_WEB_CLIENT_ID?: string
-  ENSO_IDE_COGNITO_DOMAIN?: string
-  ENSO_IDE_COGNITO_REGION?: string
-  ENSO_IDE_GOOGLE_OAUTH_CLIENT_ID?: string
-  ENSO_IDE_STRAVA_OAUTH_CLIENT_ID?: string
-  ENSO_IDE_MS365_OAUTH_CLIENT_ID?: string
-  ENSO_IDE_SALESFORCE_OAUTH_CLIENT_ID?: string
-}
+const REMOTE_CONFIG_SCHEMA = z.object({
+  ENSO_IDE_ENVIRONMENT: z.optional(z.string()),
+  ENSO_IDE_API_URL: z.optional(z.string()),
+  ENSO_IDE_AUTH_ENDPOINT: z.optional(z.string()),
+  ENSO_IDE_STRIPE_KEY: z.optional(z.string()),
+  ENSO_IDE_COGNITO_USER_POOL_ID: z.optional(z.string()),
+  ENSO_IDE_COGNITO_USER_POOL_WEB_CLIENT_ID: z.optional(z.string()),
+  ENSO_IDE_COGNITO_DOMAIN: z.optional(z.string()),
+  ENSO_IDE_COGNITO_REGION: z.optional(z.string()),
+  ENSO_IDE_GOOGLE_OAUTH_CLIENT_ID: z.optional(z.string()),
+  ENSO_IDE_STRAVA_OAUTH_CLIENT_ID: z.optional(z.string()),
+  ENSO_IDE_MS365_OAUTH_CLIENT_ID: z.optional(z.string()),
+  ENSO_IDE_SALESFORCE_OAUTH_CLIENT_ID: z.optional(z.string()),
+})
+
+export type RemoteConfig = z.infer<typeof REMOTE_CONFIG_SCHEMA>
 
 export type ConfigStore = ReturnType<typeof createConfigStore>
 
@@ -31,8 +34,13 @@ function createConfigStore() {
 
   const remoteConfig = useQuery<RemoteConfig>({
     queryKey: ['config', remoteConfigUrl],
-    queryFn: ({ queryKey: [_, url] }) =>
-      fetch(`${url}/${CONFIGURATION_PATH}`).then((response) => response.json()),
+    queryFn: async ({ queryKey: [_, url] }) => {
+      const response = await fetch(`${url}/${CONFIGURATION_PATH}`)
+      if (!response.ok) {
+        throw new Error(`Failed to fetch config from ${remoteConfigUrl}`)
+      }
+      return REMOTE_CONFIG_SCHEMA.parse(response.json())
+    },
   })
 
   watch(
