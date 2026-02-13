@@ -1,4 +1,4 @@
-package org.enso.scala.wrapper
+package org.enso.compiler.core.ir
 
 import scala.collection.immutable.StrictOptimizedMapOps
 import scala.collection.immutable.Map

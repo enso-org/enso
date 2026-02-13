@@ -1,7 +1,6 @@
 module org.enso.runtime.parser {
   requires org.enso.syntax;
   requires scala.library;
-  requires org.enso.scala.wrapper;
   requires org.enso.persistance;
   requires static org.enso.runtime.parser.dsl;
   requires static org.enso.runtime.parser.processor;
