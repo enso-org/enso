@@ -5,7 +5,7 @@ import { useQuery } from '@tanstack/vue-query'
 import { createGlobalState } from '@vueuse/core'
 import { parseWebAppOptionsFromSearchParams } from 'enso-common/src/options'
 import { CONFIGURATION_PATH } from 'enso-common/src/services/Backend/remoteBackendPaths'
-import { computed, watch } from 'vue'
+import { computed, watch, watchEffect } from 'vue'
 import * as z from 'zod'
 
 const HTTP_STATUS_BAD_REQUEST = 400
@@ -37,10 +37,15 @@ function createConfigStore() {
     queryFn: async ({ queryKey: [_, url] }) => {
       const response = await fetch(`${url}/${CONFIGURATION_PATH}`)
       if (!response.ok) {
-        throw new Error(`Failed to fetch config from ${remoteConfigUrl}`)
+        throw new Error(`Fetch config returned ${response.status}`)
       }
-      return REMOTE_CONFIG_SCHEMA.parse(response.json())
+      return REMOTE_CONFIG_SCHEMA.parse(await response.json())
     },
+  })
+
+  watchEffect(() => {
+    if (remoteConfig.error.value != null)
+      console.error('Error while fetching configuration', remoteConfig.error.value)
   })
 
   watch(
@@ -48,7 +53,7 @@ function createConfigStore() {
     (env) => {
       console.log('Loaded config:', env)
     },
-    { flush: 'sync', immediate: true },
+    { flush: 'sync' },
   )
 
   watch(
