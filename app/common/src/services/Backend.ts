@@ -1729,11 +1729,11 @@ export abstract class Backend {
     }
 
     const error =
-      response == null || response.headers.get('Content-Type') !== 'application/json' ?
+      response == null || !response.headers.get('Content-Type')?.startsWith('application/json') ?
         { message: 'unknown error' }
       : await ((): Promise<Error> => response.json())()
 
-    const message = `${this.getText(textId, ...replacements)}: ${error.message}.`
+    const message = `${this.getText(textId, ...replacements)}: ${error.message}`
     console.error(message)
 
     const status = response?.status

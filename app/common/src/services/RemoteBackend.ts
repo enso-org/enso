@@ -18,10 +18,8 @@ import * as remoteBackendPaths from './Backend/remoteBackendPaths.js'
 import type { HttpClient } from './HttpClient.js'
 import { organizationIdToDirectoryId } from './RemoteBackend/ids.js'
 
-/** HTTP status indicating that the resource does not exist. */
-const STATUS_NOT_FOUND = 404
-/** HTTP status indicating that authorized user doesn't have access to the given resource */
-const STATUS_NOT_ALLOWED = 403
+const HTTP_STATUS_NOT_FOUND = 404
+const HTTP_STATUS_NOT_ALLOWED = 403
 /** The interval between checks for the export status. */
 const EXPORT_STATUS_INTERVAL_MS = 5_000
 /** The interval between checks for the import status. */
@@ -111,7 +109,7 @@ export class RemoteBackend extends backend.Backend {
   override async listUsers(): Promise<readonly Omit<backend.User, 'groups'>[]> {
     const path = remoteBackendPaths.LIST_USERS_PATH
     const response = await this.get<backend.ListUsersResponseBody>(path)
-    if (response.status === STATUS_NOT_ALLOWED) {
+    if (response.status === HTTP_STATUS_NOT_ALLOWED) {
       return []
     } else if (!response.ok) {
       return await this.throw(response, 'listUsersBackendError')
@@ -137,7 +135,7 @@ export class RemoteBackend extends backend.Backend {
     const response = await this.put(path, body)
     if (!response.ok) {
       return body.username != null ?
-          await this.throw(response, 'updateUsernameBackendError')
+        await this.throw(response, 'updateUsernameBackendError')
         : await this.throw(response, 'updateUserBackendError')
     } else {
       if (this.user != null && body.username != null) {
@@ -276,9 +274,8 @@ export class RemoteBackend extends backend.Backend {
     const path = remoteBackendPaths.GET_ORGANIZATION_PATH
     const response = await this.get<backend.OrganizationInfo>(path)
 
-    if ([STATUS_NOT_ALLOWED, STATUS_NOT_FOUND].includes(response.status)) {
-      // Organization info has not yet been created.
-      // or the user is not eligible to create an organization.
+    if ([HTTP_STATUS_NOT_ALLOWED, HTTP_STATUS_NOT_FOUND].includes(response.status)) {
+      // Organization not found or the user is not allowed to get its info.
       return null
     }
 
@@ -292,14 +289,11 @@ export class RemoteBackend extends backend.Backend {
   /** Update details for the current organization. */
   override async updateOrganization(
     body: backend.UpdateOrganizationRequestBody,
-  ): Promise<backend.OrganizationInfo | null> {
+  ): Promise<backend.OrganizationInfo> {
     const path = remoteBackendPaths.UPDATE_ORGANIZATION_PATH
     const response = await this.patch<backend.OrganizationInfo>(path, body)
 
-    if (response.status === STATUS_NOT_FOUND) {
-      // Organization info has not yet been created.
-      return null
-    } else if (!response.ok) {
+    if (!response.ok) {
       return await this.throw(response, 'updateOrganizationBackendError')
     } else {
       return await response.json()
@@ -342,7 +336,7 @@ export class RemoteBackend extends backend.Backend {
   override async usersMe(): Promise<backend.User | null> {
     const response = await this.get<backend.User>(remoteBackendPaths.USERS_ME_PATH)
 
-    if (response.status === STATUS_NOT_FOUND) {
+    if (response.status === HTTP_STATUS_NOT_FOUND) {
       // User info has not yet been created, we should redirect to the onboarding page.
       return null
     }
@@ -390,7 +384,7 @@ export class RemoteBackend extends backend.Backend {
     const paramsString = new URLSearchParams(
       query.recentProjects === true ?
         [['recent_projects', String(true)]]
-      : [
+        : [
           ...(query.parentId != null ? [['parent_id', query.parentId]] : []),
           ...(query.filterBy != null ? [['filter_by', query.filterBy]] : []),
           ...(query.from != null ? [['from', query.from]] : []),
@@ -818,7 +812,7 @@ export class RemoteBackend extends backend.Backend {
     const response = await this.get<backend.AssetDetailsResponse<Id>>(path)
 
     if (!response.ok) {
-      if (response.status === STATUS_NOT_FOUND) {
+      if (response.status === HTTP_STATUS_NOT_FOUND) {
         if (backend.isDirectoryId(assetId)) {
           throw new backend.DirectoryDoesNotExistError()
         }
@@ -1220,7 +1214,7 @@ export class RemoteBackend extends backend.Backend {
   override async listUserGroups(): Promise<backend.UserGroupInfo[]> {
     const path = remoteBackendPaths.LIST_USER_GROUPS_PATH
     const response = await this.get<backend.UserGroupInfo[]>(path)
-    if (response.status === STATUS_NOT_ALLOWED) {
+    if (response.status === HTTP_STATUS_NOT_ALLOWED) {
       return [] as const
     } else if (!response.ok) {
       return this.throw(response, 'listUserGroupsBackendError')
