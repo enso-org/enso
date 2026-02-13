@@ -181,11 +181,15 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
     }
     cache.putType(nodeId, resultType);
 
-    if (newValueCached.updated()) {
+    if (newValueCached.updated() || !newValueCached.canCache()) {
       // Ensure that we send updates only when we really update cached expressions.
       // This is important for RHS when we only re-execute for subexpressions.
       // Without this condition, every time a subexpression would be executed, a visualization
       // for parent expression would be executed as well, which is undesirable (or even expensive).
+      // Also send intermediate expression/visualizations updates for expressions that cannot be
+      // cached as GUI/unit tests
+      // appear to expect those.
+
       syncState.setExpressionUnsync(nodeId);
       visualizationHolder
           .find(nodeId)
@@ -194,11 +198,6 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
                 syncState.setVisualizationUnsync(visualization.id());
                 return null;
               });
-    } else if (!newValueCached.canCache()) {
-      // Send intermediate expression updates for expressions that cannot be cached as GUI appears
-      // to
-      // expect those.
-      syncState.setExpressionUnsync(nodeId);
     }
     callOnComputedCallback(expressionValue);
     executeOneshotExpressions(nodeId, result, info);
