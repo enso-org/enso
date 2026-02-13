@@ -71,11 +71,15 @@ public class PanicExceptionTest {
       fail("Not expecting any result: " + none);
     } catch (PolyglotException ex) {
       var panic = (PanicException) ctxRule.unwrapValue(ex.getGuestObject());
-      for (var i = 0; i < 10; i++) {
-        var polyElem = ex.getStackTrace()[i];
-        var truffleElem = panic.getStackTrace()[i];
-        assertEquals(polyElem, truffleElem);
-      }
+      assertStackTraces(10, ex, panic);
+    }
+  }
+
+  private void assertStackTraces(int depth, Exception first, Exception other) {
+    for (var i = 0; i < depth; i++) {
+      var polyElem = first.getStackTrace()[i];
+      var truffleElem = other.getStackTrace()[i];
+      assertEquals(polyElem, truffleElem);
     }
   }
 }
