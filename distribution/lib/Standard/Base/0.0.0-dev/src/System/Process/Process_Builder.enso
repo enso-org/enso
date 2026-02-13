@@ -29,7 +29,7 @@ type Process_Builder
        We recommend that you use this type with its builder interface. Start by
        creating a `Builder "command"` and then call functions on it to set
        arguments and standard output. It results in much clearer code.
-    private Value command arguments stdin (cwd:Nothing|File)
+    private Value command:Text (arguments:(Vector Text)) stdin:Text (cwd:Nothing|File)
 
     ## ---
        icon: edit
