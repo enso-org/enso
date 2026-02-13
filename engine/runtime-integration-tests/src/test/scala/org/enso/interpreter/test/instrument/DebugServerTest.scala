@@ -181,7 +181,7 @@ class DebugServerTest
 
       val traceMethodNames = lastException.getStackTrace.map(_.getMethodName)
       traceMethodNames should contain("Panic.throw")
-      traceMethodNames should contain("Test::Test::main")
+      traceMethodNames should contain("Test.main")
     }
   }
 }

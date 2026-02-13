@@ -14,7 +14,6 @@ import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.Node;
-import com.oracle.truffle.api.source.Source;
 import com.oracle.truffle.api.source.SourceSection;
 import java.io.PrintStream;
 import java.io.PrintWriter;
@@ -112,20 +111,17 @@ public final class PanicException extends AbstractTruffleException {
           continue;
         }
         var root = node.getRootNode();
-        if (root == null || root.getName() == null) {
+        if (root == null) {
+          continue;
+        }
+        var name = root.getName();
+        if (name == null) {
           continue;
         }
         var info = root.getLanguageInfo();
         var lang = info == null ? "" : "<" + info.getId() + ">";
-        var java = new StackTraceElement(lang, root.getName(), "Unknown", -1);
-
         var ss = node.getEncapsulatingSourceSection();
-        if (ss != null) {
-          var src = ss.getSource();
-          java =
-              new StackTraceElement(
-                  lang, node.getRootNode().getName(), fileName(src), ss.getStartLine());
-        }
+        var java = new StackTraceElement(lang, name, fileName(ss), fileLine(ss));
         collect.add(java);
       }
       arr = collect.toArray(StackTraceElement[]::new);
@@ -134,7 +130,15 @@ public final class PanicException extends AbstractTruffleException {
     return arr;
   }
 
-  private static String fileName(Source src) {
+  private static int fileLine(SourceSection ss) {
+    return ss == null ? -1 : ss.getStartLine();
+  }
+
+  private static String fileName(SourceSection ss) {
+    if (ss == null) {
+      return "Unknown";
+    }
+    var src = ss.getSource();
     if (src.getPath() != null) {
       return src.getPath();
     } else {
