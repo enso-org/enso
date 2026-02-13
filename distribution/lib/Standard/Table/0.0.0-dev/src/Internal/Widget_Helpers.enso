@@ -8,6 +8,7 @@ from Standard.Base.System.File_Format import File_Format_SPI
 from Standard.Base.Widget_Helpers import make_any_selector, make_format_chooser, make_separator_selector
 
 import project.Expression.Expression
+import project.In_Memory_Column.In_Memory_Column
 import project.In_Memory_Table.In_Memory_Table
 import project.Internal.Parse_Values_Helper
 import project.Spatial_Table.Spatial_Join_Condition
@@ -17,12 +18,13 @@ import project.Value_Type.Auto
 import project.Value_Type.Value_Type
 from project.Extensions.Table_Conversions import all
 
+polyglot java import org.enso.table.util.TableValueCache
+
 ## ---
    private: true
    ---
    Make an aggregate column selector.
-make_aggregate_column_selector : Table -> Display -> Widget
-make_aggregate_column_selector table display:Display=..Always =
+make_aggregate_column_selector table:Table display:Display=..Always -> Widget = _with_table_cache table "make_aggregate_column_selector_"+display.to_text <|
     col_names_selector = make_column_name_selector table display=Display.Always add_expression=True
     column_widget = ["column", col_names_selector]
 
@@ -69,9 +71,8 @@ make_aggregate_column_selector table display:Display=..Always =
    private: true
    ---
    Make an Aggregate_Column list editor
-make_aggregate_column_vector_selector : Table -> Display -> Widget
-make_aggregate_column_vector_selector table display:Display=..Always =
-    item_editor = make_aggregate_column_selector table display=Display.Always
+make_aggregate_column_vector_selector table:Table display:Display=..Always -> Widget = _with_table_cache table "make_aggregate_column_vector_selector_"+display.to_text <|
+    item_editor = make_aggregate_column_selector table
     # TODO this is a workaround for a dropdown issue
     Vector_Editor item_editor=item_editor item_default="..Count" display=display
 
@@ -79,19 +80,18 @@ make_aggregate_column_vector_selector table display:Display=..Always =
    private: true
    ---
    Make a column name selector.
-make_column_name_selector : Table -> Boolean -> Display -> Widget
-make_column_name_selector table add_expression:Boolean=False display:Display=..Always =
-    col_names = table.column_names
-    names = col_names.map n-> Option n n.pretty
-    expression = if add_expression then [Option "<Expression>" "(expr '["+col_names.first+"]')"] else []
-    Single_Choice display=display values=(expression+names)
+make_column_name_selector table:Table add_expression:Boolean=False display:Display=..Always -> Widget =
+    _with_table_cache table "make_column_name_selector_"+add_expression.to_text+"_"+display.to_text <|
+        col_names = table.column_names
+        names = col_names.map n-> Option n n.pretty
+        expression = if add_expression then [Option "<Expression>" "(expr '["+col_names.first+"]')"] else []
+        Single_Choice display=display values=(expression+names)
 
 ## ---
    private: true
    ---
    Make a multiple column name selector.
-make_column_name_vector_selector : Table -> Display -> Widget
-make_column_name_vector_selector table display:Display=..Always =
+make_column_name_vector_selector table:Table display:Display=..Always -> Widget = _with_table_cache table "make_column_name_vector_selector_"+display.to_text <|
     item_editor = make_column_name_selector table display=Display.Always
     Vector_Editor item_editor=item_editor item_default=item_editor.values.first.value display=display
 
@@ -100,29 +100,31 @@ make_column_name_vector_selector table display:Display=..Always =
    ---
    Make a multiple column-name selector that allows each value to be selected at
    most once.
-make_column_name_multi_selector : Table -> Display -> Boolean -> Boolean -> Widget
-make_column_name_multi_selector table display:Display=..Always add_regex:Boolean=False add_by_type:Boolean=False =
-    names = table.column_names.map n-> Option n n.pretty
-    regex = if add_regex then [Option "<Regular Expression>" "regex"] else []
-    by_type = if add_by_type then [Option "<By Type>" "(..By_Type ..Integer)"] else []
-    Multiple_Choice values=regex+by_type+names display=display
+make_column_name_multi_selector table:Table display:Display=..Always add_regex:Boolean=False add_by_type:Boolean=False -> Widget =
+    _with_table_cache table "make_column_name_multi_selector_"+add_regex.to_text+"_"+add_by_type.to_text+"_"+display.to_text <|
+        names = table.column_names.map n-> Option n n.pretty
+        regex = if add_regex then [Option "<Regular Expression>" "regex"] else []
+        by_type = if add_by_type then [Option "<By Type>" "(..By_Type ..Integer)"] else []
+        Multiple_Choice values=regex+by_type+names display=display
 
 ## ---
    private: true
    ---
    Make a column reference by name selector.
-make_column_ref_by_name_selector table display:Display=..Always add_text:Boolean=False add_regex:Boolean=False add_number:Boolean=False add_boolean:Boolean=False add_named_pattern:Boolean=False add_date:Boolean=False add_time:Boolean=False add_date_time:Boolean=False add_nothing:Boolean=False columns_first:Boolean=False =
-    constants = make_any_selector add_text=add_text add_regex=add_regex add_named_pattern=add_named_pattern add_number=add_number add_boolean=add_boolean add_date=add_date add_time=add_time add_date_time=add_date_time add_nothing=add_nothing . values
-    expression = if table.is_nothing then [] else [Option "<Expression>" "(expr '["+table.column_names.first+"]')"]
-    col_names = if table.is_nothing then [] else table.column_names.map (name -> Option name "(..Name "+name.pretty+")")
-    values = if columns_first then col_names + constants + expression else constants + expression + col_names
-    Single_Choice values=values display=display
+make_column_ref_by_name_selector table display:Display=..Always add_text:Boolean=False add_regex:Boolean=False add_number:Boolean=False add_boolean:Boolean=False add_named_pattern:Boolean=False add_date:Boolean=False add_time:Boolean=False add_date_time:Boolean=False add_nothing:Boolean=False columns_first:Boolean=False -> Widget =
+     _with_table_cache table "make_column_ref_by_name_selector_"+add_text.to_text+"_"+add_regex.to_text+"_"+add_number.to_text+"_"+add_boolean.to_text+"_"+add_named_pattern.to_text+"_"+add_date.to_text+"_"+add_time.to_text+"_"+add_date_time.to_text+"_"+add_nothing.to_text+"_"+columns_first.to_text+"_"+display.to_text <|
+        constants = make_any_selector add_text=add_text add_regex=add_regex add_named_pattern=add_named_pattern add_number=add_number add_boolean=add_boolean add_date=add_date add_time=add_time add_date_time=add_date_time add_nothing=add_nothing . values
+        expression = if table.is_nothing then [] else [Option "<Expression>" "(expr '["+table.column_names.first+"]')"]
+        col_names = if table.is_nothing then [] else table.column_names.map (name -> Option name "(..Name "+name.pretty+")")
+        values = if columns_first then col_names + constants + expression else constants + expression + col_names
+        Single_Choice values=values display=display
 
 ## ---
    private: true
    ---
    Make a column reference by name selector filtered by type.
-make_column_ref_by_name_selector_for_type table display:Display=..Always value_type:Value_Type add_nothing:Boolean=False if_value_type_numeric_include_all_numeric:Boolean=False =
+make_column_ref_by_name_selector_for_type table value_type:Value_Type display:Display=..Always add_nothing:Boolean=False if_value_type_numeric_include_all_numeric:Boolean=False -> Widget =
+    ## ToDo: Add _with_table_cache
     is_all = _include_all value_type
     include_number = is_all || value_type.is_numeric
     include_text = is_all || value_type.is_text
@@ -135,7 +137,7 @@ make_column_ref_by_name_selector_for_type table display:Display=..Always value_t
     expression = if table.is_nothing then [] else [Option "<Expression>" "(expr '["+table.column_names.first+"]')"]
 
     col_names = if table.is_nothing then [] else
-        names = if is_all then table.column_names else 
+        names = if is_all then table.column_names else
             if value_type.is_numeric && if_value_type_numeric_include_all_numeric then table.columns.filter (c-> c.value_type.is_numeric || c.value_type.is_mixed) . map .name else
                 table.columns_helper.select_columns ([..By_Type value_type, ..By_Type ..Mixed]) case_sensitivity=..Default reorder=False error_on_missing_columns=False on_problems=..Ignore error_on_empty=False . map .name
         names.map (name -> Option name "(..Name "+name.pretty+")")
@@ -147,7 +149,7 @@ make_column_ref_by_name_selector_for_type table display:Display=..Always value_t
    private: true
    ---
    If `column_source` is Nothing, `Column_Ref` options will not be added.
-make_fill_default_value_selector column_source=Nothing display:Display=..Always value_types=Value_Type.Mixed add_nothing:Boolean=False =
+make_fill_default_value_selector column_source=Nothing display:Display=..Always value_types=Value_Type.Mixed add_nothing:Boolean=False -> Widget =
     to_add = Types_To_Include.Value (Vector.unify_vector_or_element value_types)
     column_ref = make_column_ref_by_name_selector column_source display add_text=to_add.text add_number=to_add.number add_boolean=to_add.boolean add_date=to_add.date add_time=to_add.time add_date_time=to_add.date_time add_nothing=add_nothing
     previous_value = [Option 'Previous Value' 'Previous_Value']
@@ -157,9 +159,10 @@ make_fill_default_value_selector column_source=Nothing display:Display=..Always 
    private: true
    ---
    Make a filter condition selector.
-make_filter_condition_selector table display:Display=..Always cache=Nothing =
+make_filter_condition_selector table display:Display=..Always cache=Nothing -> Widget =
+    ## ToDo: Add _with_table_cache but needs to deal with cache
     column_value_type = _get_column_value_type table cache
-    column_chooser = make_column_ref_by_name_selector_for_type table display add_nothing=False value_type=column_value_type if_value_type_numeric_include_all_numeric=True
+    column_chooser = make_column_ref_by_name_selector_for_type table display=display add_nothing=False value_type=column_value_type if_value_type_numeric_include_all_numeric=True
     regex_chooser = make_column_ref_by_name_selector table display add_regex=True
 
     is_all = _include_all column_value_type
@@ -216,8 +219,8 @@ make_filter_condition_selector table display:Display=..Always cache=Nothing =
    private: true
    ---
    Make a join condition selector.
-make_join_condition_selector : Table -> Display -> Any -> Widget
-make_join_condition_selector table display:Display=..Always cache=Nothing =
+make_join_condition_selector table:Table display:Display=..Always cache=Nothing -> Widget =
+    ## ToDo: Add _with_table_cache but needs to deal with cache
     right = cache.if_not_nothing <| cache "right"
     self_selector = make_column_name_selector table display=Display.Always
     right_selector = if right.is_nothing then Text_Input else
@@ -236,7 +239,7 @@ make_join_condition_selector table display:Display=..Always cache=Nothing =
 ## ---
    private: true
    ---
-make_grouping_method_selector table:Table display:Display=..Always -> Widget =
+make_grouping_method_selector table:Table display:Display=..Always -> Widget = _with_table_cache table "make_grouping_method_selector_"+display.to_text <|
     column_selector = make_column_name_selector table display=Display.Always
     columns_selector = make_column_name_multi_selector table display=Display.Always
 
@@ -252,8 +255,7 @@ make_grouping_method_selector table:Table display:Display=..Always -> Widget =
    private: true
    ---
    Make a column name selector.
-make_order_by_selector : Table -> Display -> Boolean -> Widget
-make_order_by_selector table display:Display=..Always name_only:Boolean=False =
+make_order_by_selector table:Table display:Display=..Always name_only:Boolean=False -> Widget = _with_table_cache table "make_order_by_selector_"+name_only.to_text+"_"+display.to_text <|
     values = if name_only then table.column_names.map n-> Option n "(..Name "+n.pretty+")" else
         name = Option "Name" "..Name" [["name", make_column_name_selector table display=Display.Always]]
         index = Option "Index" "..Index" [["index", Numeric_Input display=Display.Always minimum=0 maximum=table.column_count-1]]
@@ -266,8 +268,8 @@ make_order_by_selector table display:Display=..Always name_only:Boolean=False =
    private: true
    ---
    Make a column rename name selector.
-make_rename_name_vector_selector : Table -> Display -> Any -> Widget
-make_rename_name_vector_selector table display:Display=..Always cache=Nothing =
+make_rename_name_vector_selector table:Table display:Display=..Always cache=Nothing -> Widget =
+    ## ToDo: Consider _with_table_cache but needs to deal with cache
     col_names = table.column_names
 
     ## Resolved Used Names
@@ -296,8 +298,7 @@ make_rename_name_vector_selector table display:Display=..Always cache=Nothing =
    private: true
    ---
    Selector for type argument on `Column.parse`.
-parse_type_selector : Boolean -> Widget
-parse_type_selector include_auto=True =
+parse_type_selector include_auto:Boolean=True -> Widget =
     valid_parse_targets = Parse_Values_Helper.valid_parse_targets
 
     prefix = if include_auto then ['Auto'] else []
@@ -312,8 +313,7 @@ parse_type_selector include_auto=True =
    private: true
    ---
    Selector for writing a table to a file.
-write_table_selector : Widget
-write_table_selector =
+write_table_selector -> Widget =
     can_write type = if type==JSON_Format || type==JSON_Lines_Format then True else
         Meta.meta type . methods . contains "write_table"
     all_types = [Auto_Detect] + (File_Format_SPI.get_types.filter can_write)
@@ -458,3 +458,13 @@ private _include_all value_type:Value_Type -> Boolean =
         Value_Type.Mixed -> True
         Value_Type.Unsupported_Data_Type _ _  -> True
         _ -> False
+
+private _with_table_cache table suffix ~action =
+    key = case table of
+        t : In_Memory_Table -> t.table_value_cache
+        c : In_Memory_Column -> c.column_value_cache
+        _ -> Nothing
+    if key.is_nothing then action else
+        TableValueCache.get (key+suffix) k->
+            _ = k
+            action
