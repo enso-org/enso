@@ -103,31 +103,42 @@ public final class PanicException extends AbstractTruffleException {
   public StackTraceElement[] getStackTrace() {
     var arr = super.getStackTrace();
     if (arr.length == 0) {
-      var trace = TruffleStackTrace.getStackTrace(this);
-      var collect = new ArrayList<StackTraceElement>();
-      for (var elem : trace) {
-        var node = elem.getInstrumentableLocation();
-        if (node == null) {
-          continue;
-        }
-        var root = node.getRootNode();
-        if (root == null) {
-          continue;
-        }
-        var name = root.getName();
-        if (name == null) {
-          continue;
-        }
-        var info = root.getLanguageInfo();
-        var lang = info == null ? "" : "<" + info.getId() + ">";
-        var ss = node.getEncapsulatingSourceSection();
-        var java = new StackTraceElement(lang, name, fileName(ss), fileLine(ss));
-        collect.add(java);
-      }
-      arr = collect.toArray(StackTraceElement[]::new);
+      arr = toJavaStackTrace(this, false);
       setStackTrace(arr);
     }
     return arr;
+  }
+
+  /**
+   * Extracts Truffle stack from provided exception and converts it into Java stack.
+   *
+   * @param t throwable to process
+   * @param useFqn
+   * @return
+   */
+  public static StackTraceElement[] toJavaStackTrace(Throwable t, boolean useFqn) {
+    var trace = TruffleStackTrace.getStackTrace(t);
+    var collect = new ArrayList<StackTraceElement>();
+    for (var elem : trace) {
+      var node = elem.getInstrumentableLocation();
+      if (node == null) {
+        continue;
+      }
+      var root = node.getRootNode();
+      if (root == null) {
+        continue;
+      }
+      var name = useFqn ? root.getQualifiedName() : root.getName();
+      if (name == null) {
+        continue;
+      }
+      var info = root.getLanguageInfo();
+      var lang = info == null ? "" : "<" + info.getId() + ">";
+      var ss = node.getEncapsulatingSourceSection();
+      var java = new StackTraceElement(lang, name, fileName(ss), fileLine(ss));
+      collect.add(java);
+    }
+    return collect.toArray(StackTraceElement[]::new);
   }
 
   private static int fileLine(SourceSection ss) {
