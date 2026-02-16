@@ -206,9 +206,10 @@ function setDeepLinkHandler(navigate: (url: string) => void, cognito: Cognito) {
   window.api?.authentication.setDeepLinkHandler((urlString: string) => {
     const result = parseEnsoDeeplink(urlString)
     if (!result.ok) {
-      console.log(result.error.message())
+      console.error(result.error.message())
       return
     }
+    console.log('Handling deepling', result.value.pathname)
     const deeplink = result.value
     switch (deeplink.pathname) {
       // If the user is being redirected after clicking the registration confirmation link in their
@@ -233,10 +234,12 @@ function setDeepLinkHandler(navigate: (url: string) => void, cognito: Cognito) {
       }
       case 'auth': {
         if (deeplink.search === '') {
+          console.log('Signing out from redirect')
           // Signing out.
           navigate(appUtils.LOGIN_PATH)
         } else {
           // Signing in.
+          console.log('Signing in from redirect')
           cognito.resolveOngoingLogin({ type: 'success', url: urlString })
           break
         }
