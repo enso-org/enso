@@ -133,18 +133,6 @@ public class UpdatesSynchronizationState {
   }
 
   /**
-   * Marks the given visualization as pending (not yet synchronized).
-   *
-   * @param key the visualization id.
-   */
-  @CompilerDirectives.TruffleBoundary
-  public void setVisualizationPending(UUID key) {
-    synchronized (visualizationsState) {
-      visualizationsState.add(key);
-    }
-  }
-
-  /**
    * Marks the given visualization update as synchronized.
    *
    * @param key the visualization id

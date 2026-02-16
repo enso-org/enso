@@ -705,7 +705,9 @@ object UpsertVisualizationJob {
         arguments
       )
     setCacheWeights(visualization)
-    ctx.state.executionHooks.add(InvalidateCaches(expressionId))
+    // Stop invalidating expressions, as visualizations for subexpressions
+    // carry enough info to workaround cached values.
+    //ctx.state.executionHooks.add(InvalidateCaches(expressionId))
     ctx.contextManager.upsertVisualization(
       visualizationConfig.executionContextId,
       visualization
