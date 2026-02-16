@@ -28,4 +28,5 @@
     - With_JSON_Cache parent:Standard.Base.Metadata.Widget json:Standard.Base.Data.Text.Text
     - to_js_object self -> Standard.Base.Any.Any
     - to_json self -> Standard.Base.Data.Text.Text
+    - to_text self -> Standard.Base.Data.Text.Text
 - make_single_choice values:Standard.Base.Data.Vector.Vector display:Standard.Base.Metadata.Display= -> Standard.Base.Metadata.Widget

@@ -1,3 +1,4 @@
+import project.Any.Any
 import project.Data.Json.JS_Object
 import project.Data.Numbers.Integer
 import project.Data.Numbers.Number
@@ -142,6 +143,14 @@ type Widget
 
     ## Cached JSON Widget
     With_JSON_Cache parent:Widget json:Text
+
+    ## ---
+       private: true
+       ---
+       Customised to_text value to avoid the JSON caching.
+    to_text self -> Text = case self of
+        Widget.With_JSON_Cache parent _ -> parent.to_text
+        _ -> Any.to_text self=self
 
     ## ---
        private: true
