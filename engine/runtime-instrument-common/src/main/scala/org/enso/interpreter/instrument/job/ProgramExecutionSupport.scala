@@ -115,8 +115,7 @@ object ProgramExecutionSupport {
           value
         )
 
-        // Process all pending unevaluated visualizations
-        processAllPendingUnevaluatedVisualizations(
+        processAllUnevaluatedVisualizations(
           contextId,
           executionFrame.cache,
           executionFrame.syncState
@@ -693,22 +692,19 @@ object ProgramExecutionSupport {
     * @param syncState reference to synchronization state
     * @param ctx the runtime context
     */
-  private def processAllPendingUnevaluatedVisualizations(
+  private def processAllUnevaluatedVisualizations(
     contextId: Api.ContextId,
     runtimeCache: RuntimeCache,
     syncState: UpdatesSynchronizationState
   )(implicit ctx: RuntimeContext): Unit = {
     val holder     = ctx.contextManager.getVisualizationHolder(contextId)
     val allPending = holder.getAllUnevaluated
-    logger.debug(s"pending visualizations: ${allPending}")
 
     allPending.foreach { unevaluated =>
-      // Check if this expression's value is in the cache
       val cachedValue =
         runtimeCache.runQuery(null, _.get(unevaluated.expressionId))
 
       if (cachedValue != null) {
-        // Value is available! Try to process this visualization
         processUnevaluatedVisualization(
           contextId,
           runtimeCache,
@@ -736,7 +732,11 @@ object ProgramExecutionSupport {
     unevaluated: UnevaluatedVisualization,
     expressionValue: AnyRef
   )(implicit ctx: RuntimeContext): Unit = {
-    logger.debug(s"processUnevaluatedVisualization ${unevaluated.id}")
+    logger.trace(
+      "Processing unevaluated visualization {} on expression {}",
+      unevaluated.id,
+      unevaluated.expressionId
+    )
     val holder  = ctx.contextManager.getVisualizationHolder(contextId)
     val context = ctx.executionService.getContext
 
@@ -752,7 +752,6 @@ object ProgramExecutionSupport {
         context.ensureModuleIsLoaded(exprModuleName)
       }
 
-      // Find modules
       val visModuleOpt  = context.findModule(visModuleName)
       val exprModuleOpt = context.findModule(exprModuleName)
 
@@ -782,12 +781,12 @@ object ProgramExecutionSupport {
         exprModule.compileScope(context)
       }
 
-      val maybeCallable = UpsertVisualizationJob.evaluateVisualizationExpression(
-        unevaluated.config.visualizationModule,
-        unevaluated.config.expression,
-        hasWriteCompilationLock = true
-      )
-    logger.debug(s"processUnevaluatedVisualization ${unevaluated.id} callable ${maybeCallable}")
+      val maybeCallable =
+        UpsertVisualizationJob.evaluateVisualizationExpression(
+          unevaluated.config.visualizationModule,
+          unevaluated.config.expression,
+          hasWriteCompilationLock = true
+        )
 
       maybeCallable match {
         case Left(UpsertVisualizationJob.ModuleNotFound(moduleName)) =>
@@ -820,14 +819,15 @@ object ProgramExecutionSupport {
           )
 
         case Right(evaluatedExpression) =>
-          val visualization = UpsertVisualizationJob.updateAttachedVisualization(
-            unevaluated.id,
-            unevaluated.expressionId,
-            evaluatedExpression.module,
-            unevaluated.config,
-            evaluatedExpression.callback,
-            evaluatedExpression.arguments
-          )
+          val visualization =
+            UpsertVisualizationJob.updateAttachedVisualization(
+              unevaluated.id,
+              unevaluated.expressionId,
+              evaluatedExpression.module,
+              unevaluated.config,
+              evaluatedExpression.callback,
+              evaluatedExpression.arguments
+            )
           holder.removeUnevaluated(unevaluated.id, unevaluated.expressionId)
 
           executeAndSendVisualizationUpdate(
@@ -999,7 +999,8 @@ object ProgramExecutionSupport {
 
       case Right(data) =>
         logger.trace(
-          "Visualization executed [{}].",
+          "Visualization {} for expression {} executed.",
+          visualizationId,
           expressionId
         )
         syncState.runAndSetVisualizationSync(

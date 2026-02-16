@@ -36,10 +36,8 @@ class DetachVisualizationJob(
       () => {
         val holder = ctx.contextManager.getVisualizationHolder(contextId)
 
-        // Remove any pending unevaluated visualization
         holder.removeUnevaluated(visualizationId, expressionId)
 
-        // Remove the actual visualization (if it was promoted)
         ctx.contextManager.removeVisualization(
           contextId,
           expressionId,

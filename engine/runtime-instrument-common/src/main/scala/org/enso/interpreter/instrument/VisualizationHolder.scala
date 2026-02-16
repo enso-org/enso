@@ -16,7 +16,6 @@ class VisualizationHolder {
   private val visualizationMap: mutable.Map[ExpressionId, List[Visualization]] =
     mutable.Map.empty.withDefaultValue(List.empty)
 
-  // Storage for unevaluated visualizations - multiple can exist per expression
   private val unevaluatedMap
     : mutable.Map[ExpressionId, List[UnevaluatedVisualization]] =
     mutable.Map.empty.withDefaultValue(List.empty)
@@ -120,8 +119,8 @@ class VisualizationHolder {
     visualizationId: VisualizationId,
     expressionId: ExpressionId
   ): Option[UnevaluatedVisualization] = {
-    val existing          = unevaluatedMap(expressionId)
-    val (removed, rest)   = existing.partition(_.id == visualizationId)
+    val existing        = unevaluatedMap(expressionId)
+    val (removed, rest) = existing.partition(_.id == visualizationId)
     unevaluatedMap.update(expressionId, rest)
     removed.headOption
   }

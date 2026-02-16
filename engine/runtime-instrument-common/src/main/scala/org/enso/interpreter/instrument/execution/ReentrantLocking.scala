@@ -450,13 +450,16 @@ class ReentrantLocking extends Locking {
         "tryReadCompilationLock [{}] acquired",
         where.getSimpleName
       )
-      new TryLockResult(true, () => {
-        readLock.unlock()
-        logger.trace(
-          "tryReadCompilationLock [{}] released",
-          where.getSimpleName
-        )
-      })
+      new TryLockResult(
+        true,
+        () => {
+          readLock.unlock()
+          logger.trace(
+            "tryReadCompilationLock [{}] released",
+            where.getSimpleName
+          )
+        }
+      )
     } else {
       logger.trace(
         "tryReadCompilationLock [{}] not acquired (lock busy)",
@@ -497,13 +500,16 @@ class ReentrantLocking extends Locking {
         "tryWriteCompilationLock [{}] acquired",
         where.getSimpleName
       )
-      new TryLockResult(true, () => {
-        writeLock.unlock()
-        logger.trace(
-          "tryWriteCompilationLock [{}] released",
-          where.getSimpleName
-        )
-      })
+      new TryLockResult(
+        true,
+        () => {
+          writeLock.unlock()
+          logger.trace(
+            "tryWriteCompilationLock [{}] released",
+            where.getSimpleName
+          )
+        }
+      )
     } else {
       logger.trace(
         "tryWriteCompilationLock [{}] not acquired (lock busy)",
@@ -526,14 +532,17 @@ class ReentrantLocking extends Locking {
         where.getSimpleName,
         contextLock.uuid
       )
-      new TryLockResult(true, () => {
-        readLock.unlock()
-        logger.trace(
-          "tryReadContextLock [{}] released for context {}",
-          where.getSimpleName,
-          contextLock.uuid
-        )
-      })
+      new TryLockResult(
+        true,
+        () => {
+          readLock.unlock()
+          logger.trace(
+            "tryReadContextLock [{}] released for context {}",
+            where.getSimpleName,
+            contextLock.uuid
+          )
+        }
+      )
     } else {
       logger.trace(
         "tryReadContextLock [{}] not acquired for context {} (lock busy)",

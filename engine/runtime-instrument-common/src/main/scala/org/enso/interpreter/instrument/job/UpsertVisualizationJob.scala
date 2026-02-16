@@ -63,12 +63,16 @@ class UpsertVisualizationJob(
   /** @inheritdoc */
   override def runImpl(implicit ctx: RuntimeContext): Option[Executable] = {
     // Try non-blocking lock acquisition first
-    val contextLock = ctx.locking.getOrCreateContextLock(config.executionContextId)
+    val contextLock =
+      ctx.locking.getOrCreateContextLock(config.executionContextId)
     val tryContextLockResult =
-      ctx.locking.tryReadContextLock(contextLock, classOf[UpsertVisualizationJob])
+      ctx.locking.tryReadContextLock(
+        contextLock,
+        classOf[UpsertVisualizationJob]
+      )
 
     if (!tryContextLockResult.isAcquired) {
-      UpsertVisualizationJob.logger.debug(
+      UpsertVisualizationJob.logger.trace(
         "Could not acquire context lock for visualization {}, deferring evaluation",
         visualizationId
       )
@@ -81,7 +85,7 @@ class UpsertVisualizationJob(
         ctx.locking.tryWriteCompilationLock(classOf[UpsertVisualizationJob])
 
       if (!tryCompilationLockResult.isAcquired) {
-        UpsertVisualizationJob.logger.debug(
+        UpsertVisualizationJob.logger.trace(
           "Could not acquire write compilation lock for visualization {}, deferring evaluation",
           visualizationId
         )
@@ -89,12 +93,12 @@ class UpsertVisualizationJob(
       }
 
       try {
-        UpsertVisualizationJob.logger.debug(
+        UpsertVisualizationJob.logger.trace(
           "Acquired write compilation lock for visualization {}, executing visualization",
           visualizationId
         )
-        // With write lock, we can do everything including compilation
-        val (_, maybeResult) = evaluateAndExecuteVisualization(hasWriteLock = true)
+        val (_, maybeResult) =
+          evaluateAndExecuteVisualization(hasWriteLock = true)
         maybeResult
       } finally {
         tryCompilationLockResult.close()
@@ -111,13 +115,14 @@ class UpsertVisualizationJob(
     ctx: RuntimeContext
   ): Option[Executable] = {
     val unevaluated = UnevaluatedVisualization(
-      id = visualizationId,
+      id           = visualizationId,
       expressionId = expressionId,
-      contextId = config.executionContextId,
-      config = config
+      contextId    = config.executionContextId,
+      config       = config
     )
 
-    val holder = ctx.contextManager.getVisualizationHolder(config.executionContextId)
+    val holder =
+      ctx.contextManager.getVisualizationHolder(config.executionContextId)
     holder.addUnevaluated(unevaluated)
 
     // Mark as needing sync so it will be processed
@@ -127,8 +132,8 @@ class UpsertVisualizationJob(
       visualizationId
     )
 
-    UpsertVisualizationJob.logger.debug(
-      "Deferred visualization {} for expression {} - will be processed when locks available",
+    UpsertVisualizationJob.logger.trace(
+      "Deferred visualization {} for expression {}",
       visualizationId,
       expressionId
     )
@@ -148,7 +153,7 @@ class UpsertVisualizationJob(
   private def evaluateAndExecuteVisualization(
     hasWriteLock: Boolean
   )(implicit ctx: RuntimeContext): (Boolean, Option[Executable]) = {
-    UpsertVisualizationJob.logger.debug(
+    UpsertVisualizationJob.logger.trace(
       "Evaluating visualization {} for expression {} in observer",
       visualizationId,
       expressionId
@@ -157,12 +162,6 @@ class UpsertVisualizationJob(
       config.visualizationModule,
       config.expression,
       hasWriteLock
-    )
-    UpsertVisualizationJob.logger.debug(
-      "Evaluating visualization {} for expression {} in observer {}",
-      visualizationId,
-      expressionId,
-      maybeCallable
     )
 
     maybeCallable match {
@@ -202,7 +201,7 @@ class UpsertVisualizationJob(
     evaluatedVisualization: EvaluationResult
   )(implicit ctx: RuntimeContext): Option[Executable] = {
     val EvaluationResult(module, callable, arguments) = evaluatedVisualization
-    UpsertVisualizationJob.logger.debug(
+    UpsertVisualizationJob.logger.trace(
       "Executing visualization {} for expression {}",
       visualizationId,
       expressionId
@@ -836,7 +835,7 @@ object UpsertVisualizationJob {
     * @param stack the execution stack
     * @param visualizationId the visualization id associated with the expression
     */
-  private[job] def requireVisualizationSynchronization(
+  private def requireVisualizationSynchronization(
     stack: Iterable[InstrumentFrame],
     visualizationId: Api.VisualizationId
   ): Unit =
