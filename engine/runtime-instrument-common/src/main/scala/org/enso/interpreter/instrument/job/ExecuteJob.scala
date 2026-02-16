@@ -97,7 +97,7 @@ class ExecuteJob(
     ctx.locking.withReadContextLock(
       ctx.locking.getOrCreateContextLock(contextId),
       this.getClass,
-      () =>
+      () => {
         ctx.locking.withReadCompilationLock(
           this.getClass,
           () =>
@@ -158,6 +158,28 @@ class ExecuteJob(
                 throw e;
             }
         )
+        // Check for unprocessed visualizations and reschedule if needed
+        if (mayInterruptIfRunning) {
+          val holder                = ctx.contextManager.getVisualizationHolder(contextId)
+          val pendingVisualizations = holder.getAllUnevaluated
+          if (pendingVisualizations.nonEmpty) {
+            ExecuteJob.logger.debug(
+              "Rescheduling ExecuteJob[{}] to process unevaluated visualizations {}",
+              _jobId,
+              pendingVisualizations
+            )
+            ctx.jobProcessor.run(
+              new ExecuteJob(
+                contextId,
+                stack,
+                executionEnvironment,
+                "pending visualizations",
+                None
+              )
+            )
+          }
+        }
+      }
     )
   }
 
