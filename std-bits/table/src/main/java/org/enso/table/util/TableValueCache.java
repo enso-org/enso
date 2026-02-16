@@ -19,11 +19,10 @@ public class TableValueCache {
   public static Value getOrCompute(String key, Function<String, Value> compute) {
     var cache = cache();
     if (cache.containsKey(key)) {
-      LOGGER.debug("Cache hit for key: {}", key);
       return cache.get(key);
     }
 
-    LOGGER.debug("Cache miss for key: {}", key);
+    LOGGER.trace("Cache miss for key: {}", key);
     var value = compute.apply(key);
     cache.put(key, value);
     return value;
