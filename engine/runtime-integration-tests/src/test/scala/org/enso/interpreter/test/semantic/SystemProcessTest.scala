@@ -34,6 +34,7 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
     "return success exit code (Windows)" taggedAs OsWindows in {
       val code =
         """import Standard.Base.System
+          |import Standard.Base.Nothing.Nothing
           |from Standard.Base.Data.Boolean import all
           |
           |main =
@@ -79,6 +80,7 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
     "return error exit code (Windows)" taggedAs OsWindows in {
       val code =
         """import Standard.Base.System
+          |import Standard.Base.Nothing.Nothing
           |from Standard.Base.Data.Boolean import all
           |
           |main =
@@ -111,10 +113,11 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
     "redirect stdin chars (Windows)" taggedAs OsWindows in {
       val code =
         """import Standard.Base.System
+          |import Standard.Base.Nothing.Nothing
           |from Standard.Base.Data.Boolean import all
           |
           |main =
-          |    result = System.create_process "PowerShell" ["-Command", "[System.Console]::ReadLine()"] "" True True True
+          |    result = System.create_process "PowerShell" ["-Command", "[System.Console]::ReadLine()"] "" True True True Nothing
           |    result.exit_code
           |""".stripMargin
 
@@ -163,10 +166,11 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
     "redirect stdin unused (Windows)" taggedAs OsWindows in {
       val code =
         """import Standard.Base.System
+          |import Standard.Base.Nothing.Nothing
           |from Standard.Base.Data.Boolean import all
           |
           |main =
-          |    result = System.create_process "cmd" ["/c", "echo 9"] "" True True True
+          |    result = System.create_process "cmd" ["/c", "echo 9"] "" True True True Nothing
           |    result.exit_code
           |""".stripMargin
 
@@ -195,10 +199,11 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
     "redirect stdin empty (Windows)" taggedAs OsWindows in {
       val code =
         """import Standard.Base.System
+          |import Standard.Base.Nothing.Nothing
           |from Standard.Base.Data.Boolean import all
           |
           |main =
-          |    result = System.create_process "cmd" ["/c", "echo 9"] "" True True True
+          |    result = System.create_process "cmd" ["/c", "echo 9"] "" True True True Nothing
           |    result.exit_code
           |""".stripMargin
 
@@ -226,6 +231,7 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
     "provide stdin string (Windows)" taggedAs OsWindows in {
       val code =
         """import Standard.Base.System
+          |import Standard.Base.Nothing.Nothing
           |from Standard.Base.Data.Boolean import all
           |
           |main =
@@ -257,10 +263,11 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
     "redirect stdout chars (Windows)" taggedAs OsWindows in {
       val code =
         """import Standard.Base.System
+          |import Standard.Base.Nothing.Nothing
           |from Standard.Base.Data.Boolean import all
           |
           |main =
-          |    result = System.create_process "cmd" ["/c", "echo foobar"] "" False True True
+          |    result = System.create_process "cmd" ["/c", "echo foobar"] "" False True True Nothing
           |    result.exit_code
           |""".stripMargin
 
@@ -305,6 +312,7 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
     "return stdout string (Windows)" taggedAs OsWindows in {
       val code =
         """import Standard.Base.System
+          |import Standard.Base.Nothing.Nothing
           |from Standard.Base.Data.Boolean import all
           |
           |main =
@@ -385,6 +393,7 @@ class SystemProcessTest extends InterpreterTest with OsSpec {
     "return stderr string (Windows)" taggedAs OsWindows in {
       val code =
         """import Standard.Base.System
+          |import Standard.Base.Nothing.Nothing
           |from Standard.Base.Data.Boolean import all
           |
           |main =
