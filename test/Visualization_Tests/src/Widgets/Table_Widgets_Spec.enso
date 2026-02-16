@@ -37,7 +37,10 @@ add_specs suite_builder =
                 "right" -> right_mock_table
                 _ -> Nothing
 
-            res = Standard.Table.Internal.Widget_Helpers.make_join_condition_selector self_mock_table cache=mock_cache
+            with_json = Standard.Table.Internal.Widget_Helpers.make_join_condition_selector self_mock_table cache=mock_cache
+            res = case with_json of
+                Widget.With_JSON_Cache parent _ -> parent
+                _ -> with_json
             arr = case res of
                 Widget.Vector_Editor item _ _ _ -> item.values
                 _ -> Test.fail "Expecting Vector_Editor"
