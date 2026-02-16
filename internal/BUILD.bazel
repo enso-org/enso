@@ -7,7 +7,7 @@ exports_files(
 )
 
 copy_to_bin(
-    name = "dependencies_versions_bin",
+    name = "dependencies_versions_in_bin",
     srcs = ["dependenciesVersions.cjs"],
     visibility = ["//visibility:public"],
 )
@@ -29,7 +29,7 @@ js_binary(
 js_run_binary(
     name = "generated_version_info",
     srcs = [
-        ":dependencies_versions_bin",
+        ":dependencies_versions_in_bin",
         "//:dependencies_scala_bin",
     ],
     stamp = -1,

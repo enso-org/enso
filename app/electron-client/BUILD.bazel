@@ -127,7 +127,7 @@ electron_builder_bin.electron_builder(
         "//:sbt_build_native_engine_distribution",
         "//:sbt_build_small_jdk",
         "//app/gui:dist_stamped",
-        "//internal:dependencies_versions_bin",
+        "//internal:dependencies_versions_in_bin",
     ],
     args = [
         "build",
@@ -177,7 +177,7 @@ js_run_binary(
     srcs = [
         ":electron_builder_config_stamped",
         "//:dependencies_scala_bin",
-        "//internal:dependencies_versions_bin",
+        "//internal:dependencies_versions_in_bin",
     ],
     args = ["$(location :electron_builder_config_stamped)"],
     stdout = "electron-builder-config.json",
