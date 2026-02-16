@@ -3,7 +3,7 @@ import Standard.Base.Metadata.Display
 import Standard.Base.Metadata.Widget
 from Standard.Base.Metadata import make_single_choice
 from Standard.Base.Metadata.Choice import Option
-from Standard.Base.Metadata.Widget import Multiple_Choice, Numeric_Input, Single_Choice, Text_Input, Vector_Editor
+from Standard.Base.Metadata.Widget import Multiple_Choice, Numeric_Input, Single_Choice, Text_Input, Vector_Editor, With_JSON_Cache
 from Standard.Base.System.File_Format import File_Format_SPI
 from Standard.Base.Widget_Helpers import make_any_selector, make_format_chooser, make_separator_selector
 
@@ -478,4 +478,5 @@ private _with_table_cache table suffix ~action =
     if key.is_nothing || suffix.is_nothing then action else
         TableValueCache.getOrCompute (key+suffix) k->
             _ = k
-            action
+            v = action
+            if v.is_a Widget then With_JSON_Cache v v.to_json else v
