@@ -1,6 +1,7 @@
 package org.enso.interpreter.node.expression.builtin.immutable;
 
-import com.oracle.truffle.api.dsl.*;
+import com.oracle.truffle.api.dsl.Fallback;
+import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.nodes.Node;
@@ -18,7 +19,7 @@ import org.enso.interpreter.runtime.error.PanicException;
         "Creates a Vector by providing its underlying storage as a polyglot array. The underlying"
             + " array should be guaranteed to never be mutated.",
     autoRegister = false)
-public abstract class FromPolyglotArrayBuiltinVectorNode extends Node {
+abstract class FromPolyglotArrayBuiltinVectorNode extends Node {
 
   static FromPolyglotArrayBuiltinVectorNode build() {
     return FromPolyglotArrayBuiltinVectorNodeGen.create();
