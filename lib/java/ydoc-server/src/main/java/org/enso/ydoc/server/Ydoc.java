@@ -209,15 +209,11 @@ public final class Ydoc implements AutoCloseable {
     return new Builder();
   }
 
-  public Context.Builder getContextBuilder() {
-    return contextBuilder;
-  }
-
-  public YjsChannelCallbacks getJsonChannelCallbacksSynchronized() {
+  private YjsChannelCallbacks getJsonChannelCallbacksSynchronized() {
     return new YjsCallbacksSynchronized(jsonChannelCallbacks, executor);
   }
 
-  public YjsChannelCallbacks getBinaryChannelCallbacksSynchronized() {
+  private YjsChannelCallbacks getBinaryChannelCallbacksSynchronized() {
     return new YjsCallbacksSynchronized(binaryChannelCallbacks, executor);
   }
 
