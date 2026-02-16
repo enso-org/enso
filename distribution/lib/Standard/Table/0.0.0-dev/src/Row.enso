@@ -101,7 +101,7 @@ type Row
        Converts this row into a JSON representation.
     to_json_data : Text
     to_json_data self =
-        self.java_row.toJsonData v->v.to_json
+        self.java_row.toJsonData
 
 ## ---
    private: true

@@ -9,13 +9,15 @@ import Standard.Base.Errors.Illegal_State.Illegal_State
 
 import project.Conversions.Convertible_To_Columns.Convertible_To_Columns
 import project.Conversions.Convertible_To_Rows.Convertible_To_Rows
+import project.Conversions.Convertible_To_Rows.Key_Value
 import project.Errors.No_Such_Column
 import project.In_Memory_Column.In_Memory_Column
 import project.Internal.Fan_Out
-import project.Internal.Java_Exports
 import project.Internal.Java_Problems
 import project.Prefix_Name.Prefix_Name
 import project.Table.Table
+
+polyglot java import org.enso.table.data.column.builder.Builder as Java_Builder
 
 ## ---
    private: true
@@ -86,6 +88,7 @@ expand_to_rows table column:(Text | Integer) at_least_one_row=False sequences_on
         value
             . align_sequence_only sequences_only
             . to_vector
+            . map r-> if r.is_a Key_Value then r else Vector.unify_vector_or_element r
 
     column_names : Any -> Vector
     column_names value:Convertible_To_Rows =
@@ -95,8 +98,8 @@ expand_to_rows table column:(Text | Integer) at_least_one_row=False sequences_on
             . map name-> if name=="Value" then column else column+" "+name
 
     Java_Problems.with_problem_aggregator Problem_Behavior.Report_Warning java_problem_aggregator->
-        builder size = Java_Exports.make_inferred_builder size java_problem_aggregator
-        Fan_Out.fan_out_to_rows table column row_expander column_names at_least_one_row column_builder=builder
+        builder size = Java_Builder.getInferredBuilder size java_problem_aggregator
+        Fan_Out.fan_out_to_rows_and_columns table column row_expander column_names at_least_one_row column_builder=builder
 
 create_table_from_objects (base_value : Convertible_To_Rows) (fields : Vector | Nothing) (treat_dictionary_as_sequence : Boolean = False) -> Table = if fields.is_nothing.not && fields.is_empty then Error.throw (Illegal_Argument.Error "The fields parameter cannot be empty.") else
     expand_sequences_only = treat_dictionary_as_sequence.not
@@ -106,7 +109,7 @@ create_table_from_objects (base_value : Convertible_To_Rows) (fields : Vector | 
     Java_Problems.with_problem_aggregator Problem_Behavior.Report_Warning java_problem_aggregator->
         preset_fields = fields.is_nothing.not
         initial_dict = if preset_fields.not then Dictionary.empty else
-            Dictionary.from_vector (fields.map field_name-> [field_name, Java_Exports.make_inferred_builder len java_problem_aggregator]) error_on_duplicates=False
+            Dictionary.from_vector (fields.map field_name-> [field_name, Java_Builder.getInferredBuilder len java_problem_aggregator]) error_on_duplicates=False
 
         # This is used to ensure that field names in the resulting table are in the order they were encountered.
         discovered_field_names = Builder.new
@@ -129,7 +132,7 @@ create_table_from_objects (base_value : Convertible_To_Rows) (fields : Vector | 
                         existing_builder = inner_current_dict.get f Nothing
                         builder = existing_builder.if_nothing <|
                             discovered_field_names.append f
-                            Java_Exports.make_inferred_builder len java_problem_aggregator
+                            Java_Builder.getInferredBuilder len java_problem_aggregator
                         _fill_builder builder idx
                         builder.append (v.getter f)
                         if existing_builder.is_nothing.not then inner_current_dict else

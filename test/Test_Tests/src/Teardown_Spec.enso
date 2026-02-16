@@ -1,0 +1,50 @@
+from Standard.Base import all
+from Standard.Test import all
+
+# sample suite that fails in a teardown
+private failing_teardown_suite println suite_builder =
+    suite_builder.group "ok group" group_builder->
+        group_builder.teardown <|
+            println "OK teardown called" # 1st message to be printed
+
+        group_builder.specify "spec 1" <|
+            2.should_equal 2
+
+        group_builder.specify "spec 2" <|
+            2.should_equal 3
+
+    suite_builder.group "failing group" group_builder->
+        group_builder.teardown <|
+            println "Bad teardown: About to panic." # 3rd message to be printed
+            Panic.throw "failed to cleanup"
+            println "Unreachable statement"
+
+        group_builder.specify "my spec" <|
+            println "Running my spec! seconds before failure..." # 2nd message to be printed
+            2.should_equal 2
+
+    suite_builder.group "next ok group" group_builder->
+        group_builder.specify "next spec" <|
+            println "Running next spec!" # 4th message to be printed
+            2.should_equal 2
+
+add_specs suite_builder =
+    suite_builder.group "check teardown" group_builder->
+        group_builder.specify "panicking teardown suite" <|
+            messages = Vector.build builder->
+                test_suite = Test.build suite_builder->
+                    failing_teardown_suite builder.append suite_builder
+                result = test_suite.run_with_filter should_exit=False
+                # tear down fails, but doesn't crash
+                result:Boolean . should_be_false
+
+            messages.join '\n' . should_equal """
+                OK teardown called
+                Running my spec! seconds before failure...
+                Bad teardown: About to panic.
+                Running next spec!
+
+main =
+    suite = Test.build suite_builder->
+        add_specs suite_builder
+    suite.run_with_filter

@@ -8,4 +8,5 @@ public class Constants {
   public static final long SMALL_LONG = 2L;
   public static final long BIG_LONG = 20_000L;
   public static final String STRING = "string";
+  public static final Object NULL = null;
 }

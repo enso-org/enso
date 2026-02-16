@@ -240,14 +240,14 @@ export async function createModuleStore(
     }
 
     function hasMethod(name: string): boolean {
-      const root = ast.value?.root()
-      return root != null && Ast.findModuleMethod(root, name) != null
+      const rootValue = root.value
+      return rootValue != null && Ast.findModuleMethod(rootValue, name) != null
     }
 
     function getMethodAst(ptr: MethodPointer, edit?: Ast.Module): Result<Ast.FunctionDef> {
-      const topLevel = (edit ?? ast.value)?.root()
+      if (!root.value) return Err('Module unavailable')
+      const topLevel = edit ? edit.getVersion(root.value) : root.value
       if (!topLevel) return Err('Module unavailable')
-      assert(topLevel instanceof Ast.BodyBlock)
       if (!proj.moduleProjectPath?.ok)
         return proj.moduleProjectPath ?? Err('Unknown module project path')
       if (!ptr.module.equals(proj.moduleProjectPath.value))

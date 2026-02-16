@@ -1689,7 +1689,7 @@ export class NotAuthorizedError extends NetworkError {}
 /** Interface for sending requests to a backend that manages assets and runs projects. */
 export abstract class Backend {
   abstract readonly type: BackendType
-  abstract readonly baseUrl: URL
+  abstract baseUrl: URL
   protected getText: DefaultGetText
   private readonly client: HttpClient
   protected readonly downloader: (options: DownloadOptions) => void | Promise<void>

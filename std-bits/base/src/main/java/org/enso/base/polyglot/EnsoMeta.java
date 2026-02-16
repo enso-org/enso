@@ -90,8 +90,6 @@ public final class EnsoMeta {
       throw new IllegalStateException("Constructor " + constructorName + " is not instantiable.");
     }
 
-    args = java.util.Arrays.stream(args).map(arg -> arg == null ? getNothing() : arg).toArray();
-
     return constructor.newInstance(args);
   }
 

@@ -12,7 +12,7 @@ import org.enso.compiler.pass.analyse.FrameVariableNames
 import org.enso.compiler.context.{CompilerContext, LocalScope}
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.core.ConstantsNames
-import org.enso.compiler.core.Implicits.AsMetadata
+import org.enso.compiler.Implicits.AsMetadata
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.{
   AscriptionReason,

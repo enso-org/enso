@@ -13,6 +13,7 @@ declare global {
   const $config: $Config
 
   interface Window {
+    readonly $config: $Config
     readonly api?: ElectronApi
     // Keep feature flags globals separate from Electron API bundle.
     readonly featureFlags: FeatureFlags

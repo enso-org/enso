@@ -1,5 +1,6 @@
 import { localRootDirectoryStore } from '#/layouts/Drive/persistentState'
 import { download } from '#/utilities/download'
+import { useConfig } from '$/providers/config'
 import { proxyRefs, type ToValue } from '$/utils/reactivity'
 import { createGlobalState } from '@vueuse/core'
 import { BackendType, DirectoryId, Path } from 'enso-common/src/services/Backend'
@@ -29,6 +30,7 @@ function initializeBackends(
     const pm = createProjectManager(toValue(rootDirPath))
     projectManager.value = pm
   })
+  const config = useConfig()
   const localBackend = computed(() =>
     projectManager.value ?
       new LocalBackend(
@@ -42,7 +44,7 @@ function initializeBackends(
     : null,
   )
   const remoteBackend = new RemoteBackend({
-    apiUrl: $config.API_URL ?? '',
+    apiUrl: config.remoteConfig?.ENSO_IDE_API_URL ?? '',
     getText,
     client: httpClient,
     downloader: download,
@@ -75,6 +77,11 @@ function initializeBackends(
       return new File([responseBody], fileName)
     },
   })
+
+  watch(
+    () => config.remoteConfig?.ENSO_IDE_API_URL ?? '',
+    (newUrl) => remoteBackend.setApiUrl(newUrl),
+  )
 
   watch(
     () => getText,

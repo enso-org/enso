@@ -29,7 +29,7 @@ function createProjectService(): ProjectService {
 export async function runHybridProjectByUrl(
   path: EnsoPath,
   remoteBackend: RemoteBackend,
-): Promise<void> {
+): Promise<number> {
   let project: ProjectEntry | undefined
   let asset: ProjectAsset | undefined
   try {
@@ -56,13 +56,15 @@ export async function runHybridProjectByUrl(
     }
     const cloudProjectDirectoryPath = Path(asset.ensoPath.slice(0, asset.ensoPath.lastIndexOf('/')))
     await remoteBackend.setHybridOpened(asset.id, asset.title)
-    await runLocalProjectByUuid(project.metadata.id, parentPath, {
+    const exitCode = await runLocalProjectByUuid(project.metadata.id, parentPath, {
       cloudProjectDirectoryPath,
       cloudProjectId: asset.id,
       cloudProjectSessionId,
     })
+    return exitCode
   } catch (error) {
     console.error(`Error starting hybrid project '${asset?.title ?? '(unknown)'}':`, error)
+    return 1
   } finally {
     if (asset) {
       await remoteBackend.closeProject(asset.id, asset.title)
@@ -75,10 +77,11 @@ export async function runLocalProjectByUuid(
   projectId: UUID,
   projectsDirectory: Path,
   cloudParams?: CloudParams,
-): Promise<void> {
+): Promise<number> {
   const projectService = createProjectService()
   try {
-    await projectService.runProject(projectId, projectsDirectory, cloudParams)
+    const exitCode = await projectService.runProject(projectId, projectsDirectory, cloudParams)
+    return exitCode
   } catch (error) {
     console.error(`Error starting local project '${projectId}':`, error)
     await projectService.closeProject(projectId)
@@ -87,11 +90,12 @@ export async function runLocalProjectByUuid(
 }
 
 /** Run a local project by path. */
-export async function runLocalProjectByPath(projectPath: Path): Promise<void> {
+export async function runLocalProjectByPath(projectPath: Path): Promise<number> {
   const directoryId = Path(dirname(projectPath))
   const project = await getFileSystemEntry(projectPath)
   if (project.type !== 'ProjectEntry') {
     throw new Error(`The path '${projectPath}' does not point to a project.`)
   }
-  await runLocalProjectByUuid(project.metadata.id as UUID, directoryId)
+  const exitCode = await runLocalProjectByUuid(project.metadata.id as UUID, directoryId)
+  return exitCode
 }

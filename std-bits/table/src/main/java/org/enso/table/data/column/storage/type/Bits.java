@@ -26,10 +26,10 @@ public enum Bits {
 
   public static Value asEnsoValue(Bits bits) {
     return switch (bits) {
-      case BITS_8 -> EnsoMeta.makeInstance("Standard.Table.Value_Type", "Bits", "Bits_8");
-      case BITS_16 -> EnsoMeta.makeInstance("Standard.Table.Value_Type", "Bits", "Bits_16");
-      case BITS_32 -> EnsoMeta.makeInstance("Standard.Table.Value_Type", "Bits", "Bits_32");
-      case BITS_64 -> EnsoMeta.makeInstance("Standard.Table.Value_Type", "Bits", "Bits_64");
+      case BITS_8 -> EnsoMeta.makeInstance(StorageType.ENSO_MODULE, "Bits", "Bits_8");
+      case BITS_16 -> EnsoMeta.makeInstance(StorageType.ENSO_MODULE, "Bits", "Bits_16");
+      case BITS_32 -> EnsoMeta.makeInstance(StorageType.ENSO_MODULE, "Bits", "Bits_32");
+      case BITS_64 -> EnsoMeta.makeInstance(StorageType.ENSO_MODULE, "Bits", "Bits_64");
     };
   }
 }

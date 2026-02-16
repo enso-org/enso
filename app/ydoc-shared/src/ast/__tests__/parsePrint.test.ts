@@ -3,6 +3,7 @@ import { spanMapToIdMap } from '../idMap'
 import { MutableModule } from '../mutableModule'
 import {
   abstract,
+  parseExpression,
   parseModule,
   parseModuleWithSpans,
   rawParseModule,
@@ -383,7 +384,6 @@ test.each([
 
   // Get an AST.
   const root = parseModule(code)
-  root.module.setRoot(root)
   // Print AST back to source.
   const printed = printWithSpans(root)
   expect(printed.code).toEqual(expectedCode)
@@ -405,4 +405,10 @@ test.each([
   const mapsEqual = idMap1.isEqual(idMap)
   if (!mapsEqual) idMap1.compare(idMap)
   expect(mapsEqual).toBe(true)
+})
+
+test('parseExpression with trailing space', () => {
+  const expr = parseExpression('Table.new ')
+  expect(expr).toBeDefined()
+  expect(expr?.code()).toEqual('Table.new')
 })

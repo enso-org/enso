@@ -2,6 +2,7 @@ import LocalStorage from '#/utilities/LocalStorage'
 import { useActionsStore, type ActionsStore } from '$/providers/actions'
 import { useAuth, type AuthStore } from '$/providers/auth'
 import { useBackends, type BackendsStore } from '$/providers/backends'
+import { useConfig, type ConfigStore } from '$/providers/config'
 import { useHttpClient } from '$/providers/httpClient'
 import { useOpenedProjects, type OpenedProjectsStore } from '$/providers/openedProjects'
 import { useQueryParams, type QueryParams } from '$/providers/queryParams'
@@ -23,7 +24,6 @@ import { useSession, type SessionStore } from '$/providers/session'
 import { useText, type TextStore } from '$/providers/text'
 import { useUploadsToCloudStore, type UploadsToCloudStore } from '$/providers/upload'
 import { proxyRefs } from '$/utils/reactivity'
-import { injectGuiConfig, type GuiConfig } from '@/providers/guiConfig'
 import { reactComponent } from '@/util/react'
 import type { HttpClient } from 'enso-common/src/services/HttpClient'
 import * as react from 'react'
@@ -31,7 +31,7 @@ import { useRoute, useRouter } from 'vue-router'
 
 interface ContextsForReactProviderProps {
   router: RouterForReact
-  config: GuiConfig
+  config: ConfigStore
   text: TextStore
   httpClient: HttpClient
   backends: BackendsStore
@@ -104,7 +104,7 @@ export const ContextsForReactProvider = reactComponent(
           router,
           route,
         },
-        config: injectGuiConfig(),
+        config: useConfig(),
         text: useText(),
         httpClient: useHttpClient(),
         backends: useBackends(),

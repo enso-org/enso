@@ -67,7 +67,6 @@ export interface ElectronApi {
   readonly projectManagement: ProjectManagementApi
   readonly fileBrowser: FileBrowserApi
   readonly versionInfo: VersionInfo
-  readonly mapBoxApiToken: () => string
   readonly log: LogApi
 }
 export type { FileFilter, MenuItem, MenuItemHandler }
