@@ -125,26 +125,27 @@ make_column_ref_by_name_selector table display:Display=..Always add_text:Boolean
    ---
    Make a column reference by name selector filtered by type.
 make_column_ref_by_name_selector_for_type table value_type:Value_Type display:Display=..Always add_nothing:Boolean=False if_value_type_numeric_include_all_numeric:Boolean=False -> Widget =
-    ## ToDo: Add _with_table_cache
-    is_all = _include_all value_type
-    include_number = is_all || value_type.is_numeric
-    include_text = is_all || value_type.is_text
-    include_boolean = is_all || value_type.is_boolean
-    include_date = is_all || value_type.is_date
-    include_date_time = is_all || value_type.is_date_time
-    include_time = is_all || value_type.is_time
+    value_type_key = Meta.meta value_type . constructor . name
+    _with_table_cache table "make_column_ref_by_name_selector_for_type_"+value_type_key+"_"+add_nothing.to_text+"_"+if_value_type_numeric_include_all_numeric.to_text+"_"+display.to_text <|
+        is_all = _include_all value_type
+        include_number = is_all || value_type.is_numeric
+        include_text = is_all || value_type.is_text
+        include_boolean = is_all || value_type.is_boolean
+        include_date = is_all || value_type.is_date
+        include_date_time = is_all || value_type.is_date_time
+        include_time = is_all || value_type.is_time
 
-    constants = make_any_selector add_text=include_text add_number=include_number add_boolean=include_boolean add_date=include_date add_time=include_time add_date_time=include_date_time add_nothing=add_nothing . values
-    expression = if table.is_nothing then [] else [Option "<Expression>" "(expr '["+table.column_names.first+"]')"]
+        constants = make_any_selector add_text=include_text add_number=include_number add_boolean=include_boolean add_date=include_date add_time=include_time add_date_time=include_date_time add_nothing=add_nothing . values
+        expression = if table.is_nothing then [] else [Option "<Expression>" "(expr '["+table.column_names.first+"]')"]
 
-    col_names = if table.is_nothing then [] else
-        names = if is_all then table.column_names else
-            if value_type.is_numeric && if_value_type_numeric_include_all_numeric then table.columns.filter (c-> c.value_type.is_numeric || c.value_type.is_mixed) . map .name else
-                table.columns_helper.select_columns ([..By_Type value_type, ..By_Type ..Mixed]) case_sensitivity=..Default reorder=False error_on_missing_columns=False on_problems=..Ignore error_on_empty=False . map .name
-        names.map (name -> Option name "(..Name "+name.pretty+")")
+        col_names = if table.is_nothing then [] else
+            names = if is_all then table.column_names else
+                if value_type.is_numeric && if_value_type_numeric_include_all_numeric then table.columns.filter (c-> c.value_type.is_numeric || c.value_type.is_mixed) . map .name else
+                    table.columns_helper.select_columns ([..By_Type value_type, ..By_Type ..Mixed]) case_sensitivity=..Default reorder=False error_on_missing_columns=False on_problems=..Ignore error_on_empty=False . map .name
+            names.map (name -> Option name "(..Name "+name.pretty+")")
 
-    values = constants + expression + col_names
-    Single_Choice values=values display=display
+        values = constants + expression + col_names
+        Single_Choice values=values display=display
 
 ## ---
    private: true
@@ -224,19 +225,22 @@ make_filter_condition_selector table display:Display=..Always cache=Nothing -> W
 make_join_condition_selector table:Table display:Display=..Always cache=Nothing -> Widget =
     ## ToDo: Add _with_table_cache but needs to deal with cache
     right = cache.if_not_nothing <| cache "right"
-    self_selector = make_column_name_selector table display=Display.Always
-    right_selector = if right.is_nothing then Text_Input else
-        make_column_name_selector right display=Display.Always
+    right_key = _table_key right
+    suffix = if right_key.is_nothing then Nothing else "make_join_condition_selector_"+right_key+"_"+display.to_text
+    _with_table_cache table suffix <|
+        self_selector = make_column_name_selector table display=Display.Always
+        right_selector = if right.is_nothing then Text_Input else
+            make_column_name_selector right display=Display.Always
 
-    equals = Option "Equals" "..Equals" [["left", self_selector], ["right", right_selector]]
-    equals_ci = Option "Equals (Ignore Case)" "..Equals_Ignore_Case" [["left", self_selector], ["right", right_selector]]
-    between = Option "Between" "..Between" [["left", self_selector], ["right_lower", right_selector], ["right_upper", right_selector]]
-    names=[equals, equals_ci, between]
+        equals = Option "Equals" "..Equals" [["left", self_selector], ["right", right_selector]]
+        equals_ci = Option "Equals (Ignore Case)" "..Equals_Ignore_Case" [["left", self_selector], ["right", right_selector]]
+        between = Option "Between" "..Between" [["left", self_selector], ["right_lower", right_selector], ["right_upper", right_selector]]
+        names=[equals, equals_ci, between]
 
-    spatial = if table.is_a Spatial_Table then [Spatial_Join_Condition.default_widget self_selector right_selector] else []
+        spatial = if table.is_a Spatial_Table then [Spatial_Join_Condition.default_widget self_selector right_selector] else []
 
-    item_editor = Single_Choice display=display values=names+spatial
-    Vector_Editor item_editor=item_editor item_default="(..Equals "+table.column_names.first.pretty+")" display=display
+        item_editor = Single_Choice display=display values=names+spatial
+        Vector_Editor item_editor=item_editor item_default="(..Equals "+table.column_names.first.pretty+")" display=display
 
 ## ---
    private: true
@@ -463,13 +467,15 @@ private _include_all value_type:Value_Type -> Boolean =
         Value_Type.Unsupported_Data_Type _ _  -> True
         _ -> False
 
+private _table_key table = case table of
+    t : In_Memory_Table -> (t:Table).table_version_hash
+    c : In_Memory_Column -> (c:Column).table_version_hash
+    Nothing -> ""
+    _ -> Nothing
+
 private _with_table_cache table suffix ~action =
-    key = case table of
-        t : In_Memory_Table -> (t:Table).table_version_hash
-        c : In_Memory_Column -> (c:Column).table_version_hash
-        Nothing -> ""
-        _ -> Nothing
-    if key.is_nothing then action else
+    key = _table_key table
+    if key.is_nothing || suffix.is_nothing then action else
         TableValueCache.getOrCompute (key+suffix) k->
             _ = k
             action

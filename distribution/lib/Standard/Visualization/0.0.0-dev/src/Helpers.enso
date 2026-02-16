@@ -249,5 +249,6 @@ private time_visualization module ~name ~action =
         _ -> ..Trace
     if level . is_nothing then wrapped else
         pair = Duration.time_execution wrapped
-        module.log_message ("Execution time for " + name + ": " + pair.first.to_text) level
+        suffix = if pair.second.is_a Text then " length="+pair.second.length.to_text else ""
+        module.log_message ("Execution time for " + name + ": " + pair.first.to_text + suffix) level
         pair.second
