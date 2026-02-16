@@ -1317,7 +1317,8 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
       )
     )
 
-    val attachVisualizationResponses = context.receiveNIgnoreExpressionUpdates(3)
+    val attachVisualizationResponses =
+      context.receiveNIgnoreExpressionUpdates(3)
 
     attachVisualizationResponses.filter(
       _.payload.isInstanceOf[Api.VisualizationAttached]
