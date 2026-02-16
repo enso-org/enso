@@ -9,6 +9,7 @@ import project.Meta
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Json.Extensions import all
 from project.Data.Range.Extensions import all
+from project.Data.Text.Extensions import all
 from project.Nothing import all
 
 type Display
