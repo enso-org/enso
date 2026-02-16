@@ -116,11 +116,16 @@ object ProgramExecutionSupport {
 
     val callablesCallback: Consumer[ExpressionCall] = fun =>
       if (callStack.headOption.exists(_.expressionId == fun.getExpressionId)) {
-        // as per ExecutionService#submitExecutionWithCacheAcces
-        // "let's assume it knows how to "upgrade" access to cache to a mutable one
-        executionFrame.cache
-          .asInstanceOf[RuntimeCache.Mutable]
-          .updateEnterable(fun.getExpressionId, fun.getCall)
+        ctx.executionService
+          .submitExecutionWithCacheAccess(
+            executionFrame.cache,
+            fun,
+            (cache, call: ExpressionCall) => {
+              cache.updateEnterable(call.getExpressionId, call.getCall)
+              null;
+            }
+          )
+          .wait();
       }
 
     val pendingResult = executionFrame match {

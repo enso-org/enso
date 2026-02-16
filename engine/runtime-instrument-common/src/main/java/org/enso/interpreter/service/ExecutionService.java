@@ -22,6 +22,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletionStage;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import org.enso.common.LanguageInfo;
@@ -658,6 +659,19 @@ public final class ExecutionService {
     // let's assume the submitException knows how to "upgrade" access to cache to a mutable one
     var cacheMut = (RuntimeCache.Mutable) cache;
     return submitExecution(() -> action.apply(cacheMut));
+  }
+
+  /**
+   * Performs an operation on a cache with privileged access.
+   *
+   * @param cache runtime cache on which to perform a privileged operation
+   * @param v an additional value to provide to the operation
+   * @param fun a generic operation involving a mutable cache
+   * @return result of the operation
+   */
+  public <T, S> CompletionStage<S> submitExecutionWithCacheAccess(
+      RuntimeCache cache, T v, BiFunction<RuntimeCache.Mutable, T, S> fun) {
+    return submitExecutionWithCacheAccess(cache, (cacheMut) -> fun.apply(cacheMut, v));
   }
 
   private <T> CompletionStage<T> submitExecution(Supplier<T> action) {

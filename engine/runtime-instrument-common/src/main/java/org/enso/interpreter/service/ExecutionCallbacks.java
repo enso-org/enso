@@ -96,7 +96,7 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
     }
 
     // Check if we need to force re-execution for nested visualization
-    var requiresReExecution = visualizationHolder.hasNestedVisualizationToExecute(nodeId);
+    var requiresReExecution = visualizationHolder.checkAndClearNestedVisualizations(nodeId);
 
     // When executing the call stack we need to capture the FunctionCall of the next (top) stack
     // item in the `functionCallCallback`. We allow to execute the cached `stackTop` value to be
@@ -182,7 +182,7 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
     cache.putType(nodeId, resultType);
 
     if (newValueCached.updated() || !newValueCached.canCache()) {
-      // Ensure that we send updates only when we really update cached expressions.
+      // Ensure that we send updates only when we really modify cached expressions.
       // This is important for RHS when we only re-execute for subexpressions.
       // Without this condition, every time a subexpression would be executed, a visualization
       // for parent expression would be executed as well, which is undesirable (or even expensive).

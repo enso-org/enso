@@ -117,7 +117,7 @@ class VisualizationHolder {
     * @return true if a nested visualization was pending for this expression
     */
   @CompilerDirectives.TruffleBoundary
-  def hasNestedVisualizationToExecute(nodeID: ExpressionId): Boolean = {
+  def checkAndClearNestedVisualizations(nodeID: ExpressionId): Boolean = {
     pendingSubExpressionVisualizations.remove(nodeID)
   }
 }
