@@ -141,7 +141,7 @@ export function createSessionStore(
   }
 
   const resendSignUp = async (username: string): Promise<void> => {
-    await authService.resendSignUp(username)
+    await assertAuthService().resendSignUp(username)
   }
 
   /**
@@ -195,10 +195,10 @@ export function createSessionStore(
     'Microsoft',
   )
 
-  const confirmSignIn = async (otp: string): cognito.ConfirmSignInReturn => {
+  const confirmSignIn = async (challengeResponse: string): cognito.ConfirmSignInReturn => {
     const auth = assertAuthService()
     analytics.signIn.confirm.before()
-    return auth.confirmSignIn(user, otp, 'SOFTWARE_TOKEN_MFA')
+    return auth.confirmSignIn(challengeResponse)
   }
 
   const forgotPassword = async (email: string) => {

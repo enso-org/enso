@@ -14,7 +14,7 @@ import { Amplify } from 'aws-amplify'
 import type * as saveAccessTokenModule from 'enso-common/src/accessToken'
 import * as common from 'enso-common/src/constants'
 import * as detect from 'enso-common/src/utilities/detect'
-import { computed, toRef, toValue, type Ref } from 'vue'
+import { computed, toRef, toValue, watchEffect, type Ref } from 'vue'
 import { useRouter } from 'vue-router'
 
 /**
@@ -135,11 +135,13 @@ export function useInitAuthService(): AuthService {
     }
   })
 
-  if (detect.isOnElectron()) {
-    // To handle redirects back to the application from the system browser, a custom URL handler
-    // needs to be registered.
-    setDeepLinkHandler((url) => void router.push(url), cognito)
-  }
+  watchEffect(() => {
+    if (detect.isOnElectron() && cognito.value != null) {
+      // To handle redirects back to the application from the system browser, a custom URL handler
+      // needs to be registered.
+      setDeepLinkHandler((url) => void router.push(url), cognito.value)
+    }
+  })
 
   return { cognito, registerAuthEventListener: listen.registerAuthEventListener }
 }
