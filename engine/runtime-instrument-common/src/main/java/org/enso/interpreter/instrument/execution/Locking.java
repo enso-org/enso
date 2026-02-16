@@ -112,6 +112,14 @@ public interface Locking {
   TryLockResult tryReadCompilationLock(Class<?> where);
 
   /**
+   * Attempts to acquire write compilation lock without blocking.
+   *
+   * @param where the class requesting the lock
+   * @return TryLockResult indicating if lock was acquired
+   */
+  TryLockResult tryWriteCompilationLock(Class<?> where);
+
+  /**
    * Attempts to acquire read context lock without blocking.
    *
    * @param contextLock lock used to ensure exclusive access

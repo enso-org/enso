@@ -466,6 +466,53 @@ class ReentrantLocking extends Locking {
     }
   }
 
+  override def tryWriteCompilationLock(where: Class[_]): TryLockResult = {
+    // Verify lock ordering (no file/pending locks held, no read lock upgrade)
+    try {
+      assertNotLocked(
+        compilationLock,
+        true,
+        s"Cannot upgrade compilation read lock to write lock [${where.getSimpleName}]"
+      )
+      assertNotLocked(
+        pendingEditsLock,
+        s"Cannot acquire compilation write lock when having pending edits lock [${where.getSimpleName}]"
+      )
+      assertNoFileLock(
+        s"Cannot acquire write compilation lock [${where.getSimpleName}]"
+      )
+    } catch {
+      case e: IllegalStateException =>
+        logger.trace(
+          "tryWriteCompilationLock [{}] failed due to lock ordering: {}",
+          where.getSimpleName,
+          e.getMessage
+        )
+        return TryLockResult.notAcquired()
+    }
+
+    val writeLock = compilationLock.writeLock()
+    if (writeLock.tryLock()) {
+      logger.trace(
+        "tryWriteCompilationLock [{}] acquired",
+        where.getSimpleName
+      )
+      new TryLockResult(true, () => {
+        writeLock.unlock()
+        logger.trace(
+          "tryWriteCompilationLock [{}] released",
+          where.getSimpleName
+        )
+      })
+    } else {
+      logger.trace(
+        "tryWriteCompilationLock [{}] not acquired (lock busy)",
+        where.getSimpleName
+      )
+      TryLockResult.notAcquired()
+    }
+  }
+
   override def tryReadContextLock(
     lock: ContextLock,
     where: Class[_]

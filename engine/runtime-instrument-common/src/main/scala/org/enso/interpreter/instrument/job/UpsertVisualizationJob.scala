@@ -68,7 +68,7 @@ class UpsertVisualizationJob(
       ctx.locking.tryReadContextLock(contextLock, classOf[UpsertVisualizationJob])
 
     if (!tryContextLockResult.isAcquired) {
-      UpsertVisualizationJob.logger.trace(
+      UpsertVisualizationJob.logger.debug(
         "Could not acquire context lock for visualization {}, deferring evaluation",
         visualizationId
       )
@@ -76,12 +76,13 @@ class UpsertVisualizationJob(
     }
 
     try {
+      // Try write compilation lock (non-blocking) to allow module loading/compilation
       val tryCompilationLockResult =
-        ctx.locking.tryReadCompilationLock(classOf[UpsertVisualizationJob])
+        ctx.locking.tryWriteCompilationLock(classOf[UpsertVisualizationJob])
 
       if (!tryCompilationLockResult.isAcquired) {
         UpsertVisualizationJob.logger.debug(
-          "Could not acquire compilation lock for visualization {}, deferring evaluation",
+          "Could not acquire write compilation lock for visualization {}, deferring evaluation",
           visualizationId
         )
         return deferVisualizationEvaluation()
@@ -89,24 +90,11 @@ class UpsertVisualizationJob(
 
       try {
         UpsertVisualizationJob.logger.debug(
-          "Acquired compilation lock for visualization {} trying to execute visualization",
+          "Acquired write compilation lock for visualization {}, executing visualization",
           visualizationId
         )
-        val (needsRetryWithWriteLock, maybeResult) =
-          evaluateAndExecuteVisualization(hasWriteLock = false)
-        UpsertVisualizationJob.logger.debug(
-          "Acquired compilation lock for visualization {} visualization execution needs retry: {} {}",
-          visualizationId,
-          needsRetryWithWriteLock,
-          maybeResult
-        )
-
-        if (needsRetryWithWriteLock) {
-          // Release tryLock and fall back to blocking path for compilation
-          tryCompilationLockResult.close()
-          tryContextLockResult.close()
-          return runWithBlockingLocks()
-        }
+        // With write lock, we can do everything including compilation
+        val (_, maybeResult) = evaluateAndExecuteVisualization(hasWriteLock = true)
         maybeResult
       } finally {
         tryCompilationLockResult.close()
@@ -115,30 +103,6 @@ class UpsertVisualizationJob(
       tryContextLockResult.close()
     }
   }
-
-  /** Falls back to blocking lock acquisition when compilation is needed.
-    */
-  private def runWithBlockingLocks()(implicit
-    ctx: RuntimeContext
-  ): Option[Executable] =
-    ctx.locking.withReadContextLock(
-      ctx.locking.getOrCreateContextLock(config.executionContextId),
-      classOf[UpsertVisualizationJob],
-      () => {
-        UpsertVisualizationJob.logger.debug(
-          "Retrying visualization {} evaluation with write lock to compile necessary modules",
-          visualizationId
-        )
-        ctx.locking.withWriteCompilationLock(
-          classOf[UpsertVisualizationJob],
-          "visualizationId=" + visualizationId + ",expressionId=" + expressionId,
-          () =>
-            evaluateAndExecuteVisualization(
-              hasWriteLock = true
-            )._2
-        )
-      }
-    )
 
   /** Defers visualization evaluation by storing it as an UnevaluatedVisualization.
     * This is called when locks cannot be acquired without blocking.
@@ -184,14 +148,21 @@ class UpsertVisualizationJob(
   private def evaluateAndExecuteVisualization(
     hasWriteLock: Boolean
   )(implicit ctx: RuntimeContext): (Boolean, Option[Executable]) = {
-    UpsertVisualizationJob.logger.trace(
-      "Evaluating expression {} in observer",
+    UpsertVisualizationJob.logger.debug(
+      "Evaluating visualization {} for expression {} in observer",
+      visualizationId,
       expressionId
     )
     val maybeCallable = UpsertVisualizationJob.evaluateVisualizationExpression(
       config.visualizationModule,
       config.expression,
       hasWriteLock
+    )
+    UpsertVisualizationJob.logger.debug(
+      "Evaluating visualization {} for expression {} in observer {}",
+      visualizationId,
+      expressionId,
+      maybeCallable
     )
 
     maybeCallable match {
@@ -231,7 +202,7 @@ class UpsertVisualizationJob(
     evaluatedVisualization: EvaluationResult
   )(implicit ctx: RuntimeContext): Option[Executable] = {
     val EvaluationResult(module, callable, arguments) = evaluatedVisualization
-    UpsertVisualizationJob.logger.trace(
+    UpsertVisualizationJob.logger.debug(
       "Executing visualization {} for expression {}",
       visualizationId,
       expressionId
