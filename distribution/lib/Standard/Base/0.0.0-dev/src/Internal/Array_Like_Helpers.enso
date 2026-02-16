@@ -277,7 +277,7 @@ map vector function on_problems =
     @Tail_Call vector_from_function vector.length (i-> function (vector.at i)) on_problems
 
 map_with_index vector function on_problems =
-    vector_from_function vector.length (i-> function i (vector.at i)) on_problems
+    @Tail_Call vector_from_function vector.length (i-> function i (vector.at i)) on_problems
 
 flat_map vector function on_problems =
     vector.map function on_problems . flatten
