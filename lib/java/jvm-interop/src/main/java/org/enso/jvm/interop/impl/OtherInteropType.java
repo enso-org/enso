@@ -612,14 +612,18 @@ final class OtherInteropType {
     @Override
     protected void writeObject(TruffleString obj, Persistance.Output out) throws IOException {
       var s = obj.toJavaStringUncached();
-      out.writeUTF(s);
+      var bytes = s.getBytes(StandardCharsets.UTF_8);
+      out.writeInt(bytes.length);
+      out.write(bytes);
     }
 
     @Override
     protected TruffleString readObject(Persistance.Input in)
         throws IOException, ClassNotFoundException {
-      var s = in.readUTF();
-      return TruffleString.fromJavaStringUncached(s, TruffleString.Encoding.UTF_8);
+      var len = in.readInt();
+      var bytes = new byte[len];
+      in.readFully(bytes);
+      return TruffleString.fromByteArrayUncached(bytes, TruffleString.Encoding.UTF_8, false);
     }
   }
 }
