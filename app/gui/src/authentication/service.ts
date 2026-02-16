@@ -6,12 +6,15 @@
 import * as appUtils from '$/appUtils'
 import { Cognito } from '$/authentication/cognito'
 import * as listen from '$/authentication/listen'
+import { useConfig, type RemoteConfig } from '$/providers/config'
 import { useFeatureFlag } from '$/providers/featureFlags'
+import type { ToValue } from '$/utils/reactivity'
 import { parseEnsoDeeplink } from '@/util/url'
 import { Amplify } from 'aws-amplify'
 import type * as saveAccessTokenModule from 'enso-common/src/accessToken'
 import * as common from 'enso-common/src/constants'
 import * as detect from 'enso-common/src/utilities/detect'
+import { computed, toRef, toValue, type Ref } from 'vue'
 import { useRouter } from 'vue-router'
 
 /**
@@ -102,7 +105,7 @@ export interface AuthConfig {
 /** API for the authentication service. */
 export interface AuthService {
   /** @see {@link Cognito}. */
-  readonly cognito: Cognito
+  readonly cognito: Ref<Cognito | undefined>
   /** @see {@link listen.ListenFunction}. */
   readonly registerAuthEventListener: listen.ListenFunction
 }
@@ -118,9 +121,19 @@ export interface AuthService {
 export function useInitAuthService(): AuthService {
   const enableDeepLinks = useFeatureFlag('enableDeepLinks')
   const router = useRouter()
+  const config = useConfig()
 
-  const amplifyConfig = loadAmplifyConfig(enableDeepLinks.value)
-  const cognito = new Cognito(console, enableDeepLinks.value, amplifyConfig)
+  const amplifyConfig = loadAmplifyConfig(toRef(config, 'remoteConfig'), enableDeepLinks.value)
+  const cognito = computed<Cognito | undefined>((oldValue) => {
+    if (oldValue != undefined) {
+      console.error('Remote config changed, but cannot update once initialized Cognito client.')
+      return oldValue
+    } else if (amplifyConfig.value != null) {
+      return new Cognito(console, enableDeepLinks.value, amplifyConfig.value)
+    } else {
+      return undefined
+    }
+  })
 
   if (detect.isOnElectron()) {
     // To handle redirects back to the application from the system browser, a custom URL handler
@@ -132,7 +145,10 @@ export function useInitAuthService(): AuthService {
 }
 
 /** Return the appropriate Amplify configuration for the current platform. */
-function loadAmplifyConfig(supportsDeepLinks: boolean): AmplifyConfig {
+function loadAmplifyConfig(
+  remoteConfig: ToValue<RemoteConfig | undefined>,
+  supportsDeepLinks: boolean,
+): Ref<AmplifyConfig | undefined> {
   let urlOpener: ((url: string) => void) | null = null
   let saveAccessToken: ((accessToken: saveAccessTokenModule.AccessToken | null) => void) | null =
     null
@@ -168,19 +184,24 @@ function loadAmplifyConfig(supportsDeepLinks: boolean): AmplifyConfig {
     ...(supportsDeepLinks ? [`${common.DEEP_LINK_SCHEME}://auth`] : []),
     window.location.origin,
   ]
-  return {
-    endpoint: $config.AUTH_ENDPOINT,
-    userPoolId: $config.COGNITO_USER_POOL_ID ?? '',
-    userPoolWebClientId: $config.COGNITO_USER_POOL_WEB_CLIENT_ID ?? '',
-    domain: $config.COGNITO_DOMAIN ?? '',
-    region: $config.COGNITO_REGION ?? '',
-    redirectsSignIn: signInOutRedirect,
-    redirectsSignOut: signInOutRedirect,
-    scope: ['email', 'openid', 'aws.cognito.signin.user.admin'],
-    responseType: 'code',
-    urlOpener,
-    saveAccessToken,
-  }
+  return computed(() => {
+    const cfg = toValue(remoteConfig)
+    if (cfg != null) {
+      return {
+        endpoint: cfg.ENSO_IDE_AUTH_ENDPOINT,
+        userPoolId: cfg.ENSO_IDE_COGNITO_USER_POOL_ID ?? '',
+        userPoolWebClientId: cfg.ENSO_IDE_COGNITO_USER_POOL_WEB_CLIENT_ID ?? '',
+        domain: cfg.ENSO_IDE_COGNITO_DOMAIN ?? '',
+        region: cfg.ENSO_IDE_COGNITO_REGION ?? '',
+        redirectsSignIn: signInOutRedirect,
+        redirectsSignOut: signInOutRedirect,
+        scope: ['email', 'openid', 'aws.cognito.signin.user.admin'],
+        responseType: 'code',
+        urlOpener,
+        saveAccessToken,
+      }
+    } else return undefined
+  })
 }
 
 /**

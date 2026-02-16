@@ -1,5 +1,7 @@
-package org.enso.compiler.core
+package org.enso.compiler
 
+import org.enso.compiler.core.IR
+import org.enso.compiler.core.CompilerError
 import org.enso.compiler.core.ir.MetadataStorage.MetadataPair
 import org.enso.compiler.core.ir.{Diagnostic, ProcessingPass}
 

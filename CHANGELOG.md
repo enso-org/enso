@@ -20,6 +20,7 @@
 - [Add Amazon SES email provider][14597]
 - [Support for reading Alteryx YXDB files][14602].
 - [Salesforce OAuth support.][14550]
+- [Launching another Enso process via `Process_Builder`][14753]
 - [Redshift schema support.][14735]
 
 [14522]: https://github.com/enso-org/enso/pull/14522
@@ -31,6 +32,7 @@
 [14597]: https://github.com/enso-org/enso/pull/14597
 [14602]: https://github.com/enso-org/enso/pull/14602
 [14550]: https://github.com/enso-org/enso/pull/14550
+[14753]: https://github.com/enso-org/enso/pull/14753
 [14735]: https://github.com/enso-org/enso/pull/14735
 
 #### Enso Language & Runtime

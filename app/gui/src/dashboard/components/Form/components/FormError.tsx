@@ -33,7 +33,13 @@ export function FormError(props: FormErrorProps) {
             icon={icon}
             {...alertProps}
           >
-            <Text variant="body" truncate="3" color="primary" testId={testId}>
+            <Text
+              disableLineHeightCompensation
+              variant="body"
+              truncate="3"
+              color="primary"
+              testId={testId}
+            >
               {error.message}
             </Text>
           </Alert>

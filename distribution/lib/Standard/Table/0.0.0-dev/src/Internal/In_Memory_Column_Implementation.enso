@@ -75,6 +75,8 @@ polyglot java import org.enso.table.operations.OrderBuilder
 polyglot java import org.enso.table.parsing.problems.ParseProblemAggregator
 
 type In_Memory_Column_Implementation
+    table_version_hash (this_column : Column & In_Memory_Column) = "Column-" + this_column.java_column.getStorage.uniqueKey.to_text
+
     display (this_column : Column & In_Memory_Column) show_rows:Integer format_terminal:Boolean =
         this_column.to_table.display show_rows format_terminal
 

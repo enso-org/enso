@@ -1,4 +1,5 @@
 /** @file Definitions for the Salesforce credentials integration. */
+import type { Opt } from '@/util/data/opt'
 import type { SalesforceCredentialInput, SecretId } from 'enso-common/src/services/Backend'
 import * as i18n from 'enso-common/src/text'
 import invariant from 'tiny-invariant'
@@ -26,11 +27,12 @@ export const DEFAULT_FORM_VALUES: z.infer<typeof FORM_SCHEMA> = {
  * The logic for submitting the Salesforce credential form.
  */
 export function submitForm(
+  apiUrl: Opt<string>,
+  salesforceOauthClientId: Opt<string>,
   createCredentials: (recipe: CredentialRecipe) => Promise<void>,
   values: z.infer<typeof FORM_SCHEMA>,
 ): Promise<void> {
-  invariant($config.SALESFORCE_OAUTH_CLIENT_ID != null, 'Salesforce OAuth client id is missing')
-  const salesforceOauthClientId = $config.SALESFORCE_OAUTH_CLIENT_ID
+  invariant(salesforceOauthClientId != null, 'Salesforce OAuth client id is missing')
 
   const valuesWithDefaults = { ...DEFAULT_FORM_VALUES, ...values }
 
@@ -48,7 +50,7 @@ export function submitForm(
       const query = new URLSearchParams({
         /* eslint-disable @typescript-eslint/naming-convention, camelcase */
         client_id: salesforceOauthClientId,
-        redirect_uri: getOauthRedirectUri('Salesforce'),
+        redirect_uri: getOauthRedirectUri(apiUrl, 'Salesforce'),
         response_type: 'code',
         response_mode: 'query',
         state,

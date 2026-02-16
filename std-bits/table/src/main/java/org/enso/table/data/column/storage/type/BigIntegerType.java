@@ -21,7 +21,13 @@ public final class BigIntegerType implements StorageType<BigInteger>, NumericTyp
 
   @Override
   public Value asEnsoValueType() {
-    return EnsoMeta.makeInstance("Standard.Table.Value_Type", "Value_Type", "Decimal", null, 0);
+    return EnsoMeta.makeInstance(
+        StorageType.ENSO_MODULE, StorageType.ENSO_TYPE_NAME, ensoConstructorName(), null, 0);
+  }
+
+  @Override
+  public String ensoConstructorName() {
+    return "Decimal";
   }
 
   @Override

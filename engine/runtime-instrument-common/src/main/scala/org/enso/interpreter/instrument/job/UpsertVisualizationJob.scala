@@ -1,7 +1,7 @@
 package org.enso.interpreter.instrument.job
 
 import org.slf4j.LoggerFactory
-import org.enso.compiler.core.Implicits.AsMetadata
+import org.enso.compiler.Implicits.AsMetadata
 import org.enso.compiler.core.ir.Function
 import org.enso.compiler.core.ir.Name
 import org.enso.compiler.core.ir.module.scope.{definition, Definition}

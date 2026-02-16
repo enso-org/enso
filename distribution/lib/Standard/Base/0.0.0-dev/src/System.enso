@@ -5,6 +5,7 @@ import project.Data.Boolean.Boolean
 import project.Data.Numbers.Integer
 import project.Data.Text.Text
 import project.Nothing.Nothing
+import project.Internal.Runtime_Helpers
 
 polyglot java import java.lang.System as Java_System
 
@@ -25,7 +26,8 @@ polyglot java import java.lang.System as Java_System
     - `redirect_err`: Specifies if the standard error output of the started
       process should be redirected to the program's standard error output.
 create_process : Text -> Array -> Text -> Boolean -> Boolean -> Boolean -> System_Process_Result
-create_process command arguments input redirect_in redirect_out redirect_err = @Builtin_Method "System.create_process"
+create_process command arguments input redirect_in redirect_out redirect_err =
+    Runtime_Helpers.create_process command arguments input redirect_in redirect_out redirect_err Nothing
 
 ## ---
    private: true

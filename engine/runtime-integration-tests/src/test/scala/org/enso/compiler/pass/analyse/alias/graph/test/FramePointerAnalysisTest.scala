@@ -12,7 +12,7 @@ import org.enso.compiler.core.ir.{
   Module,
   Name
 }
-import org.enso.compiler.core.Implicits.AsMetadata
+import org.enso.compiler.Implicits.AsMetadata
 import org.enso.compiler.pass.analyse.alias.graph.{
   Graph,
   GraphImpl,

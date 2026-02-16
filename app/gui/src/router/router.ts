@@ -10,11 +10,13 @@ import {
   RESTORE_USER_PATH,
   SUBSCRIBE_PATH,
 } from '$/appUtils'
+import { useAuth } from '$/providers/auth'
+import { useConfig } from '$/providers/config'
 import { flagsStore } from '$/providers/featureFlags'
 import { withDataLoader } from '$/router/dataLoader'
 import { maybeRedirectToProject, openProjectFromPath } from '$/router/initialProject'
 import { reactComponent } from '@/util/react'
-import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
+import { createRouter, createWebHistory, type RouteLocation, type RouteRecordRaw } from 'vue-router'
 
 const UNAVAILABLE_PATH = '/UNAVAILABLE'
 
@@ -114,6 +116,15 @@ const routes = [
 const router = createRouter({
   history: createWebHistory(),
   routes,
+})
+
+router.beforeEach(async () => {
+  await useConfig().waitForRemoteConfig()
+})
+router.beforeEach(async (to: RouteLocation) => {
+  if (to.meta.access === 'anyLoggedIn') {
+    await useAuth().waitForSession()
+  }
 })
 
 router.beforeEach(openProjectFromPath)

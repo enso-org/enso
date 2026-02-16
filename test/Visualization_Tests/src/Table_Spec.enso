@@ -81,31 +81,32 @@ add_specs suite_builder =
             vis = Visualization.prepare_visualization data.t 1
             value_type_int = JS_Object.from_pairs [["constructor", "Integer"], ["display_text", "Integer (64 bits)"]]
             value_type_char = JS_Object.from_pairs [["constructor", "Char"], ["display_text", "Char (variable length, max_size=unlimited)"]]
-            json = make_json header=["A", "B", "C"] data=[['a'], [2], [3]] all_rows=3 value_type=[value_type_char, value_type_int, value_type_int] has_index_col=True get_child_node="get_row" is_ssrm=False requires_number_format=[False, False, False] use_bottom_status_bar=False enable_create_node=True is_using_multi_filter=[True, True, True]
+            json = make_json header=["A", "B", "C"] data=[['a'], [2], [3]] all_rows=3 value_type=[value_type_char, value_type_int, value_type_int] has_index_col=True get_child_node="get_row" is_ssrm=False requires_number_format=[False, False, False] use_bottom_status_bar=False enable_create_node=True is_using_multi_filter=[False, False, False]
             vis . should_equal json
 
         group_builder.specify "should visualize database columns" <|
             vis = Visualization.prepare_visualization (data.t.at "A") 2
             value_type_char = JS_Object.from_pairs [["constructor", "Char"], ["display_text", "Char (variable length, max_size=unlimited)"]]
             value_type_float = JS_Object.from_pairs [["constructor", "Float"], ["display_text", "Float (64 bits)"]]
-            json = make_json header=["A"] data=[['a', 'a']] all_rows=3 value_type=[value_type_char] has_index_col=True get_child_node="at" is_ssrm=False requires_number_format=[False] use_bottom_status_bar=False enable_create_node=False is_using_multi_filter=[True]
+            json = make_json header=["A"] data=[['a', 'a']] all_rows=3 value_type=[value_type_char] has_index_col=True get_child_node="at" is_ssrm=False requires_number_format=[False] use_bottom_status_bar=False enable_create_node=False is_using_multi_filter=[False]
             vis . should_equal json
 
             g = data.t.aggregate ["A", "B"] [Aggregate_Column.Average "C"] . at "Average C"
             vis2 = Visualization.prepare_visualization g 1
-            json2 = make_json header=["Average C"] data=[[4.0]]  all_rows=2 value_type=[value_type_float] has_index_col=True get_child_node="at" is_ssrm=False requires_number_format=[False] use_bottom_status_bar=False enable_create_node=False is_using_multi_filter=[True]
+            json2 = make_json header=["Average C"] data=[[4.0]] all_rows=2 value_type=[value_type_float] has_index_col=True get_child_node="at" is_ssrm=False requires_number_format=[False] use_bottom_status_bar=False enable_create_node=False is_using_multi_filter=[False]
             vis2 . should_equal json2
 
         group_builder.specify "should visualize dataframe tables" <|
-            vis = Visualization.prepare_visualization data.t2 1
+            vis = Visualization.prepare_visualization data.t2 1000
             value_type_int = JS_Object.from_pairs [["constructor", "Integer"], ["display_text", "Integer (64 bits)"]]
-            json = make_json header=["A", "B", "C"] data=[[1], [4], [7]] all_rows=3 value_type=[value_type_int, value_type_int, value_type_int] has_index_col=True get_child_node="get_row" is_ssrm=False range=["1 - 3","4 - 6","7 - 9"] number_of_distinct=[3,3,3] number_of_nothing=[0,0,0] requires_number_format=[False, False, False] use_bottom_status_bar=True enable_create_node=True is_using_multi_filter=[True, True, True]
+            json = make_json header=["A", "B", "C"] data=[[1,2,3], [4,5,6], [7,8,9]] all_rows=3 value_type=[value_type_int, value_type_int, value_type_int] has_index_col=True get_child_node="get_row" is_ssrm=False range=["1 - 3","4 - 6","7 - 9"] number_of_distinct=[3,3,3] number_of_nothing=[0,0,0] requires_number_format=[False, False, False] use_bottom_status_bar=True enable_create_node=True is_using_multi_filter=[True, True, True] table_version_hash=data.t2.table_version_hash
             vis . should_equal json
 
         group_builder.specify "should visualize dataframe columns" <|
-            vis = Visualization.prepare_visualization (data.t2.at "A") 2
+            col = data.t2.at "A"
+            vis = Visualization.prepare_visualization col 1000
             value_type_int = JS_Object.from_pairs [["constructor", "Integer"], ["display_text", "Integer (64 bits)"]]
-            json = make_json header=["A"] data=[[1, 2]] all_rows=3 value_type=[value_type_int] has_index_col=True get_child_node="at" is_ssrm=False number_of_nothing=[0] range=["1 - 3"] number_of_distinct=[3] requires_number_format=[False] use_bottom_status_bar=True enable_create_node=False is_using_multi_filter=[True]
+            json = make_json header=["A"] data=[[1,2,3]] all_rows=3 value_type=[value_type_int] has_index_col=True get_child_node="at" is_ssrm=False number_of_nothing=[0] range=["1 - 3"] number_of_distinct=[3] requires_number_format=[False] use_bottom_status_bar=True enable_create_node=False is_using_multi_filter=[True] table_version_hash=col.table_version_hash
             vis . should_equal json
 
         group_builder.specify "should handle Vectors" <|
@@ -148,21 +149,21 @@ add_specs suite_builder =
         group_builder.specify "should indicate number of Nothing/Nulls" <|
             vis = Visualization.prepare_visualization data.t3_with_nulls 3
             value_type_int = JS_Object.from_pairs [["constructor", "Integer"], ["display_text", "Integer (64 bits)"]]
-            json = make_json header=["A", "B", "C"] data=[[1, Nothing, 3], [4, Nothing, Nothing], [7, Nothing, Nothing]] all_rows=3 value_type=[value_type_int, value_type_int, value_type_int] has_index_col=True get_child_node="get_row" is_ssrm=False range=["1 - 3", "4", "7"] number_of_distinct=[2, 1, 1] number_of_nothing=[1, 2, 2] requires_number_format=[False, False, False] is_using_multi_filter=[True, True, True]
+            json = make_json header=["A", "B", "C"] data=[[1, Nothing, 3], [4, Nothing, Nothing], [7, Nothing, Nothing]] all_rows=3 value_type=[value_type_int, value_type_int, value_type_int] has_index_col=True get_child_node="get_row" is_ssrm=False range=["1 - 3", "4", "7"] number_of_distinct=[2, 1, 1] number_of_nothing=[1, 2, 2] requires_number_format=[False, False, False] is_using_multi_filter=[True, True, True] table_version_hash=data.t3_with_nulls.table_version_hash
             vis . should_equal json
 
         group_builder.specify "should indicate number of leading/trailing whitespace" <|
             vis = Visualization.prepare_visualization data.t4_with_space 3
             value_type_char = JS_Object.from_pairs [["constructor", "Char"], ["display_text", "Char (variable length, max_size=unlimited)"]]
             value_type_int = JS_Object.from_pairs [["constructor", "Integer"], ["display_text", "Integer (64 bits)"]]
-            json = make_json header=["A", "B", "C"] data=[['hello', '   leading space', 'trailing space    '], ['a', 'b', 'c'], [7, 8, 9]] all_rows=3 value_type=[value_type_char, value_type_char, value_type_int] has_index_col=True get_child_node="get_row" is_ssrm=False range=["   leading space - trailing space    ","a - c","7 - 9"] number_of_distinct=[3, 3, 3] number_of_nothing=[0, 0, 0] number_of_empty=[0, 0, Nothing] number_of_untrimmed_whitespace=[2, 0, Nothing] number_non_trivial_ws=[0, 0, Nothing] requires_number_format=[False, False, False] is_using_multi_filter=[True, True, True]
+            json = make_json header=["A", "B", "C"] data=[['hello', '   leading space', 'trailing space    '], ['a', 'b', 'c'], [7, 8, 9]] all_rows=3 value_type=[value_type_char, value_type_char, value_type_int] has_index_col=True get_child_node="get_row" is_ssrm=False range=["   leading space - trailing space    ","a - c","7 - 9"] number_of_distinct=[3, 3, 3] number_of_nothing=[0, 0, 0] number_of_empty=[0, 0, Nothing] number_of_untrimmed_whitespace=[2, 0, Nothing] number_non_trivial_ws=[0, 0, Nothing] requires_number_format=[False, False, False] is_using_multi_filter=[True, True, True] table_version_hash=data.t4_with_space.table_version_hash
             vis . should_equal json
 
         group_builder.specify "should indicate number of non trivial whitespace" <|
             vis = Visualization.prepare_visualization data.t5_with_non_trivial_ws 3
             value_type_char = JS_Object.from_pairs [["constructor", "Char"], ["display_text", "Char (variable length, max_size=unlimited)"]]
             value_type_int = JS_Object.from_pairs [["constructor", "Integer"], ["display_text", "Integer (64 bits)"]]
-            json = make_json header=["A", "B", "C"] data=[['hello', 'extra \r space', 'world'], ['a', 'b', 'c'], [7, 8, 9]] all_rows=3 value_type=[value_type_char, value_type_char, value_type_int] has_index_col=True get_child_node="get_row" is_ssrm=False range=['extra \r space - world',"a - c","7 - 9"] number_of_distinct=[3, 3, 3] number_of_nothing=[0, 0, 0] number_of_empty=[0, 0, Nothing] number_of_untrimmed_whitespace=[0,0,Nothing] number_non_trivial_ws=[1, 0, Nothing] requires_number_format=[False, False, False] is_using_multi_filter=[True, True, True]
+            json = make_json header=["A", "B", "C"] data=[['hello', 'extra \r space', 'world'], ['a', 'b', 'c'], [7, 8, 9]] all_rows=3 value_type=[value_type_char, value_type_char, value_type_int] has_index_col=True get_child_node="get_row" is_ssrm=False range=['extra \r space - world',"a - c","7 - 9"] number_of_distinct=[3, 3, 3] number_of_nothing=[0, 0, 0] number_of_empty=[0, 0, Nothing] number_of_untrimmed_whitespace=[0,0,Nothing] number_non_trivial_ws=[1, 0, Nothing] requires_number_format=[False, False, False] is_using_multi_filter=[True, True, True] table_version_hash=data.t5_with_non_trivial_ws.table_version_hash
             vis . should_equal json
 
         group_builder.specify "should indicate number of leading/trailing whitespace with sample if more than 10000 rows" <|
@@ -198,7 +199,7 @@ add_specs suite_builder =
             num_table.column_info
             vis = Visualization.prepare_visualization num_table 1000
             value_type_int = JS_Object.from_pairs [["constructor", "Integer"], ["display_text", "Integer (64 bits)"]]
-            json = make_json header=["A", "B", "C"] data=[[1, 2, 3], [12345678, 5,6], [-12345678, -5,6]] all_rows=3 value_type=[value_type_int, value_type_int, value_type_int] has_index_col=True is_ssrm=False get_child_node="get_row" range=["1 - 3","5 - 12345678","-12345678 - 6"] number_of_distinct=[3,3,3] number_of_nothing=[0,0,0] requires_number_format=[False, True, True] is_using_multi_filter=[True, True, True] use_bottom_status_bar=True enable_create_node=True
+            json = make_json header=["A", "B", "C"] data=[[1, 2, 3], [12345678, 5,6], [-12345678, -5,6]] all_rows=3 value_type=[value_type_int, value_type_int, value_type_int] has_index_col=True is_ssrm=False get_child_node="get_row" range=["1 - 3","5 - 12345678","-12345678 - 6"] number_of_distinct=[3,3,3] number_of_nothing=[0,0,0] requires_number_format=[False, True, True] is_using_multi_filter=[True, True, True] use_bottom_status_bar=True enable_create_node=True table_version_hash=num_table.table_version_hash
             vis . should_equal json
 
 main filter=Nothing =

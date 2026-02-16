@@ -3,6 +3,7 @@
  */
 import invariant from 'tiny-invariant'
 
+import type { Opt } from '@/util/data/opt'
 import type { GoogleCredentialInput, SecretId } from 'enso-common/src/services/Backend'
 import * as i18n from 'enso-common/src/text'
 import { z } from 'zod'
@@ -39,12 +40,12 @@ function isValidScope(name: string): name is keyof typeof SCOPE_MAPPING {
  * The logic for submitting the Google credential form.
  */
 export function submitForm(
+  apiUrl: Opt<string>,
+  googleOauthClientId: Opt<string>,
   createCredentials: (recipe: CredentialRecipe) => Promise<void>,
   values: z.infer<typeof FORM_SCHEMA>,
 ): Promise<void> {
-  invariant($config.GOOGLE_OAUTH_CLIENT_ID != null, 'Google OAuth client id is missing')
-  const googleOauthClientId = $config.GOOGLE_OAUTH_CLIENT_ID
-
+  invariant(googleOauthClientId != null, 'Google OAuth client id is missing')
   const oauthScopesSet = new Set<string>()
   values.scopes.forEach((scope) => {
     invariant(isValidScope(scope), 'Scopes used in the form must match ones in SCOPE_MAPPING')
@@ -67,7 +68,7 @@ export function submitForm(
         response_type: 'code',
         access_type: 'offline',
         prompt: 'consent',
-        redirect_uri: getOauthRedirectUri('Google'),
+        redirect_uri: getOauthRedirectUri(apiUrl, 'Google'),
         client_id: googleOauthClientId,
         state,
         scope,

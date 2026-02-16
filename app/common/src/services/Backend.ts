@@ -1689,7 +1689,7 @@ export class NotAuthorizedError extends NetworkError {}
 /** Interface for sending requests to a backend that manages assets and runs projects. */
 export abstract class Backend {
   abstract readonly type: BackendType
-  abstract readonly baseUrl: URL
+  abstract baseUrl: URL
   protected getText: DefaultGetText
   private readonly client: HttpClient
   protected readonly downloader: (options: DownloadOptions) => void | Promise<void>
@@ -1729,11 +1729,11 @@ export abstract class Backend {
     }
 
     const error =
-      response == null || response.headers.get('Content-Type') !== 'application/json' ?
+      response == null || !response.headers.get('Content-Type')?.startsWith('application/json') ?
         { message: 'unknown error' }
       : await ((): Promise<Error> => response.json())()
 
-    const message = `${this.getText(textId, ...replacements)}: ${error.message}.`
+    const message = `${this.getText(textId, ...replacements)}: ${error.message}`
     console.error(message)
 
     const status = response?.status
