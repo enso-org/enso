@@ -135,7 +135,7 @@ export class RemoteBackend extends backend.Backend {
     const response = await this.put(path, body)
     if (!response.ok) {
       return body.username != null ?
-        await this.throw(response, 'updateUsernameBackendError')
+          await this.throw(response, 'updateUsernameBackendError')
         : await this.throw(response, 'updateUserBackendError')
     } else {
       if (this.user != null && body.username != null) {
@@ -384,7 +384,7 @@ export class RemoteBackend extends backend.Backend {
     const paramsString = new URLSearchParams(
       query.recentProjects === true ?
         [['recent_projects', String(true)]]
-        : [
+      : [
           ...(query.parentId != null ? [['parent_id', query.parentId]] : []),
           ...(query.filterBy != null ? [['filter_by', query.filterBy]] : []),
           ...(query.from != null ? [['from', query.from]] : []),
