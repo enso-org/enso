@@ -102,4 +102,21 @@ public interface Locking {
    * @return lock wrapper
    */
   ContextLock getOrCreateContextLock(UUID contextId);
+
+  /**
+   * Attempts to acquire read compilation lock without blocking.
+   *
+   * @param where the class requesting the lock
+   * @return TryLockResult indicating if lock was acquired
+   */
+  TryLockResult tryReadCompilationLock(Class<?> where);
+
+  /**
+   * Attempts to acquire read context lock without blocking.
+   *
+   * @param contextLock lock used to ensure exclusive access
+   * @param where the class requesting the lock
+   * @return TryLockResult indicating if lock was acquired
+   */
+  TryLockResult tryReadContextLock(ContextLock contextLock, Class<?> where);
 }

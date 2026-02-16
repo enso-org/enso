@@ -8,6 +8,7 @@ import org.enso.interpreter.instrument.{
   MethodCallsCache,
   RuntimeCache,
   TypeInfo,
+  UnevaluatedVisualization,
   UpdatesSynchronizationState,
   Visualization,
   WarningPreview
@@ -112,6 +113,13 @@ object ProgramExecutionSupport {
           executionFrame.cache,
           executionFrame.syncState,
           value
+        )
+
+        // Process all pending unevaluated visualizations
+        processAllPendingUnevaluatedVisualizations(
+          contextId,
+          executionFrame.cache,
+          executionFrame.syncState
         )
       }
     }
@@ -673,6 +681,186 @@ object ProgramExecutionSupport {
           )
         }
       }
+    }
+  }
+
+  /** Process all pending unevaluated visualizations.
+    * Called after each expression completes to check if any pending
+    * visualizations can now be processed (their expression value is in cache).
+    *
+    * @param contextId an identifier of an execution context
+    * @param runtimeCache runtime cache for this execution
+    * @param syncState reference to synchronization state
+    * @param ctx the runtime context
+    */
+  private def processAllPendingUnevaluatedVisualizations(
+    contextId: Api.ContextId,
+    runtimeCache: RuntimeCache,
+    syncState: UpdatesSynchronizationState
+  )(implicit ctx: RuntimeContext): Unit = {
+    val holder     = ctx.contextManager.getVisualizationHolder(contextId)
+    val allPending = holder.getAllUnevaluated
+    logger.debug(s"pending visualizations: ${allPending}")
+
+    allPending.foreach { unevaluated =>
+      // Check if this expression's value is in the cache
+      val cachedValue =
+        runtimeCache.runQuery(null, _.get(unevaluated.expressionId))
+
+      if (cachedValue != null) {
+        // Value is available! Try to process this visualization
+        processUnevaluatedVisualization(
+          contextId,
+          runtimeCache,
+          syncState,
+          unevaluated,
+          cachedValue
+        )
+      }
+    }
+  }
+
+  /** Process a single unevaluated visualization.
+    *
+    * @param contextId an identifier of an execution context
+    * @param runtimeCache runtime cache for this execution
+    * @param syncState reference to synchronization state
+    * @param unevaluated the unevaluated visualization to process
+    * @param expressionValue the cached value of the expression
+    * @param ctx the runtime context
+    */
+  private def processUnevaluatedVisualization(
+    contextId: Api.ContextId,
+    runtimeCache: RuntimeCache,
+    syncState: UpdatesSynchronizationState,
+    unevaluated: UnevaluatedVisualization,
+    expressionValue: AnyRef
+  )(implicit ctx: RuntimeContext): Unit = {
+    logger.debug(s"processUnevaluatedVisualization ${unevaluated.id}")
+    val holder  = ctx.contextManager.getVisualizationHolder(contextId)
+    val context = ctx.executionService.getContext
+
+    try {
+      val visModuleName  = unevaluated.config.visualizationModule
+      val exprModuleName = unevaluated.config.expression.module
+
+      // Load modules if not already loaded
+      if (!context.moduleIsLoaded(visModuleName)) {
+        context.ensureModuleIsLoaded(visModuleName)
+      }
+      if (!context.moduleIsLoaded(exprModuleName)) {
+        context.ensureModuleIsLoaded(exprModuleName)
+      }
+
+      // Find modules
+      val visModuleOpt  = context.findModule(visModuleName)
+      val exprModuleOpt = context.findModule(exprModuleName)
+
+      if (visModuleOpt.isEmpty) {
+        holder.removeUnevaluated(unevaluated.id, unevaluated.expressionId)
+        ctx.endpoint.sendToClient(
+          Api.Response(Api.ModuleNotFound(visModuleName))
+        )
+        return
+      }
+      if (exprModuleOpt.isEmpty) {
+        holder.removeUnevaluated(unevaluated.id, unevaluated.expressionId)
+        ctx.endpoint.sendToClient(
+          Api.Response(Api.ModuleNotFound(exprModuleName))
+        )
+        return
+      }
+
+      val visModule  = visModuleOpt.get()
+      val exprModule = exprModuleOpt.get()
+
+      // Compile modules if needed
+      if (visModule.needsCompilation()) {
+        visModule.compileScope(context)
+      }
+      if (exprModule.needsCompilation()) {
+        exprModule.compileScope(context)
+      }
+
+      val maybeCallable = UpsertVisualizationJob.evaluateVisualizationExpression(
+        unevaluated.config.visualizationModule,
+        unevaluated.config.expression,
+        hasWriteCompilationLock = true
+      )
+    logger.debug(s"processUnevaluatedVisualization ${unevaluated.id} callable ${maybeCallable}")
+
+      maybeCallable match {
+        case Left(UpsertVisualizationJob.ModuleNotFound(moduleName)) =>
+          holder.removeUnevaluated(unevaluated.id, unevaluated.expressionId)
+          ctx.endpoint.sendToClient(
+            Api.Response(Api.ModuleNotFound(moduleName))
+          )
+
+        case Left(UpsertVisualizationJob.EvaluationFailed(message, result)) =>
+          holder.removeUnevaluated(unevaluated.id, unevaluated.expressionId)
+          ctx.endpoint.sendToClient(
+            Api.Response(
+              Api.VisualizationExpressionFailed(
+                Api.VisualizationContext(
+                  unevaluated.id,
+                  contextId,
+                  unevaluated.expressionId
+                ),
+                message,
+                result
+              )
+            )
+          )
+
+        case Left(UpsertVisualizationJob.RequiresCompilation) =>
+          // Should not happen since we pre-compiled, but handle gracefully
+          logger.warn(
+            "Unexpected RequiresCompilation after pre-compilation for visualization {}",
+            unevaluated.id
+          )
+
+        case Right(evaluatedExpression) =>
+          val visualization = UpsertVisualizationJob.updateAttachedVisualization(
+            unevaluated.id,
+            unevaluated.expressionId,
+            evaluatedExpression.module,
+            unevaluated.config,
+            evaluatedExpression.callback,
+            evaluatedExpression.arguments
+          )
+          holder.removeUnevaluated(unevaluated.id, unevaluated.expressionId)
+
+          executeAndSendVisualizationUpdate(
+            contextId,
+            runtimeCache,
+            syncState,
+            visualization,
+            unevaluated.expressionId,
+            expressionValue
+          )
+      }
+    } catch {
+      case e: Exception =>
+        logger.error(
+          "Failed to process unevaluated visualization {}: {}",
+          unevaluated.id,
+          e.getMessage,
+          e
+        )
+        holder.removeUnevaluated(unevaluated.id, unevaluated.expressionId)
+        ctx.endpoint.sendToClient(
+          Api.Response(
+            Api.VisualizationExpressionFailed(
+              Api.VisualizationContext(
+                unevaluated.id,
+                contextId,
+                unevaluated.expressionId
+              ),
+              e.getMessage,
+              None
+            )
+          )
+        )
     }
   }
 

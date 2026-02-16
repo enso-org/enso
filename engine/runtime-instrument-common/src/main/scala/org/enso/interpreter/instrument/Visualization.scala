@@ -39,3 +39,19 @@ case class OneshotExpression(
   executionContextId: ContextId,
   expression: String
 )
+
+/** Represents a visualization request that couldn't be evaluated immediately
+  * because locks were unavailable. Will be "promoted" to a Visualization
+  * after successful evaluation.
+  *
+  * @param id the unique identifier of visualization
+  * @param expressionId the identifier of expression the visualization is attached to
+  * @param contextId the execution context id
+  * @param config the visualization configuration
+  */
+case class UnevaluatedVisualization(
+  id: VisualizationId,
+  expressionId: ExpressionId,
+  contextId: ContextId,
+  config: VisualizationConfiguration
+)

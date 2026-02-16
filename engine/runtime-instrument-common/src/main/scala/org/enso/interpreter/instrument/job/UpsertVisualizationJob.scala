@@ -19,6 +19,7 @@ import org.enso.interpreter.instrument.{
   CacheInvalidation,
   InstrumentFrame,
   RuntimeCache,
+  UnevaluatedVisualization,
   Visualization
 }
 import org.enso.interpreter.runtime.Module
@@ -60,37 +61,116 @@ class UpsertVisualizationJob(
     }
 
   /** @inheritdoc */
-  override def runImpl(implicit ctx: RuntimeContext): Option[Executable] =
+  override def runImpl(implicit ctx: RuntimeContext): Option[Executable] = {
+    // Try non-blocking lock acquisition first
+    val contextLock = ctx.locking.getOrCreateContextLock(config.executionContextId)
+    val tryContextLockResult =
+      ctx.locking.tryReadContextLock(contextLock, classOf[UpsertVisualizationJob])
+
+    if (!tryContextLockResult.isAcquired) {
+      UpsertVisualizationJob.logger.trace(
+        "Could not acquire context lock for visualization {}, deferring evaluation",
+        visualizationId
+      )
+      return deferVisualizationEvaluation()
+    }
+
+    try {
+      val tryCompilationLockResult =
+        ctx.locking.tryReadCompilationLock(classOf[UpsertVisualizationJob])
+
+      if (!tryCompilationLockResult.isAcquired) {
+        UpsertVisualizationJob.logger.debug(
+          "Could not acquire compilation lock for visualization {}, deferring evaluation",
+          visualizationId
+        )
+        return deferVisualizationEvaluation()
+      }
+
+      try {
+        UpsertVisualizationJob.logger.debug(
+          "Acquired compilation lock for visualization {} trying to execute visualization",
+          visualizationId
+        )
+        val (needsRetryWithWriteLock, maybeResult) =
+          evaluateAndExecuteVisualization(hasWriteLock = false)
+        UpsertVisualizationJob.logger.debug(
+          "Acquired compilation lock for visualization {} visualization execution needs retry: {} {}",
+          visualizationId,
+          needsRetryWithWriteLock,
+          maybeResult
+        )
+
+        if (needsRetryWithWriteLock) {
+          // Release tryLock and fall back to blocking path for compilation
+          tryCompilationLockResult.close()
+          tryContextLockResult.close()
+          return runWithBlockingLocks()
+        }
+        maybeResult
+      } finally {
+        tryCompilationLockResult.close()
+      }
+    } finally {
+      tryContextLockResult.close()
+    }
+  }
+
+  /** Falls back to blocking lock acquisition when compilation is needed.
+    */
+  private def runWithBlockingLocks()(implicit
+    ctx: RuntimeContext
+  ): Option[Executable] =
     ctx.locking.withReadContextLock(
       ctx.locking.getOrCreateContextLock(config.executionContextId),
       classOf[UpsertVisualizationJob],
       () => {
-        val (needsRetryWithWriteLock, maybeResult) =
-          ctx.locking.withReadCompilationLock(
-            classOf[UpsertVisualizationJob],
-            () =>
-              evaluateAndExecuteVisualization(
-                hasWriteLock = false
-              )
-          )
-        if (needsRetryWithWriteLock) {
-          UpsertVisualizationJob.logger.trace(
-            "Retrying visualization {} evaluation with write lock to compile necessary modules",
-            visualizationId
-          )
-          ctx.locking.withWriteCompilationLock(
-            classOf[UpsertVisualizationJob],
-            "visualizationId=" + visualizationId + ",expressionId=" + expressionId,
-            () =>
-              evaluateAndExecuteVisualization(
-                hasWriteLock = true
-              )._2
-          )
-        } else {
-          maybeResult
-        }
+        UpsertVisualizationJob.logger.debug(
+          "Retrying visualization {} evaluation with write lock to compile necessary modules",
+          visualizationId
+        )
+        ctx.locking.withWriteCompilationLock(
+          classOf[UpsertVisualizationJob],
+          "visualizationId=" + visualizationId + ",expressionId=" + expressionId,
+          () =>
+            evaluateAndExecuteVisualization(
+              hasWriteLock = true
+            )._2
+        )
       }
     )
+
+  /** Defers visualization evaluation by storing it as an UnevaluatedVisualization.
+    * This is called when locks cannot be acquired without blocking.
+    */
+  private def deferVisualizationEvaluation()(implicit
+    ctx: RuntimeContext
+  ): Option[Executable] = {
+    val unevaluated = UnevaluatedVisualization(
+      id = visualizationId,
+      expressionId = expressionId,
+      contextId = config.executionContextId,
+      config = config
+    )
+
+    val holder = ctx.contextManager.getVisualizationHolder(config.executionContextId)
+    holder.addUnevaluated(unevaluated)
+
+    // Mark as needing sync so it will be processed
+    val stack = ctx.contextManager.getStack(config.executionContextId)
+    UpsertVisualizationJob.requireVisualizationSynchronization(
+      stack,
+      visualizationId
+    )
+
+    UpsertVisualizationJob.logger.debug(
+      "Deferred visualization {} for expression {} - will be processed when locks available",
+      visualizationId,
+      expressionId
+    )
+
+    None
+  }
 
   /** Attempts to evaluate the visualization expression associated with this job.
     *
@@ -570,7 +650,7 @@ object UpsertVisualizationJob {
     * @param ctx the runtime context
     * @return either the evaluation result or an evaluation error
     */
-  private def evaluateVisualizationExpression(
+  private[job] def evaluateVisualizationExpression(
     module: String,
     expression: Api.VisualizationExpression,
     hasWriteCompilationLock: Boolean
@@ -785,7 +865,7 @@ object UpsertVisualizationJob {
     * @param stack the execution stack
     * @param visualizationId the visualization id associated with the expression
     */
-  private def requireVisualizationSynchronization(
+  private[job] def requireVisualizationSynchronization(
     stack: Iterable[InstrumentFrame],
     visualizationId: Api.VisualizationId
   ): Unit =

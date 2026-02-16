@@ -16,6 +16,11 @@ class VisualizationHolder {
   private val visualizationMap: mutable.Map[ExpressionId, List[Visualization]] =
     mutable.Map.empty.withDefaultValue(List.empty)
 
+  // Storage for unevaluated visualizations - multiple can exist per expression
+  private val unevaluatedMap
+    : mutable.Map[ExpressionId, List[UnevaluatedVisualization]] =
+    mutable.Map.empty.withDefaultValue(List.empty)
+
   /** Upserts a visualization.
     *
     * @param visualization the visualization to upsert
@@ -96,6 +101,69 @@ class VisualizationHolder {
   def setOneshotExpression(oneshotExpression: OneshotExpression): Unit = {
     this.oneshotExpressions
       .put(oneshotExpression.expressionId, oneshotExpression)
+  }
+
+  /** Adds an unevaluated visualization. Multiple can exist per expression. */
+  def addUnevaluated(unevaluated: UnevaluatedVisualization): Unit = {
+    val existing = unevaluatedMap(unevaluated.expressionId)
+    val rest     = existing.filterNot(_.id == unevaluated.id)
+    unevaluatedMap.update(unevaluated.expressionId, unevaluated :: rest)
+  }
+
+  /** Removes an unevaluated visualization by ID from a specific expression.
+    *
+    * @param visualizationId the visualization identifier
+    * @param expressionId the id of expression that the visualization is attached to
+    * @return the removed unevaluated visualization, if found
+    */
+  def removeUnevaluated(
+    visualizationId: VisualizationId,
+    expressionId: ExpressionId
+  ): Option[UnevaluatedVisualization] = {
+    val existing          = unevaluatedMap(expressionId)
+    val (removed, rest)   = existing.partition(_.id == visualizationId)
+    unevaluatedMap.update(expressionId, rest)
+    removed.headOption
+  }
+
+  /** Gets all unevaluated visualizations for an expression.
+    *
+    * @param expressionId the unique identifier of the expression
+    * @return a list of matching unevaluated visualizations
+    */
+  @CompilerDirectives.TruffleBoundary
+  def findUnevaluated(
+    expressionId: ExpressionId
+  ): List[UnevaluatedVisualization] =
+    unevaluatedMap(expressionId)
+
+  /** Gets ALL unevaluated visualizations across all expressions. */
+  @CompilerDirectives.TruffleBoundary
+  def getAllUnevaluated: Iterable[UnevaluatedVisualization] =
+    unevaluatedMap.values.flatten
+
+  /** Gets an unevaluated visualization by ID.
+    *
+    * @param visualizationId the identifier of visualization
+    * @return an option with unevaluated visualization
+    */
+  def getUnevaluatedById(
+    visualizationId: VisualizationId
+  ): Option[UnevaluatedVisualization] =
+    unevaluatedMap.values.flatten.find(_.id == visualizationId)
+
+  /** Promotes an UnevaluatedVisualization to a Visualization.
+    * Removes from unevaluated storage and adds to visualization storage.
+    *
+    * @param unevaluated the unevaluated visualization to promote
+    * @param visualization the promoted visualization
+    */
+  def promote(
+    unevaluated: UnevaluatedVisualization,
+    visualization: Visualization
+  ): Unit = {
+    removeUnevaluated(unevaluated.id, unevaluated.expressionId)
+    upsert(visualization)
   }
 }
 

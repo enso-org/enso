@@ -423,4 +423,77 @@ class ReentrantLocking extends Locking {
 
   private case class ContextLockImpl(lock: ReentrantReadWriteLock, uuid: UUID)
       extends ContextLock
+
+  override def tryReadCompilationLock(where: Class[_]): TryLockResult = {
+    // Verify lock ordering (no file/pending locks held)
+    try {
+      assertNoFileLock(
+        s"Cannot acquire read compilation lock [${where.getSimpleName}]"
+      )
+      assertNotLocked(
+        pendingEditsLock,
+        s"Cannot acquire compilation read lock when having pending edits lock [${where.getSimpleName}]"
+      )
+    } catch {
+      case e: IllegalStateException =>
+        logger.trace(
+          "tryReadCompilationLock [{}] failed due to lock ordering: {}",
+          where.getSimpleName,
+          e.getMessage
+        )
+        return TryLockResult.notAcquired()
+    }
+
+    val readLock = compilationLock.readLock()
+    if (readLock.tryLock()) {
+      logger.trace(
+        "tryReadCompilationLock [{}] acquired",
+        where.getSimpleName
+      )
+      new TryLockResult(true, () => {
+        readLock.unlock()
+        logger.trace(
+          "tryReadCompilationLock [{}] released",
+          where.getSimpleName
+        )
+      })
+    } else {
+      logger.trace(
+        "tryReadCompilationLock [{}] not acquired (lock busy)",
+        where.getSimpleName
+      )
+      TryLockResult.notAcquired()
+    }
+  }
+
+  override def tryReadContextLock(
+    lock: ContextLock,
+    where: Class[_]
+  ): TryLockResult = {
+    val contextLock = lock.asInstanceOf[ContextLockImpl]
+    val readLock    = contextLock.lock.readLock()
+
+    if (readLock.tryLock()) {
+      logger.trace(
+        "tryReadContextLock [{}] acquired for context {}",
+        where.getSimpleName,
+        contextLock.uuid
+      )
+      new TryLockResult(true, () => {
+        readLock.unlock()
+        logger.trace(
+          "tryReadContextLock [{}] released for context {}",
+          where.getSimpleName,
+          contextLock.uuid
+        )
+      })
+    } else {
+      logger.trace(
+        "tryReadContextLock [{}] not acquired for context {} (lock busy)",
+        where.getSimpleName,
+        contextLock.uuid
+      )
+      TryLockResult.notAcquired()
+    }
+  }
 }
