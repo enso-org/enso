@@ -322,7 +322,7 @@ object Dependencies {
   val googleProtobufVersion   = "3.25.1"
   val shapelessVersion        = "2.3.10"
   val postgresVersion         = "42.4.0"
-  val duckdbVersion           = "1.4.0.0"
+  val duckdbVersion           = "1.4.4.0"
   val h2Version               = "2.3.232"
   val jimFsVersion            = "1.3.0"
 }
