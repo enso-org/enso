@@ -20,11 +20,11 @@ export enum AuthEvent {
   /** Issued when the user has passed custom OAuth state parameters to some other auth event. */
   customOAuthState = 'customOAuthState',
   /** Issued when the user completes the sign-in process (via federated identity provider). */
-  cognitoHostedUi = 'cognitoHostedUI',
+  signInWithRedirect = 'signInWithRedirect',
   /** Issued when the user completes the sign-in process (via email/password). */
-  signIn = 'signIn',
+  signedIn = 'signedIn',
   /** Issued when the user signs out. */
-  signOut = 'signOut',
+  signedOut = 'signedOut',
 }
 
 /** Return `true` if the given `string` is an {@link AuthEvent}. */

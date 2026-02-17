@@ -247,15 +247,15 @@ export function createSessionStore(
   const unregister = registerAuthEventListener((event) => {
     console.log('Auth event:', event)
     switch (event) {
-      case AuthEvent.signIn: {
+      case AuthEvent.signedIn: {
         analytics.signIn.after()
         break
       }
-      case AuthEvent.signOut: {
+      case AuthEvent.signedOut: {
         break
       }
       case AuthEvent.customOAuthState:
-      case AuthEvent.cognitoHostedUi: {
+      case AuthEvent.signInWithRedirect: {
         // AWS Amplify doesn't provide a way to set the redirect URL for the OAuth flow, so
         // we have to hack it by replacing the URL in the browser's history. This is done
         // because otherwise the user will be redirected to a URL like `enso://auth`, which
