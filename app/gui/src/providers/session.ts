@@ -140,7 +140,7 @@ export function createSessionStore(
   }
 
   const resendSignUp = async (username: string): Promise<void> => {
-    await authService.resendSignUp(username)
+    await assertAuthService().resendSignUp(username)
   }
 
   function challengeStepRequired(
