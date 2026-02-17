@@ -245,6 +245,7 @@ export function createSessionStore(
   // For example, if a user clicks the "sign out" button, this will clear the user's session, which
   // means the login screen (which is a child of this provider) should render.
   const unregister = registerAuthEventListener((event) => {
+    console.log('Auth event:', event)
     switch (event) {
       case AuthEvent.signIn: {
         analytics.signIn.after()
@@ -267,6 +268,7 @@ export function createSessionStore(
         unreachable(event)
       }
     }
+    console.log('Invalidate queries')
     void queryClient.invalidateQueries({ queryKey: sessionQueryOptions.queryKey })
   })
   onScopeDispose(unregister)
