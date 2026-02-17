@@ -492,7 +492,7 @@ type Redshift_Dialect
    ---
 make_dialect_operations =
     postgres_ops = Postgres_Connection.get_dialect.get_dialect_operations
-    overrides = [["COUNT_DISTINCT", agg_count_distinct], ["COUNT_DISTINCT_INCLUDE_NULL", agg_count_distinct_include_null], ["GROUP_NUMBER_STANDARD_DEVIATION_POPULATION", make_group_number_standard_deviation "STDDEV_POP"], ["GROUP_NUMBER_STANDARD_DEVIATION_SAMPLE", make_group_number_standard_deviation "STDDEV_SAMP"], ["RUNTIME_ERROR", make_runtime_error_op], ln, log10]
+    overrides = [["COUNT_DISTINCT", agg_count_distinct], ["COUNT_DISTINCT_INCLUDE_NULL", agg_count_distinct_include_null], ["GROUP_NUMBER_STANDARD_DEVIATION_POPULATION", make_group_number_standard_deviation "STDDEV_POP"], ["GROUP_NUMBER_STANDARD_DEVIATION_SAMPLE", make_group_number_standard_deviation "STDDEV_SAMP"], ["RUNTIME_ERROR", make_runtime_error_op], ln, log10, sinh, cosh, tanh]
     stats = [agg_median, agg_percentile]
     my_mappings = overrides + stats + first_last_aggregators + concat_ops
     postgres_ops.extend_with my_mappings
@@ -574,6 +574,33 @@ log10 = Base_Generator.lift_unary_op "LOG10" arg->
 ln = Base_Generator.lift_unary_op "LN" arg->
     x = SQL_Builder.code "CAST(" ++ arg ++ " AS double precision)"
     (SQL_Builder.code "CASE WHEN " ++ arg ++ " < 0 THEN (double precision 'NaN') WHEN " ++ arg ++ " = 0 THEN (double precision '-Infinity') ELSE DLOG1(" ++ x ++ ") END").paren
+
+## ---
+   private: true
+   ---
+sinh = Base_Generator.lift_unary_op "SINH" arg->
+    x = SQL_Builder.code "CAST(" ++ arg ++ " AS double precision)"
+    exp_x = SQL_Builder.code "EXP(" ++ x ++ ")"
+    exp_neg_x = SQL_Builder.code "EXP(-(" ++ x ++ "))"
+    SQL_Builder.code "((" ++ exp_x ++ " - " ++ exp_neg_x ++ ") / 2.0)"
+
+## ---
+   private: true
+   ---
+cosh = Base_Generator.lift_unary_op "COSH" arg->
+    x = SQL_Builder.code "CAST(" ++ arg ++ " AS double precision)"
+    exp_x = SQL_Builder.code "EXP(" ++ x ++ ")"
+    exp_neg_x = SQL_Builder.code "EXP(-(" ++ x ++ "))"
+    SQL_Builder.code "((" ++ exp_x ++ " + " ++ exp_neg_x ++ ") / 2.0)"
+
+## ---
+   private: true
+   ---
+tanh = Base_Generator.lift_unary_op "TANH" arg->
+    x = SQL_Builder.code "CAST(" ++ arg ++ " AS double precision)"
+    exp_x = SQL_Builder.code "EXP(" ++ x ++ ")"
+    exp_neg_x = SQL_Builder.code "EXP(-(" ++ x ++ "))"
+    SQL_Builder.code "((" ++ exp_x ++ " - " ++ exp_neg_x ++ ") / (" ++ exp_x ++ " + " ++ exp_neg_x ++ "))"
 
 ## ---
    private: true
