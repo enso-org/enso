@@ -85,7 +85,8 @@ sealed private[graph] class ScopeImpl(
     */
   final def withParent(parentScope: Graph.Scope): this.type = {
     if (this._parent ne parentScope) {
-      org.enso.common.Asserts.assertInJvm(parent.isEmpty)
+      org.enso.common.Asserts
+        .assertInJvm(parent.isEmpty || parent.get.equals(parentScope))
       this._parent = parentScope.asInstanceOf[ScopeImpl]
     }
     this

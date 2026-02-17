@@ -2,7 +2,7 @@ package org.enso.compiler.phase
 
 import org.enso.compiler.Compiler
 import org.enso.compiler.context.CompilerContext.Module
-import org.enso.compiler.core.Implicits.AsMetadata
+import org.enso.compiler.Implicits.AsMetadata
 import org.enso.compiler.core.ir.MetadataStorage
 import org.enso.compiler.core.ir.module.scope.{Export, Import}
 import org.enso.compiler.data.BindingsMap

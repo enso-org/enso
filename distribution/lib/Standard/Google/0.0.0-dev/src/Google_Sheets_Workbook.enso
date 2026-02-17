@@ -9,23 +9,19 @@ from Standard.Base.Metadata.Choice import Option
 from Standard.Base.Metadata.Widget import Multiple_Choice, Single_Choice
 from Standard.Base.Visualization.Table_Viz_Data import Table_Viz_Data, Table_Viz_Header
 
-import Standard.Table.Internal.Java_Problems
+import Standard.Table.Internal.Java_Exports
 import Standard.Table.Return_As_Table.Return_As_Table
 import Standard.Table.Rows_To_Read.Rows_To_Read
 from Standard.Table import Column, Headers, Table
-from Standard.Table.Errors import Empty_Sheet, Invalid_Location, No_Rows
-from Standard.Table.In_Memory_Table import from_java_table
+from Standard.Table.Errors import Invalid_Location, No_Rows
 from Standard.Table.Internal.Table_Helpers import duplicate_rows
 
 import project.Internal.Telemetry
 
-polyglot java import com.google.api.client.googleapis.json.GoogleJsonResponseException
 polyglot java import org.enso.base.enso_cloud.ExternalLibraryCredentialHelper.CredentialReference
 polyglot java import org.enso.google.GoogleSheetsForEnso
 polyglot java import org.enso.google.GoogleSheetsHeaders.HeaderBehavior
 polyglot java import org.enso.google.WrappedGoogleCredentials
-polyglot java import org.enso.table.error.EmptySheetException
-polyglot java import org.enso.table.problems.ProblemAggregator
 
 ## Type representing a Google Sheets workbook.
 type Google_Sheets_Workbook
@@ -67,6 +63,8 @@ type Google_Sheets_Workbook
           key.
     new workbook_id:Text credentials:Enso_Secret =
         service = GoogleSheetsForEnso.create (_wrap_credentials credentials)
+        Error.return_if_error service
+
         result = Google_Sheets_Workbook.Value workbook_id service
 
         ## Test the number of sheets to verify that the credentials and workbook ID are valid.
@@ -93,16 +91,20 @@ type Google_Sheets_Workbook
     read self query:(Text|Integer) headers:Headers=..Detect_Headers limit:Rows_To_Read=..All_Rows skip_rows:Integer=0 on_problems:Problem_Behavior=..Report_Warning -> Table =
         java_headers = _make_java_headers headers
         java_limit = limit.rows_to_read
-        java_table = Java_Problems.with_problem_aggregator on_problems problem_aggregator=ProblemAggregator java_problem_aggregator-> _handle_exceptions self.workbook_id <|
-            case query of
-                _ : Text -> self.java_service.getSheetRange self.workbook_id query java_headers java_limit skip_rows java_problem_aggregator
-                _ : Integer ->
-                    names = self.sheet_names
-                    if (query < 1 || query > names.length) then Error.throw (Invalid_Location.Error "Sheet "+query.to_text+" is out of range (1 to "+names.length.to_text+" inclusive).") else
-                        self.java_service.getSheetRange self.workbook_id (names.at (query - 1)) java_headers java_limit skip_rows java_problem_aggregator
-        result = limit.attach_warning (from_java_table java_table)
-        result.if_not_error <|
-            Telemetry.log "Google_Sheets_Workbook.read" "Read sheet: format={}, output={}, row_count={}, column_count={}" ["Google_Sheets_Format", "Table", result.row_count, result.column_count]
+
+        java_columns = case query of
+            _ : Text -> self.java_service.getSheetRange self.workbook_id query java_headers java_limit skip_rows on_problems==Problem_Behavior.Report_Error
+            _ : Integer ->
+                names = self.sheet_names
+                if (query < 1 || query > names.length) then Error.throw (Invalid_Location.Error "Sheet "+query.to_text+" is out of range (1 to "+names.length.to_text+" inclusive).") else
+                    self.java_service.getSheetRange self.workbook_id (names.at (query - 1)) java_headers java_limit skip_rows on_problems==Problem_Behavior.Report_Error
+        Error.return_if_error java_columns
+
+        table = Java_Exports.make_table_from_java_columns java_columns
+        result = limit.attach_warning table
+        Error.return_if_error result
+
+        Telemetry.log "Google_Sheets_Workbook.read" "Read sheet: format={}, output={}, row_count={}, column_count={}" ["Google_Sheets_Format", "Table", result.row_count, result.column_count]
         result
 
     ## ---
@@ -125,6 +127,9 @@ type Google_Sheets_Workbook
     @sheet_names _sheet_selector_widget
     @return make_single_choice Return_As_Table.get_dropdown_options
     read_many self sheet_names:Vector=self.sheet_names headers:Headers=..Detect_Headers return:Return_As_Table=..As_Merged_Table on_problems:Problem_Behavior=..Report_Warning =
+        prefetch = self.java_service.batchFetchRanges self.workbook_id sheet_names
+        Error.return_if_error prefetch
+
         case return of
             Return_As_Table.With_New_Column ->
                 tables_or_nothing = sheet_names.map on_problems=on_problems address->
@@ -145,8 +150,10 @@ type Google_Sheets_Workbook
        suggested: 3
        ---
        Gets the names of all the sheets.
-    sheet_names self -> Vector Text = _handle_exceptions self.workbook_id <|
-        Vector.from_polyglot_array (self.java_service.getSheetNames self.workbook_id)
+    sheet_names self -> Vector Text =
+        sheet_names = self.java_service.getSheetNames self.workbook_id
+        Error.return_if_error sheet_names
+        Vector.from_polyglot_array sheet_names
 
     ## ---
        group: Standard.Base.Metadata
@@ -154,8 +161,10 @@ type Google_Sheets_Workbook
        suggested: 4
        ---
        Gets the names of all the named ranges.
-    named_ranges self -> Vector Text = _handle_exceptions self.workbook_id <|
-        Vector.from_polyglot_array (self.java_service.getRangeNames self.workbook_id) . sort
+    named_ranges self -> Vector Text =
+        range_names = self.java_service.getRangeNames self.workbook_id
+        Error.return_if_error range_names
+        Vector.from_polyglot_array range_names . sort
 
     ## ---
        group: Standard.Base.Metadata
@@ -163,7 +172,7 @@ type Google_Sheets_Workbook
        suggested: 5
        ---
        Gets the number of sheets.
-    sheet_count self -> Integer = _handle_exceptions self.workbook_id <|
+    sheet_count self -> Integer =
         self.java_service.getNumberOfSheets self.workbook_id
 
     ## ---
@@ -172,7 +181,7 @@ type Google_Sheets_Workbook
        suggested: 6
        ---
        Gets the number of named ranges.
-    named_ranges_count self -> Integer = _handle_exceptions self.workbook_id <|
+    named_ranges_count self -> Integer =
         self.java_service.getNumberOfNames self.workbook_id
 
 ## ---
@@ -231,27 +240,12 @@ type Google_API_Error
     to_display_text self =
         self.message
 
-private _handle_exceptions workbook_id ~action =
-    Panic.catch EmptySheetException handler=(_ -> Error.throw Empty_Sheet.Error)
-        Panic.catch GoogleJsonResponseException action caught_panic->
-            statusCode = caught_panic.payload.getStatusCode
-            case statusCode of
-                403 -> Error.throw (Google_API_Error.Access_Denied "Access to the Google Sheets document was denied. Please check your permissions.")
-                404 -> Error.throw (Google_API_Error.Not_Found "https://docs.google.com/spreadsheets/d/"+workbook_id+" was not found.")
-                _ ->
-                    parsed_json = caught_panic.payload.getContent.parse_json
-                    if (parsed_json.get "message") == "This operation is not supported for this document" then
-                        Error.throw (Google_API_Error.Invalid_Format ("Invalid format https://docs.google.com/spreadsheets/d/"+workbook_id + " is not a valid Google Sheets document."))
-                    Error.throw (Google_API_Error.Error (parsed_json.get "message") parsed_json)
-
 private _wrap_credentials credential:(File|Enso_Secret|Nothing)=Nothing =
     case credential of
         secret : Enso_Secret ->
             WrappedGoogleCredentials.fromCredentialReference (as_credential_reference secret CredentialReference)
         secret_file : File ->
-            secret_file.with_input_stream [File_Access.Read] stream->
-                stream.with_java_stream java_input_stream->
-                    WrappedGoogleCredentials.fromStream java_input_stream
+            WrappedGoogleCredentials.fromFile secret_file.path
         _ -> Nothing
 
 private _make_java_headers headers:Headers = case headers of
@@ -269,7 +263,7 @@ private _read_sheets workbook:Google_Sheets_Workbook (sheet_names : Vector Text)
         table = workbook.read address headers on_problems=on_problems
         r = Pair.new address table
         # If in Report_Error mode, we forward the original error without wrapping, otherwise we wrap any warnings.
-        if on_problems == Problem_Behavior.Report_Error then r else 
+        if on_problems == Problem_Behavior.Report_Error then r else
             r.catch Any error->
                 on_problems.attach_problem_after (Pair.new address Nothing) <|
                     (No_Rows.Warning "The sheet "+address.to_display_text+" failed to load, so it is not included in the `As_Merged_Table` result of `read_many`. The error was: "+error.to_display_text)

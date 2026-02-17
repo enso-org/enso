@@ -22,12 +22,15 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.TimeZone;
 import java.util.stream.IntStream;
+import org.enso.base.polyglot.EnsoExceptionWrapper;
+import org.enso.base.polyglot.EnsoMeta;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.storage.type.TextType;
 import org.enso.table.data.table.Column;
-import org.enso.table.data.table.Table;
+import org.graalvm.polyglot.Value;
 
 public class GoogleAnalyticsReader {
   private static final Map<String, Metadata> metadataCache = new HashMap<>();
@@ -76,7 +79,17 @@ public class GoogleAnalyticsReader {
   }
 
   /** Lists all Google Analytics accounts. */
-  public static AnalyticsAccount[] listAccounts(
+  public static Value listAccounts(
+      GoogleCredentialsProvider credentialsProvider, int limit, boolean includeDeleted) {
+    try {
+      var output = listAccountsImpl(credentialsProvider, limit, includeDeleted);
+      return Value.asValue(output);
+    } catch (Exception e) {
+      return wrapJavaException(e);
+    }
+  }
+
+  private static AnalyticsAccount[] listAccountsImpl(
       GoogleCredentialsProvider credentialsProvider, int limit, boolean includeDeleted)
       throws IOException {
     int pageSize = getPageSize(limit);
@@ -108,7 +121,6 @@ public class GoogleAnalyticsReader {
           }
         }
       }
-
       return output.toArray(new AnalyticsAccount[0]);
     }
   }
@@ -127,14 +139,27 @@ public class GoogleAnalyticsReader {
    * @param includeDeleted whether to include deleted properties
    * @return an array of properties
    */
-  public static AnalyticsProperty[] listProperties(
+  public static Value listProperties(
+      GoogleCredentialsProvider credentialsProvider,
+      AnalyticsAccount[] parents,
+      int limit,
+      boolean includeDeleted) {
+    try {
+      var output = listPropertiesImpl(credentialsProvider, parents, limit, includeDeleted);
+      return Value.asValue(output);
+    } catch (Exception e) {
+      return wrapJavaException(e);
+    }
+  }
+
+  private static AnalyticsProperty[] listPropertiesImpl(
       GoogleCredentialsProvider credentialsProvider,
       AnalyticsAccount[] parents,
       int limit,
       boolean includeDeleted)
       throws IOException {
     if (parents == null) {
-      parents = listAccounts(credentialsProvider, 0, false);
+      parents = listAccountsImpl(credentialsProvider, 0, false);
     }
 
     if (parents.length == 0) {
@@ -183,19 +208,24 @@ public class GoogleAnalyticsReader {
    * @param property the property to list metrics for
    * @return an array of metrics
    */
-  public static AnalyticDimension[] listMetrics(
-      GoogleCredentialsProvider credentialsProvider, AnalyticsProperty property)
-      throws IOException {
-    var metadata = getMetadata(credentialsProvider, property.id());
-    return metadata.getMetricsList().stream()
-        .map(
-            metric ->
-                new AnalyticDimension(
-                    metric.getApiName(),
-                    metric.getUiName(),
-                    metric.getCategory(),
-                    metric.getDescription()))
-        .toArray(AnalyticDimension[]::new);
+  public static Value listMetrics(
+      GoogleCredentialsProvider credentialsProvider, AnalyticsProperty property) {
+    try {
+      var metadata = getMetadata(credentialsProvider, property.id());
+      var output =
+          metadata.getMetricsList().stream()
+              .map(
+                  metric ->
+                      new AnalyticDimension(
+                          metric.getApiName(),
+                          metric.getUiName(),
+                          metric.getCategory(),
+                          metric.getDescription()))
+              .toArray(AnalyticDimension[]::new);
+      return Value.asValue(output);
+    } catch (Exception e) {
+      return wrapJavaException(e);
+    }
   }
 
   /**
@@ -203,19 +233,24 @@ public class GoogleAnalyticsReader {
    *
    * @return an array of dimensions
    */
-  public static AnalyticDimension[] listDimensions(
-      GoogleCredentialsProvider credentialsProvider, AnalyticsProperty property)
-      throws IOException {
-    var metadata = getMetadata(credentialsProvider, property.id());
-    return metadata.getDimensionsList().stream()
-        .map(
-            dimension ->
-                new AnalyticDimension(
-                    dimension.getApiName(),
-                    dimension.getUiName(),
-                    dimension.getCategory(),
-                    dimension.getDescription()))
-        .toArray(AnalyticDimension[]::new);
+  public static Value listDimensions(
+      GoogleCredentialsProvider credentialsProvider, AnalyticsProperty property) {
+    try {
+      var metadata = getMetadata(credentialsProvider, property.id());
+      var output =
+          metadata.getDimensionsList().stream()
+              .map(
+                  dimension ->
+                      new AnalyticDimension(
+                          dimension.getApiName(),
+                          dimension.getUiName(),
+                          dimension.getCategory(),
+                          dimension.getDescription()))
+              .toArray(AnalyticDimension[]::new);
+      return Value.asValue(output);
+    } catch (Exception e) {
+      return wrapJavaException(e);
+    }
   }
 
   /** Caches metadata requests for Google Analytics properties. */
@@ -250,63 +285,82 @@ public class GoogleAnalyticsReader {
    * @param metrics the metrics to include in the report
    * @return a Table with the report data
    */
-  public static Table runReport(
+  public static Value runReport(
       GoogleCredentialsProvider credentialsProvider,
       AnalyticsProperty property,
       LocalDate startDate,
       LocalDate endDate,
       List<String> dimensions,
-      List<String> metrics)
-      throws IOException {
-    var dateRange =
-        DateRange.newBuilder()
-            .setStartDate(startDate.format(DateTimeFormatter.ISO_LOCAL_DATE))
-            .setEndDate(endDate.format(DateTimeFormatter.ISO_LOCAL_DATE))
-            .build();
+      List<String> metrics) {
+    try {
+      var dateRange =
+          DateRange.newBuilder()
+              .setStartDate(startDate.format(DateTimeFormatter.ISO_LOCAL_DATE))
+              .setEndDate(endDate.format(DateTimeFormatter.ISO_LOCAL_DATE))
+              .build();
 
-    var request =
-        RunReportRequest.newBuilder()
-            .setProperty(property.id())
-            .addDateRanges(dateRange)
-            .addAllDimensions(
-                dimensions.stream().map(n -> Dimension.newBuilder().setName(n).build()).toList())
-            .addAllMetrics(
-                metrics.stream().map(n -> Metric.newBuilder().setName(n).build()).toList())
-            .build();
+      var request =
+          RunReportRequest.newBuilder()
+              .setProperty(property.id())
+              .addDateRanges(dateRange)
+              .addAllDimensions(
+                  dimensions.stream().map(n -> Dimension.newBuilder().setName(n).build()).toList())
+              .addAllMetrics(
+                  metrics.stream().map(n -> Metric.newBuilder().setName(n).build()).toList())
+              .build();
 
-    try (var client = createDataClient(credentialsProvider)) {
-      var response = client.runReport(request);
-      int rowCount = response.getRowCount();
+      try (var client = createDataClient(credentialsProvider)) {
+        var response = client.runReport(request);
+        int rowCount = response.getRowCount();
 
-      var builders = new Builder[dimensions.size() + metrics.size()];
-      for (int i = 0; i < dimensions.size() + metrics.size(); i++) {
-        builders[i] = Builder.getForText(TextType.VARIABLE_LENGTH, rowCount);
-      }
-
-      // Load the data
-      for (int row = 0; row < rowCount; row++) {
-        for (int col = 0; col < dimensions.size(); col++) {
-          builders[col].append(response.getRows(row).getDimensionValues(col).getValue());
+        var builders = new Builder[dimensions.size() + metrics.size()];
+        for (int i = 0; i < dimensions.size() + metrics.size(); i++) {
+          builders[i] = Builder.getForText(TextType.VARIABLE_LENGTH, rowCount);
         }
 
-        for (int col = 0; col < metrics.size(); col++) {
-          builders[dimensions.size() + col].append(
-              response.getRows(row).getMetricValues(col).getValue());
-        }
-      }
+        // Load the data
+        for (int row = 0; row < rowCount; row++) {
+          for (int col = 0; col < dimensions.size(); col++) {
+            builders[col].append(response.getRows(row).getDimensionValues(col).getValue());
+          }
 
-      // Convert to Java Table
-      var columns =
-          IntStream.range(0, builders.length)
-              .mapToObj(
-                  i ->
-                      new Column(
-                          i < dimensions.size()
-                              ? dimensions.get(i)
-                              : metrics.get(i - dimensions.size()),
-                          builders[i].seal()))
-              .toArray(Column[]::new);
-      return new Table(columns);
+          for (int col = 0; col < metrics.size(); col++) {
+            builders[dimensions.size() + col].append(
+                response.getRows(row).getMetricValues(col).getValue());
+          }
+        }
+
+        // Convert to Java Table
+        var columns =
+            IntStream.range(0, builders.length)
+                .mapToObj(
+                    i ->
+                        new Column(
+                            i < dimensions.size()
+                                ? dimensions.get(i)
+                                : metrics.get(i - dimensions.size()),
+                            builders[i].seal()))
+                .toArray(Column[]::new);
+
+        return Value.asValue(columns);
+      }
+    } catch (Exception e) {
+      return wrapJavaException(e);
     }
+  }
+
+  private static Value wrapJavaException(Exception exception) {
+    var ensoAtom =
+        EnsoExceptionWrapper.wrapCommonExceptions(exception)
+            .or(
+                () ->
+                    Optional.of(
+                        EnsoMeta.makeInstance(
+                            "Standard.Google.Google_Analytics",
+                            "Google_Analytics_Error",
+                            "Value",
+                            exception.getMessage(),
+                            exception)));
+    return EnsoMeta.asDataflowError(ensoAtom.get());
   }
 }

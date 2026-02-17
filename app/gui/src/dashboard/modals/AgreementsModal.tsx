@@ -60,7 +60,7 @@ export const AgreementsModal = memo(function AgreementsModal(props: AgreementsMo
               form={form}
               name="agreedToTos"
               description={
-                <Button variant="link" target="_blank" href={`${$config.ENSO_HOST}/eula`}>
+                <Button variant="link" target="_blank" href={`${$config.HOST}/eula`}>
                   {getText('viewLicenseAgreement')}
                 </Button>
               }
@@ -72,7 +72,7 @@ export const AgreementsModal = memo(function AgreementsModal(props: AgreementsMo
               form={form}
               name="agreedToPrivacyPolicy"
               description={
-                <Button variant="link" target="_blank" href={`${$config.ENSO_HOST}/privacy`}>
+                <Button variant="link" target="_blank" href={`${$config.HOST}/privacy`}>
                   {getText('viewPrivacyPolicy')}
                 </Button>
               }
