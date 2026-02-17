@@ -48,12 +48,14 @@ case class OneshotExpression(
   *
   * @param id the unique identifier of visualization
   * @param expressionId the identifier of expression the visualization is attached to
+  * @param parentExpressionId non-empty id of the cached expression if visualization attached to a subexpression
   * @param contextId the execution context id
   * @param config the visualization configuration
   */
 case class UnevaluatedVisualization(
   id: VisualizationId,
   expressionId: ExpressionId,
+  parentExpressionId: Option[ExpressionId],
   contextId: ContextId,
   config: VisualizationConfiguration
 )

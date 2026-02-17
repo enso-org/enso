@@ -830,6 +830,7 @@ object ProgramExecutionSupport {
             UpsertVisualizationJob.updateAttachedVisualization(
               unevaluated.id,
               unevaluated.expressionId,
+              unevaluated.parentExpressionId,
               evaluatedExpression.module,
               unevaluated.config,
               evaluatedExpression.callback,
