@@ -15,7 +15,6 @@ import org.enso.interpreter.instrument.{
 }
 import org.enso.interpreter.instrument.execution.{ErrorResolver, RuntimeContext}
 import org.enso.interpreter.instrument.profiling.ExecutionTime
-import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode.FunctionCall
 import org.enso.interpreter.runtime.library.dispatch.TypeOfNode
 import org.enso.interpreter.runtime.`type`.{Types, TypesGen}
 import org.enso.interpreter.runtime.data.atom.AtomConstructor
@@ -69,7 +68,6 @@ object ProgramExecutionSupport {
   )(implicit ctx: RuntimeContext): Unit = {
 
     val methodCallsCache = new MethodCallsCache
-    var enterables       = Map[UUID, FunctionCall]()
 
     val onCachedMethodCallCallback: Consumer[ExpressionValue] = { value =>
       logger.trace("ON_CACHED_CALL {}", value.getExpressionId)
@@ -125,7 +123,17 @@ object ProgramExecutionSupport {
 
     val callablesCallback: Consumer[ExpressionCall] = fun =>
       if (callStack.headOption.exists(_.expressionId == fun.getExpressionId)) {
-        enterables += fun.getExpressionId -> fun.getCall
+        ctx.executionService
+          .submitExecutionWithCacheAccess(
+            executionFrame.cache,
+            fun,
+            (cache, call: ExpressionCall) => {
+              cache.updateEnterable(call.getExpressionId, call.getCall)
+              null;
+            }
+          )
+          .toCompletableFuture
+          .get()
       }
 
     val pendingResult = executionFrame match {
@@ -243,17 +251,21 @@ object ProgramExecutionSupport {
           }
         )
       case item :: tail =>
-        enterables.get(item.expressionId) match {
-          case Some(call) =>
-            val executionFrame =
-              ExecutionFrame(
-                ExecutionItem.CallData(item.expressionId, call),
-                item.cache,
-                item.syncState
-              )
-            executeProgram(contextId, executionFrame, tail)
-          case None =>
-            ()
+        val callInfo = executionFrame.cache
+          .asInstanceOf[RuntimeCache.Immutable]
+          .getCall(item.expressionId)
+        if (callInfo != null) {
+          logger.trace(
+            "Executing instrumented call in function {}",
+            callInfo.functionPointer().functionName()
+          )
+          val executionFrame =
+            ExecutionFrame(
+              ExecutionItem.CallData(item.expressionId, callInfo.ref()),
+              item.cache,
+              item.syncState
+            )
+          executeProgram(contextId, executionFrame, tail)
         }
     }
   }
@@ -974,6 +986,7 @@ object ProgramExecutionSupport {
         }
         syncState.runAndSetVisualizationSync(
           visualizationId,
+          true,
           () => {
             ctx.endpoint.sendToClient(
               Api.Response(
@@ -1000,6 +1013,7 @@ object ProgramExecutionSupport {
         )
         syncState.runAndSetVisualizationSync(
           visualizationId,
+          true,
           () => {
             ctx.endpoint.sendToClient(
               Api.Response(

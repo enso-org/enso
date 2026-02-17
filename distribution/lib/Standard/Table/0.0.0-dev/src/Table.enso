@@ -3995,6 +3995,27 @@ type Table
     pretty self =
         self.implementation.pretty_implementation self.underlying
 
+    ## ---
+       private: true
+       ---
+       Returns a Text used to display this table in the IDE by default.
+       Returns a JSON object containing useful metadata and previews of column
+       values.
+    to_default_visualization_data self -> Text =
+        case self.is_a In_Memory_Table of
+            True ->
+                Widget_Helpers._with_table_cache self "to_default_visualization_data" <|
+                    max_size = 10
+                    row_count = ['number_of_rows', self.row_count]
+                    cols = self.columns.map c->
+                        name = c.name.to_json
+                        items = c.to_json_data 0 max_size
+                        '{"name":'+name+',"data":' + items + '}'
+                    JS_Object.from_pairs [row_count, ['columns', cols]] . to_text
+                    '{"number_of_rows":' + self.row_count.to_text + ',"columns":[' + (cols.join ",") + ']}'
+            False ->
+                self.read 10 . to_default_visualization_data
+
 ## ---
    private: true
    ---

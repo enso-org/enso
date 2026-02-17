@@ -21,6 +21,9 @@ class VisualizationHolder {
     : mutable.Map[ExpressionId, List[UnevaluatedVisualization]] =
     mutable.Map.empty.withDefaultValue(List.empty)
 
+  private val pendingSubExpressionVisualizations: mutable.Set[ExpressionId] =
+    mutable.HashSet.empty
+
   /** Upserts a visualization.
     *
     * @param visualization the visualization to upsert
@@ -157,6 +160,26 @@ class VisualizationHolder {
     */
   def hasPendingVisualizations: Boolean = synchronized {
     unevaluatedMap.values.exists(_.nonEmpty)
+  }
+
+  /** Registers a nested visualization for a subexpression.
+    *
+    * @param nodeID the expression id to register
+    */
+  @CompilerDirectives.TruffleBoundary
+  def upsertNestedVisualization(nodeID: ExpressionId): Unit = {
+    pendingSubExpressionVisualizations.add(nodeID)
+  }
+
+  /** Checks if there is a pending nested visualization for the given expression.
+    * If found, removes it from the pending set.
+    *
+    * @param nodeID the expression id to check
+    * @return true if a nested visualization was pending for this expression
+    */
+  @CompilerDirectives.TruffleBoundary
+  def checkAndClearNestedVisualizations(nodeID: ExpressionId): Boolean = {
+    pendingSubExpressionVisualizations.remove(nodeID)
   }
 }
 

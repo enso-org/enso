@@ -1228,6 +1228,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
 
     val contextId        = UUID.randomUUID()
     val requestId        = UUID.randomUUID()
+    val requestId2       = UUID.randomUUID()
     val visualizationId  = UUID.randomUUID()
     val visualizationId2 = UUID.randomUUID()
 
@@ -1299,7 +1300,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
 
     context.send(
       Api.Request(
-        requestId,
+        requestId2,
         Api.AttachVisualization(
           visualizationId2,
           context.Main.idMainX,
@@ -1317,13 +1318,13 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
     )
 
     val attachVisualizationResponses =
-      context.receiveNIgnoreExpressionUpdates(4)
+      context.receiveNIgnoreExpressionUpdates(3)
 
     attachVisualizationResponses.filter(
       _.payload.isInstanceOf[Api.VisualizationAttached]
-    ) shouldEqual List(
+    ) should contain theSameElementsAs Seq(
       Api.Response(requestId, Api.VisualizationAttached()),
-      Api.Response(requestId, Api.VisualizationAttached())
+      Api.Response(requestId2, Api.VisualizationAttached())
     )
 
     // Modify the file
@@ -1344,7 +1345,7 @@ class RuntimeVisualizationsTest extends AnyFlatSpec with Matchers {
     )
 
     val editFileResponses =
-      context.receiveNIgnoreExpressionUpdates(3)
+      context.receiveNIgnoreExpressionUpdates(4)
 
     editFileResponses should contain(
       context.executionComplete(contextId)

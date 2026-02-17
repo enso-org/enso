@@ -95,19 +95,23 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
       executeOneshotExpressions(nodeId, result, info);
     }
 
+    // Check if we need to force re-execution for nested visualization
+    var requiresReExecution = visualizationHolder.checkAndClearNestedVisualizations(nodeId);
+
     // When executing the call stack we need to capture the FunctionCall of the next (top) stack
     // item in the `functionCallCallback`. We allow to execute the cached `stackTop` value to be
     // able to continue the stack execution, and unwind later from the `onReturnValue` callback.
     if (result != null && !nodeId.equals(nextExecutionItem)) {
       callOnCachedCallback(nodeId, result);
-      return result;
+      // Return null to force re-execution if nested visualization is pending
+      return requiresReExecution ? null : result;
     } else {
       if (onProgressCallbackOrNull != null) {
         reportEvaluationProgress(nodeId);
       }
     }
 
-    return null;
+    return requiresReExecution ? null : result;
   }
 
   @CompilerDirectives.TruffleBoundary
@@ -164,24 +168,37 @@ final class ExecutionCallbacks implements IdExecutionService.Callbacks {
             false,
             -1.0,
             null);
-    syncState.setExpressionUnsync(nodeId);
-    visualizationHolder
-        .find(nodeId)
-        .foreach(
-            visualization -> {
-              syncState.setVisualizationUnsync(visualization.id());
-              return null;
-            });
     boolean isPanic = info.isPanic();
     // Panics are not cached because a panic can be fixed by changing seemingly unrelated code,
     // like imports, and the invalidation mechanism can not always track those changes and
     // appropriately invalidate all dependent expressions.
+    RuntimeCache.CacheOfferResult newValueCached;
     if (!isPanic) {
-      cache.offer(nodeId, result);
+      newValueCached = cache.offer(nodeId, result);
       cache.putCall(nodeId, call);
+    } else {
+      newValueCached = new RuntimeCache.CacheOfferResult(false, false);
     }
     cache.putType(nodeId, resultType);
 
+    if (newValueCached.updated() || !newValueCached.canCache()) {
+      // Ensure that we send updates only when we really modify cached expressions.
+      // This is important for RHS when we only re-execute for subexpressions.
+      // Without this condition, every time a subexpression would be executed, a visualization
+      // for parent expression would be executed as well, which is undesirable (or even expensive).
+      // Also send intermediate expression/visualizations updates for expressions that cannot be
+      // cached as GUI/unit tests
+      // appear to expect those.
+
+      syncState.setExpressionUnsync(nodeId);
+      visualizationHolder
+          .find(nodeId)
+          .foreach(
+              visualization -> {
+                syncState.setVisualizationUnsync(visualization.id());
+                return null;
+              });
+    }
     callOnComputedCallback(expressionValue);
     executeOneshotExpressions(nodeId, result, info);
     if (isPanic) {

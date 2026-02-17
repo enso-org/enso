@@ -4,6 +4,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode;
 import org.enso.interpreter.service.ExecutionService;
 
 /**
@@ -33,7 +34,7 @@ public abstract class RuntimeCache {
   /**
    * Factory method to create new runtime cache.
    *
-   * @return mutable (e.g. priviledged) interface to the cache
+   * @return mutable (e.g. privileged) interface to the cache
    */
   public static RuntimeCache.Mutable create() {
     return new RuntimeCacheImpl();
@@ -102,6 +103,14 @@ public abstract class RuntimeCache {
      * @return
      */
     public abstract Set<UUID> findUUIDs(boolean calls, boolean preferences);
+
+    /**
+     * Returns a functional metadata that has been previously cached.
+     *
+     * @param key UUID of the expression representing the function call
+     * @return function call metadata
+     */
+    public FunctionCallInstrumentationNode.FunctionCall enterable(UUID key);
   }
 
   /**
@@ -148,7 +157,7 @@ public abstract class RuntimeCache {
      * @param value the added value.
      * @return {@code true} if the value was added to the cache.
      */
-    public boolean offer(UUID key, Object value);
+    public CacheOfferResult offer(UUID key, Object value);
 
     /**
      * Cache the type of expression.
@@ -182,5 +191,22 @@ public abstract class RuntimeCache {
      */
     public ExecutionService.FunctionCallInfo putCall(
         UUID key, ExecutionService.FunctionCallInfo call);
+
+    /**
+     * Registers metadata info about a function call encountered during execution.
+     *
+     * @param key UUID of the expression representing the function call
+     * @param call metadata of the cached function call
+     */
+    public void updateEnterable(UUID key, FunctionCallInstrumentationNode.FunctionCall call);
   }
+
+  /**
+   * Encapsulates the result of calling {@code offer} method on {@code RuntimeCache}.
+   *
+   * @param canCache true if indicates that a value can be cached, false otherwise
+   * @param updated true if a proposed value has been stored in the cache and no previous entry
+   *     existed for the given key, false otherwise
+   */
+  public record CacheOfferResult(boolean canCache, boolean updated) {}
 }
