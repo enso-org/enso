@@ -160,13 +160,11 @@ class ExecuteJob(
         )
         // Check for unprocessed visualizations and reschedule if needed
         if (mayInterruptIfRunning) {
-          val holder                = ctx.contextManager.getVisualizationHolder(contextId)
-          val pendingVisualizations = holder.getAllUnevaluated
-          if (pendingVisualizations.nonEmpty) {
+          val holder = ctx.contextManager.getVisualizationHolder(contextId)
+          if (holder.hasPendingVisualizations) {
             ExecuteJob.logger.debug(
-              "Rescheduling ExecuteJob[{}] to process unevaluated visualizations {}",
-              _jobId,
-              pendingVisualizations
+              "Rescheduling ExecuteJob[{}] to process pending visualizations",
+              _jobId
             )
             ctx.jobProcessor.run(
               new ExecuteJob(

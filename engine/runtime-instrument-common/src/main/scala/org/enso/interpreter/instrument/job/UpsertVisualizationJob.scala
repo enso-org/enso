@@ -65,47 +65,50 @@ class UpsertVisualizationJob(
     // Try non-blocking lock acquisition first
     val contextLock =
       ctx.locking.getOrCreateContextLock(config.executionContextId)
-    val tryContextLockResult =
-      ctx.locking.tryReadContextLock(
-        contextLock,
-        classOf[UpsertVisualizationJob]
-      )
 
-    if (!tryContextLockResult.isAcquired) {
-      UpsertVisualizationJob.logger.trace(
-        "Could not acquire context lock for visualization {}, deferring evaluation",
-        visualizationId
-      )
-      return deferVisualizationEvaluation()
-    }
+    var result: Option[Executable] = None
 
-    try {
-      // Try write compilation lock (non-blocking) to allow module loading/compilation
-      val tryCompilationLockResult =
-        ctx.locking.tryWriteCompilationLock(classOf[UpsertVisualizationJob])
-
-      if (!tryCompilationLockResult.isAcquired) {
-        UpsertVisualizationJob.logger.trace(
-          "Could not acquire write compilation lock for visualization {}, deferring evaluation",
-          visualizationId
-        )
-        return deferVisualizationEvaluation()
-      }
-
-      try {
+    val contextAction: Runnable = () => {
+      val compilationAction: Runnable = () => {
         UpsertVisualizationJob.logger.trace(
           "Acquired write compilation lock for visualization {}, executing visualization",
           visualizationId
         )
         val (_, maybeResult) =
           evaluateAndExecuteVisualization(hasWriteLock = true)
-        maybeResult
-      } finally {
-        tryCompilationLockResult.close()
+        result = maybeResult
       }
-    } finally {
-      tryContextLockResult.close()
+
+      // Try write compilation lock (non-blocking) to allow module loading/compilation
+      if (
+        !ctx.locking.tryWithWriteCompilationLock(
+          classOf[UpsertVisualizationJob],
+          compilationAction
+        )
+      ) {
+        UpsertVisualizationJob.logger.trace(
+          "Could not acquire write compilation lock for visualization {}, deferring evaluation",
+          visualizationId
+        )
+        result = deferVisualizationEvaluation()
+      }
     }
+
+    if (
+      !ctx.locking.tryWithReadContextLock(
+        contextLock,
+        classOf[UpsertVisualizationJob],
+        contextAction
+      )
+    ) {
+      UpsertVisualizationJob.logger.trace(
+        "Could not acquire context lock for visualization {}, deferring evaluation",
+        visualizationId
+      )
+      result = deferVisualizationEvaluation()
+    }
+
+    result
   }
 
   /** Defers visualization evaluation by storing it as an UnevaluatedVisualization.

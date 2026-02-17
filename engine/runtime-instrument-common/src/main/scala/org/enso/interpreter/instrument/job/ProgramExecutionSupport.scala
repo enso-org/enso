@@ -700,19 +700,24 @@ object ProgramExecutionSupport {
     val holder     = ctx.contextManager.getVisualizationHolder(contextId)
     val allPending = holder.getAllUnevaluated
 
-    allPending.foreach { unevaluated =>
-      val cachedValue =
-        runtimeCache.runQuery(null, _.get(unevaluated.expressionId))
-
-      if (cachedValue != null) {
-        processUnevaluatedVisualization(
-          contextId,
-          runtimeCache,
-          syncState,
-          unevaluated,
-          cachedValue
-        )
+    val collected = runtimeCache.runQuery(
+      null,
+      { immutable =>
+        allPending.flatMap { unevaluated =>
+          val cachedValue = immutable.get(unevaluated.expressionId)
+          Option(cachedValue).map((unevaluated, _))
+        }
       }
+    )
+
+    collected.foreach { case (unevaluated, cachedValue) =>
+      processUnevaluatedVisualization(
+        contextId,
+        runtimeCache,
+        syncState,
+        unevaluated,
+        cachedValue
+      )
     }
   }
 
@@ -744,13 +749,8 @@ object ProgramExecutionSupport {
       val visModuleName  = unevaluated.config.visualizationModule
       val exprModuleName = unevaluated.config.expression.module
 
-      // Load modules if not already loaded
-      if (!context.moduleIsLoaded(visModuleName)) {
-        context.ensureModuleIsLoaded(visModuleName)
-      }
-      if (!context.moduleIsLoaded(exprModuleName)) {
-        context.ensureModuleIsLoaded(exprModuleName)
-      }
+      context.ensureModuleIsLoaded(visModuleName)
+      context.ensureModuleIsLoaded(exprModuleName)
 
       val visModuleOpt  = context.findModule(visModuleName)
       val exprModuleOpt = context.findModule(exprModuleName)
@@ -773,13 +773,8 @@ object ProgramExecutionSupport {
       val visModule  = visModuleOpt.get()
       val exprModule = exprModuleOpt.get()
 
-      // Compile modules if needed
-      if (visModule.needsCompilation()) {
-        visModule.compileScope(context)
-      }
-      if (exprModule.needsCompilation()) {
-        exprModule.compileScope(context)
-      }
+      visModule.compileScope(context)
+      exprModule.compileScope(context)
 
       val maybeCallable =
         UpsertVisualizationJob.evaluateVisualizationExpression(

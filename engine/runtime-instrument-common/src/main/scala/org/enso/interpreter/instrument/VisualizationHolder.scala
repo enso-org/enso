@@ -7,6 +7,7 @@ import com.oracle.truffle.api.CompilerDirectives
 import scala.collection.mutable
 
 /** A mutable holder of all visualizations attached to an execution context.
+  * This class is thread-safe.
   */
 class VisualizationHolder {
 
@@ -28,7 +29,7 @@ class VisualizationHolder {
   def upsert(
     visualization: Visualization,
     specificId: ExpressionId = null
-  ): Unit = {
+  ): Unit = synchronized {
     val id = if (specificId == null) {
       visualization.expressionId
     } else {
@@ -48,7 +49,7 @@ class VisualizationHolder {
   def remove(
     visualizationId: VisualizationId,
     expressionId: ExpressionId
-  ): Unit = {
+  ): Unit = synchronized {
     val visualizations = visualizationMap(expressionId)
     val rest           = visualizations.filterNot(_.id == visualizationId)
     visualizationMap.update(expressionId, rest)
@@ -60,8 +61,9 @@ class VisualizationHolder {
     * @return a list of matching visualization
     */
   @CompilerDirectives.TruffleBoundary
-  def find(expressionId: ExpressionId): List[Visualization] =
+  def find(expressionId: ExpressionId): List[Visualization] = synchronized {
     visualizationMap(expressionId)
+  }
 
   /** Finds all visualizations in a given module.
     *
@@ -70,12 +72,13 @@ class VisualizationHolder {
     */
   def findByModule(
     module: QualifiedName
-  ): Iterable[Visualization] =
+  ): Iterable[Visualization] = synchronized {
     visualizationMap.values.flatten.collect {
       case visualization: Visualization
           if visualization.module.getName == module =>
         visualization
-    }
+    }.toList
+  }
 
   /** Returns a visualization with the provided id.
     *
@@ -83,31 +86,36 @@ class VisualizationHolder {
     * @return an option with visualization
     */
   def getById(visualizationId: VisualizationId): Option[Visualization] =
-    visualizationMap.values.flatten.find(_.id == visualizationId)
+    synchronized {
+      visualizationMap.values.flatten.find(_.id == visualizationId)
+    }
 
   /** @return all available visualizations. */
-  def getAll: Iterable[Visualization] =
-    visualizationMap.values.flatten
+  def getAll: Iterable[Visualization] = synchronized {
+    visualizationMap.values.flatten.toList
+  }
 
   /** @return the oneshot expression attached to the `expressionId`. */
   def getOneshotExpression(
     expressionId: ExpressionId
-  ): OneshotExpression = {
+  ): OneshotExpression = synchronized {
     oneshotExpressions.remove(expressionId).orNull
   }
 
   /** Set oneshot expression for execution. */
-  def setOneshotExpression(oneshotExpression: OneshotExpression): Unit = {
-    this.oneshotExpressions
-      .put(oneshotExpression.expressionId, oneshotExpression)
-  }
+  def setOneshotExpression(oneshotExpression: OneshotExpression): Unit =
+    synchronized {
+      this.oneshotExpressions
+        .put(oneshotExpression.expressionId, oneshotExpression)
+    }
 
   /** Adds an unevaluated visualization. Multiple can exist per expression. */
-  def addUnevaluated(unevaluated: UnevaluatedVisualization): Unit = {
-    val existing = unevaluatedMap(unevaluated.expressionId)
-    val rest     = existing.filterNot(_.id == unevaluated.id)
-    unevaluatedMap.update(unevaluated.expressionId, unevaluated :: rest)
-  }
+  def addUnevaluated(unevaluated: UnevaluatedVisualization): Unit =
+    synchronized {
+      val existing = unevaluatedMap(unevaluated.expressionId)
+      val rest     = existing.filterNot(_.id == unevaluated.id)
+      unevaluatedMap.update(unevaluated.expressionId, unevaluated :: rest)
+    }
 
   /** Removes an unevaluated visualization by ID from a specific expression.
     *
@@ -118,7 +126,7 @@ class VisualizationHolder {
   def removeUnevaluated(
     visualizationId: VisualizationId,
     expressionId: ExpressionId
-  ): Option[UnevaluatedVisualization] = {
+  ): Option[UnevaluatedVisualization] = synchronized {
     val existing        = unevaluatedMap(expressionId)
     val (removed, rest) = existing.partition(_.id == visualizationId)
     unevaluatedMap.update(expressionId, rest)
@@ -133,36 +141,22 @@ class VisualizationHolder {
   @CompilerDirectives.TruffleBoundary
   def findUnevaluated(
     expressionId: ExpressionId
-  ): List[UnevaluatedVisualization] =
+  ): List[UnevaluatedVisualization] = synchronized {
     unevaluatedMap(expressionId)
+  }
 
   /** Gets ALL unevaluated visualizations across all expressions. */
   @CompilerDirectives.TruffleBoundary
-  def getAllUnevaluated: Iterable[UnevaluatedVisualization] =
-    unevaluatedMap.values.flatten
+  def getAllUnevaluated: Iterable[UnevaluatedVisualization] = synchronized {
+    unevaluatedMap.values.flatten.toList
+  }
 
-  /** Gets an unevaluated visualization by ID.
+  /** Checks if there are any pending unevaluated visualizations.
     *
-    * @param visualizationId the identifier of visualization
-    * @return an option with unevaluated visualization
+    * @return true if there are pending visualizations to process
     */
-  def getUnevaluatedById(
-    visualizationId: VisualizationId
-  ): Option[UnevaluatedVisualization] =
-    unevaluatedMap.values.flatten.find(_.id == visualizationId)
-
-  /** Promotes an UnevaluatedVisualization to a Visualization.
-    * Removes from unevaluated storage and adds to visualization storage.
-    *
-    * @param unevaluated the unevaluated visualization to promote
-    * @param visualization the promoted visualization
-    */
-  def promote(
-    unevaluated: UnevaluatedVisualization,
-    visualization: Visualization
-  ): Unit = {
-    removeUnevaluated(unevaluated.id, unevaluated.expressionId)
-    upsert(visualization)
+  def hasPendingVisualizations: Boolean = synchronized {
+    unevaluatedMap.values.exists(_.nonEmpty)
   }
 }
 
@@ -170,5 +164,4 @@ object VisualizationHolder {
 
   /** Returns an empty visualization holder. */
   def empty = new VisualizationHolder
-
 }

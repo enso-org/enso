@@ -104,27 +104,36 @@ public interface Locking {
   ContextLock getOrCreateContextLock(UUID contextId);
 
   /**
-   * Attempts to acquire read compilation lock without blocking.
+   * If one can enter read compilation lock without blocking, then invokes {@code action.run()}
+   * while holding the lock and releasing it then. In such case this method returns {@code true}.
+   * Otherwise it performs no action and returns {@code false}.
    *
    * @param where the class requesting the lock
-   * @return TryLockResult indicating if lock was acquired
+   * @param action code to be executed while holding the lock
+   * @return {@code true} if {@code action} was executed or {@code false} otherwise
    */
-  TryLockResult tryReadCompilationLock(Class<?> where);
+  boolean tryWithReadCompilationLock(Class<?> where, Runnable action);
 
   /**
-   * Attempts to acquire write compilation lock without blocking.
+   * If one can enter write compilation lock without blocking, then invokes {@code action.run()}
+   * while holding the lock and releasing it then. In such case this method returns {@code true}.
+   * Otherwise it performs no action and returns {@code false}.
    *
    * @param where the class requesting the lock
-   * @return TryLockResult indicating if lock was acquired
+   * @param action code to be executed while holding the lock
+   * @return {@code true} if {@code action} was executed or {@code false} otherwise
    */
-  TryLockResult tryWriteCompilationLock(Class<?> where);
+  boolean tryWithWriteCompilationLock(Class<?> where, Runnable action);
 
   /**
-   * Attempts to acquire read context lock without blocking.
+   * If one can enter read context lock without blocking, then invokes {@code action.run()} while
+   * holding the lock and releasing it then. In such case this method returns {@code true}.
+   * Otherwise it performs no action and returns {@code false}.
    *
    * @param contextLock lock used to ensure exclusive access
    * @param where the class requesting the lock
-   * @return TryLockResult indicating if lock was acquired
+   * @param action code to be executed while holding the lock
+   * @return {@code true} if {@code action} was executed or {@code false} otherwise
    */
-  TryLockResult tryReadContextLock(ContextLock contextLock, Class<?> where);
+  boolean tryWithReadContextLock(ContextLock contextLock, Class<?> where, Runnable action);
 }
