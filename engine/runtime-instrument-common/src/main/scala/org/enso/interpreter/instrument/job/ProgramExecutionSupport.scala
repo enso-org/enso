@@ -125,7 +125,8 @@ object ProgramExecutionSupport {
               null;
             }
           )
-          .wait();
+          .toCompletableFuture
+          .get()
       }
 
     val pendingResult = executionFrame match {
