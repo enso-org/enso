@@ -173,7 +173,7 @@ js_binary(
 )
 
 js_run_binary(
-    name = "electron_builder_config",
+    name = "exported_config",
     srcs = [
         ":electron_builder_config_stamped",
         "//:dependencies_scala_bin",
