@@ -3,8 +3,10 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Runtime.Ref.Ref
 
-from Standard.Table import Aggregate_Column, Value_Type
+from Standard.Table import Aggregate_Column, Column, Value_Type
+from Standard.Table.Errors import Inexact_Type_Coercion
 
+import Standard.Table.In_Memory_Column.In_Memory_Column
 import Standard.Database.Connection.Postgres_Connection.Postgres_Connection
 import Standard.Database.DB_Column.DB_Column
 import Standard.Database.Dialects.Dialect.Temp_Table_Style
@@ -448,10 +450,19 @@ type Redshift_Dialect
        private: true
        ---
     value_type_for_upload_of_existing_column : DB_Column -> Value_Type
-    value_type_for_upload_of_existing_column self column =
-        ## TODO special behaviour for big integer columns should be added here, once we start testing this dialect again
-           See: https://docs.aws.amazon.com/redshift/latest/dg/r_Numeric_types201.html#r_Numeric_types201-decimal-or-numeric-type
-        column.value_type
+    value_type_for_upload_of_existing_column self column = case column of
+        # Return the type as-is for database columns.
+        _ : DB_Column -> column.value_type
+        _ : Column ->
+            base_type = column.value_type
+            case base_type of
+                Value_Type.Decimal precision scale ->
+                    used_scale = scale.if_nothing 12
+                    used_precision = Math.min 38 (precision.if_nothing 38)
+                    new_type = Value_Type.Decimal used_precision used_scale
+                    if used_scale==scale && used_precision==precision then new_type else
+                        Warning.attach (Inexact_Type_Coercion.Warning base_type new_type unavailable=False) new_type
+                _ -> base_type
 
     ## ---
        private: true
