@@ -168,7 +168,7 @@ public class VectorTest {
   public void insertSelfWithWarningCheck() throws Exception {
     var ww = warningsInContainer(4, 0);
     assertTrue("Array: " + ww, ww.hasArrayElements());
-    assertTrue("Has warnings (e.g. identifies itself as isException): " + ww, ww.isException());
+    assertHasWarning("Has warnings", ww);
   }
 
   @Test
@@ -362,6 +362,20 @@ public class VectorTest {
 
       assertEquals("at7", lazy.getArrayElement(7).asString());
       assertEquals("Two queries", 2, QUERIED.cardinality());
+    }
+  }
+
+  private static void assertHasWarning(String msg, Value v) {
+    var hasWarnings =
+        ctxRule.evalModule(
+            """
+            from Standard.Base import Warning
+            main = Warning.has_warnings
+            """);
+
+    var ok = hasWarnings.execute(v).asBoolean();
+    if (!ok) {
+      fail("Value should have warnings: " + v);
     }
   }
 }
