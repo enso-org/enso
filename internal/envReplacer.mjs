@@ -204,15 +204,6 @@ async function writeProjectFile(projectPath, fileContents) {
   await writeFileEnsuringDirectory(path.join(outputDirectory, projectPath), fileContents)
 }
 
-/**
- * Writes file to the output path.
- * @param {string} filePath Absolute or execroot-relative output file path.
- * @param {string | Buffer} fileContents What to write to the output file.
- */
-async function writeOutputPath(filePath, fileContents) {
-  await writeFileEnsuringDirectory(filePath, fileContents)
-}
-
 function readOutputFile(projectPath) {
   return fs.readFile(path.join(outputDirectory, projectPath), { encoding: null })
 }
@@ -294,7 +285,7 @@ function rewriteReferencesInText(content) {
 /**
  * Initial pass: copy from input to output, applying replacements for matching files.
  */
-async function initialPassWriteToOutput() {
+async function initialPassWriteToOutput(outputDir) {
   const inputFiles = await enumerateFiles(inputDirectory)
   await Promise.all(
     inputFiles.map(async (projectPath) => {
@@ -303,9 +294,9 @@ async function initialPassWriteToOutput() {
       if (statusFilePath != null && isText && isEnvReplacementFile(projectPath)) {
         const newContent = applyReplacements(buf.toString(), projectPath)
         const newPath = await updateHashInFilename(projectPath, newContent)
-        await writeProjectFile(newPath, newContent)
+        await writeFileEnsuringDirectory(path.join(outputDir, newPath), newContent)
       } else {
-        await writeProjectFile(projectPath, buf)
+        await writeFileEnsuringDirectory(path.join(outputDir, projectPath), buf)
       }
     }),
   )
@@ -320,9 +311,9 @@ async function processSingleFile() {
   const isText = Buffer.isUtf8(fileContents)
 
   if (statusFilePath != null && isText && isEnvReplacementFile(projectPath)) {
-    await writeOutputPath(outputPath, applyReplacements(fileContents.toString(), projectPath))
+    await writeFileEnsuringDirectory(outputPath, applyReplacements(fileContents.toString(), projectPath))
   } else {
-    await writeOutputPath(outputPath, fileContents)
+    await writeFileEnsuringDirectory(outputPath, fileContents)
   }
 
   const writtenContents = await fs.readFile(outputPath, { encoding: null })
@@ -333,9 +324,9 @@ async function processSingleFile() {
 
 /**
  * One cascade pass over the output directory: rewrite references and rename changed files.
- * @returns {number} The number of changed files.
+ * @returns {Promise<number>} The number of changed files.
  */
-async function cascadePassOnce() {
+async function cascadePassOnce(outputDir) {
   const outFiles = await enumerateFiles(outputDirectory)
   let changedCount = 0
   for (const projectPath of outFiles) {
@@ -347,7 +338,7 @@ async function cascadePassOnce() {
       if (newPath !== projectPath) {
         await deleteOutputFile(projectPath)
       }
-      await writeProjectFile(newPath, content)
+      await writeProjectFile(path.join(outputDir, newPath), content)
       changedCount++
     }
   }
@@ -373,12 +364,12 @@ async function finalValidationSweep() {
 
 if (inputIsDirectory) {
   // Execute directory flow with cascading rewrites.
-  await initialPassWriteToOutput()
+  await initialPassWriteToOutput(outputDirectory)
 
   if (statusFilePath != null && recalculateHashes) {
     let passes = 0
     while (passes < 10) {
-      const changed = await cascadePassOnce()
+      const changed = await cascadePassOnce(outputDirectory)
       if (changed === 0) break
       passes++
     }
