@@ -195,15 +195,6 @@ async function writeFileEnsuringDirectory(filePath, fileContents) {
   await fs.writeFile(filePath, fileContents)
 }
 
-/**
- * Writes given project file to the output directory.
- * @param {string} projectPath File path relative to input directory
- * @param {string | Buffer} fileContents What to write to the new file.
- */
-async function writeProjectFile(projectPath, fileContents) {
-  await writeFileEnsuringDirectory(path.join(outputDirectory, projectPath), fileContents)
-}
-
 function readOutputFile(projectPath) {
   return fs.readFile(path.join(outputDirectory, projectPath), { encoding: null })
 }
@@ -311,7 +302,10 @@ async function processSingleFile() {
   const isText = Buffer.isUtf8(fileContents)
 
   if (statusFilePath != null && isText && isEnvReplacementFile(projectPath)) {
-    await writeFileEnsuringDirectory(outputPath, applyReplacements(fileContents.toString(), projectPath))
+    await writeFileEnsuringDirectory(
+      outputPath,
+      applyReplacements(fileContents.toString(), projectPath),
+    )
   } else {
     await writeFileEnsuringDirectory(outputPath, fileContents)
   }
@@ -338,7 +332,7 @@ async function cascadePassOnce(outputDir) {
       if (newPath !== projectPath) {
         await deleteOutputFile(projectPath)
       }
-      await writeProjectFile(path.join(outputDir, newPath), content)
+      await writeFileEnsuringDirectory(path.join(outputDir, newPath), content)
       changedCount++
     }
   }
