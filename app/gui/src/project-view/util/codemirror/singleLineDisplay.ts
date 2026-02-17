@@ -54,6 +54,7 @@ const ext = StateField.define<DecorationSet>({
   provide: (f) => EditorView.decorations.from(f),
 })
 
+/** @internal */
 export function decorateLinebreaks(state: EditorState, decorate: () => Decoration) {
   if (!state.doc.length) return Decoration.none
   const builder = new RangeSetBuilder<Decoration>()
@@ -68,6 +69,7 @@ export function decorateLinebreaks(state: EditorState, decorate: () => Decoratio
   return builder.finish()
 }
 
+/** CodeMirror extension that renders linebreaks as an inline placeholder character. */
 export function singleLineDisplay(): Extension {
   return ext
 }

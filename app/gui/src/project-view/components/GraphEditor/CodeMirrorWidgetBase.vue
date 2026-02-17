@@ -11,7 +11,7 @@ import { Ast } from '@/util/ast'
 import { targetIsOutside } from '@/util/autoBlur'
 import {
   selectAllOnMouseFocus,
-  singleLineDisplay,
+  singleLineDisplay as singleLineDisplayExt,
   useCodeMirror,
   useStringSync,
 } from '@/util/codemirror'
@@ -62,7 +62,7 @@ const { editorView } = useCodeMirror(editorRoot, {
     () => (editorRoot.value ? highlightStyle(editorRoot.value.highlightClasses) : []),
     () =>
       props.lineMode !== 'multi' && props.lineMode !== 'autoMulti' ? selectAllOnMouseFocus : [],
-    () => (props.singleLineDisplay ? singleLineDisplay() : []),
+    () => (props.singleLineDisplay ? singleLineDisplayExt() : []),
     () => props.extensions ?? [],
   ],
   readonly: false,
