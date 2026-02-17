@@ -12,6 +12,11 @@ import {
 // CLI-only metadata defining flags and descriptions.
 const OPTIONS_META: Readonly<Record<string, { flag: string; description: string }>> = {
   version: { flag: '-v, --version', description: 'Show version and exit' },
+  headless: {
+    flag: '--headless',
+    description:
+      'Run in headless mode (single execution). Requires `--startup.project <project path or url>`.',
+  },
   displayWindow: {
     flag: '--no-window',
     description: 'Run server only, no GUI',

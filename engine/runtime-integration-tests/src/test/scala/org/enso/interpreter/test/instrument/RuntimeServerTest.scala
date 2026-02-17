@@ -7718,14 +7718,14 @@ class RuntimeServerTest
         contextId,
         idXSelfMain,
         moduleName,
-        fromCache   = true,
+        fromCache   = false,
         typeChanged = false
       ),
       TestMessages.update(
         contextId,
         idYSelfMain,
         moduleName,
-        fromCache   = true,
+        fromCache   = false,
         typeChanged = false
       ),
       context.executionComplete(contextId)

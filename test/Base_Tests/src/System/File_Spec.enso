@@ -16,6 +16,7 @@ from Standard.Test import all
 import Standard.Test.Test_Environment
 
 import project.Data.Data_Spec
+from project.Utils import create_tmp_dir
 
 ## We rely on a less strict equality for `File` as it is fine if a relative file gets resolved to absolute.
 File.should_equal self other = Frame_Hider.hide <|
@@ -990,7 +991,7 @@ add_specs suite_builder =
             filtered4 = root.list name_filter="nested/*.txt" recursive=True . map .to_text
             filtered4.should_equal (resolve ["subdirectory/nested/b.txt"])
 
-        add_create_and_delete_directory_specs group_builder (enso_project.data / "transient")
+        add_create_and_delete_directory_specs group_builder create_tmp_dir
 
 # `parent_dir` is lazy on purpose to avoid creating a temporary directory in setup phase
 add_create_and_delete_directory_specs group_builder ~parent_dir =

@@ -108,7 +108,8 @@ run_union_tests group_builder setup call_union =
         t2 = table2.get
         t3 = table3.get
 
-        action = call_union [t1, t2, t3] on_problems=_
+        action =
+            call_union [t1, t2, t3] on_problems=_
         tester table =
             m = materialize_and_maybe_sort table
             expect_column_names ["A", "B", "C", "D"] m

@@ -33,7 +33,7 @@ type Bench_Options
     ## ---
        private: true
        ---
-    Impl (warmup:Phase_Conf) (measure:Phase_Conf) (jvm_args:Text|Nothing)=Nothing
+    Impl (warmup:Phase_Conf) (measure:Phase_Conf) (jvm_args : Text | Nothing = Nothing)
 
     ## Sets the warmup phase.
     set_warmup : Phase_Conf -> Bench_Options

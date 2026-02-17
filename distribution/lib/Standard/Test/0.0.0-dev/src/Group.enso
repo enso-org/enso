@@ -31,12 +31,8 @@ type Group_Builder
         - `code`: A thunk that takes no arguments.
         - `pending`: Contains a reason for why the test should be ignored. If
           Nothing, the test is not ignored.
-    specify self (name : Text) (~code : Any) (pending : (Text | Nothing) = Nothing) =
-        case pending of
-            Nothing ->
-                self.builder.append <| Spec.Impl name (_ -> code) pending
-            pend_reason : Text ->
-                self.builder.append <| Spec.Impl name (_ -> Nothing) pend_reason
+    specify self (name : Text) (~code : Any) (~pending : (Text | Nothing) = Nothing) =
+        self.builder.append <| Spec.Impl name (_ -> code) pending
 
 
     ## Provide a teardown of a group - a method that will be called once all the
@@ -53,7 +49,7 @@ type Group_Builder
 
 
 type Group
-    Impl (name : Text) (teardown : (Any -> Any)) (specs : Vector Spec) (pending : (Text | Nothing) = Nothing)
+    private Impl (name : Text) (teardown : (Any -> Any)) (specs : Vector Spec) (~pending : (Text | Nothing) = Nothing)
 
     to_text self =
         sb = StringBuilder.new

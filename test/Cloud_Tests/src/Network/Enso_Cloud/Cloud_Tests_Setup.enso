@@ -106,10 +106,8 @@ type Cloud_Tests_Setup
     ## Prepares a setup that will always call into the local cloud mock.
        This is useful for scenarios like testing credential logic.
     prepare_mock_setup (custom_credentials : Mock_Credentials | Nothing = Nothing) -> Cloud_Tests_Setup =
-        # these tests aren't yet ready to run in "mocked dual JVM mode" - #14037
-        mock_testing_enabled = JSystem.getProperty "polyglot.enso.classLoading"
         base_url = Environment.get "ENSO_HTTP_TEST_HTTPBIN_URL"
-        if mock_testing_enabled.is_nothing.not || base_url.is_nothing then Cloud_Tests_Setup.None else
+        if base_url.is_nothing then Cloud_Tests_Setup.None else
             with_slash = if base_url.ends_with "/" then base_url else base_url + "/"
             enso_cloud_url = with_slash + "enso-cloud-mock/"
 

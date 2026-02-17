@@ -47,7 +47,7 @@ const routes = [
           {
             name: 'dashboard',
             path: '/:path(.*)*',
-            beforeEnter: [maybeRedirectToProject, openProjectFromPath],
+            beforeEnter: maybeRedirectToProject,
             component: () =>
               import('#/pages/dashboard/Dashboard.tsx').then((mod) =>
                 reactComponent(mod.Dashboard),
@@ -116,6 +116,7 @@ const router = createRouter({
   routes,
 })
 
+router.beforeEach(openProjectFromPath)
 router.onError((error) => console.error('Router error', error))
 
 export default router

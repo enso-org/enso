@@ -242,7 +242,7 @@ export const AssetSearchBar = React.memo(function AssetSearchBar(props: AssetSea
         (!(event.target instanceof Node) || rootRef.current?.contains(event.target) !== true) &&
         eventModule.isTextInputEvent(event) &&
         event.key !== ' ' &&
-        (!detect.isOnMacOS() || event.key !== 'Delete') &&
+        event.key !== 'Delete' &&
         modalRef.current == null
       ) {
         searchRef.current?.focus()

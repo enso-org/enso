@@ -125,7 +125,7 @@ export function Dashboard() {
 
   return (
     <CategoriesProvider>
-      <Page hideInfoBar>
+      <Page hideInfoBar hideModalWrapper>
         <div
           className="flex h-full flex-col text-xs text-primary"
           onContextMenu={(event) => {

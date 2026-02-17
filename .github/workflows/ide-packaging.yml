@@ -329,6 +329,7 @@ jobs:
           rm dist/backend/project-manager.tar
       - run: ./run ide build --backend-source local --gui-upload-artifact false
         env:
+          ENSO_IDE_HOST: ${{ vars.ENSO_HOST }}
           ENSO_IDE_AG_GRID_LICENSE_KEY: ${{ vars.ENSO_AG_GRID_LICENSE_KEY }}
           ENSO_IDE_API_URL: ${{ vars.ENSO_CLOUD_API_URL }}
           ENSO_IDE_AUTH_ENDPOINT: ${{ vars.ENSO_CLOUD_AUTH_ENDPOINT }}

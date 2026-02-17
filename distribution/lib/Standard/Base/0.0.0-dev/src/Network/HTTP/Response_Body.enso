@@ -206,7 +206,7 @@ type Response_Body
        ```
     @file (Widget.Text_Input display=Display.Always)
     write : Writable_File -> Existing_File_Behavior -> File
-    write self file:Writable_File on_existing_file=Existing_File_Behavior.Backup =
+    write self file:Writable_File on_existing_file:Existing_File_Behavior=..Backup =
         self.with_stream body_stream->
             file.write on_existing_file output_stream->
                 r = output_stream.write_stream body_stream

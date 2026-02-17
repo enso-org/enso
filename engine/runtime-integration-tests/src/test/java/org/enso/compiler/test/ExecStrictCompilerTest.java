@@ -193,4 +193,49 @@ public class ExecStrictCompilerTest {
           AllOf.allOf(containsString("The name `f`"), containsString("could not be found")));
     }
   }
+
+  @Test
+  public void suspendedDefaultedUnionArgument() throws Exception {
+    var code =
+        """
+        from Standard.Base import all
+        def a:Integer ~b:Text|Nothing=Nothing -> Text|Nothing =
+            if a < 0 then "Minus" else
+                b
+        call_def_with_thunk a:Integer =
+            def a 6*7
+        """;
+    var module = ctxRule.eval(LanguageInfo.ID, code);
+    var def = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "def");
+    var hi = def.execute(1, "Hi");
+    assertEquals("Hi", hi.asString());
+    try {
+      var noResult = def.execute(-2, 20);
+      fail("Invoking def with second argument being Integer yields an exception: " + noResult);
+    } catch (PolyglotException ex) {
+      assertThat(
+          ex.getMessage(),
+          AllOf.allOf(
+              containsString("expected `b` to be Text"), containsString("but got Integer")));
+    }
+    assertTrue("Default value is Nothing. Returns Nothing.", def.execute(3).isNull());
+    assertTrue("Passing null is OK.", def.execute(4, null).isNull());
+    var thunkArg = module.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "call_def_with_thunk");
+    var m = thunkArg.execute(-1);
+    assertEquals(
+        "Invoking def with second argument being a Thunk passes the type check",
+        "Minus",
+        m.asString());
+    try {
+      var fail = thunkArg.execute(1);
+      fail(
+          "Non-negative first argument requires evaluation of the second and that fails on type"
+              + " check.");
+    } catch (PolyglotException ex) {
+      assertThat(
+          ex.getMessage(),
+          AllOf.allOf(
+              containsString("expected `b` to be Text"), containsString("but got Integer")));
+    }
+  }
 }

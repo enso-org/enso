@@ -5,14 +5,14 @@
  */
 import type { Logger } from '#/providers/LoggerProvider'
 import * as appUtils from '$/appUtils'
-import * as cognitoModule from '$/authentication/cognito'
+import { Cognito } from '$/authentication/cognito'
 import * as listen from '$/authentication/listen'
 import { useFeatureFlag } from '$/providers/featureFlags'
 import { useText } from '$/providers/text'
 import { parseEnsoDeeplink } from '@/util/url'
 import * as amplify from '@aws-amplify/auth'
-import * as common from 'enso-common'
 import type * as saveAccessTokenModule from 'enso-common/src/accessToken'
+import * as common from 'enso-common/src/constants'
 import * as detect from 'enso-common/src/utilities/detect'
 import * as toastify from 'react-toastify'
 import { useRouter } from 'vue-router'
@@ -98,8 +98,8 @@ export interface AuthConfig {
 
 /** API for the authentication service. */
 export interface AuthService {
-  /** @see {@link cognitoModule.Cognito}. */
-  readonly cognito: cognitoModule.Cognito
+  /** @see {@link Cognito}. */
+  readonly cognito: Cognito
   /** @see {@link listen.ListenFunction}. */
   readonly registerAuthEventListener: listen.ListenFunction
 }
@@ -121,7 +121,7 @@ export function useInitAuthService(): AuthService {
     enableDeepLinks.value,
     (url) => void router.push(url),
   )
-  const cognito = new cognitoModule.Cognito(console, enableDeepLinks.value, amplifyConfig)
+  const cognito = new Cognito(console, enableDeepLinks.value, amplifyConfig)
 
   return { cognito, registerAuthEventListener: listen.registerAuthEventListener }
 }

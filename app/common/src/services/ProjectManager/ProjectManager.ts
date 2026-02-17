@@ -38,9 +38,6 @@ type WithProjectPath<T> = Omit<T, 'projectId' | 'projectsDirectory'> & {
 
 /**
  * A {@link WebSocket} endpoint to the project manager.
- *
- * It should always be in sync with the Rust interface at
- * `app/gui/controller/engine-protocol/src/project_manager.rs`.
  */
 export class ProjectManager {
   // This is required so that projects get recursively updated (deleted, renamed or moved).

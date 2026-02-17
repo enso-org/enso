@@ -100,6 +100,7 @@ impl IsTarget for Gui {
                 .current_dir(repo_root)
                 .set_env(ide_env::ENSO_IDE_COMMIT_HASH, &commit_hash)?
                 .set_env(ide_env::ENSO_IDE_VERSION, &version_string)?
+                .set_env(ide_env::MODE, &mode.to_string())?
                 .run("build:gui")
                 .arg(format!("--mode={mode}"))
                 .run_ok()

@@ -280,4 +280,11 @@ export default class BaseActions<Context, ParentClass extends BaseActionsClass<C
       })
     }
   }
+
+  /** Expect that no modal dialog is displayed. */
+  expectNoModal() {
+    return this.step('Expect no modal opened', () =>
+      expect(this.page.getByTestId('modal-dialog')).not.toBeVisible(),
+    )
+  }
 }

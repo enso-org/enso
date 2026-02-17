@@ -44,6 +44,8 @@
     - Date_Diff end:(Standard.Table.Column_Ref.Column_Ref|Standard.Table.Expression.Expression|Standard.Base.Data.Time.Date_Time.Date_Time|Standard.Base.Data.Time.Date.Date|Standard.Base.Data.Time.Time_Of_Day.Time_Of_Day)= period:(Standard.Base.Data.Time.Date_Period.Date_Period|Standard.Base.Data.Time.Time_Period.Time_Period)=
     - Date_Part period:(Standard.Base.Data.Time.Date_Period.Date_Period|Standard.Base.Data.Time.Time_Period.Time_Period)=
     - Divide rhs:(Standard.Table.Column_Ref.Column_Ref|Standard.Table.Expression.Expression|Standard.Base.Data.Numbers.Number)=
+    - End_Of_Month
+    - First_Of_Month
     - Floor
     - Format format:Standard.Base.Data.Text.Text=
     - If condition:Standard.Base.Data.Filter_Condition.Filter_Condition= true_value:(Standard.Table.Column_Ref.Column_Ref|Standard.Table.Expression.Expression|Standard.Base.Any.Any)= false_value:(Standard.Table.Column_Ref.Column_Ref|Standard.Table.Expression.Expression|Standard.Base.Any.Any)=

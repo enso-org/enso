@@ -18,18 +18,21 @@
   "main": "src/index.ts",
   "scripts": {
     "test:unit": "vitest run",
-    "compile": "tsc",
+    "typecheck": "tsc --noEmit",
+    "compile": "vite build",
     "lint": "eslint ./src --cache --max-warnings=0"
   },
   "dependencies": {
     "@internationalized/date": "3.7.0",
     "@types/node": "catalog:",
     "is-network-error": "^1.1.0",
+    "vite": "catalog:",
     "vue": "catalog:",
     "zod": "catalog:"
   },
   "devDependencies": {
     "@fast-check/vitest": "catalog:",
+    "vite-plugin-dts": "^4.5.4",
     "vitest": "catalog:"
   }
 }

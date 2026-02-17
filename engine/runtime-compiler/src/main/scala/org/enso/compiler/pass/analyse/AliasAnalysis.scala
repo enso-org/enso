@@ -473,7 +473,11 @@ case object AliasAnalysis extends IRPass {
     builder: GraphBuilder
   ): Type = {
     value match {
-      case member @ `type`.Set.Member(label, memberType, value, _, _) =>
+      case member: `type`.Set.Member =>
+        val label      = member.label()
+        val memberType = member.memberType()
+        val value      = member.value()
+
         val memberTypeScope = memberType match {
           case _: Literal => builder
           case _          => builder.addChild()
@@ -491,10 +495,10 @@ case object AliasAnalysis extends IRPass {
         )
 
         val mc = member
-          .copy(
-            memberType = analyseExpression(memberType, memberTypeScope),
-            value      = analyseExpression(value, valueScope)
-          )
+          .copyBuilder()
+          .memberType(analyseExpression(memberType, memberTypeScope))
+          .value(analyseExpression(value, valueScope))
+          .build()
         alias.AliasMetadata
           .updateMetadata(
             mc,

@@ -1,19 +1,10 @@
 import { Path, UUID } from 'enso-common/src/services/Backend'
 import type * as http from 'node:http'
 import { ProjectService, type CloudParams } from '../projectService/index.js'
+import { bodyJson } from './http.js'
 import { toJSONRPCError, toJSONRPCResult } from './jsonrpc.js'
 
 const HTTP_STATUS_OK = 200
-
-/** Read JSON from an HTTP request body. */
-async function bodyJson<T>(request: http.IncomingMessage): Promise<T> {
-  const chunks: Buffer[] = []
-  for await (const chunk of request) {
-    chunks.push(typeof chunk === 'string' ? Buffer.from(chunk) : chunk)
-  }
-  const body = Buffer.concat(chunks).toString('utf-8')
-  return JSON.parse(body) as T
-}
 
 /** Check if this is a project service request */
 export function isProjectServiceRequest(requestPath: string): boolean {

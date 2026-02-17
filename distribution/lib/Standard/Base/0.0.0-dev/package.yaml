@@ -41,7 +41,7 @@ services:
   # File_Format_SPI definitions
 
   - provides: Standard.Base.System.File_Format.File_Format_SPI
-    with: Standard.Base.System.Internal.File_Builtins.Default_File_Formats
+    with: Standard.Base.System.Internal.File_Helpers.Default_File_Formats
   - provides: Standard.Base.System.File_Format.File_Format_SPI
     with: Standard.Base.Data.XML.XML_Format.XML_Format
 

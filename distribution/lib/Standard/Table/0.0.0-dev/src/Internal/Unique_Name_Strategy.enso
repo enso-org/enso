@@ -141,7 +141,8 @@ type Unique_Name_Strategy
        private: true
        advanced: true
        ---
-       Takes a name and gets a unique version.
+       Takes a name and gets a unique version. Marks the newly created name as
+       used.
 
        ## Arguments
         - `name`: The column name to make unique.

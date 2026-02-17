@@ -381,6 +381,13 @@ type DuckDB_Dialect
     ensure_query_has_no_holes self jdbc:JDBC_Connection raw_sql:Text =
         jdbc.ensure_query_has_no_holes raw_sql
 
+    ## ---
+       private: true
+       ---
+    spatial_types : Hashset Text
+    spatial_types self =
+        _ = self
+        Hashset.from_vector ["GEOMETRY", "POINT_2D", "LINESTRING_2D", "BOX_2D", "POLYGON_2D"]
 ## ---
    private: true
    ---
@@ -416,11 +423,11 @@ duckdb_dialect_name = "DuckDB"
    ---
    Dialect operation overrides for DuckDB.
 private duckdb_overrides =
-    text_ops = [make_case_sensitive, make_add_text, ["REPLACE", replace], ends_with, contains, ["PROPER", Nothing]]
+    text_ops = [make_case_sensitive, make_add_text, ["REPLACE", replace], ends_with, contains, index_of, ["PROPER", Nothing]]
     scalars = [["ROUND_BANKERS", Base_Generator.make_function "ROUND_EVEN"], ["GROUP_NUMBER_EQUAL_COUNT", make_group_number_equal_count]]
     date_ops = [["quarter", make_quarter],["date_diff", make_date_diff], ["date_add", make_date_add]]
     aggs = [make_first_aggr, make_first_aggr not_null=True, make_last_aggr, make_last_aggr not_null=True, agg_shortest, agg_longest, agg_median, agg_stddev, agg_stddev_pop, agg_mode]
-    other = [["RUNTIME_ERROR", make_runtime_error_op]]
+    other = [["RUNTIME_ERROR", make_runtime_error_op], make_st_to_geojson]
     text_ops + scalars + date_ops + aggs + other
 
 ## ---
@@ -499,22 +506,26 @@ make_date_diff arguments (metadata : Date_Period_Metadata) =
 ## ---
    private: true
    ---
-   GroupNumber = FLOOR(RowNumber / CEIL(TotalRowCount / GroupCount)) (0 based)
 make_group_number_equal_count : Vector SQL_Builder -> SQL_Builder
 make_group_number_equal_count (arguments : Vector) = if arguments.length < 3 then Error.throw (Illegal_State.Error "Wrong amount of parameters in GROUP_NUMBER_EQUAL_COUNT IR. This is a bug in the Database library.") else
-    ordering = arguments.drop 3
-    ordering_part = if ordering.length == 0 then "" else
-        SQL_Builder.code " OVER (ORDER BY " ++ SQL_Builder.join ", " ordering ++ ")"
-    row_number_minus_1 = (SQL_Builder.code "ROW_NUMBER()" ++ ordering_part).paren ++ " - 1"
-
-    group_count = arguments.at 2
-    group_size = SQL_Builder.code "CEIL((COUNT(*) OVER ()) / " ++ group_count ++ ")"
-
-    base_value = SQL_Builder.code "FLOOR(" ++ row_number_minus_1.paren ++ " / " ++ group_size ++ ") + 1"
-
     offset = arguments.at 0
     step = arguments.at 1
-    (base_value.paren ++ " * " ++ step) . paren ++ " + " ++ offset
+    group_count = arguments.at 2
+
+    ordering = arguments.drop 3
+
+    ordering_part = if ordering.length == 0 then "" else
+        SQL_Builder.code "ORDER BY " ++ SQL_Builder.join ", " ordering
+    count = SQL_Builder.code "(count(*) over ())"
+    row_number_minus_1 = SQL_Builder.code "((row_number() over (" ++ ordering_part ++ ")) - 1)"
+    small_group_size = SQL_Builder.code "(floor(" ++ count ++ " / " ++ group_count.paren ++ "))"
+    extra = SQL_Builder.code "(" ++ count ++ " % " ++ group_count.paren ++ ")"
+    is_in_large_groups = SQL_Builder.code "(" ++ row_number_minus_1 ++ " < (" ++ extra.paren ++ " * (" ++ small_group_size.paren ++ " + 1)))"
+    gn_large_groups = SQL_Builder.code "(floor(" ++ row_number_minus_1 ++ " / (" ++ small_group_size.paren ++ " + 1)))"
+    gn_small_groups = SQL_Builder.code "(floor(((" ++ row_number_minus_1 ++ " - (" ++ extra.paren ++ " * (" ++ small_group_size.paren ++ " + 1))) / " ++ small_group_size.paren ++ ") + " ++ extra.paren ++ "))"
+    base_group_number = SQL_Builder.code "(case when " ++ is_in_large_groups.paren ++ " then " ++ gn_large_groups.paren ++ " else " ++ gn_small_groups.paren ++ " end)"
+
+    SQL_Builder.code "((" ++ base_group_number.paren ++ " * " ++ step.paren ++ ") + " ++ offset.paren ++ ")"
 
 ## ---
    private: true
@@ -538,6 +549,12 @@ make_last_aggr not_null:Boolean=False =
         filter_clause = if not_null then SQL_Builder.code " FILTER (" ++ args.first ++ " IS NOT NULL)" else ""
         SQL_Builder.code "(array_agg(" ++ args.first.paren ++ order_clause ++ ")" ++ filter_clause ++ ")[-1]"
     [(if not_null then "LAST_NOT_NULL" else "LAST"), func]
+
+## ---
+   private: true
+   ---
+make_st_to_geojson = Base_Generator.lift_unary_op "ST_ASGEOJSON" arg->
+    SQL_Builder.code "CAST(ST_AsGeoJSON(" ++ arg ++ ') AS VARCHAR)'
 
 ## ---
    private: true
@@ -598,6 +615,12 @@ ends_with = Base_Generator.lift_binary_sql_function "ENDS_WITH" "ends_with"
    private: true
    ---
 contains = Base_Generator.lift_binary_sql_function "CONTAINS" "contains"
+
+## ---
+   private: true
+   ---
+index_of = Base_Generator.lift_binary_op "INDEX_OF" str-> substr->
+    SQL_Builder.code "instr(" ++ str ++ ", " ++ substr ++ ") - 1"
 
 ## ---
    private: true

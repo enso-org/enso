@@ -37,27 +37,19 @@ impl BuildInput {
 
 #[derive(Clone, Debug)]
 pub struct Artifact {
-    /// Location of the Project Manager distribution.
-    pub path: crate::paths::generated::ProjectManagerBundle,
-    /// Versions of Engine that are bundled in this Project Manager distribution.
+    /// Location of the backend distribution.
+    pub path: PathBuf,
+    /// Versions of Engine that are bundled in this distribution.
     ///
-    /// Technically a Project Manager bundle can be shipped with arbitrary number of Enso Engine
-    /// packages. However in packages we create it is almost always zero (for plain PM package) or
-    /// one (for full PM bundle).
-    ///
-    /// Artifacts built with [`ProjectManager::build`] will have exactly one engine
-    /// bundled.
+    /// In practice, a backend bundle now contains either zero or one Enso Engine package.
     pub engine_versions: Vec<Version>,
 }
 
 impl Artifact {
-    /// Latest version of Enso Engine that is bundled in this Project Manager distribution.
+    /// Latest version of Enso Engine that is bundled in this distribution.
     pub fn latest_engine_version(&self) -> Result<&Version> {
         self.engine_versions.iter().max().with_context(|| {
-            format!(
-                "Project Manager bundle at {} does not contain any Enso Engine packages.",
-                self.path
-            )
+            format!("Backend at {} does not contain any Enso Engine packages.", self.path.display())
         })
     }
 }
@@ -69,23 +61,6 @@ impl AsRef<Path> for Artifact {
 }
 
 impl IsArtifact for Artifact {}
-
-/// Retrieves a list of all Enso Engine versions that are bundled within a given Project Manager
-/// distribution.
-#[context("Failed to list bundled engine versions: {}", project_manager_bundle)]
-pub async fn bundled_engine_versions(
-    project_manager_bundle: &crate::paths::generated::ProjectManagerBundle,
-) -> Result<Vec<Version>> {
-    let mut ret = vec![];
-
-    let mut dir_reader = ide_ci::fs::tokio::read_dir(&project_manager_bundle.dist).await?;
-    while let Some(entry) = dir_reader.try_next().await? {
-        if ide_ci::fs::tokio::metadata(entry.path()).await?.is_dir() {
-            ret.push(Version::from_str(entry.file_name().as_str())?);
-        }
-    }
-    Ok(ret)
-}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Backend {
@@ -106,29 +81,26 @@ impl IsTarget for Backend {
     type Artifact = Artifact;
 
     fn artifact_name(&self) -> String {
-        // Version is not part of the name intentionally. We want to refer to PM bundles as
-        // artifacts without knowing their version.
-        format!("project-manager-{}", self.target_os)
+        format!("backend-{}", self.target_os)
     }
 
     fn adapt_artifact(self, path: impl AsRef<Path>) -> BoxFuture<'static, Result<Self::Artifact>> {
-        let exe_suffix = self.target_os.exe_suffix().to_owned();
         let path = path.as_ref().to_owned();
-        let provisional_path: crate::paths::generated::ProjectManagerBundle =
-            crate::paths::generated::ProjectManagerBundle::new_root(
-                &path,
-                &exe_suffix,
-                "<unknown version>",
-            );
         async move {
-            let engine_versions = bundled_engine_versions(&provisional_path).await?;
-            let path = crate::paths::generated::ProjectManagerBundle::new_root(
-                &path,
-                &exe_suffix,
-                engine_versions
-                    .last()
-                    .map_or_else(|| "<unknown version>".to_string(), |v| v.to_string()),
-            );
+            // Detect engine versions by listing directories under dist/ that are valid semver.
+            let mut engine_versions = Vec::new();
+            let dist_dir = path.join("dist");
+            if dist_dir.exists() {
+                for entry in std::fs::read_dir(&dist_dir)? {
+                    let entry = entry?;
+                    if entry.file_type()?.is_dir() {
+                        let name = entry.file_name().to_string_lossy().to_string();
+                        if let Ok(version) = Version::parse(&name) {
+                            engine_versions.push(version);
+                        }
+                    }
+                }
+            }
             Ok(Artifact { path, engine_versions })
         }
         .boxed()

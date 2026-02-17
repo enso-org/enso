@@ -5,9 +5,7 @@ use ide_ci::github::release;
 #[derive(Clone, Copy, Debug)]
 pub enum ArtifactKind {
     EnginePackage,
-    ProjectManagerPackage,
     LauncherPackage,
-    ProjectManagerBundle,
     LauncherBundle,
     EngineBundle,
 }
@@ -62,30 +60,6 @@ impl IsArtifact for crate::paths::generated::EnginePackage {
     }
     fn is_published(&self) -> bool {
         true
-    }
-    fn as_dyn_artifact(&self) -> &dyn IsArtifact {
-        self
-    }
-}
-
-impl IsArtifact for crate::paths::generated::ProjectManagerPackage {
-    fn kind(&self) -> ArtifactKind {
-        ArtifactKind::ProjectManagerPackage
-    }
-    fn is_published(&self) -> bool {
-        false
-    }
-    fn as_dyn_artifact(&self) -> &dyn IsArtifact {
-        self
-    }
-}
-
-impl IsArtifact for crate::paths::generated::ProjectManagerBundle {
-    fn kind(&self) -> ArtifactKind {
-        ArtifactKind::ProjectManagerBundle
-    }
-    fn is_published(&self) -> bool {
-        false
     }
     fn as_dyn_artifact(&self) -> &dyn IsArtifact {
         self

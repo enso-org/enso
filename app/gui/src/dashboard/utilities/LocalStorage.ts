@@ -1,6 +1,6 @@
 /** @file A LocalStorage data manager. */
 import { useVueValue } from '$/providers/react/common'
-import * as common from 'enso-common'
+import * as common from 'enso-common/src/constants'
 import * as object from 'enso-common/src/utilities/data/object'
 import { IS_DEV_MODE } from 'enso-common/src/utilities/detect'
 import { useCallback } from 'react'

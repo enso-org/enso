@@ -17,6 +17,7 @@ import com.oracle.truffle.api.nodes.ExecutableNode;
 import com.oracle.truffle.api.nodes.Node;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
+import java.nio.file.Path;
 import java.time.ZoneId;
 import java.util.List;
 import java.util.Objects;
@@ -69,12 +70,14 @@ import org.enso.interpreter.runtime.tag.Patchable;
 import org.enso.interpreter.util.FileDetector;
 import org.enso.lockmanager.client.ConnectedLockManager;
 import org.enso.logger.masking.MaskingFactory;
+import org.enso.scala.wrapper.ScalaConversions;
 import org.enso.syntax2.Line;
 import org.enso.syntax2.Tree;
 import org.graalvm.options.OptionCategory;
 import org.graalvm.options.OptionDescriptors;
 import org.graalvm.options.OptionKey;
 import org.graalvm.options.OptionType;
+import scala.collection.immutable.Seq;
 
 /**
  * The root of the Enso implementation.
@@ -149,8 +152,20 @@ public final class EnsoLanguage extends TruffleLanguage<EnsoContext> {
 
     TruffleLogger logger = env.getLogger(EnsoLanguage.class);
 
+    var editionsDir = env.getOptions().get(RuntimeOptions.EDITIONS_DIRECTORY_KEY);
     var environment = new Environment() {};
-    var distributionManager = new DistributionManager(environment);
+    DistributionManager distributionManager;
+    if (!editionsDir.isEmpty()) {
+      distributionManager =
+          new DistributionManager(environment) {
+            @Override
+            public Seq<Path> detectCustomEditionPaths(Path ensoHome) {
+              return ScalaConversions.seq(List.of(Path.of(editionsDir)));
+            }
+          };
+    } else {
+      distributionManager = new DistributionManager(environment);
+    }
 
     LockManager lockManager;
     ConnectedLockManager connectedLockManager = null;

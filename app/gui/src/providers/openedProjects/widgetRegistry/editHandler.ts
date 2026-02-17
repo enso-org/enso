@@ -5,7 +5,16 @@ import type { PortId } from '@/providers/portInfo'
 import { injectWidgetTree, type CurrentEdit } from '@/providers/widgetTree'
 import type { Ast } from '@/util/ast'
 import { ArgumentInfoKey } from '@/util/callTree'
-import { computed, markRaw, shallowRef, useId, watch, type ShallowRef, type WatchSource } from 'vue'
+import {
+  computed,
+  markRaw,
+  shallowRef,
+  toValue,
+  useId,
+  watch,
+  type ShallowRef,
+  type WatchSource,
+} from 'vue'
 import { assertDefined } from 'ydoc-shared/util/assert'
 
 declare const widgetInstanceIdBrand: unique symbol
@@ -303,10 +312,10 @@ export class WidgetEditHandler extends WidgetEditHandlerParent {
     )
     assertDefined(currentHandler.value)
     watch(
-      [currentHandler, widgetInstanceId],
-      ([handler, id], _, onCleanup) => {
-        handler.tryResume(id, handler.portId)
-        onCleanup(() => handler.suspend(id))
+      currentHandler,
+      (handler, _, onCleanup) => {
+        handler.tryResume(toValue(widgetInstanceId), handler.portId)
+        onCleanup(() => handler.suspend(toValue(widgetInstanceId)))
       },
       { immediate: true },
     )

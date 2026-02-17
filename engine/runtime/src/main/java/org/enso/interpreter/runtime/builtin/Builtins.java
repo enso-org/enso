@@ -22,7 +22,6 @@ import org.enso.interpreter.node.expression.builtin.error.NoWrap;
 import org.enso.interpreter.node.expression.builtin.error.ProblemBehavior;
 import org.enso.interpreter.node.expression.builtin.error.Warning;
 import org.enso.interpreter.node.expression.builtin.immutable.Vector;
-import org.enso.interpreter.node.expression.builtin.io.File;
 import org.enso.interpreter.node.expression.builtin.meta.ProjectDescription;
 import org.enso.interpreter.node.expression.builtin.mutable.Array;
 import org.enso.interpreter.node.expression.builtin.mutable.Ref;
@@ -75,7 +74,6 @@ public final class Builtins {
   private final Builtin managedResource;
   private final Builtin debug;
   private final ProjectDescription projectDescription;
-  private final Builtin file;
   private final Builtin date;
   private final Builtin dateTime;
   private final Builtin duration;
@@ -132,7 +130,6 @@ public final class Builtins {
     managedResource = getBuiltinType(ManagedResource.class);
     debug = getBuiltinType(Debug.class);
     projectDescription = getBuiltinType(ProjectDescription.class);
-    file = getBuiltinType(File.class);
     date = getBuiltinType(org.enso.interpreter.node.expression.builtin.date.Date.class);
     dateTime = getBuiltinType(org.enso.interpreter.node.expression.builtin.date.DateTime.class);
     duration = getBuiltinType(org.enso.interpreter.node.expression.builtin.date.Duration.class);
@@ -330,15 +327,6 @@ public final class Builtins {
   /** Returns the {@code Additional_Warnings} atom constructor. */
   public AdditionalWarnings additionalWarnings() {
     return additionalWarnings;
-  }
-
-  /**
-   * Returns the {@code File} atom constructor.
-   *
-   * @return the {@code File} atom constructor
-   */
-  public Type file() {
-    return file.getType();
   }
 
   /**

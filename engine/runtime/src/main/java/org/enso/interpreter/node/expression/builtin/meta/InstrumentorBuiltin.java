@@ -1,6 +1,8 @@
 package org.enso.interpreter.node.expression.builtin.meta;
 
 import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.frame.MaterializedFrame;
+import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.interop.InvalidArrayIndexException;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.dsl.Builtin;
@@ -25,10 +27,10 @@ public class InstrumentorBuiltin extends Node {
 
   @SuppressWarnings("unchecked")
   @CompilerDirectives.TruffleBoundary
-  private static Object findUuid(Object uuid, EnsoContext ctx) {
+  private static Object findUuid(MaterializedFrame frame, Object uuid, EnsoContext ctx) {
     var key = ctx.getBuiltins().instrumentor();
     try {
-      var obj = GetStateNode.getUncached().executeGet(key);
+      var obj = GetStateNode.getUncached().executeGet(frame, key, null);
       if (obj instanceof java.util.function.Function cache) {
         return cache.apply(uuid.toString());
       }
@@ -38,12 +40,12 @@ public class InstrumentorBuiltin extends Node {
     return null;
   }
 
-  Object execute(Text operation, Object args) {
+  Object execute(VirtualFrame frame, Text operation, Object args) {
     var ctx = EnsoContext.get(this);
     var op = operation.toString();
     try {
       if ("uuid".equals(op)) {
-        var res = findUuid(args, ctx);
+        var res = findUuid(frame.materialize(), args, ctx);
         if (res == null) {
           return ctx.getBuiltins().nothing();
         } else {

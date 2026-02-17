@@ -1,4 +1,3 @@
-import { BLACK_SQUARE_IMAGE_512PX } from '#/utilities/image'
 import type * as cognitoModule from '$/authentication/cognito'
 import { useFeatureFlag } from '$/providers/featureFlags'
 import * as analytics from '$/utils/analytics'
@@ -95,7 +94,6 @@ function createAuthStore(
   const usersMeQueryKey = createUsersMeQueryKey(session, remoteBackend)
 
   const planOverride = useFeatureFlag('developerPlanOverride')
-  const overrideProfilePicture = useFeatureFlag('overrideProfilePicture')
 
   const createUserMutation = vueQuery.useMutation({
     mutationFn: (user: backendModule.CreateUserRequestBody) => remoteBackend.createUser(user),
@@ -226,18 +224,11 @@ function createAuthStore(
     }
   })
 
-  const effectiveUserData = computed(() => {
-    const intermediate =
-      userData.value && planOverride.value != null ?
-        { ...userData.value, user: { ...userData.value.user, plan: planOverride.value } }
-      : userData.value
-    return intermediate && overrideProfilePicture.value ?
-        {
-          ...intermediate,
-          user: { ...intermediate.user, profilePicture: BLACK_SQUARE_IMAGE_512PX },
-        }
-      : intermediate
-  })
+  const effectiveUserData = computed(() =>
+    userData.value && planOverride.value != null ?
+      { ...userData.value, user: { ...userData.value.user, plan: planOverride.value } }
+    : userData.value,
+  )
 
   return proxyRefs({
     refetchSession,

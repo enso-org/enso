@@ -5,6 +5,7 @@ import Standard.Base.Errors.File_Error.File_Error
 import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Unimplemented.Unimplemented
 import Standard.Base.Runtime.Context
+import Standard.Base.Runtime.Ref.Ref
 
 from Standard.Test import all
 import Standard.Test.Test_Environment
@@ -25,7 +26,7 @@ add_specs suite_builder setup:Cloud_Tests_Setup = suite_builder.group "Enso Clou
         Panic.rethrow <| "Hello Another!".write (sub / "another.txt")
     group_builder.teardown test_root.cleanup
 
-    add_data_specs suite_builder test_root.get
+    add_data_specs setup suite_builder test_root
 
     group_builder.specify "should be able to list a directory" <|
         assets = Enso_File.home.list
@@ -395,10 +396,14 @@ add_specs suite_builder setup:Cloud_Tests_Setup = suite_builder.group "Enso Clou
     Local_File_Spec.add_create_and_delete_directory_specs group_builder test_root.get
     Local_File_Spec.add_copy_edge_cases_specs group_builder test_root.get
 
-add_data_specs suite_builder root =
-    my_dir = (root / "data_specs-").create_directory
+private add_data_specs setup:Cloud_Tests_Setup suite_builder root_provider =
+    my_dir_ref = Ref.new Nothing
+    my_dir =
+        if my_dir_ref.get.is_nothing then
+            my_dir_ref.put (root_provider.get / "data_specs-").create_directory
+        my_dir_ref.get
     file_maker path_element:Text = my_dir / (path_element+".txt")
-    Data_Spec.add_specs "(Enso_File) " suite_builder file_maker
+    Data_Spec.add_specs pending=setup.real_cloud_pending "(Enso_File) " suite_builder file_maker
 
 main filter=Nothing =
     setup = Cloud_Tests_Setup.prepare

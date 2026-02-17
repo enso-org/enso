@@ -49,8 +49,7 @@ type SQLite_JDBC_File_Config
     name self = "SQLite File"
 
     with_database self ~action =
-        data_dir = enso_project.data / "transient"
-        database_root = data_dir / "sqlite_tests"
+        database_root = Self.create_tmp_dir
         url = "jdbc:sqlite:" + database_root.path + "/test"
         cleanup =
             database_root . delete_if_exists recursive=True
@@ -67,6 +66,12 @@ type SQLite_JDBC_File_Config
                 conn.close
             Panic.with_finalizer cleanup <|
                 action conn
+
+    private create_tmp_dir -> File =
+        tmp_file = File.create_temporary_file suffix=""
+        tmp_file.delete
+        tmp_file.create_directory
+        tmp_file
 
 ## ---
    private: true

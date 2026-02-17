@@ -168,6 +168,20 @@ test('Local Workflow', async ({ page, app, projectsDir }) => {
   expect(projectFiles).toContain('images')
   const images = await fs.readdir(pathModule.join(PROJECT_PATH, 'images'))
   expect(images).toContain('image.png')
+
+  // Rename the project
+  await page.getByRole('button', { name: 'Additional Options' }).click()
+  await page.getByRole('button', { name: 'Rename Project' }).click()
+  await expect(page.getByTitle('Project Name').locator('.cm-content')).toBeFocused()
+  await page.keyboard.insertText('Test Project')
+  await page.keyboard.press('Enter')
+  await expect(page.getByTestId('project-view-tab-button')).toHaveText('Test Project')
+  await expect(page.getByTitle('Project Name')).toHaveText('Test Project')
+
+  // Check that the name is changed also in drive
+  await page.getByRole('tab', { name: 'Data Catalog' }).click()
+  await expect(page.getByTestId('asset-row-name')).toHaveCount(2)
+  await expect(page.getByTestId('asset-row-name')).toHaveText(['Samples', 'Test Project'])
 })
 
 async function readFile(projectDir: string, fileName: string): Promise<string> {

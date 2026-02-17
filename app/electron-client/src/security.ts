@@ -25,9 +25,6 @@ const TRUSTED_HOSTS = [
   'opk1cxpwec.execute-api.eu-west-1.amazonaws.com',
   'xw0g8j3tsb.execute-api.eu-west-1.amazonaws.com',
   's3.eu-west-1.amazonaws.com',
-  // This (`localhost`) is required to access Project Manager HTTP endpoints.
-  // This should be changed appropriately if the Project Manager's port number becomes dynamic.
-  '127.0.0.1:30535',
 ]
 
 /** The list of protocols that the app can open external links to. */

@@ -28,6 +28,12 @@ type File_Like
     ## ---
        private: true
        ---
+       Returns the file's extension.
+    extension self -> Text = self.underlying.extension
+
+    ## ---
+       private: true
+       ---
     parent self -> File_Like = File_Like.from self.underlying.parent
 
     ## ---

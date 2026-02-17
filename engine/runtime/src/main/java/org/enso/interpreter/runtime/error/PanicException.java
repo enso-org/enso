@@ -73,6 +73,7 @@ public final class PanicException extends AbstractTruffleException {
     this.ctx = ctx;
   }
 
+  /** package private for use from {@link DataflowError#rethrow}. */
   PanicException(DataflowError err) {
     super(err);
     this.payload = err.getPayload();

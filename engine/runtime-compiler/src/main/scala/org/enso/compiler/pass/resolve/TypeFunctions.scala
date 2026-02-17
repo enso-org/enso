@@ -5,7 +5,6 @@ import org.enso.compiler.core.Implicits.AsMetadata
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.{
   `type`,
-  AscriptionReason,
   CallArgument,
   Expression,
   IdentifiedLocation,
@@ -69,7 +68,7 @@ case object TypeFunctions extends IRPass {
     @unused moduleContext: ModuleContext
   ): Module = {
     val new_bindings = ir.bindings.map(_.mapExpressions(resolveExpression))
-    ir.copyWithBindings(bindings = new_bindings)
+    ir.copyWithBindings(new_bindings)
   }
 
   /** Performs typing function resolution on an expression.
@@ -92,14 +91,11 @@ case object TypeFunctions extends IRPass {
 
   /** The names of the known typing functions. */
   private val knownTypingFunctions: Set[String] = Set(
-    Type.Ascription.name,
-    Type.Context.name,
-    Type.Error.name,
-    `type`.Set.Concat.name,
-    `type`.Set.Subsumption.name,
-    `type`.Set.Equality.name,
-    `type`.Set.Union.name,
-    `type`.Set.Intersection.name
+    Type.Ascription.NAME,
+    Type.Context.NAME,
+    Type.Error.NAME,
+    `type`.Set.Union.NAME,
+    `type`.Set.Intersection.NAME
   )
 
   /** Performs resolution of typing functions in an arbitrary expression.
@@ -128,9 +124,13 @@ case object TypeFunctions extends IRPass {
     app match {
       case pre: Application.Prefix =>
         pre.function match {
-          case name: Name if name.name == `type`.Set.Union.name =>
+          case name: Name if name.name == `type`.Set.Union.NAME =>
             val members = flattenUnion(app).map(resolveExpression)
-            `type`.Set.Union(members, app.identifiedLocation())
+            `type`.Set.Union
+              .builder()
+              .operands(members)
+              .location(app.identifiedLocation())
+              .build()
           case name: Name if knownTypingFunctions.contains(name.name) =>
             resolveKnownFunction(
               name,
@@ -165,7 +165,7 @@ case object TypeFunctions extends IRPass {
     expr match {
       case app: Application.Prefix
           if app.function.isInstanceOf[Name] &&
-          app.function.asInstanceOf[Name].name == `type`.Set.Union.name =>
+          app.function.asInstanceOf[Name].name == `type`.Set.Union.NAME =>
         app.arguments.flatMap(arg => flattenUnion(arg.value))
       case _ => List(expr)
     }
@@ -194,21 +194,37 @@ case object TypeFunctions extends IRPass {
       val rightArg = resolveExpression(arguments.last.value)
 
       name.name match {
-        case Type.Ascription.name =>
-          Type.Ascription(leftArg, rightArg, AscriptionReason.empty(), location)
-        case Type.Context.name =>
-          Type.Context(leftArg, rightArg, location)
-        case Type.Error.name =>
-          Type.Error(leftArg, rightArg, location)
-        case `type`.Set.Concat.name =>
-          `type`.Set.Concat(leftArg, rightArg, location)
-        case `type`.Set.Subsumption.name =>
-          `type`.Set.Subsumption(leftArg, rightArg, location)
-        case `type`.Set.Equality.name =>
-          `type`.Set.Equality(leftArg, rightArg, location)
-        case `type`.Set.Intersection.name =>
-          `type`.Set.Intersection(leftArg, rightArg, location)
+        case Type.Ascription.NAME =>
+          Type.Ascription
+            .builder()
+            .typed(leftArg)
+            .signature(rightArg)
+            .location(location)
+            .build()
+        case Type.Context.NAME =>
+          Type.Context
+            .builder()
+            .typed(leftArg)
+            .context(rightArg)
+            .location(location)
+            .build()
+        case Type.Error.NAME =>
+          Type.Error
+            .builder()
+            .typed(leftArg)
+            .error(rightArg)
+            .location(location)
+            .build()
+        case `type`.Set.Intersection.NAME =>
+          `type`.Set.Intersection
+            .builder()
+            .left(leftArg)
+            .right(rightArg)
+            .location(location)
+            .build()
+        case _ => Error.InvalidIR(originalIR)
       }
+
     } else {
       Error.InvalidIR(originalIR)
     }

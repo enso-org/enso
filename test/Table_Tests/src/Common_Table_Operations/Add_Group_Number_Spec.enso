@@ -65,15 +65,20 @@ add_group_number_specs suite_builder setup =
             g3 = t.add_group_number (..Equal_Count 5) "g"
             g3.at 'g' . to_vector . should_equal [0, 0, 1, 1, 2, 2, 3, 3, 4]
 
+            big_t = table_builder [['x', (0.up_to (298*5 + 1)).to_vector]] . order_by ['x']
+            big_t_grouped = big_t.add_group_number (..Equal_Count 5) "g"
+            big_t_counted = big_t_grouped . aggregate "g" [Aggregate_Column.Count] . order_by "g"
+            big_t_counted.at 'Count' . to_vector . should_equal [299, 298, 298, 298, 298]
+
         group_builder.specify "should add group number by equal counts, with order_by" <|
             t = table_builder [['x', [1, 2, 3, 4, 5, 6, 7, 8, 9]], ['y', [9, 8, 7, 6, 5, 4, 3, 2, 1]]] . order_by ['x']
 
             g0 = t.add_group_number (..Equal_Count 4 ['x']) "g" . sort ['x']
-            g0.at 'g' . to_vector . should_equal [0, 0, 0, 1, 1, 1, 2, 2, 2]
+            g0.at 'g' . to_vector . should_equal [0, 0, 0, 1, 1, 2, 2, 3, 3]
             g0.at 'x' . to_vector . should_equal [1, 2, 3, 4, 5, 6, 7, 8, 9]
 
             g1 = t.add_group_number (..Equal_Count 4 ['y']) "g" . sort ['y']
-            g1.at 'g' . to_vector . should_equal [0, 0, 0, 1, 1, 1, 2, 2, 2]
+            g1.at 'g' . to_vector . should_equal [0, 0, 0, 1, 1, 2, 2, 3, 3]
             g1.at 'x' . to_vector . should_equal [9, 8, 7, 6, 5, 4, 3, 2, 1]
 
         group_builder.specify "should add group number by unique values, with from and step" <|

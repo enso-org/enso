@@ -175,11 +175,16 @@ add_specs suite_builder =
         fake_reload =
             ReloadDetector.simulateReloadTestOnly get_lru_cache
 
-        url0 = base_url_with_slash+'test_download?max-age=16&length=10'
-        url1 = base_url_with_slash+'test_download?max-age=16&length=20'
-        url_post = base_url_with_slash + "post"
-        headers0 = [Header.new "A-Header" "a-header-value", Header.new "A-Header" "a-header-value"]
-        headers1 = [Header.new "A-Header" "a-different-header-value", Header.new "A-Header" "a-header-value"]
+        url0 =
+            base_url_with_slash+'test_download?max-age=16&length=10'
+        url1 =
+            base_url_with_slash+'test_download?max-age=16&length=20'
+        url_post =
+            base_url_with_slash + "post"
+        headers0 =
+            [Header.new "A-Header" "a-header-value", Header.new "A-Header" "a-header-value"]
+        headers1 =
+            [Header.new "A-Header" "a-different-header-value", Header.new "A-Header" "a-header-value"]
 
         # Run the request(s) twice and confirm the results are the same
         check_same_results ~action =

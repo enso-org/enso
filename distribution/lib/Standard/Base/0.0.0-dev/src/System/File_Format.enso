@@ -4,6 +4,7 @@ import project.Data.Json.Json
 import project.Data.Text.Case.Case
 import project.Data.Text.Encoding.Encoding
 import project.Data.Text.Text
+import project.Data.Vector.No_Wrap
 import project.Data.Vector.Vector
 import project.Errors.Common.Type_Error
 import project.Errors.File_Error.File_Error
@@ -18,10 +19,12 @@ import project.Metadata.Display
 import project.Metadata.Widget
 import project.Panic.Panic
 import project.Runtime
+import project.Runtime.Ref.Ref
 import project.System.File.File
 import project.System.File.Generic.Writable_File.Writable_File
 import project.System.File_Format_Metadata.File_Format_Metadata
 import project.System.Input_Stream.Input_Stream
+import project.Warning.Warning
 from project.Data.Boolean import Boolean, False, True
 from project.Data.Json import Invalid_JSON
 from project.Data.Text.Extensions import all
@@ -418,6 +421,96 @@ type JSON_Format
 JSON_Format.from (that : JS_Object) =
     _ = that
     JSON_Format
+
+## A file format for reading and writing files as JSON Lines (i.e. a JSON object per line).
+   https://jsonlines.org/
+type JSON_Lines_Format
+    ## ---
+       private: true
+       ---
+       Resolve an unresolved constructor to the actual type.
+    resolve : Function -> JSON_Lines_Format | Nothing
+    resolve constructor =
+        _ = constructor
+        Nothing
+
+    ## ---
+       private: true
+       ---
+       If the File_Format supports reading from the file, return a configured
+       instance.
+    for_read : File_Format_Metadata -> JSON_Lines_Format | Nothing
+    for_read file:File_Format_Metadata =
+        content_type = file.interpret_content_type
+        from_content_type = content_type.if_not_nothing <|
+            case content_type.base_type of
+                "application/x-ndjson" -> JSON_Lines_Format
+                "application/jsonl" -> JSON_Lines_Format
+                _ -> Nothing
+        from_content_type.if_nothing <| case file.guess_extension of
+            ".jsonl" -> JSON_Lines_Format
+            _ -> Nothing
+
+    ## ---
+       private: true
+       ---
+       If this File_Format should be used for writing to that file, return a
+       configured instance.
+    for_file_write : Writable_File -> JSON_Lines_Format | Nothing
+    for_file_write file = JSON_Lines_Format.for_read file
+
+    ## ---
+       private: true
+       ---
+    get_dropdown_options : Vector Option
+    get_dropdown_options = [Option "JSON Lines" (JSON_Lines_Format.to Meta.Type . qualified_name)]
+
+    ## ---
+       private: true
+       ---
+    get_name_patterns -> Vector File_Name_Pattern =
+        [File_Name_Pattern.Value "JSON Lines" ["*.jsonl"]]
+
+    ## ---
+       private: true
+       ---
+       Implements the `File.read` for this `File_Format`
+    read : File -> Problem_Behavior -> Any
+    read self file on_problems:Problem_Behavior =
+        text = file.read_text
+        self.read_text text on_problems file
+
+    ## ---
+       private: true
+       ---
+       Implements decoding the format from a stream.
+    read_stream : Input_Stream -> File_Format_Metadata -> Any
+    read_stream self stream:Input_Stream (metadata : File_Format_Metadata) =
+        _ = metadata
+        text = Text.from_bytes (stream.read_all_bytes) Encoding.utf_8
+        self.read_text text Problem_Behavior.Report_Warning Nothing
+
+    private read_text text on_problems file =
+        warnings = Ref.new []
+        result = text.lines.map_with_index on_problems=No_Wrap.Value i->l->
+            parsed = l.parse_json
+            if parsed.is_error.not then parsed else case on_problems of
+                Problem_Behavior.Ignore -> Nothing
+                Problem_Behavior.Report_Warning ->
+                    warnings.put (warnings.get + [File_Error.Corrupted_Format file ("Malformed JSON line ("+i.to_text+"): "+l.to_display_text)])
+                    Nothing
+                Problem_Behavior.Report_Error ->
+                    Error.throw (File_Error.Corrupted_Format file ("Malformed JSON line ("+i.to_text+"): "+l.to_display_text))
+        result.if_not_error <|
+            Telemetry.log "File_Format.read" "Read file: format={}, output={}" ["JSON Lines", result.to Meta.Type . name]
+            warnings.get.reverse.fold result (r->w-> Warning.attach w r)
+
+## ---
+   private: true
+   ---
+JSON_Lines_Format.from (that : JS_Object) =
+    _ = that
+    JSON_Lines_Format
 
 ## A setting to infer the default behaviour of some option.
 type Infer

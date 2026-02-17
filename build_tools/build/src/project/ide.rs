@@ -62,7 +62,7 @@ impl Artifact {
 pub struct BuildInput {
     pub version: Version,
     #[derive_where(skip)]
-    pub project_manager: BoxFuture<'static, Result<crate::project::backend::Artifact>>,
+    pub backend: BoxFuture<'static, Result<crate::project::backend::Artifact>>,
     #[derive_where(skip)]
     pub gui: BoxFuture<'static, Result<crate::project::gui::Artifact>>,
     #[derive_where(skip)]
@@ -94,7 +94,7 @@ impl Ide {
     ) -> BoxFuture<'static, Result<Artifact>> {
         let BuildInput {
             version,
-            project_manager,
+            backend,
             gui,
             electron_target,
             artifact_name: _,
@@ -105,13 +105,13 @@ impl Ide {
         let target_os = self.target_os;
         let target_arch = self.target_arch;
         async move {
-            let (gui, project_manager, commit_hash) = try_join!(gui, project_manager, commit_hash)?;
+            let (gui, backend, commit_hash) = try_join!(gui, backend, commit_hash)?;
             ide_desktop
                 .dist(
                     &version,
                     &commit_hash,
                     &gui,
-                    &project_manager,
+                    &backend,
                     &output_path,
                     target_os,
                     electron_target,

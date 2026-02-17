@@ -510,6 +510,16 @@ type Value_Type
        private: true
        advanced: true
        ---
+       Checks if the provided argument (which may be a value or a Column) is a
+       `Date`.
+    expect_date : Any -> Any -> Any ! Invalid_Value_Type
+    expect_date argument ~action =
+        Value_Type.expect_type argument .is_date "Date" action
+
+    ## ---
+       private: true
+       advanced: true
+       ---
        Checks if the provided argument (which may be a value or a Column) has
        type `Date` or `Date_Time`.
     expect_has_date : Any -> Any -> Any ! Invalid_Value_Type

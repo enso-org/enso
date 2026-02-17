@@ -27,6 +27,7 @@ import type {
 } from './languageServerTypes'
 import { AbortScope, exponentialBackoff } from './util/net'
 import type { ReconnectingWebSocketTransport } from './util/net/ReconnectingWSTransport'
+import { isHeadless } from './util/types'
 import type { Uuid } from './yjsModel'
 
 const debugLog = debug('ydoc-shared:languageServer')
@@ -158,11 +159,19 @@ export class LanguageServer extends ObservableV2<Notifications & TransportEvents
       this.emit(notification.method as keyof Notifications, [notification.params])
     })
     this.client.onError((error) => {
-      console.error('Unexpected Language Server connection error:', error)
+      console.error(
+        'Unexpected Language Server connection error:',
+        isHeadless() ? JSON.stringify(error) : error,
+      )
     })
     transport.on('error', (error) => {
       if (this.shouldReconnect) {
-        console.error('Language Server transport error:', error.message, '\n', error)
+        console.error(
+          'Language Server transport error:',
+          error.message,
+          '\n',
+          isHeadless() ? JSON.stringify(error) : error,
+        )
       }
     })
     const onTransportClosed = () => {

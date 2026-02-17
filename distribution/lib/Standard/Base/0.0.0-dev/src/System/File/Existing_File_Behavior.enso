@@ -1,5 +1,4 @@
 import project.Data.Vector.Vector
-import project.Meta
 import project.Metadata.Display
 import project.Metadata.Widget
 from project.Data.Boolean import Boolean, True
@@ -30,14 +29,13 @@ type Existing_File_Behavior
        private: true
        ---
     widget (include_overwrite:Boolean = True) (include_backup:Boolean = True) (include_append:Boolean = True) (include_error:Boolean = True) -> Widget =
-        fqn = Existing_File_Behavior.to Meta.Type . qualified_name
         options = Vector.build builder->
             if include_overwrite then
-                builder.append (Option "Overwrite" fqn+".Overwrite")
+                builder.append (Option "Overwrite" "..Overwrite")
             if include_backup then
-                builder.append (Option "Backup" fqn+".Backup")
+                builder.append (Option "Backup" "..Backup")
             if include_append then
-                builder.append (Option "Append" fqn+".Append")
+                builder.append (Option "Append" "..Append")
             if include_error then
-                builder.append (Option "Error" fqn+".Error")
+                builder.append (Option "Error" "..Error")
         Single_Choice display=Display.Always values=options

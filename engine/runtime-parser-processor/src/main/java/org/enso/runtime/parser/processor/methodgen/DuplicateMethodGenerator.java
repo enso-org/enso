@@ -72,7 +72,7 @@ public class DuplicateMethodGenerator {
         if (keepDiagnostics && this.diagnostics != null) {
           diagnosticsDuplicated = this.diagnostics.copy();
         }
-        $metaType passDataDuplicated = null;
+        $metaType passDataDuplicated = new $metaType();
         if (keepMetadata && this.passData != null) {
           passDataDuplicated = this.passData.duplicate();
         }

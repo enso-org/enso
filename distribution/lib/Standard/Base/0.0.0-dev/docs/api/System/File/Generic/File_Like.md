@@ -5,6 +5,7 @@
     - can_write_into_parent self -> Standard.Base.Any.Any
     - copy_to self destination:Standard.Base.Any.Any replace_existing:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - exists self -> Standard.Base.Any.Any
+    - extension self -> Standard.Base.Data.Text.Text
     - name self -> Standard.Base.Data.Text.Text
     - parent self -> Standard.Base.System.File.Generic.File_Like.File_Like
     - path self -> Standard.Base.Data.Text.Text

@@ -1,3 +1,4 @@
+import { PRODUCT_NAME } from 'enso-common/src/constants'
 import { UUID } from 'enso-common/src/services/Backend'
 import { newtypeConstructor, type Newtype } from 'enso-common/src/utilities/data/newtype'
 import * as crypto from 'node:crypto'
@@ -32,7 +33,9 @@ describe('ProjectService', () => {
       projectService = new ProjectService(runner, [])
     } else {
       // Fail the test if executable is not available
-      throw new Error('Enso executable not found. Cannot run tests without Enso runtime.')
+      throw new Error(
+        `${PRODUCT_NAME} executable not found. Cannot run tests without Enso runtime.`,
+      )
     }
   })
 
@@ -43,7 +46,9 @@ describe('ProjectService', () => {
 
     if (!ensoPath) {
       // Fail the test if executable is not available
-      throw new Error('Enso executable not found. Cannot run tests without Enso runtime.')
+      throw new Error(
+        `${PRODUCT_NAME} executable not found. Cannot run tests without Enso runtime.`,
+      )
     }
   })
 

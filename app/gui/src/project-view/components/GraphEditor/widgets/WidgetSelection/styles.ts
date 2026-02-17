@@ -14,10 +14,6 @@ import { computed, type Ref } from 'vue'
 // Any text beyond that limit will receive an ellipsis and sliding animation on hover.
 const MAX_DROPDOWN_OVERSIZE_PX = 390
 
-function getMaxWidth(portWidth: number, limitWidth: boolean) {
-  return limitWidth ? `${portWidth + MAX_DROPDOWN_OVERSIZE_PX}px` : null
-}
-
 /** Limit the width of the dropdown to the width of the port. */
 function sizeOptions(limitWidth: boolean): () => SizeOptions {
   return () => ({
@@ -31,10 +27,13 @@ function sizeOptions(limitWidth: boolean): () => SizeOptions {
       const portWidth = rects.reference.width + PORT_PADDING_X * 2
 
       const minWidth = `${Math.max(portWidth - screenOverflow, 0)}px`
-      const maxWidth = getMaxWidth(portWidth, limitWidth)
+      const maxWidth = limitWidth ? `${MAX_DROPDOWN_OVERSIZE_PX}px` : null
 
-      Object.assign(elements.floating.style, { minWidth, maxWidth })
-      elements.floating.style.setProperty('--dropdown-max-width', maxWidth)
+      // Delay changing styles to avoid "ResizeObserver loop completed with undelivered notifications" error.
+      requestAnimationFrame(() => {
+        Object.assign(elements.floating.style, { minWidth, maxWidth })
+        elements.floating.style.setProperty('--dropdown-max-width', maxWidth)
+      })
     },
   })
 }

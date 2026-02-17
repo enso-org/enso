@@ -14,6 +14,12 @@ type Lazy
 type Generator
     Value n ~next
 
+type Wrapper
+    Value field
+
+type Lazy_Fields
+    Value ~x ~y ~z
+
 
 add_specs suite_builder = suite_builder.group "Lazy" group_builder->
     group_builder.specify "should compute the result only once" <|
@@ -109,6 +115,98 @@ add_specs suite_builder = suite_builder.group "Lazy" group_builder->
         atom = Lazy.new (1+1)
         atom.get . should_equal 2 # Force evaluation
         atom.to_text . should_equal "(Lazy.Value 2)"
+
+    group_builder.specify "lazy atom field is not evaluated in structural pattern match" <|
+        ref = Ref.new 0
+        l = Lazy.new <|
+            ref.modify (_ + 1)
+        case l of
+            Lazy.Value _ -> Nothing
+            _ -> Test.fail "should match Lazy.Value ctor"
+        ref.get . should_equal 0
+
+    group_builder.specify "lazy atom field is not evaluated in structural pattern match with bounded field" <|
+        ref = Ref.new 0
+        l = Lazy.new <|
+            ref.modify (_ + 1)
+        should_compute = False
+        case l of
+            Lazy.Value x ->
+                if should_compute then x else Nothing
+            _ -> Test.fail "should match Lazy.Value ctor"
+        ref.get . should_equal 0
+
+    group_builder.specify "lazy atom field is evaluated in structural pattern match with type check" <|
+        ref = Ref.new 0
+        l = Lazy.new <|
+            ref.modify (_ + 1)
+        should_compute = False
+        case l of
+            Lazy.Value x:Integer ->
+                if should_compute then x else Nothing
+            _ -> Test.fail "should match Lazy.Value ctor"
+        ref.get . should_equal 1
+
+    group_builder.specify "lazy atom field is evaluated when not matched in structural pattern" <|
+        ref = Ref.new 0
+        l = Lazy.new <|
+            ref.modify (_ + 1)
+        case l of
+            Lazy.Value _:Text ->
+                Test.fail "should not match Lazy.Value ctor with Text"
+            _ -> Nothing
+        ref.get . should_equal 1
+
+    group_builder.specify "lazy atom field is evaluated just once in structural pattern match" <|
+        ref = Ref.new 0
+        l = Lazy.new <|
+            ref.modify (_ + 1)
+        should_compute = True
+        case l of
+            Lazy.Value x ->
+                ref.get . should_equal 0
+                if should_compute then x else Nothing
+            _ -> Test.fail "should match Lazy.Value ctor"
+        ref.get . should_equal 1
+
+    group_builder.specify "only certain lazy fields are forced in structural pattern match" <|
+        ref = Ref.new 0
+        computation =
+            ref.modify (_ + 1)
+        l = Lazy_Fields.Value computation computation computation
+        res = case l of
+            Lazy_Fields.Value x _ z ->
+                [x, z]
+            _ -> Test.fail "should match Lazy_Fields.Value ctor"
+        # Ref.modify returns the old value
+        res . should_equal [0, 1]
+        ref.get . should_equal 2
+
+    group_builder.specify "do not recompute lazy atom field after structural pattern match" <|
+        ref = Ref.new 0
+        l = Lazy.new <|
+            ref.modify (_ + 1)
+        case l of
+            Lazy.Value x ->
+                x . should_equal 0
+            _ -> Test.fail "should match Lazy.Value ctor"
+        case l of
+            Lazy.Value x ->
+                x . should_equal 0
+            _ -> Test.fail "should match Lazy.Value ctor"
+        ref.get . should_equal 1
+
+
+    group_builder.specify "lazy atom field is not evaluated in structural pattern match when wrapped" <|
+        ref = Ref.new 0
+        l = Lazy.new <|
+            ref.modify (_ + 1)
+        wrap = Wrapper.Value l
+        case wrap of
+            Wrapper.Value (Lazy.Value _) -> Nothing
+            _ -> Test.fail "should match Wrapper.Value ctor"
+        ref.get . should_equal 0
+
 
 main filter=Nothing =
     suite = Test.build suite_builder->

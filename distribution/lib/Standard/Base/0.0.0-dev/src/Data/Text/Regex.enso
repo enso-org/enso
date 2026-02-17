@@ -15,6 +15,7 @@ import project.Data.Text.Span.Span
 import project.Data.Text.Span.Utf_16_Span
 import project.Data.Text.Text
 import project.Data.Vector.Vector
+import project.Errors.Common.Missing_Argument
 import project.Errors.Common.Syntax_Error
 import project.Errors.Common.Type_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
@@ -592,4 +593,4 @@ type Regex_Syntax_Error
     - `expression`: The text representing the regular expression that you want to
       compile. Must be non-empty.
 regex : Text -> Regex ! Regex_Syntax_Error | Illegal_Argument
-regex expression:Text = Regex.compile expression
+regex expression:Text=(Missing_Argument.throw "expression") = Regex.compile expression

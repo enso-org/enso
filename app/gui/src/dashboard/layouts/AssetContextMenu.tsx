@@ -45,10 +45,7 @@ export interface AssetContextMenuProps {
   readonly currentDirectoryId: backendModule.DirectoryId
   readonly doCopy: () => void
   readonly doCut: () => void
-  readonly doPaste: (
-    newParentKey: backendModule.DirectoryId,
-    newParentId: backendModule.DirectoryId,
-  ) => void
+  readonly doPaste: (newParentId: backendModule.DirectoryId) => void
   readonly initialPosition?: Pick<MouseEvent, 'pageX' | 'pageY'> | null | undefined
 }
 
@@ -173,7 +170,7 @@ export const AssetContextMenu = React.forwardRef(function AssetContextMenu(
           void goToDrive()
           const directoryId =
             asset.type === backendModule.AssetType.directory ? asset.id : asset.parentId
-          doPaste(directoryId, directoryId)
+          doPaste(directoryId)
         },
       },
   )

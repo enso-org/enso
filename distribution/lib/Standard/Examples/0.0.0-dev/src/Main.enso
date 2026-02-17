@@ -303,6 +303,10 @@ text_column_1 = Column.from_vector "Text" ["Hello,", "my", "name", "is", "Enso"]
 text_column_2 : Column
 text_column_2 = Column.from_vector "Text" ["He,", "he", "he", "i", "so"]
 
+## A small table column containing dates.
+date_column_1 : Column
+date_column_1 = Column.from_vector "Text" [Date.new 1987 1 1, Date.new 2002 3 4, Date.new 2020 12 31]
+
 ## A simple table that contains basic shop inventory data for the food shop.
 inventory_table : Table
 inventory_table = csv.read

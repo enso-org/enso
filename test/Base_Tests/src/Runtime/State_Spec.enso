@@ -58,6 +58,10 @@ add_specs suite_builder = suite_builder.group "State" group_builder->
             CallbackHelper.runCallbackInt obtain_state -1
         s . should_equal 41
 
+    group_builder.specify "State if_missing" <|
+        s = State.get Test if_missing=41
+        s . should_equal 41
+
 main filter=Nothing =
     suite = Test.build suite_builder->
         add_specs suite_builder

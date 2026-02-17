@@ -13,6 +13,7 @@ import project.Common_Table_Operations.Column_Operations_Spec
 import project.Common_Table_Operations.Core_Spec
 import project.Common_Table_Operations.Cross_Tab_Spec
 import project.Common_Table_Operations.Conversion_Spec
+import project.Common_Table_Operations.Date_Column_Spec
 import project.Common_Table_Operations.Date_Time_Spec
 import project.Common_Table_Operations.Derived_Columns_Spec
 import project.Common_Table_Operations.Distinct_Spec
@@ -131,6 +132,7 @@ add_specs suite_builder setup =
     Core_Spec.add_specs suite_builder setup
     Cross_Join_Spec.add_specs suite_builder setup
     Cross_Tab_Spec.add_specs suite_builder setup
+    Date_Column_Spec.add_specs suite_builder setup
     Date_Time_Spec.add_specs suite_builder setup
     Derived_Columns_Spec.add_specs suite_builder setup
     Distinct_Spec.add_specs suite_builder setup

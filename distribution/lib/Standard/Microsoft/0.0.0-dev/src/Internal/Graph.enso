@@ -1,6 +1,7 @@
 private
 
 from Standard.Base import all
+import Standard.Base.Network.HTTP.Request_Body.Request_Body
 
 polyglot java import org.enso.base.enso_cloud.ExternalLibraryCredentialHelper.AccessToken
 polyglot java import org.enso.base.enso_cloud.ExternalLibraryCredentialHelper.CredentialReference
@@ -28,3 +29,11 @@ type Graph
        private: true
        ---
     fetch_text credential url = Graph.fetch credential url . decode_as_text
+
+    ## ---
+       private: true
+       ---
+    post_file credential url file method:HTTP_Method=..Post =
+        header = Header.authorization_bearer credential.ms365_service.getAccessToken.token
+        file_body = Request_Body.from file
+        HTTP.post url body=file_body method=method headers=[header]

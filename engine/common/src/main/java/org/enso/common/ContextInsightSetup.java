@@ -23,12 +23,6 @@ import org.graalvm.polyglot.Source;
  * enso --vm.D=enso.dev.insight=insightScript.js
  * </pre>
  *
- * or when launching the {@code project-manager}:
- *
- * <pre>
- * ENSO_JVM_OPTS=-Denso.dev.insight=`pwd`/insightScript.js project-manager
- * </pre>
- *
  * The sample {@code insightScript.js} can look for example like:
  *
  * <pre>

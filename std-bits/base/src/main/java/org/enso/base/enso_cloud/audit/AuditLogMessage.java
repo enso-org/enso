@@ -8,7 +8,7 @@ import java.util.Objects;
 import org.enso.base.CurrentEnsoProject;
 import org.enso.base.enso_cloud.CloudAPI;
 
-class AuditLogMessage implements AuditLogApiAccess.LogMessage {
+final class AuditLogMessage implements AuditLogApiAccess.LogMessage {
 
   /**
    * A reserved field that is currently added by the cloud backend. Duplicating it will lead to
@@ -23,6 +23,7 @@ class AuditLogMessage implements AuditLogApiAccess.LogMessage {
   private static final String LOCAL_TIMESTAMP = "localTimestamp";
 
   private final String projectId;
+  private final String projectSessionId;
   private final String projectName;
   private final String operation;
   private final String message;
@@ -39,6 +40,7 @@ class AuditLogMessage implements AuditLogApiAccess.LogMessage {
     checkNoRestrictedField(metadata, LOCAL_TIMESTAMP);
 
     this.projectId = CloudAPI.getCloudProjectId();
+    this.projectSessionId = CloudAPI.getCloudSessionId();
 
     var currentProject = CurrentEnsoProject.get();
     this.projectName = currentProject == null ? null : currentProject.fullName();
@@ -60,7 +62,6 @@ class AuditLogMessage implements AuditLogApiAccess.LogMessage {
       copy.set(PROJECT_NAME, TextNode.valueOf(projectName));
     }
 
-    String projectSessionId = CloudAPI.getCloudSessionId();
     if (projectSessionId != null) {
       copy.set(PROJECT_SESSION_ID, TextNode.valueOf(projectSessionId));
     }

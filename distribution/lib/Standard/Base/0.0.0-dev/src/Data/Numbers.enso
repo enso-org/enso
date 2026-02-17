@@ -25,6 +25,7 @@ polyglot java import java.text.DecimalFormat
 polyglot java import java.text.DecimalFormatSymbols
 polyglot java import java.text.NumberFormat
 polyglot java import java.text.ParseException
+polyglot java import org.enso.base.numeric.Double_Utils
 polyglot java import org.enso.polyglot.common_utils.Core_Math_Utils
 
 ## The root type of the Enso numeric hierarchy.
@@ -1028,6 +1029,15 @@ type Float
        Minimum representable positive value, from the underlying Java double
        type.
     min_value = Double.MIN_VALUE
+
+    ## ---
+       private: true
+       ---
+       Compares two floating point numbers and returns whether they are equal
+       within a single ULPs (units in the last place).
+    compare_ulp self that:Float -> Boolean =
+        Double_Utils.compareULP self that
+
 
 ## Integer is the type of integral numbers in Enso. They are of unbounded size
    and can grow as large as necessary.

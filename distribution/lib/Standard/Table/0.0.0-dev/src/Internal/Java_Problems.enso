@@ -13,8 +13,6 @@ polyglot java import org.enso.table.data.column.builder.LossOfBigDecimalPrecisio
 polyglot java import org.enso.table.data.column.builder.LossOfIntegerPrecision
 polyglot java import org.enso.table.data.column.operation.cast.ConversionFailure
 polyglot java import org.enso.table.data.column.operation.cast.ConversionFailureType
-
-## Needed to help Native Image include the classes.
 polyglot java import org.enso.table.data.table.problems.ArithmeticError
 polyglot java import org.enso.table.data.table.problems.ArithmeticOverflow
 polyglot java import org.enso.table.data.table.problems.FloatingPointGrouping

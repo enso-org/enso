@@ -53,9 +53,9 @@ type Project_Description
        A representation of an Enso project.
 
        ## Arguments
-        - `prim_root_file`: The primitive root file of the project.
+        - `root_path`: Absolute path to the project directory
         - `prim_config`: The primitive config of the project.
-    private Value prim_root_file ns:Text n:Text
+    private Value root_path:Text ns:Text n:Text
 
     ## ---
        group: Metadata
@@ -70,7 +70,7 @@ type Project_Description
              enso_project.root
        ```
     root : File
-    root self = File.new self.prim_root_file
+    root self = File.new self.root_path
 
     ## ---
        group: Input

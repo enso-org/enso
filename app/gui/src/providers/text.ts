@@ -1,7 +1,17 @@
 import { proxyRefs, type MaybeRefOrGetterArray } from '@/util/reactivity'
 import { createGlobalState } from '@vueuse/core'
-import * as text from 'enso-common/src/text'
+import {
+  getDictionary,
+  LANGUAGE_TO_LOCALE,
+  getText as originalGetText,
+  resolveUserLanguage,
+  type DefaultGetText,
+  type Language,
+  type Replacements,
+  type TextId,
+} from 'enso-common/src/text'
 import { computed, ref, toValue } from 'vue'
+export type { DefaultGetText as GetText } from 'enso-common/src/text'
 
 export type TextStore = ReturnType<typeof createTextStore>
 
@@ -12,39 +22,27 @@ export type TextStore = ReturnType<typeof createTextStore>
  * `injectText` instead.
  */
 function createTextStore() {
-  const language = ref(text.resolveUserLanguage())
-  const locale = computed(() => text.LANGUAGE_TO_LOCALE[language.value])
-  const localizedText = computed(() => text.getDictionary(language.value))
+  const language = ref(resolveUserLanguage())
+  const locale = computed(() => LANGUAGE_TO_LOCALE[language.value])
+  const localizedText = computed(() => getDictionary(language.value))
 
-  const getText: GetText = (key, ...replacements) =>
-    text.getText(localizedText.value, key, ...replacements)
+  const getText: DefaultGetText = (key, ...replacements) =>
+    originalGetText(localizedText.value, key, ...replacements)
 
-  function textRef<K extends text.TextId>(
+  function textRef<K extends TextId>(
     key: K,
-    ...replacements: MaybeRefOrGetterArray<text.Replacements[K]>
+    ...replacements: MaybeRefOrGetterArray<Replacements[K]>
   ) {
     return computed(() =>
-      getText(toValue(key), ...(replacements.map((x) => toValue(x)) as text.Replacements[K])),
+      getText(toValue(key), ...(replacements.map((x) => toValue(x)) as Replacements[K])),
     )
   }
 
-  function setLanguage(lang: text.Language) {
+  function setLanguage(lang: Language) {
     language.value = lang
   }
 
   return proxyRefs({ language, locale, getText, textRef, setLanguage })
 }
-
-/**
- * A function that gets localized text for a given key, with optional replacements.
- * @param key - The key of the text to get.
- * @param replacements - The replacements to insert into the text.
- * If the text contains placeholders like `$0`, `$1`, etc.,
- * they will be replaced with the corresponding replacement.
- */
-export type GetText = <K extends text.TextId>(
-  key: K,
-  ...replacements: text.Replacements[K]
-) => string
 
 export const useText = createGlobalState(createTextStore)

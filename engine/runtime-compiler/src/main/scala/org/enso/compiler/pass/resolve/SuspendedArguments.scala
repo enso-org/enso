@@ -81,7 +81,7 @@ case object SuspendedArguments extends IRPass {
     moduleContext: ModuleContext
   ): Module =
     ir.copyWithBindings(
-      bindings = ir.bindings.map(resolveModuleBinding)
+      ir.bindings.map(resolveModuleBinding)
     )
 
   /** Resolves suspended arguments in an arbitrary expression.
@@ -272,8 +272,8 @@ case object SuspendedArguments extends IRPass {
     */
   private def toSegments(signature: Expression): List[Expression] = {
     signature match {
-      case Type.Function(args, ret, _, _) => args :+ ret
-      case _                              => List(signature)
+      case fn: Type.Function => fn.args() :+ fn.result()
+      case _                 => List(signature)
     }
   }
 

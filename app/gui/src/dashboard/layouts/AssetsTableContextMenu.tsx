@@ -33,10 +33,7 @@ export interface AssetsTableContextMenuProps {
   readonly currentDirectoryId: backendModule.DirectoryId
   readonly doCopy: () => void
   readonly doCut: () => void
-  readonly doPaste: (
-    newParentKey: backendModule.DirectoryId,
-    newParentId: backendModule.DirectoryId,
-  ) => void
+  readonly doPaste: (newParentId: backendModule.DirectoryId) => void
 }
 
 /**
@@ -174,11 +171,9 @@ export const AssetsTableContextMenu = React.forwardRef(function AssetsTableConte
       doAction: () => {
         void goToDrive()
         const selected = selectedAssets[0]
-        if (selected?.type === backendModule.AssetType.directory) {
-          doPaste(selected.id, selected.id)
-        } else {
-          doPaste(currentDirectoryId, currentDirectoryId)
-        }
+        const id =
+          selected?.type === backendModule.AssetType.directory ? selected.id : currentDirectoryId
+        doPaste(id)
       },
     },
   )

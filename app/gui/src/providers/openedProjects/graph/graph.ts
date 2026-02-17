@@ -679,9 +679,15 @@ export function createGraphStore(
   }
 
   function isConnectedTarget(portId: PortId): boolean {
+    return isAstId(portId) && db.connections.reverseLookup(portId).size > 0
+  }
+
+  function isTargetBeingDraggedAwayFrom(portId: PortId): boolean {
+    const edge = unconnectedEdges.mouseEditedEdge.value
     return (
-      (isAstId(portId) && db.connections.reverseLookup(portId).size > 0) ||
-      unconnectedEdges.mouseEditedEdge.value?.target === portId
+      edge?.createdFrom === 'edge' &&
+      edge?.target !== portId &&
+      edge?.disconnectedEdgeTarget === portId
     )
   }
 
@@ -735,6 +741,7 @@ export function createGraphStore(
     onBeforeEdit,
     isConnectedSource,
     isConnectedTarget,
+    isTargetBeingDraggedAwayFrom,
     nodeCanBeEntered,
     connectedEdges,
     currentMethod: proxyRefs({

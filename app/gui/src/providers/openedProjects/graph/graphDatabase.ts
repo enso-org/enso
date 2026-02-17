@@ -498,6 +498,33 @@ export class GraphDb {
     return id ? this.idToExternalMap.get(id) : undefined
   }
 
+  /** Iterate over all connections with helper data (nodes and identifier). */
+  *iterateConnections() {
+    for (const [targetExprId, sourceExprIds] of this.connections.allReverse()) {
+      const targetNode = this.getExpressionNodeId(targetExprId)
+      for (const sourceExprId of sourceExprIds) {
+        const sourceNode = this.getPatternExpressionNodeId(sourceExprId)
+        const nodeWithSource = sourceNode ?? this.getExpressionNodeId(sourceExprId)
+        // If source is not in pattern nor expression of any node, it's a function argument.
+        const stringIdentifier = this.getOutputPortIdentifier(sourceExprId)
+        const identifier = stringIdentifier ? unwrap(tryIdentifier(stringIdentifier)) : undefined
+        yield {
+          sourceExprId,
+          targetExprId,
+          sourceNode,
+          targetNode,
+          /// A node with source port.
+          ///
+          /// It differs from `sourceNode` because it is defined also when
+          /// the connection source is in expression, not pattern; for example, when its
+          /// lambda.
+          nodeWithSource,
+          identifier,
+        }
+      }
+    }
+  }
+
   /**
    * Synchronously replace all instances of specific method pointer usage within the value registry and
    * suggestion database.

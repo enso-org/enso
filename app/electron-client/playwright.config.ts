@@ -3,6 +3,8 @@ import { defineConfig } from 'playwright/test'
 
 export default defineConfig({
   testDir: './tests',
+  // Headless tests are run via vitest, not playwright, so we ignore them here.
+  testIgnore: ['headless/**'],
   forbidOnly: !!process.env.CI,
   workers: 1,
   timeout: 180000,

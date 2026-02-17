@@ -33,7 +33,7 @@
     - Access_Denied
     - Not_Found resolved_path:Standard.Base.Any.Any
     - to_display_text self -> Standard.Base.Any.Any
-- as_credential_reference secret:Standard.Base.Enso_Cloud.Enso_Secret.Enso_Secret credential_reference:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+- as_credential_reference secret:Standard.Base.Enso_Cloud.Enso_Secret.Enso_Secret credential_reference:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - as_hideable_value value:(Standard.Base.Data.Text.Text|Standard.Base.Enso_Cloud.Enso_Secret.Enso_Secret|Standard.Base.Enso_Cloud.Enso_Secret.Derived_Secret_Value) factory:Standard.Base.Any.Any= -> Standard.Base.Any.Any
 - secret_resource_uri secret:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - Standard.Base.Enso_Cloud.Enso_Secret.Derived_Secret_Value.from that:Standard.Base.Data.Text.Text -> Standard.Base.Enso_Cloud.Enso_Secret.Derived_Secret_Value

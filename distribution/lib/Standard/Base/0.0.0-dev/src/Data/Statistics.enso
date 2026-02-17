@@ -3,10 +3,12 @@ import project.Data.Numbers.Float
 import project.Data.Numbers.Integer
 import project.Data.Numbers.Number
 import project.Data.Ordering.Ordering
+import project.Data.Text.Text
 import project.Data.Vector.No_Wrap
 import project.Data.Vector.Vector
 import project.Error.Error
 import project.Errors.Common.Incomparable_Values
+import project.Errors.Common.Missing_Argument
 import project.Errors.Empty_Error.Empty_Error
 import project.Errors.Illegal_Argument.Illegal_Argument
 import project.Meta
@@ -113,26 +115,47 @@ type Statistic
 
        ## Arguments
         - `series`: the series to compute the covariance with.
-    Covariance (series:Vector)
+    Covariance (series:Vector=(Missing_Argument.throw "series"))
 
     ## Calculate the Pearson Correlation between data and series.
 
        ## Arguments
         - `series`: the series to compute the correlation with.
-    Pearson (series:Vector)
+    Pearson (series:Vector=(Missing_Argument.throw "series"))
 
     ## Calculate the Spearman Rank Correlation between data and series.
 
        ## Arguments
         - `series`: the series to compute the correlation with.
-    Spearman (series:Vector)
+    Spearman (series:Vector=(Missing_Argument.throw "series"))
 
     ## Calculate the coefficient of determination between data and predicted
        series.
 
        ## Arguments
         - `predicted`: the series to compute the r_squared with.
-    R_Squared (predicted:Vector)
+    R_Squared (predicted:Vector=(Missing_Argument.throw "predicted"))
+
+    ## ---
+       private: true
+       ---
+       Convert the statistic to Text.
+    to_text : Text
+    to_text self = case self of
+        Statistic.Count -> "Count"
+        Statistic.Minimum -> "Minimum"
+        Statistic.Maximum -> "Maximum"
+        Statistic.Sum -> "Sum"
+        Statistic.Product -> "Product"
+        Statistic.Mean -> "Mean"
+        Statistic.Variance p -> "Variance (" + (if p then "Population" else "Sample") + ")"
+        Statistic.Standard_Deviation p -> "Standard Deviation (" + (if p then "Population" else "Sample") + ")"
+        Statistic.Skew p -> "Skew (" + (if p then "Population" else "Sample") + ")"
+        Statistic.Kurtosis -> "Kurtosis"
+        Statistic.Covariance _ -> "Covariance"
+        Statistic.Pearson _ -> "Pearson"
+        Statistic.Spearman _ -> "Spearman"
+        Statistic.R_Squared _ -> "R Squared"
 
     ## ---
        private: true

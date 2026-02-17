@@ -12,10 +12,10 @@ import java.time.ZonedDateTime;
 import java.util.Arrays;
 import java.util.List;
 import org.duckdb.DuckDBConnection;
-import org.enso.table.data.column.storage.BoolStorage;
+import org.enso.table.data.column.storage.ColumnBooleanStorage;
+import org.enso.table.data.column.storage.ColumnDoubleStorage;
+import org.enso.table.data.column.storage.ColumnLongStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
-import org.enso.table.data.column.storage.DoubleStorage;
-import org.enso.table.data.column.storage.LongStorage;
 import org.enso.table.data.column.storage.type.BigDecimalType;
 import org.enso.table.data.column.storage.type.Bits;
 import org.enso.table.data.column.storage.type.DateTimeType;
@@ -85,7 +85,7 @@ public class DuckDBUtils {
           var column = columns[col];
           if (column.isNothing(i)) {
             appender.appendNull();
-          } else if (column instanceof LongStorage longStorage) {
+          } else if (column instanceof ColumnLongStorage longStorage) {
             // Could be a long, int, short, byte
             long value = longStorage.getItemAsLong(i);
             var storageType = targetTypes.get(col);
@@ -103,7 +103,7 @@ public class DuckDBUtils {
               // Fallback and let Appended decide if its okay
               appender.append(longStorage.getItemAsLong(i));
             }
-          } else if (column instanceof DoubleStorage doubleStorage) {
+          } else if (column instanceof ColumnDoubleStorage doubleStorage) {
             // Could be a float or a double column
             double value = doubleStorage.getItemAsDouble(i);
             var storageType = targetTypes.get(col);
@@ -112,7 +112,7 @@ public class DuckDBUtils {
             } else {
               appender.append(value);
             }
-          } else if (column instanceof BoolStorage boolStorage) {
+          } else if (column instanceof ColumnBooleanStorage boolStorage) {
             appender.append(boolStorage.getItemAsBoolean(i));
           } else {
             var value = column.getItemBoxed(i);

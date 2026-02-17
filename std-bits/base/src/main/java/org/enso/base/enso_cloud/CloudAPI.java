@@ -1,17 +1,21 @@
 package org.enso.base.enso_cloud;
 
-import org.enso.base.Environment_Utils;
 import org.enso.base.enso_cloud.audit.AuditLog;
+import org.enso.base.polyglot.EnsoMeta;
 
 public final class CloudAPI {
+  private CloudAPI() {}
+
   /**
    * Returns the URI to the root of the Cloud API.
    *
    * <p>It always ends with a slash.
    */
   public static String getAPIRootURI() {
-    var envUrl = Environment_Utils.get_environment_variable("ENSO_CLOUD_API_URL");
-    var effectiveUrl = envUrl == null ? "https://api.cloud.enso.org/" : envUrl;
+    var envUrl =
+        EnsoMeta.callStaticModuleMethod(
+            "Standard.Base.System.Environment", "get", "ENSO_CLOUD_API_URL");
+    var effectiveUrl = envUrl.isNull() ? "https://api.cloud.enso.org/" : envUrl.asString();
     var urlWithSlash = effectiveUrl.endsWith("/") ? effectiveUrl : effectiveUrl + "/";
     return urlWithSlash;
   }
@@ -22,7 +26,10 @@ public final class CloudAPI {
    * <p>When running locally, this returns {@code null}.
    */
   public static String getCloudProjectId() {
-    return Environment_Utils.get_environment_variable("ENSO_CLOUD_PROJECT_ID");
+    var id =
+        EnsoMeta.callStaticModuleMethod(
+            "Standard.Base.System.Environment", "get", "ENSO_CLOUD_PROJECT_ID");
+    return id.isNull() ? null : id.asString();
   }
 
   /**
@@ -31,7 +38,10 @@ public final class CloudAPI {
    * <p>When running locally, this returns {@code null}.
    */
   public static String getCloudSessionId() {
-    return Environment_Utils.get_environment_variable("ENSO_CLOUD_PROJECT_SESSION_ID");
+    var id =
+        EnsoMeta.callStaticModuleMethod(
+            "Standard.Base.System.Environment", "get", "ENSO_CLOUD_PROJECT_SESSION_ID");
+    return id.isNull() ? null : id.asString();
   }
 
   public static void flushCloudCaches() {

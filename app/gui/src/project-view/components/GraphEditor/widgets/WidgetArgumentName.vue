@@ -32,7 +32,7 @@ const sameInputParentWidgets = computed(() =>
 const showArgumentValue = computed(() => {
   return (
     portInfo == null ||
-    !portInfo.connected ||
+    !portInfo.hasPersistedConnection ||
     (WidgetInput.isAst(props.input) && portInfo.portId !== props.input.value?.id)
   )
 })
@@ -50,7 +50,7 @@ const innerInput = computed(() => ({
 
 const childWidgetRef = useTemplateRef<typeof NodeWidget>('childWidgetRef')
 const isChildWidgetEmpty = computed(() => !childWidgetRef.value?.isSelected)
-const connected = computed(() => portInfo?.connected ?? false)
+const visuallyHideArrow = computed(() => portInfo?.isVisualTarget ?? false)
 const showArrow = computed(() => {
   const selectionWidgetsShown =
     sameInputParentWidgets.value?.has(WidgetSelection) ||
@@ -88,7 +88,7 @@ export const ArgumentNameShownKey: unique symbol = Symbol.for('WidgetInput:Argum
   <div class="WidgetArgumentName widgetParent" :class="{ primary, missing }">
     <RequiredArgumentArrow
       v-if="showArrow"
-      :hide="connected"
+      :hide="visuallyHideArrow"
       @arrowClick="graph.createEdgeFromPort(props.input.portId, $event)"
     />
     <span class="name widgetSingleLine">

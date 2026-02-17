@@ -101,7 +101,7 @@ public class ProblemAggregator {
   /* A special constructor that can be used by BlackholeProblemAggregator to create its own instance without a
   parent, only the Blackhole can create this token so no other implementation is allowed to use it - thus
   guaranteeing that all other implementations are forced to specify a parent. */
-  protected ProblemAggregator(BlackholeProblemAggregator.PrivateConstructorToken token) {
+  ProblemAggregator(BlackholeProblemAggregator.PrivateConstructorToken token) {
     Objects.requireNonNull(token);
     parent = null;
   }

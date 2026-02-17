@@ -33,6 +33,7 @@ const noFresh = { staleTime: 0 }
 const methodDefaultOptions: Partial<Record<BackendQueryMethod, ExtraOptions>> = {
   listDirectory: { ...noPersist, ...noFresh },
   getFileDetails: { ...noPersist },
+  getAssetDetails: { ...noPersist },
 }
 
 /** Commonly used options for tanstack queries to backend. */

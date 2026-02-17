@@ -75,6 +75,7 @@ export const Dialog = Object.assign(
             UNSTABLE_portalContainer={root}
             onOpenChange={onOpenChange}
             shouldCloseOnInteractOutside={() => false}
+            data-testid="modal-dialog"
             {...modalProps}
           >
             <DialogContent {...props} modalState={values.state} />

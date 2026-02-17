@@ -42,10 +42,6 @@
       ? path: enso-<version>/
         type: engine_package
         var: engine_package
-    enso-project-manager-<triple>/:
-      ? path: enso/
-        type: project_manager_package
-        var: project_manager_package
     enso-launcher-<triple>/:
       ? path: enso/
         type: launcher_package
@@ -58,10 +54,6 @@
       ? path: enso/
         type: launcher_bundle
         var: launcher_bundle
-    "project-manager-bundle-<triple>":
-      ? path: enso/
-        type: project_manager_bundle
-        var: project_manager_bundle
   dist/:
     gui/:
       assets/:
@@ -95,10 +87,6 @@
       parser/:
         generate-java/:
           java/:
-    scala/:
-      project-manager/:
-        target/:
-          native-image-args.txt:
   target/:
     enso-pack/:
       dist/: # Here ensogl-pack outputs its artifacts
@@ -128,21 +116,6 @@
 { path: enso/, var: launcher_package }:
   bin/:
     enso<exe>:
-
-# Project Manager Package
-{ path: enso/, var: project_manager_package }:
-  bin/:
-    project-manager<exe>:
-
-# Project Manager Bundle
-# https://enso.org/docs/developer/enso/distribution/bundles.html#project-manager-bundle
-{ path: project-manager/, var: project_manager_bundle }:
-  bin/:
-    project-manager<exe>:
-  dist/:
-    <version>/:
-  runtime/:
-  .enso.bundle:
 
 # Engine Package aka Enso Version Package
 # https://enso.org/docs/developer/enso/distribution/distribution.html#layout-of-an-enso-version-package

@@ -13,6 +13,19 @@ export const FORM_SCHEMA = z.object({
   scopes: z.array(z.string()).refine((scopes) => scopes.length > 0, {
     message: i18n.getText(i18n.resolveDictionary(), 'ms365CredentialScopesEmptyError'),
   }),
+  filesPermission: z.enum([
+    'Files.ReadWrite.All',
+    'Files.Read.All',
+    'Files.ReadWrite',
+    'Files.Read',
+    'NoAccess',
+  ]),
+  sitesPermission: z.enum([
+    'Sites.Read.All',
+    'Sites.ReadWrite.All',
+    'Sites.Manage.All',
+    'NoAccess',
+  ]),
 })
 
 /**
@@ -25,7 +38,10 @@ export function submitForm(
   invariant($config.MS365_OAUTH_CLIENT_ID != null, 'MS365 OAuth client id is missing')
   const ms365OauthClientId = $config.MS365_OAUTH_CLIENT_ID
 
-  const oauthScopes: string[] = [...EXTRA_SCOPES, ...values.scopes]
+  const permissions = [values.filesPermission, values.sitesPermission].filter(
+    (permission) => permission !== 'NoAccess',
+  )
+  const oauthScopes: string[] = [...EXTRA_SCOPES, ...values.scopes, ...permissions]
   const input: MS365CredentialInput = {
     type: 'MS365',
     scopes: oauthScopes,

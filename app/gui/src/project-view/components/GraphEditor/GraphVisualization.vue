@@ -335,5 +335,6 @@ customElements.define(ensoVisualizationHost, defineCustomElement(VisualizationHo
 
 .overlay {
   position: absolute;
+  z-index: 1;
 }
 </style>

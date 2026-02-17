@@ -1,6 +1,10 @@
 from Standard.Base import all
 
+import Standard.Table.In_Memory_Table.In_Memory_Table
 from Standard.Table import Column, Table
+
+import Standard.Database.DB_Column.DB_Column
+import Standard.Database.DB_Table.DB_Table
 
 import project.Helpers
 from project.Helpers import time_visualization
@@ -11,7 +15,7 @@ from project.Helpers import time_visualization
    Gets the x column from a table.
    This is either the column named 'X' or the left most column.
 x_column : Table -> Column
-x_column table =
+x_column table = if table.column_count==1 then Nothing else
     by_name = table.get 'X' (table.get 'x')
     if Nothing != by_name then by_name else
         c = table.at 0
@@ -22,7 +26,7 @@ x_column table =
    private: true
    ---
 json_from_table : Table -> Vector Integer | Nothing -> Integer | Nothing -> Text
-json_from_table table bounds limit =
+json_from_table table bounds limit = if table.column_count==1 && table.column_names.first.equals_ignore_case "x" then json_from_table (table.rename_columns ["Value"] . add_row_number "Index" . reorder_columns ["Index","Value"]) bounds limit else
     ## Get the x column
     col_x = x_column table
     if Nothing == col_x then json_from_table (table.add_row_number "x") bounds limit else
@@ -93,9 +97,13 @@ json_from_vector vec bounds limit =
     - `value`: the value to be visualized.
 process_to_json_text : Any -> Integer | Nothing -> Integer | Nothing -> Text
 process_to_json_text value bounds=Nothing limit=Nothing = time_visualization Scatter_Plot ("process_to_json_text: " + value.to_display_text) <|
+    ## If limit is Nothing will use 15,000 for in database operations
     json = case value of
-        _ : Table  -> json_from_table  value bounds limit
+        _ : DB_Table -> json_from_table (value.read (..First (limit.if_nothing 15000))) bounds limit
+        _ : DB_Column -> json_from_table (value.to_table.read (..First (limit.if_nothing 15000))) bounds limit
+        _ : In_Memory_Table -> json_from_table value bounds limit
+        _ : Column -> json_from_table value.to_table bounds limit
         _ : Vector -> json_from_vector value bounds limit
-        _ : Column -> json_from_table  value.to_table bounds limit
-        _          -> json_from_vector value.to_vector bounds limit
+        _ : Array -> json_from_vector value bounds limit
+        _ -> json_from_vector value.to_vector bounds limit
     json

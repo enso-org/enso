@@ -194,7 +194,9 @@ public class DebugLocalScope extends EnsoObject {
     if (value != null) {
       var ensoLang = EnsoLanguage.get(interop);
       var ensoCtx = EnsoContext.get(interop);
-      value = ensoLang.getLanguageView(ensoCtx, value);
+      if (ensoLang != null) {
+        value = ensoLang.getLanguageView(ensoCtx, value);
+      }
     }
     return value != null ? value : DataflowError.UNINITIALIZED;
   }

@@ -16,8 +16,10 @@ import {
   type AssetDetailsResponse,
   type User,
 } from 'enso-common/src/services/Backend'
+import { ensoPathEq } from 'enso-common/src/services/Backend/ensoPath'
 import { newDirectoryId, type LocalBackend } from 'enso-common/src/services/LocalBackend'
 import type { RemoteBackend } from 'enso-common/src/services/RemoteBackend'
+import { some } from 'enso-common/src/utilities/data/iter'
 import { platform, Platform } from 'enso-common/src/utilities/detect'
 import { getFileName } from 'enso-common/src/utilities/file'
 import type { NavigationGuardReturn, RouteLocation } from 'vue-router'
@@ -30,16 +32,28 @@ type BackendAPI<B extends Backend> = Pick<B, 'rootPath' | 'listDirectory'>
 
 /** Open a project depending on path param in RounteLocation */
 export async function openProjectFromPath(to: RouteLocation) {
-  if (to.params.path == null) return
+  if (to.name !== 'dashboard' || to.params.path == null) return
+  const auth = useAuth()
   const { localBackend, remoteBackend } = useBackends()
   const queryClient = useQueryClient()
   const openedProjects = useOpenedProjects()
 
   const path = EnsoPath(to.params.path instanceof Array ? to.params.path.join('/') : to.params.path)
-
   if (!path) return
+
+  // Check if project is already opened
+  if (
+    some(
+      openedProjects.listProjects(),
+      (project) =>
+        ensoPathEq(project.state.info.ensoPath, path) && project.state.status !== 'not-opened',
+    )
+  )
+    return
+
   const backend = isRemoteAssetPath(path) ? remoteBackend : localBackend
   if (backend == null) return
+  await auth.waitForSession()
   const resolvedPath = await backend.resolveEnsoPath(path).catch(() => null)
   const typedAsset = resolvedPath && extractTypeFromId(resolvedPath.id)
   if (typedAsset?.type !== AssetType.project) return

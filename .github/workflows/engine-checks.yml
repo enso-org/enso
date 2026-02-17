@@ -833,7 +833,7 @@ jobs:
       GRAAL_EDITION: GraalVM CE
     permissions:
       checks: write
-  stdlib-graal-vm-ce-std-microsoft-std-mock-dual-microsoft-linux-amd64:
+  stdlib-graal-vm-ce-std-microsoft-linux-amd64:
     name: Standard Library Microsoft Tests (GraalVM CE) (linux, amd64)
     needs:
       - enso-build-ci-gen-job-build-engine-distribution-graal-vm-ce-linux-amd64
@@ -887,7 +887,7 @@ jobs:
         run: |-
           tar -xvf built-distribution.tar -C .
           rm built-distribution.tar
-      - run: ./run backend test std-microsoft std-mock-dual-microsoft
+      - run: ./run backend test std-microsoft
         env:
           ENSO_LIB_S3_AWS_ACCESS_KEY_ID: ${{ secrets.ENSO_LIB_S3_AWS_ACCESS_KEY_ID }}
           ENSO_LIB_S3_AWS_REGION: ${{ secrets.ENSO_LIB_S3_AWS_REGION }}

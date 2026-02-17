@@ -20,4 +20,4 @@
     - fitted_model_with_r_squared constructor:Standard.Base.Any.Any a:Standard.Base.Any.Any b:Standard.Base.Any.Any known_xs:Standard.Base.Any.Any known_ys:Standard.Base.Any.Any -> Standard.Base.Any.Any
     - ln_series xs:Standard.Base.Any.Any series_name:Standard.Base.Any.Any= -> Standard.Base.Any.Any
     - to_display_text self -> Standard.Base.Any.Any
-- fit_least_squares known_xs:Standard.Base.Any.Any known_ys:Standard.Base.Any.Any model:Standard.Base.Any.Any= -> Standard.Base.Any.Any
+- fit_least_squares known_xs:Standard.Base.Data.Vector.Vector known_ys:Standard.Base.Data.Vector.Vector model:Standard.Base.Any.Any= -> Standard.Base.Any.Any

@@ -1,13 +1,12 @@
 from Standard.Base import all
 import Standard.Base.Errors.Common.Floating_Point_Equality
 
-from Standard.Table import Sort_Column, Value_Type, expr
-from Standard.Table.Aggregate_Column.Aggregate_Column import all
+from Standard.Table import Aggregate_Column, Sort_Column, Value_Type, expr
 import Standard.Table.Expression.Expression_Error
 from Standard.Table.Errors import all
 
 import Standard.Database.Dialects.Feature.Feature
-from Standard.Database.Errors import Unsupported_Database_Operation, Aggregagtion_Requires_Order
+from Standard.Database.Errors import Unsupported_Database_Operation, Aggregation_Requires_Order
 
 from Standard.Test import all
 
@@ -43,7 +42,7 @@ add_specs suite_builder setup =
             group_builder.specify "aggregate should report unsupported" <|
                 table_builder = setup.light_table_builder
                 t = table_builder [["ix", [1, 2, 3, 4, 5]], ["X", [100, 3, Nothing, 4, 12]], ["Y", [100, 4, 2, Nothing, 11]]]
-                grouped = t.aggregate columns=[Count]
+                grouped = t.aggregate columns=[..Count]
                 grouped.should_fail_with (Unsupported_Database_Operation.Error "aggregate")
 
 ## Runs the common aggregate tests.
@@ -70,7 +69,7 @@ add_aggregate_specs suite_builder setup =
 
     suite_builder.group prefix+"Table.aggregate should summarize whole table" group_builder->
         group_builder.specify "should be able to count" <|
-            grouped = data.table.aggregate columns=[Count]
+            grouped = data.table.aggregate columns=[Aggregate_Column.Count]
             materialized = materialize grouped
             Problems.assume_no_problems materialized
             grouped.row_count . should_equal 1
@@ -88,7 +87,7 @@ add_aggregate_specs suite_builder setup =
             materialized.columns.at 0 . at 0 . should_equal 2500
 
         group_builder.specify "should be able to count missing values" <|
-            grouped = data.table.aggregate columns=[Count_Nothing "Hexadecimal", Count_Not_Nothing "Hexadecimal", Count_Empty "TextWithNothing", Count_Not_Empty "TextWithNothing"]
+            grouped = data.table.aggregate columns=[..Count_Nothing "Hexadecimal", ..Count_Not_Nothing "Hexadecimal", ..Count_Empty "TextWithNothing", ..Count_Not_Empty "TextWithNothing"]
             materialized = materialize grouped
             Problems.assume_no_problems materialized
             grouped.row_count . should_equal 1
@@ -103,7 +102,7 @@ add_aggregate_specs suite_builder setup =
             materialized.columns.at 3 . at 0 . should_equal 2251
 
         group_builder.specify "should be able to count distinct values" <|
-            grouped = data.table.aggregate columns=[Count_Distinct "Code", Count_Distinct "Index", Count_Distinct "Flag"]
+            grouped = data.table.aggregate columns=[..Count_Distinct "Code", ..Count_Distinct "Index", ..Count_Distinct "Flag"]
             materialized = materialize grouped
             Problems.assume_no_problems materialized
             grouped.row_count . should_equal 1
@@ -116,7 +115,7 @@ add_aggregate_specs suite_builder setup =
             materialized.columns.at 2 . at 0 . should_equal 2
 
         group_builder.specify "should be able to count distinct values over multiple columns" (pending = resolve_pending test_selection.multi_distinct) <|
-            grouped = data.table.aggregate columns=[Count_Distinct ["Index", "Flag"]]
+            grouped = data.table.aggregate columns=[..Count_Distinct ["Index", "Flag"]]
             materialized = materialize grouped
             Problems.assume_no_problems materialized
             grouped.row_count . should_equal 1
@@ -125,7 +124,7 @@ add_aggregate_specs suite_builder setup =
             materialized.columns.at 0 . at 0 . should_equal 20
 
         group_builder.specify "should be able to compute sum and average of values" <|
-            grouped = data.table.aggregate columns=[Sum "Value", Sum "ValueWithNothing", Average "Value", Average "ValueWithNothing"]
+            grouped = data.table.aggregate columns=[Aggregate_Column.Sum "Value", Aggregate_Column.Sum "ValueWithNothing", Aggregate_Column.Average "Value", Aggregate_Column.Average "ValueWithNothing"]
             materialized = materialize grouped
             Problems.assume_no_problems materialized
             grouped.row_count . should_equal 1
@@ -155,7 +154,7 @@ add_aggregate_specs suite_builder setup =
             materialized.columns.at 3 . at 0 . should_equal 1.228650 epsilon=0.000001
 
         group_builder.specify "should be able to compute standard deviation of values" (pending = resolve_pending test_selection.std_dev) <|
-            grouped = data.table.aggregate columns=[Standard_Deviation "Value", Standard_Deviation "ValueWithNothing", (Standard_Deviation "Value" population=True), (Standard_Deviation "ValueWithNothing" population=True)]
+            grouped = data.table.aggregate columns=[..Standard_Deviation "Value", ..Standard_Deviation "ValueWithNothing", (..Standard_Deviation "Value" population=True), (..Standard_Deviation "ValueWithNothing" population=True)]
             materialized = materialize grouped
             grouped.row_count . should_equal 1
             materialized.column_count . should_equal 4
@@ -169,7 +168,7 @@ add_aggregate_specs suite_builder setup =
             materialized.columns.at 3 . at 0 . should_equal 58.575554 epsilon=0.000001
 
         group_builder.specify "should be able to create median, mode and percentile values" (pending = resolve_pending test_selection.advanced_stats) <|
-            grouped = data.table.aggregate columns=[Median "Index", Median "Value", Median "ValueWithNothing", Mode "Index", Percentile 0.25 "Value", Percentile 0.40 "ValueWithNothing"]
+            grouped = data.table.aggregate columns=[..Median "Index", ..Median "Value", ..Median "ValueWithNothing", ..Mode "Index", ..Percentile 0.25 "Value", ..Percentile 0.40 "ValueWithNothing"]
             materialized = materialize grouped
             Problems.assume_no_problems materialized
             grouped.row_count . should_equal 1
@@ -188,7 +187,7 @@ add_aggregate_specs suite_builder setup =
             materialized.columns.at 5 . at 0 . should_equal -17.960000 epsilon=0.000001
 
         group_builder.specify "should be able to get first and last values" (pending = resolve_pending test_selection.first_last) <|
-            grouped = data.table.aggregate columns=[First ignore_nothing=False "Index" (order_by = [Sort_Column.Name "Value"]), Last ignore_nothing=False "ValueWithNothing" (order_by = [Sort_Column.Name "Value"])]
+            grouped = data.table.aggregate columns=[..First ignore_nothing=False "Index" (order_by = [Sort_Column.Name "Value"]), ..Last ignore_nothing=False "ValueWithNothing" (order_by = [Sort_Column.Name "Value"])]
             materialized = materialize grouped
             within_table grouped <|
                 Problems.assume_no_problems materialized
@@ -200,7 +199,7 @@ add_aggregate_specs suite_builder setup =
                 materialized.columns.at 1 . at 0 . should_equal -89.78 epsilon=0.000001
 
         group_builder.specify "should be able to get first and last values ordering by a single column" (pending = resolve_pending test_selection.first_last_ignore_nothing) <|
-            grouped = data.table.aggregate columns=[First "TextWithNothing" (order_by = [Sort_Column.Name "Value" Sort_Direction.Descending]), Last "ValueWithNothing" (order_by = [Sort_Column.Name "Value" Sort_Direction.Descending])]
+            grouped = data.table.aggregate columns=[..First "TextWithNothing" (order_by = [Sort_Column.Name "Value" Sort_Direction.Descending]), ..Last "ValueWithNothing" (order_by = [Sort_Column.Name "Value" Sort_Direction.Descending])]
             materialized = materialize grouped
             grouped.row_count . should_equal 1
             materialized.column_count . should_equal 2
@@ -210,7 +209,7 @@ add_aggregate_specs suite_builder setup =
             materialized.columns.at 1 . at 0 . should_equal -38.56 epsilon=0.000001
 
         group_builder.specify "should be able to get first and last values with mixed ordering by many columns" (pending = resolve_pending (test_selection.first_last_multi_order && test_selection.first_last_ignore_nothing)) <|
-            grouped = data.table.aggregate columns=[First "TextWithNothing" (order_by = [Sort_Column.Name "Value" Sort_Direction.Descending, Sort_Column.Name "Code"]), First "TextWithNothing" (order_by = [Sort_Column.Name "Code", Sort_Column.Name "Value" Sort_Direction.Descending]), Last "ValueWithNothing" (order_by = [Sort_Column.Name "Value" Sort_Direction.Descending])]
+            grouped = data.table.aggregate columns=[..First "TextWithNothing" (order_by = [Sort_Column.Name "Value" Sort_Direction.Descending, Sort_Column.Name "Code"]), ..First "TextWithNothing" (order_by = [Sort_Column.Name "Code", Sort_Column.Name "Value" Sort_Direction.Descending]), ..Last "ValueWithNothing" (order_by = [Sort_Column.Name "Value" Sort_Direction.Descending])]
             materialized = materialize grouped
             grouped.row_count . should_equal 1
             materialized.column_count . should_equal 3
@@ -222,7 +221,7 @@ add_aggregate_specs suite_builder setup =
             materialized.columns.at 2 . at 0 . should_equal -38.56 epsilon=0.000001
 
         group_builder.specify "should be able to get first and last values with default row order" (pending = resolve_pending test_selection.first_last_row_order) <|
-            grouped = data.table.aggregate columns=[First "Index", Last "Value"]
+            grouped = data.table.aggregate columns=[..First "Index", ..Last "Value"]
             materialized = materialize grouped
             Problems.assume_no_problems materialized
             grouped.row_count . should_equal 1
@@ -233,7 +232,7 @@ add_aggregate_specs suite_builder setup =
             materialized.columns.at 1 . at 0 . should_equal 70.99931 epsilon=0.000001
 
         group_builder.specify "should be able to get minimum and maximum values" <|
-            grouped = data.table.aggregate columns=[Minimum "Value", Maximum "Value", Minimum "ValueWithNothing", Maximum "ValueWithNothing"]
+            grouped = data.table.aggregate columns=[..Minimum "Value", ..Maximum "Value", ..Minimum "ValueWithNothing", ..Maximum "ValueWithNothing"]
             materialized = materialize grouped
             Problems.assume_no_problems materialized
             grouped.row_count . should_equal 1
@@ -248,7 +247,7 @@ add_aggregate_specs suite_builder setup =
             materialized.columns.at 3 . at 0 . should_equal 99.95 epsilon=0.000001
 
         group_builder.specify "should be able to get shortest and longest text values" (pending = resolve_pending test_selection.text_shortest_longest)  <|
-            grouped = data.table.aggregate columns=[Shortest "TextWithNothing", Longest "TextWithNothing"]
+            grouped = data.table.aggregate columns=[..Shortest "TextWithNothing", ..Longest "TextWithNothing"]
             materialized = materialize grouped
             Problems.assume_no_problems materialized
             grouped.row_count . should_equal 1
@@ -259,7 +258,7 @@ add_aggregate_specs suite_builder setup =
             materialized.columns.at 1 . at 0 . should_equal "setp295gjvbanana"
 
         group_builder.specify "should be able to get concatenated text values" (pending = resolve_pending test_selection.text_concat)  <|
-            grouped = data.table.aggregate columns=[Concatenate "Code"]
+            grouped = data.table.aggregate columns=[..Concatenate "Code"]
             materialized = materialize grouped
             Problems.assume_no_problems materialized
             grouped.row_count . should_equal 1
@@ -269,7 +268,7 @@ add_aggregate_specs suite_builder setup =
 
     suite_builder.group prefix+"Table.aggregate should summarize empty table" group_builder->
         group_builder.specify "should be able to count" <|
-            grouped = data.empty_table.aggregate columns=[Count]
+            grouped = data.empty_table.aggregate columns=[..Count]
             materialized = materialize grouped
             Problems.assume_no_problems materialized
             grouped.row_count . should_equal 1
@@ -278,7 +277,7 @@ add_aggregate_specs suite_builder setup =
             materialized.columns.at 0 . at 0 . should_equal 0
 
         group_builder.specify "should be able to count missing values" <|
-            grouped = data.empty_table.aggregate columns=[Count_Nothing "Hexadecimal", Count_Not_Nothing "Hexadecimal", Count_Empty "TextWithNothing", Count_Not_Empty "TextWithNothing"]
+            grouped = data.empty_table.aggregate columns=[..Count_Nothing "Hexadecimal", ..Count_Not_Nothing "Hexadecimal", ..Count_Empty "TextWithNothing", ..Count_Not_Empty "TextWithNothing"]
             materialized = materialize grouped
             Problems.assume_no_problems materialized
             grouped.row_count . should_equal 1
@@ -293,7 +292,7 @@ add_aggregate_specs suite_builder setup =
             materialized.columns.at 3 . at 0 . should_equal 0
 
         group_builder.specify "should be able to count distinct values" <|
-            grouped = data.empty_table.aggregate columns=[Count_Distinct "Code" (ignore_nothing=False), Count_Distinct "Code" (ignore_nothing=True)]
+            grouped = data.empty_table.aggregate columns=[..Count_Distinct "Code" (ignore_nothing=False), ..Count_Distinct "Code" (ignore_nothing=True)]
             materialized = materialize grouped
             grouped.row_count . should_equal 1
             materialized.column_count . should_equal 2
@@ -303,7 +302,7 @@ add_aggregate_specs suite_builder setup =
             materialized.columns.at 1 . at 0 . should_equal 0
 
         group_builder.specify "should be able to compute sum and average of values" <|
-            grouped = data.empty_table.aggregate columns=[Sum "Value", Average "ValueWithNothing"]
+            grouped = data.empty_table.aggregate columns=[..Sum "Value", ..Average "ValueWithNothing"]
             materialized = materialize grouped
             Problems.assume_no_problems materialized
             grouped.row_count . should_equal 1
@@ -314,7 +313,7 @@ add_aggregate_specs suite_builder setup =
             materialized.columns.at 1 . at 0 . should_equal Nothing
 
         group_builder.specify "should be able to compute standard deviation of values" (pending = resolve_pending test_selection.std_dev) <|
-            grouped = data.empty_table.aggregate columns=[Standard_Deviation "Value", (Standard_Deviation "ValueWithNothing" population=True)]
+            grouped = data.empty_table.aggregate columns=[..Standard_Deviation "Value", (..Standard_Deviation "ValueWithNothing" population=True)]
             materialized = materialize grouped
             Problems.assume_no_problems materialized
             grouped.row_count . should_equal 1
@@ -325,7 +324,7 @@ add_aggregate_specs suite_builder setup =
             materialized.columns.at 1 . at 0 . should_equal Nothing
 
         group_builder.specify "should be able to create median, mode and percentile values" (pending = resolve_pending test_selection.advanced_stats) <|
-            grouped = data.empty_table.aggregate columns=[Median "Index", Mode "Index", Percentile 0.25 "Value"]
+            grouped = data.empty_table.aggregate columns=[..Median "Index", ..Mode "Index", ..Percentile 0.25 "Value"]
             materialized = materialize grouped
             Problems.assume_no_problems materialized
             grouped.row_count . should_equal 1
@@ -338,7 +337,7 @@ add_aggregate_specs suite_builder setup =
             materialized.columns.at 2 . at 0 . should_equal Nothing
 
         group_builder.specify "should be able to get first and last values" (pending = resolve_pending test_selection.first_last) <|
-            grouped = data.empty_table.aggregate columns=[First "Index" ignore_nothing=False (order_by = [Sort_Column.Name "Hexadecimal"]), Last "ValueWithNothing" ignore_nothing=False (order_by = [Sort_Column.Name "Value"])]
+            grouped = data.empty_table.aggregate columns=[..First "Index" ignore_nothing=False (order_by = [Sort_Column.Name "Hexadecimal"]), ..Last "ValueWithNothing" ignore_nothing=False (order_by = [Sort_Column.Name "Value"])]
             materialized = materialize grouped
             Problems.assume_no_problems materialized
             grouped.row_count . should_equal 1
@@ -349,7 +348,7 @@ add_aggregate_specs suite_builder setup =
             materialized.columns.at 1 . at 0 . should_equal Nothing
 
         group_builder.specify "should be able to get first and last values with default row order" (pending = resolve_pending test_selection.first_last_row_order) <|
-            grouped = data.empty_table.aggregate columns=[First "Index", Last "Value"]
+            grouped = data.empty_table.aggregate columns=[..First "Index", ..Last "Value"]
             materialized = materialize grouped
             Problems.assume_no_problems materialized
             grouped.row_count . should_equal 1
@@ -360,7 +359,7 @@ add_aggregate_specs suite_builder setup =
             materialized.columns.at 1 . at 0 . should_equal Nothing
 
         group_builder.specify "should be able to get minimum and maximum values" <|
-            grouped = data.empty_table.aggregate columns=[Minimum "Value", Maximum "ValueWithNothing"]
+            grouped = data.empty_table.aggregate columns=[..Minimum "Value", ..Maximum "ValueWithNothing"]
             materialized = materialize grouped
             Problems.assume_no_problems materialized
             grouped.row_count . should_equal 1
@@ -371,7 +370,7 @@ add_aggregate_specs suite_builder setup =
             materialized.columns.at 1 . at 0 . should_equal Nothing
 
         group_builder.specify "should be able to get shortest and longest text values" (pending = resolve_pending test_selection.text_shortest_longest) <|
-            grouped = data.empty_table.aggregate columns=[Shortest "TextWithNothing", Longest "TextWithNothing"]
+            grouped = data.empty_table.aggregate columns=[..Shortest "TextWithNothing", ..Longest "TextWithNothing"]
             materialized = materialize grouped
             Problems.assume_no_problems materialized
             within_table grouped <|
@@ -383,7 +382,7 @@ add_aggregate_specs suite_builder setup =
                 materialized.columns.at 1 . at 0 . should_equal Nothing
 
         group_builder.specify "should be able to get concatenated text values" (pending = resolve_pending test_selection.text_concat) <|
-            grouped = data.empty_table.aggregate columns=[Concatenate "Code"]
+            grouped = data.empty_table.aggregate columns=[..Concatenate "Code"]
             materialized = materialize grouped
             Problems.assume_no_problems materialized
             within_table grouped <|
@@ -394,7 +393,7 @@ add_aggregate_specs suite_builder setup =
 
     suite_builder.group prefix+"Table.aggregate should not summarize empty table when grouped" group_builder->
         group_builder.specify "should be able to count" <|
-            grouped = data.empty_table.aggregate [0] [Count]
+            grouped = data.empty_table.aggregate [0] [..Count]
             materialized = materialize grouped
             Problems.assume_no_problems materialized
             grouped.row_count . should_equal 0
@@ -403,7 +402,7 @@ add_aggregate_specs suite_builder setup =
             materialized.columns.at 1 . name . should_equal "Count"
 
         group_builder.specify "should be able to count missing values" <|
-            grouped = data.empty_table.aggregate [0] [Count_Nothing "Hexadecimal", Count_Not_Nothing "Hexadecimal", Count_Empty "TextWithNothing", Count_Not_Empty "TextWithNothing"]
+            grouped = data.empty_table.aggregate [0] [..Count_Nothing "Hexadecimal", ..Count_Not_Nothing "Hexadecimal", ..Count_Empty "TextWithNothing", ..Count_Not_Empty "TextWithNothing"]
             materialized = materialize grouped
             Problems.assume_no_problems materialized
             grouped.row_count . should_equal 0
@@ -415,7 +414,7 @@ add_aggregate_specs suite_builder setup =
             materialized.columns.at 4 . name . should_equal "Count Not Empty TextWithNothing"
 
         group_builder.specify "should be able to count distinct values" <|
-            grouped = data.empty_table.aggregate [0] [Count_Distinct "Code"]
+            grouped = data.empty_table.aggregate [0] [..Count_Distinct "Code"]
             materialized = materialize grouped
             Problems.assume_no_problems materialized
             grouped.row_count . should_equal 0
@@ -424,7 +423,7 @@ add_aggregate_specs suite_builder setup =
             materialized.columns.at 1 . name . should_equal "Count Distinct Code"
 
         group_builder.specify "should be able to compute sum and average of values" <|
-            grouped = data.empty_table.aggregate [0] [Sum "Value", Average "ValueWithNothing"]
+            grouped = data.empty_table.aggregate [0] [..Sum "Value", ..Average "ValueWithNothing"]
             materialized = materialize grouped
             Problems.assume_no_problems materialized
             grouped.row_count . should_equal 0
@@ -434,7 +433,7 @@ add_aggregate_specs suite_builder setup =
             materialized.columns.at 2 . name . should_equal "Average ValueWithNothing"
 
         group_builder.specify "should be able to compute standard deviation of values" (pending = resolve_pending test_selection.std_dev) <|
-            grouped = data.empty_table.aggregate [0] [Standard_Deviation "Value", (Standard_Deviation "ValueWithNothing" population=True)]
+            grouped = data.empty_table.aggregate [0] [..Standard_Deviation "Value", (..Standard_Deviation "ValueWithNothing" population=True)]
             materialized = materialize grouped
             Problems.assume_no_problems materialized
             grouped.row_count . should_equal 0
@@ -444,7 +443,7 @@ add_aggregate_specs suite_builder setup =
             materialized.columns.at 2 . name . should_equal "Standard Deviation ValueWithNothing"
 
         group_builder.specify "should be able to create median values" (pending = resolve_pending test_selection.advanced_stats) <|
-            grouped = data.empty_table.aggregate [0] [Median "Index", Mode "Index", Percentile 0.25 "Value"]
+            grouped = data.empty_table.aggregate [0] [..Median "Index", ..Mode "Index", ..Percentile 0.25 "Value"]
             materialized = materialize grouped
             Problems.assume_no_problems materialized
             grouped.row_count . should_equal 0
@@ -455,7 +454,7 @@ add_aggregate_specs suite_builder setup =
             materialized.columns.at 3 . name . should_equal "25%-ile Value"
 
         group_builder.specify "should be able to get first and last values" (pending = resolve_pending test_selection.first_last) <|
-            grouped = data.empty_table.aggregate [0] [First "Index" ignore_nothing=False (order_by = [Sort_Column.Name "Hexadecimal"]), Last "ValueWithNothing" ignore_nothing=False (order_by = [Sort_Column.Name "Value"])]
+            grouped = data.empty_table.aggregate [0] [..First "Index" ignore_nothing=False (order_by = [Sort_Column.Name "Hexadecimal"]), ..Last "ValueWithNothing" ignore_nothing=False (order_by = [Sort_Column.Name "Value"])]
             materialized = materialize grouped
             Problems.assume_no_problems materialized
             grouped.row_count . should_equal 0
@@ -465,7 +464,7 @@ add_aggregate_specs suite_builder setup =
             materialized.columns.at 2 . name . should_equal "Last ValueWithNothing"
 
         group_builder.specify "should be able to get first and last values with default row order" (pending = resolve_pending test_selection.first_last_row_order) <|
-            grouped = data.empty_table.aggregate [0] [First "Index", Last "Value"]
+            grouped = data.empty_table.aggregate [0] [..First "Index", ..Last "Value"]
             materialized = materialize grouped
             Problems.assume_no_problems materialized
             grouped.row_count . should_equal 0
@@ -475,7 +474,7 @@ add_aggregate_specs suite_builder setup =
             materialized.columns.at 2 . name . should_equal "Last Value"
 
         group_builder.specify "should be able to get minimum and maximum values" <|
-            grouped = data.empty_table.aggregate [0] [Minimum "Value", Maximum "ValueWithNothing"]
+            grouped = data.empty_table.aggregate [0] [..Minimum "Value", ..Maximum "ValueWithNothing"]
             materialized = materialize grouped
             Problems.assume_no_problems materialized
             grouped.row_count . should_equal 0
@@ -485,7 +484,7 @@ add_aggregate_specs suite_builder setup =
             materialized.columns.at 2 . name . should_equal "Maximum ValueWithNothing"
 
         group_builder.specify "should be able to get shortest and longest text values" (pending = resolve_pending test_selection.text_shortest_longest) <|
-            grouped = data.empty_table.aggregate [0] [Shortest "TextWithNothing", Longest "TextWithNothing"]
+            grouped = data.empty_table.aggregate [0] [..Shortest "TextWithNothing", ..Longest "TextWithNothing"]
             materialized = materialize grouped
             Problems.assume_no_problems materialized
             grouped.row_count . should_equal 0
@@ -495,7 +494,7 @@ add_aggregate_specs suite_builder setup =
             materialized.columns.at 2 . name . should_equal "Longest TextWithNothing"
 
         group_builder.specify "should be able to get concatenated text values" (pending = resolve_pending test_selection.text_concat) <|
-            grouped = data.empty_table.aggregate [0] [Concatenate "Code"]
+            grouped = data.empty_table.aggregate [0] [..Concatenate "Code"]
             materialized = materialize grouped
             Problems.assume_no_problems materialized
             grouped.row_count . should_equal 0
@@ -505,7 +504,7 @@ add_aggregate_specs suite_builder setup =
 
     suite_builder.group prefix+"Table.aggregate should be able to group on single field" group_builder->
         group_builder.specify "should be able to count" <|
-            grouped = data.table.aggregate ["Index"] [Count]
+            grouped = data.table.aggregate ["Index"] [..Count]
             materialized = materialize grouped
             Problems.assume_no_problems materialized
             grouped.row_count . should_equal 10
@@ -517,7 +516,7 @@ add_aggregate_specs suite_builder setup =
             materialized.columns.at 1 . at idx . should_equal 261
 
         group_builder.specify "should be able to count missing values" <|
-            grouped = data.table.aggregate ["Index"] [Count_Nothing "Hexadecimal", Count_Not_Nothing "Hexadecimal", Count_Empty "TextWithNothing", Count_Not_Empty "TextWithNothing"]
+            grouped = data.table.aggregate ["Index"] [..Count_Nothing "Hexadecimal", ..Count_Not_Nothing "Hexadecimal", ..Count_Empty "TextWithNothing", ..Count_Not_Empty "TextWithNothing"]
             materialized = materialize grouped
             Problems.assume_no_problems materialized
             grouped.row_count . should_equal 10
@@ -535,7 +534,7 @@ add_aggregate_specs suite_builder setup =
             materialized.columns.at 4 . at idx . should_equal 230
 
         group_builder.specify "should be able to count distinct values" <|
-            grouped = data.table.aggregate ["Index"] [Count_Distinct "Code", Count_Distinct "Index", Count_Distinct "Flag"]
+            grouped = data.table.aggregate ["Index"] [..Count_Distinct "Code", ..Count_Distinct "Index", ..Count_Distinct "Flag"]
             materialized = materialize grouped
             Problems.assume_no_problems materialized
             grouped.row_count . should_equal 10
@@ -551,7 +550,7 @@ add_aggregate_specs suite_builder setup =
             materialized.columns.at 3 . at idx . should_equal 2
 
         group_builder.specify "should be able to count distinct values over multiple columns" (pending = resolve_pending test_selection.multi_distinct) <|
-            grouped = data.table.aggregate ["Index"] [Count_Distinct ["Index", "Flag"]]
+            grouped = data.table.aggregate ["Index"] [..Count_Distinct ["Index", "Flag"]]
             materialized = materialize grouped
             Problems.assume_no_problems materialized
             grouped.row_count . should_equal 10
@@ -563,7 +562,7 @@ add_aggregate_specs suite_builder setup =
             materialized.columns.at 1 . at idx . should_equal 2
 
         group_builder.specify "should be able to compute sum and average of values" <|
-            grouped = data.table.aggregate ["Index"] [Sum "Value", Sum "ValueWithNothing", Average "Value", Average "ValueWithNothing"]
+            grouped = data.table.aggregate ["Index"] [..Sum "Value", ..Sum "ValueWithNothing", ..Average "Value", ..Average "ValueWithNothing"]
             materialized = materialize grouped
             Problems.assume_no_problems materialized
             grouped.row_count . should_equal 10
@@ -581,7 +580,7 @@ add_aggregate_specs suite_builder setup =
             materialized.columns.at 4 . at idx . should_equal 0.646213 epsilon=0.000001
 
         group_builder.specify "should be able to compute standard deviation of values" (pending = resolve_pending test_selection.std_dev) <|
-            grouped = data.table.aggregate ["Index"] [Standard_Deviation "Value", Standard_Deviation "ValueWithNothing", (Standard_Deviation "Value" population=True), (Standard_Deviation "ValueWithNothing" population=True)]
+            grouped = data.table.aggregate ["Index"] [..Standard_Deviation "Value", ..Standard_Deviation "ValueWithNothing", (..Standard_Deviation "Value" population=True), (..Standard_Deviation "ValueWithNothing" population=True)]
             materialized = materialize grouped
             grouped.row_count . should_equal 10
             materialized.column_count . should_equal 5
@@ -598,7 +597,7 @@ add_aggregate_specs suite_builder setup =
             materialized.columns.at 4 . at idx . should_equal 56.677714 epsilon=0.000001
 
         group_builder.specify "should be able to create median values" (pending = resolve_pending test_selection.advanced_stats) <|
-            grouped = data.table.aggregate ["Index"] [Median "Index", Median "Value", Median "ValueWithNothing", Mode "Index", Percentile 0.25 "Value", Percentile 0.40 "ValueWithNothing"]
+            grouped = data.table.aggregate ["Index"] [..Median "Index", ..Median "Value", ..Median "ValueWithNothing", ..Mode "Index", ..Percentile 0.25 "Value", ..Percentile 0.40 "ValueWithNothing"]
             materialized = materialize grouped
             Problems.assume_no_problems materialized
             grouped.row_count . should_equal 10
@@ -620,7 +619,7 @@ add_aggregate_specs suite_builder setup =
             materialized.columns.at 6 . at idx . should_equal -18.802000 epsilon=0.000001
 
         group_builder.specify "should be able to get first and last values" (pending = resolve_pending test_selection.first_last) <|
-            grouped = data.table.aggregate ["Index"] [First "TextWithNothing" ignore_nothing=False (order_by = [Sort_Column.Name "Value"]), Last "ValueWithNothing" ignore_nothing=False (order_by = [Sort_Column.Name "Value"])]
+            grouped = data.table.aggregate ["Index"] [..First "TextWithNothing" ignore_nothing=False (order_by = [Sort_Column.Name "Value"]), ..Last "ValueWithNothing" ignore_nothing=False (order_by = [Sort_Column.Name "Value"])]
             materialized = materialize grouped
             Problems.assume_no_problems materialized
             grouped.row_count . should_equal 10
@@ -634,7 +633,7 @@ add_aggregate_specs suite_builder setup =
             materialized.columns.at 2 . at idx . should_equal -89.78 epsilon=0.000001
 
         group_builder.specify "should be able to get first and last values with mixed ordering" (pending = resolve_pending test_selection.first_last_multi_order) <|
-            grouped = data.table.aggregate ["Index"] [First "TextWithNothing" ignore_nothing=False (order_by = [Sort_Column.Name "Value" Sort_Direction.Descending, Sort_Column.Name "Flag"]), Last "ValueWithNothing" ignore_nothing=False (order_by = [Sort_Column.Name "Value" Sort_Direction.Descending])]
+            grouped = data.table.aggregate ["Index"] [..First "TextWithNothing" ignore_nothing=False (order_by = [Sort_Column.Name "Value" Sort_Direction.Descending, Sort_Column.Name "Flag"]), ..Last "ValueWithNothing" ignore_nothing=False (order_by = [Sort_Column.Name "Value" Sort_Direction.Descending])]
             materialized = materialize grouped
             Problems.assume_no_problems materialized
             grouped.row_count . should_equal 10
@@ -648,7 +647,7 @@ add_aggregate_specs suite_builder setup =
             materialized.columns.at 2 . at idx . should_equal -63.75 epsilon=0.000001
 
         group_builder.specify "should be able to get first and last values with default row order" (pending = resolve_pending test_selection.first_last_row_order) <|
-            grouped = data.table.aggregate ["Index"] [First "TextWithNothing", Last "Value"]
+            grouped = data.table.aggregate ["Index"] [..First "TextWithNothing", ..Last "Value"]
             materialized = materialize grouped
             Problems.assume_no_problems materialized
             grouped.row_count . should_equal 10
@@ -662,7 +661,7 @@ add_aggregate_specs suite_builder setup =
             materialized.columns.at 2 . at idx . should_equal 56.15916 epsilon=0.000001
 
         group_builder.specify "should be able to get minimum and maximum values" <|
-            grouped = data.table.aggregate ["Index"] [Minimum "Value", Maximum "Value", Minimum "ValueWithNothing", Maximum "ValueWithNothing"]
+            grouped = data.table.aggregate ["Index"] [..Minimum "Value", ..Maximum "Value", ..Minimum "ValueWithNothing", ..Maximum "ValueWithNothing"]
             materialized = materialize grouped
             Problems.assume_no_problems materialized
             grouped.row_count . should_equal 10
@@ -680,7 +679,7 @@ add_aggregate_specs suite_builder setup =
             materialized.columns.at 4 . at idx . should_equal 99.79 epsilon=0.000001
 
         group_builder.specify "should be able to get shortest and longest text values" (pending = resolve_pending test_selection.text_shortest_longest) <|
-            grouped = data.table.aggregate ["Index"] [Shortest "TextWithNothing", Longest "TextWithNothing"]
+            grouped = data.table.aggregate ["Index"] [..Shortest "TextWithNothing", ..Longest "TextWithNothing"]
             materialized = materialize grouped
             Problems.assume_no_problems materialized
             grouped.row_count . should_equal 10
@@ -694,7 +693,7 @@ add_aggregate_specs suite_builder setup =
             materialized.columns.at 2 . at idx . should_equal "byo6kn5l3sz"
 
         group_builder.specify "should be able to get concatenated text values" (pending = resolve_pending test_selection.text_concat) <|
-            grouped = data.table.aggregate ["Index"] [Concatenate "Code"]
+            grouped = data.table.aggregate ["Index"] [..Concatenate "Code"]
             materialized = materialize grouped
             Problems.assume_no_problems materialized
             grouped.row_count . should_equal 10
@@ -707,7 +706,7 @@ add_aggregate_specs suite_builder setup =
 
     suite_builder.group prefix+"Table.aggregate should be able to group on multiple fields" group_builder->
         group_builder.specify "should be able to count" <|
-            grouped = data.table.aggregate ["Flag", "Index"] [Count]
+            grouped = data.table.aggregate ["Flag", "Index"] [..Count]
             materialized = materialize grouped
             Problems.assume_no_problems materialized
             grouped.row_count . should_equal 20
@@ -720,7 +719,7 @@ add_aggregate_specs suite_builder setup =
             materialized.columns.at 2 . at idx . should_equal 127
 
         group_builder.specify "should be able to count missing values" <|
-            grouped = data.table.aggregate ["Flag", "Index"] [Count_Nothing "Hexadecimal", Count_Not_Nothing "Hexadecimal", Count_Empty "TextWithNothing",  Count_Not_Empty "TextWithNothing"]
+            grouped = data.table.aggregate ["Flag", "Index"] [..Count_Nothing "Hexadecimal", ..Count_Not_Nothing "Hexadecimal", ..Count_Empty "TextWithNothing",  ..Count_Not_Empty "TextWithNothing"]
             materialized = materialize grouped
             Problems.assume_no_problems materialized
             grouped.row_count . should_equal 20
@@ -739,7 +738,7 @@ add_aggregate_specs suite_builder setup =
             materialized.columns.at 5 . at idx . should_equal 115
 
         group_builder.specify "should be able to count distinct values" <|
-            grouped = data.table.aggregate ["Index", "Flag"] [Count_Distinct "Code", Count_Distinct "Index", Count_Distinct "Flag"]
+            grouped = data.table.aggregate ["Index", "Flag"] [..Count_Distinct "Code", ..Count_Distinct "Index", ..Count_Distinct "Flag"]
             materialized = materialize grouped
             Problems.assume_no_problems materialized
             grouped.row_count . should_equal 20
@@ -756,7 +755,7 @@ add_aggregate_specs suite_builder setup =
             materialized.columns.at 4 . at idx . should_equal 1
 
         group_builder.specify "should be able to count distinct values over multiple columns" (pending = resolve_pending test_selection.multi_distinct) <|
-            grouped = data.table.aggregate ["Index", "Flag"] [Count_Distinct ["Index", "Flag"]]
+            grouped = data.table.aggregate ["Index", "Flag"] [..Count_Distinct ["Index", "Flag"]]
             materialized = materialize grouped
             Problems.assume_no_problems materialized
             grouped.row_count . should_equal 20
@@ -769,7 +768,7 @@ add_aggregate_specs suite_builder setup =
             materialized.columns.at 2 . at idx . should_equal 1
 
         group_builder.specify "should be able to compute sum and average of values" <|
-            grouped = data.table.aggregate ["Index", "Flag"] [Sum "Value", Sum "ValueWithNothing", Average "Value", Average "ValueWithNothing"]
+            grouped = data.table.aggregate ["Index", "Flag"] [..Sum "Value", ..Sum "ValueWithNothing", ..Average "Value", ..Average "ValueWithNothing"]
             materialized = materialize grouped
             Problems.assume_no_problems materialized
             grouped.row_count . should_equal 20
@@ -788,7 +787,7 @@ add_aggregate_specs suite_builder setup =
             materialized.columns.at 5 . at idx . should_equal 4.721858 epsilon=0.000001
 
         group_builder.specify "should be able to compute standard deviation of values" (pending = resolve_pending test_selection.std_dev) <|
-            grouped = data.table.aggregate ["Index", "Flag"] [Standard_Deviation "Value", Standard_Deviation "ValueWithNothing", (Standard_Deviation "Value" population=True), (Standard_Deviation "ValueWithNothing" population=True)]
+            grouped = data.table.aggregate ["Index", "Flag"] [..Standard_Deviation "Value", ..Standard_Deviation "ValueWithNothing", (..Standard_Deviation "Value" population=True), (..Standard_Deviation "ValueWithNothing" population=True)]
             materialized = materialize grouped
             grouped.row_count . should_equal 20
             materialized.column_count . should_equal 6
@@ -806,7 +805,7 @@ add_aggregate_specs suite_builder setup =
             materialized.columns.at 5 . at idx . should_equal 57.306492 epsilon=0.000001
 
         group_builder.specify "should be able to create median values" (pending = resolve_pending test_selection.advanced_stats) <|
-            grouped = data.table.aggregate ["Index", "Flag"] [Median "Index", Median "Value", Median "ValueWithNothing", Mode "Index", Percentile 0.25 "Value", Percentile 0.40 "ValueWithNothing"]
+            grouped = data.table.aggregate ["Index", "Flag"] [..Median "Index", ..Median "Value", ..Median "ValueWithNothing", ..Mode "Index", ..Percentile 0.25 "Value", ..Percentile 0.40 "ValueWithNothing"]
             materialized = materialize grouped
             Problems.assume_no_problems materialized
             grouped.row_count . should_equal 20
@@ -829,7 +828,7 @@ add_aggregate_specs suite_builder setup =
             materialized.columns.at 7 . at idx . should_equal -17.174000 epsilon=0.000001
 
         group_builder.specify "should be able to get first and last values" (pending = resolve_pending test_selection.first_last) <|
-            grouped = data.table.aggregate ["Flag", "Index"] [First "TextWithNothing" ignore_nothing=False (order_by = [Sort_Column.Name "Value"]), Last ignore_nothing=False "ValueWithNothing" (order_by = [Sort_Column.Name "Value"])]
+            grouped = data.table.aggregate ["Flag", "Index"] [..First "TextWithNothing" ignore_nothing=False (order_by = [Sort_Column.Name "Value"]), ..Last ignore_nothing=False "ValueWithNothing" (order_by = [Sort_Column.Name "Value"])]
             materialized = materialize grouped
             Problems.assume_no_problems materialized
             grouped.row_count . should_equal 20
@@ -844,7 +843,7 @@ add_aggregate_specs suite_builder setup =
             materialized.columns.at 3 . at idx . should_equal -89.78 epsilon=0.000001
 
         group_builder.specify "should be able to get first and last values with mixed ordering" (pending = resolve_pending (test_selection.first_last_multi_order && test_selection.first_last_ignore_nothing)) <|
-            grouped = data.table.aggregate ["Flag", "Index"] [First "TextWithNothing" (order_by = [Sort_Column.Name "Value" Sort_Direction.Descending, Sort_Column.Name "Flag"]), Last "ValueWithNothing" (order_by = [Sort_Column.Name "Value" Sort_Direction.Descending])]
+            grouped = data.table.aggregate ["Flag", "Index"] [..First "TextWithNothing" (order_by = [Sort_Column.Name "Value" Sort_Direction.Descending, Sort_Column.Name "Flag"]), ..Last "ValueWithNothing" (order_by = [Sort_Column.Name "Value" Sort_Direction.Descending])]
             materialized = materialize grouped
             Problems.assume_no_problems materialized
             grouped.row_count . should_equal 20
@@ -859,7 +858,7 @@ add_aggregate_specs suite_builder setup =
             materialized.columns.at 3 . at idx . should_equal 54.48 epsilon=0.000001
 
         group_builder.specify "should be able to get first and last values with default row order" (pending = resolve_pending test_selection.first_last_row_order) <|
-            grouped = data.table.aggregate ["Flag", "Index"] [First "TextWithNothing", Last "Value"]
+            grouped = data.table.aggregate ["Flag", "Index"] [..First "TextWithNothing", ..Last "Value"]
             materialized = materialize grouped
             Problems.assume_no_problems materialized
             grouped.row_count . should_equal 20
@@ -874,7 +873,7 @@ add_aggregate_specs suite_builder setup =
             materialized.columns.at 3 . at idx . should_equal 56.15916 epsilon=0.000001
 
         group_builder.specify "should be able to get minimum and maximum values" <|
-            grouped = data.table.aggregate ["Index", "Flag"] [Minimum "Value", Maximum "Value", Minimum "ValueWithNothing", Maximum "ValueWithNothing"]
+            grouped = data.table.aggregate ["Index", "Flag"] [..Minimum "Value", ..Maximum "Value", ..Minimum "ValueWithNothing", ..Maximum "ValueWithNothing"]
             materialized = materialize grouped
             Problems.assume_no_problems materialized
             grouped.row_count . should_equal 20
@@ -893,7 +892,7 @@ add_aggregate_specs suite_builder setup =
             materialized.columns.at 5 . at idx . should_equal 97.17 epsilon=0.000001
 
         group_builder.specify "should be able to get shortest and longest text values" (pending = resolve_pending test_selection.text_shortest_longest) <|
-            grouped = data.table.aggregate ["Index", "Flag"] [Shortest "TextWithNothing", Longest "TextWithNothing"]
+            grouped = data.table.aggregate ["Index", "Flag"] [..Shortest "TextWithNothing", ..Longest "TextWithNothing"]
             materialized = materialize grouped
             Problems.assume_no_problems materialized
             grouped.row_count . should_equal 20
@@ -908,7 +907,7 @@ add_aggregate_specs suite_builder setup =
             materialized.columns.at 3 . at idx . should_equal "byo6kn5l3sz"
 
         group_builder.specify "should be able to get concatenated text values" (pending = resolve_pending test_selection.text_concat) <|
-            grouped = data.table.aggregate ["Index", "Flag"] [Concatenate "Code"]
+            grouped = data.table.aggregate ["Index", "Flag"] [..Concatenate "Code"]
             materialized = materialize grouped
             Problems.assume_no_problems materialized
             grouped.row_count . should_equal 20
@@ -923,7 +922,7 @@ add_aggregate_specs suite_builder setup =
     suite_builder.group prefix+"Table.aggregate Shortest" (pending = resolve_pending test_selection.text_shortest_longest) group_builder->
         group_builder.specify "should correctly handle empty strings versus missing (null) strings" <|
             table = table_builder [["A", ["abcd", "f", ""]], ["B", [Nothing, "f", "abc"]]]
-            result = table.aggregate [] [Shortest "A", Shortest "B"]
+            result = table.aggregate [] [..Shortest "A", ..Shortest "B"]
             within_table result <|
                 result.row_count . should_equal 1
                 materialized = materialize result
@@ -940,7 +939,7 @@ add_aggregate_specs suite_builder setup =
             table = table_builder [["int_column", [1, 2, 3, 4, 5, 6, 7]]]
             table.at "int_column" . value_type . should_equal Value_Type.Integer
 
-            result = table.aggregate [] [Sum "int_column"]
+            result = table.aggregate [] [..Sum "int_column"]
             within_table result <|
                 result.row_count . should_equal 1
                 materialized = materialize result
@@ -954,7 +953,7 @@ add_aggregate_specs suite_builder setup =
                 . cast "int_column" (Value_Type.Integer ..Bits_16)
             table2.at "int_column" . value_type . should_equal (Value_Type.Integer ..Bits_16)
 
-            result2 = table2.aggregate [] [Sum "int_column"]
+            result2 = table2.aggregate [] [..Sum "int_column"]
             within_table result2 <|
                 result2.row_count . should_equal 1
                 materialized2 = materialize result2
@@ -968,7 +967,7 @@ add_aggregate_specs suite_builder setup =
             table = table_builder [["int_column", [2^62, 2^62, 2^62, 2^62, 2^62, 2^62, 2^62, 1, 2, 4]], ["group", ["big", "big", "big", "big", "big", "big", "big", "small", "small", "small"]]]
             table.at "int_column" . value_type . should_equal Value_Type.Integer
 
-            result = table.aggregate [] [Sum "int_column"]
+            result = table.aggregate [] [..Sum "int_column"]
             within_table result <|
                 result.row_count . should_equal 1
                 materialized = materialize result
@@ -978,7 +977,7 @@ add_aggregate_specs suite_builder setup =
                 materialized.columns.at 0 . to_vector . should_equal [((2^62) * 7) + 7]
                 materialized.columns.at 0 . value_type . should_be_a (Value_Type.Decimal ...)
 
-            result2 = table.aggregate ["group"] [Sum "int_column"] . sort "group"
+            result2 = table.aggregate ["group"] [..Sum "int_column"] . sort "group"
             within_table result2 <|
                 result2.row_count . should_equal 2
                 materialized2 = materialize result2
@@ -993,7 +992,7 @@ add_aggregate_specs suite_builder setup =
         if setup.is_database.not then group_builder.specify "should allow to sum big-integer column" <|
             table = table_builder [["big_column", [2^100, 2^70]]]
             table.at "big_column" . value_type . should_be_a (Value_Type.Decimal ...)
-            result = table.aggregate [] [Sum "big_column"]
+            result = table.aggregate [] [..Sum "big_column"]
             within_table result <|
                 result.row_count . should_equal 1
                 materialized = materialize result
@@ -1009,7 +1008,7 @@ add_aggregate_specs suite_builder setup =
             table = table_builder [["X", [2^62, 2^62, 2^62, 2^62]]]
                 . cast "X" (Value_Type.Decimal scale=0)
             table.at "X" . value_type . should_be_a (Value_Type.Decimal ...)
-            result = table.aggregate [] [Average "X"]
+            result = table.aggregate [] [..Average "X"]
             within_table result <|
                 result.row_count . should_equal 1
                 materialized = materialize result
@@ -1027,7 +1026,7 @@ add_aggregate_specs suite_builder setup =
         suite_builder.group prefix+"Table.aggregate Concatenate" group_builder->
             group_builder.specify "should be supported" <|
                 table = table_builder [["X", ["A", "B", "C"]]]
-                result = table.aggregate columns=[(Concatenate "X")]
+                result = table.aggregate columns=[(..Concatenate "X")]
                 result.row_count . should_equal 1
                 str = result.at 0 . at 0
                 # No assumptions about ordering
@@ -1039,7 +1038,7 @@ add_aggregate_specs suite_builder setup =
         build_sorted_table = Util.build_sorted_table setup
         group_builder.specify "should insert the separator, add prefix and suffix" <|
             table = build_sorted_table [["A", ["foo", "bar", "foo", "foo"]], ["B", ["a", "b", "c", "d"]]]
-            result = table.aggregate ["A"] [Concatenate "B" prefix="[[" suffix="]]" separator="; "]
+            result = table.aggregate ["A"] [..Concatenate "B" prefix="[[" suffix="]]" separator="; "]
             result.row_count . should_equal 2
             materialized = materialize result . sort ([..Name "A"])
             Problems.assume_no_problems materialized
@@ -1051,7 +1050,7 @@ add_aggregate_specs suite_builder setup =
 
         group_builder.specify "should correctly escape separator and quote characters but only if necessary" <|
             table = build_sorted_table [["A", ["1,0", "b", "'c", "''", ","]]]
-            result = table.aggregate columns=[(Concatenate "A" prefix="[[" suffix="]]" separator="," quote_char="'")]
+            result = table.aggregate columns=[(..Concatenate "A" prefix="[[" suffix="]]" separator="," quote_char="'")]
             result.row_count . should_equal 1
             materialized = materialize result
             Problems.assume_no_problems materialized
@@ -1061,7 +1060,7 @@ add_aggregate_specs suite_builder setup =
 
         group_builder.specify "should correctly handle missing values and empty values with quote character" <|
             table = build_sorted_table [["A", ["1,0", "A", "", "", "B", Nothing, Nothing, "C"]]]
-            result = table.aggregate columns=[(Concatenate "A" prefix="[[" suffix="]]" separator="," quote_char="'")]
+            result = table.aggregate columns=[(..Concatenate "A" prefix="[[" suffix="]]" separator="," quote_char="'")]
             result.row_count . should_equal 1
             materialized = materialize result
             Problems.assume_no_problems materialized
@@ -1071,7 +1070,7 @@ add_aggregate_specs suite_builder setup =
 
         group_builder.specify "will not be able to distinguish missing values from empty values without quote character" <|
             table = build_sorted_table [["A", ["1,0", "A", "", "", "B", Nothing, Nothing, "C"]]]
-            result = table.aggregate columns=[(Concatenate "A" prefix="[[" suffix="]]" separator=",")]
+            result = table.aggregate columns=[(..Concatenate "A" prefix="[[" suffix="]]" separator=",")]
             result.row_count . should_equal 1
             materialized = materialize result
             ## Currently `Unquoted_Delimiter` is only reported in-memory, as
@@ -1086,7 +1085,7 @@ add_aggregate_specs suite_builder setup =
 
         group_builder.specify "should work with empty separator" <|
             table = build_sorted_table [["A", ["1,0", "A", "", "", "B", Nothing, Nothing, "C"]]]
-            result = table.aggregate columns=[(Concatenate "A")]
+            result = table.aggregate columns=[(..Concatenate "A")]
             result.row_count . should_equal 1
             materialized = materialize result
             Problems.assume_no_problems materialized
@@ -1096,7 +1095,7 @@ add_aggregate_specs suite_builder setup =
 
         group_builder.specify "should work with empty separator but non-empty quote" <|
             table = build_sorted_table [["A", ["1'0", "A", "", "", "B", Nothing, Nothing, "C"]]]
-            result = table.aggregate columns=[(Concatenate "A" quote_char="'")]
+            result = table.aggregate columns=[(..Concatenate "A" quote_char="'")]
             result.row_count . should_equal 1
             materialized = materialize result
             Problems.assume_no_problems materialized
@@ -1119,8 +1118,8 @@ add_aggregate_specs suite_builder setup =
             t1.row_count . should_equal 0
             t1.at "A" . to_vector . should_equal []
 
-            get_value (t1.aggregate columns=[Count_Distinct "A" (ignore_nothing=True)]) . should_equal 0
-            get_value (t1.aggregate columns=[Count_Distinct "A" (ignore_nothing=False)]) . should_equal 0
+            get_value (t1.aggregate columns=[..Count_Distinct "A" (ignore_nothing=True)]) . should_equal 0
+            get_value (t1.aggregate columns=[..Count_Distinct "A" (ignore_nothing=False)]) . should_equal 0
 
             ## TODO currently our builder does not allow all-null tables, so we
                create one with a 0 and remove it by filter. See #6159.
@@ -1129,27 +1128,27 @@ add_aggregate_specs suite_builder setup =
             t2.row_count . should_equal 2
             t2.at "A" . to_vector . should_equal [Nothing, Nothing]
 
-            get_value (t2.aggregate columns=[Count_Distinct "A" (ignore_nothing=True)]) . should_equal 0
-            get_value (t2.aggregate columns=[Count_Distinct "A" (ignore_nothing=False)]) . should_equal 1
+            get_value (t2.aggregate columns=[..Count_Distinct "A" (ignore_nothing=True)]) . should_equal 0
+            get_value (t2.aggregate columns=[..Count_Distinct "A" (ignore_nothing=False)]) . should_equal 1
 
             t3 = table_builder [["A", [1, 2]]]
-            get_value (t3.aggregate columns=[Count_Distinct "A" (ignore_nothing=True)]) . should_equal 2
-            get_value (t3.aggregate columns=[Count_Distinct "A" (ignore_nothing=False)]) . should_equal 2
+            get_value (t3.aggregate columns=[..Count_Distinct "A" (ignore_nothing=True)]) . should_equal 2
+            get_value (t3.aggregate columns=[..Count_Distinct "A" (ignore_nothing=False)]) . should_equal 2
 
             t4 = table_builder [["A", [1, 2, Nothing, Nothing]]]
-            get_value (t4.aggregate columns=[Count_Distinct "A" (ignore_nothing=True)]) . should_equal 2
-            get_value (t4.aggregate columns=[Count_Distinct "A" (ignore_nothing=False)]) . should_equal 3
+            get_value (t4.aggregate columns=[..Count_Distinct "A" (ignore_nothing=True)]) . should_equal 2
+            get_value (t4.aggregate columns=[..Count_Distinct "A" (ignore_nothing=False)]) . should_equal 3
 
             t5 = table_builder [["G", ["foo", "foo", "bar", "foo"]], ["A", [Nothing, 0, Nothing, Nothing]]]
 
-            r1 = t5.aggregate ["G"] [Count_Distinct "A" (ignore_nothing=True)]
+            r1 = t5.aggregate ["G"] [..Count_Distinct "A" (ignore_nothing=True)]
             r1.row_count . should_equal 2
             m1 = materialize r1 . sort ([..Name "G"])
             m1.column_count . should_equal 2
             m1.columns.first.to_vector . should_equal ["bar", "foo"]
             m1.columns.second.to_vector . should_equal [0, 1]
 
-            r2 = t5.aggregate ["G"] [Count_Distinct "A" (ignore_nothing=False)]
+            r2 = t5.aggregate ["G"] [..Count_Distinct "A" (ignore_nothing=False)]
             r2.row_count . should_equal 2
             m2 = materialize r2 . sort ([..Name "G"])
             m2.column_count . should_equal 2
@@ -1159,14 +1158,14 @@ add_aggregate_specs suite_builder setup =
         group_builder.specify "should correctly count all-null keys in multi-column mode" (pending = resolve_pending test_selection.multi_distinct) <|
             table = table_builder [["A", ["foo", "foo", Nothing, Nothing, Nothing]], ["B", ["baz", Nothing, Nothing, Nothing, "baz"]], ["C", [1, 2, 3, Nothing, 5]]]
 
-            r2 = table.aggregate columns=[Count_Distinct ["A", "B"] (ignore_nothing=False)]
+            r2 = table.aggregate columns=[..Count_Distinct ["A", "B"] (ignore_nothing=False)]
             r2.row_count.should_equal 1
             m2 = materialize r2
             m2.column_count.should_equal 1
             m2.columns.first.name . should_equal "Count Distinct A B"
             m2.columns.first.to_vector . should_equal [4]
 
-            r1 = table.aggregate columns=[Count_Distinct ["A", "B"] (ignore_nothing=True)]
+            r1 = table.aggregate columns=[..Count_Distinct ["A", "B"] (ignore_nothing=True)]
             r1.row_count.should_equal 1
             m1 = materialize r1
             m1.column_count.should_equal 1
@@ -1205,7 +1204,7 @@ add_aggregate_specs suite_builder setup =
 
     suite_builder.group prefix+"Table.aggregate Standard_Deviation" pending=(resolve_pending test_selection.std_dev) group_builder->
         group_builder.specify "should correctly handle single elements" <|
-            r1 = table_builder [["X", [1]]] . aggregate columns=[Standard_Deviation "X" (population=False), Standard_Deviation "X" (population=True)]
+            r1 = table_builder [["X", [1]]] . aggregate columns=[..Standard_Deviation "X" (population=False), ..Standard_Deviation "X" (population=True)]
             r1.row_count.should_equal 1
             m1 = materialize r1
             m1.column_count . should_equal 2
@@ -1215,13 +1214,13 @@ add_aggregate_specs suite_builder setup =
     suite_builder.group prefix+"Table.aggregate should correctly select result types" group_builder->
         group_builder.specify "widening to decimals on Average" <|
             table = table_builder [["G", ["a", "a", "b", "b"]], ["X", [0, 1, 1, Nothing]]]
-            r1 = table.aggregate columns=[Average "X"]
+            r1 = table.aggregate columns=[..Average "X"]
             r1.row_count.should_equal 1
             m1 = materialize r1
             m1.column_count . should_equal 1
             m1.columns.first.at 0 . should_equal (2/3) epsilon=0.00001
 
-            r2 = table.aggregate ["G"] [Average "X"]
+            r2 = table.aggregate ["G"] [..Average "X"]
             r2.row_count.should_equal 2
             m2 = materialize r2 . sort ([..Name "G"])
             m2.column_count . should_equal 2
@@ -1230,7 +1229,7 @@ add_aggregate_specs suite_builder setup =
 
         group_builder.specify "widening to decimals on Median" (pending = resolve_pending test_selection.advanced_stats) <|
             table = table_builder [["X", [-1000, 0, 1, 100000, Nothing]]]
-            r1 = table.aggregate columns=[Median "X"]
+            r1 = table.aggregate columns=[..Median "X"]
             r1.row_count.should_equal 1
             m1 = materialize r1
             m1.column_count . should_equal 1
@@ -1238,7 +1237,7 @@ add_aggregate_specs suite_builder setup =
 
         group_builder.specify "widening to decimals on Percentile" (pending = resolve_pending test_selection.advanced_stats) <|
             table = table_builder [["X", [1, 2, 3, 4, 5, 6, Nothing]]]
-            r1 = table.aggregate columns=[Percentile 0.3 "X"]
+            r1 = table.aggregate columns=[..Percentile 0.3 "X"]
             r1.row_count.should_equal 1
             m1 = materialize r1
             m1.column_count . should_equal 1
@@ -1246,7 +1245,7 @@ add_aggregate_specs suite_builder setup =
 
         group_builder.specify "widening to decimals on Standard_Deviation" (pending = resolve_pending test_selection.std_dev) <|
             table = table_builder [["X", [1, 2, 3, 4, Nothing]]]
-            r1 = table.aggregate columns=[Standard_Deviation "X" (population=True), Standard_Deviation "X" (population=False)]
+            r1 = table.aggregate columns=[..Standard_Deviation "X" (population=True), ..Standard_Deviation "X" (population=False)]
             r1.row_count.should_equal 1
             m1 = materialize r1
             m1.column_count . should_equal 2
@@ -1267,14 +1266,14 @@ add_aggregate_specs suite_builder setup =
 
         group_builder.specify "on Average" <|
             t1 = table_builder [["X", [Nothing, pos_inf, pos_inf, 0]]]
-            r1 = t1.aggregate columns=[Average "X"]
+            r1 = t1.aggregate columns=[..Average "X"]
             r1.row_count.should_equal 1
             m1 = materialize r1
             m1.column_count . should_equal 1
             m1.columns.first.at 0 . should_equal pos_inf
 
             t2 = table_builder [["X", [Nothing, pos_inf, neg_inf, 0]]]
-            r2 = t2.aggregate columns=[Average "X"]
+            r2 = t2.aggregate columns=[..Average "X"]
             r2.row_count.should_equal 1
             m2 = materialize r2
             m2.column_count . should_equal 1
@@ -1282,28 +1281,28 @@ add_aggregate_specs suite_builder setup =
 
         group_builder.specify "on Median" (pending = resolve_pending test_selection.advanced_stats) <|
             t1 = table_builder [["X", [Nothing, neg_inf, pos_inf, 0, pos_inf, pos_inf]]]
-            r1 = t1.aggregate columns=[Median "X"]
+            r1 = t1.aggregate columns=[..Median "X"]
             r1.row_count.should_equal 1
             m1 = materialize r1
             m1.column_count . should_equal 1
             m1.columns.first.at 0 . should_equal pos_inf
 
             t2 = table_builder [["X", [pos_inf, pos_inf, neg_inf, neg_inf]]]
-            r2 = t2.aggregate columns=[Median "X"]
+            r2 = t2.aggregate columns=[..Median "X"]
             r2.row_count.should_equal 1
             m2 = materialize r2
             m2.column_count . should_equal 1
             expect_null_or_nan <| m2.columns.first.at 0
 
             t3 = table_builder [["X", [pos_inf, pos_inf, Nothing, 0, 10, 20, neg_inf, neg_inf]]]
-            r3 = t3.aggregate columns=[Median "X"]
+            r3 = t3.aggregate columns=[..Median "X"]
             r3.row_count.should_equal 1
             m3 = materialize r3
             m3.column_count . should_equal 1
             m3.columns.first.at 0 . should_equal 10
 
             t4 = table_builder [["X", [Nothing, pos_inf, pos_inf, 10, 12]]]
-            r4 = t4.aggregate columns=[Median "X"]
+            r4 = t4.aggregate columns=[..Median "X"]
             r4.row_count.should_equal 1
             m4 = materialize r4
             m4.column_count . should_equal 1
@@ -1311,21 +1310,21 @@ add_aggregate_specs suite_builder setup =
 
         group_builder.specify "on Percentile" (pending = resolve_pending test_selection.advanced_stats) <|
             t1 = table_builder [["X", [Nothing, neg_inf, 2, 3, 4, pos_inf]]]
-            r1 = t1.aggregate columns=[Percentile 0.3 "X"]
+            r1 = t1.aggregate columns=[..Percentile 0.3 "X"]
             r1.row_count.should_equal 1
             m1 = materialize r1
             m1.column_count . should_equal 1
             m1.columns.first.at 0 . should_equal 2.2
 
             t2 = table_builder [["X", [Nothing, neg_inf, neg_inf, 3, 4, pos_inf]]]
-            r2 = t2.aggregate columns=[Percentile 0.25 "X"]
+            r2 = t2.aggregate columns=[..Percentile 0.25 "X"]
             r2.row_count.should_equal 1
             m2 = materialize r2
             m2.column_count . should_equal 1
             m2.columns.first.at 0 . should_equal neg_inf
 
             t3 = table_builder [["X", [Nothing, neg_inf, neg_inf, pos_inf, pos_inf, pos_inf]]]
-            r3 = t3.aggregate columns=[Percentile 0.3 "X"]
+            r3 = t3.aggregate columns=[..Percentile 0.3 "X"]
             r3.row_count.should_equal 1
             m3 = materialize r3
             m3.column_count . should_equal 1
@@ -1333,7 +1332,7 @@ add_aggregate_specs suite_builder setup =
 
         group_builder.specify "on Standard_Deviation" (pending = resolve_pending test_selection.std_dev) <|
             t1 = table_builder [["X", [neg_inf, 1]]]
-            r1 = t1.aggregate columns=[Standard_Deviation "X" (population=True), Standard_Deviation "X" (population=False)]
+            r1 = t1.aggregate columns=[..Standard_Deviation "X" (population=True), ..Standard_Deviation "X" (population=False)]
             r1.row_count.should_equal 1
             m1 = materialize r1
             m1.column_count . should_equal 2
@@ -1344,7 +1343,7 @@ add_aggregate_specs suite_builder setup =
         nan = 0.log 0
         group_builder.specify "on Average" <|
             t1 = table_builder [["X", [Nothing, nan, 0, 1, 2]]]
-            r1 = t1.aggregate columns=[Average "X"]
+            r1 = t1.aggregate columns=[..Average "X"]
             r1.row_count.should_equal 1
             m1 = materialize r1
             m1.column_count . should_equal 1
@@ -1352,7 +1351,7 @@ add_aggregate_specs suite_builder setup =
 
         group_builder.specify "on Median" (pending = resolve_pending test_selection.advanced_stats) <|
             t1 = table_builder [["X", [Nothing, nan, 0, 1, 2]]]
-            r1 = t1.aggregate columns=[Median "X"]
+            r1 = t1.aggregate columns=[..Median "X"]
             r1.row_count.should_equal 1
             m1 = materialize r1
             m1.column_count . should_equal 1
@@ -1360,7 +1359,7 @@ add_aggregate_specs suite_builder setup =
 
         group_builder.specify "on Percentile" (pending = resolve_pending test_selection.advanced_stats) <|
             t1 = table_builder [["X", [Nothing, nan, 0, 1, 2, 4, 5]]]
-            r1 = t1.aggregate columns=[Percentile 0.3 "X"]
+            r1 = t1.aggregate columns=[..Percentile 0.3 "X"]
             r1.row_count.should_equal 1
             m1 = materialize r1
             m1.column_count . should_equal 1
@@ -1368,7 +1367,7 @@ add_aggregate_specs suite_builder setup =
 
         group_builder.specify "on Mode" (pending = resolve_pending test_selection.advanced_stats) <|
             t1 = table_builder [["X", [Nothing, nan, nan, nan, nan, 4, 5]]]
-            r1 = t1.aggregate columns=[Mode "X"]
+            r1 = t1.aggregate columns=[..Mode "X"]
             r1.row_count.should_equal 1
             m1 = materialize r1
             m1.column_count . should_equal 1
@@ -1376,7 +1375,7 @@ add_aggregate_specs suite_builder setup =
 
         group_builder.specify "on Standard_Deviation" (pending = resolve_pending test_selection.std_dev) <|
             t1 = table_builder [["X", [Nothing, nan, 0, 1, 2]]]
-            r1 = t1.aggregate columns=[Standard_Deviation "X" (population=False), Standard_Deviation "X" (population=True)]
+            r1 = t1.aggregate columns=[..Standard_Deviation "X" (population=False), ..Standard_Deviation "X" (population=True)]
             r1.row_count.should_equal 1
             m1 = materialize r1
             m1.column_count . should_equal 2
@@ -1386,7 +1385,7 @@ add_aggregate_specs suite_builder setup =
     suite_builder.group prefix+"Table.aggregate Mode" (pending = resolve_pending test_selection.advanced_stats) group_builder->
         group_builder.specify "should ignore missing values" <|
             t1 = table_builder [["X", [Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, 2, 2, 1]]]
-            r1 = t1.aggregate columns=[Mode "X"]
+            r1 = t1.aggregate columns=[..Mode "X"]
             r1.row_count.should_equal 1
             m1 = materialize r1
             m1.column_count . should_equal 1
@@ -1396,7 +1395,7 @@ add_aggregate_specs suite_builder setup =
         group_builder.specify "should not return the same value for groups with different values but equal ordering keys" <|
             t1 = table_builder [["G", ["a", "a"]], ["X", [1, 2]]]
             order = [Sort_Column.Name "G"]
-            r1 = t1.aggregate columns=[First "X" ignore_nothing=False (order_by=order), Last "X" ignore_nothing=False (order_by=order)]
+            r1 = t1.aggregate columns=[..First "X" ignore_nothing=False (order_by=order), ..Last "X" ignore_nothing=False (order_by=order)]
             r1.row_count.should_equal 1
             m1 = materialize r1
             m1.column_count . should_equal 2
@@ -1406,7 +1405,7 @@ add_aggregate_specs suite_builder setup =
 
         group_builder.specify "should work with grouping and ordering, and other aggregates" <|
             t1 = table_builder [["Group", ["A", "A", "B", "C", "C", "C"]], ["Order", [1, 2, 3, 50, 40, 20]], ["Value", ["a", "b", "c", "d", "e", "f"]]]
-            aggregates = [First "Value" ignore_nothing=False order_by="Order", Last "Value" ignore_nothing=False order_by="Order", Count, Sum "Order"]
+            aggregates = [..First "Value" ignore_nothing=False order_by="Order", ..Last "Value" ignore_nothing=False order_by="Order", ..Count, ..Sum "Order"]
             r1 = t1.aggregate group_by=["Group"] aggregates
             within_table r1 <|
                 r1.row_count.should_equal 3
@@ -1430,7 +1429,7 @@ add_aggregate_specs suite_builder setup =
 
         group_builder.specify "should respect the `ignore_nothing` setting" (pending = resolve_pending test_selection.first_last_ignore_nothing) <|
             t1 = table_builder [["ix", [1, 2, 3, 4, 5]], ["A", [Nothing, "a", "b", "c", Nothing]]]
-            r1 = t1.aggregate columns=[First "A" order_by="ix" ignore_nothing=False, Last "A" order_by="ix" ignore_nothing=False, First "A" order_by="ix" ignore_nothing=True, Last "A" order_by="ix" ignore_nothing=True]
+            r1 = t1.aggregate columns=[..First "A" order_by="ix" ignore_nothing=False, ..Last "A" order_by="ix" ignore_nothing=False, ..First "A" order_by="ix" ignore_nothing=True, ..Last "A" order_by="ix" ignore_nothing=True]
             r1.column_names . should_equal ["First A", "Last A", "First A 1", "Last A 1"]
             m1 = materialize r1
             m1.row_count . should_equal 1
@@ -1443,7 +1442,7 @@ add_aggregate_specs suite_builder setup =
             # We create a non-empty table because all-Nothing columns are problematic in some backends:
             t1 = table_builder [["ix", [Nothing, 1, 2, 3]], ["A", [1, Nothing, Nothing, Nothing]]]
                 . filter "ix" ..Not_Nothing
-            r1 = t1.aggregate columns=[First "A" order_by="ix" ignore_nothing=True, Last "A" order_by="ix" ignore_nothing=True]
+            r1 = t1.aggregate columns=[..First "A" order_by="ix" ignore_nothing=True, ..Last "A" order_by="ix" ignore_nothing=True]
             r1.column_names . should_equal ["First A", "Last A"]
             m1 = materialize r1
             m1.row_count . should_equal 1
@@ -1465,7 +1464,7 @@ add_aggregate_specs suite_builder setup =
 
         group_builder.specify "should work when stacked one after another" <|
             t1 = table_builder [["X", [1, 1, 1, 2, 2, 3]], ["Y", [1, 2, 3, 4, 5, 6]]]
-            t2 = t1.aggregate ["X"] [Count, Sum "Y", Minimum "Y"]
+            t2 = t1.aggregate ["X"] [..Count, ..Sum "Y", ..Minimum "Y"]
 
             # Just check that first aggregate is correct
             m2 = materialize t2 |> _.sort "X"
@@ -1474,7 +1473,7 @@ add_aggregate_specs suite_builder setup =
             m2.at "Sum Y" . to_vector . should_equal [6, 9, 6]
             m2.at "Minimum Y" . to_vector . should_equal [1, 4, 6]
 
-            t3 = t2.aggregate columns=[Count, Sum "Count", Average "Sum Y", Maximum "Minimum Y"]
+            t3 = t2.aggregate columns=[..Count, ..Sum "Count", ..Average "Sum Y", ..Maximum "Minimum Y"]
             m3 = materialize t3
             m3.at "Count" . to_vector . should_equal [3]
             m3.at "Sum Count" . to_vector . should_equal [6]
@@ -1484,7 +1483,7 @@ add_aggregate_specs suite_builder setup =
         if setup.flagged ..Supports_Unicode_Normalization then
             group_builder.specify "should correctly handle Unicode normalization within grouping" <|
                 table = table_builder [["A", ['s', 's\u0301', 'ś', 's\u0301']], ["B", [1, 2, 4, 8]]]
-                grouped = table.aggregate ["A"] [Sum "B"]
+                grouped = table.aggregate ["A"] [..Sum "B"]
                 grouped.row_count . should_equal 2
                 materialized = materialize grouped . sort ["A"]
                 Problems.assume_no_problems materialized
@@ -1502,17 +1501,17 @@ add_aggregate_specs suite_builder setup =
                 ints = ["Int", [1, 2, 4, 8, 16]]
                 table = table_builder [dates, times, datetimes, ints]
 
-                g1 = table.aggregate ["Date"] [Sum "Int"]
+                g1 = table.aggregate ["Date"] [..Sum "Int"]
                 m1 = materialize g1 . sort (["Date"])
                 m1.at "Date" . to_vector . should_equal [Date.new 1997, Date.new 2000 2 2, Date.new 2022 12 31]
                 m1.at "Sum Int" . to_vector . should_equal [17, 10, 4]
 
-                g2 = table.aggregate ["Time"] [Sum "Int"]
+                g2 = table.aggregate ["Time"] [..Sum "Int"]
                 m2 = materialize g2 . sort (["Time"])
                 m2.at "Time" . to_vector . should_equal [Time_Of_Day.new, Time_Of_Day.new 0 0 0 500, Time_Of_Day.new 1 2 3, Time_Of_Day.new 11 25 40]
                 m2.at "Sum Int" . to_vector . should_equal [9, 2, 4, 16]
 
-                g3 = table.aggregate ["DateTime"] [Sum "Int"]
+                g3 = table.aggregate ["DateTime"] [..Sum "Int"]
                 m3 = materialize g3 . sort (["DateTime"])
                 ## The DB may change the timezone of the values, so we need to convert them back to be able to check for equality.
                    All that we require is that the instant in time represented by the values is preserved.
@@ -1524,21 +1523,21 @@ add_aggregate_specs suite_builder setup =
         if test_selection.first_last && test_selection.first_last_row_order.not then
             group_builder.specify "should report a warning and ignore problematic columns if a feature is not supported" <|
                 table = table_builder [["A", [1,2,Nothing,3]]]
-                action = table.aggregate columns=[Sum "A", First ignore_nothing=False "A", Last ignore_nothing=False "A"] on_problems=_
+                action = table.aggregate columns=[..Sum "A", ..First ignore_nothing=False "A", ..Last ignore_nothing=False "A"] on_problems=_
                 tester result =
                     result.row_count . should_equal 1
                     materialized = materialize result
                     materialized.column_count . should_equal 1
                     materialized.columns.first.name . should_equal "Sum A"
                     materialized.columns.first.to_vector . should_equal [6]
-                problems = [Aggregagtion_Requires_Order.Error "First", Aggregagtion_Requires_Order.Error "Last"]
+                problems = [Aggregation_Requires_Order.Error "First", Aggregation_Requires_Order.Error "Last"]
                 Problems.test_problem_handling action problems tester
 
             group_builder.specify "will include unsupported feature problem in No_Output_Columns" <|
                 table = table_builder [["A", [1,2,Nothing,3]]]
-                r1 = table.aggregate columns=[First ignore_nothing=False "A"]
+                r1 = table.aggregate columns=[..First ignore_nothing=False "A"]
                 r1.should_fail_with No_Output_Columns
-                r1.catch.cause . should_be_a Aggregagtion_Requires_Order.Error
+                r1.catch.cause . should_be_a Aggregation_Requires_Order.Error
                 r1.to_display_text . should_contain "No columns in the result"
                 r1.to_display_text . should_contain "`First`"
 
@@ -1547,7 +1546,7 @@ add_aggregate_specs suite_builder setup =
            to verify that  all of them correctly support expressions.
         group_builder.specify "should allow expressions in aggregates" <|
             table = table_builder [["Index", [1, 1, 2, 2]], ["Value", [1, 2, 3, 4]]]
-            t1 = table.aggregate ["Index"] [Sum "Value", Sum (expr "[Value]*[Value]")]
+            t1 = table.aggregate ["Index"] [..Sum "Value", ..Sum (expr "[Value]*[Value]")]
             t1.column_count . should_equal 3
             r1 =  t1 |> materialize |> _.sort "Index"
             r1.at "Index" . to_vector . should_equal [1, 2]
@@ -1557,19 +1556,19 @@ add_aggregate_specs suite_builder setup =
             r1.at -1 . to_vector . should_equal [5, 25]
 
         group_builder.specify "should warn when encountering invalid expressions, but try to perform the aggregations that are still valid" <|
-            action1 = data.table.aggregate ["Index"] [Sum "Value", Sum (expr "[MISSING]*[MISSING]")] on_problems=_
+            action1 = data.table.aggregate ["Index"] [..Sum "Value", ..Sum (expr "[MISSING]*[MISSING]")] on_problems=_
             tester1 t = expect_column_names ["Index", "Sum Value"] t
             problems1 = [Invalid_Aggregate_Column.Error "[MISSING]*[MISSING]" (No_Such_Column.Error "MISSING")]
             Problems.test_problem_handling action1 problems1 tester1
 
-            t2 = data.table.aggregate ["Index"] [Sum "Value", Sum (expr "[[[")] on_problems=..Ignore
+            t2 = data.table.aggregate ["Index"] [..Sum "Value", ..Sum (expr "[[[")] on_problems=..Ignore
             expect_column_names ["Index", "Sum Value"] t2
-            err3 = data.table.aggregate ["Index"] [Sum "Value", Sum (expr "[[[")] on_problems=..Report_Error
+            err3 = data.table.aggregate ["Index"] [..Sum "Value", ..Sum (expr "[[[")] on_problems=..Report_Error
             err3.should_fail_with Invalid_Aggregate_Column
             err3.catch.name . should_equal "[[["
             err3.catch.expression_error . should_be_a Expression_Error.Syntax_Error
 
-            t4 = data.table.aggregate columns=[Sum (expr "[MISSING]*[MISSING]")]
+            t4 = data.table.aggregate columns=[..Sum (expr "[MISSING]*[MISSING]")]
             t4 . should_fail_with Invalid_Aggregate_Column
             err4 = t4.catch
             err4.name.should_equal "[MISSING]*[MISSING]"
@@ -1586,11 +1585,11 @@ add_aggregate_specs suite_builder setup =
                 t1 = table.aggregate [] on_problems=pb
                 t1.should_fail_with Missing_Argument
 
-            t2 = table.aggregate columns=[Sum "MISSING"]
+            t2 = table.aggregate columns=[..Sum "MISSING"]
             t2.should_fail_with Invalid_Aggregate_Column
             t2.catch.name.should_equal "MISSING"
 
-            t3 = table.aggregate columns=[Sum 42]
+            t3 = table.aggregate columns=[..Sum 42]
             t3.should_fail_with Missing_Input_Columns
             t3.catch.criteria.should_equal [42]
 
@@ -1599,7 +1598,7 @@ add_aggregate_specs suite_builder setup =
             err1.should_fail_with Invalid_Aggregate_Column
             err1.catch.name . should_equal "Missing"
 
-            t1 = table.aggregate ["Index"] [Sum "Value", Sum "Missing"] on_problems=..Report_Warning
+            t1 = table.aggregate ["Index"] [..Sum "Value", ..Sum "Missing"] on_problems=..Report_Warning
             t1.column_names . should_equal ["Index", "Sum Value"]
             warnings = Problems.get_attached_warnings t1
             warnings.not_empty . should_be_true
@@ -1608,11 +1607,11 @@ add_aggregate_specs suite_builder setup =
 
             ## Even if there are missing columns both for group-by and
                aggregations, the groupby errors are reported separately.
-            err2 = table.aggregate ["Index", "Unknown", "Other Missing"] [Sum "Value", Sum "Missing"] on_problems=..Report_Error
+            err2 = table.aggregate ["Index", "Unknown", "Other Missing"] [..Sum "Value", ..Sum "Missing"] on_problems=..Report_Error
             err2.should_fail_with Invalid_Aggregate_Column
             err2.catch.name.should_equal "Unknown"
 
-            err3 = table.aggregate ["Index"] [Sum "Value", Sum "Missing"] on_problems=..Ignore error_on_missing_columns=True
+            err3 = table.aggregate ["Index"] [..Sum "Value", ..Sum "Missing"] on_problems=..Ignore error_on_missing_columns=True
             err3.should_fail_with Invalid_Aggregate_Column
             err3.catch.name.should_equal "Missing"
 
@@ -1620,17 +1619,17 @@ add_aggregate_specs suite_builder setup =
             err4.should_fail_with Missing_Input_Columns
             err4.catch.criteria.should_equal [100, -42]
 
-            action2 = table.aggregate ["Index"] [Sum "Value", Sum 42] on_problems=_
+            action2 = table.aggregate ["Index"] [..Sum "Value", ..Sum 42] on_problems=_
             problems2 = [Missing_Input_Columns.Error [42]]
             tester2 t = expect_column_names ["Index", "Sum Value"] t
             Problems.test_problem_handling action2 problems2 tester2
 
             # As above, missing errors from group-by take precedence over aggregates.
-            err5 = table.aggregate ["Index", 55, -33] [Sum "Value", Sum 144] on_problems=..Report_Error
+            err5 = table.aggregate ["Index", 55, -33] [..Sum "Value", ..Sum 144] on_problems=..Report_Error
             err5.should_fail_with Missing_Input_Columns
             err5.catch.criteria.should_equal [55, -33]
 
-            err6 = table.aggregate ["Index"] [Sum "Value", Sum 42] on_problems=..Ignore error_on_missing_columns=True
+            err6 = table.aggregate ["Index"] [..Sum "Value", ..Sum 42] on_problems=..Ignore error_on_missing_columns=True
             err6.catch . should_equal (Missing_Input_Columns.Error [42])
 
         group_builder.specify "should raise a warning when a duplicate column name" <|
@@ -1640,25 +1639,25 @@ add_aggregate_specs suite_builder setup =
             Problems.test_problem_handling action problems tester
 
         group_builder.specify "should raise a warning when a duplicate column name and rename default names first" <|
-            action = table.aggregate ["Value"] [Sum "Index" "Value"] on_problems=_
+            action = table.aggregate ["Value"] [..Sum "Index" "Value"] on_problems=_
             problems = [Duplicate_Output_Column_Names.Error ["Value"]]
             tester t = expect_column_names ["Value 1", "Value"] t
             Problems.test_problem_handling action problems tester
 
         group_builder.specify "should raise a warning when duplicate column names" <|
-            action = table.aggregate columns=[Sum "Value" as="AGG1", Count as="AGG1"] on_problems=_
+            action = table.aggregate columns=[..Sum "Value" as="AGG1", ..Count as="AGG1"] on_problems=_
             problems = [Duplicate_Output_Column_Names.Error ["AGG1"]]
             tester t = expect_column_names ["AGG1", "AGG1 1"] t
             Problems.test_problem_handling action problems tester
 
         group_builder.specify "should allow partial matches on Count_Distinct" <|
-            action = table.aggregate columns=[Count_Distinct ["Missing", "Value"]] on_problems=_
+            action = table.aggregate columns=[..Count_Distinct ["Missing", "Value"]] on_problems=_
             problems = [Missing_Input_Columns.Error ["Missing"]]
             tester t = expect_column_names ["Count Distinct Value"] t
             Problems.test_problem_handling action problems tester
 
         group_builder.specify "should ignore Count_Distinct if no columns matched" <|
-            action = table.aggregate columns=[Count_Distinct [-100], Count] on_problems=_
+            action = table.aggregate columns=[..Count_Distinct [-100], ..Count] on_problems=_
             problems = [Missing_Input_Columns.Error [-100]]
             tester t = expect_column_names ["Count"] t
             Problems.test_problem_handling action problems tester
@@ -1675,26 +1674,26 @@ add_aggregate_specs suite_builder setup =
             True ->
                 group_builder.specify "should warn if computing an aggregation relying on floating point equality" <|
                     t = table_builder [["X", [1.5, 2.0, 1.5, 1.0]]]
-                    action = t.aggregate columns=[Mode "X"] on_problems=_
+                    action = t.aggregate columns=[..Mode "X"] on_problems=_
                     problems = [Floating_Point_Equality.Error "Mode X"]
                     tester t = expect_column_names ["Mode X"] t
                     Problems.test_problem_handling action problems tester
             False ->
                 group_builder.specify "should error if unsupported operations are selected" <|
                     t1 = table_builder [["X", [1.5, 2.0, 1.5, 1.0]]]
-                    t2 = t1.aggregate columns=[Mode "X"] on_problems=..Ignore
+                    t2 = t1.aggregate columns=[..Mode "X"] on_problems=..Ignore
                     t2.should_fail_with No_Output_Columns
 
         group_builder.specify "should check types" <|
             table = table_builder [["Text", ["a", "b"]], ["Int", [1, 2]], ["Float", [1.1, 2.2]]]
             [Problem_Behavior.Report_Error, Problem_Behavior.Report_Warning, Problem_Behavior.Ignore].each pb-> Test.with_clue "Problem_Behavior="+pb.to_text+" " <|
-                non_numbers = [Average "Text", Standard_Deviation "Text", Median "Text", Sum "Text"]
+                non_numbers = [Aggregate_Column.Average "Text", Aggregate_Column.Standard_Deviation "Text", Aggregate_Column.Median "Text", Aggregate_Column.Sum "Text"]
                 non_numbers.each agg-> Test.with_clue "Aggregation="+agg.to_text+" " <|
                     err = table.aggregate columns=[agg] on_problems=pb
                     err.should_fail_with Invalid_Value_Type
                     err.catch.related_column.should_equal "Text"
 
-                non_texts = [Shortest "Int", Longest "Int", Concatenate "Int", Count_Empty "Int", Count_Not_Empty "Int"]
+                non_texts = [Aggregate_Column.Shortest "Int", Aggregate_Column.Longest "Int", Aggregate_Column.Concatenate "Int", Aggregate_Column.Count_Empty "Int", Aggregate_Column.Count_Not_Empty "Int"]
                 non_texts.each agg-> Test.with_clue "Aggregation="+agg.to_text+" " <|
                     err = table.aggregate columns=[agg] on_problems=pb
                     err.should_fail_with Invalid_Value_Type
@@ -1708,7 +1707,7 @@ add_aggregate_specs suite_builder setup =
             setup.expect_integer_type <| t1.at "Int"
             t1.at "Float" . value_type . is_floating_point . should_be_true
 
-            t2 = table.aggregate columns=[Count, Count_Not_Empty "Text", Sum "Int", Sum "Float", Average "Int", Concatenate "Text"]
+            t2 = table.aggregate columns=[..Count, ..Count_Not_Empty "Text", ..Sum "Int", ..Sum "Float", ..Average "Int", ..Concatenate "Text"]
             setup.expect_integer_type <| t2.at "Count"
             setup.expect_integer_type <| t2.at "Count Not Empty Text"
             t2.at "Sum Int" . value_type . is_numeric . should_be_true
@@ -1725,7 +1724,7 @@ add_aggregate_specs suite_builder setup =
             table_builder [col1, col2, col3, col4]
 
         group_builder.specify "should not fail if trying concatenate unquoted delimiters with no separator" <|
-            column = Concatenate "Text" separator=""
+            column = Aggregate_Column.Concatenate "Text" separator=""
             t = table_builder [["Text", ["A", "BC", "def"]]]
             result = t.aggregate columns=[column] on_problems=..Report_Error
             Problems.assume_no_problems result
@@ -1734,14 +1733,14 @@ add_aggregate_specs suite_builder setup =
 
         group_builder.specify "should warn if can't compare value for Min or Max" <|
             [Problem_Behavior.Report_Error, Problem_Behavior.Report_Warning, Problem_Behavior.Ignore].each pb-> Test.with_clue "Problem_Behavior="+pb.to_text+" " <|
-                err = table.aggregate columns=[Maximum "Mixed"] on_problems=pb
+                err = table.aggregate columns=[..Maximum "Mixed"] on_problems=pb
                 err.should_fail_with Invalid_Aggregation
                 err.catch.column.should_equal "Maximum Mixed"
                 err.catch.message.should_start_with "Cannot compare values"
                 err.catch.rows.should_equal [1]
 
         group_builder.specify "should warn if trying concatenate unquoted delimiters" <|
-            column = Concatenate "Text" separator=","
+            column = Aggregate_Column.Concatenate "Text" separator=","
             action = table.aggregate columns=[column] on_problems=_
             problems = [Unquoted_Delimiter.Error "Concatenate Text" [1]]
             tester t = expect_column_names ["Concatenate Text"] t
@@ -1750,7 +1749,7 @@ add_aggregate_specs suite_builder setup =
     suite_builder.group prefix+"Table.aggregate should merge warnings when issues computing aggregation" pending=(resolve_pending test_selection.aggregation_problems) group_builder->
         group_builder.specify "should merge Invalid Aggregation warnings" <|
             table = table_builder [["X", (0.up_to 16).map (_-> ",")]]
-            new_table = table.aggregate columns=[Concatenate "X" separator=","]
+            new_table = table.aggregate columns=[..Concatenate "X" separator=","]
             problems = Problems.get_attached_warnings new_table
             warning = problems.first
             warning . should_be_a Unquoted_Delimiter.Error
@@ -1763,7 +1762,7 @@ add_aggregate_specs suite_builder setup =
                 col2 = ["Value", [1, 2, 2, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 5]]
                 col3 = ["Float", col2.second.map x->(1.5*x)]
                 table_builder [col1, col2, col3]
-            new_table = table.aggregate ["Float"] [Count]
+            new_table = table.aggregate ["Float"] [..Count]
             problems = Problems.get_attached_warnings new_table
             problems.length . should_equal 1
             problems.at 0 . should_be_a Floating_Point_Equality
@@ -1782,48 +1781,48 @@ add_aggregate_specs suite_builder setup =
                 group_builder.specify "with First and Last in row order" <|
                     table = table_builder [["X", [1,2,3]]]
                     expect_sum_and_unsupported_errors 2 <|
-                        table.aggregate columns=[Sum "X", First "X", Last "X"]
+                        table.aggregate columns=[..Sum "X", ..First "X", ..Last "X"]
 
             if test_selection.first_last.not then
                 group_builder.specify "with First and Last with ordering" <|
                     table = table_builder [["A", [3,2,1]], ["X", [1,2,3]]]
                     order = [Sort_Column.Name "A"]
                     expect_sum_and_unsupported_errors 2 <|
-                        table.aggregate columns=[Sum "X", First "X" ignore_nothing=False order_by=order, Last "X" ignore_nothing=False order_by=order] on_problems=..Report_Warning
+                        table.aggregate columns=[..Sum "X", ..First "X" ignore_nothing=False order_by=order, ..Last "X" ignore_nothing=False order_by=order] on_problems=..Report_Warning
 
             if test_selection.first_last_ignore_nothing.not then
                 group_builder.specify "with First and Last with ignore_nothing=True" <|
                     table = table_builder [["A", [3,2,1]], ["X", [1,2,3]]]
                     order = [Sort_Column.Name "A"]
                     expect_sum_and_unsupported_errors 2 <|
-                        table.aggregate columns=[Sum "X", First "X" (order_by=order), Last "X" (order_by=order)]
+                        table.aggregate columns=[..Sum "X", ..First "X" (order_by=order), ..Last "X" (order_by=order)]
 
             if test_selection.advanced_stats.not then
                 group_builder.specify "with Median, Mode and Percentile" <|
                     table = table_builder [["X", [1,2,3]]]
                     expect_sum_and_unsupported_errors 3 <|
-                        table.aggregate columns=[Sum "X", Median "X", Mode "X", Percentile 0.3 "X"]
+                        table.aggregate columns=[..Sum "X", ..Median "X", ..Mode "X", ..Percentile 0.3 "X"]
 
             if test_selection.std_dev.not then
                 group_builder.specify "with Standard_Deviation" <|
                     table = table_builder [["X", [1,2,3]]]
                     expect_sum_and_unsupported_errors 1 <|
-                        table.aggregate columns=[Sum "X", Standard_Deviation "X"]
+                        table.aggregate columns=[..Sum "X", ..Standard_Deviation "X"]
 
             if test_selection.text_shortest_longest.not then
                 group_builder.specify "with Shortest and Longest" <|
                     table = table_builder [["X", [1,2,3]], ["Y", ["a", "bb", "ccc"]]]
                     expect_sum_and_unsupported_errors 2 <|
-                        table.aggregate columns=[Sum "X", Shortest "Y", Longest "Y"]
+                        table.aggregate columns=[..Sum "X", ..Shortest "Y", ..Longest "Y"]
 
             if test_selection.text_concat.not && (setup.prefix.contains "Snowflake" . not && setup.prefix.contains "SQLServer" . not) then
                 group_builder.specify "with Concatenate" <|
                     table = table_builder [["X", [1,2,3]], ["Y", ["a", "bb", "ccc"]]]
                     expect_sum_and_unsupported_errors 1 <|
-                        table.aggregate columns=[Sum "X", Concatenate "Y"]
+                        table.aggregate columns=[..Sum "X", ..Concatenate "Y"]
 
             if test_selection.multi_distinct.not then
                 group_builder.specify "with Count_Distinct on multiple fields" <|
                     table = table_builder [["X", [1,2,3]], ["Y", ["a", "bb", "ccc"]]]
                     expect_sum_and_unsupported_errors 1 <|
-                        table.aggregate columns=[Sum "X", Count_Distinct ["X", "Y"]]
+                        table.aggregate columns=[..Sum "X", ..Count_Distinct ["X", "Y"]]

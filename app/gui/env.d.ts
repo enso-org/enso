@@ -4,7 +4,7 @@
  * monkeypatching on `window` and generated code.
  */
 /// <reference types="vite/client" />
-import type { $Config } from './src/config'
+import type { $Config } from 'enso-common/src/config'
 import type { ElectronApi } from './src/electronApi'
 import type { FeatureFlags } from './src/providers/featureFlags'
 

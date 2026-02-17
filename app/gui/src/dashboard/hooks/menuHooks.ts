@@ -45,13 +45,14 @@ export function useMenuEntries(entries: readonly (MenuEntryProps | false | null 
   const { getText } = useText()
   const { bindGlobalActions } = useActionsStore()
 
-  const entriesByActionRef = useRef<Partial<Record<DashboardBindingKey, MenuEntryProps>>>({})
+  const entriesByActionRef = useRef<Map<DashboardBindingKey, MenuEntryProps>>(new Map())
   const [actionsRef] = useState(() => ref<Action[]>([]))
 
   useEffect(() => {
+    entriesByActionRef.current.clear()
     for (const entry of entries) {
       if (entry == null || entry === false) continue
-      entriesByActionRef.current[entry.action] = entry
+      entriesByActionRef.current.set(entry.action, entry)
     }
   })
 
@@ -79,7 +80,7 @@ export function useMenuEntries(entries: readonly (MenuEntryProps | false | null 
       inputBindings.attach(bindingFocusScope.current ?? document.body, 'keydown', {
         [DEFAULT_HANDLER]: (_event, matchingBindings) => {
           for (const binding of matchingBindings) {
-            const entry = entriesByActionRef.current[binding]
+            const entry = entriesByActionRef.current.get(binding)
             if (!entry || entry.isDisabled === true) {
               continue
             }
@@ -90,7 +91,7 @@ export function useMenuEntries(entries: readonly (MenuEntryProps | false | null 
           return false
         },
       }),
-    [bindingFocusScope, inputBindings],
+    [bindingFocusScope, inputBindings, entries],
   )
 
   return entries

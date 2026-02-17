@@ -1,7 +1,8 @@
 import { createContextStore } from '@/providers'
 import { proxyRefs } from '@/util/reactivity'
 import { normalizeRouteParamToString } from '@/util/router'
-import type { EnsoPath } from 'enso-common/src/services/Backend'
+import { EnsoPath } from 'enso-common/src/services/Backend'
+import { ensoPathEq } from 'enso-common/src/services/Backend/ensoPath'
 import { filter } from 'enso-common/src/utilities/data/iter'
 import { computed, onScopeDispose, watchEffect } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -41,14 +42,20 @@ export const [provideContainerData, useContainerData] = createContextStore(
     const projectTabs = computed(() =>
       Array.from(filter(openedProjects.listProjects(), isProjectShownAsTab), (project) => ({
         ...project,
-        shown: computed(() => tab.value === project.state.info.ensoPath),
+        shown: computed(
+          () =>
+            tab.value !== 'drive' &&
+            tab.value !== 'settings' &&
+            ensoPathEq(tab.value, project.state.info.ensoPath),
+        ),
       })),
     )
 
     const isValidTab = (name: string | undefined): name is TabId =>
       name === 'drive' ||
       name === 'settings' ||
-      projectTabs.value.find((p) => p.state.info.ensoPath === name) != null
+      projectTabs.value.find((p) => name && ensoPathEq(p.state.info.ensoPath, EnsoPath(name))) !=
+        null
 
     const tab = computed<TabId>({
       get: () => {

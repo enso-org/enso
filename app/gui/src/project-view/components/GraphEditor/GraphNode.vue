@@ -404,6 +404,7 @@ const nodeMenuActions: DisplayableActionName[] = [
   'component.startEditing',
   'components.copy',
   'components.deleteSelected',
+  'components.deleteAndConnectAround',
 ]
 
 onWindowBlur(() => {

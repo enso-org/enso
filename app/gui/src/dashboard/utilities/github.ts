@@ -1,5 +1,5 @@
 /** @file Utilities getting various metadata about the app. */
-import * as common from 'enso-common'
+import * as common from 'enso-common/src/constants'
 import * as detect from 'enso-common/src/utilities/detect'
 
 /* eslint-disable @typescript-eslint/naming-convention */
