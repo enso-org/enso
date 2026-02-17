@@ -598,9 +598,10 @@ cosh = Base_Generator.lift_unary_op "COSH" arg->
    ---
 tanh = Base_Generator.lift_unary_op "TANH" arg->
     x = SQL_Builder.code "CAST(" ++ arg ++ " AS double precision)"
-    exp_x = SQL_Builder.code "EXP(" ++ x ++ ")"
-    exp_neg_x = SQL_Builder.code "EXP(-(" ++ x ++ "))"
-    SQL_Builder.code "((" ++ exp_x ++ " - " ++ exp_neg_x ++ ") / (" ++ exp_x ++ " + " ++ exp_neg_x ++ "))"
+    abs_x = SQL_Builder.code "ABS(" ++ x ++ ")"
+    exp_term = SQL_Builder.code "EXP(-2 * (" ++ abs_x ++ "))"
+    ratio = SQL_Builder.code "(1 - " ++ exp_term ++ ") / (1 + " ++ exp_term ++ ")"
+    SQL_Builder.code "CASE WHEN " ++ x ++ " < 0 THEN -(" ++ ratio ++ ") ELSE " ++ ratio ++ " END"
 
 ## ---
    private: true
