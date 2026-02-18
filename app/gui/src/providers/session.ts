@@ -7,7 +7,6 @@ import { useInitAuthService } from '$/authentication/service'
 import { LOGOUT_EVENT } from '$/providers/session/constants'
 import * as analytics from '$/utils/analytics'
 import { proxyRefs, type ToValue } from '$/utils/reactivity'
-import { waitForData } from '@/util/tanstack'
 import { useToast } from '@/util/toast'
 import * as sentry from '@sentry/vue'
 import * as vueQuery from '@tanstack/vue-query'
@@ -346,7 +345,7 @@ export function createSessionStore(
   return proxyRefs({
     signUp,
     session: session.data,
-    waitForSession: () => waitForData(session),
+    waitForSession: () => session.promise.value,
     isLoggingOut,
     confirmSignUp,
     resendSignUp,

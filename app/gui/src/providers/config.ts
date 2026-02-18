@@ -1,5 +1,4 @@
 import { proxyRefs } from '$/utils/reactivity'
-import { waitForData } from '@/util/tanstack'
 import * as sentry from '@sentry/vue'
 import { useQuery } from '@tanstack/vue-query'
 import { createGlobalState } from '@vueuse/core'
@@ -91,7 +90,7 @@ function createConfigStore() {
     remoteConfig: remoteConfig.data,
     isFetching: remoteConfig.isFetching,
     isError: remoteConfig.isError,
-    waitForRemoteConfig: () => waitForData(remoteConfig),
+    waitForRemoteConfig: () => remoteConfig.promise.value,
   })
 }
 

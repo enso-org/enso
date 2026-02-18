@@ -3,7 +3,6 @@ import { useFeatureFlag } from '$/providers/featureFlags'
 import * as analytics from '$/utils/analytics'
 import { proxyRefs, type ToValue } from '$/utils/reactivity'
 import type { Opt } from '@/util/data/opt'
-import { waitForData } from '@/util/tanstack'
 import { useToast } from '@/util/toast'
 import * as sentry from '@sentry/vue'
 import * as vueQuery from '@tanstack/vue-query'
@@ -234,7 +233,7 @@ function createAuthStore(
   return proxyRefs({
     refetchSession,
     session: effectiveUserData,
-    waitForSession: () => sessionData.waitForSession().then(() => waitForData(usersMeQuery)),
+    waitForSession: () => sessionData.waitForSession().then(() => usersMeQuery.promise.value),
     setUsername,
     isUserMarkedForDeletion,
     isUserDeleted,

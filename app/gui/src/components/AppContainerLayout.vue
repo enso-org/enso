@@ -20,7 +20,6 @@ import { proxyRefs } from '$/utils/reactivity'
 import { backendQueryOptions } from '@/composables/backend'
 import { useEvent } from '@/composables/events'
 import { reactComponent } from '@/util/react'
-import { waitForData } from '@/util/tanstack'
 import { useQuery } from '@tanstack/vue-query'
 import * as backendModule from 'enso-common/src/services/Backend'
 import { Ok } from 'enso-common/src/utilities/data/result'
@@ -62,7 +61,7 @@ export const dataLoader: DataLoader<Props> = {
     const needsOrganizationSetup = PLANS_TO_SPECIFY_ORG_NAME.includes(plan)
 
     const organizationQuery = useQuery(backendQueryOptions('getOrganization', [], backend))
-    await waitForData(organizationQuery)
+    await organizationQuery.promise.value
 
     const acceptInvitationModalProps = computed(() => (invitation ? { invitation } : undefined))
 

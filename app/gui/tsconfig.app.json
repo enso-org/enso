@@ -858,7 +858,6 @@
     "./src/project-view/util/shortcuts.ts",
     "./src/project-view/util/specialCharacters.ts",
     "./src/project-view/util/tabs.ts",
-    "./src/project-view/util/tanstack.ts",
     "./src/project-view/util/testing.ts",
     "./src/project-view/util/theme.ts",
     "./src/project-view/util/toast.ts",
