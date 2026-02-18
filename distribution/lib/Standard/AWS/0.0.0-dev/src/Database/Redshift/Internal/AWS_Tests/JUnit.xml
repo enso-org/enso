@@ -1,0 +1,530 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites>
+    <testsuite name="[Redshift] (Column_Operations_Spec) Boolean Column Operations" timestamp="2026-02-18T14:29:28" tests="8" disabled="1" errors="1" time="34.075">
+        <testcase name="iif" time="7.102">        </testcase>
+        <testcase name="iif on Columns" time="6.855">        </testcase>
+        <testcase name="iif should correctly unify text columns of various lengths" time="0.0">
+            <skipped message="Fixed-length Char columns are not supported by this backend."/>
+                </testcase>
+        <testcase name="should allow to compute &amp;&amp;, || and not" time="5.411">
+            <failure message="{Table: X-&gt;Boolean, Y-&gt;Boolean} [False, True, True] did not equal [True, False, True]; first difference at index 0  (at /Users/adriley/Code/enso-org/enso/test/Table_Tests/src/Common_Table_Operations/Column_Operations_Spec.enso:332:17-72).">
+{Table: X-&gt;Boolean, Y-&gt;Boolean} [False, True, True] did not equal [True, False, True]; first difference at index 0  (at /Users/adriley/Code/enso-org/enso/test/Table_Tests/src/Common_Table_Operations/Column_Operations_Spec.enso:332:17-72).
+            </failure>
+        </testcase>
+        <testcase name="should handle nulls correctly in not" time="1.037">        </testcase>
+        <testcase name="should handle nulls correctly in &amp;&amp;" time="6.461">        </testcase>
+        <testcase name="should handle nulls correctly in ||" time="6.804">        </testcase>
+        <testcase name="should check types" time="0.401">        </testcase>
+    </testsuite>
+    <testsuite name="[Redshift] (Column_Operations_Spec) Column Operations - Equality &amp; Null Handling" timestamp="2026-02-18T14:29:43" tests="7" disabled="0" errors="1" time="14.077">
+        <testcase name="should provide basic == and != comparisons" time="4.897">        </testcase>
+        <testcase name="should allow to check which values are null" time="2.523">
+            <failure message="{Table: x-&gt;Integer (64 bits)} [False, True, False, False] did not equal [False, False, False, True]; first difference at index 1  (at /Users/adriley/Code/enso-org/enso/test/Table_Tests/src/Common_Table_Operations/Column_Operations_Spec.enso:403:17-81).">
+{Table: x-&gt;Integer (64 bits)} [False, True, False, False] did not equal [False, False, False, True]; first difference at index 1  (at /Users/adriley/Code/enso-org/enso/test/Table_Tests/src/Common_Table_Operations/Column_Operations_Spec.enso:403:17-81).
+            </failure>
+        </testcase>
+        <testcase name="Column equality should handle nulls correctly" time="0.696">        </testcase>
+        <testcase name="equals_ignore_case for ASCII strings" time="3.201">        </testcase>
+        <testcase name="equals_ignore_case should check types" time="0.018">        </testcase>
+        <testcase name="Text Column equality (including case-insensitive) should handle nulls correctly" time="1.327">        </testcase>
+        <testcase name="should report a warning if checking equality on floating point columns" time="1.411">        </testcase>
+    </testsuite>
+    <testsuite name="[Redshift] (Column_Operations_Spec) Column.fill_nothing/empty" timestamp="2026-02-18T14:29:46" tests="4" disabled="0" errors="0" time="3.035">
+        <testcase name="should allow to fill_nothing from a value" time="0.677">        </testcase>
+        <testcase name="should allow to fill_nothing from another column" time="0.662">        </testcase>
+        <testcase name="should allow to fill_empty from a value" time="1.02">        </testcase>
+        <testcase name="should allow to fill_empty from another column" time="0.675">        </testcase>
+    </testsuite>
+    <testsuite name="[Redshift] (Column_Operations_Spec) Table.fill_nothing/empty" timestamp="2026-02-18T14:30:13" tests="14" disabled="0" errors="4" time="27.639">
+        <testcase name="should allow to fill_nothing from a value" time="1.407">        </testcase>
+        <testcase name="should allow to fill_nothing from larger string and expands type to fit" time="1.018">
+            <failure message="An unexpected panic was thrown: org.enso.table.error.ValueTypeMismatchException: Invalid value type. Expected org.enso.table.data.column.storage.type.TextType@8af, but got a value ABCDE (String) that does not fit it. If this error is ever encountered in user-facing code, that is a bug in the Table library.">
+An unexpected panic was thrown: org.enso.table.error.ValueTypeMismatchException: Invalid value type. Expected org.enso.table.data.column.storage.type.TextType@8af, but got a value ABCDE (String) that does not fit it. If this error is ever encountered in user-facing code, that is a bug in the Table library.
+
+        at &lt;Unknown Location&gt; related to com.oracle.truffle.host.HostObject.doInvoke
+        at &lt;enso&gt; if_then_else(/Users/adriley/Code/enso-org/enso/distribution/lib/Standard/Database/0.0.0-dev/src/Internal/Result_Set.enso:36:9-98)
+        at &lt;enso&gt; Result_Set.result_set_to_table(/Users/adriley/Code/enso-org/enso/distribution/lib/Standard/Database/0.0.0-dev/src/Internal/Result_Set.enso:35-36)
+        at &lt;enso&gt; Connection.read_statement.type_overrides&lt;arg-1&gt;(/Users/adriley/Code/enso-org/enso/distribution/lib/Standard/Database/0.0.0-dev/src/Connection/Connection.enso:356:17-119)
+        at &lt;enso&gt; case_branch(/Users/adriley/Code/enso-org/enso/distribution/lib/Standard/Base/0.0.0-dev/src/Errors/Problem_Behavior.enso:88-89)
+        at &lt;enso&gt; Problem_Behavior.attach_problems_before(/Users/adriley/Code/enso-org/enso/distribution/lib/Standard/Base/0.0.0-dev/src/Errors/Problem_Behavior.enso:84-92)
+        at &lt;enso&gt; SQL_Warning_Helper.process_warnings(/Users/adriley/Code/enso-org/enso/distribution/lib/Standard/Database/0.0.0-dev/src/Internal/SQL_Warning_Helper.enso:15:5-74)
+        at &lt;enso&gt; Connection.read_statement.type_overrides(/Users/adriley/Code/enso-org/enso/distribution/lib/Standard/Database/0.0.0-dev/src/Connection/Connection.enso:355-356)
+        at &lt;enso&gt; Resource.bracket(Internal)
+        at &lt;enso&gt; JDBC_Connection.with_prepared_statement.go&lt;arg-1&gt;(/Users/adriley/Code/enso-org/enso/distribution/lib/Standard/Database/0.0.0-dev/src/Internal/JDBC_Connection.enso:137:17-80)
+        at &lt;enso&gt; Panic.catch(Internal)
+        at &lt;enso&gt; JDBC_Connection.create.create_sql_error_handler.handler(/Users/adriley/Code/enso-org/enso/distribution/lib/Standard/Database/0.0.0-dev/src/Internal/JDBC_Connection.enso:318-320)
+        at &lt;enso&gt; JDBC_Connection.with_prepared_statement.go(/Users/adriley/Code/enso-org/enso/distribution/lib/Standard/Database/0.0.0-dev/src/Internal/JDBC_Connection.enso:135-137)
+        at &lt;enso&gt; case_branch(/Users/adriley/Code/enso-org/enso/distribution/lib/Standard/Database/0.0.0-dev/src/Internal/JDBC_Connection.enso:143:17-49)
+        at &lt;enso&gt; JDBC_Connection.with_prepared_statement&lt;arg-1&gt;(/Users/adriley/Code/enso-org/enso/distribution/lib/Standard/Database/0.0.0-dev/src/Internal/JDBC_Connection.enso:139-143)
+        at &lt;enso&gt; case_branch(/Users/adriley/Code/enso-org/enso/distribution/lib/Standard/Database/0.0.0-dev/src/Internal/JDBC_Connection.enso:390:20-25)
+        at &lt;enso&gt; JDBC_Connection.profile_sql_if_enabled(/Users/adriley/Code/enso-org/enso/distribution/lib/Standard/Database/0.0.0-dev/src/Internal/JDBC_Connection.enso:389-408)
+        at &lt;enso&gt; JDBC_Connection.with_prepared_statement&lt;arg-1&gt;(/Users/adriley/Code/enso-org/enso/distribution/lib/Standard/Database/0.0.0-dev/src/Internal/JDBC_Connection.enso:120-143)
+        at &lt;enso&gt; Panic.catch(Internal)
+        at &lt;enso&gt; Panic.type.with_finalizer(/Users/adriley/Code/enso-org/enso/distribution/lib/Standard/Base/0.0.0-dev/src/Panic.enso:175:18-52)
+        at &lt;enso&gt; JDBC_Connection.synchronized(/Users/adriley/Code/enso-org/enso/distribution/lib/Standard/Database/0.0.0-dev/src/Internal/JDBC_Connection.enso:50:9-86)
+        at &lt;enso&gt; JDBC_Connection.with_prepared_statement(/Users/adriley/Code/enso-org/enso/distribution/lib/Standard/Database/0.0.0-dev/src/Internal/JDBC_Connection.enso:120-143)
+        at &lt;enso&gt; Connection.read_statement(/Users/adriley/Code/enso-org/enso/distribution/lib/Standard/Database/0.0.0-dev/src/Connection/Connection.enso:344-356)
+        at &lt;enso&gt; if_then_else&lt;arg-0&gt;(/Users/adriley/Code/enso-org/enso/distribution/lib/Standard/Database/0.0.0-dev/src/Internal/DB_Table_Implementation.enso:713:34-102)
+        at &lt;enso&gt; if_then_else(/Users/adriley/Code/enso-org/enso/distribution/lib/Standard/Database/0.0.0-dev/src/Internal/DB_Table_Implementation.enso:713-714)
+        at &lt;enso&gt; DB_Table_Implementation.read(/Users/adriley/Code/enso-org/enso/distribution/lib/Standard/Database/0.0.0-dev/src/Internal/DB_Table_Implementation.enso:707-728)
+        at &lt;enso&gt; Table.read(/Users/adriley/Code/enso-org/enso/distribution/lib/Standard/Table/0.0.0-dev/src/Table.enso:3328:9-57)
+        at &lt;enso&gt; DB_Column_Implementation.read&lt;arg-0&gt;(/Users/adriley/Code/enso-org/enso/distribution/lib/Standard/Database/0.0.0-dev/src/Internal/DB_Column_Implementation.enso:57:9-42)
+        at &lt;enso&gt; DB_Column_Implementation.read(/Users/adriley/Code/enso-org/enso/distribution/lib/Standard/Database/0.0.0-dev/src/Internal/DB_Column_Implementation.enso:57:9-49)
+        at &lt;enso&gt; Column.read(/Users/adriley/Code/enso-org/enso/distribution/lib/Standard/Table/0.0.0-dev/src/Column.enso:2222:9-46)
+        at &lt;enso&gt; DB_Column_Implementation.to_vector&lt;arg-0&gt;(/Users/adriley/Code/enso-org/enso/distribution/lib/Standard/Database/0.0.0-dev/src/Internal/DB_Column_Implementation.enso:61:13-80)
+        at &lt;enso&gt; DB_Column_Implementation.to_vector&lt;arg-1&gt;(/Users/adriley/Code/enso-org/enso/distribution/lib/Standard/Database/0.0.0-dev/src/Internal/DB_Column_Implementation.enso:61:13-92)
+        at &lt;enso&gt; DB_Column_Implementation.to_vector(/Users/adriley/Code/enso-org/enso/distribution/lib/Standard/Database/0.0.0-dev/src/Internal/DB_Column_Implementation.enso:60-61)
+        at &lt;enso&gt; Column.to_vector(/Users/adriley/Code/enso-org/enso/distribution/lib/Standard/Table/0.0.0-dev/src/Column.enso:2239:9-42)
+        at &lt;enso&gt; Column_Operations_Spec.add_column_operation_specs.with_mixed_columns_if_supported&lt;arg-0&gt;(/Users/adriley/Code/enso-org/enso/test/Table_Tests/src/Common_Table_Operations/Column_Operations_Spec.enso:508:13-40)
+        at &lt;enso&gt; Column_Operations_Spec.add_column_operation_specs.with_mixed_columns_if_supported&lt;arg-1&gt;(/Users/adriley/Code/enso-org/enso/test/Table_Tests/src/Common_Table_Operations/Column_Operations_Spec.enso:508:13-98)
+        at &lt;enso&gt; Group_Builder.specify.impl(/Users/adriley/Code/enso-org/enso/distribution/lib/Standard/Test/0.0.0-dev/src/Group.enso:36:13-16)
+        at &lt;enso&gt; Helpers.execute_spec_code&lt;arg-1&gt;(/Users/adriley/Code/enso-org/enso/distribution/lib/Standard/Test/0.0.0-dev/src/Internal/Helpers.enso:57:18-34)
+        at &lt;enso&gt; Panic.catch(Internal)
+        at &lt;enso&gt; Panic.type.recover(/Users/adriley/Code/enso-org/enso/distribution/lib/Standard/Base/0.0.0-dev/src/Panic.enso:213-218)
+        at &lt;enso&gt; Helpers.execute_spec_code(/Users/adriley/Code/enso-org/enso/distribution/lib/Standard/Test/0.0.0-dev/src/Internal/Helpers.enso:56-60)
+        at &lt;enso&gt; case_branch&lt;arg-3&gt;(/Users/adriley/Code/enso-org/enso/distribution/lib/Standard/Test/0.0.0-dev/src/Internal/Helpers.enso:46:37-63)
+        at &lt;enso&gt; State.run(/Users/adriley/Code/enso-org/enso/distribution/lib/Standard/Base/0.0.0-dev/src/Runtime/State.enso:30:5-57)
+        at &lt;enso&gt; case_branch&lt;arg-1&gt;(/Users/adriley/Code/enso-org/enso/distribution/lib/Standard/Test/0.0.0-dev/src/Internal/Helpers.enso:46:13-64)
+        at &lt;enso&gt; Runtime.no_inline(Internal)
+        at &lt;enso&gt; Runtime.no_inline(/Users/adriley/Code/enso-org/enso/distribution/lib/Standard/Base/0.0.0-dev/src/Runtime.enso:100:21-52)
+        at &lt;enso&gt; Duration.type.time_execution(/Users/adriley/Code/enso-org/enso/distribution/lib/Standard/Base/0.0.0-dev/src/Data/Time/Duration.enso:150:18-43)
+        at &lt;enso&gt; case_branch(/Users/adriley/Code/enso-org/enso/distribution/lib/Standard/Test/0.0.0-dev/src/Internal/Helpers.enso:45-46)
+        at &lt;enso&gt; Helpers.run_spec(/Users/adriley/Code/enso-org/enso/distribution/lib/Standard/Test/0.0.0-dev/src/Internal/Helpers.enso:44-47)
+        at &lt;enso&gt; case_branch.test_results(/Users/adriley/Code/enso-org/enso/distribution/lib/Standard/Test/0.0.0-dev/src/Internal/Helpers.enso:23:24-36)
+        at &lt;enso&gt; Array_Like_Helpers.map.Array_Like_Helpers.map(/Users/adriley/Code/enso-org/enso/distribution/lib/Standard/Base/0.0.0-dev/src/Internal/Array_Like_Helpers.enso:277:56-77)
+        at &lt;enso&gt; Array_Like_Helpers.vector_from_function(Internal)
+        at &lt;enso&gt; case_branch(/Users/adriley/Code/enso-org/enso/distribution/lib/Standard/Test/0.0.0-dev/src/Internal/Helpers.enso:20-26)
+        at &lt;enso&gt; Helpers.run_specs_from_group(/Users/adriley/Code/enso-org/enso/distribution/lib/Standard/Test/0.0.0-dev/src/Internal/Helpers.enso:17-35)
+        at &lt;enso&gt; case_branch(/Users/adriley/Code/enso-org/enso/distribution/lib/Standard/Test/0.0.0-dev/src/Suite.enso:95:35-92)
+        at &lt;enso&gt; Suite.run_with_filter.&lt;internal-9&gt;(/Users/adriley/Code/enso-org/enso/distribution/lib/Standard/Test/0.0.0-dev/src/Suite.enso:93-99)
+        at &lt;enso&gt; Array_Like_Helpers.each.Array_Like_Helpers.each(/Users/adriley/Code/enso-org/enso/distribution/lib/Standard/Base/0.0.0-dev/src/Internal/Array_Like_Helpers.enso:317:9-24)
+        at &lt;enso&gt; if_then_else&lt;arg-1&gt;(/Users/adriley/Code/enso-org/enso/distribution/lib/Standard/Base/0.0.0-dev/src/Data/Range.enso:323:36-51)
+        at &lt;enso&gt; if_then_else(/Users/adriley/Code/enso-org/enso/distribution/lib/Standard/Base/0.0.0-dev/src/Data/Range.enso:323:21-52)
+        at &lt;enso&gt; if_then_else.go(/Users/adriley/Code/enso-org/enso/distribution/lib/Standard/Base/0.0.0-dev/src/Data/Range.enso:322-324)
+        at &lt;enso&gt; Test_Reporter.wrap_junit_testsuites(/Users/adriley/Code/enso-org/enso/distribution/lib/Standard/Test/0.0.0-dev/src/Test_Reporter.enso:30:14-19)
+        at &lt;enso&gt; Suite.run_with_filter(/Users/adriley/Code/enso-org/enso/distribution/lib/Standard/Test/0.0.0-dev/src/Suite.enso:89-99)
+        at &lt;enso&gt; Redshift_Spec.main(/Users/adriley/Code/enso-org/enso/test/AWS_Tests/src/Redshift_Spec.enso:164:5-32)
+            </failure>
+        </testcase>
+        <testcase name="should allow to fill_nothing from an empty string" time="3.05">        </testcase>
+        <testcase name="should allow to fill_nothing a fixed width from an empty string" time="1.024">
+            <failure message="An unexpected panic was thrown: org.enso.table.error.ValueTypeMismatchException: Invalid value type. Expected org.enso.table.data.column.storage.type.TextType@8ed, but got a value  (String) that does not fit it. If this error is ever encountered in user-facing code, that is a bug in the Table library.">
+An unexpected panic was thrown: org.enso.table.error.ValueTypeMismatchException: Invalid value type. Expected org.enso.table.data.column.storage.type.TextType@8ed, but got a value  (String) that does not fit it. If this error is ever encountered in user-facing code, that is a bug in the Table library.
+
+        at &lt;Unknown Location&gt; related to com.oracle.truffle.host.HostObject.doInvoke
+        at &lt;enso&gt; if_then_else(/Users/adriley/Code/enso-org/enso/distribution/lib/Standard/Database/0.0.0-dev/src/Internal/Result_Set.enso:36:9-98)
+        at &lt;enso&gt; Result_Set.result_set_to_table(/Users/adriley/Code/enso-org/enso/distribution/lib/Standard/Database/0.0.0-dev/src/Internal/Result_Set.enso:35-36)
+        at &lt;enso&gt; Connection.read_statement.type_overrides&lt;arg-1&gt;(/Users/adriley/Code/enso-org/enso/distribution/lib/Standard/Database/0.0.0-dev/src/Connection/Connection.enso:356:17-119)
+        at &lt;enso&gt; case_branch(/Users/adriley/Code/enso-org/enso/distribution/lib/Standard/Base/0.0.0-dev/src/Errors/Problem_Behavior.enso:88-89)
+        at &lt;enso&gt; Problem_Behavior.attach_problems_before(/Users/adriley/Code/enso-org/enso/distribution/lib/Standard/Base/0.0.0-dev/src/Errors/Problem_Behavior.enso:84-92)
+        at &lt;enso&gt; SQL_Warning_Helper.process_warnings(/Users/adriley/Code/enso-org/enso/distribution/lib/Standard/Database/0.0.0-dev/src/Internal/SQL_Warning_Helper.enso:15:5-74)
+        at &lt;enso&gt; Connection.read_statement.type_overrides(/Users/adriley/Code/enso-org/enso/distribution/lib/Standard/Database/0.0.0-dev/src/Connection/Connection.enso:355-356)
+        at &lt;enso&gt; Resource.bracket(Internal)
+        at &lt;enso&gt; JDBC_Connection.with_prepared_statement.go&lt;arg-1&gt;(/Users/adriley/Code/enso-org/enso/distribution/lib/Standard/Database/0.0.0-dev/src/Internal/JDBC_Connection.enso:137:17-80)
+        at &lt;enso&gt; Panic.catch(Internal)
+        at &lt;enso&gt; JDBC_Connection.create.create_sql_error_handler.handler(/Users/adriley/Code/enso-org/enso/distribution/lib/Standard/Database/0.0.0-dev/src/Internal/JDBC_Connection.enso:318-320)
+        at &lt;enso&gt; JDBC_Connection.with_prepared_statement.go(/Users/adriley/Code/enso-org/enso/distribution/lib/Standard/Database/0.0.0-dev/src/Internal/JDBC_Connection.enso:135-137)
+        at &lt;enso&gt; case_branch(/Users/adriley/Code/enso-org/enso/distribution/lib/Standard/Database/0.0.0-dev/src/Internal/JDBC_Connection.enso:143:17-49)
+        at &lt;enso&gt; JDBC_Connection.with_prepared_statement&lt;arg-1&gt;(/Users/adriley/Code/enso-org/enso/distribution/lib/Standard/Database/0.0.0-dev/src/Internal/JDBC_Connection.enso:139-143)
+        at &lt;enso&gt; case_branch(/Users/adriley/Code/enso-org/enso/distribution/lib/Standard/Database/0.0.0-dev/src/Internal/JDBC_Connection.enso:390:20-25)
+        at &lt;enso&gt; JDBC_Connection.profile_sql_if_enabled(/Users/adriley/Code/enso-org/enso/distribution/lib/Standard/Database/0.0.0-dev/src/Internal/JDBC_Connection.enso:389-408)
+        at &lt;enso&gt; JDBC_Connection.with_prepared_statement&lt;arg-1&gt;(/Users/adriley/Code/enso-org/enso/distribution/lib/Standard/Database/0.0.0-dev/src/Internal/JDBC_Connection.enso:120-143)
+        at &lt;enso&gt; Panic.catch(Internal)
+        at &lt;enso&gt; Panic.type.with_finalizer(/Users/adriley/Code/enso-org/enso/distribution/lib/Standard/Base/0.0.0-dev/src/Panic.enso:175:18-52)
+        at &lt;enso&gt; JDBC_Connection.synchronized(/Users/adriley/Code/enso-org/enso/distribution/lib/Standard/Database/0.0.0-dev/src/Internal/JDBC_Connection.enso:50:9-86)
+        at &lt;enso&gt; JDBC_Connection.with_prepared_statement(/Users/adriley/Code/enso-org/enso/distribution/lib/Standard/Database/0.0.0-dev/src/Internal/JDBC_Connection.enso:120-143)
+        at &lt;enso&gt; Connection.read_statement(/Users/adriley/Code/enso-org/enso/distribution/lib/Standard/Database/0.0.0-dev/src/Connection/Connection.enso:344-356)
+        at &lt;enso&gt; if_then_else&lt;arg-0&gt;(/Users/adriley/Code/enso-org/enso/distribution/lib/Standard/Database/0.0.0-dev/src/Internal/DB_Table_Implementation.enso:713:34-102)
+        at &lt;enso&gt; if_then_else(/Users/adriley/Code/enso-org/enso/distribution/lib/Standard/Database/0.0.0-dev/src/Internal/DB_Table_Implementation.enso:713-714)
+        at &lt;enso&gt; DB_Table_Implementation.read(/Users/adriley/Code/enso-org/enso/distribution/lib/Standard/Database/0.0.0-dev/src/Internal/DB_Table_Implementation.enso:707-728)
+        at &lt;enso&gt; Table.read(/Users/adriley/Code/enso-org/enso/distribution/lib/Standard/Table/0.0.0-dev/src/Table.enso:3328:9-57)
+        at &lt;enso&gt; DB_Column_Implementation.read&lt;arg-0&gt;(/Users/adriley/Code/enso-org/enso/distribution/lib/Standard/Database/0.0.0-dev/src/Internal/DB_Column_Implementation.enso:57:9-42)
+        at &lt;enso&gt; DB_Column_Implementation.read(/Users/adriley/Code/enso-org/enso/distribution/lib/Standard/Database/0.0.0-dev/src/Internal/DB_Column_Implementation.enso:57:9-49)
+        at &lt;enso&gt; Column.read(/Users/adriley/Code/enso-org/enso/distribution/lib/Standard/Table/0.0.0-dev/src/Column.enso:2222:9-46)
+        at &lt;enso&gt; DB_Column_Implementation.to_vector&lt;arg-0&gt;(/Users/adriley/Code/enso-org/enso/distribution/lib/Standard/Database/0.0.0-dev/src/Internal/DB_Column_Implementation.enso:61:13-80)
+        at &lt;enso&gt; DB_Column_Implementation.to_vector&lt;arg-1&gt;(/Users/adriley/Code/enso-org/enso/distribution/lib/Standard/Database/0.0.0-dev/src/Internal/DB_Column_Implementation.enso:61:13-92)
+        at &lt;enso&gt; DB_Column_Implementation.to_vector(/Users/adriley/Code/enso-org/enso/distribution/lib/Standard/Database/0.0.0-dev/src/Internal/DB_Column_Implementation.enso:60-61)
+        at &lt;enso&gt; Column.to_vector(/Users/adriley/Code/enso-org/enso/distribution/lib/Standard/Table/0.0.0-dev/src/Column.enso:2239:9-42)
+        at &lt;enso&gt; Column_Operations_Spec.add_column_operation_specs.with_mixed_columns_if_supported&lt;arg-0&gt;(/Users/adriley/Code/enso-org/enso/test/Table_Tests/src/Common_Table_Operations/Column_Operations_Spec.enso:526:13-40)
+        at &lt;enso&gt; Column_Operations_Spec.add_column_operation_specs.with_mixed_columns_if_supported&lt;arg-1&gt;(/Users/adriley/Code/enso-org/enso/test/Table_Tests/src/Common_Table_Operations/Column_Operations_Spec.enso:526:13-89)
+        at &lt;enso&gt; Group_Builder.specify.impl(/Users/adriley/Code/enso-org/enso/distribution/lib/Standard/Test/0.0.0-dev/src/Group.enso:36:13-16)
+        at &lt;enso&gt; Helpers.execute_spec_code&lt;arg-1&gt;(/Users/adriley/Code/enso-org/enso/distribution/lib/Standard/Test/0.0.0-dev/src/Internal/Helpers.enso:57:18-34)
+        at &lt;enso&gt; Panic.catch(Internal)
+        at &lt;enso&gt; Panic.type.recover(/Users/adriley/Code/enso-org/enso/distribution/lib/Standard/Base/0.0.0-dev/src/Panic.enso:213-218)
+        at &lt;enso&gt; Helpers.execute_spec_code(/Users/adriley/Code/enso-org/enso/distribution/lib/Standard/Test/0.0.0-dev/src/Internal/Helpers.enso:56-60)
+        at &lt;enso&gt; case_branch&lt;arg-3&gt;(/Users/adriley/Code/enso-org/enso/distribution/lib/Standard/Test/0.0.0-dev/src/Internal/Helpers.enso:46:37-63)
+        at &lt;enso&gt; State.run(/Users/adriley/Code/enso-org/enso/distribution/lib/Standard/Base/0.0.0-dev/src/Runtime/State.enso:30:5-57)
+        at &lt;enso&gt; case_branch&lt;arg-1&gt;(/Users/adriley/Code/enso-org/enso/distribution/lib/Standard/Test/0.0.0-dev/src/Internal/Helpers.enso:46:13-64)
+        at &lt;enso&gt; Runtime.no_inline(Internal)
+        at &lt;enso&gt; Runtime.no_inline(/Users/adriley/Code/enso-org/enso/distribution/lib/Standard/Base/0.0.0-dev/src/Runtime.enso:100:21-52)
+        at &lt;enso&gt; Duration.type.time_execution(/Users/adriley/Code/enso-org/enso/distribution/lib/Standard/Base/0.0.0-dev/src/Data/Time/Duration.enso:150:18-43)
+        at &lt;enso&gt; case_branch(/Users/adriley/Code/enso-org/enso/distribution/lib/Standard/Test/0.0.0-dev/src/Internal/Helpers.enso:45-46)
+        at &lt;enso&gt; Helpers.run_spec(/Users/adriley/Code/enso-org/enso/distribution/lib/Standard/Test/0.0.0-dev/src/Internal/Helpers.enso:44-47)
+        at &lt;enso&gt; case_branch.test_results(/Users/adriley/Code/enso-org/enso/distribution/lib/Standard/Test/0.0.0-dev/src/Internal/Helpers.enso:23:24-36)
+        at &lt;enso&gt; Array_Like_Helpers.map.Array_Like_Helpers.map(/Users/adriley/Code/enso-org/enso/distribution/lib/Standard/Base/0.0.0-dev/src/Internal/Array_Like_Helpers.enso:277:56-77)
+        at &lt;enso&gt; Array_Like_Helpers.vector_from_function(Internal)
+        at &lt;enso&gt; case_branch(/Users/adriley/Code/enso-org/enso/distribution/lib/Standard/Test/0.0.0-dev/src/Internal/Helpers.enso:20-26)
+        at &lt;enso&gt; Helpers.run_specs_from_group(/Users/adriley/Code/enso-org/enso/distribution/lib/Standard/Test/0.0.0-dev/src/Internal/Helpers.enso:17-35)
+        at &lt;enso&gt; case_branch(/Users/adriley/Code/enso-org/enso/distribution/lib/Standard/Test/0.0.0-dev/src/Suite.enso:95:35-92)
+        at &lt;enso&gt; Suite.run_with_filter.&lt;internal-9&gt;(/Users/adriley/Code/enso-org/enso/distribution/lib/Standard/Test/0.0.0-dev/src/Suite.enso:93-99)
+        at &lt;enso&gt; Array_Like_Helpers.each.Array_Like_Helpers.each(/Users/adriley/Code/enso-org/enso/distribution/lib/Standard/Base/0.0.0-dev/src/Internal/Array_Like_Helpers.enso:317:9-24)
+        at &lt;enso&gt; if_then_else&lt;arg-1&gt;(/Users/adriley/Code/enso-org/enso/distribution/lib/Standard/Base/0.0.0-dev/src/Data/Range.enso:323:36-51)
+        at &lt;enso&gt; if_then_else(/Users/adriley/Code/enso-org/enso/distribution/lib/Standard/Base/0.0.0-dev/src/Data/Range.enso:323:21-52)
+        at &lt;enso&gt; if_then_else.go(/Users/adriley/Code/enso-org/enso/distribution/lib/Standard/Base/0.0.0-dev/src/Data/Range.enso:322-324)
+        at &lt;enso&gt; Test_Reporter.wrap_junit_testsuites(/Users/adriley/Code/enso-org/enso/distribution/lib/Standard/Test/0.0.0-dev/src/Test_Reporter.enso:30:14-19)
+        at &lt;enso&gt; Suite.run_with_filter(/Users/adriley/Code/enso-org/enso/distribution/lib/Standard/Test/0.0.0-dev/src/Suite.enso:89-99)
+        at &lt;enso&gt; Redshift_Spec.main(/Users/adriley/Code/enso-org/enso/test/AWS_Tests/src/Redshift_Spec.enso:164:5-32)
+            </failure>
+        </testcase>
+        <testcase name="should allow to fill_nothing a fixed width of width 1 correctly expanding output types" time="1.397">
+            <failure message="(Value_Type.Char (Positive_Integer.Value 1) False) did not equal (Value_Type.Char (Positive_Integer.Value 1) True) (at /Users/adriley/Code/enso-org/enso/test/Table_Tests/src/Common_Table_Operations/Column_Operations_Spec.enso:538:21-113).">
+(Value_Type.Char (Positive_Integer.Value 1) False) did not equal (Value_Type.Char (Positive_Integer.Value 1) True) (at /Users/adriley/Code/enso-org/enso/test/Table_Tests/src/Common_Table_Operations/Column_Operations_Spec.enso:538:21-113).
+            </failure>
+        </testcase>
+        <testcase name="should allow to fill_nothing a fixed width with a string of correct length without changing the type" time="1.083">
+            <failure message="(Value_Type.Char (Positive_Integer.Value 3) False) did not equal (Value_Type.Char (Positive_Integer.Value 3) True) (at /Users/adriley/Code/enso-org/enso/test/Table_Tests/src/Common_Table_Operations/Column_Operations_Spec.enso:567:34-123).">
+(Value_Type.Char (Positive_Integer.Value 3) False) did not equal (Value_Type.Char (Positive_Integer.Value 3) True) (at /Users/adriley/Code/enso-org/enso/test/Table_Tests/src/Common_Table_Operations/Column_Operations_Spec.enso:567:34-123).
+            </failure>
+        </testcase>
+        <testcase name="should allow to fill_nothing from other columns" time="1.331">        </testcase>
+        <testcase name="should allow to fill_empty from a value" time="2.062">        </testcase>
+        <testcase name="should allow to fill_empty from other columns" time="2.052">        </testcase>
+        <testcase name="fill_nothing should leave other columns alone" time="1.732">        </testcase>
+        <testcase name="fill_nothing should allow selection by regex" time="2.613">        </testcase>
+        <testcase name="fill_nothing should allow selection by type" time="2.062">        </testcase>
+        <testcase name="fill_nothing should work with integer column selectors" time="2.682">        </testcase>
+        <testcase name="fill_nothing should cope with notted boolean columns" time="4.121">        </testcase>
+    </testsuite>
+    <testsuite name="[Redshift] (Column_Operations_Spec) Table.text_replace" timestamp="2026-02-18T14:30:22" tests="8" disabled="0" errors="2" time="8.277">
+        <testcase name="should allow to replace values in a table" time="3.08">
+            <failure message="{Table: col0-&gt;Char (variable length, max_size=unlimited), col1-&gt;Char (variable length, max_size=unlimited)} [&apos;ghi&apos;, &apos;xyc&apos;, &apos;def&apos;] did not equal [&apos;xyc&apos;, &apos;def&apos;, &apos;ghi&apos;]; first difference at index 0  (at /Users/adriley/Code/enso-org/enso/test/Table_Tests/src/Common_Table_Operations/Column_Operations_Spec.enso:642:17-81).">
+{Table: col0-&gt;Char (variable length, max_size=unlimited), col1-&gt;Char (variable length, max_size=unlimited)} [&apos;ghi&apos;, &apos;xyc&apos;, &apos;def&apos;] did not equal [&apos;xyc&apos;, &apos;def&apos;, &apos;ghi&apos;]; first difference at index 0  (at /Users/adriley/Code/enso-org/enso/test/Table_Tests/src/Common_Table_Operations/Column_Operations_Spec.enso:642:17-81).
+            </failure>
+        </testcase>
+        <testcase name="should allow to replace values in a table selecting columns with regex" time="2.809">
+            <failure message="{Table: col0-&gt;Char (variable length, max_size=unlimited), col1-&gt;Char (variable length, max_size=unlimited), zzz-&gt;Char (variable length, max_size=unlimited)} [&apos;def&apos;, &apos;ghi&apos;, &apos;xyc&apos;] did not equal [&apos;xyc&apos;, &apos;def&apos;, &apos;ghi&apos;]; first difference at index 0  (at /Users/adriley/Code/enso-org/enso/test/Table_Tests/src/Common_Table_Operations/Column_Operations_Spec.enso:648:17-81).">
+{Table: col0-&gt;Char (variable length, max_size=unlimited), col1-&gt;Char (variable length, max_size=unlimited), zzz-&gt;Char (variable length, max_size=unlimited)} [&apos;def&apos;, &apos;ghi&apos;, &apos;xyc&apos;] did not equal [&apos;xyc&apos;, &apos;def&apos;, &apos;ghi&apos;]; first difference at index 0  (at /Users/adriley/Code/enso-org/enso/test/Table_Tests/src/Common_Table_Operations/Column_Operations_Spec.enso:648:17-81).
+            </failure>
+        </testcase>
+        <testcase name="should allow to replace values in a table selecting columns by type" time="2.302">        </testcase>
+        <testcase name="should allow to replace values in a table with a regex" time="0.036">        </testcase>
+        <testcase name="should allow to replace values in a table with a named_pattern" time="0.014">        </testcase>
+        <testcase name="should allow to replace values in a table with a column" time="0.014">        </testcase>
+        <testcase name="should allow to use Column_Ref in replace" time="0.013">        </testcase>
+        <testcase name="should throw missing argument error" time="0.006">        </testcase>
+    </testsuite>
+    <testsuite name="[Redshift] (Column_Operations_Spec) Column Comparisons" timestamp="2026-02-18T14:30:38" tests="5" disabled="0" errors="0" time="16.179">
+        <testcase name="(Column_Operations_Spec) should infer the correct precise value type for mixed columns" time="1.84">        </testcase>
+        <testcase name="should allow to compare texts" time="7.119">        </testcase>
+        <testcase name="should allow to compare booleans" time="6.143">        </testcase>
+        <testcase name="should report error if incomparable types are compared" time="0.382">        </testcase>
+        <testcase name="Between should return null if any of the values are null" time="0.693">        </testcase>
+    </testsuite>
+    <testsuite name="[Redshift] (Column_Operations_Spec) Arithmetic Column Operations" timestamp="2026-02-18T14:31:15" tests="14" disabled="2" errors="6" time="37.198">
+        <testcase name="should allow basic operations" time="7.304">        </testcase>
+        <testcase name="should allow combining a column with a scalar" time="2.936">        </testcase>
+        <testcase name="should work with mixed types" time="2.594">
+            <failure message="{Table: X-&gt;Integer (64 bits), Y-&gt;Integer (64 bits)} [30, 102] did not equal [102, 30]; first difference at index 0  (at /Users/adriley/Code/enso-org/enso/test/Table_Tests/src/Common_Table_Operations/Column_Operations_Spec.enso:876:17-58).">
+{Table: X-&gt;Integer (64 bits), Y-&gt;Integer (64 bits)} [30, 102] did not equal [102, 30]; first difference at index 0  (at /Users/adriley/Code/enso-org/enso/test/Table_Tests/src/Common_Table_Operations/Column_Operations_Spec.enso:876:17-58).
+            </failure>
+        </testcase>
+        <testcase name="should correctly infer the types" time="4.577">        </testcase>
+        <testcase name="should correctly infer the types (for decimal division)" time="2.157">        </testcase>
+        <testcase name="should check types" time="1.822">        </testcase>
+        <testcase name="should report that is_nan is not supported" time="2.072">
+            <failure message="Expected an error Unsupported_Database_Operation but no error occurred, instead got: (Database Column is_nan([X])) (at /Users/adriley/Code/enso-org/enso/test/Table_Tests/src/Common_Table_Operations/Column_Operations_Spec.enso:971:21-87).">
+Expected an error Unsupported_Database_Operation but no error occurred, instead got: (Database Column is_nan([X])) (at /Users/adriley/Code/enso-org/enso/test/Table_Tests/src/Common_Table_Operations/Column_Operations_Spec.enso:971:21-87).
+            </failure>
+        </testcase>
+        <testcase name="should support is_infinite" time="2.567">
+            <failure message="[False, False, True, Nothing, True] did not equal [False, False, True, True, Nothing]; first difference at index 3  (at /Users/adriley/Code/enso-org/enso/test/Table_Tests/src/Common_Table_Operations/Column_Operations_Spec.enso:975:21-105).">
+[False, False, True, Nothing, True] did not equal [False, False, True, True, Nothing]; first difference at index 3  (at /Users/adriley/Code/enso-org/enso/test/Table_Tests/src/Common_Table_Operations/Column_Operations_Spec.enso:975:21-105).
+            </failure>
+        </testcase>
+        <testcase name="should support is_finite" time="2.569">
+            <failure message="[True, False, True, False, Nothing] did not equal [True, True, False, False, Nothing]; first difference at index 1  (at /Users/adriley/Code/enso-org/enso/test/Table_Tests/src/Common_Table_Operations/Column_Operations_Spec.enso:981:21-103).">
+[True, False, True, False, Nothing] did not equal [True, True, False, False, Nothing]; first difference at index 1  (at /Users/adriley/Code/enso-org/enso/test/Table_Tests/src/Common_Table_Operations/Column_Operations_Spec.enso:981:21-103).
+            </failure>
+        </testcase>
+        <testcase name="should support is_blank" time="2.529">
+            <failure message="[False, False, False, True] did not equal [False, False, True, True]; first difference at index 2  (at /Users/adriley/Code/enso-org/enso/test/Table_Tests/src/Common_Table_Operations/Column_Operations_Spec.enso:988:13-67).">
+[False, False, False, True] did not equal [False, False, True, True]; first difference at index 2  (at /Users/adriley/Code/enso-org/enso/test/Table_Tests/src/Common_Table_Operations/Column_Operations_Spec.enso:988:13-67).
+            </failure>
+        </testcase>
+        <testcase name="division should be aligned with the Enso arithmetic" time="3.272">
+            <failure message="[2.5, 5.0, 50.0, 0.5] did not equal [0.5, 2.5, 5.0, 50.0]; first difference at index 0  (at /Users/adriley/Code/enso-org/enso/test/Table_Tests/src/Common_Table_Operations/Column_Operations_Spec.enso:1007:13-63).">
+[2.5, 5.0, 50.0, 0.5] did not equal [0.5, 2.5, 5.0, 50.0]; first difference at index 0  (at /Users/adriley/Code/enso-org/enso/test/Table_Tests/src/Common_Table_Operations/Column_Operations_Spec.enso:1007:13-63).
+            </failure>
+        </testcase>
+        <testcase name="should allow division by 0 and report warnings" time="0.0">
+            <skipped message="Arithmetic error handling is currently not implemented for the Database backend."/>
+                </testcase>
+        <testcase name="should limit the number of rows listed in the message" time="0.0">
+            <skipped message="Arithmetic error handling is currently not implemented for the Database backend."/>
+                </testcase>
+        <testcase name="should return null if one of arguments is missing" time="2.794">        </testcase>
+    </testsuite>
+    <testsuite name="[Redshift] (Column_Operations_Spec) Rounding-like operations" timestamp="2026-02-18T14:32:00" tests="26" disabled="0" errors="6" time="44.886">
+        <testcase name="should name a rounding column correctly" time="0.351">        </testcase>
+        <testcase name="should allow round on a (Float 64 bits) column" time="1.012">        </testcase>
+        <testcase name="should allow round on a (Float 64 bits) column (to &gt;0 decimal places)" time="6.67">        </testcase>
+        <testcase name="should allow round on a (Float 64 bits) column (to &lt;0 decimal places)" time="6.329">        </testcase>
+        <testcase name="should allow truncate on a (Float 64 bits) column" time="1.995">        </testcase>
+        <testcase name="should allow ceil on a (Float 64 bits) column" time="1.976">        </testcase>
+        <testcase name="should allow floor on a (Float 64 bits) column" time="2.059">        </testcase>
+        <testcase name="should handle Nothing in rounding on a (Float 64 bits) column" time="0.992">        </testcase>
+        <testcase name="should allow round on a (Decimal Nothing Nothing) column" time="1.052">        </testcase>
+        <testcase name="should allow round on a (Decimal Nothing Nothing) column (to &gt;0 decimal places)" time="1.086">
+            <failure message="[10, 10, 40, 40, -10, -10, -40, -40] did not equal [0.5, 0.6, 3.5, 3.6, -0.5, -0.6, -3.5, -3.6]; first difference at index 0  (at /Users/adriley/Code/enso-org/enso/test/Table_Tests/src/Common_Table_Operations/Column_Operations_Spec.enso:1106:17-90).">
+[10, 10, 40, 40, -10, -10, -40, -40] did not equal [0.5, 0.6, 3.5, 3.6, -0.5, -0.6, -3.5, -3.6]; first difference at index 0  (at /Users/adriley/Code/enso-org/enso/test/Table_Tests/src/Common_Table_Operations/Column_Operations_Spec.enso:1106:17-90).
+            </failure>
+        </testcase>
+        <testcase name="should allow round on a (Decimal Nothing Nothing) column (to &lt;0 decimal places)" time="1.018">        </testcase>
+        <testcase name="should allow truncate on a (Decimal Nothing Nothing) column" time="1.016">
+            <failure message="[0, 1, 3, 4, 0, -1, -3, -4] did not equal [0, 0, 3, 3, 0, 0, -3, -3]; first difference at index 1  (at /Users/adriley/Code/enso-org/enso/test/Table_Tests/src/Common_Table_Operations/Column_Operations_Spec.enso:1118:17-72).">
+[0, 1, 3, 4, 0, -1, -3, -4] did not equal [0, 0, 3, 3, 0, 0, -3, -3]; first difference at index 1  (at /Users/adriley/Code/enso-org/enso/test/Table_Tests/src/Common_Table_Operations/Column_Operations_Spec.enso:1118:17-72).
+            </failure>
+        </testcase>
+        <testcase name="should allow ceil on a (Decimal Nothing Nothing) column" time="1.057">
+            <failure message="[0, 1, 3, 4, 0, -1, -3, -4] did not equal [1, 1, 4, 4, 0, 0, -3, -3]; first difference at index 0  (at /Users/adriley/Code/enso-org/enso/test/Table_Tests/src/Common_Table_Operations/Column_Operations_Spec.enso:1124:17-72).">
+[0, 1, 3, 4, 0, -1, -3, -4] did not equal [1, 1, 4, 4, 0, 0, -3, -3]; first difference at index 0  (at /Users/adriley/Code/enso-org/enso/test/Table_Tests/src/Common_Table_Operations/Column_Operations_Spec.enso:1124:17-72).
+            </failure>
+        </testcase>
+        <testcase name="should allow floor on a (Decimal Nothing Nothing) column" time="0.989">
+            <failure message="[0, 1, 3, 4, 0, -1, -3, -4] did not equal [0, 0, 3, 3, -1, -1, -4, -4]; first difference at index 1  (at /Users/adriley/Code/enso-org/enso/test/Table_Tests/src/Common_Table_Operations/Column_Operations_Spec.enso:1130:17-74).">
+[0, 1, 3, 4, 0, -1, -3, -4] did not equal [0, 0, 3, 3, -1, -1, -4, -4]; first difference at index 1  (at /Users/adriley/Code/enso-org/enso/test/Table_Tests/src/Common_Table_Operations/Column_Operations_Spec.enso:1130:17-74).
+            </failure>
+        </testcase>
+        <testcase name="should handle Nothing in rounding on a (Decimal Nothing Nothing) column" time="1.24">        </testcase>
+        <testcase name="should allow round on an int column" time="0.668">        </testcase>
+        <testcase name="should allow truncate on an int column" time="1.357">        </testcase>
+        <testcase name="should allow ceil on an int column" time="0.671">        </testcase>
+        <testcase name="should allow floor on an int column" time="0.679">        </testcase>
+        <testcase name="should fail on decimal_places out of range" time="0.006">        </testcase>
+        <testcase name="ceil, floor and truncate should work correctly on Integers outside the java Long range" time="0.697">
+            <failure message="An unexpected dataflow error (There was an SQL error: ERROR: numeric value &quot;9223372036854775806&quot; out of range for integer. [Query was: SELECT CEIL(&quot;literal_table&quot;.&quot;x&quot;) AS &quot;ceil([x])&quot; FROM (SELECT CAST(? AS int) AS &quot;x&quot; UNION ALL SELECT CAST(? AS int)) AS &quot;literal_table&quot;(&quot;x&quot;) LIMIT 1001]) has been matched (at /Users/adriley/Code/enso-org/enso/test/Table_Tests/src/Common_Table_Operations/Column_Operations_Spec.enso:1177:21-61).">
+An unexpected dataflow error (There was an SQL error: ERROR: numeric value &quot;9223372036854775806&quot; out of range for integer. [Query was: SELECT CEIL(&quot;literal_table&quot;.&quot;x&quot;) AS &quot;ceil([x])&quot; FROM (SELECT CAST(? AS int) AS &quot;x&quot; UNION ALL SELECT CAST(? AS int)) AS &quot;literal_table&quot;(&quot;x&quot;) LIMIT 1001]) has been matched (at /Users/adriley/Code/enso-org/enso/test/Table_Tests/src/Common_Table_Operations/Column_Operations_Spec.enso:1177:21-61).
+
+        at &lt;enso&gt; if_then_else.materialized_table(/Users/adriley/Code/enso-org/enso/distribution/lib/Standard/Database/0.0.0-dev/src/Internal/DB_Table_Implementation.enso:714:17-111)
+            </failure>
+        </testcase>
+        <testcase name="ceil, floor and truncate should work correctly on Decimals" time="2.079">        </testcase>
+        <testcase name="round should work correctly on Decimals" time="1.321">        </testcase>
+        <testcase name="should allow Nothing/NULL" time="6.13">        </testcase>
+        <testcase name="should fail on bad column type" time="0.007">        </testcase>
+        <testcase name="should work with mixed type columns" time="2.417">
+            <failure message="{Table: X-&gt;Integer (64 bits)} [222.0, 112.0, 210.0] did not equal [112, 210, 222]; first difference at index 0  (at /Users/adriley/Code/enso-org/enso/test/Table_Tests/src/Common_Table_Operations/Column_Operations_Spec.enso:1233:17-66).">
+{Table: X-&gt;Integer (64 bits)} [222.0, 112.0, 210.0] did not equal [112, 210, 222]; first difference at index 0  (at /Users/adriley/Code/enso-org/enso/test/Table_Tests/src/Common_Table_Operations/Column_Operations_Spec.enso:1233:17-66).
+            </failure>
+        </testcase>
+    </testsuite>
+    <testsuite name="[Redshift] (Column_Operations_Spec) Date truncation" timestamp="2026-02-18T14:32:01" tests="1" disabled="0" errors="0" time="0.721">
+        <testcase name="should be able to truncate a column of Date_Times" time="0.721">        </testcase>
+    </testsuite>
+    <testsuite name="[Redshift] (Column_Operations_Spec) Text Column Operations" timestamp="2026-02-18T14:32:32" tests="14" disabled="0" errors="10" time="31.237">
+        <testcase name="should handle operations like starts_with, ends_with, contains" time="2.847">
+            <failure message="{Table: s1-&gt;Char (variable length, max_size=unlimited), s2-&gt;Char (variable length, max_size=unlimited)} An unexpected dataflow error (There was an SQL error: ERROR: function starts_with(character varying, character varying) does not exist&#10;  Hint: No function matches the given name and argument types. You may need to add explicit type casts.. [Query was: SELECT (starts_with(&quot;table_20-b143aa2d-f857-4b7e-867f-b694b4237b63&quot;.&quot;s1&quot;,&quot;table_20-b143aa2d-f857-4b7e-867f-b694b4237b63&quot;.&quot;s2&quot;)) AS &quot;typed_column&quot; FROM &quot;table_20-b143aa2d-f857-4b7e-867f-b694b4237b63&quot; AS &quot;table_20-b143aa2d-f857-4b7e-867f-b694b4237b63&quot; WHERE FALSE]) has been matched (at /Users/adriley/Code/enso-org/enso/test/Table_Tests/src/Common_Table_Operations/Column_Operations_Spec.enso:1263:17-97).">
+{Table: s1-&gt;Char (variable length, max_size=unlimited), s2-&gt;Char (variable length, max_size=unlimited)} An unexpected dataflow error (There was an SQL error: ERROR: function starts_with(character varying, character varying) does not exist
+  Hint: No function matches the given name and argument types. You may need to add explicit type casts.. [Query was: SELECT (starts_with(&quot;table_20-b143aa2d-f857-4b7e-867f-b694b4237b63&quot;.&quot;s1&quot;,&quot;table_20-b143aa2d-f857-4b7e-867f-b694b4237b63&quot;.&quot;s2&quot;)) AS &quot;typed_column&quot; FROM &quot;table_20-b143aa2d-f857-4b7e-867f-b694b4237b63&quot; AS &quot;table_20-b143aa2d-f857-4b7e-867f-b694b4237b63&quot; WHERE FALSE]) has been matched (at /Users/adriley/Code/enso-org/enso/test/Table_Tests/src/Common_Table_Operations/Column_Operations_Spec.enso:1263:17-97).
+
+        at &lt;enso&gt; if_then_else(/Users/adriley/Code/enso-org/enso/distribution/lib/Standard/Database/0.0.0-dev/src/Internal/JDBC_Connection.enso:320:21-84)
+            </failure>
+        </testcase>
+        <testcase name="should handle operation text_length" time="2.853">        </testcase>
+        <testcase name="text_length should error on non-string columns" time="0.009">        </testcase>
+        <testcase name="should handle operation text_left, _right, and _mid with length 1" time="3.613">
+            <failure message="{Table: strings-&gt;Char (variable length, max_size=unlimited)} [&apos;a&apos;, &apos;f&apos;, Nothing, &apos;c&apos;, &apos;I&apos;, &apos;&apos;] did not equal [&apos;a&apos;, &apos;f&apos;, &apos;&apos;, Nothing, &apos;c&apos;, &apos;I&apos;]; first difference at index 2  (at /Users/adriley/Code/enso-org/enso/test/Table_Tests/src/Common_Table_Operations/Column_Operations_Spec.enso:1309:17-84).">
+{Table: strings-&gt;Char (variable length, max_size=unlimited)} [&apos;a&apos;, &apos;f&apos;, Nothing, &apos;c&apos;, &apos;I&apos;, &apos;&apos;] did not equal [&apos;a&apos;, &apos;f&apos;, &apos;&apos;, Nothing, &apos;c&apos;, &apos;I&apos;]; first difference at index 2  (at /Users/adriley/Code/enso-org/enso/test/Table_Tests/src/Common_Table_Operations/Column_Operations_Spec.enso:1309:17-84).
+            </failure>
+        </testcase>
+        <testcase name="should handle operation text_left, _right, and _mid of grapheme and non-grapheme" time="3.239">
+            <failure message="{Table: strings-&gt;Char (variable length, max_size=unlimited)} [&apos;a&apos;, &apos;foo&apos;, &apos;👩‍🔬&apos;, &apos;caf&apos;, &apos;&apos;, Nothing, &apos;It &apos;] did not equal [&apos;a&apos;, &apos;foo&apos;, &apos;&apos;, Nothing, &apos;👩‍🔬&apos;, &apos;caf&apos;, &apos;It &apos;]; first difference at index 2  (at /Users/adriley/Code/enso-org/enso/test/Table_Tests/src/Common_Table_Operations/Column_Operations_Spec.enso:1342:25-107).">
+{Table: strings-&gt;Char (variable length, max_size=unlimited)} [&apos;a&apos;, &apos;foo&apos;, &apos;👩‍🔬&apos;, &apos;caf&apos;, &apos;&apos;, Nothing, &apos;It &apos;] did not equal [&apos;a&apos;, &apos;foo&apos;, &apos;&apos;, Nothing, &apos;👩‍🔬&apos;, &apos;caf&apos;, &apos;It &apos;]; first difference at index 2  (at /Users/adriley/Code/enso-org/enso/test/Table_Tests/src/Common_Table_Operations/Column_Operations_Spec.enso:1342:25-107).
+            </failure>
+        </testcase>
+        <testcase name="text_left, _right, and _mid should error on non integer parameters" time="0.004">        </testcase>
+        <testcase name="text_left, _right, and _mid should return empty on zero argument" time="3.253">
+            <failure message="{Table: strings-&gt;Char (variable length, max_size=unlimited)} [&apos;&apos;, Nothing, &apos;&apos;, &apos;&apos;, &apos;&apos;, &apos;&apos;, &apos;&apos;] did not equal [&apos;&apos;, &apos;&apos;, &apos;&apos;, Nothing, &apos;&apos;, &apos;&apos;, &apos;&apos;]; first difference at index 1  (at /Users/adriley/Code/enso-org/enso/test/Table_Tests/src/Common_Table_Operations/Column_Operations_Spec.enso:1365:17-84).">
+{Table: strings-&gt;Char (variable length, max_size=unlimited)} [&apos;&apos;, Nothing, &apos;&apos;, &apos;&apos;, &apos;&apos;, &apos;&apos;, &apos;&apos;] did not equal [&apos;&apos;, &apos;&apos;, &apos;&apos;, Nothing, &apos;&apos;, &apos;&apos;, &apos;&apos;]; first difference at index 1  (at /Users/adriley/Code/enso-org/enso/test/Table_Tests/src/Common_Table_Operations/Column_Operations_Spec.enso:1365:17-84).
+            </failure>
+        </testcase>
+        <testcase name="text_left and text_right should work with a column of lengths" time="2.855">
+            <failure message="{Table: lengths-&gt;Integer (64 bits), strings-&gt;Char (variable length, max_size=unlimited)} [&apos;&apos;, Nothing, &apos;ca&apos;, &apos;a&apos;, &apos;foo&apos;, &apos;It was &apos;] did not equal [&apos;a&apos;, &apos;foo&apos;, &apos;&apos;, Nothing, &apos;ca&apos;, &apos;It was &apos;]; first difference at index 0  (at /Users/adriley/Code/enso-org/enso/test/Table_Tests/src/Common_Table_Operations/Column_Operations_Spec.enso:1411:17-107).">
+{Table: lengths-&gt;Integer (64 bits), strings-&gt;Char (variable length, max_size=unlimited)} [&apos;&apos;, Nothing, &apos;ca&apos;, &apos;a&apos;, &apos;foo&apos;, &apos;It was &apos;] did not equal [&apos;a&apos;, &apos;foo&apos;, &apos;&apos;, Nothing, &apos;ca&apos;, &apos;It was &apos;]; first difference at index 0  (at /Users/adriley/Code/enso-org/enso/test/Table_Tests/src/Common_Table_Operations/Column_Operations_Spec.enso:1411:17-107).
+            </failure>
+        </testcase>
+        <testcase name="text_mid should work with columns of starts and lengths" time="2.578">
+            <failure message="{Table: starts-&gt;Integer (64 bits), lengths-&gt;Integer (64 bits), strings-&gt;Char (variable length, max_size=unlimited)} An unexpected dataflow error (There was an SQL error: ERROR: SUBSTR() function is not supported (Hint: use SUBSTRING instead)&#10;  Detail: &#10;  -----------------------------------------------&#10;  error:  SUBSTR( (...) uery:     1892190&#10;  location:  cg_expr_fn_builder.cpp:9174&#10;  process:   padbmaster [pid=1073741995]&#10;  -----------------------------------------------&#10;. [Query was: SELECT substr(&quot;table_26-e3463c09-e304-48f7-b016-6ac8d3000770&quot;.&quot;strings&quot;, (?)::integer, (&quot;table_26-e3463c09-e304-48f7-b016-6ac8d3000770&quot;.&quot;lengths&quot;)::integer) AS &quot;text_mid([strings], 0, [lengths])&quot; FROM &quot;table_26-e3463c09-e304-48f7-b016-6ac8d3000770&quot; AS &quot;table_26-e3463c09-e304-48f7-b016-6ac8d3000770&quot; LIMIT 1001]) has been matched (at /Users/adriley/Code/enso-org/enso/test/Table_Tests/src/Common_Table_Operations/Column_Operations_Spec.enso:1419:17-108).">
+{Table: starts-&gt;Integer (64 bits), lengths-&gt;Integer (64 bits), strings-&gt;Char (variable length, max_size=unlimited)} An unexpected dataflow error (There was an SQL error: ERROR: SUBSTR() function is not supported (Hint: use SUBSTRING instead)
+  Detail: 
+  -----------------------------------------------
+  error:  SUBSTR( (...) uery:     1892190
+  location:  cg_expr_fn_builder.cpp:9174
+  process:   padbmaster [pid=1073741995]
+  -----------------------------------------------
+. [Query was: SELECT substr(&quot;table_26-e3463c09-e304-48f7-b016-6ac8d3000770&quot;.&quot;strings&quot;, (?)::integer, (&quot;table_26-e3463c09-e304-48f7-b016-6ac8d3000770&quot;.&quot;lengths&quot;)::integer) AS &quot;text_mid([strings], 0, [lengths])&quot; FROM &quot;table_26-e3463c09-e304-48f7-b016-6ac8d3000770&quot; AS &quot;table_26-e3463c09-e304-48f7-b016-6ac8d3000770&quot; LIMIT 1001]) has been matched (at /Users/adriley/Code/enso-org/enso/test/Table_Tests/src/Common_Table_Operations/Column_Operations_Spec.enso:1419:17-108).
+
+        at &lt;enso&gt; if_then_else.materialized_table(/Users/adriley/Code/enso-org/enso/distribution/lib/Standard/Database/0.0.0-dev/src/Internal/DB_Table_Implementation.enso:714:17-111)
+            </failure>
+        </testcase>
+        <testcase name="text_left, _right, and _mid should have defaults for length" time="3.922">
+            <failure message="{Table: strings-&gt;Char (variable length, max_size=unlimited)} An unexpected dataflow error (There was an SQL error: ERROR: SUBSTR() function is not supported (Hint: use SUBSTRING instead)&#10;  Detail: &#10;  -----------------------------------------------&#10;  error:  SUBSTR( (...) uery:     1892226&#10;  location:  cg_expr_fn_builder.cpp:9174&#10;  process:   padbmaster [pid=1073741995]&#10;  -----------------------------------------------&#10;. [Query was: SELECT substr(&quot;table_27-ece6a88f-a54f-4646-a632-6bf8d7197780&quot;.&quot;strings&quot;, (?)::integer) AS &quot;text_mid([strings], 3, Rest_Of_String)&quot; FROM &quot;table_27-ece6a88f-a54f-4646-a632-6bf8d7197780&quot; AS &quot;table_27-ece6a88f-a54f-4646-a632-6bf8d7197780&quot; LIMIT 1001]) has been matched (at /Users/adriley/Code/enso-org/enso/test/Table_Tests/src/Common_Table_Operations/Column_Operations_Spec.enso:1431:17-104).">
+{Table: strings-&gt;Char (variable length, max_size=unlimited)} An unexpected dataflow error (There was an SQL error: ERROR: SUBSTR() function is not supported (Hint: use SUBSTRING instead)
+  Detail: 
+  -----------------------------------------------
+  error:  SUBSTR( (...) uery:     1892226
+  location:  cg_expr_fn_builder.cpp:9174
+  process:   padbmaster [pid=1073741995]
+  -----------------------------------------------
+. [Query was: SELECT substr(&quot;table_27-ece6a88f-a54f-4646-a632-6bf8d7197780&quot;.&quot;strings&quot;, (?)::integer) AS &quot;text_mid([strings], 3, Rest_Of_String)&quot; FROM &quot;table_27-ece6a88f-a54f-4646-a632-6bf8d7197780&quot; AS &quot;table_27-ece6a88f-a54f-4646-a632-6bf8d7197780&quot; LIMIT 1001]) has been matched (at /Users/adriley/Code/enso-org/enso/test/Table_Tests/src/Common_Table_Operations/Column_Operations_Spec.enso:1431:17-104).
+
+        at &lt;enso&gt; if_then_else.materialized_table(/Users/adriley/Code/enso-org/enso/distribution/lib/Standard/Database/0.0.0-dev/src/Internal/DB_Table_Implementation.enso:714:17-111)
+            </failure>
+        </testcase>
+        <testcase name="should handle operations like is_empty, is_blank, fill_empty" time="2.519">
+            <failure message="{Table: s-&gt;Char (variable length, max_size=unlimited), letters-&gt;Char (variable length, max_size=unlimited)} [True, True, True, True, False] did not equal [True, False, False, True, False]; first difference at index 1  (at /Users/adriley/Code/enso-org/enso/test/Table_Tests/src/Common_Table_Operations/Column_Operations_Spec.enso:1436:17-87).">
+{Table: s-&gt;Char (variable length, max_size=unlimited), letters-&gt;Char (variable length, max_size=unlimited)} [True, True, True, True, False] did not equal [True, False, False, True, False]; first difference at index 1  (at /Users/adriley/Code/enso-org/enso/test/Table_Tests/src/Common_Table_Operations/Column_Operations_Spec.enso:1436:17-87).
+            </failure>
+        </testcase>
+        <testcase name="should check types" time="0.043">        </testcase>
+        <testcase name="should return right types" time="0.95">
+            <failure message="An unexpected dataflow error (There was an SQL error: ERROR: function starts_with(character varying, character varying) does not exist&#10;  Hint: No function matches the given name and argument types. You may need to add explicit type casts.. [Query was: SELECT (starts_with(&quot;literal_table&quot;.&quot;s1&quot;,&quot;literal_table&quot;.&quot;s2&quot;)) AS &quot;typed_column&quot; FROM (SELECT CAST(? AS varchar(65535)) AS &quot;s1&quot;, CAST(? AS varchar(65535)) AS &quot;s2&quot; UNION ALL SELECT CAST(? AS varchar(65535)), CAST(? AS varchar(65535)) UNION ALL SELECT CAST(? AS varchar(65535)), CAST(? AS varchar(65535)) UNION ALL SELECT CAST(? AS varchar(65535)), CAST(? AS varchar(65535)) UNION ALL SELECT CAST(? AS varchar(65535)), CAST(? AS varchar(65535))) AS &quot;literal_table&quot;(&quot;s1&quot;, &quot;s2&quot;) WHERE FALSE]) has been matched (at /Users/adriley/Code/enso-org/enso/test/Table_Tests/src/Common_Table_Operations/Column_Operations_Spec.enso:1472:17-100).">
+An unexpected dataflow error (There was an SQL error: ERROR: function starts_with(character varying, character varying) does not exist
+  Hint: No function matches the given name and argument types. You may need to add explicit type casts.. [Query was: SELECT (starts_with(&quot;literal_table&quot;.&quot;s1&quot;,&quot;literal_table&quot;.&quot;s2&quot;)) AS &quot;typed_column&quot; FROM (SELECT CAST(? AS varchar(65535)) AS &quot;s1&quot;, CAST(? AS varchar(65535)) AS &quot;s2&quot; UNION ALL SELECT CAST(? AS varchar(65535)), CAST(? AS varchar(65535)) UNION ALL SELECT CAST(? AS varchar(65535)), CAST(? AS varchar(65535)) UNION ALL SELECT CAST(? AS varchar(65535)), CAST(? AS varchar(65535)) UNION ALL SELECT CAST(? AS varchar(65535)), CAST(? AS varchar(65535))) AS &quot;literal_table&quot;(&quot;s1&quot;, &quot;s2&quot;) WHERE FALSE]) has been matched (at /Users/adriley/Code/enso-org/enso/test/Table_Tests/src/Common_Table_Operations/Column_Operations_Spec.enso:1472:17-100).
+
+        at &lt;enso&gt; if_then_else(/Users/adriley/Code/enso-org/enso/distribution/lib/Standard/Database/0.0.0-dev/src/Internal/JDBC_Connection.enso:320:21-84)
+            </failure>
+        </testcase>
+        <testcase name="should support text concatenation with the + operator" time="2.545">
+            <failure message="{Table: s1-&gt;Char (variable length, max_size=unlimited), s2-&gt;Char (variable length, max_size=unlimited)} [&apos;barar&apos;, &apos;baza&apos;, Nothing, &apos;foobarfoo&apos;, &apos;BABb&apos;] did not equal [&apos;foobarfoo&apos;, &apos;barar&apos;, &apos;baza&apos;, &apos;BABb&apos;, Nothing]; first difference at index 0  (at /Users/adriley/Code/enso-org/enso/test/Table_Tests/src/Common_Table_Operations/Column_Operations_Spec.enso:1493:17-91).">
+{Table: s1-&gt;Char (variable length, max_size=unlimited), s2-&gt;Char (variable length, max_size=unlimited)} [&apos;barar&apos;, &apos;baza&apos;, Nothing, &apos;foobarfoo&apos;, &apos;BABb&apos;] did not equal [&apos;foobarfoo&apos;, &apos;barar&apos;, &apos;baza&apos;, &apos;BABb&apos;, Nothing]; first difference at index 0  (at /Users/adriley/Code/enso-org/enso/test/Table_Tests/src/Common_Table_Operations/Column_Operations_Spec.enso:1493:17-91).
+            </failure>
+        </testcase>
+    </testsuite>
+    <testsuite name="[Redshift] (Column_Operations_Spec) Min/Max Operations" timestamp="2026-02-18T14:32:55" tests="4" disabled="0" errors="0" time="22.571">
+        <testcase name="should allow one or more args and return the correct type" time="9.371">        </testcase>
+        <testcase name="should ignore null values" time="2.144">        </testcase>
+        <testcase name="should allow Date/Time columns" time="11.005">        </testcase>
+        <testcase name="should check types" time="0.049">        </testcase>
+    </testsuite>
+    <testsuite name="[Redshift] (Column_Operations_Spec) replace: literal text pattern and replacement" timestamp="2026-02-18T14:33:03" tests="4" disabled="0" errors="1" time="7.911">
+        <testcase name="case_sensitivity=sensitive/default use_regex=false only_first=false" time="6.895">        </testcase>
+        <testcase name="case_sensitivity=sensitive/default use_regex=false only_first=true" time="0.001">        </testcase>
+        <testcase name="case_sensitivity=insensitive use_regex=false only_first=false" time="1.011">
+            <failure message="An unexpected dataflow error (There was an SQL error: ERROR: invalid input syntax for integer: &quot;ig&quot;. [Query was: SELECT REGEXP_REPLACE(&quot;table_32-3dd3e5ae-28e7-4631-a83f-476b2b6b1d2b&quot;.&quot;x&quot;, ?, ?, &apos;ig&apos;) AS &quot;typed_column&quot; FROM &quot;table_32-3dd3e5ae-28e7-4631-a83f-476b2b6b1d2b&quot; AS &quot;table_32-3dd3e5ae-28e7-4631-a83f-476b2b6b1d2b&quot; WHERE FALSE ORDER BY &quot;table_32-3dd3e5ae-28e7-4631-a83f-476b2b6b1d2b&quot;.&quot;row_id&quot; ASC NULLS FIRST]) has been matched (at /Users/adriley/Code/enso-org/enso/test/Table_Tests/src/Common_Table_Operations/Column_Operations_Spec.enso:1611:29-125).">
+An unexpected dataflow error (There was an SQL error: ERROR: invalid input syntax for integer: &quot;ig&quot;. [Query was: SELECT REGEXP_REPLACE(&quot;table_32-3dd3e5ae-28e7-4631-a83f-476b2b6b1d2b&quot;.&quot;x&quot;, ?, ?, &apos;ig&apos;) AS &quot;typed_column&quot; FROM &quot;table_32-3dd3e5ae-28e7-4631-a83f-476b2b6b1d2b&quot; AS &quot;table_32-3dd3e5ae-28e7-4631-a83f-476b2b6b1d2b&quot; WHERE FALSE ORDER BY &quot;table_32-3dd3e5ae-28e7-4631-a83f-476b2b6b1d2b&quot;.&quot;row_id&quot; ASC NULLS FIRST]) has been matched (at /Users/adriley/Code/enso-org/enso/test/Table_Tests/src/Common_Table_Operations/Column_Operations_Spec.enso:1611:29-125).
+
+        at &lt;enso&gt; if_then_else(/Users/adriley/Code/enso-org/enso/distribution/lib/Standard/Database/0.0.0-dev/src/Internal/JDBC_Connection.enso:320:21-84)
+            </failure>
+        </testcase>
+        <testcase name="case_sensitivity=insensitive use_regex=false only_first=true" time="0.002">        </testcase>
+    </testsuite>
+    <testsuite name="[Redshift] (Column_Operations_Spec) replace: literal regex pattern and replacement" timestamp="2026-02-18T14:33:04" tests="5" disabled="0" errors="0" time="1.51">
+        <testcase name="case_sensitivity=sensitive/default use_regex=True only_first=false" time="0.003">        </testcase>
+        <testcase name="case_sensitivity=sensitive/default use_regex=True only_first=true" time="0.002">        </testcase>
+        <testcase name="case_sensitivity=insensitive use_regex=True only_first=false" time="0.001">        </testcase>
+        <testcase name="case_sensitivity=insensitive use_regex=True only_first=true" time="0.001">        </testcase>
+        <testcase name="can properly escape complex regexes" time="1.502">        </testcase>
+    </testsuite>
+    <testsuite name="[Redshift] (Column_Operations_Spec) replace: Named_Pattern and replacement" timestamp="2026-02-18T14:33:04" tests="1" disabled="0" errors="0" time="0.001">
+        <testcase name="can use Named_Patterns" time="0.001">        </testcase>
+    </testsuite>
+    <testsuite name="[Redshift] (Column_Operations_Spec) replace: pattern and replacement columns" timestamp="2026-02-18T14:33:06" tests="4" disabled="0" errors="0" time="2.081">
+        <testcase name="case_sensitivity=sensitive/default use_regex=false only_first=false" time="2.075">        </testcase>
+        <testcase name="case_sensitivity=sensitive/default use_regex=false only_first=true" time="0.001">        </testcase>
+        <testcase name="case_sensitivity=insensitive use_regex=false only_first=false" time="0.001">        </testcase>
+        <testcase name="case_sensitivity=insensitive use_regex=false only_first=true" time="0.001">        </testcase>
+    </testsuite>
+    <testsuite name="[Redshift] (Column_Operations_Spec) replace: empty table and nothings" timestamp="2026-02-18T14:33:08" tests="2" disabled="0" errors="0" time="2.029">
+        <testcase name="should work on empty tables" time="1.028">        </testcase>
+        <testcase name="should work on Nothing text column" time="1.0">        </testcase>
+    </testsuite>
+    <testsuite name="[Redshift] (Column_Operations_Spec) replace: DB specific edge-cases" timestamp="2026-02-18T14:33:09" tests="2" disabled="0" errors="0" time="0.347">
+        <testcase name="should not allow Case_Sensitivity.Insensitive with a non-default locale" time="0.01">        </testcase>
+        <testcase name="column name" time="0.337">        </testcase>
+    </testsuite>
+    <testsuite name="[Redshift] (Column_Operations_Spec) Column Operations - Text Trim" timestamp="2026-02-18T14:33:19" tests="3" disabled="0" errors="0" time="10.661">
+        <testcase name="should trim whitespace by default" time="3.868">        </testcase>
+        <testcase name="should trim custom characters" time="6.775">        </testcase>
+        <testcase name="should only allow trim on Text columns" time="0.017">        </testcase>
+    </testsuite>
+    <testsuite name="[Redshift] (Column_Operations_Spec) Other Column Operations" timestamp="2026-02-18T14:33:20" tests="1" disabled="0" errors="0" time="1.023">
+        <testcase name="is_in" time="1.023">        </testcase>
+    </testsuite>
+    <testsuite name="[Redshift] (Column_Operations_Spec) Colum Operations - Names" timestamp="2026-02-18T14:33:34" tests="8" disabled="0" errors="1" time="14.237">
+        <testcase name="arithmetic" time="4.438">        </testcase>
+        <testcase name="comparison" time="2.401">        </testcase>
+        <testcase name="logical" time="1.329">        </testcase>
+        <testcase name="text" time="1.29">
+            <failure message="An unexpected dataflow error (There was an SQL error: ERROR: function starts_with(character varying, &quot;unknown&quot;) does not exist&#10;  Hint: No function matches the given name and argument types. You may need to add explicit type casts.. [Query was: SELECT (starts_with(&quot;table_38-d17b5c4d-a8bc-4f44-8348-e00e6e2c7bba&quot;.&quot;b&quot;,?)) AS &quot;typed_column&quot; FROM &quot;table_38-d17b5c4d-a8bc-4f44-8348-e00e6e2c7bba&quot; AS &quot;table_38-d17b5c4d-a8bc-4f44-8348-e00e6e2c7bba&quot; WHERE FALSE ORDER BY &quot;table_38-d17b5c4d-a8bc-4f44-8348-e00e6e2c7bba&quot;.&quot;a&quot; ASC NULLS FIRST]) has been matched (at /Users/adriley/Code/enso-org/enso/test/Table_Tests/src/Common_Table_Operations/Column_Operations_Spec.enso:1848:13-93).">
+An unexpected dataflow error (There was an SQL error: ERROR: function starts_with(character varying, &quot;unknown&quot;) does not exist
+  Hint: No function matches the given name and argument types. You may need to add explicit type casts.. [Query was: SELECT (starts_with(&quot;table_38-d17b5c4d-a8bc-4f44-8348-e00e6e2c7bba&quot;.&quot;b&quot;,?)) AS &quot;typed_column&quot; FROM &quot;table_38-d17b5c4d-a8bc-4f44-8348-e00e6e2c7bba&quot; AS &quot;table_38-d17b5c4d-a8bc-4f44-8348-e00e6e2c7bba&quot; WHERE FALSE ORDER BY &quot;table_38-d17b5c4d-a8bc-4f44-8348-e00e6e2c7bba&quot;.&quot;a&quot; ASC NULLS FIRST]) has been matched (at /Users/adriley/Code/enso-org/enso/test/Table_Tests/src/Common_Table_Operations/Column_Operations_Spec.enso:1848:13-93).
+
+        at &lt;enso&gt; if_then_else(/Users/adriley/Code/enso-org/enso/distribution/lib/Standard/Database/0.0.0-dev/src/Internal/JDBC_Connection.enso:320:21-84)
+            </failure>
+        </testcase>
+        <testcase name="nulls" time="2.034">        </testcase>
+        <testcase name="misc" time="0.999">        </testcase>
+        <testcase name="composed operations" time="1.739">        </testcase>
+        <testcase name="sort" time="0.004">        </testcase>
+    </testsuite>
+    <testsuite name="[Redshift] (Column_Operations_Spec) Column.rename" timestamp="2026-02-18T14:33:36" tests="1" disabled="0" errors="0" time="1.752">
+        <testcase name="should not allow illegal names" time="1.752">        </testcase>
+    </testsuite>
+    <testsuite name="[Redshift] (Column_Operations_Spec) Column.const" timestamp="2026-02-18T14:33:47" tests="3" disabled="0" errors="1" time="11.221">
+        <testcase name="Should allow the creation of constant columns" time="7.557">
+            <failure message="An unexpected dataflow error (There was an SQL error: ERROR: Assert&#10;  Detail: &#10;  -----------------------------------------------&#10;  error:  Assert&#10;  code:      1000&#10;  context:   Unreachable - Invalid type: 705&#10;  query:     1892562&#10;  location:  tbl_trans.hpp:1721&#10;  process:   padbmaster [pid=1073741995]&#10;  -----------------------------------------------&#10;. [Query was: SELECT ? AS &quot;&apos;asdf&apos;&quot; FROM &quot;table_40-9efae6ca-e51c-480b-bfc0-cd48449eeb6c&quot; AS &quot;table_40-9efae6ca-e51c-480b-bfc0-cd48449eeb6c&quot; LIMIT 1001]) has been matched (at /Users/adriley/Code/enso-org/enso/test/Table_Tests/src/Common_Table_Operations/Column_Operations_Spec.enso:1899:13-87).">
+An unexpected dataflow error (There was an SQL error: ERROR: Assert
+  Detail: 
+  -----------------------------------------------
+  error:  Assert
+  code:      1000
+  context:   Unreachable - Invalid type: 705
+  query:     1892562
+  location:  tbl_trans.hpp:1721
+  process:   padbmaster [pid=1073741995]
+  -----------------------------------------------
+. [Query was: SELECT ? AS &quot;&apos;asdf&apos;&quot; FROM &quot;table_40-9efae6ca-e51c-480b-bfc0-cd48449eeb6c&quot; AS &quot;table_40-9efae6ca-e51c-480b-bfc0-cd48449eeb6c&quot; LIMIT 1001]) has been matched (at /Users/adriley/Code/enso-org/enso/test/Table_Tests/src/Common_Table_Operations/Column_Operations_Spec.enso:1899:13-87).
+
+        at &lt;enso&gt; if_then_else.materialized_table(/Users/adriley/Code/enso-org/enso/distribution/lib/Standard/Database/0.0.0-dev/src/Internal/DB_Table_Implementation.enso:714:17-111)
+            </failure>
+        </testcase>
+        <testcase name="Should create the correct column name" time="1.909">        </testcase>
+        <testcase name="Should not allow the creation of a constant column of columns" time="1.754">        </testcase>
+    </testsuite>
+    <testsuite name="[Redshift] (Column_Operations_Spec) Table.make_constant_column" timestamp="2026-02-18T14:34:04" tests="5" disabled="0" errors="2" time="17.017">
+        <testcase name="Should allow the creation of constant columns" time="3.952">
+            <failure message="An unexpected dataflow error (There was an SQL error: ERROR: Assert&#10;  Detail: &#10;  -----------------------------------------------&#10;  error:  Assert&#10;  code:      1000&#10;  context:   Unreachable - Invalid type: 705&#10;  query:     1892616&#10;  location:  tbl_trans.hpp:1721&#10;  process:   padbmaster [pid=1073741995]&#10;  -----------------------------------------------&#10;. [Query was: SELECT ? AS &quot;&apos;asdf&apos;&quot; FROM &quot;table_43-19a2872b-8337-42db-82ff-2a4d3e756bda&quot; AS &quot;table_43-19a2872b-8337-42db-82ff-2a4d3e756bda&quot; LIMIT 1001]) has been matched (at /Users/adriley/Code/enso-org/enso/test/Table_Tests/src/Common_Table_Operations/Column_Operations_Spec.enso:1955:13-64).">
+An unexpected dataflow error (There was an SQL error: ERROR: Assert
+  Detail: 
+  -----------------------------------------------
+  error:  Assert
+  code:      1000
+  context:   Unreachable - Invalid type: 705
+  query:     1892616
+  location:  tbl_trans.hpp:1721
+  process:   padbmaster [pid=1073741995]
+  -----------------------------------------------
+. [Query was: SELECT ? AS &quot;&apos;asdf&apos;&quot; FROM &quot;table_43-19a2872b-8337-42db-82ff-2a4d3e756bda&quot; AS &quot;table_43-19a2872b-8337-42db-82ff-2a4d3e756bda&quot; LIMIT 1001]) has been matched (at /Users/adriley/Code/enso-org/enso/test/Table_Tests/src/Common_Table_Operations/Column_Operations_Spec.enso:1955:13-64).
+
+        at &lt;enso&gt; if_then_else.materialized_table(/Users/adriley/Code/enso-org/enso/distribution/lib/Standard/Database/0.0.0-dev/src/Internal/DB_Table_Implementation.enso:714:17-111)
+            </failure>
+        </testcase>
+        <testcase name="Should allow the creation of constant date/time columns" time="3.889">
+            <failure message="An unexpected dataflow error (There was an SQL error: ERROR: operator does not exist: date = boolean&#10;  Hint: No operator matches the given name and argument type(s). You may need to add explicit type casts.. [Query was: SELECT (CASE WHEN (?) = (?) THEN ? WHEN (?) = (?) IS NULL THEN NULL ELSE ? END) AS &quot;typed_column&quot; FROM &quot;table_44-4b2fa7fa-c287-4cf9-a6c9-65fd3e5c4525&quot; AS &quot;table_44-4b2fa7fa-c287-4cf9-a6c9-65fd3e5c4525&quot; WHERE FALSE]) has been matched (at /Users/adriley/Code/enso-org/enso/test/Table_Tests/src/Common_Table_Operations/Column_Operations_Spec.enso:1976:13-60).">
+An unexpected dataflow error (There was an SQL error: ERROR: operator does not exist: date = boolean
+  Hint: No operator matches the given name and argument type(s). You may need to add explicit type casts.. [Query was: SELECT (CASE WHEN (?) = (?) THEN ? WHEN (?) = (?) IS NULL THEN NULL ELSE ? END) AS &quot;typed_column&quot; FROM &quot;table_44-4b2fa7fa-c287-4cf9-a6c9-65fd3e5c4525&quot; AS &quot;table_44-4b2fa7fa-c287-4cf9-a6c9-65fd3e5c4525&quot; WHERE FALSE]) has been matched (at /Users/adriley/Code/enso-org/enso/test/Table_Tests/src/Common_Table_Operations/Column_Operations_Spec.enso:1976:13-60).
+
+        at &lt;enso&gt; if_then_else(/Users/adriley/Code/enso-org/enso/distribution/lib/Standard/Database/0.0.0-dev/src/Internal/JDBC_Connection.enso:320:21-84)
+            </failure>
+        </testcase>
+        <testcase name="Should allow the creation of constant columns on a table with no rows" time="2.917">        </testcase>
+        <testcase name="Should create a column of the correct type on a table with no rows" time="3.38">        </testcase>
+        <testcase name="Should create a column of the correct type on a table with no rows" time="2.876">        </testcase>
+    </testsuite>
+    <testsuite name="[Redshift] (Column_Operations_Spec) Decimal" timestamp="2026-02-18T14:34:04" tests="0" disabled="1" errors="0" time="0.0">
+        <testcase name="PENDING" time="0.0">
+            <skipped message="Reason: Decimals are currently not implemented for the Database backend."/>
+        </testcase>
+    </testsuite>
+</testsuites>

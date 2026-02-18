@@ -1,0 +1,240 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites>
+    <testsuite name="[In-Memory] (Column_Operations_Spec) Rounding numeric tests" timestamp="2026-02-18T11:00:59" tests="18" disabled="1" errors="0" time="1.494">
+        <testcase name="Can round positive decimals correctly" time="0.362">        </testcase>
+        <testcase name="Can round negative decimals correctly" time="0.107">        </testcase>
+        <testcase name="Explicit and implicit 0 decimal places work the same" time="0.049">        </testcase>
+        <testcase name="Can round zero and small decimals correctly" time="0.035">        </testcase>
+        <testcase name="Can round positive decimals to a specified number of decimal places" time="0.101">        </testcase>
+        <testcase name="Can round negative decimals to a specified number of decimal places" time="0.082">        </testcase>
+        <testcase name="Can round positive decimals to a specified negative number of decimal places" time="0.077">        </testcase>
+        <testcase name="Can round negative decimals to a specified negative number of decimal places" time="0.067">        </testcase>
+        <testcase name="Banker&apos;s rounding handles half-way values correctly" time="0.089">        </testcase>
+        <testcase name="Banker&apos;s rounding handles non-half-way values just like normal rounding" time="0.068">        </testcase>
+        <testcase name="Can round small integers to a specified number of decimal places correctly (value is unchanged)" time="0.046">        </testcase>
+        <testcase name="Can round integers to a specified number of negative places correctly" time="0.122">        </testcase>
+        <testcase name="Can round negative integers to a specified number of negative places correctly" time="0.092">        </testcase>
+        <testcase name="Can round negative integers to a specified number of negative places with banker&apos;s rounding correctly" time="0.07">        </testcase>
+        <testcase name="Accepts deprecated use_bankers boolean argument, with a warning" time="0.0">
+            <skipped message="https://github.com/enso-org/enso/issues/12787"/>
+                </testcase>
+        <testcase name="Handles incorrect argument types" time="0.038">        </testcase>
+        <testcase name="Decimal places out of range" time="0.015">        </testcase>
+        <testcase name="Non-builtin integer column rounding" time="0.065">        </testcase>
+    </testsuite>
+    <testsuite name="[In-Memory] (Column_Operations_Spec) Boolean Column Operations" timestamp="2026-02-18T11:01:00" tests="8" disabled="0" errors="0" time="0.913">
+        <testcase name="iif" time="0.237">        </testcase>
+        <testcase name="iif on Columns" time="0.344">        </testcase>
+        <testcase name="iif should correctly unify text columns of various lengths" time="0.15">        </testcase>
+        <testcase name="should allow to compute &amp;&amp;, || and not" time="0.091">        </testcase>
+        <testcase name="should handle nulls correctly in not" time="0.005">        </testcase>
+        <testcase name="should handle nulls correctly in &amp;&amp;" time="0.028">        </testcase>
+        <testcase name="should handle nulls correctly in ||" time="0.028">        </testcase>
+        <testcase name="should check types" time="0.027">        </testcase>
+    </testsuite>
+    <testsuite name="[In-Memory] (Column_Operations_Spec) Column Operations - Equality &amp; Null Handling" timestamp="2026-02-18T11:01:01" tests="7" disabled="0" errors="0" time="0.387">
+        <testcase name="should provide basic == and != comparisons" time="0.145">        </testcase>
+        <testcase name="should allow to check which values are null" time="0.072">        </testcase>
+        <testcase name="Column equality should handle nulls correctly" time="0.015">        </testcase>
+        <testcase name="equals_ignore_case for ASCII strings" time="0.073">        </testcase>
+        <testcase name="equals_ignore_case should check types" time="0.014">        </testcase>
+        <testcase name="Text Column equality (including case-insensitive) should handle nulls correctly" time="0.018">        </testcase>
+        <testcase name="should report a warning if checking equality on floating point columns" time="0.047">        </testcase>
+    </testsuite>
+    <testsuite name="[In-Memory] (Column_Operations_Spec) Column.fill_nothing/empty" timestamp="2026-02-18T11:01:01" tests="4" disabled="0" errors="0" time="0.075">
+        <testcase name="should allow to fill_nothing from a value" time="0.023">        </testcase>
+        <testcase name="should allow to fill_nothing from another column" time="0.007">        </testcase>
+        <testcase name="should allow to fill_empty from a value" time="0.029">        </testcase>
+        <testcase name="should allow to fill_empty from another column" time="0.015">        </testcase>
+    </testsuite>
+    <testsuite name="[In-Memory] (Column_Operations_Spec) Table.fill_nothing/empty" timestamp="2026-02-18T11:01:01" tests="14" disabled="0" errors="0" time="0.472">
+        <testcase name="should allow to fill_nothing from a value" time="0.041">        </testcase>
+        <testcase name="should allow to fill_nothing from larger string and expands type to fit" time="0.044">        </testcase>
+        <testcase name="should allow to fill_nothing from an empty string" time="0.029">        </testcase>
+        <testcase name="should allow to fill_nothing a fixed width from an empty string" time="0.03">        </testcase>
+        <testcase name="should allow to fill_nothing a fixed width of width 1 correctly expanding output types" time="0.07">        </testcase>
+        <testcase name="should allow to fill_nothing a fixed width with a string of correct length without changing the type" time="0.026">        </testcase>
+        <testcase name="should allow to fill_nothing from other columns" time="0.02">        </testcase>
+        <testcase name="should allow to fill_empty from a value" time="0.025">        </testcase>
+        <testcase name="should allow to fill_empty from other columns" time="0.019">        </testcase>
+        <testcase name="fill_nothing should leave other columns alone" time="0.027">        </testcase>
+        <testcase name="fill_nothing should allow selection by regex" time="0.033">        </testcase>
+        <testcase name="fill_nothing should allow selection by type" time="0.033">        </testcase>
+        <testcase name="fill_nothing should work with integer column selectors" time="0.019">        </testcase>
+        <testcase name="fill_nothing should cope with notted boolean columns" time="0.05">        </testcase>
+    </testsuite>
+    <testsuite name="[In-Memory] (Column_Operations_Spec) Table.text_replace" timestamp="2026-02-18T11:01:02" tests="8" disabled="0" errors="0" time="0.307">
+        <testcase name="should allow to replace values in a table" time="0.067">        </testcase>
+        <testcase name="should allow to replace values in a table selecting columns with regex" time="0.104">        </testcase>
+        <testcase name="should allow to replace values in a table selecting columns by type" time="0.02">        </testcase>
+        <testcase name="should allow to replace values in a table with a regex" time="0.037">        </testcase>
+        <testcase name="should allow to replace values in a table with a named_pattern" time="0.018">        </testcase>
+        <testcase name="should allow to replace values in a table with a column" time="0.031">        </testcase>
+        <testcase name="should allow to use Column_Ref in replace" time="0.017">        </testcase>
+        <testcase name="should throw missing argument error" time="0.01">        </testcase>
+    </testsuite>
+    <testsuite name="[In-Memory] (Column_Operations_Spec) Column Comparisons" timestamp="2026-02-18T11:01:04" tests="7" disabled="0" errors="0" time="2.237">
+        <testcase name="(Column_Operations_Spec) should infer the correct precise value type for mixed columns" time="0.066">        </testcase>
+        <testcase name="(Column_Operations_Spec) should allow to compare numbers (including mixed types)" time="1.871">        </testcase>
+        <testcase name="should allow to compare texts" time="0.031">        </testcase>
+        <testcase name="should allow to compare booleans" time="0.03">        </testcase>
+        <testcase name="should report error if incomparable types are compared" time="0.039">        </testcase>
+        <testcase name="should allow comparing Mixed columns" time="0.179">        </testcase>
+        <testcase name="Between should return null if any of the values are null" time="0.018">        </testcase>
+    </testsuite>
+    <testsuite name="[In-Memory] (Column_Operations_Spec) Arithmetic Column Operations" timestamp="2026-02-18T11:01:05" tests="14" disabled="1" errors="0" time="0.876">
+        <testcase name="should allow basic operations" time="0.38">        </testcase>
+        <testcase name="should allow combining a column with a scalar" time="0.038">        </testcase>
+        <testcase name="should work with mixed types" time="0.081">        </testcase>
+        <testcase name="should correctly infer the types" time="0.136">        </testcase>
+        <testcase name="should correctly infer the types (for decimal division)" time="0.0">
+            <skipped message="TODO: https://github.com/enso-org/enso/issues/10429"/>
+                </testcase>
+        <testcase name="should check types" time="0.068">        </testcase>
+        <testcase name="should support is_nan" time="0.026">        </testcase>
+        <testcase name="should support is_infinite" time="0.005">        </testcase>
+        <testcase name="should support is_finite" time="0.009">        </testcase>
+        <testcase name="should support is_blank" time="0.016">        </testcase>
+        <testcase name="division should be aligned with the Enso arithmetic" time="0.027">        </testcase>
+        <testcase name="should allow division by 0 and report warnings" time="0.038">        </testcase>
+        <testcase name="should limit the number of rows listed in the message" time="0.021">        </testcase>
+        <testcase name="should return null if one of arguments is missing" time="0.025">        </testcase>
+    </testsuite>
+    <testsuite name="[In-Memory] (Column_Operations_Spec) Rounding-like operations" timestamp="2026-02-18T11:01:05" tests="28" disabled="0" errors="0" time="0.471">
+        <testcase name="should name a rounding column correctly" time="0.007">        </testcase>
+        <testcase name="should allow round on a (Float 64 bits) column" time="0.008">        </testcase>
+        <testcase name="should allow round on a (Float 64 bits) column (to &gt;0 decimal places)" time="0.004">        </testcase>
+        <testcase name="should allow round on a (Float 64 bits) column (to &lt;0 decimal places)" time="0.005">        </testcase>
+        <testcase name="should allow truncate on a (Float 64 bits) column" time="0.014">        </testcase>
+        <testcase name="should allow ceil on a (Float 64 bits) column" time="0.004">        </testcase>
+        <testcase name="should allow floor on a (Float 64 bits) column" time="0.011">        </testcase>
+        <testcase name="should handle Nothing in rounding on a (Float 64 bits) column" time="0.009">        </testcase>
+        <testcase name="should allow round on a (Decimal Nothing Nothing) column" time="0.025">        </testcase>
+        <testcase name="should allow round on a (Decimal Nothing Nothing) column (to &gt;0 decimal places)" time="0.007">        </testcase>
+        <testcase name="should allow round on a (Decimal Nothing Nothing) column (to &lt;0 decimal places)" time="0.002">        </testcase>
+        <testcase name="should allow truncate on a (Decimal Nothing Nothing) column" time="0.003">        </testcase>
+        <testcase name="should allow ceil on a (Decimal Nothing Nothing) column" time="0.004">        </testcase>
+        <testcase name="should allow floor on a (Decimal Nothing Nothing) column" time="0.003">        </testcase>
+        <testcase name="should handle Nothing in rounding on a (Decimal Nothing Nothing) column" time="0.004">        </testcase>
+        <testcase name="should allow round on an int column" time="0.005">        </testcase>
+        <testcase name="should allow truncate on an int column" time="0.003">        </testcase>
+        <testcase name="should allow ceil on an int column" time="0.005">        </testcase>
+        <testcase name="should allow floor on an int column" time="0.003">        </testcase>
+        <testcase name="should fail on decimal_places out of range" time="0.008">        </testcase>
+        <testcase name="ceil, floor and truncate should work correctly on Integers outside the java Long range" time="0.1">        </testcase>
+        <testcase name="ceil, floor and truncate should work correctly on Floats outside the java Long range" time="0.028">        </testcase>
+        <testcase name="ceil, floor and truncate should work correctly on Decimals" time="0.017">        </testcase>
+        <testcase name="round should work correctly on Decimals" time="0.02">        </testcase>
+        <testcase name="casting NaN to Decimal should attach a warning" time="0.109">        </testcase>
+        <testcase name="should allow Nothing/NULL" time="0.004">        </testcase>
+        <testcase name="should fail on bad column type" time="0.007">        </testcase>
+        <testcase name="should work with mixed type columns" time="0.036">        </testcase>
+    </testsuite>
+    <testsuite name="[In-Memory] (Column_Operations_Spec) Date truncation" timestamp="2026-02-18T11:01:05" tests="1" disabled="0" errors="0" time="0.024">
+        <testcase name="should be able to truncate a column of Date_Times" time="0.024">        </testcase>
+    </testsuite>
+    <testsuite name="[In-Memory] (Column_Operations_Spec) Text Column Operations" timestamp="2026-02-18T11:01:06" tests="18" disabled="0" errors="0" time="0.817">
+        <testcase name="should handle operations like starts_with, ends_with, contains" time="0.199">        </testcase>
+        <testcase name="should handle operation text_length" time="0.018">        </testcase>
+        <testcase name="text_length should error on non-string columns" time="0.005">        </testcase>
+        <testcase name="should handle operation text_left, _right, and _mid with length 1" time="0.078">        </testcase>
+        <testcase name="should handle operation text_left, _right, and _mid of grapheme and non-grapheme" time="0.041">        </testcase>
+        <testcase name="text_left, _right, and _mid should error on non integer parameters" time="0.005">        </testcase>
+        <testcase name="text_left, _right, and _mid should return empty on zero argument" time="0.031">        </testcase>
+        <testcase name="text_left, _right, and _mid should error on non-string columns" time="0.007">        </testcase>
+        <testcase name="text_left, _right, and _mid should return empty on negative lengths" time="0.019">        </testcase>
+        <testcase name="text_mid should treat a negative start as 0" time="0.017">        </testcase>
+        <testcase name="text_left, _right, and _mid should return Nothing if positions or lengths are Nothing" time="0.048">        </testcase>
+        <testcase name="text_left and text_right should work with a column of lengths" time="0.036">        </testcase>
+        <testcase name="text_mid should work with columns of starts and lengths" time="0.117">        </testcase>
+        <testcase name="text_left, _right, and _mid should have defaults for length" time="0.035">        </testcase>
+        <testcase name="should handle operations like is_empty, is_blank, fill_empty" time="0.028">        </testcase>
+        <testcase name="should check types" time="0.036">        </testcase>
+        <testcase name="should return right types" time="0.047">        </testcase>
+        <testcase name="should support text concatenation with the + operator" time="0.042">        </testcase>
+    </testsuite>
+    <testsuite name="[In-Memory] (Column_Operations_Spec) Min/Max Operations" timestamp="2026-02-18T11:01:06" tests="4" disabled="0" errors="0" time="0.296">
+        <testcase name="should allow one or more args and return the correct type" time="0.09">        </testcase>
+        <testcase name="should ignore null values" time="0.021">        </testcase>
+        <testcase name="should allow Date/Time columns" time="0.137">        </testcase>
+        <testcase name="should check types" time="0.047">        </testcase>
+    </testsuite>
+    <testsuite name="[In-Memory] (Column_Operations_Spec) replace: literal text pattern and replacement" timestamp="2026-02-18T11:01:06" tests="4" disabled="0" errors="0" time="0.053">
+        <testcase name="case_sensitivity=sensitive/default use_regex=false only_first=false" time="0.017">        </testcase>
+        <testcase name="case_sensitivity=sensitive/default use_regex=false only_first=true" time="0.014">        </testcase>
+        <testcase name="case_sensitivity=insensitive use_regex=false only_first=false" time="0.012">        </testcase>
+        <testcase name="case_sensitivity=insensitive use_regex=false only_first=true" time="0.009">        </testcase>
+    </testsuite>
+    <testsuite name="[In-Memory] (Column_Operations_Spec) replace: literal regex pattern and replacement" timestamp="2026-02-18T11:01:06" tests="5" disabled="0" errors="0" time="0.033">
+        <testcase name="case_sensitivity=sensitive/default use_regex=True only_first=false" time="0.01">        </testcase>
+        <testcase name="case_sensitivity=sensitive/default use_regex=True only_first=true" time="0.005">        </testcase>
+        <testcase name="case_sensitivity=insensitive use_regex=True only_first=false" time="0.008">        </testcase>
+        <testcase name="case_sensitivity=insensitive use_regex=True only_first=true" time="0.005">        </testcase>
+        <testcase name="can properly escape complex regexes" time="0.003">        </testcase>
+    </testsuite>
+    <testsuite name="[In-Memory] (Column_Operations_Spec) replace: Named_Pattern and replacement" timestamp="2026-02-18T11:01:06" tests="1" disabled="0" errors="0" time="0.005">
+        <testcase name="can use Named_Patterns" time="0.005">        </testcase>
+    </testsuite>
+    <testsuite name="[In-Memory] (Column_Operations_Spec) replace: pattern and replacement columns" timestamp="2026-02-18T11:01:07" tests="4" disabled="0" errors="0" time="0.021">
+        <testcase name="case_sensitivity=sensitive/default use_regex=false only_first=false" time="0.012">        </testcase>
+        <testcase name="case_sensitivity=sensitive/default use_regex=false only_first=true" time="0.002">        </testcase>
+        <testcase name="case_sensitivity=insensitive use_regex=false only_first=false" time="0.002">        </testcase>
+        <testcase name="case_sensitivity=insensitive use_regex=false only_first=true" time="0.002">        </testcase>
+    </testsuite>
+    <testsuite name="[In-Memory] (Column_Operations_Spec) replace: empty table and nothings" timestamp="2026-02-18T11:01:07" tests="2" disabled="0" errors="0" time="0.015">
+        <testcase name="should work on empty tables" time="0.013">        </testcase>
+        <testcase name="should work on Nothing text column" time="0.002">        </testcase>
+    </testsuite>
+    <testsuite name="[In-Memory] (Column_Operations_Spec) Column Operations - Text Replace (in-memory only)" timestamp="2026-02-18T11:01:07" tests="8" disabled="0" errors="0" time="0.078">
+        <testcase name="should allow simple replacing" time="0.019">        </testcase>
+        <testcase name="should allow regex based replacing" time="0.033">        </testcase>
+        <testcase name="should handle unicode" time="0.002">        </testcase>
+        <testcase name="should take pattern and replacement string columns" time="0.002">        </testcase>
+        <testcase name="should only allow replace on Text columns" time="0.005">        </testcase>
+        <testcase name="should not replace if Empty term" time="0.002">        </testcase>
+        <testcase name="should infer correct return type" time="0.003">        </testcase>
+        <testcase name="should infer correct return type (2)" time="0.008">        </testcase>
+    </testsuite>
+    <testsuite name="[In-Memory] (Column_Operations_Spec) Column Operations - Text Trim" timestamp="2026-02-18T11:01:07" tests="3" disabled="0" errors="0" time="0.062">
+        <testcase name="should trim whitespace by default" time="0.025">        </testcase>
+        <testcase name="should trim custom characters" time="0.034">        </testcase>
+        <testcase name="should only allow trim on Text columns" time="0.003">        </testcase>
+    </testsuite>
+    <testsuite name="[In-Memory] (Column_Operations_Spec) Other Column Operations" timestamp="2026-02-18T11:01:07" tests="1" disabled="0" errors="0" time="0.017">
+        <testcase name="is_in" time="0.017">        </testcase>
+    </testsuite>
+    <testsuite name="[In-Memory] (Column_Operations_Spec) Colum Operations - Names" timestamp="2026-02-18T11:01:07" tests="10" disabled="0" errors="0" time="0.519">
+        <testcase name="arithmetic" time="0.047">        </testcase>
+        <testcase name="comparison" time="0.029">        </testcase>
+        <testcase name="logical" time="0.01">        </testcase>
+        <testcase name="text" time="0.025">        </testcase>
+        <testcase name="nulls" time="0.202">        </testcase>
+        <testcase name="misc" time="0.033">        </testcase>
+        <testcase name="composed operations" time="0.099">        </testcase>
+        <testcase name="sort" time="0.01">        </testcase>
+        <testcase name="parse" time="0.053">        </testcase>
+        <testcase name="map" time="0.008">        </testcase>
+    </testsuite>
+    <testsuite name="[In-Memory] (Column_Operations_Spec) Column.rename" timestamp="2026-02-18T11:01:07" tests="1" disabled="0" errors="0" time="0.029">
+        <testcase name="should not allow illegal names" time="0.029">        </testcase>
+    </testsuite>
+    <testsuite name="[In-Memory] (Column_Operations_Spec) Column.const" timestamp="2026-02-18T11:01:07" tests="3" disabled="0" errors="0" time="0.034">
+        <testcase name="Should allow the creation of constant columns" time="0.023">        </testcase>
+        <testcase name="Should create the correct column name" time="0.005">        </testcase>
+        <testcase name="Should not allow the creation of a constant column of columns" time="0.005">        </testcase>
+    </testsuite>
+    <testsuite name="[In-Memory] (Column_Operations_Spec) Table.make_constant_column" timestamp="2026-02-18T11:01:08" tests="5" disabled="0" errors="0" time="0.213">
+        <testcase name="Should allow the creation of constant columns" time="0.014">        </testcase>
+        <testcase name="Should allow the creation of constant date/time columns" time="0.058">        </testcase>
+        <testcase name="Should allow the creation of constant columns on a table with no rows" time="0.04">        </testcase>
+        <testcase name="Should create a column of the correct type on a table with no rows" time="0.067">        </testcase>
+        <testcase name="Should create a column of the correct type on a table with no rows" time="0.032">        </testcase>
+    </testsuite>
+    <testsuite name="[In-Memory] (Column_Operations_Spec) Decimal" timestamp="2026-02-18T11:01:08" tests="5" disabled="0" errors="0" time="0.236">
+        <testcase name="can store and retrieve values" time="0.016">        </testcase>
+        <testcase name="arithmetic (decimal column and decimal column)" time="0.088">        </testcase>
+        <testcase name="arithmetic (decimal column and non-decimal column)" time="0.059">        </testcase>
+        <testcase name="arithmetic (column and scalar)" time="0.06">        </testcase>
+        <testcase name="arithmetic errors" time="0.012">        </testcase>
+    </testsuite>
+</testsuites>

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites>
+    <testsuite name="[Redshift] (Column_Operations_Spec) Table.fill_nothing/empty" timestamp="2026-02-18T14:27:24" tests="1" disabled="0" errors="0" time="3.173">
+        <testcase name="should allow to fill_nothing from other columns" time="3.173">        </testcase>
+    </testsuite>
+</testsuites>
