@@ -135,10 +135,7 @@ type Redshift_Dialect
        column_list = SQL_Builder.join ", " (column_names.map self.wrap_identifier) . paren
 
        format_value value column_type =
-           if column_type.is_boolean then
-               SQL_Builder.code "CAST(" ++ SQL_Builder.interpolation value ++ " AS bool)"
-           else
-               SQL_Builder.interpolation value
+           if column_type.is_boolean then SQL_Builder.code "CAST(" ++ SQL_Builder.interpolation value ++ " AS bool)" else if column_type.is_text then SQL_Builder.code "CAST(" ++ SQL_Builder.interpolation value ++ " AS varchar(65535))" else SQL_Builder.interpolation value
  
        cols = 0.up_to column_names.length . map i->
            value = first_row.at i
