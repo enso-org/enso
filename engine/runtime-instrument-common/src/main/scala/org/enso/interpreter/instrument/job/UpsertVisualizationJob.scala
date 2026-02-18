@@ -2,6 +2,7 @@ package org.enso.interpreter.instrument.job
 
 import org.slf4j.LoggerFactory
 import org.enso.compiler.Implicits.AsMetadata
+import org.enso.compiler.core.ir.Expression
 import org.enso.compiler.core.ir.Function
 import org.enso.compiler.core.ir.Name
 import org.enso.compiler.core.ir.module.scope.{definition, Definition}
@@ -29,6 +30,7 @@ import org.enso.polyglot.runtime.Runtime.Api
 import java.util.UUID
 import scala.annotation.unused
 import scala.concurrent.ExecutionException
+import scala.jdk.OptionConverters.RichOptional
 import scala.util.Try
 
 /** A job that upserts a visualization.
@@ -157,10 +159,43 @@ class UpsertVisualizationJob(
       expressionId
     )
 
+    // Find parent expression if this is a subexpression
+    val expressionModuleOpt =
+      ctx.executionService.getContext.findModuleByExpressionId(expressionId)
+    val optParentExpressionId: Option[UUID] = expressionModuleOpt
+      .map(expressionModule =>
+        findParentAssignment(expressionModule, expressionId)
+      )
+      .filter(_.isDefined)
+      .map(_.get)
+      .filter(parentId => parentId != expressionId)
+      .toScala
+
+    optParentExpressionId.foreach { parentID =>
+      UpsertVisualizationJob.logger.trace(
+        "Found a parent expression for visualization ({}): {} for {}",
+        visualizationId,
+        parentID,
+        expressionId
+      )
+      ctx.contextManager.setExpressionFlyby(
+        config.executionContextId,
+        parentID
+      )
+    }
+
+    if (optParentExpressionId.isEmpty) {
+      UpsertVisualizationJob.logger.trace(
+        "No parent for visualization expression {}",
+        expressionId
+      )
+    }
+
     val visualization =
       UpsertVisualizationJob.updateAttachedVisualization(
         visualizationId,
         expressionId,
+        optParentExpressionId,
         module,
         config,
         callable,
@@ -194,6 +229,51 @@ class UpsertVisualizationJob(
         )
         Some(Executable(config.executionContextId, stack))
     }
+  }
+
+  /** Find parent assignment expression that contains the given expressionId as a subexpression.
+    *
+    * @param module the module containing the expression
+    * @param expressionID the expression id to find the parent for
+    * @return the parent expression id if found
+    */
+  private def findParentAssignment(
+    module: Module,
+    expressionID: Api.ExpressionId
+  ): Option[UUID] = {
+    val bindings            = module.getIr.bindings()
+    var i                   = 0
+    var found: Option[UUID] = None
+    while (i < bindings.length && found.isEmpty) {
+      bindings(i) match {
+        case method: definition.Method =>
+          method.body match {
+            case fun: Function =>
+              // Check all expressions in the function body
+              fun.body.preorder().foreach { ir =>
+                ir match {
+                  case binding: Expression.Binding =>
+                    val rhsID =
+                      binding.expression.getExternalId
+                        .getOrElse(binding.expression.getId)
+                    // Check if the target expression is within this binding's RHS
+                    val containsTarget =
+                      binding.expression.preorder().exists { child =>
+                        child.getExternalId.exists(_ == expressionID)
+                      }
+                    if (containsTarget && found.isEmpty) {
+                      found = Some(rhsID)
+                    }
+                  case _ =>
+                }
+              }
+            case _ =>
+          }
+        case _ =>
+      }
+      i = i + 1
+    }
+    found
   }
 
   private def replyWithExpressionFailedError(
@@ -307,6 +387,7 @@ object UpsertVisualizationJob {
       updateAttachedVisualization(
         visualizationId,
         expressionId,
+        visualization.parentExpressionId,
         result.module,
         visualizationConfig,
         result.callback,
@@ -592,6 +673,7 @@ object UpsertVisualizationJob {
     *
     * @param visualizationId the visualization identifier
     * @param expressionId the expression to which the visualization is applied
+    * @param parentExpressionId optional parent expression id if this is a subexpression
     * @param module the module containing the visualization
     * @param visualizationConfig the visualization configuration
     * @param callback the visualization callback function
@@ -602,6 +684,7 @@ object UpsertVisualizationJob {
   def updateAttachedVisualization(
     visualizationId: Api.VisualizationId,
     expressionId: Api.ExpressionId,
+    parentExpressionId: Option[Api.ExpressionId],
     module: Module,
     visualizationConfig: Api.VisualizationConfiguration,
     callback: AnyRef,
@@ -613,6 +696,7 @@ object UpsertVisualizationJob {
       Visualization(
         visualizationId,
         expressionId,
+        parentExpressionId,
         RuntimeCache.create().cache(),
         module,
         visualizationConfig,
@@ -621,7 +705,9 @@ object UpsertVisualizationJob {
         arguments
       )
     setCacheWeights(visualization)
-    ctx.state.executionHooks.add(InvalidateCaches(expressionId))
+    // Stop invalidating expressions, as visualizations for subexpressions
+    // carry enough info to workaround cached values.
+    //ctx.state.executionHooks.add(InvalidateCaches(expressionId))
     ctx.contextManager.upsertVisualization(
       visualizationConfig.executionContextId,
       visualization

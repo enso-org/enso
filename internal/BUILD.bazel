@@ -1,25 +1,37 @@
+load("@aspect_bazel_lib//lib:copy_to_bin.bzl", "copy_to_bin")
 load("@aspect_rules_js//js:defs.bzl", "js_binary", "js_run_binary")
+
+exports_files(
+    ["dependenciesVersions.cjs"],
+    visibility = ["//visibility:public"],
+)
+
+copy_to_bin(
+    name = "dependencies_versions_in_bin",
+    srcs = ["dependenciesVersions.cjs"],
+    visibility = ["//visibility:public"],
+)
 
 js_binary(
     name = "script_env_replacer",
+    data = ["stableStatus.mjs"],
     entry_point = "envReplacer.mjs",
     visibility = ["//visibility:public"],
 )
 
 js_binary(
     name = "generate_version_info",
+    data = ["stableStatus.mjs"],
     entry_point = "generateVersionInfo.mjs",
     visibility = ["//visibility:public"],
 )
 
 js_run_binary(
     name = "generated_version_info",
-    env = {
-        "ENSO_SCALAC_VERSION": "2.13.15",
-        "ENSO_GRAAL_VERSION": "25.0.1",
-        "ENSO_GRAAL_MAVEN_PACKAGES_VERSION": "25.0.1",
-        "ENSO_DEFAULT_DEV_VERSION": "0.0.0-dev",
-    },
+    srcs = [
+        ":dependencies_versions_in_bin",
+        "//:dependencies_scala_bin",
+    ],
     stamp = -1,
     stdout = "GeneratedVersion.java",
     tool = ":generate_version_info",
@@ -28,6 +40,7 @@ js_run_binary(
 
 js_binary(
     name = "run_with_version_info",
+    data = ["stableStatus.mjs"],
     entry_point = "runWithVersionInfo.mjs",
     visibility = ["//visibility:public"],
 )

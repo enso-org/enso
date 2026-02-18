@@ -867,6 +867,7 @@
   "closeTabShortcut": "Close Tab",
   "openShortcut": "Open",
   "runShortcut": "Open in Cloud",
+  "runAsTaskShortcut": "Run as Task",
   "closeShortcut": "Close",
   "uploadToCloudShortcut": "Export to Cloud",
   "downloadToLocalShortcut": "Export to Local",

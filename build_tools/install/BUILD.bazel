@@ -11,12 +11,12 @@ cargo_build_script(
     build_script_env = {
         "ENSO_MANIFEST_PATH": "$(execpath enso-install.manifest)",
         "ENSO_ICON_PATH": "$(execpath //app/electron-client:assets/icons/icon.ico)",
-        "ENSO_BUILD_ELECTRON_BUILDER_CONFIG": "$(execpath //app/electron-client:electron_builder_config)",
+        "ENSO_BUILD_ELECTRON_BUILDER_CONFIG": "$(execpath //app/electron-client:exported_config)",
     },
     data = [
         "enso-install.manifest",
         "//app/electron-client:assets/icons/icon.ico",
-        "//app/electron-client:electron_builder_config",
+        "//app/electron-client:exported_config",
     ],
     edition = "2021",
     deps = all_crate_deps(build = True) + [
