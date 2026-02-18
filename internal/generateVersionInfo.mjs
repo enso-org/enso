@@ -1,32 +1,16 @@
 /**
  * @file Generate `GeneratedVersion.java` which holds build-time versioning information for the Engine.
  */
-import fs from 'node:fs/promises'
+import { createRequire } from 'node:module'
+import path from 'node:path'
 import process from 'node:process'
+import { readStableStatusFile } from './stableStatus.mjs'
 
 if (process.env.JS_BINARY__EXECROOT) {
   process.chdir(process.env.JS_BINARY__EXECROOT)
 }
 
-/**
- * Parse Bazel stable-status.txt into a key/value map.
- * Keys are returned without the leading 'STABLE_' prefix.
- *
- * @param {string} content
- * @returns {Record<string, string>}
- */
-function parseStableStatus(content) {
-  /** @type {Record<string, string>} */
-  const vars = {}
-  for (const line of content.split(/\r?\n/)) {
-    const [key, value] = line.split(' ', 2)
-    if (key && key.startsWith('STABLE_ENSO')) {
-      const envName = key.slice('STABLE_'.length)
-      vars[envName] = value
-    }
-  }
-  return vars
-}
+const require = createRequire(import.meta.url)
 
 function requireStatusVar(vars, key, statusFilePath) {
   const v = vars[key]
@@ -36,12 +20,26 @@ function requireStatusVar(vars, key, statusFilePath) {
   return v
 }
 
-function requireEnvVar(vars, key) {
-  const v = vars[key]
-  if (!v) {
-    throw new Error(`Missing required environment variable ${key}`)
+function readDependenciesVersionsFromBazelBin() {
+  const workspaceRoot = process.env.JS_BINARY__EXECROOT
+  if (!workspaceRoot) {
+    throw new Error('JS_BINARY__EXECROOT is not set.')
   }
-  return v
+
+  const bazelBinDir = process.env.BAZEL_BINDIR
+  if (!bazelBinDir) {
+    throw new Error('BAZEL_BINDIR is not set.')
+  }
+
+  const bazelBinRoot = path.resolve(workspaceRoot, bazelBinDir)
+  const parserPath = path.join(bazelBinRoot, 'internal', 'dependenciesVersions.cjs')
+
+  try {
+    const { readDependenciesVersions } = require(parserPath)
+    return readDependenciesVersions({ workspaceRoot: bazelBinRoot })
+  } catch (e) {
+    throw new Error(`Failed to read dependency versions via ${parserPath}: ${e.message}`)
+  }
 }
 
 let statusFilePath
@@ -59,26 +57,31 @@ while (idx < process.argv.length) {
 if (!statusFilePath) {
   statusFilePath = process.env.BAZEL_STABLE_STATUS_FILE
 }
-if (!statusFilePath) {
-  throw new Error(
-    'Missing required status-file.txt path. Provide --status-file or build with stamping enabled.',
-  )
+
+const hasStatusFile = Boolean(statusFilePath)
+
+/** @type {Record<string, string>} */
+let stableVars = {}
+if (hasStatusFile) {
+  stableVars = await readStableStatusFile(statusFilePath)
 }
 
-const content = await fs.readFile(statusFilePath, 'utf8')
-const stableVars = parseStableStatus(content)
+const { scalacVersion, graalVersion, graalMavenPackagesVersion, defaultDevEnsoVersion } =
+  readDependenciesVersionsFromBazelBin()
 
-const scalacVersion = requireEnvVar(process.env, 'ENSO_SCALAC_VERSION')
-const graalVersion = requireEnvVar(process.env, 'ENSO_GRAAL_VERSION')
-const graalMavenPackagesVersion = requireEnvVar(process.env, 'ENSO_GRAAL_MAVEN_PACKAGES_VERSION')
-const defaultDevEnsoVersion = requireEnvVar(process.env, 'ENSO_DEFAULT_DEV_VERSION')
-const ensoVersion = requireStatusVar(stableVars, 'ENSO_IDE_VERSION', statusFilePath)
-const currentEdition = requireStatusVar(stableVars, 'ENSO_IDE_EDITION', statusFilePath)
+const ensoVersion =
+  hasStatusFile ?
+    requireStatusVar(stableVars, 'ENSO_IDE_VERSION', statusFilePath)
+  : defaultDevEnsoVersion
+const currentEdition =
+  hasStatusFile ?
+    requireStatusVar(stableVars, 'ENSO_IDE_EDITION', statusFilePath)
+  : defaultDevEnsoVersion
 const commit = stableVars.ENSO_IDE_COMMIT_HASH || '<built outside of a git repository>'
 const ref = stableVars.ENSO_GIT_REF || 'HEAD'
-const isDirty = stableVars.ENSO_GIT_IS_DIRTY === 'true' ? 'true' : 'false'
 const latestCommitDate =
   stableVars.ENSO_GIT_LATEST_COMMIT_DATE || '<built outside of a git repository>'
+const isRelease = hasStatusFile
 
 const fileContents = `
 package org.enso.version;
@@ -119,7 +122,7 @@ final class GeneratedVersion {
   }
 
   static boolean isDirty() {
-    return ${isDirty};
+    return false;
   }
 
   static String latestCommitDate() {
@@ -127,7 +130,7 @@ final class GeneratedVersion {
   }
 
   static boolean isRelease() {
-    return true;
+    return ${isRelease};
   }
 }
 `.trimStart()

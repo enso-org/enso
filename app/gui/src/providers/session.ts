@@ -7,6 +7,7 @@ import { useInitAuthService } from '$/authentication/service'
 import { LOGOUT_EVENT } from '$/providers/session/constants'
 import * as analytics from '$/utils/analytics'
 import { proxyRefs, type ToValue } from '$/utils/reactivity'
+import { waitForData } from '@/util/tanstack'
 import { useToast } from '@/util/toast'
 import * as sentry from '@sentry/vue'
 import * as vueQuery from '@tanstack/vue-query'
@@ -18,7 +19,6 @@ import { unreachable } from 'enso-common/src/utilities/errors'
 import { computed, onScopeDispose, ref, toRaw, toValue, watchEffect } from 'vue'
 import { useHttpClient } from './httpClient'
 import { useText } from './text'
-import { waitForData } from '@/util/tanstack'
 
 /** Create a query for the user session. */
 export function createSessionQuery(authService: ToValue<cognito.ISessionProvider | undefined>) {
@@ -140,7 +140,8 @@ export function createSessionStore(
   }
 
   const resendSignUp = async (username: string): Promise<void> => {
-    await assertAuthService().resendSignUp(username)
+    const auth = assertAuthService()
+    await auth.resendSignUp(username)
   }
 
   function challengeStepRequired(
