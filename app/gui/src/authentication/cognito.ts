@@ -421,7 +421,6 @@ export class Cognito implements ISessionProvider {
       authSessionOpener: (urlString) => {
         try {
           urlOpener(urlString)
-          // return Promise.resolve({ type: 'success'})
           return new Promise((resolve) => (this.resolveOngoingLogin = resolve))
         } catch (error) {
           return Promise.resolve({

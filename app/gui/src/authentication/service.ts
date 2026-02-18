@@ -14,7 +14,7 @@ import { Amplify } from 'aws-amplify'
 import type * as saveAccessTokenModule from 'enso-common/src/accessToken'
 import * as common from 'enso-common/src/constants'
 import * as detect from 'enso-common/src/utilities/detect'
-import { computed, toRef, toValue, watchEffect, type Ref } from 'vue'
+import { computed, toRef, toValue, type Ref } from 'vue'
 import { useRouter } from 'vue-router'
 
 /**
@@ -135,13 +135,9 @@ export function useInitAuthService(): AuthService {
     }
   })
 
-  watchEffect(() => {
-    if (detect.isOnElectron() && cognito.value != null) {
-      // To handle redirects back to the application from the system browser, a custom URL handler
-      // needs to be registered.
-      setDeepLinkHandler((url) => void router.push(url), cognito.value)
-    }
-  })
+  if (detect.isOnElectron()) {
+    setDeepLinkHandler((url) => void router.push(url), cognito)
+  }
 
   return { cognito, registerAuthEventListener: listen.registerAuthEventListener }
 }
@@ -225,14 +221,13 @@ function loadAmplifyConfig(
  * All URLs that don't have a pathname that starts with `AUTHENTICATION_PATHNAME_BASE` will be
  * ignored by this handler.
  */
-function setDeepLinkHandler(navigate: (url: string) => void, cognito: Cognito) {
+function setDeepLinkHandler(navigate: (url: string) => void, cognito: Ref<Cognito | undefined>) {
   window.api?.authentication.setDeepLinkHandler((urlString: string) => {
     const result = parseEnsoDeeplink(urlString)
     if (!result.ok) {
       console.error(result.error.message())
       return
     }
-    console.log('Handling deepling', result.value.pathname)
     const deeplink = result.value
     switch (deeplink.pathname) {
       // If the user is being redirected after clicking the registration confirmation link in their
@@ -257,13 +252,11 @@ function setDeepLinkHandler(navigate: (url: string) => void, cognito: Cognito) {
       }
       case 'auth': {
         if (deeplink.search === '') {
-          console.log('Signing out from redirect')
           // Signing out.
           navigate(appUtils.LOGIN_PATH)
         } else {
           // Signing in.
-          console.log('Signing in from redirect')
-          cognito.resolveOngoingLogin({ type: 'success', url: urlString })
+          cognito.value?.resolveOngoingLogin({ type: 'success', url: urlString })
           break
         }
         break

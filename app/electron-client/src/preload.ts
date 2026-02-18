@@ -119,7 +119,6 @@ const authentication: ElectronApi['authentication'] = {
    * progress when the link was opened (e.g., an OAuth registration flow).
    */
   setDeepLinkHandler: (callback: (url: string) => void) => {
-    console.debug('Setting deeplink handler!')
     deepLinkHandler = callback
   },
   /**
