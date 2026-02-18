@@ -3,8 +3,6 @@ private
 from Standard.Base import all
 from Standard.Test import all
 
-from enso_dev.Base_Tests.Enso_Bin_Utils import enso_bin
-
 polyglot java import java.lang.System as Java_System
 polyglot java import java.io.File as Java_File
 
@@ -17,7 +15,7 @@ type Api_Setup
             lib = lib_dir namespace name
             all_args = [ "--in-project", lib.to_text ]+args
             IO.println "==== Generating "+namespace.to_text+"."+name.to_text+" documentation ===="
-            res = Process.run enso_bin all_args
+            res = Process.new_builder "enso" all_args . create
             [lib, res]
 
     dir self -> File =

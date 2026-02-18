@@ -73,21 +73,26 @@ public class System {
       boolean redirectIn,
       boolean redirectOut,
       boolean redirectErr,
+      Object cwdOrNothing,
       @Cached ArrayLikeCoerceToArrayNode coerce,
       @Cached ExpectStringNode expectStringNode)
       throws IOException, InterruptedException {
-    Object[] arrArguments = coerce.execute(arguments);
-    String[] cmd = new String[arrArguments.length + 1];
+    var arrArguments = coerce.execute(arguments);
+    var cmd = new String[arrArguments.length + 1];
     cmd[0] = expectStringNode.execute(command);
     for (int i = 1; i <= arrArguments.length; i++) {
       cmd[i] = expectStringNode.execute(arrArguments[i - 1]);
     }
     TruffleProcessBuilder pb = ctx.newProcessBuilder(cmd);
-
-    Process p = pb.start();
-    ByteArrayInputStream in = new ByteArrayInputStream(expectStringNode.execute(input).getBytes());
-    ByteArrayOutputStream out = new ByteArrayOutputStream();
-    ByteArrayOutputStream err = new ByteArrayOutputStream();
+    if (ctx.getNothing() != cwdOrNothing) {
+      var path = expectStringNode.execute(cwdOrNothing);
+      var tPath = ctx.getPublicTruffleFile(path);
+      pb.directory(tPath);
+    }
+    var p = pb.start();
+    var in = new ByteArrayInputStream(expectStringNode.execute(input).getBytes());
+    var out = new ByteArrayOutputStream();
+    var err = new ByteArrayOutputStream();
 
     boolean startedWritingtoOut = false;
     try (OutputStream processIn = p.getOutputStream()) {

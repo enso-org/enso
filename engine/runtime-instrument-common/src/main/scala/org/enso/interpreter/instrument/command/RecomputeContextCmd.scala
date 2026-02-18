@@ -203,9 +203,11 @@ object RecomputeContextCmd {
       case CacheInvalidation.Command.InvalidateAll =>
         stack.headOption
           .map { frame =>
-            frame.cache.getPreferences.preferences
-              .keySet()
-              .forEach(builder.addOne)
+            frame.cache.runQuery(
+              null,
+              _.findUUIDs(false, true)
+                .forEach(builder.addOne)
+            )
           }
       case CacheInvalidation.Command.InvalidateKeys(expressionIds, _) =>
         builder ++= expressionIds

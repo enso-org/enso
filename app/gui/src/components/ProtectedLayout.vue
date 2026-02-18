@@ -14,6 +14,7 @@ import {
 } from '#/modals/AgreementsModal'
 import LocalStorage from '#/utilities/LocalStorage'
 import { DASHBOARD_PATH, LOGIN_PATH, RESTORE_USER_PATH } from '$/appUtils'
+import { useAppTitle } from '$/composables/appTitle'
 import { useUserAgreements } from '$/composables/userAgreements'
 import { useAuth, type AuthStore } from '$/providers/auth'
 import { useFeatureFlag } from '$/providers/featureFlags'
@@ -38,7 +39,7 @@ const AgreementsModal = reactComponent(AgreementsModalReact)
 
 function routeAllowed(route: RouteLocation, auth: AuthStore) {
   switch (route.meta.access) {
-    case null:
+    case undefined:
       console.error(
         'A route ',
         route,
@@ -84,7 +85,6 @@ export const dataLoader: DataLoader<Props> = {
     const queryClient = vueQuery.useQueryClient()
     const localStorage = LocalStorage.getInstance()
     const auth = useAuth()
-    await auth.waitForSession()
 
     if (!routeAllowed(to, auth)) {
       return Err(redirect(auth, localStorage) ?? false)
@@ -102,7 +102,6 @@ export const dataLoader: DataLoader<Props> = {
       const queryClient = vueQuery.useQueryClient()
       const localStorage = LocalStorage.getInstance()
       const auth = useAuth()
-      await auth.waitForSession()
       if (!routeAllowed(to, auth)) {
         return redirect(auth, localStorage) ?? false
       }
@@ -164,6 +163,8 @@ const shouldDisplayAgreementsModal = computed(
   () =>
     !(props.agreementsModalProps?.agreedToTos && props.agreementsModalProps?.agreedToPrivacyPolicy),
 )
+
+useAppTitle(computed(() => auth.session))
 </script>
 
 <template>

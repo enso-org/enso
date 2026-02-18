@@ -1,7 +1,7 @@
 package org.enso.compiler.pass.resolve
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
-import org.enso.compiler.core.Implicits.AsMetadata
+import org.enso.compiler.Implicits.AsMetadata
 import org.enso.compiler.core.ir.MetadataStorage.MetadataPair
 import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.core.ir.module.scope.Definition
@@ -251,7 +251,9 @@ case object TypeNames extends IRPass {
     ir: Expression,
     inlineContext: InlineContext
   ): Expression = {
-    ir
+    val bindingsMap = inlineContext.bindingsAnalysis()
+    val noType      = SelfTypeInfo.empty
+    resolveExpression(noType, bindingsMap, ir)
   }
 
 }

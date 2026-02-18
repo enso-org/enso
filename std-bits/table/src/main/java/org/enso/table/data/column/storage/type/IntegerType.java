@@ -29,12 +29,19 @@ public final class IntegerType implements StorageType<Long>, NumericType {
 
   @Override
   public Value asEnsoValueType() {
-    if (bits.equals(Bits.BITS_8)) {
-      return EnsoMeta.makeInstance("Standard.Table.Value_Type", "Value_Type", "Byte");
-    }
+    return bits.equals(Bits.BITS_8)
+        ? EnsoMeta.makeInstance(
+            StorageType.ENSO_MODULE, StorageType.ENSO_TYPE_NAME, ensoConstructorName())
+        : EnsoMeta.makeInstance(
+            StorageType.ENSO_MODULE,
+            StorageType.ENSO_TYPE_NAME,
+            ensoConstructorName(),
+            Bits.asEnsoValue(bits()));
+  }
 
-    var ensoBits = Bits.asEnsoValue(bits());
-    return EnsoMeta.makeInstance("Standard.Table.Value_Type", "Value_Type", "Integer", ensoBits);
+  @Override
+  public String ensoConstructorName() {
+    return bits.equals(Bits.BITS_8) ? "Byte" : "Integer";
   }
 
   @Override

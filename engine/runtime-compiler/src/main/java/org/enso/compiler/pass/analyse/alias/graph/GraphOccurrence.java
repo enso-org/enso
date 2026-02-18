@@ -1,5 +1,6 @@
 package org.enso.compiler.pass.analyse.alias.graph;
 
+import java.util.Objects;
 import java.util.UUID;
 import org.enso.compiler.core.ExternalID;
 import org.enso.compiler.core.Identifier;
@@ -112,6 +113,22 @@ public abstract sealed class GraphOccurrence permits GraphOccurrence.Def, GraphO
       return "Def{" + "id=" + id + ", symbol=" + symbol + ", isLazy=" + isLazy + '}';
     }
 
+    @Override
+    public boolean equals(Object o) {
+      return o instanceof Def other
+          && this.id == other.id
+          && this.slotIndx == other.slotIndx
+          && this.isLazy == other.isLazy
+          && Objects.equals(this.symbol, other.symbol)
+          && Objects.equals(this.identifier, other.identifier)
+          && Objects.equals(this.externalId, other.externalId);
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(id, slotIndx, symbol, identifier, externalId, isLazy);
+    }
+
     public static scala.Option<scala.Tuple5<Integer, String, UUID, scala.Option<UUID>, Boolean>>
         unapply(Object obj) {
       if (obj instanceof Def d) {
@@ -187,6 +204,20 @@ public abstract sealed class GraphOccurrence permits GraphOccurrence.Def, GraphO
     @Override
     public String toString() {
       return "Use{" + "id=" + id + ", symbol=" + symbol + '}';
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      return o instanceof Use other
+          && this.id == other.id
+          && Objects.equals(this.symbol, other.symbol)
+          && Objects.equals(this.identifier, other.identifier)
+          && Objects.equals(this.externalId, other.externalId);
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(id, symbol, identifier, externalId);
     }
 
     public static scala.Option<scala.Tuple4<Integer, String, UUID, scala.Option<UUID>>> unapply(

@@ -1,6 +1,7 @@
 /**
  * @file Definitions for the Snowflake credentials integration.
  */
+import type { Opt } from '@/util/data/opt'
 import type { SecretId, SnowflakeCredentialInput } from 'enso-common/src/services/Backend'
 import { z } from 'zod'
 import type { CredentialRecipe } from './types'
@@ -19,6 +20,7 @@ export const FORM_SCHEMA = z.object({
  * The logic for submitting the Snowflake credential form.
  */
 export function submitForm(
+  apiUrl: Opt<string>,
   createCredentials: (recipe: CredentialRecipe) => Promise<void>,
   values: z.infer<typeof FORM_SCHEMA>,
 ): Promise<void> {
@@ -41,7 +43,7 @@ export function submitForm(
         /* eslint-disable @typescript-eslint/naming-convention, camelcase */
         client_id: values.clientId,
         response_type: 'code',
-        redirect_uri: getOauthRedirectUri('Snowflake'),
+        redirect_uri: getOauthRedirectUri(apiUrl, 'Snowflake'),
         state,
         scope,
         /* eslint-enable @typescript-eslint/naming-convention, camelcase */
