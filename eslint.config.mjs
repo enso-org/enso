@@ -224,6 +224,8 @@ const config = [
             'app/electron-client/esbuild.config.mjs',
             'app/gui/scripts/generateIconMetadata.mjs',
             'app/electron-client/export-config.mjs',
+            'app/electron-client/macos/*.mjs',
+            'app/electron-client/macos/lib/*.mjs',
           ],
         },
       },
@@ -564,6 +566,17 @@ const config = [
       '@typescript-eslint/no-var-requires': 'off',
       // Parameter types must be specified using JSDoc in JS files.
       'jsdoc/no-types': 'off',
+    },
+  },
+  {
+    files: ['app/electron-client/macos/*.mjs', 'app/electron-client/macos/lib/*.mjs'],
+    languageOptions: {
+      globals: {
+        ...globals.node,
+      },
+    },
+    rules: {
+      'jsdoc/require-jsdoc': 'off',
     },
   },
   {
