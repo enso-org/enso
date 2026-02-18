@@ -27,34 +27,7 @@ public class InsightInEnsoTest {
   @ClassRule public static final ContextUtils ctxRule = ContextUtils.newBuilder().build();
 
   @BeforeClass
-  public static void initContext() {
-    var ctx = ctxRule.context();
-    var engine = ctx.getEngine();
-    Map<String, Language> langs = engine.getLanguages();
-    assertNotNull("Enso found: " + langs, langs.get("enso"));
-
-    @SuppressWarnings("unchecked")
-    var fn =
-        (Function<Source, AutoCloseable>)
-            engine.getInstruments().get("insight").lookup(Function.class);
-    assertNotNull(fn);
-
-    Source insightScript;
-    try {
-      insightScript =
-          Source.newBuilder(
-                  "enso",
-                  """
-                  insight.on "source" \\ev->
-                      Standard.Base.IO.println "Loading "+ev.name.to_text
-                  """,
-                  "trace_sources.enso")
-              .build();
-    } catch (IOException e) {
-      throw new AssertionError(e);
-    }
-    insightHandle = fn.apply(insightScript);
-  }
+  public static void initContext() {}
 
   @After
   public void resetOut() {
@@ -69,33 +42,40 @@ public class InsightInEnsoTest {
   }
 
   @Test
-  public void letInsightObserveLoadingOfEnsoFiles() {
-    var code =
+  public void letInsightObserveLoadingOfEnsoFiles() throws Exception {
+    var insightCode =
         """
-        from Standard.Base import all
-
-        value = 6 * 7
+        insight.on "source" \\ev->
+            Standard.Base.IO.println "Loading "+ev.name.to_text
         """;
-    var value = ctxRule.evalModule(code, "Some_File.enso", "value");
-    assertEquals(42, value.asInt());
+    try (var _ = registerInsight(insightCode)) {
+      var code =
+          """
+          from Standard.Base import all
 
-    var loading =
-        ctxRule
-            .getStdOut()
-            .lines()
-            .filter(l -> l.startsWith("Loading "))
-            .collect(Collectors.joining("\n"));
+          value = 6 * 7
+          """;
+      var value = ctxRule.evalModule(code, "Some_File.enso", "value");
+      assertEquals(42, value.asInt());
 
-    assertEquals(
-        "Loading Some_File.enso",
-        """
-        Loading Some_File.enso
-        Loading IO.enso
-        Loading Text.enso
-        Loading Some_File
-        Loading Numbers.enso\
-        """,
-        loading);
+      var loading =
+          ctxRule
+              .getStdOut()
+              .lines()
+              .filter(l -> l.startsWith("Loading "))
+              .collect(Collectors.joining("\n"));
+
+      assertEquals(
+          "Loading Some_File.enso",
+          """
+          Loading Some_File.enso
+          Loading IO.enso
+          Loading Text.enso
+          Loading Some_File
+          Loading Numbers.enso\
+          """,
+          loading);
+    }
   }
 
   @Test
@@ -230,5 +210,24 @@ public class InsightInEnsoTest {
       return;
     }
     fail(msg);
+  }
+
+  private static AutoCloseable registerInsight(String insightCode) throws AssertionError {
+    var ctx = ctxRule.context();
+    var engine = ctx.getEngine();
+    Map<String, Language> langs = engine.getLanguages();
+    assertNotNull("Enso found: " + langs, langs.get("enso"));
+    @SuppressWarnings("unchecked")
+    var fn =
+        (Function<Source, AutoCloseable>)
+            engine.getInstruments().get("insight").lookup(Function.class);
+    assertNotNull(fn);
+    Source insightScript;
+    try {
+      insightScript = Source.newBuilder("enso", insightCode, "trace_sources.enso").build();
+    } catch (IOException e) {
+      throw new AssertionError(e);
+    }
+    return fn.apply(insightScript);
   }
 }
