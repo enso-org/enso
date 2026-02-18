@@ -75,7 +75,8 @@ public abstract class EvalNode extends BaseNode {
             moduleScope.getModule().asCompilerModule(),
             scala.Option.apply(getTailStatus() != TailStatus.NOT_TAIL),
             context.getCompilerConfig(),
-            scala.Option.apply(compiler.packageRepository()), src);
+            scala.Option.apply(compiler.packageRepository()),
+            src);
 
     var tuppleOption = compiler.runInline(src.getCharacters(), inlineContext);
     if (tuppleOption.isEmpty()) {
