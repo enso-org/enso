@@ -43,7 +43,7 @@ public class InsightInEnsoTest {
           Source.newBuilder(
                   "enso",
                   """
-                  insight.on (ctx-> frame-> 0) (1)
+                  insight.on "enter" (ctx-> frame-> 0) (1)
                   """,
                   "trace.enso")
               .build();
@@ -60,7 +60,9 @@ public class InsightInEnsoTest {
 
   @AfterClass
   public static void dispose() throws Exception {
-    insightHandle.close();
+    if (insightHandle != null) {
+      insightHandle.close();
+    }
   }
 
   @Test
