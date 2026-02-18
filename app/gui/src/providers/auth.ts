@@ -14,6 +14,7 @@ import { computed, inject, toRef, toValue, watchEffect } from 'vue'
 import { useBackends } from './backends'
 import { useSession } from './session'
 import { useText } from './text'
+import { waitForData } from '@/util/tanstack'
 
 /** Object containing the currently signed-in user's session data. */
 export interface UserSession extends cognitoModule.UserSession {
@@ -232,7 +233,7 @@ function createAuthStore(
   return proxyRefs({
     refetchSession,
     session: effectiveUserData,
-    waitForSession: () => sessionData.waitForSession().then(() => usersMeQuery.promise.value),
+    waitForSession: () => sessionData.waitForSession().then(() => waitForData(usersMeQuery)),
     setUsername,
     isUserMarkedForDeletion,
     isUserDeleted,

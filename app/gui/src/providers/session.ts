@@ -18,6 +18,7 @@ import { unreachable } from 'enso-common/src/utilities/errors'
 import { computed, onScopeDispose, ref, toRaw, toValue, watchEffect } from 'vue'
 import { useHttpClient } from './httpClient'
 import { useText } from './text'
+import { waitForData } from '@/util/tanstack'
 
 /** Create a query for the user session. */
 export function createSessionQuery(authService: ToValue<cognito.ISessionProvider | undefined>) {
@@ -345,7 +346,7 @@ export function createSessionStore(
   return proxyRefs({
     signUp,
     session: session.data,
-    waitForSession: () => session.promise.value,
+    waitForSession: () => waitForData(session),
     isLoggingOut,
     confirmSignUp,
     resendSignUp,
