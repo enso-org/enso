@@ -7,6 +7,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -88,6 +89,40 @@ public class InsightInEnsoTest {
 
   @Test
   public void computeFactorial() throws Exception {
+    try (var _ = registerTraceOfLocalVariables()) {
+      var code =
+          Source.newBuilder(
+                  "enso",
+                  """
+                  import Standard.Base.Data.Numbers
+                  fac n =
+                      acc n v = if n <= 1 then v else
+                          @Tail_Call acc n-1 n*v
+
+                      acc n 1
+                  """,
+                  "factorial.enso")
+              .build();
+
+      var m = ctxRule.eval(code);
+      var fac = m.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "fac");
+      var res = fac.execute(5);
+      assertEquals(120, res.asInt());
+
+      var msgs = ctxRule.getOut();
+      assertContainsAll("Step one: " + msgs, msgs, "n=5", "v=1", "acc=factorial.fac.acc");
+      assertContainsAll("Step two: " + msgs, msgs, "n=4", "v=5", "acc=factorial.fac.acc");
+      assertContainsAll("3rd step: " + msgs, msgs, "n=3", "v=20", "acc=factorial.fac.acc");
+      assertContainsAll("4th step: " + msgs, msgs, "n=2", "v=60", "acc=factorial.fac.acc");
+
+      assertNotEquals(
+          "Uninitialized variables (seen as Enso Nothing) are there: " + msgs,
+          -1,
+          msgs.indexOf("Nothing"));
+    }
+  }
+
+  private AutoCloseable registerTraceOfLocalVariables() throws AssertionError {
     var insightCode =
         """
         from Standard.Base import True, Dictionary, IO, Polyglot, Meta
@@ -98,53 +133,14 @@ public class InsightInEnsoTest {
 
         log ctx frame =
             IO.println ctx.name+" at "+ctx.source.name+":"+ctx.line.to_text+":"
-            IO.println "Frame:"+(Meta.type_of frame).to_text
-            # IO.println frame.to_text
             members = Polyglot.get_members frame
-            IO.println "Members: "+(Meta.type_of members).to_text
-            # IO.println members.to_text
-            # IO.println members
-            members.map \\p->
-                IO.println "  "+p+"="+(Polyglot.get_member frame p)
+            line = members.fold "" \\sb -> \\p->
+                sb + "  " + p + "=" + (Polyglot.get_member frame p).to_text
+            IO.println line
 
         insight.on "enter" log when
         """;
-
-    try (var _ = registerInsight(insightCode)) {
-      assertComputeFactorial();
-    }
-  }
-
-  private void assertComputeFactorial() throws Exception {
-    var code =
-        Source.newBuilder(
-                "enso",
-                """
-                import Standard.Base.Data.Numbers
-                fac n =
-                    acc n v = if n <= 1 then v else
-                        @Tail_Call acc n-1 n*v
-
-                    acc n 1
-                """,
-                "factorial.enso")
-            .build();
-
-    var m = ctxRule.eval(code);
-    var fac = m.invokeMember(MethodNames.Module.EVAL_EXPRESSION, "fac");
-    var res = fac.execute(5);
-    assertEquals(120, res.asInt());
-
-    var msgs = ctxRule.getOut();
-    assertContainsAll("Step one: " + msgs, msgs, "n=5", "v=1", "acc=function");
-    assertContainsAll("Step two: " + msgs, msgs, "n=4", "v=5", "acc=function");
-    assertContainsAll("3rd step: " + msgs, msgs, "n=3", "v=20", "acc=function");
-    assertContainsAll("4th step: " + msgs, msgs, "n=2", "v=60", "acc=function");
-
-    assertNotEquals(
-        "Uninitialized variables (seen as JavaScript null) aren't there: " + msgs,
-        -1,
-        msgs.indexOf("null"));
+    return registerInsight(insightCode);
   }
 
   @Test
@@ -244,7 +240,7 @@ public class InsightInEnsoTest {
       // found all expected
       return;
     }
-    fail(msg);
+    fail(msg + " expecting " + Arrays.asList(expected));
   }
 
   private AutoCloseable registerInsight(String insightCode) throws AssertionError {
