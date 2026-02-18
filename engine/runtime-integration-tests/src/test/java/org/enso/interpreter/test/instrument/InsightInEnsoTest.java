@@ -15,7 +15,6 @@ import org.enso.common.MethodNames;
 import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.Language;
 import org.graalvm.polyglot.Source;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -89,7 +88,7 @@ public class InsightInEnsoTest {
 
   @Test
   public void computeFactorial() throws Exception {
-    try (var _ = registerTraceOfLocalVariables()) {
+    try (var _ = registerTraceOfLocalVariables("fac")) {
       var code =
           Source.newBuilder(
                   "enso",
@@ -122,14 +121,14 @@ public class InsightInEnsoTest {
     }
   }
 
-  private AutoCloseable registerTraceOfLocalVariables() throws AssertionError {
+  private AutoCloseable registerTraceOfLocalVariables(String method) throws AssertionError {
     var insightCode =
         """
         from Standard.Base import True, Dictionary, IO, Polyglot, Meta
 
         when = Dictionary.empty
             . insert "roots" True
-            . insert "rootNameFilter" ".*fac.*"
+            . insert "rootNameFilter" ".*${method}.*"
 
         log ctx frame =
             IO.println ctx.name+" at "+ctx.source.name+":"+ctx.line.to_text+":"
@@ -139,32 +138,37 @@ public class InsightInEnsoTest {
             IO.println line
 
         insight.on "enter" log when
-        """;
+        """
+            .replace("${method}", method);
     return registerInsight(insightCode);
   }
 
   @Test
-  @Ignore
   public void instantiateConstructor() throws Exception {
-    doInstantiateConstructor(false, false);
+    try (var _ = registerTraceOfLocalVariables("omplex")) {
+      doInstantiateConstructor(false, false);
+    }
   }
 
   @Test
-  @Ignore
   public void instantiateAutoscopedConstructor() throws Exception {
-    doInstantiateConstructor(true, false);
+    try (var _ = registerTraceOfLocalVariables("omplex")) {
+      doInstantiateConstructor(true, false);
+    }
   }
 
   @Test
-  @Ignore
   public void lazyInstantiateConstructor() throws Exception {
-    doInstantiateConstructor(false, true);
+    try (var _ = registerTraceOfLocalVariables("omplex")) {
+      doInstantiateConstructor(false, true);
+    }
   }
 
   @Test
-  @Ignore
   public void lazyInstantiateAutoscopedConstructor() throws Exception {
-    doInstantiateConstructor(true, true);
+    try (var _ = registerTraceOfLocalVariables("omplex")) {
+      doInstantiateConstructor(true, true);
+    }
   }
 
   private void doInstantiateConstructor(boolean useAutoscoping, boolean lazy) throws Exception {
