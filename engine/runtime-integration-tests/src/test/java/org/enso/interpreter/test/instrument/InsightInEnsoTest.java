@@ -98,13 +98,14 @@ public class InsightInEnsoTest {
 
         log ctx frame =
             IO.println ctx.name+" at "+ctx.source.name+":"+ctx.line.to_text+":"
-            IO.println (Meta.type_of frame)
+            IO.println "Frame:"+(Meta.type_of frame).to_text
             # IO.println frame.to_text
-            # members = Polyglot.get_members frame
-            IO.println members.to_text
+            members = Polyglot.get_members frame
+            IO.println "Members: "+(Meta.type_of members).to_text
+            # IO.println members.to_text
             # IO.println members
-            # members . map \\p->
-            #    IO.println "  "+p+"="+(Polyglot.get_member frame p)
+            members.map \\p->
+                IO.println "  "+p+"="+(Polyglot.get_member frame p)
 
         insight.on "enter" log when
         """;
