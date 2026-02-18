@@ -55,7 +55,6 @@ export type ListenFunction = (listener: ListenerCallback) => UnsubscribeFunction
 /** Listen to authentication state changes. */
 export function registerAuthEventListener(listener: ListenerCallback): () => void {
   return amplify.Hub.listen(AUTHENTICATION_HUB, (data) => {
-    console.debug('got auth event', data)
     if (isAuthEvent(data.payload.event)) {
       listener(data.payload.event)
     }
