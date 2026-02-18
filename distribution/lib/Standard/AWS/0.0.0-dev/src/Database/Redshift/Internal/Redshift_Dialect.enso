@@ -509,9 +509,11 @@ type Redshift_Dialect
        ---
     needs_literal_table_cast : Value_Type -> Boolean
     needs_literal_table_cast self value_type =
-        # Redshift can fail to infer boolean types for literal tables built from
-        # parameter placeholders, so we force a cast for boolean literals.
-        value_type.is_boolean
+        _ = value_type
+        # Redshift is strict about placeholders with unresolved `unknown` type
+        # (OID 705). Force casts for all typed literals/constants so bind
+        # parameters are materialized with a concrete SQL type.
+        True
 
     ## ---
        private: true
