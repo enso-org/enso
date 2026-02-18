@@ -120,7 +120,7 @@ const router = createRouter({
 
 router.beforeEach(async () => {
   const config = useConfig()
-  if (config.isFetching) await config.waitForRemoteConfig()
+  await config.waitForRemoteConfig()
 })
 router.beforeEach(async (to, from) => {
   if (to.meta.access !== from.meta.access) {
