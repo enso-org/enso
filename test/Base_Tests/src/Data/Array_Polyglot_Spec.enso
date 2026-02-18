@@ -33,6 +33,11 @@ add_specs suite_builder =
             names = classes.map (x -> x.name)
             names.should_equal ["java.lang.Object", "java.lang.Number", "java.lang.Integer"]
 
+        group_builder.specify "Type of JavaScript array" <|
+            js_arr = create_array [1, 2, 3]
+            js_arr . length . should_equal 3
+            Meta.type_of js_arr . should_equal Array
+
         group_builder.specify "Vector.from_array creates a copy" <|
             js_arr = create_array [1, 2, 3]
             enso_vector = Vector.from_array js_arr

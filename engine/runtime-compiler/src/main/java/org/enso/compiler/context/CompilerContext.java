@@ -58,10 +58,11 @@ public interface CompilerContext {
    * @param diagnostic an IR node representing diagnostic information
    * @param isOutputRedirected true if the output is not system's out. If true, no ANSI color escape
    *     characters will be inside the returned string.
+   * @param source a special source for the module
    * @return exception with a message to display or to throw
    */
   RuntimeException formatDiagnostic(
-      Module module, Diagnostic diagnostic, boolean isOutputRedirected);
+      Module module, Diagnostic diagnostic, boolean isOutputRedirected, Object source);
 
   // threads
   boolean isCreateThreadAllowed();

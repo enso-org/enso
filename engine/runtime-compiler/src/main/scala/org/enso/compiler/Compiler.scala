@@ -993,7 +993,7 @@ class Compiler(
       )
       .diagnostics
     val module    = inlineContext.getModule()
-    val hasErrors = reportDiagnostics(errors, module)
+    val hasErrors = reportDiagnostics(errors, module, inlineContext.src)
     hasErrors match {
       case error :: _ if inlineContext.compilerConfig.isStrictErrors =>
         throw error
@@ -1016,7 +1016,7 @@ class Compiler(
       List((module, errors))
     }
 
-    val hasErrors = reportDiagnostics(diagnostics)
+    val hasErrors = reportDiagnostics(diagnostics, null)
     if (hasErrors.nonEmpty && config.isStrictErrors) {
       val count =
         diagnostics.map(_._2.collect { case e: Error => e }.length).sum
@@ -1108,11 +1108,12 @@ class Compiler(
     * @return whether any errors were encountered.
     */
   private def reportDiagnostics(
-    diagnostics: List[(Module, List[Diagnostic])]
+    diagnostics: List[(Module, List[Diagnostic])],
+    src: Object
   ): List[RuntimeException] = {
     diagnostics.flatMap { diags =>
       if (diags._2.nonEmpty) {
-        reportDiagnostics(diags._2, diags._1)
+        reportDiagnostics(diags._2, diags._1, src)
       } else {
         List()
       }
@@ -1128,13 +1129,19 @@ class Compiler(
     */
   private def reportDiagnostics(
     diagnostics: List[Diagnostic],
-    compilerModule: CompilerContext.Module
+    compilerModule: CompilerContext.Module,
+    src: Object
   ): List[RuntimeException] = {
     val isOutputRedirected = config.outputRedirect.isDefined
     val exceptions = diagnostics
       .flatMap { diag =>
         val formattedDiag =
-          context.formatDiagnostic(compilerModule, diag, isOutputRedirected)
+          context.formatDiagnostic(
+            compilerModule,
+            diag,
+            isOutputRedirected,
+            src
+          )
         printDiagnostic(formattedDiag.getMessage)
         if (diag.isInstanceOf[Error] || config.treatWarningsAsErrors) {
           Some(formattedDiag)

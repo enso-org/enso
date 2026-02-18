@@ -87,8 +87,34 @@ public class InsightInEnsoTest {
   }
 
   @Test
-  @Ignore
   public void computeFactorial() throws Exception {
+    var insightCode =
+        """
+        from Standard.Base import True, Dictionary, IO, Polyglot, Meta
+
+        when = Dictionary.empty
+            . insert "roots" True
+            . insert "rootNameFilter" ".*fac.*"
+
+        log ctx frame =
+            IO.println ctx.name+" at "+ctx.source.name+":"+ctx.line.to_text+":"
+            IO.println (Meta.type_of frame)
+            # IO.println frame.to_text
+            # members = Polyglot.get_members frame
+            IO.println members.to_text
+            # IO.println members
+            # members . map \\p->
+            #    IO.println "  "+p+"="+(Polyglot.get_member frame p)
+
+        insight.on "enter" log when
+        """;
+
+    try (var _ = registerInsight(insightCode)) {
+      assertComputeFactorial();
+    }
+  }
+
+  private void assertComputeFactorial() throws Exception {
     var code =
         Source.newBuilder(
                 "enso",
