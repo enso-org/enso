@@ -14,40 +14,48 @@ import org.enso.common.MethodNames;
 import org.enso.test.utils.ContextUtils;
 import org.graalvm.polyglot.Language;
 import org.graalvm.polyglot.Source;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
 import org.junit.Ignore;
+import org.junit.Rule;
 import org.junit.Test;
 
 public class InsightInEnsoTest {
-  private static AutoCloseable insightHandle;
-
-  @ClassRule public static final ContextUtils ctxRule = ContextUtils.newBuilder().build();
-
-  @BeforeClass
-  public static void initContext() {}
-
-  @After
-  public void resetOut() {
-    ctxRule.resetOut();
-  }
-
-  @AfterClass
-  public static void dispose() throws Exception {
-    if (insightHandle != null) {
-      insightHandle.close();
-    }
-  }
+  @Rule public final ContextUtils ctxRule = ContextUtils.newBuilder().assertGC(false).build();
 
   @Test
-  public void letInsightObserveLoadingOfEnsoFiles() throws Exception {
+  public void letInsightObserveLoadingOfEnsoFilesWithoutImport() throws Exception {
     var insightCode =
         """
         insight.on "source" \\ev->
             Standard.Base.IO.println "Loading "+ev.name.to_text
         """;
+    assertLoading(insightCode);
+  }
+
+  @Test
+  public void letInsightObserveLoadingOfEnsoFilesWithImport() throws Exception {
+    var insightCode =
+        """
+        import Standard.Base.IO
+
+        insight.on "source" \\ev->
+            IO.println "Loading "+ev.name.to_text
+        """;
+    assertLoading(insightCode);
+  }
+
+  @Test
+  public void letInsightObserveLoadingOfEnsoFilesWithFromImport() throws Exception {
+    var insightCode =
+        """
+        from Standard.Base import IO
+
+        insight.on "source" \\ev->
+            IO.println "Loading "+ev.name.to_text
+        """;
+    assertLoading(insightCode);
+  }
+
+  private void assertLoading(String insightCode) throws Exception {
     try (var _ = registerInsight(insightCode)) {
       var code =
           """
@@ -212,7 +220,7 @@ public class InsightInEnsoTest {
     fail(msg);
   }
 
-  private static AutoCloseable registerInsight(String insightCode) throws AssertionError {
+  private AutoCloseable registerInsight(String insightCode) throws AssertionError {
     var ctx = ctxRule.context();
     var engine = ctx.getEngine();
     Map<String, Language> langs = engine.getLanguages();

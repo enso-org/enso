@@ -7,6 +7,7 @@ import com.oracle.truffle.api.nodes.RootNode;
 import com.oracle.truffle.api.source.Source;
 import com.oracle.truffle.api.source.SourceSection;
 import java.util.List;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import org.enso.interpreter.node.callable.dispatch.InvokeFunctionNode;
 import org.enso.interpreter.runtime.EnsoContext;
@@ -38,23 +39,36 @@ final class WithArgsRootNode extends RootNode {
     var ctx = EnsoContext.get(this);
     if (fn == null) {
       CompilerDirectives.transferToInterpreterAndInvalidate();
+      var originalSrc = src.getCharacters().toString();
+
+      Predicate<String> isImportStatement =
+          (line) -> line.startsWith("import ") || line.startsWith("from ") || line.trim().isEmpty();
+
+      var imports =
+          originalSrc.lines().takeWhile(isImportStatement).collect(Collectors.joining("\n"));
+
+      var executableCode =
+          originalSrc.lines().dropWhile(isImportStatement).collect(Collectors.joining("\n"));
+
+      var lambdaArgs = argNames.stream().collect(Collectors.joining("-> "));
       var lambdaCode =
           """
-          import Standard.Base.Runtime.Debug
           import Standard.Base
+          ${imports}
 
           lambda code =
               ${args}->
-                  Debug.eval code
+                  Standard.Base.Runtime.Debug.eval code
           """
-              .replace("${args}", argNames.stream().collect(Collectors.joining("-> ")));
+              .replace("${imports}", imports)
+              .replace("${args}", lambdaArgs);
       var lambda = Source.newBuilder(src).content(lambdaCode).build();
       var module = ProgramRootNode.createModule(ctx, name, lambda);
       var moduleScope = module.compileScope(ctx);
       self = moduleScope.getAssociatedType();
       var lambdaFn = moduleScope.getMethodForType(self, "lambda");
       fn = lambdaFn;
-      code = Text.create(src.getCharacters().toString());
+      code = Text.create(executableCode);
       invokeNode = InvokeFunctionNode.buildWithArity(argNames.size() + 2);
     }
     var realArgs = frame.getArguments();
