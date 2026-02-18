@@ -182,7 +182,13 @@ type Redshift_Dialect
        ---
     make_cast : Internal_Column -> SQL_Type_Mapping -> SQL_Type -> (SQL_IR_Expression -> SQL_Type_Reference) -> Internal_Column
     make_cast self column mapping target_type infer_result_type_from_database_callback =
-        sql_type_text = mapping.sql_type_to_text target_type
+        sql_type_text =
+            # Redshift interprets plain `decimal` as scale 0, which rounds values
+            # during cast. Keep fractional precision for unbounded Decimal casts.
+            is_unbounded_decimal =
+                target_type.typeid == Types.DECIMAL && target_type.precision.is_nothing && target_type.scale.is_nothing
+            if is_unbounded_decimal then "decimal(38,12)" else
+                mapping.sql_type_to_text target_type
         new_expression = SQL_IR_Expression.Operation "CAST" [column.expression, SQL_IR_Expression.Literal sql_type_text]
         new_sql_type_reference = infer_result_type_from_database_callback new_expression
         Internal_Column.Value column.name new_sql_type_reference new_expression
