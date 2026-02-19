@@ -2,7 +2,7 @@ from Standard.Base import all
 
 from Standard.Test import all
 
-from enso_dev.Base_Tests.Enso_Bin_Utils import enso_bin, create_new_project, create_tmp_dir
+from enso_dev.Base_Tests.Enso_Bin_Utils import create_new_project, create_tmp_dir
 
 polyglot java import java.lang.System as Java_System
 polyglot java import java.io.File as Java_File
@@ -70,7 +70,7 @@ add_specs suite_builder = suite_builder.group "Python Examples" group_builder->
 
         IO.println "==== Executing project ===="
 
-        res = Process.run enso_bin ["--jvm", "--run", proj_dir.path ]
+        res = Process.new_builder "enso" ["--jvm", "--run", proj_dir.path ] . create
         IO.println res.stdout
         IO.println res.stderr
         res.exit_code . should_equal Exit_Code.Success

@@ -1,7 +1,7 @@
 package org.enso.compiler.pass.analyse
 
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
-import org.enso.compiler.core.Implicits.AsMetadata
+import org.enso.compiler.Implicits.AsMetadata
 import org.enso.compiler.core.ir.MetadataStorage.MetadataPair
 import org.enso.compiler.core.ir.{
   CallArgument,
@@ -50,8 +50,7 @@ object AutomaticParallelism extends IRPass {
     ComplexType
   )
   override lazy val invalidatedPasses: Seq[IRPass] = Seq(
-    AliasAnalysis,
-    DataflowAnalysis
+    AliasAnalysis
   )
 
   /** An assignment of a line to a given thread.

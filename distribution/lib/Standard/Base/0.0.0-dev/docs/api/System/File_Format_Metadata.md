@@ -7,7 +7,7 @@
     - find_segment self prefix:Standard.Base.Data.Text.Text -> Standard.Base.Any.Any
     - raw_charset self -> Standard.Base.Any.Any
 - type File_Format_Metadata
-    - Value path:(Standard.Base.Data.Text.Text|Standard.Base.Nothing.Nothing)= name:(Standard.Base.Data.Text.Text|Standard.Base.Nothing.Nothing)= extension:(Standard.Base.Data.Text.Text|Standard.Base.Nothing.Nothing)= read_first_bytes:Standard.Base.Any.Any= content_type:(Standard.Base.Data.Text.Text|Standard.Base.Nothing.Nothing)=
+    - Value path:(Standard.Base.Data.Text.Text|Standard.Base.Nothing.Nothing)= name:(Standard.Base.Data.Text.Text|Standard.Base.Nothing.Nothing)= extension:(Standard.Base.Data.Text.Text|Standard.Base.Nothing.Nothing)= read_first_bytes:(Standard.Base.Data.Numbers.Integer -> (Standard.Base.Nothing.Nothing|(Standard.Base.Data.Vector.Vector Standard.Base.Data.Numbers.Integer)))= content_type:(Standard.Base.Data.Text.Text|Standard.Base.Nothing.Nothing)=
     - guess_extension self -> Standard.Base.Any.Any
     - interpret_content_type self -> Standard.Base.Any.Any
     - no_information -> Standard.Base.Any.Any

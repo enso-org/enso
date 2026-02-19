@@ -1,15 +1,14 @@
 package org.enso.interpreter.instrument.job
 
 import org.slf4j.LoggerFactory
-import org.enso.compiler.core.Implicits.AsMetadata
+import org.enso.compiler.Implicits.AsMetadata
+import org.enso.compiler.core.ir.Expression
 import org.enso.compiler.core.ir.Function
 import org.enso.compiler.core.ir.Name
 import org.enso.compiler.core.ir.module.scope.{definition, Definition}
 import org.enso.compiler.refactoring.IRUtils
-import org.enso.compiler.pass.analyse.{
-  CachePreferenceAnalysis,
-  DataflowAnalysis
-}
+import org.enso.compiler.pass.analyse.CachePreferenceAnalysis
+import org.enso.compiler.pass.analyse.DependencyInfo
 import org.enso.interpreter.instrument.execution.{Executable, RuntimeContext}
 import org.enso.interpreter.instrument.job.UpsertVisualizationJob.{
   EvaluationFailed,
@@ -31,6 +30,7 @@ import org.enso.polyglot.runtime.Runtime.Api
 import java.util.UUID
 import scala.annotation.unused
 import scala.concurrent.ExecutionException
+import scala.jdk.OptionConverters.RichOptional
 import scala.util.Try
 
 /** A job that upserts a visualization.
@@ -159,10 +159,43 @@ class UpsertVisualizationJob(
       expressionId
     )
 
+    // Find parent expression if this is a subexpression
+    val expressionModuleOpt =
+      ctx.executionService.getContext.findModuleByExpressionId(expressionId)
+    val optParentExpressionId: Option[UUID] = expressionModuleOpt
+      .map(expressionModule =>
+        findParentAssignment(expressionModule, expressionId)
+      )
+      .filter(_.isDefined)
+      .map(_.get)
+      .filter(parentId => parentId != expressionId)
+      .toScala
+
+    optParentExpressionId.foreach { parentID =>
+      UpsertVisualizationJob.logger.trace(
+        "Found a parent expression for visualization ({}): {} for {}",
+        visualizationId,
+        parentID,
+        expressionId
+      )
+      ctx.contextManager.setExpressionFlyby(
+        config.executionContextId,
+        parentID
+      )
+    }
+
+    if (optParentExpressionId.isEmpty) {
+      UpsertVisualizationJob.logger.trace(
+        "No parent for visualization expression {}",
+        expressionId
+      )
+    }
+
     val visualization =
       UpsertVisualizationJob.updateAttachedVisualization(
         visualizationId,
         expressionId,
+        optParentExpressionId,
         module,
         config,
         callable,
@@ -173,7 +206,7 @@ class UpsertVisualizationJob(
     val runtimeCache = stack.headOption
       .flatMap(frame => Option(frame.cache))
     val cachedValue = runtimeCache
-      .flatMap(c => Option(c.get(expressionId)))
+      .flatMap(c => Option(c.runQuery(null, _.get(expressionId))))
     UpsertVisualizationJob.requireVisualizationSynchronization(
       stack,
       visualizationId
@@ -182,7 +215,7 @@ class UpsertVisualizationJob(
       case Some(value) =>
         ProgramExecutionSupport.executeAndSendVisualizationUpdate(
           config.executionContextId,
-          runtimeCache.getOrElse(new RuntimeCache),
+          runtimeCache.getOrElse(RuntimeCache.create.cache),
           stack.headOption.get.syncState,
           visualization,
           expressionId,
@@ -196,6 +229,51 @@ class UpsertVisualizationJob(
         )
         Some(Executable(config.executionContextId, stack))
     }
+  }
+
+  /** Find parent assignment expression that contains the given expressionId as a subexpression.
+    *
+    * @param module the module containing the expression
+    * @param expressionID the expression id to find the parent for
+    * @return the parent expression id if found
+    */
+  private def findParentAssignment(
+    module: Module,
+    expressionID: Api.ExpressionId
+  ): Option[UUID] = {
+    val bindings            = module.getIr.bindings()
+    var i                   = 0
+    var found: Option[UUID] = None
+    while (i < bindings.length && found.isEmpty) {
+      bindings(i) match {
+        case method: definition.Method =>
+          method.body match {
+            case fun: Function =>
+              // Check all expressions in the function body
+              fun.body.preorder().foreach { ir =>
+                ir match {
+                  case binding: Expression.Binding =>
+                    val rhsID =
+                      binding.expression.getExternalId
+                        .getOrElse(binding.expression.getId)
+                    // Check if the target expression is within this binding's RHS
+                    val containsTarget =
+                      binding.expression.preorder().exists { child =>
+                        child.getExternalId.exists(_ == expressionID)
+                      }
+                    if (containsTarget && found.isEmpty) {
+                      found = Some(rhsID)
+                    }
+                  case _ =>
+                }
+              }
+            case _ =>
+          }
+        case _ =>
+      }
+      i = i + 1
+    }
+    found
   }
 
   private def replyWithExpressionFailedError(
@@ -309,6 +387,7 @@ object UpsertVisualizationJob {
       updateAttachedVisualization(
         visualizationId,
         expressionId,
+        visualization.parentExpressionId,
         result.module,
         visualizationConfig,
         result.callback,
@@ -594,6 +673,7 @@ object UpsertVisualizationJob {
     *
     * @param visualizationId the visualization identifier
     * @param expressionId the expression to which the visualization is applied
+    * @param parentExpressionId optional parent expression id if this is a subexpression
     * @param module the module containing the visualization
     * @param visualizationConfig the visualization configuration
     * @param callback the visualization callback function
@@ -604,6 +684,7 @@ object UpsertVisualizationJob {
   def updateAttachedVisualization(
     visualizationId: Api.VisualizationId,
     expressionId: Api.ExpressionId,
+    parentExpressionId: Option[Api.ExpressionId],
     module: Module,
     visualizationConfig: Api.VisualizationConfiguration,
     callback: AnyRef,
@@ -615,7 +696,8 @@ object UpsertVisualizationJob {
       Visualization(
         visualizationId,
         expressionId,
-        new RuntimeCache(),
+        parentExpressionId,
+        RuntimeCache.create().cache(),
         module,
         visualizationConfig,
         visualizationExpressionId,
@@ -623,7 +705,9 @@ object UpsertVisualizationJob {
         arguments
       )
     setCacheWeights(visualization)
-    ctx.state.executionHooks.add(InvalidateCaches(expressionId))
+    // Stop invalidating expressions, as visualizations for subexpressions
+    // carry enough info to workaround cached values.
+    //ctx.state.executionHooks.add(InvalidateCaches(expressionId))
     ctx.contextManager.upsertVisualization(
       visualizationConfig.executionContextId,
       visualization
@@ -708,7 +792,7 @@ object UpsertVisualizationJob {
     stack: Iterable[InstrumentFrame]
   ): Boolean = {
     stack.headOption.exists { frame =>
-      frame.cache.get(expressionId) ne null
+      frame.cache.runQuery(null, _.get(expressionId) ne null)
     }
   }
 
@@ -740,15 +824,16 @@ object UpsertVisualizationJob {
     ctx.executionService.getContext
       .findModuleByExpressionId(expressionId)
       .ifPresent { module =>
-        module.getIr
-          .getMetadata(DataflowAnalysis, classOf[DataflowAnalysis.Metadata])
+        Option(
+          DependencyInfo
+            .find(module.getIr)
+        )
           .foreach { metadata =>
             val externalId = expressionId
             IRUtils
               .findByExternalId(module.getIr, externalId)
               .map { ir =>
-                DataflowAnalysis.DependencyInfo.Type
-                  .Static(ir.getId, ir.getExternalId)
+                new DependencyInfo.Type.Static(ir.getId, ir.getExternalId)
               }
               .flatMap { expressionKey =>
                 metadata.dependents.getExternal(expressionKey)
@@ -758,7 +843,9 @@ object UpsertVisualizationJob {
                 stacks.foreach { stack =>
                   stack.headOption.foreach { frame =>
                     dependents
-                      .find { id => frame.cache.get(id) ne null }
+                      .find { id =>
+                        frame.cache.runQuery(null, _.get(id) ne null)
+                      }
                       .foreach { firstDependent =>
                         CacheInvalidation.run(
                           stack,

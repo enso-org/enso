@@ -39,6 +39,20 @@ public class EnsoExceptionWrapper {
                   "Error",
                   stateException.getMessage(),
                   stateException);
+          case IOException ioException ->
+              EnsoMeta.makeInstance(
+                  "Standard.Base.Errors.File_Error",
+                  "File_Error",
+                  "IO_Error",
+                  null,
+                  "An IO error has occurred: " + ioException);
+          case UncheckedIOException uncheckedIoException ->
+              EnsoMeta.makeInstance(
+                  "Standard.Base.Errors.File_Error",
+                  "File_Error",
+                  "IO_Error",
+                  null,
+                  "An IO error has occurred: " + uncheckedIoException);
           default -> null;
         };
     return Optional.ofNullable(result);
@@ -59,17 +73,7 @@ public class EnsoExceptionWrapper {
   public static Optional<Value> wrapFileExceptions(String path, Exception e) {
     var associatedPath = e instanceof FileSystemException fsEx ? fsEx.getFile() : path;
     if (associatedPath == null) {
-      // Convert to an IO error if no path is available.
-      if (e instanceof IOException || e instanceof UncheckedIOException) {
-        return Optional.of(
-            EnsoMeta.makeInstance(
-                "Standard.Base.Errors.File_Error",
-                "File_Error",
-                "IO_Error",
-                null,
-                "An IO error has occurred: " + e));
-      }
-
+      // Fallback on other wrappers.
       return Optional.empty();
     }
 

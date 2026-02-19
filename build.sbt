@@ -1644,17 +1644,19 @@ lazy val `version-output` = (project in file("lib/scala/version-output"))
     Compile / sourceGenerators += Def.task {
       val file =
         (Compile / sourceManaged).value / "org" / "enso" / "version" / "GeneratedVersion.java"
-      BuildInfo
-        .writeBuildInfoFile(
-          file                  = file,
-          log                   = state.value.log,
-          defaultDevEnsoVersion = defaultDevEnsoVersion,
-          ensoVersion           = ensoVersion,
-          scalacVersion         = scalacVersion,
-          graalVersion          = graalMavenPackagesVersion,
-          javaVersion           = graalVersion,
-          currentEdition        = currentEdition
-        )
+      BazelSupport.generatedVersion(file, state.value.log) {
+        BuildInfo
+          .writeBuildInfoFile(
+            file                  = file,
+            log                   = state.value.log,
+            defaultDevEnsoVersion = defaultDevEnsoVersion,
+            ensoVersion           = ensoVersion,
+            scalacVersion         = scalacVersion,
+            graalVersion          = graalMavenPackagesVersion,
+            javaVersion           = graalVersion,
+            currentEdition        = currentEdition
+          )
+      }
     }.taskValue
   )
 

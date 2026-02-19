@@ -283,17 +283,22 @@ public class HyperFormat {
   }
 
   public static Value readTable(
-      String path,
-      String schemaName,
-      String tableName,
-      Integer rowLimit,
-      ProblemAggregator problemAggregator) {
+      String path, String schemaName, String tableName, Integer rowLimit) {
+    var problemAggregator = ProblemAggregator.makeTopLevelAggregator();
     var tableNameObject = new TableName(new SchemaName(schemaName), tableName);
     var query = "SELECT * FROM " + tableNameObject + (rowLimit == null ? "" : " LIMIT " + rowLimit);
     try {
-      return Value.asValue(
-          readTableInternal(
-              path, schemaName, tableName, rowLimit, problemAggregator, tableNameObject, query));
+      var tableValue =
+          Value.asValue(
+              readTableInternal(
+                  path,
+                  schemaName,
+                  tableName,
+                  rowLimit,
+                  problemAggregator,
+                  tableNameObject,
+                  query));
+      return problemAggregator.attachProblemsToValue(tableValue, false);
     } catch (Exception e) {
       return handleHyperErrors(path, e);
     }

@@ -3,7 +3,7 @@ package org.enso.compiler.pass.analyse.alias.graph.test
 import scala.jdk.CollectionConverters._
 import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
-import org.enso.compiler.core.Implicits.AsMetadata
+import org.enso.compiler.Implicits.AsMetadata
 import org.enso.compiler.core.ir.{
   CallArgument,
   Expression,

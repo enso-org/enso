@@ -2,7 +2,7 @@ package org.enso.compiler.pass.desugar
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.ConstantsNames
-import org.enso.compiler.core.Implicits.AsMetadata
+import org.enso.compiler.Implicits.AsMetadata
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.ir.module.scope.definition
 import org.enso.compiler.core.ir.expression.{errors, Comment, Error}
@@ -18,12 +18,7 @@ import org.enso.compiler.core.ir.MetadataStorage.MetadataPair
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.IRProcessingPass
-import org.enso.compiler.pass.analyse.{
-  AliasAnalysis,
-  DataflowAnalysis,
-  DemandAnalysis,
-  TailCall
-}
+import org.enso.compiler.pass.analyse.{AliasAnalysis, DemandAnalysis, TailCall}
 import org.enso.compiler.pass.optimise.LambdaConsolidate
 import org.enso.compiler.pass.resolve.IgnoredBindings
 import org.enso.persist.Persistance
@@ -47,7 +42,6 @@ case object FunctionBinding extends IRPass {
   override lazy val precursorPasses: Seq[IRProcessingPass] = List(ComplexType)
   override lazy val invalidatedPasses: Seq[IRProcessingPass] = List(
     AliasAnalysis,
-    DataflowAnalysis,
     DemandAnalysis,
     GenerateMethodBodies,
     IgnoredBindings,

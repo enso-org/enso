@@ -140,5 +140,5 @@ from_value_type_strict value_type =
    ---
    Creates a column storage builder for the given storage type.
 make_builder : StorageType -> Integer -> ProblemAggregator -> Java_Builder
-make_builder storage initial_size java_problem_aggregator =
+private make_builder storage initial_size java_problem_aggregator =
     Java_Builder.getForType storage initial_size java_problem_aggregator

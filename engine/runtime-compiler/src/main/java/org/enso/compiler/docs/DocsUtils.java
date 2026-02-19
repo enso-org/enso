@@ -157,6 +157,19 @@ final class DocsUtils {
         var err = extractFromSignature(error.error());
         yield typ + "!" + err;
       }
+      case Type.Function fn -> {
+        var sb = new StringBuilder();
+        sb.append("(");
+        var sep = "";
+        for (var a : asJava(fn.args())) {
+          var typ = extractFromSignature(a);
+          sb.append(sep).append(typ);
+          sep = " -> ";
+        }
+        var res = extractFromSignature(fn.result());
+        sb.append(sep).append(res).append(")");
+        yield sb.toString();
+      }
       default -> {
         var fqn = extractFqnOrNull(sign);
         yield fqn == null ? ANY : fqn.toString();
@@ -182,7 +195,7 @@ final class DocsUtils {
       } else {
         sb.append(sep);
       }
-      var opType = extractTypeOrAny(op);
+      var opType = extractFromSignature(op);
       sb.append(opType);
     }
     sb.append(")");

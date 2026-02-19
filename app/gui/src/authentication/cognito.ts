@@ -232,6 +232,7 @@ export interface ISessionProvider {
     oldPassword: string,
     newPassword: string,
   ) => Promise<results.Err<AmplifyError> | results.Ok<unknown>>
+  readonly resendSignUp: (username: string) => Promise<void>
   readonly setupTOTP: () => Promise<results.Err<AmplifyError> | results.Ok<SetupTOTPReturn>>
   readonly verifyTotpSetup: (
     totpToken: string,
@@ -516,6 +517,11 @@ export class Cognito implements ISessionProvider {
     } else {
       return results.Err(cognitoUserResult.val)
     }
+  }
+
+  /** Resend the sign up confirmation code to the user's email address. */
+  async resendSignUp(username: string) {
+    await amplify.Auth.resendSignUp(username)
   }
 
   /** Start the TOTP setup process. Returns the secret and the URL to scan the QR code. */

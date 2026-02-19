@@ -19,6 +19,8 @@ import {
   type ZipAssetsJobId,
 } from './types.js'
 
+/** Relative HTTP path to "get configuration" endpoint of the Cloud backend API. */
+export const CONFIGURATION_PATH = 'utils/config'
 /** Relative HTTP path to the "list users" endpoint of the Cloud backend API. */
 export const LIST_USERS_PATH = 'users'
 /** Relative HTTP path to the "create user" endpoint of the Cloud backend API. */

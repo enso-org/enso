@@ -6,16 +6,16 @@ import org.slf4j.LoggerFactory
 import org.enso.common.CachePreferences
 import org.enso.compiler.{data, CompilerResult}
 import org.enso.compiler.context._
-import org.enso.compiler.core.Implicits.AsMetadata
+import org.enso.compiler.Implicits.AsMetadata
 import org.enso.compiler.core.{ExternalID, IR}
 import org.enso.compiler.core.ir
 import org.enso.compiler.core.ir.{expression, Location}
 import org.enso.compiler.data.BindingsMap
 import org.enso.compiler.pass.analyse.{
   CachePreferenceAnalysis,
-  DataflowAnalysis,
   GatherDiagnostics
 }
+import org.enso.compiler.pass.analyse.DependencyInfo
 import org.enso.interpreter.instrument.execution.{
   LocationResolver,
   RuntimeContext
@@ -354,18 +354,14 @@ class EnsureCompiledJob(
     * @return the set of node ids affected by a resolution error in the module
     */
   private def findNodesWithResolutionErrors(ir: IR): Set[UUID @ExternalID] = {
-    val metadata = ir
-      .unsafeGetMetadata[DataflowAnalysis.Metadata](
-        DataflowAnalysis,
-        "Empty dataflow analysis metadata during the interactive compilation."
-      )
+    val metadata = DependencyInfo.find(ir)
 
     val builder = Set.newBuilder[UUID @ExternalID]
     IR.preorder(
       ir,
       {
         case err: expression.errors.Resolution if isResolutionNotFound(err) =>
-          val key = DataflowAnalysis.DependencyInfo.Type.Static(
+          val key = new DependencyInfo.Type.Static(
             err.getId(),
             err.getExternalId
           )

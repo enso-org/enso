@@ -37,7 +37,14 @@ add_specs suite_builder =
                 "right" -> right_mock_table
                 _ -> Nothing
 
-            res = Standard.Table.Internal.Widget_Helpers.make_join_condition_selector self_mock_table cache=mock_cache
+            with_json = Standard.Table.Internal.Widget_Helpers.make_join_condition_selector self_mock_table cache=mock_cache
+            with_json.should_be_a Widget.With_JSON_Cache
+
+            res = case with_json of
+                Widget.With_JSON_Cache parent _ -> parent
+                _ -> with_json
+            res.should_be_a Widget.Vector_Editor
+
             arr = case res of
                 Widget.Vector_Editor item _ _ _ -> item.values
                 _ -> Test.fail "Expecting Vector_Editor"
@@ -47,9 +54,12 @@ add_specs suite_builder =
             labels = arr.map e->
                 Meta.type_of e . should_equal Choice
 
-                e.parameters.map e->
-                    options = e.second.values . map .label
-                    case e.first of
+                e.parameters.map f->
+                    unwrapped = case f.second of
+                        Widget.With_JSON_Cache parent _ -> parent
+                        _ -> f.second
+                    options = unwrapped.values . map .label
+                    case f.first of
                         "left" -> options . should_equal abc
                         "right" -> options . should_equal uvw
                         "right_lower" -> options . should_equal uvw

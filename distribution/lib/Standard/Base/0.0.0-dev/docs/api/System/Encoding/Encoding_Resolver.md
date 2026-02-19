@@ -7,4 +7,4 @@
     - all -> Standard.Base.Any.Any
     - as_bytes self -> Standard.Base.Data.Vector.Vector
     - corresponding_encoding self -> Standard.Base.Data.Text.Encoding.Encoding
-- resolve_encoding encoding:Standard.Base.Data.Text.Encoding.Encoding buffered_input_stream:Standard.Base.System.Input_Stream.Input_Stream problem_aggregator:Standard.Base.System.Encoding.Encoding_Resolver.DecodingProblemAggregator continuation:Standard.Base.Any.Any -> Standard.Base.Any.Any
+- resolve_encoding encoding:Standard.Base.Data.Text.Encoding.Encoding buffered_input_stream:Standard.Base.System.Input_Stream.Input_Stream problem_aggregator:Standard.Base.System.Encoding.Encoding_Resolver.DecodingProblemAggregator continuation:(Standard.Base.Data.Text.Encoding.Encoding -> Standard.Base.System.Input_Stream.Input_Stream -> Standard.Base.Any.Any) -> Standard.Base.Any.Any

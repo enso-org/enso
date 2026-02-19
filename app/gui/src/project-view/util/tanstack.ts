@@ -7,6 +7,6 @@ import { onlineManager, type UseQueryReturnType } from '@tanstack/vue-query'
  * data before.
  */
 export async function waitForData<TData, TError>(query: UseQueryReturnType<TData, TError>) {
-  if (!onlineManager.isOnline() && query.data !== undefined) return query
+  if (!onlineManager.isOnline() && query.data.value !== undefined) return query
   return query.suspense()
 }

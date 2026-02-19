@@ -1,7 +1,7 @@
 package org.enso.compiler.pass.resolve
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
-import org.enso.compiler.core.Implicits.AsMetadata
+import org.enso.compiler.Implicits.AsMetadata
 import org.enso.compiler.core.ir.AscriptionReason
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.ir.module.scope.definition
@@ -45,7 +45,6 @@ case object TypeSignatures extends IRPass {
   override lazy val invalidatedPasses: Seq[IRProcessingPass] = List(
     AliasAnalysis,
     CachePreferenceAnalysis,
-    DataflowAnalysis,
     DemandAnalysis,
     org.enso.compiler.pass.analyse.TailCall.INSTANCE,
     UnusedBindings

@@ -2,7 +2,7 @@ package org.enso.compiler.test
 
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.{EnsoParser, IR, Identifier}
-import org.enso.compiler.core.Implicits.AsMetadata
+import org.enso.compiler.Implicits.AsMetadata
 import org.enso.compiler.core.ir.{
   DefinitionArgument,
   Diagnostic,

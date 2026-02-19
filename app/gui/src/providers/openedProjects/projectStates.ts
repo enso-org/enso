@@ -1,6 +1,5 @@
 /** @file Project states definitions and a composable for transitions between them. */
 import { backendMutationOptions } from '@/composables/backend'
-import { injectGuiConfig } from '@/providers/guiConfig'
 import { assert, assertDefined } from '@/util/assert'
 import * as vueQuery from '@tanstack/vue-query'
 import {
@@ -157,7 +156,6 @@ export function useProjectStates() {
   const backends = useBackends()
   const session = useSession()
   const text = useText()
-  const config = injectGuiConfig()
   const uploads = useUploadsToCloudStore()
   const queryClient = vueQuery.useQueryClient()
   const httpClient = useHttpClient()
@@ -322,7 +320,13 @@ export function useProjectStates() {
   ) {
     if (!backends.localBackend) return Err('Cannot open local project: Local Backend missing.')
     await backends.localBackend
-      .startWatchingHybridProject(info.id, info.runningId, info.parentId, httpClient.defaultHeaders)
+      .startWatchingHybridProject(
+        info.id,
+        info.runningId,
+        info.parentId,
+        httpClient.defaultHeaders,
+        backends.remoteBackend.baseUrl.toString(),
+      )
       .catch((err) => {
         console.error(`Failed to start watching hybrid project ${info.id}`, err)
       })
@@ -403,9 +407,10 @@ export function useProjectStates() {
     const store = await scope.run(() => {
       const rpcUrl = runDetails.value.jsonAddress
       const dataUrl = runDetails.value.binaryAddress
-      const ydocUrl = runDetails.value.ydocAddress ?? config.ydocUrl ?? ''
+      const ydocUrl = runDetails.value.ydocAddress
       assert(rpcUrl != null, text.getText('noJSONEndpointError'))
       assert(dataUrl != null, text.getText('noBinaryEndpointError'))
+      assert(ydocUrl != null, "Could not get the address of the project's binary endpoint")
       return createProjectStore(
         {
           projectId: runningId,

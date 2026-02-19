@@ -313,8 +313,8 @@ public class DocsGenerateTest {
     assertEquals("values", m.methodName().name());
     assertEquals(
         "Generates vector with argument type as return type",
-        "values a:Standard.Base.Data.Text.Text -> (Standard.Base.Data.Vector.Vector"
-            + " Standard.Base.Data.Text.Text)",
+        "values a:Standard.Base.Data.Text.Text -> "
+            + "(Standard.Base.Data.Vector.Vector Standard.Base.Data.Text.Text)",
         DocsVisit.toSignature(m));
   }
 
@@ -344,6 +344,67 @@ public class DocsGenerateTest {
         "Generates vector with argument type as return type",
         "one a:local.Union.Main.A -> (local.Union.Main.A|local.Union.Main.B|local.Union.Main.C)",
         DocsVisit.toSignature(m));
+  }
+
+  @Test
+  public void functionalUnionTypes() throws Exception {
+    var code =
+        """
+        type A
+        type B
+
+        one a:((A -> B) | B) -> B = B
+        """;
+
+    var v = new MockVisitor();
+    generateDocumentation("UnionFn", code, v);
+
+    assertEquals("One methods", 1, v.visitMethod.size());
+    assertEquals("No constructors", 0, v.visitConstructor.size());
+
+    var p = v.visitMethod.get(0);
+    assertNull("It is a module method", p.t());
+
+    var m = p.ir();
+    assertEquals("one", m.methodName().name());
+    var sig = DocsVisit.toSignature(m);
+    assertEquals(
+        "Generates vector with argument type as return type",
+        "one a:((local.UnionFn.Main.A -> local.UnionFn.Main.B)|local.UnionFn.Main.B)"
+            + " -> local.UnionFn.Main.B",
+        sig);
+  }
+
+  @Test
+  public void vectorWithUnionTypes() throws Exception {
+    var code =
+        """
+        from Standard.Base import Vector, Text
+
+        type A
+        type B
+
+        one a:A -> Vector A | Vector B = [a]
+        """;
+
+    var v = new MockVisitor();
+    generateDocumentation("UnionVector", code, v);
+
+    assertEquals("One methods", 1, v.visitMethod.size());
+    assertEquals("No constructors", 0, v.visitConstructor.size());
+
+    var p = v.visitMethod.get(0);
+    assertNull("It is a module method", p.t());
+
+    var m = p.ir();
+    assertEquals("one", m.methodName().name());
+    var methodSignature = DocsVisit.toSignature(m);
+    assertEquals(
+        "Generates union of vectors with argument type as return type",
+        "one a:local.UnionVector.Main.A -> ("
+            + "(Standard.Base.Data.Vector.Vector local.UnionVector.Main.A)"
+            + "|(Standard.Base.Data.Vector.Vector local.UnionVector.Main.B))",
+        methodSignature);
   }
 
   @Test

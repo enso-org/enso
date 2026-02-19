@@ -4,7 +4,7 @@ import org.enso.scala.wrapper.ScalaConversions
 import org.enso.compiler.pass.analyse.FrameAnalysisMeta
 import org.enso.compiler.pass.analyse.FramePointer
 import org.enso.compiler.pass.analyse.FrameVariableNames
-import org.enso.compiler.pass.analyse.DataflowAnalysis
+import org.enso.compiler.pass.analyse.DependencyInfo
 import org.enso.compiler.pass.analyse.alias.graph.{
   GraphBuilder,
   Graph => AliasGraph
@@ -38,13 +38,13 @@ class LocalScope(
   final val parentScope: Option[LocalScope],
   final val aliasingGraph: () => AliasGraph,
   final private val scopeProvider: () => AliasGraph.Scope,
-  final private val dataflowInfoProvider: () => DataflowAnalysis.Metadata,
+  final private val dataflowInfoProvider: () => DependencyInfo,
   final private val symbolsProvider: () => FrameAnalysisMeta     = null,
   final val flattenToParent: Boolean                             = false,
   private val parentFrameSlotIdxs: () => Map[AliasGraph.Id, Int] = () => Map()
 ) {
-  lazy val scope: AliasGraph.Scope                 = scopeProvider()
-  lazy val dataflowInfo: DataflowAnalysis.Metadata = dataflowInfoProvider()
+  lazy val scope: AliasGraph.Scope      = scopeProvider()
+  lazy val dataflowInfo: DependencyInfo = dataflowInfoProvider()
 
   /** Computes allSymbols needed by this scope. Either the value is obtained
     * from symbolsProvider or (as a fallback) a computation from aliasingGraph
@@ -181,7 +181,7 @@ object LocalScope {
     */
   val empty: LocalScope = {
     val graph              = GraphBuilder.create().freeze().toGraph
-    val info               = DataflowAnalysis.DependencyInfo()
+    val info               = new DependencyInfo()
     val emptyVariableNames = FrameVariableNames.create(java.util.List.of())
     new LocalScope(
       None,
@@ -198,7 +198,7 @@ object LocalScope {
     */
   def createEmpty: LocalScope = {
     val graph = GraphBuilder.create().toGraph
-    val info  = DataflowAnalysis.DependencyInfo()
+    val info  = new DependencyInfo()
     new LocalScope(
       None,
       () => graph,

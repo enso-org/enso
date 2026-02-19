@@ -1,6 +1,6 @@
 package org.enso.table.read;
 
-/** An exception thrown when a problem occured when reading a fixed-width file. */
+/** An exception thrown when a problem occurred when reading a fixed-width file. */
 public class FixedWidthLineTooLongException extends RuntimeException {
   public final long sourceLineNumber;
   public final long maxLineLength;

@@ -4,8 +4,8 @@
     - Value existing_file_behavior:Standard.Base.System.File.Existing_File_Behavior.Existing_File_Behavior copy_original:Standard.Base.Data.Boolean.Boolean
 - type File_Write_Strategy
     - Value write_overwriting:Standard.Base.Any.Any write_appending:Standard.Base.Any.Any write_raising_error:Standard.Base.Any.Any write_backing_up:Standard.Base.Any.Any create_dry_run_file:Standard.Base.Any.Any write_with_local_file:Standard.Base.Any.Any copy_from_local:Standard.Base.Any.Any
-    - write self file:Standard.Base.Any.Any existing_file_behavior:Standard.Base.System.File.Existing_File_Behavior.Existing_File_Behavior action:Standard.Base.Any.Any -> Standard.Base.Any.Any
-    - write_handling_dry_run self file:Standard.Base.Any.Any existing_file_behavior:Standard.Base.System.File.Existing_File_Behavior.Existing_File_Behavior action:Standard.Base.Any.Any -> Standard.Base.Any.Any
+    - write self file:Standard.Base.Any.Any existing_file_behavior:Standard.Base.System.File.Existing_File_Behavior.Existing_File_Behavior action:(Standard.Base.System.Output_Stream.Output_Stream -> Standard.Base.Any.Any) -> Standard.Base.Any.Any
+    - write_handling_dry_run self file:Standard.Base.Any.Any existing_file_behavior:Standard.Base.System.File.Existing_File_Behavior.Existing_File_Behavior action:(Standard.Base.Any.Any -> Standard.Base.System.Output_Stream.Output_Stream -> Standard.Base.Any.Any) -> Standard.Base.Any.Any
 - default_append file:Standard.Base.Any.Any action:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - default_overwrite file:Standard.Base.Any.Any action:Standard.Base.Any.Any -> Standard.Base.Any.Any
 - default_raise_error file:Standard.Base.Any.Any action:Standard.Base.Any.Any -> Standard.Base.Any.Any

@@ -1,9 +1,12 @@
 import project.Data.Text.Text
 import project.Data.Vector.Vector
+import project.Nothing.Nothing
 import project.System.Process.Process_Builder.Process_Builder
 import project.System.Process.Process_Builder.Process_Result
 from project.Data.Boolean import Boolean, False
 from project.Metadata.Widget import Text_Input, Vector_Editor
+
+polyglot java import org.enso.base.file_system.File_Utils
 
 ## ---
    aliases: [run a command]
@@ -44,7 +47,6 @@ run command:Text arguments=[] stdin:Text="" redirect_out_err:Boolean=False =
     - `command`: The command to execute on the system.
     - `arguments`: The arguments to pass to `command`. These must be text.
     - `stdin`: Any content to pass to the standard input for `command`.
-    - `redirect_out_err`: Redirect stdout/stderr to `Process_Result`.
 
    ## Examples
    ### Create a new builder for a command "echo".
@@ -54,5 +56,10 @@ run command:Text arguments=[] stdin:Text="" redirect_out_err:Boolean=False =
 
          example_new_builder = Process.new_builder "echo"
    ```
-new_builder : Text -> Vector Text -> Text -> Process_Builder
-new_builder command arguments=[] stdin="" = Process_Builder.Value command arguments stdin
+new_builder command:Text arguments=[]:(Vector Text) stdin="":Text -> Process_Builder =
+   cmd =
+      if command == "enso" then
+         File_Utils.getExecutableLocation
+      else
+         command
+   Process_Builder.Value cmd arguments stdin Nothing

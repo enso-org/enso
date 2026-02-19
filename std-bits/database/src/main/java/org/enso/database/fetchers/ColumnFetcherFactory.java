@@ -42,10 +42,6 @@ public interface ColumnFetcherFactory {
     return ColumnFetcher.class;
   }
 
-  default Class<? extends ProblemAggregator> getAggregatorClass() {
-    return ProblemAggregator.class;
-  }
-
   ColumnFetcher forStorageType(
       StorageType<?> storageType,
       int index,
