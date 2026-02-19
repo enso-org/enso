@@ -1001,9 +1001,13 @@ public final class EnsoContext {
   private Object extraValues(int index, Function<EnsoContext, ?> init) {
     if (index >= extraValues.length || extraValues[index] == null) {
       CompilerDirectives.transferToInterpreterAndInvalidate();
-      extraValues = Arrays.copyOf(extraValues, Extra.COUNTER.get());
-      extraValues[index] = init.apply(this);
-      assert extraValues[index] != null;
+      synchronized (REFERENCE) {
+        if (index >= extraValues.length) {
+          extraValues = Arrays.copyOf(extraValues, index + 1);
+        }
+        extraValues[index] = init.apply(this);
+        assert extraValues[index] != null;
+      }
     }
     return extraValues[index];
   }
