@@ -5574,18 +5574,18 @@ lazy val `zstd-jni-wrapper` = project
   .enablePlugins(JarExtractPlugin)
   .settings(
     libraryDependencies ++= Seq(
-      "com.github.luben" % "zstd-jni" % "1.5.6-5"
+      "com.github.luben" % "zstd-jni" % zstdVersion
     ),
-    inputJar := "com.github.luben" % "zstd-jni" % "1.5.6-5",
+    inputJar := "com.github.luben" % "zstd-jni" % zstdVersion,
     jarExtractor := JarExtractor(
       Map(
-        "linux/amd64/libzstd-jni-1.5.6-5.so" -> PolyglotLib(
+        s"linux/amd64/libzstd-jni-$zstdVersion.so" -> PolyglotLib(
           LinuxAMD64
         ),
-        "darwin/aarch64/libzstd-jni-1.5.6-5.dylib" -> PolyglotLib(
+        s"darwin/aarch64/libzstd-jni-$zstdVersion.dylib" -> PolyglotLib(
           MacOSArm64
         ),
-        "win/amd64/libzstd-jni-1.5.6-5.dll" -> PolyglotLib(
+        s"win/amd64/libzstd-jni-$zstdVersion.dll" -> PolyglotLib(
           WindowsAMD64
         ),
         "META-INF/MANIFEST.MF" -> CopyToOutputJar,
@@ -5935,14 +5935,15 @@ lazy val `std-snowflake` = project
         .copyDependencies(
           `std-snowflake-polyglot-root`,
           Seq("std-snowflake.jar"),
-          ignoreScalaLibrary                = true,
+          ignoreScalaLibrary = true,
           ignoreDependencies = Some((fileName: String) => {
-            (fileName.startsWith("netty-tcnative-boringssl-static"))
+            fileName.startsWith("netty-tcnative-boringssl-static")
           }),
           ignoreDependencyIncludeTransitive = Some(s"grpc-netty-shaded-1.77.0"),
           ignoreDependenciesByModuleID = Some(
             Seq(
-              "org.conscrypt" % "conscrypt-openjdk-uber" % "2.5.2"
+              "org.conscrypt"    % "conscrypt-openjdk-uber" % "2.5.2",
+              "com.github.luben" % "zstd-jni"               % zstdVersion
             )
           ),
           libraryUpdates     = (Compile / update).value,
@@ -5953,11 +5954,13 @@ lazy val `std-snowflake` = project
           extractedNativeLibsDirs = Seq(
             (`grpc-wrapper-newer` / extractedFilesDir).value,
             (`netty-tc-native-wrapper` / extractedFilesDir).value,
-            (`conscrypt-wrapper` / extractedFilesDir).value
+            (`conscrypt-wrapper` / extractedFilesDir).value,
+            (`zstd-jni-wrapper` / extractedFilesDir).value
           ),
           extraJars = Seq(
             (`grpc-wrapper-newer` / thinJarOutput).value,
-            (`conscrypt-wrapper` / thinJarOutput).value
+            (`conscrypt-wrapper` / thinJarOutput).value,
+            (`zstd-jni-wrapper` / thinJarOutput).value
           )
         )
       stdSnowflakeJar

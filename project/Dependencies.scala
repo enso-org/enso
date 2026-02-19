@@ -326,4 +326,5 @@ object Dependencies {
   val h2Version               = "2.3.232"
   val jimFsVersion            = "1.3.0"
   val nettyTcNativeBorringSSL = "2.0.74.Final"
+  val zstdVersion             = "1.5.6-5"
 }
