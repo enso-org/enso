@@ -259,7 +259,7 @@ export class Cognito {
   /** Sign out the current user. */
   async signOut() {
     this.isSignedIn = false
-    listen.authEventListener?.(listen.AuthEvent.signOut)
+    listen.authEventListener?.(listen.AuthEvent.signedOut)
     localStorage.removeItem(MOCK_EMAIL_KEY)
     localStorage.removeItem(MOCK_ORGANIZATION_ID_KEY)
     return Promise.resolve(null)
