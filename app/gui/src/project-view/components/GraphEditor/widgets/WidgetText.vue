@@ -9,6 +9,7 @@ import {
 } from '$/providers/openedProjects/widgetRegistry'
 import CodeMirrorWidgetBase from '@/components/GraphEditor/CodeMirrorWidgetBase.vue'
 import NodeWidget from '@/components/GraphEditor/NodeWidget.vue'
+import { injectWidgetTree } from '@/providers/widgetTree'
 import { Ast } from '@/util/ast'
 import { useLanguageSupport } from '@/util/codemirror/language'
 import { Ok } from 'enso-common/src/utilities/data/result'
@@ -17,6 +18,7 @@ import { computed, ref, useTemplateRef } from 'vue'
 const baseEditor = useTemplateRef('baseEditor')
 const props = defineProps(widgetProps(widgetDefinition))
 const { module } = useCurrentProject()
+const tree = injectWidgetTree()
 
 function focusAndSelect() {
   baseEditor.value?.focusAndSelect()
@@ -123,34 +125,54 @@ export const widgetDefinition = defineWidget(
     @pointerdown.stop.prevent="focusAndSelect"
     @click.stop
   >
-    <NodeWidget v-if="openToken" :input="WidgetInput.FromAst(openToken)" class="delimiter open" />
-    <CodeMirrorWidgetBase
-      ref="baseEditor"
-      v-model="textContents"
-      contentTestId="widget-text-content"
-      :placeholder="placeholder"
-      :lineMode="isMultiline ? 'autoMulti' : 'auto'"
-      :extensions="extensions"
-      :widgetTypeId="widgetTypeId"
-      :input="input"
-      :transformUserInput="makeLiteralFromUserInput"
-      :onAccepted="acceptValue"
-      @textEdited="onTextEdited"
-    />
-    <NodeWidget
-      v-if="closeToken"
-      :input="WidgetInput.FromAst(closeToken)"
-      class="delimiter close"
-    />
+    <span class="textValue" :class="{ collapsed: !tree.expanded }">
+      <NodeWidget v-if="openToken" :input="WidgetInput.FromAst(openToken)" class="delimiter open" />
+      <CodeMirrorWidgetBase
+        ref="baseEditor"
+        v-model="textContents"
+        contentTestId="widget-text-content"
+        :placeholder="placeholder"
+        :lineMode="
+          tree.expanded ?
+            isMultiline ? 'autoMulti'
+            : 'auto'
+          : 'single'
+        "
+        :singleLineDisplay="!tree.expanded"
+        :extensions="extensions"
+        :widgetTypeId="widgetTypeId"
+        :input="input"
+        :transformUserInput="makeLiteralFromUserInput"
+        :onAccepted="acceptValue"
+        @textEdited="onTextEdited"
+      />
+      <NodeWidget
+        v-if="closeToken"
+        :input="WidgetInput.FromAst(closeToken)"
+        class="delimiter close"
+      />
+    </span>
   </label>
 </template>
 
 <style scoped>
 .WidgetText {
+}
+
+.textValue {
   display: inline-flex;
-  justify-content: center;
   align-items: center;
   align-self: start;
+  overflow-x: auto;
+  &.collapsed {
+    max-width: 300px;
+    &::-webkit-scrollbar {
+      display: none;
+    }
+    &:focus-within {
+      max-width: 400px;
+    }
+  }
 }
 
 .widgetSingleLine :deep(.cm-scroller) {

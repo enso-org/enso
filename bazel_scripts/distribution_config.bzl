@@ -17,12 +17,9 @@ _SBT_PATH_PROPS = select({
     "//conditions:default": _sbt_path_props("$$TMPDIR", "/"),
 })
 
-_VERSION_INFO_PROPS = select({
-    "//:stamping": [
-        "-Denso.BazelSupport.versionInfo=$(location //internal:generated_version_info)",
-    ],
-    "//conditions:default": [],
-})
+_VERSION_INFO_PROPS = [
+    "-Denso.BazelSupport.versionInfo=$(location //internal:generated_version_info)",
+]
 
 _COMMON_JVM_OPTS = [
     "-Xss16M",

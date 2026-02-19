@@ -69,6 +69,7 @@
     "./src/project-view/util/__tests__/qualifiedName.test.ts",
     "./src/project-view/util/__tests__/range.test.ts",
     "./src/project-view/util/__tests__/shortcuts.test.ts",
+    "./src/project-view/util/__tests__/singleLineDisplay.test.ts",
     "./src/project-view/util/__tests__/url.test.ts",
     "./src/project-view/util/ast/__tests__/abstract.test.ts",
     "./src/project-view/util/ast/__tests__/abstractFileIo.test.ts",

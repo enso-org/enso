@@ -51,9 +51,9 @@ function createConfigStore() {
   watch(
     () => remoteConfig.data.value?.ENSO_IDE_ENVIRONMENT,
     (env) => {
-      console.log('Loaded config:', env)
+      if (env != null) console.log('Loaded config:', env)
     },
-    { flush: 'sync' },
+    { flush: 'sync', immediate: true },
   )
 
   watch(

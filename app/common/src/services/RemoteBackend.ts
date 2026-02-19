@@ -5,6 +5,7 @@
  * an API endpoint. The functions are asynchronous and return a {@link Promise} that resolves to
  * the response from the API.
  */
+import { parseAbsolute } from '@internationalized/date'
 import { markRaw } from 'vue'
 import { z } from 'zod'
 import type { DownloadOptions } from '../download.js'
@@ -751,14 +752,40 @@ export class RemoteBackend extends backend.Backend {
   override async listProjectExecutions(
     projectId: backend.ProjectId,
     title: string,
+    year: number,
+    month: number,
   ): Promise<readonly backend.ProjectExecution[]> {
     const path = remoteBackendPaths.listProjectExecutionsPath(projectId)
-    const response = await this.get<readonly backend.ProjectExecution[]>(path)
-    if (!response.ok) {
-      return await this.throw(response, 'listProjectExecutionsBackendError', title)
-    } else {
-      return await response.json()
-    }
+    let executions: backend.ProjectExecution[] = []
+    do {
+      const lastExecutionId = executions[executions.length - 1]?.executionId
+      /* eslint-disable camelcase */
+      const queryParams = new URLSearchParams(
+        lastExecutionId ? { last_execution_id: lastExecutionId } : {},
+      )
+      /* eslint-enable camelcase */
+      const response = await this.get<readonly backend.ProjectExecution[]>(path, queryParams)
+      if (!response.ok) {
+        return await this.throw(response, 'listProjectExecutionsBackendError', title)
+      } else {
+        const page = await response.json()
+        if (page.length === 0) {
+          break
+        } else {
+          executions = executions.concat(page)
+          if (
+            page.some((execution) => {
+              const startDate = parseAbsolute(execution.startDate, execution.timeZone)
+              return startDate.year > year || startDate.month > month
+            })
+          ) {
+            break
+          }
+        }
+      }
+      // eslint-disable-next-line no-constant-condition
+    } while (true)
+    return executions
   }
 
   /**

@@ -256,7 +256,6 @@ export async function createQueryClient<TStorageValue = string>(
     },
   })
   useInvalidation({ mutationHooks, queryHooks, queryClient })
-  await persister?.restoreQueries(queryClient)
 
   Object.defineProperty(queryClient, 'nukePersister', {
     value: () => persisterStorage?.clear(),
@@ -273,6 +272,12 @@ export async function createQueryClient<TStorageValue = string>(
     enumerable: false,
     configurable: false,
     writable: false,
+  })
+
+  await persister?.restoreQueries(queryClient).catch((error) => {
+    console.error('Error while restoring Tanstack Queries; continue without restored cache.', error)
+    // It's safer to clear cache, instead of continuing with partial load.
+    return queryClient.clearWithPersister()
   })
 
   return queryClient
