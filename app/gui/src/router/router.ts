@@ -39,7 +39,6 @@ async function openTab(to: RouteLocation) {
       const id = to.params.id
       const tab: Tab = { type: 'project', id }
       if (container.isTabOpened(tab)) {
-        container.currentTab = tab
         break
       }
       const { localBackend, remoteBackend } = useBackends()
@@ -52,7 +51,7 @@ async function openTab(to: RouteLocation) {
       const assetResponse: AssetDetailsResponse<ProjectId> = await queryClient.fetchQuery(options)
       if (!assetResponse) return false
 
-      container.openProjectLocally(assetResponse, backend.type)
+      container.openProjectLocally(assetResponse, backend.type, false)
       break
     }
     case 'settings': {

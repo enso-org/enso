@@ -156,7 +156,6 @@ function useRightPanel(
   const fullscreen = ref(false)
   const temporaryTab = ref<RightPanelTabId>()
   const tab = ref<RightPanelTabId>()
-  const width = ref<number>()
 
   useSyncLocalStorage({
     storageKey: 'rightPanel',
@@ -164,15 +163,12 @@ function useRightPanel(
     debounce: 200,
     captureState: () => ({
       tab: tab.value,
-      width: width.value,
     }),
     restoreState: (state) => {
       if (state) {
         tab.value = state.tab
-        width.value = state.width
       } else {
         tab.value = toValue(focusedPanel)?.type === 'project' ? 'documentation' : undefined
-        width.value = undefined
       }
     },
   })
@@ -266,7 +262,6 @@ function useRightPanel(
      */
     temporaryTab,
     setTemporaryTab: (tab: RightPanelTabId | undefined) => (temporaryTab.value = tab),
-    width,
     fullscreen,
     context,
     setContext,

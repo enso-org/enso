@@ -282,12 +282,6 @@ export function createOpenedProjectsStore() {
     return projects.get(id)?.nextTask?.process === 'closing'
   }
 
-  /** Register a callback fired every time a project changes it status to 'initialized'. */
-  function onProjectReady(cb: (project: Project) => void) {
-    projectReadyCallbacks.push(cb)
-    return () => projectReadyCallbacks.splice(projectReadyCallbacks.indexOf(cb), 1)
-  }
-
   // A handler for uploading hybrid projects before app close.
   //
   // They are not removed from local backend, but synchronized with remote in case someone else
@@ -344,7 +338,6 @@ export function createOpenedProjectsStore() {
     isProjectClosing,
     waitForProcess,
     closingOnAppExit,
-    onProjectReady,
   }
 }
 

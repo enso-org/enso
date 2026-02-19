@@ -35,10 +35,14 @@ export type Panel = Tab | { type: 'drive' }
 declare module '#/utilities/LocalStorage' {
   interface LocalStorageData {
     readonly openedTabs: (Tab & { runningProject?: RunningProjectInfo | undefined })[]
+    readonly rightPanelWidth: number
+    readonly leftPanelWidth: number
   }
 }
 
 LocalStorage.registerKey('openedTabs', { schema: z.array(OPENED_TAB_SCHEMA) })
+LocalStorage.registerKey('rightPanelWidth', { schema: z.number() })
+LocalStorage.registerKey('leftPanelWidth', { schema: z.number() })
 
 export function tabFromRoute(route: RouteLocation) {
   switch (route.name) {
@@ -81,40 +85,18 @@ function isProjectShownAsTab(project: Project) {
 
 export type ContainerData = ReturnType<typeof useContainerData>
 function createContainerStore() {
-  const auth = useAuth()
   const router = useRouter()
   const route = useRoute()
   const openedProjects = useOpenedProjects()
-  const enableCloudExecution = useFeatureFlag('enableCloudExecution')
-  const backends = useBackends()
   const localStorage = LocalStorage.getInstance()
-
-  /** Whether the user can run projects. */
-  const modesForBackend = computed(() => ({
-    locally: {
-      [BackendType.local]: backends.localBackend != null ? ('local' as const) : null,
-      [BackendType.remote]: backends.localBackend != null ? ('hybrid' as const) : null,
-    },
-    // Local projects can be run natively; only Team plans and above have access to Cloud execution.
-    // Local projects: Open normally
-    // Cloud projects: Open in Cloud VM
-    natively: {
-      [BackendType.local]: backends.localBackend != null ? ('local' as const) : null,
-      [BackendType.remote]:
-        (
-          enableCloudExecution.value &&
-          (auth.session?.user.plan === Plan.team || auth.session?.user.plan === Plan.enterprise)
-        ) ?
-          ('cloud' as const)
-        : null,
-    },
-  }))
-
+  const modesForBackend = useModesForBackend()
   const tabs: Tab[] = reactive([])
+  const focusedPanel = ref<Panel>()
 
   const currentTab = computed<Tab | null>({
     get: () => tabFromRoute(route),
     set: (tab) => {
+      if (panelEquals(tab, currentTab.value)) return
       switch (tab?.type) {
         case 'project':
           router.push({ name: 'project', params: { id: tab.id }, query: route.query })
@@ -122,11 +104,14 @@ function createContainerStore() {
         case 'settings':
           router.push({ name: 'settings', query: route.query })
           break
+        case null:
+          router.push({ name: 'dashboard', query: route.query })
       }
     },
   })
 
-  const focusedPanel = ref<Panel>()
+  const leftPanelWidth = localStorage.ref('leftPanelWidth')
+  const rightPanelWidth = localStorage.ref('rightPanelWidth')
 
   function isTabOpened(tab: Tab) {
     return tabs.some((openedTab) => panelEquals(openedTab, tab))
@@ -136,15 +121,14 @@ function createContainerStore() {
     return panelEquals(tab, currentTab.value)
   }
 
-  function openProjectTab(info: ProjectInfo) {
+  function openProjectTab(info: ProjectInfo, userAction = true) {
     const tab: Tab = { type: 'project', id: info.id }
-    if (isTabOpened(tab)) {
-      if (!isCurrentTab(tab)) {
-        currentTab.value = tab
-      }
-    } else {
-      openedProjects.openProject(info)
+    if (!isTabOpened(tab)) {
+      const project = openedProjects.openProject(info)
       tabs.push(tab)
+      if (userAction) {
+        openedProjects.waitForProcess(project).then(() => (currentTab.value = tab))
+      }
     }
   }
 
@@ -154,10 +138,14 @@ function createContainerStore() {
   }
 
   /** Open project locally, by asset data and backend type. */
-  function openProjectLocally(info: Omit<ProjectInfo, 'mode'>, backend: BackendType) {
+  function openProjectLocally(
+    info: Omit<ProjectInfo, 'mode'>,
+    backend: BackendType,
+    userAction = true,
+  ) {
     const mode = modesForBackend.value.locally[backend]
     if (mode != null) {
-      return openProjectTab({ ...info, mode })
+      return openProjectTab({ ...info, mode }, userAction)
     }
   }
 
@@ -167,10 +155,14 @@ function createContainerStore() {
   }
 
   /** Open project natively, by asset data and backend type. */
-  function openProjectNatively(info: Omit<ProjectInfo, 'mode'>, backend: BackendType) {
+  function openProjectNatively(
+    info: Omit<ProjectInfo, 'mode'>,
+    backend: BackendType,
+    userAction = true,
+  ) {
     const mode = modesForBackend.value.natively[backend]
     if (mode != null) {
-      return openProjectTab({ ...info, mode })
+      return openProjectTab({ ...info, mode }, userAction)
     }
   }
 
@@ -230,15 +222,12 @@ function createContainerStore() {
   const stopSyncing = syncWithLocalStorage()
   onScopeDispose(stopSyncing)
 
-  const offProjectReady = openedProjects.onProjectReady(
-    (project) => (currentTab.value = { type: 'project', id: project.state.info.id }),
-  )
-  onScopeDispose(offProjectReady)
-
   return proxyRefs({
     currentTab,
     tabs,
     focusedPanel,
+    leftPanelWidth,
+    rightPanelWidth,
     isTabOpened,
     isCurrentTab,
     openProjectTab,
@@ -250,6 +239,35 @@ function createContainerStore() {
     closeTab,
     closeCurrentTab,
   })
+}
+
+/**
+ * Return structure specifying a project opening mode for local/native runs, and if they are
+ * available to the user.
+ */
+function useModesForBackend() {
+  const auth = useAuth()
+  const enableCloudExecution = useFeatureFlag('enableCloudExecution')
+  const backends = useBackends()
+  return computed(() => ({
+    locally: {
+      [BackendType.local]: backends.localBackend != null ? ('local' as const) : null,
+      [BackendType.remote]: backends.localBackend != null ? ('hybrid' as const) : null,
+    },
+    // Local projects can be run natively; only Team plans and above have access to Cloud execution.
+    // Local projects: Open normally
+    // Cloud projects: Open in Cloud VM
+    natively: {
+      [BackendType.local]: backends.localBackend != null ? ('local' as const) : null,
+      [BackendType.remote]:
+        (
+          enableCloudExecution.value &&
+          (auth.session?.user.plan === Plan.team || auth.session?.user.plan === Plan.enterprise)
+        ) ?
+          ('cloud' as const)
+        : null,
+    },
+  }))
 }
 
 export const useContainerData = createGlobalState(createContainerStore)

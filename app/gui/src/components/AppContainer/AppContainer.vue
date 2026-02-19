@@ -18,9 +18,10 @@ import { BackendType, EnsoPath } from 'enso-common/src/services/Backend'
 import { newDirectoryId, newProjectId } from 'enso-common/src/services/LocalBackend'
 import * as objects from 'enso-common/src/utilities/data/object'
 import { normalizeSlashes } from 'enso-common/src/utilities/file'
-import { onMounted, onUnmounted, shallowRef, toRef } from 'vue'
+import { computed, onMounted, onUnmounted, shallowRef, toRef } from 'vue'
 import MiddlePanel from './MiddlePanel.vue'
-import { Drive } from './reactTabs'
+
+import LeftPanel from './LeftPanel.vue'
 import RightPanel from './RightPanel.vue'
 
 const ModalWrapper = reactComponent(ModalWrapperReact)
@@ -40,6 +41,7 @@ const openedProjects = useOpenedProjects()
 const containerData = useContainerData()
 const { openProjectLocally, openSettingsTab, closeCurrentTab } = containerData
 const currentTab = toRef(containerData, 'currentTab')
+const anyTabs = computed(() => containerData.tabs.length > 0)
 provideAsyncResources(openedProjects)
 provideRightPanelData(toRef(containerData, 'focusedPanel'), currentTab, props.isFeatureUnderPaywall)
 provideFullscreenRoot(fullscreenRoot)
@@ -97,8 +99,8 @@ onUnmounted(() => {
         <UserBar :goToSettingsPage="openSettingsTab" @signOut="onSignOut" />
       </div>
       <div class="mainView">
-        <Drive />
-        <MiddlePanel />
+        <LeftPanel />
+        <MiddlePanel v-if="anyTabs" />
         <RightPanel />
         <div ref="fullscreenRoot" class="FullscreenRoot" @wheel.stop />
       </div>

@@ -102,6 +102,8 @@ function projectIcon(project: Project): Icon | undefined {
 .MiddlePanel {
   display: flex;
   flex-direction: column;
+  width: 100%;
+  min-width: 0;
 }
 .tablist {
   background-color: rgba(0, 0, 0, 0.1);
