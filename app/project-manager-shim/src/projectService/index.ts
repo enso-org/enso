@@ -198,11 +198,14 @@ export class ProjectService {
     const updatedProject = { ...project, lastOpened: openTime }
     await this.getProjectRepository(projectsDirectory).update(updatedProject)
 
+    const jvmArgs = project.jvmModeEnabled ? ['--jvm'] : []
+    const allExtraArgs = [...jvmArgs, ...this.extraArgs]
+
     // Start the language server
     const sockets = await this.runner.openProject(
       project.path,
       projectId,
-      this.extraArgs.length > 0 ? this.extraArgs : undefined,
+      allExtraArgs.length > 0 ? allExtraArgs : undefined,
       this.projectEnvVars(cloud),
     )
 
