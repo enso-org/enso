@@ -348,7 +348,10 @@ final class TruffleCompilerContext implements CompilerContext {
 
   @Override
   public CompilationAbortedException formatDiagnostic(
-      CompilerContext.Module module, Diagnostic diagnostic, boolean isOutputRedirected) {
+      CompilerContext.Module module,
+      Diagnostic diagnostic,
+      boolean isOutputRedirected,
+      Object src) {
     DiagnosticFormatter diagnosticFormatter;
     var m = org.enso.interpreter.runtime.Module.fromCompilerModule(module);
     if (module != null && diagnostic.location().isDefined()) {
@@ -369,10 +372,14 @@ final class TruffleCompilerContext implements CompilerContext {
       }
     }
     Source fallbackSource;
-    try {
-      fallbackSource = m.getSource();
-    } catch (IOException ex) {
-      fallbackSource = Source.newBuilder(LanguageInfo.ID, "", null).build();
+    if (src instanceof Source s) {
+      fallbackSource = s;
+    } else {
+      try {
+        fallbackSource = m.getSource();
+      } catch (IOException ex) {
+        fallbackSource = Source.newBuilder(LanguageInfo.ID, "", null).build();
+      }
     }
     diagnosticFormatter =
         DiagnosticFormatter.create(

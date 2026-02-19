@@ -68,15 +68,16 @@ public abstract class EvalNode extends BaseNode {
     LocalScope localScope =
         scope == LocalScope.empty() ? LocalScope.createEmpty() : scope.createChild();
     var compiler = context.getCompiler();
+    var src = Source.newBuilder(LanguageInfo.ID, expression, "<interactive_source>").build();
     InlineContext inlineContext =
         InlineContext.fromJava(
             localScope,
             moduleScope.getModule().asCompilerModule(),
             scala.Option.apply(getTailStatus() != TailStatus.NOT_TAIL),
             context.getCompilerConfig(),
-            scala.Option.apply(compiler.packageRepository()));
+            scala.Option.apply(compiler.packageRepository()),
+            src);
 
-    var src = Source.newBuilder(LanguageInfo.ID, expression, "<interactive_source>").build();
     var tuppleOption = compiler.runInline(src.getCharacters(), inlineContext);
     if (tuppleOption.isEmpty()) {
       throw new RuntimeException("Invalid code passed to `eval`: " + expression);
