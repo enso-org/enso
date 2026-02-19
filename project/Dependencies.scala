@@ -325,4 +325,5 @@ object Dependencies {
   val duckdbVersion           = "1.4.4.0"
   val h2Version               = "2.3.232"
   val jimFsVersion            = "1.3.0"
+  val nettyTcNativeBorringSSL = "2.0.70.Final"
 }
