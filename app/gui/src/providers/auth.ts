@@ -3,6 +3,7 @@ import { useFeatureFlag } from '$/providers/featureFlags'
 import * as analytics from '$/utils/analytics'
 import { proxyRefs, type ToValue } from '$/utils/reactivity'
 import type { Opt } from '@/util/data/opt'
+import { waitForData } from '@/util/tanstack'
 import { useToast } from '@/util/toast'
 import * as sentry from '@sentry/vue'
 import * as vueQuery from '@tanstack/vue-query'
@@ -14,7 +15,6 @@ import { computed, inject, toRef, toValue, watchEffect } from 'vue'
 import { useBackends } from './backends'
 import { useSession } from './session'
 import { useText } from './text'
-import { waitForData } from '@/util/tanstack'
 
 /** Object containing the currently signed-in user's session data. */
 export interface UserSession extends cognitoModule.UserSession {
