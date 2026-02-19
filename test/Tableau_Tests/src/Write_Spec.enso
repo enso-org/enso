@@ -21,6 +21,14 @@ add_specs suite_builder = suite_builder.group "Write Tables" group_builder->
 
     get_temp_file -> File =
         transient / (Random.uuid + ".hyper")
+
+    can_round_trip table:Table =
+        written_file = get_temp_file
+        table.write written_file
+        written_table_in_hyper = Hyper_File.new written_file . tables . first
+        written_table = written_table_in_hyper.read
+        written_table.should_equal table
+        written_file.delete
     
     group_builder.specify "default schema and table name is Extract" <|
         written_file = get_temp_file
@@ -60,14 +68,6 @@ add_specs suite_builder = suite_builder.group "Write Tables" group_builder->
         Data.read r (..Hyper_Table "MySchemaName" "MyTableName") . should_equal t
         written_file.delete
 
-    can_round_trip table:Table =
-        written_file = get_temp_file
-        table.write written_file
-        written_table_in_hyper = Hyper_File.new written_file . tables . first
-        written_table = written_table_in_hyper.read
-        written_table.should_equal table
-        written_file.delete
-
     group_builder.specify "should be able to write a text columns" <|
         can_round_trip (Table.input [['A', ['a', 'b', 'c', Nothing]], ['B', [Nothing, 'd', 'e', 'f']]])
 
@@ -75,7 +75,7 @@ add_specs suite_builder = suite_builder.group "Write Tables" group_builder->
         can_round_trip (Table.input [['ints', [1, 2, Nothing]]])
 
     group_builder.specify "should be able to write a float column" <|
-        can_round_trip (Table.input [['ints', [1.0, Nothing, 2.0]]])
+        can_round_trip (Table.input [['floats', [1.0, Nothing, 2.0]]])
     
     group_builder.specify "should be able to write a bool column" <|
         can_round_trip (Table.input [['bools', [True, False, Nothing]]])
@@ -91,8 +91,11 @@ add_specs suite_builder = suite_builder.group "Write Tables" group_builder->
         ## hyper doesn't support time zone
         can_round_trip (Table.input [['times', [Date_Time.new 2025 1 1 12 1 2 3 4 zone=(Time_Zone.parse 'UTC'), Date_Time.new 1989 12 18 zone=(Time_Zone.parse 'UTC'), Nothing]]])
 
+    group_builder.specify "should be able to write a big integer column" <|
+        can_round_trip (Table.input [['bigints', [1, 2, 100, 2^54, 2^24 - 4], Value_Type.Decimal scale=0]])
+
     group_builder.specify "should be able to write a decimal column" <|
-        can_round_trip (Table.input [['decimals', [3.14, -10.66, Nothing, 123456789.123456789], Value_Type.Decimal Nothing Nothing]])
+        can_round_trip (Table.input [['decimals', [3.14, -10.66, Nothing, 123456789.123456789], Value_Type.Decimal]])
 
     group_builder.specify "trying to write a mixed column should error" <|
         written_file = get_temp_file
@@ -104,8 +107,14 @@ add_specs suite_builder = suite_builder.group "Write Tables" group_builder->
 
     group_builder.specify "should be able to write all the types at once" <|
         t1 = enso_project.data/'all_data_types.csv' . read
-        t2 = t1.remove_columns 'appointment_datetime_datetime_withtimezone'
+        t2 = t1.set (expr "to_utc([appointment_datetime_datetime_withtimezone])") "appointment_datetime_datetime_withtimezone"
         can_round_trip t2
+
+    group_builder.specify "should be able to write all the types at once with data sorted" <|
+        t1 = enso_project.data/'all_data_types.csv' . read
+        t2 = t1.set (expr "to_utc([appointment_datetime_datetime_withtimezone])") "appointment_datetime_datetime_withtimezone"
+        t3 = t2.sort "name_char"
+        can_round_trip t3
 
     group_builder.specify "in dry run mode file should not be written and warns" <|
         Context.Output.with_disabled <|

@@ -7,7 +7,7 @@ import org.enso.table.data.column.storage.type.DateType;
 import org.enso.table.util.ImmutableBitSet;
 
 /** A column containing local dates */
-public final class DateStorage extends Storage<LocalDate> {
+public final class DateStorage extends AbstractBaseStorage<LocalDate> {
 
   private final IntBuffer data;
   private final ImmutableBitSet validityMap;

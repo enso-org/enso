@@ -8,7 +8,6 @@ import java.time.LocalDate;
 import java.util.Objects;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.DateStorage;
-import org.enso.table.data.column.storage.Storage;
 import org.enso.table.data.column.storage.type.DateTimeType;
 import org.enso.table.data.column.storage.type.DateType;
 import org.enso.table.data.column.storage.type.StorageType;
@@ -64,7 +63,7 @@ final class DateBuilder extends ValidityBuilder
         this.setValid(currentSize);
         data.put(currentSize++, Math.toIntExact(local.toEpochDay()));
       } catch (ClassCastException e) {
-        throw new ValueTypeMismatchException(getType(), o);
+        throw new ValueTypeMismatchException(DateType.INSTANCE, o);
       }
     }
     return this;
@@ -121,17 +120,12 @@ final class DateBuilder extends ValidityBuilder
     return seal(null);
   }
 
-  final Storage<LocalDate> seal(ColumnStorage<?> otherStorage) {
+  final ColumnStorage<LocalDate> seal(ColumnStorage<?> otherStorage) {
     ensureFreeSpaceFor(0);
     var buf = data.asReadOnlyBuffer().position(0).limit(currentSize);
     var validity = this.validityMap();
 
     return new DateStorage(buf, validity, otherStorage);
-  }
-
-  @Override
-  public StorageType<LocalDate> getType() {
-    return DateType.INSTANCE;
   }
 
   @Override

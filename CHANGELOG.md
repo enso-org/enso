@@ -3,8 +3,13 @@
 #### Enso IDE
 
 - [Add component alignment options][14590].
+- [Components have Expanded/Collapsed modes][14678]. The effect is visible in
+  Table.input components.
+- [Text widgets have a fixed maximum size in collapsed mode][14775]
 
 [14590]: https://github.com/enso-org/enso/pull/14590
+[14678]: https://github.com/enso-org/enso/pull/14678
+[14775]: https://github.com/enso-org/enso/pull/14775
 
 #### Enso Standard Library
 
@@ -17,6 +22,8 @@
 - [Add Amazon SES email provider][14597]
 - [Support for reading Alteryx YXDB files][14602].
 - [Salesforce OAuth support.][14550]
+- [Launching another Enso process via `Process_Builder`][14753]
+- [Redshift schema support.][14735]
 
 [14522]: https://github.com/enso-org/enso/pull/14522
 [14476]: https://github.com/enso-org/enso/pull/14476
@@ -27,6 +34,8 @@
 [14597]: https://github.com/enso-org/enso/pull/14597
 [14602]: https://github.com/enso-org/enso/pull/14602
 [14550]: https://github.com/enso-org/enso/pull/14550
+[14753]: https://github.com/enso-org/enso/pull/14753
+[14735]: https://github.com/enso-org/enso/pull/14735
 
 #### Enso Language & Runtime
 
@@ -34,11 +43,13 @@
 - [Use `State.get if_missing` to avoid too frequent `Panic.throw`][14490]
 - [Lazily initialized local variables with `Ref.new lazy=True`][14554].
 - [Flush system caches via `Runtime.gc`][14557]
+- [Removing `catch_primitive` from the API][14676]
 
 [14480]: https://github.com/enso-org/enso/pull/14480
 [14490]: https://github.com/enso-org/enso/pull/14490
 [14536]: https://github.com/enso-org/enso/pull/14554
 [14557]: https://github.com/enso-org/enso/pull/14557
+[14676]: https://github.com/enso-org/enso/pull/14676
 
 # Enso 2025.3
 
@@ -164,6 +175,7 @@
 - [Default `Data.fetch` auto-detect to plain text or XML in certain
   cases][14648]
 - [Add `Date_Time_Column.to_utc`.][14649]
+- [Add `Date_Column.first_of_week`.][14674]
 
 [13769]: https://github.com/enso-org/enso/pull/13769
 [14026]: https://github.com/enso-org/enso/pull/14026
@@ -204,6 +216,7 @@
 [14546]: https://github.com/enso-org/enso/pull/14528
 [14648]: https://github.com/enso-org/enso/pull/14648
 [14649]: https://github.com/enso-org/enso/pull/14649
+[14674]: https://github.com/enso-org/enso/pull/14674
 
 #### Enso Language & Runtime
 

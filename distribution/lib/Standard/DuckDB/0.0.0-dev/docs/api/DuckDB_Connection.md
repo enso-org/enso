@@ -8,7 +8,7 @@
     - create_index self table:Standard.Base.Any.Any= key_columns:Standard.Base.Data.Vector.Vector= as:Standard.Base.Data.Text.Text= replace_if_present:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Any.Any
     - create_literal_table self source:Standard.Table.Table.Table alias:Standard.Base.Data.Text.Text -> (Standard.Table.Table.Table&Standard.Database.DB_Table.DB_Table&Standard.Base.Any.Any)
     - create_spatial_index self table:Standard.Base.Any.Any= column:Standard.Base.Data.Text.Text= as:Standard.Base.Data.Text.Text= replace_if_present:Standard.Base.Data.Boolean.Boolean= -> Standard.Base.Any.Any
-    - create_table self table_name:Standard.Base.Data.Text.Text structure:(Standard.Base.Any.Any|Standard.Table.Table.Table) primary_key:(Standard.Base.Any.Any|Standard.Base.Nothing.Nothing)= temporary:Standard.Base.Data.Boolean.Boolean= allow_existing:Standard.Base.Data.Boolean.Boolean= on_problems:Standard.Base.Errors.Problem_Behavior.Problem_Behavior= -> Standard.Base.Any.Any
+    - create_table self table_name:Standard.Base.Data.Text.Text structure:((Standard.Base.Data.Vector.Vector Standard.Database.Column_Description.Column_Description)|Standard.Table.Table.Table) primary_key:((Standard.Base.Data.Vector.Vector Standard.Base.Data.Text.Text)|Standard.Base.Nothing.Nothing)= temporary:Standard.Base.Data.Boolean.Boolean= allow_existing:Standard.Base.Data.Boolean.Boolean= on_problems:Standard.Base.Errors.Problem_Behavior.Problem_Behavior= -> Standard.Base.Any.Any
     - database self -> Standard.Base.Any.Any
     - databases self -> Standard.Base.Any.Any
     - dialect self -> Standard.Base.Any.Any

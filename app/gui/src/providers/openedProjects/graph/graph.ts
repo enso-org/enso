@@ -142,7 +142,7 @@ export function createGraphStore(
 
   const nodeState = {
     nodeHovered: useAssociatedFlag({ onCleanup }),
-    nodeExtended: useAssociatedFlag({ onCleanup }),
+    nodeDetailedView: useAssociatedFlag({ onCleanup }),
     nodeOutputVisible: useAssociatedFlag({ onCleanup }),
     nodeOutputHovered: useAssociatedFlag({ onCleanup }),
     nodeRects: useAssociatedValue<NodeId, Rect>({ onCleanup }),
@@ -365,6 +365,13 @@ export function createGraphStore(
     const oldPos = metadata.get('position')
     if (oldPos?.x !== position.x || oldPos?.y !== position.y)
       metadata.set('position', { x: position.x, y: position.y })
+  }
+
+  function setNodeDisplayMode(nodeId: NodeId, mode: 'expanded' | 'collapsed') {
+    const metadata = module.mutableNodeMetadata(db.idFromExternal(nodeId))
+    if (!metadata) return
+    const oldMode = metadata.get('displayMode')
+    if (oldMode !== mode) metadata.set('displayMode', mode)
   }
 
   function overrideNodeColor(nodeId: NodeId, color: string | undefined) {
@@ -682,6 +689,7 @@ export function createGraphStore(
     getNodeColorOverride,
     setNodeContent,
     setNodePosition,
+    setNodeDisplayMode,
     setNodeVisualization,
     updateNodeRect,
     updateNodeOutputAnim,

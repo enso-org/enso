@@ -37,8 +37,7 @@ public abstract class CatchErrorNode extends Node {
   }
 
   @Fallback
-  Object doOther(VirtualFrame frame, Object other, Object handler) {
-    assert !(other instanceof DataflowError);
-    return other;
+  Object doOther(VirtualFrame frame, Object self, Object handler) {
+    return self;
   }
 }

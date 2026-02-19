@@ -9,10 +9,15 @@ import CodeMirrorRoot from '@/components/CodeMirrorRoot.vue'
 import VueHostRender, { VueHostInstance } from '@/components/VueHostRender.vue'
 import { Ast } from '@/util/ast'
 import { targetIsOutside } from '@/util/autoBlur'
-import { selectOnMouseFocus, useCodeMirror, useStringSync } from '@/util/codemirror'
+import {
+  selectAllOnMouseFocus,
+  singleLineDisplay as singleLineDisplayExt,
+  useCodeMirror,
+  useStringSync,
+} from '@/util/codemirror'
 import { highlightStyle } from '@/util/codemirror/highlight'
 import { useToast } from '@/util/toast'
-import { SelectionRange, type Extension } from '@codemirror/state'
+import { type Extension } from '@codemirror/state'
 import { Ok } from 'enso-common/src/utilities/data/result'
 import { ref, useTemplateRef, watch, type ComponentInstance } from 'vue'
 
@@ -30,6 +35,7 @@ const props = defineProps<{
   transformUserInput?: (value: string) => Ast.Owned<Ast.MutableTextLiteral> | string
   /** Editor line mode. Single-line mode will not allow entering newline characters. */
   lineMode: 'single' | 'multi' | 'auto' | 'autoMulti'
+  singleLineDisplay?: boolean
   syncAfterAccept?: boolean
   onAccepted?: (value: string) => HandledUpdate
 }>()
@@ -37,7 +43,6 @@ const props = defineProps<{
 const model = defineModel<string>({ default: '' })
 const emit = defineEmits<{
   textEdited: [text: string]
-  userAction: [text: string, selection: SelectionRange]
   blur: []
 }>()
 
@@ -48,7 +53,6 @@ const { syncExt, getText, setText } = useStringSync({
     editing.value.edit(props.transformUserInput?.(text) ?? text)
     emit('textEdited', text)
   },
-  onUserAction: (text, selection) => emit('userAction', text, selection),
 })
 const vueHost = new VueHostInstance()
 const { editorView } = useCodeMirror(editorRoot, {
@@ -57,7 +61,8 @@ const { editorView } = useCodeMirror(editorRoot, {
     syncExt,
     () => (editorRoot.value ? highlightStyle(editorRoot.value.highlightClasses) : []),
     () =>
-      props.lineMode !== 'multi' && props.lineMode !== 'autoMulti' ? [selectOnMouseFocus] : [],
+      props.lineMode !== 'multi' && props.lineMode !== 'autoMulti' ? selectAllOnMouseFocus : [],
+    () => (props.singleLineDisplay ? singleLineDisplayExt() : []),
     () => props.extensions ?? [],
   ],
   readonly: false,
@@ -91,6 +96,9 @@ const editing = WidgetEditHandler.New(props, {
 })
 
 function blurEditor() {
+  // Work around an apparent browser bug: When the selection is changed after the editor is blurred, the old selection
+  // continues to be rendered.
+  editorView.dispatch({ selection: { anchor: 0 } })
   editorView.contentDOM.blur()
   emit('blur')
 }

@@ -1,7 +1,7 @@
 package org.enso.compiler.pass.analyse
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
-import org.enso.compiler.core.Implicits.AsMetadata
+import org.enso.compiler.Implicits.AsMetadata
 import org.enso.compiler.core.ir.{
   CallArgument,
   DefinitionArgument,
@@ -116,20 +116,23 @@ case object DemandAnalysis extends IRPass {
         analyseType(typ, isInsideCallArgument)
       case cse: Case =>
         analyseCase(cse, isInsideCallArgument)
-      case block @ Expression.Block(expressions, retVal, _, _, _) =>
-        block.copy(
-          expressions = expressions.map(x =>
-            analyseExpression(x, isInsideCallArgument = false)
-          ),
-          returnValue = analyseExpression(retVal, isInsideCallArgument = false)
+      case block: Expression.Block =>
+        val newExprs = block.expressions.map(x =>
+          analyseExpression(x, isInsideCallArgument = false)
         )
-      case binding @ Expression.Binding(_, expression, _, _) =>
-        binding.copy(expression =
-          analyseExpression(
-            expression,
-            isInsideCallArgument = false
+        block
+          .copyBuilder()
+          .expressions(newExprs)
+          .returnValue(
+            analyseExpression(block.returnValue, isInsideCallArgument = false)
           )
+          .build()
+      case binding: Expression.Binding =>
+        val newExpr = analyseExpression(
+          binding.expression(),
+          isInsideCallArgument = false
         )
+        binding.copyBuilder().expression(newExpr).build()
       case lit: Literal     => lit
       case err: Error       => err
       case foreign: Foreign => foreign
@@ -189,8 +192,8 @@ case object DemandAnalysis extends IRPass {
       name match {
         case lit: Name.Literal if isDefined(lit) =>
           val newNameLocation =
-            name.location.map(l => new IdentifiedLocation(l.location()))
-          val newName = lit.copy(location = newNameLocation)
+            name.location.map(l => new IdentifiedLocation(l.location())).orNull
+          val newName = lit.copyBuilder().location(newNameLocation).build()
           Application.Force
             .builder()
             .target(newName)
@@ -203,7 +206,7 @@ case object DemandAnalysis extends IRPass {
 
   private def isDefined(name: Name): Boolean = {
     val aliasInfo = name
-      .unsafeGetMetadata(
+      .unsafeGetMetadata[AliasAnalysis.Metadata](
         AliasAnalysis,
         "Missing alias occurrence information for a name usage"
       )

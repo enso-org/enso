@@ -237,8 +237,8 @@ stamp_files(
         ":dist",
     ],
     out = "dist_stamped",
-    files_regex = "config(-[0-9a-zA-Z]+)?\\.js$|index\\.html$",
     input_dir = "$(location :dist)",
+    recalculate_hashes = True,
     visibility = ["//visibility:public"],
 )
 

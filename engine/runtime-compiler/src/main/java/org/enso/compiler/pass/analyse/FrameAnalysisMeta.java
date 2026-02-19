@@ -3,11 +3,11 @@ package org.enso.compiler.pass.analyse;
 import java.util.stream.Stream;
 import org.enso.compiler.context.LocalScope;
 import org.enso.compiler.core.IR;
-import org.enso.compiler.core.ir.ProcessingPass;
+import org.enso.compiler.pass.IRPass;
 import org.enso.compiler.pass.analyse.alias.graph.Graph;
 import org.enso.compiler.pass.analyse.alias.graph.GraphOccurrence;
 
-public sealed interface FrameAnalysisMeta extends ProcessingPass.Metadata
+public sealed interface FrameAnalysisMeta extends IRPass.IRMetadata
     permits FramePointer, FrameVariableNames {
 
   public static <I extends IR> I updateMetadata(I ir, FrameAnalysisMeta newMeta) {

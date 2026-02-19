@@ -14,7 +14,6 @@ import org.enso.interpreter.instrument.{
 }
 import org.enso.interpreter.instrument.execution.{ErrorResolver, RuntimeContext}
 import org.enso.interpreter.instrument.profiling.ExecutionTime
-import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode.FunctionCall
 import org.enso.interpreter.runtime.library.dispatch.TypeOfNode
 import org.enso.interpreter.runtime.`type`.{Types, TypesGen}
 import org.enso.interpreter.runtime.data.atom.AtomConstructor
@@ -68,7 +67,6 @@ object ProgramExecutionSupport {
   )(implicit ctx: RuntimeContext): Unit = {
 
     val methodCallsCache = new MethodCallsCache
-    var enterables       = Map[UUID, FunctionCall]()
 
     val onCachedMethodCallCallback: Consumer[ExpressionValue] = { value =>
       logger.trace("ON_CACHED_CALL {}", value.getExpressionId)
@@ -118,7 +116,17 @@ object ProgramExecutionSupport {
 
     val callablesCallback: Consumer[ExpressionCall] = fun =>
       if (callStack.headOption.exists(_.expressionId == fun.getExpressionId)) {
-        enterables += fun.getExpressionId -> fun.getCall
+        ctx.executionService
+          .submitExecutionWithCacheAccess(
+            executionFrame.cache,
+            fun,
+            (cache, call: ExpressionCall) => {
+              cache.updateEnterable(call.getExpressionId, call.getCall)
+              null;
+            }
+          )
+          .toCompletableFuture
+          .get()
       }
 
     val pendingResult = executionFrame match {
@@ -208,38 +216,49 @@ object ProgramExecutionSupport {
     pendingResult.toCompletableFuture.get()
     callStack match {
       case Nil =>
-        val notExecuted =
-          methodCallsCache.getNotExecuted(executionFrame.cache.getCalls)
-        notExecuted.forEach { expressionId =>
-          val expressionTypes = executionFrame.cache.getType(expressionId)
-          val expressionCall  = executionFrame.cache.getCall(expressionId)
-          onCachedMethodCallCallback.accept(
-            new ExpressionValue(
-              expressionId,
-              null,
-              expressionTypes,
-              expressionTypes,
-              expressionCall,
-              expressionCall,
-              Array(ExecutionTime.empty()),
-              true,
-              -1.0,
-              null
-            )
-          )
-        }
-      case item :: tail =>
-        enterables.get(item.expressionId) match {
-          case Some(call) =>
-            val executionFrame =
-              ExecutionFrame(
-                ExecutionItem.CallData(item.expressionId, call),
-                item.cache,
-                item.syncState
+        executionFrame.cache.runQuery(
+          null,
+          cache => {
+            val notExecuted =
+              methodCallsCache.getNotExecuted(
+                cache.findUUIDs(true, false)
               )
-            executeProgram(contextId, executionFrame, tail)
-          case None =>
-            ()
+            notExecuted.forEach { expressionId =>
+              val expressionTypes = cache.getType(expressionId)
+              val expressionCall  = cache.getCall(expressionId)
+              onCachedMethodCallCallback.accept(
+                new ExpressionValue(
+                  expressionId,
+                  null,
+                  expressionTypes,
+                  expressionTypes,
+                  expressionCall,
+                  expressionCall,
+                  Array(ExecutionTime.empty()),
+                  true,
+                  -1.0,
+                  null
+                )
+              )
+            }
+          }
+        )
+      case item :: tail =>
+        val callInfo = executionFrame.cache
+          .asInstanceOf[RuntimeCache.Immutable]
+          .getCall(item.expressionId)
+        if (callInfo != null) {
+          logger.trace(
+            "Executing instrumented call in function {}",
+            callInfo.functionPointer().functionName()
+          )
+          val executionFrame =
+            ExecutionFrame(
+              ExecutionItem.CallData(item.expressionId, callInfo.ref()),
+              item.cache,
+              item.syncState
+            )
+          executeProgram(contextId, executionFrame, tail)
         }
     }
   }
@@ -653,7 +672,7 @@ object ProgramExecutionSupport {
         val v = if (visualization.expressionId == value.getExpressionId) {
           value.getValue
         } else {
-          runtimeCache.getAnyValue(visualization.expressionId)
+          runtimeCache.runQuery(null, _.getAnyValue(visualization.expressionId))
         }
         if (v != null && !VisualizationResult.isInterruptedException(v)) {
           executeAndSendVisualizationUpdate(
@@ -710,7 +729,7 @@ object ProgramExecutionSupport {
             holder.upsert(visualization, id)
           }
         }
-        runtimeCache.runQuery(processUUID, makeCall)
+        runtimeCache.runQuery(processUUID, _ => makeCall.get())
       } else {
         makeCall.get()
       }
@@ -784,6 +803,7 @@ object ProgramExecutionSupport {
         }
         syncState.runAndSetVisualizationSync(
           visualizationId,
+          true,
           () => {
             ctx.endpoint.sendToClient(
               Api.Response(
@@ -809,6 +829,7 @@ object ProgramExecutionSupport {
         )
         syncState.runAndSetVisualizationSync(
           visualizationId,
+          true,
           () => {
             ctx.endpoint.sendToClient(
               Api.Response(

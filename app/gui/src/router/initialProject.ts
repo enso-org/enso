@@ -1,8 +1,8 @@
 import { useAuth } from '$/providers/auth'
 import { useBackends } from '$/providers/backends'
+import { useConfig } from '$/providers/config'
 import { useOpenedProjects } from '$/providers/openedProjects'
 import { backendQueryOptions } from '@/composables/backend'
-import { injectGuiConfig } from '@/providers/guiConfig'
 import { onlineManager, useQueryClient } from '@tanstack/vue-query'
 import {
   AssetType,
@@ -30,10 +30,15 @@ export const CLOUD_WELCOME_PROJECT_RELATIVE_PATH = `${SAMPLES_DIRECTORY}/Getting
 
 type BackendAPI<B extends Backend> = Pick<B, 'rootPath' | 'listDirectory'>
 
-/** Open a project depending on path param in RounteLocation */
+/** Open a project depending on path param in RouteLocation */
 export async function openProjectFromPath(to: RouteLocation) {
-  if (to.name !== 'dashboard' || to.params.path == null) return
-  const auth = useAuth()
+  if (
+    to.name !== 'dashboard' ||
+    to.params.path == null ||
+    to.params.path == 'drive' ||
+    to.params.path == 'settings'
+  )
+    return
   const { localBackend, remoteBackend } = useBackends()
   const queryClient = useQueryClient()
   const openedProjects = useOpenedProjects()
@@ -53,7 +58,6 @@ export async function openProjectFromPath(to: RouteLocation) {
 
   const backend = isRemoteAssetPath(path) ? remoteBackend : localBackend
   if (backend == null) return
-  await auth.waitForSession()
   const resolvedPath = await backend.resolveEnsoPath(path).catch(() => null)
   const typedAsset = resolvedPath && extractTypeFromId(resolvedPath.id)
   if (typedAsset?.type !== AssetType.project) return
@@ -107,7 +111,7 @@ export async function maybeRedirectToProject(to: RouteLocation): Promise<Navigat
   if (to.params.path) return
 
   const backends = useBackends()
-  const config = injectGuiConfig()
+  const config = useConfig()
   const auth = useAuth()
   await auth.waitForSession()
 

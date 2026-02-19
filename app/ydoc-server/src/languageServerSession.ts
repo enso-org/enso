@@ -679,6 +679,9 @@ class ModulePersistence extends ObservableV2<{ removed: () => void }> {
           const oldColorOverride = metadata.get('colorOverride')
           const newColorOverride = meta.colorOverride
           if (oldColorOverride !== newColorOverride) metadata.set('colorOverride', newColorOverride)
+          const oldDisplayMode = metadata.get('displayMode')
+          const newDisplayMode = meta.displayMode
+          if (oldDisplayMode !== newDisplayMode) metadata.set('displayMode', newDisplayMode)
         }
         for (const [id, meta] of widgetMeta) {
           if (typeof id !== 'string') continue

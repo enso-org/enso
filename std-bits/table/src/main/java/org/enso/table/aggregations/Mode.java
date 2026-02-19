@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Map;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.storage.ColumnStorage;
+import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.problems.FloatingPointGrouping;
 import org.enso.table.problems.ColumnAggregatedProblemAggregator;
@@ -16,7 +17,7 @@ public class Mode extends KnownTypeAggregator {
   private final ColumnStorage<?> storage;
 
   public Mode(String name, Column column) {
-    super(name, column.getStorage().getType());
+    super(name, StorageType.ofStorage(column.getStorage()));
     this.storage = column.getStorage();
   }
 

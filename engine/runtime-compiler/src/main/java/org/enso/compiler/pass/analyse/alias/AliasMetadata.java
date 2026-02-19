@@ -1,8 +1,8 @@
 package org.enso.compiler.pass.analyse.alias;
 
-import org.enso.compiler.core.CompilerStub;
+import java.util.Objects;
+import org.enso.compiler.context.CompilerContext;
 import org.enso.compiler.core.IR;
-import org.enso.compiler.core.ir.ProcessingPass;
 import org.enso.compiler.pass.IRPass;
 import org.enso.compiler.pass.analyse.AliasAnalysis;
 import org.enso.compiler.pass.analyse.AliasAnalysis$;
@@ -11,7 +11,6 @@ import org.enso.compiler.pass.analyse.alias.graph.GraphBuilder;
 import scala.Option;
 
 /** Metata for {@link AliasAnalysis} pass. */
-@SuppressWarnings("unchecked")
 public abstract sealed class AliasMetadata implements IRPass.IRMetadata
     permits AliasMetadata.Scope, AliasMetadata.Occurrence {
   private final Graph graph;
@@ -30,17 +29,17 @@ public abstract sealed class AliasMetadata implements IRPass.IRMetadata
   }
 
   @Override
-  public final ProcessingPass.Metadata prepareForSerialization(CompilerStub compiler) {
+  public final IRPass.IRMetadata prepareForSerialization(CompilerContext compiler) {
     return this;
   }
 
   @Override
-  public final Option<ProcessingPass.Metadata> restoreFromSerialization(CompilerStub compiler) {
+  public final Option<IRPass.IRMetadata> restoreFromSerialization(CompilerContext compiler) {
     return Option.apply(this);
   }
 
   @Override
-  public final Option duplicate() {
+  public final Option<IRPass.IRMetadata> duplicate() {
     return Option.empty();
   }
 
@@ -54,10 +53,14 @@ public abstract sealed class AliasMetadata implements IRPass.IRMetadata
    * Aliasing information for a root scope.
    *
    * <p>A root scope has a 1:1 correspondence with a top-level binding.
-   *
-   * @param graph the graph containing the alias information for that node
    */
   public static final class RootScope extends Scope {
+
+    /**
+     * Aliasing information for a root scope.
+     *
+     * @param graph the graph containing the alias information for that node
+     */
     public RootScope(Graph graph) {
       super(graph);
     }
@@ -69,6 +72,16 @@ public abstract sealed class AliasMetadata implements IRPass.IRMetadata
 
     public final RootScope copy(Graph graph) {
       return new RootScope(graph);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      return o instanceof RootScope other && this.graph().equals(other.graph());
+    }
+
+    @Override
+    public int hashCode() {
+      return graph().hashCode();
     }
   }
 
@@ -108,6 +121,18 @@ public abstract sealed class AliasMetadata implements IRPass.IRMetadata
     public String metadataName() {
       return "AliasMetadata.ChildScope";
     }
+
+    @Override
+    public boolean equals(Object o) {
+      return o instanceof ChildScope other
+          && this.scope().equals(other.scope())
+          && this.graph().equals(other.graph());
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(scope(), graph());
+    }
   }
 
   /** Aliasing information for a piece of [[IR]] that is contained within a [[Scope]]. */
@@ -140,6 +165,18 @@ public abstract sealed class AliasMetadata implements IRPass.IRMetadata
 
     public int id() {
       return id;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      return o instanceof Occurrence other
+          && this.id() == other.id()
+          && this.graph().equals(other.graph());
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(id(), graph());
     }
   }
 }

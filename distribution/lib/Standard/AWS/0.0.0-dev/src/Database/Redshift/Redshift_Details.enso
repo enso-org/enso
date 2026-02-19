@@ -3,22 +3,14 @@ import Standard.Base.Errors.Common.Type_Error
 import Standard.Base.Metadata.Widget.Text_Input
 
 import Standard.Database.Connection.Client_Certificate.Client_Certificate
-import Standard.Database.Connection.Connection.Connection
 import Standard.Database.Connection.Connection_Options.Connection_Options
 import Standard.Database.Connection.Credentials.Credentials
 import Standard.Database.Connection.SSL_Mode.SSL_Mode
-import Standard.Database.Internal.Connection.Entity_Naming_Properties.Entity_Naming_Properties
-import Standard.Database.Internal.JDBC_Connection
 import Standard.Database.Internal.Postgres.Pgpass
-from Standard.Database.Internal.Postgres.Helpers import get_encoding_name, parse_postgres_encoding
 
 import project.AWS_Credential.AWS_Credential
-import project.Database.Redshift.Internal.Redshift_Dialect
-import project.Database.Redshift.Internal.Redshift_Type_Mapping.Redshift_Type_Mapping
-
+import project.Database.Redshift.Redshift_Connection.Redshift_Connection
 polyglot java import com.amazon.redshift.jdbc.Driver
-polyglot java import org.enso.database.JDBCDriverTypes
-polyglot java import org.enso.database.JDBCProxy
 
 type Redshift_Details
     ## Connect to a AWS Redshift database.
@@ -26,8 +18,8 @@ type Redshift_Details
        ## Arguments
         - `host`: The hostname of the database server.
         - `port`: The port of the database server (defaults to 5439).
-        - `schema`: The schema to connect to (if not provided or empty, the
-          default schema will be used).
+        - `database`: The database to connect to (if not provided or empty, the
+          default database will be used).
         - `db_user`: The user to connect to the database as.
         - `credentials`: The credentials to use for the connection (defaults
           AWS_Profile).
@@ -39,7 +31,7 @@ type Redshift_Details
     Redshift
         host:Text=(Missing_Argument.throw "host")
         port:Integer=5439
-        schema:Text=''
+        database:Text=''
         db_user:Text=''
         credentials:Credentials|AWS_Credential=..Profile
         use_ssl:SSL_Mode=..Require
@@ -60,20 +52,16 @@ type Redshift_Details
 
        ## Arguments
         - `options`: Overrides for the connection properties.
-    connect : Connection_Options -> Connection
+    connect : Connection_Options -> Redshift_Connection
     connect self options =
         if Driver.isRegistered.not then Driver.register
 
         properties = options.merge self.jdbc_properties
 
-        types_record = JDBCDriverTypes.create "Redshift"
-        jdbc_connection = JDBC_Connection.create types_record self.jdbc_url properties
+        make_new database =
+            Redshift_Details.Redshift self.host self.port database self.db_user self.credentials self.use_ssl self.client_cert . connect options
 
-        # TODO [RW] can we inherit these from postgres?
-        encoding = parse_postgres_encoding (get_encoding_name jdbc_connection)
-        entity_naming_properties = Entity_Naming_Properties.from_jdbc_connection jdbc_connection encoding is_case_sensitive=True
-
-        Connection.new jdbc_connection Redshift_Dialect.redshift Redshift_Type_Mapping entity_naming_properties
+        Redshift_Connection.create self.jdbc_url properties make_new
 
     ## ---
        private: true
@@ -84,7 +72,7 @@ type Redshift_Details
         prefix = case self.credentials of
             _ : AWS_Credential -> 'jdbc:redshift:iam://'
             _ -> 'jdbc:redshift://'
-        prefix + self.host + ':' + self.port.to_text + '/' + self.schema
+        prefix + self.host + ':' + self.port.to_text + '/' + self.database
 
     ## ---
        private: true
@@ -93,8 +81,8 @@ type Redshift_Details
     jdbc_properties : Vector (Pair Text Text)
     jdbc_properties self =
         credentials = case self.credentials of
-            Nothing -> Pgpass.read self.host self.port self.schema
-            AWS_Credential.Default -> Pgpass.read self.host self.port self.schema
+            Nothing -> Pgpass.read self.host self.port self.database
+            AWS_Credential.Default -> Pgpass.read self.host self.port self.database
             AWS_Credential.Profile profile ->
                 [Pair.new 'user' self.db_user] + (if profile == '' then [] else [Pair.new 'profile' profile])
             AWS_Credential.Key access_key_id secret_access_key ->
@@ -109,4 +97,3 @@ type Redshift_Details
             self.client_cert.properties
 
         credentials + ssl_properties + cert_properties
-

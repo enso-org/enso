@@ -88,6 +88,7 @@ type File
 
              example_new = File.new Examples.csv_path
        ```
+    @path Widget.Text_Input
     new : (Text | File) -> Any ! Illegal_Argument
     new path = case path of
         _ : Text -> if path.contains "://" . not then resolve_local_file path else

@@ -65,6 +65,7 @@ console.log(
   ),
 )
 await symlink(BACKEND_BUNDLE_PATH, path.join(IDE_DIR_PATH, 'enso'), 'dir')
+await symlink(path.resolve('../gui'), path.resolve(IDE_DIR_PATH, '../../gui'), 'dir')
 
 const ELECTRON_FLAGS =
   process.env.ELECTRON_FLAGS == null ? [] : String(process.env.ELECTRON_FLAGS).split(' ')

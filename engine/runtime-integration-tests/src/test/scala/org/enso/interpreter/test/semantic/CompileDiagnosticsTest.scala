@@ -16,7 +16,7 @@ class CompileDiagnosticsTest extends InterpreterTest {
           |
           |main =
           |    x = Panic.catch Any () .convert_to_dataflow_error
-          |    x.catch_primitive err->
+          |    x.catch Any err->
           |        case err of
           |            Syntax_Error.Error msg -> "Oopsie, it's a syntax error: " + msg
           |""".stripMargin
@@ -31,7 +31,7 @@ class CompileDiagnosticsTest extends InterpreterTest {
           |import Standard.Base.Panic.Panic
           |
           |main =
-          |    x = Panic.catch_primitive ` caught_panic-> caught_panic.payload
+          |    x = Panic.catch Syntax_Error ` caught_panic-> caught_panic.payload
           |    x.to_text
           |""".stripMargin
       eval(code) shouldEqual "(Syntax_Error.Error 'Unexpected token')"

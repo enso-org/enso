@@ -185,8 +185,8 @@ class DemandAnalysisTest extends CompilerTest {
         .body
         .asInstanceOf[Expression.Block]
 
-      irBody
-        .expressions(1)
+      irBody.expressions
+        .apply(1)
         .asInstanceOf[Expression.Binding]
         .expression shouldBe an[Application.Force]
 

@@ -4,6 +4,7 @@
  * monkeypatching on `window` and generated code.
  */
 
+import type { $Config } from 'enso-gui/src/config'
 import type { ElectronApi } from 'enso-gui/src/electronApi'
 
 // JSDocs here are intentionally empty as these interfaces originate from elsewhere.
@@ -12,6 +13,7 @@ declare global {
   /** */
   interface Window {
     readonly api: ElectronApi
+    readonly $config: $Config
   }
 
   interface ImportMetaEnv {

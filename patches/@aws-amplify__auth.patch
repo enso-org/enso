@@ -1,0 +1,34 @@
+diff --git a/dist/esm/providers/cognito/utils/oauth/completeOAuthFlow.mjs b/dist/esm/providers/cognito/utils/oauth/completeOAuthFlow.mjs
+index 5b3e4d53814ff3f428cdfbd8911a2b0a445f5c75..b5f41c1d587ff21fd4552cf6e0f4ab0c3527c8c2 100644
+--- a/dist/esm/providers/cognito/utils/oauth/completeOAuthFlow.mjs
++++ b/dist/esm/providers/cognito/utils/oauth/completeOAuthFlow.mjs
+@@ -155,7 +155,10 @@ const getCustomState = (state) => {
+     return state.split('-').splice(1).join('-');
+ };
+ const clearHistory = (redirectUri) => {
+-    if (typeof window !== 'undefined' && typeof window.history !== 'undefined') {
++    // Deeplink redirect means that the navigation didn't occur in the electron, so there is no
++    // need of history replacement.
++    const isDeepLink = redirectUri.startsWith('enso://')
++    if (typeof window !== 'undefined' && typeof window.history !== 'undefined' && !isDeepLink) {
+         window.history.replaceState(window.history.state, '', redirectUri);
+     }
+ };
+diff --git a/dist/esm/providers/cognito/utils/oauth/getRedirectUrl.mjs b/dist/esm/providers/cognito/utils/oauth/getRedirectUrl.mjs
+index 90bfdb5dff2146a4072993af4b94ec0f642407ba..ef2be6d40d3bf87d4649a0bff02a30477a1c7db4 100644
+--- a/dist/esm/providers/cognito/utils/oauth/getRedirectUrl.mjs
++++ b/dist/esm/providers/cognito/utils/oauth/getRedirectUrl.mjs
+@@ -15,7 +15,12 @@ function getRedirectUrl(redirects, preferredRedirectUrl) {
+         const redirectUrlFromTheSameOrigin = redirects?.find(isSameOriginAndPathName) ??
+             redirects?.find(isTheSameDomain);
+         const redirectUrlFromDifferentOrigin = redirects?.find(isHttps) ?? redirects?.find(isHttp);
+-        if (redirectUrlFromTheSameOrigin) {
++        // Patch for app/gui: we handle deep links as well.
++        const deeplinkRedirectUrl = redirects?.find((url) => url.startsWith('enso://'));
++        if (deeplinkRedirectUrl) {
++            return deeplinkRedirectUrl;
++        }
++        else if (redirectUrlFromTheSameOrigin) {
+             return redirectUrlFromTheSameOrigin;
+         }
+         else if (redirectUrlFromDifferentOrigin) {

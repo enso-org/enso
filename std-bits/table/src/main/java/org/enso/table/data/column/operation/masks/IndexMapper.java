@@ -23,9 +23,9 @@ public abstract sealed class IndexMapper
   private static final AtomicLong atomicCounter = new AtomicLong(0);
   private final long uniqueKey = atomicCounter.incrementAndGet();
 
-  abstract long map(long index);
+  public abstract long map(long index);
 
-  abstract long size();
+  public abstract long size();
 
   IndexMapper merge(IndexMapper other) {
     if (other.size() == 0) {

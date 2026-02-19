@@ -208,17 +208,18 @@ object CacheInvalidation {
 
   /** Run cache invalidation of a single instrument frame.
     *
-    * @param cache the cache to invalidate
+    * @param cacheApi the cache to invalidate
     * @param syncState the synchronization state of runtime updates
     * @param command the invalidation instruction
     * @param indexes the list of indexes to invalidate
     */
   private def run(
-    cache: RuntimeCache,
+    cacheApi: RuntimeCache,
     syncState: Option[UpdatesSynchronizationState],
     command: Command,
     indexes: Set[IndexSelector]
-  ): Unit =
+  ): Unit = {
+    val cache = cacheApi.asInstanceOf[RuntimeCacheImpl]
     command match {
       case Command.InvalidateAll =>
         logger.trace("Cache - clear all")
@@ -249,13 +250,17 @@ object CacheInvalidation {
       case Command.SetMetadata(metadata) =>
         cache.setPreferences(metadata.preferences)
     }
+  }
 
   /** Clear the selected index.
     *
     * @param selector the selected index
     * @param cache the cache to invalidate
     */
-  private def clearIndex(selector: IndexSelector, cache: RuntimeCache): Unit =
+  private def clearIndex(
+    selector: IndexSelector,
+    cache: RuntimeCacheImpl
+  ): Unit =
     selector match {
       case IndexSelector.All =>
         cache.clearTypes()
@@ -278,7 +283,7 @@ object CacheInvalidation {
   private def clearIndexKey(
     key: UUID,
     selector: IndexSelector,
-    cache: RuntimeCache
+    cache: RuntimeCacheImpl
   ): Unit =
     selector match {
       case IndexSelector.All =>

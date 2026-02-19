@@ -7,7 +7,6 @@ describe('Code edit', () => {
   test('Change argument type', () => {
     const beforeRoot = Ast.parseExpression('func arg1 arg2')
     assertDefined(beforeRoot)
-    beforeRoot.module.setRoot(beforeRoot)
     const before = findExpressions(beforeRoot, {
       func: Ast.Ident,
       arg1: Ast.Ident,
@@ -36,7 +35,6 @@ describe('Code edit', () => {
 
   test('syncToCode does not create unneeded AST nodes', () => {
     const beforeRoot = Ast.parseModule('main = func 1 2\n')
-    beforeRoot.module.setRoot(beforeRoot)
     const edit = beforeRoot.module.edit()
     const newCode = 'main = func 10 2\n'
     let changes: Record<string, number> | undefined = undefined
@@ -61,7 +59,6 @@ describe('Code edit', () => {
   test('Insert argument names', () => {
     const beforeRoot = Ast.parseExpression('func arg1 arg2')
     assertDefined(beforeRoot)
-    beforeRoot.module.setRoot(beforeRoot)
     const before = findExpressions(beforeRoot, {
       func: Ast.Ident,
       arg1: Ast.Ident,
@@ -92,7 +89,6 @@ describe('Code edit', () => {
   test('Remove argument names', () => {
     const beforeRoot = Ast.parseExpression('func name1=arg1 name2=arg2')
     assertDefined(beforeRoot)
-    beforeRoot.module.setRoot(beforeRoot)
     const before = findExpressions(beforeRoot, {
       func: Ast.Ident,
       arg1: Ast.Ident,
@@ -187,7 +183,6 @@ describe('Code edit', () => {
   test('Inline expression change', () => {
     const beforeRoot = Ast.parseExpression('func name1=arg1 name2=arg2')
     assertDefined(beforeRoot)
-    beforeRoot.module.setRoot(beforeRoot)
     const before = findExpressions(beforeRoot, {
       func: Ast.Ident,
       arg1: Ast.Ident,
@@ -221,7 +216,6 @@ describe('Code edit', () => {
     const expression = Ast.parseBlockStatement(code)
     assertDefined(expression)
     const module = expression.module
-    module.setRoot(expression)
     expression.syncToCode(code)
     expect(module.root()?.code()).toBe(code)
   })
@@ -230,14 +224,12 @@ describe('Code edit', () => {
     const code = 'main =\n    a = 1\n    b = 2\n'
     const block = Ast.parseModule(code)
     const module = block.module
-    module.setRoot(block)
     block.syncToCode(code)
     expect(module.root()?.code()).toBe(code)
   })
 
   test('Shifting whitespace ownership', () => {
     const beforeRoot = Ast.parseModule('value = 1 +\n')
-    beforeRoot.module.setRoot(beforeRoot)
     const before = findExpressions(beforeRoot, {
       value: Ast.Ident,
       '1': Ast.NumericLiteral,
@@ -262,7 +254,6 @@ describe('Code edit', () => {
   test('Merging', () => {
     const block = Ast.parseModule('a = 1\nb = 2')
     const module = block.module
-    module.setRoot(block)
 
     const editA = module.edit()
     editA.getVersion(block).syncToCode('a = 10\nb = 2')

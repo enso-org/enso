@@ -20,7 +20,6 @@ export function testCase<T extends StringsWithTypeValues>(spec: T): TestCase<T> 
 
   const statementIndex = new Map<string, Ast.Ast>()
   const parsed = Ast.parseBlock(code)
-  parsed.module.setRoot(parsed)
   const statements = new Array<Ast.Ast>()
   Ast.visitRecursive(parsed, (ast) => {
     if (ast instanceof Ast.BodyBlock) statements.push(...ast.statements())

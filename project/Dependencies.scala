@@ -232,7 +232,7 @@ object Dependencies {
   val awsJavaSdkV2Version     = "2.25.40"
   val icuVersion              = "73.1"
   val poiOoxmlVersion         = "5.2.3"
-  val redshiftVersion         = "2.1.0.15"
+  val redshiftVersion         = "2.2.2"
   val univocityParsersVersion = "2.9.1"
   val xmlbeansVersion         = "5.1.1"
   val tableauVersion          = "0.0.19691.r2d7e5bc8"
@@ -322,7 +322,7 @@ object Dependencies {
   val googleProtobufVersion   = "3.25.1"
   val shapelessVersion        = "2.3.10"
   val postgresVersion         = "42.4.0"
-  val duckdbVersion           = "1.4.0.0"
+  val duckdbVersion           = "1.4.4.0"
   val h2Version               = "2.3.232"
   val jimFsVersion            = "1.3.0"
 }

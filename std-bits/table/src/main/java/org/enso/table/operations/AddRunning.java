@@ -8,6 +8,7 @@ import org.enso.table.data.column.builder.BuilderForLong;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.column.storage.type.IntegerType;
+import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.problems.IgnoredNaN;
 import org.enso.table.data.table.problems.IgnoredNothing;
@@ -80,13 +81,13 @@ public class AddRunning {
         return new RunningProductStatistic(sourceColumn, problemAggregator);
       }
       case Minimum -> {
-        if (sourceColumn.getStorage().getType() instanceof IntegerType type) {
+        if (StorageType.ofStorage(sourceColumn.getStorage()) instanceof IntegerType type) {
           return new RunningMinLongStatistic(sourceColumn, problemAggregator, type);
         }
         return new RunningMinStatistic(sourceColumn, problemAggregator);
       }
       case Maximum -> {
-        if (sourceColumn.getStorage().getType() instanceof IntegerType type) {
+        if (StorageType.ofStorage(sourceColumn.getStorage()) instanceof IntegerType type) {
           return new RunningMaxLongStatistic(sourceColumn, problemAggregator, type);
         }
         return new RunningMaxStatistic(sourceColumn, problemAggregator);

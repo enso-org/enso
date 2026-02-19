@@ -161,6 +161,7 @@ onUnmounted(() => {
               "
               :phase="loadingProjectSpinnerPhase(project)"
               :size="16"
+              :thickness="1"
             />
           </SelectableTab>
           <SelectableTab

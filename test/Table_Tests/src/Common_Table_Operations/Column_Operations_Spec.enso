@@ -1079,7 +1079,7 @@ add_column_operation_specs suite_builder setup =
             warnings.not_empty.should_be_true
             warning = warnings.first
             warning.should_be_a Arithmetic_Error
-            warning.message . should_equal "Division by zero (at rows [0, 1, 2, 3, 4, 5, 6, 7, 8, ...])."
+            warning.message . should_equal "Division by zero (at rows [0, 1, 2, 3, 4, 5, 6, 7, 8, ... (191 more)])."
 
         group_builder.specify "should return null if one of arguments is missing" <|
             nulls = [Nothing, Nothing, Nothing, Nothing]

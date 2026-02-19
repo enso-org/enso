@@ -3,7 +3,7 @@ Copyright 2020 - 2026 New Byte Order sp. z o. o.
 
 'redshift-jdbc42', licensed under the Apache License, Version 2.0, is distributed with the AWS.
 The license information can be found along with the copyright notices.
-Copyright notices related to this dependency can be found in the directory `com.amazon.redshift.redshift-jdbc42-2.1.0.15`.
+Copyright notices related to this dependency can be found in the directory `com.amazon.redshift.redshift-jdbc42-2.2.2`.
 
 
 'aws-java-sdk-core', licensed under the Apache License, Version 2.0, is distributed with the AWS.
@@ -244,6 +244,11 @@ Copyright notices related to this dependency can be found in the directory `soft
 'protocol-core', licensed under the Apache License, Version 2.0, is distributed with the AWS.
 The license information can be found along with the copyright notices.
 Copyright notices related to this dependency can be found in the directory `software.amazon.awssdk.protocol-core-2.25.40`.
+
+
+'redshift', licensed under the Apache License, Version 2.0, is distributed with the AWS.
+The license information can be found along with the copyright notices.
+Copyright notices related to this dependency can be found in the directory `software.amazon.awssdk.redshift-2.25.40`.
 
 
 'regions', licensed under the Apache License, Version 2.0, is distributed with the AWS.

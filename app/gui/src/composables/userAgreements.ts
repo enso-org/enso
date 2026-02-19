@@ -24,7 +24,7 @@ LocalStorage.registerKey('privacyPolicy', { schema: PRIVACY_POLICY_SCHEMA })
 const latestTermsOfServiceQueryOptions = vueQuery.queryOptions({
   queryKey: ['termsOfService', 'currentVersion'],
   queryFn: async () => {
-    const response = await fetch(new URL('/eula.json', $config.ENSO_HOST))
+    const response = await fetch(new URL('/eula.json', $config.HOST))
     if (!response.ok) {
       throw new Error('Failed to fetch Terms of Service')
     } else {
@@ -40,7 +40,7 @@ const latestTermsOfServiceQueryOptions = vueQuery.queryOptions({
 const latestPrivacyPolicyQueryOptions = vueQuery.queryOptions({
   queryKey: ['privacyPolicy', 'currentVersion'],
   queryFn: async () => {
-    const response = await fetch(new URL('/privacy.json', $config.ENSO_HOST))
+    const response = await fetch(new URL('/privacy.json', $config.HOST))
     if (!response.ok) {
       throw new Error('Failed to fetch Privacy Policy')
     } else {

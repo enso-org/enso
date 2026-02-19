@@ -6,15 +6,24 @@ load("//:bazel_scripts/ts_config.bzl", "write_tsconfig")
 
 npm_link_all_packages(name = "node_modules")
 
+TEST_SOURCES = [
+    "src/**/__tests__/**",
+    "src/**/*.bench.ts",
+    "src/**/*.test.ts",
+]
+
 ts_config(
     name = "tsconfig",
-    src = "tsconfig.json",
+    src = "tsconfig.build.json",
     deps = ["//:tsconfig"],
 )
 
 ts_project(
     name = "tsc",
-    srcs = glob(["src/**/*.ts"]),
+    srcs = glob(
+        ["src/**/*.ts"],
+        TEST_SOURCES,
+    ),
     composite = True,
     out_dir = "dist",
     root_dir = "src",
@@ -36,8 +45,8 @@ npm_package(
 )
 
 write_tsconfig(
-    name = "tsconfig_generated",
-    out = "tsconfig.json",
+    name = "tsconfig_build_generated",
+    out = "tsconfig.build.json",
     config = {
         "compilerOptions": {
             "composite": True,
@@ -47,12 +56,52 @@ write_tsconfig(
         },
     },
     extends = "//:tsconfig",
-    files = glob(["src/**/*.ts"]),
+    files = glob(
+        ["src/**/*.ts"],
+        TEST_SOURCES,
+    ),
+)
+
+write_tsconfig(
+    name = "tsconfig_test_generated",
+    out = "tsconfig.test.json",
+    config = {
+        "compilerOptions": {
+            "composite": True,
+            "rootDir": "..",
+            "types": [
+                "node",
+                "vitest/importMeta",
+            ],
+        },
+    },
+    extends = "//:tsconfig",
+    files = glob(["src/**/*.ts"]) + [
+        "vitest.config.ts",
+        "//app:vitest.node.base.ts",
+    ],
+)
+
+write_tsconfig(
+    name = "tsconfig_generated",
+    out = "tsconfig.json",
+    config = {
+        "references": [
+            {"path": "./tsconfig.build.json"},
+            {"path": "./tsconfig.test.json"},
+        ],
+    },
+    extends = "//:tsconfig",
+    files = [],
 )
 
 write_source_files(
     name = "write_tsconfigs",
-    files = {"tsconfig.json": ":tsconfig_generated"},
+    files = {
+        "tsconfig.build.json": ":tsconfig_build_generated",
+        "tsconfig.json": ":tsconfig_generated",
+        "tsconfig.test.json": ":tsconfig_test_generated",
+    },
     suggested_update_target = "//:write_all",
     visibility = ["//visibility:public"],
 )

@@ -1,5 +1,6 @@
 load("@aspect_bazel_lib//lib:write_source_files.bzl", "write_source_files")
 load("@aspect_rules_esbuild//esbuild:defs.bzl", "esbuild")
+load("@aspect_rules_js//js:defs.bzl", "js_binary", "js_run_binary")
 load("@aspect_rules_js//npm:defs.bzl", "npm_package")
 load("@aspect_rules_ts//ts:defs.bzl", "ts_config", "ts_project")
 load("@npm//:defs.bzl", "npm_link_all_packages", "npm_link_targets")
@@ -93,40 +94,44 @@ stamp_files(
     name = "bundle_stamped",
     srcs = [":bundle"],
     out = "bundle_stamped",
-    files_regex = ".*\\.mjs$",
     input_dir = "$(location :bundle)",
+    recalculate_hashes = False,
     visibility = ["//visibility:public"],
 )
 
-alias(
-    name = "selected_bundle",
-    actual = select({
-        "//:stamping": ":bundle_stamped",
-        "//conditions:default": ":bundle",
-    }),
+stamp_files(
+    name = "electron_builder_config_stamped",
+    srcs = ["electron-builder-config.cjs"],
+    out = "electron_builder_config_stamped/electron-builder-config.cjs",
+    input_path = "$(location electron-builder-config.cjs)",
+    output_is_directory = False,
+    recalculate_hashes = False,
 )
 
-alias(
-    name = "selected_gui_dist",
-    actual = select({
-        "//:stamping": "//app/gui:dist_stamped",
-        "//conditions:default": "//app/gui:dist",
-    }),
+genrule(
+    name = "enso_bundle_marker",
+    outs = [".enso.bundle"],
+    cmd = "touch $@",
+    cmd_bat = "type NUL > $@",
+    visibility = ["//visibility:public"],
 )
 
 electron_builder_bin.electron_builder(
     name = "dist",
     srcs = npm_link_targets() + [
         "package.json",
-        ":electron-builder-config.cjs",
-        ":selected_bundle",
-        ":selected_gui_dist",
-        "//:sbt_build_engine_distribution",
+        ":bundle_stamped",
+        ":electron_builder_config_stamped",
+        ":enso_bundle_marker",
+        "//:dependencies_scala_bin",
+        "//:sbt_build_native_engine_distribution",
         "//:sbt_build_small_jdk",
+        "//app/gui:dist_stamped",
+        "//internal:dependencies_versions_in_bin",
     ],
     args = [
         "build",
-        "--config electron-builder-config.cjs",
+        "--config electron_builder_config_stamped/electron-builder-config.cjs",
     ],
     chdir = package_name(),
     env = {
@@ -134,6 +139,55 @@ electron_builder_bin.electron_builder(
         "JS_BINARY__PATCH_NODE_FS": "0",
     },
     out_dirs = ["ide-dist"],
+    visibility = ["//visibility:public"],
+)
+
+exports_files(["assets/icons/icon.ico"])
+
+genrule(
+    name = "installer_artifacts",
+    srcs = [":dist"],
+    outs = [
+        "installer_payload.tar.gz",
+        "installer_metadata.json",
+    ],
+    cmd = """
+        export PATHEXT=".COM;.EXE;.BAT;.CMD"
+        export PATH="$$PATH;$$(dirname $$(realpath $(BSDTAR_BIN)))"
+        DIST_DIR=$(location :dist)
+        $(execpath //build_tools/install/config:prepare_payload) \
+            "$$DIST_DIR/win-unpacked" \
+            $(location installer_payload.tar.gz) \
+            $(location installer_metadata.json)
+    """,
+    target_compatible_with = ["@platforms//os:windows"],
+    toolchains = ["//toolchains/tar:resolved_toolchain"],
+    tools = ["//build_tools/install/config:prepare_payload"],
+    visibility = ["//visibility:public"],
+)
+
+js_binary(
+    name = "export_config_script",
+    data = ["electron-builder-config.cjs"],
+    entry_point = "export-config.mjs",
+)
+
+js_run_binary(
+    name = "exported_config",
+    srcs = [
+        ":electron_builder_config_stamped",
+        "//:dependencies_scala_bin",
+        "//internal:dependencies_versions_in_bin",
+    ],
+    args = ["$(location :electron_builder_config_stamped)"],
+    stdout = "electron-builder-config.json",
+    tool = ":export_config_script",
+    visibility = ["//visibility:public"],
+)
+
+alias(
+    name = "win_installer",
+    actual = "//build_tools/install/installer:enso_installer",
     visibility = ["//visibility:public"],
 )
 
@@ -157,7 +211,7 @@ write_tsconfig(
         "tasks/*.ts",
         "tests/**/*.ts",
         "*.ts",
-    ]),
+    ]) + ["//app:vitest.node.base.ts"],
 )
 
 write_source_files(

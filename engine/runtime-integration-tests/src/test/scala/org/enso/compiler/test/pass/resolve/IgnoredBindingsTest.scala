@@ -2,7 +2,7 @@ package org.enso.compiler.test.pass.resolve
 
 import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, InlineContext}
-import org.enso.compiler.core.Implicits.AsMetadata
+import org.enso.compiler.Implicits.AsMetadata
 import org.enso.compiler.core.ir.expression.Case
 import org.enso.compiler.core.ir.{
   DefinitionArgument,
@@ -121,7 +121,7 @@ class IgnoredBindingsTest extends CompilerTest {
 
     "mark the binding as not ignored if it wasn't" in {
       val nonIgnored =
-        bindingBody.expressions(1).asInstanceOf[Expression.Binding]
+        bindingBody.expressions.apply(1).asInstanceOf[Expression.Binding]
 
       nonIgnored.getMetadata(IgnoredBindings) shouldEqual Some(
         State.NotIgnored

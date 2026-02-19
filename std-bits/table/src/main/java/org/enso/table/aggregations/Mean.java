@@ -1,6 +1,5 @@
 package org.enso.table.aggregations;
 
-import java.lang.reflect.Proxy;
 import java.math.BigDecimal;
 import java.math.MathContext;
 import java.util.List;
@@ -34,25 +33,17 @@ public class Mean extends KnownTypeAggregator {
 
   private static StorageType<?> resultTypeFromInput(ColumnStorage<?> inputStorage) {
     var resolvedStorage = ColumnStorageWithInferredStorage.resolveStorage(inputStorage);
-    var inputType = resolvedStorage.getType();
-    return resultTypeFromInputType(inputType);
+    return resultTypeFromInputType(StorageType.ofStorage(resolvedStorage));
   }
 
   private static StorageType<?> resultTypeFromInputType(StorageType<?> inputType)
       throws IllegalStateException {
     return switch (inputType) {
-      case FloatType floatType -> FloatType.FLOAT_64;
-      case IntegerType integerType -> FloatType.FLOAT_64;
-      case BigIntegerType bigIntegerType -> BigDecimalType.INSTANCE;
-      case BigDecimalType bigDecimalType -> BigDecimalType.INSTANCE;
+      case FloatType _, IntegerType _ -> FloatType.FLOAT_64;
+      case BigIntegerType _, BigDecimalType _ -> BigDecimalType.INSTANCE;
       case NullType nullType -> nullType;
-      default -> {
-        if (Proxy.isProxyClass(inputType.getClass())) {
-          var fresh = StorageType.fromTypeCharAndSize(inputType.typeChar(), inputType.size());
-          yield resultTypeFromInputType(fresh);
-        }
-        throw new IllegalStateException("Unexpected input type for Mean aggregate: " + inputType);
-      }
+      default ->
+          throw new IllegalStateException("Unexpected input type for Mean aggregate: " + inputType);
     };
   }
 
@@ -66,12 +57,13 @@ public class Mean extends KnownTypeAggregator {
   }
 
   private MeanAccumulator makeAccumulator() {
-    return switch (getType()) {
-      case FloatType floatType -> new FloatMeanAccumulator();
-      case BigDecimalType bigDecimalType -> new BigDecimalMeanAccumulator();
-      case NullType nullType -> new NullAccumulator();
+    return switch (getStorageType()) {
+      case FloatType _ -> new FloatMeanAccumulator();
+      case BigDecimalType _ -> new BigDecimalMeanAccumulator();
+      case NullType _ -> new NullAccumulator();
       default ->
-          throw new IllegalStateException("Unexpected output type in Mean aggregate: " + getType());
+          throw new IllegalStateException(
+              "Unexpected output type in Mean aggregate: " + getStorageType());
     };
   }
 
@@ -173,7 +165,7 @@ public class Mean extends KnownTypeAggregator {
     @Override
     void accumulate(
         List<Integer> indexes, ColumnStorage<?> storage, ProblemAggregator problemAggregator) {
-      assert storage.getType() instanceof NullType;
+      assert StorageType.ofStorage(storage) instanceof NullType;
     }
 
     @Override

@@ -310,16 +310,6 @@ Any.catch self (error_type = Any) (handler = x->x) =
             False -> self
 
 ## ---
-   private: true
-   ---
-   Executes the provided handler on a dataflow error, or executes as identity
-   on a non-error value.
-
-   ## Arguments
-   - `handler`: The function to call on this if it is an error value.
-Any.catch_primitive self handler =  Any_Helpers.any_catch_primitive self handler
-
-## ---
    icon: column_add
    ---
    Transforms an error.

@@ -11,9 +11,9 @@ from Standard.Base.Metadata.Choice import Option
 from Standard.Base.Metadata.Widget import Multiple_Choice, Single_Choice, Text_Input, Vector_Editor
 
 import Standard.Table.In_Memory_Table.In_Memory_Table
+import Standard.Table.Internal.In_Memory_Helpers
 import Standard.Table.Rows_To_Read.Rows_To_Read
 from Standard.Table import Table, Value_Type
-from Standard.Table.In_Memory_Table import to_java_table
 from Standard.Table.Internal.Storage import from_value_type
 
 import Standard.Database.Bulk_Load_Exists.Bulk_Load_Exists
@@ -588,10 +588,10 @@ type DuckDB_Connection
                         Value_Type.Decimal _ s ->
                             if s>0 then BigDecimalType.new s else from_value_type c.value_type ..Ignore
                         _ -> from_value_type c.value_type ..Ignore
-                    java_table = to_java_table in_memory
+                    column_storages = In_Memory_Helpers.get_java_column_storages in_memory
                     self.jdbc_connection.with_handled_connection connection->
                         Illegal_Argument.handle_java_exception <| Panic.catch ArithmeticException handler=(err-> Error.throw (Illegal_Argument.Error err.getMessage)) <|
-                            DuckDBUtils.append connection java_table table_name java_column_types
+                            DuckDBUtils.append connection column_storages table_name java_column_types
                             created_table
 
     ## ---

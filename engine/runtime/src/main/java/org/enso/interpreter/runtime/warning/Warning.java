@@ -41,7 +41,7 @@ public final class Warning extends BuiltinObject {
     return value;
   }
 
-  @Builtin.Method(name = "origin", description = "Gets the payload of the warning.")
+  @Builtin.Method(name = "origin", description = "Gets the origin of the warning.")
   @SuppressWarnings("generic-enso-builtin-type")
   public Object getOrigin() {
     return origin;

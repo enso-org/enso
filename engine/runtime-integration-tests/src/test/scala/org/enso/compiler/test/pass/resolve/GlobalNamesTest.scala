@@ -3,7 +3,7 @@ package org.enso.compiler.test.pass.resolve
 import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, ModuleContext}
 import org.enso.compiler.core.{EnsoParser, IR}
-import org.enso.compiler.core.Implicits.AsMetadata
+import org.enso.compiler.Implicits.AsMetadata
 import org.enso.compiler.core.ir.Expression
 import org.enso.compiler.core.ir.Function
 import org.enso.compiler.core.ir.Module
@@ -214,7 +214,7 @@ class GlobalNamesTest extends CompilerTest {
     moduleIr
       .preorder()
       .collect { case ir: IR =>
-        ir.getMetadata(GlobalNames).map((ir, _))
+        ir.getMetadata(GlobalNames, classOf[GlobalNames.Metadata]).map((ir, _))
       }
       .flatten
   }

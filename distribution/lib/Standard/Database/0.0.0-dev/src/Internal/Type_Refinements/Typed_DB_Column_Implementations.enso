@@ -168,6 +168,11 @@ type DB_Date_Column_Implementation
             new_name = (naming_helper column).function_name "end_of_month" [column]
             make_unary_op column "end_of_month" new_name
 
+    first_of_week (column : Column & DB_Column) (first_day:Day_Of_Week) =
+        Value_Type.expect_date column <|
+            offset = first_day.to_integer start_at_zero=True
+            column.date_add (column.const offset - column.day_of_week) Date_Period.Day
+
 type DB_Date_Time_Column_Implementation
     at_time_zone column time_zone =
         _ = [column, time_zone]

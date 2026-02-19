@@ -1,7 +1,7 @@
 package org.enso.compiler.pass.resolve
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
-import org.enso.compiler.core.Implicits.AsMetadata
+import org.enso.compiler.Implicits.AsMetadata
 import org.enso.compiler.core.ir.AscriptionReason
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.ir.module.scope.definition
@@ -45,7 +45,6 @@ case object TypeSignatures extends IRPass {
   override lazy val invalidatedPasses: Seq[IRProcessingPass] = List(
     AliasAnalysis,
     CachePreferenceAnalysis,
-    DataflowAnalysis,
     DemandAnalysis,
     org.enso.compiler.pass.analyse.TailCall.INSTANCE,
     UnusedBindings
@@ -121,7 +120,10 @@ case object TypeSignatures extends IRPass {
           case Some(asc: Type.Ascription) =>
             val methodRef = meth.methodReference
             val newMethodWithDoc = asc
-              .getMetadata(DocumentationComments)
+              .getMetadata(
+                DocumentationComments,
+                classOf[DocumentationComments.Metadata]
+              )
               .map(doc =>
                 newMethod.updateMetadata(
                   new MetadataPair(DocumentationComments, doc)
@@ -129,7 +131,10 @@ case object TypeSignatures extends IRPass {
               )
               .getOrElse(newMethod)
             val newMethodWithAnnotations = asc
-              .getMetadata(ModuleAnnotations)
+              .getMetadata(
+                ModuleAnnotations,
+                classOf[ModuleAnnotations.Metadata]
+              )
               .map(annotations =>
                 newMethodWithDoc.updateMetadata(
                   new MetadataPair(ModuleAnnotations, annotations)
@@ -236,7 +241,7 @@ case object TypeSignatures extends IRPass {
               )
             val argTypes =
               args.flatMap(
-                _.getMetadata(this)
+                _.getMetadata(this, classOf[TypeSignatures.Metadata])
                   .map(_.signature)
                   .orElse(
                     if (canResolveAny) Some(moduleContext.anyIr) else None
@@ -255,7 +260,7 @@ case object TypeSignatures extends IRPass {
               )
             val argTypes =
               args.flatMap(
-                _.getMetadata(this)
+                _.getMetadata(this, classOf[TypeSignatures.Metadata])
                   .map(_.signature)
                   .orElse(
                     if (canResolveAny) Some(moduleContext.anyIr) else None
@@ -269,7 +274,9 @@ case object TypeSignatures extends IRPass {
       case _ =>
         expr match {
           case tpe: Type.Ascription =>
-            tpe.typed.getMetadata(this).map(_.signature :: Nil)
+            tpe.typed
+              .getMetadata(this, classOf[TypeSignatures.Metadata])
+              .map(_.signature :: Nil)
           case _ =>
             None
         }
@@ -372,7 +379,10 @@ case object TypeSignatures extends IRPass {
           case Some(asc: Type.Ascription) =>
             val name = binding.name
             val newBindingWithDoc = asc
-              .getMetadata(DocumentationComments)
+              .getMetadata(
+                DocumentationComments,
+                classOf[DocumentationComments.Metadata]
+              )
               .map(doc =>
                 newBinding.updateMetadata(
                   new MetadataPair(DocumentationComments, doc)
@@ -419,10 +429,11 @@ case object TypeSignatures extends IRPass {
       })
       .toList
 
-    block.copy(
-      expressions = newExpressions.init,
-      returnValue = newExpressions.last
-    )
+    block
+      .copyBuilder()
+      .expressions(newExpressions.init)
+      .returnValue(newExpressions.last)
+      .build()
   }
 
   // === Metadata =============================================================
@@ -440,7 +451,14 @@ case object TypeSignatures extends IRPass {
 
     /** @inheritdoc */
     override def prepareForSerialization(compiler: Compiler): Signature = {
-      IR.preorder(signature, _.passData.prepareForSerialization(compiler))
+      IR.preorder(
+        signature,
+        _.passData.prepareForSerialization({
+          case irMeta: IRPass.IRMetadata =>
+            irMeta.prepareForSerialization(compiler)
+          case ir => ir
+        })
+      )
       this
     }
 
@@ -451,7 +469,13 @@ case object TypeSignatures extends IRPass {
       IR.preorder(
         signature,
         { node =>
-          if (!node.passData.restoreFromSerialization(compiler)) {
+          if (
+            !node.passData.restoreFromSerialization({
+              case irMeta: IRPass.IRMetadata =>
+                irMeta.restoreFromSerialization(compiler)
+              case _ => None
+            })
+          ) {
             return None
           }
         }

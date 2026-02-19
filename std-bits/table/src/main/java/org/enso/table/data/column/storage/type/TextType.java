@@ -2,10 +2,12 @@ package org.enso.table.data.column.storage.type;
 
 import java.util.Objects;
 import org.enso.base.Text_Utils;
+import org.enso.base.polyglot.EnsoMeta;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.BuilderForType;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.problems.ProblemAggregator;
+import org.graalvm.polyglot.Value;
 
 public final class TextType implements StorageType<String> {
   public static final TextType VARIABLE_LENGTH = new TextType(-1, false);
@@ -34,6 +36,27 @@ public final class TextType implements StorageType<String> {
   @Override
   public char typeChar() {
     return fixedLength ? 'T' : 'S';
+  }
+
+  @Override
+  public Value asEnsoValueType() {
+    Value ensoLength =
+        maxLength == -1
+            ? null
+            : EnsoMeta.makeInstance(
+                "Standard.Base.Data.Numbers", "Positive_Integer", "Value", maxLength);
+
+    return EnsoMeta.makeInstance(
+        StorageType.ENSO_MODULE,
+        StorageType.ENSO_TYPE_NAME,
+        ensoConstructorName(),
+        ensoLength,
+        !fixedLength);
+  }
+
+  @Override
+  public String ensoConstructorName() {
+    return "Char";
   }
 
   @Override
@@ -156,7 +179,15 @@ public final class TextType implements StorageType<String> {
 
   @Override
   public String valueAsType(Object value) {
-    return (value instanceof String s) ? s : null;
+    if (value instanceof String s) {
+      return s;
+    }
+
+    if (value instanceof Value polyglotValue && polyglotValue.isString()) {
+      return polyglotValue.asString();
+    }
+
+    return null;
   }
 
   @Override
@@ -167,7 +198,7 @@ public final class TextType implements StorageType<String> {
 
   @Override
   public ColumnStorage<String> asTypedStorage(ColumnStorage<?> storage) {
-    if (storage.getType() instanceof TextType) {
+    if (StorageType.ofStorage(storage) instanceof TextType) {
       @SuppressWarnings("unchecked")
       var output = (ColumnStorage<String>) storage;
       return output;

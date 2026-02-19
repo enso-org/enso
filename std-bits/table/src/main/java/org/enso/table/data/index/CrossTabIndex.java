@@ -9,6 +9,7 @@ import java.util.stream.Stream;
 import org.enso.base.text.TextFoldingStrategy;
 import org.enso.table.aggregations.Aggregator;
 import org.enso.table.data.column.builder.Builder;
+import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.table.Column;
 import org.enso.table.data.table.Table;
 import org.enso.table.error.TooManyColumnsException;
@@ -131,7 +132,8 @@ public class CrossTabIndex {
     Builder[] storage = new Builder[columnCount];
     for (int i = 0; i < yColumns.length; i++) {
       storage[i] =
-          Builder.getForType(yColumns[i].getStorage().getType(), yKeysCount(), problemAggregator);
+          Builder.getForType(
+              StorageType.ofStorage(yColumns[i].getStorage()), yKeysCount(), problemAggregator);
       context.safepoint();
     }
 

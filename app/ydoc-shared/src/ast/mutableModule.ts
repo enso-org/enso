@@ -11,11 +11,9 @@ import type {
   AstFields,
   AstId,
   AstType,
-  BodyBlock,
   FixedMap,
   Mutable,
   MutableAst,
-  MutableBodyBlock,
   MutableInvalid,
   NodeChild,
   Owned,
@@ -34,8 +32,9 @@ import {
 
 export interface Module {
   edit(): MutableModule
-  root(): BodyBlock | undefined
+  root(): Ast | undefined
   tryGet(id: AstId | undefined): Ast | undefined
+  getVersion<T extends Ast>(ast: T): T
 
   /////////////////////////////////
 
@@ -78,9 +77,9 @@ export class MutableModule implements Module {
   }
 
   /** Return this module's copy of `ast`, if this module was created by cloning `ast`'s module. */
-  getVersion<T extends Ast>(ast: T): Mutable<T> {
+  getVersion<T extends Ast>(ast: T): Mutable<T> & T {
     const instance = this.get(ast.id)
-    return instance as Mutable<T>
+    return instance as Mutable<T> & T
   }
 
   /** TODO: Add docs */
@@ -101,16 +100,17 @@ export class MutableModule implements Module {
   }
 
   /** Return the top-level block of the module. */
-  root(): MutableBodyBlock | undefined {
-    return this.rootPointer()?.expression as MutableBodyBlock | undefined
+  root(): MutableAst | undefined {
+    return this.rootPointer()?.expression as MutableAst | undefined
   }
 
-  /** Set the given block to be the top-level block of the module. */
-  setRoot(newRoot: Owned<MutableBodyBlock> | undefined) {
+  /** Set the given expression to be the root of the module. */
+  setRoot(newRoot: Owned | undefined) {
     if (newRoot) {
       const rootPointer = this.rootPointer()
       if (rootPointer) {
-        rootPointer.expression.replace(newRoot)
+        if (newRoot.module !== this || rootPointer.fields.get('expression').node !== newRoot.id)
+          rootPointer.expression.replace(newRoot)
       } else {
         invalidFields(this, this.baseObject('Invalid', ROOT_ID), {
           whitespace: '',

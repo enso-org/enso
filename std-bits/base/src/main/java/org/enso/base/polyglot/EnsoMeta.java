@@ -1,10 +1,22 @@
 package org.enso.base.polyglot;
 
+import java.util.concurrent.atomic.AtomicReference;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 
 /** A helper class that makes calling Enso methods from Java libraries easier. */
 public final class EnsoMeta {
+  private static final AtomicReference<Value> nothingValueRef = new AtomicReference<>();
+
+  /** Returns the Enso `Nothing` value. */
+  public static Value getNothing() {
+    if (nothingValueRef.get() == null) {
+      var nothing = eval("Standard.Base.Nothing", "Nothing");
+      nothingValueRef.compareAndSet(null, nothing);
+    }
+    return nothingValueRef.get();
+  }
+
   private static Value getBindings() {
     var ctx = Context.getCurrent();
     var bindings = ctx.getPolyglotBindings().getMember("ensoBindings");
@@ -13,6 +25,12 @@ public final class EnsoMeta {
     } else {
       return ctx.getBindings("enso");
     }
+  }
+
+  /** Evaluates an Enso expression and returns the result. */
+  public static Value eval(String moduleName, String ensoCode) {
+    var module = getBindings().invokeMember("get_module", moduleName);
+    return module.invokeMember("eval_expression", ensoCode);
   }
 
   /** Returns a type object from the Enso runtime. */
@@ -40,5 +58,49 @@ public final class EnsoMeta {
     argsWithSelf[0] = moduleType;
     System.arraycopy(args, 0, argsWithSelf, 1, args.length);
     return factory.execute(argsWithSelf);
+  }
+
+  /** Creates an instance of an Enso type by calling the specified constructor. */
+  public static Value makeInstance(
+      String moduleName, String typeName, String constructorName, Object... args) {
+    var type = getType(moduleName, typeName);
+
+    Value constructor;
+    try {
+      constructor = type.getMember(constructorName);
+    } catch (NullPointerException e) {
+      var ex =
+          new NullPointerException(
+              "Cannot find constructor "
+                  + constructorName
+                  + " for "
+                  + moduleName
+                  + " type: "
+                  + typeName);
+      ex.initCause(e);
+      throw ex;
+    }
+
+    if (constructor == null || constructor.isNull()) {
+      throw new IllegalStateException(
+          "Constructor " + constructorName + " not found for " + moduleName + " type: " + typeName);
+    }
+
+    if (!constructor.canInstantiate()) {
+      throw new IllegalStateException("Constructor " + constructorName + " is not instantiable.");
+    }
+
+    return constructor.newInstance(args);
+  }
+
+  /** Converts an Enso error atom into a Java exception. */
+  public static Value asDataflowError(Value ensoAtom) {
+    var ensoError =
+        EnsoMeta.getType("Standard.Base.Error", "Error").invokeMember("throw", ensoAtom);
+    if (!ensoError.isException()) {
+      throw new IllegalStateException(
+          "Expected Enso error to be an exception, but got: " + ensoError);
+    }
+    return ensoError;
   }
 }

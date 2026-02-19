@@ -11,7 +11,7 @@ import java.nio.file.Path
   */
 case class LanguageHome(languageHome: Path) {
   val rootPath = languageHome.getParent.toAbsolutePath.normalize
-  require(rootPath.toFile.exists())
+  require(rootPath.toFile.exists(), "LanguageHome must exists " + rootPath)
 
   /** The path to editions bundled with the engine. */
   def editions: Path =

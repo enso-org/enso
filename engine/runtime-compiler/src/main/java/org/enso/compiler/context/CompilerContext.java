@@ -12,7 +12,6 @@ import org.enso.common.CompilationStage;
 import org.enso.compiler.Compiler;
 import org.enso.compiler.PackageRepository;
 import org.enso.compiler.Passes;
-import org.enso.compiler.core.CompilerStub;
 import org.enso.compiler.core.ir.Diagnostic;
 import org.enso.compiler.core.ir.IdentifiedLocation;
 import org.enso.compiler.data.BindingsMap;
@@ -28,7 +27,7 @@ import org.enso.pkg.QualifiedName;
  * Compiler} and the information it needs from the runtime. The ultimate state is to compile the
  * {@link Compiler} & co. classes separately without any dependency on Truffle API.
  */
-public interface CompilerContext extends CompilerStub {
+public interface CompilerContext {
 
   boolean isIrCachingDisabled();
 

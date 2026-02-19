@@ -1,7 +1,7 @@
 ## Enso Signatures 1.0
 ## module Standard.Table.Conversions.Convertible_To_Rows
 - type Convertible_To_Rows
-    - Value original_value:Standard.Base.Any.Any length:Standard.Base.Data.Numbers.Integer getter:Standard.Base.Any.Any columns:Standard.Base.Data.Vector.Vector= is_sequence:Standard.Base.Data.Boolean.Boolean=
+    - Value original_value:Standard.Base.Any.Any length:Standard.Base.Data.Numbers.Integer getter:(Standard.Base.Data.Numbers.Integer -> Standard.Base.Any.Any) columns:Standard.Base.Data.Vector.Vector= is_sequence:Standard.Base.Data.Boolean.Boolean=
     - align_sequence_only self sequence_only:Standard.Base.Data.Boolean.Boolean -> Standard.Table.Conversions.Convertible_To_Rows.Convertible_To_Rows
     - to_vector self -> Standard.Base.Any.Any
 - Standard.Table.Conversions.Convertible_To_Rows.Key_Value.at self idx:Standard.Base.Any.Any -> Standard.Base.Any.Any

@@ -12,11 +12,7 @@ import org.enso.compiler.core.ir.{
   Name
 }
 import org.enso.compiler.core.ir.expression.{Application, Operator}
-import org.enso.compiler.pass.analyse.{
-  AliasAnalysis,
-  DataflowAnalysis,
-  DemandAnalysis
-}
+import org.enso.compiler.pass.analyse.{AliasAnalysis, DemandAnalysis}
 import org.enso.compiler.pass.{
   IRPass,
   IRProcessingPass,
@@ -100,8 +96,11 @@ class OperatorToFunctionTest extends MiniPassTest {
   }
 
   // === The Tests ============================================================
-  val opName =
-    Name.Literal("=:=", isMethod = true, null)
+  val opName = Name.Literal
+    .builder()
+    .name("=:=")
+    .isMethod(true)
+    .build()
   val left  = new Empty(null)
   val right = new Empty(null)
   val rightArg = CallArgument.Specified
@@ -129,8 +128,11 @@ class OperatorToFunctionTest extends MiniPassTest {
       .build()
 
   "Operators" should {
-    val opName =
-      Name.Literal("=:=", isMethod = true, identifiedLocation = null)
+    val opName = Name.Literal
+      .builder()
+      .name("=:=")
+      .isMethod(true)
+      .build()
     val left  = new Empty(null)
     val right = new Empty(null)
     val rightArg =
@@ -256,7 +258,6 @@ case object OperatorToFunctionTestPass extends IRPass {
   )
   override lazy val invalidatedPasses: Seq[IRProcessingPass] = List(
     AliasAnalysis,
-    DataflowAnalysis,
     DemandAnalysis
   )
 

@@ -230,7 +230,8 @@ final class PerInputImpl implements Input {
       sb.append("\nare they equal: ").append(bothObjectsAreTheSame);
       var ex = new IOException(sb.toString());
       if (bothObjectsAreTheSame) {
-        PerUtils.LOG.log(System.Logger.Level.WARNING, sb.toString(), ex);
+        // Commented out as it just creates noise.
+        // PerUtils.LOG.log(System.Logger.Level.WARNING, sb.toString(), ex);
       } else {
         throw raise(RuntimeException.class, ex);
       }

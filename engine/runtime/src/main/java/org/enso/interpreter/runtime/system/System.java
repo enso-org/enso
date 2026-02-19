@@ -14,6 +14,7 @@ import org.enso.interpreter.dsl.Builtin;
 import org.enso.interpreter.node.expression.builtin.text.util.ExpectStringNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.data.atom.Atom;
+import org.enso.interpreter.runtime.data.atom.AtomNewInstanceNode;
 import org.enso.interpreter.runtime.data.text.Text;
 import org.enso.interpreter.runtime.data.vector.ArrayLikeCoerceToArrayNode;
 
@@ -72,21 +73,26 @@ public class System {
       boolean redirectIn,
       boolean redirectOut,
       boolean redirectErr,
+      Object cwdOrNothing,
       @Cached ArrayLikeCoerceToArrayNode coerce,
       @Cached ExpectStringNode expectStringNode)
       throws IOException, InterruptedException {
-    Object[] arrArguments = coerce.execute(arguments);
-    String[] cmd = new String[arrArguments.length + 1];
+    var arrArguments = coerce.execute(arguments);
+    var cmd = new String[arrArguments.length + 1];
     cmd[0] = expectStringNode.execute(command);
     for (int i = 1; i <= arrArguments.length; i++) {
       cmd[i] = expectStringNode.execute(arrArguments[i - 1]);
     }
     TruffleProcessBuilder pb = ctx.newProcessBuilder(cmd);
-
-    Process p = pb.start();
-    ByteArrayInputStream in = new ByteArrayInputStream(expectStringNode.execute(input).getBytes());
-    ByteArrayOutputStream out = new ByteArrayOutputStream();
-    ByteArrayOutputStream err = new ByteArrayOutputStream();
+    if (ctx.getNothing() != cwdOrNothing) {
+      var path = expectStringNode.execute(cwdOrNothing);
+      var tPath = ctx.getPublicTruffleFile(path);
+      pb.directory(tPath);
+    }
+    var p = pb.start();
+    var in = new ByteArrayInputStream(expectStringNode.execute(input).getBytes());
+    var out = new ByteArrayOutputStream();
+    var err = new ByteArrayOutputStream();
 
     boolean startedWritingtoOut = false;
     try (OutputStream processIn = p.getOutputStream()) {
@@ -141,10 +147,15 @@ public class System {
     }
 
     p.waitFor();
-    long exitCode = p.exitValue();
-    Text returnOut = Text.create(out.toString());
-    Text returnErr = Text.create(err.toString());
+    var exitCode = p.exitValue();
+    var returnOut = Text.create(out.toString());
+    var returnErr = Text.create(err.toString());
 
-    return ctx.getBuiltins().system().makeSystemResult(exitCode, returnOut, returnErr);
+    var system = ctx.getTopScope().getModule("Standard.Base.System").get().getScope();
+    var type = system.getType("System_Process_Result", true);
+    var cons = type.getSingleConstructor();
+    var result =
+        AtomNewInstanceNode.getUncached().newInstance(cons, exitCode, returnOut, returnErr);
+    return result;
   }
 }
