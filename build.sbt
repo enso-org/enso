@@ -4298,11 +4298,12 @@ lazy val `jvm-interop` =
       (Test / fork) := true,
       commands += WithDebugCommand.withDebug,
       libraryDependencies ++= Seq(
-        "org.graalvm.truffle" % "truffle-api"           % graalMavenPackagesVersion % "provided",
-        "org.graalvm.truffle" % "truffle-dsl-processor" % graalMavenPackagesVersion % "provided",
-        "org.graalvm.sdk"     % "graal-sdk"             % graalMavenPackagesVersion % Test,
-        "junit"               % "junit"                 % junitVersion              % Test,
-        "com.github.sbt"      % "junit-interface"       % junitIfVersion            % Test
+        "org.graalvm.truffle"  % "truffle-api"           % graalMavenPackagesVersion % "provided",
+        "org.graalvm.truffle"  % "truffle-dsl-processor" % graalMavenPackagesVersion % "provided",
+        "org.graalvm.sdk"      % "graal-sdk"             % graalMavenPackagesVersion % Test,
+        "junit"                % "junit"                 % junitVersion              % Test,
+        "com.github.sbt"       % "junit-interface"       % junitIfVersion            % Test,
+        "org.graalvm.polyglot" % "js-community"          % graalMavenPackagesVersion % Test
       ),
       Compile / moduleDependencies ++= Seq(
         "org.graalvm.truffle"  % "truffle-api" % graalMavenPackagesVersion,
