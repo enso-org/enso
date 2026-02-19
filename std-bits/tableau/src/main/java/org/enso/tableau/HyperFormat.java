@@ -29,8 +29,11 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.IntStream;
+import org.enso.base.polyglot.EnsoExceptionWrapper;
+import org.enso.base.polyglot.EnsoMeta;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.type.BigDecimalType;
@@ -239,27 +242,107 @@ public class HyperFormat {
     }
   }
 
-  public static String[] readSchemas(String path) throws IOException {
+  public static Value readSchemas(String path) {
     try (var connection = getConnection(path)) {
       var catalog = connection.getCatalog();
-      return catalog.getSchemaNames().stream()
-          .map(s -> s.getName().getUnescaped())
-          .toArray(String[]::new);
+      return Value.asValue(
+          catalog.getSchemaNames().stream()
+              .map(s -> s.getName().getUnescaped())
+              .toArray(String[]::new));
+    } catch (Exception e) {
+      return handleHyperErrors(path, e);
     }
   }
 
-  public static HyperTable[] listTablesAllSchemas(String path) throws IOException {
+  public static Value listTablesAllSchemas(String path) {
     try (var connection = getConnection(path)) {
       var catalog = connection.getCatalog();
-      return listTablesImpl(catalog, catalog.getSchemaNames());
+      return Value.asValue(listTablesImpl(catalog, catalog.getSchemaNames()));
+    } catch (Exception e) {
+      return handleHyperErrors(path, e);
     }
   }
 
-  public static HyperTable[] listTables(String path, String schemaName) throws IOException {
+  public static Value listTables(String path, String schemaName) {
     var schemaNames = List.of(new SchemaName(schemaName));
     try (var connection = getConnection(path)) {
       var catalog = connection.getCatalog();
-      return listTablesImpl(catalog, schemaNames);
+      return Value.asValue(listTablesImpl(catalog, schemaNames));
+    } catch (Exception e) {
+      return handleHyperErrors(path, e);
+    }
+  }
+
+  public static Value readStructure(String path, String schemaName, String tableName) {
+    var tableNameObject = new TableName(new SchemaName(schemaName), tableName);
+    try (var connection = getConnection(path)) {
+      return Value.asValue(readStructureInternal(connection, tableNameObject));
+    } catch (Exception e) {
+      return handleHyperErrors(path, e);
+    }
+  }
+
+  public static Value readTable(
+      String path, String schemaName, String tableName, Integer rowLimit) {
+    var problemAggregator = ProblemAggregator.makeTopLevelAggregator();
+    var tableNameObject = new TableName(new SchemaName(schemaName), tableName);
+    var query = "SELECT * FROM " + tableNameObject + (rowLimit == null ? "" : " LIMIT " + rowLimit);
+    try {
+      var tableValue =
+          Value.asValue(
+              readTableInternal(
+                  path,
+                  schemaName,
+                  tableName,
+                  rowLimit,
+                  problemAggregator,
+                  tableNameObject,
+                  query));
+      return problemAggregator.attachProblemsToValue(tableValue, false);
+    } catch (Exception e) {
+      return handleHyperErrors(path, e);
+    }
+  }
+
+  public static Value writeTable(
+      String path,
+      String schemaName,
+      String tableName,
+      String[] names,
+      ColumnStorage<?>[] storages,
+      boolean append,
+      boolean matchColumnsByName,
+      boolean throwDontWarn) {
+    assert names.length == storages.length;
+
+    // Localize storages to avoid issues with foreign memory access.
+    var localisedStorages =
+        Arrays.stream(storages).map(Builder::makeLocal).toArray(ColumnStorage<?>[]::new);
+
+    try {
+      List<String> warningUnmatchedColumns = new ArrayList<>();
+      getProcess();
+      try (var connection =
+          new Connection(process.getEndpoint(), path, CreateMode.CREATE_IF_NOT_EXISTS)) {
+        TableDefinition tableDef;
+        if (append && tableExists(schemaName, tableName, connection)) {
+          tableDef =
+              connection.getCatalog().getTableDefinition(new TableName(schemaName, tableName));
+        } else {
+          tableDef = createTable(schemaName, tableName, names, localisedStorages, connection);
+        }
+        insertData(
+            names,
+            localisedStorages,
+            tableDef,
+            connection,
+            matchColumnsByName,
+            warningUnmatchedColumns,
+            throwDontWarn);
+      }
+      return Value.asValue(warningUnmatchedColumns.toArray(String[]::new));
+    } catch (Exception e) {
+      return handleHyperErrors(path, e);
     }
   }
 
@@ -275,16 +358,8 @@ public class HyperFormat {
     return output.toArray(HyperTable[]::new);
   }
 
-  public static HyperTableColumn[] readStructure(String path, String schemaName, String tableName)
-      throws IOException {
-    var tableNameObject = new TableName(new SchemaName(schemaName), tableName);
-    try (var connection = getConnection(path)) {
-      return readStructureInternal(connection, tableNameObject);
-    }
-  }
-
   private static HyperTableColumn[] readStructureInternal(
-      Connection connection, TableName tableNameObject) {
+      Connection connection, TableName tableNameObject) throws HyperTableNotFound, HyperQueryError {
     try {
       var catalog = connection.getCatalog();
       var definition = catalog.getTableDefinition(tableNameObject);
@@ -304,15 +379,15 @@ public class HyperFormat {
     }
   }
 
-  public static Column[] readTable(
+  private static Column[] readTableInternal(
       String path,
       String schemaName,
       String tableName,
       Integer rowLimit,
-      ProblemAggregator problemAggregator)
-      throws IOException {
-    var tableNameObject = new TableName(new SchemaName(schemaName), tableName);
-    var query = "SELECT * FROM " + tableNameObject + (rowLimit == null ? "" : " LIMIT " + rowLimit);
+      ProblemAggregator problemAggregator,
+      TableName tableNameObject,
+      String query)
+      throws IOException, HyperQueryError, HyperTableNotFound {
     try (var connection = getConnection(path)) {
       var columns = readStructureInternal(connection, tableNameObject);
 
@@ -340,44 +415,6 @@ public class HyperFormat {
         throw new HyperQueryError(e.getMessage(), query, e);
       }
     }
-  }
-
-  public static String[] writeTable(
-      String path,
-      String schemaName,
-      String tableName,
-      String[] names,
-      ColumnStorage<?>[] storages,
-      boolean append,
-      boolean matchColumnsByName,
-      boolean throwDontWarn)
-      throws IOException {
-    assert names.length == storages.length;
-
-    // Localize storages to avoid issues with foreign memory access.
-    var localisedStorages =
-        Arrays.stream(storages).map(Builder::makeLocal).toArray(ColumnStorage<?>[]::new);
-
-    List<String> warningUnmatchedColumns = new ArrayList<>();
-    getProcess();
-    try (var connection =
-        new Connection(process.getEndpoint(), path, CreateMode.CREATE_IF_NOT_EXISTS)) {
-      TableDefinition tableDef;
-      if (append && tableExists(schemaName, tableName, connection)) {
-        tableDef = connection.getCatalog().getTableDefinition(new TableName(schemaName, tableName));
-      } else {
-        tableDef = createTable(schemaName, tableName, names, localisedStorages, connection);
-      }
-      insertData(
-          names,
-          localisedStorages,
-          tableDef,
-          connection,
-          matchColumnsByName,
-          warningUnmatchedColumns,
-          throwDontWarn);
-    }
-    return warningUnmatchedColumns.toArray(String[]::new);
   }
 
   private static boolean tableExists(String schemaName, String tableName, Connection connection) {
@@ -410,7 +447,8 @@ public class HyperFormat {
     return tableDef;
   }
 
-  private static SqlType mapEnsoTypeToSqlType(StorageType<?> storageType) {
+  private static SqlType mapEnsoTypeToSqlType(StorageType<?> storageType)
+      throws HyperUnsupportedTypeError {
     return switch (storageType) {
       case TextType _ -> SqlType.text();
       case IntegerType _ -> SqlType.bigInt();
@@ -438,7 +476,8 @@ public class HyperFormat {
       Connection connection,
       boolean matchColumnsByName,
       List<String> warningUnmatchedColumns,
-      boolean throwDontWarn) {
+      boolean throwDontWarn)
+      throws HyperTypeMismatch {
     var columnStorages =
         getOrderedStorages(
             names, storages, tableDef, matchColumnsByName, warningUnmatchedColumns, throwDontWarn);
@@ -584,7 +623,8 @@ public class HyperFormat {
     }
   }
 
-  private static void validateTypesMatch(ColumnStorage<?>[] storages, TableDefinition tableDef) {
+  private static void validateTypesMatch(ColumnStorage<?>[] storages, TableDefinition tableDef)
+      throws HyperTypeMismatch {
     for (int i = 0; i < storages.length; i++) {
       var storage = storages[i];
       if (storage == null) {
@@ -615,5 +655,24 @@ public class HyperFormat {
     } else {
       return ctx.getBindings("enso");
     }
+  }
+
+  private static Value handleHyperErrors(String path, Exception exception) {
+    var ensoAtom =
+        Optional.ofNullable(
+                switch (exception) {
+                  case HyperTableNotFound tableNotFound -> tableNotFound.asEnsoAtom();
+                  case HyperQueryError queryError -> queryError.asEnsoAtom();
+                  case HyperTypeMismatch typeMismatch -> typeMismatch.asEnsoAtom();
+                  case HyperUnsupportedTypeError unsupportedType -> unsupportedType.asEnsoAtom();
+                  case HyperUnmatchedColumns unmatchedColumns -> unmatchedColumns.asEnsoAtom();
+                  default -> null;
+                })
+            .or(() -> EnsoExceptionWrapper.wrapFileExceptions(path, exception))
+            .or(() -> EnsoExceptionWrapper.wrapCommonExceptions(exception));
+    if (ensoAtom.isEmpty()) {
+      throw new RuntimeException(exception);
+    }
+    return EnsoMeta.asDataflowError(ensoAtom.get());
   }
 }

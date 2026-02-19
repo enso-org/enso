@@ -1,7 +1,4 @@
 <script setup lang="ts">
-import LoadingScreenReact from '#/pages/authentication/LoadingScreen'
-import { useAppTitle } from '$/composables/appTitle'
-import { useAuth } from '$/providers/auth'
 import { ContextsForReactProvider } from '$/providers/react/globalProvider'
 import ReactRoot from '$/ReactRoot'
 import { appOpenCloseCallback } from '$/utils/analytics'
@@ -20,9 +17,10 @@ import { reactComponent } from '@/util/react'
 import { useQueryClient } from '@tanstack/vue-query'
 import * as objects from 'enso-common/src/utilities/data/object'
 import { Platform, platform } from 'enso-common/src/utilities/detect'
-import { computed } from 'vue'
+import LoadingScreen from './components/LoadingScreen.vue'
 
-const LoadingScreen = reactComponent(LoadingScreenReact)
+// import LoadingScreenReact from '#/pages/authentication/LoadingScreen'
+// const LoadingScreen = reactComponent(LoadingScreenReact)
 
 const classSet = provideAppClassSet()
 const appTooltips = provideTooltipRegistry()
@@ -30,10 +28,6 @@ const appTooltips = provideTooltipRegistry()
 const ReactRootWrapper = reactComponent(ReactRoot)
 const queryClient = useQueryClient()
 
-const auth = useAuth()
-const userSession = computed(() => auth.session)
-
-useAppTitle(userSession)
 const globalEvents = provideGlobalEventRegistry()
 provideKeyboard(globalEvents)
 provideBubblingKeyboard(globalEvents)
@@ -76,17 +70,17 @@ useMounted(appOpenCloseCallback)
 
 <template>
   <div :class="['App', platformClass, ...classSet.keys()]">
-    <ContextsForReactProvider>
-      <ReactRootWrapper :queryClient="queryClient">
-        <RouterView v-slot="{ Component }">
-          <component :is="Component" v-if="Component" />
-          <LoadingScreen v-else />
-        </RouterView>
-      </ReactRootWrapper>
-    </ContextsForReactProvider>
+    <RouterView v-slot="{ Component }">
+      <ContextsForReactProvider v-if="Component">
+        <ReactRootWrapper :queryClient="queryClient">
+          <component :is="Component" />
+          <div id="floatingLayer" />
+          <TooltipDisplayer :registry="appTooltips" />
+        </ReactRootWrapper>
+      </ContextsForReactProvider>
+      <LoadingScreen v-else />
+    </RouterView>
   </div>
-  <div id="floatingLayer" />
-  <TooltipDisplayer :registry="appTooltips" />
 </template>
 
 <style>

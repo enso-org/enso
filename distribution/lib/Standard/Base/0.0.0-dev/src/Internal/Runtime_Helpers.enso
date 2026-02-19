@@ -48,3 +48,5 @@ state_uninitialized key =
 ref_new ~value = @Builtin_Method "Ref.alloc"
 ref_get ref = @Builtin_Method "Ref.get"
 ref_put ref new_value = @Builtin_Method "Ref.put"
+
+create_process command arguments input redirect_in redirect_out redirect_err cwd = @Builtin_Method "System.create_process"

@@ -2,7 +2,7 @@ package org.enso.compiler.suggestions
 
 import org.enso.compiler.Compiler
 import org.enso.compiler.context.CompilerContext
-import org.enso.compiler.core.Implicits.AsMetadata
+import org.enso.compiler.Implicits.AsMetadata
 import org.enso.compiler.core.{ExternalID, IR}
 import org.enso.compiler.core.ir.expression.{Application, Operator}
 import org.enso.compiler.core.ir.{
@@ -63,8 +63,13 @@ final class SuggestionBuilder[A: IndexedSource](
       if (scope.queue.isEmpty) {
         tree.result()
       } else {
-        val ir  = scope.queue.dequeue()
-        val doc = ir.getMetadata(DocumentationComments).map(_.documentation)
+        val ir = scope.queue.dequeue()
+        val doc = ir
+          .getMetadata(
+            DocumentationComments,
+            classOf[DocumentationComments.Doc]
+          )
+          .map(_.documentation)
         ir match {
           case tp: Definition.Type if tp.members().isEmpty =>
             val tpName = tp.name()
@@ -88,7 +93,12 @@ final class SuggestionBuilder[A: IndexedSource](
                   data.name().name,
                   data.arguments,
                   data.annotations,
-                  data.getMetadata(DocumentationComments).map(_.documentation)
+                  data
+                    .getMetadata(
+                      DocumentationComments,
+                      classOf[DocumentationComments.Doc]
+                    )
+                    .map(_.documentation)
                 )
             }
             val getters = members
@@ -230,7 +240,10 @@ final class SuggestionBuilder[A: IndexedSource](
         builder += Tree.Node(
           buildModule(
             module,
-            ir.getMetadata(DocumentationComments).map(_.documentation)
+            ir.getMetadata(
+              DocumentationComments,
+              classOf[DocumentationComments.Doc]
+            ).map(_.documentation)
           ),
           Vector()
         )
@@ -528,7 +541,7 @@ final class SuggestionBuilder[A: IndexedSource](
         buildTypeSignature(tpeError.typed)
       case tname: Name =>
         tname
-          .getMetadata(TypeNames)
+          .getMetadata(TypeNames, classOf[TypeNames.Metadata])
           .map(t => buildResolvedTypeName(t.target))
           .getOrElse(TypeArg.Value(QualifiedName.simpleName(tname.name)))
 

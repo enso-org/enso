@@ -1,5 +1,8 @@
 package org.enso.table.data.table.problems;
 
+import org.enso.base.polyglot.EnsoMeta;
+import org.graalvm.polyglot.Value;
+
 public class InvalidAggregation extends ColumnAggregatedProblem {
   private final String message;
 
@@ -23,5 +26,21 @@ public class InvalidAggregation extends ColumnAggregatedProblem {
     }
 
     return false;
+  }
+
+  @Override
+  public boolean isError() {
+    return true;
+  }
+
+  @Override
+  public Value asEnsoValue() {
+    return EnsoMeta.makeInstance(
+        "Standard.Table.Errors",
+        "Invalid_Aggregation",
+        "Error",
+        getLocationName(),
+        getRows(),
+        getMessage());
   }
 }

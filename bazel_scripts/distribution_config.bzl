@@ -17,6 +17,10 @@ _SBT_PATH_PROPS = select({
     "//conditions:default": _sbt_path_props("$$TMPDIR", "/"),
 })
 
+_VERSION_INFO_PROPS = [
+    "-Denso.BazelSupport.versionInfo=$(location //internal:generated_version_info)",
+]
+
 _COMMON_JVM_OPTS = [
     "-Xss16M",
     "-Xmx4G",
@@ -32,7 +36,7 @@ _COMMON_JVM_OPTS = [
     "--sun-misc-unsafe-memory-access=allow",
 ]
 
-SBT_SYSTEM_PROPS = _SBT_PATH_PROPS + _COMMON_JVM_OPTS
+SBT_SYSTEM_PROPS = _SBT_PATH_PROPS + _COMMON_JVM_OPTS + _VERSION_INFO_PROPS
 
 _COMMON_ENV = {
     "JAVA_HOME": "$(JAVABASE)",
@@ -56,8 +60,8 @@ def get_enso_env(native_image = False):
     unix_env = dict(_COMMON_ENV, PATH = path_unix)
 
     if native_image:
-        windows_env["ENSO_LAUNCHER"] = "native,fast,-ls"
-        unix_env["ENSO_LAUNCHER"] = "native,fast,-ls"
+        windows_env["ENSO_LAUNCHER"] = "native"
+        unix_env["ENSO_LAUNCHER"] = "native"
 
     return select({
         "@platforms//os:windows": windows_env,
@@ -84,5 +88,6 @@ def engine_distribution(name, out_dir, srcs, extra_system_props = [], native_ima
         env = get_enso_env(native_image),
         out_dir = out_dir,
         system_props = SBT_SYSTEM_PROPS + extra_system_props,
+        stamp = -1,
         **kwargs
     )

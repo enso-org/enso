@@ -15,6 +15,11 @@ public final class NullType implements StorageType<Void> {
   }
 
   @Override
+  public String ensoConstructorName() {
+    return "Null";
+  }
+
+  @Override
   public boolean isNumeric() {
     return true;
   }

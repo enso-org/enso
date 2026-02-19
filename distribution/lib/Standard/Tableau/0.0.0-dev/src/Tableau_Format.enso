@@ -130,8 +130,7 @@ type Tableau_Format
             _ -> "Extract"
 
         column_storages = In_Memory_Helpers.get_java_column_storages table:In_Memory_Table
-        warning_unmatched_columns = Hyper_Errors.handle_java_exceptions <|
-            HyperFormat.writeTable resolved_file resolved_schema resolved_table table.column_names column_storages (on_existing_file == Existing_File_Behavior.Append) (match_columns == Match_Columns.By_Name) (on_problems == Problem_Behavior.Report_Error)
+        warning_unmatched_columns = HyperFormat.writeTable resolved_file resolved_schema resolved_table table.column_names column_storages (on_existing_file == Existing_File_Behavior.Append) (match_columns == Match_Columns.By_Name) (on_problems == Problem_Behavior.Report_Error)
 
         problems = if warning_unmatched_columns.length > 0 then [Unmatched_Columns.Error warning_unmatched_columns.to_vector] else []
         on_problems.attach_problems_before problems <|

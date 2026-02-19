@@ -1,4 +1,5 @@
 import * as iter from 'enso-common/src/utilities/data/iter'
+import { Err, Ok, type Result } from 'enso-common/src/utilities/data/result'
 import * as map from 'lib0/map'
 import { assert } from '../util/assert'
 import type { IdMap } from '../yjsModel'
@@ -37,12 +38,10 @@ import {
   Ident,
   Import,
   Invalid,
-  MutableExpressionStatement,
   MutableInvalid,
   NegationApp,
   NumericLiteral,
   OprApp,
-  parentId,
   PropertyAccess,
   TextLiteral,
   TypeAnnotated,
@@ -479,7 +478,9 @@ export function parseModule(code: string, module?: MutableModule): Owned<Mutable
 /** Parse the input as a body block, not the top level of a module. */
 export function parseBlock(code: string, module?: MutableModule): Owned<MutableBodyBlock> {
   const tree = rawParseBlock(code)
-  return abstract(module ?? MutableModule.Transient(), tree, code).root
+  const root = abstract(module ?? MutableModule.Transient(), tree, code).root
+  if (!module) root.module.setRoot(root)
+  return root
 }
 
 /**
@@ -490,14 +491,12 @@ export function parseBlockStatement(
   code: string,
   module?: MutableModule,
 ): Owned<MutableStatement> | undefined {
-  const module_ = module ?? MutableModule.Transient()
-  const ast = parseBlock(code, module)
-  const soleStatement = iter.tryGetSoleValue(ast.statements())
-  if (!soleStatement) return
-  const parent = parentId(soleStatement)
-  if (parent) module_.delete(parent)
-  soleStatement.fields.set('parent', undefined)
-  return asOwned(soleStatement)
+  code = code.trim()
+  const rawParsed = tryRawParseInContext(code, 'blockStatement')
+  if (!rawParsed.ok) return
+  const root = abstract(module ?? MutableModule.Transient(), rawParsed.value, code).root
+  if (!module) root.module.setRoot(root)
+  return asOwned(root as MutableStatement)
 }
 
 /**
@@ -508,14 +507,12 @@ export function parseModuleStatement(
   code: string,
   module?: MutableModule,
 ): Owned<MutableStatement> | undefined {
-  const module_ = module ?? MutableModule.Transient()
-  const ast = parseModule(code, module)
-  const soleStatement = iter.tryGetSoleValue(ast.statements())
-  if (!soleStatement) return
-  const parent = parentId(soleStatement)
-  if (parent) module_.delete(parent)
-  soleStatement.fields.set('parent', undefined)
-  return asOwned(soleStatement)
+  code = code.trim()
+  const rawParsed = tryRawParseInContext(code, 'moduleStatement')
+  if (!rawParsed.ok) return
+  const root = abstract(module ?? MutableModule.Transient(), rawParsed.value, code).root
+  if (!module) root.module.setRoot(root)
+  return asOwned(root as MutableStatement)
 }
 
 /**
@@ -526,16 +523,12 @@ export function parseExpression(
   code: string,
   module?: MutableModule,
 ): Owned<MutableExpression> | undefined {
-  const module_ = module ?? MutableModule.Transient()
-  const ast = parseBlock(code, module)
-  const soleStatement = iter.tryGetSoleValue(ast.statements())
-  if (!(soleStatement instanceof MutableExpressionStatement)) return undefined
-  const expression = soleStatement.expression
-  module_.delete(soleStatement.id)
-  const parent = parentId(expression)
-  if (parent) module_.delete(parent)
-  expression.fields.set('parent', undefined)
-  return asOwned(expression)
+  code = code.trim()
+  const rawParsed = tryRawParseInContext(code, 'expression')
+  if (!rawParsed.ok) return
+  const root = abstract(module ?? MutableModule.Transient(), rawParsed.value, code).root
+  if (!module) root.module.setRoot(root)
+  return asOwned(root as MutableExpression)
 }
 
 /** Parse a module, and return it along with a mapping from source locations to parsed objects. */
@@ -544,7 +537,9 @@ export function parseModuleWithSpans(
   module?: MutableModule | undefined,
 ): { root: Owned<MutableBodyBlock>; spans: SpanMap } {
   const tree = rawParseModule(code)
-  return abstract(module ?? MutableModule.Transient(), tree, code)
+  const parsed = abstract(module ?? MutableModule.Transient(), tree, code)
+  if (!module) parsed.root.module.setRoot(parsed.root)
+  return parsed
 }
 
 /** Return the number of `Ast`s in the tree, including the provided root. */
@@ -588,24 +583,40 @@ export function parseInSameContext(
   return abstract(module ?? MutableModule.Transient(), rawParsed, code)
 }
 
-type ParseContext = 'module' | 'block' | 'expression' | 'statement'
+type ParseContext = 'module' | 'block' | 'expression' | 'blockStatement' | 'moduleStatement'
 
+// FIXME: Should identify 'moduleStatement' context
 function getParseContext(ast: Ast): ParseContext {
   const astModuleRoot = ast.module.root()
   if (ast instanceof BodyBlock) return astModuleRoot && ast.is(astModuleRoot) ? 'module' : 'block'
-  return ast.isExpression() ? 'expression' : 'statement'
+  return ast.isExpression() ? 'expression' : 'blockStatement'
 }
 
 function rawParseInContext(code: string, context: ParseContext): RawAst.Tree {
-  if (context === 'module') return rawParseModule(code)
+  const parsed = tryRawParseInContext(code, context)
+  return parsed.ok ? parsed.value : parsed.error.payload
+}
+
+function tryRawParseInContext(
+  code: string,
+  context: ParseContext,
+): Result<RawAst.Tree, RawAst.Tree> {
+  if (context === 'module' || context === 'moduleStatement') {
+    const block = rawParseModule(code)
+    if (context === 'module') return Ok(block)
+    const statement = iter.tryGetSoleValue(block.statements)?.expression
+    if (!statement) return Err(block)
+    if (context === 'moduleStatement') return Ok(statement)
+    return context satisfies never
+  }
   const block = rawParseBlock(code)
-  if (context === 'block') return block
+  if (context === 'block') return Ok(block)
   const statement = iter.tryGetSoleValue(block.statements)?.expression
-  if (!statement) return block
-  if (context === 'statement') return statement
-  if (context === 'expression')
-    return statement.type === RawAst.Tree.Type.ExpressionStatement ?
-        statement.expression
-      : statement
+  if (!statement) return Err(block)
+  if (context === 'blockStatement') return Ok(statement)
+  if (context === 'expression') {
+    if (statement.type !== RawAst.Tree.Type.ExpressionStatement) return Err(statement)
+    return Ok(statement.expression)
+  }
   return context satisfies never
 }

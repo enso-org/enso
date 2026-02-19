@@ -10,7 +10,6 @@ import java.util.Objects;
 import java.util.TreeMap;
 import java.util.function.BiFunction;
 import java.util.stream.Collectors;
-import org.enso.compiler.core.CompilerStub;
 import org.enso.persist.Persistable;
 import scala.Option;
 
@@ -140,9 +139,11 @@ public final class MetadataStorage {
    * this conversion to work it must be type-refined to return `typeof this`. To that end, there is
    * no default definition for this method.
    *
-   * @param compiler the Enso compiler
+   * @param prepareForSerialization callback to prepare for the serialization
    */
-  public final void prepareForSerialization(CompilerStub compiler) {
+  public final void prepareForSerialization(
+      java.util.function.Function<ProcessingPass.Metadata, ProcessingPass.Metadata>
+          prepareForSerialization) {
     var newMap =
         metadata.entrySet().stream()
             .collect(
@@ -150,7 +151,7 @@ public final class MetadataStorage {
                     Map.Entry::getKey,
                     (en) -> {
                       var value = en.getValue();
-                      var newVal = value.prepareForSerialization(compiler);
+                      var newVal = prepareForSerialization.apply(value);
                       return newVal;
                     }));
     this.metadata.putAll(newMap);
@@ -163,10 +164,13 @@ public final class MetadataStorage {
    * this conversion to work it must be type-refined to return `typeof this`. To that end, there is
    * no default definition for this method.
    *
-   * @param compiler the Enso compiler
+   * @param restoreFromSerialization callback to restore from serialization
    * @return `true` if restoration was successful, `false` otherwise
    */
-  public boolean restoreFromSerialization(CompilerStub compiler) {
+  public boolean restoreFromSerialization(
+      java.util.function.Function<
+              ProcessingPass.Metadata, Option<? extends ProcessingPass.Metadata>>
+          restoreFromSerialization) {
     var ok = new boolean[] {true};
     var newMap =
         metadata.entrySet().stream()
@@ -175,7 +179,7 @@ public final class MetadataStorage {
                     Map.Entry::getKey,
                     (en) -> {
                       var value = en.getValue();
-                      var newOption = value.restoreFromSerialization(compiler);
+                      var newOption = restoreFromSerialization.apply(value);
                       if (newOption.nonEmpty()) {
                         return newOption.get();
                       } else {

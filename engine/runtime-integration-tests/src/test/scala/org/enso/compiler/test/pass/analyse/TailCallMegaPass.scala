@@ -1,7 +1,7 @@
 package org.enso.compiler.test.pass.analyse
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
-import org.enso.compiler.core.Implicits.{AsDiagnostics, AsMetadata}
+import org.enso.compiler.Implicits.{AsDiagnostics, AsMetadata}
 import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.core.ir.expression.{
   errors,
@@ -513,7 +513,10 @@ case object TailCallMegaPass extends IRPass {
     */
   def isTailAnnotated(expression: Expression): Boolean = {
     expression
-      .getMetadata(ExpressionAnnotations)
+      .getMetadata(
+        ExpressionAnnotations,
+        classOf[ExpressionAnnotations.Metadata]
+      )
       .exists(anns =>
         anns.annotations.exists(a =>
           a.name == ExpressionAnnotations.tailCallName

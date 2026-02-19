@@ -29,7 +29,6 @@ describe('Component documentation (plain text)', () => {
   test.each(cases)('Enso source comments to normalized text', ({ statement, source, text }) => {
     const moduleSource = `main =\n    ${source}\n    ${statement}`
     const topLevel = parseModule(moduleSource)
-    topLevel.module.setRoot(topLevel)
     const main = iter.first(topLevel.statements())
     assert(main instanceof MutableFunctionDef)
     expect(main.name.code()).toBe('main')
@@ -45,7 +44,6 @@ describe('Component documentation (plain text)', () => {
     const expectedSource = `main =\n    ${source}\n    ${statement}`
     const initialSource = `main =\n    ${statement}`
     const topLevel = parseModule(initialSource)
-    topLevel.module.setRoot(topLevel)
     const main = iter.first(topLevel.statements())
     assert(main instanceof MutableFunctionDef)
     expect(main.name.code()).toBe('main')
@@ -65,7 +63,6 @@ describe('Component documentation (plain text)', () => {
       const functionCode = (docs: string) => `main =\n    ${docs}\n    ${statement}`
       const moduleOriginalSource = functionCode(source)
       const topLevel = parseModule(moduleOriginalSource)
-      topLevel.module.setRoot(topLevel)
       assert(topLevel.code() === moduleOriginalSource)
       const moduleEditedSource = functionCode('## Some new docs')
       topLevel.syncToCode(moduleEditedSource)
@@ -80,7 +77,6 @@ describe('Component documentation (plain text)', () => {
       const moduleOriginalSource = functionCode('## Original docs')
       const topLevel = parseModule(moduleOriginalSource)
       const module = topLevel.module
-      module.setRoot(topLevel)
       assert(module.root()?.code() === moduleOriginalSource)
       const moduleEditedSource = functionCode(source)
       module.syncToCode(moduleEditedSource)
@@ -199,7 +195,6 @@ describe('Function documentation (Markdown)', () => {
     ({ source, markdown }) => {
       const moduleSource = `${source}\nmain =\n    x = 1`
       const topLevel = parseModule(moduleSource)
-      topLevel.module.setRoot(topLevel)
       const main = iter.first(topLevel.statements())
       assert(main instanceof MutableFunctionDef)
       expect(main.name.code()).toBe('main')
@@ -210,7 +205,6 @@ describe('Function documentation (Markdown)', () => {
   test.each(cases)('Markdown to Enso source', ({ source, markdown, normalized }) => {
     const functionCode = 'main =\n    x = 1'
     const topLevel = parseModule(functionCode)
-    topLevel.module.setRoot(topLevel)
     const main = iter.first(topLevel.statements())
     assert(main instanceof MutableFunctionDef)
     const markdownYText = main.mutableDocumentationMarkdown()
@@ -232,7 +226,6 @@ describe('Function documentation (Markdown)', () => {
     const functionCode = (docs: string) => `${docs}\nmain =\n    x = 1`
     const moduleOriginalSource = functionCode(source)
     const topLevel = parseModule(moduleOriginalSource)
-    topLevel.module.setRoot(topLevel)
     assert(topLevel.code() === moduleOriginalSource)
     const moduleEditedSource = functionCode('Some new docs')
     topLevel.syncToCode(moduleEditedSource)
@@ -244,7 +237,6 @@ describe('Function documentation (Markdown)', () => {
     const moduleOriginalSource = functionCode('## Original docs')
     const topLevel = parseModule(moduleOriginalSource)
     const module = topLevel.module
-    module.setRoot(topLevel)
     assert(module.root()?.code() === moduleOriginalSource)
     const moduleEditedSource = functionCode(source)
     module.syncToCode(moduleEditedSource)

@@ -1,5 +1,8 @@
 package org.enso.table.data.table.problems;
 
+import org.enso.base.polyglot.EnsoMeta;
+import org.graalvm.polyglot.Value;
+
 public class IgnoredNaN extends ColumnAggregatedProblem {
 
   public IgnoredNaN(String locationName, long row) {
@@ -23,5 +26,11 @@ public class IgnoredNaN extends ColumnAggregatedProblem {
         + " contained NaN values in rows "
         + makeTruncatedRowsString()
         + " which were ignored.";
+  }
+
+  @Override
+  public Value asEnsoValue() {
+    return EnsoMeta.makeInstance(
+        "Standard.Table.Errors", "Ignored_NaN_Values", "Warning", getLocationName(), getRows());
   }
 }

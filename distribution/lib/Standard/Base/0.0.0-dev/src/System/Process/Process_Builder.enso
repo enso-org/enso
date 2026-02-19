@@ -1,6 +1,9 @@
+import project.Data.Json.JS_Object
 import project.Data.Text.Text
 import project.Data.Vector.Vector
-import project.System
+import project.Nothing.Nothing
+import project.Internal.Runtime_Helpers
+import project.System.File.File
 import project.System.Process.Exit_Code.Exit_Code
 from project.Data.Boolean import Boolean, False
 
@@ -26,7 +29,7 @@ type Process_Builder
        We recommend that you use this type with its builder interface. Start by
        creating a `Builder "command"` and then call functions on it to set
        arguments and standard output. It results in much clearer code.
-    Value command arguments stdin
+    private Value command:Text (arguments:(Vector Text)) stdin:Text (cwd:Nothing|File)
 
     ## ---
        icon: edit
@@ -46,8 +49,8 @@ type Process_Builder
                  builder = Process.new_builder "echo"
                  builder.set_arguments ["hello, world!"]
        ```
-    set_arguments : Vector Text -> Process_Builder
-    set_arguments self arguments = Process_Builder.Value self.command arguments self.stdin
+    set_arguments self (arguments:Vector Text) -> Process_Builder =
+        Process_Builder.Value self.command arguments self.stdin self.cwd
 
     ## ---
        icon: edit
@@ -68,8 +71,18 @@ type Process_Builder
                  builder = Process.new_builder "echo"
                  builder.set_stdin "hello, world!"
        ```
-    set_stdin : Text -> Process_Builder
-    set_stdin self stdin = Process_Builder.Value self.command self.arguments stdin
+    set_stdin self stdin:Text -> Process_Builder = Process_Builder.Value self.command self.arguments stdin self.cwd
+
+    ## ---
+       icon: edit
+       ---
+       Sets the directory to execute the process at
+
+       ## Arguments
+        - `path`: the directory to execute the process at
+
+    set_directory self path:File -> Process_Builder =
+        Process_Builder.Value self.command self.arguments self.stdin path
 
     ## ---
        icon: system
@@ -90,11 +103,17 @@ type Process_Builder
                  with_args = builder.set_arguments ["hello, world!"]
                  with_args.create
        ```
-    create : Boolean -> Process_Result
-    create self redirect_out_err:Boolean=False =
-        result = System.create_process self.command self.arguments self.stdin redirect_in=(self.stdin == False) redirect_out=redirect_out_err redirect_err=redirect_out_err
+    create self redirect_out_err:Boolean=False -> Process_Result =
+        cwd = if self.cwd != Nothing then
+            self.cwd.to_text
+        result = Runtime_Helpers.create_process self.command self.arguments self.stdin redirect_in=(self.stdin == False) redirect_out=redirect_out_err redirect_err=redirect_out_err cwd
         exit_code = Exit_Code.from_number result.exit_code
         Process_Result.Value exit_code result.stdout result.stderr
+
+    ## ---
+       private: true
+       ---
+    to_js_object self -> JS_Object = JS_Object.from_pairs [["type", "Process_Builder"]]
 
 type Process_Result
     ## ---
@@ -106,7 +125,6 @@ type Process_Result
        private: true
        ---
        Convert to a display representation of this Process_Result.
-    to_display_text : Text
-    to_display_text self = case self.exit_code of
+    to_display_text self -> Text = case self.exit_code of
         Exit_Code.Success -> "Success(" + self.stdout.to_display_text + ")"
         _ -> self.exit_code.to_display_text + "(" + self.stderr.to_display_text + ")"

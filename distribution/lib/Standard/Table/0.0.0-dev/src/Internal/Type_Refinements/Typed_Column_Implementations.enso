@@ -10,8 +10,8 @@ import project.Internal.Type_Refinements.Typed_Column_Helpers
 import project.Internal.Type_Refinements.Typed_Column_Implementations.In_Memory_Text_Column_Implementation
 import project.Value_Type.Value_Type
 from project.Internal.In_Memory_Column_Implementation import _apply_binary_map, _call_binary_operator, _java_other, apply_case_sensitive_text_operation, apply_unary_map, apply_unary_operation, naming_helper
-from project.Internal.Java_Exports import make_string_builder
 
+polyglot java import org.enso.table.data.column.builder.Builder
 polyglot java import org.enso.table.data.column.operation.binary.RandBetweenOperation
 polyglot java import org.enso.table.data.column.operation.text.TextIndexOf
 polyglot java import org.enso.table.data.column.operation.text.TextPartOperation
@@ -21,6 +21,7 @@ polyglot java import org.enso.table.data.column.operation.unary.DoubleUnaryOpera
 polyglot java import org.enso.table.data.column.operation.unary.SignumOperation
 polyglot java import org.enso.table.data.column.operation.unary.TextCharLengthOperation
 polyglot java import org.enso.table.data.column.operation.unary.TextLengthOperation
+polyglot java import org.enso.table.data.column.storage.type.TextType
 
 type In_Memory_Numeric_Column_Implementation
     abs (column : Column & In_Memory_Column) =
@@ -178,7 +179,7 @@ type In_Memory_Text_Column_Implementation
                                 java_start = (start:In_Memory_Column).java_column
                                 java_length = (length:In_Memory_Column).java_column
 
-                                builder = make_string_builder row_count
+                                builder = Builder.getForText TextType.VARIABLE_LENGTH row_count
                                 0.up_to row_count . each i->
                                     replaced = do_substring (java_this.getItem i) (java_start.getItem i) (java_length.getItem i)
                                     builder.append replaced

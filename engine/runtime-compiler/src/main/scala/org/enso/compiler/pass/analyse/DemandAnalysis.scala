@@ -1,7 +1,7 @@
 package org.enso.compiler.pass.analyse
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
-import org.enso.compiler.core.Implicits.AsMetadata
+import org.enso.compiler.Implicits.AsMetadata
 import org.enso.compiler.core.ir.{
   CallArgument,
   DefinitionArgument,
@@ -206,7 +206,7 @@ case object DemandAnalysis extends IRPass {
 
   private def isDefined(name: Name): Boolean = {
     val aliasInfo = name
-      .unsafeGetMetadata(
+      .unsafeGetMetadata[AliasAnalysis.Metadata](
         AliasAnalysis,
         "Missing alias occurrence information for a name usage"
       )

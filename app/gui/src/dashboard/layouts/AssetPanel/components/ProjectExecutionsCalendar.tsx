@@ -36,7 +36,7 @@ import {
   toCalendarDate,
   today,
   toZoned,
-  type ZonedDateTime,
+  ZonedDateTime,
 } from '@internationalized/date'
 import { useSuspenseQuery } from '@tanstack/react-query'
 import type { Backend } from 'enso-common/src/services/Backend'
@@ -101,21 +101,37 @@ function ProjectExecutionsCalendarInternal(props: ProjectExecutionsCalendarInter
 
   const [preferredTimeZone] = useLocalStorageState('preferredTimeZone')
 
-  const form = Form.useForm({
-    schema: (z) => z.object({ date: z.instanceof(CalendarDate) }),
-    onSubmit: () => {},
-  })
   const timeZone = preferredTimeZone ?? getLocalTimeZone()
   const [focusedMonth, setFocusedMonth] = useState(() => startOfMonth(today(timeZone)))
   const todayDate = today(timeZone)
-  const selectedDate = Form.useWatch({
-    control: form.control,
-    name: 'date',
-    defaultValue: todayDate,
+  const form = Form.useForm({
+    schema: (z) =>
+      z.object({
+        date: z.instanceof(CalendarDate),
+        defaultStartDateTime: z.instanceof(ZonedDateTime).optional(),
+      }),
+    defaultValues: { date: todayDate, defaultStartDateTime: now(timeZone) },
+    onSubmit: () => {},
+    onChange: (field, _value, theForm) => {
+      if (field !== 'date') return
+      const { date, defaultStartDateTime } = theForm.getValues()
+      if (defaultStartDateTime && toCalendarDate(defaultStartDateTime).compare(date) !== 0) {
+        // Unset the override away from *now* if the date part is changed.
+        theForm.setValue('defaultStartDateTime', undefined)
+      }
+    },
   })
+  const selectedDate = Form.useWatch({ control: form.control, name: 'date' })
+  const originalDateTime = Form.useWatch({ control: form.control, name: 'defaultStartDateTime' })
 
   const projectExecutionsQuery = useSuspenseQuery(
-    listProjectExecutionsQueryOptions(backend, item.id, item.title),
+    listProjectExecutionsQueryOptions(
+      backend,
+      item.id,
+      item.title,
+      focusedMonth.year,
+      focusedMonth.month,
+    ),
   )
   const projectExecutions = projectExecutionsQuery.data
 
@@ -226,10 +242,13 @@ function ProjectExecutionsCalendarInternal(props: ProjectExecutionsCalendarInter
         <NewProjectExecutionModal
           backend={backend}
           item={item}
-          defaultDate={toZoned(selectedDate, timeZone).set({ hour: now(timeZone).hour })}
+          defaultDate={toZoned(originalDateTime ?? selectedDate, timeZone).set({
+            hour: now(timeZone).hour,
+            minute: now(timeZone).minute,
+          })}
         />
       </Dialog.Trigger>
-      <Text>{getText('projectSessionsOnX', selectedDate.toString())}</Text>
+      <Text>{getText('projectSessionsOnX', toCalendarDate(selectedDate).toString())}</Text>
       {projectExecutionsForToday.length === 0 ?
         <Text color="disabled">{getText('noProjectExecutions')}</Text>
       : projectExecutionsForToday.map(({ projectExecution, date }) => (

@@ -1,6 +1,7 @@
 package org.enso.table.data.column.storage.type;
 
 import java.math.BigInteger;
+import org.enso.base.polyglot.EnsoMeta;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.builder.Builder;
 import org.enso.table.data.column.builder.BuilderForType;
@@ -16,6 +17,17 @@ public final class BigIntegerType implements StorageType<BigInteger>, NumericTyp
   @Override
   public char typeChar() {
     return 'E';
+  }
+
+  @Override
+  public Value asEnsoValueType() {
+    return EnsoMeta.makeInstance(
+        StorageType.ENSO_MODULE, StorageType.ENSO_TYPE_NAME, ensoConstructorName(), null, 0);
+  }
+
+  @Override
+  public String ensoConstructorName() {
+    return "Decimal";
   }
 
   @Override

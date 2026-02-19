@@ -1,7 +1,7 @@
 package org.enso.compiler.pass.desugar
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
-import org.enso.compiler.core.Implicits.AsMetadata
+import org.enso.compiler.Implicits.AsMetadata
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.{
   DefinitionArgument,
@@ -20,12 +20,7 @@ import org.enso.compiler.core.ir.expression.Error
 import org.enso.compiler.core.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.IRProcessingPass
-import org.enso.compiler.pass.analyse.{
-  AliasAnalysis,
-  DataflowAnalysis,
-  DemandAnalysis,
-  TailCall
-}
+import org.enso.compiler.pass.analyse.{AliasAnalysis, DemandAnalysis, TailCall}
 import org.enso.compiler.pass.lint.UnusedBindings
 import org.enso.compiler.pass.optimise.LambdaConsolidate
 import org.enso.compiler.pass.resolve.{
@@ -58,7 +53,6 @@ case object ComplexType extends IRPass {
   override lazy val invalidatedPasses: Seq[IRProcessingPass] =
     List(
       AliasAnalysis,
-      DataflowAnalysis,
       DemandAnalysis,
       FunctionBinding,
       GenerateMethodBodies,
@@ -114,7 +108,8 @@ case object ComplexType extends IRPass {
   private def desugarComplexType(
     typ: Definition.SugaredType
   ): List[Definition] = {
-    val annotations     = typ.getMetadata(ModuleAnnotations)
+    val annotations =
+      typ.getMetadata(ModuleAnnotations, classOf[ModuleAnnotations.Metadata])
     var lastAnnotations = Seq.empty[Name.GenericAnnotation]
     var seenAnnotations = Set.empty[Name.GenericAnnotation]
     val atomDefs = typ.body
@@ -137,7 +132,10 @@ case object ComplexType extends IRPass {
         annotations
           .map(ann => {
             val old = atom
-              .getMetadata(ModuleAnnotations)
+              .getMetadata(
+                ModuleAnnotations,
+                classOf[ModuleAnnotations.Metadata]
+              )
               .map(_.annotations)
               .getOrElse(Nil)
             atom.updateMetadata(
@@ -227,7 +225,10 @@ case object ComplexType extends IRPass {
       .getOrElse(sumType)
 
     val withDoc = typ
-      .getMetadata(DocumentationComments)
+      .getMetadata(
+        DocumentationComments,
+        classOf[DocumentationComments.Metadata]
+      )
       .map(ann =>
         withAnnotations.updateMetadata(
           new MetadataPair(DocumentationComments, ann)

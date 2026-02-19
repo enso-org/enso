@@ -6,11 +6,13 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZonedDateTime;
+import org.enso.base.polyglot.EnsoMeta;
 import org.enso.base.polyglot.NumericConverter;
 import org.enso.table.data.column.builder.BuilderForType;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.PreciseTypeOptions;
 import org.enso.table.problems.ProblemAggregator;
+import org.graalvm.polyglot.Value;
 
 /**
  * Represents an underlying internal storage type that can be mapped to the Value Type that is
@@ -28,6 +30,9 @@ public sealed interface StorageType<T>
         NullType,
         TextType,
         TimeOfDayType {
+  String ENSO_MODULE = "Standard.Table.Value_Type";
+  String ENSO_TYPE_NAME = "Value_Type";
+
   static <T> StorageType<T> ofStorage(ColumnStorage<T> storage) {
     @SuppressWarnings("unchecked")
     var result =
@@ -124,6 +129,17 @@ public sealed interface StorageType<T>
 
   /** Convert the value to the type if possible or return null if not. */
   T valueAsType(Object value);
+
+  /** Creates an Enso Value Type representation of the storage type. */
+  default Value asEnsoValueType() {
+    return EnsoMeta.makeInstance(
+        StorageType.ENSO_MODULE, StorageType.ENSO_TYPE_NAME, ensoConstructorName());
+  }
+
+  /**
+   * @return the name of the constructor for this type in Enso.
+   */
+  String ensoConstructorName();
 
   /**
    * Creates a builder for the StorageType.

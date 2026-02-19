@@ -1,16 +1,5 @@
 import { qnFromSegments } from '@/util/qualifiedName'
 import type { Opt } from 'enso-common/src/utilities/data/opt'
-import type {
-  Expression,
-  Identifier,
-  IdentifierOrOperatorIdentifier,
-  Mutable,
-  MutableExpression,
-  MutableStatement,
-  Owned,
-  QualifiedName,
-  Statement,
-} from 'ydoc-shared/ast'
 import {
   App,
   Ast,
@@ -28,16 +17,26 @@ import {
   NumericLiteral,
   OprApp,
   PropertyAccess,
-  Token,
   Wildcard,
-  abstract,
+  asOwned,
   isTokenId,
   parseExpression,
-  rawParseModule,
+  parseModuleWithSpans,
   setExternalIds,
+  visitRecursive,
+  type Expression,
+  type Identifier,
+  type IdentifierOrOperatorIdentifier,
+  type Mutable,
+  type MutableExpression,
+  type MutableStatement,
+  type Owned,
+  type QualifiedName,
+  type Statement,
 } from 'ydoc-shared/ast'
 import { spanMapToIdMap, spanMapToSpanGetter } from 'ydoc-shared/ast/idMap'
 import { IdMap } from 'ydoc-shared/yjsModel'
+import { isQualifiedName } from '../qualifiedName'
 
 export * from 'ydoc-shared/ast'
 
@@ -186,17 +185,23 @@ export function substituteIdentifier(
   pattern: IdentifierOrOperatorIdentifier,
   to: IdentifierOrOperatorIdentifier,
 ) {
-  if (expr instanceof MutableIdent && expr.code() === pattern) {
-    expr.setToken(to)
-  } else {
-    for (const child of expr.children()) {
-      if (child instanceof Token) {
-        continue
-      }
-      const mutableChild = expr.module.getVersion(child)
-      substituteIdentifier(mutableChild, pattern, to)
+  visitRecursive(expr, (expr) => {
+    if (expr instanceof MutableIdent && expr.code() === pattern) {
+      expr.setToken(to)
     }
-  }
+  })
+}
+
+/** Replace all qualified names in the input with their last segment. */
+export function unqualifyQualifiedNames(expr: MutableAst) {
+  visitRecursive(expr, (expr) => {
+    if (expr instanceof MutablePropertyAccess) {
+      if (isQualifiedName(expr.code())) {
+        expr.replaceValue(Ident.newAllowingOperators(expr.module, expr.rhs))
+        return false
+      }
+    }
+  })
 }
 
 /**
@@ -204,27 +209,21 @@ export function substituteIdentifier(
  * @param substitution is called on every qualified name in `expr`, and if non-nullish value
  *   is returned, it replaces this qualified name.
  */
-export function substituteQualifiedName(
+function substituteQualifiedName(
   expr: MutableAst,
   substitution: (from: QualifiedName) => Opt<QualifiedName>,
-): Ast {
-  if (expr instanceof MutablePropertyAccess || expr instanceof MutableIdent) {
-    const qn = astToQualifiedName(expr)
-    if (!qn) return expr
-    const replacement = substitution(qn)
-    if (replacement != null) {
-      return expr.updateValue(() => parseExpression(replacement, expr.module)!)
-    }
-  } else {
-    for (const child of expr.children()) {
-      if (child instanceof Token) {
-        continue
+) {
+  visitRecursive(expr, (expr) => {
+    if (expr instanceof MutablePropertyAccess || expr instanceof MutableIdent) {
+      const qn = astToQualifiedName(expr)
+      if (!qn) return
+      const replacement = substitution(qn)
+      if (replacement != null) {
+        const newQn = parseExpression(replacement, expr.module)!
+        expr.replaceValue(newQn)
       }
-      const mutableChild = expr.module.getVersion(child)
-      substituteQualifiedName(mutableChild, substitution)
     }
-  }
-  return expr
+  })
 }
 
 /**
@@ -236,12 +235,9 @@ export function substituteQualifiedNameByPattern(
   pattern: QualifiedName | IdentifierOrOperatorIdentifier,
   to: QualifiedName,
 ) {
-  return substituteQualifiedName(expr, (qn) => {
+  substituteQualifiedName(expr, (qn) => {
     if (qn === pattern) {
       return to
-    } else if (qn && qn.startsWith(pattern)) {
-      const withoutPattern = qn.replace(pattern, '')
-      return (to + withoutPattern) as QualifiedName
     }
   })
 }
@@ -276,7 +272,9 @@ export function tryEnsoToNumber(ast: Ast) {
 export function copyIntoNewModule<T extends Ast>(ast: T): Owned<Mutable<T>> {
   const module = MutableModule.Transient()
   module.importCopy(ast)
-  return module.getVersion(ast) as Owned<Mutable<T>>
+  const copied = asOwned(module.getVersion(ast) as Mutable<T>)
+  module.setRoot(copied)
+  return copied
 }
 
 /** Safely cast a mutable or owned value to its base type. */
@@ -347,14 +345,13 @@ export function parseUpdatingIdMap(
   idMap?: IdMap | undefined,
   inModule?: MutableModule,
 ) {
-  const rawRoot = rawParseModule(code)
-  const module = inModule ?? MutableModule.Transient()
-  const { root, spans } = module.transact(() => {
-    const { root, spans } = abstract(module, rawRoot, code)
-    root.module.setRoot(root)
+  const doParseAndSetIds = () => {
+    const { root, spans } = parseModuleWithSpans(code, inModule)
+    if (inModule) inModule.setRoot(root)
     if (idMap) setExternalIds(root.module, spans, idMap)
     return { root, spans }
-  })
+  }
+  const { root, spans } = inModule ? inModule.transact(doParseAndSetIds) : doParseAndSetIds()
   const getSpan = spanMapToSpanGetter(spans.nodes)
   const idMapOut = spanMapToIdMap(spans)
   return { root, idMap: idMapOut, getSpan }

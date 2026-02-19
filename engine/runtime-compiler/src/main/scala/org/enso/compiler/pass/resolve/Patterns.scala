@@ -1,7 +1,7 @@
 package org.enso.compiler.pass.resolve
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
-import org.enso.compiler.core.Implicits.AsMetadata
+import org.enso.compiler.Implicits.AsMetadata
 import org.enso.compiler.core.ir.{Expression, Module, Name, Pattern}
 import org.enso.compiler.core.ir.expression.{errors, Case}
 import org.enso.compiler.core.ir.module.scope.Definition
@@ -38,7 +38,7 @@ object Patterns extends IRPass {
     ir: Module,
     moduleContext: ModuleContext
   ): Module = {
-    val bindings = ir.unsafeGetMetadata(
+    val bindings = ir.unsafeGetMetadata[BindingAnalysis.Metadata](
       BindingAnalysis,
       "Binding resolution was not run before pattern resolution"
     )
@@ -227,7 +227,8 @@ object Patterns extends IRPass {
               }
               .getOrElse(consName)
 
-            val actualResolution = resolvedName.getMetadata(this)
+            val actualResolution =
+              resolvedName.getMetadata(this, classOf[Patterns.Metadata])
             val expectedArity = actualResolution.map { res =>
               res.target match {
                 case BindingsMap.ResolvedConstructor(_, cons) => cons.arity

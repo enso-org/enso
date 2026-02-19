@@ -348,6 +348,16 @@ add_specs suite_builder = suite_builder.group "Pattern Matches" group_builder->
             _ : Function -> Nothing
             _ -> Test.fail "Expected to match on Function type."
 
+    group_builder.specify "null matches Nothing" <|
+        case Java_Constants.NULL of
+            Nothing -> Nothing
+            _ -> Test.fail "Expected to match on Nothing type."
+
+    group_builder.specify "null matches Nothing type" <|
+        case Java_Constants.NULL of
+            _ : Nothing -> Nothing
+            _ -> Test.fail "Expected to match on Nothing type."
+
     group_builder.specify "should pattern match on Java constant fields" <|
         case 1 of
             Java_Constants.SMALL_INT -> Nothing
@@ -364,6 +374,9 @@ add_specs suite_builder = suite_builder.group "Pattern Matches" group_builder->
         case 2020 of
             Java_Constants.BIG_INT -> Nothing
             _ -> Test.fail "Expected to match on BIG_INT."
+        case Nothing of
+            Java_Constants.NULL -> Nothing
+            _ -> Test.fail "Expected to match on NULL."
 
 main filter=Nothing =
     suite = Test.build suite_builder->

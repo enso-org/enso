@@ -1,7 +1,7 @@
 package org.enso.compiler.pass.analyse
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
-import org.enso.compiler.core.Implicits.AsMetadata
+import org.enso.compiler.Implicits.AsMetadata
 import org.enso.compiler.core.ir.{Expression, Module, Name}
 import org.enso.compiler.core.ir.module.scope.Definition
 import org.enso.compiler.core.ir.module.scope.definition
@@ -58,7 +58,7 @@ case object BindingAnalysis extends IRPass {
   ): Module = {
     val definedSumTypes = ir.bindings.collect { case sumType: Definition.Type =>
       val isBuiltinType = sumType
-        .getMetadata(ModuleAnnotations)
+        .getMetadata(ModuleAnnotations, classOf[ModuleAnnotations.Metadata])
         .exists(_.annotations.exists(_.name == "@Builtin_Type"))
       BindingsMap.Type.fromIr(sumType, isBuiltinType, ir.isPrivate)
     }

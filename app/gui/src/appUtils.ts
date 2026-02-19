@@ -48,7 +48,7 @@ export function getUpgradeURL(plan: string): string {
 
 /** Return url address of Enso Analytics contact page. */
 export function getContactPage(): string {
-  return `${$config.ENSO_HOST}/contact`
+  return `${$config.HOST}/contact`
 }
 
 /** Return the mailto URL for contacting sales. */

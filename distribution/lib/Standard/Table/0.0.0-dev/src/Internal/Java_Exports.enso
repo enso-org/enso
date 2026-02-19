@@ -1,8 +1,7 @@
 from Standard.Base import all
 
 import project.In_Memory_Column.In_Memory_Column
-import project.Internal.Storage
-import project.Value_Type.Value_Type
+import project.Table.Table
 
 polyglot java import org.enso.table.data.column.builder.Builder
 polyglot java import org.enso.table.problems.ProblemAggregator
@@ -10,19 +9,27 @@ polyglot java import org.enso.table.problems.ProblemAggregator
 ## ---
    private: true
    ---
-make_string_builder : Integer -> Value_Type -> Builder
-make_string_builder initial_size value_type:Value_Type=..Char =
-    storage_type = Storage.from_value_type_strict value_type
-    Builder.getForText storage_type initial_size
+with_inferred_builder : Integer -> (Builder -> Any) -> Any
+with_inferred_builder initial_size func =
+    aggregator = ProblemAggregator.makeTopLevelAggregator
+    builder = Builder.getInferredBuilder initial_size aggregator
 
-## ---
-   private: true
-   ---
-make_inferred_builder : Integer -> ProblemAggregator -> Builder
-make_inferred_builder initial_size java_problem_aggregator=(Missing_Argument.throw "java_problem_aggregator") =
-    Builder.getInferredBuilder initial_size java_problem_aggregator
+    result = func builder
+    Error.return_if_error result
+
+    aggregator.attachProblemsToValue result False
+
 
 ## ---
    private: true
    ---
 make_column_from_storage = In_Memory_Column.from_storage
+
+## ---
+   private: true
+   ---
+make_table_from_java_columns java_columns =
+    warnings = Warning.get_all java_columns
+    enso_columns = (Warning.set java_columns []) . map c-> In_Memory_Column.from_storage c.getName c.getStorage
+    enso_table = Table.new enso_columns
+    Warning.set enso_table warnings

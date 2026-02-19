@@ -1,5 +1,4 @@
 from Standard.Base import all
-import Standard.Base.Errors.Common.Type_Error
 
 import Standard.Table.Rows_To_Read.Rows_To_Read
 from Standard.Table import Column
@@ -94,16 +93,6 @@ type DB_Column
 
             let_expression = SQL_IR_Expression.Let name binder self.expression inner_value.expression
             DB_Column.new inner_value.internal_name inner_value.connection inner_value.sql_type_reference let_expression inner_value.context
-
-    ## ---
-       private: true
-       ---
-       A method that allows to check if the given object represents a
-       `DB_Column`.
-    is_database_column object:Any -> Boolean =
-        Panic.catch Type_Error handler=_->False <|
-            _ = object:DB_Column
-            True
 
 ## ---
    private: true

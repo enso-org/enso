@@ -2,7 +2,7 @@ package org.enso.compiler.test.pass.resolve
 
 import org.enso.compiler.Passes
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
-import org.enso.compiler.core.Implicits.AsMetadata
+import org.enso.compiler.Implicits.AsMetadata
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.Expression
 import org.enso.compiler.core.ir.Function
@@ -79,7 +79,10 @@ class DocumentationCommentsTest extends CompilerTest with Inside {
     * @return the doc assigned to `ir`.
     */
   def getDoc(ir: IR): String = {
-    val meta = ir.getMetadata(DocumentationComments)
+    val meta = ir.getMetadata(
+      DocumentationComments,
+      classOf[DocumentationComments.Metadata]
+    )
 //    meta.shouldBe(defined)
     meta.get.documentation
   }

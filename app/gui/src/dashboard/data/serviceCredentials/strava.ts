@@ -3,6 +3,7 @@
  */
 import invariant from 'tiny-invariant'
 
+import type { Opt } from '@/util/data/opt'
 import type { SecretId, StravaCredentialInput } from 'enso-common/src/services/Backend'
 import * as i18n from 'enso-common/src/text'
 import { z } from 'zod'
@@ -20,11 +21,12 @@ export const FORM_SCHEMA = z.object({
  * The logic for submitting the Strava credential form.
  */
 export function submitForm(
+  apiUrl: Opt<string>,
+  stravaOauthClientId: Opt<string>,
   createCredentials: (recipe: CredentialRecipe) => Promise<void>,
   values: z.infer<typeof FORM_SCHEMA>,
 ): Promise<void> {
-  invariant($config.STRAVA_OAUTH_CLIENT_ID != null, 'Strava OAuth client id is missing')
-  const stravaOauthClientId = $config.STRAVA_OAUTH_CLIENT_ID
+  invariant(stravaOauthClientId != null, 'Strava OAuth client id is missing')
 
   const oauthScopes: string[] = values.scopes
   const input: StravaCredentialInput = {
@@ -40,7 +42,7 @@ export function submitForm(
       const query = new URLSearchParams({
         /* eslint-disable @typescript-eslint/naming-convention, camelcase */
         client_id: stravaOauthClientId,
-        redirect_uri: getOauthRedirectUri('Strava'),
+        redirect_uri: getOauthRedirectUri(apiUrl, 'Strava'),
         response_type: 'code',
         approval_prompt: 'auto',
         state,

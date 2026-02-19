@@ -18,6 +18,11 @@ public final class TimeOfDayType implements StorageType<LocalTime> {
   }
 
   @Override
+  public String ensoConstructorName() {
+    return "Time";
+  }
+
+  @Override
   public boolean hasTime() {
     return true;
   }

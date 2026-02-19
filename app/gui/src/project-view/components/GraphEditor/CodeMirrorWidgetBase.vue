@@ -9,7 +9,12 @@ import CodeMirrorRoot from '@/components/CodeMirrorRoot.vue'
 import VueHostRender, { VueHostInstance } from '@/components/VueHostRender.vue'
 import { Ast } from '@/util/ast'
 import { targetIsOutside } from '@/util/autoBlur'
-import { selectAllOnMouseFocus, useCodeMirror, useStringSync } from '@/util/codemirror'
+import {
+  selectAllOnMouseFocus,
+  singleLineDisplay as singleLineDisplayExt,
+  useCodeMirror,
+  useStringSync,
+} from '@/util/codemirror'
 import { highlightStyle } from '@/util/codemirror/highlight'
 import { useToast } from '@/util/toast'
 import { type Extension } from '@codemirror/state'
@@ -30,6 +35,7 @@ const props = defineProps<{
   transformUserInput?: (value: string) => Ast.Owned<Ast.MutableTextLiteral> | string
   /** Editor line mode. Single-line mode will not allow entering newline characters. */
   lineMode: 'single' | 'multi' | 'auto' | 'autoMulti'
+  singleLineDisplay?: boolean
   syncAfterAccept?: boolean
   onAccepted?: (value: string) => HandledUpdate
 }>()
@@ -55,7 +61,8 @@ const { editorView } = useCodeMirror(editorRoot, {
     syncExt,
     () => (editorRoot.value ? highlightStyle(editorRoot.value.highlightClasses) : []),
     () =>
-      props.lineMode !== 'multi' && props.lineMode !== 'autoMulti' ? [selectAllOnMouseFocus] : [],
+      props.lineMode !== 'multi' && props.lineMode !== 'autoMulti' ? selectAllOnMouseFocus : [],
+    () => (props.singleLineDisplay ? singleLineDisplayExt() : []),
     () => props.extensions ?? [],
   ],
   readonly: false,

@@ -18,6 +18,11 @@ public final class BooleanType implements StorageType<Boolean> {
   }
 
   @Override
+  public String ensoConstructorName() {
+    return "Boolean";
+  }
+
+  @Override
   public boolean isOfType(StorageType<?> other) {
     return other instanceof BooleanType;
   }

@@ -364,7 +364,7 @@ public final class Error {
   }
 
   /**
-   * @param index the position at which the original error occured
+   * @param index the position at which the original error occurred
    * @param innerError the original error
    * @return an error indicating the index of the error
    */
