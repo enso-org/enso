@@ -304,7 +304,7 @@ look_for_wrapped_error error_type=Any error_value =
    ```
 Any.catch : Any -> (Error -> Any) -> Any
 Any.catch self (error_type = Any) (handler = x->x) =
-   self.catch_primitive error_value->
+   Any_Helpers.any_catch_primitive self error_value->
       case error_value.is_a error_type of
             True -> handler error_value
             False -> self

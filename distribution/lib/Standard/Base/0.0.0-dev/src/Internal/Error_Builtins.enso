@@ -3,8 +3,4 @@ private
 import project.Any.Any
 import project.Error.Error
 
-Error.catch_primitive : (Error -> Any) -> Any
-Error.catch_primitive self handler = @Builtin_Method "Error.catch_primitive"
-Any.catch_primitive self handler = @Builtin_Method "Error.catch_primitive"
-
 panic_rethrow err = @Builtin_Method "Panic.rethrow"
