@@ -3,18 +3,21 @@ import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 import Standard.Base.Errors.Illegal_State.Illegal_State
 import Standard.Base.Runtime.Ref.Ref
 
-from Standard.Table import Aggregate_Column, Column, Value_Type
+import Standard.Table.Internal.Problem_Builder.Problem_Builder
+from Standard.Table import Aggregate_Column, Column, Table, Value_Type
 from Standard.Table.Errors import Inexact_Type_Coercion
 
 import Standard.Table.In_Memory_Column.In_Memory_Column
 import Standard.Database.Connection.Postgres_Connection.Postgres_Connection
 import Standard.Database.DB_Column.DB_Column
+import Standard.Database.DB_Table.DB_Table
 import Standard.Database.Dialects.Dialect.Temp_Table_Style
 import Standard.Database.Dialects.Dialect_Flag.Dialect_Flag
 import Standard.Database.Dialects.Feature.Feature
 import Standard.Database.Internal.Base_Generator
 import Standard.Database.Internal.Aggregate_Helper
 import Standard.Database.Internal.Aggregate_Helper.Aggregate_With_Helper_Expressions
+import Standard.Database.Internal.Common.Database_Distinct_Helper
 import Standard.Database.Internal.Common.Database_Join_Helper
 import Standard.Database.Internal.Common.Row_Number_Helpers
 import Standard.Database.Internal.IR.Internal_Column.Internal_Column
@@ -23,6 +26,7 @@ import Standard.Database.Internal.IR.Order_Descriptor.Order_Descriptor
 import Standard.Database.Internal.IR.SQL_IR_Expression.SQL_IR_Expression
 import Standard.Database.Internal.IR.SQL_IR_Source.SQL_IR_Source
 import Standard.Database.Internal.IR.SQL_IR_Statement.SQL_IR_Statement
+import Standard.Database.Internal.Internals_Access
 import Standard.Database.Internal.Replace_Params.Replace_Params
 import Standard.Database.Internal.SQL_Part.SQL_Part
 import Standard.Database.Internal.SQL_Type_Mapping.SQL_Type_Mapping
@@ -176,6 +180,64 @@ type Redshift_Dialect
     prepare_order_descriptor : Internal_Column -> Sort_Direction -> Nothing | Text_Ordering -> Order_Descriptor
     prepare_order_descriptor self internal_column sort_direction text_ordering =
         Postgres_Connection.get_dialect.prepare_order_descriptor internal_column sort_direction text_ordering
+
+    ## ---
+       private: true
+       ---
+       Prepares a distinct operation.
+    prepare_distinct : DB_Table -> Vector -> Case_Sensitivity -> Problem_Builder -> Table & DB_Table
+    prepare_distinct self table key_columns case_sensitivity problem_builder =
+        _ = self
+        table_connection = Internals_Access.get_connection table
+        table_name_deduplicator = table_connection.base_connection.table_naming_helper.create_unique_name_strategy
+        table_name_deduplicator.mark_used table.name
+        inner_table_alias = table_name_deduplicator.make_unique table.name+"_inner"
+
+        table_context = Internals_Access.get_context table
+        table_internal_columns = Internals_Access.internal_columns table
+        setup = table_context.as_subquery inner_table_alias [table_internal_columns]
+        new_columns = setup.new_columns.first
+
+        column_mapping = Dictionary.from_vector <| new_columns.map c-> [c.name, c]
+        new_key_columns = key_columns.map key_column->
+            column_mapping.get key_column.name if_missing=(Panic.throw <| Illegal_State.Error "Missing key column in distinct setup. This is a bug in the Database library.")
+
+        mapping = table_connection.type_mapping
+        distinct_expressions = new_key_columns.map column->
+            value_type = mapping.sql_type_to_value_type column.sql_type_reference.get
+            Database_Distinct_Helper.make_distinct_expression case_sensitivity problem_builder column value_type
+
+        remap_ordering_expression ir =
+            case ir of
+                SQL_IR_Expression.Column _ name ->
+                    mapped_column = column_mapping.get name if_missing=Nothing
+                    case mapped_column of
+                        Nothing -> ir
+                        c : Internal_Column -> c.expression
+                _ -> ir
+        remapped_default_ordering =
+            case table.default_ordering of
+                Nothing -> [Order_Descriptor.Value (new_columns.at 0).expression Sort_Direction.Ascending Nothing Nothing]
+                orderings : Vector -> orderings.map ordering-> ordering.traverse remap_ordering_expression
+
+        row_number_expression = Row_Number_Helpers.make_row_number 1 1 remapped_default_ordering distinct_expressions
+        row_number_name = "__enso_distinct_row_number_helper"
+        infer_from_database_callback expression =
+            SQL_Type_Reference.new table_connection (SQL_IR_Source.for_subquery setup.subquery) expression
+        row_number_type_ref = mapping.infer_return_type infer_from_database_callback "ROW_NUMBER" [] row_number_expression
+        row_number_column = Internal_Column.Value row_number_name row_number_type_ref row_number_expression
+
+        context_with_row_number = SQL_IR_Source.for_subquery setup.subquery
+        table_with_row_number = table.updated_context_and_columns context_with_row_number (new_columns + [row_number_column]) subquery=True
+
+        staged_context = Internals_Access.get_context table_with_row_number
+        staged_columns = Internals_Access.internal_columns table_with_row_number
+        staged_row_number_column = staged_columns.at (staged_columns.length - 1)
+        keep_first_row = SQL_IR_Expression.Operation "==" [staged_row_number_column.expression, SQL_IR_Expression.Literal "1"]
+
+        filtered_context = staged_context.add_where_filters [keep_first_row]
+        filtered_columns = staged_columns.filter c-> c.name != row_number_name
+        table_with_row_number.updated_context_and_columns filtered_context filtered_columns subquery=True
 
     ## ---
        private: true
