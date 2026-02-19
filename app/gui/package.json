@@ -79,7 +79,7 @@
     "@vueuse/gesture": "^2.0.0",
     "ag-grid-community": "^32.3.3",
     "ag-grid-enterprise": "^32.3.3",
-    "ajv": "^8.17.1",
+    "ajv": "^8.18.0",
     "amazon-cognito-identity-js": "6.3.6",
     "codemirror": "^6.0.2",
     "culori": "^3.3.0",
