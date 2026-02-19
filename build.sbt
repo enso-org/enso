@@ -5419,9 +5419,9 @@ lazy val `netty-epoll-native-wrapper` = project
   .enablePlugins(JarExtractPlugin)
   .settings(
     libraryDependencies ++= Seq(
-      "io.netty" % "netty-transport-native-epoll" % "4.1.118.Final"
+      "io.netty" % "netty-transport-native-epoll" % nettyTransportEpollVersion
     ),
-    inputJar := "io.netty" % "netty-transport-native-epoll" % "4.1.118.Final",
+    inputJar := "io.netty" % "netty-transport-native-epoll" % nettyTransportEpollVersion,
     jarExtractor := JarExtractor(
       Map(
         "**/libnetty_transport_native_epoll_x86_64.so" -> PolyglotLib(
