@@ -5569,6 +5569,32 @@ lazy val `jline-wrapper` = project
     )
   )
 
+lazy val `zstd-jni-wrapper` = project
+  .in(file("lib/java/zstd-jni-wrapper"))
+  .enablePlugins(JarExtractPlugin)
+  .settings(
+    libraryDependencies ++= Seq(
+      "com.github.luben" % "zstd-jni" % "1.5.6-5"
+    ),
+    inputJar := "com.github.luben" % "zstd-jni" % "1.5.6-5",
+    jarExtractor := JarExtractor(
+      Map(
+        "linux/amd64/libzstd-jni-1.5.6-5.so" -> PolyglotLib(
+          LinuxAMD64
+        ),
+        "darwin/aarch64/libzstd-jni-1.5.6-5.dylib" -> PolyglotLib(
+          MacOSArm64
+        ),
+        "win/amd64/libzstd-jni-1.5.6-5.dll" -> PolyglotLib(
+          WindowsAMD64
+        ),
+        "META-INF/MANIFEST.MF" -> CopyToOutputJar,
+        "META-INF/maven/**"    -> CopyToOutputJar,
+        "com/**/*.class"       -> CopyToOutputJar
+      )
+    )
+  )
+
 lazy val `conscrypt-wrapper` = project
   .in(file("lib/java/constrypt-wrapper"))
   .enablePlugins(JarExtractPlugin)
