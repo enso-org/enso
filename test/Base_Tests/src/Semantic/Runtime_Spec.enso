@@ -80,7 +80,7 @@ add_specs suite_builder =
             # at <java> com.oracle.truffle.api.source.Source.createSection(Source.java:705)
             # at <java> org.enso.interpreter.runtime.util.DiagnosticFormatter.sourceSectionFromDiagnostic(:116)
             Panic.catch Any (Debug.eval long) \_->
-                Nothing
+                do_throw
 
 main filter=Nothing =
     suite = Test.build suite_builder->
