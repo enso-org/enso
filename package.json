@@ -6,7 +6,7 @@
     "@typescript-eslint/eslint-plugin": "^8.52.0",
     "@typescript-eslint/parser": "^8.52.0",
     "@vue/eslint-config-typescript": "^14.6.0",
-    "eslint": "^9.17.0",
+    "eslint": "^9.26.0",
     "eslint-plugin-jsdoc": "^50.6.1",
     "eslint-plugin-prettier": "^5.2.1",
     "eslint-plugin-react": "^7.37.3",
