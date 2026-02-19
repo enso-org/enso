@@ -7,7 +7,6 @@
  */
 import { markRaw } from 'vue'
 import { z } from 'zod'
-import { $config } from '../config.js'
 import type { DownloadOptions } from '../download.js'
 import type { DefaultGetText } from '../text.js'
 import { delay } from '../utilities/async.js'
@@ -49,22 +48,21 @@ export type GetProjectArchiveFunction = (
 export class RemoteBackend extends backend.Backend {
   static readonly type = backend.BackendType.remote
   override readonly type = RemoteBackend.type
-  override readonly baseUrl: URL = new URL(
-    $config.API_URL ?? '',
-    typeof location !== 'undefined' ? location.href : 'https://example.com',
-  )
+  override readonly baseUrl: URL
   private user: objects.Mutable<backend.User> | null = null
   private readonly downloadCloudProject: DownloadCloudProjectFunction
   readonly getProjectArchive: GetProjectArchiveFunction
 
   /** Create a {@link RemoteBackend}. */
   constructor({
+    apiUrl,
     getText,
     client,
     downloader,
     downloadCloudProject,
     getProjectArchive,
   }: {
+    apiUrl: string
     getText: DefaultGetText
     client: HttpClient
     downloader: (options: DownloadOptions) => void | Promise<void>
@@ -72,6 +70,8 @@ export class RemoteBackend extends backend.Backend {
     getProjectArchive: GetProjectArchiveFunction
   }) {
     super(getText, client, downloader)
+    const baseOrigin = typeof location !== 'undefined' ? location.href : 'https://example.com'
+    this.baseUrl = new URL(apiUrl, baseOrigin)
     this.downloadCloudProject = downloadCloudProject
     this.getProjectArchive = getProjectArchive
   }

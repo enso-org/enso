@@ -1,7 +1,7 @@
 package org.enso.compiler.pass.analyse.types;
 
-import org.enso.compiler.core.CompilerStub;
-import org.enso.compiler.core.ir.ProcessingPass;
+import org.enso.compiler.context.CompilerContext;
+import org.enso.compiler.pass.IRPass;
 import scala.Option;
 
 /**
@@ -10,24 +10,24 @@ import scala.Option;
  * @param type the type inferred for a given expression
  * @see TypeInferencePropagation
  */
-public record InferredType(TypeRepresentation type) implements ProcessingPass.Metadata {
+public record InferredType(TypeRepresentation type) implements IRPass.IRMetadata {
   @Override
   public String metadataName() {
     return "Inferred Type";
   }
 
   @Override
-  public ProcessingPass.Metadata prepareForSerialization(CompilerStub compiler) {
+  public IRPass.IRMetadata prepareForSerialization(CompilerContext compiler) {
     return this;
   }
 
   @Override
-  public Option<ProcessingPass.Metadata> restoreFromSerialization(CompilerStub compiler) {
+  public Option<IRPass.IRMetadata> restoreFromSerialization(CompilerContext compiler) {
     return Option.apply(this);
   }
 
   @Override
-  public Option<ProcessingPass.Metadata> duplicate() {
+  public Option<IRPass.IRMetadata> duplicate() {
     // No need to deep copy the type as its an immutable structure.
     return Option.apply(new InferredType(type));
   }

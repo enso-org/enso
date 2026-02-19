@@ -14,6 +14,14 @@ declare global {
     readonly api: ElectronApi
   }
 
+  interface ImportMetaEnv {
+    readonly [key: string]: string | undefined
+  }
+
+  interface ImportMeta {
+    readonly env: ImportMetaEnv
+  }
+
   namespace NodeJS {
     /** Environment variables. */
     interface ProcessEnv {
@@ -53,6 +61,8 @@ declare global {
 
       // @ts-expect-error The index signature is intentional to disallow unknown env vars.
       readonly ELECTRON_DEV_MODE?: string
+      // @ts-expect-error The index signature is intentional to disallow unknown env vars.
+      readonly NODE_ENV?: string
     }
   }
 }

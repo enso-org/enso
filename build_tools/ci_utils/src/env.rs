@@ -51,13 +51,21 @@ pub fn set_var<K: AsRef<OsStr>, V: AsRef<OsStr>>(key: K, value: V) {
         key.as_ref().as_str(),
         value.as_ref().as_str()
     );
-    std::env::set_var(key, value)
+    // See API docs, this is safe on Windows but inherently unsafe on other operating systems.
+    #[allow(unsafe_code)]
+    unsafe {
+        std::env::set_var(key, value)
+    }
 }
 
 /// Like [`std::env::remove_var`], but with log.
 pub fn remove_var<K: AsRef<OsStr>>(key: K) {
     debug!("Removing environment variable {}.", key.as_ref().as_str());
-    std::env::remove_var(key)
+    // See API docs, this is safe on Windows but inherently unsafe on other operating systems.
+    #[allow(unsafe_code)]
+    unsafe {
+        std::env::remove_var(key)
+    }
 }
 
 /// Define typed accessors for environment variables. Supported types include `String`, `PathBuf`,

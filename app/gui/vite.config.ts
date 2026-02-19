@@ -12,6 +12,7 @@ import wasm from 'vite-plugin-wasm'
 import tailwindConfig from './tailwind.config'
 
 const isDevMode = process.env.NODE_ENV === 'development'
+const isTestMode = process.env.NODE_ENV === 'test'
 const IS_ELECTRON_DEV_MODE = process.env.ELECTRON_DEV_MODE === 'true'
 
 if (isDevMode) {
@@ -23,7 +24,7 @@ process.env.LAUNCH_EDITOR ??= 'code'
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  ...(process.env.MODE && { mode: process.env.MODE }),
+  ...(process.env.MODE ? { mode: process.env.MODE } : {}),
   ...(IS_ELECTRON_DEV_MODE ? { root: fileURLToPath(new URL('.', import.meta.url)) } : {}),
   cacheDir: fileURLToPath(new URL('../../node_modules/.cache/vite', import.meta.url)),
   plugins: [
@@ -91,14 +92,16 @@ export default defineConfig({
     ...(process.env.GUI_HOSTNAME ? { host: process.env.GUI_HOSTNAME } : {}),
   },
   resolve: {
-    conditions: isDevMode ? ['source', ...defaultClientConditions] : [...defaultClientConditions],
+    conditions:
+      isDevMode || isTestMode ?
+        ['source', ...defaultClientConditions]
+      : [...defaultClientConditions],
     alias: {
       '@': fileURLToPath(new URL('./src/project-view', import.meta.url)),
       '#': fileURLToPath(new URL('./src/dashboard', import.meta.url)),
       $: fileURLToPath(new URL('./src', import.meta.url)),
     },
   },
-  envDir: process.env.ENSO_ENV_FILES_ARE_IN_GUI === 'true' ? '.' : '../common',
   envPrefix: 'ENSO_IDE_',
   define: {
     // Single hardcoded usage of `global` in aws-amplify.
@@ -110,19 +113,23 @@ export default defineConfig({
       'top-level-await': true,
     },
   },
-  assetsInclude: ['**/*.svg'],
   css: {
     postcss: {
       plugins: [tailwindcssNesting(postcssNesting()), tailwindcss(tailwindConfig)],
     },
   },
-  logLevel: 'info',
   build: {
     // dashboard chunk size is larger than the default warning limit
     chunkSizeWarningLimit: 700,
     sourcemap: true,
     rollupOptions: {
       output: {
+        chunkFileNames: (chunkInfo) => {
+          if (chunkInfo.name === 'config') {
+            return 'assets/config.js'
+          }
+          return 'assets/[name]-[hash].js'
+        },
         manualChunks: {
           config: ['./src/config'],
           entrypoint: ['./src/entrypoint'],

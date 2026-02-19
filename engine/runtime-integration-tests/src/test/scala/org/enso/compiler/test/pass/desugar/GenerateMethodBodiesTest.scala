@@ -202,10 +202,11 @@ class GenerateMethodBodiesTest extends CompilerTest {
 
       resultArgs.size shouldEqual 1
       val selfArg = resultArgs.head.name
-      selfArg shouldEqual Name.Self(
-        identifiedLocation = irMethodSelfArg.name.identifiedLocation(),
-        synthetic          = false
-      )
+      selfArg shouldEqual Name.Self
+        .builder()
+        .location(irMethodSelfArg.name.identifiedLocation())
+        .synthetic(false)
+        .build()
     }
 
     "generate a warning about self parameter not being in the first position" in {
@@ -228,9 +229,10 @@ class GenerateMethodBodiesTest extends CompilerTest {
       val selfArg = resultArgs.head.name
       selfArg shouldBe an[Name.Self]
       resultLambda.body shouldBe an[Operator.Binary]
-      selfArg shouldEqual Name.Self(identifiedLocation =
-        irBarFirstArg.identifiedLocation()
-      )
+      selfArg shouldEqual Name.Self
+        .builder()
+        .location(irBarFirstArg.identifiedLocation())
+        .build()
     }
 
     "not generate an auxiliary self parameter for the already present one but in a wrong position" in {
@@ -245,9 +247,10 @@ class GenerateMethodBodiesTest extends CompilerTest {
       val bodyLambda = resultLambda.body.asInstanceOf[Function.Lambda]
       bodyLambda.arguments.size shouldEqual 1
       val selfArg = bodyLambda.arguments.head.name
-      selfArg shouldEqual Name.Self(identifiedLocation =
-        irBazSndArg.identifiedLocation()
-      )
+      selfArg shouldEqual Name.Self
+        .builder()
+        .location(irBazSndArg.identifiedLocation())
+        .build()
       resultLambda.diagnosticsList.collect { case w: Warning =>
         w
       }.head shouldBe an[Warning.WrongSelfParameterPos]

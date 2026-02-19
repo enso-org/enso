@@ -113,7 +113,7 @@ case object FramePointerAnalysis extends IRPass {
   ): Unit = {
     args.foreach { arg =>
       arg.name match {
-        case Name.Self(loc, synthetic, _) if loc == null && synthetic =>
+        case self: Name.Self if self.location().isEmpty && self.synthetic() =>
           // synthetic self argument has occurrence attached, but there is no Occurence.Def for it.
           // So we have to handle it specially.
           FrameAnalysisMeta.updateMetadata(arg, new FramePointer(0, 1))
@@ -149,9 +149,9 @@ case object FramePointerAnalysis extends IRPass {
       case lam: Function.Lambda =>
         processArgumentDefs(lam.arguments(), graph)
         processExpression(lam.body(), graph)
-      case binding @ Expression.Binding(name, expr, _, _) =>
-        maybeAttachFramePointer(name, graph)
-        processExpression(expr, graph)
+      case binding: Expression.Binding =>
+        maybeAttachFramePointer(binding.name(), graph)
+        processExpression(binding.expression(), graph)
         maybeAttachFramePointer(binding, graph)
       case app: Application => processApplication(app, graph)
       case caseExpr: Case.Expr =>

@@ -73,8 +73,13 @@ class EnsoLint(
     } else {
       Seq()
     }
+    val env = Map(
+      "JAVA_TOOL_OPTIONS" ->
+      ("-Dorg.enso.compiler.noSourceArchives=" + absPaths.mkString(","))
+    )
     val args = disablePrivateCheckArg ++ Seq(
       "--enable-static-analysis",
+      "--hide-progress",
       "-Werror",
       "--compile"
     ) ++ absPaths
@@ -83,7 +88,8 @@ class EnsoLint(
       engineDistributionRoot,
       args,
       log,
-      Some(paths.head.getAbsoluteFile.getParentFile)
+      Some(paths.head.getAbsoluteFile.getParentFile),
+      env = env
     )
   }
 

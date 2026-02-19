@@ -26,7 +26,6 @@ import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.library.dispatch.TypesLibrary;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.pkg.Package;
-import org.graalvm.collections.Pair;
 
 /** Simple runtime value representing a yet-unresolved by-name symbol. */
 @ExportLibrary(InteropLibrary.class)
@@ -74,13 +73,13 @@ public final class UnresolvedSymbol extends EnsoObject {
    * @return the resolved function definition and type it was resolved in, or null if not found
    */
   @TruffleBoundary
-  public Pair<Function, Type> resolveFor(Node node, Type type) {
+  public FunctionAndType resolveFor(Node node, Type type) {
     if (type != null) {
       for (var current : type.allTypes(EnsoContext.get(node))) {
         Function candidate = scope.lookupMethodDefinition(current, name);
         if (candidate != null) {
           ensureIsAccessible(node, candidate);
-          return Pair.create(candidate, current);
+          return new FunctionAndType(candidate, current);
         }
       }
     }

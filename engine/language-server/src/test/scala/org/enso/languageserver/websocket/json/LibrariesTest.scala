@@ -7,11 +7,7 @@ import org.enso.semver.SemVer
 import org.enso.distribution.FileSystem
 import org.enso.editions.{Editions, LibraryName}
 import org.enso.languageserver.libraries.LibraryEntry.PublishedLibraryVersion
-import org.enso.languageserver.libraries.{
-  LibraryComponentGroup,
-  LibraryComponentGroups,
-  LibraryEntry
-}
+import org.enso.languageserver.libraries.{LibraryComponentGroups, LibraryEntry}
 import org.enso.languageserver.runtime.TestComponentGroups
 import org.enso.librarymanager.published.bundles.LocalReadOnlyRepository
 import org.enso.librarymanager.published.repository.LibraryManifest
@@ -37,15 +33,22 @@ class LibrariesTest extends BaseServerTest with ReportLogsOnFailure {
   ) {
     override def libraries: Seq[DummyLibrary] = Seq(
       DummyLibrary(
+        LibraryName("Baz", "Lib"),
+        SemVer.of(0, 0, 9),
+        """
+          |quuz = 23
+          |""".stripMargin
+      ),
+      DummyLibrary(
         LibraryName("Foo", "Bar"),
         SemVer.of(1, 0, 0),
-        """import Standard.Base
+        """import Baz.Lib
           |
           |baz = 42
           |
           |quux = "foobar"
           |""".stripMargin,
-        dependencies = Seq(LibraryName("Standard", "Base"))
+        dependencies = Seq(LibraryName("Baz", "Lib"))
       )
     )
   }
@@ -53,7 +56,13 @@ class LibrariesTest extends BaseServerTest with ReportLogsOnFailure {
   private val repositoryUrl = baseUrl + "libraries"
 
   override protected def customEdition: Option[Editions.RawEdition] = Some(
-    exampleRepo.createEdition(repositoryUrl)
+    exampleRepo.createEdition(
+      repositoryUrl,
+      parent = None,
+      engineVersion = Some(
+        SemVer.parse(BuildVersion.currentEdition()).get
+      )
+    )
   )
 
   "LocalLibraryManager" should {
@@ -783,86 +792,11 @@ class LibrariesTest extends BaseServerTest with ReportLogsOnFailure {
       )
 
       published should contain(
-        PublishedLibrary("Standard", "Base", isCached = true)
+        PublishedLibrary("Baz", "Lib", isCached = false)
       )
       published should contain(
         PublishedLibrary("Foo", "Bar", isCached = false)
       )
-
-      val currentEditionName = BuildVersion.currentEdition
-      client.send(json"""
-          { "jsonrpc": "2.0",
-            "method": "editions/listDefinedLibraries",
-            "id": 0,
-            "params": {
-              "edition": {
-                "type": "NamedEdition",
-                "editionName": $currentEditionName
-              }
-            }
-          }
-          """)
-      extractPublishedLibraries(
-        client.expectSomeJson(timeout = defaultTimeout)
-      ) should contain(
-        PublishedLibrary("Standard", "Base", isCached = true)
-      )
-    }
-  }
-
-  "editions/listDefinedComponents" should {
-    "include expected components in the list" in {
-      val client = getInitialisedWsClient()
-      client.send(json"""
-          { "jsonrpc": "2.0",
-            "method": "editions/listDefinedComponents",
-            "id": 0,
-            "params": {
-              "edition": {
-                "type": "CurrentProjectEdition"
-              }
-            }
-          }
-          """)
-
-      val response = client.expectSomeJson(timeout = defaultTimeout)
-      val components = response.hcursor
-        .downField("result")
-        .downField("availableComponents")
-        .as[List[LibraryComponentGroup]]
-        .rightValue
-
-      components should not be empty
-      components.map(_.library).toSet should contain theSameElementsAs Seq(
-        LibraryName("Standard", "Base")
-      )
-
-      val currentEditionName = BuildVersion.currentEdition
-      client.send(json"""
-          { "jsonrpc": "2.0",
-            "method": "editions/listDefinedComponents",
-            "id": 1,
-            "params": {
-              "edition": {
-                "type": "NamedEdition",
-                "editionName": $currentEditionName
-              }
-            }
-          }
-          """)
-
-      val response2 = client.expectSomeJson(timeout = defaultTimeout)
-      val components2 = response2.hcursor
-        .downField("result")
-        .downField("availableComponents")
-        .as[List[LibraryComponentGroup]]
-        .rightValue
-
-      components2 should not be empty
-      components2.map(_.library).toSet should contain theSameElementsAs Seq(
-        LibraryName("Standard", "Base")
-      )
-
     }
   }
 

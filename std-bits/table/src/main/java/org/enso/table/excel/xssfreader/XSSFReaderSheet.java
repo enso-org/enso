@@ -25,6 +25,7 @@ public class XSSFReaderSheet implements ExcelSheetReader {
   private String dimensions;
   private int firstRow;
   private int lastRow;
+  private short lastCol;
   private Map<Integer, SortedMap<Short, XSSFReaderSheetXMLHandler.CellValue>> rowData;
 
   public XSSFReaderSheet(int sheetIdx, String sheetName, String relId, XSSFReaderWorkbook parent) {
@@ -81,33 +82,10 @@ public class XSSFReaderSheet implements ExcelSheetReader {
         throw new RuntimeException(e);
       }
 
-      lastRow = findLastNonEmptyRow();
       hasReadSheetData = true;
     } catch (SAXException | ParserConfigurationException e) {
       throw new RuntimeException(e);
     }
-  }
-
-  private int findLastNonEmptyRow() {
-    // Walk backwards to find the first row with actual data
-    for (int i = lastRow; i >= 0; i--) {
-      if (!isRowEmpty(rowData.get(i))) {
-        return i; // Found the last row with data
-      }
-    }
-    return lastRow; // Fallback case (shouldn't happen)
-  }
-
-  private boolean isRowEmpty(SortedMap<Short, XSSFReaderSheetXMLHandler.CellValue> cells) {
-    if (cells == null || cells.isEmpty()) {
-      return true;
-    }
-    for (XSSFReaderSheetXMLHandler.CellValue value : cells.values()) {
-      if (value != null && !value.strValue().isEmpty()) {
-        return false; // Found a non-empty cell
-      }
-    }
-    return true; // No non-empty cells found
   }
 
   @Override
@@ -145,7 +123,7 @@ public class XSSFReaderSheet implements ExcelSheetReader {
       return null;
     }
 
-    return new XSSFReaderRow(rowData.get(row), parent.use1904Format());
+    return new XSSFReaderRow(rowData.get(row), parent.use1904Format(), lastCol);
   }
 
   @Override
@@ -163,14 +141,19 @@ public class XSSFReaderSheet implements ExcelSheetReader {
     if (firstRow == 0 || rowNum < firstRow) {
       firstRow = rowNum;
     }
-
-    if (lastRow == 0 || rowNum > lastRow) {
-      lastRow = rowNum;
-    }
   }
 
   private void handleOnCell(
       int rowNumber, short columnNumber, XSSFReaderSheetXMLHandler.CellValue value) {
+    if (value.dataType() != XSSFReaderSheetXMLHandler.XSSDataType.BLANK) {
+      if (rowNumber > lastRow) {
+        lastRow = rowNumber;
+      }
+
+      if (columnNumber > lastCol) {
+        lastCol = columnNumber;
+      }
+    }
     rowData.computeIfAbsent(rowNumber, k -> new TreeMap<>()).put(columnNumber, value);
   }
 }

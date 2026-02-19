@@ -28,7 +28,7 @@ playwright-report/
 blob-report/
 playwright/
 
-src/project-view/util/iconMetadata
+src/project-view/util/iconMetadata/*
 src/project-view/stores/visualization/metadata.json
 
 # Files that used to be generated recently, but no longer are

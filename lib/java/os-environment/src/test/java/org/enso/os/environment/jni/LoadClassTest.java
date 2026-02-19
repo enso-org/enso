@@ -1,6 +1,8 @@
 package org.enso.os.environment.jni;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -207,6 +209,7 @@ public class LoadClassTest {
   @Test
   public void loadChannelFromDynamicLibrary() throws Exception {
     var libPath = System.getenv("OS_ENVIRONMENT_LIB");
+    assertNotNull("Set OS_ENVIRONMENT_LIB env variable!", libPath);
     var libFile = new File(libPath);
     assert libFile.isFile() : "Library file must exists at " + libPath;
     var nativeJvm = JVM.create(libFile);
@@ -221,6 +224,22 @@ public class LoadClassTest {
       fail("Expecting an exception to be thrown for " + msg);
     } catch (IllegalStateException ex) {
       assertEquals(msg, ex.getMessage());
+      var countDecrementAndSendMessage = 0;
+      for (var elem : ex.getStackTrace()) {
+        if ("decrementAndSendMessage".equals(elem.getMethodName())) {
+          assertEquals("TestMain.java", elem.getFileName());
+          assertNotEquals(-1, elem.getLineNumber());
+          assertEquals(action.getClass().getName(), elem.getClassName());
+          countDecrementAndSendMessage++;
+        }
+      }
+      if (action.value() != countDecrementAndSendMessage) {
+        ex.printStackTrace();
+        assertEquals(
+            "There is exactly right amount of invocations",
+            action.value(),
+            countDecrementAndSendMessage);
+      }
     }
   }
 }

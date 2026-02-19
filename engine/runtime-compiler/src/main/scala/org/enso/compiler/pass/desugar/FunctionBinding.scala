@@ -74,7 +74,7 @@ case object FunctionBinding extends IRPass {
     ir: Module,
     moduleContext: ModuleContext
   ): Module =
-    ir.copyWithBindings(bindings = ir.bindings.map(desugarModuleSymbol))
+    ir.copyWithBindings(ir.bindings.map(desugarModuleSymbol))
 
   /** Runs desugaring of function bindings on an arbitrary expression.
     *
@@ -119,12 +119,13 @@ case object FunctionBinding extends IRPass {
         .location(functionBinding.identifiedLocation())
         .build()
 
-      Expression.Binding(
-        name               = functionBinding.name,
-        expression         = lambda,
-        identifiedLocation = functionBinding.identifiedLocation,
-        passData           = functionBinding.passData
-      )
+      Expression.Binding
+        .builder()
+        .name(functionBinding.name)
+        .expression(lambda)
+        .location(functionBinding.identifiedLocation)
+        .passData(functionBinding.passData)
+        .build()
     }
   }
 
@@ -156,7 +157,10 @@ case object FunctionBinding extends IRPass {
             .methodReference()
             .methodName
             .name == conversionMethodName =>
-        errors.Conversion(meth, errors.Conversion.DeclaredAsPrivate)
+        errors.Conversion.create(
+          meth,
+          errors.Conversion.DeclaredAsPrivate.INSTANCE
+        )
 
       case methodBinding: definition.Method.Binding =>
         val methRef    = methodBinding.methodReference()
@@ -179,11 +183,14 @@ case object FunctionBinding extends IRPass {
           definition.Method.Explicit.fromMethodBinding(methodBinding, newBody)
         } else {
           if (args.isEmpty)
-            errors.Conversion(methodBinding, errors.Conversion.MissingArgs)
+            errors.Conversion.create(
+              methodBinding,
+              errors.Conversion.MissingArgs.INSTANCE
+            )
           else if (args.head.ascribedType.isEmpty) {
-            errors.Conversion(
+            errors.Conversion.create(
               args.head,
-              errors.Conversion.MissingSourceType(args.head.name.name)
+              new errors.Conversion.MissingSourceType(args.head.name.name)
             )
           } else {
             org.enso.common.Asserts
@@ -195,16 +202,18 @@ case object FunctionBinding extends IRPass {
               if (firstArgumentName.isInstanceOf[Name.Blank]) {
                 val newName =
                   if (restArgs.nonEmpty)
-                    Name.Self(
-                      firstArgumentName.identifiedLocation(),
-                      synthetic = true
-                    )
+                    Name.Self
+                      .builder()
+                      .location(firstArgumentName.identifiedLocation())
+                      .synthetic(true)
+                      .build()
                   else
-                    Name.Literal(
-                      ConstantsNames.THAT_ARGUMENT,
-                      firstArgumentName.isMethod,
-                      firstArgumentName.identifiedLocation()
-                    )
+                    Name.Literal
+                      .builder()
+                      .name(ConstantsNames.THAT_ARGUMENT)
+                      .isMethod(firstArgumentName.isMethod)
+                      .location(firstArgumentName.identifiedLocation())
+                      .build()
                 firstArg
                   .withName(newName)
                   .updateMetadata(
@@ -220,11 +229,12 @@ case object FunctionBinding extends IRPass {
               case snd :: rest =>
                 val sndArgName = snd.name
                 if (sndArgName.isInstanceOf[Name.Blank]) {
-                  val newName = Name.Literal(
-                    ConstantsNames.THAT_ARGUMENT,
-                    sndArgName.isMethod,
-                    sndArgName.identifiedLocation()
-                  )
+                  val newName = Name.Literal
+                    .builder()
+                    .name(ConstantsNames.THAT_ARGUMENT)
+                    .isMethod(sndArgName.isMethod)
+                    .location(sndArgName.identifiedLocation())
+                    .build()
                   (
                     Some(
                       snd
@@ -255,9 +265,9 @@ case object FunctionBinding extends IRPass {
                 .find(_.defaultValue.isEmpty) match {
                 case Some(nonDefaultedArg) =>
                   Left(
-                    errors.Conversion(
+                    errors.Conversion.create(
                       nonDefaultedArg,
-                      errors.Conversion.NonDefaultedArgument(
+                      new errors.Conversion.NonDefaultedArgument(
                         nonDefaultedArg.name.name
                       )
                     )
@@ -288,9 +298,9 @@ case object FunctionBinding extends IRPass {
                 ) {
                   if (newSndArgument.name.name != ConstantsNames.THAT_ARGUMENT)
                     Left(
-                      errors.Conversion(
+                      errors.Conversion.create(
                         newSndArgument,
-                        errors.Conversion.InvalidSourceArgumentName(
+                        new errors.Conversion.InvalidSourceArgumentName(
                           newSndArgument.name.name
                         )
                       )
@@ -300,9 +310,9 @@ case object FunctionBinding extends IRPass {
                   newFirstArgument.name.name != ConstantsNames.THAT_ARGUMENT
                 ) {
                   Left(
-                    errors.Conversion(
+                    errors.Conversion.create(
                       newFirstArgument,
-                      errors.Conversion.InvalidSourceArgumentName(
+                      new errors.Conversion.InvalidSourceArgumentName(
                         newFirstArgument.name.name
                       )
                     )
@@ -313,9 +323,9 @@ case object FunctionBinding extends IRPass {
                   newFirstArgument.name.name != ConstantsNames.THAT_ARGUMENT
                 ) {
                   Left(
-                    errors.Conversion(
+                    errors.Conversion.create(
                       newFirstArgument,
-                      errors.Conversion.InvalidSourceArgumentName(
+                      new errors.Conversion.InvalidSourceArgumentName(
                         newFirstArgument.name.name
                       )
                     )

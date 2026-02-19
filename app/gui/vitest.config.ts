@@ -10,7 +10,7 @@ const config = mergeConfig(
       // We need to load environment variables locally: https://github.com/vitest-dev/vitest/issues/1148
       // Supposedly, vitest only loads environment variables beginning with VITE_.
       // We use ENSO_IDE_ prefix for our variables, so we have to load them manually.
-      env: loadEnv('testing', '../common', 'ENSO_IDE_'),
+      env: loadEnv('testing', '../gui', 'ENSO_IDE_'),
       reporters: process.env.CI ? ['dot', 'github-actions'] : ['default'],
       environment: 'jsdom',
       includeSource: ['./src/**/*.{ts,tsx,vue}'],

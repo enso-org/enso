@@ -26,5 +26,12 @@ type Redshift_Error_Mapper
     ## ---
        private: true
        ---
+    is_table_already_exists_error : SQL_Error -> Boolean
+    is_table_already_exists_error error =
+        error.java_exception.getMessage.match "ERROR: Relation .* already exists"
+
+    ## ---
+       private: true
+       ---
     transform_custom_errors : SQL_Error -> Any
     transform_custom_errors error = error

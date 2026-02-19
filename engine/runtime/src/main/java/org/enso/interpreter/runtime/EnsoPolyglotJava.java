@@ -1,20 +1,5 @@
 package org.enso.interpreter.runtime;
 
-import java.io.File;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-
-import org.enso.common.HostEnsoUtils;
-import org.enso.common.RuntimeOptions;
-import org.enso.interpreter.runtime.util.TruffleFileSystem;
-import org.enso.pkg.NativeLibraryFinder;
-import org.enso.pkg.Package;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.interop.ArityException;
 import com.oracle.truffle.api.interop.InteropException;
@@ -25,6 +10,19 @@ import com.oracle.truffle.api.interop.UnsupportedTypeException;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.source.Source;
+import java.io.File;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import org.enso.common.HostEnsoUtils;
+import org.enso.common.RuntimeOptions;
+import org.enso.interpreter.runtime.util.TruffleFileSystem;
+import org.enso.pkg.NativeLibraryFinder;
+import org.enso.pkg.Package;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Handles a polyglot Java system for loading classes from a single source. <em>Single source</em>
@@ -224,10 +222,7 @@ final class EnsoPolyglotJava {
     } else {
       var envJava = System.getenv("ENSO_JAVA");
       if (envJava == null) {
-        logger.info("Initializing OtherJvm support!");
-        var src = Source.newBuilder("epb", "java:0#guest", "<Bindings>").build();
-        var target = ctx.parseInternal(src);
-        return target.call();
+        return initOtherJvm(ctx);
       }
       if ("espresso".equals(envJava)) {
         var src = Source.newBuilder("java", "<Bindings>", "getbindings.java").build();
@@ -242,6 +237,7 @@ final class EnsoPolyglotJava {
                 new Object[] {envJava, ex.getMessage()});
             logger.error("Copy missing libraries to components directory");
             logger.error("Continuing in regular Java mode");
+            return initOtherJvm(ctx);
           } else {
             var ise = new IllegalStateException(ex.getMessage());
             ise.setStackTrace(ex.getStackTrace());
@@ -253,11 +249,16 @@ final class EnsoPolyglotJava {
             "Specify ENSO_JAVA=espresso to use Espresso. Was: " + envJava);
       }
     }
-    return null;
   }
 
-  private final TruffleObject loadClass(String fqn, Package<?> requestedBy)
-      throws InteropException {
+  private Object initOtherJvm(EnsoContext ctx1) {
+    logger.info("Initializing OtherJvm support!");
+    var src = Source.newBuilder("epb", "java:0#guest", "<Bindings>").build();
+    com.oracle.truffle.api.CallTarget target = ctx1.parseInternal(src);
+    return target.call();
+  }
+
+  private TruffleObject loadClass(String fqn, Package<?> requestedBy) throws InteropException {
     var raw = InteropLibrary.getUncached().readMember(findPolyglotJava(), fqn);
     logger.debug(
         "Classloading of {} as {} requested by {}",

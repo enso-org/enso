@@ -168,11 +168,12 @@ object DistributionPackage {
 
     (distributionRoot / "editions").mkdirs()
     Editions.writeEditionConfig(
-      editionsRoot   = distributionRoot / "editions",
-      ensoVersion    = ensoVersion,
-      editionName    = editionName,
-      libraryVersion = targetStdlibVersion,
-      log            = log
+      editionsRoot    = distributionRoot / "editions",
+      editionTemplate = file("distribution/edition.template.yaml"),
+      ensoVersion     = ensoVersion,
+      editionName     = editionName,
+      libraryVersion  = targetStdlibVersion,
+      log             = log
     )
 
     copyLibraryCacheIncremental(
@@ -212,6 +213,7 @@ object DistributionPackage {
     * compilation.
     * Compilation is done by invoking a single subprocess.
     * @param libRoot Root dir for all the libraries.
+    * @param libsToUpload Name of libraries that will be uploaded as release assets.
     */
   def indexStdLibs(
     stdLibVersion: String,
@@ -219,6 +221,7 @@ object DistributionPackage {
     libRoot: File,
     javaOpts: Seq[String],
     cacheFactory: CacheStoreFactory,
+    libsToUpload: Seq[String],
     log: Logger,
     env: Map[String, String] = Map.empty
   ): Unit = {
@@ -241,10 +244,11 @@ object DistributionPackage {
 
     if (modifiedLibs.nonEmpty) {
       invokeIndexStdLibs(
-        libRootDirs = modifiedLibs,
-        javaOpts    = javaOpts,
-        log         = log,
-        env         = env
+        libRootDirs  = modifiedLibs,
+        javaOpts     = javaOpts,
+        libsToUpload = libsToUpload,
+        log          = log,
+        env          = env
       )
     }
   }
@@ -256,6 +260,7 @@ object DistributionPackage {
   private def invokeIndexStdLibs(
     libRootDirs: Seq[File],
     javaOpts: Seq[String],
+    libsToUpload: Seq[String],
     log: Logger,
     env: Map[String, String] = Map.empty
   ): Unit = {
@@ -278,9 +283,15 @@ object DistributionPackage {
       "--compile"
     ) ++ libPaths
     log.debug(command.mkString(" "))
-    val allEnv = mapAppend(
+    val allEnv1 = mapAppend(
       env,
       "NO_COLOR" -> "true"
+    )
+    // Don't create source archives for standard libraries.
+    val noSrcArchivesSysProp = noSourceArchivesOpt(libRootDirs, libsToUpload)
+    val allEnv = mapAppend(
+      allEnv1,
+      "JAVA_TOOL_OPTIONS" -> noSrcArchivesSysProp
     )
     val procBldr = new java.lang.ProcessBuilder(asJava(command))
     val cwd      = libRootDirs.head.getAbsoluteFile.getParentFile
@@ -339,6 +350,32 @@ object DistributionPackage {
     }
   }
 
+  /** Constructs a system property that tells the compiler for which libraries there should
+    * be no source archive created.
+    * A source archive is created only for libraries that will be uploaded.
+    * @param libRootDirs
+    * @param libsToUpload
+    * @return
+    */
+  private def noSourceArchivesOpt(
+    libRootDirs: Seq[File],
+    libsToUpload: Seq[String]
+  ): String = {
+    val noArchives = libRootDirs.filter { libRootDir =>
+      val libName      = libRootDir.getParentFile
+      val libNamespace = libName.getParentFile
+      val name         = libNamespace.getName + "." + libName.getName
+      val shouldUpload = libsToUpload.contains(name)
+      !shouldUpload
+    }
+    if (noArchives.isEmpty) {
+      ""
+    } else {
+      val absPaths = noArchives.map { _.getAbsolutePath }
+      "-Dorg.enso.compiler.noSourceArchives=" + absPaths.mkString(",")
+    }
+  }
+
   private def mapAppend(
     dest: Map[String, String],
     entry: (String, String)
@@ -375,7 +412,8 @@ object DistributionPackage {
     jvmOptName: String,
     pb: java.lang.ProcessBuilder,
     appendJvmOpts: String     = "-ea",
-    cwd: Option[java.io.File] = None
+    cwd: Option[java.io.File] = None,
+    env: Map[String, String]  = Map.empty
   ): java.lang.Process = {
     val envToFill: java.util.Map[String, String] = pb.environment()
     var atEnv                                    = args.indexOf("--env")
@@ -407,6 +445,16 @@ object DistributionPackage {
       envToFill.put(jvmOptName, prevValue)
     }
 
+    for ((k, v) <- env) {
+      val prev = envToFill.get(k)
+      val newValue = if (prev != null) {
+        prev + " " + v
+      } else {
+        v
+      }
+      envToFill.put(k, newValue)
+    }
+
     pb.command(args)
     cwd.map { d =>
       pb.directory(d)
@@ -431,7 +479,8 @@ object DistributionPackage {
     distributionRoot: File,
     args: Seq[String],
     log: Logger,
-    cwd: Option[java.io.File] = None
+    cwd: Option[java.io.File] = None,
+    env: Map[String, String]  = Map.empty
   ): Boolean = {
     import scala.collection.JavaConverters._
 
@@ -464,7 +513,14 @@ object DistributionPackage {
       all.set(atIndex + 1, fileToRun.getPath)
     }
     val p =
-      adjustArgsAndStart(log, all, "JAVA_TOOL_OPTIONS", pb, cwd = adjustedCwd)
+      adjustArgsAndStart(
+        log,
+        all,
+        "JAVA_TOOL_OPTIONS",
+        pb,
+        cwd = adjustedCwd,
+        env = env
+      )
     val exitCode = p.waitFor()
     if (exitCode != 0) {
       log.warn(enso + " finished with exit code " + exitCode)
@@ -614,20 +670,22 @@ object DistributionPackage {
         val targetPackageRoot =
           destinationRoot / prefix / libName / targetVersion
         val libSourceDir = sourceRoot / prefix / libName / sourceVersion
-        val copied = copyDirectoryIncremental(
-          source      = libSourceDir,
-          destination = targetPackageRoot,
-          cache       = cacheFactory.make(s"$prefix.$libName")
-        )
-        val bindingsDir = targetPackageRoot / ".enso" / "cache" / "bindings"
-        if (copied && bindingsDir.exists()) {
-          log.info(
-            s"Clearing cached bindings for $prefix.$libName, because library sources were changed."
+        if (libSourceDir.exists() && libSourceDir.isDirectory) {
+          val copied = copyDirectoryIncremental(
+            source      = libSourceDir,
+            destination = targetPackageRoot,
+            cache       = cacheFactory.make(s"$prefix.$libName")
           )
-          IO.delete(bindingsDir)
+          val bindingsDir = targetPackageRoot / ".enso" / "cache" / "bindings"
+          if (copied && bindingsDir.exists()) {
+            log.info(
+              s"Clearing cached bindings for $prefix.$libName, because library sources were changed."
+            )
+            IO.delete(bindingsDir)
+          }
+          fixLibraryManifest(targetPackageRoot, targetVersion, log)
+          existingLibraries.append((prefix, libName))
         }
-        fixLibraryManifest(targetPackageRoot, targetVersion, log)
-        existingLibraries.append((prefix, libName))
       }
     }
 

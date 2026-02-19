@@ -4,8 +4,8 @@ use std::env;
 use std::fs::OpenOptions;
 use std::io;
 use std::path::PathBuf;
-use std::process::exit;
 use std::process::Command;
+use std::process::exit;
 
 // ====================
 // === WrapLauncher ===

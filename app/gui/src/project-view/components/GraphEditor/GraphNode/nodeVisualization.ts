@@ -1,11 +1,11 @@
 import type { TypeInfo } from '$/providers/openedProjects/project/computedValueRegistry'
+import { type ToValue } from '$/utils/reactivity'
 import type GraphVisualization from '@/components/GraphEditor/GraphVisualization.vue'
 import type { RawDataSource } from '@/components/GraphEditor/GraphVisualization/visualizationData'
 import { injectBubblingKeyboard } from '@/providers/keyboard'
 import { type VisualizationDataSource } from '@/stores/visualization'
 import { type Opt } from '@/util/data/opt'
 import { type Rect } from '@/util/data/rect'
-import { type ToValue } from '@/util/reactivity'
 import { computed, ref, shallowRef, toValue, watch } from 'vue'
 import type { ComponentProps } from 'vue-component-type-helpers'
 import type { VisualizationIdentifier, VisualizationMetadata } from 'ydoc-shared/yjsModel'
@@ -107,7 +107,6 @@ export function useNodeVisualization({
       nodePosition,
       currentType: metadata.value?.identifier,
       dataSource: toValue(dataSource) ?? undefined,
-      typename: toValue(typeinfo)?.primaryType ?? undefined,
       typeinfo: toValue(typeinfo) ?? undefined,
       height: visualizationHeight.value,
       isFocused: toValue(isFocused),

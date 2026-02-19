@@ -2,12 +2,12 @@
 import { useCurrentProject } from '$/components/WithCurrentProject.vue'
 import type { UpdateHandler, WidgetModule } from '$/providers/openedProjects/widgetRegistry'
 import { WidgetInput } from '$/providers/openedProjects/widgetRegistry'
+import { proxyRefs } from '$/utils/reactivity'
 import {
   injectWidgetUsageInfo,
   provideWidgetUsageInfo,
   usageKeyForInput,
 } from '@/providers/widgetUsageInfo'
-import { proxyRefs } from '@/util/reactivity'
 import { computed, getCurrentInstance, shallowRef, watchEffect, withCtx } from 'vue'
 import { bail } from 'ydoc-shared/util/assert'
 

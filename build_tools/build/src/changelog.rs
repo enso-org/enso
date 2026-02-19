@@ -14,7 +14,7 @@ pub mod check;
 pub struct Changelog<'a>(pub &'a str);
 
 impl<'a> Changelog<'a> {
-    pub fn iterate_headers(&self) -> impl Iterator<Item = Header<'a>> + 'a {
+    pub fn iterate_headers(&self) -> impl Iterator<Item = Header<'a>> + 'a + use<'a> {
         use pulldown_cmark::Options;
         use pulldown_cmark::Parser;
         let enable_all_exts = Options::all();

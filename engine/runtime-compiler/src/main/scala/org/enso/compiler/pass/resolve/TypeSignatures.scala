@@ -104,7 +104,7 @@ case object TypeSignatures extends IRPass {
 
     val newBindings: List[Definition] = mod.bindings.flatMap {
       case sig: Type.Ascription =>
-        val res = lastSignature.map(errors.Unexpected.TypeSignature(_))
+        val res = lastSignature.map(errors.UnexpectedTypeSignature.create(_))
         lastSignature = Some(sig)
         res
       case meth: definition.Method =>
@@ -121,7 +121,10 @@ case object TypeSignatures extends IRPass {
           case Some(asc: Type.Ascription) =>
             val methodRef = meth.methodReference
             val newMethodWithDoc = asc
-              .getMetadata(DocumentationComments)
+              .getMetadata(
+                DocumentationComments,
+                classOf[DocumentationComments.Metadata]
+              )
               .map(doc =>
                 newMethod.updateMetadata(
                   new MetadataPair(DocumentationComments, doc)
@@ -129,7 +132,10 @@ case object TypeSignatures extends IRPass {
               )
               .getOrElse(newMethod)
             val newMethodWithAnnotations = asc
-              .getMetadata(ModuleAnnotations)
+              .getMetadata(
+                ModuleAnnotations,
+                classOf[ModuleAnnotations.Metadata]
+              )
               .map(annotations =>
                 newMethodWithDoc.updateMetadata(
                   new MetadataPair(ModuleAnnotations, annotations)
@@ -150,13 +156,13 @@ case object TypeSignatures extends IRPass {
                   )
                 } else {
                   List(
-                    errors.Unexpected.TypeSignature(asc),
+                    errors.UnexpectedTypeSignature.create(asc),
                     newMethodWithAnnotations
                   )
                 }
               case _ =>
                 List(
-                  errors.Unexpected.TypeSignature(asc),
+                  errors.UnexpectedTypeSignature.create(asc),
                   newMethodWithAnnotations
                 )
             }
@@ -210,7 +216,7 @@ case object TypeSignatures extends IRPass {
           "signature resolution."
         )
     } ::: lastSignature
-      .map(asc => errors.Unexpected.TypeSignature(asc))
+      .map(asc => errors.UnexpectedTypeSignature.create(asc))
       .toList
 
     mod.copyWithBindings(
@@ -236,7 +242,7 @@ case object TypeSignatures extends IRPass {
               )
             val argTypes =
               args.flatMap(
-                _.getMetadata(this)
+                _.getMetadata(this, classOf[TypeSignatures.Metadata])
                   .map(_.signature)
                   .orElse(
                     if (canResolveAny) Some(moduleContext.anyIr) else None
@@ -255,7 +261,7 @@ case object TypeSignatures extends IRPass {
               )
             val argTypes =
               args.flatMap(
-                _.getMetadata(this)
+                _.getMetadata(this, classOf[TypeSignatures.Metadata])
                   .map(_.signature)
                   .orElse(
                     if (canResolveAny) Some(moduleContext.anyIr) else None
@@ -269,7 +275,9 @@ case object TypeSignatures extends IRPass {
       case _ =>
         expr match {
           case tpe: Type.Ascription =>
-            tpe.typed.getMetadata(this).map(_.signature :: Nil)
+            tpe.typed
+              .getMetadata(this, classOf[TypeSignatures.Metadata])
+              .map(_.signature :: Nil)
           case _ =>
             None
         }
@@ -359,8 +367,9 @@ case object TypeSignatures extends IRPass {
     val newExpressions = allBlockExpressions.flatMap {
       case sig: Type.Ascription =>
         val res = lastSignature match {
-          case Some(oldSig) => Some(errors.Unexpected.TypeSignature(oldSig))
-          case None         => None
+          case Some(oldSig) =>
+            Some(errors.UnexpectedTypeSignature.create(oldSig))
+          case None => None
         }
 
         lastSignature = Some(sig)
@@ -371,7 +380,10 @@ case object TypeSignatures extends IRPass {
           case Some(asc: Type.Ascription) =>
             val name = binding.name
             val newBindingWithDoc = asc
-              .getMetadata(DocumentationComments)
+              .getMetadata(
+                DocumentationComments,
+                classOf[DocumentationComments.Metadata]
+              )
               .map(doc =>
                 newBinding.updateMetadata(
                   new MetadataPair(DocumentationComments, doc)
@@ -392,13 +404,13 @@ case object TypeSignatures extends IRPass {
                   )
                 } else {
                   List(
-                    errors.Unexpected.TypeSignature(asc),
+                    errors.UnexpectedTypeSignature.create(asc),
                     newBindingWithDoc
                   )
                 }
               case _ =>
                 List(
-                  errors.Unexpected.TypeSignature(asc),
+                  errors.UnexpectedTypeSignature.create(asc),
                   newBindingWithDoc
                 )
             }
@@ -414,14 +426,15 @@ case object TypeSignatures extends IRPass {
           asc.updateMetadata(
             new MetadataPair(this, Signature(asc.signature(), asc.reason()))
           )
-        case any => errors.Unexpected.TypeSignature(any)
+        case any => errors.UnexpectedTypeSignature.create(any)
       })
       .toList
 
-    block.copy(
-      expressions = newExpressions.init,
-      returnValue = newExpressions.last
-    )
+    block
+      .copyBuilder()
+      .expressions(newExpressions.init)
+      .returnValue(newExpressions.last)
+      .build()
   }
 
   // === Metadata =============================================================
@@ -439,7 +452,14 @@ case object TypeSignatures extends IRPass {
 
     /** @inheritdoc */
     override def prepareForSerialization(compiler: Compiler): Signature = {
-      IR.preorder(signature, _.passData.prepareForSerialization(compiler))
+      IR.preorder(
+        signature,
+        _.passData.prepareForSerialization({
+          case irMeta: IRPass.IRMetadata =>
+            irMeta.prepareForSerialization(compiler)
+          case ir => ir
+        })
+      )
       this
     }
 
@@ -450,7 +470,13 @@ case object TypeSignatures extends IRPass {
       IR.preorder(
         signature,
         { node =>
-          if (!node.passData.restoreFromSerialization(compiler)) {
+          if (
+            !node.passData.restoreFromSerialization({
+              case irMeta: IRPass.IRMetadata =>
+                irMeta.restoreFromSerialization(compiler)
+              case _ => None
+            })
+          ) {
             return None
           }
         }

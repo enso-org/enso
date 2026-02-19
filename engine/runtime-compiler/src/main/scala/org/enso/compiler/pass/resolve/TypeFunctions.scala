@@ -107,7 +107,10 @@ case object TypeFunctions extends IRPass {
     expr.transformExpressions { case app: Application =>
       val result = resolveApplication(app)
       app
-        .getMetadata(DocumentationComments)
+        .getMetadata(
+          DocumentationComments,
+          classOf[DocumentationComments.Metadata]
+        )
         .map(doc =>
           result.updateMetadata(new MetadataPair(DocumentationComments, doc))
         )
@@ -222,11 +225,11 @@ case object TypeFunctions extends IRPass {
             .right(rightArg)
             .location(location)
             .build()
-        case _ => Error.InvalidIR(originalIR)
+        case _ => Error.InvalidIR.create(originalIR)
       }
 
     } else {
-      Error.InvalidIR(originalIR)
+      Error.InvalidIR.create(originalIR)
     }
   }
 

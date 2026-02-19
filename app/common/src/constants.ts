@@ -19,7 +19,7 @@ export const DEEP_LINK_SCHEME: string = 'enso'
 export const PRODUCT_NAME: string = 'Enso'
 
 /** Company name, used as the copyright holder. */
-export const COMPANY_NAME: string = 'New Byte Order sp. z o.o.'
+export const COMPANY_NAME: string = 'Enso International, Inc.'
 
 /**
  * The domain on which the Cloud Dashboard web app is hosted.

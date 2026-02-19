@@ -143,24 +143,24 @@ case object IgnoredBindings extends IRPass {
     if (isIgnore(binding.name)) {
       val newName = supply
         .newName(from = Some(binding.name))
-        .copy(
-          location    = binding.name.location,
-          passData    = binding.name.passData,
-          diagnostics = binding.name.diagnostics
-        )
+        .copyBuilder()
+        .location(binding.name.identifiedLocation())
+        .passData(binding.name.passData())
+        .diagnostics(binding.name.diagnostics())
+        .build()
 
       binding
-        .copy(
-          name       = newName,
-          expression = resolveExpression(binding.expression, supply)
-        )
+        .copyBuilder()
+        .name(newName)
+        .expression(resolveExpression(binding.expression, supply))
+        .build()
         .updateMetadata(new MetadataPair(this, State.Ignored))
     } else {
       setNotIgnored(
         binding
-          .copy(
-            expression = resolveExpression(binding.expression, supply)
-          )
+          .copyBuilder()
+          .expression(resolveExpression(binding.expression, supply))
+          .build()
       )
     }
   }
@@ -223,11 +223,11 @@ case object IgnoredBindings extends IRPass {
         if (isIgnored) {
           val newName = freshNameSupply
             .newName(from = Some(spec.name))
-            .copy(
-              location    = arg.name.location,
-              passData    = arg.name.passData,
-              diagnostics = arg.name.diagnostics
-            )
+            .copyBuilder()
+            .location(arg.name.identifiedLocation())
+            .passData(arg.name.passData)
+            .diagnostics(arg.name.diagnostics)
+            .build()
 
           spec
             .copy(
@@ -319,49 +319,47 @@ case object IgnoredBindings extends IRPass {
     supply: FreshNameSupply
   ): Pattern = {
     pattern match {
-      case named @ Pattern.Name(name, _, _) =>
+      case named: Pattern.Name =>
+        val name = named.name()
         if (isIgnore(name)) {
           val newName = supply
             .newName(from = Some(name))
-            .copy(
-              location    = name.location,
-              passData    = name.passData,
-              diagnostics = name.diagnostics
-            )
+            .copyBuilder()
+            .location(name.identifiedLocation())
+            .passData(name.passData())
+            .diagnostics(name.diagnostics())
+            .build()
             .updateMetadata(new MetadataPair(this, State.Ignored))
 
-          named.copy(
-            name = newName
-          )
+          named.copyWithName(newName)
         } else {
-          named.copy(
-            name = setNotIgnored(name)
-          )
+          named.copyWithName(setNotIgnored(name))
         }
-      case cons @ Pattern.Constructor(_, fields, _, _) =>
-        cons.copy(
-          fields = fields.map(resolvePattern(_, supply))
+      case cons: Pattern.Constructor =>
+        cons.copyWithFields(
+          cons.fields().map(resolvePattern(_, supply))
         )
       case literal: Pattern.Literal => literal
       case bool: Pattern.Bool       => bool
-      case typed @ Pattern.Type(name, _, _, _) =>
-        if (isIgnore(name)) {
+      case typed: Pattern.Type =>
+        if (isIgnore(typed.name())) {
           val newName = supply
-            .newName(from = Some(name))
-            .copy(
-              location    = name.location,
-              passData    = name.passData,
-              diagnostics = name.diagnostics
-            )
+            .newName(from = Some(typed.name))
+            .copyBuilder()
+            .location(typed.name.identifiedLocation())
+            .passData(typed.name.passData())
+            .diagnostics(typed.name.diagnostics())
+            .build()
             .updateMetadata(new MetadataPair(this, State.Ignored))
 
-          typed.copy(
-            name = newName
-          )
+          typed.copyBuilder().name(newName).build()
         } else {
-          typed.copy(
-            name = setNotIgnored(name)
-          )
+          typed
+            .copyBuilder()
+            .name(
+              setNotIgnored(typed.name())
+            )
+            .build()
         }
       case err: errors.Pattern => err
       case _: Pattern.Documentation =>

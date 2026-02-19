@@ -125,9 +125,10 @@ public final class EqualsNode extends Node {
               argSchema, DefaultsExecutionMode.EXECUTE, ArgumentsExecutionMode.EXECUTE);
       var state = ctx.currentState();
       var by =
-          node.execute(convFn, null, state, new Object[] {ctx.getBuiltins().comparable(), value});
+          node.execute(
+              convFn, null, state, new Object[] {ctx.getBuiltins().comparableType(), value});
       if (by instanceof Atom atom
-          && atom.getConstructor() == ctx.getBuiltins().comparable().getBy()) {
+          && atom.getConstructor() == ctx.getBuiltins().comparableType().getSingleConstructor()) {
         var structs = StructsLibrary.getUncached();
         return structs.getField(atom, 1);
       } else {
@@ -158,7 +159,7 @@ public final class EqualsNode extends Node {
     private static boolean findConversionImpl(
         EnsoContext ctx, Type selfType, Type thatType, Object self, Object that) {
       var selfScope = selfType.getDefinitionScope();
-      var comparableType = ctx.getBuiltins().comparable().getType();
+      var comparableType = ctx.getBuiltins().comparableType();
 
       var fromSelfType =
           UnresolvedConversion.build(selfScope).resolveFor(ctx, comparableType, selfType);

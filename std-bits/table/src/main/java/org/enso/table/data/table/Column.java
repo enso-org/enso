@@ -1,6 +1,5 @@
 package org.enso.table.data.table;
 
-import java.lang.reflect.Proxy;
 import java.util.List;
 import org.enso.base.polyglot.Polyglot_Utils;
 import org.enso.table.data.column.builder.Builder;
@@ -14,9 +13,12 @@ import org.enso.table.error.InvalidColumnNameException;
 import org.enso.table.problems.ProblemAggregator;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /** A representation of a column. Consists of a column name and the underlying storage. */
 public final class Column {
+  private static final Logger LOGGER = LoggerFactory.getLogger(Column.class);
   private final String name;
   private final ColumnStorage<?> storage;
 
@@ -29,7 +31,13 @@ public final class Column {
   public Column(String name, ColumnStorage<?> storage) {
     ensureNameIsValid(name);
     this.name = name;
-    this.storage = Proxy.isProxyClass(storage.getClass()) ? Builder.makeLocal(storage) : storage;
+    this.storage = Builder.makeLocal(storage);
+    LOGGER.trace(
+        "Column[{}] of {}:{} type with size: {}",
+        name,
+        storage.typeChar(),
+        storage.typeSize(),
+        storage.getSize());
   }
 
   public static boolean isColumnNameValid(String name) {
@@ -72,8 +80,8 @@ public final class Column {
   /**
    * @return the type of the underlying storage
    */
-  public StorageType<?> getType() {
-    return storage.getType();
+  public StorageType<?> getStorageType() {
+    return StorageType.ofStorage(storage);
   }
 
   /**

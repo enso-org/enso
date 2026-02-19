@@ -88,6 +88,7 @@ type File
 
              example_new = File.new Examples.csv_path
        ```
+    @path Widget.Text_Input
     new : (Text | File) -> Any ! Illegal_Argument
     new path = case path of
         _ : Text -> if path.contains "://" . not then resolve_local_file path else
@@ -1181,12 +1182,6 @@ find_extension_from_name name =
    ---
    Convert from a Text to a File.
 File.from (that:Text) = File.new that
-
-## ---
-   private: true
-   ---
-file_as_java : File -> Java_File
-file_as_java (file : File) = Java_File.new file.absolute.normalize.path
 
 ## ---
    private: true

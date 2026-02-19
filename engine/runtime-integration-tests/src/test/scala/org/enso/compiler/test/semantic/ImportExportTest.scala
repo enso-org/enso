@@ -2,7 +2,7 @@ package org.enso.compiler.test.semantic
 
 import com.oracle.truffle.api.TruffleFile
 import org.enso.compiler.core.Implicits.AsMetadata
-import org.enso.compiler.core.ir.{Module, ProcessingPass, Warning}
+import org.enso.compiler.core.ir.{Module, Warning}
 import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.core.ir.module.scope.Import
 import org.enso.compiler.data.BindingsMap
@@ -19,6 +19,7 @@ import org.graalvm.polyglot.Engine
 import org.scalatest.BeforeAndAfter
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
+import org.enso.compiler.pass.IRPass
 
 import java.nio.file.{Files, Path, Paths}
 import java.util.logging.Level
@@ -240,8 +241,10 @@ class ImportExportTest
         .reason
         .asInstanceOf[
           errors.ImportExport.NoSuchConstructor
-        ] shouldEqual errors.ImportExport
-        .NoSuchConstructor("Other_Type", "method")
+        ] shouldEqual new errors.ImportExport.NoSuchConstructor(
+        "Other_Type",
+        "method"
+      )
     }
 
     "result in multiple errors when importing more methods from type" in {
@@ -259,8 +262,8 @@ class ImportExportTest
       mainIr.imports
         .take(2)
         .map(_.asInstanceOf[errors.ImportExport].reason) shouldEqual List(
-        errors.ImportExport.NoSuchConstructor("Other_Type", "method"),
-        errors.ImportExport.NoSuchConstructor("Other_Type", "other_method")
+        new errors.ImportExport.NoSuchConstructor("Other_Type", "method"),
+        new errors.ImportExport.NoSuchConstructor("Other_Type", "other_method")
       )
     }
 
@@ -407,9 +410,14 @@ class ImportExportTest
       mainIr.imports
         .take(2)
         .map(_.asInstanceOf[errors.ImportExport].reason) shouldEqual List(
-        errors.ImportExport.NoSuchConstructor("Other_Module_Type", "method"),
-        errors.ImportExport
-          .NoSuchConstructor("Other_Module_Type", "non_existing_method")
+        new errors.ImportExport.NoSuchConstructor(
+          "Other_Module_Type",
+          "method"
+        ),
+        new errors.ImportExport.NoSuchConstructor(
+          "Other_Module_Type",
+          "non_existing_method"
+        )
       )
     }
 
@@ -1042,7 +1050,7 @@ class ImportExportTest
       val arr = org.enso.interpreter.caches.PersistUtils.POOL
         .withWriteReplace(
           {
-            case metadata: ProcessingPass.Metadata =>
+            case metadata: IRPass.IRMetadata =>
               metadata.prepareForSerialization(
                 ctx
                   .ensoContext()
@@ -1084,7 +1092,7 @@ class ImportExportTest
         val arr = org.enso.interpreter.caches.PersistUtils.POOL
           .withWriteReplace(
             {
-              case metadata: ProcessingPass.Metadata =>
+              case metadata: IRPass.IRMetadata =>
                 metadata.prepareForSerialization(
                   ctx
                     .ensoContext()
@@ -1385,7 +1393,10 @@ class ImportExportTest
           .getIr
 
       val diags = mainIr
-        .unsafeGetMetadata(GatherDiagnostics, "Should be included")
+        .unsafeGetMetadata[GatherDiagnostics.Metadata](
+          GatherDiagnostics,
+          "Should be included"
+        )
         .diagnostics
       diags.size shouldEqual 0
     }

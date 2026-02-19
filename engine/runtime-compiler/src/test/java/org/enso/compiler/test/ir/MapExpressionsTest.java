@@ -14,9 +14,12 @@ import static org.hamcrest.Matchers.not;
 
 import java.util.ArrayList;
 import java.util.List;
+import org.enso.compiler.core.IR;
 import org.enso.compiler.core.ir.DefinitionArgument;
 import org.enso.compiler.core.ir.Expression;
 import org.enso.compiler.core.ir.Function;
+import org.enso.compiler.core.ir.Name;
+import org.enso.compiler.core.ir.Pattern;
 import org.enso.compiler.core.ir.expression.Application;
 import org.enso.compiler.core.ir.expression.Case;
 import org.enso.compiler.test.pass.MockExpression;
@@ -155,7 +158,37 @@ public class MapExpressionsTest {
     assertThat("Name of argument is not collected", collected, not(hasItem(xLit)));
   }
 
-  private static List<Expression> mapExpressions(Expression rootExpr) {
+  @Test
+  public void patternName_IsNotCollected() {
+    var name = literal("name");
+    var pat = Pattern.Name.create(name);
+    var collected = mapExpressions(pat);
+    assertThat("No expressions are collected", collected.isEmpty(), is(true));
+  }
+
+  @Test
+  public void methodReference_MethodName_IsNotCollected() {
+    var methodName = Name.Literal.builder().name("method").isMethod(false).build();
+    var methodRef =
+        Name.MethodReference.builder().methodName(methodName).typePointer(Option.empty()).build();
+    var collected = mapExpressions(methodRef);
+    assertThat("No expressions are collected", collected.isEmpty(), is(true));
+  }
+
+  @Test
+  public void methodReference_TypePointer_IsNotCollected() {
+    var methodName = Name.Literal.builder().name("method").isMethod(false).build();
+    var type = Name.Literal.builder().name("Type").isMethod(false).build();
+    var methodRef =
+        Name.MethodReference.builder()
+            .methodName(methodName)
+            .typePointer(Option.apply(type))
+            .build();
+    var collected = mapExpressions(methodRef);
+    assertThat("No expressions are collected", collected.isEmpty(), is(true));
+  }
+
+  private static List<Expression> mapExpressions(IR rootExpr) {
     var collected = new ArrayList<Expression>();
     rootExpr.mapExpressions(
         e -> {

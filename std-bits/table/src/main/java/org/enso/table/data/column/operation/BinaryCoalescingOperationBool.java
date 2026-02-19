@@ -6,6 +6,7 @@ import org.enso.table.data.column.storage.BoolStorage;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.type.BooleanType;
 import org.enso.table.data.column.storage.type.NullType;
+import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.table.problems.MapOperationProblemAggregator;
 import org.enso.table.error.UnexpectedTypeException;
 
@@ -78,7 +79,7 @@ public abstract class BinaryCoalescingOperationBool extends BinaryOperationBase<
       MapOperationProblemAggregator problemAggregator) {
     var typedStorage = BooleanType.INSTANCE.asTypedStorage(left);
 
-    if (NullType.INSTANCE.isOfType(right.getType())) {
+    if (NullType.INSTANCE.isOfType(StorageType.ofStorage(right))) {
       return typedStorage;
     }
 

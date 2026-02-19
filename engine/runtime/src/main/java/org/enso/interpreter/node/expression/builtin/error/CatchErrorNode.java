@@ -10,7 +10,6 @@ import org.enso.interpreter.node.callable.InvokeCallableNode;
 import org.enso.interpreter.runtime.EnsoContext;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.error.DataflowError;
-import org.enso.interpreter.runtime.error.PanicException;
 
 @BuiltinMethod(
     type = "Error",
@@ -44,8 +43,6 @@ public abstract class CatchErrorNode extends Node {
 
   @Fallback
   Object doOther(VirtualFrame frame, Object self, Object handler) {
-    var builtins = EnsoContext.get(this).getBuiltins();
-    var typeErr = builtins.error().makeTypeError("Dataflow_Error", self, "self");
-    throw new PanicException(typeErr, this);
+    return self;
   }
 }

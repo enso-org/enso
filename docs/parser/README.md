@@ -35,9 +35,7 @@ below:
 - [**Construct Resolution:**](./construct-resolution.md) The system for
   resolving higher-level language constructs in the AST to produce a useful
   output.
-- [**Parser Driver:**](./parser-driver.md)
 - [**AST:**](./ast.md) The parser AST.
 - [**JVM Object Generation:**](./jvm-object-generation.md) The process for
   generating the ast representation on the JVM via reflection.
-- [**Reading Source Code:**](./reader.md) The flexible architecture for reading
-  source code into the lexer.
+- [**Testing**](./testing.md) Testing the parser.

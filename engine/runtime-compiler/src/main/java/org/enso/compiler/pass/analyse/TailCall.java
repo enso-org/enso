@@ -1,10 +1,10 @@
 package org.enso.compiler.pass.analyse;
 
 import java.util.List;
+import org.enso.compiler.context.CompilerContext;
 import org.enso.compiler.context.InlineContext;
 import org.enso.compiler.context.ModuleContext;
 import org.enso.compiler.core.CompilerError;
-import org.enso.compiler.core.CompilerStub;
 import org.enso.compiler.core.IR;
 import org.enso.compiler.core.ir.CallArgument;
 import org.enso.compiler.core.ir.Expression;
@@ -118,7 +118,7 @@ public final class TailCall implements MiniPassFactory {
      * @inheritdoc
      */
     @Override
-    public TailPosition prepareForSerialization(CompilerStub compiler) {
+    public TailPosition prepareForSerialization(CompilerContext compiler) {
       return this;
     }
 
@@ -126,7 +126,7 @@ public final class TailCall implements MiniPassFactory {
      * @inheritdoc
      */
     @Override
-    public Option restoreFromSerialization(CompilerStub compiler) {
+    public Option restoreFromSerialization(CompilerContext compiler) {
       return Option.apply(this);
     }
   }

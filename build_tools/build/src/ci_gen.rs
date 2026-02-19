@@ -1,25 +1,15 @@
 use crate::prelude::*;
 
 use crate::ci::input;
-use crate::ci_gen::job::prepare_packaging_steps;
 use crate::ci_gen::job::RunsOn;
+use crate::ci_gen::job::prepare_packaging_steps;
 use crate::engine;
 use crate::engine::env;
-use crate::version::promote::Designation;
 use crate::version::ENSO_EDITION;
 use crate::version::ENSO_RELEASE_MODE;
 use crate::version::ENSO_VERSION;
+use crate::version::promote::Designation;
 
-use ide_ci::actions::workflow::definition::checkout_repo_step;
-use ide_ci::actions::workflow::definition::get_input_expression;
-use ide_ci::actions::workflow::definition::run;
-use ide_ci::actions::workflow::definition::setup_artifact_api;
-use ide_ci::actions::workflow::definition::setup_bazel;
-use ide_ci::actions::workflow::definition::setup_bazel_env;
-use ide_ci::actions::workflow::definition::setup_corepack;
-use ide_ci::actions::workflow::definition::setup_node;
-use ide_ci::actions::workflow::definition::shell;
-use ide_ci::actions::workflow::definition::wrap_expression;
 use ide_ci::actions::workflow::definition::Access;
 use ide_ci::actions::workflow::definition::Branches;
 use ide_ci::actions::workflow::definition::Concurrency;
@@ -41,6 +31,16 @@ use ide_ci::actions::workflow::definition::WorkflowDispatch;
 use ide_ci::actions::workflow::definition::WorkflowDispatchInput;
 use ide_ci::actions::workflow::definition::WorkflowDispatchInputType;
 use ide_ci::actions::workflow::definition::WorkflowToWrite;
+use ide_ci::actions::workflow::definition::checkout_repo_step;
+use ide_ci::actions::workflow::definition::get_input_expression;
+use ide_ci::actions::workflow::definition::run;
+use ide_ci::actions::workflow::definition::setup_artifact_api;
+use ide_ci::actions::workflow::definition::setup_bazel;
+use ide_ci::actions::workflow::definition::setup_bazel_env;
+use ide_ci::actions::workflow::definition::setup_corepack;
+use ide_ci::actions::workflow::definition::setup_node;
+use ide_ci::actions::workflow::definition::shell;
+use ide_ci::actions::workflow::definition::wrap_expression;
 use ide_ci::cache::goodie::graalvm;
 
 // ==============
@@ -147,9 +147,12 @@ pub mod secret {
     pub const ENSO_IDE_STRAVA_OAUTH_CLIENT_ID: &str = "ENSO_IDE_STRAVA_OAUTH_CLIENT_ID";
     /// The client ID for the MS365 OAuth integration used for MS365 Credentials.
     pub const ENSO_IDE_MS365_OAUTH_CLIENT_ID: &str = "ENSO_IDE_MS365_OAUTH_CLIENT_ID";
+    /// The client ID for the Salesforce OAuth integration used for Salesforce Credentials.
+    pub const ENSO_IDE_SALESFORCE_OAUTH_CLIENT_ID: &str = "ENSO_IDE_SALESFORCE_OAUTH_CLIENT_ID";
 }
 
 pub mod variables {
+    pub const ENSO_HOST: &str = "ENSO_HOST";
     pub const ENSO_CLOUD_ENVIRONMENT: &str = "ENSO_CLOUD_ENVIRONMENT";
     pub const ENSO_CLOUD_API_URL: &str = "ENSO_CLOUD_API_URL";
     pub const ENSO_CLOUD_CHAT_URL: &str = "ENSO_CLOUD_CHAT_URL";
@@ -926,7 +929,10 @@ fn benchmark_workflow(
     let just_check_input_name = "just-check";
     let just_check_input = WorkflowDispatchInput {
         r#type: WorkflowDispatchInputType::Boolean { default: Some(false) },
-        ..WorkflowDispatchInput::new("If set, benchmarks will be only checked to run correctly, not to measure actual performance.", true)
+        ..WorkflowDispatchInput::new(
+            "If set, benchmarks will be only checked to run correctly, not to measure actual performance.",
+            true,
+        )
     };
     let bench_name_input_name = "bench-name";
     let bench_name_input = WorkflowDispatchInput {

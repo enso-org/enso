@@ -1,8 +1,7 @@
 from Standard.Base import all
 import Standard.Base.Data.Vector.Builder
-from Standard.Base.Runtime import State
 
-import project.Clue.Clue
+import project.Internal.Helpers.Clue
 import project.Frame_Hider
 import project.Spec_Result.Spec_Result
 import project.Suite.Suite
@@ -116,18 +115,9 @@ type Test
        ```
     fail : Text -> Nothing|Text -> Spec_Result
     fail message details=Nothing =
-        failure = Spec_Result.Failure (Test.enrich_message_with_clue message) details
+        failure = Spec_Result.Failure (Clue.enrich_message_with_clue message) details
         Panic.throw failure
 
-    ## ---
-       private: true
-       ---
-    enrich_message_with_clue : Text -> Text
-    enrich_message_with_clue message =
-        clue = State.get Clue if_missing=Nothing
-        case clue of
-            Clue.Value add_clue -> add_clue message
-            _                   -> message
 
     ## ---
        private: true
@@ -162,21 +152,7 @@ type Test
                                 x . should_equal 0
        ```
     with_clue : Text|(Text -> Text) -> Any -> Any
-    with_clue ~clue ~behavior =
-        add_clue x = case clue of
-            _ : Text -> clue + x
-            _ : Function -> clue x
-        prev_clue = State.get Clue
-        next_clue = case prev_clue of
-            Clue.Value prev_add_clue -> (x -> prev_add_clue (add_clue x))
-            _                        -> add_clue
-
-        # Set the new clue
-        State.put Clue (Clue.Value next_clue)
-
-        # Run the behaviour, and restore the previous clue afterwards, even if the behaviour panics
-        Panic.with_finalizer (State.put Clue prev_clue) <|
-            behavior
+    with_clue ~clue ~behavior = Clue.with_clue clue... behavior...
 
     ## A helper method that retries the action a few times if it panics.
        It allows to make flaky tests more robust.

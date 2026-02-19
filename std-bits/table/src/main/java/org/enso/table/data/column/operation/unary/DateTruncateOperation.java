@@ -7,6 +7,7 @@ import org.enso.table.data.column.operation.StorageIterators;
 import org.enso.table.data.column.operation.UnaryOperation;
 import org.enso.table.data.column.storage.ColumnStorage;
 import org.enso.table.data.column.storage.type.DateTimeType;
+import org.enso.table.data.column.storage.type.StorageType;
 import org.enso.table.data.table.problems.MapOperationProblemAggregator;
 
 public class DateTruncateOperation implements UnaryOperation {
@@ -22,7 +23,7 @@ public class DateTruncateOperation implements UnaryOperation {
 
   @Override
   public boolean canApply(ColumnStorage<?> storage) {
-    return storage.getType() == DateTimeType.INSTANCE;
+    return StorageType.ofStorage(storage) instanceof DateTimeType;
   }
 
   @Override

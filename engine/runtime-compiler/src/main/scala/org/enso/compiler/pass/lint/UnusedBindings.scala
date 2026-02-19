@@ -100,14 +100,14 @@ case object UnusedBindings extends IRPass {
     context: InlineContext
   ): Expression.Binding = {
     val isIgnored = binding
-      .unsafeGetMetadata(
+      .unsafeGetMetadata[IgnoredBindings.Metadata](
         IgnoredBindings,
         "Binding ignore information is required for linting."
       )
       .isIgnored
 
     val aliasInfo = binding
-      .unsafeGetMetadata(
+      .unsafeGetMetadata[AliasAnalysis.Metadata](
         AliasAnalysis,
         "Aliasing information is required for linting."
       )
@@ -116,12 +116,15 @@ case object UnusedBindings extends IRPass {
 
     if (!isIgnored && !isUsed) {
       binding
-        .copy(expression = runExpression(binding.expression, context))
-        .addDiagnostic(warnings.Unused.Binding(binding.name))
+        .copyBuilder()
+        .expression(runExpression(binding.expression, context))
+        .build()
+        .addDiagnostic(new warnings.Unused.Binding(binding.name))
     } else {
-      binding.copy(
-        expression = runExpression(binding.expression, context)
-      )
+      binding
+        .copyBuilder()
+        .expression(runExpression(binding.expression, context))
+        .build()
     }
   }
 
@@ -154,7 +157,7 @@ case object UnusedBindings extends IRPass {
                 body1
               case _ =>
                 body1.addDiagnostic(
-                  Warning.WrongBuiltinMethod(body.identifiedLocation())
+                  new Warning.WrongBuiltinMethod(body.identifiedLocation())
                 )
             }
           else body1
@@ -181,14 +184,14 @@ case object UnusedBindings extends IRPass {
     context: InlineContext
   ): DefinitionArgument = {
     val isIgnored = argument
-      .unsafeGetMetadata(
+      .unsafeGetMetadata[IgnoredBindings.Metadata](
         IgnoredBindings,
         "Argument ignore information is required for linting."
       )
       .isIgnored
 
     val aliasInfo = argument
-      .unsafeGetMetadata(
+      .unsafeGetMetadata[AliasAnalysis.Metadata](
         AliasAnalysis,
         "Aliasing information missing from function argument but is " +
         "required for linting."
@@ -205,12 +208,12 @@ case object UnusedBindings extends IRPass {
         if (!isIgnored && !isUsed) {
           val nameToReport = name match {
             case literal: Name.Literal =>
-              literal.originalName.getOrElse(literal)
+              literal.originalName().getOrElse(literal)
             case _ => name
           }
           s.copyWithDefaultValue(
             default.map(runExpression(_, context))
-          ).addDiagnostic(warnings.Unused.FunctionArgument(nameToReport))
+          ).addDiagnostic(new warnings.Unused.FunctionArgument(nameToReport))
         } else s
     }
   }
@@ -256,16 +259,17 @@ case object UnusedBindings extends IRPass {
     */
   def lintPattern(pattern: Pattern): Pattern = {
     pattern match {
-      case n @ Pattern.Name(name, _, _) =>
+      case n: Pattern.Name =>
+        val name = n.name()
         val isIgnored = name
-          .unsafeGetMetadata(
+          .unsafeGetMetadata[IgnoredBindings.Metadata](
             IgnoredBindings,
             "Free variable ignore information is required for linting."
           )
           .isIgnored
 
         val aliasInfo = name
-          .unsafeGetMetadata(
+          .unsafeGetMetadata[AliasAnalysis.Metadata](
             AliasAnalysis,
             "Aliasing information missing from pattern but is " +
             "required for linting."
@@ -274,28 +278,27 @@ case object UnusedBindings extends IRPass {
         val isUsed = !aliasInfo.graph.linksFor(aliasInfo.id).isEmpty
 
         if (!isIgnored && !isUsed) {
-          n.addDiagnostic(warnings.Unused.PatternBinding(name))
+          n.addDiagnostic(new warnings.Unused.PatternBinding(name))
         } else pattern
-      case cons @ Pattern.Constructor(_, fields, _, _) =>
+      case cons: Pattern.Constructor =>
         if (!cons.isDesugared) {
           throw new CompilerError(
             "Nested patterns should not be present during linting."
           )
         }
 
-        cons.copy(
-          fields = fields.map(lintPattern)
-        )
-      case typed @ Pattern.Type(name, _, _, _) =>
+        cons.copyWithFields(cons.fields.map(lintPattern))
+      case typed: Pattern.Type =>
+        val name = typed.name()
         val isIgnored = name
-          .unsafeGetMetadata(
+          .unsafeGetMetadata[IgnoredBindings.Metadata](
             IgnoredBindings,
             "Free variable ignore information is required for linting."
           )
           .isIgnored
 
         val aliasInfo = name
-          .unsafeGetMetadata(
+          .unsafeGetMetadata[AliasAnalysis.Metadata](
             AliasAnalysis,
             "Aliasing information missing from pattern but is " +
             "required for linting."
@@ -304,7 +307,7 @@ case object UnusedBindings extends IRPass {
         val isUsed = !aliasInfo.graph.linksFor(aliasInfo.id).isEmpty
 
         if (!isIgnored && !isUsed) {
-          typed.addDiagnostic(warnings.Unused.PatternBinding(name))
+          typed.addDiagnostic(new warnings.Unused.PatternBinding(name))
         } else pattern
       case literal: Pattern.Literal =>
         literal
@@ -325,7 +328,10 @@ case object UnusedBindings extends IRPass {
     */
   private def isBuiltinMethod(expression: Expression): Boolean = {
     expression
-      .getMetadata(ExpressionAnnotations)
+      .getMetadata(
+        ExpressionAnnotations,
+        classOf[ExpressionAnnotations.Metadata]
+      )
       .exists(
         _.annotations.exists(_.name == ExpressionAnnotations.builtinMethodName)
       )

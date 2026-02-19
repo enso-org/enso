@@ -7,8 +7,6 @@ import Standard.Base.Runtime.Context
 
 from Standard.Table import Column, Table
 
-from Standard.Image import Image, Matrix, Read_Flag
-
 ## An example error type used in a number of examples.
 type Example_Error_Type
     ## Create an example error.
@@ -207,38 +205,6 @@ get_geo_data = Data.fetch geo_data_url format=Raw_Response
 uri : URI
 uri = URI.parse "http://user:pass@example.com/foo/bar?key=val"
 
-## A file that contains an image.
-
-   ## Remarks
-
-   ### Downloading
-   Calling this method will result in the image file being downloaded from the
-   internet if it is not already present on your disk. If you do not want this to
-   happen, please place the image in the `lib/Standard/Examples/<version>/data`
-   folder for your Enso distribution.
-image_file : File
-image_file =
-    url = "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e9/Hue_alpha_falloff.png/320px-Hue_alpha_falloff.png"
-    file = data_dir / "image.png"
-    if file.exists.not then
-        Context.Output.with_enabled <| HTTP.fetch url . body . write file
-    file
-
-## A PNG image.
-
-   ## Remarks
-
-   ### Downloading
-   Calling this method will result in the image file being downloaded from the
-   internet if it is not already present on your disk. If you do not want this to
-   happen, please place the image in the `lib/Standard/Examples/<version>/data`
-   folder for your Enso distribution.
-image : Image
-image = Image.read image_file [Read_Flag.Alpha_Channel]
-
-## A matrix that corresponds to `image`.
-matrix : Matrix
-matrix = image.to_matrix
 
 ## A silly little function that adds one to the provided number.
 add_1_to : Number -> Number

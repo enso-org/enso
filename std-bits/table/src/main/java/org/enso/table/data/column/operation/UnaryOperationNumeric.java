@@ -35,13 +35,8 @@ public abstract class UnaryOperationNumeric<T, R> implements UnaryOperation {
   @Override
   public boolean canApply(ColumnStorage<?> storage) {
     // Check if can use NullType for left operand.
-    if (allowNullType) {
-      if (storage.getType() instanceof NullType) {
-        return true;
-      }
-    }
-
-    return adapter.canApply(storage);
+    return allowNullType && StorageType.ofStorage(storage) instanceof NullType
+        || adapter.canApply(storage);
   }
 
   @Override
@@ -49,7 +44,7 @@ public abstract class UnaryOperationNumeric<T, R> implements UnaryOperation {
       ColumnStorage<?> storage, MapOperationProblemAggregator problemAggregator) {
     assert canApply(storage);
 
-    if (storage.getType() instanceof NullType) {
+    if (StorageType.ofStorage(storage) instanceof NullType) {
       return applyNull(storage, problemAggregator);
     }
 

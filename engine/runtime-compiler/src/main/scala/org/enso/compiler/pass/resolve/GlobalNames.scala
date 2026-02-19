@@ -68,7 +68,7 @@ case object GlobalNames extends IRPass {
     ir: Module,
     moduleContext: ModuleContext
   ): Module = {
-    val scopeMap = ir.unsafeGetMetadata(
+    val scopeMap = ir.unsafeGetMetadata[BindingAnalysis.Metadata](
       BindingAnalysis,
       "No binding analysis on the module"
     )
@@ -164,16 +164,19 @@ case object GlobalNames extends IRPass {
         selfTypeResolution
           .map(res => selfTp.updateMetadata(new MetadataPair(this, res)))
           .getOrElse(
-            errors.Resolution(
+            errors.Resolution.create(
               selfTp,
-              errors.Resolution.ResolverError(ResolutionNotFound)
+              new errors.Resolution.ResolverError(ResolutionNotFound)
             )
           )
       case lit: Name.Literal =>
         if (params.exists(p => p.name.name == lit.name)) {
           lit
         } else {
-          lit.getMetadata(FullyQualifiedNames) match {
+          lit.getMetadata(
+            FullyQualifiedNames,
+            classOf[FullyQualifiedNames.Metadata]
+          ) match {
             case Some(
                   FullyQualifiedNames.FQNResolution(
                     FullyQualifiedNames.ResolvedModule(modRef)
@@ -187,9 +190,9 @@ case object GlobalNames extends IRPass {
                 val resolution = bindings.resolveName(lit.name)
                 resolution match {
                   case Left(error) =>
-                    errors.Resolution(
+                    errors.Resolution.create(
                       lit,
-                      errors.Resolution.ResolverError(error)
+                      new errors.Resolution.ResolverError(error)
                     )
                   case Right(values)
                       if values.exists(_.isInstanceOf[ResolvedModuleMethod]) =>
@@ -217,10 +220,12 @@ case object GlobalNames extends IRPass {
                         )
                       // The synthetic applications gets the location so that instrumentation
                       // identifies the node correctly
-                      val fun = lit.copy(
-                        name     = resolvedModuleMethod.method.name,
-                        location = None
-                      )
+                      val fun = lit
+                        .copyBuilder()
+                        .name(resolvedModuleMethod.method.name)
+                        .location(null)
+                        .build()
+
                       val app = Application.Prefix
                         .builder()
                         .function(fun)
@@ -238,7 +243,10 @@ case object GlobalNames extends IRPass {
                         .location(lit.identifiedLocation)
                         .build()
                       fun
-                        .getMetadata(ExpressionAnnotations)
+                        .getMetadata(
+                          ExpressionAnnotations,
+                          classOf[ExpressionAnnotations.Metadata]
+                        )
                         .foreach(annotationsMeta =>
                           app.updateMetadata(
                             new MetadataPair(
@@ -261,9 +269,9 @@ case object GlobalNames extends IRPass {
                       case _ => false
                     }
                     if (containsErrors) {
-                      errors.Resolution(
+                      errors.Resolution.create(
                         lit,
-                        errors.Resolution.ResolverError(ResolutionNotFound)
+                        new errors.Resolution.ResolverError(ResolutionNotFound)
                       )
                     } else {
                       values.foldLeft(lit)((lit, value) =>
@@ -342,7 +350,7 @@ case object GlobalNames extends IRPass {
         )
       )
     )
-    processedFun.getMetadata(this) match {
+    processedFun.getMetadata(this, classOf[GlobalNames.Metadata]) match {
       case Some(Resolution(resMethod @ ResolvedModuleMethod(mod, _)))
           if !isLocalVar(fun) =>
         if (app.hasDefaultsSuspended && app.arguments.isEmpty) {
@@ -413,9 +421,12 @@ case object GlobalNames extends IRPass {
     val appData = for {
       thisArgPos <- findThisPosition(processedArgs)
       thisArg = processedArgs(thisArgPos)
-      thisArgResolution <- thisArg.value.getMetadata(this)
-      funAsVar          <- asGlobalVar(processedFun)
-      cons              <- resolveQualName(thisArgResolution, funAsVar)
+      thisArgResolution <- thisArg.value.getMetadata(
+        this,
+        classOf[GlobalNames.Metadata]
+      )
+      funAsVar <- asGlobalVar(processedFun)
+      cons     <- resolveQualName(thisArgResolution, funAsVar)
     } yield (thisArgPos, funAsVar, cons)
 
     val newApp = appData.flatMap {
@@ -468,7 +479,7 @@ case object GlobalNames extends IRPass {
         val resolution = module
           .unsafeAsModule()
           .getIr
-          .unsafeGetMetadata(
+          .unsafeGetMetadata[BindingAnalysis.Metadata](
             BindingAnalysis,
             "Imported module without bindings analysis results"
           )
@@ -497,7 +508,7 @@ case object GlobalNames extends IRPass {
     }
 
   private def isLocalVar(name: Name.Literal): Boolean = {
-    name.getMetadata(AliasAnalysis) match {
+    name.getMetadata(AliasAnalysis, classOf[AliasAnalysis.Metadata]) match {
       case None => false
       case Some(aliasMeta) =>
         val aliasInfo = aliasMeta.unsafeAs[AliasInfo.Occurrence]

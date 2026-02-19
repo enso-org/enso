@@ -24,6 +24,7 @@ use package::IsPackage;
 pub mod artifact;
 pub mod bundle;
 pub mod context;
+pub mod edition;
 pub mod env;
 pub mod package;
 pub mod sbt;
@@ -220,10 +221,10 @@ where
 
     pub fn allow(&mut self, item: T) {
         match self {
-            Self::Whitelist(ref mut set) => {
+            Self::Whitelist(set) => {
                 set.insert(item);
             }
-            Self::Blacklist(ref mut set) => {
+            Self::Blacklist(set) => {
                 set.remove(&item);
             }
         }
@@ -231,10 +232,10 @@ where
 
     pub fn deny(&mut self, item: T) {
         match self {
-            Self::Whitelist(ref mut set) => {
+            Self::Whitelist(set) => {
                 set.remove(&item);
             }
-            Self::Blacklist(ref mut set) => {
+            Self::Blacklist(set) => {
                 set.insert(item);
             }
         }

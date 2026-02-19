@@ -1,7 +1,7 @@
 package org.enso.compiler.pass.analyse;
 
-import org.enso.compiler.core.CompilerStub;
-import org.enso.compiler.core.ir.ProcessingPass;
+import org.enso.compiler.context.CompilerContext;
+import org.enso.compiler.pass.IRPass;
 import org.enso.persist.Persistable;
 import scala.Option;
 
@@ -22,17 +22,17 @@ public record FramePointer(int parentLevel, int frameSlotIdx) implements FrameAn
   }
 
   @Override
-  public ProcessingPass.Metadata prepareForSerialization(CompilerStub compiler) {
+  public FramePointer prepareForSerialization(CompilerContext compiler) {
     return this;
   }
 
   @Override
-  public Option<ProcessingPass.Metadata> restoreFromSerialization(CompilerStub compiler) {
+  public Option<IRPass.IRMetadata> restoreFromSerialization(CompilerContext compiler) {
     return Option.apply(this);
   }
 
   @Override
-  public Option<ProcessingPass.Metadata> duplicate() {
+  public Option<IRPass.IRMetadata> duplicate() {
     return Option.apply(this);
   }
 }

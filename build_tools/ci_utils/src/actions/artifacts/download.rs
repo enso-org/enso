@@ -1,15 +1,15 @@
 use crate::prelude::*;
 
+use crate::actions::artifacts::API_VERSION;
 use crate::actions::artifacts::models::ArtifactResponse;
 use crate::actions::artifacts::models::ContainerEntry;
 use crate::actions::artifacts::models::ItemType;
 use crate::actions::artifacts::run_session::SessionClient;
-use crate::actions::artifacts::API_VERSION;
 
-use reqwest::header::HeaderMap;
-use reqwest::header::HeaderValue;
 use reqwest::header::ACCEPT;
 use reqwest::header::ACCEPT_ENCODING;
+use reqwest::header::HeaderMap;
+use reqwest::header::HeaderValue;
 use tokio::fs::create_dir_all;
 
 #[derive(Clone, Debug)]

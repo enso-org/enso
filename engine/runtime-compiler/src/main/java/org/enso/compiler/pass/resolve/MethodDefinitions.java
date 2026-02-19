@@ -13,7 +13,7 @@ import org.enso.compiler.core.ir.MetadataStorage;
 import org.enso.compiler.core.ir.Module;
 import org.enso.compiler.core.ir.Name;
 import org.enso.compiler.core.ir.expression.errors.Conversion;
-import org.enso.compiler.core.ir.expression.errors.Conversion.UnsupportedSourceType$;
+import org.enso.compiler.core.ir.expression.errors.Conversion.UnsupportedSourceType;
 import org.enso.compiler.core.ir.module.scope.definition.Method;
 import org.enso.compiler.data.BindingsMap;
 import org.enso.compiler.data.BindingsMap.Resolution;
@@ -138,10 +138,8 @@ public final class MethodDefinitions implements MiniPassFactory {
                               switch (sourceTypeExpr) {
                                 case Name name -> resolveType(name, bindingsMap);
                                 default ->
-                                    new Conversion(
-                                        sourceTypeExpr,
-                                        UnsupportedSourceType$.MODULE$,
-                                        new MetadataStorage());
+                                    Conversion.create(
+                                        sourceTypeExpr, UnsupportedSourceType.INSTANCE);
                               };
                           var resolvedMethod =
                               conversionMethod
@@ -229,20 +227,18 @@ public final class MethodDefinitions implements MiniPassFactory {
         var resolvedItemsOpt = availableSymbolsMap.resolveQualifiedName(items);
         if (resolvedItemsOpt.isLeft()) {
           var err = resolvedItemsOpt.swap().toOption().get();
-          return new org.enso.compiler.core.ir.expression.errors.Resolution(
+          return org.enso.compiler.core.ir.expression.errors.Resolution.create(
               typePointer,
-              new org.enso.compiler.core.ir.expression.errors.Resolution.ResolverError(err),
-              new MetadataStorage());
+              new org.enso.compiler.core.ir.expression.errors.Resolution.ResolverError(err));
         }
         var resolvedItems = resolvedItemsOpt.toOption().get();
         assert resolvedItems.size() == 1 : "Expected a single resolution";
         switch (resolvedItems.head()) {
           case ResolvedConstructor ignored -> {
-            return new org.enso.compiler.core.ir.expression.errors.Resolution(
+            return org.enso.compiler.core.ir.expression.errors.Resolution.create(
                 typePointer,
                 new org.enso.compiler.core.ir.expression.errors.Resolution.UnexpectedConstructor(
-                    "a method definition target"),
-                new MetadataStorage());
+                    "a method definition target"));
           }
           case ResolvedModule resMod -> {
             MetadataInteropHelpers.updateMetadata(typePointer, INSTANCE, new Resolution(resMod));
@@ -253,39 +249,34 @@ public final class MethodDefinitions implements MiniPassFactory {
             return typePointer;
           }
           case ResolvedPolyglotSymbol ignored -> {
-            return new org.enso.compiler.core.ir.expression.errors.Resolution(
+            return org.enso.compiler.core.ir.expression.errors.Resolution.create(
                 typePointer,
                 new org.enso.compiler.core.ir.expression.errors.Resolution.UnexpectedPolyglot(
-                    "a method definition target"),
-                new MetadataStorage());
+                    "a method definition target"));
           }
           case ResolvedPolyglotField ignored -> {
-            return new org.enso.compiler.core.ir.expression.errors.Resolution(
+            return org.enso.compiler.core.ir.expression.errors.Resolution.create(
                 typePointer,
                 new org.enso.compiler.core.ir.expression.errors.Resolution.UnexpectedPolyglot(
-                    "a method definition target"),
-                new MetadataStorage());
+                    "a method definition target"));
           }
           case ResolvedModuleMethod ignored -> {
-            return new org.enso.compiler.core.ir.expression.errors.Resolution(
+            return org.enso.compiler.core.ir.expression.errors.Resolution.create(
                 typePointer,
                 new org.enso.compiler.core.ir.expression.errors.Resolution.UnexpectedMethod(
-                    "a method definition target"),
-                new MetadataStorage());
+                    "a method definition target"));
           }
           case ResolvedExtensionMethod ignored -> {
-            return new org.enso.compiler.core.ir.expression.errors.Resolution(
+            return org.enso.compiler.core.ir.expression.errors.Resolution.create(
                 typePointer,
                 new org.enso.compiler.core.ir.expression.errors.Resolution.UnexpectedMethod(
-                    "a static method definition target"),
-                new MetadataStorage());
+                    "a static method definition target"));
           }
           case ResolvedConversionMethod ignored -> {
-            return new org.enso.compiler.core.ir.expression.errors.Resolution(
+            return org.enso.compiler.core.ir.expression.errors.Resolution.create(
                 typePointer,
                 new org.enso.compiler.core.ir.expression.errors.Resolution.UnexpectedMethod(
-                    "a conversion method definition target"),
-                new MetadataStorage());
+                    "a conversion method definition target"));
           }
           default -> throw new IllegalStateException("Unexpected value: " + resolvedItems.head());
         }

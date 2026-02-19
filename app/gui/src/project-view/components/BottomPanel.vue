@@ -8,6 +8,10 @@ import { Vec2 } from '@/util/data/vec2'
 import { useLocalStorage } from '@vueuse/core'
 import { computed, ref, watch } from 'vue'
 
+defineOptions({
+  inheritAttrs: false,
+})
+
 const MIN_DOCK_SIZE_PX = 20
 
 const rootElement = ref<HTMLElement>()

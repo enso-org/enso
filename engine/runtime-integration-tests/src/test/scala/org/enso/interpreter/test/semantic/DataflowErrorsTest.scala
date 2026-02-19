@@ -58,7 +58,7 @@ class DataflowErrorsTest extends InterpreterTest {
           |
           |main =
           |    intError = Error.throw 1
-          |    intError.catch_primitive (x -> x + 3)
+          |    intError.catch Error (x -> x + 3)
           |""".stripMargin
       eval(code) shouldEqual 4
     }
@@ -74,7 +74,7 @@ class DataflowErrorsTest extends InterpreterTest {
           |
           |main =
           |    unitErr = Error.throw Nothing
-          |    IO.println (unitErr.catch_primitive My_Cons.Mk_My_Cons)
+          |    IO.println (unitErr.catch Error My_Cons.Mk_My_Cons)
           |""".stripMargin
       eval(code)
       consumeOut shouldEqual List("(Mk_My_Cons Nothing)")
@@ -96,14 +96,19 @@ class DataflowErrorsTest extends InterpreterTest {
           |
           |main =
           |    myErr = Error.throw (My_Error.Mk_My_Error 20)
-          |    IO.println (myErr.catch_primitive .recover)
+          |    IO.println (myErr.catch Error .recover)
           |""".stripMargin
       eval(code)
       consumeOut shouldEqual List("(Mk_My_Recovered 20)")
     }
 
     "make the catch method an identity for non-error values" in {
-      val code = "main = 10.catch_primitive (x -> x + 1)"
+      val code =
+        """
+          |import Standard.Base.Error.Error
+          |
+          |main = 10.catch (x -> x + 1)
+          |""".stripMargin
       eval(code) shouldEqual 10
     }
 
@@ -202,7 +207,7 @@ class DataflowErrorsTest extends InterpreterTest {
         """from Standard.Base import all
           |
           |main =
-          |    x = Panic.catch_primitive ` .convert_to_dataflow_error
+          |    x = Panic.catch Any ` .convert_to_dataflow_error
           |    IO.println x
           |    IO.println (x.catch Any .to_text)
           |""".stripMargin

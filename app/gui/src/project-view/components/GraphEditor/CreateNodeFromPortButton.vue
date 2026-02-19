@@ -82,6 +82,7 @@ function translate(offset: Vec2) {
     :style="{
       transform: translate(position.add(DISPLAY_OFFSET)),
     }"
+    :data-transitioning="progress === 1 || progress === 0 ? undefined : true"
     :class="{ hovered }"
     @pointerdown.stop="handlePointerDown"
     @pointerup.stop="handlePointerUp"

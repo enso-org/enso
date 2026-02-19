@@ -32,7 +32,9 @@ type Group_Builder
         - `pending`: Contains a reason for why the test should be ignored. If
           Nothing, the test is not ignored.
     specify self (name : Text) (~code : Any) (~pending : (Text | Nothing) = Nothing) =
-        self.builder.append <| Spec.Impl name (_ -> code) pending
+        impl = Spec.Impl name=name pending=pending... code=_->
+            code
+        self.builder.append impl
 
 
     ## Provide a teardown of a group - a method that will be called once all the

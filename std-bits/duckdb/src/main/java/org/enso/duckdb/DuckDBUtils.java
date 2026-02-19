@@ -9,7 +9,6 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.OffsetDateTime;
 import java.time.ZonedDateTime;
-import java.util.Arrays;
 import java.util.List;
 import org.duckdb.DuckDBConnection;
 import org.enso.table.data.column.storage.ColumnBooleanStorage;
@@ -22,8 +21,6 @@ import org.enso.table.data.column.storage.type.DateTimeType;
 import org.enso.table.data.column.storage.type.FloatType;
 import org.enso.table.data.column.storage.type.IntegerType;
 import org.enso.table.data.column.storage.type.StorageType;
-import org.enso.table.data.table.Column;
-import org.enso.table.data.table.Table;
 
 public class DuckDBUtils {
   /**
@@ -48,7 +45,7 @@ public class DuckDBUtils {
    * Appends the data from the given table to the specified target table in DuckDB.
    *
    * @param connection an active DuckDBConnection
-   * @param table the source table containing data to append
+   * @param columnStorages the source data to append
    * @param targetTableName the name of the target table in DuckDB
    * @param targetTypes a list of StorageType representing the types of the target table columns
    * @return the number of rows appended
@@ -56,21 +53,19 @@ public class DuckDBUtils {
    */
   public static long append(
       DuckDBConnection connection,
-      Table table,
+      ColumnStorage<?>[] columnStorages,
       String targetTableName,
       List<StorageType<?>> targetTypes)
       throws SQLException {
-    long rowCount = table.rowCount();
+    long rowCount = columnStorages[0].getSize();
     if (rowCount == 0) {
       return 0;
     }
 
-    var columns =
-        Arrays.stream(table.getColumns()).map(Column::getStorage).toArray(ColumnStorage<?>[]::new);
-    if (columns.length != targetTypes.size()) {
+    if (columnStorages.length != targetTypes.size()) {
       throw new IllegalArgumentException(
           "Column count mismatch: table has "
-              + columns.length
+              + columnStorages.length
               + " columns, target types has "
               + targetTypes.size()
               + " types.");
@@ -81,11 +76,11 @@ public class DuckDBUtils {
             connection.getCatalog(), connection.getSchema(), targetTableName)) {
       for (long i = 0; i < rowCount; i++) {
         appender.beginRow();
-        for (int col = 0; col < columns.length; col++) {
-          var column = columns[col];
-          if (column.isNothing(i)) {
+        for (int col = 0; col < columnStorages.length; col++) {
+          var columnStorage = columnStorages[col];
+          if (columnStorage.isNothing(i)) {
             appender.appendNull();
-          } else if (column instanceof ColumnLongStorage longStorage) {
+          } else if (columnStorage instanceof ColumnLongStorage longStorage) {
             // Could be a long, int, short, byte
             long value = longStorage.getItemAsLong(i);
             var storageType = targetTypes.get(col);
@@ -103,7 +98,7 @@ public class DuckDBUtils {
               // Fallback and let Appended decide if its okay
               appender.append(longStorage.getItemAsLong(i));
             }
-          } else if (column instanceof ColumnDoubleStorage doubleStorage) {
+          } else if (columnStorage instanceof ColumnDoubleStorage doubleStorage) {
             // Could be a float or a double column
             double value = doubleStorage.getItemAsDouble(i);
             var storageType = targetTypes.get(col);
@@ -112,10 +107,10 @@ public class DuckDBUtils {
             } else {
               appender.append(value);
             }
-          } else if (column instanceof ColumnBooleanStorage boolStorage) {
+          } else if (columnStorage instanceof ColumnBooleanStorage boolStorage) {
             appender.append(boolStorage.getItemAsBoolean(i));
           } else {
-            var value = column.getItemBoxed(i);
+            var value = columnStorage.getItemBoxed(i);
             switch (value) {
               case LocalDate localDate -> appender.append(localDate);
               case LocalTime localTime -> appender.append(localTime);
@@ -149,7 +144,7 @@ public class DuckDBUtils {
                   appender.append(new BigDecimal(bigInteger).setScale(0, RoundingMode.UNNECESSARY));
               default ->
                   throw new IllegalArgumentException(
-                      "Unsupported column type: " + column.getClass());
+                      "Unsupported column type: " + columnStorage.getClass());
             }
           }
         }

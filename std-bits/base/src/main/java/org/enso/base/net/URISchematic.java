@@ -4,7 +4,7 @@ import java.net.IDN;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.List;
-import org.graalvm.collections.Pair;
+import java.util.Map;
 
 /**
  * A raw schematic that may be used to build a URI.
@@ -14,7 +14,7 @@ import org.graalvm.collections.Pair;
  *
  * <p>This is the common entry point for building a URI with or without secrets.
  */
-public record URISchematic(URI baseUri, List<Pair<String, String>> queryParameters) {
+public record URISchematic(URI baseUri, List<? extends Map.Entry<String, String>> queryParameters) {
   public URI build() throws URISyntaxException {
     StringBuilder authorityBuilder = new StringBuilder();
     if (baseUri.getRawUserInfo() != null) {
@@ -53,8 +53,8 @@ public record URISchematic(URI baseUri, List<Pair<String, String>> queryParamete
         queryBuilder.append("&");
       }
 
-      String name = param.getLeft();
-      String value = param.getRight();
+      String name = param.getKey();
+      String value = param.getValue();
       queryBuilder
           .append(URITransformer.encodeForQuery(name))
           .append("=")

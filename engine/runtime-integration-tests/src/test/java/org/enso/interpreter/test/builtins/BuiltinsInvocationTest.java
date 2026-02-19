@@ -18,7 +18,7 @@ public class BuiltinsInvocationTest {
         from Standard.Base import all
 
         main =
-            (Error.catch_primitive self=(y->y)) (x->x)
+            (Error.catch self=(y->y)) (x->x)
         """;
     try {
       ctxRule.evalModule(src);

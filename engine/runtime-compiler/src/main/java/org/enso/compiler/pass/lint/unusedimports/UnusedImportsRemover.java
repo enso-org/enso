@@ -92,7 +92,7 @@ public final class UnusedImportsRemover {
       String importStatement) {
     assert impIr.onlyNames().isDefined();
     var onlyNames = impIr.onlyNames().get();
-    var unusedSyms = unqualified(asJava(unusedSymsImp.unusedSymbols()));
+    var unusedSyms = unqualified(unusedSymsImp.unusedSymbols());
     assert unusedSyms.size() <= onlyNames.size();
     var usedSyms = onlyNames.filterNot(onlyName -> unusedSyms.contains(onlyName.name()));
     if (usedSyms.isEmpty()) {

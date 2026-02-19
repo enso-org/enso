@@ -114,7 +114,8 @@ case object ComplexType extends IRPass {
   private def desugarComplexType(
     typ: Definition.SugaredType
   ): List[Definition] = {
-    val annotations     = typ.getMetadata(ModuleAnnotations)
+    val annotations =
+      typ.getMetadata(ModuleAnnotations, classOf[ModuleAnnotations.Metadata])
     var lastAnnotations = Seq.empty[Name.GenericAnnotation]
     var seenAnnotations = Set.empty[Name.GenericAnnotation]
     val atomDefs = typ.body
@@ -137,7 +138,10 @@ case object ComplexType extends IRPass {
         annotations
           .map(ann => {
             val old = atom
-              .getMetadata(ModuleAnnotations)
+              .getMetadata(
+                ModuleAnnotations,
+                classOf[ModuleAnnotations.Metadata]
+              )
               .map(_.annotations)
               .getOrElse(Nil)
             atom.updateMetadata(
@@ -201,8 +205,8 @@ case object ComplexType extends IRPass {
         val res = lastSignature
         lastSignature = Some(sig)
         res
-      case binding @ Expression.Binding(name, _, _, _) =>
-        matchSignaturesAndGenerate(name, binding)
+      case binding: Expression.Binding =>
+        matchSignaturesAndGenerate(binding.name(), binding)
       case funSugar: Function.Binding =>
         matchSignaturesAndGenerate(funSugar.name, funSugar)
       case err: Error                  => Seq(err)
@@ -227,7 +231,10 @@ case object ComplexType extends IRPass {
       .getOrElse(sumType)
 
     val withDoc = typ
-      .getMetadata(DocumentationComments)
+      .getMetadata(
+        DocumentationComments,
+        classOf[DocumentationComments.Metadata]
+      )
       .map(ann =>
         withAnnotations.updateMetadata(
           new MetadataPair(DocumentationComments, ann)
@@ -253,15 +260,12 @@ case object ComplexType extends IRPass {
     signature: Option[Type.Ascription]
   ): List[Definition] = {
     ir match {
-      case expressionBinding @ Expression.Binding(
-            name,
-            expr,
-            location,
-            passData
-          ) =>
+      case expressionBinding: Expression.Binding =>
+        val expr = expressionBinding.expression()
+        val name = expressionBinding.name()
         val realExpr = expr match {
-          case b @ Expression.Block(_, _, _, suspended, _) if suspended =>
-            b.copy(suspended = false)
+          case b: Expression.Block if b.suspended =>
+            b.copyBuilder().suspended(false).build()
           case _ => expr
         }
 
@@ -271,8 +275,8 @@ case object ComplexType extends IRPass {
           List(),
           realExpr,
           false,
-          location,
-          passData,
+          expressionBinding.identifiedLocation(),
+          expressionBinding.passData(),
           expressionBinding.diagnosticsCopy,
           signature
         )
@@ -316,11 +320,20 @@ case object ComplexType extends IRPass {
     diagnostics: DiagnosticStorage,
     signature: Option[Type.Ascription]
   ): List[Definition] = {
-    val methodRef = Name.MethodReference(
-      Some(Name.Qualified(List(typeName), typeName.identifiedLocation())),
-      name,
-      Name.MethodReference.genLocation(List(typeName, name)).orNull
-    )
+    val tpPointer = Name.Qualified
+      .builder()
+      .parts(List(typeName))
+      .location(typeName.identifiedLocation())
+      .build()
+    val methodRef = Name.MethodReference
+      .builder()
+      .typePointer(Some(tpPointer))
+      .methodName(name)
+      .location(
+        Name.MethodReference
+          .genLocation(List(typeName, name))
+      )
+      .build()
 
     val newSig =
       signature.map(sig => sig.copyWithTyped(methodRef.duplicate()).duplicate())

@@ -158,7 +158,7 @@ class EnsureCompiledJob(
           compilerConfig = ctx.executionService.getContext.getCompilerConfig
         )
       )
-      .unsafeGetMetadata(
+      .unsafeGetMetadata[GatherDiagnostics.Metadata](
         GatherDiagnostics,
         "No diagnostics metadata right after the gathering pass."
       )
@@ -355,7 +355,7 @@ class EnsureCompiledJob(
     */
   private def findNodesWithResolutionErrors(ir: IR): Set[UUID @ExternalID] = {
     val metadata = ir
-      .unsafeGetMetadata(
+      .unsafeGetMetadata[DataflowAnalysis.Metadata](
         DataflowAnalysis,
         "Empty dataflow analysis metadata during the interactive compilation."
       )
@@ -364,12 +364,7 @@ class EnsureCompiledJob(
     IR.preorder(
       ir,
       {
-        case err @ expression.errors.Resolution(
-              _,
-              expression.errors.Resolution
-                .ResolverError(BindingsMap.ResolutionNotFound),
-              _
-            ) =>
+        case err: expression.errors.Resolution if isResolutionNotFound(err) =>
           val key = DataflowAnalysis.DependencyInfo.Type.Static(
             err.getId(),
             err.getExternalId
@@ -380,6 +375,16 @@ class EnsureCompiledJob(
     )
 
     builder.result()
+  }
+
+  private def isResolutionNotFound(
+    err: expression.errors.Resolution
+  ): Boolean = {
+    err.reason match {
+      case resolverErr: expression.errors.Resolution.ResolverError =>
+        resolverErr.explain().isInstanceOf[BindingsMap.ResolutionNotFound.type]
+      case _ => false
+    }
   }
 
   /** Run the invalidation commands.
@@ -492,7 +497,7 @@ class EnsureCompiledJob(
         ctx.executionService.getContext.findModule(ptr.module).toScala.map {
           module =>
             module.getIr
-              .unsafeGetMetadata(
+              .unsafeGetMetadata[CachePreferenceAnalysis.Metadata](
                 CachePreferenceAnalysis,
                 s"Empty cache preference metadata ${module.getName}"
               )

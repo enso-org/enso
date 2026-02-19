@@ -1,22 +1,18 @@
 use crate::prelude::*;
 
+use crate::ci_gen::RELEASE_CLEANING_POLICY;
+use crate::ci_gen::RunStepsBuilder;
+use crate::ci_gen::RunnerType;
 use crate::ci_gen::not_default_branch;
 use crate::ci_gen::runs_on;
 use crate::ci_gen::secret;
 use crate::ci_gen::step;
 use crate::ci_gen::variables;
-use crate::ci_gen::RunStepsBuilder;
-use crate::ci_gen::RunnerType;
-use crate::ci_gen::RELEASE_CLEANING_POLICY;
 use crate::engine;
 use crate::ide;
 use crate::paths;
 
 use core::panic;
-use ide_ci::actions::workflow::definition::cancel_workflow_action;
-use ide_ci::actions::workflow::definition::checkout_repo_step;
-use ide_ci::actions::workflow::definition::shell;
-use ide_ci::actions::workflow::definition::step::Argument;
 use ide_ci::actions::workflow::definition::Access;
 use ide_ci::actions::workflow::definition::Job;
 use ide_ci::actions::workflow::definition::JobArchetype;
@@ -26,6 +22,10 @@ use ide_ci::actions::workflow::definition::Shell;
 use ide_ci::actions::workflow::definition::Step;
 use ide_ci::actions::workflow::definition::Strategy;
 use ide_ci::actions::workflow::definition::Target;
+use ide_ci::actions::workflow::definition::cancel_workflow_action;
+use ide_ci::actions::workflow::definition::checkout_repo_step;
+use ide_ci::actions::workflow::definition::shell;
+use ide_ci::actions::workflow::definition::step::Argument;
 use ide_ci::cache::goodie::graalvm;
 use ide_ci::convert_case::ToKebabCase;
 
@@ -127,58 +127,69 @@ pub fn sbt_command(command: impl AsRef<str>) -> String {
 
 /// Expose variables for the GUI build.
 pub fn expose_gui_vars(step: Step) -> Step {
-    step.with_variable_exposed_as(
-        variables::ENSO_CLOUD_ENVIRONMENT,
-        ide::web::env::ENSO_IDE_ENVIRONMENT,
-    )
-    .with_variable_exposed_as(variables::ENSO_CLOUD_API_URL, ide::web::env::ENSO_IDE_API_URL)
-    .with_variable_exposed_as(variables::ENSO_CLOUD_CHAT_URL, ide::web::env::ENSO_IDE_CHAT_URL)
-    .with_variable_exposed_as(variables::ENSO_CLOUD_SENTRY_DSN, ide::web::env::ENSO_IDE_SENTRY_DSN)
-    .with_variable_exposed_as(variables::ENSO_CLOUD_STRIPE_KEY, ide::web::env::ENSO_IDE_STRIPE_KEY)
-    .with_variable_exposed_as(
-        variables::ENSO_CLOUD_AUTH_ENDPOINT,
-        ide::web::env::ENSO_IDE_AUTH_ENDPOINT,
-    )
-    .with_variable_exposed_as(
-        variables::ENSO_CLOUD_COGNITO_USER_POOL_ID,
-        ide::web::env::ENSO_IDE_COGNITO_USER_POOL_ID,
-    )
-    .with_variable_exposed_as(
-        variables::ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID,
-        ide::web::env::ENSO_IDE_COGNITO_USER_POOL_WEB_CLIENT_ID,
-    )
-    .with_variable_exposed_as(
-        variables::ENSO_CLOUD_COGNITO_DOMAIN,
-        ide::web::env::ENSO_IDE_COGNITO_DOMAIN,
-    )
-    .with_variable_exposed_as(
-        variables::ENSO_CLOUD_COGNITO_REGION,
-        ide::web::env::ENSO_IDE_COGNITO_REGION,
-    )
-    .with_variable_exposed_as(
-        variables::ENSO_CLOUD_GOOGLE_ANALYTICS_TAG,
-        ide::web::env::ENSO_IDE_GOOGLE_ANALYTICS_TAG,
-    )
-    .with_variable_exposed_as(
-        variables::ENSO_AG_GRID_LICENSE_KEY,
-        ide::web::env::ENSO_IDE_AG_GRID_LICENSE_KEY,
-    )
-    .with_variable_exposed_as(
-        variables::ENSO_MAPBOX_API_TOKEN,
-        ide::web::env::ENSO_IDE_MAPBOX_API_TOKEN,
-    )
-    .with_secret_exposed_as(
-        secret::ENSO_IDE_GOOGLE_OAUTH_CLIENT_ID,
-        ide::web::env::ENSO_IDE_GOOGLE_OAUTH_CLIENT_ID,
-    )
-    .with_secret_exposed_as(
-        secret::ENSO_IDE_STRAVA_OAUTH_CLIENT_ID,
-        ide::web::env::ENSO_IDE_STRAVA_OAUTH_CLIENT_ID,
-    )
-    .with_secret_exposed_as(
-        secret::ENSO_IDE_MS365_OAUTH_CLIENT_ID,
-        ide::web::env::ENSO_IDE_MS365_OAUTH_CLIENT_ID,
-    )
+    step.with_variable_exposed_as(variables::ENSO_HOST, ide::web::env::ENSO_IDE_HOST)
+        .with_variable_exposed_as(
+            variables::ENSO_CLOUD_ENVIRONMENT,
+            ide::web::env::ENSO_IDE_ENVIRONMENT,
+        )
+        .with_variable_exposed_as(variables::ENSO_CLOUD_API_URL, ide::web::env::ENSO_IDE_API_URL)
+        .with_variable_exposed_as(variables::ENSO_CLOUD_CHAT_URL, ide::web::env::ENSO_IDE_CHAT_URL)
+        .with_variable_exposed_as(
+            variables::ENSO_CLOUD_SENTRY_DSN,
+            ide::web::env::ENSO_IDE_SENTRY_DSN,
+        )
+        .with_variable_exposed_as(
+            variables::ENSO_CLOUD_STRIPE_KEY,
+            ide::web::env::ENSO_IDE_STRIPE_KEY,
+        )
+        .with_variable_exposed_as(
+            variables::ENSO_CLOUD_AUTH_ENDPOINT,
+            ide::web::env::ENSO_IDE_AUTH_ENDPOINT,
+        )
+        .with_variable_exposed_as(
+            variables::ENSO_CLOUD_COGNITO_USER_POOL_ID,
+            ide::web::env::ENSO_IDE_COGNITO_USER_POOL_ID,
+        )
+        .with_variable_exposed_as(
+            variables::ENSO_CLOUD_COGNITO_USER_POOL_WEB_CLIENT_ID,
+            ide::web::env::ENSO_IDE_COGNITO_USER_POOL_WEB_CLIENT_ID,
+        )
+        .with_variable_exposed_as(
+            variables::ENSO_CLOUD_COGNITO_DOMAIN,
+            ide::web::env::ENSO_IDE_COGNITO_DOMAIN,
+        )
+        .with_variable_exposed_as(
+            variables::ENSO_CLOUD_COGNITO_REGION,
+            ide::web::env::ENSO_IDE_COGNITO_REGION,
+        )
+        .with_variable_exposed_as(
+            variables::ENSO_CLOUD_GOOGLE_ANALYTICS_TAG,
+            ide::web::env::ENSO_IDE_GOOGLE_ANALYTICS_TAG,
+        )
+        .with_variable_exposed_as(
+            variables::ENSO_AG_GRID_LICENSE_KEY,
+            ide::web::env::ENSO_IDE_AG_GRID_LICENSE_KEY,
+        )
+        .with_variable_exposed_as(
+            variables::ENSO_MAPBOX_API_TOKEN,
+            ide::web::env::ENSO_IDE_MAPBOX_API_TOKEN,
+        )
+        .with_secret_exposed_as(
+            secret::ENSO_IDE_GOOGLE_OAUTH_CLIENT_ID,
+            ide::web::env::ENSO_IDE_GOOGLE_OAUTH_CLIENT_ID,
+        )
+        .with_secret_exposed_as(
+            secret::ENSO_IDE_STRAVA_OAUTH_CLIENT_ID,
+            ide::web::env::ENSO_IDE_STRAVA_OAUTH_CLIENT_ID,
+        )
+        .with_secret_exposed_as(
+            secret::ENSO_IDE_MS365_OAUTH_CLIENT_ID,
+            ide::web::env::ENSO_IDE_MS365_OAUTH_CLIENT_ID,
+        )
+        .with_secret_exposed_as(
+            secret::ENSO_IDE_SALESFORCE_OAUTH_CLIENT_ID,
+            ide::web::env::ENSO_IDE_SALESFORCE_OAUTH_CLIENT_ID,
+        )
 }
 
 /// Expose variables for debugging purposes.
@@ -620,7 +631,9 @@ fn build_job_ensuring_cloud_tests_run_on_github(
 ) -> Job {
     if scope == StandardLibraryTestsScope::CloudRelated {
         if target.0 != OS::Linux {
-            panic!("If the Cloud tests are enabled, they require GitHub hosted runner for Cloud auth, so they only run on Linux.");
+            panic!(
+                "If the Cloud tests are enabled, they require GitHub hosted runner for Cloud auth, so they only run on Linux."
+            );
         }
 
         run_steps_builder.build_job(job_name, RunnerLabel::LinuxLatest)
@@ -641,7 +654,9 @@ const GRAAL_EDITION_FOR_EXTRA_TESTS: graalvm::Edition = graalvm::Edition::Commun
 impl JobArchetype for SnowflakeTests {
     fn job(&self, target: Target) -> Job {
         if target.0 != OS::Linux {
-            panic!("Snowflake tests currently require GitHub hosted runner for Cloud auth, so they only run on Linux.");
+            panic!(
+                "Snowflake tests currently require GitHub hosted runner for Cloud auth, so they only run on Linux."
+            );
         }
         let job_name = "Snowflake Tests";
         let job_name = if self.jvm_mode {
@@ -823,8 +838,11 @@ impl JobArchetype for DeployRuntime {
     fn job(&self, target: Target) -> Job {
         RunStepsBuilder::new("release deploy-runtime")
             .customize(|step| {
-                vec![step
-                    .with_secret_exposed_as(secret::CI_PRIVATE_TOKEN, ide_ci::github::GITHUB_TOKEN)
+                vec![
+                    step.with_secret_exposed_as(
+                        secret::CI_PRIVATE_TOKEN,
+                        ide_ci::github::GITHUB_TOKEN,
+                    )
                     .with_env("ENSO_BUILD_ECR_REPOSITORY", crate::aws::ecr::runtime::NAME)
                     .with_secret_exposed_as(
                         secret::ECR_PUSH_RUNTIME_ACCESS_KEY_ID,
@@ -834,7 +852,8 @@ impl JobArchetype for DeployRuntime {
                         secret::ECR_PUSH_RUNTIME_SECRET_ACCESS_KEY,
                         "AWS_SECRET_ACCESS_KEY",
                     )
-                    .with_env("AWS_DEFAULT_REGION", crate::aws::ecr::runtime::REGION)]
+                    .with_env("AWS_DEFAULT_REGION", crate::aws::ecr::runtime::REGION),
+                ]
             })
             .build_job("Upload Runtime to ECR", target)
     }
@@ -847,8 +866,12 @@ impl JobArchetype for DispatchBuildImage {
     fn job(&self, target: Target) -> Job {
         RunStepsBuilder::new("release dispatch-build-image")
             .customize(|step| {
-                vec![step
-                    .with_secret_exposed_as(secret::CI_PRIVATE_TOKEN, ide_ci::github::GITHUB_TOKEN)]
+                vec![
+                    step.with_secret_exposed_as(
+                        secret::CI_PRIVATE_TOKEN,
+                        ide_ci::github::GITHUB_TOKEN,
+                    ),
+                ]
             })
             .build_job("Dispatch Cloud build-image workflow", target)
     }

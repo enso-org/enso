@@ -68,6 +68,8 @@ type Simple_Expression
             Simple_Calculation.Text_Length -> input_column.text_length
             Simple_Calculation.First_Of_Month -> input_column.first_of_month
             Simple_Calculation.End_Of_Month -> input_column.end_of_month
+            Simple_Calculation.At_Time_Zone -> input_column.at_time_zone
+            Simple_Calculation.Set_Time_Zone -> input_column.set_time_zone
             Simple_Calculation.Format format -> input_column.format format
             Simple_Calculation.If condition true_value false_value ->
                 condition_column = case condition of
@@ -451,6 +453,15 @@ type Simple_Calculation
 
     ## Returns the last day of the month for each date in the column.
     End_Of_Month
+
+    ## Change the time zone of eadh date-time in the column to the specified
+       time zone. This preserves the instant that the time represents.
+    At_Time_Zone
+
+    ## Constructs a new time instant by changing the time zone but not altering
+       the local date-time, which results in a value representing a different
+       instant.
+    Set_Time_Zone
 
     ## Formats a column with the specified format.
     Format (format : Text = "")

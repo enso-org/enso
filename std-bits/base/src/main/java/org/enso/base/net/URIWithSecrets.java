@@ -2,9 +2,10 @@ package org.enso.base.net;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.AbstractMap;
 import java.util.List;
+import java.util.Map;
 import org.enso.base.enso_cloud.HideableValue;
-import org.graalvm.collections.Pair;
 
 /**
  * A structure representing a URI that contains parts which may need to be updated once data from
@@ -13,12 +14,14 @@ import org.graalvm.collections.Pair;
  * <p>The query parameters are stored separately, because they may contain secrets and will only be
  * resolved to plain values within {@link org.enso.base.enso_cloud.EnsoSecretHelper}.
  */
-public record URIWithSecrets(URI baseUri, List<Pair<String, HideableValue>> queryParameters) {
+public record URIWithSecrets(URI baseUri, List<Map.Entry<String, HideableValue>> queryParameters) {
 
   /** Creates a schematic that does not disclose secret values and can be returned to the user. */
   public URISchematic makeSchematicForRender() {
-    List<Pair<String, String>> renderedParameters =
-        queryParameters.stream().map(p -> Pair.create(p.getLeft(), p.getRight().render())).toList();
+    var renderedParameters =
+        queryParameters.stream()
+            .map(p -> new AbstractMap.SimpleEntry<>(p.getKey(), p.getValue().render()))
+            .toList();
     return new URISchematic(baseUri, renderedParameters);
   }
 
@@ -43,13 +46,13 @@ public record URIWithSecrets(URI baseUri, List<Pair<String, HideableValue>> quer
   }
 
   public boolean containsSecrets() {
-    return queryParameters.stream().anyMatch(p -> p.getRight().containsSecrets());
+    return queryParameters.stream().anyMatch(p -> p.getValue().containsSecrets());
   }
 
   private URISchematic makeSchematicForSafeResolve() {
-    List<Pair<String, String>> resolvedParameters =
+    var resolvedParameters =
         queryParameters.stream()
-            .map(p -> Pair.create(p.getLeft(), p.getRight().safeResolve()))
+            .map(p -> new AbstractMap.SimpleEntry<>(p.getKey(), p.getValue().safeResolve()))
             .toList();
     return new URISchematic(baseUri, resolvedParameters);
   }
