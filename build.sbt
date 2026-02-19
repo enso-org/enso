@@ -5937,7 +5937,8 @@ lazy val `std-snowflake` = project
           Seq("std-snowflake.jar"),
           ignoreScalaLibrary = true,
           ignoreDependencies = Some((fileName: String) => {
-            fileName.startsWith("netty-tcnative-boringssl-static")
+            fileName.startsWith("netty-tcnative-boringssl-static") ||
+              fileName.startsWith("netty-transport-native-epoll")
           }),
           ignoreDependencyIncludeTransitive = Some(s"grpc-netty-shaded-1.77.0"),
           ignoreDependenciesByModuleID = Some(
@@ -5954,6 +5955,7 @@ lazy val `std-snowflake` = project
           extractedNativeLibsDirs = Seq(
             (`grpc-wrapper-newer` / extractedFilesDir).value,
             (`netty-tc-native-wrapper` / extractedFilesDir).value,
+            (`netty-epoll-native-wrapper` / extractedFilesDir).value,
             (`conscrypt-wrapper` / extractedFilesDir).value,
             (`zstd-jni-wrapper` / extractedFilesDir).value
           ),
