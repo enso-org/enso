@@ -22,11 +22,11 @@ public class RuntimeCacheTest {
     var key = UUID.randomUUID();
     var obj = 42;
 
-    assertFalse(cache.offer(key, obj));
+    assertFalse(cache.offer(key, obj).canCache());
     assertNull(cache.get(key));
 
     cache.setPreferences(of(key, CachePreferences.Kind.BINDING_EXPRESSION));
-    assertTrue(cache.offer(key, obj));
+    assertTrue(cache.offer(key, obj).canCache());
     assertEquals(obj, cache.get(key));
   }
 
@@ -37,7 +37,7 @@ public class RuntimeCacheTest {
     var obj = new Object();
 
     cache.setPreferences(of(key, CachePreferences.Kind.BINDING_EXPRESSION));
-    assertTrue(cache.offer(key, obj));
+    assertTrue(cache.offer(key, obj).canCache());
     assertEquals(obj, cache.remove(key));
     assertNull(cache.get(key));
   }
@@ -64,16 +64,17 @@ public class RuntimeCacheTest {
 
     cache.setPreferences(of(key, CachePreferences.Kind.BINDING_EXPRESSION));
 
-    assertFalse("Not inserted, as the value isn't in the map yet", cache.offer(exprKey, obj));
+    assertFalse(
+        "Not inserted, as the value isn't in the map yet", cache.offer(exprKey, obj).canCache());
     assertNull("No UUID for exprKey in cache", cache.get(exprKey));
     assertEquals("obj inserted into expressions", obj, cache.getAnyValue(exprKey));
     assertEquals("obj inserted into expressions", obj, cache.apply(exprKey.toString()));
 
-    assertTrue("key is inserted, as it has associated weight", cache.offer(key, obj));
+    assertTrue("key is inserted, as it has associated weight", cache.offer(key, obj).canCache());
 
     assertFalse(
         "obj is already associated with key, will be associated with exprKey",
-        cache.offer(exprKey, obj));
+        cache.offer(exprKey, obj).canCache());
     assertEquals("obj inserted", obj, cache.apply(exprKey.toString()));
   }
 
@@ -86,15 +87,16 @@ public class RuntimeCacheTest {
 
     cache.setPreferences(of(key, CachePreferences.Kind.BINDING_EXPRESSION));
 
-    assertFalse("Not inserted, as the value isn't in the map yet", cache.offer(exprKey, obj));
+    assertFalse(
+        "Not inserted, as the value isn't in the map yet", cache.offer(exprKey, obj).canCache());
     assertNull("No UUID for exprKey in cache", cache.get(exprKey));
     assertEquals("obj inserted into expressions", obj, cache.getAnyValue(exprKey));
 
-    assertTrue("key is inserted, as it has associated weight", cache.offer(key, obj));
+    assertTrue("key is inserted, as it has associated weight", cache.offer(key, obj).canCache());
 
     assertFalse(
         "obj is already associated with key, will be associated with exprKey",
-        cache.offer(exprKey, obj));
+        cache.offer(exprKey, obj).canCache());
     assertEquals("obj inserted", obj, cache.apply(exprKey.toString()));
 
     var ref = new WeakReference<>(obj);
@@ -116,7 +118,8 @@ public class RuntimeCacheTest {
 
     cache.setPreferences(of(key, CachePreferences.Kind.BINDING_EXPRESSION));
 
-    assertFalse("Not inserted, as the value isn't in the map yet", cache.offer(exprKey, obj));
+    assertFalse(
+        "Not inserted, as the value isn't in the map yet", cache.offer(exprKey, obj).canCache());
     assertNull("No UUID for exprKey in cache", cache.get(exprKey));
     assertEquals("obj inserted into expressions", obj, cache.getAnyValue(exprKey));
 

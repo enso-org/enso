@@ -48,6 +48,7 @@ import { assert } from 'ydoc-shared/util/assert'
 import { Range } from 'ydoc-shared/util/data/range'
 import type { LocalUserActionOrigin } from 'ydoc-shared/yjsModel'
 import * as Y from 'yjs'
+export { singleLineDisplay } from '@/util/codemirror/singleLineDisplay'
 
 function disableEditContextApi() {
   ;(EditorView as any).EDIT_CONTEXT = false

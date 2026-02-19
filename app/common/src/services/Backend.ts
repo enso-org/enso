@@ -1854,6 +1854,8 @@ export abstract class Backend {
   abstract listProjectExecutions(
     projectId: ProjectId,
     title: string,
+    year: number,
+    month: number,
   ): Promise<readonly ProjectExecution[]>
   abstract syncProjectExecution(
     executionId: ProjectExecutionId,

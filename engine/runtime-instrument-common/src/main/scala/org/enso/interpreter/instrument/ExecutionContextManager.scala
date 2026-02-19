@@ -225,4 +225,19 @@ class ExecutionContextManager {
       state.visualizations.remove(visualizationId, expressionId)
     }
 
+  /** Registers a visualization for a subexpression of a potentially cached expression.
+    *
+    * @param contextId the identifier of the execution context
+    * @param expressionId the id of the expression, which cached result is to be ignored
+    */
+  def setExpressionFlyby(
+    contextId: ContextId,
+    expressionId: ExpressionId
+  ): Unit = {
+    synchronized {
+      val state = contexts(contextId)
+      state.visualizations.upsertNestedVisualization(expressionId)
+    }
+  }
+
 }

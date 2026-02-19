@@ -22,6 +22,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletionStage;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import org.enso.common.LanguageInfo;
@@ -660,6 +661,19 @@ public final class ExecutionService {
     return submitExecution(() -> action.apply(cacheMut));
   }
 
+  /**
+   * Performs an operation on a cache with privileged access.
+   *
+   * @param cache runtime cache on which to perform a privileged operation
+   * @param v an additional value to provide to the operation
+   * @param fun a generic operation involving a mutable cache
+   * @return result of the operation
+   */
+  public <T, S> CompletionStage<S> submitExecutionWithCacheAccess(
+      RuntimeCache cache, T v, BiFunction<RuntimeCache.Mutable, T, S> fun) {
+    return submitExecutionWithCacheAccess(cache, (cacheMut) -> fun.apply(cacheMut, v));
+  }
+
   private <T> CompletionStage<T> submitExecution(Supplier<T> action) {
     return context.getThreadManager().submit(action);
   }
@@ -1015,7 +1029,10 @@ public final class ExecutionService {
   }
 
   /** Information about the function call. */
-  public record FunctionCallInfo(FunctionPointer functionPointer, int[] notAppliedArguments) {
+  public record FunctionCallInfo(
+      FunctionPointer functionPointer,
+      int[] notAppliedArguments,
+      FunctionCallInstrumentationNode.FunctionCall ref) {
 
     @Override
     public boolean equals(Object o) {
@@ -1046,7 +1063,7 @@ public final class ExecutionService {
       FunctionPointer functionPointer = FunctionPointer.fromFunction(call.getFunction());
       int[] notAppliedArguments = collectNotAppliedArguments(call);
 
-      return new FunctionCallInfo(functionPointer, notAppliedArguments);
+      return new FunctionCallInfo(functionPointer, notAppliedArguments, call);
     }
 
     private static int[] collectNotAppliedArguments(
