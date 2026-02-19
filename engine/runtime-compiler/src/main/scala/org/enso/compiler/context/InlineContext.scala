@@ -47,6 +47,7 @@ object InlineContext {
     *                         tail position
     * @param compilerConfig the compiler configuration
     * @param pkgRepo the compiler's package repository
+    * @param src inline context may need reference to special source
     * @return the [[InlineContext]] instance corresponding to the arguments
     */
   def fromJava(
