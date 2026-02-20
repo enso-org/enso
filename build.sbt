@@ -5938,7 +5938,7 @@ lazy val `std-snowflake` = project
           ignoreScalaLibrary = true,
           ignoreDependencies = Some((fileName: String) => {
             fileName.startsWith("netty-tcnative-boringssl-static") ||
-              fileName.startsWith("netty-transport-native-epoll")
+            fileName.startsWith("netty-transport-native-epoll")
           }),
           ignoreDependencyIncludeTransitive = Some(s"grpc-netty-shaded-1.77.0"),
           ignoreDependenciesByModuleID = Some(
