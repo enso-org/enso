@@ -7,7 +7,6 @@ import Standard.Base.Runtime.Ref.Ref
 from Standard.Base.Logging import all
 from Standard.Base.Runtime import assert
 
-import project.Group.Group
 import project.Internal.Stack_Trace_Helpers
 import project.Spec_Result.Spec_Result
 import project.Suite_Config.Suite_Config
