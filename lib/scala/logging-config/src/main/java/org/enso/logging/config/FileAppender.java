@@ -1,9 +1,11 @@
 package org.enso.logging.config;
 
-import com.typesafe.config.Config;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+
 import org.slf4j.event.Level;
+
+import com.typesafe.config.Config;
 
 /** Config for log configuration that appends to the file. */
 public final class FileAppender extends Appender {
@@ -35,17 +37,18 @@ public final class FileAppender extends Appender {
     String pattern =
         config.hasPath(patternKey) ? config.getString(patternKey) : Appender.defaultPattern;
 
-    LogLocation location;
-    if (config.hasPath(logLocationKey)
-        && config.hasPath(logRootKey)
-        && config.hasPath(logPrefixKey)) {
+    LogLocation location = new LogLocation(null, null);
+    if (config.hasPath(logLocationKey)) {
       Config logLocationConfig = config.getConfig(logLocationKey);
-      location =
+      if (
+        logLocationConfig.hasPath(logRootKey)
+        && logLocationConfig.hasPath(logPrefixKey)
+      ) {
+        location =
           new LogLocation(
               Paths.get(logLocationConfig.getString(logRootKey)),
               logLocationConfig.getString(logPrefixKey));
-    } else {
-      location = new LogLocation(null, null);
+      }
     }
 
     RollingPolicy rollingPolicy;
