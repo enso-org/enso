@@ -1,6 +1,7 @@
 import { useAuth } from '$/providers/auth'
 import { useBackends } from '$/providers/backends'
 import { useConfig } from '$/providers/config'
+import { routeFromTab, useContainerData } from '$/providers/container'
 import { onlineManager } from '@tanstack/vue-query'
 import {
   AssetType,
@@ -45,28 +46,12 @@ export async function redirectFromPath(to: RouteLocation) {
   }
 }
 
-// /** Open a project depending on path param in RouteLocation */
-// export async function openProjectFromRoute(to: RouteLocation) {
-//   if (!isProjectId(to.params.id)) return
-//   const id = to.params.id
-//   const auth = useAuth()
-//   const { localBackend, remoteBackend } = useBackends()
-//   const queryClient = useQueryClient()
-//   const openedProjects = useOpenedProjects()
-
-//   // Check if project is already opened
-//   const alreadyOpened = openedProjects.get(id)
-//   if (alreadyOpened != null && alreadyOpened.state.status !== 'not-opened') return
-//   const backend = isLocalProjectId(id) ? localBackend : remoteBackend
-//   if (backend == null) return false
-
-//   await auth.waitForSession()
-//   const options = backendQueryOptions('getAssetDetails', [id, undefined], backend)
-//   const assetResponse: AssetDetailsResponse<ProjectId> = await queryClient.fetchQuery(options)
-//   if (!assetResponse) return
-
-//   openedProjects.openProjectLocally(assetResponse, backend.type)
-// }
+export async function maybeRedirectToTab(to: RouteLocation) {
+  if (to.name !== 'dashboard') return
+  const containerData = useContainerData()
+  const tab = containerData.nextTab
+  if (tab != null) return routeFromTab(tab, to)
+}
 
 /** Get path of the project to auto-open on application launch. */
 export async function welcomeProjectPath(
@@ -108,8 +93,7 @@ export async function welcomeProjectPath(
  * It may be a project specified in CLI arguments or the Welcome project on fresh installs.
  */
 export async function maybeRedirectToProject(to: RouteLocation): Promise<NavigationGuardReturn> {
-  if (to.params.path) return
-
+  if (to.name !== 'dashboard') return
   const backends = useBackends()
   const config = useConfig()
   const auth = useAuth()

@@ -41,7 +41,7 @@ const openedProjects = useOpenedProjects()
 const containerData = useContainerData()
 const { openProjectLocally, openSettingsTab, closeCurrentTab } = containerData
 const currentTab = toRef(containerData, 'currentTab')
-const anyTabs = computed(() => containerData.tabs.length > 0)
+const anyTabs = computed(() => containerData.tabList.length > 0)
 provideAsyncResources(openedProjects)
 provideRightPanelData(toRef(containerData, 'focusedPanel'), currentTab, props.isFeatureUnderPaywall)
 provideFullscreenRoot(fullscreenRoot)
@@ -119,7 +119,7 @@ onUnmounted(() => {
 .bar {
   background-color: rgba(0, 0, 0, 0.1);
   display: flex;
-  flex-direction: row;
+  flex-direction: row-reverse;
   align-items: center;
   justify-content: space-between;
   height: 3rem;

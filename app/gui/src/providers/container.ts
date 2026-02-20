@@ -5,12 +5,12 @@ import { createGlobalState } from '@vueuse/core'
 import { BackendType, isProjectId, Plan } from 'enso-common/src/services/Backend'
 import { Err } from 'enso-common/src/utilities/data/result'
 import { computed, onScopeDispose, reactive, ref, watchEffect } from 'vue'
-import { useRoute, useRouter, type RouteLocation } from 'vue-router'
+import { useRoute, useRouter, type RouteLocation, type RouteLocationRaw } from 'vue-router'
 import * as z from 'zod'
 import { useAuth } from './auth'
 import { useBackends } from './backends'
 import { useFeatureFlag } from './featureFlags'
-import { useOpenedProjects, type Project } from './openedProjects'
+import { useOpenedProjects } from './openedProjects'
 import {
   PROJECT_ID_SCHEMA,
   RUNNING_PROJECT_INFO_SCHEMA,
@@ -59,6 +59,18 @@ export function tabFromRoute(route: RouteLocation) {
   }
 }
 
+export function routeFromTab(tab: Opt<Tab>, from: RouteLocation): RouteLocationRaw {
+  switch (tab?.type) {
+    case 'project':
+      return { name: 'project', params: { id: tab.id }, query: from.query }
+    case 'settings':
+      return { name: 'settings', query: from.query }
+    case undefined:
+    case null:
+      return { name: 'dashboard', query: from.query }
+  }
+}
+
 export function panelKey(panel: Opt<Panel>) {
   switch (panel?.type) {
     case 'project':
@@ -71,16 +83,10 @@ export function panelKey(panel: Opt<Panel>) {
   }
 }
 
+type PanelKey = ReturnType<typeof panelKey>
+
 export function panelEquals(a: Opt<Panel>, b: Opt<Panel>) {
   return panelKey(a) === panelKey(b)
-}
-
-function isProjectShownAsTab(project: Project) {
-  return (
-    project.nextTask?.process === 'opening' ||
-    project.error != null ||
-    (project.state.status !== 'not-opened' && project.nextTask?.process !== 'closing')
-  )
 }
 
 export type ContainerData = ReturnType<typeof useContainerData>
@@ -90,31 +96,35 @@ function createContainerStore() {
   const openedProjects = useOpenedProjects()
   const localStorage = LocalStorage.getInstance()
   const modesForBackend = useModesForBackend()
-  const tabs: Tab[] = reactive([])
+  const tabs = reactive(new Map<PanelKey, Tab>())
+  const visitingOrder = reactive(new Set<PanelKey>())
   const focusedPanel = ref<Panel>()
 
   const currentTab = computed<Tab | null>({
     get: () => tabFromRoute(route),
     set: (tab) => {
       if (panelEquals(tab, currentTab.value)) return
-      switch (tab?.type) {
-        case 'project':
-          router.push({ name: 'project', params: { id: tab.id }, query: route.query })
-          break
-        case 'settings':
-          router.push({ name: 'settings', query: route.query })
-          break
-        case null:
-          router.push({ name: 'dashboard', query: route.query })
-      }
+      const key = panelKey(tab)
+      visitingOrder.delete(key)
+      visitingOrder.add(key)
+      router.push(routeFromTab(tab, route))
     },
+  })
+
+  const tabList = computed(() => [...tabs.values()])
+
+  const nextTab = computed(() => {
+    const lastVisitedKey = [...visitingOrder.values()][visitingOrder.size - 1]
+    const lastVisited = lastVisitedKey ? tabs.get(lastVisitedKey) : null
+    if (lastVisited != null) return lastVisited
+    else return tabList.value[tabList.value.length - 1] ?? null
   })
 
   const leftPanelWidth = localStorage.ref('leftPanelWidth')
   const rightPanelWidth = localStorage.ref('rightPanelWidth')
 
   function isTabOpened(tab: Tab) {
-    return tabs.some((openedTab) => panelEquals(openedTab, tab))
+    return tabs.has(panelKey(tab))
   }
 
   function isCurrentTab(tab: Tab) {
@@ -125,7 +135,7 @@ function createContainerStore() {
     const tab: Tab = { type: 'project', id: info.id }
     if (!isTabOpened(tab)) {
       const project = openedProjects.openProject(info)
-      tabs.push(tab)
+      tabs.set(panelKey(tab), tab)
       if (userAction) {
         openedProjects.waitForProcess(project).then(() => (currentTab.value = tab))
       }
@@ -169,15 +179,19 @@ function createContainerStore() {
   function openSettingsTab() {
     const tab: Tab = { type: 'settings' }
     if (!isTabOpened(tab)) {
-      tabs.push(tab)
+      tabs.set(panelKey(tab), tab)
     }
     currentTab.value = tab
   }
 
   function closeTab(tab: Tab) {
-    const index = tabs.findIndex((opened) => panelEquals(opened, tab))
-    if (index < 0) return Err(`Tab to close not found: ${JSON.stringify(tab)}`)
-    tabs.splice(index, 1)
+    const key = panelKey(tab)
+    const removed = tabs.delete(key)
+    if (!removed) return Err(`Tab to close not found: ${key}`)
+    visitingOrder.delete(key)
+    if (isCurrentTab(tab)) {
+      currentTab.value = nextTab.value
+    }
     if (tab.type === 'project') {
       openedProjects.closeProject(tab.id)
     }
@@ -194,12 +208,12 @@ function createContainerStore() {
   function syncWithLocalStorage() {
     for (const tab of localStorage.get('openedTabs') ?? []) {
       if (tab.runningProject != null) openedProjects.restoreProject(tab.runningProject)
-      tabs.push(tab)
+      tabs.set(panelKey(tab), tab)
     }
 
     return watchEffect(() => {
       const openedTabs: OpenedTab[] = []
-      for (const tab of tabs) {
+      for (const [_, tab] of tabs) {
         let runningProject: RunningProjectInfo | undefined
         if (tab.type === 'project') {
           const project = openedProjects.get(tab.id)
@@ -224,7 +238,8 @@ function createContainerStore() {
 
   return proxyRefs({
     currentTab,
-    tabs,
+    nextTab,
+    tabList,
     focusedPanel,
     leftPanelWidth,
     rightPanelWidth,

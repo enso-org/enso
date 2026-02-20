@@ -16,7 +16,11 @@ import { useConfig } from '$/providers/config'
 import { useContainerData, type Tab } from '$/providers/container'
 import { flagsStore } from '$/providers/featureFlags'
 import { withDataLoader } from '$/router/dataLoader'
-import { maybeRedirectToProject, redirectFromPath } from '$/router/initialProject'
+import {
+  maybeRedirectToProject,
+  maybeRedirectToTab,
+  redirectFromPath,
+} from '$/router/initialProject'
 import { backendQueryOptions } from '@/composables/backend'
 import { reactComponent, suspendedReactComponent } from '@/util/react'
 import { useQueryClient } from '@tanstack/vue-query'
@@ -84,7 +88,7 @@ const routes = [
           {
             name: 'dashboard',
             path: '/',
-            beforeEnter: [maybeRedirectToProject, openTab],
+            beforeEnter: [maybeRedirectToProject, maybeRedirectToTab, openTab],
             component: () =>
               import('#/pages/dashboard/Dashboard.tsx').then((mod) =>
                 reactComponent(mod.Dashboard),

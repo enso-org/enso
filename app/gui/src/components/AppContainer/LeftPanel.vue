@@ -28,7 +28,7 @@ const style = computed(() => (width.value == null ? {} : { width: `${width.value
 
 <style scoped>
 .LeftPanel {
-  flex-shrink: 0;
+  flex-shrink: 1;
   flex-grow: 1;
   height: 100%;
   position: relative;

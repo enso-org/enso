@@ -7,7 +7,7 @@ import type { Icon } from '@/util/iconMetadata/iconName'
 import { computed, toRefs } from 'vue'
 import SelectableTab from './SelectableTab.vue'
 
-const { isCurrentTab, currentTab, tabs, closeTab } = toRefs(useContainerData())
+const { isCurrentTab, currentTab, tabList, closeTab } = toRefs(useContainerData())
 const openedProjects = useOpenedProjects()
 
 type TabViewInfo = Tab & {
@@ -18,7 +18,7 @@ type TabViewInfo = Tab & {
 }
 
 const tabsViewInfos = computed(() =>
-  tabs.value.flatMap((tab): TabViewInfo[] => {
+  tabList.value.flatMap((tab): TabViewInfo[] => {
     switch (tab.type) {
       case 'project': {
         const project = openedProjects.get(tab.id)
@@ -104,6 +104,7 @@ function projectIcon(project: Project): Icon | undefined {
   flex-direction: column;
   width: 100%;
   min-width: 0;
+  flex-shrink: 1000000;
 }
 .tablist {
   background-color: rgba(0, 0, 0, 0.1);

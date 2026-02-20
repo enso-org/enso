@@ -60,7 +60,6 @@ export function createUsersMeQuery(
         return null
       }
 
-      console.trace('USERS ME')
       const user = await remoteBackend.usersMe()
       if (user == null) {
         void setUsername(sessionVal.email)
