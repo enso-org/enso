@@ -39,11 +39,10 @@ const fullscreenRoot = shallowRef<HTMLElement>()
 
 const openedProjects = useOpenedProjects()
 const containerData = useContainerData()
-const { openProjectLocally, openSettingsTab, closeCurrentTab } = containerData
-const currentTab = toRef(containerData, 'currentTab')
+const { setFocusedPanel, openProjectLocally, openSettingsTab, closeCurrentTab } = containerData
 const anyTabs = computed(() => containerData.tabList.length > 0)
 provideAsyncResources(openedProjects)
-provideRightPanelData(toRef(containerData, 'focusedPanel'), currentTab, props.isFeatureUnderPaywall)
+provideRightPanelData(toRef(containerData, 'focusedPanel'), props.isFeatureUnderPaywall)
 provideFullscreenRoot(fullscreenRoot)
 
 const actionHandlers = registerHandlers({
@@ -58,6 +57,11 @@ const keydownHandler = appContainerBindings.handler(
     (actionName) => actionHandlers[actionName].action,
   ),
 )
+
+function goToSettingsPage() {
+  openSettingsTab()
+  setFocusedPanel({ type: 'settings' })
+}
 
 const { globalEventRegistry } = useGlobalEventRegistry()
 useEvent(globalEventRegistry, 'keydown', (event) => {
@@ -96,7 +100,7 @@ onUnmounted(() => {
     <ContainerProviderForReact>
       <ModalWrapper />
       <div class="bar">
-        <UserBar :goToSettingsPage="openSettingsTab" @signOut="onSignOut" />
+        <UserBar :goToSettingsPage="goToSettingsPage" @signOut="onSignOut" />
       </div>
       <div class="mainView">
         <LeftPanel />

@@ -4,7 +4,6 @@ import { useBackends } from '$/providers/backends'
 import { proxyRefs, type ToValue } from '$/utils/reactivity'
 import { useSyncLocalStorage } from '@/composables/syncLocalStorage'
 import { createContextStore } from '@/providers'
-import type { Opt } from '@/util/data/opt'
 import type { Icon } from '@/util/iconMetadata/iconName'
 import { useQuery } from '@tanstack/vue-query'
 import { AssetType, ProjectId, type AnyAsset } from 'enso-common/src/services/Backend'
@@ -12,7 +11,7 @@ import { Err, Ok, type Result } from 'enso-common/src/utilities/data/result'
 import { encoding } from 'lib0'
 import { computed, reactive, readonly, ref, toValue, type Ref } from 'vue'
 import type { SuggestionId } from 'ydoc-shared/languageServerTypes/suggestions'
-import { panelKey, type Panel, type Tab } from './container'
+import { panelKey, type Panel } from './container'
 import { useText, type TextStore } from './text'
 
 /** Information about content of "Help" panel. */
@@ -49,7 +48,7 @@ interface RightPanelTabInfo {
 }
 
 function useRightPanelTabs(
-  currentTab: ToValue<Opt<Tab>>,
+  focusedPanel: ToValue<Panel>,
   rightPanelContext: Ref<RightPanelContext | undefined>,
   isFeatureUnderPaywall: (feature: PaywallFeatureName) => boolean,
   { textRef, getText }: TextStore,
@@ -121,7 +120,12 @@ function useRightPanelTabs(
       'documentation',
       {
         icon: 'docs',
-        enabled: Ok(),
+        enabled: computed(() => {
+          const panelType = toValue(focusedPanel).type
+          return panelType === 'project' || panelType === 'drive' ?
+              Ok()
+            : Err('Exclusive to Project and Drive panels')
+        }),
         title: textRef('docs'),
       },
     ],
@@ -130,7 +134,7 @@ function useRightPanelTabs(
       {
         icon: 'help',
         enabled: computed(() =>
-          toValue(currentTab)?.type === 'project' ? Ok() : Err('Exclusive to Project view'),
+          toValue(focusedPanel).type === 'project' ? Ok() : Err('Exclusive to Project'),
         ),
         title: 'Component help',
       },
@@ -144,15 +148,14 @@ export type RightPanelTabId =
 export type RightPanelData = ReturnType<typeof useRightPanel>
 
 function useRightPanel(
-  focusedPanel: ToValue<Opt<Panel>>,
-  currentContainerTab: ToValue<Opt<Tab>>,
+  focusedPanel: ToValue<Panel>,
   isFeatureUnderPaywall: (feature: PaywallFeatureName) => boolean,
   textStore: TextStore = useText(),
 ) {
   const { backendForType } = useBackends()
   const contextPerPanel = reactive(new Map<ReturnType<typeof panelKey>, RightPanelContext>())
   const context = computed(() => contextPerPanel.get(panelKey(toValue(focusedPanel))))
-  const allTabs = useRightPanelTabs(currentContainerTab, context, isFeatureUnderPaywall, textStore)
+  const allTabs = useRightPanelTabs(focusedPanel, context, isFeatureUnderPaywall, textStore)
   const fullscreen = ref(false)
   const temporaryTab = ref<RightPanelTabId>()
   const tab = ref<RightPanelTabId>()
@@ -168,7 +171,7 @@ function useRightPanel(
       if (state) {
         tab.value = state.tab
       } else {
-        tab.value = toValue(focusedPanel)?.type === 'project' ? 'documentation' : undefined
+        tab.value = toValue(focusedPanel).type === 'project' ? 'documentation' : undefined
       }
     },
   })

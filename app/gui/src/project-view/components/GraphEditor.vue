@@ -7,6 +7,7 @@ import {
   useSuggestionDbStore,
   useWidgetRegistry,
 } from '$/components/WithCurrentProject.vue'
+import { useContainerData } from '$/providers/container'
 import type { Node, NodeId } from '$/providers/openedProjects/graph'
 import { isInputNode, nodeId } from '$/providers/openedProjects/graph/graphDatabase'
 import type { RequiredImport } from '$/providers/openedProjects/module/imports'
@@ -80,6 +81,7 @@ import { analyzeConnectAround } from './GraphEditor/detaching'
 import { provideRenameSchedule } from './GraphEditor/widgets/WidgetFunctionName.vue'
 
 const keyboard = injectKeyboard()
+const container = useContainerData()
 const rightPanel = useRightPanelData()
 const projectStore = useProjectStore()
 const projectNames = useProjectNames()

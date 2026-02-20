@@ -4,10 +4,11 @@ import { useOpenedProjects, type Project } from '$/providers/openedProjects'
 import GrowingSpinner from '@/components/shared/GrowingSpinner.vue'
 import type { SpinnerPhase } from '@/components/shared/LoadingSpinner.vue'
 import type { Icon } from '@/util/iconMetadata/iconName'
-import { computed, toRefs } from 'vue'
+import { computed, ref, toRefs, watchEffect } from 'vue'
 import SelectableTab from './SelectableTab.vue'
 
-const { isCurrentTab, currentTab, tabList, closeTab } = toRefs(useContainerData())
+const { isCurrentTab, currentTab, tabList, closeTab, focusedPanel, setFocusedPanel } =
+  toRefs(useContainerData())
 const openedProjects = useOpenedProjects()
 
 type TabViewInfo = Tab & {
@@ -67,10 +68,18 @@ function projectIcon(project: Project): Icon | undefined {
   }
   return 'graph_editor'
 }
+
+const isFocused = ref(false)
+
+watchEffect(() => {
+  if ((isFocused.value || focusedPanel.value.type !== 'drive') && currentTab.value != null) {
+    setFocusedPanel.value(currentTab.value)
+  }
+})
 </script>
 
 <template>
-  <div class="MiddlePanel">
+  <div class="MiddlePanel" tabindex="-1" @focusin="isFocused = true" @focusout="isFocused = false">
     <div class="tablist" role="tablist">
       <SelectableTab
         v-for="tab in tabsViewInfos"

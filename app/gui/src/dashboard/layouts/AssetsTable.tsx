@@ -69,6 +69,7 @@ import type { SortInfo } from '#/utilities/sorting'
 import { twMerge } from '#/utilities/tailwindMerge'
 import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { useFullUserSession, useLocalStorage, useText } from '$/providers/react'
+import { useVueValue } from '$/providers/react/common'
 import { useContainerData, useRightPanelData } from '$/providers/react/container'
 import { useFeatureFlag } from '$/providers/react/featureFlags'
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
@@ -98,6 +99,7 @@ import {
   isValidElement,
   memo,
   startTransition,
+  useCallback,
   useEffect,
   useMemo,
   useRef,
@@ -166,7 +168,9 @@ function AssetsTable(props: AssetsTableProps) {
 
   const contextMenuRef = useRef<ContextMenuApi>(null)
   const { category, associatedBackend: backend } = useCategoriesAPI()
-  const { openProjectLocally } = useContainerData()
+  const containerData = useContainerData()
+  const { openProjectLocally } = containerData
+  const focusedPanel = useVueValue(useCallback(() => containerData.focusedPanel, [containerData]))
   const setCanDownload = useSetCanDownload()
   const setSuggestions = useSetSuggestions()
 
@@ -1232,7 +1236,7 @@ function AssetsTable(props: AssetsTableProps) {
             }}
             ref={(el) => {
               rootRef.current = el
-              if (document.activeElement === document.body) {
+              if (document.activeElement === document.body && focusedPanel.type === 'drive') {
                 el?.focus()
               }
             }}

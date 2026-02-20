@@ -4,7 +4,7 @@ import type { Opt } from '@/util/data/opt'
 import { createGlobalState } from '@vueuse/core'
 import { BackendType, isProjectId, Plan } from 'enso-common/src/services/Backend'
 import { Err } from 'enso-common/src/utilities/data/result'
-import { computed, onScopeDispose, reactive, ref, watchEffect } from 'vue'
+import { computed, onScopeDispose, reactive, readonly, ref, watchEffect } from 'vue'
 import { useRoute, useRouter, type RouteLocation, type RouteLocationRaw } from 'vue-router'
 import * as z from 'zod'
 import { useAuth } from './auth'
@@ -98,7 +98,7 @@ function createContainerStore() {
   const modesForBackend = useModesForBackend()
   const tabs = reactive(new Map<PanelKey, Tab>())
   const visitingOrder = reactive(new Set<PanelKey>())
-  const focusedPanel = ref<Panel>()
+  const focusedPanel = ref<Panel>({ type: 'drive' })
 
   const currentTab = computed<Tab | null>({
     get: () => tabFromRoute(route),
@@ -201,6 +201,13 @@ function createContainerStore() {
     if (currentTab.value != null) closeTab(currentTab.value)
   }
 
+  function setFocusedPanel(panel: Panel) {
+    if (!panelEquals(panel, focusedPanel.value)) {
+      console.debug('Setting focusedPanel', panelKey(panel))
+      focusedPanel.value = panel
+    }
+  }
+
   /**
    * Read and restore projects from local storage, and then keep the storage up-to-date about
    * currently opened projects.
@@ -236,11 +243,14 @@ function createContainerStore() {
   const stopSyncing = syncWithLocalStorage()
   onScopeDispose(stopSyncing)
 
+  watchEffect(() => console.debug('FOCUS', JSON.stringify(focusedPanel.value)))
+
   return proxyRefs({
     currentTab,
     nextTab,
     tabList,
-    focusedPanel,
+    focusedPanel: readonly(focusedPanel),
+    setFocusedPanel,
     leftPanelWidth,
     rightPanelWidth,
     isTabOpened,
