@@ -76,10 +76,20 @@ watchEffect(() => {
     setFocusedPanel.value(currentTab.value)
   }
 })
+
+const cssClass = computed(() => ({
+  focusedPanel: isCurrentTab.value(focusedPanel.value),
+}))
 </script>
 
 <template>
-  <div class="MiddlePanel" tabindex="-1" @focusin="isFocused = true" @focusout="isFocused = false">
+  <div
+    class="MiddlePanel"
+    :class="cssClass"
+    tabindex="-1"
+    @focusin="isFocused = true"
+    @focusout="isFocused = false"
+  >
     <div class="tablist" role="tablist">
       <SelectableTab
         v-for="tab in tabsViewInfos"

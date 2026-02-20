@@ -127,7 +127,7 @@ function createContainerStore() {
     return tabs.has(panelKey(tab))
   }
 
-  function isCurrentTab(tab: Tab) {
+  function isCurrentTab(tab: Panel) {
     return panelEquals(tab, currentTab.value)
   }
 

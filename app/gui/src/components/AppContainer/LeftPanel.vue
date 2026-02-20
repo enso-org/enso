@@ -8,17 +8,21 @@ import { Vec2 } from '@/util/data/vec2'
 import { computed, toRef, useTemplateRef } from 'vue'
 import { Drive } from './reactTabs'
 
-const width = toRef(useContainerData(), 'leftPanelWidth')
+const containerData = useContainerData()
+const width = toRef(containerData, 'leftPanelWidth')
 
 const root = useTemplateRef('root')
 const size = useResizeObserver(root)
 const bounds = computed(() => new Rect(Vec2.Zero, size.value))
+const cssClass = computed(() => ({
+  focusedPanel: containerData.focusedPanel.type === 'drive',
+}))
 const style = computed(() => (width.value == null ? {} : { width: `${width.value}px` }))
 </script>
 
 <template>
   <SizeTransition width :duration="250">
-    <div ref="root" class="LeftPanel" :style="style">
+    <div ref="root" class="LeftPanel" :class="cssClass" :style="style">
       <Drive />
       <div class="shadow" />
       <ResizeHandles right :modelValue="bounds" @update:modelValue="width = $event.width" />
