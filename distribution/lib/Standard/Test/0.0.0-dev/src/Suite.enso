@@ -93,10 +93,10 @@ type Suite
                 case group.is_pending of
                     False ->
                         results = Helpers.run_specs_from_group specs group progress_reporter
-                        Test_Reporter.print_report results config junit_sb_builder
+                        Test_Reporter.print_report IO.println results config junit_sb_builder
                         all_results_bldr.append_vector_range results
                     True ->
-                        Test_Reporter.print_pending_group group config junit_sb_builder
+                        Test_Reporter.print_pending_group IO.println group config junit_sb_builder
 
         all_results = all_results_bldr.to_vector
         succ_tests = all_results.filter (r-> r.is_success) . length
