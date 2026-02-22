@@ -1,8 +1,8 @@
 import { useAuth } from '$/providers/auth'
 import { useBackends } from '$/providers/backends'
+import { useConfig } from '$/providers/config'
 import { useOpenedProjects } from '$/providers/openedProjects'
 import { backendQueryOptions } from '@/composables/backend'
-import { injectGuiConfig } from '@/providers/guiConfig'
 import { onlineManager, useQueryClient } from '@tanstack/vue-query'
 import {
   AssetType,
@@ -39,7 +39,6 @@ export async function openProjectFromPath(to: RouteLocation) {
     to.params.path == 'settings'
   )
     return
-  const auth = useAuth()
   const { localBackend, remoteBackend } = useBackends()
   const queryClient = useQueryClient()
   const openedProjects = useOpenedProjects()
@@ -59,7 +58,6 @@ export async function openProjectFromPath(to: RouteLocation) {
 
   const backend = isRemoteAssetPath(path) ? remoteBackend : localBackend
   if (backend == null) return
-  await auth.waitForSession()
   const resolvedPath = await backend.resolveEnsoPath(path).catch(() => null)
   const typedAsset = resolvedPath && extractTypeFromId(resolvedPath.id)
   if (typedAsset?.type !== AssetType.project) return
@@ -113,7 +111,7 @@ export async function maybeRedirectToProject(to: RouteLocation): Promise<Navigat
   if (to.params.path) return
 
   const backends = useBackends()
-  const config = injectGuiConfig()
+  const config = useConfig()
   const auth = useAuth()
   await auth.waitForSession()
 

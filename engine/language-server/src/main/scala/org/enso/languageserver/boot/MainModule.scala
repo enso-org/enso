@@ -521,7 +521,7 @@ class MainModule(serverConfig: LanguageServerConfig, logLevel: Level) {
       BinaryEncoder.empty,
       new BinaryConnectionControllerFactory(fileManager)(system),
       BinaryWebSocketServer.Config(
-        outgoingBufferSize = 100,
+        outgoingBufferSize = 1024,
         lazyMessageTimeout = 10.seconds,
         secureConfig       = secureConfig
       ),

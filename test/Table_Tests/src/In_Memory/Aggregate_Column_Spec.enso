@@ -1,5 +1,4 @@
 from Standard.Base import all
-import Standard.Base.Errors.Illegal_Argument.Illegal_Argument
 
 from Standard.Table import Aggregate_Column, Table
 
@@ -31,10 +30,8 @@ add_specs suite_builder = suite_builder.group "Aggregate Columns" group_builder-
             Aggregate_Column_Helper.default_aggregate_column_name resolved
         name . should_equal expected_name
 
-        result =
-            acc = Aggregate_Column_Helper.java_aggregator "Name" resolved
-            indexes = Vector.new table.row_count v->v
-            Illegal_Argument.handle_java_exception <| acc.aggregateWithProblems indexes
+        indexes = Vector.new table.row_count v->v
+        result = Aggregate_Column_Helper.invoke_java_aggregator "Name" resolved indexes
 
         if epsilon != False then ((result - expected_result).abs < epsilon).should_be_true else
             result.should_equal expected_result

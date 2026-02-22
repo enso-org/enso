@@ -6,7 +6,7 @@ import org.slf4j.LoggerFactory
 import org.enso.common.CachePreferences
 import org.enso.compiler.{data, CompilerResult}
 import org.enso.compiler.context._
-import org.enso.compiler.core.Implicits.AsMetadata
+import org.enso.compiler.Implicits.AsMetadata
 import org.enso.compiler.core.{ExternalID, IR}
 import org.enso.compiler.core.ir
 import org.enso.compiler.core.ir.{expression, Location}

@@ -11,7 +11,6 @@
  */
 import * as React from 'react'
 
-import * as reactQuery from '@tanstack/react-query'
 import * as toastify from 'react-toastify'
 import * as z from 'zod'
 
@@ -25,16 +24,12 @@ import { RouterProvider } from 'react-aria-components'
 
 import { AboutModal } from '#/modals/AboutModal'
 
-import { RemoteBackend } from 'enso-common/src/services/RemoteBackend'
-
 import * as eventModule from '#/utilities/event'
 import LocalStorage from '#/utilities/LocalStorage'
 
-import { useOffline } from '#/hooks/offlineHooks'
 import type { ModalApi } from '#/utilities/modal'
-import { useMutationCallback } from '#/utilities/tanstackQuery'
 import { unsafeWriteValue } from '#/utilities/write'
-import { useRouter, useText } from '$/providers/react'
+import { useRouter } from '$/providers/react'
 import { useFeatureFlag } from '$/providers/react/featureFlags'
 
 declare module '#/utilities/LocalStorage' {
@@ -62,28 +57,6 @@ window.api?.menu.setMenuItemHandler('about', () => {
  * routes. It also initializes an `AuthProvider` that will be used by the rest of the app.
  */
 export default function App(props: React.PropsWithChildren) {
-  const { isOffline } = useOffline()
-  const { getText } = useText()
-  const queryClient = reactQuery.useQueryClient()
-
-  const executeBackgroundUpdate = useMutationCallback({
-    mutationKey: ['refetch-queries', { isOffline }],
-    scope: { id: 'refetch-queries' },
-    mutationFn: () => queryClient.refetchQueries({ type: 'all', queryKey: [RemoteBackend.type] }),
-    networkMode: 'online',
-    onError: () => {
-      toastify.toast.error(getText('refetchQueriesError'), {
-        position: 'bottom-right',
-      })
-    },
-  })
-
-  React.useEffect(() => {
-    if (!isOffline) {
-      void executeBackgroundUpdate()
-    }
-  }, [executeBackgroundUpdate, isOffline])
-
   // `InputBindingsProvider` depends on `LocalStorageProvider`.
   // Note that the `Router` must be the parent of the `AuthProvider`, because the `AuthProvider`
   // will redirect the user between the login/register pages and the dashboard.

@@ -1,10 +1,10 @@
 package org.enso.compiler.pass.analyse;
 
 import java.util.List;
+import org.enso.compiler.Implicits;
 import org.enso.compiler.context.InlineContext;
 import org.enso.compiler.context.ModuleContext;
 import org.enso.compiler.core.IR;
-import org.enso.compiler.core.Implicits;
 import org.enso.compiler.core.ir.Expression;
 import org.enso.compiler.core.ir.Module;
 import org.enso.compiler.core.ir.Name;

@@ -300,6 +300,7 @@ public final class EnsoLanguage extends TruffleLanguage<EnsoContext> {
           new InlineContext(
               moduleContext,
               redirectConfigWithStrictErrors,
+              null,
               scala.Some.apply(localScope),
               scala.Some.apply(false),
               scala.Option.empty(),

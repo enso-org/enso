@@ -5,7 +5,7 @@
  * application. For example, if the user signs out, we want to clear the authentication state so
  * that the login screen is rendered.
  */
-import * as amplify from '@aws-amplify/core'
+import * as amplify from 'aws-amplify/utils'
 
 /** Name of the string identifying the "hub" that AWS Amplify issues authentication events on. */
 const AUTHENTICATION_HUB = 'auth'
@@ -20,11 +20,11 @@ export enum AuthEvent {
   /** Issued when the user has passed custom OAuth state parameters to some other auth event. */
   customOAuthState = 'customOAuthState',
   /** Issued when the user completes the sign-in process (via federated identity provider). */
-  cognitoHostedUi = 'cognitoHostedUI',
+  signInWithRedirect = 'signInWithRedirect',
   /** Issued when the user completes the sign-in process (via email/password). */
-  signIn = 'signIn',
+  signedIn = 'signedIn',
   /** Issued when the user signs out. */
-  signOut = 'signOut',
+  signedOut = 'signedOut',
 }
 
 /** Return `true` if the given `string` is an {@link AuthEvent}. */
@@ -53,10 +53,10 @@ type UnsubscribeFunction = () => void
 export type ListenFunction = (listener: ListenerCallback) => UnsubscribeFunction
 
 /** Listen to authentication state changes. */
-export function registerAuthEventListener(listener: ListenerCallback) {
+export function registerAuthEventListener(listener: ListenerCallback): () => void {
   return amplify.Hub.listen(AUTHENTICATION_HUB, (data) => {
     if (isAuthEvent(data.payload.event)) {
-      listener(data.payload.event, data.payload.data)
+      listener(data.payload.event)
     }
   })
 }

@@ -14,7 +14,10 @@ import com.oracle.truffle.api.library.CachedLibrary;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.Node;
+import com.oracle.truffle.api.nodes.RootNode;
 import com.oracle.truffle.api.source.SourceSection;
+import java.io.PrintStream;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Supplier;
@@ -95,6 +98,80 @@ public final class PanicException extends AbstractTruffleException {
       return computeMessage();
     }
     return cacheMessage;
+  }
+
+  @Override
+  public StackTraceElement[] getStackTrace() {
+    var arr = super.getStackTrace();
+    if (arr.length == 0) {
+      arr = toJavaStackTrace(this, false);
+      setStackTrace(arr);
+    }
+    return arr;
+  }
+
+  /**
+   * Extracts Truffle stack from provided exception and converts it into Java stack.
+   *
+   * @param t throwable to process
+   * @param useFqn should the method call {@link RootNode#getQualifiedName()} or just {@link
+   *     RootNode#getName()}?
+   * @return non-{@code null} array of Java stack trace elements representing the Truffle stack
+   */
+  public static StackTraceElement[] toJavaStackTrace(Throwable t, boolean useFqn) {
+    var trace = TruffleStackTrace.getStackTrace(t);
+    if (trace == null) {
+      return new StackTraceElement[0];
+    }
+    var collect = new ArrayList<StackTraceElement>();
+    for (var elem : trace) {
+      var node = elem.getInstrumentableLocation();
+      if (node == null) {
+        continue;
+      }
+      var root = node.getRootNode();
+      if (root == null) {
+        continue;
+      }
+      var name = useFqn ? root.getQualifiedName() : root.getName();
+      if (name == null) {
+        continue;
+      }
+      var info = root.getLanguageInfo();
+      var lang = info == null ? "" : "<" + info.getId() + ">";
+      var ss = node.getEncapsulatingSourceSection();
+      var java = new StackTraceElement(lang, name, fileName(ss), fileLine(ss));
+      collect.add(java);
+    }
+    return collect.toArray(StackTraceElement[]::new);
+  }
+
+  private static int fileLine(SourceSection ss) {
+    return ss == null ? -1 : ss.getStartLine();
+  }
+
+  private static String fileName(SourceSection ss) {
+    if (ss == null) {
+      return "Unknown";
+    }
+    var src = ss.getSource();
+    if (src.getPath() != null) {
+      return src.getPath();
+    } else {
+      return src.getName();
+    }
+  }
+
+  @Override
+  public void printStackTrace(PrintStream s) {
+    getStackTrace();
+    super.printStackTrace(s);
+  }
+
+  @Override
+  public void printStackTrace(PrintWriter s) {
+    getStackTrace();
+    super.printStackTrace(s);
   }
 
   /**

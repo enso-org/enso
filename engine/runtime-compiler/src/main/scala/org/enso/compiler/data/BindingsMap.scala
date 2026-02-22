@@ -3,7 +3,7 @@ package org.enso.compiler.data
 import org.enso.compiler.PackageRepository
 import org.enso.compiler.PackageRepository.ModuleMap
 import org.enso.compiler.context.CompilerContext.Module
-import org.enso.compiler.core.Implicits.AsMetadata
+import org.enso.compiler.Implicits.AsMetadata
 import org.enso.compiler.core.{ir, CompilerError}
 import org.enso.compiler.core.ir.expression.errors
 import org.enso.compiler.core.ir.module.scope.Definition

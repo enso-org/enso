@@ -10,6 +10,8 @@ import {
   RESTORE_USER_PATH,
   SUBSCRIBE_PATH,
 } from '$/appUtils'
+import { useAuth } from '$/providers/auth'
+import { useConfig } from '$/providers/config'
 import { flagsStore } from '$/providers/featureFlags'
 import { withDataLoader } from '$/router/dataLoader'
 import { maybeRedirectToProject, openProjectFromPath } from '$/router/initialProject'
@@ -114,6 +116,16 @@ const routes = [
 const router = createRouter({
   history: createWebHistory(),
   routes,
+})
+
+router.beforeEach(async () => {
+  const config = useConfig()
+  await config.waitForRemoteConfig()
+})
+router.beforeEach(async (to, from) => {
+  if (to.meta.access !== from.meta.access) {
+    await useAuth().waitForSession()
+  }
 })
 
 router.beforeEach(openProjectFromPath)

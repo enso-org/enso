@@ -7,13 +7,15 @@ import {
   downloadAssetsMutationOptions,
   restoreAssetsMutationOptions,
 } from '#/hooks/backendBatchedHooks'
-import { useNewProject } from '#/hooks/backendHooks'
+import { backendMutationOptions, useNewProject } from '#/hooks/backendHooks'
 import {
   isUploadableAsset,
   useUploadFileToCloud,
   useUploadFileToLocal,
 } from '#/hooks/backendUploadFilesHooks'
+import { usePaywall } from '#/hooks/billing'
 import { useCopy } from '#/hooks/copyHooks'
+import { useLocalStorageState } from '#/hooks/localStoreState'
 import { defineMenuEntry, useMenuEntries } from '#/hooks/menuHooks'
 import * as categoryModule from '#/layouts/CategorySwitcher/Category'
 import { useGetAsset } from '#/layouts/Drive/assetsTableItemsHooks'
@@ -30,13 +32,17 @@ import { useVueValue } from '$/providers/react/common'
 import { useRightPanelData } from '$/providers/react/container'
 import * as featureFlagsProvider from '$/providers/react/featureFlags'
 import { useOpenedProjects } from '$/providers/react/openedProjects'
+import { getLocalTimeZone, now } from '@internationalized/date'
 import * as backendModule from 'enso-common/src/services/Backend'
 import {
   TEAMS_DIRECTORY_ID,
   USERS_DIRECTORY_ID,
 } from 'enso-common/src/services/Backend/remoteBackendPaths'
+import { IanaTimeZone, toRfc3339 } from 'enso-common/src/utilities/data/dateTime'
 import * as permissions from 'enso-common/src/utilities/permissions'
 import * as React from 'react'
+
+const MAX_DURATION_MAXIMUM_MINUTES = 180
 
 /** Props for a {@link AssetContextMenu}. */
 export interface AssetContextMenuProps {
@@ -62,9 +68,12 @@ export const AssetContextMenu = React.forwardRef(function AssetContextMenu(
   const { router } = useRouter()
   const { localCategories } = useCategories()
   const driveStore = useDriveStore()
+  const [preferredTimeZone] = useLocalStorageState('preferredTimeZone')
+  const timeZone = IanaTimeZone(preferredTimeZone ?? getLocalTimeZone())
 
   const getAsset = useGetAsset()
   const { user } = useFullUserSession()
+  const { isFeatureUnderPaywall } = usePaywall({ plan: user.plan })
   const { localBackend } = useBackends()
   const { getText } = useText()
   const {
@@ -98,6 +107,9 @@ export const AssetContextMenu = React.forwardRef(function AssetContextMenu(
   const exportArchive = useExportArchive({ backend })
   const disabledTooltip = !canOpenLocally ? getText('downloadToOpenWorkflow') : undefined
   const showDeveloperIds = featureFlagsProvider.useFeatureFlag('showDeveloperIds')
+  const createProjectExecution = useMutationCallback(
+    backendMutationOptions(backend, 'createProjectExecution'),
+  )
 
   const newProject = useNewProject(backend, category)
 
@@ -254,6 +266,26 @@ export const AssetContextMenu = React.forwardRef(function AssetContextMenu(
             doAction: () => {
               void goToDrive()
               openProjectNatively(asset, backend.type)
+            },
+          },
+        asset.type === backendModule.AssetType.project &&
+          isCloud && {
+            action: 'runAsTask',
+            isDisabled: isFeatureUnderPaywall('scheduler'),
+            doAction: () => {
+              const startDateTime = toRfc3339(new Date(now(timeZone).toAbsoluteString()))
+              void createProjectExecution([
+                {
+                  startDate: startDateTime,
+                  endDate: null,
+                  parallelMode: 'ignore',
+                  maxDurationMinutes: MAX_DURATION_MAXIMUM_MINUTES,
+                  repeat: { type: 'none' },
+                  projectId: asset.id,
+                  timeZone,
+                },
+                asset.title,
+              ])
             },
           },
         asset.type === backendModule.AssetType.project &&

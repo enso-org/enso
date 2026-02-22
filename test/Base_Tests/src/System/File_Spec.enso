@@ -16,7 +16,7 @@ from Standard.Test import all
 import Standard.Test.Test_Environment
 
 import project.Data.Data_Spec
-from project.Utils import create_tmp_dir
+from project.Enso_Bin_Utils import create_tmp_dir
 
 ## We rely on a less strict equality for `File` as it is fine if a relative file gets resolved to absolute.
 File.should_equal self other = Frame_Hider.hide <|

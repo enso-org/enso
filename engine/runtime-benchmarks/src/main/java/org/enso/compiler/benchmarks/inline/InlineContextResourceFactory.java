@@ -22,6 +22,7 @@ public record InlineContextResourceFactory(
         moduleScope.getModule().asCompilerModule(),
         scala.Option.apply(false),
         ensoCtx.getCompilerConfig(),
-        scala.Option.apply(pkgRepository));
+        scala.Option.apply(pkgRepository),
+        null);
   }
 }

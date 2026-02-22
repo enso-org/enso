@@ -49,7 +49,7 @@ public class Row {
     return column == null ? ifMissing.apply(name) : column.getItem(rowIndex);
   }
 
-  public String toJsonData(Function<Object, String> ensoJsonCallback) {
+  public String toJsonData() {
     StringBuilder sb = new StringBuilder();
     sb.append("{");
     for (int i = 0; i < column_count(); i++) {
@@ -58,9 +58,9 @@ public class Row {
       }
       String name = table.getColumns()[i].getName();
       Object value = get_value(i, null);
-      sb.append(JsonOperation.objectToJson(name, ensoJsonCallback))
+      sb.append(JsonOperation.objectToJson(name))
           .append(":")
-          .append(JsonOperation.objectToJson(value, ensoJsonCallback));
+          .append(JsonOperation.objectToJson(value));
     }
     sb.append("}");
     return sb.toString();
